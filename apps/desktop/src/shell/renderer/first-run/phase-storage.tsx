@@ -1,11 +1,9 @@
 // First-Run Phase 1 — Storage.
 //
-// Presents the `data_root_missing` user-action state: the user picks the
-// folder where Nimi keeps models and data. The fast `config_missing` system
-// state folds in here as a subtle inline loading affordance — it never gets
-// its own boxed screen. The folder picker is the OS native directory dialog
-// (no raw absolute-path text field); the chosen absolute path is recorded by
-// the existing `selectProductDataRoot` bridge call.
+// Presents the complete Product Control storage flow. `data_root_missing`
+// selects a folder; `data_root_selected` keeps that selection visible and
+// offers Change, Retry, and Continue while backend admission validates the
+// Product Control prerequisites. AI setup is not part of this flow.
 
 import type { ReactElement } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -15,13 +13,18 @@ import { FolderIcon } from './first-run-icons.js';
 type PhaseStorageProps = {
   /** True when the phase is in its transient `config_missing` loading state. */
   readonly transient: boolean;
+  readonly mode: 'missing' | 'selected';
   /** The absolute path chosen so far, or null when none has been picked. */
   readonly pickedPath: string | null;
   /** Whether a bridge action (picker / record) is in flight. */
   readonly busy: boolean;
   /** Opens the OS native directory picker. */
   readonly onChooseFolder: () => void;
-  /** Records the picked path through `selectProductDataRoot`. */
+  /** Replaces the recorded data root through the native directory picker. */
+  readonly onChangeFolder: () => void;
+  /** Retries backend Product Control admission. */
+  readonly onRetry: () => void;
+  /** Records a candidate or requests backend Product Control admission. */
   readonly onContinue: () => void;
 };
 
@@ -50,19 +53,28 @@ export function PhaseStorage(props: PhaseStorageProps): ReactElement {
   }
 
   const hasPath = Boolean(props.pickedPath && props.pickedPath.trim());
+  const selected = props.mode === 'selected';
 
   return (
     <div data-testid="first-run-phase-storage" data-phase-transient="false" className="flex flex-col gap-7">
       <header className="flex flex-col gap-2 text-center">
         <h2 className="text-xl font-semibold text-[var(--nimi-text-primary)]">
-          {t('FirstRun.storage.heading', {
-            defaultValue: 'Where should Nimi keep your models and data?',
-          })}
+          {selected
+            ? t('FirstRun.storage.selectedHeading', {
+                defaultValue: 'Confirm where Nimi stores its local data.',
+              })
+            : t('FirstRun.storage.heading', {
+                defaultValue: 'Choose where Nimi stores models, apps, and large local data.',
+              })}
         </h2>
         <p className="text-sm text-[var(--nimi-text-secondary)]">
-          {t('FirstRun.storage.subline', {
-            defaultValue: "We'll store everything locally on your device.",
-          })}
+          {selected
+            ? t('FirstRun.storage.selectedSubline', {
+                defaultValue: 'Continue to validate the selected folder and finish Product Control setup.',
+              })
+            : t('FirstRun.storage.subline', {
+                defaultValue: 'Nimi keeps models, apps, and large local data in the folder you select.',
+              })}
         </p>
       </header>
 
@@ -93,15 +105,28 @@ export function PhaseStorage(props: PhaseStorageProps): ReactElement {
         <Button
           type="button"
           tone="secondary"
-          data-testid="first-run-storage-choose-folder"
+          data-testid={selected ? 'first-run-storage-change-folder' : 'first-run-storage-choose-folder'}
           disabled={props.busy}
-          onClick={props.onChooseFolder}
+          onClick={selected ? props.onChangeFolder : props.onChooseFolder}
         >
-          {t('FirstRun.storage.chooseFolder', { defaultValue: 'Choose folder…' })}
+          {selected
+            ? t('FirstRun.storage.changeFolder', { defaultValue: 'Change folder…' })
+            : t('FirstRun.storage.chooseFolder', { defaultValue: 'Choose folder…' })}
         </Button>
       </div>
 
-      <div className="flex justify-end">
+      <div className="flex justify-end gap-3">
+        {selected ? (
+          <Button
+            type="button"
+            tone="secondary"
+            data-testid="first-run-storage-retry"
+            disabled={props.busy}
+            onClick={props.onRetry}
+          >
+            {t('FirstRun.storage.retry', { defaultValue: 'Retry validation' })}
+          </Button>
+        ) : null}
         <Button
           type="button"
           tone="primary"
@@ -110,7 +135,9 @@ export function PhaseStorage(props: PhaseStorageProps): ReactElement {
           disabled={props.busy || !hasPath}
           onClick={props.onContinue}
         >
-          {t('FirstRun.continue', { defaultValue: 'Continue' })}
+          {selected
+            ? t('FirstRun.storage.finish', { defaultValue: 'Continue' })
+            : t('FirstRun.continue', { defaultValue: 'Continue' })}
         </Button>
       </div>
     </div>

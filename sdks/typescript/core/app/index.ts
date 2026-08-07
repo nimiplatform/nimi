@@ -3,7 +3,6 @@ import {
   validateNimiAppInventoryEntry,
   validateNimiAppStatus,
 } from './inventory-types.js';
-import type { NimiAppAIProfileFactoryRow } from './ai-profile-factory.generated.js';
 import type { NimiAppScopeRef } from './app-scope.js';
 import type {
   NimiAppInventoryEntry,
@@ -101,7 +100,6 @@ export {
 export type { NimiAppAIProfileFactoryRow } from './ai-profile-factory.generated.js';
 export * from './inventory-types.js';
 export type { NimiAppScopeKind, NimiAppScopeRef } from './app-scope.js';
-export type NimiFirstRunInstallLevel = 'minimal' | 'recommended';
 
 export class NimiAppClient {
   constructor(private readonly transport: NimiAppTransport) {
@@ -164,28 +162,6 @@ export function createAppScopeRef(input: {
     ownerId: requireText(input.appId, 'scope appId is required', 'SDK_APP_ID_REQUIRED', 'set_app_id'),
     ...(normalizeText(input.surfaceId) ? { surfaceId: normalizeText(input.surfaceId) } : {}),
   };
-}
-
-export function isAdmittedNimiFirstRunLocalBaseline(row: NimiAppAIProfileFactoryRow): boolean {
-  const levels = new Set(row.firstRunInstallLevels.map((level) => level.trim().toLowerCase()));
-  if (!levels.has('minimal') && !levels.has('recommended')) return false;
-  if (!row.applicableScopes.includes('first-run')) return false;
-  if (row.computePosture === 'cloud-only') return false;
-  if (row.routingPolicy === 'cloud-first' || row.routingPolicy === 'hybrid-explicit') return false;
-  if (row.capabilitySet.includes('video.generate')) return false;
-  return row.localComputePackRefs.length > 0 && row.dependencyFamilyRefs.length > 0;
-}
-
-export function selectNimiAppFactoryAIProfileForFirstRun(
-  rows: readonly NimiAppAIProfileFactoryRow[],
-  installLevel: NimiFirstRunInstallLevel = 'minimal',
-): NimiAppAIProfileFactoryRow | null {
-  const candidates = rows.filter((row) =>
-    isAdmittedNimiFirstRunLocalBaseline(row) && row.firstRunInstallLevels.includes(installLevel));
-  if (installLevel === 'recommended') {
-    return candidates.find((row) => !row.firstRunInstallLevels.includes('minimal')) ?? candidates[0] ?? null;
-  }
-  return candidates[0] ?? null;
 }
 
 function normalizeText(value: unknown): string {

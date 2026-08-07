@@ -87,40 +87,6 @@ export async function pickProductDataRootDirectory(): Promise<string | null> {
   }));
 }
 
-export async function setProductFirstRunInstallLevel(input: {
-  installLevel: 'minimal' | 'recommended';
-  aiProfileAlias?: string | null;
-}): Promise<NimiProductControlRecordProjection> {
-  if (hasElectronInvoke()) {
-    return invokeChecked('product_control_record_set_first_run_install_level', {
-      payload: input,
-    }, parseNimiProductControlRecordProjection);
-  }
-  throw new Error('product_control_record_set_first_run_install_level requires standard shell Runtime');
-}
-
-export async function reconcileProductFirstRunSetupState(): Promise<NimiProductControlRecordProjection> {
-  if (hasElectronInvoke()) {
-    return invokeChecked(
-      'product_control_record_reconcile_first_run_setup_state',
-      {},
-      parseNimiProductControlRecordProjection,
-    );
-  }
-  throw new Error('product_control_record_reconcile_first_run_setup_state requires standard shell Runtime');
-}
-
-export async function completeProductFirstRunDeviceEnvironmentScan(): Promise<NimiProductControlRecordProjection> {
-  if (hasElectronInvoke()) {
-    return invokeChecked(
-      'product_control_record_complete_first_run_device_environment_scan',
-      {},
-      parseNimiProductControlRecordProjection,
-    );
-  }
-  throw new Error('product_control_record_complete_first_run_device_environment_scan requires standard shell Runtime');
-}
-
 /**
  * Requests Runtime product-control admission of `ready_for_use`.
  *

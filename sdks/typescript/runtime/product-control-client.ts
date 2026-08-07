@@ -8,7 +8,6 @@ import type {
   NimiRuntimeProductControlCallOptions,
   NimiRuntimeProductControlClientFor,
   NimiRuntimeProductControlDataRootSelectionInput,
-  NimiRuntimeProductControlFirstRunInstallLevelInput,
   NimiRuntimeProductControlLocalClient,
 } from './product-control-types';
 
@@ -58,42 +57,11 @@ export async function selectNimiRuntimeProductControlDataRoot(
   return parseNimiProductControlProjectionJson(response);
 }
 
-export async function setNimiRuntimeProductControlFirstRunInstallLevel(
-  client: NimiRuntimeProductControlClientFor<'setProductControlFirstRunInstallLevel'>,
-  input: NimiRuntimeProductControlFirstRunInstallLevelInput,
-  options?: NimiRuntimeProductControlCallOptions,
-): Promise<NimiProductControlRecordProjection> {
-  const response = await runtimeNimiProductControlLocalClient(client)
-    .setProductControlFirstRunInstallLevel({
-      installLevel: input.installLevel,
-      aiProfileAlias: input.aiProfileAlias,
-    }, options?.callOptions);
-  return parseNimiProductControlProjectionJson(response);
-}
-
-export async function completeNimiRuntimeProductControlFirstRunDeviceEnvironmentScan(
-  client: NimiRuntimeProductControlClientFor<'completeProductControlFirstRunDeviceEnvironmentScan'>,
-  options?: NimiRuntimeProductControlCallOptions,
-): Promise<NimiProductControlRecordProjection> {
-  const response = await runtimeNimiProductControlLocalClient(client)
-    .completeProductControlFirstRunDeviceEnvironmentScan({}, options?.callOptions);
-  return parseNimiProductControlProjectionJson(response);
-}
-
 export async function admitNimiRuntimeProductControlReadyForUse(
   client: NimiRuntimeProductControlClientFor<'admitProductControlReadyForUse'>,
   options?: NimiRuntimeProductControlCallOptions,
 ): Promise<NimiProductControlRecordProjection> {
   const response = await runtimeNimiProductControlLocalClient(client)
     .admitProductControlReadyForUse({}, options?.callOptions);
-  return parseNimiProductControlProjectionJson(response);
-}
-
-export async function reconcileNimiRuntimeProductControlFirstRunSetupState(
-  client: NimiRuntimeProductControlClientFor<'reconcileProductControlFirstRunSetupState'>,
-  options?: NimiRuntimeProductControlCallOptions,
-): Promise<NimiProductControlRecordProjection> {
-  const response = await runtimeNimiProductControlLocalClient(client)
-    .reconcileProductControlFirstRunSetupState({}, options?.callOptions);
   return parseNimiProductControlProjectionJson(response);
 }

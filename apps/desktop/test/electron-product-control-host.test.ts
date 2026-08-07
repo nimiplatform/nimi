@@ -5,7 +5,6 @@ import {
   AdmitProductControlReadyForUseRequest,
   ProductControlProjectionJson,
   SelectProductControlDataRootRequest,
-  SetProductControlFirstRunInstallLevelRequest,
 } from '../../../sdks/typescript/core-generated/runtime-protobuf/runtime/v1/local_runtime';
 import {
   createDesktopElectronProductControlHost,
@@ -16,9 +15,6 @@ const GET_RECORD = '/nimi.runtime.v1.RuntimeLocalService/GetProductControlRecord
 const GET_SELECTED_DATA_ROOT = '/nimi.runtime.v1.RuntimeLocalService/GetProductControlSelectedDataRoot';
 const ENSURE_RECORD = '/nimi.runtime.v1.RuntimeLocalService/EnsureProductControlRecordCreated';
 const SELECT_DATA_ROOT = '/nimi.runtime.v1.RuntimeLocalService/SelectProductControlDataRoot';
-const COMPLETE_DEVICE_SCAN = '/nimi.runtime.v1.RuntimeLocalService/CompleteProductControlFirstRunDeviceEnvironmentScan';
-const SET_INSTALL_LEVEL = '/nimi.runtime.v1.RuntimeLocalService/SetProductControlFirstRunInstallLevel';
-const RECONCILE_SETUP = '/nimi.runtime.v1.RuntimeLocalService/ReconcileProductControlFirstRunSetupState';
 const ADMIT_READY = '/nimi.runtime.v1.RuntimeLocalService/AdmitProductControlReadyForUse';
 
 function projectionJson(state = 'data_root_selected'): string {
@@ -40,8 +36,6 @@ function projectionJson(state = 'data_root_selected'): string {
         verifiedAtUnixMs: 1,
       },
       firstRun: {
-        installLevel: 'minimal',
-        aiProfileAlias: 'local-speech-ready',
         completed: state === 'ready_for_use',
         completedAt: state === 'ready_for_use' ? '2026-07-14T00:00:00.000Z' : null,
       },
@@ -81,6 +75,9 @@ test('Electron Product Control maps direct commands and sends empty ready admiss
     Object.hasOwn(host.commandHandlers, 'account_profile_library_list'),
     false,
   );
+  assert.equal(Object.hasOwn(host.commandHandlers, 'product_control_record_set_first_run_install_level'), false);
+  assert.equal(Object.hasOwn(host.commandHandlers, 'product_control_record_complete_first_run_device_environment_scan'), false);
+  assert.equal(Object.hasOwn(host.commandHandlers, 'product_control_record_reconcile_first_run_setup_state'), false);
 
   await host.commandHandlers.product_control_record_get({ command: 'product_control_record_get', payload: {} });
   await host.commandHandlers.product_control_selected_data_root_get({
@@ -95,18 +92,6 @@ test('Electron Product Control maps direct commands and sends empty ready admiss
     command: 'product_control_record_select_data_root',
     payload: { payload: { dataRoot: '/Users/tester/NimiData' } },
   });
-  await host.commandHandlers.product_control_record_complete_first_run_device_environment_scan({
-    command: 'product_control_record_complete_first_run_device_environment_scan',
-    payload: {},
-  });
-  await host.commandHandlers.product_control_record_set_first_run_install_level({
-    command: 'product_control_record_set_first_run_install_level',
-    payload: { payload: { installLevel: 'minimal', aiProfileAlias: 'local-speech-ready' } },
-  });
-  await host.commandHandlers.product_control_record_reconcile_first_run_setup_state({
-    command: 'product_control_record_reconcile_first_run_setup_state',
-    payload: {},
-  });
   const admitted = await host.commandHandlers.product_control_record_admit_ready_for_use({
     command: 'product_control_record_admit_ready_for_use',
     payload: {},
@@ -118,9 +103,6 @@ test('Electron Product Control maps direct commands and sends empty ready admiss
     GET_SELECTED_DATA_ROOT,
     ENSURE_RECORD,
     SELECT_DATA_ROOT,
-    COMPLETE_DEVICE_SCAN,
-    SET_INSTALL_LEVEL,
-    RECONCILE_SETUP,
     ADMIT_READY,
   ]);
   assert.equal(
@@ -128,11 +110,7 @@ test('Electron Product Control maps direct commands and sends empty ready admiss
     '/Users/tester/NimiData',
   );
   assert.deepEqual(
-    SetProductControlFirstRunInstallLevelRequest.fromBinary(calls[5]!.requestBytes),
-    { installLevel: 'minimal', aiProfileAlias: 'local-speech-ready' },
-  );
-  assert.deepEqual(
-    AdmitProductControlReadyForUseRequest.fromBinary(calls[7]!.requestBytes),
+    AdmitProductControlReadyForUseRequest.fromBinary(calls[4]!.requestBytes),
     {},
   );
 });

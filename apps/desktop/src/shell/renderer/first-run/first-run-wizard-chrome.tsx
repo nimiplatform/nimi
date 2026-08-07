@@ -4,7 +4,7 @@
 // light gradient background, the letter-spaced uppercase "NIMI" wordmark, the
 // Support pill, the slim step indicator, and the single centered
 // white card. The chrome owns no product-control state; it only places the
-// phase content the wizard hands it.
+// Product Control content the workflow hands it.
 
 import type { ReactElement, ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -13,16 +13,10 @@ import { SupportDegradedEntry } from '../features/support/support-degraded-entry
 
 const STEP_LABEL_KEYS: Record<NimiFirstRunPhase, string> = {
   storage: 'FirstRun.steps.storage',
-  'device-scan': 'FirstRun.steps.deviceScan',
-  'local-ai': 'FirstRun.steps.localAi',
-  setup: 'FirstRun.steps.setup',
 };
 
 const STEP_LABEL_DEFAULTS: Record<NimiFirstRunPhase, string> = {
   storage: 'Storage',
-  'device-scan': 'Device',
-  'local-ai': 'Local AI',
-  setup: 'Setup',
 };
 
 type FirstRunWizardChromeProps = {

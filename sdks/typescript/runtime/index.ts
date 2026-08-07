@@ -141,7 +141,6 @@ export * from './connector-inventory';
 export * from './cloud-ai-config.js';
 export * from './config-projections';
 export * from './external-agent';
-export * from './first-run-materialization';
 export * from './health-coordinator';
 export * from './local-asset-vocabulary';
 export * from './machine-local-ai-configuration.js';

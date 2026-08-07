@@ -37,18 +37,8 @@ export function createDesktopSimulatorProductControlPort(
     available: () => true,
     getRecord: async () => read(),
     ensureRecordCreated: async () => unavailable(),
-    reconcileSetupState: async () => unavailable(),
     pickDataRootDirectory: async () => unavailable(),
     selectDataRoot: async () => unavailable(),
-    completeDeviceEnvironmentScan: async () => unavailable(),
-    setInstallLevel: async () => unavailable(),
     admitReadyForUse: async () => unavailable(),
-    collectDeviceProfile: async () => unavailable(),
-    resolveMaterialization: async () => unavailable(),
-    startMaterialization: async () => unavailable(),
-    retryMaterializationJob: async () => unavailable(),
-    repairMaterializationDependency: async () => unavailable(),
-    cancelMaterializationJob: async () => unavailable(),
-    finalize: async () => unavailable(),
   });
 }

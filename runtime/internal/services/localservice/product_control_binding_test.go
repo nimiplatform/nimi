@@ -125,10 +125,8 @@ func productControlBindingRecordForTest(dataRoot string) map[string]any {
 			"verifiedAtUnixMs": 2,
 		},
 		"firstRun": map[string]any{
-			"installLevel":   nil,
-			"aiProfileAlias": nil,
-			"completed":      false,
-			"completedAt":    nil,
+			"completed":   false,
+			"completedAt": nil,
 		},
 		"pointers": map[string]any{"factoryProfileIndex": nil},
 		"repair":   map[string]any{"required": false, "reason": nil},

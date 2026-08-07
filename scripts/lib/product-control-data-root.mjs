@@ -16,11 +16,6 @@ const PRODUCT_CONTROL_STATES = new Set([
   'config_missing',
   'data_root_missing',
   'data_root_selected',
-  'ai_environment_unconfigured',
-  'local_ai_profile_selected_assets_missing',
-  'local_ai_profile_selected_environment_not_ready',
-  'local_ai_assets_downloaded_environment_not_ready',
-  'local_ai_ready',
   'repair_required',
   'blocked',
   'ready_for_use',
@@ -28,11 +23,6 @@ const PRODUCT_CONTROL_STATES = new Set([
 const STATES_WITHOUT_USABLE_DATA_ROOT = new Set(['config_missing', 'data_root_missing']);
 const STATES_REQUIRING_DATA_ROOT = new Set([
   'data_root_selected',
-  'ai_environment_unconfigured',
-  'local_ai_profile_selected_assets_missing',
-  'local_ai_profile_selected_environment_not_ready',
-  'local_ai_assets_downloaded_environment_not_ready',
-  'local_ai_ready',
   'ready_for_use',
 ]);
 const FAIL_CLOSED_PRODUCT_STATES = new Set(['blocked', 'repair_required']);
@@ -55,8 +45,6 @@ const DATA_ROOT_KEYS = Object.freeze([
   'verifiedAtUnixMs',
 ]);
 const FIRST_RUN_KEYS = Object.freeze([
-  'installLevel',
-  'aiProfileAlias',
   'completed',
   'completedAt',
 ]);
@@ -240,19 +228,12 @@ function validateRecordShape(record, recordPath, platform) {
   }
 
   const firstRun = requireExactObject(record.firstRun, FIRST_RUN_KEYS, 'firstRun');
-  for (const key of [
-    'installLevel',
-    'aiProfileAlias',
-    'completedAt',
-  ]) {
-    requireNullableNonEmptyText(firstRun[key], `firstRun.${key}`);
-  }
-  if (firstRun.installLevel !== null
-    && !['minimal', 'recommended'].includes(firstRun.installLevel)) {
-    throw new Error('Product Control firstRun.installLevel is invalid');
-  }
+  requireNullableNonEmptyText(firstRun.completedAt, 'firstRun.completedAt');
   if (typeof firstRun.completed !== 'boolean') {
     throw new Error('Product Control firstRun fields are invalid');
+  }
+  if (state !== 'ready_for_use' && (firstRun.completed || firstRun.completedAt !== null)) {
+    throw new Error(`Product Control ${state} cannot carry completed firstRun`);
   }
 
   const pointers = requireExactObject(record.pointers, POINTER_KEYS, 'pointers');
@@ -273,16 +254,10 @@ function validateRecordShape(record, recordPath, platform) {
   }
 
   if (state === 'ready_for_use') {
-    const requiredReadyFields = [
-      'aiProfileAlias',
-      'completedAt',
-    ];
     if (!firstRun.completed
-      || !['minimal', 'recommended'].includes(firstRun.installLevel)
       || dataRoot?.status !== 'ready'
-      || requiredReadyFields.some(
-        (key) => typeof firstRun[key] !== 'string' || firstRun[key].length === 0,
-      )
+      || typeof firstRun.completedAt !== 'string'
+      || firstRun.completedAt.length === 0
     ) {
       throw new Error(`Product Control ready_for_use fields are invalid at ${recordPath}`);
     }

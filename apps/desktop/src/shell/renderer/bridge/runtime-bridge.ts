@@ -14,14 +14,11 @@ import { getSystemResourceSnapshot } from './runtime-bridge/system-resources';
 import { proxyHttp } from './runtime-bridge/http';
 import {
   admitProductReadyForUse,
-  completeProductFirstRunDeviceEnvironmentScan,
   ensureProductControlRecordCreated,
   getProductControlRecord,
   getProductControlSelectedDataRoot,
   pickProductDataRootDirectory,
-  reconcileProductFirstRunSetupState,
   selectProductDataRoot,
-  setProductFirstRunInstallLevel,
 } from './runtime-bridge/product-control';
 import {
   executeNimiDataCleanup,
@@ -111,10 +108,7 @@ export {
   getProductControlSelectedDataRoot,
   ensureProductControlRecordCreated,
   pickProductDataRootDirectory,
-  completeProductFirstRunDeviceEnvironmentScan,
   selectProductDataRoot,
-  setProductFirstRunInstallLevel,
-  reconcileProductFirstRunSetupState,
   admitProductReadyForUse,
   planNimiDataCleanup,
   executeNimiDataCleanup,

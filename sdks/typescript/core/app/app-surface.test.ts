@@ -6,9 +6,6 @@ import {
   NimiAppClient,
   createAppScopeRef,
   createNimiAppClient,
-  isAdmittedNimiFirstRunLocalBaseline,
-  selectNimiAppFactoryAIProfileForFirstRun,
-  type NimiAppAIProfileFactoryRow,
   type NimiAppInventoryEntry,
   type NimiAppLocalRecordRow,
   type NimiAppScopeRef,
@@ -108,24 +105,5 @@ describe('vNext app surface', () => {
       })).status(localAppId),
       (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_APP_RESPONSE_INVALID',
     );
-  });
-
-  it('selects admitted first-run local baselines only', () => {
-    const local: NimiAppAIProfileFactoryRow = {
-      alias: 'local-small',
-      privacyPosture: 'local-preferred',
-      applicableScopes: ['first-run'],
-      firstRunInstallLevels: ['minimal'],
-      computePosture: 'local-required',
-      routingPolicy: 'local-first',
-      capabilitySet: ['text.generate'],
-      hostCapabilityProfileRefs: [],
-      localComputePackRefs: ['qwen-small'],
-      dependencyFamilyRefs: ['ollama'],
-      materializationConfirmationRequired: true,
-      sourceRule: 'test',
-    };
-    assert.equal(isAdmittedNimiFirstRunLocalBaseline(local), true);
-    assert.equal(selectNimiAppFactoryAIProfileForFirstRun([local])?.alias, 'local-small');
   });
 });

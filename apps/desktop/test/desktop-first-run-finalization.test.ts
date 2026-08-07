@@ -9,13 +9,11 @@ type ElectronInvokeCall = {
 };
 
 /**
- * Wave 7 — Desktop first-run finalization wiring.
+ * Desktop Product Control admission wiring.
  *
- * At `local_ai_ready` the renderer requests backend admission of the
+ * From `data_root_selected` the renderer requests backend admission of the
  * `ready_for_use` transition via the `product_control_record_admit_ready_for_use`
- * Electron host command. The backend admission op is the sole authority
- * that writes `ready_for_use` (cold-start-authority-contract P-COLD-016); the
- * renderer only requests and routes the returned projection.
+ * Electron host command. AI setup evidence is not sent or projected.
  */
 
 function installElectronInvokeMock(
@@ -51,7 +49,7 @@ function installElectronInvokeMock(
   };
 }
 
-test('Wave 7: local_ai_ready finalization invokes the backend admission command', async () => {
+test('data_root_selected continuation invokes the backend admission command', async () => {
   const mock = installElectronInvokeMock((command) => {
     assert.equal(command, 'product_control_record_admit_ready_for_use');
     return {
@@ -66,8 +64,6 @@ test('Wave 7: local_ai_ready finalization invokes the backend admission command'
         state: 'ready_for_use',
         dataRoot: null,
         firstRun: {
-          installLevel: 'minimal',
-          aiProfileAlias: 'local-speech-ready',
           completed: true,
           completedAt: '2026-07-14T00:00:00.000Z',
         },
@@ -92,29 +88,29 @@ test('Wave 7: local_ai_ready finalization invokes the backend admission command'
   }
 });
 
-test('Wave 7: a failed admission routes to the earliest-failed copy-floor surface', async () => {
+test('failed admission remains in the Product Control state machine', async () => {
   // On failure the backend admission op returns the earliest-failed product
   // state with a non-null error and record: null. The workflow routes to that
   // state's copy-floor surface — never a synthesized ready_for_use.
   const mock = installElectronInvokeMock(() => ({
     path: '/nimi/product-control.json',
     exists: true,
-    state: 'local_ai_assets_downloaded_environment_not_ready',
-    error: 'current local environment is not ready',
+    state: 'data_root_selected',
+    error: 'selected data root could not be verified',
     record: null,
   }));
   try {
     const projection = await admitProductReadyForUse();
     assert.notEqual(projection.state, 'ready_for_use');
-    assert.equal(projection.state, 'local_ai_assets_downloaded_environment_not_ready');
+    assert.equal(projection.state, 'data_root_selected');
     assert.equal(projection.record, null);
-    assert.equal(projection.error, 'current local environment is not ready');
+    assert.equal(projection.error, 'selected data root could not be verified');
   } finally {
     mock.restore();
   }
 });
 
-test('Wave 7: admission fails closed when the Electron host is unavailable', async () => {
+test('admission fails closed when the Electron host is unavailable', async () => {
   const globalRecord = globalThis as Record<string, unknown>;
   const previousElectron = globalRecord.__NIMI_ELECTRON_TEST__;
   delete globalRecord.__NIMI_ELECTRON_TEST__;

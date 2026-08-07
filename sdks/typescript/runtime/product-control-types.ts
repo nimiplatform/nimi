@@ -1,14 +1,11 @@
 import type {
   AdmitProductControlReadyForUseRequest,
-  CompleteProductControlFirstRunDeviceEnvironmentScanRequest,
   EnsureProductControlRecordCreatedRequest,
   GetProductControlRecordRequest,
   GetProductControlSelectedDataRootRequest,
   ProductControlProjectionJson,
-  ReconcileProductControlFirstRunSetupStateRequest,
   RuntimeTypedCallOptions,
   SelectProductControlDataRootRequest,
-  SetProductControlFirstRunInstallLevelRequest,
 } from '../core-generated/runtime-typed-client';
 import { ReasonCode } from '../types';
 
@@ -17,11 +14,6 @@ export const NIMI_PRODUCT_CONTROL_STATES = [
   'config_missing',
   'data_root_missing',
   'data_root_selected',
-  'ai_environment_unconfigured',
-  'local_ai_profile_selected_assets_missing',
-  'local_ai_profile_selected_environment_not_ready',
-  'local_ai_assets_downloaded_environment_not_ready',
-  'local_ai_ready',
   'repair_required',
   'blocked',
   'ready_for_use',
@@ -34,11 +26,6 @@ export const NIMI_PRODUCT_CONTROL_RECOVERY_STATE_COPY_KEY = Object.freeze({
   config_missing: 'Support.recoveryStateConfigMissing',
   data_root_missing: 'Support.recoveryStateDataRootMissing',
   data_root_selected: 'Support.recoveryStateDataRootSelected',
-  ai_environment_unconfigured: 'Support.recoveryStateAiEnvironmentUnconfigured',
-  local_ai_profile_selected_assets_missing: 'Support.recoveryStateLocalAiAssetsMissing',
-  local_ai_profile_selected_environment_not_ready: 'Support.recoveryStateLocalAiEnvironmentNotReady',
-  local_ai_assets_downloaded_environment_not_ready: 'Support.recoveryStateLocalAiAssetsDownloadedEnvironmentNotReady',
-  local_ai_ready: 'Support.recoveryStateLocalAiReady',
   repair_required: 'Support.recoveryStateRepairRequired',
   blocked: 'Support.recoveryStateBlocked',
   ready_for_use: 'Support.recoveryStateReadyForUse',
@@ -66,8 +53,6 @@ export interface NimiProductControlRecord {
     readonly verifiedAtUnixMs: number;
   } | null;
   readonly firstRun: {
-    readonly installLevel?: 'minimal' | 'recommended' | null;
-    readonly aiProfileAlias?: string | null;
     readonly completed: boolean;
     readonly completedAt?: string | null;
   };
@@ -116,9 +101,6 @@ export interface NimiProductControlStorageDirsProjection {
 
 export const NIMI_FIRST_RUN_PHASES = [
   'storage',
-  'device-scan',
-  'local-ai',
-  'setup',
 ] as const;
 
 export type NimiFirstRunPhase = (typeof NIMI_FIRST_RUN_PHASES)[number];
@@ -149,20 +131,8 @@ export interface NimiRuntimeProductControlLocalClient {
     request: SelectProductControlDataRootRequest,
     options?: RuntimeTypedCallOptions,
   ): Promise<ProductControlProjectionJson>;
-  setProductControlFirstRunInstallLevel(
-    request: SetProductControlFirstRunInstallLevelRequest,
-    options?: RuntimeTypedCallOptions,
-  ): Promise<ProductControlProjectionJson>;
-  completeProductControlFirstRunDeviceEnvironmentScan(
-    request: CompleteProductControlFirstRunDeviceEnvironmentScanRequest,
-    options?: RuntimeTypedCallOptions,
-  ): Promise<ProductControlProjectionJson>;
   admitProductControlReadyForUse(
     request: AdmitProductControlReadyForUseRequest,
-    options?: RuntimeTypedCallOptions,
-  ): Promise<ProductControlProjectionJson>;
-  reconcileProductControlFirstRunSetupState(
-    request: ReconcileProductControlFirstRunSetupStateRequest,
     options?: RuntimeTypedCallOptions,
   ): Promise<ProductControlProjectionJson>;
 }
@@ -181,9 +151,4 @@ export interface NimiRuntimeProductControlCallOptions {
 
 export interface NimiRuntimeProductControlDataRootSelectionInput {
   readonly dataRoot: string;
-}
-
-export interface NimiRuntimeProductControlFirstRunInstallLevelInput {
-  readonly installLevel: 'minimal' | 'recommended';
-  readonly aiProfileAlias: string;
 }

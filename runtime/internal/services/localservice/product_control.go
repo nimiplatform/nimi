@@ -141,83 +141,15 @@ func (s *Service) SelectProductControlDataRoot(_ context.Context, req *runtimev1
 }
 
 func (s *Service) SetProductControlFirstRunInstallLevel(_ context.Context, req *runtimev1.SetProductControlFirstRunInstallLevelRequest) (*runtimev1.ProductControlProjectionJson, error) {
-	level := strings.ToLower(strings.TrimSpace(req.GetInstallLevel()))
-	if level != "minimal" && level != "recommended" {
-		return nil, errors.New("first-run install level must be minimal or recommended")
-	}
-	alias := strings.TrimSpace(req.GetAiProfileAlias())
-	if alias == "" {
-		return nil, errors.New("first-run aiProfileAlias is required")
-	}
-	if err := s.verifyFirstRunFactoryAIProfile(alias, level); err != nil {
-		return nil, err
-	}
-	path, err := s.productControlRecordPath()
-	if err != nil {
-		return nil, err
-	}
-	record, err := readProductControlRecord(path)
-	if err != nil {
-		return nil, err
-	}
-	if record == nil {
-		return nil, errors.New("product-control record is missing; select nimi_data before install level")
-	}
-	if selectedProductDataRootPath(record) == "" {
-		return nil, errors.New("selected nimi_data is required before install level")
-	}
-	record.FirstRun.InstallLevel = stringPtr(level)
-	record.FirstRun.AIProfileAlias = stringPtr(alias)
-	record.FirstRun.Completed = false
-	record.FirstRun.CompletedAt = nil
-	if record.State == productControlStateDataRootSelected {
-		record.State = productControlStateAIEnvironmentUnconfigured
-	} else if record.State == productControlStateAIEnvironmentUnconfigured {
-		// This command is the user's concrete initialization-plan
-		// confirmation. Move Product Control into Setup even when every
-		// dependency is already present; Desktop will then project the
-		// materialization result and request Runtime-owned finalization.
-		record.State = productControlStateLocalAIProfileAssetsMissing
-	}
-	if err := writeProductControlRecord(path, record); err != nil {
-		return nil, err
-	}
-	return productControlJSON(s.readProductControlProjection(context.Background()))
+	return nil, errors.New("first-run install levels are not part of Product Control")
 }
 
 func (s *Service) CompleteProductControlFirstRunDeviceEnvironmentScan(ctx context.Context, _ *runtimev1.CompleteProductControlFirstRunDeviceEnvironmentScanRequest) (*runtimev1.ProductControlProjectionJson, error) {
-	profile, err := s.CollectDeviceProfile(ctx, &runtimev1.CollectDeviceProfileRequest{})
-	if err != nil {
-		return nil, err
-	}
-	if profile.GetProfile().GetOs() == "" || profile.GetProfile().GetArch() == "" {
-		return nil, errors.New("Runtime device profile must include os and arch")
-	}
-	path, err := s.productControlRecordPath()
-	if err != nil {
-		return nil, err
-	}
-	record, err := readProductControlRecord(path)
-	if err != nil {
-		return nil, err
-	}
-	if record == nil {
-		return nil, errors.New("product-control record is missing; select nimi_data before device scan")
-	}
-	if selectedProductDataRootPath(record) == "" {
-		return nil, errors.New("selected nimi_data is required before device scan")
-	}
-	switch record.State {
-	case productControlStateDataRootSelected:
-		record.State = productControlStateAIEnvironmentUnconfigured
-	case productControlStateAIEnvironmentUnconfigured:
-	default:
-		return nil, errors.New("device environment scan can only complete after data-root selection")
-	}
-	if err := writeProductControlRecord(path, record); err != nil {
-		return nil, err
-	}
-	return productControlJSON(s.readProductControlProjection(ctx))
+	return nil, errors.New("device environment scan is not part of Product Control first run")
+}
+
+func (s *Service) ReconcileProductControlFirstRunSetupState(_ context.Context, _ *runtimev1.ReconcileProductControlFirstRunSetupStateRequest) (*runtimev1.ProductControlProjectionJson, error) {
+	return nil, errors.New("AI setup reconciliation is not part of Product Control first run")
 }
 
 func (s *Service) AdmitProductControlReadyForUse(ctx context.Context, _ *runtimev1.AdmitProductControlReadyForUseRequest) (*runtimev1.ProductControlProjectionJson, error) {

@@ -13,9 +13,6 @@ const DIRECT_COMMANDS = [
   'product_control_selected_data_root_get',
   'product_control_record_ensure_created',
   'product_control_record_select_data_root',
-  'product_control_record_complete_first_run_device_environment_scan',
-  'product_control_record_set_first_run_install_level',
-  'product_control_record_reconcile_first_run_setup_state',
   'product_control_record_admit_ready_for_use',
 ] as const;
 
@@ -26,9 +23,6 @@ const METHOD = {
   getSelectedDataRoot: '/nimi.runtime.v1.RuntimeLocalService/GetProductControlSelectedDataRoot',
   ensureRecord: '/nimi.runtime.v1.RuntimeLocalService/EnsureProductControlRecordCreated',
   selectDataRoot: '/nimi.runtime.v1.RuntimeLocalService/SelectProductControlDataRoot',
-  completeDeviceScan: '/nimi.runtime.v1.RuntimeLocalService/CompleteProductControlFirstRunDeviceEnvironmentScan',
-  setInstallLevel: '/nimi.runtime.v1.RuntimeLocalService/SetProductControlFirstRunInstallLevel',
-  reconcileSetup: '/nimi.runtime.v1.RuntimeLocalService/ReconcileProductControlFirstRunSetupState',
   admitReady: '/nimi.runtime.v1.RuntimeLocalService/AdmitProductControlReadyForUse',
 } as const;
 
@@ -90,27 +84,6 @@ class ElectronProductControlHost {
       return this.projection(METHOD.selectDataRoot, {
         dataRoot: payloadText(nested.dataRoot, 32_768),
       }, 30_000);
-    }
-    if (command === 'product_control_record_complete_first_run_device_environment_scan') {
-      requireEmptyPayload(payload);
-      return this.projection(METHOD.completeDeviceScan, {}, 10_000);
-    }
-    if (command === 'product_control_record_set_first_run_install_level') {
-      const nested = exactPayloadWithOptional(payload, ['installLevel'], ['aiProfileAlias']);
-      const installLevel = payloadText(nested.installLevel, 64);
-      if (installLevel !== 'minimal' && installLevel !== 'recommended') {
-        throw new Error('desktop-product-control-payload-invalid');
-      }
-      return this.projection(METHOD.setInstallLevel, {
-        installLevel,
-        aiProfileAlias: nested.aiProfileAlias == null
-          ? ''
-          : payloadText(nested.aiProfileAlias, 256),
-      }, 10_000);
-    }
-    if (command === 'product_control_record_reconcile_first_run_setup_state') {
-      requireEmptyPayload(payload);
-      return this.projection(METHOD.reconcileSetup, {}, 10_000);
     }
     if (command === 'product_control_record_admit_ready_for_use') {
       requireEmptyPayload(payload);
@@ -195,20 +168,11 @@ function requireEmptyPayload(payload: Readonly<Record<string, unknown>>): void {
 }
 
 function exactPayload(payload: Readonly<Record<string, unknown>>, keys: readonly string[]): Record<string, unknown> {
-  return exactPayloadWithOptional(payload, keys, []);
-}
-
-function exactPayloadWithOptional(
-  payload: Readonly<Record<string, unknown>>,
-  requiredKeys: readonly string[],
-  optionalKeys: readonly string[],
-): Record<string, unknown> {
   if (Object.keys(payload).join('|') !== 'payload') throw new Error('desktop-product-control-payload-invalid');
   const nested = asRecord(payload.payload);
   const actualKeys = Object.keys(nested).sort();
-  const allowedKeys = new Set([...requiredKeys, ...optionalKeys]);
-  if (requiredKeys.some((key) => !actualKeys.includes(key))
-    || actualKeys.some((key) => !allowedKeys.has(key))) {
+  if (keys.some((key) => !actualKeys.includes(key))
+    || actualKeys.some((key) => !keys.includes(key))) {
     throw new Error('desktop-product-control-payload-invalid');
   }
   return nested;

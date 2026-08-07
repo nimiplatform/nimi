@@ -270,11 +270,11 @@ fn prepare_source_local_development_data_root(
     if !metadata.is_dir()
         || metadata.file_type().is_symlink()
         || metadata.uid() != uid
-        || metadata.mode() & 0o777 != 0o700
+        || metadata.mode() & 0o022 != 0
     {
         return Err(FixedRuntimeDataRootError::new(
             "inspect-selected-root",
-            "source local development data root must be a direct owner-only current-user directory",
+            "source local development data root must be a direct current-user directory without group or world write access",
         ));
     }
     Ok(())
@@ -438,7 +438,7 @@ mod tests {
 
     #[cfg(feature = "macos-source-local-development")]
     #[test]
-    fn source_selected_root_is_current_user_owner_only_without_fixed_service_acl() {
+    fn source_selected_root_is_current_user_owned_without_fixed_service_acl() {
         let root = fixture("source-selected");
         let selected = root.join("selected");
         fs::create_dir(&selected).expect("create selected root");
@@ -451,10 +451,22 @@ mod tests {
         assert_eq!(metadata.uid(), unsafe { libc::geteuid() });
         assert_eq!(metadata.mode() & 0o777, 0o700);
 
-        fs::set_permissions(&selected, fs::Permissions::from_mode(0o750))
-            .expect("widen selected root");
+        fs::set_permissions(&selected, fs::Permissions::from_mode(0o755))
+            .expect("admit owner-writable readable selected root");
+        prepare_fixed_runtime_data_root(&selected)
+            .expect("owner-writable source selected root must remain admitted");
+        assert_eq!(
+            fs::symlink_metadata(&selected)
+                .expect("selected metadata after readable mode admission")
+                .mode()
+                & 0o777,
+            0o755
+        );
+
+        fs::set_permissions(&selected, fs::Permissions::from_mode(0o775))
+            .expect("make selected root group-writable");
         let error = prepare_fixed_runtime_data_root(&selected)
-            .expect_err("non-owner-only source selected root must fail");
+            .expect_err("group-writable source selected root must fail");
         assert_eq!(error.stage(), "inspect-selected-root");
         fs::remove_dir_all(&root).expect("remove fixture");
     }

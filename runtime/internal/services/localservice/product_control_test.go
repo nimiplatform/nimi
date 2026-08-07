@@ -117,13 +117,8 @@ func TestRuntimeProductControlMissingConfigurableDataRootReturnsToStorage(t *tes
 	service := newTestService(t)
 	dataRoot := filepath.Join(home, "ephemeral-trial-nimi-data")
 	response, err := service.SelectProductControlDataRoot(context.Background(), &runtimev1.SelectProductControlDataRootRequest{DataRoot: dataRoot})
-	mustProductControlForTest(t, response, err)
-	response, err = service.SetProductControlFirstRunInstallLevel(context.Background(), &runtimev1.SetProductControlFirstRunInstallLevelRequest{
-		InstallLevel:   "minimal",
-		AiProfileAlias: "local-speech-ready",
-	})
 	configured := decodeProductControlProjectionForTest(t, mustProductControlForTest(t, response, err))
-	if configured.State != productControlStateAIEnvironmentUnconfigured {
+	if configured.State != productControlStateDataRootSelected {
 		t.Fatalf("configured state = %s", configured.State)
 	}
 	if err := os.RemoveAll(dataRoot); err != nil {
@@ -132,7 +127,7 @@ func TestRuntimeProductControlMissingConfigurableDataRootReturnsToStorage(t *tes
 
 	response, err = service.GetProductControlRecord(context.Background(), &runtimev1.GetProductControlRecordRequest{})
 	recovered := decodeProductControlProjectionForTest(t, mustProductControlForTest(t, response, err))
-	if recovered.State != productControlStateDataRootMissing || recovered.Record == nil || recovered.Record.State != productControlStateAIEnvironmentUnconfigured || recovered.Record.DataRoot != nil {
+	if recovered.State != productControlStateDataRootMissing || recovered.Record == nil || recovered.Record.State != productControlStateDataRootSelected || recovered.Record.DataRoot != nil {
 		t.Fatalf("missing configurable projection = %+v", recovered)
 	}
 	if recovered.Error == nil || !strings.Contains(*recovered.Error, "owner verification rejected") {
@@ -166,26 +161,23 @@ func TestRuntimeProductControlMissingConfigurableDataRootReturnsToStorage(t *tes
 	}
 }
 
-func TestRuntimeProductControlMissingSetupDataRootRequiresRepair(t *testing.T) {
+func TestRuntimeProductControlMissingReadyDataRootRequiresRepair(t *testing.T) {
 	home := setProductControlHomeForTest(t)
 	service := newTestService(t)
 	dataRoot := filepath.Join(home, "admitted-trial-nimi-data")
 	response, err := service.SelectProductControlDataRoot(context.Background(), &runtimev1.SelectProductControlDataRootRequest{DataRoot: dataRoot})
 	mustProductControlForTest(t, response, err)
-
-	path, err := service.productControlRecordPath()
-	if err != nil {
-		t.Fatal(err)
-	}
-	record, err := readProductControlRecord(path)
-	if err != nil {
-		t.Fatal(err)
-	}
-	record.State = productControlStateLocalAIProfileNotReady
-	record.FirstRun.InstallLevel = stringPtr("minimal")
-	record.FirstRun.AIProfileAlias = stringPtr("local-speech-ready")
-	if err := writeProductControlRecord(path, record); err != nil {
-		t.Fatal(err)
+	service.SetRuntimeAccountProjectionProvider(fakeRuntimeAccountProjectionProvider{
+		projection: &runtimev1.AccountProjection{AccountId: "acct-ready"},
+		ok:         true,
+	})
+	response, err = service.AdmitProductControlReadyForUse(
+		context.Background(),
+		&runtimev1.AdmitProductControlReadyForUseRequest{},
+	)
+	ready := decodeProductControlProjectionForTest(t, mustProductControlForTest(t, response, err))
+	if ready.State != productControlStateReadyForUse {
+		t.Fatalf("ready projection = %+v", ready)
 	}
 	if err := os.RemoveAll(dataRoot); err != nil {
 		t.Fatalf("remove admitted data root: %v", err)
@@ -193,14 +185,14 @@ func TestRuntimeProductControlMissingSetupDataRootRequiresRepair(t *testing.T) {
 
 	response, err = service.GetProductControlRecord(context.Background(), &runtimev1.GetProductControlRecordRequest{})
 	repair := decodeProductControlProjectionForTest(t, mustProductControlForTest(t, response, err))
-	if repair.State != productControlStateRepairRequired || repair.Record == nil || repair.Record.State != productControlStateLocalAIProfileNotReady {
-		t.Fatalf("missing setup projection = %+v", repair)
+	if repair.State != productControlStateRepairRequired || repair.Record == nil || repair.Record.State != productControlStateReadyForUse {
+		t.Fatalf("missing ready data-root projection = %+v", repair)
 	}
 	if repair.Error == nil || !strings.Contains(*repair.Error, "owner verification rejected") {
-		t.Fatalf("missing setup projection error = %v", repair.Error)
+		t.Fatalf("missing ready data-root projection error = %v", repair.Error)
 	}
 	if _, err := service.SelectProductControlDataRoot(context.Background(), &runtimev1.SelectProductControlDataRootRequest{DataRoot: filepath.Join(home, "forbidden-replacement")}); err == nil {
-		t.Fatal("setup data root replacement should fail closed")
+		t.Fatal("ready data root replacement should fail closed")
 	}
 }
 
@@ -373,61 +365,111 @@ func TestRuntimeProductControlRejectsForbiddenLegacyPointers(t *testing.T) {
 	}
 }
 
-func TestRuntimeProductControlInstallLevelValidatesPresetAlias(t *testing.T) {
-	home := setProductControlHomeForTest(t)
+func TestRuntimeProductControlRejectsRetiredAIFirstRunTruth(t *testing.T) {
 	service := newTestService(t)
-	dataRoot := filepath.Join(home, "chosen-nimi-data")
-	response, err := service.SelectProductControlDataRoot(context.Background(), &runtimev1.SelectProductControlDataRootRequest{DataRoot: dataRoot})
-	mustProductControlForTest(t, response, err)
-
-	if _, err := service.SetProductControlFirstRunInstallLevel(context.Background(), &runtimev1.SetProductControlFirstRunInstallLevelRequest{
-		InstallLevel:   "minimal",
-		AiProfileAlias: "cloud-first",
-	}); err == nil {
-		t.Fatalf("unknown first-run alias should fail closed")
+	record, err := service.emptyProductControlRecord(productControlStateDataRootMissing)
+	if err != nil {
+		t.Fatal(err)
 	}
-	response, err = service.SetProductControlFirstRunInstallLevel(context.Background(), &runtimev1.SetProductControlFirstRunInstallLevelRequest{
-		InstallLevel:   "minimal",
-		AiProfileAlias: "local-speech-ready",
+	raw, err := json.Marshal(record)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var document map[string]any
+	if err := json.Unmarshal(raw, &document); err != nil {
+		t.Fatal(err)
+	}
+
+	t.Run("firstRun AI fields", func(t *testing.T) {
+		clone := make(map[string]any, len(document))
+		for key, value := range document {
+			clone[key] = value
+		}
+		clone["firstRun"] = map[string]any{
+			"installLevel":   "minimal",
+			"aiProfileAlias": "local-speech-ready",
+			"completed":      false,
+			"completedAt":    nil,
+		}
+		assertProductControlDocumentRejected(t, clone, "firstRun fields are invalid")
 	})
-	configured := decodeProductControlProjectionForTest(t, mustProductControlForTest(t, response, err))
-	if configured.State != productControlStateAIEnvironmentUnconfigured {
-		t.Fatalf("configured state = %s", configured.State)
+
+	t.Run("retired AI state", func(t *testing.T) {
+		clone := make(map[string]any, len(document))
+		for key, value := range document {
+			clone[key] = value
+		}
+		clone["state"] = "local_ai_profile_selected_environment_not_ready"
+		assertProductControlDocumentRejected(t, clone, "unsupported product-control state")
+	})
+}
+
+func assertProductControlDocumentRejected(t *testing.T, document map[string]any, errorText string) {
+	t.Helper()
+	raw, err := json.Marshal(document)
+	if err != nil {
+		t.Fatal(err)
+	}
+	productControlRoot := filepath.Join(t.TempDir(), ".nimi")
+	if err := os.Mkdir(productControlRoot, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	path := filepath.Join(productControlRoot, "nimi.json")
+	if err := os.WriteFile(path, raw, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := readProductControlRecord(path); err == nil || !strings.Contains(err.Error(), errorText) {
+		t.Fatalf("retired Product Control truth error = %v", err)
 	}
 }
 
-func TestRuntimeProductControlConfirmedInstallLevelEntersSetup(t *testing.T) {
-	home := setProductControlHomeForTest(t)
+func TestRuntimeProductControlRetiredAISetupOperationsFailClosed(t *testing.T) {
 	service := newTestService(t)
-	dataRoot := filepath.Join(home, "chosen-nimi-data")
-	response, err := service.SelectProductControlDataRoot(
-		context.Background(),
-		&runtimev1.SelectProductControlDataRootRequest{DataRoot: dataRoot},
-	)
-	mustProductControlForTest(t, response, err)
-	response, err = service.CompleteProductControlFirstRunDeviceEnvironmentScan(
-		context.Background(),
-		&runtimev1.CompleteProductControlFirstRunDeviceEnvironmentScanRequest{},
-	)
-	scanned := decodeProductControlProjectionForTest(t, mustProductControlForTest(t, response, err))
-	if scanned.State != productControlStateAIEnvironmentUnconfigured {
-		t.Fatalf("scanned state = %s", scanned.State)
-	}
-
-	response, err = service.SetProductControlFirstRunInstallLevel(
-		context.Background(),
-		&runtimev1.SetProductControlFirstRunInstallLevelRequest{
-			InstallLevel:   "minimal",
-			AiProfileAlias: "local-speech-ready",
+	operations := []struct {
+		name string
+		call func() error
+	}{
+		{
+			name: "install-level",
+			call: func() error {
+				_, err := service.SetProductControlFirstRunInstallLevel(
+					context.Background(),
+					&runtimev1.SetProductControlFirstRunInstallLevelRequest{},
+				)
+				return err
+			},
 		},
-	)
-	confirmed := decodeProductControlProjectionForTest(t, mustProductControlForTest(t, response, err))
-	if confirmed.State != productControlStateLocalAIProfileAssetsMissing {
-		t.Fatalf("confirmed state = %s", confirmed.State)
+		{
+			name: "device-scan",
+			call: func() error {
+				_, err := service.CompleteProductControlFirstRunDeviceEnvironmentScan(
+					context.Background(),
+					&runtimev1.CompleteProductControlFirstRunDeviceEnvironmentScanRequest{},
+				)
+				return err
+			},
+		},
+		{
+			name: "setup-reconciliation",
+			call: func() error {
+				_, err := service.ReconcileProductControlFirstRunSetupState(
+					context.Background(),
+					&runtimev1.ReconcileProductControlFirstRunSetupStateRequest{},
+				)
+				return err
+			},
+		},
+	}
+	for _, operation := range operations {
+		t.Run(operation.name, func(t *testing.T) {
+			if err := operation.call(); err == nil || !strings.Contains(err.Error(), "not part of Product Control") {
+				t.Fatalf("retired operation error = %v", err)
+			}
+		})
 	}
 }
 
-func TestRuntimeProductControlAdmitsReadyForUseAndReadProjection(t *testing.T) {
+func TestRuntimeProductControlAdmitsReadyForUseWithoutAIGates(t *testing.T) {
 	home := setProductControlHomeForTest(t)
 	service := newTestService(t)
 	dataRoot := filepath.Join(home, "chosen-nimi-data")
@@ -447,47 +489,6 @@ func TestRuntimeProductControlAdmitsReadyForUseAndReadProjection(t *testing.T) {
 	})
 
 	response, err = service.AdmitProductControlReadyForUse(context.Background(), &runtimev1.AdmitProductControlReadyForUseRequest{})
-	profileUnconfigured := decodeProductControlProjectionForTest(t, mustProductControlForTest(t, response, err))
-	if profileUnconfigured.State != productControlStateAIEnvironmentUnconfigured ||
-		profileUnconfigured.Record == nil ||
-		profileUnconfigured.Record.FirstRun.Completed {
-		t.Fatalf("unconfigured factory profile admission = %+v", profileUnconfigured)
-	}
-	response, err = service.SetProductControlFirstRunInstallLevel(context.Background(), &runtimev1.SetProductControlFirstRunInstallLevelRequest{
-		InstallLevel:   "minimal",
-		AiProfileAlias: "local-speech-ready",
-	})
-	mustProductControlForTest(t, response, err)
-
-	response, err = service.AdmitProductControlReadyForUse(context.Background(), &runtimev1.AdmitProductControlReadyForUseRequest{})
-	dependenciesMissing := decodeProductControlProjectionForTest(t, mustProductControlForTest(t, response, err))
-	if dependenciesMissing.State != productControlStateLocalAIProfileAssetsMissing ||
-		dependenciesMissing.Record == nil ||
-		dependenciesMissing.Record.FirstRun.Completed {
-		t.Fatalf("dependency-gated ready admission = %+v", dependenciesMissing)
-	}
-
-	profileResponse, err := service.CollectDeviceProfile(context.Background(), &runtimev1.CollectDeviceProfileRequest{})
-	if err != nil || profileResponse.GetProfile() == nil {
-		t.Fatalf("collect device profile: response=%+v err=%v", profileResponse, err)
-	}
-	consumers, ok := productControlFirstRunConsumerSet("minimal")
-	if !ok {
-		t.Fatal("minimal first-run consumer set is unavailable")
-	}
-	bindings, err := service.resolveProductControlFirstRunConsumerBindings("minimal", profileResponse.GetProfile(), consumers)
-	if err != nil {
-		t.Fatalf("resolve current minimal model set: %v", err)
-	}
-	for _, binding := range bindings {
-		markProductControlFirstRunConsumerReady(t, service, dataRoot, binding, profileResponse.GetProfile())
-	}
-	reconciliation := service.deriveProductControlFirstRunSetupReconciliation("minimal", dataRoot)
-	if !reconciliation.LocalAIReady {
-		t.Fatalf("prepared dependency and activation gates = %+v", reconciliation)
-	}
-
-	response, err = service.AdmitProductControlReadyForUse(context.Background(), &runtimev1.AdmitProductControlReadyForUseRequest{})
 	ready := decodeProductControlProjectionForTest(t, mustProductControlForTest(t, response, err))
 	if ready.State != productControlStateReadyForUse ||
 		ready.Record == nil ||
@@ -505,7 +506,7 @@ func TestRuntimeProductControlAdmitsReadyForUseAndReadProjection(t *testing.T) {
 	if err := json.Unmarshal(firstRunRaw, &firstRunFields); err != nil {
 		t.Fatal(err)
 	}
-	if len(firstRunFields) != 4 {
+	if len(firstRunFields) != 2 {
 		t.Fatalf("ready firstRun fields = %v", firstRunFields)
 	}
 	for _, field := range productControlFirstRunFields {
@@ -534,66 +535,27 @@ func TestRuntimeProductControlAdmitsReadyForUseAndReadProjection(t *testing.T) {
 		ok:         true,
 	})
 
+	// Product readiness is deliberately independent from local AI source,
+	// dependency, materialization, and activation state.
 	service.mu.Lock()
 	service.localEnvironmentSelectedSources = make(map[string]localEnvironmentSelectedSourceRecordState)
 	service.mu.Unlock()
 	response, err = service.GetProductControlRecord(context.Background(), &runtimev1.GetProductControlRecordRequest{})
-	staleRead := decodeProductControlProjectionForTest(t, mustProductControlForTest(t, response, err))
-	if staleRead.State != productControlStateLocalAIProfileAssetsMissing ||
-		staleRead.Record == nil ||
-		staleRead.Record.State != productControlStateReadyForUse ||
-		staleRead.Error == nil {
-		t.Fatalf("ready read did not recheck dependency and activation gates: %+v", staleRead)
-	}
-	response, err = service.ReconcileProductControlFirstRunSetupState(
-		context.Background(),
-		&runtimev1.ReconcileProductControlFirstRunSetupStateRequest{},
-	)
-	reconciled := decodeProductControlProjectionForTest(t, mustProductControlForTest(t, response, err))
-	if reconciled.State != productControlStateLocalAIProfileAssetsMissing || reconciled.Record == nil {
-		t.Fatalf("ready record with lost dependencies was not reopened for setup: %+v", reconciled)
-	}
-	if reconciled.Record.FirstRun.Completed ||
-		reconciled.Record.FirstRun.CompletedAt != nil ||
-		reconciled.Record.DataRoot == nil ||
-		reconciled.Record.DataRoot.Status != productDataRootStatusSelected {
-		t.Fatalf("ready completion survived dependency reconciliation: %+v", reconciled.Record)
-	}
-}
-
-func TestRuntimeProductControlFirstRunSetupReconciliationMapsActivationStates(t *testing.T) {
-	ready := localEnvironmentConsumerActivationGate{ConsumerID: "llama.cpp.cpu", State: localEnvironmentActivationStateReady}
-	setupRequired := localEnvironmentConsumerActivationGate{
-		ConsumerID: "speech.qwen3-asr.python",
-		State:      localEnvironmentActivationStateSetupRequired,
-		Detail:     "dependency confirmation required",
-	}
-	failed := localEnvironmentConsumerActivationGate{
-		ConsumerID: "speech.qwen3-tts.python",
-		State:      localEnvironmentActivationStateFailed,
-		Detail:     "materialization failed",
-	}
-	unsupported := localEnvironmentConsumerActivationGate{
-		ConsumerID: "llama.cpp.cpu",
-		State:      localEnvironmentActivationStateUnsupported,
-		Detail:     "host unsupported",
+	stillReady := decodeProductControlProjectionForTest(t, mustProductControlForTest(t, response, err))
+	if stillReady.State != productControlStateReadyForUse || stillReady.Record == nil || stillReady.Error != nil {
+		t.Fatalf("AI dependency loss changed Product Control readiness: %+v", stillReady)
 	}
 
-	reconciliation := productControlFirstRunSetupReconciliationFromActivationGates([]localEnvironmentConsumerActivationGate{ready, setupRequired})
-	if reconciliation.State != productControlStateLocalAIProfileAssetsMissing || reconciliation.LocalAIReady {
-		t.Fatalf("setup required reconciliation = %+v", reconciliation)
-	}
-	reconciliation = productControlFirstRunSetupReconciliationFromActivationGates([]localEnvironmentConsumerActivationGate{ready, failed})
-	if reconciliation.State != productControlStateLocalAIProfileNotReady || reconciliation.LocalAIReady {
-		t.Fatalf("failed reconciliation = %+v", reconciliation)
-	}
-	reconciliation = productControlFirstRunSetupReconciliationFromActivationGates([]localEnvironmentConsumerActivationGate{unsupported})
-	if reconciliation.State != productControlStateBlocked || reconciliation.LocalAIReady {
-		t.Fatalf("unsupported reconciliation = %+v", reconciliation)
-	}
-	reconciliation = productControlFirstRunSetupReconciliationFromActivationGates([]localEnvironmentConsumerActivationGate{ready})
-	if reconciliation.State != productControlStateLocalAIReady || !reconciliation.LocalAIReady {
-		t.Fatalf("ready reconciliation = %+v", reconciliation)
+	service.mu.Lock()
+	service.runtimeDataRoot = filepath.Join(home, "different-protected-data-root")
+	service.mu.Unlock()
+	response, err = service.GetProductControlRecord(context.Background(), &runtimev1.GetProductControlRecordRequest{})
+	protectedMismatch := decodeProductControlProjectionForTest(t, mustProductControlForTest(t, response, err))
+	if protectedMismatch.State != productControlStateRepairRequired ||
+		protectedMismatch.Record == nil ||
+		protectedMismatch.Record.State != productControlStateReadyForUse ||
+		protectedMismatch.Error == nil {
+		t.Fatalf("protected Runtime mismatch did not fail closed: %+v", protectedMismatch)
 	}
 }
 

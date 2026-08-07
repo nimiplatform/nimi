@@ -3,190 +3,69 @@
   "stepIndicatorLabel": "设置步骤",
   "continue": "继续",
   "steps": {
-    "storage": "存储",
-    "deviceScan": "设备",
-    "localAi": "本地 AI",
-    "setup": "设置"
+    "storage": "存储"
   },
   "storage": {
-    "heading": "Nimi 的文件保存在哪里？",
-    "subline": "Nimi 在你的电脑上运行 AI，会把模型和数据放在本机的一个文件夹里。我们已经填好了推荐位置，你可以直接使用，也可以另选其他文件夹。",
-    "preparing": "正在为这台电脑准备 Nimi…",
+    "heading": "选择 Nimi 存储模型、应用和大型本地数据的位置。",
+    "subline": "Nimi 会把模型、应用和大型本地数据保存在你选择的文件夹中。",
+    "selectedHeading": "确认 Nimi 的本地数据存储位置。",
+    "selectedSubline": "继续以验证所选文件夹并完成产品控制设置。",
+    "preparing": "Nimi 正在创建本地产品记录…",
     "pathPlaceholder": "尚未选择文件夹",
-    "chooseFolder": "选择文件夹…"
-  },
-  "deviceScan": {
-    "heading": "检查此设备",
-    "subheading": "Nimi 会先检查本地硬件，再提供本地 AI 设置选项。",
-    "checking": "正在检查设备环境…",
-    "detected": "已检测到：{{device}}",
-    "unavailable": "设备扫描证据不可用。",
-    "storageFolder": "Nimi 数据：{{path}}",
-    "changeFolder": "更换文件夹",
-    "retry": "重试扫描",
-    "continue": "继续"
-  },
-  "localAi": {
-    "heading": "设置你的本地 AI",
-    "detecting": "正在后台检查此设备…",
-    "detected": "已检测到：{{device}}",
-    "detectedUnavailable": "设备扫描证据不可用。",
-    "unavailable": "该级别没有可用的本地方案。",
-    "storageFolder": "保存到 {{path}}",
-    "changeFolder": "更换文件夹",
-    "cards": {
-      "minimal": {
-        "title": "最小",
-        "subtitle": "轻量 — 本地聊天与语音"
-      },
-      "recommended": {
-        "title": "推荐",
-        "subtitle": "新增本地嵌入与图像生成"
-      }
-    },
-    "highlights": {
-      "fast-setup": "快速设置",
-      "lower-resource": "更低的资源占用",
-      "everyday-chat": "适合日常聊天",
-      "smarter-answers": "更聪明的回答",
-      "image-generation": "图像生成",
-      "future-ready": "面向未来的功能",
-      "local-voice": "本地语音"
-    }
-  },
-  "setup": {
-    "heading": "正在设置 Nimi…",
-    "subline": "这可能需要几分钟。你可以放松一下。",
-    "cancel": "取消",
-    "retry": "重试",
-    "repair": "修复",
-    "recheck": "重新检查设置",
-    "elapsed": "已用时间",
-    "lastChecked": "上次检查",
-    "lastChange": "上次进展",
-    "justNow": "刚刚",
-    "ago": "{{duration}} 前",
-    "progressOf": "{{received}} / {{total}}",
-    "progressReceived": "已下载 {{received}}",
-    "progressRate": "{{rate}}/s",
-    "progressEta": "剩余 {{eta}}",
-    "notices": {
-      "actionRequired": "某个设置步骤需要处理。请在失败行使用重试或修复。",
-      "stillChecking": "仍在检查运行时设置。上次进展是 {{duration}} 前。",
-      "maybeStalled": "这可能已停滞。请重新检查设置以刷新本地记录。"
-    },
-    "details": {
-      "title": "设置详情",
-      "activeStep": "当前步骤",
-      "productState": "产品状态",
-      "materialization": "物化状态",
-      "installLevel": "安装级别",
-      "dataRoot": "数据根目录",
-      "reason": "原因",
-      "notObserved": "尚未观测",
-      "unset": "未设置",
-      "none": "无"
-    },
-    "steps": {
-      "download": "正在下载本地模型",
-      "verify": "正在校验文件",
-      "environment": "正在准备本地环境",
-      "finalize": "正在完成你的 AI Profile",
-      "unknown": "正在等待运行时设置"
-    }
+    "chooseFolder": "选择文件夹…",
+    "changeFolder": "更换文件夹…",
+    "retry": "重试验证",
+    "finish": "继续"
   },
   "repair": {
-    "heading": "Nimi 需要修复一个组件",
-    "body": "在正常使用前，有一个必需的本地组件需要修复。重试设置或运行修复以恢复它。",
+    "heading": "Nimi 需要修复一个必需的本地组件",
+    "body": "恢复必需的产品控制、账户、数据根目录、运行时服务或受保护状态组件，然后重试验证。",
     "retry": "重试"
   },
   "blocked": {
     "heading": "Nimi 无法安全继续",
-    "body": "目前在此设备上无法安全继续设置。请联系支持以解决阻塞原因。"
+    "body": "Nimi 目前无法安全创建产品控制、使用所选数据根目录，或验证必需的账户和运行时状态。"
   },
   "ready": {
     "heading": "Nimi 已就绪",
     "body": "正在打开 Nimi Chat…"
   },
-  "finalizationTitle": "正在收尾",
-  "finalizationRetry": "重试收尾",
   "reconcilingAuth": "正在同步登录状态…",
-  "reconcilingReadyRecord": "正在复核本地就绪状态…",
   "states": {
     "not_logged_in": {
       "title": "登录后即可使用 Nimi。",
-      "body": "在存在已认证的账户会话后，才会开始正常的产品使用。"
+      "body": "存在已认证的账户会话后，才会进入正常产品使用。"
     },
     "config_missing": {
       "title": "Nimi 正在创建本地产品记录。",
-      "body": "这是一个内部设置步骤。产品记录存在后才会出现数据位置选择。"
+      "body": "产品记录存在后即可选择数据位置。"
     },
     "data_root_missing": {
       "title": "选择 Nimi 存储模型、应用和大型本地数据的位置。",
-      "body": "请使用绝对文件夹路径。Nimi 会在该处创建模型、依赖、应用、日志、审计和缓存目录。"
+      "body": "选择一个可写的绝对路径文件夹，然后由 Nimi 验证并记录它。"
     },
     "data_root_selected": {
-      "title": "Nimi 正在检查此设备。",
-      "body": "已记录所选的数据根目录。在繁重设置开始前请选择本地安装级别。"
-    },
-    "ai_environment_unconfigured": {
-      "title": "选择要安装多少本地 Nimi 环境。",
-      "body": "最小和推荐均为仅本地的基线。云连接器仍属于初始化后的设置。"
-    },
-    "local_ai_profile_selected_assets_missing": {
-      "title": "Nimi 正在下载并校验所需的本地模型和依赖。",
-      "body": "在正常产品使用开启前，运行时所属的物化进度必须完成。"
-    },
-    "local_ai_profile_selected_environment_not_ready": {
-      "title": "Nimi 正在准备其托管的本地环境。",
-      "body": "运行时激活证据仍缺失或不完整。"
-    },
-    "local_ai_assets_downloaded_environment_not_ready": {
-      "title": "Nimi 已获得文件，但本地环境仍需修复。",
-      "body": "本地资产已存在，但激活尚未产生就绪证据。"
-    },
-    "local_ai_ready": {
-      "title": "Nimi 正在完成你的默认 AI 设置。",
-      "body": "账户默认 Profile、内置 AIConfig 和基线执行证据仍需收尾。"
+      "title": "Nimi 正在验证所选数据文件夹。",
+      "body": "你可以更换文件夹、重试验证，或继续完成产品控制设置。"
     },
     "repair_required": {
       "title": "Nimi 需要在正常使用前修复一个必需的本地组件。",
-      "body": "修复必须恢复缺失的产品控制、数据根目录、运行时、Profile 或执行证据。"
+      "body": "恢复必需的产品控制、账户、数据根目录、运行时服务或受保护状态组件。"
     },
     "blocked": {
       "title": "Nimi 暂时无法安全继续。",
-      "body": "解决阻塞原因后，Nimi 会重新评估首次运行状态机。"
+      "body": "解决阻塞产品控制的原因，然后重试验证。"
     },
     "ready_for_use": {
       "title": "Nimi 已就绪。",
       "body": "正常产品使用会打开到聊天和 Nimi Chat。"
     }
   },
-  "capabilities": {
-    "text.generate": "本地聊天",
-    "text.embed": "本地检索",
-    "audio.transcribe": "基础语音转文字",
-    "audio.synthesize": "基础语音合成",
-    "image.generate": "本地图像",
-    "image.edit": "本地图像编辑",
-    "text.generate.vision": "本地视觉文本"
-  },
   "errors": {
     "productControlCreateFailed": "无法创建本地 Nimi 产品记录。",
     "dataRootMissing": "请先为 Nimi 选择一个文件夹再继续。",
     "dataRootPickFailed": "打开文件夹选择器失败。",
     "dataRootRecordFailed": "记录 nimi_data 失败。",
-    "deviceScanUnavailable": "进入本地 AI 设置前需要设备扫描证据。",
-    "deviceScanRecordFailed": "记录设备扫描完成状态失败。",
-    "installLevelRequired": "请选择一个安装级别以继续。",
-    "installLevelNoProfile": "{{installLevel}} 没有可用的本地首次运行 AIProfile。",
-    "materializationPrerequisitesMissing": "在运行时设置前，请选择首次运行安装级别和 nimi_data 路径。",
-    "materializationStartFailed": "启动运行时物化失败。",
-    "materializationObserveFailed": "观测运行时物化失败。",
-    "materializationCancelFailed": "取消运行时任务失败。",
-    "materializationRetryFailed": "重试运行时任务失败。",
-    "materializationRepairFailed": "修复运行时依赖失败。",
-    "repairReevaluateFailed": "重新检查 Nimi 设置失败。",
-    "finalizationRequestFailed": "请求首次运行收尾失败。"
+    "finalizationRequestFailed": "验证产品控制设置失败。"
   }
 }

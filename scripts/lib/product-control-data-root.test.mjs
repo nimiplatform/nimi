@@ -84,8 +84,6 @@ function record(dataRoot, overrides = {}) {
       verifiedAtUnixMs: 2,
     },
     firstRun: {
-      installLevel: null,
-      aiProfileAlias: null,
       completed: false,
       completedAt: null,
     },
@@ -107,8 +105,6 @@ function readyRecord(dataRoot) {
       verifiedAtUnixMs: 2,
     },
     firstRun: {
-      installLevel: 'minimal',
-      aiProfileAlias: 'local-default',
       completed: true,
       completedAt: '2026-07-26T00:00:02.000Z',
     },
@@ -307,11 +303,11 @@ test('shared raw-record vectors reject missing, null, wrong-type, and unknown fi
   addMutation('null dataRoot.verifiedAtUnixMs', (value) => {
     value.dataRoot.verifiedAtUnixMs = null;
   });
-  addMutation('array firstRun.installLevel', (value) => {
-    value.firstRun.installLevel = [];
+  addMutation('retired firstRun.installLevel', (value) => {
+    value.firstRun.installLevel = 'minimal';
   });
-  addMutation('number firstRun.aiProfileAlias', (value) => {
-    value.firstRun.aiProfileAlias = 1;
+  addMutation('retired firstRun.aiProfileAlias', (value) => {
+    value.firstRun.aiProfileAlias = 'local-default';
   });
   addMutation('null firstRun.completed', (value) => {
     value.firstRun.completed = null;

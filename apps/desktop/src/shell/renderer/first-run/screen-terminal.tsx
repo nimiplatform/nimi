@@ -44,13 +44,13 @@ export function ScreenRepair(props: ScreenRepairProps): ReactElement {
       <div className="flex flex-col gap-2">
         <h2 className="text-base font-semibold text-[var(--nimi-text-primary)]">
           {t('FirstRun.repair.heading', {
-            defaultValue: 'Nimi needs to repair a component',
+            defaultValue: 'Nimi needs to repair a required local component',
           })}
         </h2>
         <p className="max-w-md text-sm leading-5 text-[var(--nimi-text-secondary)]">
           {t('FirstRun.repair.body', {
             defaultValue:
-              'A required local component needs repair before normal use. Retry the setup or run a repair to restore it.',
+              'Restore the required Product Control, account, data-root, Runtime service, or protected-state component, then retry validation.',
           })}
         </p>
         {props.reason ? (
@@ -104,7 +104,7 @@ export function ScreenBlocked(props: ScreenBlockedProps): ReactElement {
         <p className="max-w-md text-sm leading-5 text-[var(--nimi-text-secondary)]">
           {t('FirstRun.blocked.body', {
             defaultValue:
-              'Setup cannot continue safely on this device right now. Contact Support to resolve the blocking cause.',
+              'Nimi cannot safely create Product Control, use the selected data root, or validate the required account and Runtime state yet.',
           })}
         </p>
         {props.reason ? (

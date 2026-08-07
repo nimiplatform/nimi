@@ -7,12 +7,6 @@
  * commands directly. Private local-AI lifecycle must go through the runtime
  * bridge APIs (`runtime.local.*`), never a raw `invoke('local_ai_*')`.
  *
- * Real intent: block private-command CALL SITES. It must NOT flag the
- * spec-admitted first-run product-control STATE-name literals
- * (`local_ai_ready`, `local_ai_profile_selected_*`,
- * `local_ai_assets_downloaded_environment_not_ready`, ...) which are canonical
- * `first-run-state-machine.yaml` discriminator values, not command names.
- *
  * Detection is therefore anchored to the invoke surface: a violation is a
  * `local_ai_*` string literal passed as the FIRST argument to an
  * `invoke` / `invokeChecked` / `invokeTauri` call.

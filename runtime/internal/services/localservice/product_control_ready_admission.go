@@ -2,23 +2,11 @@ package localservice
 
 import (
 	"context"
-	"fmt"
 	"path/filepath"
 	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 )
-
-func (s *Service) verifyFirstRunFactoryAIProfile(alias, installLevel string) error {
-	preset, ok := s.localProviderCatalog.Preset(installLevel)
-	if !ok {
-		return fmt.Errorf("first-run install level %q has no Runtime local catalog preset", installLevel)
-	}
-	if strings.TrimSpace(preset.FactoryAIProfileAlias) != alias {
-		return fmt.Errorf("aiProfileAlias %q is not admitted for first-run install level %q", alias, installLevel)
-	}
-	return nil
-}
 
 func (s *Service) authenticatedProductControlAccount(ctx context.Context) (*runtimev1.AccountProjection, bool) {
 	if s == nil {
@@ -61,20 +49,12 @@ func (s *Service) verifyProductControlReadyAdmission(ctx context.Context, record
 	if !ok || projection == nil || strings.TrimSpace(projection.GetAccountId()) == "" {
 		return productControlStateNotLoggedIn, "authenticated Runtime account session failed"
 	}
-	installLevel := strings.TrimSpace(valueOrEmpty(record.FirstRun.InstallLevel))
-	if installLevel == "" {
-		return productControlStateAIEnvironmentUnconfigured, "first-run install level is required before ready admission"
-	}
-	aiProfileAlias := strings.TrimSpace(valueOrEmpty(record.FirstRun.AIProfileAlias))
-	if aiProfileAlias == "" {
-		return productControlStateAIEnvironmentUnconfigured, "first-run aiProfileAlias is required before ready admission"
-	}
-	if err := s.verifyFirstRunFactoryAIProfile(aiProfileAlias, installLevel); err != nil {
-		return productControlStateAIEnvironmentUnconfigured, err.Error()
-	}
-	reconciliation := s.deriveProductControlFirstRunSetupReconciliation(installLevel, dataRootPath)
-	if !reconciliation.LocalAIReady {
-		return reconciliation.State, reconciliation.Reason
+	configuredDataRoot := strings.TrimSpace(s.localEnvironmentRuntimeDataRoot())
+	if configuredDataRoot == "" || !productControlPathsEqual(
+		filepath.Clean(configuredDataRoot),
+		filepath.Clean(dataRootPath),
+	) {
+		return productControlStateRepairRequired, "Runtime protected data-root state does not match Product Control"
 	}
 	return "", ""
 }

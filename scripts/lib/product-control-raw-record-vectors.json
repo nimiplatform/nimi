@@ -1,8 +1,8 @@
 {
   "version": 1,
   "baseRaw": {
-    "selected": "{\"schemaVersion\":1,\"installId\":\"shared-vector\",\"productVersion\":\"0.0.0-test\",\"state\":\"data_root_selected\",\"dataRoot\":{\"path\":\"__DATA_ROOT__\",\"status\":\"selected\",\"selectedAt\":\"2026-07-26T00:00:00.000Z\",\"verifiedAt\":\"2026-07-26T00:00:01.000Z\",\"selectedAtUnixMs\":1,\"verifiedAtUnixMs\":2},\"firstRun\":{\"installLevel\":null,\"aiProfileAlias\":null,\"completed\":false,\"completedAt\":null},\"pointers\":{\"factoryProfileIndex\":null},\"repair\":{\"required\":false,\"reason\":null}}",
-    "ready": "{\"schemaVersion\":1,\"installId\":\"shared-vector\",\"productVersion\":\"0.0.0-test\",\"state\":\"ready_for_use\",\"dataRoot\":{\"path\":\"__DATA_ROOT__\",\"status\":\"ready\",\"selectedAt\":\"2026-07-26T00:00:00.000Z\",\"verifiedAt\":\"2026-07-26T00:00:01.000Z\",\"selectedAtUnixMs\":1,\"verifiedAtUnixMs\":2},\"firstRun\":{\"installLevel\":\"minimal\",\"aiProfileAlias\":\"local-default\",\"completed\":true,\"completedAt\":\"2026-07-26T00:00:02.000Z\"},\"pointers\":{\"factoryProfileIndex\":null},\"repair\":{\"required\":false,\"reason\":null}}"
+    "selected": "{\"schemaVersion\":1,\"installId\":\"shared-vector\",\"productVersion\":\"0.0.0-test\",\"state\":\"data_root_selected\",\"dataRoot\":{\"path\":\"__DATA_ROOT__\",\"status\":\"selected\",\"selectedAt\":\"2026-07-26T00:00:00.000Z\",\"verifiedAt\":\"2026-07-26T00:00:01.000Z\",\"selectedAtUnixMs\":1,\"verifiedAtUnixMs\":2},\"firstRun\":{\"completed\":false,\"completedAt\":null},\"pointers\":{\"factoryProfileIndex\":null},\"repair\":{\"required\":false,\"reason\":null}}",
+    "ready": "{\"schemaVersion\":1,\"installId\":\"shared-vector\",\"productVersion\":\"0.0.0-test\",\"state\":\"ready_for_use\",\"dataRoot\":{\"path\":\"__DATA_ROOT__\",\"status\":\"ready\",\"selectedAt\":\"2026-07-26T00:00:00.000Z\",\"verifiedAt\":\"2026-07-26T00:00:01.000Z\",\"selectedAtUnixMs\":1,\"verifiedAtUnixMs\":2},\"firstRun\":{\"completed\":true,\"completedAt\":\"2026-07-26T00:00:02.000Z\"},\"pointers\":{\"factoryProfileIndex\":null},\"repair\":{\"required\":false,\"reason\":null}}"
   },
   "vectors": [
     {
@@ -48,7 +48,7 @@
     {
       "name": "missing-firstRun",
       "base": "selected",
-      "replace": [["\"firstRun\":{\"installLevel\":null,\"aiProfileAlias\":null,\"completed\":false,\"completedAt\":null},", ""]],
+      "replace": [["\"firstRun\":{\"completed\":false,\"completedAt\":null},", ""]],
       "disposition": "reject"
     },
     {

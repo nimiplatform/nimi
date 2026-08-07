@@ -41,8 +41,6 @@ var productControlDataRootFields = []string{
 }
 
 var productControlFirstRunFields = []string{
-	"installLevel",
-	"aiProfileAlias",
 	"completed",
 	"completedAt",
 }
@@ -106,7 +104,7 @@ func productControlRecordWithoutSelectedDataRoot(record *productControlRecord) *
 
 func (s *Service) verifyProductControlReadyRecord(ctx context.Context, record *productControlRecord) (productControlState, string) {
 	if err := validateReadyForUseShape(record); err != nil {
-		return productControlStateLocalAIReady, err.Error()
+		return productControlStateDataRootSelected, err.Error()
 	}
 	if state, failure := s.verifyProductControlReadyAdmission(ctx, record); failure != "" {
 		return state, "Runtime product-control ready read failed admission verification: " + failure
@@ -406,14 +404,6 @@ func decodeProductControlRawFirstRun(raw json.RawMessage) (productFirstRunRecord
 	if err != nil {
 		return productFirstRunRecord{}, err
 	}
-	installLevel, err := decodeProductControlRawNullableText(fields["installLevel"], "firstRun.installLevel")
-	if err != nil {
-		return productFirstRunRecord{}, err
-	}
-	aiProfileAlias, err := decodeProductControlRawNullableText(fields["aiProfileAlias"], "firstRun.aiProfileAlias")
-	if err != nil {
-		return productFirstRunRecord{}, err
-	}
 	completed, err := decodeProductControlRawBool(fields["completed"], "firstRun.completed")
 	if err != nil {
 		return productFirstRunRecord{}, err
@@ -423,10 +413,8 @@ func decodeProductControlRawFirstRun(raw json.RawMessage) (productFirstRunRecord
 		return productFirstRunRecord{}, err
 	}
 	return productFirstRunRecord{
-		InstallLevel:   installLevel,
-		AIProfileAlias: aiProfileAlias,
-		Completed:      completed,
-		CompletedAt:    completedAt,
+		Completed:   completed,
+		CompletedAt: completedAt,
 	}, nil
 }
 
@@ -597,17 +585,10 @@ func validateProductControlRecord(record *productControlRecord) error {
 			return errors.New("product-control dataRoot verification timestamps are invalid")
 		}
 	}
-	if record.FirstRun.InstallLevel != nil {
-		level := *record.FirstRun.InstallLevel
-		if level != "minimal" && level != "recommended" {
-			return errors.New("product-control firstRun.installLevel must be minimal or recommended")
-		}
-	}
 	nullableTextFields := []struct {
 		label string
 		value *string
 	}{
-		{"firstRun.aiProfileAlias", record.FirstRun.AIProfileAlias},
 		{"firstRun.completedAt", record.FirstRun.CompletedAt},
 		{"pointers.factoryProfileIndex", record.Pointers.FactoryProfileIndex},
 		{"repair.reason", record.Repair.Reason},
@@ -617,6 +598,10 @@ func validateProductControlRecord(record *productControlRecord) error {
 			(*field.value == "" || strings.TrimSpace(*field.value) != *field.value) {
 			return fmt.Errorf("product-control %s must be non-empty text or null", field.label)
 		}
+	}
+	if record.State != productControlStateReadyForUse &&
+		(record.FirstRun.Completed || record.FirstRun.CompletedAt != nil) {
+		return fmt.Errorf("product-control state %q cannot carry completed firstRun", record.State)
 	}
 	failClosedState := record.State == productControlStateRepairRequired ||
 		record.State == productControlStateBlocked
@@ -644,11 +629,6 @@ func isKnownProductControlState(state productControlState) bool {
 		productControlStateConfigMissing,
 		productControlStateDataRootMissing,
 		productControlStateDataRootSelected,
-		productControlStateAIEnvironmentUnconfigured,
-		productControlStateLocalAIProfileAssetsMissing,
-		productControlStateLocalAIProfileNotReady,
-		productControlStateLocalAIAssetsDownloadedEnvironmentNotReady,
-		productControlStateLocalAIReady,
 		productControlStateRepairRequired,
 		productControlStateBlocked,
 		productControlStateReadyForUse:
@@ -677,39 +657,24 @@ func validateReadyForUseShape(record *productControlRecord) error {
 	if !firstRun.Completed {
 		return errors.New("product-control ready_for_use requires firstRun.completed=true")
 	}
-	required := firstRun.CompletedAt != nil && strings.TrimSpace(*firstRun.CompletedAt) != "" &&
-		firstRun.InstallLevel != nil && strings.TrimSpace(*firstRun.InstallLevel) != "" &&
-		firstRun.AIProfileAlias != nil && strings.TrimSpace(*firstRun.AIProfileAlias) != ""
-	if !required {
-		return errors.New("product-control ready_for_use requires completed firstRun selection")
+	if firstRun.CompletedAt == nil || strings.TrimSpace(*firstRun.CompletedAt) == "" {
+		return errors.New("product-control ready_for_use requires firstRun.completedAt")
 	}
 	return nil
 }
 
 func stateRequiresDataRoot(state productControlState) bool {
 	switch state {
-	case productControlStateDataRootSelected, productControlStateAIEnvironmentUnconfigured, productControlStateLocalAIProfileAssetsMissing, productControlStateLocalAIProfileNotReady, productControlStateLocalAIAssetsDownloadedEnvironmentNotReady, productControlStateLocalAIReady, productControlStateReadyForUse:
+	case productControlStateDataRootSelected, productControlStateReadyForUse:
 		return true
 	default:
 		return false
 	}
 }
 
-const (
-	productControlStateLocalAIProfileAssetsMissing                productControlState = "local_ai_profile_selected_assets_missing"
-	productControlStateLocalAIAssetsDownloadedEnvironmentNotReady productControlState = "local_ai_assets_downloaded_environment_not_ready"
-)
-
-func valueOrEmpty(value *string) string {
-	if value == nil {
-		return ""
-	}
-	return *value
-}
-
 func ensureProductControlDataRootSelectionAllowed(record *productControlRecord) error {
 	switch record.State {
-	case productControlStateConfigMissing, productControlStateDataRootMissing, productControlStateDataRootSelected, productControlStateAIEnvironmentUnconfigured:
+	case productControlStateConfigMissing, productControlStateDataRootMissing, productControlStateDataRootSelected:
 	default:
 		return fmt.Errorf("nimi_data data root is already beyond first-run selection state (%s); data-root selection is first-run only", record.State)
 	}

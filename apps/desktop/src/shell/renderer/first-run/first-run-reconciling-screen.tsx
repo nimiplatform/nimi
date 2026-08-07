@@ -5,25 +5,19 @@ import type { NimiProductControlState } from '../bridge';
 
 export function FirstRunReconcilingScreen(props: {
   readonly productState: NimiProductControlState;
-  readonly mode?: 'auth' | 'ready-record';
 }): ReactElement {
   const { t } = useTranslation();
-  const mode = props.mode ?? 'auth';
   useEffect(() => {
     logRendererEvent({
       level: 'warn',
       area: 'first-run',
-      message: mode === 'ready-record'
-        ? 'first-run-gate:ready-record-return-run-reconciling'
-        : 'first-run-gate:not-logged-in-leaked-past-admission',
+      message: 'first-run-gate:not-logged-in-leaked-past-admission',
       details: {
         productState: props.productState,
       },
     });
-  }, [mode, props.productState]);
-  const label = mode === 'ready-record'
-    ? t('FirstRun.reconcilingReadyRecord', { defaultValue: 'Reconciling local readiness…' })
-    : t('FirstRun.reconcilingAuth', { defaultValue: 'Reconciling sign-in state…' });
+  }, [props.productState]);
+  const label = t('FirstRun.reconcilingAuth', { defaultValue: 'Reconciling sign-in state…' });
   return (
     <div
       data-testid="first-run-screen-reconciling"

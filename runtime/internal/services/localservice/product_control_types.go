@@ -5,16 +5,13 @@ const productControlSchemaVersion = 1
 type productControlState string
 
 const (
-	productControlStateNotLoggedIn               productControlState = "not_logged_in"
-	productControlStateConfigMissing             productControlState = "config_missing"
-	productControlStateDataRootMissing           productControlState = "data_root_missing"
-	productControlStateDataRootSelected          productControlState = "data_root_selected"
-	productControlStateAIEnvironmentUnconfigured productControlState = "ai_environment_unconfigured"
-	productControlStateLocalAIProfileNotReady    productControlState = "local_ai_profile_selected_environment_not_ready"
-	productControlStateLocalAIReady              productControlState = "local_ai_ready"
-	productControlStateRepairRequired            productControlState = "repair_required"
-	productControlStateBlocked                   productControlState = "blocked"
-	productControlStateReadyForUse               productControlState = "ready_for_use"
+	productControlStateNotLoggedIn      productControlState = "not_logged_in"
+	productControlStateConfigMissing    productControlState = "config_missing"
+	productControlStateDataRootMissing  productControlState = "data_root_missing"
+	productControlStateDataRootSelected productControlState = "data_root_selected"
+	productControlStateRepairRequired   productControlState = "repair_required"
+	productControlStateBlocked          productControlState = "blocked"
+	productControlStateReadyForUse      productControlState = "ready_for_use"
 )
 
 type productDataRootStatus string
@@ -46,10 +43,8 @@ type productDataRootRecord struct {
 }
 
 type productFirstRunRecord struct {
-	InstallLevel   *string `json:"installLevel"`
-	AIProfileAlias *string `json:"aiProfileAlias"`
-	Completed      bool    `json:"completed"`
-	CompletedAt    *string `json:"completedAt"`
+	Completed   bool    `json:"completed"`
+	CompletedAt *string `json:"completedAt"`
 }
 
 type productPointersRecord struct {

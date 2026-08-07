@@ -112,12 +112,28 @@ export function parseNimiProductControlRecord(value: unknown): NimiProductContro
   const pointers = asRecord(record.pointers, 'product control pointers');
   const repair = asRecord(record.repair, 'product control repair');
   const dataRoot = record.dataRoot == null ? null : asRecord(record.dataRoot, 'product control dataRoot');
-  const installLevelRaw = parseOptionalString(firstRun.installLevel);
-  const installLevel = installLevelRaw as 'minimal' | 'recommended' | null;
-  if (installLevelRaw && installLevelRaw !== 'minimal' && installLevelRaw !== 'recommended') {
+  const unsupportedFirstRunField = Object.keys(firstRun)
+    .find((field) => field !== 'completed' && field !== 'completedAt');
+  if (unsupportedFirstRunField) {
     throw productControlError({
-      reasonCode: 'SDK_PRODUCT_CONTROL_INSTALL_LEVEL_INVALID',
-      message: `Product-control record returned invalid install level: ${installLevelRaw}.`,
+      reasonCode: 'SDK_PRODUCT_CONTROL_FIRST_RUN_INVALID',
+      message: `Product-control record returned unsupported firstRun field: ${unsupportedFirstRunField}.`,
+      actionHint: 'inspect_runtime_product_control_first_run',
+    });
+  }
+  if (typeof firstRun.completed !== 'boolean') {
+    throw productControlError({
+      reasonCode: 'SDK_PRODUCT_CONTROL_FIRST_RUN_INVALID',
+      message: 'Product-control record firstRun.completed must be boolean.',
+      actionHint: 'inspect_runtime_product_control_first_run',
+    });
+  }
+  const state = parseNimiProductControlState(record.state);
+  const completedAt = parseOptionalString(firstRun.completedAt);
+  if (state === 'ready_for_use' && (!firstRun.completed || !completedAt)) {
+    throw productControlError({
+      reasonCode: 'SDK_PRODUCT_CONTROL_FIRST_RUN_INVALID',
+      message: 'A ready_for_use product-control record requires completed firstRun truth and completedAt.',
       actionHint: 'inspect_runtime_product_control_first_run',
     });
   }
@@ -125,7 +141,7 @@ export function parseNimiProductControlRecord(value: unknown): NimiProductContro
     schemaVersion: Number(record.schemaVersion),
     installId: String(record.installId || ''),
     productVersion: String(record.productVersion || ''),
-    state: parseNimiProductControlState(record.state),
+    state,
     dataRoot: dataRoot
       ? {
         path: String(dataRoot.path || ''),
@@ -137,10 +153,8 @@ export function parseNimiProductControlRecord(value: unknown): NimiProductContro
       }
       : null,
     firstRun: {
-      installLevel,
-      aiProfileAlias: parseOptionalString(firstRun.aiProfileAlias),
-      completed: firstRun.completed === true,
-      completedAt: parseOptionalString(firstRun.completedAt),
+      completed: firstRun.completed,
+      completedAt,
     },
     pointers: {
       factoryProfileIndex: parseOptionalString(pointers.factoryProfileIndex),
@@ -293,16 +307,8 @@ export function projectNimiProductControlFirstRunScreen(
   switch (state) {
     case 'config_missing':
     case 'data_root_missing':
-      return { kind: 'phase', phase: 'storage' };
     case 'data_root_selected':
-      return { kind: 'phase', phase: 'device-scan' };
-    case 'ai_environment_unconfigured':
-      return { kind: 'phase', phase: 'local-ai' };
-    case 'local_ai_profile_selected_assets_missing':
-    case 'local_ai_profile_selected_environment_not_ready':
-    case 'local_ai_assets_downloaded_environment_not_ready':
-    case 'local_ai_ready':
-      return { kind: 'phase', phase: 'setup' };
+      return { kind: 'phase', phase: 'storage' };
     case 'repair_required':
       return { kind: 'terminal', screen: 'repair' };
     case 'blocked':

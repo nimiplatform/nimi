@@ -50,14 +50,12 @@ function writeConsumerFiles() {
 import assert from 'node:assert/strict';
 import * as runtimeModule from '@nimiplatform/sdk/runtime';
 import {
-  NIMI_FIRST_RUN_MATERIALIZATION_CONSUMER_SCOPE,
   NIMI_FIRST_RUN_PHASES,
   Runtime,
   RUNTIME_AI_METHODS,
   buildRuntimeAgentRequestContext,
   createRuntime,
   createRuntimeTauriIpcTransport,
-  productStateForNimiFirstRunMaterializationStatus,
   projectRuntimeLocalAgentIdentity,
 } from '@nimiplatform/sdk/runtime';
 import {
@@ -110,12 +108,7 @@ const nodeGrpcRuntime = createRuntime({
 assert.equal((await nodeGrpcRuntime.ready()).status, RuntimeHealthStatus.READY);
 assert.equal(RUNTIME_AI_METHODS.includes('executeScenario'), true);
 assert.equal(ScenarioType.TEXT_GENERATE, 1);
-assert.equal(NIMI_FIRST_RUN_MATERIALIZATION_CONSUMER_SCOPE, 'first-run');
-assert.deepEqual([...NIMI_FIRST_RUN_PHASES], ['storage', 'device-scan', 'local-ai', 'setup']);
-assert.equal(
-  productStateForNimiFirstRunMaterializationStatus('failed'),
-  'local_ai_profile_selected_environment_not_ready',
-);
+assert.deepEqual([...NIMI_FIRST_RUN_PHASES], ['storage']);
 assert.equal('generate' in runtime, false);
 assert.equal('stream' in runtime, false);
 assert.deepEqual(projectRuntimeLocalAgentIdentity({
@@ -200,13 +193,11 @@ await assert.rejects(
 
   writeFileSync(path.join(tempRoot, 'consumer.ts'), `
 import {
-  NIMI_FIRST_RUN_MATERIALIZATION_CONSUMER_SCOPE,
   NIMI_FIRST_RUN_PHASES,
   Runtime,
   buildRuntimeAgentRequestContext,
   createRuntime,
   type CoreTransport,
-  type NimiFirstRunMaterializationProjection,
   type RuntimeLocalAgentIdentityProjection,
   type RuntimeVersionCompatibilityStatus,
 } from '@nimiplatform/sdk/runtime';
@@ -244,13 +235,6 @@ const localIdentity: RuntimeLocalAgentIdentityProjection = buildRuntimeAgentRequ
   runtimeSourceRef: 'agent-1',
   localAgentRef: 'local-agent:runtime-owned-1',
 });
-const firstRunMaterialization: NimiFirstRunMaterializationProjection = {
-  status: 'local_ai_ready',
-  productState: 'local_ai_ready',
-  reason: 'runtime_local_ai_ready',
-  missingDependencyFamilies: [],
-  dependencies: [],
-};
 const error: NimiError = createNimiError({
   message: 'timeout',
   reasonCode: 'AI_PROVIDER_TIMEOUT',
@@ -267,8 +251,6 @@ runtime.generated.createSourceMaterializationChallenge({});
 void compatibility;
 void health;
 void localIdentity;
-void firstRunMaterialization;
-void NIMI_FIRST_RUN_MATERIALIZATION_CONSUMER_SCOPE;
 void NIMI_FIRST_RUN_PHASES;
 void error;
 void scenarioRequest;

@@ -3,115 +3,34 @@
   "stepIndicatorLabel": "Setup steps",
   "continue": "Continue",
   "steps": {
-    "storage": "Storage",
-    "deviceScan": "Device",
-    "localAi": "Local AI",
-    "setup": "Setup"
+    "storage": "Storage"
   },
   "storage": {
-    "heading": "Where should Nimi store its files?",
-    "subline": "Nimi runs AI on your computer and keeps its models and data in one folder, all on this device. We've filled in a recommended spot — use it, or pick your own.",
-    "preparing": "Getting Nimi ready on this computer…",
+    "heading": "Choose where Nimi stores models, apps, and large local data.",
+    "subline": "Nimi keeps models, apps, and large local data in the folder you select.",
+    "selectedHeading": "Confirm where Nimi stores its local data.",
+    "selectedSubline": "Continue to validate the selected folder and finish Product Control setup.",
+    "preparing": "Nimi is creating its local product record…",
     "pathPlaceholder": "No folder chosen yet",
-    "chooseFolder": "Choose folder…"
-  },
-  "deviceScan": {
-    "heading": "Check this device",
-    "subheading": "Nimi checks local hardware before offering local AI setup options.",
-    "checking": "Checking device environment…",
-    "detected": "Detected: {{device}}",
-    "unavailable": "Device scan evidence is unavailable.",
-    "storageFolder": "Nimi data: {{path}}",
-    "changeFolder": "Change folder",
-    "retry": "Retry scan",
-    "continue": "Continue"
-  },
-  "localAi": {
-    "heading": "Set up your local AI",
-    "detecting": "Checking this device in the background…",
-    "detected": "Detected: {{device}}",
-    "detectedUnavailable": "Device scan evidence is unavailable.",
-    "unavailable": "No admitted local plan for this level.",
-    "storageFolder": "Saving to {{path}}",
-    "changeFolder": "Change folder",
-    "cards": {
-      "minimal": {
-        "title": "Minimal",
-        "subtitle": "Lightweight — local chat and voice"
-      },
-      "recommended": {
-        "title": "Recommended",
-        "subtitle": "Adds local embeddings and image generation"
-      }
-    },
-    "highlights": {
-      "fast-setup": "Fast setup",
-      "lower-resource": "Lower resource usage",
-      "everyday-chat": "Great for everyday chat",
-      "smarter-answers": "Smarter answers",
-      "image-generation": "Image generation",
-      "future-ready": "Future-ready features",
-      "local-voice": "Local voice"
-    }
-  },
-  "setup": {
-    "heading": "Setting up Nimi…",
-    "subline": "This may take a few minutes. You can relax.",
-    "cancel": "Cancel",
-    "retry": "Retry",
-    "repair": "Repair",
-    "recheck": "Re-check setup",
-    "elapsed": "Elapsed",
-    "lastChecked": "Last checked",
-    "lastChange": "Last change",
-    "justNow": "just now",
-    "ago": "{{duration}} ago",
-    "progressOf": "{{received}} of {{total}}",
-    "progressReceived": "{{received}} downloaded",
-    "progressRate": "{{rate}}/s",
-    "progressEta": "{{eta}} left",
-    "notices": {
-      "actionRequired": "A setup step needs attention. Use Retry or Repair on the failed row.",
-      "stillChecking": "Still checking Runtime setup. Last progress changed {{duration}} ago.",
-      "maybeStalled": "This may be stalled. Re-check setup to refresh the local record."
-    },
-    "details": {
-      "title": "Setup details",
-      "activeStep": "Active step",
-      "productState": "Product state",
-      "materialization": "Materialization",
-      "installLevel": "Install level",
-      "dataRoot": "Data root",
-      "reason": "Reason",
-      "notObserved": "Not observed yet",
-      "unset": "Not set",
-      "none": "None"
-    },
-    "steps": {
-      "download": "Downloading local models",
-      "verify": "Verifying files",
-      "environment": "Preparing local environment",
-      "finalize": "Finalizing your AI profile",
-      "unknown": "Waiting for Runtime setup"
-    }
+    "chooseFolder": "Choose folder…",
+    "changeFolder": "Change folder…",
+    "retry": "Retry validation",
+    "finish": "Continue"
   },
   "repair": {
-    "heading": "Nimi needs to repair a component",
-    "body": "A required local component needs repair before normal use. Retry the setup or run a repair to restore it.",
+    "heading": "Nimi needs to repair a required local component",
+    "body": "Restore the required Product Control, account, data-root, Runtime service, or protected-state component, then retry validation.",
     "retry": "Retry"
   },
   "blocked": {
     "heading": "Nimi cannot continue safely",
-    "body": "Setup cannot continue safely on this device right now. Contact Support to resolve the blocking cause."
+    "body": "Nimi cannot safely create Product Control, use the selected data root, or validate the required account and Runtime state yet."
   },
   "ready": {
     "heading": "Nimi is ready",
     "body": "Opening Nimi Chat…"
   },
-  "finalizationTitle": "Finalizing",
-  "finalizationRetry": "Retry finalization",
   "reconcilingAuth": "Reconciling sign-in state…",
-  "reconcilingReadyRecord": "Reconciling local readiness…",
   "states": {
     "not_logged_in": {
       "title": "Sign in to use Nimi.",
@@ -119,74 +38,34 @@
     },
     "config_missing": {
       "title": "Nimi is creating its local product record.",
-      "body": "This is an internal setup step. Data location selection appears after the product record exists."
+      "body": "Data location selection appears after the product record exists."
     },
     "data_root_missing": {
       "title": "Choose where Nimi stores models, apps, and large local data.",
-      "body": "Use an absolute folder path. Nimi creates models, dependencies, apps, logs, audit, and cache roots there."
+      "body": "Choose an absolute writable folder, then let Nimi verify and record it."
     },
     "data_root_selected": {
-      "title": "Nimi is checking this device.",
-      "body": "The selected data root is recorded. Choose a local install level before heavy setup starts."
-    },
-    "ai_environment_unconfigured": {
-      "title": "Choose how much of the local Nimi environment to install.",
-      "body": "Minimal and Recommended are local-only baselines. Cloud connectors remain post-initialization settings."
-    },
-    "local_ai_profile_selected_assets_missing": {
-      "title": "Nimi is downloading and verifying required local models and dependencies.",
-      "body": "Runtime-owned materialization progress must finish before normal product use opens."
-    },
-    "local_ai_profile_selected_environment_not_ready": {
-      "title": "Nimi is preparing its managed local environment.",
-      "body": "Runtime activation evidence is still missing or incomplete."
-    },
-    "local_ai_assets_downloaded_environment_not_ready": {
-      "title": "Nimi has the files, but the local environment still needs repair.",
-      "body": "The local assets are present, but activation has not produced ready evidence."
-    },
-    "local_ai_ready": {
-      "title": "Nimi is finishing your default AI setup.",
-      "body": "Account Default Profile, built-in AIConfigs, and baseline execution evidence still need finalization."
+      "title": "Nimi is validating the selected data folder.",
+      "body": "You can change the folder, retry validation, or continue to finish Product Control setup."
     },
     "repair_required": {
       "title": "Nimi needs to repair a required local component before normal use.",
-      "body": "Repair must restore the missing product-control, data-root, Runtime, profile, or execution evidence."
+      "body": "Restore the required Product Control, account, data-root, Runtime service, or protected-state component."
     },
     "blocked": {
       "title": "Nimi cannot continue safely yet.",
-      "body": "Resolve the blocking cause, then Nimi will re-evaluate the first-run state machine."
+      "body": "Resolve the blocking Product Control cause, then retry validation."
     },
     "ready_for_use": {
       "title": "Nimi is ready.",
       "body": "Normal product use opens to Chat and Nimi Chat."
     }
   },
-  "capabilities": {
-    "text.generate": "local chat",
-    "text.embed": "local retrieval",
-    "audio.transcribe": "basic STT",
-    "audio.synthesize": "basic TTS",
-    "image.generate": "local image",
-    "image.edit": "local image edit",
-    "text.generate.vision": "local vision text"
-  },
   "errors": {
     "productControlCreateFailed": "Failed to create the local Nimi product record.",
     "dataRootMissing": "Choose a folder for Nimi before continuing.",
     "dataRootPickFailed": "Failed to open the folder picker.",
     "dataRootRecordFailed": "Failed to record nimi_data.",
-    "deviceScanUnavailable": "Device scan evidence is required before local AI setup.",
-    "deviceScanRecordFailed": "Failed to record device scan completion.",
-    "installLevelRequired": "Choose an install level to continue.",
-    "installLevelNoProfile": "{{installLevel}} has no admitted local first-run AIProfile.",
-    "materializationPrerequisitesMissing": "Select a first-run install level and nimi_data path before Runtime setup.",
-    "materializationStartFailed": "Failed to start Runtime materialization.",
-    "materializationObserveFailed": "Failed to observe Runtime materialization.",
-    "materializationCancelFailed": "Failed to cancel Runtime job.",
-    "materializationRetryFailed": "Failed to retry Runtime job.",
-    "materializationRepairFailed": "Failed to repair Runtime dependency.",
-    "repairReevaluateFailed": "Failed to re-check Nimi setup.",
-    "finalizationRequestFailed": "Failed to request first-run finalization."
+    "finalizationRequestFailed": "Failed to validate Product Control setup."
   }
 }

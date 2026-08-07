@@ -90,7 +90,6 @@ export function FirstRunGatePanel(props: FirstRunGatePanelProps): ReactElement {
   return (
     <div data-testid="first-run-gate-panel" className="relative flex min-h-0 flex-1 flex-col">
       <ProductControlWorkflow
-        clock={bindings.clock}
         firstRun={bindings.app.commands.firstRun}
         projection={projection}
         onProjectionChange={updateProjection}

@@ -36,19 +36,13 @@ required_top_level_fields:
   - repair
 first_run_wire_shape:
   required_fields:
-    - installLevel
-    - aiProfileAlias
     - completed
     - completedAt
   pre_selection_values:
     nullable_fields:
-      - installLevel
-      - aiProfileAlias
       - completedAt
     completed: false
   ready_values:
-    installLevel: [minimal, recommended]
-    aiProfileAlias: non_empty
     completed: true
     completedAt: non_empty
 state_field:
@@ -61,13 +55,11 @@ invariants:
   - id: selected-data-root-required-before-heavy-setup
     requirement: dataRoot.path must be an absolute ordinary non-volume-root user-selected nimi_data directory before downloads, dependency installation, app package install, model materialization, or environment setup; volume roots are forbidden while ordinary absolute subdirectories are admitted.
   - id: first-run-wire-shape
-    requirement: firstRun contains exactly installLevel, aiProfileAlias, completed, and completedAt with their admitted nullable or concrete values.
+    requirement: firstRun contains exactly completed and completedAt; it contains no AI profile, AI config, install level, machine, model, dependency, grant, or capability-readiness evidence.
   - id: selected-data-root-verification
     requirement: dataRoot selectedAt and verifiedAt must exist after native-host service-principal access preparation and Runtime verification; ready_for_use requires dataRoot.status=ready.
-  - id: local-install-level-only
-    requirement: firstRun.installLevel is null before selection, otherwise minimal or recommended, and ready_for_use requires it to be non-null.
   - id: current-runtime-readiness-required
-    requirement: ready_for_use requires firstRun.completed=true, completedAt, a selected admitted first-run factory profile, an authenticated Runtime account, the canonical selected writable data root, and current Runtime materialization, dependency, and activation gates.
+    requirement: ready_for_use requires firstRun.completed=true, completedAt, an authenticated Runtime account, the canonical selected writable data root, and required Runtime service and protected state; every AI configuration, dependency, materialization, grant, admission, probe, and execution fact is excluded.
   - id: runtime-admission-only
     requirement: ready_for_use may be written only by the Runtime Product Control admission operation after evaluating current readiness gates in canonical order.
   - id: runtime-config-pointer-non-owner
@@ -94,14 +86,20 @@ ready_admission:
   composition_order:
     - product_control_record_shape_and_selected_data_root
     - authenticated_runtime_account_session
-    - selected_local_first_run_factory_profile
-    - current_runtime_materialization_dependency_and_activation_gates
+    - required_runtime_service_and_protected_state
     - atomic_ready_for_use_record_write
   forbidden_positive_inputs:
     - renderer_provided_string_refs
     - renderer_local_state
     - localStorage
     - desktop_path_cache
+    - ai_profile
+    - ai_config
+    - local_capability_configuration
+    - machine_selection
+    - connector_grant
+    - local_asset
+    - ai_job_outcome
     - runtime_config_alone
     - file_existence
     - directory_presence
@@ -122,11 +120,6 @@ fields:
   dataRoot:
     required_when_states:
       - data_root_selected
-      - ai_environment_unconfigured
-      - local_ai_profile_selected_assets_missing
-      - local_ai_profile_selected_environment_not_ready
-      - local_ai_assets_downloaded_environment_not_ready
-      - local_ai_ready
       - ready_for_use
     fields:
       path: absolute user-selected ordinary non-volume-root nimi_data directory
@@ -135,7 +128,5 @@ fields:
       verifiedAt: timestamp for writability and required directory verification
   firstRun:
     fields:
-      installLevel: required field; null before selection, otherwise minimal | recommended, and non-null in ready_for_use
-      aiProfileAlias: required field; null before selection, otherwise an admitted first-run local factory AIProfile alias, and non-null in ready_for_use
       completed: required boolean; false before completion and true in ready_for_use
       completedAt: required field; null before completion and a non-empty timestamp in ready_for_use
