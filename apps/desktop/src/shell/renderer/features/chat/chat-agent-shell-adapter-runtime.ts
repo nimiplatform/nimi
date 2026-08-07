@@ -12,6 +12,7 @@ import {
   type NimiSharedLocalAgentAIConfigCallInput,
   type NimiSharedLocalAgentAIConfigOverwriteInput,
 } from '@nimiplatform/sdk/runtime';
+import { extractNimiErrorFields } from '@nimiplatform/sdk/types';
 import type { TFunction } from 'i18next';
 import { useAppStore, type AuthStatus } from '../../app-shell/providers/app-store';
 import { logRendererEvent } from '@nimiplatform/kit/telemetry';
@@ -293,6 +294,10 @@ export function useAgentConversationRuntimeController(
           return;
         }
         setRuntimeAgentAIConfig(null);
+        if (extractNimiErrorFields(error).reasonCode === 'AI_CONFIG_NOT_FOUND') {
+          setRuntimeAgentAIConfigError(null);
+          return;
+        }
         setRuntimeAgentAIConfigError(error instanceof Error ? error.message : String(error || ''));
         logRendererEvent({
           level: 'warn',

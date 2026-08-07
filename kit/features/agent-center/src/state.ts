@@ -87,7 +87,7 @@ function statusTone(
   if (sourceContextStatus === 'blocked') {
     return 'attention';
   }
-  if (!input.sharedAIConfig && !input.inspect && !input.sourceContextStatus && !input.turnContextSummary) {
+  if (input.sharedAIConfig === undefined && !input.inspect && !input.sourceContextStatus && !input.turnContextSummary) {
     return 'disabled';
   }
   if (!baseTextConfigured) {
@@ -109,14 +109,14 @@ export function buildAgentCenterState(input: AgentCenterStateInput): AgentCenter
   const presentationRevision = input.appearance?.presentationRevision
     ?? inspect?.presentationProfileRevision
     ?? null;
-  const agentAIConfigMutationDisabledReason: AgentCenterState['agentAIConfigMutationDisabledReason'] = !input.sharedAIConfig
+  const agentAIConfigMutationDisabledReason: AgentCenterState['agentAIConfigMutationDisabledReason'] = input.sharedAIConfig === undefined
     ? 'agent-ai-config-snapshot-unavailable'
     : null;
 
   return {
     runtimeStatus: input.runtimeError
       ? 'failed'
-      : (!input.sharedAIConfig && !inspect && !input.sourceContextStatus && !input.turnContextSummary ? 'disabled' : 'ready'),
+      : (input.sharedAIConfig === undefined && !inspect && !input.sourceContextStatus && !input.turnContextSummary ? 'disabled' : 'ready'),
     statusTone: tone,
     baseTextConfigured,
     sharedAIConfig: input.sharedAIConfig ?? null,

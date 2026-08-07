@@ -138,6 +138,47 @@ describe('AgentCenterSession', () => {
     expect(JSON.stringify(session.getSnapshot().state)).not.toContain('targetRef');
   });
 
+  it('treats AI_CONFIG_NOT_FOUND as canonical absence and permits atomic creation', async () => {
+    let sharedAIConfig: AgentCenterSharedAIConfigProjection | null = null;
+    const session = createFirstPartyAgentCenterSession({
+      identity: { ownerUserId: 'owner', runtimeSourceRef: 'source', localAgentRef: 'agent' },
+      sharedAIConfig: {
+        async get() {
+          if (!sharedAIConfig) throw { reasonCode: 'AI_CONFIG_NOT_FOUND' };
+          return sharedAIConfig;
+        },
+        async overwrite(input) {
+          sharedAIConfig = emptyProjection([...input.capabilities]).sharedAIConfig!;
+          return sharedAIConfig;
+        },
+      },
+    });
+
+    await session.refresh();
+    expect(session.getSnapshot()).toMatchObject({
+      phase: 'ready',
+      error: null,
+      state: {
+        runtimeStatus: 'ready',
+        sharedAIConfig: null,
+        agentAIConfigMutationDisabledReason: null,
+      },
+      availability: {
+        overwriteSharedAIConfig: { state: 'available' },
+      },
+    });
+
+    await session.overwriteSharedAIConfig({
+      capabilities: [{
+        capabilityContract: 'text.generate',
+        route: { oneofKind: 'local', local: {} },
+        requiredFeatures: [],
+      }],
+    });
+    expect(session.getSnapshot().state.sharedAIConfig?.aiConfig.capabilities)
+      .toEqual([expect.objectContaining({ capabilityContract: 'text.generate' })]);
+  });
+
   it.each([
     ['not_granted', 'needs-grant', 'requestPermission'],
     ['request_pending', 'request-pending', 'wait'],

@@ -74,8 +74,11 @@ The optional first-party `cloudAIConfig` seam supplies Runtime-catalog implement
 Each mounted `AgentCenter` consumes exactly one `AgentCenterSession`. The
 session owns its retryable snapshot, refresh, model/autonomy/appearance
 mutations, mutation write-back, and independent model-settings,
-autonomy, and presentation revisions. Sections call the session only and never
-branch on a carrier kind.
+autonomy, and presentation revisions. A shared AIConfig read returning
+`AI_CONFIG_NOT_FOUND` is canonical not-configured state, not Runtime-offline;
+the first explicit overwrite may create it atomically. Other read failures stay
+degraded and fail closed. Sections call the session only and never branch on a
+carrier kind.
 
 `createFirstPartyAgentCenterSession` binds protected first-party dependencies.
 `createPermissionedAgentCenterSession({ handle, surface })` binds an

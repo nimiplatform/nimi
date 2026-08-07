@@ -40,6 +40,7 @@ export interface AgentCenterAIConfigSectionProps {
 export function AgentCenterAIConfigSection({ session, snapshot, i18n }: AgentCenterAIConfigSectionProps) {
   const projection = snapshot.state.sharedAIConfig;
   const availability = snapshot.availability.overwriteSharedAIConfig;
+  const configurationSnapshotAvailable = snapshot.state.agentAIConfigMutationDisabledReason === null;
   const currentTextIntent = projection?.aiConfig.capabilities.find(
     (intent) => intent.capabilityContract === TEXT_GENERATE_CAPABILITY,
   ) ?? null;
@@ -119,7 +120,7 @@ export function AgentCenterAIConfigSection({ session, snapshot, i18n }: AgentCen
   ));
 
   const configureLocalText = async () => {
-    if (!projection || saving) return;
+    if (!configurationSnapshotAvailable || saving) return;
     const nextIntent = createNimiLocalAIConfigCapabilityIntent({
       capabilityContract: TEXT_GENERATE_CAPABILITY,
       requiredFeatures: [...(currentTextIntent?.requiredFeatures ?? [])],
@@ -131,7 +132,7 @@ export function AgentCenterAIConfigSection({ session, snapshot, i18n }: AgentCen
   };
 
   const beginCloudConfiguration = async () => {
-    if (!projection || !session.cloudAIConfig || cloudLoading) return;
+    if (!configurationSnapshotAvailable || !session.cloudAIConfig || cloudLoading) return;
     setCloudEditing(true);
     setCloudLoading(true);
     setCloudError('');
@@ -213,7 +214,7 @@ export function AgentCenterAIConfigSection({ session, snapshot, i18n }: AgentCen
 
   const saveCloud = async () => {
     if (
-      !projection
+      !configurationSnapshotAvailable
       || !selectedImplementation
       || !selectedTarget
       || !targetConfirmed
@@ -234,8 +235,8 @@ export function AgentCenterAIConfigSection({ session, snapshot, i18n }: AgentCen
   };
 
   async function commitIntent(nextIntent: NimiCapabilityAIConfigIntent): Promise<boolean> {
-    if (!projection || saving) return false;
-    const capabilities = projection.aiConfig.capabilities
+    if (!configurationSnapshotAvailable || saving) return false;
+    const capabilities = (projection?.aiConfig.capabilities ?? [])
       .filter((intent) => intent.capabilityContract !== TEXT_GENERATE_CAPABILITY)
       .concat(nextIntent);
     setSaving(true);
@@ -275,7 +276,7 @@ export function AgentCenterAIConfigSection({ session, snapshot, i18n }: AgentCen
         right={(
           <div className="flex gap-2">
             <AgentButton
-              disabled={!projection || saving}
+              disabled={!configurationSnapshotAvailable || saving}
               onClick={() => { void configureLocalText(); }}
               variant="primary"
             >
@@ -283,7 +284,7 @@ export function AgentCenterAIConfigSection({ session, snapshot, i18n }: AgentCen
             </AgentButton>
             {session.cloudAIConfig ? (
               <AgentButton
-                disabled={!projection || saving || cloudLoading}
+                disabled={!configurationSnapshotAvailable || saving || cloudLoading}
                 onClick={() => { void beginCloudConfiguration(); }}
                 variant="default"
                 dataAttrs={{ 'data-agent-center-cloud-start': true }}

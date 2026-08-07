@@ -51,8 +51,13 @@ describe('Agent Center state projection', () => {
     expect(JSON.stringify(state.sharedAIConfig)).not.toMatch(/revision|readiness|updatedAt/u);
   });
 
-  it('fails closed only when the canonical configuration snapshot is absent', () => {
-    expect(buildAgentCenterState(input({ sharedAIConfig: null })).agentAIConfigMutationDisabledReason)
+  it('distinguishes canonical not-configured state from an unavailable snapshot', () => {
+    const notConfigured = buildAgentCenterState(input({ sharedAIConfig: null }));
+    expect(notConfigured.agentAIConfigMutationDisabledReason).toBeNull();
+    expect(notConfigured.runtimeStatus).toBe('ready');
+    expect(notConfigured.sharedAIConfig).toBeNull();
+
+    expect(buildAgentCenterState({}).agentAIConfigMutationDisabledReason)
       .toBe('agent-ai-config-snapshot-unavailable');
     expect(buildAgentCenterState(input()).agentAIConfigMutationDisabledReason).toBeNull();
   });

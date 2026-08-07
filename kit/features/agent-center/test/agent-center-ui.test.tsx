@@ -4,12 +4,14 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { runtimeAIConfigStructToJson } from '@nimiplatform/kit/core/sdk-contract';
 import { AgentCenter } from '../src/components/AgentCenter.js';
 import {
+  createFirstPartyAgentCenterSession,
   createPermissionedAgentCenterSession,
   sealAgentCenterPermissionedSdkSurface,
 } from '../src/session.js';
 import type {
   AgentCenterOpaqueHandle,
   AgentCenterProductAction,
+  AgentCenterSharedAIConfigProjection,
   AgentCenterTransportActionProjection,
   AgentCenterTransportActionReason,
 } from '../src/types.js';
@@ -248,6 +250,62 @@ describe('AgentCenter UI session contract', () => {
       container?.remove();
       container = null;
     }
+  });
+
+  it('allows first-time configuration after Runtime reports canonical AIConfig absence', async () => {
+    let committed: AgentCenterSharedAIConfigProjection | null = null;
+    const session = createFirstPartyAgentCenterSession({
+      identity: { ownerUserId: 'owner', runtimeSourceRef: 'source', localAgentRef: 'agent' },
+      sharedAIConfig: {
+        async get() {
+          if (!committed) throw { reasonCode: 'AI_CONFIG_NOT_FOUND' };
+          return committed;
+        },
+        async overwrite(input) {
+          const capabilities = [...input.capabilities];
+          committed = {
+            aiConfig: {
+              owner: {
+                owner: { oneofKind: 'runtimeLocalAgentSubsystem', runtimeLocalAgentSubsystem: {} },
+              },
+              capabilities,
+            },
+            capabilities: capabilities.map((intent) => intent.capabilityContract),
+            intents: capabilities.map((intent) => ({
+              capability: intent.capabilityContract,
+              route: intent.route.oneofKind === 'local' ? 'local' : 'cloud',
+              requiredFeatures: [...intent.requiredFeatures],
+            })),
+          };
+          return committed;
+        },
+      },
+    });
+    await session.refresh();
+
+    const node = render(<AgentCenter activeSection="ai-config" session={session} />);
+    await flush();
+    const configure = Array.from(node.querySelectorAll('button'))
+      .find((button) => button.textContent?.includes('Use Local')) as HTMLButtonElement;
+    expect(configure).toBeTruthy();
+    expect(configure.disabled).toBe(false);
+    expect(node.textContent).not.toContain('Runtime is offline');
+
+    await act(async () => { configure.click(); await Promise.resolve(); });
+    await flush();
+    expect(session.getSnapshot().state.sharedAIConfig?.aiConfig.capabilities)
+      .toEqual([expect.objectContaining({ capabilityContract: 'text.generate' })]);
+  });
+
+  it('keeps first-time actions disabled when no configuration read completed', async () => {
+    const session = permissionedSession({ initialReason: null });
+    const node = render(<AgentCenter activeSection="ai-config" session={session} />);
+    await flush();
+
+    const configure = Array.from(node.querySelectorAll('button'))
+      .find((button) => button.textContent?.includes('Use Local')) as HTMLButtonElement;
+    expect(configure).toBeTruthy();
+    expect(configure.disabled).toBe(true);
   });
 
   it('writes a Local text.generate intent without exposing model targets', async () => {

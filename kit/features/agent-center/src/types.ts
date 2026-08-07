@@ -321,6 +321,7 @@ export interface AgentCenterSharedAIConfigProjection {
 }
 
 export interface AgentCenterRuntimeSnapshot {
+  /** Undefined means the read is unavailable; null is Runtime-confirmed canonical absence. */
   readonly sharedAIConfig?: AgentCenterSharedAIConfigProjection | null;
   readonly autonomy?: AgentCenterAutonomyProjection | null;
   readonly inspect?: NimiRuntimeAgentInspectSnapshot | null;

@@ -1,9 +1,10 @@
-import type {
-  NimiRuntimeAgentInspectSurface,
-  NimiRuntimeAgentMemoryObservatorySnapshot,
-  NimiRuntimeAgentSourceContextStatus,
-  NimiRuntimeAgentTurnContextSummary,
-  RuntimeLocalAgentIdentityInput,
+import {
+  asNimiError,
+  type NimiRuntimeAgentInspectSurface,
+  type NimiRuntimeAgentMemoryObservatorySnapshot,
+  type NimiRuntimeAgentSourceContextStatus,
+  type NimiRuntimeAgentTurnContextSummary,
+  type RuntimeLocalAgentIdentityInput,
 } from '@nimiplatform/kit/core/sdk-contract';
 import { buildAgentCenterState } from './state.js';
 import type {
@@ -18,6 +19,7 @@ import type {
   AgentCenterNextStepAction,
   AgentCenterOpaqueHandle,
   AgentCenterSharedAIConfigModule,
+  AgentCenterSharedAIConfigProjection,
   AgentCenterPermissionedAutonomyMutation,
   AgentCenterPermissionedAIConfigMutation,
   AgentCenterPermissionedPresentationCommitInput,
@@ -140,6 +142,10 @@ function errorMessage(error: unknown): string {
   return error instanceof Error && error.message.trim()
     ? error.message.trim()
     : 'Agent Center projection is unavailable.';
+}
+
+function isCanonicalAIConfigAbsence(error: unknown): boolean {
+  return asNimiError(error).reasonCode === 'AI_CONFIG_NOT_FOUND';
 }
 
 class ManagerSession {
@@ -332,9 +338,17 @@ export function createFirstPartyAgentCenterSession(
 ): AgentCenterSession {
   const identity = input.loadInput?.identity || input.identity;
   const aiConfigAccountInput = { subjectUserId: input.loadInput?.subjectUserId };
+  const readSharedAIConfig = async (): Promise<AgentCenterSharedAIConfigProjection | null> => {
+    try {
+      return await input.sharedAIConfig.get(aiConfigAccountInput);
+    } catch (error) {
+      if (isCanonicalAIConfigAbsence(error)) return null;
+      throw error;
+    }
+  };
   const read = async (): Promise<AgentCenterStateInput> => {
     const [sharedAIConfig, autonomy, inspect, memory, sourceContextStatus, turnContextSummary, appearance] = await Promise.all([
-      input.sharedAIConfig.get(aiConfigAccountInput),
+      readSharedAIConfig(),
       input.autonomy?.load(identity) ?? Promise.resolve(null),
       input.inspect?.getPublicInspect(identity) ?? Promise.resolve(null),
       input.loadMemory?.(identity) ?? Promise.resolve(null),
