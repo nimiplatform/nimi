@@ -24,6 +24,12 @@ const (
 
 type Domain string
 
+// AppOperationIDTextCandidateGenerate is the canonical operation identifier
+// carried into the exact text-candidate owner handoff. Keep the literal owned
+// by the closed operation contract rather than minting a second capability
+// vocabulary in an owner adapter.
+const AppOperationIDTextCandidateGenerate = "runtime.ai.text-candidate.generate"
+
 const (
 	IngressUnknown Ingress = iota
 	IngressStorageJSONRead
@@ -78,7 +84,7 @@ var canonicalAppOperationContract = [...]contractRow{
 	{IngressAppAIConfigOverwrite, OperationAppAIConfigOverwrite, "runtime.ai.app-config.overwrite", AuthorityClassBase, ""},
 	{IngressRealmWorldCoreList, OperationRealmWorldCoreList, "realm.world-core.list", AuthorityClassAppAccess, "realm.data"},
 	{IngressRealmWorldCoreCreate, OperationRealmWorldCoreCreate, "realm.world-core.create", AuthorityClassAppAccess, "realm.data"},
-	{IngressTextCandidateGenerate, OperationTextCandidateGenerate, "runtime.ai.text-candidate.generate", AuthorityClassAppAccess, "runtime.consume"},
+	{IngressTextCandidateGenerate, OperationTextCandidateGenerate, AppOperationIDTextCandidateGenerate, AuthorityClassAppAccess, "runtime.consume"},
 	{IngressAgentReferenceList, OperationAgentReferenceList, "runtime.agent.reference.list", AuthorityClassAppAccess, "agent.local"},
 	{IngressConversationOpen, OperationConversationOpen, "runtime.agent.conversation.open", AuthorityClassAppAccess, "agent.local"},
 	{IngressConversationTurnSend, OperationConversationTurnSend, "runtime.agent.conversation.turn.send", AuthorityClassAppAccess, "agent.local"},

@@ -27,7 +27,7 @@ func (s *Service) GenerateLocalAppTextCandidate(ctx context.Context, req *runtim
 	decision, ok := accountservice.AuthorizedLocalAppDecisionFromContext(ctx)
 	if !ok || decision.Operation != accountservice.LocalAppOperationTextCandidateGenerate ||
 		decision.AuthorityClass != localappop.AuthorityClassAppAccess ||
-		decision.OperationCapability != "ai.text.generate" {
+		decision.OperationCapability != localappop.AppOperationIDTextCandidateGenerate {
 		return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE)
 	}
 	systemPrompt, messages, err := validateLocalAppTextCandidateRequest(req)

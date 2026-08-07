@@ -119,7 +119,7 @@ func localAppTextCandidateContext() context.Context {
 		RegisteredAppSubject: "principal-1",
 		Operation:            accountservice.LocalAppOperationTextCandidateGenerate,
 		AuthorityClass:       localappop.AuthorityClassAppAccess,
-		OperationCapability:  "ai.text.generate",
+		OperationCapability:  localappop.AppOperationIDTextCandidateGenerate,
 	})
 }
 
