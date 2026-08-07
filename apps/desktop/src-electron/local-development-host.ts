@@ -89,6 +89,8 @@ type RunContext = {
   supervising: boolean;
   rebuilding: boolean;
   rebuildRequested: boolean;
+  refreshingRegistration: boolean;
+  recoveringRuntimeTransport: boolean;
 };
 
 type RendererRegistration = {
@@ -298,6 +300,8 @@ export class ElectronLocalDevelopmentHost {
       supervising: false,
       rebuilding: false,
       rebuildRequested: false,
+      refreshingRegistration: false,
+      recoveringRuntimeTransport: false,
       status: {
         schemaVersion: 1,
         runId,
@@ -315,7 +319,15 @@ export class ElectronLocalDevelopmentHost {
       },
     };
     this.runs.set(runId, run);
-    await this.resolveRegistration(run);
+    // Registration can legitimately outlive the launcher's short loopback
+    // request timeout while Runtime is rebinding. Return the preparing run
+    // immediately and let the existing status polling carry that transition.
+    void this.resolveRegistration(run).catch((error) => {
+      if (run.stopped) return;
+      const code = reason(error);
+      setRunState(run, resolveLocalDevelopmentRegistrationFailureState(code), code, code, true);
+      this.ensureHealthTimer(run);
+    });
     return run.status;
   }
 
@@ -477,7 +489,13 @@ export class ElectronLocalDevelopmentHost {
   }
 
   private ensureHealthTimer(run: RunContext): void {
-    run.healthTimer ??= setInterval(() => void this.refreshRegistration(run), HEALTH_MS);
+    run.healthTimer ??= setInterval(() => {
+      if (run.refreshingRegistration) return;
+      run.refreshingRegistration = true;
+      void this.refreshRegistration(run).finally(() => {
+        run.refreshingRegistration = false;
+      });
+    }, HEALTH_MS);
   }
 
   private async refreshRegistration(run: RunContext): Promise<void> {
@@ -514,10 +532,20 @@ export class ElectronLocalDevelopmentHost {
         return;
       }
       const running = await this.control.hostRunning(run.supervisorRunId);
+      if (run.recoveringRuntimeTransport) {
+        if (!running) return;
+        run.recoveringRuntimeTransport = false;
+        setRunState(run, 'running', 'Supervised electron host is running', undefined, false);
+      }
       if (!running && run.status.hostGeneration > 0) await this.replaceHost(run);
       if (!run.supervising && !run.renderer) this.startSupervisor(run);
     } catch (error) {
       const code = reason(error);
+      if (isLocalDevelopmentRuntimeTransportFailure(code)) {
+        run.recoveringRuntimeTransport = true;
+        setRunState(run, 'runtime-unavailable', code, code, true);
+        return;
+      }
       await this.failClosedRun(run, {
         state: resolveLocalDevelopmentRegistrationFailureState(code),
         message: code,
@@ -621,7 +649,7 @@ export class ElectronLocalDevelopmentHost {
     const pendingEndRunRegistrationHandle = run.pendingEndRunRegistrationHandle;
     if (pendingEndRunRegistrationHandle) {
       try {
-        await this.control.endRun(pendingEndRunRegistrationHandle, run.supervisorRunId);
+        await this.endRunWithTransportRetry(pendingEndRunRegistrationHandle, run.supervisorRunId);
         if (run.pendingEndRunRegistrationHandle === pendingEndRunRegistrationHandle) {
           run.pendingEndRunRegistrationHandle = undefined;
         }
@@ -631,6 +659,15 @@ export class ElectronLocalDevelopmentHost {
     }
     if (failures.length > 0) {
       throw new AggregateError(failures, 'local-development-process-cleanup-failed');
+    }
+  }
+
+  private async endRunWithTransportRetry(registrationHandle: string, supervisorRunId: string): Promise<void> {
+    try {
+      await this.control.endRun(registrationHandle, supervisorRunId);
+    } catch (error) {
+      if (!isLocalDevelopmentRuntimeTransportFailure(reason(error))) throw error;
+      await this.control.endRun(registrationHandle, supervisorRunId);
     }
   }
 
@@ -809,13 +846,17 @@ function reason(error: unknown): string {
 export function resolveLocalDevelopmentRegistrationFailureState(
   reasonCode: string,
 ): 'runtime-unavailable' | 'registration-unavailable' {
+  return isLocalDevelopmentRuntimeTransportFailure(reasonCode)
+    ? 'runtime-unavailable'
+    : 'registration-unavailable';
+}
+
+export function isLocalDevelopmentRuntimeTransportFailure(reasonCode: string): boolean {
   return [
     'process-replaced',
     'runtime-restarted',
     'runtime-service-repair-required',
     'runtime-service-unavailable',
     'runtime-service-untrusted',
-  ].includes(reasonCode)
-    ? 'runtime-unavailable'
-    : 'registration-unavailable';
+  ].includes(reasonCode);
 }

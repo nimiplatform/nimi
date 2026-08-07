@@ -149,3 +149,5 @@ pub use windows_local_app::MacOsLocalAppCarrier;
 pub use windows_service_control::{
     invalidate_verified_desktop_runtime_channel, open_verified_desktop_runtime_channel,
 };
+#[cfg(all(target_os = "windows", feature = "windows-source-local-development"))]
+pub use windows_service_control::terminate_source_local_development_host;

@@ -19,7 +19,9 @@ use windows_service::service_manager::{ServiceManager, ServiceManagerAccess};
 use windows_sys::Win32::Foundation::HANDLE;
 use windows_sys::Win32::System::Pipes::GetNamedPipeServerProcessId;
 
+#[cfg(not(feature = "windows-source-local-development"))]
 use crate::generated::runtime_auth_service_client::RuntimeAuthServiceClient;
+#[cfg(not(feature = "windows-source-local-development"))]
 use crate::generated::OpenDesktopSessionRequest;
 use crate::windows_peer_trust::{verify_runtime_peer, VerifiedRuntimePeer};
 #[cfg(feature = "windows-source-local-development")]
@@ -85,7 +87,9 @@ struct WindowsDesktopControl {
 struct VerifiedDesktopRuntimeSession {
     channel: Channel,
     _runtime_peer: VerifiedRuntimePeer,
+    #[cfg(not(feature = "windows-source-local-development"))]
     _desktop_session_id: [u8; 32],
+    #[cfg(not(feature = "windows-source-local-development"))]
     runtime_boot_epoch: [u8; 32],
 }
 
@@ -232,10 +236,20 @@ impl NimiDesktopControl for WindowsDesktopControl {
                 + '_,
         >,
     > {
-        Box::pin(request_verified_runtime_restart_on_channel(
-            self.channel(),
-            self.session.runtime_boot_epoch,
-        ))
+        #[cfg(not(feature = "windows-source-local-development"))]
+        {
+            Box::pin(request_verified_runtime_restart_on_channel(
+                self.channel(),
+                self.session.runtime_boot_epoch,
+            ))
+        }
+        #[cfg(feature = "windows-source-local-development")]
+        {
+            Box::pin(request_verified_runtime_restart_on_channel(
+                self.channel(),
+                self.session._runtime_peer.creation_marker(),
+            ))
+        }
     }
 
     fn get_account_session_status(
@@ -462,21 +476,35 @@ impl NimiDesktopControl for WindowsDesktopControl {
         &self,
         supervisor_run_id: [u8; 32],
     ) -> Result<(), NimiHostError> {
-        if supervisor_run_id == [0u8; 32] {
-            return Err(NimiHostError::new(
-                NimiHostErrorReasonCode::RuntimeServiceUntrusted,
-                false,
-            ));
-        }
-        let mut processes = self.development_processes.lock().map_err(|_| {
-            NimiHostError::new(NimiHostErrorReasonCode::RuntimeServiceUntrusted, false)
-        })?;
-        if let Some(entry) = processes.get_mut(&supervisor_run_id) {
-            entry.process.terminate()?;
-        }
-        processes.remove(&supervisor_run_id);
-        Ok(())
+        terminate_development_host(&self.development_processes, supervisor_run_id)
     }
+}
+
+fn terminate_development_host(
+    registry: &SupervisedDevelopmentRegistry,
+    supervisor_run_id: [u8; 32],
+) -> Result<(), NimiHostError> {
+    if supervisor_run_id == [0u8; 32] {
+        return Err(NimiHostError::new(
+            NimiHostErrorReasonCode::RuntimeServiceUntrusted,
+            false,
+        ));
+    }
+    let mut processes = registry.lock().map_err(|_| {
+        NimiHostError::new(NimiHostErrorReasonCode::RuntimeServiceUntrusted, false)
+    })?;
+    if let Some(entry) = processes.get_mut(&supervisor_run_id) {
+        entry.process.terminate()?;
+    }
+    processes.remove(&supervisor_run_id);
+    Ok(())
+}
+
+#[cfg(feature = "windows-source-local-development")]
+pub fn terminate_source_local_development_host(
+    supervisor_run_id: [u8; 32],
+) -> Result<(), NimiHostError> {
+    terminate_development_host(&development_process_registry(), supervisor_run_id)
 }
 
 impl NimiProtectedLocalHostCarrier for WindowsNamedPipeCarrier {
@@ -672,42 +700,55 @@ async fn shared_verified_desktop_runtime_session(
 
     let (channel, runtime_peer) =
         open_verified_runtime_channel(RUNTIME_PROTECTED_PIPE_NAME).await?;
-    diagnose_desktop_session("open-desktop-session-started");
-    let mut auth = RuntimeAuthServiceClient::new(channel.clone());
-    let opened = auth
-        .open_desktop_session(OpenDesktopSessionRequest {})
-        .await
-        .map_err(|status| {
-            diagnose_desktop_session(&format!(
-                "open-failed-{}-{}",
-                status.code(),
-                crate::grpc_status::runtime_reason(&status)
-                    .unwrap_or_else(|| "no-runtime-reason".to_string())
-            ));
-            untrusted()
-        })?
-        .into_inner();
-    let desktop_session_id: [u8; 32] = opened
-        .desktop_session_id
-        .try_into()
-        .map_err(|_| untrusted())?;
-    let runtime_boot_epoch: [u8; 32] = opened
-        .runtime_boot_epoch
-        .try_into()
-        .map_err(|_| untrusted())?;
-    if desktop_session_id == [0u8; 32] || runtime_boot_epoch == [0u8; 32] {
-        diagnose_desktop_session("invalid-session-identity");
-        return Err(untrusted());
+    #[cfg(feature = "windows-source-local-development")]
+    {
+        diagnose_desktop_session("opened-direct");
+        let session = Arc::new(VerifiedDesktopRuntimeSession {
+            channel,
+            _runtime_peer: runtime_peer,
+        });
+        *slot = Some(session.clone());
+        return Ok(session);
     }
-    diagnose_desktop_session("opened");
-    let session = Arc::new(VerifiedDesktopRuntimeSession {
-        channel,
-        _runtime_peer: runtime_peer,
-        _desktop_session_id: desktop_session_id,
-        runtime_boot_epoch,
-    });
-    *slot = Some(session.clone());
-    Ok(session)
+    #[cfg(not(feature = "windows-source-local-development"))]
+    {
+        diagnose_desktop_session("open-desktop-session-started");
+        let mut auth = RuntimeAuthServiceClient::new(channel.clone());
+        let opened = auth
+            .open_desktop_session(OpenDesktopSessionRequest {})
+            .await
+            .map_err(|status| {
+                diagnose_desktop_session(&format!(
+                    "open-failed-{}-{}",
+                    status.code(),
+                    crate::grpc_status::runtime_reason(&status)
+                        .unwrap_or_else(|| "no-runtime-reason".to_string())
+                ));
+                untrusted()
+            })?
+            .into_inner();
+        let desktop_session_id: [u8; 32] = opened
+            .desktop_session_id
+            .try_into()
+            .map_err(|_| untrusted())?;
+        let runtime_boot_epoch: [u8; 32] = opened
+            .runtime_boot_epoch
+            .try_into()
+            .map_err(|_| untrusted())?;
+        if desktop_session_id == [0u8; 32] || runtime_boot_epoch == [0u8; 32] {
+            diagnose_desktop_session("invalid-session-identity");
+            return Err(untrusted());
+        }
+        diagnose_desktop_session("opened");
+        let session = Arc::new(VerifiedDesktopRuntimeSession {
+            channel,
+            _runtime_peer: runtime_peer,
+            _desktop_session_id: desktop_session_id,
+            runtime_boot_epoch,
+        });
+        *slot = Some(session.clone());
+        Ok(session)
+    }
 }
 
 fn diagnose_desktop_session(stage: &str) {
@@ -718,10 +759,11 @@ fn diagnose_desktop_session(stage: &str) {
     }
 }
 
-/// Returns a clone of the one boot-scoped Desktop control channel shared by
-/// status, control, unary, and streaming calls. `OpenDesktopSession` runs once
-/// on that exact mutually verified connection; no portable session authority
-/// or caller-selected endpoint crosses this boundary.
+/// Returns a clone of the verified Desktop control channel shared by status,
+/// control, unary, and streaming calls. Service-backed Windows opens one
+/// boot-scoped Desktop session; source-local Windows retains the exact direct
+/// Runtime peer instead. No portable authority or caller-selected endpoint
+/// crosses this boundary.
 pub async fn open_verified_desktop_runtime_channel() -> Result<Channel, ProtectedCarrierError> {
     Ok(shared_verified_desktop_runtime_session()
         .await?

@@ -515,10 +515,21 @@ pub async fn desktop_terminate_local_development_host(
         Some(value) => value,
         None => return NativeJsonOutcome::host_reason("runtime-service-untrusted", false),
     };
+    #[cfg(all(target_os = "windows", feature = "windows-source-local-development"))]
+    {
+        return match nimi_shell_protected_local::terminate_source_local_development_host(
+            supervisor_run_id,
+        ) {
+            Ok(()) => NativeJsonOutcome::success(json!({ "terminated": true })),
+            Err(error) => NativeJsonOutcome::host_error(error),
+        };
+    }
+    #[cfg(not(all(target_os = "windows", feature = "windows-source-local-development")))]
     let control = match current_or_open_desktop_control().await {
         Ok(control) => control,
         Err(error) => return NativeJsonOutcome::host_error(error),
     };
+    #[cfg(not(all(target_os = "windows", feature = "windows-source-local-development")))]
     match control.terminate_local_development_host(supervisor_run_id) {
         Ok(()) => NativeJsonOutcome::success(json!({ "terminated": true })),
         Err(error) => NativeJsonOutcome::host_error(error),

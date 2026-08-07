@@ -1,6 +1,8 @@
 package protectedlocal
 
 import (
+	"os"
+	"path/filepath"
 	"testing"
 	"time"
 )
@@ -9,28 +11,43 @@ func TestDirectLocalAppLaunchIsIdempotentAndPIDReuseSafe(t *testing.T) {
 	launches := NewDirectLocalAppLaunches()
 	registration := Identifier{1}
 	run := Identifier{2}
+	hostExecutable := filepath.Join(os.TempDir(), "Nimi", "Host")
 	expires := time.Now().Add(time.Minute)
-	first, err := launches.Prepare(registration, run, 3, 4, 41, 501, "/Applications/Host", expires)
+	first, err := launches.Prepare(registration, run, 3, 4, 41, 501, hostExecutable, expires)
 	if err != nil {
 		t.Fatal(err)
 	}
-	second, err := launches.Prepare(registration, run, 3, 4, 41, 501, "/Applications/Host", expires)
+	second, err := launches.Prepare(registration, run, 3, 4, 41, 501, hostExecutable, expires)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if second.LaunchID != first.LaunchID {
 		t.Fatal("same supervisor run minted a second pending launch")
 	}
-	if _, err := launches.Prepare(registration, run, 5, 4, 41, 501, "/Applications/Host", expires); err == nil {
+	if _, err := launches.Prepare(registration, run, 5, 4, 41, 501, hostExecutable, expires); err == nil {
 		t.Fatal("changed authority reused an existing supervisor run")
 	}
 	witness := DirectLocalAppProcessWitness{
 		PID: 52, ParentPID: 41, UID: 501,
-		StartSeconds: 6, StartMicros: 7, ExecutablePath: "/Applications/Host",
+		StartSeconds: 6, StartMicros: 7, ExecutablePath: hostExecutable,
 	}
 	deadline := time.Now().Add(10 * time.Second)
 	if _, err := launches.Bind(first.LaunchID, witness, 41, 501, deadline); err != nil {
 		t.Fatal(err)
+	}
+	renewedExpiry := expires.Add(time.Minute)
+	renewed, err := launches.Prepare(registration, run, 3, 4, 41, 501, hostExecutable, renewedExpiry)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !renewed.ExpiresAt.Equal(renewedExpiry) {
+		t.Fatalf("renewed expiry = %v, want %v", renewed.ExpiresAt, renewedExpiry)
+	}
+	renewedDeadline := deadline.Add(5 * time.Second)
+	if got, err := launches.Bind(first.LaunchID, witness, 41, 501, renewedDeadline); err != nil {
+		t.Fatal(err)
+	} else if !got.Equal(renewedDeadline) {
+		t.Fatalf("renewed bind deadline = %v, want %v", got, renewedDeadline)
 	}
 	reused := witness
 	reused.StartMicros++
@@ -58,12 +75,13 @@ func TestDirectLocalAppLaunchRenewsAfterConsumeAndExpiry(t *testing.T) {
 	launches.now = func() time.Time { return now }
 	registration := Identifier{1}
 	run := Identifier{2}
+	hostExecutable := filepath.Join(os.TempDir(), "Nimi", "Host")
 	witness := DirectLocalAppProcessWitness{
 		PID: 52, ParentPID: 41, UID: 501,
-		StartSeconds: 6, StartMicros: 7, ExecutablePath: "/Applications/Host",
+		StartSeconds: 6, StartMicros: 7, ExecutablePath: hostExecutable,
 	}
 	prepareAndBind := func() (DirectLocalAppLaunch, error) {
-		launch, err := launches.Prepare(registration, run, 3, 4, 41, 501, "/Applications/Host", now.Add(30*time.Second))
+		launch, err := launches.Prepare(registration, run, 3, 4, 41, 501, hostExecutable, now.Add(30*time.Second))
 		if err != nil {
 			return DirectLocalAppLaunch{}, err
 		}

@@ -47,16 +47,19 @@ function useProductControlRecord(): {
 }
 
 type FirstRunGatePanelProps = {
+  readonly onLoginRequired?: () => void;
   readonly onReadyForUse?: () => void;
 };
 
 export function FirstRunGatePanel(props: FirstRunGatePanelProps): ReactElement {
   const { t } = useTranslation();
   const bindings = useDesktopRendererBindings();
+  const authStatus = useAppStore((state) => state.auth.status);
   const clearAuthSession = useAppStore((state) => state.clearAuthSession);
   const logoutDependencies = useLogoutSessionDependencies();
   const [signingOut, setSigningOut] = useState(false);
   const { projection, setProjection } = useProductControlRecord();
+  const onLoginRequired = props.onLoginRequired;
   const onReadyForUse = props.onReadyForUse;
 
   const signOut = useCallback(async (): Promise<void> => {
@@ -72,10 +75,14 @@ export function FirstRunGatePanel(props: FirstRunGatePanelProps): ReactElement {
   }, [clearAuthSession, logoutDependencies]);
 
   useEffect(() => {
+    if (projection?.state === 'not_logged_in') {
+      onLoginRequired?.();
+      return;
+    }
     if (projection?.state === 'ready_for_use') {
       onReadyForUse?.();
     }
-  }, [projection?.state, onReadyForUse]);
+  }, [onLoginRequired, onReadyForUse, projection?.state]);
 
   const updateProjection = useCallback(
     (next: NimiProductControlRecordProjection): void => {
@@ -94,16 +101,18 @@ export function FirstRunGatePanel(props: FirstRunGatePanelProps): ReactElement {
         projection={projection}
         onProjectionChange={updateProjection}
       />
-      <Button
-        type="button"
-        tone="ghost"
-        data-testid="first-run-account-sign-out"
-        className="absolute bottom-4 right-6 z-20"
-        disabled={signingOut}
-        onClick={() => { void signOut(); }}
-      >
-        {t('Menu.logout', { defaultValue: 'Log out' })}
-      </Button>
+      {authStatus === 'authenticated' || authStatus === 'refresh-pending' ? (
+        <Button
+          type="button"
+          tone="ghost"
+          data-testid="first-run-account-sign-out"
+          className="absolute bottom-4 right-6 z-20"
+          disabled={signingOut}
+          onClick={() => { void signOut(); }}
+        >
+          {t('Menu.logout', { defaultValue: 'Log out' })}
+        </Button>
+      ) : null}
     </div>
   );
 }

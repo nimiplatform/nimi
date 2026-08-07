@@ -74,7 +74,12 @@ struct PlatformLocalAppSession {
 impl PlatformLocalAppSession {
     fn transport_channel(&self) -> Result<Channel, LocalAppOperationError> {
         #[cfg(target_os = "windows")]
-        let _ = &self.runtime_peer;
+        if !self.runtime_peer.running() {
+            return Err(LocalAppOperationError::new(
+                LocalAppReasonCode::RuntimeServiceUnavailable,
+                true,
+            ));
+        }
         Ok(self.channel.clone())
     }
 

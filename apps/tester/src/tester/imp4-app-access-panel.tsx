@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { NimiLocalAppAgentReference } from '@nimiplatform/sdk/app';
 
 import { getTesterLocalAppClient } from '../shell/local-app-runtime-platform.js';
@@ -156,17 +156,33 @@ export function Imp4AppAccessPanel() {
     state: testerHot ? 'ready' : 'not-observed',
     detail: testerHot ? 'Vite HMR client active' : 'No official HMR client observed',
   });
+  const runtimeLossLatched = useRef(false);
+
+  const markRuntimeUnavailable = useCallback((reason: string) => {
+    runtimeLossLatched.current = true;
+    const unavailable = { state: 'unavailable', detail: reason } as const;
+    setAccess(unavailable);
+    setCurrentUser(unavailable);
+    setStorage(unavailable);
+    setRealmList(unavailable);
+    setAuthorityRejection(unavailable);
+  }, []);
 
   const refreshIdentity = useCallback(async () => {
     const testerLocalAppClient = getTesterLocalAppClient();
     try {
       const status = await testerLocalAppClient.auth.status();
+      if (!status.sessionBound) {
+        markRuntimeUnavailable(status.reasonCode);
+      } else {
+        runtimeLossLatched.current = false;
+      }
       setAccess({
         state: status.sessionBound ? 'ready' : 'unavailable',
         detail: `${status.state} · ${status.reasonCode}`,
       });
     } catch (error) {
-      setAccess({ state: 'unavailable', detail: boundedError(error) });
+      markRuntimeUnavailable(boundedError(error));
     }
     try {
       const user = await testerLocalAppClient.currentUser.get();
@@ -178,11 +194,33 @@ export function Imp4AppAccessPanel() {
     } catch (error) {
       setCurrentUser({ state: 'unavailable', detail: boundedError(error) });
     }
-  }, []);
+  }, [markRuntimeUnavailable]);
 
   useEffect(() => {
     void refreshIdentity();
   }, [refreshIdentity]);
+
+  useEffect(() => {
+    let disposed = false;
+    let checking = false;
+    const checkRuntime = async () => {
+      if (disposed || checking || runtimeLossLatched.current) return;
+      checking = true;
+      try {
+        const status = await getTesterLocalAppClient().auth.status();
+        if (!status.sessionBound) markRuntimeUnavailable(status.reasonCode);
+      } catch (error) {
+        markRuntimeUnavailable(boundedError(error));
+      } finally {
+        checking = false;
+      }
+    };
+    const timer = window.setInterval(() => void checkRuntime(), 100);
+    return () => {
+      disposed = true;
+      window.clearInterval(timer);
+    };
+  }, [markRuntimeUnavailable]);
 
   useEffect(() => {
     if (!testerHot) return undefined;
@@ -276,19 +314,19 @@ export function Imp4AppAccessPanel() {
       if (!removed.removed) {
         throw Object.assign(new Error('storage-remove-failed'), { reasonCode: 'storage-remove-failed' });
       }
-      const missing = await requireRejection(() => storageClient.readJson(path));
-      const traversal = await requireRejection(
+      await requireRejection(() => storageClient.readJson(path));
+      await requireRejection(
         () => storageClient.writeJson('../imp4-traversal.json', value),
         'SDK_LOCAL_APP_STORAGE_PATH_INVALID',
       );
       const oversizedPath = 'imp4/oversized.json';
-      const oversized = await requireRejection(
+      await requireRejection(
         () => storageClient.writeJson(oversizedPath, { value: 'x'.repeat(270 * 1024) }),
       );
       await storageClient.removeJson(oversizedPath).catch(() => undefined);
       setStorage({
         state: 'ready',
-        detail: `App-private write/read/remove · ${written.sizeBytes} bytes · absent ${missing} · traversal ${traversal} · oversize ${oversized}`,
+        detail: 'JSON roundtrip',
       });
     } catch (error) {
       setStorage({ state: 'unavailable', detail: boundedError(error) });
@@ -299,11 +337,7 @@ export function Imp4AppAccessPanel() {
     setRealmList({ state: 'not-observed', detail: 'Loading local Realm…' });
     try {
       const worlds = await getTesterLocalAppClient().realm.worldCore.list({ take: 10 });
-      const first = worlds[0];
-      const label = typeof first?.core?.identity?.name === 'string'
-        ? first.core.identity.name
-        : first?.id ?? 'empty';
-      setRealmList({ state: 'ready', detail: `${worlds.length} WorldCore DTO(s) · ${label}` });
+      setRealmList({ state: 'ready', detail: `${worlds.length} WorldCore DTO(s)` });
     } catch (error) {
       setRealmList({ state: 'unavailable', detail: boundedError(error) });
     }

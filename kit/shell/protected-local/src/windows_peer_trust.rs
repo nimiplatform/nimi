@@ -4,7 +4,7 @@ use std::os::windows::fs::OpenOptionsExt;
 use std::os::windows::io::{AsRawHandle, FromRawHandle, OwnedHandle};
 use std::path::PathBuf;
 
-use windows_sys::Win32::Foundation::HANDLE;
+use windows_sys::Win32::Foundation::{HANDLE, WAIT_TIMEOUT};
 use windows_sys::Win32::Security::Cryptography::{
     CertGetCertificateContextProperty, CERT_SHA256_HASH_PROP_ID,
 };
@@ -15,7 +15,8 @@ use windows_sys::Win32::Security::WinTrust::{
     WTD_REVOKE_WHOLECHAIN, WTD_STATEACTION_CLOSE, WTD_STATEACTION_VERIFY, WTD_UI_NONE,
 };
 use windows_sys::Win32::System::Threading::{
-    OpenProcess, QueryFullProcessImageNameW, PROCESS_QUERY_LIMITED_INFORMATION,
+    OpenProcess, QueryFullProcessImageNameW, WaitForSingleObject,
+    PROCESS_QUERY_LIMITED_INFORMATION,
 };
 
 use crate::{ProtectedCarrierError, ProtectedCarrierReasonCode};
@@ -27,6 +28,12 @@ const EXPECTED_SIGNER_CERT_SHA256: Option<&str> =
 pub(super) struct VerifiedRuntimePeer {
     _process: OwnedHandle,
     _executable: File,
+}
+
+impl VerifiedRuntimePeer {
+    pub(super) fn running(&self) -> bool {
+        unsafe { WaitForSingleObject(self._process.as_raw_handle().cast(), 0) == WAIT_TIMEOUT }
+    }
 }
 
 pub(super) fn verify_runtime_peer(

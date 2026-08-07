@@ -123,6 +123,9 @@ func (launches *DirectLocalAppLaunches) Prepare(
 			pending.HostExecutablePath != hostExecutablePath {
 			return DirectLocalAppLaunch{}, fmt.Errorf("existing direct local-app launch no longer matches current authority")
 		}
+		if expiresAt.After(pending.ExpiresAt) {
+			pending.ExpiresAt = expiresAt
+		}
 		return *pending, nil
 	}
 	launchID, err := readIdentifier(rand.Reader)
@@ -179,6 +182,9 @@ func (launches *DirectLocalAppLaunches) Bind(
 	if pending.Process.valid() {
 		if pending.Process != process || launches.byPID[process.PID] != pending {
 			return time.Time{}, fmt.Errorf("direct local-app process binding changed")
+		}
+		if bindDeadline.After(pending.BindDeadline) {
+			pending.BindDeadline = bindDeadline
 		}
 		return pending.BindDeadline, nil
 	}

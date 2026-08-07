@@ -7,9 +7,8 @@ use tonic::transport::Channel;
 use windows_sys::Win32::Foundation::{GetLastError, ERROR_FILE_NOT_FOUND, ERROR_PATH_NOT_FOUND};
 use windows_sys::Win32::System::Pipes::WaitNamedPipeW;
 
-use crate::generated::runtime_auth_service_client::RuntimeAuthServiceClient;
 use crate::generated::runtime_service_control_service_client::RuntimeServiceControlServiceClient;
-use crate::generated::{OpenDesktopSessionRequest, RequestRuntimeRestartRequest};
+use crate::generated::RequestRuntimeRestartRequest;
 use crate::windows_source_policy::{source_pipe_name, WindowsSourcePipeRole};
 use crate::{
     FixedRuntimeServiceControl, ProtectedCarrierError, RuntimeServiceActionOutcome,
@@ -54,28 +53,19 @@ impl FixedRuntimeServiceControl for WindowsNamedPipeCarrier {
         >,
     > {
         Box::pin(async {
-            let (channel, _runtime_peer) =
+            let (channel, runtime_peer) =
                 open_verified_runtime_channel(RUNTIME_PROTECTED_PIPE_NAME).await?;
-            let mut auth = RuntimeAuthServiceClient::new(channel.clone());
-            let opened = auth
-                .open_desktop_session(OpenDesktopSessionRequest {})
+            request_verified_runtime_restart_on_channel(channel, runtime_peer.creation_marker())
                 .await
-                .map_err(|_| untrusted())?
-                .into_inner();
-            let before_epoch: [u8; 32] = opened
-                .runtime_boot_epoch
-                .try_into()
-                .map_err(|_| untrusted())?;
-            request_verified_runtime_restart_on_channel(channel, before_epoch).await
         })
     }
 }
 
 pub(super) async fn request_verified_runtime_restart_on_channel(
     channel: Channel,
-    before_epoch: [u8; 32],
+    before_creation_marker: u64,
 ) -> Result<RuntimeServiceActionOutcome, ProtectedCarrierError> {
-    if before_epoch == [0u8; 32] {
+    if before_creation_marker == 0 {
         return Err(untrusted());
     }
     let mut control = RuntimeServiceControlServiceClient::new(channel);
@@ -83,7 +73,7 @@ pub(super) async fn request_verified_runtime_restart_on_channel(
         .request_runtime_restart(RequestRuntimeRestartRequest {})
         .await
     {
-        Ok(response) if !response.into_inner().accepted => return Err(untrusted()),
+        Ok(response) if !response.get_ref().accepted => return Err(untrusted()),
         Ok(_) => {}
         Err(status)
             if matches!(
@@ -98,30 +88,20 @@ pub(super) async fn request_verified_runtime_restart_on_channel(
         if tokio::time::Instant::now() >= deadline {
             return Err(unavailable());
         }
-        if let Ok((after_channel, _runtime_peer)) =
+        if let Ok((_after_channel, after_runtime_peer)) =
             open_verified_runtime_channel(RUNTIME_PROTECTED_PIPE_NAME).await
         {
-            let mut auth = RuntimeAuthServiceClient::new(after_channel);
-            if let Ok(response) = auth
-                .open_desktop_session(OpenDesktopSessionRequest {})
-                .await
-            {
-                let after_epoch: [u8; 32] = response
-                    .into_inner()
-                    .runtime_boot_epoch
-                    .try_into()
-                    .map_err(|_| untrusted())?;
-                if after_epoch != [0u8; 32] && after_epoch != before_epoch {
-                    super::invalidate_verified_desktop_runtime_channel().await;
-                    return Ok(RuntimeServiceActionOutcome {
-                        state: RuntimeServiceState::Running,
-                        release_id: None,
-                        reason_code: None,
-                        retryable: false,
-                    });
-                }
-                return Err(untrusted());
+            let after_creation_marker = after_runtime_peer.creation_marker();
+            if after_creation_marker != 0 && after_creation_marker != before_creation_marker {
+                super::invalidate_verified_desktop_runtime_channel().await;
+                return Ok(RuntimeServiceActionOutcome {
+                    state: RuntimeServiceState::Running,
+                    release_id: None,
+                    reason_code: None,
+                    retryable: false,
+                });
             }
+            return Err(untrusted());
         }
         tokio::time::sleep(std::time::Duration::from_millis(100)).await;
     }

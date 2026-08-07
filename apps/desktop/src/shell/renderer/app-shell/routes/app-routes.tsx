@@ -137,6 +137,7 @@ type DesktopOrdinaryShellAdmission =
   | 'checking'
   | 'requesting-admission'
   | 'admission-failed'
+  | 'login'
   | 'first-run'
   | 'ready';
 
@@ -171,7 +172,7 @@ function useDesktopOrdinaryShellAdmission(
       // fresh authenticated projection after rotation completes.
       return;
     }
-    if (authStatus !== 'authenticated') {
+    if (authStatus === 'bootstrapping' || authStatus === 'unavailable') {
       setAdmission('checking');
       return;
     }
@@ -187,7 +188,7 @@ function useDesktopOrdinaryShellAdmission(
       }
       if (decision.kind === 'login') {
         if (authStatus !== 'authenticated') {
-          setAdmission('checking');
+          setAdmission('login');
           return;
         }
         // Only happens when the persisted record's last write was a failed
@@ -231,10 +232,11 @@ function useDesktopOrdinaryShellAdmission(
       setAdmission('first-run');
     };
 
-    // Keep the current verdict visible while an authenticated projection is
-    // rechecked (notably after refresh-pending -> authenticated). Initial boot
-    // already starts at `checking`; a completed shell must not be torn down
-    // merely because token rotation advanced the account sequence.
+    // Product Control owns first-run before account login. Read its local
+    // projection for anonymous as well as authenticated account states so a
+    // missing data root takes over the window before /login. Keep the current
+    // verdict visible while an authenticated projection is rechecked (notably
+    // after refresh-pending -> authenticated).
     void bindings.app.commands.firstRun.getRecord()
       .then(projectVerdict)
       .catch(() => {
@@ -251,7 +253,10 @@ function useDesktopOrdinaryShellAdmission(
   };
 }
 
-function DesktopFirstRunGate(props: { readonly onReadyForUse: () => void }) {
+function DesktopFirstRunGate(props: {
+  readonly onLoginRequired: () => void;
+  readonly onReadyForUse: () => void;
+}) {
   return (
     <AmbientBackground
       variant="mesh"
@@ -259,7 +264,10 @@ function DesktopFirstRunGate(props: { readonly onReadyForUse: () => void }) {
     >
       <div data-testid="desktop-first-run-gate" className="flex min-h-screen min-w-0">
         <Suspense fallback={<RuntimeLoadingScreen />}>
-          <FirstRunGatePanel onReadyForUse={props.onReadyForUse} />
+          <FirstRunGatePanel
+            onLoginRequired={props.onLoginRequired}
+            onReadyForUse={props.onReadyForUse}
+          />
         </Suspense>
       </div>
     </AmbientBackground>
@@ -282,6 +290,7 @@ function DesktopOrdinaryShellGate() {
   const logoutDependencies = useLogoutSessionDependencies();
   const { admission: observedAdmission, retry: retryAdmission } = useDesktopOrdinaryShellAdmission(authStatus);
   const [firstRunReady, setFirstRunReady] = useState(false);
+  const [firstRunLoginRequired, setFirstRunLoginRequired] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -295,18 +304,22 @@ function DesktopOrdinaryShellGate() {
   // would re-fire history.replaceState on every gate re-render (react-router's
   // <Navigate> uses a no-deps effect), which is precisely what tripped the
   // pre-Wave-1 throttle when paired with LoginPage's reverse-Navigate.
+  const admission: DesktopOrdinaryShellAdmission = firstRunLoginRequired
+    ? 'login'
+    : firstRunReady && accountRetainsOrdinaryShell(authStatus)
+      ? 'ready'
+      : observedAdmission;
+
   useEffect(() => {
-    if (accountRequiresLogin(authStatus)) {
+    if (
+      admission === 'login'
+      || (admission === 'ready' && accountRequiresLogin(authStatus))
+    ) {
       navigate('/login', { replace: true });
     }
-  }, [authStatus, navigate]);
+  }, [admission, authStatus, navigate]);
 
-  const admission: DesktopOrdinaryShellAdmission = firstRunReady ? 'ready' : observedAdmission;
-
-  if (!accountRetainsOrdinaryShell(authStatus)) {
-    return <RuntimeLoadingScreen />;
-  }
-  if (admission === 'checking' || admission === 'requesting-admission') {
+  if (admission === 'checking' || admission === 'requesting-admission' || admission === 'login') {
     return <RuntimeLoadingScreen />;
   }
   if (admission === 'admission-failed') {
@@ -329,7 +342,15 @@ function DesktopOrdinaryShellGate() {
     );
   }
   if (admission === 'first-run') {
-    return <DesktopFirstRunGate onReadyForUse={() => setFirstRunReady(true)} />;
+    return (
+      <DesktopFirstRunGate
+        onLoginRequired={() => setFirstRunLoginRequired(true)}
+        onReadyForUse={() => setFirstRunReady(true)}
+      />
+    );
+  }
+  if (!accountRetainsOrdinaryShell(authStatus)) {
+    return <RuntimeLoadingScreen />;
   }
   return (
     <Suspense fallback={<RuntimeLoadingScreen />}>

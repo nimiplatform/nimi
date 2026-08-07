@@ -306,7 +306,7 @@ func validateWindowsSourceDirectoryChain(base, target string) error {
 }
 
 func protectWindowsSourceDirectory(path, userSID string) error {
-	sddl := fmt.Sprintf("O:%sD:P(A;OICI;GA;;;%s)", userSID, userSID)
+	sddl := fmt.Sprintf("O:%sD:P(A;OICI;FA;;;%s)", userSID, userSID)
 	descriptor, err := windows.SecurityDescriptorFromString(sddl)
 	if err != nil {
 		return fail(ReasonProtectedLocalCustodyBoundaryUnavailable, false, "restart_runtime", fmt.Errorf("build current-user state ACL: %w", err))

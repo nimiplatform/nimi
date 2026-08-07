@@ -6,6 +6,7 @@ import type {
 } from '@nimiplatform/kit/shell/electron/main';
 import {
   ElectronLocalDevelopmentHost,
+  isLocalDevelopmentRuntimeTransportFailure,
   resolveLocalDevelopmentRegistrationFailureState,
   sameLocalDevelopmentProject,
 } from '../src-electron/local-development-host.js';
@@ -110,6 +111,90 @@ describe('Desktop Electron local-development registration host', () => {
   it('separates transport failures from registration failures', () => {
     assert.equal(resolveLocalDevelopmentRegistrationFailureState('runtime-service-unavailable'), 'runtime-unavailable');
     assert.equal(resolveLocalDevelopmentRegistrationFailureState('local-app-developer-mode-disabled'), 'registration-unavailable');
+    assert.equal(isLocalDevelopmentRuntimeTransportFailure('runtime-service-untrusted'), true);
+    assert.equal(isLocalDevelopmentRuntimeTransportFailure('local-development-project-changed'), false);
+  });
+
+  it('preserves the same Host across Runtime transport loss and restores running after rebind', async () => {
+    let transportAvailable = false;
+    let terminateCalls = 0;
+    const appControl = control({
+      listRegistrations: async () => {
+        if (!transportAvailable) {
+          throw Object.assign(new Error('runtime-service-unavailable'), {
+            reasonCode: 'runtime-service-unavailable',
+          });
+        }
+        return [registration()];
+      },
+      hostRunning: async () => true,
+      terminateHost: async () => { terminateCalls += 1; },
+    });
+    const host = new ElectronLocalDevelopmentHost(appControl, '/tmp');
+    const run = {
+      plan: plan(),
+      supervisorRunId: SUPERVISOR,
+      registrationHandle: HANDLE,
+      stopped: false,
+      tearingDown: false,
+      supervising: false,
+      rebuilding: false,
+      rebuildRequested: false,
+      refreshingRegistration: false,
+      recoveringRuntimeTransport: false,
+      renderer: {},
+      status: {
+        schemaVersion: 1,
+        runId: 'dev-run-example',
+        state: 'running',
+        appId: 'example.local-app',
+        displayName: 'Example Local App',
+        canonicalProjectRoot: '/projects/example',
+        shell: 'electron',
+        rendererOrigin: 'http://127.0.0.1:1420',
+        message: 'Supervised electron host is running',
+        retryable: false,
+        hostGeneration: 1,
+        logSequence: 0,
+        logs: [],
+      },
+    };
+    const healthHost = host as unknown as {
+      refreshRegistration(context: typeof run): Promise<void>;
+    };
+
+    await healthHost.refreshRegistration(run);
+    assert.equal(run.status.state, 'runtime-unavailable');
+    assert.equal(run.recoveringRuntimeTransport, true);
+    assert.equal(run.registrationHandle, HANDLE);
+    assert.equal(terminateCalls, 0);
+
+    transportAvailable = true;
+    await healthHost.refreshRegistration(run);
+    assert.equal(run.status.state, 'running');
+    assert.equal(run.recoveringRuntimeTransport, false);
+    assert.equal(run.status.hostGeneration, 1);
+    assert.equal(terminateCalls, 0);
+  });
+
+  it('retries the idempotent endRun once after a stale Runtime transport failure', async () => {
+    let calls = 0;
+    const host = new ElectronLocalDevelopmentHost(control({
+      endRun: async () => {
+        calls += 1;
+        if (calls === 1) {
+          throw Object.assign(new Error('runtime-service-unavailable'), {
+            reasonCode: 'runtime-service-unavailable',
+          });
+        }
+      },
+    }), '/tmp');
+    const cleanupHost = host as unknown as {
+      endRunWithTransportRetry(registrationHandle: string, supervisorRunId: string): Promise<void>;
+    };
+
+    await cleanupHost.endRunWithTransportRetry(HANDLE, SUPERVISOR);
+    assert.equal(calls, 2);
   });
 
   it('uses a positional source Electron entry only for source local development', () => {

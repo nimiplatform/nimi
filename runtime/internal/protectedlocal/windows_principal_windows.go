@@ -414,7 +414,7 @@ func readWindowsTokenUint32(token windows.Token, class uint32) (uint32, error) {
 func readWindowsTokenInformation(token windows.Token, class uint32) ([]byte, error) {
 	var size uint32
 	err := windows.GetTokenInformation(token, class, nil, 0, &size)
-	if err != windows.ERROR_INSUFFICIENT_BUFFER || size == 0 {
+	if (err != windows.ERROR_INSUFFICIENT_BUFFER && err != windows.ERROR_BAD_LENGTH) || size == 0 {
 		return nil, err
 	}
 	buffer := make([]byte, size)

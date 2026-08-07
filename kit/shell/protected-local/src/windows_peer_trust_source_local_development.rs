@@ -6,7 +6,7 @@ use std::path::{Path, PathBuf};
 
 use windows_sys::Win32::Foundation::{
     CloseHandle, GetLastError, LocalFree, ERROR_INSUFFICIENT_BUFFER, FILETIME, HANDLE,
-    INVALID_HANDLE_VALUE,
+    INVALID_HANDLE_VALUE, WAIT_TIMEOUT,
 };
 use windows_sys::Win32::Security::Authorization::ConvertSidToStringSidW;
 use windows_sys::Win32::Security::{
@@ -18,7 +18,7 @@ use windows_sys::Win32::System::Diagnostics::ToolHelp::{
 };
 use windows_sys::Win32::System::Threading::{
     GetCurrentProcess, GetCurrentProcessId, GetProcessTimes, OpenProcess, OpenProcessToken,
-    QueryFullProcessImageNameW, PROCESS_QUERY_LIMITED_INFORMATION,
+    QueryFullProcessImageNameW, WaitForSingleObject, PROCESS_QUERY_LIMITED_INFORMATION,
 };
 
 use crate::{ProtectedCarrierError, ProtectedCarrierReasonCode};
@@ -32,6 +32,16 @@ pub(super) struct VerifiedRuntimePeer {
     _process: OwnedHandle,
     _executable: File,
     _creation_marker: u64,
+}
+
+impl VerifiedRuntimePeer {
+    pub(super) fn creation_marker(&self) -> u64 {
+        self._creation_marker
+    }
+
+    pub(super) fn running(&self) -> bool {
+        unsafe { WaitForSingleObject(self._process.as_raw_handle().cast(), 0) == WAIT_TIMEOUT }
+    }
 }
 
 pub(super) fn verify_runtime_peer(
