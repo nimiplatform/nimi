@@ -65,11 +65,11 @@ export function ConversationSetupPanel({
             type="button"
             onClick={() => onAction?.(state.primaryAction!)}
             className={cn(
-              'rounded-full px-5 py-2.5 text-sm font-medium text-white',
-              'bg-gradient-to-r from-emerald-400 to-teal-400',
-              'shadow-[0_8px_20px_rgba(52,211,153,0.25)]',
+              'rounded-full px-5 py-2.5 text-sm font-medium text-[var(--nimi-action-primary-text)]',
+              'bg-[var(--nimi-action-primary-bg)]',
+              'shadow-[0_8px_20px_color-mix(in_srgb,var(--nimi-action-primary-bg)_25%,transparent)]',
               'transition-all duration-150',
-              'hover:shadow-[0_12px_28px_rgba(52,211,153,0.35)] hover:-translate-y-px',
+              'hover:bg-[var(--nimi-action-primary-bg-hover)] hover:shadow-[0_12px_28px_color-mix(in_srgb,var(--nimi-action-primary-bg)_35%,transparent)] hover:-translate-y-px',
               'active:scale-[0.98]',
             )}
           >

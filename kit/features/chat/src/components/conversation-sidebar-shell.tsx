@@ -22,7 +22,7 @@ export type ConversationSidebarShellProps = {
 
 const BADGE_VARIANT_CLASSES: Record<ConversationCharacterBadge['variant'], string> = {
   default: 'border-slate-200 bg-slate-50 text-slate-600',
-  online: 'border-emerald-200 bg-emerald-50 text-emerald-700',
+  online: 'border-[var(--nimi-status-success-soft-border)] bg-[var(--nimi-status-success-soft-bg)] text-[var(--nimi-status-success-soft-text)]',
   busy: 'border-amber-200 bg-amber-50 text-amber-700',
   warm: 'border-rose-200 bg-rose-50 text-rose-700',
   new: 'border-sky-200 bg-sky-50 text-sky-700',
@@ -50,7 +50,7 @@ export function ConversationSidebarShell({
       )}
     >
       {/* decorative blur orbs */}
-      <div className="pointer-events-none absolute left-[-64px] top-[-52px] h-48 w-48 rounded-full bg-emerald-100/70 blur-3xl" />
+      <div className="pointer-events-none absolute left-[-64px] top-[-52px] h-48 w-48 rounded-full bg-[var(--nimi-action-primary-bg)]/10 blur-3xl" />
       <div className="pointer-events-none absolute bottom-16 right-[-56px] h-56 w-56 rounded-full bg-sky-100/70 blur-3xl" />
 
       {/* main content */}
@@ -59,9 +59,9 @@ export function ConversationSidebarShell({
         <div className="flex min-h-0 flex-1 items-center justify-center pb-8">
           <div className="group relative rounded-full outline-none transition-transform duration-300 hover:scale-[1.02]">
             {/* aura glow */}
-            <div className="absolute inset-[-28px] rounded-full bg-emerald-100/60 opacity-75 blur-3xl" />
+            <div className="absolute inset-[-28px] rounded-full bg-[var(--nimi-action-primary-bg)]/10 opacity-75 blur-3xl" />
             {/* border ring */}
-            <div className="absolute inset-[-12px] rounded-full border border-white/75 shadow-[0_22px_56px_rgba(167,243,208,0.3)]" />
+            <div className="absolute inset-[-12px] rounded-full border border-white/75 shadow-[0_22px_56px_color-mix(in_srgb,var(--nimi-action-primary-bg)_30%,transparent)]" />
             {/* avatar frame */}
             <div
               className={cn(
@@ -77,7 +77,7 @@ export function ConversationSidebarShell({
                   className="h-full w-full object-cover"
                 />
               ) : (
-                <span className="text-6xl font-black text-emerald-600/70">
+                <span className="text-6xl font-black text-[var(--nimi-action-primary-bg)]/70">
                   {initial}
                 </span>
               )}
@@ -119,7 +119,7 @@ export function ConversationSidebarShell({
                 {badge.pulse ? (
                   <span className={cn(
                     'inline-block h-2.5 w-2.5 rounded-full',
-                    badge.variant === 'online' ? 'bg-emerald-500 animate-pulse' : 'bg-current',
+                    badge.variant === 'online' ? 'bg-[var(--nimi-status-success)] animate-pulse' : 'bg-current',
                   )} />
                 ) : (
                   <span className="inline-block h-2.5 w-2.5 rounded-full bg-current opacity-60" />

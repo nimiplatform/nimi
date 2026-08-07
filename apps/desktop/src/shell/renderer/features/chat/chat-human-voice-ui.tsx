@@ -160,7 +160,7 @@ export function HumanVoiceInspectSidebar(props: {
           <button
             type="button"
             onClick={() => props.onPlay(props.message)}
-            className="rounded-full bg-gradient-to-r from-emerald-400 to-teal-400 px-4 py-2 text-sm font-semibold text-white shadow-[0_12px_30px_rgba(16,185,129,0.24)] transition hover:-translate-y-px"
+            className="rounded-full bg-[var(--nimi-action-primary-bg)] px-4 py-2 text-sm font-semibold text-[var(--nimi-action-primary-text)] shadow-[0_12px_30px_color-mix(in_srgb,var(--nimi-action-primary-bg)_24%,transparent)] transition hover:-translate-y-px"
           >
             {props.playing
               ? t('Chat.voiceInspectStop', { defaultValue: 'Stop playback' })

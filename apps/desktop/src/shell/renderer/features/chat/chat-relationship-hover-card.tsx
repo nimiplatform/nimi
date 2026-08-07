@@ -159,7 +159,7 @@ export function RelationshipHoverCard({
       role="button"
       tabIndex={0}
       aria-label={activationLabel}
-      className="nimi-material-glass-chrome group fixed z-[9999] w-[min(430px,calc(100cqw-96px))] overflow-hidden rounded-[22px] border border-white/75 bg-white/82 px-5 py-4 text-left shadow-[0_22px_70px_rgba(80,95,130,0.2)] backdrop-blur-[var(--nimi-backdrop-blur-chrome)] transition duration-200 hover:border-white hover:bg-white/88 hover:shadow-[0_24px_76px_rgba(80,95,130,0.24)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/80"
+      className="nimi-material-glass-chrome group fixed z-[9999] w-[min(430px,calc(100cqw-96px))] overflow-hidden rounded-[22px] border border-white/75 bg-white/82 px-5 py-4 text-left shadow-[0_22px_70px_rgba(80,95,130,0.2)] backdrop-blur-[var(--nimi-backdrop-blur-chrome)] transition duration-200 hover:border-white hover:bg-white/88 hover:shadow-[0_24px_76px_rgba(80,95,130,0.24)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)]"
       style={{ top: pos.top, right: pos.right, transform: 'translateY(-50%)' }}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
@@ -168,7 +168,7 @@ export function RelationshipHoverCard({
     >
       <span
         aria-hidden="true"
-        className={`absolute right-1.5 top-1/2 w-1 rounded-full bg-emerald-500 shadow-[0_0_16px_rgba(16,185,129,0.36)] transition-all duration-200 ${
+        className={`absolute right-1.5 top-1/2 w-1 rounded-full bg-[var(--nimi-action-primary-bg)] shadow-[0_0_16px_color-mix(in_srgb,var(--nimi-action-primary-bg)_36%,transparent)] transition-all duration-200 ${
           selected ? 'h-[92px] -translate-y-1/2 opacity-100' : 'h-0 -translate-y-1/2 opacity-0'
         }`}
       />

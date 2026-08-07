@@ -138,7 +138,7 @@ function AgentComposerToolbarControls(props: {
         className={cn(
           AGENT_COMPOSER_TOOL_BUTTON_CLASS,
           avatarState === 'running'
-            ? 'border-transparent bg-emerald-50 text-emerald-600 hover:bg-emerald-100/80 hover:text-emerald-700'
+            ? 'border-transparent bg-[var(--nimi-surface-active)] text-[var(--nimi-action-primary-bg)] hover:bg-[var(--nimi-action-primary-bg)]/20 hover:text-[var(--nimi-action-primary-bg-hover)]'
             : avatarState === 'ready_stopped'
               ? 'border-transparent bg-transparent text-slate-500 hover:bg-slate-900/[0.06] hover:text-slate-700'
               : avatarState === 'pending'
@@ -169,7 +169,7 @@ function AgentComposerToolbarControls(props: {
           className={cn(
             AGENT_COMPOSER_TOOL_BUTTON_CLASS,
             handsFreeActive
-              ? 'border-transparent bg-emerald-50 text-emerald-600 hover:bg-emerald-100/80 hover:text-emerald-700'
+              ? 'border-transparent bg-[var(--nimi-surface-active)] text-[var(--nimi-action-primary-bg)] hover:bg-[var(--nimi-action-primary-bg)]/20 hover:text-[var(--nimi-action-primary-bg-hover)]'
               : 'border-transparent bg-transparent text-slate-500 hover:bg-slate-900/[0.06] hover:text-slate-700',
             'disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-transparent disabled:hover:bg-transparent disabled:hover:text-slate-500',
           )}
@@ -192,7 +192,7 @@ function AgentComposerToolbarControls(props: {
           className={cn(
             AGENT_COMPOSER_TOOL_BUTTON_CLASS,
             props.thinkingState === 'on'
-              ? 'border-transparent bg-emerald-50 text-emerald-600 hover:bg-emerald-100/80 hover:text-emerald-700'
+              ? 'border-transparent bg-[var(--nimi-surface-active)] text-[var(--nimi-action-primary-bg)] hover:bg-[var(--nimi-action-primary-bg)]/20 hover:text-[var(--nimi-action-primary-bg-hover)]'
               : 'border-transparent bg-transparent text-slate-500 hover:bg-slate-900/[0.06] hover:text-slate-700',
             'disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-transparent disabled:hover:bg-transparent disabled:hover:text-slate-500',
           )}
@@ -223,7 +223,7 @@ function AgentComposerAgentCenterButton(props: {
       className={cn(
         AGENT_COMPOSER_TOOL_BUTTON_CLASS,
         props.open
-          ? 'border-transparent bg-emerald-50 text-emerald-600 hover:bg-emerald-100/80 hover:text-emerald-700'
+          ? 'border-transparent bg-[var(--nimi-surface-active)] text-[var(--nimi-action-primary-bg)] hover:bg-[var(--nimi-action-primary-bg)]/20 hover:text-[var(--nimi-action-primary-bg-hover)]'
           : 'border-transparent bg-transparent text-slate-500 hover:bg-slate-900/[0.06] hover:text-slate-700',
       )}
     >

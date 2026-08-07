@@ -206,10 +206,10 @@ export function CanonicalStagePanel(props: CanonicalStagePanelProps) {
           className={`w-full ${widthClassName}`}
           data-canonical-stage-width={widthClassName}
         >
-          <div className="w-full rounded-[30px] border border-emerald-100/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.97),rgba(248,250,252,0.92))] p-4 shadow-[0_24px_60px_rgba(15,23,42,0.08)] backdrop-blur-xl">
+          <div className="w-full rounded-[30px] border border-[var(--nimi-action-primary-bg)]/15 bg-[linear-gradient(180deg,rgba(255,255,255,0.97),rgba(248,250,252,0.92))] p-4 shadow-[0_24px_60px_rgba(15,23,42,0.08)] backdrop-blur-xl">
             <div className="mb-3 flex items-center justify-between gap-3 px-2">
               <div>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-emerald-700/70">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--nimi-action-primary-bg)]/70">
                   Moment
                 </p>
                 <p className="mt-1 text-xs text-slate-500">

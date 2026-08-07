@@ -183,7 +183,7 @@ export function ChatComposer<TAttachment = never>({
         'text-slate-900 outline-none',
         'transition-colors duration-200',
         'placeholder:text-slate-400',
-        isStacked ? 'focus:ring-0' : 'focus:border-emerald-300',
+        isStacked ? 'focus:ring-0' : 'focus:border-[var(--nimi-field-focus)]',
         isStacked ? 'disabled:bg-transparent' : 'disabled:bg-slate-100',
       )}
       placeholder={placeholder}
@@ -207,7 +207,7 @@ export function ChatComposer<TAttachment = never>({
       className={cn(
         'flex shrink-0 items-center justify-center text-white transition-all duration-150',
         isStacked
-          ? 'h-8 w-8 rounded-full bg-slate-200/80 text-slate-400 enabled:bg-gradient-to-br enabled:from-emerald-500 enabled:to-teal-500 enabled:text-white enabled:shadow-[0_8px_20px_rgba(16,185,129,0.28)] enabled:hover:from-emerald-600 enabled:hover:to-teal-600 enabled:hover:shadow-[0_12px_24px_rgba(16,185,129,0.34)]'
+          ? 'h-8 w-8 rounded-full bg-slate-200/80 text-slate-400 enabled:bg-[var(--nimi-action-primary-bg)] enabled:text-[var(--nimi-action-primary-text)] enabled:shadow-[0_8px_20px_color-mix(in_srgb,var(--nimi-action-primary-bg)_28%,transparent)] enabled:hover:bg-[var(--nimi-action-primary-bg-hover)] enabled:hover:shadow-[0_12px_24px_color-mix(in_srgb,var(--nimi-action-primary-bg)_34%,transparent)]'
           : 'h-12 w-12 rounded-[20px] bg-gradient-to-br from-sky-400 via-cyan-400 to-sky-500 shadow-[0_18px_36px_color-mix(in_srgb,var(--nimi-action-primary-bg)_30%,transparent)] transition-[box-shadow,transform] duration-[var(--nimi-motion-fast)] ease-[var(--nimi-motion-ease-standard)] active:scale-[var(--nimi-motion-pressed-scale)] hover:shadow-[0_22px_44px_color-mix(in_srgb,var(--nimi-action-primary-bg)_40%,transparent)] disabled:opacity-40 disabled:shadow-none disabled:hover:translate-y-0 disabled:hover:bg-inherit',
         'active:scale-[0.92]',
       )}
@@ -241,7 +241,7 @@ export function ChatComposer<TAttachment = never>({
         'flex shrink-0 items-center justify-center transition-colors',
         isStacked
           ? 'h-8 w-8 rounded-full border border-transparent bg-transparent text-slate-500 hover:bg-slate-900/[0.06] hover:text-slate-700'
-          : 'h-11 w-11 rounded-2xl border border-slate-200/80 bg-white/90 text-slate-600 hover:border-emerald-300 hover:text-teal-700',
+          : 'h-11 w-11 rounded-2xl border border-slate-200/80 bg-white/90 text-slate-600 hover:border-[var(--nimi-action-primary-bg)]/50 hover:text-[var(--nimi-action-primary-bg)]',
         showMediaActions ? 'border border-sky-200 bg-sky-50 text-sky-700' : '',
         'disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-slate-200/80 disabled:hover:text-slate-500',
       )}
@@ -442,7 +442,7 @@ function VoiceButton({
                 ? 'border border-amber-200 bg-amber-50 text-amber-600'
                 : compact
                   ? 'border border-transparent bg-transparent text-slate-500 hover:bg-slate-900/[0.06] hover:text-slate-700'
-                  : 'border border-slate-200/80 bg-white/90 text-slate-600 hover:border-emerald-300 hover:text-teal-700',
+                  : 'border border-slate-200/80 bg-white/90 text-slate-600 hover:border-[var(--nimi-action-primary-bg)]/50 hover:text-[var(--nimi-action-primary-bg)]',
         )}
         title={isRecording ? 'Stop recording' : isTranscribing ? 'Transcribing…' : 'Voice input'}
       >

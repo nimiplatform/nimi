@@ -69,13 +69,13 @@ function HeaderIconButton(props: {
         'transition-all duration-150',
         'active:scale-[0.985]',
         props.active
-          ? 'border border-emerald-400 bg-emerald-500 text-white shadow-[0_4px_12px_rgba(16,185,129,0.2)]'
+          ? 'border border-[var(--nimi-action-primary-bg)] bg-[var(--nimi-action-primary-bg)] text-[var(--nimi-action-primary-text)] shadow-[0_4px_12px_color-mix(in_srgb,var(--nimi-action-primary-bg)_20%,transparent)]'
           : 'border border-slate-200/80 bg-white/90 text-slate-700',
         props.disabled
           ? 'cursor-not-allowed opacity-50'
-          : 'hover:-translate-y-px hover:border-emerald-300 hover:text-teal-700 hover:shadow-[0_8px_18px_rgba(15,23,42,0.08)]',
+          : 'hover:-translate-y-px hover:border-[var(--nimi-action-primary-bg)]/50 hover:text-[var(--nimi-action-primary-bg)] hover:shadow-[0_8px_18px_rgba(15,23,42,0.08)]',
         props.active && !props.disabled
-          ? 'hover:bg-emerald-600 hover:text-white hover:border-emerald-500'
+          ? 'hover:bg-[var(--nimi-action-primary-bg-hover)] hover:text-[var(--nimi-action-primary-text)] hover:border-[var(--nimi-action-primary-bg-hover)]'
           : '',
       )}
     >
@@ -123,7 +123,7 @@ export type ConversationShellProps = {
 function defaultEmptyState(): ReactNode {
   return (
     <div className="flex h-full min-h-[320px] flex-col items-center justify-center gap-3 text-center">
-      <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-emerald-600/70">
+      <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--nimi-action-primary-bg)]/70">
         This Moment
       </div>
       <p className="text-sm text-slate-500">

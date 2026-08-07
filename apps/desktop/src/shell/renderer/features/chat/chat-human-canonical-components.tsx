@@ -60,7 +60,7 @@ function HumanMediaMessageCard(props: {
   const isUser = props.message.role === 'human' || props.message.role === 'user';
 
   return (
-    <div className={`overflow-hidden rounded-[24px] border shadow-[0_8px_22px_rgba(15,23,42,0.08)] ${isUser ? 'border-emerald-300/60 bg-white/96' : 'border-white/80 bg-white/95'}`}>
+    <div className={`overflow-hidden rounded-[24px] border shadow-[0_8px_22px_rgba(15,23,42,0.08)] ${isUser ? 'border-[var(--nimi-action-primary-bg)]/40 bg-white/96' : 'border-white/80 bg-white/95'}`}>
       {props.message.kind === 'video' ? (
         <div className="relative h-52 w-[min(22rem,72vw)] overflow-hidden bg-slate-950">
           {mediaUrl ? (
@@ -194,7 +194,7 @@ function useHumanMessageRenderers(input: {
           kind="human"
           sizeClassName="h-8 w-8"
           textClassName="text-xs font-medium"
-          fallbackClassName={isMe ? 'bg-[#0066CC] text-white' : undefined}
+          fallbackClassName={isMe ? 'bg-[var(--nimi-action-primary-bg)] text-[var(--nimi-action-primary-text)]' : undefined}
         />
       </button>
     );

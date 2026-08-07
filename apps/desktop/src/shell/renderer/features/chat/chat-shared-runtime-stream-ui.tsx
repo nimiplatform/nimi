@@ -204,7 +204,7 @@ export function RuntimeAgentDebugMessageAccessory(props: {
   return (
     <div className="mt-2 space-y-2">
       {debugMetadata.followUpTurn ? (
-        <div className="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-emerald-700">
+        <div className="inline-flex items-center rounded-full border border-[var(--nimi-action-primary-bg)]/25 bg-[var(--nimi-surface-active)] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--nimi-action-primary-bg)]">
           {debugMetadata.followUpDepth && debugMetadata.maxFollowUpTurns
             ? `${props.followUpLabel} ${debugMetadata.followUpDepth}/${debugMetadata.maxFollowUpTurns}`
             : props.followUpLabel}

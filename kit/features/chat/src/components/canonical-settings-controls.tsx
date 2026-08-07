@@ -15,7 +15,7 @@ export function CanonicalSettingsSegmentButton(props: {
       className={cn(
         'rounded-full px-4 py-2 text-[13px] font-semibold transition-colors',
         props.active
-          ? 'bg-emerald-500 text-white shadow-[0_10px_24px_rgba(16,185,129,0.22)]'
+          ? 'bg-[var(--nimi-action-primary-bg)] text-[var(--nimi-action-primary-text)] shadow-[0_10px_24px_color-mix(in_srgb,var(--nimi-action-primary-bg)_22%,transparent)]'
           : 'bg-white text-slate-600 hover:bg-slate-50',
         props.disabled ? 'cursor-not-allowed opacity-55 hover:bg-white' : '',
       )}
@@ -41,7 +41,7 @@ export function CanonicalSettingsToggleRow(props: {
         'flex w-full items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-left transition-colors',
         props.disabled
           ? 'cursor-not-allowed opacity-65'
-          : 'hover:border-emerald-200 hover:bg-emerald-50/40',
+          : 'hover:border-[var(--nimi-action-primary-bg)]/30 hover:bg-[var(--nimi-action-ghost-hover)]',
       )}
     >
       <div>
@@ -50,7 +50,7 @@ export function CanonicalSettingsToggleRow(props: {
       </div>
       <span className={cn(
         'inline-flex h-7 w-12 shrink-0 items-center rounded-full p-1 transition-colors',
-        props.checked ? 'justify-end bg-emerald-500' : 'justify-start bg-gray-200',
+        props.checked ? 'justify-end bg-[var(--nimi-action-primary-bg)]' : 'justify-start bg-gray-200',
       )}>
         <span className="h-5 w-5 rounded-full bg-white shadow-sm" />
       </span>

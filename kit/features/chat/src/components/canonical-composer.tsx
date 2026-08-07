@@ -79,7 +79,7 @@ export function CanonicalComposer<TAttachment = never>({
         ) : null}
 
         <div>
-          <ConversationComposerShell className={cn(mode === 'chat' ? 'rounded-[24px] shadow-[0_18px_42px_rgba(15,23,42,0.06)] transition-[box-shadow,border-color] duration-200 focus-within:border-emerald-200/90 focus-within:shadow-[0_22px_48px_rgba(15,23,42,0.10)]' : '')}>
+          <ConversationComposerShell className={cn(mode === 'chat' ? 'rounded-[24px] shadow-[0_18px_42px_rgba(15,23,42,0.06)] transition-[box-shadow,border-color] duration-200 focus-within:border-[var(--nimi-field-focus)] focus-within:shadow-[0_22px_48px_rgba(15,23,42,0.10)]' : '')}>
             <ChatComposer
               adapter={adapter}
               initialText={initialText}

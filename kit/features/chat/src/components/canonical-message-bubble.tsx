@@ -214,7 +214,7 @@ function resolveMessageAvatar(message: ConversationCanonicalMessage): ReactNode 
         'flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-semibold ring-1 ring-black/5',
         isUser
           ? 'bg-slate-700 text-white'
-          : 'bg-gradient-to-br from-emerald-500 to-teal-700 text-white',
+          : 'bg-[var(--nimi-action-primary-bg)] text-[var(--nimi-action-primary-text)]',
       )}
     >
       {initial}
@@ -374,7 +374,7 @@ export const CanonicalMessageBubble = memo(function CanonicalMessageBubble({
             style={stageMediaFrameStyle}
           />
           <div className="flex items-center gap-2 text-xs text-gray-600">
-            <span className="inline-block h-3.5 w-3.5 animate-spin rounded-full border-2 border-gray-300 border-t-emerald-600" />
+            <span className="inline-block h-3.5 w-3.5 animate-spin rounded-full border-2 border-gray-300 border-t-[var(--nimi-action-primary-bg)]" />
             <span>{message.text || (isImagePending ? 'Generating image…' : 'Generating video…')}</span>
           </div>
         </div>
@@ -435,7 +435,7 @@ export const CanonicalMessageBubble = memo(function CanonicalMessageBubble({
       ) : isStreaming ? (
         <div className={`space-y-1 ${message.text ? '' : 'italic opacity-70'}`}>
           {message.text ? <MarkdownMessageContent content={message.text} /> : 'Streaming…'}
-          <span className="inline-block animate-pulse text-emerald-600">|</span>
+          <span className="inline-block animate-pulse text-[var(--nimi-action-primary-bg)]">|</span>
         </div>
       ) : !disableRpContent && hasRpContent(message.text) ? (
         <RpMessageContent content={message.text} />
@@ -469,7 +469,7 @@ export const CanonicalMessageBubble = memo(function CanonicalMessageBubble({
                 isMediaCard
                   ? 'overflow-hidden border border-gray-200 bg-white'
                   : isUser
-                    ? 'bg-gradient-to-br from-emerald-500 to-teal-500 border border-emerald-400 px-4 py-2 text-white/95 [&_*]:!text-inherit'
+                    ? 'bg-[var(--nimi-action-primary-bg)] border border-[var(--nimi-action-primary-bg-hover)] px-4 py-2 text-[var(--nimi-action-primary-text)] [&_*]:!text-inherit'
                     : 'border border-white/70 bg-white/80 px-4 py-2 text-slate-800 shadow-[0_4px_16px_rgba(15,23,42,0.05)]',
               )}
               style={bubbleShape.style}

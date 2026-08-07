@@ -80,7 +80,7 @@ export function ConversationModeSwitcher({
           'border border-slate-200/80 bg-white/90 text-slate-700',
           'shadow-[0_2px_8px_rgba(15,23,42,0.05)]',
           'transition-all duration-150',
-          'hover:-translate-y-px hover:border-emerald-300 hover:text-teal-700 hover:shadow-[0_8px_18px_rgba(15,23,42,0.08)]',
+          'hover:-translate-y-px hover:border-[var(--nimi-action-primary-bg)]/50 hover:text-[var(--nimi-action-primary-bg)] hover:shadow-[0_8px_18px_rgba(15,23,42,0.08)]',
           'active:scale-[0.985]',
         )}
         aria-label={`Current mode: ${activeOption?.label || activeMode}`}
@@ -112,7 +112,7 @@ export function ConversationModeSwitcher({
                 className={cn(
                   'flex w-full items-center gap-3 px-4 py-2.5 text-left text-[13px] transition-colors',
                   active
-                    ? 'bg-emerald-50/80 font-semibold text-emerald-800'
+                    ? 'bg-[var(--nimi-surface-active)] font-semibold text-[var(--nimi-action-primary-bg)]'
                     : 'text-slate-700 hover:bg-slate-50',
                   option.disabled && 'pointer-events-none opacity-40',
                 )}
@@ -124,7 +124,7 @@ export function ConversationModeSwitcher({
                 {option.countBadge != null && option.countBadge !== '' ? (
                   <span className={cn(
                     'inline-flex min-w-[18px] items-center justify-center rounded-full px-1 text-[10px] font-semibold',
-                    active ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500',
+                    active ? 'bg-[var(--nimi-surface-active)] text-[var(--nimi-action-primary-bg)]' : 'bg-slate-100 text-slate-500',
                   )}>
                     {option.countBadge}
                   </span>

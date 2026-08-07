@@ -82,7 +82,7 @@ export function ConversationStageLayout({
               onClick={() => setOpen(false)}
               className={cn(
                 'h-8 w-8 rounded-full border-slate-200/80 bg-white/90 text-slate-500',
-                'transition-colors hover:border-emerald-300 hover:text-teal-700',
+                'transition-colors hover:border-[var(--nimi-action-primary-bg)]/50 hover:text-[var(--nimi-action-primary-bg)]',
               )}
               icon={(
                 <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">

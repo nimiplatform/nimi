@@ -307,7 +307,7 @@ export function CanonicalTranscriptView({
             )}
           >
             <p className={cn(
-              'font-semibold uppercase tracking-[0.2em] text-emerald-700/70',
+              'font-semibold uppercase tracking-[0.2em] text-[var(--nimi-action-primary-bg)]/70',
               compactEmptyState ? 'text-[9px]' : 'text-[11px]',
             )}>
               {emptyEyebrow}

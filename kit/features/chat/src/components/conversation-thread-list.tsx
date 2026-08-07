@@ -54,7 +54,7 @@ export function ConversationThreadList({
                       {thread.title}
                     </p>
                     {thread.unreadCount > 0 ? (
-                      <span className="inline-flex min-w-[18px] items-center justify-center rounded-full bg-emerald-100 px-1 text-[10px] font-semibold text-emerald-700">
+                      <span className="inline-flex min-w-[18px] items-center justify-center rounded-full bg-[var(--nimi-surface-active)] px-1 text-[10px] font-semibold text-[var(--nimi-action-primary-bg)]">
                         {thread.unreadCount}
                       </span>
                     ) : null}
