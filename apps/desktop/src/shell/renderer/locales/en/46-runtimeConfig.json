@@ -31,8 +31,10 @@
     "overview": "Overview",
     "profiles": "Profiles",
     "profilesDesc": "Account default profile",
-    "models": "Models",
-    "modelsDesc": "Installed models, recommendations, and provider catalog",
+    "modelMarket": "Model Market",
+    "localModels": "Local Models",
+    "localAiConfig": "Local AI Configurations",
+    "modelCatalog": "Model Catalog",
     "cloud": "Cloud Connectors",
     "cloudDesc": "API key connectors",
     "environment": "Environment",
@@ -40,12 +42,6 @@
     "section": {
       "runtime": "Runtime"
     }
-  },
-  "models": {
-    "tabRecommend": "Recommended",
-    "tabInstalled": "Installed",
-    "tabConfigurations": "Local AI Configurations",
-    "tabCatalog": "Model Catalog"
   },
   "machineLocalAIConfigurations": {
     "title": "Local AI Configurations",
@@ -688,7 +684,7 @@
     "cloudAuthorizationGuidance": "Portable AIProfiles never carry connector, account, or ConnectorGrant identity. After Apply, review each Cloud intent and explicitly select an active account authorization. Until then, Runtime reports an informational selection-required state.",
     "openAccountAuthorization": "Open account authorizations",
     "localSelectionTitle": "Local capability selection stays on this machine",
-    "localSelectionGuidance": "Local capability intent is written to the App AIConfig. Machine-side Local Capability Configuration resolution and selection are managed in Models → Local AI Configurations. Until a selection is made, Runtime reports an informational selection-required state; this is not an error.",
+    "localSelectionGuidance": "Local capability intent is written to the App AIConfig. Machine-side Local Capability Configuration resolution and selection are managed on the Local AI Configurations page. Until a selection is made, Runtime reports an informational selection-required state; this is not an error.",
     "openLocalConfigurations": "Open Local AI Configurations",
     "technicalDetails": "Technical details",
     "useProfileTab": "Use profile",

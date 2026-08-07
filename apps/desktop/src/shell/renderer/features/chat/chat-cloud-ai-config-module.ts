@@ -77,11 +77,14 @@ export function createDesktopCloudAIConfigModule(
         inventory.listConnectors(),
         sdk.accountProduct().connectorGrants.list(),
       ]);
-      const connectors = connectorSnapshot.map((item) => Object.freeze({
-        connectorId: item.id,
-        label: item.label || item.id,
-        provider: item.provider,
-      }));
+      const connectors = connectorSnapshot
+        .filter((item) => item.hasCredential)
+        .map((item) => Object.freeze({
+          connectorId: item.id,
+          label: item.label || item.id,
+          provider: item.provider,
+        }))
+        .sort((left, right) => left.label.localeCompare(right.label));
       return Object.freeze({
         connectors: Object.freeze(connectors),
         grants: Object.freeze(grants.map(toGrantOption)),

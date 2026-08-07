@@ -59,9 +59,24 @@ function HumanModeSettings(props: {
 function useNimiChatModelConfigCopy(): ModelConfigCopy {
   const { t } = useTranslation();
   return useMemo(() => ({
-    title: t('Chat.settingsAIConfigTitle', { defaultValue: 'Nimi Chat AI' }),
+    title: t('Chat.settingsAIModelTitle', { defaultValue: 'AI Model' }),
     description: t('Chat.settingsAppAIConfigOwnerHint', {
       defaultValue: 'Nimi Desktop stores capability intent. Runtime validates the committed Local or Cloud choice when execution starts.',
+    }),
+    backLabel: t('Chat.settingsModelConfigBack', { defaultValue: 'Back' }),
+    detailTitle: (capabilityLabel: string) => t('Chat.settingsModelConfigTitle', {
+      defaultValue: '{{capability}} Configuration',
+      capability: capabilityLabel,
+    }),
+    activeModelLabel: t('Chat.settingsActiveModel', { defaultValue: 'Active Model' }),
+    activeModelHint: t('Chat.settingsActiveModelHint', { defaultValue: 'Click to change model' }),
+    activeModelConfiguredLabel: t('Chat.settingsModelConfigured', { defaultValue: 'configured' }),
+    activeModelSetupPendingLabel: t('Chat.settingsModelSetupPending', { defaultValue: 'setup pending' }),
+    modelPickerTitle: t('Chat.settingsModelPickerTitle', { defaultValue: 'Select Model' }),
+    modelPickerSearchPlaceholder: t('Chat.settingsModelPickerSearch', { defaultValue: 'Search models' }),
+    modelPickerLoadingLabel: t('Chat.settingsModelPickerLoading', { defaultValue: 'Loading models…' }),
+    modelPickerEmptyLabel: t('Chat.settingsModelPickerEmpty', {
+      defaultValue: 'No models are available for this capability.',
     }),
     routeLabel: t('Chat.settingsExecutionIntent', { defaultValue: 'Execution intent' }),
     localLabel: t('Chat.settingsIntentLocal', { defaultValue: 'Local' }),
@@ -81,6 +96,9 @@ function useNimiChatModelConfigCopy(): ModelConfigCopy {
     defaultsPlaceholder: t('Chat.settingsPortableDefaultsPlaceholder', {
       defaultValue: 'Optional capability defaults',
     }),
+    localChoiceDescription: t('Chat.settingsLocalChoiceDescription', {
+      defaultValue: 'Use the model selected in Local AI Configurations.',
+    }),
     localSelectedLabel: t('Chat.settingsLocalSelectionSelected', { defaultValue: 'Selected on this machine' }),
     localMissingLabel: t('Chat.settingsLocalSelectionMissing', {
       defaultValue: 'Local intent is saved, but this machine has no selected configuration for this capability.',
@@ -98,6 +116,17 @@ function useNimiChatModelConfigCopy(): ModelConfigCopy {
     openMachineLabel: t('Chat.settingsOpenLocalConfigurations', {
       defaultValue: 'Open Local AI Configurations',
     }),
+    cloudConnectorPickerLabel: t('Chat.settingsCloudConnectorPicker', { defaultValue: 'Cloud Connector' }),
+    cloudConnectorPickerPlaceholder: t('Chat.settingsCloudConnectorPickerPlaceholder', {
+      defaultValue: 'Select a configured Connector',
+    }),
+    cloudConnectorSelectionRequired: t('Chat.settingsCloudConnectorSelectionRequired', {
+      defaultValue: 'Select a configured Connector before choosing a model.',
+    }),
+    cloudNoConnectorsLabel: t('Chat.settingsCloudNoConnectors', {
+      defaultValue: 'No configured Cloud Connector is available.',
+    }),
+    openCloudConnectorsLabel: t('Chat.settingsOpenCloudConnectors', { defaultValue: 'Configure Cloud Connectors' }),
     cloudImplementationLabel: t('Chat.settingsCloudImplementation', { defaultValue: 'Cloud implementation' }),
     cloudImplementationPlaceholder: t('Chat.settingsCloudImplementationPlaceholder', {
       defaultValue: 'Choose an existing implementation',
@@ -146,6 +175,16 @@ function useNimiChatModelConfigCopy(): ModelConfigCopy {
       defaultValue: 'Runtime could not save the Nimi Desktop AI intent.',
     }),
     technicalDetailsLabel: t('Chat.settingsTechnicalDetails', { defaultValue: 'Technical details' }),
+    unsupportedCapabilityLabel: t('Chat.settingsModelUnsupportedCapability', {
+      defaultValue: 'This capability is unavailable.',
+    }),
+    notConfiguredLabel: t('Chat.settingsModelNotConfigured', { defaultValue: 'Not configured' }),
+    configuredLabel: t('Chat.settingsModelConfigured', { defaultValue: 'Configured' }),
+    selectionRequiredLabel: t('Chat.settingsModelSelectionRequired', { defaultValue: 'Selection required' }),
+    blockedLabel: t('Chat.settingsModelBlocked', { defaultValue: 'Blocked' }),
+    mismatchLabel: t('Chat.settingsModelFeatureMismatch', { defaultValue: 'Feature mismatch' }),
+    cancelLabel: t('Chat.settingsModelPickerCancel', { defaultValue: 'Cancel' }),
+    confirmSelectionLabel: t('Chat.settingsUseModelSelection', { defaultValue: 'Use selection' }),
     capabilityLabel: () => t('Chat.settingsTextCapability', { defaultValue: 'Text generation' }),
     capabilityDescription: () => t('Chat.settingsTextCapabilityDescription', {
       defaultValue: 'Controls how Nimi Chat resolves text generation.',
@@ -191,9 +230,18 @@ function AiModeSettings(props: {
   const openMachineConfiguration = useCallback(() => {
     setActiveTab('runtime');
     runtimeConfigNavigation.focusAction({
-      page: 'models',
+      page: 'localAiConfig',
       action: 'open-configurations',
       focus: 'runtime-config-action-focus.models-configurations',
+    });
+  }, [runtimeConfigNavigation, setActiveTab]);
+
+  const openCloudConnectorConfiguration = useCallback(() => {
+    setActiveTab('runtime');
+    runtimeConfigNavigation.focusAction({
+      page: 'cloud',
+      action: 'add-connector',
+      focus: 'runtime-config-action-focus.cloud-connector-draft',
     });
   }, [runtimeConfigNavigation, setActiveTab]);
 
@@ -232,6 +280,7 @@ function AiModeSettings(props: {
             await overwriteAppAIConfig.mutateAsync(capabilities);
           }}
           onOpenMachineConfiguration={openMachineConfiguration}
+          onOpenCloudConnectorConfiguration={openCloudConnectorConfiguration}
           formatError={(error) => {
             const fallback = copy.saveFailed || 'Runtime could not save the Nimi Desktop AI intent.';
             const userFacing = toChatUserFacingRuntimeError(error, fallback, t);
@@ -242,7 +291,6 @@ function AiModeSettings(props: {
           }}
           copy={copy}
           footer={footer}
-          className="rounded-[var(--nimi-radius-lg)] bg-[var(--nimi-surface-card)] p-4"
         />
       </div>
     </div>

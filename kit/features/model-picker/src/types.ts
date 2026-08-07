@@ -41,7 +41,10 @@ export type ModelPickerCopy = Partial<{
   readonly loadingLabel: ReactNode;
   readonly emptyLabel: ReactNode;
   readonly retryLabel: string;
+  readonly sourceLabels: Readonly<Record<string, string>>;
   readonly detailEmptyLabel: string;
   readonly cancelLabel: string;
   readonly confirmLabel: string;
 }>;
+
+export type ModelPickerPresentation = 'browser' | 'route';

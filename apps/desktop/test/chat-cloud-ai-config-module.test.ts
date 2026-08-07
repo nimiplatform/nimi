@@ -79,20 +79,36 @@ test('Desktop Cloud choices preserve implementation, target, and ConnectorGrant 
     },
     async listConnectors() {
       return {
-        connectors: [{
-          connectorId: 'connector-1',
-          kind: ConnectorKind.REMOTE_MANAGED,
-          ownerType: ConnectorOwnerType.REALM_USER,
-          ownerId: 'user-1',
-          provider: 'openai',
-          endpoint: '',
-          label: 'Work account',
-          status: ConnectorStatus.ACTIVE,
-          localCategory: 0,
-          hasCredential: true,
-          authKind: ConnectorAuthKind.API_KEY,
-          providerAuthProfile: '',
-        }],
+        connectors: [
+          {
+            connectorId: 'connector-1',
+            kind: ConnectorKind.REMOTE_MANAGED,
+            ownerType: ConnectorOwnerType.REALM_USER,
+            ownerId: 'user-1',
+            provider: 'openai',
+            endpoint: '',
+            label: 'Work account',
+            status: ConnectorStatus.ACTIVE,
+            localCategory: 0,
+            hasCredential: true,
+            authKind: ConnectorAuthKind.API_KEY,
+            providerAuthProfile: '',
+          },
+          {
+            connectorId: 'connector-unconfigured',
+            kind: ConnectorKind.REMOTE_MANAGED,
+            ownerType: ConnectorOwnerType.REALM_USER,
+            ownerId: 'user-1',
+            provider: 'anthropic',
+            endpoint: '',
+            label: 'Unconfigured account',
+            status: ConnectorStatus.ACTIVE,
+            localCategory: 0,
+            hasCredential: false,
+            authKind: ConnectorAuthKind.API_KEY,
+            providerAuthProfile: '',
+          },
+        ],
         nextPageToken: '',
       };
     },
@@ -126,6 +142,7 @@ test('Desktop Cloud choices preserve implementation, target, and ConnectorGrant 
   assert.deepEqual(targets[0]?.providerModelTarget, { provider: 'openai', providerModelId: 'gpt-test' });
   assert.doesNotMatch(JSON.stringify(targets), /connector|grant|implementation/i);
   assert.equal(authorization.grants[0]?.grantId, 'grant-1');
+  assert.deepEqual(authorization.connectors.map((connector) => connector.connectorId), ['connector-1']);
   assert.doesNotMatch(JSON.stringify(authorization), /providerModelTarget|implementation/i);
   assert.equal(created.grantId, 'grant-new');
 });

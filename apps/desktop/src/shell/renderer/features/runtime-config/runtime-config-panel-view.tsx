@@ -1,4 +1,4 @@
-import { useRef, useState, type CSSProperties, type PointerEvent } from 'react';
+import { useEffect, useRef, useState, type CSSProperties, type PointerEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   ScrollArea,
@@ -16,7 +16,10 @@ import { RUNTIME_SIDEBAR_ITEMS } from './runtime-config-sidebar';
 import { RuntimeHealthBadge } from './runtime-config-primitives';
 import { OverviewPage } from './runtime-config-page-overview';
 import { CloudPage } from './runtime-config-page-cloud';
-import { ModelsPage } from './runtime-config-page-models';
+import { RecommendPage } from './runtime-config-page-recommend';
+import { LocalPage } from './runtime-config-page-local';
+import { CatalogPage } from './runtime-config-page-catalog';
+import { MachineLocalAIConfigurationsPage } from './runtime-config-page-machine-local-ai.js';
 import { EnvironmentPage } from './runtime-config-page-environment';
 import { ProfileCatalogPage } from './runtime-config-page-profiles';
 import type { RuntimeConfigPanelControllerModel } from './runtime-config-panel-types';
@@ -69,6 +72,21 @@ export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControl
       event.currentTarget.releasePointerCapture(event.pointerId);
     }
   };
+
+  // Models action focuses only select their target page now that the former
+  // Models sub-tabs are first-level pages; clear them once navigation applied.
+  // The cloud focus is consumed and cleared by CloudPage itself.
+  const actionFocus = state?.actionFocus;
+  const { updateState } = model;
+  useEffect(() => {
+    if (
+      actionFocus?.focus !== 'runtime-config-action-focus.models-catalog-install'
+      && actionFocus?.focus !== 'runtime-config-action-focus.models-configurations'
+    ) {
+      return;
+    }
+    updateState((prev) => (prev.actionFocus ? { ...prev, actionFocus: null } : prev));
+  }, [updateState, actionFocus]);
 
   if (!state) {
     return (
@@ -201,9 +219,24 @@ export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControl
               <ProfileCatalogPage />
             </div>
           )}
-          {activePage === 'models' && (
-            <div data-testid={E2E_IDS.runtimePageRoot('models')} className="flex min-h-0 min-w-0 flex-1 flex-col">
-              <ModelsPage model={model} state={state} />
+          {activePage === 'modelMarket' && (
+            <div data-testid={E2E_IDS.runtimePageRoot('modelMarket')} className="min-w-0">
+              <RecommendPage model={model} state={state} />
+            </div>
+          )}
+          {activePage === 'localModels' && (
+            <div data-testid={E2E_IDS.runtimePageRoot('localModels')} className="flex min-h-0 min-w-0 flex-1 flex-col">
+              <LocalPage model={model} state={state} />
+            </div>
+          )}
+          {activePage === 'localAiConfig' && (
+            <div data-testid={E2E_IDS.runtimePageRoot('localAiConfig')} className="min-w-0">
+              <MachineLocalAIConfigurationsPage />
+            </div>
+          )}
+          {activePage === 'modelCatalog' && (
+            <div data-testid={E2E_IDS.runtimePageRoot('modelCatalog')} className="min-w-0">
+              <CatalogPage model={model} state={state} />
             </div>
           )}
           {activePage === 'cloud' && (

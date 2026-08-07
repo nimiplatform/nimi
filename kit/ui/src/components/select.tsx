@@ -32,6 +32,8 @@ export type SelectFieldProps = {
   className?: string;
   selectClassName?: string;
   contentClassName?: string;
+  /** Raises portalled options above a containing dialog without changing their popover semantics. */
+  contentLayer?: 'popover' | 'dialog';
   onValueChange?: (value: string) => void;
   onChange?: (event: SelectFieldChangeEvent) => void;
   onOpenChange?: (open: boolean) => void;
@@ -84,6 +86,7 @@ export const SelectField = forwardRef<HTMLButtonElement, SelectFieldProps>(funct
     className,
     selectClassName,
     contentClassName,
+    contentLayer = 'popover',
     onValueChange,
     onChange,
     onOpenChange,
@@ -157,7 +160,7 @@ export const SelectField = forwardRef<HTMLButtonElement, SelectFieldProps>(funct
           placeholder={placeholder}
           className="min-w-0 flex-1 truncate text-sm"
         >
-          {controlledValueLabel}
+          {controlledValueLabel ?? null}
         </SelectPrimitive.Value>
         <SelectPrimitive.Icon asChild>
           <span className="shrink-0 text-[var(--nimi-text-muted)]">{CHEVRON_ICON}</span>
@@ -171,7 +174,10 @@ export const SelectField = forwardRef<HTMLButtonElement, SelectFieldProps>(funct
         <SelectPrimitive.Content
           position="popper"
           sideOffset={6}
-          className="z-[var(--nimi-z-popover)]"
+          data-nimi-select-layer={contentLayer}
+          className={contentLayer === 'dialog'
+            ? 'z-[calc(var(--nimi-z-dialog)+1)]'
+            : 'z-[var(--nimi-z-popover)]'}
         >
           <AnimatePresence
             onExitComplete={() => {

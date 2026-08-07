@@ -145,7 +145,7 @@ export function useRecommendInstallController({
 
   const openLocalModels = useCallback(() => {
     model.setLocalModelQuery(item.title || item.installPayload.modelId);
-    model.onChangePage('models');
+    model.onChangePage('localModels');
   }, [model, item]);
 
   return {

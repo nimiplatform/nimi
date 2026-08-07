@@ -19,7 +19,6 @@ export const E2E_IDS = {
   navTab: (tabId: string) => `nav-tab:${tabId}`,
   runtimeSidebarPage: (pageId: string) => `runtime-sidebar:${pageId}`,
   runtimePageRoot: (pageId: string) => `runtime-page:${pageId}`,
-  runtimeModelsPane: (paneId: string) => `runtime-models-pane:${paneId}`,
   runtimeEnvironmentPane: (paneId: string) => `runtime-environment-pane:${paneId}`,
   runtimeConnectorScopeBadge: (connectorId: string) => `runtime-connector-scope-badge:${connectorId}`,
   exploreSectionTab: (sectionId: string) => `explore-section-tab-${sectionId}`,

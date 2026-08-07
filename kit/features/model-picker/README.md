@@ -6,6 +6,15 @@ Public, non-committing candidate discovery and choice UI. The current owner
 supplies typed candidates; Model Picker provides search, filtering, grouping,
 details, draft selection, and explicit confirmation.
 
+The route presentation preserves the compact Local/Cloud tabs and model list
+interaction. Owner-provided item actions may deep-link to the canonical owner;
+they do not turn Model Picker into a mutation surface.
+
+Owners may declare route tabs before candidates exist and inject route-local
+controls such as a Connector selector. A candidate outside the active route is
+never confirmable, and changing an upstream control may explicitly clear the
+dialog draft before the owner reloads candidates.
+
 ## Public Surfaces
 
 - `@nimiplatform/kit/features/model-picker`

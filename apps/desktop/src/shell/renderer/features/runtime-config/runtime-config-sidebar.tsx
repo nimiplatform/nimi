@@ -42,6 +42,33 @@ const ICON_MODELS = (
   </svg>
 );
 
+const ICON_MODEL_MARKET = (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M3 9l1.7-5h14.6L21 9" />
+    <path d="M3 9h18v2a3 3 0 0 1-3 3 3 3 0 0 1-3-3 3 3 0 0 1-3 3 3 3 0 0 1-3-3 3 3 0 0 1-3 3 3 3 0 0 1-3-3V9z" />
+    <path d="M5 14v7h14v-7" />
+    <path d="M9 21v-4h6v4" />
+  </svg>
+);
+
+const ICON_LOCAL_AI_CONFIG = (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <line x1="4" y1="6" x2="20" y2="6" />
+    <circle cx="9" cy="6" r="2" />
+    <line x1="4" y1="12" x2="20" y2="12" />
+    <circle cx="15" cy="12" r="2" />
+    <line x1="4" y1="18" x2="20" y2="18" />
+    <circle cx="7" cy="18" r="2" />
+  </svg>
+);
+
+const ICON_MODEL_CATALOG = (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+    <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+  </svg>
+);
+
 const ICON_CLOUD = (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M17.5 19a4.5 4.5 0 0 0 .6-8.96A6 6 0 0 0 6.2 8.2 4 4 0 0 0 6 16h11.5z" />
@@ -58,8 +85,9 @@ const ICON_ENVIRONMENT = (
 );
 
 /**
- * Canonical five-section Runtime IA per
- * `.nimi/spec/desktop/shell-ui.authority.yaml`.
+ * Runtime sidebar entries. The former single Models section is split
+ * into four first-level pages (model market, local models, local AI
+ * configurations, model catalog).
  * Developer-only surfaces are NOT ordinary entries — they
  * live in the developer-mode-gated Developer Tools tab.
  */
@@ -82,10 +110,28 @@ export const RUNTIME_SIDEBAR_ITEMS: Array<{
     icon: ICON_PROFILES,
   },
   {
-    id: 'models',
+    id: 'modelMarket',
     section: 'Runtime',
-    label: 'Models',
+    label: 'Model Market',
+    icon: ICON_MODEL_MARKET,
+  },
+  {
+    id: 'localModels',
+    section: 'Runtime',
+    label: 'Local Models',
     icon: ICON_MODELS,
+  },
+  {
+    id: 'localAiConfig',
+    section: 'Runtime',
+    label: 'Local AI Configurations',
+    icon: ICON_LOCAL_AI_CONFIG,
+  },
+  {
+    id: 'modelCatalog',
+    section: 'Runtime',
+    label: 'Model Catalog',
+    icon: ICON_MODEL_CATALOG,
   },
   {
     id: 'cloud',
@@ -105,7 +151,7 @@ export function getRuntimeSidebarBadge(
   item: (typeof RUNTIME_SIDEBAR_ITEMS)[number],
   props: RuntimeSidebarProps,
 ): string | null {
-  if (item.id === 'models') {
+  if (item.id === 'localModels') {
     return `${props.activeModelCount}/${props.installedModelCount}`;
   }
   if (item.id === 'cloud') {

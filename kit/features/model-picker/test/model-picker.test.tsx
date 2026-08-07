@@ -62,4 +62,43 @@ describe('public Model Picker contract', () => {
     expect(onConfirm).toHaveBeenCalledWith({ id: 'b', label: 'Model B', provider: 'provider-b' });
     expect(onClose).toHaveBeenCalledTimes(1);
   });
+
+  it('keeps declared routes visible and prevents a hidden-route selection from being confirmed', async () => {
+    const onConfirm = vi.fn();
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    root = createRoot(container);
+    await act(async () => {
+      root?.render(
+        <ModelPickerDialog
+          open
+          presentation="route"
+          title="Choose model"
+          selectedId="local-model"
+          initialSourceFilter="local"
+          sourceOptions={['local', 'cloud']}
+          adapter={{
+            listCandidates: async () => [{ id: 'local-model', label: 'Local Model', source: 'local' }],
+            getId: (candidate) => candidate.id,
+            getTitle: (candidate) => candidate.label,
+            getSource: (candidate) => candidate.source,
+          }}
+          onClose={vi.fn()}
+          onConfirm={onConfirm}
+        />,
+      );
+      await Promise.resolve();
+    });
+    await flush();
+
+    const cloud = Array.from(document.body.querySelectorAll('button'))
+      .find((button) => button.textContent?.trim() === 'cloud') as HTMLButtonElement;
+    expect(cloud).toBeTruthy();
+    act(() => { cloud.click(); });
+
+    const confirm = Array.from(document.body.querySelectorAll('button'))
+      .find((button) => button.textContent?.trim() === 'Use selection') as HTMLButtonElement;
+    expect(confirm.disabled).toBe(true);
+    expect(onConfirm).not.toHaveBeenCalled();
+  });
 });

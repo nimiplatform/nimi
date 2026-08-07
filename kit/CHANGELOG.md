@@ -16,6 +16,15 @@ Discipline.
 
 ### Changed
 
+- Model Config restores the established AI Model hub, capability-detail, Active
+  Model trigger, and compact Local/Cloud picker UX. App and Agent Local choices
+  now project the Machine-selected configuration and deep-link to Machine Local
+  AI configuration instead of selecting a machine model. First-party Cloud
+  choice is Connector-first and fail-closed: no models are exposed until the
+  user selects a host-projected configured Connector; target confirmation,
+  optional ConnectorGrant binding, and account-impact confirmation remain
+  separate owner-supplied actions.
+
 - **Breaking (0.x):** `registerNimiElectronAppBridge` no longer accepts
   `onProtectedSessionFailure`. Consumers must keep App and Host lifecycle
   independent from protected-session availability; Kit keeps the bridge

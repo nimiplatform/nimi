@@ -43,7 +43,7 @@ const DESKTOP_OPEN_TARGETS: readonly DesktopOpenTarget[] = [
   { rowId: 'target.explore-activity', intent: { kind: 'open-explore', section: 'activity', productIntent: 'view-activity' }, expected: { activeTab: 'explore', section: 'activity' } },
   { rowId: 'target.explore-search', intent: { kind: 'open-explore', section: 'personas', query: 'mentor' }, expected: { activeTab: 'explore', section: 'personas', query: 'mentor' } },
   { rowId: 'target.runtime-connector', intent: { kind: 'open-runtime-config', page: 'cloud', action: 'add-connector' }, expected: { activeTab: 'runtime', page: 'cloud' } },
-  { rowId: 'target.runtime-model', intent: { kind: 'open-runtime-config', page: 'models', action: 'install-model' }, expected: { activeTab: 'runtime', page: 'models' } },
+  { rowId: 'target.runtime-model', intent: { kind: 'open-runtime-config', page: 'models', action: 'install-model' }, expected: { activeTab: 'runtime', page: 'modelCatalog' } },
   { rowId: 'target.agents-inventory', intent: { kind: 'open-agents', view: 'inventory' }, expected: { activeTab: 'agents' } },
   { rowId: 'target.apps-surface', intent: { kind: 'open-apps' }, expected: { activeTab: 'apps' } },
   { rowId: 'target.app-selection', intent: { kind: 'open-apps', appId: 'nimi.example' }, expected: { activeTab: 'apps', appId: 'nimi.example' } },
@@ -153,7 +153,7 @@ for (const target of DESKTOP_OPEN_TARGETS) {
       }
       if (target.rowId === 'target.runtime-model') {
         assert.deepEqual(runtimeState.actionFocus, {
-          page: 'models',
+          page: 'modelCatalog',
           action: 'install-model',
           focus: 'runtime-config-action-focus.models-catalog-install',
         });
@@ -197,7 +197,7 @@ test('Desktop Open Intent maps runtime connector actions to Runtime Cloud state'
   });
 });
 
-test('Desktop Open Intent maps runtime model install actions to Models catalog focus', () => {
+test('Desktop Open Intent maps runtime model install actions to Model Catalog focus', () => {
   applyDesktopOpenIntentToAppStore({
     kind: 'open-runtime-config',
     page: 'models',
@@ -205,9 +205,9 @@ test('Desktop Open Intent maps runtime model install actions to Models catalog f
   });
 
   assert.equal(productionAppStore.getState().activeTab, 'runtime');
-  assert.equal(loadRuntimeConfigStateV11().activePage, 'models');
+  assert.equal(loadRuntimeConfigStateV11().activePage, 'modelCatalog');
   assert.deepEqual(loadRuntimeConfigStateV11().actionFocus, {
-    page: 'models',
+    page: 'modelCatalog',
     action: 'install-model',
     focus: 'runtime-config-action-focus.models-catalog-install',
   });
@@ -216,7 +216,7 @@ test('Desktop Open Intent maps runtime model install actions to Models catalog f
     intent: {
       kind: 'focus-action',
       actionFocus: {
-        page: 'models',
+        page: 'modelCatalog',
         action: 'install-model',
         focus: 'runtime-config-action-focus.models-catalog-install',
       },

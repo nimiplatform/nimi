@@ -31,8 +31,10 @@
     "overview": "概览",
     "profiles": "配置文件",
     "profilesDesc": "账户默认配置文件",
-    "models": "模型",
-    "modelsDesc": "已安装模型、推荐与提供商模型目录",
+    "modelMarket": "模型市场",
+    "localModels": "本地模型",
+    "localAiConfig": "本地 AI 配置",
+    "modelCatalog": "模型目录",
     "cloud": "云端连接器",
     "cloudDesc": "API 密钥连接器",
     "environment": "环境",
@@ -40,12 +42,6 @@
     "section": {
       "runtime": "运行时"
     }
-  },
-  "models": {
-    "tabRecommend": "推荐",
-    "tabInstalled": "已安装",
-    "tabConfigurations": "本地 AI 配置",
-    "tabCatalog": "模型目录"
   },
   "machineLocalAIConfigurations": {
     "title": "本地 AI 配置",
@@ -688,7 +684,7 @@
     "cloudAuthorizationGuidance": "可移植 AIProfile 绝不会携带连接器、账户或 ConnectorGrant 身份。应用后，请逐项检查云端意图并明确选择有效的账户授权。在此之前，Runtime 会报告“需要选择授权”的信息状态。",
     "openAccountAuthorization": "打开账户授权",
     "localSelectionTitle": "本地能力选择保留在本机",
-    "localSelectionGuidance": "本地能力意图已写入 App AIConfig。机器侧的 Local Capability Configuration 解析与选择在 Models → 本地 AI 配置中管理。在完成选择前，Runtime 会报告信息态的“需要选择”状态，这不是错误。",
+    "localSelectionGuidance": "本地能力意图已写入 App AIConfig。机器侧的 Local Capability Configuration 解析与选择在「本地 AI 配置」页面管理。在完成选择前，Runtime 会报告信息态的“需要选择”状态，这不是错误。",
     "openLocalConfigurations": "打开本地 AI 配置",
     "technicalDetails": "技术详情",
     "useProfileTab": "使用 Profile",

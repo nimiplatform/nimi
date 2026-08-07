@@ -9,9 +9,21 @@ export const RUNTIME_PAGE_META: Record<RuntimePageIdV11, { name: string; descrip
     name: 'Profiles',
     description: 'Preview canonical portable AIProfiles and explicitly apply intent to the Nimi Desktop App AIConfig.',
   },
-  models: {
-    name: 'Models',
-    description: 'Manage Runtime-owned local assets and inspect the provider catalog.',
+  modelMarket: {
+    name: 'Model Market',
+    description: 'Recommended local models for this machine.',
+  },
+  localModels: {
+    name: 'Local Models',
+    description: 'Install, import, start, stop, and remove local models.',
+  },
+  localAiConfig: {
+    name: 'Local AI Configurations',
+    description: 'Create and select machine-local AI configurations.',
+  },
+  modelCatalog: {
+    name: 'Model Catalog',
+    description: 'Inspect the Runtime provider model catalog.',
   },
   cloud: {
     name: 'Cloud Connectors',

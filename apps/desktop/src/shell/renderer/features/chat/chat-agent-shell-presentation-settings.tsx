@@ -41,14 +41,22 @@ export function AgentConversationSettingsContent({ input }: AgentConversationSet
     close: input.onCloseAgentCenter,
     openRuntimeSettings: () => {
       setActiveTab('runtime');
-      runtimeConfigNavigation.openPage('models');
+      runtimeConfigNavigation.openPage('localModels');
     },
     openMachineConfiguration: () => {
       setActiveTab('runtime');
       runtimeConfigNavigation.focusAction({
-        page: 'models',
+        page: 'localAiConfig',
         action: 'open-configurations',
         focus: 'runtime-config-action-focus.models-configurations',
+      });
+    },
+    openCloudConnectorConfiguration: () => {
+      setActiveTab('runtime');
+      runtimeConfigNavigation.focusAction({
+        page: 'cloud',
+        action: 'add-connector',
+        focus: 'runtime-config-action-focus.cloud-connector-draft',
       });
     },
   }), [input.onCloseAgentCenter, runtimeConfigNavigation, setActiveTab]);

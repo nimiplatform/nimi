@@ -19,12 +19,19 @@ import { RUNTIME_SIDEBAR_ITEMS } from '../src/shell/renderer/features/runtime-co
 // normalizePageIdV11
 // ---------------------------------------------------------------------------
 
-test('normalizePageIdV11: canonical five-section IA values pass through unchanged', () => {
+test('normalizePageIdV11: canonical page ids pass through unchanged', () => {
   assert.equal(normalizePageIdV11('overview'), 'overview');
   assert.equal(normalizePageIdV11('profiles'), 'profiles');
-  assert.equal(normalizePageIdV11('models'), 'models');
+  assert.equal(normalizePageIdV11('modelMarket'), 'modelMarket');
+  assert.equal(normalizePageIdV11('localModels'), 'localModels');
+  assert.equal(normalizePageIdV11('localAiConfig'), 'localAiConfig');
+  assert.equal(normalizePageIdV11('modelCatalog'), 'modelCatalog');
   assert.equal(normalizePageIdV11('cloud'), 'cloud');
   assert.equal(normalizePageIdV11('environment'), 'environment');
+});
+
+test('normalizePageIdV11: retired "models" section migrates to "localModels"', () => {
+  assert.equal(normalizePageIdV11('models'), 'localModels');
 });
 
 test('normalizePageIdV11: unknown values fall back to "overview"', () => {
@@ -54,19 +61,23 @@ test('createDefaultStateV11: activePage defaults to "overview"', () => {
 // RUNTIME_PAGE_META
 // ---------------------------------------------------------------------------
 
-test('ordinary Runtime sidebar is the canonical five-section IA without Mods/developer pages', () => {
+test('ordinary Runtime sidebar lists the expected pages without Mods/developer pages', () => {
   const pageIds = RUNTIME_SIDEBAR_ITEMS.map((item) => item.id);
   const labels = RUNTIME_SIDEBAR_ITEMS.map((item) => item.label);
 
   assert.deepEqual(pageIds, [
     'overview',
     'profiles',
-    'models',
+    'modelMarket',
+    'localModels',
+    'localAiConfig',
+    'modelCatalog',
     'cloud',
     'environment',
   ]);
-  // Retired top-level entries must not survive the T2.4 hard cut.
-  for (const retired of ['recommend', 'catalog', 'data-management', 'performance', 'local', 'runtime', 'mods', 'mod-developer', 'advanced']) {
+  // Retired top-level entries must not survive the T2.4 hard cut; the single
+  // 'models' section is now split into the four model pages above.
+  for (const retired of ['recommend', 'catalog', 'data-management', 'performance', 'local', 'runtime', 'mods', 'mod-developer', 'advanced', 'models']) {
     assert.equal((pageIds as string[]).includes(retired), false, `retired id "${retired}" must not be a top-level section`);
   }
   assert.equal(labels.includes('Mods'), false);

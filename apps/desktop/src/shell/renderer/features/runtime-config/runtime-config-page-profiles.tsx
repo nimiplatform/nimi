@@ -299,7 +299,7 @@ function PortableProfileApplyPage() {
           </div>
           <p className="m-0 text-xs leading-relaxed text-[var(--nimi-text-secondary)]">
             {t('runtimeConfig.profiles.localSelectionGuidance', {
-              defaultValue: 'Local capability intent is written to the App AIConfig. Machine-side Local Capability Configuration resolution and selection are managed in Models → Local AI Configurations. Until a selection is made, Runtime reports an informational selection-required state; this is not an error.',
+              defaultValue: 'Local capability intent is written to the App AIConfig. Machine-side Local Capability Configuration resolution and selection are managed on the Local AI Configurations page. Until a selection is made, Runtime reports an informational selection-required state; this is not an error.',
             })}
           </p>
           <div>
@@ -307,7 +307,7 @@ function PortableProfileApplyPage() {
               onClick={() => {
                 setActiveTab('runtime');
                 runtimeConfigNavigation.focusAction({
-                  page: 'models',
+                  page: 'localAiConfig',
                   action: 'open-configurations',
                   focus: 'runtime-config-action-focus.models-configurations',
                 });

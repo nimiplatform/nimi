@@ -4,7 +4,6 @@ import {
   createNimiLocalAIConfigCapabilityIntent,
   runtimeAIConfigStructToJson,
   type NimiCapabilityAIConfigIntent,
-  type NimiJsonObject,
 } from '@nimiplatform/kit/core/sdk-contract';
 import {
   CANONICAL_CAPABILITY_CATALOG_BY_ID,
@@ -14,12 +13,8 @@ import {
   Button,
   Checkbox,
   InlineAlert,
-  SegmentedControl,
   SelectField,
   StatusBadge,
-  Surface,
-  TextareaField,
-  TextField,
   cn,
 } from '@nimiplatform/kit/ui';
 import {
@@ -51,6 +46,29 @@ const EMPTY_AUTHORIZATION: ModelConfigCloudAuthorizationOptions = Object.freeze(
   grants: Object.freeze([]),
 });
 
+type ResolvedCopy = ReturnType<typeof resolveModelConfigCopy>;
+type PostureBadge = {
+  readonly label: string;
+  readonly tone: 'neutral' | 'success' | 'warning';
+};
+
+type ModelConfigRouteChoice =
+  | {
+      readonly id: 'local';
+      readonly route: 'local';
+      readonly label: string;
+      readonly description: string;
+    }
+  | {
+      readonly id: string;
+      readonly route: 'cloud';
+      readonly label: string;
+      readonly description: string;
+      readonly provider: string;
+      readonly implementation: ModelConfigCloudImplementationOption;
+      readonly target: ModelConfigCloudTargetOption;
+    };
+
 export type ModelConfigAIConfigSurfaceProps = {
   readonly context: ModelConfigAIConfigOwnerContext;
   readonly capabilityContracts: readonly string[];
@@ -64,6 +82,7 @@ export type ModelConfigAIConfigSurfaceProps = {
   readonly onRetry?: () => void;
   readonly onOverwrite: ModelConfigOverwrite;
   readonly onOpenMachineConfiguration?: (capabilityContract: string) => void;
+  readonly onOpenCloudConnectorConfiguration?: () => void;
   readonly formatError?: (error: unknown) => ModelConfigFormattedError;
   readonly copy?: ModelConfigCopy;
   readonly className?: string;
@@ -84,8 +103,8 @@ function uniqueContracts(
 
 function statusBadge(
   posture: ReturnType<typeof modelConfigCapabilityPosture>,
-  copy: ReturnType<typeof resolveModelConfigCopy>,
-): { readonly label: string; readonly tone: 'neutral' | 'success' | 'warning' } {
+  copy: ResolvedCopy,
+): PostureBadge {
   switch (posture) {
     case 'local-configured':
     case 'cloud-configured':
@@ -105,7 +124,7 @@ function statusBadge(
 function descriptorLabel(
   capabilityContract: string,
   descriptor: CanonicalCapabilityDescriptor | undefined,
-  copy: ReturnType<typeof resolveModelConfigCopy>,
+  copy: ResolvedCopy,
 ): string {
   return copy.capabilityLabel(
     capabilityContract,
@@ -116,132 +135,12 @@ function descriptorLabel(
 function descriptorDescription(
   capabilityContract: string,
   descriptor: CanonicalCapabilityDescriptor | undefined,
-  copy: ReturnType<typeof resolveModelConfigCopy>,
+  copy: ResolvedCopy,
 ): string {
   const fallback = descriptor
     ? `${descriptor.runtimeEvidenceClass} capability · ${descriptor.governance.dataMovement}`
     : capabilityContract;
   return copy.capabilityDescription(capabilityContract, fallback);
-}
-
-export function ModelConfigAIConfigSurface(props: ModelConfigAIConfigSurfaceProps) {
-  const copy = useMemo(() => resolveModelConfigCopy(props.copy), [props.copy]);
-  const contracts = useMemo(
-    () => uniqueContracts(props.capabilityContracts, props.capabilities),
-    [props.capabilities, props.capabilityContracts],
-  );
-  const [activeContract, setActiveContract] = useState<string | null>(() => (
-    contracts.length === 1 ? contracts[0] ?? null : null
-  ));
-
-  useEffect(() => {
-    if (contracts.length === 1) {
-      setActiveContract(contracts[0] ?? null);
-      return;
-    }
-    if (activeContract && !contracts.includes(activeContract)) setActiveContract(null);
-  }, [activeContract, contracts]);
-
-  const configuredCount = contracts.filter((contract) => (
-    props.capabilities?.some((intent) => intent.capabilityContract === contract)
-  )).length;
-  const activeIntent = activeContract
-    ? props.capabilities?.find((intent) => intent.capabilityContract === activeContract) ?? null
-    : null;
-  const activeSelection = activeContract
-    ? props.localSelections?.find((selection) => selection.capabilityContract === activeContract) ?? null
-    : null;
-  const activeDescriptor = activeContract
-    ? CANONICAL_CAPABILITY_CATALOG_BY_ID[activeContract]
-    : undefined;
-
-  return (
-    <ModelConfigOwnerBoundary context={props.context} className={cn('space-y-4', props.className)}>
-      {props.headerSlot}
-      <div className="flex min-w-0 items-start justify-between gap-3">
-        <div className="min-w-0">
-          <h2 id={props.titleId} className="m-0 text-[15px] font-semibold tracking-tight text-[var(--nimi-text-primary)]">{copy.title}</h2>
-          <p className="m-0 mt-1 text-xs leading-relaxed text-[var(--nimi-text-secondary)]">{copy.description}</p>
-        </div>
-        <StatusBadge tone={configuredCount > 0 ? 'success' : 'neutral'}>
-          {configuredCount > 0 ? `${configuredCount}/${contracts.length}` : copy.notConfiguredLabel}
-        </StatusBadge>
-      </div>
-
-      {props.loadError ? (
-        <div className="flex flex-wrap items-center gap-2">
-          <InlineAlert tone="warning">{props.loadError || copy.loadFailed}</InlineAlert>
-          {props.onRetry ? <Button size="sm" tone="secondary" onClick={props.onRetry}>{copy.retryLabel}</Button> : null}
-        </div>
-      ) : null}
-      {props.loading ? <div className="text-xs text-[var(--nimi-text-muted)]">…</div> : null}
-
-      {!props.loading && !props.loadError && contracts.length > 1 && activeContract === null ? (
-        <div className="grid gap-2 sm:grid-cols-2" data-nimi-model-config-capability-grid="true">
-          {contracts.map((contract) => {
-            const descriptor = CANONICAL_CAPABILITY_CATALOG_BY_ID[contract];
-            const intent = props.capabilities?.find((entry) => entry.capabilityContract === contract) ?? null;
-            const selection = props.localSelections?.find((entry) => entry.capabilityContract === contract) ?? null;
-            const badge = statusBadge(modelConfigCapabilityPosture(intent, selection), copy);
-            return (
-              <button
-                type="button"
-                key={contract}
-                onClick={() => setActiveContract(contract)}
-                className="flex min-w-0 items-start gap-3 rounded-[var(--nimi-radius-md)] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-3 text-left transition-colors hover:border-[var(--nimi-border-strong)]"
-                data-nimi-model-config-capability={contract}
-              >
-                <span className={cn(
-                  'mt-0.5 h-2 w-2 shrink-0 rounded-[var(--nimi-radius-full)]',
-                  badge.tone === 'success' ? 'bg-[var(--nimi-status-success)]' : badge.tone === 'warning' ? 'bg-[var(--nimi-status-warning)]' : 'bg-[var(--nimi-text-muted)]',
-                )} />
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-sm font-semibold text-[var(--nimi-text-primary)]">{descriptorLabel(contract, descriptor, copy)}</span>
-                  <span className="mt-1 block line-clamp-2 text-[11px] leading-relaxed text-[var(--nimi-text-muted)]">{descriptorDescription(contract, descriptor, copy)}</span>
-                </span>
-                <StatusBadge tone={badge.tone} className="shrink-0 text-[10px]">{badge.label}</StatusBadge>
-              </button>
-            );
-          })}
-        </div>
-      ) : null}
-
-      {!props.loading && !props.loadError && activeContract ? (
-        <div className="space-y-3" data-nimi-model-config-detail={activeContract}>
-          {contracts.length > 1 ? (
-            <button type="button" className="inline-flex items-center gap-1 text-xs font-medium text-[var(--nimi-text-secondary)] hover:text-[var(--nimi-text-primary)]" onClick={() => setActiveContract(null)}>
-              <span aria-hidden="true">←</span> {copy.backLabel}
-            </button>
-          ) : null}
-          <CapabilityIntentEditor
-            key={activeContract}
-            capabilityContract={activeContract}
-            descriptor={activeDescriptor}
-            currentIntent={activeIntent}
-            allCapabilities={props.capabilities || []}
-            selection={activeSelection}
-            context={props.context}
-            cloudAIConfig={props.cloudAIConfig}
-            onOverwrite={props.onOverwrite}
-            onOpenMachineConfiguration={props.onOpenMachineConfiguration}
-            formatError={props.formatError}
-            copy={copy}
-            disabled={props.disabled}
-          />
-        </div>
-      ) : null}
-      {props.footer}
-    </ModelConfigOwnerBoundary>
-  );
-}
-
-function parseDefaults(value: string): NimiJsonObject | undefined {
-  if (!value.trim()) return undefined;
-  const parsed: unknown = JSON.parse(value);
-  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
-    throw new Error('Portable defaults must be a JSON object.');
-  }
-  return parsed as NimiJsonObject;
 }
 
 function targetText(value: unknown): string {
@@ -252,11 +151,284 @@ function targetOptionId(provider: string, modelId: string): string {
   return JSON.stringify([provider, modelId]);
 }
 
+function cloudChoiceId(implementationId: string, targetId: string): string {
+  return JSON.stringify(['cloud', implementationId, targetId]);
+}
+
+function localChoice(
+  selection: ModelConfigLocalSelectionProjection | null,
+  copy: ResolvedCopy,
+): ModelConfigRouteChoice {
+  let description = copy.localChoiceDescription;
+  if (selection?.state === 'selected') {
+    description = copy.localSelectedLabel;
+  } else if (selection?.state === 'broken') {
+    description = copy.localBrokenLabel;
+  } else if (selection?.state === 'unavailable') {
+    description = copy.localUnavailableLabel;
+  }
+  return {
+    id: 'local',
+    route: 'local',
+    label: selection?.displayName || copy.localLabel,
+    description,
+  };
+}
+
+function routeChoices(
+  local: ModelConfigRouteChoice,
+  groups: readonly {
+    readonly implementation: ModelConfigCloudImplementationOption;
+    readonly targets: readonly ModelConfigCloudTargetOption[];
+  }[],
+): readonly ModelConfigRouteChoice[] {
+  const choices = new Map<string, ModelConfigRouteChoice>();
+  choices.set(local.id, local);
+  for (const group of groups) {
+    for (const target of group.targets) {
+      const id = cloudChoiceId(group.implementation.implementation.implementationId, target.targetId);
+      choices.set(id, {
+        id,
+        route: 'cloud',
+        label: target.label,
+        description: group.implementation.label,
+        provider: group.implementation.provider,
+        implementation: group.implementation,
+        target,
+      });
+    }
+  }
+  return [...choices.values()];
+}
+
+function currentRouteChoice(
+  intent: NimiCapabilityAIConfigIntent | null,
+  selection: ModelConfigLocalSelectionProjection | null,
+  copy: ResolvedCopy,
+): ModelConfigRouteChoice | null {
+  if (intent?.route.oneofKind === 'local') return localChoice(selection, copy);
+  if (intent?.route.oneofKind !== 'cloud') return null;
+  const cloud = intent.route.cloud;
+  const target = runtimeAIConfigStructToJson(cloud.providerModelTarget);
+  const provider = targetText(target.provider);
+  const modelId = targetText(target.providerModelId) || targetText(target.model);
+  const implementationId = cloud.implementation?.implementationId || '';
+  if (!provider || !modelId || !implementationId || !cloud.implementation) return null;
+  const targetId = targetOptionId(provider, modelId);
+  return {
+    id: cloudChoiceId(implementationId, targetId),
+    route: 'cloud',
+    label: modelId,
+    description: provider,
+    provider,
+    implementation: {
+      optionId: implementationId,
+      label: implementationId,
+      provider,
+      implementation: cloud.implementation,
+    },
+    target: {
+      targetId,
+      label: modelId,
+      provider,
+      providerModelTarget: target,
+    },
+  };
+}
+
+function cloudModelLabel(intent: NimiCapabilityAIConfigIntent | null): string | null {
+  if (intent?.route.oneofKind !== 'cloud') return null;
+  const target = runtimeAIConfigStructToJson(intent.route.cloud.providerModelTarget);
+  return targetText(target.providerModelId) || targetText(target.model) || targetText(target.provider) || null;
+}
+
+function capabilitySummary(
+  intent: NimiCapabilityAIConfigIntent | null,
+  selection: ModelConfigLocalSelectionProjection | null,
+  descriptor: CanonicalCapabilityDescriptor | undefined,
+  copy: ResolvedCopy,
+): string {
+  const posture = modelConfigCapabilityPosture(intent, selection);
+  if (posture === 'local-configured') {
+    return selection?.displayName || selection?.configurationId || copy.configuredLabel;
+  }
+  if (posture === 'cloud-configured' || posture === 'cloud-selection-required') {
+    return cloudModelLabel(intent) || statusBadge(posture, copy).label;
+  }
+  if (posture !== 'not-configured') return statusBadge(posture, copy).label;
+  return descriptorDescription(intent?.capabilityContract || descriptor?.capabilityId || '', descriptor, copy);
+}
+
+function statusDotClass(tone: PostureBadge['tone']): string {
+  if (tone === 'success') return 'bg-[var(--nimi-status-success)]';
+  if (tone === 'warning') return 'bg-[var(--nimi-status-warning)]';
+  return 'bg-[var(--nimi-text-muted)]';
+}
+
+function capabilityIconPath(section: CanonicalCapabilityDescriptor['section'] | undefined): string {
+  switch (section) {
+    case 'chat':
+      return 'M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z';
+    case 'stt':
+      return 'M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3zM19 10v2a7 7 0 0 1-14 0v-2M12 19v4M8 23h8';
+    case 'tts':
+      return 'M11 5 6 9H2v6h4l5 4V5zM19 5a10 10 0 0 1 0 14M16 8a5 5 0 0 1 0 8';
+    case 'image':
+      return 'M3 5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2zM8.5 8.5a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zM21 15l-5-5L5 21';
+    default:
+      return 'M12 2v20M2 12h20';
+  }
+}
+
+function CapabilityIcon(props: { readonly descriptor?: CanonicalCapabilityDescriptor; readonly tone: PostureBadge['tone'] }) {
+  const toneClass = props.tone === 'success'
+    ? 'bg-[color-mix(in_srgb,var(--nimi-status-success)_10%,transparent)] text-[var(--nimi-status-success)]'
+    : props.tone === 'warning'
+      ? 'bg-[color-mix(in_srgb,var(--nimi-status-warning)_12%,transparent)] text-[var(--nimi-status-warning)]'
+      : 'bg-[var(--nimi-surface-panel)] text-[var(--nimi-text-muted)]';
+  return (
+    <span className={cn('grid h-9 w-9 shrink-0 place-items-center rounded-[10px]', toneClass)}>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <path d={capabilityIconPath(props.descriptor?.section)} />
+      </svg>
+    </span>
+  );
+}
+
 function defaultFormatError(error: unknown, fallback: string): ModelConfigFormattedError {
   return {
     message: fallback,
     technicalDetail: error instanceof Error ? error.message : String(error),
   };
+}
+
+export function ModelConfigAIConfigSurface(props: ModelConfigAIConfigSurfaceProps) {
+  const copy = useMemo(() => resolveModelConfigCopy(props.copy), [props.copy]);
+  const contracts = useMemo(
+    () => uniqueContracts(props.capabilityContracts, props.capabilities),
+    [props.capabilities, props.capabilityContracts],
+  );
+  const [activeContract, setActiveContract] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (activeContract && !contracts.includes(activeContract)) setActiveContract(null);
+  }, [activeContract, contracts]);
+
+  const entries = contracts.map((contract) => {
+    const descriptor = CANONICAL_CAPABILITY_CATALOG_BY_ID[contract];
+    const intent = props.capabilities?.find((entry) => entry.capabilityContract === contract) ?? null;
+    const selection = props.localSelections?.find((entry) => entry.capabilityContract === contract) ?? null;
+    const badge = statusBadge(modelConfigCapabilityPosture(intent, selection), copy);
+    return { contract, descriptor, intent, selection, badge };
+  });
+  const configuredCount = entries.filter((entry) => entry.badge.tone === 'success').length;
+  const aggregateBadge: PostureBadge = entries.some((entry) => entry.badge.tone === 'warning')
+    ? { label: copy.selectionRequiredLabel, tone: 'warning' }
+    : configuredCount === entries.length && entries.length > 0
+      ? { label: copy.configuredLabel, tone: 'success' }
+      : { label: copy.notConfiguredLabel, tone: 'neutral' };
+  const activeEntry = entries.find((entry) => entry.contract === activeContract) || null;
+
+  return (
+    <ModelConfigOwnerBoundary context={props.context} className={cn('min-w-0 space-y-5', props.className)}>
+      {props.headerSlot}
+
+      {activeEntry ? (
+        <div className="space-y-4" data-nimi-model-config-detail={activeEntry.contract}>
+          <div className="flex min-w-0 items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setActiveContract(null)}
+              aria-label={copy.backLabel}
+              className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-[var(--nimi-radius-sm)] px-2 text-xs font-medium text-[var(--nimi-text-secondary)] transition-colors hover:bg-[var(--nimi-surface-panel)] hover:text-[var(--nimi-text-primary)]"
+            >
+              <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m15 19-7-7 7-7" /></svg>
+              <span>{copy.backLabel}</span>
+            </button>
+            <h2 id={props.titleId} className="m-0 min-w-0 flex-1 truncate text-[15px] font-semibold tracking-tight text-[var(--nimi-text-primary)]">
+              {copy.detailTitle(descriptorLabel(activeEntry.contract, activeEntry.descriptor, copy))}
+            </h2>
+            {activeEntry.badge.tone === 'success' ? null : (
+              <StatusBadge tone={activeEntry.badge.tone} className="shrink-0 text-[10px]">{activeEntry.badge.label}</StatusBadge>
+            )}
+          </div>
+          <CapabilityIntentEditor
+            key={activeEntry.contract}
+            capabilityContract={activeEntry.contract}
+            descriptor={activeEntry.descriptor}
+            currentIntent={activeEntry.intent}
+            allCapabilities={props.capabilities || []}
+            selection={activeEntry.selection}
+            context={props.context}
+            cloudAIConfig={props.cloudAIConfig}
+            onOverwrite={props.onOverwrite}
+            onOpenMachineConfiguration={props.onOpenMachineConfiguration}
+            onOpenCloudConnectorConfiguration={props.onOpenCloudConnectorConfiguration}
+            formatError={props.formatError}
+            copy={copy}
+            disabled={props.disabled}
+          />
+        </div>
+      ) : (
+        <div className="space-y-4">
+          <div className="flex min-w-0 items-baseline justify-between gap-4">
+            <h2 id={props.titleId} className="m-0 text-[14px] font-semibold tracking-tight text-[var(--nimi-text-primary)]">{copy.title}</h2>
+            <div className="flex shrink-0 items-center gap-1.5 text-xs text-[var(--nimi-text-secondary)]">
+              <span className={cn('h-1.5 w-1.5 rounded-[var(--nimi-radius-full)]', statusDotClass(aggregateBadge.tone))} />
+              <span>{aggregateBadge.label}</span>
+            </div>
+          </div>
+
+          {props.loadError ? (
+            <div className="flex flex-wrap items-center gap-2">
+              <InlineAlert tone="warning">{props.loadError || copy.loadFailed}</InlineAlert>
+              {props.onRetry ? <Button size="sm" tone="secondary" onClick={props.onRetry}>{copy.retryLabel}</Button> : null}
+            </div>
+          ) : null}
+          {props.loading ? <div className="text-xs text-[var(--nimi-text-muted)]">…</div> : null}
+
+          {!props.loading && !props.loadError ? (
+            <div className="space-y-2" data-nimi-model-config-capability-grid="true">
+              {entries.map((entry) => (
+                <button
+                  type="button"
+                  key={entry.contract}
+                  onClick={() => setActiveContract(entry.contract)}
+                  className={cn(
+                    'flex w-full min-w-0 items-center gap-3 rounded-[var(--nimi-radius-md)] border p-3 text-left transition-colors',
+                    entry.badge.tone === 'warning'
+                      ? 'border-[color-mix(in_srgb,var(--nimi-status-warning)_35%,var(--nimi-border-subtle))] bg-[color-mix(in_srgb,var(--nimi-status-warning)_5%,var(--nimi-surface-card))] hover:border-[var(--nimi-status-warning)]'
+                      : 'border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] hover:border-[var(--nimi-border-strong)]',
+                  )}
+                  data-nimi-model-config-capability={entry.contract}
+                >
+                  <CapabilityIcon descriptor={entry.descriptor} tone={entry.badge.tone} />
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-[13px] font-semibold text-[var(--nimi-text-primary)]">
+                      {descriptorLabel(entry.contract, entry.descriptor, copy)}
+                    </span>
+                    <span className={cn(
+                      'mt-1 flex items-center gap-1.5 truncate text-[11.5px]',
+                      entry.badge.tone === 'success'
+                        ? 'text-[var(--nimi-status-success)]'
+                        : entry.badge.tone === 'warning'
+                          ? 'text-[var(--nimi-status-warning)]'
+                          : 'text-[var(--nimi-text-muted)]',
+                    )}>
+                      <span className={cn('h-[5px] w-[5px] shrink-0 rounded-[var(--nimi-radius-full)]', statusDotClass(entry.badge.tone))} />
+                      <span className="truncate">{capabilitySummary(entry.intent, entry.selection, entry.descriptor, copy)}</span>
+                    </span>
+                  </span>
+                  <svg className="h-4 w-4 shrink-0 text-[var(--nimi-text-muted)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="m9 5 7 7-7 7" /></svg>
+                </button>
+              ))}
+            </div>
+          ) : null}
+        </div>
+      )}
+      {props.footer}
+    </ModelConfigOwnerBoundary>
+  );
 }
 
 type CapabilityIntentEditorProps = {
@@ -269,149 +441,154 @@ type CapabilityIntentEditorProps = {
   readonly cloudAIConfig?: ModelConfigCloudAIConfigModule;
   readonly onOverwrite: ModelConfigOverwrite;
   readonly onOpenMachineConfiguration?: (capabilityContract: string) => void;
+  readonly onOpenCloudConnectorConfiguration?: () => void;
   readonly formatError?: (error: unknown) => ModelConfigFormattedError;
-  readonly copy: ReturnType<typeof resolveModelConfigCopy>;
+  readonly copy: ResolvedCopy;
   readonly disabled?: boolean;
 };
 
 function CapabilityIntentEditor(props: CapabilityIntentEditorProps) {
-  const currentCloud = props.currentIntent?.route.oneofKind === 'cloud'
-    ? props.currentIntent.route.cloud
-    : null;
-  const currentTarget = useMemo(
-    () => runtimeAIConfigStructToJson(currentCloud?.providerModelTarget),
-    [currentCloud?.providerModelTarget],
+  const currentChoice = useMemo(
+    () => currentRouteChoice(props.currentIntent, props.selection, props.copy),
+    [props.copy, props.currentIntent, props.selection],
   );
-  const currentProvider = targetText(currentTarget.provider);
-  const currentModel = targetText(currentTarget.providerModelId) || targetText(currentTarget.model);
+  const currentCloudGrantId = props.currentIntent?.route.oneofKind === 'cloud'
+    ? props.currentIntent.route.cloud.connectorGrantId || ''
+    : '';
   const currentDefaults = useMemo(
     () => runtimeAIConfigStructToJson(props.currentIntent?.defaults),
     [props.currentIntent?.defaults],
   );
   const syncKey = useMemo(() => JSON.stringify({
-    route: props.currentIntent?.route.oneofKind || null,
+    choice: currentChoice?.id || null,
+    grantId: currentCloudGrantId,
     requiredFeatures: props.currentIntent?.requiredFeatures || [],
     defaults: currentDefaults,
-    provider: currentProvider,
-    model: currentModel,
-    grantId: currentCloud?.connectorGrantId || '',
-  }), [currentCloud?.connectorGrantId, currentDefaults, currentModel, currentProvider, props.currentIntent]);
+  }), [currentChoice?.id, currentCloudGrantId, currentDefaults, props.currentIntent?.requiredFeatures]);
   const lastSyncKey = useRef('');
-  const [routeDraft, setRouteDraft] = useState<'local' | 'cloud'>(
-    props.currentIntent?.route.oneofKind === 'cloud' ? 'cloud' : 'local',
-  );
-  const [featuresDraft, setFeaturesDraft] = useState(props.currentIntent?.requiredFeatures.join(', ') || '');
-  const [defaultsDraft, setDefaultsDraft] = useState(Object.keys(currentDefaults).length > 0 ? JSON.stringify(currentDefaults, null, 2) : '');
-  const [saving, setSaving] = useState(false);
-  const [saveFailure, setSaveFailure] = useState<ModelConfigFormattedError | null>(null);
-  const [draftError, setDraftError] = useState('');
-  const [cloudLoading, setCloudLoading] = useState(false);
-  const [cloudError, setCloudError] = useState('');
-  const [cloudLoaded, setCloudLoaded] = useState(false);
-  const [reloadNonce, setReloadNonce] = useState(0);
-  const [implementations, setImplementations] = useState<readonly ModelConfigCloudImplementationOption[]>([]);
-  const [targets, setTargets] = useState<readonly ModelConfigCloudTargetOption[]>([]);
+  const [draftChoice, setDraftChoice] = useState<ModelConfigRouteChoice | null>(currentChoice);
+  const [grantId, setGrantId] = useState(currentCloudGrantId);
   const [authorization, setAuthorization] = useState<ModelConfigCloudAuthorizationOptions>(EMPTY_AUTHORIZATION);
-  const [implementationId, setImplementationId] = useState('');
-  const [targetId, setTargetId] = useState('');
-  const [grantId, setGrantId] = useState(currentCloud?.connectorGrantId || '');
   const [connectorId, setConnectorId] = useState('');
-  const [targetConfirmed, setTargetConfirmed] = useState(false);
+  const [pickerConnectorId, setPickerConnectorId] = useState('');
   const [impactConfirmed, setImpactConfirmed] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [cloudError, setCloudError] = useState('');
+  const [saveFailure, setSaveFailure] = useState<ModelConfigFormattedError | null>(null);
 
   useEffect(() => {
     if (lastSyncKey.current === syncKey) return;
     lastSyncKey.current = syncKey;
-    setRouteDraft(props.currentIntent?.route.oneofKind === 'cloud' ? 'cloud' : 'local');
-    setFeaturesDraft(props.currentIntent?.requiredFeatures.join(', ') || '');
-    setDefaultsDraft(Object.keys(currentDefaults).length > 0 ? JSON.stringify(currentDefaults, null, 2) : '');
-    setGrantId(currentCloud?.connectorGrantId || '');
-    setSaveFailure(null);
-    setDraftError('');
-    setTargetConfirmed(false);
+    const preserveConnector = currentChoice?.route === 'cloud'
+      && draftChoice?.route === 'cloud'
+      && currentChoice.id === draftChoice.id;
+    setDraftChoice(currentChoice);
+    setGrantId(currentCloudGrantId);
+    if (!preserveConnector) {
+      setConnectorId('');
+      setPickerConnectorId('');
+    }
     setImpactConfirmed(false);
-  }, [currentCloud?.connectorGrantId, currentDefaults, props.currentIntent, syncKey]);
-
-  const selectedImplementation = implementations.find((entry) => entry.optionId === implementationId) || null;
-  const selectedTarget = targets.find((entry) => entry.targetId === targetId) || null;
-  const selectedGrant = authorization.grants.find((entry) => entry.grantId === grantId) || null;
-  const matchingConnectors = authorization.connectors.filter((entry) => entry.provider === selectedImplementation?.provider);
-  const matchingGrants = authorization.grants.filter((grant) => authorization.connectors.some((connector) => (
-    connector.connectorId === grant.connectorId && connector.provider === selectedImplementation?.provider
-  )));
-  const selectedConnector = authorization.connectors.find((entry) => entry.connectorId === selectedGrant?.connectorId) || null;
-  const accountLabel = selectedConnector?.label || selectedGrant?.grantId || props.copy.cloudAuthorizationNone;
-
-  const loadCloud = useCallback(async () => {
-    if (!props.cloudAIConfig) return;
-    setCloudLoading(true);
-    setCloudError('');
-    try {
-      const [nextImplementations, nextAuthorization] = await Promise.all([
-        props.cloudAIConfig.listImplementations(props.capabilityContract),
-        props.context.consumer === 'nimi-first-party'
-          ? props.cloudAIConfig.listAuthorizationOptions()
-          : Promise.resolve(EMPTY_AUTHORIZATION),
-      ]);
-      setImplementations(nextImplementations);
-      setAuthorization(nextAuthorization);
-      const current = nextImplementations.find((entry) => (
-        entry.implementation.implementationId === currentCloud?.implementation?.implementationId
-        || entry.provider === currentProvider
-      ));
-      setImplementationId((value) => value || current?.optionId || '');
-      setCloudLoaded(true);
-    } catch {
-      setCloudError(props.copy.cloudLoadFailed);
-      setCloudLoaded(true);
-    } finally {
-      setCloudLoading(false);
-    }
-  }, [currentCloud?.implementation?.implementationId, currentProvider, props.capabilityContract, props.cloudAIConfig, props.context.consumer, props.copy.cloudLoadFailed]);
+    setSaveFailure(null);
+  }, [currentChoice, currentCloudGrantId, draftChoice, syncKey]);
 
   useEffect(() => {
-    if (routeDraft !== 'cloud' || !props.cloudAIConfig || cloudLoaded) return;
-    void loadCloud();
-  }, [cloudLoaded, loadCloud, props.cloudAIConfig, reloadNonce, routeDraft]);
-
-  useEffect(() => {
-    if (routeDraft !== 'cloud' || !props.cloudAIConfig || !selectedImplementation) {
-      setTargets([]);
-      return;
-    }
+    if (
+      !props.cloudAIConfig
+      || props.context.consumer !== 'nimi-first-party'
+      || props.currentIntent?.route.oneofKind !== 'cloud'
+    ) return;
     let cancelled = false;
-    setCloudLoading(true);
-    setCloudError('');
-    void props.cloudAIConfig.listTargets({
-      capabilityContract: props.capabilityContract,
-      provider: selectedImplementation.provider,
-    }).then((nextTargets) => {
+    void props.cloudAIConfig.listAuthorizationOptions().then((next) => {
       if (cancelled) return;
-      setTargets(nextTargets);
-      const currentId = currentProvider === selectedImplementation.provider && currentModel
-        ? targetOptionId(currentProvider, currentModel)
-        : '';
-      setTargetId((value) => value || (nextTargets.some((entry) => entry.targetId === currentId) ? currentId : ''));
+      setAuthorization(next);
+      const currentGrant = next.grants.find((entry) => entry.grantId === currentCloudGrantId);
+      const currentConnector = next.connectors.find((entry) => entry.connectorId === currentGrant?.connectorId);
+      if (currentConnector) {
+        setConnectorId(currentConnector.connectorId);
+        setPickerConnectorId(currentConnector.connectorId);
+      }
     }).catch(() => {
       if (!cancelled) setCloudError(props.copy.cloudLoadFailed);
-    }).finally(() => {
-      if (!cancelled) setCloudLoading(false);
     });
     return () => { cancelled = true; };
-  }, [currentModel, currentProvider, props.capabilityContract, props.cloudAIConfig, props.copy.cloudLoadFailed, reloadNonce, routeDraft, selectedImplementation]);
+  }, [currentCloudGrantId, props.cloudAIConfig, props.context.consumer, props.copy.cloudLoadFailed, props.currentIntent?.route.oneofKind]);
 
-  const targetAdapter = useMemo<ModelPickerCandidateAdapter<ModelConfigCloudTargetOption>>(() => ({
-    listCandidates: () => targets,
-    getId: (entry) => entry.targetId,
-    getTitle: (entry) => entry.label,
-    getSource: (entry) => entry.provider,
-    getSearchText: (entry) => JSON.stringify(entry.providerModelTarget),
-    getDetailRows: (entry) => Object.entries(entry.providerModelTarget).map(([label, value]) => ({
-      label,
-      value: typeof value === 'string' ? value : JSON.stringify(value),
-    })),
-  }), [targets]);
+  const listChoices = useCallback(async (): Promise<readonly ModelConfigRouteChoice[]> => {
+    const local = localChoice(props.selection, props.copy);
+    if (!props.cloudAIConfig) return [local];
+    setCloudError('');
+    try {
+      if (props.context.consumer === 'nimi-first-party') {
+        let nextAuthorization: ModelConfigCloudAuthorizationOptions;
+        try {
+          nextAuthorization = await props.cloudAIConfig.listAuthorizationOptions();
+          setAuthorization(nextAuthorization);
+        } catch {
+          setAuthorization(EMPTY_AUTHORIZATION);
+          setCloudError(props.copy.cloudLoadFailed);
+          return [local];
+        }
+        const connector = nextAuthorization.connectors.find((entry) => entry.connectorId === pickerConnectorId);
+        if (!connector) return [local];
+        const implementations = (await props.cloudAIConfig.listImplementations(props.capabilityContract))
+          .filter((entry) => entry.provider === connector.provider);
+        const targets = await props.cloudAIConfig.listTargets({
+          capabilityContract: props.capabilityContract,
+          provider: connector.provider,
+        });
+        return routeChoices(local, implementations.map((implementation) => ({ implementation, targets })));
+      }
+      const implementations = await props.cloudAIConfig.listImplementations(props.capabilityContract);
+      const targetGroups = await Promise.all(implementations.map(async (implementation) => ({
+        implementation,
+        targets: await props.cloudAIConfig?.listTargets({
+          capabilityContract: props.capabilityContract,
+          provider: implementation.provider,
+        }) || [],
+      })));
+      return routeChoices(local, targetGroups);
+    } catch {
+      setCloudError(props.copy.cloudLoadFailed);
+      return [local];
+    }
+  }, [pickerConnectorId, props.capabilityContract, props.cloudAIConfig, props.context.consumer, props.copy, props.selection]);
+
+  const pickerAdapter = useMemo<ModelPickerCandidateAdapter<ModelConfigRouteChoice>>(() => ({
+    listCandidates: listChoices,
+    getId: (choice) => choice.id,
+    getTitle: (choice) => choice.label,
+    getDescription: (choice) => choice.description,
+    getSource: (choice) => choice.route,
+    getBadges: (choice) => [{
+      label: choice.route === 'cloud' ? choice.provider : props.copy.localLabel,
+      tone: choice.route === 'cloud' ? 'neutral' : props.selection?.state === 'selected' ? 'success' : 'warning',
+    }],
+    getSearchText: (choice) => choice.route === 'cloud'
+      ? JSON.stringify(choice.target.providerModelTarget)
+      : `${choice.label} ${choice.description}`,
+    getDetailRows: (choice) => choice.route === 'cloud'
+      ? Object.entries(choice.target.providerModelTarget).map(([label, value]) => ({
+          label,
+          value: typeof value === 'string' ? value : JSON.stringify(value),
+        }))
+      : [],
+  }), [listChoices, props.copy.localLabel, props.selection?.state]);
+
+  const selectedConnector = draftChoice?.route === 'cloud'
+    ? authorization.connectors.find((entry) => (
+        entry.connectorId === connectorId && entry.provider === draftChoice.provider
+      )) || null
+    : null;
+  const matchingGrants = selectedConnector
+    ? authorization.grants.filter((grant) => grant.connectorId === selectedConnector.connectorId)
+    : [];
+  const selectedGrant = matchingGrants.find((entry) => entry.grantId === grantId) || null;
+  const accountLabel = selectedConnector?.label || selectedGrant?.grantId || props.copy.cloudAuthorizationNone;
+  const missingFeatures = draftChoice?.route === 'local'
+    ? modelConfigMissingRequiredFeatures(props.currentIntent, props.selection)
+    : [];
 
   const createGrant = async () => {
     if (!props.cloudAIConfig || !connectorId || saving) return;
@@ -430,28 +607,27 @@ function CapabilityIntentEditor(props: CapabilityIntentEditorProps) {
   };
 
   const commit = async () => {
-    if (saving || !props.descriptor) return;
-    setDraftError('');
+    if (saving || !props.descriptor || !draftChoice) return;
     setSaveFailure(null);
     try {
-      const requiredFeatures = [...new Set(featuresDraft.split(',').map((entry) => entry.trim()).filter(Boolean))];
-      const defaults = parseDefaults(defaultsDraft);
+      const requiredFeatures = [...(props.currentIntent?.requiredFeatures || [])];
+      const defaults = Object.keys(currentDefaults).length > 0 ? currentDefaults : undefined;
       let intent: NimiCapabilityAIConfigIntent;
-      if (routeDraft === 'local') {
+      if (draftChoice.route === 'local') {
         intent = createNimiLocalAIConfigCapabilityIntent({
           capabilityContract: props.capabilityContract,
           requiredFeatures,
           ...(defaults ? { defaults } : {}),
         });
       } else {
-        if (!selectedImplementation || !selectedTarget || !targetConfirmed || !impactConfirmed) return;
+        if (!impactConfirmed) return;
         if (grantId && selectedGrant?.status !== 'active') return;
         intent = createNimiCloudAIConfigCapabilityIntent({
           capabilityContract: props.capabilityContract,
           requiredFeatures,
           ...(defaults ? { defaults } : {}),
-          implementation: selectedImplementation.implementation,
-          providerModelTarget: selectedTarget.providerModelTarget,
+          implementation: draftChoice.implementation.implementation,
+          providerModelTarget: draftChoice.target.providerModelTarget,
           connectorGrantId: props.context.consumer === 'nimi-first-party' ? (grantId || null) : null,
         });
       }
@@ -461,54 +637,159 @@ function CapabilityIntentEditor(props: CapabilityIntentEditorProps) {
       setSaving(true);
       await props.onOverwrite(next);
     } catch (error) {
-      if (error instanceof SyntaxError || (error instanceof Error && error.message.includes('Portable defaults'))) {
-        setDraftError(error.message);
-      } else {
-        setSaveFailure(props.formatError?.(error) || defaultFormatError(error, props.copy.saveFailed));
-      }
+      setSaveFailure(props.formatError?.(error) || defaultFormatError(error, props.copy.saveFailed));
     } finally {
       setSaving(false);
     }
   };
 
-  const posture = modelConfigCapabilityPosture(props.currentIntent, props.selection);
-  const badge = statusBadge(posture, props.copy);
-  const missingFeatures = modelConfigMissingRequiredFeatures(props.currentIntent, props.selection);
+  const draftPosture = draftChoice?.route === 'local'
+    ? modelConfigCapabilityPosture(
+        props.currentIntent?.route.oneofKind === 'local' ? props.currentIntent : createNimiLocalAIConfigCapabilityIntent({
+          capabilityContract: props.capabilityContract,
+          requiredFeatures: [...(props.currentIntent?.requiredFeatures || [])],
+        }),
+        props.selection,
+      )
+    : draftChoice?.route === 'cloud'
+      ? (grantId ? 'cloud-configured' : 'cloud-selection-required')
+      : 'not-configured';
+  const draftBadge = statusBadge(draftPosture, props.copy);
   const routeDisabled = Boolean(props.disabled) || saving || !props.descriptor;
+  const modelDetail = draftChoice?.route === 'local'
+    ? props.copy.localLabel
+    : draftChoice?.route === 'cloud' ? draftChoice.provider : null;
+  const modelDetailStatus = draftChoice
+    ? draftBadge.tone === 'success' ? props.copy.activeModelConfiguredLabel : props.copy.activeModelSetupPendingLabel
+    : null;
 
   return (
-    <Surface tone="card" className="space-y-4 border border-[var(--nimi-border-subtle)] p-4">
-      <div className="flex min-w-0 items-start justify-between gap-3">
-        <div className="min-w-0">
-          <h3 className="m-0 truncate text-sm font-semibold text-[var(--nimi-text-primary)]">{descriptorLabel(props.capabilityContract, props.descriptor, props.copy)}</h3>
-          <p className="m-0 mt-1 text-[11px] leading-relaxed text-[var(--nimi-text-muted)]">{descriptorDescription(props.capabilityContract, props.descriptor, props.copy)}</p>
-        </div>
-        <StatusBadge tone={badge.tone}>{badge.label}</StatusBadge>
-      </div>
-
+    <div className="min-w-0 space-y-4" data-nimi-model-config-capability={props.capabilityContract}>
       {!props.descriptor ? <InlineAlert tone="warning">{props.copy.unsupportedCapabilityLabel}</InlineAlert> : null}
 
-      <div className="space-y-2">
-        <div className="text-xs font-semibold text-[var(--nimi-text-secondary)]">{props.copy.routeLabel}</div>
-        <SegmentedControl
-          ariaLabel={props.copy.routeLabel}
-          size="sm"
-          value={routeDraft}
-          onValueChange={(value) => {
-            setRouteDraft(value === 'cloud' ? 'cloud' : 'local');
-            setSaveFailure(null);
-            setDraftError('');
-            setTargetConfirmed(false);
-            setImpactConfirmed(false);
+      <div className="grid min-w-0 gap-2">
+        <div className="grid min-w-0 gap-0.5">
+          <span className="truncate text-[10.5px] font-semibold uppercase tracking-[0.14em] text-[var(--nimi-text-muted)]">
+            {props.copy.activeModelLabel}
+          </span>
+          <span className="truncate text-[11px] font-medium text-[var(--nimi-text-muted)]">
+            {props.copy.activeModelHint}
+          </span>
+        </div>
+        <ModelSelectorTrigger
+          source={draftChoice?.route || null}
+          label={draftChoice?.label || null}
+          detail={modelDetail}
+          detailStatus={modelDetailStatus}
+          detailTone={draftBadge.tone === 'success' ? 'success' : draftBadge.tone === 'warning' ? 'warning' : 'neutral'}
+          hoverBorderTone="success"
+          placeholder={props.copy.notConfiguredLabel}
+          disabled={routeDisabled}
+          dataTestId={`model-config-model-trigger:${props.capabilityContract}`}
+          onClick={() => {
+            setPickerConnectorId(connectorId);
+            setPickerOpen(true);
           }}
-          items={[
-            { value: 'local', label: props.copy.localLabel, disabled: routeDisabled },
-            { value: 'cloud', label: props.copy.cloudLabel, disabled: routeDisabled || !props.cloudAIConfig },
-          ]}
+        />
+        <ModelPickerDialog
+          open={pickerOpen}
+          presentation="route"
+          title={props.copy.modelPickerTitle}
+          description={descriptorLabel(props.capabilityContract, props.descriptor, props.copy)}
+          adapter={pickerAdapter}
+          selectedId={draftChoice?.id || ''}
+          initialSourceFilter={draftChoice?.route || 'local'}
+          sourceOptions={props.cloudAIConfig ? ['local', 'cloud'] : ['local']}
+          copy={{
+            searchPlaceholder: props.copy.modelPickerSearchPlaceholder,
+            loadingLabel: props.copy.modelPickerLoadingLabel,
+            emptyLabel: props.context.consumer === 'nimi-first-party'
+              ? cloudError || (authorization.connectors.length === 0
+                ? props.copy.cloudNoConnectorsLabel
+                : !pickerConnectorId
+                  ? props.copy.cloudConnectorSelectionRequired
+                  : props.copy.modelPickerEmptyLabel)
+              : props.copy.modelPickerEmptyLabel,
+            sourceLabels: { local: props.copy.localLabel, cloud: props.copy.cloudLabel },
+            cancelLabel: props.copy.cancelLabel,
+            confirmLabel: props.copy.confirmSelectionLabel,
+          }}
+          renderSourceControls={({ source, isLoading, clearSelection }) => (
+            source === 'cloud' && props.context.consumer === 'nimi-first-party' ? (
+              <div className="space-y-2" data-nimi-model-config-cloud-connector-picker="true">
+                {authorization.connectors.length > 0 ? (
+                  <label className="grid gap-1.5 text-xs font-semibold text-[var(--nimi-text-primary)]">
+                    <span>{props.copy.cloudConnectorPickerLabel}</span>
+                    <SelectField
+                      aria-label={props.copy.cloudConnectorPickerLabel}
+                      value={pickerConnectorId}
+                      placeholder={props.copy.cloudConnectorPickerPlaceholder}
+                      contentLayer="dialog"
+                      disabled={isLoading && authorization.connectors.length === 0}
+                      options={authorization.connectors.map((entry) => ({
+                        value: entry.connectorId,
+                        label: `${entry.label} · ${entry.provider}`,
+                      }))}
+                      onValueChange={(value) => {
+                        clearSelection();
+                        setPickerConnectorId(value);
+                        setCloudError('');
+                      }}
+                    />
+                  </label>
+                ) : (
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-xs text-[var(--nimi-text-muted)]">
+                      {isLoading && !cloudError ? props.copy.modelPickerLoadingLabel : cloudError || props.copy.cloudNoConnectorsLabel}
+                    </span>
+                    {props.onOpenCloudConnectorConfiguration ? (
+                      <Button
+                        size="sm"
+                        tone="secondary"
+                        onClick={() => {
+                          setPickerOpen(false);
+                          props.onOpenCloudConnectorConfiguration?.();
+                        }}
+                      >
+                        {props.copy.openCloudConnectorsLabel}
+                      </Button>
+                    ) : null}
+                  </div>
+                )}
+                {authorization.connectors.length > 0 && !pickerConnectorId ? (
+                  <p className="m-0 text-[11px] text-[var(--nimi-text-muted)]">{props.copy.cloudConnectorSelectionRequired}</p>
+                ) : null}
+              </div>
+            ) : null
+          )}
+          renderItemActions={(choice) => choice.route === 'local' && props.onOpenMachineConfiguration ? (
+            <Button
+              size="sm"
+              tone="secondary"
+              onClick={() => props.onOpenMachineConfiguration?.(props.capabilityContract)}
+            >
+              {props.copy.openMachineLabel}
+            </Button>
+          ) : null}
+          onClose={() => setPickerOpen(false)}
+          onConfirm={(choice) => {
+            const currentGrantConnectorId = authorization.grants.find(
+              (entry) => entry.grantId === currentCloudGrantId,
+            )?.connectorId;
+            const preserveGrant = choice.route === 'cloud'
+              && currentChoice?.route === 'cloud'
+              && choice.id === currentChoice.id
+              && currentGrantConnectorId === pickerConnectorId;
+            setDraftChoice(choice);
+            setGrantId(preserveGrant ? currentCloudGrantId : '');
+            setConnectorId(choice.route === 'cloud' ? pickerConnectorId : '');
+            setImpactConfirmed(false);
+            setSaveFailure(null);
+          }}
         />
       </div>
 
-      {routeDraft === 'local' ? (
+      {draftChoice?.route === 'local' ? (
         <LocalSelectionSummary
           selection={props.selection}
           missingFeatures={missingFeatures}
@@ -517,126 +798,46 @@ function CapabilityIntentEditor(props: CapabilityIntentEditorProps) {
         />
       ) : null}
 
-      <details className="rounded-[var(--nimi-radius-md)] border border-[var(--nimi-border-subtle)] p-3 text-xs text-[var(--nimi-text-secondary)]">
-        <summary className="cursor-pointer font-semibold">{props.copy.advancedLabel}</summary>
-        <p className="m-0 mt-2 text-[11px] leading-relaxed text-[var(--nimi-text-muted)]">{props.copy.advancedHint}</p>
-        <div className="mt-3 space-y-4">
-          <label className="grid gap-1.5">
-            <span className="font-semibold">{props.copy.requiredFeaturesLabel}</span>
-            <TextField value={featuresDraft} onChange={(event) => setFeaturesDraft(event.currentTarget.value)} placeholder={props.copy.requiredFeaturesPlaceholder} />
-          </label>
-          <label className="grid gap-1.5">
-            <span className="font-semibold">{props.copy.defaultsLabel}</span>
-            <TextareaField value={defaultsDraft} onChange={(event) => setDefaultsDraft(event.currentTarget.value)} placeholder={props.copy.defaultsPlaceholder} rows={4} textareaClassName="font-mono text-xs" />
-          </label>
-        </div>
-      </details>
-
-      {routeDraft === 'cloud' ? (
-        <div className="space-y-4 rounded-[var(--nimi-radius-md)] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] p-3" data-nimi-model-config-cloud="true">
-          {cloudError ? (
-            <div className="flex flex-wrap items-center gap-2">
-              <InlineAlert tone="warning">{cloudError}</InlineAlert>
-              <Button size="sm" tone="secondary" onClick={() => {
-                setCloudLoaded(false);
-                setCloudError('');
-                setReloadNonce((value) => value + 1);
-              }}>{props.copy.retryLabel}</Button>
-            </div>
-          ) : null}
-          <label className="grid gap-1.5 text-xs font-semibold text-[var(--nimi-text-secondary)]">
-            <span>{props.copy.cloudImplementationLabel}</span>
-            <SelectField
-              aria-label={props.copy.cloudImplementationLabel}
-              value={implementationId}
-              placeholder={props.copy.cloudImplementationPlaceholder}
-              disabled={cloudLoading || saving}
-              options={implementations.map((entry) => ({ value: entry.optionId, label: entry.label }))}
-              onValueChange={(value) => {
-                setImplementationId(value);
-                setTargetId('');
-                setGrantId('');
-                setConnectorId('');
-                setTargetConfirmed(false);
-                setImpactConfirmed(false);
-              }}
-            />
-          </label>
-          <div className="grid gap-1.5 text-xs font-semibold text-[var(--nimi-text-secondary)]">
-            <span>{props.copy.cloudTargetLabel}</span>
-            <ModelSelectorTrigger
-              label={selectedTarget?.label || null}
-              detail={selectedTarget?.provider || null}
-              placeholder={props.copy.cloudTargetPlaceholder}
-              disabled={!selectedImplementation || cloudLoading || saving}
-              onClick={() => setPickerOpen(true)}
-            />
-            <ModelPickerDialog
-              open={pickerOpen}
-              title={props.copy.cloudTargetDialogTitle}
-              description={props.copy.cloudTargetDialogDescription}
-              adapter={targetAdapter}
-              selectedId={targetId}
-              copy={{ cancelLabel: props.copy.cancelLabel, confirmLabel: props.copy.confirmSelectionLabel }}
-              onClose={() => setPickerOpen(false)}
-              onConfirm={(target) => {
-                setTargetId(target.targetId);
-                setTargetConfirmed(false);
-                setImpactConfirmed(false);
-              }}
-            />
+      {draftChoice?.route === 'cloud' ? (
+        <div className="space-y-3 rounded-[var(--nimi-radius-md)] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] p-3" data-nimi-model-config-cloud="true">
+          <div>
+            <div className="text-xs font-semibold text-[var(--nimi-text-primary)]">{props.copy.cloudAuthorizationLabel}</div>
+            <p className="m-0 mt-1 text-[11px] leading-relaxed text-[var(--nimi-text-muted)]">{props.copy.cloudAuthorizationSeparation}</p>
           </div>
-          <Checkbox
-            checked={targetConfirmed}
-            disabled={!selectedTarget || saving}
-            onChange={(event) => setTargetConfirmed(event.currentTarget.checked)}
-            label={props.copy.cloudTargetConfirmation}
-            className="items-start [&>span:last-child]:whitespace-normal"
-          />
-
+          {cloudError ? <InlineAlert tone="warning">{cloudError}</InlineAlert> : null}
           {props.context.consumer === 'nimi-first-party' ? (
-            <div className="space-y-3 border-t border-[var(--nimi-border-subtle)] pt-3">
-              <label className="grid gap-1.5 text-xs font-semibold text-[var(--nimi-text-secondary)]">
-                <span>{props.copy.cloudAuthorizationLabel}</span>
-                <SelectField
-                  aria-label={props.copy.cloudAuthorizationLabel}
-                  value={grantId}
-                  placeholder={props.copy.cloudAuthorizationNone}
-                  disabled={!selectedImplementation || saving}
-                  options={matchingGrants.map((grant) => ({
-                    value: grant.grantId,
-                    label: `${authorization.connectors.find((entry) => entry.connectorId === grant.connectorId)?.label || grant.connectorId} · ${grant.status}`,
-                    disabled: grant.status !== 'active',
-                  }))}
-                  onValueChange={(value) => {
-                    setGrantId(value);
-                    setImpactConfirmed(false);
-                  }}
-                />
-              </label>
+            <div className="space-y-3">
+              <SelectField
+                aria-label={props.copy.cloudAuthorizationLabel}
+                value={grantId}
+                placeholder={props.copy.cloudAuthorizationNone}
+                disabled={saving}
+                options={matchingGrants.map((grant) => ({
+                  value: grant.grantId,
+                  label: `${authorization.connectors.find((entry) => entry.connectorId === grant.connectorId)?.label || grant.connectorId} · ${grant.status}`,
+                  disabled: grant.status !== 'active',
+                }))}
+                onValueChange={(value) => {
+                  setGrantId(value);
+                  setImpactConfirmed(false);
+                }}
+              />
               {!grantId ? <InlineAlert tone="info">{props.copy.cloudAuthorizationNeeded}</InlineAlert> : null}
               {grantId && selectedGrant?.status !== 'active' ? <InlineAlert tone="warning">{props.copy.cloudAuthorizationRevoked}</InlineAlert> : null}
-              <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
-                <SelectField
-                  aria-label={props.copy.cloudConnectorLabel}
-                  value={connectorId}
-                  placeholder={props.copy.cloudConnectorPlaceholder}
-                  disabled={!selectedImplementation || saving}
-                  options={matchingConnectors.map((entry) => ({ value: entry.connectorId, label: entry.label }))}
-                  onValueChange={setConnectorId}
-                />
-                <Button size="sm" tone="secondary" disabled={!connectorId || saving} onClick={() => { void createGrant(); }}>{props.copy.cloudCreateGrantLabel}</Button>
+              <div className="flex items-center justify-between gap-3">
+                <span className="min-w-0 truncate text-xs text-[var(--nimi-text-secondary)]">
+                  {props.copy.cloudConnectorPickerLabel}: {selectedConnector?.label || props.copy.cloudConnectorPickerPlaceholder}
+                </span>
+                <Button size="sm" tone="secondary" disabled={!selectedConnector || saving} onClick={() => { void createGrant(); }}>{props.copy.cloudCreateGrantLabel}</Button>
               </div>
-              <p className="m-0 text-[11px] leading-relaxed text-[var(--nimi-text-muted)]">{props.copy.cloudAuthorizationSeparation}</p>
             </div>
           ) : null}
-
           <InlineAlert tone="info">
             <div className="space-y-2">
               <div className="font-semibold">{props.copy.cloudAccountLabel(accountLabel)}</div>
               <Checkbox
                 checked={impactConfirmed}
-                disabled={!selectedImplementation || !selectedTarget || saving}
+                disabled={saving}
                 onChange={(event) => setImpactConfirmed(event.currentTarget.checked)}
                 label={props.context.owner === 'shared-local-agent-ai-config'
                   ? props.copy.cloudImpactSharedLabel(accountLabel)
@@ -648,7 +849,6 @@ function CapabilityIntentEditor(props: CapabilityIntentEditorProps) {
         </div>
       ) : null}
 
-      {draftError ? <InlineAlert tone="danger">{draftError}</InlineAlert> : null}
       {saveFailure ? (
         <div className="space-y-2">
           <InlineAlert tone="danger">{saveFailure.message}</InlineAlert>
@@ -664,44 +864,46 @@ function CapabilityIntentEditor(props: CapabilityIntentEditorProps) {
       <div className="flex justify-end">
         <Button
           tone="primary"
-          disabled={routeDisabled || (routeDraft === 'cloud' && (
-            cloudLoading || !selectedImplementation || !selectedTarget || !targetConfirmed || !impactConfirmed || (Boolean(grantId) && selectedGrant?.status !== 'active')
+          disabled={routeDisabled || !draftChoice || (draftChoice.route === 'cloud' && (
+            !impactConfirmed || (Boolean(grantId) && selectedGrant?.status !== 'active')
           ))}
           onClick={() => { void commit(); }}
           data-testid={`model-config-save:${props.capabilityContract}`}
         >
-          {saving ? props.copy.savingLabel : routeDraft === 'cloud' ? props.copy.saveCloudLabel : props.copy.saveLocalLabel}
+          {saving ? props.copy.savingLabel : draftChoice?.route === 'cloud' ? props.copy.saveCloudLabel : props.copy.saveLocalLabel}
         </Button>
       </div>
-    </Surface>
+    </div>
   );
 }
 
 function LocalSelectionSummary(props: {
   readonly selection: ModelConfigLocalSelectionProjection | null;
   readonly missingFeatures: readonly string[];
-  readonly copy: ReturnType<typeof resolveModelConfigCopy>;
+  readonly copy: ResolvedCopy;
   readonly onOpenMachineConfiguration?: () => void;
 }) {
   const selection = props.selection;
-  let tone: 'info' | 'warning' | 'success' = 'warning';
+  let toneClass = 'text-[var(--nimi-status-warning)]';
   let message = props.copy.localMissingLabel;
   if (selection?.state === 'unavailable') {
-    tone = 'info';
+    toneClass = 'text-[var(--nimi-text-muted)]';
     message = props.copy.localUnavailableLabel;
   } else if (selection?.state === 'broken') {
     message = `${props.copy.localBrokenLabel}${selection.reasons.length > 0 ? ` ${selection.reasons.join(', ')}` : ''}`;
   } else if (selection?.state === 'selected' && props.missingFeatures.length > 0) {
     message = props.copy.localMismatchLabel(props.missingFeatures.join(', '));
   } else if (selection?.state === 'selected') {
-    tone = 'success';
+    toneClass = 'text-[var(--nimi-status-success)]';
     message = `${props.copy.localSelectedLabel}: ${selection.displayName || selection.configurationId || ''}`;
   }
   return (
-    <div className="space-y-2">
-      <InlineAlert tone={tone}>{message}</InlineAlert>
+    <div className="flex min-w-0 items-start justify-between gap-3">
+      <p className={cn('m-0 min-w-0 text-[11px] leading-relaxed', toneClass)}>{message}</p>
       {props.onOpenMachineConfiguration ? (
-        <Button size="sm" tone="secondary" onClick={props.onOpenMachineConfiguration}>{props.copy.openMachineLabel}</Button>
+        <button type="button" onClick={props.onOpenMachineConfiguration} className="shrink-0 text-[11px] font-medium text-[var(--nimi-action-primary-bg)] hover:underline">
+          {props.copy.openMachineLabel}
+        </button>
       ) : null}
     </div>
   );

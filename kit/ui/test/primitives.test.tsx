@@ -455,12 +455,14 @@ test('select field retains content until its symmetric exit completes', async ()
   container = document.createElement('div');
   document.body.appendChild(container);
   root = createRoot(container);
+  const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
 
-  const renderSelect = (open: boolean) => (
+  const renderSelect = (open: boolean, value = 'connector.openai') => (
     <SelectField
       open={open}
-      value="connector.openai"
+      value={value}
       aria-label="Connector"
+      contentLayer="dialog"
       options={[{ value: 'connector.openai', label: 'OpenAI' }]}
     />
   );
@@ -471,6 +473,19 @@ test('select field retains content until its symmetric exit completes', async ()
   });
   expect(document.querySelector('[role="listbox"]')).toBeTruthy();
   expect(document.querySelector('.nimi-overlay-panel--popover')).toBeTruthy();
+  expect(document.querySelector('[data-nimi-select-layer="dialog"]')?.className)
+    .toContain('z-[calc(var(--nimi-z-dialog)+1)]');
+
+  await act(async () => {
+    root?.render(renderSelect(true, ''));
+    await flush();
+    root?.render(renderSelect(true));
+    await flush();
+  });
+  expect(consoleError.mock.calls.some(([message]) => (
+    String(message).includes('Cannot use a ref on a React element as a container')
+  ))).toBe(false);
+  consoleError.mockRestore();
 
   await act(async () => {
     root?.render(renderSelect(false));

@@ -35,24 +35,19 @@ export type CapabilityV11 = NimiRuntimeLocalRunnableAssetKindId;
 
 export type SourceIdV11 = 'local' | 'cloud';
 /**
- * Canonical five-section Runtime IA per
- * `.nimi/spec/desktop/shell-ui.authority.yaml`.
- * Section merges from the Runtime Surface Cleanup table:
- *  - recommend + local (Local Models) + catalog  -> models
- *  - data-management + runtime (Operations)      -> environment
+ * Runtime top-level pages. The former single `models` section is split
+ * into four first-level pages: model market (recommendations), local
+ * models, local AI configurations, and model catalog.
  */
 export type RuntimePageIdV11 =
   | 'overview'
   | 'profiles'
-  | 'models'
+  | 'modelMarket'
+  | 'localModels'
+  | 'localAiConfig'
+  | 'modelCatalog'
   | 'cloud'
   | 'environment';
-/**
- * Sub-navigation targets used inside a section (e.g. the Models section's
- * recommend/installed/catalog sub-tabs, or cross-section "open Cloud Connectors"
- * deep links). Not top-level IA entries.
- */
-export type RuntimeSetupPageIdV11 = 'models' | 'cloud';
 export type UiModeV11 = 'simple' | 'advanced';
 export type ProviderStatusV11 = NimiRuntimeConfigProviderStatus;
 export type ApiConnectorScopeV11 = 'user' | 'machine-global' | 'runtime-system';
@@ -65,12 +60,12 @@ export type RuntimeConfigActionFocus =
     focus: 'runtime-config-action-focus.cloud-connector-draft';
   }
   | {
-    page: 'models';
+    page: 'modelCatalog';
     action: 'install-model';
     focus: 'runtime-config-action-focus.models-catalog-install';
   }
   | {
-    page: 'models';
+    page: 'localAiConfig';
     action: 'open-configurations';
     focus: 'runtime-config-action-focus.models-configurations';
   };
@@ -122,10 +117,18 @@ export function normalizeSourceV11(value: unknown): SourceIdV11 {
 }
 
 export function normalizePageIdV11(value: unknown): RuntimePageIdV11 {
+  // Legacy single "models" section from older persisted snapshots migrates
+  // to the Local Models page (its former default sub-tab).
+  if (value === 'models') {
+    return 'localModels';
+  }
   if (
     value === 'overview'
     || value === 'profiles'
-    || value === 'models'
+    || value === 'modelMarket'
+    || value === 'localModels'
+    || value === 'localAiConfig'
+    || value === 'modelCatalog'
     || value === 'cloud'
     || value === 'environment'
   ) {
@@ -151,23 +154,23 @@ export function normalizeRuntimeConfigActionFocus(value: unknown): RuntimeConfig
     };
   }
   if (
-    record.page === 'models'
+    record.page === 'modelCatalog'
     && record.action === 'install-model'
     && record.focus === 'runtime-config-action-focus.models-catalog-install'
   ) {
     return {
-      page: 'models',
+      page: 'modelCatalog',
       action: 'install-model',
       focus: 'runtime-config-action-focus.models-catalog-install',
     };
   }
   if (
-    record.page === 'models'
+    record.page === 'localAiConfig'
     && record.action === 'open-configurations'
     && record.focus === 'runtime-config-action-focus.models-configurations'
   ) {
     return {
-      page: 'models',
+      page: 'localAiConfig',
       action: 'open-configurations',
       focus: 'runtime-config-action-focus.models-configurations',
     };

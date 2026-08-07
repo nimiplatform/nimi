@@ -4,6 +4,7 @@ import {
   loadRuntimeConfigStateV11,
   persistRuntimeConfigStateV11,
 } from '../../features/runtime-config/runtime-config-storage-persist';
+import type { RuntimePageIdV11 } from '../../features/runtime-config/runtime-config-state-types';
 import { dispatchSettingsOpenSection } from '../../features/settings/settings-storage';
 import type { DesktopRendererRuntimeConfigNavigationPort } from '../../renderer/runtime-config-navigation-port.js';
 
@@ -32,12 +33,13 @@ export function applyDesktopOpenIntentToAppStore(
     case 'open-runtime-config': {
       const state = loadRuntimeConfigStateV11();
       const actionFocus = runtimeConfigActionFocusForIntent(intent);
+      const page = resolveRuntimePageForIntent(intent);
       persistRuntimeConfigStateV11({
         ...state,
-        activePage: intent.page,
+        activePage: page,
         actionFocus,
       });
-      runtimeConfigNavigation.openPage(intent.page);
+      runtimeConfigNavigation.openPage(page);
       if (actionFocus) {
         runtimeConfigNavigation.focusAction(actionFocus);
       }
@@ -61,6 +63,17 @@ export function applyDesktopOpenIntentToAppStore(
   }
 }
 
+function resolveRuntimePageForIntent(
+  intent: Extract<NimiDesktopOpenIntent, { kind: 'open-runtime-config' }>,
+): RuntimePageIdV11 {
+  // The SDK contract still targets the retired single "models" section;
+  // route it to the page that serves the requested action.
+  if (intent.page === 'models') {
+    return intent.action === 'install-model' ? 'modelCatalog' : 'localModels';
+  }
+  return 'cloud';
+}
+
 function runtimeConfigActionFocusForIntent(
   intent: Extract<NimiDesktopOpenIntent, { kind: 'open-runtime-config' }>,
 ) {
@@ -73,7 +86,7 @@ function runtimeConfigActionFocusForIntent(
   }
   if (intent.page === 'models' && intent.action === 'install-model') {
     return {
-      page: 'models',
+      page: 'modelCatalog',
       action: 'install-model',
       focus: 'runtime-config-action-focus.models-catalog-install',
     } as const;

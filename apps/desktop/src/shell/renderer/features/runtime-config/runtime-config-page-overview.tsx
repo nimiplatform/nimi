@@ -141,7 +141,7 @@ export function OverviewPage({ model, state }: OverviewPageProps) {
             title={t('runtimeConfig.overview.installedAssets', { defaultValue: 'Installed Assets' })}
             value={installedAssetCount}
             subtitle={t('runtimeConfig.overview.runtimeManagedInventory', { defaultValue: 'Runtime-managed inventory' })}
-            onClick={() => model.onChangePage('models')}
+            onClick={() => model.onChangePage('localModels')}
           />
           <StatTile
             title={t('runtimeConfig.overview.cloudConfigurations', { defaultValue: 'Cloud Configurations' })}
@@ -235,7 +235,7 @@ export function OverviewPage({ model, state }: OverviewPageProps) {
           <QuickLinkCard
             title={t('runtimeConfig.overview.manageModels', { defaultValue: 'Manage Models' })}
             description={t('runtimeConfig.overview.manageModelsDescription', { defaultValue: 'Install, start, stop local assets' })}
-            onClick={() => model.onChangePage('models')}
+            onClick={() => model.onChangePage('localModels')}
           />
           <QuickLinkCard
             title={t('runtimeConfig.overview.configureCloud', { defaultValue: 'Configure Cloud' })}

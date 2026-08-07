@@ -44,6 +44,7 @@ export interface ModelConfigCloudTargetOption {
 }
 
 export interface ModelConfigCloudConnectorOption {
+  /** A host-confirmed Connector with usable credential custody. */
   readonly connectorId: string;
   readonly label: string;
   readonly provider: string;
@@ -118,6 +119,15 @@ export type ModelConfigCopy = Partial<{
   readonly title: string;
   readonly description: string;
   readonly backLabel: string;
+  readonly detailTitle: (capabilityLabel: string) => string;
+  readonly activeModelLabel: string;
+  readonly activeModelHint: string;
+  readonly activeModelConfiguredLabel: string;
+  readonly activeModelSetupPendingLabel: string;
+  readonly modelPickerTitle: string;
+  readonly modelPickerSearchPlaceholder: string;
+  readonly modelPickerLoadingLabel: string;
+  readonly modelPickerEmptyLabel: string;
   readonly configuredSummary: string;
   readonly emptySummary: string;
   readonly routeLabel: string;
@@ -132,12 +142,18 @@ export type ModelConfigCopy = Partial<{
   readonly requiredFeaturesPlaceholder: string;
   readonly defaultsLabel: string;
   readonly defaultsPlaceholder: string;
+  readonly localChoiceDescription: string;
   readonly localSelectedLabel: string;
   readonly localMissingLabel: string;
   readonly localBrokenLabel: string;
   readonly localUnavailableLabel: string;
   readonly localMismatchLabel: (features: string) => string;
   readonly openMachineLabel: string;
+  readonly cloudConnectorPickerLabel: string;
+  readonly cloudConnectorPickerPlaceholder: string;
+  readonly cloudConnectorSelectionRequired: string;
+  readonly cloudNoConnectorsLabel: string;
+  readonly openCloudConnectorsLabel: string;
   readonly cloudImplementationLabel: string;
   readonly cloudImplementationPlaceholder: string;
   readonly cloudTargetLabel: string;

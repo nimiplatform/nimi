@@ -29,6 +29,20 @@ function aiConfigCopy(i18n: AgentCenterI18n | undefined): ModelConfigCopy {
       'Choose Local or Cloud capability intent. Runtime validates the committed implementation when execution starts.',
     ),
     backLabel: t('AgentCenter.aiConfig.backLabel', 'All capabilities'),
+    detailTitle: (capabilityLabel: string) => translateAgentCenter(
+      i18n,
+      'AgentCenter.aiConfig.detailTitle',
+      '{{capability}} Configuration',
+      { capability: capabilityLabel },
+    ),
+    activeModelLabel: t('AgentCenter.aiConfig.activeModelLabel', 'Active Model'),
+    activeModelHint: t('AgentCenter.aiConfig.activeModelHint', 'Click to change model'),
+    activeModelConfiguredLabel: t('AgentCenter.aiConfig.activeModelConfiguredLabel', 'configured'),
+    activeModelSetupPendingLabel: t('AgentCenter.aiConfig.activeModelSetupPendingLabel', 'setup pending'),
+    modelPickerTitle: t('AgentCenter.aiConfig.modelPickerTitle', 'Select Model'),
+    modelPickerSearchPlaceholder: t('AgentCenter.aiConfig.modelPickerSearch', 'Search models'),
+    modelPickerLoadingLabel: t('AgentCenter.aiConfig.modelPickerLoading', 'Loading models…'),
+    modelPickerEmptyLabel: t('AgentCenter.aiConfig.modelPickerEmpty', 'No models are available for this capability.'),
     routeLabel: t('AgentCenter.aiConfig.routeLabel', 'Execution intent'),
     localLabel: t('AgentCenter.aiConfig.localIntentLabel', 'Local'),
     cloudLabel: t('AgentCenter.aiConfig.cloudIntentLabel', 'Cloud'),
@@ -47,6 +61,10 @@ function aiConfigCopy(i18n: AgentCenterI18n | undefined): ModelConfigCopy {
     ),
     defaultsLabel: t('AgentCenter.aiConfig.defaultsLabel', 'Portable defaults (JSON)'),
     defaultsPlaceholder: t('AgentCenter.aiConfig.defaultsPlaceholder', 'Optional capability defaults'),
+    localChoiceDescription: t(
+      'AgentCenter.aiConfig.localChoiceDescription',
+      'Use the model selected in Local AI Configurations.',
+    ),
     localSelectedLabel: t('AgentCenter.aiConfig.localSelectedLabel', 'Selected on this machine'),
     localMissingLabel: t(
       'AgentCenter.aiConfig.localMissingLabel',
@@ -67,6 +85,23 @@ function aiConfigCopy(i18n: AgentCenterI18n | undefined): ModelConfigCopy {
       { features },
     ),
     openMachineLabel: t('AgentCenter.aiConfig.openMachineLabel', 'Open Local AI Configurations'),
+    cloudConnectorPickerLabel: t('AgentCenter.aiConfig.cloudConnectorPickerLabel', 'Cloud Connector'),
+    cloudConnectorPickerPlaceholder: t(
+      'AgentCenter.aiConfig.cloudConnectorPickerPlaceholder',
+      'Select a configured Connector',
+    ),
+    cloudConnectorSelectionRequired: t(
+      'AgentCenter.aiConfig.cloudConnectorSelectionRequired',
+      'Select a configured Connector before choosing a model.',
+    ),
+    cloudNoConnectorsLabel: t(
+      'AgentCenter.aiConfig.cloudNoConnectorsLabel',
+      'No configured Cloud Connector is available.',
+    ),
+    openCloudConnectorsLabel: t(
+      'AgentCenter.aiConfig.openCloudConnectorsLabel',
+      'Configure Cloud Connectors',
+    ),
     cloudImplementationLabel: t('AgentCenter.aiConfig.cloudImplementationLabel', 'Cloud implementation'),
     cloudImplementationPlaceholder: t(
       'AgentCenter.aiConfig.cloudImplementationPlaceholder',
@@ -183,6 +218,7 @@ export function AgentCenterAIConfigSection({
         cloudAIConfig={session.cloudAIConfig}
         onOverwrite={(capabilities) => session.overwriteSharedAIConfig({ capabilities })}
         onOpenMachineConfiguration={placementActions?.openMachineConfiguration}
+        onOpenCloudConnectorConfiguration={placementActions?.openCloudConnectorConfiguration}
         formatError={(error) => ({
           message: copy.saveFailed || 'Could not save AIConfig.',
           technicalDetail: error instanceof Error ? error.message : String(error),

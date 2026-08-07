@@ -5,6 +5,9 @@ export type UseModelPickerOptions<TCandidate> = {
   readonly adapter: ModelPickerCandidateAdapter<TCandidate>;
   readonly selectedId?: string;
   readonly initialSelectedId?: string;
+  readonly initialSourceFilter?: string;
+  /** Declares routes that remain available even before their candidates can be loaded. */
+  readonly sourceOptions?: readonly string[];
   readonly onSelectCandidate?: (id: string, candidate: TCandidate) => void;
 };
 
@@ -37,6 +40,8 @@ export function useModelPicker<TCandidate>({
   adapter,
   selectedId,
   initialSelectedId = '',
+  initialSourceFilter = 'all',
+  sourceOptions: declaredSourceOptions,
   onSelectCandidate,
 }: UseModelPickerOptions<TCandidate>): UseModelPickerResult<TCandidate> {
   const [candidates, setCandidates] = useState<readonly TCandidate[]>([]);
@@ -45,7 +50,7 @@ export function useModelPicker<TCandidate>({
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [capabilityFilter, setCapabilityFilter] = useState('all');
-  const [sourceFilter, setSourceFilter] = useState('all');
+  const [sourceFilter, setSourceFilter] = useState(initialSourceFilter);
   const deferredQuery = useDeferredValue(searchQuery);
   const currentSelectedId = selectedId ?? internalSelectedId;
 
@@ -83,13 +88,16 @@ export function useModelPicker<TCandidate>({
   }, [adapter, candidates]);
 
   const sourceOptions = useMemo(() => {
+    if (declaredSourceOptions) {
+      return [...new Set(declaredSourceOptions.map((value) => value.trim()).filter(Boolean))];
+    }
     const values = new Set<string>();
     for (const candidate of candidates) {
       const value = adapter.getSource?.(candidate)?.trim();
       if (value) values.add(value);
     }
-    return [...values].sort((left, right) => left.localeCompare(right));
-  }, [adapter, candidates]);
+    return [...values];
+  }, [adapter, candidates, declaredSourceOptions]);
 
   const filteredCandidates = useMemo(() => {
     const query = deferredQuery.trim().toLowerCase();
@@ -112,8 +120,8 @@ export function useModelPicker<TCandidate>({
   }, [adapter, candidates, capabilityFilter, deferredQuery, sourceFilter]);
 
   const selectedCandidate = useMemo(
-    () => candidates.find((candidate) => adapter.getId(candidate) === currentSelectedId) || null,
-    [adapter, candidates, currentSelectedId],
+    () => filteredCandidates.find((candidate) => adapter.getId(candidate) === currentSelectedId) || null,
+    [adapter, currentSelectedId, filteredCandidates],
   );
 
   const groupedCandidates = useMemo(() => {
