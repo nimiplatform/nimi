@@ -51,3 +51,71 @@ func TestDirectLocalAppLaunchIsIdempotentAndPIDReuseSafe(t *testing.T) {
 		t.Fatal("one-time launch was replayed")
 	}
 }
+
+func TestDirectLocalAppLaunchRenewsAfterConsumeAndExpiry(t *testing.T) {
+	launches := NewDirectLocalAppLaunches()
+	now := time.Now().UTC()
+	launches.now = func() time.Time { return now }
+	registration := Identifier{1}
+	run := Identifier{2}
+	witness := DirectLocalAppProcessWitness{
+		PID: 52, ParentPID: 41, UID: 501,
+		StartSeconds: 6, StartMicros: 7, ExecutablePath: "/Applications/Host",
+	}
+	prepareAndBind := func() (DirectLocalAppLaunch, error) {
+		launch, err := launches.Prepare(registration, run, 3, 4, 41, 501, "/Applications/Host", now.Add(30*time.Second))
+		if err != nil {
+			return DirectLocalAppLaunch{}, err
+		}
+		if _, err := launches.Bind(launch.LaunchID, witness, 41, 501, now.Add(10*time.Second)); err != nil {
+			return DirectLocalAppLaunch{}, err
+		}
+		return launch, nil
+	}
+
+	// First Runtime loss and rebind: the still-running Host consumes its
+	// one-shot witness.
+	first, err := prepareAndBind()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := launches.Consume(witness.PID, witness.UID); err != nil {
+		t.Fatal(err)
+	}
+
+	// Consecutive loss on the same Host: renewal mints a fresh one-shot launch
+	// and the same verified process binds and consumes again.
+	second, err := prepareAndBind()
+	if err != nil {
+		t.Fatalf("same-Host renewal failed: %v", err)
+	}
+	if second.LaunchID == first.LaunchID {
+		t.Fatal("renewal reused a consumed one-shot launch")
+	}
+	if _, err := launches.Consume(witness.PID, witness.UID); err != nil {
+		t.Fatal(err)
+	}
+
+	// Abrupt crash-style loss: the witness is never consumed and expires at its
+	// bind deadline; a late Consume fails closed.
+	third, err := prepareAndBind()
+	if err != nil {
+		t.Fatal(err)
+	}
+	now = now.Add(11 * time.Second)
+	if _, err := launches.Consume(witness.PID, witness.UID); err == nil {
+		t.Fatal("expired launch was consumed")
+	}
+
+	// Renewal after expiry admits the same still-running Host again.
+	fourth, err := prepareAndBind()
+	if err != nil {
+		t.Fatalf("post-expiry renewal failed: %v", err)
+	}
+	if fourth.LaunchID == third.LaunchID {
+		t.Fatal("post-expiry renewal reused an expired launch")
+	}
+	if _, err := launches.Consume(witness.PID, witness.UID); err != nil {
+		t.Fatal(err)
+	}
+}

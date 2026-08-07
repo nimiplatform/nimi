@@ -457,10 +457,16 @@ async fn current_or_open_session() -> Result<Arc<dyn NimiLocalAppSession>, Local
 }
 
 fn invalidates_local_app_session(reason: LocalAppReasonCode) -> bool {
+    // These channels have a one-shot connector: any transport-level failure is
+    // unrecoverable in place, so the cached session must be dropped for the
+    // next call to open a freshly verified channel. Unclassified covers the
+    // abrupt-loss case (a mid-RPC/mid-stream Runtime death surfaces as an
+    // unmapped transport error).
     matches!(
         reason,
         LocalAppReasonCode::RuntimeServiceUnavailable
             | LocalAppReasonCode::RuntimeServiceUntrusted
+            | LocalAppReasonCode::RuntimeServiceErrorUnclassified
             | LocalAppReasonCode::ProcessReplaced
             | LocalAppReasonCode::RuntimeRestarted
     )
@@ -497,6 +503,13 @@ mod session_rebind_tests {
         }
         assert!(invalidates_local_app_session(
             LocalAppReasonCode::RuntimeServiceUnavailable
+        ));
+    }
+
+    #[test]
+    fn abrupt_loss_unclassified_failure_invalidates_one_shot_channel_session() {
+        assert!(invalidates_local_app_session(
+            LocalAppReasonCode::RuntimeServiceErrorUnclassified
         ));
     }
 }

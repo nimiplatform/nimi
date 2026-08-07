@@ -89,6 +89,50 @@ func TestLocalAppSessionInvalidationAndSameHostRebind(t *testing.T) {
 	assertLocalAppReason(t, restarted.AdmitLocalAppIngress(ctx, localappop.IngressStorageJSONRead), runtimev1.ReasonCode_LOCAL_APP_SESSION_REVOKED)
 }
 
+func TestLocalAppSessionSameHostRebindAcrossConsecutiveRuntimeLosses(t *testing.T) {
+	fixture := newLocalAppSessionFixture(t, nil)
+	if _, err := fixture.service.OpenLocalAppSessionProjection(fixture.context); err != nil {
+		t.Fatalf("open protected session: %v", err)
+	}
+	for loss := 1; loss <= 2; loss++ {
+		// Runtime loss: the replacement Runtime shares only the durable
+		// registration kernel and the account; every in-memory session is gone.
+		restarted := New(nil,
+			WithRuntimeAccountProjectionProvider(fixture.account),
+			WithLocalDevelopmentAuthority(fixture.store, nil, nil, nil),
+			WithLocalAppKernel(fixture.kernel),
+			WithLocalAppSessionRuntime(bytes.NewReader(sessionTestEntropy()), time.Minute),
+		)
+		// Same-Host rebind: the supervisor prepared a fresh one-shot launch for
+		// the still-running verified Host process.
+		launchID := localAppSessionTestIdentifier(0x50 + byte(loss))
+		fixture.store.launches[launchID] = localDevelopmentLaunchTicket{
+			LaunchID: launchID, RegistrationHandle: fixture.registrationHandle,
+			Process: fixture.process, ExpiresAt: fixture.now.Add(time.Minute),
+			BindDeadline: fixture.now.Add(time.Minute),
+		}
+		liveness := &localAppSessionTestLiveness{revoked: make(chan struct{})}
+		connection, err := protectedlocal.EstablishLocalAppConnection(context.Background(), localAppSessionTestVerifier{peer: protectedlocal.VerifiedLocalAppLaunchPeer{
+			LaunchID: launchID, Process: fixture.process, RuntimeBootEpoch: localAppSessionTestIdentifier(0x60 + byte(loss)),
+			ProcessLiveness: liveness, TrustClass: protectedlocal.LocalAppTrustLocalDevelopment,
+		}})
+		if err != nil {
+			t.Fatal(err)
+		}
+		connectionCtx := protectedlocal.ContextWithLocalAppConnection(context.Background(), connection)
+		if _, err := restarted.OpenLocalAppSessionProjection(connectionCtx); err != nil {
+			t.Fatalf("same-Host rebind after Runtime loss %d: %v", loss, err)
+		}
+		if err := restarted.AdmitLocalAppIngress(connectionCtx, localappop.IngressStorageJSONRead); err != nil {
+			t.Fatalf("admission after Runtime loss %d: %v", loss, err)
+		}
+		if !connection.Live() || connection.Process().PID != fixture.process.PID {
+			t.Fatalf("Runtime loss %d replaced the verified Host", loss)
+		}
+		connection.Revoke()
+	}
+}
+
 func TestLocalAppSessionSignedOutFailsTypedWithoutBindingAccessSession(t *testing.T) {
 	fixture := newLocalAppSessionFixture(t, nil)
 	fixture.account.signOut()
@@ -190,14 +234,17 @@ func assertLocalAppReason(t testing.TB, err error, want runtimev1.ReasonCode) {
 }
 
 type localAppSessionFixture struct {
-	service           *Service
-	kernel            *localappkernel.Kernel
-	account           *localAppSessionTestAccount
-	connection        *protectedlocal.LocalAppConnection
-	context           context.Context
-	process           protectedlocal.ProcessTuple
-	registration      localappkernel.Registration
-	registrationInput localappkernel.RegisterDevelopmentInput
+	service            *Service
+	kernel             *localappkernel.Kernel
+	account            *localAppSessionTestAccount
+	connection         *protectedlocal.LocalAppConnection
+	context            context.Context
+	process            protectedlocal.ProcessTuple
+	registration       localappkernel.Registration
+	registrationInput  localappkernel.RegisterDevelopmentInput
+	store              *localDevelopmentStore
+	registrationHandle protectedlocal.Identifier
+	now                time.Time
 }
 
 func newLocalAppSessionFixture(t testing.TB, domains []string) localAppSessionFixture {
@@ -262,6 +309,7 @@ func newLocalAppSessionFixture(t testing.TB, domains []string) localAppSessionFi
 		service: service, kernel: kernel, account: account, connection: connection,
 		context: protectedlocal.ContextWithLocalAppConnection(ctx, connection), process: process,
 		registration: registration, registrationInput: input,
+		store: store, registrationHandle: registrationHandle, now: now,
 	}
 }
 

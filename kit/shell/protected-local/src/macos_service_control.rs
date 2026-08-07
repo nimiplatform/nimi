@@ -315,7 +315,11 @@ impl NimiDesktopControl for MacOSDesktopControl {
         >,
     > {
         Box::pin(async move {
-            crate::windows_local_development::list_registrations(self.host_channel()?).await
+            let channel = self.host_channel()?;
+            #[cfg(feature = "macos-source-local-development")]
+            renew_supervised_development_rebinds(channel.clone(), self.development_processes.clone())
+                .await?;
+            crate::windows_local_development::list_registrations(channel).await
         })
     }
 
@@ -441,6 +445,46 @@ async fn rebind_supervised_development_processes(
             })?;
     }
     Ok(())
+}
+
+// A one-shot Host rebind witness is consumed by the App's first connect and
+// expires at its bind deadline; while the cached Desktop control stays healthy
+// nothing re-issues it, so a same-Host App open after that window would fail
+// closed forever. The supervisor health poll reaches this listing on every
+// cycle, so renewing here keeps a live one-shot witness for each still-running
+// supervised Host. Every renewal re-verifies the exact live process, and the
+// Runtime's one-shot Consume check is unchanged.
+#[cfg(feature = "macos-source-local-development")]
+async fn renew_supervised_development_rebinds(
+    channel: Channel,
+    registry: SupervisedDevelopmentRegistry,
+) -> Result<(), NimiHostError> {
+    rebind_supervised_development_processes(channel, registry)
+        .await
+        .map_err(|error| {
+            NimiHostError::new(
+                host_reason_from_protected(error.reason_code()),
+                error.retryable(),
+            )
+        })
+}
+
+#[cfg(feature = "macos-source-local-development")]
+fn host_reason_from_protected(reason: ProtectedCarrierReasonCode) -> NimiHostErrorReasonCode {
+    match reason {
+        ProtectedCarrierReasonCode::ProtectedCarrierRequired => {
+            NimiHostErrorReasonCode::ProtectedCarrierRequired
+        }
+        ProtectedCarrierReasonCode::RuntimeServiceUnavailable => {
+            NimiHostErrorReasonCode::RuntimeServiceUnavailable
+        }
+        ProtectedCarrierReasonCode::RuntimeServiceUntrusted => {
+            NimiHostErrorReasonCode::RuntimeServiceUntrusted
+        }
+        ProtectedCarrierReasonCode::RuntimeServiceRepairRequired => {
+            NimiHostErrorReasonCode::RuntimeServiceRepairRequired
+        }
+    }
 }
 
 impl NimiProtectedLocalHostCarrier for MacOsUnixSocketCarrier {
@@ -615,7 +659,7 @@ async fn open_verified_runtime_channel() -> Result<Channel, ProtectedCarrierErro
         .await
         .map_err(|_| unavailable())?;
     verify_runtime_peer_once(stream.as_raw_fd(), socket_text)?;
-    channel_from_verified_socket(stream).await
+    channel_from_verified_socket(stream, untrusted).await
 }
 
 pub(crate) async fn open_verified_local_app_runtime_channel(
@@ -626,11 +670,17 @@ pub(crate) async fn open_verified_local_app_runtime_channel(
         .await
         .map_err(|_| unavailable())?;
     verify_runtime_peer_once(stream.as_raw_fd(), socket_text)?;
-    channel_from_verified_socket(stream).await
+    // The socket peer is already verified above; a failed handshake here means
+    // the Runtime accepted and closed the socket because it holds no live
+    // one-shot launch grant for this Host (not yet re-issued, consumed, or
+    // expired). The supervisor renews the grant, so this is a transient
+    // unavailable, never a trust verdict.
+    channel_from_verified_socket(stream, unavailable).await
 }
 
 async fn channel_from_verified_socket(
     stream: UnixStream,
+    connect_failure: fn() -> ProtectedCarrierError,
 ) -> Result<Channel, ProtectedCarrierError> {
     let stream = Arc::new(Mutex::new(Some(stream)));
     let connector = service_fn(move |_| {
@@ -649,7 +699,7 @@ async fn channel_from_verified_socket(
         .map_err(|_| untrusted())?
         .connect_with_connector(connector)
         .await
-        .map_err(|_| untrusted())
+        .map_err(|_| connect_failure())
 }
 
 async fn request_runtime_restart_on_channel(
@@ -761,5 +811,103 @@ mod source_local_development_readiness_tests {
             ProtectedCarrierReasonCode::RuntimeServiceUnavailable
         );
         assert!(error.retryable());
+    }
+
+    #[test]
+    fn renewal_error_mapping_preserves_reason_and_retry_typing() {
+        for (protected, host) in [
+            (
+                ProtectedCarrierReasonCode::ProtectedCarrierRequired,
+                NimiHostErrorReasonCode::ProtectedCarrierRequired,
+            ),
+            (
+                ProtectedCarrierReasonCode::RuntimeServiceUnavailable,
+                NimiHostErrorReasonCode::RuntimeServiceUnavailable,
+            ),
+            (
+                ProtectedCarrierReasonCode::RuntimeServiceUntrusted,
+                NimiHostErrorReasonCode::RuntimeServiceUntrusted,
+            ),
+            (
+                ProtectedCarrierReasonCode::RuntimeServiceRepairRequired,
+                NimiHostErrorReasonCode::RuntimeServiceRepairRequired,
+            ),
+        ] {
+            assert_eq!(host_reason_from_protected(protected), host, "{protected:?}");
+        }
+    }
+
+    // The Runtime accept loop consumes the one-shot launch grant and closes the
+    // socket when no live grant exists. On the App channel that state is
+    // transient: the supervisor renews the grant, so the failure must stay
+    // retryable unavailable.
+    #[tokio::test]
+    async fn local_app_accept_rejection_is_transient_unavailable() {
+        let path = std::path::PathBuf::from("/tmp").join(format!(
+            "nplt-{}-{}.sock",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .expect("system clock")
+                .as_nanos()
+        ));
+        let listener = tokio::net::UnixListener::bind(&path).expect("bind test socket");
+        let accepted = tokio::spawn(async move {
+            let (stream, _) = listener.accept().await.expect("accept");
+            drop(stream);
+        });
+        let stream = std::os::unix::net::UnixStream::connect(&path).expect("connect test socket");
+        // A peer close that lands before the handshake preface fails the write;
+        // the channel open must surface the caller-selected transient verdict.
+        stream
+            .shutdown(std::net::Shutdown::Write)
+            .expect("shutdown test stream");
+        stream.set_nonblocking(true).expect("nonblocking test stream");
+        let stream = UnixStream::from_std(stream).expect("tokio test stream");
+        let error = channel_from_verified_socket(stream, unavailable)
+            .await
+            .expect_err("failed handshake must fail");
+        assert_eq!(
+            error.reason_code(),
+            ProtectedCarrierReasonCode::RuntimeServiceUnavailable
+        );
+        assert!(error.retryable());
+        accepted.await.expect("accept task");
+        let _ = std::fs::remove_file(&path);
+    }
+
+    // The Desktop control channel keeps its fail-closed verdict: a failed
+    // handshake there is not a missing-grant state.
+    #[tokio::test]
+    async fn desktop_accept_rejection_stays_fail_closed_untrusted() {
+        let path = std::path::PathBuf::from("/tmp").join(format!(
+            "nplt-{}-{}.sock",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .expect("system clock")
+                .as_nanos()
+        ));
+        let listener = tokio::net::UnixListener::bind(&path).expect("bind test socket");
+        let accepted = tokio::spawn(async move {
+            let (stream, _) = listener.accept().await.expect("accept");
+            drop(stream);
+        });
+        let stream = std::os::unix::net::UnixStream::connect(&path).expect("connect test socket");
+        stream
+            .shutdown(std::net::Shutdown::Write)
+            .expect("shutdown test stream");
+        stream.set_nonblocking(true).expect("nonblocking test stream");
+        let stream = UnixStream::from_std(stream).expect("tokio test stream");
+        let error = channel_from_verified_socket(stream, untrusted)
+            .await
+            .expect_err("failed handshake must fail");
+        assert_eq!(
+            error.reason_code(),
+            ProtectedCarrierReasonCode::RuntimeServiceUntrusted
+        );
+        assert!(!error.retryable());
+        accepted.await.expect("accept task");
+        let _ = std::fs::remove_file(&path);
     }
 }

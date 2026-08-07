@@ -372,9 +372,13 @@ impl NimiDesktopControl for WindowsDesktopControl {
                 + '_,
         >,
     > {
-        Box::pin(crate::windows_local_development::list_registrations(
-            self.channel(),
-        ))
+        Box::pin(async move {
+            let channel = self.channel();
+            #[cfg(feature = "windows-source-local-development")]
+            renew_supervised_development_rebinds(channel.clone(), self.development_processes.clone())
+                .await?;
+            crate::windows_local_development::list_registrations(channel).await
+        })
     }
 
     fn remove_local_development_registration(
@@ -558,6 +562,43 @@ async fn verify_source_local_development_runtime_readiness(
                 untrusted()
             }
         })
+}
+
+// Mirrors the macOS carrier: the supervisor health poll reaches this listing
+// on every cycle, so renewing here keeps a live one-shot rebind witness for
+// each still-running supervised Host after Runtime loss. Every renewal
+// re-verifies the exact live process; the one-shot Consume check is unchanged.
+#[cfg(feature = "windows-source-local-development")]
+async fn renew_supervised_development_rebinds(
+    channel: Channel,
+    registry: SupervisedDevelopmentRegistry,
+) -> Result<(), NimiHostError> {
+    rebind_supervised_development_processes(channel, registry)
+        .await
+        .map_err(|error| {
+            NimiHostError::new(
+                host_reason_from_protected(error.reason_code()),
+                error.retryable(),
+            )
+        })
+}
+
+#[cfg(feature = "windows-source-local-development")]
+fn host_reason_from_protected(reason: ProtectedCarrierReasonCode) -> NimiHostErrorReasonCode {
+    match reason {
+        ProtectedCarrierReasonCode::ProtectedCarrierRequired => {
+            NimiHostErrorReasonCode::ProtectedCarrierRequired
+        }
+        ProtectedCarrierReasonCode::RuntimeServiceUnavailable => {
+            NimiHostErrorReasonCode::RuntimeServiceUnavailable
+        }
+        ProtectedCarrierReasonCode::RuntimeServiceUntrusted => {
+            NimiHostErrorReasonCode::RuntimeServiceUntrusted
+        }
+        ProtectedCarrierReasonCode::RuntimeServiceRepairRequired => {
+            NimiHostErrorReasonCode::RuntimeServiceRepairRequired
+        }
+    }
 }
 
 pub(crate) async fn open_verified_runtime_channel(

@@ -428,7 +428,7 @@ async fn open_local_app_session() -> Result<Box<dyn NimiLocalAppSession>, LocalA
     };
     if let Err(error) = session.open_session().await {
         if !retain_channel_for_account_required(&error) {
-            return Err(error);
+            return Err(transient_open_session_failure(error));
         }
     }
     Ok(Box::new(session))
@@ -448,7 +448,7 @@ async fn open_local_app_session() -> Result<Box<dyn NimiLocalAppSession>, LocalA
     };
     if let Err(error) = session.open_session().await {
         if !retain_channel_for_account_required(&error) {
-            return Err(error);
+            return Err(transient_open_session_failure(error));
         }
     }
     Ok(Box::new(session))
@@ -473,6 +473,21 @@ fn unavailable_current_user() -> LocalAppCurrentUserStatus {
 
 fn retain_channel_for_account_required(error: &LocalAppOperationError) -> bool {
     error.reason_code() == LocalAppReasonCode::RuntimeUnauthenticated
+}
+
+// A failed session open on a freshly verified one-shot channel means the
+// Runtime either closed its accept-side grant check or is still finishing its
+// ready transition; both are transient because the supervisor renews the
+// one-shot grant and the next open reconnects. Typed denials keep their exact
+// fail-closed verdicts.
+fn transient_open_session_failure(error: LocalAppOperationError) -> LocalAppOperationError {
+    match error.reason_code() {
+        LocalAppReasonCode::RuntimeServiceErrorUnclassified
+        | LocalAppReasonCode::OperationUnavailable => {
+            LocalAppOperationError::new(LocalAppReasonCode::RuntimeServiceUnavailable, true)
+        }
+        _ => error,
+    }
 }
 
 fn runtime_unauthenticated() -> LocalAppOperationError {
@@ -686,6 +701,39 @@ mod tests {
         let error =
             LocalAppOperationError::new(LocalAppReasonCode::RuntimeServiceUnavailable, true);
         assert!(!retain_channel_for_account_required(&error));
+    }
+
+    #[test]
+    fn raced_session_open_failure_stays_transient_unavailable() {
+        for reason in [
+            LocalAppReasonCode::RuntimeServiceErrorUnclassified,
+            LocalAppReasonCode::OperationUnavailable,
+        ] {
+            let error = transient_open_session_failure(LocalAppOperationError::new(reason, false));
+            assert_eq!(
+                error.reason_code(),
+                LocalAppReasonCode::RuntimeServiceUnavailable,
+                "{reason:?}"
+            );
+            assert!(error.retryable(), "{reason:?}");
+        }
+    }
+
+    #[test]
+    fn typed_session_open_denials_keep_exact_verdicts() {
+        for reason in [
+            LocalAppReasonCode::RuntimeServiceUntrusted,
+            LocalAppReasonCode::Revoked,
+            LocalAppReasonCode::RuntimeAccessDenied,
+            LocalAppReasonCode::ProcessReplaced,
+        ] {
+            let error = LocalAppOperationError::new(reason, false);
+            assert_eq!(
+                transient_open_session_failure(error).reason_code(),
+                reason,
+                "{reason:?}"
+            );
+        }
     }
 
     #[tokio::test]

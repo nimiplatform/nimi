@@ -150,11 +150,26 @@ pub(crate) fn verify_runtime_peer_once(
         CString::new(std::ffi::OsStr::new(socket_path).as_bytes()).map_err(|_| untrusted())?;
     let status =
         unsafe { nimi_macos_verify_per_user_runtime_peer(socket_fd, socket_path.as_ptr()) };
-    if status == 0 {
-        Ok(())
-    } else {
-        Err(untrusted())
+    peer_verification_result(status)
+}
+
+#[cfg(feature = "macos-source-local-development")]
+fn peer_verification_result(status: i32) -> Result<(), ProtectedCarrierError> {
+    match status {
+        0 => Ok(()),
+        // The Runtime's accept side closes the socket when it holds no live
+        // one-shot launch grant for this peer, and the close races this check
+        // as a transport-level disconnect. That absence is transient (the
+        // supervisor renews the grant), not a trust verdict; every genuine
+        // identity or executable mismatch keeps the fail-closed verdict.
+        libc::EINVAL | libc::ENOTCONN | libc::EPIPE | libc::ECONNRESET => Err(unavailable()),
+        _ => Err(untrusted()),
     }
+}
+
+#[cfg(feature = "macos-source-local-development")]
+fn unavailable() -> ProtectedCarrierError {
+    ProtectedCarrierError::new(ProtectedCarrierReasonCode::RuntimeServiceUnavailable, true)
 }
 
 struct MacOSSigningPolicy {
@@ -292,5 +307,39 @@ mod tests {
             .contains("anchor apple generic"));
 
         assert!(build_signing_policy("ai.nimi.runtime", None, true, true, false,).is_err());
+    }
+}
+
+#[cfg(all(test, feature = "macos-source-local-development"))]
+mod source_local_development_peer_tests {
+    use super::*;
+
+    #[test]
+    fn accept_side_close_race_is_transient_unavailable() {
+        for status in [libc::EINVAL, libc::ENOTCONN, libc::EPIPE, libc::ECONNRESET] {
+            let error = peer_verification_result(status)
+                .expect_err("accept-side close race must be transient");
+            assert_eq!(
+                error.reason_code(),
+                ProtectedCarrierReasonCode::RuntimeServiceUnavailable,
+                "status {status}"
+            );
+            assert!(error.retryable(), "status {status}");
+        }
+    }
+
+    #[test]
+    fn identity_or_executable_mismatch_stays_fail_closed_untrusted() {
+        assert!(peer_verification_result(0).is_ok());
+        for status in [libc::EACCES, libc::EPERM, libc::ENOENT, -1] {
+            let error = peer_verification_result(status)
+                .expect_err("genuine mismatch must fail closed");
+            assert_eq!(
+                error.reason_code(),
+                ProtectedCarrierReasonCode::RuntimeServiceUntrusted,
+                "status {status}"
+            );
+            assert!(!error.retryable(), "status {status}");
+        }
     }
 }
