@@ -71,9 +71,12 @@ function PortableProfileApplyPage() {
   const [preview, setPreview] = useState<NimiAppAIProfilePreview | null>(null);
   const [busy, setBusy] = useState(false);
   const [appliedCloudIntentCount, setAppliedCloudIntentCount] = useState(0);
+  const [appliedLocalIntentCount, setAppliedLocalIntentCount] = useState(0);
   const [feedback, setFeedback] = useState<ProfileFeedback>({
     tone: 'info',
-    message: 'Load a portable AIProfile, preview its App-owned intent, then confirm Apply explicitly.',
+    message: t('runtimeConfig.profiles.feedbackInitial', {
+      defaultValue: 'Load a portable AIProfile, preview its App-owned intent, then confirm Apply explicitly.',
+    }),
   });
 
   const clearPreview = (nextSource: string) => {
@@ -81,6 +84,7 @@ function PortableProfileApplyPage() {
     setSummary(null);
     setPreview(null);
     setAppliedCloudIntentCount(0);
+    setAppliedLocalIntentCount(0);
   };
 
   const previewSource = async () => {
@@ -93,15 +97,22 @@ function PortableProfileApplyPage() {
       setFeedback({
         tone: 'info',
         message: nextPreview.identical
-          ? 'Preview completed. This profile would not change the current App AIConfig.'
-          : `Preview completed. Confirm Apply to replace App AIConfig with ${nextPreview.after.capabilities.length} capability intent(s).`,
+          ? t('runtimeConfig.profiles.feedbackPreviewUnchanged', {
+            defaultValue: 'Preview completed. This profile would not change the current App AIConfig.',
+          })
+          : t('runtimeConfig.profiles.feedbackPreviewReady', {
+            defaultValue: 'Preview completed. Confirm Apply to replace App AIConfig with {{count}} capability intent(s).',
+            count: nextPreview.after.capabilities.length,
+          }),
       });
     } catch (error) {
       setSummary(null);
       setPreview(null);
       setFeedback({
         tone: 'danger',
-        message: 'This portable AIProfile could not be previewed.',
+        message: t('runtimeConfig.profiles.feedbackPreviewFailed', {
+          defaultValue: 'This portable AIProfile could not be previewed.',
+        }),
         technicalDetail: errorMessage(error),
       });
     } finally {
@@ -118,14 +129,25 @@ function PortableProfileApplyPage() {
       setAppliedCloudIntentCount(config.capabilities.filter(
         (capability) => capability.route.oneofKind === 'cloud',
       ).length);
+      setAppliedLocalIntentCount(config.capabilities.filter(
+        (capability) => capability.route.oneofKind === 'local',
+      ).length);
       setFeedback({
         tone: 'success',
-        message: `Applied ${summary?.title || 'the portable AIProfile'} to the Nimi Desktop App AIConfig (${config.capabilities.length} intent(s)).`,
+        message: t('runtimeConfig.profiles.feedbackApplySuccess', {
+          defaultValue: 'Applied {{title}} to the Nimi Desktop App AIConfig ({{count}} intent(s)).',
+          title: summary?.title || t('runtimeConfig.profiles.portableFallbackTitle', {
+            defaultValue: 'the portable AIProfile',
+          }),
+          count: config.capabilities.length,
+        }),
       });
     } catch (error) {
       setFeedback({
         tone: 'danger',
-        message: 'The portable AIProfile could not be applied.',
+        message: t('runtimeConfig.profiles.feedbackApplyFailed', {
+          defaultValue: 'The portable AIProfile could not be applied.',
+        }),
         technicalDetail: errorMessage(error),
       });
     } finally {
@@ -137,6 +159,10 @@ function PortableProfileApplyPage() {
     (capability) => capability.route === 'cloud',
   ).length ?? 0;
   const cloudGuidanceCount = Math.max(previewCloudIntentCount, appliedCloudIntentCount);
+  const previewLocalIntentCount = summary?.capabilities.filter(
+    (capability) => capability.route === 'local',
+  ).length ?? 0;
+  const localGuidanceCount = Math.max(previewLocalIntentCount, appliedLocalIntentCount);
 
   return (
     <RuntimePageShell maxWidth="full" className="max-w-[78rem] space-y-4 px-6 py-6">
@@ -146,7 +172,9 @@ function PortableProfileApplyPage() {
             {t('runtimeConfig.profiles.portableTitle', { defaultValue: 'Portable AIProfile' })}
           </h3>
           <p className="mt-1 text-xs text-[var(--nimi-text-secondary)]">
-            Profile source remains separate from mutable App AIConfig. Desktop keeps no profile library or second AIConfig store; Preview is non-committing and Apply writes through Runtime.
+            {t('runtimeConfig.profiles.portableDescription', {
+              defaultValue: 'Profile source remains separate from mutable App AIConfig. Desktop keeps no profile library or second AIConfig store; Preview is non-committing and Apply writes through Runtime.',
+            })}
           </p>
         </div>
         <textarea
@@ -162,7 +190,7 @@ function PortableProfileApplyPage() {
         />
         <div className="flex flex-wrap gap-2">
           <label className="inline-flex min-h-9 cursor-pointer items-center rounded-lg border border-[var(--nimi-border-subtle)] px-3 text-xs font-semibold text-[var(--nimi-text-secondary)]">
-            Load JSON file…
+            {t('runtimeConfig.profiles.loadJsonFile', { defaultValue: 'Load JSON file…' })}
             <input
               className="sr-only"
               type="file"
@@ -174,7 +202,9 @@ function PortableProfileApplyPage() {
                 void file.text().then(clearPreview, (error) => {
                   setFeedback({
                     tone: 'danger',
-                    message: 'The selected AIProfile file could not be read.',
+                    message: t('runtimeConfig.profiles.feedbackFileReadFailed', {
+                      defaultValue: 'The selected AIProfile file could not be read.',
+                    }),
                     technicalDetail: errorMessage(error),
                   });
                 });
@@ -186,7 +216,9 @@ function PortableProfileApplyPage() {
             disabled={busy || !sourceText.trim()}
             onClick={() => { void previewSource(); }}
           >
-            {busy ? 'Working…' : 'Preview for Nimi Desktop'}
+            {busy
+              ? t('runtimeConfig.profiles.previewWorking', { defaultValue: 'Working…' })
+              : t('runtimeConfig.profiles.previewAction', { defaultValue: 'Preview for Nimi Desktop' })}
           </Button>
           <Button
             size="sm"
@@ -194,7 +226,7 @@ function PortableProfileApplyPage() {
             disabled={busy || !preview}
             onClick={() => { void applyPreviewedSource(); }}
           >
-            Confirm Apply
+            {t('runtimeConfig.profiles.confirmApply', { defaultValue: 'Confirm Apply' })}
           </Button>
         </div>
       </Surface>
@@ -210,11 +242,18 @@ function PortableProfileApplyPage() {
               <div key={capability.capabilityContract} className="rounded-xl border border-[var(--nimi-border-subtle)] p-3 text-xs">
                 <div className="font-semibold text-[var(--nimi-text-primary)]">{capability.capabilityContract}</div>
                 <div className="mt-1 text-[var(--nimi-text-secondary)]">
-                  {capability.route === 'local' ? 'Local intent' : 'Cloud intent'}
+                  {capability.route === 'local'
+                    ? t('runtimeConfig.profiles.intentLocal', { defaultValue: 'Local intent' })
+                    : t('runtimeConfig.profiles.intentCloud', { defaultValue: 'Cloud intent' })}
                   {capability.requiredFeatures.length > 0
-                    ? ` · required features: ${capability.requiredFeatures.join(', ')}`
-                    : ' · no required features'}
-                  {capability.hasDefaults ? ' · portable defaults included' : ''}
+                    ? ` · ${t('runtimeConfig.profiles.summaryRequiredFeatures', {
+                      defaultValue: 'required features: {{features}}',
+                      features: capability.requiredFeatures.join(', '),
+                    })}`
+                    : ` · ${t('runtimeConfig.profiles.summaryNoRequiredFeatures', { defaultValue: 'no required features' })}`}
+                  {capability.hasDefaults
+                    ? ` · ${t('runtimeConfig.profiles.summaryPortableDefaults', { defaultValue: 'portable defaults included' })}`
+                    : ''}
                 </div>
               </div>
             ))}
@@ -245,6 +284,39 @@ function PortableProfileApplyPage() {
             >
               {t('runtimeConfig.profiles.openAccountAuthorization', {
                 defaultValue: 'Open account authorizations',
+              })}
+            </Button>
+          </div>
+        </Surface>
+      ) : null}
+
+      {localGuidanceCount > 0 ? (
+        <Surface tone="card" className="space-y-2 p-4" data-testid="runtime-portable-profile-local-guidance">
+          <div className="text-sm font-semibold text-[var(--nimi-text-primary)]">
+            {t('runtimeConfig.profiles.localSelectionTitle', {
+              defaultValue: 'Local capability selection stays on this machine',
+            })}
+          </div>
+          <p className="m-0 text-xs leading-relaxed text-[var(--nimi-text-secondary)]">
+            {t('runtimeConfig.profiles.localSelectionGuidance', {
+              defaultValue: 'Local capability intent is written to the App AIConfig. Machine-side Local Capability Configuration resolution and selection are managed in Models → Local AI Configurations. Until a selection is made, Runtime reports an informational selection-required state; this is not an error.',
+            })}
+          </p>
+          <div>
+            <Button
+              onClick={() => {
+                setActiveTab('runtime');
+                runtimeConfigNavigation.focusAction({
+                  page: 'models',
+                  action: 'open-configurations',
+                  focus: 'runtime-config-action-focus.models-configurations',
+                });
+              }}
+              size="sm"
+              tone="secondary"
+            >
+              {t('runtimeConfig.profiles.openLocalConfigurations', {
+                defaultValue: 'Open Local AI Configurations',
               })}
             </Button>
           </div>

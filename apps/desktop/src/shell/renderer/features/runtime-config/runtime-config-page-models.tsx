@@ -35,13 +35,20 @@ export function ModelsPage({ model, state }: ModelsPageProps) {
   const { t } = useTranslation();
   const [subTab, setSubTab] = useState<ModelsSubTabId>('installed');
   useEffect(() => {
-    if (state.actionFocus?.focus === 'runtime-config-action-focus.models-catalog-install') {
-      setSubTab('catalog');
-      model.updateState((prev) => ({
-        ...prev,
-        actionFocus: null,
-      }));
+    const focus = state.actionFocus?.focus;
+    const targetSubTab = focus === 'runtime-config-action-focus.models-catalog-install'
+      ? 'catalog'
+      : focus === 'runtime-config-action-focus.models-configurations'
+        ? 'configurations'
+        : null;
+    if (!targetSubTab) {
+      return;
     }
+    setSubTab(targetSubTab);
+    model.updateState((prev) => ({
+      ...prev,
+      actionFocus: null,
+    }));
   }, [model, state.actionFocus]);
 
   return (

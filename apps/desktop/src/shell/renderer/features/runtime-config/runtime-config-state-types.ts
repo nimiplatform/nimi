@@ -68,6 +68,11 @@ export type RuntimeConfigActionFocus =
     page: 'models';
     action: 'install-model';
     focus: 'runtime-config-action-focus.models-catalog-install';
+  }
+  | {
+    page: 'models';
+    action: 'open-configurations';
+    focus: 'runtime-config-action-focus.models-configurations';
   };
 
 export type LocalModelOptionV11 = NimiRuntimeConfigLocalModelProjection & {
@@ -154,6 +159,17 @@ export function normalizeRuntimeConfigActionFocus(value: unknown): RuntimeConfig
       page: 'models',
       action: 'install-model',
       focus: 'runtime-config-action-focus.models-catalog-install',
+    };
+  }
+  if (
+    record.page === 'models'
+    && record.action === 'open-configurations'
+    && record.focus === 'runtime-config-action-focus.models-configurations'
+  ) {
+    return {
+      page: 'models',
+      action: 'open-configurations',
+      focus: 'runtime-config-action-focus.models-configurations',
     };
   }
   return null;
