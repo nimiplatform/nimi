@@ -321,7 +321,6 @@ pub async fn local_app_conversation_open(input: NativeConversationOpenInput) -> 
                 json!({
                     "conversationAnchorId": result.conversation_anchor_id,
                     "activeTurnId": result.active_turn_id,
-                    "activeStreamId": result.active_stream_id,
                 })
             })
     })
@@ -339,10 +338,9 @@ pub async fn local_app_conversation_send_turn(
                 conversation_anchor_id: input.conversation_anchor_id,
                 request_id: input.request_id,
                 text: input.text,
-                attachments: input.attachments,
             })
             .await
-            .map(|result| json!({ "messageId": result.message_id }))
+            .map(|result| json!({ "turnId": result.turn_id }))
     })
     .await
 }
@@ -398,7 +396,7 @@ pub async fn local_app_conversation_interrupt_turn(
                 conversation_anchor_id: input.conversation_anchor_id,
             })
             .await
-            .map(|result| json!({ "messageId": result.message_id }))
+            .map(|result| json!({ "turnId": result.turn_id }))
     })
     .await
 }
@@ -414,6 +412,21 @@ pub async fn local_app_conversation_snapshot(
                 conversation_anchor_id: input.conversation_anchor_id,
             })
             .await
+            .map(|snapshot| {
+                json!({
+                    "conversationAnchorId": snapshot.conversation_anchor_id,
+                    "activeTurnId": snapshot.active_turn_id,
+                    "messages": snapshot.messages.into_iter().map(|message| json!({
+                        "turnId": message.turn_id,
+                        "role": match message.role {
+                            LocalAppConversationMessageRole::User => "user",
+                            LocalAppConversationMessageRole::Assistant => "assistant",
+                        },
+                        "text": message.text,
+                    })).collect::<Vec<_>>(),
+                    "truncatedBefore": snapshot.truncated_before,
+                })
+            })
     })
     .await
 }
@@ -530,16 +543,40 @@ pub async fn local_app_conversation_stream_close(
 }
 
 fn project_conversation_event(event: LocalAppConversationEvent) -> JsonValue {
-    json!({
-        "eventType": event.event_type,
-        "sequence": event.sequence.to_string(),
-        "messageId": event.message_id,
-        "messageType": event.message_type,
-        "payload": event.payload,
-        "reasonCode": event.reason_code.as_str(),
-        "traceId": event.trace_id,
-        "timestampUnixMs": event.timestamp_unix_ms,
-    })
+    let mut projection = match event.event {
+        LocalAppConversationEventKind::TurnAccepted { turn_id, request_id } => json!({
+            "type": "turn-accepted", "turnId": turn_id, "requestId": request_id,
+        }),
+        LocalAppConversationEventKind::TurnStarted { turn_id } => json!({
+            "type": "turn-started", "turnId": turn_id,
+        }),
+        LocalAppConversationEventKind::TextDelta { turn_id, text } => json!({
+            "type": "text-delta", "turnId": turn_id, "text": text,
+        }),
+        LocalAppConversationEventKind::MessageCommitted { turn_id, message_id, text } => json!({
+            "type": "message-committed", "turnId": turn_id, "messageId": message_id, "text": text,
+        }),
+        LocalAppConversationEventKind::TurnCompleted { turn_id, terminal_reason } => json!({
+            "type": "turn-completed", "turnId": turn_id, "terminalReason": terminal_reason,
+        }),
+        LocalAppConversationEventKind::TurnFailed { turn_id, reason_code, message } => json!({
+            "type": "turn-failed", "turnId": turn_id, "reasonCode": reason_code, "message": message,
+        }),
+        LocalAppConversationEventKind::TurnInterrupted { turn_id, reason } => json!({
+            "type": "turn-interrupted", "turnId": turn_id, "reason": reason,
+        }),
+    };
+    if let Some(object) = projection.as_object_mut() {
+        object.insert(
+            "conversationAnchorId".to_string(),
+            JsonValue::String(event.conversation_anchor_id),
+        );
+        object.insert(
+            "sequence".to_string(),
+            JsonValue::String(event.sequence.to_string()),
+        );
+    }
+    projection
 }
 
 fn decimal_revision(value: &str, allow_zero: bool) -> Result<u64, LocalAppOperationError> {

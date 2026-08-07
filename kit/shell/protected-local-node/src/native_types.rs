@@ -192,7 +192,6 @@ pub struct NativeConversationSendInput {
     pub conversation_anchor_id: String,
     pub request_id: String,
     pub text: String,
-    pub attachments: JsonValue,
 }
 
 #[napi(object)]

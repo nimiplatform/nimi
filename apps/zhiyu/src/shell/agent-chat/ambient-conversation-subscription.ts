@@ -19,7 +19,6 @@ export type ZhiyuAmbientConversationReduction = {
 
 type AmbientTurn = {
   requestId: string;
-  streamId: string | null;
   message: ConversationCanonicalMessage | null;
 };
 
@@ -47,7 +46,6 @@ export function createZhiyuAmbientConversationEventReducer(
       message,
       requestId: null,
       runtimeTurnId: null,
-      runtimeStreamId: null,
       eventType: 'ambient-subscription-failed',
       messages: [],
     }),
@@ -56,58 +54,36 @@ export function createZhiyuAmbientConversationEventReducer(
 
   return Object.freeze({
     reduce(event: NimiLocalAppConversationEvent): ZhiyuAmbientConversationReduction | null {
-      if (!AMBIENT_MESSAGE_TYPES.has(event.messageType)) return null;
-      const payload = recordValue(event.payload);
-      const eventAnchorId = textValue(payload, 'conversation_anchor_id', 'conversationAnchorId');
-      if (!eventAnchorId || eventAnchorId !== identity.conversationAnchorId) {
+      if (!AMBIENT_EVENT_TYPES.has(event.type)) return null;
+      if (event.conversationAnchorId !== identity.conversationAnchorId) {
         return failure(
           'zhiyu-conversation-anchor-mismatch',
           'Runtime Agent conversation event did not match the open conversation anchor.',
         );
       }
-      const runtimeTurnId = textValue(payload, 'turn_id', 'turnId');
-      if (!runtimeTurnId) {
-        return failure(
-          'zhiyu-conversation-turn-id-missing',
-          'Runtime Agent conversation event did not carry a turn id.',
-        );
-      }
-      const detail = recordValue(payload.detail);
-      const streamId = textValue(payload, 'stream_id', 'streamId') || null;
+      const runtimeTurnId = event.turnId;
       const turn = turns.get(runtimeTurnId) ?? {
         requestId: runtimeTurnId,
-        streamId,
         message: null,
       };
-      if (streamId) turn.streamId = streamId;
 
-      if (event.messageType === 'runtime.agent.turn.accepted') {
-        turn.requestId = textValue(detail, 'request_id', 'requestId') || runtimeTurnId;
+      if (event.type === 'turn-accepted') {
+        turn.requestId = event.requestId;
         turns.set(runtimeTurnId, turn);
         return null;
       }
 
-      if (event.messageType === 'runtime.agent.turn.message_committed') {
-        const messageId = textValue(detail, 'message_id', 'messageId')
-          || textValue(payload, 'message_id', 'messageId');
-        const messageText = textValue(detail, 'text');
-        if (!messageId || !messageText) {
-          return failure(
-            'zhiyu-conversation-committed-message-invalid',
-            'Runtime Agent committed-message event was incomplete.',
-          );
-        }
-        const eventKey = `${runtimeTurnId}\u0000${messageId}`;
+      if (event.type === 'message-committed') {
+        const eventKey = `${runtimeTurnId}\u0000${event.messageId}`;
         if (observedEvents.has(eventKey)) return null;
         observedEvents.add(eventKey);
         turn.message = ambientAssistantMessage({
           identity,
           requestId: turn.requestId,
           runtimeTurnId,
-          runtimeStreamId: turn.streamId,
-          messageId,
-          text: messageText,
-          createdAt: eventTimestamp(event, now),
+          messageId: event.messageId,
+          text: event.text,
+          createdAt: new Date(now()).toISOString(),
         });
         turns.set(runtimeTurnId, turn);
         return {
@@ -121,27 +97,30 @@ export function createZhiyuAmbientConversationEventReducer(
             message: 'Runtime Agent committed a conversation message.',
             requestId: turn.requestId,
             runtimeTurnId,
-            runtimeStreamId: turn.streamId,
-            eventType: event.messageType,
+            eventType: event.type,
             messages: [turn.message],
           }),
           close: false,
         };
       }
 
-      const terminalKey = `${event.messageType}\u0000${runtimeTurnId}`;
+      if (event.type !== 'turn-completed'
+        && event.type !== 'turn-failed'
+        && event.type !== 'turn-interrupted') {
+        return null;
+      }
+      const terminalKey = `${event.type}\u0000${runtimeTurnId}`;
       if (observedEvents.has(terminalKey)) return null;
       observedEvents.add(terminalKey);
       turns.set(runtimeTurnId, turn);
-      const terminal = terminalProjection(event, detail);
+      const terminal = terminalProjection(event);
       return {
         chat: chatUpdate({
           identity,
           ...terminal,
           requestId: turn.requestId,
           runtimeTurnId,
-          runtimeStreamId: turn.streamId,
-          eventType: event.messageType,
+          eventType: event.type,
           messages: turn.message ? [turn.message] : [],
         }),
         close: false,
@@ -201,19 +180,18 @@ export function subscribeZhiyuAmbientConversation(input: {
   };
 }
 
-const AMBIENT_MESSAGE_TYPES = new Set([
-  'runtime.agent.turn.accepted',
-  'runtime.agent.turn.message_committed',
-  'runtime.agent.turn.completed',
-  'runtime.agent.turn.failed',
-  'runtime.agent.turn.interrupted',
+const AMBIENT_EVENT_TYPES = new Set<NimiLocalAppConversationEvent['type']>([
+  'turn-accepted',
+  'message-committed',
+  'turn-completed',
+  'turn-failed',
+  'turn-interrupted',
 ]);
 
 function ambientAssistantMessage(input: {
   readonly identity: ZhiyuAmbientConversationIdentity;
   readonly requestId: string;
   readonly runtimeTurnId: string;
-  readonly runtimeStreamId: string | null;
   readonly messageId: string;
   readonly text: string;
   readonly createdAt: string;
@@ -235,7 +213,6 @@ function ambientAssistantMessage(input: {
       modeId: 'runtime-agent-chat-v1',
       turnId: input.requestId,
       runtimeTurnId: input.runtimeTurnId,
-      ...(input.runtimeStreamId ? { runtimeStreamId: input.runtimeStreamId } : {}),
       conversationAnchorId: input.identity.conversationAnchorId,
     },
   };
@@ -251,7 +228,6 @@ function chatUpdate(input: {
   readonly message: string;
   readonly requestId: string | null;
   readonly runtimeTurnId: string | null;
-  readonly runtimeStreamId: string | null;
   readonly eventType: string;
   readonly messages: ZhiyuEvidence['chat']['messages'];
 }): ZhiyuEvidence['chat'] {
@@ -270,7 +246,7 @@ function chatUpdate(input: {
     conversationAnchorId: input.identity.conversationAnchorId,
     requestId: input.requestId,
     runtimeTurnId: input.runtimeTurnId,
-    runtimeStreamId: input.runtimeStreamId,
+    runtimeStreamId: null,
     eventTypes: [input.eventType],
     messageCount: input.messages.length,
     messages: input.messages,
@@ -284,13 +260,14 @@ function chatUpdate(input: {
 }
 
 function terminalProjection(
-  event: NimiLocalAppConversationEvent,
-  detail: Readonly<Record<string, unknown>>,
+  event: Extract<NimiLocalAppConversationEvent, {
+    type: 'turn-completed' | 'turn-failed' | 'turn-interrupted';
+  }>,
 ): Pick<
   Parameters<typeof chatUpdate>[0],
   'ready' | 'state' | 'reasonCode' | 'actionHint' | 'source' | 'message'
 > {
-  if (event.messageType === 'runtime.agent.turn.completed') {
+  if (event.type === 'turn-completed') {
     return {
       ready: true,
       state: 'completed',
@@ -300,11 +277,11 @@ function terminalProjection(
       message: 'Runtime Agent turn completed.',
     };
   }
-  if (event.messageType === 'runtime.agent.turn.interrupted') {
+  if (event.type === 'turn-interrupted') {
     return {
       ready: false,
       state: 'canceled',
-      reasonCode: event.reasonCode || 'runtime-agent-turn-interrupted',
+      reasonCode: event.reason,
       actionHint: 'send_runtime_agent_turn',
       source: 'runtime',
       message: 'Runtime Agent turn was interrupted.',
@@ -313,16 +290,11 @@ function terminalProjection(
   return {
     ready: false,
     state: 'failed',
-    reasonCode: event.reasonCode || 'runtime-agent-turn-failed',
+    reasonCode: event.reasonCode,
     actionHint: 'inspect_runtime_agent_chat_stream',
     source: 'runtime',
-    message: textValue(detail, 'message') || 'Runtime Agent turn failed.',
+    message: event.message || 'Runtime Agent turn failed.',
   };
-}
-
-function eventTimestamp(event: NimiLocalAppConversationEvent, now: () => number): string {
-  const timestamp = event.timestampUnixMs ?? now();
-  return new Date(timestamp).toISOString();
 }
 
 function recordValue(value: unknown): Readonly<Record<string, unknown>> {

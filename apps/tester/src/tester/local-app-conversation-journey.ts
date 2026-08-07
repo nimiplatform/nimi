@@ -13,8 +13,11 @@ export type TesterConversationPort = {
     readonly conversationAnchorId: string;
     readonly requestId: string;
     readonly text: string;
-    readonly attachments: readonly [];
-  }) => Promise<{ readonly messageId: string }>;
+  }) => Promise<{ readonly turnId: string }>;
+  readonly interruptTurn: (input: {
+    readonly agentHandle: NimiLocalAppAgentHandle;
+    readonly conversationAnchorId: string;
+  }) => Promise<{ readonly turnId: string }>;
   readonly subscribe: (input: {
     readonly agentHandle: NimiLocalAppAgentHandle;
     readonly conversationAnchorId: string;
@@ -27,12 +30,20 @@ export type TesterConversationPort = {
 
 export type TesterConversationJourneyResult = {
   readonly conversationAnchorId: string;
-  readonly messageId: string;
+  readonly turnId: string;
   readonly subscribed: true;
-  readonly terminalMessageType: 'runtime.agent.turn.completed';
+  readonly terminalType: 'turn-completed';
   readonly terminalReason: string;
   readonly assistantText: string;
   readonly snapshot: NimiLocalAppConversationSnapshot;
+};
+
+export type TesterConversationInterruptJourneyResult = {
+  readonly conversationAnchorId: string;
+  readonly turnId: string;
+  readonly subscribed: true;
+  readonly terminalType: 'turn-interrupted';
+  readonly terminalReason: string;
 };
 
 export async function runTesterConversationJourney(input: {
@@ -54,18 +65,19 @@ export async function runTesterConversationJourney(input: {
       ...scope,
       requestId: input.requestId,
       text: input.text,
-      attachments: [],
     });
     const terminal = await waitForTerminalTurn({
       subscription,
       requestId: input.requestId,
+      turnId: sent.turnId,
+      conversationAnchorId: opened.conversationAnchorId,
     });
     const snapshot = await input.conversation.snapshot(scope);
     return Object.freeze({
       conversationAnchorId: opened.conversationAnchorId,
-      messageId: sent.messageId,
+      turnId: sent.turnId,
       subscribed: true as const,
-      terminalMessageType: terminal.messageType,
+      terminalType: terminal.type,
       terminalReason: terminal.reason,
       assistantText: terminal.assistantText,
       snapshot,
@@ -75,82 +87,182 @@ export async function runTesterConversationJourney(input: {
   }
 }
 
+export async function runTesterConversationInterruptJourney(input: {
+  readonly conversation: TesterConversationPort;
+  readonly agentHandle: NimiLocalAppAgentHandle;
+  readonly requestId: string;
+  readonly text: string;
+}): Promise<TesterConversationInterruptJourneyResult> {
+  const opened = await input.conversation.open({
+    agentHandle: input.agentHandle,
+  });
+  const scope = {
+    agentHandle: input.agentHandle,
+    conversationAnchorId: opened.conversationAnchorId,
+  } as const;
+  const subscription = await input.conversation.subscribe(scope);
+  const iterator = subscription[Symbol.asyncIterator]();
+  try {
+    const sent = await input.conversation.send({
+      ...scope,
+      requestId: input.requestId,
+      text: input.text,
+    });
+    await waitForAcceptedTurn({
+      iterator,
+      requestId: input.requestId,
+      turnId: sent.turnId,
+      conversationAnchorId: opened.conversationAnchorId,
+    });
+    const interrupted = await input.conversation.interruptTurn(scope);
+    if (interrupted.turnId !== sent.turnId) {
+      throw terminalFailure(
+        'Runtime Agent interrupted a different turn.',
+        'tester-conversation-interrupt-turn-mismatch',
+      );
+    }
+    const terminalReason = await waitForInterruptedTurn({
+      iterator,
+      turnId: sent.turnId,
+      conversationAnchorId: opened.conversationAnchorId,
+    });
+    return Object.freeze({
+      conversationAnchorId: opened.conversationAnchorId,
+      turnId: sent.turnId,
+      subscribed: true as const,
+      terminalType: 'turn-interrupted' as const,
+      terminalReason,
+    });
+  } finally {
+    await subscription.cancel();
+  }
+}
+
+async function waitForAcceptedTurn(input: {
+  readonly iterator: AsyncIterator<NimiLocalAppConversationEvent>;
+  readonly requestId: string;
+  readonly turnId: string;
+  readonly conversationAnchorId: string;
+}): Promise<void> {
+  for (;;) {
+    const next = await input.iterator.next();
+    if (next.done) {
+      throw terminalFailure(
+        'Runtime Agent conversation stream ended before turn acceptance.',
+        'tester-conversation-acceptance-missing',
+      );
+    }
+    const event = next.value;
+    if (event.conversationAnchorId !== input.conversationAnchorId || event.turnId !== input.turnId) {
+      continue;
+    }
+    if (event.type === 'turn-accepted' && event.requestId === input.requestId) return;
+    if (event.type === 'turn-failed') {
+      throw terminalFailure(event.message || 'Runtime Agent turn failed.', event.reasonCode);
+    }
+    if (event.type === 'turn-interrupted') {
+      throw terminalFailure('Runtime Agent turn was interrupted before acceptance.', event.reason);
+    }
+    if (event.type === 'turn-completed') {
+      throw terminalFailure(
+        'Runtime Agent turn completed before acceptance was observed.',
+        'tester-conversation-acceptance-missing',
+      );
+    }
+  }
+}
+
+async function waitForInterruptedTurn(input: {
+  readonly iterator: AsyncIterator<NimiLocalAppConversationEvent>;
+  readonly turnId: string;
+  readonly conversationAnchorId: string;
+}): Promise<string> {
+  for (;;) {
+    const next = await input.iterator.next();
+    if (next.done) {
+      throw terminalFailure(
+        'Runtime Agent conversation stream ended without an interrupted terminal event.',
+        'tester-conversation-interrupt-terminal-missing',
+      );
+    }
+    const event = next.value;
+    if (event.conversationAnchorId !== input.conversationAnchorId || event.turnId !== input.turnId) {
+      continue;
+    }
+    if (event.type === 'turn-interrupted') return event.reason;
+    if (event.type === 'turn-failed') {
+      throw terminalFailure(event.message || 'Runtime Agent turn failed.', event.reasonCode);
+    }
+    if (event.type === 'turn-completed') {
+      throw terminalFailure(
+        'Runtime Agent turn completed before interruption was observed.',
+        'tester-conversation-interrupt-not-observed',
+      );
+    }
+  }
+}
+
 async function waitForTerminalTurn(input: {
   readonly subscription: AsyncIterable<NimiLocalAppConversationEvent>;
   readonly requestId: string;
+  readonly turnId: string;
+  readonly conversationAnchorId: string;
 }): Promise<{
-  readonly messageType: 'runtime.agent.turn.completed';
+  readonly type: 'turn-completed';
   readonly reason: string;
   readonly assistantText: string;
 }> {
-  let runtimeTurnId = '';
+  let accepted = false;
   let assistantText = '';
   for await (const event of input.subscription) {
-    const payload = recordValue(event.payload);
-    const eventTurnId = stringValue(payload, 'turn_id', 'turnId');
-    if (!runtimeTurnId) {
-      if (event.messageType !== 'runtime.agent.turn.accepted' || !eventTurnId) continue;
-      const detail = recordValue(payload.detail);
-      if (stringValue(detail, 'request_id', 'requestId') !== input.requestId) continue;
-      runtimeTurnId = eventTurnId;
+    if (event.conversationAnchorId !== input.conversationAnchorId || event.turnId !== input.turnId) {
       continue;
     }
-    if (eventTurnId !== runtimeTurnId) continue;
-    const detail = recordValue(payload.detail);
-    if (event.messageType === 'runtime.agent.turn.message_committed') {
-      const committedText = stringValue(detail, 'text');
-      if (committedText.trim()) assistantText = committedText;
-      continue;
+    switch (event.type) {
+      case 'turn-accepted':
+        if (event.requestId === input.requestId) accepted = true;
+        break;
+      case 'message-committed':
+        if (accepted && event.text.trim()) assistantText = event.text;
+        break;
+      case 'turn-failed':
+        if (accepted) {
+          throw terminalFailure(
+            event.message || 'Runtime Agent turn failed.',
+            event.reasonCode,
+          );
+        }
+        break;
+      case 'turn-interrupted':
+        if (accepted) {
+          throw terminalFailure(
+            'Runtime Agent turn was interrupted before completion.',
+            event.reason,
+          );
+        }
+        break;
+      case 'turn-completed':
+        if (!accepted) break;
+        if (!assistantText.trim()) {
+          throw terminalFailure(
+            'Runtime Agent turn completed without a committed assistant message.',
+            'tester-conversation-terminal-message-missing',
+          );
+        }
+        return Object.freeze({
+          type: 'turn-completed' as const,
+          reason: event.terminalReason || 'completed',
+          assistantText,
+        });
+      case 'turn-started':
+      case 'text-delta':
+        break;
     }
-    if (event.messageType === 'runtime.agent.turn.failed') {
-      throw terminalFailure(
-        stringValue(detail, 'message') || 'Runtime Agent turn failed.',
-        stringValue(detail, 'reason_code', 'reasonCode')
-          || event.reasonCode
-          || 'runtime-agent-turn-failed',
-      );
-    }
-    if (event.messageType === 'runtime.agent.turn.interrupted') {
-      throw terminalFailure(
-        'Runtime Agent turn was interrupted before completion.',
-        stringValue(detail, 'reason', 'terminal_reason', 'terminalReason')
-          || event.reasonCode
-          || 'runtime-agent-turn-interrupted',
-      );
-    }
-    if (event.messageType !== 'runtime.agent.turn.completed') continue;
-    if (!assistantText.trim()) {
-      throw terminalFailure(
-        'Runtime Agent turn completed without a committed assistant message.',
-        'tester-conversation-terminal-message-missing',
-      );
-    }
-    return Object.freeze({
-      messageType: 'runtime.agent.turn.completed' as const,
-      reason: stringValue(detail, 'terminal_reason', 'terminalReason') || 'completed',
-      assistantText,
-    });
   }
   throw terminalFailure(
     'Runtime Agent conversation stream ended without a terminal event.',
     'tester-conversation-terminal-missing',
   );
-}
-
-function recordValue(value: unknown): Readonly<Record<string, unknown>> {
-  return value && typeof value === 'object' && !Array.isArray(value)
-    ? value as Readonly<Record<string, unknown>>
-    : {};
-}
-
-function stringValue(
-  record: Readonly<Record<string, unknown>>,
-  ...keys: readonly string[]
-): string {
-  for (const key of keys) {
-    if (typeof record[key] === 'string') return record[key];
-  }
-  return '';
 }
 
 function terminalFailure(message: string, reasonCode: string): Error {

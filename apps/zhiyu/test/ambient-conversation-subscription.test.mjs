@@ -121,16 +121,26 @@ async function buildModules() {
 }
 
 function event(messageType, payload) {
-  return {
-    eventType: 1,
+  const base = {
+    conversationAnchorId: payload.conversation_anchor_id,
     sequence: '1',
-    messageId: 'app-message-envelope-1',
-    messageType,
-    payload,
-    reasonCode: '',
-    traceId: 'trace-1',
-    timestampUnixMs: Date.parse('2026-07-14T01:00:00.000Z'),
+    turnId: payload.turn_id,
   };
+  switch (messageType) {
+    case 'runtime.agent.turn.accepted':
+      return { ...base, type: 'turn-accepted', requestId: payload.detail.request_id };
+    case 'runtime.agent.turn.message_committed':
+      return {
+        ...base,
+        type: 'message-committed',
+        messageId: payload.detail.message_id,
+        text: payload.detail.text,
+      };
+    case 'runtime.agent.turn.completed':
+      return { ...base, type: 'turn-completed', terminalReason: payload.detail.terminal_reason };
+    default:
+      throw new Error(`unsupported fixture event ${messageType}`);
+  }
 }
 
 function perSendChat({ requestId, runtimeTurnId, runtimeMessageId }) {

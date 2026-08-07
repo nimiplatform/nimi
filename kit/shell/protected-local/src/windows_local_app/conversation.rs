@@ -1,108 +1,56 @@
-use std::collections::BTreeMap;
-
-use prost_types::{value::Kind, ListValue, Struct, Value};
-use serde_json::{Map as JsonMap, Number as JsonNumber, Value as JsonValue};
 use tokio::sync::mpsc;
 use tonic::transport::Channel;
 
+use crate::generated::local_app_conversation_event::Event as ProtoConversationEvent;
 use crate::generated::runtime_agent_service_client::RuntimeAgentServiceClient;
-use crate::generated::runtime_app_service_client::RuntimeAppServiceClient;
 use crate::generated::{
-    AppMessageEvent, GetPublicChatSessionSnapshotRequest, OpenConversationAnchorRequest,
-    SendAppMessageRequest, SubscribeAppMessagesRequest,
+    GetLocalAppConversationSnapshotRequest, InterruptLocalAppConversationTurnRequest,
+    LocalAppConversationEvent as ProtoLocalAppConversationEvent,
+    LocalAppConversationMessageRole as ProtoConversationMessageRole,
+    OpenLocalAppConversationRequest, SendLocalAppConversationTurnRequest,
+    SubscribeLocalAppConversationEventsRequest,
 };
-use crate::grpc_status::{local_app_error_from_status, local_app_reason_from_proto};
+use crate::grpc_status::local_app_error_from_status;
 use crate::{
-    LocalAppConversationEvent, LocalAppConversationInterruptRequest,
-    LocalAppConversationInterruptResult, LocalAppConversationOpenRequest,
-    LocalAppConversationOpenResult, LocalAppConversationSendRequest,
-    LocalAppConversationSendResult, LocalAppConversationSnapshotRequest,
+    LocalAppConversationEvent, LocalAppConversationEventKind,
+    LocalAppConversationInterruptRequest, LocalAppConversationInterruptResult,
+    LocalAppConversationMessage, LocalAppConversationMessageRole,
+    LocalAppConversationOpenRequest, LocalAppConversationOpenResult,
+    LocalAppConversationSendRequest, LocalAppConversationSendResult,
+    LocalAppConversationSnapshot, LocalAppConversationSnapshotRequest,
     LocalAppConversationSubscribeRequest, LocalAppConversationSubscriptionReceiver,
-    LocalAppOperationError, LocalAppReasonCode,
+    LocalAppOperationError,
 };
 
-use super::{invalid_payload, require_text, untrusted};
+use super::{invalid_payload, untrusted};
 
-const ACTION_EXECUTED: i32 = 1;
+const AGENT_HANDLE_PREFIX: &str = "agent_ref_";
+const AGENT_HANDLE_SUFFIX_BYTES: usize = 43;
+const MAX_SELECTOR_BYTES: usize = 256;
+const MAX_REQUEST_ID_BYTES: usize = 256;
 const MAX_TEXT_BYTES: usize = 64 * 1024;
-const MAX_TURN_ATTACHMENTS: usize = 1;
-const MAX_ATTACHMENT_TEXT_BYTES: usize = 512;
-
-struct TurnAttachment {
-    artifact_id: String,
-    display_name: Option<String>,
-}
-
-fn parse_turn_attachments(
-    value: &JsonValue,
-) -> Result<Vec<TurnAttachment>, LocalAppOperationError> {
-    let values = value.as_array().ok_or_else(invalid_payload)?;
-    if values.len() > MAX_TURN_ATTACHMENTS {
-        return Err(invalid_payload());
-    }
-    values
-        .iter()
-        .map(|value| {
-            let object = value.as_object().ok_or_else(invalid_payload)?;
-            if object
-                .keys()
-                .any(|key| key != "artifactId" && key != "displayName")
-            {
-                return Err(invalid_payload());
-            }
-            let artifact_id = object
-                .get("artifactId")
-                .and_then(JsonValue::as_str)
-                .ok_or_else(invalid_payload)?;
-            if artifact_id.is_empty()
-                || artifact_id.trim() != artifact_id
-                || artifact_id.len() > MAX_ATTACHMENT_TEXT_BYTES
-            {
-                return Err(invalid_payload());
-            }
-            let display_name = match object.get("displayName") {
-                None => None,
-                Some(JsonValue::String(value)) => {
-                    if value.trim() != value || value.len() > MAX_ATTACHMENT_TEXT_BYTES {
-                        return Err(invalid_payload());
-                    }
-                    (!value.is_empty()).then_some(value.clone())
-                }
-                _ => return Err(invalid_payload()),
-            };
-            Ok(TurnAttachment {
-                artifact_id: artifact_id.to_string(),
-                display_name,
-            })
-        })
-        .collect()
-}
+const MAX_SNAPSHOT_MESSAGES: usize = 200;
+const MAX_SNAPSHOT_TEXT_BYTES: usize = 1024 * 1024;
 
 pub(super) async fn open_conversation(
     channel: Channel,
     request: LocalAppConversationOpenRequest,
 ) -> Result<LocalAppConversationOpenResult, LocalAppOperationError> {
-    require_text(&request.agent_handle)?;
+    require_agent_handle(&request.agent_handle)?;
     let response = RuntimeAgentServiceClient::new(channel)
-        .open_conversation_anchor(OpenConversationAnchorRequest {
-            context: None,
-            agent_id: request.agent_handle,
-            subject_user_id: String::new(),
-            metadata: None,
-            local_agent_ref: String::new(),
-            owner_user_id: String::new(),
-            runtime_source_ref: String::new(),
+        .open_local_app_conversation(OpenLocalAppConversationRequest {
+            agent_handle: request.agent_handle,
         })
         .await
         .map_err(local_app_error_from_status)?
         .into_inner();
-    let snapshot = response.snapshot.ok_or_else(untrusted)?;
-    let anchor = snapshot.anchor.ok_or_else(untrusted)?;
-    require_runtime_text(&anchor.conversation_anchor_id)?;
+    require_runtime_selector(&response.conversation_anchor_id)?;
+    if let Some(turn_id) = response.active_turn_id.as_deref() {
+        require_runtime_selector(turn_id)?;
+    }
     Ok(LocalAppConversationOpenResult {
-        conversation_anchor_id: anchor.conversation_anchor_id,
-        active_turn_id: empty_to_none(snapshot.active_turn_id),
-        active_stream_id: empty_to_none(snapshot.active_stream_id),
+        conversation_anchor_id: response.conversation_anchor_id,
+        active_turn_id: response.active_turn_id,
     })
 }
 
@@ -110,91 +58,23 @@ pub(super) async fn send_turn(
     channel: Channel,
     request: LocalAppConversationSendRequest,
 ) -> Result<LocalAppConversationSendResult, LocalAppOperationError> {
-    require_text(&request.agent_handle)?;
-    require_text(&request.conversation_anchor_id)?;
-    require_text(&request.request_id)?;
-    let attachments = parse_turn_attachments(&request.attachments)?;
-    if request.text.trim() != request.text || (request.text.is_empty() && attachments.is_empty()) {
-        return Err(invalid_payload());
-    }
-    if request.text.len() > MAX_TEXT_BYTES {
-        return Err(LocalAppOperationError::new(
-            LocalAppReasonCode::ResourceExhausted,
-            false,
-        ));
-    }
-    let mut message_fields = BTreeMap::from([
-        ("role".to_string(), string_value("user".to_string())),
-        ("content".to_string(), string_value(request.text)),
-    ]);
-    if !attachments.is_empty() {
-        message_fields.insert(
-            "attachments".to_string(),
-            Value {
-                kind: Some(Kind::ListValue(ListValue {
-                    values: attachments
-                        .into_iter()
-                        .map(|attachment| {
-                            let mut fields = BTreeMap::from([(
-                                "artifact_id".to_string(),
-                                string_value(attachment.artifact_id),
-                            )]);
-                            if let Some(display_name) = attachment.display_name {
-                                fields
-                                    .insert("display_name".to_string(), string_value(display_name));
-                            }
-                            Value {
-                                kind: Some(Kind::StructValue(Struct { fields })),
-                            }
-                        })
-                        .collect(),
-                })),
-            },
-        );
-    }
-    let payload = Struct {
-        fields: BTreeMap::from([
-            (
-                "local_agent_ref".to_string(),
-                string_value(request.agent_handle),
-            ),
-            (
-                "conversation_anchor_id".to_string(),
-                string_value(request.conversation_anchor_id),
-            ),
-            ("request_id".to_string(), string_value(request.request_id)),
-            (
-                "messages".to_string(),
-                Value {
-                    kind: Some(Kind::ListValue(ListValue {
-                        values: vec![Value {
-                            kind: Some(Kind::StructValue(Struct {
-                                fields: message_fields,
-                            })),
-                        }],
-                    })),
-                },
-            ),
-        ]),
-    };
-    let response = RuntimeAppServiceClient::new(channel)
-        .send_app_message(SendAppMessageRequest {
-            from_app_id: String::new(),
-            to_app_id: "runtime.agent".to_string(),
-            subject_user_id: String::new(),
-            message_type: "runtime.agent.turn.request".to_string(),
-            payload: Some(payload),
-            require_ack: true,
+    require_agent_handle(&request.agent_handle)?;
+    require_selector(&request.conversation_anchor_id)?;
+    require_bounded_text(&request.request_id, MAX_REQUEST_ID_BYTES, false)?;
+    require_bounded_text(&request.text, MAX_TEXT_BYTES, true)?;
+    let response = RuntimeAgentServiceClient::new(channel)
+        .send_local_app_conversation_turn(SendLocalAppConversationTurnRequest {
+            agent_handle: request.agent_handle,
+            conversation_anchor_id: request.conversation_anchor_id,
+            request_id: request.request_id,
+            text: request.text,
         })
         .await
         .map_err(local_app_error_from_status)?
         .into_inner();
-    if !response.accepted || response.reason_code != ACTION_EXECUTED {
-        return Err(untrusted());
-    }
-    require_runtime_text(&response.message_id)?;
+    require_runtime_selector(&response.turn_id)?;
     Ok(LocalAppConversationSendResult {
-        message_id: response.message_id,
+        turn_id: response.turn_id,
     })
 }
 
@@ -202,78 +82,88 @@ pub(super) async fn interrupt_turn(
     channel: Channel,
     request: LocalAppConversationInterruptRequest,
 ) -> Result<LocalAppConversationInterruptResult, LocalAppOperationError> {
-    require_text(&request.agent_handle)?;
-    require_text(&request.conversation_anchor_id)?;
-    let payload = Struct {
-        fields: BTreeMap::from([
-            (
-                "local_agent_ref".to_string(),
-                string_value(request.agent_handle),
-            ),
-            (
-                "conversation_anchor_id".to_string(),
-                string_value(request.conversation_anchor_id),
-            ),
-            (
-                "reason".to_string(),
-                string_value("user_cancel".to_string()),
-            ),
-        ]),
-    };
-    let response = RuntimeAppServiceClient::new(channel)
-        .send_app_message(SendAppMessageRequest {
-            from_app_id: String::new(),
-            to_app_id: "runtime.agent".to_string(),
-            subject_user_id: String::new(),
-            message_type: "runtime.agent.turn.interrupt".to_string(),
-            payload: Some(payload),
-            require_ack: true,
+    require_agent_handle(&request.agent_handle)?;
+    require_selector(&request.conversation_anchor_id)?;
+    let response = RuntimeAgentServiceClient::new(channel)
+        .interrupt_local_app_conversation_turn(InterruptLocalAppConversationTurnRequest {
+            agent_handle: request.agent_handle,
+            conversation_anchor_id: request.conversation_anchor_id,
         })
         .await
         .map_err(local_app_error_from_status)?
         .into_inner();
-    if !response.accepted || response.reason_code != ACTION_EXECUTED {
-        return Err(untrusted());
-    }
-    require_runtime_text(&response.message_id)?;
+    require_runtime_selector(&response.turn_id)?;
     Ok(LocalAppConversationInterruptResult {
-        message_id: response.message_id,
+        turn_id: response.turn_id,
     })
 }
 
 pub(super) async fn conversation_snapshot(
     channel: Channel,
     request: LocalAppConversationSnapshotRequest,
-) -> Result<JsonValue, LocalAppOperationError> {
-    require_text(&request.agent_handle)?;
-    require_text(&request.conversation_anchor_id)?;
+) -> Result<LocalAppConversationSnapshot, LocalAppOperationError> {
+    require_agent_handle(&request.agent_handle)?;
+    require_selector(&request.conversation_anchor_id)?;
     let response = RuntimeAgentServiceClient::new(channel)
-        .get_public_chat_session_snapshot(GetPublicChatSessionSnapshotRequest {
-            context: None,
-            agent_id: request.agent_handle,
+        .get_local_app_conversation_snapshot(GetLocalAppConversationSnapshotRequest {
+            agent_handle: request.agent_handle,
             conversation_anchor_id: request.conversation_anchor_id,
-            request_id: String::new(),
-            world_id: String::new(),
         })
         .await
         .map_err(local_app_error_from_status)?
         .into_inner();
-    struct_to_json(response.snapshot.ok_or_else(untrusted)?)
+    let snapshot = response.snapshot.ok_or_else(untrusted)?;
+    require_runtime_selector(&snapshot.conversation_anchor_id)?;
+    if let Some(turn_id) = snapshot.active_turn_id.as_deref() {
+        require_runtime_selector(turn_id)?;
+    }
+    if snapshot.messages.len() > MAX_SNAPSHOT_MESSAGES {
+        return Err(untrusted());
+    }
+    let mut text_bytes = 0usize;
+    let messages = snapshot
+        .messages
+        .into_iter()
+        .map(|message| {
+            require_runtime_selector(&message.turn_id)?;
+            require_bounded_runtime_text(&message.text, MAX_TEXT_BYTES)?;
+            text_bytes = text_bytes
+                .checked_add(message.text.len())
+                .filter(|value| *value <= MAX_SNAPSHOT_TEXT_BYTES)
+                .ok_or_else(untrusted)?;
+            let role = match ProtoConversationMessageRole::try_from(message.role)
+                .map_err(|_| untrusted())?
+            {
+                ProtoConversationMessageRole::User => LocalAppConversationMessageRole::User,
+                ProtoConversationMessageRole::Assistant => {
+                    LocalAppConversationMessageRole::Assistant
+                }
+                ProtoConversationMessageRole::Unspecified => return Err(untrusted()),
+            };
+            Ok(LocalAppConversationMessage {
+                turn_id: message.turn_id,
+                role,
+                text: message.text,
+            })
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+    Ok(LocalAppConversationSnapshot {
+        conversation_anchor_id: snapshot.conversation_anchor_id,
+        active_turn_id: snapshot.active_turn_id,
+        messages,
+        truncated_before: snapshot.truncated_before,
+    })
 }
 
 pub(super) async fn subscribe(
     channel: Channel,
     request: LocalAppConversationSubscribeRequest,
 ) -> Result<LocalAppConversationSubscriptionReceiver, LocalAppOperationError> {
-    require_text(&request.agent_handle)?;
-    require_text(&request.conversation_anchor_id)?;
-    let mut stream = RuntimeAppServiceClient::new(channel)
-        .subscribe_app_messages(SubscribeAppMessagesRequest {
-            app_id: String::new(),
-            subject_user_id: String::new(),
-            cursor: String::new(),
-            from_app_ids: vec!["runtime.agent".to_string()],
-            local_agent_ref: request.agent_handle,
+    require_agent_handle(&request.agent_handle)?;
+    require_selector(&request.conversation_anchor_id)?;
+    let mut stream = RuntimeAgentServiceClient::new(channel)
+        .subscribe_local_app_conversation_events(SubscribeLocalAppConversationEventsRequest {
+            agent_handle: request.agent_handle,
             conversation_anchor_id: request.conversation_anchor_id,
         })
         .await
@@ -284,8 +174,7 @@ pub(super) async fn subscribe(
         loop {
             match stream.message().await {
                 Ok(Some(event)) => {
-                    let projected = project_event(event);
-                    if sender.send(projected).await.is_err() {
+                    if sender.send(project_event(event)).await.is_err() {
                         break;
                     }
                 }
@@ -301,122 +190,221 @@ pub(super) async fn subscribe(
 }
 
 fn project_event(
-    event: AppMessageEvent,
+    event: ProtoLocalAppConversationEvent,
 ) -> Result<LocalAppConversationEvent, LocalAppOperationError> {
-    let reason_code = local_app_reason_from_proto(event.reason_code).ok_or_else(untrusted)?;
+    require_runtime_selector(&event.conversation_anchor_id)?;
+    if event.sequence == 0 {
+        return Err(untrusted());
+    }
+    let projected = match event.event.ok_or_else(untrusted)? {
+        ProtoConversationEvent::TurnAccepted(value) => {
+            require_runtime_selector(&value.turn_id)?;
+            require_bounded_runtime_text(&value.request_id, MAX_REQUEST_ID_BYTES)?;
+            LocalAppConversationEventKind::TurnAccepted {
+                turn_id: value.turn_id,
+                request_id: value.request_id,
+            }
+        }
+        ProtoConversationEvent::TurnStarted(value) => {
+            require_runtime_selector(&value.turn_id)?;
+            LocalAppConversationEventKind::TurnStarted {
+                turn_id: value.turn_id,
+            }
+        }
+        ProtoConversationEvent::TextDelta(value) => {
+            require_runtime_selector(&value.turn_id)?;
+            require_bounded_runtime_text(&value.text, MAX_TEXT_BYTES)?;
+            LocalAppConversationEventKind::TextDelta {
+                turn_id: value.turn_id,
+                text: value.text,
+            }
+        }
+        ProtoConversationEvent::MessageCommitted(value) => {
+            require_runtime_selector(&value.turn_id)?;
+            require_runtime_selector(&value.message_id)?;
+            require_bounded_runtime_text(&value.text, MAX_TEXT_BYTES)?;
+            LocalAppConversationEventKind::MessageCommitted {
+                turn_id: value.turn_id,
+                message_id: value.message_id,
+                text: value.text,
+            }
+        }
+        ProtoConversationEvent::TurnCompleted(value) => {
+            require_runtime_selector(&value.turn_id)?;
+            if !valid_terminal_reason(&value.terminal_reason) {
+                return Err(untrusted());
+            }
+            LocalAppConversationEventKind::TurnCompleted {
+                turn_id: value.turn_id,
+                terminal_reason: value.terminal_reason,
+            }
+        }
+        ProtoConversationEvent::TurnFailed(value) => {
+            require_runtime_selector(&value.turn_id)?;
+            if !valid_reason_code(&value.reason_code)
+                || value
+                    .message
+                    .as_deref()
+                    .is_some_and(|message| require_bounded_runtime_text(message, 1024).is_err())
+            {
+                return Err(untrusted());
+            }
+            LocalAppConversationEventKind::TurnFailed {
+                turn_id: value.turn_id,
+                reason_code: value.reason_code,
+                message: value.message,
+            }
+        }
+        ProtoConversationEvent::TurnInterrupted(value) => {
+            require_runtime_selector(&value.turn_id)?;
+            if !valid_interrupt_reason(&value.reason) {
+                return Err(untrusted());
+            }
+            LocalAppConversationEventKind::TurnInterrupted {
+                turn_id: value.turn_id,
+                reason: value.reason,
+            }
+        }
+    };
     Ok(LocalAppConversationEvent {
-        event_type: event.event_type,
+        conversation_anchor_id: event.conversation_anchor_id,
         sequence: event.sequence,
-        message_id: event.message_id,
-        message_type: event.message_type,
-        payload: event
-            .payload
-            .map(struct_to_json)
-            .transpose()?
-            .unwrap_or(JsonValue::Null),
-        reason_code,
-        trace_id: event.trace_id,
-        timestamp_unix_ms: event
-            .timestamp
-            .map(|value| value.seconds.saturating_mul(1000) + i64::from(value.nanos) / 1_000_000),
+        event: projected,
     })
 }
 
-fn string_value(value: String) -> Value {
-    Value {
-        kind: Some(Kind::StringValue(value)),
+fn require_agent_handle(value: &str) -> Result<(), LocalAppOperationError> {
+    if value.len() != AGENT_HANDLE_PREFIX.len() + AGENT_HANDLE_SUFFIX_BYTES
+        || !value.starts_with(AGENT_HANDLE_PREFIX)
+        || !value
+            .bytes()
+            .skip(AGENT_HANDLE_PREFIX.len())
+            .all(|byte| byte.is_ascii_alphanumeric() || byte == b'-' || byte == b'_')
+    {
+        return Err(invalid_payload());
     }
-}
-fn empty_to_none(value: String) -> Option<String> {
-    (!value.is_empty()).then_some(value)
-}
-fn require_runtime_text(value: &str) -> Result<(), LocalAppOperationError> {
-    if value.is_empty() || value.trim() != value {
-        Err(untrusted())
-    } else {
-        Ok(())
-    }
+    Ok(())
 }
 
-fn struct_to_json(value: Struct) -> Result<JsonValue, LocalAppOperationError> {
-    let mut fields = JsonMap::new();
-    for (key, value) in value.fields {
-        fields.insert(key, proto_value_to_json(value)?);
+fn require_selector(value: &str) -> Result<(), LocalAppOperationError> {
+    if value.is_empty()
+        || value.trim() != value
+        || value.len() > MAX_SELECTOR_BYTES
+        || value.chars().any(char::is_control)
+    {
+        return Err(invalid_payload());
     }
-    Ok(JsonValue::Object(fields))
+    Ok(())
 }
 
-fn proto_value_to_json(value: Value) -> Result<JsonValue, LocalAppOperationError> {
-    Ok(match value.kind.ok_or_else(untrusted)? {
-        Kind::NullValue(_) => JsonValue::Null,
-        Kind::NumberValue(value) => JsonNumber::from_f64(value)
-            .map(JsonValue::Number)
-            .ok_or_else(untrusted)?,
-        Kind::StringValue(value) => JsonValue::String(value),
-        Kind::BoolValue(value) => JsonValue::Bool(value),
-        Kind::StructValue(value) => struct_to_json(value)?,
-        Kind::ListValue(value) => JsonValue::Array(
-            value
-                .values
-                .into_iter()
-                .map(proto_value_to_json)
-                .collect::<Result<_, _>>()?,
-        ),
-    })
+fn require_runtime_selector(value: &str) -> Result<(), LocalAppOperationError> {
+    require_selector(value).map_err(|_| untrusted())
+}
+
+fn require_bounded_text(
+    value: &str,
+    max_bytes: usize,
+    allow_outer_whitespace: bool,
+) -> Result<(), LocalAppOperationError> {
+    if value.is_empty()
+        || value.len() > max_bytes
+        || value.contains('\0')
+        || value.trim().is_empty()
+        || (!allow_outer_whitespace && value.trim() != value)
+    {
+        return Err(invalid_payload());
+    }
+    Ok(())
+}
+
+fn require_bounded_runtime_text(
+    value: &str,
+    max_bytes: usize,
+) -> Result<(), LocalAppOperationError> {
+    if value.is_empty() || value.len() > max_bytes || value.contains('\0') || value.trim().is_empty()
+    {
+        return Err(untrusted());
+    }
+    Ok(())
+}
+
+fn valid_terminal_reason(value: &str) -> bool {
+    matches!(
+        value,
+        "" | "stop" | "length" | "tool_call" | "content_filter" | "error" | "unspecified"
+    )
+}
+
+fn valid_interrupt_reason(value: &str) -> bool {
+    matches!(
+        value,
+        "user_cancel"
+            | "room_closed"
+            | "superseded_turn"
+            | "budget_exhausted"
+            | "timeout"
+            | "gateway_revoked"
+            | "policy_refusal"
+    )
+}
+
+fn valid_reason_code(value: &str) -> bool {
+    !value.is_empty()
+        && value.len() <= 128
+        && value.trim() == value
+        && value
+            .bytes()
+            .all(|byte| byte.is_ascii_uppercase() || byte.is_ascii_digit() || byte == b'_' || byte == b'-')
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::generated::{
+        local_app_conversation_event, LocalAppConversationTextDelta,
+        LocalAppConversationTurnCompleted,
+    };
 
     #[test]
-    fn struct_projection_is_closed_and_lossless() {
-        let value = Struct {
-            fields: BTreeMap::from([("text".to_string(), string_value("hello".to_string()))]),
-        };
+    fn typed_event_projection_has_no_generic_payload_or_message_type() {
+        let projected = project_event(ProtoLocalAppConversationEvent {
+            conversation_anchor_id: "agent_anchor_01J".to_string(),
+            sequence: 3,
+            event: Some(local_app_conversation_event::Event::TextDelta(
+                LocalAppConversationTextDelta {
+                    turn_id: "agent_turn_01J".to_string(),
+                    text: "hello".to_string(),
+                },
+            )),
+        })
+        .expect("typed event");
         assert_eq!(
-            struct_to_json(value).unwrap(),
-            serde_json::json!({"text": "hello"})
+            projected.event,
+            LocalAppConversationEventKind::TextDelta {
+                turn_id: "agent_turn_01J".to_string(),
+                text: "hello".to_string(),
+            }
         );
     }
 
     #[test]
-    fn turn_attachments_admit_one_exact_artifact_reference() {
-        let parsed = parse_turn_attachments(&serde_json::json!([
-            {"artifactId": "artifact_01J", "displayName": "photo.png"},
-        ]))
-        .expect("one exact attachment");
-        assert_eq!(parsed.len(), 1);
-        assert_eq!(parsed[0].artifact_id, "artifact_01J");
-        assert_eq!(parsed[0].display_name.as_deref(), Some("photo.png"));
-
-        let without_name = parse_turn_attachments(&serde_json::json!([
-            {"artifactId": "artifact_01J"},
-        ]))
-        .expect("display name is optional");
-        assert_eq!(without_name[0].display_name, None);
-
-        let empty = parse_turn_attachments(&serde_json::json!([])).expect("empty attachments");
-        assert!(empty.is_empty());
-    }
-
-    #[test]
-    fn turn_attachments_fail_closed_on_shape_violations() {
-        for value in [
-            serde_json::json!(null),
-            serde_json::json!({}),
-            serde_json::json!([{"artifactId": "a"}, {"artifactId": "b"}]),
-            serde_json::json!([{"artifactId": "  "}]),
-            serde_json::json!([{"artifactId": ""}]),
-            serde_json::json!([{"displayName": "photo.png"}]),
-            serde_json::json!([{"artifactId": "a", "displayName": 7}]),
-            serde_json::json!([{"artifactId": "a", "mimeType": "image/png"}]),
-            serde_json::json!([{"artifactId": "a", "displayName": " photo.png"}]),
-        ] {
-            assert!(
-                parse_turn_attachments(&value).is_err(),
-                "attachments must fail closed: {value}",
-            );
-        }
+    fn event_projection_rejects_unknown_terminal_reason_and_missing_union() {
+        assert!(project_event(ProtoLocalAppConversationEvent {
+            conversation_anchor_id: "agent_anchor_01J".to_string(),
+            sequence: 1,
+            event: Some(local_app_conversation_event::Event::TurnCompleted(
+                LocalAppConversationTurnCompleted {
+                    turn_id: "agent_turn_01J".to_string(),
+                    terminal_reason: "provider_private".to_string(),
+                },
+            )),
+        })
+        .is_err());
+        assert!(project_event(ProtoLocalAppConversationEvent {
+            conversation_anchor_id: "agent_anchor_01J".to_string(),
+            sequence: 1,
+            event: None,
+        })
+        .is_err());
     }
 }

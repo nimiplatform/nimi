@@ -49,7 +49,7 @@ describe('Electron protected local-app host', () => {
       avatarUrl: null,
     }]);
     await expect(host.conversationOpen({ agentHandle: 'lash_one' }))
-      .resolves.toEqual({ conversationAnchorId: 'anchor-1', activeTurnId: null, activeStreamId: null });
+      .resolves.toEqual({ conversationAnchorId: 'anchor-1', activeTurnId: null });
     await expect(host.artifactReadBytes({ artifactId: 'artifact_01J' }))
       .resolves.toMatchObject({ mimeType: 'image/png' });
 
@@ -255,13 +255,15 @@ function binding(calls: Array<{ method: string; input?: unknown }>) {
     localAppStorageReadJson: record('localAppStorageReadJson', { value: { version: 1 }, sizeBytes: 13 }),
     localAppStorageWriteJson: record('localAppStorageWriteJson', { value: { version: 2 }, sizeBytes: 13 }),
     localAppStorageRemoveJson: record('localAppStorageRemoveJson', { removed: false }),
-    localAppConversationOpen: record('localAppConversationOpen', { conversationAnchorId: 'anchor-1', activeTurnId: null, activeStreamId: null }),
-    localAppConversationSendTurn: record('localAppConversationSendTurn', { messageId: 'message-1' }),
-    localAppConversationInterruptTurn: record('localAppConversationInterruptTurn', { messageId: 'interrupt-message-1' }),
+    localAppConversationOpen: record('localAppConversationOpen', { conversationAnchorId: 'anchor-1', activeTurnId: null }),
+    localAppConversationSendTurn: record('localAppConversationSendTurn', { turnId: 'turn-1' }),
+    localAppConversationInterruptTurn: record('localAppConversationInterruptTurn', { turnId: 'turn-1' }),
     localAppConversationSubscribe: record('localAppConversationSubscribe', { streamId: 'conversation-1' }),
     localAppConversationStreamNext: record('localAppConversationStreamNext', { completed: true }),
     localAppConversationStreamClose: record('localAppConversationStreamClose', { closed: true }),
-    localAppConversationSnapshot: record('localAppConversationSnapshot', { anchor: { conversationAnchorId: 'anchor-1' } }),
+    localAppConversationSnapshot: record('localAppConversationSnapshot', {
+      conversationAnchorId: 'anchor-1', activeTurnId: null, messages: [], truncatedBefore: false,
+    }),
     localAppArtifactPut: record('localAppArtifactPut', { artifactId: 'artifact_01J' }),
     localAppArtifactReadBytes: record('localAppArtifactReadBytes', { bytes: new Uint8Array([1]), mimeType: 'image/png' }),
     localAppAgentAutonomySnapshot: record('localAppAgentAutonomySnapshot', { autonomyRevision: '1' }),

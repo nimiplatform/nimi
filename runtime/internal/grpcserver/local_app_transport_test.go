@@ -176,6 +176,26 @@ func TestProtectedLocalAppCallerAssertionRejectedBeforeAdmission(t *testing.T) {
 	}
 }
 
+func TestProtectedLocalAppTypedConversationStreamDispatchesAfterExactAdmission(t *testing.T) {
+	connection := newGRPCLocalAppConnection(t, 0x3e)
+	if err := connection.BindSession(protectedlocal.LocalAppSessionHandle{SessionID: grpcLocalAppIdentifier(0x3f), SessionProof: grpcLocalAppIdentifier(0x40)}); err != nil {
+		t.Fatal(err)
+	}
+	ctx := peer.NewContext(context.Background(), &peer.Peer{AuthInfo: &protectedLocalAppAuthInfo{connection: connection}})
+	admission := &localAppAdmissionStub{}
+	handlerCalled := false
+	err := newStreamProtectedLocalAppTransportInterceptor(admission)(nil, &localAppTransportTestStream{ctx: ctx}, &grpc.StreamServerInfo{FullMethod: protectedSubscribeConversationMethod}, func(_ any, stream grpc.ServerStream) error {
+		handlerCalled = true
+		if _, ok := protectedlocal.LocalAppConnectionFromContext(stream.Context()); !ok {
+			t.Fatal("authorized stream context lost protected connection")
+		}
+		return nil
+	})
+	if err != nil || !handlerCalled || admission.calls != 1 || admission.ingress != localappop.IngressConversationEventsSubscribe {
+		t.Fatalf("typed stream = called:%v admission:%+v error:%v", handlerCalled, admission, err)
+	}
+}
+
 func TestProtectedLocalAppStreamFailsClosedBeforeOwnerDispatch(t *testing.T) {
 	connection := newGRPCLocalAppConnection(t, 0x41)
 	if err := connection.BindSession(protectedlocal.LocalAppSessionHandle{SessionID: grpcLocalAppIdentifier(0x42), SessionProof: grpcLocalAppIdentifier(0x43)}); err != nil {

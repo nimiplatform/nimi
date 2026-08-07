@@ -256,6 +256,14 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "LocalAppAgentPresentationSnapshotResponse",
     },
     RuntimeMethodDescriptor {
+        method_id: "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppConversationSnapshot",
+        service: "RuntimeAgentService",
+        method: "GetLocalAppConversationSnapshot",
+        kind: "unary",
+        request_type: "GetLocalAppConversationSnapshotRequest",
+        response_type: "GetLocalAppConversationSnapshotResponse",
+    },
+    RuntimeMethodDescriptor {
         method_id: "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppSharedLocalAgentAIConfig",
         service: "RuntimeAgentService",
         method: "GetLocalAppSharedLocalAgentAIConfig",
@@ -286,6 +294,14 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         kind: "unary",
         request_type: "InterruptAgentVoicePlaybackRequest",
         response_type: "InterruptAgentVoicePlaybackResponse",
+    },
+    RuntimeMethodDescriptor {
+        method_id: "/nimi.runtime.v1.RuntimeAgentService/InterruptLocalAppConversationTurn",
+        service: "RuntimeAgentService",
+        method: "InterruptLocalAppConversationTurn",
+        kind: "unary",
+        request_type: "InterruptLocalAppConversationTurnRequest",
+        response_type: "InterruptLocalAppConversationTurnResponse",
     },
     RuntimeMethodDescriptor {
         method_id: "/nimi.runtime.v1.RuntimeAgentService/ListAgentConversationSummaries",
@@ -336,6 +352,14 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "ListDelegatedProviderProfilesResponse",
     },
     RuntimeMethodDescriptor {
+        method_id: "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentReferences",
+        service: "RuntimeAgentService",
+        method: "ListLocalAppAgentReferences",
+        kind: "unary",
+        request_type: "ListLocalAppAgentReferencesRequest",
+        response_type: "ListLocalAppAgentReferencesResponse",
+    },
+    RuntimeMethodDescriptor {
         method_id: "/nimi.runtime.v1.RuntimeAgentService/ListPendingHooks",
         service: "RuntimeAgentService",
         method: "ListPendingHooks",
@@ -366,6 +390,14 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         kind: "unary",
         request_type: "OpenConversationAnchorRequest",
         response_type: "OpenConversationAnchorResponse",
+    },
+    RuntimeMethodDescriptor {
+        method_id: "/nimi.runtime.v1.RuntimeAgentService/OpenLocalAppConversation",
+        service: "RuntimeAgentService",
+        method: "OpenLocalAppConversation",
+        kind: "unary",
+        request_type: "OpenLocalAppConversationRequest",
+        response_type: "OpenLocalAppConversationResponse",
     },
     RuntimeMethodDescriptor {
         method_id: "/nimi.runtime.v1.RuntimeAgentService/OverwriteLocalAppSharedLocalAgentAIConfig",
@@ -448,6 +480,14 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "ResolveAvatarLiveInstanceBindingResponse",
     },
     RuntimeMethodDescriptor {
+        method_id: "/nimi.runtime.v1.RuntimeAgentService/SendLocalAppConversationTurn",
+        service: "RuntimeAgentService",
+        method: "SendLocalAppConversationTurn",
+        kind: "unary",
+        request_type: "SendLocalAppConversationTurnRequest",
+        response_type: "SendLocalAppConversationTurnResponse",
+    },
+    RuntimeMethodDescriptor {
         method_id: "/nimi.runtime.v1.RuntimeAgentService/SetAgentPresentationProfile",
         service: "RuntimeAgentService",
         method: "SetAgentPresentationProfile",
@@ -494,6 +534,14 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         kind: "server_stream",
         request_type: "SubscribeAgentVoiceStreamRequest",
         response_type: "AgentVoiceStreamEvent",
+    },
+    RuntimeMethodDescriptor {
+        method_id: "/nimi.runtime.v1.RuntimeAgentService/SubscribeLocalAppConversationEvents",
+        service: "RuntimeAgentService",
+        method: "SubscribeLocalAppConversationEvents",
+        kind: "server_stream",
+        request_type: "SubscribeLocalAppConversationEventsRequest",
+        response_type: "LocalAppConversationEvent",
     },
     RuntimeMethodDescriptor {
         method_id: "/nimi.runtime.v1.RuntimeAgentService/TerminateAgent",

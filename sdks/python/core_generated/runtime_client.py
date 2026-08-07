@@ -248,6 +248,14 @@ RUNTIME_METHODS = [
     "response_type": "LocalAppAgentPresentationSnapshotResponse"
   },
   {
+    "method_id": "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppConversationSnapshot",
+    "service": "RuntimeAgentService",
+    "method": "GetLocalAppConversationSnapshot",
+    "kind": "unary",
+    "request_type": "GetLocalAppConversationSnapshotRequest",
+    "response_type": "GetLocalAppConversationSnapshotResponse"
+  },
+  {
     "method_id": "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppSharedLocalAgentAIConfig",
     "service": "RuntimeAgentService",
     "method": "GetLocalAppSharedLocalAgentAIConfig",
@@ -278,6 +286,14 @@ RUNTIME_METHODS = [
     "kind": "unary",
     "request_type": "InterruptAgentVoicePlaybackRequest",
     "response_type": "InterruptAgentVoicePlaybackResponse"
+  },
+  {
+    "method_id": "/nimi.runtime.v1.RuntimeAgentService/InterruptLocalAppConversationTurn",
+    "service": "RuntimeAgentService",
+    "method": "InterruptLocalAppConversationTurn",
+    "kind": "unary",
+    "request_type": "InterruptLocalAppConversationTurnRequest",
+    "response_type": "InterruptLocalAppConversationTurnResponse"
   },
   {
     "method_id": "/nimi.runtime.v1.RuntimeAgentService/ListAgentConversationSummaries",
@@ -328,6 +344,14 @@ RUNTIME_METHODS = [
     "response_type": "ListDelegatedProviderProfilesResponse"
   },
   {
+    "method_id": "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentReferences",
+    "service": "RuntimeAgentService",
+    "method": "ListLocalAppAgentReferences",
+    "kind": "unary",
+    "request_type": "ListLocalAppAgentReferencesRequest",
+    "response_type": "ListLocalAppAgentReferencesResponse"
+  },
+  {
     "method_id": "/nimi.runtime.v1.RuntimeAgentService/ListPendingHooks",
     "service": "RuntimeAgentService",
     "method": "ListPendingHooks",
@@ -358,6 +382,14 @@ RUNTIME_METHODS = [
     "kind": "unary",
     "request_type": "OpenConversationAnchorRequest",
     "response_type": "OpenConversationAnchorResponse"
+  },
+  {
+    "method_id": "/nimi.runtime.v1.RuntimeAgentService/OpenLocalAppConversation",
+    "service": "RuntimeAgentService",
+    "method": "OpenLocalAppConversation",
+    "kind": "unary",
+    "request_type": "OpenLocalAppConversationRequest",
+    "response_type": "OpenLocalAppConversationResponse"
   },
   {
     "method_id": "/nimi.runtime.v1.RuntimeAgentService/OverwriteLocalAppSharedLocalAgentAIConfig",
@@ -440,6 +472,14 @@ RUNTIME_METHODS = [
     "response_type": "ResolveAvatarLiveInstanceBindingResponse"
   },
   {
+    "method_id": "/nimi.runtime.v1.RuntimeAgentService/SendLocalAppConversationTurn",
+    "service": "RuntimeAgentService",
+    "method": "SendLocalAppConversationTurn",
+    "kind": "unary",
+    "request_type": "SendLocalAppConversationTurnRequest",
+    "response_type": "SendLocalAppConversationTurnResponse"
+  },
+  {
     "method_id": "/nimi.runtime.v1.RuntimeAgentService/SetAgentPresentationProfile",
     "service": "RuntimeAgentService",
     "method": "SetAgentPresentationProfile",
@@ -486,6 +526,14 @@ RUNTIME_METHODS = [
     "kind": "server_stream",
     "request_type": "SubscribeAgentVoiceStreamRequest",
     "response_type": "AgentVoiceStreamEvent"
+  },
+  {
+    "method_id": "/nimi.runtime.v1.RuntimeAgentService/SubscribeLocalAppConversationEvents",
+    "service": "RuntimeAgentService",
+    "method": "SubscribeLocalAppConversationEvents",
+    "kind": "server_stream",
+    "request_type": "SubscribeLocalAppConversationEventsRequest",
+    "response_type": "LocalAppConversationEvent"
   },
   {
     "method_id": "/nimi.runtime.v1.RuntimeAgentService/TerminateAgent",

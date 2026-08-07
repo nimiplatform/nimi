@@ -15,6 +15,12 @@ export enum LocalAppAgentAutonomyMode {
   HIGH = 4,
 }
 
+export enum LocalAppConversationMessageRole {
+  UNSPECIFIED = 0,
+  USER = 1,
+  ASSISTANT = 2,
+}
+
 export enum LocalAppSessionState {
   UNSPECIFIED = 0,
   READY = 1,

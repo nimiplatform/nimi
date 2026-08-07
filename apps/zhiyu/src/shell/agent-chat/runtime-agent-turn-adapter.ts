@@ -52,25 +52,18 @@ export type ZhiyuRuntimeAgentChatStreamTurn = (
   readonly stream: AsyncIterable<RuntimeAgentTurnRunnerPartLike | unknown>;
 }>;
 
-export type ZhiyuLocalAppTurnAttachment = {
-  readonly artifactId: string;
-  readonly displayName?: string;
-};
-
 export type ZhiyuLocalAppTurnRequest = {
   readonly agentHandle: NimiLocalAppAgentHandle;
   readonly conversationAnchorId: string;
   readonly threadId: string;
   readonly requestId: string;
   readonly text: string;
-  readonly attachments: readonly ZhiyuLocalAppTurnAttachment[];
 };
 
 export type ZhiyuRuntimeAgentChatTurnInput = {
   readonly conversation: ZhiyuConversationHomeStatus;
   readonly text: unknown;
   readonly requestId?: unknown;
-  readonly attachments?: readonly unknown[];
   readonly expectedConversationAnchorId?: unknown;
   readonly signal?: AbortSignal;
   readonly streamTurn?: ZhiyuRuntimeAgentChatStreamTurn;
@@ -84,6 +77,15 @@ export type ZhiyuRuntimeAgentChatTurnInput = {
 export async function runZhiyuAgentChatTurn(
   input: ZhiyuRuntimeAgentChatTurnInput,
 ): Promise<ZhiyuRuntimeAgentChatTurnResult> {
+  if ('attachments' in input) {
+    return chatUnavailable({
+      reasonCode: 'zhiyu-turn-attachment-unsupported',
+      actionHint: 'remove_conversation_attachment',
+      source: 'renderer',
+      message: 'Third-party Local App Agent conversations are text-only.',
+      requestId: stringOr(input.requestId, null),
+    });
+  }
   const identity = conversationIdentity(input.conversation);
   if (!identity) {
     return chatUnavailable({
@@ -113,18 +115,7 @@ export async function runZhiyuAgentChatTurn(
   }
 
   const text = stringOr(input.text, '');
-  const attachments = normalizeTurnAttachments(input.attachments);
-  if (!attachments) {
-    return chatUnavailable({
-      reasonCode: 'zhiyu-turn-attachment-invalid',
-      actionHint: 'provide_valid_runtime_agent_turn_attachment',
-      source: 'renderer',
-      message: 'Runtime Agent chat attachments must reference exactly one uploaded artifact.',
-      ...identity,
-      requestId: stringOr(input.requestId, null),
-    });
-  }
-  if (!text && attachments.length === 0) {
+  if (!text) {
     return chatUnavailable({
       reasonCode: 'zhiyu-turn-text-required',
       actionHint: 'enter_runtime_agent_turn_text',
@@ -140,7 +131,6 @@ export async function runZhiyuAgentChatTurn(
     ...identity,
     requestId,
     text,
-    attachments,
   });
   const streamTurn = input.streamTurn
     ?? createLocalAppStreamTurn(input.conversationClient ?? getZhiyuLocalAppClient().conversation);
@@ -197,7 +187,6 @@ function buildLocalAppTurnRequest(input: {
   readonly threadId: string;
   readonly requestId: string;
   readonly text: string;
-  readonly attachments: readonly ZhiyuLocalAppTurnAttachment[];
 }): ZhiyuLocalAppTurnRequest {
   return {
     agentHandle: input.agentHandle,
@@ -205,38 +194,7 @@ function buildLocalAppTurnRequest(input: {
     requestId: input.requestId,
     threadId: input.threadId,
     text: input.text,
-    attachments: input.attachments,
   };
-}
-
-function normalizeTurnAttachments(
-  value: readonly unknown[] | undefined,
-): readonly ZhiyuLocalAppTurnAttachment[] | null {
-  if (value === undefined) {
-    return [];
-  }
-  if (!Array.isArray(value) || value.length > 1) {
-    return null;
-  }
-  const normalized: ZhiyuLocalAppTurnAttachment[] = [];
-  for (const item of value) {
-    const record = item && typeof item === 'object' && !Array.isArray(item)
-      ? item as Record<string, unknown>
-      : null;
-    if (!record || Object.keys(record).some((key) => key !== 'artifactId' && key !== 'displayName')) {
-      return null;
-    }
-    const artifactId = stringOr(record.artifactId, '');
-    if (!artifactId) {
-      return null;
-    }
-    if (record.displayName !== undefined && typeof record.displayName !== 'string') {
-      return null;
-    }
-    const displayName = stringOr(record.displayName, '');
-    normalized.push(displayName ? { artifactId, displayName } : { artifactId });
-  }
-  return normalized;
 }
 
 function createLocalAppStreamTurn(
@@ -266,33 +224,25 @@ async function* localAppConversationParts(
     conversationAnchorId: request.conversationAnchorId,
   } as const;
   const subscription = await conversation.subscribe(scope);
-  let runtimeTurnId = '';
   try {
-    await conversation.send({
+    const sent = await conversation.send({
       ...scope,
       requestId: request.requestId,
       text: request.text,
-      attachments: request.attachments,
     });
     for await (const event of subscription) {
       if (signal?.aborted) {
         yield { type: 'turn-canceled', scope: 'turn' };
         return;
       }
-      const payload = eventPayload(event);
-      const eventTurnId = stringOr(payload.turn_id ?? payload.turnId, '');
-      if (event.messageType === 'runtime.agent.turn.accepted') {
-        const detail = eventDetail(payload);
-        if (stringOr(detail.request_id ?? detail.requestId, '') !== request.requestId || !eventTurnId) {
-          continue;
-        }
-        runtimeTurnId = eventTurnId;
+      if (event.conversationAnchorId !== request.conversationAnchorId
+        || event.turnId !== sent.turnId) {
         continue;
       }
-      if (!runtimeTurnId || eventTurnId !== runtimeTurnId) {
+      if (event.type === 'turn-accepted' && event.requestId !== request.requestId) {
         continue;
       }
-      const part = localAppEventPart(event, payload);
+      const part = localAppEventPart(event);
       if (part) {
         yield part;
       }
@@ -309,56 +259,40 @@ async function* localAppConversationParts(
 
 function localAppEventPart(
   event: NimiLocalAppConversationEvent,
-  payload: Record<string, unknown>,
 ): RuntimeAgentTurnRunnerPartLike | null {
-  const detail = eventDetail(payload);
-  switch (event.messageType) {
-    case 'runtime.agent.turn.reasoning_delta':
-      return { type: 'reasoning-delta', textDelta: detail.text };
-    case 'runtime.agent.turn.text_delta':
-      return { type: 'text-delta', textDelta: detail.text };
-    case 'runtime.agent.turn.message_committed':
+  switch (event.type) {
+    case 'text-delta':
+      return { type: 'text-delta', textDelta: event.text };
+    case 'message-committed':
       return {
         type: 'message-sealed',
         envelope: {
           message: {
-            messageId: detail.message_id ?? detail.messageId ?? payload.message_id ?? payload.messageId,
-            text: detail.text,
+            messageId: event.messageId,
+            text: event.text,
           },
         },
       };
-    case 'runtime.agent.turn.completed':
+    case 'turn-completed':
       return {
         type: 'turn-completed',
-        finishReason: detail.terminal_reason ?? detail.terminalReason,
-        diagnostics: { runtimeTurnId: payload.turn_id ?? payload.turnId },
+        finishReason: event.terminalReason,
+        diagnostics: { runtimeTurnId: event.turnId },
       };
-    case 'runtime.agent.turn.failed':
+    case 'turn-failed':
       return {
         type: 'turn-failed',
         error: {
-          code: event.reasonCode || 'RUNTIME_AGENT_TURN_FAILED',
-          message: stringOr(detail.message, 'Runtime Agent turn failed.'),
+          code: event.reasonCode,
+          message: event.message || 'Runtime Agent turn failed.',
         },
       };
-    case 'runtime.agent.turn.interrupted':
+    case 'turn-interrupted':
       return { type: 'turn-canceled', scope: 'turn' };
-    default:
+    case 'turn-accepted':
+    case 'turn-started':
       return null;
   }
-}
-
-function eventPayload(event: NimiLocalAppConversationEvent): Record<string, unknown> {
-  return event.payload && typeof event.payload === 'object' && !Array.isArray(event.payload)
-    ? event.payload as Record<string, unknown>
-    : {};
-}
-
-function eventDetail(payload: Record<string, unknown>): Record<string, unknown> {
-  const detail = payload.detail;
-  return detail && typeof detail === 'object' && !Array.isArray(detail)
-    ? detail as Record<string, unknown>
-    : {};
 }
 
 function conversationIdentity(conversation: ZhiyuConversationHomeStatus): {

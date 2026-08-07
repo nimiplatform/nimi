@@ -176,7 +176,6 @@ export type {
   NimiLocalAppArtifactBytes,
   NimiLocalAppArtifactPutInput,
   NimiLocalAppArtifactReadInput,
-  NimiLocalAppConversationAttachment,
   NimiLocalAppConversationScopeInput,
   NimiLocalAppConversationSubscription,
   NimiLocalAppSessionStatus,

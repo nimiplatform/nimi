@@ -169,6 +169,7 @@ HookTriggerFamily = Literal["HOOK_TRIGGER_FAMILY_UNSPECIFIED"]
 KnowledgeBankScope = Literal["KNOWLEDGE_BANK_SCOPE_UNSPECIFIED", "KNOWLEDGE_BANK_SCOPE_APP_PRIVATE", "KNOWLEDGE_BANK_SCOPE_WORKSPACE_PRIVATE"]
 KnowledgeIngestTaskStatus = Literal["KNOWLEDGE_INGEST_TASK_STATUS_UNSPECIFIED", "KNOWLEDGE_INGEST_TASK_STATUS_QUEUED", "KNOWLEDGE_INGEST_TASK_STATUS_RUNNING", "KNOWLEDGE_INGEST_TASK_STATUS_COMPLETED", "KNOWLEDGE_INGEST_TASK_STATUS_FAILED"]
 LocalAppAgentAutonomyMode = Literal["LOCAL_APP_AGENT_AUTONOMY_MODE_UNSPECIFIED", "LOCAL_APP_AGENT_AUTONOMY_MODE_OFF", "LOCAL_APP_AGENT_AUTONOMY_MODE_LOW", "LOCAL_APP_AGENT_AUTONOMY_MODE_MEDIUM", "LOCAL_APP_AGENT_AUTONOMY_MODE_HIGH"]
+LocalAppConversationMessageRole = Literal["LOCAL_APP_CONVERSATION_MESSAGE_ROLE_UNSPECIFIED", "LOCAL_APP_CONVERSATION_MESSAGE_ROLE_USER", "LOCAL_APP_CONVERSATION_MESSAGE_ROLE_ASSISTANT"]
 LocalAppSessionState = Literal["LOCAL_APP_SESSION_STATE_UNSPECIFIED", "LOCAL_APP_SESSION_STATE_READY", "LOCAL_APP_SESSION_STATE_RUNTIME_UNAVAILABLE", "LOCAL_APP_SESSION_STATE_REVOKED", "LOCAL_APP_SESSION_STATE_ACCOUNT_CHANGED", "LOCAL_APP_SESSION_STATE_PROCESS_REPLACED"]
 LocalAppTrustClass = Literal["LOCAL_APP_TRUST_CLASS_UNSPECIFIED", "LOCAL_APP_TRUST_CLASS_VERIFIED", "LOCAL_APP_TRUST_CLASS_USER_IMPORTED", "LOCAL_APP_TRUST_CLASS_LOCAL_DEVELOPMENT"]
 LocalAssetKind = Literal["LOCAL_ASSET_KIND_UNSPECIFIED", "LOCAL_ASSET_KIND_CHAT", "LOCAL_ASSET_KIND_IMAGE", "LOCAL_ASSET_KIND_VIDEO", "LOCAL_ASSET_KIND_TTS", "LOCAL_ASSET_KIND_STT", "LOCAL_ASSET_KIND_EMBEDDING", "LOCAL_ASSET_KIND_VAE", "LOCAL_ASSET_KIND_CLIP", "LOCAL_ASSET_KIND_LORA", "LOCAL_ASSET_KIND_CONTROLNET", "LOCAL_ASSET_KIND_AUXILIARY"]
@@ -2065,6 +2066,15 @@ class GetLocalAppAgentPresentationSnapshotRequest:
     agent_handle: str | None = None
 
 @dataclass(frozen=True)
+class GetLocalAppConversationSnapshotRequest:
+    agent_handle: str | None = None
+    conversation_anchor_id: str | None = None
+
+@dataclass(frozen=True)
+class GetLocalAppConversationSnapshotResponse:
+    snapshot: LocalAppConversationSnapshot | None = None
+
+@dataclass(frozen=True)
 class GetLocalAppSharedLocalAgentAIConfigRequest:
     pass
 
@@ -2366,6 +2376,15 @@ class InterruptAgentVoicePlaybackResponse:
     voice_output_mode: VoiceOutputMode | None = None
     voice_playback_state: VoicePlaybackState | None = None
     terminal_reason: str | None = None
+
+@dataclass(frozen=True)
+class InterruptLocalAppConversationTurnRequest:
+    agent_handle: str | None = None
+    conversation_anchor_id: str | None = None
+
+@dataclass(frozen=True)
+class InterruptLocalAppConversationTurnResponse:
+    turn_id: str | None = None
 
 @dataclass(frozen=True)
 class InvokeRealmUnaryRequest:
@@ -2733,6 +2752,14 @@ class ListLinksResponse:
     next_page_token: str | None = None
 
 @dataclass(frozen=True)
+class ListLocalAppAgentReferencesRequest:
+    pass
+
+@dataclass(frozen=True)
+class ListLocalAppAgentReferencesResponse:
+    references: tuple[LocalAppAgentReference, ...] = field(default_factory=tuple)
+
+@dataclass(frozen=True)
 class ListLocalAssetsRequest:
     status_filter: LocalAssetStatus | None = None
     kind_filter: LocalAssetKind | None = None
@@ -3041,8 +3068,75 @@ class LocalAppAgentPresentationSnapshotResponse:
     projection: LocalAppAgentPresentationProjection | None = None
 
 @dataclass(frozen=True)
+class LocalAppAgentReference:
+    agent_handle: str | None = None
+    display_name: str | None = None
+    avatar_url: str | None = None
+
+@dataclass(frozen=True)
 class LocalAppAgentUpdateAutonomyResponse:
     projection: LocalAppAgentAutonomyProjection | None = None
+
+@dataclass(frozen=True)
+class LocalAppConversationEvent:
+    conversation_anchor_id: str | None = None
+    sequence: int | None = None
+    turn_accepted: LocalAppConversationTurnAccepted | None = None
+    turn_started: LocalAppConversationTurnStarted | None = None
+    text_delta: LocalAppConversationTextDelta | None = None
+    message_committed: LocalAppConversationMessageCommitted | None = None
+    turn_completed: LocalAppConversationTurnCompleted | None = None
+    turn_failed: LocalAppConversationTurnFailed | None = None
+    turn_interrupted: LocalAppConversationTurnInterrupted | None = None
+
+@dataclass(frozen=True)
+class LocalAppConversationMessage:
+    turn_id: str | None = None
+    role: LocalAppConversationMessageRole | None = None
+    text: str | None = None
+
+@dataclass(frozen=True)
+class LocalAppConversationMessageCommitted:
+    turn_id: str | None = None
+    message_id: str | None = None
+    text: str | None = None
+
+@dataclass(frozen=True)
+class LocalAppConversationSnapshot:
+    conversation_anchor_id: str | None = None
+    active_turn_id: str | None = None
+    messages: tuple[LocalAppConversationMessage, ...] = field(default_factory=tuple)
+    truncated_before: bool | None = None
+
+@dataclass(frozen=True)
+class LocalAppConversationTextDelta:
+    turn_id: str | None = None
+    text: str | None = None
+
+@dataclass(frozen=True)
+class LocalAppConversationTurnAccepted:
+    turn_id: str | None = None
+    request_id: str | None = None
+
+@dataclass(frozen=True)
+class LocalAppConversationTurnCompleted:
+    turn_id: str | None = None
+    terminal_reason: str | None = None
+
+@dataclass(frozen=True)
+class LocalAppConversationTurnFailed:
+    turn_id: str | None = None
+    reason_code: str | None = None
+    message: str | None = None
+
+@dataclass(frozen=True)
+class LocalAppConversationTurnInterrupted:
+    turn_id: str | None = None
+    reason: str | None = None
+
+@dataclass(frozen=True)
+class LocalAppConversationTurnStarted:
+    turn_id: str | None = None
 
 @dataclass(frozen=True)
 class LocalAppSharedLocalAgentAIConfigProjection:
@@ -4159,6 +4253,15 @@ class OpenExternalPrincipalSessionResponse:
     reason_code: ReasonCode | None = None
 
 @dataclass(frozen=True)
+class OpenLocalAppConversationRequest:
+    agent_handle: str | None = None
+
+@dataclass(frozen=True)
+class OpenLocalAppConversationResponse:
+    conversation_anchor_id: str | None = None
+    active_turn_id: str | None = None
+
+@dataclass(frozen=True)
 class OpenLocalAppSessionRequest:
     pass
 
@@ -5180,6 +5283,17 @@ class SendAppMessageResponse:
     reason_code: ReasonCode | None = None
 
 @dataclass(frozen=True)
+class SendLocalAppConversationTurnRequest:
+    agent_handle: str | None = None
+    conversation_anchor_id: str | None = None
+    request_id: str | None = None
+    text: str | None = None
+
+@dataclass(frozen=True)
+class SendLocalAppConversationTurnResponse:
+    turn_id: str | None = None
+
+@dataclass(frozen=True)
 class SetAgentPresentationProfileRequest:
     context: AgentRequestContext | None = None
     agent_id: str | None = None
@@ -5429,6 +5543,11 @@ class SubscribeAppMessagesRequest:
     cursor: str | None = None
     from_app_ids: tuple[str, ...] = field(default_factory=tuple)
     local_agent_ref: str | None = None
+    conversation_anchor_id: str | None = None
+
+@dataclass(frozen=True)
+class SubscribeLocalAppConversationEventsRequest:
+    agent_handle: str | None = None
     conversation_anchor_id: str | None = None
 
 @dataclass(frozen=True)
@@ -6076,6 +6195,10 @@ class RuntimeTypedClient:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentPresentationSnapshot", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(LocalAppAgentPresentationSnapshotResponse, raw)
 
+    async def get_local_app_conversation_snapshot(self, request: GetLocalAppConversationSnapshotRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> GetLocalAppConversationSnapshotResponse:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/GetLocalAppConversationSnapshot", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(GetLocalAppConversationSnapshotResponse, raw)
+
     async def get_local_app_shared_local_agent_aiconfig(self, request: GetLocalAppSharedLocalAgentAIConfigRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> GetLocalAppSharedLocalAgentAIConfigResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/GetLocalAppSharedLocalAgentAIConfig", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(GetLocalAppSharedLocalAgentAIConfigResponse, raw)
@@ -6091,6 +6214,10 @@ class RuntimeTypedClient:
     async def interrupt_agent_voice_playback(self, request: InterruptAgentVoicePlaybackRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> InterruptAgentVoicePlaybackResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/InterruptAgentVoicePlayback", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(InterruptAgentVoicePlaybackResponse, raw)
+
+    async def interrupt_local_app_conversation_turn(self, request: InterruptLocalAppConversationTurnRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> InterruptLocalAppConversationTurnResponse:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/InterruptLocalAppConversationTurn", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(InterruptLocalAppConversationTurnResponse, raw)
 
     async def list_agent_conversation_summaries(self, request: ListAgentConversationSummariesRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ListAgentConversationSummariesResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/ListAgentConversationSummaries", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
@@ -6116,6 +6243,10 @@ class RuntimeTypedClient:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/ListDelegatedProviderProfiles", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ListDelegatedProviderProfilesResponse, raw)
 
+    async def list_local_app_agent_references(self, request: ListLocalAppAgentReferencesRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ListLocalAppAgentReferencesResponse:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentReferences", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(ListLocalAppAgentReferencesResponse, raw)
+
     async def list_pending_hooks(self, request: ListPendingHooksRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ListPendingHooksResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/ListPendingHooks", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ListPendingHooksResponse, raw)
@@ -6131,6 +6262,10 @@ class RuntimeTypedClient:
     async def open_conversation_anchor(self, request: OpenConversationAnchorRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> OpenConversationAnchorResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/OpenConversationAnchor", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(OpenConversationAnchorResponse, raw)
+
+    async def open_local_app_conversation(self, request: OpenLocalAppConversationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> OpenLocalAppConversationResponse:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/OpenLocalAppConversation", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(OpenLocalAppConversationResponse, raw)
 
     async def overwrite_local_app_shared_local_agent_aiconfig(self, request: OverwriteLocalAppSharedLocalAgentAIConfigRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> OverwriteLocalAppSharedLocalAgentAIConfigResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/OverwriteLocalAppSharedLocalAgentAIConfig", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
@@ -6172,6 +6307,10 @@ class RuntimeTypedClient:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/ResolveAvatarLiveInstanceBinding", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ResolveAvatarLiveInstanceBindingResponse, raw)
 
+    async def send_local_app_conversation_turn(self, request: SendLocalAppConversationTurnRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> SendLocalAppConversationTurnResponse:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/SendLocalAppConversationTurn", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(SendLocalAppConversationTurnResponse, raw)
+
     async def set_agent_presentation_profile(self, request: SetAgentPresentationProfileRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> SetAgentPresentationProfileResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/SetAgentPresentationProfile", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(SetAgentPresentationProfileResponse, raw)
@@ -6193,6 +6332,9 @@ class RuntimeTypedClient:
 
     def subscribe_agent_voice_stream(self, request: SubscribeAgentVoiceStreamRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> AsyncIterator[AgentVoiceStreamEvent]:
         return self._stream("/nimi.runtime.v1.RuntimeAgentService/SubscribeAgentVoiceStream", _model_body(request), AgentVoiceStreamEvent, metadata=metadata, timeout_ms=timeout_ms)
+
+    def subscribe_local_app_conversation_events(self, request: SubscribeLocalAppConversationEventsRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> AsyncIterator[LocalAppConversationEvent]:
+        return self._stream("/nimi.runtime.v1.RuntimeAgentService/SubscribeLocalAppConversationEvents", _model_body(request), LocalAppConversationEvent, metadata=metadata, timeout_ms=timeout_ms)
 
     async def terminate_agent(self, request: TerminateAgentRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> TerminateAgentResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/TerminateAgent", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))

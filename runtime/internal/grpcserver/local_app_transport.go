@@ -27,10 +27,11 @@ const (
 	protectedWriteLocalAppStorageJSONMethod  = "/nimi.runtime.v1.RuntimeAppService/WriteLocalAppStorageJson"
 	protectedRemoveLocalAppStorageJSONMethod = "/nimi.runtime.v1.RuntimeAppService/RemoveLocalAppStorageJson"
 	protectedAgentReferenceListMethod        = "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentReferences"
-	protectedOpenConversationMethod          = "/nimi.runtime.v1.RuntimeAgentService/OpenConversationAnchor"
-	protectedSendConversationTurnMethod      = "/nimi.runtime.v1.RuntimeAppService/SendAppMessage"
-	protectedSubscribeConversationMethod     = "/nimi.runtime.v1.RuntimeAppService/SubscribeAppMessages"
-	protectedConversationSnapshotMethod      = "/nimi.runtime.v1.RuntimeAgentService/GetPublicChatSessionSnapshot"
+	protectedOpenConversationMethod          = "/nimi.runtime.v1.RuntimeAgentService/OpenLocalAppConversation"
+	protectedSendConversationTurnMethod      = "/nimi.runtime.v1.RuntimeAgentService/SendLocalAppConversationTurn"
+	protectedInterruptConversationTurnMethod = "/nimi.runtime.v1.RuntimeAgentService/InterruptLocalAppConversationTurn"
+	protectedSubscribeConversationMethod     = "/nimi.runtime.v1.RuntimeAgentService/SubscribeLocalAppConversationEvents"
+	protectedConversationSnapshotMethod      = "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppConversationSnapshot"
 	protectedGetSharedAIConfigMethod         = "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppSharedLocalAgentAIConfig"
 	protectedOverwriteSharedAIConfigMethod   = "/nimi.runtime.v1.RuntimeAgentService/OverwriteLocalAppSharedLocalAgentAIConfig"
 	protectedSharedAIProfilePreviewMethod    = "/nimi.runtime.v1.RuntimeAgentService/PreviewLocalAppSharedLocalAgentAIProfile"
@@ -68,6 +69,7 @@ var protectedLocalAppUnaryMethodPolicies = map[string]protectedLocalAppMethodPol
 	protectedAgentReferenceListMethod:        localAppSessionMethodPolicy(),
 	protectedOpenConversationMethod:          localAppSessionMethodPolicy(),
 	protectedSendConversationTurnMethod:      localAppSessionMethodPolicy(),
+	protectedInterruptConversationTurnMethod: localAppSessionMethodPolicy(),
 	protectedConversationSnapshotMethod:      localAppSessionMethodPolicy(),
 	protectedGetSharedAIConfigMethod:         localAppSessionMethodPolicy(),
 	protectedOverwriteSharedAIConfigMethod:   localAppSessionMethodPolicy(),
@@ -233,12 +235,29 @@ func newUnaryProtectedLocalAppTransportInterceptor(admissions ...protectedLocalA
 	}
 }
 
+type protectedLocalAppServerStream struct {
+	grpc.ServerStream
+	ctx context.Context
+}
+
+func (stream *protectedLocalAppServerStream) Context() context.Context { return stream.ctx }
+
+func (stream *protectedLocalAppServerStream) RecvMsg(message any) error {
+	if err := stream.ServerStream.RecvMsg(message); err != nil {
+		return err
+	}
+	if protectedLocalAppRequestHasCallerAssertion(stream.ctx, message) {
+		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_LOCAL_APP_ACCESS_DENIED)
+	}
+	return nil
+}
+
 func newStreamProtectedLocalAppTransportInterceptor(admissions ...protectedLocalAppAdmission) grpc.StreamServerInterceptor {
 	var admission protectedLocalAppAdmission
 	if len(admissions) == 1 {
 		admission = admissions[0]
 	}
-	return func(_ any, stream grpc.ServerStream, info *grpc.StreamServerInfo, _ grpc.StreamHandler) error {
+	return func(service any, stream grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
 		if info == nil {
 			return grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH)
 		}
@@ -260,10 +279,14 @@ func newStreamProtectedLocalAppTransportInterceptor(admissions ...protectedLocal
 		if protectedLocalAppMetadataHasCallerAssertion(protectedContext) {
 			return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_LOCAL_APP_ACCESS_DENIED)
 		}
-		if err := admission.AdmitLocalAppIngress(protectedContext, protectedLocalAppStreamIngress(info.FullMethod)); err != nil {
+		authorizedContext, err := admission.AuthorizeLocalAppIngress(
+			protectedContext,
+			protectedLocalAppStreamIngress(info.FullMethod),
+		)
+		if err != nil {
 			return err
 		}
-		return grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_LOCAL_APP_OWNER_UNAVAILABLE)
+		return handler(service, &protectedLocalAppServerStream{ServerStream: stream, ctx: authorizedContext})
 	}
 }
 
@@ -298,6 +321,10 @@ func protectedLocalAppUnaryIngress(method string, request any) localappop.Ingres
 		}
 	case protectedOpenConversationMethod:
 		return localappop.IngressConversationOpen
+	case protectedSendConversationTurnMethod:
+		return localappop.IngressConversationTurnSend
+	case protectedInterruptConversationTurnMethod:
+		return localappop.IngressConversationTurnInterrupt
 	case protectedConversationSnapshotMethod:
 		return localappop.IngressConversationSnapshotGet
 	default:
@@ -309,7 +336,8 @@ func protectedLocalAppOwnerEnabled(method string, request any, ingress localappo
 	switch method {
 	case protectedReadLocalAppStorageJSONMethod, protectedWriteLocalAppStorageJSONMethod, protectedRemoveLocalAppStorageJSONMethod,
 		protectedGetAppAIConfigMethod, protectedOverwriteAppAIConfigMethod, protectedGenerateTextCandidateMethod,
-		protectedAgentReferenceListMethod:
+		protectedAgentReferenceListMethod, protectedOpenConversationMethod, protectedSendConversationTurnMethod,
+		protectedInterruptConversationTurnMethod, protectedConversationSnapshotMethod:
 		return true
 	case protectedInvokeRealmUnaryMethod:
 		realmRequest, ok := request.(*runtimev1.InvokeRealmUnaryRequest)

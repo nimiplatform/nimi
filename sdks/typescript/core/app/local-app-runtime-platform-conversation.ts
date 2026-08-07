@@ -1,11 +1,9 @@
-import type { JsonObject, JsonValue } from '../../types/index.js';
 import type { NimiLocalAppAgentHandle } from './local-app-agent-selector.js';
 import {
   asRecord,
   assertExactKeys,
   assertExactProjectionKeys,
   assertNoAuthorityMaterial,
-  assertSafeProjection,
   localAppError,
   localAppProjectionError,
   projectionText,
@@ -21,12 +19,6 @@ export type NimiLocalAppConversationOpenInput = {
 export type NimiLocalAppConversationOpenResult = {
   readonly conversationAnchorId: string;
   readonly activeTurnId: string | null;
-  readonly activeStreamId: string | null;
-};
-
-export type NimiLocalAppConversationAttachment = {
-  readonly artifactId: string;
-  readonly displayName?: string;
 };
 
 export type NimiLocalAppConversationSendInput = {
@@ -34,15 +26,14 @@ export type NimiLocalAppConversationSendInput = {
   readonly conversationAnchorId: string;
   readonly requestId: string;
   readonly text: string;
-  readonly attachments: readonly NimiLocalAppConversationAttachment[];
 };
 
 export type NimiLocalAppConversationSendResult = {
-  readonly messageId: string;
+  readonly turnId: string;
 };
 
 export type NimiLocalAppConversationInterruptResult = {
-  readonly messageId: string;
+  readonly turnId: string;
 };
 
 export type NimiLocalAppConversationScopeInput = {
@@ -50,18 +41,55 @@ export type NimiLocalAppConversationScopeInput = {
   readonly conversationAnchorId: string;
 };
 
-export type NimiLocalAppConversationEvent = {
-  readonly eventType: number;
+type NimiLocalAppConversationEventBase = {
+  readonly conversationAnchorId: string;
   readonly sequence: string;
-  readonly messageId: string;
-  readonly messageType: string;
-  readonly payload: JsonValue;
-  readonly reasonCode: string;
-  readonly traceId: string;
-  readonly timestampUnixMs: number | null;
+  readonly turnId: string;
 };
 
-export type NimiLocalAppConversationSnapshot = JsonObject;
+export type NimiLocalAppConversationEvent =
+  | (NimiLocalAppConversationEventBase & {
+      readonly type: 'turn-accepted';
+      readonly requestId: string;
+    })
+  | (NimiLocalAppConversationEventBase & {
+      readonly type: 'turn-started';
+    })
+  | (NimiLocalAppConversationEventBase & {
+      readonly type: 'text-delta';
+      readonly text: string;
+    })
+  | (NimiLocalAppConversationEventBase & {
+      readonly type: 'message-committed';
+      readonly messageId: string;
+      readonly text: string;
+    })
+  | (NimiLocalAppConversationEventBase & {
+      readonly type: 'turn-completed';
+      readonly terminalReason: '' | 'stop' | 'length' | 'tool_call' | 'content_filter' | 'error' | 'unspecified';
+    })
+  | (NimiLocalAppConversationEventBase & {
+      readonly type: 'turn-failed';
+      readonly reasonCode: string;
+      readonly message: string | null;
+    })
+  | (NimiLocalAppConversationEventBase & {
+      readonly type: 'turn-interrupted';
+      readonly reason: 'user_cancel' | 'room_closed' | 'superseded_turn' | 'budget_exhausted' | 'timeout' | 'gateway_revoked' | 'policy_refusal';
+    });
+
+export type NimiLocalAppConversationMessage = {
+  readonly turnId: string;
+  readonly role: 'user' | 'assistant';
+  readonly text: string;
+};
+
+export type NimiLocalAppConversationSnapshot = {
+  readonly conversationAnchorId: string;
+  readonly activeTurnId: string | null;
+  readonly messages: readonly NimiLocalAppConversationMessage[];
+  readonly truncatedBefore: boolean;
+};
 
 export type NimiLocalAppConversationSubscription = AsyncIterable<NimiLocalAppConversationEvent> & {
   readonly cancel: () => Promise<void>;
@@ -81,7 +109,6 @@ export type NimiLocalAppConversationShell = {
     readonly conversationAnchorId: string;
     readonly requestId: string;
     readonly text: string;
-    readonly attachments: readonly NimiLocalAppConversationAttachment[];
   }) => Promise<unknown>;
   readonly interruptTurn: (input: {
     readonly agentHandle: string;
@@ -113,32 +140,31 @@ export function createNimiLocalAppConversationClient(
       assertExactKeys(input, ['agentHandle'], 'local-app conversation open input');
       assertNoAuthorityMaterial(input);
       return projectOpen(await shell.open({
-        agentHandle: requireText(input.agentHandle, 'agentHandle'),
+        agentHandle: validateAgentHandle(input.agentHandle),
       }));
     },
     send: async (input) => {
       assertExactKeys(
         input,
-        ['agentHandle', 'conversationAnchorId', 'requestId', 'text', 'attachments'],
+        ['agentHandle', 'conversationAnchorId', 'requestId', 'text'],
         'local-app conversation send input',
       );
       assertNoAuthorityMaterial(input);
       const value = await shell.send({
-        agentHandle: requireText(input.agentHandle, 'agentHandle'),
-        conversationAnchorId: requireText(input.conversationAnchorId, 'conversationAnchorId'),
-        requestId: requireText(input.requestId, 'requestId'),
-        text: requireText(input.text, 'text'),
-        attachments: validateConversationAttachments(input.attachments),
+        agentHandle: validateAgentHandle(input.agentHandle),
+        conversationAnchorId: boundedSelector(input.conversationAnchorId, 'conversationAnchorId'),
+        requestId: boundedSelector(input.requestId, 'requestId'),
+        text: boundedTurnText(input.text),
       });
       const record = asRecord(value);
-      assertExactProjectionKeys(record, ['messageId'], 'conversation send');
-      return Object.freeze({ messageId: projectionText(record.messageId, 'messageId') });
+      assertExactProjectionKeys(record, ['turnId'], 'conversation send');
+      return Object.freeze({ turnId: boundedProjectionSelector(record.turnId, 'turnId') });
     },
     interruptTurn: async (input) => {
       const value = await shell.interruptTurn(conversationScope(input, 'interrupt'));
       const record = asRecord(value);
-      assertExactProjectionKeys(record, ['messageId'], 'conversation interrupt');
-      return Object.freeze({ messageId: projectionText(record.messageId, 'messageId') });
+      assertExactProjectionKeys(record, ['turnId'], 'conversation interrupt');
+      return Object.freeze({ turnId: boundedProjectionSelector(record.turnId, 'turnId') });
     },
     subscribe: async (input) => {
       const subscription = await shell.subscribe(conversationScope(input, 'subscribe'));
@@ -152,50 +178,9 @@ export function createNimiLocalAppConversationClient(
       };
       return Object.freeze(projected);
     },
-    snapshot: async (input) => {
-      const value = await shell.snapshot(conversationScope(input, 'snapshot'));
-      const record = asRecord(value);
-      if (!record) localAppProjectionError('conversation snapshot');
-      assertSafeProjection(record);
-      return Object.freeze({ ...record }) as NimiLocalAppConversationSnapshot;
-    },
-  });
-}
-
-function validateConversationAttachments(
-  value: unknown,
-): readonly NimiLocalAppConversationAttachment[] {
-  if (!Array.isArray(value) || value.length > 1) {
-    return localAppError(
-      'Local-app conversation attachments admit at most one item.',
-      'SDK_LOCAL_APP_INPUT_INVALID',
-      'provide_valid_conversation_attachment',
-    );
-  }
-  return value.map((item) => {
-    const record = asRecord(item);
-    if (!record || Object.keys(record).some((key) => key !== 'artifactId' && key !== 'displayName')) {
-      return localAppError(
-        'Local-app conversation attachment contains unsupported fields.',
-        'SDK_LOCAL_APP_INPUT_INVALID',
-        'provide_valid_conversation_attachment',
-      );
-    }
-    const artifactId = requireText(record.artifactId, 'attachments.artifactId');
-    if (record.displayName !== undefined && typeof record.displayName !== 'string') {
-      return localAppError(
-        'Local-app conversation attachment displayName must be a string.',
-        'SDK_LOCAL_APP_INPUT_INVALID',
-        'provide_valid_conversation_attachment',
-      );
-    }
-    const displayName = typeof record.displayName === 'string' && record.displayName.trim()
-      ? record.displayName.trim()
-      : '';
-    return Object.freeze({
-      artifactId,
-      ...(displayName ? { displayName } : {}),
-    });
+    snapshot: async (input) => projectSnapshot(
+      await shell.snapshot(conversationScope(input, 'snapshot')),
+    ),
   });
 }
 
@@ -210,8 +195,8 @@ function conversationScope(
   );
   assertNoAuthorityMaterial(input);
   return {
-    agentHandle: requireText(input.agentHandle, 'agentHandle'),
-    conversationAnchorId: requireText(input.conversationAnchorId, 'conversationAnchorId'),
+    agentHandle: validateAgentHandle(input.agentHandle),
+    conversationAnchorId: boundedSelector(input.conversationAnchorId, 'conversationAnchorId'),
   };
 }
 
@@ -219,48 +204,176 @@ function projectOpen(value: unknown): NimiLocalAppConversationOpenResult {
   const record = asRecord(value);
   assertExactProjectionKeys(
     record,
-    ['conversationAnchorId', 'activeTurnId', 'activeStreamId'],
+    ['conversationAnchorId', 'activeTurnId'],
     'conversation open',
   );
   return Object.freeze({
-    conversationAnchorId: projectionText(record.conversationAnchorId, 'conversationAnchorId'),
-    activeTurnId: nullableProjectionText(record.activeTurnId, 'activeTurnId'),
-    activeStreamId: nullableProjectionText(record.activeStreamId, 'activeStreamId'),
+    conversationAnchorId: boundedProjectionSelector(record.conversationAnchorId, 'conversationAnchorId'),
+    activeTurnId: nullableProjectionSelector(record.activeTurnId, 'activeTurnId'),
   });
 }
 
 function projectEvent(value: unknown): NimiLocalAppConversationEvent {
   const record = asRecord(value);
-  assertExactProjectionKeys(record, [
-    'eventType',
-    'sequence',
-    'messageId',
-    'messageType',
-    'payload',
-    'reasonCode',
-    'traceId',
-    'timestampUnixMs',
-  ], 'conversation event');
-  if (!Number.isSafeInteger(record.eventType)
+  if (!record || typeof record.type !== 'string'
     || typeof record.sequence !== 'string'
-    || !/^(?:0|[1-9][0-9]*)$/u.test(record.sequence)
-    || (record.timestampUnixMs !== null
-      && (!Number.isSafeInteger(record.timestampUnixMs) || Number(record.timestampUnixMs) < 0))) {
+    || !/^[1-9][0-9]*$/u.test(record.sequence)) {
     return localAppProjectionError('conversation event');
   }
-  assertSafeProjection(record.payload);
-  return Object.freeze({
-    eventType: record.eventType as number,
+  const base = Object.freeze({
+    conversationAnchorId: boundedProjectionSelector(record.conversationAnchorId, 'conversationAnchorId'),
     sequence: record.sequence,
-    messageId: projectionText(record.messageId, 'messageId'),
-    messageType: projectionText(record.messageType, 'messageType'),
-    payload: record.payload as JsonValue,
-    reasonCode: projectionText(record.reasonCode, 'reasonCode'),
-    traceId: projectionText(record.traceId, 'traceId'),
-    timestampUnixMs: record.timestampUnixMs as number | null,
+    turnId: boundedProjectionSelector(record.turnId, 'turnId'),
+  });
+  const commonKeys = ['type', 'conversationAnchorId', 'sequence', 'turnId'];
+  switch (record.type) {
+    case 'turn-accepted':
+      assertExactProjectionKeys(record, [...commonKeys, 'requestId'], 'turn accepted event');
+      return Object.freeze({ ...base, type: 'turn-accepted', requestId: boundedProjectionSelector(record.requestId, 'requestId') });
+    case 'turn-started':
+      assertExactProjectionKeys(record, commonKeys, 'turn started event');
+      return Object.freeze({ ...base, type: 'turn-started' });
+    case 'text-delta':
+      assertExactProjectionKeys(record, [...commonKeys, 'text'], 'text delta event');
+      return Object.freeze({ ...base, type: 'text-delta', text: boundedProjectionText(record.text, 'text', 64 * 1024) });
+    case 'message-committed':
+      assertExactProjectionKeys(record, [...commonKeys, 'messageId', 'text'], 'message committed event');
+      return Object.freeze({
+        ...base,
+        type: 'message-committed',
+        messageId: boundedProjectionSelector(record.messageId, 'messageId'),
+        text: boundedProjectionText(record.text, 'text', 64 * 1024),
+      });
+    case 'turn-completed': {
+      assertExactProjectionKeys(record, [...commonKeys, 'terminalReason'], 'turn completed event');
+      const terminalReason = record.terminalReason;
+      if (typeof terminalReason !== 'string'
+        || !['', 'stop', 'length', 'tool_call', 'content_filter', 'error', 'unspecified'].includes(terminalReason)) {
+        return localAppProjectionError('turn completed terminalReason');
+      }
+      return Object.freeze({
+        ...base,
+        type: 'turn-completed',
+        terminalReason: terminalReason as Extract<NimiLocalAppConversationEvent, { type: 'turn-completed' }>['terminalReason'],
+      });
+    }
+    case 'turn-failed': {
+      assertExactProjectionKeys(record, [...commonKeys, 'reasonCode', 'message'], 'turn failed event');
+      if (typeof record.reasonCode !== 'string' || !/^[A-Z0-9_-]{1,128}$/u.test(record.reasonCode)
+        || (record.message !== null && typeof record.message !== 'string')) {
+        return localAppProjectionError('turn failed event');
+      }
+      const message = record.message === null
+        ? null
+        : boundedProjectionText(record.message, 'message', 1024);
+      return Object.freeze({ ...base, type: 'turn-failed', reasonCode: record.reasonCode, message });
+    }
+    case 'turn-interrupted': {
+      assertExactProjectionKeys(record, [...commonKeys, 'reason'], 'turn interrupted event');
+      const reason = record.reason;
+      if (typeof reason !== 'string'
+        || !['user_cancel', 'room_closed', 'superseded_turn', 'budget_exhausted', 'timeout', 'gateway_revoked', 'policy_refusal'].includes(reason)) {
+        return localAppProjectionError('turn interrupted reason');
+      }
+      return Object.freeze({
+        ...base,
+        type: 'turn-interrupted',
+        reason: reason as Extract<NimiLocalAppConversationEvent, { type: 'turn-interrupted' }>['reason'],
+      });
+    }
+    default:
+      return localAppProjectionError('conversation event type');
+  }
+}
+
+function projectSnapshot(value: unknown): NimiLocalAppConversationSnapshot {
+  const record = asRecord(value);
+  assertExactProjectionKeys(
+    record,
+    ['conversationAnchorId', 'activeTurnId', 'messages', 'truncatedBefore'],
+    'conversation snapshot',
+  );
+  if (!Array.isArray(record.messages) || record.messages.length > 200
+    || typeof record.truncatedBefore !== 'boolean') {
+    return localAppProjectionError('conversation snapshot');
+  }
+  let textBytes = 0;
+  const messages = record.messages.map((value) => {
+    const message = asRecord(value);
+    assertExactProjectionKeys(message, ['turnId', 'role', 'text'], 'conversation message');
+    if (message.role !== 'user' && message.role !== 'assistant') {
+      return localAppProjectionError('conversation message role');
+    }
+    const text = boundedProjectionText(message.text, 'conversation message text', 64 * 1024);
+    textBytes += new TextEncoder().encode(text).byteLength;
+    if (textBytes > 1024 * 1024) return localAppProjectionError('conversation snapshot size');
+    return Object.freeze({
+      turnId: boundedProjectionSelector(message.turnId, 'turnId'),
+      role: message.role,
+      text,
+    });
+  });
+  return Object.freeze({
+    conversationAnchorId: boundedProjectionSelector(record.conversationAnchorId, 'conversationAnchorId'),
+    activeTurnId: nullableProjectionSelector(record.activeTurnId, 'activeTurnId'),
+    messages: Object.freeze(messages),
+    truncatedBefore: record.truncatedBefore,
   });
 }
 
-function nullableProjectionText(value: unknown, field: string): string | null {
-  return value === null ? null : projectionText(value, field);
+function validateAgentHandle(value: unknown): string {
+  const handle = requireText(value, 'agentHandle');
+  if (!/^agent_ref_[A-Za-z0-9_-]{43}$/u.test(handle)) {
+    return localAppError(
+      'Local-app Agent handle is invalid.',
+      'SDK_LOCAL_APP_INPUT_INVALID',
+      'list_current_agent_references',
+    );
+  }
+  return handle;
+}
+
+function boundedSelector(value: unknown, field: string): string {
+  const text = requireText(value, field);
+  if (new TextEncoder().encode(text).byteLength > 256 || /[\u0000-\u001f\u007f]/u.test(text)) {
+    return localAppError(
+      `Local-app conversation ${field} is invalid.`,
+      'SDK_LOCAL_APP_INPUT_INVALID',
+      'provide_valid_conversation_selector',
+    );
+  }
+  return text;
+}
+
+function boundedTurnText(value: unknown): string {
+  if (typeof value !== 'string' || !value.trim()
+    || value.includes('\u0000')
+    || new TextEncoder().encode(value).byteLength > 64 * 1024) {
+    return localAppError(
+      'Local-app conversation text is invalid.',
+      'SDK_LOCAL_APP_INPUT_INVALID',
+      'provide_valid_conversation_text',
+    );
+  }
+  return value;
+}
+
+function boundedProjectionSelector(value: unknown, field: string): string {
+  const text = projectionText(value, field);
+  if (new TextEncoder().encode(text).byteLength > 256 || /[\u0000-\u001f\u007f]/u.test(text)) {
+    return localAppProjectionError(`conversation ${field}`);
+  }
+  return text;
+}
+
+function boundedProjectionText(value: unknown, field: string, maxBytes: number): string {
+  if (typeof value !== 'string' || !value.trim() || value.includes('\u0000')
+    || new TextEncoder().encode(value).byteLength > maxBytes) {
+    return localAppProjectionError(`conversation ${field}`);
+  }
+  return value;
+}
+
+function nullableProjectionSelector(value: unknown, field: string): string | null {
+  return value === null ? null : boundedProjectionSelector(value, field);
 }

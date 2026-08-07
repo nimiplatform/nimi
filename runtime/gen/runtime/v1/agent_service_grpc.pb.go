@@ -24,6 +24,11 @@ const (
 	RuntimeAgentService_GetAgent_FullMethodName                                  = "/nimi.runtime.v1.RuntimeAgentService/GetAgent"
 	RuntimeAgentService_ListAgents_FullMethodName                                = "/nimi.runtime.v1.RuntimeAgentService/ListAgents"
 	RuntimeAgentService_ListLocalAppAgentReferences_FullMethodName               = "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentReferences"
+	RuntimeAgentService_OpenLocalAppConversation_FullMethodName                  = "/nimi.runtime.v1.RuntimeAgentService/OpenLocalAppConversation"
+	RuntimeAgentService_SendLocalAppConversationTurn_FullMethodName              = "/nimi.runtime.v1.RuntimeAgentService/SendLocalAppConversationTurn"
+	RuntimeAgentService_InterruptLocalAppConversationTurn_FullMethodName         = "/nimi.runtime.v1.RuntimeAgentService/InterruptLocalAppConversationTurn"
+	RuntimeAgentService_SubscribeLocalAppConversationEvents_FullMethodName       = "/nimi.runtime.v1.RuntimeAgentService/SubscribeLocalAppConversationEvents"
+	RuntimeAgentService_GetLocalAppConversationSnapshot_FullMethodName           = "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppConversationSnapshot"
 	RuntimeAgentService_OpenConversationAnchor_FullMethodName                    = "/nimi.runtime.v1.RuntimeAgentService/OpenConversationAnchor"
 	RuntimeAgentService_GetConversationAnchorSnapshot_FullMethodName             = "/nimi.runtime.v1.RuntimeAgentService/GetConversationAnchorSnapshot"
 	RuntimeAgentService_RegisterAvatarLiveInstanceBinding_FullMethodName         = "/nimi.runtime.v1.RuntimeAgentService/RegisterAvatarLiveInstanceBinding"
@@ -88,6 +93,11 @@ type RuntimeAgentServiceClient interface {
 	GetAgent(ctx context.Context, in *GetAgentRequest, opts ...grpc.CallOption) (*GetAgentResponse, error)
 	ListAgents(ctx context.Context, in *ListAgentsRequest, opts ...grpc.CallOption) (*ListAgentsResponse, error)
 	ListLocalAppAgentReferences(ctx context.Context, in *ListLocalAppAgentReferencesRequest, opts ...grpc.CallOption) (*ListLocalAppAgentReferencesResponse, error)
+	OpenLocalAppConversation(ctx context.Context, in *OpenLocalAppConversationRequest, opts ...grpc.CallOption) (*OpenLocalAppConversationResponse, error)
+	SendLocalAppConversationTurn(ctx context.Context, in *SendLocalAppConversationTurnRequest, opts ...grpc.CallOption) (*SendLocalAppConversationTurnResponse, error)
+	InterruptLocalAppConversationTurn(ctx context.Context, in *InterruptLocalAppConversationTurnRequest, opts ...grpc.CallOption) (*InterruptLocalAppConversationTurnResponse, error)
+	SubscribeLocalAppConversationEvents(ctx context.Context, in *SubscribeLocalAppConversationEventsRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[LocalAppConversationEvent], error)
+	GetLocalAppConversationSnapshot(ctx context.Context, in *GetLocalAppConversationSnapshotRequest, opts ...grpc.CallOption) (*GetLocalAppConversationSnapshotResponse, error)
 	OpenConversationAnchor(ctx context.Context, in *OpenConversationAnchorRequest, opts ...grpc.CallOption) (*OpenConversationAnchorResponse, error)
 	GetConversationAnchorSnapshot(ctx context.Context, in *GetConversationAnchorSnapshotRequest, opts ...grpc.CallOption) (*GetConversationAnchorSnapshotResponse, error)
 	RegisterAvatarLiveInstanceBinding(ctx context.Context, in *RegisterAvatarLiveInstanceBindingRequest, opts ...grpc.CallOption) (*RegisterAvatarLiveInstanceBindingResponse, error)
@@ -195,6 +205,65 @@ func (c *runtimeAgentServiceClient) ListLocalAppAgentReferences(ctx context.Cont
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ListLocalAppAgentReferencesResponse)
 	err := c.cc.Invoke(ctx, RuntimeAgentService_ListLocalAppAgentReferences_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeAgentServiceClient) OpenLocalAppConversation(ctx context.Context, in *OpenLocalAppConversationRequest, opts ...grpc.CallOption) (*OpenLocalAppConversationResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(OpenLocalAppConversationResponse)
+	err := c.cc.Invoke(ctx, RuntimeAgentService_OpenLocalAppConversation_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeAgentServiceClient) SendLocalAppConversationTurn(ctx context.Context, in *SendLocalAppConversationTurnRequest, opts ...grpc.CallOption) (*SendLocalAppConversationTurnResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(SendLocalAppConversationTurnResponse)
+	err := c.cc.Invoke(ctx, RuntimeAgentService_SendLocalAppConversationTurn_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeAgentServiceClient) InterruptLocalAppConversationTurn(ctx context.Context, in *InterruptLocalAppConversationTurnRequest, opts ...grpc.CallOption) (*InterruptLocalAppConversationTurnResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(InterruptLocalAppConversationTurnResponse)
+	err := c.cc.Invoke(ctx, RuntimeAgentService_InterruptLocalAppConversationTurn_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeAgentServiceClient) SubscribeLocalAppConversationEvents(ctx context.Context, in *SubscribeLocalAppConversationEventsRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[LocalAppConversationEvent], error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	stream, err := c.cc.NewStream(ctx, &RuntimeAgentService_ServiceDesc.Streams[0], RuntimeAgentService_SubscribeLocalAppConversationEvents_FullMethodName, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &grpc.GenericClientStream[SubscribeLocalAppConversationEventsRequest, LocalAppConversationEvent]{ClientStream: stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type RuntimeAgentService_SubscribeLocalAppConversationEventsClient = grpc.ServerStreamingClient[LocalAppConversationEvent]
+
+func (c *runtimeAgentServiceClient) GetLocalAppConversationSnapshot(ctx context.Context, in *GetLocalAppConversationSnapshotRequest, opts ...grpc.CallOption) (*GetLocalAppConversationSnapshotResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetLocalAppConversationSnapshotResponse)
+	err := c.cc.Invoke(ctx, RuntimeAgentService_GetLocalAppConversationSnapshot_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -553,7 +622,7 @@ func (c *runtimeAgentServiceClient) GetAgentCanonicalMemoryReviewStatus(ctx cont
 
 func (c *runtimeAgentServiceClient) SubscribeAgentEvents(ctx context.Context, in *SubscribeAgentEventsRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[AgentEvent], error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	stream, err := c.cc.NewStream(ctx, &RuntimeAgentService_ServiceDesc.Streams[0], RuntimeAgentService_SubscribeAgentEvents_FullMethodName, cOpts...)
+	stream, err := c.cc.NewStream(ctx, &RuntimeAgentService_ServiceDesc.Streams[1], RuntimeAgentService_SubscribeAgentEvents_FullMethodName, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -572,7 +641,7 @@ type RuntimeAgentService_SubscribeAgentEventsClient = grpc.ServerStreamingClient
 
 func (c *runtimeAgentServiceClient) SubscribeAgentVoiceStream(ctx context.Context, in *SubscribeAgentVoiceStreamRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[AgentVoiceStreamEvent], error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	stream, err := c.cc.NewStream(ctx, &RuntimeAgentService_ServiceDesc.Streams[1], RuntimeAgentService_SubscribeAgentVoiceStream_FullMethodName, cOpts...)
+	stream, err := c.cc.NewStream(ctx, &RuntimeAgentService_ServiceDesc.Streams[2], RuntimeAgentService_SubscribeAgentVoiceStream_FullMethodName, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -731,6 +800,11 @@ type RuntimeAgentServiceServer interface {
 	GetAgent(context.Context, *GetAgentRequest) (*GetAgentResponse, error)
 	ListAgents(context.Context, *ListAgentsRequest) (*ListAgentsResponse, error)
 	ListLocalAppAgentReferences(context.Context, *ListLocalAppAgentReferencesRequest) (*ListLocalAppAgentReferencesResponse, error)
+	OpenLocalAppConversation(context.Context, *OpenLocalAppConversationRequest) (*OpenLocalAppConversationResponse, error)
+	SendLocalAppConversationTurn(context.Context, *SendLocalAppConversationTurnRequest) (*SendLocalAppConversationTurnResponse, error)
+	InterruptLocalAppConversationTurn(context.Context, *InterruptLocalAppConversationTurnRequest) (*InterruptLocalAppConversationTurnResponse, error)
+	SubscribeLocalAppConversationEvents(*SubscribeLocalAppConversationEventsRequest, grpc.ServerStreamingServer[LocalAppConversationEvent]) error
+	GetLocalAppConversationSnapshot(context.Context, *GetLocalAppConversationSnapshotRequest) (*GetLocalAppConversationSnapshotResponse, error)
 	OpenConversationAnchor(context.Context, *OpenConversationAnchorRequest) (*OpenConversationAnchorResponse, error)
 	GetConversationAnchorSnapshot(context.Context, *GetConversationAnchorSnapshotRequest) (*GetConversationAnchorSnapshotResponse, error)
 	RegisterAvatarLiveInstanceBinding(context.Context, *RegisterAvatarLiveInstanceBindingRequest) (*RegisterAvatarLiveInstanceBindingResponse, error)
@@ -807,6 +881,21 @@ func (UnimplementedRuntimeAgentServiceServer) ListAgents(context.Context, *ListA
 }
 func (UnimplementedRuntimeAgentServiceServer) ListLocalAppAgentReferences(context.Context, *ListLocalAppAgentReferencesRequest) (*ListLocalAppAgentReferencesResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListLocalAppAgentReferences not implemented")
+}
+func (UnimplementedRuntimeAgentServiceServer) OpenLocalAppConversation(context.Context, *OpenLocalAppConversationRequest) (*OpenLocalAppConversationResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method OpenLocalAppConversation not implemented")
+}
+func (UnimplementedRuntimeAgentServiceServer) SendLocalAppConversationTurn(context.Context, *SendLocalAppConversationTurnRequest) (*SendLocalAppConversationTurnResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method SendLocalAppConversationTurn not implemented")
+}
+func (UnimplementedRuntimeAgentServiceServer) InterruptLocalAppConversationTurn(context.Context, *InterruptLocalAppConversationTurnRequest) (*InterruptLocalAppConversationTurnResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method InterruptLocalAppConversationTurn not implemented")
+}
+func (UnimplementedRuntimeAgentServiceServer) SubscribeLocalAppConversationEvents(*SubscribeLocalAppConversationEventsRequest, grpc.ServerStreamingServer[LocalAppConversationEvent]) error {
+	return status.Error(codes.Unimplemented, "method SubscribeLocalAppConversationEvents not implemented")
+}
+func (UnimplementedRuntimeAgentServiceServer) GetLocalAppConversationSnapshot(context.Context, *GetLocalAppConversationSnapshotRequest) (*GetLocalAppConversationSnapshotResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetLocalAppConversationSnapshot not implemented")
 }
 func (UnimplementedRuntimeAgentServiceServer) OpenConversationAnchor(context.Context, *OpenConversationAnchorRequest) (*OpenConversationAnchorResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method OpenConversationAnchor not implemented")
@@ -1064,6 +1153,89 @@ func _RuntimeAgentService_ListLocalAppAgentReferences_Handler(srv interface{}, c
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(RuntimeAgentServiceServer).ListLocalAppAgentReferences(ctx, req.(*ListLocalAppAgentReferencesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeAgentService_OpenLocalAppConversation_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(OpenLocalAppConversationRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeAgentServiceServer).OpenLocalAppConversation(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeAgentService_OpenLocalAppConversation_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeAgentServiceServer).OpenLocalAppConversation(ctx, req.(*OpenLocalAppConversationRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeAgentService_SendLocalAppConversationTurn_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SendLocalAppConversationTurnRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeAgentServiceServer).SendLocalAppConversationTurn(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeAgentService_SendLocalAppConversationTurn_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeAgentServiceServer).SendLocalAppConversationTurn(ctx, req.(*SendLocalAppConversationTurnRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeAgentService_InterruptLocalAppConversationTurn_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(InterruptLocalAppConversationTurnRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeAgentServiceServer).InterruptLocalAppConversationTurn(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeAgentService_InterruptLocalAppConversationTurn_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeAgentServiceServer).InterruptLocalAppConversationTurn(ctx, req.(*InterruptLocalAppConversationTurnRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeAgentService_SubscribeLocalAppConversationEvents_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(SubscribeLocalAppConversationEventsRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(RuntimeAgentServiceServer).SubscribeLocalAppConversationEvents(m, &grpc.GenericServerStream[SubscribeLocalAppConversationEventsRequest, LocalAppConversationEvent]{ServerStream: stream})
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type RuntimeAgentService_SubscribeLocalAppConversationEventsServer = grpc.ServerStreamingServer[LocalAppConversationEvent]
+
+func _RuntimeAgentService_GetLocalAppConversationSnapshot_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetLocalAppConversationSnapshotRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeAgentServiceServer).GetLocalAppConversationSnapshot(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeAgentService_GetLocalAppConversationSnapshot_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeAgentServiceServer).GetLocalAppConversationSnapshot(ctx, req.(*GetLocalAppConversationSnapshotRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -1982,6 +2154,22 @@ var RuntimeAgentService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _RuntimeAgentService_ListLocalAppAgentReferences_Handler,
 		},
 		{
+			MethodName: "OpenLocalAppConversation",
+			Handler:    _RuntimeAgentService_OpenLocalAppConversation_Handler,
+		},
+		{
+			MethodName: "SendLocalAppConversationTurn",
+			Handler:    _RuntimeAgentService_SendLocalAppConversationTurn_Handler,
+		},
+		{
+			MethodName: "InterruptLocalAppConversationTurn",
+			Handler:    _RuntimeAgentService_InterruptLocalAppConversationTurn_Handler,
+		},
+		{
+			MethodName: "GetLocalAppConversationSnapshot",
+			Handler:    _RuntimeAgentService_GetLocalAppConversationSnapshot_Handler,
+		},
+		{
 			MethodName: "OpenConversationAnchor",
 			Handler:    _RuntimeAgentService_OpenConversationAnchor_Handler,
 		},
@@ -2175,6 +2363,11 @@ var RuntimeAgentService_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "SubscribeLocalAppConversationEvents",
+			Handler:       _RuntimeAgentService_SubscribeLocalAppConversationEvents_Handler,
+			ServerStreams: true,
+		},
 		{
 			StreamName:    "SubscribeAgentEvents",
 			Handler:       _RuntimeAgentService_SubscribeAgentEvents_Handler,

@@ -1219,6 +1219,19 @@ impl Default for LocalAppAgentAutonomyMode {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub enum LocalAppConversationMessageRole {
+    LOCALAPPCONVERSATIONMESSAGEROLEUNSPECIFIED,
+    LOCALAPPCONVERSATIONMESSAGEROLEUSER,
+    LOCALAPPCONVERSATIONMESSAGEROLEASSISTANT,
+}
+
+impl Default for LocalAppConversationMessageRole {
+    fn default() -> Self {
+        Self::LOCALAPPCONVERSATIONMESSAGEROLEUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum LocalAppSessionState {
     LOCALAPPSESSIONSTATEUNSPECIFIED,
     LOCALAPPSESSIONSTATEREADY,
@@ -11005,6 +11018,59 @@ impl GetLocalAppAgentPresentationSnapshotRequest {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct GetLocalAppConversationSnapshotRequest {
+    pub agent_handle: Option<String>,
+    pub conversation_anchor_id: Option<String>,
+}
+
+impl GetLocalAppConversationSnapshotRequest {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.agent_handle { pairs.push(format!("agent_handle={}", value)); }
+        if let Some(value) = &self.conversation_anchor_id { pairs.push(format!("conversation_anchor_id={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+
+        out.agent_handle = pairs.get("agent_handle").cloned();
+        out.conversation_anchor_id = pairs.get("conversation_anchor_id").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct GetLocalAppConversationSnapshotResponse {
+    pub snapshot: Option<Box<LocalAppConversationSnapshot>>,
+}
+
+impl GetLocalAppConversationSnapshotResponse {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let pairs: Vec<String> = Vec::new();
+        if self.snapshot.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode snapshot"); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let out = Self::default();
+        for key in ["snapshot"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+        if !pairs.is_empty() {
+            panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client has no decoder for response fields");
+        }
+
+
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct GetLocalAppSharedLocalAgentAIConfigRequest {
 
 }
@@ -12578,6 +12644,51 @@ impl InterruptAgentVoicePlaybackResponse {
 
         out.voice_stream_id = pairs.get("voice_stream_id").cloned();
         out.terminal_reason = pairs.get("terminal_reason").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct InterruptLocalAppConversationTurnRequest {
+    pub agent_handle: Option<String>,
+    pub conversation_anchor_id: Option<String>,
+}
+
+impl InterruptLocalAppConversationTurnRequest {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.agent_handle { pairs.push(format!("agent_handle={}", value)); }
+        if let Some(value) = &self.conversation_anchor_id { pairs.push(format!("conversation_anchor_id={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+
+        out.agent_handle = pairs.get("agent_handle").cloned();
+        out.conversation_anchor_id = pairs.get("conversation_anchor_id").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct InterruptLocalAppConversationTurnResponse {
+    pub turn_id: Option<String>,
+}
+
+impl InterruptLocalAppConversationTurnResponse {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.turn_id { pairs.push(format!("turn_id={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+
+        out.turn_id = pairs.get("turn_id").cloned();
         out
     }
 }
@@ -14357,6 +14468,53 @@ impl ListLinksResponse {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct ListLocalAppAgentReferencesRequest {
+
+}
+
+impl ListLocalAppAgentReferencesRequest {
+    pub fn to_transport(&self) -> Vec<u8> {
+        Vec::new()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        if !raw.is_empty() {
+            panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client received undecodable response payload");
+        }
+        Self::default()
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ListLocalAppAgentReferencesResponse {
+    pub references: Vec<Box<LocalAppAgentReference>>,
+}
+
+impl ListLocalAppAgentReferencesResponse {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let pairs: Vec<String> = Vec::new();
+        if !self.references.is_empty() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode references"); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let out = Self::default();
+        for key in ["references"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+        if !pairs.is_empty() {
+            panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client has no decoder for response fields");
+        }
+
+
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct ListLocalAssetsRequest {
     pub status_filter: Option<LocalAssetStatus>,
     pub kind_filter: Option<LocalAssetKind>,
@@ -15863,6 +16021,33 @@ impl LocalAppAgentPresentationSnapshotResponse {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct LocalAppAgentReference {
+    pub agent_handle: Option<String>,
+    pub display_name: Option<String>,
+    pub avatar_url: Option<String>,
+}
+
+impl LocalAppAgentReference {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.agent_handle { pairs.push(format!("agent_handle={}", value)); }
+        if let Some(value) = &self.display_name { pairs.push(format!("display_name={}", value)); }
+        if let Some(value) = &self.avatar_url { pairs.push(format!("avatar_url={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+
+        out.agent_handle = pairs.get("agent_handle").cloned();
+        out.display_name = pairs.get("display_name").cloned();
+        out.avatar_url = pairs.get("avatar_url").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct LocalAppAgentUpdateAutonomyResponse {
     pub projection: Option<Box<LocalAppAgentAutonomyProjection>>,
 }
@@ -15887,6 +16072,285 @@ impl LocalAppAgentUpdateAutonomyResponse {
         }
 
 
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct LocalAppConversationEvent {
+    pub conversation_anchor_id: Option<String>,
+    pub sequence: Option<u64>,
+    pub turn_accepted: Option<Box<LocalAppConversationTurnAccepted>>,
+    pub turn_started: Option<Box<LocalAppConversationTurnStarted>>,
+    pub text_delta: Option<Box<LocalAppConversationTextDelta>>,
+    pub message_committed: Option<Box<LocalAppConversationMessageCommitted>>,
+    pub turn_completed: Option<Box<LocalAppConversationTurnCompleted>>,
+    pub turn_failed: Option<Box<LocalAppConversationTurnFailed>>,
+    pub turn_interrupted: Option<Box<LocalAppConversationTurnInterrupted>>,
+}
+
+impl LocalAppConversationEvent {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.conversation_anchor_id { pairs.push(format!("conversation_anchor_id={}", value)); }
+        if let Some(value) = &self.sequence { pairs.push(format!("sequence={}", value)); }
+        if self.turn_accepted.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode turn_accepted"); }
+        if self.turn_started.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode turn_started"); }
+        if self.text_delta.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode text_delta"); }
+        if self.message_committed.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode message_committed"); }
+        if self.turn_completed.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode turn_completed"); }
+        if self.turn_failed.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode turn_failed"); }
+        if self.turn_interrupted.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode turn_interrupted"); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        for key in ["turn_accepted", "turn_started", "text_delta", "message_committed", "turn_completed", "turn_failed", "turn_interrupted"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+
+        out.conversation_anchor_id = pairs.get("conversation_anchor_id").cloned();
+        out.sequence = pairs.get("sequence").and_then(|value| value.parse().ok());
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct LocalAppConversationMessage {
+    pub turn_id: Option<String>,
+    pub role: Option<LocalAppConversationMessageRole>,
+    pub text: Option<String>,
+}
+
+impl LocalAppConversationMessage {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.turn_id { pairs.push(format!("turn_id={}", value)); }
+        if let Some(value) = &self.role { pairs.push(format!("role={:?}", value)); }
+        if let Some(value) = &self.text { pairs.push(format!("text={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        for key in ["role"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+
+        out.turn_id = pairs.get("turn_id").cloned();
+        out.text = pairs.get("text").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct LocalAppConversationMessageCommitted {
+    pub turn_id: Option<String>,
+    pub message_id: Option<String>,
+    pub text: Option<String>,
+}
+
+impl LocalAppConversationMessageCommitted {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.turn_id { pairs.push(format!("turn_id={}", value)); }
+        if let Some(value) = &self.message_id { pairs.push(format!("message_id={}", value)); }
+        if let Some(value) = &self.text { pairs.push(format!("text={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+
+        out.turn_id = pairs.get("turn_id").cloned();
+        out.message_id = pairs.get("message_id").cloned();
+        out.text = pairs.get("text").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct LocalAppConversationSnapshot {
+    pub conversation_anchor_id: Option<String>,
+    pub active_turn_id: Option<String>,
+    pub messages: Vec<Box<LocalAppConversationMessage>>,
+    pub truncated_before: Option<bool>,
+}
+
+impl LocalAppConversationSnapshot {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.conversation_anchor_id { pairs.push(format!("conversation_anchor_id={}", value)); }
+        if let Some(value) = &self.active_turn_id { pairs.push(format!("active_turn_id={}", value)); }
+        if !self.messages.is_empty() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode messages"); }
+        if let Some(value) = &self.truncated_before { pairs.push(format!("truncated_before={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        for key in ["messages"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+
+        out.conversation_anchor_id = pairs.get("conversation_anchor_id").cloned();
+        out.active_turn_id = pairs.get("active_turn_id").cloned();
+        out.truncated_before = pairs.get("truncated_before").and_then(|value| value.parse().ok());
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct LocalAppConversationTextDelta {
+    pub turn_id: Option<String>,
+    pub text: Option<String>,
+}
+
+impl LocalAppConversationTextDelta {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.turn_id { pairs.push(format!("turn_id={}", value)); }
+        if let Some(value) = &self.text { pairs.push(format!("text={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+
+        out.turn_id = pairs.get("turn_id").cloned();
+        out.text = pairs.get("text").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct LocalAppConversationTurnAccepted {
+    pub turn_id: Option<String>,
+    pub request_id: Option<String>,
+}
+
+impl LocalAppConversationTurnAccepted {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.turn_id { pairs.push(format!("turn_id={}", value)); }
+        if let Some(value) = &self.request_id { pairs.push(format!("request_id={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+
+        out.turn_id = pairs.get("turn_id").cloned();
+        out.request_id = pairs.get("request_id").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct LocalAppConversationTurnCompleted {
+    pub turn_id: Option<String>,
+    pub terminal_reason: Option<String>,
+}
+
+impl LocalAppConversationTurnCompleted {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.turn_id { pairs.push(format!("turn_id={}", value)); }
+        if let Some(value) = &self.terminal_reason { pairs.push(format!("terminal_reason={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+
+        out.turn_id = pairs.get("turn_id").cloned();
+        out.terminal_reason = pairs.get("terminal_reason").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct LocalAppConversationTurnFailed {
+    pub turn_id: Option<String>,
+    pub reason_code: Option<String>,
+    pub message: Option<String>,
+}
+
+impl LocalAppConversationTurnFailed {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.turn_id { pairs.push(format!("turn_id={}", value)); }
+        if let Some(value) = &self.reason_code { pairs.push(format!("reason_code={}", value)); }
+        if let Some(value) = &self.message { pairs.push(format!("message={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+
+        out.turn_id = pairs.get("turn_id").cloned();
+        out.reason_code = pairs.get("reason_code").cloned();
+        out.message = pairs.get("message").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct LocalAppConversationTurnInterrupted {
+    pub turn_id: Option<String>,
+    pub reason: Option<String>,
+}
+
+impl LocalAppConversationTurnInterrupted {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.turn_id { pairs.push(format!("turn_id={}", value)); }
+        if let Some(value) = &self.reason { pairs.push(format!("reason={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+
+        out.turn_id = pairs.get("turn_id").cloned();
+        out.reason = pairs.get("reason").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct LocalAppConversationTurnStarted {
+    pub turn_id: Option<String>,
+}
+
+impl LocalAppConversationTurnStarted {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.turn_id { pairs.push(format!("turn_id={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+
+        out.turn_id = pairs.get("turn_id").cloned();
         out
     }
 }
@@ -20358,6 +20822,51 @@ impl OpenExternalPrincipalSessionResponse {
         out.external_session_id = pairs.get("external_session_id").cloned();
         out.expires_at = pairs.get("expires_at").cloned();
         out.session_token = pairs.get("session_token").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct OpenLocalAppConversationRequest {
+    pub agent_handle: Option<String>,
+}
+
+impl OpenLocalAppConversationRequest {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.agent_handle { pairs.push(format!("agent_handle={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+
+        out.agent_handle = pairs.get("agent_handle").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct OpenLocalAppConversationResponse {
+    pub conversation_anchor_id: Option<String>,
+    pub active_turn_id: Option<String>,
+}
+
+impl OpenLocalAppConversationResponse {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.conversation_anchor_id { pairs.push(format!("conversation_anchor_id={}", value)); }
+        if let Some(value) = &self.active_turn_id { pairs.push(format!("active_turn_id={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+
+        out.conversation_anchor_id = pairs.get("conversation_anchor_id").cloned();
+        out.active_turn_id = pairs.get("active_turn_id").cloned();
         out
     }
 }
@@ -25524,6 +26033,57 @@ impl SendAppMessageResponse {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct SendLocalAppConversationTurnRequest {
+    pub agent_handle: Option<String>,
+    pub conversation_anchor_id: Option<String>,
+    pub request_id: Option<String>,
+    pub text: Option<String>,
+}
+
+impl SendLocalAppConversationTurnRequest {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.agent_handle { pairs.push(format!("agent_handle={}", value)); }
+        if let Some(value) = &self.conversation_anchor_id { pairs.push(format!("conversation_anchor_id={}", value)); }
+        if let Some(value) = &self.request_id { pairs.push(format!("request_id={}", value)); }
+        if let Some(value) = &self.text { pairs.push(format!("text={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+
+        out.agent_handle = pairs.get("agent_handle").cloned();
+        out.conversation_anchor_id = pairs.get("conversation_anchor_id").cloned();
+        out.request_id = pairs.get("request_id").cloned();
+        out.text = pairs.get("text").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct SendLocalAppConversationTurnResponse {
+    pub turn_id: Option<String>,
+}
+
+impl SendLocalAppConversationTurnResponse {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.turn_id { pairs.push(format!("turn_id={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+
+        out.turn_id = pairs.get("turn_id").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct SetAgentPresentationProfileRequest {
     pub context: Option<Box<AgentRequestContext>>,
     pub agent_id: Option<String>,
@@ -26780,6 +27340,30 @@ impl SubscribeAppMessagesRequest {
         out.cursor = pairs.get("cursor").cloned();
         out.from_app_ids = parse_repeated_string(raw, "from_app_ids");
         out.local_agent_ref = pairs.get("local_agent_ref").cloned();
+        out.conversation_anchor_id = pairs.get("conversation_anchor_id").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct SubscribeLocalAppConversationEventsRequest {
+    pub agent_handle: Option<String>,
+    pub conversation_anchor_id: Option<String>,
+}
+
+impl SubscribeLocalAppConversationEventsRequest {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.agent_handle { pairs.push(format!("agent_handle={}", value)); }
+        if let Some(value) = &self.conversation_anchor_id { pairs.push(format!("conversation_anchor_id={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+
+        out.agent_handle = pairs.get("agent_handle").cloned();
         out.conversation_anchor_id = pairs.get("conversation_anchor_id").cloned();
         out
     }
@@ -30729,6 +31313,18 @@ impl From<Vec<u8>> for GetLocalAppAgentPresentationSnapshotRequest {
     }
 }
 
+impl From<Vec<u8>> for GetLocalAppConversationSnapshotRequest {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for GetLocalAppConversationSnapshotResponse {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
 impl From<Vec<u8>> for GetLocalAppSharedLocalAgentAIConfigRequest {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
@@ -31042,6 +31638,18 @@ impl From<Vec<u8>> for InterruptAgentVoicePlaybackRequest {
 }
 
 impl From<Vec<u8>> for InterruptAgentVoicePlaybackResponse {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for InterruptLocalAppConversationTurnRequest {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for InterruptLocalAppConversationTurnResponse {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
     }
@@ -31371,6 +31979,18 @@ impl From<Vec<u8>> for ListLinksResponse {
     }
 }
 
+impl From<Vec<u8>> for ListLocalAppAgentReferencesRequest {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for ListLocalAppAgentReferencesResponse {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
 impl From<Vec<u8>> for ListLocalAssetsRequest {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
@@ -31653,7 +32273,73 @@ impl From<Vec<u8>> for LocalAppAgentPresentationSnapshotResponse {
     }
 }
 
+impl From<Vec<u8>> for LocalAppAgentReference {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
 impl From<Vec<u8>> for LocalAppAgentUpdateAutonomyResponse {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for LocalAppConversationEvent {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for LocalAppConversationMessage {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for LocalAppConversationMessageCommitted {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for LocalAppConversationSnapshot {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for LocalAppConversationTextDelta {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for LocalAppConversationTurnAccepted {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for LocalAppConversationTurnCompleted {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for LocalAppConversationTurnFailed {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for LocalAppConversationTurnInterrupted {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for LocalAppConversationTurnStarted {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
     }
@@ -32296,6 +32982,18 @@ impl From<Vec<u8>> for OpenExternalPrincipalSessionRequest {
 }
 
 impl From<Vec<u8>> for OpenExternalPrincipalSessionResponse {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for OpenLocalAppConversationRequest {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for OpenLocalAppConversationResponse {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
     }
@@ -33291,6 +33989,18 @@ impl From<Vec<u8>> for SendAppMessageResponse {
     }
 }
 
+impl From<Vec<u8>> for SendLocalAppConversationTurnRequest {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for SendLocalAppConversationTurnResponse {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
 impl From<Vec<u8>> for SetAgentPresentationProfileRequest {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
@@ -33532,6 +34242,12 @@ impl From<Vec<u8>> for SubscribeAgentVoiceStreamRequest {
 }
 
 impl From<Vec<u8>> for SubscribeAppMessagesRequest {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for SubscribeLocalAppConversationEventsRequest {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
     }
@@ -34301,6 +35017,16 @@ where
         Ok(LocalAppAgentPresentationSnapshotResponse::from_transport(&raw))
     }
 
+    pub fn get_local_app_conversation_snapshot(&self, request: GetLocalAppConversationSnapshotRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<GetLocalAppConversationSnapshotResponse, T::Error> {
+        let raw = self.core.unary(CoreUnaryRequest {
+            method_id: "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppConversationSnapshot".to_string(),
+            metadata,
+            body: request.to_transport(),
+            timeout,
+        })?;
+        Ok(GetLocalAppConversationSnapshotResponse::from_transport(&raw))
+    }
+
     pub fn get_local_app_shared_local_agent_aiconfig(&self, request: GetLocalAppSharedLocalAgentAIConfigRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<GetLocalAppSharedLocalAgentAIConfigResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
             method_id: "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppSharedLocalAgentAIConfig".to_string(),
@@ -34339,6 +35065,16 @@ where
             timeout,
         })?;
         Ok(InterruptAgentVoicePlaybackResponse::from_transport(&raw))
+    }
+
+    pub fn interrupt_local_app_conversation_turn(&self, request: InterruptLocalAppConversationTurnRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<InterruptLocalAppConversationTurnResponse, T::Error> {
+        let raw = self.core.unary(CoreUnaryRequest {
+            method_id: "/nimi.runtime.v1.RuntimeAgentService/InterruptLocalAppConversationTurn".to_string(),
+            metadata,
+            body: request.to_transport(),
+            timeout,
+        })?;
+        Ok(InterruptLocalAppConversationTurnResponse::from_transport(&raw))
     }
 
     pub fn list_agent_conversation_summaries(&self, request: ListAgentConversationSummariesRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ListAgentConversationSummariesResponse, T::Error> {
@@ -34401,6 +35137,16 @@ where
         Ok(ListDelegatedProviderProfilesResponse::from_transport(&raw))
     }
 
+    pub fn list_local_app_agent_references(&self, request: ListLocalAppAgentReferencesRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ListLocalAppAgentReferencesResponse, T::Error> {
+        let raw = self.core.unary(CoreUnaryRequest {
+            method_id: "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentReferences".to_string(),
+            metadata,
+            body: request.to_transport(),
+            timeout,
+        })?;
+        Ok(ListLocalAppAgentReferencesResponse::from_transport(&raw))
+    }
+
     pub fn list_pending_hooks(&self, request: ListPendingHooksRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ListPendingHooksResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
             method_id: "/nimi.runtime.v1.RuntimeAgentService/ListPendingHooks".to_string(),
@@ -34439,6 +35185,16 @@ where
             timeout,
         })?;
         Ok(OpenConversationAnchorResponse::from_transport(&raw))
+    }
+
+    pub fn open_local_app_conversation(&self, request: OpenLocalAppConversationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<OpenLocalAppConversationResponse, T::Error> {
+        let raw = self.core.unary(CoreUnaryRequest {
+            method_id: "/nimi.runtime.v1.RuntimeAgentService/OpenLocalAppConversation".to_string(),
+            metadata,
+            body: request.to_transport(),
+            timeout,
+        })?;
+        Ok(OpenLocalAppConversationResponse::from_transport(&raw))
     }
 
     pub fn overwrite_local_app_shared_local_agent_aiconfig(&self, request: OverwriteLocalAppSharedLocalAgentAIConfigRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<OverwriteLocalAppSharedLocalAgentAIConfigResponse, T::Error> {
@@ -34541,6 +35297,16 @@ where
         Ok(ResolveAvatarLiveInstanceBindingResponse::from_transport(&raw))
     }
 
+    pub fn send_local_app_conversation_turn(&self, request: SendLocalAppConversationTurnRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<SendLocalAppConversationTurnResponse, T::Error> {
+        let raw = self.core.unary(CoreUnaryRequest {
+            method_id: "/nimi.runtime.v1.RuntimeAgentService/SendLocalAppConversationTurn".to_string(),
+            metadata,
+            body: request.to_transport(),
+            timeout,
+        })?;
+        Ok(SendLocalAppConversationTurnResponse::from_transport(&raw))
+    }
+
     pub fn set_agent_presentation_profile(&self, request: SetAgentPresentationProfileRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<SetAgentPresentationProfileResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
             method_id: "/nimi.runtime.v1.RuntimeAgentService/SetAgentPresentationProfile".to_string(),
@@ -34600,6 +35366,19 @@ where
     {
         let inner = self.core.server_stream(CoreStreamRequest {
             method_id: "/nimi.runtime.v1.RuntimeAgentService/SubscribeAgentVoiceStream".to_string(),
+            metadata,
+            body: request.to_transport(),
+            timeout,
+        })?;
+        Ok(RuntimeTypedStream { inner, _response: std::marker::PhantomData })
+    }
+
+    pub fn subscribe_local_app_conversation_events(&self, request: SubscribeLocalAppConversationEventsRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<RuntimeTypedStream<T::Stream, LocalAppConversationEvent>, T::Error>
+    where
+        T::Stream: CoreTypedStream,
+    {
+        let inner = self.core.server_stream(CoreStreamRequest {
+            method_id: "/nimi.runtime.v1.RuntimeAgentService/SubscribeLocalAppConversationEvents".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,

@@ -32,8 +32,9 @@ use crate::{
     LocalAppArtifactReadResult, LocalAppConversationInterruptRequest,
     LocalAppConversationInterruptResult, LocalAppConversationOpenRequest,
     LocalAppConversationOpenResult, LocalAppConversationSendRequest,
-    LocalAppConversationSendResult, LocalAppConversationSnapshotRequest,
-    LocalAppConversationSubscribeRequest, LocalAppConversationSubscriptionReceiver,
+    LocalAppConversationSendResult, LocalAppConversationSnapshot,
+    LocalAppConversationSnapshotRequest, LocalAppConversationSubscribeRequest,
+    LocalAppConversationSubscriptionReceiver,
     LocalAppCurrentUserDisplay, LocalAppCurrentUserStatus, LocalAppOperationError,
     LocalAppReasonCode, LocalAppSessionState, LocalAppSessionStatus,
     LocalAppSharedAgentAIConfigOverwriteRequest, LocalAppSharedAgentAIProfileRequest,
@@ -368,8 +369,13 @@ impl NimiLocalAppSession for PlatformLocalAppSession {
     fn conversation_snapshot(
         &self,
         request: LocalAppConversationSnapshotRequest,
-    ) -> Pin<Box<dyn Future<Output = Result<serde_json::Value, LocalAppOperationError>> + Send + '_>>
-    {
+    ) -> Pin<
+        Box<
+            dyn Future<Output = Result<LocalAppConversationSnapshot, LocalAppOperationError>>
+                + Send
+                + '_,
+        >,
+    > {
         Box::pin(async move {
             let _operation = self.operation_gate.read().await;
             conversation::conversation_snapshot(self.checked_channel()?, request).await

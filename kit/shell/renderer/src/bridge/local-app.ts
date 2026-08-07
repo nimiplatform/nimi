@@ -22,7 +22,6 @@ const MAX_TEXT_CANDIDATE_TOKENS = 4096;
 const MAX_STORAGE_PATH_BYTES = 240;
 const MAX_STORAGE_DOCUMENT_BYTES = 256 * 1024;
 const MAX_WORLD_CORE_REQUEST_BYTES = 2 * 1024 * 1024;
-const MAX_TURN_ATTACHMENTS = 1;
 const MAX_ARTIFACT_DATA_BYTES = 4 * 1024 * 1024;
 const MAX_ARTIFACT_DISPLAY_NAME_BYTES = 512;
 const MAX_ARTIFACT_READ_BYTES = 32 * 1024 * 1024;
@@ -106,11 +105,6 @@ export type NimiLocalAppWorldCoreListInput = {
 export type NimiLocalAppConversationScopeInput = {
   readonly agentHandle: string;
   readonly conversationAnchorId: string;
-};
-
-export type NimiLocalAppConversationAttachment = {
-  readonly artifactId: string;
-  readonly displayName?: string;
 };
 
 export type NimiLocalAppArtifactPutInput = {
@@ -207,7 +201,6 @@ export type NimiLocalAppStandardShellSurface = {
     readonly send: (input: NimiLocalAppConversationScopeInput & {
       readonly requestId: string;
       readonly text: string;
-      readonly attachments: readonly NimiLocalAppConversationAttachment[];
     }) => Promise<JsonObject>;
     readonly interruptTurn: (input: NimiLocalAppConversationScopeInput) => Promise<JsonObject>;
     readonly subscribe: (input: NimiLocalAppConversationScopeInput) => Promise<NimiLocalAppConversationSubscription>;
@@ -531,17 +524,14 @@ export function openNimiLocalAppConversation(input: {
 export function sendNimiLocalAppConversationTurn(input: NimiLocalAppConversationScopeInput & {
   readonly requestId: string;
   readonly text: string;
-  readonly attachments: readonly NimiLocalAppConversationAttachment[];
 }): Promise<JsonObject> {
   const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.conversationSendTurn'];
-  assertExactInput(input, ['agentHandle', 'conversationAnchorId', 'requestId', 'text', 'attachments'], command);
-  const attachments = turnAttachments(input.attachments, command);
+  assertExactInput(input, ['agentHandle', 'conversationAnchorId', 'requestId', 'text'], command);
   return invokeLocalAppRecord(command, {
     agentHandle: requiredText(input.agentHandle, 'agentHandle', command, MAX_IDENTIFIER_LENGTH),
     conversationAnchorId: requiredText(input.conversationAnchorId, 'conversationAnchorId', command, MAX_IDENTIFIER_LENGTH),
     requestId: requiredText(input.requestId, 'requestId', command, MAX_IDENTIFIER_LENGTH),
-    text: turnText(input.text, attachments.length > 0, command),
-    attachments,
+    text: requiredUtf8Text(input.text, 'text', command, 64 * 1024),
   });
 }
 
@@ -588,33 +578,6 @@ export function readNimiLocalAppArtifactBytes(
   });
 }
 
-function turnAttachments(
-  value: readonly NimiLocalAppConversationAttachment[],
-  command: string,
-): JsonObject[] {
-  if (!Array.isArray(value) || value.length > MAX_TURN_ATTACHMENTS) {
-    throw invalidInput(command, 'attachments is invalid');
-  }
-  return value.map((entry) => {
-    if (!entry || typeof entry !== 'object' || Array.isArray(entry)) {
-      throw invalidInput(command, 'attachments entry is invalid');
-    }
-    assertAllowedInputKeys(entry, ['artifactId', 'displayName'], ['artifactId'], command);
-    const attachment: JsonObject = {
-      artifactId: requiredText(entry.artifactId, 'attachments.artifactId', command, MAX_IDENTIFIER_LENGTH),
-    };
-    if (entry.displayName !== undefined) {
-      attachment.displayName = requiredText(entry.displayName, 'attachments.displayName', command, MAX_IDENTIFIER_LENGTH);
-    }
-    return attachment;
-  });
-}
-
-function turnText(value: unknown, allowEmpty: boolean, command: string): string {
-  if (allowEmpty && value === '') return '';
-  return requiredUtf8Text(value, 'text', command, 64 * 1024);
-}
-
 export function interruptNimiLocalAppConversationTurn(
   input: NimiLocalAppConversationScopeInput,
 ): Promise<JsonObject> {
@@ -652,9 +615,10 @@ export function getNimiLocalAppConversationSnapshot(
   input: NimiLocalAppConversationScopeInput,
 ): Promise<JsonObject> {
   const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.conversationSnapshot'];
-  return invokeLocalAppRecord(
+  return invokeChecked(
     command,
-    identifiers(input, ['agentHandle', 'conversationAnchorId'], command),
+    { payload: identifiers(input, ['agentHandle', 'conversationAnchorId'], command) },
+    (value) => parseConversationSnapshot(value, command),
   );
 }
 
@@ -695,6 +659,96 @@ export function removeNimiLocalAppStorageJson(relativePath: string): Promise<Nim
     if (typeof record.removed !== 'boolean') throw new Error(`${command}: removed is invalid`);
     return { removed: record.removed };
   });
+}
+
+function parseConversationEvent(value: unknown, command: string): JsonObject {
+  const record = assertRecord(value, `${command} emitted invalid conversation event`);
+  if (typeof record.type !== 'string'
+    || typeof record.sequence !== 'string'
+    || !/^[1-9][0-9]*$/u.test(record.sequence)) {
+    throw new Error(`${command}: conversation event envelope is invalid`);
+  }
+  const common = ['type', 'conversationAnchorId', 'sequence', 'turnId'];
+  parseRequiredString(record.conversationAnchorId, 'conversationAnchorId', command);
+  parseRequiredString(record.turnId, 'turnId', command);
+  switch (record.type) {
+    case 'turn-accepted':
+      assertProjectionKeys(record, [...common, 'requestId'], command, 'turn accepted event');
+      parseRequiredString(record.requestId, 'requestId', command);
+      break;
+    case 'turn-started':
+      assertProjectionKeys(record, common, command, 'turn started event');
+      break;
+    case 'text-delta':
+      assertProjectionKeys(record, [...common, 'text'], command, 'text delta event');
+      parseRequiredString(record.text, 'text', command);
+      break;
+    case 'message-committed':
+      assertProjectionKeys(record, [...common, 'messageId', 'text'], command, 'message committed event');
+      parseRequiredString(record.messageId, 'messageId', command);
+      parseRequiredString(record.text, 'text', command);
+      break;
+    case 'turn-completed':
+      assertProjectionKeys(record, [...common, 'terminalReason'], command, 'turn completed event');
+      if (typeof record.terminalReason !== 'string'
+        || !['', 'stop', 'length', 'tool_call', 'content_filter', 'error', 'unspecified'].includes(record.terminalReason)) {
+        throw new Error(`${command}: terminalReason is invalid`);
+      }
+      break;
+    case 'turn-failed':
+      assertProjectionKeys(record, [...common, 'reasonCode', 'message'], command, 'turn failed event');
+      if (typeof record.reasonCode !== 'string'
+        || !/^[A-Z0-9_-]{1,128}$/u.test(record.reasonCode)
+        || (record.message !== null && typeof record.message !== 'string')) {
+        throw new Error(`${command}: turn failure is invalid`);
+      }
+      if (typeof record.message === 'string') parseRequiredString(record.message, 'message', command);
+      break;
+    case 'turn-interrupted':
+      assertProjectionKeys(record, [...common, 'reason'], command, 'turn interrupted event');
+      if (typeof record.reason !== 'string'
+        || !['user_cancel', 'room_closed', 'superseded_turn', 'budget_exhausted', 'timeout', 'gateway_revoked', 'policy_refusal'].includes(record.reason)) {
+        throw new Error(`${command}: interrupt reason is invalid`);
+      }
+      break;
+    default:
+      throw new Error(`${command}: conversation event type is invalid`);
+  }
+  return Object.freeze({ ...record }) as JsonObject;
+}
+
+function parseConversationSnapshot(value: unknown, command: string): JsonObject {
+  const record = assertRecord(value, `${command} returned invalid conversation snapshot`);
+  assertProjectionKeys(
+    record,
+    ['conversationAnchorId', 'activeTurnId', 'messages', 'truncatedBefore'],
+    command,
+    'conversation snapshot',
+  );
+  const conversationAnchorId = parseRequiredString(record.conversationAnchorId, 'conversationAnchorId', command);
+  if (record.activeTurnId !== null) parseRequiredString(record.activeTurnId, 'activeTurnId', command);
+  if (!Array.isArray(record.messages) || record.messages.length > 200 || typeof record.truncatedBefore !== 'boolean') {
+    throw new Error(`${command}: conversation snapshot is invalid`);
+  }
+  let textBytes = 0;
+  const messages = record.messages.map((value) => {
+    const message = assertRecord(value, `${command} returned invalid conversation message`);
+    assertProjectionKeys(message, ['turnId', 'role', 'text'], command, 'conversation message');
+    if (message.role !== 'user' && message.role !== 'assistant') {
+      throw new Error(`${command}: conversation message role is invalid`);
+    }
+    const turnId = parseRequiredString(message.turnId, 'turnId', command);
+    const text = parseRequiredString(message.text, 'text', command);
+    textBytes += new TextEncoder().encode(text).byteLength;
+    if (textBytes > 1024 * 1024) throw new Error(`${command}: conversation snapshot is too large`);
+    return Object.freeze({ turnId, role: message.role, text });
+  });
+  return Object.freeze({
+    conversationAnchorId,
+    activeTurnId: record.activeTurnId as string | null,
+    messages: Object.freeze(messages),
+    truncatedBefore: record.truncatedBefore,
+  }) as JsonObject;
 }
 
 class LocalAppConversationEventSubscription implements NimiLocalAppConversationSubscription {
@@ -771,7 +825,7 @@ class LocalAppConversationEventSubscription implements NimiLocalAppConversationS
       }
       if (record.eventType !== 'next') throw new Error(`${this.command}: conversation event type is invalid`);
       assertProjectionKeys(record, ['subscriptionId', 'eventType', 'event'], this.command, 'conversation event');
-      const event = parseSafeProjection(record.event, this.command);
+      const event = parseConversationEvent(record.event, this.command);
       const waiter = this.waiting.shift();
       if (waiter) waiter.resolve({ done: false, value: event });
       else if (this.queued.length < 32) this.queued.push(event);

@@ -272,14 +272,14 @@ describe('renderer local-app standard-shell surface', () => {
     (globalThis as { __NIMI_ELECTRON_TEST__?: unknown }).__NIMI_ELECTRON_TEST__ = {
       invoke: async (command: string, payload: unknown) => {
         invocations.push({ command, payload });
-        return { messageId: 'interrupt-message-1' };
+        return { turnId: 'agent-turn-1' };
       },
       listen: () => () => {},
     };
     await expect(createNimiLocalAppStandardShellSurface().conversation.interruptTurn({
       agentHandle: 'lash_owner_issued',
       conversationAnchorId: 'anchor-1',
-    })).resolves.toEqual({ messageId: 'interrupt-message-1' });
+    })).resolves.toEqual({ turnId: 'agent-turn-1' });
     expect(invocations).toEqual([{
       command: 'nimi.shell.localApp.conversationInterruptTurn',
       payload: { payload: { agentHandle: 'lash_owner_issued', conversationAnchorId: 'anchor-1' } },
@@ -314,14 +314,11 @@ describe('renderer local-app standard-shell surface', () => {
         subscriptionId: 'conversation-1',
         eventType: 'next',
         event: {
-          eventType: 1,
+          type: 'text-delta',
+          conversationAnchorId: 'anchor-1',
           sequence: '1',
-          messageId: 'message-1',
-          messageType: 'runtime.agent.turn.delta',
-          payload: { text: 'hello' },
-          reasonCode: 'ACTION_EXECUTED',
-          traceId: 'trace-1',
-          timestampUnixMs: 123,
+          turnId: 'agent-turn-1',
+          text: 'hello',
         },
       },
     });
@@ -341,12 +338,12 @@ describe('renderer local-app standard-shell surface', () => {
     ]);
   });
 
-  it('sends a conversation turn with one exact artifact attachment', async () => {
+  it('sends one exact text-only conversation turn and rejects attachment residue', async () => {
     const invocations: Array<{ command: string; payload: unknown }> = [];
     (globalThis as { __NIMI_ELECTRON_TEST__?: unknown }).__NIMI_ELECTRON_TEST__ = {
       invoke: async (command: string, payload: unknown) => {
         invocations.push({ command, payload });
-        return { messageId: 'message-1' };
+        return { turnId: 'agent-turn-1' };
       },
       listen: () => () => {},
     };
@@ -355,9 +352,8 @@ describe('renderer local-app standard-shell surface', () => {
       agentHandle: 'lash_owner_issued',
       conversationAnchorId: 'anchor-1',
       requestId: 'request-1',
-      text: '',
-      attachments: [{ artifactId: 'artifact_01J', displayName: 'photo.png' }],
-    })).resolves.toEqual({ messageId: 'message-1' });
+      text: 'hello',
+    })).resolves.toEqual({ turnId: 'agent-turn-1' });
     expect(invocations).toEqual([{
       command: 'nimi.shell.localApp.conversationSendTurn',
       payload: {
@@ -365,8 +361,7 @@ describe('renderer local-app standard-shell surface', () => {
           agentHandle: 'lash_owner_issued',
           conversationAnchorId: 'anchor-1',
           requestId: 'request-1',
-          text: '',
-          attachments: [{ artifactId: 'artifact_01J', displayName: 'photo.png' }],
+          text: 'hello',
         },
       },
     }]);
@@ -375,14 +370,13 @@ describe('renderer local-app standard-shell surface', () => {
       conversationAnchorId: 'anchor-1',
       requestId: 'request-1',
       text: 'hello',
-      attachments: [{ artifactId: 'a' }, { artifactId: 'b' }],
-    })).toThrow(/attachments is invalid/u);
+      attachments: [{ artifactId: 'artifact_01J' }],
+    } as never)).toThrow(/input fields must be exactly/u);
     expect(() => conversation.send({
       agentHandle: 'lash_owner_issued',
       conversationAnchorId: 'anchor-1',
       requestId: 'request-1',
       text: '',
-      attachments: [],
     })).toThrow(/text is invalid/u);
     expect(invocations).toHaveLength(1);
   });

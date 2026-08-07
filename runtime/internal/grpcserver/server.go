@@ -819,6 +819,7 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 		}
 	}
 	authSvc.SetLocalAppSessionOpener(appSvc)
+	agentSvc.SetLocalAppIngressRevalidator(appSvc)
 	artifactSvc := runtimeartifactservice.New(
 		artifactStore,
 		logger,

@@ -124,9 +124,13 @@ func (r publicChatRuntime) emitEvent(subjectUserID string, messageType string, p
 		MessageType:   strings.TrimSpace(messageType),
 		Payload:       structPayload,
 	})
+	if err == nil {
+		r.svc.publishLocalAppConversationEvent(subjectUserID, messageType, payload)
+	}
 	return err
 }
 func (r publicChatRuntime) shutdownSurface() {
+	r.svc.failLocalAppConversationSubscribers(localAppConversationOwnerUnavailable())
 	r.svc.chatSurfaceMu.Lock()
 	turns := make([]*publicChatTurnState, 0, len(r.svc.chatTurns))
 	for _, turn := range r.svc.chatTurns {

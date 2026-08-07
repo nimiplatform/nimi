@@ -71,6 +71,10 @@ type Service struct {
 	chatAppEmit                              publicChatAppMessageEmitter
 	runtimeAccountProjection                 runtimeAccountProjectionProvider
 	realmCharacterPublicAvatar               realmCharacterPublicAvatarResolver
+	localAppIngressRevalidator               localAppIngressRevalidator
+	localAppConversationMu                   sync.Mutex
+	localAppConversationNextSubscriberID     uint64
+	localAppConversationSubscribers          map[uint64]*localAppConversationSubscriber
 	localAppAgentDisplayAvatarCacheMu        sync.Mutex
 	localAppAgentDisplayAvatarCache          map[localAppAgentDisplayAvatarCacheKey]localAppAgentDisplayAvatarCacheEntry
 	localAppAgentDisplayAvatarLookups        map[localAppAgentDisplayAvatarCacheKey]*localAppAgentDisplayAvatarLookup
@@ -191,6 +195,7 @@ func New(logger *slog.Logger, localStatePath string, memorySvc *memoryservice.Se
 		chatFollowUps:                            make(map[string]*publicChatFollowUpState),
 		avatarLiveInstanceBindings:               make(map[string]*avatarLiveInstanceBindingState),
 		chatActiveByAgent:                        make(map[string]string),
+		localAppConversationSubscribers:          make(map[uint64]*localAppConversationSubscriber),
 		memoryPromotionEvidence:                  make(map[string]runtimeMemoryPromotionEvidence),
 		voiceLipsync:                             newSyntheticVoiceLipsyncSynthesizer(),
 		runtimeArtifacts:                         runtimeartifact.NewMemoryStore(),

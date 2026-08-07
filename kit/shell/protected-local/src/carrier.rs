@@ -303,7 +303,6 @@ pub struct LocalAppConversationOpenRequest {
 pub struct LocalAppConversationOpenResult {
     pub conversation_anchor_id: String,
     pub active_turn_id: Option<String>,
-    pub active_stream_id: Option<String>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -312,12 +311,11 @@ pub struct LocalAppConversationSendRequest {
     pub conversation_anchor_id: String,
     pub request_id: String,
     pub text: String,
-    pub attachments: JsonValue,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct LocalAppConversationSendResult {
-    pub message_id: String,
+    pub turn_id: String,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -351,7 +349,7 @@ pub struct LocalAppConversationInterruptRequest {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct LocalAppConversationInterruptResult {
-    pub message_id: String,
+    pub turn_id: String,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -396,16 +394,54 @@ pub struct LocalAppAgentCommitPresentationRequest {
     pub imported_assets: JsonValue,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum LocalAppConversationMessageRole {
+    User,
+    Assistant,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct LocalAppConversationMessage {
+    pub turn_id: String,
+    pub role: LocalAppConversationMessageRole,
+    pub text: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct LocalAppConversationSnapshot {
+    pub conversation_anchor_id: String,
+    pub active_turn_id: Option<String>,
+    pub messages: Vec<LocalAppConversationMessage>,
+    pub truncated_before: bool,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct LocalAppConversationEvent {
-    pub event_type: i32,
+    pub conversation_anchor_id: String,
     pub sequence: u64,
-    pub message_id: String,
-    pub message_type: String,
-    pub payload: JsonValue,
-    pub reason_code: LocalAppReasonCode,
-    pub trace_id: String,
-    pub timestamp_unix_ms: Option<i64>,
+    pub event: LocalAppConversationEventKind,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum LocalAppConversationEventKind {
+    TurnAccepted { turn_id: String, request_id: String },
+    TurnStarted { turn_id: String },
+    TextDelta { turn_id: String, text: String },
+    MessageCommitted {
+        turn_id: String,
+        message_id: String,
+        text: String,
+    },
+    TurnCompleted {
+        turn_id: String,
+        terminal_reason: String,
+    },
+    TurnFailed {
+        turn_id: String,
+        reason_code: String,
+        message: Option<String>,
+    },
+    TurnInterrupted { turn_id: String, reason: String },
 }
 
 pub type LocalAppConversationSubscriptionReceiver =
@@ -763,7 +799,13 @@ pub trait NimiLocalAppSession: Send + Sync {
     fn conversation_snapshot(
         &self,
         request: LocalAppConversationSnapshotRequest,
-    ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
+    ) -> Pin<
+        Box<
+            dyn Future<Output = Result<LocalAppConversationSnapshot, LocalAppOperationError>>
+                + Send
+                + '_,
+        >,
+    >;
 
     fn artifact_put(
         &self,

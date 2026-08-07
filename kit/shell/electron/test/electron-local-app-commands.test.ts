@@ -106,7 +106,7 @@ describe('Electron local-app standard-shell operations', () => {
   it('reaches all five conversation operations but preserves typed failures', async () => {
     const requests = [
       ['local-app.conversationOpen', { agentHandle: 'lash_one' }],
-      ['local-app.conversationSendTurn', { agentHandle: 'lash_one', conversationAnchorId: 'anchor-1', requestId: 'request-1', text: 'hello', attachments: [] }],
+      ['local-app.conversationSendTurn', { agentHandle: 'lash_one', conversationAnchorId: 'anchor-1', requestId: 'request-1', text: 'hello' }],
       ['local-app.conversationInterruptTurn', { agentHandle: 'lash_one', conversationAnchorId: 'anchor-1' }],
       ['local-app.conversationSubscribe', { agentHandle: 'lash_one', conversationAnchorId: 'anchor-1' }],
       ['local-app.conversationSnapshot', { agentHandle: 'lash_one', conversationAnchorId: 'anchor-1' }],
@@ -204,7 +204,6 @@ describe('Electron local-app standard-shell operations', () => {
           conversationAnchorId: 'anchor-1',
           requestId: 'request-1',
           text: 'hello',
-          attachments: [],
         },
       },
     })).rejects.toMatchObject({
@@ -280,7 +279,26 @@ describe('Electron local-app standard-shell operations', () => {
     })).rejects.toMatchObject({ code: 'invalid-payload', reasonCode: 'invalid-payload' });
   });
 
-  it('forwards one exact turn attachment and admits attachment-only text before the carrier', async () => {
+  it('hard-rejects conversation attachments before the carrier', async () => {
+    const ipcMain = new FakeIpcMain();
+    const calls: unknown[] = [];
+    registerBridge(ipcMain, calls);
+    await expect(invokeBridge(ipcMain, createInvokeEvent().event, {
+      command: NIMI_STANDARD_SHELL_COMMANDS['local-app.conversationSendTurn'],
+      payload: {
+        payload: {
+          agentHandle: 'lash_one',
+          conversationAnchorId: 'anchor-1',
+          requestId: 'request-1',
+          text: 'hello',
+          attachments: [{ artifactId: 'artifact_01J', displayName: 'photo.png' }],
+        },
+      },
+    })).rejects.toMatchObject({ code: 'invalid-payload' });
+    expect(calls).toEqual([]);
+  });
+
+  it('rejects empty conversation text before invoking the protected host', async () => {
     const ipcMain = new FakeIpcMain();
     const calls: unknown[] = [];
     registerBridge(ipcMain, calls);
@@ -292,61 +310,10 @@ describe('Electron local-app standard-shell operations', () => {
           conversationAnchorId: 'anchor-1',
           requestId: 'request-1',
           text: '',
-          attachments: [{ artifactId: 'artifact_01J', displayName: 'photo.png' }],
-        },
-      },
-    })).rejects.toMatchObject({ reasonCode: 'local-app-operation-unavailable' });
-    expect(calls).toEqual([['conversationSendTurn', {
-      agentHandle: 'lash_one',
-      conversationAnchorId: 'anchor-1',
-      requestId: 'request-1',
-      text: '',
-      attachments: [{ artifactId: 'artifact_01J', displayName: 'photo.png' }],
-    }]]);
-  });
-
-  it('rejects malformed turn attachments before invoking the protected host', async () => {
-    const invalidAttachments: unknown[] = [
-      'artifact_01J',
-      [{ artifactId: 'a' }, { artifactId: 'b' }],
-      [{ artifactId: '' }],
-      [{ artifactId: 'a', mimeType: 'image/png' }],
-      [{ artifactId: 'a', displayName: 7 }],
-    ];
-    for (const attachments of invalidAttachments) {
-      const ipcMain = new FakeIpcMain();
-      const calls: unknown[] = [];
-      registerBridge(ipcMain, calls);
-      await expect(invokeBridge(ipcMain, createInvokeEvent().event, {
-        command: NIMI_STANDARD_SHELL_COMMANDS['local-app.conversationSendTurn'],
-        payload: {
-          payload: {
-            agentHandle: 'lash_one',
-            conversationAnchorId: 'anchor-1',
-            requestId: 'request-1',
-            text: 'hello',
-            attachments,
-          },
-        },
-      })).rejects.toMatchObject({ code: 'invalid-payload' });
-      expect(calls).toEqual([]);
-    }
-    const emptyTurn = new FakeIpcMain();
-    const emptyCalls: unknown[] = [];
-    registerBridge(emptyTurn, emptyCalls);
-    await expect(invokeBridge(emptyTurn, createInvokeEvent().event, {
-      command: NIMI_STANDARD_SHELL_COMMANDS['local-app.conversationSendTurn'],
-      payload: {
-        payload: {
-          agentHandle: 'lash_one',
-          conversationAnchorId: 'anchor-1',
-          requestId: 'request-1',
-          text: '',
-          attachments: [],
         },
       },
     })).rejects.toMatchObject({ code: 'invalid-payload' });
-    expect(emptyCalls).toEqual([]);
+    expect(calls).toEqual([]);
   });
 
   it('routes artifact byte reads with an exact artifact id and rejects malformed ids', async () => {

@@ -61,8 +61,8 @@ export type {
   NimiLocalAppAgentReferencesShell,
 } from './local-app-runtime-platform-agent-references.js';
 export type {
-  NimiLocalAppConversationAttachment,
   NimiLocalAppConversationEvent,
+  NimiLocalAppConversationMessage,
   NimiLocalAppConversationOpenInput,
   NimiLocalAppConversationOpenResult,
   NimiLocalAppConversationInterruptResult,

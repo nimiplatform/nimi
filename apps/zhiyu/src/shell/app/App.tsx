@@ -239,11 +239,22 @@ export function ZhiyuCanonicalApp(props: { readonly bindings: ZhiyuCanonicalRend
 
   async function handleSubmit(textInput: string, attachments: readonly ZhiyuChatAttachmentRef[] = []) {
     const text = textInput.trim();
-    const submittedAttachment = attachments[0] ?? null;
-    const turnAttachments = attachments.map((attachment) => ({
-      artifactId: attachment.artifactId,
-      ...(attachment.displayName ? { displayName: attachment.displayName } : {}),
-    }));
+    if (attachments.length > 0) {
+      setEvidence((current) => ({
+        ...current,
+        composer: {
+          ...current.composer,
+          submitState: 'failed',
+          draftLength: text.length,
+          reasonCode: 'zhiyu-turn-attachment-unsupported',
+          actionHint: 'remove_conversation_attachment',
+          source: 'renderer',
+          message: 'Third-party Local App Agent conversations are text-only.',
+        },
+      }));
+      return;
+    }
+    const submittedAttachment = null;
     activeChatAbortRef.current?.abort('zhiyu_chat_turn_superseded');
     const activeChatAbort = new AbortController();
     activeChatAbortRef.current = activeChatAbort;
@@ -335,7 +346,6 @@ export function ZhiyuCanonicalApp(props: { readonly bindings: ZhiyuCanonicalRend
     const submitted = await bindings.app.commands.runTurn({
       conversation: evidence.conversation,
       text,
-      attachments: turnAttachments,
       requestId,
       expectedConversationAnchorId: submittedConversation.conversationAnchorId,
       signal: activeChatAbort.signal,

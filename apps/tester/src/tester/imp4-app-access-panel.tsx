@@ -1,6 +1,11 @@
 import { useCallback, useEffect, useState } from 'react';
+import type { NimiLocalAppAgentReference } from '@nimiplatform/sdk/app';
 
 import { getTesterLocalAppClient } from '../shell/local-app-runtime-platform.js';
+import {
+  runTesterConversationInterruptJourney,
+  runTesterConversationJourney,
+} from './local-app-conversation-journey.js';
 
 type Fact = {
   readonly state: 'ready' | 'unavailable' | 'not-observed';
@@ -139,6 +144,11 @@ export function Imp4AppAccessPanel() {
   const [authorityRejection, setAuthorityRejection] = useState<Fact>(notRun);
   const [localText, setLocalText] = useState<Fact>(notRun);
   const [cloudSelection, setCloudSelection] = useState<Fact>(notRun);
+  const [agentCatalog, setAgentCatalog] = useState<Fact>(notRun);
+  const [agentReferences, setAgentReferences] = useState<readonly NimiLocalAppAgentReference[]>([]);
+  const [selectedAgentHandle, setSelectedAgentHandle] = useState<string>('');
+  const [agentConversation, setAgentConversation] = useState<Fact>(notRun);
+  const [agentInterrupt, setAgentInterrupt] = useState<Fact>(notRun);
   const [cloudDraft, setCloudDraft] = useState<CloudIntentDraft>({
     implementationId: '', driverId: '', driverDialect: '', provider: '', providerModelId: '',
   });
@@ -180,6 +190,75 @@ export function Imp4AppAccessPanel() {
     testerHot.on('vite:beforeUpdate', onUpdate);
     return () => testerHot.off('vite:beforeUpdate', onUpdate);
   }, []);
+
+  const refreshAgentCatalog = useCallback(async () => {
+    setAgentCatalog({ state: 'not-observed', detail: 'Loading current-account active Agents…' });
+    try {
+      const references = await getTesterLocalAppClient().agents.listReferences();
+      setAgentReferences(references);
+      setSelectedAgentHandle((current) => (
+        references.some((reference) => reference.agentHandle === current)
+          ? current
+          : references[0]?.agentHandle ?? ''
+      ));
+      setAgentCatalog({
+        state: references.length > 0 ? 'ready' : 'unavailable',
+        detail: references.length > 0
+          ? `${references.length} active Agent reference(s) · ${references.map((reference) => reference.displayName).join(', ')}`
+          : 'No current-account active Agent is available',
+      });
+    } catch (error) {
+      setAgentReferences([]);
+      setSelectedAgentHandle('');
+      setAgentCatalog({ state: 'unavailable', detail: boundedError(error) });
+    }
+  }, []);
+
+  const runAgentConversation = useCallback(async () => {
+    const reference = agentReferences.find((candidate) => candidate.agentHandle === selectedAgentHandle);
+    if (!reference) {
+      setAgentConversation({ state: 'unavailable', detail: 'agent-reference-required' });
+      return;
+    }
+    setAgentConversation({ state: 'not-observed', detail: `Opening ${reference.displayName}…` });
+    try {
+      const result = await runTesterConversationJourney({
+        conversation: getTesterLocalAppClient().conversation,
+        agentHandle: reference.agentHandle,
+        requestId: `tester-imp5-${crypto.randomUUID()}`,
+        text: 'Reply with one short sentence confirming the IMP5 typed Agent conversation path.',
+      });
+      setAgentConversation({
+        state: 'ready',
+        detail: `${reference.displayName} · ${result.terminalType} · ${result.terminalReason} · ${result.assistantText}`,
+      });
+    } catch (error) {
+      setAgentConversation({ state: 'unavailable', detail: boundedError(error) });
+    }
+  }, [agentReferences, selectedAgentHandle]);
+
+  const runAgentInterrupt = useCallback(async () => {
+    const reference = agentReferences.find((candidate) => candidate.agentHandle === selectedAgentHandle);
+    if (!reference) {
+      setAgentInterrupt({ state: 'unavailable', detail: 'agent-reference-required' });
+      return;
+    }
+    setAgentInterrupt({ state: 'not-observed', detail: `Opening ${reference.displayName}…` });
+    try {
+      const result = await runTesterConversationInterruptJourney({
+        conversation: getTesterLocalAppClient().conversation,
+        agentHandle: reference.agentHandle,
+        requestId: `tester-imp5-interrupt-${crypto.randomUUID()}`,
+        text: 'Begin a detailed response that can be explicitly interrupted for the IMP5 typed Agent conversation path.',
+      });
+      setAgentInterrupt({
+        state: 'ready',
+        detail: `${reference.displayName} · ${result.terminalType} · ${result.terminalReason}`,
+      });
+    } catch (error) {
+      setAgentInterrupt({ state: 'unavailable', detail: boundedError(error) });
+    }
+  }, [agentReferences, selectedAgentHandle]);
 
   const runStorageRoundtrip = useCallback(async () => {
     setStorage({ state: 'not-observed', detail: 'Running bounded App-private journey…' });
@@ -341,8 +420,8 @@ export function Imp4AppAccessPanel() {
     <section aria-labelledby="imp4-app-access-title" data-testid="imp4-app-access-panel" style={{ padding: '16px 24px', borderBottom: '1px solid var(--border-subtle, #2f3542)' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
         <div>
-          <h2 id="imp4-app-access-title" style={{ margin: 0, fontSize: 16 }}>IMP4 non-Agent App Access</h2>
-          <p style={{ margin: '4px 0 0', opacity: 0.72 }}>Portable AIConfig · unary text · WorldCore create · isolated bounded storage</p>
+          <h2 id="imp4-app-access-title" style={{ margin: 0, fontSize: 16 }}>IMP4/IMP5 App Access</h2>
+          <p style={{ margin: '4px 0 0', opacity: 0.72 }}>Bounded non-Agent owners · active Agent references · typed text-only Conversation</p>
         </div>
         <button type="button" data-testid="imp4-refresh-access" onClick={() => void refreshIdentity()}>Refresh access</button>
       </div>
@@ -366,6 +445,32 @@ export function Imp4AppAccessPanel() {
         <Action label="Prove owner/custody rejection" testId="imp4-run-authority-rejection" fact={authorityRejection} run={runAuthorityRejection} />
         <Action label="Create + verify WorldCore" testId="imp4-run-world-create" fact={worldCreate} run={runWorldCreate} />
       </div>
+
+      <fieldset style={{ margin: '0 0 14px', padding: 12, border: '1px solid var(--border-subtle, #2f3542)', borderRadius: 8 }}>
+        <legend>IMP5 Agent reference + typed Conversation</legend>
+        <div data-testid="imp5-agent-catalog" data-state={agentCatalog.state} style={{ marginBottom: 8 }}>
+          {agentCatalog.state} · {agentCatalog.detail}
+        </div>
+        <label style={{ display: 'block', fontSize: 12, marginBottom: 8 }}>
+          Current active Agent
+          <select
+            data-testid="imp5-agent-select"
+            value={selectedAgentHandle}
+            onChange={(event) => setSelectedAgentHandle(event.currentTarget.value)}
+            style={{ display: 'block', minWidth: 280, marginTop: 4 }}
+          >
+            {agentReferences.length === 0 ? <option value="">No active Agent</option> : null}
+            {agentReferences.map((reference) => (
+              <option key={reference.agentHandle} value={reference.agentHandle}>{reference.displayName}</option>
+            ))}
+          </select>
+        </label>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+          <Action label="List active Agent references" testId="imp5-run-agent-list" fact={agentCatalog} run={refreshAgentCatalog} />
+          <Action label="Run typed Agent conversation" testId="imp5-run-conversation" fact={agentConversation} run={runAgentConversation} />
+          <Action label="Run typed Agent interrupt" testId="imp5-run-agent-interrupt" fact={agentInterrupt} run={runAgentInterrupt} />
+        </div>
+      </fieldset>
 
       <fieldset style={{ margin: '0 0 14px', padding: 12, border: '1px solid var(--border-subtle, #2f3542)', borderRadius: 8 }}>
         <legend>Grantless Cloud intent (supply catalog-derived values; Tester has no provider/model defaults)</legend>

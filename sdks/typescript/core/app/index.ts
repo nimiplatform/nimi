@@ -78,7 +78,7 @@ export type {
   NimiLocalAppAIConfigShell,
   NimiLocalAppStandardShell,
   NimiLocalAppConversationEvent,
-  NimiLocalAppConversationAttachment,
+  NimiLocalAppConversationMessage,
   NimiLocalAppConversationOpenInput,
   NimiLocalAppConversationOpenResult,
   NimiLocalAppConversationInterruptResult,

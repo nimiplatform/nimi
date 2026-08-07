@@ -637,6 +637,105 @@ message ListLocalAppAgentReferencesResponse {
   repeated LocalAppAgentReference references = 1;
 }
 
+// Protected Third-party Local App Conversation ingress is text-only and uses
+// the session-scoped Agent selector above. These messages intentionally carry
+// no raw LocalAgent identity, generic App-message envelope, attachment,
+// execution configuration, provider choice, or caller-authored context.
+message OpenLocalAppConversationRequest {
+  string agent_handle = 1;
+}
+message OpenLocalAppConversationResponse {
+  string conversation_anchor_id = 1;
+  optional string active_turn_id = 2;
+}
+message SendLocalAppConversationTurnRequest {
+  string agent_handle = 1;
+  string conversation_anchor_id = 2;
+  string request_id = 3;
+  string text = 4;
+}
+message SendLocalAppConversationTurnResponse {
+  string turn_id = 1;
+}
+message InterruptLocalAppConversationTurnRequest {
+  string agent_handle = 1;
+  string conversation_anchor_id = 2;
+}
+message InterruptLocalAppConversationTurnResponse {
+  string turn_id = 1;
+}
+message SubscribeLocalAppConversationEventsRequest {
+  string agent_handle = 1;
+  string conversation_anchor_id = 2;
+}
+message GetLocalAppConversationSnapshotRequest {
+  string agent_handle = 1;
+  string conversation_anchor_id = 2;
+}
+
+enum LocalAppConversationMessageRole {
+  LOCAL_APP_CONVERSATION_MESSAGE_ROLE_UNSPECIFIED = 0;
+  LOCAL_APP_CONVERSATION_MESSAGE_ROLE_USER = 1;
+  LOCAL_APP_CONVERSATION_MESSAGE_ROLE_ASSISTANT = 2;
+}
+message LocalAppConversationMessage {
+  string turn_id = 1;
+  LocalAppConversationMessageRole role = 2;
+  string text = 3;
+}
+message LocalAppConversationSnapshot {
+  string conversation_anchor_id = 1;
+  optional string active_turn_id = 2;
+  repeated LocalAppConversationMessage messages = 3;
+  bool truncated_before = 4;
+}
+message GetLocalAppConversationSnapshotResponse {
+  LocalAppConversationSnapshot snapshot = 1;
+}
+
+message LocalAppConversationTurnAccepted {
+  string turn_id = 1;
+  string request_id = 2;
+}
+message LocalAppConversationTurnStarted {
+  string turn_id = 1;
+}
+message LocalAppConversationTextDelta {
+  string turn_id = 1;
+  string text = 2;
+}
+message LocalAppConversationMessageCommitted {
+  string turn_id = 1;
+  string message_id = 2;
+  string text = 3;
+}
+message LocalAppConversationTurnCompleted {
+  string turn_id = 1;
+  string terminal_reason = 2;
+}
+message LocalAppConversationTurnFailed {
+  string turn_id = 1;
+  string reason_code = 2;
+  optional string message = 3;
+}
+message LocalAppConversationTurnInterrupted {
+  string turn_id = 1;
+  string reason = 2;
+}
+message LocalAppConversationEvent {
+  string conversation_anchor_id = 1;
+  uint64 sequence = 2;
+  oneof event {
+    LocalAppConversationTurnAccepted turn_accepted = 10;
+    LocalAppConversationTurnStarted turn_started = 11;
+    LocalAppConversationTextDelta text_delta = 12;
+    LocalAppConversationMessageCommitted message_committed = 13;
+    LocalAppConversationTurnCompleted turn_completed = 14;
+    LocalAppConversationTurnFailed turn_failed = 15;
+    LocalAppConversationTurnInterrupted turn_interrupted = 16;
+  }
+}
+
 message GetConversationAnchorSnapshotRequest {
   AgentRequestContext context = 1;
   string agent_id = 2;
@@ -762,6 +861,11 @@ service RuntimeAgentService {
   rpc GetAgent(GetAgentRequest) returns (GetAgentResponse);
   rpc ListAgents(ListAgentsRequest) returns (ListAgentsResponse);
   rpc ListLocalAppAgentReferences(ListLocalAppAgentReferencesRequest) returns (ListLocalAppAgentReferencesResponse);
+  rpc OpenLocalAppConversation(OpenLocalAppConversationRequest) returns (OpenLocalAppConversationResponse);
+  rpc SendLocalAppConversationTurn(SendLocalAppConversationTurnRequest) returns (SendLocalAppConversationTurnResponse);
+  rpc InterruptLocalAppConversationTurn(InterruptLocalAppConversationTurnRequest) returns (InterruptLocalAppConversationTurnResponse);
+  rpc SubscribeLocalAppConversationEvents(SubscribeLocalAppConversationEventsRequest) returns (stream LocalAppConversationEvent);
+  rpc GetLocalAppConversationSnapshot(GetLocalAppConversationSnapshotRequest) returns (GetLocalAppConversationSnapshotResponse);
   rpc OpenConversationAnchor(OpenConversationAnchorRequest) returns (OpenConversationAnchorResponse);
   rpc GetConversationAnchorSnapshot(GetConversationAnchorSnapshotRequest) returns (GetConversationAnchorSnapshotResponse);
   rpc RegisterAvatarLiveInstanceBinding(RegisterAvatarLiveInstanceBindingRequest) returns (RegisterAvatarLiveInstanceBindingResponse);

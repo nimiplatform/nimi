@@ -170,6 +170,108 @@ test('Agent reference list projects every item as exactly three display-safe fie
   }
 });
 
+test('Agent conversation projects only the exact typed union and bounded snapshot', async () => {
+  const base = standardShell([]);
+  const handle = 'agent_ref_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA' as NimiLocalAppAgentHandle;
+  const calls: unknown[] = [];
+  const shell: NimiLocalAppStandardShell = {
+    ...base,
+    conversation: {
+      async open(input) {
+        calls.push(['open', input]);
+        return { conversationAnchorId: 'agent_anchor_01J', activeTurnId: null };
+      },
+      async send(input) {
+        calls.push(['send', input]);
+        return { turnId: 'agent_turn_01J' };
+      },
+      async interruptTurn(input) {
+        calls.push(['interrupt', input]);
+        return { turnId: 'agent_turn_01J' };
+      },
+      async subscribe(input) {
+        calls.push(['subscribe', input]);
+        return {
+          events: (async function* () {
+            yield {
+              type: 'turn-accepted', conversationAnchorId: 'agent_anchor_01J',
+              sequence: '1', turnId: 'agent_turn_01J', requestId: 'request-1',
+            };
+            yield {
+              type: 'message-committed', conversationAnchorId: 'agent_anchor_01J',
+              sequence: '4', turnId: 'agent_turn_01J', messageId: 'message-1', text: 'hello',
+            };
+            yield {
+              type: 'turn-completed', conversationAnchorId: 'agent_anchor_01J',
+              sequence: '6', turnId: 'agent_turn_01J', terminalReason: 'stop',
+            };
+          })(),
+          async cancel() { calls.push(['cancel']); },
+        };
+      },
+      async snapshot(input) {
+        calls.push(['snapshot', input]);
+        return {
+          conversationAnchorId: 'agent_anchor_01J', activeTurnId: null,
+          messages: [
+            { turnId: 'agent_turn_01J', role: 'user', text: 'hello' },
+            { turnId: 'agent_turn_01J', role: 'assistant', text: 'hello back' },
+          ],
+          truncatedBefore: false,
+        };
+      },
+    },
+  };
+  const conversation = createNimiLocalAppClient({ standardShell: shell }).conversation;
+  assert.deepEqual(await conversation.open({ agentHandle: handle }), {
+    conversationAnchorId: 'agent_anchor_01J', activeTurnId: null,
+  });
+  assert.deepEqual(await conversation.send({
+    agentHandle: handle, conversationAnchorId: 'agent_anchor_01J', requestId: 'request-1', text: 'hello',
+  }), { turnId: 'agent_turn_01J' });
+  const subscription = await conversation.subscribe({ agentHandle: handle, conversationAnchorId: 'agent_anchor_01J' });
+  const events = [];
+  for await (const event of subscription) events.push(event);
+  assert.deepEqual(events.map((event) => event.type), [
+    'turn-accepted', 'message-committed', 'turn-completed',
+  ]);
+  assert.equal(JSON.stringify(events).includes('payload'), false);
+  assert.equal(JSON.stringify(events).includes('messageType'), false);
+  assert.deepEqual(await conversation.snapshot({ agentHandle: handle, conversationAnchorId: 'agent_anchor_01J' }), {
+    conversationAnchorId: 'agent_anchor_01J', activeTurnId: null,
+    messages: [
+      { turnId: 'agent_turn_01J', role: 'user', text: 'hello' },
+      { turnId: 'agent_turn_01J', role: 'assistant', text: 'hello back' },
+    ],
+    truncatedBefore: false,
+  });
+  assert.equal(JSON.stringify(calls).includes('localAgentId'), false);
+  assert.equal(JSON.stringify(calls).includes('attachments'), false);
+
+  const invalid: NimiLocalAppStandardShell = {
+    ...base,
+    conversation: {
+      ...base.conversation,
+      subscribe: async () => ({
+        events: (async function* () {
+          yield {
+            eventType: 1, messageType: 'runtime.agent.turn.completed', payload: {},
+            conversationAnchorId: 'agent_anchor_01J', sequence: '1', turnId: 'agent_turn_01J',
+          };
+        })(),
+        cancel: async () => undefined,
+      }),
+    },
+  };
+  const invalidSubscription = await createNimiLocalAppClient({ standardShell: invalid }).conversation.subscribe({
+    agentHandle: handle, conversationAnchorId: 'agent_anchor_01J',
+  });
+  await assert.rejects(
+    async () => { for await (const _event of invalidSubscription) { /* fail closed */ } },
+    (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_LOCAL_APP_PROJECTION_INVALID',
+  );
+});
+
 test('App AIConfig accepts only portable intent and rejects binding material in input or projection', async () => {
   const calls: unknown[] = [];
   const portableConfig = {
@@ -276,7 +378,7 @@ test('WorldCore list accepts the exact owner DTO and rejects raw or credential-a
 test('canonical protected operations reach typed ingress and preserve owner-unavailable', async () => {
   const calls: string[] = [];
   const client = createNimiLocalAppClient({ standardShell: standardShell(calls) });
-  const handle = 'runtime-agent-selector' as NimiLocalAppAgentHandle;
+  const handle = 'agent_ref_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA' as NimiLocalAppAgentHandle;
   const operations: Array<() => Promise<unknown>> = [
     () => client.ai.text.generateCandidate({ messages: [{ role: 'user', text: 'hello' }], temperature: 0, topP: 1, maxTokens: 1 }),
     () => client.aiConfig.get(),
@@ -288,7 +390,7 @@ test('canonical protected operations reach typed ingress and preserve owner-unav
     () => client.realm.worldCore.create({ core: {}, origin: { kind: 'manual' } } as never),
     () => client.agents.listReferences(),
     () => client.conversation.open({ agentHandle: handle }),
-    () => client.conversation.send({ agentHandle: handle, conversationAnchorId: 'anchor', requestId: 'request', text: 'hello', attachments: [] }),
+    () => client.conversation.send({ agentHandle: handle, conversationAnchorId: 'anchor', requestId: 'request', text: 'hello' }),
     () => client.conversation.interruptTurn({ agentHandle: handle, conversationAnchorId: 'anchor' }),
     () => client.conversation.subscribe({ agentHandle: handle, conversationAnchorId: 'anchor' }),
     () => client.conversation.snapshot({ agentHandle: handle, conversationAnchorId: 'anchor' }),

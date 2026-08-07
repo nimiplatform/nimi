@@ -773,6 +773,14 @@ const (
 	LOCALAPPAGENTAUTONOMYMODEHIGH LocalAppAgentAutonomyMode = "LOCAL_APP_AGENT_AUTONOMY_MODE_HIGH"
 )
 
+type LocalAppConversationMessageRole string
+
+const (
+	LOCALAPPCONVERSATIONMESSAGEROLEUNSPECIFIED LocalAppConversationMessageRole = "LOCAL_APP_CONVERSATION_MESSAGE_ROLE_UNSPECIFIED"
+	LOCALAPPCONVERSATIONMESSAGEROLEUSER LocalAppConversationMessageRole = "LOCAL_APP_CONVERSATION_MESSAGE_ROLE_USER"
+	LOCALAPPCONVERSATIONMESSAGEROLEASSISTANT LocalAppConversationMessageRole = "LOCAL_APP_CONVERSATION_MESSAGE_ROLE_ASSISTANT"
+)
+
 type LocalAppSessionState string
 
 const (
@@ -3568,6 +3576,15 @@ type GetLocalAppAgentPresentationSnapshotRequest struct {
 	AgentHandle string `json:"agent_handle,omitempty"`
 }
 
+type GetLocalAppConversationSnapshotRequest struct {
+	AgentHandle string `json:"agent_handle,omitempty"`
+	ConversationAnchorId string `json:"conversation_anchor_id,omitempty"`
+}
+
+type GetLocalAppConversationSnapshotResponse struct {
+	Snapshot *LocalAppConversationSnapshot `json:"snapshot,omitempty"`
+}
+
 type GetLocalAppSharedLocalAgentAIConfigRequest struct {
 
 }
@@ -3869,6 +3886,15 @@ type InterruptAgentVoicePlaybackResponse struct {
 	VoiceOutputMode VoiceOutputMode `json:"voice_output_mode,omitempty"`
 	VoicePlaybackState VoicePlaybackState `json:"voice_playback_state,omitempty"`
 	TerminalReason string `json:"terminal_reason,omitempty"`
+}
+
+type InterruptLocalAppConversationTurnRequest struct {
+	AgentHandle string `json:"agent_handle,omitempty"`
+	ConversationAnchorId string `json:"conversation_anchor_id,omitempty"`
+}
+
+type InterruptLocalAppConversationTurnResponse struct {
+	TurnId string `json:"turn_id,omitempty"`
 }
 
 type InvokeRealmUnaryRequest struct {
@@ -4236,6 +4262,14 @@ type ListLinksResponse struct {
 	NextPageToken string `json:"next_page_token,omitempty"`
 }
 
+type ListLocalAppAgentReferencesRequest struct {
+
+}
+
+type ListLocalAppAgentReferencesResponse struct {
+	References []LocalAppAgentReference `json:"references,omitempty"`
+}
+
 type ListLocalAssetsRequest struct {
 	StatusFilter LocalAssetStatus `json:"status_filter,omitempty"`
 	KindFilter LocalAssetKind `json:"kind_filter,omitempty"`
@@ -4544,8 +4578,75 @@ type LocalAppAgentPresentationSnapshotResponse struct {
 	Projection *LocalAppAgentPresentationProjection `json:"projection,omitempty"`
 }
 
+type LocalAppAgentReference struct {
+	AgentHandle string `json:"agent_handle,omitempty"`
+	DisplayName string `json:"display_name,omitempty"`
+	AvatarUrl *string `json:"avatar_url,omitempty"`
+}
+
 type LocalAppAgentUpdateAutonomyResponse struct {
 	Projection *LocalAppAgentAutonomyProjection `json:"projection,omitempty"`
+}
+
+type LocalAppConversationEvent struct {
+	ConversationAnchorId string `json:"conversation_anchor_id,omitempty"`
+	Sequence uint64 `json:"sequence,omitempty"`
+	TurnAccepted *LocalAppConversationTurnAccepted `json:"turn_accepted,omitempty"`
+	TurnStarted *LocalAppConversationTurnStarted `json:"turn_started,omitempty"`
+	TextDelta *LocalAppConversationTextDelta `json:"text_delta,omitempty"`
+	MessageCommitted *LocalAppConversationMessageCommitted `json:"message_committed,omitempty"`
+	TurnCompleted *LocalAppConversationTurnCompleted `json:"turn_completed,omitempty"`
+	TurnFailed *LocalAppConversationTurnFailed `json:"turn_failed,omitempty"`
+	TurnInterrupted *LocalAppConversationTurnInterrupted `json:"turn_interrupted,omitempty"`
+}
+
+type LocalAppConversationMessage struct {
+	TurnId string `json:"turn_id,omitempty"`
+	Role LocalAppConversationMessageRole `json:"role,omitempty"`
+	Text string `json:"text,omitempty"`
+}
+
+type LocalAppConversationMessageCommitted struct {
+	TurnId string `json:"turn_id,omitempty"`
+	MessageId string `json:"message_id,omitempty"`
+	Text string `json:"text,omitempty"`
+}
+
+type LocalAppConversationSnapshot struct {
+	ConversationAnchorId string `json:"conversation_anchor_id,omitempty"`
+	ActiveTurnId *string `json:"active_turn_id,omitempty"`
+	Messages []LocalAppConversationMessage `json:"messages,omitempty"`
+	TruncatedBefore bool `json:"truncated_before,omitempty"`
+}
+
+type LocalAppConversationTextDelta struct {
+	TurnId string `json:"turn_id,omitempty"`
+	Text string `json:"text,omitempty"`
+}
+
+type LocalAppConversationTurnAccepted struct {
+	TurnId string `json:"turn_id,omitempty"`
+	RequestId string `json:"request_id,omitempty"`
+}
+
+type LocalAppConversationTurnCompleted struct {
+	TurnId string `json:"turn_id,omitempty"`
+	TerminalReason string `json:"terminal_reason,omitempty"`
+}
+
+type LocalAppConversationTurnFailed struct {
+	TurnId string `json:"turn_id,omitempty"`
+	ReasonCode string `json:"reason_code,omitempty"`
+	Message *string `json:"message,omitempty"`
+}
+
+type LocalAppConversationTurnInterrupted struct {
+	TurnId string `json:"turn_id,omitempty"`
+	Reason string `json:"reason,omitempty"`
+}
+
+type LocalAppConversationTurnStarted struct {
+	TurnId string `json:"turn_id,omitempty"`
 }
 
 type LocalAppSharedLocalAgentAIConfigProjection struct {
@@ -5662,6 +5763,15 @@ type OpenExternalPrincipalSessionResponse struct {
 	ReasonCode ReasonCode `json:"reason_code,omitempty"`
 }
 
+type OpenLocalAppConversationRequest struct {
+	AgentHandle string `json:"agent_handle,omitempty"`
+}
+
+type OpenLocalAppConversationResponse struct {
+	ConversationAnchorId string `json:"conversation_anchor_id,omitempty"`
+	ActiveTurnId *string `json:"active_turn_id,omitempty"`
+}
+
 type OpenLocalAppSessionRequest struct {
 
 }
@@ -6683,6 +6793,17 @@ type SendAppMessageResponse struct {
 	ReasonCode ReasonCode `json:"reason_code,omitempty"`
 }
 
+type SendLocalAppConversationTurnRequest struct {
+	AgentHandle string `json:"agent_handle,omitempty"`
+	ConversationAnchorId string `json:"conversation_anchor_id,omitempty"`
+	RequestId string `json:"request_id,omitempty"`
+	Text string `json:"text,omitempty"`
+}
+
+type SendLocalAppConversationTurnResponse struct {
+	TurnId string `json:"turn_id,omitempty"`
+}
+
 type SetAgentPresentationProfileRequest struct {
 	Context *AgentRequestContext `json:"context,omitempty"`
 	AgentId string `json:"agent_id,omitempty"`
@@ -6932,6 +7053,11 @@ type SubscribeAppMessagesRequest struct {
 	Cursor string `json:"cursor,omitempty"`
 	FromAppIds []string `json:"from_app_ids,omitempty"`
 	LocalAgentRef string `json:"local_agent_ref,omitempty"`
+	ConversationAnchorId string `json:"conversation_anchor_id,omitempty"`
+}
+
+type SubscribeLocalAppConversationEventsRequest struct {
+	AgentHandle string `json:"agent_handle,omitempty"`
 	ConversationAnchorId string `json:"conversation_anchor_id,omitempty"`
 }
 
@@ -7800,6 +7926,14 @@ func (c RuntimeTypedClient) GetLocalAppAgentPresentationSnapshot(ctx context.Con
 	return decodeRuntimeTypedResponse[LocalAppAgentPresentationSnapshotResponse](raw, "LocalAppAgentPresentationSnapshotResponse")
 }
 
+func (c RuntimeTypedClient) GetLocalAppConversationSnapshot(ctx context.Context, request GetLocalAppConversationSnapshotRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetLocalAppConversationSnapshotResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppConversationSnapshot", request, metadata, timeoutMS)
+	if err != nil {
+		return GetLocalAppConversationSnapshotResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[GetLocalAppConversationSnapshotResponse](raw, "GetLocalAppConversationSnapshotResponse")
+}
+
 func (c RuntimeTypedClient) GetLocalAppSharedLocalAgentAIConfig(ctx context.Context, request GetLocalAppSharedLocalAgentAIConfigRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetLocalAppSharedLocalAgentAIConfigResponse, error) {
 	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppSharedLocalAgentAIConfig", request, metadata, timeoutMS)
 	if err != nil {
@@ -7830,6 +7964,14 @@ func (c RuntimeTypedClient) InterruptAgentVoicePlayback(ctx context.Context, req
 		return InterruptAgentVoicePlaybackResponse{}, err
 	}
 	return decodeRuntimeTypedResponse[InterruptAgentVoicePlaybackResponse](raw, "InterruptAgentVoicePlaybackResponse")
+}
+
+func (c RuntimeTypedClient) InterruptLocalAppConversationTurn(ctx context.Context, request InterruptLocalAppConversationTurnRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (InterruptLocalAppConversationTurnResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/InterruptLocalAppConversationTurn", request, metadata, timeoutMS)
+	if err != nil {
+		return InterruptLocalAppConversationTurnResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[InterruptLocalAppConversationTurnResponse](raw, "InterruptLocalAppConversationTurnResponse")
 }
 
 func (c RuntimeTypedClient) ListAgentConversationSummaries(ctx context.Context, request ListAgentConversationSummariesRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ListAgentConversationSummariesResponse, error) {
@@ -7880,6 +8022,14 @@ func (c RuntimeTypedClient) ListDelegatedProviderProfiles(ctx context.Context, r
 	return decodeRuntimeTypedResponse[ListDelegatedProviderProfilesResponse](raw, "ListDelegatedProviderProfilesResponse")
 }
 
+func (c RuntimeTypedClient) ListLocalAppAgentReferences(ctx context.Context, request ListLocalAppAgentReferencesRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ListLocalAppAgentReferencesResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentReferences", request, metadata, timeoutMS)
+	if err != nil {
+		return ListLocalAppAgentReferencesResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[ListLocalAppAgentReferencesResponse](raw, "ListLocalAppAgentReferencesResponse")
+}
+
 func (c RuntimeTypedClient) ListPendingHooks(ctx context.Context, request ListPendingHooksRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ListPendingHooksResponse, error) {
 	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/ListPendingHooks", request, metadata, timeoutMS)
 	if err != nil {
@@ -7910,6 +8060,14 @@ func (c RuntimeTypedClient) OpenConversationAnchor(ctx context.Context, request 
 		return OpenConversationAnchorResponse{}, err
 	}
 	return decodeRuntimeTypedResponse[OpenConversationAnchorResponse](raw, "OpenConversationAnchorResponse")
+}
+
+func (c RuntimeTypedClient) OpenLocalAppConversation(ctx context.Context, request OpenLocalAppConversationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (OpenLocalAppConversationResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/OpenLocalAppConversation", request, metadata, timeoutMS)
+	if err != nil {
+		return OpenLocalAppConversationResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[OpenLocalAppConversationResponse](raw, "OpenLocalAppConversationResponse")
 }
 
 func (c RuntimeTypedClient) OverwriteLocalAppSharedLocalAgentAIConfig(ctx context.Context, request OverwriteLocalAppSharedLocalAgentAIConfigRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (OverwriteLocalAppSharedLocalAgentAIConfigResponse, error) {
@@ -7992,6 +8150,14 @@ func (c RuntimeTypedClient) ResolveAvatarLiveInstanceBinding(ctx context.Context
 	return decodeRuntimeTypedResponse[ResolveAvatarLiveInstanceBindingResponse](raw, "ResolveAvatarLiveInstanceBindingResponse")
 }
 
+func (c RuntimeTypedClient) SendLocalAppConversationTurn(ctx context.Context, request SendLocalAppConversationTurnRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (SendLocalAppConversationTurnResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/SendLocalAppConversationTurn", request, metadata, timeoutMS)
+	if err != nil {
+		return SendLocalAppConversationTurnResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[SendLocalAppConversationTurnResponse](raw, "SendLocalAppConversationTurnResponse")
+}
+
 func (c RuntimeTypedClient) SetAgentPresentationProfile(ctx context.Context, request SetAgentPresentationProfileRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (SetAgentPresentationProfileResponse, error) {
 	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/SetAgentPresentationProfile", request, metadata, timeoutMS)
 	if err != nil {
@@ -8038,6 +8204,14 @@ func (c RuntimeTypedClient) SubscribeAgentVoiceStream(ctx context.Context, reque
 		return nil, err
 	}
 	return &RuntimeTypedStream[AgentVoiceStreamEvent]{reader: reader}, nil
+}
+
+func (c RuntimeTypedClient) SubscribeLocalAppConversationEvents(ctx context.Context, request SubscribeLocalAppConversationEventsRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (*RuntimeTypedStream[LocalAppConversationEvent], error) {
+	reader, err := c.streamTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/SubscribeLocalAppConversationEvents", request, metadata, timeoutMS)
+	if err != nil {
+		return nil, err
+	}
+	return &RuntimeTypedStream[LocalAppConversationEvent]{reader: reader}, nil
 }
 
 func (c RuntimeTypedClient) TerminateAgent(ctx context.Context, request TerminateAgentRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (TerminateAgentResponse, error) {

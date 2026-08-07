@@ -13,7 +13,6 @@ const MAX_TEXT_CANDIDATE_PROMPT_BYTES = 64 * 1024;
 const MAX_TEXT_CANDIDATE_TOKENS = 4096;
 const MAX_ARTIFACT_DATA_BYTES = 4 * 1024 * 1024;
 const MAX_ARTIFACT_DISPLAY_NAME_BYTES = 512;
-const MAX_TURN_ATTACHMENTS = 1;
 const MAX_AI_PROFILE_JSON_BYTES = 4 * 1024 * 1024;
 const FORBIDDEN_PORTABLE_APP_AI_CONFIG_FIELDS = new Set([
   'account', 'accountid', 'accesstoken', 'authorization', 'binding', 'bindingid',
@@ -189,13 +188,11 @@ function validatePayload(
     case 'conversationOpen':
       return identifiers(payload, ['agentHandle'], command);
     case 'conversationSendTurn': {
-      assertExactKeys(payload, ['agentHandle', 'conversationAnchorId', 'requestId', 'text', 'attachments'], command);
-      const attachments = turnAttachments(payload.attachments, command) as NimiElectronLocalAppRecord[string];
+      assertExactKeys(payload, ['agentHandle', 'conversationAnchorId', 'requestId', 'text'], command);
       return {
         ...identifiers(payload, ['agentHandle', 'conversationAnchorId', 'requestId'], command,
-          new Set(), ['agentHandle', 'conversationAnchorId', 'requestId', 'text', 'attachments']),
-        text: turnText(payload.text, Array.isArray(attachments) && attachments.length > 0, command),
-        attachments,
+          new Set(), ['agentHandle', 'conversationAnchorId', 'requestId', 'text']),
+        text: requiredUtf8Text(payload.text, 'text', command, 64 * 1024),
       };
     }
     case 'artifactReadBytes':
@@ -350,24 +347,6 @@ function identifiers(
     record[key] = requiredText(payload[key], key, command, MAX_IDENTIFIER_LENGTH);
   }
   return record;
-}
-
-function turnAttachments(value: unknown, command: string): NimiElectronLocalAppRecord[string] {
-  validateJsonValue(value, command, 8 * 1024);
-  if (!Array.isArray(value) || value.length > MAX_TURN_ATTACHMENTS) {
-    throw invalidPayload(command, 'attachments is invalid');
-  }
-  return value.map((entry) => {
-    if (!isPlainRecord(entry)) throw invalidPayload(command, 'attachments entry is invalid');
-    assertAllowedKeys(entry, ['artifactId', 'displayName'], ['artifactId'], command);
-    const attachment: Record<string, NimiElectronLocalAppRecord[string]> = {
-      artifactId: requiredText(entry.artifactId, 'attachments.artifactId', command, MAX_IDENTIFIER_LENGTH),
-    };
-    if (entry.displayName !== undefined) {
-      attachment.displayName = requiredText(entry.displayName, 'attachments.displayName', command, MAX_IDENTIFIER_LENGTH);
-    }
-    return attachment;
-  }) as NimiElectronLocalAppRecord[string];
 }
 
 function storagePathPayload(
@@ -550,11 +529,6 @@ function requiredUtf8Text(value: unknown, field: string, command: string, maxByt
     throw invalidPayload(command, `${field} is invalid`);
   }
   return normalized;
-}
-
-function turnText(value: unknown, allowEmpty: boolean, command: string): string {
-  if (allowEmpty && value === '') return '';
-  return requiredUtf8Text(value, 'text', command, 64 * 1024);
 }
 
 function activeConversationStreams(host: NimiElectronLocalAppHost): Set<string> {
