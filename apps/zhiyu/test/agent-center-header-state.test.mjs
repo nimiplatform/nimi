@@ -91,6 +91,28 @@ test('Zhiyu adopts Kit canonical Agent Center chrome and keeps host context outs
   assert.doesNotMatch(source, /runtimeError:/);
 });
 
+test('Zhiyu Agent Center panel fails closed with a typed unavailable state when the session is absent', async () => {
+  const { renderPanel } = await importRightPanelModule();
+  const html = renderPanel({
+    mode: 'agent',
+    evidence: {
+      companion: { currentEmotion: null, executionState: null },
+      localAgent: { agentHandle: 'opaque-agent' },
+      inventory: { localAgents: [] },
+    },
+    currentPartnerName: '伙伴',
+    activeTab: 'overview',
+    onActiveTabChange() {},
+    onClose() {},
+    onOpenDesktopAgentConfig() {},
+    session: null,
+  });
+  assert.match(html, /data-zhiyu-agent-center-unavailable="protected-app-access-unavailable"/);
+  assert.match(html, /data-zhiyu-agent-center-unavailable-close="true"/);
+  assert.match(html, /data-zhiyu-desktop-open-action="desktop_open_agent_config"/);
+  assert.doesNotMatch(html, /data-test-chrome/);
+});
+
 test('Agent Center world metadata fails closed when Runtime does not project a world name', async () => {
   const labels = await importTypescriptModule('src/shell/agent-chat/ZhiyuAgentChatLabels.ts');
   const evidence = {
@@ -170,6 +192,7 @@ async function importRightPanelModule() {
           contents: `
             import { createElement } from 'react';
             export function Globe2() { return createElement('svg'); }
+            export function X() { return createElement('svg'); }
           `,
         }));
       },

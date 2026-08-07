@@ -22,7 +22,10 @@ import { projectZhiyuIdentitySafetyEvidence } from './identity-safety-evidence';
 import { projectZhiyuAvatarLaunchAction } from '../avatar/avatar-launch';
 import type { ZhiyuCanonicalRendererBindings } from '../../renderer/contract';
 import { sameZhiyuRuntimeAgentInventory } from '../agent/agent-inventory-projection';
-import { projectZhiyuAuthorizedAgentCenterHandle } from '../agent/agent-center-handle';
+import {
+  projectZhiyuAuthorizedAgentCenterHandle,
+  projectZhiyuAuthorizedAgentCenterIdentity,
+} from '../agent/agent-center-handle';
 import {
   isZhiyuDirectLocalAppSubmitEnabled,
   refreshZhiyuDirectLocalAppSubmitGate,
@@ -38,9 +41,18 @@ export function ZhiyuCanonicalApp(props: { readonly bindings: ZhiyuCanonicalRend
   const latestAgentInventoryRef = useRef<ZhiyuEvidence['inventory']>(evidence.inventory);
   const renderEvidence = useMemo(() => projectZhiyuIdentitySafetyEvidence(evidence), [evidence]);
   const agentCenterHandle = projectZhiyuAuthorizedAgentCenterHandle(renderEvidence);
+  const agentCenterIdentity = useMemo(
+    () => projectZhiyuAuthorizedAgentCenterIdentity(renderEvidence, agentCenterHandle),
+    [
+      agentCenterHandle,
+      renderEvidence.conversation,
+      renderEvidence.inventory,
+      renderEvidence.localAgent,
+    ],
+  );
   const agentCenterSession = useMemo(
-    () => bindings.app.projection.agentCenterSession(agentCenterHandle),
-    [bindings, agentCenterHandle],
+    () => bindings.app.projection.agentCenterSession(agentCenterHandle, agentCenterIdentity),
+    [bindings, agentCenterHandle, agentCenterIdentity],
   );
   const latestConversationIdentityRef = useRef<ZhiyuRuntimeChatApplyIdentity>(
     zhiyuRuntimeChatApplyIdentity(evidence.conversation),

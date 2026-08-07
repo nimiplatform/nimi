@@ -1,4 +1,16 @@
 import { createNimiCanonicalRendererHostBindings } from '@nimiplatform/kit/shell/renderer/host';
+import type {
+  NimiRuntimeAgentPresentationProfileProjection,
+  RuntimeLocalAgentIdentityInput,
+} from '@nimiplatform/kit/core/sdk-contract';
+import {
+  createAgentCenterShellAppearanceAdapter,
+  createFirstPartyAgentCenterSession,
+  type AgentCenterAutonomyProjection,
+  type AgentCenterRuntimePresentationProfilePatch,
+  type AgentCenterSession,
+  type AgentCenterSharedAIConfigProjection,
+} from '@nimiplatform/kit/features/agent-center';
 
 import type { ZhiyuCanonicalRendererBindings, ZhiyuHomeProjection } from '../renderer/contract.js';
 import type { ZhiyuRuntimeAgentChatTurnResult } from '../shell/agent-chat/runtime-agent-turn-adapter.js';
@@ -219,9 +231,192 @@ async function invoke(
 }
 
 function simulatedAgentCenterSession(
-  _agentHandle: Parameters<ZhiyuCanonicalRendererBindings['app']['projection']['agentCenterSession']>[0],
-): null {
-  return null;
+  agentHandle: Parameters<ZhiyuCanonicalRendererBindings['app']['projection']['agentCenterSession']>[0],
+  identity: Parameters<ZhiyuCanonicalRendererBindings['app']['projection']['agentCenterSession']>[1],
+): AgentCenterSession | null {
+  if (!agentHandle || !identity || agentHandle !== simulatedAgentHandle(identity.localAgentRef)) return null;
+
+  let capabilities: AgentCenterSharedAIConfigProjection['aiConfig']['capabilities'] = [{
+    capabilityContract: 'text.generate',
+    requiredFeatures: [],
+    route: { oneofKind: 'local', local: {} },
+  }];
+  const sharedAIConfig = () => simulatedSharedAIConfig(capabilities);
+
+  let autonomy: AgentCenterAutonomyProjection = Object.freeze({
+    revision: '1',
+    mode: 'low',
+    enabled: true,
+    budgetExhausted: false,
+    usedTokensInWindow: 0,
+    dailyTokenBudget: 4_096,
+    maxTokensPerHook: 512,
+    windowStartedAt: null,
+    suspendedUntil: null,
+  });
+
+  let presentationRevision = '1';
+  let presentationProfile: NimiRuntimeAgentPresentationProfileProjection = simulatedPresentationProfile();
+  let previousPresentationProfile: NimiRuntimeAgentPresentationProfileProjection | null = null;
+  const presentationResult = () => Object.freeze({
+    profile: presentationProfile,
+    previousProfile: previousPresentationProfile,
+    committedRevision: presentationRevision,
+  });
+  const mutatePresentation = async (
+    operationIdentity: RuntimeLocalAgentIdentityInput,
+    patch: AgentCenterRuntimePresentationProfilePatch | null,
+    expectedRevision: string,
+  ) => {
+    assertSimulatedIdentity(operationIdentity, identity);
+    if (!patch || expectedRevision !== presentationRevision) {
+      throw new Error('ZHIYU_SIMULATOR_PRESENTATION_REVISION_CONFLICT');
+    }
+    previousPresentationProfile = presentationProfile;
+    const backendKind = patch.backendKind === undefined
+      ? presentationProfile.backendKind
+      : patch.backendKind;
+    if (backendKind !== null
+      && backendKind !== 'vrm'
+      && backendKind !== 'live2d'
+      && backendKind !== 'sprite2d'
+      && backendKind !== 'canvas2d'
+      && backendKind !== 'video') {
+      throw new Error('ZHIYU_SIMULATOR_PRESENTATION_BACKEND_INVALID');
+    }
+    presentationProfile = Object.freeze({
+      ...presentationProfile,
+      backendKind,
+      ...(patch.avatarAssetRef === undefined ? {} : { avatarAssetRef: patch.avatarAssetRef }),
+      ...(patch.expressionProfileRef === undefined ? {} : { expressionProfileRef: patch.expressionProfileRef }),
+      ...(patch.idlePreset === undefined ? {} : { idlePreset: patch.idlePreset }),
+      ...(patch.interactionPolicyRef === undefined ? {} : { interactionPolicyRef: patch.interactionPolicyRef }),
+      ...(patch.defaultVoiceReference === undefined ? {} : { defaultVoiceReference: patch.defaultVoiceReference }),
+      ...(patch.avatarAutoplay === undefined ? {} : { avatarAutoplay: patch.avatarAutoplay }),
+      ...(patch.backgroundAssetRef === undefined ? {} : { backgroundAssetRef: patch.backgroundAssetRef }),
+    });
+    presentationRevision = String(BigInt(presentationRevision) + 1n);
+    return presentationResult();
+  };
+  const appearance = createAgentCenterShellAppearanceAdapter({
+    identity,
+    accountId: identity.ownerUserId,
+    runtimePresentation: {
+      setPresentationProfile: mutatePresentation,
+      patchPresentationProfile: mutatePresentation,
+    },
+    shell: null,
+    avatarPreview: null,
+    loadPresentation: async () => presentationResult(),
+  });
+
+  return createFirstPartyAgentCenterSession({
+    identity,
+    sharedAIConfig: {
+      async get() {
+        return sharedAIConfig();
+      },
+      async overwrite(input) {
+        capabilities = [...input.capabilities];
+        return sharedAIConfig();
+      },
+    },
+    autonomy: {
+      async load(operationIdentity) {
+        assertSimulatedIdentity(operationIdentity, identity);
+        return autonomy;
+      },
+      async update(operationIdentity, mutation) {
+        assertSimulatedIdentity(operationIdentity, identity);
+        if (mutation.expectedRevision !== autonomy.revision) {
+          throw new Error('ZHIYU_SIMULATOR_AUTONOMY_REVISION_CONFLICT');
+        }
+        autonomy = Object.freeze({
+          ...autonomy,
+          revision: String(BigInt(autonomy.revision || '0') + 1n),
+          enabled: mutation.enabled ?? autonomy.enabled,
+          mode: simulatedAutonomyMode(mutation.mode),
+          dailyTokenBudget: simulatedNonNegativeInteger(
+            mutation.dailyTokenBudget,
+            'DAILY_TOKEN_BUDGET',
+          ),
+          maxTokensPerHook: simulatedNonNegativeInteger(
+            mutation.maxTokensPerHook,
+            'MAX_TOKENS_PER_HOOK',
+          ),
+        });
+        return autonomy;
+      },
+    },
+    appearance,
+  });
+}
+
+function simulatedSharedAIConfig(
+  capabilities: AgentCenterSharedAIConfigProjection['aiConfig']['capabilities'],
+): AgentCenterSharedAIConfigProjection {
+  const intents = capabilities.map((capability) => {
+    if (capability.route.oneofKind !== 'local' && capability.route.oneofKind !== 'cloud') {
+      throw new Error('ZHIYU_SIMULATOR_AI_CONFIG_ROUTE_INVALID');
+    }
+    return Object.freeze({
+      capability: capability.capabilityContract,
+      route: capability.route.oneofKind,
+      requiredFeatures: Object.freeze([...capability.requiredFeatures]),
+    });
+  });
+  const aiConfig: AgentCenterSharedAIConfigProjection['aiConfig'] = {
+    owner: { owner: { oneofKind: 'runtimeLocalAgentSubsystem', runtimeLocalAgentSubsystem: {} } },
+    capabilities: [...capabilities],
+  };
+  return Object.freeze({
+    aiConfig,
+    capabilities: Object.freeze(intents.map((intent) => intent.capability)),
+    intents: Object.freeze(intents),
+  });
+}
+
+function simulatedPresentationProfile(): NimiRuntimeAgentPresentationProfileProjection {
+  return Object.freeze({
+    backendKind: 'sprite2d' as const,
+    avatarAssetRef: null,
+    expressionProfileRef: null,
+    idlePreset: null,
+    interactionPolicyRef: null,
+    defaultVoiceReference: null,
+    avatarAutoplay: false,
+    backgroundAssetRef: null,
+  });
+}
+
+function simulatedAutonomyMode(value: string): AgentCenterAutonomyProjection['mode'] {
+  if (value === 'off' || value === 'low' || value === 'medium' || value === 'high') {
+    return value;
+  }
+  throw new Error('ZHIYU_SIMULATOR_AUTONOMY_MODE_INVALID');
+}
+
+function simulatedNonNegativeInteger(value: string | number, field: string): number {
+  const normalized = typeof value === 'string' && /^(?:0|[1-9][0-9]*)$/u.test(value)
+    ? Number(value)
+    : value;
+  if (typeof normalized !== 'number'
+    || !Number.isSafeInteger(normalized)
+    || normalized < 0) {
+    throw new Error(`ZHIYU_SIMULATOR_${field}_INVALID`);
+  }
+  return normalized;
+}
+
+function assertSimulatedIdentity(
+  input: RuntimeLocalAgentIdentityInput,
+  expected: RuntimeLocalAgentIdentityInput,
+): void {
+  if (input.ownerUserId !== expected.ownerUserId
+    || input.runtimeSourceRef !== expected.runtimeSourceRef
+    || input.localAgentRef !== expected.localAgentRef) {
+    throw new Error('ZHIYU_SIMULATOR_AGENT_CENTER_IDENTITY_CHANGED');
+  }
 }
 
 export function createZhiyuSimulatorBindings(

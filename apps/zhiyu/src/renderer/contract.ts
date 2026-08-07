@@ -10,6 +10,7 @@ import type { ZhiyuAvatarLaunchAction } from '../shell/avatar/avatar-launch.js';
 import type { ZhiyuAvatarLaunchResult } from '../shell/avatar/avatar-launch-handoff.js';
 import type { ZhiyuDesktopOpenActionResult } from '../shell/desktop-open/desktop-open-action.js';
 import type { ZhiyuEvidence } from '../shell/app/evidence.js';
+import type { ZhiyuAuthorizedAgentCenterIdentity } from '../shell/agent/agent-center-handle.js';
 
 export type ZhiyuHomeProjection = Pick<
   ZhiyuEvidence,
@@ -27,7 +28,10 @@ export type ZhiyuHomeProjection = Pick<
 >;
 
 export interface ZhiyuRendererProjectionPort {
-  agentCenterSession(agentHandle: AgentCenterOpaqueHandle | null): AgentCenterSession | null;
+  agentCenterSession(
+    agentHandle: AgentCenterOpaqueHandle | null,
+    identity: ZhiyuAuthorizedAgentCenterIdentity | null,
+  ): AgentCenterSession | null;
   loadHome(input: { readonly selectedAgentHandle: string | null }): Promise<ZhiyuHomeProjection>;
   loadAgentInventory(): Promise<ZhiyuEvidence['inventory']>;
   projectTurnReadiness(

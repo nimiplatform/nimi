@@ -3,6 +3,7 @@ app_id: nimi.zhiyu
 display_name: 织羽 Zhiyu
 app_access:
   - agent.local
+  - agent.configure
 disposition: bundled_component_with_isolated_integration_build
 local_development:
   electron:

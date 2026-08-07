@@ -5,7 +5,7 @@ import {
   type AgentCenterSession,
   type AgentCenterTranslationKey,
 } from '@nimiplatform/kit/features/agent-center';
-import { Globe2 } from 'lucide-react';
+import { Globe2, X } from 'lucide-react';
 import { useMemo } from 'react';
 import type { ZhiyuEvidence } from '../app/evidence';
 import {
@@ -98,7 +98,36 @@ export function RightAgentPanel(props: RightAgentPanelProps) {
           launchAvatar: props.onAvatarLaunch,
         }}
         session={props.session}
-      /> : null}
+      /> : (
+        <section
+          className="flex min-h-0 flex-1 flex-col gap-3 rounded-2xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-4"
+          data-zhiyu-agent-center-unavailable="protected-app-access-unavailable"
+          aria-label="织羽智能体中心暂不可用"
+        >
+          <div className="flex min-w-0 items-center justify-between gap-2">
+            <h2 className="m-0 text-sm font-semibold">织羽智能体中心</h2>
+            <button
+              type="button"
+              aria-label="关闭织羽智能体中心"
+              data-zhiyu-agent-center-unavailable-close="true"
+              onClick={props.onClose}
+            >
+              <X size={16} aria-hidden="true" />
+            </button>
+          </div>
+          <p className="m-0 text-xs leading-relaxed text-[var(--nimi-text-secondary)]">
+            伙伴设置暂时无法在织羽内修改，本地 App 的受保护配置能力尚未开放。
+          </p>
+          <button
+            type="button"
+            data-zhiyu-agent-center-unavailable-action="desktop-open-agent-config"
+            data-zhiyu-desktop-open-action="desktop_open_agent_config"
+            onClick={props.onOpenDesktopAgentConfig}
+          >
+            在桌面端打开伙伴配置
+          </button>
+        </section>
+      )}
     </aside>
   );
 }
