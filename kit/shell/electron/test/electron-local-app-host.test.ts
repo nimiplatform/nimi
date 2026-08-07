@@ -119,6 +119,38 @@ describe('Electron protected local-app host', () => {
     })).rejects.toMatchObject({ reasonCode: 'local-app-operation-unavailable', retryable: false });
   });
 
+  it('preserves typed ConnectorGrant selection-required posture', async () => {
+    const candidate = {
+      ...binding([]),
+      localAppTextGenerateCandidate: async () => ({
+        status: 'error' as const,
+        reasonCode: 'ai-connector-grant-selection-required',
+        retryable: false,
+      }),
+    };
+    await expect(createNimiElectronLocalAppHostForBinding(candidate).textGenerateCandidate({
+      messages: [{ role: 'user', text: 'hello' }], temperature: 0, topP: 1, maxTokens: 1,
+    })).rejects.toMatchObject({
+      reasonCode: 'ai-connector-grant-selection-required', retryable: false,
+    });
+  });
+
+  it('preserves exact Local owner composition failures', async () => {
+    const candidate = {
+      ...binding([]),
+      localAppTextGenerateCandidate: async () => ({
+        status: 'error' as const,
+        reasonCode: 'ai-local-selection-not-found',
+        retryable: false,
+      }),
+    };
+    await expect(createNimiElectronLocalAppHostForBinding(candidate).textGenerateCandidate({
+      messages: [{ role: 'user', text: 'hello' }], temperature: 0, topP: 1, maxTokens: 1,
+    })).rejects.toMatchObject({
+      reasonCode: 'ai-local-selection-not-found', retryable: false,
+    });
+  });
+
   it('rejects ConnectorGrant binding material returned by the App AIConfig carrier', async () => {
     const candidate = {
       ...binding([]),

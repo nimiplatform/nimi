@@ -13,7 +13,7 @@ import {
 import type { TesterAIConfigSummary } from './tester-ai-config.js';
 import type { TesterCapabilityRunResult } from './tester-runtime.js';
 import type { TesterPreferences } from './tester-preferences.js';
-import { Imp3AppAccessPanel } from './imp3-app-access-panel.js';
+import { Imp4AppAccessPanel } from './imp4-app-access-panel.js';
 import { testerTestIds } from './tester-test-ids.js';
 import { WorkbenchSideNav } from './workbench/workbench-side-nav.js';
 import { SectionAITesting } from './workbench/section-ai-testing.js';
@@ -280,7 +280,7 @@ export function TesterWorkbench(_props: TesterWorkbenchProps) {
           )}
         />
         <div className="workbench__main">
-          <Imp3AppAccessPanel />
+          <Imp4AppAccessPanel />
           <div className="workbench__content">
             {view.kind === 'settings' ? (
               <Suspense fallback={null}>

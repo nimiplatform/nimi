@@ -89,6 +89,20 @@ func TestLocalAppSessionInvalidationAndSameHostRebind(t *testing.T) {
 	assertLocalAppReason(t, restarted.AdmitLocalAppIngress(ctx, localappop.IngressStorageJSONRead), runtimev1.ReasonCode_LOCAL_APP_SESSION_REVOKED)
 }
 
+func TestLocalAppSessionSignedOutFailsTypedWithoutBindingAccessSession(t *testing.T) {
+	fixture := newLocalAppSessionFixture(t, nil)
+	fixture.account.signOut()
+
+	_, err := fixture.service.OpenLocalAppSessionProjection(fixture.context)
+	assertLocalAppReason(t, err, runtimev1.ReasonCode_AUTH_TOKEN_INVALID)
+	if _, bound := fixture.connection.Session(); bound {
+		t.Fatal("signed-out Runtime must not bind a private App Access session")
+	}
+	if !fixture.connection.Live() {
+		t.Fatal("signed-out account must not revoke the verified Host connection")
+	}
+}
+
 func TestLocalAppSessionCurrentUserProjectionAndFailureIsolation(t *testing.T) {
 	fixture := newLocalAppSessionFixture(t, nil)
 	projection, err := fixture.service.OpenLocalAppSessionProjection(fixture.context)
@@ -128,6 +142,14 @@ func TestLocalAppSessionOwnerHandoffContainsOnlyRuntimeDerivedAdmission(t *testi
 		localappop.IngressStorageJSONWrite: {
 			operation: accountservice.LocalAppOperationStorageJSONWrite,
 			class:     localappop.AuthorityClassBase, capability: "app.private_storage",
+		},
+		localappop.IngressAppAIConfigGet: {
+			operation: accountservice.LocalAppOperationAppAIConfigRead,
+			class:     localappop.AuthorityClassBase, capability: "",
+		},
+		localappop.IngressAppAIConfigOverwrite: {
+			operation: accountservice.LocalAppOperationAppAIConfigOverwrite,
+			class:     localappop.AuthorityClassBase, capability: "",
 		},
 		localappop.IngressRealmWorldCoreList: {
 			operation: accountservice.LocalAppOperationRealmWorldCoreList,
@@ -281,8 +303,17 @@ func (account *localAppSessionTestAccount) AuthenticatedRuntimeSecurityContext(c
 func (account *localAppSessionTestAccount) BindAuthenticatedRuntimeGeneration(context.Context) (*runtimev1.AccountProjection, uint64, <-chan struct{}, bool) {
 	account.mu.Lock()
 	defer account.mu.Unlock()
+	if account.projection == nil {
+		return nil, account.generation, account.invalidated, false
+	}
 	copy := *account.projection
 	return &copy, account.generation, account.invalidated, true
+}
+
+func (account *localAppSessionTestAccount) signOut() {
+	account.mu.Lock()
+	account.projection = nil
+	account.mu.Unlock()
 }
 
 func (account *localAppSessionTestAccount) replace(accountID, realmID string) {

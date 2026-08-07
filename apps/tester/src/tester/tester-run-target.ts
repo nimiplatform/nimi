@@ -1,4 +1,4 @@
-import type { NimiCapabilityAIConfig } from '@nimiplatform/sdk/ai';
+import type { NimiPortableAppAIConfig } from '@nimiplatform/sdk/ai';
 
 import type {
   TesterCapability,
@@ -36,7 +36,7 @@ export type TesterRunTargetSummary = {
 export function createTesterRunTargetSummary(input: {
   capability: TesterCapability;
   runtime: TesterRuntimeInspection | null;
-  config: NimiCapabilityAIConfig | null;
+  config: NimiPortableAppAIConfig | null;
   configState?: 'loading' | 'loaded' | 'failed';
   configError?: string | null;
   standaloneTauriAvailable?: boolean;
@@ -142,16 +142,13 @@ export function createTesterRunTargetSummary(input: {
     };
   }
   if (intentSelection.oneofKind === 'cloud' && 'cloud' in intentSelection) {
-    const grantSelected = Boolean(intentSelection.cloud.connectorGrantId.trim());
     return {
       ...base,
-      status: grantSelected ? 'configured' : 'blocked',
+      status: 'configured',
       source: 'cloud',
-      intentLabel: grantSelected ? 'Cloud' : 'Cloud authorization required',
-      detail: grantSelected
-        ? 'The App selected an exact Cloud intent with an authorization grant. Runtime validates that configured target when execution begins.'
-        : 'The Cloud intent requires an authorization grant before execution.',
-      canDispatch: grantSelected,
+      intentLabel: 'Cloud',
+      detail: 'The App selected an exact portable Cloud intent. Nimi owns authorization selection and Runtime returns a typed selection-required result when no binding exists.',
+      canDispatch: true,
     };
   }
 

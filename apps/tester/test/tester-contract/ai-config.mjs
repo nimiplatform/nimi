@@ -45,7 +45,6 @@ test('tester Local selection preserves unrelated intents and carries no model or
           driverId: 'cloud.driver',
           driverDialect: 'v1',
         },
-        connectorGrantId: 'grant-image',
       },
     },
   };
@@ -81,7 +80,6 @@ test('tester image Cloud intent preserves whole-object neighbors without hardcod
     provider: 'provider-from-runtime-catalog',
     providerModelId: 'model-from-runtime-catalog',
     remoteModelCatalogId: 'catalog-entry-7',
-    connectorGrantId: 'grant-image',
   });
   const next = await overwriteTesterCapabilityIntent({
     async overwrite(capabilities) {
@@ -104,18 +102,17 @@ test('tester image Cloud intent preserves whole-object neighbors without hardcod
     next.capabilities[1].route.cloud.providerModelTarget.fields.providerModelId.kind.stringValue,
     'model-from-runtime-catalog',
   );
-  assert.equal(next.capabilities[1].route.cloud.connectorGrantId, 'grant-image');
+  assert.equal('connectorGrantId' in next.capabilities[1].route.cloud, false);
 
-  const selectionRequired = createTesterCloudCapabilityIntent('image.generate', null, {
+  assert.throws(() => createTesterCloudCapabilityIntent('image.generate', null, {
     implementationId: 'cloud.image.custom',
     driverId: 'cloud.driver.custom',
     driverDialect: 'custom/image/v1',
     provider: 'provider-from-runtime-catalog',
     providerModelId: 'model-from-runtime-catalog',
     remoteModelCatalogId: 'catalog-entry-7',
-    connectorGrantId: '',
-  });
-  assert.equal(selectionRequired.route.cloud.connectorGrantId, '');
+    connectorGrantId: 'forbidden-custody',
+  }), /must not carry binding or custody/u);
 });
 
 test('tester rejects any AIConfig projection not owned by the exact nimi.tester App', async () => {
@@ -185,13 +182,13 @@ test('tester presents Local intent while leaving implementation selection to Run
   assert.equal(imageTarget.canDispatch, true);
 });
 
-test('tester requires Cloud authorization intent without selecting an implementation', async () => {
+test('tester keeps Cloud authorization owner-only while allowing typed selection-required execution', async () => {
   const { createTesterRunTargetSummary } = await importBehaviorModule('tester/tester-run-target.js');
   const capability = {
     id: 'image.generate', label: 'Image Generate', group: 'media', summary: '', surface: '', execution: 'runtime-sdk', capabilityContract: 'image.generate',
   };
   const runtime = { status: 'connected', mode: 'electron-local-app', detail: 'connected' };
-  const cloudIntent = (connectorGrantId) => ({
+  const cloudIntent = {
     capabilityContract: 'image.generate',
     requiredFeatures: [],
     route: {
@@ -209,21 +206,16 @@ test('tester requires Cloud authorization intent without selecting an implementa
             remoteModelCatalogId: { kind: { oneofKind: 'stringValue', stringValue: 'catalog-test' } },
           },
         },
-        connectorGrantId,
       },
     },
-  });
+  };
 
-  const unresolved = createTesterRunTargetSummary({ capability, runtime, config: config(cloudIntent('')) });
-  assert.equal(unresolved.status, 'blocked');
-  assert.equal(unresolved.canDispatch, false);
-  assert.match(unresolved.detail, /authorization grant/u);
-
-  const configured = createTesterRunTargetSummary({ capability, runtime, config: config(cloudIntent('grant-image')) });
+  const configured = createTesterRunTargetSummary({ capability, runtime, config: config(cloudIntent) });
   assert.equal(configured.status, 'configured');
   assert.equal(configured.source, 'cloud');
   assert.equal(configured.canDispatch, true);
-  assert.match(configured.detail, /Runtime validates that configured target/u);
+  assert.match(configured.detail, /Nimi owns authorization selection/u);
+  assert.doesNotMatch(JSON.stringify(cloudIntent), /connectorGrant|custody|binding/iu);
 });
 
 test('tester dispatches the standalone World Tour only from a Tauri shell', async () => {

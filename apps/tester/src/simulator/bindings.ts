@@ -3,9 +3,9 @@ import {
   type NimiRendererHostResult,
 } from '@nimiplatform/kit/shell/renderer/host';
 import type {
-  NimiCapabilityAIConfig,
-  NimiCapabilityAIConfigIntent,
   NimiGenerateTextRequest,
+  NimiPortableAppAIConfig,
+  NimiPortableAppAIConfigIntent,
 } from '@nimiplatform/sdk/ai';
 import {
   NIMI_TESTING_AI_GENERATE_TEXT_METHOD,
@@ -167,7 +167,7 @@ function promptDraftId(key: TesterPromptDraftKey): string {
   return `${key.surfaceId}:${key.capabilityId}:${key.scenarioId}`;
 }
 
-function aiConfig(value: JsonRecord): NimiCapabilityAIConfig {
+function aiConfig(value: JsonRecord): NimiPortableAppAIConfig {
   if (!isRecord(value.owner) || !Array.isArray(value.capabilities)) {
     throw new Error('Tester simulated AIConfig is invalid.');
   }
@@ -179,7 +179,7 @@ function aiConfig(value: JsonRecord): NimiCapabilityAIConfig {
     || variant.app.appId !== appId) {
     throw new Error('Tester simulated AIConfig owner is invalid.');
   }
-  return value as unknown as NimiCapabilityAIConfig;
+  return value as unknown as NimiPortableAppAIConfig;
 }
 
 function createAIConfigPort(context: TesterSimulatorPrepareContext) {
@@ -187,7 +187,7 @@ function createAIConfigPort(context: TesterSimulatorPrepareContext) {
     async get() {
       return aiConfig(projection(context).aiConfig);
     },
-    async overwrite(capabilities: readonly NimiCapabilityAIConfigIntent[]) {
+    async overwrite(capabilities: readonly NimiPortableAppAIConfigIntent[]) {
       await invoke(context, 'tester.ai-config.update', {
         config: {
           owner: { owner: { oneofKind: 'app', app: { appId } } },

@@ -127,8 +127,7 @@ function canonicalAIConfig(value: TesterSimulatorJsonValue): JsonRecord {
       if (Object.keys(local).length !== 0) throw new Error('TESTER_SIMULATOR_AI_CONFIG_INVALID');
     } else if (route.oneofKind === 'cloud') {
       const cloud = record(route.cloud, 'AI_CONFIG_CLOUD_ROUTE');
-      if (typeof cloud.connectorGrantId !== 'string'
-        || cloud.connectorGrantId.trim() !== cloud.connectorGrantId) {
+      if (Object.keys(cloud).some((key) => /binding|connector.?grant|custody|grant.?id/iu.test(key))) {
         throw new Error('TESTER_SIMULATOR_AI_CONFIG_INVALID');
       }
       const implementation = record(cloud.implementation, 'AI_CONFIG_IMPLEMENTATION');

@@ -115,6 +115,38 @@ test('Tester presents typed unavailable posture without terminating its App carr
   }
 });
 
+test('Tester names a signed-out account without reporting carrier distrust', async () => {
+  const previousElectronTest = globalThis.__NIMI_ELECTRON_TEST__;
+  globalThis.__NIMI_ELECTRON_TEST__ = {
+    async invoke(command) {
+      throw Object.assign(new Error('Runtime account is not authenticated'), {
+        code: 'runtime-unauthenticated',
+        reasonCode: 'runtime-unauthenticated',
+        actionHint: 'refresh_local_app_runtime_projection',
+        source: 'runtime',
+        details: { command, retryable: false },
+      });
+    },
+    listen() { return () => {}; },
+  };
+  try {
+    const runtimePlatform = await importRuntimePlatform();
+    runtimePlatform.clearRuntimePlatformProjection();
+    const projection = await runtimePlatform.getRuntimePlatformProjection();
+    assert.deepEqual(projection, {
+      status: 'action-required',
+      mode: 'local-app',
+      reasonCode: 'runtime-unauthenticated',
+      actionHint: 'sign_in_to_nimi_desktop',
+      message: 'No Nimi account is signed in. Sign in through Nimi Desktop, then retry.',
+    });
+    assert.doesNotMatch(projection.message, /untrusted|carrier|machine/iu);
+  } finally {
+    if (previousElectronTest === undefined) delete globalThis.__NIMI_ELECTRON_TEST__;
+    else globalThis.__NIMI_ELECTRON_TEST__ = previousElectronTest;
+  }
+});
+
 test('Tester preserves a bound identity session without treating it as App Access', async () => {
   const previousElectronTest = globalThis.__NIMI_ELECTRON_TEST__;
   const calls = [];

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import type { NimiCapabilityAIConfig } from '@nimiplatform/sdk/ai';
+import type { NimiPortableAppAIConfig } from '@nimiplatform/sdk/ai';
 import { fromNimiRuntimeProtoStruct } from '@nimiplatform/sdk/runtime';
 import { Button, StatusBadge, TextField } from '@nimiplatform/kit/ui';
 
@@ -29,7 +29,7 @@ export function TesterAiConfigSettingsPanel({
   onClose,
 }: TesterAiConfigSettingsPanelProps) {
   const rendererHost = useTesterRendererHost();
-  const [config, setConfig] = useState<NimiCapabilityAIConfig | null>(null);
+  const [config, setConfig] = useState<NimiPortableAppAIConfig | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -41,7 +41,6 @@ export function TesterAiConfigSettingsPanel({
     provider: '',
     providerModelId: '',
     remoteModelCatalogId: '',
-    connectorGrantId: '',
   });
 
   const refresh = useCallback(async () => {
@@ -75,7 +74,6 @@ export function TesterAiConfigSettingsPanel({
       provider: stringField(target.provider),
       providerModelId: stringField(target.providerModelId) || stringField(target.model),
       remoteModelCatalogId: stringField(target.remoteModelCatalogId),
-      connectorGrantId: cloud.connectorGrantId,
     });
     setCloudTargetConfirmed(false);
   }, [intent]);
@@ -210,7 +208,7 @@ export function TesterAiConfigSettingsPanel({
                             ...current,
                             [field]: event.currentTarget.value,
                           }));
-                          if (field !== 'connectorGrantId') setCloudTargetConfirmed(false);
+                          setCloudTargetConfirmed(false);
                         }}
                       />
                     </label>
@@ -224,11 +222,9 @@ export function TesterAiConfigSettingsPanel({
                   />
                   <span>I confirm this Cloud implementation and provider-model target.</span>
                 </label>
-                {!cloudDraft.connectorGrantId ? (
-                  <p className="rounded-lg border border-[var(--nimi-border-subtle)] p-3 text-sm text-[var(--nimi-text-muted)]">
-                    Account authorization still needs to be selected. This information state may be saved now and authorized later.
-                  </p>
-                ) : null}
+                <p className="rounded-lg border border-[var(--nimi-border-subtle)] p-3 text-sm text-[var(--nimi-text-muted)]">
+                  Account authorization remains Nimi-owned. This grantless intent may be saved now and will require explicit selection before execution.
+                </p>
                 <Button type="button" disabled={saving || !cloudTargetConfirmed} onClick={() => void selectCloud()}>
                   {intentKind === 'cloud' ? 'Save Cloud intent' : 'Select Cloud'}
                 </Button>
@@ -252,7 +248,6 @@ const TESTER_CLOUD_INTENT_FIELDS = [
   ['provider', 'Provider'],
   ['providerModelId', 'Provider model ID'],
   ['remoteModelCatalogId', 'Remote model catalog ID'],
-  ['connectorGrantId', 'Connector grant ID'],
 ] as const satisfies readonly (readonly [keyof TesterCloudCapabilityIntentInput, string])[];
 
 function stringField(value: unknown): string {

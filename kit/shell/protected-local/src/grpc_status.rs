@@ -123,11 +123,16 @@ pub(crate) fn local_app_reason_from_proto(value: i32) -> Option<LocalAppReasonCo
         204 => LocalAppReasonCode::AiRouteUnsupported,
         205 => LocalAppReasonCode::AiRouteFallbackDenied,
         206 => LocalAppReasonCode::AiInputInvalid,
+        318 => LocalAppReasonCode::AiConnectorGrantSelectionRequired,
         207 => LocalAppReasonCode::AiOutputInvalid,
         209 => LocalAppReasonCode::AiContentFilterBlocked,
         352 => LocalAppReasonCode::AiLocalModelUnavailable,
         353 => LocalAppReasonCode::AiLocalModelProfileMissing,
         364 => LocalAppReasonCode::AiLocalServiceUnavailable,
+        688 => LocalAppReasonCode::AiLocalDriverUnavailable,
+        697 => LocalAppReasonCode::AiLocalSelectionNotFound,
+        698 => LocalAppReasonCode::AiLocalCapabilityMismatch,
+        699 => LocalAppReasonCode::AiLocalConfigurationNotConfigured,
         391 => LocalAppReasonCode::AiProviderAuthFailed,
         392 => LocalAppReasonCode::AiProviderInternal,
         393 => LocalAppReasonCode::AiProviderRateLimited,
@@ -186,12 +191,21 @@ fn local_app_reason_from_runtime_reason(value: &str) -> Option<LocalAppReasonCod
         "AI_PROVIDER_UNAVAILABLE" => LocalAppReasonCode::AiProviderUnavailable,
         "AI_ROUTE_UNSUPPORTED" => LocalAppReasonCode::AiRouteUnsupported,
         "AI_ROUTE_FALLBACK_DENIED" => LocalAppReasonCode::AiRouteFallbackDenied,
+        "AI_CONNECTOR_GRANT_SELECTION_REQUIRED" => {
+            LocalAppReasonCode::AiConnectorGrantSelectionRequired
+        }
         "AI_INPUT_INVALID" => LocalAppReasonCode::AiInputInvalid,
         "AI_OUTPUT_INVALID" => LocalAppReasonCode::AiOutputInvalid,
         "AI_CONTENT_FILTER_BLOCKED" => LocalAppReasonCode::AiContentFilterBlocked,
         "AI_LOCAL_MODEL_UNAVAILABLE" => LocalAppReasonCode::AiLocalModelUnavailable,
         "AI_LOCAL_MODEL_PROFILE_MISSING" => LocalAppReasonCode::AiLocalModelProfileMissing,
         "AI_LOCAL_SERVICE_UNAVAILABLE" => LocalAppReasonCode::AiLocalServiceUnavailable,
+        "AI_LOCAL_DRIVER_UNAVAILABLE" => LocalAppReasonCode::AiLocalDriverUnavailable,
+        "AI_LOCAL_SELECTION_NOT_FOUND" => LocalAppReasonCode::AiLocalSelectionNotFound,
+        "AI_LOCAL_CAPABILITY_MISMATCH" => LocalAppReasonCode::AiLocalCapabilityMismatch,
+        "AI_LOCAL_CONFIGURATION_NOT_CONFIGURED" => {
+            LocalAppReasonCode::AiLocalConfigurationNotConfigured
+        }
         "AI_PROVIDER_AUTH_FAILED" => LocalAppReasonCode::AiProviderAuthFailed,
         "AI_PROVIDER_INTERNAL" => LocalAppReasonCode::AiProviderInternal,
         "AI_PROVIDER_RATE_LIMITED" => LocalAppReasonCode::AiProviderRateLimited,
@@ -341,6 +355,42 @@ mod tests {
             local_app_reason_from_runtime_reason("LOCAL_APP_ACCESS_DENIED"),
             local_app_reason_from_runtime_reason("LOCAL_APP_OWNER_UNAVAILABLE")
         );
+        assert_eq!(
+            local_app_reason_from_runtime_reason("AI_CONNECTOR_GRANT_SELECTION_REQUIRED"),
+            Some(LocalAppReasonCode::AiConnectorGrantSelectionRequired)
+        );
+        assert_eq!(
+            local_app_reason_from_proto(318),
+            Some(LocalAppReasonCode::AiConnectorGrantSelectionRequired)
+        );
+        for (runtime_reason, proto_reason, expected) in [
+            (
+                "AI_LOCAL_DRIVER_UNAVAILABLE",
+                688,
+                LocalAppReasonCode::AiLocalDriverUnavailable,
+            ),
+            (
+                "AI_LOCAL_SELECTION_NOT_FOUND",
+                697,
+                LocalAppReasonCode::AiLocalSelectionNotFound,
+            ),
+            (
+                "AI_LOCAL_CAPABILITY_MISMATCH",
+                698,
+                LocalAppReasonCode::AiLocalCapabilityMismatch,
+            ),
+            (
+                "AI_LOCAL_CONFIGURATION_NOT_CONFIGURED",
+                699,
+                LocalAppReasonCode::AiLocalConfigurationNotConfigured,
+            ),
+        ] {
+            assert_eq!(
+                local_app_reason_from_runtime_reason(runtime_reason),
+                Some(expected)
+            );
+            assert_eq!(local_app_reason_from_proto(proto_reason), Some(expected));
+        }
     }
 
     #[test]

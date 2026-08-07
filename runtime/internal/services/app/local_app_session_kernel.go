@@ -20,6 +20,7 @@ import (
 )
 
 var (
+	errLocalAppAccountRequired               = errors.New("local-app authenticated account required")
 	errLocalAppAccountGenerationChanged      = errors.New("local-app account generation changed")
 	errLocalAppRegistrationGenerationChanged = errors.New("local-app registration generation changed")
 )
@@ -145,7 +146,7 @@ func (s *Service) deriveLocalAppRuntimeSession(ctx context.Context, registration
 	}
 	account, accountGeneration, accountInvalidated, ok := s.bindAuthenticatedRuntimeAccount(ctx)
 	if !ok {
-		return localAppRuntimeSession{}, errLocalAppAccountGenerationChanged
+		return localAppRuntimeSession{}, errLocalAppAccountRequired
 	}
 	handle, runtimeGeneration, err := s.newLocalAppSessionMaterial()
 	if err != nil {
@@ -236,17 +237,23 @@ func (s *Service) AuthorizeLocalAppIngress(ctx context.Context, ingress localapp
 		return nil, localAppIngressError(err)
 	}
 	capability := ""
+	ownerSupported := true
 	switch admission.Operation {
 	case localappop.OperationStorageJSONRead, localappop.OperationStorageJSONWrite, localappop.OperationStorageJSONRemove:
 		capability = appstorage.LocalAppPrivateStorageEntitlement
+	case localappop.OperationAppAIConfigGet, localappop.OperationAppAIConfigOverwrite:
+		// The AIConfig owner validates the exact admitted operation directly;
+		// it has no separate capability string or caller-selected owner input.
 	case localappop.OperationRealmWorldCoreList:
 		capability = "realm.world-core.list"
 	case localappop.OperationRealmWorldCoreCreate:
 		capability = "realm.world-core.create"
 	case localappop.OperationTextCandidateGenerate:
 		capability = "ai.text.generate"
+	default:
+		ownerSupported = false
 	}
-	if capability == "" {
+	if !ownerSupported {
 		return nil, localDevelopmentFailure(codes.Unimplemented, runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNSUPPORTED)
 	}
 	registrationHandle, registrationOK := localDevelopmentRegistrationIdentifier(session.registrationHandle)
@@ -354,6 +361,8 @@ func (s *Service) ResolveLocalAppSession(ctx context.Context, accountGeneration 
 
 func localAppSessionEstablishmentError(err error) error {
 	switch {
+	case errors.Is(err, errLocalAppAccountRequired):
+		return localDevelopmentFailure(codes.Unauthenticated, runtimev1.ReasonCode_AUTH_TOKEN_INVALID)
 	case errors.Is(err, errLocalAppAccountGenerationChanged):
 		return localDevelopmentFailure(codes.Unauthenticated, runtimev1.ReasonCode_LOCAL_APP_ACCOUNT_CHANGED)
 	case errors.Is(err, localappkernel.ErrNotFound), errors.Is(err, localappkernel.ErrRegistrationTombstoned):

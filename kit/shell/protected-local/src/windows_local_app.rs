@@ -9,6 +9,7 @@ mod text_candidate;
 
 use std::future::Future;
 use std::pin::Pin;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
 
 use tokio::sync::RwLock;
@@ -63,26 +64,85 @@ struct PlatformLocalAppSession {
     #[cfg(target_os = "windows")]
     runtime_peer: PlatformRuntimePeer,
     operation_gate: RwLock<()>,
+    session_bound: AtomicBool,
+    account_required: AtomicBool,
     current_user: RwLock<LocalAppCurrentUserStatus>,
 }
 
 impl PlatformLocalAppSession {
-    fn checked_channel(&self) -> Result<Channel, LocalAppOperationError> {
+    fn transport_channel(&self) -> Result<Channel, LocalAppOperationError> {
         #[cfg(target_os = "windows")]
         let _ = &self.runtime_peer;
         Ok(self.channel.clone())
     }
 
+    fn checked_channel(&self) -> Result<Channel, LocalAppOperationError> {
+        if !self.session_bound.load(Ordering::Acquire)
+            || self.account_required.load(Ordering::Acquire)
+        {
+            return Err(runtime_unauthenticated());
+        }
+        self.transport_channel()
+    }
+
+    async fn store_ready_status(&self, status: &LocalAppSessionStatus) {
+        *self.current_user.write().await = status.current_user.clone();
+        self.session_bound.store(true, Ordering::Release);
+        self.account_required.store(false, Ordering::Release);
+    }
+
+    fn record_session_error(&self, error: &LocalAppOperationError) {
+        if error.reason_code() == LocalAppReasonCode::RuntimeUnauthenticated {
+            self.session_bound.store(false, Ordering::Release);
+            self.account_required.store(true, Ordering::Release);
+        }
+    }
+
+    async fn open_session(&self) -> Result<LocalAppSessionStatus, LocalAppOperationError> {
+        let _opening = self.operation_gate.write().await;
+        if self.session_bound.load(Ordering::Acquire) {
+            return Ok(ready_session_status(self.current_user.read().await.clone()));
+        }
+        let response = RuntimeAuthServiceClient::new(self.transport_channel()?)
+            .open_local_app_session(OpenLocalAppSessionRequest {})
+            .await
+            .map_err(local_app_error_from_status);
+        let response = match response {
+            Ok(response) => response.into_inner(),
+            Err(error) => {
+                self.record_session_error(&error);
+                return Err(error);
+            }
+        };
+        let status = validate_session_projection(response)?;
+        self.store_ready_status(&status).await;
+        Ok(status)
+    }
+
     async fn renew_session(&self) -> Result<LocalAppSessionStatus, LocalAppOperationError> {
         let _renewal = self.operation_gate.write().await;
-        let response = RuntimeAuthServiceClient::new(self.checked_channel()?)
+        let response = RuntimeAuthServiceClient::new(self.transport_channel()?)
             .renew_local_app_session(RenewLocalAppSessionRequest {})
             .await
-            .map_err(local_app_error_from_status)?
-            .into_inner();
+            .map_err(local_app_error_from_status);
+        let response = match response {
+            Ok(response) => response.into_inner(),
+            Err(error) => {
+                self.record_session_error(&error);
+                return Err(error);
+            }
+        };
         let status = validate_session_projection(response)?;
-        *self.current_user.write().await = status.current_user.clone();
+        self.store_ready_status(&status).await;
         Ok(status)
+    }
+
+    async fn refresh_session(&self) -> Result<LocalAppSessionStatus, LocalAppOperationError> {
+        if self.session_bound.load(Ordering::Acquire) {
+            self.renew_session().await
+        } else {
+            self.open_session().await
+        }
     }
 }
 
@@ -93,6 +153,11 @@ impl NimiLocalAppSession for PlatformLocalAppSession {
         Box<dyn Future<Output = Result<LocalAppSessionStatus, LocalAppOperationError>> + Send + '_>,
     > {
         Box::pin(async move {
+            if !self.session_bound.load(Ordering::Acquire)
+                || self.account_required.load(Ordering::Acquire)
+            {
+                return self.refresh_session().await;
+            }
             let _operation = self.operation_gate.read().await;
             self.checked_channel()?;
             let current_user = self.current_user.read().await.clone();
@@ -105,7 +170,7 @@ impl NimiLocalAppSession for PlatformLocalAppSession {
     ) -> Pin<
         Box<dyn Future<Output = Result<LocalAppSessionStatus, LocalAppOperationError>> + Send + '_>,
     > {
-        Box::pin(self.renew_session())
+        Box::pin(self.refresh_session())
     }
 
     fn generate_text_candidate(
@@ -449,18 +514,20 @@ async fn open_local_app_session() -> Result<Box<dyn NimiLocalAppSession>, LocalA
     let (channel, runtime_peer) = open_local_app_runtime_channel()
         .await
         .map_err(local_app_error_from_protected)?;
-    let response = RuntimeAuthServiceClient::new(channel.clone())
-        .open_local_app_session(OpenLocalAppSessionRequest {})
-        .await
-        .map_err(local_app_error_from_status)?
-        .into_inner();
-    let status = validate_session_projection(response)?;
-    Ok(Box::new(PlatformLocalAppSession {
+    let session = PlatformLocalAppSession {
         channel,
         runtime_peer,
         operation_gate: RwLock::new(()),
-        current_user: RwLock::new(status.current_user),
-    }))
+        session_bound: AtomicBool::new(false),
+        account_required: AtomicBool::new(false),
+        current_user: RwLock::new(unavailable_current_user()),
+    };
+    if let Err(error) = session.open_session().await {
+        if !retain_channel_for_account_required(&error) {
+            return Err(error);
+        }
+    }
+    Ok(Box::new(session))
 }
 
 #[cfg(target_os = "macos")]
@@ -468,17 +535,19 @@ async fn open_local_app_session() -> Result<Box<dyn NimiLocalAppSession>, LocalA
     let channel = open_local_app_runtime_channel()
         .await
         .map_err(local_app_error_from_protected)?;
-    let response = RuntimeAuthServiceClient::new(channel.clone())
-        .open_local_app_session(OpenLocalAppSessionRequest {})
-        .await
-        .map_err(local_app_error_from_status)?
-        .into_inner();
-    let status = validate_session_projection(response)?;
-    Ok(Box::new(PlatformLocalAppSession {
+    let session = PlatformLocalAppSession {
         channel,
         operation_gate: RwLock::new(()),
-        current_user: RwLock::new(status.current_user),
-    }))
+        session_bound: AtomicBool::new(false),
+        account_required: AtomicBool::new(false),
+        current_user: RwLock::new(unavailable_current_user()),
+    };
+    if let Err(error) = session.open_session().await {
+        if !retain_channel_for_account_required(&error) {
+            return Err(error);
+        }
+    }
+    Ok(Box::new(session))
 }
 
 fn ready_session_status(current_user: LocalAppCurrentUserStatus) -> LocalAppSessionStatus {
@@ -488,6 +557,22 @@ fn ready_session_status(current_user: LocalAppCurrentUserStatus) -> LocalAppSess
         retryable: false,
         current_user,
     }
+}
+
+fn unavailable_current_user() -> LocalAppCurrentUserStatus {
+    LocalAppCurrentUserStatus {
+        value: None,
+        reason_code: LocalAppReasonCode::CurrentUserDisplayUnavailable,
+        retryable: true,
+    }
+}
+
+fn retain_channel_for_account_required(error: &LocalAppOperationError) -> bool {
+    error.reason_code() == LocalAppReasonCode::RuntimeUnauthenticated
+}
+
+fn runtime_unauthenticated() -> LocalAppOperationError {
+    LocalAppOperationError::new(LocalAppReasonCode::RuntimeUnauthenticated, false)
 }
 
 fn validate_session_projection(
@@ -691,6 +776,19 @@ mod tests {
                 "avatar {avatar}"
             );
         }
+    }
+
+    #[test]
+    fn anonymous_ready_runtime_retains_verified_channel_for_later_account_binding() {
+        let error = LocalAppOperationError::new(LocalAppReasonCode::RuntimeUnauthenticated, false);
+        assert!(retain_channel_for_account_required(&error));
+    }
+
+    #[test]
+    fn unreachable_runtime_does_not_masquerade_as_account_required() {
+        let error =
+            LocalAppOperationError::new(LocalAppReasonCode::RuntimeServiceUnavailable, true);
+        assert!(!retain_channel_for_account_required(&error));
     }
 
     #[tokio::test]

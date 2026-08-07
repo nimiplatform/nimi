@@ -102,7 +102,7 @@ function messageFor(reasonCode: string): string {
     case 'runtime-service-untrusted':
       return 'This process is not connected through the trusted Nimi Desktop local-app carrier.';
     case 'runtime-unauthenticated':
-      return 'The protected local-app session must be reopened through Nimi Desktop.';
+      return 'No Nimi account is signed in. Sign in through Nimi Desktop, then retry.';
     case 'process-replaced':
       return 'This process no longer matches the admitted local-app process.';
     case 'account-changed':
@@ -130,6 +130,7 @@ function actionHintFor(reasonCode: string): string {
     case 'process-replaced':
       return 'restart_through_verified_desktop_supervisor';
     case 'runtime-unauthenticated':
+      return 'sign_in_to_nimi_desktop';
     case 'runtime-restarted':
       return 'reopen_local_app_session';
     case 'account-changed':

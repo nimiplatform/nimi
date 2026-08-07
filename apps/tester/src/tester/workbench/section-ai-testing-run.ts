@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import type { NimiCapabilityAIConfig } from '@nimiplatform/sdk/ai';
+import type { NimiPortableAppAIConfig } from '@nimiplatform/sdk/ai';
 import { hasTauriRuntime } from '@nimiplatform/kit/shell/renderer/bridge';
 import type { TesterCapability } from '../tester-capabilities.js';
 import { getTesterRunIntentLabel, type TesterRunConfigSnapshot, type TesterRunHistoryRecord } from '../tester-history.js';
@@ -57,7 +57,7 @@ export function useTesterRunTargetSummary(
   const rendererHost = useTesterRendererHost();
   const [configProjection, setConfigProjection] = useState<{
     state: 'loading' | 'loaded' | 'failed';
-    config: NimiCapabilityAIConfig | null;
+    config: NimiPortableAppAIConfig | null;
     error: string | null;
   }>({ state: 'loading', config: null, error: null });
 

@@ -1,19 +1,19 @@
 import type {
-  NimiCapabilityAIConfig,
-  NimiCapabilityAIConfigIntent,
+  NimiPortableAppAIConfig,
+  NimiPortableAppAIConfigIntent,
 } from '@nimiplatform/sdk/ai';
 import { toNimiRuntimeProtoStruct } from '@nimiplatform/sdk/runtime';
 
 import { appId } from '../shell/auth/app-identity.js';
 
 type TesterAIConfigClient = {
-  get(): Promise<NimiCapabilityAIConfig | null>;
+  get(): Promise<NimiPortableAppAIConfig | null>;
   overwrite(
-    capabilities: readonly NimiCapabilityAIConfigIntent[],
-  ): Promise<NimiCapabilityAIConfig>;
+    capabilities: readonly NimiPortableAppAIConfigIntent[],
+  ): Promise<NimiPortableAppAIConfig>;
 };
 
-export type TesterAIConfigProjection = NimiCapabilityAIConfig | null;
+export type TesterAIConfigProjection = NimiPortableAppAIConfig | null;
 
 export async function loadTesterAIConfig(
   client: Pick<TesterAIConfigClient, 'get'>,
@@ -30,8 +30,8 @@ export async function loadTesterAIConfig(
 export async function overwriteTesterCapabilityIntent(
   client: Pick<TesterAIConfigClient, 'overwrite'>,
   current: TesterAIConfigProjection,
-  intent: NimiCapabilityAIConfigIntent,
-): Promise<NimiCapabilityAIConfig> {
+  intent: NimiPortableAppAIConfigIntent,
+): Promise<NimiPortableAppAIConfig> {
   const capabilities = replaceCapabilityIntent(current?.capabilities ?? [], intent);
   return requireTesterAIConfigOwner(await client.overwrite(capabilities));
 }
@@ -40,7 +40,7 @@ export async function removeTesterCapabilityIntent(
   client: Pick<TesterAIConfigClient, 'overwrite'>,
   current: TesterAIConfigProjection,
   capabilityContract: string,
-): Promise<NimiCapabilityAIConfig> {
+): Promise<NimiPortableAppAIConfig> {
   const capabilities = (current?.capabilities ?? []).filter(
     (intent) => intent.capabilityContract !== capabilityContract,
   );
@@ -49,8 +49,8 @@ export async function removeTesterCapabilityIntent(
 
 export function createTesterLocalCapabilityIntent(
   capabilityContract: string,
-  current?: NimiCapabilityAIConfigIntent | null,
-): NimiCapabilityAIConfigIntent {
+  current?: NimiPortableAppAIConfigIntent | null,
+): NimiPortableAppAIConfigIntent {
   const normalized = capabilityContract.trim();
   if (!normalized || normalized !== capabilityContract) {
     throw new Error('Tester capability contract must be exact.');
@@ -70,14 +70,13 @@ export type TesterCloudCapabilityIntentInput = {
   readonly provider: string;
   readonly providerModelId: string;
   readonly remoteModelCatalogId: string;
-  readonly connectorGrantId: string;
 };
 
 export function createTesterCloudCapabilityIntent(
   capabilityContract: string,
-  current: NimiCapabilityAIConfigIntent | null | undefined,
+  current: NimiPortableAppAIConfigIntent | null | undefined,
   input: TesterCloudCapabilityIntentInput,
-): NimiCapabilityAIConfigIntent {
+): NimiPortableAppAIConfigIntent {
   const contract = requireExactText(capabilityContract, 'Tester capability contract');
   const implementationId = requireExactText(input.implementationId, 'Cloud implementation id');
   const driverId = requireExactText(input.driverId, 'Cloud driver id');
@@ -88,9 +87,13 @@ export function createTesterCloudCapabilityIntent(
     input.remoteModelCatalogId,
     'Cloud remote model catalog id',
   );
-  const connectorGrantId = input.connectorGrantId === ''
-    ? ''
-    : requireExactText(input.connectorGrantId, 'Cloud connector grant id');
+  const exactInputKeys = [
+    'implementationId', 'driverId', 'driverDialect', 'provider',
+    'providerModelId', 'remoteModelCatalogId',
+  ];
+  if (Object.keys(input).sort().join('|') !== exactInputKeys.sort().join('|')) {
+    throw new Error('Tester Cloud intent must not carry binding or custody fields.');
+  }
   return {
     capabilityContract: contract,
     requiredFeatures: [...(current?.requiredFeatures ?? [])],
@@ -104,7 +107,6 @@ export function createTesterCloudCapabilityIntent(
           providerModelId,
           remoteModelCatalogId,
         }),
-        connectorGrantId,
       },
     },
   };
@@ -113,15 +115,15 @@ export function createTesterCloudCapabilityIntent(
 export function findTesterCapabilityIntent(
   config: TesterAIConfigProjection,
   capabilityContract: string,
-): NimiCapabilityAIConfigIntent | null {
+): NimiPortableAppAIConfigIntent | null {
   return config?.capabilities.find(
     (intent) => intent.capabilityContract === capabilityContract,
   ) ?? null;
 }
 
 export function requireTesterAIConfigOwner(
-  config: NimiCapabilityAIConfig,
-): NimiCapabilityAIConfig {
+  config: NimiPortableAppAIConfig,
+): NimiPortableAppAIConfig {
   const owner = config.owner?.owner;
   if (!owner || owner.oneofKind !== 'app' || !('app' in owner) || owner.app.appId !== appId) {
     throw new Error('Tester AIConfig owner must be the exact nimi.tester App.');
@@ -137,9 +139,9 @@ function requireExactText(value: unknown, field: string): string {
 }
 
 function replaceCapabilityIntent(
-  current: readonly NimiCapabilityAIConfigIntent[],
-  next: NimiCapabilityAIConfigIntent,
-): NimiCapabilityAIConfigIntent[] {
+  current: readonly NimiPortableAppAIConfigIntent[],
+  next: NimiPortableAppAIConfigIntent,
+): NimiPortableAppAIConfigIntent[] {
   const retained = current.filter(
     (intent) => intent.capabilityContract !== next.capabilityContract,
   );

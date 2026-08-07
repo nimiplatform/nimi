@@ -1,5 +1,5 @@
 import { createNimiClientId } from '@nimiplatform/sdk';
-import type { NimiCapabilityAIConfigIntent } from '@nimiplatform/sdk/ai';
+import type { NimiPortableAppAIConfigIntent } from '@nimiplatform/sdk/ai';
 import { requestWithRetry } from '@nimiplatform/sdk/types';
 import type { Realm } from '@nimiplatform/sdk/realm';
 import {
@@ -120,7 +120,7 @@ export function createTesterProductionBindings(
       runCapability: runTesterCapability,
       aiConfig: Object.freeze({
         get: () => loadTesterAIConfig(testerLocalAppClient.aiConfig),
-        async overwrite(capabilities: readonly NimiCapabilityAIConfigIntent[]) {
+        async overwrite(capabilities: readonly NimiPortableAppAIConfigIntent[]) {
           return requireTesterAIConfigOwner(
             await testerLocalAppClient.aiConfig.overwrite(capabilities),
           );

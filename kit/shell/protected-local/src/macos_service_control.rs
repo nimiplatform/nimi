@@ -472,7 +472,7 @@ impl NimiProtectedLocalHostCarrier for MacOsUnixSocketCarrier {
                     development_processes.clone(),
                 )
                 .await?;
-                verify_source_local_development_desktop_control(channel.clone()).await?;
+                verify_source_local_development_runtime_readiness(channel.clone()).await?;
             }
             Ok(Box::new(MacOSDesktopControl {
                 channel,
@@ -484,24 +484,23 @@ impl NimiProtectedLocalHostCarrier for MacOsUnixSocketCarrier {
 
 // A restarted source Runtime can accept its owner-only socket just before all
 // protected services finish their ready transition. Keep the one-shot Host
-// rebind only on a channel that also completes an ordinary bounded Desktop
-// account-status roundtrip; an early channel otherwise drops and revokes the
-// fresh process witness before the same Host can reconnect.
+// rebind only on a channel that also completes an ordinary bounded,
+// account-independent Runtime roundtrip. Account presence is session-binding
+// input, not evidence that the carrier itself is trusted or ready.
 #[cfg(feature = "macos-source-local-development")]
-async fn verify_source_local_development_desktop_control(
+async fn verify_source_local_development_runtime_readiness(
     channel: Channel,
 ) -> Result<(), ProtectedCarrierError> {
-    crate::windows_desktop_account::get_account_session_status(
-        channel,
-        DesktopAccountSessionStatusRequest {
-            app_id: "nimi.desktop".to_string(),
-            app_instance_id: "nimi.desktop.local-first-party".to_string(),
-            device_id: "desktop-shell".to_string(),
-        },
+    source_local_development_readiness_result(
+        crate::windows_local_development::get_developer_mode_status(channel).await,
     )
-    .await
-    .map(|_| ())
-    .map_err(|error| {
+}
+
+#[cfg(feature = "macos-source-local-development")]
+fn source_local_development_readiness_result<T>(
+    result: Result<T, NimiHostError>,
+) -> Result<(), ProtectedCarrierError> {
+    result.map(|_| ()).map_err(|error| {
         if error.retryable() {
             unavailable()
         } else {
@@ -736,4 +735,31 @@ fn repair_required() -> ProtectedCarrierError {
 
 fn untrusted_host() -> NimiHostError {
     NimiHostError::new(NimiHostErrorReasonCode::RuntimeServiceUntrusted, false)
+}
+
+#[cfg(all(test, feature = "macos-source-local-development"))]
+mod source_local_development_readiness_tests {
+    use super::*;
+
+    #[test]
+    fn anonymous_ready_runtime_passes_account_independent_readiness() {
+        let status = DeveloperModeStatus {
+            state: crate::DeveloperModeState::Disabled,
+            revision: 1,
+        };
+        assert!(source_local_development_readiness_result(Ok(status)).is_ok());
+    }
+
+    #[test]
+    fn unreachable_runtime_still_fails_closed() {
+        let error = source_local_development_readiness_result::<DeveloperModeStatus>(Err(
+            NimiHostError::new(NimiHostErrorReasonCode::RuntimeServiceUnavailable, true),
+        ))
+        .expect_err("unreachable Runtime must fail closed");
+        assert_eq!(
+            error.reason_code(),
+            ProtectedCarrierReasonCode::RuntimeServiceUnavailable
+        );
+        assert!(error.retryable());
+    }
 }

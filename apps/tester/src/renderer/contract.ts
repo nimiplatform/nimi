@@ -6,8 +6,8 @@ import type {
   NimiRealmRequestDataExportOutput,
 } from '@nimiplatform/sdk/realm';
 import type {
-  NimiCapabilityAIConfig,
-  NimiCapabilityAIConfigIntent,
+  NimiPortableAppAIConfig,
+  NimiPortableAppAIConfigIntent,
 } from '@nimiplatform/sdk/ai';
 import type { NimiLocalAppAgentHandle } from '@nimiplatform/sdk/app';
 import type { RealmListChatsResultDto } from '@nimiplatform/kit/features/chat/realm';
@@ -87,10 +87,10 @@ export interface TesterRendererEventPort {
 export interface TesterRendererSdkPort {
   runCapability(input: TesterCapabilityRunInput): Promise<TesterCapabilityRunResult>;
   aiConfig: {
-    get(): Promise<NimiCapabilityAIConfig | null>;
+    get(): Promise<NimiPortableAppAIConfig | null>;
     overwrite(
-      capabilities: readonly NimiCapabilityAIConfigIntent[],
-    ): Promise<NimiCapabilityAIConfig>;
+      capabilities: readonly NimiPortableAppAIConfigIntent[],
+    ): Promise<NimiPortableAppAIConfig>;
   };
   settings: {
     notificationUnread(): Promise<NimiRealmNotificationUnreadView>;

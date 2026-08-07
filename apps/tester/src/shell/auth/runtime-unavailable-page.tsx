@@ -11,6 +11,7 @@ type RuntimeUnavailablePageProps = {
 
 export function RuntimeUnavailablePage({ projection, message, offlineTier, onRetry }: RuntimeUnavailablePageProps) {
   const body = message || projection?.message || 'Runtime session projection is not ready.';
+  const accountSignInRequired = projection?.reasonCode === 'runtime-unauthenticated';
   const nextAction = userAction(projection?.actionHint);
   return (
     <main className="runtime-unavailable-screen" aria-live="polite">
@@ -21,7 +22,7 @@ export function RuntimeUnavailablePage({ projection, message, offlineTier, onRet
         </div>
         <InlineAlert tone="warning">
           <div className="runtime-alert-copy">
-            <strong>Nimi Desktop connection required</strong>
+            <strong>{accountSignInRequired ? 'Nimi account sign-in required' : 'Nimi Desktop connection required'}</strong>
             <span>{body}</span>
           </div>
         </InlineAlert>
@@ -44,6 +45,8 @@ function userAction(actionHint: string | undefined): string {
       return 'Open Nimi Desktop, confirm Runtime is available, then retry.';
     case 'restart_through_verified_desktop_supervisor':
       return 'Close this process and relaunch the project through Nimi Desktop.';
+    case 'sign_in_to_nimi_desktop':
+      return 'Sign in through Nimi Desktop, then retry without relaunching this App.';
     case 'reopen_local_app_session':
       return 'Reopen the protected local-app session through Nimi Desktop.';
     case 'wait_for_app_access_admission':
