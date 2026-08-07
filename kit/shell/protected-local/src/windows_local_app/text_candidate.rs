@@ -12,6 +12,7 @@ use super::{invalid_payload, untrusted};
 const MAX_MESSAGES: usize = 8;
 const MAX_MESSAGE_BYTES: usize = 32 * 1024;
 const MAX_PROMPT_BYTES: usize = 64 * 1024;
+const MAX_OUTPUT_BYTES: usize = 256 * 1024;
 const MAX_TOKENS: i32 = 4096;
 
 pub(super) async fn generate(
@@ -58,7 +59,7 @@ pub(super) async fn generate(
 }
 
 fn valid_response_text(text: &str) -> bool {
-    !text.trim().is_empty()
+    !text.trim().is_empty() && text.len() <= MAX_OUTPUT_BYTES
 }
 
 fn validate_request(request: &LocalAppTextCandidateRequest) -> Result<(), LocalAppOperationError> {
@@ -134,8 +135,9 @@ mod tests {
     }
 
     #[test]
-    fn text_candidate_response_preserves_non_empty_whitespace() {
+    fn text_candidate_response_is_non_empty_and_bounded() {
         assert!(valid_response_text("  {\"name\":\"Lin\"}\n"));
         assert!(!valid_response_text(" \n\t "));
+        assert!(!valid_response_text(&"x".repeat(MAX_OUTPUT_BYTES + 1)));
     }
 }

@@ -9,7 +9,6 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/localappop"
 	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
-	"github.com/oklog/ulid/v2"
 	"google.golang.org/grpc/codes"
 )
 
@@ -20,10 +19,10 @@ const (
 	maxLocalAppTextCandidateTokens      = 4096
 )
 
-// GenerateLocalAppTextCandidate preserves the third-party Local App text
-// contract while composing its App AIConfig Local intent with the machine's
-// selected Local Capability Configuration. It never resolves an ambient
-// model, request target, or fallback.
+// GenerateLocalAppTextCandidate preserves the third-party Local App unary
+// contract while delegating route composition, spend disclosure, scheduling,
+// Driver mapping, metering, and execution to the post-I5 Scenario owner. The
+// App supplies no route, implementation, target, grant, model, tool, or stream.
 func (s *Service) GenerateLocalAppTextCandidate(ctx context.Context, req *runtimev1.GenerateLocalAppTextCandidateRequest) (*runtimev1.GenerateLocalAppTextCandidateResponse, error) {
 	decision, ok := accountservice.AuthorizedLocalAppDecisionFromContext(ctx)
 	if !ok || decision.Operation != accountservice.LocalAppOperationTextCandidateGenerate ||
@@ -35,30 +34,52 @@ func (s *Service) GenerateLocalAppTextCandidate(ctx context.Context, req *runtim
 	if err != nil {
 		return nil, err
 	}
-	head := &runtimev1.ScenarioRequestHead{
-		AppId:         decision.AppID,
-		SubjectUserId: decision.AccountID,
-	}
-	effective, err := s.captureLocalTextEffectiveInputs(ctx, head, &runtimev1.TextGenerateScenarioSpec{
-		Input:        messages,
-		SystemPrompt: systemPrompt,
-		Temperature:  req.GetTemperature(),
-		TopP:         req.GetTopP(),
-		MaxTokens:    req.GetMaxTokens(),
-	}, false)
+	result, err := s.ExecuteScenario(ctx, &runtimev1.ExecuteScenarioRequest{
+		Head: &runtimev1.ScenarioRequestHead{
+			AppId:         decision.AppID,
+			SubjectUserId: decision.AccountID,
+		},
+		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE,
+		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_SYNC,
+		Spec: &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_TextGenerate{
+			TextGenerate: &runtimev1.TextGenerateScenarioSpec{
+				Input:        messages,
+				SystemPrompt: systemPrompt,
+				Temperature:  req.GetTemperature(),
+				TopP:         req.GetTopP(),
+				MaxTokens:    req.GetMaxTokens(),
+			},
+		}},
+	})
 	if err != nil {
 		return nil, err
 	}
-	defer effective.release()
-	result, err := s.executeCapturedLocalText(ctx, effective, nil)
-	if err != nil {
-		return nil, err
+	if result == nil {
+		return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
+	}
+	text := result.GetOutput().GetTextGenerate()
+	if text == nil || strings.TrimSpace(text.GetText()) == "" ||
+		len([]byte(text.GetText())) > 256*1024 || strings.TrimSpace(result.GetTraceId()) == "" ||
+		result.GetTraceId() != strings.TrimSpace(result.GetTraceId()) ||
+		len(text.GetToolCalls()) != 0 || len(text.GetToolResults()) != 0 ||
+		len(text.GetToolApprovalRequests()) != 0 || len(text.GetSources()) != 0 || len(text.GetRawChunks()) != 0 ||
+		!localAppTextCandidateFinishReason(result.GetFinishReason()) {
+		return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 	}
 	return &runtimev1.GenerateLocalAppTextCandidateResponse{
-		Text:         result.Text,
-		FinishReason: result.FinishReason,
-		TraceId:      ulid.Make().String(),
+		Text: text.GetText(), FinishReason: result.GetFinishReason(), TraceId: result.GetTraceId(),
 	}, nil
+}
+
+func localAppTextCandidateFinishReason(reason runtimev1.FinishReason) bool {
+	switch reason {
+	case runtimev1.FinishReason_FINISH_REASON_STOP,
+		runtimev1.FinishReason_FINISH_REASON_LENGTH,
+		runtimev1.FinishReason_FINISH_REASON_CONTENT_FILTER:
+		return true
+	default:
+		return false
+	}
 }
 
 func validateLocalAppTextCandidateRequest(req *runtimev1.GenerateLocalAppTextCandidateRequest) (string, []*runtimev1.ChatMessage, error) {

@@ -2,11 +2,13 @@ package ai
 
 import (
 	"context"
+	"math"
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/localappop"
+	"github.com/nimiplatform/nimi/runtime/internal/localexecution"
 	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -46,14 +48,68 @@ func TestGenerateLocalAppTextCandidateUsesAppIntentAndMachineSelection(t *testin
 	}
 }
 
+func TestGenerateLocalAppTextCandidateCloudWithoutBindingIsSelectionRequiredAndDoesNotMutateRoute(t *testing.T) {
+	svc := newTestService(nil)
+	intent := grantlessCloudAIConfigIntent(t, "text.generate")
+	config := appAIConfig("nimi.realm-persona-studio", intent)
+	if err := svc.aiConfigStore.Overwrite(context.Background(), "account-1", config); err != nil {
+		t.Fatalf("install Cloud App AIConfig: %v", err)
+	}
+	response, err := svc.GenerateLocalAppTextCandidate(localAppTextCandidateContext(), validLocalAppTextCandidateRequest())
+	if response != nil {
+		t.Fatalf("selection-required response = %+v, want nil", response)
+	}
+	assertLocalAppTextCandidateError(t, err, codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONNECTOR_GRANT_SELECTION_REQUIRED)
+	stored, found, readErr := svc.aiConfigStore.Get(context.Background(), "account-1", appAIConfigOwner("nimi.realm-persona-studio"))
+	if readErr != nil || !found || stored.GetCapabilities()[0].GetCloud() == nil ||
+		stored.GetCapabilities()[0].GetCloud().GetConnectorGrantId() != "" {
+		t.Fatalf("selection failure changed committed route = (%+v, %v, %v)", stored, found, readErr)
+	}
+}
+
+func TestGenerateLocalAppTextCandidateRejectsMalformedOwnerOutput(t *testing.T) {
+	svc := newTestService(nil)
+	if err := svc.aiConfigStore.Overwrite(context.Background(), "account-1", &runtimev1.AIConfig{
+		Owner: derivedAppAIConfigOwner("nimi.realm-persona-studio"),
+		Capabilities: []*runtimev1.AIConfigCapabilityIntent{{
+			CapabilityContract: "text.generate",
+			Route:              &runtimev1.AIConfigCapabilityIntent_Local{Local: &runtimev1.AIConfigLocalIntent{}},
+		}},
+	}); err != nil {
+		t.Fatalf("install App AIConfig: %v", err)
+	}
+	svc.SetLocalExecutionResolver(&mutableLocalExecutionResolver{projection: selectedTextExecutionForTest(t, "config-app", "app.gguf")})
+	svc.SetLocalTextExecutionHost(&localTextHostStub{result: localexecution.TextResult{
+		Text: "", FinishReason: runtimev1.FinishReason_FINISH_REASON_STOP,
+	}})
+	response, err := svc.GenerateLocalAppTextCandidate(localAppTextCandidateContext(), validLocalAppTextCandidateRequest())
+	if response != nil {
+		t.Fatalf("malformed owner response = %+v, want nil", response)
+	}
+	assertLocalAppTextCandidateError(t, err, codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
+}
+
 func TestGenerateLocalAppTextCandidatePreservesPermissionAndInputValidation(t *testing.T) {
 	svc := &Service{}
 
 	_, err := svc.GenerateLocalAppTextCandidate(context.Background(), validLocalAppTextCandidateRequest())
 	assertLocalAppTextCandidateError(t, err, codes.PermissionDenied, runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE)
 
-	_, err = svc.GenerateLocalAppTextCandidate(localAppTextCandidateContext(), &runtimev1.GenerateLocalAppTextCandidateRequest{})
-	assertLocalAppTextCandidateError(t, err, codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+	invalid := []struct {
+		request *runtimev1.GenerateLocalAppTextCandidateRequest
+		reason  runtimev1.ReasonCode
+	}{
+		{request: &runtimev1.GenerateLocalAppTextCandidateRequest{}, reason: runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID},
+		{request: &runtimev1.GenerateLocalAppTextCandidateRequest{Messages: []*runtimev1.LocalAppTextCandidateMessage{{Role: "assistant", Text: "not admitted"}}, Temperature: 0, TopP: 1, MaxTokens: 1}, reason: runtimev1.ReasonCode_AI_INPUT_INVALID},
+		{request: &runtimev1.GenerateLocalAppTextCandidateRequest{Messages: []*runtimev1.LocalAppTextCandidateMessage{{Role: "user", Text: "user"}, {Role: "system", Text: "late"}}, Temperature: 0, TopP: 1, MaxTokens: 1}, reason: runtimev1.ReasonCode_AI_INPUT_INVALID},
+		{request: &runtimev1.GenerateLocalAppTextCandidateRequest{Messages: []*runtimev1.LocalAppTextCandidateMessage{{Role: "user", Text: " user "}}, Temperature: 0, TopP: 1, MaxTokens: 1}, reason: runtimev1.ReasonCode_AI_INPUT_INVALID},
+		{request: &runtimev1.GenerateLocalAppTextCandidateRequest{Messages: []*runtimev1.LocalAppTextCandidateMessage{{Role: "user", Text: "user"}}, Temperature: float32(math.NaN()), TopP: 1, MaxTokens: 1}, reason: runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID},
+		{request: &runtimev1.GenerateLocalAppTextCandidateRequest{Messages: []*runtimev1.LocalAppTextCandidateMessage{{Role: "user", Text: "user"}}, Temperature: 0, TopP: 1, MaxTokens: maxLocalAppTextCandidateTokens + 1}, reason: runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID},
+	}
+	for _, test := range invalid {
+		_, err = svc.GenerateLocalAppTextCandidate(localAppTextCandidateContext(), test.request)
+		assertLocalAppTextCandidateError(t, err, codes.InvalidArgument, test.reason)
+	}
 }
 
 func localAppTextCandidateContext() context.Context {

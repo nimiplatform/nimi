@@ -102,7 +102,7 @@ func TestProtectedLocalAppAIConfigOwnersDispatchAfterAdmission(t *testing.T) {
 	}
 }
 
-func TestProtectedLocalAppAdmittedUnimplementedOwnerReportsUnavailable(t *testing.T) {
+func TestProtectedLocalAppAdmittedTextCandidateDispatchesOwner(t *testing.T) {
 	connection := newGRPCLocalAppConnection(t, 0x3e)
 	if err := connection.BindSession(protectedlocal.LocalAppSessionHandle{SessionID: grpcLocalAppIdentifier(0x3f), SessionProof: grpcLocalAppIdentifier(0x40)}); err != nil {
 		t.Fatal(err)
@@ -114,8 +114,8 @@ func TestProtectedLocalAppAdmittedUnimplementedOwnerReportsUnavailable(t *testin
 		handlerCalled = true
 		return &runtimev1.GenerateLocalAppTextCandidateResponse{}, nil
 	})
-	if handlerCalled || admission.calls != 1 || admission.ingress != localappop.IngressTextCandidateGenerate || localAppTransportReason(err) != runtimev1.ReasonCode_LOCAL_APP_OWNER_UNAVAILABLE {
-		t.Fatalf("unimplemented owner = handler:%v admission:%+v reason:%v", handlerCalled, admission, localAppTransportReason(err))
+	if err != nil || !handlerCalled || admission.calls != 1 || admission.ingress != localappop.IngressTextCandidateGenerate {
+		t.Fatalf("text owner = handler:%v admission:%+v error:%v", handlerCalled, admission, err)
 	}
 }
 
