@@ -23,17 +23,20 @@ const (
 )
 
 type scenarioJobRecord struct {
-	job         *runtimev1.ScenarioJob
-	events      []*runtimev1.ScenarioJobEvent
-	subscribers map[uint64]chan *runtimev1.ScenarioJobEvent
-	nextSubID   uint64
-	nextSeq     uint64
-	done        chan struct{}
-	doneClosed  bool
-	cancel      context.CancelFunc
-	createdAt   time.Time
-	updatedAt   time.Time
-	terminalAt  time.Time
+	job              *runtimev1.ScenarioJob
+	events           []*runtimev1.ScenarioJobEvent
+	subscribers      map[uint64]chan *runtimev1.ScenarioJobEvent
+	nextSubID        uint64
+	nextSeq          uint64
+	done             chan struct{}
+	doneClosed       bool
+	cancel           context.CancelFunc
+	cancelRequested  bool
+	cancelReason     string
+	executionStarted bool
+	createdAt        time.Time
+	updatedAt        time.Time
+	terminalAt       time.Time
 }
 
 type uploadedArtifactRecord struct {
@@ -176,8 +179,18 @@ func (s *scenarioJobStore) transition(
 		s.mu.Unlock()
 		return job, false
 	}
+	if record.cancelRequested && status != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_CANCELED {
+		job := cloneScenarioJob(record.job)
+		s.mu.Unlock()
+		return job, false
+	}
 	if mutate != nil {
 		mutate(record.job)
+	}
+	if record.cancelRequested && status == runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_CANCELED {
+		record.job.ReasonCode = runtimev1.ReasonCode_ACTION_EXECUTED
+		record.job.ReasonDetail = record.cancelReason
+		record.job.ReasonMetadata = nil
 	}
 	if status != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_UNSPECIFIED {
 		record.job.Status = status
@@ -211,7 +224,7 @@ func (s *scenarioJobStore) updateProgress(jobID string, currentStep int32, total
 		s.mu.Unlock()
 		return nil, false
 	}
-	if isTerminalScenarioJobStatus(record.job.GetStatus()) {
+	if isTerminalScenarioJobStatus(record.job.GetStatus()) || record.cancelRequested {
 		s.mu.Unlock()
 		return nil, false
 	}
@@ -245,7 +258,7 @@ func (s *scenarioJobStore) commitArtifact(
 	}
 	s.mu.Lock()
 	record, ok := s.jobs[id]
-	if !ok || record == nil || record.job == nil || isTerminalScenarioJobStatus(record.job.GetStatus()) {
+	if !ok || record == nil || record.job == nil || isTerminalScenarioJobStatus(record.job.GetStatus()) || record.cancelRequested {
 		s.mu.Unlock()
 		return nil, false
 	}
@@ -270,21 +283,95 @@ func (s *scenarioJobStore) commitArtifact(
 	return job, true
 }
 
-func (s *scenarioJobStore) cancel(jobID string) bool {
+func (s *scenarioJobStore) startExecution(jobID string) bool {
 	id := strings.TrimSpace(jobID)
 	if id == "" {
 		return false
 	}
-	s.mu.RLock()
+	s.mu.Lock()
 	record, ok := s.jobs[id]
-	s.mu.RUnlock()
-	if !ok {
+	if !ok || record == nil || record.job == nil || isTerminalScenarioJobStatus(record.job.GetStatus()) || record.cancelRequested || record.executionStarted {
+		s.mu.Unlock()
 		return false
 	}
-	if record.cancel != nil {
-		record.cancel()
-	}
+	record.executionStarted = true
+	s.mu.Unlock()
 	return true
+}
+
+func (s *scenarioJobStore) requestCancel(jobID string, reason string) (*runtimev1.ScenarioJob, bool) {
+	id := strings.TrimSpace(jobID)
+	if id == "" {
+		return nil, false
+	}
+	s.mu.Lock()
+	record, ok := s.jobs[id]
+	if !ok || record == nil || record.job == nil || isTerminalScenarioJobStatus(record.job.GetStatus()) {
+		var job *runtimev1.ScenarioJob
+		if record != nil {
+			job = cloneScenarioJob(record.job)
+		}
+		s.mu.Unlock()
+		return job, false
+	}
+	record.cancelRequested = true
+	record.cancelReason = strings.TrimSpace(reason)
+	record.job.ReasonCode = runtimev1.ReasonCode_ACTION_EXECUTED
+	record.job.ReasonDetail = record.cancelReason
+	record.job.ReasonMetadata = nil
+	nowTime := time.Now().UTC()
+	record.updatedAt = nowTime
+	record.job.UpdatedAt = timestamppb.New(nowTime)
+	cancel := record.cancel
+	executionStarted := record.executionStarted
+	job := cloneScenarioJob(record.job)
+	s.mu.Unlock()
+
+	// Forward cancellation before any public CANCELED transition.
+	if cancel != nil {
+		cancel()
+	}
+	if !executionStarted {
+		s.finishExecution(id)
+		job, _ = s.get(id)
+	}
+	return job, true
+}
+
+func (s *scenarioJobStore) finishExecution(jobID string) {
+	id := strings.TrimSpace(jobID)
+	if id == "" {
+		return
+	}
+	s.mu.Lock()
+	record := s.jobs[id]
+	if record == nil || record.job == nil {
+		s.mu.Unlock()
+		return
+	}
+	record.executionStarted = false
+	cancel := record.cancel
+	record.cancel = nil
+	if record.cancelRequested && !isTerminalScenarioJobStatus(record.job.GetStatus()) {
+		record.job.Status = runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_CANCELED
+		record.job.ReasonCode = runtimev1.ReasonCode_ACTION_EXECUTED
+		record.job.ReasonDetail = record.cancelReason
+		record.job.ReasonMetadata = nil
+		nowTime := time.Now().UTC()
+		record.updatedAt = nowTime
+		record.terminalAt = nowTime
+		record.job.UpdatedAt = timestamppb.New(nowTime)
+		if !record.doneClosed {
+			record.doneClosed = true
+			close(record.done)
+		}
+		s.publishLocked(record, runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_CANCELED)
+		s.pruneLocked(nowTime)
+	}
+	s.mu.Unlock()
+	if cancel != nil {
+		cancel()
+	}
 }
 
 func clampProgressPercent(value int32) int32 {

@@ -17,8 +17,8 @@ import (
 func TestMachineLocalSelectionOverwritesOneCapabilityAndPersistsClear(t *testing.T) {
 	root := t.TempDir()
 	service := newMachineLocalConfigurationTestServiceWithoutCleanup(t, root)
-	first := addMachineLocalConfigurationForTest(t, service, nil, nil, llamaIdentityForTest())
-	second := addMachineLocalConfigurationForTest(t, service, nil, nil, llamaIdentityForTest())
+	first := addConfiguredMachineLocalSelectionForTest(t, service, "asset-first", 'a')
+	second := addConfiguredMachineLocalSelectionForTest(t, service, "asset-second", 'b')
 
 	selectMachineLocalConfigurationForTest(t, service, capabilitydriver.LlamaCapabilityContract, first.GetConfigurationId())
 	selected := selectMachineLocalConfigurationForTest(t, service, capabilitydriver.LlamaCapabilityContract, second.GetConfigurationId())
@@ -49,36 +49,41 @@ func TestMachineLocalSelectionOverwritesOneCapabilityAndPersistsClear(t *testing
 	assertOnlyMachineLocalSelection(t, restartedAgain, "", "")
 }
 
-func TestMachineLocalSelectionAllowsUnconfiguredButRejectsCapabilityMismatch(t *testing.T) {
-	service := newMachineLocalConfigurationTestService(t, t.TempDir())
-	configuration := addMachineLocalConfigurationForTest(t, service, nil, nil, llamaIdentityForTest())
+func TestMachineLocalSelectionRejectsUnresolvedAndPreservesPriorSelection(t *testing.T) {
+	root := t.TempDir()
+	service := newMachineLocalConfigurationTestServiceWithoutCleanup(t, root)
+	prior := addConfiguredMachineLocalSelectionForTest(t, service, "asset-prior", 'a')
+	unresolved := addMachineLocalConfigurationForTest(t, service, nil, nil, llamaIdentityForTest())
+	selectMachineLocalConfigurationForTest(t, service, capabilitydriver.LlamaCapabilityContract, prior.GetConfigurationId())
 
-	resolved, err := service.ResolveSelectedLocalExecution(capabilitydriver.LlamaCapabilityContract)
-	if resolved != nil || status.Code(err) != codes.FailedPrecondition {
-		t.Fatalf("unselected resolution = %#v err=%v", resolved, err)
+	response, err := service.SelectLocalCapabilityConfiguration(context.Background(), &runtimev1.SelectLocalCapabilityConfigurationRequest{
+		CapabilityContract: capabilitydriver.LlamaCapabilityContract,
+		ConfigurationId:    unresolved.GetConfigurationId(),
+	})
+	if response != nil || status.Code(err) != codes.FailedPrecondition {
+		t.Fatalf("unresolved selection = %#v err=%v", response, err)
 	}
-	assertGRPCReasonCode(t, err, "ResolveSelectedLocalExecution(unselected)", runtimev1.ReasonCode_AI_LOCAL_SELECTION_NOT_FOUND)
-
-	selectMachineLocalConfigurationForTest(t, service, capabilitydriver.LlamaCapabilityContract, configuration.GetConfigurationId())
-	resolved, err = service.ResolveSelectedLocalExecution(capabilitydriver.LlamaCapabilityContract)
-	if resolved != nil || status.Code(err) != codes.FailedPrecondition {
-		t.Fatalf("unconfigured resolution = %#v err=%v", resolved, err)
-	}
-	assertGRPCReasonCode(t, err, "ResolveSelectedLocalExecution(unconfigured)", runtimev1.ReasonCode_AI_LOCAL_CONFIGURATION_NOT_CONFIGURED)
+	assertGRPCReasonCode(t, err, "SelectLocalCapabilityConfiguration(unresolved)", runtimev1.ReasonCode_AI_LOCAL_CONFIGURATION_NOT_CONFIGURED)
 	if metadata, ok := grpcerr.ExtractReasonMetadata(err); !ok || metadata["local_reason"] != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_REQUIRED_BINDING_MISSING.String() {
-		t.Fatalf("unconfigured metadata = %#v ok=%v", metadata, ok)
+		t.Fatalf("unresolved metadata = %#v ok=%v", metadata, ok)
 	}
+	assertOnlyMachineLocalSelection(t, service, capabilitydriver.LlamaCapabilityContract, prior.GetConfigurationId())
 
 	const mismatchedCapability = "image.generate"
-	response, err := service.SelectLocalCapabilityConfiguration(context.Background(), &runtimev1.SelectLocalCapabilityConfigurationRequest{
+	response, err = service.SelectLocalCapabilityConfiguration(context.Background(), &runtimev1.SelectLocalCapabilityConfigurationRequest{
 		CapabilityContract: mismatchedCapability,
-		ConfigurationId:    configuration.GetConfigurationId(),
+		ConfigurationId:    unresolved.GetConfigurationId(),
 	})
 	if response != nil || status.Code(err) != codes.InvalidArgument {
 		t.Fatalf("mismatched selection = %#v err=%v", response, err)
 	}
 	assertGRPCReasonCode(t, err, "SelectLocalCapabilityConfiguration(mismatch)", runtimev1.ReasonCode_AI_LOCAL_SELECTION_INVALID)
-	assertOnlyMachineLocalSelection(t, service, capabilitydriver.LlamaCapabilityContract, configuration.GetConfigurationId())
+	assertOnlyMachineLocalSelection(t, service, capabilitydriver.LlamaCapabilityContract, prior.GetConfigurationId())
+	service.Close()
+
+	restarted := newMachineLocalConfigurationTestServiceWithoutCleanup(t, root)
+	defer restarted.Close()
+	assertOnlyMachineLocalSelection(t, restarted, capabilitydriver.LlamaCapabilityContract, prior.GetConfigurationId())
 }
 
 func TestMachineLocalExecutionRelevantBindingUpdateRetainsSelection(t *testing.T) {
@@ -183,8 +188,8 @@ func TestResolveSelectedLocalExecutionReturnsVerifiedAbsoluteBindingsAndRejectsD
 
 func TestMachineLocalSelectionMutationStoreFailureDoesNotPublishMemory(t *testing.T) {
 	service := newMachineLocalConfigurationTestService(t, t.TempDir())
-	first := addMachineLocalConfigurationForTest(t, service, nil, nil, llamaIdentityForTest())
-	second := addMachineLocalConfigurationForTest(t, service, nil, nil, llamaIdentityForTest())
+	first := addConfiguredMachineLocalSelectionForTest(t, service, "asset-first", 'a')
+	second := addConfiguredMachineLocalSelectionForTest(t, service, "asset-second", 'b')
 	selectMachineLocalConfigurationForTest(t, service, capabilitydriver.LlamaCapabilityContract, first.GetConfigurationId())
 	service.machineLocalConfigurationStore = failingMachineLocalConfigurationStore{err: errors.New("disk full")}
 
@@ -202,6 +207,14 @@ func TestMachineLocalSelectionMutationStoreFailureDoesNotPublishMemory(t *testin
 	_, err = service.DeleteLocalCapabilityConfiguration(context.Background(), &runtimev1.DeleteLocalCapabilityConfigurationRequest{ConfigurationId: first.GetConfigurationId()})
 	assertGRPCReasonCode(t, err, "DeleteLocalCapabilityConfiguration(store failure)", runtimev1.ReasonCode_AI_LOCAL_CONFIGURATION_PERSISTENCE_UNAVAILABLE)
 	assertOnlyMachineLocalSelection(t, service, capabilitydriver.LlamaCapabilityContract, first.GetConfigurationId())
+}
+
+func addConfiguredMachineLocalSelectionForTest(t *testing.T, service *Service, localAssetID string, marker byte) *runtimev1.LocalCapabilityConfiguration {
+	t.Helper()
+	contentID := seedMachineLocalAssetForTest(t, service, localAssetID, marker, "llm")
+	return addMachineLocalConfigurationForTest(t, service, mustStructForTest(t, map[string]any{
+		"mainVerifiedContentId": "sha256:" + contentID,
+	}), nil, llamaIdentityForTest())
 }
 
 func selectMachineLocalConfigurationForTest(t *testing.T, service *Service, capabilityContract, configurationID string) *runtimev1.LocalCapabilitySelection {

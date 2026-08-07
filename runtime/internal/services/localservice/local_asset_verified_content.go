@@ -184,11 +184,12 @@ func (s *Service) verifyLocalCapabilityAssetContent(asset *runtimev1.LocalAssetR
 		return capabilitydriver.AssetDescriptor{}, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED, false
 	}
 
+	var formatProbe []byte
 	if len(bundleEntries) > 0 {
 		bundleRoot := runtimeManagedBundleDir(modelsRoot, asset)
 		for index, entry := range asset.GetBundleEntries() {
 			entryPath := filepath.Join(bundleRoot, filepath.FromSlash(entry.GetRelativePath()))
-			if reason := verifyLocalCapabilityAssetFile(modelsRoot, entryPath, bundleEntries[index].SHA256); reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED {
+			if _, reason := verifyLocalCapabilityAssetFile(modelsRoot, entryPath, bundleEntries[index].SHA256); reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED {
 				return capabilitydriver.AssetDescriptor{}, reason, true
 			}
 		}
@@ -197,7 +198,9 @@ func (s *Service) verifyLocalCapabilityAssetContent(asset *runtimev1.LocalAssetR
 		if err != nil {
 			return capabilitydriver.AssetDescriptor{}, localCapabilityAssetVerificationReason(err), true
 		}
-		if reason := verifyLocalCapabilityAssetFile(modelsRoot, entryPath, contentSHA256); reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED {
+		var reason runtimev1.LocalCapabilityReason
+		formatProbe, reason = verifyLocalCapabilityAssetFile(modelsRoot, entryPath, contentSHA256)
+		if reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED {
 			return capabilitydriver.AssetDescriptor{}, reason, true
 		}
 	}
@@ -211,48 +214,53 @@ func (s *Service) verifyLocalCapabilityAssetContent(asset *runtimev1.LocalAssetR
 		Engine:            strings.TrimSpace(asset.GetEngine()),
 		ArtifactRoles:     normalizeStringSlice(asset.GetArtifactRoles()),
 		BundleEntries:     append([]capabilitydriver.BundleEntryDescriptor(nil), bundleEntries...),
+		FormatProbe:       append([]byte(nil), formatProbe...),
 	}, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED, true
 }
 
-func verifyLocalCapabilityAssetFile(modelsRoot, entryPath, expectedSHA256 string) runtimev1.LocalCapabilityReason {
+func verifyLocalCapabilityAssetFile(modelsRoot, entryPath, expectedSHA256 string) ([]byte, runtimev1.LocalCapabilityReason) {
 	verifiedEntryPath, err := resolveLocalCapabilityAssetPathWithinRoot(modelsRoot, entryPath)
 	if err != nil {
-		return localCapabilityAssetVerificationReason(err)
+		return nil, localCapabilityAssetVerificationReason(err)
 	}
 	entryFile, err := os.Open(verifiedEntryPath)
 	if err != nil {
-		return localCapabilityAssetVerificationReason(err)
+		return nil, localCapabilityAssetVerificationReason(err)
 	}
 	defer func() { _ = entryFile.Close() }()
 	before, err := entryFile.Stat()
 	if err != nil {
-		return localCapabilityAssetVerificationReason(err)
+		return nil, localCapabilityAssetVerificationReason(err)
 	}
 	if err := validateManagedModelEntryOpenFile(verifiedEntryPath, entryFile, before); err != nil {
-		return localCapabilityAssetVerificationReason(err)
+		return nil, localCapabilityAssetVerificationReason(err)
 	}
 	if err := validateOpenLocalCapabilityAssetEntry(modelsRoot, entryPath, before); err != nil {
-		return localCapabilityAssetVerificationReason(err)
+		return nil, localCapabilityAssetVerificationReason(err)
+	}
+	formatProbe, err := readOpenFilePrefix(entryFile, capabilitydriver.MaxAssetFormatProbeBytes)
+	if err != nil {
+		return nil, localCapabilityAssetVerificationReason(err)
 	}
 	actualSHA256, err := computeOpenFileSHA256(entryFile)
 	if err != nil {
-		return localCapabilityAssetVerificationReason(err)
+		return nil, localCapabilityAssetVerificationReason(err)
 	}
 	after, err := entryFile.Stat()
 	if err != nil {
-		return localCapabilityAssetVerificationReason(err)
+		return nil, localCapabilityAssetVerificationReason(err)
 	}
 	if before.Size() != after.Size() || before.ModTime() != after.ModTime() {
-		return runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_LOCAL_ASSET_CONTENT_UNVERIFIED
+		return nil, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_LOCAL_ASSET_CONTENT_UNVERIFIED
 	}
 	actualSHA256 = normalizeExactSHA256Hex(actualSHA256)
 	if actualSHA256 == "" {
-		return runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_LOCAL_ASSET_CONTENT_UNVERIFIED
+		return nil, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_LOCAL_ASSET_CONTENT_UNVERIFIED
 	}
 	if actualSHA256 != expectedSHA256 {
-		return runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_LOCAL_ASSET_CONTENT_MISMATCH
+		return nil, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_LOCAL_ASSET_CONTENT_MISMATCH
 	}
-	return runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED
+	return formatProbe, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED
 }
 
 func resolveLocalCapabilityAssetPathWithinRoot(modelsRoot, entryPath string) (string, error) {
@@ -294,6 +302,16 @@ func validateOpenLocalCapabilityAssetEntry(modelsRoot, entryPath string, openedI
 		return errors.New("local capability asset entry changed during exact verification")
 	}
 	return nil
+}
+
+func readOpenFilePrefix(file *os.File, limit int64) ([]byte, error) {
+	if file == nil || limit <= 0 {
+		return nil, errors.New("local capability asset entry probe is unavailable")
+	}
+	if _, err := file.Seek(0, io.SeekStart); err != nil {
+		return nil, err
+	}
+	return io.ReadAll(io.LimitReader(file, limit))
 }
 
 func computeOpenFileSHA256(file *os.File) (string, error) {

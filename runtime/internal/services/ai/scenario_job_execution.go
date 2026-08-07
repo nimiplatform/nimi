@@ -15,9 +15,10 @@ func (s *Service) executeScenarioAsyncJob(
 	jobID string,
 	effective *cloudMediaEffectiveInputs,
 ) {
-	if effective == nil || effective.request == nil {
+	if effective == nil || effective.request == nil || !s.scenarioJobs.startExecution(jobID) {
 		return
 	}
+	defer s.scenarioJobs.finishExecution(jobID)
 	req := effective.request
 	if _, ok := s.scenarioJobs.transition(jobID, runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_QUEUED, runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_QUEUED, nil); !ok {
 		return

@@ -86,7 +86,8 @@ func (s *Service) UploadArtifact(stream runtimev1.RuntimeAiService_UploadArtifac
 	if stored == nil {
 		return grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL)
 	}
-	if err := s.storeRuntimeArtifacts([]*runtimev1.ScenarioArtifact{stored}); err != nil {
+	uploadHead := &runtimev1.ScenarioRequestHead{AppId: meta.GetAppId(), SubjectUserId: meta.GetSubjectUserId()}
+	if err := s.storeRuntimeOwnedArtifacts(uploadHead, []*runtimev1.ScenarioArtifact{stored}); err != nil {
 		if s.logger != nil {
 			s.logger.Warn("store uploaded runtime artifact failed", "artifact_id", stored.GetArtifactId(), "error", err)
 		}

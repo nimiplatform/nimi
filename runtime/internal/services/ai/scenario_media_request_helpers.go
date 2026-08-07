@@ -192,15 +192,15 @@ func validateVideoGenerateScenarioSpec(spec *runtimev1.VideoGenerateScenarioSpec
 			if strings.TrimSpace(item.GetImageUrl().GetUrl()) == "" {
 				return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_SPEC_INVALID)
 			}
-			switch item.GetRole() {
-			case runtimev1.VideoContentRole_VIDEO_CONTENT_ROLE_FIRST_FRAME:
-				firstFrameCount++
-			case runtimev1.VideoContentRole_VIDEO_CONTENT_ROLE_LAST_FRAME:
-				lastFrameCount++
-			case runtimev1.VideoContentRole_VIDEO_CONTENT_ROLE_REFERENCE_IMAGE:
-				referenceImageCount++
-			default:
+			if err := countVideoImageRole(item.GetRole(), &firstFrameCount, &lastFrameCount, &referenceImageCount); err != nil {
+				return err
+			}
+		case runtimev1.VideoContentType_VIDEO_CONTENT_TYPE_ARTIFACT_REF:
+			if strings.TrimSpace(item.GetArtifactRef().GetArtifactId()) == "" {
 				return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_SPEC_INVALID)
+			}
+			if err := countVideoImageRole(item.GetRole(), &firstFrameCount, &lastFrameCount, &referenceImageCount); err != nil {
+				return err
 			}
 		case runtimev1.VideoContentType_VIDEO_CONTENT_TYPE_VIDEO_URL:
 			if strings.TrimSpace(item.GetVideoUrl().GetUrl()) == "" ||
@@ -276,6 +276,20 @@ func validateVideoGenerateScenarioSpec(spec *runtimev1.VideoGenerateScenarioSpec
 	}
 	if mode == runtimev1.VideoMode_VIDEO_MODE_I2V_REFERENCE && options.GetCameraFixed() {
 		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
+	}
+	return nil
+}
+
+func countVideoImageRole(role runtimev1.VideoContentRole, firstFrameCount, lastFrameCount, referenceImageCount *int) error {
+	switch role {
+	case runtimev1.VideoContentRole_VIDEO_CONTENT_ROLE_FIRST_FRAME:
+		(*firstFrameCount)++
+	case runtimev1.VideoContentRole_VIDEO_CONTENT_ROLE_LAST_FRAME:
+		(*lastFrameCount)++
+	case runtimev1.VideoContentRole_VIDEO_CONTENT_ROLE_REFERENCE_IMAGE:
+		(*referenceImageCount)++
+	default:
+		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_SPEC_INVALID)
 	}
 	return nil
 }

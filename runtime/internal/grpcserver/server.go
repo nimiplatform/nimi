@@ -63,6 +63,7 @@ type Server struct {
 	memoryService         *memoryservice.Service
 	cognitionService      *cognitionservice.Service
 	agentService          *runtimeagentservice.Service
+	artifactService       *runtimeartifactservice.Service
 	localDevelopmentStore interface{ Close() error }
 	localAppKernel        *localappkernel.Kernel
 }
@@ -869,6 +870,7 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 		memoryService:         memorySvc,
 		cognitionService:      cognitionSvc,
 		agentService:          agentSvc,
+		artifactService:       artifactSvc,
 		localDevelopmentStore: localDevelopmentStore,
 		localAppKernel:        localAppKernel,
 	}
@@ -913,4 +915,10 @@ func (s *Server) CognitionService() *cognitionservice.Service {
 
 func (s *Server) AgentService() *runtimeagentservice.Service {
 	return s.agentService
+}
+
+// ArtifactService returns the in-process Runtime Artifact owner for bounded
+// Runtime integration composition.
+func (s *Server) ArtifactService() *runtimeartifactservice.Service {
+	return s.artifactService
 }

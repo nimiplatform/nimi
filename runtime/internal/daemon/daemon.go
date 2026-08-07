@@ -26,6 +26,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/providerhealth"
 	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
 	connectorservice "github.com/nimiplatform/nimi/runtime/internal/services/connector"
+	"github.com/nimiplatform/nimi/runtime/internal/videomedia"
 )
 
 // Daemon wires runtime servers and health state lifecycle.
@@ -43,6 +44,7 @@ type Daemon struct {
 	auditStore                *auditlog.Store
 	engineMgr                 *engine.Manager
 	imageExecutionHost        *engine.ImageExecutionHost
+	videoExecutionHost        *engine.VideoExecutionHost
 	newEngineManager          func(logger *slog.Logger, roots engine.ManagedRoots, onState engine.StateChangeFunc) (*engine.Manager, error)
 	startEngineFn             func(ctx context.Context, kind engine.EngineKind, version string, port int, envKey string) error
 	probeAIProviderFn         func(ctx context.Context, client *http.Client, target aiProviderTarget) error
@@ -584,6 +586,11 @@ func (d *Daemon) stopSupervisedEngines(reason string) {
 				d.logger.Warn("stop image execution host failed", "error", err)
 			}
 		}
+		if d.videoExecutionHost != nil {
+			if err := d.videoExecutionHost.Stop(); err != nil {
+				d.logger.Warn("stop video execution host failed", "error", err)
+			}
+		}
 		if d.engineMgr != nil {
 			d.engineMgr.StopAll()
 		}
@@ -733,6 +740,17 @@ func (d *Daemon) startSupervisedEngines(ctx context.Context) {
 			PackageSource: strings.TrimSpace(d.cfg.EngineManagedImageBackendSource),
 		})
 		aiSvc.SetLocalImageExecutionHost(d.imageExecutionHost)
+		d.videoExecutionHost = engine.NewVideoExecutionHost(mgr, d.logger, engine.VideoExecutionHostConfig{
+			PackageSource: strings.TrimSpace(d.cfg.EngineManagedImageBackendSource),
+		})
+		aiSvc.SetLocalVideoExecutionHost(d.videoExecutionHost)
+		if videoMedia, err := videomedia.NewFromDependenciesRoot(engineRoots.Dependencies); err != nil {
+			// Local video submits fail closed with a typed unavailable reason
+			// until the pinned codec dependency is materialized.
+			d.logger.Warn("pinned video codec dependency unavailable; local video media pipeline not wired", "error", err)
+		} else {
+			aiSvc.SetLocalVideoMediaPipeline(videoMedia)
+		}
 	}
 	if svc != nil {
 		svc.SetEngineManager(engine.NewServiceAdapter(mgr))

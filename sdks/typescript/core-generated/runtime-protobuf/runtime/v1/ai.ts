@@ -1828,6 +1828,15 @@ export interface VideoContentAudioURL {
     url: string;
 }
 /**
+ * @generated from protobuf message nimi.runtime.v1.VideoContentArtifactRef
+ */
+export interface VideoContentArtifactRef {
+    /**
+     * @generated from protobuf field: string artifact_id = 1
+     */
+    artifactId: string;
+}
+/**
  * @generated from protobuf message nimi.runtime.v1.VideoContentItem
  */
 export interface VideoContentItem {
@@ -1855,6 +1864,10 @@ export interface VideoContentItem {
      * @generated from protobuf field: nimi.runtime.v1.VideoContentAudioURL audio_url = 6
      */
     audioUrl?: VideoContentAudioURL;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.VideoContentArtifactRef artifact_ref = 7
+     */
+    artifactRef?: VideoContentArtifactRef;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.VideoGenerationOptions
@@ -2426,7 +2439,11 @@ export enum VideoContentType {
     /**
      * @generated from protobuf enum value: VIDEO_CONTENT_TYPE_AUDIO_URL = 4;
      */
-    AUDIO_URL = 4
+    AUDIO_URL = 4,
+    /**
+     * @generated from protobuf enum value: VIDEO_CONTENT_TYPE_ARTIFACT_REF = 5;
+     */
+    ARTIFACT_REF = 5
 }
 /**
  * @generated from protobuf enum nimi.runtime.v1.VideoContentRole
@@ -8236,6 +8253,53 @@ class VideoContentAudioURL$Type extends MessageType<VideoContentAudioURL> {
  */
 export const VideoContentAudioURL = new VideoContentAudioURL$Type();
 // @generated message type with reflection information, may provide speed optimized methods
+class VideoContentArtifactRef$Type extends MessageType<VideoContentArtifactRef> {
+    constructor() {
+        super("nimi.runtime.v1.VideoContentArtifactRef", [
+            { no: 1, name: "artifact_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<VideoContentArtifactRef>): VideoContentArtifactRef {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.artifactId = "";
+        if (value !== undefined)
+            reflectionMergePartial<VideoContentArtifactRef>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: VideoContentArtifactRef): VideoContentArtifactRef {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string artifact_id */ 1:
+                    message.artifactId = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: VideoContentArtifactRef, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string artifact_id = 1; */
+        if (message.artifactId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.artifactId);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.VideoContentArtifactRef
+ */
+export const VideoContentArtifactRef = new VideoContentArtifactRef$Type();
+// @generated message type with reflection information, may provide speed optimized methods
 class VideoContentItem$Type extends MessageType<VideoContentItem> {
     constructor() {
         super("nimi.runtime.v1.VideoContentItem", [
@@ -8244,7 +8308,8 @@ class VideoContentItem$Type extends MessageType<VideoContentItem> {
             { no: 3, name: "text", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 4, name: "image_url", kind: "message", T: () => VideoContentImageURL },
             { no: 5, name: "video_url", kind: "message", T: () => VideoContentVideoURL },
-            { no: 6, name: "audio_url", kind: "message", T: () => VideoContentAudioURL }
+            { no: 6, name: "audio_url", kind: "message", T: () => VideoContentAudioURL },
+            { no: 7, name: "artifact_ref", kind: "message", T: () => VideoContentArtifactRef }
         ]);
     }
     create(value?: PartialMessage<VideoContentItem>): VideoContentItem {
@@ -8279,6 +8344,9 @@ class VideoContentItem$Type extends MessageType<VideoContentItem> {
                 case /* nimi.runtime.v1.VideoContentAudioURL audio_url */ 6:
                     message.audioUrl = VideoContentAudioURL.internalBinaryRead(reader, reader.uint32(), options, message.audioUrl);
                     break;
+                case /* nimi.runtime.v1.VideoContentArtifactRef artifact_ref */ 7:
+                    message.artifactRef = VideoContentArtifactRef.internalBinaryRead(reader, reader.uint32(), options, message.artifactRef);
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -8309,6 +8377,9 @@ class VideoContentItem$Type extends MessageType<VideoContentItem> {
         /* nimi.runtime.v1.VideoContentAudioURL audio_url = 6; */
         if (message.audioUrl)
             VideoContentAudioURL.internalBinaryWrite(message.audioUrl, writer.tag(6, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.VideoContentArtifactRef artifact_ref = 7; */
+        if (message.artifactRef)
+            VideoContentArtifactRef.internalBinaryWrite(message.artifactRef, writer.tag(7, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

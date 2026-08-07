@@ -104,6 +104,11 @@ func (s *Service) captureCloudMediaEffectiveInputs(
 	if s == nil || head == nil || request == nil || request.GetSpec() == nil {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}
+	if cloudVideoHasArtifactReference(request) {
+		return nil, grpcerr.WithReasonCodeOptions(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED, grpcerr.ReasonOptions{
+			Message: "Cloud video execution does not support Runtime Artifact references",
+		})
+	}
 	capabilityContract := scenarioTargetCapability(request.GetScenarioType())
 	intent, err := s.resolveCloudMediaConsumerIntent(ctx, head, capabilityContract)
 	if err != nil {
@@ -256,6 +261,18 @@ func (s *Service) captureCloudMediaEffectiveInputs(
 		return nil, err
 	}
 	return effective, nil
+}
+
+func cloudVideoHasArtifactReference(request *runtimev1.SubmitScenarioJobRequest) bool {
+	if request == nil || request.GetScenarioType() != runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_GENERATE {
+		return false
+	}
+	for _, item := range request.GetSpec().GetVideoGenerate().GetContent() {
+		if item != nil && item.GetType() == runtimev1.VideoContentType_VIDEO_CONTENT_TYPE_ARTIFACT_REF {
+			return true
+		}
+	}
+	return false
 }
 
 func (s *Service) speechSynthesizeRouteSupportsNativeStreamTTS(

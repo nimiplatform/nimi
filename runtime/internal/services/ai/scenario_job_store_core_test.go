@@ -35,6 +35,44 @@ func TestScenarioJobStoreCoreValidationAndLookup(t *testing.T) {
 	}
 }
 
+func TestVoiceScenarioJobCancelPublishesOnlyAfterExecutionStops(t *testing.T) {
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
+	ctx := scenarioJobUserContext("app", "user")
+	job, _ := svc.voiceAssets.submit(&voiceWorkflowSubmitInput{
+		Head:         &runtimev1.ScenarioRequestHead{AppId: "app", SubjectUserId: "user"},
+		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_DESIGN,
+		Spec: &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_VoiceDesign{VoiceDesign: &runtimev1.VoiceDesignScenarioSpec{
+			TargetModelId: "voice-model",
+			Input:         &runtimev1.VoiceT2VInput{InstructionText: "steady"},
+		}}},
+	})
+	if job == nil {
+		t.Fatal("submit voice job")
+	}
+	executionCtx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	if !svc.voiceAssets.setJobCancel(job.GetJobId(), cancel) || !svc.voiceAssets.startJobExecution(job.GetJobId()) || !svc.voiceAssets.runJob(job.GetJobId()) {
+		t.Fatal("start voice execution")
+	}
+	response, err := svc.CancelScenarioJob(ctx, &runtimev1.CancelScenarioJobRequest{JobId: job.GetJobId(), Reason: "stop voice"})
+	if err != nil {
+		t.Fatalf("CancelScenarioJob: %v", err)
+	}
+	select {
+	case <-executionCtx.Done():
+	default:
+		t.Fatal("voice cancellation was not forwarded")
+	}
+	if response.GetJob().GetStatus() == runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_CANCELED {
+		t.Fatalf("voice canceled before execution stop: %+v", response.GetJob())
+	}
+	svc.voiceAssets.finishJobExecution(job.GetJobId())
+	terminal, _ := svc.voiceAssets.getJob(job.GetJobId())
+	if terminal.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_CANCELED || terminal.GetReasonDetail() != "stop voice" {
+		t.Fatalf("voice cancel terminal = %+v", terminal)
+	}
+}
+
 func TestScenarioJobStateEnumerationMatchesSpec(t *testing.T) {
 	// K-JOB-002: canonical 7-state machine enumeration.
 	// All 7 states MUST exist and terminal classification MUST match spec.

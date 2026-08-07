@@ -119,9 +119,10 @@ func (s *Service) executeCapturedVoiceWorkflowJob(
 	voiceAssetID string,
 	effective *cloudVoiceWorkflowEffectiveInputs,
 ) {
-	if s == nil || s.voiceAssets == nil || effective == nil {
+	if s == nil || s.voiceAssets == nil || effective == nil || !s.voiceAssets.startJobExecution(jobID) {
 		return
 	}
+	defer s.voiceAssets.finishJobExecution(jobID)
 	if !s.voiceAssets.queueJob(jobID) || !s.voiceAssets.runJob(jobID) {
 		return
 	}

@@ -91,10 +91,17 @@ func (options managedImageOptions) ComponentsBySlot() map[string]string {
 }
 
 type Server struct {
-	driver backendDriver
+	driver       backendDriver
+	videoEngine  videoEngine
+	videoPackage videoPackageIdentity
 
 	mu     sync.RWMutex
 	loaded *loadModelState
+
+	videoGenerateMu sync.Mutex
+	videoStateMu    sync.Mutex
+	videoLoaded     bool
+	activeVideoDone chan struct{}
 }
 
 func RunServer(ctx context.Context, cfg ServerConfig) error {
@@ -102,7 +109,16 @@ func RunServer(ctx context.Context, cfg ServerConfig) error {
 	if err != nil {
 		return err
 	}
-	server := &Server{driver: driver}
+	video, videoErr := newStableDiffusionVideoEngine(cfg.BackendExecutable)
+	if videoErr != nil {
+		_ = shutdownBackendDriver(driver)
+		return videoErr
+	}
+	server := &Server{
+		driver:       driver,
+		videoEngine:  video,
+		videoPackage: resolveVideoPackageIdentity(cfg.BackendExecutable),
+	}
 	return server.Serve(ctx, strings.TrimSpace(cfg.ListenAddress))
 }
 
@@ -111,6 +127,9 @@ func (s *Server) Serve(ctx context.Context, listenAddress string) (returnErr err
 		return fmt.Errorf("managed image backend driver is required")
 	}
 	defer func() {
+		if err := shutdownVideoEngine(s.videoEngine); err != nil && returnErr == nil {
+			returnErr = fmt.Errorf("shutdown managed video engine: %w", err)
+		}
 		if err := shutdownBackendDriver(s.driver); err != nil && returnErr == nil {
 			returnErr = fmt.Errorf("shutdown managed image backend driver: %w", err)
 		}
@@ -121,13 +140,20 @@ func (s *Server) Serve(ctx context.Context, listenAddress string) (returnErr err
 	if err := ensureDescriptors(); err != nil {
 		return err
 	}
+	if err := ensureVideoDescriptors(); err != nil {
+		return err
+	}
 	listener, err := net.Listen("tcp", strings.TrimSpace(listenAddress))
 	if err != nil {
 		return fmt.Errorf("listen managed image backend: %w", err)
 	}
 	defer func() { _ = listener.Close() }()
 
-	grpcServer := grpc.NewServer(grpc.UnknownServiceHandler(s.handleUnknownMethod))
+	grpcServer := grpc.NewServer(
+		grpc.MaxRecvMsgSize(managedVideoMaxMessageBytes),
+		grpc.MaxSendMsgSize(managedVideoMaxMessageBytes),
+		grpc.UnknownServiceHandler(s.handleUnknownMethod),
+	)
 	defer grpcServer.GracefulStop()
 
 	serveErrCh := make(chan error, 1)
@@ -137,6 +163,11 @@ func (s *Server) Serve(ctx context.Context, listenAddress string) (returnErr err
 
 	select {
 	case <-ctx.Done():
+		// Cooperative video cancellation must precede GracefulStop; otherwise
+		// an active FFI call would keep its stream handler alive indefinitely.
+		if s.videoEngine != nil {
+			_ = s.videoEngine.Cancel()
+		}
 		grpcServer.GracefulStop()
 		<-serveErrCh
 		return ctx.Err()
@@ -165,6 +196,12 @@ func (s *Server) handleUnknownMethod(_ any, stream grpc.ServerStream) error {
 		return s.handleGenerateImage(stream)
 	case backendFreeModelMethod:
 		return s.handleFree(stream)
+	case backendLoadVideoModelMethod:
+		return s.handleLoadVideoModel(stream)
+	case backendGenerateVideoMethod:
+		return s.handleGenerateVideo(stream)
+	case backendCancelVideoMethod:
+		return s.handleCancelVideo(stream)
 	default:
 		return fmt.Errorf("unsupported managed image backend method %s", method)
 	}

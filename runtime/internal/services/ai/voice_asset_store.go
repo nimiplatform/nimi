@@ -23,16 +23,19 @@ const (
 )
 
 type voiceScenarioJobRecord struct {
-	job         *runtimev1.ScenarioJob
-	assetID     string
-	events      []*runtimev1.ScenarioJobEvent
-	subscribers map[uint64]chan *runtimev1.ScenarioJobEvent
-	nextSubID   uint64
-	nextSeq     uint64
-	createdAt   time.Time
-	updatedAt   time.Time
-	terminalAt  time.Time
-	cancel      context.CancelFunc
+	job              *runtimev1.ScenarioJob
+	assetID          string
+	events           []*runtimev1.ScenarioJobEvent
+	subscribers      map[uint64]chan *runtimev1.ScenarioJobEvent
+	nextSubID        uint64
+	nextSeq          uint64
+	createdAt        time.Time
+	updatedAt        time.Time
+	terminalAt       time.Time
+	cancel           context.CancelFunc
+	cancelRequested  bool
+	cancelReason     string
+	executionStarted bool
 }
 
 type voiceAssetCloudBinding struct {

@@ -77,7 +77,10 @@ func (s *Service) submitLocalImageScenarioJob(ctx context.Context, req *runtimev
 }
 
 func (s *Service) runLocalImageScenarioJob(ctx context.Context, jobID string, effective *localImageEffectiveInputs) {
-	defer s.scenarioJobs.cancel(jobID)
+	if effective == nil || !s.scenarioJobs.startExecution(jobID) {
+		return
+	}
+	defer s.scenarioJobs.finishExecution(jobID)
 	if _, ok := s.scenarioJobs.transition(
 		jobID,
 		runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_QUEUED,
@@ -113,16 +116,17 @@ func (s *Service) runLocalImageScenarioJob(ctx context.Context, jobID string, ef
 		if artifact == nil {
 			return fmt.Errorf("local image artifact projection failed")
 		}
-		if err := s.storeRuntimeArtifacts([]*runtimev1.ScenarioArtifact{artifact}); err != nil {
-			return err
-		}
 		ensureRunning()
 		current := produced.Index + 1
-		if _, ok := s.scenarioJobs.commitArtifact(jobID, artifact, current, total, imageJobProgressPercent(current, total)); !ok {
+		_, err := s.storeAndAttachRuntimeJobArtifact(jobID, effective.head, artifact, func(candidate *runtimev1.ScenarioArtifact) bool {
+			_, ok := s.scenarioJobs.commitArtifact(jobID, candidate, current, total, imageJobProgressPercent(current, total))
+			return ok
+		})
+		if err != nil {
 			if ctx.Err() != nil {
 				return ctx.Err()
 			}
-			return fmt.Errorf("local image job no longer accepts artifacts")
+			return fmt.Errorf("local image job artifact commit: %w", err)
 		}
 		return nil
 	}

@@ -92,21 +92,10 @@ func (s *Service) CancelScenarioJob(ctx context.Context, req *runtimev1.CancelSc
 		if isTerminalScenarioJobStatus(existingJob.GetStatus()) {
 			return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_MEDIA_JOB_NOT_CANCELLABLE)
 		}
-		_, ok := s.scenarioJobs.transition(
-			jobID,
-			runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_CANCELED,
-			runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_CANCELED,
-			func(job *runtimev1.ScenarioJob) {
-				job.ReasonCode = runtimev1.ReasonCode_ACTION_EXECUTED
-				job.ReasonDetail = strings.TrimSpace(req.GetReason())
-				job.ReasonMetadata = nil
-			},
-		)
+		job, ok := s.scenarioJobs.requestCancel(jobID, req.GetReason())
 		if !ok {
 			return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_MEDIA_JOB_NOT_CANCELLABLE)
 		}
-		s.scenarioJobs.cancel(jobID)
-		job, _ := s.scenarioJobs.get(jobID)
 		return &runtimev1.CancelScenarioJobResponse{Job: job}, nil
 	}
 	existingJob, ok := s.voiceAssets.getJob(jobID)

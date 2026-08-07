@@ -2378,6 +2378,7 @@ pub enum VideoContentType {
     VIDEOCONTENTTYPEIMAGEURL,
     VIDEOCONTENTTYPEVIDEOURL,
     VIDEOCONTENTTYPEAUDIOURL,
+    VIDEOCONTENTTYPEARTIFACTREF,
 }
 
 impl Default for VideoContentType {
@@ -27974,6 +27975,27 @@ impl UsageStats {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct VideoContentArtifactRef {
+    pub artifact_id: Option<String>,
+}
+
+impl VideoContentArtifactRef {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.artifact_id { pairs.push(format!("artifact_id={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+
+        out.artifact_id = pairs.get("artifact_id").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct VideoContentAudioURL {
     pub url: Option<String>,
 }
@@ -28023,6 +28045,7 @@ pub struct VideoContentItem {
     pub image_url: Option<Box<VideoContentImageURL>>,
     pub video_url: Option<Box<VideoContentVideoURL>>,
     pub audio_url: Option<Box<VideoContentAudioURL>>,
+    pub artifact_ref: Option<Box<VideoContentArtifactRef>>,
 }
 
 impl VideoContentItem {
@@ -28034,13 +28057,14 @@ impl VideoContentItem {
         if self.image_url.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode image_url"); }
         if self.video_url.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode video_url"); }
         if self.audio_url.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode audio_url"); }
+        if self.artifact_ref.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode artifact_ref"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
         let mut out = Self::default();
-        for key in ["type", "role", "image_url", "video_url", "audio_url"] {
+        for key in ["type", "role", "image_url", "video_url", "audio_url", "artifact_ref"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
             }
@@ -33674,6 +33698,12 @@ impl From<Vec<u8>> for UsageStatRecord {
 }
 
 impl From<Vec<u8>> for UsageStats {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for VideoContentArtifactRef {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
     }

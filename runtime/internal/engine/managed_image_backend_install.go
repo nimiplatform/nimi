@@ -44,9 +44,10 @@ type ociImageReference struct {
 }
 
 type managedImageBackendMetadata struct {
-	Name           string `json:"name,omitempty"`
-	Alias          string `json:"alias,omitempty"`
-	MetaBackendFor string `json:"meta_backend_for,omitempty"`
+	Name                   string   `json:"name,omitempty"`
+	Alias                  string   `json:"alias,omitempty"`
+	MetaBackendFor         string   `json:"meta_backend_for,omitempty"`
+	SupportedModelFamilies []string `json:"supported_model_families,omitempty"`
 }
 
 type managedImageBackendLaunchConfig struct {
@@ -370,8 +371,9 @@ func installManagedImageBackendFromOCI(ctx context.Context, backendsPath string,
 		return fmt.Errorf("install managed image backend %s: %w", backendName, err)
 	}
 	if err := writeManagedImageBackendMetadata(filepath.Join(stagedDir, "metadata.json"), managedImageBackendMetadata{
-		Name:  spec.InstallDirName,
-		Alias: backendName,
+		Name:                   spec.InstallDirName,
+		Alias:                  backendName,
+		SupportedModelFamilies: append([]string(nil), spec.SupportedModelFamilies...),
 	}); err != nil {
 		return fmt.Errorf("install managed image backend %s: %w", backendName, err)
 	}
@@ -427,8 +429,9 @@ func installManagedImageBackendFromDirectArchive(ctx context.Context, backendsPa
 		return fmt.Errorf("install managed image backend %s: %w", backendName, err)
 	}
 	if err := writeManagedImageBackendMetadata(filepath.Join(stagedDir, "metadata.json"), managedImageBackendMetadata{
-		Name:  spec.InstallDirName,
-		Alias: backendName,
+		Name:                   spec.InstallDirName,
+		Alias:                  backendName,
+		SupportedModelFamilies: append([]string(nil), spec.SupportedModelFamilies...),
 	}); err != nil {
 		return fmt.Errorf("install managed image backend %s: %w", backendName, err)
 	}

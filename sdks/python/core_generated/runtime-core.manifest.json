@@ -7240,6 +7240,7 @@
       "UpsertModelCatalogProviderResponse",
       "UsageStatRecord",
       "UsageStats",
+      "VideoContentArtifactRef",
       "VideoContentAudioURL",
       "VideoContentImageURL",
       "VideoContentItem",
@@ -34063,6 +34064,19 @@
         "source_file": "proto/runtime/v1/common.proto"
       },
       {
+        "name": "VideoContentArtifactRef",
+        "fields": [
+          {
+            "name": "artifact_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/ai.proto"
+      },
+      {
         "name": "VideoContentAudioURL",
         "fields": [
           {
@@ -34132,6 +34146,13 @@
             "repeated": false,
             "optional": false,
             "number": 6
+          },
+          {
+            "name": "artifact_ref",
+            "type": "VideoContentArtifactRef",
+            "repeated": false,
+            "optional": false,
+            "number": 7
           }
         ],
         "source_file": "proto/runtime/v1/ai.proto"
@@ -37047,7 +37068,8 @@
           "VIDEO_CONTENT_TYPE_TEXT",
           "VIDEO_CONTENT_TYPE_IMAGE_URL",
           "VIDEO_CONTENT_TYPE_VIDEO_URL",
-          "VIDEO_CONTENT_TYPE_AUDIO_URL"
+          "VIDEO_CONTENT_TYPE_AUDIO_URL",
+          "VIDEO_CONTENT_TYPE_ARTIFACT_REF"
         ],
         "source_file": "proto/runtime/v1/ai.proto"
       },

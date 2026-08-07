@@ -2,7 +2,6 @@ package nimillm
 
 import (
 	"context"
-	"encoding/json"
 	"log/slog"
 	"net/http"
 	"strconv"
@@ -138,15 +137,14 @@ func ExecuteBytedanceARKTask(
 			submitPayload["execution_expires_after"] = expiresAfter
 		}
 
-		if debugPayload, _ := json.Marshal(submitPayload); len(debugPayload) > 0 {
-			slog.Info("[volcengine-video-debug] submit request",
-				"url", JoinURL(baseURL, submitPath),
-				"payload", string(debugPayload),
-			)
-		}
+		// Request content (including the user prompt) must not reach logs.
+		slog.Debug("volcengine video submit",
+			"url", JoinURL(baseURL, submitPath),
+			"model", modelResolved,
+		)
 		submitResp := map[string]any{}
 		if err := DoJSONRequest(ctx, http.MethodPost, JoinURL(baseURL, submitPath), apiKey, submitPayload, &submitResp); err != nil {
-			slog.Warn("[volcengine-video-debug] submit failed", "error", err.Error())
+			slog.Warn("volcengine video submit failed", "error", err.Error())
 			return nil, nil, "", err
 		}
 		providerJobID := ExtractTaskIDFromAdapterPayload(AdapterBytedanceARKTask, submitResp)

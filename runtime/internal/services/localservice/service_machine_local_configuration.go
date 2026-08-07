@@ -553,5 +553,6 @@ func cloneLocalAssetExactBinding(input *runtimev1.LocalAssetExactBinding) *runti
 func cloneCapabilityDriverAssetDescriptor(input capabilitydriver.AssetDescriptor) capabilitydriver.AssetDescriptor {
 	input.ArtifactRoles = append([]string(nil), input.ArtifactRoles...)
 	input.BundleEntries = append([]capabilitydriver.BundleEntryDescriptor(nil), input.BundleEntries...)
+	input.FormatProbe = append([]byte(nil), input.FormatProbe...)
 	return input
 }

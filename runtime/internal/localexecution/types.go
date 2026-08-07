@@ -122,6 +122,63 @@ type ImageExecutionHost interface {
 	ExecuteImage(context.Context, *capabilitydriver.ImageInvocationPlan, ImageArtifactFunc, ImageProgressFunc) (ImageResult, error)
 }
 
+// VideoExecutionStage reports factual private Host work after the video lease
+// is acquired. Encoding is separate because raw AV production precedes public
+// artifact encoding/muxing.
+type VideoExecutionStage string
+
+const (
+	VideoExecutionStageLoading    VideoExecutionStage = "loading"
+	VideoExecutionStageReady      VideoExecutionStage = "ready"
+	VideoExecutionStageReused     VideoExecutionStage = "reused"
+	VideoExecutionStageGenerating VideoExecutionStage = "generating"
+	VideoExecutionStageProduced   VideoExecutionStage = "produced"
+	VideoExecutionStageEncoding   VideoExecutionStage = "encoding"
+)
+
+type VideoExecutionProgress struct {
+	Stage       VideoExecutionStage
+	FrameIndex  int32
+	FrameCount  int32
+	CurrentStep int32
+	TotalSteps  int32
+}
+
+type VideoProgressFunc func(VideoExecutionProgress)
+
+// RawVideoFrame is one ordered packed-RGB frame owned by the private Runtime
+// execution seam. RGBBytes has exactly Width*Height*3 bytes.
+type RawVideoFrame struct {
+	RGBBytes []byte
+	Width    int
+	Height   int
+}
+
+// RawAudio is interleaved floating-point PCM. MiniMax-H3 candidates are
+// required to carry non-empty stereo 32000 Hz audio.
+type RawAudio struct {
+	PCMSamples []float32
+	Channels   int
+	SampleRate int
+}
+
+// RawAVCandidate is an unencoded Host result, not a public ScenarioArtifact.
+// Frames preserve generation order and FrameCount repeats the expected count
+// for fail-closed substrate validation.
+type RawAVCandidate struct {
+	Frames     []RawVideoFrame
+	FrameCount int
+	FPS        int
+	Audio      RawAudio
+	ComputeMS  int64
+}
+
+// VideoExecutionHost executes one immutable Driver plan and returns only a raw
+// AV candidate. Services/encoding owners decide artifact publication.
+type VideoExecutionHost interface {
+	ExecuteVideo(context.Context, *capabilitydriver.VideoInvocationPlan, VideoProgressFunc) (RawAVCandidate, error)
+}
+
 type FailureKind string
 
 const (

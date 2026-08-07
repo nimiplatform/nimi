@@ -19,17 +19,21 @@ import (
 )
 
 type controlledRemoteMediaHost struct {
-	started chan connector.ConnectorGrantSnapshot
-	release chan struct{}
-	cancel  bool
-	once    sync.Once
+	started         chan connector.ConnectorGrantSnapshot
+	release         chan struct{}
+	cancel          bool
+	cancelObserved  chan struct{}
+	allowCancelExit chan struct{}
+	once            sync.Once
 }
 
 func newControlledRemoteMediaHost(cancel bool) *controlledRemoteMediaHost {
 	return &controlledRemoteMediaHost{
-		started: make(chan connector.ConnectorGrantSnapshot, 1),
-		release: make(chan struct{}),
-		cancel:  cancel,
+		started:         make(chan connector.ConnectorGrantSnapshot, 1),
+		release:         make(chan struct{}),
+		cancel:          cancel,
+		cancelObserved:  make(chan struct{}),
+		allowCancelExit: make(chan struct{}),
 	}
 }
 
@@ -43,6 +47,8 @@ func (h *controlledRemoteMediaHost) ExecuteMedia(
 	h.once.Do(func() { h.started <- grant })
 	if h.cancel {
 		<-ctx.Done()
+		closeOnce(h.cancelObserved)
+		<-h.allowCancelExit
 		return capabilitydriver.CloudMediaTransportResponse{}, ctx.Err()
 	}
 	select {
@@ -123,8 +129,21 @@ func TestCloudMediaJobCancellationStopsLocalWaitAndPublishesNoProviderState(t *t
 		t.Fatalf("CancelScenarioJob: %v", err)
 	}
 	job := canceled.GetJob()
-	if job.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_CANCELED || job.GetProviderJobId() != "" || job.GetNextPollAt() != nil {
-		t.Fatalf("canceled Runtime state=%+v", job)
+	if job.GetStatus() == runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_CANCELED || job.GetProviderJobId() != "" || job.GetNextPollAt() != nil {
+		t.Fatalf("cancel intent response=%+v", job)
+	}
+	select {
+	case <-host.cancelObserved:
+	case <-time.After(2 * time.Second):
+		t.Fatal("cloud media cancellation was not forwarded")
+	}
+	if current, _ := fixture.service.scenarioJobs.get(job.GetJobId()); current.GetStatus() == runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_CANCELED {
+		t.Fatalf("cloud media published CANCELED before transport exit: %+v", current)
+	}
+	close(host.allowCancelExit)
+	terminal := waitScenarioJobTerminal(t, fixture.service, job.GetJobId(), 3*time.Second)
+	if terminal.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_CANCELED {
+		t.Fatalf("cloud media cancel terminal=%+v", terminal)
 	}
 }
 

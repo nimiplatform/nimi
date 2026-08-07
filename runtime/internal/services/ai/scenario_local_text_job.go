@@ -103,6 +103,10 @@ func (s *Service) executeLocalTextScenarioJob(
 	jobID string,
 	effective *localTextEffectiveInputs,
 ) {
+	if effective == nil || !s.scenarioJobs.startExecution(jobID) {
+		return
+	}
+	defer s.scenarioJobs.finishExecution(jobID)
 	defer effective.release()
 	if _, ok := s.scenarioJobs.transition(
 		jobID,

@@ -16,6 +16,10 @@ import (
 )
 
 const (
+	// MaxAssetFormatProbeBytes bounds the verified exact-entry prefix exposed to
+	// Drivers for format and tensor-name admission.
+	MaxAssetFormatProbeBytes = 4 << 20
+
 	LlamaImplementationID   = "local.text.generate.llama-cpp"
 	LlamaDriverID           = "nimi.runtime.driver.llama-cpp"
 	LlamaDriverDialect      = "llama.cpp/text-generate/v1"
@@ -95,6 +99,10 @@ type AssetDescriptor struct {
 	Engine            string
 	ArtifactRoles     []string
 	BundleEntries     []BundleEntryDescriptor
+	// FormatProbe is a bounded prefix (at most MaxAssetFormatProbeBytes) read
+	// from the verified exact entry. It is used only by Drivers whose dialect
+	// requires magic/header validation.
+	FormatProbe []byte
 }
 
 // InterpretInput is the portable resource intent interpreted by a driver.
@@ -140,6 +148,50 @@ type ImageInvocationInput struct {
 	PortableConfig *structpb.Struct
 	ExactBindings  []InvocationExactBinding
 	Request        *runtimev1.ImageGenerateScenarioSpec
+}
+
+// VideoInputRole classifies already-resolved media handles. The Driver never
+// parses a URL or opens an input path.
+type VideoInputRole string
+
+const (
+	VideoInputRoleReferenceImage VideoInputRole = "reference-image"
+	VideoInputRoleFirstFrame     VideoInputRole = "first-frame"
+	VideoInputRoleLastFrame      VideoInputRole = "last-frame"
+	VideoInputRoleReferenceVideo VideoInputRole = "reference-video"
+	VideoInputRoleReferenceAudio VideoInputRole = "reference-audio"
+)
+
+// VideoResolvedInput is one ordered request input captured by the service
+// owner. ImageBytes is populated only for an image role.
+type VideoResolvedInput struct {
+	Role           VideoInputRole
+	SourceIdentity string
+	ImageBytes     []byte
+}
+
+// VideoInvocationRequest is the resolved, URL-free video request presented to
+// a Driver before execution dispatch.
+type VideoInvocationRequest struct {
+	Prompt         string
+	NegativePrompt string
+	Width          int
+	Height         int
+	FrameCount     int
+	FPS            int
+	Seed           int64
+	GenerateAudio  bool
+	Inputs         []VideoResolvedInput
+}
+
+// VideoInvocationInput is the complete Driver-owned video invocation input.
+// ConfigurationID and every binding identity have already been selected and
+// verified by the machine-configuration owner.
+type VideoInvocationInput struct {
+	ConfigurationID string
+	PortableConfig  *structpb.Struct
+	ExactBindings   []InvocationExactBinding
+	Request         VideoInvocationRequest
 }
 
 // InvocationFailureKind classifies failures while a Driver is forming a plan.
@@ -444,6 +496,253 @@ type ImageInvocationDriver interface {
 	PlanImageInvocation(input ImageInvocationInput) (*ImageInvocationPlan, error)
 }
 
+// VideoConditioningMode is the exact stable-diffusion.cpp H3 route selected at
+// admission. No execution-time fallback is permitted.
+type VideoConditioningMode string
+
+const (
+	VideoConditioningModeFL2VAT2VA   VideoConditioningMode = "fl2va-t2va"
+	VideoConditioningModeRef2VAImage VideoConditioningMode = "ref2va-image"
+)
+
+// VideoInvocationPlan is private to the video Driver/Host seam. Its fields are
+// immutable after construction and accessors return copies where needed.
+type VideoInvocationPlan struct {
+	processKey              string
+	configurationID         string
+	driverIdentity          Identity
+	portableConfig          *structpb.Struct
+	exactBindings           []InvocationExactBinding
+	modelFiles              []InvocationExactBinding
+	diffusionModelPath      string
+	encoderPath             string
+	videoVAEPath            string
+	audioVAEPath            string
+	prompt                  string
+	negativePrompt          string
+	width                   int
+	height                  int
+	frameCount              int
+	fps                     int
+	seed                    int64
+	audioRequired           bool
+	conditioningMode        VideoConditioningMode
+	referenceImage          *VideoResolvedInput
+	cfgScale                float64
+	flowShift               float64
+	sampleMethod            string
+	scheduler               string
+	diffusionFlashAttention bool
+	offloadToCPU            bool
+	rng                     string
+}
+
+func (p *VideoInvocationPlan) ProcessKey() string {
+	if p == nil {
+		return ""
+	}
+	return p.processKey
+}
+
+func (p *VideoInvocationPlan) ConfigurationID() string {
+	if p == nil {
+		return ""
+	}
+	return p.configurationID
+}
+
+func (p *VideoInvocationPlan) DriverIdentity() Identity {
+	if p == nil {
+		return Identity{}
+	}
+	return p.driverIdentity
+}
+
+func (p *VideoInvocationPlan) PortableConfig() *structpb.Struct {
+	if p == nil {
+		return nil
+	}
+	return cloneStruct(p.portableConfig)
+}
+
+// ExactBindings returns all five configuration-level H3 slots in canonical
+// order, including the diffusion transformer not used by this invocation.
+func (p *VideoInvocationPlan) ExactBindings() []InvocationExactBinding {
+	if p == nil {
+		return nil
+	}
+	return append([]InvocationExactBinding(nil), p.exactBindings...)
+}
+
+// ModelFiles returns only the four slots actually loaded for this route.
+func (p *VideoInvocationPlan) ModelFiles() []InvocationExactBinding {
+	if p == nil {
+		return nil
+	}
+	return append([]InvocationExactBinding(nil), p.modelFiles...)
+}
+
+func (p *VideoInvocationPlan) DiffusionModelPath() string {
+	if p == nil {
+		return ""
+	}
+	return p.diffusionModelPath
+}
+
+func (p *VideoInvocationPlan) EncoderPath() string {
+	if p == nil {
+		return ""
+	}
+	return p.encoderPath
+}
+
+func (p *VideoInvocationPlan) VideoVAEPath() string {
+	if p == nil {
+		return ""
+	}
+	return p.videoVAEPath
+}
+
+func (p *VideoInvocationPlan) AudioVAEPath() string {
+	if p == nil {
+		return ""
+	}
+	return p.audioVAEPath
+}
+
+func (p *VideoInvocationPlan) Prompt() string {
+	if p == nil {
+		return ""
+	}
+	return p.prompt
+}
+
+func (p *VideoInvocationPlan) NegativePrompt() string {
+	if p == nil {
+		return ""
+	}
+	return p.negativePrompt
+}
+
+func (p *VideoInvocationPlan) Size() (int, int) {
+	if p == nil {
+		return 0, 0
+	}
+	return p.width, p.height
+}
+
+func (p *VideoInvocationPlan) FrameCount() int {
+	if p == nil {
+		return 0
+	}
+	return p.frameCount
+}
+
+func (p *VideoInvocationPlan) FPS() int {
+	if p == nil {
+		return 0
+	}
+	return p.fps
+}
+
+func (p *VideoInvocationPlan) Seed() int64 {
+	if p == nil {
+		return 0
+	}
+	return p.seed
+}
+
+func (p *VideoInvocationPlan) AudioRequired() bool {
+	return p != nil && p.audioRequired
+}
+
+func (p *VideoInvocationPlan) ConditioningMode() VideoConditioningMode {
+	if p == nil {
+		return ""
+	}
+	return p.conditioningMode
+}
+
+func (p *VideoInvocationPlan) ReferenceImage() (VideoResolvedInput, bool) {
+	if p == nil || p.referenceImage == nil {
+		return VideoResolvedInput{}, false
+	}
+	result := *p.referenceImage
+	result.ImageBytes = append([]byte(nil), p.referenceImage.ImageBytes...)
+	return result, true
+}
+
+func (p *VideoInvocationPlan) CFGScale() float64 {
+	if p == nil {
+		return 0
+	}
+	return p.cfgScale
+}
+
+func (p *VideoInvocationPlan) FlowShift() float64 {
+	if p == nil {
+		return 0
+	}
+	return p.flowShift
+}
+
+func (p *VideoInvocationPlan) SampleMethod() string {
+	if p == nil {
+		return ""
+	}
+	return p.sampleMethod
+}
+
+func (p *VideoInvocationPlan) Scheduler() string {
+	if p == nil {
+		return ""
+	}
+	return p.scheduler
+}
+
+func (p *VideoInvocationPlan) DiffusionFlashAttention() bool {
+	return p != nil && p.diffusionFlashAttention
+}
+
+func (p *VideoInvocationPlan) OffloadToCPU() bool {
+	return p != nil && p.offloadToCPU
+}
+
+func (p *VideoInvocationPlan) RNG() string {
+	if p == nil {
+		return ""
+	}
+	return p.rng
+}
+
+// VideoInvocationDriver is the invocation seam implemented by a video Driver.
+type VideoInvocationDriver interface {
+	Driver
+	PlanVideoInvocation(input VideoInvocationInput) (*VideoInvocationPlan, error)
+}
+
+func cloneStruct(value *structpb.Struct) *structpb.Struct {
+	if value == nil {
+		return nil
+	}
+	fields := make(map[string]*structpb.Value, len(value.GetFields()))
+	for key, field := range value.GetFields() {
+		fields[key] = cloneValue(field)
+	}
+	return &structpb.Struct{Fields: fields}
+}
+
+func cloneValue(value *structpb.Value) *structpb.Value {
+	if value == nil {
+		return nil
+	}
+	cloned, err := structpb.NewValue(value.AsInterface())
+	if err != nil {
+		return nil
+	}
+	return cloned
+}
+
 // RegistrationKey scopes an exact driver identity to one capability contract.
 // Capability contracts deliberately remain outside the public implementation
 // identity proto message.
@@ -501,8 +800,9 @@ func (registry *Registry) Resolve(capabilityContract string, identity Identity) 
 
 func NewProductionRegistry() *Registry {
 	registry, err := NewRegistry(map[RegistrationKey]Driver{
-		{CapabilityContract: LlamaCapabilityContract, Identity: Identity{ImplementationID: LlamaImplementationID, DriverID: LlamaDriverID, DriverDialect: LlamaDriverDialect}}:                                         LlamaTextDriver{},
-		{CapabilityContract: StableDiffusionCapabilityContract, Identity: Identity{ImplementationID: StableDiffusionImplementationID, DriverID: StableDiffusionDriverID, DriverDialect: StableDiffusionDriverDialect}}: StableDiffusionImageDriver{},
+		{CapabilityContract: LlamaCapabilityContract, Identity: Identity{ImplementationID: LlamaImplementationID, DriverID: LlamaDriverID, DriverDialect: LlamaDriverDialect}}:                                                             LlamaTextDriver{},
+		{CapabilityContract: StableDiffusionCapabilityContract, Identity: Identity{ImplementationID: StableDiffusionImplementationID, DriverID: StableDiffusionDriverID, DriverDialect: StableDiffusionDriverDialect}}:                     StableDiffusionImageDriver{},
+		{CapabilityContract: StableDiffusionVideoCapabilityContract, Identity: Identity{ImplementationID: StableDiffusionVideoImplementationID, DriverID: StableDiffusionVideoDriverID, DriverDialect: StableDiffusionVideoDriverDialect}}: StableDiffusionVideoDriver{},
 	})
 	if err != nil {
 		panic(err)

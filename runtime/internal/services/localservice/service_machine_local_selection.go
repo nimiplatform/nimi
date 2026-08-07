@@ -37,13 +37,17 @@ func (s *Service) SelectLocalCapabilityConfiguration(
 			map[string]string{"capability_contract": capabilityContract, "configuration_id": configurationID},
 		)
 	}
+	metadata := map[string]string{"capability_contract": capabilityContract, "configuration_id": configurationID}
 	if configuration.Configuration.GetCapabilityContract() != capabilityContract {
 		return nil, machineLocalSelectionError(
 			codes.InvalidArgument,
 			runtimev1.ReasonCode_AI_LOCAL_SELECTION_INVALID,
 			"selection capability_contract does not match the local capability configuration",
-			map[string]string{"capability_contract": capabilityContract, "configuration_id": configurationID},
+			metadata,
 		)
+	}
+	if _, _, err := s.resolveSelectableLocalCapabilityConfiguration(configuration, capabilityContract, metadata); err != nil {
+		return nil, err
 	}
 
 	selection := &runtimev1.LocalCapabilitySelection{

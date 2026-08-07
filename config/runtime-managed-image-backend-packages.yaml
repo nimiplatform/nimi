@@ -69,10 +69,10 @@ entries:
     dependency_family: native-engine-package.stablediffusion-ggml
     package_source: canonical_runtime_wrapper
     package_format: direct_archive
-    install_dir_name: sd-win-cuda12-x64-stablediffusion-ggml
+    install_dir_name: sd-win-cuda12-x64-stablediffusion-ggml-bfbef5b
     image_ref: ""
-    archive_url: https://github.com/leejet/stable-diffusion.cpp/releases/download/master-552-87ecb95/sd-master-87ecb95-bin-win-cuda12-x64.zip
-    archive_sha256: 011643ec700d6097b9537f0f75ffb26856cc56a5ce765ffe9a32f2b47844e080
+    archive_url: https://github.com/leejet/stable-diffusion.cpp/releases/download/master-813-bfbef5b/sd-master-bfbef5b-bin-win-cuda12-x64.zip
+    archive_sha256: e101fcd3ab323547ef8b4387b5edc6e4a1a70837d394ca744cd847a30e3a9a71
     dependency_requirements:
       - dependency_id: nvidia-cuda-user-space-runtime
         consumer_id: stable-diffusion.cpp.cuda
@@ -81,6 +81,7 @@ entries:
         accelerator_projection_table: shared-accelerator-dependencies.yaml
         first_network_materialization_requires_confirmation: true
     executable_candidates: [sd.exe, sd-cli.exe]
+    supported_model_families: [flux, ideogram4, minimax-h3, sdxl, z-image, z-image-turbo]
     launch_mode: runtime_wrapper
     wrapper_driver: stable-diffusion.cpp
     product_state: supported

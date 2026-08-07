@@ -1634,6 +1634,7 @@ const (
 	VIDEOCONTENTTYPEIMAGEURL VideoContentType = "VIDEO_CONTENT_TYPE_IMAGE_URL"
 	VIDEOCONTENTTYPEVIDEOURL VideoContentType = "VIDEO_CONTENT_TYPE_VIDEO_URL"
 	VIDEOCONTENTTYPEAUDIOURL VideoContentType = "VIDEO_CONTENT_TYPE_AUDIO_URL"
+	VIDEOCONTENTTYPEARTIFACTREF VideoContentType = "VIDEO_CONTENT_TYPE_ARTIFACT_REF"
 )
 
 type VideoMode string
@@ -7203,6 +7204,10 @@ type UsageStats struct {
 	ReasoningOutputTokens int64 `json:"reasoning_output_tokens,omitempty"`
 }
 
+type VideoContentArtifactRef struct {
+	ArtifactId string `json:"artifact_id,omitempty"`
+}
+
 type VideoContentAudioURL struct {
 	Url string `json:"url,omitempty"`
 }
@@ -7218,6 +7223,7 @@ type VideoContentItem struct {
 	ImageUrl *VideoContentImageURL `json:"image_url,omitempty"`
 	VideoUrl *VideoContentVideoURL `json:"video_url,omitempty"`
 	AudioUrl *VideoContentAudioURL `json:"audio_url,omitempty"`
+	ArtifactRef *VideoContentArtifactRef `json:"artifact_ref,omitempty"`
 }
 
 type VideoContentVideoURL struct {

@@ -1084,3 +1084,13 @@ units:
         target: definition.nimi.platform.core-protocol.effective-app-access-snapshot
       - type: applies_to
         target: definition.nimi.runtime.ai-provider.multimodal-provider-plane
+  - id: rule.nimi.runtime.ai-provider.r108
+    kind: rule
+    title: Video request image artifacts resolve at submission
+    modality: must
+    statement: A video.generate content item may carry an image through a Runtime opaque artifact_id using only the existing first_frame, last_frame, or reference_image role; Runtime validates that the completed artifact is readable within the caller's same App and subject scope, has an image MIME type, and is within the admitted size bound, then captures its bytes and artifact identity as an immutable execution handle before creating a Job, without exposing a filesystem path. Existing URL-backed Cloud behavior remains unchanged, while a Cloud video route receiving an artifact-backed input returns typed unsupported without translating or forwarding the artifact reference.
+    condition: Whenever video.generate content carries a Runtime artifact reference.
+    failure: Reject missing, unreadable, cross-owner, non-image, or oversized artifacts with the exact typed failure before Job creation, and reject artifact-backed Cloud video input as typed unsupported without fallback or passthrough.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.ai-provider.multimodal-provider-plane

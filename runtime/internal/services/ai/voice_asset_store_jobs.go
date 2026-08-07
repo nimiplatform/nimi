@@ -172,36 +172,87 @@ func (s *voiceAssetStore) cancelJob(jobID string, reason string) (*runtimev1.Sce
 	}
 	s.mu.Lock()
 	record, ok := s.jobs[id]
-	if !ok {
-		s.mu.Unlock()
-		return nil, false
-	}
-	if isTerminalScenarioJobStatus(record.job.GetStatus()) {
-		job := cloneScenarioJob(record.job)
+	if !ok || record == nil || record.job == nil || isTerminalScenarioJobStatus(record.job.GetStatus()) {
+		var job *runtimev1.ScenarioJob
+		if record != nil {
+			job = cloneScenarioJob(record.job)
+		}
 		s.mu.Unlock()
 		return job, false
 	}
-	record.job.Status = runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_CANCELED
+	record.cancelRequested = true
+	record.cancelReason = strings.TrimSpace(reason)
 	record.job.ReasonCode = runtimev1.ReasonCode_ACTION_EXECUTED
-	record.job.ReasonDetail = strings.TrimSpace(reason)
+	record.job.ReasonDetail = record.cancelReason
+	record.job.ReasonMetadata = nil
 	nowTime := time.Now().UTC()
 	record.updatedAt = nowTime
-	record.terminalAt = nowTime
 	record.job.UpdatedAt = timestamppb.New(nowTime)
-	if asset := s.assets[record.assetID]; asset != nil {
-		asset.Status = runtimev1.VoiceAssetStatus_VOICE_ASSET_STATUS_FAILED
-		asset.UpdatedAt = timestamppb.New(nowTime)
+	cancel := record.cancel
+	executionStarted := record.executionStarted
+	job := cloneScenarioJob(record.job)
+	s.mu.Unlock()
+
+	if cancel != nil {
+		cancel()
 	}
-	s.publishLocked(record, runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_CANCELED)
-	s.pruneLocked(nowTime)
+	if !executionStarted {
+		s.finishJobExecution(id)
+		job, _ = s.getJob(id)
+	}
+	return job, true
+}
+
+func (s *voiceAssetStore) startJobExecution(jobID string) bool {
+	id := strings.TrimSpace(jobID)
+	if id == "" {
+		return false
+	}
+	s.mu.Lock()
+	record := s.jobs[id]
+	if record == nil || record.job == nil || isTerminalScenarioJobStatus(record.job.GetStatus()) || record.cancelRequested || record.executionStarted {
+		s.mu.Unlock()
+		return false
+	}
+	record.executionStarted = true
+	s.mu.Unlock()
+	return true
+}
+
+func (s *voiceAssetStore) finishJobExecution(jobID string) {
+	id := strings.TrimSpace(jobID)
+	if id == "" {
+		return
+	}
+	s.mu.Lock()
+	record := s.jobs[id]
+	if record == nil || record.job == nil {
+		s.mu.Unlock()
+		return
+	}
+	record.executionStarted = false
 	cancel := record.cancel
 	record.cancel = nil
-	job := cloneScenarioJob(record.job)
+	if record.cancelRequested && !isTerminalScenarioJobStatus(record.job.GetStatus()) {
+		nowTime := time.Now().UTC()
+		record.job.Status = runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_CANCELED
+		record.job.ReasonCode = runtimev1.ReasonCode_ACTION_EXECUTED
+		record.job.ReasonDetail = record.cancelReason
+		record.job.ReasonMetadata = nil
+		record.updatedAt = nowTime
+		record.terminalAt = nowTime
+		record.job.UpdatedAt = timestamppb.New(nowTime)
+		if asset := s.assets[record.assetID]; asset != nil {
+			asset.Status = runtimev1.VoiceAssetStatus_VOICE_ASSET_STATUS_FAILED
+			asset.UpdatedAt = timestamppb.New(nowTime)
+		}
+		s.publishLocked(record, runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_CANCELED)
+		s.pruneLocked(nowTime)
+	}
 	s.mu.Unlock()
 	if cancel != nil {
 		cancel()
 	}
-	return job, true
 }
 
 func (s *voiceAssetStore) queueJob(jobID string) bool {
@@ -274,7 +325,7 @@ func (s *voiceAssetStore) transitionJob(
 		s.mu.Unlock()
 		return false
 	}
-	if isTerminalScenarioJobStatus(record.job.GetStatus()) {
+	if isTerminalScenarioJobStatus(record.job.GetStatus()) || record.cancelRequested {
 		s.mu.Unlock()
 		return false
 	}

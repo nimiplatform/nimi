@@ -131,8 +131,8 @@ func TestCloudTextJobCancelStopsLocalWaitWithHonestTerminal(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CancelScenarioJob: %v", err)
 	}
-	if canceled.GetJob().GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_CANCELED {
-		t.Fatalf("cancel status = %s", canceled.GetJob().GetStatus())
+	if canceled.GetJob().GetReasonDetail() != "user requested cancellation" {
+		t.Fatalf("cancel intent response = %+v", canceled.GetJob())
 	}
 	job := waitCloudTextJob(t, fixture.service, submitted.GetJob().GetJobId())
 	if job.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_CANCELED {

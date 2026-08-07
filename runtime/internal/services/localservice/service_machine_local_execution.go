@@ -79,30 +79,9 @@ func (s *Service) ResolveSelectedLocalExecution(capabilityContract string) (*loc
 			metadata,
 		)
 	}
-	configuration := s.deriveLocalCapabilityConfiguration(stored)
-	if configuration.GetCapabilityContract() != capabilityContract {
-		return nil, machineLocalSelectionError(
-			codes.FailedPrecondition,
-			runtimev1.ReasonCode_AI_LOCAL_CAPABILITY_MISMATCH,
-			"selected local capability configuration does not match the requested capability",
-			metadata,
-		)
-	}
-
-	driver, driverReason := s.capabilityDrivers.Resolve(
-		capabilityContract,
-		capabilitydriver.IdentityFromProto(configuration.GetImplementation()),
-	)
-	if driverReason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED || driver == nil {
-		if driverReason == runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED {
-			driverReason = runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_IMPLEMENTATION_UNSUPPORTED
-		}
-		return nil, selectedLocalExecutionReasonError(driverReason, metadata)
-	}
-	if configuration.GetInterpretability() != runtimev1.LocalCapabilityInterpretability_LOCAL_CAPABILITY_INTERPRETABILITY_INTERPRETABLE ||
-		configuration.GetRequirementResolution() != runtimev1.LocalCapabilityRequirementResolution_LOCAL_CAPABILITY_REQUIREMENT_RESOLUTION_CONFIGURED ||
-		!localCapabilityRequirementsCompletelyBound(configuration.GetProjectedRequirements(), configuration.GetExactBindings()) {
-		return nil, selectedLocalExecutionReasonError(localCapabilityConfigurationFailureReason(configuration), metadata)
+	configuration, driver, err := s.resolveSelectableLocalCapabilityConfiguration(stored, capabilityContract, metadata)
+	if err != nil {
+		return nil, err
 	}
 
 	bindings := cloneLocalAssetExactBindings(configuration.GetExactBindings())
@@ -189,6 +168,38 @@ func (s *Service) ResolveSelectedLocalExecution(capabilityContract string) (*loc
 		SupportedFeatures:  append([]string(nil), configuration.GetSupportedFeatures()...),
 		Configured:         true,
 	}, nil
+}
+
+func (s *Service) resolveSelectableLocalCapabilityConfiguration(
+	stored *storedLocalCapabilityConfiguration,
+	capabilityContract string,
+	metadata map[string]string,
+) (*runtimev1.LocalCapabilityConfiguration, capabilitydriver.Driver, error) {
+	configuration := s.deriveLocalCapabilityConfiguration(stored)
+	if configuration == nil || configuration.GetCapabilityContract() != capabilityContract {
+		return nil, nil, machineLocalSelectionError(
+			codes.FailedPrecondition,
+			runtimev1.ReasonCode_AI_LOCAL_CAPABILITY_MISMATCH,
+			"local capability configuration does not match the requested capability",
+			metadata,
+		)
+	}
+	driver, driverReason := s.capabilityDrivers.Resolve(
+		capabilityContract,
+		capabilitydriver.IdentityFromProto(configuration.GetImplementation()),
+	)
+	if driverReason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED || driver == nil {
+		if driverReason == runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED {
+			driverReason = runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_IMPLEMENTATION_UNSUPPORTED
+		}
+		return nil, nil, selectedLocalExecutionReasonError(driverReason, metadata)
+	}
+	if configuration.GetInterpretability() != runtimev1.LocalCapabilityInterpretability_LOCAL_CAPABILITY_INTERPRETABILITY_INTERPRETABLE ||
+		configuration.GetRequirementResolution() != runtimev1.LocalCapabilityRequirementResolution_LOCAL_CAPABILITY_REQUIREMENT_RESOLUTION_CONFIGURED ||
+		!localCapabilityRequirementsCompletelyBound(configuration.GetProjectedRequirements(), configuration.GetExactBindings()) {
+		return nil, nil, selectedLocalExecutionReasonError(localCapabilityConfigurationFailureReason(configuration), metadata)
+	}
+	return configuration, driver, nil
 }
 
 func localCapabilityConfigurationFailureReason(configuration *runtimev1.LocalCapabilityConfiguration) runtimev1.LocalCapabilityReason {

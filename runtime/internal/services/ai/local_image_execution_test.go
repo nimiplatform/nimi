@@ -20,6 +20,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/localexecution"
 	"github.com/nimiplatform/nimi/runtime/internal/protectedprincipal"
+	runtimeartifact "github.com/nimiplatform/nimi/runtime/internal/services/runtimeartifact"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/types/known/structpb"
@@ -33,6 +34,7 @@ type localImageHostStub struct {
 	firstCommitted  chan struct{}
 	allowSecond     chan struct{}
 	cancelObserved  chan struct{}
+	allowCancelExit chan struct{}
 	failBeforeIndex int32
 	failureKind     localexecution.FailureKind
 	failure         error
@@ -48,6 +50,9 @@ func (h *localImageHostStub) ExecuteImage(ctx context.Context, plan *capabilityd
 		case <-h.allowStart:
 		case <-ctx.Done():
 			closeOnce(h.cancelObserved)
+			if h.allowCancelExit != nil {
+				<-h.allowCancelExit
+			}
 			return localexecution.ImageResult{}, &localexecution.ExecutionError{Kind: localexecution.FailureCanceled, Err: ctx.Err()}
 		}
 	}
@@ -91,6 +96,9 @@ func (h *localImageHostStub) ExecuteImage(ctx context.Context, plan *capabilityd
 				case <-h.allowSecond:
 				case <-ctx.Done():
 					closeOnce(h.cancelObserved)
+					if h.allowCancelExit != nil {
+						<-h.allowCancelExit
+					}
 					return result, &localexecution.ExecutionError{Kind: localexecution.FailureCanceled, Err: ctx.Err()}
 				}
 			}
@@ -124,6 +132,10 @@ func TestLocalImageSyncExecutesCapturedDriverPlan(t *testing.T) {
 	if response.GetRouteDecision() != runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL || response.GetModelResolved() != "image-sync" ||
 		len(artifacts) != 1 || !strings.HasPrefix(artifacts[0].GetMimeType(), "image/png") || !reflect.DeepEqual(artifacts[0].GetBytes()[:8], serviceTestPNGBytes()[:8]) {
 		t.Fatalf("local image response = %+v", response)
+	}
+	record, ok := svc.runtimeArtifacts.Get(artifacts[0].GetArtifactId())
+	if !ok || record.ProducerJobID != "" || record.Owner == nil || record.Owner.SubjectUserID != "anonymous" || record.Owner.AppID != "app.local" {
+		t.Fatalf("sync local image artifact custody = %+v present=%v", record, ok)
 	}
 	host.mu.Lock()
 	plans := append([]*capabilitydriver.ImageInvocationPlan(nil), host.plans...)
@@ -204,6 +216,19 @@ func TestLocalImageJobStaysQueuedThenCommitsArtifactsIncrementallyFromImmutableC
 	if terminal.GetArtifacts()[0].GetArtifactId() == terminal.GetArtifacts()[1].GetArtifactId() {
 		t.Fatal("image artifacts did not receive distinct identities")
 	}
+	firstArtifact := terminal.GetArtifacts()[0]
+	record, ok := svc.runtimeArtifacts.Get(firstArtifact.GetArtifactId())
+	if !ok || record.ProducerJobID != jobID || record.Owner == nil || record.Owner.SubjectUserID != "account-a" || record.Owner.AppID != "app.local" {
+		t.Fatalf("local image artifact custody = %+v present=%v", record, ok)
+	}
+	if got := firstArtifact.GetMetadata().GetFields()["producer_job_id"].GetStringValue(); got != jobID {
+		t.Fatalf("local image producer_job_id = %q, want %q", got, jobID)
+	}
+	artifactService := runtimeartifact.New(svc.runtimeArtifacts, nil)
+	read, err := artifactService.ReadArtifactBytes(ownerCtx, &runtimev1.ReadArtifactBytesRequest{ArtifactId: firstArtifact.GetArtifactId()})
+	if err != nil || len(read.GetBytes()) == 0 {
+		t.Fatalf("owner-authorized local image artifact read = %+v error=%v", read, err)
+	}
 	host.mu.Lock()
 	captured := host.plans[0]
 	host.mu.Unlock()
@@ -211,6 +236,40 @@ func TestLocalImageJobStaysQueuedThenCommitsArtifactsIncrementallyFromImmutableC
 	if captured.MainModelPath() != first.ExactBindings[0].AbsolutePath || captured.MainModelPath() == second.ExactBindings[0].AbsolutePath ||
 		captured.ImageCount() != 2 || width != 64 || height != 64 || captured.Seed() != 19 {
 		t.Fatalf("background execution did not use immutable capture: path=%q count=%d size=%dx%d seed=%d", captured.MainModelPath(), captured.ImageCount(), width, height, captured.Seed())
+	}
+}
+
+func TestLocalImageArtifactAttachFailureDeletesExactCandidate(t *testing.T) {
+	svc := newTestService(nil)
+	artifact := &runtimev1.ScenarioArtifact{ArtifactId: "candidate-local-image", MimeType: "image/png", Bytes: serviceTestPNGBytes()}
+	_, err := svc.storeAndAttachRuntimeJobArtifact(
+		"job-attach-failure",
+		&runtimev1.ScenarioRequestHead{AppId: "app.local", SubjectUserId: "account-a"},
+		artifact,
+		func(*runtimev1.ScenarioArtifact) bool { return false },
+	)
+	if err == nil {
+		t.Fatal("storeAndAttachRuntimeJobArtifact accepted failed attach")
+	}
+	if _, ok := svc.runtimeArtifacts.Get(artifact.GetArtifactId()); ok {
+		t.Fatal("failed attach retained candidate Runtime artifact")
+	}
+
+	const existingID = "existing-local-image"
+	if err := svc.runtimeArtifacts.Put(existingID, runtimeartifact.ArtifactRecord{Bytes: []byte("existing"), MimeType: "image/png"}); err != nil {
+		t.Fatalf("seed existing artifact: %v", err)
+	}
+	_, err = svc.storeAndAttachRuntimeJobArtifact(
+		"job-attach-collision",
+		&runtimev1.ScenarioRequestHead{AppId: "app.local", SubjectUserId: "account-a"},
+		&runtimev1.ScenarioArtifact{ArtifactId: existingID, MimeType: "image/png", Bytes: []byte("replacement")},
+		func(*runtimev1.ScenarioArtifact) bool { return false },
+	)
+	if err == nil {
+		t.Fatal("storeAndAttachRuntimeJobArtifact accepted an existing candidate id")
+	}
+	if existing, ok := svc.runtimeArtifacts.Get(existingID); !ok || string(existing.Bytes) != "existing" {
+		t.Fatalf("candidate compensation touched pre-existing artifact: %+v present=%v", existing, ok)
 	}
 }
 
@@ -270,7 +329,7 @@ func TestLocalImageJobPartialFailurePreservesProducedArtifactAndTypedFailure(t *
 func TestLocalImageJobQueuedCancellationReachesHost(t *testing.T) {
 	svc := newTestService(nil)
 	svc.SetLocalExecutionResolver(&mutableLocalExecutionResolver{projection: selectedImageExecutionForTest(t, "image-cancel")})
-	host := &localImageHostStub{entered: make(chan struct{}), allowStart: make(chan struct{}), cancelObserved: make(chan struct{})}
+	host := &localImageHostStub{entered: make(chan struct{}), allowStart: make(chan struct{}), cancelObserved: make(chan struct{}), allowCancelExit: make(chan struct{})}
 	svc.SetLocalImageExecutionHost(host)
 	ctx := localImageIntentContext(context.Background(), nil)
 	response, err := svc.SubmitScenarioJob(ctx, localImageJobRequestForTest(1))
@@ -283,20 +342,28 @@ func TestLocalImageJobQueuedCancellationReachesHost(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CancelScenarioJob: %v", err)
 	}
-	if canceled.GetJob().GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_CANCELED {
-		t.Fatalf("cancel response = %+v", canceled)
+	if canceled.GetJob().GetStatus() == runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_CANCELED {
+		t.Fatalf("cancel response became terminal before Host stop = %+v", canceled)
 	}
 	select {
 	case <-host.cancelObserved:
 	case <-time.After(2 * time.Second):
 		t.Fatal("job cancellation did not reach image Host context")
 	}
+	if current, _ := svc.scenarioJobs.get(response.GetJob().GetJobId()); current.GetStatus() == runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_CANCELED {
+		t.Fatalf("queued job published CANCELED before Host exit: %+v", current)
+	}
+	close(host.allowCancelExit)
+	terminal := waitForScenarioJobTerminalForLocalTextTest(t, svc, response.GetJob().GetJobId())
+	if terminal.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_CANCELED {
+		t.Fatalf("queued cancel terminal = %+v", terminal)
+	}
 }
 
 func TestLocalImageJobRunningCancellationPreservesCommittedArtifact(t *testing.T) {
 	svc := newTestService(nil)
 	svc.SetLocalExecutionResolver(&mutableLocalExecutionResolver{projection: selectedImageExecutionForTest(t, "image-running-cancel")})
-	host := &localImageHostStub{firstCommitted: make(chan struct{}), allowSecond: make(chan struct{}), cancelObserved: make(chan struct{})}
+	host := &localImageHostStub{firstCommitted: make(chan struct{}), allowSecond: make(chan struct{}), cancelObserved: make(chan struct{}), allowCancelExit: make(chan struct{})}
 	svc.SetLocalImageExecutionHost(host)
 	response, err := svc.SubmitScenarioJob(localImageIntentContext(context.Background(), nil), localImageJobRequestForTest(2))
 	if err != nil {
@@ -317,7 +384,7 @@ func TestLocalImageJobRunningCancellationPreservesCommittedArtifact(t *testing.T
 	if err != nil {
 		t.Fatalf("CancelScenarioJob: %v", err)
 	}
-	if canceled.GetJob().GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_CANCELED || len(canceled.GetJob().GetArtifacts()) != 1 {
+	if canceled.GetJob().GetStatus() == runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_CANCELED || len(canceled.GetJob().GetArtifacts()) != 1 {
 		t.Fatalf("running cancel response = %+v", canceled)
 	}
 	select {
@@ -325,6 +392,10 @@ func TestLocalImageJobRunningCancellationPreservesCommittedArtifact(t *testing.T
 	case <-time.After(2 * time.Second):
 		t.Fatal("running cancellation did not reach Host context")
 	}
+	if current, _ := svc.scenarioJobs.get(jobID); current.GetStatus() == runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_CANCELED {
+		t.Fatalf("running job published CANCELED before Host exit: %+v", current)
+	}
+	close(host.allowCancelExit)
 	terminal := waitForScenarioJobTerminalForLocalTextTest(t, svc, jobID)
 	if terminal.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_CANCELED || len(terminal.GetArtifacts()) != 1 {
 		t.Fatalf("running cancel terminal = %+v", terminal)
@@ -351,7 +422,7 @@ func TestLocalImageRequestFeatureMismatchFailsBeforeHost(t *testing.T) {
 	}
 }
 
-func TestLocalVideoExecutionRemainsTypedUnsupported(t *testing.T) {
+func TestLocalVideoExecutionWithoutSelectionFailsClosed(t *testing.T) {
 	svc := newTestService(nil)
 	ctx := executionintent.WithIntent(context.Background(), executionintent.Intent{
 		CapabilityContract: scenarioTargetCapability(runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_GENERATE),
@@ -366,8 +437,8 @@ func TestLocalVideoExecutionRemainsTypedUnsupported(t *testing.T) {
 			Options: &runtimev1.VideoGenerationOptions{},
 		}}},
 	})
-	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED {
-		t.Fatalf("local video error = %v reason=%v ok=%v", err, reason, ok)
+	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_LOCAL_SELECTION_NOT_FOUND {
+		t.Fatalf("local video no-selection error = %v reason=%v ok=%v", err, reason, ok)
 	}
 }
 

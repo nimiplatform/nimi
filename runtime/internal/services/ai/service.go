@@ -28,6 +28,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/scheduler"
 	"github.com/nimiplatform/nimi/runtime/internal/services/connector"
 	runtimeartifact "github.com/nimiplatform/nimi/runtime/internal/services/runtimeartifact"
+	"github.com/nimiplatform/nimi/runtime/internal/videomedia"
 )
 
 const (
@@ -67,6 +68,8 @@ type Service struct {
 	localExecution                         localexecution.Resolver
 	localTextHost                          localexecution.TextExecutionHost
 	localImageHost                         localexecution.ImageExecutionHost
+	localVideoHost                         localexecution.VideoExecutionHost
+	localVideoMedia                        videomedia.Pipeline
 	capabilityDrivers                      *capabilitydriver.Registry
 	cloudTextDrivers                       *capabilitydriver.CloudTextRegistry
 	cloudEmbedDrivers                      *capabilitydriver.CloudEmbedRegistry
@@ -247,6 +250,23 @@ func (s *Service) SetLocalTextExecutionHost(host localexecution.TextExecutionHos
 func (s *Service) SetLocalImageExecutionHost(host localexecution.ImageExecutionHost) {
 	if s != nil {
 		s.localImageHost = host
+	}
+}
+
+// SetLocalVideoExecutionHost wires the Runtime-private video substrate. The
+// Host receives only immutable Driver plans and never resolves route or model
+// selection.
+func (s *Service) SetLocalVideoExecutionHost(host localexecution.VideoExecutionHost) {
+	if s != nil {
+		s.localVideoHost = host
+	}
+}
+
+// SetLocalVideoMediaPipeline wires the private ffmpeg/ffprobe owner used only
+// after a raw AV candidate has been produced.
+func (s *Service) SetLocalVideoMediaPipeline(pipeline videomedia.Pipeline) {
+	if s != nil {
+		s.localVideoMedia = pipeline
 	}
 }
 
@@ -478,6 +498,29 @@ func (s *Service) resolvePublicChatTextContextMetadataLease(
 		targetRef:      resolvedTargetRef,
 		release:        release,
 	}, nil
+}
+
+// RebindNonProductionConnectorStore replaces connector credential custody only
+// during bounded non-production owner composition, before any request is
+// admitted. Remote Hosts are rebuilt against the same store so grant capture
+// and secret opening cannot diverge.
+func (s *Service) RebindNonProductionConnectorStore(store *connector.ConnectorStore) error {
+	if s == nil || store == nil {
+		return fmt.Errorf("non-production connector store is required")
+	}
+	transport, ok := s.cloudTextProvider.(*nimillm.CloudProvider)
+	if !ok || transport == nil {
+		return fmt.Errorf("non-production remote cloud transport is unavailable")
+	}
+	hostAudit := s.audit
+	if hostAudit == nil {
+		hostAudit = auditlog.New(256, 256)
+	}
+	s.connStore = store
+	s.remoteTextHost = remoteexecution.NewProviderTextHost(store, transport, hostAudit, s.allowLoopback)
+	s.remoteEmbedHost = remoteexecution.NewProviderEmbedHost(store, transport, hostAudit, s.allowLoopback)
+	s.remoteMediaHost = remoteexecution.NewProviderMediaHost(store, transport, hostAudit, s.allowLoopback)
+	return nil
 }
 
 // CloudProvider returns the underlying cloud provider for cross-service wiring (e.g., ConnectorService probe).

@@ -233,7 +233,8 @@ func videoScenarioInputRoles(spec *runtimev1.VideoGenerateScenarioSpec) []string
 		switch item.GetType() {
 		case runtimev1.VideoContentType_VIDEO_CONTENT_TYPE_TEXT:
 			roles["prompt"] = struct{}{}
-		case runtimev1.VideoContentType_VIDEO_CONTENT_TYPE_IMAGE_URL:
+		case runtimev1.VideoContentType_VIDEO_CONTENT_TYPE_IMAGE_URL,
+			runtimev1.VideoContentType_VIDEO_CONTENT_TYPE_ARTIFACT_REF:
 			switch item.GetRole() {
 			case runtimev1.VideoContentRole_VIDEO_CONTENT_ROLE_FIRST_FRAME:
 				roles["first_frame"] = struct{}{}
@@ -284,7 +285,8 @@ func videoReferenceImageCount(spec *runtimev1.VideoGenerateScenarioSpec) int {
 		if item == nil {
 			continue
 		}
-		if item.GetType() == runtimev1.VideoContentType_VIDEO_CONTENT_TYPE_IMAGE_URL &&
+		if (item.GetType() == runtimev1.VideoContentType_VIDEO_CONTENT_TYPE_IMAGE_URL ||
+			item.GetType() == runtimev1.VideoContentType_VIDEO_CONTENT_TYPE_ARTIFACT_REF) &&
 			item.GetRole() == runtimev1.VideoContentRole_VIDEO_CONTENT_ROLE_REFERENCE_IMAGE {
 			count++
 		}

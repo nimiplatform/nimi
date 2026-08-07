@@ -75,8 +75,9 @@ func TestUploadArtifactStoresArtifact(t *testing.T) {
 	if !ok {
 		t.Fatal("expected uploaded artifact to be available through runtime artifact store")
 	}
-	if string(record.Bytes) != "wave-bytes" || record.MimeType != "audio/wav" {
-		t.Fatalf("unexpected runtime artifact record: bytes=%q mime=%q", string(record.Bytes), record.MimeType)
+	if string(record.Bytes) != "wave-bytes" || record.MimeType != "audio/wav" || record.Owner == nil ||
+		record.Owner.SubjectUserID != "user-001" || record.Owner.AppID != "nimi.desktop" {
+		t.Fatalf("unexpected runtime artifact record: bytes=%q mime=%q owner=%+v", string(record.Bytes), record.MimeType, record.Owner)
 	}
 }
 

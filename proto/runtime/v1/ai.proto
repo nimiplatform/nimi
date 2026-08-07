@@ -106,6 +106,7 @@ enum VideoContentType {
   VIDEO_CONTENT_TYPE_IMAGE_URL = 2;
   VIDEO_CONTENT_TYPE_VIDEO_URL = 3;
   VIDEO_CONTENT_TYPE_AUDIO_URL = 4;
+  VIDEO_CONTENT_TYPE_ARTIFACT_REF = 5;
 }
 
 enum VideoContentRole {
@@ -771,6 +772,10 @@ message VideoContentAudioURL {
   string url = 1;
 }
 
+message VideoContentArtifactRef {
+  string artifact_id = 1;
+}
+
 message VideoContentItem {
   VideoContentType type = 1;
   VideoContentRole role = 2;
@@ -778,6 +783,7 @@ message VideoContentItem {
   VideoContentImageURL image_url = 4;
   VideoContentVideoURL video_url = 5;
   VideoContentAudioURL audio_url = 6;
+  VideoContentArtifactRef artifact_ref = 7;
 }
 
 message VideoGenerationOptions {

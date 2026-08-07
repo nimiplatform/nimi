@@ -97,6 +97,10 @@ func (s *Service) submitCloudTextScenarioJob(
 }
 
 func (s *Service) executeCloudTextScenarioJob(ctx context.Context, jobID string, effective *cloudTextEffectiveInputs) {
+	if effective == nil || !s.scenarioJobs.startExecution(jobID) {
+		return
+	}
+	defer s.scenarioJobs.finishExecution(jobID)
 	defer effective.release()
 	if _, ok := s.scenarioJobs.transition(
 		jobID,

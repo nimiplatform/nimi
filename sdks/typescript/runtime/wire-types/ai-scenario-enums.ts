@@ -246,6 +246,7 @@ export enum VideoContentType {
   IMAGE_URL = 2,
   VIDEO_URL = 3,
   AUDIO_URL = 4,
+  ARTIFACT_REF = 5,
 }
 
 export enum VideoMode {
