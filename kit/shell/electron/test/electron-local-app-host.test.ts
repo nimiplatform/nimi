@@ -43,6 +43,11 @@ describe('Electron protected local-app host', () => {
       .resolves.toEqual([{ id: 'world-1', visibility: 'private' }]);
     await expect(host.storageReadJson({ relativePath: 'agent-chat/state.json' }))
       .resolves.toEqual({ value: { version: 1 }, sizeBytes: 13 });
+    await expect(host.agentReferenceList()).resolves.toEqual([{
+      agentHandle: 'agent_ref_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
+      displayName: 'Agent One',
+      avatarUrl: null,
+    }]);
     await expect(host.conversationOpen({ agentHandle: 'lash_one' }))
       .resolves.toEqual({ conversationAnchorId: 'anchor-1', activeTurnId: null, activeStreamId: null });
     await expect(host.artifactReadBytes({ artifactId: 'artifact_01J' }))
@@ -52,6 +57,7 @@ describe('Electron protected local-app host', () => {
       'localAppSessionStatus',
       'localAppRealmWorldCoreList',
       'localAppStorageReadJson',
+      'localAppAgentReferenceList',
       'localAppConversationOpen',
       'localAppArtifactReadBytes',
     ]);
@@ -241,6 +247,11 @@ function binding(calls: Array<{ method: string; input?: unknown }>) {
     localAppTextGenerateCandidate: record('localAppTextGenerateCandidate', { text: 'hello', finishReason: 'stop', traceId: 'trace-1' }),
     localAppRealmWorldCoreList: record('localAppRealmWorldCoreList', [{ id: 'world-1', visibility: 'private' }]),
     localAppRealmWorldCoreCreate: record('localAppRealmWorldCoreCreate', { id: 'world-2', visibility: 'private' }),
+    localAppAgentReferenceList: record('localAppAgentReferenceList', [{
+      agentHandle: 'agent_ref_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
+      displayName: 'Agent One',
+      avatarUrl: null,
+    }]),
     localAppStorageReadJson: record('localAppStorageReadJson', { value: { version: 1 }, sizeBytes: 13 }),
     localAppStorageWriteJson: record('localAppStorageWriteJson', { value: { version: 2 }, sizeBytes: 13 }),
     localAppStorageRemoveJson: record('localAppStorageRemoveJson', { removed: false }),

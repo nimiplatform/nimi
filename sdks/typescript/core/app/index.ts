@@ -89,6 +89,8 @@ export type {
   NimiLocalAppConversationSnapshot,
   NimiLocalAppConversationSubscription,
   NimiLocalAppAgentHandle,
+  NimiLocalAppAgentReference,
+  NimiLocalAppAgentReferencesClient,
   NimiLocalAppArtifactBytes,
   NimiLocalAppArtifactPutInput,
   NimiLocalAppArtifactPutResult,

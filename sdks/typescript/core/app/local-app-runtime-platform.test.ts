@@ -40,6 +40,7 @@ function standardShell(operationCalls: string[]): NimiLocalAppStandardShell {
       removeJson: touched('storage.removeJson'),
     },
     realm: { worldCore: { list: touched('realm.worldCore.list'), create: touched('realm.worldCore.create') } },
+    agents: { listReferences: touched('agents.listReferences') },
     conversation: {
       open: touched('conversation.open'),
       send: touched('conversation.send'),
@@ -84,7 +85,7 @@ test('generated local-app session wire projection is posture-only', () => {
 test('local-app client hard-cuts the access workflow namespace', () => {
   const client = createNimiLocalAppClient({ standardShell: standardShell([]) });
   assert.deepEqual(Object.keys(client).sort(), [
-    'agentConfigure', 'ai', 'aiConfig', 'artifacts', 'auth', 'conversation', 'currentUser', 'realm', 'storage',
+    'agentConfigure', 'agents', 'ai', 'aiConfig', 'artifacts', 'auth', 'conversation', 'currentUser', 'realm', 'storage',
   ]);
   assert.equal('permissions' in client, false);
 });
@@ -138,6 +139,35 @@ test('Current User projects exactly three display-safe fields', async () => {
   assert.deepEqual(await client.currentUser.get(), {
     handle: 'halliday', displayName: 'Halliday', avatarUrl: null,
   });
+});
+
+test('Agent reference list projects every item as exactly three display-safe fields', async () => {
+  const base = standardShell([]);
+  const shell: NimiLocalAppStandardShell = {
+    ...base,
+    agents: { listReferences: async () => [
+      { agentHandle: 'agent_ref_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA', displayName: 'Alpha', avatarUrl: null },
+      { agentHandle: 'agent_ref_BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB', displayName: 'Beta', avatarUrl: 'https://cdn.nimi.ai/beta.webp' },
+    ] },
+  };
+  const references = await createNimiLocalAppClient({ standardShell: shell }).agents.listReferences();
+  assert.deepEqual(references.map((reference) => Object.keys(reference).sort()), [
+    ['agentHandle', 'avatarUrl', 'displayName'],
+    ['agentHandle', 'avatarUrl', 'displayName'],
+  ]);
+  assert.equal(JSON.stringify(references).includes('localAgentId'), false);
+
+  for (const malformed of [
+    [{ agentHandle: 'raw-agent-id', displayName: 'Alpha', avatarUrl: null }],
+    [{ agentHandle: 'agent_ref_CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC', displayName: 'Alpha', avatarUrl: 'https://cdn.nimi.ai/a?token=private' }],
+    [{ agentHandle: 'agent_ref_DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD', displayName: 'Alpha', avatarUrl: null, accountId: 'private' }],
+  ]) {
+    const invalid: NimiLocalAppStandardShell = { ...base, agents: { listReferences: async () => malformed } };
+    await assert.rejects(
+      () => createNimiLocalAppClient({ standardShell: invalid }).agents.listReferences(),
+      (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_LOCAL_APP_PROJECTION_INVALID',
+    );
+  }
 });
 
 test('App AIConfig accepts only portable intent and rejects binding material in input or projection', async () => {
@@ -256,6 +286,7 @@ test('canonical protected operations reach typed ingress and preserve owner-unav
     () => client.storage.removeJson('settings.json'),
     () => client.realm.worldCore.list(),
     () => client.realm.worldCore.create({ core: {}, origin: { kind: 'manual' } } as never),
+    () => client.agents.listReferences(),
     () => client.conversation.open({ agentHandle: handle }),
     () => client.conversation.send({ agentHandle: handle, conversationAnchorId: 'anchor', requestId: 'request', text: 'hello', attachments: [] }),
     () => client.conversation.interruptTurn({ agentHandle: handle, conversationAnchorId: 'anchor' }),
@@ -274,6 +305,7 @@ test('canonical protected operations reach typed ingress and preserve owner-unav
     'storage.removeJson',
     'realm.worldCore.list',
     'realm.worldCore.create',
+    'agents.listReferences',
     'conversation.open',
     'conversation.send',
     'conversation.interruptTurn',

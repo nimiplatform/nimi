@@ -623,6 +623,20 @@ message OpenConversationAnchorRequest {
 message OpenConversationAnchorResponse {
   ConversationAnchorSnapshot snapshot = 1;
 }
+
+// Protected Third-party Local Apps receive only this minimal current-account
+// active-Agent catalog. The handle is a session-scoped opaque selector; it is
+// never a raw LocalAgent identity or durable authorization.
+message LocalAppAgentReference {
+  string agent_handle = 1;
+  string display_name = 2;
+  optional string avatar_url = 3;
+}
+message ListLocalAppAgentReferencesRequest {}
+message ListLocalAppAgentReferencesResponse {
+  repeated LocalAppAgentReference references = 1;
+}
+
 message GetConversationAnchorSnapshotRequest {
   AgentRequestContext context = 1;
   string agent_id = 2;
@@ -747,6 +761,7 @@ service RuntimeAgentService {
   rpc TerminateAgent(TerminateAgentRequest) returns (TerminateAgentResponse);
   rpc GetAgent(GetAgentRequest) returns (GetAgentResponse);
   rpc ListAgents(ListAgentsRequest) returns (ListAgentsResponse);
+  rpc ListLocalAppAgentReferences(ListLocalAppAgentReferencesRequest) returns (ListLocalAppAgentReferencesResponse);
   rpc OpenConversationAnchor(OpenConversationAnchorRequest) returns (OpenConversationAnchorResponse);
   rpc GetConversationAnchorSnapshot(GetConversationAnchorSnapshotRequest) returns (GetConversationAnchorSnapshotResponse);
   rpc RegisterAvatarLiveInstanceBinding(RegisterAvatarLiveInstanceBindingRequest) returns (RegisterAvatarLiveInstanceBindingResponse);

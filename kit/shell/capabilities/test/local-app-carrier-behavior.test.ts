@@ -10,6 +10,7 @@ const FINAL_LOCAL_APP_OPERATIONS = [
   'local-app.aiConfigGet',
   'local-app.aiConfigOverwrite',
   'local-app.textGenerateCandidate',
+  'local-app.agentReferenceList',
   'local-app.conversationOpen',
   'local-app.conversationSendTurn',
   'local-app.conversationInterruptTurn',

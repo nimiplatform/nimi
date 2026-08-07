@@ -250,6 +250,8 @@ func (s *Service) AuthorizeLocalAppIngress(ctx context.Context, ingress localapp
 		capability = "realm.world-core.create"
 	case localappop.OperationTextCandidateGenerate:
 		capability = "ai.text.generate"
+	case localappop.OperationAgentReferenceList:
+		capability = "agent.local"
 	default:
 		ownerSupported = false
 	}

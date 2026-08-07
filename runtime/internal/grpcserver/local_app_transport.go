@@ -26,6 +26,7 @@ const (
 	protectedReadLocalAppStorageJSONMethod   = "/nimi.runtime.v1.RuntimeAppService/ReadLocalAppStorageJson"
 	protectedWriteLocalAppStorageJSONMethod  = "/nimi.runtime.v1.RuntimeAppService/WriteLocalAppStorageJson"
 	protectedRemoveLocalAppStorageJSONMethod = "/nimi.runtime.v1.RuntimeAppService/RemoveLocalAppStorageJson"
+	protectedAgentReferenceListMethod        = "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentReferences"
 	protectedOpenConversationMethod          = "/nimi.runtime.v1.RuntimeAgentService/OpenConversationAnchor"
 	protectedSendConversationTurnMethod      = "/nimi.runtime.v1.RuntimeAppService/SendAppMessage"
 	protectedSubscribeConversationMethod     = "/nimi.runtime.v1.RuntimeAppService/SubscribeAppMessages"
@@ -64,6 +65,7 @@ var protectedLocalAppUnaryMethodPolicies = map[string]protectedLocalAppMethodPol
 	protectedReadLocalAppStorageJSONMethod:   localAppSessionMethodPolicy(),
 	protectedWriteLocalAppStorageJSONMethod:  localAppSessionMethodPolicy(),
 	protectedRemoveLocalAppStorageJSONMethod: localAppSessionMethodPolicy(),
+	protectedAgentReferenceListMethod:        localAppSessionMethodPolicy(),
 	protectedOpenConversationMethod:          localAppSessionMethodPolicy(),
 	protectedSendConversationTurnMethod:      localAppSessionMethodPolicy(),
 	protectedConversationSnapshotMethod:      localAppSessionMethodPolicy(),
@@ -279,6 +281,8 @@ func protectedLocalAppUnaryIngress(method string, request any) localappop.Ingres
 		return localappop.IngressAppAIConfigOverwrite
 	case protectedGenerateTextCandidateMethod:
 		return localappop.IngressTextCandidateGenerate
+	case protectedAgentReferenceListMethod:
+		return localappop.IngressAgentReferenceList
 	case protectedInvokeRealmUnaryMethod:
 		realmRequest, ok := request.(*runtimev1.InvokeRealmUnaryRequest)
 		if !ok || realmRequest == nil {
@@ -304,7 +308,8 @@ func protectedLocalAppUnaryIngress(method string, request any) localappop.Ingres
 func protectedLocalAppOwnerEnabled(method string, request any, ingress localappop.Ingress) bool {
 	switch method {
 	case protectedReadLocalAppStorageJSONMethod, protectedWriteLocalAppStorageJSONMethod, protectedRemoveLocalAppStorageJSONMethod,
-		protectedGetAppAIConfigMethod, protectedOverwriteAppAIConfigMethod, protectedGenerateTextCandidateMethod:
+		protectedGetAppAIConfigMethod, protectedOverwriteAppAIConfigMethod, protectedGenerateTextCandidateMethod,
+		protectedAgentReferenceListMethod:
 		return true
 	case protectedInvokeRealmUnaryMethod:
 		realmRequest, ok := request.(*runtimev1.InvokeRealmUnaryRequest)

@@ -288,6 +288,13 @@ pub struct LocalAppWorldCoreCreateRequest {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+pub struct LocalAppAgentReference {
+    pub agent_handle: String,
+    pub display_name: String,
+    pub avatar_url: Option<String>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct LocalAppConversationOpenRequest {
     pub agent_handle: String,
 }
@@ -690,6 +697,16 @@ pub trait NimiLocalAppSession: Send + Sync {
     ) -> Pin<
         Box<
             dyn Future<Output = Result<LocalAppStorageRemoveResult, LocalAppOperationError>>
+                + Send
+                + '_,
+        >,
+    >;
+
+    fn agent_reference_list(
+        &self,
+    ) -> Pin<
+        Box<
+            dyn Future<Output = Result<Vec<LocalAppAgentReference>, LocalAppOperationError>>
                 + Send
                 + '_,
         >,

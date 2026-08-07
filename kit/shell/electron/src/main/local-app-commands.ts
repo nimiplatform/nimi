@@ -43,6 +43,7 @@ const COMMAND_METHODS = new Map<string, RendererLocalAppHostMethod>([
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.textGenerateCandidate'], 'textGenerateCandidate'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.realmWorldCoreList'], 'realmWorldCoreList'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.realmWorldCoreCreate'], 'realmWorldCoreCreate'],
+  [NIMI_STANDARD_SHELL_COMMANDS['local-app.agentReferenceList'], 'agentReferenceList'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.conversationOpen'], 'conversationOpen'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.conversationSendTurn'], 'conversationSendTurn'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.conversationInterruptTurn'], 'conversationInterruptTurn'],
@@ -81,6 +82,7 @@ export async function dispatchElectronLocalAppCommand(input: {
   try {
     if (method === 'sessionStatus') return await input.host.sessionStatus();
     if (method === 'aiConfigGet') return await input.host.aiConfigGet();
+    if (method === 'agentReferenceList') return await input.host.agentReferenceList();
     if (method === 'sharedAgentAIConfigGet') return await input.host.sharedAgentAIConfigGet();
     if (method === 'storageReadJson') return await input.host.storageReadJson(payload);
     if (method === 'storageWriteJson') return await input.host.storageWriteJson(payload);
@@ -126,6 +128,7 @@ function validatePayload(
       assertExactKeys(payload, [], command);
       return {};
     case 'aiConfigGet':
+    case 'agentReferenceList':
       assertExactKeys(payload, [], command);
       return {};
     case 'aiConfigOverwrite':

@@ -51,6 +51,12 @@ export type NimiLocalAppCurrentUserDisplay = {
   readonly avatarUrl: string | null;
 };
 
+export type NimiLocalAppAgentReference = {
+  readonly agentHandle: string;
+  readonly displayName: string;
+  readonly avatarUrl: string | null;
+};
+
 export type NimiLocalAppCurrentUserStatus = {
   readonly state: 'ready' | 'unavailable';
   readonly value: NimiLocalAppCurrentUserDisplay | null;
@@ -190,6 +196,9 @@ export type NimiLocalAppStandardShellSurface = {
       readonly create: (input: unknown) => Promise<JsonObject>;
     };
   };
+  readonly agents: {
+    readonly listReferences: () => Promise<readonly NimiLocalAppAgentReference[]>;
+  };
   readonly agentConfigure: NimiLocalAppAgentConfigureShell;
   readonly conversation: {
     readonly open: (input: {
@@ -232,6 +241,9 @@ export function createNimiLocalAppStandardShellSurface(): NimiLocalAppStandardSh
         list: listNimiLocalAppWorldCores,
         create: createNimiLocalAppWorldCore,
       },
+    },
+    agents: {
+      listReferences: listNimiLocalAppAgentReferences,
     },
     agentConfigure: {
       sharedAgentAIConfigGet: getNimiLocalAppSharedAgentAIConfig,
@@ -375,6 +387,29 @@ export function createNimiLocalAppWorldCore(input: unknown): Promise<JsonObject>
     { payload: record },
     (value) => Object.freeze(parseSafeProjection(value, command)),
   );
+}
+
+export function listNimiLocalAppAgentReferences(): Promise<readonly NimiLocalAppAgentReference[]> {
+  const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.agentReferenceList'];
+  return invokeChecked(command, {}, (value) => {
+    if (!Array.isArray(value)) throw new Error(`${command}: result must be an array`);
+    const seen = new Set<string>();
+    return Object.freeze(value.map((entry) => {
+      const record = assertRecord(entry, `${command}: reference must be an object`);
+      assertProjectionKeys(record, ['agentHandle', 'displayName', 'avatarUrl'], command, 'Agent reference');
+      const agentHandle = requiredText(record.agentHandle, 'agentHandle', command, MAX_IDENTIFIER_LENGTH);
+      const displayName = requiredText(record.displayName, 'displayName', command, 256);
+      if (!/^agent_ref_[A-Za-z0-9_-]{43}$/u.test(agentHandle) || seen.has(agentHandle)) {
+        throw new Error(`${command}: agentHandle is invalid`);
+      }
+      seen.add(agentHandle);
+      const avatarUrl = record.avatarUrl;
+      if (avatarUrl !== null && !safeAgentAvatarUrl(avatarUrl)) {
+        throw new Error(`${command}: avatarUrl is invalid`);
+      }
+      return Object.freeze({ agentHandle, displayName, avatarUrl: avatarUrl as string | null });
+    }));
+  });
 }
 
 export function getNimiLocalAppSharedAgentAIConfig(): Promise<NimiCapabilityAIConfig> {
@@ -852,6 +887,27 @@ function boundedCurrentUserText(value: unknown, field: string, maximum: number, 
     throw new Error(`${command}: Current User ${field} is invalid`);
   }
   return value;
+}
+
+function safeAgentAvatarUrl(value: unknown): value is string {
+  if (typeof value !== 'string' || !value || value.trim() !== value || value.length > 2048) return false;
+  try {
+    const parsed = new URL(value);
+    return parsed.protocol === 'https:'
+      && parsed.username === ''
+      && parsed.password === ''
+      && parsed.search === ''
+      && parsed.hash === ''
+      && (parsed.port === '' || parsed.port === '443')
+      && parsed.hostname !== 'localhost'
+      && !parsed.hostname.endsWith('.localhost')
+      && !parsed.hostname.endsWith('.local')
+      && !parsed.hostname.endsWith('.internal')
+      && !/^(?:\d{1,3}\.){3}\d{1,3}$/u.test(parsed.hostname)
+      && !parsed.hostname.includes(':');
+  } catch {
+    return false;
+  }
 }
 
 function safeCurrentUserAvatarUrl(value: unknown): value is string {

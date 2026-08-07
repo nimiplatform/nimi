@@ -132,6 +132,29 @@ pub async fn local_app_realm_world_core_create(
     .await
 }
 
+#[napi(js_name = "localAppAgentReferenceList")]
+pub async fn local_app_agent_reference_list() -> NativeJsonOutcome {
+    invoke_agent(|session| async move {
+        session.agent_reference_list().await.map(|references| {
+            JsonValue::Array(
+                references
+                    .into_iter()
+                    .map(project_agent_reference)
+                    .collect(),
+            )
+        })
+    })
+    .await
+}
+
+fn project_agent_reference(reference: LocalAppAgentReference) -> JsonValue {
+    json!({
+        "agentHandle": reference.agent_handle,
+        "displayName": reference.display_name,
+        "avatarUrl": reference.avatar_url,
+    })
+}
+
 #[napi(js_name = "localAppSharedAgentAIConfigGet")]
 pub async fn local_app_shared_agent_ai_config_get() -> NativeJsonOutcome {
     invoke_agent(|session| async move { session.shared_agent_ai_config_get().await }).await

@@ -88,6 +88,21 @@ describe('Electron local-app standard-shell operations', () => {
     })).rejects.toMatchObject({ code: 'invalid-payload' });
   });
 
+  it('routes the exact minimal Agent reference catalog', async () => {
+    const ipcMain = new FakeIpcMain();
+    const calls: unknown[] = [];
+    registerBridge(ipcMain, calls);
+    await expect(invokeBridge(ipcMain, createInvokeEvent().event, {
+      command: NIMI_STANDARD_SHELL_COMMANDS['local-app.agentReferenceList'],
+      payload: {},
+    })).resolves.toEqual([{
+      agentHandle: 'agent_ref_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
+      displayName: 'Agent One',
+      avatarUrl: null,
+    }]);
+    expect(calls).toEqual([['agentReferenceList']]);
+  });
+
   it('reaches all five conversation operations but preserves typed failures', async () => {
     const requests = [
       ['local-app.conversationOpen', { agentHandle: 'lash_one' }],
@@ -436,6 +451,14 @@ function localAppHost(calls: unknown[]) {
     storageReadJson: async (input: unknown) => { calls.push(['storageReadJson', input]); return { value: { version: 1 }, sizeBytes: 13 }; },
     storageWriteJson: async (input: unknown) => { calls.push(['storageWriteJson', input]); return { value: { version: 2 }, sizeBytes: 13 }; },
     storageRemoveJson: async (input: unknown) => { calls.push(['storageRemoveJson', input]); return { removed: true }; },
+    agentReferenceList: async () => {
+      calls.push(['agentReferenceList']);
+      return [{
+        agentHandle: 'agent_ref_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
+        displayName: 'Agent One',
+        avatarUrl: null,
+      }];
+    },
     conversationOpen: unavailable('conversationOpen', calls),
     conversationSendTurn: unavailable('conversationSendTurn', calls),
     conversationInterruptTurn: unavailable('conversationInterruptTurn', calls),

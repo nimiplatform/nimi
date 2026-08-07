@@ -11,6 +11,7 @@ const LOCAL_APP_BINDING_METHODS = [
   'localAppTextGenerateCandidate',
   'localAppRealmWorldCoreList',
   'localAppRealmWorldCoreCreate',
+  'localAppAgentReferenceList',
   'localAppStorageReadJson',
   'localAppStorageWriteJson',
   'localAppStorageRemoveJson',
@@ -162,6 +163,7 @@ export type NimiElectronProtectedLocalBinding = {
   readonly localAppTextGenerateCandidate: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppRealmWorldCoreList: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppRealmWorldCoreCreate: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
+  readonly localAppAgentReferenceList: () => Promise<NativeLocalAppOutcome>;
   readonly localAppStorageReadJson: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppStorageWriteJson: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppStorageRemoveJson: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
@@ -192,6 +194,7 @@ export type NimiElectronLocalAppHost = {
   readonly textGenerateCandidate: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly realmWorldCoreList: (input: NimiElectronLocalAppRecord) => Promise<readonly NimiElectronLocalAppRecord[]>;
   readonly realmWorldCoreCreate: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
+  readonly agentReferenceList: () => Promise<readonly NimiElectronLocalAppRecord[]>;
   readonly storageReadJson: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly storageWriteJson: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly storageRemoveJson: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
@@ -369,6 +372,10 @@ class ElectronLocalAppHost implements NimiElectronLocalAppHost {
     return invokeWorldCore(() => this.binding.localAppRealmWorldCoreCreate({ body: input }));
   }
 
+  agentReferenceList(): Promise<readonly NimiElectronLocalAppRecord[]> {
+    return invokeAgentReferenceList(() => this.binding.localAppAgentReferenceList());
+  }
+
   storageReadJson(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
     return invokeStorageDocument(() => this.binding.localAppStorageReadJson(input));
   }
@@ -485,6 +492,10 @@ class LazyElectronLocalAppHost implements NimiElectronLocalAppHost {
 
   realmWorldCoreCreate(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
     return this.resolve().realmWorldCoreCreate(input);
+  }
+
+  agentReferenceList(): Promise<readonly NimiElectronLocalAppRecord[]> {
+    return this.resolve().agentReferenceList();
   }
 
   storageReadJson(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
@@ -746,6 +757,33 @@ async function invokeWorldCoreList(
   return Object.freeze(value.map((entry) => validateWorldCore(entry)));
 }
 
+async function invokeAgentReferenceList(
+  call: () => Promise<NativeLocalAppOutcome>,
+): Promise<readonly NimiElectronLocalAppRecord[]> {
+  const value = await invoke(call);
+  if (!Array.isArray(value)) throw new NimiElectronLocalAppHostError('runtime-service-untrusted', false);
+  return Object.freeze(value.map((entry) => {
+    if (!isPlainRecord(entry) || !hasExactKeys(entry, ['agentHandle', 'displayName', 'avatarUrl'])) {
+      throw new NimiElectronLocalAppHostError('runtime-service-untrusted', false);
+    }
+    validateProjectionValue(entry);
+    if (typeof entry.agentHandle !== 'string'
+      || !/^agent_ref_[A-Za-z0-9_-]{43}$/u.test(entry.agentHandle)
+      || typeof entry.displayName !== 'string'
+      || !entry.displayName
+      || entry.displayName.trim() !== entry.displayName
+      || Buffer.byteLength(entry.displayName, 'utf8') > 256
+      || (entry.avatarUrl !== null && !safeAgentAvatarUrl(entry.avatarUrl))) {
+      throw new NimiElectronLocalAppHostError('runtime-service-untrusted', false);
+    }
+    return Object.freeze({
+      agentHandle: entry.agentHandle,
+      displayName: entry.displayName,
+      avatarUrl: entry.avatarUrl as string | null,
+    }) as NimiElectronLocalAppRecord;
+  }));
+}
+
 async function invokeWorldCore(
   call: () => Promise<NativeLocalAppOutcome>,
 ): Promise<NimiElectronLocalAppRecord> {
@@ -873,6 +911,27 @@ function validateReasonMetadata(value: unknown): Readonly<Record<string, string>
 
 function hasExactKeys(value: Record<string, unknown>, keys: readonly string[]): boolean {
   return JSON.stringify(Object.keys(value).sort()) === JSON.stringify([...keys].sort());
+}
+
+function safeAgentAvatarUrl(value: unknown): value is string {
+  if (typeof value !== 'string' || !value || value.trim() !== value || value.length > 2048) return false;
+  try {
+    const parsed = new URL(value);
+    return parsed.protocol === 'https:'
+      && parsed.username === ''
+      && parsed.password === ''
+      && parsed.search === ''
+      && parsed.hash === ''
+      && (parsed.port === '' || parsed.port === '443')
+      && parsed.hostname !== 'localhost'
+      && !parsed.hostname.endsWith('.localhost')
+      && !parsed.hostname.endsWith('.local')
+      && !parsed.hostname.endsWith('.internal')
+      && !/^(?:\d{1,3}\.){3}\d{1,3}$/u.test(parsed.hostname)
+      && !parsed.hostname.includes(':');
+  } catch {
+    return false;
+  }
 }
 
 function exactText(value: unknown): string {

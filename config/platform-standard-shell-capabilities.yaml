@@ -236,6 +236,7 @@ capability_sets:
       - local-app.aiConfigGet
       - local-app.aiConfigOverwrite
       - local-app.textGenerateCandidate
+      - local-app.agentReferenceList
       - local-app.conversationOpen
       - local-app.conversationSendTurn
       - local-app.conversationInterruptTurn
@@ -417,6 +418,15 @@ local_app_operation_contract:
       effect_boundary: foreground_compute
       typed_failures: [protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, runtime-permission-denied, process-replaced, account-changed, runtime-restarted, invalid-payload, resource-exhausted, host-internal-error]
       owner: runtime_ai_service
+    agentReferenceList:
+      command: local-app.agentReferenceList
+      operation_id: runtime_agent.reference.list
+      request_fields: []
+      response_fields: [agentHandle, displayName, avatarUrl]
+      transport_boundary: unary
+      effect_boundary: read
+      typed_failures: [protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, runtime-permission-denied, process-replaced, account-changed, runtime-restarted, resource-exhausted, host-internal-error]
+      owner: runtime_agent_service
     conversationOpen:
       command: local-app.conversationOpen
       operation_id: runtime_agent.conversation.open
@@ -736,6 +746,9 @@ capabilities:
       - id: realmWorldCoreCreate
         command: nimi.shell.localApp.realmWorldCoreCreate
         negative_states: [protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, runtime-permission-denied, invalid-payload, not-found, resource-exhausted, host-internal-error]
+      - id: agentReferenceList
+        command: nimi.shell.localApp.agentReferenceList
+        negative_states: [protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, runtime-permission-denied, process-replaced, account-changed, runtime-restarted, resource-exhausted, host-internal-error]
       - id: conversationOpen
         command: nimi.shell.localApp.conversationOpen
         negative_states: [protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, process-replaced, account-changed, runtime-restarted, invalid-payload, resource-exhausted, host-internal-error]

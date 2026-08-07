@@ -3,6 +3,7 @@ mod artifact;
 mod configure;
 mod conversation;
 mod realm_world_core;
+mod reference;
 mod shared_agent_ai_config;
 mod storage;
 mod text_candidate;
@@ -26,19 +27,20 @@ use crate::windows_peer_trust::VerifiedRuntimePeer;
 use crate::windows_service_control::open_verified_runtime_channel;
 use crate::{
     LocalAppAIConfigOverwriteRequest, LocalAppAgentCommitPresentationRequest,
-    LocalAppAgentHandleRequest, LocalAppAgentUpdateAutonomyRequest, LocalAppArtifactPutRequest,
-    LocalAppArtifactPutResult, LocalAppArtifactReadRequest, LocalAppArtifactReadResult,
-    LocalAppConversationInterruptRequest, LocalAppConversationInterruptResult,
-    LocalAppConversationOpenRequest, LocalAppConversationOpenResult,
-    LocalAppConversationSendRequest, LocalAppConversationSendResult,
-    LocalAppConversationSnapshotRequest, LocalAppConversationSubscribeRequest,
-    LocalAppConversationSubscriptionReceiver, LocalAppCurrentUserDisplay,
-    LocalAppCurrentUserStatus, LocalAppOperationError, LocalAppReasonCode, LocalAppSessionState,
-    LocalAppSessionStatus, LocalAppSharedAgentAIConfigOverwriteRequest,
-    LocalAppSharedAgentAIProfileRequest, LocalAppStorageDocument, LocalAppStorageReadRequest,
-    LocalAppStorageRemoveRequest, LocalAppStorageRemoveResult, LocalAppStorageWriteRequest,
-    LocalAppTextCandidateRequest, LocalAppTextCandidateResult, LocalAppWorldCoreCreateRequest,
-    LocalAppWorldCoreListRequest, NimiLocalAppCarrier, NimiLocalAppSession,
+    LocalAppAgentHandleRequest, LocalAppAgentReference, LocalAppAgentUpdateAutonomyRequest,
+    LocalAppArtifactPutRequest, LocalAppArtifactPutResult, LocalAppArtifactReadRequest,
+    LocalAppArtifactReadResult, LocalAppConversationInterruptRequest,
+    LocalAppConversationInterruptResult, LocalAppConversationOpenRequest,
+    LocalAppConversationOpenResult, LocalAppConversationSendRequest,
+    LocalAppConversationSendResult, LocalAppConversationSnapshotRequest,
+    LocalAppConversationSubscribeRequest, LocalAppConversationSubscriptionReceiver,
+    LocalAppCurrentUserDisplay, LocalAppCurrentUserStatus, LocalAppOperationError,
+    LocalAppReasonCode, LocalAppSessionState, LocalAppSessionStatus,
+    LocalAppSharedAgentAIConfigOverwriteRequest, LocalAppSharedAgentAIProfileRequest,
+    LocalAppStorageDocument, LocalAppStorageReadRequest, LocalAppStorageRemoveRequest,
+    LocalAppStorageRemoveResult, LocalAppStorageWriteRequest, LocalAppTextCandidateRequest,
+    LocalAppTextCandidateResult, LocalAppWorldCoreCreateRequest, LocalAppWorldCoreListRequest,
+    NimiLocalAppCarrier, NimiLocalAppSession,
 };
 
 #[cfg(target_os = "windows")]
@@ -277,6 +279,21 @@ impl NimiLocalAppSession for PlatformLocalAppSession {
         Box::pin(async move {
             let _operation = self.operation_gate.read().await;
             storage::remove_local_app_storage_json(self.checked_channel()?, request).await
+        })
+    }
+
+    fn agent_reference_list(
+        &self,
+    ) -> Pin<
+        Box<
+            dyn Future<Output = Result<Vec<LocalAppAgentReference>, LocalAppOperationError>>
+                + Send
+                + '_,
+        >,
+    > {
+        Box::pin(async move {
+            let _operation = self.operation_gate.read().await;
+            reference::list(self.checked_channel()?).await
         })
     }
 

@@ -6,6 +6,11 @@ import {
   type NimiLocalAppAIConfigShell,
 } from './local-app-runtime-platform-ai-config.js';
 import {
+  createNimiLocalAppAgentReferencesClient,
+  type NimiLocalAppAgentReferencesClient,
+  type NimiLocalAppAgentReferencesShell,
+} from './local-app-runtime-platform-agent-references.js';
+import {
   createUnavailableNimiLocalAppAgentConfigureClient,
   type NimiLocalAppAgentConfigureClient,
   type NimiLocalAppAgentConfigureShell,
@@ -50,6 +55,11 @@ export type {
   NimiLocalAppAIConfigClient,
   NimiLocalAppAIConfigShell,
 } from './local-app-runtime-platform-ai-config.js';
+export type {
+  NimiLocalAppAgentReference,
+  NimiLocalAppAgentReferencesClient,
+  NimiLocalAppAgentReferencesShell,
+} from './local-app-runtime-platform-agent-references.js';
 export type {
   NimiLocalAppConversationAttachment,
   NimiLocalAppConversationEvent,
@@ -161,6 +171,7 @@ export type NimiLocalAppStandardShell = {
       readonly create: (input: unknown) => Promise<unknown>;
     };
   };
+  readonly agents: NimiLocalAppAgentReferencesShell;
   readonly conversation: NimiLocalAppConversationShell;
   readonly agentConfigure: NimiLocalAppAgentConfigureShell;
   readonly artifacts: NimiLocalAppArtifactsShell;
@@ -203,6 +214,7 @@ export type NimiLocalAppClient = {
       ) => Promise<RealmModel<'WorldCoreDto'>>;
     };
   };
+  readonly agents: NimiLocalAppAgentReferencesClient;
   readonly agentConfigure: NimiLocalAppAgentConfigureClient;
   readonly artifacts: NimiLocalAppArtifactsClient;
   readonly conversation: {
@@ -219,7 +231,7 @@ export function createNimiLocalAppClient(
 ): NimiLocalAppClient {
   assertExactKeys(input, ['standardShell'], 'SDK local-app client input');
   const standardShell = input.standardShell;
-  const expectedNamespaces = ['session', 'ai', 'aiConfig', 'storage', 'realm', 'conversation', 'agentConfigure', 'artifacts'] as const;
+  const expectedNamespaces = ['session', 'ai', 'aiConfig', 'storage', 'realm', 'agents', 'conversation', 'agentConfigure', 'artifacts'] as const;
   if (!asRecord(standardShell)
     || Object.keys(standardShell).sort().join('|') !== [...expectedNamespaces].sort().join('|')) {
     return localAppError(
@@ -249,6 +261,7 @@ export function createNimiLocalAppClient(
     );
   }
   assertExactMethodNamespace(realm.worldCore, ['list', 'create'], 'realm.worldCore');
+  assertExactMethodNamespace(standardShell.agents, ['listReferences'], 'agents');
   assertExactMethodNamespace(standardShell.conversation, ['open', 'send', 'interruptTurn', 'subscribe', 'snapshot'], 'conversation');
   assertExactMethodNamespace(standardShell.artifacts, ['put', 'readBytes'], 'artifacts');
 
@@ -264,6 +277,7 @@ export function createNimiLocalAppClient(
     aiConfig: createNimiLocalAppAIConfigClient(standardShell.aiConfig),
     storage: createNimiAppRuntimeStorageClient(standardShell.storage),
     realm: Object.freeze({ worldCore: createWorldCoreClient(standardShell.realm.worldCore) }),
+    agents: createNimiLocalAppAgentReferencesClient(standardShell.agents),
     agentConfigure: createUnavailableNimiLocalAppAgentConfigureClient(),
     artifacts: Object.freeze({ putArtifact: unavailable, readArtifactBytes: unavailable }),
     conversation: createNimiLocalAppConversationClient(standardShell.conversation),

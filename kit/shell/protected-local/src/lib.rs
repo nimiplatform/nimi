@@ -78,9 +78,9 @@ pub use bundled_avatar::{
 };
 pub use carrier::{
     DesktopControlFuture, LocalAppAIConfigOverwriteRequest, LocalAppAgentCommitPresentationRequest,
-    LocalAppAgentHandleRequest, LocalAppAgentUpdateAutonomyRequest, LocalAppArtifactPutRequest,
-    LocalAppArtifactPutResult, LocalAppArtifactReadRequest, LocalAppArtifactReadResult,
-    LocalAppConversationEvent, LocalAppConversationInterruptRequest,
+    LocalAppAgentHandleRequest, LocalAppAgentReference, LocalAppAgentUpdateAutonomyRequest,
+    LocalAppArtifactPutRequest, LocalAppArtifactPutResult, LocalAppArtifactReadRequest,
+    LocalAppArtifactReadResult, LocalAppConversationEvent, LocalAppConversationInterruptRequest,
     LocalAppConversationInterruptResult, LocalAppConversationOpenRequest,
     LocalAppConversationOpenResult, LocalAppConversationSendRequest,
     LocalAppConversationSendResult, LocalAppConversationSnapshotRequest,

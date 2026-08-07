@@ -91,10 +91,34 @@ describe('renderer local-app standard-shell surface', () => {
     });
   });
 
+  it('projects the exact minimal Agent reference catalog', async () => {
+    const invocations: Array<{ command: string; payload: unknown }> = [];
+    (globalThis as { __NIMI_ELECTRON_TEST__?: unknown }).__NIMI_ELECTRON_TEST__ = {
+      invoke: async (command: string, payload: unknown) => {
+        invocations.push({ command, payload });
+        return [{
+          agentHandle: 'agent_ref_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
+          displayName: 'Agent One',
+          avatarUrl: null,
+        }];
+      },
+      listen: () => () => {},
+    };
+    await expect(createNimiLocalAppStandardShellSurface().agents.listReferences()).resolves.toEqual([{
+      agentHandle: 'agent_ref_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
+      displayName: 'Agent One',
+      avatarUrl: null,
+    }]);
+    expect(invocations).toEqual([{
+      command: 'nimi.shell.localApp.agentReferenceList',
+      payload: {},
+    }]);
+  });
+
   it('physically omits the retired access-workflow namespace', () => {
     const surface = createNimiLocalAppStandardShellSurface() as unknown as Record<string, unknown>;
     expect(Object.keys(surface).sort()).toEqual([
-      'session', 'ai', 'aiConfig', 'storage', 'realm', 'conversation', 'agentConfigure', 'artifacts',
+      'session', 'ai', 'aiConfig', 'storage', 'realm', 'agents', 'conversation', 'agentConfigure', 'artifacts',
     ].sort());
   });
 

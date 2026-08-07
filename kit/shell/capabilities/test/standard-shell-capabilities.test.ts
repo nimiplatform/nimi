@@ -171,6 +171,7 @@ describe('standard shell capabilities', () => {
       'local-app.aiConfigGet',
       'local-app.aiConfigOverwrite',
       'local-app.textGenerateCandidate',
+      'local-app.agentReferenceList',
       'local-app.conversationOpen',
       'local-app.conversationSendTurn',
       'local-app.conversationInterruptTurn',

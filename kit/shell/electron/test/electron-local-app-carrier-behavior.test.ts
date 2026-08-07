@@ -17,6 +17,7 @@ const FINAL_LOCAL_APP_COMMANDS = [
   'nimi.shell.localApp.aiConfigGet',
   'nimi.shell.localApp.aiConfigOverwrite',
   'nimi.shell.localApp.textGenerateCandidate',
+  'nimi.shell.localApp.agentReferenceList',
   'nimi.shell.localApp.conversationOpen',
   'nimi.shell.localApp.conversationSendTurn',
   'nimi.shell.localApp.conversationInterruptTurn',
