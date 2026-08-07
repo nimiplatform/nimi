@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { spawn, spawnSync } from 'node:child_process';
 import { createRequire } from 'node:module';
-import { existsSync, mkdirSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
@@ -22,6 +22,19 @@ const currentDir = path.dirname(fileURLToPath(import.meta.url));
 const appRoot = path.resolve(currentDir, '..');
 const avatarRoot = path.resolve(appRoot, '../avatar');
 const workspaceRoot = path.resolve(appRoot, '../..');
+const macOSSourceLocalDevelopmentRuntime = path.join(workspaceRoot, '.nimi', 'local', 'imp3', 'runtime-local-development', 'nimi-runtime');
+const macOSSourceLocalDevelopmentNativeEntry = path.join(
+  workspaceRoot,
+  'kit',
+  'shell',
+  'protected-local-node',
+  'npm',
+  'darwin-arm64',
+  'index.cjs',
+);
+const macOSSourceLocalDevelopmentRealmUrl = process.platform === 'darwin'
+  ? resolveMacOSSourceLocalDevelopmentRealmUrl(workspaceRoot)
+  : '';
 const rendererUrl = process.env.NIMI_DESKTOP_ELECTRON_RENDERER_URL || 'http://127.0.0.1:1420';
 const bundledAvatarRendererUrl = process.env.NIMI_DESKTOP_ELECTRON_BUNDLED_AVATAR_RENDERER_URL
   || 'http://127.0.0.1:1427';
@@ -114,6 +127,8 @@ async function runWindowsDesktopDev() {
 
 async function runMacOSDesktopDev() {
   try {
+    process.env.NIMI_MACOS_SOURCE_LOCAL_DEVELOPMENT = '1';
+    buildMacOSSourceLocalDevelopmentRuntime();
     await buildElectronHostForDesktopDev();
     const electronBin = resolveWorkspaceElectronDevCarrier({
       platform: process.platform,
@@ -130,7 +145,7 @@ async function runMacOSDesktopDev() {
       hostBundle: 'workspace-electron',
       rendererUrl,
       mainIteration: 'workspace_build',
-      protectedRuntime: 'unavailable_without_the_installed_fixed_ad_hoc_candidate',
+      protectedRuntime: 'source-local-development',
     })}\n`);
     spawnRenderer();
     await waitForUrl(rendererUrl, 45_000);
@@ -153,6 +168,11 @@ async function runMacOSDesktopDev() {
         NIMI_DESKTOP_ELECTRON_BUNDLED_AVATAR_INSTANCE_ID:
           process.env.NIMI_DESKTOP_ELECTRON_BUNDLED_AVATAR_INSTANCE_ID || '',
         NIMI_DESKTOP_ELECTRON_STANDARD_LOCAL_ASSET_ROOTS: localAssetRoot,
+        NIMI_MACOS_SOURCE_LOCAL_DEVELOPMENT: '1',
+        NIMI_MACOS_SOURCE_LOCAL_DEVELOPMENT_RUNTIME_EXECUTABLE: macOSSourceLocalDevelopmentRuntime,
+        NIMI_MACOS_SOURCE_LOCAL_DEVELOPMENT_HOST_EXECUTABLE: electronBin,
+        NIMI_MACOS_SOURCE_LOCAL_DEVELOPMENT_NATIVE_ENTRY: macOSSourceLocalDevelopmentNativeEntry,
+        NIMI_REALM_URL: macOSSourceLocalDevelopmentRealmUrl,
       },
     });
     const exitCode = await waitForExit(electron);
@@ -170,6 +190,66 @@ async function runMacOSDesktopDev() {
       message: error instanceof Error ? error.message : String(error || 'Desktop Electron dev failed'),
     })}\n`);
     process.exit(1);
+  }
+}
+
+function resolveMacOSSourceLocalDevelopmentRealmUrl(root) {
+  const fallback = 'http://127.0.0.1:3002';
+  const sourcePath = path.join(root, '.env');
+  let raw = '';
+  if (existsSync(sourcePath)) {
+    const declarations = readFileSync(sourcePath, 'utf8')
+      .split(/\r?\n/u)
+      .map((line) => line.match(/^NIMI_REALM_URL=(.*)$/u))
+      .filter(Boolean);
+    if (declarations.length > 1) {
+      throw Object.assign(new Error('source local development Realm URL is declared more than once'), {
+        reasonCode: 'source-local-development-realm-url-invalid',
+      });
+    }
+    raw = declarations[0]?.[1] ?? '';
+  }
+  if (!raw) return fallback;
+  let parsed;
+  try {
+    parsed = new URL(raw);
+  } catch {
+    throw Object.assign(new Error('source local development Realm URL is invalid'), {
+      reasonCode: 'source-local-development-realm-url-invalid',
+    });
+  }
+  if (parsed.protocol !== 'http:'
+    || !['127.0.0.1', 'localhost'].includes(parsed.hostname)
+    || parsed.port !== '3002'
+    || parsed.username
+    || parsed.password
+    || parsed.pathname !== '/'
+    || parsed.search
+    || parsed.hash) {
+    throw Object.assign(new Error('source local development Realm URL must be local loopback HTTP on port 3002'), {
+      reasonCode: 'source-local-development-realm-url-invalid',
+    });
+  }
+  return fallback;
+}
+
+function buildMacOSSourceLocalDevelopmentRuntime() {
+  const runtimeRoot = path.join(workspaceRoot, 'runtime');
+  mkdirSync(path.dirname(macOSSourceLocalDevelopmentRuntime), { recursive: true, mode: 0o700 });
+  const build = spawnSync('go', [
+    'build',
+    '-tags',
+    'nimi_macos_source_local_development',
+    '-o',
+    macOSSourceLocalDevelopmentRuntime,
+    './cmd/nimi',
+  ], {
+    cwd: runtimeRoot,
+    env: { ...process.env, CGO_ENABLED: '1' },
+    stdio: 'inherit',
+  });
+  if (build.status !== 0) {
+    throw new Error(`source local development Runtime build failed with status ${build.status ?? 'unknown'}`);
   }
 }
 

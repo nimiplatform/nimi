@@ -62,7 +62,14 @@ describe('renderer local-app standard-shell surface', () => {
     (globalThis as { __NIMI_ELECTRON_TEST__?: unknown }).__NIMI_ELECTRON_TEST__ = {
       invoke: async (command: string) => {
         if (command.endsWith('sessionStatus')) {
-          return { state: 'ready', reasonCode: 'action-executed', retryable: false };
+          return {
+            state: 'ready', reasonCode: 'action-executed', retryable: false,
+            currentUser: {
+              state: 'ready',
+              value: { handle: 'halliday', displayName: 'Halliday', avatarUrl: null },
+              reasonCode: 'action-executed', retryable: false,
+            },
+          };
         }
         throw new Error(`unexpected command ${command}`);
       },
@@ -78,6 +85,9 @@ describe('renderer local-app standard-shell surface', () => {
       state: 'session-bound',
       reasonCode: 'action-executed',
       retryable: false,
+    });
+    await expect(client.currentUser.get()).resolves.toEqual({
+      handle: 'halliday', displayName: 'Halliday', avatarUrl: null,
     });
   });
 

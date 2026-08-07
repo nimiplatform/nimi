@@ -1,15 +1,21 @@
-use std::ffi::CString;
+use std::ffi::{CStr, CString};
 use std::os::fd::RawFd;
+use std::path::PathBuf;
 
+#[cfg(not(feature = "macos-source-local-development"))]
 use crate::macos_profile::{
-    LOCAL_APP_SOCKET_PATH, MACOS_TEAM_ID, REQUIRE_AD_HOC, REQUIRE_NOTARIZATION,
-    REQUIRE_TRUSTED_ANCHOR, RUNTIME_EXECUTABLE_PATH, RUNTIME_SIGNING_IDENTIFIER,
-    RUNTIME_SOCKET_PATH,
+    LOCAL_APP_SOCKET_PATH, RUNTIME_EXECUTABLE_PATH, RUNTIME_SIGNING_IDENTIFIER, RUNTIME_SOCKET_PATH,
+};
+use crate::macos_profile::{
+    MACOS_TEAM_ID, REQUIRE_AD_HOC, REQUIRE_NOTARIZATION, REQUIRE_TRUSTED_ANCHOR,
 };
 use crate::{ProtectedCarrierError, ProtectedCarrierReasonCode};
 
+#[cfg(not(feature = "macos-source-local-development"))]
 pub(crate) const MACOS_RUNTIME_SOCKET_PATH: &str = RUNTIME_SOCKET_PATH;
+#[cfg(not(feature = "macos-source-local-development"))]
 pub(crate) const MACOS_RUNTIME_LOCAL_APP_SOCKET_PATH: &str = LOCAL_APP_SOCKET_PATH;
+#[cfg(not(feature = "macos-source-local-development"))]
 pub(crate) const MACOS_RUNTIME_EXECUTABLE_PATH: &str = RUNTIME_EXECUTABLE_PATH;
 unsafe extern "C" {
     fn nimi_macos_verify_runtime_peer(
@@ -22,11 +28,80 @@ unsafe extern "C" {
         require_trusted_anchor: i32,
         require_ad_hoc: i32,
     ) -> i32;
+    fn nimi_macos_verify_per_user_runtime_peer(
+        socket_fd: i32,
+        expected_path: *const libc::c_char,
+    ) -> i32;
 }
 
+#[cfg(not(feature = "macos-source-local-development"))]
+pub(crate) fn runtime_socket_path() -> Result<PathBuf, ProtectedCarrierError> {
+    Ok(PathBuf::from(MACOS_RUNTIME_SOCKET_PATH))
+}
+
+#[cfg(not(feature = "macos-source-local-development"))]
+pub(crate) fn local_app_runtime_socket_path() -> Result<PathBuf, ProtectedCarrierError> {
+    Ok(PathBuf::from(MACOS_RUNTIME_LOCAL_APP_SOCKET_PATH))
+}
+
+#[cfg(feature = "macos-source-local-development")]
+pub(crate) fn runtime_socket_path() -> Result<PathBuf, ProtectedCarrierError> {
+    per_user_runtime_socket("runtime-desktop.sock")
+}
+
+#[cfg(feature = "macos-source-local-development")]
+pub(crate) fn local_app_runtime_socket_path() -> Result<PathBuf, ProtectedCarrierError> {
+    per_user_runtime_socket("runtime-local-app.sock")
+}
+
+#[cfg(feature = "macos-source-local-development")]
+fn per_user_runtime_socket(filename: &str) -> Result<PathBuf, ProtectedCarrierError> {
+    let uid = unsafe { libc::geteuid() };
+    if uid == 0 {
+        return Err(untrusted());
+    }
+    let mut record = std::mem::MaybeUninit::<libc::passwd>::uninit();
+    let mut result = std::ptr::null_mut();
+    let mut buffer = vec![0u8; 16 * 1024];
+    let status = unsafe {
+        libc::getpwuid_r(
+            uid,
+            record.as_mut_ptr(),
+            buffer.as_mut_ptr().cast(),
+            buffer.len(),
+            &mut result,
+        )
+    };
+    if status != 0 || result.is_null() {
+        return Err(untrusted());
+    }
+    let record = unsafe { record.assume_init() };
+    if record.pw_dir.is_null() {
+        return Err(untrusted());
+    }
+    let home = unsafe { CStr::from_ptr(record.pw_dir) }
+        .to_str()
+        .ok()
+        .map(PathBuf::from)
+        .filter(|path| path.is_absolute())
+        .ok_or_else(untrusted)?;
+    let canonical_home = std::fs::canonicalize(&home).map_err(|_| untrusted())?;
+    if canonical_home != home {
+        return Err(untrusted());
+    }
+    Ok(home
+        .join("Library")
+        .join("Application Support")
+        .join("Nimi")
+        .join("RuntimeLocalDevelopment")
+        .join("run")
+        .join(filename))
+}
+
+#[cfg(not(feature = "macos-source-local-development"))]
 pub(crate) fn verify_runtime_peer_once(
     socket_fd: RawFd,
-    socket_path: &'static str,
+    socket_path: &str,
 ) -> Result<(), ProtectedCarrierError> {
     if socket_fd < 0
         || (socket_path != MACOS_RUNTIME_SOCKET_PATH
@@ -52,6 +127,29 @@ pub(crate) fn verify_runtime_peer_once(
             i32::from(policy.require_ad_hoc),
         )
     };
+    if status == 0 {
+        Ok(())
+    } else {
+        Err(untrusted())
+    }
+}
+
+#[cfg(feature = "macos-source-local-development")]
+pub(crate) fn verify_runtime_peer_once(
+    socket_fd: RawFd,
+    socket_path: &str,
+) -> Result<(), ProtectedCarrierError> {
+    let desktop = runtime_socket_path()?;
+    let local_app = local_app_runtime_socket_path()?;
+    if socket_fd < 0 || (socket_path != desktop.as_os_str() && socket_path != local_app.as_os_str())
+    {
+        return Err(untrusted());
+    }
+    use std::os::unix::ffi::OsStrExt;
+    let socket_path =
+        CString::new(std::ffi::OsStr::new(socket_path).as_bytes()).map_err(|_| untrusted())?;
+    let status =
+        unsafe { nimi_macos_verify_per_user_runtime_peer(socket_fd, socket_path.as_ptr()) };
     if status == 0 {
         Ok(())
     } else {

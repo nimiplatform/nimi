@@ -38,6 +38,41 @@ test('packaged macOS Electron resolves only its sealed native carrier resource',
 
 const macOSTest = process.platform === 'darwin' ? test : test.skip;
 
+macOSTest('source macOS D2 requires an explicit default-App carrier path', async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'nimi-electron-native-source-'));
+  try {
+    const canonicalRoot = await realpath(root);
+    const carrier = path.join(
+      canonicalRoot,
+      'kit',
+      'shell',
+      'protected-local-node',
+      'npm',
+      'darwin-arm64',
+    );
+    await mkdir(carrier, { recursive: true });
+    const entry = path.join(carrier, 'index.cjs');
+    await writeFile(entry, 'module.exports = {};\n');
+    await writeFile(path.join(carrier, 'nimi_shell_protected_local.node'), 'fixture');
+    assert.equal(resolveNimiElectronProtectedLocalPackageSpecifier(darwinPackage, {
+      architecture: 'arm64',
+      platform: 'darwin',
+      sourceDefaultApp: true,
+      sourceSourceLocalDevelopment: '1',
+      sourceEntry: entry,
+    }), entry);
+    assert.throws(() => resolveNimiElectronProtectedLocalPackageSpecifier(darwinPackage, {
+      architecture: 'arm64',
+      platform: 'darwin',
+      sourceDefaultApp: false,
+      sourceSourceLocalDevelopment: '1',
+      sourceEntry: entry,
+    }), /protected-carrier-required/u);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
 macOSTest('packaged macOS Electron rejects a replaced native carrier image', async () => {
   const root = await mkdtemp(path.join(os.tmpdir(), 'nimi-electron-native-carrier-link-'));
   try {

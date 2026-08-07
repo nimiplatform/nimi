@@ -3,6 +3,7 @@ package app
 import (
 	"bytes"
 	"context"
+	"errors"
 	"path/filepath"
 	"sync"
 	"testing"
@@ -13,6 +14,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/localappkernel"
 	"github.com/nimiplatform/nimi/runtime/internal/localappop"
 	"github.com/nimiplatform/nimi/runtime/internal/protectedlocal"
+	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
 )
 
 func TestLocalAppSessionInvalidationAndSameHostRebind(t *testing.T) {
@@ -85,6 +87,64 @@ func TestLocalAppSessionInvalidationAndSameHostRebind(t *testing.T) {
 		WithLocalAppSessionRuntime(bytes.NewReader(sessionTestEntropy()), time.Minute),
 	)
 	assertLocalAppReason(t, restarted.AdmitLocalAppIngress(ctx, localappop.IngressStorageJSONRead), runtimev1.ReasonCode_LOCAL_APP_SESSION_REVOKED)
+}
+
+func TestLocalAppSessionCurrentUserProjectionAndFailureIsolation(t *testing.T) {
+	fixture := newLocalAppSessionFixture(t, nil)
+	projection, err := fixture.service.OpenLocalAppSessionProjection(fixture.context)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if projection.CurrentUser == nil || projection.CurrentUser.GetHandle() != "tester" ||
+		projection.CurrentUser.GetDisplayName() != "Tester" || projection.CurrentUser.GetAvatarUrl() != "https://cdn.example/avatar.png" ||
+		projection.CurrentUserReasonCode != runtimev1.ReasonCode_ACTION_EXECUTED {
+		t.Fatalf("Current User projection = %+v", projection)
+	}
+
+	failure := newLocalAppSessionFixture(t, nil)
+	failure.account.currentUserErr = errors.New("owner unavailable")
+	projection, err = failure.service.OpenLocalAppSessionProjection(failure.context)
+	if err != nil {
+		t.Fatalf("display failure must not fail App session: %v", err)
+	}
+	if projection.CurrentUser != nil || projection.CurrentUserReasonCode != runtimev1.ReasonCode_CURRENT_USER_DISPLAY_UNAVAILABLE {
+		t.Fatalf("isolated Current User failure = %+v", projection)
+	}
+	if err := failure.service.AdmitLocalAppIngress(failure.context, localappop.IngressStorageJSONRead); err != nil {
+		t.Fatalf("Base access after Current User failure: %v", err)
+	}
+}
+
+func TestLocalAppSessionOwnerHandoffContainsOnlyRuntimeDerivedAdmission(t *testing.T) {
+	fixture := newLocalAppSessionFixture(t, []string{"realm.data"})
+	if _, err := fixture.service.OpenLocalAppSessionProjection(fixture.context); err != nil {
+		t.Fatal(err)
+	}
+	for ingress, want := range map[localappop.Ingress]struct {
+		operation  accountservice.LocalAppOperation
+		class      localappop.AuthorityClass
+		capability string
+	}{
+		localappop.IngressStorageJSONWrite: {
+			operation: accountservice.LocalAppOperationStorageJSONWrite,
+			class:     localappop.AuthorityClassBase, capability: "app.private_storage",
+		},
+		localappop.IngressRealmWorldCoreList: {
+			operation: accountservice.LocalAppOperationRealmWorldCoreList,
+			class:     localappop.AuthorityClassAppAccess, capability: "realm.world-core.list",
+		},
+	} {
+		authorized, err := fixture.service.AuthorizeLocalAppIngress(fixture.context, ingress)
+		if err != nil {
+			t.Fatalf("authorize %v: %v", ingress, err)
+		}
+		decision, ok := accountservice.AuthorizedLocalAppDecisionFromContext(authorized)
+		if !ok || decision.Operation != want.operation || decision.AuthorityClass != want.class ||
+			decision.OperationCapability != want.capability || decision.RegisteredAppSubject != fixture.registration.RegisteredAppSubject ||
+			decision.AccountID != "account-1" || decision.RegistrationHandle == (protectedlocal.Identifier{}) {
+			t.Fatalf("owner handoff for %v = %+v", ingress, decision)
+		}
+	}
 }
 
 func TestLocalAppSessionSnapshotMissingFailsClosed(t *testing.T) {
@@ -184,17 +244,28 @@ func newLocalAppSessionFixture(t testing.TB, domains []string) localAppSessionFi
 }
 
 type localAppSessionTestAccount struct {
-	mu          sync.Mutex
-	projection  *runtimev1.AccountProjection
-	generation  uint64
-	invalidated chan struct{}
+	mu             sync.Mutex
+	projection     *runtimev1.AccountProjection
+	generation     uint64
+	invalidated    chan struct{}
+	currentUser    accountservice.CurrentUserDisplay
+	currentUserErr error
 }
 
 func newLocalAppSessionTestAccount(accountID, realmID string) *localAppSessionTestAccount {
 	return &localAppSessionTestAccount{
 		projection: &runtimev1.AccountProjection{AccountId: accountID, RealmEnvironmentId: realmID},
 		generation: 1, invalidated: make(chan struct{}),
+		currentUser: accountservice.CurrentUserDisplay{
+			Handle: "tester", DisplayName: "Tester", AvatarURL: localAppSessionTestString("https://cdn.example/avatar.png"),
+		},
 	}
+}
+
+func (account *localAppSessionTestAccount) CurrentUserDisplay(context.Context) (accountservice.CurrentUserDisplay, error) {
+	account.mu.Lock()
+	defer account.mu.Unlock()
+	return account.currentUser, account.currentUserErr
 }
 
 func (account *localAppSessionTestAccount) AuthenticatedRuntimeProjection(context.Context) (*runtimev1.AccountProjection, bool) {
@@ -241,6 +312,8 @@ func (liveness *localAppSessionTestLiveness) Close() error {
 	liveness.once.Do(func() { close(liveness.revoked) })
 	return nil
 }
+
+func localAppSessionTestString(value string) *string { return &value }
 
 func localAppSessionTestIdentifier(value byte) protectedlocal.Identifier {
 	var identifier protectedlocal.Identifier

@@ -39,10 +39,24 @@ const FORBIDDEN_AI_CONFIG_INPUT_KEYS = new Set([
 const LOCAL_APP_STATUS_STATES = new Set([
   'authorizing', 'ready', 'denied', 'runtime-unavailable', 'revoked', 'project-changed',
 ]);
+export type NimiLocalAppCurrentUserDisplay = {
+  readonly handle: string;
+  readonly displayName: string;
+  readonly avatarUrl: string | null;
+};
+
+export type NimiLocalAppCurrentUserStatus = {
+  readonly state: 'ready' | 'unavailable';
+  readonly value: NimiLocalAppCurrentUserDisplay | null;
+  readonly reasonCode: string;
+  readonly retryable: boolean;
+};
+
 export type NimiLocalAppSessionStatus = {
   readonly state: 'authorizing' | 'ready' | 'denied' | 'runtime-unavailable' | 'revoked' | 'project-changed';
   readonly reasonCode: string;
   readonly retryable: boolean;
+  readonly currentUser: NimiLocalAppCurrentUserStatus;
 };
 
 export type NimiLocalAppTextCandidateMessage = {
@@ -784,15 +798,65 @@ function invokeLocalAppRecord(command: string, payload: JsonObject): Promise<Jso
 
 function parseSessionStatus(value: unknown, command: string): NimiLocalAppSessionStatus {
   const record = parseSafeProjection(value, command);
-  if (JSON.stringify(Object.keys(record).sort()) !== JSON.stringify(['reasonCode', 'retryable', 'state'])) {
-    throw new Error(`${command}: result fields must be state, reasonCode, retryable`);
-  }
+  assertProjectionKeys(record, ['state', 'reasonCode', 'retryable', 'currentUser'], command, 'session status');
   const state = parseRequiredString(record.state, 'state', command);
   const reasonCode = parseRequiredString(record.reasonCode, 'reasonCode', command);
   if (!LOCAL_APP_STATUS_STATES.has(state) || typeof record.retryable !== 'boolean') {
     throw new Error(`${command}: session status projection is invalid`);
   }
-  return { state: state as NimiLocalAppSessionStatus['state'], reasonCode, retryable: record.retryable };
+  return {
+    state: state as NimiLocalAppSessionStatus['state'],
+    reasonCode,
+    retryable: record.retryable,
+    currentUser: parseCurrentUserStatus(record.currentUser, command),
+  };
+}
+
+function parseCurrentUserStatus(value: unknown, command: string): NimiLocalAppCurrentUserStatus {
+  const status = assertRecord(value, `${command}: Current User status is invalid`);
+  assertProjectionKeys(status, ['state', 'value', 'reasonCode', 'retryable'], command, 'Current User status');
+  const state = parseRequiredString(status.state, 'currentUser.state', command);
+  const reasonCode = parseRequiredString(status.reasonCode, 'currentUser.reasonCode', command);
+  if (typeof status.retryable !== 'boolean') throw new Error(`${command}: Current User retryable is invalid`);
+  if (state === 'unavailable' && status.value === null && reasonCode === 'current-user-display-unavailable') {
+    return { state, value: null, reasonCode, retryable: status.retryable };
+  }
+  if (state !== 'ready' || reasonCode !== 'action-executed' || status.retryable) {
+    throw new Error(`${command}: Current User status posture is invalid`);
+  }
+  const display = assertRecord(status.value, `${command}: Current User display is invalid`);
+  assertProjectionKeys(display, ['handle', 'displayName', 'avatarUrl'], command, 'Current User display');
+  const handle = boundedCurrentUserText(display.handle, 'handle', 160, command);
+  const displayName = boundedCurrentUserText(display.displayName, 'displayName', 256, command);
+  if (display.avatarUrl !== null && !safeCurrentUserAvatarUrl(display.avatarUrl)) {
+    throw new Error(`${command}: Current User avatarUrl is invalid`);
+  }
+  return {
+    state,
+    value: { handle, displayName, avatarUrl: display.avatarUrl as string | null },
+    reasonCode,
+    retryable: false,
+  };
+}
+
+function boundedCurrentUserText(value: unknown, field: string, maximum: number, command: string): string {
+  if (typeof value !== 'string' || !value || value.trim() !== value
+    || new TextEncoder().encode(value).byteLength > maximum || /[\u0000-\u001f\u007f]/u.test(value)) {
+    throw new Error(`${command}: Current User ${field} is invalid`);
+  }
+  return value;
+}
+
+function safeCurrentUserAvatarUrl(value: unknown): value is string {
+  if (typeof value !== 'string' || !value || value.trim() !== value || value.length > 2048) return false;
+  try {
+    const parsed = new URL(value);
+    if (parsed.username || parsed.password || parsed.search || parsed.hash) return false;
+    if (parsed.protocol === 'https:') return !parsed.port || parsed.port === '443';
+    return parsed.protocol === 'http:' && parsed.hostname === '127.0.0.1' && parsed.port === '3002';
+  } catch {
+    return false;
+  }
 }
 
 function parseTextCandidate(value: unknown, command: string): NimiLocalAppTextCandidateResult {

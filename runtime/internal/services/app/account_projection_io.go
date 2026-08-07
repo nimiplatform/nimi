@@ -10,10 +10,15 @@ import (
 	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
 )
 
 type runtimeAccountProjectionProvider interface {
 	AuthenticatedRuntimeProjection(context.Context) (*runtimev1.AccountProjection, bool)
+}
+
+type runtimeCurrentUserDisplayProvider interface {
+	CurrentUserDisplay(context.Context) (accountservice.CurrentUserDisplay, error)
 }
 
 func defaultNimiDir() (string, error) {

@@ -140,6 +140,15 @@ func (s *Service) deriveWorkspaceBindingResolverCaller(caller *runtimev1.Account
 func normalizeMaterial(material AccountMaterial) AccountMaterial {
 	material.AccountID = strings.TrimSpace(material.AccountID)
 	material.DisplayName = strings.TrimSpace(material.DisplayName)
+	material.CurrentUserHandle = strings.TrimSpace(material.CurrentUserHandle)
+	if material.CurrentUserAvatarURL != nil {
+		avatarURL := strings.TrimSpace(*material.CurrentUserAvatarURL)
+		if avatarURL == "" {
+			material.CurrentUserAvatarURL = nil
+		} else {
+			material.CurrentUserAvatarURL = &avatarURL
+		}
+	}
 	material.RealmEnvironmentID = strings.TrimSpace(material.RealmEnvironmentID)
 	material.RealmOrigin = strings.TrimRight(strings.TrimSpace(material.RealmOrigin), "/")
 	material.WorkspaceMemberships = normalizeWorkspaceMemberships(material.WorkspaceMemberships)

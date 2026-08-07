@@ -1,4 +1,4 @@
-//go:build darwin && cgo
+//go:build darwin && cgo && !nimi_macos_source_local_development
 
 package protectedlocal
 
@@ -101,7 +101,7 @@ func verifyConnectedMacOSDesktop(audit macOSAuditIdentity) (DesktopPeerIdentity,
 	return DesktopPeerIdentity{OS: OSMacOS, PID: audit.pid, UID: audit.euid, AuditSession: audit.auditSession}, nil
 }
 
-func verifyConnectedMacOSLocalApp(audit macOSAuditIdentity, desktopPID uint32) (DirectLocalAppPeer, error) {
+func verifyConnectedMacOSLocalApp(audit macOSAuditIdentity, launch DirectLocalAppLaunch) (DirectLocalAppPeer, error) {
 	snapshot, err := inspectMacOSProcess(audit.pid)
 	if err != nil {
 		return DirectLocalAppPeer{}, err
@@ -110,8 +110,15 @@ func verifyConnectedMacOSLocalApp(audit macOSAuditIdentity, desktopPID uint32) (
 	if err != nil {
 		return DirectLocalAppPeer{}, err
 	}
-	if _, err := verifyMacOSProcessIdentity(snapshot, &audit, hostPolicy, MacOSLocalAppHostPath, desktopPID, false); err != nil {
+	if _, err := verifyMacOSProcessIdentity(snapshot, &audit, hostPolicy, MacOSLocalAppHostPath, launch.DesktopPID, false); err != nil {
 		return DirectLocalAppPeer{}, err
+	}
+	witness := DirectLocalAppProcessWitness{
+		PID: snapshot.pid, ParentPID: snapshot.parentPID, UID: snapshot.euid,
+		StartSeconds: snapshot.startSeconds, StartMicros: snapshot.startMicros, ExecutablePath: snapshot.executablePath,
+	}
+	if launch.Process != witness {
+		return DirectLocalAppPeer{}, fmt.Errorf("local App peer process-start witness mismatch")
 	}
 	return DirectLocalAppPeer{OS: OSMacOS, PID: audit.pid, UID: audit.euid}, nil
 }

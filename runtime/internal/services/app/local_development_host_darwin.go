@@ -1,4 +1,4 @@
-//go:build darwin
+//go:build darwin && !nimi_macos_source_local_development
 
 package app
 

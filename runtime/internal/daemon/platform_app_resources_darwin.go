@@ -1,4 +1,4 @@
-//go:build darwin
+//go:build darwin && !nimi_macos_source_local_development
 
 package daemon
 
@@ -8,9 +8,16 @@ import (
 	"path/filepath"
 	"strings"
 	"syscall"
+
+	"github.com/nimiplatform/nimi/runtime/internal/grpcserver"
+	"github.com/nimiplatform/nimi/runtime/internal/localappkernel"
 )
 
 const macOSNimiBundleRoot = "/Applications/Nimi.app"
+
+func protectedProductControlRoot(_ string, identity localappkernel.VerifiedLocalOSUserIdentity) (string, error) {
+	return grpcserver.ResolveProtectedProductControlRoot(identity)
+}
 
 func protectedPlatformAppResourceBindings() (string, string, error) {
 	resourcesRoot := filepath.Join(macOSNimiBundleRoot, "Contents", "Resources")

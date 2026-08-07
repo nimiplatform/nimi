@@ -727,6 +727,14 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "ReadLocalAppStorageJsonResponse"
   },
   {
+    "methodId": "/nimi.runtime.v1.RuntimeAppService/RebindLocalAppProcess",
+    "service": "RuntimeAppService",
+    "method": "RebindLocalAppProcess",
+    "kind": "unary",
+    "requestType": "RebindLocalAppProcessRequest",
+    "responseType": "RebindLocalAppProcessResponse"
+  },
+  {
     "methodId": "/nimi.runtime.v1.RuntimeAppService/RemoveLocalAppStorageJson",
     "service": "RuntimeAppService",
     "method": "RemoveLocalAppStorageJson",

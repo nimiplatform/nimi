@@ -72,7 +72,9 @@ func (s *Service) InvokeRealmUnary(ctx context.Context, req *runtimev1.InvokeRea
 		return realmUnaryFailure(runtimev1.ReasonCode_APP_SCOPE_FORBIDDEN, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BROKER_OPERATION_NOT_ADMITTED, "realm method is not admitted for Runtime mediation", 0), nil
 	}
 	caller := req.GetCaller()
+	localAppOperation := LocalAppOperation(0)
 	if localAppDecision, protectedLocalApp := AuthorizedLocalAppDecisionFromContext(ctx); protectedLocalApp {
+		localAppOperation = localAppDecision.Operation
 		expectedMethodID, admitted := localAppRealmMethodID(localAppDecision.Operation)
 		if !admitted || methodID != expectedMethodID || !operation.admitsProtectedLocalAppCaller() {
 			return realmUnaryFailure(runtimev1.ReasonCode_APP_SCOPE_FORBIDDEN, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BROKER_OPERATION_NOT_ADMITTED, "realm method is not admitted for this protected Local App operation", 0), nil
@@ -158,7 +160,11 @@ func (s *Service) InvokeRealmUnary(ctx context.Context, req *runtimev1.InvokeRea
 			return realmUnaryFailure(runtimev1.ReasonCode_AUTH_TOKEN_INVALID, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BROKER_AUTH_INVALID, "Realm rejected the refreshed account session", result.status), nil
 		}
 	}
-	return projectRealmUnaryHTTPResult(result), nil
+	projected := projectRealmUnaryHTTPResult(result)
+	if localAppOperation == LocalAppOperationRealmWorldCoreList && projected.GetAccepted() {
+		return projectLocalAppWorldCoreListResponse(projected), nil
+	}
+	return projected, nil
 }
 
 func localAppRealmMethodID(operation LocalAppOperation) (string, bool) {

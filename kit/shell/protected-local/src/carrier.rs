@@ -69,6 +69,7 @@ pub enum LocalAppReasonCode {
     AccessDenied,
     OperationUnsupported,
     OwnerUnavailable,
+    CurrentUserDisplayUnavailable,
     OperationUnavailable,
     InvalidPayload,
     InvalidPath,
@@ -125,6 +126,7 @@ impl LocalAppReasonCode {
             Self::AccessDenied => "local-app-access-denied",
             Self::OperationUnsupported => "local-app-operation-unsupported",
             Self::OwnerUnavailable => "local-app-owner-unavailable",
+            Self::CurrentUserDisplayUnavailable => "current-user-display-unavailable",
             Self::OperationUnavailable => "local-app-operation-unavailable",
             Self::InvalidPayload => "invalid-payload",
             Self::InvalidPath => "invalid-path",
@@ -190,10 +192,25 @@ impl LocalAppSessionState {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub struct LocalAppCurrentUserDisplay {
+    pub handle: String,
+    pub display_name: String,
+    pub avatar_url: Option<String>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct LocalAppCurrentUserStatus {
+    pub value: Option<LocalAppCurrentUserDisplay>,
+    pub reason_code: LocalAppReasonCode,
+    pub retryable: bool,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct LocalAppSessionStatus {
     pub state: LocalAppSessionState,
     pub reason_code: LocalAppReasonCode,
     pub retryable: bool,
+    pub current_user: LocalAppCurrentUserStatus,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]

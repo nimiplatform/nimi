@@ -1,6 +1,6 @@
 import type { BrowserDataUrlAttachment } from '@nimiplatform/kit/features/chat/headless';
 import { getRuntimePlatformProjection } from '../shell/auth/runtime-platform.js';
-import { testerLocalAppClient } from '../shell/local-app-runtime-platform.js';
+import { getTesterLocalAppClient } from '../shell/local-app-runtime-platform.js';
 import { getTesterCapability, type TesterCapabilityId } from './tester-capabilities.js';
 import { capabilityUnavailable, type TesterUnavailable } from './tester-unavailable.js';
 
@@ -81,7 +81,7 @@ export async function runTesterCapability(input: TesterCapabilityRunInput): Prom
     }
 
     try {
-      const result = await testerLocalAppClient.ai.text.generateCandidate({
+      const result = await getTesterLocalAppClient().ai.text.generateCandidate({
         messages: [{ role: 'user', text: prompt }],
         temperature: 0.7,
         topP: 0.9,

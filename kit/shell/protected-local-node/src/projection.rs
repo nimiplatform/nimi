@@ -1,10 +1,25 @@
 use super::*;
 
 pub(super) fn project_session_status(status: LocalAppSessionStatus) -> JsonValue {
+    let current_user_state = if status.current_user.value.is_some() {
+        "ready"
+    } else {
+        "unavailable"
+    };
     json!({
         "state": status.state.as_str(),
         "reasonCode": status.reason_code.as_str(),
         "retryable": status.retryable,
+        "currentUser": {
+            "state": current_user_state,
+            "value": status.current_user.value.map(|value| json!({
+                "handle": value.handle,
+                "displayName": value.display_name,
+                "avatarUrl": value.avatar_url,
+            })),
+            "reasonCode": status.current_user.reason_code.as_str(),
+            "retryable": status.current_user.retryable,
+        },
     })
 }
 
@@ -303,6 +318,7 @@ fn project_reason_metadata(
 mod tests {
     use super::*;
     use nimi_shell_protected_local::LocalAppSessionState;
+    use nimi_shell_protected_local::{LocalAppCurrentUserDisplay, LocalAppCurrentUserStatus};
 
     #[test]
     pub(super) fn errors_project_only_admitted_reason_and_retryability() {
@@ -342,6 +358,15 @@ mod tests {
             state: LocalAppSessionState::Ready,
             reason_code: LocalAppReasonCode::ActionExecuted,
             retryable: false,
+            current_user: LocalAppCurrentUserStatus {
+                value: Some(LocalAppCurrentUserDisplay {
+                    handle: "tester".to_string(),
+                    display_name: "Tester".to_string(),
+                    avatar_url: None,
+                }),
+                reason_code: LocalAppReasonCode::ActionExecuted,
+                retryable: false,
+            },
         });
         assert_eq!(
             value,
@@ -349,6 +374,12 @@ mod tests {
                 "state": "ready",
                 "reasonCode": "action-executed",
                 "retryable": false,
+                "currentUser": {
+                    "state": "ready",
+                    "value": { "handle": "tester", "displayName": "Tester", "avatarUrl": null },
+                    "reasonCode": "action-executed",
+                    "retryable": false,
+                },
             })
         );
     }

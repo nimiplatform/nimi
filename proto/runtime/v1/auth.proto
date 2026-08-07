@@ -105,13 +105,22 @@ enum LocalAppTrustClass {
 message OpenLocalAppSessionRequest {
 }
 
-// Deliberately posture-only. Subject, account, snapshot, generation, session
-// material, credential, and peer proof remain Runtime-private.
+message CurrentUserDisplayProjection {
+  string handle = 1;
+  string display_name = 2;
+  optional string avatar_url = 3;
+}
+
+// Session posture stays non-authoritative. The optional Current User display
+// value contains exactly the three display-safe fields; its independent reason
+// cannot fail or downgrade the private App Access session.
 message OpenLocalAppSessionResponse {
   LocalAppSessionState state = 1;
   reserved 2, 3, 4;
   reserved "trust_class", "account_generation", "runtime_boot_epoch";
   ReasonCode reason_code = 5;
+  CurrentUserDisplayProjection current_user = 6;
+  ReasonCode current_user_reason_code = 7;
 }
 
 // Request-empty by design. Runtime accepts renewal only on the same verified

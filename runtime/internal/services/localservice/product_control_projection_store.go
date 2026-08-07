@@ -926,6 +926,9 @@ func (s *Service) SetProductControlDataRootSecurityBinding(binding ProductContro
 	if sidBound && uidBound {
 		return errors.New("Product Control data-root security binding cannot mix SID and UID identities")
 	}
+	if binding.PerUserRuntime && (sidBound || !uidBound || binding.InteractiveUserUID != binding.RuntimeServiceUID) {
+		return errors.New("per-user Product Control security binding requires one shared current-user UID")
+	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if s.productControlRootLocked {

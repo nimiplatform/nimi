@@ -71,6 +71,7 @@ export type {
   NimiAppAuthProjection,
   NimiAppAuthUnavailable,
   NimiAppLocalSessionProjection,
+  NimiCurrentUserDisplay,
   NimiLocalAppClient,
   NimiLocalAppClientInput,
   NimiLocalAppAIConfigClient,

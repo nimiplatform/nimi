@@ -23,7 +23,13 @@ function standardShell(operationCalls: string[]): NimiLocalAppStandardShell {
   return {
     session: {
       async status() {
-        return { state: 'runtime-unavailable', reasonCode: 'LOCAL_APP_OPERATION_UNAVAILABLE', retryable: true };
+        return {
+          state: 'runtime-unavailable', reasonCode: 'LOCAL_APP_OPERATION_UNAVAILABLE', retryable: true,
+          currentUser: {
+            state: 'unavailable', value: null,
+            reasonCode: 'current-user-display-unavailable', retryable: true,
+          },
+        };
       },
     },
     ai: { text: { generateCandidate: touched('ai.text.generateCandidate') } },
@@ -66,7 +72,9 @@ function isTypedOwnerUnavailable(error: unknown): boolean {
 test('generated local-app session wire projection is posture-only', () => {
   assert.deepEqual(Object.keys(OpenLocalAppSessionRequest.create()), []);
   assert.deepEqual(Object.keys(RenewLocalAppSessionRequest.create()), []);
-  assert.deepEqual(Object.keys(OpenLocalAppSessionResponse.create()).sort(), ['reasonCode', 'state']);
+  assert.deepEqual(Object.keys(OpenLocalAppSessionResponse.create()).sort(), [
+    'currentUserReasonCode', 'reasonCode', 'state',
+  ]);
   const projectionSource = JSON.stringify(OpenLocalAppSessionResponse.create()).toLowerCase();
   for (const forbidden of ['subject', 'account', 'snapshot', 'generation', 'credential', 'peerproof']) {
     assert.equal(projectionSource.includes(forbidden), false);
@@ -76,7 +84,7 @@ test('generated local-app session wire projection is posture-only', () => {
 test('local-app client hard-cuts the access workflow namespace', () => {
   const client = createNimiLocalAppClient({ standardShell: standardShell([]) });
   assert.deepEqual(Object.keys(client).sort(), [
-    'agentConfigure', 'ai', 'aiConfig', 'artifacts', 'auth', 'conversation', 'realm', 'storage',
+    'agentConfigure', 'ai', 'aiConfig', 'artifacts', 'auth', 'conversation', 'currentUser', 'realm', 'storage',
   ]);
   assert.equal('permissions' in client, false);
 });
@@ -91,6 +99,78 @@ test('local-app auth remains a separate availability projection', async () => {
     actionHint: 'start_fixed_runtime_service',
     retryable: true,
   });
+});
+
+test('Current User failure is isolated from the ready App session', async () => {
+  const base = standardShell([]);
+  const shell: NimiLocalAppStandardShell = {
+    ...base,
+    session: { status: async () => ({
+      state: 'ready', reasonCode: 'action-executed', retryable: false,
+      currentUser: {
+        state: 'unavailable', value: null,
+        reasonCode: 'current-user-display-unavailable', retryable: true,
+      },
+    }) },
+  };
+  const client = createNimiLocalAppClient({ standardShell: shell });
+  assert.equal((await client.auth.status()).state, 'session-bound');
+  await assert.rejects(
+    () => client.currentUser.get(),
+    (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_LOCAL_APP_CURRENT_USER_UNAVAILABLE',
+  );
+});
+
+test('Current User projects exactly three display-safe fields', async () => {
+  const base = standardShell([]);
+  const shell: NimiLocalAppStandardShell = {
+    ...base,
+    session: { status: async () => ({
+      state: 'ready', reasonCode: 'action-executed', retryable: false,
+      currentUser: {
+        state: 'ready',
+        value: { handle: 'halliday', displayName: 'Halliday', avatarUrl: null },
+        reasonCode: 'action-executed', retryable: false,
+      },
+    }) },
+  };
+  const client = createNimiLocalAppClient({ standardShell: shell });
+  assert.deepEqual(await client.currentUser.get(), {
+    handle: 'halliday', displayName: 'Halliday', avatarUrl: null,
+  });
+});
+
+test('WorldCore list accepts the exact owner DTO and rejects raw or credential-adjacent projections', async () => {
+  const world = {
+    id: 'world-1', schemaVersion: '1', contentRevision: 1, contentHash: 'hash',
+    origin: { kind: 'manual' }, visibility: 'private',
+    core: {
+      identity: {}, presentation: {}, ontology: {}, timeModel: {}, timeline: {},
+      entities: [], relationships: [], systems: [], scenes: [], assets: {}, authoring: {},
+    },
+    createdAt: '2026-08-06T00:00:00Z', updatedAt: '2026-08-06T00:00:00Z',
+  };
+  const base = standardShell([]);
+  const exact: NimiLocalAppStandardShell = {
+    ...base,
+    realm: { worldCore: { ...base.realm.worldCore, list: async () => [world] } },
+  };
+  const listed = await createNimiLocalAppClient({ standardShell: exact }).realm.worldCore.list();
+  assert.equal(listed[0]?.id, 'world-1');
+
+  for (const malformed of [
+    { ...world, rawBody: '{}' },
+    { ...world, core: { ...world.core, authorization: 'Bearer private' } },
+  ]) {
+    const shell: NimiLocalAppStandardShell = {
+      ...base,
+      realm: { worldCore: { ...base.realm.worldCore, list: async () => [malformed] } },
+    };
+    await assert.rejects(
+      () => createNimiLocalAppClient({ standardShell: shell }).realm.worldCore.list(),
+      (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_LOCAL_APP_PROJECTION_INVALID',
+    );
+  }
 });
 
 test('canonical protected operations reach typed ingress and preserve owner-unavailable', async () => {

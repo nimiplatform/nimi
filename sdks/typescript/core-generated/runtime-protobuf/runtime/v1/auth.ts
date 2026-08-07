@@ -169,8 +169,26 @@ export interface OpenDesktopSessionResponse {
 export interface OpenLocalAppSessionRequest {
 }
 /**
- * Deliberately posture-only. Subject, account, snapshot, generation, session
- * material, credential, and peer proof remain Runtime-private.
+ * @generated from protobuf message nimi.runtime.v1.CurrentUserDisplayProjection
+ */
+export interface CurrentUserDisplayProjection {
+    /**
+     * @generated from protobuf field: string handle = 1
+     */
+    handle: string;
+    /**
+     * @generated from protobuf field: string display_name = 2
+     */
+    displayName: string;
+    /**
+     * @generated from protobuf field: optional string avatar_url = 3
+     */
+    avatarUrl?: string;
+}
+/**
+ * Session posture stays non-authoritative. The optional Current User display
+ * value contains exactly the three display-safe fields; its independent reason
+ * cannot fail or downgrade the private App Access session.
  *
  * @generated from protobuf message nimi.runtime.v1.OpenLocalAppSessionResponse
  */
@@ -183,6 +201,14 @@ export interface OpenLocalAppSessionResponse {
      * @generated from protobuf field: nimi.runtime.v1.ReasonCode reason_code = 5
      */
     reasonCode: ReasonCode;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.CurrentUserDisplayProjection current_user = 6
+     */
+    currentUser?: CurrentUserDisplayProjection;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.ReasonCode current_user_reason_code = 7
+     */
+    currentUserReasonCode: ReasonCode;
 }
 /**
  * Request-empty by design. Runtime accepts renewal only on the same verified
@@ -946,17 +972,82 @@ class OpenLocalAppSessionRequest$Type extends MessageType<OpenLocalAppSessionReq
  */
 export const OpenLocalAppSessionRequest = new OpenLocalAppSessionRequest$Type();
 // @generated message type with reflection information, may provide speed optimized methods
+class CurrentUserDisplayProjection$Type extends MessageType<CurrentUserDisplayProjection> {
+    constructor() {
+        super("nimi.runtime.v1.CurrentUserDisplayProjection", [
+            { no: 1, name: "handle", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "display_name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "avatar_url", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<CurrentUserDisplayProjection>): CurrentUserDisplayProjection {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.handle = "";
+        message.displayName = "";
+        if (value !== undefined)
+            reflectionMergePartial<CurrentUserDisplayProjection>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: CurrentUserDisplayProjection): CurrentUserDisplayProjection {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string handle */ 1:
+                    message.handle = reader.string();
+                    break;
+                case /* string display_name */ 2:
+                    message.displayName = reader.string();
+                    break;
+                case /* optional string avatar_url */ 3:
+                    message.avatarUrl = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: CurrentUserDisplayProjection, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string handle = 1; */
+        if (message.handle !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.handle);
+        /* string display_name = 2; */
+        if (message.displayName !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.displayName);
+        /* optional string avatar_url = 3; */
+        if (message.avatarUrl !== undefined)
+            writer.tag(3, WireType.LengthDelimited).string(message.avatarUrl);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.CurrentUserDisplayProjection
+ */
+export const CurrentUserDisplayProjection = new CurrentUserDisplayProjection$Type();
+// @generated message type with reflection information, may provide speed optimized methods
 class OpenLocalAppSessionResponse$Type extends MessageType<OpenLocalAppSessionResponse> {
     constructor() {
         super("nimi.runtime.v1.OpenLocalAppSessionResponse", [
             { no: 1, name: "state", kind: "enum", T: () => ["nimi.runtime.v1.LocalAppSessionState", LocalAppSessionState, "LOCAL_APP_SESSION_STATE_"] },
-            { no: 5, name: "reason_code", kind: "enum", T: () => ["nimi.runtime.v1.ReasonCode", ReasonCode] }
+            { no: 5, name: "reason_code", kind: "enum", T: () => ["nimi.runtime.v1.ReasonCode", ReasonCode] },
+            { no: 6, name: "current_user", kind: "message", T: () => CurrentUserDisplayProjection },
+            { no: 7, name: "current_user_reason_code", kind: "enum", T: () => ["nimi.runtime.v1.ReasonCode", ReasonCode] }
         ]);
     }
     create(value?: PartialMessage<OpenLocalAppSessionResponse>): OpenLocalAppSessionResponse {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.state = 0;
         message.reasonCode = 0;
+        message.currentUserReasonCode = 0;
         if (value !== undefined)
             reflectionMergePartial<OpenLocalAppSessionResponse>(this, message, value);
         return message;
@@ -971,6 +1062,12 @@ class OpenLocalAppSessionResponse$Type extends MessageType<OpenLocalAppSessionRe
                     break;
                 case /* nimi.runtime.v1.ReasonCode reason_code */ 5:
                     message.reasonCode = reader.int32();
+                    break;
+                case /* nimi.runtime.v1.CurrentUserDisplayProjection current_user */ 6:
+                    message.currentUser = CurrentUserDisplayProjection.internalBinaryRead(reader, reader.uint32(), options, message.currentUser);
+                    break;
+                case /* nimi.runtime.v1.ReasonCode current_user_reason_code */ 7:
+                    message.currentUserReasonCode = reader.int32();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -990,6 +1087,12 @@ class OpenLocalAppSessionResponse$Type extends MessageType<OpenLocalAppSessionRe
         /* nimi.runtime.v1.ReasonCode reason_code = 5; */
         if (message.reasonCode !== 0)
             writer.tag(5, WireType.Varint).int32(message.reasonCode);
+        /* nimi.runtime.v1.CurrentUserDisplayProjection current_user = 6; */
+        if (message.currentUser)
+            CurrentUserDisplayProjection.internalBinaryWrite(message.currentUser, writer.tag(6, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.ReasonCode current_user_reason_code = 7; */
+        if (message.currentUserReasonCode !== 0)
+            writer.tag(7, WireType.Varint).int32(message.currentUserReasonCode);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

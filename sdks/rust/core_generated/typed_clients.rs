@@ -2070,6 +2070,7 @@ pub enum ReasonCode {
     LOCALAPPACCESSDENIED,
     LOCALAPPOPERATIONUNSUPPORTED,
     LOCALAPPOWNERUNAVAILABLE,
+    CURRENTUSERDISPLAYUNAVAILABLE,
 }
 
 impl Default for ReasonCode {
@@ -7929,6 +7930,33 @@ impl CreateKnowledgeBankResponse {
         }
 
 
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct CurrentUserDisplayProjection {
+    pub handle: Option<String>,
+    pub display_name: Option<String>,
+    pub avatar_url: Option<String>,
+}
+
+impl CurrentUserDisplayProjection {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.handle { pairs.push(format!("handle={}", value)); }
+        if let Some(value) = &self.display_name { pairs.push(format!("display_name={}", value)); }
+        if let Some(value) = &self.avatar_url { pairs.push(format!("avatar_url={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+
+        out.handle = pairs.get("handle").cloned();
+        out.display_name = pairs.get("display_name").cloned();
+        out.avatar_url = pairs.get("avatar_url").cloned();
         out
     }
 }
@@ -20356,6 +20384,8 @@ impl OpenLocalAppSessionRequest {
 pub struct OpenLocalAppSessionResponse {
     pub state: Option<LocalAppSessionState>,
     pub reason_code: Option<ReasonCode>,
+    pub current_user: Option<Box<CurrentUserDisplayProjection>>,
+    pub current_user_reason_code: Option<ReasonCode>,
 }
 
 impl OpenLocalAppSessionResponse {
@@ -20363,13 +20393,15 @@ impl OpenLocalAppSessionResponse {
         let mut pairs: Vec<String> = Vec::new();
         if let Some(value) = &self.state { pairs.push(format!("state={:?}", value)); }
         if let Some(value) = &self.reason_code { pairs.push(format!("reason_code={:?}", value)); }
+        if self.current_user.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode current_user"); }
+        if let Some(value) = &self.current_user_reason_code { pairs.push(format!("current_user_reason_code={:?}", value)); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
         let out = Self::default();
-        for key in ["state", "reason_code"] {
+        for key in ["state", "reason_code", "current_user", "current_user_reason_code"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
             }
@@ -22036,6 +22068,64 @@ impl ReasoningStreamDelta {
         let mut out = Self::default();
 
         out.text = pairs.get("text").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RebindLocalAppProcessRequest {
+    pub launch_id: Option<Vec<u8>>,
+    pub child_process_id: Option<u32>,
+}
+
+impl RebindLocalAppProcessRequest {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if self.launch_id.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode launch_id"); }
+        if let Some(value) = &self.child_process_id { pairs.push(format!("child_process_id={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        for key in ["launch_id"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+
+        out.child_process_id = pairs.get("child_process_id").and_then(|value| value.parse().ok());
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RebindLocalAppProcessResponse {
+    pub launch_id: Option<Vec<u8>>,
+    pub bind_deadline: Option<String>,
+    pub reason_code: Option<ReasonCode>,
+}
+
+impl RebindLocalAppProcessResponse {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if self.launch_id.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode launch_id"); }
+        if let Some(value) = &self.bind_deadline { pairs.push(format!("bind_deadline={}", value)); }
+        if let Some(value) = &self.reason_code { pairs.push(format!("reason_code={:?}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        for key in ["launch_id", "reason_code"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+
+        out.bind_deadline = pairs.get("bind_deadline").cloned();
         out
     }
 }
@@ -30045,6 +30135,12 @@ impl From<Vec<u8>> for CreateKnowledgeBankResponse {
     }
 }
 
+impl From<Vec<u8>> for CurrentUserDisplayProjection {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
 impl From<Vec<u8>> for DelegatedApprovalRequest {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
@@ -32541,6 +32637,18 @@ impl From<Vec<u8>> for ReasoningStreamDelta {
     }
 }
 
+impl From<Vec<u8>> for RebindLocalAppProcessRequest {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for RebindLocalAppProcessResponse {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
 impl From<Vec<u8>> for RebindLocalCapabilityRequirementRequest {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
@@ -34790,6 +34898,16 @@ where
             timeout,
         })?;
         Ok(ReadLocalAppStorageJsonResponse::from_transport(&raw))
+    }
+
+    pub fn rebind_local_app_process(&self, request: RebindLocalAppProcessRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<RebindLocalAppProcessResponse, T::Error> {
+        let raw = self.core.unary(CoreUnaryRequest {
+            method_id: "/nimi.runtime.v1.RuntimeAppService/RebindLocalAppProcess".to_string(),
+            metadata,
+            body: request.to_transport(),
+            timeout,
+        })?;
+        Ok(RebindLocalAppProcessResponse::from_transport(&raw))
     }
 
     pub fn remove_local_app_storage_json(&self, request: RemoveLocalAppStorageJsonRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<RemoveLocalAppStorageJsonResponse, T::Error> {

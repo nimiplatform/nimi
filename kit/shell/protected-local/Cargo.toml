@@ -13,6 +13,7 @@ path = "src/lib.rs"
 [features]
 default = []
 macos-local-development = []
+macos-source-local-development = []
 
 [dependencies]
 base64 = "0.22"

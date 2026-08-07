@@ -148,7 +148,14 @@ describe('Electron protected local-app host', () => {
 });
 
 function statusProjection() {
-  return { state: 'ready', reasonCode: 'action-executed', retryable: false };
+  return {
+    state: 'ready', reasonCode: 'action-executed', retryable: false,
+    currentUser: {
+      state: 'ready',
+      value: { handle: 'tester', displayName: 'Tester', avatarUrl: null },
+      reasonCode: 'action-executed', retryable: false,
+    },
+  };
 }
 
 function sharedAgentConfig() {

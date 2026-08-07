@@ -27,9 +27,9 @@ type macOSProductionInstallState struct {
 	RuntimeID     string `json:"runtimeId"`
 }
 
-// loadMacOSProtectedRuntimeConfig constructs production configuration only
-// below the already-verified launchd service state. It does not read process
-// environment, argv, a login user's home directory, or app-owned storage.
+// loadMacOSProtectedRuntimeConfig constructs protected configuration below
+// the already-verified Runtime state. The selected compile-time profile owns
+// Realm authority resolution; mutable Runtime config and App input never do.
 func loadMacOSProtectedRuntimeConfig(stateRoot string) (config.Config, error) {
 	root := filepath.Clean(strings.TrimSpace(stateRoot))
 	if root != protectedlocal.MacOSRuntimeStateRoot || !filepath.IsAbs(root) {
@@ -45,7 +45,11 @@ func loadMacOSProtectedRuntimeConfig(stateRoot string) (config.Config, error) {
 		return config.Config{}, err
 	}
 
-	cfg := newProtectedRuntimeConfig(runtimeRoot, runtimeID, macOSProtectedRealmBaseURL)
+	realmBaseURL, err := loadMacOSProtectedRealmBaseURL()
+	if err != nil {
+		return config.Config{}, fmt.Errorf("load protected macOS Realm authority: %w", err)
+	}
+	cfg := newProtectedRuntimeConfig(runtimeRoot, runtimeID, realmBaseURL)
 	serviceConfigPath := filepath.Join(runtimeRoot, config.ServiceOwnedConfigFilename)
 	if err := validateOptionalMacOSServiceFile(serviceConfigPath); err != nil {
 		return config.Config{}, err

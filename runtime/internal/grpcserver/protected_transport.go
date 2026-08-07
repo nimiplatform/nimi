@@ -58,6 +58,7 @@ func protectedDesktopMethodRole(method string) (protectedlocal.OriginRole, bool)
 		return protectedlocal.RoleDesktopAccountHost, true
 	case "/nimi.runtime.v1.RuntimeAppService/PrepareLocalAppLaunch",
 		"/nimi.runtime.v1.RuntimeAppService/BindLocalAppProcess",
+		"/nimi.runtime.v1.RuntimeAppService/RebindLocalAppProcess",
 		"/nimi.runtime.v1.RuntimeDevelopmentService/GetDeveloperModeStatus",
 		"/nimi.runtime.v1.RuntimeDevelopmentService/SetDeveloperMode",
 		"/nimi.runtime.v1.RuntimeDevelopmentService/RegisterLocalDevelopmentProject",

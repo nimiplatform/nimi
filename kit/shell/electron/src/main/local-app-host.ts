@@ -300,10 +300,23 @@ function isSessionInvalidOutcome(outcome: NativeLocalAppOutcome): boolean {
 
 function isReadySessionOutcome(outcome: NativeLocalAppOutcome): boolean {
   if (outcome?.status !== 'ok' || !isPlainRecord(outcome.value)) return false;
-  return hasExactKeys(outcome.value, ['state', 'reasonCode', 'retryable'])
-    && outcome.value.state === 'ready'
-    && outcome.value.reasonCode === 'action-executed'
-    && outcome.value.retryable === false;
+  if (!hasExactKeys(outcome.value, ['state', 'reasonCode', 'retryable', 'currentUser'])
+    || outcome.value.state !== 'ready'
+    || outcome.value.reasonCode !== 'action-executed'
+    || outcome.value.retryable !== false
+    || !isPlainRecord(outcome.value.currentUser)
+    || !hasExactKeys(outcome.value.currentUser, ['state', 'value', 'reasonCode', 'retryable'])) return false;
+  const currentUser = outcome.value.currentUser;
+  if (currentUser.state === 'unavailable') {
+    return currentUser.value === null
+      && currentUser.reasonCode === 'current-user-display-unavailable'
+      && currentUser.retryable === true;
+  }
+  return currentUser.state === 'ready'
+    && isPlainRecord(currentUser.value)
+    && hasExactKeys(currentUser.value, ['handle', 'displayName', 'avatarUrl'])
+    && currentUser.reasonCode === 'action-executed'
+    && currentUser.retryable === false;
 }
 
 function untrustedNativeOutcome(): NativeLocalAppOutcome {

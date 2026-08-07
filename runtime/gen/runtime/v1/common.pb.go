@@ -335,10 +335,11 @@ const (
 	// distinguish a missing snapshot or uncovered operation from a structurally
 	// unsupported ingress and from an admitted operation whose owner adapter is
 	// not implemented in the current phase.
-	ReasonCode_LOCAL_APP_SNAPSHOT_UNAVAILABLE  ReasonCode = 706
-	ReasonCode_LOCAL_APP_ACCESS_DENIED         ReasonCode = 707
-	ReasonCode_LOCAL_APP_OPERATION_UNSUPPORTED ReasonCode = 708
-	ReasonCode_LOCAL_APP_OWNER_UNAVAILABLE     ReasonCode = 709
+	ReasonCode_LOCAL_APP_SNAPSHOT_UNAVAILABLE   ReasonCode = 706
+	ReasonCode_LOCAL_APP_ACCESS_DENIED          ReasonCode = 707
+	ReasonCode_LOCAL_APP_OPERATION_UNSUPPORTED  ReasonCode = 708
+	ReasonCode_LOCAL_APP_OWNER_UNAVAILABLE      ReasonCode = 709
+	ReasonCode_CURRENT_USER_DISPLAY_UNAVAILABLE ReasonCode = 710
 )
 
 // Enum value maps for ReasonCode.
@@ -594,6 +595,7 @@ var (
 		707: "LOCAL_APP_ACCESS_DENIED",
 		708: "LOCAL_APP_OPERATION_UNSUPPORTED",
 		709: "LOCAL_APP_OWNER_UNAVAILABLE",
+		710: "CURRENT_USER_DISPLAY_UNAVAILABLE",
 	}
 	ReasonCode_value = map[string]int32{
 		"REASON_CODE_UNSPECIFIED":                              0,
@@ -846,6 +848,7 @@ var (
 		"LOCAL_APP_ACCESS_DENIED":                              707,
 		"LOCAL_APP_OPERATION_UNSUPPORTED":                      708,
 		"LOCAL_APP_OWNER_UNAVAILABLE":                          709,
+		"CURRENT_USER_DISPLAY_UNAVAILABLE":                     710,
 	}
 )
 
@@ -1436,7 +1439,7 @@ const file_runtime_v1_common_proto_rawDesc = "" +
 	"\vreason_code\x18\x02 \x01(\x0e2\x1b.nimi.runtime.v1.ReasonCodeR\n" +
 	"reasonCode\x12\x1f\n" +
 	"\vaction_hint\x18\x03 \x01(\tR\n" +
-	"actionHint*\x83L\n" +
+	"actionHint*\xaaL\n" +
 	"\n" +
 	"ReasonCode\x12\x1b\n" +
 	"\x17REASON_CODE_UNSPECIFIED\x10\x00\x12\x13\n" +
@@ -1688,7 +1691,8 @@ const file_runtime_v1_common_proto_rawDesc = "" +
 	"\x1eLOCAL_APP_SNAPSHOT_UNAVAILABLE\x10\xc2\x05\x12\x1c\n" +
 	"\x17LOCAL_APP_ACCESS_DENIED\x10\xc3\x05\x12$\n" +
 	"\x1fLOCAL_APP_OPERATION_UNSUPPORTED\x10\xc4\x05\x12 \n" +
-	"\x1bLOCAL_APP_OWNER_UNAVAILABLE\x10\xc5\x05\"\x06\b\xb8\x03\x10\xbb\x03\"\x06\b\xa9\x04\x10\xaf\x04\"\x06\b\xce\x04\x10\xd5\x04\"\x06\b\xe2\x04\x10\xe2\x04\"\x06\b\xfe\x04\x10\x81\x05\"\x06\b\x8b\x05\x10\x8d\x05\"\x06\b\x93\x05\x10\x93\x05\"\x06\b\x94\x05\x10\x94\x05\"\x06\b\x9c\x05\x10\x9c\x05\"\x06\b\x9d\x05\x10\x9d\x05\"\x04\bh\x10h\"\x04\bj\x10j\"\x04\bs\x10s\"\x04\bt\x10t\"\x04\bv\x10v\"\x06\b\xcb\x01\x10\xcb\x01\"\x06\b\x90\x03\x10\x90\x03\"\x06\b\x91\x03\x10\x91\x03*\x0eWF_DAG_INVALID*\x17WF_NODE_CONFIG_MISMATCH*\n" +
+	"\x1bLOCAL_APP_OWNER_UNAVAILABLE\x10\xc5\x05\x12%\n" +
+	" CURRENT_USER_DISPLAY_UNAVAILABLE\x10\xc6\x05\"\x06\b\xb8\x03\x10\xbb\x03\"\x06\b\xa9\x04\x10\xaf\x04\"\x06\b\xce\x04\x10\xd5\x04\"\x06\b\xe2\x04\x10\xe2\x04\"\x06\b\xfe\x04\x10\x81\x05\"\x06\b\x8b\x05\x10\x8d\x05\"\x06\b\x93\x05\x10\x93\x05\"\x06\b\x94\x05\x10\x94\x05\"\x06\b\x9c\x05\x10\x9c\x05\"\x06\b\x9d\x05\x10\x9d\x05\"\x04\bh\x10h\"\x04\bj\x10j\"\x04\bs\x10s\"\x04\bt\x10t\"\x04\bv\x10v\"\x06\b\xcb\x01\x10\xcb\x01\"\x06\b\x90\x03\x10\x90\x03\"\x06\b\x91\x03\x10\x91\x03*\x0eWF_DAG_INVALID*\x17WF_NODE_CONFIG_MISMATCH*\n" +
 	"WF_TIMEOUT*\x11WF_TASK_NOT_FOUND* APP_INSTALL_DESCRIPTOR_NOT_FOUND*\x1bAPP_INSTALL_DIGEST_MISMATCH*\x1cAPP_INSTALL_MANIFEST_INVALID*\x1dAPP_INSTALL_STORAGE_VIOLATION*\x1bAPP_INSTALL_DOWNLOAD_FAILED*\x19APP_INSTALL_UNPACK_FAILED*\x14APP_INSTALL_INTERNAL*\x18APP_UPDATE_NOT_AVAILABLE*\x18APP_UPDATE_NOT_INSTALLED* APP_UPDATE_CONFIRMATION_REQUIRED*\x16APP_UPDATE_SWAP_FAILED*\x19APP_REPAIR_ACTION_INVALID*\x1dAPP_REPAIR_NO_RECOVERABLE_JOB*\x19APP_REPAIR_NOT_REPAIRABLE*\x1bAPP_LIFECYCLE_JOB_CANCELLED*\x1fAPP_OPEN_PERMISSION_NOT_GRANTED*\x19LIFECYCLE_INTENT_REQUIRED*\x19LIFECYCLE_INTENT_MISMATCH*\x17LIFECYCLE_INTENT_REPLAY*\x18LIFECYCLE_INTENT_EXPIRED*\x1dLOCAL_APP_PERMISSION_REQUIRED*\x1bLOCAL_APP_PERMISSION_DENIED*\x1cLOCAL_APP_PERMISSION_REVOKED*$LOCAL_APP_REMEMBERED_PROJECT_DORMANT*\"LOCAL_APP_RISK_DISCLOSURE_REQUIRED**LOCAL_APP_PERMISSION_RESERVED_NOT_ADMITTED*\x1cLOCAL_APP_PERMISSION_UNKNOWN*\xa9\x01\n" +
 	"\x15ExternalPrincipalType\x12'\n" +
 	"#EXTERNAL_PRINCIPAL_TYPE_UNSPECIFIED\x10\x00\x12!\n" +

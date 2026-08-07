@@ -21,6 +21,7 @@ var publicTransportBlockedMethods = map[string]runtimev1.ReasonCode{
 	"/nimi.runtime.v1.RuntimeAuthService/RenewLocalAppSession":            runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH,
 	"/nimi.runtime.v1.RuntimeAppService/PrepareLocalAppLaunch":            runtimev1.ReasonCode_DESKTOP_CONTROL_TRANSPORT_REQUIRED,
 	"/nimi.runtime.v1.RuntimeAppService/BindLocalAppProcess":              runtimev1.ReasonCode_DESKTOP_CONTROL_TRANSPORT_REQUIRED,
+	"/nimi.runtime.v1.RuntimeAppService/RebindLocalAppProcess":            runtimev1.ReasonCode_DESKTOP_CONTROL_TRANSPORT_REQUIRED,
 	"/nimi.runtime.v1.RuntimeAppService/SendAppMessage":                   runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH,
 	"/nimi.runtime.v1.RuntimeAppService/SubscribeAppMessages":             runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH,
 	"/nimi.runtime.v1.RuntimeAppService/ReadLocalAppStorageJson":          runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH,

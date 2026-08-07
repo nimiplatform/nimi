@@ -57,9 +57,18 @@ func (s *Service) RenewLocalAppSession(ctx context.Context, req *runtimev1.Renew
 	return localAppSessionResponse(projection), nil
 }
 
-func localAppSessionResponse(LocalAppSessionProjection) *runtimev1.OpenLocalAppSessionResponse {
+func localAppSessionResponse(projection LocalAppSessionProjection) *runtimev1.OpenLocalAppSessionResponse {
+	currentUser := projection.CurrentUser
+	currentReason := projection.CurrentUserReasonCode
+	if currentUser == nil || currentUser.GetHandle() == "" || currentUser.GetDisplayName() == "" ||
+		currentReason != runtimev1.ReasonCode_ACTION_EXECUTED {
+		currentUser = nil
+		currentReason = runtimev1.ReasonCode_CURRENT_USER_DISPLAY_UNAVAILABLE
+	}
 	return &runtimev1.OpenLocalAppSessionResponse{
-		State:      runtimev1.LocalAppSessionState_LOCAL_APP_SESSION_STATE_READY,
-		ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED,
+		State:                 runtimev1.LocalAppSessionState_LOCAL_APP_SESSION_STATE_READY,
+		ReasonCode:            runtimev1.ReasonCode_ACTION_EXECUTED,
+		CurrentUser:           currentUser,
+		CurrentUserReasonCode: currentReason,
 	}
 }

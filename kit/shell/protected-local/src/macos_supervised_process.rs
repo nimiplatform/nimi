@@ -3,9 +3,11 @@ use std::os::fd::{FromRawFd, OwnedFd};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
 
+#[cfg(not(feature = "macos-source-local-development"))]
 use crate::macos_profile::LOCAL_APP_HOST_PATH;
 use crate::{NimiHostError, NimiHostErrorReasonCode};
 
+#[cfg(not(feature = "macos-source-local-development"))]
 pub(crate) const MACOS_LOCAL_APP_HOST_PATH: &str = LOCAL_APP_HOST_PATH;
 const MAX_HOST_ARGUMENTS: usize = 64;
 const MAX_HOST_ARGUMENT_BYTES: usize = 64 * 1024;
@@ -144,12 +146,24 @@ impl Drop for SupervisedDevelopmentProcess {
 }
 
 fn canonical_fixed_host(path: &Path) -> Result<PathBuf, NimiHostError> {
+    #[cfg(not(feature = "macos-source-local-development"))]
     if path != Path::new(MACOS_LOCAL_APP_HOST_PATH) {
         return Err(untrusted());
     }
     let canonical = std::fs::canonicalize(path).map_err(|_| untrusted())?;
     if canonical != path || !canonical.is_file() {
         return Err(untrusted());
+    }
+    #[cfg(feature = "macos-source-local-development")]
+    {
+        use std::os::unix::fs::{MetadataExt, PermissionsExt};
+        let metadata = canonical.metadata().map_err(|_| untrusted())?;
+        if unsafe { libc::geteuid() } == 0
+            || metadata.uid() != unsafe { libc::geteuid() }
+            || metadata.permissions().mode() & 0o022 != 0
+        {
+            return Err(untrusted());
+        }
     }
     Ok(canonical)
 }
@@ -179,6 +193,33 @@ fn sanitized_environment() -> Result<Vec<CString>, NimiHostError> {
         "TMPDIR=/private/tmp".to_string(),
         "LANG=en_US.UTF-8".to_string(),
     ];
+    #[cfg(feature = "macos-source-local-development")]
+    {
+        use std::os::unix::fs::{MetadataExt, PermissionsExt};
+        let entry = std::env::var_os("NIMI_MACOS_SOURCE_LOCAL_DEVELOPMENT_NATIVE_ENTRY")
+            .map(PathBuf::from)
+            .filter(|value| value.is_absolute())
+            .and_then(|value| std::fs::canonicalize(value).ok())
+            .ok_or_else(untrusted)?;
+        let metadata = entry.metadata().map_err(|_| untrusted())?;
+        let expected_suffix = Path::new("kit")
+            .join("shell")
+            .join("protected-local-node")
+            .join("npm")
+            .join("darwin-arm64")
+            .join("index.cjs");
+        if !entry.ends_with(expected_suffix)
+            || metadata.uid() != unsafe { libc::geteuid() }
+            || metadata.permissions().mode() & 0o022 != 0
+        {
+            return Err(untrusted());
+        }
+        values.push("NIMI_MACOS_SOURCE_LOCAL_DEVELOPMENT=1".to_string());
+        values.push(format!(
+            "NIMI_MACOS_SOURCE_LOCAL_DEVELOPMENT_NATIVE_ENTRY={}",
+            path_text(&entry)?
+        ));
+    }
     values.sort();
     values
         .into_iter()
@@ -198,6 +239,7 @@ fn untrusted() -> NimiHostError {
 mod tests {
     use super::*;
 
+    #[cfg(not(feature = "macos-source-local-development"))]
     #[test]
     fn fixed_host_path_is_not_project_selectable() {
         assert_eq!(MACOS_LOCAL_APP_HOST_PATH, LOCAL_APP_HOST_PATH);
@@ -211,7 +253,16 @@ mod tests {
             .into_iter()
             .map(|value| value.to_string_lossy().into_owned())
             .collect::<Vec<_>>();
+        #[cfg(not(feature = "macos-source-local-development"))]
         assert!(keys.iter().all(|value| !value.starts_with("NIMI_")));
+        #[cfg(feature = "macos-source-local-development")]
+        assert!(keys
+            .iter()
+            .filter(|value| value.starts_with("NIMI_"))
+            .all(|value| {
+                value == "NIMI_MACOS_SOURCE_LOCAL_DEVELOPMENT=1"
+                    || value.starts_with("NIMI_MACOS_SOURCE_LOCAL_DEVELOPMENT_NATIVE_ENTRY=")
+            }));
         assert!(keys
             .iter()
             .all(|value| !value.to_ascii_lowercase().contains("token")));

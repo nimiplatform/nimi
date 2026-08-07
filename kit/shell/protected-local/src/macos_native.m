@@ -646,6 +646,75 @@ int nimi_macos_verify_runtime_peer(int socket_fd, const char *expected_path,
     return 0;
 }
 
+int nimi_macos_verify_per_user_runtime_peer(int socket_fd, const char *expected_path) {
+    if (socket_fd < 0 || expected_path == NULL) return EINVAL;
+    uid_t uid = geteuid();
+    gid_t gid = getegid();
+    if (uid == 0 || gid == 0 || getuid() != uid || getgid() != gid) return EACCES;
+    errno = 0;
+    struct passwd *account = getpwuid(uid);
+    if (account == NULL || account->pw_dir == NULL || account->pw_dir[0] != '/') {
+        return errno != 0 ? errno : EACCES;
+    }
+    char run_root[PATH_MAX];
+    char desktop_socket[PATH_MAX];
+    char local_app_socket[PATH_MAX];
+    if (snprintf(run_root, sizeof(run_root), "%s/Library/Application Support/Nimi/RuntimeLocalDevelopment/run", account->pw_dir) <= 0 ||
+        snprintf(desktop_socket, sizeof(desktop_socket), "%s/runtime-desktop.sock", run_root) <= 0 ||
+        snprintf(local_app_socket, sizeof(local_app_socket), "%s/runtime-local-app.sock", run_root) <= 0 ||
+        (strcmp(expected_path, desktop_socket) != 0 && strcmp(expected_path, local_app_socket) != 0)) {
+        return EACCES;
+    }
+    struct stat directory;
+    struct stat endpoint;
+    if (lstat(run_root, &directory) != 0 || !S_ISDIR(directory.st_mode) || S_ISLNK(directory.st_mode) ||
+        directory.st_uid != uid || (directory.st_mode & 0777) != 0700 ||
+        lstat(expected_path, &endpoint) != 0 || !S_ISSOCK(endpoint.st_mode) || S_ISLNK(endpoint.st_mode) ||
+        endpoint.st_uid != uid || (endpoint.st_mode & 0777) != 0600) {
+        return EACCES;
+    }
+    struct sockaddr_un peer_address;
+    memset(&peer_address, 0, sizeof(peer_address));
+    socklen_t peer_address_length = sizeof(peer_address);
+    if (getpeername(socket_fd, (struct sockaddr *)&peer_address, &peer_address_length) != 0 ||
+        peer_address.sun_family != AF_UNIX || strcmp(peer_address.sun_path, expected_path) != 0) {
+        return EACCES;
+    }
+    audit_token_t token;
+    memset(&token, 0, sizeof(token));
+    socklen_t token_length = sizeof(token);
+    pid_t peer_pid = 0;
+    socklen_t pid_length = sizeof(peer_pid);
+    if (getsockopt(socket_fd, SOL_LOCAL, LOCAL_PEERTOKEN, &token, &token_length) != 0 ||
+        token_length != sizeof(token) ||
+        getsockopt(socket_fd, SOL_LOCAL, LOCAL_PEERPID, &peer_pid, &pid_length) != 0 ||
+        pid_length != sizeof(peer_pid) || peer_pid <= 1 ||
+        audit_token_to_pid(token) != peer_pid || audit_token_to_pidversion(token) == 0 ||
+        audit_token_to_euid(token) != uid || audit_token_to_ruid(token) != uid) {
+        return EACCES;
+    }
+    struct proc_bsdinfo before;
+    char process_path[PROC_PIDPATHINFO_MAXSIZE];
+    int result = nimi_process_snapshot(peer_pid, &before, process_path, sizeof(process_path));
+    if (result != 0 || before.pbi_ppid <= 1 || before.pbi_uid != uid || before.pbi_ruid != uid) {
+        return EACCES;
+    }
+    char canonical[PATH_MAX];
+    struct stat executable;
+    if (realpath(process_path, canonical) == NULL || strcmp(canonical, process_path) != 0 ||
+        lstat(process_path, &executable) != 0 || !S_ISREG(executable.st_mode) || S_ISLNK(executable.st_mode) ||
+        executable.st_uid != uid || (executable.st_mode & 0022) != 0) {
+        return EACCES;
+    }
+    struct proc_bsdinfo after;
+    char after_path[PROC_PIDPATHINFO_MAXSIZE];
+    result = nimi_process_snapshot(peer_pid, &after, after_path, sizeof(after_path));
+    if (result != 0 || !nimi_same_process(&before, &after) || strcmp(process_path, after_path) != 0) {
+        return EACCES;
+    }
+    return 0;
+}
+
 int nimi_macos_runtime_service_status(void) {
     @autoreleasepool {
         if (![NSBundle.mainBundle.bundlePath isEqualToString:@NIMI_MACOS_DESKTOP_APPLICATION]) {
@@ -828,8 +897,19 @@ int nimi_macos_spawn_suspended(const char *executable, char *const argv[], char 
                                const char *working_directory, uint32_t *pid_output) {
     if (executable == NULL || argv == NULL || argv[0] == NULL || envp == NULL ||
         working_directory == NULL || pid_output == NULL ||
-        strcmp(executable, NIMI_MACOS_LOCAL_APP_HOST) != 0 ||
         executable[0] != '/' || working_directory[0] != '/') return EINVAL;
+#ifdef NIMI_MACOS_SOURCE_LOCAL_DEVELOPMENT
+    char canonical_executable[PATH_MAX];
+    struct stat executable_info;
+    uid_t uid = geteuid();
+    if (uid == 0 || realpath(executable, canonical_executable) == NULL ||
+        strcmp(canonical_executable, executable) != 0 ||
+        lstat(executable, &executable_info) != 0 || !S_ISREG(executable_info.st_mode) ||
+        S_ISLNK(executable_info.st_mode) || executable_info.st_uid != uid ||
+        (executable_info.st_mode & 0022) != 0) return EACCES;
+#else
+    if (strcmp(executable, NIMI_MACOS_LOCAL_APP_HOST) != 0) return EINVAL;
+#endif
     posix_spawnattr_t attributes;
     posix_spawn_file_actions_t actions;
     int result = posix_spawnattr_init(&attributes);

@@ -31,8 +31,9 @@ use crate::{
     LocalAppConversationOpenRequest, LocalAppConversationOpenResult,
     LocalAppConversationSendRequest, LocalAppConversationSendResult,
     LocalAppConversationSnapshotRequest, LocalAppConversationSubscribeRequest,
-    LocalAppConversationSubscriptionReceiver, LocalAppOperationError, LocalAppReasonCode,
-    LocalAppSessionState, LocalAppSessionStatus, LocalAppSharedAgentAIConfigOverwriteRequest,
+    LocalAppConversationSubscriptionReceiver, LocalAppCurrentUserDisplay,
+    LocalAppCurrentUserStatus, LocalAppOperationError, LocalAppReasonCode, LocalAppSessionState,
+    LocalAppSessionStatus, LocalAppSharedAgentAIConfigOverwriteRequest,
     LocalAppSharedAgentAIProfileRequest, LocalAppStorageDocument, LocalAppStorageReadRequest,
     LocalAppStorageRemoveRequest, LocalAppStorageRemoveResult, LocalAppStorageWriteRequest,
     LocalAppTextCandidateRequest, LocalAppTextCandidateResult, LocalAppWorldCoreCreateRequest,
@@ -44,6 +45,7 @@ const RUNTIME_LOCAL_APP_PIPE_NAME: &str = r"\\.\pipe\nimi-runtime-local-app-v1";
 
 const ACTION_EXECUTED: i32 = 1;
 const LOCAL_APP_SESSION_READY: i32 = 1;
+const CURRENT_USER_DISPLAY_UNAVAILABLE: i32 = 710;
 
 #[cfg(target_os = "windows")]
 #[derive(Clone, Copy, Debug, Default)]
@@ -61,6 +63,7 @@ struct PlatformLocalAppSession {
     #[cfg(target_os = "windows")]
     runtime_peer: PlatformRuntimePeer,
     operation_gate: RwLock<()>,
+    current_user: RwLock<LocalAppCurrentUserStatus>,
 }
 
 impl PlatformLocalAppSession {
@@ -77,8 +80,9 @@ impl PlatformLocalAppSession {
             .await
             .map_err(local_app_error_from_status)?
             .into_inner();
-        validate_session_projection(response)?;
-        Ok(ready_session_status())
+        let status = validate_session_projection(response)?;
+        *self.current_user.write().await = status.current_user.clone();
+        Ok(status)
     }
 }
 
@@ -91,7 +95,8 @@ impl NimiLocalAppSession for PlatformLocalAppSession {
         Box::pin(async move {
             let _operation = self.operation_gate.read().await;
             self.checked_channel()?;
-            Ok(ready_session_status())
+            let current_user = self.current_user.read().await.clone();
+            Ok(ready_session_status(current_user))
         })
     }
 
@@ -449,11 +454,12 @@ async fn open_local_app_session() -> Result<Box<dyn NimiLocalAppSession>, LocalA
         .await
         .map_err(local_app_error_from_status)?
         .into_inner();
-    validate_session_projection(response)?;
+    let status = validate_session_projection(response)?;
     Ok(Box::new(PlatformLocalAppSession {
         channel,
         runtime_peer,
         operation_gate: RwLock::new(()),
+        current_user: RwLock::new(status.current_user),
     }))
 }
 
@@ -467,28 +473,86 @@ async fn open_local_app_session() -> Result<Box<dyn NimiLocalAppSession>, LocalA
         .await
         .map_err(local_app_error_from_status)?
         .into_inner();
-    validate_session_projection(response)?;
+    let status = validate_session_projection(response)?;
     Ok(Box::new(PlatformLocalAppSession {
         channel,
         operation_gate: RwLock::new(()),
+        current_user: RwLock::new(status.current_user),
     }))
 }
 
-fn ready_session_status() -> LocalAppSessionStatus {
+fn ready_session_status(current_user: LocalAppCurrentUserStatus) -> LocalAppSessionStatus {
     LocalAppSessionStatus {
         state: LocalAppSessionState::Ready,
         reason_code: LocalAppReasonCode::ActionExecuted,
         retryable: false,
+        current_user,
     }
 }
 
 fn validate_session_projection(
     response: crate::generated::OpenLocalAppSessionResponse,
-) -> Result<(), LocalAppOperationError> {
+) -> Result<LocalAppSessionStatus, LocalAppOperationError> {
     if response.state != LOCAL_APP_SESSION_READY || response.reason_code != ACTION_EXECUTED {
         return Err(untrusted());
     }
-    Ok(())
+    let current_user = match (response.current_user, response.current_user_reason_code) {
+        (Some(value), ACTION_EXECUTED) => {
+            if !valid_current_user_text(&value.handle, 160)
+                || !valid_current_user_text(&value.display_name, 256)
+                || value
+                    .avatar_url
+                    .as_deref()
+                    .is_some_and(|avatar| !valid_current_user_avatar(avatar))
+            {
+                return Err(untrusted());
+            }
+            LocalAppCurrentUserStatus {
+                value: Some(LocalAppCurrentUserDisplay {
+                    handle: value.handle,
+                    display_name: value.display_name,
+                    avatar_url: value.avatar_url,
+                }),
+                reason_code: LocalAppReasonCode::ActionExecuted,
+                retryable: false,
+            }
+        }
+        (None, CURRENT_USER_DISPLAY_UNAVAILABLE) => LocalAppCurrentUserStatus {
+            value: None,
+            reason_code: LocalAppReasonCode::CurrentUserDisplayUnavailable,
+            retryable: true,
+        },
+        _ => return Err(untrusted()),
+    };
+    Ok(ready_session_status(current_user))
+}
+
+fn valid_current_user_text(value: &str, maximum: usize) -> bool {
+    !value.is_empty()
+        && value.len() <= maximum
+        && value.trim() == value
+        && !value.chars().any(char::is_control)
+}
+
+fn valid_current_user_avatar(value: &str) -> bool {
+    if value.is_empty() || value.len() > 2048 || value.trim() != value {
+        return false;
+    }
+    let Ok(parsed) = url::Url::parse(value) else {
+        return false;
+    };
+    if !parsed.username().is_empty()
+        || parsed.password().is_some()
+        || parsed.query().is_some()
+        || parsed.fragment().is_some()
+    {
+        return false;
+    }
+    match parsed.scheme() {
+        "https" => parsed.port().is_none_or(|port| port == 443),
+        "http" => parsed.host_str() == Some("127.0.0.1") && parsed.port() == Some(3002),
+        _ => false,
+    }
 }
 
 #[cfg(target_os = "windows")]
@@ -569,6 +633,65 @@ pub(super) fn untrusted() -> LocalAppOperationError {
 mod tests {
     use super::*;
     use std::collections::VecDeque;
+
+    #[test]
+    fn local_app_session_decodes_exact_current_user_and_isolates_unavailable_display() {
+        let ready = validate_session_projection(crate::generated::OpenLocalAppSessionResponse {
+            state: LOCAL_APP_SESSION_READY,
+            reason_code: ACTION_EXECUTED,
+            current_user: Some(crate::generated::CurrentUserDisplayProjection {
+                handle: "halliday".to_string(),
+                display_name: "Halliday".to_string(),
+                avatar_url: None,
+            }),
+            current_user_reason_code: ACTION_EXECUTED,
+        })
+        .expect("ready Current User");
+        assert_eq!(
+            ready.current_user.value.expect("display"),
+            LocalAppCurrentUserDisplay {
+                handle: "halliday".to_string(),
+                display_name: "Halliday".to_string(),
+                avatar_url: None,
+            }
+        );
+
+        let unavailable =
+            validate_session_projection(crate::generated::OpenLocalAppSessionResponse {
+                state: LOCAL_APP_SESSION_READY,
+                reason_code: ACTION_EXECUTED,
+                current_user: None,
+                current_user_reason_code: CURRENT_USER_DISPLAY_UNAVAILABLE,
+            })
+            .expect("display failure must not fail the App session");
+        assert_eq!(unavailable.state, LocalAppSessionState::Ready);
+        assert_eq!(unavailable.current_user.value, None);
+        assert!(unavailable.current_user.retryable);
+    }
+
+    #[test]
+    fn local_app_session_rejects_malformed_or_credential_bearing_avatar_projection() {
+        for avatar in [
+            "https://cdn.example/a.png?token=secret",
+            "https://user:secret@cdn.example/a.png",
+            "http://realm.example/a.png",
+        ] {
+            let response = crate::generated::OpenLocalAppSessionResponse {
+                state: LOCAL_APP_SESSION_READY,
+                reason_code: ACTION_EXECUTED,
+                current_user: Some(crate::generated::CurrentUserDisplayProjection {
+                    handle: "halliday".to_string(),
+                    display_name: "Halliday".to_string(),
+                    avatar_url: Some(avatar.to_string()),
+                }),
+                current_user_reason_code: ACTION_EXECUTED,
+            };
+            assert!(
+                validate_session_projection(response).is_err(),
+                "avatar {avatar}"
+            );
+        }
+    }
 
     #[tokio::test]
     async fn local_app_channel_retries_one_exact_unavailable_handshake() {

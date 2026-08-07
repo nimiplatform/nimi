@@ -22,7 +22,7 @@ import {
 } from '@nimiplatform/kit/shell/renderer/host';
 
 import { getRuntimePlatformProjection } from '../shell/auth/runtime-platform.js';
-import { testerLocalAppClient } from '../shell/local-app-runtime-platform.js';
+import { getTesterLocalAppClient } from '../shell/local-app-runtime-platform.js';
 import { loadTesterAIConfig, requireTesterAIConfigOwner } from '../tester/tester-ai-config-store.js';
 import { loadTesterAIConfigSummary } from '../tester/tester-ai-config.js';
 import { saveTesterArtifact } from '../tester/tester-artifact-storage.js';
@@ -110,6 +110,7 @@ async function requireTesterRealm(): Promise<Realm> {
 export function createTesterProductionBindings(
   kit: NimiRendererHostFacadeV1<NimiRendererHostMethodMap>,
 ): TesterCanonicalRendererBindings {
+  const testerLocalAppClient = getTesterLocalAppClient();
   const bindings = createNimiCanonicalRendererHostBindings({
     scope: kit.scope,
     capabilities: kit.capabilities,

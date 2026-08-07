@@ -26,9 +26,10 @@ func TestLocalAppSessionRequestsRejectCallerAssertions(t *testing.T) {
 
 func TestLocalAppSessionResultAndErrorArePostureOnly(t *testing.T) {
 	response := localAppSessionResponse(LocalAppSessionProjection{})
-	if response.ProtoReflect().Descriptor().Fields().Len() != 2 ||
+	if response.ProtoReflect().Descriptor().Fields().Len() != 4 ||
 		response.GetState() != runtimev1.LocalAppSessionState_LOCAL_APP_SESSION_STATE_READY ||
-		response.GetReasonCode() != runtimev1.ReasonCode_ACTION_EXECUTED {
+		response.GetReasonCode() != runtimev1.ReasonCode_ACTION_EXECUTED || response.GetCurrentUser() != nil ||
+		response.GetCurrentUserReasonCode() != runtimev1.ReasonCode_CURRENT_USER_DISPLAY_UNAVAILABLE {
 		t.Fatalf("session response = %+v", response)
 	}
 	encoded, err := json.Marshal(response)
@@ -36,6 +37,23 @@ func TestLocalAppSessionResultAndErrorArePostureOnly(t *testing.T) {
 		t.Fatal(err)
 	}
 	assertNoLocalAppPrivateProjectionText(t, string(encoded))
+
+	avatar := "https://cdn.example/avatar.png"
+	ready := localAppSessionResponse(LocalAppSessionProjection{
+		CurrentUser: &runtimev1.CurrentUserDisplayProjection{
+			Handle: "halliday", DisplayName: "Halliday", AvatarUrl: &avatar,
+		},
+		CurrentUserReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED,
+	})
+	if ready.GetCurrentUser().GetHandle() != "halliday" || ready.GetCurrentUser().GetDisplayName() != "Halliday" ||
+		ready.GetCurrentUser().GetAvatarUrl() != avatar || ready.GetCurrentUserReasonCode() != runtimev1.ReasonCode_ACTION_EXECUTED {
+		t.Fatalf("Current User response = %+v", ready)
+	}
+	readyJSON, err := json.Marshal(ready)
+	if err != nil {
+		t.Fatal(err)
+	}
+	assertNoLocalAppPrivateProjectionText(t, string(readyJSON))
 
 	_, projectedErr := (&Service{}).OpenLocalAppSession(context.Background(), &runtimev1.OpenLocalAppSessionRequest{})
 	statusJSON, err := json.Marshal(status.Convert(projectedErr).Proto())

@@ -10,6 +10,7 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/appstorage"
 	"github.com/nimiplatform/nimi/runtime/internal/localappkernel"
 	"github.com/nimiplatform/nimi/runtime/internal/localappop"
 	"github.com/nimiplatform/nimi/runtime/internal/protectedlocal"
@@ -37,6 +38,8 @@ type localAppRuntimeSession struct {
 	accountInvalidated    <-chan struct{}
 	runtimeGeneration     uint64
 	snapshot              *localappop.EffectiveAppAccessSnapshot
+	currentUser           *runtimev1.CurrentUserDisplayProjection
+	currentUserReason     runtimev1.ReasonCode
 	expiresAt             time.Time
 }
 
@@ -69,7 +72,7 @@ func (s *Service) OpenLocalAppSessionProjection(ctx context.Context) (authservic
 		delete(s.localAppSessions, connection)
 		s.localAppSessionMu.Unlock()
 	})
-	return authservice.LocalAppSessionProjection{}, nil
+	return localAppAuthSessionProjection(next), nil
 }
 
 func (s *Service) RenewLocalAppSessionProjection(ctx context.Context) (authservice.LocalAppSessionProjection, error) {
@@ -103,7 +106,7 @@ func (s *Service) RenewLocalAppSessionProjection(ctx context.Context) (authservi
 	}
 	s.localAppSessions[connection] = next
 	s.localAppSessionMu.Unlock()
-	return authservice.LocalAppSessionProjection{}, nil
+	return localAppAuthSessionProjection(next), nil
 }
 
 func (s *Service) initialLocalAppSessionRegistration(ctx context.Context, connection *protectedlocal.LocalAppConnection) (string, protectedlocal.Identifier, error) {
@@ -162,6 +165,7 @@ func (s *Service) deriveLocalAppRuntimeSession(ctx context.Context, registration
 	if err != nil {
 		return localAppRuntimeSession{}, fmt.Errorf("derive Effective App Access Snapshot: %w", err)
 	}
+	currentUser, currentUserReason := s.currentUserDisplayProjection(ctx)
 	return localAppRuntimeSession{
 		handle: handle, launchCorrelation: launchCorrelation,
 		registrationHandle: registration.RegistrationHandle, registeredAppSubject: registration.RegisteredAppSubject,
@@ -169,8 +173,30 @@ func (s *Service) deriveLocalAppRuntimeSession(ctx context.Context, registration
 		declarationGeneration: registration.DeclarationGeneration,
 		accountID:             binding.AccountID, realmEnvironmentID: strings.TrimSpace(account.GetRealmEnvironmentId()),
 		accountGeneration: accountGeneration, accountInvalidated: accountInvalidated,
-		runtimeGeneration: runtimeGeneration, snapshot: snapshot, expiresAt: s.now().UTC().Add(s.localAppSessionTTL),
+		runtimeGeneration: runtimeGeneration, snapshot: snapshot,
+		currentUser: currentUser, currentUserReason: currentUserReason,
+		expiresAt: s.now().UTC().Add(s.localAppSessionTTL),
 	}, nil
+}
+
+func (s *Service) currentUserDisplayProjection(ctx context.Context) (*runtimev1.CurrentUserDisplayProjection, runtimev1.ReasonCode) {
+	provider, ok := s.accountProjection.(runtimeCurrentUserDisplayProvider)
+	if !ok {
+		return nil, runtimev1.ReasonCode_CURRENT_USER_DISPLAY_UNAVAILABLE
+	}
+	display, err := provider.CurrentUserDisplay(ctx)
+	if err != nil || display.Handle == "" || display.DisplayName == "" {
+		return nil, runtimev1.ReasonCode_CURRENT_USER_DISPLAY_UNAVAILABLE
+	}
+	return &runtimev1.CurrentUserDisplayProjection{
+		Handle: display.Handle, DisplayName: display.DisplayName, AvatarUrl: display.AvatarURL,
+	}, runtimev1.ReasonCode_ACTION_EXECUTED
+}
+
+func localAppAuthSessionProjection(session localAppRuntimeSession) authservice.LocalAppSessionProjection {
+	return authservice.LocalAppSessionProjection{
+		CurrentUser: session.currentUser, CurrentUserReasonCode: session.currentUserReason,
+	}
 }
 
 func (s *Service) newLocalAppSessionMaterial() (protectedlocal.LocalAppSessionHandle, uint64, error) {
@@ -197,10 +223,54 @@ func (s *Service) newLocalAppSessionMaterial() (protectedlocal.LocalAppSessionHa
 }
 
 func (s *Service) AdmitLocalAppIngress(ctx context.Context, ingress localappop.Ingress) error {
-	_, _, err := s.admitLocalAppIngress(ctx, ingress)
-	if err == nil {
-		return nil
+	_, err := s.AuthorizeLocalAppIngress(ctx, ingress)
+	return err
+}
+
+// AuthorizeLocalAppIngress performs the common admission once and attaches only
+// the Runtime-derived owner handoff. Caller-supplied owner, account, subject,
+// generation, or capability facts never enter this context.
+func (s *Service) AuthorizeLocalAppIngress(ctx context.Context, ingress localappop.Ingress) (context.Context, error) {
+	admission, session, err := s.admitLocalAppIngress(ctx, ingress)
+	if err != nil {
+		return nil, localAppIngressError(err)
 	}
+	capability := ""
+	switch admission.Operation {
+	case localappop.OperationStorageJSONRead, localappop.OperationStorageJSONWrite, localappop.OperationStorageJSONRemove:
+		capability = appstorage.LocalAppPrivateStorageEntitlement
+	case localappop.OperationRealmWorldCoreList:
+		capability = "realm.world-core.list"
+	case localappop.OperationRealmWorldCoreCreate:
+		capability = "realm.world-core.create"
+	case localappop.OperationTextCandidateGenerate:
+		capability = "ai.text.generate"
+	}
+	if capability == "" {
+		return nil, localDevelopmentFailure(codes.Unimplemented, runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNSUPPORTED)
+	}
+	registrationHandle, registrationOK := localDevelopmentRegistrationIdentifier(session.registrationHandle)
+	connection, connectionOK := protectedlocal.LocalAppConnectionFromContext(ctx)
+	if !registrationOK || !connectionOK || connection == nil {
+		return nil, localDevelopmentFailure(codes.Unauthenticated, runtimev1.ReasonCode_LOCAL_APP_SESSION_REVOKED)
+	}
+	directPeer, _ := connection.DirectPeer()
+	process := connection.Process()
+	decision := accountservice.LocalAppCallerDecision{
+		LocalOSUserAnchor: s.localAppKernel.LocalOSUserAnchor(), SessionID: session.handle.SessionID,
+		AppID: session.appID, HostExecutableDigest: process.ExecutableDigest,
+		AccountID: session.accountID, RealmEnvironmentID: session.realmEnvironmentID,
+		AccountGeneration: session.accountGeneration, RuntimeBootEpoch: connection.RuntimeBootEpoch(),
+		Process: process, DirectPeer: directPeer, ExpiresAt: session.expiresAt,
+		Operation: admission.Operation, AuthorityClass: admission.Class, OperationCapability: capability,
+		TrustClass: accountservice.LocalAppTrustClassDevelopment, RegistrationHandle: registrationHandle,
+		SourceGeneration: session.sourceGeneration, DeclarationGeneration: session.declarationGeneration,
+		RegisteredAppSubject: session.registeredAppSubject,
+	}
+	return accountservice.ContextWithAuthorizedLocalAppDecision(ctx, decision), nil
+}
+
+func localAppIngressError(err error) error {
 	switch {
 	case errors.Is(err, errLocalAppAccountGenerationChanged):
 		return localDevelopmentFailure(codes.Unauthenticated, runtimev1.ReasonCode_LOCAL_APP_ACCOUNT_CHANGED)

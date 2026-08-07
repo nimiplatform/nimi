@@ -104,8 +104,8 @@ func EstablishLocalAppConnection(ctx context.Context, verifier LocalAppLaunchPee
 }
 
 func newDirectLocalAppConnection(peer DirectLocalAppPeer, launch DirectLocalAppLaunch) (*LocalAppConnection, error) {
-	if !peer.valid() || !launch.valid() || launch.ChildPID == 0 || launch.BindDeadline.IsZero() ||
-		peer.PID != launch.ChildPID || peer.UID != launch.ExpectedUID {
+	if !peer.valid() || !launch.valid() || launch.Process.PID == 0 || launch.BindDeadline.IsZero() ||
+		peer.PID != launch.Process.PID || peer.UID != launch.ExpectedUID {
 		return nil, fail(ReasonDesktopProcessVerificationUnavailable, false, "relaunch_app", fmt.Errorf("direct local-app peer or launch is incomplete"))
 	}
 	directPeer := peer

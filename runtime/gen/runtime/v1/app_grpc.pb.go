@@ -27,6 +27,7 @@ const (
 	RuntimeAppService_RemoveLocalAppStorageJson_FullMethodName = "/nimi.runtime.v1.RuntimeAppService/RemoveLocalAppStorageJson"
 	RuntimeAppService_PrepareLocalAppLaunch_FullMethodName     = "/nimi.runtime.v1.RuntimeAppService/PrepareLocalAppLaunch"
 	RuntimeAppService_BindLocalAppProcess_FullMethodName       = "/nimi.runtime.v1.RuntimeAppService/BindLocalAppProcess"
+	RuntimeAppService_RebindLocalAppProcess_FullMethodName     = "/nimi.runtime.v1.RuntimeAppService/RebindLocalAppProcess"
 )
 
 // RuntimeAppServiceClient is the client API for RuntimeAppService service.
@@ -41,6 +42,7 @@ type RuntimeAppServiceClient interface {
 	RemoveLocalAppStorageJson(ctx context.Context, in *RemoveLocalAppStorageJsonRequest, opts ...grpc.CallOption) (*RemoveLocalAppStorageJsonResponse, error)
 	PrepareLocalAppLaunch(ctx context.Context, in *PrepareLocalAppLaunchRequest, opts ...grpc.CallOption) (*PrepareLocalAppLaunchResponse, error)
 	BindLocalAppProcess(ctx context.Context, in *BindLocalAppProcessRequest, opts ...grpc.CallOption) (*BindLocalAppProcessResponse, error)
+	RebindLocalAppProcess(ctx context.Context, in *RebindLocalAppProcessRequest, opts ...grpc.CallOption) (*RebindLocalAppProcessResponse, error)
 }
 
 type runtimeAppServiceClient struct {
@@ -140,6 +142,16 @@ func (c *runtimeAppServiceClient) BindLocalAppProcess(ctx context.Context, in *B
 	return out, nil
 }
 
+func (c *runtimeAppServiceClient) RebindLocalAppProcess(ctx context.Context, in *RebindLocalAppProcessRequest, opts ...grpc.CallOption) (*RebindLocalAppProcessResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RebindLocalAppProcessResponse)
+	err := c.cc.Invoke(ctx, RuntimeAppService_RebindLocalAppProcess_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // RuntimeAppServiceServer is the server API for RuntimeAppService service.
 // All implementations should embed UnimplementedRuntimeAppServiceServer
 // for forward compatibility.
@@ -152,6 +164,7 @@ type RuntimeAppServiceServer interface {
 	RemoveLocalAppStorageJson(context.Context, *RemoveLocalAppStorageJsonRequest) (*RemoveLocalAppStorageJsonResponse, error)
 	PrepareLocalAppLaunch(context.Context, *PrepareLocalAppLaunchRequest) (*PrepareLocalAppLaunchResponse, error)
 	BindLocalAppProcess(context.Context, *BindLocalAppProcessRequest) (*BindLocalAppProcessResponse, error)
+	RebindLocalAppProcess(context.Context, *RebindLocalAppProcessRequest) (*RebindLocalAppProcessResponse, error)
 }
 
 // UnimplementedRuntimeAppServiceServer should be embedded to have
@@ -184,6 +197,9 @@ func (UnimplementedRuntimeAppServiceServer) PrepareLocalAppLaunch(context.Contex
 }
 func (UnimplementedRuntimeAppServiceServer) BindLocalAppProcess(context.Context, *BindLocalAppProcessRequest) (*BindLocalAppProcessResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method BindLocalAppProcess not implemented")
+}
+func (UnimplementedRuntimeAppServiceServer) RebindLocalAppProcess(context.Context, *RebindLocalAppProcessRequest) (*RebindLocalAppProcessResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method RebindLocalAppProcess not implemented")
 }
 func (UnimplementedRuntimeAppServiceServer) testEmbeddedByValue() {}
 
@@ -342,6 +358,24 @@ func _RuntimeAppService_BindLocalAppProcess_Handler(srv interface{}, ctx context
 	return interceptor(ctx, in, info, handler)
 }
 
+func _RuntimeAppService_RebindLocalAppProcess_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RebindLocalAppProcessRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeAppServiceServer).RebindLocalAppProcess(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeAppService_RebindLocalAppProcess_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeAppServiceServer).RebindLocalAppProcess(ctx, req.(*RebindLocalAppProcessRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // RuntimeAppService_ServiceDesc is the grpc.ServiceDesc for RuntimeAppService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -376,6 +410,10 @@ var RuntimeAppService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "BindLocalAppProcess",
 			Handler:    _RuntimeAppService_BindLocalAppProcess_Handler,
+		},
+		{
+			MethodName: "RebindLocalAppProcess",
+			Handler:    _RuntimeAppService_RebindLocalAppProcess_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{

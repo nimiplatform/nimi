@@ -363,6 +363,41 @@ export interface BindLocalAppProcessResponse {
     reasonCode: ReasonCode;
 }
 /**
+ * Source-only per-user D2 reauthorizes the already-running exact Desktop
+ * child after Runtime loss. Runtime derives all authority from the protected
+ * Desktop connection, current registration/run, and fresh kernel process
+ * witness; the request carries no App principal or credential.
+ *
+ * @generated from protobuf message nimi.runtime.v1.RebindLocalAppProcessRequest
+ */
+export interface RebindLocalAppProcessRequest {
+    /**
+     * @generated from protobuf field: bytes launch_id = 1
+     */
+    launchId: Uint8Array;
+    /**
+     * @generated from protobuf field: uint32 child_process_id = 2
+     */
+    childProcessId: number;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.RebindLocalAppProcessResponse
+ */
+export interface RebindLocalAppProcessResponse {
+    /**
+     * @generated from protobuf field: bytes launch_id = 1
+     */
+    launchId: Uint8Array;
+    /**
+     * @generated from protobuf field: google.protobuf.Timestamp bind_deadline = 2
+     */
+    bindDeadline?: Timestamp;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.ReasonCode reason_code = 3
+     */
+    reasonCode: ReasonCode;
+}
+/**
  * @generated from protobuf enum nimi.runtime.v1.AppMessageEventType
  */
 export enum AppMessageEventType {
@@ -1536,3 +1571,120 @@ class BindLocalAppProcessResponse$Type extends MessageType<BindLocalAppProcessRe
  * @generated MessageType for protobuf message nimi.runtime.v1.BindLocalAppProcessResponse
  */
 export const BindLocalAppProcessResponse = new BindLocalAppProcessResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class RebindLocalAppProcessRequest$Type extends MessageType<RebindLocalAppProcessRequest> {
+    constructor() {
+        super("nimi.runtime.v1.RebindLocalAppProcessRequest", [
+            { no: 1, name: "launch_id", kind: "scalar", T: 12 /*ScalarType.BYTES*/ },
+            { no: 2, name: "child_process_id", kind: "scalar", T: 13 /*ScalarType.UINT32*/ }
+        ]);
+    }
+    create(value?: PartialMessage<RebindLocalAppProcessRequest>): RebindLocalAppProcessRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.launchId = new Uint8Array(0);
+        message.childProcessId = 0;
+        if (value !== undefined)
+            reflectionMergePartial<RebindLocalAppProcessRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: RebindLocalAppProcessRequest): RebindLocalAppProcessRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* bytes launch_id */ 1:
+                    message.launchId = reader.bytes();
+                    break;
+                case /* uint32 child_process_id */ 2:
+                    message.childProcessId = reader.uint32();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: RebindLocalAppProcessRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* bytes launch_id = 1; */
+        if (message.launchId.length)
+            writer.tag(1, WireType.LengthDelimited).bytes(message.launchId);
+        /* uint32 child_process_id = 2; */
+        if (message.childProcessId !== 0)
+            writer.tag(2, WireType.Varint).uint32(message.childProcessId);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.RebindLocalAppProcessRequest
+ */
+export const RebindLocalAppProcessRequest = new RebindLocalAppProcessRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class RebindLocalAppProcessResponse$Type extends MessageType<RebindLocalAppProcessResponse> {
+    constructor() {
+        super("nimi.runtime.v1.RebindLocalAppProcessResponse", [
+            { no: 1, name: "launch_id", kind: "scalar", T: 12 /*ScalarType.BYTES*/ },
+            { no: 2, name: "bind_deadline", kind: "message", T: () => Timestamp },
+            { no: 3, name: "reason_code", kind: "enum", T: () => ["nimi.runtime.v1.ReasonCode", ReasonCode] }
+        ]);
+    }
+    create(value?: PartialMessage<RebindLocalAppProcessResponse>): RebindLocalAppProcessResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.launchId = new Uint8Array(0);
+        message.reasonCode = 0;
+        if (value !== undefined)
+            reflectionMergePartial<RebindLocalAppProcessResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: RebindLocalAppProcessResponse): RebindLocalAppProcessResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* bytes launch_id */ 1:
+                    message.launchId = reader.bytes();
+                    break;
+                case /* google.protobuf.Timestamp bind_deadline */ 2:
+                    message.bindDeadline = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.bindDeadline);
+                    break;
+                case /* nimi.runtime.v1.ReasonCode reason_code */ 3:
+                    message.reasonCode = reader.int32();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: RebindLocalAppProcessResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* bytes launch_id = 1; */
+        if (message.launchId.length)
+            writer.tag(1, WireType.LengthDelimited).bytes(message.launchId);
+        /* google.protobuf.Timestamp bind_deadline = 2; */
+        if (message.bindDeadline)
+            Timestamp.internalBinaryWrite(message.bindDeadline, writer.tag(2, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.ReasonCode reason_code = 3; */
+        if (message.reasonCode !== 0)
+            writer.tag(3, WireType.Varint).int32(message.reasonCode);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.RebindLocalAppProcessResponse
+ */
+export const RebindLocalAppProcessResponse = new RebindLocalAppProcessResponse$Type();

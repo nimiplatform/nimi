@@ -10,6 +10,7 @@ import {
   sameLocalDevelopmentProject,
 } from '../src-electron/local-development-host.js';
 import type { ElectronLocalDevelopmentPlan } from '../src-electron/local-development-plan.js';
+import { resolveLocalDevelopmentElectronHostArguments } from '../src-electron/local-development-host-arguments.js';
 
 const HANDLE = '11'.repeat(32);
 const SUPERVISOR = '22'.repeat(32);
@@ -109,6 +110,21 @@ describe('Desktop Electron local-development registration host', () => {
   it('separates transport failures from registration failures', () => {
     assert.equal(resolveLocalDevelopmentRegistrationFailureState('runtime-service-unavailable'), 'runtime-unavailable');
     assert.equal(resolveLocalDevelopmentRegistrationFailureState('local-app-developer-mode-disabled'), 'registration-unavailable');
+  });
+
+  it('uses a positional source Electron entry only for source local development', () => {
+    const base = {
+      mainEntry: '/projects/example/dist/main.js',
+      rendererOrigin: 'http://127.0.0.1:1420',
+      userDataArguments: ['--user-data-dir=/tmp/example'],
+      platform: 'darwin' as const,
+    };
+    assert.ok(resolveLocalDevelopmentElectronHostArguments(base).includes(
+      '--nimi-local-app-main=/projects/example/dist/main.js',
+    ));
+    assert.ok(resolveLocalDevelopmentElectronHostArguments({ ...base, sourceLocalDevelopment: true }).includes(
+      '/projects/example/dist/main.js',
+    ));
   });
 
   it('keeps supervisor identifiers independent from registration handles', async () => {

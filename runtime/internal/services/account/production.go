@@ -41,6 +41,8 @@ type ProductionConfig struct {
 type custodySnapshot struct {
 	AccountID            string                        `json:"accountId"`
 	DisplayName          string                        `json:"displayName,omitempty"`
+	CurrentUserHandle    string                        `json:"currentUserHandle,omitempty"`
+	CurrentUserAvatarURL *string                       `json:"currentUserAvatarUrl,omitempty"`
 	RealmEnvironmentID   string                        `json:"realmEnvironmentId,omitempty"`
 	RealmOrigin          string                        `json:"realmOrigin,omitempty"`
 	WorkspaceMemberships []workspaceMembershipSnapshot `json:"workspaceMemberships,omitempty"`
@@ -182,7 +184,17 @@ func (r realmOAuthExchanger) Exchange(ctx context.Context, attempt LoginAttempt,
 		CodeVerifier: attempt.PKCEVerifier,
 		RedirectUri:  firstNonEmpty(attempt.RedirectURI, r.redirectURI),
 	}
-	return r.exchangeForm(ctx, request)
+	material, err := r.exchangeForm(ctx, request)
+	if err != nil {
+		return AccountMaterial{}, err
+	}
+	profile, profileErr := fetchCurrentUserProfile(ctx, r.httpClient, r.realmOrigin, material.AccessToken)
+	if profileErr == nil && profile.AccountID == material.AccountID {
+		material.DisplayName = profile.Display.DisplayName
+		material.CurrentUserHandle = profile.Display.Handle
+		material.CurrentUserAvatarURL = profile.Display.AvatarURL
+	}
+	return material, nil
 }
 
 func (r realmOAuthExchanger) exchangeForm(ctx context.Context, carrier realmv1.OAuthTokenRequestDto) (AccountMaterial, error) {

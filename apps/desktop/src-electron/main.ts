@@ -34,6 +34,10 @@ import {
 } from './local-development-host.js';
 import { createDesktopElectronProductControlHost } from './product-control-host.js';
 import {
+  startDesktopLocalDevelopmentRuntime,
+  type DesktopLocalDevelopmentRuntimeCoordinator,
+} from './local-development-runtime.js';
+import {
   createDesktopElectronOpenIntentHost,
   DESKTOP_OPEN_INTENT_EVENT,
   type DesktopElectronOpenIntentHost,
@@ -80,6 +84,10 @@ const MACOS_LOCAL_DEVELOPMENT_BUILD = typeof __NIMI_MACOS_LOCAL_DEVELOPMENT_BUIL
   && __NIMI_MACOS_LOCAL_DEVELOPMENT_BUILD__;
 const ELECTRON_DEVELOPMENT_BUILD = typeof __NIMI_ELECTRON_DEVELOPMENT_BUILD__ !== 'undefined'
   && __NIMI_ELECTRON_DEVELOPMENT_BUILD__;
+const MACOS_PER_USER_RUNTIME_D2 = process.platform === 'darwin'
+  && ELECTRON_DEVELOPMENT_BUILD
+  && !MACOS_LOCAL_DEVELOPMENT_BUILD
+  && process.env.NIMI_MACOS_SOURCE_LOCAL_DEVELOPMENT === '1';
 
 const currentFilePath = fileURLToPath(import.meta.url);
 const currentDir = path.dirname(currentFilePath);
@@ -132,10 +140,16 @@ let bundledAvatarHost: DesktopElectronBundledAvatarHost | undefined;
 let chatAiStoreHost: DesktopElectronChatAiStoreHost | undefined;
 let menuBarHost: DesktopElectronMenuBarHost | undefined;
 let registeredRuntimeBridge: RegisteredNimiElectronRuntimeBridge | undefined;
+let localDevelopmentRuntime: DesktopLocalDevelopmentRuntimeCoordinator | undefined;
 let quitCleanup: Promise<void> | undefined;
 let quitCleanupComplete = false;
 
 app.setName(MACOS_LOCAL_DEVELOPMENT_BUILD ? 'Nimi Dev' : 'Nimi');
+if (MACOS_PER_USER_RUNTIME_D2) {
+  for (const signal of ['SIGINT', 'SIGTERM'] as const) {
+    process.once(signal, () => app.quit());
+  }
+}
 configureDesktopElectronChromiumRuntime();
 
 const ownsDesktopInstanceLock = app.requestSingleInstanceLock();
@@ -163,6 +177,12 @@ if (!ownsDesktopInstanceLock) {
 async function bootstrapDesktopElectronHost(): Promise<void> {
   try {
     await app.whenReady();
+    if (MACOS_PER_USER_RUNTIME_D2) {
+      localDevelopmentRuntime = await startDesktopLocalDevelopmentRuntime({
+        homeDirectory: app.getPath('home'),
+        hostExecutable: process.execPath,
+      });
+    }
     localAssetProtocolHost.registerProtocolHandler();
     appOriginProtocol.register();
     localDevelopmentHost = await createDesktopElectronLocalDevelopmentHost({
@@ -374,11 +394,13 @@ async function shutdownBeforeQuit(): Promise<void> {
   const chatStoreHost = chatAiStoreHost;
   const currentMenuBarHost = menuBarHost;
   const runtimeBridge = registeredRuntimeBridge;
+  const runtimeD2 = localDevelopmentRuntime;
   await localHost?.shutdown();
   const cleanupResults = await Promise.allSettled([
     openIntentHost?.shutdown(),
     avatarHost?.shutdown(),
     chatStoreHost?.close(),
+    runtimeD2?.stop(),
   ]);
   try {
     runtimeBridge?.unregister();
@@ -396,6 +418,7 @@ async function shutdownBeforeQuit(): Promise<void> {
   if (chatAiStoreHost === chatStoreHost) chatAiStoreHost = undefined;
   if (menuBarHost === currentMenuBarHost) menuBarHost = undefined;
   if (registeredRuntimeBridge === runtimeBridge) registeredRuntimeBridge = undefined;
+  if (localDevelopmentRuntime === runtimeD2) localDevelopmentRuntime = undefined;
   for (const result of cleanupResults) {
     if (result.status === 'rejected') {
       process.stderr.write(

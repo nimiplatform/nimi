@@ -164,6 +164,21 @@ message BindLocalAppProcessResponse {
   ReasonCode reason_code = 3;
 }
 
+// Source-only per-user D2 reauthorizes the already-running exact Desktop
+// child after Runtime loss. Runtime derives all authority from the protected
+// Desktop connection, current registration/run, and fresh kernel process
+// witness; the request carries no App principal or credential.
+message RebindLocalAppProcessRequest {
+  bytes launch_id = 1;
+  uint32 child_process_id = 2;
+}
+
+message RebindLocalAppProcessResponse {
+  bytes launch_id = 1;
+  google.protobuf.Timestamp bind_deadline = 2;
+  ReasonCode reason_code = 3;
+}
+
 service RuntimeAppService {
   rpc SendAppMessage(SendAppMessageRequest) returns (SendAppMessageResponse);
   rpc SubscribeAppMessages(SubscribeAppMessagesRequest) returns (stream AppMessageEvent);
@@ -174,4 +189,5 @@ service RuntimeAppService {
   rpc RemoveLocalAppStorageJson(RemoveLocalAppStorageJsonRequest) returns (RemoveLocalAppStorageJsonResponse);
   rpc PrepareLocalAppLaunch(PrepareLocalAppLaunchRequest) returns (PrepareLocalAppLaunchResponse);
   rpc BindLocalAppProcess(BindLocalAppProcessRequest) returns (BindLocalAppProcessResponse);
+  rpc RebindLocalAppProcess(RebindLocalAppProcessRequest) returns (RebindLocalAppProcessResponse);
 }

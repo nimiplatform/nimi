@@ -1,6 +1,6 @@
 import { ReasonCode } from '@nimiplatform/sdk/types';
 import type { NimiAppAuthProjection, NimiAppLocalSessionProjection } from '@nimiplatform/sdk/app';
-import { testerLocalAppClient } from '../local-app-runtime-platform.js';
+import { getTesterLocalAppClient } from '../local-app-runtime-platform.js';
 
 export { appId, appTitle, scaffoldProfile } from './app-identity.js';
 
@@ -39,7 +39,7 @@ export function getRuntimePlatformProjection(): Promise<RuntimePlatformProjectio
 
 async function resolveLocalAppProjection(): Promise<RuntimePlatformProjection> {
   try {
-    const status = await testerLocalAppClient.auth.status();
+    const status = await getTesterLocalAppClient().auth.status();
     if (!status.sessionBound) {
       return unavailableFromAuth(status);
     }

@@ -58,7 +58,7 @@ func TestProtectedLocalAppAdmissionDenialNeverDispatchesOwner(t *testing.T) {
 	}
 }
 
-func TestProtectedLocalAppAdmittedOperationReportsDistinctOwnerUnavailable(t *testing.T) {
+func TestProtectedLocalAppAdmittedImplementedOwnerDispatches(t *testing.T) {
 	connection := newGRPCLocalAppConnection(t, 0x38)
 	if err := connection.BindSession(protectedlocal.LocalAppSessionHandle{SessionID: grpcLocalAppIdentifier(0x39), SessionProof: grpcLocalAppIdentifier(0x3a)}); err != nil {
 		t.Fatal(err)
@@ -66,12 +66,69 @@ func TestProtectedLocalAppAdmittedOperationReportsDistinctOwnerUnavailable(t *te
 	ctx := peer.NewContext(context.Background(), &peer.Peer{AuthInfo: &protectedLocalAppAuthInfo{connection: connection}})
 	admission := &localAppAdmissionStub{}
 	handlerCalled := false
-	_, err := newUnaryProtectedLocalAppTransportInterceptor(admission)(ctx, &runtimev1.ReadLocalAppStorageJsonRequest{RelativePath: "state.json"}, &grpc.UnaryServerInfo{FullMethod: protectedReadLocalAppStorageJSONMethod}, func(context.Context, any) (any, error) {
+	response, err := newUnaryProtectedLocalAppTransportInterceptor(admission)(ctx, &runtimev1.ReadLocalAppStorageJsonRequest{RelativePath: "state.json"}, &grpc.UnaryServerInfo{FullMethod: protectedReadLocalAppStorageJSONMethod}, func(context.Context, any) (any, error) {
 		handlerCalled = true
-		return &runtimev1.ReadLocalAppStorageJsonResponse{}, nil
+		return &runtimev1.ReadLocalAppStorageJsonResponse{ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED}, nil
 	})
-	if handlerCalled || admission.calls != 1 || localAppTransportReason(err) != runtimev1.ReasonCode_LOCAL_APP_OWNER_UNAVAILABLE {
-		t.Fatalf("admitted operation = handler:%v admission:%+v reason:%v", handlerCalled, admission, localAppTransportReason(err))
+	if err != nil || !handlerCalled || admission.calls != 1 || response.(*runtimev1.ReadLocalAppStorageJsonResponse).GetReasonCode() != runtimev1.ReasonCode_ACTION_EXECUTED {
+		t.Fatalf("admitted operation = handler:%v admission:%+v response:%+v error:%v", handlerCalled, admission, response, err)
+	}
+}
+
+func TestProtectedLocalAppAdmittedUnimplementedOwnerReportsUnavailable(t *testing.T) {
+	connection := newGRPCLocalAppConnection(t, 0x3e)
+	if err := connection.BindSession(protectedlocal.LocalAppSessionHandle{SessionID: grpcLocalAppIdentifier(0x3f), SessionProof: grpcLocalAppIdentifier(0x40)}); err != nil {
+		t.Fatal(err)
+	}
+	ctx := peer.NewContext(context.Background(), &peer.Peer{AuthInfo: &protectedLocalAppAuthInfo{connection: connection}})
+	admission := &localAppAdmissionStub{}
+	handlerCalled := false
+	_, err := newUnaryProtectedLocalAppTransportInterceptor(admission)(ctx, &runtimev1.GenerateLocalAppTextCandidateRequest{}, &grpc.UnaryServerInfo{FullMethod: protectedGenerateTextCandidateMethod}, func(context.Context, any) (any, error) {
+		handlerCalled = true
+		return &runtimev1.GenerateLocalAppTextCandidateResponse{}, nil
+	})
+	if handlerCalled || admission.calls != 1 || admission.ingress != localappop.IngressTextCandidateGenerate || localAppTransportReason(err) != runtimev1.ReasonCode_LOCAL_APP_OWNER_UNAVAILABLE {
+		t.Fatalf("unimplemented owner = handler:%v admission:%+v reason:%v", handlerCalled, admission, localAppTransportReason(err))
+	}
+}
+
+func TestProtectedLocalAppRealmListDispatchesButCreateRemainsOwnerUnavailable(t *testing.T) {
+	connection := newGRPCLocalAppConnection(t, 0x51)
+	if err := connection.BindSession(protectedlocal.LocalAppSessionHandle{SessionID: grpcLocalAppIdentifier(0x52), SessionProof: grpcLocalAppIdentifier(0x53)}); err != nil {
+		t.Fatal(err)
+	}
+	ctx := peer.NewContext(context.Background(), &peer.Peer{AuthInfo: &protectedLocalAppAuthInfo{connection: connection}})
+	admission := &localAppAdmissionStub{}
+	listCalled := false
+	listRequest := &runtimev1.InvokeRealmUnaryRequest{MethodId: "WorldCoreController_listWorldCores", RequestJson: `{"path":{},"query":{}}`}
+	_, err := newUnaryProtectedLocalAppTransportInterceptor(admission)(ctx, listRequest, &grpc.UnaryServerInfo{FullMethod: protectedInvokeRealmUnaryMethod}, func(context.Context, any) (any, error) {
+		listCalled = true
+		return &runtimev1.InvokeRealmUnaryResponse{Accepted: true}, nil
+	})
+	if err != nil || !listCalled || admission.ingress != localappop.IngressRealmWorldCoreList {
+		t.Fatalf("Realm list = called:%v admission:%+v error:%v", listCalled, admission, err)
+	}
+
+	createCalled := false
+	createRequest := &runtimev1.InvokeRealmUnaryRequest{MethodId: "WorldCoreController_createWorldCore", RequestJson: `{"path":{},"query":{},"body":{}}`}
+	_, err = newUnaryProtectedLocalAppTransportInterceptor(admission)(ctx, createRequest, &grpc.UnaryServerInfo{FullMethod: protectedInvokeRealmUnaryMethod}, func(context.Context, any) (any, error) {
+		createCalled = true
+		return &runtimev1.InvokeRealmUnaryResponse{}, nil
+	})
+	if createCalled || admission.ingress != localappop.IngressRealmWorldCoreCreate || localAppTransportReason(err) != runtimev1.ReasonCode_LOCAL_APP_OWNER_UNAVAILABLE {
+		t.Fatalf("Realm create = called:%v admission:%+v reason:%v", createCalled, admission, localAppTransportReason(err))
+	}
+}
+
+func TestProtectedLocalAppCallerAssertionScannerHandlesRepeatedMessages(t *testing.T) {
+	request := &runtimev1.GenerateLocalAppTextCandidateRequest{
+		Messages:    []*runtimev1.LocalAppTextCandidateMessage{{Role: "user", Text: "deny before dispatch"}},
+		Temperature: 0,
+		TopP:        1,
+		MaxTokens:   1,
+	}
+	if protectedLocalAppRequestHasCallerAssertion(context.Background(), request) {
+		t.Fatal("ordinary repeated message content was treated as a caller assertion")
 	}
 }
 
@@ -118,6 +175,12 @@ func (stub *localAppAdmissionStub) AdmitLocalAppIngress(_ context.Context, ingre
 	stub.calls++
 	stub.ingress = ingress
 	return stub.err
+}
+
+func (stub *localAppAdmissionStub) AuthorizeLocalAppIngress(ctx context.Context, ingress localappop.Ingress) (context.Context, error) {
+	stub.calls++
+	stub.ingress = ingress
+	return ctx, stub.err
 }
 
 type localAppTransportTestStream struct{ ctx context.Context }

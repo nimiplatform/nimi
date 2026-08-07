@@ -1,4 +1,4 @@
-//go:build darwin && cgo
+//go:build darwin && cgo && !nimi_macos_source_local_development
 
 package protectedlocal
 
@@ -190,6 +190,10 @@ func (state *MacOSRuntimeSecurityState) RuntimeServiceUID() uint32 {
 	}
 	return state.serviceUID
 }
+func (state *MacOSRuntimeSecurityState) SourceLocalDevelopment() bool { return false }
+
+func (state *MacOSRuntimeSecurityState) StartOwnerMonitor(context.Context, context.CancelFunc) {}
+
 func (state *MacOSRuntimeSecurityState) BinarySecrets() BinarySecretStore {
 	if state == nil {
 		return nil

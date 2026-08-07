@@ -29,13 +29,22 @@ func TestLocalAppSessionWireKeepsPrivateAuthorityOutOfMessages(t *testing.T) {
 			t.Fatalf("OpenLocalAppSessionResponse exposes private authority field %q", forbidden)
 		}
 	}
-	for _, required := range []string{"state", "reason_code"} {
+	for _, required := range []string{"state", "reason_code", "current_user", "current_user_reason_code"} {
 		if response.Fields().ByName(protoreflect.Name(required)) == nil {
 			t.Fatalf("OpenLocalAppSessionResponse missing typed projection field %q", required)
 		}
 	}
-	if response.Fields().Len() != 2 {
-		t.Fatalf("OpenLocalAppSessionResponse fields = %d, want posture-only state and reason_code", response.Fields().Len())
+	if response.Fields().Len() != 4 {
+		t.Fatalf("OpenLocalAppSessionResponse fields = %d, want session posture plus isolated Current User posture", response.Fields().Len())
+	}
+	currentUser := (&runtimev1.CurrentUserDisplayProjection{}).ProtoReflect().Descriptor()
+	if currentUser.Fields().Len() != 3 {
+		t.Fatalf("CurrentUserDisplayProjection fields = %d, want exact handle/display_name/avatar_url", currentUser.Fields().Len())
+	}
+	for _, required := range []string{"handle", "display_name", "avatar_url"} {
+		if currentUser.Fields().ByName(protoreflect.Name(required)) == nil {
+			t.Fatalf("CurrentUserDisplayProjection missing %q", required)
+		}
 	}
 }
 

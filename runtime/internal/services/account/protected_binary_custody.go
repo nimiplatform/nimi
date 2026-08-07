@@ -118,6 +118,8 @@ func encodeProtectedAccountMaterial(material AccountMaterial) ([]byte, error) {
 	snapshot := custodySnapshot{
 		AccountID:            material.AccountID,
 		DisplayName:          material.DisplayName,
+		CurrentUserHandle:    material.CurrentUserHandle,
+		CurrentUserAvatarURL: material.CurrentUserAvatarURL,
 		RealmEnvironmentID:   material.RealmEnvironmentID,
 		RealmOrigin:          material.RealmOrigin,
 		WorkspaceMemberships: workspaceMembershipSnapshotsFromProjections(material.WorkspaceMemberships),
@@ -187,6 +189,8 @@ func decodeProtectedAccountMaterial(encoded []byte) (AccountMaterial, error) {
 	material := AccountMaterial{
 		AccountID:            snapshot.AccountID,
 		DisplayName:          snapshot.DisplayName,
+		CurrentUserHandle:    snapshot.CurrentUserHandle,
+		CurrentUserAvatarURL: snapshot.CurrentUserAvatarURL,
 		RealmEnvironmentID:   snapshot.RealmEnvironmentID,
 		RealmOrigin:          snapshot.RealmOrigin,
 		WorkspaceMemberships: workspaceMembershipsFromSnapshots(snapshot.WorkspaceMemberships),
@@ -215,6 +219,18 @@ func validateProtectedAccountMaterial(material AccountMaterial) error {
 	for _, field := range required {
 		if strings.TrimSpace(field.value) == "" {
 			return fmt.Errorf("%s is empty", field.name)
+		}
+	}
+	if material.CurrentUserHandle != "" {
+		if _, err := requiredCurrentUserDisplayTextValue(material.CurrentUserHandle, 160); err != nil {
+			return errors.New("Current User handle is invalid")
+		}
+	} else if material.CurrentUserAvatarURL != nil {
+		return errors.New("Current User avatar has no handle")
+	}
+	if material.CurrentUserAvatarURL != nil {
+		if _, err := safeCurrentUserAvatarURL(*material.CurrentUserAvatarURL, material.RealmOrigin); err != nil {
+			return errors.New("Current User avatar URL is invalid")
 		}
 	}
 	if material.AccessTokenExpires.IsZero() || material.AccessTokenExpires.Year() < 1 || material.AccessTokenExpires.Year() > 9999 {

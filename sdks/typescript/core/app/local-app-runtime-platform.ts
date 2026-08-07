@@ -111,6 +111,12 @@ export type NimiLocalAppWorldCoreListInput = {
   readonly visibility?: 'private' | 'unlisted' | 'public' | 'system';
 };
 
+export type NimiCurrentUserDisplay = {
+  readonly handle: string;
+  readonly displayName: string;
+  readonly avatarUrl: string | null;
+};
+
 export type NimiLocalAppTextCandidateMessage = {
   readonly role: 'system' | 'user';
   readonly text: string;
@@ -167,6 +173,9 @@ export type NimiLocalAppClientInput = {
 export type NimiLocalAppClient = {
   readonly auth: {
     readonly status: () => Promise<NimiAppAuthProjection>;
+  };
+  readonly currentUser: {
+    readonly get: () => Promise<NimiCurrentUserDisplay>;
   };
   readonly ai: {
     readonly text: {
@@ -247,6 +256,9 @@ export function createNimiLocalAppClient(
   return Object.freeze({
     auth: Object.freeze({
       status: async () => projectAuth(await standardShell.session.status()),
+    }),
+    currentUser: Object.freeze({
+      get: async () => projectCurrentUser(await standardShell.session.status()),
     }),
     ai: Object.freeze({ text: createTextCandidateClient(standardShell.ai.text) }),
     aiConfig: createNimiLocalAppAIConfigClient(standardShell.aiConfig),
@@ -433,8 +445,54 @@ function createWorldCoreClient(
 function projectWorldCore(value: unknown): RealmModel<'WorldCoreDto'> {
   const record = asRecord(value);
   if (!record) localAppProjectionError('WorldCore');
+  assertAllowedWorldCoreKeys(
+    record,
+    ['id', 'schemaVersion', 'contentRevision', 'contentHash', 'origin', 'visibility', 'core', 'createdAt', 'updatedAt', 'creatorId'],
+    ['id', 'schemaVersion', 'contentRevision', 'contentHash', 'origin', 'visibility', 'core', 'createdAt', 'updatedAt'],
+    'WorldCore',
+  );
+  for (const field of ['id', 'schemaVersion', 'contentHash', 'createdAt', 'updatedAt']) {
+    projectionText(record[field], `WorldCore ${field}`);
+  }
+  if (typeof record.contentRevision !== 'number' || !Number.isFinite(record.contentRevision)) {
+    localAppProjectionError('WorldCore contentRevision');
+  }
+  if (!['private', 'unlisted', 'public', 'system'].includes(String(record.visibility))) {
+    localAppProjectionError('WorldCore visibility');
+  }
+  const origin = asRecord(record.origin);
+  assertAllowedWorldCoreKeys(
+    origin,
+    ['kind', 'parentCharacterId', 'parentWorldId', 'sourceContentHash', 'sourceId', 'sourceVersion'],
+    ['kind'],
+    'WorldCore origin',
+  );
+  if (!origin || !['manual', 'forge', 'worldCharacterDerivation', 'import', 'system'].includes(String(origin.kind))) {
+    localAppProjectionError('WorldCore origin kind');
+  }
+  const core = asRecord(record.core);
+  assertAllowedWorldCoreKeys(
+    core,
+    ['identity', 'presentation', 'ontology', 'timeModel', 'timeline', 'entities', 'relationships', 'systems', 'scenes', 'assets', 'authoring'],
+    ['identity', 'presentation', 'ontology', 'timeModel', 'timeline', 'entities', 'relationships', 'systems', 'scenes', 'assets', 'authoring'],
+    'WorldCore core',
+  );
   assertSafeProjection(record);
   return Object.freeze({ ...record }) as unknown as RealmModel<'WorldCoreDto'>;
+}
+
+function assertAllowedWorldCoreKeys(
+  record: Record<string, unknown> | null | undefined,
+  allowed: readonly string[],
+  required: readonly string[],
+  field: string,
+): asserts record is Record<string, unknown> {
+  if (!record) localAppProjectionError(field);
+  const allowedSet = new Set(allowed);
+  if (Object.keys(record).some((key) => !allowedSet.has(key))
+    || required.some((key) => !Object.hasOwn(record, key))) {
+    localAppProjectionError(field);
+  }
 }
 
 function requireWorldCoreTake(value: unknown): number {
@@ -510,7 +568,8 @@ function protectedAppAccessUnavailable(): never {
 
 function projectAuth(value: unknown): NimiAppAuthProjection {
   const record = asRecord(value);
-  assertExactProjectionKeys(record, ['state', 'reasonCode', 'retryable'], 'auth');
+  assertExactProjectionKeys(record, ['state', 'reasonCode', 'retryable', 'currentUser'], 'auth');
+  projectCurrentUserStatus(record.currentUser);
   const rawState = projectionText(record.state, 'state');
   const reasonCode = projectionText(record.reasonCode, 'reasonCode');
   if (typeof record.retryable !== 'boolean') localAppProjectionError('auth retryable');
@@ -534,6 +593,62 @@ function projectAuth(value: unknown): NimiAppAuthProjection {
     actionHint,
     retryable: record.retryable,
   };
+}
+
+function projectCurrentUser(value: unknown): NimiCurrentUserDisplay {
+  const record = asRecord(value);
+  assertExactProjectionKeys(record, ['state', 'reasonCode', 'retryable', 'currentUser'], 'Current User session');
+  const status = projectCurrentUserStatus(record.currentUser);
+  if (status === null) {
+    return localAppError(
+      'Current User display is temporarily unavailable while the App session remains ready.',
+      'SDK_LOCAL_APP_CURRENT_USER_UNAVAILABLE',
+      'retry_current_user_after_account_binding',
+    );
+  }
+  return status;
+}
+
+function projectCurrentUserStatus(value: unknown): NimiCurrentUserDisplay | null {
+  const status = asRecord(value);
+  assertExactProjectionKeys(status, ['state', 'value', 'reasonCode', 'retryable'], 'Current User status');
+  const state = projectionText(status.state, 'Current User state');
+  const reasonCode = projectionText(status.reasonCode, 'Current User reasonCode');
+  if (typeof status.retryable !== 'boolean') localAppProjectionError('Current User retryable');
+  if (state === 'unavailable' && status.value === null
+    && reasonCode === 'current-user-display-unavailable' && status.retryable) return null;
+  if (state !== 'ready' || reasonCode !== 'action-executed' || status.retryable) {
+    return localAppProjectionError('Current User posture');
+  }
+  const display = asRecord(status.value);
+  assertExactProjectionKeys(display, ['handle', 'displayName', 'avatarUrl'], 'Current User display');
+  const handle = currentUserText(display.handle, 'handle', 160);
+  const displayName = currentUserText(display.displayName, 'displayName', 256);
+  const avatarUrl = display.avatarUrl;
+  if (avatarUrl !== null && !safeCurrentUserAvatarUrl(avatarUrl)) {
+    return localAppProjectionError('Current User avatarUrl');
+  }
+  return Object.freeze({ handle, displayName, avatarUrl: avatarUrl as string | null });
+}
+
+function currentUserText(value: unknown, field: string, maximum: number): string {
+  if (typeof value !== 'string' || !value || value.trim() !== value
+    || new TextEncoder().encode(value).byteLength > maximum || /[\u0000-\u001f\u007f]/u.test(value)) {
+    return localAppProjectionError(`Current User ${field}`);
+  }
+  return value;
+}
+
+function safeCurrentUserAvatarUrl(value: unknown): value is string {
+  if (typeof value !== 'string' || !value || value.trim() !== value || value.length > 2048) return false;
+  try {
+    const parsed = new URL(value);
+    if (parsed.username || parsed.password || parsed.search || parsed.hash) return false;
+    if (parsed.protocol === 'https:') return !parsed.port || parsed.port === '443';
+    return parsed.protocol === 'http:' && parsed.hostname === '127.0.0.1' && parsed.port === '3002';
+  } catch {
+    return false;
+  }
 }
 
 function localAppSessionState(

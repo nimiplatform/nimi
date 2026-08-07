@@ -141,6 +141,7 @@ type ProtectedServiceBindings struct {
 	ProductControlRoot                string
 	RuntimeServiceSID                 string
 	RuntimeServiceUID                 uint32
+	PerUserRuntime                    bool
 	LocalDevelopmentConsentStorePath  string
 	PlatformAppIdentityProjectionPath string
 	PlatformBundledAppsRoot           string
@@ -191,10 +192,15 @@ func NewProtectedService(cfg config.Config, state *health.State, logger *slog.Lo
 		return nil, fmt.Errorf("protected service state root must be an absolute non-root path")
 	}
 	productControlRoot := filepath.Clean(strings.TrimSpace(bindings.ProductControlRoot))
-	if !filepath.IsAbs(productControlRoot) ||
-		productControlRoot == filepath.VolumeName(productControlRoot)+string(filepath.Separator) ||
-		filepath.Base(productControlRoot) != ".nimi" {
-		return nil, fmt.Errorf("protected Product Control root must be the fixed absolute interactive-user .nimi directory")
+	validProductControlRoot := filepath.IsAbs(productControlRoot) &&
+		productControlRoot != filepath.VolumeName(productControlRoot)+string(filepath.Separator)
+	if bindings.PerUserRuntime {
+		validProductControlRoot = validProductControlRoot && productControlRoot == filepath.Join(stateRoot, ".nimi")
+	} else {
+		validProductControlRoot = validProductControlRoot && filepath.Base(productControlRoot) == ".nimi"
+	}
+	if !validProductControlRoot {
+		return nil, fmt.Errorf("protected Product Control root does not match the active Runtime custody profile")
 	}
 	sessionScopedLocalApp := bindings.LocalAppLaunches != nil && bindings.LocalDevelopmentVerifier != nil && bindings.DirectLocalAppLaunches == nil
 	directLocalApp := bindings.LocalAppLaunches == nil && bindings.LocalDevelopmentVerifier == nil && bindings.DirectLocalAppLaunches != nil
@@ -258,6 +264,16 @@ func protectedProductControlDataRootSecurityBinding(bindings ProtectedServiceBin
 			return localservice.ProductControlDataRootSecurityBinding{}, fmt.Errorf("protected macOS Product Control requires the verified interactive-user UID")
 		}
 		runtimeServiceUID := bindings.RuntimeServiceUID
+		if bindings.PerUserRuntime {
+			if runtimeServiceUID != interactiveUserUID {
+				return localservice.ProductControlDataRootSecurityBinding{}, fmt.Errorf("per-user macOS Product Control requires one current-user Runtime UID")
+			}
+			return localservice.ProductControlDataRootSecurityBinding{
+				InteractiveUserUID: interactiveUserUID,
+				RuntimeServiceUID:  runtimeServiceUID,
+				PerUserRuntime:     true,
+			}, nil
+		}
 		if runtimeServiceUID == 0 || runtimeServiceUID == interactiveUserUID {
 			return localservice.ProductControlDataRootSecurityBinding{}, fmt.Errorf("protected macOS Product Control requires the distinct fixed Runtime service UID")
 		}
@@ -423,6 +439,12 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 		}
 		if developmentErr != nil {
 			return nil, fmt.Errorf("open local-development store: %w", developmentErr)
+		}
+		if protected.PerUserRuntime {
+			if _, enableErr := developmentStore.SetDeveloperMode(context.Background(), true); enableErr != nil {
+				_ = developmentStore.Close()
+				return nil, fmt.Errorf("enable source D2 local development: %w", enableErr)
+			}
 		}
 		localDevelopmentStore = developmentStore
 		kernel, kernelErr := localappkernel.OpenSQLite(
@@ -775,6 +797,9 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 		appservice.WithRuntimeAccountProjectionProvider(accountSvc),
 	}
 	if protected != nil {
+		if protected.PerUserRuntime {
+			appOptions = append(appOptions, appservice.WithPerUserRuntimeRebind(true))
+		}
 		if protected.DirectLocalAppLaunches != nil {
 			appOptions = append(appOptions,
 				appservice.WithDirectLocalDevelopmentAuthority(localDevelopmentStore, protected.DirectLocalAppLaunches, artifactStore),

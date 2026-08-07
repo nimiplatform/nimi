@@ -1426,6 +1426,7 @@ const (
 	LOCALAPPACCESSDENIED ReasonCode = "LOCAL_APP_ACCESS_DENIED"
 	LOCALAPPOPERATIONUNSUPPORTED ReasonCode = "LOCAL_APP_OPERATION_UNSUPPORTED"
 	LOCALAPPOWNERUNAVAILABLE ReasonCode = "LOCAL_APP_OWNER_UNAVAILABLE"
+	CURRENTUSERDISPLAYUNAVAILABLE ReasonCode = "CURRENT_USER_DISPLAY_UNAVAILABLE"
 )
 
 type ReasoningMode string
@@ -2965,6 +2966,12 @@ type CreateKnowledgeBankRequest struct {
 
 type CreateKnowledgeBankResponse struct {
 	Bank *KnowledgeBank `json:"bank,omitempty"`
+}
+
+type CurrentUserDisplayProjection struct {
+	Handle string `json:"handle,omitempty"`
+	DisplayName string `json:"display_name,omitempty"`
+	AvatarUrl *string `json:"avatar_url,omitempty"`
 }
 
 type DelegatedApprovalRequest struct {
@@ -5662,6 +5669,8 @@ type OpenLocalAppSessionRequest struct {
 type OpenLocalAppSessionResponse struct {
 	State LocalAppSessionState `json:"state,omitempty"`
 	ReasonCode ReasonCode `json:"reason_code,omitempty"`
+	CurrentUser *CurrentUserDisplayProjection `json:"current_user,omitempty"`
+	CurrentUserReasonCode ReasonCode `json:"current_user_reason_code,omitempty"`
 }
 
 type OpenRealtimeSessionRequest struct {
@@ -5978,6 +5987,17 @@ type ReasoningConfig struct {
 
 type ReasoningStreamDelta struct {
 	Text string `json:"text,omitempty"`
+}
+
+type RebindLocalAppProcessRequest struct {
+	LaunchId []byte `json:"launch_id,omitempty"`
+	ChildProcessId uint32 `json:"child_process_id,omitempty"`
+}
+
+type RebindLocalAppProcessResponse struct {
+	LaunchId []byte `json:"launch_id,omitempty"`
+	BindDeadline string `json:"bind_deadline,omitempty"`
+	ReasonCode ReasonCode `json:"reason_code,omitempty"`
 }
 
 type RebindLocalCapabilityRequirementRequest struct {
@@ -8246,6 +8266,14 @@ func (c RuntimeTypedClient) ReadLocalAppStorageJson(ctx context.Context, request
 		return ReadLocalAppStorageJsonResponse{}, err
 	}
 	return decodeRuntimeTypedResponse[ReadLocalAppStorageJsonResponse](raw, "ReadLocalAppStorageJsonResponse")
+}
+
+func (c RuntimeTypedClient) RebindLocalAppProcess(ctx context.Context, request RebindLocalAppProcessRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (RebindLocalAppProcessResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAppService/RebindLocalAppProcess", request, metadata, timeoutMS)
+	if err != nil {
+		return RebindLocalAppProcessResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[RebindLocalAppProcessResponse](raw, "RebindLocalAppProcessResponse")
 }
 
 func (c RuntimeTypedClient) RemoveLocalAppStorageJson(ctx context.Context, request RemoveLocalAppStorageJsonRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (RemoveLocalAppStorageJsonResponse, error) {

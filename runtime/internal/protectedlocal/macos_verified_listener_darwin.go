@@ -29,7 +29,7 @@ func OpenMacOSVerifiedDesktopListener(ctx context.Context, state *MacOSRuntimeSe
 	if ctx == nil || state == nil || state.serviceUID == 0 {
 		return nil, fail(ReasonProtectedLocalTransportUnsupported, false, "repair_runtime_service", fmt.Errorf("verified macOS Runtime security state is required"))
 	}
-	raw, err := activateMacOSLaunchdSocket(MacOSDesktopSocketActivationName, MacOSDesktopSocketPath, state.serviceUID)
+	raw, err := openMacOSRuntimeSocket(MacOSDesktopSocketActivationName, MacOSDesktopSocketPath, state.serviceUID)
 	if err != nil {
 		return nil, err
 	}
@@ -247,7 +247,7 @@ func OpenMacOSVerifiedLocalAppListener(ctx context.Context, state *MacOSRuntimeS
 	if ctx == nil || state == nil || state.localAppLaunches == nil {
 		return nil, fail(ReasonProtectedLocalTransportUnsupported, false, "repair_runtime_service", fmt.Errorf("verified macOS local-app authority is required"))
 	}
-	raw, err := activateMacOSLaunchdSocket(MacOSLocalAppSocketActivationName, MacOSLocalAppSocketPath, state.serviceUID)
+	raw, err := openMacOSRuntimeSocket(MacOSLocalAppSocketActivationName, MacOSLocalAppSocketPath, state.serviceUID)
 	if err != nil {
 		return nil, err
 	}
@@ -291,7 +291,7 @@ func (listener *MacOSVerifiedLocalAppListener) Accept() (net.Conn, error) {
 			_ = raw.Close()
 			continue
 		}
-		peer, err := verifyConnectedMacOSLocalApp(audit, launch.DesktopPID)
+		peer, err := verifyConnectedMacOSLocalApp(audit, launch)
 		if err != nil {
 			_ = raw.Close()
 			continue

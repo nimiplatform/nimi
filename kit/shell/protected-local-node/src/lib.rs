@@ -607,6 +607,7 @@ fn invalidates_desktop_transport(reason_code: &str) -> bool {
     matches!(
         reason_code,
         "runtime-service-unavailable"
+            | "runtime-service-error-unclassified"
             | "runtime-service-untrusted"
             | "runtime-service-repair-required"
             | "runtime-restarted"
@@ -647,6 +648,7 @@ mod desktop_transport_invalidation_tests {
     fn invalidates_only_transport_or_verified_origin_failures() {
         for reason in [
             "runtime-service-unavailable",
+            "runtime-service-error-unclassified",
             "runtime-service-untrusted",
             "runtime-service-repair-required",
             "runtime-restarted",

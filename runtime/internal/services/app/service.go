@@ -85,6 +85,7 @@ type Service struct {
 	localDevelopmentRegistry  *protectedlocal.LocalAppLaunchRegistry
 	localDevelopmentVerifier  protectedlocal.LocalDevelopmentProcessVerifier
 	directLocalAppLaunches    *protectedlocal.DirectLocalAppLaunches
+	perUserRuntimeRebind      bool
 	localDevelopmentArtifacts runtimeartifactservice.Store
 	localAppKernel            *localappkernel.Kernel
 	localAppStorageMu         sync.RWMutex
@@ -153,6 +154,12 @@ func WithDirectLocalDevelopmentAuthority(store *localDevelopmentStore, launches 
 		s.localDevelopment = store
 		s.directLocalAppLaunches = launches
 		s.localDevelopmentArtifacts = artifacts
+	}
+}
+
+func WithPerUserRuntimeRebind(enabled bool) Option {
+	return func(s *Service) {
+		s.perUserRuntimeRebind = enabled
 	}
 }
 

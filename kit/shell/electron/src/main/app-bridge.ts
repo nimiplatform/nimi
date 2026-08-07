@@ -15,6 +15,7 @@ const LOCAL_APP_PROTECTED_CARRIER_SENTINEL = 'local-app-protected-carrier-only';
 const REQUIRED_INPUT_KEYS = ['allowedRendererUrls', 'appId', 'ipcMain'] as const;
 const OPTIONAL_INPUT_KEYS = ['appCommandHandlers'] as const;
 const RESERVED_COMMAND_PREFIX = 'nimi.shell.';
+let sourceLocalDevelopmentParentMonitor: NodeJS.Timeout | undefined;
 
 export type RegisterNimiElectronAppBridgeInput = {
   readonly appId: string;
@@ -42,6 +43,7 @@ export function registerNimiElectronAppBridge(
   input: RegisterNimiElectronAppBridgeInput,
 ): RegisteredNimiElectronRuntimeBridge {
   assertExactAppBridgeInput(input);
+  startSourceLocalDevelopmentParentMonitor();
   const allowedRendererUrls = input.allowedRendererUrls.map(normalizeRendererUrl);
   if (allowedRendererUrls.length === 0) {
     throw appBridgeInputError(
@@ -89,6 +91,36 @@ export function registerNimiElectronAppBridge(
     invokeChannel: registered.invokeChannel,
     unregister: closeBridge,
   };
+}
+
+function startSourceLocalDevelopmentParentMonitor(): void {
+  if (process.platform !== 'darwin' || process.env.NIMI_MACOS_SOURCE_LOCAL_DEVELOPMENT !== '1') return;
+  const sourceProcess = process as NodeJS.Process & { readonly defaultApp?: boolean };
+  const desktopPid = process.ppid;
+  if (sourceProcess.defaultApp !== true || !Number.isSafeInteger(desktopPid) || desktopPid <= 1) {
+    throw appBridgeInputError(
+      'Source local development requires one live Desktop parent',
+      'electron-local-app-parent-required',
+      'relaunch_local_app_from_desktop',
+    );
+  }
+  if (sourceLocalDevelopmentParentMonitor) return;
+  sourceLocalDevelopmentParentMonitor = setInterval(() => {
+    let parentAlive = process.ppid === desktopPid;
+    if (parentAlive) {
+      try {
+        process.kill(desktopPid, 0);
+      } catch {
+        parentAlive = false;
+      }
+    }
+    if (!parentAlive) {
+      clearInterval(sourceLocalDevelopmentParentMonitor);
+      sourceLocalDevelopmentParentMonitor = undefined;
+      process.kill(process.pid, 'SIGTERM');
+    }
+  }, 250);
+  sourceLocalDevelopmentParentMonitor.unref();
 }
 
 function assertExactAppBridgeInput(input: RegisterNimiElectronAppBridgeInput): void {

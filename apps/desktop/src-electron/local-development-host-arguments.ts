@@ -8,12 +8,13 @@ export function resolveLocalDevelopmentElectronHostArguments(input: {
   readonly userDataArguments: readonly string[];
   readonly cdpPort?: number;
   readonly platform?: NodeJS.Platform;
+  readonly sourceLocalDevelopment?: boolean;
 }): string[] {
   const platform = input.platform ?? process.platform;
   if (platform !== 'darwin' && platform !== 'win32') {
     throw new Error('local-development-platform-unsupported');
   }
-  const applicationArgument = platform === 'darwin'
+  const applicationArgument = platform === 'darwin' && input.sourceLocalDevelopment !== true
     ? `--nimi-local-app-main=${input.mainEntry}`
     : input.mainEntry;
   const cdpArguments = input.cdpPort === undefined

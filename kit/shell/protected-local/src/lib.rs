@@ -20,6 +20,8 @@ mod macos_peer_trust;
 mod macos_profile;
 #[cfg(all(target_os = "macos", feature = "macos-local-development"))]
 mod macos_profile_local_development;
+#[cfg(all(target_os = "macos", feature = "macos-source-local-development"))]
+mod macos_profile_source_local_development;
 #[cfg(target_os = "macos")]
 #[allow(unsafe_code)]
 mod macos_service_control;
@@ -34,6 +36,12 @@ mod service;
     clippy::enum_variant_names,
     clippy::large_enum_variant
 )]
+#[cfg(all(
+    feature = "macos-local-development",
+    feature = "macos-source-local-development"
+))]
+compile_error!("macos-local-development and macos-source-local-development are mutually exclusive");
+
 mod generated {
     tonic::include_proto!("nimi.runtime.v1");
 }
@@ -77,13 +85,14 @@ pub use carrier::{
     LocalAppConversationOpenResult, LocalAppConversationSendRequest,
     LocalAppConversationSendResult, LocalAppConversationSnapshotRequest,
     LocalAppConversationSubscribeRequest, LocalAppConversationSubscriptionReceiver,
-    LocalAppOperationError, LocalAppReasonCode, LocalAppSessionFuture, LocalAppSessionState,
-    LocalAppSessionStatus, LocalAppSharedAgentAIConfigOverwriteRequest,
-    LocalAppSharedAgentAIProfileRequest, LocalAppStorageDocument, LocalAppStorageReadRequest,
-    LocalAppStorageRemoveRequest, LocalAppStorageRemoveResult, LocalAppStorageWriteRequest,
-    LocalAppTextCandidateMessage, LocalAppTextCandidateRequest, LocalAppTextCandidateResult,
-    LocalAppWorldCoreCreateRequest, LocalAppWorldCoreListRequest, NimiDesktopControl,
-    NimiLocalAppCarrier, NimiLocalAppSession, NimiProtectedLocalHostCarrier,
+    LocalAppCurrentUserDisplay, LocalAppCurrentUserStatus, LocalAppOperationError,
+    LocalAppReasonCode, LocalAppSessionFuture, LocalAppSessionState, LocalAppSessionStatus,
+    LocalAppSharedAgentAIConfigOverwriteRequest, LocalAppSharedAgentAIProfileRequest,
+    LocalAppStorageDocument, LocalAppStorageReadRequest, LocalAppStorageRemoveRequest,
+    LocalAppStorageRemoveResult, LocalAppStorageWriteRequest, LocalAppTextCandidateMessage,
+    LocalAppTextCandidateRequest, LocalAppTextCandidateResult, LocalAppWorldCoreCreateRequest,
+    LocalAppWorldCoreListRequest, NimiDesktopControl, NimiLocalAppCarrier, NimiLocalAppSession,
+    NimiProtectedLocalHostCarrier,
 };
 pub use desktop_account::{
     DesktopAccountActionRequest, DesktopAccountBeginLoginRequest, DesktopAccountBeginLoginResponse,

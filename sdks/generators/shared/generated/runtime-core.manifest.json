@@ -907,6 +907,15 @@
           "response_type": "BindLocalAppProcessResponse",
           "request_stream": false,
           "response_stream": false
+        },
+        {
+          "name": "RebindLocalAppProcess",
+          "method_id": "/nimi.runtime.v1.RuntimeAppService/RebindLocalAppProcess",
+          "kind": "unary",
+          "request_type": "RebindLocalAppProcessRequest",
+          "response_type": "RebindLocalAppProcessResponse",
+          "request_stream": false,
+          "response_stream": false
         }
       ]
     },
@@ -2429,6 +2438,7 @@
     "/nimi.runtime.v1.RuntimeAppService/GetAppStorage",
     "/nimi.runtime.v1.RuntimeAppService/PrepareLocalAppLaunch",
     "/nimi.runtime.v1.RuntimeAppService/ReadLocalAppStorageJson",
+    "/nimi.runtime.v1.RuntimeAppService/RebindLocalAppProcess",
     "/nimi.runtime.v1.RuntimeAppService/RemoveLocalAppStorageJson",
     "/nimi.runtime.v1.RuntimeAppService/SendAppMessage",
     "/nimi.runtime.v1.RuntimeAppService/SubscribeAppMessages",
@@ -3298,6 +3308,14 @@
       "kind": "unary",
       "request_type": "ReadLocalAppStorageJsonRequest",
       "response_type": "ReadLocalAppStorageJsonResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAppService/RebindLocalAppProcess",
+      "service": "RuntimeAppService",
+      "method": "RebindLocalAppProcess",
+      "kind": "unary",
+      "request_type": "RebindLocalAppProcessRequest",
+      "response_type": "RebindLocalAppProcessResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAppService/RemoveLocalAppStorageJson",
@@ -5262,6 +5280,14 @@
       "response_type": "ReadLocalAppStorageJsonResponse"
     },
     {
+      "method_id": "/nimi.runtime.v1.RuntimeAppService/RebindLocalAppProcess",
+      "service": "RuntimeAppService",
+      "method": "RebindLocalAppProcess",
+      "kind": "unary",
+      "request_type": "RebindLocalAppProcessRequest",
+      "response_type": "RebindLocalAppProcessResponse"
+    },
+    {
       "method_id": "/nimi.runtime.v1.RuntimeAppService/RemoveLocalAppStorageJson",
       "service": "RuntimeAppService",
       "method": "RemoveLocalAppStorageJson",
@@ -6661,6 +6687,7 @@
       "CreateConnectorResponse",
       "CreateKnowledgeBankRequest",
       "CreateKnowledgeBankResponse",
+      "CurrentUserDisplayProjection",
       "DelegatedApprovalRequest",
       "DelegatedControlSurfaceSnapshot",
       "DelegatedDiagnostic",
@@ -7077,6 +7104,8 @@
       "RealtimeTextDelta",
       "ReasoningConfig",
       "ReasoningStreamDelta",
+      "RebindLocalAppProcessRequest",
+      "RebindLocalAppProcessResponse",
       "RebindLocalCapabilityRequirementRequest",
       "RebindLocalCapabilityRequirementResponse",
       "RecallRequest",
@@ -13705,6 +13734,33 @@
           }
         ],
         "source_file": "proto/runtime/v1/knowledge.proto"
+      },
+      {
+        "name": "CurrentUserDisplayProjection",
+        "fields": [
+          {
+            "name": "handle",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "display_name",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "avatar_url",
+            "type": "string",
+            "repeated": false,
+            "optional": true,
+            "number": 3
+          }
+        ],
+        "source_file": "proto/runtime/v1/auth.proto"
       },
       {
         "name": "DelegatedApprovalRequest",
@@ -27007,6 +27063,20 @@
             "repeated": false,
             "optional": false,
             "number": 5
+          },
+          {
+            "name": "current_user",
+            "type": "CurrentUserDisplayProjection",
+            "repeated": false,
+            "optional": false,
+            "number": 6
+          },
+          {
+            "name": "current_user_reason_code",
+            "type": "ReasonCode",
+            "repeated": false,
+            "optional": false,
+            "number": 7
           }
         ],
         "source_file": "proto/runtime/v1/auth.proto"
@@ -28412,6 +28482,53 @@
           }
         ],
         "source_file": "proto/runtime/v1/ai.proto"
+      },
+      {
+        "name": "RebindLocalAppProcessRequest",
+        "fields": [
+          {
+            "name": "launch_id",
+            "type": "bytes",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "child_process_id",
+            "type": "uint32",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/app.proto"
+      },
+      {
+        "name": "RebindLocalAppProcessResponse",
+        "fields": [
+          {
+            "name": "launch_id",
+            "type": "bytes",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "bind_deadline",
+            "type": "google.protobuf.Timestamp",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "reason_code",
+            "type": "ReasonCode",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          }
+        ],
+        "source_file": "proto/runtime/v1/app.proto"
       },
       {
         "name": "RebindLocalCapabilityRequirementRequest",
@@ -36734,7 +36851,8 @@
           "LOCAL_APP_SNAPSHOT_UNAVAILABLE",
           "LOCAL_APP_ACCESS_DENIED",
           "LOCAL_APP_OPERATION_UNSUPPORTED",
-          "LOCAL_APP_OWNER_UNAVAILABLE"
+          "LOCAL_APP_OWNER_UNAVAILABLE",
+          "CURRENT_USER_DISPLAY_UNAVAILABLE"
         ],
         "source_file": "proto/runtime/v1/common.proto"
       },

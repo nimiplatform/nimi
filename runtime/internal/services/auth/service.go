@@ -73,7 +73,10 @@ type runtimeAccountSecurityContextProvider interface {
 	AuthenticatedRuntimeSecurityContext(context.Context) (*runtimev1.AccountProjection, uint64, bool)
 }
 
-type LocalAppSessionProjection struct{}
+type LocalAppSessionProjection struct {
+	CurrentUser           *runtimev1.CurrentUserDisplayProjection
+	CurrentUserReasonCode runtimev1.ReasonCode
+}
 
 type localAppSessionOpener interface {
 	OpenLocalAppSessionProjection(context.Context) (LocalAppSessionProjection, error)

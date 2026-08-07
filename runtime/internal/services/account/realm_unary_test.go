@@ -79,7 +79,7 @@ func TestInvokeRealmUnaryMediatesExactProtectedLocalAppWorldCoreOperations(t *te
 			_, _ = w.Write([]byte(`{"id":"world-created"}`))
 			return
 		}
-		_, _ = w.Write([]byte(`[{"id":"world-1"}]`))
+		_, _ = w.Write([]byte("[" + validLocalAppWorldCoreJSON("world-1") + "]"))
 	}))
 	defer server.Close()
 

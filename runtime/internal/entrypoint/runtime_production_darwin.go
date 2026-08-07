@@ -37,6 +37,7 @@ func runProductionDaemon(version string) (resultErr error) {
 	if err != nil {
 		return fmt.Errorf("open verified macOS Runtime security state: %w", err)
 	}
+	state.StartOwnerMonitor(ctx, cancel)
 	stateOwnedByDaemon := false
 	defer func() {
 		if !stateOwnedByDaemon {

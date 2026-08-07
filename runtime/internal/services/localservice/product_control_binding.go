@@ -22,6 +22,7 @@ type ProductControlDataRootSecurityBinding struct {
 	RuntimeServiceSID  string
 	InteractiveUserUID uint32
 	RuntimeServiceUID  uint32
+	PerUserRuntime     bool
 }
 
 type productControlUsability struct {
@@ -54,10 +55,15 @@ func evaluateProductControlUsability(record *productControlRecord) productContro
 // repairing, or selecting a path.
 func LoadProductControlDataRootBinding(productControlRoot string, security ProductControlDataRootSecurityBinding) (ProductControlDataRootBinding, error) {
 	root := filepath.Clean(strings.TrimSpace(productControlRoot))
-	if root == "." || !filepath.IsAbs(root) ||
-		root == filepath.VolumeName(root)+string(filepath.Separator) ||
-		filepath.Base(root) != ".nimi" {
-		return ProductControlDataRootBinding{}, fmt.Errorf("fixed Product Control root must be the absolute .nimi directory")
+	validRoot := root != "." && filepath.IsAbs(root) &&
+		root != filepath.VolumeName(root)+string(filepath.Separator)
+	if security.PerUserRuntime {
+		validRoot = validRoot && filepath.Base(root) == ".nimi" && filepath.Base(filepath.Dir(root)) == "RuntimeLocalDevelopment"
+	} else {
+		validRoot = validRoot && filepath.Base(root) == ".nimi"
+	}
+	if !validRoot {
+		return ProductControlDataRootBinding{}, fmt.Errorf("Product Control root does not match the active Runtime custody profile")
 	}
 	if err := validateProductControlRootPlatform(root, security); err != nil {
 		return ProductControlDataRootBinding{}, fmt.Errorf("fixed Product Control root security validation failed: %w", err)

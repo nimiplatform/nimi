@@ -38,7 +38,17 @@ func TestProductionSubstrateIsInertForFirstPartyDesktopSDKAvatar(t *testing.T) {
 func TestProductionActivationCodeStateExchangeCustodyAndPrivateCredential(t *testing.T) {
 	custody := &memoryCustody{}
 	exchangeCalls := 0
+	profileCalls := 0
 	authServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("content-type", "application/json")
+		if r.URL.Path == "/api/human/me" {
+			profileCalls++
+			if r.Header.Get("authorization") != "Bearer access-prod" {
+				t.Fatalf("Current User request omitted the Account broker credential")
+			}
+			_, _ = w.Write([]byte(`{"id":"acct-prod","handle":"prod-user","displayName":"Profile User","avatarUrl":null}`))
+			return
+		}
 		exchangeCalls++
 		if err := r.ParseForm(); err != nil {
 			t.Fatalf("parse form: %v", err)
@@ -61,7 +71,6 @@ func TestProductionActivationCodeStateExchangeCustodyAndPrivateCredential(t *tes
 		if r.Form.Get("client_id") != "desktop-test" {
 			t.Fatalf("token exchange client_id = %q, want desktop-test", r.Form.Get("client_id"))
 		}
-		w.Header().Set("content-type", "application/json")
 		_, _ = w.Write([]byte(`{"access_token":"access-prod","refresh_token":"refresh-prod","token_type":"Bearer","expires_in":300,"account_id":"acct-prod","display_name":"Prod User","realm_environment_id":"realm-prod"}`))
 	}))
 	defer func() { authServer.Close() }()
@@ -130,11 +139,12 @@ func TestProductionActivationCodeStateExchangeCustodyAndPrivateCredential(t *tes
 	if !complete.GetAccepted() || complete.GetAccountProjection().GetAccountId() != "acct-prod" {
 		t.Fatalf("production CompleteLogin failed: %+v", complete)
 	}
-	if complete.GetAccountProjection().GetDisplayName() != "Prod User" || complete.GetAccountProjection().GetRealmEnvironmentId() != "realm-prod" {
+	if complete.GetAccountProjection().GetDisplayName() != "Profile User" || complete.GetAccountProjection().GetRealmEnvironmentId() != "realm-prod" {
 		t.Fatalf("canonical account projection missing fields: %+v", complete.GetAccountProjection())
 	}
-	if exchangeCalls != 1 || !custody.has || custody.material.RefreshToken != "refresh-prod" {
-		t.Fatalf("exchange/custody mismatch calls=%d custody=%+v", exchangeCalls, custody.material)
+	if exchangeCalls != 1 || profileCalls != 1 || !custody.has || custody.material.RefreshToken != "refresh-prod" ||
+		custody.material.CurrentUserHandle != "prod-user" {
+		t.Fatalf("exchange/custody counts=%d/%d handle=%q", exchangeCalls, profileCalls, custody.material.CurrentUserHandle)
 	}
 	token, reason, ok, err := svc.realmUnaryAccessToken(context.Background(), nil)
 	if err != nil {

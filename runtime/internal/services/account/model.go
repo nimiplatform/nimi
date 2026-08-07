@@ -69,6 +69,8 @@ func refreshFailureDispositionOf(err error) refreshFailureDisposition {
 type AccountMaterial struct {
 	AccountID            string
 	DisplayName          string
+	CurrentUserHandle    string
+	CurrentUserAvatarURL *string
 	RealmEnvironmentID   string
 	RealmOrigin          string
 	WorkspaceMemberships []*runtimev1.WorkspaceMembershipProjection

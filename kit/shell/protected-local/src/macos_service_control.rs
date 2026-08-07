@@ -3,7 +3,7 @@ use std::future::Future;
 use std::io;
 use std::os::fd::AsRawFd;
 use std::pin::Pin;
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, OnceLock};
 
 use hyper_util::rt::TokioIo;
 use tokio::net::UnixStream;
@@ -13,7 +13,7 @@ use tower::service_fn;
 use crate::generated::runtime_service_control_service_client::RuntimeServiceControlServiceClient;
 use crate::generated::RequestRuntimeRestartRequest;
 use crate::macos_peer_trust::{
-    verify_runtime_peer_once, MACOS_RUNTIME_LOCAL_APP_SOCKET_PATH, MACOS_RUNTIME_SOCKET_PATH,
+    local_app_runtime_socket_path, runtime_socket_path, verify_runtime_peer_once,
 };
 use crate::macos_supervised_process::SupervisedDevelopmentProcess;
 use crate::{
@@ -51,9 +51,28 @@ unsafe extern "C" {
 #[derive(Clone, Copy, Debug, Default)]
 pub struct MacOsUnixSocketCarrier;
 
+struct SupervisedDevelopmentEntry {
+    process: SupervisedDevelopmentProcess,
+    request: LocalDevelopmentLaunchRequest,
+}
+
+type SupervisedDevelopmentRegistry = Arc<Mutex<HashMap<[u8; 32], SupervisedDevelopmentEntry>>>;
+
 struct MacOSDesktopControl {
     channel: Channel,
-    development_processes: Mutex<HashMap<[u8; 32], SupervisedDevelopmentProcess>>,
+    development_processes: SupervisedDevelopmentRegistry,
+}
+
+fn development_process_registry() -> SupervisedDevelopmentRegistry {
+    #[cfg(feature = "macos-source-local-development")]
+    {
+        static REGISTRY: OnceLock<SupervisedDevelopmentRegistry> = OnceLock::new();
+        return REGISTRY
+            .get_or_init(|| Arc::new(Mutex::new(HashMap::new())))
+            .clone();
+    }
+    #[cfg(not(feature = "macos-source-local-development"))]
+    Arc::new(Mutex::new(HashMap::new()))
 }
 
 impl MacOSDesktopControl {
@@ -321,6 +340,7 @@ impl NimiDesktopControl for MacOSDesktopControl {
     > {
         Box::pin(async move {
             let run_id = request.supervisor_run_id;
+            let retained_request = request.clone();
             let (outcome, process) =
                 crate::windows_local_development::launch_host(self.host_channel()?, request)
                     .await?;
@@ -328,7 +348,13 @@ impl NimiDesktopControl for MacOSDesktopControl {
                 .development_processes
                 .lock()
                 .map_err(|_| untrusted_host())?;
-            if let Some(replaced) = processes.insert(run_id, process) {
+            if let Some(replaced) = processes.insert(
+                run_id,
+                SupervisedDevelopmentEntry {
+                    process,
+                    request: retained_request,
+                },
+            ) {
                 drop(replaced);
                 return Err(untrusted_host());
             }
@@ -370,7 +396,7 @@ impl NimiDesktopControl for MacOSDesktopControl {
             .map_err(|_| untrusted_host())?;
         Ok(processes
             .get(&supervisor_run_id)
-            .is_some_and(SupervisedDevelopmentProcess::running))
+            .is_some_and(|entry| entry.process.running()))
     }
 
     fn terminate_local_development_host(
@@ -390,6 +416,33 @@ impl NimiDesktopControl for MacOSDesktopControl {
     }
 }
 
+#[cfg(feature = "macos-source-local-development")]
+async fn rebind_supervised_development_processes(
+    channel: Channel,
+    registry: SupervisedDevelopmentRegistry,
+) -> Result<(), ProtectedCarrierError> {
+    let running = {
+        let mut entries = registry.lock().map_err(|_| untrusted())?;
+        entries.retain(|_, entry| entry.process.running());
+        entries
+            .values()
+            .map(|entry| (entry.request.clone(), entry.process.id()))
+            .collect::<Vec<_>>()
+    };
+    for (request, process_id) in running {
+        crate::windows_local_development::rebind_host(channel.clone(), request, process_id)
+            .await
+            .map_err(|error| {
+                if error.retryable() {
+                    unavailable()
+                } else {
+                    untrusted()
+                }
+            })?;
+    }
+    Ok(())
+}
+
 impl NimiProtectedLocalHostCarrier for MacOsUnixSocketCarrier {
     fn open_desktop_control(
         &self,
@@ -401,23 +454,74 @@ impl NimiProtectedLocalHostCarrier for MacOsUnixSocketCarrier {
         >,
     > {
         Box::pin(async {
-            tokio::task::spawn_blocking(
-                crate::macos_data_root::prepare_fixed_runtime_product_control_root,
-            )
-            .await
-            .map_err(|_| repair_required())?
-            .map_err(|_| repair_required())?;
+            #[cfg(not(feature = "macos-source-local-development"))]
+            {
+                tokio::task::spawn_blocking(
+                    crate::macos_data_root::prepare_fixed_runtime_product_control_root,
+                )
+                .await
+                .map_err(|_| repair_required())?
+                .map_err(|_| repair_required())?;
+            }
             let channel = open_verified_runtime_channel().await?;
+            let development_processes = development_process_registry();
+            #[cfg(feature = "macos-source-local-development")]
+            {
+                rebind_supervised_development_processes(
+                    channel.clone(),
+                    development_processes.clone(),
+                )
+                .await?;
+                verify_source_local_development_desktop_control(channel.clone()).await?;
+            }
             Ok(Box::new(MacOSDesktopControl {
                 channel,
-                development_processes: Mutex::new(HashMap::new()),
+                development_processes,
             }) as Box<dyn NimiDesktopControl>)
         })
     }
 }
 
+// A restarted source Runtime can accept its owner-only socket just before all
+// protected services finish their ready transition. Keep the one-shot Host
+// rebind only on a channel that also completes an ordinary bounded Desktop
+// account-status roundtrip; an early channel otherwise drops and revokes the
+// fresh process witness before the same Host can reconnect.
+#[cfg(feature = "macos-source-local-development")]
+async fn verify_source_local_development_desktop_control(
+    channel: Channel,
+) -> Result<(), ProtectedCarrierError> {
+    crate::windows_desktop_account::get_account_session_status(
+        channel,
+        DesktopAccountSessionStatusRequest {
+            app_id: "nimi.desktop".to_string(),
+            app_instance_id: "nimi.desktop.local-first-party".to_string(),
+            device_id: "desktop-shell".to_string(),
+        },
+    )
+    .await
+    .map(|_| ())
+    .map_err(|error| {
+        if error.retryable() {
+            unavailable()
+        } else {
+            untrusted()
+        }
+    })
+}
+
 impl FixedRuntimeServiceControl for MacOsUnixSocketCarrier {
     fn runtime_service_status(&self) -> Result<RuntimeServiceStatus, ProtectedCarrierError> {
+        #[cfg(feature = "macos-source-local-development")]
+        {
+            let state = if runtime_socket_is_absent()? {
+                RuntimeServiceState::Stopped
+            } else {
+                RuntimeServiceState::Running
+            };
+            return Ok(service_status(state, None, true));
+        }
+        #[cfg(not(feature = "macos-source-local-development"))]
         match macos_service_status()? {
             SERVICE_NOT_REGISTERED => Ok(service_status(RuntimeServiceState::Stopped, None, true)),
             SERVICE_ENABLED => Ok(service_status(
@@ -438,7 +542,13 @@ impl FixedRuntimeServiceControl for MacOsUnixSocketCarrier {
     fn request_runtime_service_start(
         &self,
     ) -> Result<RuntimeServiceActionOutcome, ProtectedCarrierError> {
+        #[cfg(feature = "macos-source-local-development")]
+        {
+            return Err(unavailable());
+        }
+        #[cfg(not(feature = "macos-source-local-development"))]
         let before = macos_service_status()?;
+        #[cfg(not(feature = "macos-source-local-development"))]
         let after = if before == SERVICE_NOT_REGISTERED {
             // SAFETY: SMAppService resolves only the fixed embedded daemon
             // plist in the current /Applications/Nimi.app bundle.
@@ -453,6 +563,7 @@ impl FixedRuntimeServiceControl for MacOsUnixSocketCarrier {
         } else {
             before
         };
+        #[cfg(not(feature = "macos-source-local-development"))]
         match after {
             SERVICE_ENABLED => Ok(service_outcome(
                 RuntimeServiceState::StartPending,
@@ -487,7 +598,7 @@ impl FixedRuntimeServiceControl for MacOsUnixSocketCarrier {
 }
 
 fn runtime_socket_is_absent() -> Result<bool, ProtectedCarrierError> {
-    match std::fs::symlink_metadata(MACOS_RUNTIME_SOCKET_PATH) {
+    match std::fs::symlink_metadata(runtime_socket_path()?) {
         Ok(_) => Ok(false),
         Err(error) if error.kind() == io::ErrorKind::NotFound => Ok(true),
         Err(_) => Err(repair_required()),
@@ -495,22 +606,27 @@ fn runtime_socket_is_absent() -> Result<bool, ProtectedCarrierError> {
 }
 
 async fn open_verified_runtime_channel() -> Result<Channel, ProtectedCarrierError> {
+    #[cfg(not(feature = "macos-source-local-development"))]
     if macos_service_status()? != SERVICE_ENABLED {
         return Err(unavailable());
     }
-    let stream = UnixStream::connect(MACOS_RUNTIME_SOCKET_PATH)
+    let socket_path = runtime_socket_path()?;
+    let socket_text = socket_path.to_str().ok_or_else(untrusted)?;
+    let stream = UnixStream::connect(&socket_path)
         .await
         .map_err(|_| unavailable())?;
-    verify_runtime_peer_once(stream.as_raw_fd(), MACOS_RUNTIME_SOCKET_PATH)?;
+    verify_runtime_peer_once(stream.as_raw_fd(), socket_text)?;
     channel_from_verified_socket(stream).await
 }
 
 pub(crate) async fn open_verified_local_app_runtime_channel(
 ) -> Result<Channel, ProtectedCarrierError> {
-    let stream = UnixStream::connect(MACOS_RUNTIME_LOCAL_APP_SOCKET_PATH)
+    let socket_path = local_app_runtime_socket_path()?;
+    let socket_text = socket_path.to_str().ok_or_else(untrusted)?;
+    let stream = UnixStream::connect(&socket_path)
         .await
         .map_err(|_| unavailable())?;
-    verify_runtime_peer_once(stream.as_raw_fd(), MACOS_RUNTIME_LOCAL_APP_SOCKET_PATH)?;
+    verify_runtime_peer_once(stream.as_raw_fd(), socket_text)?;
     channel_from_verified_socket(stream).await
 }
 

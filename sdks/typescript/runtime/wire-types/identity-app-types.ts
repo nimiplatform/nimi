@@ -68,6 +68,8 @@ import type {
   PrepareLocalAppLaunchResponse,
   ReadLocalAppStorageJsonRequest,
   ReadLocalAppStorageJsonResponse,
+  RebindLocalAppProcessRequest,
+  RebindLocalAppProcessResponse,
   RemoveLocalAppStorageJsonRequest,
   RemoveLocalAppStorageJsonResponse,
   SendAppMessageRequest,
@@ -88,6 +90,8 @@ export type {
   PrepareLocalAppLaunchResponse,
   ReadLocalAppStorageJsonRequest,
   ReadLocalAppStorageJsonResponse,
+  RebindLocalAppProcessRequest,
+  RebindLocalAppProcessResponse,
   RemoveLocalAppStorageJsonRequest,
   RemoveLocalAppStorageJsonResponse,
   SendAppMessageRequest,
@@ -165,6 +169,7 @@ export type {
 
 import type {
   AppModeManifest,
+  CurrentUserDisplayProjection,
   OpenDesktopSessionRequest,
   OpenDesktopSessionResponse,
   OpenExternalPrincipalSessionRequest,
@@ -186,6 +191,7 @@ import type {
 
 export type {
   AppModeManifest,
+  CurrentUserDisplayProjection,
   OpenDesktopSessionRequest,
   OpenDesktopSessionResponse,
   OpenExternalPrincipalSessionRequest,

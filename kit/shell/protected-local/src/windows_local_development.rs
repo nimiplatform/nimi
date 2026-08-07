@@ -12,8 +12,8 @@ use crate::generated::{
     BindLocalAppProcessRequest, EndLocalDevelopmentRunRequest, GetDeveloperModeStatusRequest,
     ListLocalDevelopmentRegistrationsRequest, LocalDevelopmentProjectProjection,
     LocalDevelopmentRegistrationProjection, PrepareLocalAppLaunchRequest,
-    RegisterLocalDevelopmentProjectRequest, RemoveLocalDevelopmentRegistrationRequest,
-    SetDeveloperModeRequest,
+    RebindLocalAppProcessRequest, RegisterLocalDevelopmentProjectRequest,
+    RemoveLocalDevelopmentRegistrationRequest, SetDeveloperModeRequest,
 };
 use crate::grpc_status::host_error_from_status;
 #[cfg(target_os = "macos")]
@@ -190,6 +190,60 @@ pub(crate) async fn launch_host(
         },
         process,
     ))
+}
+
+#[cfg(all(target_os = "macos", feature = "macos-source-local-development"))]
+pub(crate) async fn rebind_host(
+    channel: Channel,
+    request: LocalDevelopmentLaunchRequest,
+    process_id: u32,
+) -> Result<LocalDevelopmentLaunchOutcome, NimiHostError> {
+    validate_identifier(request.registration_handle)?;
+    validate_identifier(request.supervisor_run_id)?;
+    if process_id == 0 {
+        return Err(untrusted());
+    }
+    let _host_executable_path = canonical_file(&request.host_executable_path)?;
+    let _working_directory = canonical_directory(&request.working_directory)?;
+    let _renderer_origin = controlled_renderer_origin(&request.renderer_origin)?;
+    let response = RuntimeAppServiceClient::new(channel.clone())
+        .prepare_local_app_launch(PrepareLocalAppLaunchRequest {
+            local_app_handle: request.registration_handle.to_vec(),
+            supervisor_run_id: request.supervisor_run_id.to_vec(),
+        })
+        .await
+        .map_err(host_error_from_status)?
+        .into_inner();
+    require_success_reason(response.reason_code)?;
+    let launch_id = required_identifier(response.launch_id)?;
+    let prepare_deadline = required_timestamp_ms(response.bind_deadline)?;
+    let rebound = RuntimeAppServiceClient::new(channel)
+        .rebind_local_app_process(RebindLocalAppProcessRequest {
+            launch_id: launch_id.to_vec(),
+            child_process_id: process_id,
+        })
+        .await
+        .map_err(host_error_from_status)?
+        .into_inner();
+    require_success_reason(rebound.reason_code)?;
+    if required_identifier(rebound.launch_id)? != launch_id {
+        return Err(untrusted());
+    }
+    let bind_deadline_unix_ms = required_timestamp_ms(rebound.bind_deadline)?;
+    let now_unix_ms = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map_err(|_| untrusted())?
+        .as_millis()
+        .try_into()
+        .map_err(|_| untrusted())?;
+    if !valid_local_development_bind_deadline(now_unix_ms, bind_deadline_unix_ms, prepare_deadline)
+    {
+        return Err(untrusted());
+    }
+    Ok(LocalDevelopmentLaunchOutcome {
+        process_id,
+        bind_deadline_unix_ms,
+    })
 }
 
 fn valid_local_development_bind_deadline(

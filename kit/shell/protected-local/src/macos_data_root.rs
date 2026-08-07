@@ -194,25 +194,89 @@ fn prepare_directory(
     Ok(root)
 }
 
-/// Prepares a user-selected macOS data-plane root for the exact fixed Runtime
-/// account. The current Desktop user remains the owner; only one inheritable
-/// modify ACE is installed on the selected root.
+/// Prepares a user-selected macOS data-plane root for the active Runtime
+/// custody profile. Production grants only the fixed service account its
+/// inheritable modify ACE. Source local development instead preserves the
+/// single current-user boundary and never requests a service-account ACL.
 pub fn prepare_fixed_runtime_data_root(path: &Path) -> Result<(), FixedRuntimeDataRootError> {
+    #[cfg(feature = "macos-source-local-development")]
+    {
+        return prepare_source_local_development_data_root(path);
+    }
+    #[cfg(not(feature = "macos-source-local-development"))]
+    {
+        let root = normalized_absolute_non_root(path, "validate-selected-root")?;
+        let profile = current_process_profile_root()?;
+        if root == profile || root.starts_with(profile.join(".nimi")) {
+            return Err(FixedRuntimeDataRootError::new(
+                "validate-selected-root",
+                "the selected data root must not overlap the user profile or fixed Product Control boundary",
+            ));
+        }
+        prepare_directory(
+            &root,
+            ACL_DATA_DIRECTORY,
+            "validate-selected-root",
+            "create-selected-root",
+            "prepare-service-root-acl",
+        )?;
+        Ok(())
+    }
+}
+
+#[cfg(feature = "macos-source-local-development")]
+fn prepare_source_local_development_data_root(
+    path: &Path,
+) -> Result<(), FixedRuntimeDataRootError> {
+    use std::os::unix::fs::DirBuilderExt;
+
     let root = normalized_absolute_non_root(path, "validate-selected-root")?;
     let profile = current_process_profile_root()?;
-    if root == profile || root.starts_with(profile.join(".nimi")) {
+    let source_state = profile
+        .join("Library")
+        .join("Application Support")
+        .join("Nimi")
+        .join("RuntimeLocalDevelopment");
+    if root == profile
+        || root.starts_with(profile.join(".nimi"))
+        || root == source_state
+        || root.starts_with(source_state.join(".nimi"))
+    {
         return Err(FixedRuntimeDataRootError::new(
             "validate-selected-root",
-            "the selected data root must not overlap the user profile or fixed Product Control boundary",
+            "the selected data root must not overlap Product Control or the source Runtime state root",
         ));
     }
-    prepare_directory(
-        &root,
-        ACL_DATA_DIRECTORY,
-        "validate-selected-root",
-        "create-selected-root",
-        "prepare-service-root-acl",
-    )?;
+    validate_directory_chain(&root, true, "validate-selected-root")?;
+    let mut builder = fs::DirBuilder::new();
+    builder.recursive(true).mode(0o700);
+    builder.create(&root).map_err(|error| {
+        FixedRuntimeDataRootError::new("create-selected-root", error.to_string())
+    })?;
+    validate_directory_chain(&root, false, "validate-selected-root")?;
+
+    // SAFETY: identity queries are read-only and bind this preparation to the
+    // exact non-root Desktop user that also owns the source Runtime.
+    let uid = unsafe { libc::geteuid() };
+    if uid == 0 || unsafe { libc::getuid() } != uid {
+        return Err(FixedRuntimeDataRootError::new(
+            "validate-selected-root",
+            "source local development requires one non-root current user",
+        ));
+    }
+    let metadata = fs::symlink_metadata(&root).map_err(|error| {
+        FixedRuntimeDataRootError::new("inspect-selected-root", error.to_string())
+    })?;
+    if !metadata.is_dir()
+        || metadata.file_type().is_symlink()
+        || metadata.uid() != uid
+        || metadata.mode() & 0o777 != 0o700
+    {
+        return Err(FixedRuntimeDataRootError::new(
+            "inspect-selected-root",
+            "source local development data root must be a direct owner-only current-user directory",
+        ));
+    }
     Ok(())
 }
 
@@ -370,6 +434,29 @@ mod tests {
                 .expect_err("profile and Product Control boundaries must be rejected");
             assert_eq!(error.stage(), "validate-selected-root");
         }
+    }
+
+    #[cfg(feature = "macos-source-local-development")]
+    #[test]
+    fn source_selected_root_is_current_user_owner_only_without_fixed_service_acl() {
+        let root = fixture("source-selected");
+        let selected = root.join("selected");
+        fs::create_dir(&selected).expect("create selected root");
+        fs::set_permissions(&selected, fs::Permissions::from_mode(0o700))
+            .expect("make selected root owner-only");
+
+        prepare_fixed_runtime_data_root(&selected).expect("prepare source selected root");
+        let metadata = fs::symlink_metadata(&selected).expect("selected metadata");
+        // SAFETY: geteuid is a read-only identity query.
+        assert_eq!(metadata.uid(), unsafe { libc::geteuid() });
+        assert_eq!(metadata.mode() & 0o777, 0o700);
+
+        fs::set_permissions(&selected, fs::Permissions::from_mode(0o750))
+            .expect("widen selected root");
+        let error = prepare_fixed_runtime_data_root(&selected)
+            .expect_err("non-owner-only source selected root must fail");
+        assert_eq!(error.stage(), "inspect-selected-root");
+        fs::remove_dir_all(&root).expect("remove fixture");
     }
 
     #[cfg(feature = "macos-local-development")]

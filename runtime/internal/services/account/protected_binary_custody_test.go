@@ -22,10 +22,13 @@ func TestProtectedBinaryCustodyRoundTripsVersionedAccountMaterial(t *testing.T) 
 		t.Fatalf("NewProtectedBinaryCustody: %v", err)
 	}
 	partition := "account=user-alpha;logon=42"
+	avatarURL := "https://cdn.example/avatar.png"
 	material := AccountMaterial{
-		AccountID:          "account-alpha",
-		DisplayName:        "用户\x00Alpha",
-		RealmEnvironmentID: "realm-production",
+		AccountID:            "account-alpha",
+		DisplayName:          "用户\x00Alpha",
+		CurrentUserHandle:    "alpha",
+		CurrentUserAvatarURL: &avatarURL,
+		RealmEnvironmentID:   "realm-production",
 		WorkspaceMemberships: []*runtimev1.WorkspaceMembershipProjection{{
 			WorkspaceId:        "workspace-alpha",
 			MembershipState:    runtimev1.WorkspaceMembershipState_WORKSPACE_MEMBERSHIP_STATE_ACTIVE,
@@ -56,7 +59,8 @@ func TestProtectedBinaryCustodyRoundTripsVersionedAccountMaterial(t *testing.T) 
 		t.Fatalf("Load: %v", err)
 	}
 	if loaded.AccountID != material.AccountID || loaded.DisplayName != material.DisplayName ||
-		loaded.AccessToken != material.AccessToken || loaded.RefreshToken != material.RefreshToken ||
+		loaded.CurrentUserHandle != material.CurrentUserHandle || loaded.CurrentUserAvatarURL == nil ||
+		*loaded.CurrentUserAvatarURL != avatarURL || loaded.AccessToken != material.AccessToken || loaded.RefreshToken != material.RefreshToken ||
 		!loaded.AccessTokenExpires.Equal(material.AccessTokenExpires) {
 		t.Fatalf("round-trip material mismatch: %#v", loaded)
 	}

@@ -3,6 +3,8 @@ package protectedlocal
 import (
 	"crypto/rand"
 	"fmt"
+	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 )
@@ -19,6 +21,25 @@ func (peer DirectLocalAppPeer) valid() bool {
 	return peer.OS == OSMacOS && peer.PID != 0 && peer.UID != 0
 }
 
+// DirectLocalAppProcessWitness is captured from the kernel while the exact
+// Desktop child is still start-suspended. The later socket peer must match the
+// same start tuple, preventing PID reuse from inheriting a prepared launch.
+type DirectLocalAppProcessWitness struct {
+	PID            uint32
+	ParentPID      uint32
+	UID            uint32
+	StartSeconds   uint64
+	StartMicros    uint64
+	ExecutablePath string
+}
+
+func (witness DirectLocalAppProcessWitness) valid() bool {
+	return witness.PID != 0 && witness.ParentPID != 0 && witness.UID != 0 &&
+		witness.StartSeconds != 0 && witness.StartMicros < 1_000_000 &&
+		filepath.IsAbs(witness.ExecutablePath) &&
+		witness.ExecutablePath == filepath.Clean(strings.TrimSpace(witness.ExecutablePath))
+}
+
 // DirectLocalAppLaunch is the one-time Runtime-owned association needed to
 // join a Desktop-prepared launch to a Unix socket peer. It is in-memory only.
 type DirectLocalAppLaunch struct {
@@ -29,7 +50,8 @@ type DirectLocalAppLaunch struct {
 	DeclarationGeneration uint64
 	DesktopPID            uint32
 	ExpectedUID           uint32
-	ChildPID              uint32
+	HostExecutablePath    string
+	Process               DirectLocalAppProcessWitness
 	ExpiresAt             time.Time
 	BindDeadline          time.Time
 }
@@ -42,6 +64,10 @@ func (launch DirectLocalAppLaunch) valid() bool {
 		launch.DeclarationGeneration != 0 &&
 		launch.DesktopPID != 0 &&
 		launch.ExpectedUID != 0 &&
+		filepath.IsAbs(launch.HostExecutablePath) &&
+		launch.HostExecutablePath == filepath.Clean(strings.TrimSpace(launch.HostExecutablePath)) &&
+		launch.Process.valid() && launch.Process.ParentPID == launch.DesktopPID &&
+		launch.Process.UID == launch.ExpectedUID && launch.Process.ExecutablePath == launch.HostExecutablePath &&
 		!launch.ExpiresAt.IsZero()
 }
 
@@ -70,17 +96,33 @@ func (launches *DirectLocalAppLaunches) Prepare(
 	declarationGeneration uint64,
 	desktopPID uint32,
 	expectedUID uint32,
+	hostExecutablePath string,
 	expiresAt time.Time,
 ) (DirectLocalAppLaunch, error) {
+	hostExecutablePath = filepath.Clean(strings.TrimSpace(hostExecutablePath))
 	if launches == nil || registrationHandle == (Identifier{}) || supervisorRunID == (Identifier{}) ||
 		sourceGeneration == 0 || declarationGeneration == 0 || desktopPID == 0 || expectedUID == 0 ||
-		expiresAt.IsZero() {
+		!filepath.IsAbs(hostExecutablePath) || expiresAt.IsZero() {
 		return DirectLocalAppLaunch{}, fmt.Errorf("complete direct local-app launch authority is required")
 	}
 	now := launches.now().UTC()
 	expiresAt = expiresAt.UTC()
 	if !now.Before(expiresAt) {
 		return DirectLocalAppLaunch{}, fmt.Errorf("direct local-app launch deadline has expired")
+	}
+	launches.mu.Lock()
+	defer launches.mu.Unlock()
+	launches.removeExpiredLocked(now)
+	for _, pending := range launches.byLaunch {
+		if pending.RegistrationHandle != registrationHandle || pending.SupervisorRunID != supervisorRunID {
+			continue
+		}
+		if pending.SourceGeneration != sourceGeneration || pending.DeclarationGeneration != declarationGeneration ||
+			pending.DesktopPID != desktopPID || pending.ExpectedUID != expectedUID ||
+			pending.HostExecutablePath != hostExecutablePath {
+			return DirectLocalAppLaunch{}, fmt.Errorf("existing direct local-app launch no longer matches current authority")
+		}
+		return *pending, nil
 	}
 	launchID, err := readIdentifier(rand.Reader)
 	if err != nil {
@@ -89,23 +131,35 @@ func (launches *DirectLocalAppLaunches) Prepare(
 	launch := DirectLocalAppLaunch{
 		LaunchID: launchID, RegistrationHandle: registrationHandle, SupervisorRunID: supervisorRunID,
 		SourceGeneration: sourceGeneration, DeclarationGeneration: declarationGeneration,
-		DesktopPID: desktopPID, ExpectedUID: expectedUID, ExpiresAt: expiresAt,
+		DesktopPID: desktopPID, ExpectedUID: expectedUID, HostExecutablePath: hostExecutablePath,
+		ExpiresAt: expiresAt,
 	}
-	launches.mu.Lock()
-	defer launches.mu.Unlock()
-	launches.removeExpiredLocked(now)
 	launches.byLaunch[launchID] = &launch
 	return launch, nil
 }
 
+func (launches *DirectLocalAppLaunches) Prepared(launchID Identifier) (DirectLocalAppLaunch, bool) {
+	if launches == nil || launchID == (Identifier{}) {
+		return DirectLocalAppLaunch{}, false
+	}
+	launches.mu.Lock()
+	defer launches.mu.Unlock()
+	launches.removeExpiredLocked(time.Now())
+	pending := launches.byLaunch[launchID]
+	if pending == nil {
+		return DirectLocalAppLaunch{}, false
+	}
+	return *pending, true
+}
+
 func (launches *DirectLocalAppLaunches) Bind(
 	launchID Identifier,
-	childPID uint32,
+	process DirectLocalAppProcessWitness,
 	desktopPID uint32,
 	expectedUID uint32,
 	bindDeadline time.Time,
 ) (time.Time, error) {
-	if launches == nil || launchID == (Identifier{}) || childPID == 0 || desktopPID == 0 ||
+	if launches == nil || launchID == (Identifier{}) || !process.valid() || desktopPID == 0 ||
 		expectedUID == 0 || bindDeadline.IsZero() {
 		return time.Time{}, fmt.Errorf("complete direct local-app process binding is required")
 	}
@@ -115,14 +169,24 @@ func (launches *DirectLocalAppLaunches) Bind(
 	defer launches.mu.Unlock()
 	launches.removeExpiredLocked(now)
 	pending := launches.byLaunch[launchID]
-	if pending == nil || pending.ChildPID != 0 || launches.byPID[childPID] != nil ||
-		pending.DesktopPID != desktopPID || pending.ExpectedUID != expectedUID ||
+	if pending == nil || pending.DesktopPID != desktopPID || pending.ExpectedUID != expectedUID ||
+		process.ParentPID != desktopPID || process.UID != expectedUID ||
+		process.ExecutablePath != pending.HostExecutablePath ||
 		!now.Before(bindDeadline) || bindDeadline.After(pending.ExpiresAt) {
 		return time.Time{}, fmt.Errorf("direct local-app launch does not admit this process")
 	}
-	pending.ChildPID = childPID
+	if pending.Process.valid() {
+		if pending.Process != process || launches.byPID[process.PID] != pending {
+			return time.Time{}, fmt.Errorf("direct local-app process binding changed")
+		}
+		return pending.BindDeadline, nil
+	}
+	if launches.byPID[process.PID] != nil {
+		return time.Time{}, fmt.Errorf("direct local-app process is already bound")
+	}
+	pending.Process = process
 	pending.BindDeadline = bindDeadline
-	launches.byPID[childPID] = pending
+	launches.byPID[process.PID] = pending
 	return bindDeadline, nil
 }
 
@@ -135,7 +199,7 @@ func (launches *DirectLocalAppLaunches) Consume(childPID uint32, uid uint32) (Di
 	defer launches.mu.Unlock()
 	launches.removeExpiredLocked(now)
 	pending := launches.byPID[childPID]
-	if pending == nil || pending.ChildPID != childPID || pending.ExpectedUID != uid ||
+	if pending == nil || pending.Process.PID != childPID || pending.ExpectedUID != uid ||
 		pending.BindDeadline.IsZero() || !now.Before(pending.BindDeadline) || !pending.valid() {
 		return DirectLocalAppLaunch{}, fmt.Errorf("connected direct local-app peer has no prepared launch")
 	}
@@ -155,8 +219,8 @@ func (launches *DirectLocalAppLaunches) Revoke(launchID Identifier) {
 		return
 	}
 	delete(launches.byLaunch, launchID)
-	if pending.ChildPID != 0 {
-		delete(launches.byPID, pending.ChildPID)
+	if pending.Process.PID != 0 {
+		delete(launches.byPID, pending.Process.PID)
 	}
 }
 
@@ -171,8 +235,8 @@ func (launches *DirectLocalAppLaunches) RevokeRun(registrationHandle Identifier,
 			continue
 		}
 		delete(launches.byLaunch, launchID)
-		if pending.ChildPID != 0 {
-			delete(launches.byPID, pending.ChildPID)
+		if pending.Process.PID != 0 {
+			delete(launches.byPID, pending.Process.PID)
 		}
 	}
 }
@@ -188,8 +252,8 @@ func (launches *DirectLocalAppLaunches) RevokeRegistration(registrationHandle Id
 			continue
 		}
 		delete(launches.byLaunch, launchID)
-		if pending.ChildPID != 0 {
-			delete(launches.byPID, pending.ChildPID)
+		if pending.Process.PID != 0 {
+			delete(launches.byPID, pending.Process.PID)
 		}
 	}
 }
@@ -204,8 +268,8 @@ func (launches *DirectLocalAppLaunches) removeExpiredLocked(now time.Time) {
 			continue
 		}
 		delete(launches.byLaunch, launchID)
-		if pending.ChildPID != 0 {
-			delete(launches.byPID, pending.ChildPID)
+		if pending.Process.PID != 0 {
+			delete(launches.byPID, pending.Process.PID)
 		}
 	}
 }

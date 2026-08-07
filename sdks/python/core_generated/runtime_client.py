@@ -720,6 +720,14 @@ RUNTIME_METHODS = [
     "response_type": "ReadLocalAppStorageJsonResponse"
   },
   {
+    "method_id": "/nimi.runtime.v1.RuntimeAppService/RebindLocalAppProcess",
+    "service": "RuntimeAppService",
+    "method": "RebindLocalAppProcess",
+    "kind": "unary",
+    "request_type": "RebindLocalAppProcessRequest",
+    "response_type": "RebindLocalAppProcessResponse"
+  },
+  {
     "method_id": "/nimi.runtime.v1.RuntimeAppService/RemoveLocalAppStorageJson",
     "service": "RuntimeAppService",
     "method": "RemoveLocalAppStorageJson",

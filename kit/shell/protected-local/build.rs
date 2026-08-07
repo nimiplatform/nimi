@@ -14,6 +14,9 @@ fn main() {
         if std::env::var_os("CARGO_FEATURE_MACOS_LOCAL_DEVELOPMENT").is_some() {
             native.define("NIMI_MACOS_LOCAL_DEVELOPMENT", "1");
         }
+        if std::env::var_os("CARGO_FEATURE_MACOS_SOURCE_LOCAL_DEVELOPMENT").is_some() {
+            native.define("NIMI_MACOS_SOURCE_LOCAL_DEVELOPMENT", "1");
+        }
         native.compile("nimi_protected_local_macos");
         println!("cargo:rustc-link-lib=framework=CoreFoundation");
         println!("cargo:rustc-link-lib=framework=AppKit");

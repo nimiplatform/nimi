@@ -217,6 +217,7 @@ func isWriteMethod(fullMethod string) bool {
 		"/nimi.runtime.v1.RuntimeAppService/RemoveLocalAppStorageJson",
 		"/nimi.runtime.v1.RuntimeAppService/PrepareLocalAppLaunch",
 		"/nimi.runtime.v1.RuntimeAppService/BindLocalAppProcess",
+		"/nimi.runtime.v1.RuntimeAppService/RebindLocalAppProcess",
 		"/nimi.runtime.v1.RuntimeDevelopmentService/SetDeveloperMode",
 		"/nimi.runtime.v1.RuntimeDevelopmentService/RegisterLocalDevelopmentProject",
 		"/nimi.runtime.v1.RuntimeDevelopmentService/RemoveLocalDevelopmentRegistration",

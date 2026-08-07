@@ -3,7 +3,6 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
 import { pathToFileURL } from 'node:url';
-import { ReasonCode } from '@nimiplatform/sdk/types';
 import { buildWithTsc } from './tsc-build.mjs';
 
 const root = path.resolve(import.meta.dirname, '..');
@@ -123,7 +122,17 @@ test('Tester preserves a bound identity session without treating it as App Acces
     async invoke(command, payload) {
       calls.push({ command, payload });
       assert.equal(command, 'nimi.shell.localApp.sessionStatus');
-      return { state: 'ready', reasonCode: ReasonCode.ACTION_EXECUTED, retryable: false };
+      return {
+        state: 'ready',
+        reasonCode: 'action-executed',
+        retryable: false,
+        currentUser: {
+          state: 'ready',
+          value: { handle: '@halliday', displayName: 'Halliday', avatarUrl: null },
+          reasonCode: 'action-executed',
+          retryable: false,
+        },
+      };
     },
     listen() { return () => {}; },
   };
@@ -137,7 +146,7 @@ test('Tester preserves a bound identity session without treating it as App Acces
       mode: 'local-app',
       state: 'session-bound',
       sessionBound: true,
-      reasonCode: ReasonCode.ACTION_EXECUTED,
+      reasonCode: 'action-executed',
       actionHint: 'continue_local_app_session',
       retryable: false,
     });
@@ -159,10 +168,10 @@ test('Tester app-private storage reaches typed ingress and preserves owner-unava
     listen() { return () => {}; },
   };
   try {
-    const { testerLocalAppClient } = await importLocalAppRuntimePlatform();
+    const { getTesterLocalAppClient } = await importLocalAppRuntimePlatform();
 
     await assert.rejects(
-      testerLocalAppClient.storage.writeJson('settings/profile.json', { theme: 'calm' }),
+      getTesterLocalAppClient().storage.writeJson('settings/profile.json', { theme: 'calm' }),
       (error) => {
         assert.equal(error?.code, 'runtime-permission-denied');
         assert.equal(error?.reasonCode, 'local-app-owner-unavailable');
@@ -184,7 +193,17 @@ test('Tester reports typed owner unavailability after protected ingress', async 
     async invoke(command, payload) {
       calls.push({ command, payload });
       if (command === 'nimi.shell.localApp.sessionStatus') {
-        return { state: 'ready', reasonCode: ReasonCode.ACTION_EXECUTED, retryable: false };
+        return {
+          state: 'ready',
+          reasonCode: 'action-executed',
+          retryable: false,
+          currentUser: {
+            state: 'ready',
+            value: { handle: '@halliday', displayName: 'Halliday', avatarUrl: null },
+            reasonCode: 'action-executed',
+            retryable: false,
+          },
+        };
       }
       throw ownerUnavailable(command);
     },

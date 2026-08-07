@@ -780,19 +780,82 @@ func (*OpenLocalAppSessionRequest) Descriptor() ([]byte, []int) {
 	return file_runtime_v1_auth_proto_rawDescGZIP(), []int{7}
 }
 
-// Deliberately posture-only. Subject, account, snapshot, generation, session
-// material, credential, and peer proof remain Runtime-private.
-type OpenLocalAppSessionResponse struct {
+type CurrentUserDisplayProjection struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	State         LocalAppSessionState   `protobuf:"varint,1,opt,name=state,proto3,enum=nimi.runtime.v1.LocalAppSessionState" json:"state,omitempty"`
-	ReasonCode    ReasonCode             `protobuf:"varint,5,opt,name=reason_code,json=reasonCode,proto3,enum=nimi.runtime.v1.ReasonCode" json:"reason_code,omitempty"`
+	Handle        string                 `protobuf:"bytes,1,opt,name=handle,proto3" json:"handle,omitempty"`
+	DisplayName   string                 `protobuf:"bytes,2,opt,name=display_name,json=displayName,proto3" json:"display_name,omitempty"`
+	AvatarUrl     *string                `protobuf:"bytes,3,opt,name=avatar_url,json=avatarUrl,proto3,oneof" json:"avatar_url,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
+func (x *CurrentUserDisplayProjection) Reset() {
+	*x = CurrentUserDisplayProjection{}
+	mi := &file_runtime_v1_auth_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CurrentUserDisplayProjection) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CurrentUserDisplayProjection) ProtoMessage() {}
+
+func (x *CurrentUserDisplayProjection) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_auth_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CurrentUserDisplayProjection.ProtoReflect.Descriptor instead.
+func (*CurrentUserDisplayProjection) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_auth_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *CurrentUserDisplayProjection) GetHandle() string {
+	if x != nil {
+		return x.Handle
+	}
+	return ""
+}
+
+func (x *CurrentUserDisplayProjection) GetDisplayName() string {
+	if x != nil {
+		return x.DisplayName
+	}
+	return ""
+}
+
+func (x *CurrentUserDisplayProjection) GetAvatarUrl() string {
+	if x != nil && x.AvatarUrl != nil {
+		return *x.AvatarUrl
+	}
+	return ""
+}
+
+// Session posture stays non-authoritative. The optional Current User display
+// value contains exactly the three display-safe fields; its independent reason
+// cannot fail or downgrade the private App Access session.
+type OpenLocalAppSessionResponse struct {
+	state                 protoimpl.MessageState        `protogen:"open.v1"`
+	State                 LocalAppSessionState          `protobuf:"varint,1,opt,name=state,proto3,enum=nimi.runtime.v1.LocalAppSessionState" json:"state,omitempty"`
+	ReasonCode            ReasonCode                    `protobuf:"varint,5,opt,name=reason_code,json=reasonCode,proto3,enum=nimi.runtime.v1.ReasonCode" json:"reason_code,omitempty"`
+	CurrentUser           *CurrentUserDisplayProjection `protobuf:"bytes,6,opt,name=current_user,json=currentUser,proto3" json:"current_user,omitempty"`
+	CurrentUserReasonCode ReasonCode                    `protobuf:"varint,7,opt,name=current_user_reason_code,json=currentUserReasonCode,proto3,enum=nimi.runtime.v1.ReasonCode" json:"current_user_reason_code,omitempty"`
+	unknownFields         protoimpl.UnknownFields
+	sizeCache             protoimpl.SizeCache
+}
+
 func (x *OpenLocalAppSessionResponse) Reset() {
 	*x = OpenLocalAppSessionResponse{}
-	mi := &file_runtime_v1_auth_proto_msgTypes[8]
+	mi := &file_runtime_v1_auth_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -804,7 +867,7 @@ func (x *OpenLocalAppSessionResponse) String() string {
 func (*OpenLocalAppSessionResponse) ProtoMessage() {}
 
 func (x *OpenLocalAppSessionResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_auth_proto_msgTypes[8]
+	mi := &file_runtime_v1_auth_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -817,7 +880,7 @@ func (x *OpenLocalAppSessionResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use OpenLocalAppSessionResponse.ProtoReflect.Descriptor instead.
 func (*OpenLocalAppSessionResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_auth_proto_rawDescGZIP(), []int{8}
+	return file_runtime_v1_auth_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *OpenLocalAppSessionResponse) GetState() LocalAppSessionState {
@@ -834,6 +897,20 @@ func (x *OpenLocalAppSessionResponse) GetReasonCode() ReasonCode {
 	return ReasonCode_REASON_CODE_UNSPECIFIED
 }
 
+func (x *OpenLocalAppSessionResponse) GetCurrentUser() *CurrentUserDisplayProjection {
+	if x != nil {
+		return x.CurrentUser
+	}
+	return nil
+}
+
+func (x *OpenLocalAppSessionResponse) GetCurrentUserReasonCode() ReasonCode {
+	if x != nil {
+		return x.CurrentUserReasonCode
+	}
+	return ReasonCode_REASON_CODE_UNSPECIFIED
+}
+
 // Request-empty by design. Runtime accepts renewal only on the same verified
 // local_app_host connection that already owns the current private session.
 // No request data or metadata may select session, process, account, or trust.
@@ -845,7 +922,7 @@ type RenewLocalAppSessionRequest struct {
 
 func (x *RenewLocalAppSessionRequest) Reset() {
 	*x = RenewLocalAppSessionRequest{}
-	mi := &file_runtime_v1_auth_proto_msgTypes[9]
+	mi := &file_runtime_v1_auth_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -857,7 +934,7 @@ func (x *RenewLocalAppSessionRequest) String() string {
 func (*RenewLocalAppSessionRequest) ProtoMessage() {}
 
 func (x *RenewLocalAppSessionRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_auth_proto_msgTypes[9]
+	mi := &file_runtime_v1_auth_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -870,7 +947,7 @@ func (x *RenewLocalAppSessionRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RenewLocalAppSessionRequest.ProtoReflect.Descriptor instead.
 func (*RenewLocalAppSessionRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_auth_proto_rawDescGZIP(), []int{9}
+	return file_runtime_v1_auth_proto_rawDescGZIP(), []int{10}
 }
 
 type RefreshSessionRequest struct {
@@ -883,7 +960,7 @@ type RefreshSessionRequest struct {
 
 func (x *RefreshSessionRequest) Reset() {
 	*x = RefreshSessionRequest{}
-	mi := &file_runtime_v1_auth_proto_msgTypes[10]
+	mi := &file_runtime_v1_auth_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -895,7 +972,7 @@ func (x *RefreshSessionRequest) String() string {
 func (*RefreshSessionRequest) ProtoMessage() {}
 
 func (x *RefreshSessionRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_auth_proto_msgTypes[10]
+	mi := &file_runtime_v1_auth_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -908,7 +985,7 @@ func (x *RefreshSessionRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RefreshSessionRequest.ProtoReflect.Descriptor instead.
 func (*RefreshSessionRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_auth_proto_rawDescGZIP(), []int{10}
+	return file_runtime_v1_auth_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *RefreshSessionRequest) GetSessionId() string {
@@ -937,7 +1014,7 @@ type RefreshSessionResponse struct {
 
 func (x *RefreshSessionResponse) Reset() {
 	*x = RefreshSessionResponse{}
-	mi := &file_runtime_v1_auth_proto_msgTypes[11]
+	mi := &file_runtime_v1_auth_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -949,7 +1026,7 @@ func (x *RefreshSessionResponse) String() string {
 func (*RefreshSessionResponse) ProtoMessage() {}
 
 func (x *RefreshSessionResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_auth_proto_msgTypes[11]
+	mi := &file_runtime_v1_auth_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -962,7 +1039,7 @@ func (x *RefreshSessionResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RefreshSessionResponse.ProtoReflect.Descriptor instead.
 func (*RefreshSessionResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_auth_proto_rawDescGZIP(), []int{11}
+	return file_runtime_v1_auth_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *RefreshSessionResponse) GetSessionId() string {
@@ -1002,7 +1079,7 @@ type RevokeSessionRequest struct {
 
 func (x *RevokeSessionRequest) Reset() {
 	*x = RevokeSessionRequest{}
-	mi := &file_runtime_v1_auth_proto_msgTypes[12]
+	mi := &file_runtime_v1_auth_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1014,7 +1091,7 @@ func (x *RevokeSessionRequest) String() string {
 func (*RevokeSessionRequest) ProtoMessage() {}
 
 func (x *RevokeSessionRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_auth_proto_msgTypes[12]
+	mi := &file_runtime_v1_auth_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1027,7 +1104,7 @@ func (x *RevokeSessionRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RevokeSessionRequest.ProtoReflect.Descriptor instead.
 func (*RevokeSessionRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_auth_proto_rawDescGZIP(), []int{12}
+	return file_runtime_v1_auth_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *RevokeSessionRequest) GetSessionId() string {
@@ -1052,7 +1129,7 @@ type RegisterExternalPrincipalRequest struct {
 
 func (x *RegisterExternalPrincipalRequest) Reset() {
 	*x = RegisterExternalPrincipalRequest{}
-	mi := &file_runtime_v1_auth_proto_msgTypes[13]
+	mi := &file_runtime_v1_auth_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1064,7 +1141,7 @@ func (x *RegisterExternalPrincipalRequest) String() string {
 func (*RegisterExternalPrincipalRequest) ProtoMessage() {}
 
 func (x *RegisterExternalPrincipalRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_auth_proto_msgTypes[13]
+	mi := &file_runtime_v1_auth_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1077,7 +1154,7 @@ func (x *RegisterExternalPrincipalRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RegisterExternalPrincipalRequest.ProtoReflect.Descriptor instead.
 func (*RegisterExternalPrincipalRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_auth_proto_rawDescGZIP(), []int{13}
+	return file_runtime_v1_auth_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *RegisterExternalPrincipalRequest) GetAppId() string {
@@ -1139,7 +1216,7 @@ type RegisterExternalPrincipalResponse struct {
 
 func (x *RegisterExternalPrincipalResponse) Reset() {
 	*x = RegisterExternalPrincipalResponse{}
-	mi := &file_runtime_v1_auth_proto_msgTypes[14]
+	mi := &file_runtime_v1_auth_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1151,7 +1228,7 @@ func (x *RegisterExternalPrincipalResponse) String() string {
 func (*RegisterExternalPrincipalResponse) ProtoMessage() {}
 
 func (x *RegisterExternalPrincipalResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_auth_proto_msgTypes[14]
+	mi := &file_runtime_v1_auth_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1164,7 +1241,7 @@ func (x *RegisterExternalPrincipalResponse) ProtoReflect() protoreflect.Message 
 
 // Deprecated: Use RegisterExternalPrincipalResponse.ProtoReflect.Descriptor instead.
 func (*RegisterExternalPrincipalResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_auth_proto_rawDescGZIP(), []int{14}
+	return file_runtime_v1_auth_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *RegisterExternalPrincipalResponse) GetAccepted() bool {
@@ -1193,7 +1270,7 @@ type OpenExternalPrincipalSessionRequest struct {
 
 func (x *OpenExternalPrincipalSessionRequest) Reset() {
 	*x = OpenExternalPrincipalSessionRequest{}
-	mi := &file_runtime_v1_auth_proto_msgTypes[15]
+	mi := &file_runtime_v1_auth_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1205,7 +1282,7 @@ func (x *OpenExternalPrincipalSessionRequest) String() string {
 func (*OpenExternalPrincipalSessionRequest) ProtoMessage() {}
 
 func (x *OpenExternalPrincipalSessionRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_auth_proto_msgTypes[15]
+	mi := &file_runtime_v1_auth_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1218,7 +1295,7 @@ func (x *OpenExternalPrincipalSessionRequest) ProtoReflect() protoreflect.Messag
 
 // Deprecated: Use OpenExternalPrincipalSessionRequest.ProtoReflect.Descriptor instead.
 func (*OpenExternalPrincipalSessionRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_auth_proto_rawDescGZIP(), []int{15}
+	return file_runtime_v1_auth_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *OpenExternalPrincipalSessionRequest) GetAppId() string {
@@ -1261,7 +1338,7 @@ type OpenExternalPrincipalSessionResponse struct {
 
 func (x *OpenExternalPrincipalSessionResponse) Reset() {
 	*x = OpenExternalPrincipalSessionResponse{}
-	mi := &file_runtime_v1_auth_proto_msgTypes[16]
+	mi := &file_runtime_v1_auth_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1273,7 +1350,7 @@ func (x *OpenExternalPrincipalSessionResponse) String() string {
 func (*OpenExternalPrincipalSessionResponse) ProtoMessage() {}
 
 func (x *OpenExternalPrincipalSessionResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_auth_proto_msgTypes[16]
+	mi := &file_runtime_v1_auth_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1286,7 +1363,7 @@ func (x *OpenExternalPrincipalSessionResponse) ProtoReflect() protoreflect.Messa
 
 // Deprecated: Use OpenExternalPrincipalSessionResponse.ProtoReflect.Descriptor instead.
 func (*OpenExternalPrincipalSessionResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_auth_proto_rawDescGZIP(), []int{16}
+	return file_runtime_v1_auth_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *OpenExternalPrincipalSessionResponse) GetExternalSessionId() string {
@@ -1326,7 +1403,7 @@ type RevokeExternalPrincipalSessionRequest struct {
 
 func (x *RevokeExternalPrincipalSessionRequest) Reset() {
 	*x = RevokeExternalPrincipalSessionRequest{}
-	mi := &file_runtime_v1_auth_proto_msgTypes[17]
+	mi := &file_runtime_v1_auth_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1338,7 +1415,7 @@ func (x *RevokeExternalPrincipalSessionRequest) String() string {
 func (*RevokeExternalPrincipalSessionRequest) ProtoMessage() {}
 
 func (x *RevokeExternalPrincipalSessionRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_auth_proto_msgTypes[17]
+	mi := &file_runtime_v1_auth_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1351,7 +1428,7 @@ func (x *RevokeExternalPrincipalSessionRequest) ProtoReflect() protoreflect.Mess
 
 // Deprecated: Use RevokeExternalPrincipalSessionRequest.ProtoReflect.Descriptor instead.
 func (*RevokeExternalPrincipalSessionRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_auth_proto_rawDescGZIP(), []int{17}
+	return file_runtime_v1_auth_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *RevokeExternalPrincipalSessionRequest) GetExternalSessionId() string {
@@ -1404,11 +1481,19 @@ const file_runtime_v1_auth_proto_rawDesc = "" +
 	"\x1aOpenDesktopSessionResponse\x12,\n" +
 	"\x12desktop_session_id\x18\x01 \x01(\fR\x10desktopSessionId\x12,\n" +
 	"\x12runtime_boot_epoch\x18\x02 \x01(\fR\x10runtimeBootEpoch\"\x1c\n" +
-	"\x1aOpenLocalAppSessionRequest\"\xdf\x01\n" +
+	"\x1aOpenLocalAppSessionRequest\"\x8c\x01\n" +
+	"\x1cCurrentUserDisplayProjection\x12\x16\n" +
+	"\x06handle\x18\x01 \x01(\tR\x06handle\x12!\n" +
+	"\fdisplay_name\x18\x02 \x01(\tR\vdisplayName\x12\"\n" +
+	"\n" +
+	"avatar_url\x18\x03 \x01(\tH\x00R\tavatarUrl\x88\x01\x01B\r\n" +
+	"\v_avatar_url\"\x87\x03\n" +
 	"\x1bOpenLocalAppSessionResponse\x12;\n" +
 	"\x05state\x18\x01 \x01(\x0e2%.nimi.runtime.v1.LocalAppSessionStateR\x05state\x12<\n" +
 	"\vreason_code\x18\x05 \x01(\x0e2\x1b.nimi.runtime.v1.ReasonCodeR\n" +
-	"reasonCodeJ\x04\b\x02\x10\x03J\x04\b\x03\x10\x04J\x04\b\x04\x10\x05R\vtrust_classR\x12account_generationR\x12runtime_boot_epoch\"\x1d\n" +
+	"reasonCode\x12P\n" +
+	"\fcurrent_user\x18\x06 \x01(\v2-.nimi.runtime.v1.CurrentUserDisplayProjectionR\vcurrentUser\x12T\n" +
+	"\x18current_user_reason_code\x18\a \x01(\x0e2\x1b.nimi.runtime.v1.ReasonCodeR\x15currentUserReasonCodeJ\x04\b\x02\x10\x03J\x04\b\x03\x10\x04J\x04\b\x04\x10\x05R\vtrust_classR\x12account_generationR\x12runtime_boot_epoch\"\x1d\n" +
 	"\x1bRenewLocalAppSessionRequest\"W\n" +
 	"\x15RefreshSessionRequest\x12\x1d\n" +
 	"\n" +
@@ -1504,7 +1589,7 @@ func file_runtime_v1_auth_proto_rawDescGZIP() []byte {
 }
 
 var file_runtime_v1_auth_proto_enumTypes = make([]protoimpl.EnumInfo, 5)
-var file_runtime_v1_auth_proto_msgTypes = make([]protoimpl.MessageInfo, 18)
+var file_runtime_v1_auth_proto_msgTypes = make([]protoimpl.MessageInfo, 19)
 var file_runtime_v1_auth_proto_goTypes = []any{
 	(ExternalProofType)(0),                        // 0: nimi.runtime.v1.ExternalProofType
 	(AppMode)(0),                                  // 1: nimi.runtime.v1.AppMode
@@ -1519,63 +1604,66 @@ var file_runtime_v1_auth_proto_goTypes = []any{
 	(*OpenDesktopSessionRequest)(nil),             // 10: nimi.runtime.v1.OpenDesktopSessionRequest
 	(*OpenDesktopSessionResponse)(nil),            // 11: nimi.runtime.v1.OpenDesktopSessionResponse
 	(*OpenLocalAppSessionRequest)(nil),            // 12: nimi.runtime.v1.OpenLocalAppSessionRequest
-	(*OpenLocalAppSessionResponse)(nil),           // 13: nimi.runtime.v1.OpenLocalAppSessionResponse
-	(*RenewLocalAppSessionRequest)(nil),           // 14: nimi.runtime.v1.RenewLocalAppSessionRequest
-	(*RefreshSessionRequest)(nil),                 // 15: nimi.runtime.v1.RefreshSessionRequest
-	(*RefreshSessionResponse)(nil),                // 16: nimi.runtime.v1.RefreshSessionResponse
-	(*RevokeSessionRequest)(nil),                  // 17: nimi.runtime.v1.RevokeSessionRequest
-	(*RegisterExternalPrincipalRequest)(nil),      // 18: nimi.runtime.v1.RegisterExternalPrincipalRequest
-	(*RegisterExternalPrincipalResponse)(nil),     // 19: nimi.runtime.v1.RegisterExternalPrincipalResponse
-	(*OpenExternalPrincipalSessionRequest)(nil),   // 20: nimi.runtime.v1.OpenExternalPrincipalSessionRequest
-	(*OpenExternalPrincipalSessionResponse)(nil),  // 21: nimi.runtime.v1.OpenExternalPrincipalSessionResponse
-	(*RevokeExternalPrincipalSessionRequest)(nil), // 22: nimi.runtime.v1.RevokeExternalPrincipalSessionRequest
-	(ReasonCode)(0),                               // 23: nimi.runtime.v1.ReasonCode
-	(*timestamppb.Timestamp)(nil),                 // 24: google.protobuf.Timestamp
-	(ExternalPrincipalType)(0),                    // 25: nimi.runtime.v1.ExternalPrincipalType
-	(*Ack)(nil),                                   // 26: nimi.runtime.v1.Ack
+	(*CurrentUserDisplayProjection)(nil),          // 13: nimi.runtime.v1.CurrentUserDisplayProjection
+	(*OpenLocalAppSessionResponse)(nil),           // 14: nimi.runtime.v1.OpenLocalAppSessionResponse
+	(*RenewLocalAppSessionRequest)(nil),           // 15: nimi.runtime.v1.RenewLocalAppSessionRequest
+	(*RefreshSessionRequest)(nil),                 // 16: nimi.runtime.v1.RefreshSessionRequest
+	(*RefreshSessionResponse)(nil),                // 17: nimi.runtime.v1.RefreshSessionResponse
+	(*RevokeSessionRequest)(nil),                  // 18: nimi.runtime.v1.RevokeSessionRequest
+	(*RegisterExternalPrincipalRequest)(nil),      // 19: nimi.runtime.v1.RegisterExternalPrincipalRequest
+	(*RegisterExternalPrincipalResponse)(nil),     // 20: nimi.runtime.v1.RegisterExternalPrincipalResponse
+	(*OpenExternalPrincipalSessionRequest)(nil),   // 21: nimi.runtime.v1.OpenExternalPrincipalSessionRequest
+	(*OpenExternalPrincipalSessionResponse)(nil),  // 22: nimi.runtime.v1.OpenExternalPrincipalSessionResponse
+	(*RevokeExternalPrincipalSessionRequest)(nil), // 23: nimi.runtime.v1.RevokeExternalPrincipalSessionRequest
+	(ReasonCode)(0),                               // 24: nimi.runtime.v1.ReasonCode
+	(*timestamppb.Timestamp)(nil),                 // 25: google.protobuf.Timestamp
+	(ExternalPrincipalType)(0),                    // 26: nimi.runtime.v1.ExternalPrincipalType
+	(*Ack)(nil),                                   // 27: nimi.runtime.v1.Ack
 }
 var file_runtime_v1_auth_proto_depIdxs = []int32{
 	1,  // 0: nimi.runtime.v1.AppModeManifest.app_mode:type_name -> nimi.runtime.v1.AppMode
 	2,  // 1: nimi.runtime.v1.AppModeManifest.world_relation:type_name -> nimi.runtime.v1.WorldRelation
 	5,  // 2: nimi.runtime.v1.RegisterAppRequest.mode_manifest:type_name -> nimi.runtime.v1.AppModeManifest
-	23, // 3: nimi.runtime.v1.RegisterAppResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	24, // 4: nimi.runtime.v1.OpenSessionResponse.issued_at:type_name -> google.protobuf.Timestamp
-	24, // 5: nimi.runtime.v1.OpenSessionResponse.expires_at:type_name -> google.protobuf.Timestamp
-	23, // 6: nimi.runtime.v1.OpenSessionResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	24, // 3: nimi.runtime.v1.RegisterAppResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	25, // 4: nimi.runtime.v1.OpenSessionResponse.issued_at:type_name -> google.protobuf.Timestamp
+	25, // 5: nimi.runtime.v1.OpenSessionResponse.expires_at:type_name -> google.protobuf.Timestamp
+	24, // 6: nimi.runtime.v1.OpenSessionResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
 	3,  // 7: nimi.runtime.v1.OpenLocalAppSessionResponse.state:type_name -> nimi.runtime.v1.LocalAppSessionState
-	23, // 8: nimi.runtime.v1.OpenLocalAppSessionResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	24, // 9: nimi.runtime.v1.RefreshSessionResponse.expires_at:type_name -> google.protobuf.Timestamp
-	23, // 10: nimi.runtime.v1.RefreshSessionResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	25, // 11: nimi.runtime.v1.RegisterExternalPrincipalRequest.external_principal_type:type_name -> nimi.runtime.v1.ExternalPrincipalType
-	0,  // 12: nimi.runtime.v1.RegisterExternalPrincipalRequest.proof_type:type_name -> nimi.runtime.v1.ExternalProofType
-	23, // 13: nimi.runtime.v1.RegisterExternalPrincipalResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	24, // 14: nimi.runtime.v1.OpenExternalPrincipalSessionResponse.expires_at:type_name -> google.protobuf.Timestamp
-	23, // 15: nimi.runtime.v1.OpenExternalPrincipalSessionResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	6,  // 16: nimi.runtime.v1.RuntimeAuthService.RegisterApp:input_type -> nimi.runtime.v1.RegisterAppRequest
-	8,  // 17: nimi.runtime.v1.RuntimeAuthService.OpenSession:input_type -> nimi.runtime.v1.OpenSessionRequest
-	10, // 18: nimi.runtime.v1.RuntimeAuthService.OpenDesktopSession:input_type -> nimi.runtime.v1.OpenDesktopSessionRequest
-	12, // 19: nimi.runtime.v1.RuntimeAuthService.OpenLocalAppSession:input_type -> nimi.runtime.v1.OpenLocalAppSessionRequest
-	14, // 20: nimi.runtime.v1.RuntimeAuthService.RenewLocalAppSession:input_type -> nimi.runtime.v1.RenewLocalAppSessionRequest
-	15, // 21: nimi.runtime.v1.RuntimeAuthService.RefreshSession:input_type -> nimi.runtime.v1.RefreshSessionRequest
-	17, // 22: nimi.runtime.v1.RuntimeAuthService.RevokeSession:input_type -> nimi.runtime.v1.RevokeSessionRequest
-	18, // 23: nimi.runtime.v1.RuntimeAuthService.RegisterExternalPrincipal:input_type -> nimi.runtime.v1.RegisterExternalPrincipalRequest
-	20, // 24: nimi.runtime.v1.RuntimeAuthService.OpenExternalPrincipalSession:input_type -> nimi.runtime.v1.OpenExternalPrincipalSessionRequest
-	22, // 25: nimi.runtime.v1.RuntimeAuthService.RevokeExternalPrincipalSession:input_type -> nimi.runtime.v1.RevokeExternalPrincipalSessionRequest
-	7,  // 26: nimi.runtime.v1.RuntimeAuthService.RegisterApp:output_type -> nimi.runtime.v1.RegisterAppResponse
-	9,  // 27: nimi.runtime.v1.RuntimeAuthService.OpenSession:output_type -> nimi.runtime.v1.OpenSessionResponse
-	11, // 28: nimi.runtime.v1.RuntimeAuthService.OpenDesktopSession:output_type -> nimi.runtime.v1.OpenDesktopSessionResponse
-	13, // 29: nimi.runtime.v1.RuntimeAuthService.OpenLocalAppSession:output_type -> nimi.runtime.v1.OpenLocalAppSessionResponse
-	13, // 30: nimi.runtime.v1.RuntimeAuthService.RenewLocalAppSession:output_type -> nimi.runtime.v1.OpenLocalAppSessionResponse
-	16, // 31: nimi.runtime.v1.RuntimeAuthService.RefreshSession:output_type -> nimi.runtime.v1.RefreshSessionResponse
-	26, // 32: nimi.runtime.v1.RuntimeAuthService.RevokeSession:output_type -> nimi.runtime.v1.Ack
-	19, // 33: nimi.runtime.v1.RuntimeAuthService.RegisterExternalPrincipal:output_type -> nimi.runtime.v1.RegisterExternalPrincipalResponse
-	21, // 34: nimi.runtime.v1.RuntimeAuthService.OpenExternalPrincipalSession:output_type -> nimi.runtime.v1.OpenExternalPrincipalSessionResponse
-	26, // 35: nimi.runtime.v1.RuntimeAuthService.RevokeExternalPrincipalSession:output_type -> nimi.runtime.v1.Ack
-	26, // [26:36] is the sub-list for method output_type
-	16, // [16:26] is the sub-list for method input_type
-	16, // [16:16] is the sub-list for extension type_name
-	16, // [16:16] is the sub-list for extension extendee
-	0,  // [0:16] is the sub-list for field type_name
+	24, // 8: nimi.runtime.v1.OpenLocalAppSessionResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	13, // 9: nimi.runtime.v1.OpenLocalAppSessionResponse.current_user:type_name -> nimi.runtime.v1.CurrentUserDisplayProjection
+	24, // 10: nimi.runtime.v1.OpenLocalAppSessionResponse.current_user_reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	25, // 11: nimi.runtime.v1.RefreshSessionResponse.expires_at:type_name -> google.protobuf.Timestamp
+	24, // 12: nimi.runtime.v1.RefreshSessionResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	26, // 13: nimi.runtime.v1.RegisterExternalPrincipalRequest.external_principal_type:type_name -> nimi.runtime.v1.ExternalPrincipalType
+	0,  // 14: nimi.runtime.v1.RegisterExternalPrincipalRequest.proof_type:type_name -> nimi.runtime.v1.ExternalProofType
+	24, // 15: nimi.runtime.v1.RegisterExternalPrincipalResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	25, // 16: nimi.runtime.v1.OpenExternalPrincipalSessionResponse.expires_at:type_name -> google.protobuf.Timestamp
+	24, // 17: nimi.runtime.v1.OpenExternalPrincipalSessionResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	6,  // 18: nimi.runtime.v1.RuntimeAuthService.RegisterApp:input_type -> nimi.runtime.v1.RegisterAppRequest
+	8,  // 19: nimi.runtime.v1.RuntimeAuthService.OpenSession:input_type -> nimi.runtime.v1.OpenSessionRequest
+	10, // 20: nimi.runtime.v1.RuntimeAuthService.OpenDesktopSession:input_type -> nimi.runtime.v1.OpenDesktopSessionRequest
+	12, // 21: nimi.runtime.v1.RuntimeAuthService.OpenLocalAppSession:input_type -> nimi.runtime.v1.OpenLocalAppSessionRequest
+	15, // 22: nimi.runtime.v1.RuntimeAuthService.RenewLocalAppSession:input_type -> nimi.runtime.v1.RenewLocalAppSessionRequest
+	16, // 23: nimi.runtime.v1.RuntimeAuthService.RefreshSession:input_type -> nimi.runtime.v1.RefreshSessionRequest
+	18, // 24: nimi.runtime.v1.RuntimeAuthService.RevokeSession:input_type -> nimi.runtime.v1.RevokeSessionRequest
+	19, // 25: nimi.runtime.v1.RuntimeAuthService.RegisterExternalPrincipal:input_type -> nimi.runtime.v1.RegisterExternalPrincipalRequest
+	21, // 26: nimi.runtime.v1.RuntimeAuthService.OpenExternalPrincipalSession:input_type -> nimi.runtime.v1.OpenExternalPrincipalSessionRequest
+	23, // 27: nimi.runtime.v1.RuntimeAuthService.RevokeExternalPrincipalSession:input_type -> nimi.runtime.v1.RevokeExternalPrincipalSessionRequest
+	7,  // 28: nimi.runtime.v1.RuntimeAuthService.RegisterApp:output_type -> nimi.runtime.v1.RegisterAppResponse
+	9,  // 29: nimi.runtime.v1.RuntimeAuthService.OpenSession:output_type -> nimi.runtime.v1.OpenSessionResponse
+	11, // 30: nimi.runtime.v1.RuntimeAuthService.OpenDesktopSession:output_type -> nimi.runtime.v1.OpenDesktopSessionResponse
+	14, // 31: nimi.runtime.v1.RuntimeAuthService.OpenLocalAppSession:output_type -> nimi.runtime.v1.OpenLocalAppSessionResponse
+	14, // 32: nimi.runtime.v1.RuntimeAuthService.RenewLocalAppSession:output_type -> nimi.runtime.v1.OpenLocalAppSessionResponse
+	17, // 33: nimi.runtime.v1.RuntimeAuthService.RefreshSession:output_type -> nimi.runtime.v1.RefreshSessionResponse
+	27, // 34: nimi.runtime.v1.RuntimeAuthService.RevokeSession:output_type -> nimi.runtime.v1.Ack
+	20, // 35: nimi.runtime.v1.RuntimeAuthService.RegisterExternalPrincipal:output_type -> nimi.runtime.v1.RegisterExternalPrincipalResponse
+	22, // 36: nimi.runtime.v1.RuntimeAuthService.OpenExternalPrincipalSession:output_type -> nimi.runtime.v1.OpenExternalPrincipalSessionResponse
+	27, // 37: nimi.runtime.v1.RuntimeAuthService.RevokeExternalPrincipalSession:output_type -> nimi.runtime.v1.Ack
+	28, // [28:38] is the sub-list for method output_type
+	18, // [18:28] is the sub-list for method input_type
+	18, // [18:18] is the sub-list for extension type_name
+	18, // [18:18] is the sub-list for extension extendee
+	0,  // [0:18] is the sub-list for field type_name
 }
 
 func init() { file_runtime_v1_auth_proto_init() }
@@ -1584,13 +1672,14 @@ func file_runtime_v1_auth_proto_init() {
 		return
 	}
 	file_runtime_v1_common_proto_init()
+	file_runtime_v1_auth_proto_msgTypes[8].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_runtime_v1_auth_proto_rawDesc), len(file_runtime_v1_auth_proto_rawDesc)),
 			NumEnums:      5,
-			NumMessages:   18,
+			NumMessages:   19,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

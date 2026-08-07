@@ -155,6 +155,22 @@ type macOSACLEntry struct {
 func validateProductControlRootPlatform(root string, security ProductControlDataRootSecurityBinding) error {
 	interactiveUserUID := security.InteractiveUserUID
 	runtimeServiceUID := security.RuntimeServiceUID
+	if security.PerUserRuntime {
+		if interactiveUserUID == 0 || runtimeServiceUID != interactiveUserUID || interactiveUserUID != uint32(os.Geteuid()) {
+			return fmt.Errorf("per-user Product Control requires one current-user UID")
+		}
+		info, err := validateMacOSDirectDirectoryChain(root)
+		if err != nil {
+			return err
+		}
+		if err := validateMacOSDirectoryOwner(info, interactiveUserUID); err != nil {
+			return err
+		}
+		if info.Mode().Perm()&0o022 != 0 {
+			return fmt.Errorf("per-user Product Control root is group/world writable")
+		}
+		return nil
+	}
 	if interactiveUserUID == 0 && runtimeServiceUID == 0 {
 		if _, err := os.Lstat(root); os.IsNotExist(err) {
 			return nil
@@ -210,6 +226,18 @@ func validateProductControlDataRootPlatform(root string, security ProductControl
 	}
 	interactiveUserUID := security.InteractiveUserUID
 	runtimeServiceUID := security.RuntimeServiceUID
+	if security.PerUserRuntime {
+		if interactiveUserUID == 0 || runtimeServiceUID != interactiveUserUID || interactiveUserUID != uint32(os.Geteuid()) {
+			return fmt.Errorf("per-user data root requires one current-user UID")
+		}
+		if err := validateMacOSDirectoryOwner(info, interactiveUserUID); err != nil {
+			return err
+		}
+		if info.Mode().Perm()&0o022 != 0 {
+			return fmt.Errorf("per-user data root is group/world writable")
+		}
+		return nil
+	}
 	if interactiveUserUID == 0 && runtimeServiceUID == 0 {
 		return nil
 	}

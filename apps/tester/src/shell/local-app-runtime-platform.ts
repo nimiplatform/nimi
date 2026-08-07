@@ -6,8 +6,10 @@ import { createNimiLocalAppStandardShellSurface } from '@nimiplatform/kit/shell/
  * projection validation; the App never receives a registration handle,
  * Registered App Subject, session proof, or transport authority material.
  */
-export const testerLocalAppClient = createNimiClient({
-  localApp: {
-    standardShell: createNimiLocalAppStandardShellSurface(),
-  },
-});
+export function getTesterLocalAppClient() {
+  return createNimiClient({
+    localApp: {
+      standardShell: createNimiLocalAppStandardShellSurface(),
+    },
+  });
+}

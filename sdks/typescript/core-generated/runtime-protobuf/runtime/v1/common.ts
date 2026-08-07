@@ -1248,7 +1248,11 @@ export enum ReasonCode {
     /**
      * @generated from protobuf enum value: LOCAL_APP_OWNER_UNAVAILABLE = 709;
      */
-    LOCAL_APP_OWNER_UNAVAILABLE = 709
+    LOCAL_APP_OWNER_UNAVAILABLE = 709,
+    /**
+     * @generated from protobuf enum value: CURRENT_USER_DISPLAY_UNAVAILABLE = 710;
+     */
+    CURRENT_USER_DISPLAY_UNAVAILABLE = 710
 }
 /**
  * @generated from protobuf enum nimi.runtime.v1.ExternalPrincipalType

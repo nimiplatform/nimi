@@ -46,6 +46,7 @@ const (
 
 type protectedLocalAppAdmission interface {
 	AdmitLocalAppIngress(context.Context, localappop.Ingress) error
+	AuthorizeLocalAppIngress(context.Context, localappop.Ingress) (context.Context, error)
 }
 
 type protectedLocalAppMethodPolicy struct {
@@ -218,8 +219,13 @@ func newUnaryProtectedLocalAppTransportInterceptor(admissions ...protectedLocalA
 		if admission == nil {
 			return nil, protectedLocalAppUnavailable()
 		}
-		if err := admission.AdmitLocalAppIngress(protectedContext, protectedLocalAppUnaryIngress(info.FullMethod)); err != nil {
+		ingress := protectedLocalAppUnaryIngress(info.FullMethod, req)
+		authorizedContext, err := admission.AuthorizeLocalAppIngress(protectedContext, ingress)
+		if err != nil {
 			return nil, err
+		}
+		if protectedLocalAppOwnerEnabled(info.FullMethod, req, ingress) {
+			return handler(authorizedContext, req)
 		}
 		return nil, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_LOCAL_APP_OWNER_UNAVAILABLE)
 	}
@@ -259,7 +265,7 @@ func newStreamProtectedLocalAppTransportInterceptor(admissions ...protectedLocal
 	}
 }
 
-func protectedLocalAppUnaryIngress(method string) localappop.Ingress {
+func protectedLocalAppUnaryIngress(method string, request any) localappop.Ingress {
 	switch method {
 	case protectedReadLocalAppStorageJSONMethod:
 		return localappop.IngressStorageJSONRead
@@ -273,12 +279,38 @@ func protectedLocalAppUnaryIngress(method string) localappop.Ingress {
 		return localappop.IngressAppAIConfigOverwrite
 	case protectedGenerateTextCandidateMethod:
 		return localappop.IngressTextCandidateGenerate
+	case protectedInvokeRealmUnaryMethod:
+		realmRequest, ok := request.(*runtimev1.InvokeRealmUnaryRequest)
+		if !ok || realmRequest == nil {
+			return localappop.IngressUnknown
+		}
+		switch realmRequest.GetMethodId() {
+		case "WorldCoreController_listWorldCores":
+			return localappop.IngressRealmWorldCoreList
+		case "WorldCoreController_createWorldCore":
+			return localappop.IngressRealmWorldCoreCreate
+		default:
+			return localappop.IngressUnknown
+		}
 	case protectedOpenConversationMethod:
 		return localappop.IngressConversationOpen
 	case protectedConversationSnapshotMethod:
 		return localappop.IngressConversationSnapshotGet
 	default:
 		return localappop.IngressUnknown
+	}
+}
+
+func protectedLocalAppOwnerEnabled(method string, request any, ingress localappop.Ingress) bool {
+	switch method {
+	case protectedReadLocalAppStorageJSONMethod, protectedWriteLocalAppStorageJSONMethod, protectedRemoveLocalAppStorageJSONMethod:
+		return true
+	case protectedInvokeRealmUnaryMethod:
+		realmRequest, ok := request.(*runtimev1.InvokeRealmUnaryRequest)
+		return ok && realmRequest != nil && ingress == localappop.IngressRealmWorldCoreList &&
+			realmRequest.GetMethodId() == "WorldCoreController_listWorldCores"
+	default:
+		return false
 	}
 }
 
@@ -317,7 +349,11 @@ func protectedLocalAppMessageHasCallerAssertion(message protoreflect.Message) bo
 			found = true
 			return false
 		}
-		if field.IsList() && field.Message() != nil {
+		switch {
+		case field.IsList():
+			if field.Message() == nil {
+				break
+			}
 			list := value.List()
 			for index := 0; index < list.Len(); index++ {
 				if protectedLocalAppMessageHasCallerAssertion(list.Get(index).Message()) {
@@ -325,8 +361,7 @@ func protectedLocalAppMessageHasCallerAssertion(message protoreflect.Message) bo
 					return false
 				}
 			}
-		}
-		if field.IsMap() {
+		case field.IsMap():
 			value.Map().Range(func(key protoreflect.MapKey, entry protoreflect.Value) bool {
 				if field.MapKey().Kind() == protoreflect.StringKind && protectedLocalAppCallerAssertionField(key.String()) {
 					found = true
@@ -338,8 +373,10 @@ func protectedLocalAppMessageHasCallerAssertion(message protoreflect.Message) bo
 				}
 				return true
 			})
-		} else if field.Message() != nil && protectedLocalAppMessageHasCallerAssertion(value.Message()) {
-			found = true
+		case field.Message() != nil:
+			if protectedLocalAppMessageHasCallerAssertion(value.Message()) {
+				found = true
+			}
 		}
 		return !found
 	})

@@ -12,16 +12,17 @@ if (process.platform !== 'darwin' || process.arch !== 'arm64') {
 }
 
 const localDevelopment = process.argv.includes('--local-development');
+const sourceLocalDevelopment = process.argv.includes('--source-local-development');
 const layoutOnly = process.argv.includes('--layout-only');
-const knownArguments = new Set(['--local-development', '--layout-only']);
+const knownArguments = new Set(['--local-development', '--source-local-development', '--layout-only']);
 const unknownArgument = process.argv.slice(2).find((value) => !knownArguments.has(value));
 if (unknownArgument) throw new Error(`unsupported protected-local macOS build argument: ${unknownArgument}`);
-if (localDevelopment && layoutOnly) {
-  throw new Error('local-development and layout-only builds are mutually exclusive');
+if ([localDevelopment, sourceLocalDevelopment, layoutOnly].filter(Boolean).length > 1) {
+  throw new Error('local-development, source-local-development, and layout-only builds are mutually exclusive');
 }
 
 const exactTeamId = (value) => /^[A-Z0-9]{10}$/.test(value);
-if (!layoutOnly && !localDevelopment) {
+if (!layoutOnly && !localDevelopment && !sourceLocalDevelopment) {
   const teamId = String(process.env.NIMI_MACOS_TEAM_ID || '').trim();
   if (!exactTeamId(teamId)) {
     throw new Error('production macOS build requires exact NIMI_MACOS_TEAM_ID');
@@ -30,11 +31,12 @@ if (!layoutOnly && !localDevelopment) {
 
 const cargoArguments = ['build', '--release', '--manifest-path', path.join(crateRoot, 'Cargo.toml')];
 if (localDevelopment) cargoArguments.push('--features', 'macos-local-development');
+if (sourceLocalDevelopment) cargoArguments.push('--features', 'macos-source-local-development');
 const cargoEnvironment = {
   ...process.env,
   CARGO_BUILD_JOBS: process.env.CARGO_BUILD_JOBS ?? '1',
 };
-if (layoutOnly || localDevelopment) {
+if (layoutOnly || localDevelopment || sourceLocalDevelopment) {
   delete cargoEnvironment.NIMI_MACOS_TEAM_ID;
 }
 const cargo = spawnSync('cargo', cargoArguments, {
@@ -60,7 +62,9 @@ console.log(
   `[protected-local] wrote ${path.relative(workspaceRoot, target)}${
     localDevelopment
       ? ' (local-development)'
-      : layoutOnly
+      : sourceLocalDevelopment
+        ? ' (source-local-development)'
+        : layoutOnly
         ? ' (layout-only; direct trust disabled)'
         : ' (production)'
   }`,
