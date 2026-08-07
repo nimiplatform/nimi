@@ -8,7 +8,7 @@ import type {
 } from '@nimiplatform/sdk/runtime';
 import { useDesktopRendererCommands } from '../../renderer/binding-context.js';
 import { useTranslation } from 'react-i18next';
-import { useRuntimeConfigLocalModelCenterClient } from './runtime-config-local-model-center-sdk-service';
+import { useRuntimeConfigLocalAssetAdminClient } from './runtime-config-local-model-center-sdk-service';
 import {
   basenameFromRuntimePath,
   type LocalModelCenterProps,
@@ -35,7 +35,7 @@ export function toAssetImportUserMessage(error: unknown): string {
 }
 
 export function useLocalModelCenterImportActions(input: UseLocalModelCenterImportActionsInput) {
-  const runtimeConfigLocalModelCenterClient = useRuntimeConfigLocalModelCenterClient();
+  const runtimeConfigLocalAssetAdminClient = useRuntimeConfigLocalAssetAdminClient();
   const commands = useDesktopRendererCommands();
   const { t } = useTranslation();
   const [variantPickerItem, setVariantPickerItem] = useState<NimiRuntimeLocalCatalogItemDescriptor | null>(null);
@@ -60,7 +60,7 @@ export function useLocalModelCenterImportActions(input: UseLocalModelCenterImpor
       void input.props.onDiscover().finally(() => {
         void input.onRefreshAssetSections();
         void input.onRefreshUnregisteredAssets();
-        void runtimeConfigLocalModelCenterClient.listAssets({ kind: 'image' }).then((assets) => Promise.all(
+        void runtimeConfigLocalAssetAdminClient.listAssets({ kind: 'image' }).then((assets) => Promise.all(
           assets.map((asset) => input.onPrepareImportedAssetEnvironment?.(asset)),
         ));
       });
@@ -93,9 +93,9 @@ export function useLocalModelCenterImportActions(input: UseLocalModelCenterImpor
 
   const handleImportedAsset = useCallback(async (
     assetPath: string,
-    imported: Awaited<ReturnType<typeof runtimeConfigLocalModelCenterClient.importAssetFile>> | {
+    imported: Awaited<ReturnType<typeof runtimeConfigLocalAssetAdminClient.importAssetFile>> | {
       scaffolded: true;
-      model: Awaited<ReturnType<typeof runtimeConfigLocalModelCenterClient.scaffoldOrphanAsset>>;
+      model: Awaited<ReturnType<typeof runtimeConfigLocalAssetAdminClient.scaffoldOrphanAsset>>;
     },
   ) => {
     if ('scaffolded' in imported && imported.scaffolded) {
@@ -121,7 +121,7 @@ export function useLocalModelCenterImportActions(input: UseLocalModelCenterImpor
     if (!assetKind) {
       throw new Error('assetKind is required for asset import');
     }
-    const accepted = await runtimeConfigLocalModelCenterClient.scaffoldOrphanAsset({
+    const accepted = await runtimeConfigLocalAssetAdminClient.scaffoldOrphanAsset({
       path: assetPath,
       kind: assetKind,
       engine: declaration.engine,
@@ -159,7 +159,7 @@ export function useLocalModelCenterImportActions(input: UseLocalModelCenterImpor
     }
     setImportingAssetPath(filePath);
     try {
-      const imported = await runtimeConfigLocalModelCenterClient.importAssetFile({
+      const imported = await runtimeConfigLocalAssetAdminClient.importAssetFile({
         filePath,
         declaration,
         endpoint: String(endpoint || '').trim() || undefined,
@@ -179,7 +179,7 @@ export function useLocalModelCenterImportActions(input: UseLocalModelCenterImpor
     if (!manifestPath) {
       return;
     }
-    const imported = await runtimeConfigLocalModelCenterClient.importAssetManifest(manifestPath, {
+    const imported = await runtimeConfigLocalAssetAdminClient.importAssetManifest(manifestPath, {
       caller: 'core',
       endpoint: String(endpoint || '').trim() || undefined,
     });
@@ -205,7 +205,7 @@ export function useLocalModelCenterImportActions(input: UseLocalModelCenterImpor
         throw new Error('assetKind is required for bundle import');
       }
       const assetName = basenameFromRuntimePath(directoryPath);
-      const imported = await runtimeConfigLocalModelCenterClient.importBundle({
+      const imported = await runtimeConfigLocalAssetAdminClient.importBundle({
         directoryPath,
         modelName: assetName || undefined,
         capabilities: capabilitiesForAssetKind(assetKind),
@@ -238,7 +238,7 @@ export function useLocalModelCenterImportActions(input: UseLocalModelCenterImpor
     setVariantList([]);
     setVariantError('');
     setLoadingVariants(true);
-    void runtimeConfigLocalModelCenterClient.listCatalogVariants(item.repo).then((variants) => {
+    void runtimeConfigLocalAssetAdminClient.listCatalogVariants(item.repo).then((variants) => {
       setVariantList([...variants]);
       setLoadingVariants(false);
     }).catch((error) => {

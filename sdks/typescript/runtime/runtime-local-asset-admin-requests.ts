@@ -20,7 +20,7 @@ import type {
   NimiRuntimeLocalExecutionPlan,
   NimiRuntimeLocalInstallPlanDescriptor,
   NimiRuntimeLocalProfileResolutionPlan,
-} from './runtime-local-model-center-types';
+} from './runtime-local-asset-admin-types';
 import type {
   NimiRuntimeLocalProfileDescriptor,
   NimiRuntimeLocalProfileEntryDescriptor,
@@ -33,7 +33,7 @@ import {
   stringRecord,
   textList,
   toCanonicalNimiRuntimeLocalAssetId,
-} from './runtime-local-model-center-values';
+} from './runtime-local-asset-admin-values';
 
 export function toGeneratedNimiRuntimeLocalInstallPlan(
   plan: NimiRuntimeLocalInstallPlanDescriptor,

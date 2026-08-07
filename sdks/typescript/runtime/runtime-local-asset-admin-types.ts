@@ -495,8 +495,8 @@ export interface NimiRuntimeLocalWriteOptions {
   readonly callOptions?: RuntimeTypedCallOptions;
 }
 
-export interface NimiRuntimeLocalModelCenterClientOptions {
-  readonly local: NimiRuntimeLocalModelCenterRpc | (() => NimiRuntimeLocalModelCenterRpc);
+export interface NimiRuntimeLocalAssetAdminClientOptions {
+  readonly local: NimiRuntimeLocalAssetAdminRpc | (() => NimiRuntimeLocalAssetAdminRpc);
   readonly callOptions?: RuntimeTypedCallOptions;
 }
 
@@ -505,7 +505,7 @@ export interface NimiRuntimeLocalTransferWatchOptions {
   readonly onError?: (error: unknown) => void;
 }
 
-export type NimiRuntimeLocalModelCenterRpc = Pick<
+export type NimiRuntimeLocalAssetAdminRpc = Pick<
   RuntimeTypedClient,
   | 'listLocalAssets'
   | 'removeLocalAsset'
@@ -540,7 +540,7 @@ export type NimiRuntimeLocalModelCenterRpc = Pick<
   | 'repairLocalEnvironmentDependency'
 >;
 
-export interface NimiRuntimeLocalModelCenterClient {
+export interface NimiRuntimeLocalAssetAdminClient {
   listAssets(input?: NimiRuntimeLocalListAssetsInput): Promise<readonly NimiRuntimeLocalAssetRecord[]>;
   listVerifiedAssets(input?: {
     readonly kind?: NimiRuntimeLocalAssetKind | string | null;

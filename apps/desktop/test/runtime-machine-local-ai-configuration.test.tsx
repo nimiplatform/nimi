@@ -167,9 +167,9 @@ test('Local AI Configurations shows the current selection independently for ever
     ],
   }));
 
-  assert.match(markup, /image\.generate/u);
+  assert.match(markup, /Image generation/u);
   assert.match(markup, /Local image model/u);
-  assert.match(markup, /text\.generate/u);
+  assert.match(markup, /Text generation/u);
   assert.match(markup, /Local writing model/u);
   assert.equal((markup.match(/>Selected</gu) ?? []).length, 2);
 });
@@ -339,7 +339,7 @@ test('Local AI Configurations renders the video form and builds the video add in
     { showAddForm: true, addDraft: draft, assets: [asset] },
   ));
 
-  assert.match(markup, />video\.generate</u);
+  assert.match(markup, />Video generation</u);
   assert.match(markup, /data-testid="machine-local-ai-video-fields"/u);
   assert.match(markup, /data-testid="machine-local-ai-video-slot:fl2va"/u);
   assert.match(markup, /data-testid="machine-local-ai-video-slot:ref2va"/u);
@@ -398,7 +398,7 @@ test('Local AI Configurations keeps video configuration management available whe
     selections: [],
   }));
 
-  assert.match(markup, /video\.generate/u);
+  assert.match(markup, /Video generation/u);
   assert.match(markup, /Local video model/u);
   assert.match(markup, /stable-diffusion\.cpp/u);
   assert.match(markup, /cannot currently be interpreted/u);

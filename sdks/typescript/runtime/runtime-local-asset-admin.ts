@@ -32,23 +32,23 @@ import {
   projectNimiRuntimeLocalTransferSessionSummary,
   projectNimiRuntimeLocalUnregisteredAssetDescriptor,
   projectNimiRuntimeLocalVerifiedAssetDescriptor,
-} from './runtime-local-model-center-projections';
+} from './runtime-local-asset-admin-projections';
 import {
   toGeneratedNimiRuntimeLocalDeviceProfile,
   toGeneratedNimiRuntimeLocalInstallPlan,
   toGeneratedNimiRuntimeLocalProfileDescriptor,
   toGeneratedNimiRuntimeLocalProfileEntryOverride,
   toGeneratedNimiRuntimeLocalProfileResolutionPlan,
-} from './runtime-local-model-center-requests';
+} from './runtime-local-asset-admin-requests';
 import type {
   NimiRuntimeLocalAssetRecord,
   NimiRuntimeLocalCatalogSearchInput,
-  NimiRuntimeLocalModelCenterClient,
-  NimiRuntimeLocalModelCenterClientOptions,
+  NimiRuntimeLocalAssetAdminClient,
+  NimiRuntimeLocalAssetAdminClientOptions,
   NimiRuntimeLocalSnapshot,
   NimiRuntimeLocalVerifiedAssetDescriptor,
   NimiRuntimeLocalWriteOptions,
-} from './runtime-local-model-center-types';
+} from './runtime-local-asset-admin-types';
 import {
   assertNimiRuntimeLocalWriteAllowed,
   dedupeBy,
@@ -60,13 +60,13 @@ import {
   stringRecord,
   textList,
   toCanonicalNimiRuntimeLocalAssetLookupKey,
-} from './runtime-local-model-center-values';
+} from './runtime-local-asset-admin-values';
 
 export {
   assertNimiRuntimeLocalWriteAllowed,
   toCanonicalNimiRuntimeLocalAssetId,
   toCanonicalNimiRuntimeLocalAssetLookupKey,
-} from './runtime-local-model-center-values';
+} from './runtime-local-asset-admin-values';
 export {
   buildNimiRuntimeLocalImageNativeEnvironmentPlanInput,
   isNimiRuntimeLocalEnvironmentDependencyJobActiveState,
@@ -94,12 +94,12 @@ export {
   projectNimiRuntimeLocalUnregisteredAssetDescriptor,
   projectNimiRuntimeLocalVerifiedAssetDescriptor,
   resolveNimiRuntimeLocalImageNativeEnvironmentPlan,
-} from './runtime-local-model-center-projections';
-export * from './runtime-local-model-center-types';
+} from './runtime-local-asset-admin-projections';
+export * from './runtime-local-asset-admin-types';
 
-export function createNimiRuntimeLocalModelCenterClient(
-  options: NimiRuntimeLocalModelCenterClientOptions,
-): NimiRuntimeLocalModelCenterClient {
+export function createNimiRuntimeLocalAssetAdminClient(
+  options: NimiRuntimeLocalAssetAdminClientOptions,
+): NimiRuntimeLocalAssetAdminClient {
   const resolveLocal = () => (typeof options.local === 'function' ? options.local() : options.local);
   const defaultCallOptions = options.callOptions;
   const callOptions = (writeOptions?: NimiRuntimeLocalWriteOptions): RuntimeTypedCallOptions | undefined => (

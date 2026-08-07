@@ -1,24 +1,24 @@
 import { useMemo } from 'react';
 import {
-  createNimiRuntimeLocalModelCenterClient,
+  createNimiRuntimeLocalAssetAdminClient,
 } from '@nimiplatform/sdk/runtime';
 import { useDesktopRendererSdk } from '../../renderer/binding-context.js';
 import type { DesktopRendererSdkPort } from '../../renderer/sdk-port.js';
 
-export function createRuntimeConfigLocalModelCenterClient(
+export function createRuntimeConfigLocalAssetAdminClient(
   local: ReturnType<DesktopRendererSdkPort['localAssetAdmin']>,
 ) {
-  return createNimiRuntimeLocalModelCenterClient({ local: () => local });
+  return createNimiRuntimeLocalAssetAdminClient({ local: () => local });
 }
 
-export type RuntimeConfigLocalModelCenterClient = ReturnType<
-  typeof createRuntimeConfigLocalModelCenterClient
+export type RuntimeConfigLocalAssetAdminClient = ReturnType<
+  typeof createRuntimeConfigLocalAssetAdminClient
 >;
 
-export function useRuntimeConfigLocalModelCenterClient(): RuntimeConfigLocalModelCenterClient {
+export function useRuntimeConfigLocalAssetAdminClient(): RuntimeConfigLocalAssetAdminClient {
   const sdk = useDesktopRendererSdk();
   return useMemo(
-    () => createRuntimeConfigLocalModelCenterClient(sdk.localAssetAdmin()),
+    () => createRuntimeConfigLocalAssetAdminClient(sdk.localAssetAdmin()),
     [sdk],
   );
 }

@@ -19,7 +19,7 @@ import {
   canImportDeclaration,
   isRunnableAssetKind,
 } from './runtime-config-use-local-model-center-helpers.js';
-import { useRuntimeConfigLocalModelCenterClient } from './runtime-config-local-model-center-sdk-service';
+import { useRuntimeConfigLocalAssetAdminClient } from './runtime-config-local-model-center-sdk-service';
 import {
   useLocalModelCenterImportFilePlan,
 } from './runtime-config-use-local-model-center-import-file-plan';
@@ -48,7 +48,7 @@ function runtimeInventoryErrorMessage(error: unknown, fallback: string): string 
 }
 
 export function useLocalModelCenterRuntimeState({ props }: UseLocalModelCenterRuntimeStateInput) {
-  const runtimeConfigLocalModelCenterClient = useRuntimeConfigLocalModelCenterClient();
+  const runtimeConfigLocalAssetAdminClient = useRuntimeConfigLocalAssetAdminClient();
   const bindings = useDesktopRendererBindings();
   const [installing, setInstalling] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -162,7 +162,7 @@ export function useLocalModelCenterRuntimeState({ props }: UseLocalModelCenterRu
     }
     setLoadingCatalog(true);
     try {
-      const rows = await runtimeConfigLocalModelCenterClient.searchCatalog({
+      const rows = await runtimeConfigLocalAssetAdminClient.searchCatalog({
         query,
         capability: capability === 'all' ? undefined : capability,
         limit: 30,
@@ -188,7 +188,7 @@ export function useLocalModelCenterRuntimeState({ props }: UseLocalModelCenterRu
     const requestId = ++verifiedModelsRequestSeqRef.current;
     setLoadingVerifiedModels(true);
     try {
-      const rows = await runtimeConfigLocalModelCenterClient.listVerifiedAssets();
+      const rows = await runtimeConfigLocalAssetAdminClient.listVerifiedAssets();
       if (!mountedRef.current || requestId !== verifiedModelsRequestSeqRef.current) {
         return;
       }
@@ -212,7 +212,7 @@ export function useLocalModelCenterRuntimeState({ props }: UseLocalModelCenterRu
     const requestId = ++installedAssetsRequestSeqRef.current;
     setLoadingInstalledAssets(true);
     try {
-      const rows = await runtimeConfigLocalModelCenterClient.listAssets();
+      const rows = await runtimeConfigLocalAssetAdminClient.listAssets();
       if (!mountedRef.current || requestId !== installedAssetsRequestSeqRef.current) {
         return;
       }
@@ -234,7 +234,7 @@ export function useLocalModelCenterRuntimeState({ props }: UseLocalModelCenterRu
     const requestId = ++verifiedAssetsRequestSeqRef.current;
     setLoadingVerifiedAssets(true);
     try {
-      const rows = await runtimeConfigLocalModelCenterClient.listVerifiedAssets();
+      const rows = await runtimeConfigLocalAssetAdminClient.listVerifiedAssets();
       if (!mountedRef.current || requestId !== verifiedAssetsRequestSeqRef.current) {
         return;
       }
@@ -443,7 +443,7 @@ export function useLocalModelCenterRuntimeState({ props }: UseLocalModelCenterRu
   const rescanInstalledAsset = useCallback(async (localAssetId: string) => {
     setAssetBusy(true);
     try {
-      await runtimeConfigLocalModelCenterClient.rescanBundle({ localAssetId }, { caller: 'core' });
+      await runtimeConfigLocalAssetAdminClient.rescanBundle({ localAssetId }, { caller: 'core' });
       await refreshAssetSections();
       await refreshUnregisteredAssets();
     } finally {

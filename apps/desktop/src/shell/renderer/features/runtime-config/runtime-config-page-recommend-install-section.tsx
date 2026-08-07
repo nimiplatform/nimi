@@ -7,7 +7,7 @@ import type {
   NimiRuntimeLocalRecommendationFeedItem,
 } from '@nimiplatform/sdk/runtime';
 import { Button, Card } from './runtime-config-primitives';
-import { useRuntimeConfigLocalModelCenterClient } from './runtime-config-local-model-center-sdk-service';
+import { useRuntimeConfigLocalAssetAdminClient } from './runtime-config-local-model-center-sdk-service';
 import {
   DownloadIcon,
   PackageIcon,
@@ -94,7 +94,7 @@ export function useRecommendInstallController({
   item,
   model,
 }: RecommendInstallControllerInput): RecommendInstallController {
-  const runtimeConfigLocalModelCenterClient = useRuntimeConfigLocalModelCenterClient();
+  const runtimeConfigLocalAssetAdminClient = useRuntimeConfigLocalAssetAdminClient();
   const [planPreview, setPlanPreview] = useState<NimiRuntimeLocalInstallPlanDescriptor | null>(null);
   const [planLoading, setPlanLoading] = useState(false);
   const [planError, setPlanError] = useState('');
@@ -109,7 +109,7 @@ export function useRecommendInstallController({
     setPlanLoading(true);
     setPlanError('');
     try {
-      const plan = await runtimeConfigLocalModelCenterClient.resolveInstallPlan(resolveInstallPlanPayload(item, options));
+      const plan = await runtimeConfigLocalAssetAdminClient.resolveInstallPlan(resolveInstallPlanPayload(item, options));
       setPlanPreview(plan);
     } catch (err) {
       setPlanPreview(null);
@@ -123,7 +123,7 @@ export function useRecommendInstallController({
     setVariantsLoading(true);
     setVariantsError('');
     try {
-      const rows = await runtimeConfigLocalModelCenterClient.listCatalogVariants(item.repo);
+      const rows = await runtimeConfigLocalAssetAdminClient.listCatalogVariants(item.repo);
       setVariants([...rows]);
     } catch (err) {
       setVariants([]);

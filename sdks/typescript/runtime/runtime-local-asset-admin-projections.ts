@@ -57,7 +57,7 @@ import type {
   NimiRuntimeLocalTransferSessionSummary,
   NimiRuntimeLocalUnregisteredAssetDescriptor,
   NimiRuntimeLocalVerifiedAssetDescriptor,
-} from './runtime-local-model-center-types';
+} from './runtime-local-asset-admin-types';
 import type { NimiRuntimeLocalProfileRequirementDescriptor } from './runtime-local-profile-manifest';
 import {
   clampNimiRuntimeLocalPercent,
@@ -77,7 +77,7 @@ import {
   textList,
   textListOrUndefined,
   toCanonicalNimiRuntimeLocalAssetId,
-} from './runtime-local-model-center-values';
+} from './runtime-local-asset-admin-values';
 
 const NIMI_RUNTIME_LOCAL_IMAGE_NATIVE_PACK_ID = 'local-image-native';
 const NIMI_RUNTIME_LOCAL_ENVIRONMENT_DEPENDENCY_READY_STATES: ReadonlySet<string> = new Set([

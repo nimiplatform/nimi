@@ -1002,6 +1002,11 @@
     "overridden": "Overridden",
     "loadingProviders": "Loading providers..."
   },
+  "capabilityLabels": {
+    "textGenerate": "Text generation",
+    "imageGenerate": "Image generation",
+    "videoGenerate": "Video generation"
+  },
   "common": {
     "noModelsDiscovered": "No models discovered yet.",
     "searchOptions": "Search options...",

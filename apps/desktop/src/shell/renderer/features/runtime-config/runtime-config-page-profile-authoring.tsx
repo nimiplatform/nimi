@@ -26,6 +26,7 @@ import { useAppStore } from '../../app-shell/providers/app-store.js';
 import { createRuntimeAgentAIConfigAdapter } from '../../infra/runtime-agent-ai-config.js';
 import { useDesktopRendererSdk } from '../../renderer/binding-context.js';
 import { RuntimePageShell } from './runtime-config-page-shell.js';
+import { displayRuntimeConfigCapabilityLabel } from './runtime-config-capability-labels.js';
 import {
   RUNTIME_CONFIG_AI_PROFILE_CAPABILITY_CONTRACTS,
   addRuntimeConfigAIProfileCapability,
@@ -412,7 +413,7 @@ function CapabilityAuthoringCard(props: {
             })}
           </div>
           <div className="mt-1 font-mono text-sm font-semibold text-[var(--nimi-text-primary)]">
-            {capability.capabilityContract}
+            {displayRuntimeConfigCapabilityLabel(capability.capabilityContract, props.t)}
           </div>
         </div>
         <Button
@@ -442,7 +443,9 @@ function CapabilityAuthoringCard(props: {
           ))}
         >
           {RUNTIME_CONFIG_AI_PROFILE_CAPABILITY_CONTRACTS.map((candidate) => (
-            <option key={candidate} value={candidate} disabled={used.has(candidate)}>{candidate}</option>
+            <option key={candidate} value={candidate} disabled={used.has(candidate)}>
+              {displayRuntimeConfigCapabilityLabel(candidate, props.t)}
+            </option>
           ))}
         </AuthoringSelect>
         <AuthoringSelect
@@ -1005,7 +1008,7 @@ function JourneySections(props: {
           <p>{props.t('runtimeConfig.profiles.authoring.noLocalImplementation')}</p>
         ) : props.model.localConfigurationPreviews.map((preview) => (
           <div key={preview.proposal.capabilityContract} className="mt-2 space-y-2 rounded-lg border border-[var(--nimi-border-subtle)] p-3">
-            <div className="font-mono font-semibold text-[var(--nimi-text-primary)]">{preview.proposal.capabilityContract}</div>
+            <div className="font-mono font-semibold text-[var(--nimi-text-primary)]">{displayRuntimeConfigCapabilityLabel(preview.proposal.capabilityContract, props.t)}</div>
             <div>{localDecisionCopy(preview.decision, props.t)}</div>
             <div>
               {props.t('runtimeConfig.profiles.authoring.expectedResolution', {
@@ -1039,16 +1042,16 @@ function ApplyPreviewSection(props: {
         ? props.t('runtimeConfig.profiles.authoring.applyIdentical')
         : props.t('runtimeConfig.profiles.authoring.applyChanges')}</div>
       <dl className="mt-2 grid gap-1">
-        <PreviewFact label={props.t('runtimeConfig.profiles.authoring.added')} value={listOrNone(intentDiff.addedCapabilityContracts, props.t)} />
-        <PreviewFact label={props.t('runtimeConfig.profiles.authoring.changed')} value={listOrNone(intentDiff.changedCapabilityContracts, props.t)} />
-        <PreviewFact label={props.t('runtimeConfig.profiles.authoring.removed')} value={listOrNone(intentDiff.removedCapabilityContracts, props.t)} />
-        <PreviewFact label={props.t('runtimeConfig.profiles.authoring.unchanged')} value={listOrNone(intentDiff.unchangedCapabilityContracts, props.t)} />
+        <PreviewFact label={props.t('runtimeConfig.profiles.authoring.added')} value={listOrNone(intentDiff.addedCapabilityContracts.map((contract) => displayRuntimeConfigCapabilityLabel(contract, props.t)), props.t)} />
+        <PreviewFact label={props.t('runtimeConfig.profiles.authoring.changed')} value={listOrNone(intentDiff.changedCapabilityContracts.map((contract) => displayRuntimeConfigCapabilityLabel(contract, props.t)), props.t)} />
+        <PreviewFact label={props.t('runtimeConfig.profiles.authoring.removed')} value={listOrNone(intentDiff.removedCapabilityContracts.map((contract) => displayRuntimeConfigCapabilityLabel(contract, props.t)), props.t)} />
+        <PreviewFact label={props.t('runtimeConfig.profiles.authoring.unchanged')} value={listOrNone(intentDiff.unchangedCapabilityContracts.map((contract) => displayRuntimeConfigCapabilityLabel(contract, props.t)), props.t)} />
       </dl>
       {props.preview.cloudSelections.length > 0 ? (
         <div className="mt-2 text-[var(--nimi-status-info)]">
           {props.t('runtimeConfig.profiles.authoring.cloudSelectionRequired', {
             capabilities: props.preview.cloudSelections
-              .map((selection) => selection.capabilityContract)
+              .map((selection) => displayRuntimeConfigCapabilityLabel(selection.capabilityContract, props.t))
               .join(', '),
           })}
         </div>
@@ -1072,7 +1075,7 @@ function SelectionPreview(props: {
 }) {
   return (
     <div className="mt-2 space-y-2 rounded-lg border border-[var(--nimi-border-subtle)] p-3" data-selection-mismatch-fails-closed={props.preview.mismatchFailsClosed}>
-      <div className="font-mono font-semibold text-[var(--nimi-text-primary)]">{props.preview.capabilityContract}</div>
+      <div className="font-mono font-semibold text-[var(--nimi-text-primary)]">{displayRuntimeConfigCapabilityLabel(props.preview.capabilityContract, props.t)}</div>
       {props.preview.branches.map((branch) => (
         <div key={branch.kind} className="rounded-lg bg-[var(--nimi-surface-subtle)] p-2.5" data-feature-status={branch.featureSubset.status}>
           <div className="flex flex-wrap items-center justify-between gap-2">

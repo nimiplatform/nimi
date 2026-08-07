@@ -6,7 +6,7 @@ import type {
   NimiRuntimeLocalRecommendationFeed,
   NimiRuntimeLocalRecommendationFeedItem,
 } from '@nimiplatform/sdk/runtime';
-import { useRuntimeConfigLocalModelCenterClient } from './runtime-config-local-model-center-sdk-service';
+import { useRuntimeConfigLocalAssetAdminClient } from './runtime-config-local-model-center-sdk-service';
 import type { RuntimeConfigStateV11 } from './runtime-config-state-types';
 import type { RuntimeConfigPanelControllerModel } from './runtime-config-panel-types';
 import { Card } from './runtime-config-primitives';
@@ -37,7 +37,7 @@ type RecommendPageProps = {
 };
 
 export function RecommendPage({ model, state }: RecommendPageProps) {
-  const runtimeConfigLocalModelCenterClient = useRuntimeConfigLocalModelCenterClient();
+  const runtimeConfigLocalAssetAdminClient = useRuntimeConfigLocalAssetAdminClient();
   const { t } = useTranslation();
   const capability = normalizeRecommendPageCapability(state.activeCapability);
 
@@ -52,7 +52,7 @@ export function RecommendPage({ model, state }: RecommendPageProps) {
     queryKey: ['recommendation-feed', capability],
     queryFn: () => {
       if (!capability) throw new Error('Recommendation feed capability is not admitted.');
-      return runtimeConfigLocalModelCenterClient.getRecommendationFeed({ capability, pageSize: 48 });
+      return runtimeConfigLocalAssetAdminClient.getRecommendationFeed({ capability, pageSize: 48 });
     },
     enabled: capability !== null,
     staleTime: (query) => query.state.data?.cacheState === 'fresh' ? 24 * 60 * 60 * 1000 : 0,

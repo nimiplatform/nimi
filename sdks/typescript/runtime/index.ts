@@ -144,7 +144,7 @@ export * from './external-agent';
 export * from './health-coordinator';
 export * from './local-asset-vocabulary';
 export * from './machine-local-ai-configuration.js';
-export * from './runtime-local-model-center';
+export * from './runtime-local-asset-admin';
 export * from './runtime-local-profile-manifest';
 export * from './runtime-local-recommendation';
 export * from './runtime-local-assets';

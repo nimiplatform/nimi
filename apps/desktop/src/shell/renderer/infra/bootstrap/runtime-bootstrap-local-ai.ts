@@ -1,5 +1,5 @@
 import {
-  createNimiRuntimeLocalModelCenterClient,
+  createNimiRuntimeLocalAssetAdminClient,
   type NimiRuntimeLocalAssetRecord,
 } from '@nimiplatform/sdk/runtime';
 import { logRendererEvent } from '@nimiplatform/kit/telemetry';
@@ -26,13 +26,13 @@ type BootstrapLocalRuntimeDeps = {
   log: typeof logRendererEvent;
 };
 
-const runtimeBootstrapLocalModelCenterClient = createNimiRuntimeLocalModelCenterClient({
+const runtimeBootstrapLocalAssetAdminClient = createNimiRuntimeLocalAssetAdminClient({
   local: getDesktopLocalAssetAdminClient,
 });
 
 function defaultDeps(): BootstrapLocalRuntimeDeps {
   return {
-    listDesktopModels: () => runtimeBootstrapLocalModelCenterClient.listAssets(),
+    listDesktopModels: () => runtimeBootstrapLocalAssetAdminClient.listAssets(),
     reconcileModels: async (_models) => ({
       reconciled: [],
       adopted: [],

@@ -9,7 +9,7 @@ import {
 } from '@nimiplatform/sdk/types';
 import type { NimiRuntimeLocalAssetRecord } from '@nimiplatform/sdk/runtime';
 import { emitRuntimeLog } from '@nimiplatform/kit/telemetry';
-import { useRuntimeConfigLocalModelCenterClient } from './runtime-config-local-model-center-sdk-service';
+import { useRuntimeConfigLocalAssetAdminClient } from './runtime-config-local-model-center-sdk-service';
 import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
 import { useTranslation } from 'react-i18next';
 import type { SetRuntimeConfigBanner } from './runtime-config-panel-controller-utils';
@@ -86,7 +86,7 @@ function applyLocalModelSnapshotToState(
 export function useRuntimeConfigModelManagementActions(
   input: UseRuntimeConfigModelManagementActionsInput,
 ): RuntimeConfigModelManagementActions {
-  const runtimeConfigLocalModelCenterClient = useRuntimeConfigLocalModelCenterClient();
+  const runtimeConfigLocalAssetAdminClient = useRuntimeConfigLocalAssetAdminClient();
   const bindings = useDesktopRendererBindings();
   const { t } = useTranslation();
   const translateRuntimeLocalText = useCallback((
@@ -164,7 +164,7 @@ export function useRuntimeConfigModelManagementActions(
       if (!manifestPath) {
         return;
       }
-      await runtimeConfigLocalModelCenterClient.importAsset({ manifestPath }, { caller: 'core' });
+      await runtimeConfigLocalAssetAdminClient.importAsset({ manifestPath }, { caller: 'core' });
       await refreshLocalSnapshot();
       setStatusBanner({
         kind: 'success',
@@ -195,7 +195,7 @@ export function useRuntimeConfigModelManagementActions(
         return;
       }
       const kind = nimiRuntimeLocalRunnableAssetKindForCapabilities(capabilities);
-      const asset = await runtimeConfigLocalModelCenterClient.importFile({
+      const asset = await runtimeConfigLocalAssetAdminClient.importFile({
         filePath,
         kind,
         engine: engine || undefined,
@@ -234,7 +234,7 @@ export function useRuntimeConfigModelManagementActions(
         { localModelId },
       ),
     });
-    const model = await runtimeConfigLocalModelCenterClient.start(localModelId, { caller: 'core' }).catch((error) => {
+    const model = await runtimeConfigLocalAssetAdminClient.start(localModelId, { caller: 'core' }).catch((error) => {
       setStatusBanner({
         kind: 'error',
       message: translateRuntimeLocalText(
@@ -282,7 +282,7 @@ export function useRuntimeConfigModelManagementActions(
         { localModelId },
       ),
     });
-    const model = await runtimeConfigLocalModelCenterClient.stop(localModelId, { caller: 'core' }).catch((error) => {
+    const model = await runtimeConfigLocalAssetAdminClient.stop(localModelId, { caller: 'core' }).catch((error) => {
       setStatusBanner({
         kind: 'error',
       message: translateRuntimeLocalText(
@@ -331,7 +331,7 @@ export function useRuntimeConfigModelManagementActions(
       ),
     });
     try {
-      await runtimeConfigLocalModelCenterClient.stop(localModelId, { caller: 'core' }).catch((stopErr) => {
+      await runtimeConfigLocalAssetAdminClient.stop(localModelId, { caller: 'core' }).catch((stopErr) => {
         emitRuntimeLog({
           level: 'error',
           area: 'local-ai',
@@ -340,7 +340,7 @@ export function useRuntimeConfigModelManagementActions(
         });
         throw stopErr;
       });
-      const startedModel = await runtimeConfigLocalModelCenterClient.start(localModelId, { caller: 'core' });
+      const startedModel = await runtimeConfigLocalAssetAdminClient.start(localModelId, { caller: 'core' });
       applyLocalModelSnapshotToState(updateState, startedModel);
       queueLifecycleReconcile(localModelId, epoch);
       setStatusBanner({
@@ -379,7 +379,7 @@ export function useRuntimeConfigModelManagementActions(
 
   const removeLocalModel = useCallback(async (localModelId: string) => {
     assertRuntimeWriteAllowed();
-    const removed = await runtimeConfigLocalModelCenterClient.remove(localModelId, { caller: 'core' }).catch((error) => {
+    const removed = await runtimeConfigLocalAssetAdminClient.remove(localModelId, { caller: 'core' }).catch((error) => {
       setStatusBanner({
         kind: 'error',
         message: translateRuntimeLocalText(
@@ -402,7 +402,7 @@ export function useRuntimeConfigModelManagementActions(
 
   const removeLocalAsset = useCallback(async (localAssetId: string) => {
     assertRuntimeWriteAllowed();
-    const removed = await runtimeConfigLocalModelCenterClient.remove(localAssetId, { caller: 'core' }).catch((error) => {
+    const removed = await runtimeConfigLocalAssetAdminClient.remove(localAssetId, { caller: 'core' }).catch((error) => {
       setStatusBanner({
         kind: 'error',
         message: translateRuntimeLocalText(

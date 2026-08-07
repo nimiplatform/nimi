@@ -5,8 +5,8 @@ import type { Dispatch, SetStateAction } from 'react';
 import type { InlineFeedbackState } from '../../ui/feedback/inline-feedback';
 import type { RuntimeConfigStateV11 } from './runtime-config-state-types';
 import {
-  useRuntimeConfigLocalModelCenterClient,
-  type RuntimeConfigLocalModelCenterClient,
+  useRuntimeConfigLocalAssetAdminClient,
+  type RuntimeConfigLocalAssetAdminClient,
 } from './runtime-config-local-model-center-sdk-service';
 import { useRuntimeConfigHydrationEffect } from './runtime-config-effect-hydration';
 import { useRuntimeConfigVaultSyncEffect } from './runtime-config-effect-vault-sync';
@@ -66,7 +66,7 @@ function mergeLocalSnapshot(
 }
 
 async function fetchRuntimeConfigLocalSnapshot(
-  client: RuntimeConfigLocalModelCenterClient,
+  client: RuntimeConfigLocalAssetAdminClient,
   now: () => number,
 ): Promise<NimiRuntimeLocalSnapshot> {
   const assets = await client.listAssets();
@@ -77,7 +77,7 @@ async function fetchRuntimeConfigLocalSnapshot(
 }
 
 function startRuntimeConfigSnapshotPolling(options: {
-  client: RuntimeConfigLocalModelCenterClient;
+  client: RuntimeConfigLocalAssetAdminClient;
   clock: DesktopRendererClockView;
   intervalMs: number;
   onSnapshot: (snapshot: NimiRuntimeLocalSnapshot) => void;
@@ -116,7 +116,7 @@ function startRuntimeConfigSnapshotPolling(options: {
 }
 
 export function useRuntimeConfigPanelEffects(input: RuntimeConfigPanelEffectsInput) {
-  const runtimeConfigLocalModelCenterClient = useRuntimeConfigLocalModelCenterClient();
+  const runtimeConfigLocalAssetAdminClient = useRuntimeConfigLocalAssetAdminClient();
   const bindings = useDesktopRendererBindings();
   const runtimeHealthState = useRuntimeHealthCoordinatorState();
 
@@ -149,7 +149,7 @@ export function useRuntimeConfigPanelEffects(input: RuntimeConfigPanelEffectsInp
   useEffect(() => {
     if (!input.hydrated) return;
     const stop = startRuntimeConfigSnapshotPolling({
-      client: runtimeConfigLocalModelCenterClient,
+      client: runtimeConfigLocalAssetAdminClient,
       clock: bindings.clock,
       intervalMs: LOCAL_SNAPSHOT_POLL_INTERVAL_MS,
       onSnapshot: (snapshot) => {
@@ -163,7 +163,7 @@ export function useRuntimeConfigPanelEffects(input: RuntimeConfigPanelEffectsInp
     return () => {
       stop();
     };
-  }, [bindings.clock, input.hydrated, input.setState, runtimeConfigLocalModelCenterClient]);
+  }, [bindings.clock, input.hydrated, input.setState, runtimeConfigLocalAssetAdminClient]);
 
   useEffect(() => {
     if (!input.hydrated || runtimeHealthState.stale || !runtimeHealthState.runtimeHealth) return;

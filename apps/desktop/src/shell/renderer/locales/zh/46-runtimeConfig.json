@@ -1002,6 +1002,11 @@
     "overridden": "已覆盖",
     "loadingProviders": "正在加载提供商..."
   },
+  "capabilityLabels": {
+    "textGenerate": "文本生成",
+    "imageGenerate": "图像生成",
+    "videoGenerate": "视频生成"
+  },
   "common": {
     "noModelsDiscovered": "尚未发现任何模型。",
     "searchOptions": "搜索选项...",

@@ -9,7 +9,7 @@ import {
   type NimiRuntimeLocalEnvironmentPlan,
   type NimiRuntimeLocalEnvironmentPlanDependency,
 } from '@nimiplatform/sdk/runtime';
-import { useRuntimeConfigLocalModelCenterClient } from './runtime-config-local-model-center-sdk-service';
+import { useRuntimeConfigLocalAssetAdminClient } from './runtime-config-local-model-center-sdk-service';
 import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
 import {
   retryableInterruptedRuntimeDependencyJobs,
@@ -156,7 +156,7 @@ export function useLocalModelCenterRuntimeDependencies({
   refreshAssetInventorySections,
   setAssetBusy,
 }: RuntimeDependencyInput) {
-  const runtimeConfigLocalModelCenterClient = useRuntimeConfigLocalModelCenterClient();
+  const runtimeConfigLocalAssetAdminClient = useRuntimeConfigLocalAssetAdminClient();
   const bindings = useDesktopRendererBindings();
   const mountedRef = useRef(true);
   const autoRetryAttemptedKeysRef = useRef<Set<string>>(new Set());
@@ -184,7 +184,7 @@ export function useLocalModelCenterRuntimeDependencies({
     const currentImageAssets = imageAssets(assets);
     const resolvePlan = async () => {
       if (currentImageAssets.length === 0) {
-        const plan = await runtimeConfigLocalModelCenterClient.resolveEnvironmentPlan({
+        const plan = await runtimeConfigLocalAssetAdminClient.resolveEnvironmentPlan({
           packId: 'local-gpu-support',
           consumerScope: 'desktop.local-model-center',
         });
@@ -193,7 +193,7 @@ export function useLocalModelCenterRuntimeDependencies({
       const resolved = await Promise.all(currentImageAssets.map(async (asset) => ({
         localAssetId: asset.localAssetId,
         plan: await resolveNimiRuntimeLocalImageNativeEnvironmentPlan({
-          runtime: runtimeConfigLocalModelCenterClient,
+          runtime: runtimeConfigLocalAssetAdminClient,
           asset,
         }),
       })));
@@ -250,7 +250,7 @@ export function useLocalModelCenterRuntimeDependencies({
     }
     try {
       const jobGroups = await Promise.all(scopedDependencies.map((dependency) =>
-        runtimeConfigLocalModelCenterClient.listEnvironmentDependencyJobs({ environmentKey: dependency.environmentKey })));
+        runtimeConfigLocalAssetAdminClient.listEnvironmentDependencyJobs({ environmentKey: dependency.environmentKey })));
       const jobs = dedupeRuntimeDependencyJobs(jobGroups.flat()).filter((job) => (
         scopedDependencies.some((dependency) => runtimeDependencyJobMatchesDependency(job, dependency))
       ));
@@ -310,7 +310,7 @@ export function useLocalModelCenterRuntimeDependencies({
       setAssetBusy(true);
       try {
         const retryJobs = await Promise.all(jobsToRetry.map((job) =>
-          runtimeConfigLocalModelCenterClient.retryEnvironmentDependencyJob({
+          runtimeConfigLocalAssetAdminClient.retryEnvironmentDependencyJob({
             jobId: job.jobId,
             confirmed: true,
           }, { caller: 'core' })));
@@ -394,7 +394,7 @@ export function useLocalModelCenterRuntimeDependencies({
     }
     setAssetBusy(true);
     try {
-      const startedJobs = await Promise.all(startable.map((dependency) => runtimeConfigLocalModelCenterClient.startEnvironmentDependencyJob({
+      const startedJobs = await Promise.all(startable.map((dependency) => runtimeConfigLocalAssetAdminClient.startEnvironmentDependencyJob({
         environmentKey: dependency.environmentKey,
         dependencyFamily: dependency.dependencyFamily,
         dependencyId: dependency.dependencyId,
@@ -427,17 +427,17 @@ export function useLocalModelCenterRuntimeDependencies({
     setAssetBusy(true);
     try {
       const plan = await resolveNimiRuntimeLocalImageNativeEnvironmentPlan({
-        runtime: runtimeConfigLocalModelCenterClient,
+        runtime: runtimeConfigLocalAssetAdminClient,
         asset,
       });
       const jobGroups = await Promise.all(plan.dependencies
         .filter((dependency) => dependency.environmentKey)
-        .map((dependency) => runtimeConfigLocalModelCenterClient.listEnvironmentDependencyJobs({ environmentKey: dependency.environmentKey })));
+        .map((dependency) => runtimeConfigLocalAssetAdminClient.listEnvironmentDependencyJobs({ environmentKey: dependency.environmentKey })));
       const jobs = jobGroups.flat();
       const startable = plan.dependencies.filter((dependency) => (
         dependencyStartable(dependency, jobs) && !dependency.confirmationRequired
       ));
-      await Promise.all(startable.map((dependency) => runtimeConfigLocalModelCenterClient.startEnvironmentDependencyJob({
+      await Promise.all(startable.map((dependency) => runtimeConfigLocalAssetAdminClient.startEnvironmentDependencyJob({
         environmentKey: dependency.environmentKey,
         dependencyFamily: dependency.dependencyFamily,
         dependencyId: dependency.dependencyId,
@@ -455,7 +455,7 @@ export function useLocalModelCenterRuntimeDependencies({
   const cancelRuntimeDependencyJob = useCallback(async (jobId: string) => {
     setAssetBusy(true);
     try {
-      const cancelledJob = await runtimeConfigLocalModelCenterClient.cancelEnvironmentDependencyJob({ jobId }, { caller: 'core' });
+      const cancelledJob = await runtimeConfigLocalAssetAdminClient.cancelEnvironmentDependencyJob({ jobId }, { caller: 'core' });
       if (mountedRef.current) {
         setSharedRuntimeDependencyJobs((prev) => upsertRuntimeDependencyJob(prev, cancelledJob));
       }
@@ -469,7 +469,7 @@ export function useLocalModelCenterRuntimeDependencies({
   const retryRuntimeDependencyJob = useCallback(async (jobId: string) => {
     setAssetBusy(true);
     try {
-      const retryJob = await runtimeConfigLocalModelCenterClient.retryEnvironmentDependencyJob({
+      const retryJob = await runtimeConfigLocalAssetAdminClient.retryEnvironmentDependencyJob({
         jobId,
         confirmed: true,
       }, { caller: 'core' });
@@ -489,7 +489,7 @@ export function useLocalModelCenterRuntimeDependencies({
     }
     setAssetBusy(true);
     try {
-      const repairJob = await runtimeConfigLocalModelCenterClient.repairEnvironmentDependency({
+      const repairJob = await runtimeConfigLocalAssetAdminClient.repairEnvironmentDependency({
         environmentKey: sharedRuntimeDependency.environmentKey,
         dependencyFamily: sharedRuntimeDependency.dependencyFamily,
         dependencyId: sharedRuntimeDependency.dependencyId,

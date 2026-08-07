@@ -19,7 +19,7 @@ import {
   buildNimiRuntimeLocalImageNativeEnvironmentPlanInput,
   collectNimiRuntimeLocalRecommendationFeedLicenses,
   collectNimiRuntimeLocalRecommendationFeedProviders,
-  createNimiRuntimeLocalModelCenterClient,
+  createNimiRuntimeLocalAssetAdminClient,
   filterNimiRuntimeLocalRecommendationFeedItems,
   formatNimiRuntimeLocalRecommendationQuantQualityLabel,
   isNimiRuntimeLocalEnvironmentDependencyJobActiveState,
@@ -44,14 +44,14 @@ import {
   projectNimiRuntimeLocalRecommendationFeed,
   resolveNimiRuntimeLocalImageNativeEnvironmentPlan,
   type NimiRuntimeLocalRecommendationFeedItem,
-  type NimiRuntimeLocalModelCenterRpc,
+  type NimiRuntimeLocalAssetAdminRpc,
   type NimiRuntimeLocalProfileDescriptor,
 } from './index';
 import { ReasonCode as SdkReasonCode } from '../types';
 
 test('Runtime local model center client pages, dedupes, and projects generated local assets', async () => {
   const calls: unknown[] = [];
-  const client = createNimiRuntimeLocalModelCenterClient({
+  const client = createNimiRuntimeLocalAssetAdminClient({
     local: {
       ...emptyLocalRpc(),
       async listLocalAssets(request, options) {
@@ -137,7 +137,7 @@ test('Runtime local model center client pages, dedupes, and projects generated l
 });
 
 test('Runtime local model center write path fails closed for non-core callers', async () => {
-  const client = createNimiRuntimeLocalModelCenterClient({
+  const client = createNimiRuntimeLocalAssetAdminClient({
     local: emptyLocalRpc(),
   });
 
@@ -690,8 +690,8 @@ test('Runtime local model center client maps catalog, writes, transfers, profile
       calls.push({ method: 'scaffoldOrphanAsset', request, options });
       return { asset };
     },
-  } as NimiRuntimeLocalModelCenterRpc;
-  const client = createNimiRuntimeLocalModelCenterClient({ local, callOptions });
+  } as NimiRuntimeLocalAssetAdminRpc;
+  const client = createNimiRuntimeLocalAssetAdminClient({ local, callOptions });
 
   assert.equal((await client.listVerifiedAssets({ kind: 'image', engine: 'media' }))[0]?.kind, 'image');
   assert.equal((await client.searchCatalog({ query: 'image', capability: 'image' }))[0]?.engineRuntimeMode, 'supervised');
@@ -790,7 +790,7 @@ test('Runtime local model center client maps catalog, writes, transfers, profile
 });
 
 test('Runtime local model center client fails closed on missing required Runtime responses', async () => {
-  const client = createNimiRuntimeLocalModelCenterClient({
+  const client = createNimiRuntimeLocalAssetAdminClient({
     local: {
       ...emptyLocalRpc(),
       async resolveModelInstallPlan() {
@@ -1121,7 +1121,7 @@ function generatedAsset(input: Partial<Parameters<typeof projectNimiRuntimeLocal
   };
 }
 
-function emptyLocalRpc(): NimiRuntimeLocalModelCenterRpc {
+function emptyLocalRpc(): NimiRuntimeLocalAssetAdminRpc {
   const missing = async (): Promise<never> => {
     throw new Error('unexpected local Runtime call');
   };
@@ -1160,5 +1160,5 @@ function emptyLocalRpc(): NimiRuntimeLocalModelCenterRpc {
     cancelLocalEnvironmentDependencyJob: missing,
     retryLocalEnvironmentDependencyJob: missing,
     repairLocalEnvironmentDependency: missing,
-  } as NimiRuntimeLocalModelCenterRpc;
+  } as NimiRuntimeLocalAssetAdminRpc;
 }

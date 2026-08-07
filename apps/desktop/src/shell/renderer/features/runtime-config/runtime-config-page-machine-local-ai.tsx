@@ -51,6 +51,7 @@ import {
   type RuntimeConfigMachineLocalAIImpactRequest,
   type RuntimeConfigMachineLocalAIVideoSlotId,
 } from './runtime-config-machine-local-ai-state.js';
+import { displayRuntimeConfigCapabilityLabel } from './runtime-config-capability-labels.js';
 import { RuntimePageShell } from './runtime-config-page-shell.js';
 
 type MachineLocalAIFeedback = {
@@ -587,7 +588,7 @@ export function MachineLocalAIConfigurationsView(
                 >
                   <div className="text-xs text-[var(--nimi-text-secondary)]">
                     <span className="font-mono font-semibold text-[var(--nimi-text-primary)]">
-                      {capabilityContract}
+                      {displayRuntimeConfigCapabilityLabel(capabilityContract, t)}
                     </span>
                     <span className="ml-2">
                       {selectedConfiguration
@@ -704,9 +705,15 @@ function MachineLocalAIAddForm(props: {
           className={machineLocalSelectClassName}
           data-testid="machine-local-ai-add-capability"
         >
-          <option value={NIMI_MACHINE_LOCAL_TEXT_GENERATE_CAPABILITY_CONTRACT}>text.generate</option>
-          <option value={NIMI_MACHINE_LOCAL_IMAGE_GENERATE_CAPABILITY_CONTRACT}>image.generate</option>
-          <option value={NIMI_MACHINE_LOCAL_VIDEO_GENERATE_CAPABILITY_CONTRACT}>video.generate</option>
+          <option value={NIMI_MACHINE_LOCAL_TEXT_GENERATE_CAPABILITY_CONTRACT}>
+            {displayRuntimeConfigCapabilityLabel(NIMI_MACHINE_LOCAL_TEXT_GENERATE_CAPABILITY_CONTRACT, t)}
+          </option>
+          <option value={NIMI_MACHINE_LOCAL_IMAGE_GENERATE_CAPABILITY_CONTRACT}>
+            {displayRuntimeConfigCapabilityLabel(NIMI_MACHINE_LOCAL_IMAGE_GENERATE_CAPABILITY_CONTRACT, t)}
+          </option>
+          <option value={NIMI_MACHINE_LOCAL_VIDEO_GENERATE_CAPABILITY_CONTRACT}>
+            {displayRuntimeConfigCapabilityLabel(NIMI_MACHINE_LOCAL_VIDEO_GENERATE_CAPABILITY_CONTRACT, t)}
+          </option>
         </select>
       </label>
 
@@ -1262,7 +1269,7 @@ function MachineLocalAIConfigurationCard(props: {
           <dl className="mt-2 grid gap-x-5 gap-y-1 text-xs text-[var(--nimi-text-secondary)] sm:grid-cols-2">
             <div className="flex gap-1.5">
               <dt className="font-medium">{t('runtimeConfig.machineLocalAIConfigurations.capabilityContract')}:</dt>
-              <dd className="font-mono">{configuration.capabilityContract}</dd>
+              <dd className="font-mono">{displayRuntimeConfigCapabilityLabel(configuration.capabilityContract, t)}</dd>
             </div>
             <div className="flex gap-1.5">
               <dt className="font-medium">{t('runtimeConfig.machineLocalAIConfigurations.engine')}:</dt>

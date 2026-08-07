@@ -4,7 +4,7 @@ import type {
   NimiRuntimeLocalDownloadState,
   NimiRuntimeLocalExecutionEntryKindId,
   NimiRuntimeLocalIntegrityMode,
-} from './runtime-local-model-center-types';
+} from './runtime-local-asset-admin-types';
 
 const DEFAULT_PAGE_SIZE = 100;
 const DEFAULT_MAX_PAGES = 200;

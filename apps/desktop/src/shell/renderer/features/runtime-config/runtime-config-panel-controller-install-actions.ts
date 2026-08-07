@@ -15,7 +15,7 @@ import {
   type NimiRuntimeLocalProfileResolutionPlan,
 } from '@nimiplatform/sdk/runtime';
 import { useTranslation } from 'react-i18next';
-import { useRuntimeConfigLocalModelCenterClient } from './runtime-config-local-model-center-sdk-service';
+import { useRuntimeConfigLocalAssetAdminClient } from './runtime-config-local-model-center-sdk-service';
 import type { SetRuntimeConfigBanner } from './runtime-config-panel-controller-utils';
 import { asRecord } from './runtime-config-panel-controller-utils';
 import type { RuntimeConfigStateV11 } from './runtime-config-state-types';
@@ -85,7 +85,7 @@ export type UseRuntimeConfigInstallActionsInput = {
 };
 
 export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallActionsInput): RuntimeConfigInstallActions {
-  const runtimeConfigLocalModelCenterClient = useRuntimeConfigLocalModelCenterClient();
+  const runtimeConfigLocalAssetAdminClient = useRuntimeConfigLocalAssetAdminClient();
   const { t } = useTranslation();
   const bindings = useDesktopRendererBindings();
   const { localManifestSummaries, refreshLocalSnapshot, setStatusBanner, updateState } = input;
@@ -123,7 +123,7 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
   ) => {
     assertRuntimeWriteAllowed();
     if (installSource === 'verified') {
-      const asset = await runtimeConfigLocalModelCenterClient.installVerifiedAsset({
+      const asset = await runtimeConfigLocalAssetAdminClient.installVerifiedAsset({
         templateId: String(plan.templateId || '').trim(),
         endpoint: String(plan.endpoint || '').trim(),
       }, { caller: 'core' });
@@ -138,7 +138,7 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
       });
       return;
     }
-    const asset = await runtimeConfigLocalModelCenterClient.install(plan, { caller: 'core' });
+    const asset = await runtimeConfigLocalAssetAdminClient.install(plan, { caller: 'core' });
     await refreshLocalSnapshot();
     setStatusBanner({
       kind: 'success',
@@ -187,7 +187,7 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
     if (!profile) {
       throw new Error(`profile missing in manifest: ${targetId}/${profileId}`);
     }
-    return runtimeConfigLocalModelCenterClient.resolveProfile({
+    return runtimeConfigLocalAssetAdminClient.resolveProfile({
       targetId,
       profile,
       capability: String(capability || '').trim() || undefined,
@@ -206,7 +206,7 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
       if (!bindings.app.commands.confirmRuntimeProfileInstall(confirmMessage)) {
         throw new Error('LOCAL_AI_PROFILE_INSTALL_DECLINED');
       }
-      const result = await runtimeConfigLocalModelCenterClient.applyProfile(plan, { caller: 'core' });
+      const result = await runtimeConfigLocalAssetAdminClient.applyProfile(plan, { caller: 'core' });
       const serviceCount = result.executionResult.entries.filter((entry) => entry.kind === 'service' && entry.selected).length;
       await refreshLocalSnapshot();
       setStatusBanner({
@@ -247,7 +247,7 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
     },
   ) => {
     try {
-      const plan = await runtimeConfigLocalModelCenterClient.resolveInstallPlan({
+      const plan = await runtimeConfigLocalAssetAdminClient.resolveInstallPlan({
         itemId: item.itemId,
         source: item.source,
         templateId: item.templateId,
@@ -271,7 +271,7 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
 
   const installLocalModel = useCallback(async (payload: NimiRuntimeLocalInstallPayload) => {
     try {
-      const resolved = await runtimeConfigLocalModelCenterClient.resolveInstallPlan({
+      const resolved = await runtimeConfigLocalAssetAdminClient.resolveInstallPlan({
         source: 'huggingface',
         modelId: payload.modelId,
         repo: payload.repo,
@@ -315,7 +315,7 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
       throw new Error('templateId is required');
     }
     try {
-      const plan = await runtimeConfigLocalModelCenterClient.resolveInstallPlan({
+      const plan = await runtimeConfigLocalAssetAdminClient.resolveInstallPlan({
         source: 'verified',
         templateId: normalizedTemplateId,
       });
@@ -336,7 +336,7 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
     }
     try {
       assertRuntimeWriteAllowed();
-      const asset = await runtimeConfigLocalModelCenterClient.installVerifiedAsset({
+      const asset = await runtimeConfigLocalAssetAdminClient.installVerifiedAsset({
         templateId: normalizedTemplateId,
       }, { caller: 'core' });
       await refreshLocalSnapshot();
@@ -360,7 +360,7 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
       if (!manifestPath) {
         return;
       }
-      const asset = await runtimeConfigLocalModelCenterClient.importAsset({ manifestPath }, { caller: 'core' });
+      const asset = await runtimeConfigLocalAssetAdminClient.importAsset({ manifestPath }, { caller: 'core' });
       await refreshLocalSnapshot();
       setStatusBanner({
         kind: 'success',
@@ -386,7 +386,7 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
   const scaffoldLocalAssetOrphan = useCallback(async (path: string, kind: NimiRuntimeLocalAssetKind) => {
     try {
       assertRuntimeWriteAllowed();
-      const asset = await runtimeConfigLocalModelCenterClient.scaffoldOrphanAsset({
+      const asset = await runtimeConfigLocalAssetAdminClient.scaffoldOrphanAsset({
         path,
         kind,
       }, { caller: 'core' });
