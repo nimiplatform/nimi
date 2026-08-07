@@ -22,16 +22,20 @@ func TestLocalAppSessionWireKeepsPrivateAuthorityOutOfMessages(t *testing.T) {
 	for _, forbidden := range []string{
 		"local_app_principal_id", "immutable_lineage_id", "local_record_id",
 		"permission_id", "permission_state", "permission_decision_id", "session_id", "session_proof",
-		"launch_lease", "process_proof", "endpoint", "token", "credential",
+		"launch_lease", "process_proof", "endpoint", "token", "credential", "subject", "account",
+		"snapshot", "generation", "trust_class", "account_generation", "runtime_boot_epoch", "peer_proof",
 	} {
 		if response.Fields().ByName(protoreflect.Name(forbidden)) != nil {
 			t.Fatalf("OpenLocalAppSessionResponse exposes private authority field %q", forbidden)
 		}
 	}
-	for _, required := range []string{"state", "trust_class", "account_generation", "runtime_boot_epoch", "reason_code"} {
+	for _, required := range []string{"state", "reason_code"} {
 		if response.Fields().ByName(protoreflect.Name(required)) == nil {
 			t.Fatalf("OpenLocalAppSessionResponse missing typed projection field %q", required)
 		}
+	}
+	if response.Fields().Len() != 2 {
+		t.Fatalf("OpenLocalAppSessionResponse fields = %d, want posture-only state and reason_code", response.Fields().Len())
 	}
 }
 

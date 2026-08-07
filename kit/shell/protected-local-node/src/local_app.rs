@@ -592,20 +592,21 @@ mod configure_revision_tests {
     }
 }
 
+fn invalidates_local_app_session(reason: LocalAppReasonCode) -> bool {
+    matches!(
+        reason,
+        LocalAppReasonCode::RuntimeServiceUnavailable
+            | LocalAppReasonCode::RuntimeServiceUntrusted
+            | LocalAppReasonCode::ProcessReplaced
+            | LocalAppReasonCode::RuntimeRestarted
+    )
+}
+
 async fn clear_session_on_transport_failure(
     session: &Arc<dyn NimiLocalAppSession>,
     error: &LocalAppOperationError,
 ) {
-    if !matches!(
-        error.reason_code(),
-        LocalAppReasonCode::RuntimeServiceUnavailable
-            | LocalAppReasonCode::RuntimeServiceUntrusted
-            | LocalAppReasonCode::RuntimeUnauthenticated
-            | LocalAppReasonCode::ProcessReplaced
-            | LocalAppReasonCode::AccountChanged
-            | LocalAppReasonCode::RuntimeRestarted
-            | LocalAppReasonCode::Revoked
-    ) {
+    if !invalidates_local_app_session(error.reason_code()) {
         return;
     }
     let mut current = LOCAL_APP_SESSION.lock().await;
@@ -614,5 +615,24 @@ async fn clear_session_on_transport_failure(
         .is_some_and(|candidate| Arc::ptr_eq(candidate, session))
     {
         *current = None;
+    }
+}
+
+#[cfg(test)]
+mod session_rebind_tests {
+    use super::*;
+
+    #[test]
+    fn account_and_session_invalidation_preserve_same_host_rebind_carrier() {
+        for reason in [
+            LocalAppReasonCode::RuntimeUnauthenticated,
+            LocalAppReasonCode::AccountChanged,
+            LocalAppReasonCode::Revoked,
+        ] {
+            assert!(!invalidates_local_app_session(reason), "{reason:?}");
+        }
+        assert!(invalidates_local_app_session(
+            LocalAppReasonCode::RuntimeServiceUnavailable
+        ));
     }
 }

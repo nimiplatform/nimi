@@ -1227,7 +1227,28 @@ export enum ReasonCode {
     /**
      * @generated from protobuf enum value: AI_LOCAL_EXECUTION_CONTENT_MISMATCH = 705;
      */
-    AI_LOCAL_EXECUTION_CONTENT_MISMATCH = 705
+    AI_LOCAL_EXECUTION_CONTENT_MISMATCH = 705,
+    /**
+     * Runtime-private App ingress admission and owner handoff. These reasons
+     * distinguish a missing snapshot or uncovered operation from a structurally
+     * unsupported ingress and from an admitted operation whose owner adapter is
+     * not implemented in the current phase.
+     *
+     * @generated from protobuf enum value: LOCAL_APP_SNAPSHOT_UNAVAILABLE = 706;
+     */
+    LOCAL_APP_SNAPSHOT_UNAVAILABLE = 706,
+    /**
+     * @generated from protobuf enum value: LOCAL_APP_ACCESS_DENIED = 707;
+     */
+    LOCAL_APP_ACCESS_DENIED = 707,
+    /**
+     * @generated from protobuf enum value: LOCAL_APP_OPERATION_UNSUPPORTED = 708;
+     */
+    LOCAL_APP_OPERATION_UNSUPPORTED = 708,
+    /**
+     * @generated from protobuf enum value: LOCAL_APP_OWNER_UNAVAILABLE = 709;
+     */
+    LOCAL_APP_OWNER_UNAVAILABLE = 709
 }
 /**
  * @generated from protobuf enum nimi.runtime.v1.ExternalPrincipalType

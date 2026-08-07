@@ -2066,6 +2066,10 @@ pub enum ReasonCode {
     AILOCALEXECUTIONCANCELED,
     AILOCALEXECUTIONPROCESSCRASHED,
     AILOCALEXECUTIONCONTENTMISMATCH,
+    LOCALAPPSNAPSHOTUNAVAILABLE,
+    LOCALAPPACCESSDENIED,
+    LOCALAPPOPERATIONUNSUPPORTED,
+    LOCALAPPOWNERUNAVAILABLE,
 }
 
 impl Default for ReasonCode {
@@ -20351,9 +20355,6 @@ impl OpenLocalAppSessionRequest {
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct OpenLocalAppSessionResponse {
     pub state: Option<LocalAppSessionState>,
-    pub trust_class: Option<LocalAppTrustClass>,
-    pub account_generation: Option<u64>,
-    pub runtime_boot_epoch: Option<Vec<u8>>,
     pub reason_code: Option<ReasonCode>,
 }
 
@@ -20361,23 +20362,23 @@ impl OpenLocalAppSessionResponse {
     pub fn to_transport(&self) -> Vec<u8> {
         let mut pairs: Vec<String> = Vec::new();
         if let Some(value) = &self.state { pairs.push(format!("state={:?}", value)); }
-        if let Some(value) = &self.trust_class { pairs.push(format!("trust_class={:?}", value)); }
-        if let Some(value) = &self.account_generation { pairs.push(format!("account_generation={}", value)); }
-        if self.runtime_boot_epoch.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode runtime_boot_epoch"); }
         if let Some(value) = &self.reason_code { pairs.push(format!("reason_code={:?}", value)); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-        for key in ["state", "trust_class", "runtime_boot_epoch", "reason_code"] {
+        let out = Self::default();
+        for key in ["state", "reason_code"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
             }
         }
+        if !pairs.is_empty() {
+            panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client has no decoder for response fields");
+        }
 
-        out.account_generation = pairs.get("account_generation").and_then(|value| value.parse().ok());
+
         out
     }
 }

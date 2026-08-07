@@ -27002,27 +27002,6 @@
             "number": 1
           },
           {
-            "name": "trust_class",
-            "type": "LocalAppTrustClass",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "account_generation",
-            "type": "uint64",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "runtime_boot_epoch",
-            "type": "bytes",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          },
-          {
             "name": "reason_code",
             "type": "ReasonCode",
             "repeated": false,
@@ -36751,7 +36730,11 @@
           "AI_LOCAL_EXECUTION_INFERENCE_FAILED",
           "AI_LOCAL_EXECUTION_CANCELED",
           "AI_LOCAL_EXECUTION_PROCESS_CRASHED",
-          "AI_LOCAL_EXECUTION_CONTENT_MISMATCH"
+          "AI_LOCAL_EXECUTION_CONTENT_MISMATCH",
+          "LOCAL_APP_SNAPSHOT_UNAVAILABLE",
+          "LOCAL_APP_ACCESS_DENIED",
+          "LOCAL_APP_OPERATION_UNSUPPORTED",
+          "LOCAL_APP_OWNER_UNAVAILABLE"
         ],
         "source_file": "proto/runtime/v1/common.proto"
       },

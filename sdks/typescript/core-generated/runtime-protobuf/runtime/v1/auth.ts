@@ -169,6 +169,9 @@ export interface OpenDesktopSessionResponse {
 export interface OpenLocalAppSessionRequest {
 }
 /**
+ * Deliberately posture-only. Subject, account, snapshot, generation, session
+ * material, credential, and peer proof remain Runtime-private.
+ *
  * @generated from protobuf message nimi.runtime.v1.OpenLocalAppSessionResponse
  */
 export interface OpenLocalAppSessionResponse {
@@ -176,18 +179,6 @@ export interface OpenLocalAppSessionResponse {
      * @generated from protobuf field: nimi.runtime.v1.LocalAppSessionState state = 1
      */
     state: LocalAppSessionState;
-    /**
-     * @generated from protobuf field: nimi.runtime.v1.LocalAppTrustClass trust_class = 2
-     */
-    trustClass: LocalAppTrustClass;
-    /**
-     * @generated from protobuf field: uint64 account_generation = 3
-     */
-    accountGeneration: string;
-    /**
-     * @generated from protobuf field: bytes runtime_boot_epoch = 4
-     */
-    runtimeBootEpoch: Uint8Array;
     /**
      * @generated from protobuf field: nimi.runtime.v1.ReasonCode reason_code = 5
      */
@@ -959,18 +950,12 @@ class OpenLocalAppSessionResponse$Type extends MessageType<OpenLocalAppSessionRe
     constructor() {
         super("nimi.runtime.v1.OpenLocalAppSessionResponse", [
             { no: 1, name: "state", kind: "enum", T: () => ["nimi.runtime.v1.LocalAppSessionState", LocalAppSessionState, "LOCAL_APP_SESSION_STATE_"] },
-            { no: 2, name: "trust_class", kind: "enum", T: () => ["nimi.runtime.v1.LocalAppTrustClass", LocalAppTrustClass, "LOCAL_APP_TRUST_CLASS_"] },
-            { no: 3, name: "account_generation", kind: "scalar", T: 4 /*ScalarType.UINT64*/ },
-            { no: 4, name: "runtime_boot_epoch", kind: "scalar", T: 12 /*ScalarType.BYTES*/ },
             { no: 5, name: "reason_code", kind: "enum", T: () => ["nimi.runtime.v1.ReasonCode", ReasonCode] }
         ]);
     }
     create(value?: PartialMessage<OpenLocalAppSessionResponse>): OpenLocalAppSessionResponse {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.state = 0;
-        message.trustClass = 0;
-        message.accountGeneration = "0";
-        message.runtimeBootEpoch = new Uint8Array(0);
         message.reasonCode = 0;
         if (value !== undefined)
             reflectionMergePartial<OpenLocalAppSessionResponse>(this, message, value);
@@ -983,15 +968,6 @@ class OpenLocalAppSessionResponse$Type extends MessageType<OpenLocalAppSessionRe
             switch (fieldNo) {
                 case /* nimi.runtime.v1.LocalAppSessionState state */ 1:
                     message.state = reader.int32();
-                    break;
-                case /* nimi.runtime.v1.LocalAppTrustClass trust_class */ 2:
-                    message.trustClass = reader.int32();
-                    break;
-                case /* uint64 account_generation */ 3:
-                    message.accountGeneration = reader.uint64().toString();
-                    break;
-                case /* bytes runtime_boot_epoch */ 4:
-                    message.runtimeBootEpoch = reader.bytes();
                     break;
                 case /* nimi.runtime.v1.ReasonCode reason_code */ 5:
                     message.reasonCode = reader.int32();
@@ -1011,15 +987,6 @@ class OpenLocalAppSessionResponse$Type extends MessageType<OpenLocalAppSessionRe
         /* nimi.runtime.v1.LocalAppSessionState state = 1; */
         if (message.state !== 0)
             writer.tag(1, WireType.Varint).int32(message.state);
-        /* nimi.runtime.v1.LocalAppTrustClass trust_class = 2; */
-        if (message.trustClass !== 0)
-            writer.tag(2, WireType.Varint).int32(message.trustClass);
-        /* uint64 account_generation = 3; */
-        if (message.accountGeneration !== "0")
-            writer.tag(3, WireType.Varint).uint64(message.accountGeneration);
-        /* bytes runtime_boot_epoch = 4; */
-        if (message.runtimeBootEpoch.length)
-            writer.tag(4, WireType.LengthDelimited).bytes(message.runtimeBootEpoch);
         /* nimi.runtime.v1.ReasonCode reason_code = 5; */
         if (message.reasonCode !== 0)
             writer.tag(5, WireType.Varint).int32(message.reasonCode);

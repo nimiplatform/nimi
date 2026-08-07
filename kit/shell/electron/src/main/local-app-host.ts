@@ -63,6 +63,10 @@ const ADMITTED_REASON_CODES: ReadonlySet<string> = new Set([
   'ai-provider-rate-limited',
   'ai-provider-timeout',
   'local-app-operation-unavailable',
+  'local-app-snapshot-unavailable',
+  'local-app-access-denied',
+  'local-app-operation-unsupported',
+  'local-app-owner-unavailable',
   'ai-voice-target-model-mismatch',
   'agent-ai-config-revision-conflict',
   'agent-ai-config-invalid',
@@ -105,6 +109,17 @@ const FORBIDDEN_PROJECTION_KEYS: ReadonlySet<string> = new Set([
   'accountId',
   'grantId',
   'runtimeBootEpoch',
+  'registeredAppSubject',
+  'registrationHandle',
+  'sourceGeneration',
+  'declarationGeneration',
+  'accountGeneration',
+  'snapshotId',
+  'credential',
+  'peerProof',
+  'classification',
+  'domainId',
+  'operationId',
 ] as const);
 
 export type NimiElectronLocalAppJson =
@@ -194,6 +209,16 @@ export type NimiElectronLocalAppMaintenanceFailure = {
 };
 
 const LOCAL_APP_SESSION_ROTATION_INTERVAL_MS = 5 * 60 * 1_000;
+const LOCAL_APP_SESSION_REBIND_TIMEOUT_MS = 2_000;
+const LOCAL_APP_SESSION_INVALID_REASONS: ReadonlySet<string> = new Set([
+  'runtime-unauthenticated',
+  'process-replaced',
+  'account-changed',
+  'runtime-restarted',
+  'revoked',
+  'project-changed',
+  'local-app-snapshot-unavailable',
+]);
 
 export class NimiElectronLocalAppHostError extends Error {
   readonly reasonCode: string;
@@ -213,8 +238,84 @@ export class NimiElectronLocalAppHostError extends Error {
   }
 }
 
+function withBoundedSessionRebind(
+  binding: NimiElectronProtectedLocalBinding,
+): NimiElectronProtectedLocalBinding {
+  let rebindInFlight: Promise<NativeLocalAppOutcome> | undefined;
+  const renew = (): Promise<NativeLocalAppOutcome> => {
+    rebindInFlight ??= boundedSessionRenew(binding).finally(() => {
+      rebindInFlight = undefined;
+    });
+    return rebindInFlight;
+  };
+  return new Proxy(binding, {
+    get(target, property, receiver) {
+      const value = Reflect.get(target, property, receiver);
+      if (
+        typeof property !== 'string'
+        || typeof value !== 'function'
+        || property === 'localAppSessionStatus'
+        || property === 'localAppSessionRenew'
+        || !LOCAL_APP_BINDING_METHODS.includes(property as typeof LOCAL_APP_BINDING_METHODS[number])
+      ) {
+        return typeof value === 'function' ? value.bind(target) : value;
+      }
+      return async (...args: unknown[]): Promise<NativeLocalAppOutcome> => {
+        const first = await Reflect.apply(value, target, args) as NativeLocalAppOutcome;
+        if (!isSessionInvalidOutcome(first)) {
+          return first;
+        }
+        const rebound = await renew();
+        if (!isReadySessionOutcome(rebound)) {
+          return rebound.status === 'error' ? rebound : untrustedNativeOutcome();
+        }
+        return Reflect.apply(value, target, args) as Promise<NativeLocalAppOutcome>;
+      };
+    },
+  });
+}
+
+async function boundedSessionRenew(
+  binding: NimiElectronProtectedLocalBinding,
+): Promise<NativeLocalAppOutcome> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      binding.localAppSessionRenew().catch(() => untrustedNativeOutcome()),
+      new Promise<NativeLocalAppOutcome>((resolve) => {
+        timer = setTimeout(() => resolve({
+          status: 'error', reasonCode: 'runtime-service-unavailable', retryable: true,
+        }), LOCAL_APP_SESSION_REBIND_TIMEOUT_MS);
+        timer.unref?.();
+      }),
+    ]);
+  } finally {
+    if (timer !== undefined) clearTimeout(timer);
+  }
+}
+
+function isSessionInvalidOutcome(outcome: NativeLocalAppOutcome): boolean {
+  return outcome?.status === 'error' && LOCAL_APP_SESSION_INVALID_REASONS.has(outcome.reasonCode);
+}
+
+function isReadySessionOutcome(outcome: NativeLocalAppOutcome): boolean {
+  if (outcome?.status !== 'ok' || !isPlainRecord(outcome.value)) return false;
+  return hasExactKeys(outcome.value, ['state', 'reasonCode', 'retryable'])
+    && outcome.value.state === 'ready'
+    && outcome.value.reasonCode === 'action-executed'
+    && outcome.value.retryable === false;
+}
+
+function untrustedNativeOutcome(): NativeLocalAppOutcome {
+  return { status: 'error', reasonCode: 'runtime-service-untrusted', retryable: false };
+}
+
 class ElectronLocalAppHost implements NimiElectronLocalAppHost {
-  constructor(private readonly binding: NimiElectronProtectedLocalBinding) {}
+  private readonly binding: NimiElectronProtectedLocalBinding;
+
+  constructor(binding: NimiElectronProtectedLocalBinding) {
+    this.binding = withBoundedSessionRebind(binding);
+  }
 
   sessionStatus(): Promise<NimiElectronLocalAppRecord> {
     return invokeRecord(() => this.binding.localAppSessionStatus());

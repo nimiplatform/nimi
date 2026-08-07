@@ -2,6 +2,8 @@ package app
 
 import (
 	"context"
+	"crypto/rand"
+	"io"
 	"log/slog"
 	"strings"
 	"sync"
@@ -86,6 +88,11 @@ type Service struct {
 	localDevelopmentArtifacts runtimeartifactservice.Store
 	localAppKernel            *localappkernel.Kernel
 	localAppStorageMu         sync.RWMutex
+	localAppSessionMu         sync.RWMutex
+	localAppSessions          map[*protectedlocal.LocalAppConnection]localAppRuntimeSession
+	localAppSessionEntropy    io.Reader
+	localAppSessionTTL        time.Duration
+	localAppRuntimeGeneration uint64
 }
 
 func WithSessionValidator(validator sessionValidator) Option {
@@ -155,14 +162,28 @@ func WithLocalAppKernel(kernel *localappkernel.Kernel) Option {
 	}
 }
 
+func WithLocalAppSessionRuntime(entropy io.Reader, ttl time.Duration) Option {
+	return func(s *Service) {
+		if entropy != nil {
+			s.localAppSessionEntropy = entropy
+		}
+		if ttl > 0 {
+			s.localAppSessionTTL = ttl
+		}
+	}
+}
+
 func New(logger *slog.Logger, opts ...Option) *Service {
 	svc := &Service{
-		logger:            logger,
-		subscribers:       make(map[uint64]subscriber),
-		internalConsumers: make(map[string]InternalConsumer),
-		now:               time.Now,
-		rateLimiter:       newAppRateLimiter(),
-		loopDetector:      newAppLoopDetector(),
+		logger:                 logger,
+		subscribers:            make(map[uint64]subscriber),
+		internalConsumers:      make(map[string]InternalConsumer),
+		now:                    time.Now,
+		rateLimiter:            newAppRateLimiter(),
+		loopDetector:           newAppLoopDetector(),
+		localAppSessions:       make(map[*protectedlocal.LocalAppConnection]localAppRuntimeSession),
+		localAppSessionEntropy: rand.Reader,
+		localAppSessionTTL:     10 * time.Minute,
 	}
 	for _, opt := range opts {
 		if opt != nil {

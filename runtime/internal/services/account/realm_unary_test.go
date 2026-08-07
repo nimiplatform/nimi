@@ -110,10 +110,10 @@ func TestInvokeRealmUnaryMediatesExactProtectedLocalAppWorldCoreOperations(t *te
 			RequestJson: test.requestJSON,
 		})
 		if err != nil {
-			t.Fatalf("%s InvokeRealmUnary: %v", test.operation, err)
+			t.Fatalf("%v InvokeRealmUnary: %v", test.operation, err)
 		}
 		if !resp.GetAccepted() || resp.GetReasonCode() != runtimev1.ReasonCode_ACTION_EXECUTED {
-			t.Fatalf("%s protected Local App response = %+v", test.operation, resp)
+			t.Fatalf("%v protected Local App response = %+v", test.operation, resp)
 		}
 	}
 	if len(observed) != 2 ||

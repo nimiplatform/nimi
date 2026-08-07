@@ -12,7 +12,10 @@ import (
 // OpenLocalAppSession is the one request-empty local-app session bootstrap.
 // The exact connection, lease, process, principal/record and account facts are
 // resolved privately. Immutable package profiles remain unavailable in 0K.
-func (s *Service) OpenLocalAppSession(ctx context.Context, _ *runtimev1.OpenLocalAppSessionRequest) (*runtimev1.OpenLocalAppSessionResponse, error) {
+func (s *Service) OpenLocalAppSession(ctx context.Context, req *runtimev1.OpenLocalAppSessionRequest) (*runtimev1.OpenLocalAppSessionResponse, error) {
+	if req == nil || len(req.ProtoReflect().GetUnknown()) != 0 {
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_LOCAL_APP_ACCESS_DENIED)
+	}
 	if s == nil || s.accountSecurity == nil || s.localAppOpener == nil {
 		return nil, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_PROTECTED_LOCAL_TRANSPORT_UNSUPPORTED)
 	}
@@ -33,7 +36,10 @@ func (s *Service) OpenLocalAppSession(ctx context.Context, _ *runtimev1.OpenLoca
 // RenewLocalAppSession atomically replaces one short-lived technical session
 // on the exact already-promoted local_app_host connection. The empty request
 // cannot select a session, process, account, or recovery path.
-func (s *Service) RenewLocalAppSession(ctx context.Context, _ *runtimev1.RenewLocalAppSessionRequest) (*runtimev1.OpenLocalAppSessionResponse, error) {
+func (s *Service) RenewLocalAppSession(ctx context.Context, req *runtimev1.RenewLocalAppSessionRequest) (*runtimev1.OpenLocalAppSessionResponse, error) {
+	if req == nil || len(req.ProtoReflect().GetUnknown()) != 0 {
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_LOCAL_APP_ACCESS_DENIED)
+	}
 	if s == nil || s.accountSecurity == nil || s.localAppOpener == nil {
 		return nil, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_PROTECTED_LOCAL_TRANSPORT_UNSUPPORTED)
 	}
@@ -51,16 +57,9 @@ func (s *Service) RenewLocalAppSession(ctx context.Context, _ *runtimev1.RenewLo
 	return localAppSessionResponse(projection), nil
 }
 
-func localAppSessionResponse(projection LocalAppSessionProjection) *runtimev1.OpenLocalAppSessionResponse {
-	var runtimeBootEpoch []byte
-	if projection.RuntimeBootEpoch != (protectedlocal.Identifier{}) {
-		runtimeBootEpoch = append([]byte(nil), projection.RuntimeBootEpoch[:]...)
-	}
+func localAppSessionResponse(LocalAppSessionProjection) *runtimev1.OpenLocalAppSessionResponse {
 	return &runtimev1.OpenLocalAppSessionResponse{
-		State:             runtimev1.LocalAppSessionState_LOCAL_APP_SESSION_STATE_READY,
-		TrustClass:        projection.TrustClass,
-		AccountGeneration: projection.AccountGeneration,
-		RuntimeBootEpoch:  runtimeBootEpoch,
-		ReasonCode:        runtimev1.ReasonCode_ACTION_EXECUTED,
+		State:      runtimev1.LocalAppSessionState_LOCAL_APP_SESSION_STATE_READY,
+		ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED,
 	}
 }

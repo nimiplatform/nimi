@@ -32,22 +32,21 @@ export type NimiAppRuntimeStorageClient = {
 };
 
 export function createNimiAppRuntimeStorageClient(
-  _standardShell: StorageShell,
+  standardShell: StorageShell,
 ): NimiAppRuntimeStorageClient {
-  const unavailable = async (): Promise<never> => protectedAppAccessUnavailable();
   return Object.freeze({
-    readJson: unavailable,
-    writeJson: unavailable,
-    removeJson: unavailable,
+    readJson: async (relativePath) => projectStorageDocument(
+      await standardShell.readJson(requireStorageRelativePath(relativePath)),
+    ),
+    writeJson: async (relativePath, value) => {
+      const path = requireStorageRelativePath(relativePath);
+      assertStorageJsonValue(value);
+      return projectStorageDocument(await standardShell.writeJson(path, value));
+    },
+    removeJson: async (relativePath) => projectStorageRemoveResult(
+      await standardShell.removeJson(requireStorageRelativePath(relativePath)),
+    ),
   });
-}
-
-function protectedAppAccessUnavailable(): never {
-  return localAppError(
-    'Protected App operations are unavailable until Runtime establishes a fresh App Access session.',
-    'SDK_LOCAL_APP_ACCESS_UNAVAILABLE',
-    'retry_after_protected_session_establishment',
-  );
 }
 
 function projectStorageDocument(value: unknown): NimiAppRuntimeStorageDocument {

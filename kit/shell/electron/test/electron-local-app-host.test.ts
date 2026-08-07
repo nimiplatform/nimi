@@ -57,6 +57,51 @@ describe('Electron protected local-app host', () => {
     ]);
   });
 
+  it('performs one bounded same-Host rebind on typed session invalidation', async () => {
+    const calls: Array<{ method: string; input?: unknown }> = [];
+    let attempts = 0;
+    const candidate = {
+      ...binding(calls),
+      localAppSessionRenew: async () => {
+        calls.push({ method: 'localAppSessionRenew' });
+        return { status: 'ok' as const, value: statusProjection() };
+      },
+      localAppStorageReadJson: async (input: unknown) => {
+        calls.push({ method: 'localAppStorageReadJson', input });
+        attempts++;
+        return attempts === 1
+          ? { status: 'error' as const, reasonCode: 'account-changed', retryable: false }
+          : { status: 'error' as const, reasonCode: 'local-app-owner-unavailable', retryable: false };
+      },
+    };
+    const host = createNimiElectronLocalAppHostForBinding(candidate);
+    await expect(host.storageReadJson({ relativePath: 'state.json' })).rejects.toMatchObject({
+      reasonCode: 'local-app-owner-unavailable', retryable: false,
+    });
+    expect(calls).toEqual([
+      { method: 'localAppStorageReadJson', input: { relativePath: 'state.json' } },
+      { method: 'localAppSessionRenew' },
+      { method: 'localAppStorageReadJson', input: { relativePath: 'state.json' } },
+    ]);
+  });
+
+  it('does not disguise access denial as rebind or owner unavailability', async () => {
+    const calls: Array<{ method: string; input?: unknown }> = [];
+    const candidate = {
+      ...binding(calls),
+      localAppStorageReadJson: async (input: unknown) => {
+        calls.push({ method: 'localAppStorageReadJson', input });
+        return { status: 'error' as const, reasonCode: 'local-app-access-denied', retryable: false };
+      },
+    };
+    await expect(createNimiElectronLocalAppHostForBinding(candidate).storageReadJson({
+      relativePath: 'state.json',
+    })).rejects.toMatchObject({ reasonCode: 'local-app-access-denied', retryable: false });
+    expect(calls).toEqual([
+      { method: 'localAppStorageReadJson', input: { relativePath: 'state.json' } },
+    ]);
+  });
+
   it('preserves typed unavailable errors without leaking native detail', async () => {
     const candidate = {
       ...binding([]),

@@ -21,14 +21,13 @@ registerNimiElectronAppBridge({
   appId: 'nimi.example.local-app',
   allowedRendererUrls: [rendererUrl],
   ipcMain,
-  onProtectedSessionFailure: () => app.quit(),
 });
 ```
 
-Kit unregisters the renderer bridge before invoking the no-argument lifecycle
-callback. The Desktop supervisor can then reopen the host with a fresh
-lease/session under the unchanged durable project approval. App code receives
-no renewal reason, session material, or authority selector.
+Protected-session unavailability does not terminate the App, request a Host
+reopen, or unregister the renderer bridge. Protected calls continue to return
+bounded typed unavailable posture while Kit performs bounded same-Host session
+rebind. App code receives no session material or authority selector.
 
 This entrypoint deliberately has no Runtime endpoint, ordinary gRPC factory,
 native-host injection, capability-set selection, or command-handler input.

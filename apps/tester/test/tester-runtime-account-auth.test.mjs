@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdirSync, mkdtempSync, rmSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
 import { pathToFileURL } from 'node:url';
@@ -45,8 +45,25 @@ async function importTesterRuntime() {
   return import(pathToFileURL(path.join(buildModule(), 'tester/tester-runtime.js')).href);
 }
 
+function ownerUnavailable(command) {
+  return Object.assign(new Error('Admitted App operation owner is unavailable'), {
+    code: 'runtime-permission-denied',
+    reasonCode: 'local-app-owner-unavailable',
+    actionHint: 'refresh_local_app_runtime_projection',
+    source: 'runtime',
+    details: { command, retryable: false },
+  });
+}
+
 test.after(() => {
   if (buildDir) rmSync(buildDir, { recursive: true, force: true });
+});
+
+test('Tester Electron lifecycle has no protected-session termination coupling', () => {
+  const electronMain = readFileSync(path.join(root, 'src-electron/main.ts'), 'utf8');
+  assert.doesNotMatch(electronMain, /onProtectedSessionFailure|supervised-host-reopen/u);
+  assert.match(electronMain, /registerNimiElectronAppBridge\(\{/u);
+  assert.match(electronMain, /await createMainWindow\(\)/u);
 });
 
 test('Tester local-app projection fails closed before a protected carrier is available', async () => {
@@ -61,6 +78,42 @@ test('Tester local-app projection fails closed before a protected carrier is ava
   assert.equal('client' in projection, false);
   assert.equal('accountCaller' in projection, false);
   assert.equal('accountRuntime' in projection, false);
+});
+
+test('Tester presents typed unavailable posture without terminating its App carrier', async () => {
+  const previousElectronTest = globalThis.__NIMI_ELECTRON_TEST__;
+  const calls = [];
+  globalThis.__NIMI_ELECTRON_TEST__ = {
+    async invoke(command, payload) {
+      calls.push({ command, payload });
+      throw Object.assign(new Error('Protected App Access is unavailable'), {
+        code: 'runtime-permission-denied',
+        reasonCode: 'local-app-operation-unavailable',
+        actionHint: 'refresh_local_app_runtime_projection',
+        source: 'runtime',
+        details: { command, retryable: true },
+      });
+    },
+    listen() { return () => {}; },
+  };
+  try {
+    const runtimePlatform = await importRuntimePlatform();
+    runtimePlatform.clearRuntimePlatformProjection();
+    const projection = await runtimePlatform.getRuntimePlatformProjection();
+    assert.deepEqual(projection, {
+      status: 'action-required',
+      mode: 'local-app',
+      reasonCode: 'local-app-operation-unavailable',
+      actionHint: 'wait_for_app_access_admission',
+      message: 'Protected App Access is unavailable until Runtime admits a fresh access session.',
+    });
+    assert.deepEqual(calls, [
+      { command: 'nimi.shell.localApp.sessionStatus', payload: {} },
+    ]);
+  } finally {
+    if (previousElectronTest === undefined) delete globalThis.__NIMI_ELECTRON_TEST__;
+    else globalThis.__NIMI_ELECTRON_TEST__ = previousElectronTest;
+  }
 });
 
 test('Tester preserves a bound identity session without treating it as App Access', async () => {
@@ -95,13 +148,13 @@ test('Tester preserves a bound identity session without treating it as App Acces
   }
 });
 
-test('Tester app-private storage fails closed before touching a shell carrier', async () => {
+test('Tester app-private storage reaches typed ingress and preserves owner-unavailable', async () => {
   const previousElectronTest = globalThis.__NIMI_ELECTRON_TEST__;
   const calls = [];
   globalThis.__NIMI_ELECTRON_TEST__ = {
     async invoke(command, payload) {
       calls.push({ command, payload });
-      throw new Error(`Protected carrier must not be invoked: ${command}`);
+      throw ownerUnavailable(command);
     },
     listen() { return () => {}; },
   };
@@ -111,20 +164,20 @@ test('Tester app-private storage fails closed before touching a shell carrier', 
     await assert.rejects(
       testerLocalAppClient.storage.writeJson('settings/profile.json', { theme: 'calm' }),
       (error) => {
-        assert.equal(error?.code, 'SDK_LOCAL_APP_ACCESS_UNAVAILABLE');
-        assert.equal(error?.reasonCode, 'SDK_LOCAL_APP_ACCESS_UNAVAILABLE');
-        assert.equal(error?.retryable, false);
+        assert.equal(error?.code, 'runtime-permission-denied');
+        assert.equal(error?.reasonCode, 'local-app-owner-unavailable');
         return true;
       },
     );
-    assert.deepEqual(calls, []);
+    assert.equal(calls.length, 1);
+    assert.equal(calls[0]?.command, 'nimi.shell.storage.writeJson');
   } finally {
     if (previousElectronTest === undefined) delete globalThis.__NIMI_ELECTRON_TEST__;
     else globalThis.__NIMI_ELECTRON_TEST__ = previousElectronTest;
   }
 });
 
-test('Tester reports typed App Access unavailability without invoking a protected carrier', async () => {
+test('Tester reports typed owner unavailability after protected ingress', async () => {
   const previousElectronTest = globalThis.__NIMI_ELECTRON_TEST__;
   const calls = [];
   globalThis.__NIMI_ELECTRON_TEST__ = {
@@ -133,7 +186,7 @@ test('Tester reports typed App Access unavailability without invoking a protecte
       if (command === 'nimi.shell.localApp.sessionStatus') {
         return { state: 'ready', reasonCode: ReasonCode.ACTION_EXECUTED, retryable: false };
       }
-      throw new Error(`Protected carrier must not be invoked: ${command}`);
+      throw ownerUnavailable(command);
     },
     listen() { return () => {}; },
   };
@@ -149,10 +202,10 @@ test('Tester reports typed App Access unavailability without invoking a protecte
 
     assert.equal(result.ok, false);
     assert.equal(result.reason, 'runtime-call-failed');
-    assert.match(result.message, /SDK_LOCAL_APP_ACCESS_UNAVAILABLE/u);
-    assert.deepEqual(calls, [
-      { command: 'nimi.shell.localApp.sessionStatus', payload: {} },
-    ]);
+    assert.match(result.message, /owner is unavailable/u);
+    assert.equal(calls.length, 2);
+    assert.deepEqual(calls[0], { command: 'nimi.shell.localApp.sessionStatus', payload: {} });
+    assert.equal(calls[1]?.command, 'nimi.shell.localApp.textGenerateCandidate');
   } finally {
     if (previousElectronTest === undefined) delete globalThis.__NIMI_ELECTRON_TEST__;
     else globalThis.__NIMI_ELECTRON_TEST__ = previousElectronTest;

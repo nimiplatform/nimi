@@ -19,33 +19,34 @@ var (
 	ErrLocalAppOperationNotAdmitted = errors.New("local-app protected operation is unavailable")
 )
 
-type LocalAppOperation string
+type LocalAppOperation = localappop.Operation
 
 const (
-	LocalAppOperationReadArtifactBytes       LocalAppOperation = "runtime.artifact.bytes.read"
-	LocalAppOperationOpenConversation        LocalAppOperation = "runtime.agent.conversation.open"
-	LocalAppOperationSendConversationTurn    LocalAppOperation = "runtime.agent.conversation.turn.send"
-	LocalAppOperationInterruptConversation   LocalAppOperation = "runtime.agent.conversation.turn.interrupt"
-	LocalAppOperationSubscribeConversation   LocalAppOperation = "runtime.agent.conversation.subscribe"
-	LocalAppOperationConversationSnapshot    LocalAppOperation = "runtime.agent.conversation.snapshot"
-	LocalAppOperationSharedAIConfigGet       LocalAppOperation = "runtime.agent.shared-ai-config.get"
-	LocalAppOperationSharedAIConfigOverwrite LocalAppOperation = "runtime.agent.shared-ai-config.overwrite"
-	LocalAppOperationSharedAIProfilePreview  LocalAppOperation = "runtime.agent.shared-ai-profile.preview"
-	LocalAppOperationSharedAIProfileApply    LocalAppOperation = "runtime.agent.shared-ai-profile.apply"
-	LocalAppOperationAutonomySnapshot        LocalAppOperation = "runtime.agent.autonomy.snapshot"
-	LocalAppOperationUpdateAutonomy          LocalAppOperation = "runtime.agent.autonomy.update"
-	LocalAppOperationPresentationSnapshot    LocalAppOperation = "runtime.agent.presentation.snapshot"
-	LocalAppOperationCommitPresentation      LocalAppOperation = "runtime.agent.presentation.commit"
-	LocalAppOperationStorageJSONRead         LocalAppOperation = "runtime.app-storage.json.read"
-	LocalAppOperationStorageJSONWrite        LocalAppOperation = "runtime.app-storage.json.write"
-	LocalAppOperationStorageJSONRemove       LocalAppOperation = "runtime.app-storage.json.remove"
-	LocalAppOperationRealmWorldCoreList      LocalAppOperation = "realm.world-core.list"
-	LocalAppOperationRealmWorldCoreCreate    LocalAppOperation = "realm.world-core.create"
-	LocalAppOperationAppAIConfigRead         LocalAppOperation = "runtime.ai.app-config.read"
-	LocalAppOperationAppAIConfigOverwrite    LocalAppOperation = "runtime.ai.app-config.overwrite"
-	LocalAppOperationTextCandidateGenerate   LocalAppOperation = "runtime.ai.text-candidate.generate"
-	LocalAppOperationVoiceTranscribe         LocalAppOperation = "runtime.agent.voice.transcribe"
-	LocalAppOperationVoiceStreamSubscribe    LocalAppOperation = "runtime.agent.voice.stream.subscribe"
+	LocalAppOperationReadArtifactBytes       = localappop.OperationUnclassifiedArtifactRead
+	LocalAppOperationOpenConversation        = localappop.OperationConversationOpen
+	LocalAppOperationSendConversationTurn    = localappop.OperationConversationTurnSend
+	LocalAppOperationInterruptConversation   = localappop.OperationConversationTurnInterrupt
+	LocalAppOperationSubscribeConversation   = localappop.OperationConversationEventsSubscribe
+	LocalAppOperationConversationSnapshot    = localappop.OperationConversationSnapshotGet
+	LocalAppOperationReferenceList           = localappop.OperationAgentReferenceList
+	LocalAppOperationSharedAIConfigGet       = localappop.OperationUnclassifiedSharedAIConfigGet
+	LocalAppOperationSharedAIConfigOverwrite = localappop.OperationUnclassifiedSharedAIConfigOverwrite
+	LocalAppOperationSharedAIProfilePreview  = localappop.OperationUnclassifiedSharedAIProfilePreview
+	LocalAppOperationSharedAIProfileApply    = localappop.OperationUnclassifiedSharedAIProfileApply
+	LocalAppOperationAutonomySnapshot        = localappop.OperationUnclassifiedAutonomySnapshot
+	LocalAppOperationUpdateAutonomy          = localappop.OperationUnclassifiedAutonomyUpdate
+	LocalAppOperationPresentationSnapshot    = localappop.OperationUnclassifiedPresentationSnapshot
+	LocalAppOperationCommitPresentation      = localappop.OperationUnclassifiedPresentationCommit
+	LocalAppOperationStorageJSONRead         = localappop.OperationStorageJSONRead
+	LocalAppOperationStorageJSONWrite        = localappop.OperationStorageJSONWrite
+	LocalAppOperationStorageJSONRemove       = localappop.OperationStorageJSONRemove
+	LocalAppOperationRealmWorldCoreList      = localappop.OperationRealmWorldCoreList
+	LocalAppOperationRealmWorldCoreCreate    = localappop.OperationRealmWorldCoreCreate
+	LocalAppOperationAppAIConfigRead         = localappop.OperationAppAIConfigGet
+	LocalAppOperationAppAIConfigOverwrite    = localappop.OperationAppAIConfigOverwrite
+	LocalAppOperationTextCandidateGenerate   = localappop.OperationTextCandidateGenerate
+	LocalAppOperationVoiceTranscribe         = localappop.OperationUnclassifiedVoiceTranscribe
+	LocalAppOperationVoiceStreamSubscribe    = localappop.OperationUnclassifiedVoiceStreamSubscribe
 )
 
 type LocalAppTrustClass string

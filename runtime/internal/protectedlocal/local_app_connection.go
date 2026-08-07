@@ -3,6 +3,7 @@ package protectedlocal
 import (
 	"context"
 	"fmt"
+	"io"
 	"sync"
 	"sync/atomic"
 )
@@ -27,6 +28,18 @@ type VerifiedLocalAppLaunchPeer struct {
 type LocalAppSessionHandle struct {
 	SessionID    Identifier
 	SessionProof Identifier
+}
+
+func NewLocalAppSessionHandle(random io.Reader) (LocalAppSessionHandle, error) {
+	sessionID, err := readIdentifier(random)
+	if err != nil {
+		return LocalAppSessionHandle{}, fmt.Errorf("generate local-app session identifier: %w", err)
+	}
+	sessionProof, err := readIdentifier(random)
+	if err != nil {
+		return LocalAppSessionHandle{}, fmt.Errorf("generate local-app session proof: %w", err)
+	}
+	return LocalAppSessionHandle{SessionID: sessionID, SessionProof: sessionProof}, nil
 }
 
 type LocalAppLaunchPeerVerifier interface {
@@ -206,7 +219,9 @@ func (connection *LocalAppConnection) BootstrapAllowed() bool {
 		return false
 	}
 	if connection.directPeer != nil {
-		return !connection.DirectAuthorizationBound()
+		connection.sessionMu.RLock()
+		defer connection.sessionMu.RUnlock()
+		return connection.live.Load() && connection.session == nil && !connection.directAuthorized
 	}
 	origin := connection.Origin()
 	return origin.TransportClass == TransportLocalAppBootstrap && origin.HasRole(RoleLocalAppProcess)
@@ -217,7 +232,9 @@ func (connection *LocalAppConnection) ProtectedOperationAllowed() bool {
 		return false
 	}
 	if connection.directPeer != nil {
-		return connection.DirectAuthorizationBound()
+		connection.sessionMu.RLock()
+		defer connection.sessionMu.RUnlock()
+		return connection.live.Load() && (connection.session != nil || connection.directAuthorized)
 	}
 	origin := connection.Origin()
 	return origin.TransportClass == TransportLocalAppHost && origin.HasRole(RoleLocalAppSession)
@@ -240,6 +257,9 @@ func (connection *LocalAppConnection) BindSession(handle LocalAppSessionHandle) 
 	}
 	bound := handle
 	connection.session = &bound
+	if connection.directPeer != nil {
+		connection.directAuthorized = true
+	}
 	return nil
 }
 

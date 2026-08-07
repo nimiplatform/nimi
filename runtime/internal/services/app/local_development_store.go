@@ -220,6 +220,19 @@ func (store *localDevelopmentStore) BindLaunch(_ context.Context, launchID prote
 	return ticket.BindDeadline, nil
 }
 
+func (store *localDevelopmentStore) SessionLaunch(_ context.Context, launchID protectedlocal.Identifier, process protectedlocal.ProcessTuple) (localDevelopmentLaunchTicket, error) {
+	if store == nil || launchID == (protectedlocal.Identifier{}) || process.PID == 0 {
+		return localDevelopmentLaunchTicket{}, errLocalDevelopmentInvalid
+	}
+	store.mu.Lock()
+	defer store.mu.Unlock()
+	ticket, ok := store.launches[launchID]
+	if !ok || ticket.Process != process || !store.now().UTC().Before(ticket.ExpiresAt) {
+		return localDevelopmentLaunchTicket{}, errLocalDevelopmentLaunchExpired
+	}
+	return ticket, nil
+}
+
 func (store *localDevelopmentStore) RevokeLaunch(_ context.Context, launchID protectedlocal.Identifier) error {
 	store.mu.Lock()
 	defer store.mu.Unlock()

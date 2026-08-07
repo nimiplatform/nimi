@@ -1,8 +1,9 @@
 import type { JsonValue } from '../../types';
 import type { RealmModel } from '../../realm/generated.js';
-import type {
-  NimiLocalAppAIConfigClient,
-  NimiLocalAppAIConfigShell,
+import {
+  createNimiLocalAppAIConfigClient,
+  type NimiLocalAppAIConfigClient,
+  type NimiLocalAppAIConfigShell,
 } from './local-app-runtime-platform-ai-config.js';
 import {
   createUnavailableNimiLocalAppAgentConfigureClient,
@@ -15,8 +16,9 @@ import type {
   NimiLocalAppArtifactPutResult,
   NimiLocalAppArtifactsShell,
 } from './local-app-runtime-platform-artifacts.js';
-import type {
-  NimiLocalAppConversationOpenInput,
+import {
+  createNimiLocalAppConversationClient,
+  type NimiLocalAppConversationOpenInput,
   NimiLocalAppConversationOpenResult,
   NimiLocalAppConversationInterruptResult,
   NimiLocalAppConversationScopeInput,
@@ -26,9 +28,10 @@ import type {
   NimiLocalAppConversationSnapshot,
   NimiLocalAppConversationSubscription,
 } from './local-app-runtime-platform-conversation.js';
-import type {
-  NimiAppRuntimeStorageDocument,
-  NimiAppRuntimeStorageRemoveResult,
+import {
+  createNimiAppRuntimeStorageClient,
+  type NimiAppRuntimeStorageDocument,
+  type NimiAppRuntimeStorageRemoveResult,
 } from './local-app-runtime-platform-protected-operations.js';
 import {
   asRecord,
@@ -245,21 +248,13 @@ export function createNimiLocalAppClient(
     auth: Object.freeze({
       status: async () => projectAuth(await standardShell.session.status()),
     }),
-    ai: Object.freeze({ text: Object.freeze({ generateCandidate: unavailable }) }),
-    aiConfig: Object.freeze({ get: unavailable, overwrite: unavailable }),
-    storage: Object.freeze({ readJson: unavailable, writeJson: unavailable, removeJson: unavailable }),
-    realm: Object.freeze({
-      worldCore: Object.freeze({ list: unavailable, create: unavailable }),
-    }),
+    ai: Object.freeze({ text: createTextCandidateClient(standardShell.ai.text) }),
+    aiConfig: createNimiLocalAppAIConfigClient(standardShell.aiConfig),
+    storage: createNimiAppRuntimeStorageClient(standardShell.storage),
+    realm: Object.freeze({ worldCore: createWorldCoreClient(standardShell.realm.worldCore) }),
     agentConfigure: createUnavailableNimiLocalAppAgentConfigureClient(),
     artifacts: Object.freeze({ putArtifact: unavailable, readArtifactBytes: unavailable }),
-    conversation: Object.freeze({
-      open: unavailable,
-      send: unavailable,
-      interruptTurn: unavailable,
-      subscribe: unavailable,
-      snapshot: unavailable,
-    }),
+    conversation: createNimiLocalAppConversationClient(standardShell.conversation),
   });
 }
 

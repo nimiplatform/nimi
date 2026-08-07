@@ -1422,6 +1422,10 @@ const (
 	AILOCALEXECUTIONCANCELED ReasonCode = "AI_LOCAL_EXECUTION_CANCELED"
 	AILOCALEXECUTIONPROCESSCRASHED ReasonCode = "AI_LOCAL_EXECUTION_PROCESS_CRASHED"
 	AILOCALEXECUTIONCONTENTMISMATCH ReasonCode = "AI_LOCAL_EXECUTION_CONTENT_MISMATCH"
+	LOCALAPPSNAPSHOTUNAVAILABLE ReasonCode = "LOCAL_APP_SNAPSHOT_UNAVAILABLE"
+	LOCALAPPACCESSDENIED ReasonCode = "LOCAL_APP_ACCESS_DENIED"
+	LOCALAPPOPERATIONUNSUPPORTED ReasonCode = "LOCAL_APP_OPERATION_UNSUPPORTED"
+	LOCALAPPOWNERUNAVAILABLE ReasonCode = "LOCAL_APP_OWNER_UNAVAILABLE"
 )
 
 type ReasoningMode string
@@ -5657,9 +5661,6 @@ type OpenLocalAppSessionRequest struct {
 
 type OpenLocalAppSessionResponse struct {
 	State LocalAppSessionState `json:"state,omitempty"`
-	TrustClass LocalAppTrustClass `json:"trust_class,omitempty"`
-	AccountGeneration uint64 `json:"account_generation,omitempty"`
-	RuntimeBootEpoch []byte `json:"runtime_boot_epoch,omitempty"`
 	ReasonCode ReasonCode `json:"reason_code,omitempty"`
 }
 

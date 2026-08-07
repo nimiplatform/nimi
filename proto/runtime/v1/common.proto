@@ -372,6 +372,15 @@ enum ReasonCode {
   AI_LOCAL_EXECUTION_PROCESS_CRASHED = 704;
   AI_LOCAL_EXECUTION_CONTENT_MISMATCH = 705;
 
+  // Runtime-private App ingress admission and owner handoff. These reasons
+  // distinguish a missing snapshot or uncovered operation from a structurally
+  // unsupported ingress and from an admitted operation whose owner adapter is
+  // not implemented in the current phase.
+  LOCAL_APP_SNAPSHOT_UNAVAILABLE = 706;
+  LOCAL_APP_ACCESS_DENIED = 707;
+  LOCAL_APP_OPERATION_UNSUPPORTED = 708;
+  LOCAL_APP_OWNER_UNAVAILABLE = 709;
+
   // Reserved: old values of renumbered codes.
   // 104=APP_SCOPE_FORBIDDEN→503, 106=APP_SCOPE_REVOKED→504,
   // 115=APP_MODE_DOMAIN_FORBIDDEN→500, 116=APP_MODE_SCOPE_FORBIDDEN→501,

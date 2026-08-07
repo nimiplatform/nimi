@@ -12,8 +12,6 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/localappkernel"
 	"github.com/nimiplatform/nimi/runtime/internal/protectedlocal"
-	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
-	authservice "github.com/nimiplatform/nimi/runtime/internal/services/auth"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -262,18 +260,6 @@ func localDevelopmentBindDiagnosticStage(err error) string {
 		return "bind-registry-" + string(stage)
 	}
 	return "bind-witness"
-}
-
-func (s *Service) OpenLocalAppSessionProjection(context.Context) (authservice.LocalAppSessionProjection, error) {
-	return authservice.LocalAppSessionProjection{}, localDevelopmentFailure(codes.Unavailable, runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE)
-}
-
-func (s *Service) RenewLocalAppSessionProjection(context.Context) (authservice.LocalAppSessionProjection, error) {
-	return authservice.LocalAppSessionProjection{}, localDevelopmentFailure(codes.Unavailable, runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE)
-}
-
-func (s *Service) ResolveLocalAppSession(context.Context, uint64) (accountservice.LocalAppCallerBinding, error) {
-	return accountservice.LocalAppCallerBinding{}, errLocalDevelopmentSessionRevoked
 }
 
 func (s *Service) EndLocalDevelopmentRun(ctx context.Context, req *runtimev1.EndLocalDevelopmentRunRequest) (*runtimev1.EndLocalDevelopmentRunResponse, error) {

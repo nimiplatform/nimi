@@ -12,7 +12,7 @@ import {
 } from './types.js';
 
 const LOCAL_APP_PROTECTED_CARRIER_SENTINEL = 'local-app-protected-carrier-only';
-const REQUIRED_INPUT_KEYS = ['allowedRendererUrls', 'appId', 'ipcMain', 'onProtectedSessionFailure'] as const;
+const REQUIRED_INPUT_KEYS = ['allowedRendererUrls', 'appId', 'ipcMain'] as const;
 const OPTIONAL_INPUT_KEYS = ['appCommandHandlers'] as const;
 const RESERVED_COMMAND_PREFIX = 'nimi.shell.';
 
@@ -20,13 +20,6 @@ export type RegisterNimiElectronAppBridgeInput = {
   readonly appId: string;
   readonly allowedRendererUrls: readonly string[];
   readonly ipcMain: NimiElectronIpcMain;
-  /**
-   * Closes the current Electron host after Kit has revoked its renderer bridge
-   * because protected session bootstrap or renewal failed. Desktop's retained
-   * supervisor may then reopen a fresh lease/session without changing the
-   * project registration. No protected reason or authority is passed to App code.
-   */
-  readonly onProtectedSessionFailure: () => void;
   /**
    * Exact commands implemented by this app's own native host. These commands
    * are app-owned authority: they receive the same renderer origin checks as
@@ -39,10 +32,11 @@ export type RegisterNimiElectronAppBridgeInput = {
 /**
  * Registers the fixed local-app surface for a Desktop-supervised process.
  *
- * The app supplies only its public id, exact renderer URLs, Electron's IPC
- * registrar, and a no-argument host-close callback. Trust-class selection,
- * Runtime endpoint selection, native carrier choice, session renewal, and
- * command authority remain Kit-owned.
+ * The app supplies only its public id, exact renderer URLs, and Electron's IPC
+ * registrar. Trust-class selection, Runtime endpoint selection, native carrier
+ * choice, session renewal, and command authority remain Kit-owned. Protected
+ * session unavailability leaves this bridge registered so the App can render
+ * the carrier's bounded typed posture and recover on the same Host.
  */
 export function registerNimiElectronAppBridge(
   input: RegisterNimiElectronAppBridgeInput,
@@ -89,13 +83,7 @@ export function registerNimiElectronAppBridge(
     maintenance?.close();
     registered.unregister();
   };
-  maintenance = startNimiElectronLocalAppHostMaintenance(localAppHost, undefined, (failure) => {
-    console.error(
-      `[protected-local local-app-session] stage=closed reason=${failure.reasonCode} action=supervised-host-reopen`,
-    );
-    closeBridge();
-    input.onProtectedSessionFailure();
-  });
+  maintenance = startNimiElectronLocalAppHostMaintenance(localAppHost);
   void maintenance.ready.catch(() => undefined);
   return {
     invokeChannel: registered.invokeChannel,
@@ -116,7 +104,6 @@ function assertExactAppBridgeInput(input: RegisterNimiElectronAppBridgeInput): v
   if (
     REQUIRED_INPUT_KEYS.some((key) => !Object.hasOwn(input, key))
     || keys.some((key) => !allowedKeys.has(key))
-    || typeof input.onProtectedSessionFailure !== 'function'
   ) {
     throw appBridgeInputError(
       'Electron app bridge input contains forbidden authority fields',

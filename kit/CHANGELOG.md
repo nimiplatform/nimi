@@ -16,6 +16,11 @@ Discipline.
 
 ### Changed
 
+- **Breaking (0.x):** `registerNimiElectronAppBridge` no longer accepts
+  `onProtectedSessionFailure`. Consumers must keep App and Host lifecycle
+  independent from protected-session availability; Kit keeps the bridge
+  registered, returns bounded typed unavailable posture, and owns bounded
+  same-Host rebind.
 - **Breaking (0.x):** The scoped-route Kit surfaces are retired with no
   compatibility shim. Removed public exports: `./core/model-config`,
   `./features/model-config`, `./features/model-config/headless`,

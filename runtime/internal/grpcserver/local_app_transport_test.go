@@ -8,8 +8,10 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"github.com/nimiplatform/nimi/runtime/internal/localappop"
 	"github.com/nimiplatform/nimi/runtime/internal/protectedlocal"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/peer"
 )
@@ -39,6 +41,57 @@ func TestProtectedLocalAppOperationsFailClosedBeforeOwnerDispatch(t *testing.T) 
 	}
 }
 
+func TestProtectedLocalAppAdmissionDenialNeverDispatchesOwner(t *testing.T) {
+	connection := newGRPCLocalAppConnection(t, 0x35)
+	if err := connection.BindSession(protectedlocal.LocalAppSessionHandle{SessionID: grpcLocalAppIdentifier(0x36), SessionProof: grpcLocalAppIdentifier(0x37)}); err != nil {
+		t.Fatal(err)
+	}
+	ctx := peer.NewContext(context.Background(), &peer.Peer{AuthInfo: &protectedLocalAppAuthInfo{connection: connection}})
+	admission := &localAppAdmissionStub{err: grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_LOCAL_APP_ACCESS_DENIED)}
+	handlerCalled := false
+	_, err := newUnaryProtectedLocalAppTransportInterceptor(admission)(ctx, &runtimev1.ReadLocalAppStorageJsonRequest{RelativePath: "state.json"}, &grpc.UnaryServerInfo{FullMethod: protectedReadLocalAppStorageJSONMethod}, func(context.Context, any) (any, error) {
+		handlerCalled = true
+		return &runtimev1.ReadLocalAppStorageJsonResponse{}, nil
+	})
+	if handlerCalled || admission.calls != 1 || admission.ingress != localappop.IngressStorageJSONRead || localAppTransportReason(err) != runtimev1.ReasonCode_LOCAL_APP_ACCESS_DENIED {
+		t.Fatalf("denied operation = handler:%v admission:%+v reason:%v", handlerCalled, admission, localAppTransportReason(err))
+	}
+}
+
+func TestProtectedLocalAppAdmittedOperationReportsDistinctOwnerUnavailable(t *testing.T) {
+	connection := newGRPCLocalAppConnection(t, 0x38)
+	if err := connection.BindSession(protectedlocal.LocalAppSessionHandle{SessionID: grpcLocalAppIdentifier(0x39), SessionProof: grpcLocalAppIdentifier(0x3a)}); err != nil {
+		t.Fatal(err)
+	}
+	ctx := peer.NewContext(context.Background(), &peer.Peer{AuthInfo: &protectedLocalAppAuthInfo{connection: connection}})
+	admission := &localAppAdmissionStub{}
+	handlerCalled := false
+	_, err := newUnaryProtectedLocalAppTransportInterceptor(admission)(ctx, &runtimev1.ReadLocalAppStorageJsonRequest{RelativePath: "state.json"}, &grpc.UnaryServerInfo{FullMethod: protectedReadLocalAppStorageJSONMethod}, func(context.Context, any) (any, error) {
+		handlerCalled = true
+		return &runtimev1.ReadLocalAppStorageJsonResponse{}, nil
+	})
+	if handlerCalled || admission.calls != 1 || localAppTransportReason(err) != runtimev1.ReasonCode_LOCAL_APP_OWNER_UNAVAILABLE {
+		t.Fatalf("admitted operation = handler:%v admission:%+v reason:%v", handlerCalled, admission, localAppTransportReason(err))
+	}
+}
+
+func TestProtectedLocalAppCallerAssertionRejectedBeforeAdmission(t *testing.T) {
+	connection := newGRPCLocalAppConnection(t, 0x3b)
+	if err := connection.BindSession(protectedlocal.LocalAppSessionHandle{SessionID: grpcLocalAppIdentifier(0x3c), SessionProof: grpcLocalAppIdentifier(0x3d)}); err != nil {
+		t.Fatal(err)
+	}
+	ctx := peer.NewContext(context.Background(), &peer.Peer{AuthInfo: &protectedLocalAppAuthInfo{connection: connection}})
+	admission := &localAppAdmissionStub{}
+	handlerCalled := false
+	_, err := newUnaryProtectedLocalAppTransportInterceptor(admission)(ctx, &runtimev1.OpenConversationAnchorRequest{AgentId: "handle-1", SubjectUserId: "forged-account"}, &grpc.UnaryServerInfo{FullMethod: protectedOpenConversationMethod}, func(context.Context, any) (any, error) {
+		handlerCalled = true
+		return &runtimev1.OpenConversationAnchorResponse{}, nil
+	})
+	if handlerCalled || admission.calls != 0 || localAppTransportReason(err) != runtimev1.ReasonCode_LOCAL_APP_ACCESS_DENIED {
+		t.Fatalf("caller assertion = handler:%v admission:%+v reason:%v", handlerCalled, admission, localAppTransportReason(err))
+	}
+}
+
 func TestProtectedLocalAppStreamFailsClosedBeforeOwnerDispatch(t *testing.T) {
 	connection := newGRPCLocalAppConnection(t, 0x41)
 	if err := connection.BindSession(protectedlocal.LocalAppSessionHandle{SessionID: grpcLocalAppIdentifier(0x42), SessionProof: grpcLocalAppIdentifier(0x43)}); err != nil {
@@ -53,6 +106,18 @@ func TestProtectedLocalAppStreamFailsClosedBeforeOwnerDispatch(t *testing.T) {
 	if handlerCalled || localAppTransportReason(err) != runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE {
 		t.Fatalf("protected stream = called:%v reason:%v", handlerCalled, localAppTransportReason(err))
 	}
+}
+
+type localAppAdmissionStub struct {
+	ingress localappop.Ingress
+	calls   int
+	err     error
+}
+
+func (stub *localAppAdmissionStub) AdmitLocalAppIngress(_ context.Context, ingress localappop.Ingress) error {
+	stub.calls++
+	stub.ingress = ingress
+	return stub.err
 }
 
 type localAppTransportTestStream struct{ ctx context.Context }

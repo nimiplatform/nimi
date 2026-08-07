@@ -19,6 +19,9 @@ const FORBIDDEN_RENDERER_FIELDS = new Set([
   'endpoint', 'authorization', 'token', 'localAppPrincipalId', 'localAppRecordId',
   'trustClass', 'provenanceRevision', 'launchLease', 'bootstrap', 'processId',
   'sessionId', 'sessionProof', 'accountId', 'grantId', 'runtimeBootEpoch',
+  'registeredAppSubject', 'registrationHandle', 'sourceGeneration', 'declarationGeneration',
+  'accountGeneration', 'snapshot', 'snapshotId', 'credential', 'peerProof', 'appOperationId',
+  'operationId', 'appAccessDomainId', 'domainId', 'classification', 'subject', 'account',
 ]);
 
 type RendererLocalAppHostMethod = Exclude<

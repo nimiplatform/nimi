@@ -1,10 +1,16 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { NIMI_STANDARD_SHELL_CAPABILITIES } from '@nimiplatform/kit/shell/capabilities';
 
 import { registerNimiElectronAppBridge } from '../src/main/index.js';
 import { dispatchElectronLocalAppCommand } from '../src/main/local-app-commands.js';
 import { NimiElectronLocalAppHostError } from '../src/main/local-app-host.js';
 import { FakeIpcMain, createInvokeEvent, invokeBridge } from './electron-shell-test-utils.js';
+
+vi.mock('../src/main/protected-local-binding-loader.js', () => ({
+  loadNimiElectronProtectedLocalPackage: () => {
+    throw new Error('protected carrier fixture unavailable');
+  },
+}));
 
 const FINAL_LOCAL_APP_COMMANDS = [
   'nimi.shell.localApp.sessionStatus',
@@ -39,7 +45,6 @@ function createBridge() {
     appId: 'nimi.thirdparty.fixture',
     allowedRendererUrls: ['http://localhost:1430/'],
     ipcMain,
-    onProtectedSessionFailure: () => undefined,
   });
   const { event } = createInvokeEvent();
   return {
@@ -52,11 +57,43 @@ function createBridge() {
 }
 
 describe('Electron local-app carrier behavior', () => {
-  it('requires a host-close callback for protected session bootstrap and renewal failure', () => {
+  it('keeps App lifecycle, typed Nimi access, and bridge registration independent when session bootstrap is unavailable', async () => {
+    const ipcMain = new FakeIpcMain();
+    const bridge = registerNimiElectronAppBridge({
+      appId: 'nimi.thirdparty.fixture',
+      allowedRendererUrls: ['http://localhost:1430/'],
+      ipcMain,
+      appCommandHandlers: {
+        'fixture.app.alive': () => ({ running: true }),
+      },
+    });
+    const { event } = createInvokeEvent();
+    const exactEvent = {
+      ...event,
+      senderFrame: { ...event.senderFrame, url: 'http://localhost:1430/' },
+    };
+
+    await expect(invokeBridge(ipcMain, exactEvent, {
+      command: 'nimi.shell.localApp.sessionStatus',
+      payload: {},
+    })).rejects.toMatchObject({ reasonCode: 'protected-carrier-required' });
+    await new Promise<void>((resolve) => setTimeout(resolve, 0));
+
+    expect(ipcMain.handlers.has(bridge.invokeChannel)).toBe(true);
+    await expect(invokeBridge(ipcMain, exactEvent, {
+      command: 'fixture.app.alive',
+      payload: {},
+    })).resolves.toEqual({ running: true });
+    expect(ipcMain.handlers.has(bridge.invokeChannel)).toBe(true);
+    bridge.unregister();
+  });
+
+  it('rejects the retired App-owned protected-session lifecycle callback', () => {
     expect(() => registerNimiElectronAppBridge({
       appId: 'nimi.thirdparty.fixture',
       allowedRendererUrls: ['http://localhost:1430/'],
       ipcMain: new FakeIpcMain(),
+      onProtectedSessionFailure: () => undefined,
     } as never)).toThrow(/input contains forbidden authority fields/i);
   });
 
@@ -66,7 +103,6 @@ describe('Electron local-app carrier behavior', () => {
       appId: 'nimi.thirdparty.fixture',
       allowedRendererUrls: ['http://localhost:1430/'],
       ipcMain,
-      onProtectedSessionFailure: () => undefined,
       appCommandHandlers: {
         'fixture.sqlite.read': ({ payload }) => ({ owner: 'fixture', payload }),
       },
@@ -87,7 +123,6 @@ describe('Electron local-app carrier behavior', () => {
       appId: 'nimi.thirdparty.fixture',
       allowedRendererUrls: ['http://localhost:1430/timeline?child=local#today'],
       ipcMain: routeIpcMain,
-      onProtectedSessionFailure: () => undefined,
       appCommandHandlers: {
         'fixture.sqlite.read': ({ payload }) => ({ owner: 'fixture', payload }),
       },
@@ -107,7 +142,6 @@ describe('Electron local-app carrier behavior', () => {
       appId: 'nimi.thirdparty.fixture',
       allowedRendererUrls: ['http://localhost:1430/'],
       ipcMain: foreignIpcMain,
-      onProtectedSessionFailure: () => undefined,
       appCommandHandlers: {
         'fixture.sqlite.read': ({ payload }) => ({ owner: 'fixture', payload }),
       },
@@ -132,7 +166,6 @@ describe('Electron local-app carrier behavior', () => {
       appId: 'nimi.thirdparty.fixture',
       allowedRendererUrls: ['http://localhost:1430/'],
       ipcMain,
-      onProtectedSessionFailure: () => undefined,
       appCommandHandlers: {
         'nimi.shell.runtime.unary': () => ({ forged: true }),
       },
@@ -207,6 +240,9 @@ describe('Electron local-app carrier behavior', () => {
     for (const field of [
       'endpoint', 'token', 'localAppPrincipalId', 'localAppRecordId', 'grantId',
       'sessionId', 'sessionProof', 'processId', 'trustClass',
+      'registeredAppSubject', 'registrationHandle', 'accountId', 'snapshotId',
+      'sourceGeneration', 'declarationGeneration', 'accountGeneration',
+      'credential', 'peerProof', 'appOperationId', 'appAccessDomainId', 'classification',
     ]) {
       const { ipcMain, event } = createBridge();
       await expect(invokeBridge(ipcMain, event, {

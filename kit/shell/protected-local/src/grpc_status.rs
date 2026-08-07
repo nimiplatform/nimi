@@ -145,6 +145,10 @@ pub(crate) fn local_app_reason_from_proto(value: i32) -> Option<LocalAppReasonCo
         694 => LocalAppReasonCode::AiConfigInvalid,
         695 => LocalAppReasonCode::AiConfigNotFound,
         696 => LocalAppReasonCode::AiConfigPersistenceUnavailable,
+        706 => LocalAppReasonCode::SnapshotUnavailable,
+        707 => LocalAppReasonCode::AccessDenied,
+        708 => LocalAppReasonCode::OperationUnsupported,
+        709 => LocalAppReasonCode::OwnerUnavailable,
         566 => LocalAppReasonCode::InvalidPath,
         567 | 662 => LocalAppReasonCode::NotFound,
         568 | 664 => LocalAppReasonCode::ResourceExhausted,
@@ -170,6 +174,10 @@ fn local_app_reason_from_runtime_reason(value: &str) -> Option<LocalAppReasonCod
         "LOCAL_APP_ACCOUNT_CHANGED" => LocalAppReasonCode::AccountChanged,
         "LOCAL_APP_SESSION_REVOKED" => LocalAppReasonCode::Revoked,
         "LOCAL_APP_OPERATION_UNAVAILABLE" => LocalAppReasonCode::OperationUnavailable,
+        "LOCAL_APP_SNAPSHOT_UNAVAILABLE" => LocalAppReasonCode::SnapshotUnavailable,
+        "LOCAL_APP_ACCESS_DENIED" => LocalAppReasonCode::AccessDenied,
+        "LOCAL_APP_OPERATION_UNSUPPORTED" => LocalAppReasonCode::OperationUnsupported,
+        "LOCAL_APP_OWNER_UNAVAILABLE" => LocalAppReasonCode::OwnerUnavailable,
         "LOCAL_APP_PRESENCE_EXPIRED" => LocalAppReasonCode::PresenceExpired,
         "AI_MODEL_NOT_FOUND" => LocalAppReasonCode::AiModelNotFound,
         "AI_MODEL_NOT_READY" => LocalAppReasonCode::AiModelNotReady,
@@ -322,6 +330,14 @@ mod tests {
         assert_eq!(
             host_reason_from_runtime_reason("LOCAL_APP_OPERATION_UNAVAILABLE"),
             Some(NimiHostErrorReasonCode::LocalAppOperationUnavailable)
+        );
+        assert_eq!(
+            local_app_reason_from_runtime_reason("LOCAL_APP_OWNER_UNAVAILABLE"),
+            Some(LocalAppReasonCode::OwnerUnavailable)
+        );
+        assert_ne!(
+            local_app_reason_from_runtime_reason("LOCAL_APP_ACCESS_DENIED"),
+            local_app_reason_from_runtime_reason("LOCAL_APP_OWNER_UNAVAILABLE")
         );
     }
 

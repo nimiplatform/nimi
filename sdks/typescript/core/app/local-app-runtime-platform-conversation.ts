@@ -106,24 +106,60 @@ export type NimiLocalAppConversationClient = {
 };
 
 export function createNimiLocalAppConversationClient(
-  _shell: NimiLocalAppConversationShell,
+  shell: NimiLocalAppConversationShell,
 ): NimiLocalAppConversationClient {
-  const unavailable = async (): Promise<never> => protectedAppAccessUnavailable();
   return Object.freeze({
-    open: unavailable,
-    send: unavailable,
-    interruptTurn: unavailable,
-    subscribe: unavailable,
-    snapshot: unavailable,
+    open: async (input) => {
+      assertExactKeys(input, ['agentHandle'], 'local-app conversation open input');
+      assertNoAuthorityMaterial(input);
+      return projectOpen(await shell.open({
+        agentHandle: requireText(input.agentHandle, 'agentHandle'),
+      }));
+    },
+    send: async (input) => {
+      assertExactKeys(
+        input,
+        ['agentHandle', 'conversationAnchorId', 'requestId', 'text', 'attachments'],
+        'local-app conversation send input',
+      );
+      assertNoAuthorityMaterial(input);
+      const value = await shell.send({
+        agentHandle: requireText(input.agentHandle, 'agentHandle'),
+        conversationAnchorId: requireText(input.conversationAnchorId, 'conversationAnchorId'),
+        requestId: requireText(input.requestId, 'requestId'),
+        text: requireText(input.text, 'text'),
+        attachments: validateConversationAttachments(input.attachments),
+      });
+      const record = asRecord(value);
+      assertExactProjectionKeys(record, ['messageId'], 'conversation send');
+      return Object.freeze({ messageId: projectionText(record.messageId, 'messageId') });
+    },
+    interruptTurn: async (input) => {
+      const value = await shell.interruptTurn(conversationScope(input, 'interrupt'));
+      const record = asRecord(value);
+      assertExactProjectionKeys(record, ['messageId'], 'conversation interrupt');
+      return Object.freeze({ messageId: projectionText(record.messageId, 'messageId') });
+    },
+    subscribe: async (input) => {
+      const subscription = await shell.subscribe(conversationScope(input, 'subscribe'));
+      const projected: NimiLocalAppConversationSubscription = {
+        async *[Symbol.asyncIterator]() {
+          for await (const event of subscription.events) {
+            yield projectEvent(event);
+          }
+        },
+        cancel: async () => subscription.cancel(),
+      };
+      return Object.freeze(projected);
+    },
+    snapshot: async (input) => {
+      const value = await shell.snapshot(conversationScope(input, 'snapshot'));
+      const record = asRecord(value);
+      if (!record) localAppProjectionError('conversation snapshot');
+      assertSafeProjection(record);
+      return Object.freeze({ ...record }) as NimiLocalAppConversationSnapshot;
+    },
   });
-}
-
-function protectedAppAccessUnavailable(): never {
-  return localAppError(
-    'Protected App operations are unavailable until Runtime establishes a fresh App Access session.',
-    'SDK_LOCAL_APP_ACCESS_UNAVAILABLE',
-    'retry_after_protected_session_establishment',
-  );
 }
 
 function validateConversationAttachments(

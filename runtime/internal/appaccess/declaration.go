@@ -4,15 +4,11 @@ import (
 	"fmt"
 	"strings"
 	"unicode/utf8"
+
+	"github.com/nimiplatform/nimi/runtime/internal/localappop"
 )
 
 const MaxDeclarationItemBytes = 128
-
-var supportedDomains = map[string]struct{}{
-	"realm.data":      {},
-	"runtime.consume": {},
-	"agent.local":     {},
-}
 
 // ResolveDeclaration validates and preserves every raw item while activating
 // only the current closed domain vocabulary. Unknown items are intentionally
@@ -29,7 +25,7 @@ func ResolveDeclaration(items []string) ([]string, []string, error) {
 			return nil, nil, fmt.Errorf("duplicate App access declaration item %q", item)
 		}
 		seen[item] = struct{}{}
-		if _, supported := supportedDomains[item]; supported {
+		if localappop.IsSupportedDomain(item) {
 			activated = append(activated, item)
 		}
 	}
@@ -37,6 +33,5 @@ func ResolveDeclaration(items []string) ([]string, []string, error) {
 }
 
 func IsSupportedDomain(domain string) bool {
-	_, ok := supportedDomains[domain]
-	return ok
+	return localappop.IsSupportedDomain(domain)
 }

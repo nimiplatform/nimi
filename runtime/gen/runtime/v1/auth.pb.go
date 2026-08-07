@@ -780,15 +780,14 @@ func (*OpenLocalAppSessionRequest) Descriptor() ([]byte, []int) {
 	return file_runtime_v1_auth_proto_rawDescGZIP(), []int{7}
 }
 
+// Deliberately posture-only. Subject, account, snapshot, generation, session
+// material, credential, and peer proof remain Runtime-private.
 type OpenLocalAppSessionResponse struct {
-	state             protoimpl.MessageState `protogen:"open.v1"`
-	State             LocalAppSessionState   `protobuf:"varint,1,opt,name=state,proto3,enum=nimi.runtime.v1.LocalAppSessionState" json:"state,omitempty"`
-	TrustClass        LocalAppTrustClass     `protobuf:"varint,2,opt,name=trust_class,json=trustClass,proto3,enum=nimi.runtime.v1.LocalAppTrustClass" json:"trust_class,omitempty"`
-	AccountGeneration uint64                 `protobuf:"varint,3,opt,name=account_generation,json=accountGeneration,proto3" json:"account_generation,omitempty"`
-	RuntimeBootEpoch  []byte                 `protobuf:"bytes,4,opt,name=runtime_boot_epoch,json=runtimeBootEpoch,proto3" json:"runtime_boot_epoch,omitempty"`
-	ReasonCode        ReasonCode             `protobuf:"varint,5,opt,name=reason_code,json=reasonCode,proto3,enum=nimi.runtime.v1.ReasonCode" json:"reason_code,omitempty"`
-	unknownFields     protoimpl.UnknownFields
-	sizeCache         protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	State         LocalAppSessionState   `protobuf:"varint,1,opt,name=state,proto3,enum=nimi.runtime.v1.LocalAppSessionState" json:"state,omitempty"`
+	ReasonCode    ReasonCode             `protobuf:"varint,5,opt,name=reason_code,json=reasonCode,proto3,enum=nimi.runtime.v1.ReasonCode" json:"reason_code,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *OpenLocalAppSessionResponse) Reset() {
@@ -826,27 +825,6 @@ func (x *OpenLocalAppSessionResponse) GetState() LocalAppSessionState {
 		return x.State
 	}
 	return LocalAppSessionState_LOCAL_APP_SESSION_STATE_UNSPECIFIED
-}
-
-func (x *OpenLocalAppSessionResponse) GetTrustClass() LocalAppTrustClass {
-	if x != nil {
-		return x.TrustClass
-	}
-	return LocalAppTrustClass_LOCAL_APP_TRUST_CLASS_UNSPECIFIED
-}
-
-func (x *OpenLocalAppSessionResponse) GetAccountGeneration() uint64 {
-	if x != nil {
-		return x.AccountGeneration
-	}
-	return 0
-}
-
-func (x *OpenLocalAppSessionResponse) GetRuntimeBootEpoch() []byte {
-	if x != nil {
-		return x.RuntimeBootEpoch
-	}
-	return nil
 }
 
 func (x *OpenLocalAppSessionResponse) GetReasonCode() ReasonCode {
@@ -1426,15 +1404,11 @@ const file_runtime_v1_auth_proto_rawDesc = "" +
 	"\x1aOpenDesktopSessionResponse\x12,\n" +
 	"\x12desktop_session_id\x18\x01 \x01(\fR\x10desktopSessionId\x12,\n" +
 	"\x12runtime_boot_epoch\x18\x02 \x01(\fR\x10runtimeBootEpoch\"\x1c\n" +
-	"\x1aOpenLocalAppSessionRequest\"\xbb\x02\n" +
+	"\x1aOpenLocalAppSessionRequest\"\xdf\x01\n" +
 	"\x1bOpenLocalAppSessionResponse\x12;\n" +
-	"\x05state\x18\x01 \x01(\x0e2%.nimi.runtime.v1.LocalAppSessionStateR\x05state\x12D\n" +
-	"\vtrust_class\x18\x02 \x01(\x0e2#.nimi.runtime.v1.LocalAppTrustClassR\n" +
-	"trustClass\x12-\n" +
-	"\x12account_generation\x18\x03 \x01(\x04R\x11accountGeneration\x12,\n" +
-	"\x12runtime_boot_epoch\x18\x04 \x01(\fR\x10runtimeBootEpoch\x12<\n" +
+	"\x05state\x18\x01 \x01(\x0e2%.nimi.runtime.v1.LocalAppSessionStateR\x05state\x12<\n" +
 	"\vreason_code\x18\x05 \x01(\x0e2\x1b.nimi.runtime.v1.ReasonCodeR\n" +
-	"reasonCode\"\x1d\n" +
+	"reasonCodeJ\x04\b\x02\x10\x03J\x04\b\x03\x10\x04J\x04\b\x04\x10\x05R\vtrust_classR\x12account_generationR\x12runtime_boot_epoch\"\x1d\n" +
 	"\x1bRenewLocalAppSessionRequest\"W\n" +
 	"\x15RefreshSessionRequest\x12\x1d\n" +
 	"\n" +
@@ -1569,40 +1543,39 @@ var file_runtime_v1_auth_proto_depIdxs = []int32{
 	24, // 5: nimi.runtime.v1.OpenSessionResponse.expires_at:type_name -> google.protobuf.Timestamp
 	23, // 6: nimi.runtime.v1.OpenSessionResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
 	3,  // 7: nimi.runtime.v1.OpenLocalAppSessionResponse.state:type_name -> nimi.runtime.v1.LocalAppSessionState
-	4,  // 8: nimi.runtime.v1.OpenLocalAppSessionResponse.trust_class:type_name -> nimi.runtime.v1.LocalAppTrustClass
-	23, // 9: nimi.runtime.v1.OpenLocalAppSessionResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	24, // 10: nimi.runtime.v1.RefreshSessionResponse.expires_at:type_name -> google.protobuf.Timestamp
-	23, // 11: nimi.runtime.v1.RefreshSessionResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	25, // 12: nimi.runtime.v1.RegisterExternalPrincipalRequest.external_principal_type:type_name -> nimi.runtime.v1.ExternalPrincipalType
-	0,  // 13: nimi.runtime.v1.RegisterExternalPrincipalRequest.proof_type:type_name -> nimi.runtime.v1.ExternalProofType
-	23, // 14: nimi.runtime.v1.RegisterExternalPrincipalResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	24, // 15: nimi.runtime.v1.OpenExternalPrincipalSessionResponse.expires_at:type_name -> google.protobuf.Timestamp
-	23, // 16: nimi.runtime.v1.OpenExternalPrincipalSessionResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	6,  // 17: nimi.runtime.v1.RuntimeAuthService.RegisterApp:input_type -> nimi.runtime.v1.RegisterAppRequest
-	8,  // 18: nimi.runtime.v1.RuntimeAuthService.OpenSession:input_type -> nimi.runtime.v1.OpenSessionRequest
-	10, // 19: nimi.runtime.v1.RuntimeAuthService.OpenDesktopSession:input_type -> nimi.runtime.v1.OpenDesktopSessionRequest
-	12, // 20: nimi.runtime.v1.RuntimeAuthService.OpenLocalAppSession:input_type -> nimi.runtime.v1.OpenLocalAppSessionRequest
-	14, // 21: nimi.runtime.v1.RuntimeAuthService.RenewLocalAppSession:input_type -> nimi.runtime.v1.RenewLocalAppSessionRequest
-	15, // 22: nimi.runtime.v1.RuntimeAuthService.RefreshSession:input_type -> nimi.runtime.v1.RefreshSessionRequest
-	17, // 23: nimi.runtime.v1.RuntimeAuthService.RevokeSession:input_type -> nimi.runtime.v1.RevokeSessionRequest
-	18, // 24: nimi.runtime.v1.RuntimeAuthService.RegisterExternalPrincipal:input_type -> nimi.runtime.v1.RegisterExternalPrincipalRequest
-	20, // 25: nimi.runtime.v1.RuntimeAuthService.OpenExternalPrincipalSession:input_type -> nimi.runtime.v1.OpenExternalPrincipalSessionRequest
-	22, // 26: nimi.runtime.v1.RuntimeAuthService.RevokeExternalPrincipalSession:input_type -> nimi.runtime.v1.RevokeExternalPrincipalSessionRequest
-	7,  // 27: nimi.runtime.v1.RuntimeAuthService.RegisterApp:output_type -> nimi.runtime.v1.RegisterAppResponse
-	9,  // 28: nimi.runtime.v1.RuntimeAuthService.OpenSession:output_type -> nimi.runtime.v1.OpenSessionResponse
-	11, // 29: nimi.runtime.v1.RuntimeAuthService.OpenDesktopSession:output_type -> nimi.runtime.v1.OpenDesktopSessionResponse
-	13, // 30: nimi.runtime.v1.RuntimeAuthService.OpenLocalAppSession:output_type -> nimi.runtime.v1.OpenLocalAppSessionResponse
-	13, // 31: nimi.runtime.v1.RuntimeAuthService.RenewLocalAppSession:output_type -> nimi.runtime.v1.OpenLocalAppSessionResponse
-	16, // 32: nimi.runtime.v1.RuntimeAuthService.RefreshSession:output_type -> nimi.runtime.v1.RefreshSessionResponse
-	26, // 33: nimi.runtime.v1.RuntimeAuthService.RevokeSession:output_type -> nimi.runtime.v1.Ack
-	19, // 34: nimi.runtime.v1.RuntimeAuthService.RegisterExternalPrincipal:output_type -> nimi.runtime.v1.RegisterExternalPrincipalResponse
-	21, // 35: nimi.runtime.v1.RuntimeAuthService.OpenExternalPrincipalSession:output_type -> nimi.runtime.v1.OpenExternalPrincipalSessionResponse
-	26, // 36: nimi.runtime.v1.RuntimeAuthService.RevokeExternalPrincipalSession:output_type -> nimi.runtime.v1.Ack
-	27, // [27:37] is the sub-list for method output_type
-	17, // [17:27] is the sub-list for method input_type
-	17, // [17:17] is the sub-list for extension type_name
-	17, // [17:17] is the sub-list for extension extendee
-	0,  // [0:17] is the sub-list for field type_name
+	23, // 8: nimi.runtime.v1.OpenLocalAppSessionResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	24, // 9: nimi.runtime.v1.RefreshSessionResponse.expires_at:type_name -> google.protobuf.Timestamp
+	23, // 10: nimi.runtime.v1.RefreshSessionResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	25, // 11: nimi.runtime.v1.RegisterExternalPrincipalRequest.external_principal_type:type_name -> nimi.runtime.v1.ExternalPrincipalType
+	0,  // 12: nimi.runtime.v1.RegisterExternalPrincipalRequest.proof_type:type_name -> nimi.runtime.v1.ExternalProofType
+	23, // 13: nimi.runtime.v1.RegisterExternalPrincipalResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	24, // 14: nimi.runtime.v1.OpenExternalPrincipalSessionResponse.expires_at:type_name -> google.protobuf.Timestamp
+	23, // 15: nimi.runtime.v1.OpenExternalPrincipalSessionResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	6,  // 16: nimi.runtime.v1.RuntimeAuthService.RegisterApp:input_type -> nimi.runtime.v1.RegisterAppRequest
+	8,  // 17: nimi.runtime.v1.RuntimeAuthService.OpenSession:input_type -> nimi.runtime.v1.OpenSessionRequest
+	10, // 18: nimi.runtime.v1.RuntimeAuthService.OpenDesktopSession:input_type -> nimi.runtime.v1.OpenDesktopSessionRequest
+	12, // 19: nimi.runtime.v1.RuntimeAuthService.OpenLocalAppSession:input_type -> nimi.runtime.v1.OpenLocalAppSessionRequest
+	14, // 20: nimi.runtime.v1.RuntimeAuthService.RenewLocalAppSession:input_type -> nimi.runtime.v1.RenewLocalAppSessionRequest
+	15, // 21: nimi.runtime.v1.RuntimeAuthService.RefreshSession:input_type -> nimi.runtime.v1.RefreshSessionRequest
+	17, // 22: nimi.runtime.v1.RuntimeAuthService.RevokeSession:input_type -> nimi.runtime.v1.RevokeSessionRequest
+	18, // 23: nimi.runtime.v1.RuntimeAuthService.RegisterExternalPrincipal:input_type -> nimi.runtime.v1.RegisterExternalPrincipalRequest
+	20, // 24: nimi.runtime.v1.RuntimeAuthService.OpenExternalPrincipalSession:input_type -> nimi.runtime.v1.OpenExternalPrincipalSessionRequest
+	22, // 25: nimi.runtime.v1.RuntimeAuthService.RevokeExternalPrincipalSession:input_type -> nimi.runtime.v1.RevokeExternalPrincipalSessionRequest
+	7,  // 26: nimi.runtime.v1.RuntimeAuthService.RegisterApp:output_type -> nimi.runtime.v1.RegisterAppResponse
+	9,  // 27: nimi.runtime.v1.RuntimeAuthService.OpenSession:output_type -> nimi.runtime.v1.OpenSessionResponse
+	11, // 28: nimi.runtime.v1.RuntimeAuthService.OpenDesktopSession:output_type -> nimi.runtime.v1.OpenDesktopSessionResponse
+	13, // 29: nimi.runtime.v1.RuntimeAuthService.OpenLocalAppSession:output_type -> nimi.runtime.v1.OpenLocalAppSessionResponse
+	13, // 30: nimi.runtime.v1.RuntimeAuthService.RenewLocalAppSession:output_type -> nimi.runtime.v1.OpenLocalAppSessionResponse
+	16, // 31: nimi.runtime.v1.RuntimeAuthService.RefreshSession:output_type -> nimi.runtime.v1.RefreshSessionResponse
+	26, // 32: nimi.runtime.v1.RuntimeAuthService.RevokeSession:output_type -> nimi.runtime.v1.Ack
+	19, // 33: nimi.runtime.v1.RuntimeAuthService.RegisterExternalPrincipal:output_type -> nimi.runtime.v1.RegisterExternalPrincipalResponse
+	21, // 34: nimi.runtime.v1.RuntimeAuthService.OpenExternalPrincipalSession:output_type -> nimi.runtime.v1.OpenExternalPrincipalSessionResponse
+	26, // 35: nimi.runtime.v1.RuntimeAuthService.RevokeExternalPrincipalSession:output_type -> nimi.runtime.v1.Ack
+	26, // [26:36] is the sub-list for method output_type
+	16, // [16:26] is the sub-list for method input_type
+	16, // [16:16] is the sub-list for extension type_name
+	16, // [16:16] is the sub-list for extension extendee
+	0,  // [0:16] is the sub-list for field type_name
 }
 
 func init() { file_runtime_v1_auth_proto_init() }

@@ -34,7 +34,6 @@ void app.whenReady().then(async () => {
     appId: APP_ID,
     allowedRendererUrls: allowedRendererUrls(),
     ipcMain,
-    onProtectedSessionFailure: () => app.quit(),
   });
 
   await createMainWindow();

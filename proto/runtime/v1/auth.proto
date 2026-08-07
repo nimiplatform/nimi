@@ -105,11 +105,12 @@ enum LocalAppTrustClass {
 message OpenLocalAppSessionRequest {
 }
 
+// Deliberately posture-only. Subject, account, snapshot, generation, session
+// material, credential, and peer proof remain Runtime-private.
 message OpenLocalAppSessionResponse {
   LocalAppSessionState state = 1;
-  LocalAppTrustClass trust_class = 2;
-  uint64 account_generation = 3;
-  bytes runtime_boot_epoch = 4;
+  reserved 2, 3, 4;
+  reserved "trust_class", "account_generation", "runtime_boot_epoch";
   ReasonCode reason_code = 5;
 }
 

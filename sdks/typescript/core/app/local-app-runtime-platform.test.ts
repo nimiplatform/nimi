@@ -2,6 +2,11 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
+  OpenLocalAppSessionRequest,
+  OpenLocalAppSessionResponse,
+  RenewLocalAppSessionRequest,
+} from '../../core-generated/runtime-protobuf/runtime/v1/auth.js';
+import {
   createNimiLocalAppClient,
   type NimiLocalAppAgentHandle,
   type NimiLocalAppStandardShell,
@@ -10,7 +15,10 @@ import {
 function standardShell(operationCalls: string[]): NimiLocalAppStandardShell {
   const touched = (name: string) => async (): Promise<never> => {
     operationCalls.push(name);
-    throw new Error(`unexpected shell call: ${name}`);
+    throw Object.assign(new Error(`owner adapter unavailable: ${name}`), {
+      reasonCode: 'local-app-owner-unavailable',
+      retryable: false,
+    });
   };
   return {
     session: {
@@ -51,6 +59,20 @@ function isTypedUnavailable(error: unknown): boolean {
   return (error as { reasonCode?: string }).reasonCode === 'SDK_LOCAL_APP_ACCESS_UNAVAILABLE';
 }
 
+function isTypedOwnerUnavailable(error: unknown): boolean {
+  return (error as { reasonCode?: string }).reasonCode === 'local-app-owner-unavailable';
+}
+
+test('generated local-app session wire projection is posture-only', () => {
+  assert.deepEqual(Object.keys(OpenLocalAppSessionRequest.create()), []);
+  assert.deepEqual(Object.keys(RenewLocalAppSessionRequest.create()), []);
+  assert.deepEqual(Object.keys(OpenLocalAppSessionResponse.create()).sort(), ['reasonCode', 'state']);
+  const projectionSource = JSON.stringify(OpenLocalAppSessionResponse.create()).toLowerCase();
+  for (const forbidden of ['subject', 'account', 'snapshot', 'generation', 'credential', 'peerproof']) {
+    assert.equal(projectionSource.includes(forbidden), false);
+  }
+});
+
 test('local-app client hard-cuts the access workflow namespace', () => {
   const client = createNimiLocalAppClient({ standardShell: standardShell([]) });
   assert.deepEqual(Object.keys(client).sort(), [
@@ -71,7 +93,7 @@ test('local-app auth remains a separate availability projection', async () => {
   });
 });
 
-test('protected App operations are typed unavailable before touching the host carrier', async () => {
+test('canonical protected operations reach typed ingress and preserve owner-unavailable', async () => {
   const calls: string[] = [];
   const client = createNimiLocalAppClient({ standardShell: standardShell(calls) });
   const handle = 'runtime-agent-selector' as NimiLocalAppAgentHandle;
@@ -83,20 +105,39 @@ test('protected App operations are typed unavailable before touching the host ca
     () => client.storage.writeJson('settings.json', {}),
     () => client.storage.removeJson('settings.json'),
     () => client.realm.worldCore.list(),
-    () => client.realm.worldCore.create({} as never),
+    () => client.realm.worldCore.create({ core: {}, origin: { kind: 'manual' } } as never),
     () => client.conversation.open({ agentHandle: handle }),
     () => client.conversation.send({ agentHandle: handle, conversationAnchorId: 'anchor', requestId: 'request', text: 'hello', attachments: [] }),
     () => client.conversation.interruptTurn({ agentHandle: handle, conversationAnchorId: 'anchor' }),
     () => client.conversation.subscribe({ agentHandle: handle, conversationAnchorId: 'anchor' }),
     () => client.conversation.snapshot({ agentHandle: handle, conversationAnchorId: 'anchor' }),
-    () => client.artifacts.putArtifact({ mimeType: 'text/plain', displayName: 'note', data: new Uint8Array([1]) }),
-    () => client.artifacts.readArtifactBytes({ artifactId: 'artifact' }),
-    () => client.agentConfigure.autonomySnapshot({ agentHandle: handle }),
   ];
   for (const operation of operations) {
-    await assert.rejects(operation, isTypedUnavailable);
+    await assert.rejects(operation, isTypedOwnerUnavailable);
   }
-  assert.deepEqual(calls, []);
+  assert.deepEqual(calls, [
+    'ai.text.generateCandidate',
+    'aiConfig.get',
+    'aiConfig.overwrite',
+    'storage.readJson',
+    'storage.writeJson',
+    'storage.removeJson',
+    'realm.worldCore.list',
+    'realm.worldCore.create',
+    'conversation.open',
+    'conversation.send',
+    'conversation.interruptTurn',
+    'conversation.subscribe',
+    'conversation.snapshot',
+  ]);
+
+  await assert.rejects(
+    () => client.artifacts.putArtifact({ mimeType: 'text/plain', displayName: 'note', data: new Uint8Array([1]) }),
+    isTypedUnavailable,
+  );
+  await assert.rejects(() => client.artifacts.readArtifactBytes({ artifactId: 'artifact' }), isTypedUnavailable);
+  await assert.rejects(() => client.agentConfigure.autonomySnapshot({ agentHandle: handle }), isTypedUnavailable);
+  assert.equal(calls.length, operations.length);
 });
 
 test('local-app client rejects the retired host namespace instead of decoding it', () => {

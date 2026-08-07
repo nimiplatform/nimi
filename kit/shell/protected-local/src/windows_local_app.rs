@@ -44,7 +44,6 @@ const RUNTIME_LOCAL_APP_PIPE_NAME: &str = r"\\.\pipe\nimi-runtime-local-app-v1";
 
 const ACTION_EXECUTED: i32 = 1;
 const LOCAL_APP_SESSION_READY: i32 = 1;
-const LOCAL_APP_TRUST_LOCAL_DEVELOPMENT: i32 = 3;
 
 #[cfg(target_os = "windows")]
 #[derive(Clone, Copy, Debug, Default)]
@@ -61,9 +60,6 @@ struct PlatformLocalAppSession {
     channel: Channel,
     #[cfg(target_os = "windows")]
     runtime_peer: PlatformRuntimePeer,
-    account_generation: u64,
-    #[cfg(target_os = "windows")]
-    runtime_boot_epoch: [u8; 32],
     operation_gate: RwLock<()>,
 }
 
@@ -81,23 +77,7 @@ impl PlatformLocalAppSession {
             .await
             .map_err(local_app_error_from_status)?
             .into_inner();
-        #[cfg(target_os = "windows")]
-        let (account_generation, runtime_boot_epoch) = validate_session_projection(response)?;
-        #[cfg(target_os = "macos")]
-        let account_generation = validate_session_projection(response)?;
-        if account_generation != self.account_generation {
-            return Err(LocalAppOperationError::new(
-                LocalAppReasonCode::AccountChanged,
-                false,
-            ));
-        }
-        #[cfg(target_os = "windows")]
-        if runtime_boot_epoch != self.runtime_boot_epoch {
-            return Err(LocalAppOperationError::new(
-                LocalAppReasonCode::RuntimeRestarted,
-                true,
-            ));
-        }
+        validate_session_projection(response)?;
         Ok(ready_session_status())
     }
 }
@@ -469,12 +449,10 @@ async fn open_local_app_session() -> Result<Box<dyn NimiLocalAppSession>, LocalA
         .await
         .map_err(local_app_error_from_status)?
         .into_inner();
-    let (account_generation, runtime_boot_epoch) = validate_session_projection(response)?;
+    validate_session_projection(response)?;
     Ok(Box::new(PlatformLocalAppSession {
         channel,
         runtime_peer,
-        account_generation,
-        runtime_boot_epoch,
         operation_gate: RwLock::new(()),
     }))
 }
@@ -489,10 +467,9 @@ async fn open_local_app_session() -> Result<Box<dyn NimiLocalAppSession>, LocalA
         .await
         .map_err(local_app_error_from_status)?
         .into_inner();
-    let account_generation = validate_session_projection(response)?;
+    validate_session_projection(response)?;
     Ok(Box::new(PlatformLocalAppSession {
         channel,
-        account_generation,
         operation_gate: RwLock::new(()),
     }))
 }
@@ -505,39 +482,13 @@ fn ready_session_status() -> LocalAppSessionStatus {
     }
 }
 
-#[cfg(target_os = "windows")]
 fn validate_session_projection(
     response: crate::generated::OpenLocalAppSessionResponse,
-) -> Result<(u64, [u8; 32]), LocalAppOperationError> {
-    if response.state != LOCAL_APP_SESSION_READY
-        || response.trust_class != LOCAL_APP_TRUST_LOCAL_DEVELOPMENT
-        || response.account_generation == 0
-        || response.reason_code != ACTION_EXECUTED
-    {
+) -> Result<(), LocalAppOperationError> {
+    if response.state != LOCAL_APP_SESSION_READY || response.reason_code != ACTION_EXECUTED {
         return Err(untrusted());
     }
-    let runtime_boot_epoch: [u8; 32] = response
-        .runtime_boot_epoch
-        .try_into()
-        .map_err(|_| untrusted())?;
-    if runtime_boot_epoch == [0u8; 32] {
-        return Err(untrusted());
-    }
-    Ok((response.account_generation, runtime_boot_epoch))
-}
-
-#[cfg(target_os = "macos")]
-fn validate_session_projection(
-    response: crate::generated::OpenLocalAppSessionResponse,
-) -> Result<u64, LocalAppOperationError> {
-    if response.state != LOCAL_APP_SESSION_READY
-        || response.trust_class != LOCAL_APP_TRUST_LOCAL_DEVELOPMENT
-        || response.account_generation == 0
-        || response.reason_code != ACTION_EXECUTED
-    {
-        return Err(untrusted());
-    }
-    Ok(response.account_generation)
+    Ok(())
 }
 
 #[cfg(target_os = "windows")]
