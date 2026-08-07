@@ -5,6 +5,7 @@ import { CoreClient } from '../core-client';
 import type { CoreMetadata, CoreResponseMetadataObserver } from '../types';
 import type { AccountSessionEvent, BeginLoginRequest, BeginLoginResponse, CompleteLoginRequest, CompleteLoginResponse, GetAccountSessionStatusRequest, GetAccountSessionStatusResponse, InvokeRealmUnaryRequest, InvokeRealmUnaryResponse, IssueWorkspaceBindingRequest, IssueWorkspaceBindingResponse, LogoutRequest, LogoutResponse, RequestPresenceVerificationRequest, RequestPresenceVerificationResponse, RevokeWorkspaceBindingRequest, RevokeWorkspaceBindingResponse, SubscribeAccountSessionEventsRequest, SwitchAccountRequest, SwitchAccountResponse } from "./runtime-protobuf/runtime/v1/account";
 import type { CancelCompanionParticipationRequest, CancelCompanionParticipationResponse, GetCompanionParticipationProjectionRequest, GetCompanionParticipationProjectionResponse, OpenCompanionParticipationReplayRequest, OpenCompanionParticipationReplayResponse, RequestCompanionParticipationRequest, RequestCompanionParticipationResponse } from "./runtime-protobuf/runtime/v1/agent_companion";
+import type { CommitLocalAppAgentPresentationRequest, GetLocalAppAgentAutonomySnapshotRequest, GetLocalAppAgentPresentationSnapshotRequest, GetLocalAppSharedLocalAgentAIConfigRequest, GetLocalAppSharedLocalAgentAIConfigResponse, LocalAppAgentAutonomySnapshotResponse, LocalAppAgentCommitPresentationResponse, LocalAppAgentPresentationSnapshotResponse, LocalAppAgentUpdateAutonomyResponse, OverwriteLocalAppSharedLocalAgentAIConfigRequest, OverwriteLocalAppSharedLocalAgentAIConfigResponse, UpdateLocalAppAgentAutonomyRequest } from "./runtime-protobuf/runtime/v1/agent_configure";
 import type { AgentEvent, AgentVoiceStreamEvent, ApplySharedLocalAgentAIProfileRequest, ApplySharedLocalAgentAIProfileResponse, CancelHookRequest, CancelHookResponse, DisableAutonomyRequest, DisableAutonomyResponse, EnableAutonomyRequest, EnableAutonomyResponse, GetAgentCanonicalMemoryBankStatusRequest, GetAgentCanonicalMemoryBankStatusResponse, GetAgentCanonicalMemoryReviewStatusRequest, GetAgentCanonicalMemoryReviewStatusResponse, GetAgentPresentationAssetRequest, GetAgentPresentationAssetResponse, GetAgentRequest, GetAgentResponse, GetAgentStateRequest, GetAgentStateResponse, GetAvatarDebugReplayRequest, GetAvatarDebugReplayResponse, GetAvatarDebugSnapshotRequest, GetAvatarDebugSnapshotResponse, GetConversationAnchorSnapshotRequest, GetConversationAnchorSnapshotResponse, GetLocalAppConversationSnapshotRequest, GetLocalAppConversationSnapshotResponse, GetPublicChatSessionSnapshotRequest, GetPublicChatSessionSnapshotResponse, GetSharedLocalAgentAIConfigRequest, GetSharedLocalAgentAIConfigResponse, InterruptAgentVoicePlaybackRequest, InterruptAgentVoicePlaybackResponse, InterruptLocalAppConversationTurnRequest, InterruptLocalAppConversationTurnResponse, ListAgentConversationSummariesRequest, ListAgentConversationSummariesResponse, ListAgentsRequest, ListAgentsResponse, ListAvatarDebugProbeResultsRequest, ListAvatarDebugProbeResultsResponse, ListLocalAppAgentReferencesRequest, ListLocalAppAgentReferencesResponse, ListPendingHooksRequest, ListPendingHooksResponse, LocalAppConversationEvent, OpenConversationAnchorRequest, OpenConversationAnchorResponse, OpenLocalAppConversationRequest, OpenLocalAppConversationResponse, OverwriteSharedLocalAgentAIConfigRequest, OverwriteSharedLocalAgentAIConfigResponse, PreviewSharedLocalAgentAIProfileRequest, PreviewSharedLocalAgentAIProfileResponse, QueryAgentMemoryRequest, QueryAgentMemoryResponse, RegisterAvatarLiveInstanceBindingRequest, RegisterAvatarLiveInstanceBindingResponse, RequestAgentCanonicalMemoryBankBindRequest, RequestAgentCanonicalMemoryBankBindResponse, RequestAvatarDebugProbeRequest, RequestAvatarDebugProbeResponse, ResolveAvatarLiveInstanceBindingRequest, ResolveAvatarLiveInstanceBindingResponse, SendLocalAppConversationTurnRequest, SendLocalAppConversationTurnResponse, SetAgentPresentationProfileRequest, SetAgentPresentationProfileResponse, SetAutonomyConfigRequest, SetAutonomyConfigResponse, SubmitAvatarDebugProbeResultRequest, SubmitAvatarDebugProbeResultResponse, SubscribeAgentEventsRequest, SubscribeAgentVoiceStreamRequest, SubscribeLocalAppConversationEventsRequest, TerminateAgentRequest, TerminateAgentResponse, UpdateAgentStateRequest, UpdateAgentStateResponse, WriteAgentMemoryRequest, WriteAgentMemoryResponse } from "./runtime-protobuf/runtime/v1/agent_service";
 import type { MaterializeRealmSourceRequest, MaterializeRealmSourceResponse } from "./runtime-protobuf/runtime/v1/agent_source_materialization";
 import type { CancelScenarioJobRequest, CancelScenarioJobResponse, ExecuteScenarioRequest, ExecuteScenarioResponse, GenerateLocalAppTextCandidateRequest, GenerateLocalAppTextCandidateResponse, GetScenarioArtifactsRequest, GetScenarioArtifactsResponse, GetScenarioJobRequest, GetScenarioJobResponse, ListScenarioProfilesRequest, ListScenarioProfilesResponse, ScenarioJobEvent, StreamScenarioEvent, StreamScenarioRequest, SubmitScenarioJobRequest, SubmitScenarioJobResponse, SubscribeScenarioJobEventsRequest, UploadArtifactRequest, UploadArtifactResponse } from "./runtime-protobuf/runtime/v1/ai";
@@ -38,6 +39,7 @@ export interface RuntimeTypedCallOptions {
 export type { AccountCaller, AccountProjection, AccountSessionEvent, AccountSessionSnapshot, BeginLoginRequest, BeginLoginResponse, CompleteLoginRequest, CompleteLoginResponse, GetAccountSessionStatusRequest, GetAccountSessionStatusResponse, InvokeRealmUnaryRequest, InvokeRealmUnaryResponse, IssueWorkspaceBindingRequest, IssueWorkspaceBindingResponse, LogoutRequest, LogoutResponse, RequestPresenceVerificationRequest, RequestPresenceVerificationResponse, RevokeWorkspaceBindingRequest, RevokeWorkspaceBindingResponse, SubscribeAccountSessionEventsRequest, SwitchAccountRequest, SwitchAccountResponse, WorkspaceBindingRelation, WorkspaceMembershipProjection } from "./runtime-protobuf/runtime/v1/account";
 export type { AgentRequestContext } from "./runtime-protobuf/runtime/v1/agent_common";
 export type { CancelCompanionParticipationRequest, CancelCompanionParticipationResponse, CompanionParticipationProjection, GetCompanionParticipationProjectionRequest, GetCompanionParticipationProjectionResponse, OpenCompanionParticipationReplayRequest, OpenCompanionParticipationReplayResponse, RequestCompanionParticipationRequest, RequestCompanionParticipationResponse } from "./runtime-protobuf/runtime/v1/agent_companion";
+export type { CommitLocalAppAgentPresentationRequest, GetLocalAppAgentAutonomySnapshotRequest, GetLocalAppAgentPresentationSnapshotRequest, GetLocalAppSharedLocalAgentAIConfigRequest, GetLocalAppSharedLocalAgentAIConfigResponse, LocalAppAgentAutonomyConfig, LocalAppAgentAutonomyIntent, LocalAppAgentAutonomyProjection, LocalAppAgentAutonomySnapshotResponse, LocalAppAgentCommitPresentationResponse, LocalAppAgentPresentationIntent, LocalAppAgentPresentationProjection, LocalAppAgentPresentationSnapshotResponse, LocalAppAgentUpdateAutonomyResponse, LocalAppSharedLocalAgentAIConfigProjection, OverwriteLocalAppSharedLocalAgentAIConfigRequest, OverwriteLocalAppSharedLocalAgentAIConfigResponse, UpdateLocalAppAgentAutonomyRequest } from "./runtime-protobuf/runtime/v1/agent_configure";
 export type { AgentPresentationAssetMaterial, AgentPresentationEventDetail, AgentPresentationProfile, AgentPresentationProfilePatch, ClearAgentPresentationProfile } from "./runtime-protobuf/runtime/v1/agent_presentation";
 export type { AgentAutonomyConfig, AgentAutonomyState, AgentAvatarDebugEventDetail, AgentBudgetEventDetail, AgentCanonicalMemoryBankStatus, AgentCanonicalMemoryReviewStatus, AgentConversationSummary, AgentEvent, AgentHookEventDetail, AgentLifecycleEventDetail, AgentMemoryEventDetail, AgentPostureProjection, AgentProactiveEventDetail, AgentProactiveInterruptibilityProjection, AgentReplicationEventDetail, AgentStateClearDyadicContext, AgentStateClearWorldContext, AgentStateEventDetail, AgentStateMutation, AgentStateProjection, AgentStatePutAttribute, AgentStateRemoveAttribute, AgentStateSetDyadicContext, AgentStateSetStatusText, AgentStateSetWorldContext, AgentVoiceStreamEvent, ApplySharedLocalAgentAIProfileRequest, ApplySharedLocalAgentAIProfileResponse, AvatarDebugProbeRequestEnvelope, AvatarDebugProbeResultEnvelope, AvatarDebugReplayRef, AvatarLiveInstanceBinding, CancelHookRequest, CancelHookResponse, CanonicalMemoryCandidate, CanonicalMemoryRejection, CanonicalMemoryView, ConversationAnchor, ConversationAnchorSnapshot, DisableAutonomyRequest, DisableAutonomyResponse, EnableAutonomyRequest, EnableAutonomyResponse, GetAgentCanonicalMemoryBankStatusRequest, GetAgentCanonicalMemoryBankStatusResponse, GetAgentCanonicalMemoryReviewStatusRequest, GetAgentCanonicalMemoryReviewStatusResponse, GetAgentPresentationAssetRequest, GetAgentPresentationAssetResponse, GetAgentRequest, GetAgentResponse, GetAgentStateRequest, GetAgentStateResponse, GetAvatarDebugReplayRequest, GetAvatarDebugReplayResponse, GetAvatarDebugSnapshotRequest, GetAvatarDebugSnapshotResponse, GetConversationAnchorSnapshotRequest, GetConversationAnchorSnapshotResponse, GetLocalAppConversationSnapshotRequest, GetLocalAppConversationSnapshotResponse, GetPublicChatSessionSnapshotRequest, GetPublicChatSessionSnapshotResponse, GetSharedLocalAgentAIConfigRequest, GetSharedLocalAgentAIConfigResponse, HookExecutionOutcome, HookIntent, HookTriggerDetail, HookTriggerEventChatEndedDetail, HookTriggerEventUserIdleDetail, HookTriggerTimeDetail, InterruptAgentVoicePlaybackRequest, InterruptAgentVoicePlaybackResponse, InterruptLocalAppConversationTurnRequest, InterruptLocalAppConversationTurnResponse, ListAgentConversationSummariesRequest, ListAgentConversationSummariesResponse, ListAgentsRequest, ListAgentsResponse, ListAvatarDebugProbeResultsRequest, ListAvatarDebugProbeResultsResponse, ListLocalAppAgentReferencesRequest, ListLocalAppAgentReferencesResponse, ListPendingHooksRequest, ListPendingHooksResponse, LocalAgentRecord, LocalAppAgentReference, LocalAppConversationEvent, LocalAppConversationMessage, LocalAppConversationMessageCommitted, LocalAppConversationSnapshot, LocalAppConversationTextDelta, LocalAppConversationTurnAccepted, LocalAppConversationTurnCompleted, LocalAppConversationTurnFailed, LocalAppConversationTurnInterrupted, LocalAppConversationTurnStarted, OpenConversationAnchorRequest, OpenConversationAnchorResponse, OpenLocalAppConversationRequest, OpenLocalAppConversationResponse, OverwriteSharedLocalAgentAIConfigRequest, OverwriteSharedLocalAgentAIConfigResponse, PendingHook, PreviewSharedLocalAgentAIProfileRequest, PreviewSharedLocalAgentAIProfileResponse, QueryAgentMemoryRequest, QueryAgentMemoryResponse, RegisterAvatarLiveInstanceBindingRequest, RegisterAvatarLiveInstanceBindingResponse, RequestAgentCanonicalMemoryBankBindRequest, RequestAgentCanonicalMemoryBankBindResponse, RequestAvatarDebugProbeRequest, RequestAvatarDebugProbeResponse, ResolveAvatarLiveInstanceBindingRequest, ResolveAvatarLiveInstanceBindingResponse, SendLocalAppConversationTurnRequest, SendLocalAppConversationTurnResponse, SetAgentPresentationProfileRequest, SetAgentPresentationProfileResponse, SetAutonomyConfigRequest, SetAutonomyConfigResponse, SubmitAvatarDebugProbeResultRequest, SubmitAvatarDebugProbeResultResponse, SubscribeAgentEventsRequest, SubscribeAgentVoiceStreamRequest, SubscribeLocalAppConversationEventsRequest, TerminateAgentRequest, TerminateAgentResponse, UpdateAgentStateRequest, UpdateAgentStateResponse, WriteAgentMemoryRequest, WriteAgentMemoryResponse } from "./runtime-protobuf/runtime/v1/agent_service";
 export type { AgentTurnContextBudgetSummary, AgentTurnContextLaneSummary, AgentTurnContextSummary, AgentTurnContextTruncationSummary, CharacterSourceRefV3, LocalAgentSourceContextStatus, LocalAgentSourceCoverageSectionStatus, MaterializeRealmSourceRequest, MaterializeRealmSourceResponse, PersonaCharacterSourceRefV3, WorldCharacterSourceRefV3, WorldEntityRefV3 } from "./runtime-protobuf/runtime/v1/agent_source_materialization";
@@ -68,6 +70,7 @@ export type { DeleteVoiceAssetRequest, DeleteVoiceAssetResponse, GetVoiceAssetRe
 
 export { AccountCallerMode, AccountEventType, AccountReasonCode, AccountSessionDeliveryKind, AccountSessionState, PresenceVerificationMethod, PresenceVerificationState, WorkspaceBindingPurpose, WorkspaceBindingState, WorkspaceMembershipState } from "./runtime-protobuf/runtime/v1/account";
 export { CompanionParticipationStatus, CompanionParticipationSurfaceKind, CompanionParticipationTriggerSource } from "./runtime-protobuf/runtime/v1/agent_companion";
+export { LocalAppAgentAutonomyMode } from "./runtime-protobuf/runtime/v1/agent_configure";
 export { AgentPresentationAssetRole, AgentPresentationBackendKind, AgentPresentationEventFamily } from "./runtime-protobuf/runtime/v1/agent_presentation";
 export { AgentAutonomyMode, AgentCanonicalMemoryBankMode, AgentCanonicalMemoryReviewReadiness, AgentEventType, AgentExecutionState, AgentLifecycleStatus, AgentProactiveDeliveryChannel, AgentProactiveEffectClass, AgentProactiveEventFamily, AgentProactiveFrequencyCapState, AgentProactiveOptInState, AgentProactiveQuietHoursState, AgentProactiveSuppressionReason, AgentProactiveTriggerSource, AgentStateEventFamily, AgentTrackType, AvatarDebugEventFamily, AvatarDebugProbeKind, AvatarDebugProbeStatus, AvatarDebugReplayRedactionState, AvatarDebugReplayVisibility, AvatarDebugRequestedBy, ConversationAnchorStatus, HookAdmissionState, HookEffect, HookTriggerFamily, LocalAppConversationMessageRole } from "./runtime-protobuf/runtime/v1/agent_service";
 export { AgentContextProjectionReasonCode, AgentLocalSourceContextSchemaVersion, AgentLocalSourceContextState, AgentLocalSourceCoverageSection, AgentLocalSourceCoverageState, AgentLocalSourceSnapshotSchemaVersion, AgentTurnContextCompilerSchemaVersion, AgentTurnContextLaneId, AgentTurnContextLaneState, AgentTurnContextManifestSchemaVersion, AgentTurnContextState, AgentTurnContextSummarySchemaVersion, AgentTurnContextTruncationReason, CharacterSourceKindV3, RealmSourceMaterializationReasonCode, WorldEntityRefKindV3 } from "./runtime-protobuf/runtime/v1/agent_source_materialization";
@@ -237,6 +240,17 @@ export class RuntimeTypedClient {
     });
   }
 
+  async commitLocalAppAgentPresentation(request: CommitLocalAppAgentPresentationRequest, options: RuntimeTypedCallOptions = {}): Promise<LocalAppAgentCommitPresentationResponse> {
+    return this.core.unary<LocalAppAgentCommitPresentationResponse, CommitLocalAppAgentPresentationRequest>({
+      methodId: "/nimi.runtime.v1.RuntimeAgentService/CommitLocalAppAgentPresentation",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
+    });
+  }
+
   async disableAutonomy(request: DisableAutonomyRequest, options: RuntimeTypedCallOptions = {}): Promise<DisableAutonomyResponse> {
     return this.core.unary<DisableAutonomyResponse, DisableAutonomyRequest>({
       methodId: "/nimi.runtime.v1.RuntimeAgentService/DisableAutonomy",
@@ -380,9 +394,42 @@ export class RuntimeTypedClient {
     });
   }
 
+  async getLocalAppAgentAutonomySnapshot(request: GetLocalAppAgentAutonomySnapshotRequest, options: RuntimeTypedCallOptions = {}): Promise<LocalAppAgentAutonomySnapshotResponse> {
+    return this.core.unary<LocalAppAgentAutonomySnapshotResponse, GetLocalAppAgentAutonomySnapshotRequest>({
+      methodId: "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentAutonomySnapshot",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
+    });
+  }
+
+  async getLocalAppAgentPresentationSnapshot(request: GetLocalAppAgentPresentationSnapshotRequest, options: RuntimeTypedCallOptions = {}): Promise<LocalAppAgentPresentationSnapshotResponse> {
+    return this.core.unary<LocalAppAgentPresentationSnapshotResponse, GetLocalAppAgentPresentationSnapshotRequest>({
+      methodId: "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentPresentationSnapshot",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
+    });
+  }
+
   async getLocalAppConversationSnapshot(request: GetLocalAppConversationSnapshotRequest, options: RuntimeTypedCallOptions = {}): Promise<GetLocalAppConversationSnapshotResponse> {
     return this.core.unary<GetLocalAppConversationSnapshotResponse, GetLocalAppConversationSnapshotRequest>({
       methodId: "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppConversationSnapshot",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
+    });
+  }
+
+  async getLocalAppSharedLocalAgentAIConfig(request: GetLocalAppSharedLocalAgentAIConfigRequest, options: RuntimeTypedCallOptions = {}): Promise<GetLocalAppSharedLocalAgentAIConfigResponse> {
+    return this.core.unary<GetLocalAppSharedLocalAgentAIConfigResponse, GetLocalAppSharedLocalAgentAIConfigRequest>({
+      methodId: "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppSharedLocalAgentAIConfig",
       body: request,
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
@@ -559,6 +606,17 @@ export class RuntimeTypedClient {
   async openLocalAppConversation(request: OpenLocalAppConversationRequest, options: RuntimeTypedCallOptions = {}): Promise<OpenLocalAppConversationResponse> {
     return this.core.unary<OpenLocalAppConversationResponse, OpenLocalAppConversationRequest>({
       methodId: "/nimi.runtime.v1.RuntimeAgentService/OpenLocalAppConversation",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
+    });
+  }
+
+  async overwriteLocalAppSharedLocalAgentAIConfig(request: OverwriteLocalAppSharedLocalAgentAIConfigRequest, options: RuntimeTypedCallOptions = {}): Promise<OverwriteLocalAppSharedLocalAgentAIConfigResponse> {
+    return this.core.unary<OverwriteLocalAppSharedLocalAgentAIConfigResponse, OverwriteLocalAppSharedLocalAgentAIConfigRequest>({
+      methodId: "/nimi.runtime.v1.RuntimeAgentService/OverwriteLocalAppSharedLocalAgentAIConfig",
       body: request,
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
@@ -757,6 +815,17 @@ export class RuntimeTypedClient {
   async updateAgentState(request: UpdateAgentStateRequest, options: RuntimeTypedCallOptions = {}): Promise<UpdateAgentStateResponse> {
     return this.core.unary<UpdateAgentStateResponse, UpdateAgentStateRequest>({
       methodId: "/nimi.runtime.v1.RuntimeAgentService/UpdateAgentState",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
+    });
+  }
+
+  async updateLocalAppAgentAutonomy(request: UpdateLocalAppAgentAutonomyRequest, options: RuntimeTypedCallOptions = {}): Promise<LocalAppAgentUpdateAutonomyResponse> {
+    return this.core.unary<LocalAppAgentUpdateAutonomyResponse, UpdateLocalAppAgentAutonomyRequest>({
+      methodId: "/nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppAgentAutonomy",
       body: request,
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,

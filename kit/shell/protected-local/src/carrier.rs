@@ -321,6 +321,31 @@ pub struct LocalAppConversationSnapshotRequest {
     pub conversation_anchor_id: String,
 }
 
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct LocalAppAgentHandleRequest {
+    pub agent_handle: String,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct LocalAppSharedAgentAIConfigOverwriteRequest {
+    pub capabilities: JsonValue,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct LocalAppAgentUpdateAutonomyRequest {
+    pub agent_handle: String,
+    pub expected_autonomy_revision: u64,
+    pub intent: JsonValue,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct LocalAppAgentCommitPresentationRequest {
+    pub agent_handle: String,
+    pub expected_presentation_revision: u64,
+    pub intent: JsonValue,
+    pub imported_assets: JsonValue,
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum LocalAppConversationMessageRole {
     User,
@@ -734,6 +759,34 @@ pub trait NimiLocalAppSession: Send + Sync {
         >,
     >;
 
+    fn shared_agent_ai_config_get(
+        &self,
+    ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
+
+    fn shared_agent_ai_config_overwrite(
+        &self,
+        request: LocalAppSharedAgentAIConfigOverwriteRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
+
+    fn agent_autonomy_snapshot(
+        &self,
+        request: LocalAppAgentHandleRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
+
+    fn agent_update_autonomy(
+        &self,
+        request: LocalAppAgentUpdateAutonomyRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
+
+    fn agent_presentation_snapshot(
+        &self,
+        request: LocalAppAgentHandleRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
+
+    fn agent_commit_presentation(
+        &self,
+        request: LocalAppAgentCommitPresentationRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
 }
 
 pub type LocalAppSessionFuture<'a> = Pin<

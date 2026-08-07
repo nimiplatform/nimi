@@ -27,16 +27,17 @@ user, binds the pipe server to Desktop's exact child Runtime process, and keeps
 production service, installer, signing, and update trust unchanged outside that
 feature. Native profile choice adds no App access or reason semantics.
 
-Its complete admitted operation surface is session status, permission posture,
-Runtime artifact bytes and bounded image artifact upload, three protected
-principal-partitioned JSON storage
-operations, the selected RuntimeAgent conversation operations, bounded
-Runtime-selected foreground text candidates, bounded Runtime-selected agent
-voice transcription, exact correlated agent voice stream subscription, and
-owner-free whole-object App AIConfig get/overwrite operations, plus shared
-LocalAgent-subsystem AIConfig get/overwrite and portable-profile preview/apply.
-Runtime derives both exact owners from the protected Local App session; the
-shared surface carries no individual Agent handle, revision, or readiness.
+Its complete admitted Local App operation surface is session status, three
+protected principal-partitioned JSON storage operations, exact WorldCore
+list/create, the selected RuntimeAgent conversation operations, bounded
+Runtime-selected foreground text candidates, owner-free whole-object App
+AIConfig get/overwrite, shared LocalAgent-subsystem AIConfig get/overwrite,
+Agent autonomy snapshot/update, and Agent presentation snapshot/commit.
+Runtime derives both AIConfig owners from the protected Local App session. The
+shared Agent AIConfig surface carries no individual Agent handle; autonomy and
+presentation accept only an opaque session-scoped handle and independent
+revision CAS. Presentation commit projects the previous profile needed for
+restore. AI profile mutation and Artifact operations are not exposed.
 
 The crate never exposes a generic method-id/bytes proxy, endpoint, credential,
 portable session proof, principal, record, grant, launch lease, process tuple,

@@ -6,7 +6,7 @@ import { spawnSync } from 'node:child_process';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 
-import { resolveAppAccessDeclaration } from '../lib/app-access-declaration.mjs';
+import { APP_ACCESS_DOMAINS, resolveAppAccessDeclaration } from '../lib/app-access-declaration.mjs';
 import { createAppScaffold } from '../lib/app-scaffold.mjs';
 import { initApp } from '../lib/app-doctor-update.mjs';
 import { resolveAppSource } from '../scripts/sync-app-source.mjs';
@@ -747,15 +747,22 @@ test('doctor fails closed on managed drift and update preserves app-owned produc
   }
 });
 
-test('App access declaration accepts empty input and keeps unknown items inert', () => {
+test('App access declaration activates the four canonical domains and keeps unknown items inert', () => {
+  assert.deepEqual(APP_ACCESS_DOMAINS, [
+    'realm.data',
+    'runtime.consume',
+    'agent.local',
+    'agent.configure',
+  ]);
   assert.deepEqual(resolveAppAccessDeclaration([]), { rawItems: [], activatedDomains: [] });
   assert.deepEqual(resolveAppAccessDeclaration([
     'runtime.consume',
     'future.experimental',
     'agent.local',
+    'agent.configure',
   ]), {
-    rawItems: ['runtime.consume', 'future.experimental', 'agent.local'],
-    activatedDomains: ['runtime.consume', 'agent.local'],
+    rawItems: ['runtime.consume', 'future.experimental', 'agent.local', 'agent.configure'],
+    activatedDomains: ['runtime.consume', 'agent.local', 'agent.configure'],
   });
 });
 
@@ -764,7 +771,7 @@ test('update regenerates raw App access items without activating unknown domains
   try {
     const intentPath = path.join(generated.target, '.nimi/app-scaffold/intent.json');
     const intent = JSON.parse(generated.read('.nimi/app-scaffold/intent.json'));
-    intent.appAccessItems = ['realm.data', 'future.experimental', 'agent.local'];
+    intent.appAccessItems = ['realm.data', 'future.experimental', 'agent.local', 'agent.configure'];
     writeFileSync(intentPath, `${JSON.stringify(intent, null, 2)}\n`);
     let result = runNimiApp(['update', '--dir', generated.target], generated.tempRoot, { env: generated.env });
     assert.equal(result.status, 0, result.stderr);
@@ -772,11 +779,15 @@ test('update regenerates raw App access items without activating unknown domains
     assert.equal(result.status, 0, result.stderr);
     assert.match(
       generated.read('nimi.app.yaml'),
-      /^app_access:\n  - "realm\.data"\n  - "future\.experimental"\n  - "agent\.local"$/m,
+      /^app_access:\n  - "realm\.data"\n  - "future\.experimental"\n  - "agent\.local"\n  - "agent\.configure"$/m,
     );
     const lock = JSON.parse(generated.read('.nimi/app-scaffold/lock.json'));
     assert.deepEqual(lock.appAccessItems, intent.appAccessItems);
-    assert.deepEqual(resolveAppAccessDeclaration(lock.appAccessItems).activatedDomains, ['realm.data', 'agent.local']);
+    assert.deepEqual(resolveAppAccessDeclaration(lock.appAccessItems).activatedDomains, [
+      'realm.data',
+      'agent.local',
+      'agent.configure',
+    ]);
 
     const validatorPath = path.join(generated.target, 'scripts/validate.mjs');
     const validation = runGeneratedNodeScript(generated, validatorPath);

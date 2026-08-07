@@ -46,6 +46,12 @@ const (
 	IngressConversationTurnInterrupt
 	IngressConversationEventsSubscribe
 	IngressConversationSnapshotGet
+	IngressAgentAIConfigGet
+	IngressAgentAIConfigOverwrite
+	IngressAgentAutonomySnapshotGet
+	IngressAgentAutonomyUpdate
+	IngressAgentPresentationSnapshotGet
+	IngressAgentPresentationCommit
 )
 
 const (
@@ -64,6 +70,12 @@ const (
 	OperationConversationTurnInterrupt
 	OperationConversationEventsSubscribe
 	OperationConversationSnapshotGet
+	OperationAgentAIConfigGet
+	OperationAgentAIConfigOverwrite
+	OperationAgentAutonomySnapshotGet
+	OperationAgentAutonomyUpdate
+	OperationAgentPresentationSnapshotGet
+	OperationAgentPresentationCommit
 )
 
 type contractRow struct {
@@ -91,6 +103,12 @@ var canonicalAppOperationContract = [...]contractRow{
 	{IngressConversationTurnInterrupt, OperationConversationTurnInterrupt, "runtime.agent.conversation.turn.interrupt", AuthorityClassAppAccess, "agent.local"},
 	{IngressConversationEventsSubscribe, OperationConversationEventsSubscribe, "runtime.agent.conversation.events.subscribe", AuthorityClassAppAccess, "agent.local"},
 	{IngressConversationSnapshotGet, OperationConversationSnapshotGet, "runtime.agent.conversation.snapshot.get", AuthorityClassAppAccess, "agent.local"},
+	{IngressAgentAIConfigGet, OperationAgentAIConfigGet, "runtime.agent.ai-config.get", AuthorityClassAppAccess, "agent.configure"},
+	{IngressAgentAIConfigOverwrite, OperationAgentAIConfigOverwrite, "runtime.agent.ai-config.overwrite", AuthorityClassAppAccess, "agent.configure"},
+	{IngressAgentAutonomySnapshotGet, OperationAgentAutonomySnapshotGet, "runtime.agent.autonomy.snapshot.get", AuthorityClassAppAccess, "agent.configure"},
+	{IngressAgentAutonomyUpdate, OperationAgentAutonomyUpdate, "runtime.agent.autonomy.update", AuthorityClassAppAccess, "agent.configure"},
+	{IngressAgentPresentationSnapshotGet, OperationAgentPresentationSnapshotGet, "runtime.agent.presentation.snapshot.get", AuthorityClassAppAccess, "agent.configure"},
+	{IngressAgentPresentationCommit, OperationAgentPresentationCommit, "runtime.agent.presentation.commit", AuthorityClassAppAccess, "agent.configure"},
 }
 
 type Classification struct {
@@ -139,7 +157,7 @@ func IsSupportedDomain(value string) bool {
 
 func validateContractRows(rows []contractRow) error {
 	if len(rows) != len(canonicalAppOperationContract) {
-		return fmt.Errorf("%w: expected fourteen rows", ErrContractInvalid)
+		return fmt.Errorf("%w: expected twenty rows", ErrContractInvalid)
 	}
 	seenIngress := make(map[Ingress]struct{}, len(rows))
 	seenOperation := make(map[Operation]struct{}, len(rows))

@@ -23,6 +23,11 @@ import {
   NimiLocalAppConversationSubscription,
 } from './local-app-runtime-platform-conversation.js';
 import {
+  createNimiLocalAppAgentConfigureClient,
+  type NimiLocalAppAgentConfigureClient,
+  type NimiLocalAppAgentConfigureShell,
+} from './local-app-runtime-platform-configure.js';
+import {
   createNimiAppRuntimeStorageClient,
   type NimiAppRuntimeStorageDocument,
   type NimiAppRuntimeStorageRemoveResult,
@@ -63,6 +68,27 @@ export type {
   NimiLocalAppConversationSubscription,
   NimiLocalAppAgentHandle,
 } from './local-app-runtime-platform-conversation.js';
+export type {
+  NimiLocalAppAgentAutonomyConfig,
+  NimiLocalAppAgentAutonomyIntent,
+  NimiLocalAppAgentAutonomyMode,
+  NimiLocalAppAgentAutonomyProjection,
+  NimiLocalAppAgentConfigureClient,
+  NimiLocalAppAgentConfigureShell,
+  NimiLocalAppAgentPresentationAssetMaterial,
+  NimiLocalAppAgentPresentationBackendKind,
+  NimiLocalAppAgentPresentationIntent,
+  NimiLocalAppAgentPresentationProfile,
+  NimiLocalAppAgentPresentationProjection,
+  NimiLocalAppAgentScopedInput,
+  NimiLocalAppAutonomySnapshotInput,
+  NimiLocalAppAutonomyUpdateInput,
+  NimiLocalAppDuration,
+  NimiLocalAppPresentationCommitInput,
+  NimiLocalAppPresentationSnapshotInput,
+  NimiLocalAppRevision,
+  NimiLocalAppTimestamp,
+} from './local-app-runtime-platform-configure.js';
 export type {
   NimiAppRuntimeStorageDocument,
   NimiAppRuntimeStorageRemoveResult,
@@ -156,6 +182,7 @@ export type NimiLocalAppStandardShell = {
   };
   readonly agents: NimiLocalAppAgentReferencesShell;
   readonly conversation: NimiLocalAppConversationShell;
+  readonly agentConfigure: NimiLocalAppAgentConfigureShell;
 };
 
 export type NimiLocalAppClientInput = {
@@ -196,6 +223,7 @@ export type NimiLocalAppClient = {
     };
   };
   readonly agents: NimiLocalAppAgentReferencesClient;
+  readonly agentConfigure: NimiLocalAppAgentConfigureClient;
   readonly conversation: {
     readonly open: (input: NimiLocalAppConversationOpenInput) => Promise<NimiLocalAppConversationOpenResult>;
     readonly send: (input: NimiLocalAppConversationSendInput) => Promise<NimiLocalAppConversationSendResult>;
@@ -210,7 +238,7 @@ export function createNimiLocalAppClient(
 ): NimiLocalAppClient {
   assertExactKeys(input, ['standardShell'], 'SDK local-app client input');
   const standardShell = input.standardShell;
-  const expectedNamespaces = ['session', 'ai', 'aiConfig', 'storage', 'realm', 'agents', 'conversation'] as const;
+  const expectedNamespaces = ['session', 'ai', 'aiConfig', 'storage', 'realm', 'agents', 'conversation', 'agentConfigure'] as const;
   if (!asRecord(standardShell)
     || Object.keys(standardShell).sort().join('|') !== [...expectedNamespaces].sort().join('|')) {
     return localAppError(
@@ -242,6 +270,21 @@ export function createNimiLocalAppClient(
   assertExactMethodNamespace(realm.worldCore, ['list', 'create'], 'realm.worldCore');
   assertExactMethodNamespace(standardShell.agents, ['listReferences'], 'agents');
   assertExactMethodNamespace(standardShell.conversation, ['open', 'send', 'interruptTurn', 'subscribe', 'snapshot'], 'conversation');
+  const agentConfigure = asRecord(standardShell.agentConfigure);
+  if (!agentConfigure
+    || Object.keys(agentConfigure).length !== 3
+    || !Object.hasOwn(agentConfigure, 'sharedAIConfig')
+    || !Object.hasOwn(agentConfigure, 'autonomy')
+    || !Object.hasOwn(agentConfigure, 'presentation')) {
+    return localAppError(
+      'Host-injected local-app standardShell agentConfigure namespace is invalid.',
+      'SDK_LOCAL_APP_CARRIER_REQUIRED',
+      'use_host_injected_standard_shell',
+    );
+  }
+  assertExactMethodNamespace(agentConfigure.sharedAIConfig, ['get', 'overwrite'], 'agentConfigure.sharedAIConfig');
+  assertExactMethodNamespace(agentConfigure.autonomy, ['snapshot', 'update'], 'agentConfigure.autonomy');
+  assertExactMethodNamespace(agentConfigure.presentation, ['snapshot', 'commit'], 'agentConfigure.presentation');
 
   return Object.freeze({
     auth: Object.freeze({
@@ -256,6 +299,7 @@ export function createNimiLocalAppClient(
     realm: Object.freeze({ worldCore: createWorldCoreClient(standardShell.realm.worldCore) }),
     agents: createNimiLocalAppAgentReferencesClient(standardShell.agents),
     conversation: createNimiLocalAppConversationClient(standardShell.conversation),
+    agentConfigure: createNimiLocalAppAgentConfigureClient(standardShell.agentConfigure),
   });
 }
 

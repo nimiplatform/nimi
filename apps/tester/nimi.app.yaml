@@ -6,6 +6,7 @@ app_access:
   - realm.data
   - runtime.consume
   - agent.local
+  - agent.configure
 local_development:
   electron:
     renderer_origin: http://127.0.0.1:1468

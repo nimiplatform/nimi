@@ -204,3 +204,23 @@ pub struct NativeConversationScopeInput {
 pub struct NativeConversationStreamInput {
     pub stream_id: String,
 }
+
+#[napi(object)]
+pub struct NativeAgentHandleInput {
+    pub agent_handle: String,
+}
+
+#[napi(object)]
+pub struct NativeAgentUpdateAutonomyInput {
+    pub agent_handle: String,
+    pub expected_autonomy_revision: String,
+    pub intent: JsonValue,
+}
+
+#[napi(object)]
+pub struct NativeAgentCommitPresentationInput {
+    pub agent_handle: String,
+    pub expected_presentation_revision: String,
+    pub intent: JsonValue,
+    pub imported_assets: JsonValue,
+}

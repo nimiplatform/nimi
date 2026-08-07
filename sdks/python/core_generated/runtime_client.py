@@ -112,6 +112,14 @@ RUNTIME_METHODS = [
     "response_type": "CancelHookResponse"
   },
   {
+    "method_id": "/nimi.runtime.v1.RuntimeAgentService/CommitLocalAppAgentPresentation",
+    "service": "RuntimeAgentService",
+    "method": "CommitLocalAppAgentPresentation",
+    "kind": "unary",
+    "request_type": "CommitLocalAppAgentPresentationRequest",
+    "response_type": "LocalAppAgentCommitPresentationResponse"
+  },
+  {
     "method_id": "/nimi.runtime.v1.RuntimeAgentService/DisableAutonomy",
     "service": "RuntimeAgentService",
     "method": "DisableAutonomy",
@@ -216,12 +224,36 @@ RUNTIME_METHODS = [
     "response_type": "GetDelegatedReplayTraceResponse"
   },
   {
+    "method_id": "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentAutonomySnapshot",
+    "service": "RuntimeAgentService",
+    "method": "GetLocalAppAgentAutonomySnapshot",
+    "kind": "unary",
+    "request_type": "GetLocalAppAgentAutonomySnapshotRequest",
+    "response_type": "LocalAppAgentAutonomySnapshotResponse"
+  },
+  {
+    "method_id": "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentPresentationSnapshot",
+    "service": "RuntimeAgentService",
+    "method": "GetLocalAppAgentPresentationSnapshot",
+    "kind": "unary",
+    "request_type": "GetLocalAppAgentPresentationSnapshotRequest",
+    "response_type": "LocalAppAgentPresentationSnapshotResponse"
+  },
+  {
     "method_id": "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppConversationSnapshot",
     "service": "RuntimeAgentService",
     "method": "GetLocalAppConversationSnapshot",
     "kind": "unary",
     "request_type": "GetLocalAppConversationSnapshotRequest",
     "response_type": "GetLocalAppConversationSnapshotResponse"
+  },
+  {
+    "method_id": "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppSharedLocalAgentAIConfig",
+    "service": "RuntimeAgentService",
+    "method": "GetLocalAppSharedLocalAgentAIConfig",
+    "kind": "unary",
+    "request_type": "GetLocalAppSharedLocalAgentAIConfigRequest",
+    "response_type": "GetLocalAppSharedLocalAgentAIConfigResponse"
   },
   {
     "method_id": "/nimi.runtime.v1.RuntimeAgentService/GetPublicChatSessionSnapshot",
@@ -350,6 +382,14 @@ RUNTIME_METHODS = [
     "kind": "unary",
     "request_type": "OpenLocalAppConversationRequest",
     "response_type": "OpenLocalAppConversationResponse"
+  },
+  {
+    "method_id": "/nimi.runtime.v1.RuntimeAgentService/OverwriteLocalAppSharedLocalAgentAIConfig",
+    "service": "RuntimeAgentService",
+    "method": "OverwriteLocalAppSharedLocalAgentAIConfig",
+    "kind": "unary",
+    "request_type": "OverwriteLocalAppSharedLocalAgentAIConfigRequest",
+    "response_type": "OverwriteLocalAppSharedLocalAgentAIConfigResponse"
   },
   {
     "method_id": "/nimi.runtime.v1.RuntimeAgentService/OverwriteSharedLocalAgentAIConfig",
@@ -494,6 +534,14 @@ RUNTIME_METHODS = [
     "kind": "unary",
     "request_type": "UpdateAgentStateRequest",
     "response_type": "UpdateAgentStateResponse"
+  },
+  {
+    "method_id": "/nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppAgentAutonomy",
+    "service": "RuntimeAgentService",
+    "method": "UpdateLocalAppAgentAutonomy",
+    "kind": "unary",
+    "request_type": "UpdateLocalAppAgentAutonomyRequest",
+    "response_type": "LocalAppAgentUpdateAutonomyResponse"
   },
   {
     "method_id": "/nimi.runtime.v1.RuntimeAgentService/WriteAgentMemory",

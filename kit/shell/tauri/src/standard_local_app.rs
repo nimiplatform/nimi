@@ -1,7 +1,9 @@
 use nimi_shell_protected_local::{
-    LocalAppAIConfigOverwriteRequest, LocalAppOperationError,
-    LocalAppStorageReadRequest, LocalAppStorageRemoveRequest, LocalAppStorageWriteRequest,
-    LocalAppTextCandidateMessage, LocalAppTextCandidateRequest,
+    LocalAppAIConfigOverwriteRequest, LocalAppAgentCommitPresentationRequest,
+    LocalAppAgentHandleRequest, LocalAppAgentUpdateAutonomyRequest, LocalAppOperationError,
+    LocalAppSharedAgentAIConfigOverwriteRequest, LocalAppStorageReadRequest,
+    LocalAppStorageRemoveRequest, LocalAppStorageWriteRequest, LocalAppTextCandidateMessage,
+    LocalAppTextCandidateRequest,
 };
 use serde::Deserialize;
 use serde_json::{json, Value};
@@ -33,6 +35,29 @@ pub struct LocalAppTextCandidatePayload {
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct LocalAppAIConfigOverwritePayload {
     capabilities: Value,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct LocalAppAgentHandlePayload {
+    agent_handle: String,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct LocalAppAgentUpdateAutonomyPayload {
+    agent_handle: String,
+    expected_autonomy_revision: String,
+    intent: Value,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct LocalAppAgentCommitPresentationPayload {
+    agent_handle: String,
+    expected_presentation_revision: String,
+    intent: Value,
+    imported_assets: Value,
 }
 
 #[derive(Debug, Deserialize)]
@@ -142,6 +167,99 @@ pub async fn ai_config_overwrite_for_host(
     .map_err(map_local_app_error)
 }
 
+pub async fn shared_agent_ai_config_get_for_host(
+    host: &RuntimeBridgeLocalAppHost,
+) -> Result<Value, String> {
+    host.shared_agent_ai_config_get()
+        .await
+        .map_err(map_local_app_error)
+}
+
+pub async fn shared_agent_ai_config_overwrite_for_host(
+    host: &RuntimeBridgeLocalAppHost,
+    payload: Value,
+) -> Result<Value, String> {
+    let payload: LocalAppAIConfigOverwritePayload =
+        parse_payload(payload, "local_app_shared_agent_ai_config_overwrite")?;
+    if !payload.capabilities.is_array() {
+        return Err(invalid_payload(
+            "local_app_shared_agent_ai_config_overwrite",
+        ));
+    }
+    host.shared_agent_ai_config_overwrite(LocalAppSharedAgentAIConfigOverwriteRequest {
+        capabilities: payload.capabilities,
+    })
+    .await
+    .map_err(map_local_app_error)
+}
+
+pub async fn agent_autonomy_snapshot_for_host(
+    host: &RuntimeBridgeLocalAppHost,
+    payload: Value,
+) -> Result<Value, String> {
+    let payload: LocalAppAgentHandlePayload =
+        parse_payload(payload, "local_app_agent_autonomy_snapshot")?;
+    host.agent_autonomy_snapshot(LocalAppAgentHandleRequest {
+        agent_handle: payload.agent_handle,
+    })
+    .await
+    .map_err(map_local_app_error)
+}
+
+pub async fn agent_update_autonomy_for_host(
+    host: &RuntimeBridgeLocalAppHost,
+    payload: Value,
+) -> Result<Value, String> {
+    let payload: LocalAppAgentUpdateAutonomyPayload =
+        parse_payload(payload, "local_app_agent_update_autonomy")?;
+    let expected_autonomy_revision = decimal_revision(
+        &payload.expected_autonomy_revision,
+        false,
+        "local_app_agent_update_autonomy",
+    )?;
+    host.agent_update_autonomy(LocalAppAgentUpdateAutonomyRequest {
+        agent_handle: payload.agent_handle,
+        expected_autonomy_revision,
+        intent: payload.intent,
+    })
+    .await
+    .map_err(map_local_app_error)
+}
+
+pub async fn agent_presentation_snapshot_for_host(
+    host: &RuntimeBridgeLocalAppHost,
+    payload: Value,
+) -> Result<Value, String> {
+    let payload: LocalAppAgentHandlePayload =
+        parse_payload(payload, "local_app_agent_presentation_snapshot")?;
+    host.agent_presentation_snapshot(LocalAppAgentHandleRequest {
+        agent_handle: payload.agent_handle,
+    })
+    .await
+    .map_err(map_local_app_error)
+}
+
+pub async fn agent_commit_presentation_for_host(
+    host: &RuntimeBridgeLocalAppHost,
+    payload: Value,
+) -> Result<Value, String> {
+    let payload: LocalAppAgentCommitPresentationPayload =
+        parse_payload(payload, "local_app_agent_commit_presentation")?;
+    let expected_presentation_revision = decimal_revision(
+        &payload.expected_presentation_revision,
+        true,
+        "local_app_agent_commit_presentation",
+    )?;
+    host.agent_commit_presentation(LocalAppAgentCommitPresentationRequest {
+        agent_handle: payload.agent_handle,
+        expected_presentation_revision,
+        intent: payload.intent,
+        imported_assets: payload.imported_assets,
+    })
+    .await
+    .map_err(map_local_app_error)
+}
+
 pub async fn storage_read_json_for_host(
     host: &RuntimeBridgeLocalAppHost,
     payload: Value,
@@ -194,6 +312,17 @@ fn required_text(value: String, max_length: usize, command: &str) -> Result<Stri
         return Err(invalid_payload(command));
     }
     Ok(value)
+}
+
+fn decimal_revision(value: &str, allow_zero: bool, command: &str) -> Result<u64, String> {
+    if value.is_empty()
+        || (value.len() > 1 && value.starts_with('0'))
+        || (!allow_zero && value == "0")
+        || !value.bytes().all(|byte| byte.is_ascii_digit())
+    {
+        return Err(invalid_payload(command));
+    }
+    value.parse::<u64>().map_err(|_| invalid_payload(command))
 }
 
 fn invalid_payload(command: &str) -> String {
@@ -278,5 +407,20 @@ mod tests {
             "text_candidate"
         )
         .is_err());
+    }
+
+    #[test]
+    fn configure_payloads_reject_extra_fields_and_noncanonical_revisions() {
+        assert!(parse_payload::<LocalAppAgentHandlePayload>(
+            json!({"agentHandle": "agent_ref_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", "sessionProof": "forged"}),
+            "autonomy_snapshot",
+        )
+        .is_err());
+        assert!(decimal_revision("0", false, "autonomy_update").is_err());
+        assert!(decimal_revision("01", true, "presentation_commit").is_err());
+        assert_eq!(
+            decimal_revision("0", true, "presentation_commit").expect("fresh presentation"),
+            0,
+        );
     }
 }

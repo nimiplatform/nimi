@@ -22,28 +22,35 @@ var (
 type LocalAppOperation = localappop.Operation
 
 const (
-	LocalAppOperationOpenConversation      = localappop.OperationConversationOpen
-	LocalAppOperationSendConversationTurn  = localappop.OperationConversationTurnSend
-	LocalAppOperationInterruptConversation = localappop.OperationConversationTurnInterrupt
-	LocalAppOperationSubscribeConversation = localappop.OperationConversationEventsSubscribe
-	LocalAppOperationConversationSnapshot  = localappop.OperationConversationSnapshotGet
-	LocalAppOperationReferenceList         = localappop.OperationAgentReferenceList
-	LocalAppOperationStorageJSONRead       = localappop.OperationStorageJSONRead
-	LocalAppOperationStorageJSONWrite      = localappop.OperationStorageJSONWrite
-	LocalAppOperationStorageJSONRemove     = localappop.OperationStorageJSONRemove
-	LocalAppOperationRealmWorldCoreList    = localappop.OperationRealmWorldCoreList
-	LocalAppOperationRealmWorldCoreCreate  = localappop.OperationRealmWorldCoreCreate
-	LocalAppOperationAppAIConfigRead       = localappop.OperationAppAIConfigGet
-	LocalAppOperationAppAIConfigOverwrite  = localappop.OperationAppAIConfigOverwrite
-	LocalAppOperationTextCandidateGenerate = localappop.OperationTextCandidateGenerate
+	LocalAppOperationOpenConversation        = localappop.OperationConversationOpen
+	LocalAppOperationSendConversationTurn    = localappop.OperationConversationTurnSend
+	LocalAppOperationInterruptConversation   = localappop.OperationConversationTurnInterrupt
+	LocalAppOperationSubscribeConversation   = localappop.OperationConversationEventsSubscribe
+	LocalAppOperationConversationSnapshot    = localappop.OperationConversationSnapshotGet
+	LocalAppOperationReferenceList           = localappop.OperationAgentReferenceList
+	LocalAppOperationStorageJSONRead         = localappop.OperationStorageJSONRead
+	LocalAppOperationStorageJSONWrite        = localappop.OperationStorageJSONWrite
+	LocalAppOperationStorageJSONRemove       = localappop.OperationStorageJSONRemove
+	LocalAppOperationRealmWorldCoreList      = localappop.OperationRealmWorldCoreList
+	LocalAppOperationRealmWorldCoreCreate    = localappop.OperationRealmWorldCoreCreate
+	LocalAppOperationAppAIConfigRead         = localappop.OperationAppAIConfigGet
+	LocalAppOperationAppAIConfigOverwrite    = localappop.OperationAppAIConfigOverwrite
+	LocalAppOperationTextCandidateGenerate   = localappop.OperationTextCandidateGenerate
+	LocalAppOperationSharedAIConfigGet       = localappop.OperationAgentAIConfigGet
+	LocalAppOperationSharedAIConfigOverwrite = localappop.OperationAgentAIConfigOverwrite
+	LocalAppOperationAutonomySnapshot        = localappop.OperationAgentAutonomySnapshotGet
+	LocalAppOperationUpdateAutonomy          = localappop.OperationAgentAutonomyUpdate
+	LocalAppOperationPresentationSnapshot    = localappop.OperationAgentPresentationSnapshotGet
+	LocalAppOperationCommitPresentation      = localappop.OperationAgentPresentationCommit
 )
 
 type LocalAppTrustClass string
 
 const LocalAppTrustClassDevelopment LocalAppTrustClass = "local_development"
 
-// These internal handoff projections remain only so existing operation owners
-// compile while protected App access is deliberately unavailable before IMP2.
+// LocalAppCallerBinding is the Runtime-derived protected-session handoff
+// projection admitted local App operations resolve from; caller-supplied
+// identity or authority facts never enter it.
 type LocalAppCallerBinding struct {
 	LocalOSUserAnchor     string
 	SessionID             protectedlocal.Identifier

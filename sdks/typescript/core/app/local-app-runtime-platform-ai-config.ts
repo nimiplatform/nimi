@@ -45,8 +45,15 @@ export function createNimiLocalAppAIConfigClient(
   });
 }
 
-function validateCapabilityIntents(
-  capabilities: readonly NimiPortableAppAIConfigIntent[],
+export type NimiLocalAppAIConfigIntentInput = {
+  readonly capabilityContract: unknown;
+  readonly requiredFeatures: unknown;
+  readonly defaults?: unknown;
+  readonly route: unknown;
+};
+
+export function validateCapabilityIntents(
+  capabilities: readonly NimiLocalAppAIConfigIntentInput[],
 ): void {
   if (!Array.isArray(capabilities)) {
     localAppError(

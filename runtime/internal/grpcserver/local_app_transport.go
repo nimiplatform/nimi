@@ -32,6 +32,12 @@ const (
 	protectedInterruptConversationTurnMethod = "/nimi.runtime.v1.RuntimeAgentService/InterruptLocalAppConversationTurn"
 	protectedSubscribeConversationMethod     = "/nimi.runtime.v1.RuntimeAgentService/SubscribeLocalAppConversationEvents"
 	protectedConversationSnapshotMethod      = "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppConversationSnapshot"
+	protectedGetSharedAIConfigMethod         = "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppSharedLocalAgentAIConfig"
+	protectedOverwriteSharedAIConfigMethod   = "/nimi.runtime.v1.RuntimeAgentService/OverwriteLocalAppSharedLocalAgentAIConfig"
+	protectedAutonomySnapshotMethod          = "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentAutonomySnapshot"
+	protectedUpdateAutonomyMethod            = "/nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppAgentAutonomy"
+	protectedPresentationSnapshotMethod      = "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentPresentationSnapshot"
+	protectedCommitPresentationMethod        = "/nimi.runtime.v1.RuntimeAgentService/CommitLocalAppAgentPresentation"
 	protectedGenerateTextCandidateMethod     = "/nimi.runtime.v1.RuntimeAiService/GenerateLocalAppTextCandidate"
 	protectedGetAppAIConfigMethod            = "/nimi.runtime.v1.RuntimeAiService/GetAppAIConfig"
 	protectedOverwriteAppAIConfigMethod      = "/nimi.runtime.v1.RuntimeAiService/OverwriteAppAIConfig"
@@ -63,6 +69,12 @@ var protectedLocalAppUnaryMethodPolicies = map[string]protectedLocalAppMethodPol
 	protectedSendConversationTurnMethod:      localAppSessionMethodPolicy(),
 	protectedInterruptConversationTurnMethod: localAppSessionMethodPolicy(),
 	protectedConversationSnapshotMethod:      localAppSessionMethodPolicy(),
+	protectedGetSharedAIConfigMethod:         localAppSessionMethodPolicy(),
+	protectedOverwriteSharedAIConfigMethod:   localAppSessionMethodPolicy(),
+	protectedAutonomySnapshotMethod:          localAppSessionMethodPolicy(),
+	protectedUpdateAutonomyMethod:            localAppSessionMethodPolicy(),
+	protectedPresentationSnapshotMethod:      localAppSessionMethodPolicy(),
+	protectedCommitPresentationMethod:        localAppSessionMethodPolicy(),
 	protectedGenerateTextCandidateMethod:     localAppSessionMethodPolicy(),
 	protectedGetAppAIConfigMethod:            localAppSessionMethodPolicy(),
 	protectedOverwriteAppAIConfigMethod:      localAppSessionMethodPolicy(),
@@ -311,6 +323,18 @@ func protectedLocalAppUnaryIngress(method string, request any) localappop.Ingres
 		return localappop.IngressConversationTurnInterrupt
 	case protectedConversationSnapshotMethod:
 		return localappop.IngressConversationSnapshotGet
+	case protectedGetSharedAIConfigMethod:
+		return localappop.IngressAgentAIConfigGet
+	case protectedOverwriteSharedAIConfigMethod:
+		return localappop.IngressAgentAIConfigOverwrite
+	case protectedAutonomySnapshotMethod:
+		return localappop.IngressAgentAutonomySnapshotGet
+	case protectedUpdateAutonomyMethod:
+		return localappop.IngressAgentAutonomyUpdate
+	case protectedPresentationSnapshotMethod:
+		return localappop.IngressAgentPresentationSnapshotGet
+	case protectedCommitPresentationMethod:
+		return localappop.IngressAgentPresentationCommit
 	default:
 		return localappop.IngressUnknown
 	}
@@ -321,7 +345,10 @@ func protectedLocalAppOwnerEnabled(method string, request any, ingress localappo
 	case protectedReadLocalAppStorageJSONMethod, protectedWriteLocalAppStorageJSONMethod, protectedRemoveLocalAppStorageJSONMethod,
 		protectedGetAppAIConfigMethod, protectedOverwriteAppAIConfigMethod, protectedGenerateTextCandidateMethod,
 		protectedAgentReferenceListMethod, protectedOpenConversationMethod, protectedSendConversationTurnMethod,
-		protectedInterruptConversationTurnMethod, protectedConversationSnapshotMethod:
+		protectedInterruptConversationTurnMethod, protectedConversationSnapshotMethod,
+		protectedGetSharedAIConfigMethod, protectedOverwriteSharedAIConfigMethod,
+		protectedAutonomySnapshotMethod, protectedUpdateAutonomyMethod,
+		protectedPresentationSnapshotMethod, protectedCommitPresentationMethod:
 		return true
 	case protectedInvokeRealmUnaryMethod:
 		realmRequest, ok := request.(*runtimev1.InvokeRealmUnaryRequest)

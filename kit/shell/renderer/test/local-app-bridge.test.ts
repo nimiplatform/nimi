@@ -10,15 +10,24 @@ afterEach(() => {
 });
 
 describe('renderer local-app standard-shell surface', () => {
-  it('maps text generation without retaining rich Agent Tauri commands', () => {
+  it('maps the admitted local-app operations to exact Tauri commands', () => {
     expect(resolveTauriStandardCommand(
       NIMI_STANDARD_SHELL_COMMANDS['local-app.textGenerateCandidate'],
     )).toBe('local_app_text_generate_candidate');
+    const mappings = [
+      ['local-app.sharedAgentAIConfigGet', 'local_app_shared_agent_ai_config_get'],
+      ['local-app.sharedAgentAIConfigOverwrite', 'local_app_shared_agent_ai_config_overwrite'],
+      ['local-app.agentAutonomySnapshot', 'local_app_agent_autonomy_snapshot'],
+      ['local-app.agentUpdateAutonomy', 'local_app_agent_update_autonomy'],
+      ['local-app.agentPresentationSnapshot', 'local_app_agent_presentation_snapshot'],
+      ['local-app.agentCommitPresentation', 'local_app_agent_commit_presentation'],
+    ] as const;
+    for (const [operation, command] of mappings) {
+      expect(resolveTauriStandardCommand(NIMI_STANDARD_SHELL_COMMANDS[operation])).toBe(command);
+    }
     for (const command of [
-      'nimi.shell.localApp.sharedAgentAIConfigGet',
+      'nimi.shell.localApp.sharedAgentAIProfilePreview',
       'nimi.shell.localApp.sharedAgentAIProfileApply',
-      'nimi.shell.localApp.agentUpdateAutonomy',
-      'nimi.shell.localApp.agentCommitPresentation',
       'nimi.shell.localApp.artifactPut',
     ]) {
       expect(resolveTauriStandardCommand(command)).toBe(command);
@@ -112,10 +121,82 @@ describe('renderer local-app standard-shell surface', () => {
     }]);
   });
 
+  it('forwards the six exact Agent configuration operations without authority input', async () => {
+    const invocations: Array<{ command: string; payload: unknown }> = [];
+    const handle = 'agent_ref_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA';
+    const sharedConfig = {
+      owner: { owner: { oneofKind: 'runtimeLocalAgentSubsystem', runtimeLocalAgentSubsystem: {} } },
+      capabilities: [],
+    };
+    (globalThis as { __NIMI_ELECTRON_TEST__?: unknown }).__NIMI_ELECTRON_TEST__ = {
+      invoke: async (command: string, payload: unknown) => {
+        invocations.push({ command, payload });
+        if (command.includes('sharedAgentAIConfig')) return sharedConfig;
+        return { autonomyRevision: '2', presentationRevision: '3' };
+      },
+      listen: () => () => {},
+    };
+    const configure = createNimiLocalAppStandardShellSurface().agentConfigure;
+    await expect(configure.sharedAIConfig.get()).resolves.toEqual(sharedConfig);
+    await expect(configure.sharedAIConfig.overwrite([])).resolves.toEqual(sharedConfig);
+    await expect(configure.autonomy.snapshot({ agentHandle: handle }))
+      .resolves.toEqual({ autonomyRevision: '2', presentationRevision: '3' });
+    await expect(configure.autonomy.update({
+      agentHandle: handle,
+      expectedAutonomyRevision: '2',
+      intent: { enabled: true },
+    })).resolves.toEqual({ autonomyRevision: '2', presentationRevision: '3' });
+    await expect(configure.presentation.snapshot({ agentHandle: handle }))
+      .resolves.toEqual({ autonomyRevision: '2', presentationRevision: '3' });
+    await expect(configure.presentation.commit({
+      agentHandle: handle,
+      expectedPresentationRevision: '0',
+      intent: {
+        backendKind: 'vrm', avatarAssetRef: '', expressionProfileRef: '', idlePreset: '',
+        interactionPolicyRef: '', defaultVoiceReference: '', avatarAutoplay: false,
+        backgroundAssetRef: '',
+      },
+      importedAssets: [{
+        role: 'avatar', fileName: 'avatar.vrm', mediaType: 'model/gltf-binary',
+        content: new Uint8Array([1, 2, 255]), sha256: 'abc123',
+      }],
+    })).resolves.toEqual({ autonomyRevision: '2', presentationRevision: '3' });
+    expect(invocations).toEqual([
+      { command: 'nimi.shell.localApp.sharedAgentAIConfigGet', payload: {} },
+      { command: 'nimi.shell.localApp.sharedAgentAIConfigOverwrite', payload: { payload: { capabilities: [] } } },
+      { command: 'nimi.shell.localApp.agentAutonomySnapshot', payload: { payload: { agentHandle: handle } } },
+      {
+        command: 'nimi.shell.localApp.agentUpdateAutonomy',
+        payload: { payload: { agentHandle: handle, expectedAutonomyRevision: '2', intent: { enabled: true } } },
+      },
+      { command: 'nimi.shell.localApp.agentPresentationSnapshot', payload: { payload: { agentHandle: handle } } },
+      {
+        command: 'nimi.shell.localApp.agentCommitPresentation',
+        payload: { payload: {
+          agentHandle: handle,
+          expectedPresentationRevision: '0',
+          intent: {
+            backendKind: 'vrm', avatarAssetRef: '', expressionProfileRef: '', idlePreset: '',
+            interactionPolicyRef: '', defaultVoiceReference: '', avatarAutoplay: false,
+            backgroundAssetRef: '',
+          },
+          importedAssets: [{
+            role: 'avatar', fileName: 'avatar.vrm', mediaType: 'model/gltf-binary',
+            content: [1, 2, 255], sha256: 'abc123',
+          }],
+        } },
+      },
+    ]);
+    expect(JSON.stringify(invocations)).not.toMatch(/sessionId|appId|agentId/u);
+  });
+
   it('physically omits the retired access-workflow namespace', () => {
     const surface = createNimiLocalAppStandardShellSurface() as unknown as Record<string, unknown>;
     expect(Object.keys(surface).sort()).toEqual([
-      'session', 'ai', 'aiConfig', 'storage', 'realm', 'agents', 'conversation',
+      'session', 'ai', 'aiConfig', 'storage', 'realm', 'agents', 'agentConfigure', 'conversation',
+    ].sort());
+    expect(Object.keys(surface.agentConfigure as Record<string, unknown>).sort()).toEqual([
+      'sharedAIConfig', 'autonomy', 'presentation',
     ].sort());
   });
 

@@ -48,6 +48,20 @@ function standardShell(operationCalls: string[]): NimiLocalAppStandardShell {
       subscribe: touched('conversation.subscribe'),
       snapshot: touched('conversation.snapshot'),
     },
+    agentConfigure: {
+      sharedAIConfig: {
+        get: touched('agentConfigure.sharedAIConfig.get'),
+        overwrite: touched('agentConfigure.sharedAIConfig.overwrite'),
+      },
+      autonomy: {
+        snapshot: touched('agentConfigure.autonomy.snapshot'),
+        update: touched('agentConfigure.autonomy.update'),
+      },
+      presentation: {
+        snapshot: touched('agentConfigure.presentation.snapshot'),
+        commit: touched('agentConfigure.presentation.commit'),
+      },
+    },
   };
 }
 
@@ -70,11 +84,14 @@ test('generated local-app session wire projection is posture-only', () => {
 test('local-app client hard-cuts the access workflow namespace', () => {
   const client = createNimiLocalAppClient({ standardShell: standardShell([]) });
   assert.deepEqual(Object.keys(client).sort(), [
-    'agents', 'ai', 'aiConfig', 'auth', 'conversation', 'currentUser', 'realm', 'storage',
+    'agentConfigure', 'agents', 'ai', 'aiConfig', 'auth', 'conversation', 'currentUser', 'realm', 'storage',
   ]);
   assert.equal('permissions' in client, false);
-  assert.equal('agentConfigure' in client, false);
   assert.equal('artifacts' in client, false);
+  assert.deepEqual(Object.keys(client.agentConfigure).sort(), ['autonomy', 'presentation', 'sharedAIConfig']);
+  assert.deepEqual(Object.keys(client.agentConfigure.sharedAIConfig).sort(), ['get', 'overwrite']);
+  assert.deepEqual(Object.keys(client.agentConfigure.autonomy).sort(), ['snapshot', 'update']);
+  assert.deepEqual(Object.keys(client.agentConfigure.presentation).sort(), ['commit', 'snapshot']);
 });
 
 test('local-app auth remains a separate availability projection', async () => {
@@ -381,6 +398,30 @@ test('canonical protected operations reach typed ingress and preserve owner-unav
     () => client.conversation.interruptTurn({ agentHandle: handle, conversationAnchorId: 'anchor' }),
     () => client.conversation.subscribe({ agentHandle: handle, conversationAnchorId: 'anchor' }),
     () => client.conversation.snapshot({ agentHandle: handle, conversationAnchorId: 'anchor' }),
+    () => client.agentConfigure.sharedAIConfig.get(),
+    () => client.agentConfigure.sharedAIConfig.overwrite([]),
+    () => client.agentConfigure.autonomy.snapshot({ agentHandle: handle }),
+    () => client.agentConfigure.autonomy.update({
+      agentHandle: handle,
+      expectedAutonomyRevision: '1',
+      intent: { enabled: true },
+    }),
+    () => client.agentConfigure.presentation.snapshot({ agentHandle: handle }),
+    () => client.agentConfigure.presentation.commit({
+      agentHandle: handle,
+      expectedPresentationRevision: '0',
+      intent: {
+        backendKind: 'vrm',
+        avatarAssetRef: '',
+        expressionProfileRef: '',
+        idlePreset: '',
+        interactionPolicyRef: '',
+        defaultVoiceReference: '',
+        avatarAutoplay: false,
+        backgroundAssetRef: '',
+      },
+      importedAssets: [],
+    }),
   ];
   for (const operation of operations) {
     await assert.rejects(operation, isTypedOwnerUnavailable);
@@ -400,6 +441,12 @@ test('canonical protected operations reach typed ingress and preserve owner-unav
     'conversation.interruptTurn',
     'conversation.subscribe',
     'conversation.snapshot',
+    'agentConfigure.sharedAIConfig.get',
+    'agentConfigure.sharedAIConfig.overwrite',
+    'agentConfigure.autonomy.snapshot',
+    'agentConfigure.autonomy.update',
+    'agentConfigure.presentation.snapshot',
+    'agentConfigure.presentation.commit',
   ]);
 
   assert.equal(calls.length, operations.length);

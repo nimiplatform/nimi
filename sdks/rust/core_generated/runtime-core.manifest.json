@@ -6,6 +6,7 @@
     "proto/runtime/v1/account.proto",
     "proto/runtime/v1/agent_common.proto",
     "proto/runtime/v1/agent_companion.proto",
+    "proto/runtime/v1/agent_configure.proto",
     "proto/runtime/v1/agent_presentation.proto",
     "proto/runtime/v1/agent_service.proto",
     "proto/runtime/v1/agent_source_materialization.proto",
@@ -607,6 +608,60 @@
           "kind": "unary",
           "request_type": "ApplySharedLocalAgentAIProfileRequest",
           "response_type": "ApplySharedLocalAgentAIProfileResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
+          "name": "GetLocalAppSharedLocalAgentAIConfig",
+          "method_id": "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppSharedLocalAgentAIConfig",
+          "kind": "unary",
+          "request_type": "GetLocalAppSharedLocalAgentAIConfigRequest",
+          "response_type": "GetLocalAppSharedLocalAgentAIConfigResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
+          "name": "OverwriteLocalAppSharedLocalAgentAIConfig",
+          "method_id": "/nimi.runtime.v1.RuntimeAgentService/OverwriteLocalAppSharedLocalAgentAIConfig",
+          "kind": "unary",
+          "request_type": "OverwriteLocalAppSharedLocalAgentAIConfigRequest",
+          "response_type": "OverwriteLocalAppSharedLocalAgentAIConfigResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
+          "name": "GetLocalAppAgentAutonomySnapshot",
+          "method_id": "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentAutonomySnapshot",
+          "kind": "unary",
+          "request_type": "GetLocalAppAgentAutonomySnapshotRequest",
+          "response_type": "LocalAppAgentAutonomySnapshotResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
+          "name": "UpdateLocalAppAgentAutonomy",
+          "method_id": "/nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppAgentAutonomy",
+          "kind": "unary",
+          "request_type": "UpdateLocalAppAgentAutonomyRequest",
+          "response_type": "LocalAppAgentUpdateAutonomyResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
+          "name": "GetLocalAppAgentPresentationSnapshot",
+          "method_id": "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentPresentationSnapshot",
+          "kind": "unary",
+          "request_type": "GetLocalAppAgentPresentationSnapshotRequest",
+          "response_type": "LocalAppAgentPresentationSnapshotResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
+          "name": "CommitLocalAppAgentPresentation",
+          "method_id": "/nimi.runtime.v1.RuntimeAgentService/CommitLocalAppAgentPresentation",
+          "kind": "unary",
+          "request_type": "CommitLocalAppAgentPresentationRequest",
+          "response_type": "LocalAppAgentCommitPresentationResponse",
           "request_stream": false,
           "response_stream": false
         }
@@ -2343,6 +2398,7 @@
     "/nimi.runtime.v1.RuntimeAgentService/ApplySharedLocalAgentAIProfile",
     "/nimi.runtime.v1.RuntimeAgentService/CancelCompanionParticipation",
     "/nimi.runtime.v1.RuntimeAgentService/CancelHook",
+    "/nimi.runtime.v1.RuntimeAgentService/CommitLocalAppAgentPresentation",
     "/nimi.runtime.v1.RuntimeAgentService/DisableAutonomy",
     "/nimi.runtime.v1.RuntimeAgentService/EnableAutonomy",
     "/nimi.runtime.v1.RuntimeAgentService/GetAgent",
@@ -2356,7 +2412,10 @@
     "/nimi.runtime.v1.RuntimeAgentService/GetConversationAnchorSnapshot",
     "/nimi.runtime.v1.RuntimeAgentService/GetDelegatedControlSurfaceSnapshot",
     "/nimi.runtime.v1.RuntimeAgentService/GetDelegatedReplayTrace",
+    "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentAutonomySnapshot",
+    "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentPresentationSnapshot",
     "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppConversationSnapshot",
+    "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppSharedLocalAgentAIConfig",
     "/nimi.runtime.v1.RuntimeAgentService/GetPublicChatSessionSnapshot",
     "/nimi.runtime.v1.RuntimeAgentService/GetSharedLocalAgentAIConfig",
     "/nimi.runtime.v1.RuntimeAgentService/InterruptAgentVoicePlayback",
@@ -2373,6 +2432,7 @@
     "/nimi.runtime.v1.RuntimeAgentService/OpenCompanionParticipationReplay",
     "/nimi.runtime.v1.RuntimeAgentService/OpenConversationAnchor",
     "/nimi.runtime.v1.RuntimeAgentService/OpenLocalAppConversation",
+    "/nimi.runtime.v1.RuntimeAgentService/OverwriteLocalAppSharedLocalAgentAIConfig",
     "/nimi.runtime.v1.RuntimeAgentService/OverwriteSharedLocalAgentAIConfig",
     "/nimi.runtime.v1.RuntimeAgentService/PreviewSharedLocalAgentAIProfile",
     "/nimi.runtime.v1.RuntimeAgentService/QueryAgentMemory",
@@ -2391,6 +2451,7 @@
     "/nimi.runtime.v1.RuntimeAgentService/SubscribeLocalAppConversationEvents",
     "/nimi.runtime.v1.RuntimeAgentService/TerminateAgent",
     "/nimi.runtime.v1.RuntimeAgentService/UpdateAgentState",
+    "/nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppAgentAutonomy",
     "/nimi.runtime.v1.RuntimeAgentService/WriteAgentMemory",
     "/nimi.runtime.v1.RuntimeAiRealtimeService/AppendRealtimeInput",
     "/nimi.runtime.v1.RuntimeAiRealtimeService/CloseRealtimeSession",
@@ -2681,6 +2742,14 @@
       "response_type": "CancelHookResponse"
     },
     {
+      "method_id": "/nimi.runtime.v1.RuntimeAgentService/CommitLocalAppAgentPresentation",
+      "service": "RuntimeAgentService",
+      "method": "CommitLocalAppAgentPresentation",
+      "kind": "unary",
+      "request_type": "CommitLocalAppAgentPresentationRequest",
+      "response_type": "LocalAppAgentCommitPresentationResponse"
+    },
+    {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/DisableAutonomy",
       "service": "RuntimeAgentService",
       "method": "DisableAutonomy",
@@ -2785,12 +2854,36 @@
       "response_type": "GetDelegatedReplayTraceResponse"
     },
     {
+      "method_id": "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentAutonomySnapshot",
+      "service": "RuntimeAgentService",
+      "method": "GetLocalAppAgentAutonomySnapshot",
+      "kind": "unary",
+      "request_type": "GetLocalAppAgentAutonomySnapshotRequest",
+      "response_type": "LocalAppAgentAutonomySnapshotResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentPresentationSnapshot",
+      "service": "RuntimeAgentService",
+      "method": "GetLocalAppAgentPresentationSnapshot",
+      "kind": "unary",
+      "request_type": "GetLocalAppAgentPresentationSnapshotRequest",
+      "response_type": "LocalAppAgentPresentationSnapshotResponse"
+    },
+    {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppConversationSnapshot",
       "service": "RuntimeAgentService",
       "method": "GetLocalAppConversationSnapshot",
       "kind": "unary",
       "request_type": "GetLocalAppConversationSnapshotRequest",
       "response_type": "GetLocalAppConversationSnapshotResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppSharedLocalAgentAIConfig",
+      "service": "RuntimeAgentService",
+      "method": "GetLocalAppSharedLocalAgentAIConfig",
+      "kind": "unary",
+      "request_type": "GetLocalAppSharedLocalAgentAIConfigRequest",
+      "response_type": "GetLocalAppSharedLocalAgentAIConfigResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/GetPublicChatSessionSnapshot",
@@ -2919,6 +3012,14 @@
       "kind": "unary",
       "request_type": "OpenLocalAppConversationRequest",
       "response_type": "OpenLocalAppConversationResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAgentService/OverwriteLocalAppSharedLocalAgentAIConfig",
+      "service": "RuntimeAgentService",
+      "method": "OverwriteLocalAppSharedLocalAgentAIConfig",
+      "kind": "unary",
+      "request_type": "OverwriteLocalAppSharedLocalAgentAIConfigRequest",
+      "response_type": "OverwriteLocalAppSharedLocalAgentAIConfigResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/OverwriteSharedLocalAgentAIConfig",
@@ -3063,6 +3164,14 @@
       "kind": "unary",
       "request_type": "UpdateAgentStateRequest",
       "response_type": "UpdateAgentStateResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppAgentAutonomy",
+      "service": "RuntimeAgentService",
+      "method": "UpdateLocalAppAgentAutonomy",
+      "kind": "unary",
+      "request_type": "UpdateLocalAppAgentAutonomyRequest",
+      "response_type": "LocalAppAgentUpdateAutonomyResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/WriteAgentMemory",
@@ -4635,6 +4744,14 @@
       "response_type": "CancelHookResponse"
     },
     {
+      "method_id": "/nimi.runtime.v1.RuntimeAgentService/CommitLocalAppAgentPresentation",
+      "service": "RuntimeAgentService",
+      "method": "CommitLocalAppAgentPresentation",
+      "kind": "unary",
+      "request_type": "CommitLocalAppAgentPresentationRequest",
+      "response_type": "LocalAppAgentCommitPresentationResponse"
+    },
+    {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/DisableAutonomy",
       "service": "RuntimeAgentService",
       "method": "DisableAutonomy",
@@ -4739,12 +4856,36 @@
       "response_type": "GetDelegatedReplayTraceResponse"
     },
     {
+      "method_id": "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentAutonomySnapshot",
+      "service": "RuntimeAgentService",
+      "method": "GetLocalAppAgentAutonomySnapshot",
+      "kind": "unary",
+      "request_type": "GetLocalAppAgentAutonomySnapshotRequest",
+      "response_type": "LocalAppAgentAutonomySnapshotResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentPresentationSnapshot",
+      "service": "RuntimeAgentService",
+      "method": "GetLocalAppAgentPresentationSnapshot",
+      "kind": "unary",
+      "request_type": "GetLocalAppAgentPresentationSnapshotRequest",
+      "response_type": "LocalAppAgentPresentationSnapshotResponse"
+    },
+    {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppConversationSnapshot",
       "service": "RuntimeAgentService",
       "method": "GetLocalAppConversationSnapshot",
       "kind": "unary",
       "request_type": "GetLocalAppConversationSnapshotRequest",
       "response_type": "GetLocalAppConversationSnapshotResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppSharedLocalAgentAIConfig",
+      "service": "RuntimeAgentService",
+      "method": "GetLocalAppSharedLocalAgentAIConfig",
+      "kind": "unary",
+      "request_type": "GetLocalAppSharedLocalAgentAIConfigRequest",
+      "response_type": "GetLocalAppSharedLocalAgentAIConfigResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/GetPublicChatSessionSnapshot",
@@ -4873,6 +5014,14 @@
       "kind": "unary",
       "request_type": "OpenLocalAppConversationRequest",
       "response_type": "OpenLocalAppConversationResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAgentService/OverwriteLocalAppSharedLocalAgentAIConfig",
+      "service": "RuntimeAgentService",
+      "method": "OverwriteLocalAppSharedLocalAgentAIConfig",
+      "kind": "unary",
+      "request_type": "OverwriteLocalAppSharedLocalAgentAIConfigRequest",
+      "response_type": "OverwriteLocalAppSharedLocalAgentAIConfigResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/OverwriteSharedLocalAgentAIConfig",
@@ -5017,6 +5166,14 @@
       "kind": "unary",
       "request_type": "UpdateAgentStateRequest",
       "response_type": "UpdateAgentStateResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppAgentAutonomy",
+      "service": "RuntimeAgentService",
+      "method": "UpdateLocalAppAgentAutonomy",
+      "kind": "unary",
+      "request_type": "UpdateLocalAppAgentAutonomyRequest",
+      "response_type": "LocalAppAgentUpdateAutonomyResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/WriteAgentMemory",
@@ -6613,6 +6770,7 @@
       "CloseRealtimeSessionResponse",
       "CollectDeviceProfileRequest",
       "CollectDeviceProfileResponse",
+      "CommitLocalAppAgentPresentationRequest",
       "CompanionParticipationProjection",
       "CompleteLoginRequest",
       "CompleteLoginResponse",
@@ -6728,8 +6886,12 @@
       "GetIngestTaskResponse",
       "GetKnowledgeBankRequest",
       "GetKnowledgeBankResponse",
+      "GetLocalAppAgentAutonomySnapshotRequest",
+      "GetLocalAppAgentPresentationSnapshotRequest",
       "GetLocalAppConversationSnapshotRequest",
       "GetLocalAppConversationSnapshotResponse",
+      "GetLocalAppSharedLocalAgentAIConfigRequest",
+      "GetLocalAppSharedLocalAgentAIConfigResponse",
       "GetLocalCapabilityConfigurationRequest",
       "GetLocalCapabilityConfigurationResponse",
       "GetMachineLocalAIConfigurationRequest",
@@ -6878,7 +7040,16 @@
       "LocalAgentRecord",
       "LocalAgentSourceContextStatus",
       "LocalAgentSourceCoverageSectionStatus",
+      "LocalAppAgentAutonomyConfig",
+      "LocalAppAgentAutonomyIntent",
+      "LocalAppAgentAutonomyProjection",
+      "LocalAppAgentAutonomySnapshotResponse",
+      "LocalAppAgentCommitPresentationResponse",
+      "LocalAppAgentPresentationIntent",
+      "LocalAppAgentPresentationProjection",
+      "LocalAppAgentPresentationSnapshotResponse",
       "LocalAppAgentReference",
+      "LocalAppAgentUpdateAutonomyResponse",
       "LocalAppConversationEvent",
       "LocalAppConversationMessage",
       "LocalAppConversationMessageCommitted",
@@ -6889,6 +7060,7 @@
       "LocalAppConversationTurnFailed",
       "LocalAppConversationTurnInterrupted",
       "LocalAppConversationTurnStarted",
+      "LocalAppSharedLocalAgentAIConfigProjection",
       "LocalAppTextCandidateMessage",
       "LocalAssetExactBinding",
       "LocalAssetExactBindingTarget",
@@ -7005,6 +7177,8 @@
       "OpenSessionResponse",
       "OverwriteAppAIConfigRequest",
       "OverwriteAppAIConfigResponse",
+      "OverwriteLocalAppSharedLocalAgentAIConfigRequest",
+      "OverwriteLocalAppSharedLocalAgentAIConfigResponse",
       "OverwriteSharedLocalAgentAIConfigRequest",
       "OverwriteSharedLocalAgentAIConfigResponse",
       "PauseLocalTransferRequest",
@@ -7230,6 +7404,7 @@
       "UpdateAgentStateResponse",
       "UpdateConnectorRequest",
       "UpdateConnectorResponse",
+      "UpdateLocalAppAgentAutonomyRequest",
       "UploadArtifactChunk",
       "UploadArtifactMetadata",
       "UploadArtifactRequest",
@@ -7358,6 +7533,7 @@
       "HookTriggerFamily",
       "KnowledgeBankScope",
       "KnowledgeIngestTaskStatus",
+      "LocalAppAgentAutonomyMode",
       "LocalAppConversationMessageRole",
       "LocalAppSessionState",
       "LocalAppTrustClass",
@@ -12810,6 +12986,40 @@
         "source_file": "proto/runtime/v1/local_runtime.proto"
       },
       {
+        "name": "CommitLocalAppAgentPresentationRequest",
+        "fields": [
+          {
+            "name": "agent_handle",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "expected_presentation_revision",
+            "type": "uint64",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "intent",
+            "type": "LocalAppAgentPresentationIntent",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "imported_assets",
+            "type": "AgentPresentationAssetMaterial",
+            "repeated": true,
+            "optional": false,
+            "number": 4
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_configure.proto"
+      },
+      {
         "name": "CompanionParticipationProjection",
         "fields": [
           {
@@ -16281,6 +16491,32 @@
         "source_file": "proto/runtime/v1/knowledge.proto"
       },
       {
+        "name": "GetLocalAppAgentAutonomySnapshotRequest",
+        "fields": [
+          {
+            "name": "agent_handle",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_configure.proto"
+      },
+      {
+        "name": "GetLocalAppAgentPresentationSnapshotRequest",
+        "fields": [
+          {
+            "name": "agent_handle",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_configure.proto"
+      },
+      {
         "name": "GetLocalAppConversationSnapshotRequest",
         "fields": [
           {
@@ -16312,6 +16548,24 @@
           }
         ],
         "source_file": "proto/runtime/v1/agent_service.proto"
+      },
+      {
+        "name": "GetLocalAppSharedLocalAgentAIConfigRequest",
+        "fields": [],
+        "source_file": "proto/runtime/v1/agent_configure.proto"
+      },
+      {
+        "name": "GetLocalAppSharedLocalAgentAIConfigResponse",
+        "fields": [
+          {
+            "name": "projection",
+            "type": "LocalAppSharedLocalAgentAIConfigProjection",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_configure.proto"
       },
       {
         "name": "GetLocalCapabilityConfigurationRequest",
@@ -20514,6 +20768,257 @@
         "source_file": "proto/runtime/v1/agent_source_materialization.proto"
       },
       {
+        "name": "LocalAppAgentAutonomyConfig",
+        "fields": [
+          {
+            "name": "daily_token_budget",
+            "type": "int64",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "max_tokens_per_hook",
+            "type": "int64",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "min_hook_interval",
+            "type": "google.protobuf.Duration",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "suspend_until",
+            "type": "google.protobuf.Timestamp",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "mode",
+            "type": "LocalAppAgentAutonomyMode",
+            "repeated": false,
+            "optional": false,
+            "number": 5
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_configure.proto"
+      },
+      {
+        "name": "LocalAppAgentAutonomyIntent",
+        "fields": [
+          {
+            "name": "enabled",
+            "type": "bool",
+            "repeated": false,
+            "optional": true,
+            "number": 1
+          },
+          {
+            "name": "config",
+            "type": "LocalAppAgentAutonomyConfig",
+            "repeated": false,
+            "optional": true,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_configure.proto"
+      },
+      {
+        "name": "LocalAppAgentAutonomyProjection",
+        "fields": [
+          {
+            "name": "enabled",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "config",
+            "type": "LocalAppAgentAutonomyConfig",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "used_tokens_in_window",
+            "type": "int64",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "window_started_at",
+            "type": "google.protobuf.Timestamp",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "budget_exhausted",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 5
+          },
+          {
+            "name": "suspended_until",
+            "type": "google.protobuf.Timestamp",
+            "repeated": false,
+            "optional": false,
+            "number": 6
+          },
+          {
+            "name": "autonomy_revision",
+            "type": "uint64",
+            "repeated": false,
+            "optional": false,
+            "number": 7
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_configure.proto"
+      },
+      {
+        "name": "LocalAppAgentAutonomySnapshotResponse",
+        "fields": [
+          {
+            "name": "projection",
+            "type": "LocalAppAgentAutonomyProjection",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_configure.proto"
+      },
+      {
+        "name": "LocalAppAgentCommitPresentationResponse",
+        "fields": [
+          {
+            "name": "projection",
+            "type": "LocalAppAgentPresentationProjection",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_configure.proto"
+      },
+      {
+        "name": "LocalAppAgentPresentationIntent",
+        "fields": [
+          {
+            "name": "backend_kind",
+            "type": "AgentPresentationBackendKind",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "avatar_asset_ref",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "expression_profile_ref",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "idle_preset",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "interaction_policy_ref",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 5
+          },
+          {
+            "name": "default_voice_reference",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 6
+          },
+          {
+            "name": "avatar_autoplay",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 7
+          },
+          {
+            "name": "background_asset_ref",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 8
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_configure.proto"
+      },
+      {
+        "name": "LocalAppAgentPresentationProjection",
+        "fields": [
+          {
+            "name": "profile",
+            "type": "AgentPresentationProfile",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "default_voice_reference",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "presentation_revision",
+            "type": "uint64",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "previous_profile",
+            "type": "AgentPresentationProfile",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_configure.proto"
+      },
+      {
+        "name": "LocalAppAgentPresentationSnapshotResponse",
+        "fields": [
+          {
+            "name": "projection",
+            "type": "LocalAppAgentPresentationProjection",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_configure.proto"
+      },
+      {
         "name": "LocalAppAgentReference",
         "fields": [
           {
@@ -20539,6 +21044,19 @@
           }
         ],
         "source_file": "proto/runtime/v1/agent_service.proto"
+      },
+      {
+        "name": "LocalAppAgentUpdateAutonomyResponse",
+        "fields": [
+          {
+            "name": "projection",
+            "type": "LocalAppAgentAutonomyProjection",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_configure.proto"
       },
       {
         "name": "LocalAppConversationEvent",
@@ -20816,6 +21334,19 @@
           }
         ],
         "source_file": "proto/runtime/v1/agent_service.proto"
+      },
+      {
+        "name": "LocalAppSharedLocalAgentAIConfigProjection",
+        "fields": [
+          {
+            "name": "config",
+            "type": "AIConfig",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_configure.proto"
       },
       {
         "name": "LocalAppTextCandidateMessage",
@@ -27251,6 +27782,32 @@
           }
         ],
         "source_file": "proto/runtime/v1/capability_configuration.proto"
+      },
+      {
+        "name": "OverwriteLocalAppSharedLocalAgentAIConfigRequest",
+        "fields": [
+          {
+            "name": "capabilities",
+            "type": "AIConfigCapabilityIntent",
+            "repeated": true,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_configure.proto"
+      },
+      {
+        "name": "OverwriteLocalAppSharedLocalAgentAIConfigResponse",
+        "fields": [
+          {
+            "name": "projection",
+            "type": "LocalAppSharedLocalAgentAIConfigProjection",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_configure.proto"
       },
       {
         "name": "OverwriteSharedLocalAgentAIConfigRequest",
@@ -33717,6 +34274,33 @@
         "source_file": "proto/runtime/v1/connector.proto"
       },
       {
+        "name": "UpdateLocalAppAgentAutonomyRequest",
+        "fields": [
+          {
+            "name": "agent_handle",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "expected_autonomy_revision",
+            "type": "uint64",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "intent",
+            "type": "LocalAppAgentAutonomyIntent",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_configure.proto"
+      },
+      {
         "name": "UploadArtifactChunk",
         "fields": [
           {
@@ -36136,6 +36720,17 @@
           "KNOWLEDGE_INGEST_TASK_STATUS_FAILED"
         ],
         "source_file": "proto/runtime/v1/knowledge.proto"
+      },
+      {
+        "name": "LocalAppAgentAutonomyMode",
+        "values": [
+          "LOCAL_APP_AGENT_AUTONOMY_MODE_UNSPECIFIED",
+          "LOCAL_APP_AGENT_AUTONOMY_MODE_OFF",
+          "LOCAL_APP_AGENT_AUTONOMY_MODE_LOW",
+          "LOCAL_APP_AGENT_AUTONOMY_MODE_MEDIUM",
+          "LOCAL_APP_AGENT_AUTONOMY_MODE_HIGH"
+        ],
+        "source_file": "proto/runtime/v1/agent_configure.proto"
       },
       {
         "name": "LocalAppConversationMessageRole",

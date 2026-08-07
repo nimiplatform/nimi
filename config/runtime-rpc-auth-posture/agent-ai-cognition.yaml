@@ -22,6 +22,18 @@ methods:
     posture: protected_origin_required
   - method_id: /nimi.runtime.v1.RuntimeAgentService/SubscribeLocalAppConversationEvents
     posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeAgentService/GetLocalAppSharedLocalAgentAIConfig
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeAgentService/OverwriteLocalAppSharedLocalAgentAIConfig
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentAutonomySnapshot
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppAgentAutonomy
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentPresentationSnapshot
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeAgentService/CommitLocalAppAgentPresentation
+    posture: protected_origin_required
   - method_id: /nimi.runtime.v1.RuntimeAgentService/OpenConversationAnchor
     posture: authenticated_or_protected_local_app_operation
   - method_id: /nimi.runtime.v1.RuntimeAgentService/GetConversationAnchorSnapshot

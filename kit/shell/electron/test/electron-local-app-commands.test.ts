@@ -126,16 +126,61 @@ describe('Electron local-app standard-shell operations', () => {
     }
   });
 
-  it('does not register retired rich Agent operations', async () => {
+  it('routes the six exact Agent configuration operations through the protected host', async () => {
+    const ipcMain = new FakeIpcMain();
+    const calls: unknown[] = [];
+    const handle = 'agent_ref_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA';
+    registerBridge(ipcMain, calls);
+    const requests = [
+      ['local-app.sharedAgentAIConfigGet', {}],
+      ['local-app.sharedAgentAIConfigOverwrite', { capabilities: [] }],
+      ['local-app.agentAutonomySnapshot', { agentHandle: handle }],
+      ['local-app.agentUpdateAutonomy', {
+        agentHandle: handle, expectedAutonomyRevision: '2', intent: { enabled: true },
+      }],
+      ['local-app.agentPresentationSnapshot', { agentHandle: handle }],
+      ['local-app.agentCommitPresentation', {
+        agentHandle: handle,
+        expectedPresentationRevision: '0',
+        intent: {
+          backendKind: 'vrm', avatarAssetRef: '', expressionProfileRef: '', idlePreset: '',
+          interactionPolicyRef: '', defaultVoiceReference: '', avatarAutoplay: false,
+          backgroundAssetRef: '',
+        },
+        importedAssets: [{
+          role: 'avatar', fileName: 'avatar.vrm', mediaType: 'model/gltf-binary',
+          content: [1, 2, 255], sha256: 'abc123',
+        }],
+      }],
+    ] as const;
+    for (const [operation, payload] of requests) {
+      await expect(invokeBridge(ipcMain, createInvokeEvent().event, {
+        command: NIMI_STANDARD_SHELL_COMMANDS[operation],
+        payload: { payload },
+      })).resolves.toBeDefined();
+    }
+    expect(calls).toEqual([
+      ['sharedAgentAIConfigGet'],
+      ['sharedAgentAIConfigOverwrite', { capabilities: [] }],
+      ['agentAutonomySnapshot', { agentHandle: handle }],
+      ['agentUpdateAutonomy', {
+        agentHandle: handle, expectedAutonomyRevision: '2', intent: { enabled: true },
+      }],
+      ['agentPresentationSnapshot', { agentHandle: handle }],
+      ['agentCommitPresentation', requests[5][1]],
+    ]);
+
+    await expect(invokeBridge(ipcMain, createInvokeEvent().event, {
+      command: NIMI_STANDARD_SHELL_COMMANDS['local-app.sharedAgentAIConfigGet'],
+      payload: { payload: { agentHandle: handle } },
+    })).rejects.toMatchObject({ code: 'invalid-payload' });
+    expect(calls).toHaveLength(6);
+  });
+
+  it('does not register the retired shared Agent AI profile operations', async () => {
     for (const command of [
-      'nimi.shell.localApp.sharedAgentAIConfigGet',
-      'nimi.shell.localApp.sharedAgentAIConfigOverwrite',
       'nimi.shell.localApp.sharedAgentAIProfilePreview',
       'nimi.shell.localApp.sharedAgentAIProfileApply',
-      'nimi.shell.localApp.agentAutonomySnapshot',
-      'nimi.shell.localApp.agentUpdateAutonomy',
-      'nimi.shell.localApp.agentPresentationSnapshot',
-      'nimi.shell.localApp.agentCommitPresentation',
     ]) {
       const ipcMain = new FakeIpcMain();
       const calls: unknown[] = [];
@@ -352,6 +397,36 @@ function localAppHost(calls: unknown[]) {
         displayName: 'Agent One',
         avatarUrl: null,
       }];
+    },
+    sharedAgentAIConfigGet: async () => {
+      calls.push(['sharedAgentAIConfigGet']);
+      return {
+        owner: { owner: { oneofKind: 'runtimeLocalAgentSubsystem', runtimeLocalAgentSubsystem: {} } },
+        capabilities: [],
+      };
+    },
+    sharedAgentAIConfigOverwrite: async (input: unknown) => {
+      calls.push(['sharedAgentAIConfigOverwrite', input]);
+      return {
+        owner: { owner: { oneofKind: 'runtimeLocalAgentSubsystem', runtimeLocalAgentSubsystem: {} } },
+        capabilities: [],
+      };
+    },
+    agentAutonomySnapshot: async (input: unknown) => {
+      calls.push(['agentAutonomySnapshot', input]);
+      return { enabled: false, config: null, usedTokensInWindow: 0, budgetExhausted: false, autonomyRevision: '1' };
+    },
+    agentUpdateAutonomy: async (input: unknown) => {
+      calls.push(['agentUpdateAutonomy', input]);
+      return { enabled: true, config: null, usedTokensInWindow: 0, budgetExhausted: false, autonomyRevision: '2' };
+    },
+    agentPresentationSnapshot: async (input: unknown) => {
+      calls.push(['agentPresentationSnapshot', input]);
+      return { profile: null, previousProfile: null, defaultVoiceReference: '', presentationRevision: '0' };
+    },
+    agentCommitPresentation: async (input: unknown) => {
+      calls.push(['agentCommitPresentation', input]);
+      return { profile: null, previousProfile: null, defaultVoiceReference: '', presentationRevision: '1' };
     },
     conversationOpen: unavailable('conversationOpen', calls),
     conversationSendTurn: unavailable('conversationSendTurn', calls),

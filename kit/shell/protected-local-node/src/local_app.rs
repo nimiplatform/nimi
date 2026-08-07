@@ -155,6 +155,92 @@ fn project_agent_reference(reference: LocalAppAgentReference) -> JsonValue {
     })
 }
 
+#[napi(js_name = "localAppSharedAgentAIConfigGet")]
+pub async fn local_app_shared_agent_ai_config_get() -> NativeJsonOutcome {
+    invoke_agent(|session| async move { session.shared_agent_ai_config_get().await }).await
+}
+
+#[napi(js_name = "localAppSharedAgentAIConfigOverwrite")]
+pub async fn local_app_shared_agent_ai_config_overwrite(
+    input: NativeAIConfigOverwriteInput,
+) -> NativeJsonOutcome {
+    invoke_agent(|session| async move {
+        session
+            .shared_agent_ai_config_overwrite(LocalAppSharedAgentAIConfigOverwriteRequest {
+                capabilities: input.capabilities,
+            })
+            .await
+    })
+    .await
+}
+
+#[napi(js_name = "localAppAgentAutonomySnapshot")]
+pub async fn local_app_agent_autonomy_snapshot(input: NativeAgentHandleInput) -> NativeJsonOutcome {
+    invoke_agent(|session| async move {
+        session
+            .agent_autonomy_snapshot(LocalAppAgentHandleRequest {
+                agent_handle: input.agent_handle,
+            })
+            .await
+    })
+    .await
+}
+
+#[napi(js_name = "localAppAgentUpdateAutonomy")]
+pub async fn local_app_agent_update_autonomy(
+    input: NativeAgentUpdateAutonomyInput,
+) -> NativeJsonOutcome {
+    let revision = match decimal_revision(&input.expected_autonomy_revision, false) {
+        Ok(value) => value,
+        Err(error) => return NativeJsonOutcome::error(error),
+    };
+    invoke_agent(|session| async move {
+        session
+            .agent_update_autonomy(LocalAppAgentUpdateAutonomyRequest {
+                agent_handle: input.agent_handle,
+                expected_autonomy_revision: revision,
+                intent: input.intent,
+            })
+            .await
+    })
+    .await
+}
+
+#[napi(js_name = "localAppAgentPresentationSnapshot")]
+pub async fn local_app_agent_presentation_snapshot(
+    input: NativeAgentHandleInput,
+) -> NativeJsonOutcome {
+    invoke_agent(|session| async move {
+        session
+            .agent_presentation_snapshot(LocalAppAgentHandleRequest {
+                agent_handle: input.agent_handle,
+            })
+            .await
+    })
+    .await
+}
+
+#[napi(js_name = "localAppAgentCommitPresentation")]
+pub async fn local_app_agent_commit_presentation(
+    input: NativeAgentCommitPresentationInput,
+) -> NativeJsonOutcome {
+    let revision = match decimal_revision(&input.expected_presentation_revision, true) {
+        Ok(value) => value,
+        Err(error) => return NativeJsonOutcome::error(error),
+    };
+    invoke_agent(|session| async move {
+        session
+            .agent_commit_presentation(LocalAppAgentCommitPresentationRequest {
+                agent_handle: input.agent_handle,
+                expected_presentation_revision: revision,
+                intent: input.intent,
+                imported_assets: input.imported_assets,
+            })
+            .await
+    })
+    .await
+}
+
 #[napi(js_name = "localAppStorageReadJson")]
 pub async fn local_app_storage_read_json(input: NativeStorageReadInput) -> NativeJsonOutcome {
     invoke_agent(|session| async move {
@@ -443,6 +529,22 @@ where
     }
 }
 
+fn decimal_revision(value: &str, allow_zero: bool) -> Result<u64, LocalAppOperationError> {
+    if value.is_empty()
+        || (value.len() > 1 && value.starts_with('0'))
+        || (!allow_zero && value == "0")
+        || !value.bytes().all(|byte| byte.is_ascii_digit())
+    {
+        return Err(LocalAppOperationError::new(
+            LocalAppReasonCode::InvalidPayload,
+            false,
+        ));
+    }
+    value
+        .parse::<u64>()
+        .map_err(|_| LocalAppOperationError::new(LocalAppReasonCode::InvalidPayload, false))
+}
+
 async fn current_or_open_session() -> Result<Arc<dyn NimiLocalAppSession>, LocalAppOperationError> {
     let mut current = LOCAL_APP_SESSION.lock().await;
     if let Some(session) = current.as_ref() {
@@ -511,5 +613,19 @@ mod session_rebind_tests {
         assert!(invalidates_local_app_session(
             LocalAppReasonCode::RuntimeServiceErrorUnclassified
         ));
+    }
+
+    #[test]
+    fn configure_revisions_are_canonical_decimal_values() {
+        assert_eq!(
+            decimal_revision("0", true).expect("initial presentation"),
+            0
+        );
+        assert!(decimal_revision("0", false).is_err());
+        assert!(decimal_revision("01", true).is_err());
+        assert_eq!(
+            decimal_revision(&u64::MAX.to_string(), false).expect("u64 max"),
+            u64::MAX,
+        );
     }
 }

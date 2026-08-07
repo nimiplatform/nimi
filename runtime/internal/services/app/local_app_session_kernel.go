@@ -255,8 +255,14 @@ func (s *Service) AuthorizeLocalAppIngress(ctx context.Context, ingress localapp
 		localappop.OperationConversationTurnSend,
 		localappop.OperationConversationTurnInterrupt,
 		localappop.OperationConversationEventsSubscribe,
-		localappop.OperationConversationSnapshotGet:
-		capability = "agent.local"
+		localappop.OperationConversationSnapshotGet,
+		localappop.OperationAgentAIConfigGet,
+		localappop.OperationAgentAIConfigOverwrite,
+		localappop.OperationAgentAutonomySnapshotGet,
+		localappop.OperationAgentAutonomyUpdate,
+		localappop.OperationAgentPresentationSnapshotGet,
+		localappop.OperationAgentPresentationCommit:
+		capability = string(admission.Domain)
 	default:
 		ownerSupported = false
 	}

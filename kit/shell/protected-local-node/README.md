@@ -9,13 +9,16 @@ main processes. The addon exposes exact Local App operations, including:
 - Realm world-core list and create;
 - App storage read, write, and remove;
 - session-scoped Agent reference listing; and
-- typed text-only Conversation open, send, interrupt, snapshot, and stream lifecycle.
+- typed text-only Conversation open, send, interrupt, snapshot, and stream lifecycle;
+- shared LocalAgent-subsystem AIConfig read and overwrite; and
+- Agent autonomy snapshot/update and presentation snapshot/commit with independent revision CAS.
 
 Runtime derives the App AIConfig owner and every Agent authority input from the
 authenticated Local App process binding. Agent operations accept only opaque
-session-scoped handles and typed Conversation inputs; the addon exposes no rich
-Agent configuration, presentation, autonomy, Artifact, or generic messaging
-surface.
+session-scoped handles and typed configuration inputs. The shared AIConfig
+surface carries no Agent handle, while presentation commit returns the bounded
+previous profile needed for restore. The addon exposes no AI profile mutation,
+Artifact, or generic messaging surface.
 
 For Nimi Desktop it additionally exposes the generated first-party product
 families:

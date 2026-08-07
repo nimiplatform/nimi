@@ -2,6 +2,18 @@
 // @generated from protobuf file "runtime/v1/agent_service.proto" (package "nimi.runtime.v1", syntax proto3)
 // tslint:disable
 // @ts-nocheck
+import { LocalAppAgentCommitPresentationResponse } from "./agent_configure";
+import { CommitLocalAppAgentPresentationRequest } from "./agent_configure";
+import { LocalAppAgentPresentationSnapshotResponse } from "./agent_configure";
+import { GetLocalAppAgentPresentationSnapshotRequest } from "./agent_configure";
+import { LocalAppAgentUpdateAutonomyResponse } from "./agent_configure";
+import { UpdateLocalAppAgentAutonomyRequest } from "./agent_configure";
+import { LocalAppAgentAutonomySnapshotResponse } from "./agent_configure";
+import { GetLocalAppAgentAutonomySnapshotRequest } from "./agent_configure";
+import { OverwriteLocalAppSharedLocalAgentAIConfigResponse } from "./agent_configure";
+import { OverwriteLocalAppSharedLocalAgentAIConfigRequest } from "./agent_configure";
+import { GetLocalAppSharedLocalAgentAIConfigResponse } from "./agent_configure";
+import { GetLocalAppSharedLocalAgentAIConfigRequest } from "./agent_configure";
 import { GetDelegatedControlSurfaceSnapshotResponse } from "./delegated_control";
 import { GetDelegatedControlSurfaceSnapshotRequest } from "./delegated_control";
 import { GetDelegatedReplayTraceResponse } from "./delegated_control";

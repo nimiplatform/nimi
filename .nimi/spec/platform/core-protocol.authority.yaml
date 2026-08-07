@@ -26,7 +26,7 @@ units:
   - id: definition.nimi.platform.core-protocol.app-operation-contract
     kind: definition
     title: Canonical App operation contract
-    meaning: The closed initial App operation contract contains exactly fourteen mappings—runtime.app-storage.json.read as Base, runtime.app-storage.json.write as Base, runtime.app-storage.json.remove as Base, runtime.ai.app-config.get as Base, runtime.ai.app-config.overwrite as Base, realm.world-core.list as AppAccess realm.data, realm.world-core.create as AppAccess realm.data, runtime.ai.text-candidate.generate as AppAccess runtime.consume, runtime.agent.reference.list as AppAccess agent.local, runtime.agent.conversation.open as AppAccess agent.local, runtime.agent.conversation.turn.send as AppAccess agent.local, runtime.agent.conversation.turn.interrupt as AppAccess agent.local, runtime.agent.conversation.events.subscribe as AppAccess agent.local, and runtime.agent.conversation.snapshot.get as AppAccess agent.local; each AppOperationId is a stable callable identity derived by Runtime from the typed protected ingress rather than caller-supplied classification, authority, exact handler identity, implementation detail, or an extensible public catalog.
+    meaning: The closed App operation contract contains exactly twenty mappings—runtime.app-storage.json.read as Base, runtime.app-storage.json.write as Base, runtime.app-storage.json.remove as Base, runtime.ai.app-config.get as Base, runtime.ai.app-config.overwrite as Base, realm.world-core.list as AppAccess realm.data, realm.world-core.create as AppAccess realm.data, runtime.ai.text-candidate.generate as AppAccess runtime.consume, runtime.agent.reference.list as AppAccess agent.local, runtime.agent.conversation.open as AppAccess agent.local, runtime.agent.conversation.turn.send as AppAccess agent.local, runtime.agent.conversation.turn.interrupt as AppAccess agent.local, runtime.agent.conversation.events.subscribe as AppAccess agent.local, runtime.agent.conversation.snapshot.get as AppAccess agent.local, runtime.agent.ai-config.get as AppAccess agent.configure, runtime.agent.ai-config.overwrite as AppAccess agent.configure, runtime.agent.autonomy.snapshot.get as AppAccess agent.configure, runtime.agent.autonomy.update as AppAccess agent.configure, runtime.agent.presentation.snapshot.get as AppAccess agent.configure, and runtime.agent.presentation.commit as AppAccess agent.configure; each AppOperationId is a stable callable identity derived by Runtime from the typed protected ingress rather than caller-supplied classification, authority, exact handler identity, implementation detail, or an extensible public catalog.
     relations:
       - type: supersedes
         target: definition.nimi.platform.core-protocol.protected-app-authorization
@@ -273,9 +273,9 @@ units:
         target: definition.nimi.platform.core-protocol.effective-app-access-snapshot
   - id: rule.nimi.platform.core-protocol.p-proto-021
     kind: rule
-    title: P-PROTO-021 canonical fourteen-operation mapping
+    title: P-PROTO-021 canonical twenty-operation mapping
     modality: must_not
-    statement: An App, declaration, SDK, Host, manifest, catalog, endpoint string, free-form scope, or owner-local allowlist adds, aliases, reclassifies, or widens an AppOperationId or changes its one Base or AppAccess domain mapping outside the canonical fourteen-row contract.
+    statement: An App, declaration, SDK, Host, manifest, catalog, endpoint string, free-form scope, or owner-local allowlist adds, aliases, reclassifies, or widens an AppOperationId or changes its one Base or AppAccess domain mapping outside the canonical twenty-row contract.
     condition: Whenever an App operation is declared, admitted, mapped, or described.
     failure: Reject the unknown, aliased, duplicated, or mismapped operation and use only the stable callable identity selected by the typed protected ingress and its canonical mapping.
     relations:
@@ -962,9 +962,9 @@ units:
     kind: rule
     title: compliance-test-matrix L1 App access compatibility
     modality: must
-    statement: Local App access compatibility preserves Desktop-verified exact Host launch, a fresh process-bound session and snapshot derived without caller-supplied protected context, exactly five Base rows plus nine AppAccess rows across three declared domains, and typed SDK and Host projections without credential, generic Runtime forwarder, permission, grant, or project-consent surfaces.
+    statement: Local App access compatibility preserves Desktop-verified exact Host launch, a fresh process-bound session and snapshot derived without caller-supplied protected context, exactly five Base rows plus fifteen AppAccess rows across four declared domains, and typed SDK and Host projections without credential, generic Runtime forwarder, permission, grant, or project-consent surfaces.
     condition: Whenever the local App session, operation contract, or consumer projection changes.
-    failure: Reject the change when session opening gains caller-supplied access truth, the fourteen-row mapping diverges, or a consumer gains credential, owner, generic-forwarding, or durable access state.
+    failure: Reject the change when session opening gains caller-supplied access truth, the twenty-row mapping diverges, or a consumer gains credential, owner, generic-forwarding, or durable access state.
     relations:
       - type: applies_to
         target: definition.nimi.platform.core-protocol.app-operation-contract

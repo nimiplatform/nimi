@@ -174,7 +174,7 @@ func TestLocalAppSessionCurrentUserProjectionAndFailureIsolation(t *testing.T) {
 }
 
 func TestLocalAppSessionOwnerHandoffContainsOnlyRuntimeDerivedAdmission(t *testing.T) {
-	fixture := newLocalAppSessionFixture(t, []string{"realm.data"})
+	fixture := newLocalAppSessionFixture(t, []string{"realm.data", "agent.local", "agent.configure"})
 	if _, err := fixture.service.OpenLocalAppSessionProjection(fixture.context); err != nil {
 		t.Fatal(err)
 	}
@@ -198,6 +198,14 @@ func TestLocalAppSessionOwnerHandoffContainsOnlyRuntimeDerivedAdmission(t *testi
 		localappop.IngressRealmWorldCoreList: {
 			operation: accountservice.LocalAppOperationRealmWorldCoreList,
 			class:     localappop.AuthorityClassAppAccess, capability: "realm.world-core.list",
+		},
+		localappop.IngressConversationOpen: {
+			operation: accountservice.LocalAppOperationOpenConversation,
+			class:     localappop.AuthorityClassAppAccess, capability: "agent.local",
+		},
+		localappop.IngressAgentAIConfigGet: {
+			operation: accountservice.LocalAppOperationSharedAIConfigGet,
+			class:     localappop.AuthorityClassAppAccess, capability: "agent.configure",
 		},
 	} {
 		authorized, err := fixture.service.AuthorizeLocalAppIngress(fixture.context, ingress)
@@ -224,6 +232,43 @@ func TestLocalAppSessionSnapshotMissingFailsClosed(t *testing.T) {
 	fixture.service.localAppSessions[fixture.connection] = session
 	fixture.service.localAppSessionMu.Unlock()
 	assertLocalAppReason(t, fixture.service.AdmitLocalAppIngress(fixture.context, localappop.IngressStorageJSONRead), runtimev1.ReasonCode_LOCAL_APP_SNAPSHOT_UNAVAILABLE)
+}
+
+func TestLocalAppSessionAgentConfigureRequiresIndependentDeclarationDomain(t *testing.T) {
+	localOnly := newLocalAppSessionFixture(t, []string{"agent.local"})
+	if _, err := localOnly.service.OpenLocalAppSessionProjection(localOnly.context); err != nil {
+		t.Fatal(err)
+	}
+	if err := localOnly.service.AdmitLocalAppIngress(localOnly.context, localappop.IngressConversationOpen); err != nil {
+		t.Fatalf("agent.local conversation admission: %v", err)
+	}
+	for _, ingress := range []localappop.Ingress{
+		localappop.IngressAgentAIConfigGet,
+		localappop.IngressAgentAIConfigOverwrite,
+		localappop.IngressAgentAutonomySnapshotGet,
+		localappop.IngressAgentAutonomyUpdate,
+		localappop.IngressAgentPresentationSnapshotGet,
+		localappop.IngressAgentPresentationCommit,
+	} {
+		assertLocalAppReason(
+			t,
+			localOnly.service.AdmitLocalAppIngress(localOnly.context, ingress),
+			runtimev1.ReasonCode_LOCAL_APP_ACCESS_DENIED,
+		)
+	}
+
+	configureOnly := newLocalAppSessionFixture(t, []string{"agent.configure"})
+	if _, err := configureOnly.service.OpenLocalAppSessionProjection(configureOnly.context); err != nil {
+		t.Fatal(err)
+	}
+	if err := configureOnly.service.AdmitLocalAppIngress(configureOnly.context, localappop.IngressAgentAIConfigGet); err != nil {
+		t.Fatalf("agent.configure admission: %v", err)
+	}
+	assertLocalAppReason(
+		t,
+		configureOnly.service.AdmitLocalAppIngress(configureOnly.context, localappop.IngressConversationOpen),
+		runtimev1.ReasonCode_LOCAL_APP_ACCESS_DENIED,
+	)
 }
 
 func assertLocalAppReason(t testing.TB, err error, want runtimev1.ReasonCode) {

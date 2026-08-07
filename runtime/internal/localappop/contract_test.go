@@ -10,28 +10,39 @@ func TestCanonicalAppOperationContractIsExactUniqueAndExplicit(t *testing.T) {
 	if err := validateContractRows(canonicalAppOperationContract[:]); err != nil {
 		t.Fatal(err)
 	}
-	got := make([]string, 0, len(canonicalAppOperationContract))
-	for _, row := range canonicalAppOperationContract {
-		got = append(got, row.id)
+	type expectedRow struct {
+		id     string
+		class  AuthorityClass
+		domain Domain
 	}
-	want := []string{
-		"runtime.app-storage.json.read",
-		"runtime.app-storage.json.write",
-		"runtime.app-storage.json.remove",
-		"runtime.ai.app-config.get",
-		"runtime.ai.app-config.overwrite",
-		"realm.world-core.list",
-		"realm.world-core.create",
-		"runtime.ai.text-candidate.generate",
-		"runtime.agent.reference.list",
-		"runtime.agent.conversation.open",
-		"runtime.agent.conversation.turn.send",
-		"runtime.agent.conversation.turn.interrupt",
-		"runtime.agent.conversation.events.subscribe",
-		"runtime.agent.conversation.snapshot.get",
+	got := make([]expectedRow, 0, len(canonicalAppOperationContract))
+	for _, row := range canonicalAppOperationContract {
+		got = append(got, expectedRow{id: row.id, class: row.class, domain: row.domain})
+	}
+	want := []expectedRow{
+		{id: "runtime.app-storage.json.read", class: AuthorityClassBase},
+		{id: "runtime.app-storage.json.write", class: AuthorityClassBase},
+		{id: "runtime.app-storage.json.remove", class: AuthorityClassBase},
+		{id: "runtime.ai.app-config.get", class: AuthorityClassBase},
+		{id: "runtime.ai.app-config.overwrite", class: AuthorityClassBase},
+		{id: "realm.world-core.list", class: AuthorityClassAppAccess, domain: "realm.data"},
+		{id: "realm.world-core.create", class: AuthorityClassAppAccess, domain: "realm.data"},
+		{id: "runtime.ai.text-candidate.generate", class: AuthorityClassAppAccess, domain: "runtime.consume"},
+		{id: "runtime.agent.reference.list", class: AuthorityClassAppAccess, domain: "agent.local"},
+		{id: "runtime.agent.conversation.open", class: AuthorityClassAppAccess, domain: "agent.local"},
+		{id: "runtime.agent.conversation.turn.send", class: AuthorityClassAppAccess, domain: "agent.local"},
+		{id: "runtime.agent.conversation.turn.interrupt", class: AuthorityClassAppAccess, domain: "agent.local"},
+		{id: "runtime.agent.conversation.events.subscribe", class: AuthorityClassAppAccess, domain: "agent.local"},
+		{id: "runtime.agent.conversation.snapshot.get", class: AuthorityClassAppAccess, domain: "agent.local"},
+		{id: "runtime.agent.ai-config.get", class: AuthorityClassAppAccess, domain: "agent.configure"},
+		{id: "runtime.agent.ai-config.overwrite", class: AuthorityClassAppAccess, domain: "agent.configure"},
+		{id: "runtime.agent.autonomy.snapshot.get", class: AuthorityClassAppAccess, domain: "agent.configure"},
+		{id: "runtime.agent.autonomy.update", class: AuthorityClassAppAccess, domain: "agent.configure"},
+		{id: "runtime.agent.presentation.snapshot.get", class: AuthorityClassAppAccess, domain: "agent.configure"},
+		{id: "runtime.agent.presentation.commit", class: AuthorityClassAppAccess, domain: "agent.configure"},
 	}
 	if !reflect.DeepEqual(got, want) {
-		t.Fatalf("canonical AppOperationIds = %#v", got)
+		t.Fatalf("canonical App operation map = %#v, want %#v", got, want)
 	}
 
 	duplicate := append([]contractRow(nil), canonicalAppOperationContract[:]...)

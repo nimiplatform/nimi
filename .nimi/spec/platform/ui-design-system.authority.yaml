@@ -460,9 +460,9 @@ units:
     kind: rule
     title: P-AGENT-CENTER-001 public Kit surface ownership
     modality: must
-    statement: Kit owns the first-party AgentCenter component's shared layout, typed controls, loading, failure, disabled, and responsive behavior for Nimi-owned first-party consumers while combining Runtime-owned LocalAgent projections with bounded Kit Shell asset custody; third-party Apps receive only their central App Operation Contract surface and never the AgentCenter manager surface.
+    statement: Kit owns the AgentCenter component's shared layout, typed controls, loading, failure, disabled, and responsive behavior while combining Runtime-owned LocalAgent projections with bounded Kit Shell asset custody; current product rollout stages the bundled Nimi-owned Zhiyu integration first through the admitted agent configuration operation family of the canonical App Operation Contract, but this staging order neither changes Runtime operation admission nor creates a permanent App eligibility class for later public Kit consumers.
     condition: Whenever AgentCenter is rendered or integrated.
-    failure: Reject an app fork of shared behavior, third-party manager exposure, or ownership transfer of Runtime LocalAgent truth.
+    failure: Reject an app fork of shared behavior, a private operation path, treatment of rollout staging as access eligibility, or ownership transfer of Runtime LocalAgent truth.
     relations:
       - type: applies_to
         target: definition.nimi.platform.core-protocol.app-operation-contract
@@ -482,11 +482,11 @@ units:
         target: definition.nimi.platform.ui-design-system.runtime-projection
   - id: rule.nimi.platform.ui-design-system.p-agent-center-001c
     kind: rule
-    title: P-AGENT-CENTER-001 bounded first-party integration
+    title: P-AGENT-CENTER-001 bounded staged integration
     modality: must
-    statement: Nimi-owned first-party consumers may place AgentCenter and supply presentation-tier inputs for standalone or embedded chrome, layout, density, and active semantic area plus admitted typed adapters, copy, navigation, and placement callbacks, while access facts, arbitrary feature panels, private bridges, raw context, prompts, Memory or Knowledge content, proof, provider, credential, and tool payloads remain outside component props; no third-party App integration or factory is admitted.
-    condition: Whenever a first-party consumer integrates AgentCenter.
-    failure: Reject third-party integration, an authority-bearing prop, untyped or App-authoritative input, raw data, or speculative integration.
+    statement: AgentCenter consumers may supply presentation-tier inputs for standalone or embedded chrome, layout, density, and active semantic area plus admitted typed adapters, copy, navigation, and placement callbacks, while access facts, arbitrary feature panels, private bridges, raw context, prompts, Memory or Knowledge content, proof, provider, credential, and tool payloads remain outside component props; Zhiyu is the current staged integration for refining this composition, and a later App may integrate through the same public Kit surface and its separately admitted canonical App operations without belonging to an incubated-App category.
+    condition: Whenever a consumer integrates AgentCenter or a staged rollout is evaluated.
+    failure: Reject an authority-bearing prop, untyped or App-authoritative input, raw data, private adapter, speculative integration, or treatment of the current staging sequence as a permanent eligibility boundary.
     relations:
       - type: applies_to
         target: definition.nimi.platform.ui-design-system.agent-center-surface
@@ -950,7 +950,7 @@ units:
     kind: rule
     title: P-KIT-044 exact local-app carrier boundary
     modality: must
-    statement: Kit never creates or accepts account authority, registered App subject, provenance, declaration generation, snapshot, AppOperationId, AppAccessDomainId, classification, launch witness, process proof, session identity, endpoint, or security truth; qualified Hosts share one typed Runtime-bound App client exposing only purpose-specific methods from the central App Operation Contract, while Runtime alone evaluates each call against its current private Effective App Access Snapshot; the client projects the current-user display fields handle, displayName, and avatarUrl and may project current-account active Agent references as non-secret session-scoped opaque selectors that are revalidated by the owner on every operation and never act as a bearer, durable identity, or authorization record; no generic Realm or Runtime proxy, renderer-supplied operation identity, filesystem fallback, caller-built authorization, credential, direct Avatar control, embedded rendering, private Runtime Agent Service, voice, attachment, autonomy, presentation-mutation, or shared LocalAgent AIConfig third-party surface exists, while App-native data and commands remain App-owned and protected identity material remains host-private.
+    statement: Kit never creates or accepts account authority, registered App subject, provenance, declaration generation, snapshot, AppOperationId, AppAccessDomainId, classification, launch witness, process proof, session identity, endpoint, or security truth; qualified Hosts share one typed Runtime-bound App client exposing only purpose-specific methods from the central App Operation Contract, including the six agent.configure configuration methods, while Runtime alone evaluates each call against its current private Effective App Access Snapshot; the client projects the current-user display fields handle, displayName, and avatarUrl and may project current-account active Agent references as non-secret session-scoped opaque selectors that are revalidated by the owner on every operation and never act as a bearer, durable identity, or authorization record; no generic Realm or Runtime proxy, renderer-supplied operation identity, filesystem fallback, caller-built authorization, credential, direct Avatar control, embedded rendering, private Runtime Agent Service, voice, attachment, or configuration surface outside that canonical contract exists, while App-native data and commands remain App-owned and protected identity material remains host-private.
     condition: Whenever a local-app host opens, exposes, or uses its native session.
     failure: Reject caller-supplied authority, stale or foreign Agent selectors, root disclosure, generic forwarding, filesystem substitution, or protected-material projection before transport, preserve Runtime's typed rejection of missing snapshot coverage and unknown or unsupported operations before owner execution, and never decide App access locally.
     relations:

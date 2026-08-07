@@ -12,7 +12,8 @@ Runtime access through the explicit `electron-ipc` transport.
 
 Desktop-supervised local apps register the fixed catalogued Local App host from
 their Electron main process. The admitted surface includes Runtime-selected
-foreground text candidate generation:
+foreground text candidate generation and the six protected Agent configuration
+operations:
 
 ```ts
 import { registerNimiElectronAppBridge } from '@nimiplatform/kit/shell/electron/main';
@@ -46,6 +47,6 @@ native-host injection, capability-set selection, or command-handler input.
   executable/service/path selection, generic config JSON, bearer injection and
   renderer-visible protected material are forbidden.
 - The local-app entrypoint owns the narrowed protected carrier/session and
-  admits only session/permission posture, Runtime artifact read, and the
-  selected RuntimeAgent conversation operations. Launch metadata,
-  app-selected carrier authority, and generic gRPC proxying fail closed.
+  admits only the catalogued App, storage, WorldCore, conversation, and Agent
+  configuration operations. Launch metadata, app-selected carrier authority,
+  AI profile mutation, Artifact access, and generic gRPC proxying fail closed.

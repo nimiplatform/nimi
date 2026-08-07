@@ -107,14 +107,20 @@ export {
   createNimiLocalAppStandardShellSurface,
   createNimiLocalAppWorldCore,
   generateNimiLocalAppTextCandidate,
+  getNimiLocalAppAgentAutonomySnapshot,
+  getNimiLocalAppAgentPresentationSnapshot,
   getNimiLocalAppConversationSnapshot,
   getNimiLocalAppSessionStatus,
+  getNimiLocalAppSharedAgentAIConfig,
   listNimiLocalAppWorldCores,
   openNimiLocalAppConversation,
+  overwriteNimiLocalAppSharedAgentAIConfig,
   readNimiLocalAppStorageJson,
   removeNimiLocalAppStorageJson,
   sendNimiLocalAppConversationTurn,
   subscribeNimiLocalAppConversation,
+  commitNimiLocalAppAgentPresentation,
+  updateNimiLocalAppAgentAutonomy,
   writeNimiLocalAppStorageJson,
 } from './local-app.js';
 export {
@@ -171,6 +177,7 @@ export type {
   AgentCenterShellHostScope,
 } from './agent-center.js';
 export type {
+  NimiLocalAppAgentConfigureShellSurface,
   NimiLocalAppConversationScopeInput,
   NimiLocalAppConversationSubscription,
   NimiLocalAppSessionStatus,

@@ -28,11 +28,20 @@ describe('Electron protected local-app host', () => {
     }
   });
 
-  it('physically omits the retired access-workflow namespace', () => {
+  it('exposes only configuration methods alongside the protected session surface', () => {
     const host = createNimiElectronLocalAppHostForBinding(binding([])) as unknown as Record<string, unknown>;
-    expect(Object.keys(host)).not.toContain('permission');
-    expect(Object.keys(host).some((key) => /request|grant|revoke/iu.test(key))).toBe(false);
-    expect(Object.keys(host).some((key) => /artifact|configure|autonomy|presentation/iu.test(key))).toBe(false);
+    const methods = Object.getOwnPropertyNames(Object.getPrototypeOf(host));
+    expect(methods).not.toContain('permission');
+    expect(methods.some((key) => /request|grant|revoke/iu.test(key))).toBe(false);
+    expect(methods.some((key) => /artifact/iu.test(key))).toBe(false);
+    expect(methods).toEqual(expect.arrayContaining([
+      'sharedAgentAIConfigGet',
+      'sharedAgentAIConfigOverwrite',
+      'agentAutonomySnapshot',
+      'agentUpdateAutonomy',
+      'agentPresentationSnapshot',
+      'agentCommitPresentation',
+    ]));
   });
 
   it('forwards exact WorldCore, app-private storage, and typed conversation operations', async () => {
@@ -58,6 +67,51 @@ describe('Electron protected local-app host', () => {
       'localAppStorageReadJson',
       'localAppAgentReferenceList',
       'localAppConversationOpen',
+    ]);
+  });
+
+  it('forwards the exact Agent configuration payloads and restore projection', async () => {
+    const calls: Array<{ method: string; input?: unknown }> = [];
+    const host = createNimiElectronLocalAppHostForBinding(binding(calls));
+    const handle = 'agent_ref_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA';
+    const autonomyUpdate = {
+      agentHandle: handle, expectedAutonomyRevision: '1', intent: { enabled: true },
+    };
+    const presentationCommit = {
+      agentHandle: handle,
+      expectedPresentationRevision: '0',
+      intent: {
+        backendKind: 'vrm', avatarAssetRef: '', expressionProfileRef: '', idlePreset: '',
+        interactionPolicyRef: '', defaultVoiceReference: '', avatarAutoplay: false,
+        backgroundAssetRef: '',
+      },
+      importedAssets: [{
+        role: 'avatar', fileName: 'avatar.vrm', mediaType: 'model/gltf-binary',
+        content: [1, 2, 255], sha256: 'abc123',
+      }],
+    };
+
+    await expect(host.sharedAgentAIConfigGet()).resolves.toMatchObject({ capabilities: [] });
+    await expect(host.sharedAgentAIConfigOverwrite({ capabilities: [] }))
+      .resolves.toMatchObject({ capabilities: [] });
+    await expect(host.agentAutonomySnapshot({ agentHandle: handle }))
+      .resolves.toMatchObject({ autonomyRevision: '1' });
+    await expect(host.agentUpdateAutonomy(autonomyUpdate))
+      .resolves.toMatchObject({ autonomyRevision: '2' });
+    await expect(host.agentPresentationSnapshot({ agentHandle: handle }))
+      .resolves.toMatchObject({ presentationRevision: '1' });
+    await expect(host.agentCommitPresentation(presentationCommit)).resolves.toMatchObject({
+      presentationRevision: '2',
+      previousProfile: { backendKind: 'sprite2d', revision: '1' },
+    });
+
+    expect(calls).toEqual([
+      { method: 'localAppSharedAgentAIConfigGet' },
+      { method: 'localAppSharedAgentAIConfigOverwrite', input: { capabilities: [] } },
+      { method: 'localAppAgentAutonomySnapshot', input: { agentHandle: handle } },
+      { method: 'localAppAgentUpdateAutonomy', input: autonomyUpdate },
+      { method: 'localAppAgentPresentationSnapshot', input: { agentHandle: handle } },
+      { method: 'localAppAgentCommitPresentation', input: presentationCommit },
     ]);
   });
 
@@ -239,6 +293,35 @@ function binding(calls: Array<{ method: string; input?: unknown }>) {
       displayName: 'Agent One',
       avatarUrl: null,
     }]),
+    localAppSharedAgentAIConfigGet: record('localAppSharedAgentAIConfigGet', {
+      owner: { owner: { oneofKind: 'runtimeLocalAgentSubsystem', runtimeLocalAgentSubsystem: {} } },
+      capabilities: [],
+    }),
+    localAppSharedAgentAIConfigOverwrite: record('localAppSharedAgentAIConfigOverwrite', {
+      owner: { owner: { oneofKind: 'runtimeLocalAgentSubsystem', runtimeLocalAgentSubsystem: {} } },
+      capabilities: [],
+    }),
+    localAppAgentAutonomySnapshot: record('localAppAgentAutonomySnapshot', {
+      enabled: false, config: null, usedTokensInWindow: 0, budgetExhausted: false,
+      autonomyRevision: '1',
+    }),
+    localAppAgentUpdateAutonomy: record('localAppAgentUpdateAutonomy', {
+      enabled: true, config: null, usedTokensInWindow: 0, budgetExhausted: false,
+      autonomyRevision: '2',
+    }),
+    localAppAgentPresentationSnapshot: record('localAppAgentPresentationSnapshot', {
+      profile: null, previousProfile: null, defaultVoiceReference: '', presentationRevision: '1',
+    }),
+    localAppAgentCommitPresentation: record('localAppAgentCommitPresentation', {
+      profile: null,
+      previousProfile: {
+        backendKind: 'sprite2d', avatarAssetRef: 'asset://previous', expressionProfileRef: '',
+        idlePreset: '', interactionPolicyRef: '', defaultVoiceReference: '',
+        avatarAutoplay: false, backgroundAssetRef: '', revision: '1',
+      },
+      defaultVoiceReference: '',
+      presentationRevision: '2',
+    }),
     localAppStorageReadJson: record('localAppStorageReadJson', { value: { version: 1 }, sizeBytes: 13 }),
     localAppStorageWriteJson: record('localAppStorageWriteJson', { value: { version: 2 }, sizeBytes: 13 }),
     localAppStorageRemoveJson: record('localAppStorageRemoveJson', { removed: false }),

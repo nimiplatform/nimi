@@ -42,7 +42,12 @@ pub(crate) async fn get_account_session_status(
     channel: Channel,
     request: DesktopAccountSessionStatusRequest,
 ) -> Result<DesktopAccountSessionStatus, NimiHostError> {
-    let request = build_request(request)?;
+    // Runtime accepts the owner-only socket before protected services finish
+    // their ready transition; without a deadline a cold-boot status call can
+    // hang forever and pin the verified channel slot. DeadlineExceeded maps
+    // to retryable runtime-service-unavailable, which also evicts the channel.
+    let mut request = build_request(request)?;
+    request.set_timeout(std::time::Duration::from_secs(30));
     let response = RuntimeAccountServiceClient::new(channel)
         .get_account_session_status(request)
         .await

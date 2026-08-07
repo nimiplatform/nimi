@@ -9,7 +9,7 @@ units:
   - id: definition.nimi.platform.app-ecosystem.local-agent-projection
     kind: definition
     title: LocalAgent consumer projection
-    meaning: Nimi-owned Home, Zhiyu, and Avatar may consume rich Runtime LocalAgent messages, state, activity, emotion, voice, and errors under their owner contracts; supported Third-party Apps consume only the six agent.local rows of the canonical App operation contract—Agent reference listing plus five conversation operations—and receive no voice, presentation, autonomy, or other rich first-party projection. Neither projection creates a separate identity or owns LocalAgent execution truth.
+    meaning: Nimi-owned Home, Zhiyu, and Avatar may consume rich Runtime LocalAgent messages, state, activity, emotion, voice, and errors under their owner contracts; supported Third-party Apps consume only the agent.local and agent.configure rows of the canonical App operation contract—Agent reference listing, five conversation operations, and the bounded agent configuration family—and receive no voice, avatar render, or other rich first-party projection beyond that contract. Neither projection creates a separate identity or owns LocalAgent execution truth.
   - id: definition.nimi.platform.app-ecosystem.character-local-agent-model
     kind: definition
     title: Realm Character and Runtime LocalAgent model
@@ -29,7 +29,7 @@ units:
   - id: definition.nimi.platform.app-ecosystem.projection-lifecycle
     kind: definition
     title: LocalAgent app access lifecycle
-    meaning: Third-party App LocalAgent access is an immediate fact derived from one current Runtime-protected App session, its Effective App Access Snapshot coverage for agent.local, a session-scoped opaque Agent reference handle, the exact operation, and the current owner lifecycle; it is neither durable authorization nor a grant carried by the handle.
+    meaning: Third-party App LocalAgent access is an immediate fact derived from one current Runtime-protected App session, its Effective App Access Snapshot coverage for the exact operation's canonical declaration domain, any operation-required session-scoped opaque Agent reference handle, and the current owner lifecycle; it is neither durable authorization nor access state carried by the handle.
   - id: rule.nimi.platform.app-ecosystem.p-agid-001a
     kind: rule
     title: P-AGID-001 Character-sourced LocalAgent identity
@@ -188,7 +188,7 @@ units:
     kind: rule
     title: P-AGID-009 current-account Agent reference projection
     modality: must
-    statement: runtime.agent.reference.list returns every current-account active Runtime LocalAgent as exactly {agentHandle, displayName, avatarUrl}; agentHandle is session-scoped and opaque, avatarUrl is nullable and when present is a safe-display URL containing no bearer, token, private signature, credential-like query, internal endpoint, or local sensitive path, and the projection is the resource-reachability entry for the five admitted conversation operations rather than a permission scope or exposure of internal Agent inventory.
+    statement: runtime.agent.reference.list returns every current-account active Runtime LocalAgent as exactly {agentHandle, displayName, avatarUrl}; agentHandle is session-scoped and opaque, avatarUrl is nullable and when present is a safe-display URL containing no bearer, token, private signature, credential-like query, internal endpoint, or local sensitive path, and the projection is the resource-reachability entry for admitted agent.local conversation operations and, when separately covered, per-Agent agent.configure operations rather than an access scope or exposure of internal Agent inventory.
     condition: Whenever an App with current agent.local snapshot coverage invokes runtime.agent.reference.list.
     failure: Deny the operation when current account, snapshot coverage, or owner projection is unavailable and return no raw localAgentId, source identity, account identity, credential, configuration, Memory, Knowledge, or internal inventory field.
     relations:
@@ -206,6 +206,28 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.platform.app-ecosystem.projection-lifecycle
+  - id: rule.nimi.platform.app-ecosystem.p-agid-010a
+    kind: rule
+    title: P-AGID-010 session-derived agent configuration access
+    modality: must
+    statement: Each agent configuration operation is admitted only from the current protected App session with Effective App Access Snapshot coverage for agent.configure; shared AIConfig operations resolve the singular Runtime LocalAgent subsystem owner without an Agent handle, and per-Agent autonomy or presentation operations present the session-scoped opaque Agent reference handle with per-call current-account active-Agent revalidation and preserve independent autonomy and presentation revisions through typed conflict results.
+    condition: Whenever an App invokes an agent configuration operation.
+    failure: Fail closed without owner mutation when the session, snapshot coverage, handle, or revision is missing, stale, or conflicting.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.app-ecosystem.agent-configuration-operation-family
+      - type: applies_to
+        target: definition.nimi.platform.app-ecosystem.projection-lifecycle
+  - id: rule.nimi.platform.app-ecosystem.p-agid-010b
+    kind: rule
+    title: P-AGID-010 no app-owned AI or configuration truth
+    modality: must_not
+    statement: An App agent configuration surface carries a secondary per-Agent access workflow or decision state, addresses the shared LocalAgent AIConfig by Agent handle, merges or versions AIConfig, stores Provider Credentials, selects an execution route or model as Runtime truth, or infers readiness, Quota, Budget, or fallback.
+    condition: Whenever an App presents or mutates agent configuration.
+    failure: Reject the carrier, cross-owner mutation, or invented truth and keep Runtime owner state unchanged.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.app-ecosystem.agent-configuration-operation-family
   - id: definition.nimi.platform.app-ecosystem.app-permission
     kind: definition
     lifecycle: removed
@@ -221,6 +243,13 @@ units:
     lifecycle: removed
     title: Retired agents.configure operation family
     reason: Removed because the initial App operation contract contains no shared Runtime LocalAgent AIConfig, autonomy, or presentation operations and introduces no per-Agent permission family.
+  - id: definition.nimi.platform.app-ecosystem.agent-configuration-operation-family
+    kind: definition
+    title: App agent configuration operation family
+    meaning: The agent configuration operation family is the bounded agent.configure App operation set runtime.agent.ai-config.get, runtime.agent.ai-config.overwrite, runtime.agent.autonomy.snapshot.get, runtime.agent.autonomy.update, runtime.agent.presentation.snapshot.get, and runtime.agent.presentation.commit; the shared Runtime LocalAgent subsystem AIConfig operations resolve the singular subsystem owner without an Agent handle, while autonomy and presentation operations are addressed by the session-scoped opaque Agent reference handle and preserve only their own independent concurrency revisions and typed conflict results, all without a secondary per-Agent access-state, route, or model carrier.
+    relations:
+      - type: supersedes
+        target: definition.nimi.platform.app-ecosystem.agents-configure-operation-family
   - id: definition.nimi.platform.app-ecosystem.ai-text-generate-operation-family
     kind: definition
     lifecycle: removed
@@ -241,7 +270,7 @@ units:
   - id: definition.nimi.platform.app-ecosystem.app-access-domain
     kind: definition
     title: App access domain
-    meaning: The closed initial AppAccess domain set is exactly realm.data, runtime.consume, and agent.local; a declaration names domains rather than permissions, grants, operations, resources, or owner-internal policy, and Base operations require no declared domain.
+    meaning: The closed AppAccess domain set is exactly realm.data, runtime.consume, agent.local, and agent.configure; a declaration names domains rather than permissions, grants, operations, resources, or owner-internal policy, and Base operations require no declared domain.
   - id: definition.nimi.platform.app-ecosystem.current-user-display-projection
     kind: definition
     title: Current User Display Projection
@@ -284,7 +313,7 @@ units:
     kind: rule
     title: P-APPACC-002 closed declaration domains
     modality: must
-    statement: A Third-party App declaration may retain unknown items as raw authoring and diagnostic input, but its activated semantic set contains only the closed supported domain values realm.data, runtime.consume, and agent.local; an unknown domain remains inert for that exact declaration generation, and later Runtime support does not activate it until a new source or declaration generation is registered and a fresh protected session is created.
+    statement: A Third-party App declaration may retain unknown items as raw authoring and diagnostic input, but its activated semantic set contains only the closed supported domain values realm.data, runtime.consume, agent.local, and agent.configure; an unknown domain remains inert for that exact declaration generation, and later Runtime support does not activate it until a new source or declaration generation is registered and a fresh protected session is created.
     condition: Whenever a declaration is registered, changed, or resolved into App access.
     failure: Exclude an unknown or unsupported domain from the Effective App Access Snapshot and deny operations requiring it without creating a grant, approval flow, compatibility alias, or fallback.
     relations:
@@ -688,7 +717,7 @@ units:
     kind: rule
     title: P-NAPP-002 closed registry field semantics
     modality: must
-    statement: A registry row uses nimi-app, app-managed registration, one closed App access declaration containing zero or more of realm.data, runtime.consume, and agent.local, ordinary_visibility from ordinary-visible, hidden-internal, developer-only, or not-admitted-visible, and admission_status from admitted, gated_by_avatar_master_gate, deferred, or retired; registry or review posture never creates Runtime access, and an empty declaration remains valid.
+    statement: A registry row uses nimi-app, app-managed registration, one closed App access declaration containing zero or more of realm.data, runtime.consume, agent.local, and agent.configure, ordinary_visibility from ordinary-visible, hidden-internal, developer-only, or not-admitted-visible, and admission_status from admitted, gated_by_avatar_master_gate, deferred, or retired; registry or review posture never creates Runtime access, and an empty declaration remains valid.
     condition: Whenever registry values or visibility are evaluated.
     failure: Reject an unknown registry value or improperly visible row, keep an unknown declaration domain inert for its exact generation, and never infer Runtime access from listing or review posture.
     relations:
@@ -1525,7 +1554,7 @@ units:
     kind: rule
     title: P-ECO-005 future world and game app boundary
     modality: must
-    statement: A future world or game App remains only a registry candidate, and any cross-world or cross-game flow requires a separate owner-complete authority cut and typed projection while retaining source App, target App, and canonical App owner references on the Realm audit surface; it cannot widen the current three AppAccess domains or fourteen operations through registry, review, trust inheritance, or raw sharing.
+    statement: A future world or game App remains only a registry candidate, and any cross-world or cross-game flow requires a separate owner-complete authority cut and typed projection while retaining source App, target App, and canonical App owner references on the Realm audit surface; it cannot widen the current four AppAccess domains or twenty operations through registry, review, trust inheritance, or raw sharing.
     condition: Whenever a world or game app class or cross-app flow is proposed.
     failure: Deny admission or data flow without the separate owner authority, projection, audit reference, and trust-tier boundary.
     relations:

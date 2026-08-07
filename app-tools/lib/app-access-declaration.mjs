@@ -4,6 +4,7 @@ export const APP_ACCESS_DOMAINS = Object.freeze([
   'realm.data',
   'runtime.consume',
   'agent.local',
+  'agent.configure',
 ]);
 
 const SUPPORTED_APP_ACCESS_DOMAINS = new Set(APP_ACCESS_DOMAINS);

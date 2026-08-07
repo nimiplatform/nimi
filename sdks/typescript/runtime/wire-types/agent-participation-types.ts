@@ -34,6 +34,48 @@ export type {
 };
 
 import type {
+  CommitLocalAppAgentPresentationRequest,
+  GetLocalAppAgentAutonomySnapshotRequest,
+  GetLocalAppAgentPresentationSnapshotRequest,
+  GetLocalAppSharedLocalAgentAIConfigRequest,
+  GetLocalAppSharedLocalAgentAIConfigResponse,
+  LocalAppAgentAutonomyConfig,
+  LocalAppAgentAutonomyIntent,
+  LocalAppAgentAutonomyProjection,
+  LocalAppAgentAutonomySnapshotResponse,
+  LocalAppAgentCommitPresentationResponse,
+  LocalAppAgentPresentationIntent,
+  LocalAppAgentPresentationProjection,
+  LocalAppAgentPresentationSnapshotResponse,
+  LocalAppAgentUpdateAutonomyResponse,
+  LocalAppSharedLocalAgentAIConfigProjection,
+  OverwriteLocalAppSharedLocalAgentAIConfigRequest,
+  OverwriteLocalAppSharedLocalAgentAIConfigResponse,
+  UpdateLocalAppAgentAutonomyRequest,
+} from "../../core-generated/runtime-protobuf/runtime/v1/agent_configure";
+
+export type {
+  CommitLocalAppAgentPresentationRequest,
+  GetLocalAppAgentAutonomySnapshotRequest,
+  GetLocalAppAgentPresentationSnapshotRequest,
+  GetLocalAppSharedLocalAgentAIConfigRequest,
+  GetLocalAppSharedLocalAgentAIConfigResponse,
+  LocalAppAgentAutonomyConfig,
+  LocalAppAgentAutonomyIntent,
+  LocalAppAgentAutonomyProjection,
+  LocalAppAgentAutonomySnapshotResponse,
+  LocalAppAgentCommitPresentationResponse,
+  LocalAppAgentPresentationIntent,
+  LocalAppAgentPresentationProjection,
+  LocalAppAgentPresentationSnapshotResponse,
+  LocalAppAgentUpdateAutonomyResponse,
+  LocalAppSharedLocalAgentAIConfigProjection,
+  OverwriteLocalAppSharedLocalAgentAIConfigRequest,
+  OverwriteLocalAppSharedLocalAgentAIConfigResponse,
+  UpdateLocalAppAgentAutonomyRequest,
+};
+
+import type {
   AgentPresentationAssetMaterial,
   AgentPresentationEventDetail,
   AgentPresentationProfile,

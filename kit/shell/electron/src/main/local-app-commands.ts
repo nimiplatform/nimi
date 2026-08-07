@@ -45,6 +45,12 @@ const COMMAND_METHODS = new Map<string, RendererLocalAppHostMethod>([
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.conversationInterruptTurn'], 'conversationInterruptTurn'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.conversationSubscribe'], 'conversationSubscribe'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.conversationSnapshot'], 'conversationSnapshot'],
+  [NIMI_STANDARD_SHELL_COMMANDS['local-app.sharedAgentAIConfigGet'], 'sharedAgentAIConfigGet'],
+  [NIMI_STANDARD_SHELL_COMMANDS['local-app.sharedAgentAIConfigOverwrite'], 'sharedAgentAIConfigOverwrite'],
+  [NIMI_STANDARD_SHELL_COMMANDS['local-app.agentAutonomySnapshot'], 'agentAutonomySnapshot'],
+  [NIMI_STANDARD_SHELL_COMMANDS['local-app.agentUpdateAutonomy'], 'agentUpdateAutonomy'],
+  [NIMI_STANDARD_SHELL_COMMANDS['local-app.agentPresentationSnapshot'], 'agentPresentationSnapshot'],
+  [NIMI_STANDARD_SHELL_COMMANDS['local-app.agentCommitPresentation'], 'agentCommitPresentation'],
   [NIMI_STANDARD_SHELL_COMMANDS['storage.readJson'], 'storageReadJson'],
   [NIMI_STANDARD_SHELL_COMMANDS['storage.writeJson'], 'storageWriteJson'],
   [NIMI_STANDARD_SHELL_COMMANDS['storage.removeJson'], 'storageRemoveJson'],
@@ -69,6 +75,7 @@ export async function dispatchElectronLocalAppCommand(input: {
     if (method === 'sessionStatus') return await input.host.sessionStatus();
     if (method === 'aiConfigGet') return await input.host.aiConfigGet();
     if (method === 'agentReferenceList') return await input.host.agentReferenceList();
+    if (method === 'sharedAgentAIConfigGet') return await input.host.sharedAgentAIConfigGet();
     if (method === 'storageReadJson') return await input.host.storageReadJson(payload);
     if (method === 'storageWriteJson') return await input.host.storageWriteJson(payload);
     if (method === 'storageRemoveJson') return await input.host.storageRemoveJson(payload);
@@ -114,9 +121,18 @@ function validatePayload(
       return {};
     case 'aiConfigGet':
     case 'agentReferenceList':
+    case 'sharedAgentAIConfigGet':
       assertExactKeys(payload, [], command);
       return {};
     case 'aiConfigOverwrite':
+      assertExactKeys(payload, ['capabilities'], command);
+      if (!Array.isArray(payload.capabilities)) {
+        throw invalidPayload(command, 'capabilities is invalid');
+      }
+      assertNoPortableAppAIConfigFields(payload.capabilities, command);
+      validateJsonValue(payload.capabilities, command, 4 * 1024 * 1024);
+      return { capabilities: payload.capabilities as NimiElectronLocalAppRecord[string] };
+    case 'sharedAgentAIConfigOverwrite':
       assertExactKeys(payload, ['capabilities'], command);
       if (!Array.isArray(payload.capabilities)) {
         throw invalidPayload(command, 'capabilities is invalid');
@@ -178,6 +194,39 @@ function validatePayload(
       return identifiers(payload, ['agentHandle', 'conversationAnchorId'], command);
     case 'conversationSnapshot':
       return identifiers(payload, ['agentHandle', 'conversationAnchorId'], command);
+    case 'agentAutonomySnapshot':
+    case 'agentPresentationSnapshot':
+      return identifiers(payload, ['agentHandle'], command);
+    case 'agentUpdateAutonomy':
+      assertExactKeys(payload, ['agentHandle', 'expectedAutonomyRevision', 'intent'], command);
+      assertNoForbiddenAuthorityValue(payload.intent, command);
+      validateJsonValue(payload.intent, command, 64 * 1024);
+      return {
+        agentHandle: requiredText(payload.agentHandle, 'agentHandle', command, MAX_IDENTIFIER_LENGTH),
+        expectedAutonomyRevision: decimalRevision(
+          payload.expectedAutonomyRevision,
+          'expectedAutonomyRevision',
+          command,
+          false,
+        ),
+        intent: payload.intent as NimiElectronLocalAppRecord[string],
+      };
+    case 'agentCommitPresentation':
+      assertExactKeys(payload, ['agentHandle', 'expectedPresentationRevision', 'intent', 'importedAssets'], command);
+      assertNoForbiddenAuthorityValue(payload.intent, command);
+      assertNoForbiddenAuthorityValue(payload.importedAssets, command);
+      validateJsonValue(payload.intent, command, 64 * 1024);
+      return {
+        agentHandle: requiredText(payload.agentHandle, 'agentHandle', command, MAX_IDENTIFIER_LENGTH),
+        expectedPresentationRevision: decimalRevision(
+          payload.expectedPresentationRevision,
+          'expectedPresentationRevision',
+          command,
+          true,
+        ),
+        intent: payload.intent as NimiElectronLocalAppRecord[string],
+        importedAssets: presentationAssetsPayload(payload.importedAssets, command),
+      };
     case 'storageReadJson':
     case 'storageRemoveJson':
       return storagePathPayload(payload, command);
@@ -342,6 +391,51 @@ function assertNoPortableAppAIConfigFields(value: unknown, command: string): voi
   }
 }
 
+function assertNoForbiddenAuthorityValue(value: unknown, command: string): void {
+  if (Array.isArray(value)) {
+    for (const entry of value) assertNoForbiddenAuthorityValue(entry, command);
+    return;
+  }
+  if (!value || typeof value !== 'object') return;
+  for (const [key, entry] of Object.entries(value as Record<string, unknown>)) {
+    if (FORBIDDEN_RENDERER_FIELDS.has(key)) {
+      throw invalidPayload(command, `renderer authority field ${key} is forbidden`);
+    }
+    assertNoForbiddenAuthorityValue(entry, command);
+  }
+}
+
+function presentationAssetsPayload(
+  value: unknown,
+  command: string,
+): NimiElectronLocalAppRecord[string] {
+  if (!Array.isArray(value) || value.length > 2) {
+    throw invalidPayload(command, 'importedAssets is invalid');
+  }
+  return value.map((entry, index) => {
+    if (!isPlainRecord(entry)) {
+      throw invalidPayload(command, `importedAssets[${index}] is invalid`);
+    }
+    assertExactKeys(entry, ['role', 'fileName', 'mediaType', 'content', 'sha256'], command);
+    if (entry.role !== 'avatar' && entry.role !== 'background') {
+      throw invalidPayload(command, `importedAssets[${index}].role is invalid`);
+    }
+    if (!Array.isArray(entry.content)
+      || entry.content.length === 0
+      || entry.content.length > 64 * 1024 * 1024
+      || entry.content.some((byte) => !Number.isInteger(byte) || Number(byte) < 0 || Number(byte) > 255)) {
+      throw invalidPayload(command, `importedAssets[${index}].content is invalid`);
+    }
+    return {
+      role: entry.role,
+      fileName: requiredText(entry.fileName, `importedAssets[${index}].fileName`, command, 512),
+      mediaType: requiredText(entry.mediaType, `importedAssets[${index}].mediaType`, command, 512),
+      content: entry.content,
+      sha256: requiredText(entry.sha256, `importedAssets[${index}].sha256`, command, 512),
+    };
+  }) as NimiElectronLocalAppRecord[string];
+}
+
 function assertNoForbiddenAuthority(payload: Readonly<Record<string, unknown>>, command: string): void {
   for (const key of Object.keys(payload)) {
     if (FORBIDDEN_RENDERER_FIELDS.has(key)) {
@@ -394,6 +488,15 @@ function requiredText(value: unknown, field: string, command: string, maxLength:
     throw invalidPayload(command, `${field} is invalid`);
   }
   return normalized;
+}
+
+function decimalRevision(value: unknown, field: string, command: string, allowZero: boolean): string {
+  if (typeof value !== 'string'
+    || !/^(?:0|[1-9][0-9]*)$/u.test(value)
+    || (!allowZero && value === '0')) {
+    throw invalidPayload(command, `${field} is invalid`);
+  }
+  return value;
 }
 
 function requiredUtf8Text(value: unknown, field: string, command: string, maxBytes: number): string {

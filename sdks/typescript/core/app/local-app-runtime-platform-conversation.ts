@@ -321,7 +321,7 @@ function projectSnapshot(value: unknown): NimiLocalAppConversationSnapshot {
   });
 }
 
-function validateAgentHandle(value: unknown): string {
+export function validateAgentHandle(value: unknown): string {
   const handle = requireText(value, 'agentHandle');
   if (!/^agent_ref_[A-Za-z0-9_-]{43}$/u.test(handle)) {
     return localAppError(

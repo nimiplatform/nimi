@@ -1,8 +1,10 @@
 mod app_ai_config;
+mod agent_configure;
 mod conversation;
 mod realm_world_core;
 mod reference;
 mod storage;
+mod shared_agent_ai_config;
 mod text_candidate;
 
 use std::future::Future;
@@ -27,7 +29,9 @@ use crate::windows_service_control::{
     open_verified_runtime_channel, SOURCE_LOCAL_APP_PIPE_REF,
 };
 use crate::{
-    LocalAppAIConfigOverwriteRequest, LocalAppAgentReference, LocalAppConversationInterruptRequest,
+    LocalAppAIConfigOverwriteRequest, LocalAppAgentCommitPresentationRequest,
+    LocalAppAgentHandleRequest, LocalAppAgentReference, LocalAppAgentUpdateAutonomyRequest,
+    LocalAppConversationInterruptRequest,
     LocalAppConversationInterruptResult, LocalAppConversationOpenRequest,
     LocalAppConversationOpenResult, LocalAppConversationSendRequest,
     LocalAppConversationSendResult, LocalAppConversationSnapshot,
@@ -35,6 +39,7 @@ use crate::{
     LocalAppConversationSubscriptionReceiver,
     LocalAppCurrentUserDisplay, LocalAppCurrentUserStatus, LocalAppOperationError,
     LocalAppReasonCode, LocalAppSessionState, LocalAppSessionStatus,
+    LocalAppSharedAgentAIConfigOverwriteRequest,
     LocalAppStorageDocument, LocalAppStorageReadRequest, LocalAppStorageRemoveRequest,
     LocalAppStorageRemoveResult, LocalAppStorageWriteRequest, LocalAppTextCandidateRequest,
     LocalAppTextCandidateResult, LocalAppWorldCoreCreateRequest, LocalAppWorldCoreListRequest,
@@ -383,6 +388,71 @@ impl NimiLocalAppSession for PlatformLocalAppSession {
         Box::pin(async move {
             let _operation = self.operation_gate.read().await;
             conversation::conversation_snapshot(self.checked_channel()?, request).await
+        })
+    }
+
+    fn shared_agent_ai_config_get(
+        &self,
+    ) -> Pin<Box<dyn Future<Output = Result<serde_json::Value, LocalAppOperationError>> + Send + '_>>
+    {
+        Box::pin(async move {
+            let _operation = self.operation_gate.read().await;
+            shared_agent_ai_config::get(self.checked_channel()?).await
+        })
+    }
+
+    fn shared_agent_ai_config_overwrite(
+        &self,
+        request: LocalAppSharedAgentAIConfigOverwriteRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<serde_json::Value, LocalAppOperationError>> + Send + '_>>
+    {
+        Box::pin(async move {
+            let _operation = self.operation_gate.read().await;
+            shared_agent_ai_config::overwrite(self.checked_channel()?, request).await
+        })
+    }
+
+    fn agent_autonomy_snapshot(
+        &self,
+        request: LocalAppAgentHandleRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<serde_json::Value, LocalAppOperationError>> + Send + '_>>
+    {
+        Box::pin(async move {
+            let _operation = self.operation_gate.read().await;
+            agent_configure::autonomy_snapshot(self.checked_channel()?, request).await
+        })
+    }
+
+    fn agent_update_autonomy(
+        &self,
+        request: LocalAppAgentUpdateAutonomyRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<serde_json::Value, LocalAppOperationError>> + Send + '_>>
+    {
+        Box::pin(async move {
+            let _operation = self.operation_gate.read().await;
+            agent_configure::update_autonomy(self.checked_channel()?, request).await
+        })
+    }
+
+    fn agent_presentation_snapshot(
+        &self,
+        request: LocalAppAgentHandleRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<serde_json::Value, LocalAppOperationError>> + Send + '_>>
+    {
+        Box::pin(async move {
+            let _operation = self.operation_gate.read().await;
+            agent_configure::presentation_snapshot(self.checked_channel()?, request).await
+        })
+    }
+
+    fn agent_commit_presentation(
+        &self,
+        request: LocalAppAgentCommitPresentationRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<serde_json::Value, LocalAppOperationError>> + Send + '_>>
+    {
+        Box::pin(async move {
+            let _operation = self.operation_gate.read().await;
+            agent_configure::commit_presentation(self.checked_channel()?, request).await
         })
     }
 

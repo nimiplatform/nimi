@@ -89,7 +89,8 @@ pub use bundled_avatar::{
     BundledAvatarRuntimeStreamReceiver,
 };
 pub use carrier::{
-    DesktopControlFuture, LocalAppAIConfigOverwriteRequest, LocalAppAgentReference,
+    DesktopControlFuture, LocalAppAIConfigOverwriteRequest, LocalAppAgentCommitPresentationRequest,
+    LocalAppAgentHandleRequest, LocalAppAgentReference, LocalAppAgentUpdateAutonomyRequest,
     LocalAppConversationEvent, LocalAppConversationEventKind,
     LocalAppConversationInterruptRequest, LocalAppConversationInterruptResult,
     LocalAppConversationMessage, LocalAppConversationMessageRole, LocalAppConversationOpenRequest,
@@ -99,6 +100,7 @@ pub use carrier::{
     LocalAppConversationSubscriptionReceiver,
     LocalAppCurrentUserDisplay, LocalAppCurrentUserStatus, LocalAppOperationError,
     LocalAppReasonCode, LocalAppSessionFuture, LocalAppSessionState, LocalAppSessionStatus,
+    LocalAppSharedAgentAIConfigOverwriteRequest,
     LocalAppStorageDocument, LocalAppStorageReadRequest, LocalAppStorageRemoveRequest,
     LocalAppStorageRemoveResult, LocalAppStorageWriteRequest, LocalAppTextCandidateMessage,
     LocalAppTextCandidateRequest, LocalAppTextCandidateResult, LocalAppWorldCoreCreateRequest,

@@ -44,7 +44,7 @@ type localAppConversationEmission struct {
 	err   error
 }
 
-type localAppConversationIdentity struct {
+type localAppAgentIdentity struct {
 	decision accountservice.LocalAppCallerDecision
 	identity localAgentIdentity
 	entry    *runtimev1.LocalAgentRecord
@@ -63,7 +63,7 @@ func (s *Service) OpenLocalAppConversation(
 	if req == nil {
 		return nil, localAppConversationInvalid("local-app conversation open request is required")
 	}
-	resolved, ownerCtx, err := s.resolveLocalAppConversationAgent(
+	resolved, ownerCtx, err := s.resolveLocalAppAgent(
 		ctx,
 		accountservice.LocalAppOperationOpenConversation,
 		req.GetAgentHandle(),
@@ -110,7 +110,7 @@ func (s *Service) SendLocalAppConversationTurn(
 		!validLocalAppConversationText(text, localAppConversationMaxTextBytes, true) {
 		return nil, localAppConversationInvalid("local-app conversation turn input is invalid")
 	}
-	resolved, ownerCtx, err := s.resolveLocalAppConversationAgent(
+	resolved, ownerCtx, err := s.resolveLocalAppAgent(
 		ctx,
 		accountservice.LocalAppOperationSendConversationTurn,
 		req.GetAgentHandle(),
@@ -156,7 +156,7 @@ func (s *Service) InterruptLocalAppConversationTurn(
 	if !validLocalAppConversationSelector(anchorID) {
 		return nil, localAppConversationInvalid("local-app conversation anchor is invalid")
 	}
-	resolved, _, err := s.resolveLocalAppConversationAgent(
+	resolved, _, err := s.resolveLocalAppAgent(
 		ctx,
 		accountservice.LocalAppOperationInterruptConversation,
 		req.GetAgentHandle(),
@@ -194,7 +194,7 @@ func (s *Service) GetLocalAppConversationSnapshot(
 	if !validLocalAppConversationSelector(anchorID) {
 		return nil, localAppConversationInvalid("local-app conversation anchor is invalid")
 	}
-	resolved, _, err := s.resolveLocalAppConversationAgent(
+	resolved, _, err := s.resolveLocalAppAgent(
 		ctx,
 		accountservice.LocalAppOperationConversationSnapshot,
 		req.GetAgentHandle(),
@@ -220,7 +220,7 @@ func (s *Service) SubscribeLocalAppConversationEvents(
 	if !validLocalAppConversationSelector(anchorID) {
 		return localAppConversationInvalid("local-app conversation anchor is invalid")
 	}
-	resolved, _, err := s.resolveLocalAppConversationAgent(
+	resolved, _, err := s.resolveLocalAppAgent(
 		stream.Context(),
 		accountservice.LocalAppOperationSubscribeConversation,
 		req.GetAgentHandle(),
@@ -276,15 +276,20 @@ func (s *Service) SubscribeLocalAppConversationEvents(
 	}
 }
 
-func (s *Service) resolveLocalAppConversationAgent(
+// resolveLocalAppAgent re-verifies the exact admitted operation and resolves
+// the session-scoped opaque handle against the current-account active-Agent
+// inventory. Conversation and agent-configuration owner adapters share this
+// single fail-closed resolution path.
+func (s *Service) resolveLocalAppAgent(
 	ctx context.Context,
 	operation accountservice.LocalAppOperation,
 	agentHandle string,
-) (localAppConversationIdentity, context.Context, error) {
+) (localAppAgentIdentity, context.Context, error) {
 	decision, ok := authorizedLocalAppAgentDecision(ctx, operation)
-	if !ok || decision.OperationCapability != "agent.local" ||
+	classification, classificationErr := localappop.ClassifyOperation(operation)
+	if !ok || classificationErr != nil || decision.OperationCapability != string(classification.Domain) ||
 		!validLocalAppAgentHandle(agentHandle) {
-		return localAppConversationIdentity{}, nil, localAppAgentAccessDenied()
+		return localAppAgentIdentity{}, nil, localAppAgentAccessDenied()
 	}
 
 	s.mu.RLock()
@@ -308,7 +313,7 @@ func (s *Service) resolveLocalAppConversationAgent(
 	}
 	s.mu.RUnlock()
 	if matches != 1 || selected == nil {
-		return localAppConversationIdentity{}, nil, localAppAgentAccessDenied()
+		return localAppAgentIdentity{}, nil, localAppAgentAccessDenied()
 	}
 	identity, err := validateLocalAgentIdentity(
 		selected.GetOwnerUserId(),
@@ -316,15 +321,15 @@ func (s *Service) resolveLocalAppConversationAgent(
 		selected.GetLocalAgentRef(),
 	)
 	if err != nil || identity.OwnerUserID != decision.AccountID {
-		return localAppConversationIdentity{}, nil, localAppAgentAccessDenied()
+		return localAppAgentIdentity{}, nil, localAppAgentAccessDenied()
 	}
 	decision.LocalAgentID = identity.LocalAgentRef
 	ownerCtx := accountservice.ContextWithAuthorizedLocalAppDecision(ctx, decision)
-	return localAppConversationIdentity{decision: decision, identity: identity, entry: selected}, ownerCtx, nil
+	return localAppAgentIdentity{decision: decision, identity: identity, entry: selected}, ownerCtx, nil
 }
 
 func (s *Service) validateLocalAppConversationResource(
-	resolved localAppConversationIdentity,
+	resolved localAppAgentIdentity,
 	anchorID string,
 ) error {
 	if s == nil || resolved.entry == nil ||
@@ -349,7 +354,7 @@ func (s *Service) validateLocalAppConversationResource(
 }
 
 func (s *Service) buildLocalAppConversationSnapshot(
-	resolved localAppConversationIdentity,
+	resolved localAppAgentIdentity,
 	anchorID string,
 ) (*runtimev1.LocalAppConversationSnapshot, error) {
 	if err := s.validateLocalAppConversationResource(resolved, anchorID); err != nil {
@@ -431,7 +436,7 @@ func (s *Service) buildLocalAppConversationSnapshot(
 func (s *Service) revalidateLocalAppConversationSubscription(
 	ctx context.Context,
 	req *runtimev1.SubscribeLocalAppConversationEventsRequest,
-	initial localAppConversationIdentity,
+	initial localAppAgentIdentity,
 ) error {
 	ownerCtx, err := s.localAppIngressRevalidator.AuthorizeLocalAppIngress(
 		ctx,
@@ -440,7 +445,7 @@ func (s *Service) revalidateLocalAppConversationSubscription(
 	if err != nil {
 		return err
 	}
-	current, _, err := s.resolveLocalAppConversationAgent(
+	current, _, err := s.resolveLocalAppAgent(
 		ownerCtx,
 		accountservice.LocalAppOperationSubscribeConversation,
 		req.GetAgentHandle(),

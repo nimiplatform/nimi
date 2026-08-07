@@ -6,6 +6,7 @@ import "google/protobuf/struct.proto";
 import "google/protobuf/timestamp.proto";
 import "runtime/v1/agent_common.proto";
 import "runtime/v1/agent_companion.proto";
+import "runtime/v1/agent_configure.proto";
 import "runtime/v1/agent_presentation.proto";
 import "runtime/v1/agent_source_materialization.proto";
 import "runtime/v1/capability_configuration.proto";
@@ -908,6 +909,13 @@ service RuntimeAgentService {
   rpc OverwriteSharedLocalAgentAIConfig(OverwriteSharedLocalAgentAIConfigRequest) returns (OverwriteSharedLocalAgentAIConfigResponse);
   rpc PreviewSharedLocalAgentAIProfile(PreviewSharedLocalAgentAIProfileRequest) returns (PreviewSharedLocalAgentAIProfileResponse);
   rpc ApplySharedLocalAgentAIProfile(ApplySharedLocalAgentAIProfileRequest) returns (ApplySharedLocalAgentAIProfileResponse);
-  // Reserved agents.configure carrier. Protected-local admission remains
-  // fail-closed until the owner-complete publication flip.
+  // Protected-local App agent configuration carrier (agent.configure AppAccess
+  // domain). Shared AIConfig actions resolve the singular subsystem owner;
+  // autonomy and presentation stay per-Agent behind session-scoped handles.
+  rpc GetLocalAppSharedLocalAgentAIConfig(GetLocalAppSharedLocalAgentAIConfigRequest) returns (GetLocalAppSharedLocalAgentAIConfigResponse);
+  rpc OverwriteLocalAppSharedLocalAgentAIConfig(OverwriteLocalAppSharedLocalAgentAIConfigRequest) returns (OverwriteLocalAppSharedLocalAgentAIConfigResponse);
+  rpc GetLocalAppAgentAutonomySnapshot(GetLocalAppAgentAutonomySnapshotRequest) returns (LocalAppAgentAutonomySnapshotResponse);
+  rpc UpdateLocalAppAgentAutonomy(UpdateLocalAppAgentAutonomyRequest) returns (LocalAppAgentUpdateAutonomyResponse);
+  rpc GetLocalAppAgentPresentationSnapshot(GetLocalAppAgentPresentationSnapshotRequest) returns (LocalAppAgentPresentationSnapshotResponse);
+  rpc CommitLocalAppAgentPresentation(CommitLocalAppAgentPresentationRequest) returns (LocalAppAgentCommitPresentationResponse);
 }

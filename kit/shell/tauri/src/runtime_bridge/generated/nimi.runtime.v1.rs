@@ -5303,6 +5303,11 @@ pub struct VideoContentAudioUrl {
     pub url: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct VideoContentArtifactRef {
+    #[prost(string, tag = "1")]
+    pub artifact_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct VideoContentItem {
     #[prost(enumeration = "VideoContentType", tag = "1")]
     pub r#type: i32,
@@ -5316,6 +5321,8 @@ pub struct VideoContentItem {
     pub video_url: ::core::option::Option<VideoContentVideoUrl>,
     #[prost(message, optional, tag = "6")]
     pub audio_url: ::core::option::Option<VideoContentAudioUrl>,
+    #[prost(message, optional, tag = "7")]
+    pub artifact_ref: ::core::option::Option<VideoContentArtifactRef>,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct VideoGenerationOptions {
@@ -5845,6 +5852,7 @@ pub enum VideoContentType {
     ImageUrl = 2,
     VideoUrl = 3,
     AudioUrl = 4,
+    ArtifactRef = 5,
 }
 impl VideoContentType {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -5858,6 +5866,7 @@ impl VideoContentType {
             Self::ImageUrl => "VIDEO_CONTENT_TYPE_IMAGE_URL",
             Self::VideoUrl => "VIDEO_CONTENT_TYPE_VIDEO_URL",
             Self::AudioUrl => "VIDEO_CONTENT_TYPE_AUDIO_URL",
+            Self::ArtifactRef => "VIDEO_CONTENT_TYPE_ARTIFACT_REF",
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
@@ -5868,6 +5877,7 @@ impl VideoContentType {
             "VIDEO_CONTENT_TYPE_IMAGE_URL" => Some(Self::ImageUrl),
             "VIDEO_CONTENT_TYPE_VIDEO_URL" => Some(Self::VideoUrl),
             "VIDEO_CONTENT_TYPE_AUDIO_URL" => Some(Self::AudioUrl),
+            "VIDEO_CONTENT_TYPE_ARTIFACT_REF" => Some(Self::ArtifactRef),
             _ => None,
         }
     }
@@ -16158,6 +16168,183 @@ impl CompanionParticipationStatus {
         }
     }
 }
+/// Shared LocalAgent AIConfig actions resolve the singular subsystem owner from
+/// the authorized account scope and carry no Agent handle. Autonomy and
+/// presentation remain per-Agent and continue to require Runtime-issued handles.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct LocalAppSharedLocalAgentAiConfigProjection {
+    #[prost(message, optional, tag = "1")]
+    pub config: ::core::option::Option<AiConfig>,
+}
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct GetLocalAppSharedLocalAgentAiConfigRequest {}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct GetLocalAppSharedLocalAgentAiConfigResponse {
+    #[prost(message, optional, tag = "1")]
+    pub projection: ::core::option::Option<LocalAppSharedLocalAgentAiConfigProjection>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct OverwriteLocalAppSharedLocalAgentAiConfigRequest {
+    #[prost(message, repeated, tag = "1")]
+    pub capabilities: ::prost::alloc::vec::Vec<AiConfigCapabilityIntent>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct OverwriteLocalAppSharedLocalAgentAiConfigResponse {
+    #[prost(message, optional, tag = "1")]
+    pub projection: ::core::option::Option<LocalAppSharedLocalAgentAiConfigProjection>,
+}
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalAppAgentAutonomyConfig {
+    #[prost(int64, tag = "1")]
+    pub daily_token_budget: i64,
+    #[prost(int64, tag = "2")]
+    pub max_tokens_per_hook: i64,
+    #[prost(message, optional, tag = "3")]
+    pub min_hook_interval: ::core::option::Option<::prost_types::Duration>,
+    #[prost(message, optional, tag = "4")]
+    pub suspend_until: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(enumeration = "LocalAppAgentAutonomyMode", tag = "5")]
+    pub mode: i32,
+}
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalAppAgentAutonomyProjection {
+    #[prost(bool, tag = "1")]
+    pub enabled: bool,
+    #[prost(message, optional, tag = "2")]
+    pub config: ::core::option::Option<LocalAppAgentAutonomyConfig>,
+    #[prost(int64, tag = "3")]
+    pub used_tokens_in_window: i64,
+    #[prost(message, optional, tag = "4")]
+    pub window_started_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(bool, tag = "5")]
+    pub budget_exhausted: bool,
+    #[prost(message, optional, tag = "6")]
+    pub suspended_until: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(uint64, tag = "7")]
+    pub autonomy_revision: u64,
+}
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalAppAgentAutonomyIntent {
+    #[prost(bool, optional, tag = "1")]
+    pub enabled: ::core::option::Option<bool>,
+    #[prost(message, optional, tag = "2")]
+    pub config: ::core::option::Option<LocalAppAgentAutonomyConfig>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct GetLocalAppAgentAutonomySnapshotRequest {
+    #[prost(string, tag = "1")]
+    pub agent_handle: ::prost::alloc::string::String,
+}
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalAppAgentAutonomySnapshotResponse {
+    #[prost(message, optional, tag = "1")]
+    pub projection: ::core::option::Option<LocalAppAgentAutonomyProjection>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct UpdateLocalAppAgentAutonomyRequest {
+    #[prost(string, tag = "1")]
+    pub agent_handle: ::prost::alloc::string::String,
+    #[prost(uint64, tag = "2")]
+    pub expected_autonomy_revision: u64,
+    #[prost(message, optional, tag = "3")]
+    pub intent: ::core::option::Option<LocalAppAgentAutonomyIntent>,
+}
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalAppAgentUpdateAutonomyResponse {
+    #[prost(message, optional, tag = "1")]
+    pub projection: ::core::option::Option<LocalAppAgentAutonomyProjection>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalAppAgentPresentationProjection {
+    #[prost(message, optional, tag = "1")]
+    pub profile: ::core::option::Option<AgentPresentationProfile>,
+    #[prost(string, tag = "2")]
+    pub default_voice_reference: ::prost::alloc::string::String,
+    #[prost(uint64, tag = "3")]
+    pub presentation_revision: u64,
+    #[prost(message, optional, tag = "4")]
+    pub previous_profile: ::core::option::Option<AgentPresentationProfile>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalAppAgentPresentationIntent {
+    #[prost(enumeration = "AgentPresentationBackendKind", tag = "1")]
+    pub backend_kind: i32,
+    #[prost(string, tag = "2")]
+    pub avatar_asset_ref: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub expression_profile_ref: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub idle_preset: ::prost::alloc::string::String,
+    #[prost(string, tag = "5")]
+    pub interaction_policy_ref: ::prost::alloc::string::String,
+    #[prost(string, tag = "6")]
+    pub default_voice_reference: ::prost::alloc::string::String,
+    #[prost(bool, tag = "7")]
+    pub avatar_autoplay: bool,
+    #[prost(string, tag = "8")]
+    pub background_asset_ref: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct GetLocalAppAgentPresentationSnapshotRequest {
+    #[prost(string, tag = "1")]
+    pub agent_handle: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalAppAgentPresentationSnapshotResponse {
+    #[prost(message, optional, tag = "1")]
+    pub projection: ::core::option::Option<LocalAppAgentPresentationProjection>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct CommitLocalAppAgentPresentationRequest {
+    #[prost(string, tag = "1")]
+    pub agent_handle: ::prost::alloc::string::String,
+    #[prost(uint64, tag = "2")]
+    pub expected_presentation_revision: u64,
+    #[prost(message, optional, tag = "3")]
+    pub intent: ::core::option::Option<LocalAppAgentPresentationIntent>,
+    #[prost(message, repeated, tag = "4")]
+    pub imported_assets: ::prost::alloc::vec::Vec<AgentPresentationAssetMaterial>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalAppAgentCommitPresentationResponse {
+    #[prost(message, optional, tag = "1")]
+    pub projection: ::core::option::Option<LocalAppAgentPresentationProjection>,
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum LocalAppAgentAutonomyMode {
+    Unspecified = 0,
+    Off = 1,
+    Low = 2,
+    Medium = 3,
+    High = 4,
+}
+impl LocalAppAgentAutonomyMode {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "LOCAL_APP_AGENT_AUTONOMY_MODE_UNSPECIFIED",
+            Self::Off => "LOCAL_APP_AGENT_AUTONOMY_MODE_OFF",
+            Self::Low => "LOCAL_APP_AGENT_AUTONOMY_MODE_LOW",
+            Self::Medium => "LOCAL_APP_AGENT_AUTONOMY_MODE_MEDIUM",
+            Self::High => "LOCAL_APP_AGENT_AUTONOMY_MODE_HIGH",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "LOCAL_APP_AGENT_AUTONOMY_MODE_UNSPECIFIED" => Some(Self::Unspecified),
+            "LOCAL_APP_AGENT_AUTONOMY_MODE_OFF" => Some(Self::Off),
+            "LOCAL_APP_AGENT_AUTONOMY_MODE_LOW" => Some(Self::Low),
+            "LOCAL_APP_AGENT_AUTONOMY_MODE_MEDIUM" => Some(Self::Medium),
+            "LOCAL_APP_AGENT_AUTONOMY_MODE_HIGH" => Some(Self::High),
+            _ => None,
+        }
+    }
+}
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct WorldEntityRefV3 {
     #[prost(enumeration = "WorldEntityRefKindV3", tag = "1")]
@@ -21337,6 +21524,193 @@ pub mod runtime_agent_service_client {
                     GrpcMethod::new(
                         "nimi.runtime.v1.RuntimeAgentService",
                         "ApplySharedLocalAgentAIProfile",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        /// Protected-local App agent configuration carrier (agent.configure AppAccess
+        /// domain). Shared AIConfig actions resolve the singular subsystem owner;
+        /// autonomy and presentation stay per-Agent behind session-scoped handles.
+        pub async fn get_local_app_shared_local_agent_ai_config(
+            &mut self,
+            request: impl tonic::IntoRequest<
+                super::GetLocalAppSharedLocalAgentAiConfigRequest,
+            >,
+        ) -> std::result::Result<
+            tonic::Response<super::GetLocalAppSharedLocalAgentAiConfigResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppSharedLocalAgentAIConfig",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAgentService",
+                        "GetLocalAppSharedLocalAgentAIConfig",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn overwrite_local_app_shared_local_agent_ai_config(
+            &mut self,
+            request: impl tonic::IntoRequest<
+                super::OverwriteLocalAppSharedLocalAgentAiConfigRequest,
+            >,
+        ) -> std::result::Result<
+            tonic::Response<super::OverwriteLocalAppSharedLocalAgentAiConfigResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAgentService/OverwriteLocalAppSharedLocalAgentAIConfig",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAgentService",
+                        "OverwriteLocalAppSharedLocalAgentAIConfig",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn get_local_app_agent_autonomy_snapshot(
+            &mut self,
+            request: impl tonic::IntoRequest<
+                super::GetLocalAppAgentAutonomySnapshotRequest,
+            >,
+        ) -> std::result::Result<
+            tonic::Response<super::LocalAppAgentAutonomySnapshotResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentAutonomySnapshot",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAgentService",
+                        "GetLocalAppAgentAutonomySnapshot",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn update_local_app_agent_autonomy(
+            &mut self,
+            request: impl tonic::IntoRequest<super::UpdateLocalAppAgentAutonomyRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::LocalAppAgentUpdateAutonomyResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppAgentAutonomy",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAgentService",
+                        "UpdateLocalAppAgentAutonomy",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn get_local_app_agent_presentation_snapshot(
+            &mut self,
+            request: impl tonic::IntoRequest<
+                super::GetLocalAppAgentPresentationSnapshotRequest,
+            >,
+        ) -> std::result::Result<
+            tonic::Response<super::LocalAppAgentPresentationSnapshotResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentPresentationSnapshot",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAgentService",
+                        "GetLocalAppAgentPresentationSnapshot",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn commit_local_app_agent_presentation(
+            &mut self,
+            request: impl tonic::IntoRequest<
+                super::CommitLocalAppAgentPresentationRequest,
+            >,
+        ) -> std::result::Result<
+            tonic::Response<super::LocalAppAgentCommitPresentationResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAgentService/CommitLocalAppAgentPresentation",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAgentService",
+                        "CommitLocalAppAgentPresentation",
                     ),
                 );
             self.inner.unary(req, path, codec).await

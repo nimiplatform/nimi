@@ -5,11 +5,12 @@ use nimi_shell_protected_local::MacOsLocalAppCarrier;
 #[cfg(target_os = "windows")]
 use nimi_shell_protected_local::WindowsLocalAppCarrier;
 use nimi_shell_protected_local::{
-    LocalAppAIConfigOverwriteRequest, LocalAppOperationError, LocalAppReasonCode,
-    LocalAppSessionStatus, LocalAppStorageDocument, LocalAppStorageReadRequest,
-    LocalAppStorageRemoveRequest, LocalAppStorageRemoveResult, LocalAppStorageWriteRequest,
-    LocalAppTextCandidateRequest, LocalAppTextCandidateResult, NimiLocalAppCarrier,
-    NimiLocalAppSession,
+    LocalAppAIConfigOverwriteRequest, LocalAppAgentCommitPresentationRequest,
+    LocalAppAgentHandleRequest, LocalAppAgentUpdateAutonomyRequest, LocalAppOperationError,
+    LocalAppReasonCode, LocalAppSessionStatus, LocalAppSharedAgentAIConfigOverwriteRequest,
+    LocalAppStorageDocument, LocalAppStorageReadRequest, LocalAppStorageRemoveRequest,
+    LocalAppStorageRemoveResult, LocalAppStorageWriteRequest, LocalAppTextCandidateRequest,
+    LocalAppTextCandidateResult, NimiLocalAppCarrier, NimiLocalAppSession,
 };
 use std::sync::Arc;
 use tokio::sync::Mutex;
@@ -97,6 +98,89 @@ impl RuntimeBridgeLocalAppHost {
     ) -> Result<serde_json::Value, LocalAppOperationError> {
         let session = self.current_or_open_session().await?;
         match session.app_ai_config_overwrite(request).await {
+            Ok(value) => Ok(value),
+            Err(error) => {
+                self.clear_on_transport_failure(&session, &error).await;
+                Err(error)
+            }
+        }
+    }
+
+    pub async fn shared_agent_ai_config_get(
+        &self,
+    ) -> Result<serde_json::Value, LocalAppOperationError> {
+        let session = self.current_or_open_session().await?;
+        match session.shared_agent_ai_config_get().await {
+            Ok(value) => Ok(value),
+            Err(error) => {
+                self.clear_on_transport_failure(&session, &error).await;
+                Err(error)
+            }
+        }
+    }
+
+    pub async fn shared_agent_ai_config_overwrite(
+        &self,
+        request: LocalAppSharedAgentAIConfigOverwriteRequest,
+    ) -> Result<serde_json::Value, LocalAppOperationError> {
+        let session = self.current_or_open_session().await?;
+        match session.shared_agent_ai_config_overwrite(request).await {
+            Ok(value) => Ok(value),
+            Err(error) => {
+                self.clear_on_transport_failure(&session, &error).await;
+                Err(error)
+            }
+        }
+    }
+
+    pub async fn agent_autonomy_snapshot(
+        &self,
+        request: LocalAppAgentHandleRequest,
+    ) -> Result<serde_json::Value, LocalAppOperationError> {
+        let session = self.current_or_open_session().await?;
+        match session.agent_autonomy_snapshot(request).await {
+            Ok(value) => Ok(value),
+            Err(error) => {
+                self.clear_on_transport_failure(&session, &error).await;
+                Err(error)
+            }
+        }
+    }
+
+    pub async fn agent_update_autonomy(
+        &self,
+        request: LocalAppAgentUpdateAutonomyRequest,
+    ) -> Result<serde_json::Value, LocalAppOperationError> {
+        let session = self.current_or_open_session().await?;
+        match session.agent_update_autonomy(request).await {
+            Ok(value) => Ok(value),
+            Err(error) => {
+                self.clear_on_transport_failure(&session, &error).await;
+                Err(error)
+            }
+        }
+    }
+
+    pub async fn agent_presentation_snapshot(
+        &self,
+        request: LocalAppAgentHandleRequest,
+    ) -> Result<serde_json::Value, LocalAppOperationError> {
+        let session = self.current_or_open_session().await?;
+        match session.agent_presentation_snapshot(request).await {
+            Ok(value) => Ok(value),
+            Err(error) => {
+                self.clear_on_transport_failure(&session, &error).await;
+                Err(error)
+            }
+        }
+    }
+
+    pub async fn agent_commit_presentation(
+        &self,
+        request: LocalAppAgentCommitPresentationRequest,
+    ) -> Result<serde_json::Value, LocalAppOperationError> {
+        let session = self.current_or_open_session().await?;
+        match session.agent_commit_presentation(request).await {
             Ok(value) => Ok(value),
             Err(error) => {
                 self.clear_on_transport_failure(&session, &error).await;
