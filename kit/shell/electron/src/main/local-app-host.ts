@@ -93,6 +93,12 @@ const ADMITTED_REASON_METADATA_KEYS: ReadonlySet<string> = new Set([
   'grpc_status_code',
 ]);
 
+const FORBIDDEN_PORTABLE_APP_AI_CONFIG_KEYS: ReadonlySet<string> = new Set([
+  'account', 'accountid', 'accesstoken', 'authorization', 'binding', 'bindingid',
+  'connectorgrant', 'connectorgrantid', 'credential', 'custody', 'custodymaterial',
+  'grantid', 'providercredential', 'refreshtoken', 'token',
+]);
+
 const FORBIDDEN_PROJECTION_KEYS: ReadonlySet<string> = new Set([
   'endpoint',
   'authorization',
@@ -339,11 +345,11 @@ class ElectronLocalAppHost implements NimiElectronLocalAppHost {
   }
 
   aiConfigGet(): Promise<NimiElectronLocalAppRecord> {
-    return invokeRecord(() => this.binding.localAppAIConfigGet());
+    return invokePortableAppAIConfig(() => this.binding.localAppAIConfigGet());
   }
 
   aiConfigOverwrite(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
-    return invokeRecord(() => this.binding.localAppAIConfigOverwrite(input));
+    return invokePortableAppAIConfig(() => this.binding.localAppAIConfigOverwrite(input));
   }
 
   textGenerateCandidate(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
@@ -684,6 +690,29 @@ async function invoke(call: () => Promise<NativeLocalAppOutcome>): Promise<unkno
 
 async function invokeRecord(call: () => Promise<NativeLocalAppOutcome>): Promise<NimiElectronLocalAppRecord> {
   return validateProjection(await invoke(call));
+}
+
+async function invokePortableAppAIConfig(
+  call: () => Promise<NativeLocalAppOutcome>,
+): Promise<NimiElectronLocalAppRecord> {
+  const value = await invokeRecord(call);
+  rejectPortableAppAIConfigProjection(value);
+  return value;
+}
+
+function rejectPortableAppAIConfigProjection(value: unknown): void {
+  if (Array.isArray(value)) {
+    for (const entry of value) rejectPortableAppAIConfigProjection(entry);
+    return;
+  }
+  if (!isPlainRecord(value)) return;
+  for (const [key, entry] of Object.entries(value)) {
+    const normalized = key.replace(/[^a-z0-9]/giu, '').toLowerCase();
+    if (FORBIDDEN_PORTABLE_APP_AI_CONFIG_KEYS.has(normalized)) {
+      throw untrustedRuntimeError();
+    }
+    rejectPortableAppAIConfigProjection(entry);
+  }
 }
 
 async function invokeTextCandidate(

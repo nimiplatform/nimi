@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"sync/atomic"
 	"testing"
 
@@ -110,8 +111,8 @@ func TestAppAIConfigGrantBindingValidationIsDeterministicAndDoesNotProbe(t *test
 	}
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
 	svc.connStore = store
-	writeCtx := localAppAIConfigContext("account-a", "app.example", accountservice.LocalAppOperationAppAIConfigOverwrite)
-	if _, err := svc.OverwriteAppAIConfig(writeCtx, &runtimev1.OverwriteAppAIConfigRequest{Config: ownerlessAppAIConfig(intent)}); err != nil {
+	writeCtx := protectedAppAIConfigPrincipalContext("account-a", "app.example")
+	if _, err := svc.OverwriteAppAIConfig(writeCtx, &runtimev1.OverwriteAppAIConfigRequest{Config: appAIConfig("app.example", intent)}); err != nil {
 		t.Fatalf("OverwriteAppAIConfig(active grant): %v", err)
 	}
 	if providerRequests.Load() != 0 {
@@ -120,16 +121,66 @@ func TestAppAIConfigGrantBindingValidationIsDeterministicAndDoesNotProbe(t *test
 	if _, err := store.RevokeGrant("account-a", grant.GrantID); err != nil {
 		t.Fatal(err)
 	}
-	_, err = svc.OverwriteAppAIConfig(writeCtx, &runtimev1.OverwriteAppAIConfigRequest{Config: ownerlessAppAIConfig(intent)})
+	_, err = svc.OverwriteAppAIConfig(writeCtx, &runtimev1.OverwriteAppAIConfigRequest{Config: appAIConfig("app.example", intent)})
 	assertAppAIConfigError(t, err, codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONNECTOR_GRANT_REVOKED)
 	if providerRequests.Load() != 0 {
 		t.Fatalf("rejected binding commit probed provider %d times", providerRequests.Load())
 	}
 
 	intent.GetCloud().ConnectorGrantId = ""
-	if _, err := svc.OverwriteAppAIConfig(writeCtx, &runtimev1.OverwriteAppAIConfigRequest{Config: ownerlessAppAIConfig(intent)}); err != nil {
+	if _, err := svc.OverwriteAppAIConfig(writeCtx, &runtimev1.OverwriteAppAIConfigRequest{Config: appAIConfig("app.example", intent)}); err != nil {
 		t.Fatalf("grantless Cloud intent must remain saveable: %v", err)
 	}
+}
+
+func TestProtectedLocalAppAIConfigRejectsBindingAndAtomicallyClearsSeededBinding(t *testing.T) {
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
+	seededIntent := grantlessCloudAIConfigIntent(t, "text.generate")
+	seededIntent.GetCloud().ConnectorGrantId = "grant-seeded-private"
+	if err := svc.aiConfigStore.Overwrite(context.Background(), "account-a", appAIConfig("app.example", seededIntent)); err != nil {
+		t.Fatalf("seed bound AIConfig: %v", err)
+	}
+	readContext := localAppAIConfigContext("account-a", "app.example", accountservice.LocalAppOperationAppAIConfigRead)
+	read, err := svc.GetAppAIConfig(readContext, &runtimev1.GetAppAIConfigRequest{})
+	if err != nil || read.GetConfig().GetCapabilities()[0].GetCloud().GetConnectorGrantId() != "" ||
+		strings.Contains(read.String(), "grant-seeded-private") {
+		t.Fatalf("portable get projection = (%+v, %v)", read, err)
+	}
+	stored, found, err := svc.aiConfigStore.Get(context.Background(), "account-a", appAIConfigOwner("app.example"))
+	if err != nil || !found || stored.GetCapabilities()[0].GetCloud().GetConnectorGrantId() != "grant-seeded-private" {
+		t.Fatalf("get mutated private stored binding = (%+v, %v, %v)", stored, found, err)
+	}
+
+	writeContext := localAppAIConfigContext("account-a", "app.example", accountservice.LocalAppOperationAppAIConfigOverwrite)
+	forbidden := grantlessCloudAIConfigIntent(t, "text.generate")
+	forbidden.GetCloud().ConnectorGrantId = "grant-app-supplied"
+	_, err = svc.OverwriteAppAIConfig(writeContext, &runtimev1.OverwriteAppAIConfigRequest{Config: ownerlessAppAIConfig(forbidden)})
+	assertAppAIConfigError(t, err, codes.InvalidArgument, runtimev1.ReasonCode_AI_CONFIG_INVALID)
+	stored, found, err = svc.aiConfigStore.Get(context.Background(), "account-a", appAIConfigOwner("app.example"))
+	if err != nil || !found || stored.GetCapabilities()[0].GetCloud().GetConnectorGrantId() != "grant-seeded-private" {
+		t.Fatalf("rejected binding input changed stored config = (%+v, %v, %v)", stored, found, err)
+	}
+
+	replacement := grantlessCloudAIConfigIntent(t, "text.generate")
+	overwritten, err := svc.OverwriteAppAIConfig(writeContext, &runtimev1.OverwriteAppAIConfigRequest{Config: ownerlessAppAIConfig(replacement)})
+	if err != nil || overwritten.GetConfig().GetCapabilities()[0].GetCloud().GetConnectorGrantId() != "" {
+		t.Fatalf("portable whole overwrite = (%+v, %v)", overwritten, err)
+	}
+	stored, found, err = svc.aiConfigStore.Get(context.Background(), "account-a", appAIConfigOwner("app.example"))
+	if err != nil || !found || len(stored.GetCapabilities()) != 1 || stored.GetCapabilities()[0].GetCloud().GetConnectorGrantId() != "" {
+		t.Fatalf("atomic binding clear = (%+v, %v, %v)", stored, found, err)
+	}
+	_, err = svc.ExecuteScenario(
+		localAppAIConfigContext("account-a", "app.example", accountservice.LocalAppOperationTextCandidateGenerate),
+		&runtimev1.ExecuteScenarioRequest{
+			Head:         &runtimev1.ScenarioRequestHead{AppId: "app.example", SubjectUserId: "account-a"},
+			ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE, ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_SYNC,
+			Spec: &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_TextGenerate{TextGenerate: &runtimev1.TextGenerateScenarioSpec{
+				Input: []*runtimev1.ChatMessage{{Role: "user", Content: "Use only the committed route."}},
+			}}},
+		},
+	)
+	assertAppAIConfigError(t, err, codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONNECTOR_GRANT_SELECTION_REQUIRED)
 }
 
 func TestProtectedLocalAppAIConfigRejectsCallerOwnerAndWrongOperation(t *testing.T) {
@@ -202,6 +253,15 @@ func TestAppAIConfigAcceptsExactProtectedPrincipalOwner(t *testing.T) {
 	}
 }
 
+func protectedAppAIConfigPrincipalContext(accountID string, appID string) context.Context {
+	principal := protectedprincipal.New(
+		appID, "test-app-ai-config.v1", "test-app-ai-config.v1",
+		&runtimev1.AccountProjection{AccountId: accountID, RealmEnvironmentId: "realm-test"},
+		1, [32]byte{1}, make(chan struct{}),
+	)
+	return protectedprincipal.With(context.Background(), principal)
+}
+
 func localAppAIConfigContext(
 	accountID string,
 	appID string,
@@ -238,7 +298,7 @@ func localAppAIConfigIntent(contract string) *runtimev1.AIConfigCapabilityIntent
 
 func grantlessCloudAIConfigIntent(t *testing.T, contract string) *runtimev1.AIConfigCapabilityIntent {
 	t.Helper()
-	target, err := structpb.NewStruct(map[string]any{"provider": "example", "model": "model-a"})
+	target, err := structpb.NewStruct(map[string]any{"provider": "openai", "providerModelId": "gpt-4o-mini"})
 	if err != nil {
 		t.Fatalf("cloud target: %v", err)
 	}
@@ -246,9 +306,9 @@ func grantlessCloudAIConfigIntent(t *testing.T, contract string) *runtimev1.AICo
 		CapabilityContract: contract,
 		Route: &runtimev1.AIConfigCapabilityIntent_Cloud{Cloud: &runtimev1.AIConfigCloudIntent{
 			Implementation: &runtimev1.CapabilityImplementationIdentity{
-				ImplementationId: "cloud.text.example",
-				DriverId:         "cloud.example",
-				DriverDialect:    "v1",
+				ImplementationId: "cloud.text.openai",
+				DriverId:         "nimi.runtime.driver.openai",
+				DriverDialect:    "openai/chat-completions/v1",
 			},
 			ProviderModelTarget: target,
 		}},

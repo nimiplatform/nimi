@@ -1,6 +1,8 @@
 import type {
   AIConfig,
   AIConfigCapabilityIntent,
+  AIConfigCloudIntent,
+  AIConfigLocalIntent,
   AIConfigOwner,
   GetAppAIConfigRequest,
   GetAppAIConfigResponse,
@@ -13,6 +15,20 @@ import { createNimiClientId, createNimiError, ReasonCode } from '../../types';
 
 export type NimiCapabilityAIConfig = AIConfig;
 export type NimiCapabilityAIConfigIntent = AIConfigCapabilityIntent;
+
+export type NimiPortableAppAIConfigIntent = Omit<AIConfigCapabilityIntent, 'requiredFeatures' | 'route'> & {
+  readonly requiredFeatures: readonly string[];
+  readonly route:
+    | { readonly oneofKind: 'local'; readonly local: AIConfigLocalIntent }
+    | {
+        readonly oneofKind: 'cloud';
+        readonly cloud: Omit<AIConfigCloudIntent, 'connectorGrantId'>;
+      };
+};
+
+export type NimiPortableAppAIConfig = Omit<AIConfig, 'capabilities'> & {
+  readonly capabilities: readonly NimiPortableAppAIConfigIntent[];
+};
 
 export interface NimiAppAIConfigRpcClient {
   getAppAIConfig(

@@ -1,6 +1,6 @@
 import type {
-  NimiCapabilityAIConfig,
-  NimiCapabilityAIConfigIntent,
+  NimiPortableAppAIConfig,
+  NimiPortableAppAIConfigIntent,
 } from '../ai/capability-configuration.js';
 import {
   asRecord,
@@ -17,15 +17,15 @@ import {
 export type NimiLocalAppAIConfigShell = {
   readonly get: () => Promise<unknown>;
   readonly overwrite: (
-    capabilities: readonly NimiCapabilityAIConfigIntent[],
+    capabilities: readonly NimiPortableAppAIConfigIntent[],
   ) => Promise<unknown>;
 };
 
 export type NimiLocalAppAIConfigClient = {
-  readonly get: () => Promise<NimiCapabilityAIConfig>;
+  readonly get: () => Promise<NimiPortableAppAIConfig>;
   readonly overwrite: (
-    capabilities: readonly NimiCapabilityAIConfigIntent[],
-  ) => Promise<NimiCapabilityAIConfig>;
+    capabilities: readonly NimiPortableAppAIConfigIntent[],
+  ) => Promise<NimiPortableAppAIConfig>;
 };
 
 /**
@@ -46,7 +46,7 @@ export function createNimiLocalAppAIConfigClient(
 }
 
 function validateCapabilityIntents(
-  capabilities: readonly NimiCapabilityAIConfigIntent[],
+  capabilities: readonly NimiPortableAppAIConfigIntent[],
 ): void {
   if (!Array.isArray(capabilities)) {
     localAppError(
@@ -86,7 +86,7 @@ function validateCapabilityIntents(
     const cloud = asRecord(route.cloud);
     assertExactKeys(
       cloud,
-      ['implementation', 'providerModelTarget', 'connectorGrantId'],
+      ['implementation', 'providerModelTarget'],
       `local App AIConfig capability ${index} cloud route`,
     );
     const implementation = asRecord(cloud.implementation);
@@ -101,14 +101,10 @@ function validateCapabilityIntents(
     if (cloud.providerModelTarget !== undefined && !asRecord(cloud.providerModelTarget)) {
       invalidIntent(`capability ${index} providerModelTarget`);
     }
-    if (typeof cloud.connectorGrantId !== 'string'
-      || cloud.connectorGrantId.trim() !== cloud.connectorGrantId) {
-      invalidIntent(`capability ${index} connectorGrantId`);
-    }
   });
 }
 
-function projectAppAIConfig(value: unknown): NimiCapabilityAIConfig {
+function projectAppAIConfig(value: unknown): NimiPortableAppAIConfig {
   const config = asRecord(value);
   assertExactProjectionKeys(config, ['owner', 'capabilities'], 'App AIConfig');
   assertSafeProjection(config);
@@ -121,7 +117,7 @@ function projectAppAIConfig(value: unknown): NimiCapabilityAIConfig {
   assertExactProjectionKeys(app, ['appId'], 'App AIConfig App owner');
   projectionText(app.appId, 'App AIConfig appId');
   if (!Array.isArray(config.capabilities)) localAppProjectionError('App AIConfig capabilities');
-  return config as unknown as NimiCapabilityAIConfig;
+  return config as unknown as NimiPortableAppAIConfig;
 }
 
 function invalidIntent(field: string): never {

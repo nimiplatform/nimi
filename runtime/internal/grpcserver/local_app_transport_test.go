@@ -75,6 +75,33 @@ func TestProtectedLocalAppAdmittedImplementedOwnerDispatches(t *testing.T) {
 	}
 }
 
+func TestProtectedLocalAppAIConfigOwnersDispatchAfterAdmission(t *testing.T) {
+	connection := newGRPCLocalAppConnection(t, 0x4a)
+	if err := connection.BindSession(protectedlocal.LocalAppSessionHandle{SessionID: grpcLocalAppIdentifier(0x4b), SessionProof: grpcLocalAppIdentifier(0x4c)}); err != nil {
+		t.Fatal(err)
+	}
+	ctx := peer.NewContext(context.Background(), &peer.Peer{AuthInfo: &protectedLocalAppAuthInfo{connection: connection}})
+	admission := &localAppAdmissionStub{}
+	tests := []struct {
+		method  string
+		request any
+		ingress localappop.Ingress
+	}{
+		{method: protectedGetAppAIConfigMethod, request: &runtimev1.GetAppAIConfigRequest{}, ingress: localappop.IngressAppAIConfigGet},
+		{method: protectedOverwriteAppAIConfigMethod, request: &runtimev1.OverwriteAppAIConfigRequest{Config: &runtimev1.AIConfig{}}, ingress: localappop.IngressAppAIConfigOverwrite},
+	}
+	for _, test := range tests {
+		handlerCalled := false
+		_, err := newUnaryProtectedLocalAppTransportInterceptor(admission)(ctx, test.request, &grpc.UnaryServerInfo{FullMethod: test.method}, func(context.Context, any) (any, error) {
+			handlerCalled = true
+			return &runtimev1.GetAppAIConfigResponse{}, nil
+		})
+		if err != nil || !handlerCalled || admission.ingress != test.ingress {
+			t.Fatalf("AIConfig %s = handler:%v ingress:%v error:%v", test.method, handlerCalled, admission.ingress, err)
+		}
+	}
+}
+
 func TestProtectedLocalAppAdmittedUnimplementedOwnerReportsUnavailable(t *testing.T) {
 	connection := newGRPCLocalAppConnection(t, 0x3e)
 	if err := connection.BindSession(protectedlocal.LocalAppSessionHandle{SessionID: grpcLocalAppIdentifier(0x3f), SessionProof: grpcLocalAppIdentifier(0x40)}); err != nil {

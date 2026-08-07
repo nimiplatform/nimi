@@ -140,6 +140,76 @@ test('Current User projects exactly three display-safe fields', async () => {
   });
 });
 
+test('App AIConfig accepts only portable intent and rejects binding material in input or projection', async () => {
+  const calls: unknown[] = [];
+  const portableConfig = {
+    owner: { owner: { oneofKind: 'app', app: { appId: 'app.example' } } },
+    capabilities: [{
+      capabilityContract: 'text.generate',
+      requiredFeatures: [],
+      route: {
+        oneofKind: 'cloud',
+        cloud: {
+          implementation: {
+            implementationId: 'cloud.text.example',
+            driverId: 'cloud.example',
+            driverDialect: 'v1',
+          },
+          providerModelTarget: { fields: {} },
+        },
+      },
+    }],
+  } as const;
+  const base = standardShell([]);
+  const shell: NimiLocalAppStandardShell = {
+    ...base,
+    aiConfig: {
+      get: async () => portableConfig,
+      overwrite: async (capabilities) => {
+        calls.push(capabilities);
+        return { ...portableConfig, capabilities };
+      },
+    },
+  };
+  const client = createNimiLocalAppClient({ standardShell: shell });
+  assert.deepEqual(await client.aiConfig.get(), portableConfig);
+  assert.deepEqual(await client.aiConfig.overwrite(portableConfig.capabilities), portableConfig);
+  assert.equal(JSON.stringify(calls).includes('connectorGrant'), false);
+
+  await assert.rejects(
+    () => client.aiConfig.overwrite([{
+      ...portableConfig.capabilities[0],
+      route: {
+        oneofKind: 'cloud',
+        cloud: { ...portableConfig.capabilities[0].route.cloud, connectorGrantId: 'grant-forged' },
+      },
+    }] as never),
+    (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_LOCAL_APP_AUTHORITY_FIELD_FORBIDDEN',
+  );
+  assert.equal(calls.length, 1);
+
+  const bindingProjection: NimiLocalAppStandardShell = {
+    ...base,
+    aiConfig: {
+      ...base.aiConfig,
+      get: async () => ({
+        ...portableConfig,
+        capabilities: [{
+          ...portableConfig.capabilities[0],
+          route: {
+            oneofKind: 'cloud',
+            cloud: { ...portableConfig.capabilities[0].route.cloud, connectorGrantId: 'grant-private' },
+          },
+        }],
+      }),
+    },
+  };
+  await assert.rejects(
+    () => createNimiLocalAppClient({ standardShell: bindingProjection }).aiConfig.get(),
+    (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_LOCAL_APP_PROJECTION_INVALID',
+  );
+});
+
 test('WorldCore list accepts the exact owner DTO and rejects raw or credential-adjacent projections', async () => {
   const world = {
     id: 'world-1', schemaVersion: '1', contentRevision: 1, contentHash: 'hash',

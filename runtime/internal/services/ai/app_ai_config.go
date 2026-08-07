@@ -49,6 +49,9 @@ func (s *Service) GetAppAIConfig(ctx context.Context, req *runtimev1.GetAppAICon
 	if !found {
 		return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_CONFIG_NOT_FOUND)
 	}
+	if _, localApp := accountservice.AuthorizedLocalAppDecisionFromContext(ctx); localApp {
+		config = portableLocalAppAIConfigProjection(config)
+	}
 	return &runtimev1.GetAppAIConfigResponse{Config: config}, nil
 }
 
@@ -79,6 +82,10 @@ func (s *Service) OverwriteAppAIConfig(ctx context.Context, req *runtimev1.Overw
 		return nil, invalidAppAIConfigError()
 	}
 	input.Owner = owner
+	_, localApp := accountservice.AuthorizedLocalAppDecisionFromContext(ctx)
+	if localApp && appAIConfigCarriesConnectorGrant(input) {
+		return nil, invalidAppAIConfigError()
+	}
 	canonical, err := aiconfig.Canonicalize(input)
 	if err != nil {
 		return nil, invalidAppAIConfigError()
@@ -86,13 +93,43 @@ func (s *Service) OverwriteAppAIConfig(ctx context.Context, req *runtimev1.Overw
 	if s == nil || s.aiConfigStore == nil {
 		return nil, appAIConfigPersistenceError(fmt.Errorf("AIConfig store is unavailable"))
 	}
-	if err := connector.ValidateAIConfigConnectorGrants(s.connStore, caller.accountNamespace, canonical); err != nil {
-		return nil, err
+	if !localApp {
+		if err := connector.ValidateAIConfigConnectorGrants(s.connStore, caller.accountNamespace, canonical); err != nil {
+			return nil, err
+		}
 	}
 	if err := s.aiConfigStore.Overwrite(ctx, caller.accountNamespace, canonical); err != nil {
 		return nil, appAIConfigPersistenceError(err)
 	}
+	if localApp {
+		canonical = portableLocalAppAIConfigProjection(canonical)
+	}
 	return &runtimev1.OverwriteAppAIConfigResponse{Config: canonical}, nil
+}
+
+func appAIConfigCarriesConnectorGrant(config *runtimev1.AIConfig) bool {
+	if config == nil {
+		return false
+	}
+	for _, capability := range config.GetCapabilities() {
+		if strings.TrimSpace(capability.GetCloud().GetConnectorGrantId()) != "" {
+			return true
+		}
+	}
+	return false
+}
+
+func portableLocalAppAIConfigProjection(config *runtimev1.AIConfig) *runtimev1.AIConfig {
+	projected, _ := proto.Clone(config).(*runtimev1.AIConfig)
+	if projected == nil {
+		return nil
+	}
+	for _, capability := range projected.GetCapabilities() {
+		if cloud := capability.GetCloud(); cloud != nil {
+			cloud.ConnectorGrantId = ""
+		}
+	}
+	return projected
 }
 
 func appAIConfigOwnerForCaller(

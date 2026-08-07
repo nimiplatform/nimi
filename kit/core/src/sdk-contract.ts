@@ -77,6 +77,8 @@ export type {
   NimiCapabilityAIConfig,
   NimiCapabilityAIConfigIntent,
   NimiCloudAIConfigCapabilityInput,
+  NimiPortableAppAIConfig,
+  NimiPortableAppAIConfigIntent,
 } from '@nimiplatform/sdk/ai';
 
 // --- Runtime type family ----------------------------------------------------

@@ -15,6 +15,11 @@ const MAX_ARTIFACT_DATA_BYTES = 4 * 1024 * 1024;
 const MAX_ARTIFACT_DISPLAY_NAME_BYTES = 512;
 const MAX_TURN_ATTACHMENTS = 1;
 const MAX_AI_PROFILE_JSON_BYTES = 4 * 1024 * 1024;
+const FORBIDDEN_PORTABLE_APP_AI_CONFIG_FIELDS = new Set([
+  'account', 'accountid', 'accesstoken', 'authorization', 'binding', 'bindingid',
+  'connectorgrant', 'connectorgrantid', 'credential', 'custody', 'custodymaterial',
+  'grantid', 'owner', 'appid', 'providercredential', 'refreshtoken', 'token',
+]);
 const FORBIDDEN_RENDERER_FIELDS = new Set([
   'endpoint', 'authorization', 'token', 'localAppPrincipalId', 'localAppRecordId',
   'trustClass', 'provenanceRevision', 'launchLease', 'bootstrap', 'processId',
@@ -124,6 +129,13 @@ function validatePayload(
       assertExactKeys(payload, [], command);
       return {};
     case 'aiConfigOverwrite':
+      assertExactKeys(payload, ['capabilities'], command);
+      if (!Array.isArray(payload.capabilities)) {
+        throw invalidPayload(command, 'capabilities is invalid');
+      }
+      assertNoPortableAppAIConfigFields(payload.capabilities, command);
+      validateJsonValue(payload.capabilities, command, 4 * 1024 * 1024);
+      return { capabilities: payload.capabilities as NimiElectronLocalAppRecord[string] };
     case 'sharedAgentAIConfigOverwrite':
       assertExactKeys(payload, ['capabilities'], command);
       if (!Array.isArray(payload.capabilities)) {
@@ -435,6 +447,21 @@ function assertNoForbiddenAuthorityValue(value: unknown, command: string): void 
       throw invalidPayload(command, `renderer authority field ${key} is forbidden`);
     }
     assertNoForbiddenAuthorityValue(entry, command);
+  }
+}
+
+function assertNoPortableAppAIConfigFields(value: unknown, command: string): void {
+  if (Array.isArray(value)) {
+    for (const entry of value) assertNoPortableAppAIConfigFields(entry, command);
+    return;
+  }
+  if (!value || typeof value !== 'object') return;
+  for (const [key, entry] of Object.entries(value as Record<string, unknown>)) {
+    const normalized = key.replace(/[^a-z0-9]/giu, '').toLowerCase();
+    if (FORBIDDEN_PORTABLE_APP_AI_CONFIG_FIELDS.has(normalized)) {
+      throw invalidPayload(command, `portable App AIConfig field ${key} is forbidden`);
+    }
+    assertNoPortableAppAIConfigFields(entry, command);
   }
 }
 

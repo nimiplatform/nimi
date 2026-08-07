@@ -5,6 +5,8 @@ import {
 import type {
   NimiCapabilityAIConfig,
   NimiCapabilityAIConfigIntent,
+  NimiPortableAppAIConfig,
+  NimiPortableAppAIConfigIntent,
 } from '@nimiplatform/kit/core/sdk-contract';
 import { BridgeError, invokeChecked } from './invoke.js';
 import { listenShell } from './tauri-api.js';
@@ -34,6 +36,10 @@ const FORBIDDEN_PROJECTION_KEYS = new Set([
 const FORBIDDEN_AI_CONFIG_INPUT_KEYS = new Set([
   ...FORBIDDEN_PROJECTION_KEYS,
   'owner', 'appid',
+]);
+const FORBIDDEN_PORTABLE_APP_AI_CONFIG_KEYS = new Set([
+  ...FORBIDDEN_PROJECTION_KEYS,
+  'binding', 'bindingid', 'connectorgrant', 'connectorgrantid', 'custody',
 ]);
 
 const LOCAL_APP_STATUS_STATES = new Set([
@@ -168,10 +174,10 @@ export type NimiLocalAppStandardShellSurface = {
     };
   };
   readonly aiConfig: {
-    readonly get: () => Promise<NimiCapabilityAIConfig>;
+    readonly get: () => Promise<NimiPortableAppAIConfig>;
     readonly overwrite: (
-      capabilities: readonly NimiCapabilityAIConfigIntent[],
-    ) => Promise<NimiCapabilityAIConfig>;
+      capabilities: readonly NimiPortableAppAIConfigIntent[],
+    ) => Promise<NimiPortableAppAIConfig>;
   };
   readonly storage: {
     readonly readJson: (relativePath: string) => Promise<NimiLocalAppStorageDocument>;
@@ -251,16 +257,17 @@ export function createNimiLocalAppStandardShellSurface(): NimiLocalAppStandardSh
   };
 }
 
-export function getNimiLocalAppAIConfig(): Promise<NimiCapabilityAIConfig> {
+export function getNimiLocalAppAIConfig(): Promise<NimiPortableAppAIConfig> {
   const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.aiConfigGet'];
   return invokeChecked(command, {}, (value) => parseAppAIConfig(value, command));
 }
 
 export function overwriteNimiLocalAppAIConfig(
-  capabilities: readonly NimiCapabilityAIConfigIntent[],
-): Promise<NimiCapabilityAIConfig> {
+  capabilities: readonly NimiPortableAppAIConfigIntent[],
+): Promise<NimiPortableAppAIConfig> {
   const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.aiConfigOverwrite'];
-  const payload = canonicalAIConfigCapabilities(capabilities, command);
+  rejectPortableAppAIConfigFields(capabilities, command, true);
+  const payload = canonicalAIConfigCapabilities(capabilities, command, true);
   return invokeChecked(
     command,
     { payload: { capabilities: payload } },
@@ -379,7 +386,7 @@ export function overwriteNimiLocalAppSharedAgentAIConfig(
   capabilities: readonly NimiCapabilityAIConfigIntent[],
 ): Promise<NimiCapabilityAIConfig> {
   const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.sharedAgentAIConfigOverwrite'];
-  const payload = canonicalAIConfigCapabilities(capabilities, command);
+  const payload = canonicalAIConfigCapabilities(capabilities, command, false);
   return invokeChecked(
     command,
     { payload: { capabilities: payload } },
@@ -934,8 +941,9 @@ function parseSafeProjection(value: unknown, command: string): JsonObject {
   return record;
 }
 
-function parseAppAIConfig(value: unknown, command: string): NimiCapabilityAIConfig {
+function parseAppAIConfig(value: unknown, command: string): NimiPortableAppAIConfig {
   const config = parseSafeProjection(value, command);
+  rejectPortableAppAIConfigFields(config, command, false);
   assertProjectionKeys(config, ['owner', 'capabilities'], command, 'App AIConfig');
   const owner = assertRecord(config.owner, `${command}: App AIConfig owner is invalid`);
   assertProjectionKeys(owner, ['owner'], command, 'App AIConfig owner');
@@ -946,7 +954,7 @@ function parseAppAIConfig(value: unknown, command: string): NimiCapabilityAIConf
   assertProjectionKeys(app, ['appId'], command, 'App AIConfig App owner');
   requiredText(app.appId, 'appId', command, MAX_IDENTIFIER_LENGTH);
   if (!Array.isArray(config.capabilities)) throw new Error(`${command}: App AIConfig capabilities are invalid`);
-  return config as unknown as NimiCapabilityAIConfig;
+  return config as unknown as NimiPortableAppAIConfig;
 }
 
 function parseSharedAgentAIConfig(value: unknown, command: string): NimiCapabilityAIConfig {
@@ -1015,8 +1023,9 @@ function validateAIProfileJson(value: unknown, command: string): string {
 }
 
 function canonicalAIConfigCapabilities(
-  capabilities: readonly NimiCapabilityAIConfigIntent[],
+  capabilities: readonly NimiCapabilityAIConfigIntent[] | readonly NimiPortableAppAIConfigIntent[],
   command: string,
+  portableApp: boolean,
 ): JsonObject[] {
   if (!Array.isArray(capabilities)) throw invalidInput(command, 'capabilities must be an array');
   try {
@@ -1043,7 +1052,7 @@ function canonicalAIConfigCapabilities(
           MAX_IDENTIFIER_LENGTH,
         ),
         requiredFeatures: [...intent.requiredFeatures],
-        route: canonicalAIConfigRoute(route, index, command),
+        route: canonicalAIConfigRoute(route, index, command, portableApp),
       };
       if (intent.defaults !== undefined) {
         output.defaults = canonicalAIConfigJsonValue(intent.defaults, command);
@@ -1056,7 +1065,7 @@ function canonicalAIConfigCapabilities(
   }
 }
 
-function canonicalAIConfigRoute(route: JsonObject, index: number, command: string): JsonObject {
+function canonicalAIConfigRoute(route: JsonObject, index: number, command: string, portableApp: boolean): JsonObject {
   if (route.oneofKind === 'local') {
     assertProjectionKeys(route, ['oneofKind', 'local'], command, `capabilities[${index}].route`);
     const local = assertRecord(route.local, `${command}: capabilities[${index}].route.local is invalid`);
@@ -1070,8 +1079,8 @@ function canonicalAIConfigRoute(route: JsonObject, index: number, command: strin
   const cloud = assertRecord(route.cloud, `${command}: capabilities[${index}].route.cloud is invalid`);
   assertAllowedInputKeys(
     cloud,
-    ['implementation', 'providerModelTarget', 'connectorGrantId'],
-    ['implementation', 'connectorGrantId'],
+    portableApp ? ['implementation', 'providerModelTarget'] : ['implementation', 'providerModelTarget', 'connectorGrantId'],
+    portableApp ? ['implementation'] : ['implementation', 'connectorGrantId'],
     command,
   );
   const implementation = assertRecord(
@@ -1090,8 +1099,10 @@ function canonicalAIConfigRoute(route: JsonObject, index: number, command: strin
       driverId: requiredText(implementation.driverId, 'driverId', command, MAX_IDENTIFIER_LENGTH),
       driverDialect: requiredText(implementation.driverDialect, 'driverDialect', command, MAX_IDENTIFIER_LENGTH),
     },
-    connectorGrantId: optionalCanonicalText(cloud.connectorGrantId, 'connectorGrantId', command),
   };
+  if (!portableApp) {
+    canonicalCloud.connectorGrantId = optionalCanonicalText(cloud.connectorGrantId, 'connectorGrantId', command);
+  }
   if (cloud.providerModelTarget !== undefined) {
     canonicalCloud.providerModelTarget = canonicalAIConfigJsonValue(cloud.providerModelTarget, command);
   }
@@ -1115,6 +1126,21 @@ function rejectAIConfigAuthorityFields(value: unknown, command: string): void {
       throw invalidInput(command, `AIConfig authority field ${key} is forbidden`);
     }
     rejectAIConfigAuthorityFields(entry, command);
+  }
+}
+
+function rejectPortableAppAIConfigFields(value: unknown, command: string, input: boolean): void {
+  if (!value || typeof value !== 'object') return;
+  if (Array.isArray(value)) {
+    for (const entry of value) rejectPortableAppAIConfigFields(entry, command, input);
+    return;
+  }
+  for (const [key, entry] of Object.entries(value as Record<string, unknown>)) {
+    if (FORBIDDEN_PORTABLE_APP_AI_CONFIG_KEYS.has(normalizeFieldName(key))) {
+      if (input) throw invalidInput(command, `portable App AIConfig field ${key} is forbidden`);
+      throw new Error(`${command}: portable App AIConfig field ${key} is forbidden`);
+    }
+    rejectPortableAppAIConfigFields(entry, command, input);
   }
 }
 

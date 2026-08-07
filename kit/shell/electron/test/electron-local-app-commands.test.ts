@@ -48,6 +48,22 @@ describe('Electron local-app standard-shell operations', () => {
       command: NIMI_STANDARD_SHELL_COMMANDS['local-app.aiConfigOverwrite'],
       payload: { payload: { capabilities: [{ owner: { appId: 'forged' } }] } },
     })).rejects.toMatchObject({ code: 'invalid-payload' });
+    await expect(invokeBridge(ipcMain, createInvokeEvent().event, {
+      command: NIMI_STANDARD_SHELL_COMMANDS['local-app.aiConfigOverwrite'],
+      payload: { payload: { capabilities: [{
+        capabilityContract: 'text.generate', requiredFeatures: [],
+        route: {
+          oneofKind: 'cloud',
+          cloud: {
+            implementation: {
+              implementationId: 'cloud.text.example', driverId: 'cloud.example', driverDialect: 'v1',
+            },
+            connectorGrantId: 'grant-forged',
+          },
+        },
+      }] } },
+    })).rejects.toMatchObject({ code: 'invalid-payload' });
+    expect(calls).toHaveLength(2);
   });
 
   it('routes only the two exact WorldCore operations without a renderer method selector', async () => {

@@ -119,6 +119,33 @@ describe('Electron protected local-app host', () => {
     })).rejects.toMatchObject({ reasonCode: 'local-app-operation-unavailable', retryable: false });
   });
 
+  it('rejects ConnectorGrant binding material returned by the App AIConfig carrier', async () => {
+    const candidate = {
+      ...binding([]),
+      localAppAIConfigGet: async () => ({
+        status: 'ok' as const,
+        value: {
+          owner: { owner: { oneofKind: 'app', app: { appId: 'app.example' } } },
+          capabilities: [{
+            capabilityContract: 'text.generate', requiredFeatures: [],
+            route: {
+              oneofKind: 'cloud',
+              cloud: {
+                implementation: {
+                  implementationId: 'cloud.text.example', driverId: 'cloud.example', driverDialect: 'v1',
+                },
+                connectorGrantId: 'grant-private',
+              },
+            },
+          }],
+        },
+      }),
+    };
+    await expect(createNimiElectronLocalAppHostForBinding(candidate).aiConfigGet()).rejects.toMatchObject({
+      reasonCode: 'runtime-service-untrusted', retryable: false,
+    });
+  });
+
   it('rejects protected carrier material returned by the native binding', async () => {
     const candidate = {
       ...binding([]),

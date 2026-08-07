@@ -112,8 +112,8 @@ fn parse_route(
             exact_keys(object, &["oneofKind", "cloud"], &["oneofKind", "cloud"])?;
             let cloud = exact_object(
                 object.get("cloud").ok_or_else(invalid_payload)?,
-                &["implementation", "providerModelTarget", "connectorGrantId"],
-                &["implementation", "connectorGrantId"],
+                &["implementation", "providerModelTarget"],
+                &["implementation"],
             )?;
             let implementation =
                 parse_implementation(cloud.get("implementation").ok_or_else(invalid_payload)?)?;
@@ -121,12 +121,11 @@ fn parse_route(
                 .get("providerModelTarget")
                 .map(|value| parse_proto_struct(value, budget, 1))
                 .transpose()?;
-            let connector_grant_id = canonical_optional_text(cloud.get("connectorGrantId"))?;
             Ok(ai_config_capability_intent::Route::Cloud(
                 AiConfigCloudIntent {
                     implementation: Some(implementation),
                     provider_model_target,
-                    connector_grant_id,
+                    connector_grant_id: String::new(),
                 },
             ))
         }
@@ -315,20 +314,14 @@ pub(super) fn project_capability(
             {
                 return Err(untrusted());
             }
-            let mut projected = Map::from_iter([
-                (
-                    "implementation".to_string(),
-                    json!({
-                        "implementationId": implementation.implementation_id,
-                        "driverId": implementation.driver_id,
-                        "driverDialect": implementation.driver_dialect,
-                    }),
-                ),
-                (
-                    "connectorGrantId".to_string(),
-                    JsonValue::String(cloud.connector_grant_id),
-                ),
-            ]);
+            let mut projected = Map::from_iter([(
+                "implementation".to_string(),
+                json!({
+                    "implementationId": implementation.implementation_id,
+                    "driverId": implementation.driver_id,
+                    "driverDialect": implementation.driver_dialect,
+                }),
+            )]);
             if let Some(target) = cloud.provider_model_target {
                 projected.insert(
                     "providerModelTarget".to_string(),
@@ -432,16 +425,6 @@ fn required_text(value: Option<&JsonValue>) -> Result<String, LocalAppOperationE
     Ok(value.to_string())
 }
 
-fn canonical_optional_text(value: Option<&JsonValue>) -> Result<String, LocalAppOperationError> {
-    let value = value
-        .and_then(JsonValue::as_str)
-        .ok_or_else(invalid_payload)?;
-    if value.trim() != value {
-        return Err(invalid_payload());
-    }
-    Ok(value.to_string())
-}
-
 fn count_node(budget: &mut usize, depth: usize) -> Result<(), LocalAppOperationError> {
     *budget = budget.saturating_add(1);
     if depth > MAX_JSON_DEPTH || *budget > MAX_JSON_NODES {
@@ -496,12 +479,16 @@ mod tests {
                                 }
                             }
                         },
-                        "connectorGrantId": "grant-1"
                     }
                 }
             }
         ]);
-        let capabilities = parse_capabilities(source.clone()).unwrap();
+        let mut capabilities = parse_capabilities(source.clone()).unwrap();
+        if let Some(ai_config_capability_intent::Route::Cloud(cloud)) =
+            capabilities[1].route.as_mut()
+        {
+            cloud.connector_grant_id = "grant-private-binding".to_string();
+        }
         let projected = project_config(AiConfig {
             owner: Some(AiConfigOwner {
                 owner: Some(ai_config_owner::Owner::App(AiConfigAppOwner {
@@ -516,7 +503,33 @@ mod tests {
     }
 
     #[test]
-    fn capability_input_rejects_owner_injection() {
+    fn capability_input_rejects_connector_grant_and_owner_injection() {
+        let grant_error = parse_capabilities(json!([{
+            "capabilityContract": "text.generate",
+            "requiredFeatures": [],
+            "route": {
+                "oneofKind": "cloud",
+                "cloud": {
+                    "implementation": {
+                        "implementationId": "cloud.text.example",
+                        "driverId": "cloud.example",
+                        "driverDialect": "v1"
+                    },
+                    "providerModelTarget": {
+                        "fields": {
+                            "model": { "kind": { "oneofKind": "stringValue", "stringValue": "model-a" } }
+                        }
+                    },
+                    "connectorGrantId": "grant-app-supplied"
+                }
+            }
+        }]))
+        .unwrap_err();
+        assert_eq!(
+            grant_error.reason_code(),
+            LocalAppReasonCode::InvalidPayload
+        );
+
         let error = parse_capabilities(json!([{
             "capabilityContract": "text.generate",
             "requiredFeatures": [],
