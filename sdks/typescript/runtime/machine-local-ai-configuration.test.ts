@@ -21,10 +21,13 @@ import {
   NIMI_MACHINE_LOCAL_INPUT_IMAGE_FEATURE,
   NIMI_MACHINE_LOCAL_LLAMA_CPP_TEXT_IMPLEMENTATION,
   NIMI_MACHINE_LOCAL_STABLE_DIFFUSION_IMAGE_IMPLEMENTATION,
+  NIMI_MACHINE_LOCAL_STABLE_DIFFUSION_VIDEO_IMPLEMENTATION,
   NIMI_MACHINE_LOCAL_TEXT_GENERATE_CAPABILITY_CONTRACT,
+  NIMI_MACHINE_LOCAL_VIDEO_GENERATE_CAPABILITY_CONTRACT,
   createNimiMachineLocalAIConfigurationClient,
   createNimiMachineLocalLlamaCppTextConfigurationInput,
   createNimiMachineLocalStableDiffusionImageConfigurationInput,
+  createNimiMachineLocalStableDiffusionVideoConfigurationInput,
   deriveNimiMachineLocalAIConfigurationImpact,
   fromNimiRuntimeProtoStruct,
   loadNimiMachineLocalAIConfigurationImpact,
@@ -382,6 +385,63 @@ test('stable-diffusion image configuration constructor emits only Driver portabl
       displayName: 'Injected portable key',
       modelFamily: 'z-image',
       provider: 'not-a-driver-field',
+    } as never),
+    /unsupported fields/u,
+  );
+});
+
+test('stable-diffusion video configuration constructor emits only Driver portable fields in ordered form', () => {
+  const fl2vaContentId = `sha256:${'e'.repeat(64)}`;
+  const input = createNimiMachineLocalStableDiffusionVideoConfigurationInput({
+    displayName: 'Local video studio',
+    enableInputImage: true,
+    fl2vaRequirementPolicy: 'strict',
+    fl2vaVerifiedContentId: fl2vaContentId,
+    ref2vaRequirementPolicy: 'substitutable',
+    encoderRequirementPolicy: 'substitutable',
+    videoVAERequirementPolicy: 'substitutable',
+    audioVAERequirementPolicy: 'substitutable',
+  });
+
+  assert.equal(input.capabilityContract, NIMI_MACHINE_LOCAL_VIDEO_GENERATE_CAPABILITY_CONTRACT);
+  assert.deepEqual(input.implementation, NIMI_MACHINE_LOCAL_STABLE_DIFFUSION_VIDEO_IMPLEMENTATION);
+  assert.deepEqual(input.supportedFeatures, [NIMI_MACHINE_LOCAL_INPUT_IMAGE_FEATURE]);
+  assert.deepEqual(input.portableConfig, {
+    fl2vaRequirementPolicy: 'strict',
+    fl2vaVerifiedContentId: fl2vaContentId,
+    ref2vaRequirementPolicy: 'substitutable',
+    encoderRequirementPolicy: 'substitutable',
+    videoVAERequirementPolicy: 'substitutable',
+    audioVAERequirementPolicy: 'substitutable',
+  });
+
+  const defaults = createNimiMachineLocalStableDiffusionVideoConfigurationInput({
+    displayName: 'Default video studio',
+  });
+  assert.deepEqual(defaults.portableConfig, {});
+  assert.deepEqual(defaults.supportedFeatures, []);
+
+  assert.throws(
+    () => createNimiMachineLocalStableDiffusionVideoConfigurationInput({
+      displayName: 'Invalid strict slot',
+      fl2vaRequirementPolicy: 'strict',
+    }),
+    (error: unknown) => {
+      assert.equal((error as { reasonCode?: string }).reasonCode, ReasonCode.SDK_AI_INPUT_INVALID);
+      return true;
+    },
+  );
+  assert.throws(
+    () => createNimiMachineLocalStableDiffusionVideoConfigurationInput({
+      displayName: 'Invalid content identity',
+      videoVAEVerifiedContentId: 'not-a-digest',
+    }),
+    /canonical sha256 content identity/u,
+  );
+  assert.throws(
+    () => createNimiMachineLocalStableDiffusionVideoConfigurationInput({
+      displayName: 'Injected portable key',
+      modelFamily: 'minimax-h3',
     } as never),
     /unsupported fields/u,
   );

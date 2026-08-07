@@ -33,6 +33,17 @@ export const NIMI_AI_PROFILE_STABLE_DIFFUSION_IMPLEMENTATION = Object.freeze({
   driverDialect: 'stable-diffusion.cpp/image-generate/v1',
 }) satisfies Readonly<CapabilityImplementationIdentity>;
 
+/**
+ * Mirrors runtime/internal/capabilitydriver/stablediffusion_video.go:19-21;
+ * implementationId/driverId alias the image pair at
+ * runtime/internal/capabilitydriver/stablediffusion.go:18-19.
+ */
+export const NIMI_AI_PROFILE_STABLE_DIFFUSION_VIDEO_IMPLEMENTATION = Object.freeze({
+  implementationId: 'local.image.generate.stable-diffusion-cpp',
+  driverId: 'nimi.runtime.driver.stable-diffusion-cpp',
+  driverDialect: 'stable-diffusion.cpp/minimax-h3-video-generate/v1',
+}) satisfies Readonly<CapabilityImplementationIdentity>;
+
 /** Mirrors runtime/internal/capabilitydriver/llama.go:464-465. */
 export const NIMI_AI_PROFILE_LLAMA_PORTABLE_CONFIG_FIELDS = Object.freeze([
   'mainRequirementPolicy',
@@ -82,6 +93,24 @@ export const NIMI_AI_PROFILE_STABLE_DIFFUSION_EXECUTION_OPTION_FIELDS = Object.f
   'threads',
   'diffusionFlashAttention',
   'offloadParamsToCPU',
+] as const);
+
+/**
+ * Mirrors the policyKey/contentIDKey pairs admitted by
+ * parseStableDiffusionVideoPortableConfig from stableDiffusionVideoSlots
+ * (runtime/internal/capabilitydriver/stablediffusion_video.go:54-80,318-322).
+ */
+export const NIMI_AI_PROFILE_STABLE_DIFFUSION_VIDEO_PORTABLE_CONFIG_FIELDS = Object.freeze([
+  'fl2vaRequirementPolicy',
+  'fl2vaVerifiedContentId',
+  'ref2vaRequirementPolicy',
+  'ref2vaVerifiedContentId',
+  'encoderRequirementPolicy',
+  'encoderVerifiedContentId',
+  'videoVAERequirementPolicy',
+  'videoVAEVerifiedContentId',
+  'audioVAERequirementPolicy',
+  'audioVAEVerifiedContentId',
 ] as const);
 
 /** Cloud recommendation content is intentionally grantless and connectorless. */
@@ -188,6 +217,26 @@ export interface NimiAIProfileStableDiffusionPortableConfigInput {
   readonly executionOptions?: NimiAIProfileStableDiffusionExecutionOptionsInput;
 }
 
+/**
+ * MiniMax-H3 video.generate portable config. The ten fields are exactly the
+ * policyKey/contentIDKey pairs of the five Driver slots at
+ * runtime/internal/capabilitydriver/stablediffusion_video.go:54-80; any other
+ * key fails closed (stablediffusion_video.go:323-327). An absent section
+ * defaults every slot to substitutable (stablediffusion_video.go:312-317).
+ */
+export interface NimiAIProfileStableDiffusionVideoPortableConfigInput {
+  readonly fl2vaRequirementPolicy?: NimiAIProfileRequirementPolicy;
+  readonly fl2vaVerifiedContentId?: string;
+  readonly ref2vaRequirementPolicy?: NimiAIProfileRequirementPolicy;
+  readonly ref2vaVerifiedContentId?: string;
+  readonly encoderRequirementPolicy?: NimiAIProfileRequirementPolicy;
+  readonly encoderVerifiedContentId?: string;
+  readonly videoVAERequirementPolicy?: NimiAIProfileRequirementPolicy;
+  readonly videoVAEVerifiedContentId?: string;
+  readonly audioVAERequirementPolicy?: NimiAIProfileRequirementPolicy;
+  readonly audioVAEVerifiedContentId?: string;
+}
+
 export type NimiAIProfileDriverAuthoringSection =
   | {
     readonly kind: 'llama';
@@ -196,6 +245,10 @@ export type NimiAIProfileDriverAuthoringSection =
   | {
     readonly kind: 'stable-diffusion';
     readonly portableConfig: NimiAIProfileStableDiffusionPortableConfigInput;
+  }
+  | {
+    readonly kind: 'stable-diffusion-video';
+    readonly portableConfig?: NimiAIProfileStableDiffusionVideoPortableConfigInput;
   };
 
 export interface NimiAIProfileLocalImplementationAuthoringInput {
@@ -442,6 +495,19 @@ export function createNimiAIProfileStableDiffusionPortableConfig(
   return config;
 }
 
+export function createNimiAIProfileStableDiffusionVideoPortableConfig(
+  input: NimiAIProfileStableDiffusionVideoPortableConfigInput = {},
+  supportedFeatures: readonly string[] = [],
+): NimiJsonObject {
+  const features = normalizeFeatureSet(
+    supportedFeatures,
+    'stable-diffusion video supportedFeatures',
+  );
+  const config = normalizeAuthoringJsonObject(input, 'stable-diffusion video portableConfig');
+  validateStableDiffusionVideoPortableConfig(config, features);
+  return config;
+}
+
 export function createNimiAIProfileLlamaLocalImplementation(input: {
   readonly supportedFeatures?: readonly string[];
   readonly portableConfig?: NimiAIProfileLlamaPortableConfigInput;
@@ -480,6 +546,35 @@ export function createNimiAIProfileStableDiffusionLocalImplementation(input: {
     driverSection: Object.freeze({
       kind: 'stable-diffusion' as const,
       portableConfig: portableConfig as unknown as NimiAIProfileStableDiffusionPortableConfigInput,
+    }),
+  });
+}
+
+export function createNimiAIProfileStableDiffusionVideoLocalImplementation(input: {
+  readonly supportedFeatures?: readonly string[];
+  readonly portableConfig?: NimiAIProfileStableDiffusionVideoPortableConfigInput;
+} = {}): NimiAIProfileLocalImplementationAuthoringInput {
+  assertExactRecord(
+    input,
+    new Set(['supportedFeatures', 'portableConfig']),
+    'stable-diffusion video implementation input',
+  );
+  const supportedFeatures = normalizeFeatureSet(
+    input.supportedFeatures ?? [],
+    'stable-diffusion video supportedFeatures',
+  );
+  const portableConfig = createNimiAIProfileStableDiffusionVideoPortableConfig(
+    input.portableConfig ?? {},
+    supportedFeatures,
+  );
+  return Object.freeze({
+    implementation: Object.freeze({ ...NIMI_AI_PROFILE_STABLE_DIFFUSION_VIDEO_IMPLEMENTATION }),
+    supportedFeatures,
+    driverSection: Object.freeze({
+      kind: 'stable-diffusion-video' as const,
+      portableConfig: (
+        portableConfig as unknown as NimiAIProfileStableDiffusionVideoPortableConfigInput
+      ),
     }),
   });
 }
@@ -1079,6 +1174,9 @@ const STABLE_DIFFUSION_LORA_FIELDS = new Set<string>(
 const STABLE_DIFFUSION_EXECUTION_FIELDS = new Set<string>(
   NIMI_AI_PROFILE_STABLE_DIFFUSION_EXECUTION_OPTION_FIELDS,
 );
+const STABLE_DIFFUSION_VIDEO_FIELDS = new Set<string>(
+  NIMI_AI_PROFILE_STABLE_DIFFUSION_VIDEO_PORTABLE_CONFIG_FIELDS,
+);
 const LLAMA_CACHE_TYPES = new Set<NimiAIProfileLlamaCacheType>(
   NIMI_AI_PROFILE_LLAMA_CACHE_TYPES,
 );
@@ -1130,6 +1228,24 @@ function normalizeLocalImplementationInput(
       supportedFeatures,
       portableConfig: createNimiAIProfileLlamaPortableConfig(
         (section.portableConfig ?? {}) as NimiAIProfileLlamaPortableConfigInput,
+        supportedFeatures,
+      ),
+    });
+  }
+  if (section.kind === 'stable-diffusion-video') {
+    assertExactImplementation(
+      implementation,
+      NIMI_AI_PROFILE_STABLE_DIFFUSION_VIDEO_IMPLEMENTATION,
+      'stable-diffusion video',
+    );
+    if (capabilityContract !== 'video.generate') {
+      return authoringError('stable-diffusion video Driver section requires video.generate');
+    }
+    return Object.freeze({
+      implementation,
+      supportedFeatures,
+      portableConfig: createNimiAIProfileStableDiffusionVideoPortableConfig(
+        (section.portableConfig ?? {}) as NimiAIProfileStableDiffusionVideoPortableConfigInput,
         supportedFeatures,
       ),
     });
@@ -1238,6 +1354,13 @@ function validateKnownLocalConfiguration(
     validateStableDiffusionPortableConfig(config, features);
     return;
   }
+  if (sameImplementation(identity, NIMI_AI_PROFILE_STABLE_DIFFUSION_VIDEO_IMPLEMENTATION)) {
+    if (capabilityContract !== 'video.generate') {
+      return authoringError('stable-diffusion video implementation requires video.generate');
+    }
+    validateStableDiffusionVideoPortableConfig(config, features);
+    return;
+  }
   return authoringError(
     `AIProfile ${capabilityContract} uses an unsupported Local implementation or Driver dialect`,
   );
@@ -1320,6 +1443,31 @@ function validateStableDiffusionPortableConfig(
   if (hasOwn(config, 'executionOptions')) {
     validateStableDiffusionExecutionOptions(config.executionOptions);
   }
+}
+
+function validateStableDiffusionVideoPortableConfig(
+  config: NimiJsonObject,
+  supportedFeatures: readonly string[],
+): void {
+  // Unknown keys fail closed exactly like parseStableDiffusionVideoPortableConfig
+  // (runtime/internal/capabilitydriver/stablediffusion_video.go:318-327).
+  assertExactJsonKeys(
+    config,
+    STABLE_DIFFUSION_VIDEO_FIELDS,
+    'stable-diffusion video portableConfig',
+  );
+  // The MiniMax-H3 video Driver admits only input.image
+  // (stablediffusion_video.go:35,91-95).
+  assertOnlyInputImageFeature(supportedFeatures, 'stable-diffusion video supportedFeatures');
+  // Per-slot intent rules mirror stableDiffusionRequirementIntentFromFields
+  // (runtime/internal/capabilitydriver/stablediffusion.go:773-792): policy is
+  // strict|substitutable (default substitutable), verifiedContentId must be a
+  // canonical sha256 identity, and strict requires verifiedContentId.
+  validateRequirementIntent(config, 'fl2vaRequirementPolicy', 'fl2vaVerifiedContentId');
+  validateRequirementIntent(config, 'ref2vaRequirementPolicy', 'ref2vaVerifiedContentId');
+  validateRequirementIntent(config, 'encoderRequirementPolicy', 'encoderVerifiedContentId');
+  validateRequirementIntent(config, 'videoVAERequirementPolicy', 'videoVAEVerifiedContentId');
+  validateRequirementIntent(config, 'audioVAERequirementPolicy', 'audioVAEVerifiedContentId');
 }
 
 function validateRequirementIntent(
@@ -1445,6 +1593,62 @@ function projectKnownDriverRequirements(
       source: 'authoring-preview' as const,
       commitTruth: 'runtime-reproject' as const,
       requirements: Object.freeze(requirements),
+    });
+  }
+
+  if (sameImplementation(implementation, NIMI_AI_PROFILE_STABLE_DIFFUSION_VIDEO_IMPLEMENTATION)) {
+    // Slot order and facts mirror stableDiffusionVideoSlots
+    // (runtime/internal/capabilitydriver/stablediffusion_video.go:54-80).
+    return Object.freeze({
+      source: 'authoring-preview' as const,
+      commitTruth: 'runtime-reproject' as const,
+      requirements: Object.freeze([
+        requirementPreview(
+          'diffusion.fl2va',
+          'main',
+          0,
+          'MiniMax-H3 FL2VA transformer',
+          'video',
+          optionalPolicy(config, 'fl2vaRequirementPolicy') ?? 'substitutable',
+          optionalVerifiedContentId(config, 'fl2vaVerifiedContentId'),
+        ),
+        requirementPreview(
+          'diffusion.ref2va',
+          'companion',
+          0,
+          'MiniMax-H3 Ref2VA transformer',
+          'video',
+          optionalPolicy(config, 'ref2vaRequirementPolicy') ?? 'substitutable',
+          optionalVerifiedContentId(config, 'ref2vaVerifiedContentId'),
+        ),
+        requirementPreview(
+          'encoder.h3-combined',
+          'companion',
+          0,
+          'MiniMax-H3 combined Qwen3-VL encoder',
+          'chat',
+          optionalPolicy(config, 'encoderRequirementPolicy') ?? 'substitutable',
+          optionalVerifiedContentId(config, 'encoderVerifiedContentId'),
+        ),
+        requirementPreview(
+          'vae.video',
+          'companion',
+          0,
+          'MiniMax-H3 video VAE',
+          'vae',
+          optionalPolicy(config, 'videoVAERequirementPolicy') ?? 'substitutable',
+          optionalVerifiedContentId(config, 'videoVAEVerifiedContentId'),
+        ),
+        requirementPreview(
+          'vae.audio',
+          'companion',
+          0,
+          'MiniMax-H3 audio VAE',
+          'vae',
+          optionalPolicy(config, 'audioVAERequirementPolicy') ?? 'substitutable',
+          optionalVerifiedContentId(config, 'audioVAEVerifiedContentId'),
+        ),
+      ]),
     });
   }
 

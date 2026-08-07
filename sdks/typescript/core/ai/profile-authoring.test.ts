@@ -10,10 +10,13 @@ import {
   NIMI_AI_PROFILE_STABLE_DIFFUSION_LORA_FIELDS,
   NIMI_AI_PROFILE_STABLE_DIFFUSION_MODEL_FAMILIES,
   NIMI_AI_PROFILE_STABLE_DIFFUSION_PORTABLE_CONFIG_FIELDS,
+  NIMI_AI_PROFILE_STABLE_DIFFUSION_VIDEO_PORTABLE_CONFIG_FIELDS,
   createNimiAIProfileAuthoringBuilder,
   createNimiAIProfileLlamaLocalImplementation,
   createNimiAIProfileLlamaPortableConfig,
   createNimiAIProfileStableDiffusionLocalImplementation,
+  createNimiAIProfileStableDiffusionVideoLocalImplementation,
+  createNimiAIProfileStableDiffusionVideoPortableConfig,
   deriveNimiAIProfileApplyPreview,
   deriveNimiAIProfileImportPreview,
   deriveNimiAIProfileLocalConfigurationEquivalenceDigest,
@@ -69,6 +72,30 @@ function localTextProfile(contextSize = 8192): NimiPortableAIProfile {
 
 function cloneProfile(profile: NimiPortableAIProfile): Record<string, unknown> {
   return JSON.parse(serializeNimiPortableAIProfile(profile)) as Record<string, unknown>;
+}
+
+const FL2VA_CONTENT_ID = `sha256:${'e'.repeat(64)}`;
+
+function localVideoBuilder(fl2vaPolicy: 'strict' | 'substitutable' = 'strict') {
+  return createNimiAIProfileAuthoringBuilder({
+    profileId: 'profile.authoring.video',
+    title: 'Portable video studio',
+    provenance: { publisher: 'example.test' },
+    license: 'Apache-2.0',
+  }).setLocalCapability({
+    capabilityContract: 'video.generate',
+    localConfiguration: createNimiAIProfileStableDiffusionVideoLocalImplementation({
+      supportedFeatures: ['input.image'],
+      portableConfig: {
+        fl2vaRequirementPolicy: fl2vaPolicy,
+        ...(fl2vaPolicy === 'strict' ? { fl2vaVerifiedContentId: FL2VA_CONTENT_ID } : {}),
+        ref2vaRequirementPolicy: 'substitutable',
+        encoderRequirementPolicy: 'substitutable',
+        videoVAERequirementPolicy: 'substitutable',
+        audioVAERequirementPolicy: 'substitutable',
+      },
+    }),
+  });
 }
 
 test('AIProfile authoring builder round-trips and imported artifacts remain editable', () => {
@@ -461,6 +488,98 @@ test('stable-diffusion authoring projection preserves Driver-declared occurrence
   );
 });
 
+test('stable-diffusion video authoring projection preserves Driver-declared slots', () => {
+  const profile = localVideoBuilder().build();
+  const projection = deriveNimiAIProfileRequirementProjection(profile, 'video.generate');
+  // Slot order/facts mirror runtime/internal/capabilitydriver/stablediffusion_video.go:54-80.
+  assert.deepEqual(
+    projection.requirements.map((requirement) => [
+      requirement.requirementId,
+      requirement.role,
+      requirement.occurrenceOrdinal,
+      requirement.displayLabel,
+      requirement.resourceKind,
+      requirement.policy,
+    ]),
+    [
+      ['diffusion.fl2va', 'main', 0, 'MiniMax-H3 FL2VA transformer', 'video', 'strict'],
+      ['diffusion.ref2va', 'companion', 0, 'MiniMax-H3 Ref2VA transformer', 'video', 'substitutable'],
+      ['encoder.h3-combined', 'companion', 0, 'MiniMax-H3 combined Qwen3-VL encoder', 'chat', 'substitutable'],
+      ['vae.video', 'companion', 0, 'MiniMax-H3 video VAE', 'vae', 'substitutable'],
+      ['vae.audio', 'companion', 0, 'MiniMax-H3 audio VAE', 'vae', 'substitutable'],
+    ],
+  );
+  assert.equal(projection.source, 'authoring-preview');
+  assert.equal(projection.commitTruth, 'runtime-reproject');
+});
+
+test('stable-diffusion video section participates in both authoring digest domains', () => {
+  const profile = localVideoBuilder().build();
+  const localDigest = deriveNimiAIProfileLocalConfigurationEquivalenceDigest(
+    profile,
+    'video.generate',
+  );
+  const profileDigest = deriveNimiAIProfilePortableContentDigest(profile);
+  assert.match(localDigest, /^sha256:[a-f0-9]{64}$/u);
+  assert.match(profileDigest, /^sha256:[a-f0-9]{64}$/u);
+
+  const metadataOnly = cloneProfile(profile);
+  metadataOnly.displayMetadata = { category: 'different', color: 'blue' };
+  metadataOnly.provenance = { publisher: 'new-publisher', source: 'same-content' };
+  assert.equal(
+    deriveNimiAIProfileLocalConfigurationEquivalenceDigest(metadataOnly as never, 'video.generate'),
+    localDigest,
+  );
+  assert.equal(deriveNimiAIProfilePortableContentDigest(metadataOnly as never), profileDigest);
+
+  const changedConfig = localVideoBuilder('substitutable').build();
+  assert.notEqual(
+    deriveNimiAIProfileLocalConfigurationEquivalenceDigest(changedConfig, 'video.generate'),
+    localDigest,
+  );
+  assert.notEqual(deriveNimiAIProfilePortableContentDigest(changedConfig), profileDigest);
+});
+
+test('stable-diffusion video section fails closed on illegal portable fields', () => {
+  assert.throws(
+    () => createNimiAIProfileStableDiffusionVideoPortableConfig({
+      modelFamily: 'minimax-h3',
+    } as never),
+    /unsupported field/u,
+  );
+  assert.throws(
+    () => createNimiAIProfileStableDiffusionVideoPortableConfig({
+      fl2vaRequirementPolicy: 'strict',
+    }),
+    /fl2vaVerifiedContentId is required for strict policy/u,
+  );
+  assert.throws(
+    () => createNimiAIProfileStableDiffusionVideoPortableConfig({
+      videoVAEVerifiedContentId: 'not-a-digest',
+    }),
+    /canonical sha256 content identity/u,
+  );
+  assert.throws(
+    () => createNimiAIProfileStableDiffusionVideoPortableConfig(
+      {},
+      ['output.video'] as never,
+    ),
+    /unsupported feature/u,
+  );
+  assert.throws(
+    () => createNimiAIProfileAuthoringBuilder({
+      profileId: 'profile.authoring.video-mismatch',
+      title: 'Wrong contract',
+      provenance: { publisher: 'example.test' },
+      license: 'Apache-2.0',
+    }).setLocalCapability({
+      capabilityContract: 'image.generate',
+      localConfiguration: createNimiAIProfileStableDiffusionVideoLocalImplementation(),
+    }).build(),
+    /requires video\.generate/u,
+  );
+});
+
 test('authoring Driver field inventories stay exact with Runtime parsers', () => {
   assert.deepEqual(NIMI_AI_PROFILE_LLAMA_CACHE_TYPES, [
     'f32',
@@ -520,6 +639,19 @@ test('authoring Driver field inventories stay exact with Runtime parsers', () =>
     'threads',
     'diffusionFlashAttention',
     'offloadParamsToCPU',
+  ]);
+  // runtime/internal/capabilitydriver/stablediffusion_video.go:54-80,318-322
+  assert.deepEqual(NIMI_AI_PROFILE_STABLE_DIFFUSION_VIDEO_PORTABLE_CONFIG_FIELDS, [
+    'fl2vaRequirementPolicy',
+    'fl2vaVerifiedContentId',
+    'ref2vaRequirementPolicy',
+    'ref2vaVerifiedContentId',
+    'encoderRequirementPolicy',
+    'encoderVerifiedContentId',
+    'videoVAERequirementPolicy',
+    'videoVAEVerifiedContentId',
+    'audioVAERequirementPolicy',
+    'audioVAEVerifiedContentId',
   ]);
   // sdks/typescript/core/ai/config-profile.ts:34-41; p-caiex-009 excludes grant/account.
   assert.deepEqual(NIMI_AI_PROFILE_CLOUD_RECOMMENDATION_FIELDS, [

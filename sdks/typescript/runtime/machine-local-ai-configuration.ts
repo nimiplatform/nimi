@@ -35,6 +35,8 @@ import { withNimiRuntimeIdempotencyMetadata } from './scenario-jobs.js';
 
 export const NIMI_MACHINE_LOCAL_TEXT_GENERATE_CAPABILITY_CONTRACT = 'text.generate';
 export const NIMI_MACHINE_LOCAL_IMAGE_GENERATE_CAPABILITY_CONTRACT = 'image.generate';
+/** Mirrors runtime/internal/capabilitydriver/stablediffusion_video.go:22. */
+export const NIMI_MACHINE_LOCAL_VIDEO_GENERATE_CAPABILITY_CONTRACT = 'video.generate';
 export const NIMI_MACHINE_LOCAL_INPUT_IMAGE_FEATURE = 'input.image';
 
 export const NIMI_MACHINE_LOCAL_LLAMA_CPP_TEXT_IMPLEMENTATION = Object.freeze({
@@ -47,6 +49,17 @@ export const NIMI_MACHINE_LOCAL_STABLE_DIFFUSION_IMAGE_IMPLEMENTATION = Object.f
   implementationId: 'local.image.generate.stable-diffusion-cpp',
   driverId: 'nimi.runtime.driver.stable-diffusion-cpp',
   driverDialect: 'stable-diffusion.cpp/image-generate/v1',
+}) satisfies Readonly<CapabilityImplementationIdentity>;
+
+/**
+ * Mirrors runtime/internal/capabilitydriver/stablediffusion_video.go:19-21;
+ * implementationId/driverId alias the image pair at
+ * runtime/internal/capabilitydriver/stablediffusion.go:18-19.
+ */
+export const NIMI_MACHINE_LOCAL_STABLE_DIFFUSION_VIDEO_IMPLEMENTATION = Object.freeze({
+  implementationId: 'local.image.generate.stable-diffusion-cpp',
+  driverId: 'nimi.runtime.driver.stable-diffusion-cpp',
+  driverDialect: 'stable-diffusion.cpp/minimax-h3-video-generate/v1',
 }) satisfies Readonly<CapabilityImplementationIdentity>;
 
 export const NIMI_MACHINE_LOCAL_STABLE_DIFFUSION_MODEL_FAMILIES = Object.freeze([
@@ -242,6 +255,27 @@ export interface NimiMachineLocalStableDiffusionImageConfigurationInput {
   readonly executionOptions?: NimiMachineLocalStableDiffusionExecutionOptionsInput;
 }
 
+/**
+ * MiniMax-H3 video.generate configuration input. The ten portable keys are
+ * exactly the policyKey/contentIDKey pairs of the five Driver slots at
+ * runtime/internal/capabilitydriver/stablediffusion_video.go:54-80, admitted
+ * by parseStableDiffusionVideoPortableConfig at stablediffusion_video.go:310-336.
+ */
+export interface NimiMachineLocalStableDiffusionVideoConfigurationInput {
+  readonly displayName: string;
+  readonly enableInputImage?: boolean;
+  readonly fl2vaRequirementPolicy?: NimiMachineLocalCapabilityRequirementPolicy;
+  readonly fl2vaVerifiedContentId?: string;
+  readonly ref2vaRequirementPolicy?: NimiMachineLocalCapabilityRequirementPolicy;
+  readonly ref2vaVerifiedContentId?: string;
+  readonly encoderRequirementPolicy?: NimiMachineLocalCapabilityRequirementPolicy;
+  readonly encoderVerifiedContentId?: string;
+  readonly videoVAERequirementPolicy?: NimiMachineLocalCapabilityRequirementPolicy;
+  readonly videoVAEVerifiedContentId?: string;
+  readonly audioVAERequirementPolicy?: NimiMachineLocalCapabilityRequirementPolicy;
+  readonly audioVAEVerifiedContentId?: string;
+}
+
 export type NimiMachineLocalAIConfigurationImpactOperation = 'select' | 'update' | 'delete';
 
 export interface NimiMachineLocalAIConfigurationImpactOwner {
@@ -425,6 +459,88 @@ export function createNimiMachineLocalStableDiffusionImageConfigurationInput(
   return {
     capabilityContract: NIMI_MACHINE_LOCAL_IMAGE_GENERATE_CAPABILITY_CONTRACT,
     implementation: { ...NIMI_MACHINE_LOCAL_STABLE_DIFFUSION_IMAGE_IMPLEMENTATION },
+    portableConfig,
+    supportedFeatures: input.enableInputImage === true
+      ? [NIMI_MACHINE_LOCAL_INPUT_IMAGE_FEATURE]
+      : [],
+    displayName,
+  };
+}
+
+/**
+ * Builds the stable-diffusion.cpp MiniMax-H3 video.generate portable
+ * configuration. Every emitted portable key is accepted by
+ * parseStableDiffusionVideoPortableConfig
+ * (runtime/internal/capabilitydriver/stablediffusion_video.go:310-336);
+ * unknown constructor fields and out-of-range Driver values fail before
+ * transport. A nil/empty portable config defaults every slot to substitutable
+ * (stablediffusion_video.go:312-317). The only admitted feature is
+ * input.image (stablediffusion_video.go:35,91-95).
+ */
+export function createNimiMachineLocalStableDiffusionVideoConfigurationInput(
+  input: NimiMachineLocalStableDiffusionVideoConfigurationInput,
+): NimiMachineLocalAIConfigurationAddInput {
+  assertExactRecord(input, new Set([
+    'displayName',
+    'enableInputImage',
+    'fl2vaRequirementPolicy',
+    'fl2vaVerifiedContentId',
+    'ref2vaRequirementPolicy',
+    'ref2vaVerifiedContentId',
+    'encoderRequirementPolicy',
+    'encoderVerifiedContentId',
+    'videoVAERequirementPolicy',
+    'videoVAEVerifiedContentId',
+    'audioVAERequirementPolicy',
+    'audioVAEVerifiedContentId',
+  ]), 'stable-diffusion video configuration input');
+  const displayName = requireInputText(input.displayName, 'displayName');
+  if (input.enableInputImage !== undefined && typeof input.enableInputImage !== 'boolean') {
+    return inputError('enableInputImage must be a boolean when provided');
+  }
+
+  // Slot order mirrors stableDiffusionVideoSlots
+  // (runtime/internal/capabilitydriver/stablediffusion_video.go:54-80).
+  const portableConfig: JsonObject = {};
+  appendStableDiffusionRequirementIntent(
+    portableConfig,
+    'fl2vaRequirementPolicy',
+    'fl2vaVerifiedContentId',
+    input.fl2vaRequirementPolicy,
+    input.fl2vaVerifiedContentId,
+  );
+  appendStableDiffusionRequirementIntent(
+    portableConfig,
+    'ref2vaRequirementPolicy',
+    'ref2vaVerifiedContentId',
+    input.ref2vaRequirementPolicy,
+    input.ref2vaVerifiedContentId,
+  );
+  appendStableDiffusionRequirementIntent(
+    portableConfig,
+    'encoderRequirementPolicy',
+    'encoderVerifiedContentId',
+    input.encoderRequirementPolicy,
+    input.encoderVerifiedContentId,
+  );
+  appendStableDiffusionRequirementIntent(
+    portableConfig,
+    'videoVAERequirementPolicy',
+    'videoVAEVerifiedContentId',
+    input.videoVAERequirementPolicy,
+    input.videoVAEVerifiedContentId,
+  );
+  appendStableDiffusionRequirementIntent(
+    portableConfig,
+    'audioVAERequirementPolicy',
+    'audioVAEVerifiedContentId',
+    input.audioVAERequirementPolicy,
+    input.audioVAEVerifiedContentId,
+  );
+
+  return {
+    capabilityContract: NIMI_MACHINE_LOCAL_VIDEO_GENERATE_CAPABILITY_CONTRACT,
+    implementation: { ...NIMI_MACHINE_LOCAL_STABLE_DIFFUSION_VIDEO_IMPLEMENTATION },
     portableConfig,
     supportedFeatures: input.enableInputImage === true
       ? [NIMI_MACHINE_LOCAL_INPUT_IMAGE_FEATURE]
