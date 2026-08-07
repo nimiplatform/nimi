@@ -8,6 +8,7 @@ import {
   DEV_WORKSPACE_SURFACES,
   canonicalSurfaceBuildCommand,
   classifyWorkspaceSurfacePath,
+  inspectWorkspaceSurfaceFreshness,
   resolveCanonicalSurfaceBuildPlan,
   writeWorkspaceSurfaceStamp,
 } from './lib/dev-workspace-surfaces.mjs';
@@ -17,11 +18,13 @@ const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..'
 const pnpmBin = process.platform === 'win32' ? 'pnpm.cmd' : 'pnpm';
 const once = process.argv.slice(2).includes('--once');
 const debounceMs = 350;
-const changedSurfaces = new Set(['sdk', 'kit']);
+const changedSurfaces = new Set();
 const watchers = [];
 let debounceTimer;
 let building = false;
 let closed = false;
+let initialized = false;
+let ready = false;
 let activeChild;
 
 function observe(surface, root) {
@@ -31,15 +34,25 @@ function observe(surface, root) {
     const classified = classifyWorkspaceSurfacePath(repoRoot, changedPath);
     if (classified !== surface) return;
     changedSurfaces.add(surface);
-    scheduleBuild();
+    if (initialized) scheduleBuild();
   });
   watchers.push(watcher);
 }
 
 function scheduleBuild() {
-  if (closed || building) return;
+  if (closed || building || !initialized) return;
   clearTimeout(debounceTimer);
   debounceTimer = setTimeout(() => void drainBuildQueue(), debounceMs);
+}
+
+async function queueStaleSurfaces() {
+  const freshness = await inspectWorkspaceSurfaceFreshness(repoRoot);
+  for (const [surface, state] of Object.entries(freshness.states)) {
+    if (state.diagnostic) changedSurfaces.add(surface);
+  }
+  if (changedSurfaces.size === 0) {
+    process.stdout.write('[dev:prepare:watch] SDK and Kit canonical outputs are already fresh\n');
+  }
 }
 
 async function drainBuildQueue() {
@@ -59,7 +72,10 @@ async function drainBuildQueue() {
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     process.stderr.write(`[dev:prepare:watch] canonical build failed: ${message}\n`);
-    if (once) process.exitCode = 1;
+    if (once || !ready) {
+      process.exitCode = 1;
+      shutdown('SIGTERM');
+    }
   } finally {
     building = false;
     if (once) closed = true;
@@ -91,6 +107,7 @@ function shutdown(signal) {
   clearTimeout(debounceTimer);
   for (const watcher of watchers) watcher.close();
   if (activeChild && !activeChild.killed) activeChild.kill(signal);
+  if (process.connected) process.disconnect();
 }
 
 if (!once) {
@@ -101,4 +118,13 @@ if (!once) {
 }
 process.on('SIGINT', () => shutdown('SIGINT'));
 process.on('SIGTERM', () => shutdown('SIGTERM'));
+process.on('disconnect', () => shutdown('SIGTERM'));
+await queueStaleSurfaces();
+initialized = true;
 await drainBuildQueue();
+if (!closed) {
+  ready = true;
+  if (typeof process.send === 'function') {
+    process.send({ schemaVersion: 1, type: 'nimi-dev-workspace-surfaces-ready' });
+  }
+}

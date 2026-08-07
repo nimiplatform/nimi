@@ -2,6 +2,7 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
+import { randomUUID } from 'node:crypto';
 import { spawnSyncCommand } from './lib/command-runner.mjs';
 
 const PNPM_BIN = process.platform === 'win32' ? 'pnpm.cmd' : 'pnpm';
@@ -181,14 +182,51 @@ function rewriteDistImports(outDirAbsolute) {
   return rewritten;
 }
 
-function runTsc(cwd, tsconfigPath) {
-  const result = spawnSyncCommand(PNPM_BIN, ['exec', 'tsc', '-p', tsconfigPath], {
+function runTsc(cwd, tsconfigPath, outDir) {
+  const result = spawnSyncCommand(PNPM_BIN, ['exec', 'tsc', '-p', tsconfigPath, '--outDir', outDir], {
     cwd,
     stdio: 'inherit',
     env: process.env,
   });
   if (result.status !== 0) {
     throw new Error(`tsc failed for ${tsconfigPath}`);
+  }
+}
+
+function temporaryOutputPath(outDirAbsolute, purpose) {
+  const parent = path.dirname(outDirAbsolute);
+  const name = path.basename(outDirAbsolute);
+  return path.join(parent, `.${name}.${purpose}-${process.pid}-${randomUUID()}`);
+}
+
+function publishBuildOutput(stagingDir, outDirAbsolute) {
+  const previousDir = temporaryOutputPath(outDirAbsolute, 'previous');
+  const hadPreviousOutput = fs.existsSync(outDirAbsolute);
+  let previousOutputMoved = false;
+
+  try {
+    if (hadPreviousOutput) {
+      fs.renameSync(outDirAbsolute, previousDir);
+      previousOutputMoved = true;
+    }
+    fs.renameSync(stagingDir, outDirAbsolute);
+  } catch (error) {
+    if (previousOutputMoved && !fs.existsSync(outDirAbsolute)) {
+      try {
+        fs.renameSync(previousDir, outDirAbsolute);
+        previousOutputMoved = false;
+      } catch (restoreError) {
+        throw new AggregateError(
+          [error, restoreError],
+          `failed to publish build output and restore previous output at ${outDirAbsolute}`,
+        );
+      }
+    }
+    throw error;
+  }
+
+  if (previousOutputMoved) {
+    fs.rmSync(previousDir, { recursive: true, force: true });
   }
 }
 
@@ -202,9 +240,19 @@ function main() {
     throw new Error(`tsconfig not found: ${tsconfigAbsolute}`);
   }
 
-  fs.rmSync(outDirAbsolute, { recursive: true, force: true });
-  runTsc(options.tscCwd ? path.resolve(packageRoot, options.tscCwd) : packageRoot, tsconfigAbsolute);
-  const rewritten = rewriteDistImports(outDirAbsolute);
+  const stagingDir = temporaryOutputPath(outDirAbsolute, 'staging');
+  let rewritten;
+  try {
+    runTsc(
+      options.tscCwd ? path.resolve(packageRoot, options.tscCwd) : packageRoot,
+      tsconfigAbsolute,
+      stagingDir,
+    );
+    rewritten = rewriteDistImports(stagingDir);
+    publishBuildOutput(stagingDir, outDirAbsolute);
+  } finally {
+    fs.rmSync(stagingDir, { recursive: true, force: true });
+  }
 
   process.stdout.write(
     `[build-typescript-package] built ${path.relative(packageRoot, outDirAbsolute)} (rewrote ${rewritten} file(s))\n`,

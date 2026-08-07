@@ -4,7 +4,7 @@ import { createRequire } from 'node:module';
 import { existsSync, mkdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { withSdkDistLock } from '../../../scripts/lib/sdk-dist-lock.mjs';
+import { inspectWorkspaceSurfaceFreshness } from '../../../scripts/lib/dev-workspace-surfaces.mjs';
 import {
   resolveDesktopDevLaunchOptions,
   resolvePersistentDesktopDevProfile,
@@ -59,6 +59,7 @@ if (process.platform === 'win32') {
 }
 const localAssetRoot = path.join(profileRoot, 'local-assets');
 const children = new Set();
+let shuttingDown = false;
 const SIGNAL_EXIT_CODES = new Map([
   ['SIGINT', 130],
   ['SIGTERM', 143],
@@ -79,7 +80,9 @@ if (process.platform === 'darwin') {
 async function runWindowsDesktopDev() {
   try {
     process.env.NIMI_WINDOWS_SOURCE_LOCAL_DEVELOPMENT = '1';
+    const workspaceSurfaceWatcher = spawnWorkspaceSurfaceWatcher();
     buildWindowsSourceLocalDevelopmentRuntime();
+    await waitForWorkspaceSurfaces(workspaceSurfaceWatcher, 180_000);
     await buildElectronHostForDesktopDev();
     const electronBin = resolveWorkspaceElectronDevCarrier({
       platform: process.platform,
@@ -152,7 +155,9 @@ async function runWindowsDesktopDev() {
 async function runMacOSDesktopDev() {
   try {
     process.env.NIMI_MACOS_SOURCE_LOCAL_DEVELOPMENT = '1';
+    const workspaceSurfaceWatcher = spawnWorkspaceSurfaceWatcher();
     buildMacOSSourceLocalDevelopmentRuntime();
+    await waitForWorkspaceSurfaces(workspaceSurfaceWatcher, 180_000);
     await buildElectronHostForDesktopDev();
     const electronBin = resolveWorkspaceElectronDevCarrier({
       platform: process.platform,
@@ -306,25 +311,77 @@ function quoteCmdArg(value) {
 }
 
 async function buildElectronHostForDesktopDev() {
-  await withSdkDistLock('desktop Electron dev host build', () => {
-    const pnpmBin = process.platform === 'win32' ? 'pnpm.cmd' : 'pnpm';
-    const pnpmArgs = ['--dir', appRoot, 'run', 'build:electron'];
-    const buildCommand = process.platform === 'win32' ? 'cmd.exe' : pnpmBin;
-    const buildArgs = process.platform === 'win32'
-      ? ['/d', '/s', '/c', [pnpmBin, ...pnpmArgs].map(quoteCmdArg).join(' ')]
-      : pnpmArgs;
-    const result = spawnSync(buildCommand, buildArgs, {
-      cwd: workspaceRoot,
-      env: process.env,
-      stdio: 'inherit',
-    });
-    if (result.error) {
-      throw new Error(`[run-electron-dev] failed to build Electron host: ${result.error.message}`);
-    }
-    if (result.status !== 0) {
-      throw new Error(`[run-electron-dev] Electron host build failed with status ${result.status ?? 'unknown'}`);
+  const pnpmBin = process.platform === 'win32' ? 'pnpm.cmd' : 'pnpm';
+  const pnpmArgs = ['--dir', appRoot, 'run', 'build:electron:prepared'];
+  const buildCommand = process.platform === 'win32' ? 'cmd.exe' : pnpmBin;
+  const buildArgs = process.platform === 'win32'
+    ? ['/d', '/s', '/c', [pnpmBin, ...pnpmArgs].map(quoteCmdArg).join(' ')]
+    : pnpmArgs;
+  const result = spawnSync(buildCommand, buildArgs, {
+    cwd: workspaceRoot,
+    env: process.env,
+    stdio: 'inherit',
+  });
+  if (result.error) {
+    throw new Error(`[run-electron-dev] failed to build Electron host: ${result.error.message}`);
+  }
+  if (result.status !== 0) {
+    throw new Error(`[run-electron-dev] Electron host build failed with status ${result.status ?? 'unknown'}`);
+  }
+}
+
+function spawnWorkspaceSurfaceWatcher() {
+  let launchError;
+  let ready = false;
+  const child = spawnTracked(process.execPath, [
+    path.join(workspaceRoot, 'scripts', 'dev-prepare-watch.mjs'),
+  ], {
+    cwd: workspaceRoot,
+    stdio: ['inherit', 'inherit', 'inherit', 'ipc'],
+    env: process.env,
+  });
+  child.once('error', (error) => {
+    launchError = error;
+  });
+  child.on('message', (message) => {
+    if (message?.schemaVersion === 1 && message?.type === 'nimi-dev-workspace-surfaces-ready') {
+      ready = true;
     }
   });
+  child.once('exit', (code, signal) => {
+    if (shuttingDown || !ready) return;
+    process.stderr.write(
+      `[run-electron-dev] SDK/Kit watcher exited unexpectedly (${code ?? signal ?? 'unknown'})\n`,
+    );
+    void requestAllChildrenShutdown('SIGTERM').then(() => process.exit(1));
+  });
+  return { child, launchError: () => launchError, ready: () => ready };
+}
+
+async function waitForWorkspaceSurfaces(watcher, timeoutMs) {
+  const deadline = Date.now() + timeoutMs;
+  let diagnostics = [];
+  while (Date.now() < deadline) {
+    const launchError = watcher.launchError();
+    if (launchError) {
+      throw new Error(`[run-electron-dev] failed to start SDK/Kit watcher: ${launchError.message}`);
+    }
+    if (watcher.child.exitCode !== null) {
+      throw new Error(
+        `[run-electron-dev] SDK/Kit watcher exited before readiness with status ${watcher.child.exitCode}`,
+      );
+    }
+    const freshness = await inspectWorkspaceSurfaceFreshness(workspaceRoot);
+    diagnostics = freshness.diagnostics;
+    if (watcher.ready() && freshness.fresh) {
+      process.stdout.write('[run-electron-dev] Desktop owns fresh SDK/Kit dist and source watching\n');
+      return;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 250));
+  }
+  throw new Error(
+    `[run-electron-dev] timed out waiting for Desktop-owned SDK/Kit dist (${diagnostics.join(', ')})`,
+  );
 }
 
 function spawnRenderer() {
@@ -362,6 +419,7 @@ async function shutdownFromSignal(signal) {
 }
 
 async function requestAllChildrenShutdown(signal) {
+  shuttingDown = true;
   await Promise.all([...children].map((child) => requestProcessTreeShutdown(child, signal)));
 }
 

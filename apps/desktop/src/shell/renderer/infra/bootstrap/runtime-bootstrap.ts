@@ -294,7 +294,16 @@ function startBootstrapRuntime(lifecycle: DesktopRendererLifecyclePort): Promise
       typeof desktopBridge.getRuntimeAccountSessionStatus
     >> | null = null;
     try {
-      accountStatus = await desktopBridge.getRuntimeAccountSessionStatus();
+      // The daemon accepts its owner-only socket before protected services
+      // finish their ready transition, so a cold boot can leave this call
+      // unanswered indefinitely. Bound it well under the bootstrap watchdog;
+      // the auth state watcher retries in the background and self-heals the
+      // session once Runtime is actually serving.
+      accountStatus = await withBootstrapStepTimeout(
+        'protected account status',
+        desktopBridge.getRuntimeAccountSessionStatus(),
+        DEFAULT_NON_CRITICAL_BOOTSTRAP_STEP_TIMEOUT_MS,
+      );
     } catch (error) {
       logRendererEvent({
         level: 'warn',

@@ -108,6 +108,27 @@ export function workspaceSurfaceBuildDiagnostic(surface, stamped, snapshot) {
   return `${surface}:${filesystemStale ? 'dist-stale' : stamped.reason}`;
 }
 
+export async function inspectWorkspaceSurfaceFreshness(
+  repoRoot,
+  surfaces = Object.keys(DEV_WORKSPACE_SURFACES),
+) {
+  const stamp = await readWorkspaceSurfaceStamp(repoRoot);
+  const states = {};
+  const diagnostics = [];
+  for (const surface of surfaces) {
+    const snapshot = await captureWorkspaceSurfaceSnapshot(repoRoot, surface);
+    const stamped = assessWorkspaceSurfaceFreshness(stamp, surface, snapshot);
+    const diagnostic = workspaceSurfaceBuildDiagnostic(surface, stamped, snapshot);
+    states[surface] = { ...stamped, snapshot, diagnostic };
+    if (diagnostic) diagnostics.push(diagnostic);
+  }
+  return {
+    fresh: diagnostics.length === 0,
+    states,
+    diagnostics,
+  };
+}
+
 async function latestFileMtime(root, options = {}) {
   let rootStat;
   try {

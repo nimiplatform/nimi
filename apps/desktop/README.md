@@ -98,11 +98,16 @@ until the native production service installation path is implemented and can be
 exercised as a real install.
 
 On macOS, `pnpm dev:desktop` rebuilds the Electron host and launches the
-workspace Electron application for ordinary UI, main, preload, and loopback CDP
-iteration. This host does not gain protected Runtime access: the native carrier
-loader remains fail-closed with `protected-carrier-required`. A protected
-Runtime journey still requires building and installing the fixed ad-hoc
-development candidate.
+workspace Electron application for ordinary UI, main, and preload iteration.
+The Desktop dev carrier owns the workspace SDK/Kit readiness lifecycle: it
+ensures stale or missing canonical `dist` outputs once, keeps their source
+watcher alive, and then builds only its own Electron host. Desktop-supervised
+Apps consume those outputs and do not rebuild them during App launch.
+Use `pnpm dev:desktop --cdp` to enable loopback CDP on the repository default
+port `9333`, or `--cdp=<port>` to override it. This host does not gain protected
+Runtime access: the native carrier loader remains fail-closed with
+`protected-carrier-required`. A protected Runtime journey still requires
+building and installing the fixed ad-hoc development candidate.
 
 Use `pnpm dev:runtime -- --install` only for the first macOS installation.
 After that, `pnpm dev:runtime` builds one candidate and replaces the healthy

@@ -135,7 +135,9 @@ test('TypeScript package build runner does not use deprecated shell args on Wind
   const tempRoot = mkdtempSync(path.join(os.tmpdir(), 'nimi-package-build-runner-'));
   try {
     mkdirSync(path.join(tempRoot, 'src'));
+    mkdirSync(path.join(tempRoot, 'dist'));
     writeFileSync(path.join(tempRoot, 'src', 'index.ts'), 'export const value = 1;\n');
+    writeFileSync(path.join(tempRoot, 'dist', 'stale.js'), 'export const stale = true;\n');
     writeFileSync(
       path.join(tempRoot, 'tsconfig.json'),
       `${JSON.stringify({
@@ -172,6 +174,60 @@ test('TypeScript package build runner does not use deprecated shell args on Wind
 
     assertSuccessful(result);
     assert.match(result.stdout, /\[build-typescript-package\] built dist/);
+    assert.equal(existsSync(path.join(tempRoot, 'dist', 'index.js')), true);
+    assert.equal(existsSync(path.join(tempRoot, 'dist', 'stale.js')), false);
+  } finally {
+    rmSync(tempRoot, { recursive: true, force: true });
+  }
+});
+
+test('TypeScript package build runner preserves the previous output when compilation fails', () => {
+  const tempRoot = mkdtempSync(path.join(os.tmpdir(), 'nimi-package-build-runner-failure-'));
+  try {
+    mkdirSync(path.join(tempRoot, 'src'));
+    mkdirSync(path.join(tempRoot, 'dist'));
+    writeFileSync(path.join(tempRoot, 'src', 'index.ts'), 'export const value: string = 1;\n');
+    writeFileSync(path.join(tempRoot, 'dist', 'index.js'), 'export const value = "last-success";\n');
+    writeFileSync(
+      path.join(tempRoot, 'tsconfig.json'),
+      `${JSON.stringify({
+        compilerOptions: {
+          declaration: true,
+          module: 'NodeNext',
+          moduleResolution: 'NodeNext',
+          outDir: 'dist',
+          rootDir: 'src',
+          target: 'ES2022',
+        },
+        include: ['src/**/*.ts'],
+      }, null, 2)}\n`,
+    );
+
+    const result = spawnSync(
+      process.execPath,
+      [
+        path.join(repoRoot, 'scripts/build-typescript-package.mjs'),
+        '--tsconfig',
+        'tsconfig.json',
+        '--out-dir',
+        'dist',
+        '--tsc-cwd',
+        sdkRoot,
+      ],
+      {
+        cwd: tempRoot,
+        env: envWithThrowDeprecation(),
+        encoding: 'utf8',
+        stdio: 'pipe',
+      },
+    );
+
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /tsc failed for/);
+    assert.equal(
+      readFileSync(path.join(tempRoot, 'dist', 'index.js'), 'utf8'),
+      'export const value = "last-success";\n',
+    );
   } finally {
     rmSync(tempRoot, { recursive: true, force: true });
   }

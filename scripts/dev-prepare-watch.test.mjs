@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
 
@@ -45,5 +46,40 @@ test('freshness is fail-closed for missing stamps, missing dist and newer source
   assert.equal(
     workspaceSurfaceBuildDiagnostic('sdk', { state: 'fresh' }, snapshot),
     null,
+  );
+});
+
+test('Desktop owns dev surface preparation while supervised Apps only consume it', () => {
+  const packageJson = (relativePath) => JSON.parse(readFileSync(path.join(repoRoot, relativePath), 'utf8'));
+  const desktop = packageJson('apps/desktop/package.json');
+  const tester = packageJson('apps/tester/package.json');
+  const zhiyu = packageJson('apps/zhiyu/package.json');
+  const avatar = packageJson('apps/avatar/package.json');
+  const desktopDevRunner = readFileSync(
+    path.join(repoRoot, 'apps/desktop/scripts/run-electron-dev.mjs'),
+    'utf8',
+  );
+
+  assert.equal(
+    desktop.scripts['build:electron'],
+    'node ../../scripts/with-workspace-surfaces.mjs -- pnpm run build:electron:prepared',
+  );
+  assert.match(desktopDevRunner, /scripts['",\s]+dev-prepare-watch\.mjs/u);
+  assert.match(desktopDevRunner, /build:electron:prepared/u);
+
+  assert.equal(
+    tester.scripts['build:electron'],
+    'node ../../scripts/build-supervised-app-electron.mjs --consumer tester',
+  );
+  assert.equal(
+    zhiyu.scripts['build:electron'],
+    'node ../../scripts/build-supervised-app-electron.mjs --consumer zhiyu',
+  );
+  for (const command of [tester.scripts['build:electron'], zhiyu.scripts['build:electron']]) {
+    assert.doesNotMatch(command, /build:(?:sdk|kit)|prepare:workspace-surfaces/u);
+  }
+  assert.equal(
+    avatar.scripts['build:electron'],
+    'pnpm run build:electron:prepared',
   );
 });

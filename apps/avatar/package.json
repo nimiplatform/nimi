@@ -9,7 +9,7 @@
     "dev:shell": "tauri dev --config src-tauri/tauri.conf.json",
     "build:renderer": "vite build",
     "build:electron:prepared": "tsc -p tsconfig.electron.json && node scripts/bundle-electron-preload.mjs",
-    "build:electron": "corepack pnpm --filter @nimiplatform/kit build && pnpm run build:electron:prepared",
+    "build:electron": "pnpm run build:electron:prepared",
     "check:bundle-runtime-imports": "node scripts/check-avatar-bundle-runtime-imports.mjs",
     "smoke:agent-center-live2d": "node scripts/smoke-agent-center-live2d.mjs",
     "typecheck": "tsc --noEmit",

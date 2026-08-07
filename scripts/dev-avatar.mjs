@@ -26,7 +26,7 @@ const runtimeEnvAllowlist = [
 ];
 
 function usage() {
-  return `Usage: pnpm dev:avatar [--uri <nimi-avatar://launch?...>] [--agent-id <local-agent:owner:agent>] [--instance-id <id>] [--no-kill-existing] [--dry-run]
+  return `Usage: pnpm dev:avatar --tauri [--uri <nimi-avatar://launch?...>] [--agent-id <local-agent:owner:agent>] [--instance-id <id>] [--no-kill-existing] [--dry-run]
 
 Environment:
   NIMI_AVATAR_DEV_URI          explicit launch URI
