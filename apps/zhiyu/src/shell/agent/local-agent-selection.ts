@@ -32,16 +32,8 @@ export function resolveZhiyuRuntimeLocalAgentSelection(
   const selectedAgentHandle = stringOr(input.selectedAgentHandle, '');
   if (selectedAgentHandle) {
     const selected = localAgents.find((agent) => agent.agentHandle === selectedAgentHandle);
-    if (selected?.sourceReady === true) {
-      return localAgentSelected(selected);
-    }
     if (selected) {
-      return localAgentUnavailable({
-        reasonCode: 'zhiyu-runtime-local-agent-source-not-ready',
-        actionHint: 'desktop_open_select_partner',
-        source: 'runtime',
-        message: 'The selected Runtime LocalAgent source snapshot is not ready. Continue source selection in Desktop Explore, then refresh the Runtime inventory.',
-      });
+      return localAgentSelected(selected);
     }
     return localAgentUnavailable({
       reasonCode: 'zhiyu-runtime-local-agent-selection-not-found',
@@ -70,17 +62,7 @@ export function resolveZhiyuRuntimeLocalAgentSelection(
     });
   }
 
-  const only = localAgents[0];
-  if (only?.sourceReady === true) {
-    return localAgentSelected(only);
-  }
-  return localAgentUnavailable({
-    reasonCode: 'zhiyu-runtime-local-agent-source-not-ready',
-    actionHint: 'wait_for_account_agent_inventory',
-    source: 'runtime',
-    message: 'The covered Agent is not currently ready. Wait for the account Agent inventory to refresh.',
-    ownerUserId: input.inventory.ownerUserId,
-  });
+  return localAgentSelected(localAgents[0]);
 }
 
 function localAgentUnavailable(input: {

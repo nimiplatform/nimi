@@ -18,7 +18,7 @@ func TestDiskStorePersistsGeneratedVoiceArtifactsAcrossReopen(t *testing.T) {
 		MimeType:      "Audio/Wav",
 		ProducerJobID: "runtime-job-durable",
 		CreatedAt:     artifactTestNow,
-		Audience:      artifactTestAudience(),
+		Owner:         artifactTestOwner(),
 		GeneratedVoice: &GeneratedVoiceArtifactMetadata{
 			AgentID:              "agent-durable",
 			ConversationAnchorID: "anchor-durable",
@@ -50,8 +50,8 @@ func TestDiskStorePersistsGeneratedVoiceArtifactsAcrossReopen(t *testing.T) {
 	if record.GeneratedVoice == nil || record.GeneratedVoice.ByteDigest == "" {
 		t.Fatalf("generated voice metadata was not persisted: %#v", record.GeneratedVoice)
 	}
-	if record.Audience == nil || record.Audience.AppID != "world.nimi.app" || record.ContentSHA256 == "" || record.ProducerJobID != "runtime-job-durable" {
-		t.Fatalf("artifact custody/audience/hash was not persisted: producer_job_id=%q audience=%#v hash=%q", record.ProducerJobID, record.Audience, record.ContentSHA256)
+	if record.Owner == nil || record.Owner.AppID != "nimi.desktop" || record.ContentSHA256 == "" || record.ProducerJobID != "runtime-job-durable" {
+		t.Fatalf("artifact custody/hash was not persisted: producer_job_id=%q owner=%#v hash=%q", record.ProducerJobID, record.Owner, record.ContentSHA256)
 	}
 
 	deleted, err := reopened.CleanupGeneratedVoiceArtifacts(GeneratedVoiceArtifactSelector{
@@ -82,7 +82,7 @@ func TestDiskStoreRejectsPayloadTampering(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := store.Put("artifact-tamper", ArtifactRecord{Bytes: []byte("original"), CreatedAt: artifactTestNow, Audience: artifactTestAudience()}); err != nil {
+	if err := store.Put("artifact-tamper", ArtifactRecord{Bytes: []byte("original"), CreatedAt: artifactTestNow, Owner: artifactTestOwner()}); err != nil {
 		t.Fatal(err)
 	}
 	if err := os.WriteFile(filepath.Join(root, diskStorePayloadsDir, diskArtifactKey("artifact-tamper")+".bin"), []byte("tampered"), 0o600); err != nil {
@@ -99,7 +99,7 @@ func TestDiskStoreKeepsArtifactIdentityImmutable(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	first := ArtifactRecord{Bytes: []byte("first"), CreatedAt: artifactTestNow, Audience: artifactTestAudience()}
+	first := ArtifactRecord{Bytes: []byte("first"), CreatedAt: artifactTestNow, Owner: artifactTestOwner()}
 	if err := store.Put("artifact-immutable", first); err != nil {
 		t.Fatal(err)
 	}
@@ -111,7 +111,7 @@ func TestDiskStoreKeepsArtifactIdentityImmutable(t *testing.T) {
 	if err := store.Put("artifact-immutable", enriched); err != nil {
 		t.Fatalf("generated voice metadata enrichment: %v", err)
 	}
-	if err := store.Put("artifact-immutable", ArtifactRecord{Bytes: []byte("second"), CreatedAt: artifactTestNow, Audience: artifactTestAudience()}); err == nil {
+	if err := store.Put("artifact-immutable", ArtifactRecord{Bytes: []byte("second"), CreatedAt: artifactTestNow, Owner: artifactTestOwner()}); err == nil {
 		t.Fatal("disk artifact content replacement succeeded")
 	}
 	record, ok := store.Get("artifact-immutable")

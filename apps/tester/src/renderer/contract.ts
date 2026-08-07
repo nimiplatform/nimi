@@ -20,7 +20,6 @@ import type {
 
 import type { RuntimePlatformProjection } from '../shell/auth/runtime-platform.js';
 import type { TesterAIConfigSummary } from '../tester/tester-ai-config.js';
-import type { TesterArtifactSaveResult } from '../tester/tester-artifact-storage.js';
 import type { TesterImageHistoryRecord } from '../tester/tester-image-history.js';
 import type {
   TesterPromptDraftKey,
@@ -63,7 +62,6 @@ export interface TesterRendererCommandPort {
   nextRunIdentity(): Promise<{ readonly runId: string; readonly createdAt: string }>;
   appendRunHistory(record: TesterRunHistoryRecord): Promise<TesterRunHistory>;
   appendImageHistory(record: TesterImageHistoryRecord): Promise<readonly TesterImageHistoryRecord[]>;
-  saveArtifact(input: { readonly filename: string; readonly mimeType?: string; readonly dataUrl: string }): Promise<TesterArtifactSaveResult>;
   savePromptDraft(key: TesterPromptDraftKey, prompt: string, enabled: boolean): Promise<TesterPromptDraftSaveResult>;
   copyText(text: string): Promise<NimiRendererHostResult<{ readonly copied: boolean }>>;
   exportText(input: { readonly filename: string; readonly body: string }): Promise<NimiRendererHostResult<{ readonly filename: string }>>;

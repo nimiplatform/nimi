@@ -3,10 +3,6 @@ import { createNimiCanonicalRendererHostBindings } from '@nimiplatform/kit/shell
 import type { ZhiyuCanonicalRendererBindings, ZhiyuHomeProjection } from '../renderer/contract.js';
 import type { ZhiyuRuntimeAgentChatTurnResult } from '../shell/agent-chat/runtime-agent-turn-adapter.js';
 import { createInitialZhiyuEvidence, type ZhiyuEvidence } from '../shell/app/evidence.js';
-import {
-  voiceCaptureEvidence,
-  type ZhiyuVoiceCaptureEvidence,
-} from '../shell/agent-chat/voice-capture-evidence.js';
 import type { ZhiyuSimulatorJsonValue, ZhiyuSimulatorPrepareContext } from './protocol.js';
 
 type JsonRecord = { readonly [key: string]: ZhiyuSimulatorJsonValue };
@@ -142,7 +138,6 @@ function simulatedHome(
         agentHandle: simulatedAgentHandle(agent.localAgentRef),
         displayName: agent.displayName,
         avatarUrl: null,
-        sourceReady: true,
       })),
     },
     localAgent: {
@@ -223,16 +218,6 @@ async function invoke(
   return { revision: result.value.revision as number };
 }
 
-function simulatedVoiceUnavailable(): ZhiyuVoiceCaptureEvidence {
-  return voiceCaptureEvidence({
-    state: 'failed',
-    reasonCode: 'runtime-voice-capture-effect-forbidden',
-    actionHint: 'use_text_input_in_simulator',
-    source: 'simulator',
-    message: 'Microphone capture is intentionally unavailable in the Simulator.',
-  });
-}
-
 function simulatedAgentCenterSession(
   _agentHandle: Parameters<ZhiyuCanonicalRendererBindings['app']['projection']['agentCenterSession']>[0],
 ): null {
@@ -242,75 +227,15 @@ function simulatedAgentCenterSession(
 export function createZhiyuSimulatorBindings(
   context: ZhiyuSimulatorPrepareContext,
 ): ZhiyuCanonicalRendererBindings {
-  let latestProjection: ZhiyuEvidence | null = null;
-  const companionListeners = new Set<(companion: ZhiyuEvidence['companion']) => void>();
   let currentRoute = context.route.get();
   const routeListeners = new Set<() => void>();
   const unsubscribeRoute = context.route.subscribe((route) => {
     currentRoute = route;
     for (const listener of routeListeners) listener();
   });
-  const eventSubscription = context.events.subscribe('zhiyu.conversation.updated', () => {
-    if (!latestProjection) return;
-    const companion: ZhiyuEvidence['companion'] = {
-      ...latestProjection.companion,
-      ready: true,
-      state: 'projected',
-      reasonCode: 'runtime-agent-state-event-projected',
-      actionHint: 'inspect_runtime_agent_state_projection',
-      source: 'simulator',
-      message: 'Simulator conversation event projected into companion state.',
-      executionState: 'idle',
-      statusText: '刚刚完成一次回复',
-      observedAt: new Date(context.clock.now()).toISOString(),
-    };
-    for (const listener of companionListeners) listener(companion);
-  });
-  if (!eventSubscription.ok) throw new Error('ZHIYU_SIMULATOR_EVENT_SUBSCRIPTION_REJECTED');
-  let observedEcosystemRevision = 0;
-  let observedPersonaKey: string | null = null;
-  const projectEcosystemCompanion = (
-    value: Projection,
-  ): ZhiyuEvidence['companion'] | null => {
-    const revision = ecosystemRevisionOf(value) ?? 0;
-    const personaName = personaDisplayNameOf(value);
-    if (revision === 0 && !personaName) return null;
-    const baseline = latestProjection?.companion ?? simulatedHome(context, null).companion;
-    observedEcosystemRevision = Math.max(observedEcosystemRevision, revision);
-    return {
-      ...baseline,
-      ready: true,
-      state: 'projected',
-      reasonCode: 'simulator-ecosystem-reference-projected',
-      actionHint: 'inspect_simulated_ecosystem_revision',
-      source: 'simulator',
-      message: personaName
-        ? `Simulated resident ${personaName} joined the shared ecosystem projection.`
-        : `Shared simulated ecosystem revision ${revision} reached Zhiyu.`,
-      executionState: 'idle',
-      statusText: companionStatusText(value),
-      observedAt: new Date(context.clock.now()).toISOString(),
-    };
-  };
-  const unsubscribeProjection = context.projection.subscribe(() => {
-    const value = projection(context);
-    const revision = ecosystemRevisionOf(value) ?? 0;
-    const personaReference = value.personaReference;
-    const personaKey = personaReference && typeof personaReference.interactionId === 'string'
-      ? personaReference.interactionId
-      : null;
-    if (revision <= observedEcosystemRevision && personaKey === observedPersonaKey) return;
-    observedPersonaKey = personaKey;
-    const companion = projectEcosystemCompanion(value);
-    if (!companion) return;
-    for (const listener of companionListeners) listener(companion);
-  });
   const cleanupRegistration = context.cleanup.add(() => {
     routeListeners.clear();
     unsubscribeRoute();
-    unsubscribeProjection();
-    companionListeners.clear();
-    eventSubscription.value();
   });
   if (!cleanupRegistration.ok) throw new Error('ZHIYU_SIMULATOR_EVENT_CLEANUP_REJECTED');
   return createNimiCanonicalRendererHostBindings({
@@ -329,10 +254,6 @@ export function createZhiyuSimulatorBindings(
         projectTurnReadiness: simulatedTurnReady,
         async hydrateConversation(input: Parameters<ZhiyuCanonicalRendererBindings['app']['projection']['hydrateConversation']>[0]) {
           return { source: input.currentSource, chat: input.currentChat };
-        },
-        async loadSourceContext(input: Parameters<ZhiyuCanonicalRendererBindings['app']['projection']['loadSourceContext']>[0]) {
-          const home = simulatedHome(context, simulatedAgentHandle(input.localAgentRef));
-          return home.source;
         },
       }),
       commands: Object.freeze({
@@ -398,30 +319,6 @@ export function createZhiyuSimulatorBindings(
             diagnostics: null,
           };
         },
-        createVoiceCapture(input: Parameters<ZhiyuCanonicalRendererBindings['app']['commands']['createVoiceCapture']>[0]) {
-          const unavailable = simulatedVoiceUnavailable();
-          return Object.freeze({
-            async start() {
-              input.onStateChange(unavailable);
-              return unavailable;
-            },
-            async stop() {
-              input.onStateChange(unavailable);
-              return unavailable;
-            },
-          });
-        },
-        async runVoicePlayback(evidence: ZhiyuEvidence) {
-          return {
-            ...evidence.companion,
-            ready: false,
-            state: 'blocked' as const,
-            reasonCode: 'runtime-voice-playback-effect-forbidden',
-            actionHint: 'use_text_response_in_simulator',
-            source: 'simulator',
-            message: 'Audio playback is intentionally unavailable in the Simulator.',
-          };
-        },
         async openDesktopAgentConfig(): Promise<void> {
           return undefined;
         },
@@ -444,21 +341,9 @@ export function createZhiyuSimulatorBindings(
         },
       }),
       events: Object.freeze({
-        onProjectionChanged(projection: ZhiyuEvidence) {
-          latestProjection = projection;
-        },
         subscribeConversation(input: Parameters<ZhiyuCanonicalRendererBindings['app']['events']['subscribeConversation']>[0]) {
           void input;
           return () => undefined;
-        },
-        subscribeCompanion({ onCompanion }: Parameters<ZhiyuCanonicalRendererBindings['app']['events']['subscribeCompanion']>[0]) {
-          companionListeners.add(onCompanion);
-          const value = projection(context);
-          if (ecosystemRevisionOf(value) !== null || personaDisplayNameOf(value) !== null) {
-            const companion = projectEcosystemCompanion(value);
-            if (companion) onCompanion(companion);
-          }
-          return () => companionListeners.delete(onCompanion);
         },
       }),
     },

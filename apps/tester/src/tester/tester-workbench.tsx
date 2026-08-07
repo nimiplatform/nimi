@@ -45,54 +45,6 @@ function getResultTraceId(result: TesterCapabilityRunResult): string | undefined
   return result.ok ? result.trace?.traceId : undefined;
 }
 
-function artifactExtension(mimeType: string | undefined): string {
-  const normalized = String(mimeType || '').toLowerCase();
-  if (normalized.includes('png')) return 'png';
-  if (normalized.includes('jpeg') || normalized.includes('jpg')) return 'jpg';
-  if (normalized.includes('webp')) return 'webp';
-  if (normalized.includes('gif')) return 'gif';
-  if (normalized.includes('mp4')) return 'mp4';
-  if (normalized.includes('webm')) return 'webm';
-  if (normalized.includes('wav')) return 'wav';
-  if (normalized.includes('mpeg') || normalized.includes('mp3')) return 'mp3';
-  return 'bin';
-}
-
-async function materializeTesterArtifactResult(
-  result: TesterCapabilityRunResult,
-  runId: string,
-  createdAt: string,
-  saveArtifact: (input: { readonly filename: string; readonly mimeType?: string; readonly dataUrl: string }) => Promise<{
-    readonly previewUrl: string;
-    readonly filename: string;
-    readonly mimeType?: string;
-  }>,
-): Promise<TesterCapabilityRunResult> {
-  if (!shouldPersistTesterArtifactRecord(result)) return result;
-  const firstArtifact = result.output.firstArtifact;
-  const url = firstArtifact?.url?.trim();
-  if (!url?.startsWith('data:')) return result;
-  const stamp = createdAt.replace(/[:.]/g, '-');
-  const filename = `${result.capabilityId}-${stamp}-${runId}.${artifactExtension(firstArtifact?.mimeType)}`;
-  const saved = await saveArtifact({
-    filename,
-    mimeType: firstArtifact?.mimeType,
-    dataUrl: url,
-  });
-  return {
-    ...result,
-    output: {
-      ...result.output,
-      firstArtifact: {
-        ...firstArtifact,
-        url: saved.previewUrl,
-        displayName: firstArtifact?.displayName || saved.filename,
-        mimeType: firstArtifact?.mimeType || saved.mimeType,
-      },
-    },
-  };
-}
-
 export function TesterWorkbench(_props: TesterWorkbenchProps) {
   const rendererHost = useTesterRendererHost();
   const [view, setView] = useState<WorkbenchView>({ kind: 'capability', capabilityId: initialCapabilityId });
@@ -176,26 +128,7 @@ export function TesterWorkbench(_props: TesterWorkbenchProps) {
       const flowId = rendererHost.scope.globalName(`tester-capability-run-${runId}`);
       const traceId = getResultTraceId(result);
       const createdAt = identity.createdAt;
-      let historyResult = result;
-      try {
-        historyResult = await materializeTesterArtifactResult(
-          result,
-          runId,
-          createdAt,
-          rendererHost.app.commands.saveArtifact,
-        );
-      } catch (error) {
-        rendererHost.app.commands.runtimeLog({
-          level: 'warn',
-          area: 'tester-artifact-history',
-          message: 'artifact-materialize-failed',
-          details: {
-            runId,
-            capabilityId: result.capabilityId,
-            error: error instanceof Error ? error.message : String(error || 'artifact materialization failed'),
-          },
-        });
-      }
+      const historyResult = result;
       const record: TesterRunHistoryRecord = {
         id: runId,
         capabilityId: historyResult.capabilityId,

@@ -62,10 +62,6 @@ export {
   type NimiDesktopSourceReadinessRealmOperationID,
   type RuntimeAccountMediatedRealmRuntime,
 } from './runtime-account-realm.js';
-export {
-  createNimiLocalAppAgentConfigureClient,
-} from './local-app-runtime-platform-configure.js';
-export type * from './local-app-runtime-platform-configure.js';
 export type {
   NimiAppAuthMode,
   NimiAppAuthProjection,
@@ -91,10 +87,6 @@ export type {
   NimiLocalAppAgentHandle,
   NimiLocalAppAgentReference,
   NimiLocalAppAgentReferencesClient,
-  NimiLocalAppArtifactBytes,
-  NimiLocalAppArtifactPutInput,
-  NimiLocalAppArtifactPutResult,
-  NimiLocalAppArtifactReadInput,
   NimiLocalAppWorldCoreListInput,
   NimiLocalAppTextCandidateInput,
   NimiLocalAppTextCandidateMessage,

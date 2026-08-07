@@ -41,7 +41,6 @@ test('Zhiyu turn readiness gates on account permission, covered Agent handle, an
       localAgents: [{
         agentHandle: 'lah_v1_other_agent',
         displayName: '其他伙伴',
-        sourceReady: true,
       }],
     },
   );
@@ -76,7 +75,6 @@ function inventoryReady() {
     localAgents: [{
       agentHandle: 'lah_v1_agent_opaque',
       displayName: '伙伴',
-      sourceReady: true,
     }],
   };
 }
@@ -167,7 +165,6 @@ test('Zhiyu removes the retired model control instead of inventing shared-config
     source,
     /ComposerModelRouteButton|chatModelPresentation|openModelConfig|data-zhiyu-labeled-chip="route"/u,
   );
-  assert.doesNotMatch(source, /source-not-ready-diagnostic/u);
 });
 
 async function importTurnReadinessModule() {
@@ -232,48 +229,6 @@ function workspaceStubPlugin() {
       buildApi.onLoad({ filter: /.*/, namespace: 'workspace-kit-bridge-stub' }, () => ({
         loader: 'js',
         contents: 'export function hasElectronRuntime() { return false; }',
-      }));
-      buildApi.onResolve({ filter: /^@nimiplatform\/sdk\/runtime$/ }, () => ({
-        path: 'workspace-sdk-runtime-stub',
-        namespace: 'workspace-sdk-runtime-stub',
-      }));
-      buildApi.onLoad({ filter: /.*/, namespace: 'workspace-sdk-runtime-stub' }, () => ({
-        loader: 'js',
-        contents: `
-          export class Runtime {
-            constructor(options = {}) {
-              this.options = options;
-              this.auth = {};
-              this.grants = {};
-              this.agents = {};
-              this.appMessages = {};
-            }
-          }
-          export function createNimiRuntimeAgentClient() {
-            throw Object.assign(new Error('SDK runtime agent client is not available in unit tests.'), {
-              reasonCode: 'sdk-runtime-agent-client-test-stub',
-              source: 'test',
-            });
-          }
-          export function createNimiHostRuntimeAgentInspectSurface() {
-            return {
-              cancelHook: async () => ({}),
-              disableAutonomy: async () => ({}),
-              enableAutonomy: async () => ({}),
-              getPublicInspect: async () => ({}),
-              getPresentationProfile: async () => null,
-              setAutonomyConfig: async () => ({}),
-              subscribePublicEvents: async () => undefined,
-              updateState: async () => ({}),
-            };
-          }
-          export function createNimiHostRuntimeAgentPresentationProfileSurface() {
-            return {
-              patchPresentationProfile: async () => undefined,
-              setPresentationProfile: async () => undefined,
-            };
-          }
-        `,
       }));
     },
   };

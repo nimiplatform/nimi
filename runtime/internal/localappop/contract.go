@@ -58,22 +58,6 @@ const (
 	OperationConversationTurnInterrupt
 	OperationConversationEventsSubscribe
 	OperationConversationSnapshotGet
-
-	// Unclassified ingress identities keep pre-owner implementation code typed
-	// while remaining structurally absent from the canonical contract. They can
-	// never inherit Base or AppAccess admission.
-	OperationUnclassifiedArtifactRead Operation = 100 + iota
-	OperationUnclassifiedArtifactPut
-	OperationUnclassifiedSharedAIConfigGet
-	OperationUnclassifiedSharedAIConfigOverwrite
-	OperationUnclassifiedSharedAIProfilePreview
-	OperationUnclassifiedSharedAIProfileApply
-	OperationUnclassifiedAutonomySnapshot
-	OperationUnclassifiedAutonomyUpdate
-	OperationUnclassifiedPresentationSnapshot
-	OperationUnclassifiedPresentationCommit
-	OperationUnclassifiedVoiceTranscribe
-	OperationUnclassifiedVoiceStreamSubscribe
 )
 
 type contractRow struct {

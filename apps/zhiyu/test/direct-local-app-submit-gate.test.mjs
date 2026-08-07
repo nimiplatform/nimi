@@ -55,7 +55,6 @@ test('submit preflight refreshes account permission inventory', async () => {
     localAgents: [{
       agentHandle: 'lah_v1_agent_opaque',
       displayName: '伙伴',
-      sourceReady: true,
     }],
   };
   const refreshed = await refreshZhiyuDirectLocalAppSubmitGate({

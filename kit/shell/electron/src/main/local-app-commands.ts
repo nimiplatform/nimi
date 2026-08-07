@@ -11,9 +11,6 @@ const MAX_TEXT_CANDIDATE_MESSAGES = 8;
 const MAX_TEXT_CANDIDATE_MESSAGE_BYTES = 32 * 1024;
 const MAX_TEXT_CANDIDATE_PROMPT_BYTES = 64 * 1024;
 const MAX_TEXT_CANDIDATE_TOKENS = 4096;
-const MAX_ARTIFACT_DATA_BYTES = 4 * 1024 * 1024;
-const MAX_ARTIFACT_DISPLAY_NAME_BYTES = 512;
-const MAX_AI_PROFILE_JSON_BYTES = 4 * 1024 * 1024;
 const FORBIDDEN_PORTABLE_APP_AI_CONFIG_FIELDS = new Set([
   'account', 'accountid', 'accesstoken', 'authorization', 'binding', 'bindingid',
   'connectorgrant', 'connectorgrantid', 'credential', 'custody', 'custodymaterial',
@@ -48,16 +45,6 @@ const COMMAND_METHODS = new Map<string, RendererLocalAppHostMethod>([
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.conversationInterruptTurn'], 'conversationInterruptTurn'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.conversationSubscribe'], 'conversationSubscribe'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.conversationSnapshot'], 'conversationSnapshot'],
-  [NIMI_STANDARD_SHELL_COMMANDS['local-app.artifactPut'], 'artifactPut'],
-  [NIMI_STANDARD_SHELL_COMMANDS['local-app.artifactReadBytes'], 'artifactReadBytes'],
-  [NIMI_STANDARD_SHELL_COMMANDS['local-app.sharedAgentAIConfigGet'], 'sharedAgentAIConfigGet'],
-  [NIMI_STANDARD_SHELL_COMMANDS['local-app.sharedAgentAIConfigOverwrite'], 'sharedAgentAIConfigOverwrite'],
-  [NIMI_STANDARD_SHELL_COMMANDS['local-app.sharedAgentAIProfilePreview'], 'sharedAgentAIProfilePreview'],
-  [NIMI_STANDARD_SHELL_COMMANDS['local-app.sharedAgentAIProfileApply'], 'sharedAgentAIProfileApply'],
-  [NIMI_STANDARD_SHELL_COMMANDS['local-app.agentAutonomySnapshot'], 'agentAutonomySnapshot'],
-  [NIMI_STANDARD_SHELL_COMMANDS['local-app.agentUpdateAutonomy'], 'agentUpdateAutonomy'],
-  [NIMI_STANDARD_SHELL_COMMANDS['local-app.agentPresentationSnapshot'], 'agentPresentationSnapshot'],
-  [NIMI_STANDARD_SHELL_COMMANDS['local-app.agentCommitPresentation'], 'agentCommitPresentation'],
   [NIMI_STANDARD_SHELL_COMMANDS['storage.readJson'], 'storageReadJson'],
   [NIMI_STANDARD_SHELL_COMMANDS['storage.writeJson'], 'storageWriteJson'],
   [NIMI_STANDARD_SHELL_COMMANDS['storage.removeJson'], 'storageRemoveJson'],
@@ -82,7 +69,6 @@ export async function dispatchElectronLocalAppCommand(input: {
     if (method === 'sessionStatus') return await input.host.sessionStatus();
     if (method === 'aiConfigGet') return await input.host.aiConfigGet();
     if (method === 'agentReferenceList') return await input.host.agentReferenceList();
-    if (method === 'sharedAgentAIConfigGet') return await input.host.sharedAgentAIConfigGet();
     if (method === 'storageReadJson') return await input.host.storageReadJson(payload);
     if (method === 'storageWriteJson') return await input.host.storageWriteJson(payload);
     if (method === 'storageRemoveJson') return await input.host.storageRemoveJson(payload);
@@ -138,21 +124,6 @@ function validatePayload(
       assertNoPortableAppAIConfigFields(payload.capabilities, command);
       validateJsonValue(payload.capabilities, command, 4 * 1024 * 1024);
       return { capabilities: payload.capabilities as NimiElectronLocalAppRecord[string] };
-    case 'sharedAgentAIConfigOverwrite':
-      assertExactKeys(payload, ['capabilities'], command);
-      if (!Array.isArray(payload.capabilities)) {
-        throw invalidPayload(command, 'capabilities is invalid');
-      }
-      assertNoAIConfigOwner(payload.capabilities, command);
-      validateJsonValue(payload.capabilities, command, 4 * 1024 * 1024);
-      return { capabilities: payload.capabilities as NimiElectronLocalAppRecord[string] };
-    case 'sharedAgentAIConfigGet':
-      assertExactKeys(payload, [], command);
-      return {};
-    case 'sharedAgentAIProfilePreview':
-    case 'sharedAgentAIProfileApply':
-      assertExactKeys(payload, ['profileJson'], command);
-      return { profileJson: validateAIProfileJson(payload.profileJson, command) };
     case 'textGenerateCandidate':
       return textCandidatePayload(payload, command);
     case 'realmWorldCoreList': {
@@ -195,27 +166,6 @@ function validatePayload(
         text: requiredUtf8Text(payload.text, 'text', command, 64 * 1024),
       };
     }
-    case 'artifactReadBytes':
-      return identifiers(payload, ['artifactId'], command);
-    case 'artifactPut': {
-      const displayName = payload.displayName;
-      assertExactKeys(payload, ['mimeType', 'displayName', 'data'], command);
-      if (typeof displayName !== 'string'
-        || displayName.trim() !== displayName
-        || Buffer.byteLength(displayName, 'utf8') > MAX_ARTIFACT_DISPLAY_NAME_BYTES) {
-        throw invalidPayload(command, 'displayName is invalid');
-      }
-      if (!(payload.data instanceof Uint8Array)
-        || payload.data.byteLength === 0
-        || payload.data.byteLength > MAX_ARTIFACT_DATA_BYTES) {
-        throw invalidPayload(command, 'data is invalid');
-      }
-      return {
-        mimeType: requiredText(payload.mimeType, 'mimeType', command, MAX_IDENTIFIER_LENGTH),
-        displayName,
-        data: payload.data as unknown as NimiElectronLocalAppRecord[string],
-      };
-    }
     case 'conversationInterruptTurn':
       return identifiers(payload, ['agentHandle', 'conversationAnchorId'], command);
     case 'conversationSubscribe':
@@ -228,31 +178,6 @@ function validatePayload(
       return identifiers(payload, ['agentHandle', 'conversationAnchorId'], command);
     case 'conversationSnapshot':
       return identifiers(payload, ['agentHandle', 'conversationAnchorId'], command);
-    case 'agentAutonomySnapshot':
-    case 'agentPresentationSnapshot':
-      return identifiers(payload, ['agentHandle'], command);
-    case 'agentUpdateAutonomy':
-      assertExactKeys(payload, ['agentHandle', 'expectedAutonomyRevision', 'intent'], command);
-      assertNoForbiddenAuthorityValue(payload.intent, command);
-      validateStorageJsonValue(payload.intent, command);
-      return {
-        agentHandle: requiredText(payload.agentHandle, 'agentHandle', command, MAX_IDENTIFIER_LENGTH),
-        expectedAutonomyRevision: decimalRevision(payload.expectedAutonomyRevision, 'expectedAutonomyRevision', command, false),
-        intent: payload.intent as NimiElectronLocalAppRecord[string],
-      };
-    case 'agentCommitPresentation':
-      assertExactKeys(payload, ['agentHandle', 'expectedPresentationRevision', 'intent', 'importedAssets'], command);
-      assertNoForbiddenAuthorityValue(payload.intent, command);
-      assertNoForbiddenAuthorityValue(payload.importedAssets, command);
-      validateStorageJsonValue(payload.intent, command);
-      validateStorageJsonValue(payload.importedAssets, command);
-      if (!Array.isArray(payload.importedAssets)) throw invalidPayload(command, 'importedAssets is invalid');
-      return {
-        agentHandle: requiredText(payload.agentHandle, 'agentHandle', command, MAX_IDENTIFIER_LENGTH),
-        expectedPresentationRevision: decimalRevision(payload.expectedPresentationRevision, 'expectedPresentationRevision', command, true),
-        intent: payload.intent as NimiElectronLocalAppRecord[string],
-        importedAssets: payload.importedAssets as NimiElectronLocalAppRecord[string],
-      };
     case 'storageReadJson':
     case 'storageRemoveJson':
       return storagePathPayload(payload, command);
@@ -402,36 +327,6 @@ function validateJsonValue(value: unknown, command: string, maxBytes: number): v
   }
 }
 
-function validateAIProfileJson(value: unknown, command: string): string {
-  if (typeof value !== 'string'
-    || !value.trim()
-    || Buffer.byteLength(value, 'utf8') > MAX_AI_PROFILE_JSON_BYTES) {
-    throw invalidPayload(command, 'profileJson is invalid');
-  }
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(value);
-  } catch {
-    throw invalidPayload(command, 'profileJson is invalid');
-  }
-  validateJsonValue(parsed, command, MAX_AI_PROFILE_JSON_BYTES);
-  return value;
-}
-
-function assertNoForbiddenAuthorityValue(value: unknown, command: string): void {
-  if (Array.isArray(value)) {
-    for (const entry of value) assertNoForbiddenAuthorityValue(entry, command);
-    return;
-  }
-  if (!value || typeof value !== 'object') return;
-  for (const [key, entry] of Object.entries(value as Record<string, unknown>)) {
-    if (FORBIDDEN_RENDERER_FIELDS.has(key)) {
-      throw invalidPayload(command, `renderer authority field ${key} is forbidden`);
-    }
-    assertNoForbiddenAuthorityValue(entry, command);
-  }
-}
-
 function assertNoPortableAppAIConfigFields(value: unknown, command: string): void {
   if (Array.isArray(value)) {
     for (const entry of value) assertNoPortableAppAIConfigFields(entry, command);
@@ -444,21 +339,6 @@ function assertNoPortableAppAIConfigFields(value: unknown, command: string): voi
       throw invalidPayload(command, `portable App AIConfig field ${key} is forbidden`);
     }
     assertNoPortableAppAIConfigFields(entry, command);
-  }
-}
-
-function assertNoAIConfigOwner(value: unknown, command: string): void {
-  if (Array.isArray(value)) {
-    for (const entry of value) assertNoAIConfigOwner(entry, command);
-    return;
-  }
-  if (!value || typeof value !== 'object') return;
-  for (const [key, entry] of Object.entries(value as Record<string, unknown>)) {
-    const normalized = key.replace(/[^a-z0-9]/giu, '').toLowerCase();
-    if (normalized === 'owner' || normalized === 'appid') {
-      throw invalidPayload(command, `renderer AIConfig owner field ${key} is forbidden`);
-    }
-    assertNoAIConfigOwner(entry, command);
   }
 }
 
@@ -514,13 +394,6 @@ function requiredText(value: unknown, field: string, command: string, maxLength:
     throw invalidPayload(command, `${field} is invalid`);
   }
   return normalized;
-}
-
-function decimalRevision(value: unknown, field: string, command: string, allowZero: boolean): string {
-  if (typeof value !== 'string' || !/^(?:0|[1-9][0-9]*)$/u.test(value) || (!allowZero && value === '0')) {
-    throw invalidPayload(command, `${field} is invalid`);
-  }
-  return value;
 }
 
 function requiredUtf8Text(value: unknown, field: string, command: string, maxBytes: number): string {

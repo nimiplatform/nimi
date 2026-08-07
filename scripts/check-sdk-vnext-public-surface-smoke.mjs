@@ -163,10 +163,13 @@ const localAppStandardShell: NimiLocalAppStandardShell = {
       async create() { return {}; },
     },
   },
+  agents: {
+    async listReferences() { return []; },
+  },
   conversation: {
-    async open() { return { conversationAnchorId: 'anchor-1', activeTurnId: null, activeStreamId: null }; },
-    async send() { return { messageId: 'message-1' }; },
-    async interruptTurn() { return { messageId: 'interrupt-message-1' }; },
+    async open() { return { conversationAnchorId: 'anchor-1', activeTurnId: null }; },
+    async send() { return { turnId: 'turn-1' }; },
+    async interruptTurn() { return { turnId: 'turn-1' }; },
     async subscribe() {
       return {
         events: { async *[Symbol.asyncIterator]() {} },
@@ -174,20 +177,6 @@ const localAppStandardShell: NimiLocalAppStandardShell = {
       };
     },
     async snapshot() { return {}; },
-  },
-  agentConfigure: {
-    async sharedAgentAIConfigGet() { return {}; },
-    async sharedAgentAIConfigOverwrite() { return {}; },
-    async sharedAgentAIProfilePreview() { return {}; },
-    async sharedAgentAIProfileApply() { return {}; },
-    async autonomySnapshot() { return {}; },
-    async updateAutonomy() { return {}; },
-    async presentationSnapshot() { return {}; },
-    async commitPresentation() { return {}; },
-  },
-  artifacts: {
-    async put() { return { artifactId: 'artifact-1' }; },
-    async readBytes() { return { bytes: new Uint8Array([137, 80, 78, 71]), mimeType: 'image/png' }; },
   },
 };
 const localApp = createNimiClient({ localApp: { standardShell: localAppStandardShell } });

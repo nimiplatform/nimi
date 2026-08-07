@@ -57,16 +57,6 @@ pub enum LocalAppReasonCode {
     AiProviderInternal,
     AiProviderRateLimited,
     AiProviderTimeout,
-    AiVoiceTargetModelMismatch,
-    AgentAiConfigRevisionConflict,
-    AgentAiConfigInvalid,
-    AgentAiConfigTargetRequired,
-    AgentAiConfigTargetInvalid,
-    AgentAiConfigTargetUnavailable,
-    AgentAiConfigCapabilityMismatch,
-    AgentAiConfigModelTargetMismatch,
-    AgentAutonomyRevisionConflict,
-    AgentPresentationRevisionConflict,
     AiConfigInvalid,
     AiConfigNotFound,
     AiConfigPersistenceUnavailable,
@@ -119,16 +109,6 @@ impl LocalAppReasonCode {
             Self::AiProviderInternal => "ai-provider-internal",
             Self::AiProviderRateLimited => "ai-provider-rate-limited",
             Self::AiProviderTimeout => "ai-provider-timeout",
-            Self::AiVoiceTargetModelMismatch => "ai-voice-target-model-mismatch",
-            Self::AgentAiConfigRevisionConflict => "agent-ai-config-revision-conflict",
-            Self::AgentAiConfigInvalid => "agent-ai-config-invalid",
-            Self::AgentAiConfigTargetRequired => "agent-ai-config-target-required",
-            Self::AgentAiConfigTargetInvalid => "agent-ai-config-target-invalid",
-            Self::AgentAiConfigTargetUnavailable => "agent-ai-config-target-unavailable",
-            Self::AgentAiConfigCapabilityMismatch => "agent-ai-config-capability-mismatch",
-            Self::AgentAiConfigModelTargetMismatch => "agent-ai-config-model-target-mismatch",
-            Self::AgentAutonomyRevisionConflict => "agent-autonomy-revision-conflict",
-            Self::AgentPresentationRevisionConflict => "agent-presentation-revision-conflict",
             Self::AiConfigInvalid => "ai-config-invalid",
             Self::AiConfigNotFound => "ai-config-not-found",
             Self::AiConfigPersistenceUnavailable => "ai-config-persistence-unavailable",
@@ -319,29 +299,6 @@ pub struct LocalAppConversationSendResult {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct LocalAppArtifactPutRequest {
-    pub mime_type: String,
-    pub display_name: String,
-    pub data: Vec<u8>,
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct LocalAppArtifactPutResult {
-    pub artifact_id: String,
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct LocalAppArtifactReadRequest {
-    pub artifact_id: String,
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct LocalAppArtifactReadResult {
-    pub bytes: Vec<u8>,
-    pub mime_type: String,
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct LocalAppConversationInterruptRequest {
     pub agent_handle: String,
     pub conversation_anchor_id: String,
@@ -362,36 +319,6 @@ pub struct LocalAppConversationSubscribeRequest {
 pub struct LocalAppConversationSnapshotRequest {
     pub agent_handle: String,
     pub conversation_anchor_id: String,
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct LocalAppAgentHandleRequest {
-    pub agent_handle: String,
-}
-
-#[derive(Clone, Debug, PartialEq)]
-pub struct LocalAppSharedAgentAIConfigOverwriteRequest {
-    pub capabilities: JsonValue,
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct LocalAppSharedAgentAIProfileRequest {
-    pub profile_json: String,
-}
-
-#[derive(Clone, Debug, PartialEq)]
-pub struct LocalAppAgentUpdateAutonomyRequest {
-    pub agent_handle: String,
-    pub expected_autonomy_revision: u64,
-    pub intent: JsonValue,
-}
-
-#[derive(Clone, Debug, PartialEq)]
-pub struct LocalAppAgentCommitPresentationRequest {
-    pub agent_handle: String,
-    pub expected_presentation_revision: u64,
-    pub intent: JsonValue,
-    pub imported_assets: JsonValue,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -807,66 +734,6 @@ pub trait NimiLocalAppSession: Send + Sync {
         >,
     >;
 
-    fn artifact_put(
-        &self,
-        request: LocalAppArtifactPutRequest,
-    ) -> Pin<
-        Box<
-            dyn Future<Output = Result<LocalAppArtifactPutResult, LocalAppOperationError>>
-                + Send
-                + '_,
-        >,
-    >;
-
-    fn artifact_read_bytes(
-        &self,
-        request: LocalAppArtifactReadRequest,
-    ) -> Pin<
-        Box<
-            dyn Future<Output = Result<LocalAppArtifactReadResult, LocalAppOperationError>>
-                + Send
-                + '_,
-        >,
-    >;
-
-    fn shared_agent_ai_config_get(
-        &self,
-    ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
-
-    fn shared_agent_ai_config_overwrite(
-        &self,
-        request: LocalAppSharedAgentAIConfigOverwriteRequest,
-    ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
-
-    fn shared_agent_ai_profile_preview(
-        &self,
-        request: LocalAppSharedAgentAIProfileRequest,
-    ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
-
-    fn shared_agent_ai_profile_apply(
-        &self,
-        request: LocalAppSharedAgentAIProfileRequest,
-    ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
-
-    fn agent_autonomy_snapshot(
-        &self,
-        request: LocalAppAgentHandleRequest,
-    ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
-
-    fn agent_update_autonomy(
-        &self,
-        request: LocalAppAgentUpdateAutonomyRequest,
-    ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
-
-    fn agent_presentation_snapshot(
-        &self,
-        request: LocalAppAgentHandleRequest,
-    ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
-
-    fn agent_commit_presentation(
-        &self,
-        request: LocalAppAgentCommitPresentationRequest,
-    ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
 }
 
 pub type LocalAppSessionFuture<'a> = Pin<

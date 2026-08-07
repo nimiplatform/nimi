@@ -137,16 +137,6 @@ pub(crate) fn local_app_reason_from_proto(value: i32) -> Option<LocalAppReasonCo
         392 => LocalAppReasonCode::AiProviderInternal,
         393 => LocalAppReasonCode::AiProviderRateLimited,
         394 => LocalAppReasonCode::AiProviderTimeout,
-        425 => LocalAppReasonCode::AiVoiceTargetModelMismatch,
-        614 => LocalAppReasonCode::AgentPresentationRevisionConflict,
-        670 => LocalAppReasonCode::AgentAiConfigRevisionConflict,
-        671 => LocalAppReasonCode::AgentAutonomyRevisionConflict,
-        679 => LocalAppReasonCode::AgentAiConfigInvalid,
-        680 => LocalAppReasonCode::AgentAiConfigTargetRequired,
-        681 => LocalAppReasonCode::AgentAiConfigTargetInvalid,
-        682 => LocalAppReasonCode::AgentAiConfigTargetUnavailable,
-        683 => LocalAppReasonCode::AgentAiConfigCapabilityMismatch,
-        684 => LocalAppReasonCode::AgentAiConfigModelTargetMismatch,
         694 => LocalAppReasonCode::AiConfigInvalid,
         695 => LocalAppReasonCode::AiConfigNotFound,
         696 => LocalAppReasonCode::AiConfigPersistenceUnavailable,
@@ -210,22 +200,6 @@ fn local_app_reason_from_runtime_reason(value: &str) -> Option<LocalAppReasonCod
         "AI_PROVIDER_INTERNAL" => LocalAppReasonCode::AiProviderInternal,
         "AI_PROVIDER_RATE_LIMITED" => LocalAppReasonCode::AiProviderRateLimited,
         "AI_PROVIDER_TIMEOUT" => LocalAppReasonCode::AiProviderTimeout,
-        "AI_VOICE_TARGET_MODEL_MISMATCH" => LocalAppReasonCode::AiVoiceTargetModelMismatch,
-        "AGENT_AI_CONFIG_REVISION_CONFLICT" => LocalAppReasonCode::AgentAiConfigRevisionConflict,
-        "AGENT_AI_CONFIG_INVALID" => LocalAppReasonCode::AgentAiConfigInvalid,
-        "AGENT_AI_CONFIG_TARGET_REQUIRED" => LocalAppReasonCode::AgentAiConfigTargetRequired,
-        "AGENT_AI_CONFIG_TARGET_INVALID" => LocalAppReasonCode::AgentAiConfigTargetInvalid,
-        "AGENT_AI_CONFIG_TARGET_UNAVAILABLE" => LocalAppReasonCode::AgentAiConfigTargetUnavailable,
-        "AGENT_AI_CONFIG_CAPABILITY_MISMATCH" => {
-            LocalAppReasonCode::AgentAiConfigCapabilityMismatch
-        }
-        "AGENT_AI_CONFIG_MODEL_TARGET_MISMATCH" => {
-            LocalAppReasonCode::AgentAiConfigModelTargetMismatch
-        }
-        "AGENT_AUTONOMY_REVISION_CONFLICT" => LocalAppReasonCode::AgentAutonomyRevisionConflict,
-        "AGENT_PRESENTATION_REVISION_CONFLICT" => {
-            LocalAppReasonCode::AgentPresentationRevisionConflict
-        }
         "AI_CONFIG_INVALID" => LocalAppReasonCode::AiConfigInvalid,
         "AI_CONFIG_NOT_FOUND" => LocalAppReasonCode::AiConfigNotFound,
         "AI_CONFIG_PERSISTENCE_UNAVAILABLE" => LocalAppReasonCode::AiConfigPersistenceUnavailable,

@@ -1,6 +1,5 @@
 use nimi_shell_protected_local::{
     LocalAppAIConfigOverwriteRequest, LocalAppOperationError,
-    LocalAppSharedAgentAIConfigOverwriteRequest, LocalAppSharedAgentAIProfileRequest,
     LocalAppStorageReadRequest, LocalAppStorageRemoveRequest, LocalAppStorageWriteRequest,
     LocalAppTextCandidateMessage, LocalAppTextCandidateRequest,
 };
@@ -13,9 +12,6 @@ const MAX_TEXT_CANDIDATE_MESSAGES: usize = 8;
 const MAX_TEXT_CANDIDATE_MESSAGE_BYTES: usize = 32 * 1024;
 const MAX_TEXT_CANDIDATE_PROMPT_BYTES: usize = 64 * 1024;
 const MAX_TEXT_CANDIDATE_TOKENS: i32 = 4096;
-const MAX_AI_PROFILE_JSON_BYTES: usize = 4 * 1024 * 1024;
-const MAX_JSON_DEPTH: usize = 32;
-const MAX_JSON_NODES: usize = 100_000;
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
@@ -37,12 +33,6 @@ pub struct LocalAppTextCandidatePayload {
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct LocalAppAIConfigOverwritePayload {
     capabilities: Value,
-}
-
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct LocalAppSharedAgentAIProfilePayload {
-    profile_json: String,
 }
 
 #[derive(Debug, Deserialize)]
@@ -152,74 +142,6 @@ pub async fn ai_config_overwrite_for_host(
     .map_err(map_local_app_error)
 }
 
-pub async fn shared_agent_ai_config_get_for_host(
-    host: &RuntimeBridgeLocalAppHost,
-) -> Result<Value, String> {
-    host.shared_agent_ai_config_get()
-        .await
-        .map_err(map_local_app_error)
-}
-
-pub async fn shared_agent_ai_config_overwrite_for_host(
-    host: &RuntimeBridgeLocalAppHost,
-    payload: Value,
-) -> Result<Value, String> {
-    let payload: LocalAppAIConfigOverwritePayload =
-        parse_payload(payload, "local_app_shared_agent_ai_config_overwrite")?;
-    if !payload.capabilities.is_array() {
-        return Err(invalid_payload(
-            "local_app_shared_agent_ai_config_overwrite",
-        ));
-    }
-    assert_no_ai_config_owner(
-        &payload.capabilities,
-        "local_app_shared_agent_ai_config_overwrite",
-    )?;
-    validate_json_bounds(
-        &payload.capabilities,
-        "local_app_shared_agent_ai_config_overwrite",
-    )?;
-    host.shared_agent_ai_config_overwrite(LocalAppSharedAgentAIConfigOverwriteRequest {
-        capabilities: payload.capabilities,
-    })
-    .await
-    .map_err(map_local_app_error)
-}
-
-pub async fn shared_agent_ai_profile_preview_for_host(
-    host: &RuntimeBridgeLocalAppHost,
-    payload: Value,
-) -> Result<Value, String> {
-    let payload: LocalAppSharedAgentAIProfilePayload =
-        parse_payload(payload, "local_app_shared_agent_ai_profile_preview")?;
-    validate_profile_json(
-        &payload.profile_json,
-        "local_app_shared_agent_ai_profile_preview",
-    )?;
-    host.shared_agent_ai_profile_preview(LocalAppSharedAgentAIProfileRequest {
-        profile_json: payload.profile_json,
-    })
-    .await
-    .map_err(map_local_app_error)
-}
-
-pub async fn shared_agent_ai_profile_apply_for_host(
-    host: &RuntimeBridgeLocalAppHost,
-    payload: Value,
-) -> Result<Value, String> {
-    let payload: LocalAppSharedAgentAIProfilePayload =
-        parse_payload(payload, "local_app_shared_agent_ai_profile_apply")?;
-    validate_profile_json(
-        &payload.profile_json,
-        "local_app_shared_agent_ai_profile_apply",
-    )?;
-    host.shared_agent_ai_profile_apply(LocalAppSharedAgentAIProfileRequest {
-        profile_json: payload.profile_json,
-    })
-    .await
-    .map_err(map_local_app_error)
-}
-
 pub async fn storage_read_json_for_host(
     host: &RuntimeBridgeLocalAppHost,
     payload: Value,
@@ -261,77 +183,6 @@ pub async fn storage_remove_json_for_host(
         .await
         .map_err(map_local_app_error)?;
     Ok(json!({"removed": result.removed}))
-}
-
-fn validate_profile_json(value: &str, command: &str) -> Result<(), String> {
-    if value.trim().is_empty() || value.len() > MAX_AI_PROFILE_JSON_BYTES {
-        return Err(invalid_payload(command));
-    }
-    let parsed: Value = serde_json::from_str(value).map_err(|_| invalid_payload(command))?;
-    validate_json_bounds(&parsed, command)
-}
-
-fn validate_json_bounds(value: &Value, command: &str) -> Result<(), String> {
-    if serde_json::to_vec(value)
-        .map_err(|_| invalid_payload(command))?
-        .len()
-        > MAX_AI_PROFILE_JSON_BYTES
-    {
-        return Err(invalid_payload(command));
-    }
-    let mut nodes = 0usize;
-    validate_json_structure(value, 0, &mut nodes, command)
-}
-
-fn validate_json_structure(
-    value: &Value,
-    depth: usize,
-    nodes: &mut usize,
-    command: &str,
-) -> Result<(), String> {
-    *nodes = nodes.saturating_add(1);
-    if depth > MAX_JSON_DEPTH || *nodes > MAX_JSON_NODES {
-        return Err(invalid_payload(command));
-    }
-    match value {
-        Value::Array(values) => {
-            for value in values {
-                validate_json_structure(value, depth + 1, nodes, command)?;
-            }
-        }
-        Value::Object(values) => {
-            for value in values.values() {
-                validate_json_structure(value, depth + 1, nodes, command)?;
-            }
-        }
-        _ => {}
-    }
-    Ok(())
-}
-
-fn assert_no_ai_config_owner(value: &Value, command: &str) -> Result<(), String> {
-    match value {
-        Value::Array(values) => {
-            for value in values {
-                assert_no_ai_config_owner(value, command)?;
-            }
-        }
-        Value::Object(values) => {
-            for (key, value) in values {
-                let normalized = key
-                    .chars()
-                    .filter(|character| character.is_ascii_alphanumeric())
-                    .flat_map(char::to_lowercase)
-                    .collect::<String>();
-                if normalized == "owner" || normalized == "appid" {
-                    return Err(invalid_payload(command));
-                }
-                assert_no_ai_config_owner(value, command)?;
-            }
-        }
-        _ => {}
-    }
-    Ok(())
 }
 
 fn parse_payload<T: for<'de> Deserialize<'de>>(payload: Value, command: &str) -> Result<T, String> {
@@ -427,16 +278,5 @@ mod tests {
             "text_candidate"
         )
         .is_err());
-    }
-
-    #[test]
-    fn shared_agent_inputs_reject_owner_injection_and_malformed_profile_json() {
-        assert!(assert_no_ai_config_owner(
-            &json!([{"owner": {"appId": "forged"}}]),
-            "shared_config"
-        )
-        .is_err());
-        assert!(validate_profile_json("{", "shared_profile").is_err());
-        assert!(validate_profile_json("{\"portable\":true}", "shared_profile").is_ok());
     }
 }

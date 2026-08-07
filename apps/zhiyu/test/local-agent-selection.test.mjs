@@ -47,7 +47,6 @@ function inventoryAgent(overrides = {}) {
   return {
     agentHandle: 'opaque-agent-handle-1',
     displayName: 'Runtime LocalAgent',
-    sourceReady: true,
     ...overrides,
   };
 }
@@ -69,13 +68,12 @@ test('selects a covered Agent without promoting its opaque handle into raw ident
   assert.equal(selected.actionHint, 'open_runtime_agent_home');
 });
 
-test('auto-selects the only inventory item only when bounded source status is ready', async () => {
+test('auto-selects the only active Agent reference', async () => {
   const { resolveZhiyuRuntimeLocalAgentSelection } = await loadSelectionModule();
 
   const selected = resolveZhiyuRuntimeLocalAgentSelection({
     inventory: inventory([inventoryAgent({
       agentHandle: 'opaque-agent-handle-2',
-      sourceReady: true,
     })]),
   });
 
@@ -92,7 +90,6 @@ test('promotes an explicitly selected Runtime inventory partner projection witho
       inventoryAgent({
         agentHandle: 'opaque-agent-handle-yan-zhenqing',
         displayName: '颜真卿',
-        sourceReady: true,
       }),
       inventoryAgent({
         agentHandle: 'opaque-agent-handle-second',

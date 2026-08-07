@@ -32,6 +32,7 @@ describe('Electron protected local-app host', () => {
     const host = createNimiElectronLocalAppHostForBinding(binding([])) as unknown as Record<string, unknown>;
     expect(Object.keys(host)).not.toContain('permission');
     expect(Object.keys(host).some((key) => /request|grant|revoke/iu.test(key))).toBe(false);
+    expect(Object.keys(host).some((key) => /artifact|configure|autonomy|presentation/iu.test(key))).toBe(false);
   });
 
   it('forwards exact WorldCore, app-private storage, and typed conversation operations', async () => {
@@ -50,8 +51,6 @@ describe('Electron protected local-app host', () => {
     }]);
     await expect(host.conversationOpen({ agentHandle: 'lash_one' }))
       .resolves.toEqual({ conversationAnchorId: 'anchor-1', activeTurnId: null });
-    await expect(host.artifactReadBytes({ artifactId: 'artifact_01J' }))
-      .resolves.toMatchObject({ mimeType: 'image/png' });
 
     expect(calls.map(({ method }) => method)).toEqual([
       'localAppSessionStatus',
@@ -59,7 +58,6 @@ describe('Electron protected local-app host', () => {
       'localAppStorageReadJson',
       'localAppAgentReferenceList',
       'localAppConversationOpen',
-      'localAppArtifactReadBytes',
     ]);
   });
 
@@ -223,13 +221,6 @@ function statusProjection() {
   };
 }
 
-function sharedAgentConfig() {
-  return {
-    owner: { owner: { oneofKind: 'runtimeLocalAgentSubsystem', runtimeLocalAgentSubsystem: {} } },
-    capabilities: [],
-  };
-}
-
 function binding(calls: Array<{ method: string; input?: unknown }>) {
   const record = (method: string, value: unknown) => async (input?: unknown) => {
     calls.push({ method, ...(input === undefined ? {} : { input }) });
@@ -240,10 +231,6 @@ function binding(calls: Array<{ method: string; input?: unknown }>) {
     localAppSessionRenew: record('localAppSessionRenew', statusProjection()),
     localAppAIConfigGet: record('localAppAIConfigGet', { owner: { owner: { oneofKind: 'app', app: { appId: 'app.example' } } }, capabilities: [] }),
     localAppAIConfigOverwrite: record('localAppAIConfigOverwrite', { owner: { owner: { oneofKind: 'app', app: { appId: 'app.example' } } }, capabilities: [] }),
-    localAppSharedAgentAIConfigGet: record('localAppSharedAgentAIConfigGet', sharedAgentConfig()),
-    localAppSharedAgentAIConfigOverwrite: record('localAppSharedAgentAIConfigOverwrite', sharedAgentConfig()),
-    localAppSharedAgentAIProfilePreview: record('localAppSharedAgentAIProfilePreview', { before: null, after: sharedAgentConfig() }),
-    localAppSharedAgentAIProfileApply: record('localAppSharedAgentAIProfileApply', sharedAgentConfig()),
     localAppTextGenerateCandidate: record('localAppTextGenerateCandidate', { text: 'hello', finishReason: 'stop', traceId: 'trace-1' }),
     localAppRealmWorldCoreList: record('localAppRealmWorldCoreList', [{ id: 'world-1', visibility: 'private' }]),
     localAppRealmWorldCoreCreate: record('localAppRealmWorldCoreCreate', { id: 'world-2', visibility: 'private' }),
@@ -264,11 +251,5 @@ function binding(calls: Array<{ method: string; input?: unknown }>) {
     localAppConversationSnapshot: record('localAppConversationSnapshot', {
       conversationAnchorId: 'anchor-1', activeTurnId: null, messages: [], truncatedBefore: false,
     }),
-    localAppArtifactPut: record('localAppArtifactPut', { artifactId: 'artifact_01J' }),
-    localAppArtifactReadBytes: record('localAppArtifactReadBytes', { bytes: new Uint8Array([1]), mimeType: 'image/png' }),
-    localAppAgentAutonomySnapshot: record('localAppAgentAutonomySnapshot', { autonomyRevision: '1' }),
-    localAppAgentUpdateAutonomy: record('localAppAgentUpdateAutonomy', { autonomyRevision: '2' }),
-    localAppAgentPresentationSnapshot: record('localAppAgentPresentationSnapshot', { presentationRevision: '0' }),
-    localAppAgentCommitPresentation: record('localAppAgentCommitPresentation', { presentationRevision: '1' }),
   };
 }

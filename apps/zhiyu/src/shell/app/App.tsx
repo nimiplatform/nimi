@@ -17,12 +17,10 @@ import {
   type ZhiyuRuntimeChatApplyIdentity,
 } from './chat-turn-apply-guard';
 import { ZhiyuAgentChatSurface } from '../agent-chat/ZhiyuAgentChatSurface';
-import type { ZhiyuChatAttachmentRef } from '../agent-chat/turn-attachments';
 import { projectZhiyuHomeProductState } from './home-product-state';
 import { projectZhiyuIdentitySafetyEvidence } from './identity-safety-evidence';
 import { projectZhiyuAvatarLaunchAction } from '../avatar/avatar-launch';
-import { projectZhiyuCompanionFromRuntimeProjectionEvents } from '../agent-chat/agent-conversation-state';
-import type { ZhiyuCanonicalRendererBindings, ZhiyuVoiceCaptureControllerPort } from '../../renderer/contract';
+import type { ZhiyuCanonicalRendererBindings } from '../../renderer/contract';
 import { sameZhiyuRuntimeAgentInventory } from '../agent/agent-inventory-projection';
 import { projectZhiyuAuthorizedAgentCenterHandle } from '../agent/agent-center-handle';
 import {
@@ -37,7 +35,6 @@ export function ZhiyuCanonicalApp(props: { readonly bindings: ZhiyuCanonicalRend
   const [selectedLocalAgentRefreshKey, setSelectedLocalAgentRefreshKey] = useState(0);
   const [draft, setDraft] = useState('');
   const activeChatAbortRef = useRef<AbortController | null>(null);
-  const activeVoiceCaptureRef = useRef<ZhiyuVoiceCaptureControllerPort | null>(null);
   const latestAgentInventoryRef = useRef<ZhiyuEvidence['inventory']>(evidence.inventory);
   const renderEvidence = useMemo(() => projectZhiyuIdentitySafetyEvidence(evidence), [evidence]);
   const agentCenterHandle = projectZhiyuAuthorizedAgentCenterHandle(renderEvidence);
@@ -189,41 +186,6 @@ export function ZhiyuCanonicalApp(props: { readonly bindings: ZhiyuCanonicalRend
     renderEvidence.conversation.conversationAnchorId,
   ]);
 
-  useEffect(() => {
-    const ownerUserId = renderEvidence.conversation.ownerUserId;
-    const runtimeSourceRef = renderEvidence.conversation.runtimeSourceRef;
-    const localAgentRef = renderEvidence.conversation.localAgentRef;
-    const conversationAnchorId = renderEvidence.conversation.conversationAnchorId;
-    if (
-      !renderEvidence.conversation.ready
-      || !ownerUserId
-      || !runtimeSourceRef
-      || !localAgentRef
-      || !conversationAnchorId
-    ) {
-      return undefined;
-    }
-    return bindings.app.events.subscribeCompanion({
-      ownerUserId,
-      runtimeSourceRef,
-      localAgentRef,
-      conversationAnchorId,
-      onCompanion: (companion) => {
-        setEvidence((current) => ({
-          ...current,
-          companion,
-        }));
-      },
-    });
-  }, [
-    bindings,
-    renderEvidence.conversation.ready,
-    renderEvidence.conversation.ownerUserId,
-    renderEvidence.conversation.runtimeSourceRef,
-    renderEvidence.conversation.localAgentRef,
-    renderEvidence.conversation.conversationAnchorId,
-  ]);
-
   const product = useMemo(() => projectZhiyuHomeProductState(renderEvidence), [renderEvidence]);
   const avatarLaunchAction = useMemo(() => projectZhiyuAvatarLaunchAction(renderEvidence), [renderEvidence]);
 
@@ -237,33 +199,12 @@ export function ZhiyuCanonicalApp(props: { readonly bindings: ZhiyuCanonicalRend
       ? 'ready'
       : 'blocked';
 
-  async function handleSubmit(textInput: string, attachments: readonly ZhiyuChatAttachmentRef[] = []) {
+  async function handleSubmit(textInput: string) {
     const text = textInput.trim();
-    if (attachments.length > 0) {
-      setEvidence((current) => ({
-        ...current,
-        composer: {
-          ...current.composer,
-          submitState: 'failed',
-          draftLength: text.length,
-          reasonCode: 'zhiyu-turn-attachment-unsupported',
-          actionHint: 'remove_conversation_attachment',
-          source: 'renderer',
-          message: 'Third-party Local App Agent conversations are text-only.',
-        },
-      }));
-      return;
-    }
-    const submittedAttachment = null;
     activeChatAbortRef.current?.abort('zhiyu_chat_turn_superseded');
     const activeChatAbort = new AbortController();
     activeChatAbortRef.current = activeChatAbort;
     const submittedConversation = zhiyuRuntimeChatApplyIdentity(evidence.conversation);
-    const submittedSourceContext = {
-      ownerUserId: evidence.conversation.ownerUserId,
-      runtimeSourceRef: evidence.conversation.runtimeSourceRef,
-      localAgentRef: evidence.conversation.localAgentRef,
-    };
     const submitStillCurrent = () => activeChatAbortRef.current === activeChatAbort
       && shouldContinueZhiyuRuntimeChatSubmit({
         currentConversation: latestConversationIdentityRef.current,
@@ -333,7 +274,6 @@ export function ZhiyuCanonicalApp(props: { readonly bindings: ZhiyuCanonicalRend
           requestId,
           text,
           new Date(bindings.clock.now()).toISOString(),
-          submittedAttachment,
         ),
         ready: false,
         state: 'streaming',
@@ -366,20 +306,11 @@ export function ZhiyuCanonicalApp(props: { readonly bindings: ZhiyuCanonicalRend
             requestId,
             text,
             new Date(bindings.clock.now()).toISOString(),
-            submittedAttachment,
           );
           const chat = mergeChatTranscript(current.chat, projectionChat);
-          const companion = projectZhiyuCompanionFromRuntimeProjectionEvents({
-            current: current.companion,
-            chat,
-            ownerUserId: current.conversation.ownerUserId || '',
-            runtimeSourceRef: current.conversation.runtimeSourceRef || '',
-            observedAt: new Date(bindings.clock.now()).toISOString(),
-          });
           return {
             ...current,
             chat,
-            companion,
             turn: turnStatusFromChat(chat),
             composer: {
               ...current.composer,
@@ -416,20 +347,11 @@ export function ZhiyuCanonicalApp(props: { readonly bindings: ZhiyuCanonicalRend
         submitted.requestId ?? requestId,
         text,
         new Date(bindings.clock.now()).toISOString(),
-        submittedAttachment,
       );
       const chat = mergeChatTranscript(current.chat, resultChat);
-      const companion = projectZhiyuCompanionFromRuntimeProjectionEvents({
-        current: current.companion,
-        chat,
-        ownerUserId: current.conversation.ownerUserId || '',
-        runtimeSourceRef: current.conversation.runtimeSourceRef || '',
-        observedAt: new Date(bindings.clock.now()).toISOString(),
-      });
       return {
         ...current,
         chat,
-        companion,
         turn: turnStatusFromChat(chat),
         composer: {
           ...current.composer,
@@ -442,33 +364,10 @@ export function ZhiyuCanonicalApp(props: { readonly bindings: ZhiyuCanonicalRend
         },
       };
     });
-    if (
-      submitted.ready
-      && submittedSourceContext.ownerUserId
-      && submittedSourceContext.runtimeSourceRef
-      && submittedSourceContext.localAgentRef
-      && submittedConversation.conversationAnchorId
-      && shouldApplyZhiyuRuntimeChatUpdate({
-        currentConversation: latestConversationIdentityRef.current,
-        submittedConversation,
-      })
-    ) {
-      try {
-        const source = await bindings.app.projection.loadSourceContext({
-          ownerUserId: submittedSourceContext.ownerUserId,
-          runtimeSourceRef: submittedSourceContext.runtimeSourceRef,
-          localAgentRef: submittedSourceContext.localAgentRef,
-          conversationAnchorId: submittedConversation.conversationAnchorId,
-        });
-        if (shouldApplyZhiyuRuntimeChatUpdate({
-          currentConversation: latestConversationIdentityRef.current,
-          submittedConversation,
-        })) {
-          setEvidence((current) => ({ ...current, source }));
-        }
-      } catch {
-        // Existing bounded source evidence remains fail-closed when refresh is unavailable.
-      }
+    if (submitted.ready && shouldApplyZhiyuRuntimeChatUpdate({
+      currentConversation: latestConversationIdentityRef.current,
+      submittedConversation,
+    })) {
       setDraft('');
     }
   }
@@ -510,63 +409,6 @@ export function ZhiyuCanonicalApp(props: { readonly bindings: ZhiyuCanonicalRend
         },
       };
     });
-  }
-
-  async function handleVoiceCaptureToggle() {
-    if (renderEvidence.voiceCapture.state === 'transcribing') {
-      return;
-    }
-    if (renderEvidence.voiceCapture.state === 'recording') {
-      const activeVoiceCapture = activeVoiceCaptureRef.current;
-      if (!activeVoiceCapture) {
-        setEvidence((current) => ({
-          ...current,
-          voiceCapture: {
-            ...current.voiceCapture,
-            state: 'failed',
-            reasonCode: 'runtime-voice-capture-recorder-missing',
-            actionHint: 'start_voice_capture',
-            source: 'renderer',
-            message: 'Voice capture stop was requested before recording started.',
-          },
-        }));
-        return;
-      }
-      const result = await activeVoiceCapture.stop();
-      activeVoiceCaptureRef.current = null;
-      if (result.state === 'idle' && result.transcriptText) {
-        const transcriptText = result.transcriptText;
-        setDraft(transcriptText);
-        setEvidence((current) => ({
-          ...current,
-          voiceCapture: result,
-          composer: {
-            ...current.composer,
-            draftLength: transcriptText.length,
-            reasonCode: result.reasonCode,
-            actionHint: 'send_runtime_agent_turn',
-            source: result.source,
-            message: result.message,
-          },
-        }));
-      }
-      return;
-    }
-    const controller = bindings.app.commands.createVoiceCapture({
-      agentId: renderEvidence.conversation.localAgentRef || '',
-      ownerUserId: renderEvidence.conversation.ownerUserId || renderEvidence.auth.accountId || '',
-      onStateChange: (voiceCapture) => {
-        setEvidence((current) => ({
-          ...current,
-          voiceCapture,
-        }));
-      },
-    });
-    activeVoiceCaptureRef.current = controller;
-    const started = await controller.start();
-    if (started.state !== 'recording') {
-      activeVoiceCaptureRef.current = null;
-    }
   }
 
   function handleSelectLocalAgent(agentHandle: string) {
@@ -628,15 +470,7 @@ export function ZhiyuCanonicalApp(props: { readonly bindings: ZhiyuCanonicalRend
       onDraftChange={setDraft}
       onSubmit={handleSubmit}
       onStopChat={handleStopChat}
-      onVoiceCaptureToggle={handleVoiceCaptureToggle}
-      onVoicePlayback={async () => {
-        const companion = await bindings.app.commands.runVoicePlayback(renderEvidence);
-        setEvidence((current) => ({ ...current, companion }));
-      }}
       onSelectLocalAgent={handleSelectLocalAgent}
-      onRefreshLocalAgentInventory={() => {
-        setSelectedLocalAgentRefreshKey((current) => current + 1);
-      }}
       onDesktopOpenAgentConfig={bindings.app.commands.openDesktopAgentConfig}
       onDesktopOpenSelectPartner={bindings.app.commands.openDesktopSelectPartner}
       onAvatarLaunch={() => {

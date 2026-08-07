@@ -25,7 +25,6 @@ import { getRuntimePlatformProjection } from '../shell/auth/runtime-platform.js'
 import { getTesterLocalAppClient } from '../shell/local-app-runtime-platform.js';
 import { loadTesterAIConfig, requireTesterAIConfigOwner } from '../tester/tester-ai-config-store.js';
 import { loadTesterAIConfigSummary } from '../tester/tester-ai-config.js';
-import { saveTesterArtifact } from '../tester/tester-artifact-storage.js';
 import { runTesterConversationJourney } from '../tester/local-app-conversation-journey.js';
 import { saveTesterExport } from '../tester/tester-export.js';
 import { appendTesterRunHistory, loadTesterRunHistory } from '../tester/tester-history-storage.js';
@@ -169,7 +168,6 @@ export function createTesterProductionBindings(
         },
         appendRunHistory: appendTesterRunHistory,
         appendImageHistory: appendTesterImageHistoryRecord,
-        saveArtifact: saveTesterArtifact,
         async savePromptDraft(
           key: Parameters<TesterRendererCommandPort['savePromptDraft']>[0],
           prompt: string,

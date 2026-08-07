@@ -111,8 +111,6 @@ export {
   getNimiLocalAppSessionStatus,
   listNimiLocalAppWorldCores,
   openNimiLocalAppConversation,
-  putNimiLocalAppArtifact,
-  readNimiLocalAppArtifactBytes,
   readNimiLocalAppStorageJson,
   removeNimiLocalAppStorageJson,
   sendNimiLocalAppConversationTurn,
@@ -173,9 +171,6 @@ export type {
   AgentCenterShellHostScope,
 } from './agent-center.js';
 export type {
-  NimiLocalAppArtifactBytes,
-  NimiLocalAppArtifactPutInput,
-  NimiLocalAppArtifactReadInput,
   NimiLocalAppConversationScopeInput,
   NimiLocalAppConversationSubscription,
   NimiLocalAppSessionStatus,

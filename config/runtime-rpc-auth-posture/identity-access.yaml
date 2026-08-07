@@ -50,6 +50,8 @@ methods:
     posture: protected_origin_required
   - method_id: /nimi.runtime.v1.RuntimeAppService/BindLocalAppProcess
     posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeAppService/RebindLocalAppProcess
+    posture: protected_origin_required
   - method_id: /nimi.runtime.v1.RuntimeServiceControlService/RequestRuntimeRestart
     posture: protected_origin_required
   - method_id: /nimi.runtime.v1.RuntimeAuthService/RegisterApp

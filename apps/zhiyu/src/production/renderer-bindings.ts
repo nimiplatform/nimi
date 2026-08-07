@@ -18,14 +18,6 @@ import { projectZhiyuProposalIntakeStatus } from '../shell/agent/proposal-intake
 import { projectZhiyuRuntimeSourceProjection } from '../shell/agent/source-projection.js';
 import { probeZhiyuAgentTurnReadiness } from '../shell/agent-chat/agent-turn-readiness.js';
 import { runZhiyuAgentChatTurn } from '../shell/agent-chat/runtime-agent-turn-adapter.js';
-import {
-  createBrowserVoiceCaptureRecorder,
-  createElectronVoiceCaptureTranscriber,
-  createZhiyuVoiceCaptureController,
-} from '../shell/agent-chat/voice-capture.js';
-import type { ZhiyuEvidence } from '../shell/app/evidence.js';
-import { loadZhiyuSourceContextProjection } from '../shell/app/source-context-loader.js';
-import { runZhiyuVoicePlaybackAction } from '../shell/app/voice-playback-action.js';
 import { probeZhiyuAvatarPresence } from '../shell/avatar/avatar-presence.js';
 import { launchZhiyuAvatar } from '../shell/avatar/avatar-launch-handoff.js';
 import { probeZhiyuRuntimeAccountStatus } from '../shell/auth/runtime-account-status.js';
@@ -87,7 +79,7 @@ async function loadHome(selectedAgentHandle: string | null): Promise<ZhiyuHomePr
 
 async function hydrateConversation(input: Parameters<ZhiyuCanonicalRendererBindings['app']['projection']['hydrateConversation']>[0]) {
   const client = getZhiyuLocalAppClient();
-  return hydrateZhiyuProductionConversation(input, client.conversation, client.artifacts);
+  return hydrateZhiyuProductionConversation(input, client.conversation);
 }
 
 export function createZhiyuProductionBindings(
@@ -106,30 +98,12 @@ export function createZhiyuProductionBindings(
         loadAgentInventory: probeZhiyuRuntimeAgentInventory,
         projectTurnReadiness: probeZhiyuAgentTurnReadiness,
         hydrateConversation,
-        loadSourceContext: loadZhiyuSourceContextProjection,
       }),
       commands: Object.freeze({
         async allocateTurnRequestId() {
           return createZhiyuProductionTurnRequestId();
         },
         runTurn: runZhiyuAgentChatTurn,
-        createVoiceCapture(input: Parameters<ZhiyuCanonicalRendererBindings['app']['commands']['createVoiceCapture']>[0]) {
-          return createZhiyuVoiceCaptureController({
-            createRecorder: createBrowserVoiceCaptureRecorder,
-            transcribe: createElectronVoiceCaptureTranscriber({
-              agentId: input.agentId,
-              ownerUserId: input.ownerUserId,
-            }),
-            onStateChange: input.onStateChange,
-          });
-        },
-        async runVoicePlayback(evidence: ZhiyuEvidence) {
-          let current = evidence;
-          await runZhiyuVoicePlaybackAction(evidence, (update) => {
-            current = update(current);
-          });
-          return current.companion;
-        },
         async openDesktopAgentConfig() {
           await requestZhiyuDesktopOpenAgentConfig();
         },
@@ -146,10 +120,6 @@ export function createZhiyuProductionBindings(
             },
             onChat: input.onChat,
           });
-        },
-        subscribeCompanion(input: Parameters<ZhiyuCanonicalRendererBindings['app']['events']['subscribeCompanion']>[0]) {
-          void input;
-          return () => undefined;
         },
       }),
     },

@@ -34,36 +34,10 @@ const calls = [
     conversationAnchorId: 'contract-anchor',
     requestId: 'contract-request',
     text: 'contract',
-    attachments: [],
   }],
   ['localAppConversationInterruptTurn', { agentHandle, conversationAnchorId: 'contract-anchor' }],
   ['localAppConversationSnapshot', { agentHandle, conversationAnchorId: 'contract-anchor' }],
   ['localAppConversationSubscribe', { agentHandle, conversationAnchorId: 'contract-anchor' }],
-  ['localAppSharedAgentAIConfigOverwrite', { capabilities: [] }],
-  ['localAppSharedAgentAIProfilePreview', { profileJson: '{"profileId":"contract"}' }],
-  ['localAppSharedAgentAIProfileApply', { profileJson: '{"profileId":"contract"}' }],
-  ['localAppAgentAutonomySnapshot', { agentHandle }],
-  ['localAppAgentUpdateAutonomy', {
-    agentHandle,
-    expectedAutonomyRevision: '1',
-    intent: { enabled: false },
-  }],
-  ['localAppAgentPresentationSnapshot', { agentHandle }],
-  ['localAppAgentCommitPresentation', {
-    agentHandle,
-    expectedPresentationRevision: '0',
-    importedAssets: [],
-    intent: {
-      backendKind: 'vrm',
-      avatarAssetRef: 'asset-1',
-      expressionProfileRef: '',
-      idlePreset: '',
-      interactionPolicyRef: '',
-      defaultVoiceReference: '',
-      avatarAutoplay: false,
-      backgroundAssetRef: '',
-    },
-  }],
 ];
 
 async function main() {
@@ -73,24 +47,23 @@ async function main() {
     'localAppAgentReadinessSnapshot',
     'localAppAgentAIProfilePreview',
     'localAppAgentAIProfileApply',
+    'localAppArtifactPut',
+    'localAppArtifactReadBytes',
+    'localAppSharedAgentAIConfigGet',
+    'localAppSharedAgentAIConfigOverwrite',
+    'localAppSharedAgentAIProfilePreview',
+    'localAppSharedAgentAIProfileApply',
+    'localAppAgentAutonomySnapshot',
+    'localAppAgentUpdateAutonomy',
+    'localAppAgentPresentationSnapshot',
+    'localAppAgentCommitPresentation',
   ]) {
     assert.equal(addon[retired], undefined, `${retired} must remain hard-cut`);
   }
   assert.equal(typeof addon.localAppAIConfigGet, 'function', 'localAppAIConfigGet export is missing');
   const aiConfigGet = addon.localAppAIConfigGet();
   assert.equal(typeof aiConfigGet?.then, 'function', 'localAppAIConfigGet must return a Promise');
-  assert.equal(
-    typeof addon.localAppSharedAgentAIConfigGet,
-    'function',
-    'localAppSharedAgentAIConfigGet export is missing',
-  );
-  const sharedAgentAIConfigGet = addon.localAppSharedAgentAIConfigGet();
-  assert.equal(
-    typeof sharedAgentAIConfigGet?.then,
-    'function',
-    'localAppSharedAgentAIConfigGet must return a Promise',
-  );
-  const outcomes = [aiConfigGet, sharedAgentAIConfigGet, ...calls.map(([name, input]) => {
+  const outcomes = [aiConfigGet, ...calls.map(([name, input]) => {
     assert.equal(typeof addon[name], 'function', `${name} export is missing`);
     let operation;
     assert.doesNotThrow(() => {

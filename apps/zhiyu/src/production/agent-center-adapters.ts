@@ -6,6 +6,6 @@ import type {
 export function createZhiyuProductionAgentCenterSession(
   _agentHandle: AgentCenterOpaqueHandle | null,
 ): AgentCenterSession | null {
-  // Protected App-side Agent configuration remains unavailable until IMP2.
+  // The typed local App Agent surface has no configuration authority.
   return null;
 }

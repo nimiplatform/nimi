@@ -45,48 +45,6 @@ function localAgentUnavailable() {
   };
 }
 
-function runtimePresentationProfile() {
-  return {
-    backendKind: 'live2d',
-    avatarAssetRef: 'profile_media_url:https://cdn.nimi.test/cbdb/su-zhe-reviewed-portrait.png',
-    expressionProfileRef: 'expression://agent-1/calm',
-    idlePreset: 'idle-soft',
-    interactionPolicyRef: 'policy://agent-1/ambient',
-    defaultVoiceReference: 'voice://agent-1/default',
-  };
-}
-
-test('reads Runtime Agent presentation profile without exposing asset ownership', async () => {
-  const { probeZhiyuAvatarPresence } = await loadModule();
-  const calls = [];
-  const avatar = await probeZhiyuAvatarPresence(localAgentReady(), {
-    readPresentationProfile: async (input) => {
-      calls.push(input);
-      return runtimePresentationProfile();
-    },
-  });
-
-  assert.deepEqual(calls, [{
-    ownerUserId: 'user-1',
-    runtimeSourceRef: 'runtime-source:opaque',
-    localAgentRef: 'local-agent:opaque',
-  }]);
-  assert.equal(avatar.ready, true);
-  assert.equal(avatar.state, 'projected');
-  assert.equal(avatar.reasonCode, 'runtime-agent-presentation-profile-projected');
-  assert.equal(avatar.actionHint, 'inspect_runtime_agent_presentation_profile');
-  assert.equal(avatar.source, 'runtime');
-  assert.equal(avatar.projectionRef, 'runtime-agent-presentation-profile');
-  assert.equal(avatar.configurationRef, null);
-  assert.equal(avatar.backendKind, 'live2d');
-  assert.equal(avatar.visualReadiness, 'projected');
-  assert.equal(avatar.voiceReadiness, 'projected');
-  assert.equal(avatar.launchAvailable, true);
-  assert.equal(avatar.manageAvailable, false);
-  const serialized = JSON.stringify(avatar);
-  assert.doesNotMatch(serialized, /avatarAssetRef|profile_media_url|cdn\.nimi\.test|voice:\/\/agent-1\/default/);
-});
-
 test('projects admitted Avatar facade presence without taking visual asset ownership', async () => {
   const { probeZhiyuAvatarPresence } = await loadModule();
   const calls = [];
@@ -116,24 +74,8 @@ test('projects admitted Avatar facade presence without taking visual asset owner
   assert.equal(avatar.actionHint, 'open_avatar_through_admitted_facade');
   assert.equal(avatar.source, 'sdk');
   assert.equal(avatar.configurationRef, 'avatar-config-evidence:agent-1');
-  assert.equal(avatar.projectionRef, null);
-  assert.equal(avatar.backendKind, null);
-  assert.equal(avatar.visualReadiness, 'not_projected');
-  assert.equal(avatar.voiceReadiness, 'not_projected');
   assert.equal(avatar.launchAvailable, true);
   assert.equal(avatar.manageAvailable, true);
-  assert.deepEqual(avatar.unsupportedFields, [
-    'configurationId',
-    'displayName',
-    'compatibilityTier',
-    'readinessState',
-    'liveInstanceBinding',
-    'presentationHandoffState',
-    'avatarDiagnosticCode',
-    'assetManifestPath',
-    'motionState',
-    'expressionState',
-  ]);
 });
 
 test('fails closed before Avatar facade read when LocalAgent is unavailable', async () => {
@@ -152,29 +94,8 @@ test('fails closed before Avatar facade read when LocalAgent is unavailable', as
   assert.equal(avatar.reasonCode, 'zhiyu-local-agent-required');
   assert.equal(avatar.actionHint, 'select_runtime_owned_partner');
   assert.equal(avatar.configurationRef, null);
-  assert.equal(avatar.projectionRef, null);
-  assert.equal(avatar.backendKind, null);
-  assert.equal(avatar.visualReadiness, 'not_projected');
-  assert.equal(avatar.voiceReadiness, 'not_projected');
   assert.equal(avatar.launchAvailable, false);
   assert.equal(avatar.manageAvailable, false);
-});
-
-test('fails closed when Runtime presentation profile is not projected', async () => {
-  const { probeZhiyuAvatarPresence } = await loadModule();
-  const avatar = await probeZhiyuAvatarPresence(localAgentReady(), {
-    readPresentationProfile: async () => null,
-  });
-
-  assert.equal(avatar.ready, false);
-  assert.equal(avatar.state, 'blocked');
-  assert.equal(avatar.reasonCode, 'runtime-agent-presentation-profile-not-projected');
-  assert.equal(avatar.actionHint, 'set_runtime_agent_presentation_profile');
-  assert.equal(avatar.source, 'runtime');
-  assert.equal(avatar.configurationRef, null);
-  assert.equal(avatar.projectionRef, null);
-  assert.equal(avatar.visualReadiness, 'not_projected');
-  assert.equal(avatar.voiceReadiness, 'not_projected');
 });
 
 test('fails closed when Avatar presence is not admitted on the local-app carrier', async () => {
@@ -186,14 +107,13 @@ test('fails closed when Avatar presence is not admitted on the local-app carrier
   assert.equal(avatar.reasonCode, 'zhiyu-avatar-presence-capability-not-admitted');
   assert.equal(avatar.actionHint, 'admit_zhiyu_avatar_presence_capability');
   assert.equal(avatar.source, 'sdk');
-  assert.equal(avatar.projectionRef, null);
 });
 
-test('normalizes Runtime presentation read failures without pseudo presence', async () => {
+test('normalizes Avatar facade read failures without pseudo presence', async () => {
   const { probeZhiyuAvatarPresence } = await loadModule();
-  const error = Object.assign(new Error('Runtime presentation read failed.'), {
+  const error = Object.assign(new Error('Avatar facade read failed.'), {
     reasonCode: ReasonCode.SDK_RUNTIME_METHOD_UNAVAILABLE,
-    actionHint: 'check_runtime_presentation_projection',
+    actionHint: 'check_avatar_facade_projection',
     source: 'sdk',
   });
   const avatar = await probeZhiyuAvatarPresence(localAgentReady(), {
@@ -205,8 +125,7 @@ test('normalizes Runtime presentation read failures without pseudo presence', as
   assert.equal(avatar.ready, false);
   assert.equal(avatar.state, 'blocked');
   assert.equal(avatar.reasonCode, 'SDK_RUNTIME_METHOD_UNAVAILABLE');
-  assert.equal(avatar.actionHint, 'check_runtime_presentation_projection');
+  assert.equal(avatar.actionHint, 'check_avatar_facade_projection');
   assert.equal(avatar.source, 'sdk');
   assert.equal(avatar.configurationRef, null);
-  assert.equal(avatar.projectionRef, null);
 });

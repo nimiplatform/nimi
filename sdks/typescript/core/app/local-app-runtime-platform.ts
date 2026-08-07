@@ -11,17 +11,6 @@ import {
   type NimiLocalAppAgentReferencesShell,
 } from './local-app-runtime-platform-agent-references.js';
 import {
-  createUnavailableNimiLocalAppAgentConfigureClient,
-  type NimiLocalAppAgentConfigureClient,
-  type NimiLocalAppAgentConfigureShell,
-} from './local-app-runtime-platform-configure.js';
-import type {
-  NimiLocalAppArtifactsClient,
-  NimiLocalAppArtifactPutInput,
-  NimiLocalAppArtifactPutResult,
-  NimiLocalAppArtifactsShell,
-} from './local-app-runtime-platform-artifacts.js';
-import {
   createNimiLocalAppConversationClient,
   type NimiLocalAppConversationOpenInput,
   NimiLocalAppConversationOpenResult,
@@ -74,12 +63,6 @@ export type {
   NimiLocalAppConversationSubscription,
   NimiLocalAppAgentHandle,
 } from './local-app-runtime-platform-conversation.js';
-export type {
-  NimiLocalAppArtifactBytes,
-  NimiLocalAppArtifactPutInput,
-  NimiLocalAppArtifactPutResult,
-  NimiLocalAppArtifactReadInput,
-} from './local-app-runtime-platform-artifacts.js';
 export type {
   NimiAppRuntimeStorageDocument,
   NimiAppRuntimeStorageRemoveResult,
@@ -173,8 +156,6 @@ export type NimiLocalAppStandardShell = {
   };
   readonly agents: NimiLocalAppAgentReferencesShell;
   readonly conversation: NimiLocalAppConversationShell;
-  readonly agentConfigure: NimiLocalAppAgentConfigureShell;
-  readonly artifacts: NimiLocalAppArtifactsShell;
 };
 
 export type NimiLocalAppClientInput = {
@@ -215,8 +196,6 @@ export type NimiLocalAppClient = {
     };
   };
   readonly agents: NimiLocalAppAgentReferencesClient;
-  readonly agentConfigure: NimiLocalAppAgentConfigureClient;
-  readonly artifacts: NimiLocalAppArtifactsClient;
   readonly conversation: {
     readonly open: (input: NimiLocalAppConversationOpenInput) => Promise<NimiLocalAppConversationOpenResult>;
     readonly send: (input: NimiLocalAppConversationSendInput) => Promise<NimiLocalAppConversationSendResult>;
@@ -231,7 +210,7 @@ export function createNimiLocalAppClient(
 ): NimiLocalAppClient {
   assertExactKeys(input, ['standardShell'], 'SDK local-app client input');
   const standardShell = input.standardShell;
-  const expectedNamespaces = ['session', 'ai', 'aiConfig', 'storage', 'realm', 'agents', 'conversation', 'agentConfigure', 'artifacts'] as const;
+  const expectedNamespaces = ['session', 'ai', 'aiConfig', 'storage', 'realm', 'agents', 'conversation'] as const;
   if (!asRecord(standardShell)
     || Object.keys(standardShell).sort().join('|') !== [...expectedNamespaces].sort().join('|')) {
     return localAppError(
@@ -263,9 +242,7 @@ export function createNimiLocalAppClient(
   assertExactMethodNamespace(realm.worldCore, ['list', 'create'], 'realm.worldCore');
   assertExactMethodNamespace(standardShell.agents, ['listReferences'], 'agents');
   assertExactMethodNamespace(standardShell.conversation, ['open', 'send', 'interruptTurn', 'subscribe', 'snapshot'], 'conversation');
-  assertExactMethodNamespace(standardShell.artifacts, ['put', 'readBytes'], 'artifacts');
 
-  const unavailable = async (): Promise<never> => protectedAppAccessUnavailable();
   return Object.freeze({
     auth: Object.freeze({
       status: async () => projectAuth(await standardShell.session.status()),
@@ -278,8 +255,6 @@ export function createNimiLocalAppClient(
     storage: createNimiAppRuntimeStorageClient(standardShell.storage),
     realm: Object.freeze({ worldCore: createWorldCoreClient(standardShell.realm.worldCore) }),
     agents: createNimiLocalAppAgentReferencesClient(standardShell.agents),
-    agentConfigure: createUnavailableNimiLocalAppAgentConfigureClient(),
-    artifacts: Object.freeze({ putArtifact: unavailable, readArtifactBytes: unavailable }),
     conversation: createNimiLocalAppConversationClient(standardShell.conversation),
   });
 }
@@ -570,14 +545,6 @@ function assertWorldCoreInputJson(
     for (const entry of Object.values(record)) assertWorldCoreInputJson(entry, depth + 1, state);
   }
   state.ancestors.delete(value);
-}
-
-function protectedAppAccessUnavailable(): never {
-  return localAppError(
-    'Protected App operations are unavailable until Runtime establishes a fresh App Access session.',
-    'SDK_LOCAL_APP_ACCESS_UNAVAILABLE',
-    'retry_after_protected_session_establishment',
-  );
 }
 
 function projectAuth(value: unknown): NimiAppAuthProjection {

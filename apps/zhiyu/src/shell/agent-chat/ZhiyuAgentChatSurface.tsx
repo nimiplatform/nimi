@@ -1,10 +1,8 @@
 import {
-  Button,
-  EmptyState,
   nimiToast,
   StatusBadge,
 } from '@nimiplatform/kit/ui';
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ChangeEvent, type ClipboardEvent as ReactClipboardEvent } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { ChatComposerAdapter } from '@nimiplatform/kit/features/chat/headless';
 import {
   CanonicalComposer,
@@ -12,9 +10,7 @@ import {
   ChatStreamStatus,
 } from '@nimiplatform/kit/features/chat/ui';
 import {
-  AlertTriangle,
   ChevronRight,
-  RefreshCw,
   ShieldCheck,
   X,
 } from 'lucide-react';
@@ -39,9 +35,7 @@ import {
 import {
   ComposerAvatarButton,
   ComposerModeTools,
-  RuntimeActionArtifactSummary,
   RuntimeChatFailureNotice,
-  runtimeActionArtifactSummary,
 } from './ZhiyuAgentChatPieces';
 import {
   RightAgentPanel,
@@ -53,18 +47,6 @@ import {
   formatReasonLabel,
 } from '../app/home-surface-sections';
 import { followZhiyuTranscriptToLatest } from './transcript-auto-follow';
-import { getZhiyuLocalAppClient } from '../auth/runtime-platform';
-import {
-  appendZhiyuPendingAttachment,
-  clearZhiyuPendingAttachments,
-  formatZhiyuAttachmentSize,
-  isZhiyuAttachmentFileAdmitted,
-  removeZhiyuPendingAttachmentAt,
-  resolveZhiyuChatAttachmentMedia,
-  uploadZhiyuChatAttachment,
-  type ZhiyuChatAttachmentRef,
-  type ZhiyuPendingAttachment,
-} from './turn-attachments';
 
 export type ZhiyuAgentChatSurfaceProps = {
   readonly evidence: ZhiyuEvidence;
@@ -75,12 +57,9 @@ export type ZhiyuAgentChatSurfaceProps = {
   readonly avatarLaunchAction: ZhiyuAvatarLaunchAction;
   readonly agentCenterSession: ReturnType<ZhiyuRendererProjectionPort['agentCenterSession']>;
   readonly onDraftChange: (value: string) => void;
-  readonly onSubmit: (text: string, attachments: readonly ZhiyuChatAttachmentRef[]) => Promise<void> | void;
+  readonly onSubmit: (text: string) => Promise<void> | void;
   readonly onStopChat: () => void;
-  readonly onVoiceCaptureToggle: () => Promise<void> | void;
-  readonly onVoicePlayback: () => Promise<void> | void;
   readonly onSelectLocalAgent: (agentHandle: string) => void;
-  readonly onRefreshLocalAgentInventory: () => void;
   readonly onDesktopOpenAgentConfig: () => Promise<void> | void;
   readonly onDesktopOpenSelectPartner: () => Promise<ZhiyuDesktopOpenActionResult> | ZhiyuDesktopOpenActionResult;
   readonly onAvatarLaunch?: () => void;
@@ -98,10 +77,7 @@ export function ZhiyuAgentChatSurface({
   onDraftChange,
   onSubmit,
   onStopChat,
-  onVoiceCaptureToggle,
-  onVoicePlayback,
   onSelectLocalAgent,
-  onRefreshLocalAgentInventory,
   onDesktopOpenAgentConfig,
   onDesktopOpenSelectPartner,
   onAvatarLaunch,
@@ -110,71 +86,20 @@ export function ZhiyuAgentChatSurface({
   const currentPartnerAvatar = currentPartnerAvatarUrl(evidence);
   const hasCurrentPartner = evidence.localAgent.ready;
   const hasLocalPartners = evidence.inventory.localAgents.length > 0;
-  const localAgentSourceNotReady = !hasCurrentPartner
-    && evidence.localAgent.reasonCode === 'zhiyu-runtime-local-agent-source-not-ready';
   const primaryPartnerName = hasCurrentPartner ? '当前伙伴' : currentPartnerName;
-  const actionArtifactSummary = runtimeActionArtifactSummary(evidence.chat);
   const [showNoPartnerGuidance, setShowNoPartnerGuidance] = useState(false);
   const [desktopOpenPending, setDesktopOpenPending] = useState(false);
   const [desktopOpenResult, setDesktopOpenResult] = useState<ZhiyuDesktopOpenActionResult | null>(null);
   const emptyTitle = hasCurrentPartner
     ? '开始一段对话'
-    : localAgentSourceNotReady
-      ? '伙伴资料尚未就绪'
     : hasLocalPartners
       ? '选择一位本地伙伴，开始对话'
       : '还没有本地伙伴';
   const emptyDescription = hasCurrentPartner
     ? '提个问题、分享想法，或者告诉这个伙伴你想探索什么。'
-    : localAgentSourceNotReady
-      ? '这个伙伴的来源资料还没有准备完成，暂时不能开始对话。请到 Nimi 桌面端继续选择伙伴来源，完成后回到这里重新检查。'
     : hasLocalPartners
       ? '如果想添加更多伙伴，请到Nimi桌面端的「探索」中选择角色。'
       : '从世界中选择一位角色加入本地后，就可以和他开始对话。';
-  const sourceNotReadyEmptyState = localAgentSourceNotReady ? (
-    <EmptyState
-      className="zhiyu-source-not-ready-empty"
-      data-zhiyu-source-not-ready-empty="true"
-      data-zhiyu-source-not-ready-reason={evidence.localAgent.reasonCode}
-      data-zhiyu-source-not-ready-action-hint={evidence.localAgent.actionHint}
-      icon={<AlertTriangle size={20} aria-hidden="true" />}
-      title="伙伴资料尚未就绪"
-      description={(
-        <div className="zhiyu-source-not-ready-empty__description">
-          <p>这个伙伴的来源资料还没有准备完成，暂时不能开始对话。请到 Nimi 桌面端继续选择伙伴来源，完成后回到这里重新检查。</p>
-        </div>
-      )}
-      action={(
-        <div className="zhiyu-source-not-ready-empty__actions">
-          <Button
-            tone="primary"
-            size="sm"
-            loading={desktopOpenPending}
-            trailingIcon={<ChevronRight size={16} aria-hidden="true" />}
-            data-zhiyu-source-not-ready-action="desktop-open-select-partner"
-            data-zhiyu-desktop-open-action="desktop_open_select_partner"
-            onClick={() => {
-              void handleDesktopOpenSelectPartner();
-            }}
-          >
-            去桌面端继续准备
-          </Button>
-          <Button
-            tone="secondary"
-            size="sm"
-            leadingIcon={<RefreshCw size={16} aria-hidden="true" />}
-            data-zhiyu-source-not-ready-action="refresh-runtime-inventory"
-            onClick={() => {
-              setDesktopOpenResult(null);
-              onRefreshLocalAgentInventory();
-            }}
-          >
-            重新检查
-          </Button>
-        </div>
-      )}
-    />
-  ) : null;
   const noLocalPartnerEmptyState = !hasCurrentPartner && !hasLocalPartners ? (
     <section
       className="zhiyu-no-local-partner-empty"
@@ -221,117 +146,9 @@ export function ZhiyuAgentChatSurface({
   const chatDisabled = !evidence.conversation.ready
     || !evidence.turn.ready
     || evidence.chat.state === 'streaming';
-  const [pendingAttachments, setPendingAttachments] = useState<readonly ZhiyuPendingAttachment[]>([]);
-  const attachmentFileInputRef = useRef<HTMLInputElement | null>(null);
-  const attachmentPickerResolverRef = useRef<((attachments: readonly ZhiyuPendingAttachment[] | null) => void) | null>(null);
-  const pendingAttachmentsRef = useRef<readonly ZhiyuPendingAttachment[]>(pendingAttachments);
-  useEffect(() => {
-    pendingAttachmentsRef.current = pendingAttachments;
-  }, [pendingAttachments]);
-  useEffect(() => () => {
-    attachmentPickerResolverRef.current?.(null);
-    clearZhiyuPendingAttachments(pendingAttachmentsRef.current, (url) => URL.revokeObjectURL(url));
-  }, []);
-  const conversationAnchorKey = evidence.conversation.conversationAnchorId;
-  useEffect(() => {
-    setPendingAttachments((current) => clearZhiyuPendingAttachments(current, (url) => URL.revokeObjectURL(url)));
-  }, [conversationAnchorKey]);
-  const replacePendingAttachments = useCallback((nextAttachments: readonly ZhiyuPendingAttachment[]) => {
-    const nextUrlSet = new Set(nextAttachments.map((attachment) => attachment.previewUrl));
-    for (const attachment of pendingAttachmentsRef.current) {
-      if (!nextUrlSet.has(attachment.previewUrl)) {
-        URL.revokeObjectURL(attachment.previewUrl);
-      }
-    }
-    setPendingAttachments(nextAttachments);
-  }, []);
-  const buildIncomingAttachments = useCallback((files: readonly File[]) => {
-    let built = [...pendingAttachmentsRef.current];
-    let hadUnsupported = false;
-    for (const file of files) {
-      if (!isZhiyuAttachmentFileAdmitted(file)) {
-        hadUnsupported = true;
-        continue;
-      }
-      const next = appendZhiyuPendingAttachment(built, file, {
-        createObjectUrl: (nextFile) => URL.createObjectURL(nextFile),
-        revokeObjectUrl: (url) => URL.revokeObjectURL(url),
-      });
-      if (!next) {
-        hadUnsupported = true;
-        continue;
-      }
-      built = [...next];
-    }
-    if (hadUnsupported) {
-      nimiToast.show({
-        tone: 'warning',
-        message: '一次只能发送一张图片附件。',
-      });
-    }
-    return built;
-  }, []);
-  const handleAttachmentFileChange = useCallback((event: ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(event.target.files || []);
-    const built = buildIncomingAttachments(files);
-    attachmentPickerResolverRef.current?.(built.length > 0 ? built : null);
-    attachmentPickerResolverRef.current = null;
-    event.target.value = '';
-  }, [buildIncomingAttachments]);
-  const attachmentAdapter = useMemo(() => ({
-    openPicker: async () => {
-      if (chatDisabled) {
-        return null;
-      }
-      return await new Promise<readonly ZhiyuPendingAttachment[] | null>((resolve) => {
-        attachmentPickerResolverRef.current = resolve;
-        attachmentFileInputRef.current?.click();
-      });
-    },
-    mergeAttachments: (_current: readonly ZhiyuPendingAttachment[], incoming: readonly ZhiyuPendingAttachment[]) => incoming,
-    getKey: (attachment: ZhiyuPendingAttachment) => attachment.previewUrl,
-    getLabel: (attachment: ZhiyuPendingAttachment) => attachment.name,
-    getSecondaryLabel: (attachment: ZhiyuPendingAttachment) => formatZhiyuAttachmentSize(attachment.file.size),
-    getPreviewUrl: (attachment: ZhiyuPendingAttachment) => attachment.previewUrl,
-    getKind: () => 'image' as const,
-  }), [chatDisabled]);
-  const handlePasteCapture = useCallback((event: ReactClipboardEvent<HTMLDivElement>) => {
-    const items = Array.from(event.clipboardData?.items || []);
-    const files = items
-      .filter((item) => item.kind === 'file' && item.type.toLowerCase().startsWith('image/'))
-      .map((item) => item.getAsFile())
-      .filter((file): file is File => file instanceof File);
-    if (files.length === 0) {
-      return;
-    }
-    event.preventDefault();
-    const built = buildIncomingAttachments(files);
-    replacePendingAttachments(built);
-  }, [buildIncomingAttachments, replacePendingAttachments]);
-  const chatComposerAdapter: ChatComposerAdapter<ZhiyuPendingAttachment> = {
+  const chatComposerAdapter: ChatComposerAdapter<never> = {
     submit: async (input) => {
-      const uploaded: ZhiyuChatAttachmentRef[] = [];
-      for (const attachment of input.attachments) {
-        let ref: ZhiyuChatAttachmentRef;
-        try {
-          ref = await uploadZhiyuChatAttachment(
-            attachment,
-            (artifactInput) => getZhiyuLocalAppClient().artifacts.putArtifact(artifactInput),
-          );
-        } catch (error) {
-          throw new Error('图片附件上传失败，请重试。', { cause: error });
-        }
-        const media = await resolveZhiyuChatAttachmentMedia(
-          ref.artifactId,
-          attachment.file.type,
-          (readInput) => getZhiyuLocalAppClient().artifacts.readArtifactBytes(readInput),
-        );
-        if (!media) {
-          console.warn('zhiyu:chat-attachment-media-resolve-failed', { artifactId: ref.artifactId });
-        }
-        uploaded.push(media ? { ...ref, ...media } : ref);
-      }
-      await onSubmit(input.text, uploaded);
+      await onSubmit(input.text);
     },
   };
   const chatRuntimeHint = chatDisabled && (hasCurrentPartner || evidence.chat.state === 'streaming')
@@ -440,7 +257,6 @@ export function ZhiyuAgentChatSurface({
             agentHandle: agent.agentHandle,
             displayName: agent.displayName,
             avatarUrl: agent.avatarUrl,
-            sourceReady: agent.sourceReady,
           }))}
           currentAgentHandle={evidence.localAgent.agentHandle}
           currentPartnerName={currentPartnerName}
@@ -478,7 +294,7 @@ export function ZhiyuAgentChatSurface({
                 emptyEyebrow="ZHIYU"
                 emptyTitle={emptyTitle}
                 emptyDescription={emptyDescription}
-                content={sourceNotReadyEmptyState ?? noLocalPartnerEmptyState}
+                content={noLocalPartnerEmptyState}
                 footerContent={(
                   <>
                     {chatFooter}
@@ -497,9 +313,6 @@ export function ZhiyuAgentChatSurface({
                 disableRpContent
               />
             </div>
-            {actionArtifactSummary ? (
-              <RuntimeActionArtifactSummary summary={actionArtifactSummary} />
-            ) : null}
             {evidence.chat.state === 'failed' ? (
               <RuntimeChatFailureNotice chat={evidence.chat} />
             ) : null}
@@ -511,26 +324,15 @@ export function ZhiyuAgentChatSurface({
                   className="zhiyu-chat-canvas__composer"
                   data-zhiyu-composer-state={composerState}
                   data-zhiyu-submit-enabled={String(submitEnabled)}
-                  onPasteCapture={handlePasteCapture}
                 >
               <CanonicalComposer
                 adapter={chatComposerAdapter}
                 text={draft}
                 onTextChange={onDraftChange}
                 disabled={chatDisabled}
-                placeholder={hasCurrentPartner ? '和这个伙伴聊点什么...' : localAgentSourceNotReady ? '伙伴资料准备完成后开始聊天...' : hasLocalPartners ? '先选择本地伙伴...' : '添加本地伙伴后开始聊天...'}
+                placeholder={hasCurrentPartner ? '和这个伙伴聊点什么...' : hasLocalPartners ? '先选择本地伙伴...' : '添加本地伙伴后开始聊天...'}
                 runtimeHint={chatRuntimeHint}
                 sendHint={evidence.chat.state === 'streaming' ? '回复中' : undefined}
-                attachmentAdapter={attachmentAdapter}
-                attachments={pendingAttachments}
-                onAttachmentsChange={replacePendingAttachments}
-                attachmentsSlot={({ attachments: slotAttachments, removeAttachment }) => (
-                  <ZhiyuAttachmentStrip
-                    attachments={slotAttachments}
-                    removeAttachment={removeAttachment}
-                  />
-                )}
-                attachLabel="添加图片"
                 leadingSlot={(
                   <ComposerAvatarButton
                     currentPartnerName={currentPartnerName}
@@ -543,9 +345,6 @@ export function ZhiyuAgentChatSurface({
                 )}
                 toolbarSlot={(
                   <ComposerModeTools
-                    evidence={evidence}
-                    onVoiceCaptureToggle={onVoiceCaptureToggle}
-                    onVoicePlayback={onVoicePlayback}
                     onOpenAgentPanel={() => {
                       setRightPanelMode('agent');
                       setActiveAgentTab('overview');
@@ -555,14 +354,6 @@ export function ZhiyuAgentChatSurface({
                 )}
                 layout="stacked"
                 className="zhiyu-chat-canvas__canonical-composer"
-              />
-              <input
-                ref={attachmentFileInputRef}
-                type="file"
-                accept="image/*"
-                onChange={handleAttachmentFileChange}
-                className="hidden"
-                aria-hidden="true"
               />
                 </div>
                 <div className="zhiyu-chat-canvas__status">
@@ -600,37 +391,5 @@ export function ZhiyuAgentChatSurface({
       </div>
       </div>
     </main>
-  );
-}
-
-function ZhiyuAttachmentStrip(props: {
-  readonly attachments: readonly ZhiyuPendingAttachment[];
-  readonly removeAttachment: (index: number) => void;
-}) {
-  return (
-    <div className="flex flex-wrap gap-2" data-zhiyu-attachment-strip="true">
-      {props.attachments.map((attachment, index) => (
-        <div key={`${attachment.previewUrl}-${index}`} className="relative shrink-0">
-          <img
-            src={attachment.previewUrl}
-            alt={attachment.name || '图片附件'}
-            className="block h-20 w-20 rounded-xl object-cover"
-          />
-          <div className="mt-1 max-w-20">
-            <p className="truncate text-[11px] font-medium leading-4 text-[var(--nimi-text-primary)]">{attachment.name}</p>
-            <p className="text-[10px] leading-4 text-[var(--nimi-text-muted)]">{formatZhiyuAttachmentSize(attachment.file.size)}</p>
-          </div>
-          <button
-            type="button"
-            onClick={() => props.removeAttachment(index)}
-            className="absolute -right-1.5 -top-1.5 z-10 flex h-5 w-5 items-center justify-center rounded-full bg-black/70 text-white transition-colors hover:bg-black/85"
-            aria-label="移除附件"
-            title="移除附件"
-          >
-            <X size={10} aria-hidden="true" />
-          </button>
-        </div>
-      ))}
-    </div>
   );
 }

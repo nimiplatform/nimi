@@ -1,4 +1,4 @@
-use napi::bindgen_prelude::{Buffer, Uint8Array};
+use napi::bindgen_prelude::Buffer;
 use napi_derive::napi;
 use serde_json::Value as JsonValue;
 
@@ -195,33 +195,6 @@ pub struct NativeConversationSendInput {
 }
 
 #[napi(object)]
-pub struct NativeArtifactPutInput {
-    pub mime_type: String,
-    pub display_name: String,
-    pub data: Uint8Array,
-}
-
-#[napi(object)]
-pub struct NativeArtifactReadInput {
-    pub artifact_id: String,
-}
-
-#[napi(object)]
-pub struct NativeArtifactReadValue {
-    pub bytes: Buffer,
-    pub mime_type: String,
-}
-
-#[napi(object)]
-pub struct NativeArtifactReadOutcome {
-    pub status: String,
-    pub value: Option<NativeArtifactReadValue>,
-    pub reason_code: Option<String>,
-    pub retryable: Option<bool>,
-    pub reason_metadata: Option<JsonValue>,
-}
-
-#[napi(object)]
 pub struct NativeConversationScopeInput {
     pub agent_handle: String,
     pub conversation_anchor_id: String,
@@ -230,29 +203,4 @@ pub struct NativeConversationScopeInput {
 #[napi(object)]
 pub struct NativeConversationStreamInput {
     pub stream_id: String,
-}
-
-#[napi(object)]
-pub struct NativeAgentHandleInput {
-    pub agent_handle: String,
-}
-
-#[napi(object)]
-pub struct NativeSharedAgentAIProfileInput {
-    pub profile_json: String,
-}
-
-#[napi(object)]
-pub struct NativeAgentUpdateAutonomyInput {
-    pub agent_handle: String,
-    pub expected_autonomy_revision: String,
-    pub intent: JsonValue,
-}
-
-#[napi(object)]
-pub struct NativeAgentCommitPresentationInput {
-    pub agent_handle: String,
-    pub expected_presentation_revision: String,
-    pub intent: JsonValue,
-    pub imported_assets: JsonValue,
 }

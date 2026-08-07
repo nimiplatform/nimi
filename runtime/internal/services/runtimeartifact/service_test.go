@@ -10,289 +10,105 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
-	"github.com/nimiplatform/nimi/runtime/internal/localappop"
 	"github.com/nimiplatform/nimi/runtime/internal/protectedlocal"
-	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
 )
 
 var artifactTestNow = time.Date(2026, time.July, 11, 12, 0, 0, 0, time.UTC)
 
-type staticLocalAppCallerAuthorizer struct {
-	decision accountservice.LocalAppCallerDecision
-	err      error
-}
-
-func TestReadArtifactBytesAcceptsExactLocalDevelopmentAudience(t *testing.T) {
-	store := NewMemoryStore()
-	projectRoot := "/Users/nimi/Projects/artifact-app"
-	decision := artifactTestDecision()
-	decision.RegistrationHandle = artifactTestIdentifier(0x81)
-	decision.RegisteredAppSubject = "ras_artifact_development"
-	decision.SourceGeneration = 4
-	decision.DeclarationGeneration = 5
-	decision.ProjectRoot = projectRoot
-	decision.RuntimeBootEpoch = protectedlocal.Identifier{}
-	decision.Process = protectedlocal.ProcessTuple{}
-	decision.DirectPeer = protectedlocal.DirectLocalAppPeer{OS: protectedlocal.OSMacOS, PID: 4201, UID: 501}
-	decision.ExpiresAt = time.Time{}
-	audience := &ArtifactAudience{
-		ProducerJobID: "runtime.local-development.bootstrap", OwnerAccountID: decision.AccountID, AppID: decision.AppID,
-		ReleaseDigest: decision.HostExecutableDigest, SessionID: decision.SessionID, AccountGeneration: decision.AccountGeneration,
-		AllowedUse: ArtifactUseReadBytes, ExpiresAt: artifactTestNow.Add(time.Hour),
-		TrustClass: "local_development", RegistrationHandle: decision.RegistrationHandle,
-		RegisteredAppSubject: decision.RegisteredAppSubject, SourceGeneration: decision.SourceGeneration,
-		DeclarationGeneration: decision.DeclarationGeneration, ProjectRoot: decision.ProjectRoot,
-	}
-	if err := store.Put("artifact-development", ArtifactRecord{Bytes: []byte("development"), MimeType: "text/plain", CreatedAt: artifactTestNow, Audience: audience}); err != nil {
-		t.Fatal(err)
-	}
-	service := New(store, slog.New(slog.NewTextHandler(io.Discard, nil)), WithLocalAppOperationAuthorizer(staticLocalAppCallerAuthorizer{decision: decision}))
-	service.now = func() time.Time { return artifactTestNow }
-	response, err := service.ReadArtifactBytes(context.Background(), &runtimev1.ReadArtifactBytesRequest{ArtifactId: "artifact-development"})
-	if err != nil || string(response.GetBytes()) != "development" {
-		t.Fatalf("read exact local-development artifact = (%+v, %v)", response, err)
-	}
-
-	decision.SourceGeneration++
-	mismatch := New(store, slog.New(slog.NewTextHandler(io.Discard, nil)), WithLocalAppOperationAuthorizer(staticLocalAppCallerAuthorizer{decision: decision}))
-	mismatch.now = func() time.Time { return artifactTestNow }
-	if _, err := mismatch.ReadArtifactBytes(context.Background(), &runtimev1.ReadArtifactBytesRequest{ArtifactId: "artifact-development"}); artifactReason(err) != runtimev1.ReasonCode_ARTIFACT_FORBIDDEN {
-		t.Fatalf("changed development source generation must fail closed, got %v", err)
-	}
-}
-
-func (authorizer staticLocalAppCallerAuthorizer) AuthorizeLocalAppOperation(_ context.Context, operation accountservice.LocalAppOperation) (accountservice.LocalAppCallerDecision, error) {
-	if operation != accountservice.LocalAppOperationReadArtifactBytes {
-		return accountservice.LocalAppCallerDecision{}, errors.New("unexpected local-app operation")
-	}
-	return authorizer.decision, authorizer.err
-}
-
 func newTestService(t *testing.T) (*Service, *MemoryStore) {
 	t.Helper()
 	store := NewMemoryStore()
-	svc := New(store, slog.New(slog.NewTextHandler(io.Discard, nil)), WithLocalAppOperationAuthorizer(staticLocalAppCallerAuthorizer{decision: artifactTestDecision()}))
-	svc.now = func() time.Time { return artifactTestNow }
-	return svc, store
+	return New(store, slog.New(slog.NewTextHandler(io.Discard, nil))), store
 }
 
-func artifactTestDecision() accountservice.LocalAppCallerDecision {
-	release := artifactTestIdentifier(0x31)
-	projectRoot := `C:\artifact-project`
-	return accountservice.LocalAppCallerDecision{
-		SessionID:             artifactTestIdentifier(0x21),
-		AppID:                 "world.nimi.app",
-		HostExecutableDigest:  release,
-		AccountID:             "account-1",
-		RealmEnvironmentID:    "realm-1",
-		AccountGeneration:     7,
-		RuntimeBootEpoch:      artifactTestIdentifier(0x41),
-		Operation:             accountservice.LocalAppOperationReadArtifactBytes,
-		AuthorityClass:        localappop.AuthorityClassAppAccess,
-		OperationCapability:   "data.scope.read#runtime.artifacts",
-		TrustClass:            accountservice.LocalAppTrustClassDevelopment,
-		RegistrationHandle:    artifactTestIdentifier(0x42),
-		RegisteredAppSubject:  "ras_artifact_test",
-		SourceGeneration:      1,
-		DeclarationGeneration: 1,
-		ProjectRoot:           projectRoot,
-		Process: protectedlocal.ProcessTuple{
-			OS: protectedlocal.OSWindows, PID: 4201, CreationMarker: "artifact-process-1",
-			OSLoginSession: "login-1", SecurityPrincipal: "user-1",
-			CanonicalExecutableIdentity: "artifact-file-1", CanonicalExecutablePath: projectRoot + `\electron.exe`, ExecutableDigest: release,
-			ExecutableTrustSetID: protectedlocal.WindowsLocalDevelopmentTrustSetID,
-		},
-		ExpiresAt: artifactTestNow.Add(time.Hour),
-	}
+func artifactTestOwner() *ArtifactOwner {
+	return &ArtifactOwner{SubjectUserID: "account-1", AppID: "nimi.desktop"}
 }
 
-func artifactTestAudience() *ArtifactAudience {
-	decision := artifactTestDecision()
-	return &ArtifactAudience{
-		ProducerJobID:         "job-1",
-		OwnerAccountID:        decision.AccountID,
-		AppID:                 decision.AppID,
-		ReleaseDigest:         decision.HostExecutableDigest,
-		TrustClass:            "local_development",
-		RegistrationHandle:    decision.RegistrationHandle,
-		RegisteredAppSubject:  decision.RegisteredAppSubject,
-		SourceGeneration:      decision.SourceGeneration,
-		DeclarationGeneration: decision.DeclarationGeneration,
-		ProjectRoot:           decision.ProjectRoot,
-		SessionID:             decision.SessionID,
-		AccountGeneration:     decision.AccountGeneration,
-		AllowedUse:            ArtifactUseReadBytes,
-		ExpiresAt:             artifactTestNow.Add(30 * time.Minute),
-	}
-}
-
-// TestReadArtifactBytesExisting covers the happy path: an artifact written
-// via Store.Put is returned bytes/mime/size-equal by ReadArtifactBytes.
 func TestReadArtifactBytesExisting(t *testing.T) {
 	svc, store := newTestService(t)
 	bytes := []byte("hello-audio-bytes")
 	if err := store.Put("artifact-001", ArtifactRecord{
-		Bytes:        bytes,
-		MimeType:     "audio/wav",
-		SizeBytes:    int64(len(bytes)),
-		MimeInferred: false,
-		CreatedAt:    artifactTestNow,
-		Audience:     artifactTestAudience(),
+		Bytes: bytes, MimeType: "audio/wav", CreatedAt: artifactTestNow, Owner: artifactTestOwner(),
 	}); err != nil {
 		t.Fatalf("Put: %v", err)
 	}
-
-	resp, err := svc.ReadArtifactBytes(context.Background(), &runtimev1.ReadArtifactBytesRequest{
-		ArtifactId: "artifact-001",
-	})
+	resp, err := svc.ReadArtifactBytes(
+		putArtifactProtectedCtx("account-1", "nimi.desktop"),
+		&runtimev1.ReadArtifactBytesRequest{ArtifactId: "artifact-001"},
+	)
 	if err != nil {
 		t.Fatalf("ReadArtifactBytes: %v", err)
 	}
-	if string(resp.GetBytes()) != string(bytes) {
-		t.Fatalf("bytes mismatch: got=%q want=%q", resp.GetBytes(), bytes)
-	}
-	if resp.GetMimeType() != "audio/wav" {
-		t.Fatalf("mime_type mismatch: got=%q want=audio/wav", resp.GetMimeType())
-	}
-	if resp.GetSizeBytes() != int64(len(bytes)) {
-		t.Fatalf("size_bytes mismatch: got=%d want=%d", resp.GetSizeBytes(), len(bytes))
-	}
-	if resp.GetMimeInferred() {
-		t.Fatalf("mime_inferred mismatch: got=true want=false")
+	if string(resp.GetBytes()) != string(bytes) || resp.GetMimeType() != "audio/wav" || resp.GetSizeBytes() != int64(len(bytes)) || resp.GetMimeInferred() {
+		t.Fatalf("artifact projection mismatch: %#v", resp)
 	}
 }
 
-// TestReadArtifactBytesInvalidInput covers ARTIFACT_INVALID_INPUT path:
-// empty artifact_id must produce InvalidArgument + ReasonCode_ARTIFACT_INVALID_INPUT.
 func TestReadArtifactBytesInvalidInput(t *testing.T) {
 	svc, _ := newTestService(t)
-
-	_, err := svc.ReadArtifactBytes(context.Background(), &runtimev1.ReadArtifactBytesRequest{
-		ArtifactId: "   ",
-	})
-	if err == nil {
-		t.Fatalf("ReadArtifactBytes empty id: expected error, got nil")
-	}
-	reason, ok := grpcerr.ExtractReasonCode(err)
-	if !ok || reason != runtimev1.ReasonCode_ARTIFACT_INVALID_INPUT {
-		t.Fatalf("reason mismatch: got=%v ok=%v want=%v", reason, ok, runtimev1.ReasonCode_ARTIFACT_INVALID_INPUT)
+	_, err := svc.ReadArtifactBytes(context.Background(), &runtimev1.ReadArtifactBytesRequest{ArtifactId: "   "})
+	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_ARTIFACT_INVALID_INPUT {
+		t.Fatalf("reason mismatch: got=%v ok=%v", reason, ok)
 	}
 }
 
-// TestReadArtifactBytesNotFound covers ARTIFACT_NOT_FOUND path: missing id
-// must produce NotFound + ReasonCode_ARTIFACT_NOT_FOUND.
 func TestReadArtifactBytesNotFound(t *testing.T) {
 	svc, _ := newTestService(t)
-
-	_, err := svc.ReadArtifactBytes(context.Background(), &runtimev1.ReadArtifactBytesRequest{
-		ArtifactId: "missing-artifact-id",
-	})
-	if err == nil {
-		t.Fatalf("ReadArtifactBytes missing id: expected error, got nil")
-	}
-	reason, ok := grpcerr.ExtractReasonCode(err)
-	if !ok || reason != runtimev1.ReasonCode_ARTIFACT_NOT_FOUND {
-		t.Fatalf("reason mismatch: got=%v ok=%v want=%v", reason, ok, runtimev1.ReasonCode_ARTIFACT_NOT_FOUND)
+	_, err := svc.ReadArtifactBytes(
+		putArtifactProtectedCtx("account-1", "nimi.desktop"),
+		&runtimev1.ReadArtifactBytesRequest{ArtifactId: "missing-artifact-id"},
+	)
+	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_ARTIFACT_NOT_FOUND {
+		t.Fatalf("reason mismatch: got=%v ok=%v", reason, ok)
 	}
 }
 
-// TestReadArtifactBytesTooLarge covers ARTIFACT_TOO_LARGE path: artifact
-// whose SizeBytes exceeds MaxInlineBytes (32 MiB) must produce
-// ResourceExhausted + ReasonCode_ARTIFACT_TOO_LARGE.
-//
-// We exercise the size cap without allocating actual 32 MiB by recording
-// SizeBytes > MaxInlineBytes while keeping Bytes empty. The server-side
-// check is on record.SizeBytes, not on len(record.Bytes); this test
-// matches the contract surface where size_bytes is the authoritative
-// declaration.
 func TestReadArtifactBytesTooLarge(t *testing.T) {
 	svc, store := newTestService(t)
 	payload := make([]byte, MaxInlineBytes+1)
 	if err := store.Put("artifact-too-large", ArtifactRecord{
-		Bytes:     payload,
-		MimeType:  "video/mp4",
-		CreatedAt: artifactTestNow,
-		Audience:  artifactTestAudience(),
+		Bytes: payload, MimeType: "video/mp4", CreatedAt: artifactTestNow, Owner: artifactTestOwner(),
 	}); err != nil {
 		t.Fatalf("Put: %v", err)
 	}
-
-	_, err := svc.ReadArtifactBytes(context.Background(), &runtimev1.ReadArtifactBytesRequest{
-		ArtifactId: "artifact-too-large",
-	})
-	if err == nil {
-		t.Fatalf("ReadArtifactBytes oversized: expected error, got nil")
-	}
-	reason, ok := grpcerr.ExtractReasonCode(err)
-	if !ok || reason != runtimev1.ReasonCode_ARTIFACT_TOO_LARGE {
-		t.Fatalf("reason mismatch: got=%v ok=%v want=%v", reason, ok, runtimev1.ReasonCode_ARTIFACT_TOO_LARGE)
+	_, err := svc.ReadArtifactBytes(
+		putArtifactProtectedCtx("account-1", "nimi.desktop"),
+		&runtimev1.ReadArtifactBytesRequest{ArtifactId: "artifact-too-large"},
+	)
+	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_ARTIFACT_TOO_LARGE {
+		t.Fatalf("reason mismatch: got=%v ok=%v", reason, ok)
 	}
 }
 
-func TestReadArtifactBytesRequiresCurrentMatchingAudience(t *testing.T) {
-	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
-	store := NewMemoryStore()
-	if err := store.Put("artifact-bound", ArtifactRecord{Bytes: []byte("bound"), CreatedAt: artifactTestNow, Audience: artifactTestAudience()}); err != nil {
-		t.Fatalf("Put bound: %v", err)
+func TestReadArtifactBytesRequiresMatchingProtectedOwner(t *testing.T) {
+	svc, store := newTestService(t)
+	if err := store.Put("artifact-bound", ArtifactRecord{
+		Bytes: []byte("bound"), CreatedAt: artifactTestNow, Owner: artifactTestOwner(),
+	}); err != nil {
+		t.Fatal(err)
 	}
-	if err := store.Put("artifact-unbound", ArtifactRecord{Bytes: []byte("unbound")}); err != nil {
-		t.Fatalf("Put unbound: %v", err)
+	if err := store.Put("artifact-unowned", ArtifactRecord{Bytes: []byte("unowned")}); err != nil {
+		t.Fatal(err)
 	}
-	unauthorized := New(store, logger)
-	for _, artifactID := range []string{"artifact-bound", "missing-artifact"} {
-		_, err := unauthorized.ReadArtifactBytes(context.Background(), &runtimev1.ReadArtifactBytesRequest{ArtifactId: artifactID})
-		if reason, _ := grpcerr.ExtractReasonCode(err); reason != runtimev1.ReasonCode_ARTIFACT_FORBIDDEN {
-			t.Fatalf("unauthorized %s reason = %v, err=%v", artifactID, reason, err)
-		}
-	}
-
-	authorized := New(store, logger, WithLocalAppOperationAuthorizer(staticLocalAppCallerAuthorizer{decision: artifactTestDecision()}))
-	authorized.now = func() time.Time { return artifactTestNow }
-	incompletePolicy := artifactTestDecision()
-	incompletePolicy.SourceGeneration = 0
-	incomplete := New(store, logger, WithLocalAppOperationAuthorizer(staticLocalAppCallerAuthorizer{decision: incompletePolicy}))
-	incomplete.now = func() time.Time { return artifactTestNow }
-	if _, err := incomplete.ReadArtifactBytes(context.Background(), &runtimev1.ReadArtifactBytesRequest{ArtifactId: "artifact-bound"}); artifactReason(err) != runtimev1.ReasonCode_ARTIFACT_FORBIDDEN {
-		t.Fatalf("incomplete operation policy reason = %v, err=%v", artifactReason(err), err)
-	}
-	if _, err := authorized.ReadArtifactBytes(context.Background(), &runtimev1.ReadArtifactBytesRequest{ArtifactId: "artifact-unbound"}); artifactReason(err) != runtimev1.ReasonCode_ARTIFACT_FORBIDDEN {
-		t.Fatalf("unbound read reason = %v, err=%v", artifactReason(err), err)
-	}
-
-	base := *artifactTestAudience()
-	tests := []struct {
-		name   string
-		mutate func(*ArtifactAudience)
-	}{
-		{name: "account", mutate: func(a *ArtifactAudience) { a.OwnerAccountID = "account-2" }},
-		{name: "app", mutate: func(a *ArtifactAudience) { a.AppID = "persona.nimi.app" }},
-		{name: "release", mutate: func(a *ArtifactAudience) { a.ReleaseDigest = artifactTestIdentifier(0x32) }},
-		{name: "session", mutate: func(a *ArtifactAudience) { a.SessionID = artifactTestIdentifier(0x22) }},
-		{name: "generation", mutate: func(a *ArtifactAudience) { a.AccountGeneration++ }},
-		{name: "use", mutate: func(a *ArtifactAudience) { a.AllowedUse = ArtifactUse("internal_only") }},
-	}
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			audience := base
-			test.mutate(&audience)
-			artifactID := "artifact-mismatch-" + test.name
-			if err := store.Put(artifactID, ArtifactRecord{Bytes: []byte("payload"), CreatedAt: artifactTestNow, Audience: &audience}); err != nil {
-				t.Fatalf("Put: %v", err)
-			}
-			if _, err := authorized.ReadArtifactBytes(context.Background(), &runtimev1.ReadArtifactBytesRequest{ArtifactId: artifactID}); artifactReason(err) != runtimev1.ReasonCode_ARTIFACT_FORBIDDEN {
+	for name, ctx := range map[string]context.Context{
+		"ordinary caller": context.Background(),
+		"cross account":   putArtifactProtectedCtx("account-2", "nimi.desktop"),
+		"cross app":       putArtifactProtectedCtx("account-1", "other.app"),
+	} {
+		t.Run(name, func(t *testing.T) {
+			_, err := svc.ReadArtifactBytes(ctx, &runtimev1.ReadArtifactBytesRequest{ArtifactId: "artifact-bound"})
+			if artifactReason(err) != runtimev1.ReasonCode_ARTIFACT_FORBIDDEN {
 				t.Fatalf("reason = %v, err=%v", artifactReason(err), err)
 			}
 		})
 	}
-
-	expiring := *artifactTestAudience()
-	expiring.ExpiresAt = artifactTestNow.Add(time.Minute)
-	if err := store.Put("artifact-expiring", ArtifactRecord{Bytes: []byte("payload"), CreatedAt: artifactTestNow, Audience: &expiring}); err != nil {
-		t.Fatalf("Put expiring: %v", err)
+	ownerCtx := putArtifactProtectedCtx("account-1", "nimi.desktop")
+	if _, err := svc.ReadArtifactBytes(ownerCtx, &runtimev1.ReadArtifactBytesRequest{ArtifactId: "artifact-bound"}); err != nil {
+		t.Fatalf("protected owner read: %v", err)
 	}
-	authorized.now = func() time.Time { return artifactTestNow.Add(2 * time.Minute) }
-	if _, err := authorized.ReadArtifactBytes(context.Background(), &runtimev1.ReadArtifactBytesRequest{ArtifactId: "artifact-expiring"}); artifactReason(err) != runtimev1.ReasonCode_ARTIFACT_FORBIDDEN {
-		t.Fatalf("expired reason = %v, err=%v", artifactReason(err), err)
+	if _, err := svc.ReadArtifactBytes(ownerCtx, &runtimev1.ReadArtifactBytesRequest{ArtifactId: "artifact-unowned"}); artifactReason(err) != runtimev1.ReasonCode_ARTIFACT_FORBIDDEN {
+		t.Fatalf("unowned reason = %v", artifactReason(err))
 	}
 }
 
@@ -335,16 +151,14 @@ func TestStoreNormalizesRecord(t *testing.T) {
 	if err := store.Put("bad-hash", ArtifactRecord{Bytes: []byte("payload"), ContentSHA256: "sha256:deadbeef"}); !errors.Is(err, ErrInvalidArtifactRecord) {
 		t.Fatalf("mismatched content hash err = %v", err)
 	}
-	incompleteAudience := *artifactTestAudience()
-	incompleteAudience.ProducerJobID = ""
-	if err := store.Put("bad-audience", ArtifactRecord{Bytes: []byte("payload"), CreatedAt: artifactTestNow, Audience: &incompleteAudience}); !errors.Is(err, ErrInvalidArtifactRecord) {
-		t.Fatalf("incomplete audience err = %v", err)
+	if err := store.Put("bad-owner", ArtifactRecord{Bytes: []byte("payload"), Owner: &ArtifactOwner{SubjectUserID: "account-1"}}); !errors.Is(err, ErrInvalidArtifactRecord) {
+		t.Fatalf("incomplete owner err = %v", err)
 	}
 }
 
 func TestStoreKeepsArtifactIdentityImmutable(t *testing.T) {
 	store := NewMemoryStore()
-	first := ArtifactRecord{Bytes: []byte("first"), CreatedAt: artifactTestNow, Audience: artifactTestAudience()}
+	first := ArtifactRecord{Bytes: []byte("first"), CreatedAt: artifactTestNow, Owner: artifactTestOwner()}
 	if err := store.Put("artifact-immutable", first); err != nil {
 		t.Fatal(err)
 	}
@@ -356,16 +170,16 @@ func TestStoreKeepsArtifactIdentityImmutable(t *testing.T) {
 	if err := store.Put("artifact-immutable", enriched); err != nil {
 		t.Fatalf("generated voice metadata enrichment: %v", err)
 	}
-	if err := store.Put("artifact-immutable", ArtifactRecord{Bytes: []byte("second"), CreatedAt: artifactTestNow, Audience: artifactTestAudience()}); !errors.Is(err, ErrInvalidArtifactRecord) {
+	if err := store.Put("artifact-immutable", ArtifactRecord{Bytes: []byte("second"), CreatedAt: artifactTestNow, Owner: artifactTestOwner()}); !errors.Is(err, ErrInvalidArtifactRecord) {
 		t.Fatalf("content replacement err = %v", err)
 	}
-	changedAudience := *artifactTestAudience()
-	changedAudience.OwnerAccountID = "account-2"
-	if err := store.Put("artifact-immutable", ArtifactRecord{Bytes: []byte("first"), CreatedAt: artifactTestNow, Audience: &changedAudience}); !errors.Is(err, ErrInvalidArtifactRecord) {
-		t.Fatalf("audience replacement err = %v", err)
+	changedOwner := *artifactTestOwner()
+	changedOwner.SubjectUserID = "account-2"
+	if err := store.Put("artifact-immutable", ArtifactRecord{Bytes: []byte("first"), CreatedAt: artifactTestNow, Owner: &changedOwner}); !errors.Is(err, ErrInvalidArtifactRecord) {
+		t.Fatalf("owner replacement err = %v", err)
 	}
 	record, ok := store.Get("artifact-immutable")
-	if !ok || string(record.Bytes) != "first" || record.Audience == nil || record.Audience.OwnerAccountID != "account-1" || record.GeneratedVoice == nil || record.GeneratedVoice.AgentID != "agent-1" {
+	if !ok || string(record.Bytes) != "first" || record.Owner == nil || record.Owner.SubjectUserID != "account-1" || record.GeneratedVoice == nil || record.GeneratedVoice.AgentID != "agent-1" {
 		t.Fatalf("immutable record changed: %#v ok=%v", record, ok)
 	}
 }

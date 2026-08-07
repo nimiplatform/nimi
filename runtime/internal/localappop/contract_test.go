@@ -53,9 +53,6 @@ func TestCanonicalContractRejectsUnknownWithoutDefaultBase(t *testing.T) {
 	if _, err := ClassifyOperation(Operation(255)); !errors.Is(err, ErrOperationUnknown) {
 		t.Fatalf("unknown operation error = %v", err)
 	}
-	if _, err := ClassifyOperation(OperationUnclassifiedArtifactRead); !errors.Is(err, ErrOperationUnknown) {
-		t.Fatalf("unclassified operation inherited admission: %v", err)
-	}
 }
 
 func TestPresentEmptySnapshotDiffersFromMissingSnapshot(t *testing.T) {

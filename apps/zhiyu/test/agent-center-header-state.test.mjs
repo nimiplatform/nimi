@@ -41,7 +41,6 @@ test('Agent Center world metadata stays absent from the bounded local-app invent
         displayName: '颜真卿',
         ownerUserId: 'user-a',
         runtimeSourceRef: 'source-a',
-        sourceReady: true,
       }],
     },
   };

@@ -6,7 +6,6 @@
     "proto/runtime/v1/account.proto",
     "proto/runtime/v1/agent_common.proto",
     "proto/runtime/v1/agent_companion.proto",
-    "proto/runtime/v1/agent_configure.proto",
     "proto/runtime/v1/agent_presentation.proto",
     "proto/runtime/v1/agent_service.proto",
     "proto/runtime/v1/agent_source_materialization.proto",

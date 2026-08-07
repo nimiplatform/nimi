@@ -28,7 +28,6 @@ pub const RUNTIME_BRIDGE_ALLOWLISTED_METHODS: &[&str] = &[
     "/nimi.runtime.v1.RuntimeAgentService/SetAutonomyConfig",
     "/nimi.runtime.v1.RuntimeAgentService/SubmitDelegatedApprovalDecision",
     "/nimi.runtime.v1.RuntimeAgentService/SubscribeAgentEvents",
-    "/nimi.runtime.v1.RuntimeAgentService/SubscribeAgentVoiceStream",
     "/nimi.runtime.v1.RuntimeAgentService/TerminateAgent",
     "/nimi.runtime.v1.RuntimeAgentService/UpdateAgentState",
     "/nimi.runtime.v1.RuntimeAgentService/WriteAgentMemory",
@@ -164,7 +163,6 @@ pub const RUNTIME_BRIDGE_ALLOWLISTED_METHODS: &[&str] = &[
 
 pub const RUNTIME_BRIDGE_STREAM_METHODS: &[&str] = &[
     "/nimi.runtime.v1.RuntimeAgentService/SubscribeAgentEvents",
-    "/nimi.runtime.v1.RuntimeAgentService/SubscribeAgentVoiceStream",
     "/nimi.runtime.v1.RuntimeAiRealtimeService/ReadRealtimeEvents",
     "/nimi.runtime.v1.RuntimeAiService/StreamScenario",
     "/nimi.runtime.v1.RuntimeAiService/SubscribeScenarioJobEvents",

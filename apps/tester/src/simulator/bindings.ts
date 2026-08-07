@@ -21,7 +21,6 @@ import type { RuntimePlatformProjection } from '../shell/auth/runtime-platform.j
 import { appId } from '../shell/auth/app-identity.js';
 import type { TesterAIConfigSummary } from '../tester/tester-ai-config.js';
 import { getTesterCapability } from '../tester/tester-capabilities.js';
-import type { TesterArtifactSaveResult } from '../tester/tester-artifact-storage.js';
 import type { TesterImageHistoryRecord } from '../tester/tester-image-history.js';
 import type { TesterRunHistory, TesterRunHistoryRecord } from '../tester/tester-history.js';
 import type {
@@ -313,9 +312,6 @@ function createCommandPort(context: TesterSimulatorPrepareContext) {
     async appendImageHistory(imageRecord: TesterImageHistoryRecord) {
       await invoke(context, 'tester.image-history.append', { record: imageRecord });
       return projection(context).imageHistory as unknown as readonly TesterImageHistoryRecord[];
-    },
-    async saveArtifact(input: { readonly filename: string; readonly mimeType?: string; readonly dataUrl: string }): Promise<TesterArtifactSaveResult> {
-      return unmodeledEffect(`Artifact save (${input.filename})`);
     },
     async savePromptDraft(key: TesterPromptDraftKey, prompt: string, enabled: boolean): Promise<TesterPromptDraftSaveResult> {
       try {

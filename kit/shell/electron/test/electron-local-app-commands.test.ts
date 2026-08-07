@@ -126,50 +126,26 @@ describe('Electron local-app standard-shell operations', () => {
     }
   });
 
-  it('routes shared LocalAgent AIConfig/profile and per-Agent autonomy/presentation exactly', async () => {
-    const profileJson = '{"profileId":"local-gpu"}';
-    const requests = [
-      ['local-app.sharedAgentAIConfigGet', {}],
-      ['local-app.sharedAgentAIConfigOverwrite', { capabilities: [{
-        capabilityContract: 'text.generate', requiredFeatures: [],
-        route: { oneofKind: 'local', local: {} },
-      }] }],
-      ['local-app.sharedAgentAIProfilePreview', { profileJson }],
-      ['local-app.sharedAgentAIProfileApply', { profileJson }],
-      ['local-app.agentAutonomySnapshot', { agentHandle: 'lash_one' }],
-      ['local-app.agentUpdateAutonomy', { agentHandle: 'lash_one', expectedAutonomyRevision: '1', intent: { enabled: false } }],
-      ['local-app.agentPresentationSnapshot', { agentHandle: 'lash_one' }],
-      ['local-app.agentCommitPresentation', { agentHandle: 'lash_one', expectedPresentationRevision: '0', intent: { backendKind: 'vrm', avatarAssetRef: 'asset-1', expressionProfileRef: '', idlePreset: '', interactionPolicyRef: '', defaultVoiceReference: '', avatarAutoplay: false, backgroundAssetRef: '' }, importedAssets: [] }],
-    ] as const;
-    for (const [operation, payload] of requests) {
+  it('does not register retired rich Agent operations', async () => {
+    for (const command of [
+      'nimi.shell.localApp.sharedAgentAIConfigGet',
+      'nimi.shell.localApp.sharedAgentAIConfigOverwrite',
+      'nimi.shell.localApp.sharedAgentAIProfilePreview',
+      'nimi.shell.localApp.sharedAgentAIProfileApply',
+      'nimi.shell.localApp.agentAutonomySnapshot',
+      'nimi.shell.localApp.agentUpdateAutonomy',
+      'nimi.shell.localApp.agentPresentationSnapshot',
+      'nimi.shell.localApp.agentCommitPresentation',
+    ]) {
       const ipcMain = new FakeIpcMain();
       const calls: unknown[] = [];
       registerBridge(ipcMain, calls);
       await expect(invokeBridge(ipcMain, createInvokeEvent().event, {
-        command: NIMI_STANDARD_SHELL_COMMANDS[operation],
-        payload: { payload },
-      })).rejects.toMatchObject({
-        code: 'runtime-permission-denied',
-        reasonCode: 'local-app-operation-unavailable',
-      });
-      expect(calls).toHaveLength(1);
-      expect(JSON.stringify(calls)).not.toMatch(/ownerUserId|runtimeSourceRef|localAgentRef|accountId/u);
+        command,
+        payload: { payload: {} },
+      })).rejects.toMatchObject({ code: 'capability-unavailable' });
+      expect(calls).toEqual([]);
     }
-  });
-
-  it('rejects malformed shared profile JSON and shared config owner injection before host invocation', async () => {
-    const ipcMain = new FakeIpcMain();
-    const calls: unknown[] = [];
-    registerBridge(ipcMain, calls);
-    await expect(invokeBridge(ipcMain, createInvokeEvent().event, {
-      command: NIMI_STANDARD_SHELL_COMMANDS['local-app.sharedAgentAIProfilePreview'],
-      payload: { payload: { profileJson: '{' } },
-    })).rejects.toMatchObject({ code: 'invalid-payload' });
-    await expect(invokeBridge(ipcMain, createInvokeEvent().event, {
-      command: NIMI_STANDARD_SHELL_COMMANDS['local-app.sharedAgentAIConfigOverwrite'],
-      payload: { payload: { capabilities: [{ appId: 'forged' }] } },
-    })).rejects.toMatchObject({ code: 'invalid-payload' });
-    expect(calls).toEqual([]);
   });
 
   it('surfaces unclassified Runtime failures without matching the trust-failure branch', async () => {
@@ -316,68 +292,19 @@ describe('Electron local-app standard-shell operations', () => {
     expect(calls).toEqual([]);
   });
 
-  it('routes artifact byte reads with an exact artifact id and rejects malformed ids', async () => {
-    const ipcMain = new FakeIpcMain();
-    const calls: unknown[] = [];
-    registerBridge(ipcMain, calls);
-    await expect(invokeBridge(ipcMain, createInvokeEvent().event, {
-      command: NIMI_STANDARD_SHELL_COMMANDS['local-app.artifactReadBytes'],
-      payload: { payload: { artifactId: 'artifact_01J' } },
-    })).rejects.toMatchObject({ reasonCode: 'local-app-operation-unavailable' });
-    expect(calls).toEqual([['artifactReadBytes', { artifactId: 'artifact_01J' }]]);
-
-    const rejectingIpcMain = new FakeIpcMain();
-    const rejectingCalls: unknown[] = [];
-    registerBridge(rejectingIpcMain, rejectingCalls);
-    await expect(invokeBridge(rejectingIpcMain, createInvokeEvent().event, {
-      command: NIMI_STANDARD_SHELL_COMMANDS['local-app.artifactReadBytes'],
-      payload: { payload: { artifactId: '  ' } },
-    })).rejects.toMatchObject({ code: 'invalid-payload' });
-    await expect(invokeBridge(rejectingIpcMain, createInvokeEvent().event, {
-      command: NIMI_STANDARD_SHELL_COMMANDS['local-app.artifactReadBytes'],
-      payload: { payload: { artifactId: 'artifact_01J', ownerUserId: 'forged' } },
-    })).rejects.toMatchObject({ code: 'invalid-payload' });
-    expect(rejectingCalls).toEqual([]);
-  });
-
-  it('routes artifact puts with bounded bytes and rejects malformed uploads', async () => {
-    const ipcMain = new FakeIpcMain();
-    const calls: unknown[] = [];
-    registerBridge(ipcMain, calls);
-    await expect(invokeBridge(ipcMain, createInvokeEvent().event, {
-      command: NIMI_STANDARD_SHELL_COMMANDS['local-app.artifactPut'],
-      payload: {
-        payload: {
-          mimeType: 'image/png',
-          displayName: 'photo.png',
-          data: new Uint8Array([137, 80, 78, 71]),
-        },
-      },
-    })).rejects.toMatchObject({ reasonCode: 'local-app-operation-unavailable' });
-    expect(calls).toHaveLength(1);
-    const [method, forwarded] = calls[0] as [string, { mimeType: string; displayName: string; data: Uint8Array }];
-    expect(method).toBe('artifactPut');
-    expect(forwarded.mimeType).toBe('image/png');
-    expect(forwarded.displayName).toBe('photo.png');
-    expect(forwarded.data).toBeInstanceOf(Uint8Array);
-    expect([...forwarded.data]).toEqual([137, 80, 78, 71]);
-
-    const invalidPayloads: unknown[] = [
-      { mimeType: '', displayName: 'photo.png', data: new Uint8Array([1]) },
-      { mimeType: 'image/png', displayName: 'photo.png ', data: new Uint8Array([1]) },
-      { mimeType: 'image/png', displayName: 'photo.png', data: new Uint8Array(0) },
-      { mimeType: 'image/png', displayName: 'photo.png', data: [1, 2, 3] },
-      { mimeType: 'image/png', displayName: 'photo.png' },
-    ];
-    for (const payload of invalidPayloads) {
-      const rejectingIpcMain = new FakeIpcMain();
-      const rejectingCalls: unknown[] = [];
-      registerBridge(rejectingIpcMain, rejectingCalls);
-      await expect(invokeBridge(rejectingIpcMain, createInvokeEvent().event, {
-        command: NIMI_STANDARD_SHELL_COMMANDS['local-app.artifactPut'],
-        payload: { payload },
-      })).rejects.toMatchObject({ code: 'invalid-payload' });
-      expect(rejectingCalls).toEqual([]);
+  it('does not register Local App artifact operations', async () => {
+    for (const command of [
+      'nimi.shell.localApp.artifactPut',
+      'nimi.shell.localApp.artifactReadBytes',
+    ]) {
+      const ipcMain = new FakeIpcMain();
+      const calls: unknown[] = [];
+      registerBridge(ipcMain, calls);
+      await expect(invokeBridge(ipcMain, createInvokeEvent().event, {
+        command,
+        payload: { payload: {} },
+      })).rejects.toMatchObject({ code: 'capability-unavailable' });
+      expect(calls).toEqual([]);
     }
   });
 });
@@ -431,16 +358,6 @@ function localAppHost(calls: unknown[]) {
     conversationInterruptTurn: unavailable('conversationInterruptTurn', calls),
     conversationSubscribe: unavailable('conversationSubscribe', calls),
     conversationSnapshot: unavailable('conversationSnapshot', calls),
-    artifactPut: unavailable('artifactPut', calls),
-    artifactReadBytes: unavailable('artifactReadBytes', calls),
-    sharedAgentAIConfigGet: unavailable('sharedAgentAIConfigGet', calls),
-    sharedAgentAIConfigOverwrite: unavailable('sharedAgentAIConfigOverwrite', calls),
-    sharedAgentAIProfilePreview: unavailable('sharedAgentAIProfilePreview', calls),
-    sharedAgentAIProfileApply: unavailable('sharedAgentAIProfileApply', calls),
-    agentAutonomySnapshot: unavailable('agentAutonomySnapshot', calls),
-    agentUpdateAutonomy: unavailable('agentUpdateAutonomy', calls),
-    agentPresentationSnapshot: unavailable('agentPresentationSnapshot', calls),
-    agentCommitPresentation: unavailable('agentCommitPresentation', calls),
     conversationStreamNext: async () => ({ completed: true }),
     conversationStreamClose: async () => ({ closed: true }),
     renewTechnicalSession: async () => ({ state: 'ready' }),

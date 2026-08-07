@@ -3,21 +3,19 @@
 Host-only Node-API projection of the shared Nimi protected carrier for Electron
 main processes. The addon exposes exact Local App operations, including:
 
-- `localAppSessionStatus`
-- `localAppAIConfigGet`
-- `localAppAIConfigOverwrite`
-- `localAppSharedAgentAIConfigGet`
-- `localAppSharedAgentAIConfigOverwrite`
-- `localAppSharedAgentAIProfilePreview`
-- `localAppSharedAgentAIProfileApply`
-- `localAppStorageReadJson`
-- `localAppStorageWriteJson`
-- `localAppStorageRemoveJson`
+- session status and renewal;
+- App AIConfig read and overwrite;
+- text candidate generation;
+- Realm world-core list and create;
+- App storage read, write, and remove;
+- session-scoped Agent reference listing; and
+- typed text-only Conversation open, send, interrupt, snapshot, and stream lifecycle.
 
-The App and shared LocalAgent AIConfig methods are owner-free at this boundary.
-Runtime derives the exact owner from the authenticated Local App process
-binding; the addon accepts neither an App id, an Agent handle, nor an owner
-assertion for the shared surface.
+Runtime derives the App AIConfig owner and every Agent authority input from the
+authenticated Local App process binding. Agent operations accept only opaque
+session-scoped handles and typed Conversation inputs; the addon exposes no rich
+Agent configuration, presentation, autonomy, Artifact, or generic messaging
+surface.
 
 For Nimi Desktop it additionally exposes the generated first-party product
 families:

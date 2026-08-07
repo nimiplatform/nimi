@@ -1,9 +1,8 @@
 // Package runtimeartifact provides Runtime-owned artifact bytes indexes by id,
 // admitted under K-AGCORE-053 (.nimi/spec/runtime/service-operations.authority.yaml).
 //
-// Read trust is audience-bound. Artifact ids are selectors only; an installed
-// caller must be revalidated against the record's account/app/release/session
-// audience before bytes leave Runtime.
+// Artifact ids are selectors only. Bytes leave Runtime only for a matching
+// protected principal or an admitted Runtime-owned generated-voice consumer.
 //
 // Integration posture: additive. The by-id index sits beside existing
 // URI-based artifact storage produced by media_task_artifact_helpers.go;
@@ -18,8 +17,6 @@ import (
 	"strings"
 	"sync"
 	"time"
-
-	"github.com/nimiplatform/nimi/runtime/internal/protectedlocal"
 )
 
 // MaxInlineBytes is the hard ceiling for inline retrieval (32 MiB).
@@ -36,43 +33,15 @@ type ArtifactRecord struct {
 	ContentSHA256  string
 	MimeInferred   bool
 	CreatedAt      time.Time
-	Audience       *ArtifactAudience
 	GeneratedVoice *GeneratedVoiceArtifactMetadata
 	Owner          *ArtifactOwner
 }
 
-// ArtifactOwner is the Runtime-owned uploader identity written at PutArtifact
-// admission (rule.nimi.runtime.agent-participation.r171). A nil owner denotes
-// a historical or producer record that predates the user attachment plane;
-// such records keep their existing audience/GeneratedVoice behavior and can
-// never authorize owner-based reference or read.
+// ArtifactOwner is the Runtime-owned uploader identity written at protected
+// PutArtifact admission. A nil owner never authorizes owner-based read.
 type ArtifactOwner struct {
 	SubjectUserID string
 	AppID         string
-}
-
-type ArtifactUse string
-
-const ArtifactUseReadBytes ArtifactUse = "read_bytes"
-
-// ArtifactAudience is the durable read boundary for one externally readable
-// artifact. A nil audience denotes an internal-only historical or producer
-// record and can never authorize ReadArtifactBytes.
-type ArtifactAudience struct {
-	ProducerJobID         string
-	OwnerAccountID        string
-	AppID                 string
-	ReleaseDigest         protectedlocal.Identifier
-	SessionID             protectedlocal.Identifier
-	AccountGeneration     uint64
-	AllowedUse            ArtifactUse
-	ExpiresAt             time.Time
-	TrustClass            string
-	RegistrationHandle    protectedlocal.Identifier
-	RegisteredAppSubject  string
-	SourceGeneration      uint64
-	DeclarationGeneration uint64
-	ProjectRoot           string
 }
 
 // GeneratedVoiceArtifactMetadata is the durable cleanup index for assistant
@@ -238,13 +207,6 @@ func normalizeArtifactRecord(record ArtifactRecord) (ArtifactRecord, error) {
 	} else {
 		record.CreatedAt = record.CreatedAt.UTC()
 	}
-	if record.Audience != nil {
-		audience, err := normalizeArtifactAudience(*record.Audience, record.CreatedAt)
-		if err != nil {
-			return ArtifactRecord{}, err
-		}
-		record.Audience = &audience
-	}
 	if record.GeneratedVoice != nil {
 		metadata := normalizeGeneratedVoiceArtifactMetadata(*record.GeneratedVoice, record.Bytes)
 		record.GeneratedVoice = &metadata
@@ -261,10 +223,6 @@ func normalizeArtifactRecord(record ArtifactRecord) (ArtifactRecord, error) {
 
 func cloneArtifactRecord(record ArtifactRecord) ArtifactRecord {
 	record.Bytes = bytes.Clone(record.Bytes)
-	if record.Audience != nil {
-		audience := *record.Audience
-		record.Audience = &audience
-	}
 	if record.GeneratedVoice != nil {
 		metadata := *record.GeneratedVoice
 		record.GeneratedVoice = &metadata
@@ -295,32 +253,6 @@ func artifactOwnersEqual(left, right *ArtifactOwner) bool {
 	return left.SubjectUserID == right.SubjectUserID && left.AppID == right.AppID
 }
 
-func normalizeArtifactAudience(input ArtifactAudience, createdAt time.Time) (ArtifactAudience, error) {
-	input.ProducerJobID = strings.TrimSpace(input.ProducerJobID)
-	input.OwnerAccountID = strings.TrimSpace(input.OwnerAccountID)
-	input.AppID = strings.TrimSpace(input.AppID)
-	input.AllowedUse = ArtifactUse(strings.TrimSpace(string(input.AllowedUse)))
-	input.TrustClass = strings.TrimSpace(input.TrustClass)
-	input.ProjectRoot = strings.TrimSpace(input.ProjectRoot)
-	input.ExpiresAt = input.ExpiresAt.UTC()
-	if input.ProducerJobID == "" || input.OwnerAccountID == "" || input.AppID == "" || input.ReleaseDigest == (protectedlocal.Identifier{}) ||
-		input.SessionID == (protectedlocal.Identifier{}) || input.AccountGeneration == 0 || input.AllowedUse == "" || input.ExpiresAt.IsZero() || !input.ExpiresAt.After(createdAt.UTC()) {
-		return ArtifactAudience{}, ErrInvalidArtifactRecord
-	}
-	switch input.TrustClass {
-	case "local_development":
-		input.RegisteredAppSubject = strings.TrimSpace(input.RegisteredAppSubject)
-		if input.RegistrationHandle == (protectedlocal.Identifier{}) || input.RegisteredAppSubject == "" ||
-			input.SourceGeneration == 0 || input.DeclarationGeneration == 0 ||
-			!protectedlocal.IsAbsolutePlatformPath(input.ProjectRoot) {
-			return ArtifactAudience{}, ErrInvalidArtifactRecord
-		}
-	default:
-		return ArtifactAudience{}, ErrInvalidArtifactRecord
-	}
-	return input, nil
-}
-
 func artifactRecordIntegrityValid(record ArtifactRecord) bool {
 	if record.SizeBytes != int64(len(record.Bytes)) || strings.TrimSpace(record.ContentSHA256) == "" {
 		return false
@@ -330,7 +262,7 @@ func artifactRecordIntegrityValid(record ArtifactRecord) bool {
 }
 
 func mergeArtifactRecords(existing, incoming ArtifactRecord) (ArtifactRecord, bool, bool) {
-	if existing.ContentSHA256 != incoming.ContentSHA256 || existing.SizeBytes != incoming.SizeBytes || existing.MimeType != incoming.MimeType || existing.MimeInferred != incoming.MimeInferred || existing.ProducerJobID != incoming.ProducerJobID || !artifactAudiencesEqual(existing.Audience, incoming.Audience) || !artifactOwnersEqual(existing.Owner, incoming.Owner) {
+	if existing.ContentSHA256 != incoming.ContentSHA256 || existing.SizeBytes != incoming.SizeBytes || existing.MimeType != incoming.MimeType || existing.MimeInferred != incoming.MimeInferred || existing.ProducerJobID != incoming.ProducerJobID || !artifactOwnersEqual(existing.Owner, incoming.Owner) {
 		return ArtifactRecord{}, false, false
 	}
 	merged := cloneArtifactRecord(existing)
@@ -346,21 +278,6 @@ func mergeArtifactRecords(existing, incoming ArtifactRecord) (ArtifactRecord, bo
 		return ArtifactRecord{}, false, false
 	}
 	return merged, false, true
-}
-
-func artifactAudiencesEqual(left, right *ArtifactAudience) bool {
-	if (left == nil) != (right == nil) {
-		return false
-	}
-	if left == nil {
-		return true
-	}
-	return left.ProducerJobID == right.ProducerJobID && left.OwnerAccountID == right.OwnerAccountID && left.AppID == right.AppID &&
-		left.ReleaseDigest == right.ReleaseDigest && left.SessionID == right.SessionID && left.AccountGeneration == right.AccountGeneration &&
-		left.AllowedUse == right.AllowedUse && left.ExpiresAt.Equal(right.ExpiresAt) && left.TrustClass == right.TrustClass &&
-		left.RegistrationHandle == right.RegistrationHandle && left.RegisteredAppSubject == right.RegisteredAppSubject &&
-		left.SourceGeneration == right.SourceGeneration && left.DeclarationGeneration == right.DeclarationGeneration &&
-		left.ProjectRoot == right.ProjectRoot
 }
 
 func normalizeGeneratedVoiceArtifactMetadata(input GeneratedVoiceArtifactMetadata, payload []byte) GeneratedVoiceArtifactMetadata {

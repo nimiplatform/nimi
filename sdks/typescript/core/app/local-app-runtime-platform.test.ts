@@ -48,22 +48,7 @@ function standardShell(operationCalls: string[]): NimiLocalAppStandardShell {
       subscribe: touched('conversation.subscribe'),
       snapshot: touched('conversation.snapshot'),
     },
-    agentConfigure: {
-      sharedAgentAIConfigGet: touched('agentConfigure.sharedAgentAIConfigGet'),
-      sharedAgentAIConfigOverwrite: touched('agentConfigure.sharedAgentAIConfigOverwrite'),
-      sharedAgentAIProfilePreview: touched('agentConfigure.sharedAgentAIProfilePreview'),
-      sharedAgentAIProfileApply: touched('agentConfigure.sharedAgentAIProfileApply'),
-      autonomySnapshot: touched('agentConfigure.autonomySnapshot'),
-      updateAutonomy: touched('agentConfigure.updateAutonomy'),
-      presentationSnapshot: touched('agentConfigure.presentationSnapshot'),
-      commitPresentation: touched('agentConfigure.commitPresentation'),
-    },
-    artifacts: { put: touched('artifacts.put'), readBytes: touched('artifacts.readBytes') },
   };
-}
-
-function isTypedUnavailable(error: unknown): boolean {
-  return (error as { reasonCode?: string }).reasonCode === 'SDK_LOCAL_APP_ACCESS_UNAVAILABLE';
 }
 
 function isTypedOwnerUnavailable(error: unknown): boolean {
@@ -85,9 +70,11 @@ test('generated local-app session wire projection is posture-only', () => {
 test('local-app client hard-cuts the access workflow namespace', () => {
   const client = createNimiLocalAppClient({ standardShell: standardShell([]) });
   assert.deepEqual(Object.keys(client).sort(), [
-    'agentConfigure', 'agents', 'ai', 'aiConfig', 'artifacts', 'auth', 'conversation', 'currentUser', 'realm', 'storage',
+    'agents', 'ai', 'aiConfig', 'auth', 'conversation', 'currentUser', 'realm', 'storage',
   ]);
   assert.equal('permissions' in client, false);
+  assert.equal('agentConfigure' in client, false);
+  assert.equal('artifacts' in client, false);
 });
 
 test('local-app auth remains a separate availability projection', async () => {
@@ -415,12 +402,6 @@ test('canonical protected operations reach typed ingress and preserve owner-unav
     'conversation.snapshot',
   ]);
 
-  await assert.rejects(
-    () => client.artifacts.putArtifact({ mimeType: 'text/plain', displayName: 'note', data: new Uint8Array([1]) }),
-    isTypedUnavailable,
-  );
-  await assert.rejects(() => client.artifacts.readArtifactBytes({ artifactId: 'artifact' }), isTypedUnavailable);
-  await assert.rejects(() => client.agentConfigure.autonomySnapshot({ agentHandle: handle }), isTypedUnavailable);
   assert.equal(calls.length, operations.length);
 });
 

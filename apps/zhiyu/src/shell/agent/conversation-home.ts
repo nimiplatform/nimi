@@ -40,15 +40,7 @@ export async function probeZhiyuRuntimeConversationHome(
     const opened = await conversation.open({
       agentHandle: identity.agentHandle,
     });
-    const snapshot = await conversation.snapshot({
-      agentHandle: identity.agentHandle,
-      conversationAnchorId: opened.conversationAnchorId,
-    });
-    return conversationReady(
-      identity,
-      opened.conversationAnchorId,
-      requireRuntimeThreadId(snapshot),
-    );
+    return conversationReady(identity, opened.conversationAnchorId);
   } catch (error) {
     return normalizeConversationError(error, identity);
   }
@@ -57,7 +49,6 @@ export async function probeZhiyuRuntimeConversationHome(
 function conversationReady(
   identity: LocalAgentIdentity,
   conversationAnchorId: string,
-  threadId: string,
 ): ZhiyuConversationHomeStatus {
   return {
     transport: 'electron-ipc',
@@ -71,20 +62,8 @@ function conversationReady(
     runtimeSourceRef: null,
     localAgentRef: null,
     conversationAnchorId,
-    threadId,
+    threadId: conversationAnchorId,
   };
-}
-
-function requireRuntimeThreadId(snapshot: Readonly<Record<string, unknown>>): string {
-  const threadId = stringOr(snapshot.threadId ?? snapshot.thread_id, '');
-  if (!threadId) {
-    throw Object.assign(new Error('Runtime conversation snapshot returned no thread id.'), {
-      reasonCode: 'zhiyu-conversation-thread-id-missing',
-      actionHint: 'check_local_app_conversation_snapshot',
-      source: 'runtime',
-    });
-  }
-  return threadId;
 }
 
 function localAgentIdentity(localAgent: ZhiyuLocalAgentStatus): LocalAgentIdentity | null {

@@ -1,6 +1,4 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
-import path from 'node:path';
 import test from 'node:test';
 
 import { zhiyuSimulatorBehavior } from '../src/simulator/behavior.ts';
@@ -14,7 +12,6 @@ const initialInput = {
 };
 
 const context = { now: 42, drawRandom: () => 0.5 };
-const root = path.resolve(import.meta.dirname, '..');
 
 const persona = {
   accountId: 'sim-account-linche',
@@ -148,17 +145,5 @@ test('zhiyu behavior keeps undeclared commands fail-closed', () => {
       context,
     ),
     /ZHIYU_SIMULATOR_COMMAND_UNDECLARED/,
-  );
-});
-
-test('zhiyu simulator source context maps the raw source identity back to its opaque Agent handle', () => {
-  const source = readFileSync(path.join(root, 'src/simulator/bindings.ts'), 'utf8');
-  assert.match(
-    source,
-    /simulatedHome\(context,\s*simulatedAgentHandle\(input\.localAgentRef\)\)/u,
-  );
-  assert.doesNotMatch(
-    source,
-    /simulatedHome\(context,\s*input\.localAgentRef\)/u,
   );
 });

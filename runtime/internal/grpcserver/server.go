@@ -791,8 +791,6 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 	runtimev1.RegisterRuntimeCognitionServiceServer(g, cognitionSvc)
 	appOptions := []appservice.Option{
 		appservice.WithSessionValidator(authSvc),
-		appservice.WithLocalAppConversationScopeValidator(agentSvc),
-		appservice.WithLocalAppOperationAuthorizer(accountSvc),
 		appservice.WithAppStorageDataRoot(cfg.DataRootRef),
 		appservice.WithRuntimeAccountProjectionProvider(accountSvc),
 	}
@@ -823,7 +821,6 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 	artifactSvc := runtimeartifactservice.New(
 		artifactStore,
 		logger,
-		runtimeartifactservice.WithLocalAppOperationAuthorizer(accountSvc),
 		runtimeartifactservice.WithProtectedGeneratedVoiceAuthorizer(agentSvc),
 	)
 	if protected != nil {

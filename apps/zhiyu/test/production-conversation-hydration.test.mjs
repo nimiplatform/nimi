@@ -15,34 +15,26 @@ test.after(async () => {
   if (buildDir) await rm(buildDir, { recursive: true, force: true });
 });
 
-test('production conversation hydration snapshots the local-app conversation and maps its transcript', async () => {
+test('production conversation hydration maps the bounded text-only local App snapshot', async () => {
   const { hydrateZhiyuProductionConversation } = await importHydrationModule();
   const calls = [];
-  const currentChat = idleChat();
   const currentSource = blockedSource();
-
   const hydrated = await hydrateZhiyuProductionConversation({
     agentHandle: 'opaque-agent-handle',
     conversationAnchorId: 'conversation-anchor:shared',
-    currentChat,
+    currentChat: idleChat(),
     currentSource,
   }, {
     async snapshot(input) {
       calls.push(input);
       return {
-        request_id: 'desktop-turn-request-1',
-        thread_id: 'runtime-thread:shared',
-        session_status: 'active',
-        transcript_message_count: 2,
-        transcript: [
-          transcriptMessage({ id: 'message-user-1', role: 'user', content: 'Shared question' }),
-          transcriptMessage({
-            id: 'message-agent-1',
-            role: 'assistant',
-            content: 'Shared answer from Desktop',
-            created_at: '2026-07-14T00:00:01.000Z',
-          }),
+        conversationAnchorId: 'conversation-anchor:shared',
+        activeTurnId: null,
+        messages: [
+          { turnId: 'agent-turn-1', role: 'user', text: 'Shared question' },
+          { turnId: 'agent-turn-1', role: 'assistant', text: 'Shared answer from Desktop' },
         ],
+        truncatedBefore: false,
       };
     },
   });
@@ -52,11 +44,11 @@ test('production conversation hydration snapshots the local-app conversation and
     conversationAnchorId: 'conversation-anchor:shared',
   }]);
   assert.equal(hydrated.source, currentSource);
-  assert.equal(hydrated.chat.reasonCode, 'runtime-agent-session-snapshot-hydrated');
+  assert.equal(hydrated.chat.reasonCode, 'runtime-agent-conversation-snapshot-hydrated');
   assert.equal(hydrated.chat.messageCount, 2);
-  assert.deepEqual(hydrated.chat.messages.map(({ id, role, text, targetId }) => ({ id, role, text, targetId })), [
-    { id: 'message-user-1', role: 'user', text: 'Shared question', targetId: 'opaque-agent-handle' },
-    { id: 'message-agent-1', role: 'agent', text: 'Shared answer from Desktop', targetId: 'opaque-agent-handle' },
+  assert.deepEqual(hydrated.chat.messages.map(({ role, text, targetId, kind }) => ({ role, text, targetId, kind })), [
+    { role: 'user', text: 'Shared question', targetId: 'opaque-agent-handle', kind: 'text' },
+    { role: 'agent', text: 'Shared answer from Desktop', targetId: 'opaque-agent-handle', kind: 'text' },
   ]);
   assert.equal(hydrated.chat.ownerUserId, null);
   assert.equal(hydrated.chat.runtimeSourceRef, null);
@@ -89,105 +81,7 @@ test('production conversation hydration returns typed failure without fabricated
   assert.deepEqual(hydrated.chat.messages, currentChat.messages);
 });
 
-test('production hydration resolves image transcript media through the artifact read port', async () => {
-  const { hydrateZhiyuProductionConversation } = await importHydrationModule();
-  const reads = [];
-  const hydrated = await hydrateZhiyuProductionConversation({
-    agentHandle: 'opaque-agent-handle',
-    conversationAnchorId: 'conversation-anchor:shared',
-    currentChat: idleChat(),
-    currentSource: blockedSource(),
-  }, {
-    async snapshot() {
-      return {
-        session_status: 'active',
-        transcript: [
-          transcriptMessage({ id: 'message-user-1', role: 'user', content: 'look' }),
-          transcriptMessage({
-            id: 'message-user-image',
-            role: 'user',
-            content: '',
-            kind: 'image',
-            artifact_id: 'artifact_01J',
-            media_mime_type: 'image/png',
-          }),
-        ],
-      };
-    },
-  }, {
-    async readArtifactBytes(input) {
-      reads.push(input);
-      return { bytes: new Uint8Array([137, 80, 78, 71]), mimeType: 'image/png' };
-    },
-  });
-
-  assert.deepEqual(reads, [{ artifactId: 'artifact_01J' }]);
-  assert.equal(hydrated.chat.messageCount, 2);
-  const image = hydrated.chat.messages[1];
-  assert.equal(image.kind, 'image');
-  assert.equal(image.text, '');
-  assert.equal(image.metadata?.artifactId, 'artifact_01J');
-  assert.equal(image.metadata?.mediaMimeType, 'image/png');
-  assert.match(String(image.metadata?.mediaUrl), /^data:image\/png;base64,/u);
-});
-
-test('production hydration keeps one failed image read from sinking the transcript', async () => {
-  const { hydrateZhiyuProductionConversation } = await importHydrationModule();
-  const warnings = [];
-  const originalWarn = console.warn;
-  console.warn = (...args) => { warnings.push(args); };
-  try {
-    const hydrated = await hydrateZhiyuProductionConversation({
-      agentHandle: 'opaque-agent-handle',
-      conversationAnchorId: 'conversation-anchor:shared',
-      currentChat: idleChat(),
-      currentSource: blockedSource(),
-    }, {
-      async snapshot() {
-        return {
-          session_status: 'active',
-          transcript: [
-            transcriptMessage({
-              id: 'message-image-lost',
-              role: 'user',
-              content: '',
-              kind: 'image',
-              artifact_id: 'artifact_missing',
-            }),
-            transcriptMessage({
-              id: 'message-image-ok',
-              role: 'user',
-              content: '',
-              kind: 'image',
-              artifact_id: 'artifact_ok',
-            }),
-          ],
-        };
-      },
-    }, {
-      async readArtifactBytes(input) {
-        if (input.artifactId === 'artifact_missing') {
-          throw Object.assign(new Error('not found'), { reasonCode: 'not-found' });
-        }
-        return { bytes: new Uint8Array([1, 2, 3]), mimeType: 'image/webp' };
-      },
-    });
-
-    assert.equal(hydrated.chat.messageCount, 2);
-    const [lost, ok] = hydrated.chat.messages;
-    assert.equal(lost.kind, 'image');
-    assert.equal(lost.metadata?.artifactId, 'artifact_missing');
-    assert.equal(lost.metadata?.mediaUrl, undefined);
-    assert.equal(ok.metadata?.mediaMimeType, 'image/webp');
-    assert.match(String(ok.metadata?.mediaUrl), /^data:image\/webp;base64,/u);
-    assert.equal(warnings.length, 1);
-    assert.match(String(warnings[0]?.[0]), /snapshot-image-media-resolve-failed/u);
-  } finally {
-    console.warn = originalWarn;
-  }
-});
-
-test('production hydration keeps image references without an artifact read port', async () => {
+test('production conversation hydration accepts an empty bounded snapshot without inventing messages', async () => {
   const { hydrateZhiyuProductionConversation } = await importHydrationModule();
   const hydrated = await hydrateZhiyuProductionConversation({
     agentHandle: 'opaque-agent-handle',
@@ -197,24 +91,17 @@ test('production hydration keeps image references without an artifact read port'
   }, {
     async snapshot() {
       return {
-        session_status: 'active',
-        transcript: [
-          transcriptMessage({
-            id: 'message-image-1',
-            role: 'user',
-            content: '',
-            kind: 'image',
-            artifact_id: 'artifact_01J',
-          }),
-        ],
+        conversationAnchorId: 'conversation-anchor:shared',
+        activeTurnId: null,
+        messages: [],
+        truncatedBefore: false,
       };
     },
   });
 
-  assert.equal(hydrated.chat.messageCount, 1);
-  assert.equal(hydrated.chat.messages[0]?.kind, 'image');
-  assert.equal(hydrated.chat.messages[0]?.metadata?.artifactId, 'artifact_01J');
-  assert.equal(hydrated.chat.messages[0]?.metadata?.mediaUrl, undefined);
+  assert.equal(hydrated.chat.ready, true);
+  assert.equal(hydrated.chat.messageCount, 0);
+  assert.deepEqual(hydrated.chat.messages, []);
 });
 
 async function importHydrationModule() {
@@ -238,19 +125,6 @@ async function buildHydrationModule() {
     return buildDir;
   })();
   return buildPromise;
-}
-
-function transcriptMessage(overrides = {}) {
-  return {
-    id: 'message-id',
-    role: 'assistant',
-    content: 'message text',
-    status: 'complete',
-    kind: 'text',
-    created_at: '2026-07-14T00:00:00.000Z',
-    updated_at: overrides.created_at ?? '2026-07-14T00:00:00.000Z',
-    ...overrides,
-  };
 }
 
 function idleChat() {

@@ -7,14 +7,6 @@ export enum GpuMemoryModel {
   UNIFIED = 2,
 }
 
-export enum LocalAppAgentAutonomyMode {
-  UNSPECIFIED = 0,
-  OFF = 1,
-  LOW = 2,
-  MEDIUM = 3,
-  HIGH = 4,
-}
-
 export enum LocalAppConversationMessageRole {
   UNSPECIFIED = 0,
   USER = 1,

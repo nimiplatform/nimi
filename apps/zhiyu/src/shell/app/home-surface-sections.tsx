@@ -130,11 +130,9 @@ export function AvatarPresenceSection({
   readonly onManage?: () => void;
 }) {
   const controlState = avatar.launchAvailable || avatar.manageAvailable ? 'authorized' : 'blocked';
-  const resourceState = avatar.ready ? 'runtime-profile-projected' : 'blocked';
-  const avatarStatusLabel = avatar.ready ? '形象投影已连接' : '等待形象授权';
-  const avatarMessage = avatar.ready
-    ? `${avatar.message} 本地形象资源仍需在外观配置中导入和管理。`
-    : '形象启动和管理会在获得授权后出现。';
+  const resourceState = avatar.ready ? 'avatar-facade-projected' : 'blocked';
+  const avatarStatusLabel = avatar.ready ? '形象入口已连接' : '等待形象授权';
+  const avatarMessage = avatar.ready ? avatar.message : '形象启动和管理会在获得授权后出现。';
   return (
     <Surface
       as="section"
@@ -146,13 +144,8 @@ export function AvatarPresenceSection({
       data-zhiyu-avatar-reason={avatar.reasonCode}
       data-zhiyu-avatar-launch-available={String(avatar.launchAvailable)}
       data-zhiyu-avatar-manage-available={String(avatar.manageAvailable)}
-      data-zhiyu-avatar-projection-ref={avatar.projectionRef ?? 'not_projected'}
       data-zhiyu-avatar-configuration-ref={avatar.configurationRef ?? 'not_projected'}
-      data-zhiyu-avatar-backend-kind={avatar.backendKind ?? 'not_projected'}
-      data-zhiyu-avatar-visual-readiness={avatar.visualReadiness}
-      data-zhiyu-avatar-voice-readiness={avatar.voiceReadiness}
       data-zhiyu-avatar-control-state={controlState}
-      data-zhiyu-avatar-unsupported-count={String(avatar.unsupportedFields.length)}
       material="glass-thin"
       elevation="base"
       padding="md"
@@ -214,9 +207,6 @@ export function AvatarPresenceSection({
       {avatar.ready ? (
         <div className="zhiyu-home__avatar-grid" aria-label="形象状态">
           <AvatarPresenceField label="配置" value={avatar.configurationRef} />
-          <AvatarPresenceField label="后端" value={avatar.backendKind} />
-          <AvatarPresenceField label="视觉" value={avatar.visualReadiness} />
-          <AvatarPresenceField label="声音" value={avatar.voiceReadiness} />
         </div>
       ) : null}
     </Surface>

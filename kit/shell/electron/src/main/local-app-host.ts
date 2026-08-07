@@ -22,16 +22,6 @@ const LOCAL_APP_BINDING_METHODS = [
   'localAppConversationStreamNext',
   'localAppConversationStreamClose',
   'localAppConversationSnapshot',
-  'localAppArtifactPut',
-  'localAppArtifactReadBytes',
-  'localAppSharedAgentAIConfigGet',
-  'localAppSharedAgentAIConfigOverwrite',
-  'localAppSharedAgentAIProfilePreview',
-  'localAppSharedAgentAIProfileApply',
-  'localAppAgentAutonomySnapshot',
-  'localAppAgentUpdateAutonomy',
-  'localAppAgentPresentationSnapshot',
-  'localAppAgentCommitPresentation',
 ] as const;
 
 const ADMITTED_REASON_CODES: ReadonlySet<string> = new Set([
@@ -73,16 +63,6 @@ const ADMITTED_REASON_CODES: ReadonlySet<string> = new Set([
   'local-app-access-denied',
   'local-app-operation-unsupported',
   'local-app-owner-unavailable',
-  'ai-voice-target-model-mismatch',
-  'agent-ai-config-revision-conflict',
-  'agent-ai-config-invalid',
-  'agent-ai-config-target-required',
-  'agent-ai-config-target-invalid',
-  'agent-ai-config-target-unavailable',
-  'agent-ai-config-capability-mismatch',
-  'agent-ai-config-model-target-mismatch',
-  'agent-autonomy-revision-conflict',
-  'agent-presentation-revision-conflict',
   'ai-config-invalid',
   'ai-config-not-found',
   'ai-config-persistence-unavailable',
@@ -174,16 +154,6 @@ export type NimiElectronProtectedLocalBinding = {
   readonly localAppConversationStreamNext: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppConversationStreamClose: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppConversationSnapshot: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
-  readonly localAppArtifactPut: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
-  readonly localAppArtifactReadBytes: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
-  readonly localAppSharedAgentAIConfigGet: () => Promise<NativeLocalAppOutcome>;
-  readonly localAppSharedAgentAIConfigOverwrite: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
-  readonly localAppSharedAgentAIProfilePreview: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
-  readonly localAppSharedAgentAIProfileApply: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
-  readonly localAppAgentAutonomySnapshot: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
-  readonly localAppAgentUpdateAutonomy: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
-  readonly localAppAgentPresentationSnapshot: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
-  readonly localAppAgentCommitPresentation: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
 };
 
 export type NimiElectronLocalAppHost = {
@@ -205,16 +175,6 @@ export type NimiElectronLocalAppHost = {
   readonly conversationStreamNext: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly conversationStreamClose: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly conversationSnapshot: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
-  readonly artifactPut: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
-  readonly artifactReadBytes: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
-  readonly sharedAgentAIConfigGet: () => Promise<NimiElectronLocalAppRecord>;
-  readonly sharedAgentAIConfigOverwrite: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
-  readonly sharedAgentAIProfilePreview: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
-  readonly sharedAgentAIProfileApply: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
-  readonly agentAutonomySnapshot: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
-  readonly agentUpdateAutonomy: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
-  readonly agentPresentationSnapshot: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
-  readonly agentCommitPresentation: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
 };
 
 export type NimiElectronLocalAppMaintenanceFailure = {
@@ -416,46 +376,6 @@ class ElectronLocalAppHost implements NimiElectronLocalAppHost {
     return invokeConversationSnapshot(() => this.binding.localAppConversationSnapshot(input));
   }
 
-  artifactPut(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
-    return invokeExactTextRecord(() => this.binding.localAppArtifactPut(input), ['artifactId']);
-  }
-
-  artifactReadBytes(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
-    return invokeArtifactBytes(() => this.binding.localAppArtifactReadBytes(input));
-  }
-
-  sharedAgentAIConfigGet(): Promise<NimiElectronLocalAppRecord> {
-    return invokeRecord(() => this.binding.localAppSharedAgentAIConfigGet());
-  }
-
-  sharedAgentAIConfigOverwrite(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
-    return invokeRecord(() => this.binding.localAppSharedAgentAIConfigOverwrite(input));
-  }
-
-  sharedAgentAIProfilePreview(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
-    return invokeRecord(() => this.binding.localAppSharedAgentAIProfilePreview(input));
-  }
-
-  sharedAgentAIProfileApply(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
-    return invokeRecord(() => this.binding.localAppSharedAgentAIProfileApply(input));
-  }
-
-  agentAutonomySnapshot(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
-    return invokeRecord(() => this.binding.localAppAgentAutonomySnapshot(input));
-  }
-
-  agentUpdateAutonomy(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
-    return invokeRecord(() => this.binding.localAppAgentUpdateAutonomy(input));
-  }
-
-  agentPresentationSnapshot(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
-    return invokeRecord(() => this.binding.localAppAgentPresentationSnapshot(input));
-  }
-
-  agentCommitPresentation(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
-    return invokeRecord(() => this.binding.localAppAgentCommitPresentation(input));
-  }
-
 }
 
 class LazyElectronLocalAppHost implements NimiElectronLocalAppHost {
@@ -536,46 +456,6 @@ class LazyElectronLocalAppHost implements NimiElectronLocalAppHost {
 
   conversationSnapshot(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
     return this.resolve().conversationSnapshot(input);
-  }
-
-  artifactPut(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
-    return this.resolve().artifactPut(input);
-  }
-
-  artifactReadBytes(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
-    return this.resolve().artifactReadBytes(input);
-  }
-
-  sharedAgentAIConfigGet(): Promise<NimiElectronLocalAppRecord> {
-    return this.resolve().sharedAgentAIConfigGet();
-  }
-
-  sharedAgentAIConfigOverwrite(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
-    return this.resolve().sharedAgentAIConfigOverwrite(input);
-  }
-
-  sharedAgentAIProfilePreview(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
-    return this.resolve().sharedAgentAIProfilePreview(input);
-  }
-
-  sharedAgentAIProfileApply(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
-    return this.resolve().sharedAgentAIProfileApply(input);
-  }
-
-  agentAutonomySnapshot(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
-    return this.resolve().agentAutonomySnapshot(input);
-  }
-
-  agentUpdateAutonomy(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
-    return this.resolve().agentUpdateAutonomy(input);
-  }
-
-  agentPresentationSnapshot(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
-    return this.resolve().agentPresentationSnapshot(input);
-  }
-
-  agentCommitPresentation(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
-    return this.resolve().agentCommitPresentation(input);
   }
 
 }
@@ -835,23 +715,6 @@ async function invokeExactTextRecord(
   const value = await invoke(call);
   if (!isPlainRecord(value) || !hasExactKeys(value, keys)) throw untrustedRuntimeError();
   return Object.freeze(Object.fromEntries(keys.map((key) => [key, exactText(value[key])]))) as NimiElectronLocalAppRecord;
-}
-
-const MAX_ARTIFACT_READ_BYTES = 32 * 1024 * 1024;
-
-async function invokeArtifactBytes(
-  call: () => Promise<NativeLocalAppOutcome>,
-): Promise<NimiElectronLocalAppRecord> {
-  const value = await invoke(call);
-  if (!isPlainRecord(value)
-    || !hasExactKeys(value, ['bytes', 'mimeType'])
-    || !(value.bytes instanceof Uint8Array)
-    || value.bytes.byteLength === 0
-    || value.bytes.byteLength > MAX_ARTIFACT_READ_BYTES) {
-    throw untrustedRuntimeError();
-  }
-  const mimeType = exactText(value.mimeType);
-  return Object.freeze({ bytes: value.bytes, mimeType }) as unknown as NimiElectronLocalAppRecord;
 }
 
 async function invokeConversationStreamNext(call: () => Promise<NativeLocalAppOutcome>): Promise<NimiElectronLocalAppRecord> {

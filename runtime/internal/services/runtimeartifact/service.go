@@ -13,13 +13,10 @@ import (
 	"log/slog"
 	"sort"
 	"strings"
-	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
-	"github.com/nimiplatform/nimi/runtime/internal/protectedlocal"
 	"github.com/nimiplatform/nimi/runtime/internal/protectedprincipal"
-	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
 	"google.golang.org/grpc/codes"
 )
 
@@ -28,13 +25,7 @@ type Service struct {
 	runtimev1.UnimplementedRuntimeArtifactServiceServer
 	store                             Store
 	logger                            *slog.Logger
-	authorizer                        LocalAppOperationAuthorizer
 	protectedGeneratedVoiceAuthorizer ProtectedGeneratedVoiceAuthorizer
-	now                               func() time.Time
-}
-
-type LocalAppOperationAuthorizer interface {
-	AuthorizeLocalAppOperation(context.Context, accountservice.LocalAppOperation) (accountservice.LocalAppCallerDecision, error)
 }
 
 type ProtectedGeneratedVoiceAuthorizer interface {
@@ -43,12 +34,6 @@ type ProtectedGeneratedVoiceAuthorizer interface {
 }
 
 type Option func(*Service)
-
-func WithLocalAppOperationAuthorizer(authorizer LocalAppOperationAuthorizer) Option {
-	return func(service *Service) {
-		service.authorizer = authorizer
-	}
-}
 
 func WithProtectedGeneratedVoiceAuthorizer(authorizer ProtectedGeneratedVoiceAuthorizer) Option {
 	return func(service *Service) {
@@ -109,7 +94,6 @@ func New(store Store, logger *slog.Logger, options ...Option) *Service {
 	service := &Service{
 		store:  store,
 		logger: logger,
-		now:    time.Now,
 	}
 	for _, option := range options {
 		if option != nil {
@@ -143,34 +127,17 @@ func (s *Service) ReadArtifactBytes(
 		return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_ARTIFACT_FORBIDDEN)
 	}
 	principal, protectedCaller := protectedprincipal.AttachedToContext(ctx)
-	if protectedCaller && !principal.Valid() {
+	if !protectedCaller || !principal.Valid() {
 		return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_ARTIFACT_FORBIDDEN)
-	}
-	now := s.now().UTC()
-	var decision accountservice.LocalAppCallerDecision
-	if !protectedCaller {
-		if s.authorizer == nil {
-			return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_ARTIFACT_FORBIDDEN)
-		}
-		var err error
-		decision, err = s.authorizer.AuthorizeLocalAppOperation(ctx, accountservice.LocalAppOperationReadArtifactBytes)
-		if err != nil || !validLocalAppArtifactDecision(decision, now) {
-			return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_ARTIFACT_FORBIDDEN)
-		}
 	}
 
 	record, ok := s.store.Get(artifactID)
 	if !ok {
 		return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_ARTIFACT_NOT_FOUND)
 	}
-	if protectedCaller {
-		if !artifactOwnerMatches(record.Owner, principal.AccountID, principal.AppID) &&
-			(s.protectedGeneratedVoiceAuthorizer == nil ||
-				!s.protectedGeneratedVoiceAuthorizer.AuthorizeProtectedGeneratedVoiceArtifact(ctx, record)) {
-			return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_ARTIFACT_FORBIDDEN)
-		}
-	} else if !artifactAudienceMatches(record.Audience, decision, now) &&
-		!artifactOwnerMatches(record.Owner, decision.AccountID, decision.AppID) {
+	if !artifactOwnerMatches(record.Owner, principal.AccountID, principal.AppID) &&
+		(s.protectedGeneratedVoiceAuthorizer == nil ||
+			!s.protectedGeneratedVoiceAuthorizer.AuthorizeProtectedGeneratedVoiceArtifact(ctx, record)) {
 		return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_ARTIFACT_FORBIDDEN)
 	}
 	if !artifactRecordIntegrityValid(record) {
@@ -189,32 +156,6 @@ func (s *Service) ReadArtifactBytes(
 	}, nil
 }
 
-func validLocalAppArtifactDecision(decision accountservice.LocalAppCallerDecision, now time.Time) bool {
-	commonValid := decision.SessionID != (protectedlocal.Identifier{}) && strings.TrimSpace(decision.AppID) != "" &&
-		decision.HostExecutableDigest != (protectedlocal.Identifier{}) && strings.TrimSpace(decision.AccountID) != "" &&
-		strings.TrimSpace(decision.RealmEnvironmentID) != "" && decision.AccountGeneration > 0 &&
-		decision.Operation == accountservice.LocalAppOperationReadArtifactBytes && decision.OperationCapability == "data.scope.read#runtime.artifacts" &&
-		decision.TrustClass == accountservice.LocalAppTrustClassDevelopment &&
-		decision.RegistrationHandle != (protectedlocal.Identifier{}) && strings.TrimSpace(decision.RegisteredAppSubject) != "" &&
-		decision.SourceGeneration > 0 && decision.DeclarationGeneration > 0
-	if !commonValid {
-		return false
-	}
-	direct := decision.DirectPeer.OS == protectedlocal.OSMacOS && decision.DirectPeer.PID != 0 && decision.DirectPeer.UID != 0 &&
-		decision.RuntimeBootEpoch == (protectedlocal.Identifier{}) && decision.Process == (protectedlocal.ProcessTuple{}) &&
-		decision.ExpiresAt.IsZero() &&
-		protectedlocal.IsAbsolutePathForOperatingSystem(decision.DirectPeer.OS, decision.ProjectRoot)
-	sessionScoped := decision.DirectPeer == (protectedlocal.DirectLocalAppPeer{}) &&
-		decision.RuntimeBootEpoch != (protectedlocal.Identifier{}) && decision.Process.PID > 0 &&
-		strings.TrimSpace(decision.Process.CreationMarker) != "" &&
-		decision.Process.ExecutableDigest == decision.HostExecutableDigest &&
-		now.Before(decision.ExpiresAt.UTC()) &&
-		protectedlocal.IsAbsolutePathForOperatingSystem(decision.Process.OS, decision.ProjectRoot) &&
-		protectedlocal.IsLocalDevelopmentProcessTrustSet(decision.Process) &&
-		protectedlocal.IsAbsolutePathForOperatingSystem(decision.Process.OS, decision.Process.CanonicalExecutablePath)
-	return direct || sessionScoped
-}
-
 // artifactOwnerMatches authorizes the uploader-owned read path
 // (rule.nimi.runtime.agent-participation.r171): the exact subject + app that
 // uploaded the artifact may read it back. Records without owner metadata
@@ -226,17 +167,4 @@ func artifactOwnerMatches(owner *ArtifactOwner, subjectUserID string, appID stri
 	subjectUserID = strings.TrimSpace(subjectUserID)
 	appID = strings.TrimSpace(appID)
 	return subjectUserID != "" && appID != "" && owner.SubjectUserID == subjectUserID && owner.AppID == appID
-}
-
-func artifactAudienceMatches(audience *ArtifactAudience, decision accountservice.LocalAppCallerDecision, now time.Time) bool {
-	if audience == nil || audience.AllowedUse != ArtifactUseReadBytes || !now.Before(audience.ExpiresAt.UTC()) ||
-		audience.OwnerAccountID != decision.AccountID || audience.AppID != decision.AppID ||
-		audience.ReleaseDigest != decision.HostExecutableDigest || audience.SessionID != decision.SessionID ||
-		audience.AccountGeneration != decision.AccountGeneration {
-		return false
-	}
-	return decision.TrustClass == accountservice.LocalAppTrustClassDevelopment && audience.TrustClass == "local_development" &&
-		audience.RegistrationHandle == decision.RegistrationHandle && audience.RegisteredAppSubject == decision.RegisteredAppSubject &&
-		audience.SourceGeneration == decision.SourceGeneration && audience.DeclarationGeneration == decision.DeclarationGeneration &&
-		audience.ProjectRoot == decision.ProjectRoot
 }

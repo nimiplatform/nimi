@@ -11,8 +11,8 @@ func TestSubjectUserIDFromContextUsesAuthorizedLocalAppAccount(t *testing.T) {
 	ctx := accountservice.ContextWithAuthorizedLocalAppDecision(context.Background(), accountservice.LocalAppCallerDecision{
 		RegisteredAppSubject: "principal-local-app",
 		AccountID:            "account-local-app",
-		Operation:            accountservice.LocalAppOperationSharedAIConfigGet,
-		OperationCapability:  "agents.configure",
+		Operation:            accountservice.LocalAppOperationReferenceList,
+		OperationCapability:  "agent.local",
 	})
 	subjectUserID, ok := subjectUserIDFromContext(ctx)
 	if !ok || subjectUserID != "account-local-app" {

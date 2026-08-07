@@ -378,6 +378,15 @@ pub enum ReasonCode {
     AiLocalExecutionCanceled = 703,
     AiLocalExecutionProcessCrashed = 704,
     AiLocalExecutionContentMismatch = 705,
+    /// Runtime-private App ingress admission and owner handoff. These reasons
+    /// distinguish a missing snapshot or uncovered operation from a structurally
+    /// unsupported ingress and from an admitted operation whose owner adapter is
+    /// not implemented in the current phase.
+    LocalAppSnapshotUnavailable = 706,
+    LocalAppAccessDenied = 707,
+    LocalAppOperationUnsupported = 708,
+    LocalAppOwnerUnavailable = 709,
+    CurrentUserDisplayUnavailable = 710,
 }
 impl ReasonCode {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -706,6 +715,11 @@ impl ReasonCode {
             Self::AiLocalExecutionContentMismatch => {
                 "AI_LOCAL_EXECUTION_CONTENT_MISMATCH"
             }
+            Self::LocalAppSnapshotUnavailable => "LOCAL_APP_SNAPSHOT_UNAVAILABLE",
+            Self::LocalAppAccessDenied => "LOCAL_APP_ACCESS_DENIED",
+            Self::LocalAppOperationUnsupported => "LOCAL_APP_OPERATION_UNSUPPORTED",
+            Self::LocalAppOwnerUnavailable => "LOCAL_APP_OWNER_UNAVAILABLE",
+            Self::CurrentUserDisplayUnavailable => "CURRENT_USER_DISPLAY_UNAVAILABLE",
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
@@ -1087,6 +1101,13 @@ impl ReasonCode {
             "AI_LOCAL_EXECUTION_CONTENT_MISMATCH" => {
                 Some(Self::AiLocalExecutionContentMismatch)
             }
+            "LOCAL_APP_SNAPSHOT_UNAVAILABLE" => Some(Self::LocalAppSnapshotUnavailable),
+            "LOCAL_APP_ACCESS_DENIED" => Some(Self::LocalAppAccessDenied),
+            "LOCAL_APP_OPERATION_UNSUPPORTED" => Some(Self::LocalAppOperationUnsupported),
+            "LOCAL_APP_OWNER_UNAVAILABLE" => Some(Self::LocalAppOwnerUnavailable),
+            "CURRENT_USER_DISPLAY_UNAVAILABLE" => {
+                Some(Self::CurrentUserDisplayUnavailable)
+            }
             _ => None,
         }
     }
@@ -1238,17 +1259,27 @@ pub struct OpenDesktopSessionResponse {
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct OpenLocalAppSessionRequest {}
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct CurrentUserDisplayProjection {
+    #[prost(string, tag = "1")]
+    pub handle: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub display_name: ::prost::alloc::string::String,
+    #[prost(string, optional, tag = "3")]
+    pub avatar_url: ::core::option::Option<::prost::alloc::string::String>,
+}
+/// Session posture stays non-authoritative. The optional Current User display
+/// value contains exactly the three display-safe fields; its independent reason
+/// cannot fail or downgrade the private App Access session.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct OpenLocalAppSessionResponse {
     #[prost(enumeration = "LocalAppSessionState", tag = "1")]
     pub state: i32,
-    #[prost(enumeration = "LocalAppTrustClass", tag = "2")]
-    pub trust_class: i32,
-    #[prost(uint64, tag = "3")]
-    pub account_generation: u64,
-    #[prost(bytes = "vec", tag = "4")]
-    pub runtime_boot_epoch: ::prost::alloc::vec::Vec<u8>,
     #[prost(enumeration = "ReasonCode", tag = "5")]
     pub reason_code: i32,
+    #[prost(message, optional, tag = "6")]
+    pub current_user: ::core::option::Option<CurrentUserDisplayProjection>,
+    #[prost(enumeration = "ReasonCode", tag = "7")]
+    pub current_user_reason_code: i32,
 }
 /// Request-empty by design. Runtime accepts renewal only on the same verified
 /// local_app_host connection that already owns the current private session.
@@ -12767,6 +12798,26 @@ pub struct BindLocalAppProcessResponse {
     #[prost(enumeration = "ReasonCode", tag = "3")]
     pub reason_code: i32,
 }
+/// Source-only per-user D2 reauthorizes the already-running exact Desktop
+/// child after Runtime loss. Runtime derives all authority from the protected
+/// Desktop connection, current registration/run, and fresh kernel process
+/// witness; the request carries no App principal or credential.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct RebindLocalAppProcessRequest {
+    #[prost(bytes = "vec", tag = "1")]
+    pub launch_id: ::prost::alloc::vec::Vec<u8>,
+    #[prost(uint32, tag = "2")]
+    pub child_process_id: u32,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct RebindLocalAppProcessResponse {
+    #[prost(bytes = "vec", tag = "1")]
+    pub launch_id: ::prost::alloc::vec::Vec<u8>,
+    #[prost(message, optional, tag = "2")]
+    pub bind_deadline: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(enumeration = "ReasonCode", tag = "3")]
+    pub reason_code: i32,
+}
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]
 pub enum AppMessageEventType {
@@ -13149,6 +13200,35 @@ pub mod runtime_app_service_client {
                     GrpcMethod::new(
                         "nimi.runtime.v1.RuntimeAppService",
                         "BindLocalAppProcess",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn rebind_local_app_process(
+            &mut self,
+            request: impl tonic::IntoRequest<super::RebindLocalAppProcessRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::RebindLocalAppProcessResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAppService/RebindLocalAppProcess",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAppService",
+                        "RebindLocalAppProcess",
                     ),
                 );
             self.inner.unary(req, path, codec).await
@@ -16078,205 +16158,6 @@ impl CompanionParticipationStatus {
         }
     }
 }
-/// Shared LocalAgent AIConfig actions resolve the singular subsystem owner from
-/// the authorized account scope and carry no Agent handle. Autonomy and
-/// presentation remain per-Agent and continue to require Runtime-issued handles.
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct LocalAppSharedLocalAgentAiConfigProjection {
-    #[prost(message, optional, tag = "1")]
-    pub config: ::core::option::Option<AiConfig>,
-}
-#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct GetLocalAppSharedLocalAgentAiConfigRequest {}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct GetLocalAppSharedLocalAgentAiConfigResponse {
-    #[prost(message, optional, tag = "1")]
-    pub projection: ::core::option::Option<LocalAppSharedLocalAgentAiConfigProjection>,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct OverwriteLocalAppSharedLocalAgentAiConfigRequest {
-    #[prost(message, repeated, tag = "1")]
-    pub capabilities: ::prost::alloc::vec::Vec<AiConfigCapabilityIntent>,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct OverwriteLocalAppSharedLocalAgentAiConfigResponse {
-    #[prost(message, optional, tag = "1")]
-    pub projection: ::core::option::Option<LocalAppSharedLocalAgentAiConfigProjection>,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct PreviewLocalAppSharedLocalAgentAiProfileRequest {
-    #[prost(bytes = "vec", tag = "1")]
-    pub profile_json: ::prost::alloc::vec::Vec<u8>,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct PreviewLocalAppSharedLocalAgentAiProfileResponse {
-    #[prost(message, optional, tag = "1")]
-    pub before: ::core::option::Option<LocalAppSharedLocalAgentAiConfigProjection>,
-    #[prost(message, optional, tag = "2")]
-    pub after: ::core::option::Option<LocalAppSharedLocalAgentAiConfigProjection>,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct ApplyLocalAppSharedLocalAgentAiProfileRequest {
-    #[prost(bytes = "vec", tag = "1")]
-    pub profile_json: ::prost::alloc::vec::Vec<u8>,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct ApplyLocalAppSharedLocalAgentAiProfileResponse {
-    #[prost(message, optional, tag = "1")]
-    pub projection: ::core::option::Option<LocalAppSharedLocalAgentAiConfigProjection>,
-}
-#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct LocalAppAgentAutonomyConfig {
-    #[prost(int64, tag = "1")]
-    pub daily_token_budget: i64,
-    #[prost(int64, tag = "2")]
-    pub max_tokens_per_hook: i64,
-    #[prost(message, optional, tag = "3")]
-    pub min_hook_interval: ::core::option::Option<::prost_types::Duration>,
-    #[prost(message, optional, tag = "4")]
-    pub suspend_until: ::core::option::Option<::prost_types::Timestamp>,
-    #[prost(enumeration = "LocalAppAgentAutonomyMode", tag = "5")]
-    pub mode: i32,
-}
-#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct LocalAppAgentAutonomyProjection {
-    #[prost(bool, tag = "1")]
-    pub enabled: bool,
-    #[prost(message, optional, tag = "2")]
-    pub config: ::core::option::Option<LocalAppAgentAutonomyConfig>,
-    #[prost(int64, tag = "3")]
-    pub used_tokens_in_window: i64,
-    #[prost(message, optional, tag = "4")]
-    pub window_started_at: ::core::option::Option<::prost_types::Timestamp>,
-    #[prost(bool, tag = "5")]
-    pub budget_exhausted: bool,
-    #[prost(message, optional, tag = "6")]
-    pub suspended_until: ::core::option::Option<::prost_types::Timestamp>,
-    #[prost(uint64, tag = "7")]
-    pub autonomy_revision: u64,
-}
-#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct LocalAppAgentAutonomyIntent {
-    #[prost(bool, optional, tag = "1")]
-    pub enabled: ::core::option::Option<bool>,
-    #[prost(message, optional, tag = "2")]
-    pub config: ::core::option::Option<LocalAppAgentAutonomyConfig>,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct GetLocalAppAgentAutonomySnapshotRequest {
-    #[prost(string, tag = "1")]
-    pub agent_handle: ::prost::alloc::string::String,
-}
-#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct LocalAppAgentAutonomySnapshotResponse {
-    #[prost(message, optional, tag = "1")]
-    pub projection: ::core::option::Option<LocalAppAgentAutonomyProjection>,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct UpdateLocalAppAgentAutonomyRequest {
-    #[prost(string, tag = "1")]
-    pub agent_handle: ::prost::alloc::string::String,
-    #[prost(uint64, tag = "2")]
-    pub expected_autonomy_revision: u64,
-    #[prost(message, optional, tag = "3")]
-    pub intent: ::core::option::Option<LocalAppAgentAutonomyIntent>,
-}
-#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct LocalAppAgentUpdateAutonomyResponse {
-    #[prost(message, optional, tag = "1")]
-    pub projection: ::core::option::Option<LocalAppAgentAutonomyProjection>,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct LocalAppAgentPresentationProjection {
-    #[prost(message, optional, tag = "1")]
-    pub profile: ::core::option::Option<AgentPresentationProfile>,
-    #[prost(string, tag = "2")]
-    pub default_voice_reference: ::prost::alloc::string::String,
-    #[prost(uint64, tag = "3")]
-    pub presentation_revision: u64,
-    #[prost(message, optional, tag = "4")]
-    pub previous_profile: ::core::option::Option<AgentPresentationProfile>,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct LocalAppAgentPresentationIntent {
-    #[prost(enumeration = "AgentPresentationBackendKind", tag = "1")]
-    pub backend_kind: i32,
-    #[prost(string, tag = "2")]
-    pub avatar_asset_ref: ::prost::alloc::string::String,
-    #[prost(string, tag = "3")]
-    pub expression_profile_ref: ::prost::alloc::string::String,
-    #[prost(string, tag = "4")]
-    pub idle_preset: ::prost::alloc::string::String,
-    #[prost(string, tag = "5")]
-    pub interaction_policy_ref: ::prost::alloc::string::String,
-    #[prost(string, tag = "6")]
-    pub default_voice_reference: ::prost::alloc::string::String,
-    #[prost(bool, tag = "7")]
-    pub avatar_autoplay: bool,
-    #[prost(string, tag = "8")]
-    pub background_asset_ref: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct GetLocalAppAgentPresentationSnapshotRequest {
-    #[prost(string, tag = "1")]
-    pub agent_handle: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct LocalAppAgentPresentationSnapshotResponse {
-    #[prost(message, optional, tag = "1")]
-    pub projection: ::core::option::Option<LocalAppAgentPresentationProjection>,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct CommitLocalAppAgentPresentationRequest {
-    #[prost(string, tag = "1")]
-    pub agent_handle: ::prost::alloc::string::String,
-    #[prost(uint64, tag = "2")]
-    pub expected_presentation_revision: u64,
-    #[prost(message, optional, tag = "3")]
-    pub intent: ::core::option::Option<LocalAppAgentPresentationIntent>,
-    #[prost(message, repeated, tag = "4")]
-    pub imported_assets: ::prost::alloc::vec::Vec<AgentPresentationAssetMaterial>,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct LocalAppAgentCommitPresentationResponse {
-    #[prost(message, optional, tag = "1")]
-    pub projection: ::core::option::Option<LocalAppAgentPresentationProjection>,
-}
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-#[repr(i32)]
-pub enum LocalAppAgentAutonomyMode {
-    Unspecified = 0,
-    Off = 1,
-    Low = 2,
-    Medium = 3,
-    High = 4,
-}
-impl LocalAppAgentAutonomyMode {
-    /// String value of the enum field names used in the ProtoBuf definition.
-    ///
-    /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-    pub fn as_str_name(&self) -> &'static str {
-        match self {
-            Self::Unspecified => "LOCAL_APP_AGENT_AUTONOMY_MODE_UNSPECIFIED",
-            Self::Off => "LOCAL_APP_AGENT_AUTONOMY_MODE_OFF",
-            Self::Low => "LOCAL_APP_AGENT_AUTONOMY_MODE_LOW",
-            Self::Medium => "LOCAL_APP_AGENT_AUTONOMY_MODE_MEDIUM",
-            Self::High => "LOCAL_APP_AGENT_AUTONOMY_MODE_HIGH",
-        }
-    }
-    /// Creates an enum from field names used in the ProtoBuf definition.
-    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-        match value {
-            "LOCAL_APP_AGENT_AUTONOMY_MODE_UNSPECIFIED" => Some(Self::Unspecified),
-            "LOCAL_APP_AGENT_AUTONOMY_MODE_OFF" => Some(Self::Off),
-            "LOCAL_APP_AGENT_AUTONOMY_MODE_LOW" => Some(Self::Low),
-            "LOCAL_APP_AGENT_AUTONOMY_MODE_MEDIUM" => Some(Self::Medium),
-            "LOCAL_APP_AGENT_AUTONOMY_MODE_HIGH" => Some(Self::High),
-            _ => None,
-        }
-    }
-}
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct WorldEntityRefV3 {
     #[prost(enumeration = "WorldEntityRefKindV3", tag = "1")]
@@ -18291,6 +18172,191 @@ pub struct OpenConversationAnchorResponse {
     #[prost(message, optional, tag = "1")]
     pub snapshot: ::core::option::Option<ConversationAnchorSnapshot>,
 }
+/// Protected Third-party Local Apps receive only this minimal current-account
+/// active-Agent catalog. The handle is a session-scoped opaque selector; it is
+/// never a raw LocalAgent identity or durable authorization.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalAppAgentReference {
+    #[prost(string, tag = "1")]
+    pub agent_handle: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub display_name: ::prost::alloc::string::String,
+    #[prost(string, optional, tag = "3")]
+    pub avatar_url: ::core::option::Option<::prost::alloc::string::String>,
+}
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ListLocalAppAgentReferencesRequest {}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ListLocalAppAgentReferencesResponse {
+    #[prost(message, repeated, tag = "1")]
+    pub references: ::prost::alloc::vec::Vec<LocalAppAgentReference>,
+}
+/// Protected Third-party Local App Conversation ingress is text-only and uses
+/// the session-scoped Agent selector above. These messages intentionally carry
+/// no raw LocalAgent identity, generic App-message envelope, attachment,
+/// execution configuration, provider choice, or caller-authored context.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct OpenLocalAppConversationRequest {
+    #[prost(string, tag = "1")]
+    pub agent_handle: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct OpenLocalAppConversationResponse {
+    #[prost(string, tag = "1")]
+    pub conversation_anchor_id: ::prost::alloc::string::String,
+    #[prost(string, optional, tag = "2")]
+    pub active_turn_id: ::core::option::Option<::prost::alloc::string::String>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct SendLocalAppConversationTurnRequest {
+    #[prost(string, tag = "1")]
+    pub agent_handle: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub conversation_anchor_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub request_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub text: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct SendLocalAppConversationTurnResponse {
+    #[prost(string, tag = "1")]
+    pub turn_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct InterruptLocalAppConversationTurnRequest {
+    #[prost(string, tag = "1")]
+    pub agent_handle: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub conversation_anchor_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct InterruptLocalAppConversationTurnResponse {
+    #[prost(string, tag = "1")]
+    pub turn_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct SubscribeLocalAppConversationEventsRequest {
+    #[prost(string, tag = "1")]
+    pub agent_handle: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub conversation_anchor_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct GetLocalAppConversationSnapshotRequest {
+    #[prost(string, tag = "1")]
+    pub agent_handle: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub conversation_anchor_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalAppConversationMessage {
+    #[prost(string, tag = "1")]
+    pub turn_id: ::prost::alloc::string::String,
+    #[prost(enumeration = "LocalAppConversationMessageRole", tag = "2")]
+    pub role: i32,
+    #[prost(string, tag = "3")]
+    pub text: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct LocalAppConversationSnapshot {
+    #[prost(string, tag = "1")]
+    pub conversation_anchor_id: ::prost::alloc::string::String,
+    #[prost(string, optional, tag = "2")]
+    pub active_turn_id: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(message, repeated, tag = "3")]
+    pub messages: ::prost::alloc::vec::Vec<LocalAppConversationMessage>,
+    #[prost(bool, tag = "4")]
+    pub truncated_before: bool,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct GetLocalAppConversationSnapshotResponse {
+    #[prost(message, optional, tag = "1")]
+    pub snapshot: ::core::option::Option<LocalAppConversationSnapshot>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalAppConversationTurnAccepted {
+    #[prost(string, tag = "1")]
+    pub turn_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub request_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalAppConversationTurnStarted {
+    #[prost(string, tag = "1")]
+    pub turn_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalAppConversationTextDelta {
+    #[prost(string, tag = "1")]
+    pub turn_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub text: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalAppConversationMessageCommitted {
+    #[prost(string, tag = "1")]
+    pub turn_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub message_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub text: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalAppConversationTurnCompleted {
+    #[prost(string, tag = "1")]
+    pub turn_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub terminal_reason: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalAppConversationTurnFailed {
+    #[prost(string, tag = "1")]
+    pub turn_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub reason_code: ::prost::alloc::string::String,
+    #[prost(string, optional, tag = "3")]
+    pub message: ::core::option::Option<::prost::alloc::string::String>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalAppConversationTurnInterrupted {
+    #[prost(string, tag = "1")]
+    pub turn_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub reason: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalAppConversationEvent {
+    #[prost(string, tag = "1")]
+    pub conversation_anchor_id: ::prost::alloc::string::String,
+    #[prost(uint64, tag = "2")]
+    pub sequence: u64,
+    #[prost(
+        oneof = "local_app_conversation_event::Event",
+        tags = "10, 11, 12, 13, 14, 15, 16"
+    )]
+    pub event: ::core::option::Option<local_app_conversation_event::Event>,
+}
+/// Nested message and enum types in `LocalAppConversationEvent`.
+pub mod local_app_conversation_event {
+    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
+    pub enum Event {
+        #[prost(message, tag = "10")]
+        TurnAccepted(super::LocalAppConversationTurnAccepted),
+        #[prost(message, tag = "11")]
+        TurnStarted(super::LocalAppConversationTurnStarted),
+        #[prost(message, tag = "12")]
+        TextDelta(super::LocalAppConversationTextDelta),
+        #[prost(message, tag = "13")]
+        MessageCommitted(super::LocalAppConversationMessageCommitted),
+        #[prost(message, tag = "14")]
+        TurnCompleted(super::LocalAppConversationTurnCompleted),
+        #[prost(message, tag = "15")]
+        TurnFailed(super::LocalAppConversationTurnFailed),
+        #[prost(message, tag = "16")]
+        TurnInterrupted(super::LocalAppConversationTurnInterrupted),
+    }
+}
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct GetConversationAnchorSnapshotRequest {
     #[prost(message, optional, tag = "1")]
@@ -19620,6 +19686,35 @@ impl AgentCanonicalMemoryBankMode {
         }
     }
 }
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum LocalAppConversationMessageRole {
+    Unspecified = 0,
+    User = 1,
+    Assistant = 2,
+}
+impl LocalAppConversationMessageRole {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "LOCAL_APP_CONVERSATION_MESSAGE_ROLE_UNSPECIFIED",
+            Self::User => "LOCAL_APP_CONVERSATION_MESSAGE_ROLE_USER",
+            Self::Assistant => "LOCAL_APP_CONVERSATION_MESSAGE_ROLE_ASSISTANT",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "LOCAL_APP_CONVERSATION_MESSAGE_ROLE_UNSPECIFIED" => Some(Self::Unspecified),
+            "LOCAL_APP_CONVERSATION_MESSAGE_ROLE_USER" => Some(Self::User),
+            "LOCAL_APP_CONVERSATION_MESSAGE_ROLE_ASSISTANT" => Some(Self::Assistant),
+            _ => None,
+        }
+    }
+}
 /// Generated client implementations.
 pub mod runtime_agent_service_client {
     #![allow(
@@ -19821,6 +19916,186 @@ pub mod runtime_agent_service_client {
             req.extensions_mut()
                 .insert(
                     GrpcMethod::new("nimi.runtime.v1.RuntimeAgentService", "ListAgents"),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn list_local_app_agent_references(
+            &mut self,
+            request: impl tonic::IntoRequest<super::ListLocalAppAgentReferencesRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::ListLocalAppAgentReferencesResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentReferences",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAgentService",
+                        "ListLocalAppAgentReferences",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn open_local_app_conversation(
+            &mut self,
+            request: impl tonic::IntoRequest<super::OpenLocalAppConversationRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::OpenLocalAppConversationResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAgentService/OpenLocalAppConversation",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAgentService",
+                        "OpenLocalAppConversation",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn send_local_app_conversation_turn(
+            &mut self,
+            request: impl tonic::IntoRequest<super::SendLocalAppConversationTurnRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::SendLocalAppConversationTurnResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAgentService/SendLocalAppConversationTurn",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAgentService",
+                        "SendLocalAppConversationTurn",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn interrupt_local_app_conversation_turn(
+            &mut self,
+            request: impl tonic::IntoRequest<
+                super::InterruptLocalAppConversationTurnRequest,
+            >,
+        ) -> std::result::Result<
+            tonic::Response<super::InterruptLocalAppConversationTurnResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAgentService/InterruptLocalAppConversationTurn",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAgentService",
+                        "InterruptLocalAppConversationTurn",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn subscribe_local_app_conversation_events(
+            &mut self,
+            request: impl tonic::IntoRequest<
+                super::SubscribeLocalAppConversationEventsRequest,
+            >,
+        ) -> std::result::Result<
+            tonic::Response<tonic::codec::Streaming<super::LocalAppConversationEvent>>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAgentService/SubscribeLocalAppConversationEvents",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAgentService",
+                        "SubscribeLocalAppConversationEvents",
+                    ),
+                );
+            self.inner.server_streaming(req, path, codec).await
+        }
+        pub async fn get_local_app_conversation_snapshot(
+            &mut self,
+            request: impl tonic::IntoRequest<
+                super::GetLocalAppConversationSnapshotRequest,
+            >,
+        ) -> std::result::Result<
+            tonic::Response<super::GetLocalAppConversationSnapshotResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppConversationSnapshot",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAgentService",
+                        "GetLocalAppConversationSnapshot",
+                    ),
                 );
             self.inner.unary(req, path, codec).await
         }
@@ -21062,254 +21337,6 @@ pub mod runtime_agent_service_client {
                     GrpcMethod::new(
                         "nimi.runtime.v1.RuntimeAgentService",
                         "ApplySharedLocalAgentAIProfile",
-                    ),
-                );
-            self.inner.unary(req, path, codec).await
-        }
-        /// Reserved agents.configure carrier. Protected-local admission remains
-        /// fail-closed until the owner-complete publication flip.
-        pub async fn get_local_app_shared_local_agent_ai_config(
-            &mut self,
-            request: impl tonic::IntoRequest<
-                super::GetLocalAppSharedLocalAgentAiConfigRequest,
-            >,
-        ) -> std::result::Result<
-            tonic::Response<super::GetLocalAppSharedLocalAgentAiConfigResponse>,
-            tonic::Status,
-        > {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::unknown(
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
-            let codec = tonic_prost::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppSharedLocalAgentAIConfig",
-            );
-            let mut req = request.into_request();
-            req.extensions_mut()
-                .insert(
-                    GrpcMethod::new(
-                        "nimi.runtime.v1.RuntimeAgentService",
-                        "GetLocalAppSharedLocalAgentAIConfig",
-                    ),
-                );
-            self.inner.unary(req, path, codec).await
-        }
-        pub async fn overwrite_local_app_shared_local_agent_ai_config(
-            &mut self,
-            request: impl tonic::IntoRequest<
-                super::OverwriteLocalAppSharedLocalAgentAiConfigRequest,
-            >,
-        ) -> std::result::Result<
-            tonic::Response<super::OverwriteLocalAppSharedLocalAgentAiConfigResponse>,
-            tonic::Status,
-        > {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::unknown(
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
-            let codec = tonic_prost::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/nimi.runtime.v1.RuntimeAgentService/OverwriteLocalAppSharedLocalAgentAIConfig",
-            );
-            let mut req = request.into_request();
-            req.extensions_mut()
-                .insert(
-                    GrpcMethod::new(
-                        "nimi.runtime.v1.RuntimeAgentService",
-                        "OverwriteLocalAppSharedLocalAgentAIConfig",
-                    ),
-                );
-            self.inner.unary(req, path, codec).await
-        }
-        pub async fn preview_local_app_shared_local_agent_ai_profile(
-            &mut self,
-            request: impl tonic::IntoRequest<
-                super::PreviewLocalAppSharedLocalAgentAiProfileRequest,
-            >,
-        ) -> std::result::Result<
-            tonic::Response<super::PreviewLocalAppSharedLocalAgentAiProfileResponse>,
-            tonic::Status,
-        > {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::unknown(
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
-            let codec = tonic_prost::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/nimi.runtime.v1.RuntimeAgentService/PreviewLocalAppSharedLocalAgentAIProfile",
-            );
-            let mut req = request.into_request();
-            req.extensions_mut()
-                .insert(
-                    GrpcMethod::new(
-                        "nimi.runtime.v1.RuntimeAgentService",
-                        "PreviewLocalAppSharedLocalAgentAIProfile",
-                    ),
-                );
-            self.inner.unary(req, path, codec).await
-        }
-        pub async fn apply_local_app_shared_local_agent_ai_profile(
-            &mut self,
-            request: impl tonic::IntoRequest<
-                super::ApplyLocalAppSharedLocalAgentAiProfileRequest,
-            >,
-        ) -> std::result::Result<
-            tonic::Response<super::ApplyLocalAppSharedLocalAgentAiProfileResponse>,
-            tonic::Status,
-        > {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::unknown(
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
-            let codec = tonic_prost::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/nimi.runtime.v1.RuntimeAgentService/ApplyLocalAppSharedLocalAgentAIProfile",
-            );
-            let mut req = request.into_request();
-            req.extensions_mut()
-                .insert(
-                    GrpcMethod::new(
-                        "nimi.runtime.v1.RuntimeAgentService",
-                        "ApplyLocalAppSharedLocalAgentAIProfile",
-                    ),
-                );
-            self.inner.unary(req, path, codec).await
-        }
-        pub async fn get_local_app_agent_autonomy_snapshot(
-            &mut self,
-            request: impl tonic::IntoRequest<
-                super::GetLocalAppAgentAutonomySnapshotRequest,
-            >,
-        ) -> std::result::Result<
-            tonic::Response<super::LocalAppAgentAutonomySnapshotResponse>,
-            tonic::Status,
-        > {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::unknown(
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
-            let codec = tonic_prost::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentAutonomySnapshot",
-            );
-            let mut req = request.into_request();
-            req.extensions_mut()
-                .insert(
-                    GrpcMethod::new(
-                        "nimi.runtime.v1.RuntimeAgentService",
-                        "GetLocalAppAgentAutonomySnapshot",
-                    ),
-                );
-            self.inner.unary(req, path, codec).await
-        }
-        pub async fn update_local_app_agent_autonomy(
-            &mut self,
-            request: impl tonic::IntoRequest<super::UpdateLocalAppAgentAutonomyRequest>,
-        ) -> std::result::Result<
-            tonic::Response<super::LocalAppAgentUpdateAutonomyResponse>,
-            tonic::Status,
-        > {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::unknown(
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
-            let codec = tonic_prost::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppAgentAutonomy",
-            );
-            let mut req = request.into_request();
-            req.extensions_mut()
-                .insert(
-                    GrpcMethod::new(
-                        "nimi.runtime.v1.RuntimeAgentService",
-                        "UpdateLocalAppAgentAutonomy",
-                    ),
-                );
-            self.inner.unary(req, path, codec).await
-        }
-        pub async fn get_local_app_agent_presentation_snapshot(
-            &mut self,
-            request: impl tonic::IntoRequest<
-                super::GetLocalAppAgentPresentationSnapshotRequest,
-            >,
-        ) -> std::result::Result<
-            tonic::Response<super::LocalAppAgentPresentationSnapshotResponse>,
-            tonic::Status,
-        > {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::unknown(
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
-            let codec = tonic_prost::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentPresentationSnapshot",
-            );
-            let mut req = request.into_request();
-            req.extensions_mut()
-                .insert(
-                    GrpcMethod::new(
-                        "nimi.runtime.v1.RuntimeAgentService",
-                        "GetLocalAppAgentPresentationSnapshot",
-                    ),
-                );
-            self.inner.unary(req, path, codec).await
-        }
-        pub async fn commit_local_app_agent_presentation(
-            &mut self,
-            request: impl tonic::IntoRequest<
-                super::CommitLocalAppAgentPresentationRequest,
-            >,
-        ) -> std::result::Result<
-            tonic::Response<super::LocalAppAgentCommitPresentationResponse>,
-            tonic::Status,
-        > {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::unknown(
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
-            let codec = tonic_prost::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/nimi.runtime.v1.RuntimeAgentService/CommitLocalAppAgentPresentation",
-            );
-            let mut req = request.into_request();
-            req.extensions_mut()
-                .insert(
-                    GrpcMethod::new(
-                        "nimi.runtime.v1.RuntimeAgentService",
-                        "CommitLocalAppAgentPresentation",
                     ),
                 );
             self.inner.unary(req, path, codec).await

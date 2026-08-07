@@ -198,17 +198,6 @@
   border-radius: 16px;
 }
 
-.zhiyu-agent-rail__agent-row.is-unavailable:hover .zhiyu-agent-rail__agent-indicator {
-  height: 0;
-  opacity: 0;
-}
-
-.zhiyu-agent-rail__agent.is-unavailable {
-  background: var(--nimi-surface-subtle, #e2e8f0);
-  color: var(--nimi-text-muted, #64748b);
-  box-shadow: inset 0 0 0 1px var(--nimi-border-subtle, rgba(15, 23, 42, 0.12));
-}
-
 .zhiyu-agent-rail__tools {
   display: grid;
   width: 100%;
@@ -275,7 +264,6 @@
 
 .zhiyu-chat-canvas__transcript [data-canonical-transcript-width],
 .zhiyu-chat-canvas__composer [data-canonical-composer-width],
-.zhiyu-home__runtime-action-artifact-summary,
 .zhiyu-home__chat-failure-notice {
   width: min(720px, 100%);
   max-width: min(720px, 100%);
@@ -285,7 +273,6 @@
 
 .zhiyu-agent-chat__layout.is-side-closed .zhiyu-chat-canvas__transcript [data-canonical-transcript-width],
 .zhiyu-agent-chat__layout.is-side-closed .zhiyu-chat-canvas__composer [data-canonical-composer-width],
-.zhiyu-agent-chat__layout.is-side-closed .zhiyu-home__runtime-action-artifact-summary,
 .zhiyu-agent-chat__layout.is-side-closed .zhiyu-home__chat-failure-notice {
   width: min(720px, 100%);
   max-width: min(720px, 100%);
@@ -519,78 +506,6 @@
   color: #475569;
 }
 
-.zhiyu-source-not-ready-empty {
-  width: min(620px, 100%);
-  margin: auto;
-}
-
-.zhiyu-source-not-ready-empty__description {
-  display: grid;
-  min-width: 0;
-  gap: 12px;
-}
-
-.zhiyu-source-not-ready-empty__description > p {
-  margin: 0;
-  line-height: 1.75;
-}
-
-.zhiyu-source-not-ready-empty__actions {
-  display: flex;
-  max-width: 100%;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 10px;
-}
-
-.zhiyu-source-not-ready-empty__diagnostics {
-  min-width: 0;
-  text-align: left;
-}
-
-.zhiyu-source-not-ready-empty__diagnostics summary {
-  width: fit-content;
-  margin: 0 auto;
-  cursor: pointer;
-  color: var(--nimi-text-secondary, #475569);
-  font-weight: 700;
-}
-
-.zhiyu-source-not-ready-empty__diagnostics dl {
-  display: grid;
-  min-width: 0;
-  gap: 8px;
-  margin: 10px 0 0;
-  padding: 10px 12px;
-  border: 1px solid var(--nimi-border-subtle, rgba(15, 23, 42, 0.12));
-  border-radius: var(--nimi-radius-md, 12px);
-  background: var(--nimi-surface-panel, rgba(255, 255, 255, 0.72));
-}
-
-.zhiyu-source-not-ready-empty__diagnostics dl > div {
-  display: grid;
-  min-width: 0;
-  grid-template-columns: 4em minmax(0, 1fr);
-  gap: 8px;
-}
-
-.zhiyu-source-not-ready-empty__diagnostics dt {
-  font-weight: 700;
-}
-
-.zhiyu-source-not-ready-empty__diagnostics dd {
-  min-width: 0;
-  margin: 0;
-}
-
-.zhiyu-source-not-ready-empty__diagnostics code {
-  display: block;
-  white-space: normal;
-  word-break: break-word;
-  overflow-wrap: anywhere;
-  font-size: 11px;
-}
-
 .zhiyu-chat-canvas__labeled-chip {
   display: inline-flex;
   min-width: 0;
@@ -602,62 +517,6 @@
   color: var(--nimi-text-muted, #64748b);
   font-size: 12px;
   font-weight: 650;
-}
-
-.zhiyu-home__runtime-action-artifact-summary {
-  display: grid;
-  gap: 8px;
-  min-width: 0;
-  padding: 12px 14px;
-  border: 1px solid rgba(226, 232, 240, 0.76);
-  border-radius: 14px;
-  background: rgba(255, 255, 255, 0.62);
-  color: #334155;
-  font-size: 12px;
-  line-height: 1.45;
-  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.05);
-}
-
-.zhiyu-home__runtime-action-artifact-head {
-  display: flex;
-  min-width: 0;
-  flex-wrap: wrap;
-  gap: 8px;
-  align-items: center;
-}
-
-.zhiyu-home__runtime-action-artifact-head span {
-  color: #64748b;
-  font-weight: 650;
-}
-
-.zhiyu-home__runtime-action-artifact-head strong {
-  color: #1f2937;
-  font-size: 12px;
-}
-
-.zhiyu-home__runtime-action-artifact-grid {
-  display: flex;
-  min-width: 0;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-.zhiyu-home__runtime-action-artifact-grid span {
-  max-width: 100%;
-  padding: 3px 7px;
-  overflow-wrap: anywhere;
-  border-radius: 999px;
-  background: rgba(241, 245, 249, 0.88);
-  color: #475569;
-  font-size: 11px;
-  font-weight: 650;
-}
-
-.zhiyu-home__runtime-action-artifact-summary p {
-  margin: 0;
-  color: #64748b;
-  overflow-wrap: anywhere;
 }
 
 .zhiyu-home__chat-failure-notice {
@@ -918,19 +777,6 @@
 
   .zhiyu-no-local-partner-empty h2 {
     font-size: 24px;
-  }
-
-  .zhiyu-source-not-ready-empty {
-    margin: 12px auto;
-    padding: 18px 14px;
-  }
-
-  .zhiyu-source-not-ready-empty__actions {
-    width: 100%;
-  }
-
-  .zhiyu-source-not-ready-empty__actions > button {
-    width: 100%;
   }
 }
 

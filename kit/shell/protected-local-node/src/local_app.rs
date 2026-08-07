@@ -155,120 +155,6 @@ fn project_agent_reference(reference: LocalAppAgentReference) -> JsonValue {
     })
 }
 
-#[napi(js_name = "localAppSharedAgentAIConfigGet")]
-pub async fn local_app_shared_agent_ai_config_get() -> NativeJsonOutcome {
-    invoke_agent(|session| async move { session.shared_agent_ai_config_get().await }).await
-}
-
-#[napi(js_name = "localAppSharedAgentAIConfigOverwrite")]
-pub async fn local_app_shared_agent_ai_config_overwrite(
-    input: NativeAIConfigOverwriteInput,
-) -> NativeJsonOutcome {
-    invoke_agent(|session| async move {
-        session
-            .shared_agent_ai_config_overwrite(LocalAppSharedAgentAIConfigOverwriteRequest {
-                capabilities: input.capabilities,
-            })
-            .await
-    })
-    .await
-}
-
-#[napi(js_name = "localAppSharedAgentAIProfilePreview")]
-pub async fn local_app_shared_agent_ai_profile_preview(
-    input: NativeSharedAgentAIProfileInput,
-) -> NativeJsonOutcome {
-    invoke_agent(|session| async move {
-        session
-            .shared_agent_ai_profile_preview(LocalAppSharedAgentAIProfileRequest {
-                profile_json: input.profile_json,
-            })
-            .await
-    })
-    .await
-}
-
-#[napi(js_name = "localAppSharedAgentAIProfileApply")]
-pub async fn local_app_shared_agent_ai_profile_apply(
-    input: NativeSharedAgentAIProfileInput,
-) -> NativeJsonOutcome {
-    invoke_agent(|session| async move {
-        session
-            .shared_agent_ai_profile_apply(LocalAppSharedAgentAIProfileRequest {
-                profile_json: input.profile_json,
-            })
-            .await
-    })
-    .await
-}
-
-#[napi(js_name = "localAppAgentAutonomySnapshot")]
-pub async fn local_app_agent_autonomy_snapshot(input: NativeAgentHandleInput) -> NativeJsonOutcome {
-    invoke_agent(|session| async move {
-        session
-            .agent_autonomy_snapshot(LocalAppAgentHandleRequest {
-                agent_handle: input.agent_handle,
-            })
-            .await
-    })
-    .await
-}
-
-#[napi(js_name = "localAppAgentUpdateAutonomy")]
-pub async fn local_app_agent_update_autonomy(
-    input: NativeAgentUpdateAutonomyInput,
-) -> NativeJsonOutcome {
-    let revision = match decimal_revision(&input.expected_autonomy_revision, false) {
-        Ok(value) => value,
-        Err(error) => return NativeJsonOutcome::error(error),
-    };
-    invoke_agent(|session| async move {
-        session
-            .agent_update_autonomy(LocalAppAgentUpdateAutonomyRequest {
-                agent_handle: input.agent_handle,
-                expected_autonomy_revision: revision,
-                intent: input.intent,
-            })
-            .await
-    })
-    .await
-}
-
-#[napi(js_name = "localAppAgentPresentationSnapshot")]
-pub async fn local_app_agent_presentation_snapshot(
-    input: NativeAgentHandleInput,
-) -> NativeJsonOutcome {
-    invoke_agent(|session| async move {
-        session
-            .agent_presentation_snapshot(LocalAppAgentHandleRequest {
-                agent_handle: input.agent_handle,
-            })
-            .await
-    })
-    .await
-}
-
-#[napi(js_name = "localAppAgentCommitPresentation")]
-pub async fn local_app_agent_commit_presentation(
-    input: NativeAgentCommitPresentationInput,
-) -> NativeJsonOutcome {
-    let revision = match decimal_revision(&input.expected_presentation_revision, true) {
-        Ok(value) => value,
-        Err(error) => return NativeJsonOutcome::error(error),
-    };
-    invoke_agent(|session| async move {
-        session
-            .agent_commit_presentation(LocalAppAgentCommitPresentationRequest {
-                agent_handle: input.agent_handle,
-                expected_presentation_revision: revision,
-                intent: input.intent,
-                imported_assets: input.imported_assets,
-            })
-            .await
-    })
-    .await
-}
-
 #[napi(js_name = "localAppStorageReadJson")]
 pub async fn local_app_storage_read_json(input: NativeStorageReadInput) -> NativeJsonOutcome {
     invoke_agent(|session| async move {
@@ -343,46 +229,6 @@ pub async fn local_app_conversation_send_turn(
             .map(|result| json!({ "turnId": result.turn_id }))
     })
     .await
-}
-
-#[napi(js_name = "localAppArtifactPut")]
-pub async fn local_app_artifact_put(input: NativeArtifactPutInput) -> NativeJsonOutcome {
-    invoke_agent(|session| async move {
-        session
-            .artifact_put(LocalAppArtifactPutRequest {
-                mime_type: input.mime_type,
-                display_name: input.display_name,
-                data: input.data.to_vec(),
-            })
-            .await
-            .map(|result| json!({ "artifactId": result.artifact_id }))
-    })
-    .await
-}
-
-#[napi(js_name = "localAppArtifactReadBytes")]
-pub async fn local_app_artifact_read_bytes(
-    input: NativeArtifactReadInput,
-) -> NativeArtifactReadOutcome {
-    let session = match current_or_open_session().await {
-        Ok(session) => session,
-        Err(error) => return NativeArtifactReadOutcome::error(error),
-    };
-    match session
-        .artifact_read_bytes(LocalAppArtifactReadRequest {
-            artifact_id: input.artifact_id,
-        })
-        .await
-    {
-        Ok(result) => NativeArtifactReadOutcome::success(NativeArtifactReadValue {
-            bytes: result.bytes.into(),
-            mime_type: result.mime_type,
-        }),
-        Err(error) => {
-            clear_session_on_transport_failure(&session, &error).await;
-            NativeArtifactReadOutcome::error(error)
-        }
-    }
 }
 
 #[napi(js_name = "localAppConversationInterruptTurn")]
@@ -579,29 +425,6 @@ fn project_conversation_event(event: LocalAppConversationEvent) -> JsonValue {
     projection
 }
 
-fn decimal_revision(value: &str, allow_zero: bool) -> Result<u64, LocalAppOperationError> {
-    if value.is_empty()
-        || value.trim() != value
-        || (value.len() > 1 && value.starts_with('0'))
-        || !value.bytes().all(|byte| byte.is_ascii_digit())
-    {
-        return Err(LocalAppOperationError::new(
-            LocalAppReasonCode::InvalidPayload,
-            false,
-        ));
-    }
-    let revision = value
-        .parse::<u64>()
-        .map_err(|_| LocalAppOperationError::new(LocalAppReasonCode::InvalidPayload, false))?;
-    if !allow_zero && revision == 0 {
-        return Err(LocalAppOperationError::new(
-            LocalAppReasonCode::InvalidPayload,
-            false,
-        ));
-    }
-    Ok(revision)
-}
-
 async fn invoke_agent<F, Fut>(operation: F) -> NativeJsonOutcome
 where
     F: FnOnce(Arc<dyn NimiLocalAppSession>) -> Fut,
@@ -631,25 +454,6 @@ async fn current_or_open_session() -> Result<Arc<dyn NimiLocalAppSession>, Local
     let session = Arc::<dyn NimiLocalAppSession>::from(opened);
     *current = Some(session.clone());
     Ok(session)
-}
-
-#[cfg(test)]
-mod configure_revision_tests {
-    use super::*;
-
-    #[test]
-    fn presentation_accepts_zero_but_other_mutations_require_positive_revisions() {
-        assert_eq!(
-            decimal_revision("0", true).expect("initial presentation"),
-            0
-        );
-        assert!(decimal_revision("0", false).is_err());
-        assert!(decimal_revision("01", true).is_err());
-        assert_eq!(
-            decimal_revision(&u64::MAX.to_string(), false).expect("u64 max"),
-            u64::MAX
-        );
-    }
 }
 
 fn invalidates_local_app_session(reason: LocalAppReasonCode) -> bool {

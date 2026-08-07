@@ -139,9 +139,6 @@ test('projects Runtime Agent state into companion state evidence without inventi
     'relationshipContext',
     'stateChangeHistory',
   ]);
-  assert.equal(companion.proactiveInterruptibility.ready, false);
-  assert.equal(companion.proactiveInterruptibility.state, 'blocked');
-  assert.equal(companion.proactiveInterruptibility.reasonCode, 'runtime-agent-proactive-interruptibility-not-projected');
 });
 
 test('fails closed before companion state read when LocalAgent is unavailable', async () => {
@@ -161,8 +158,6 @@ test('fails closed before companion state read when LocalAgent is unavailable', 
   assert.equal(companion.actionHint, 'select_runtime_owned_partner');
   assert.equal(companion.executionState, null);
   assert.equal(companion.statusText, null);
-  assert.equal(companion.proactiveInterruptibility.ready, false);
-  assert.equal(companion.proactiveInterruptibility.state, 'blocked');
 });
 
 test('fails closed before companion state read when LocalAgent source is not Runtime', async () => {
@@ -185,8 +180,6 @@ test('fails closed before companion state read when LocalAgent source is not Run
   assert.equal(companion.currentEmotionId, null);
   assert.equal(companion.currentEmotionCue, null);
   assert.equal(companion.participationMode, 'not_projected');
-  assert.equal(companion.proactiveInterruptibility.ready, false);
-  assert.equal(companion.proactiveInterruptibility.state, 'blocked');
 });
 
 test('fails closed when Runtime Agent state timestamp is missing', async () => {

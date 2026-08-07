@@ -185,29 +185,6 @@ pub(super) fn decode_hex_nibble(value: u8) -> Option<u8> {
     }
 }
 
-impl NativeArtifactReadOutcome {
-    pub(super) fn success(value: NativeArtifactReadValue) -> Self {
-        Self {
-            status: "ok".to_string(),
-            value: Some(value),
-            reason_code: None,
-            retryable: None,
-            reason_metadata: None,
-        }
-    }
-
-    pub(super) fn error(error: LocalAppOperationError) -> Self {
-        let reason_metadata = project_reason_metadata(error.reason_metadata());
-        Self {
-            status: "error".to_string(),
-            value: None,
-            reason_code: Some(error.reason_code().as_str().to_string()),
-            retryable: Some(error.retryable()),
-            reason_metadata,
-        }
-    }
-}
-
 impl NativeJsonOutcome {
     pub(super) fn success(value: JsonValue) -> Self {
         Self {

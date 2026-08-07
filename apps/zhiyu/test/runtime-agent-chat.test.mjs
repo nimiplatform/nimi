@@ -138,6 +138,54 @@ test('Zhiyu Runtime Agent chat consumes the admitted direct local-app conversati
   }
 });
 
+test('Zhiyu stop routes through the exact local App interrupt operation', async () => {
+  const module = await importRuntimeAgentChat();
+  const captured = [];
+  const controller = new AbortController();
+  const previousWindow = globalThis.window;
+  globalThis.window = {};
+  globalThis.__nimiZhiyuHasElectronRuntime = true;
+  try {
+    const result = await module.runZhiyuAgentChatTurn({
+      conversation: conversationReady(),
+      text: 'stop this turn',
+      requestId: 'zhiyu-turn-test-interrupt',
+      signal: controller.signal,
+      conversationClient: {
+        async subscribe(scope) {
+          captured.push({ method: 'subscribe', input: scope });
+          return {
+            async cancel() { captured.push({ method: 'cancel' }); },
+            [Symbol.asyncIterator]() {
+              return { next: () => new Promise(() => undefined) };
+            },
+          };
+        },
+        async send(input) {
+          captured.push({ method: 'send', input });
+          queueMicrotask(() => controller.abort());
+          return { turnId: 'runtime-turn-interrupted' };
+        },
+        async interruptTurn(input) {
+          captured.push({ method: 'interrupt', input });
+          return { turnId: 'runtime-turn-interrupted' };
+        },
+      },
+    });
+
+    assert.equal(result.state, 'canceled');
+    assert.deepEqual(captured.map(({ method }) => method), ['subscribe', 'send', 'interrupt', 'cancel']);
+    assert.deepEqual(captured[2].input, {
+      agentHandle: 'lah_v1_agent_opaque',
+      conversationAnchorId: 'conversation-anchor:opaque',
+    });
+  } finally {
+    delete globalThis.__nimiZhiyuHasElectronRuntime;
+    if (previousWindow === undefined) delete globalThis.window;
+    else globalThis.window = previousWindow;
+  }
+});
+
 test('Zhiyu Runtime Agent chat fails closed without an opaque account-scope Agent handle', async () => {
   const module = await importRuntimeAgentChat();
   let called = false;
@@ -190,105 +238,6 @@ test('Zhiyu Runtime Agent chat exposes mid-stream failure as failed, not accepte
     'text-delta',
     'turn-failed',
   ]);
-});
-
-test('Zhiyu Runtime Agent chat preserves Runtime action and artifact projection metadata', async () => {
-  const module = await importRuntimeAgentChat();
-
-  const result = await module.runZhiyuAgentChatTurn({
-    conversation: conversationReady(),
-    text: 'make a visual artifact',
-    requestId: 'zhiyu-turn-test-artifact',
-    streamTurn: async () => ({
-      stream: parts([
-        {
-          type: 'message-sealed',
-          envelope: {
-            message: {
-              messageId: 'runtime-message-artifact',
-              text: 'I prepared an artifact.',
-            },
-          },
-        },
-        {
-          type: 'beat-planned',
-          beatId: 'runtime-action-image-1',
-          projectionMessageId: 'runtime-message-artifact',
-        },
-        {
-          type: 'beat-delivery-started',
-          beatId: 'runtime-action-image-1',
-          projectionMessageId: 'runtime-message-artifact',
-        },
-        {
-          type: 'artifact-ready',
-          beatId: 'runtime-action-image-1',
-          artifactId: 'artifact-image-1',
-          mimeType: 'image/png',
-          projectionMessageId: 'runtime-message-artifact',
-        },
-        {
-          type: 'beat-delivered',
-          beatId: 'runtime-action-image-1',
-          artifactId: 'artifact-image-1',
-          mimeType: 'image/png',
-          projectionMessageId: 'runtime-message-artifact',
-        },
-        { type: 'turn-completed', outputText: 'I prepared an artifact.', finishReason: 'stop' },
-      ]),
-    }),
-  });
-
-  assert.deepEqual(result.events.map((event) => event.type), [
-    'turn-started',
-    'message-sealed',
-    'beat-planned',
-    'beat-delivery-started',
-    'artifact-ready',
-    'beat-delivered',
-    'turn-completed',
-  ]);
-  const artifacts = result.messages.at(-1)?.metadata?.artifacts;
-  assert.equal(Array.isArray(artifacts), true);
-  assert.equal(artifacts?.[0]?.artifactId, 'artifact-image-1');
-  assert.equal(artifacts?.[0]?.mimeType, 'image/png');
-  assert.equal(artifacts?.[0]?.uri ?? null, null);
-});
-
-test('Zhiyu Runtime Agent chat does not synthesize image previews without an admitted artifact surface', async () => {
-  const module = await importRuntimeAgentChat();
-
-  const result = await module.runZhiyuAgentChatTurn({
-    conversation: conversationReady(),
-    text: 'make a visual artifact',
-    requestId: 'zhiyu-turn-test-artifact-image',
-    streamTurn: async () => ({
-      stream: parts([
-        {
-          type: 'message-sealed',
-          envelope: {
-            message: {
-              messageId: 'runtime-message-artifact-image',
-              text: 'I prepared an image.',
-            },
-          },
-        },
-        {
-          type: 'artifact-ready',
-          beatId: 'runtime-action-image-1',
-          artifactId: 'artifact-image-1',
-          mimeType: 'image/png',
-          projectionMessageId: 'runtime-message-image-1',
-        },
-        { type: 'turn-completed', outputText: 'I prepared an image.', finishReason: 'stop' },
-      ]),
-    }),
-  });
-
-  assert.equal(result.ready, true);
-  const imageMessage = result.messages.find((message) => message.kind === 'image');
-  assert.equal(imageMessage, undefined);
-  assert.doesNotMatch(JSON.stringify(result.messages), /runtime-preview:|data:image\//u);
 });
 
 test('Zhiyu Runtime Agent chat turn requests carry canonical conversation identity and content', async () => {
@@ -601,6 +550,10 @@ function localAppConversationClient(captured) {
     },
     async send(request) {
       captured.push({ method: 'send', input: request });
+      return { turnId: 'runtime-turn-local-app' };
+    },
+    async interruptTurn(request) {
+      captured.push({ method: 'interrupt', input: request });
       return { turnId: 'runtime-turn-local-app' };
     },
   };

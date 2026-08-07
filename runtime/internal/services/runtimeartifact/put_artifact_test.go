@@ -11,40 +11,11 @@ import (
 	"log/slog"
 	"strings"
 	"testing"
-	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/protectedprincipal"
-	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
 )
-
-type putArtifactTestAuthorizer struct {
-	decision accountservice.LocalAppCallerDecision
-	err      error
-}
-
-func (authorizer putArtifactTestAuthorizer) AuthorizeLocalAppOperation(_ context.Context, operation accountservice.LocalAppOperation) (accountservice.LocalAppCallerDecision, error) {
-	if authorizer.err != nil {
-		return accountservice.LocalAppCallerDecision{}, authorizer.err
-	}
-	decision := authorizer.decision
-	decision.Operation = operation
-	switch operation {
-	case accountservice.LocalAppOperationSendConversationTurn:
-		decision.OperationCapability = "agents.interact"
-	case accountservice.LocalAppOperationReadArtifactBytes:
-		decision.OperationCapability = "data.scope.read#runtime.artifacts"
-	}
-	return decision, nil
-}
-
-func putArtifactTestDecision() accountservice.LocalAppCallerDecision {
-	decision := artifactTestDecision()
-	decision.Operation = accountservice.LocalAppOperationSendConversationTurn
-	decision.OperationCapability = "agents.interact"
-	return decision
-}
 
 func putArtifactTestPNG(t *testing.T) []byte {
 	t.Helper()
@@ -91,16 +62,14 @@ func putArtifactProtectedCtx(accountID string, appID string) context.Context {
 	return protectedprincipal.With(context.Background(), principal)
 }
 
-func newPutArtifactTestService(store Store, authorizer LocalAppOperationAuthorizer) *Service {
-	svc := New(store, slog.New(slog.NewTextHandler(io.Discard, nil)), WithLocalAppOperationAuthorizer(authorizer))
-	svc.now = func() time.Time { return artifactTestNow }
-	return svc
+func newPutArtifactTestService(store Store) *Service {
+	return New(store, slog.New(slog.NewTextHandler(io.Discard, nil)))
 }
 
 func TestPutArtifactRejectsOversizeBeforeMimeCheck(t *testing.T) {
 	store := NewMemoryStore()
-	svc := newPutArtifactTestService(store, putArtifactTestAuthorizer{decision: putArtifactTestDecision()})
-	_, err := svc.PutArtifact(context.Background(), &runtimev1.PutArtifactRequest{
+	svc := newPutArtifactTestService(store)
+	_, err := svc.PutArtifact(putArtifactProtectedCtx("account-1", "nimi.desktop"), &runtimev1.PutArtifactRequest{
 		MimeType: "text/plain",
 		Data:     make([]byte, MaxPutArtifactBytes+1),
 	})
@@ -114,9 +83,9 @@ func TestPutArtifactRejectsOversizeBeforeMimeCheck(t *testing.T) {
 
 func TestPutArtifactRejectsUnsupportedMime(t *testing.T) {
 	store := NewMemoryStore()
-	svc := newPutArtifactTestService(store, putArtifactTestAuthorizer{decision: putArtifactTestDecision()})
+	svc := newPutArtifactTestService(store)
 	for _, mimeType := range []string{"text/plain", "image/bmp", "image/svg+xml", "video/mp4", "application/pdf"} {
-		_, err := svc.PutArtifact(context.Background(), &runtimev1.PutArtifactRequest{
+		_, err := svc.PutArtifact(putArtifactProtectedCtx("account-1", "nimi.desktop"), &runtimev1.PutArtifactRequest{
 			MimeType: mimeType,
 			Data:     putArtifactTestPNG(t),
 		})
@@ -131,7 +100,8 @@ func TestPutArtifactRejectsUnsupportedMime(t *testing.T) {
 
 func TestPutArtifactRejectsSignatureMismatchAndCorrupt(t *testing.T) {
 	store := NewMemoryStore()
-	svc := newPutArtifactTestService(store, putArtifactTestAuthorizer{decision: putArtifactTestDecision()})
+	svc := newPutArtifactTestService(store)
+	ctx := putArtifactProtectedCtx("account-1", "nimi.desktop")
 	corruptPNG := append([]byte{0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A}, []byte("not-a-real-png-body")...)
 	tests := []struct {
 		name string
@@ -147,7 +117,7 @@ func TestPutArtifactRejectsSignatureMismatchAndCorrupt(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			_, err := svc.PutArtifact(context.Background(), &runtimev1.PutArtifactRequest{
+			_, err := svc.PutArtifact(ctx, &runtimev1.PutArtifactRequest{
 				MimeType: test.mime,
 				Data:     test.data,
 			})
@@ -163,7 +133,8 @@ func TestPutArtifactRejectsSignatureMismatchAndCorrupt(t *testing.T) {
 
 func TestPutArtifactAdmitsWhitelistedImagesWithOwner(t *testing.T) {
 	store := NewMemoryStore()
-	svc := newPutArtifactTestService(store, putArtifactTestAuthorizer{decision: putArtifactTestDecision()})
+	svc := newPutArtifactTestService(store)
+	ctx := putArtifactProtectedCtx("account-1", "nimi.desktop")
 	tests := []struct {
 		mime string
 		data []byte
@@ -175,7 +146,7 @@ func TestPutArtifactAdmitsWhitelistedImagesWithOwner(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.mime, func(t *testing.T) {
-			response, err := svc.PutArtifact(context.Background(), &runtimev1.PutArtifactRequest{
+			response, err := svc.PutArtifact(ctx, &runtimev1.PutArtifactRequest{
 				MimeType:    test.mime,
 				DisplayName: "photo",
 				Data:        test.data,
@@ -197,7 +168,7 @@ func TestPutArtifactAdmitsWhitelistedImagesWithOwner(t *testing.T) {
 			if !bytes.Equal(record.Bytes, test.data) {
 				t.Fatalf("stored bytes mismatch")
 			}
-			if record.Owner == nil || record.Owner.SubjectUserID != "account-1" || record.Owner.AppID != "world.nimi.app" {
+			if record.Owner == nil || record.Owner.SubjectUserID != "account-1" || record.Owner.AppID != "nimi.desktop" {
 				t.Fatalf("owner metadata = %#v", record.Owner)
 			}
 		})
@@ -218,45 +189,9 @@ func TestPutArtifactRequiresAuthorizedCaller(t *testing.T) {
 	}
 }
 
-func TestPutArtifactRegisteredAppOwnerReadAccess(t *testing.T) {
-	store := NewMemoryStore()
-	svc := newPutArtifactTestService(store, putArtifactTestAuthorizer{decision: putArtifactTestDecision()})
-	response, err := svc.PutArtifact(context.Background(), &runtimev1.PutArtifactRequest{
-		MimeType: "image/png",
-		Data:     putArtifactTestPNG(t),
-	})
-	if err != nil {
-		t.Fatalf("PutArtifact: %v", err)
-	}
-	artifactID := response.GetArtifactId()
-
-	ownerRead, err := svc.ReadArtifactBytes(context.Background(), &runtimev1.ReadArtifactBytesRequest{ArtifactId: artifactID})
-	if err != nil {
-		t.Fatalf("owner read-back: %v", err)
-	}
-	if ownerRead.GetMimeType() != "image/png" || len(ownerRead.GetBytes()) == 0 {
-		t.Fatalf("owner read-back mismatch: %#v", ownerRead)
-	}
-
-	crossAccount := putArtifactTestDecision()
-	crossAccount.AccountID = "account-2"
-	crossSvc := newPutArtifactTestService(store, putArtifactTestAuthorizer{decision: crossAccount})
-	if _, err := crossSvc.ReadArtifactBytes(context.Background(), &runtimev1.ReadArtifactBytesRequest{ArtifactId: artifactID}); artifactReason(err) != runtimev1.ReasonCode_ARTIFACT_FORBIDDEN {
-		t.Fatalf("cross-owner read reason = %v", artifactReason(err))
-	}
-
-	crossApp := putArtifactTestDecision()
-	crossApp.AppID = "other.nimi.app"
-	crossAppSvc := newPutArtifactTestService(store, putArtifactTestAuthorizer{decision: crossApp})
-	if _, err := crossAppSvc.ReadArtifactBytes(context.Background(), &runtimev1.ReadArtifactBytesRequest{ArtifactId: artifactID}); artifactReason(err) != runtimev1.ReasonCode_ARTIFACT_FORBIDDEN {
-		t.Fatalf("cross-app read reason = %v", artifactReason(err))
-	}
-}
-
 func TestPutArtifactProtectedOwnerReadAndCrossOwnerForbidden(t *testing.T) {
 	store := NewMemoryStore()
 	svc := New(store, slog.New(slog.NewTextHandler(io.Discard, nil)))
-	svc.now = func() time.Time { return artifactTestNow }
 	response, err := svc.PutArtifact(putArtifactProtectedCtx("account-1", "nimi.desktop"), &runtimev1.PutArtifactRequest{
 		MimeType: "image/png",
 		Data:     putArtifactTestPNG(t),

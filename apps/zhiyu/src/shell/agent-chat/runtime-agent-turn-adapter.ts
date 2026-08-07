@@ -225,16 +225,27 @@ async function* localAppConversationParts(
   } as const;
   const subscription = await conversation.subscribe(scope);
   try {
+    if (signal?.aborted) {
+      yield { type: 'turn-canceled', scope: 'turn' };
+      return;
+    }
     const sent = await conversation.send({
       ...scope,
       requestId: request.requestId,
       text: request.text,
     });
-    for await (const event of subscription) {
-      if (signal?.aborted) {
+    const iterator = subscription[Symbol.asyncIterator]();
+    while (true) {
+      const next = await nextConversationEvent(iterator, signal);
+      if (next.kind === 'aborted') {
+        await conversation.interruptTurn(scope);
         yield { type: 'turn-canceled', scope: 'turn' };
         return;
       }
+      if (next.result.done) {
+        return;
+      }
+      const event = next.result.value;
       if (event.conversationAnchorId !== request.conversationAnchorId
         || event.turnId !== sent.turnId) {
         continue;
@@ -255,6 +266,43 @@ async function* localAppConversationParts(
   } finally {
     await subscription.cancel();
   }
+}
+
+function nextConversationEvent(
+  iterator: AsyncIterator<NimiLocalAppConversationEvent>,
+  signal?: AbortSignal,
+): Promise<
+  | { readonly kind: 'event'; readonly result: IteratorResult<NimiLocalAppConversationEvent> }
+  | { readonly kind: 'aborted' }
+> {
+  if (signal?.aborted) {
+    return Promise.resolve({ kind: 'aborted' });
+  }
+  const pending = iterator.next();
+  if (!signal) {
+    return pending.then((result) => ({ kind: 'event', result }));
+  }
+  return new Promise((resolve, reject) => {
+    let settled = false;
+    const finish = (value: { readonly kind: 'event'; readonly result: IteratorResult<NimiLocalAppConversationEvent> } | { readonly kind: 'aborted' }) => {
+      if (settled) return;
+      settled = true;
+      signal.removeEventListener('abort', onAbort);
+      resolve(value);
+    };
+    const onAbort = () => finish({ kind: 'aborted' });
+    signal.addEventListener('abort', onAbort, { once: true });
+    if (signal.aborted) onAbort();
+    pending.then(
+      (result) => finish({ kind: 'event', result }),
+      (error) => {
+        if (settled) return;
+        settled = true;
+        signal.removeEventListener('abort', onAbort);
+        reject(error);
+      },
+    );
+  });
 }
 
 function localAppEventPart(

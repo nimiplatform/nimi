@@ -8,16 +8,13 @@ import (
 	_ "image/jpeg"
 	_ "image/png"
 	"strings"
-	"time"
 
 	"github.com/oklog/ulid/v2"
 	"google.golang.org/grpc/codes"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
-	"github.com/nimiplatform/nimi/runtime/internal/protectedlocal"
 	"github.com/nimiplatform/nimi/runtime/internal/protectedprincipal"
-	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
 )
 
 // MaxPutArtifactBytes is the admitted per-file bound for user attachment
@@ -74,61 +71,17 @@ func (s *Service) PutArtifact(
 	return &runtimev1.PutArtifactResponse{ArtifactId: artifactID}, nil
 }
 
-// putArtifactCallerOwner resolves the Runtime-authorized caller identity that
-// becomes the artifact owner. Local-app callers authorize through the closed
-// conversation-turn operation (uploading an attachment is part of the
-// conversation send plane); protected principals use their attached identity.
+// putArtifactCallerOwner resolves the protected Runtime principal that becomes
+// the artifact owner. Third-party Local App attachment upload is not exposed.
 func (s *Service) putArtifactCallerOwner(ctx context.Context) (*ArtifactOwner, error) {
 	principal, protectedCaller := protectedprincipal.AttachedToContext(ctx)
-	if protectedCaller {
-		if !principal.Valid() {
-			return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_ARTIFACT_FORBIDDEN)
-		}
-		return &ArtifactOwner{
-			SubjectUserID: strings.TrimSpace(principal.AccountID),
-			AppID:         strings.TrimSpace(principal.AppID),
-		}, nil
-	}
-	if s.authorizer == nil {
-		return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_ARTIFACT_FORBIDDEN)
-	}
-	decision, err := s.authorizer.AuthorizeLocalAppOperation(ctx, accountservice.LocalAppOperationSendConversationTurn)
-	if err != nil || !validLocalAppArtifactPutDecision(decision, s.now().UTC()) {
+	if !protectedCaller || !principal.Valid() {
 		return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_ARTIFACT_FORBIDDEN)
 	}
 	return &ArtifactOwner{
-		SubjectUserID: strings.TrimSpace(decision.AccountID),
-		AppID:         strings.TrimSpace(decision.AppID),
+		SubjectUserID: strings.TrimSpace(principal.AccountID),
+		AppID:         strings.TrimSpace(principal.AppID),
 	}, nil
-}
-
-// validLocalAppArtifactPutDecision mirrors validLocalAppArtifactDecision for
-// the write side: the exact closed operation is the conversation-turn send
-// operation, whose Runtime-owned capability is "agents.interact".
-func validLocalAppArtifactPutDecision(decision accountservice.LocalAppCallerDecision, now time.Time) bool {
-	commonValid := decision.SessionID != (protectedlocal.Identifier{}) && strings.TrimSpace(decision.AppID) != "" &&
-		decision.HostExecutableDigest != (protectedlocal.Identifier{}) && strings.TrimSpace(decision.AccountID) != "" &&
-		strings.TrimSpace(decision.RealmEnvironmentID) != "" && decision.AccountGeneration > 0 &&
-		decision.Operation == accountservice.LocalAppOperationSendConversationTurn && decision.OperationCapability == "agents.interact" &&
-		decision.TrustClass == accountservice.LocalAppTrustClassDevelopment &&
-		decision.RegistrationHandle != (protectedlocal.Identifier{}) && strings.TrimSpace(decision.RegisteredAppSubject) != "" &&
-		decision.SourceGeneration > 0 && decision.DeclarationGeneration > 0
-	if !commonValid {
-		return false
-	}
-	direct := decision.DirectPeer.OS == protectedlocal.OSMacOS && decision.DirectPeer.PID != 0 && decision.DirectPeer.UID != 0 &&
-		decision.RuntimeBootEpoch == (protectedlocal.Identifier{}) && decision.Process == (protectedlocal.ProcessTuple{}) &&
-		decision.ExpiresAt.IsZero() &&
-		protectedlocal.IsAbsolutePathForOperatingSystem(decision.DirectPeer.OS, decision.ProjectRoot)
-	sessionScoped := decision.DirectPeer == (protectedlocal.DirectLocalAppPeer{}) &&
-		decision.RuntimeBootEpoch != (protectedlocal.Identifier{}) && decision.Process.PID > 0 &&
-		strings.TrimSpace(decision.Process.CreationMarker) != "" &&
-		decision.Process.ExecutableDigest == decision.HostExecutableDigest &&
-		now.Before(decision.ExpiresAt.UTC()) &&
-		protectedlocal.IsAbsolutePathForOperatingSystem(decision.Process.OS, decision.ProjectRoot) &&
-		protectedlocal.IsLocalDevelopmentProcessTrustSet(decision.Process) &&
-		protectedlocal.IsAbsolutePathForOperatingSystem(decision.Process.OS, decision.Process.CanonicalExecutablePath)
-	return direct || sessionScoped
 }
 
 // putArtifactSignatureMatches verifies the payload file signature against the

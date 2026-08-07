@@ -22,31 +22,20 @@ var (
 type LocalAppOperation = localappop.Operation
 
 const (
-	LocalAppOperationReadArtifactBytes       = localappop.OperationUnclassifiedArtifactRead
-	LocalAppOperationOpenConversation        = localappop.OperationConversationOpen
-	LocalAppOperationSendConversationTurn    = localappop.OperationConversationTurnSend
-	LocalAppOperationInterruptConversation   = localappop.OperationConversationTurnInterrupt
-	LocalAppOperationSubscribeConversation   = localappop.OperationConversationEventsSubscribe
-	LocalAppOperationConversationSnapshot    = localappop.OperationConversationSnapshotGet
-	LocalAppOperationReferenceList           = localappop.OperationAgentReferenceList
-	LocalAppOperationSharedAIConfigGet       = localappop.OperationUnclassifiedSharedAIConfigGet
-	LocalAppOperationSharedAIConfigOverwrite = localappop.OperationUnclassifiedSharedAIConfigOverwrite
-	LocalAppOperationSharedAIProfilePreview  = localappop.OperationUnclassifiedSharedAIProfilePreview
-	LocalAppOperationSharedAIProfileApply    = localappop.OperationUnclassifiedSharedAIProfileApply
-	LocalAppOperationAutonomySnapshot        = localappop.OperationUnclassifiedAutonomySnapshot
-	LocalAppOperationUpdateAutonomy          = localappop.OperationUnclassifiedAutonomyUpdate
-	LocalAppOperationPresentationSnapshot    = localappop.OperationUnclassifiedPresentationSnapshot
-	LocalAppOperationCommitPresentation      = localappop.OperationUnclassifiedPresentationCommit
-	LocalAppOperationStorageJSONRead         = localappop.OperationStorageJSONRead
-	LocalAppOperationStorageJSONWrite        = localappop.OperationStorageJSONWrite
-	LocalAppOperationStorageJSONRemove       = localappop.OperationStorageJSONRemove
-	LocalAppOperationRealmWorldCoreList      = localappop.OperationRealmWorldCoreList
-	LocalAppOperationRealmWorldCoreCreate    = localappop.OperationRealmWorldCoreCreate
-	LocalAppOperationAppAIConfigRead         = localappop.OperationAppAIConfigGet
-	LocalAppOperationAppAIConfigOverwrite    = localappop.OperationAppAIConfigOverwrite
-	LocalAppOperationTextCandidateGenerate   = localappop.OperationTextCandidateGenerate
-	LocalAppOperationVoiceTranscribe         = localappop.OperationUnclassifiedVoiceTranscribe
-	LocalAppOperationVoiceStreamSubscribe    = localappop.OperationUnclassifiedVoiceStreamSubscribe
+	LocalAppOperationOpenConversation      = localappop.OperationConversationOpen
+	LocalAppOperationSendConversationTurn  = localappop.OperationConversationTurnSend
+	LocalAppOperationInterruptConversation = localappop.OperationConversationTurnInterrupt
+	LocalAppOperationSubscribeConversation = localappop.OperationConversationEventsSubscribe
+	LocalAppOperationConversationSnapshot  = localappop.OperationConversationSnapshotGet
+	LocalAppOperationReferenceList         = localappop.OperationAgentReferenceList
+	LocalAppOperationStorageJSONRead       = localappop.OperationStorageJSONRead
+	LocalAppOperationStorageJSONWrite      = localappop.OperationStorageJSONWrite
+	LocalAppOperationStorageJSONRemove     = localappop.OperationStorageJSONRemove
+	LocalAppOperationRealmWorldCoreList    = localappop.OperationRealmWorldCoreList
+	LocalAppOperationRealmWorldCoreCreate  = localappop.OperationRealmWorldCoreCreate
+	LocalAppOperationAppAIConfigRead       = localappop.OperationAppAIConfigGet
+	LocalAppOperationAppAIConfigOverwrite  = localappop.OperationAppAIConfigOverwrite
+	LocalAppOperationTextCandidateGenerate = localappop.OperationTextCandidateGenerate
 )
 
 type LocalAppTrustClass string
@@ -122,18 +111,6 @@ func (s *Service) SetLocalAgentOwnershipResolver(resolver LocalAgentOwnershipRes
 	if s != nil {
 		s.localAgentOwnership = resolver
 	}
-}
-
-func (s *Service) AuthorizeLocalAppCaller(context.Context) (LocalAppCallerDecision, error) {
-	return LocalAppCallerDecision{}, ErrLocalAppCallerUnauthorized
-}
-
-func (s *Service) AuthorizeLocalAppOperation(context.Context, LocalAppOperation) (LocalAppCallerDecision, error) {
-	return LocalAppCallerDecision{}, localAppOperationDenied(runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE)
-}
-
-func (s *Service) AuthorizeLocalAppProtectedOperation(context.Context, LocalAppOperation, localappop.Selector) (LocalAppCallerDecision, error) {
-	return LocalAppCallerDecision{}, localAppOperationDenied(runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE)
 }
 
 func LocalAppCallerAuthorizationReason(err error) runtimev1.ReasonCode {

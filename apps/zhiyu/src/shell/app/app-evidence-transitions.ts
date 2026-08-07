@@ -7,13 +7,6 @@ import type {
 } from './evidence';
 import type { runZhiyuAgentChatTurn } from '../agent-chat/runtime-agent-turn-adapter';
 
-export type ZhiyuSubmittedMessageAttachment = {
-  readonly artifactId: string;
-  readonly displayName?: string;
-  readonly mediaUrl?: string;
-  readonly mediaMimeType?: string;
-};
-
 export function chatStatusFromSubmitRefreshFailure({
   current,
   conversation,
@@ -54,7 +47,6 @@ export function appendSubmittedUserMessage(
   requestId: string,
   text: string,
   createdAt: string,
-  attachment: ZhiyuSubmittedMessageAttachment | null = null,
 ): ZhiyuRuntimeAgentChatStatus {
   return ensureSubmittedUserMessageInChat({
     ...current,
@@ -63,7 +55,7 @@ export function appendSubmittedUserMessage(
     localAgentRef: conversation.localAgentRef ?? current.localAgentRef,
     conversationAnchorId: conversation.conversationAnchorId ?? current.conversationAnchorId,
     requestId,
-  }, conversation, requestId, text, createdAt, attachment);
+  }, conversation, requestId, text, createdAt);
 }
 
 export function ensureSubmittedUserMessageInChat(
@@ -72,21 +64,16 @@ export function ensureSubmittedUserMessageInChat(
   requestId: string | null,
   text: string,
   createdAt: string,
-  attachment: ZhiyuSubmittedMessageAttachment | null = null,
 ): ZhiyuRuntimeAgentChatStatus {
   const turnId = requestId?.trim();
-  const attachmentArtifactId = attachment?.artifactId?.trim() || '';
   if (!turnId || !conversation.conversationAnchorId || !conversation.agentHandle
-    || (!text.trim() && !attachmentArtifactId)) {
+    || !text.trim()) {
     return status;
   }
   const hasSubmittedUserMessage = status.messages.some((message) =>
     message.role === 'user'
     && message.text === text
-    && conversationMessageTurnId(message) === turnId
-    && (attachmentArtifactId
-      ? conversationMessageArtifactId(message) === attachmentArtifactId
-      : !conversationMessageArtifactId(message)),
+    && conversationMessageTurnId(message) === turnId,
   );
   if (hasSubmittedUserMessage) {
     return status;
@@ -96,7 +83,6 @@ export function ensureSubmittedUserMessageInChat(
     requestId: turnId,
     text,
     createdAt,
-    attachment: attachmentArtifactId ? attachment : null,
   });
   const insertBeforeAssistantIndex = status.messages.findIndex((message) =>
     conversationMessageTurnId(message) === turnId
@@ -251,7 +237,6 @@ function createSubmittedUserMessage(input: {
   readonly requestId: string;
   readonly text: string;
   readonly createdAt: string;
-  readonly attachment?: ZhiyuSubmittedMessageAttachment | null;
 }): RuntimeAgentConversationProjectionState['messages'][number] {
   const conversationAnchorId = input.conversation.conversationAnchorId;
   const agentHandle = input.conversation.agentHandle;
@@ -259,7 +244,6 @@ function createSubmittedUserMessage(input: {
   if (!conversationAnchorId || !agentHandle || !threadId) {
     throw new Error('Zhiyu submitted user message requires Runtime conversation identity.');
   }
-  const attachment = input.attachment && input.attachment.artifactId.trim() ? input.attachment : null;
   return {
     id: `${input.requestId}:user`,
     sessionId: conversationAnchorId,
@@ -270,7 +254,7 @@ function createSubmittedUserMessage(input: {
     createdAt: input.createdAt,
     updatedAt: input.createdAt,
     status: 'complete',
-    kind: attachment ? 'image' : 'text',
+    kind: 'text',
     senderName: 'You',
     senderKind: 'human',
     metadata: {
@@ -280,22 +264,8 @@ function createSubmittedUserMessage(input: {
       sessionId: conversationAnchorId,
       targetId: agentHandle,
       conversationAnchorId,
-      ...(attachment ? { artifactId: attachment.artifactId } : {}),
-      ...(attachment?.mediaUrl ? { mediaUrl: attachment.mediaUrl } : {}),
-      ...(attachment?.mediaMimeType ? { mediaMimeType: attachment.mediaMimeType } : {}),
     },
   };
-}
-
-function conversationMessageArtifactId(
-  message: RuntimeAgentConversationProjectionState['messages'][number],
-): string {
-  const metadata = message.metadata;
-  if (!metadata) return '';
-  for (const value of [metadata.artifactId, metadata.artifact_id]) {
-    if (typeof value === 'string' && value.trim()) return value.trim();
-  }
-  return '';
 }
 
 function mergeConversationMessages(
@@ -306,7 +276,6 @@ function mergeConversationMessages(
   const indexByMessageKey = new Map<string, number>();
   const indexByOriginalMessageId = new Map<string, number>();
   const indexByRuntimeTurnRole = new Map<string, number>();
-  const indexByArtifactId = new Map<string, number>();
   const usedIds = new Set<string>();
   const indexMessage = (
     message: RuntimeAgentConversationProjectionState['messages'][number],
@@ -316,8 +285,6 @@ function mergeConversationMessages(
     indexByOriginalMessageId.set(originalConversationMessageId(message), index);
     const runtimeTurnRole = runtimeTurnRoleKey(message);
     if (runtimeTurnRole) indexByRuntimeTurnRole.set(runtimeTurnRole, index);
-    const artifactId = conversationMessageArtifactId(message);
-    if (artifactId && message.kind === 'image') indexByArtifactId.set(artifactId, index);
   };
   const append = (message: RuntimeAgentConversationProjectionState['messages'][number]) => {
     const normalized = normalizeMergedConversationMessage(message, usedIds);
@@ -331,11 +298,9 @@ function mergeConversationMessages(
   }
   for (const message of incomingMessages) {
     const runtimeTurnRole = runtimeTurnRoleKey(message);
-    const artifactId = conversationMessageArtifactId(message);
     const existingIndex = indexByMessageKey.get(mergedConversationMessageKey(message))
       ?? indexByOriginalMessageId.get(originalConversationMessageId(message))
-      ?? (runtimeTurnRole ? indexByRuntimeTurnRole.get(runtimeTurnRole) : undefined)
-      ?? (artifactId && message.kind === 'image' ? indexByArtifactId.get(artifactId) : undefined);
+      ?? (runtimeTurnRole ? indexByRuntimeTurnRole.get(runtimeTurnRole) : undefined);
     if (existingIndex === undefined) {
       append(message);
     } else {
@@ -496,11 +461,8 @@ function runtimeTurnIdentityFromSources(sources: readonly unknown[]): {
     }
     runtimeTurnId ||= runtimeTurnIdFromRecord(value);
     runtimeStreamId ||= runtimeStreamIdFromRecord(value);
-    visit(value.runtimeProjectionEvents);
-    visit(value.runtimeTurnTimelines);
     visit(value.diagnostics);
     visit(value.metadata);
-    visit(value.detail);
   };
   for (const source of sources) {
     visit(source);

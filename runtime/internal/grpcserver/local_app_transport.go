@@ -32,14 +32,6 @@ const (
 	protectedInterruptConversationTurnMethod = "/nimi.runtime.v1.RuntimeAgentService/InterruptLocalAppConversationTurn"
 	protectedSubscribeConversationMethod     = "/nimi.runtime.v1.RuntimeAgentService/SubscribeLocalAppConversationEvents"
 	protectedConversationSnapshotMethod      = "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppConversationSnapshot"
-	protectedGetSharedAIConfigMethod         = "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppSharedLocalAgentAIConfig"
-	protectedOverwriteSharedAIConfigMethod   = "/nimi.runtime.v1.RuntimeAgentService/OverwriteLocalAppSharedLocalAgentAIConfig"
-	protectedSharedAIProfilePreviewMethod    = "/nimi.runtime.v1.RuntimeAgentService/PreviewLocalAppSharedLocalAgentAIProfile"
-	protectedSharedAIProfileApplyMethod      = "/nimi.runtime.v1.RuntimeAgentService/ApplyLocalAppSharedLocalAgentAIProfile"
-	protectedAutonomySnapshotMethod          = "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentAutonomySnapshot"
-	protectedUpdateAutonomyMethod            = "/nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppAgentAutonomy"
-	protectedPresentationSnapshotMethod      = "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentPresentationSnapshot"
-	protectedCommitPresentationMethod        = "/nimi.runtime.v1.RuntimeAgentService/CommitLocalAppAgentPresentation"
 	protectedGenerateTextCandidateMethod     = "/nimi.runtime.v1.RuntimeAiService/GenerateLocalAppTextCandidate"
 	protectedGetAppAIConfigMethod            = "/nimi.runtime.v1.RuntimeAiService/GetAppAIConfig"
 	protectedOverwriteAppAIConfigMethod      = "/nimi.runtime.v1.RuntimeAiService/OverwriteAppAIConfig"
@@ -71,14 +63,6 @@ var protectedLocalAppUnaryMethodPolicies = map[string]protectedLocalAppMethodPol
 	protectedSendConversationTurnMethod:      localAppSessionMethodPolicy(),
 	protectedInterruptConversationTurnMethod: localAppSessionMethodPolicy(),
 	protectedConversationSnapshotMethod:      localAppSessionMethodPolicy(),
-	protectedGetSharedAIConfigMethod:         localAppSessionMethodPolicy(),
-	protectedOverwriteSharedAIConfigMethod:   localAppSessionMethodPolicy(),
-	protectedSharedAIProfilePreviewMethod:    localAppSessionMethodPolicy(),
-	protectedSharedAIProfileApplyMethod:      localAppSessionMethodPolicy(),
-	protectedAutonomySnapshotMethod:          localAppSessionMethodPolicy(),
-	protectedUpdateAutonomyMethod:            localAppSessionMethodPolicy(),
-	protectedPresentationSnapshotMethod:      localAppSessionMethodPolicy(),
-	protectedCommitPresentationMethod:        localAppSessionMethodPolicy(),
 	protectedGenerateTextCandidateMethod:     localAppSessionMethodPolicy(),
 	protectedGetAppAIConfigMethod:            localAppSessionMethodPolicy(),
 	protectedOverwriteAppAIConfigMethod:      localAppSessionMethodPolicy(),

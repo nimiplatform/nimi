@@ -6,7 +6,6 @@ import type {
 import type { AgentCenterOpaqueHandle, AgentCenterSession } from '@nimiplatform/kit/features/agent-center';
 
 import type { ZhiyuRuntimeAgentChatTurnInput, ZhiyuRuntimeAgentChatTurnResult } from '../shell/agent-chat/runtime-agent-turn-adapter.js';
-import type { ZhiyuVoiceCaptureEvidence } from '../shell/agent-chat/voice-capture-evidence.js';
 import type { ZhiyuAvatarLaunchAction } from '../shell/avatar/avatar-launch.js';
 import type { ZhiyuAvatarLaunchResult } from '../shell/avatar/avatar-launch-handoff.js';
 import type { ZhiyuDesktopOpenActionResult } from '../shell/desktop-open/desktop-open-action.js';
@@ -41,28 +40,11 @@ export interface ZhiyuRendererProjectionPort {
     readonly currentSource: ZhiyuEvidence['source'];
     readonly currentChat: ZhiyuEvidence['chat'];
   }): Promise<Pick<ZhiyuEvidence, 'source' | 'chat'>>;
-  loadSourceContext(input: {
-    readonly ownerUserId: string;
-    readonly runtimeSourceRef: string;
-    readonly localAgentRef: string;
-    readonly conversationAnchorId: string;
-  }): Promise<ZhiyuEvidence['source']>;
-}
-
-export interface ZhiyuVoiceCaptureControllerPort {
-  start(): Promise<ZhiyuVoiceCaptureEvidence>;
-  stop(): Promise<ZhiyuVoiceCaptureEvidence>;
 }
 
 export interface ZhiyuRendererCommandPort {
   allocateTurnRequestId(): Promise<string>;
   runTurn(input: ZhiyuRuntimeAgentChatTurnInput): Promise<ZhiyuRuntimeAgentChatTurnResult>;
-  createVoiceCapture(input: {
-    readonly agentId: string;
-    readonly ownerUserId: string;
-    readonly onStateChange: (state: ZhiyuVoiceCaptureEvidence) => void;
-  }): ZhiyuVoiceCaptureControllerPort;
-  runVoicePlayback(evidence: ZhiyuEvidence): Promise<ZhiyuEvidence['companion']>;
   openDesktopAgentConfig(): Promise<void>;
   openDesktopSelectPartner(): Promise<ZhiyuDesktopOpenActionResult>;
   launchAvatar(input: {
@@ -77,13 +59,6 @@ export interface ZhiyuRendererEventPort {
     readonly agentHandle: string;
     readonly conversationAnchorId: string;
     readonly onChat: (chat: ZhiyuEvidence['chat']) => void;
-  }): () => void;
-  subscribeCompanion(input: {
-    readonly ownerUserId: string;
-    readonly runtimeSourceRef: string;
-    readonly localAgentRef: string;
-    readonly conversationAnchorId: string;
-    readonly onCompanion: (companion: ZhiyuEvidence['companion']) => void;
   }): () => void;
 }
 

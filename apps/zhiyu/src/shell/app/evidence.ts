@@ -8,26 +8,15 @@ import type {
   RuntimeAgentEmotionIntensity,
 } from '@nimiplatform/kit/features/avatar/headless';
 import type {
-  NimiRuntimeAgentAutonomyMode,
   NimiRuntimeAgentIdentitySafetyProjection,
-  NimiRuntimeAgentPresentationProfileProjection,
   NimiRuntimeAgentSourceContextStatus,
   NimiRuntimeAgentSourceRef,
   NimiRuntimeAgentTurnContextSummary,
-  NimiRuntimeAgentProactiveDeliveryChannel,
-  NimiRuntimeAgentProactiveFrequencyCapState,
-  NimiRuntimeAgentProactiveOptInState,
-  NimiRuntimeAgentProactiveQuietHoursState,
-  NimiRuntimeAgentProactiveSuppressionReason,
 } from '@nimiplatform/sdk/runtime';
 import {
   createInitialZhiyuDelegationEvidence,
   type ZhiyuDelegationUxStatus,
 } from './delegation-evidence';
-import {
-  createInitialZhiyuVoiceCaptureEvidence,
-  type ZhiyuVoiceCaptureEvidence,
-} from '../agent-chat/voice-capture-evidence';
 import type {
   ZhiyuCompanionEmotionViolation,
 } from '../agent/companion-emotion';
@@ -56,50 +45,6 @@ export type ZhiyuMemoryObservatoryState =
   | 'runtime-unavailable'
   | 'partial';
 
-export type ZhiyuProactiveInterruptibilityState =
-  | 'blocked'
-  | 'off'
-  | 'suggested'
-  | 'delivered'
-  | 'suppressed'
-  | 'quiet-hours-active'
-  | 'frequency-capped'
-  | 'permission-denied'
-  | 'permission-revoked'
-  | 'permission-missing'
-  | 'permission-expired'
-  | 'projected';
-
-export type ZhiyuProactiveInterruptibilityStatus = {
-  readonly transport: 'electron-ipc';
-  readonly ready: boolean;
-  readonly deliveryReady: boolean;
-  readonly state: ZhiyuProactiveInterruptibilityState;
-  readonly reasonCode: string;
-  readonly actionHint: string;
-  readonly source: string;
-  readonly message: string;
-  readonly ownerUserId: string | null;
-  readonly runtimeSourceRef: string | null;
-  readonly localAgentRef: string | null;
-  readonly observedAt: string | null;
-  readonly projectionId: string | null;
-  readonly projectionKind: string | null;
-  readonly mode: NimiRuntimeAgentAutonomyMode | null;
-  readonly optInState: NimiRuntimeAgentProactiveOptInState | null;
-  readonly deliveryChannel: NimiRuntimeAgentProactiveDeliveryChannel | null;
-  readonly quietHoursState: NimiRuntimeAgentProactiveQuietHoursState | null;
-  readonly frequencyCapState: NimiRuntimeAgentProactiveFrequencyCapState | null;
-  readonly suggestedReasonCode: string | null;
-  readonly lastDeliveredReasonCode: string | null;
-  readonly lastSuppressedReasonCode: string | null;
-  readonly lastSuppressionReason: NimiRuntimeAgentProactiveSuppressionReason | null;
-  readonly sourceHookId: string | null;
-  readonly sourceCadenceId: string | null;
-  readonly auditRefs: readonly string[];
-  readonly unsupportedFields: readonly string[];
-};
-
 export type ZhiyuRuntimeAgentChatStatus = {
   readonly transport: 'electron-ipc';
   readonly ready: boolean;
@@ -122,19 +67,6 @@ export type ZhiyuRuntimeAgentChatStatus = {
   readonly reasoningText: string | null;
   readonly outputText: string | null;
   readonly diagnostics: RuntimeAgentConversationProjectionState['diagnostics'];
-};
-
-export type ZhiyuCompanionRuntimeProjectionEventEvidence = {
-  readonly eventName: string;
-  readonly localAgentRef: string | null;
-  readonly conversationAnchorId: string | null;
-  readonly turnId: string | null;
-  readonly streamId: string | null;
-  readonly detail: Readonly<Record<string, unknown>>;
-  readonly projectedExecutionState: string | null;
-  readonly projectedStatusText: string | null;
-  readonly projectedFields: readonly string[];
-  readonly projectionReasonCode: string | null;
 };
 
 export type ZhiyuEvidence = {
@@ -189,7 +121,6 @@ export type ZhiyuEvidence = {
       readonly agentHandle: string;
       readonly displayName: string;
       readonly avatarUrl: string | null;
-      readonly sourceReady: boolean;
     }[];
   };
   readonly localAgent: {
@@ -286,12 +217,6 @@ export type ZhiyuEvidence = {
     readonly stateUpdatedAt: string | null;
     readonly executionState: string | null;
     readonly statusText: string | null;
-    readonly voiceOutputMode: string | null;
-    readonly voicePlaybackState: string | null;
-    readonly voiceAudioArtifactId: string | null;
-    readonly voiceAudioMimeType: string | null;
-    readonly voicePlaybackTarget: string | null;
-    readonly voiceStreamId: string | null;
     readonly activeWorldId: string | null;
     readonly activeUserId: string | null;
     readonly currentEmotion: RuntimeAgentEmotionId | null;
@@ -303,12 +228,7 @@ export type ZhiyuEvidence = {
     readonly participationSource: string | null;
     readonly projectedFields: readonly string[];
     readonly unsupportedExplainabilityFields: readonly string[];
-    readonly diagnostics: {
-      readonly runtimeProjectionEvents: readonly ZhiyuCompanionRuntimeProjectionEventEvidence[];
-    };
-    readonly proactiveInterruptibility: ZhiyuProactiveInterruptibilityStatus;
   };
-  readonly voiceCapture: ZhiyuVoiceCaptureEvidence;
   readonly delegation: ZhiyuDelegationUxStatus;
   readonly proposal: {
     readonly transport: 'sdk-proposal-intake';
@@ -341,15 +261,10 @@ export type ZhiyuEvidence = {
     readonly ownerUserId: string | null;
     readonly runtimeSourceRef: string | null;
     readonly localAgentRef: string | null;
-    readonly projectionRef: string | null;
     readonly configurationRef: string | null;
-    readonly backendKind: NimiRuntimeAgentPresentationProfileProjection['backendKind'] | null;
-    readonly visualReadiness: 'not_projected' | 'projected';
-    readonly voiceReadiness: 'not_projected' | 'projected';
     readonly launchAvailable: boolean;
     readonly manageAvailable: boolean;
     readonly launchHandoff: AvatarLaunchHandoffResult | null;
-    readonly unsupportedFields: readonly string[];
   };
   readonly chat: ZhiyuRuntimeAgentChatStatus;
   readonly turn: {
@@ -490,12 +405,6 @@ export function createInitialZhiyuEvidence(): ZhiyuEvidence {
       stateUpdatedAt: null,
       executionState: null,
       statusText: null,
-      voiceOutputMode: null,
-      voicePlaybackState: null,
-      voiceAudioArtifactId: null,
-      voiceAudioMimeType: null,
-      voicePlaybackTarget: null,
-      voiceStreamId: null,
       activeWorldId: null,
       activeUserId: null,
       currentEmotion: null,
@@ -514,40 +423,7 @@ export function createInitialZhiyuEvidence(): ZhiyuEvidence {
         'relationshipContext',
         'stateChangeHistory',
       ],
-      diagnostics: {
-        runtimeProjectionEvents: [],
-      },
-      proactiveInterruptibility: {
-        transport: 'electron-ipc',
-        ready: false,
-        deliveryReady: false,
-        state: 'blocked',
-        reasonCode: 'not-probed',
-        actionHint: 'probe_runtime_agent_proactive_interruptibility',
-        source: 'renderer',
-        message: 'Runtime Agent proactive interruptibility has not been probed.',
-        ownerUserId: null,
-        runtimeSourceRef: null,
-        localAgentRef: null,
-        observedAt: null,
-        projectionId: null,
-        projectionKind: null,
-        mode: null,
-        optInState: null,
-        deliveryChannel: null,
-        quietHoursState: null,
-        frequencyCapState: null,
-        suggestedReasonCode: null,
-        lastDeliveredReasonCode: null,
-        lastSuppressedReasonCode: null,
-        lastSuppressionReason: null,
-        sourceHookId: null,
-        sourceCadenceId: null,
-        auditRefs: [],
-        unsupportedFields: ['proactive_interruptibility'],
-      },
     },
-    voiceCapture: createInitialZhiyuVoiceCaptureEvidence(),
     delegation: createInitialZhiyuDelegationEvidence(),
     proposal: {
       transport: 'sdk-proposal-intake',
@@ -580,26 +456,10 @@ export function createInitialZhiyuEvidence(): ZhiyuEvidence {
       ownerUserId: null,
       runtimeSourceRef: null,
       localAgentRef: null,
-      projectionRef: null,
       configurationRef: null,
-      backendKind: null,
-      visualReadiness: 'not_projected',
-      voiceReadiness: 'not_projected',
       launchAvailable: false,
       manageAvailable: false,
       launchHandoff: null,
-      unsupportedFields: [
-        'configurationId',
-        'displayName',
-        'compatibilityTier',
-        'readinessState',
-        'liveInstanceBinding',
-        'presentationHandoffState',
-        'avatarDiagnosticCode',
-        'assetManifestPath',
-        'motionState',
-        'expressionState',
-      ],
     },
     chat: {
       transport: 'electron-ipc',
@@ -628,7 +488,7 @@ export function createInitialZhiyuEvidence(): ZhiyuEvidence {
       transport: 'electron-ipc',
       ready: false,
       reasonCode: 'not-probed',
-      actionHint: 'configure_runtime_agent_ai_config',
+      actionHint: 'open_runtime_conversation_anchor',
       source: 'renderer',
       message: 'Runtime turn readiness has not been probed.',
       ownerUserId: null,

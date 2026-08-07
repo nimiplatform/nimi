@@ -18,7 +18,6 @@ export function sameZhiyuRuntimeAgentInventory(
       return candidate !== undefined
         && agent.agentHandle === candidate.agentHandle
         && agent.displayName === candidate.displayName
-        && agent.avatarUrl === candidate.avatarUrl
-        && agent.sourceReady === candidate.sourceReady;
+        && agent.avatarUrl === candidate.avatarUrl;
     });
 }
