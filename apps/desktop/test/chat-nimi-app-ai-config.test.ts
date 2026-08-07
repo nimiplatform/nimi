@@ -1,122 +1,84 @@
 import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
 import test from 'node:test';
-
 import {
-  createDesktopNimiCloudTextIntent,
-  createDesktopNimiLocalTextIntent,
-  desktopNimiTextIntentDefaults,
+  createNimiCloudAIConfigCapabilityIntent,
+  createNimiLocalAIConfigCapabilityIntent,
+} from '@nimiplatform/sdk/ai';
+import { projectModelConfigLocalSelections } from '@nimiplatform/kit/features/model-config/headless';
+import {
   findDesktopNimiTextIntent,
-  replaceDesktopNimiTextIntent,
+  readDesktopNimiAppAIConfig,
 } from '../src/shell/renderer/features/chat/chat-nimi-app-ai-config.js';
 
-test('Nimi Chat local selection carries no machine binding or model identity', () => {
-  assert.deepEqual(createDesktopNimiLocalTextIntent(), {
-    capabilityContract: 'text.generate',
-    requiredFeatures: [],
-    defaults: undefined,
-    route: {
-      oneofKind: 'local',
-      local: {},
-    },
-  });
-});
-
-test('Nimi Chat Cloud commit admits the grantless selection-required information state', () => {
-  const intent = createDesktopNimiCloudTextIntent(
-    {
-      requiredFeatures: ['tool.use'],
-      defaults: { temperature: 0.4 },
-    },
-    {
-      implementation: {
-        implementationId: 'openai',
-        driverId: 'nimillm',
-        driverDialect: 'openai',
-      },
-      providerModelTarget: { provider: 'openai', providerModelId: 'gpt-test' },
-      connectorGrantId: null,
-    },
-  );
-
-  assert.equal(intent.capabilityContract, 'text.generate');
-  assert.deepEqual(intent.requiredFeatures, ['tool.use']);
-  assert.deepEqual(desktopNimiTextIntentDefaults(intent), { temperature: 0.4 });
-  assert.equal(intent.route.oneofKind, 'cloud');
-  if (intent.route.oneofKind !== 'cloud') throw new Error('expected Cloud route');
-  assert.equal(intent.route.cloud.connectorGrantId, '');
-  assert.equal(intent.route.cloud.implementation?.implementationId, 'openai');
-  assert.doesNotMatch(
-    JSON.stringify(intent.route.cloud.implementation),
-    /connector|grant|target/i,
-  );
-});
-
-test('Nimi Chat Cloud commit keeps target confirmation and ConnectorGrant selection separate', () => {
-  const intent = createDesktopNimiCloudTextIntent(
-    { requiredFeatures: ['text.generate'] },
-    {
-      implementation: {
-        implementationId: 'openai',
-        driverId: 'nimillm',
-        driverDialect: 'openai',
-      },
-      providerModelTarget: {
-        provider: 'openai',
-        providerModelId: 'gpt-test',
-      },
-      connectorGrantId: 'grant-1',
-    },
-  );
-
-  assert.equal(intent.route.oneofKind, 'cloud');
-  if (intent.route.oneofKind !== 'cloud') throw new Error('expected Cloud route');
-  assert.deepEqual(intent.route.cloud.implementation, {
-    implementationId: 'openai',
-    driverId: 'nimillm',
-    driverDialect: 'openai',
-  });
-  assert.deepEqual(intent.route.cloud.providerModelTarget, {
-    fields: {
-      provider: { kind: { oneofKind: 'stringValue', stringValue: 'openai' } },
-      providerModelId: { kind: { oneofKind: 'stringValue', stringValue: 'gpt-test' } },
-    },
-  });
-  assert.equal(intent.route.cloud.connectorGrantId, 'grant-1');
-  assert.doesNotMatch(JSON.stringify(intent.route.cloud.implementation), /grant|connector/i);
-  assert.doesNotMatch(JSON.stringify(intent.route.cloud.providerModelTarget), /grant|connector/i);
-});
-
-test('Nimi Chat text replacement preserves unrelated capability intent', () => {
-  const imageIntent = {
+test('Nimi Chat locates canonical text intent without owning its construction', () => {
+  const imageIntent = createNimiLocalAIConfigCapabilityIntent({
     capabilityContract: 'image.generate',
     requiredFeatures: [],
-    defaults: undefined,
-    route: {
-      oneofKind: 'local' as const,
-      local: {},
+  });
+  const textIntent = createNimiCloudAIConfigCapabilityIntent({
+    capabilityContract: 'text.generate',
+    requiredFeatures: ['tool.use'],
+    implementation: {
+      implementationId: 'openai',
+      driverId: 'nimillm',
+      driverDialect: 'openai',
     },
-  };
-  const next = replaceDesktopNimiTextIntent(
-    [
-      {
-        capabilityContract: 'text.generate',
-        requiredFeatures: [],
-        defaults: undefined,
-        route: {
-          oneofKind: 'cloud' as const,
-          cloud: {
-            connectorGrantId: '',
-          },
-        },
-      },
-      imageIntent,
-    ],
-    createDesktopNimiLocalTextIntent(),
-  );
+    providerModelTarget: { provider: 'openai', providerModelId: 'gpt-test' },
+    connectorGrantId: null,
+  });
 
-  assert.deepEqual(next, [createDesktopNimiLocalTextIntent(), imageIntent]);
-  assert.deepEqual(findDesktopNimiTextIntent({
+  assert.equal(findDesktopNimiTextIntent({
     owner: undefined,
-    capabilities: next,
-  }), createDesktopNimiLocalTextIntent());
+    capabilities: [imageIntent, textIntent],
+  }), textIntent);
+});
+
+test('Nimi Chat projects machine-local selection as read-only Model Config context', () => {
+  assert.deepEqual(projectModelConfigLocalSelections({
+    selections: [{ capabilityContract: 'text.generate', configurationId: 'local-text' }],
+    configurations: [{
+      configurationId: 'local-text',
+      capabilityContract: 'text.generate',
+      displayName: 'Local text',
+      supportedFeatures: ['tool.use'],
+      interpretability: 'interpretable',
+      requirementResolution: 'configured',
+      reasons: [],
+    }],
+  }), [{
+    capabilityContract: 'text.generate',
+    state: 'selected',
+    configurationId: 'local-text',
+    displayName: 'Local text',
+    supportedFeatures: ['tool.use'],
+    reasons: [],
+  }]);
+});
+
+test('Nimi Chat treats missing App AIConfig as canonical not-configured state', async () => {
+  assert.equal(await readDesktopNimiAppAIConfig({
+    async get() {
+      throw { reasonCode: 'AI_CONFIG_NOT_FOUND' };
+    },
+  }), null);
+
+  const unavailable = { reasonCode: 'RUNTIME_UNAVAILABLE' };
+  await assert.rejects(
+    () => readDesktopNimiAppAIConfig({ async get() { throw unavailable; } }),
+    (error) => error === unavailable,
+  );
+});
+
+test('Nimi Chat settings delegates configuration UX to the public Kit owner surface', async () => {
+  const source = await readFile(new URL(
+    '../src/shell/renderer/features/chat/chat-shared-settings-panel.tsx',
+    import.meta.url,
+  ), 'utf8');
+
+  assert.match(source, /ModelConfigAIConfigSurface/u);
+  assert.match(source, /owner:\s*'app-ai-config'/u);
+  assert.match(source, /appId:\s*DESKTOP_NIMI_APP_ID/u);
+  assert.match(source, /capabilityContracts=\{\['text\.generate'\]\}/u);
+  assert.doesNotMatch(source, /createDesktopNimi(?:Local|Cloud)TextIntent/u);
 });

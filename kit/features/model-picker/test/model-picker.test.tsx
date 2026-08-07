@@ -1,0 +1,65 @@
+import { act } from 'react';
+import { createRoot, type Root } from 'react-dom/client';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { ModelPickerDialog } from '../src/components/model-picker-dialog.js';
+
+(globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+
+let root: Root | null = null;
+let container: HTMLDivElement | null = null;
+
+afterEach(() => {
+  if (root) act(() => root?.unmount());
+  container?.remove();
+  root = null;
+  container = null;
+});
+
+async function flush(): Promise<void> {
+  await act(async () => { await Promise.resolve(); });
+}
+
+describe('public Model Picker contract', () => {
+  it('loads owner candidates without auto-selecting or mutating until explicit confirmation', async () => {
+    const onConfirm = vi.fn();
+    const onClose = vi.fn();
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    root = createRoot(container);
+    await act(async () => {
+      root?.render(
+        <ModelPickerDialog
+          open
+          title="Choose target"
+          adapter={{
+            listCandidates: async () => [
+              { id: 'a', label: 'Model A', provider: 'provider-a' },
+              { id: 'b', label: 'Model B', provider: 'provider-b' },
+            ],
+            getId: (candidate) => candidate.id,
+            getTitle: (candidate) => candidate.label,
+            getSource: (candidate) => candidate.provider,
+          }}
+          onClose={onClose}
+          onConfirm={onConfirm}
+        />,
+      );
+      await Promise.resolve();
+    });
+    await flush();
+
+    const confirm = Array.from(document.body.querySelectorAll('button'))
+      .find((button) => button.textContent?.trim() === 'Use selection') as HTMLButtonElement;
+    expect(confirm.disabled).toBe(true);
+    expect(onConfirm).not.toHaveBeenCalled();
+
+    const candidate = Array.from(document.body.querySelectorAll('[data-nimi-model-picker="true"] button'))
+      .find((button) => button.textContent?.includes('Model B')) as HTMLButtonElement;
+    act(() => { candidate.click(); });
+    expect(confirm.disabled).toBe(false);
+    await act(async () => { confirm.click(); await Promise.resolve(); });
+
+    expect(onConfirm).toHaveBeenCalledWith({ id: 'b', label: 'Model B', provider: 'provider-b' });
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+});

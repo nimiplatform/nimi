@@ -1,8 +1,8 @@
 import type {
-  AgentCenterCloudAIConfigModule,
-  AgentCenterCloudGrantOption,
-  AgentCenterCloudTargetOption,
-} from '@nimiplatform/kit/features/agent-center';
+  ModelConfigCloudAIConfigModule,
+  ModelConfigCloudGrantOption,
+  ModelConfigCloudTargetOption,
+} from '@nimiplatform/kit/features/model-config/headless';
 import {
   createNimiRuntimeConnectorInventoryClient,
   createNimiRuntimeModelCatalogClient,
@@ -17,7 +17,7 @@ const MAX_PAGES = 200;
 /** Runtime catalog and account-authorization composition for first-party Cloud configuration. */
 export function createDesktopCloudAIConfigModule(
   sdk: Pick<DesktopRendererSdkPort, 'connectorAdmin' | 'accountProduct'>,
-): AgentCenterCloudAIConfigModule {
+): ModelConfigCloudAIConfigModule {
   const methods = (): ReturnType<DesktopRendererSdkPort['connectorAdmin']> => sdk.connectorAdmin();
   const inventory = createNimiRuntimeConnectorInventoryClient({ connectors: methods });
   const catalogMethods: NimiRuntimeModelCatalogConnectorClient = Object.freeze({
@@ -31,7 +31,7 @@ export function createDesktopCloudAIConfigModule(
   });
   const catalog = createNimiRuntimeModelCatalogClient({ connectors: catalogMethods });
 
-  const module: AgentCenterCloudAIConfigModule = {
+  const module: ModelConfigCloudAIConfigModule = {
     async listImplementations(capabilityContract: string) {
       return projectNimiRuntimeCloudImplementationOptions(
         await catalog.listProviders(),
@@ -48,7 +48,7 @@ export function createDesktopCloudAIConfigModule(
       ));
       if (!provider) throw new Error('DESKTOP_CLOUD_IMPLEMENTATION_NOT_IN_RUNTIME_CATALOG');
 
-      const targets = new Map<string, AgentCenterCloudTargetOption>();
+      const targets = new Map<string, ModelConfigCloudTargetOption>();
       const seenPageTokens = new Set<string>();
       let pageToken = '';
       for (let page = 0; page < MAX_PAGES; page += 1) {
@@ -96,7 +96,7 @@ export function createDesktopCloudAIConfigModule(
 }
 
 function addTarget(
-  targets: Map<string, AgentCenterCloudTargetOption>,
+  targets: Map<string, ModelConfigCloudTargetOption>,
   provider: string,
   modelId: string,
 ): void {
@@ -113,7 +113,7 @@ function addTarget(
 
 function toGrantOption(
   grant: Awaited<ReturnType<ReturnType<DesktopRendererSdkPort['accountProduct']>['connectorGrants']['create']>>,
-): AgentCenterCloudGrantOption {
+): ModelConfigCloudGrantOption {
   return Object.freeze({
     grantId: grant.grantId,
     connectorId: grant.connectorId,

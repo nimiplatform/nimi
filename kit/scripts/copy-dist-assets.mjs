@@ -20,6 +20,8 @@ const publishedStyleSourceReplacements = [
   ['../../features/chat/src/**/*.{ts,tsx}', '../features/chat/**/*.js'],
   ['../../features/commerce/src/**/*.{ts,tsx}', '../features/commerce/**/*.js'],
   ['../../features/generation/src/**/*.{ts,tsx}', '../features/generation/**/*.js'],
+  ['../../features/model-config/src/**/*.{ts,tsx}', '../features/model-config/**/*.js'],
+  ['../../features/model-picker/src/**/*.{ts,tsx}', '../features/model-picker/**/*.js'],
 ];
 
 function copyDistAsset(source, target, normalizedRelativePath) {

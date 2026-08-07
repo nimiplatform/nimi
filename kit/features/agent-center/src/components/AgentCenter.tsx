@@ -340,10 +340,11 @@ function renderSection(
   snapshot: AgentCenterSnapshot,
   advancedCopy: Required<AgentCenterAdvancedCopy>,
   i18n: AgentCenterProps['i18n'],
+  placementActions: AgentCenterProps['placementActions'],
 ) {
   switch (section) {
     case 'ai-config':
-      return <AgentCenterAIConfigSection i18n={i18n} session={session} snapshot={snapshot} />;
+      return <AgentCenterAIConfigSection i18n={i18n} placementActions={placementActions} session={session} snapshot={snapshot} />;
     case 'behavior':
       return <AgentCenterBehaviorSection i18n={i18n} session={session} snapshot={snapshot} />;
     case 'cognition':
@@ -609,6 +610,7 @@ export function AgentCenter(props: AgentCenterProps) {
             store.snapshot,
             advancedCopy,
             props.i18n,
+            props.placementActions,
           )}
       </div>
     </section>

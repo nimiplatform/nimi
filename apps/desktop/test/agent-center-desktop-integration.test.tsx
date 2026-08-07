@@ -14,6 +14,7 @@ import {
   createDesktopAgentCenterAutonomyAdapter,
   DesktopAgentAutonomyRevisionConflictError,
 } from '../src/shell/renderer/features/chat/chat-agent-center-autonomy-adapter.js';
+import { resolveAgentCenterIdentityBadge } from '../src/shell/renderer/features/chat/chat-agent-shell-presentation-settings.js';
 import type { DesktopRendererAvatarHandoffPort } from '../src/shell/renderer/renderer/avatar-handoff-port.js';
 import { changeLocale, i18n, initI18n } from '../src/shell/renderer/i18n/index.js';
 
@@ -118,12 +119,35 @@ test('Desktop Agent Center drawer delegates snapshot refresh to the Kit store', 
   assert.doesNotMatch(settingsSource, /\.loadSnapshot\(/u);
   assert.doesNotMatch(settingsSource, /boundedContext|runtimeAgentAIConfigReadiness|runtimeAgentAIConfigError/u);
   assert.match(settingsSource, /session=\{input\.runtimeAgentCenterAdapter\}/u);
+  assert.match(settingsSource, /chrome="standalone"/u);
+  assert.match(settingsSource, /openMachineConfiguration/u);
+  assert.match(settingsSource, /action:\s*'open-configurations'/u);
   assert.doesNotMatch(settingsSource, /runtimeLoadInput|AgentCenterStateInput|runtimeAdapter=/u);
   assert.match(runtimeSource, /createFirstPartyAgentCenterSession\(\{/u);
   assert.match(runtimeSource, /autonomy:\s*createDesktopAgentCenterAutonomyAdapter\(runtimeAgentInspect\)/u);
   assert.match(runtimeSource, /sharedAIConfig:\s*runtimeAgentCenterSharedAIConfig/u);
+  assert.match(runtimeSource, /loadLocalSelections/u);
+  assert.match(runtimeSource, /projectModelConfigLocalSelections/u);
   assert.doesNotMatch(runtimeSource, /runtimeAgentAIConfigAdapter\.(?:readiness|aiProfile)/u);
   assert.doesNotMatch(settingsSource, /\.\.\.input\.runtimeAgentCenterAdapter|appearanceAdapter=/u);
+});
+
+test('Desktop Agent Center identity keeps readable context and hides technical source ids', () => {
+  assert.equal(resolveAgentCenterIdentityBadge({
+    displayName: '王袆',
+    handle: 'world-character-73687b5e',
+    worldName: null,
+  }), null);
+  assert.equal(resolveAgentCenterIdentityBadge({
+    displayName: '王袆',
+    handle: 'world-character-73687b5e',
+    worldName: '明初文坛',
+  }), '明初文坛');
+  assert.equal(resolveAgentCenterIdentityBadge({
+    displayName: 'Aster',
+    handle: '@aster',
+    worldName: null,
+  }), '~aster');
 });
 
 test('Desktop Behavior binding enables only with autonomy revision and preserves typed stale conflicts', async () => {

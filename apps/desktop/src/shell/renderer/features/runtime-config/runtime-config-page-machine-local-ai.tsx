@@ -33,6 +33,7 @@ import {
   Surface,
   TextField,
 } from '@nimiplatform/kit/ui';
+import { ModelConfigOwnerBoundary } from '@nimiplatform/kit/features/model-config';
 import { useAppStore } from '../../app-shell/providers/app-store.js';
 import { createRuntimeAgentAIConfigAdapter } from '../../infra/runtime-agent-ai-config.js';
 import { useDesktopRendererSdk } from '../../renderer/binding-context.js';
@@ -59,6 +60,11 @@ type MachineLocalAIFeedback = {
   readonly message: string;
   readonly technicalDetail?: string;
 };
+
+const MACHINE_LOCAL_MODEL_CONFIG_CONTEXT = {
+  owner: 'machine-local-ai-configuration',
+  consumer: 'nimi-first-party',
+} as const;
 
 export type MachineLocalAIConfigurationsViewProps = {
   readonly aggregate: NimiMachineLocalAIConfiguration | null;
@@ -502,7 +508,8 @@ export function MachineLocalAIConfigurationsView(
   const anyBusy = Boolean(props.busyAction) || props.loading || Boolean(props.impactConfirmation);
 
   return (
-    <RuntimePageShell maxWidth="full" className="max-w-[78rem] space-y-4 px-6 py-6">
+    <ModelConfigOwnerBoundary context={MACHINE_LOCAL_MODEL_CONFIG_CONTEXT}>
+      <RuntimePageShell maxWidth="full" className="max-w-[78rem] space-y-4 px-6 py-6">
       <Surface tone="card" className="space-y-4 p-5" data-testid="machine-local-ai-configurations-header">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="max-w-3xl">
@@ -662,7 +669,8 @@ export function MachineLocalAIConfigurationsView(
           onCancelImpact={props.onCancelImpact}
         />
       ))}
-    </RuntimePageShell>
+      </RuntimePageShell>
+    </ModelConfigOwnerBoundary>
   );
 }
 

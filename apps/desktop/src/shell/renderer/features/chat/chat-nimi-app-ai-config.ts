@@ -1,19 +1,23 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import {
-  createNimiCloudAIConfigCapabilityIntent,
-  createNimiLocalAIConfigCapabilityIntent,
-  runtimeAIConfigStructToJson,
-  type NimiCapabilityAIConfig,
-  type NimiCapabilityAIConfigIntent,
-  type NimiCloudAIConfigCapabilityInput,
+import type {
+  NimiCapabilityAIConfig,
+  NimiCapabilityAIConfigIntent,
 } from '@nimiplatform/sdk/ai';
-import type { NimiJsonObject } from '@nimiplatform/sdk/contracts';
+import { extractNimiErrorFields } from '@nimiplatform/sdk/types';
+import {
+  projectModelConfigLocalSelections,
+  type ModelConfigLocalSelectionProjection,
+} from '@nimiplatform/kit/features/model-config/headless';
 import { useDesktopRendererSdk } from '../../renderer/binding-context.js';
 
 export const DESKTOP_NIMI_APP_ID = 'nimi.desktop';
 export const DESKTOP_NIMI_APP_AI_CONFIG_QUERY_KEY = [
   'app-ai-config',
   DESKTOP_NIMI_APP_ID,
+] as const;
+export const DESKTOP_NIMI_MACHINE_LOCAL_SELECTIONS_QUERY_KEY = [
+  'machine-local-ai-configuration',
+  'model-config-projection',
 ] as const;
 
 const TEXT_GENERATE_CAPABILITY = 'text.generate';
@@ -26,61 +30,15 @@ export function findDesktopNimiTextIntent(
   ) ?? null;
 }
 
-type DesktopNimiTextIntentFields = {
-  readonly requiredFeatures?: readonly string[];
-  readonly defaults?: NimiJsonObject;
-};
-
-export type DesktopNimiCloudTextSelection = Pick<
-  NimiCloudAIConfigCapabilityInput,
-  'implementation' | 'providerModelTarget' | 'connectorGrantId'
->;
-
-export function createDesktopNimiLocalTextIntent(
-  fields: DesktopNimiTextIntentFields = {},
-): NimiCapabilityAIConfigIntent {
-  const intent = createNimiLocalAIConfigCapabilityIntent({
-    capabilityContract: TEXT_GENERATE_CAPABILITY,
-    requiredFeatures: fields.requiredFeatures ?? [],
-    ...(fields.defaults ? { defaults: fields.defaults } : {}),
-  });
-  return {
-    ...intent,
-    // Keep the complete canonical shape visible to consumers and tests.
-    defaults: intent.defaults,
-  };
-}
-
-/** Switches canonical consumer intent between Local and Cloud. */
-export function createDesktopNimiCloudTextIntent(
-  fields: DesktopNimiTextIntentFields,
-  selection: DesktopNimiCloudTextSelection,
-): NimiCapabilityAIConfigIntent {
-  return createNimiCloudAIConfigCapabilityIntent({
-    capabilityContract: TEXT_GENERATE_CAPABILITY,
-    requiredFeatures: fields.requiredFeatures ?? [],
-    ...(fields.defaults ? { defaults: fields.defaults } : {}),
-    ...selection,
-  });
-}
-
-export function desktopNimiTextIntentDefaults(
-  intent: NimiCapabilityAIConfigIntent | null | undefined,
-): NimiJsonObject {
-  return runtimeAIConfigStructToJson(intent?.defaults);
-}
-
-export function replaceDesktopNimiTextIntent(
-  capabilities: readonly NimiCapabilityAIConfigIntent[],
-  textIntent: NimiCapabilityAIConfigIntent,
-): NimiCapabilityAIConfigIntent[] {
-  if (textIntent.capabilityContract !== TEXT_GENERATE_CAPABILITY) {
-    throw new Error('DESKTOP_NIMI_TEXT_INTENT_REQUIRED');
+export async function readDesktopNimiAppAIConfig(
+  reader: { readonly get: () => Promise<NimiCapabilityAIConfig> },
+): Promise<NimiCapabilityAIConfig | null> {
+  try {
+    return await reader.get();
+  } catch (error) {
+    if (extractNimiErrorFields(error).reasonCode === 'AI_CONFIG_NOT_FOUND') return null;
+    throw error;
   }
-  const retained = capabilities.filter(
-    (intent) => intent.capabilityContract !== TEXT_GENERATE_CAPABILITY,
-  );
-  return [textIntent, ...retained];
 }
 
 /** Runtime-owned App AIConfig read-through; React Query is not persistence. */
@@ -88,13 +46,13 @@ export function useDesktopNimiAppAIConfig() {
   const sdk = useDesktopRendererSdk();
   return useQuery({
     queryKey: DESKTOP_NIMI_APP_AI_CONFIG_QUERY_KEY,
-    queryFn: () => sdk.accountProduct().aiConfig.get(),
+    queryFn: () => readDesktopNimiAppAIConfig(sdk.accountProduct().aiConfig),
     retry: false,
     staleTime: 30_000,
   });
 }
 
-/** Whole-object mutation through the desktop-first-party semantic client. */
+/** Whole-object mutation through the Desktop first-party semantic client. */
 export function useOverwriteDesktopNimiAppAIConfig() {
   const sdk = useDesktopRendererSdk();
   const queryClient = useQueryClient();
@@ -105,5 +63,18 @@ export function useOverwriteDesktopNimiAppAIConfig() {
     onSuccess(config) {
       queryClient.setQueryData(DESKTOP_NIMI_APP_AI_CONFIG_QUERY_KEY, config);
     },
+  });
+}
+
+/** Read-only projection of machine-owned local selections for Model Config UX. */
+export function useDesktopNimiMachineLocalSelections() {
+  const sdk = useDesktopRendererSdk();
+  return useQuery<readonly ModelConfigLocalSelectionProjection[]>({
+    queryKey: DESKTOP_NIMI_MACHINE_LOCAL_SELECTIONS_QUERY_KEY,
+    queryFn: async () => projectModelConfigLocalSelections(
+      await sdk.machineProduct().local.aiConfiguration.get(),
+    ),
+    retry: false,
+    staleTime: 15_000,
   });
 }

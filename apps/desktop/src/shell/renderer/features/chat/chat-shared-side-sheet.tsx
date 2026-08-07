@@ -26,6 +26,8 @@ export type ChatSideSheetProps = {
   bodyClassName?: string;
   footer?: ReactNode;
   sheetKey: 'settings' | 'nimi-thread-list';
+  /** The mounted owner surface renders its own identity chrome and close action. */
+  hideHeader?: boolean;
 };
 
 export function ChatSideSheet(props: ChatSideSheetProps) {
@@ -44,7 +46,7 @@ export function ChatSideSheet(props: ChatSideSheetProps) {
         as="section"
         className="flex min-h-0 flex-1 flex-col overflow-hidden"
       >
-        <div className="flex items-start gap-3 border-b border-white/70 px-4 pb-3.5 pt-7">
+        {props.hideHeader ? null : <div className="flex items-start gap-3 border-b border-white/70 px-4 pb-3.5 pt-7">
           {props.eyebrow && (props.avatarUrl !== undefined || props.avatarFallback) ? (
             <EntityAvatar
               kind="agent"
@@ -101,7 +103,7 @@ export function ChatSideSheet(props: ChatSideSheetProps) {
             title={t('Chat.closePanel', { defaultValue: 'Close panel' })}
             onClick={props.onClose}
           />
-        </div>
+        </div>}
         <ScrollShell
           className={cn(
             'flex-1',

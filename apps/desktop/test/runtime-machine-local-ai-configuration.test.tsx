@@ -115,6 +115,7 @@ test.before(async () => {
 test('Local AI Configurations renders the first-use empty projection as an information state', () => {
   const markup = renderView(baseProps({ configurations: [], selections: [] }));
 
+  assert.match(markup, /data-nimi-model-config-owner="machine-local-ai-configuration"/u);
   assert.match(markup, /data-testid="machine-local-ai-configurations-empty-info"/u);
   assert.match(markup, /No local AI configurations yet/u);
   assert.match(markup, /You can save it before its files are connected/u);

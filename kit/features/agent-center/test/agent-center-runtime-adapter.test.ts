@@ -20,7 +20,7 @@ import type {
 } from '../src/types.js';
 
 const ACTIONS: readonly AgentCenterProductAction[] = [
-  'getSharedAIConfig', 'overwriteSharedAIConfig', 'applySharedAIProfile', 'readAutonomy', 'updateAutonomy',
+  'getSharedAIConfig', 'overwriteSharedAIConfig', 'readAutonomy', 'updateAutonomy',
   'readMemorySummary', 'replaceAppearance', 'restorePreviousAppearance',
   'requestPermission', 'openPermissionSettings',
 ];

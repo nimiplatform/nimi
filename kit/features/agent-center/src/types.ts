@@ -4,7 +4,6 @@ import type {
   NimiRuntimeAgentAutonomySnapshot,
   NimiCapabilityAIConfig,
   NimiCapabilityAIConfigIntent,
-  NimiCloudAIConfigCapabilityInput,
   NimiJsonObject,
   NimiRuntimeAgentInspectSnapshot,
   NimiRuntimeAgentInspectSurface,
@@ -18,6 +17,10 @@ import type {
   RuntimeLocalAgentIdentityInput,
 } from '@nimiplatform/kit/core/sdk-contract';
 import type { AgentCenterAvatarPreviewServiceResult } from '@nimiplatform/kit/features/avatar/headless';
+import type {
+  ModelConfigCloudAIConfigModule,
+  ModelConfigLocalSelectionProjection,
+} from '@nimiplatform/kit/features/model-config/headless';
 
 /** Capability identities are runtime-projected and admitted by the canonical Kit catalog. */
 export type AgentCenterCapabilityId = string;
@@ -163,7 +166,6 @@ export type AgentCenterAIConfigMutationDisabledReason =
 export type AgentCenterProductAction =
   | 'getSharedAIConfig'
   | 'overwriteSharedAIConfig'
-  | 'applySharedAIProfile'
   | 'readAutonomy'
   | 'updateAutonomy'
   | 'readMemorySummary'
@@ -323,6 +325,8 @@ export interface AgentCenterSharedAIConfigProjection {
 export interface AgentCenterRuntimeSnapshot {
   /** Undefined means the read is unavailable; null is Runtime-confirmed canonical absence. */
   readonly sharedAIConfig?: AgentCenterSharedAIConfigProjection | null;
+  /** Read-only machine-owner context. Agent Center never mutates this projection. */
+  readonly localSelections?: readonly ModelConfigLocalSelectionProjection[];
   readonly autonomy?: AgentCenterAutonomyProjection | null;
   readonly inspect?: NimiRuntimeAgentInspectSnapshot | null;
   readonly memory?: NimiRuntimeAgentMemoryObservatorySnapshot | null;
@@ -699,6 +703,7 @@ export interface AgentCenterAppearanceAssetAdmissionInput {
 export interface AgentCenterPlacementActions {
   readonly close?: () => void;
   readonly openRuntimeSettings?: () => void;
+  readonly openMachineConfiguration?: (capabilityContract: string) => void;
   readonly launchAvatar?: () => void;
 }
 
@@ -753,6 +758,7 @@ export interface AgentCenterState {
   readonly statusTone: AgentCenterStatusTone;
   readonly baseTextConfigured: boolean;
   readonly sharedAIConfig: AgentCenterSharedAIConfigProjection | null;
+  readonly localSelections: readonly ModelConfigLocalSelectionProjection[];
   readonly baseTextConfigurationDetail: string | null;
   readonly autonomyRevision: string | null;
   readonly presentationRevision: string | null;
@@ -783,7 +789,7 @@ declare const AGENT_CENTER_SESSION: unique symbol;
 
 export interface AgentCenterSession {
   readonly [AGENT_CENTER_SESSION]: true;
-  readonly cloudAIConfig?: AgentCenterCloudAIConfigModule;
+  readonly cloudAIConfig?: ModelConfigCloudAIConfigModule;
   getSnapshot(): AgentCenterSnapshot;
   subscribe(listener: () => void): () => void;
   refresh(): Promise<void>;
@@ -816,50 +822,6 @@ export interface AgentCenterProps {
   readonly chrome?: 'standalone' | 'embedded';
   readonly layout?: 'stacked' | 'split';
   readonly density?: 'compact' | 'regular';
-}
-
-export interface AgentCenterCloudImplementationOption {
-  readonly optionId: string;
-  readonly label: string;
-  readonly provider: string;
-  readonly implementation: NimiCloudAIConfigCapabilityInput['implementation'];
-}
-
-export interface AgentCenterCloudTargetOption {
-  readonly targetId: string;
-  readonly label: string;
-  readonly provider: string;
-  readonly providerModelTarget: NimiJsonObject;
-}
-
-export interface AgentCenterCloudConnectorOption {
-  readonly connectorId: string;
-  readonly label: string;
-  readonly provider: string;
-}
-
-export interface AgentCenterCloudGrantOption {
-  readonly grantId: string;
-  readonly connectorId: string;
-  readonly status: 'active' | 'revoked';
-  readonly createdAt: string;
-  readonly revokedAt: string | null;
-}
-
-export interface AgentCenterCloudAuthorizationOptions {
-  readonly connectors: readonly AgentCenterCloudConnectorOption[];
-  readonly grants: readonly AgentCenterCloudGrantOption[];
-}
-
-/** Host-supplied Runtime catalog and ConnectorGrant seam; it owns no AIConfig state. */
-export interface AgentCenterCloudAIConfigModule {
-  listImplementations(capabilityContract: string): Promise<readonly AgentCenterCloudImplementationOption[]>;
-  listTargets(input: {
-    readonly capabilityContract: string;
-    readonly provider: string;
-  }): Promise<readonly AgentCenterCloudTargetOption[]>;
-  listAuthorizationOptions(): Promise<AgentCenterCloudAuthorizationOptions>;
-  createGrant(connectorId: string): Promise<AgentCenterCloudGrantOption>;
 }
 
 export interface AgentCenterSharedAIConfigModule {

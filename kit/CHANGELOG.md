@@ -21,12 +21,13 @@ Discipline.
   independent from protected-session availability; Kit keeps the bridge
   registered, returns bounded typed unavailable posture, and owns bounded
   same-Host rebind.
-- **Breaking (0.x):** The scoped-route Kit surfaces are retired with no
-  compatibility shim. Removed public exports: `./core/model-config`,
-  `./features/model-config`, `./features/model-config/headless`,
-  `./features/model-config/ui`, `./features/model-picker`,
-  `./features/model-picker/headless`, `./features/model-picker/ui`, and
-  `./features/model-picker/runtime`. Generation modality request types no longer
+- **Breaking (0.x):** The scoped-route Model Config implementation is replaced
+  by explicit App AIConfig, shared LocalAgent AIConfig, and first-party Machine
+  Local AI owner modes. Public `./features/model-config` and
+  `./features/model-picker` root/headless/ui exports are restored with canonical
+  intent and non-committing choice contracts. Retired exports remain removed:
+  `./core/model-config` and `./features/model-picker/runtime`. Generation
+  modality request types no longer
   accept scoped configuration, binding, model, route, or target inputs. Text,
   image, video, synthesis, and transcription requests carry only caller identity,
   scenario content, and supported parameters; Runtime owns implementation

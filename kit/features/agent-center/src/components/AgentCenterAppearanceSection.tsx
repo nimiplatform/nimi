@@ -142,23 +142,17 @@ export function AgentCenterAppearanceSection({ session, snapshot, i18n }: AgentC
     }
   };
 
-  if (!actionAvailable) {
-    return (
-      <SectionShell labelledBy="agent-center-appearance-title">
-        <SectionHeader description={copy.description} id="agent-center-appearance-title" title={copy.title} />
+  return (
+    <SectionShell labelledBy="agent-center-appearance-title">
+      <SectionHeader description={copy.description} id="agent-center-appearance-title" title={copy.title} />
+      {!actionAvailable ? (
         <AgentCenterProductActionNotice
           action="replaceAppearance"
           availability={availability}
           i18n={i18n}
           session={session}
         />
-      </SectionShell>
-    );
-  }
-
-  return (
-    <SectionShell labelledBy="agent-center-appearance-title">
-      <SectionHeader description={copy.description} id="agent-center-appearance-title" title={copy.title} />
+      ) : null}
       <div className="grid gap-3" data-agent-center-appearance-surface="committed-effect">
         <Card className="border-slate-200/80 bg-white p-4 shadow-[0_10px_24px_rgba(15,23,42,0.04)]">
           <h3 className="m-0 text-[15px] font-semibold text-slate-950">{copy.current}</h3>

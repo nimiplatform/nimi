@@ -23,6 +23,7 @@ import {
   type AgentCenterSharedAIConfigProjection,
   type AgentCenterSession,
 } from '@nimiplatform/kit/features/agent-center';
+import { projectModelConfigLocalSelections } from '@nimiplatform/kit/features/model-config/headless';
 import { createAgentCenterShellBridge, hasElectronInvoke } from '@nimiplatform/kit/shell/renderer/bridge';
 import type { AgentLocalTargetSnapshot } from '../../bridge/runtime-bridge/types';
 import { type InlineFeedbackState } from '../../ui/feedback/inline-feedback';
@@ -241,6 +242,22 @@ export function useAgentConversationRuntimeController(
       appearance,
       sharedAIConfig: runtimeAgentCenterSharedAIConfig,
       cloudAIConfig: createDesktopCloudAIConfigModule(bindings.sdk),
+      async loadLocalSelections() {
+        try {
+          return projectModelConfigLocalSelections(
+            await bindings.sdk.machineProduct().local.aiConfiguration.get(),
+          );
+        } catch {
+          return ['text.generate', 'audio.transcribe'].map((capabilityContract) => ({
+            capabilityContract,
+            state: 'unavailable' as const,
+            configurationId: null,
+            displayName: null,
+            supportedFeatures: [],
+            reasons: ['machine-local-ai-configuration-unavailable'],
+          }));
+        }
+      },
       autonomy: createDesktopAgentCenterAutonomyAdapter(runtimeAgentInspect),
       inspect: runtimeAgentInspect,
       async loadSourceContextStatus(identity) {

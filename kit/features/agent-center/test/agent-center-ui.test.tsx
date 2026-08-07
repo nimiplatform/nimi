@@ -19,6 +19,13 @@ import { sessionFor } from './session-fixture.js';
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
+if (!window.HTMLElement.prototype.scrollIntoView) {
+  Object.defineProperty(window.HTMLElement.prototype, 'scrollIntoView', {
+    configurable: true,
+    value: vi.fn(),
+  });
+}
+
 let root: Root | null = null;
 let container: HTMLDivElement | null = null;
 
@@ -43,8 +50,29 @@ async function flush(): Promise<void> {
   });
 }
 
+async function openTextCapability(node: HTMLElement): Promise<void> {
+  const capability = node.querySelector(
+    '[data-nimi-model-config-capability="text.generate"]',
+  ) as HTMLButtonElement;
+  expect(capability).toBeTruthy();
+  await act(async () => { capability.click(); await Promise.resolve(); });
+  await flush();
+}
+
+async function selectField(node: HTMLElement, ariaLabel: string, optionLabel: string): Promise<void> {
+  const trigger = node.querySelector(`button[aria-label="${ariaLabel}"]`) as HTMLButtonElement;
+  expect(trigger).toBeTruthy();
+  await act(async () => { trigger.click(); await Promise.resolve(); });
+  await flush();
+  const option = Array.from(document.body.querySelectorAll('[role="option"]'))
+    .find((entry) => entry.textContent?.includes(optionLabel)) as HTMLElement;
+  expect(option).toBeTruthy();
+  await act(async () => { option.click(); await Promise.resolve(); });
+  await flush();
+}
+
 const PRODUCT_ACTIONS: readonly AgentCenterProductAction[] = [
-  'getSharedAIConfig', 'overwriteSharedAIConfig', 'applySharedAIProfile', 'readAutonomy', 'updateAutonomy',
+  'getSharedAIConfig', 'overwriteSharedAIConfig', 'readAutonomy', 'updateAutonomy',
   'readMemorySummary', 'replaceAppearance', 'restorePreviousAppearance',
   'requestPermission', 'openPermissionSettings',
 ];
@@ -285,8 +313,10 @@ describe('AgentCenter UI session contract', () => {
 
     const node = render(<AgentCenter activeSection="ai-config" session={session} />);
     await flush();
-    const configure = Array.from(node.querySelectorAll('button'))
-      .find((button) => button.textContent?.includes('Use Local')) as HTMLButtonElement;
+    await openTextCapability(node);
+    const configure = node.querySelector(
+      '[data-testid="model-config-save:text.generate"]',
+    ) as HTMLButtonElement;
     expect(configure).toBeTruthy();
     expect(configure.disabled).toBe(false);
     expect(node.textContent).not.toContain('Runtime is offline');
@@ -301,9 +331,10 @@ describe('AgentCenter UI session contract', () => {
     const session = permissionedSession({ initialReason: null });
     const node = render(<AgentCenter activeSection="ai-config" session={session} />);
     await flush();
-
-    const configure = Array.from(node.querySelectorAll('button'))
-      .find((button) => button.textContent?.includes('Use Local')) as HTMLButtonElement;
+    await openTextCapability(node);
+    const configure = node.querySelector(
+      '[data-testid="model-config-save:text.generate"]',
+    ) as HTMLButtonElement;
     expect(configure).toBeTruthy();
     expect(configure.disabled).toBe(true);
   });
@@ -312,8 +343,10 @@ describe('AgentCenter UI session contract', () => {
     const session = await sessionFor();
     const node = render(<AgentCenter activeSection="ai-config" session={session} />);
     await flush();
-    const configure = Array.from(node.querySelectorAll('button'))
-      .find((button) => button.textContent?.includes('Use Local')) as HTMLButtonElement;
+    await openTextCapability(node);
+    const configure = node.querySelector(
+      '[data-testid="model-config-save:text.generate"]',
+    ) as HTMLButtonElement;
     expect(configure).toBeTruthy();
     await act(async () => { configure.click(); await Promise.resolve(); });
     await flush();
@@ -377,32 +410,33 @@ describe('AgentCenter UI session contract', () => {
     });
     const node = render(<AgentCenter activeSection="ai-config" session={session} />);
     await flush();
-
-    const start = node.querySelector('[data-agent-center-cloud-start="true"]') as HTMLButtonElement;
+    await openTextCapability(node);
+    const start = Array.from(node.querySelectorAll('button'))
+      .find((button) => button.textContent?.trim() === 'Cloud') as HTMLButtonElement;
     await act(async () => { start.click(); await Promise.resolve(); });
     await flush();
-    expect(node.textContent).toContain('1. Confirm Cloud implementation and target');
-    expect(node.textContent).toContain('2. Select account authorization');
-    expect(node.textContent).toContain('applies to all LocalAgents and their proactive tasks');
+    expect(node.textContent).toContain('Cloud implementation');
+    expect(node.textContent).toContain('Account authorization');
+    expect(node.textContent).toContain('applies to every LocalAgent and proactive task');
 
-    const implementation = node.querySelector('select[aria-label="Cloud implementation"]') as HTMLSelectElement;
-    act(() => {
-      implementation.value = 'openai';
-      implementation.dispatchEvent(new Event('change', { bubbles: true }));
-    });
+    await selectField(node, 'Cloud implementation', 'OpenAI');
+    const targetTrigger = Array.from(node.querySelectorAll('button'))
+      .find((button) => button.textContent?.includes('Choose an existing target')) as HTMLButtonElement;
+    await act(async () => { targetTrigger.click(); await Promise.resolve(); });
     await flush();
-    const target = node.querySelector('select[aria-label="Provider-model target"]') as HTMLSelectElement;
-    act(() => {
-      target.value = '["openai","gpt-test"]';
-      target.dispatchEvent(new Event('change', { bubbles: true }));
-    });
+    const target = Array.from(document.body.querySelectorAll('[data-nimi-model-picker="true"] button'))
+      .find((button) => button.textContent?.includes('gpt-test')) as HTMLButtonElement;
+    act(() => { target.click(); });
+    const confirmTarget = Array.from(document.body.querySelectorAll('button'))
+      .find((button) => button.textContent?.trim() === 'Use this target') as HTMLButtonElement;
+    act(() => { confirmTarget.click(); });
     const confirmations = Array.from(node.querySelectorAll('input[type="checkbox"]')) as HTMLInputElement[];
     expect(confirmations).toHaveLength(2);
     act(() => {
       for (const confirmation of confirmations) confirmation.click();
     });
-    expect(node.textContent).toContain('You may save this information state and choose one later.');
-    let save = node.querySelector('[data-agent-center-cloud-save="true"]') as HTMLButtonElement;
+    expect(node.textContent).toContain('Account authorization still needs to be selected.');
+    let save = node.querySelector('[data-testid="model-config-save:text.generate"]') as HTMLButtonElement;
     expect(save.disabled).toBe(false);
     await act(async () => { save.click(); await Promise.resolve(); });
     await flush();
@@ -411,8 +445,6 @@ describe('AgentCenter UI session contract', () => {
     if (savedIntent?.route.oneofKind !== 'cloud') throw new Error('expected Cloud intent');
     expect(savedIntent.route.cloud.connectorGrantId).toBe('');
 
-    await act(async () => { start.click(); await Promise.resolve(); });
-    await flush();
     const reopenedConfirmations = Array.from(
       node.querySelectorAll('input[type="checkbox"]'),
     ) as HTMLInputElement[];
@@ -420,17 +452,21 @@ describe('AgentCenter UI session contract', () => {
     act(() => {
       for (const confirmation of reopenedConfirmations) confirmation.click();
     });
-    const connector = node.querySelector('select[aria-label="Create authorization from connector"]') as HTMLSelectElement;
-    act(() => {
-      connector.value = 'connector-1';
-      connector.dispatchEvent(new Event('change', { bubbles: true }));
-    });
+    await selectField(node, 'Create authorization from connector', 'Work account');
     const create = Array.from(node.querySelectorAll('button'))
       .find((button) => button.textContent?.includes('Create account authorization')) as HTMLButtonElement;
     await act(async () => { create.click(); await Promise.resolve(); });
     await flush();
+    const postGrantConfirmations = Array.from(
+      node.querySelectorAll('input[type="checkbox"]'),
+    ) as HTMLInputElement[];
+    act(() => {
+      for (const confirmation of postGrantConfirmations) {
+        if (!confirmation.checked) confirmation.click();
+      }
+    });
 
-    save = node.querySelector('[data-agent-center-cloud-save="true"]') as HTMLButtonElement;
+    save = node.querySelector('[data-testid="model-config-save:text.generate"]') as HTMLButtonElement;
     expect(save.disabled).toBe(false);
     await act(async () => { save.click(); await Promise.resolve(); });
     await flush();

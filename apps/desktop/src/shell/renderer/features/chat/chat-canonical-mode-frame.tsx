@@ -39,6 +39,7 @@ export type ChatCanonicalModeFrameProps = {
   settingsSheetAvatarFallback?: string;
   settingsSheetAvatarAlt?: string;
   settingsSheetBodyClassName?: string;
+  settingsSheetHideHeader?: boolean;
   transcriptPropsOverride?: Omit<CanonicalTranscriptViewProps, 'messages'>;
   stagePanelPropsOverride?: Omit<
     CanonicalStagePanelProps,
@@ -111,6 +112,7 @@ export function ChatCanonicalModeFrame(props: ChatCanonicalModeFrameProps) {
           avatarUrl={props.settingsSheetAvatarUrl}
           avatarFallback={props.settingsSheetAvatarFallback}
           avatarAlt={props.settingsSheetAvatarAlt}
+          hideHeader={props.settingsSheetHideHeader}
           onClose={props.onCloseSettings}
         >
           <div className={props.settingsSheetBodyClassName || 'px-3 py-3'}>

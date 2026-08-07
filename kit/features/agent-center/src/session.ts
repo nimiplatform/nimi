@@ -6,6 +6,10 @@ import {
   type NimiRuntimeAgentTurnContextSummary,
   type RuntimeLocalAgentIdentityInput,
 } from '@nimiplatform/kit/core/sdk-contract';
+import type {
+  ModelConfigCloudAIConfigModule,
+  ModelConfigLocalSelectionProjection,
+} from '@nimiplatform/kit/features/model-config/headless';
 import { buildAgentCenterState } from './state.js';
 import type {
   AgentCenterActionAvailability,
@@ -14,7 +18,6 @@ import type {
   AgentCenterAppearanceAdapter,
   AgentCenterAppearanceProjection,
   AgentCenterAutonomyMutationInput,
-  AgentCenterCloudAIConfigModule,
   AgentCenterAutonomyProjection,
   AgentCenterNextStepAction,
   AgentCenterOpaqueHandle,
@@ -37,7 +40,6 @@ import type {
 const ACTIONS: readonly AgentCenterProductAction[] = [
   'getSharedAIConfig',
   'overwriteSharedAIConfig',
-  'applySharedAIProfile',
   'readAutonomy',
   'updateAutonomy',
   'readMemorySummary',
@@ -65,10 +67,6 @@ function nextStep(reason: AgentCenterActionUnavailableReason): AgentCenterNextSt
 
 function unavailable(reason: AgentCenterActionUnavailableReason): AgentCenterActionAvailability {
   return Object.freeze({ state: 'unavailable', reason, nextStep: nextStep(reason) });
-}
-
-function allAvailable(): AgentCenterActionAvailabilityProjection {
-  return Object.freeze(Object.fromEntries(ACTIONS.map((action) => [action, AVAILABLE]))) as AgentCenterActionAvailabilityProjection;
 }
 
 function allUnavailable(reason: AgentCenterActionUnavailableReason): AgentCenterActionAvailabilityProjection {
@@ -150,14 +148,14 @@ function isCanonicalAIConfigAbsence(error: unknown): boolean {
 
 class ManagerSession {
   readonly appearance: AgentCenterSession['appearance'];
-  readonly cloudAIConfig?: AgentCenterCloudAIConfigModule;
+  readonly cloudAIConfig?: ModelConfigCloudAIConfigModule;
   #snapshot: AgentCenterSnapshot;
   #listeners = new Set<() => void>();
   #actionPostureUnsubscribe: (() => void) | null = null;
 
   constructor(
     private readonly transport: SessionTransport,
-    cloudAIConfig?: AgentCenterCloudAIConfigModule,
+    cloudAIConfig?: ModelConfigCloudAIConfigModule,
   ) {
     this.cloudAIConfig = cloudAIConfig;
     this.#snapshot = {
@@ -314,7 +312,7 @@ class ManagerSession {
 
 export interface CreateFirstPartyAgentCenterSessionInput {
   readonly sharedAIConfig: AgentCenterSharedAIConfigModule;
-  readonly cloudAIConfig?: AgentCenterCloudAIConfigModule;
+  readonly cloudAIConfig?: ModelConfigCloudAIConfigModule;
   readonly inspect?: NimiRuntimeAgentInspectSurface | null;
   readonly identity: RuntimeLocalAgentIdentityInput;
   readonly autonomy?: {
@@ -325,12 +323,47 @@ export interface CreateFirstPartyAgentCenterSessionInput {
     ) => Promise<AgentCenterAutonomyProjection>;
   } | null;
   readonly appearance?: AgentCenterAppearanceAdapter | null;
+  readonly loadLocalSelections?: () => Promise<readonly ModelConfigLocalSelectionProjection[]>;
   readonly loadMemory?: (input: RuntimeLocalAgentIdentityInput) => Promise<NimiRuntimeAgentMemoryObservatorySnapshot | null>;
   readonly loadSourceContextStatus?: (input: RuntimeLocalAgentIdentityInput) => Promise<NimiRuntimeAgentSourceContextStatus | null>;
   readonly loadTurnContextSummary?: (
     input: RuntimeLocalAgentIdentityInput & { readonly conversationAnchorId?: string },
   ) => Promise<NimiRuntimeAgentTurnContextSummary | null>;
   readonly loadInput?: AgentCenterRuntimeLoadInput;
+}
+
+function firstPartyActionAvailability(
+  input: CreateFirstPartyAgentCenterSessionInput,
+): AgentCenterActionAvailabilityProjection {
+  const appearanceWritable = Boolean(
+    input.appearance?.replaceAppearance
+    || input.appearance?.replaceAvatar
+    || input.appearance?.linkLive2dAdapterManifest
+    || input.appearance?.clearAvatarAsset
+    || input.appearance?.importBackground
+    || input.appearance?.clearBackground
+    || input.appearance?.removeAgentResources
+    || input.appearance?.cleanupGeneratedVoiceArtifacts
+    || input.appearance?.setAvatarAutoplay,
+  );
+  const availability: AgentCenterActionAvailabilityProjection = {
+    getSharedAIConfig: AVAILABLE,
+    overwriteSharedAIConfig: AVAILABLE,
+    readAutonomy: input.autonomy ? AVAILABLE : unavailable('reserved-not-admitted'),
+    updateAutonomy: input.autonomy ? AVAILABLE : unavailable('reserved-not-admitted'),
+    readMemorySummary: input.loadMemory || input.inspect
+      ? AVAILABLE
+      : unavailable('reserved-not-admitted'),
+    replaceAppearance: appearanceWritable
+      ? AVAILABLE
+      : unavailable('reserved-not-admitted'),
+    restorePreviousAppearance: input.appearance?.restorePreviousAppearance
+      ? AVAILABLE
+      : unavailable('reserved-not-admitted'),
+    requestPermission: unavailable('reserved-not-admitted'),
+    openPermissionSettings: unavailable('reserved-not-admitted'),
+  };
+  return Object.freeze(availability);
 }
 
 export function createFirstPartyAgentCenterSession(
@@ -347,8 +380,9 @@ export function createFirstPartyAgentCenterSession(
     }
   };
   const read = async (): Promise<AgentCenterStateInput> => {
-    const [sharedAIConfig, autonomy, inspect, memory, sourceContextStatus, turnContextSummary, appearance] = await Promise.all([
+    const [sharedAIConfig, localSelections, autonomy, inspect, memory, sourceContextStatus, turnContextSummary, appearance] = await Promise.all([
       readSharedAIConfig(),
+      input.loadLocalSelections?.() ?? Promise.resolve([]),
       input.autonomy?.load(identity) ?? Promise.resolve(null),
       input.inspect?.getPublicInspect(identity) ?? Promise.resolve(null),
       input.loadMemory?.(identity) ?? Promise.resolve(null),
@@ -359,11 +393,11 @@ export function createFirstPartyAgentCenterSession(
       }) ?? Promise.resolve(null),
       input.appearance?.load() ?? Promise.resolve(null),
     ]);
-    return { sharedAIConfig, autonomy, inspect, memory, sourceContextStatus, turnContextSummary, appearance };
+    return { sharedAIConfig, localSelections, autonomy, inspect, memory, sourceContextStatus, turnContextSummary, appearance };
   };
   const transport: SessionTransport = {
     appearanceAdapter: input.appearance || null,
-    actionAvailability: async () => allAvailable(),
+    actionAvailability: async () => firstPartyActionAvailability(input),
     read,
     async overwriteSharedAIConfig(mutation) {
       const sharedAIConfig = await input.sharedAIConfig.overwrite({

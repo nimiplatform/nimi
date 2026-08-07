@@ -85,7 +85,7 @@ platform spec tables first and regenerate the projection.
 
 ## Current Public Surface
 
-The current package publishes 62 public subpath exports through
+The current package publishes 68 public subpath exports through
 `kit/package.json`:
 
 - 9 UI entries (`./ui`, `./ui/glass`, `./ui/motion`, `./ui/a11y`,
@@ -101,9 +101,9 @@ The current package publishes 62 public subpath exports through
   `./shell/renderer/bootstrap`, `./shell/renderer/host`, `./shell/electron/main`,
   `./shell/electron/preload`, and `./shell/electron/preload-cjs`)
 - 2 telemetry entries (`./telemetry`, `./telemetry/error-boundary`)
-- 31 feature entries across `./features/chat`, `./features/avatar`,
-  `./features/agent-center`, `./features/generation`, and
-  `./features/commerce`
+- 37 feature entries across `./features/chat`, `./features/avatar`,
+  `./features/agent-center`, `./features/model-config`,
+  `./features/model-picker`, `./features/generation`, and `./features/commerce`
 
 The complete npm subpath inventory is the `exports` object in
 `kit/package.json`.
@@ -208,9 +208,16 @@ import { useRealmChatComposer } from '@nimiplatform/kit/features/chat/realm';
 import { CanonicalConversationShell } from '@nimiplatform/kit/features/chat/components/canonical-conversation-shell';
 import { AvatarStage } from '@nimiplatform/kit/features/avatar';
 import { AgentCenter } from '@nimiplatform/kit/features/agent-center';
+import { ModelConfigAIConfigSurface } from '@nimiplatform/kit/features/model-config';
+import { ModelPickerDialog } from '@nimiplatform/kit/features/model-picker';
 import { useRuntimeGenerationPanel } from '@nimiplatform/kit/features/generation/runtime';
 import { useRealmSendGiftDialog } from '@nimiplatform/kit/features/commerce/realm';
 ```
+
+Model Config requires one explicit owner/consumer context and host-supplied
+canonical reads/mutations. Model Picker is non-committing and consumes only
+owner-supplied candidates; its retired Runtime route-provider export is not
+restored.
 
 Generation keeps modality request/result contracts, but execution fails closed
 until Runtime exposes owner-driven Scenario submission without caller-supplied

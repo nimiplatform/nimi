@@ -127,7 +127,8 @@ export function ChatAgentModeContent({
       settingsSheetAvatarUrl={host.characterData?.avatarUrl ?? selectedTarget?.avatarUrl ?? null}
       settingsSheetAvatarFallback={host.characterData?.avatarFallback ?? selectedTarget?.avatarFallback ?? undefined}
       settingsSheetAvatarAlt={host.characterData?.name ?? selectedTarget?.title}
-      settingsSheetBodyClassName="px-5 py-3"
+      settingsSheetBodyClassName="px-3 py-3"
+      settingsSheetHideHeader
     />
   );
 }

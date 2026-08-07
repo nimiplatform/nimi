@@ -69,7 +69,14 @@ autonomy configuration.
 
 ## Manager Session
 
-The optional first-party `cloudAIConfig` seam supplies Runtime-catalog implementation/target choices and account-scoped ConnectorGrant lifecycle operations. The AIConfig section keeps target confirmation and account authorization as two adjacent explicit steps, permits a saved selection-required state, and requires explicit acknowledgement that shared Cloud intent affects every LocalAgent and proactive task. ConnectorGrant never supplies target or routing truth.
+The AIConfig section mounts the public `model-config` owner surface in
+`shared-local-agent-ai-config` mode. The optional first-party `cloudAIConfig`
+seam supplies Runtime-catalog implementation/target choices and account-scoped
+ConnectorGrant lifecycle operations. `loadLocalSelections` supplies read-only
+Machine owner context; Agent Center cannot mutate those selections. Cloud target
+confirmation, account authorization, off-machine data movement, provider cost,
+and the impact on every LocalAgent and proactive task remain explicit.
+ConnectorGrant never supplies target or routing truth.
 
 Each mounted `AgentCenter` consumes exactly one `AgentCenterSession`. The
 session owns its retryable snapshot, refresh, model/autonomy/appearance
@@ -81,6 +88,9 @@ degraded and fail closed. Sections call the session only and never branch on a
 carrier kind.
 
 `createFirstPartyAgentCenterSession` binds protected first-party dependencies.
+Its action availability is projected from the dependencies actually connected;
+missing autonomy, memory, appearance, or permission modules are unavailable
+rather than reported as successful.
 `createPermissionedAgentCenterSession({ handle, surface })` binds an
 SDK-materialized opaque Agent handle. The session projects the closed product
 action set to `available` or to one of `needs-grant`, `request-pending`,

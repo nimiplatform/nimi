@@ -1,8 +1,8 @@
 import { createFirstPartyAgentCenterSession } from '../src/session.js';
+import type { ModelConfigCloudAIConfigModule } from '@nimiplatform/kit/features/model-config/headless';
 import type {
   AgentCenterAppearanceAdapter,
   AgentCenterAutonomyProjection,
-  AgentCenterCloudAIConfigModule,
   AgentCenterSharedAIConfigProjection,
   AgentCenterSession,
   AgentCenterStateInput,
@@ -34,7 +34,7 @@ function defaultAIConfig(): AgentCenterSharedAIConfigProjection {
 export async function sessionFor(
   projection: AgentCenterStateInput = {},
   appearance?: AgentCenterAppearanceAdapter | null,
-  cloudAIConfig?: AgentCenterCloudAIConfigModule,
+  cloudAIConfig?: ModelConfigCloudAIConfigModule,
 ): Promise<AgentCenterSession> {
   let sharedAIConfig = projection.sharedAIConfig || defaultAIConfig();
   const session = createFirstPartyAgentCenterSession({
@@ -59,6 +59,9 @@ export async function sessionFor(
       },
     },
     cloudAIConfig,
+    loadLocalSelections: projection.localSelections
+      ? async () => projection.localSelections!
+      : undefined,
     autonomy: projection.autonomy ? {
       async load() { return projection.autonomy || null; },
       async update(_identity, mutation) {

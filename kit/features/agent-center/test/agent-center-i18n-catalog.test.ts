@@ -47,7 +47,7 @@ describe('Agent Center canonical i18n catalogs', () => {
   it('covers every literal component key in English and ships matching Chinese keys', () => {
     const enKeys = Object.keys(agentCenterEnCatalog).sort();
     const zhKeys = Object.keys(agentCenterZhCatalog).sort();
-    expect(enKeys).toHaveLength(318);
+    expect(enKeys).toHaveLength(349);
     expect(zhKeys).toEqual(enKeys);
     expect(literalCatalogKeys().filter((key) => !(key in agentCenterEnCatalog))).toEqual([]);
 
@@ -81,5 +81,7 @@ describe('Agent Center canonical i18n catalogs', () => {
     const binding = createAgentCenterI18n({ language: 'zh' });
     expect(binding.t('AgentCenter.section.appearance')).toBe('外观');
     expect(binding.t('AgentCenter.cognition.title')).toBe('认知状态');
+    expect(binding.t('AgentCenter.capability.text.generate.label')).toBe('文本生成');
+    expect(binding.t('AgentCenter.capability.audio.transcribe.label')).toBe('音频转写');
   });
 });
