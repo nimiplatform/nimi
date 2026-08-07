@@ -370,7 +370,7 @@ test('tester-reference scaffold keeps the full reference app explicit', () => {
     const runtimePlatform = generated.read('src/shell/auth/runtime-platform.ts');
     const localAppPlatform = generated.read('src/shell/local-app-runtime-platform.ts');
     const productionBindings = generated.read('src/renderer/production-bindings.ts');
-    assert.match(runtimePlatform, /testerLocalAppClient\.auth\.status\(\)/);
+    assert.match(runtimePlatform, /getTesterLocalAppClient\(\)\.auth\.status\(\)/);
     assert.match(runtimePlatform, /!status\.sessionBound/);
     assert.match(localAppPlatform, /createNimiClient/);
     assert.match(localAppPlatform, /createNimiLocalAppStandardShellSurface/);
