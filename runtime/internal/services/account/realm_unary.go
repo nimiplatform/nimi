@@ -90,28 +90,37 @@ func (s *Service) InvokeRealmUnary(ctx context.Context, req *runtimev1.InvokeRea
 			return realmUnaryFailure(runtimev1.ReasonCode_APP_SCOPE_FORBIDDEN, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BROKER_OPERATION_NOT_ADMITTED, "realm method is not admitted for this Runtime caller mode", 0), nil
 		}
 	}
+	projectFailure := func(response *runtimev1.InvokeRealmUnaryResponse) *runtimev1.InvokeRealmUnaryResponse {
+		if localAppOperation != 0 {
+			return sanitizeLocalAppWorldCoreFailure(response)
+		}
+		return response
+	}
 	realmBaseURL, err := s.resolveRealmUnaryBaseURL(req.GetRealmBaseUrl())
 	if err != nil {
-		return realmUnaryFailure(runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BROKER_REALM_BASE_DENIED, err.Error(), 0), nil
+		return projectFailure(realmUnaryFailure(runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BROKER_REALM_BASE_DENIED, err.Error(), 0)), nil
 	}
 	accessToken, reason, ok, err := s.realmUnaryAccessToken(operationCtx, req.GetCaller())
 	if err != nil {
-		return nil, err
+		if localAppOperation == 0 || ctx.Err() != nil {
+			return nil, err
+		}
+		return projectFailure(realmUnaryFailure(runtimev1.ReasonCode_REALM_UNAVAILABLE, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BROKER_REALM_UNAVAILABLE, "Realm account credential is unavailable", 0)), nil
 	}
 	if !ok {
-		return &runtimev1.InvokeRealmUnaryResponse{Accepted: false, ReasonCode: runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED, AccountReasonCode: reason}, nil
+		return projectFailure(&runtimev1.InvokeRealmUnaryResponse{Accepted: false, ReasonCode: runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED, AccountReasonCode: reason}), nil
 	}
 
 	parsedRequest, err := parseRealmUnaryRequest(req.GetRequestJson())
 	if err != nil {
-		return realmUnaryFailure(runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BROKER_REQUEST_INVALID, err.Error(), 0), nil
+		return projectFailure(realmUnaryFailure(runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BROKER_REQUEST_INVALID, err.Error(), 0)), nil
 	}
 	if err := validateRealmUnaryRequestShape(operation, parsedRequest); err != nil {
-		return realmUnaryFailure(runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BROKER_REQUEST_INVALID, err.Error(), 0), nil
+		return projectFailure(realmUnaryFailure(runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BROKER_REQUEST_INVALID, err.Error(), 0)), nil
 	}
 	targetURL, err := buildRealmUnaryURL(realmBaseURL, operation, parsedRequest)
 	if err != nil {
-		return realmUnaryFailure(runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BROKER_REQUEST_INVALID, err.Error(), 0), nil
+		return projectFailure(realmUnaryFailure(runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BROKER_REQUEST_INVALID, err.Error(), 0)), nil
 	}
 
 	client := s.realmHTTP
@@ -129,18 +138,21 @@ func (s *Service) InvokeRealmUnary(ctx context.Context, req *runtimev1.InvokeRea
 		if callerErr := ctx.Err(); callerErr != nil {
 			return nil, callerErr
 		}
-		return realmUnaryFailure(runtimev1.ReasonCode_REALM_UNAVAILABLE, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BROKER_REALM_UNAVAILABLE, fmt.Sprintf("Realm request failed: %v", result.err), 0), nil
+		return projectFailure(realmUnaryFailure(runtimev1.ReasonCode_REALM_UNAVAILABLE, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BROKER_REALM_UNAVAILABLE, fmt.Sprintf("Realm request failed: %v", result.err), 0)), nil
 	}
 	if result.failure != nil {
-		return result.failure, nil
+		return projectFailure(result.failure), nil
 	}
 	if result.status == http.StatusUnauthorized {
 		refresh, refreshErr := s.refreshAccountSessionAfterUnauthorized(operationCtx, accessToken)
 		if refreshErr != nil {
-			return nil, refreshErr
+			if localAppOperation == 0 || ctx.Err() != nil {
+				return nil, refreshErr
+			}
+			return projectFailure(realmUnaryFailure(runtimev1.ReasonCode_REALM_UNAVAILABLE, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BROKER_REALM_UNAVAILABLE, "Realm credential refresh is unavailable", http.StatusUnauthorized)), nil
 		}
 		if !refresh.accepted {
-			return realmUnaryFailure(refresh.reasonCode, refresh.accountReasonCode, "Realm credential refresh did not complete", http.StatusUnauthorized), nil
+			return projectFailure(realmUnaryFailure(refresh.reasonCode, refresh.accountReasonCode, "Realm credential refresh did not complete", http.StatusUnauthorized)), nil
 		}
 		s.mu.RLock()
 		refreshedToken := s.material.AccessToken
@@ -150,19 +162,27 @@ func (s *Service) InvokeRealmUnary(ctx context.Context, req *runtimev1.InvokeRea
 			if callerErr := ctx.Err(); callerErr != nil {
 				return nil, callerErr
 			}
-			return realmUnaryFailure(runtimev1.ReasonCode_REALM_UNAVAILABLE, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BROKER_REALM_UNAVAILABLE, fmt.Sprintf("Realm request failed: %v", result.err), 0), nil
+			return projectFailure(realmUnaryFailure(runtimev1.ReasonCode_REALM_UNAVAILABLE, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BROKER_REALM_UNAVAILABLE, fmt.Sprintf("Realm request failed: %v", result.err), 0)), nil
 		}
 		if result.failure != nil {
-			return result.failure, nil
+			return projectFailure(result.failure), nil
 		}
 		if result.status == http.StatusUnauthorized {
 			s.invalidateAccountAfterRealmUnauthorized(operationCtx)
-			return realmUnaryFailure(runtimev1.ReasonCode_AUTH_TOKEN_INVALID, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BROKER_AUTH_INVALID, "Realm rejected the refreshed account session", result.status), nil
+			return projectFailure(realmUnaryFailure(runtimev1.ReasonCode_AUTH_TOKEN_INVALID, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BROKER_AUTH_INVALID, "Realm rejected the refreshed account session", result.status)), nil
 		}
 	}
 	projected := projectRealmUnaryHTTPResult(result)
-	if localAppOperation == LocalAppOperationRealmWorldCoreList && projected.GetAccepted() {
-		return projectLocalAppWorldCoreListResponse(projected), nil
+	if localAppOperation != 0 {
+		if !projected.GetAccepted() {
+			return sanitizeLocalAppWorldCoreFailure(projected), nil
+		}
+		switch localAppOperation {
+		case LocalAppOperationRealmWorldCoreList:
+			return projectLocalAppWorldCoreListResponse(projected), nil
+		case LocalAppOperationRealmWorldCoreCreate:
+			return projectLocalAppWorldCoreCreateResponse(projected), nil
+		}
 	}
 	return projected, nil
 }

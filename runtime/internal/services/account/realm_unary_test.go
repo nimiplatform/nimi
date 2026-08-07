@@ -76,7 +76,8 @@ func TestInvokeRealmUnaryMediatesExactProtectedLocalAppWorldCoreOperations(t *te
 		observed = append(observed, r.Method+" "+r.URL.RequestURI())
 		w.Header().Set("content-type", "application/json")
 		if r.Method == http.MethodPost {
-			_, _ = w.Write([]byte(`{"id":"world-created"}`))
+			w.WriteHeader(http.StatusCreated)
+			_, _ = w.Write([]byte(validLocalAppWorldCoreJSON("world-created")))
 			return
 		}
 		_, _ = w.Write([]byte("[" + validLocalAppWorldCoreJSON("world-1") + "]"))

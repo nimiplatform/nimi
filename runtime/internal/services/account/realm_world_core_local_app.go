@@ -27,23 +27,8 @@ type worldCoreDTOValidation struct {
 }
 
 func projectLocalAppWorldCoreListResponse(response *runtimev1.InvokeRealmUnaryResponse) *runtimev1.InvokeRealmUnaryResponse {
-	if response == nil || !response.GetAccepted() || response.GetReasonCode() != runtimev1.ReasonCode_ACTION_EXECUTED ||
-		response.GetAccountReasonCode() != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED ||
-		response.GetProductionInert() || response.GetHttpStatus() < 200 || response.GetHttpStatus() >= 300 ||
-		response.GetErrorMessage() != "" || len(response.GetResponseJson()) == 0 || len(response.GetResponseJson()) > 1<<20 {
-		return localAppWorldCoreContractFailure(response)
-	}
-	raw := []byte(response.GetResponseJson())
-	if err := jsonstrict.RejectDuplicateKeys(raw); err != nil {
-		return localAppWorldCoreContractFailure(response)
-	}
-	decoder := json.NewDecoder(bytes.NewReader(raw))
-	decoder.UseNumber()
-	var decoded any
-	if err := decoder.Decode(&decoded); err != nil {
-		return localAppWorldCoreContractFailure(response)
-	}
-	if err := requireWorldCoreJSONEOF(decoder); err != nil {
+	decoded, ok := decodeLocalAppWorldCoreResponse(response)
+	if !ok {
 		return localAppWorldCoreContractFailure(response)
 	}
 	items, ok := decoded.([]any)
@@ -56,12 +41,61 @@ func projectLocalAppWorldCoreListResponse(response *runtimev1.InvokeRealmUnaryRe
 			return localAppWorldCoreContractFailure(response)
 		}
 	}
-	canonical, err := json.Marshal(items)
+	return projectCanonicalLocalAppWorldCoreResponse(response, items)
+}
+
+func projectLocalAppWorldCoreCreateResponse(response *runtimev1.InvokeRealmUnaryResponse) *runtimev1.InvokeRealmUnaryResponse {
+	decoded, ok := decodeLocalAppWorldCoreResponse(response)
+	if !ok {
+		return localAppWorldCoreContractFailure(response)
+	}
+	validation := &worldCoreDTOValidation{}
+	if !validation.worldCore(decoded, 0) {
+		return localAppWorldCoreContractFailure(response)
+	}
+	return projectCanonicalLocalAppWorldCoreResponse(response, decoded)
+}
+
+func decodeLocalAppWorldCoreResponse(response *runtimev1.InvokeRealmUnaryResponse) (any, bool) {
+	if response == nil || !response.GetAccepted() || response.GetReasonCode() != runtimev1.ReasonCode_ACTION_EXECUTED ||
+		response.GetAccountReasonCode() != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED ||
+		response.GetProductionInert() || response.GetHttpStatus() < 200 || response.GetHttpStatus() >= 300 ||
+		response.GetErrorMessage() != "" || len(response.GetResponseJson()) == 0 || len(response.GetResponseJson()) > 1<<20 {
+		return nil, false
+	}
+	raw := []byte(response.GetResponseJson())
+	if err := jsonstrict.RejectDuplicateKeys(raw); err != nil {
+		return nil, false
+	}
+	decoder := json.NewDecoder(bytes.NewReader(raw))
+	decoder.UseNumber()
+	var decoded any
+	if err := decoder.Decode(&decoded); err != nil {
+		return nil, false
+	}
+	if err := requireWorldCoreJSONEOF(decoder); err != nil {
+		return nil, false
+	}
+	return decoded, true
+}
+
+func projectCanonicalLocalAppWorldCoreResponse(response *runtimev1.InvokeRealmUnaryResponse, value any) *runtimev1.InvokeRealmUnaryResponse {
+	canonical, err := json.Marshal(value)
 	if err != nil || len(canonical) > 1<<20 {
 		return localAppWorldCoreContractFailure(response)
 	}
 	projected := *response
 	projected.ResponseJson = string(canonical)
+	return &projected
+}
+
+func sanitizeLocalAppWorldCoreFailure(response *runtimev1.InvokeRealmUnaryResponse) *runtimev1.InvokeRealmUnaryResponse {
+	if response == nil || response.GetAccepted() {
+		return response
+	}
+	projected := *response
+	projected.ResponseJson = ""
+	projected.ErrorMessage = ""
 	return &projected
 }
 

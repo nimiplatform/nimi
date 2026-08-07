@@ -20,6 +20,19 @@ func TestLocalAppWorldCoreListProjectsOnlyExactDTOs(t *testing.T) {
 	}
 }
 
+func TestLocalAppWorldCoreCreateProjectsOnlyOneExactDTO(t *testing.T) {
+	response := projectLocalAppWorldCoreCreateResponse(&runtimev1.InvokeRealmUnaryResponse{
+		Accepted: true, ResponseJson: validLocalAppWorldCoreJSON("world-created"),
+		ReasonCode:        runtimev1.ReasonCode_ACTION_EXECUTED,
+		AccountReasonCode: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED,
+		HttpStatus:        201,
+	})
+	if !response.GetAccepted() || response.GetReasonCode() != runtimev1.ReasonCode_ACTION_EXECUTED ||
+		!strings.Contains(response.GetResponseJson(), `"id":"world-created"`) {
+		t.Fatalf("exact created WorldCore projection = %+v", response)
+	}
+}
+
 func TestLocalAppWorldCoreListRejectsUnknownMissingAndCredentialAdjacentDTOsWithoutRawBody(t *testing.T) {
 	valid := validLocalAppWorldCoreJSON("world-1")
 	for name, raw := range map[string]string{
@@ -42,6 +55,43 @@ func TestLocalAppWorldCoreListRejectsUnknownMissingAndCredentialAdjacentDTOsWith
 				t.Fatalf("%s response = %+v", name, response)
 			}
 		})
+	}
+}
+
+func TestLocalAppWorldCoreCreateRejectsMalformedAndCredentialAdjacentDTOs(t *testing.T) {
+	valid := validLocalAppWorldCoreJSON("world-created")
+	for name, raw := range map[string]string{
+		"list instead of object": "[" + valid + "]",
+		"unknown field":          strings.Replace(valid, `"id":"world-created"`, `"id":"world-created","rawBody":"private"`, 1),
+		"duplicate field":        strings.Replace(valid, `"id":"world-created"`, `"id":"world-created","id":"other"`, 1),
+		"signed uri":             strings.Replace(valid, `"resourceRefs":[]`, `"resourceRefs":[],"externalRefs":[{"refId":"asset","kind":"image","uri":"https://cdn.example/a.png?token=secret"}]`, 1),
+	} {
+		t.Run(name, func(t *testing.T) {
+			response := projectLocalAppWorldCoreCreateResponse(&runtimev1.InvokeRealmUnaryResponse{
+				Accepted: true, ResponseJson: raw,
+				ReasonCode:        runtimev1.ReasonCode_ACTION_EXECUTED,
+				AccountReasonCode: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED,
+				HttpStatus:        201,
+			})
+			if response.GetAccepted() || response.GetResponseJson() != "" ||
+				response.GetReasonCode() != runtimev1.ReasonCode_REALM_CONTRACT_INVALID ||
+				strings.Contains(response.GetErrorMessage(), "private") || strings.Contains(response.GetErrorMessage(), "token") {
+				t.Fatalf("%s response = %+v", name, response)
+			}
+		})
+	}
+}
+
+func TestLocalAppWorldCoreFailureProjectionDropsRawOwnerDetail(t *testing.T) {
+	response := sanitizeLocalAppWorldCoreFailure(&runtimev1.InvokeRealmUnaryResponse{
+		Accepted: false, ReasonCode: runtimev1.ReasonCode_REALM_REQUEST_REJECTED,
+		AccountReasonCode: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BROKER_REQUEST_REJECTED,
+		HttpStatus:        422, ErrorMessage: `{"error":"private business body","token":"secret"}`,
+	})
+	if response.GetAccepted() || response.GetReasonCode() != runtimev1.ReasonCode_REALM_REQUEST_REJECTED ||
+		response.GetAccountReasonCode() != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BROKER_REQUEST_REJECTED ||
+		response.GetHttpStatus() != 422 || response.GetErrorMessage() != "" || response.GetResponseJson() != "" {
+		t.Fatalf("sanitized owner failure = %+v", response)
 	}
 }
 

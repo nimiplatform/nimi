@@ -181,6 +181,92 @@ func TestInvokeRealmUnaryTransportAndResponseReadFailuresAreUnavailable(t *testi
 	}
 }
 
+func TestLocalAppWorldCoreCreateSanitizesBusinessTransportRefreshAndMalformedFailures(t *testing.T) {
+	localContext := func() context.Context {
+		return ContextWithAuthorizedLocalAppDecision(context.Background(), LocalAppCallerDecision{
+			RegisteredAppSubject: "lap_world_studio",
+			Operation:            LocalAppOperationRealmWorldCoreCreate,
+		})
+	}
+	request := func() *runtimev1.InvokeRealmUnaryRequest {
+		return &runtimev1.InvokeRealmUnaryRequest{
+			MethodId:    "WorldCoreController_createWorldCore",
+			RequestJson: `{"path":{},"query":{},"body":{"core":{},"origin":{"kind":"manual"}}}`,
+		}
+	}
+	t.Run("business rejection", func(t *testing.T) {
+		server := httptest.NewServer(http.HandlerFunc(func(response http.ResponseWriter, _ *http.Request) {
+			response.Header().Set("content-type", "application/json")
+			response.WriteHeader(http.StatusUnprocessableEntity)
+			_, _ = response.Write([]byte(`{"error":"private owner detail","token":"secret"}`))
+		}))
+		defer server.Close()
+		svc := newRealmUnaryHarnessService(t, server.URL)
+		completeLogin(t, svc)
+		response, err := svc.InvokeRealmUnary(localContext(), request())
+		if err != nil || response.GetReasonCode() != runtimev1.ReasonCode_REALM_REQUEST_REJECTED ||
+			response.GetAccountReasonCode() != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BROKER_REQUEST_REJECTED ||
+			response.GetErrorMessage() != "" || response.GetResponseJson() != "" {
+			t.Fatalf("sanitized business rejection = (%+v, %v)", response, err)
+		}
+	})
+	t.Run("transport", func(t *testing.T) {
+		svc := newHarnessService(t, nil,
+			WithAppRegistry(testAppRegistry(t, realmWorldStudioCaller())),
+			WithRealmBaseURL("https://realm.private.test"),
+			WithRealmHTTPClient(&http.Client{Transport: accountRoundTripFunc(func(*http.Request) (*http.Response, error) {
+				return nil, errors.New("private transport endpoint and credential")
+			})}),
+		)
+		completeLogin(t, svc)
+		response, err := svc.InvokeRealmUnary(localContext(), request())
+		if err != nil || response.GetReasonCode() != runtimev1.ReasonCode_REALM_UNAVAILABLE ||
+			response.GetAccountReasonCode() != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BROKER_REALM_UNAVAILABLE ||
+			response.GetErrorMessage() != "" || response.GetResponseJson() != "" {
+			t.Fatalf("sanitized transport failure = (%+v, %v)", response, err)
+		}
+	})
+	t.Run("refreshed credential rejected", func(t *testing.T) {
+		var requests atomic.Int32
+		server := httptest.NewServer(http.HandlerFunc(func(response http.ResponseWriter, _ *http.Request) {
+			requests.Add(1)
+			response.Header().Set("content-type", "application/json")
+			response.WriteHeader(http.StatusUnauthorized)
+			_, _ = response.Write([]byte(`{"error":"private refreshed credential detail"}`))
+		}))
+		defer server.Close()
+		refresher := &countingAccountRefresher{material: testMaterial("acct-1", "access-refreshed", "refresh-refreshed")}
+		svc := newHarnessService(t, nil,
+			WithAppRegistry(testAppRegistry(t, realmWorldStudioCaller())),
+			WithRealmBaseURL(server.URL), WithRealmHTTPClient(server.Client()), WithRefresher(refresher),
+		)
+		completeLogin(t, svc)
+		response, err := svc.InvokeRealmUnary(localContext(), request())
+		if err != nil || response.GetReasonCode() != runtimev1.ReasonCode_AUTH_TOKEN_INVALID ||
+			response.GetAccountReasonCode() != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BROKER_AUTH_INVALID ||
+			response.GetErrorMessage() != "" || response.GetResponseJson() != "" ||
+			requests.Load() != 2 || refresher.calls.Load() != 1 {
+			t.Fatalf("sanitized refresh failure = (%+v, %v), requests=%d refreshes=%d", response, err, requests.Load(), refresher.calls.Load())
+		}
+	})
+	t.Run("malformed positive DTO", func(t *testing.T) {
+		server := httptest.NewServer(http.HandlerFunc(func(response http.ResponseWriter, _ *http.Request) {
+			response.Header().Set("content-type", "application/json")
+			response.WriteHeader(http.StatusCreated)
+			_, _ = response.Write([]byte(`{"id":"world-created","rawBody":"private"}`))
+		}))
+		defer server.Close()
+		svc := newRealmUnaryHarnessService(t, server.URL)
+		completeLogin(t, svc)
+		response, err := svc.InvokeRealmUnary(localContext(), request())
+		if err != nil || response.GetAccepted() || response.GetReasonCode() != runtimev1.ReasonCode_REALM_CONTRACT_INVALID ||
+			response.GetAccountReasonCode() != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BROKER_CONTRACT_FAILED ||
+			response.GetResponseJson() != "" || response.GetErrorMessage() != "Realm WorldCore response violates the exact DTO contract" {
+			t.Fatalf("sanitized malformed response = (%+v, %v)", response, err)
+		}
+	})
+}
+
 func TestInvokeRealmUnaryOwnsTimeoutClassificationBeforeCarrierDeadline(t *testing.T) {
 	transport := accountRoundTripFunc(func(request *http.Request) (*http.Response, error) {
 		<-request.Context().Done()

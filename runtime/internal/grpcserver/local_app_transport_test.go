@@ -92,7 +92,7 @@ func TestProtectedLocalAppAdmittedUnimplementedOwnerReportsUnavailable(t *testin
 	}
 }
 
-func TestProtectedLocalAppRealmListDispatchesButCreateRemainsOwnerUnavailable(t *testing.T) {
+func TestProtectedLocalAppRealmListAndCreateDispatchToExactOwners(t *testing.T) {
 	connection := newGRPCLocalAppConnection(t, 0x51)
 	if err := connection.BindSession(protectedlocal.LocalAppSessionHandle{SessionID: grpcLocalAppIdentifier(0x52), SessionProof: grpcLocalAppIdentifier(0x53)}); err != nil {
 		t.Fatal(err)
@@ -113,10 +113,10 @@ func TestProtectedLocalAppRealmListDispatchesButCreateRemainsOwnerUnavailable(t 
 	createRequest := &runtimev1.InvokeRealmUnaryRequest{MethodId: "WorldCoreController_createWorldCore", RequestJson: `{"path":{},"query":{},"body":{}}`}
 	_, err = newUnaryProtectedLocalAppTransportInterceptor(admission)(ctx, createRequest, &grpc.UnaryServerInfo{FullMethod: protectedInvokeRealmUnaryMethod}, func(context.Context, any) (any, error) {
 		createCalled = true
-		return &runtimev1.InvokeRealmUnaryResponse{}, nil
+		return &runtimev1.InvokeRealmUnaryResponse{Accepted: true}, nil
 	})
-	if createCalled || admission.ingress != localappop.IngressRealmWorldCoreCreate || localAppTransportReason(err) != runtimev1.ReasonCode_LOCAL_APP_OWNER_UNAVAILABLE {
-		t.Fatalf("Realm create = called:%v admission:%+v reason:%v", createCalled, admission, localAppTransportReason(err))
+	if err != nil || !createCalled || admission.ingress != localappop.IngressRealmWorldCoreCreate {
+		t.Fatalf("Realm create = called:%v admission:%+v error:%v", createCalled, admission, err)
 	}
 }
 

@@ -307,8 +307,17 @@ func protectedLocalAppOwnerEnabled(method string, request any, ingress localappo
 		return true
 	case protectedInvokeRealmUnaryMethod:
 		realmRequest, ok := request.(*runtimev1.InvokeRealmUnaryRequest)
-		return ok && realmRequest != nil && ingress == localappop.IngressRealmWorldCoreList &&
-			realmRequest.GetMethodId() == "WorldCoreController_listWorldCores"
+		if !ok || realmRequest == nil {
+			return false
+		}
+		switch ingress {
+		case localappop.IngressRealmWorldCoreList:
+			return realmRequest.GetMethodId() == "WorldCoreController_listWorldCores"
+		case localappop.IngressRealmWorldCoreCreate:
+			return realmRequest.GetMethodId() == "WorldCoreController_createWorldCore"
+		default:
+			return false
+		}
 	default:
 		return false
 	}
