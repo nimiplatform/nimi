@@ -7,7 +7,7 @@ import type {
   NimiRuntimeLocalUnregisteredAssetDescriptor,
 } from '@nimiplatform/sdk/runtime';
 import { cn } from '@nimiplatform/kit/ui';
-import { RuntimeSelect } from './runtime-config-primitives';
+import { Button, RuntimeSelect } from './runtime-config-primitives';
 import {
   ASSET_ENGINE_OPTIONS,
   formatBytes,
@@ -52,7 +52,6 @@ export function LocalModelCenterToolbar(props: ToolbarProps) {
   const i18n = i18nResource.instance;
   const healthTooltip = formatLastCheckedAgo(props.lastCheckedAt, i18nResource);
   const iconBtnClass = 'flex h-8 w-8 items-center justify-center rounded-lg text-[var(--nimi-text-muted)] hover:bg-[color-mix(in_srgb,var(--nimi-text-primary)_8%,transparent)] hover:text-[var(--nimi-text-secondary)] disabled:opacity-50 transition-colors';
-  const primaryBtnClass = 'flex items-center gap-1.5 rounded-lg bg-[var(--nimi-action-primary-bg)] px-3.5 py-2 text-xs font-semibold text-white shadow-[0_1px_2px_rgba(15,23,42,0.08)] transition-colors hover:bg-[var(--nimi-action-primary-bg-hover)] disabled:opacity-50';
 
   return (
     <div className="flex items-center justify-end gap-2">
@@ -93,16 +92,15 @@ export function LocalModelCenterToolbar(props: ToolbarProps) {
       </div>
       <div className="h-5 w-px bg-[var(--nimi-border-subtle)]" aria-hidden="true" />
       <div className="relative" ref={props.importMenuRef}>
-        <button
-          type="button"
+        <Button
+          size="sm"
           onClick={props.onToggleImportMenu}
-          className={primaryBtnClass}
         >
           <DownloadIcon className="h-3.5 w-3.5" />
           {i18n.t('runtimeConfig.localModelCenter.import', { defaultValue: 'Import' })}
-        </button>
+        </Button>
           {props.showImportMenu ? (
-            <div className="absolute right-0 top-full z-20 mt-1 w-56 overflow-hidden rounded-xl border border-[var(--nimi-border-subtle)] bg-white shadow-lg">
+            <div className="absolute right-0 top-full z-20 mt-1 w-56 overflow-hidden rounded-xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-overlay)] shadow-[var(--nimi-elevation-floating)]">
               <button type="button" onClick={props.onOpenImportFile} className="w-full px-3 py-2.5 text-left text-xs transition-colors hover:bg-[color-mix(in_srgb,var(--nimi-text-primary)_6%,transparent)]">
                 <div className="font-medium text-[var(--nimi-text-primary)]">
                   {i18n.t('runtimeConfig.localModelCenter.importAssetFile', { defaultValue: 'Import Asset File' })}
@@ -144,13 +142,8 @@ type ImportDialogProps = {
   visible: boolean;
   assetKind: NimiRuntimeLocalAssetKind;
   auxiliaryEngine: AssetEngineOption | '';
-  endpoint: string;
-  endpointRequired: boolean;
-  compatibilityHint?: string;
-  endpointHint?: string;
   onAssetKindChange: (kind: NimiRuntimeLocalAssetKind) => void;
   onAuxiliaryEngineChange: (engine: AssetEngineOption | '') => void;
-  onEndpointChange: (endpoint: string) => void;
   onClose: () => void;
   onChooseFile: () => void;
   onChooseFolder: () => void;
@@ -163,12 +156,8 @@ export function LocalModelCenterImportDialog(props: ImportDialogProps) {
   if (!props.visible) {
     return null;
   }
-  const showEndpointField = props.endpointRequired
-    || Boolean(String(props.endpoint || '').trim())
-    || Boolean(String(props.endpointHint || '').trim());
-
   return (
-    <div className="rounded-2xl border border-[var(--nimi-border-subtle)]/70 bg-white/95 p-5 shadow-[0_6px_18px_rgba(15,23,42,0.04)]">
+    <div className="rounded-2xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-5 shadow-[var(--nimi-elevation-raised)]">
       <div className="mb-4 flex items-center justify-between">
         <div className="flex items-center gap-2.5">
           <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_12%,transparent)]">
@@ -208,31 +197,14 @@ export function LocalModelCenterImportDialog(props: ImportDialogProps) {
             />
           </div>
         ) : null}
-        {showEndpointField ? (
-          <div className="flex min-w-[20rem] flex-1 items-center gap-2">
-            <span className="text-xs text-[var(--nimi-text-muted)]">
-              {i18n.t('runtimeConfig.localModelCenter.endpointLabel', { defaultValue: 'Endpoint:' })}
-            </span>
-            <input
-              type="text"
-              value={props.endpoint}
-              onChange={(event) => props.onEndpointChange(event.target.value)}
-              placeholder={props.endpointRequired
-                ? i18n.t('runtimeConfig.localModelCenter.endpointRequiredPlaceholder', { defaultValue: 'Required attached endpoint' })
-                : i18n.t('runtimeConfig.localModelCenter.endpointOptionalPlaceholder', { defaultValue: 'Optional attached endpoint' })}
-              className="h-9 min-w-0 flex-1 rounded-lg border border-[var(--nimi-border-subtle)] bg-white px-3 text-xs text-[var(--nimi-text-primary)] outline-none transition-all placeholder:text-[color-mix(in_srgb,var(--nimi-text-muted)_80%,transparent)] focus:border-[var(--nimi-field-focus)] focus:ring-2 focus:ring-mint-100"
-            />
-          </div>
-        ) : null}
-        <button
-          type="button"
+        <Button
+          size="sm"
           onClick={props.onChooseFile}
           disabled={props.canChooseFile === false}
-          className="flex items-center gap-1.5 rounded-lg bg-[var(--nimi-action-primary-bg)] px-3 py-1.5 text-xs font-medium text-white hover:bg-[var(--nimi-action-primary-bg-hover)] disabled:opacity-50"
         >
           <FolderOpenIcon className="h-3.5 w-3.5" />
           {i18n.t('runtimeConfig.localModelCenter.chooseFile', { defaultValue: 'Choose File' })}
-        </button>
+        </Button>
         <button
           type="button"
           onClick={props.onChooseFolder}
@@ -243,24 +215,8 @@ export function LocalModelCenterImportDialog(props: ImportDialogProps) {
           {i18n.t('runtimeConfig.localModelCenter.chooseFolder', { defaultValue: 'Choose Folder' })}
         </button>
       </div>
-      {(props.endpointRequired || String(props.endpointHint || '').trim()) ? (
-        <p className="mt-3 text-[11px] text-[var(--nimi-text-muted)]">
-          {props.endpointRequired
-            ? i18n.t('runtimeConfig.localModelCenter.endpointRequiredHint', {
-                defaultValue: 'This asset must bind to an external attached endpoint on the current host.',
-              })
-            : null}
-          {props.endpointRequired && String(props.endpointHint || '').trim() ? ' ' : ''}
-          {String(props.endpointHint || '').trim()}
-        </p>
-      ) : null}
-      {String(props.compatibilityHint || '').trim() ? (
-        <p className="mt-2 text-[11px] text-[var(--nimi-status-danger)]">
-          {String(props.compatibilityHint || '').trim()}
-        </p>
-      ) : null}
       {props.canChooseFolder === false ? (
-        <p className="mt-2 text-[11px] text-[var(--nimi-text-muted)]">
+        <p className="mt-2 text-[length:var(--nimi-type-caption-size)] text-[var(--nimi-text-muted)]">
           {i18n.t('runtimeConfig.localModelCenter.bundleImportChatOnlyHint', {
             defaultValue: 'Bundle folder import currently targets text-generation asset bundles.',
           })}
@@ -273,18 +229,11 @@ export function LocalModelCenterImportDialog(props: ImportDialogProps) {
 type UnregisteredAssetsSectionProps = {
   assets: NimiRuntimeLocalUnregisteredAssetDescriptor[];
   assetImportError: string;
-  assetImportSessionByPath: Record<string, string>;
-  compatibilityHintByPath: Record<string, string>;
-  importAllowedByPath: Record<string, boolean>;
   importingAssetPath: string | null;
   resolveDraft: (asset: NimiRuntimeLocalUnregisteredAssetDescriptor) => NimiRuntimeLocalAssetDeclaration;
-  endpointByPath: Record<string, string>;
-  endpointRequiredByPath: Record<string, boolean>;
-  endpointHintByPath: Record<string, string>;
   onRefresh: () => void;
   onAssetKindChange: (path: string, kind: NimiRuntimeLocalAssetKind) => void;
   onAuxiliaryEngineChange: (path: string, engine: AssetEngineOption | '') => void;
-  onEndpointChange: (path: string, endpoint: string) => void;
   onImport: (path: string) => void;
 };
 
@@ -295,7 +244,7 @@ export function LocalModelCenterUnregisteredAssetsSection(props: UnregisteredAss
   }
 
   return (
-    <div className="rounded-2xl border border-[var(--nimi-border-subtle)]/70 bg-white/95 shadow-[0_6px_18px_rgba(15,23,42,0.04)]">
+    <div className="rounded-2xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] shadow-[var(--nimi-elevation-raised)]">
       <div className="flex items-center justify-between border-b border-[var(--nimi-border-subtle)] px-5 py-4">
         <div className="flex items-center gap-3">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[color-mix(in_srgb,var(--nimi-status-warning)_14%,transparent)]">
@@ -336,23 +285,16 @@ export function LocalModelCenterUnregisteredAssetsSection(props: UnregisteredAss
       <div className="space-y-3 p-4">
         {props.assets.map((asset) => {
           const draft = props.resolveDraft(asset);
-          const importing = props.importingAssetPath === asset.path || Boolean(props.assetImportSessionByPath[asset.path]);
+          const importing = props.importingAssetPath === asset.path;
           const requiresEngine = draft.assetKind === 'auxiliary';
-          const endpointRequired = Boolean(props.endpointRequiredByPath[asset.path]);
-          const endpointValue = String(props.endpointByPath[asset.path] || '').trim();
-          const endpointHint = String(props.endpointHintByPath[asset.path] || '').trim();
-          const compatibilityHint = String(props.compatibilityHintByPath[asset.path] || '').trim();
-          const showEndpointField = endpointRequired || Boolean(endpointValue) || Boolean(endpointHint);
           const canImport = Boolean(draft.assetKind)
-            && (!requiresEngine || Boolean(String(draft.engine || '').trim()))
-            && (!endpointRequired || Boolean(endpointValue))
-            && props.importAllowedByPath[asset.path] !== false;
+            && (!requiresEngine || Boolean(String(draft.engine || '').trim()));
           const confidenceClass = asset.confidence === 'high'
             ? 'bg-[color-mix(in_srgb,var(--nimi-status-success)_14%,transparent)] text-[var(--nimi-status-success)]'
             : 'bg-[color-mix(in_srgb,var(--nimi-status-warning)_14%,transparent)] text-[var(--nimi-status-warning)]';
 
           return (
-            <div key={asset.path} className="rounded-xl border border-[var(--nimi-border-subtle)]/70 bg-white p-4 shadow-[0_2px_8px_rgba(15,23,42,0.03)] transition-all hover:border-[var(--nimi-border-strong)] hover:shadow-[0_6px_18px_rgba(15,23,42,0.06)]">
+            <div key={asset.path} className="rounded-xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-4 shadow-[var(--nimi-elevation-base)] transition-all hover:border-[var(--nimi-border-strong)] hover:shadow-[var(--nimi-elevation-raised)]">
               <div className="flex items-start gap-3">
                 <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_12%,transparent)] text-[var(--nimi-action-primary-bg)]">
                   <FolderOpenIcon className="h-4 w-4" />
@@ -360,7 +302,7 @@ export function LocalModelCenterUnregisteredAssetsSection(props: UnregisteredAss
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
                     <p className="truncate text-sm font-medium text-[var(--nimi-text-primary)]">{asset.filename}</p>
-                    <span className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${confidenceClass}`}>
+                    <span className={`rounded-full px-2 py-0.5 text-[length:var(--nimi-type-caption-size)] font-medium ${confidenceClass}`}>
                       {asset.confidence === 'high'
                         ? i18n.t('runtimeConfig.localModelCenter.highConfidence', { defaultValue: 'High confidence' })
                         : i18n.t('runtimeConfig.localModelCenter.reviewNeeded', { defaultValue: 'Review needed' })}
@@ -387,46 +329,20 @@ export function LocalModelCenterUnregisteredAssetsSection(props: UnregisteredAss
                     options={ASSET_ENGINE_OPTIONS.map((engine) => ({ value: engine, label: engine }))}
                   />
                 ) : null}
-                {showEndpointField ? (
-                  <input
-                    type="text"
-                    value={props.endpointByPath[asset.path] || ''}
-                    onChange={(event) => props.onEndpointChange(asset.path, event.target.value)}
-                    placeholder={endpointRequired
-                      ? i18n.t('runtimeConfig.localModelCenter.endpointRequiredPlaceholder', { defaultValue: 'Required attached endpoint' })
-                      : i18n.t('runtimeConfig.localModelCenter.endpointOptionalPlaceholder', { defaultValue: 'Optional attached endpoint' })}
-                    className="h-9 min-w-[16rem] flex-1 rounded-lg border border-[var(--nimi-border-subtle)] bg-white px-3 text-xs text-[var(--nimi-text-primary)] outline-none transition-all placeholder:text-[color-mix(in_srgb,var(--nimi-text-muted)_80%,transparent)] focus:border-[var(--nimi-field-focus)] focus:ring-2 focus:ring-mint-100"
-                  />
-                ) : null}
-                <button
-                  type="button"
-                  onClick={() => props.onImport(asset.path)}
-                  disabled={!canImport || importing}
-                  className="ml-auto flex items-center gap-1.5 rounded-lg bg-[var(--nimi-action-primary-bg)] px-4 py-2 text-xs font-medium text-white transition-colors hover:bg-[var(--nimi-action-primary-bg-hover)] disabled:opacity-50"
-                >
-                  <DownloadIcon className="h-3.5 w-3.5" />
-                  {importing
-                    ? i18n.t('runtimeConfig.localModelCenter.importing', { defaultValue: 'Importing...' })
-                    : i18n.t('runtimeConfig.localModelCenter.import', { defaultValue: 'Import' })}
-                </button>
+                <span className="ml-auto">
+                  <Button
+                    size="sm"
+                    onClick={() => props.onImport(asset.path)}
+                    disabled={!canImport || importing}
+                  >
+                    <DownloadIcon className="h-3.5 w-3.5" />
+                    {importing
+                      ? i18n.t('runtimeConfig.localModelCenter.importing', { defaultValue: 'Importing...' })
+                      : i18n.t('runtimeConfig.localModelCenter.import', { defaultValue: 'Import' })}
+                  </Button>
+                </span>
               </div>
-              {(endpointRequired || endpointHint) ? (
-                <p className="mt-2 text-[11px] text-[var(--nimi-text-muted)]">
-                  {endpointRequired
-                    ? i18n.t('runtimeConfig.localModelCenter.endpointRequiredHint', {
-                        defaultValue: 'This asset must bind to an external attached endpoint on the current host.',
-                      })
-                    : null}
-                  {endpointRequired && endpointHint ? ' ' : ''}
-                  {endpointHint}
-                </p>
-              ) : null}
-              {compatibilityHint ? (
-                <p className="mt-2 text-[11px] text-[var(--nimi-status-danger)]">
-                  {compatibilityHint}
-                </p>
-              ) : null}
-              <p className="mt-2 truncate text-[11px] text-[color-mix(in_srgb,var(--nimi-text-muted)_60%,transparent)]">{asset.path}</p>
+              <p className="mt-2 truncate text-[length:var(--nimi-type-caption-size)] text-[color-mix(in_srgb,var(--nimi-text-muted)_60%,transparent)]">{asset.path}</p>
             </div>
           );
         })}

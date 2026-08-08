@@ -126,14 +126,14 @@ export function ExternalAgentIssueTokenForm(props: ExternalAgentIssueTokenFormPr
         <div className="mt-4 rounded-xl border border-[color-mix(in_srgb,var(--nimi-status-warning)_28%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-warning)_10%,var(--nimi-surface-card))] p-3">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
-              <p className={cn('text-[10px] font-medium uppercase tracking-[0.14em]', 'text-[var(--nimi-status-warning)]')}>
+              <p className={cn('text-[length:var(--nimi-type-caption-size)] font-medium uppercase tracking-[var(--nimi-type-overline-letter-spacing)]', 'text-[var(--nimi-status-warning)]')}>
                 {t('runtimeConfig.eaa.issuedTokenLabel', { defaultValue: 'Newly issued token — copy now' })}
               </p>
-              <pre className={cn('mt-2 whitespace-pre-wrap break-all rounded-md bg-[var(--nimi-surface-card)] px-3 py-2 font-mono text-[11px] leading-relaxed', TOKEN_TEXT_PRIMARY)}>
+              <pre className={cn('mt-2 whitespace-pre-wrap break-all rounded-md bg-[var(--nimi-surface-card)] px-3 py-2 font-mono text-[length:var(--nimi-type-caption-size)] leading-relaxed', TOKEN_TEXT_PRIMARY)}>
                 {props.issuedToken}
               </pre>
               {props.tokenId ? (
-                <p className={cn('mt-2 font-mono text-[11px]', TOKEN_TEXT_MUTED)}>
+                <p className={cn('mt-2 font-mono text-[length:var(--nimi-type-caption-size)]', TOKEN_TEXT_MUTED)}>
                   {t('runtimeConfig.eaa.tokenIdLabel', { defaultValue: 'tokenId' })}: {props.tokenId}
                 </p>
               ) : null}
@@ -143,7 +143,7 @@ export function ExternalAgentIssueTokenForm(props: ExternalAgentIssueTokenFormPr
                 type="button"
                 onClick={onCopyIssuedToken}
                 className={cn(
-                  'inline-flex items-center gap-1 rounded-md border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] px-2 py-1 text-[11px] font-medium transition-colors hover:border-[var(--nimi-border-strong)]',
+                  'inline-flex items-center gap-1 rounded-md border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] px-2 py-1 text-[length:var(--nimi-type-caption-size)] font-medium transition-colors hover:border-[var(--nimi-border-strong)]',
                   copiedToken ? 'text-[var(--nimi-status-success)]' : TOKEN_TEXT_SECONDARY,
                 )}
                 aria-label={copiedToken

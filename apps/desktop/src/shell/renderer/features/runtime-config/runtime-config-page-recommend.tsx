@@ -1,6 +1,7 @@
 import { useCallback, useDeferredValue, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
+import { InlineAlert, SearchField, Surface, cn } from '@nimiplatform/kit/ui';
 import type {
   NimiRuntimeLocalDeviceProfile,
   NimiRuntimeLocalRecommendationFeed,
@@ -9,8 +10,7 @@ import type {
 import { useRuntimeConfigLocalAssetAdminClient } from './runtime-config-local-model-center-sdk-service';
 import type { RuntimeConfigStateV11 } from './runtime-config-state-types';
 import type { RuntimeConfigPanelControllerModel } from './runtime-config-panel-types';
-import { Card } from './runtime-config-primitives';
-import { SearchIcon } from './runtime-config-local-model-center-icons';
+import { TOKEN_PANEL_CARD } from './runtime-config-runtime-page-ui';
 import {
   RECOMMEND_PAGE_CAPABILITIES,
   applyFilters,
@@ -119,11 +119,11 @@ export function RecommendPage({ model, state }: RecommendPageProps) {
   if (!capability) {
     return (
       <RuntimePageShell className="space-y-4">
-        <Card className="rounded-xl border border-[var(--nimi-status-warning)]/30 bg-white/95 p-6 text-sm text-[var(--nimi-text-secondary)]">
+        <InlineAlert tone="warning" className="px-4 py-3">
           {t('runtimeConfig.recommend.unsupportedCapability', {
             defaultValue: 'This capability has no recommendation feed. Choose Chat, Image, or Video.',
           })}
-        </Card>
+        </InlineAlert>
         <SelectChip
           label={t('runtimeConfig.recommend.capabilityLabel', { defaultValue: 'Task' })}
           value=""
@@ -172,7 +172,7 @@ export function RecommendPage({ model, state }: RecommendPageProps) {
           onRefresh={() => void refreshFeed()}
         />
       ) : !loading ? null : (
-        <div className="flex items-center gap-3 rounded-2xl border border-[var(--nimi-border-subtle)]/70 bg-white/95 px-5 py-3 shadow-[0_6px_18px_rgba(15,23,42,0.04)]">
+        <div className="flex items-center gap-3 rounded-2xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] px-5 py-3 shadow-[var(--nimi-elevation-base)]">
           <div className="h-4 w-4 animate-spin rounded-full border-2 border-[var(--nimi-action-primary-bg)] border-t-transparent" />
           <span className="text-sm text-[var(--nimi-text-muted)]">{t('runtimeConfig.recommend.loadingFeed', { defaultValue: 'Detecting hardware\u2026' })}</span>
         </div>
@@ -181,17 +181,12 @@ export function RecommendPage({ model, state }: RecommendPageProps) {
       {/* Filter Bar — always visible so the page feels instant */}
       <div className="flex flex-wrap items-center gap-2">
         {/* Search */}
-        <div className="relative min-w-0 flex-1">
-          <div className="absolute left-3 top-1/2 -translate-y-1/2 text-[color-mix(in_srgb,var(--nimi-text-muted)_80%,transparent)]">
-            <SearchIcon className="h-4 w-4" />
-          </div>
-          <input
-            value={filters.query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder={t('runtimeConfig.recommend.searchPlaceholder', { defaultValue: 'Search models\u2026' })}
-            className="h-9 w-full rounded-lg border border-[var(--nimi-border-subtle)] bg-white pl-9 pr-3 text-sm text-[var(--nimi-text-primary)] outline-none placeholder:text-[color-mix(in_srgb,var(--nimi-text-muted)_80%,transparent)] focus:border-[var(--nimi-field-focus)] focus:ring-2 focus:ring-mint-100"
-          />
-        </div>
+        <SearchField
+          value={filters.query}
+          onChange={(event) => setQuery(event.target.value)}
+          placeholder={t('runtimeConfig.recommend.searchPlaceholder', { defaultValue: 'Search models\u2026' })}
+          className="min-w-0 flex-1"
+        />
 
         {/* Capability (Task) */}
         <SelectChip
@@ -201,7 +196,7 @@ export function RecommendPage({ model, state }: RecommendPageProps) {
             const next = normalizeRecommendPageCapability(value);
             if (next) setActiveCapability(next);
           }}
-          contentClassName="w-40 overflow-hidden rounded-xl bg-white p-0"
+          contentClassName="w-40 overflow-hidden p-0"
           options={RECOMMEND_PAGE_CAPABILITIES.map((v) => ({ value: v, label: v.charAt(0).toUpperCase() + v.slice(1) }))}
         />
 
@@ -227,7 +222,7 @@ export function RecommendPage({ model, state }: RecommendPageProps) {
 
         {/* Result count */}
         {!loading ? (
-          <span className="text-xs text-[color-mix(in_srgb,var(--nimi-text-muted)_80%,transparent)]">
+          <span className="text-xs text-[var(--nimi-text-muted)]">
             {visibleItems.length}/{allItems.length}
           </span>
         ) : null}
@@ -235,33 +230,33 @@ export function RecommendPage({ model, state }: RecommendPageProps) {
 
       {/* Stale notice */}
       {cacheState === 'stale' ? (
-        <Card className="rounded-xl border border-[color-mix(in_srgb,var(--nimi-status-warning)_28%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-warning)_12%,transparent)] p-3 text-sm text-[var(--nimi-status-warning)]">
+        <InlineAlert tone="warning">
           {t('runtimeConfig.recommend.staleNotice', {
             defaultValue: 'Showing the last successful snapshot. Refresh when the model-index worker is reachable again.',
           })}
-        </Card>
+        </InlineAlert>
       ) : null}
 
       {/* Error state */}
       {error && !feed ? (
-        <Card className="rounded-xl border border-[color-mix(in_srgb,var(--nimi-status-danger)_28%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-danger)_12%,transparent)] p-6 text-sm text-[var(--nimi-status-danger)]">
+        <InlineAlert tone="danger" className="px-4 py-3">
           <p className="font-medium">{t('runtimeConfig.recommend.loadFailed', { defaultValue: 'Failed to load recommendation feed.' })}</p>
           <p className="mt-2 text-xs opacity-80">{error}</p>
-        </Card>
+        </InlineAlert>
       ) : null}
 
       {/* Empty state */}
       {feed && visibleItems.length === 0 && !loading ? (
-        <Card className="rounded-xl border border-dashed border-[var(--nimi-border-subtle)] bg-white/95 p-6 text-sm text-[var(--nimi-text-muted)]">
+        <Surface tone="card" padding="none" className={cn(TOKEN_PANEL_CARD, 'border-dashed p-6 text-sm text-[var(--nimi-text-muted)]')}>
           {cacheState === 'empty'
             ? t('runtimeConfig.recommend.offlineEmpty', { defaultValue: 'No recommendation snapshot is available yet. Connect the model-index worker, then refresh.' })
             : t('runtimeConfig.recommend.noMatches', { defaultValue: 'Nothing matched the current filters. Try another search term or capability.' })}
-        </Card>
+        </Surface>
       ) : null}
 
       {/* Column headers — show during loading too so the page feels populated */}
       {visibleItems.length > 0 || loading ? (
-        <div className="flex items-center gap-3 px-4 text-[10px] font-medium uppercase tracking-wider text-[color-mix(in_srgb,var(--nimi-text-muted)_80%,transparent)]">
+        <div className="flex items-center gap-3 px-4 text-[length:var(--nimi-type-caption-size)] font-medium uppercase tracking-wider text-[var(--nimi-text-muted)]">
           <span className="min-w-0 flex-1">{t('runtimeConfig.recommend.colModel', { defaultValue: 'Model' })}</span>
           <span className="hidden w-20 shrink-0 text-center md:block">{t('runtimeConfig.recommend.colLicense', { defaultValue: 'License' })}</span>
           <span className="hidden w-16 shrink-0 text-right md:block">{t('runtimeConfig.recommend.colSize', { defaultValue: 'Size' })}</span>
@@ -275,7 +270,7 @@ export function RecommendPage({ model, state }: RecommendPageProps) {
       <div className="space-y-2">
         {loading && visibleItems.length === 0 ? (
           Array.from({ length: 8 }).map((_, i) => (
-            <div key={i} className="flex animate-pulse items-center gap-3 rounded-2xl border border-[var(--nimi-border-subtle)]/50 bg-white/95 px-4 py-3">
+            <div key={i} className="flex animate-pulse items-center gap-3 rounded-2xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] px-4 py-3">
               <div className="min-w-0 flex-1 space-y-2">
                 <div className="h-4 w-48 rounded bg-[var(--nimi-surface-card)]" />
                 <div className="h-3 w-32 rounded bg-[var(--nimi-surface-card)]" />

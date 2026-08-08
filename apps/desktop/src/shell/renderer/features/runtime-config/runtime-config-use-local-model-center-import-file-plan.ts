@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import {
   type NimiRuntimeLocalAssetDeclaration,
   type NimiRuntimeLocalAssetKind,
@@ -14,20 +14,13 @@ type UseLocalModelCenterImportFilePlanInput = {
   showImportFileDialog: boolean;
   importFileAssetKind: NimiRuntimeLocalAssetKind;
   importFileAuxiliaryEngine: AssetEngineOption | '';
-  importFileEndpoint: string;
 };
 
 export function useLocalModelCenterImportFilePlan({
   showImportFileDialog,
   importFileAssetKind,
   importFileAuxiliaryEngine,
-  importFileEndpoint,
 }: UseLocalModelCenterImportFilePlanInput) {
-  const [importEndpointRequired, setImportEndpointRequired] = useState(false);
-  const [importEndpointHint, setImportEndpointHint] = useState('');
-  const [importCompatibilityHint, setImportCompatibilityHint] = useState('');
-  const [importPlanAvailable, setImportPlanAvailable] = useState(true);
-
   const importFileDeclaration = useMemo<NimiRuntimeLocalAssetDeclaration>(() => {
     const engine = importFileAssetKind === 'auxiliary'
       ? String(importFileAuxiliaryEngine || '').trim()
@@ -38,44 +31,13 @@ export function useLocalModelCenterImportFilePlan({
     };
   }, [importFileAssetKind, importFileAuxiliaryEngine]);
 
-  useEffect(() => {
-    if (!showImportFileDialog) {
-      return undefined;
-    }
-    if (importFileDeclaration.assetKind === 'auxiliary') {
-      setImportEndpointRequired(false);
-      setImportEndpointHint('');
-      setImportCompatibilityHint('');
-      setImportPlanAvailable(true);
-      return undefined;
-    }
-    const engine = String(importFileDeclaration.engine || '').trim();
-    if (engine !== 'media' && engine !== 'speech') {
-      setImportEndpointRequired(false);
-      setImportEndpointHint('');
-      setImportCompatibilityHint('');
-      setImportPlanAvailable(true);
-      return undefined;
-    }
-    setImportEndpointRequired(false);
-    setImportEndpointHint('');
-    setImportCompatibilityHint('');
-    setImportPlanAvailable(true);
-    return undefined;
-  }, [importFileDeclaration, showImportFileDialog]);
-
   const canChooseImportFile = useMemo(
-    () => importPlanAvailable
-      && canImportDeclaration(importFileDeclaration)
-      && (!importEndpointRequired || Boolean(String(importFileEndpoint || '').trim())),
-    [importEndpointRequired, importFileDeclaration, importFileEndpoint, importPlanAvailable],
+    () => !showImportFileDialog || canImportDeclaration(importFileDeclaration),
+    [importFileDeclaration, showImportFileDialog],
   );
 
   return {
     canChooseImportFile,
-    importCompatibilityHint,
-    importEndpointHint,
-    importEndpointRequired,
     importFileDeclaration,
   };
 }

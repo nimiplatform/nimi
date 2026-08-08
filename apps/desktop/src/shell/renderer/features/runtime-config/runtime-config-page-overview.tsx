@@ -7,50 +7,22 @@ import {
   type RuntimeConfigStateV11,
 } from './runtime-config-state-types';
 import { useDesktopI18nResource } from '../../i18n/i18n-context.js';
-import { SectionTitle } from '../settings/settings-layout-components';
 import type { RuntimeConfigPanelControllerModel } from './runtime-config-panel-types';
 import { describeRuntimeDaemonIssue } from './runtime-daemon-guidance';
-import { Button, DaemonStatusBadge } from './runtime-config-primitives';
+import { Button, DaemonStatusBadge, SectionTitle } from './runtime-config-primitives';
+import {
+  TOKEN_PANEL_CARD,
+  TOKEN_TEXT_MUTED,
+  TOKEN_TEXT_PRIMARY,
+  TOKEN_TEXT_SECONDARY,
+  TONE_STYLES,
+} from './runtime-config-runtime-page-ui';
 import { RuntimePageShell } from './runtime-config-page-shell';
 import { OverviewLoadUsageSection } from './runtime-config-overview-load-usage';
 
 type OverviewPageProps = {
   model: RuntimeConfigPanelControllerModel;
   state: RuntimeConfigStateV11;
-};
-
-type RuntimeTone = 'neutral' | 'success' | 'warning' | 'danger';
-
-const TOKEN_TEXT_PRIMARY = 'text-[var(--nimi-text-primary)]';
-const TOKEN_TEXT_SECONDARY = 'text-[var(--nimi-text-secondary)]';
-const TOKEN_TEXT_MUTED = 'text-[var(--nimi-text-muted)]';
-const TOKEN_PANEL_CARD = 'rounded-xl';
-
-const TONE_STYLES: Record<RuntimeTone, {
-  surface: string;
-  subtleText: string;
-  badge: 'neutral' | 'success' | 'warning' | 'danger';
-}> = {
-  neutral: {
-    surface: 'border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)]',
-    subtleText: 'text-[var(--nimi-text-secondary)]',
-    badge: 'neutral',
-  },
-  success: {
-    surface: 'border-[color-mix(in_srgb,var(--nimi-status-success)_28%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-success)_8%,var(--nimi-surface-card))]',
-    subtleText: 'text-[var(--nimi-status-success)]',
-    badge: 'success',
-  },
-  warning: {
-    surface: 'border-[color-mix(in_srgb,var(--nimi-status-warning)_28%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-warning)_8%,var(--nimi-surface-card))]',
-    subtleText: 'text-[var(--nimi-status-warning)]',
-    badge: 'warning',
-  },
-  danger: {
-    surface: 'border-[color-mix(in_srgb,var(--nimi-status-danger)_28%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-danger)_8%,var(--nimi-surface-card))]',
-    subtleText: 'text-[var(--nimi-status-danger)]',
-    badge: 'danger',
-  },
 };
 
 function StatTile({
@@ -205,7 +177,7 @@ export function OverviewPage({ model, state }: OverviewPageProps) {
             <div className="mt-3 rounded-xl border border-[color-mix(in_srgb,var(--nimi-status-warning)_30%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-warning)_10%,var(--nimi-surface-card))] px-3 py-3">
               <p className="text-sm font-medium text-[var(--nimi-status-warning)]">{daemonIssue.title}</p>
               <p className="mt-1 text-xs text-[color-mix(in_srgb,var(--nimi-status-warning)_80%,var(--nimi-text-secondary))]">{daemonIssue.message}</p>
-              <p className="mt-2 text-[11px] break-words [overflow-wrap:anywhere] text-[color-mix(in_srgb,var(--nimi-status-warning)_75%,var(--nimi-text-secondary))]">{daemonIssue.rawError}</p>
+              <p className="mt-2 text-[length:var(--nimi-type-caption-size)] break-words [overflow-wrap:anywhere] text-[color-mix(in_srgb,var(--nimi-status-warning)_75%,var(--nimi-text-secondary))]">{daemonIssue.rawError}</p>
             </div>
           ) : model.runtimeDaemonError ? (
             <p className="mt-3 text-xs text-[var(--nimi-status-danger)]">{model.runtimeDaemonError}</p>

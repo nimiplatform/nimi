@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Popover, PopoverContent, PopoverTrigger, ScrollArea } from '@nimiplatform/kit/ui';
+import { Popover, PopoverContent, PopoverTrigger, ProgressIndicator, ScrollArea } from '@nimiplatform/kit/ui';
 import { useDesktopI18nResource } from '../../i18n/i18n-context.js';
 import type {
   NimiRuntimeLocalRecommendationFeedItem,
@@ -17,7 +17,6 @@ import {
   recommendationTier,
   recommendationTierColorClass,
   recommendationTierLabel,
-  vramBarColorClass,
   vramPercentageColorClass,
 } from './runtime-config-page-recommend-utils';
 
@@ -48,9 +47,9 @@ export type DeviceProfileBarProps = {
 };
 
 function cacheStateBadge(state: 'fresh' | 'stale' | 'empty'): { label: string; cls: string } {
-  if (state === 'fresh') return { label: 'Fresh', cls: 'bg-[color-mix(in_srgb,var(--nimi-status-success)_18%,transparent)] text-[var(--nimi-status-success)]' };
-  if (state === 'stale') return { label: 'Cached', cls: 'bg-[color-mix(in_srgb,var(--nimi-status-warning)_18%,transparent)] text-[var(--nimi-status-warning)]' };
-  return { label: 'Empty', cls: 'bg-[color-mix(in_srgb,var(--nimi-surface-card)_78%,var(--nimi-surface-panel))] text-[var(--nimi-text-muted)]' };
+  if (state === 'fresh') return { label: 'Fresh', cls: 'bg-[var(--nimi-status-success-soft-bg)] text-[var(--nimi-status-success-soft-text)]' };
+  if (state === 'stale') return { label: 'Cached', cls: 'bg-[var(--nimi-status-warning-soft-bg)] text-[var(--nimi-status-warning-soft-text)]' };
+  return { label: 'Empty', cls: 'bg-[var(--nimi-surface-panel)] text-[var(--nimi-text-muted)]' };
 }
 
 export function DeviceProfileBar({
@@ -71,12 +70,12 @@ export function DeviceProfileBar({
   const ram = formatBytes(totalRamBytes);
 
   return (
-    <div className="rounded-2xl border border-[var(--nimi-border-subtle)]/70 bg-white/95 shadow-[0_6px_18px_rgba(15,23,42,0.04)]">
+    <div className="rounded-2xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] shadow-[var(--nimi-elevation-base)]">
       {/* Row 1: GPU name (bold title) + refresh controls right-aligned */}
       <div className="flex items-center justify-between px-5 pt-4 pb-3">
         <div className="flex items-center gap-2.5">
           {/* Monitor / GPU icon */}
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[color-mix(in_srgb,var(--nimi-surface-card)_78%,var(--nimi-surface-panel))]">
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[var(--nimi-surface-panel)]">
             <svg className="h-5 w-5 text-[var(--nimi-text-secondary)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
               <rect x="2" y="3" width="20" height="14" rx="2" />
               <line x1="8" y1="21" x2="16" y2="21" />
@@ -84,12 +83,12 @@ export function DeviceProfileBar({
             </svg>
           </div>
           <span className="text-base font-bold text-[var(--nimi-text-primary)]">{gpuName}</span>
-          <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${badge.cls}`}>{badge.label}</span>
+          <span className={`rounded-full px-2 py-0.5 text-[length:var(--nimi-type-caption-size)] font-medium ${badge.cls}`}>{badge.label}</span>
         </div>
 
         <div className="flex items-center gap-3">
           {generatedAt ? (
-            <span className="text-xs text-[color-mix(in_srgb,var(--nimi-text-muted)_80%,transparent)]" title={generatedAt}>
+            <span className="text-xs text-[var(--nimi-text-muted)]" title={generatedAt}>
               {t('runtimeConfig.recommend.lastChecked', { defaultValue: 'Last checked:' })} {i18n.formatRelativeTime(generatedAt)}
             </span>
           ) : null}
@@ -108,10 +107,10 @@ export function DeviceProfileBar({
       </div>
 
       {/* Row 2: Two spec columns */}
-      <div className="grid grid-cols-2 gap-4 border-t border-[color-mix(in_srgb,var(--nimi-border-subtle)_72%,transparent)] px-5 py-3">
+      <div className="grid grid-cols-2 gap-4 border-t border-[var(--nimi-border-subtle)] px-5 py-3">
         {/* Left column: GPU Specs */}
         <div className="space-y-1">
-          <span className="text-[10px] font-semibold uppercase tracking-wider text-[color-mix(in_srgb,var(--nimi-text-muted)_80%,transparent)]">
+          <span className="text-[length:var(--nimi-type-caption-size)] font-semibold uppercase tracking-wider text-[var(--nimi-text-muted)]">
             {t('runtimeConfig.recommend.hwGpuSpecs', { defaultValue: 'GPU Specs' })}
           </span>
           <div className="flex flex-wrap items-center gap-x-4 gap-y-0.5 text-sm">
@@ -127,7 +126,7 @@ export function DeviceProfileBar({
 
         {/* Right column: System */}
         <div className="space-y-1">
-          <span className="text-[10px] font-semibold uppercase tracking-wider text-[color-mix(in_srgb,var(--nimi-text-muted)_80%,transparent)]">
+          <span className="text-[length:var(--nimi-type-caption-size)] font-semibold uppercase tracking-wider text-[var(--nimi-text-muted)]">
             {t('runtimeConfig.recommend.hwSystem', { defaultValue: 'System' })}
           </span>
           <div className="flex flex-wrap items-center gap-x-4 gap-y-0.5 text-sm">
@@ -143,8 +142,8 @@ export function DeviceProfileBar({
 function HwStat({ label, value, title, muted }: { label: string; value: string; title?: string; muted?: boolean }) {
   return (
     <div className="flex items-baseline gap-1.5" title={title}>
-      <span className="text-xs font-medium text-[color-mix(in_srgb,var(--nimi-text-muted)_80%,transparent)]">{label}:</span>
-      <span className={`font-semibold ${muted ? 'text-[color-mix(in_srgb,var(--nimi-text-muted)_60%,transparent)]' : 'text-[var(--nimi-text-primary)]'}`}>{value}</span>
+      <span className="text-xs font-medium text-[var(--nimi-text-muted)]">{label}:</span>
+      <span className={`font-semibold ${muted ? 'text-[var(--nimi-text-muted)]' : 'text-[var(--nimi-text-primary)]'}`}>{value}</span>
     </div>
   );
 }
@@ -175,18 +174,18 @@ export function FilterChip({
           className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors ${
             count > 0
               ? 'border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_32%,transparent)] bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,transparent)] text-[var(--nimi-action-primary-bg)]'
-              : 'border-[var(--nimi-border-subtle)] bg-white text-[var(--nimi-text-secondary)] hover:border-[var(--nimi-border-strong)]'
+              : 'border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] text-[var(--nimi-text-secondary)] hover:border-[var(--nimi-border-strong)]'
           }`}
         >
           {label}
-          {count > 0 ? <span className="rounded-full bg-[var(--nimi-action-primary-bg)] px-1.5 text-[10px] text-white">{count}</span> : null}
+          {count > 0 ? <span className="rounded-full bg-[var(--nimi-action-primary-bg)] px-1.5 text-[length:var(--nimi-type-caption-size)] text-[var(--nimi-action-primary-text)]">{count}</span> : null}
           <svg className={`h-3 w-3 transition-transform ${open ? 'rotate-180' : ''}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="6 9 12 15 18 9" /></svg>
         </button>
       </PopoverTrigger>
       <PopoverContent
         align="start"
         sideOffset={6}
-        className="w-52 overflow-hidden rounded-xl bg-white p-0"
+        className="w-52 overflow-hidden p-0"
         onOpenAutoFocus={(event) => event.preventDefault()}
       >
         <ScrollArea className="max-h-56" viewportClassName="max-h-56" contentClassName="py-1">
@@ -197,11 +196,11 @@ export function FilterChip({
                 key={option}
                 type="button"
                 onClick={() => onToggle(option)}
-                className={`flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs transition-colors ${checked ? 'bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,transparent)] text-[var(--nimi-action-primary-bg)]' : 'text-[var(--nimi-text-secondary)] hover:bg-[color-mix(in_srgb,var(--nimi-surface-card)_90%,var(--nimi-surface-panel))]'}`}
+                className={`flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs transition-colors ${checked ? 'bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,transparent)] text-[var(--nimi-action-primary-bg)]' : 'text-[var(--nimi-text-secondary)] hover:bg-[var(--nimi-action-ghost-hover)]'}`}
               >
                 <span className={`flex h-4 w-4 items-center justify-center rounded border ${checked ? 'border-[var(--nimi-action-primary-bg)] bg-[var(--nimi-action-primary-bg)]' : 'border-[var(--nimi-border-strong)]'}`}>
                   {checked ? (
-                    <svg className="h-3 w-3 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12" /></svg>
+                    <svg className="h-3 w-3 text-[var(--nimi-action-primary-text)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12" /></svg>
                   ) : null}
                 </span>
                 {option}
@@ -223,7 +222,7 @@ export function SelectChip({
   options,
   value,
   onChange,
-  contentClassName = 'w-52 overflow-hidden rounded-xl bg-white p-0',
+  contentClassName = 'w-52 overflow-hidden p-0',
 }: {
   label: string;
   options: { value: string; label: string }[];
@@ -240,9 +239,9 @@ export function SelectChip({
       <PopoverTrigger asChild>
         <button
           type="button"
-          className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--nimi-border-subtle)] bg-white px-3 py-1.5 text-xs font-medium text-[var(--nimi-text-secondary)] transition-colors hover:border-[var(--nimi-border-strong)]"
+          className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] px-3 py-1.5 text-xs font-medium text-[var(--nimi-text-secondary)] transition-colors hover:border-[var(--nimi-border-strong)]"
         >
-          <span className="text-[color-mix(in_srgb,var(--nimi-text-muted)_80%,transparent)]">{label}</span>
+          <span className="text-[var(--nimi-text-muted)]">{label}</span>
           <span className="font-semibold text-[var(--nimi-action-primary-bg)]">{displayLabel}</span>
           <svg className={`h-3 w-3 transition-transform ${open ? 'rotate-180' : ''}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="6 9 12 15 18 9" /></svg>
         </button>
@@ -264,11 +263,11 @@ export function SelectChip({
                   onChange(option.value);
                   setOpen(false);
                 }}
-                className={`flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs transition-colors ${checked ? 'bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,transparent)] text-[var(--nimi-action-primary-bg)]' : 'text-[var(--nimi-text-secondary)] hover:bg-[color-mix(in_srgb,var(--nimi-surface-card)_90%,var(--nimi-surface-panel))]'}`}
+                className={`flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs transition-colors ${checked ? 'bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,transparent)] text-[var(--nimi-action-primary-bg)]' : 'text-[var(--nimi-text-secondary)] hover:bg-[var(--nimi-action-ghost-hover)]'}`}
               >
                 <span className={`flex h-4 w-4 items-center justify-center rounded-full border ${checked ? 'border-[var(--nimi-action-primary-bg)] bg-[var(--nimi-action-primary-bg)]' : 'border-[var(--nimi-border-strong)]'}`}>
                   {checked ? (
-                    <svg className="h-2.5 w-2.5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12" /></svg>
+                    <svg className="h-2.5 w-2.5 text-[var(--nimi-action-primary-text)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12" /></svg>
                   ) : null}
                 </span>
                 {option.label}
@@ -306,25 +305,25 @@ export function ModelRow({ item, totalVramBytes, onSelect }: ModelRowProps) {
     <button
       type="button"
       onClick={onSelect}
-      className="group flex w-full items-center gap-3 rounded-2xl border border-[var(--nimi-border-subtle)]/70 bg-white/95 px-4 py-3 text-left shadow-[0_2px_8px_rgba(15,23,42,0.03)] transition-all hover:border-[var(--nimi-border-strong)] hover:shadow-[0_6px_18px_rgba(15,23,42,0.06)]"
+      className="group flex w-full items-center gap-3 rounded-2xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] px-4 py-3 text-left shadow-[var(--nimi-elevation-base)] transition-all hover:border-[var(--nimi-border-strong)] hover:shadow-[var(--nimi-elevation-raised)]"
     >
       {/* Name + params + badges */}
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-1.5">
           <span className="truncate text-sm font-semibold text-[var(--nimi-text-primary)]">{item.title}</span>
-          {params ? <span className="rounded bg-[color-mix(in_srgb,var(--nimi-surface-card)_78%,var(--nimi-surface-panel))] px-1.5 py-0.5 text-[10px] font-medium text-[var(--nimi-text-muted)]">{params}</span> : null}
+          {params ? <span className="rounded bg-[var(--nimi-surface-panel)] px-1.5 py-0.5 text-[length:var(--nimi-type-caption-size)] font-medium text-[var(--nimi-text-muted)]">{params}</span> : null}
           {item.verified ? (
-            <span className="rounded-full bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_16%,transparent)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--nimi-action-primary-bg)]">
+            <span className="rounded-full bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_16%,transparent)] px-1.5 py-0.5 text-[length:var(--nimi-type-caption-size)] font-medium text-[var(--nimi-action-primary-bg)]">
               {t('runtimeConfig.recommend.verified', { defaultValue: 'Verified' })}
             </span>
           ) : null}
           {item.installedState.installed ? (
-            <span className="rounded-full bg-[color-mix(in_srgb,var(--nimi-status-success)_18%,transparent)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--nimi-status-success)]">
+            <span className="rounded-full bg-[var(--nimi-status-success-soft-bg)] px-1.5 py-0.5 text-[length:var(--nimi-type-caption-size)] font-medium text-[var(--nimi-status-success-soft-text)]">
               {t('runtimeConfig.recommend.installedState', { defaultValue: 'Installed' })}
             </span>
           ) : null}
         </div>
-        <div className="mt-0.5 flex items-center gap-2 text-[11px] text-[color-mix(in_srgb,var(--nimi-text-muted)_80%,transparent)]">
+        <div className="mt-0.5 flex items-center gap-2 text-[length:var(--nimi-type-caption-size)] text-[var(--nimi-text-muted)]">
           <span>{formatRepoOwnerFromRepo(item.repo)}</span>
           <span>·</span>
           <span>{lastMod}</span>
@@ -334,8 +333,8 @@ export function ModelRow({ item, totalVramBytes, onSelect }: ModelRowProps) {
       {/* License */}
       <div className="hidden w-20 shrink-0 text-center md:block">
         {license ? (
-          <span className={`inline-block rounded-full border px-2 py-0.5 text-[10px] font-medium ${licenseColorClass(license)}`}>{license}</span>
-        ) : <span className="text-[11px] text-[color-mix(in_srgb,var(--nimi-text-muted)_60%,transparent)]">—</span>}
+          <span className={`inline-block rounded-full border px-2 py-0.5 text-[length:var(--nimi-type-caption-size)] font-medium ${licenseColorClass(license)}`}>{license}</span>
+        ) : <span className="text-[length:var(--nimi-type-caption-size)] text-[var(--nimi-text-muted)]">—</span>}
       </div>
 
       {/* Size */}
@@ -346,13 +345,8 @@ export function ModelRow({ item, totalVramBytes, onSelect }: ModelRowProps) {
       {/* VRAM % */}
       <div className="hidden w-20 shrink-0 md:block">
         <div className="flex items-center gap-1.5">
-          <div className="h-1.5 flex-1 rounded-full bg-[color-mix(in_srgb,var(--nimi-surface-card)_78%,var(--nimi-surface-panel))]">
-            <div
-              className={`h-full rounded-full transition-all ${vramBarColorClass(vramPct)}`}
-              style={{ width: `${Math.min(vramPct ?? 0, 100)}%` }}
-            />
-          </div>
-          <span className={`text-[11px] font-medium ${vramPercentageColorClass(vramPct)}`}>
+          <ProgressIndicator value={Math.min(vramPct ?? 0, 100)} className="min-w-0 flex-1" />
+          <span className={`text-[length:var(--nimi-type-caption-size)] font-medium ${vramPercentageColorClass(vramPct)}`}>
             {vramPct !== null ? `${vramPct}%` : '—'}
           </span>
         </div>
@@ -360,14 +354,14 @@ export function ModelRow({ item, totalVramBytes, onSelect }: ModelRowProps) {
 
       {/* Runtime recommendation */}
       <div className="w-28 shrink-0 text-right">
-        <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold ${recommendationTierColorClass(tier)}`}>
+        <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[length:var(--nimi-type-caption-size)] font-semibold ${recommendationTierColorClass(tier)}`}>
           {recommendationTierLabel(tier)}
         </span>
       </div>
 
       {/* Arrow right */}
       <svg
-        className="h-4 w-4 shrink-0 text-[color-mix(in_srgb,var(--nimi-text-muted)_80%,transparent)] transition-transform group-hover:translate-x-0.5"
+        className="h-4 w-4 shrink-0 text-[var(--nimi-text-muted)] transition-transform group-hover:translate-x-0.5"
         viewBox="0 0 24 24"
         fill="none"
         stroke="currentColor"

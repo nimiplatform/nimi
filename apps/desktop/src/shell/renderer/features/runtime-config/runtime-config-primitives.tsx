@@ -10,8 +10,10 @@ import {
   PopoverContent,
   PopoverTrigger,
   ScrollArea,
-  TextField,
   SelectField as KitSelectField,
+  SettingsSectionTitle as KitSettingsSectionTitle,
+  StatusBadge as KitStatusBadge,
+  TextField,
   cn,
 } from '@nimiplatform/kit/ui';
 import {
@@ -48,6 +50,10 @@ export function Card({
   );
 }
 
+export function SectionTitle({ children, description }: { children: ReactNode; description?: string }) {
+  return <KitSettingsSectionTitle description={description}>{children}</KitSettingsSectionTitle>;
+}
+
 export function Button({
   children,
   onClick,
@@ -57,7 +63,7 @@ export function Button({
 }: {
   children: ReactNode;
   onClick?: () => void;
-  variant?: 'primary' | 'secondary' | 'ghost';
+  variant?: 'primary' | 'secondary' | 'ghost' | 'danger';
   disabled?: boolean;
   size?: 'sm' | 'md';
 }) {
@@ -364,93 +370,24 @@ function SearchableRuntimeSelect({
   );
 }
 
-// Status indicator with dot - using semi-transparent backgrounds
-function StatusIndicator({
-  status,
-  text,
-  variant: _variant,
-}: {
-  status: 'healthy' | 'idle' | 'unreachable' | 'unsupported' | 'degraded' | 'running' | 'stopped';
-  text: string;
-  variant?: 'daemon' | 'provider';
-}) {
-  const styles = {
-    // Daemon states
-    running: {
-      bg: 'bg-[color-mix(in_srgb,var(--nimi-status-success)_12%,transparent)]',
-      text: 'text-[var(--nimi-status-success)]',
-      dot: 'bg-[var(--nimi-status-success)]',
-      ring: 'ring-[color-mix(in_srgb,var(--nimi-status-success)_24%,transparent)]',
-    },
-    stopped: {
-      bg: 'bg-[color-mix(in_srgb,var(--nimi-status-danger)_12%,transparent)]',
-      text: 'text-[var(--nimi-status-danger)]',
-      dot: 'bg-[var(--nimi-status-danger)]',
-      ring: 'ring-[color-mix(in_srgb,var(--nimi-status-danger)_24%,transparent)]',
-    },
-    // Provider states
-    healthy: {
-      bg: 'bg-[color-mix(in_srgb,var(--nimi-status-success)_12%,transparent)]',
-      text: 'text-[var(--nimi-status-success)]',
-      dot: 'bg-[var(--nimi-status-success)]',
-      ring: 'ring-[color-mix(in_srgb,var(--nimi-status-success)_24%,transparent)]',
-    },
-    idle: {
-      bg: 'bg-[color-mix(in_srgb,var(--nimi-status-neutral)_12%,transparent)]',
-      text: 'text-[var(--nimi-status-neutral)]',
-      dot: 'bg-[var(--nimi-status-neutral)]',
-      ring: 'ring-[color-mix(in_srgb,var(--nimi-status-neutral)_24%,transparent)]',
-    },
-    unreachable: {
-      bg: 'bg-[color-mix(in_srgb,var(--nimi-status-danger)_12%,transparent)]',
-      text: 'text-[var(--nimi-status-danger)]',
-      dot: 'bg-[var(--nimi-status-danger)]',
-      ring: 'ring-[color-mix(in_srgb,var(--nimi-status-danger)_24%,transparent)]',
-    },
-    unsupported: {
-      bg: 'bg-[color-mix(in_srgb,var(--nimi-status-warning)_12%,transparent)]',
-      text: 'text-[var(--nimi-status-warning)]',
-      dot: 'bg-[var(--nimi-status-warning)]',
-      ring: 'ring-[color-mix(in_srgb,var(--nimi-status-warning)_24%,transparent)]',
-    },
-    degraded: {
-      bg: 'bg-[color-mix(in_srgb,var(--nimi-status-warning)_12%,transparent)]',
-      text: 'text-[var(--nimi-status-warning)]',
-      dot: 'bg-[var(--nimi-status-warning)]',
-      ring: 'ring-[color-mix(in_srgb,var(--nimi-status-warning)_24%,transparent)]',
-    },
-  };
+// Status badges delegate to kit StatusBadge (dot shape); status → tone mapping.
+type BadgeStatus = 'healthy' | 'idle' | 'unreachable' | 'unsupported' | 'degraded' | 'running' | 'stopped';
 
-  const style = styles[status];
-
-  return (
-    <span className={cn(
-      'inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium ring-1',
-      style.bg,
-      style.text,
-      style.ring,
-    )}>
-      <span className={cn('h-1.5 w-1.5 rounded-full', style.dot)} />
-      {text}
-    </span>
-  );
-}
+const BADGE_STATUS_TONES: Record<BadgeStatus, 'neutral' | 'success' | 'warning' | 'danger'> = {
+  running: 'success',
+  healthy: 'success',
+  stopped: 'danger',
+  unreachable: 'danger',
+  idle: 'neutral',
+  unsupported: 'warning',
+  degraded: 'warning',
+};
 
 export function StatusBadge({ status }: { status: ProviderStatusV11 }) {
-  const statusMap: Record<ProviderStatusV11, 'healthy' | 'idle' | 'unreachable' | 'unsupported' | 'degraded'> = {
-    healthy: 'healthy',
-    idle: 'idle',
-    unreachable: 'unreachable',
-    unsupported: 'unsupported',
-    degraded: 'degraded',
-  };
-
   return (
-    <StatusIndicator
-      status={statusMap[status]}
-      text={statusTextV11(status)}
-      variant="provider"
-    />
+    <KitStatusBadge tone={BADGE_STATUS_TONES[status]} shape="dot">
+      {statusTextV11(status)}
+    </KitStatusBadge>
   );
 }
 
@@ -458,13 +395,11 @@ export function DaemonStatusBadge({ running }: { running: boolean }) {
   const i18n = useDesktopI18nResource().instance;
   const t = i18n.t.bind(i18n);
   return (
-    <StatusIndicator
-      status={running ? 'running' : 'stopped'}
-      text={t(`runtimeConfig.overview.${running ? 'running' : 'stopped'}`, {
+    <KitStatusBadge tone={running ? 'success' : 'danger'} shape="dot">
+      {t(`runtimeConfig.overview.${running ? 'running' : 'stopped'}`, {
         defaultValue: running ? 'daemon running' : 'daemon stopped',
       })}
-      variant="daemon"
-    />
+    </KitStatusBadge>
   );
 }
 
@@ -479,19 +414,15 @@ export function RuntimeHealthBadge({
   const t = i18n.t.bind(i18n);
   if (!daemonRunning) {
     return (
-      <StatusIndicator
-        status="stopped"
-        text={t('runtimeConfig.overview.stopped', { defaultValue: 'daemon stopped' })}
-        variant="daemon"
-      />
+      <KitStatusBadge tone="danger" shape="dot">
+        {t('runtimeConfig.overview.stopped', { defaultValue: 'daemon stopped' })}
+      </KitStatusBadge>
     );
   }
   return (
-    <StatusIndicator
-      status={providerStatus}
-      text={statusTextV11(providerStatus)}
-      variant="provider"
-    />
+    <KitStatusBadge tone={BADGE_STATUS_TONES[providerStatus]} shape="dot">
+      {statusTextV11(providerStatus)}
+    </KitStatusBadge>
   );
 }
 
@@ -512,7 +443,7 @@ export function ModelChips(props: { readonly models: string[]; readonly prefix: 
       {models.map((model) => (
         <span
           key={`${prefix}-${model}`}
-          className="rounded-md border border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_18%,transparent)] bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_8%,var(--nimi-surface-card))] px-2 py-0.5 text-[11px] text-[var(--nimi-action-primary-bg)]"
+          className="rounded-md border border-[var(--nimi-status-info-soft-border)] bg-[var(--nimi-status-info-soft-bg)] px-2 py-0.5 text-[length:var(--nimi-type-caption-size)] text-[var(--nimi-status-info-soft-text)]"
         >
           {model}
         </span>

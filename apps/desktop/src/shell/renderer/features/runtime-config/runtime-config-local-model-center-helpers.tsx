@@ -22,6 +22,7 @@ import {
 } from '@nimiplatform/sdk/runtime';
 import type { DesktopI18nResource } from '../../i18n/desktop-i18n.js';
 import { parseTimestamp } from './runtime-config-model-center-utils';
+import { tierPillClass } from './runtime-config-runtime-page-ui';
 export {
   DownloadIcon,
   FolderOpenIcon,
@@ -42,6 +43,101 @@ function recommendationCopyOptions(t: TFunction): NimiRuntimeLocalRecommendation
 
 export function formatAssetKindLabel(value: NimiRuntimeLocalAssetKind): string {
   return formatNimiRuntimeLocalAssetKindLabel(value);
+}
+
+export function localizedAssetKindLabel(value: NimiRuntimeLocalAssetKind, t: TFunction): string {
+  return t(`runtimeConfig.localModelCenter.kindLabels.${value}`, {
+    defaultValue: formatNimiRuntimeLocalAssetKindLabel(value),
+  });
+}
+
+const IMPORT_INSTANCE_TAIL_PATTERN = /^[0-7][0-9A-HJKMNP-TV-Z]{25}$/i;
+
+export function assetIdDisplaySlug(assetId: string): string {
+  const segments = String(assetId || '')
+    .split('/')
+    .map((segment) => segment.trim())
+    .filter(Boolean);
+  const tail = segments[segments.length - 1] || '';
+  if (!tail) {
+    return '';
+  }
+  const previous = segments[segments.length - 2] || '';
+  if (previous && IMPORT_INSTANCE_TAIL_PATTERN.test(tail)) {
+    return previous;
+  }
+  return tail;
+}
+
+export function assetDisplayName(asset: NimiRuntimeLocalAssetRecord): string {
+  const displayName = String(asset.displayName || '').trim();
+  if (displayName) {
+    return displayName;
+  }
+  return assetIdDisplaySlug(asset.assetId) || String(asset.assetId || '').trim();
+}
+
+const ASSET_CAPABILITY_LABEL_KEYS: Record<string, string> = {
+  chat: 'chat',
+  'text.generate': 'textGenerate',
+  'text.embed': 'embedding',
+  embedding: 'embedding',
+  image: 'imageGenerate',
+  'image.generate': 'imageGenerate',
+  video: 'videoGenerate',
+  'video.generate': 'videoGenerate',
+  tts: 'tts',
+  'audio.synthesize': 'tts',
+  stt: 'stt',
+  'audio.transcribe': 'stt',
+  'voice_workflow.voice_clone': 'voiceClone',
+  'voice_workflow.voice_design': 'voiceDesign',
+};
+
+export function localizedAssetCapabilityLabels(
+  capabilities: readonly string[] | undefined,
+  t: TFunction,
+): string[] {
+  const labels: string[] = [];
+  const seen = new Set<string>();
+  for (const capability of capabilities || []) {
+    const labelKey = ASSET_CAPABILITY_LABEL_KEYS[String(capability || '').trim().toLowerCase()];
+    if (!labelKey) {
+      continue;
+    }
+    const label = t(`runtimeConfig.localModelCenter.capabilityLabels.${labelKey}`);
+    if (!label || seen.has(label)) {
+      continue;
+    }
+    seen.add(label);
+    labels.push(label);
+    if (labels.length >= 3) {
+      break;
+    }
+  }
+  return labels;
+}
+
+export function installedAssetSourceLabel(asset: NimiRuntimeLocalAssetRecord, t: TFunction): string {
+  const repo = String(asset.source?.repo || '').trim().toLowerCase();
+  if (repo.startsWith('file://')) {
+    return t('runtimeConfig.localModelCenter.sourceLocalImport', { defaultValue: 'Local import' });
+  }
+  return t('runtimeConfig.localModelCenter.sourceCatalogInstall', { defaultValue: 'Catalog install' });
+}
+
+export function installedAssetMetaLine(asset: NimiRuntimeLocalAssetRecord, i18n: DesktopI18nResource): string {
+  const t = i18n.instance.t.bind(i18n.instance);
+  const sourceLabel = installedAssetSourceLabel(asset, t);
+  const installedAtMs = parseTimestamp(asset.installedAt);
+  if (!installedAtMs) {
+    return sourceLabel;
+  }
+  const installedLabel = t('runtimeConfig.localModelCenter.installedAtRelative', {
+    value: i18n.formatRelativeTime(new Date(installedAtMs)),
+    defaultValue: 'Installed {{value}}',
+  });
+  return `${sourceLabel} · ${installedLabel}`;
 }
 
 const GENERIC_MODEL_TAGS = [
@@ -116,7 +212,8 @@ export function filterInstalledAssets(
     if (!matchesKind) return false;
     if (!query) return true;
     return (
-      asset.assetId.toLowerCase().includes(query)
+      asset.displayName.toLowerCase().includes(query)
+      || asset.assetId.toLowerCase().includes(query)
       || asset.localAssetId.toLowerCase().includes(query)
       || asset.engine.toLowerCase().includes(query)
       || asset.kind.toLowerCase().includes(query)
@@ -196,11 +293,9 @@ export function recommendationTierLabel(value?: NimiRuntimeLocalCatalogRecommend
 }
 
 export function recommendationTierClass(value?: NimiRuntimeLocalCatalogRecommendation['tier']): string {
-  if (value === 'recommended') return 'bg-[color-mix(in_srgb,var(--nimi-status-success)_15%,transparent)] text-[var(--nimi-status-success)]';
-  if (value === 'runnable') return 'bg-[color-mix(in_srgb,var(--nimi-status-info)_15%,transparent)] text-[var(--nimi-status-info)]';
-  if (value === 'tight') return 'bg-[color-mix(in_srgb,var(--nimi-status-warning)_15%,transparent)] text-[var(--nimi-status-warning)]';
-  if (value === 'not_recommended') return 'bg-[color-mix(in_srgb,var(--nimi-status-danger)_15%,transparent)] text-[var(--nimi-status-danger)]';
-  return 'bg-[color-mix(in_srgb,var(--nimi-status-neutral)_15%,transparent)] text-[var(--nimi-status-neutral)]';
+  // Delegate to the shared tier pill mapping so this page and the recommend
+  // page render identical tier colors (soft status tokens).
+  return tierPillClass(value);
 }
 
 export function recommendationHostSupportLabel(
@@ -269,7 +364,7 @@ export function RecommendationDetailList(props: {
   return (
     <div className={props.className || 'mt-2 space-y-1'}>
       {items.map((item) => (
-        <p key={item.key} className={props.rowClassName || 'text-[11px] text-[var(--nimi-text-muted)]'}>
+        <p key={item.key} className={props.rowClassName || 'text-[length:var(--nimi-type-caption-size)] text-[var(--nimi-text-muted)]'}>
           <span className={props.labelClassName || 'font-medium text-[var(--nimi-text-secondary)]'}>{item.label}:</span>{' '}
           <span className={props.valueClassName || ''}>{item.value}</span>
         </p>
@@ -301,7 +396,7 @@ export function RecommendationDiagnosticsPanel(props: {
       <button
         type="button"
         onClick={() => setOpen((value) => !value)}
-        className={props.buttonClassName || 'text-[10px] font-medium text-[var(--nimi-text-muted)] underline decoration-[color:var(--nimi-border-subtle)] underline-offset-2 hover:text-[var(--nimi-text-secondary)]'}
+        className={props.buttonClassName || 'text-[length:var(--nimi-type-caption-size)] font-medium text-[var(--nimi-text-muted)] underline decoration-[color:var(--nimi-border-subtle)] underline-offset-2 hover:text-[var(--nimi-text-secondary)]'}
       >
         {open
           ? t('runtimeConfig.local.recommendationDiagnosticsHide', {
@@ -312,7 +407,7 @@ export function RecommendationDiagnosticsPanel(props: {
             })}
       </button>
       {open ? (
-        <div className={props.panelClassName || 'mt-2 space-y-2 rounded-lg border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] px-3 py-2 text-[10px] text-[var(--nimi-text-secondary)]'}>
+        <div className={props.panelClassName || 'mt-2 space-y-2 rounded-lg border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] px-3 py-2 text-[length:var(--nimi-type-caption-size)] text-[var(--nimi-text-secondary)]'}>
           <p className="font-medium text-[var(--nimi-text-primary)]">
             {t('runtimeConfig.local.recommendationDiagnosticsTitle', {
               defaultValue: 'Recommendation diagnostics',
@@ -355,7 +450,7 @@ export function RecommendationDiagnosticsPanel(props: {
                     className="rounded border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] px-2 py-1 text-[var(--nimi-text-secondary)]"
                   >
                     <p>{recommendationReasonLabel(reasonCode, t)}</p>
-                    <p className="font-mono text-[10px] text-[var(--nimi-text-muted)]">{reasonCode}</p>
+                    <p className="font-mono text-[length:var(--nimi-type-caption-size)] text-[var(--nimi-text-muted)]">{reasonCode}</p>
                   </div>
                 ))}
               </div>

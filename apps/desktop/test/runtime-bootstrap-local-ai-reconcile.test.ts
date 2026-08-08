@@ -7,6 +7,8 @@ test('reconcileLocalRuntimeBootstrapState reconciles desktop and go-runtime mode
   const desktopModels = [{
     localAssetId: '01JMODEL',
     assetId: 'local-import/z_image_turbo-q4_k',
+    displayName: 'Z Image Turbo',
+    sourceFileName: 'z_image_turbo-Q4_K.gguf',
     kind: 'image' as const,
     localModelId: '01JMODEL',
     modelId: 'local-import/z_image_turbo-q4_k',

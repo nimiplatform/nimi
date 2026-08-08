@@ -12,6 +12,7 @@
 
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { PillTabs } from '@nimiplatform/kit/ui';
 import type { RuntimeConfigStateV11 } from './runtime-config-state-types';
 import type { RuntimeConfigPanelControllerModel } from './runtime-config-panel-types';
 import { RuntimePage } from './runtime-config-page-runtime';
@@ -40,25 +41,16 @@ export function EnvironmentPage({ model, state }: EnvironmentPageProps) {
         className="flex shrink-0 items-center gap-1 px-5 pt-4"
         data-testid="runtime-environment-subtabs"
       >
-        {SUB_TABS.map((tab) => {
-          const active = tab.id === subTab;
-          return (
-            <button
-              key={tab.id}
-              type="button"
-              data-testid={`runtime-environment-subtab:${tab.id}`}
-              aria-current={active ? 'page' : undefined}
-              onClick={() => setSubTab(tab.id)}
-              className={
-                active
-                  ? 'rounded-lg bg-[var(--nimi-action-primary-bg)] px-3.5 py-1.5 text-xs font-semibold text-white'
-                  : 'rounded-lg px-3.5 py-1.5 text-xs font-medium text-[var(--nimi-text-muted)] transition-colors hover:bg-[color-mix(in_srgb,var(--nimi-surface-card)_70%,white)] hover:text-[var(--nimi-text-secondary)]'
-              }
-            >
-              {t(tab.labelKey, { defaultValue: tab.defaultLabel })}
-            </button>
-          );
-        })}
+        <PillTabs
+          size="sm"
+          ariaLabel="Environment sections"
+          items={SUB_TABS.map((tab) => ({
+            value: tab.id,
+            label: t(tab.labelKey, { defaultValue: tab.defaultLabel }),
+          }))}
+          value={subTab}
+          onValueChange={(value) => setSubTab(value as EnvironmentSubTabId)}
+        />
       </div>
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">
         {subTab === 'dependencies' ? (

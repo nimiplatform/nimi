@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { AIProviderHealthSnapshot, AIProviderSubHealth } from '@nimiplatform/sdk/runtime/wire-types';
-import { cn } from '@nimiplatform/kit/ui';
+import { StatusBadge as KitStatusBadge, cn } from '@nimiplatform/kit/ui';
 import { useDesktopI18nResource } from '../../i18n/i18n-context.js';
 import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
 import {
@@ -23,27 +23,11 @@ function providerStateTone(state: string): StateTone {
   return 'neutral';
 }
 
-const STATE_BADGE_CLASS: Record<StateTone, { pill: string; dot: string; text: string }> = {
-  success: {
-    pill: 'bg-[color-mix(in_srgb,var(--nimi-status-success)_14%,transparent)] text-[var(--nimi-status-success)]',
-    dot: 'bg-[var(--nimi-status-success)]',
-    text: 'text-[var(--nimi-status-success)]',
-  },
-  warning: {
-    pill: 'bg-[color-mix(in_srgb,var(--nimi-status-warning)_14%,transparent)] text-[var(--nimi-status-warning)]',
-    dot: 'bg-[var(--nimi-status-warning)]',
-    text: 'text-[var(--nimi-status-warning)]',
-  },
-  danger: {
-    pill: 'bg-[color-mix(in_srgb,var(--nimi-status-danger)_14%,transparent)] text-[var(--nimi-status-danger)]',
-    dot: 'bg-[var(--nimi-status-danger)]',
-    text: 'text-[var(--nimi-status-danger)]',
-  },
-  neutral: {
-    pill: 'bg-[color-mix(in_srgb,var(--nimi-text-muted)_14%,transparent)] text-[var(--nimi-text-secondary)]',
-    dot: 'bg-[color-mix(in_srgb,var(--nimi-text-muted)_65%,transparent)]',
-    text: 'text-[var(--nimi-text-secondary)]',
-  },
+const STATE_TEXT_CLASS: Record<StateTone, string> = {
+  success: 'text-[var(--nimi-status-success)]',
+  warning: 'text-[var(--nimi-status-warning)]',
+  danger: 'text-[var(--nimi-status-danger)]',
+  neutral: 'text-[var(--nimi-text-secondary)]',
 };
 
 function humanizeReason(reason: string | undefined | null): string {
@@ -99,13 +83,10 @@ function CheckIcon() {
 }
 
 function StateBadge({ state }: { state: string }) {
-  const tone = providerStateTone(state);
-  const style = STATE_BADGE_CLASS[tone];
   return (
-    <span className={cn('inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-medium', style.pill)}>
-      <span className={cn('h-1.5 w-1.5 rounded-full', style.dot)} />
+    <KitStatusBadge tone={providerStateTone(state)} shape="dot">
       {state || 'unknown'}
-    </span>
+    </KitStatusBadge>
   );
 }
 
@@ -141,13 +122,13 @@ export function ProviderHealthTable({ providerHealth }: ProviderHealthTableProps
 
   return (
     <div className="mt-6">
-      <p className={cn('mb-3 text-[10px] font-medium uppercase tracking-[0.14em]', TOKEN_TEXT_MUTED)}>
+      <p className={cn('mb-3 text-[length:var(--nimi-type-caption-size)] font-medium uppercase tracking-[var(--nimi-type-overline-letter-spacing)]', TOKEN_TEXT_MUTED)}>
         {t('runtimeConfig.runtime.aiProviders', { defaultValue: 'AI Providers' })}
       </p>
       <div className="overflow-hidden rounded-xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)]/40">
         <table className="w-full text-xs">
           <thead>
-            <tr className={cn('text-left text-[10px] font-medium uppercase tracking-[0.12em]', TOKEN_TEXT_MUTED)}>
+            <tr className={cn('text-left text-[length:var(--nimi-type-caption-size)] font-medium uppercase tracking-[var(--nimi-type-overline-letter-spacing)]', TOKEN_TEXT_MUTED)}>
               <th className="px-4 py-2.5">{t('runtimeConfig.runtime.name', { defaultValue: 'Name' })}</th>
               <th className="px-4 py-2.5">{t('runtimeConfig.runtime.state', { defaultValue: 'State' })}</th>
               <th className="px-4 py-2.5 w-24">{t('runtimeConfig.runtime.failures', { defaultValue: 'Failures' })}</th>
@@ -207,7 +188,7 @@ function LastCheckedCell({
       <span className="shrink-0">{lastCheckedText}</span>
       <span className={cn('shrink-0', TOKEN_TEXT_MUTED)}>·</span>
       <span
-        className={cn('min-w-0 truncate text-[11px]', STATE_BADGE_CLASS[tone].text)}
+        className={cn('min-w-0 truncate text-[length:var(--nimi-type-caption-size)]', STATE_TEXT_CLASS[tone])}
         title={humanReason}
       >
         {humanReason}
@@ -265,10 +246,10 @@ function ErrorDetailRow({
       <td colSpan={4} id={`error-detail-${errorKey}`} className={cn(indent ? 'px-4 pl-9' : 'px-4', 'py-3')}>
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <p className={cn('mb-1.5 text-[10px] font-medium uppercase tracking-[0.14em]', TOKEN_TEXT_MUTED)}>
+            <p className={cn('mb-1.5 text-[length:var(--nimi-type-caption-size)] font-medium uppercase tracking-[var(--nimi-type-overline-letter-spacing)]', TOKEN_TEXT_MUTED)}>
               Raw error
             </p>
-            <pre className={cn('whitespace-pre-wrap break-words rounded-md bg-[var(--nimi-surface-card)] px-3 py-2 font-mono text-[11px] leading-relaxed', TOKEN_TEXT_PRIMARY)}>
+            <pre className={cn('whitespace-pre-wrap break-words rounded-md bg-[var(--nimi-surface-card)] px-3 py-2 font-mono text-[length:var(--nimi-type-caption-size)] leading-relaxed', TOKEN_TEXT_PRIMARY)}>
               {reason}
             </pre>
           </div>
@@ -279,7 +260,7 @@ function ErrorDetailRow({
               onCopy();
             }}
             className={cn(
-              'inline-flex shrink-0 items-center gap-1 rounded-md border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] px-2 py-1 text-[11px] font-medium transition-colors hover:border-[var(--nimi-border-strong)]',
+              'inline-flex shrink-0 items-center gap-1 rounded-md border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] px-2 py-1 text-[length:var(--nimi-type-caption-size)] font-medium transition-colors hover:border-[var(--nimi-border-strong)]',
               copied ? 'text-[var(--nimi-status-success)]' : TOKEN_TEXT_SECONDARY,
             )}
             aria-label={copied ? 'Copied' : 'Copy error'}
@@ -320,7 +301,7 @@ function ProviderRow({
     <>
       <tr
         className={cn(
-          'border-t border-[var(--nimi-border-subtle)]/60 transition-colors hover:bg-white/50',
+          'border-t border-[var(--nimi-border-subtle)]/60 transition-colors hover:bg-[var(--nimi-action-ghost-hover)]',
           hasSubs && 'cursor-pointer',
         )}
         onClick={hasSubs ? onToggle : undefined}
@@ -328,7 +309,7 @@ function ProviderRow({
         <td className={cn('px-4 py-2.5 font-medium', TOKEN_TEXT_PRIMARY)}>
           <span className="inline-flex items-center gap-1.5">
             {hasSubs ? (
-              <span className={cn('text-[10px]', TOKEN_TEXT_MUTED)}>{expanded ? '\u25BC' : '\u25B6'}</span>
+              <span className={cn('text-[length:var(--nimi-type-caption-size)]', TOKEN_TEXT_MUTED)}>{expanded ? '\u25BC' : '\u25B6'}</span>
             ) : null}
             {provider.providerName}
           </span>

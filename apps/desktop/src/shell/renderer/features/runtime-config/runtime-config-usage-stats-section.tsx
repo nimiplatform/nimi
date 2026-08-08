@@ -1,8 +1,9 @@
 import type { UsageStatRecord } from '@nimiplatform/sdk/runtime/wire-types';
 import { UsageWindow } from '@nimiplatform/sdk/runtime/wire-types';
 import { useTranslation } from 'react-i18next';
-import { Surface, Tooltip, cn } from '@nimiplatform/kit/ui';
+import { SegmentedControl, Surface, Tooltip, cn } from '@nimiplatform/kit/ui';
 import { Button } from './runtime-config-primitives.js';
+import { IconButton, RefreshIcon, TOKEN_PANEL_CARD, TOKEN_TEXT_MUTED, TOKEN_TEXT_PRIMARY, TOKEN_TEXT_SECONDARY } from './runtime-config-runtime-page-ui.js';
 import { useDesktopI18nResource } from '../../i18n/i18n-context.js';
 import {
   formatTokenCount,
@@ -13,60 +14,8 @@ import {
   relativeTimeShort,
 } from './runtime-config-global-audit-view-model.js';
 
-const TOKEN_TEXT_PRIMARY = 'text-[var(--nimi-text-primary)]';
-const TOKEN_TEXT_SECONDARY = 'text-[var(--nimi-text-secondary)]';
-const TOKEN_TEXT_MUTED = 'text-[var(--nimi-text-muted)]';
-const TOKEN_PANEL_CARD = 'rounded-2xl';
-
 const FILTER_INPUT_CLASS =
   'h-8 rounded-lg border border-[var(--nimi-border-subtle)] bg-transparent px-2.5 text-xs text-[var(--nimi-text-primary)] outline-none transition-colors focus:border-[var(--nimi-field-focus)] focus:ring-2 focus:ring-[var(--nimi-focus-ring-color)]';
-
-function IconButton({
-  icon,
-  title,
-  disabled,
-  onClick,
-}: {
-  icon: React.ReactNode;
-  title: string;
-  disabled?: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <Tooltip content={title} placement="top">
-      <button
-        type="button"
-        onClick={onClick}
-        disabled={disabled}
-        aria-label={title}
-        className="flex h-7 w-7 items-center justify-center rounded-md text-[var(--nimi-text-muted)] transition-colors hover:bg-[var(--nimi-surface-panel)] hover:text-[var(--nimi-text-primary)] disabled:cursor-not-allowed disabled:opacity-50"
-      >
-        {icon}
-      </button>
-    </Tooltip>
-  );
-}
-
-function RefreshIcon({ spinning }: { spinning?: boolean }) {
-  return (
-    <svg
-      className={spinning ? 'animate-spin' : ''}
-      width="14"
-      height="14"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
-      <path d="M3 3v5h5" />
-      <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16" />
-      <path d="M16 16h5v5" />
-    </svg>
-  );
-}
 
 function StatCard({
   label,
@@ -88,9 +37,9 @@ function StatCard({
   }[tone];
   return (
     <div className="rounded-xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)]/60 p-3">
-      <p className={cn('text-[10px] font-medium uppercase tracking-[0.14em]', TOKEN_TEXT_MUTED)}>{label}</p>
+      <p className={cn('text-[length:var(--nimi-type-caption-size)] font-medium uppercase tracking-[var(--nimi-type-overline-letter-spacing)]', TOKEN_TEXT_MUTED)}>{label}</p>
       <p className={cn('mt-1 font-mono text-base font-semibold', toneText)}>{value}</p>
-      {sub ? <p className={cn('mt-0.5 text-[11px]', TOKEN_TEXT_MUTED)}>{sub}</p> : null}
+      {sub ? <p className={cn('mt-0.5 text-[length:var(--nimi-type-caption-size)]', TOKEN_TEXT_MUTED)}>{sub}</p> : null}
     </div>
   );
 }
@@ -154,7 +103,7 @@ export function UsageStatsSection({
           {t('runtimeConfig.runtime.usageStatistics', { defaultValue: 'Usage Statistics' })}
         </h3>
         <IconButton
-          icon={<RefreshIcon spinning={loading} />}
+          icon={<RefreshIcon className={loading ? 'animate-spin' : ''} />}
           title={t('runtimeConfig.runtime.refresh', { defaultValue: 'Refresh' })}
           disabled={loading}
           onClick={onRefresh}
@@ -165,27 +114,16 @@ export function UsageStatsSection({
 
       {/* Filters */}
       <div className="mt-4 flex flex-wrap items-center gap-2">
-        {/* Segmented window switcher */}
-        <div className="inline-flex items-center gap-0.5 rounded-lg border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)]/60 p-0.5">
-          {[UsageWindow.MINUTE, UsageWindow.HOUR, UsageWindow.DAY].map((w) => {
-            const active = filters.window === w;
-            return (
-              <button
-                key={w}
-                type="button"
-                onClick={() => onUpdateFilters({ window: w })}
-                className={cn(
-                  'rounded-md px-2.5 py-1 text-[11px] font-medium transition-colors',
-                  active
-                    ? cn('bg-[var(--nimi-surface-card)] shadow-sm', TOKEN_TEXT_PRIMARY)
-                    : cn('hover:text-[var(--nimi-text-primary)]', TOKEN_TEXT_SECONDARY),
-                )}
-              >
-                {usageWindowLabel(w)}
-              </button>
-            );
-          })}
-        </div>
+        <SegmentedControl
+          size="sm"
+          ariaLabel={t('runtimeConfig.runtime.usageStatistics', { defaultValue: 'Usage Statistics' })}
+          items={[UsageWindow.MINUTE, UsageWindow.HOUR, UsageWindow.DAY].map((w) => ({
+            value: String(w),
+            label: usageWindowLabel(w),
+          }))}
+          value={String(filters.window)}
+          onValueChange={(value) => onUpdateFilters({ window: Number(value) })}
+        />
         <input
           value={filters.capability}
           onChange={(e) => onUpdateFilters({ capability: e.target.value })}
@@ -253,7 +191,7 @@ export function UsageStatsSection({
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
             <thead>
-              <tr className={cn('text-left text-[10px] font-medium uppercase tracking-[0.12em]', TOKEN_TEXT_MUTED)}>
+              <tr className={cn('text-left text-[length:var(--nimi-type-caption-size)] font-medium uppercase tracking-[var(--nimi-type-overline-letter-spacing)]', TOKEN_TEXT_MUTED)}>
                 <th className="px-4 py-2.5">{t('runtimeConfig.runtime.capability', { defaultValue: 'Capability' })}</th>
                 <th className="px-4 py-2.5">{t('runtimeConfig.runtime.model', { defaultValue: 'Model' })}</th>
                 <th className="px-4 py-2.5">{t('runtimeConfig.runtime.requests', { defaultValue: 'Requests' })}</th>
@@ -298,7 +236,7 @@ export function UsageStatsSection({
                   return (
                     <tr
                       key={`${r.capability}-${r.modelId}-${idx}`}
-                      className="border-t border-[var(--nimi-border-subtle)]/50 transition-colors hover:bg-white/50"
+                      className="border-t border-[var(--nimi-border-subtle)]/50 transition-colors hover:bg-[var(--nimi-action-ghost-hover)]"
                     >
                       <td className={cn('px-4 py-2.5', TOKEN_TEXT_PRIMARY)}>{r.capability || '—'}</td>
                       <td className={cn('max-w-[200px] truncate px-4 py-2.5 font-mono', TOKEN_TEXT_SECONDARY)} title={r.modelId}>

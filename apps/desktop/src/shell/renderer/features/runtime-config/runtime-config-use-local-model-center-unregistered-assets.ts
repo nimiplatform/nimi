@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import type {
   NimiRuntimeLocalAssetDeclaration,
   NimiRuntimeLocalAssetKind,
@@ -9,19 +9,12 @@ import {
   defaultAssetDeclaration,
   type AssetEngineOption,
 } from './runtime-config-model-center-utils';
-import {
-  normalizeAssetDeclaration,
-} from './runtime-config-use-local-model-center-helpers.js';
+import { normalizeAssetDeclaration } from './runtime-config-use-local-model-center-helpers.js';
 
 export function useLocalModelCenterUnregisteredAssets() {
   const runtimeConfigLocalAssetAdminClient = useRuntimeConfigLocalAssetAdminClient();
   const [unregisteredAssets, setUnregisteredAssets] = useState<NimiRuntimeLocalUnregisteredAssetDescriptor[]>([]);
   const [unregisteredAssetDrafts, setUnregisteredAssetDrafts] = useState<Record<string, NimiRuntimeLocalAssetDeclaration>>({});
-  const [unregisteredEndpointByPath, setUnregisteredEndpointByPath] = useState<Record<string, string>>({});
-  const [unregisteredEndpointRequiredByPath, setUnregisteredEndpointRequiredByPath] = useState<Record<string, boolean>>({});
-  const [unregisteredEndpointHintByPath, setUnregisteredEndpointHintByPath] = useState<Record<string, string>>({});
-  const [unregisteredCompatibilityHintByPath, setUnregisteredCompatibilityHintByPath] = useState<Record<string, string>>({});
-  const [unregisteredImportAllowedByPath, setUnregisteredImportAllowedByPath] = useState<Record<string, boolean>>({});
 
   const refreshUnregisteredAssets = useCallback(async (requestIsCurrent?: () => boolean) => {
     try {
@@ -91,65 +84,12 @@ export function useLocalModelCenterUnregisteredAssets() {
     });
   }, []);
 
-  const setUnregisteredEndpoint = useCallback((assetPath: string, endpoint: string) => {
-    setUnregisteredEndpointByPath((prev) => ({
-      ...prev,
-      [assetPath]: endpoint,
-    }));
-  }, []);
-
-  useEffect(() => {
-    const currentPaths = new Set(unregisteredAssets.map((asset) => asset.path));
-    setUnregisteredEndpointByPath((prev) => Object.fromEntries(
-      Object.entries(prev).filter(([path]) => currentPaths.has(path)),
-    ));
-    setUnregisteredEndpointRequiredByPath((prev) => Object.fromEntries(
-      Object.entries(prev).filter(([path]) => currentPaths.has(path)),
-    ));
-    setUnregisteredEndpointHintByPath((prev) => Object.fromEntries(
-      Object.entries(prev).filter(([path]) => currentPaths.has(path)),
-    ));
-    setUnregisteredCompatibilityHintByPath((prev) => Object.fromEntries(
-      Object.entries(prev).filter(([path]) => currentPaths.has(path)),
-    ));
-    setUnregisteredImportAllowedByPath((prev) => Object.fromEntries(
-      Object.entries(prev).filter(([path]) => currentPaths.has(path)),
-    ));
-  }, [unregisteredAssets]);
-
-  useEffect(() => {
-    for (const asset of unregisteredAssets) {
-      const declaration = resolveUnregisteredAssetDraft(asset);
-      if (declaration.assetKind === 'auxiliary') {
-        continue;
-      }
-      const engine = String(declaration.engine || '').trim();
-      if (engine !== 'media' && engine !== 'speech') {
-        setUnregisteredEndpointRequiredByPath((prev) => ({ ...prev, [asset.path]: false }));
-        setUnregisteredEndpointHintByPath((prev) => ({ ...prev, [asset.path]: '' }));
-        setUnregisteredCompatibilityHintByPath((prev) => ({ ...prev, [asset.path]: '' }));
-        setUnregisteredImportAllowedByPath((prev) => ({ ...prev, [asset.path]: true }));
-        continue;
-      }
-      setUnregisteredEndpointRequiredByPath((prev) => ({ ...prev, [asset.path]: false }));
-      setUnregisteredEndpointHintByPath((prev) => ({ ...prev, [asset.path]: '' }));
-      setUnregisteredCompatibilityHintByPath((prev) => ({ ...prev, [asset.path]: '' }));
-      setUnregisteredImportAllowedByPath((prev) => ({ ...prev, [asset.path]: true }));
-    }
-  }, [resolveUnregisteredAssetDraft, unregisteredAssets]);
-
   return {
     refreshUnregisteredAssets,
     resolveUnregisteredAssetDraft,
     setUnregisteredAssetKind,
     setUnregisteredAuxiliaryEngine,
-    setUnregisteredEndpoint,
     unregisteredAssetDrafts,
     unregisteredAssets,
-    unregisteredCompatibilityHintByPath,
-    unregisteredEndpointByPath,
-    unregisteredEndpointHintByPath,
-    unregisteredEndpointRequiredByPath,
-    unregisteredImportAllowedByPath,
   };
 }

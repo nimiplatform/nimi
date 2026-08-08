@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import type { NimiRuntimeLocalRecommendationFeedItem } from '@nimiplatform/sdk/runtime';
-import { Button } from './runtime-config-primitives';
+import { Button, SectionTitle } from './runtime-config-primitives';
 import { formatBytes } from './runtime-config-model-center-utils';
 import {
   computeVramPercentage,
@@ -33,13 +33,13 @@ export function RecommendQuantizationTable({
 
   return (
     <div>
-      <h3 className="text-sm font-bold text-[var(--nimi-text-primary)]">
+      <SectionTitle>
         {t('runtimeConfig.recommend.quantTitle', { defaultValue: 'Quantization Options' })}
-      </h3>
-      <div className="mt-2 overflow-x-auto rounded-xl border border-[var(--nimi-border-subtle)]/70">
+      </SectionTitle>
+      <div className="mt-2 overflow-x-auto rounded-xl border border-[var(--nimi-border-subtle)]">
         <table className="w-full text-left text-sm">
           <thead>
-            <tr className="border-b border-[color-mix(in_srgb,var(--nimi-border-subtle)_72%,transparent)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_90%,var(--nimi-surface-panel))]/80 text-xs">
+            <tr className="border-b border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] text-xs">
               <th className="px-4 py-2.5 font-medium text-[var(--nimi-text-muted)]">{t('runtimeConfig.recommend.quantColQuant', { defaultValue: 'Quant' })}</th>
               <th className="px-4 py-2.5 font-medium text-[var(--nimi-text-muted)]">{t('runtimeConfig.recommend.quantColBits', { defaultValue: 'Bits' })}</th>
               <th className="px-4 py-2.5 font-medium text-[var(--nimi-text-muted)]">VRAM</th>
@@ -57,11 +57,11 @@ export function RecommendQuantizationTable({
               const vramPct = computeVramPercentage(entry.totalSizeBytes, totalVramBytes);
               const isRecommended = recommendation?.recommendedEntry === entry.entry;
               return (
-                <tr key={entry.entryId} className={`border-b border-[color-mix(in_srgb,var(--nimi-border-subtle)_52%,transparent)] transition-colors hover:bg-[color-mix(in_srgb,var(--nimi-surface-card)_90%,var(--nimi-surface-panel))]/80 ${isRecommended ? 'bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,transparent)]/30' : ''}`}>
+                <tr key={entry.entryId} className={`border-b border-[var(--nimi-border-subtle)] transition-colors hover:bg-[var(--nimi-surface-panel)] ${isRecommended ? 'bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,transparent)]/30' : ''}`}>
                   <td className="px-4 py-3">
                     <span className="font-mono text-xs font-medium text-[var(--nimi-text-primary)]">{quantLevel || entry.entry}</span>
                     {isRecommended ? (
-                      <span className="ml-2 rounded bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_16%,transparent)] px-1.5 py-0.5 text-[9px] font-bold text-[var(--nimi-action-primary-bg)]">
+                      <span className="ml-2 rounded bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_16%,transparent)] px-1.5 py-0.5 text-[length:var(--nimi-type-caption-size)] font-bold text-[var(--nimi-action-primary-bg)]">
                         {t('runtimeConfig.recommend.quantBest', { defaultValue: 'BEST' })}
                       </span>
                     ) : null}
@@ -71,16 +71,16 @@ export function RecommendQuantizationTable({
                     <div className="flex items-center gap-2">
                       <span className="text-xs font-medium text-[var(--nimi-text-secondary)]">{formatSizeLabel(entry.totalSizeBytes)}</span>
                       {vramPct !== null ? (
-                        <span className={`text-[10px] font-medium ${vramPercentageColorClass(vramPct)}`}>({vramPct}%)</span>
+                        <span className={`text-[length:var(--nimi-type-caption-size)] font-medium ${vramPercentageColorClass(vramPct)}`}>({vramPct}%)</span>
                       ) : null}
                     </div>
                   </td>
                   <td className="px-4 py-3">
                     {quality ? (
-                      <span className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold ${qualityColor}`}>{quality}</span>
-                    ) : <span className="text-xs text-[color-mix(in_srgb,var(--nimi-text-muted)_80%,transparent)]">{'\u2014'}</span>}
+                      <span className={`inline-block rounded-full px-2 py-0.5 text-[length:var(--nimi-type-caption-size)] font-semibold ${qualityColor}`}>{quality}</span>
+                    ) : <span className="text-xs text-[var(--nimi-text-muted)]">{'\u2014'}</span>}
                   </td>
-                  <td className="px-4 py-3 text-xs text-[color-mix(in_srgb,var(--nimi-text-muted)_80%,transparent)]">{'\u2014'}</td>
+                  <td className="px-4 py-3 text-xs text-[var(--nimi-text-muted)]">{'\u2014'}</td>
                   <td className="px-4 py-3 text-right">
                     <Button
                       variant="secondary"

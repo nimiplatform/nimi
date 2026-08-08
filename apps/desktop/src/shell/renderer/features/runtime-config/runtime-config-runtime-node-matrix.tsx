@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Surface, cn } from '@nimiplatform/kit/ui';
 import type { RuntimeConfigStateV11 } from './runtime-config-state-types';
-import { SectionTitle } from '../settings/settings-layout-components';
+import { SectionTitle } from './runtime-config-primitives';
 import { localSpeechReasonSummary } from './runtime-config-model-center-utils';
 import {
   TOKEN_PANEL_CARD,
@@ -71,7 +71,7 @@ export function RuntimeNodeCapabilityMatrix({
           <SectionTitle>
             {t('runtimeConfig.runtime.nodeMatrix', { defaultValue: 'Node Capability Matrix' })}
           </SectionTitle>
-          <p className={cn('mt-1 text-[11px]', TOKEN_TEXT_MUTED)}>
+          <p className={cn('mt-1 text-[length:var(--nimi-type-caption-size)]', TOKEN_TEXT_MUTED)}>
             {t('runtimeConfig.runtime.nodeMatrixSubtitle', {
               defaultValue: 'Low-level node diagnostics - advanced troubleshooting',
             })}
@@ -97,15 +97,15 @@ export function RuntimeNodeCapabilityMatrix({
               const toneStyle = TONE_STYLES[tone];
               return (
                 <div key={`provider-summary-${summary.provider}`} className="inline-flex items-center gap-2">
-                  <span className={cn('text-[11px] font-medium', TOKEN_TEXT_SECONDARY)}>
+                  <span className={cn('text-[length:var(--nimi-type-caption-size)] font-medium', TOKEN_TEXT_SECONDARY)}>
                     {summary.provider}
                   </span>
-                  <span className={cn('font-mono text-[11px]', toneStyle.subtleText)}>
+                  <span className={cn('font-mono text-[length:var(--nimi-type-caption-size)]', toneStyle.subtleText)}>
                     {summary.available}/{summary.total}
                   </span>
                   {summary.reasonCodes.size > 0 ? (
                     <span
-                      className={cn('min-w-0 max-w-[180px] truncate font-mono text-[11px]', TOKEN_TEXT_MUTED)}
+                      className={cn('min-w-0 max-w-[180px] truncate font-mono text-[length:var(--nimi-type-caption-size)]', TOKEN_TEXT_MUTED)}
                       title={[...summary.reasonCodes].join(', ')}
                     >
                       {[...summary.reasonCodes].join(', ')}
@@ -148,38 +148,38 @@ export function RuntimeNodeCapabilityMatrix({
                         <span className={cn('truncate text-xs font-medium', TOKEN_TEXT_PRIMARY)}>
                           {row.capability}
                         </span>
-                        <span className={cn('truncate font-mono text-[11px]', TOKEN_TEXT_MUTED)}>
+                        <span className={cn('truncate font-mono text-[length:var(--nimi-type-caption-size)]', TOKEN_TEXT_MUTED)}>
                           {row.nodeId}
                         </span>
                       </div>
-                      <span className={cn('shrink-0 text-[11px] font-medium', toneStyle.subtleText)}>
+                      <span className={cn('shrink-0 text-[length:var(--nimi-type-caption-size)] font-medium', toneStyle.subtleText)}>
                         {row.available ? 'available' : 'unavailable'}
                       </span>
                     </div>
-                    <p className={cn('mt-1 truncate font-mono text-[11px]', TOKEN_TEXT_MUTED)} title={metaBits}>
+                    <p className={cn('mt-1 truncate font-mono text-[length:var(--nimi-type-caption-size)]', TOKEN_TEXT_MUTED)} title={metaBits}>
                       {metaBits}
                     </p>
                     {runtimeSupportDetail ? (
-                      <p className={cn('truncate font-mono text-[11px]', TOKEN_TEXT_MUTED)} title={runtimeSupportDetail}>
+                      <p className={cn('truncate font-mono text-[length:var(--nimi-type-caption-size)]', TOKEN_TEXT_MUTED)} title={runtimeSupportDetail}>
                         {runtimeSupportDetail}
                       </p>
                     ) : null}
                     {row.policyGate ? (
-                      <p className={cn('font-mono text-[11px]', TOKEN_TEXT_MUTED)}>policyGate={row.policyGate}</p>
+                      <p className={cn('font-mono text-[length:var(--nimi-type-caption-size)]', TOKEN_TEXT_MUTED)}>policyGate={row.policyGate}</p>
                     ) : null}
                     {!row.available && speechReasonSummary ? (
-                      <p className="mt-1 text-[11px] text-[var(--nimi-status-warning)]">{speechReasonSummary}</p>
+                      <p className="mt-1 text-[length:var(--nimi-type-caption-size)] text-[var(--nimi-status-warning)]">{speechReasonSummary}</p>
                     ) : null}
                     {!row.available && row.reasonCode ? (
                       <p
-                        className="mt-1 truncate font-mono text-[11px] text-[var(--nimi-status-warning)]"
+                        className="mt-1 truncate font-mono text-[length:var(--nimi-type-caption-size)] text-[var(--nimi-status-warning)]"
                         title={String(row.reasonCode)}
                       >
                         reason={row.reasonCode}
                       </p>
                     ) : null}
                     {hostLimitWarning ? (
-                      <p className="mt-1 text-[11px] text-[var(--nimi-status-warning)]">
+                      <p className="mt-1 text-[length:var(--nimi-type-caption-size)] text-[var(--nimi-status-warning)]">
                         {t('runtimeConfig.runtime.managedEngineUnavailable', {
                           defaultValue: 'Managed local engine is unavailable on this host. Configure an attached endpoint to use this provider.',
                         })}

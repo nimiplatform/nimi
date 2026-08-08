@@ -197,7 +197,7 @@ export function AIProfileAuthoringView(props: AIProfileAuthoringViewProps) {
               <h3 className="text-base font-semibold text-[var(--nimi-text-primary)]">
                 {t('runtimeConfig.profiles.authoring.title')}
               </h3>
-              <span className="rounded-full bg-[color-mix(in_srgb,var(--nimi-status-info)_12%,transparent)] px-2.5 py-1 text-[11px] font-semibold text-[var(--nimi-status-info)]">
+              <span className="rounded-full bg-[color-mix(in_srgb,var(--nimi-status-info)_12%,transparent)] px-2.5 py-1 text-[length:var(--nimi-type-caption-size)] font-semibold text-[var(--nimi-status-info)]">
                 {t('runtimeConfig.profiles.authoring.previewOnlyBadge')}
               </span>
             </div>
@@ -407,7 +407,7 @@ function CapabilityAuthoringCard(props: {
     >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <div className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--nimi-text-muted)]">
+          <div className="text-xs font-semibold uppercase tracking-[var(--nimi-type-overline-letter-spacing)] text-[var(--nimi-text-muted)]">
             {props.t('runtimeConfig.profiles.authoring.capabilityOrdinal', {
               position: props.index + 1,
             })}
@@ -690,7 +690,7 @@ function StableDiffusionAuthoringFields(props: {
       <div className="space-y-3" data-testid="ai-profile-authoring-lora-list">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h6 className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--nimi-text-secondary)]">
+            <h6 className="text-xs font-semibold uppercase tracking-[var(--nimi-type-overline-letter-spacing)] text-[var(--nimi-text-secondary)]">
               {props.t('runtimeConfig.profiles.authoring.orderedLoras')}
             </h6>
             <p className="mt-1 text-xs text-[var(--nimi-text-muted)]">
@@ -740,7 +740,7 @@ function StableDiffusionAuthoringFields(props: {
       </div>
 
       <div className="space-y-3" data-testid="ai-profile-authoring-sd-execution-options">
-        <h6 className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--nimi-text-secondary)]">
+        <h6 className="text-xs font-semibold uppercase tracking-[var(--nimi-type-overline-letter-spacing)] text-[var(--nimi-text-secondary)]">
           {props.t('runtimeConfig.profiles.authoring.executionOptions')}
         </h6>
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
@@ -932,7 +932,7 @@ function JourneyPreviewPanel(props: {
             {props.t('runtimeConfig.profiles.authoring.previewBody')}
           </p>
         </div>
-        <span className="rounded-full bg-[var(--nimi-surface-subtle)] px-2.5 py-1 text-[11px] font-semibold text-[var(--nimi-text-secondary)]">
+        <span className="rounded-full bg-[var(--nimi-surface-subtle)] px-2.5 py-1 text-[length:var(--nimi-type-caption-size)] font-semibold text-[var(--nimi-text-secondary)]">
           {props.t('runtimeConfig.profiles.authoring.readOnly')}
         </span>
       </div>
@@ -1015,7 +1015,7 @@ function JourneySections(props: {
                 resolution: expectedResolution(preview.decision),
               })}
             </div>
-            <div className="font-mono text-[10px] text-[var(--nimi-text-muted)]">{preview.equivalenceDigest}</div>
+            <div className="font-mono text-[length:var(--nimi-type-caption-size)] text-[var(--nimi-text-muted)]">{preview.equivalenceDigest}</div>
             <div>{props.t('runtimeConfig.profiles.authoring.doesNotSelect')}</div>
           </div>
         ))}
@@ -1085,7 +1085,7 @@ function SelectionPreview(props: {
             <FeatureStatusBadge subset={branch.featureSubset} t={props.t} />
           </div>
           <FeatureSubsetFacts subset={branch.featureSubset} t={props.t} />
-          <div className="mt-1 text-[11px] text-[var(--nimi-text-muted)]">
+          <div className="mt-1 text-[length:var(--nimi-type-caption-size)] text-[var(--nimi-text-muted)]">
             {'prerequisite' in branch
               ? props.t('runtimeConfig.profiles.authoring.prerequisite', { value: branch.prerequisite })
               : props.t('runtimeConfig.profiles.authoring.currentSelection', {
@@ -1105,7 +1105,7 @@ function FeatureStatusBadge(props: { readonly subset: NimiAIProfileFeatureSubset
       ? 'text-[var(--nimi-status-danger)]'
       : 'text-[var(--nimi-text-muted)]';
   return (
-    <span className={`text-[11px] font-semibold ${className}`}>
+    <span className={`text-[length:var(--nimi-type-caption-size)] font-semibold ${className}`}>
       {props.t(`runtimeConfig.profiles.authoring.featureStatus.${props.subset.status}`)}
     </span>
   );
@@ -1113,7 +1113,7 @@ function FeatureStatusBadge(props: { readonly subset: NimiAIProfileFeatureSubset
 
 function FeatureSubsetFacts(props: { readonly subset: NimiAIProfileFeatureSubsetResult; readonly t: TFunction }) {
   return (
-    <div className="mt-1 text-[11px] text-[var(--nimi-text-secondary)]">
+    <div className="mt-1 text-[length:var(--nimi-type-caption-size)] text-[var(--nimi-text-secondary)]">
       <div>{props.t('runtimeConfig.profiles.authoring.requiredFeatureList', { value: listOrNone(props.subset.requiredFeatures, props.t) })}</div>
       <div>{props.t('runtimeConfig.profiles.authoring.supportedFeatureList', { value: listOrNone(props.subset.supportedFeatures, props.t) })}</div>
       {props.subset.missingFeatures.length > 0 ? (
@@ -1177,8 +1177,8 @@ function PreviewFact(props: { readonly label: string; readonly value: string }) 
 function ReadOnlyJson(props: { readonly label: string; readonly value: unknown }) {
   return (
     <div>
-      <div className="mb-1 text-[11px] font-semibold text-[var(--nimi-text-secondary)]">{props.label}</div>
-      <pre className="max-h-48 overflow-auto whitespace-pre-wrap break-words rounded-lg bg-[var(--nimi-surface-subtle)] p-2 font-mono text-[10px] text-[var(--nimi-text-muted)]">
+      <div className="mb-1 text-[length:var(--nimi-type-caption-size)] font-semibold text-[var(--nimi-text-secondary)]">{props.label}</div>
+      <pre className="max-h-48 overflow-auto whitespace-pre-wrap break-words rounded-lg bg-[var(--nimi-surface-subtle)] p-2 font-mono text-[length:var(--nimi-type-caption-size)] text-[var(--nimi-text-muted)]">
         {JSON.stringify(props.value, null, 2)}
       </pre>
     </div>
@@ -1192,7 +1192,7 @@ function TechnicalDetails(props: { readonly detail: string; readonly t: TFunctio
       <summary className="cursor-pointer font-semibold">
         {props.t('runtimeConfig.profiles.technicalDetails')}
       </summary>
-      <pre className="mt-2 whitespace-pre-wrap break-words font-mono text-[11px]">{props.detail}</pre>
+      <pre className="mt-2 whitespace-pre-wrap break-words font-mono text-[length:var(--nimi-type-caption-size)]">{props.detail}</pre>
     </details>
   );
 }
@@ -1216,7 +1216,7 @@ function AuthoringTextField(props: {
         data-authoring-field={props.field}
         onChange={(event) => props.onChange(event.currentTarget.value)}
       />
-      {props.hint ? <span className="block font-normal text-[11px] text-[var(--nimi-text-muted)]">{props.hint}</span> : null}
+      {props.hint ? <span className="block font-normal text-[length:var(--nimi-type-caption-size)] text-[var(--nimi-text-muted)]">{props.hint}</span> : null}
     </label>
   );
 }
@@ -1242,7 +1242,7 @@ function AuthoringTextArea(props: {
         onChange={(event) => props.onChange(event.currentTarget.value)}
         className="w-full rounded-xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-field-bg)] p-3 font-mono text-xs text-[var(--nimi-text-primary)] outline-none focus:border-[var(--nimi-field-focus)] focus:ring-2 focus:ring-[var(--nimi-focus-ring-color)]"
       />
-      {props.hint ? <span className="block font-normal text-[11px] text-[var(--nimi-text-muted)]">{props.hint}</span> : null}
+      {props.hint ? <span className="block font-normal text-[length:var(--nimi-type-caption-size)] text-[var(--nimi-text-muted)]">{props.hint}</span> : null}
     </label>
   );
 }
@@ -1320,7 +1320,7 @@ function ReadOnlyAuthoringField(props: { readonly label: string; readonly value:
   return (
     <div className="space-y-1 text-xs text-[var(--nimi-text-secondary)]">
       <div className="font-medium">{props.label}</div>
-      <div className="break-all rounded-lg border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] px-2.5 py-2 font-mono text-[10px] text-[var(--nimi-text-primary)]">{props.value}</div>
+      <div className="break-all rounded-lg border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] px-2.5 py-2 font-mono text-[length:var(--nimi-type-caption-size)] text-[var(--nimi-text-primary)]">{props.value}</div>
     </div>
   );
 }

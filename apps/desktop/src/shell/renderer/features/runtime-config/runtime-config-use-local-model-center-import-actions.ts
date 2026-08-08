@@ -1,10 +1,8 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useState } from 'react';
 import type {
   NimiRuntimeLocalAssetDeclaration,
-  NimiRuntimeLocalAssetRecord,
   NimiRuntimeLocalCatalogItemDescriptor,
   NimiRuntimeLocalCatalogVariantDescriptor,
-  NimiRuntimeLocalTransferProgressEvent,
 } from '@nimiplatform/sdk/runtime';
 import { useDesktopRendererCommands } from '../../renderer/binding-context.js';
 import { useTranslation } from 'react-i18next';
@@ -17,7 +15,6 @@ import { capabilitiesForAssetKind } from './runtime-config-use-local-model-cente
 import { useLocalModelCenterDownloads } from './runtime-config-use-local-model-center-downloads';
 
 type UseLocalModelCenterImportActionsInput = {
-  onPrepareImportedAssetEnvironment?: (asset: NimiRuntimeLocalAssetRecord) => Promise<void>;
   onRefreshUnregisteredAssets: () => Promise<void>;
   onRefreshAssetSections: () => Promise<void>;
   onRefreshVerifiedModels: () => Promise<void>;
@@ -42,42 +39,8 @@ export function useLocalModelCenterImportActions(input: UseLocalModelCenterImpor
   const [variantList, setVariantList] = useState<NimiRuntimeLocalCatalogVariantDescriptor[]>([]);
   const [variantError, setVariantError] = useState('');
   const [loadingVariants, setLoadingVariants] = useState(false);
-  const [assetImportSessionByPath, setAssetImportSessionByPath] = useState<Record<string, string>>({});
-  const assetImportSessionByPathRef = useRef<Record<string, string>>({});
   const [importingAssetPath, setImportingAssetPath] = useState<string | null>(null);
   const [assetImportError, setAssetImportError] = useState('');
-
-  const handleCompletedAssetImport = useCallback((assetPath: string, success: boolean, message?: string) => {
-    setAssetImportSessionByPath((prev) => {
-      if (!(assetPath in prev)) {
-        return prev;
-      }
-      const next = { ...prev };
-      delete next[assetPath];
-      return next;
-    });
-    if (success) {
-      void input.props.onDiscover().finally(() => {
-        void input.onRefreshAssetSections();
-        void input.onRefreshUnregisteredAssets();
-        void runtimeConfigLocalAssetAdminClient.listAssets({ kind: 'image' }).then((assets) => Promise.all(
-          assets.map((asset) => input.onPrepareImportedAssetEnvironment?.(asset)),
-        ));
-      });
-      return;
-    }
-    setAssetImportError(toAssetImportUserMessage(message || 'Import failed'));
-    void input.onRefreshUnregisteredAssets();
-  }, [input]);
-
-  const handleSettledDownload = useCallback((event: NimiRuntimeLocalTransferProgressEvent) => {
-    const orphanPath = Object.entries(assetImportSessionByPathRef.current)
-      .find(([, sessionId]) => sessionId === event.installSessionId)?.[0];
-    if (orphanPath) {
-      handleCompletedAssetImport(orphanPath, event.success, event.message);
-    }
-    void input.onRefreshVerifiedModels();
-  }, [handleCompletedAssetImport, input]);
 
   const {
     activeDownloads,
@@ -88,11 +51,10 @@ export function useLocalModelCenterImportActions(input: UseLocalModelCenterImpor
     onDismissSession,
   } = useLocalModelCenterDownloads({
     onDownloadComplete: input.props.onDownloadComplete,
-    onProgressSettled: handleSettledDownload,
+    onProgressSettled: () => { void input.onRefreshVerifiedModels(); },
   });
 
   const handleImportedAsset = useCallback(async (
-    assetPath: string,
     imported: Awaited<ReturnType<typeof runtimeConfigLocalAssetAdminClient.importAssetFile>> | {
       scaffolded: true;
       model: Awaited<ReturnType<typeof runtimeConfigLocalAssetAdminClient.scaffoldOrphanAsset>>;
@@ -107,15 +69,11 @@ export function useLocalModelCenterImportActions(input: UseLocalModelCenterImpor
 
     await input.onRefreshAssetSections();
     await input.onRefreshUnregisteredAssets();
-    if ('asset' in imported) {
-      await input.onPrepareImportedAssetEnvironment?.(imported.asset);
-    }
   }, [input]);
 
   const importManagedModelAssetFromPath = useCallback(async (
     assetPath: string,
     declaration: NimiRuntimeLocalAssetDeclaration,
-    endpoint?: string,
   ) => {
     const assetKind = declaration.assetKind;
     if (!assetKind) {
@@ -125,7 +83,6 @@ export function useLocalModelCenterImportActions(input: UseLocalModelCenterImpor
       path: assetPath,
       kind: assetKind,
       engine: declaration.engine,
-      endpoint: String(endpoint || '').trim() || undefined,
     }, { caller: 'core' });
     return { scaffolded: true as const, model: accepted };
   }, []);
@@ -133,13 +90,12 @@ export function useLocalModelCenterImportActions(input: UseLocalModelCenterImpor
   const importAssetFromPath = useCallback(async (
     assetPath: string,
     declaration: NimiRuntimeLocalAssetDeclaration,
-    endpoint?: string,
   ) => {
     setImportingAssetPath(assetPath);
     setAssetImportError('');
     try {
-      const imported = await importManagedModelAssetFromPath(assetPath, declaration, endpoint);
-      await handleImportedAsset(assetPath, imported);
+      const imported = await importManagedModelAssetFromPath(assetPath, declaration);
+      await handleImportedAsset(imported);
     } catch (error: unknown) {
       setAssetImportError(toAssetImportUserMessage(error));
       throw error;
@@ -150,7 +106,6 @@ export function useLocalModelCenterImportActions(input: UseLocalModelCenterImpor
 
   const importPickedAssetFile = useCallback(async (
     declaration: NimiRuntimeLocalAssetDeclaration,
-    endpoint?: string,
   ) => {
     setAssetImportError('');
     const filePath = await commands.pickLocalRuntimeAssetFile();
@@ -162,9 +117,8 @@ export function useLocalModelCenterImportActions(input: UseLocalModelCenterImpor
       const imported = await runtimeConfigLocalAssetAdminClient.importAssetFile({
         filePath,
         declaration,
-        endpoint: String(endpoint || '').trim() || undefined,
       }, { caller: 'core' });
-      await handleImportedAsset(filePath, imported);
+      await handleImportedAsset(imported);
     } catch (error: unknown) {
       setAssetImportError(toAssetImportUserMessage(error));
       throw error;
@@ -173,7 +127,7 @@ export function useLocalModelCenterImportActions(input: UseLocalModelCenterImpor
     }
   }, [handleImportedAsset]);
 
-  const importPickedAssetManifest = useCallback(async (endpoint?: string) => {
+  const importPickedAssetManifest = useCallback(async () => {
     setAssetImportError('');
     const manifestPath = await commands.pickLocalRuntimeAssetManifestPath();
     if (!manifestPath) {
@@ -181,17 +135,14 @@ export function useLocalModelCenterImportActions(input: UseLocalModelCenterImpor
     }
     const imported = await runtimeConfigLocalAssetAdminClient.importAssetManifest(manifestPath, {
       caller: 'core',
-      endpoint: String(endpoint || '').trim() || undefined,
     });
     await input.props.onDiscover();
     await input.onRefreshAssetSections();
     await input.onRefreshUnregisteredAssets();
-    await input.onPrepareImportedAssetEnvironment?.(imported.asset);
   }, [input]);
 
   const importPickedAssetDirectory = useCallback(async (
     declaration: NimiRuntimeLocalAssetDeclaration,
-    endpoint?: string,
   ) => {
     setAssetImportError('');
     const directoryPath = await commands.pickLocalRuntimeAssetDirectory();
@@ -210,7 +161,6 @@ export function useLocalModelCenterImportActions(input: UseLocalModelCenterImpor
         modelName: assetName || undefined,
         capabilities: capabilitiesForAssetKind(assetKind),
         engine: declaration.engine,
-        endpoint: String(endpoint || '').trim() || undefined,
       }, { caller: 'core' });
       await input.props.onDiscover();
       await input.onRefreshAssetSections();
@@ -267,8 +217,6 @@ export function useLocalModelCenterImportActions(input: UseLocalModelCenterImpor
     });
   }, [input, variantList]);
 
-  assetImportSessionByPathRef.current = assetImportSessionByPath;
-
   return {
     activeDownloads,
     activeImports,
@@ -278,7 +226,6 @@ export function useLocalModelCenterImportActions(input: UseLocalModelCenterImpor
     importPickedAssetDirectory,
     importPickedAssetManifest,
     assetImportError,
-    assetImportSessionByPath,
     importingAssetPath,
     installCatalogVariant,
     loadingVariants,

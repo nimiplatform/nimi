@@ -69,6 +69,26 @@ export type RuntimeConfigMachineLocalAILoRADraft = {
   readonly weight: string;
 };
 
+export type RuntimeConfigMachineLocalAIVideoRecipeDraft = {
+  readonly cfgScale: string;
+  readonly flowShift: string;
+  readonly sampleMethod: string;
+  readonly scheduler: string;
+  readonly diffusionFlashAttention: boolean;
+  readonly offloadParamsToCPU: boolean;
+  readonly rng: 'std_default' | 'cuda' | 'cpu';
+};
+
+export type RuntimeConfigMachineLocalAIVideoExecutionOptions = {
+  readonly cfgScale: number;
+  readonly flowShift: number;
+  readonly sampleMethod: string;
+  readonly scheduler: string;
+  readonly diffusionFlashAttention: boolean;
+  readonly offloadParamsToCPU: boolean;
+  readonly rng: RuntimeConfigMachineLocalAIVideoRecipeDraft['rng'];
+};
+
 export type RuntimeConfigMachineLocalAIAddDraft = {
   readonly capabilityContract: RuntimeConfigMachineLocalAICapabilityContract;
   readonly displayName: string;
@@ -91,6 +111,7 @@ export type RuntimeConfigMachineLocalAIAddDraft = {
     readonly height: string;
     readonly seed: string;
   };
+  readonly videoExecutionOptions: RuntimeConfigMachineLocalAIVideoRecipeDraft;
 };
 
 export type RuntimeConfigMachineLocalAIRequirementGroup = {
@@ -174,7 +195,78 @@ export function createRuntimeConfigMachineLocalAIAddDraft(): RuntimeConfigMachin
       height: '1024',
       seed: '42',
     },
+    videoExecutionOptions: createRuntimeConfigMachineLocalAIVideoRecipeDraft(),
   };
+}
+
+export function createRuntimeConfigMachineLocalAIVideoRecipeDraft(
+  portableConfig?: Readonly<Record<string, unknown>>,
+): RuntimeConfigMachineLocalAIVideoRecipeDraft {
+  const raw = portableConfig?.executionOptions;
+  const options = raw && typeof raw === 'object' && !Array.isArray(raw)
+    ? raw as Readonly<Record<string, unknown>>
+    : {};
+  const rng = options.rng === 'std_default' || options.rng === 'cuda' || options.rng === 'cpu'
+    ? options.rng
+    : 'cpu';
+  return {
+    cfgScale: finiteNumberText(options.cfgScale, '1'),
+    flowShift: finiteNumberText(options.flowShift, '12'),
+    sampleMethod: recipeTokenText(options.sampleMethod, 'engine-default'),
+    scheduler: recipeTokenText(options.scheduler, 'engine-default'),
+    diffusionFlashAttention: typeof options.diffusionFlashAttention === 'boolean'
+      ? options.diffusionFlashAttention
+      : true,
+    offloadParamsToCPU: typeof options.offloadParamsToCPU === 'boolean'
+      ? options.offloadParamsToCPU
+      : true,
+    rng,
+  };
+}
+
+export function parseRuntimeConfigMachineLocalAIVideoRecipeDraft(
+  draft: RuntimeConfigMachineLocalAIVideoRecipeDraft,
+): RuntimeConfigMachineLocalAIVideoExecutionOptions {
+  const cfgScale = parseVideoRecipeNumber(draft.cfgScale, 'cfgScale');
+  const flowShift = parseVideoRecipeNumber(draft.flowShift, 'flowShift');
+  if (cfgScale < 0 || cfgScale > 30) throw new Error('cfgScale must be between 0 and 30.');
+  if (flowShift < 0) throw new Error('flowShift must be non-negative.');
+  const sampleMethod = requireVideoRecipeToken(draft.sampleMethod, 'sampleMethod');
+  const scheduler = requireVideoRecipeToken(draft.scheduler, 'scheduler');
+  if (draft.rng !== 'std_default' && draft.rng !== 'cuda' && draft.rng !== 'cpu') {
+    throw new Error('rng is invalid.');
+  }
+  return {
+    cfgScale,
+    flowShift,
+    sampleMethod,
+    scheduler,
+    diffusionFlashAttention: draft.diffusionFlashAttention,
+    offloadParamsToCPU: draft.offloadParamsToCPU,
+    rng: draft.rng,
+  };
+}
+
+function finiteNumberText(value: unknown, fallback: string): string {
+  return typeof value === 'number' && Number.isFinite(value) ? String(value) : fallback;
+}
+
+function recipeTokenText(value: unknown, fallback: string): string {
+  return typeof value === 'string' && value ? value : fallback;
+}
+
+function parseVideoRecipeNumber(value: string, field: string): number {
+  if (!value || value.trim() !== value) throw new Error(`${field} is required.`);
+  const number = Number(value);
+  if (!Number.isFinite(number)) throw new Error(`${field} must be finite.`);
+  return number;
+}
+
+function requireVideoRecipeToken(value: string, field: string): string {
+  if (!value || value.trim() !== value || value.length > 64 || !/^[A-Za-z0-9+_.-]+$/u.test(value)) {
+    throw new Error(`${field} is invalid.`);
+  }
+  return value;
 }
 
 const EMPTY_AGGREGATE: NimiMachineLocalAIConfiguration = {

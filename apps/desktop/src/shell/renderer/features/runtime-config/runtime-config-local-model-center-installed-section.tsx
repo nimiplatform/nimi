@@ -3,39 +3,24 @@ import { useState } from 'react';
 import type {
   NimiRuntimeLocalAssetKind,
   NimiRuntimeLocalAssetRecord,
-  NimiRuntimeLocalEnvironmentDependencyJob,
-  NimiRuntimeLocalEnvironmentPlanDependency,
-} from '@nimiplatform/sdk/runtime';
-import {
-  isNimiRuntimeLocalEnvironmentDependencyJobActiveState,
-  isNimiRuntimeLocalEnvironmentDependencyJobRetryableState,
 } from '@nimiplatform/sdk/runtime';
 
 import { RuntimeSelect } from './runtime-config-primitives';
 import {
   ASSET_KIND_OPTIONS,
   FolderOpenIcon,
-  formatAssetKindLabel,
+  localizedAssetKindLabel,
   PackageIcon,
   RefreshIcon,
 } from './runtime-config-local-model-center-helpers';
 import {
   DependencyInstalledAssetRow,
-  latestRuntimeDependencyJob,
   RunnableInstalledAssetRow,
-  RuntimeDependencyAttentionBanner,
-  runtimeDependencyJobMatchesDependency,
-  runtimeDependencyRepairAllowed,
-  runtimeDependencyRequiresAttention,
-  runtimeDependencySetupAllowed,
 } from './runtime-config-local-model-center-installed-rows';
 
 type InstalledAssetsSectionProps = {
   filteredInstalledRunnableAssets: NimiRuntimeLocalAssetRecord[];
   filteredInstalledDependencyAssets: NimiRuntimeLocalAssetRecord[];
-  sharedRuntimeDependency?: NimiRuntimeLocalEnvironmentPlanDependency;
-  sharedRuntimeDependencyJobs: NimiRuntimeLocalEnvironmentDependencyJob[];
-  runtimeDependencyByLocalAssetId: Record<string, NimiRuntimeLocalEnvironmentPlanDependency | undefined>;
   loadingInstalledAssets: boolean;
   loadingVerifiedAssets: boolean;
   assetKindFilter: 'all' | NimiRuntimeLocalAssetKind;
@@ -43,44 +28,19 @@ type InstalledAssetsSectionProps = {
   onArtifactKindFilterChange: (value: 'all' | NimiRuntimeLocalAssetKind) => void;
   onRefreshAssets: () => void;
   onRemoveAsset: (localAssetId: string) => void;
-  onSetupRuntimeDependency: () => void;
-  onCancelRuntimeDependencyJob: (jobId: string) => void;
-  onRetryRuntimeDependencyJob: (jobId: string) => void;
-  onRepairRuntimeDependency: () => void;
   onRescanAsset: (localAssetId: string) => void;
 };
 
 export function LocalModelCenterInstalledAssetsSection(props: InstalledAssetsSectionProps) {
   const i18n = useDesktopI18nResource().instance;
   const [confirmRemoveAssetId, setConfirmRemoveAssetId] = useState('');
-  const [confirmSharedRuntimeDependencySetup, setConfirmSharedRuntimeDependencySetup] = useState(false);
 
   const runnableCount = props.filteredInstalledRunnableAssets.length;
   const dependencyCount = props.filteredInstalledDependencyAssets.length;
   const totalCount = runnableCount + dependencyCount;
-  const sharedRuntimeDependencyJobs = props.sharedRuntimeDependencyJobs.filter((job) => (
-    runtimeDependencyJobMatchesDependency(job, props.sharedRuntimeDependency)
-  ));
-  const currentRuntimeDependencyJob = latestRuntimeDependencyJob(sharedRuntimeDependencyJobs);
-  const currentRuntimeDependencyJobState = String(currentRuntimeDependencyJob?.state || '');
-  const sharedRuntimeDependencyRequiresAttention = runtimeDependencyRequiresAttention(
-    props.sharedRuntimeDependency,
-    currentRuntimeDependencyJob,
-  );
-  const canCancelRuntimeDependencyJob = Boolean(
-    currentRuntimeDependencyJob?.jobId
-    && isNimiRuntimeLocalEnvironmentDependencyJobActiveState(currentRuntimeDependencyJobState),
-  );
-  const canRetryRuntimeDependencyJob = Boolean(
-    currentRuntimeDependencyJob?.jobId
-    && currentRuntimeDependencyJob.retryable
-    && isNimiRuntimeLocalEnvironmentDependencyJobRetryableState(currentRuntimeDependencyJobState),
-  );
-  const canRepairRuntimeDependency = runtimeDependencyRepairAllowed(props.sharedRuntimeDependency, currentRuntimeDependencyJob);
-  const canStartRuntimeDependencySetup = runtimeDependencySetupAllowed(props.sharedRuntimeDependency, currentRuntimeDependencyJob);
 
   return (
-    <div className="overflow-visible rounded-2xl bg-white shadow-[0_6px_18px_rgba(15,23,42,0.04)] ring-1 ring-black/[0.04]">
+    <div className="overflow-visible rounded-2xl bg-[var(--nimi-surface-card)] shadow-[var(--nimi-elevation-raised)] ring-1 ring-[var(--nimi-border-subtle)]">
       <div className="flex items-center justify-between border-b border-[color-mix(in_srgb,var(--nimi-border-subtle)_72%,transparent)] px-5 py-4">
         <div className="flex items-center gap-3">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[color-mix(in_srgb,var(--nimi-status-success)_14%,transparent)] text-[var(--nimi-status-success)]">
@@ -103,7 +63,7 @@ export function LocalModelCenterInstalledAssetsSection(props: InstalledAssetsSec
                 value: 'all',
                 label: i18n.t('runtimeConfig.localModelCenter.allKinds', { defaultValue: 'All Kinds' }),
               },
-              ...ASSET_KIND_OPTIONS.map((kind) => ({ value: kind, label: formatAssetKindLabel(kind) })),
+              ...ASSET_KIND_OPTIONS.map((kind) => ({ value: kind, label: localizedAssetKindLabel(kind, i18n.t.bind(i18n)) })),
             ]}
           />
           <button
@@ -118,28 +78,6 @@ export function LocalModelCenterInstalledAssetsSection(props: InstalledAssetsSec
         </div>
       </div>
 
-      {sharedRuntimeDependencyRequiresAttention ? (
-        <RuntimeDependencyAttentionBanner
-          assetBusy={props.assetBusy}
-          canCancelRuntimeDependencyJob={canCancelRuntimeDependencyJob}
-          canRepairRuntimeDependency={canRepairRuntimeDependency}
-          canRetryRuntimeDependencyJob={canRetryRuntimeDependencyJob}
-          canStartRuntimeDependencySetup={canStartRuntimeDependencySetup}
-          confirmSetup={confirmSharedRuntimeDependencySetup}
-          dependency={props.sharedRuntimeDependency}
-          job={currentRuntimeDependencyJob}
-          onCancelJob={props.onCancelRuntimeDependencyJob}
-          onCancelSetupConfirm={() => setConfirmSharedRuntimeDependencySetup(false)}
-          onConfirmSetup={() => {
-            setConfirmSharedRuntimeDependencySetup(false);
-            props.onSetupRuntimeDependency();
-          }}
-          onRepairDependency={props.onRepairRuntimeDependency}
-          onRequestSetupConfirm={() => setConfirmSharedRuntimeDependencySetup(true)}
-          onRetryJob={props.onRetryRuntimeDependencyJob}
-        />
-      ) : null}
-
       <div>
         <div className="flex items-center gap-2 border-b border-[color-mix(in_srgb,var(--nimi-border-subtle)_72%,transparent)] px-5 py-2">
           <PackageIcon className="h-4 w-4 text-[color-mix(in_srgb,var(--nimi-text-muted)_80%,transparent)]" />
@@ -151,33 +89,22 @@ export function LocalModelCenterInstalledAssetsSection(props: InstalledAssetsSec
           </span>
         </div>
         {runnableCount > 0 ? (
-          <div className="divide-y divide-gray-200/80">
-            {props.filteredInstalledRunnableAssets.map((asset) => {
-              const runtimeDependency = props.runtimeDependencyByLocalAssetId[asset.localAssetId];
-              const runtimeDependencyJob = latestRuntimeDependencyJob(props.sharedRuntimeDependencyJobs.filter((job) => (
-                runtimeDependencyJobMatchesDependency(job, runtimeDependency)
-              )));
-              const canStartAssetRuntimeDependencySetup = runtimeDependencySetupAllowed(runtimeDependency, runtimeDependencyJob);
-              return (
-                <RunnableInstalledAssetRow
-                  key={asset.localAssetId}
-                  asset={asset}
-                  assetBusy={props.assetBusy}
-                  canStartRuntimeDependencySetup={canStartAssetRuntimeDependencySetup}
-                  confirmRemoveAssetId={confirmRemoveAssetId}
-                  runtimeDependency={runtimeDependency}
-                  runtimeDependencyJob={runtimeDependencyJob}
-                  onCancelRemove={() => setConfirmRemoveAssetId('')}
-                  onConfirmRemove={(localAssetId) => {
-                    setConfirmRemoveAssetId('');
-                    props.onRemoveAsset(localAssetId);
-                  }}
-                  onRequestRemove={(localAssetId) => setConfirmRemoveAssetId(localAssetId)}
-                  onSetupRuntimeDependency={props.onSetupRuntimeDependency}
-                  onRescanAsset={props.onRescanAsset}
-                />
-              );
-            })}
+          <div className="divide-y divide-[var(--nimi-border-subtle)]">
+            {props.filteredInstalledRunnableAssets.map((asset) => (
+              <RunnableInstalledAssetRow
+                key={asset.localAssetId}
+                asset={asset}
+                assetBusy={props.assetBusy}
+                confirmRemoveAssetId={confirmRemoveAssetId}
+                onCancelRemove={() => setConfirmRemoveAssetId('')}
+                onConfirmRemove={(localAssetId) => {
+                  setConfirmRemoveAssetId('');
+                  props.onRemoveAsset(localAssetId);
+                }}
+                onRequestRemove={(localAssetId) => setConfirmRemoveAssetId(localAssetId)}
+                onRescanAsset={props.onRescanAsset}
+              />
+            ))}
           </div>
         ) : (
           <div className="px-4 py-8 text-center">
@@ -210,7 +137,7 @@ export function LocalModelCenterInstalledAssetsSection(props: InstalledAssetsSec
             </p>
           </div>
         ) : dependencyCount > 0 ? (
-          <div className="divide-y divide-gray-200/80">
+          <div className="divide-y divide-[var(--nimi-border-subtle)]">
             {props.filteredInstalledDependencyAssets.map((asset) => (
               <DependencyInstalledAssetRow
                 key={asset.localAssetId}

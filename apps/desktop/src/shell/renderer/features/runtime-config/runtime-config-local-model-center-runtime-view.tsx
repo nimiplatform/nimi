@@ -4,8 +4,6 @@ import type {
   NimiRuntimeLocalAssetKind,
   NimiRuntimeLocalAssetRecord,
   NimiRuntimeLocalCatalogItemDescriptor,
-  NimiRuntimeLocalEnvironmentDependencyJob,
-  NimiRuntimeLocalEnvironmentPlanDependency,
   NimiRuntimeLocalCatalogVariantDescriptor,
   NimiRuntimeLocalUnregisteredAssetDescriptor,
   NimiRuntimeLocalVerifiedAssetDescriptor,
@@ -45,18 +43,10 @@ type LocalModelCenterRuntimeViewProps = {
   discovering: boolean;
   filteredInstalledDependencyAssets: NimiRuntimeLocalAssetRecord[];
   filteredInstalledRunnableAssets: NimiRuntimeLocalAssetRecord[];
-  sharedRuntimeDependency?: NimiRuntimeLocalEnvironmentPlanDependency;
-  sharedRuntimeDependencyJobs: NimiRuntimeLocalEnvironmentDependencyJob[];
-  runtimeDependencyByLocalAssetId: Record<string, NimiRuntimeLocalEnvironmentPlanDependency | undefined>;
-  runtimeDependencyError: string;
   runtimeInventoryError: string;
   hasSearchQuery: boolean;
   importFileAssetKind: NimiRuntimeLocalAssetKind;
   importFileAuxiliaryEngine: AssetEngineOption | '';
-  importFileEndpoint: string;
-  importEndpointRequired: boolean;
-  importCompatibilityHint?: string;
-  importEndpointHint?: string;
   importMenuRef: RefObject<HTMLDivElement | null>;
   importingAssetPath: string | null;
   installing: boolean;
@@ -68,16 +58,9 @@ type LocalModelCenterRuntimeViewProps = {
   loadingVerifiedAssets: boolean;
   loadingVerifiedModels: boolean;
   assetImportError: string;
-  assetImportSessionByPath: Record<string, string>;
-  unregisteredCompatibilityHintByPath: Record<string, string>;
-  unregisteredImportAllowedByPath: Record<string, boolean>;
-  unregisteredEndpointByPath: Record<string, string>;
-  unregisteredEndpointRequiredByPath: Record<string, boolean>;
-  unregisteredEndpointHintByPath: Record<string, string>;
   onArtifactKindFilterChange: (value: 'all' | NimiRuntimeLocalAssetKind) => void;
   onAssetKindChange: (kind: NimiRuntimeLocalAssetKind) => void;
   onAssetAuxiliaryEngineChange: (engine: AssetEngineOption | '') => void;
-  onImportEndpointChange: (endpoint: string) => void;
   onCatalogCapabilityChange: (value: 'all' | CapabilityOption) => void;
   onCatalogCapabilityOverrideChange: (itemId: string, capability: CapabilityOption) => void;
   onChooseImportFile: () => void;
@@ -100,10 +83,6 @@ type LocalModelCenterRuntimeViewProps = {
   onRefreshQuickPicks: () => void;
   onRefreshUnregisteredAssets: () => void;
   onRemoveAsset: (localAssetId: string) => void;
-  onSetupRuntimeDependency: () => void;
-  onCancelRuntimeDependencyJob: (jobId: string) => void;
-  onRetryRuntimeDependencyJob: (jobId: string) => void;
-  onRepairRuntimeDependency: () => void;
   onRescanAsset: (localAssetId: string) => void;
   onResumeDownload: DownloadState['onResumeDownload'];
   onSearchQueryChange: (value: string) => void;
@@ -112,7 +91,6 @@ type LocalModelCenterRuntimeViewProps = {
   onImportUnregisteredAsset: (path: string) => void;
   onUnregisteredAssetKindChange: (path: string, kind: NimiRuntimeLocalAssetKind) => void;
   onUnregisteredAuxiliaryEngineChange: (path: string, engine: AssetEngineOption | '') => void;
-  onUnregisteredEndpointChange: (path: string, endpoint: string) => void;
   relatedAssetsByModelTemplate: Map<string, NimiRuntimeLocalVerifiedAssetDescriptor[]>;
   resolveUnregisteredAssetDraft: (asset: NimiRuntimeLocalUnregisteredAssetDescriptor) => NimiRuntimeLocalAssetDeclaration;
   searchQuery: string;
@@ -139,9 +117,9 @@ export function LocalModelCenterRuntimeView(props: LocalModelCenterRuntimeViewPr
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <ScrollArea className="flex-1" contentClassName="mx-auto max-w-4xl space-y-8 p-6">
-        {props.runtimeInventoryError || props.runtimeDependencyError ? (
+        {props.runtimeInventoryError ? (
           <div className="rounded-xl border border-[color-mix(in_srgb,var(--nimi-status-danger)_28%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-danger)_8%,transparent)] px-4 py-3 text-sm text-[var(--nimi-status-danger)]">
-            {props.runtimeInventoryError || props.runtimeDependencyError}
+            {props.runtimeInventoryError}
           </div>
         ) : null}
         <LocalModelCenterImportControls
@@ -153,10 +131,6 @@ export function LocalModelCenterRuntimeView(props: LocalModelCenterRuntimeViewPr
           showImportFileDialog={props.showImportFileDialog}
           importFileAssetKind={props.importFileAssetKind}
           importFileAuxiliaryEngine={props.importFileAuxiliaryEngine}
-          importFileEndpoint={props.importFileEndpoint}
-          importEndpointRequired={props.importEndpointRequired}
-          importCompatibilityHint={props.importCompatibilityHint}
-          importEndpointHint={props.importEndpointHint}
           onHealthCheck={props.onHealthCheck}
           onRefresh={props.onRefresh}
           onOpenModelsFolder={props.onOpenModelsFolder}
@@ -166,7 +140,6 @@ export function LocalModelCenterRuntimeView(props: LocalModelCenterRuntimeViewPr
           onImportManifest={props.onImportManifest}
           onAssetKindChange={props.onAssetKindChange}
           onAuxiliaryEngineChange={props.onAssetAuxiliaryEngineChange}
-          onEndpointChange={props.onImportEndpointChange}
           onCloseImportFileDialog={props.onCloseImportFileDialog}
           onChooseImportFile={props.onChooseImportFile}
           onChooseImportDirectory={props.onChooseImportDirectory}
@@ -176,18 +149,11 @@ export function LocalModelCenterRuntimeView(props: LocalModelCenterRuntimeViewPr
         <LocalModelCenterUnregisteredAssetsSection
           assets={props.unregisteredAssets}
           assetImportError={props.assetImportError}
-          assetImportSessionByPath={props.assetImportSessionByPath}
-          compatibilityHintByPath={props.unregisteredCompatibilityHintByPath}
-          importAllowedByPath={props.unregisteredImportAllowedByPath}
           importingAssetPath={props.importingAssetPath}
           resolveDraft={props.resolveUnregisteredAssetDraft}
-          endpointByPath={props.unregisteredEndpointByPath}
-          endpointRequiredByPath={props.unregisteredEndpointRequiredByPath}
-          endpointHintByPath={props.unregisteredEndpointHintByPath}
           onRefresh={props.onRefreshUnregisteredAssets}
           onAssetKindChange={props.onUnregisteredAssetKindChange}
           onAuxiliaryEngineChange={props.onUnregisteredAuxiliaryEngineChange}
-          onEndpointChange={props.onUnregisteredEndpointChange}
           onImport={props.onImportUnregisteredAsset}
         />
         <LocalModelCenterActiveDownloadsSection
@@ -196,18 +162,15 @@ export function LocalModelCenterRuntimeView(props: LocalModelCenterRuntimeViewPr
           onResume={props.onResumeDownload}
           onCancel={props.onCancelDownload}
         />
-        <LocalModelCenterActiveImportsSection imports={props.imports} onDismiss={props.onDismissSession} />
+        <LocalModelCenterActiveImportsSection imports={props.imports} onCancel={props.onCancelDownload} onDismiss={props.onDismissSession} />
         <LocalModelCenterAssetTasksSection
           tasks={props.visibleAssetTasks}
           pendingTemplateIds={props.assetPendingTemplateIds}
           onRetryTask={props.onInstallAsset}
         />
-      <LocalModelCenterInstalledAssetsSection
-        filteredInstalledRunnableAssets={props.filteredInstalledRunnableAssets}
-        filteredInstalledDependencyAssets={props.filteredInstalledDependencyAssets}
-        sharedRuntimeDependency={props.sharedRuntimeDependency}
-        sharedRuntimeDependencyJobs={props.sharedRuntimeDependencyJobs}
-        runtimeDependencyByLocalAssetId={props.runtimeDependencyByLocalAssetId}
+        <LocalModelCenterInstalledAssetsSection
+          filteredInstalledRunnableAssets={props.filteredInstalledRunnableAssets}
+          filteredInstalledDependencyAssets={props.filteredInstalledDependencyAssets}
           loadingInstalledAssets={props.loadingInstalledAssets}
           loadingVerifiedAssets={props.loadingVerifiedAssets}
           assetKindFilter={props.assetKindFilter}
@@ -215,10 +178,6 @@ export function LocalModelCenterRuntimeView(props: LocalModelCenterRuntimeViewPr
           onArtifactKindFilterChange={props.onArtifactKindFilterChange}
           onRefreshAssets={props.onRefreshAssets}
           onRemoveAsset={props.onRemoveAsset}
-          onSetupRuntimeDependency={props.onSetupRuntimeDependency}
-          onCancelRuntimeDependencyJob={props.onCancelRuntimeDependencyJob}
-          onRetryRuntimeDependencyJob={props.onRetryRuntimeDependencyJob}
-          onRepairRuntimeDependency={props.onRepairRuntimeDependency}
           onRescanAsset={props.onRescanAsset}
         />
         {!props.hasSearchQuery ? (

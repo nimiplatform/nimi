@@ -1,28 +1,18 @@
-export function SearchIcon({ className = '' }: { className?: string }) {
-  return (
-    <svg className={className} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="11" cy="11" r="8" />
-      <line x1="21" y1="21" x2="16.65" y2="16.65" />
-    </svg>
-  );
-}
+// SearchIcon and TrashIcon are glyph-identical to the shared runtime-page
+// icons; RefreshIcon is the same refresh glyph style (strokeWidth 2, sized via
+// className at every call site). Re-export the shared ones instead of keeping
+// local copies.
+export {
+  RefreshIcon,
+  SearchIcon,
+  TrashIcon,
+} from './runtime-config-runtime-page-ui';
 
 export function HeartPulseIcon({ className = '' }: { className?: string }) {
   return (
     <svg className={className} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
       <path d="M3.22 12H9.5l.5-1 2 4.5 2-7 1.5 3.5h5.27" />
-    </svg>
-  );
-}
-
-export function RefreshIcon({ className = '' }: { className?: string }) {
-  return (
-    <svg className={className} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
-      <path d="M21 3v5h-5" />
-      <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
-      <path d="M8 16H3v5" />
     </svg>
   );
 }
@@ -56,15 +46,6 @@ export function StarIcon({ className = '' }: { className?: string }) {
   );
 }
 
-export function TrashIcon({ className = '' }: { className?: string }) {
-  return (
-    <svg className={className} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <polyline points="3 6 5 6 21 6" />
-      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-    </svg>
-  );
-}
-
 export function FolderOpenIcon({ className = '' }: { className?: string }) {
   return (
     <svg className={className} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -92,7 +73,7 @@ export function Toggle({ checked, onChange, disabled }: { checked: boolean; onCh
   );
 }
 
-export function ModelIcon({ engine }: { engine: string }) {
+export function ModelIcon({ engine, badge }: { engine: string; badge?: string }) {
   const colors: Record<string, string> = {
     llama: 'from-[var(--nimi-status-success)] to-[var(--nimi-action-primary-bg)]',
     media: 'from-[var(--nimi-status-warning)] to-[var(--nimi-status-danger)]',
@@ -106,8 +87,8 @@ export function ModelIcon({ engine }: { engine: string }) {
   const color = colors[engine.toLowerCase()] || colors.default;
 
   return (
-    <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br ${color} text-[10px] font-bold text-[var(--nimi-action-primary-text)] shadow-sm`}>
-      {engine.slice(0, 2).toUpperCase()}
+    <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br ${color} text-[length:var(--nimi-type-caption-size)] font-bold text-[var(--nimi-action-primary-text)] shadow-sm`}>
+      {badge ? badge.slice(0, 1) : engine.slice(0, 2).toUpperCase()}
     </div>
   );
 }

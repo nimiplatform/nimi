@@ -4,6 +4,7 @@ import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import type { TFunction } from 'i18next';
 import { CloudConnectorGrantPanel } from '../src/shell/renderer/features/runtime-config/runtime-config-page-cloud-grants.js';
+import { DesktopMotionProvider } from '../src/shell/renderer/ui/motion/desktop-motion.js';
 
 const t = ((_: string, options?: { defaultValue?: string; count?: number; timestamp?: string }) => (
   String(options?.defaultValue || '')
@@ -12,7 +13,7 @@ const t = ((_: string, options?: { defaultValue?: string; count?: number; timest
 )) as TFunction;
 
 test('Connectors page lists active and revoked account authorization lifecycle separately from routing', () => {
-  const markup = renderToStaticMarkup(React.createElement(CloudConnectorGrantPanel, {
+  const markup = renderToStaticMarkup(React.createElement(DesktopMotionProvider, null, React.createElement(CloudConnectorGrantPanel, {
     authenticated: true,
     busyGrantId: '',
     connectors: [{
@@ -46,7 +47,7 @@ test('Connectors page lists active and revoked account authorization lifecycle s
     loading: false,
     onRevoke: async () => {},
     t,
-  }));
+  })));
 
   assert.match(markup, /Account authorizations/);
   assert.match(markup, /never selects a provider-model target or controls routing/);

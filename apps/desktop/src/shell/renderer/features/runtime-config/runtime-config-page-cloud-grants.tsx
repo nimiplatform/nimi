@@ -41,7 +41,7 @@ export function CloudConnectorGrantPanel(props: CloudConnectorGrantPanelProps) {
       </div>
 
       {!props.authenticated ? (
-        <div className="mt-3 rounded-xl bg-[color-mix(in_srgb,var(--nimi-status-info)_8%,transparent)] p-3 text-xs text-[var(--nimi-text-secondary)]">
+        <div className="mt-3 rounded-xl bg-[var(--nimi-status-info-soft-bg)] p-3 text-xs text-[var(--nimi-status-info-soft-text)]">
           {props.t('runtimeConfig.cloud.grants.signInRequired', {
             defaultValue: 'Sign in to list and revoke account authorizations.',
           })}
@@ -68,16 +68,16 @@ export function CloudConnectorGrantPanel(props: CloudConnectorGrantPanelProps) {
                       {connector?.label || grant.connectorId}
                     </span>
                     <span className={grant.status === 'active'
-                      ? 'rounded-full bg-[color-mix(in_srgb,var(--nimi-status-success)_12%,transparent)] px-2 py-0.5 text-[11px] font-semibold text-[var(--nimi-status-success)]'
-                      : 'rounded-full bg-[color-mix(in_srgb,var(--nimi-text-muted)_12%,transparent)] px-2 py-0.5 text-[11px] font-semibold text-[var(--nimi-text-muted)]'}
+                      ? 'rounded-full bg-[var(--nimi-status-success-soft-bg)] px-2 py-0.5 text-[length:var(--nimi-type-caption-size)] font-semibold text-[var(--nimi-status-success-soft-text)]'
+                      : 'rounded-full bg-[var(--nimi-status-neutral-soft-bg)] px-2 py-0.5 text-[length:var(--nimi-type-caption-size)] font-semibold text-[var(--nimi-status-neutral-soft-text)]'}
                     >
                       {grant.status === 'active'
                         ? props.t('runtimeConfig.cloud.grants.active', { defaultValue: 'Active' })
                         : props.t('runtimeConfig.cloud.grants.revoked', { defaultValue: 'Revoked' })}
                     </span>
                   </div>
-                  <div className="mt-1 truncate font-mono text-[11px] text-[var(--nimi-text-muted)]">{grant.grantId}</div>
-                  <div className="mt-0.5 text-[11px] text-[var(--nimi-text-muted)]">
+                  <div className="mt-1 truncate font-mono text-[length:var(--nimi-type-caption-size)] text-[var(--nimi-text-muted)]">{grant.grantId}</div>
+                  <div className="mt-0.5 text-[length:var(--nimi-type-caption-size)] text-[var(--nimi-text-muted)]">
                     {props.t('runtimeConfig.cloud.grants.createdAt', {
                       defaultValue: 'Created {{timestamp}}',
                       timestamp: grant.createdAt,

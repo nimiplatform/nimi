@@ -4,7 +4,7 @@ import {
   createNimiAppAIProfileClient,
   type NimiAppAIProfilePreview,
 } from '@nimiplatform/sdk/ai';
-import { Button, InlineAlert, Surface } from '@nimiplatform/kit/ui';
+import { Button, InlineAlert, PillTabs, Surface } from '@nimiplatform/kit/ui';
 import {
   useDesktopRendererCommands,
   useDesktopRendererSdk,
@@ -29,28 +29,16 @@ export function ProfileCatalogPage() {
   return (
     <>
       <div className="px-6 pt-6" data-testid="runtime-profiles-subnavigation">
-        <div className="inline-flex rounded-xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-1">
-          <button
-            type="button"
-            aria-pressed={section === 'portable'}
-            onClick={() => setSection('portable')}
-            className={section === 'portable'
-              ? 'rounded-lg bg-[var(--nimi-action-primary-bg)] px-3 py-2 text-xs font-semibold text-[var(--nimi-action-primary-fg)]'
-              : 'rounded-lg px-3 py-2 text-xs font-semibold text-[var(--nimi-text-secondary)]'}
-          >
-            {t('runtimeConfig.profiles.useProfileTab')}
-          </button>
-          <button
-            type="button"
-            aria-pressed={section === 'author'}
-            onClick={() => setSection('author')}
-            className={section === 'author'
-              ? 'rounded-lg bg-[var(--nimi-action-primary-bg)] px-3 py-2 text-xs font-semibold text-[var(--nimi-action-primary-fg)]'
-              : 'rounded-lg px-3 py-2 text-xs font-semibold text-[var(--nimi-text-secondary)]'}
-          >
-            {t('runtimeConfig.profiles.authorProfileTab')}
-          </button>
-        </div>
+        <PillTabs
+          size="sm"
+          ariaLabel={t('runtimeConfig.sidebar.profiles', { defaultValue: 'Profiles' })}
+          value={section}
+          onValueChange={(value) => setSection(value as 'portable' | 'author')}
+          items={[
+            { value: 'portable', label: t('runtimeConfig.profiles.useProfileTab') },
+            { value: 'author', label: t('runtimeConfig.profiles.authorProfileTab') },
+          ]}
+        />
       </div>
       {section === 'author' ? <AIProfileAuthoringPage /> : <PortableProfileApplyPage />}
     </>
@@ -235,7 +223,7 @@ function PortableProfileApplyPage() {
         <Surface tone="card" className="space-y-3 p-4" data-testid="runtime-portable-profile-summary">
           <div>
             <div className="text-sm font-semibold text-[var(--nimi-text-primary)]">{summary.title}</div>
-            <div className="mt-1 font-mono text-[11px] text-[var(--nimi-text-muted)]">{summary.profileId}</div>
+            <div className="mt-1 font-mono text-[length:var(--nimi-type-caption-size)] text-[var(--nimi-text-muted)]">{summary.profileId}</div>
           </div>
           <div className="grid gap-2">
             {summary.capabilities.map((capability) => (
@@ -329,7 +317,7 @@ function PortableProfileApplyPage() {
           <summary className="cursor-pointer font-semibold">
             {t('runtimeConfig.profiles.technicalDetails', { defaultValue: 'Technical details' })}
           </summary>
-          <pre className="mt-2 whitespace-pre-wrap break-words font-mono text-[11px]">{feedback.technicalDetail}</pre>
+          <pre className="mt-2 whitespace-pre-wrap break-words font-mono text-[length:var(--nimi-type-caption-size)]">{feedback.technicalDetail}</pre>
         </details>
       ) : null}
     </RuntimePageShell>

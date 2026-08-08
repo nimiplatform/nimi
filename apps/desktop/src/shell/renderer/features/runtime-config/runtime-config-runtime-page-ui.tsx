@@ -35,9 +35,33 @@ export const TONE_STYLES: Record<RuntimeTone, {
   },
 };
 
+// Unified recommendation-tier tone mapping. `runnable` maps to `info`
+// (wins over the legacy success mapping used by the recommend page).
+export function recommendationTierTone(tier?: string | null): 'success' | 'info' | 'warning' | 'danger' | 'neutral' {
+  if (tier === 'recommended') return 'success';
+  if (tier === 'runnable') return 'info';
+  if (tier === 'tight') return 'warning';
+  if (tier === 'not_recommended') return 'danger';
+  return 'neutral';
+}
+
+const TIER_PILL_CLASSES: Record<'success' | 'info' | 'warning' | 'danger' | 'neutral', string> = {
+  success: 'bg-[var(--nimi-status-success-soft-bg)] text-[var(--nimi-status-success-soft-text)]',
+  info: 'bg-[var(--nimi-status-info-soft-bg)] text-[var(--nimi-status-info-soft-text)]',
+  warning: 'bg-[var(--nimi-status-warning-soft-bg)] text-[var(--nimi-status-warning-soft-text)]',
+  danger: 'bg-[var(--nimi-status-danger-soft-bg)] text-[var(--nimi-status-danger-soft-text)]',
+  neutral: 'bg-[var(--nimi-status-neutral-soft-bg)] text-[var(--nimi-status-neutral-soft-text)]',
+};
+
+export function tierPillClass(tier?: string | null): string {
+  return TIER_PILL_CLASSES[recommendationTierTone(tier)];
+}
+
 type StatusDotTone = 'success' | 'warning' | 'danger' | 'muted';
 
-export function StatusDot({ tone, pulse }: { tone: StatusDotTone; pulse?: boolean }) {
+export function StatusDot({ tone }: { tone: StatusDotTone; pulse?: boolean }) {
+  // pulse motion removed per Nimi design density rule (no decorative pulse/spin
+  // on compact operational surfaces); the prop is still accepted for callers.
   const colorMap: Record<StatusDotTone, string> = {
     success: 'bg-[var(--nimi-status-success)]',
     warning: 'bg-[var(--nimi-status-warning)]',
@@ -45,12 +69,7 @@ export function StatusDot({ tone, pulse }: { tone: StatusDotTone; pulse?: boolea
     muted: 'bg-[var(--nimi-text-muted)]',
   };
   return (
-    <span className="relative inline-flex h-2 w-2 items-center justify-center">
-      {pulse ? (
-        <span className={cn('absolute inline-flex h-full w-full animate-ping rounded-full opacity-60', colorMap[tone])} aria-hidden />
-      ) : null}
-      <span className={cn('relative inline-flex h-2 w-2 rounded-full', colorMap[tone])} />
-    </span>
+    <span className={cn('inline-flex h-2 w-2 rounded-full', colorMap[tone])} />
   );
 }
 
@@ -60,12 +79,14 @@ export function IconButton({
   disabled,
   onClick,
   tone = 'default',
+  size = 'sm',
 }: {
   icon: ReactNode;
   title: string;
   disabled?: boolean;
   onClick: () => void;
   tone?: 'default' | 'danger';
+  size?: 'sm' | 'md';
 }) {
   return (
     <Tooltip content={title} placement="top">
@@ -75,7 +96,8 @@ export function IconButton({
         disabled={disabled}
         aria-label={title}
         className={cn(
-          'flex h-7 w-7 items-center justify-center rounded-md text-[var(--nimi-text-muted)] transition-colors hover:text-[var(--nimi-text-primary)] disabled:cursor-not-allowed disabled:opacity-50',
+          'flex items-center justify-center rounded-md text-[var(--nimi-text-muted)] transition-colors hover:text-[var(--nimi-text-primary)] disabled:cursor-not-allowed disabled:opacity-50',
+          size === 'sm' ? 'h-7 w-7' : 'h-8 w-8',
           tone === 'danger'
             ? 'hover:bg-[color-mix(in_srgb,var(--nimi-status-danger)_10%,transparent)] hover:text-[var(--nimi-status-danger)]'
             : 'hover:bg-[var(--nimi-surface-panel)]',
@@ -117,6 +139,63 @@ export function CheckIcon() {
   return (
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
       <polyline points="20 6 9 17 4 12" />
+    </svg>
+  );
+}
+
+export function RefreshIcon({ className = '' }: { className?: string }) {
+  return (
+    <svg className={className} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="23 4 23 10 17 10" />
+      <polyline points="1 20 1 14 7 14" />
+      <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
+    </svg>
+  );
+}
+
+export function SearchIcon({ className = '' }: { className?: string }) {
+  return (
+    <svg className={className} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="11" cy="11" r="8" />
+      <line x1="21" y1="21" x2="16.65" y2="16.65" />
+    </svg>
+  );
+}
+
+export function ClockIcon({ className = '' }: { className?: string }) {
+  return (
+    <svg className={className} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="10" />
+      <polyline points="12 6 12 12 16 14" />
+    </svg>
+  );
+}
+
+export function TrashIcon({ className = '' }: { className?: string }) {
+  return (
+    <svg className={className} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="3 6 5 6 21 6" />
+      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+    </svg>
+  );
+}
+
+export function EyeIcon({ className = '' }: { className?: string }) {
+  return (
+    <svg className={className} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
+      <circle cx="12" cy="12" r="3" />
+    </svg>
+  );
+}
+
+export function EyeOffIcon({ className = '' }: { className?: string }) {
+  return (
+    <svg className={className} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M9.88 9.88a3 3 0 1 0 4.24 4.24" />
+      <path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68" />
+      <path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61" />
+      <line x1="2" y1="2" x2="22" y2="22" />
     </svg>
   );
 }

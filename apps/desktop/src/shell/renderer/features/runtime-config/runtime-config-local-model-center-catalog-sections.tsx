@@ -19,6 +19,7 @@ import {
   LocalModelCenterActiveImportsSection,
   LocalModelCenterAssetTasksSection,
 } from './runtime-config-local-model-center-progress-sections';
+import { Button } from './runtime-config-primitives';
 
 type AssetRequirementBadgesProps = {
   modelTemplateId: string;
@@ -48,7 +49,7 @@ function AssetRequirementBadges(props: AssetRequirementBadgesProps) {
           type="button"
           onClick={() => props.onInstallMissingAssets(props.relatedAssets)}
           disabled={props.assetBusy || hasPendingMissingAssets}
-          className="inline-flex items-center rounded-full border border-[color-mix(in_srgb,var(--nimi-status-warning)_28%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-warning)_12%,transparent)] px-2 py-0.5 text-[10px] font-medium text-[var(--nimi-status-warning)] hover:bg-[color-mix(in_srgb,var(--nimi-status-warning)_18%,transparent)] disabled:opacity-50"
+          className="inline-flex items-center rounded-full border border-[color-mix(in_srgb,var(--nimi-status-warning)_28%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-warning)_12%,transparent)] px-2 py-0.5 text-[length:var(--nimi-type-caption-size)] font-medium text-[var(--nimi-status-warning)] hover:bg-[color-mix(in_srgb,var(--nimi-status-warning)_18%,transparent)] disabled:opacity-50"
         >
           {hasPendingMissingAssets
             ? i18n.t('runtimeConfig.localModelCenter.installingAssets', { defaultValue: 'Installing assets...' })
@@ -64,7 +65,7 @@ function AssetRequirementBadges(props: AssetRequirementBadgesProps) {
         return (
           <div
             key={`${props.modelTemplateId}-${asset.templateId}`}
-            className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] ${
+            className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[length:var(--nimi-type-caption-size)] ${
               installed
                 ? 'border-[color-mix(in_srgb,var(--nimi-status-success)_28%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-success)_12%,transparent)] text-[var(--nimi-status-success)]'
                 : 'border-[color-mix(in_srgb,var(--nimi-status-warning)_28%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-warning)_12%,transparent)] text-[var(--nimi-status-warning)]'
@@ -86,7 +87,7 @@ function AssetRequirementBadges(props: AssetRequirementBadgesProps) {
                   props.onInstallAsset(asset.templateId);
                 }}
                 disabled={props.assetBusy || pending}
-                className="rounded-full bg-[var(--nimi-surface-overlay)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--nimi-status-warning)] hover:bg-[var(--nimi-surface-card)] disabled:opacity-50"
+                className="rounded-full bg-[var(--nimi-surface-overlay)] px-1.5 py-0.5 text-[length:var(--nimi-type-caption-size)] font-medium text-[var(--nimi-status-warning)] hover:bg-[var(--nimi-surface-card)] disabled:opacity-50"
               >
                 {pending
                   ? i18n.t('runtimeConfig.localModelCenter.installing', { defaultValue: 'Installing...' })
@@ -143,35 +144,34 @@ function LocalModelCenterVerifiedAssetsSection(props: VerifiedAssetsSectionProps
             const pending = props.isAssetPending(asset.templateId);
             return (
               <div key={asset.templateId} className="flex items-center gap-3 rounded-lg border border-[color-mix(in_srgb,var(--nimi-border-subtle)_72%,transparent)] p-3 transition-colors hover:border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_24%,transparent)] hover:bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,transparent)]/30">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-slate-500 to-slate-700 text-[11px] font-semibold text-white">
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-[var(--nimi-text-muted)] to-[var(--nimi-text-secondary)] text-[length:var(--nimi-type-caption-size)] font-semibold text-[var(--nimi-action-primary-text)]">
                   {formatAssetKindLabel(asset.kind).slice(0, 3).toUpperCase()}
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
                     <p className="truncate text-sm font-medium text-[var(--nimi-text-primary)]">{asset.title}</p>
                     {isRecommendedDescriptor(asset.tags) ? (
-                      <span className="rounded bg-[color-mix(in_srgb,var(--nimi-status-warning)_18%,transparent)] px-1.5 py-0.5 text-[10px] text-[var(--nimi-status-warning)]">
+                      <span className="rounded bg-[color-mix(in_srgb,var(--nimi-status-warning)_18%,transparent)] px-1.5 py-0.5 text-[length:var(--nimi-type-caption-size)] text-[var(--nimi-status-warning)]">
                         {i18n.t('runtimeConfig.localModelCenter.recommended', { defaultValue: 'Recommended' })}
                       </span>
                     ) : null}
-                    <span className="rounded bg-[color-mix(in_srgb,var(--nimi-surface-card)_78%,var(--nimi-surface-panel))] px-1.5 py-0.5 text-[10px] text-[var(--nimi-text-secondary)]">
+                    <span className="rounded bg-[color-mix(in_srgb,var(--nimi-surface-card)_78%,var(--nimi-surface-panel))] px-1.5 py-0.5 text-[length:var(--nimi-type-caption-size)] text-[var(--nimi-text-secondary)]">
                       {formatAssetKindLabel(asset.kind)}
                     </span>
                   </div>
                   <p className="truncate text-xs text-[var(--nimi-text-muted)]">{asset.assetId}</p>
-                  {asset.description ? <p className="mt-0.5 truncate text-[11px] text-[color-mix(in_srgb,var(--nimi-text-muted)_80%,transparent)]">{asset.description}</p> : null}
+                  {asset.description ? <p className="mt-0.5 truncate text-[length:var(--nimi-type-caption-size)] text-[color-mix(in_srgb,var(--nimi-text-muted)_80%,transparent)]">{asset.description}</p> : null}
                 </div>
-                <button
-                  type="button"
+                <Button
+                  size="sm"
                   onClick={() => props.onInstallAsset(asset.templateId)}
                   disabled={props.assetBusy || pending}
-                  className="flex items-center gap-1.5 rounded-lg bg-[var(--nimi-action-primary-bg)] px-3 py-1.5 text-xs font-medium text-white hover:bg-[var(--nimi-action-primary-bg-hover)] disabled:opacity-50"
                 >
                   <DownloadIcon className="h-3.5 w-3.5" />
                   {pending
                     ? i18n.t('runtimeConfig.localModelCenter.installing', { defaultValue: 'Installing...' })
                     : i18n.t('runtimeConfig.localModelCenter.install', { defaultValue: 'Install' })}
-                </button>
+                </Button>
               </div>
             );
           })}
@@ -233,14 +233,14 @@ function LocalModelCenterQuickPicksSection(props: QuickPicksSectionProps) {
           const relatedAssets = props.relatedAssetsByModelTemplate.get(item.templateId) || [];
           return (
             <div key={item.templateId} className="flex items-center gap-3 rounded-lg border border-[color-mix(in_srgb,var(--nimi-border-subtle)_72%,transparent)] p-3 transition-colors hover:border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_24%,transparent)] hover:bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,transparent)]/30">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-amber-400 to-orange-500 text-white">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-[var(--nimi-status-warning)] to-[var(--nimi-action-primary-bg)] text-[var(--nimi-action-primary-text)]">
                 <StarIcon className="h-5 w-5" />
               </div>
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
                   <p className="truncate text-sm font-medium text-[var(--nimi-text-primary)]">{item.title}</p>
                   {isRecommendedDescriptor(item.tags) ? (
-                    <span className="rounded bg-[color-mix(in_srgb,var(--nimi-status-warning)_18%,transparent)] px-1.5 py-0.5 text-[10px] text-[var(--nimi-status-warning)]">
+                    <span className="rounded bg-[color-mix(in_srgb,var(--nimi-status-warning)_18%,transparent)] px-1.5 py-0.5 text-[length:var(--nimi-type-caption-size)] text-[var(--nimi-status-warning)]">
                       {i18n.t('runtimeConfig.localModelCenter.recommended', { defaultValue: 'Recommended' })}
                     </span>
                   ) : null}
@@ -256,15 +256,14 @@ function LocalModelCenterQuickPicksSection(props: QuickPicksSectionProps) {
                   onInstallAsset={props.onInstallAsset}
                 />
               </div>
-              <button
-                type="button"
+              <Button
+                size="sm"
                 onClick={() => props.onInstallVerifiedModel(item.templateId)}
                 disabled={props.installing}
-                className="flex items-center gap-1.5 rounded-lg bg-[var(--nimi-action-primary-bg)] px-3 py-1.5 text-xs font-medium text-white hover:bg-[var(--nimi-action-primary-bg-hover)] disabled:opacity-50"
               >
                 <DownloadIcon className="h-3.5 w-3.5" />
                 {i18n.t('runtimeConfig.localModelCenter.install', { defaultValue: 'Install' })}
-              </button>
+              </Button>
             </div>
           );
         })}

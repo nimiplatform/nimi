@@ -25,6 +25,7 @@ import {
   type NimiRuntimeLocalRecommendationTierId,
 } from '@nimiplatform/sdk/runtime';
 import type { CapabilityV11 } from './runtime-config-state-types';
+import { tierPillClass } from './runtime-config-runtime-page-ui';
 
 export const RECOMMEND_PAGE_CAPABILITIES = NIMI_RUNTIME_LOCAL_RECOMMENDATION_FEED_CAPABILITY_IDS;
 
@@ -45,16 +46,9 @@ export function recommendationTierLabel(tier: RecommendTier): string {
 }
 
 export function recommendationTierColorClass(tier: RecommendTier): string {
-  if (tier === 'recommended' || tier === 'runnable') {
-    return 'bg-[color-mix(in_srgb,var(--nimi-status-success)_18%,transparent)] text-[var(--nimi-status-success)]';
-  }
-  if (tier === 'tight') {
-    return 'bg-[color-mix(in_srgb,var(--nimi-status-warning)_18%,transparent)] text-[var(--nimi-status-warning)]';
-  }
-  if (tier === 'not_recommended') {
-    return 'bg-[color-mix(in_srgb,var(--nimi-status-danger)_18%,transparent)] text-[var(--nimi-status-danger)]';
-  }
-  return 'bg-[var(--nimi-surface-card)] text-[var(--nimi-text-muted)]';
+  // Delegates to the shared tier→tone mapping so the model market and the
+  // local model center render identical tier colors (runnable → info).
+  return tierPillClass(tier);
 }
 
 // ---------------------------------------------------------------------------
@@ -70,11 +64,11 @@ export function parseLicenseShort(license?: string): string {
 }
 
 export function licenseColorClass(label: string): string {
-  if (label.startsWith('Apache')) return 'bg-[color-mix(in_srgb,var(--nimi-status-success)_18%,transparent)] text-[var(--nimi-status-success)] border-[color-mix(in_srgb,var(--nimi-status-success)_28%,transparent)]';
-  if (label === 'MIT') return 'bg-[color-mix(in_srgb,var(--nimi-status-info)_18%,transparent)] text-[var(--nimi-status-info)] border-[color-mix(in_srgb,var(--nimi-status-info)_28%,transparent)]';
-  if (label.startsWith('Llama')) return 'bg-[color-mix(in_srgb,var(--nimi-status-warning)_18%,transparent)] text-[var(--nimi-status-warning)] border-[color-mix(in_srgb,var(--nimi-status-warning)_28%,transparent)]';
-  if (label.startsWith('Gemma')) return 'bg-[color-mix(in_srgb,var(--nimi-status-info)_18%,transparent)] text-[var(--nimi-status-info)] border-[color-mix(in_srgb,var(--nimi-status-info)_28%,transparent)]';
-  return 'bg-[color-mix(in_srgb,var(--nimi-surface-card)_78%,var(--nimi-surface-panel))] text-[var(--nimi-text-secondary)] border-[var(--nimi-border-subtle)]';
+  if (label.startsWith('Apache')) return 'bg-[var(--nimi-status-success-soft-bg)] text-[var(--nimi-status-success-soft-text)] border-[var(--nimi-status-success-soft-border)]';
+  if (label === 'MIT') return 'bg-[var(--nimi-status-info-soft-bg)] text-[var(--nimi-status-info-soft-text)] border-[var(--nimi-status-info-soft-border)]';
+  if (label.startsWith('Llama')) return 'bg-[var(--nimi-status-warning-soft-bg)] text-[var(--nimi-status-warning-soft-text)] border-[var(--nimi-status-warning-soft-border)]';
+  if (label.startsWith('Gemma')) return 'bg-[var(--nimi-status-info-soft-bg)] text-[var(--nimi-status-info-soft-text)] border-[var(--nimi-status-info-soft-border)]';
+  return 'bg-[var(--nimi-status-neutral-soft-bg)] text-[var(--nimi-status-neutral-soft-text)] border-[var(--nimi-status-neutral-soft-border)]';
 }
 
 export function formatRepoOwnerFromRepo(repo: string): string {
@@ -97,7 +91,7 @@ export function computeVramPercentage(
 }
 
 export function vramPercentageColorClass(pct: number | null): string {
-  if (pct === null) return 'text-[color-mix(in_srgb,var(--nimi-text-muted)_80%,transparent)]';
+  if (pct === null) return 'text-[var(--nimi-text-muted)]';
   if (pct <= 50) return 'text-[var(--nimi-status-success)]';
   if (pct <= 80) return 'text-[var(--nimi-status-warning)]';
   if (pct <= 100) return 'text-[var(--nimi-status-warning)]';
@@ -158,13 +152,13 @@ export function quantQualityLabel(bits: number | null): string {
 }
 
 export function quantQualityColorClass(label: string): string {
-  if (label === 'Lossless') return 'text-[var(--nimi-status-success)] bg-[color-mix(in_srgb,var(--nimi-status-success)_12%,transparent)]';
-  if (label === 'High') return 'text-[var(--nimi-status-success)] bg-[color-mix(in_srgb,var(--nimi-status-success)_12%,transparent)]';
-  if (label === 'Medium-High') return 'text-[var(--nimi-status-info)] bg-[color-mix(in_srgb,var(--nimi-status-info)_12%,transparent)]';
-  if (label === 'Medium') return 'text-[var(--nimi-status-warning)] bg-[color-mix(in_srgb,var(--nimi-status-warning)_12%,transparent)]';
-  if (label === 'Low-Medium') return 'text-[var(--nimi-status-warning)] bg-[color-mix(in_srgb,var(--nimi-status-warning)_12%,transparent)]';
-  if (label === 'Low') return 'text-[var(--nimi-status-danger)] bg-[color-mix(in_srgb,var(--nimi-status-danger)_12%,transparent)]';
-  return 'text-[var(--nimi-text-muted)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_90%,var(--nimi-surface-panel))]';
+  if (label === 'Lossless') return 'text-[var(--nimi-status-success-soft-text)] bg-[var(--nimi-status-success-soft-bg)]';
+  if (label === 'High') return 'text-[var(--nimi-status-success-soft-text)] bg-[var(--nimi-status-success-soft-bg)]';
+  if (label === 'Medium-High') return 'text-[var(--nimi-status-info-soft-text)] bg-[var(--nimi-status-info-soft-bg)]';
+  if (label === 'Medium') return 'text-[var(--nimi-status-warning-soft-text)] bg-[var(--nimi-status-warning-soft-bg)]';
+  if (label === 'Low-Medium') return 'text-[var(--nimi-status-warning-soft-text)] bg-[var(--nimi-status-warning-soft-bg)]';
+  if (label === 'Low') return 'text-[var(--nimi-status-danger-soft-text)] bg-[var(--nimi-status-danger-soft-bg)]';
+  return 'text-[var(--nimi-status-neutral-soft-text)] bg-[var(--nimi-status-neutral-soft-bg)]';
 }
 
 export function buildHuggingFaceUrl(repo: string): string {

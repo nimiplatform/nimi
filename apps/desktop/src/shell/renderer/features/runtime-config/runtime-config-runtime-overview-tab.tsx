@@ -87,7 +87,7 @@ export function RuntimeOverviewTab({ model }: RuntimeOverviewTabProps) {
                 <div className="grid grid-cols-3 gap-4">
                   {entries.map((entry) => (
                     <div key={entry.key} className="min-w-0">
-                      <p className={cn('text-[10px] font-medium uppercase tracking-[0.14em]', TOKEN_TEXT_MUTED)}>{entry.label}</p>
+                      <p className={cn('text-[length:var(--nimi-type-caption-size)] font-medium uppercase tracking-[var(--nimi-type-overline-letter-spacing)]', TOKEN_TEXT_MUTED)}>{entry.label}</p>
                       <p className={cn('mt-1 truncate font-mono text-sm', TOKEN_TEXT_PRIMARY)}>
                         {entry.value}
                       </p>
@@ -102,13 +102,13 @@ export function RuntimeOverviewTab({ model }: RuntimeOverviewTabProps) {
             <div className="mt-4 rounded-xl border border-[color-mix(in_srgb,var(--nimi-status-warning)_30%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-warning)_10%,var(--nimi-surface-card))] px-3 py-3">
               <p className="text-sm font-medium text-[var(--nimi-status-warning)]">{daemonIssue.title}</p>
               <p className="mt-1 text-xs text-[color-mix(in_srgb,var(--nimi-status-warning)_80%,var(--nimi-text-secondary))]">{daemonIssue.message}</p>
-              <p className="mt-2 text-[11px] text-[color-mix(in_srgb,var(--nimi-status-warning)_75%,var(--nimi-text-secondary))]">{daemonIssue.rawError}</p>
+              <p className="mt-2 text-[length:var(--nimi-type-caption-size)] text-[color-mix(in_srgb,var(--nimi-status-warning)_75%,var(--nimi-text-secondary))]">{daemonIssue.rawError}</p>
             </div>
           ) : model.runtimeDaemonError ? <p className="mt-4 text-xs text-[var(--nimi-status-danger)]">{model.runtimeDaemonError}</p> : null}
         </Surface>
 
         <Surface tone="card" className={cn(TOKEN_PANEL_CARD, 'group p-5')}>
-          <p className={cn('text-[10px] font-semibold uppercase tracking-[0.16em]', TOKEN_TEXT_MUTED)}>
+          <p className={cn('text-[length:var(--nimi-type-caption-size)] font-semibold uppercase tracking-[var(--nimi-type-overline-letter-spacing)]', TOKEN_TEXT_MUTED)}>
             {t('runtimeConfig.runtime.localEndpointShort', { defaultValue: 'Runtime Endpoint' })}
           </p>
           <p className={cn('mt-3 break-all font-mono text-sm', TOKEN_TEXT_PRIMARY)}>

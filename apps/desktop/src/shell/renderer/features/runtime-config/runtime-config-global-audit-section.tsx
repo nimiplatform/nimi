@@ -4,6 +4,7 @@ import type { DesktopAuditEventProjection } from '@nimiplatform/sdk/runtime/wire
 import { CallerKind } from '@nimiplatform/sdk/runtime/wire-types';
 import { Popover, PopoverContent, PopoverTrigger, ScrollArea, Surface, Tooltip, cn } from '@nimiplatform/kit/ui';
 import { Button, RuntimeSelect } from './runtime-config-primitives.js';
+import { IconButton, RefreshIcon, TOKEN_PANEL_CARD, TOKEN_TEXT_MUTED, TOKEN_TEXT_PRIMARY, TOKEN_TEXT_SECONDARY } from './runtime-config-runtime-page-ui.js';
 import { useDesktopI18nResource } from '../../i18n/i18n-context.js';
 import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
 import {
@@ -12,16 +13,11 @@ import {
   relativeTimeShort,
 } from './runtime-config-global-audit-view-model.js';
 
-const TOKEN_TEXT_PRIMARY = 'text-[var(--nimi-text-primary)]';
-const TOKEN_TEXT_SECONDARY = 'text-[var(--nimi-text-secondary)]';
-const TOKEN_TEXT_MUTED = 'text-[var(--nimi-text-muted)]';
-const TOKEN_PANEL_CARD = 'rounded-2xl';
-
 const FILTER_INPUT_CLASS =
   'h-8 rounded-lg border border-[var(--nimi-border-subtle)] bg-transparent px-2.5 text-xs text-[var(--nimi-text-primary)] outline-none transition-colors focus:border-[var(--nimi-field-focus)] focus:ring-2 focus:ring-[var(--nimi-focus-ring-color)]';
 
 const DATE_TIME_TRIGGER_CLASS =
-  'group flex h-8 min-w-[12rem] max-w-full items-center justify-between gap-2 rounded-lg border border-[var(--nimi-field-border)] bg-[color-mix(in_srgb,var(--nimi-field-bg)_84%,transparent)] px-2.5 text-left text-xs text-[var(--nimi-field-text)] shadow-[inset_0_1px_0_color-mix(in_srgb,white_42%,transparent)] outline-none transition-all hover:border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_34%,var(--nimi-border-subtle))] hover:bg-[var(--nimi-field-bg)] focus-visible:border-[var(--nimi-field-focus)] focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)] data-[state=open]:border-[var(--nimi-field-focus)] data-[state=open]:ring-2 data-[state=open]:ring-[var(--nimi-focus-ring-color)]';
+  'group flex h-8 min-w-[12rem] max-w-full items-center justify-between gap-2 rounded-lg border border-[var(--nimi-field-border)] bg-[color-mix(in_srgb,var(--nimi-field-bg)_84%,transparent)] px-2.5 text-left text-xs text-[var(--nimi-field-text)] outline-none transition-all hover:border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_34%,var(--nimi-border-subtle))] hover:bg-[var(--nimi-field-bg)] focus-visible:border-[var(--nimi-field-focus)] focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)] data-[state=open]:border-[var(--nimi-field-focus)] data-[state=open]:ring-2 data-[state=open]:ring-[var(--nimi-focus-ring-color)]';
 
 const WEEKDAY_FORMATTER = new Intl.DateTimeFormat(undefined, { weekday: 'short' });
 const MONTH_FORMATTER = new Intl.DateTimeFormat(undefined, { year: 'numeric', month: 'long' });
@@ -53,53 +49,6 @@ function reasonTone(reasonCode: unknown): ReasonTone {
     return 'warning';
   }
   return 'neutral';
-}
-
-function IconButton({
-  icon,
-  title,
-  disabled,
-  onClick,
-}: {
-  icon: React.ReactNode;
-  title: string;
-  disabled?: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <Tooltip content={title} placement="top">
-      <button
-        type="button"
-        onClick={onClick}
-        disabled={disabled}
-        aria-label={title}
-        className="flex h-7 w-7 items-center justify-center rounded-md text-[var(--nimi-text-muted)] transition-colors hover:bg-[var(--nimi-surface-panel)] hover:text-[var(--nimi-text-primary)] disabled:cursor-not-allowed disabled:opacity-50"
-      >
-        {icon}
-      </button>
-    </Tooltip>
-  );
-}
-
-function RefreshIcon({ spinning }: { spinning?: boolean }) {
-  return (
-    <svg
-      className={spinning ? 'animate-spin' : ''}
-      width="14"
-      height="14"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
-      <path d="M3 3v5h5" />
-      <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16" />
-      <path d="M16 16h5v5" />
-    </svg>
-  );
 }
 
 function ExportIcon() {
@@ -246,7 +195,7 @@ function TimeColumn({
 
   return (
     <div className="min-w-0">
-      <p className={cn('mb-1.5 text-center text-[10px] font-medium uppercase tracking-[0.12em]', TOKEN_TEXT_MUTED)}>
+      <p className={cn('mb-1.5 text-center text-[length:var(--nimi-type-caption-size)] font-medium uppercase tracking-[var(--nimi-type-overline-letter-spacing)]', TOKEN_TEXT_MUTED)}>
         {label}
       </p>
       <ScrollArea
@@ -266,7 +215,7 @@ function TimeColumn({
                 className={cn(
                   'flex h-8 w-full items-center justify-center rounded-lg font-mono text-xs tabular-nums transition-all',
                   active
-                    ? 'bg-[var(--nimi-action-primary-bg)] text-[var(--nimi-action-primary-text)] shadow-[0_8px_18px_color-mix(in_srgb,var(--nimi-action-primary-bg)_22%,transparent)]'
+                    ? 'bg-[var(--nimi-action-primary-bg)] text-[var(--nimi-action-primary-text)] shadow-[var(--nimi-elevation-base)]'
                     : 'text-[var(--nimi-text-secondary)] hover:bg-[var(--nimi-action-ghost-hover)] hover:text-[var(--nimi-text-primary)]',
                 )}
                 aria-pressed={active}
@@ -367,7 +316,7 @@ function AuditDateTimeField({
       >
         <div ref={contentRef}>
           <div className="border-b border-[var(--nimi-border-subtle)] bg-[linear-gradient(135deg,color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,var(--nimi-surface-overlay)),var(--nimi-surface-overlay))] px-4 py-3">
-            <p className={cn('text-[10px] font-semibold uppercase tracking-[0.14em]', TOKEN_TEXT_MUTED)}>
+            <p className={cn('text-[length:var(--nimi-type-caption-size)] font-semibold uppercase tracking-[var(--nimi-type-overline-letter-spacing)]', TOKEN_TEXT_MUTED)}>
               {ariaLabel}
             </p>
             <p className="mt-1 font-mono text-sm font-semibold text-[var(--nimi-text-primary)]">
@@ -399,7 +348,7 @@ function AuditDateTimeField({
                 </button>
               </div>
 
-            <div className={cn('grid grid-cols-7 gap-1 text-center text-[10px] font-semibold', TOKEN_TEXT_MUTED)}>
+            <div className={cn('grid grid-cols-7 gap-1 text-center text-[length:var(--nimi-type-caption-size)] font-semibold', TOKEN_TEXT_MUTED)}>
               {weekdayLabels.map((label) => (
                 <span key={label} className="py-1">
                   {label}
@@ -418,7 +367,7 @@ function AuditDateTimeField({
                     className={cn(
                       'relative flex aspect-square min-h-8 items-center justify-center rounded-xl text-xs font-semibold tabular-nums transition-all',
                       selected
-                        ? 'bg-[var(--nimi-action-primary-bg)] text-[var(--nimi-action-primary-text)] shadow-[0_10px_22px_color-mix(in_srgb,var(--nimi-action-primary-bg)_24%,transparent)]'
+                        ? 'bg-[var(--nimi-action-primary-bg)] text-[var(--nimi-action-primary-text)] shadow-[var(--nimi-elevation-base)]'
                         : cell.outside
                           ? 'text-[color-mix(in_srgb,var(--nimi-text-muted)_58%,transparent)] hover:bg-[var(--nimi-action-ghost-hover)]'
                           : 'text-[var(--nimi-text-primary)] hover:bg-[var(--nimi-action-ghost-hover)]',
@@ -482,7 +431,7 @@ function AuditDateTimeField({
                 onChange(formatDateTimeValue(draft));
                 setOpen(false);
               }}
-              className="rounded-lg bg-[var(--nimi-action-primary-bg)] px-3.5 py-2 text-xs font-semibold text-[var(--nimi-action-primary-text)] shadow-[0_10px_22px_color-mix(in_srgb,var(--nimi-action-primary-bg)_22%,transparent)] transition-all hover:bg-[var(--nimi-action-primary-bg-hover)] hover:-translate-y-px"
+              className="rounded-lg bg-[var(--nimi-action-primary-bg)] px-3.5 py-2 text-xs font-semibold text-[var(--nimi-action-primary-text)] shadow-[var(--nimi-elevation-base)] transition-all hover:bg-[var(--nimi-action-primary-bg-hover)] hover:-translate-y-px"
             >
               {t('runtimeConfig.runtime.apply', { defaultValue: 'Apply' })}
             </button>
@@ -531,7 +480,7 @@ export function GlobalAuditSection({
         </h3>
         <div className="flex items-center gap-1">
           <IconButton
-            icon={<RefreshIcon spinning={loading} />}
+            icon={<RefreshIcon className={loading ? 'animate-spin' : ''} />}
             title={t('runtimeConfig.runtime.refresh', { defaultValue: 'Refresh' })}
             disabled={loading}
             onClick={onRefresh}
@@ -554,7 +503,7 @@ export function GlobalAuditSection({
               defaultValue: 'Audit activity is unavailable. Check or update the local Runtime, then try again.',
             })}
           </p>
-          <p className="mt-1 break-all font-mono text-[10px] text-[var(--nimi-text-muted)]">{error}</p>
+          <p className="mt-1 break-all font-mono text-[length:var(--nimi-type-caption-size)] text-[var(--nimi-text-muted)]">{error}</p>
         </div>
       ) : null}
 
@@ -662,30 +611,30 @@ function AuditEventRow({
         type="button"
         onClick={() => setExpanded((p) => !p)}
         aria-expanded={expanded}
-        className="flex w-full min-w-0 items-center gap-2.5 px-4 py-2.5 text-left transition-colors hover:bg-white/60"
+        className="flex w-full min-w-0 items-center gap-2.5 px-4 py-2.5 text-left transition-colors hover:bg-[var(--nimi-action-ghost-hover)]"
       >
-        <span className={cn('shrink-0 text-[10px]', TOKEN_TEXT_MUTED)}>{expanded ? '\u25BC' : '\u25B6'}</span>
-        <span className={cn('hidden w-16 shrink-0 truncate font-mono text-[11px] sm:block', TOKEN_TEXT_MUTED)}>
+        <span className={cn('shrink-0 text-[length:var(--nimi-type-caption-size)]', TOKEN_TEXT_MUTED)}>{expanded ? '\u25BC' : '\u25B6'}</span>
+        <span className={cn('hidden w-16 shrink-0 truncate font-mono text-[length:var(--nimi-type-caption-size)] sm:block', TOKEN_TEXT_MUTED)}>
           {event.auditId ? `${event.auditId.slice(0, 8)}…` : '—'}
         </span>
         <span
-          className="inline-flex max-w-24 shrink-0 items-center truncate rounded-md border border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_24%,transparent)] bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_8%,var(--nimi-surface-card))] px-1.5 py-0.5 text-[11px] font-medium text-[var(--nimi-action-primary-bg)] sm:max-w-36"
+          className="inline-flex max-w-24 shrink-0 items-center truncate rounded-md border border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_24%,transparent)] bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_8%,var(--nimi-surface-card))] px-1.5 py-0.5 text-[length:var(--nimi-type-caption-size)] font-medium text-[var(--nimi-action-primary-bg)] sm:max-w-36"
           title={event.domain || undefined}
         >
           {event.domain || '—'}
         </span>
         <span
-          className={cn('min-w-0 flex-[1_1_12rem] truncate font-mono text-[11px]', TOKEN_TEXT_SECONDARY)}
+          className={cn('min-w-0 flex-[1_1_12rem] truncate font-mono text-[length:var(--nimi-type-caption-size)]', TOKEN_TEXT_SECONDARY)}
           title={event.operation || undefined}
         >
           {event.operation || '—'}
         </span>
-        <span className={cn('hidden shrink-0 text-[11px] md:inline', TOKEN_TEXT_MUTED)}>
+        <span className={cn('hidden shrink-0 text-[length:var(--nimi-type-caption-size)] md:inline', TOKEN_TEXT_MUTED)}>
           {callerKindLabel(event.callerKind)}
         </span>
         {hasReason ? (
           <span
-            className={cn('hidden shrink-0 max-w-[180px] truncate rounded-full px-2 py-0.5 text-[10px] font-medium lg:inline-flex', REASON_BADGE_CLASS[tone])}
+            className={cn('hidden shrink-0 max-w-[180px] truncate rounded-full px-2 py-0.5 text-[length:var(--nimi-type-caption-size)] font-medium lg:inline-flex', REASON_BADGE_CLASS[tone])}
             title={reasonCodeText}
           >
             {reasonCodeText}
@@ -693,7 +642,7 @@ function AuditEventRow({
         ) : null}
         <span className="ml-auto shrink-0">
           <Tooltip content={ts} placement="top">
-            <span className={cn('text-[11px]', TOKEN_TEXT_MUTED)}>
+            <span className={cn('text-[length:var(--nimi-type-caption-size)]', TOKEN_TEXT_MUTED)}>
               {ts !== '-' ? relativeTimeShort(ts, formatRelativeTime) : '—'}
             </span>
           </Tooltip>
@@ -747,16 +696,16 @@ function FieldGroup({
   if (visible.length === 0) return null;
   return (
     <div>
-      <p className={cn('mb-1.5 text-[10px] font-medium uppercase tracking-[0.14em]', TOKEN_TEXT_MUTED)}>
+      <p className={cn('mb-1.5 text-[length:var(--nimi-type-caption-size)] font-medium uppercase tracking-[var(--nimi-type-overline-letter-spacing)]', TOKEN_TEXT_MUTED)}>
         {title}
       </p>
       <div className="grid grid-cols-1 gap-x-6 gap-y-1 md:grid-cols-2">
         {visible.map((item) => (
           <div key={item.label} className="flex items-baseline gap-2">
-            <span className={cn('shrink-0 text-[11px]', TOKEN_TEXT_MUTED)}>{item.label}</span>
+            <span className={cn('shrink-0 text-[length:var(--nimi-type-caption-size)]', TOKEN_TEXT_MUTED)}>{item.label}</span>
             <span
               className={cn(
-                'min-w-0 select-text break-all text-[11px]',
+                'min-w-0 select-text break-all text-[length:var(--nimi-type-caption-size)]',
                 item.mono ? 'font-mono' : '',
                 TOKEN_TEXT_PRIMARY,
               )}

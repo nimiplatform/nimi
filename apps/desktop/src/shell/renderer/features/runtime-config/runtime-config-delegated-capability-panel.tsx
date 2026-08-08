@@ -8,14 +8,15 @@ import {
 } from '@nimiplatform/sdk/runtime/wire-types';
 import { ScrollArea, Surface, cn } from '@nimiplatform/kit/ui';
 import { Button, Input } from './runtime-config-primitives';
+import {
+  TOKEN_PANEL_CARD,
+  TOKEN_TEXT_MUTED,
+  TOKEN_TEXT_PRIMARY,
+} from './runtime-config-runtime-page-ui';
 import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
 import {
   createDesktopDelegatedControlService,
 } from './runtime-config-delegated-capability-service';
-
-const TOKEN_TEXT_PRIMARY = 'text-[var(--nimi-text-primary)]';
-const TOKEN_TEXT_MUTED = 'text-[var(--nimi-text-muted)]';
-const TOKEN_PANEL_CARD = 'rounded-2xl';
 
 function approvalStateLabel(value: unknown): string {
   if (typeof value !== 'number') return 'unknown';

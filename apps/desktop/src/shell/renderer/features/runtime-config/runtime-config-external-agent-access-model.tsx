@@ -1,5 +1,4 @@
-import type { ReactNode } from 'react';
-import { Tooltip, cn } from '@nimiplatform/kit/ui';
+import { cn } from '@nimiplatform/kit/ui';
 import type { NimiExternalAgentTokenLedgerRecord } from '@nimiplatform/sdk/runtime';
 
 export type TokenMode = 'delegated' | 'autonomous';
@@ -20,10 +19,22 @@ export function isExternalAgentTokenActionPlaneAvailable(state: ExternalAgentTok
     && (state.actionCount ?? 0) > 0;
 }
 
-export const TOKEN_TEXT_PRIMARY = 'text-[var(--nimi-text-primary)]';
-export const TOKEN_TEXT_SECONDARY = 'text-[var(--nimi-text-secondary)]';
-export const TOKEN_TEXT_MUTED = 'text-[var(--nimi-text-muted)]';
-export const TOKEN_PANEL_CARD = 'rounded-2xl';
+// Shared composition-layer re-exports: token constants, status dot, icon
+// button, and the icon set all delegate to runtime-config-runtime-page-ui so
+// this module keeps a single source of truth for visuals.
+export {
+  CheckIcon,
+  ClockIcon,
+  CopyIcon,
+  IconButton,
+  PlusIcon,
+  RefreshIcon,
+  StatusDot,
+  TOKEN_PANEL_CARD,
+  TOKEN_TEXT_MUTED,
+  TOKEN_TEXT_PRIMARY,
+  TOKEN_TEXT_SECONDARY,
+} from './runtime-config-runtime-page-ui';
 
 export type StateTone = 'success' | 'warning' | 'danger' | 'neutral';
 
@@ -32,105 +43,6 @@ export const STATUS_TONE: Record<TokenStatus, StateTone> = {
   expired: 'warning',
   revoked: 'neutral',
 };
-
-export function StatusDot({ tone, pulse }: { tone: 'success' | 'warning' | 'danger' | 'muted'; pulse?: boolean }) {
-  const colorMap = {
-    success: 'bg-[var(--nimi-status-success)]',
-    warning: 'bg-[var(--nimi-status-warning)]',
-    danger: 'bg-[var(--nimi-status-danger)]',
-    muted: 'bg-[var(--nimi-text-muted)]',
-  } as const;
-  return (
-    <span className="relative inline-flex h-2 w-2 items-center justify-center">
-      {pulse ? (
-        <span className={cn('absolute inline-flex h-full w-full animate-ping rounded-full opacity-60', colorMap[tone])} aria-hidden />
-      ) : null}
-      <span className={cn('relative inline-flex h-2 w-2 rounded-full', colorMap[tone])} />
-    </span>
-  );
-}
-
-export function IconButton({
-  icon,
-  title,
-  disabled,
-  onClick,
-}: {
-  icon: ReactNode;
-  title: string;
-  disabled?: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <Tooltip content={title} placement="top">
-      <button
-        type="button"
-        onClick={onClick}
-        disabled={disabled}
-        aria-label={title}
-        className="flex h-8 w-8 items-center justify-center rounded-lg text-[var(--nimi-text-muted)] transition-colors hover:bg-[var(--nimi-surface-panel)] hover:text-[var(--nimi-text-primary)] disabled:cursor-not-allowed disabled:opacity-50"
-      >
-        {icon}
-      </button>
-    </Tooltip>
-  );
-}
-
-export function RefreshIcon({ spinning }: { spinning?: boolean }) {
-  return (
-    <svg
-      className={spinning ? 'animate-spin' : ''}
-      width="14"
-      height="14"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
-      <path d="M3 3v5h5" />
-      <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16" />
-      <path d="M16 16h5v5" />
-    </svg>
-  );
-}
-
-export function CopyIcon() {
-  return (
-    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <rect width="14" height="14" x="8" y="8" rx="2" ry="2" />
-      <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" />
-    </svg>
-  );
-}
-
-export function CheckIcon() {
-  return (
-    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-      <polyline points="20 6 9 17 4 12" />
-    </svg>
-  );
-}
-
-export function ClockIcon() {
-  return (
-    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="12" cy="12" r="10" />
-      <polyline points="12 6 12 12 16 14" />
-    </svg>
-  );
-}
-
-export function PlusIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <line x1="12" y1="5" x2="12" y2="19" />
-      <line x1="5" y1="12" x2="19" y2="12" />
-    </svg>
-  );
-}
 
 export function ChevronIcon({ expanded }: { expanded: boolean }) {
   return (

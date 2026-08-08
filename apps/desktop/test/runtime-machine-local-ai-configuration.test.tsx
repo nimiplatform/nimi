@@ -12,6 +12,8 @@ import {
   createVideoConfigurationInput,
   type MachineLocalAIConfigurationsViewProps,
 } from '../src/shell/renderer/features/runtime-config/runtime-config-page-machine-local-ai.js';
+import { MachineLocalAIAddFormFields } from '../src/shell/renderer/features/runtime-config/runtime-config-machine-local-ai-add-drawer.js';
+import { MachineLocalAIImpactDialogContent } from '../src/shell/renderer/features/runtime-config/runtime-config-machine-local-ai-card.js';
 import {
   INITIAL_RUNTIME_CONFIG_MACHINE_LOCAL_AI_STATE,
   compatibleMachineLocalAssets,
@@ -82,7 +84,6 @@ function baseProps(
     addDraft: createRuntimeConfigMachineLocalAIAddDraft(),
     impactConfirmation: null,
     deleteConfirmationId: '',
-    assetChoiceByRequirement: {},
     onRefresh: noop,
     onShowAddForm: noop,
     onHideAddForm: noop,
@@ -91,7 +92,8 @@ function baseProps(
     onSelect: noop,
     onClearSelection: noop,
     onReproject: noop,
-    onAssetChoiceChange: noop,
+    onUpdateContextCapacity: noop,
+    onUpdateVideoRecipe: noop,
     onBind: noop,
     onUnbind: noop,
     onRequestDelete: noop,
@@ -148,8 +150,11 @@ test('Local AI Configurations state and rendered copy move from unresolved to co
   assert.match(configuredMarkup, /data-file-state="configured"/u);
   assert.match(configuredMarkup, />Configured</u);
   assert.match(configuredMarkup, /does not verify that a request can run/u);
+  assert.match(configuredMarkup, /Automatic \(recommended\)/u);
+  assert.match(configuredMarkup, /Advanced: context capacity/u);
   assert.doesNotMatch(configuredMarkup, /\bready\b/iu);
-  assert.match(configuredMarkup, /<details[\s\S]*Technical details[\s\S]*required_binding_missing|<details[\s\S]*Technical details/u);
+  assert.doesNotMatch(configuredMarkup, /Technical details/u);
+  assert.doesNotMatch(configuredMarkup, /required_binding_missing/u);
 });
 
 test('Local AI Configurations shows the current selection independently for every projected capability', () => {
@@ -259,11 +264,11 @@ test('Local AI Configurations renders the image form, ordered LoRA controls, and
     },
     loras,
   };
-  const markup = renderView(baseProps(
-    { configurations: [], selections: [] },
-    { showAddForm: true, addDraft: draft, assets: [bundle] },
-  ));
+  const markup = renderToStaticMarkup(
+    <MachineLocalAIAddFormFields draft={draft} assets={[bundle]} busy={false} onChange={noop} />,
+  );
 
+  assert.match(markup, /data-testid="machine-local-ai-configuration-add-form"/u);
   assert.match(markup, /data-testid="machine-local-ai-image-fields"/u);
   assert.match(markup, /Diffusion model/u);
   assert.match(markup, /Text encoder/u);
@@ -274,37 +279,33 @@ test('Local AI Configurations renders the image form, ordered LoRA controls, and
 });
 
 test('Local AI Configurations renders future image impact separately from explicit confirmation', () => {
-  const imageConfiguration = {
-    ...configuration('configured'),
-    configurationId: 'lcc_image',
-    capabilityContract: 'image.generate',
-    displayName: 'Local image model',
-  };
-  const markup = renderView(baseProps({
-    configurations: [imageConfiguration],
-    selections: [{ capabilityContract: 'image.generate', configurationId: 'lcc_image' }],
-  }, {
-    impactConfirmation: {
-      request: {
-        requestId: 'impact-delete-image',
-        operation: 'delete',
-        capabilityContract: 'image.generate',
-        configurationId: 'lcc_image',
-      },
-      status: 'ready',
-      impact: {
-        operation: 'delete',
-        capabilityContract: 'image.generate',
-        configurationId: 'lcc_image',
-        affectedOwners: [
-          { kind: 'app', ownerId: 'nimi.desktop', requiredFeatures: [] },
-          { kind: 'shared-local-agent', ownerId: 'shared-local-agent', requiredFeatures: [] },
-        ],
-      },
-      technicalError: '',
-      explicitlyConfirmed: false,
-    },
-  }));
+  const markup = renderToStaticMarkup(
+    <MachineLocalAIImpactDialogContent
+      confirmation={{
+        request: {
+          requestId: 'impact-delete-image',
+          operation: 'delete',
+          capabilityContract: 'image.generate',
+          configurationId: 'lcc_image',
+        },
+        status: 'ready',
+        impact: {
+          operation: 'delete',
+          capabilityContract: 'image.generate',
+          configurationId: 'lcc_image',
+          affectedOwners: [
+            { kind: 'app', ownerId: 'nimi.desktop', requiredFeatures: [] },
+            { kind: 'shared-local-agent', ownerId: 'shared-local-agent', requiredFeatures: [] },
+          ],
+        },
+        technicalError: '',
+        explicitlyConfirmed: false,
+      }}
+      mutationBusy={false}
+      onConfirm={noop}
+      onCancel={noop}
+    />,
+  );
 
   assert.match(markup, /data-testid="machine-local-ai-impact-confirmation"/u);
   assert.match(markup, /future image generation/u);
@@ -335,10 +336,9 @@ test('Local AI Configurations renders the video form and builds the video add in
       fl2va: { requirementPolicy: 'strict' as const, localAssetId: asset.localAssetId },
     },
   };
-  const markup = renderView(baseProps(
-    { configurations: [], selections: [] },
-    { showAddForm: true, addDraft: draft, assets: [asset] },
-  ));
+  const markup = renderToStaticMarkup(
+    <MachineLocalAIAddFormFields draft={draft} assets={[asset]} busy={false} onChange={noop} />,
+  );
 
   assert.match(markup, />Video generation</u);
   assert.match(markup, /data-testid="machine-local-ai-video-fields"/u);
@@ -349,6 +349,10 @@ test('Local AI Configurations renders the video form and builds the video add in
   assert.match(markup, /data-testid="machine-local-ai-video-slot:audioVAE"/u);
   assert.match(markup, /Main video model \(FL2VA\)/u);
   assert.match(markup, /FL2VA transformer/u);
+  assert.match(markup, /data-testid="machine-local-ai-video-execution-options"/u);
+  assert.match(markup, /Video execution recipe/u);
+  assert.match(markup, /Flow shift/u);
+  assert.match(markup, /Random number generator/u);
   assert.doesNotMatch(markup, /data-testid="machine-local-ai-image-fields"/u);
 
   const input = createVideoConfigurationInput(draft, [asset], 'Video studio');
@@ -366,6 +370,15 @@ test('Local AI Configurations renders the video form and builds the video add in
     encoderRequirementPolicy: 'substitutable',
     videoVAERequirementPolicy: 'substitutable',
     audioVAERequirementPolicy: 'substitutable',
+    executionOptions: {
+      cfgScale: 1,
+      flowShift: 12,
+      sampleMethod: 'engine-default',
+      scheduler: 'engine-default',
+      diffusionFlashAttention: true,
+      offloadParamsToCPU: true,
+      rng: 'cpu',
+    },
   });
 
   assert.throws(
@@ -391,6 +404,18 @@ test('Local AI Configurations keeps video configuration management available whe
       driverId: 'nimi.runtime.driver.stable-diffusion-cpp',
       driverDialect: 'stable-diffusion.cpp/minimax-h3-video-generate/v1',
     },
+    portableConfig: {
+      fl2vaRequirementPolicy: 'substitutable',
+      executionOptions: {
+        cfgScale: 2.5,
+        flowShift: 8,
+        sampleMethod: 'euler',
+        scheduler: 'karras',
+        diffusionFlashAttention: false,
+        offloadParamsToCPU: false,
+        rng: 'cuda',
+      },
+    },
     interpretability: 'unavailable',
     displayName: 'Local video model',
   };
@@ -405,8 +430,12 @@ test('Local AI Configurations keeps video configuration management available whe
   assert.match(markup, /cannot currently be interpreted/u);
   assert.match(markup, /data-file-state="files-needed"/u);
   assert.match(markup, />Select configuration</u);
-  assert.match(markup, /Refresh file requirements/u);
-  assert.match(markup, /<details[\s\S]*Technical details/u);
+  assert.match(markup, /aria-label="More actions"/u);
+  assert.match(markup, /data-testid="machine-local-video-recipe:lcc_video"/u);
+  assert.match(markup, /Save video recipe/u);
+  assert.match(markup, /value="2.5"/u);
+  assert.match(markup, /value="euler"/u);
+  assert.doesNotMatch(markup, /Technical details/u);
 });
 
 test('Local AI Configurations derives compatible exact-binding choices from projected constraints', () => {
@@ -447,6 +476,41 @@ test('Local AI Configurations derives compatible exact-binding choices from proj
     compatibleMachineLocalAssets(requirement, assets).map((asset) => asset.localAssetId),
     ['main'],
   );
+});
+
+test('Local AI Configurations binds a compatible file directly from the slot select (bind-on-select)', () => {
+  const boundAsset: NimiRuntimeLocalAssetEntry = {
+    localAssetId: 'local-asset-main',
+    assetId: 'local-asset-main',
+    displayName: 'Main GGUF model',
+    kind: 'chat',
+    engine: 'llama',
+    status: 'installed',
+    artifactRoles: ['llm'],
+    expectedVerifiedContentId: `sha256:${'a'.repeat(64)}`,
+  };
+
+  // Unbound slot: the select shows the choose-file placeholder, no separate bind button.
+  const unboundMarkup = renderView(baseProps(
+    { configurations: [configuration('unresolved')], selections: [] },
+    { assets: [boundAsset] },
+  ));
+  assert.match(unboundMarkup, /role="combobox"/u);
+  assert.match(unboundMarkup, /aria-label="Main model"/u);
+  assert.match(unboundMarkup, /Choose a file/u);
+  assert.match(unboundMarkup, /data-testid="machine-local-ai-requirement-bind:main\.gguf"/u);
+  assert.doesNotMatch(unboundMarkup, />Connect</u);
+  assert.doesNotMatch(unboundMarkup, />Replace</u);
+
+  // Bound slot: the select value is the currently bound asset; disconnect stays a separate action.
+  const boundMarkup = renderView(baseProps(
+    { configurations: [configuration('configured')], selections: [] },
+    { assets: [boundAsset] },
+  ));
+  assert.match(boundMarkup, /aria-label="Main model"/u);
+  assert.match(boundMarkup, /Main GGUF model/u);
+  assert.match(boundMarkup, />Disconnect</u);
+  assert.doesNotMatch(boundMarkup, />Replace</u);
 });
 
 test('Local AI Configurations has matching Chinese user-facing status copy', async () => {

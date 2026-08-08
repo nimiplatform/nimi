@@ -14,14 +14,13 @@ import { useRuntimeConfigConnectorSdk } from './runtime-config-connector-sdk-con
 import { addConnectorToState, removeConnectorFromState, replaceConnectorsInState, updateConnectorField } from './runtime-config-connector-actions';
 import type { RuntimeConfigPanelControllerModel } from './runtime-config-panel-types';
 import { RuntimePageShell } from './runtime-config-page-shell';
-import { SectionTitle as SharedSectionTitle } from '../settings/settings-layout-components';
 import { acquireCodexManagedCredential, type CodexOAuthPendingState } from './runtime-config-codex-oauth';
 import { BoltIcon, Button, PlusIcon } from './runtime-config-page-cloud-primitives';
 import { CloudConnectorListPanel } from './runtime-config-page-cloud-connector-list';
 import { CloudConnectorDetailPanel } from './runtime-config-page-cloud-detail-panel';
 import { CloudConnectorGrantPanel } from './runtime-config-page-cloud-grants.js';
+import { SectionTitle } from './runtime-config-primitives';
 type CloudPageProps = { model: RuntimeConfigPanelControllerModel; state: RuntimeConfigStateV11 };
-const SectionTitle = SharedSectionTitle;
 const PROVIDER_CATALOG_ERROR_LABEL = 'Load provider catalog failed';
 const CONNECTORS_LOAD_ERROR_LABEL = 'Load connectors failed';
 
@@ -495,17 +494,17 @@ export function CloudPage({ model, state }: CloudPageProps) {
           >
             {t('runtimeConfig.cloud.addConnector', { defaultValue: 'Add' })}
           </Button>
-          <button
-            type="button"
+          <Button
+            variant="secondary"
+            size="sm"
             disabled={model.testingConnector || !selectedConnector}
             onClick={() => void model.testSelectedConnector()}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-sm font-medium text-[var(--nimi-text-secondary)] shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-[color-mix(in_srgb,var(--nimi-surface-card)_90%,var(--nimi-surface-panel))] disabled:cursor-not-allowed disabled:opacity-50"
+            icon={<BoltIcon className="text-[var(--nimi-action-primary-bg)]" />}
           >
-            <BoltIcon className="text-[var(--nimi-action-primary-bg)]" />
             {model.testingConnector
               ? t('runtimeConfig.cloud.testing', { defaultValue: 'Testing...' })
               : t('runtimeConfig.cloud.testConnector', { defaultValue: 'Test' })}
-          </button>
+          </Button>
         </div>
       </div>
       {/* Split panel: connector list (left) + config (right) */}

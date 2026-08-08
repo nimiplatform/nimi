@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import type { GetRuntimeHealthResponse, AIProviderHealthSnapshot } from '@nimiplatform/sdk/runtime/wire-types';
-import { Surface, Tooltip, cn } from '@nimiplatform/kit/ui';
+import { ProgressIndicator, StatusBadge as KitStatusBadge, Surface, cn } from '@nimiplatform/kit/ui';
 import {
   runtimeHealthStatusLabel,
   formatBytes,
@@ -9,97 +9,23 @@ import {
   relativeTimeShort,
 } from './runtime-config-global-audit-view-model.js';
 import { ProviderHealthTable } from './runtime-config-provider-health-table.js';
+import { IconButton, RefreshIcon, TOKEN_PANEL_CARD, TOKEN_TEXT_MUTED, TOKEN_TEXT_PRIMARY } from './runtime-config-runtime-page-ui.js';
 import { useDesktopI18nResource } from '../../i18n/i18n-context.js';
-
-const TOKEN_TEXT_PRIMARY = 'text-[var(--nimi-text-primary)]';
-const TOKEN_TEXT_MUTED = 'text-[var(--nimi-text-muted)]';
-const TOKEN_PANEL_CARD = 'rounded-2xl';
 
 type VitalTone = 'info' | 'success' | 'warning' | 'neutral';
 
+// Fill color override for the kit ProgressIndicator bar, keyed by vital tone.
 const VITAL_FILL_CLASS: Record<VitalTone, string> = {
-  info: 'bg-[var(--nimi-status-info)]',
-  success: 'bg-[var(--nimi-status-success)]',
-  warning: 'bg-[var(--nimi-status-warning)]',
-  neutral: 'bg-[color-mix(in_srgb,var(--nimi-text-muted)_60%,transparent)]',
-};
-
-type StateTone = 'success' | 'warning' | 'danger' | 'neutral';
-
-const STATE_BADGE_CLASS: Record<StateTone, { pill: string; dot: string; text: string }> = {
-  success: {
-    pill: 'bg-[color-mix(in_srgb,var(--nimi-status-success)_14%,transparent)] text-[var(--nimi-status-success)]',
-    dot: 'bg-[var(--nimi-status-success)]',
-    text: 'text-[var(--nimi-status-success)]',
-  },
-  warning: {
-    pill: 'bg-[color-mix(in_srgb,var(--nimi-status-warning)_14%,transparent)] text-[var(--nimi-status-warning)]',
-    dot: 'bg-[var(--nimi-status-warning)]',
-    text: 'text-[var(--nimi-status-warning)]',
-  },
-  danger: {
-    pill: 'bg-[color-mix(in_srgb,var(--nimi-status-danger)_14%,transparent)] text-[var(--nimi-status-danger)]',
-    dot: 'bg-[var(--nimi-status-danger)]',
-    text: 'text-[var(--nimi-status-danger)]',
-  },
-  neutral: {
-    pill: 'bg-[color-mix(in_srgb,var(--nimi-text-muted)_14%,transparent)] text-[var(--nimi-text-secondary)]',
-    dot: 'bg-[color-mix(in_srgb,var(--nimi-text-muted)_65%,transparent)]',
-    text: 'text-[var(--nimi-text-secondary)]',
-  },
+  info: '[&_.nimi-progress__bar]:bg-[var(--nimi-status-info)]',
+  success: '[&_.nimi-progress__bar]:bg-[var(--nimi-status-success)]',
+  warning: '[&_.nimi-progress__bar]:bg-[var(--nimi-status-warning)]',
+  neutral: '[&_.nimi-progress__bar]:bg-[color-mix(in_srgb,var(--nimi-text-muted)_60%,transparent)]',
 };
 
 const CPU_MAX_MILLI = 1000; // 1 full core = 100% fill
 const RAM_MAX_BYTES = 16 * 1024 ** 3; // 16 GB proxy
 const VRAM_MAX_BYTES = 24 * 1024 ** 3; // 24 GB proxy
 const QUEUE_MAX = 10;
-
-function IconButton({
-  icon,
-  title,
-  disabled,
-  onClick,
-}: {
-  icon: React.ReactNode;
-  title: string;
-  disabled?: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <Tooltip content={title} placement="top">
-      <button
-        type="button"
-        onClick={onClick}
-        disabled={disabled}
-        aria-label={title}
-        className="flex h-7 w-7 items-center justify-center rounded-md text-[var(--nimi-text-muted)] transition-colors hover:bg-[var(--nimi-surface-panel)] hover:text-[var(--nimi-text-primary)] disabled:cursor-not-allowed disabled:opacity-50"
-      >
-        {icon}
-      </button>
-    </Tooltip>
-  );
-}
-
-function RefreshIcon({ spinning }: { spinning?: boolean }) {
-  return (
-    <svg
-      className={spinning ? 'animate-spin' : ''}
-      width="14"
-      height="14"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
-      <path d="M3 3v5h5" />
-      <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16" />
-      <path d="M16 16h5v5" />
-    </svg>
-  );
-}
 
 function VitalCard({
   label,
@@ -115,28 +41,17 @@ function VitalCard({
   const clamped = Math.max(0, Math.min(100, Number.isFinite(percent) ? percent : 0));
   return (
     <div className="rounded-xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)]/60 p-3">
-      <p className={cn('text-[10px] font-medium uppercase tracking-[0.14em]', TOKEN_TEXT_MUTED)}>{label}</p>
+      <p className={cn('text-[length:var(--nimi-type-caption-size)] font-medium uppercase tracking-[var(--nimi-type-overline-letter-spacing)]', TOKEN_TEXT_MUTED)}>{label}</p>
       <p className={cn('mt-1 font-mono text-sm', TOKEN_TEXT_PRIMARY)}>{value}</p>
-      <div className="mt-2 h-1 w-full overflow-hidden rounded-full bg-[color-mix(in_srgb,var(--nimi-text-muted)_12%,transparent)]">
-        <div
-          className={cn('h-full transition-all duration-300 ease-out', VITAL_FILL_CLASS[tone])}
-          style={{ width: `${clamped}%` }}
-        />
-      </div>
+      <ProgressIndicator value={clamped} className={cn('mt-2', VITAL_FILL_CLASS[tone])} />
     </div>
   );
 }
 
 function LiveBadge({ connected, stale, hasHealth }: { connected: boolean; stale: boolean; hasHealth: boolean }) {
-  const tone: StateTone = connected && !stale ? 'success' : hasHealth ? 'warning' : 'neutral';
-  const style = STATE_BADGE_CLASS[tone];
+  const tone = connected && !stale ? 'success' : hasHealth ? 'warning' : 'neutral';
   const label = connected && !stale ? 'Live' : hasHealth ? 'Connecting' : 'Off';
-  return (
-    <span className={cn('inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-medium', style.pill)}>
-      <span className={cn('h-1.5 w-1.5 rounded-full', style.dot)} />
-      {label}
-    </span>
-  );
+  return <KitStatusBadge tone={tone} shape="dot">{label}</KitStatusBadge>;
 }
 
 type RuntimeHealthSectionProps = {
@@ -178,7 +93,7 @@ export function RuntimeHealthSection({
             {t('runtimeConfig.runtime.runtimeHealth', { defaultValue: 'Runtime Health' })}
           </h3>
           {health ? (
-            <span className={cn('text-[11px]', TOKEN_TEXT_MUTED)}>
+            <span className={cn('text-[length:var(--nimi-type-caption-size)]', TOKEN_TEXT_MUTED)}>
               {runtimeHealthStatusLabel(health.status)}
             </span>
           ) : null}
@@ -186,7 +101,7 @@ export function RuntimeHealthSection({
         <div className="flex items-center gap-2">
           <LiveBadge connected={streamConnected} stale={stale} hasHealth={Boolean(health)} />
           <IconButton
-            icon={<RefreshIcon spinning={loading} />}
+            icon={<RefreshIcon className={loading ? 'animate-spin' : ''} />}
             title={t('runtimeConfig.runtime.refresh', { defaultValue: 'Refresh' })}
             disabled={loading}
             onClick={onRefresh}
@@ -199,7 +114,7 @@ export function RuntimeHealthSection({
       ) : null}
 
       {streamError ? (
-        <p className={cn('mt-2 text-xs', STATE_BADGE_CLASS.warning.pill.replace('bg-', 'text-'))}>
+        <p className="mt-2 text-xs text-[var(--nimi-status-warning)]">
           {t('runtimeConfig.runtime.streamError', { defaultValue: 'Stream error' })}: {streamError}
         </p>
       ) : null}
@@ -240,7 +155,7 @@ export function RuntimeHealthSection({
 
       {/* Sub-metrics row */}
       {health ? (
-        <div className={cn('mt-3 flex flex-wrap items-center gap-x-5 gap-y-1 text-[11px]', TOKEN_TEXT_MUTED)}>
+        <div className={cn('mt-3 flex flex-wrap items-center gap-x-5 gap-y-1 text-[length:var(--nimi-type-caption-size)]', TOKEN_TEXT_MUTED)}>
           <span>
             {t('runtimeConfig.runtime.jobs', { defaultValue: 'Jobs' })}
             {': '}

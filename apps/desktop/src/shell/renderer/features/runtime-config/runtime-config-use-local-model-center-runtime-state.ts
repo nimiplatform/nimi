@@ -25,9 +25,6 @@ import {
 } from './runtime-config-use-local-model-center-import-file-plan';
 import { toCanonicalNimiRuntimeLocalAssetLookupKey } from '@nimiplatform/sdk/runtime';
 import { useLocalModelCenterImportActions } from './runtime-config-use-local-model-center-import-actions';
-import {
-  useLocalModelCenterRuntimeDependencies,
-} from './runtime-config-use-local-model-center-runtime-dependencies';
 import { useLocalModelCenterInstalledAssetViews } from './runtime-config-use-local-model-center-installed-assets';
 import { useLocalModelCenterUnregisteredAssets } from './runtime-config-use-local-model-center-unregistered-assets';
 import { useLocalModelCenterAssetTasks } from './runtime-config-use-local-model-center-asset-tasks';
@@ -70,7 +67,6 @@ export function useLocalModelCenterRuntimeState({ props }: UseLocalModelCenterRu
   const [showImportFileDialog, setShowImportFileDialog] = useState(false);
   const [importFileAssetKind, setImportFileAssetKind] = useState<NimiRuntimeLocalAssetKind>('chat');
   const [importFileAuxiliaryEngine, setImportFileAuxiliaryEngine] = useState<AssetEngineOption | ''>('');
-  const [importFileEndpoint, setImportFileEndpoint] = useState('');
   const importMenuRef = useRef<HTMLDivElement>(null);
   const [catalogCapabilityOverrides, setCatalogCapabilityOverrides] = useState<Record<string, CapabilityOption>>({});
   const {
@@ -78,14 +74,8 @@ export function useLocalModelCenterRuntimeState({ props }: UseLocalModelCenterRu
     resolveUnregisteredAssetDraft,
     setUnregisteredAssetKind,
     setUnregisteredAuxiliaryEngine,
-    setUnregisteredEndpoint,
     unregisteredAssetDrafts,
     unregisteredAssets,
-    unregisteredCompatibilityHintByPath,
-    unregisteredEndpointByPath,
-    unregisteredEndpointHintByPath,
-    unregisteredEndpointRequiredByPath,
-    unregisteredImportAllowedByPath,
   } = useLocalModelCenterUnregisteredAssets();
 
   useEffect(() => {
@@ -322,31 +312,9 @@ export function useLocalModelCenterRuntimeState({ props }: UseLocalModelCenterRu
     [verifiedAssets],
   );
 
-  const refreshAssetInventorySections = useCallback(async () => {
+  const refreshAssetSections = useCallback(async () => {
     await Promise.all([refreshInstalledAssets(), refreshVerifiedAssets()]);
   }, [refreshInstalledAssets, refreshVerifiedAssets]);
-
-  const {
-    cancelRuntimeDependencyJob,
-    refreshRuntimeDependencies,
-    repairRuntimeDependency,
-    prepareAssetRuntimeDependencies,
-    retryRuntimeDependencyJob,
-    runtimeDependencyByLocalAssetId,
-    runtimeDependencyError,
-    setupRuntimeDependency,
-    sharedRuntimeDependency,
-    sharedRuntimeDependencyJobs,
-  } = useLocalModelCenterRuntimeDependencies({
-    assets: sortedInstalledRunnableAssets,
-    refreshAssetInventorySections,
-    setAssetBusy,
-  });
-
-  const refreshAssetSections = useCallback(async () => {
-    await refreshAssetInventorySections();
-    refreshRuntimeDependencies();
-  }, [refreshAssetInventorySections, refreshRuntimeDependencies]);
 
   const {
     assetPendingTemplateIds,
@@ -390,7 +358,6 @@ export function useLocalModelCenterRuntimeState({ props }: UseLocalModelCenterRu
   }, [props]);
 
   const importActions = useLocalModelCenterImportActions({
-    onPrepareImportedAssetEnvironment: prepareAssetRuntimeDependencies,
     onRefreshUnregisteredAssets: refreshUnregisteredAssets,
     onRefreshAssetSections: refreshAssetSections,
     onRefreshVerifiedModels: refreshVerifiedModels,
@@ -403,15 +370,11 @@ export function useLocalModelCenterRuntimeState({ props }: UseLocalModelCenterRu
       return;
     }
     const declaration = resolveUnregisteredAssetDraft(asset);
-    if (!canImportDeclaration(declaration) || unregisteredImportAllowedByPath[assetPath] === false) {
+    if (!canImportDeclaration(declaration)) {
       return;
     }
-    await importActions.importAssetFromPath(
-      assetPath,
-      declaration,
-      String(unregisteredEndpointByPath[assetPath] || '').trim() || undefined,
-    );
-  }, [importActions, resolveUnregisteredAssetDraft, unregisteredAssets, unregisteredEndpointByPath, unregisteredImportAllowedByPath]);
+    await importActions.importAssetFromPath(assetPath, declaration);
+  }, [importActions, resolveUnregisteredAssetDraft, unregisteredAssets]);
 
   const installCatalogVariant = useCallback(async (
     item: NimiRuntimeLocalCatalogItemDescriptor,
@@ -428,15 +391,11 @@ export function useLocalModelCenterRuntimeState({ props }: UseLocalModelCenterRu
 
   const {
     canChooseImportFile,
-    importCompatibilityHint,
-    importEndpointHint,
-    importEndpointRequired,
     importFileDeclaration,
   } = useLocalModelCenterImportFilePlan({
     showImportFileDialog,
     importFileAssetKind,
     importFileAuxiliaryEngine,
-    importFileEndpoint,
   });
   const canChooseImportDirectory = importFileAssetKind === 'chat';
 
@@ -454,12 +413,11 @@ export function useLocalModelCenterRuntimeState({ props }: UseLocalModelCenterRu
   return {
     activeDownloads: importActions.activeDownloads, activeImports: importActions.activeImports,
     assetBusy, assetKindFilter, assetPendingTemplateIds,
-    assetImportError: importActions.assetImportError, assetImportSessionByPath: importActions.assetImportSessionByPath,
+    assetImportError: importActions.assetImportError,
     catalogCapability, catalogDisplayCount, catalogItems,
     closeVariantPicker: importActions.closeVariantPicker,
     deferredSearchQuery, filteredInstalledDependencyAssets, filteredInstalledRunnableAssets,
-    importFileAssetKind, importFileAuxiliaryEngine, importFileEndpoint, importFileDeclaration,
-    importCompatibilityHint, importEndpointHint, importEndpointRequired, importMenuRef,
+    importFileAssetKind, importFileAuxiliaryEngine, importFileDeclaration, importMenuRef,
     importingAssetPath: importActions.importingAssetPath,
     installCatalogVariant, installMissingAssetsForModel, installVerifiedAsset, installVerifiedModel,
     installing, installedAssetsById, isAssetPending,
@@ -469,20 +427,16 @@ export function useLocalModelCenterRuntimeState({ props }: UseLocalModelCenterRu
     onPauseDownload: importActions.onPauseDownload, onResumeDownload: importActions.onResumeDownload,
     refreshAssetSections, refreshUnregisteredAssets, refreshVerifiedModels,
     relatedAssetsByModelTemplate, removeInstalledAsset,
-    cancelRuntimeDependencyJob, repairRuntimeDependency, retryRuntimeDependencyJob,
-    runtimeDependencyByLocalAssetId, runtimeDependencyError, runtimeInventoryError,
+    runtimeInventoryError,
     resolveUnregisteredAssetDraft, searchQuery, selectedCatalogCapability,
     setAssetKindFilter, setCatalogCapability, setCatalogCapabilityOverrides,
     setCatalogDisplayCount,
-    setImportFileAssetKind, setImportFileAuxiliaryEngine, setImportFileEndpoint,
+    setImportFileAssetKind, setImportFileAuxiliaryEngine,
     setSearchQuery, setShowImportFileDialog, setShowImportMenu,
-    setupRuntimeDependency, sharedRuntimeDependency, sharedRuntimeDependencyJobs,
-    setUnregisteredAssetKind, setUnregisteredAuxiliaryEngine, setUnregisteredEndpoint,
+    setUnregisteredAssetKind, setUnregisteredAuxiliaryEngine,
     showImportFileDialog, showImportMenu, canChooseImportFile, canChooseImportDirectory,
     toggleVariantPicker: importActions.toggleVariantPicker,
     unregisteredAssetDrafts, unregisteredAssets,
-    unregisteredCompatibilityHintByPath, unregisteredEndpointByPath,
-    unregisteredEndpointRequiredByPath, unregisteredEndpointHintByPath, unregisteredImportAllowedByPath,
     importPickedAssetFile: importActions.importPickedAssetFile,
     importPickedAssetDirectory: importActions.importPickedAssetDirectory,
     importPickedAssetManifest: importActions.importPickedAssetManifest,

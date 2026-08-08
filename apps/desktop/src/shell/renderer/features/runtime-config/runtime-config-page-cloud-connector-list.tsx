@@ -69,7 +69,7 @@ function CloudConnectorListItem(props: {
       className={`w-full rounded-xl border px-4 py-3 text-left text-xs transition-all ${
         active
           ? 'border-transparent bg-[var(--nimi-sidebar-item-active)] text-[var(--nimi-text-primary)]'
-          : 'border-[var(--nimi-border-subtle)] bg-white/90 hover:border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_24%,transparent)] hover:bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,transparent)]/30'
+          : 'border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] hover:border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_24%,transparent)] hover:bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,transparent)]/30'
       }`}
     >
       <div className="flex items-start gap-2">
@@ -80,12 +80,12 @@ function CloudConnectorListItem(props: {
         >
           <div className="flex items-center gap-2">
             <span className={`inline-block h-2 w-2 shrink-0 rounded-full ${
-              isHealthy ? 'bg-[var(--nimi-status-success)]' : connector.status === 'unreachable' || connector.status === 'degraded' || connector.status === 'unsupported' ? 'bg-[var(--nimi-status-danger)]' : 'bg-[color-mix(in_srgb,var(--nimi-text-muted)_35%,transparent)]'
+              isHealthy ? 'bg-[var(--nimi-status-success)]' : connector.status === 'unreachable' || connector.status === 'degraded' || connector.status === 'unsupported' ? 'bg-[var(--nimi-status-danger)]' : 'bg-[var(--nimi-text-muted)]'
             }`} />
             <p className="truncate font-semibold text-[var(--nimi-text-primary)]">{connector.label}</p>
             <CloudConnectorScopeBadge connector={connector} t={t} />
           </div>
-          <p className="mt-0.5 text-[10px] text-[var(--nimi-text-muted)]">{getVendorLabelV11(connector.vendor)}</p>
+          <p className="mt-0.5 text-[length:var(--nimi-type-caption-size)] text-[var(--nimi-text-muted)]">{getVendorLabelV11(connector.vendor)}</p>
         </button>
         {canDelete ? (
           <button
@@ -94,7 +94,7 @@ function CloudConnectorListItem(props: {
             disabled={props.deleting}
             aria-label={deleteLabel}
             title={deleteLabel}
-            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-[var(--nimi-status-danger)] transition-colors hover:bg-[color-mix(in_srgb,var(--nimi-status-danger)_12%,transparent)] focus:outline-none focus:ring-2 focus:ring-[var(--nimi-status-danger)] disabled:cursor-not-allowed disabled:opacity-50"
+            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-[var(--nimi-status-danger)] transition-colors hover:bg-[color-mix(in_srgb,var(--nimi-status-danger)_12%,transparent)] focus:outline-none focus:ring-2 focus:ring-[var(--nimi-focus-ring-color)] disabled:cursor-not-allowed disabled:opacity-50"
           >
             <TrashIcon />
           </button>
@@ -113,7 +113,7 @@ function CloudConnectorScopeBadge(props: {
     return (
       <span
         data-testid={E2E_IDS.runtimeConnectorScopeBadge(connector.id)}
-        className="shrink-0 rounded-full bg-[color-mix(in_srgb,var(--nimi-surface-card)_78%,var(--nimi-surface-panel))] px-1.5 py-0.5 text-[9px] text-[var(--nimi-text-muted)]"
+        className="shrink-0 rounded-full bg-[var(--nimi-status-neutral-soft-bg)] px-1.5 py-0.5 text-[length:var(--nimi-type-caption-size)] text-[var(--nimi-status-neutral-soft-text)]"
       >
         {t('runtimeConfig.cloud.runtimeSystem', { defaultValue: 'runtime managed' })}
       </span>
@@ -123,7 +123,7 @@ function CloudConnectorScopeBadge(props: {
     return (
       <span
         data-testid={E2E_IDS.runtimeConnectorScopeBadge(connector.id)}
-        className="shrink-0 rounded-full bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_12%,transparent)] px-1.5 py-0.5 text-[9px] text-[var(--nimi-action-primary-bg)]"
+        className="shrink-0 rounded-full bg-[var(--nimi-status-info-soft-bg)] px-1.5 py-0.5 text-[length:var(--nimi-type-caption-size)] text-[var(--nimi-status-info-soft-text)]"
       >
         {t('runtimeConfig.cloud.machineGlobal', { defaultValue: 'machine global' })}
       </span>
@@ -131,7 +131,7 @@ function CloudConnectorScopeBadge(props: {
   }
   if (connector.isDraft) {
     return (
-      <span className="shrink-0 rounded-full bg-[color-mix(in_srgb,var(--nimi-status-warning)_18%,transparent)] px-1.5 py-0.5 text-[9px] text-[var(--nimi-status-warning)]">
+      <span className="shrink-0 rounded-full bg-[var(--nimi-status-warning-soft-bg)] px-1.5 py-0.5 text-[length:var(--nimi-type-caption-size)] text-[var(--nimi-status-warning-soft-text)]">
         {t('runtimeConfig.cloud.draft', { defaultValue: 'draft' })}
       </span>
     );

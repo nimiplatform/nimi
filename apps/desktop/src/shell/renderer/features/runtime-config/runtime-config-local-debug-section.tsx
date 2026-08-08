@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ScrollArea, Surface, Tooltip, cn } from '@nimiplatform/kit/ui';
+import { ScrollArea, SegmentedControl, Surface, Tooltip, cn } from '@nimiplatform/kit/ui';
 import { useDesktopI18nResource } from '../../i18n/i18n-context.js';
 import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
 import { buildAuditDiagnosticsText } from './runtime-config-audit-view-model.js';
@@ -18,11 +18,12 @@ import {
   SearchIcon,
   auditEventTypeColor,
 } from './runtime-config-local-debug-controls.js';
-
-const TOKEN_TEXT_PRIMARY = 'text-[var(--nimi-text-primary)]';
-const TOKEN_TEXT_SECONDARY = 'text-[var(--nimi-text-secondary)]';
-const TOKEN_TEXT_MUTED = 'text-[var(--nimi-text-muted)]';
-const TOKEN_PANEL_CARD = 'rounded-2xl';
+import {
+  TOKEN_PANEL_CARD,
+  TOKEN_TEXT_MUTED,
+  TOKEN_TEXT_PRIMARY,
+  TOKEN_TEXT_SECONDARY,
+} from './runtime-config-runtime-page-ui.js';
 
 type QuickRangeKey = 'all' | '15m' | '1h' | '24h' | 'custom';
 
@@ -256,40 +257,28 @@ function LocalDebugContent({ onCollapse }: { onCollapse: () => void }) {
           />
         </div>
 
-        <div className="inline-flex items-center rounded-xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)]/60 p-0.5">
-          {filterTabs.map((tab) => {
-            const isActive = tab.key === quickRange;
-            return (
-              <button
-                key={`quick-range-${tab.key}`}
-                type="button"
-                onClick={() => applyQuickRange(tab.key)}
-                className={cn(
-                  'rounded-lg px-2.5 py-1 text-[11px] font-medium transition-colors',
-                  isActive
-                    ? 'bg-[var(--nimi-action-primary-bg)] text-[var(--nimi-action-primary-text)]'
-                    : 'text-[var(--nimi-text-muted)] hover:text-[var(--nimi-text-primary)]',
-                )}
-              >
-                {tab.label}
-              </button>
-            );
-          })}
-        </div>
+        <SegmentedControl
+          size="sm"
+          ariaLabel={t('runtimeConfig.runtime.auditEventsTitle', { defaultValue: 'Debug audit' })}
+          items={filterTabs.map((tab) => ({ value: tab.key, label: tab.label }))}
+          value={quickRange}
+          onValueChange={(value) => applyQuickRange(value as QuickRangeKey)}
+        />
 
         <div className="flex items-center gap-0.5">
           <IconButton
-            icon={<RefreshIcon spinning={loadingAudits} />}
+            size="md"
+            icon={<RefreshIcon className={loadingAudits ? 'animate-spin' : ''} />}
             title={t('runtimeConfig.runtime.refresh', { defaultValue: 'Refresh' })}
             disabled={loadingAudits}
             onClick={() => void loadAudits()}
           />
           <IconButton
+            size="md"
             icon={copiedAll ? <CheckIcon /> : <CopyIcon />}
             title={copiedAll
               ? t('runtimeConfig.runtime.copied', { defaultValue: 'Copied' })
               : t('runtimeConfig.runtime.copy', { defaultValue: 'Copy' })}
-            tone={copiedAll ? 'success' : undefined}
             onClick={onCopyAll}
           />
         </div>
@@ -302,7 +291,7 @@ function LocalDebugContent({ onCollapse }: { onCollapse: () => void }) {
       {/* Optional custom datetime range */}
       {showCustomRange ? (
         <div className="mt-3 flex flex-wrap items-center gap-2 rounded-xl border border-dashed border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)]/40 p-3">
-          <span className={cn('text-[11px] font-medium uppercase tracking-[0.14em]', TOKEN_TEXT_MUTED)}>
+          <span className={cn('text-[length:var(--nimi-type-caption-size)] font-medium uppercase tracking-[var(--nimi-type-overline-letter-spacing)]', TOKEN_TEXT_MUTED)}>
             {t('runtimeConfig.runtime.auditCustomRange', { defaultValue: 'Custom range' })}
           </span>
           <input
@@ -314,11 +303,11 @@ function LocalDebugContent({ onCollapse }: { onCollapse: () => void }) {
               void loadAudits({ timeFrom: next });
             }}
             className={cn(
-              'h-8 rounded-lg border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] px-2 text-[11px] outline-none focus:border-[var(--nimi-field-focus)] focus:ring-2 focus:ring-[var(--nimi-focus-ring-color)]',
+              'h-8 rounded-lg border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] px-2 text-[length:var(--nimi-type-caption-size)] outline-none focus:border-[var(--nimi-field-focus)] focus:ring-2 focus:ring-[var(--nimi-focus-ring-color)]',
               TOKEN_TEXT_PRIMARY,
             )}
           />
-          <span className={cn('text-[11px]', TOKEN_TEXT_MUTED)}>→</span>
+          <span className={cn('text-[length:var(--nimi-type-caption-size)]', TOKEN_TEXT_MUTED)}>→</span>
           <input
             type="datetime-local"
             value={auditTimeTo}
@@ -328,7 +317,7 @@ function LocalDebugContent({ onCollapse }: { onCollapse: () => void }) {
               void loadAudits({ timeTo: next });
             }}
             className={cn(
-              'h-8 rounded-lg border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] px-2 text-[11px] outline-none focus:border-[var(--nimi-field-focus)] focus:ring-2 focus:ring-[var(--nimi-focus-ring-color)]',
+              'h-8 rounded-lg border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] px-2 text-[length:var(--nimi-type-caption-size)] outline-none focus:border-[var(--nimi-field-focus)] focus:ring-2 focus:ring-[var(--nimi-focus-ring-color)]',
               TOKEN_TEXT_PRIMARY,
             )}
           />
@@ -341,7 +330,7 @@ function LocalDebugContent({ onCollapse }: { onCollapse: () => void }) {
               setQuickRange('all');
               void loadAudits({ timeFrom: '', timeTo: '' });
             }}
-            className={cn('ml-auto text-[11px] font-medium transition-colors hover:text-[var(--nimi-text-primary)]', TOKEN_TEXT_MUTED)}
+            className={cn('ml-auto text-[length:var(--nimi-type-caption-size)] font-medium transition-colors hover:text-[var(--nimi-text-primary)]', TOKEN_TEXT_MUTED)}
           >
             {t('runtimeConfig.runtime.auditRangeClear', { defaultValue: 'Clear' })}
           </button>
@@ -351,7 +340,7 @@ function LocalDebugContent({ onCollapse }: { onCollapse: () => void }) {
           <button
             type="button"
             onClick={() => setShowCustomRange(true)}
-            className={cn('text-[11px] font-medium transition-colors hover:text-[var(--nimi-text-primary)]', TOKEN_TEXT_MUTED)}
+            className={cn('text-[length:var(--nimi-type-caption-size)] font-medium transition-colors hover:text-[var(--nimi-text-primary)]', TOKEN_TEXT_MUTED)}
           >
             {t('runtimeConfig.runtime.auditCustomRangeShow', { defaultValue: 'Custom range…' })}
           </button>
@@ -388,7 +377,7 @@ function LocalDebugContent({ onCollapse }: { onCollapse: () => void }) {
 
       {/* Source row */}
       <div className="mt-3 flex flex-wrap items-center gap-1.5">
-        <span className={cn('mr-1 text-[10px] font-semibold uppercase tracking-[0.14em]', TOKEN_TEXT_MUTED)}>
+        <span className={cn('mr-1 text-[length:var(--nimi-type-caption-size)] font-semibold uppercase tracking-[var(--nimi-type-overline-letter-spacing)]', TOKEN_TEXT_MUTED)}>
           {t('runtimeConfig.runtime.auditSourceLabel', { defaultValue: 'Source' })}
         </span>
         <FacetPill
@@ -417,7 +406,7 @@ function LocalDebugContent({ onCollapse }: { onCollapse: () => void }) {
       {/* Modality row */}
       {modalityCounts.length > 0 ? (
         <div className="mt-2 flex flex-wrap items-center gap-1.5">
-          <span className={cn('mr-1 text-[10px] font-semibold uppercase tracking-[0.14em]', TOKEN_TEXT_MUTED)}>
+          <span className={cn('mr-1 text-[length:var(--nimi-type-caption-size)] font-semibold uppercase tracking-[var(--nimi-type-overline-letter-spacing)]', TOKEN_TEXT_MUTED)}>
             {t('runtimeConfig.runtime.auditModalityLabel', { defaultValue: 'Modality' })}
           </span>
           <FacetPill
@@ -457,7 +446,7 @@ function LocalDebugContent({ onCollapse }: { onCollapse: () => void }) {
         ) : (
           <>
             <div className={cn(
-              'grid grid-cols-[72px_minmax(220px,1.6fr)_minmax(130px,0.9fr)_minmax(170px,1.3fr)_minmax(140px,1.2fr)_24px] items-center gap-x-3 gap-y-0 border-b border-[var(--nimi-border-subtle)] px-3 pb-2 text-left text-[10px] font-semibold uppercase tracking-[0.14em]',
+              'grid grid-cols-[72px_minmax(220px,1.6fr)_minmax(130px,0.9fr)_minmax(170px,1.3fr)_minmax(140px,1.2fr)_24px] items-center gap-x-3 gap-y-0 border-b border-[var(--nimi-border-subtle)] px-3 pb-2 text-left text-[length:var(--nimi-type-caption-size)] font-semibold uppercase tracking-[var(--nimi-type-overline-letter-spacing)]',
               TOKEN_TEXT_MUTED,
             )}>
               <span>{t('runtimeConfig.runtime.auditColTime', { defaultValue: 'Time' })}</span>

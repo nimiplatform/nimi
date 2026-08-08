@@ -138,7 +138,7 @@ export function CloudConnectorDetailPanel(props: CloudConnectorDetailPanelProps)
                   <label className="mb-1.5 block text-sm font-medium text-[var(--nimi-text-secondary)]">
                     {t('runtimeConfig.cloud.apiKey', { defaultValue: 'API Key' })}
                   </label>
-                  <div className="rounded-xl bg-[color-mix(in_srgb,var(--nimi-surface-card)_90%,var(--nimi-surface-panel))] px-4 py-3 ring-1 ring-black/5">
+                  <div className="rounded-xl bg-[color-mix(in_srgb,var(--nimi-surface-card)_90%,var(--nimi-surface-panel))] px-4 py-3 ring-1 ring-[var(--nimi-border-subtle)]">
                     <p className="text-xs text-[var(--nimi-text-muted)]">
                       {selectedConnector.hasCredential
                         ? t('runtimeConfig.cloud.managedByRuntime', { defaultValue: 'Managed by runtime (environment variable)' })
@@ -168,7 +168,7 @@ export function CloudConnectorDetailPanel(props: CloudConnectorDetailPanelProps)
                       title={model.showCloudApiKey
                         ? t('Auth.hidePassword', { defaultValue: 'Hide' })
                         : t('Auth.showPassword', { defaultValue: 'Show' })}
-                      className="flex h-7 w-7 items-center justify-center rounded-md text-[var(--nimi-text-muted)] transition-colors hover:bg-white/80 hover:text-[var(--nimi-action-primary-bg)] focus:outline-none focus:ring-2 focus:ring-[var(--nimi-field-focus)]"
+                      className="flex h-7 w-7 items-center justify-center rounded-md text-[var(--nimi-text-muted)] transition-colors hover:bg-[var(--nimi-action-ghost-hover)] hover:text-[var(--nimi-action-primary-bg)] focus:outline-none focus:ring-2 focus:ring-[var(--nimi-focus-ring-color)]"
                     >
                       {model.showCloudApiKey ? <EyeOffIcon /> : <EyeIcon />}
                     </button>
@@ -253,7 +253,7 @@ export function CloudConnectorDetailPanel(props: CloudConnectorDetailPanelProps)
                 </p>
               )}
               {selectedConnector.authMode === 'oauth_managed' && authStatus !== 'authenticated' ? (
-                <p className="rounded-lg bg-[color-mix(in_srgb,var(--nimi-status-warning)_12%,transparent)] px-3 py-2 text-xs text-[var(--nimi-status-warning)]">
+                <p className="rounded-lg bg-[var(--nimi-status-warning-soft-bg)] px-3 py-2 text-xs text-[var(--nimi-status-warning-soft-text)]">
                   {t('runtimeConfig.cloud.oauthRequiresAuth', {
                     defaultValue: 'Managed OAuth connectors require an authenticated desktop session before they can be created.',
                   })}
@@ -293,7 +293,7 @@ export function CloudConnectorDetailPanel(props: CloudConnectorDetailPanelProps)
                 </p>
               )}
               {tokenSaveError && (
-                <p className="rounded-lg bg-[color-mix(in_srgb,var(--nimi-status-danger)_12%,transparent)] px-3 py-2 text-xs text-[var(--nimi-status-danger)]">{tokenSaveError}</p>
+                <p className="rounded-lg bg-[var(--nimi-status-danger-soft-bg)] px-3 py-2 text-xs text-[var(--nimi-status-danger-soft-text)]">{tokenSaveError}</p>
               )}
             </div>
 
@@ -319,7 +319,7 @@ export function CloudConnectorDetailPanel(props: CloudConnectorDetailPanelProps)
           </div>
         ) : (
           <div className="flex h-full flex-col items-center justify-center text-center">
-            <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-white/80 ring-1 ring-gray-200">
+            <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-[var(--nimi-surface-panel)] ring-1 ring-[var(--nimi-border-subtle)]">
               <CloudIcon className="h-6 w-6 text-[color-mix(in_srgb,var(--nimi-text-muted)_80%,transparent)]" />
             </div>
             <p className="text-sm font-medium text-[var(--nimi-text-primary)]">

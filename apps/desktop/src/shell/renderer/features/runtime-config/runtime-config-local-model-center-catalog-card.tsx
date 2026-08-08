@@ -7,7 +7,7 @@ import type {
 } from '@nimiplatform/sdk/runtime';
 import { Surface } from '@nimiplatform/kit/ui';
 
-import { RuntimeSelect } from './runtime-config-primitives';
+import { Button, RuntimeSelect } from './runtime-config-primitives';
 import {
   CAPABILITY_OPTIONS,
   type CapabilityOption,
@@ -60,7 +60,7 @@ export function LocalModelCenterCatalogCard(props: CatalogCardProps) {
   const i18n = useDesktopI18nResource().instance;
   const t = i18n.t.bind(i18n);
   return (
-    <Surface tone="card" material="solid" padding="none" className="overflow-visible rounded-2xl shadow-[0_6px_18px_rgba(15,23,42,0.04)] ring-1 ring-black/[0.04]">
+    <Surface tone="card" material="solid" padding="none" className="overflow-visible rounded-2xl shadow-[var(--nimi-elevation-raised)] ring-1 ring-[var(--nimi-border-subtle)]">
       <div className="border-b border-[color-mix(in_srgb,var(--nimi-border-subtle)_72%,transparent)] px-5 py-4">
         <div className="mb-3 flex items-center gap-3">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_16%,transparent)] text-[var(--nimi-action-primary-bg)]">
@@ -78,7 +78,7 @@ export function LocalModelCenterCatalogCard(props: CatalogCardProps) {
               value={props.searchQuery}
               onChange={(event) => props.onSearchQueryChange(event.target.value)}
               placeholder={i18n.t('runtimeConfig.localModelCenter.searchModelsPlaceholder', { defaultValue: 'Search models by name, repo, or task...' })}
-              className="h-10 w-full rounded-lg border border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_18%,transparent)] bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_8%,var(--nimi-surface-card))] pl-9 pr-4 text-sm outline-none focus:border-[var(--nimi-field-focus)] focus:bg-white focus:ring-2 focus:ring-mint-100"
+              className="h-10 w-full rounded-lg border border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_18%,transparent)] bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_8%,var(--nimi-surface-card))] pl-9 pr-4 text-sm outline-none focus:border-[var(--nimi-field-focus)] focus:bg-[var(--nimi-surface-card)] focus:ring-[length:var(--nimi-focus-ring-width)] focus:ring-[var(--nimi-focus-ring-color)]"
             />
           </div>
           <RuntimeSelect
@@ -97,13 +97,13 @@ export function LocalModelCenterCatalogCard(props: CatalogCardProps) {
       </div>
 
       {props.hasSearchQuery ? (
-        <div className="border-t border-[var(--nimi-border-subtle)] bg-white/60">
-          <div className="border-b border-[var(--nimi-border-subtle)] bg-white/70 px-4 py-2">
+        <div className="border-t border-[var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_60%,transparent)]">
+          <div className="border-b border-[var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_70%,transparent)] px-4 py-2">
             <span className="text-xs font-semibold uppercase tracking-wider text-[var(--nimi-text-muted)]">
               {i18n.t('runtimeConfig.localModelCenter.availableToInstall', { defaultValue: 'Available to Install' })}
             </span>
           </div>
-          <div className="divide-y divide-gray-200/80">
+          <div className="divide-y divide-[var(--nimi-border-subtle)]">
             {props.verifiedModels.map((item) => (
               <VerifiedModelSearchRow
                 key={item.templateId}
@@ -120,31 +120,31 @@ export function LocalModelCenterCatalogCard(props: CatalogCardProps) {
             ))}
             {props.catalogItems.slice(0, props.catalogDisplayCount).map((item) => (
               <div key={item.itemId}>
-                <div className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-white">
+                <div className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-[color-mix(in_srgb,var(--nimi-surface-card)_90%,var(--nimi-surface-panel))]">
                   <ModelIcon engine={item.engine} />
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
                       <span className="truncate text-sm font-medium text-[var(--nimi-text-primary)]">{item.title || item.modelId}</span>
-                      <span className="rounded bg-[color-mix(in_srgb,var(--nimi-surface-card)_78%,var(--nimi-surface-panel))] px-1.5 py-0.5 text-[10px] text-[var(--nimi-text-muted)]">{item.engine}</span>
-                      <span className="rounded bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,transparent)] px-1.5 py-0.5 text-[10px] text-[var(--nimi-action-primary-bg)]">
+                      <span className="rounded bg-[color-mix(in_srgb,var(--nimi-surface-card)_78%,var(--nimi-surface-panel))] px-1.5 py-0.5 text-[length:var(--nimi-type-caption-size)] text-[var(--nimi-text-muted)]">{item.engine}</span>
+                      <span className="rounded bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,transparent)] px-1.5 py-0.5 text-[length:var(--nimi-type-caption-size)] text-[var(--nimi-action-primary-bg)]">
                         {i18n.t('runtimeConfig.localModelCenter.huggingFace', { defaultValue: 'Hugging Face' })}
                       </span>
                       {item.recommendation ? (
-                        <span className={`rounded px-1.5 py-0.5 text-[10px] ${recommendationTierClass(item.recommendation.tier)}`}>
+                        <span className={`rounded px-1.5 py-0.5 text-[length:var(--nimi-type-caption-size)] ${recommendationTierClass(item.recommendation.tier)}`}>
                           {recommendationTierLabel(item.recommendation.tier)}
                         </span>
                       ) : null}
                     </div>
                     <p className="truncate text-xs text-[var(--nimi-text-muted)]">{item.modelId}</p>
                     {item.recommendation ? (
-                      <p className="mt-1 line-clamp-2 text-[11px] text-[var(--nimi-text-muted)]">
+                      <p className="mt-1 line-clamp-2 text-[length:var(--nimi-type-caption-size)] text-[var(--nimi-text-muted)]">
                         {recommendationSummary(item.recommendation, t)}
                       </p>
                     ) : null}
                     <RecommendationDetailList
                       recommendation={item.recommendation}
                       className="mt-1 space-y-0.5"
-                      rowClassName="text-[10px] text-[var(--nimi-text-muted)]"
+                      rowClassName="text-[length:var(--nimi-type-caption-size)] text-[var(--nimi-text-muted)]"
                       labelClassName="font-medium text-[var(--nimi-text-secondary)]"
                       maxFallbackEntries={2}
                     />
@@ -154,36 +154,35 @@ export function LocalModelCenterCatalogCard(props: CatalogCardProps) {
                     />
                     <div className="mt-1 flex flex-wrap gap-1">
                       {(item.capabilities.length > 0 ? item.capabilities : ['chat']).map((capability) => (
-                        <span key={`${item.itemId}-${capability}`} className="rounded border border-[var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_78%,var(--nimi-surface-panel))] px-1.5 py-0.5 text-[10px] text-[var(--nimi-text-secondary)]">
+                        <span key={`${item.itemId}-${capability}`} className="rounded border border-[var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_78%,var(--nimi-surface-panel))] px-1.5 py-0.5 text-[length:var(--nimi-type-caption-size)] text-[var(--nimi-text-secondary)]">
                           {capability}
                         </span>
                       ))}
                       {item.recommendation?.hostSupportClass ? (
-                        <span className="rounded border border-[color-mix(in_srgb,var(--nimi-status-info)_22%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-info)_12%,transparent)] px-1.5 py-0.5 text-[10px] text-[var(--nimi-status-info)]">
+                        <span className="rounded border border-[color-mix(in_srgb,var(--nimi-status-info)_22%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-info)_12%,transparent)] px-1.5 py-0.5 text-[length:var(--nimi-type-caption-size)] text-[var(--nimi-status-info)]">
                           {recommendationHostSupportLabel(item.recommendation.hostSupportClass)}
                         </span>
                       ) : null}
                       {item.recommendation?.confidence ? (
-                        <span className="rounded border border-[var(--nimi-border-subtle)] bg-white px-1.5 py-0.5 text-[10px] text-[var(--nimi-text-muted)]">
+                        <span className="rounded border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] px-1.5 py-0.5 text-[length:var(--nimi-type-caption-size)] text-[var(--nimi-text-muted)]">
                           {recommendationConfidenceLabel(item.recommendation.confidence)}
                         </span>
                       ) : null}
                     </div>
                   </div>
-                  <span className={`rounded-full px-2 py-1 text-[10px] ${item.installAvailable ? 'bg-[color-mix(in_srgb,var(--nimi-status-success)_18%,transparent)] text-[var(--nimi-status-success)]' : 'bg-[color-mix(in_srgb,var(--nimi-status-warning)_18%,transparent)] text-[var(--nimi-status-warning)]'}`}>
+                  <span className={`rounded-full px-2 py-1 text-[length:var(--nimi-type-caption-size)] ${item.installAvailable ? 'bg-[color-mix(in_srgb,var(--nimi-status-success)_18%,transparent)] text-[var(--nimi-status-success)]' : 'bg-[color-mix(in_srgb,var(--nimi-status-warning)_18%,transparent)] text-[var(--nimi-status-warning)]'}`}>
                     {item.installAvailable
                       ? i18n.t('runtimeConfig.localModelCenter.installable', { defaultValue: 'Installable' })
                       : i18n.t('runtimeConfig.localModelCenter.manual', { defaultValue: 'Manual' })}
                   </span>
-                  <button
-                    type="button"
+                  <Button
+                    size="sm"
                     onClick={() => props.onToggleVariantPicker(item)}
                     disabled={!item.installAvailable || props.installing}
-                    className="flex items-center gap-1.5 rounded-lg bg-[var(--nimi-action-primary-bg)] px-3 py-1.5 text-xs font-medium text-white hover:bg-[var(--nimi-action-primary-bg-hover)] disabled:opacity-50"
                   >
                     <DownloadIcon className="h-3.5 w-3.5" />
                     {i18n.t('runtimeConfig.localModelCenter.install', { defaultValue: 'Install' })}
-                  </button>
+                  </Button>
                 </div>
                 {props.variantPickerItem?.itemId === item.itemId ? (
                   <CatalogVariantPicker

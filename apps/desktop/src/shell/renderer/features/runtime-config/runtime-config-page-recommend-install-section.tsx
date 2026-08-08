@@ -1,21 +1,22 @@
-import { useCallback, useState, type ReactNode } from 'react';
+import { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Surface, cn } from '@nimiplatform/kit/ui';
 import type {
   NimiRuntimeLocalCatalogVariantDescriptor,
   NimiRuntimeLocalInstallPayload,
   NimiRuntimeLocalInstallPlanDescriptor,
   NimiRuntimeLocalRecommendationFeedItem,
 } from '@nimiplatform/sdk/runtime';
-import { Button, Card } from './runtime-config-primitives';
+import { Button, SectionTitle } from './runtime-config-primitives';
 import { useRuntimeConfigLocalAssetAdminClient } from './runtime-config-local-model-center-sdk-service';
 import {
   DownloadIcon,
   PackageIcon,
 } from './runtime-config-local-model-center-icons';
 import {
-  recommendationTierClass,
   recommendationTierLabel,
 } from './runtime-config-local-model-center-helpers';
+import { TOKEN_PANEL_CARD, tierPillClass } from './runtime-config-runtime-page-ui';
 import { formatBytes } from './runtime-config-model-center-utils';
 import type { RuntimeConfigPanelControllerModel } from './runtime-config-panel-types';
 
@@ -185,7 +186,7 @@ export function RecommendInstallSection({
 
   return (
     <div className="space-y-4">
-      <SectionHeading>{t('runtimeConfig.recommend.detailInstallTitle', { defaultValue: 'Install' })}</SectionHeading>
+      <SectionTitle>{t('runtimeConfig.recommend.detailInstallTitle', { defaultValue: 'Install' })}</SectionTitle>
 
       <div className="flex flex-wrap items-center gap-3">
         {item.installedState.installed ? (
@@ -222,14 +223,14 @@ export function RecommendInstallSection({
             {t('runtimeConfig.recommend.installing', { defaultValue: 'Installing\u2026' })}
           </span>
         ) : model.runtimeWritesDisabled ? (
-          <span className="rounded-full bg-[color-mix(in_srgb,var(--nimi-status-warning)_18%,transparent)] px-2.5 py-1 text-xs font-medium text-[var(--nimi-status-warning)]">
+          <span className="rounded-full bg-[var(--nimi-status-warning-soft-bg)] px-2.5 py-1 text-xs font-medium text-[var(--nimi-status-warning-soft-text)]">
             {t('runtimeConfig.recommend.readOnly', { defaultValue: 'Read-only mode' })}
           </span>
         ) : null}
       </div>
 
       {(planPreview || planError) ? (
-        <Card className="rounded-xl border border-[var(--nimi-border-subtle)]/70 bg-white p-5 shadow-none">
+        <Surface tone="card" padding="none" className={cn(TOKEN_PANEL_CARD, 'p-5')}>
           <div className="mb-3 flex items-center gap-2">
             <PackageIcon className="h-4 w-4 text-[var(--nimi-action-primary-bg)]" />
             <h4 className="text-sm font-semibold text-[var(--nimi-text-primary)]">
@@ -237,11 +238,11 @@ export function RecommendInstallSection({
             </h4>
           </div>
           {planError ? (
-            <div className="rounded-lg border border-[color-mix(in_srgb,var(--nimi-status-danger)_28%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-danger)_12%,transparent)] px-3 py-2 text-xs text-[var(--nimi-status-danger)]">{planError}</div>
+            <div className="rounded-lg border border-[var(--nimi-status-danger-soft-border)] bg-[var(--nimi-status-danger-soft-bg)] px-3 py-2 text-xs text-[var(--nimi-status-danger-soft-text)]">{planError}</div>
           ) : null}
           {planPreview ? (
             <div className="space-y-3">
-              <div className="rounded-lg bg-[color-mix(in_srgb,var(--nimi-surface-card)_90%,var(--nimi-surface-panel))] px-4 py-3">
+              <div className="rounded-lg bg-[var(--nimi-surface-panel)] px-4 py-3">
                 <p className="text-sm font-semibold text-[var(--nimi-text-primary)]">{planPreview.modelId}</p>
                 <p className="mt-0.5 text-xs text-[var(--nimi-text-muted)]">{planPreview.repo}</p>
               </div>
@@ -264,7 +265,7 @@ export function RecommendInstallSection({
                 </div>
               </div>
               {planPreview.warnings.length > 0 ? (
-                <div className="rounded-lg border border-[color-mix(in_srgb,var(--nimi-status-warning)_28%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-warning)_12%,transparent)] px-4 py-3 text-xs text-[var(--nimi-status-warning)]">
+                <div className="rounded-lg border border-[var(--nimi-status-warning-soft-border)] bg-[var(--nimi-status-warning-soft-bg)] px-4 py-3 text-xs text-[var(--nimi-status-warning-soft-text)]">
                   <p className="font-medium">{t('runtimeConfig.recommend.planWarnings', { defaultValue: 'Warnings' })}</p>
                   <ul className="mt-1 list-disc space-y-0.5 pl-4">
                     {planPreview.warnings.map((w) => <li key={w}>{w}</li>)}
@@ -285,28 +286,28 @@ export function RecommendInstallSection({
               </Button>
             </div>
           ) : null}
-        </Card>
+        </Surface>
       ) : null}
 
       {variantsError ? (
-        <div className="rounded-lg border border-[color-mix(in_srgb,var(--nimi-status-danger)_28%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-danger)_12%,transparent)] px-3 py-2 text-xs text-[var(--nimi-status-danger)]">{variantsError}</div>
+        <div className="rounded-lg border border-[var(--nimi-status-danger-soft-border)] bg-[var(--nimi-status-danger-soft-bg)] px-3 py-2 text-xs text-[var(--nimi-status-danger-soft-text)]">{variantsError}</div>
       ) : null}
       {variants.length > 0 ? (
-        <Card className="rounded-xl border border-[var(--nimi-border-subtle)]/70 bg-white p-5 shadow-none">
+        <Surface tone="card" padding="none" className={cn(TOKEN_PANEL_CARD, 'p-5')}>
           <h4 className="mb-3 text-sm font-semibold text-[var(--nimi-text-primary)]">
             {t('runtimeConfig.recommend.variantsTitle', { defaultValue: 'Variants' })}
           </h4>
           <div className="space-y-2">
             {variants.map((variant) => (
-              <div key={variant.entry || variant.filename} className="flex items-center justify-between gap-3 rounded-lg border border-[var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_90%,var(--nimi-surface-panel))] px-4 py-2.5">
+              <div key={variant.entry || variant.filename} className="flex items-center justify-between gap-3 rounded-lg border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] px-4 py-2.5">
                 <div className="min-w-0 flex-1">
                   <p className="truncate font-mono text-xs text-[var(--nimi-text-secondary)]">{variant.entry || variant.filename}</p>
-                  <p className="mt-0.5 text-[11px] text-[var(--nimi-text-muted)]">
+                  <p className="mt-0.5 text-[length:var(--nimi-type-caption-size)] text-[var(--nimi-text-muted)]">
                     {[variant.format || 'unknown', variant.sizeBytes ? formatBytes(variant.sizeBytes) : ''].filter(Boolean).join(' \u00b7 ')}
                   </p>
                 </div>
                 {variant.recommendation?.tier ? (
-                  <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium ${recommendationTierClass(variant.recommendation.tier)}`}>
+                  <span className={`shrink-0 rounded-full px-2 py-0.5 text-[length:var(--nimi-type-caption-size)] font-medium ${tierPillClass(variant.recommendation.tier)}`}>
                     {recommendationTierLabel(variant.recommendation.tier)}
                   </span>
                 ) : null}
@@ -324,12 +325,8 @@ export function RecommendInstallSection({
               </div>
             ))}
           </div>
-        </Card>
+        </Surface>
       ) : null}
     </div>
   );
-}
-
-function SectionHeading({ children }: { children: ReactNode }) {
-  return <h3 className="text-sm font-bold text-[var(--nimi-text-primary)]">{children}</h3>;
 }

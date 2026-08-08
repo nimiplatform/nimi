@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { RuntimeConfigStateV11 } from './runtime-config-state-types';
-import { cn } from '@nimiplatform/kit/ui';
+import { NimiTabs } from '@nimiplatform/kit/ui';
 import { RuntimeHealthSection } from './runtime-config-runtime-health-section.js';
 import { GlobalAuditSection } from './runtime-config-global-audit-section.js';
 import { UsageStatsSection } from './runtime-config-usage-stats-section.js';
@@ -57,44 +57,26 @@ export function RuntimePage({ model, state }: RuntimePageProps) {
 
   return (
     <RuntimePageShell>
-      {/* Tab bar: underline-style, non-sticky, flows with page. */}
-      <div className="relative flex items-center gap-7 border-b border-[var(--nimi-border-subtle)] overflow-x-auto">
-        {tabs.map((tab) => {
-          const isActive = tab.key === activeTab;
-          return (
-            <button
-              key={`runtime-tab-${tab.key}`}
-              type="button"
-              onClick={() => setActiveTab(tab.key)}
-              className={cn(
-                'group relative shrink-0 px-0.5 py-2.5 text-sm font-medium transition-all duration-200 ease-out',
-                isActive
-                  ? 'text-[var(--nimi-text-primary)]'
-                  : 'text-[var(--nimi-text-muted)] hover:-translate-y-[1px] hover:text-[var(--nimi-text-primary)]',
-              )}
-            >
-              <span className="inline-flex items-center gap-1.5">
-                {tab.label}
-                {tab.badge ? (
-                  <span className={cn(
-                    'inline-flex min-w-[18px] items-center justify-center rounded-full px-1 text-[10px] font-semibold leading-4 transition-colors',
-                    isActive
-                      ? 'bg-[var(--nimi-status-danger)] text-white'
-                      : 'bg-[color-mix(in_srgb,var(--nimi-status-danger)_14%,transparent)] text-[var(--nimi-status-danger)]',
-                  )}>
-                    {tab.badge}
-                  </span>
-                ) : null}
-              </span>
-              {!isActive ? (
-                <span className="pointer-events-none absolute inset-x-0 -bottom-px h-[2px] origin-center scale-x-0 rounded-full bg-[var(--nimi-text-muted)] opacity-0 transition-all duration-200 ease-out group-hover:scale-x-100 group-hover:opacity-40" />
-              ) : (
-                <span className="pointer-events-none absolute inset-x-0 -bottom-px h-[2px] rounded-full bg-[var(--nimi-action-primary-bg)]" />
-              )}
-            </button>
-          );
-        })}
-      </div>
+      {/* Tab bar: kit underline tabs, non-sticky, flows with page. */}
+      <NimiTabs
+        className="overflow-x-auto"
+        ariaLabel={t('runtimeConfig.sidebar.environment', { defaultValue: 'Environment' })}
+        value={activeTab}
+        onValueChange={(value) => setActiveTab(value as RuntimeTabKey)}
+        items={tabs.map((tab) => ({
+          value: tab.key,
+          label: (
+            <span className="inline-flex items-center gap-1.5">
+              {tab.label}
+              {tab.badge ? (
+                <span className="inline-flex min-w-[18px] items-center justify-center rounded-full bg-[var(--nimi-status-danger-soft-bg)] px-1 text-[length:var(--nimi-type-caption-size)] font-semibold leading-4 text-[var(--nimi-status-danger-soft-text)]">
+                  {tab.badge}
+                </span>
+              ) : null}
+            </span>
+          ),
+        }))}
+      />
 
       {activeTab === 'overview' ? (
         <RuntimeOverviewTab model={model} />

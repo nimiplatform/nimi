@@ -91,7 +91,7 @@ export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControl
   if (!state) {
     return (
       <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-2 px-3 pb-3 pt-2 xl:flex-row">
-        <aside className="flex max-h-[min(44vh,360px)] w-full shrink-0 flex-col bg-white px-3 py-2 xl:max-h-none xl:w-[216px]">
+        <aside className="flex max-h-[min(44vh,360px)] w-full shrink-0 flex-col bg-[var(--nimi-surface-card)] px-3 py-2 xl:max-h-none xl:w-[216px]">
           <RuntimeSkeletonBlock className="h-9 w-32 rounded-xl" />
           <div className="mt-3 space-y-2">
             {Array.from({ length: 8 }).map((_, index) => (
@@ -104,7 +104,7 @@ export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControl
           tone="panel"
           material="glass-regular"
           padding="none"
-          className="flex min-h-0 min-w-0 w-full flex-1 flex-col overflow-hidden rounded-xl border-white/60 shadow-[0_10px_24px_rgba(15,23,42,0.05)]"
+          className="flex min-h-0 min-w-0 w-full flex-1 flex-col overflow-hidden rounded-xl border-[var(--nimi-border-subtle)] shadow-[var(--nimi-elevation-base)]"
         >
           <div className="flex h-12 shrink-0 items-center justify-between px-4">
             <RuntimeSkeletonBlock className="h-8 w-40 rounded-xl" />
@@ -189,7 +189,7 @@ export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControl
         tone="panel"
         material="glass-regular"
         padding="none"
-        className="flex min-h-0 min-w-0 w-full flex-1 flex-col overflow-hidden rounded-xl border-white/60 shadow-[0_10px_24px_rgba(15,23,42,0.05)]"
+        className="flex min-h-0 min-w-0 w-full flex-1 flex-col overflow-hidden rounded-xl border-[var(--nimi-border-subtle)] shadow-[var(--nimi-elevation-base)]"
       >
         <div className="flex h-12 shrink-0 items-center px-4">
           <div className="flex w-full items-center justify-between">

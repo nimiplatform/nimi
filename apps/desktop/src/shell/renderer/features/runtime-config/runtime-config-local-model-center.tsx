@@ -21,18 +21,10 @@ export function LocalModelCenter(props: LocalModelCenterProps) {
       discovering={props.discovering}
       filteredInstalledDependencyAssets={runtimeState.filteredInstalledDependencyAssets}
       filteredInstalledRunnableAssets={runtimeState.filteredInstalledRunnableAssets}
-      sharedRuntimeDependency={runtimeState.sharedRuntimeDependency}
-      sharedRuntimeDependencyJobs={runtimeState.sharedRuntimeDependencyJobs}
-      runtimeDependencyByLocalAssetId={runtimeState.runtimeDependencyByLocalAssetId}
-      runtimeDependencyError={runtimeState.runtimeDependencyError}
       runtimeInventoryError={runtimeState.runtimeInventoryError}
       hasSearchQuery={hasSearchQuery}
       importFileAssetKind={runtimeState.importFileAssetKind}
       importFileAuxiliaryEngine={runtimeState.importFileAuxiliaryEngine}
-      importFileEndpoint={runtimeState.importFileEndpoint}
-      importCompatibilityHint={runtimeState.importCompatibilityHint}
-      importEndpointRequired={runtimeState.importEndpointRequired}
-      importEndpointHint={runtimeState.importEndpointHint}
       importMenuRef={runtimeState.importMenuRef}
       importingAssetPath={runtimeState.importingAssetPath}
       installing={runtimeState.installing}
@@ -45,12 +37,6 @@ export function LocalModelCenter(props: LocalModelCenterProps) {
       loadingVerifiedAssets={runtimeState.loadingVerifiedAssets}
       loadingVerifiedModels={runtimeState.loadingVerifiedModels}
       assetImportError={runtimeState.assetImportError}
-      assetImportSessionByPath={runtimeState.assetImportSessionByPath}
-      unregisteredCompatibilityHintByPath={runtimeState.unregisteredCompatibilityHintByPath}
-      unregisteredImportAllowedByPath={runtimeState.unregisteredImportAllowedByPath}
-      unregisteredEndpointByPath={runtimeState.unregisteredEndpointByPath}
-      unregisteredEndpointRequiredByPath={runtimeState.unregisteredEndpointRequiredByPath}
-      unregisteredEndpointHintByPath={runtimeState.unregisteredEndpointHintByPath}
       onArtifactKindFilterChange={runtimeState.setAssetKindFilter}
       onCancelDownload={runtimeState.onCancelDownload}
       onAssetKindChange={(kind) => {
@@ -60,7 +46,6 @@ export function LocalModelCenter(props: LocalModelCenterProps) {
         }
       }}
       onAssetAuxiliaryEngineChange={runtimeState.setImportFileAuxiliaryEngine}
-      onImportEndpointChange={runtimeState.setImportFileEndpoint}
       onCatalogCapabilityChange={runtimeState.setCatalogCapability}
       onCatalogCapabilityOverrideChange={(itemId, capability) => runtimeState.setCatalogCapabilityOverrides((prev) => ({
         ...prev,
@@ -70,14 +55,12 @@ export function LocalModelCenter(props: LocalModelCenterProps) {
         runtimeState.setShowImportFileDialog(false);
         void runtimeState.importPickedAssetFile(
           runtimeState.importFileDeclaration,
-          runtimeState.importFileEndpoint,
         );
       }}
       onChooseImportDirectory={() => {
         runtimeState.setShowImportFileDialog(false);
         void runtimeState.importPickedAssetDirectory(
           runtimeState.importFileDeclaration,
-          runtimeState.importFileEndpoint,
         );
       }}
       onCloseImportFileDialog={() => runtimeState.setShowImportFileDialog(false)}
@@ -112,10 +95,6 @@ export function LocalModelCenter(props: LocalModelCenterProps) {
       onRefreshQuickPicks={() => { void runtimeState.refreshVerifiedModels(); }}
       onRefreshUnregisteredAssets={() => { void runtimeState.refreshUnregisteredAssets(); }}
       onRemoveAsset={(localAssetId) => { void runtimeState.removeInstalledAsset(localAssetId); }}
-      onSetupRuntimeDependency={() => { void runtimeState.setupRuntimeDependency(); }}
-      onCancelRuntimeDependencyJob={(jobId) => { void runtimeState.cancelRuntimeDependencyJob(jobId); }}
-      onRetryRuntimeDependencyJob={(jobId) => { void runtimeState.retryRuntimeDependencyJob(jobId); }}
-      onRepairRuntimeDependency={() => { void runtimeState.repairRuntimeDependency(); }}
       onRescanAsset={(localAssetId) => { void runtimeState.rescanInstalledAsset(localAssetId); }}
       onResumeDownload={runtimeState.onResumeDownload}
       onSearchQueryChange={runtimeState.setSearchQuery}
@@ -124,7 +103,6 @@ export function LocalModelCenter(props: LocalModelCenterProps) {
       onImportUnregisteredAsset={(path) => { void runtimeState.importUnregisteredAsset(path); }}
       onUnregisteredAssetKindChange={runtimeState.setUnregisteredAssetKind}
       onUnregisteredAuxiliaryEngineChange={runtimeState.setUnregisteredAuxiliaryEngine}
-      onUnregisteredEndpointChange={runtimeState.setUnregisteredEndpoint}
       relatedAssetsByModelTemplate={runtimeState.relatedAssetsByModelTemplate}
       resolveUnregisteredAssetDraft={runtimeState.resolveUnregisteredAssetDraft}
       searchQuery={runtimeState.searchQuery}

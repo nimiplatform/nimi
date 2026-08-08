@@ -17,10 +17,6 @@ type LocalModelCenterImportControlsProps = {
   showImportFileDialog: boolean;
   importFileAssetKind: NimiRuntimeLocalAssetKind;
   importFileAuxiliaryEngine: AssetEngineOption | '';
-  importFileEndpoint: string;
-  importEndpointRequired: boolean;
-  importCompatibilityHint?: string;
-  importEndpointHint?: string;
   onHealthCheck: () => void;
   onRefresh: () => void;
   onOpenModelsFolder: () => void;
@@ -30,7 +26,6 @@ type LocalModelCenterImportControlsProps = {
   onImportManifest: () => void;
   onAssetKindChange: (kind: NimiRuntimeLocalAssetKind) => void;
   onAuxiliaryEngineChange: (engine: AssetEngineOption | '') => void;
-  onEndpointChange: (endpoint: string) => void;
   onCloseImportFileDialog: () => void;
   onChooseImportFile: () => void;
   onChooseImportDirectory: () => void;
@@ -59,13 +54,8 @@ export function LocalModelCenterImportControls(props: LocalModelCenterImportCont
         visible={props.showImportFileDialog}
         assetKind={props.importFileAssetKind}
         auxiliaryEngine={props.importFileAuxiliaryEngine}
-        endpoint={props.importFileEndpoint}
-        endpointRequired={props.importEndpointRequired}
-        compatibilityHint={props.importCompatibilityHint}
-        endpointHint={props.importEndpointHint}
         onAssetKindChange={props.onAssetKindChange}
         onAuxiliaryEngineChange={props.onAuxiliaryEngineChange}
-        onEndpointChange={props.onEndpointChange}
         onClose={props.onCloseImportFileDialog}
         onChooseFile={props.onChooseImportFile}
         onChooseFolder={props.onChooseImportDirectory}

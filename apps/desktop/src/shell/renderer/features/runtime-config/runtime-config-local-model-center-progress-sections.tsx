@@ -8,6 +8,8 @@ import {
   formatAssetKindLabel,
   type AssetTaskEntry,
 } from './runtime-config-local-model-center-helpers';
+import { ProgressIndicator } from '@nimiplatform/kit/ui';
+import { Button } from './runtime-config-primitives';
 import {
   downloadStateLabel,
   formatBytes,
@@ -73,26 +75,25 @@ function LocalModelCenterActiveDownloadsSection(props: ActiveDownloadsSectionPro
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-medium text-[var(--nimi-text-primary)]">{event.modelId}</p>
                 <p className="text-xs text-[var(--nimi-text-muted)]">{phaseLabel}</p>
-                {event.phase !== 'download' && event.message ? <p className="truncate text-[11px] text-[color-mix(in_srgb,var(--nimi-text-muted)_80%,transparent)]">{event.message}</p> : null}
+                {event.phase !== 'download' && event.message ? <p className="truncate text-[length:var(--nimi-type-caption-size)] text-[color-mix(in_srgb,var(--nimi-text-muted)_80%,transparent)]">{event.message}</p> : null}
               </div>
-              <span className={`rounded-full px-2 py-1 text-[10px] font-medium ${
-                isFailed ? 'bg-[color-mix(in_srgb,var(--nimi-status-danger)_18%,transparent)] text-[var(--nimi-status-danger)]' :
-                isPaused ? 'bg-[color-mix(in_srgb,var(--nimi-status-warning)_18%,transparent)] text-[var(--nimi-status-warning)]' :
-                isRunning ? 'bg-[color-mix(in_srgb,var(--nimi-status-info)_18%,transparent)] text-[var(--nimi-status-info)]' :
-                'bg-[color-mix(in_srgb,var(--nimi-surface-card)_78%,var(--nimi-surface-panel))] text-[var(--nimi-text-secondary)]'
+              <span className={`rounded-full px-2 py-1 text-[length:var(--nimi-type-caption-size)] font-medium ${
+                isFailed ? 'bg-[var(--nimi-status-danger-soft-bg)] text-[var(--nimi-status-danger-soft-text)]' :
+                isPaused ? 'bg-[var(--nimi-status-warning-soft-bg)] text-[var(--nimi-status-warning-soft-text)]' :
+                isRunning ? 'bg-[var(--nimi-status-info-soft-bg)] text-[var(--nimi-status-info-soft-text)]' :
+                'bg-[var(--nimi-status-neutral-soft-bg)] text-[var(--nimi-status-neutral-soft-text)]'
               }`}>
                 {downloadStateLabel(event.state)}
               </span>
             </div>
             {typeof event.bytesTotal === 'number' && event.bytesTotal > 0 ? (
               <div className="mb-2">
-                <div className="h-1.5 overflow-hidden rounded-full bg-[color-mix(in_srgb,var(--nimi-surface-card)_78%,var(--nimi-surface-panel))]">
-                  <div
-                    className={`h-full transition-all ${isFailed ? 'bg-[var(--nimi-status-danger)]' : 'bg-[var(--nimi-action-primary-bg)]'}`}
-                    style={{ width: `${Math.max(0, Math.min(100, Math.round((event.bytesReceived / event.bytesTotal) * 100)))}%` }}
-                  />
-                </div>
-                <div className="mt-1 flex justify-between text-[10px] text-[var(--nimi-text-muted)]">
+                <ProgressIndicator
+                  value={event.bytesReceived}
+                  max={event.bytesTotal}
+                  className={isFailed ? '[&_.nimi-progress__bar]:bg-[var(--nimi-status-danger)]' : undefined}
+                />
+                <div className="mt-1 flex justify-between text-[length:var(--nimi-type-caption-size)] text-[var(--nimi-text-muted)]">
                   <span>{formatBytes(event.bytesReceived)} / {formatBytes(event.bytesTotal)}</span>
                   {isRunning ? <span>{progressMeta}</span> : null}
                 </div>
@@ -107,7 +108,7 @@ function LocalModelCenterActiveDownloadsSection(props: ActiveDownloadsSectionPro
             )}
             <div className="flex items-center gap-2">
               {canPause ? <button type="button" onClick={() => props.onPause(event.installSessionId)} className="rounded border border-[var(--nimi-border-subtle)] px-2 py-1 text-xs text-[var(--nimi-text-secondary)] hover:bg-[color-mix(in_srgb,var(--nimi-surface-card)_90%,var(--nimi-surface-panel))]">{i18n.t('runtimeConfig.localModelCenter.pause', { defaultValue: 'Pause' })}</button> : null}
-              {canResume ? <button type="button" onClick={() => props.onResume(event.installSessionId)} className="rounded bg-[var(--nimi-action-primary-bg)] px-2 py-1 text-xs text-white hover:bg-[var(--nimi-action-primary-bg-hover)]">{i18n.t('runtimeConfig.localModelCenter.resume', { defaultValue: 'Resume' })}</button> : null}
+              {canResume ? <Button size="sm" onClick={() => props.onResume(event.installSessionId)}>{i18n.t('runtimeConfig.localModelCenter.resume', { defaultValue: 'Resume' })}</Button> : null}
               {canCancel ? <button type="button" onClick={() => props.onCancel(event.installSessionId)} className="rounded border border-[var(--nimi-border-subtle)] px-2 py-1 text-xs text-[var(--nimi-text-secondary)] hover:border-[color-mix(in_srgb,var(--nimi-status-danger)_28%,transparent)] hover:text-[var(--nimi-status-danger)]">{i18n.t('Common.cancel', { defaultValue: 'Cancel' })}</button> : null}
             </div>
           </div>
@@ -119,6 +120,7 @@ function LocalModelCenterActiveDownloadsSection(props: ActiveDownloadsSectionPro
 
 type ActiveImportsSectionProps = {
   imports: NimiRuntimeLocalTransferProgressEvent[];
+  onCancel: (installSessionId: string) => void;
   onDismiss: (installSessionId: string) => void;
 };
 
@@ -140,6 +142,7 @@ function LocalModelCenterActiveImportsSection(props: ActiveImportsSectionProps) 
         const isRunning = event.state === 'running';
         const isPaused = event.state === 'paused';
         const isFailed = event.state === 'failed';
+        const canCancel = event.state === 'queued' || isRunning || isPaused;
         const phaseLabel = formatImportPhaseLabel(event.phase);
         const progressMeta = event.phase === 'register'
           || event.phase === 'manifest'
@@ -161,15 +164,15 @@ function LocalModelCenterActiveImportsSection(props: ActiveImportsSectionProps) 
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-medium text-[var(--nimi-text-primary)]">{event.modelId}</p>
                 <p className="text-xs text-[var(--nimi-text-muted)]">{phaseLabel}</p>
-                <p className="truncate text-[11px] text-[color-mix(in_srgb,var(--nimi-text-muted)_80%,transparent)]">
+                <p className="truncate text-[length:var(--nimi-type-caption-size)] text-[color-mix(in_srgb,var(--nimi-text-muted)_80%,transparent)]">
                   {event.message || i18n.t('runtimeConfig.localModelCenter.localImportSession', { defaultValue: 'Importing local file into managed storage.' })}
                 </p>
               </div>
-              <span className={`rounded-full px-2 py-1 text-[10px] font-medium ${
-                isFailed ? 'bg-[color-mix(in_srgb,var(--nimi-status-danger)_18%,transparent)] text-[var(--nimi-status-danger)]' :
-                isPaused ? 'bg-[color-mix(in_srgb,var(--nimi-status-warning)_18%,transparent)] text-[var(--nimi-status-warning)]' :
-                isRunning ? 'bg-[color-mix(in_srgb,var(--nimi-status-info)_18%,transparent)] text-[var(--nimi-status-info)]' :
-                'bg-[color-mix(in_srgb,var(--nimi-surface-card)_78%,var(--nimi-surface-panel))] text-[var(--nimi-text-secondary)]'
+              <span className={`rounded-full px-2 py-1 text-[length:var(--nimi-type-caption-size)] font-medium ${
+                isFailed ? 'bg-[var(--nimi-status-danger-soft-bg)] text-[var(--nimi-status-danger-soft-text)]' :
+                isPaused ? 'bg-[var(--nimi-status-warning-soft-bg)] text-[var(--nimi-status-warning-soft-text)]' :
+                isRunning ? 'bg-[var(--nimi-status-info-soft-bg)] text-[var(--nimi-status-info-soft-text)]' :
+                'bg-[var(--nimi-status-neutral-soft-bg)] text-[var(--nimi-status-neutral-soft-text)]'
               }`}>
                 {downloadStateLabel(event.state)}
               </span>
@@ -182,16 +185,26 @@ function LocalModelCenterActiveImportsSection(props: ActiveImportsSectionProps) 
                   {'\u00d7'}
                 </button>
               ) : null}
+              {canCancel ? (
+                <button
+                  type="button"
+                  className="ml-1 rounded border border-[var(--nimi-border-subtle)] px-2 py-1 text-xs text-[var(--nimi-text-secondary)] hover:border-[color-mix(in_srgb,var(--nimi-status-danger)_28%,transparent)] hover:text-[var(--nimi-status-danger)]"
+                  onClick={() => props.onCancel(event.installSessionId)}
+                >
+                  {i18n.t('Common.cancel', { defaultValue: 'Cancel' })}
+                </button>
+              ) : null}
             </div>
             {typeof event.bytesTotal === 'number' && event.bytesTotal > 0 ? (
               <div className="mb-2">
-                <div className="h-1.5 overflow-hidden rounded-full bg-[color-mix(in_srgb,var(--nimi-surface-card)_78%,var(--nimi-surface-panel))]">
-                  <div
-                    className={`h-full transition-all ${isFailed ? 'bg-[var(--nimi-status-danger)]' : 'bg-[var(--nimi-status-success)]'}`}
-                    style={{ width: `${Math.max(0, Math.min(100, Math.round((event.bytesReceived / event.bytesTotal) * 100)))}%` }}
-                  />
-                </div>
-                <div className="mt-1 flex justify-between text-[10px] text-[var(--nimi-text-muted)]">
+                <ProgressIndicator
+                  value={event.bytesReceived}
+                  max={event.bytesTotal}
+                  className={isFailed
+                    ? '[&_.nimi-progress__bar]:bg-[var(--nimi-status-danger)]'
+                    : '[&_.nimi-progress__bar]:bg-[var(--nimi-status-success)]'}
+                />
+                <div className="mt-1 flex justify-between text-[length:var(--nimi-type-caption-size)] text-[var(--nimi-text-muted)]">
                   <span>{formatBytes(event.bytesReceived)} / {formatBytes(event.bytesTotal)}</span>
                   {(isRunning || isPaused) ? <span>{progressMeta}</span> : null}
                 </div>
@@ -247,14 +260,14 @@ function LocalModelCenterAssetTasksSection(props: AssetTasksSectionProps) {
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
                     <p className="truncate text-sm font-medium text-[var(--nimi-text-primary)]">{task.title}</p>
-                    <span className="rounded bg-[color-mix(in_srgb,var(--nimi-surface-card)_78%,var(--nimi-surface-panel))] px-1.5 py-0.5 text-[10px] text-[var(--nimi-text-secondary)]">
+                    <span className="rounded bg-[color-mix(in_srgb,var(--nimi-surface-card)_78%,var(--nimi-surface-panel))] px-1.5 py-0.5 text-[length:var(--nimi-type-caption-size)] text-[var(--nimi-text-secondary)]">
                       {formatAssetKindLabel(task.kind)}
                     </span>
                   </div>
                   <p className="truncate text-xs text-[var(--nimi-text-muted)]">{task.assetId}</p>
-                  {task.detail ? <p className={`mt-0.5 truncate text-[11px] ${isFailed ? 'text-[var(--nimi-status-danger)]' : 'text-[color-mix(in_srgb,var(--nimi-text-muted)_80%,transparent)]'}`}>{task.detail}</p> : null}
+                  {task.detail ? <p className={`mt-0.5 truncate text-[length:var(--nimi-type-caption-size)] ${isFailed ? 'text-[var(--nimi-status-danger)]' : 'text-[color-mix(in_srgb,var(--nimi-text-muted)_80%,transparent)]'}`}>{task.detail}</p> : null}
                 </div>
-                <span className={`rounded-full px-2 py-1 text-[10px] font-medium ${
+                <span className={`rounded-full px-2 py-1 text-[length:var(--nimi-type-caption-size)] font-medium ${
                   isFailed ? 'bg-[color-mix(in_srgb,var(--nimi-status-danger)_18%,transparent)] text-[var(--nimi-status-danger)]' : isRunning ? 'bg-[color-mix(in_srgb,var(--nimi-status-warning)_18%,transparent)] text-[var(--nimi-status-warning)]' : 'bg-[color-mix(in_srgb,var(--nimi-status-success)_18%,transparent)] text-[var(--nimi-status-success)]'
                 }`}>
                   {assetTaskStatusLabel(task.state)}

@@ -4,7 +4,7 @@ import {
   createNimiRuntimeExternalAgentAccessSurface,
   type NimiExternalAgentTokenLedgerRecord,
 } from '@nimiplatform/sdk/runtime';
-import { Surface, cn } from '@nimiplatform/kit/ui';
+import { SegmentedControl, Surface, cn } from '@nimiplatform/kit/ui';
 import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
 import { Button } from './runtime-config-primitives';
 import {
@@ -308,7 +308,8 @@ export function ExternalAgentAccessPanel() {
           </div>
           <div className="flex shrink-0 items-center gap-1">
             <IconButton
-              icon={<RefreshIcon spinning={refreshing} />}
+              size="md"
+              icon={<RefreshIcon className={refreshing ? 'animate-spin' : ''} />}
               title={t('runtimeConfig.runtime.refresh', { defaultValue: 'Refresh' })}
               disabled={refreshing}
               onClick={() => { void refreshGateway(); }}
@@ -322,7 +323,7 @@ export function ExternalAgentAccessPanel() {
               key={entry.key}
               className="group relative rounded-xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)]/60 p-3"
             >
-              <p className={cn('text-[10px] font-semibold uppercase tracking-[0.14em]', TOKEN_TEXT_MUTED)}>
+              <p className={cn('text-[length:var(--nimi-type-caption-size)] font-semibold uppercase tracking-[var(--nimi-type-overline-letter-spacing)]', TOKEN_TEXT_MUTED)}>
                 {entry.label}
               </p>
               <p className={cn('mt-1 truncate font-mono text-sm', TOKEN_TEXT_PRIMARY)} title={entry.value}>
@@ -364,27 +365,13 @@ export function ExternalAgentAccessPanel() {
               </p>
             </div>
             <div className="flex shrink-0 flex-wrap items-center gap-2">
-              {/* Filter segmented control */}
-              <div className="inline-flex rounded-lg border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)]/60 p-0.5">
-                {filterTabs.map((tab) => {
-                  const isActive = tab.key === filter;
-                  return (
-                    <button
-                      key={`token-filter-${tab.key}`}
-                      type="button"
-                      onClick={() => setFilter(tab.key)}
-                      className={cn(
-                        'rounded-md px-2.5 py-1 text-[11px] font-medium transition-colors',
-                        isActive
-                          ? 'bg-[var(--nimi-surface-card)] text-[var(--nimi-text-primary)] shadow-[0_1px_2px_rgba(15,23,42,0.04)]'
-                          : 'text-[var(--nimi-text-muted)] hover:text-[var(--nimi-text-primary)]',
-                      )}
-                    >
-                      {tab.label}
-                    </button>
-                  );
-                })}
-              </div>
+              <SegmentedControl
+                size="sm"
+                ariaLabel={t('runtimeConfig.eaa.issuedTokens', { defaultValue: 'Issued tokens' })}
+                items={filterTabs.map((tab) => ({ value: tab.key, label: tab.label }))}
+                value={filter}
+                onValueChange={(value) => setFilter(value as TokenFilter)}
+              />
               <Button
                 variant="primary"
                 size="sm"

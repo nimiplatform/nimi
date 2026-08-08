@@ -48,7 +48,7 @@ export function ExternalAgentTokenTable(props: {
         </div>
       ) : (
         <>
-          <div className={cn('grid grid-cols-[1.4fr_0.8fr_2fr_0.9fr_0.9fr_0.6fr] items-center gap-3 border-b border-[var(--nimi-border-subtle)] px-2 pb-2 text-[10px] font-semibold uppercase tracking-[0.14em]', TOKEN_TEXT_MUTED)}>
+          <div className={cn('grid grid-cols-[1.4fr_0.8fr_2fr_0.9fr_0.9fr_0.6fr] items-center gap-3 border-b border-[var(--nimi-border-subtle)] px-2 pb-2 text-[length:var(--nimi-type-caption-size)] font-semibold uppercase tracking-[var(--nimi-type-overline-letter-spacing)]', TOKEN_TEXT_MUTED)}>
             <span>{t('runtimeConfig.eaa.columnPrincipal', { defaultValue: 'Principal' })}</span>
             <span>{t('runtimeConfig.eaa.columnMode', { defaultValue: 'Mode' })}</span>
             <span>{t('runtimeConfig.eaa.columnScopes', { defaultValue: 'Scopes' })}</span>
@@ -131,7 +131,7 @@ function ExternalAgentTokenRow(props: {
             <p className={cn('truncate text-sm font-medium', TOKEN_TEXT_PRIMARY)}>
               {token.principalId}
             </p>
-            <p className={cn('truncate font-mono text-[11px]', TOKEN_TEXT_MUTED)}>
+            <p className={cn('truncate font-mono text-[length:var(--nimi-type-caption-size)]', TOKEN_TEXT_MUTED)}>
               {token.subjectAccountId || '—'}
             </p>
           </div>
@@ -139,7 +139,7 @@ function ExternalAgentTokenRow(props: {
 
         <div>
           <span className={cn(
-            'inline-flex items-center rounded-md px-2 py-0.5 text-[11px] font-medium',
+            'inline-flex items-center rounded-md px-2 py-0.5 text-[length:var(--nimi-type-caption-size)] font-medium',
             token.mode === 'autonomous'
               ? 'bg-[color-mix(in_srgb,var(--nimi-status-warning)_14%,transparent)] text-[var(--nimi-status-warning)]'
               : 'bg-[color-mix(in_srgb,var(--nimi-text-muted)_16%,transparent)] text-[var(--nimi-text-secondary)]',
@@ -150,19 +150,19 @@ function ExternalAgentTokenRow(props: {
 
         <div className="flex min-w-0 flex-wrap items-center gap-1">
           {visibleScopes.length === 0 ? (
-            <span className={cn('font-mono text-[11px]', TOKEN_TEXT_MUTED)}>—</span>
+            <span className={cn('font-mono text-[length:var(--nimi-type-caption-size)]', TOKEN_TEXT_MUTED)}>—</span>
           ) : (
             visibleScopes.map((scope) => (
               <span
                 key={`${token.tokenId}-${scope}`}
-                className="rounded-md border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)]/70 px-1.5 py-0.5 font-mono text-[11px] text-[var(--nimi-text-secondary)]"
+                className="rounded-md border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)]/70 px-1.5 py-0.5 font-mono text-[length:var(--nimi-type-caption-size)] text-[var(--nimi-text-secondary)]"
               >
                 {scope}
               </span>
             ))
           )}
           {overflowCount > 0 ? (
-            <span className={cn('font-mono text-[11px]', TOKEN_TEXT_MUTED)}>
+            <span className={cn('font-mono text-[length:var(--nimi-type-caption-size)]', TOKEN_TEXT_MUTED)}>
               +{overflowCount}
             </span>
           ) : null}
@@ -170,12 +170,12 @@ function ExternalAgentTokenRow(props: {
 
         <div>
           {status === 'revoked' ? (
-            <span className="inline-flex items-center gap-1 rounded-md bg-[color-mix(in_srgb,var(--nimi-status-danger)_14%,transparent)] px-2 py-0.5 text-[11px] font-medium text-[var(--nimi-status-danger)]">
+            <span className="inline-flex items-center gap-1 rounded-md bg-[color-mix(in_srgb,var(--nimi-status-danger)_14%,transparent)] px-2 py-0.5 text-[length:var(--nimi-type-caption-size)] font-medium text-[var(--nimi-status-danger)]">
               {t('runtimeConfig.eaa.tokenStatusRevoked', { defaultValue: 'revoked' })}
             </span>
           ) : (
             <span className={cn(
-              'inline-flex items-center gap-1 text-[11px]',
+              'inline-flex items-center gap-1 text-[length:var(--nimi-type-caption-size)]',
               tone === 'success' ? 'text-[var(--nimi-status-success)]' : 'text-[var(--nimi-status-warning)]',
             )}>
               <ClockIcon />
@@ -184,7 +184,7 @@ function ExternalAgentTokenRow(props: {
           )}
         </div>
 
-        <div className={cn('text-[11px]', TOKEN_TEXT_MUTED)}>
+        <div className={cn('text-[length:var(--nimi-type-caption-size)]', TOKEN_TEXT_MUTED)}>
           {issuedRel}
         </div>
 
@@ -206,7 +206,7 @@ function ExternalAgentTokenRow(props: {
                 }
               }}
               className={cn(
-                'rounded-md px-2 py-1 text-[11px] font-medium transition-colors',
+                'rounded-md px-2 py-1 text-[length:var(--nimi-type-caption-size)] font-medium transition-colors',
                 revokeDisabled
                   ? 'cursor-not-allowed text-[color-mix(in_srgb,var(--nimi-text-muted)_70%,transparent)]'
                   : 'text-[var(--nimi-text-secondary)] hover:bg-[color-mix(in_srgb,var(--nimi-status-danger)_10%,transparent)] hover:text-[var(--nimi-status-danger)]',
@@ -240,9 +240,9 @@ function ExternalAgentTokenExpandedDetails(props: {
   const { token, t } = props;
   return (
     <div className="mx-2 mb-3 mt-1 rounded-lg border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)]/40 p-3">
-      <dl className="grid grid-cols-1 gap-x-6 gap-y-2 text-[11px] sm:grid-cols-2">
+      <dl className="grid grid-cols-1 gap-x-6 gap-y-2 text-[length:var(--nimi-type-caption-size)] sm:grid-cols-2">
         <div className="min-w-0">
-          <dt className={cn('font-semibold uppercase tracking-[0.14em] text-[10px]', TOKEN_TEXT_MUTED)}>
+          <dt className={cn('font-semibold uppercase tracking-[var(--nimi-type-overline-letter-spacing)] text-[length:var(--nimi-type-caption-size)]', TOKEN_TEXT_MUTED)}>
             {t('runtimeConfig.eaa.tokenIdLabel', { defaultValue: 'tokenId' })}
           </dt>
           <dd className={cn('mt-0.5 truncate font-mono', TOKEN_TEXT_PRIMARY)} title={token.tokenId}>
@@ -250,7 +250,7 @@ function ExternalAgentTokenExpandedDetails(props: {
           </dd>
         </div>
         <div className="min-w-0">
-          <dt className={cn('font-semibold uppercase tracking-[0.14em] text-[10px]', TOKEN_TEXT_MUTED)}>
+          <dt className={cn('font-semibold uppercase tracking-[var(--nimi-type-overline-letter-spacing)] text-[length:var(--nimi-type-caption-size)]', TOKEN_TEXT_MUTED)}>
             {t('runtimeConfig.eaa.issuerLabel', { defaultValue: 'Issuer' })}
           </dt>
           <dd className={cn('mt-0.5 truncate font-mono', TOKEN_TEXT_PRIMARY)}>
@@ -258,7 +258,7 @@ function ExternalAgentTokenExpandedDetails(props: {
           </dd>
         </div>
         <div className="min-w-0">
-          <dt className={cn('font-semibold uppercase tracking-[0.14em] text-[10px]', TOKEN_TEXT_MUTED)}>
+          <dt className={cn('font-semibold uppercase tracking-[var(--nimi-type-overline-letter-spacing)] text-[length:var(--nimi-type-caption-size)]', TOKEN_TEXT_MUTED)}>
             {t('runtimeConfig.eaa.issuedAtLabel', { defaultValue: 'Issued at' })}
           </dt>
           <dd className={cn('mt-0.5 font-mono', TOKEN_TEXT_PRIMARY)}>
@@ -266,7 +266,7 @@ function ExternalAgentTokenExpandedDetails(props: {
           </dd>
         </div>
         <div className="min-w-0">
-          <dt className={cn('font-semibold uppercase tracking-[0.14em] text-[10px]', TOKEN_TEXT_MUTED)}>
+          <dt className={cn('font-semibold uppercase tracking-[var(--nimi-type-overline-letter-spacing)] text-[length:var(--nimi-type-caption-size)]', TOKEN_TEXT_MUTED)}>
             {t('runtimeConfig.eaa.expiresAtLabel', { defaultValue: 'Expires at' })}
           </dt>
           <dd className={cn('mt-0.5 font-mono', TOKEN_TEXT_PRIMARY)}>
@@ -275,7 +275,7 @@ function ExternalAgentTokenExpandedDetails(props: {
         </div>
         {token.revokedAt ? (
           <div className="min-w-0">
-            <dt className={cn('font-semibold uppercase tracking-[0.14em] text-[10px]', TOKEN_TEXT_MUTED)}>
+            <dt className={cn('font-semibold uppercase tracking-[var(--nimi-type-overline-letter-spacing)] text-[length:var(--nimi-type-caption-size)]', TOKEN_TEXT_MUTED)}>
               {t('runtimeConfig.eaa.revokedAtLabel', { defaultValue: 'Revoked at' })}
             </dt>
             <dd className={cn('mt-0.5 font-mono', 'text-[var(--nimi-status-danger)]')}>
@@ -284,7 +284,7 @@ function ExternalAgentTokenExpandedDetails(props: {
           </div>
         ) : null}
         <div className="min-w-0 sm:col-span-2">
-          <dt className={cn('font-semibold uppercase tracking-[0.14em] text-[10px]', TOKEN_TEXT_MUTED)}>
+          <dt className={cn('font-semibold uppercase tracking-[var(--nimi-type-overline-letter-spacing)] text-[length:var(--nimi-type-caption-size)]', TOKEN_TEXT_MUTED)}>
             {t('runtimeConfig.eaa.allScopesLabel', { defaultValue: 'All scopes' })}
           </dt>
           <dd className="mt-1 flex flex-wrap gap-1">
@@ -294,7 +294,7 @@ function ExternalAgentTokenExpandedDetails(props: {
               props.displayScopes.map((scope) => (
                 <span
                   key={`${token.tokenId}-expand-${scope}`}
-                  className="rounded-md border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] px-1.5 py-0.5 font-mono text-[11px] text-[var(--nimi-text-secondary)]"
+                  className="rounded-md border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] px-1.5 py-0.5 font-mono text-[length:var(--nimi-type-caption-size)] text-[var(--nimi-text-secondary)]"
                 >
                   {scope}
                 </span>

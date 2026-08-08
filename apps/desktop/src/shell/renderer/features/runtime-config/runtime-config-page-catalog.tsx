@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ScrollArea } from '@nimiplatform/kit/ui';
-import { Button, Card, Input, RuntimeSelect } from './runtime-config-primitives';
+import { OverlayShell } from '@nimiplatform/kit/ui';
+import { Button, Card, Input, RuntimeSelect, SectionTitle } from './runtime-config-primitives';
 import { RuntimePageShell } from './runtime-config-page-shell';
 import {
   createRuntimeConfigCatalogClient,
@@ -322,7 +322,7 @@ function YamlPanel(props: { provider: NimiRuntimeModelCatalogProvider; overlayYa
       </div>
       <div className="grid gap-3 xl:grid-cols-2">
         <textarea value={props.overlayYamlDraft} onChange={(event) => props.onChangeOverlayYaml(event.target.value)} spellCheck={false} className="min-h-[320px] rounded-xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-field-bg)] p-3 font-mono text-xs text-[var(--nimi-text-primary)] outline-none focus:border-[var(--nimi-field-focus)] focus:ring-2 focus:ring-[var(--nimi-focus-ring-color)]" />
-        <textarea value={props.provider.effectiveYaml} readOnly spellCheck={false} className="min-h-[320px] rounded-xl border border-[var(--nimi-border-subtle)] bg-[color:rgb(15_23_42)] p-3 font-mono text-xs text-[color:rgb(241_245_249)] opacity-95" />
+        <textarea value={props.provider.effectiveYaml} readOnly spellCheck={false} className="min-h-[320px] rounded-xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-text-primary)] p-3 font-mono text-xs text-[var(--nimi-text-inverse)] opacity-95" />
       </div>
     </Card>
   );
@@ -335,16 +335,23 @@ function AddModelDialog(props: { provider: NimiRuntimeModelCatalogProvider; form
   const updateWorkflow = (index: number, patch: Partial<WorkflowRow>) => props.onChange({ ...props.formState, workflows: props.formState.workflows.map((workflow, workflowIndex) => (workflowIndex === index ? { ...workflow, ...patch } : workflow)) });
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[rgb(15_23_42/0.35)] p-4">
-      <ScrollArea
-        className="max-h-[92vh] w-full max-w-3xl rounded-2xl bg-white shadow-[0_24px_80px_rgba(15,23,42,0.2)]"
-        viewportClassName="max-h-[92vh] rounded-2xl"
-        contentClassName="p-5"
-      >
+    <OverlayShell
+      open
+      kind="dialog"
+      size="L"
+      onClose={props.onClose}
+      panelClassName="flex max-h-[92vh] flex-col"
+      contentClassName="min-h-0 flex-1 overflow-y-auto"
+      title={(
         <div className="flex items-center justify-between gap-3">
           <div><p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--nimi-text-muted)]">{props.provider.provider}</p><h3 className="mt-1 text-xl font-semibold text-[var(--nimi-text-primary)]">Add Personal Catalog Model</h3></div>
           <Button variant="ghost" size="sm" onClick={props.onClose}>Close</Button>
         </div>
+      )}
+      footer={(
+        <div className="flex items-center justify-end gap-2"><Button variant="secondary" onClick={props.onClose}>Cancel</Button><Button onClick={props.onSubmit} disabled={props.saving}>{props.saving ? 'Saving...' : 'Save Model'}</Button></div>
+      )}
+    >
         <div className="mt-4 grid gap-3 md:grid-cols-2">
           <Input label="Model ID" value={props.formState.modelId} onChange={(value) => setField('modelId', value)} placeholder="provider/model-id" />
           <Input label="Model Type" value={props.formState.modelType} onChange={(value) => setField('modelType', value)} placeholder="text, image, video, tts" />
@@ -361,7 +368,7 @@ function AddModelDialog(props: { provider: NimiRuntimeModelCatalogProvider; form
         </div>
         <div className="mt-3">
           <label className="mb-1.5 block text-sm font-medium text-[var(--nimi-text-secondary)]">Source Note</label>
-          <textarea value={props.formState.sourceNote} onChange={(event) => setField('sourceNote', event.target.value)} className="min-h-[72px] w-full rounded-[10px] border border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_18%,transparent)] bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_8%,var(--nimi-surface-card))] p-3 text-sm text-[var(--nimi-text-primary)] outline-none focus:border-[var(--nimi-field-focus)] focus:bg-white focus:ring-2 focus:ring-mint-100" />
+          <textarea value={props.formState.sourceNote} onChange={(event) => setField('sourceNote', event.target.value)} className="min-h-[72px] w-full rounded-[var(--nimi-radius-md)] border border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_18%,transparent)] bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_8%,var(--nimi-surface-card))] p-3 text-sm text-[var(--nimi-text-primary)] outline-none focus:border-[var(--nimi-field-focus)] focus:bg-[var(--nimi-field-bg)] focus:ring-2 focus:ring-[var(--nimi-focus-ring-color)]" />
         </div>
         <div className="mt-4 grid gap-3 md:grid-cols-3">
           <Input label="Voice Set ID" value={props.formState.voiceSetId} onChange={(value) => setField('voiceSetId', value)} placeholder="required for TTS" />
@@ -377,20 +384,18 @@ function AddModelDialog(props: { provider: NimiRuntimeModelCatalogProvider; form
           <div className="rounded-2xl border border-[var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_90%,var(--nimi-surface-panel))] p-3"><p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--nimi-text-muted)]">Video Outputs</p><label className="mt-3 flex items-center gap-2 text-sm text-[var(--nimi-text-secondary)]"><input type="checkbox" checked={props.formState.videoOutputVideoUrl} onChange={(event) => setField('videoOutputVideoUrl', event.target.checked)} /> Video URL</label><label className="mt-2 flex items-center gap-2 text-sm text-[var(--nimi-text-secondary)]"><input type="checkbox" checked={props.formState.videoOutputLastFrameUrl} onChange={(event) => setField('videoOutputLastFrameUrl', event.target.checked)} /> Last Frame URL</label></div>
         </div>
         <SectionHeader title="Voices" actionLabel="Add Voice" onAction={() => props.onChange({ ...props.formState, voices: [...props.formState.voices, createEmptyVoiceRow(bindings.clock.now)] })} />
-        <div className="space-y-3">{props.formState.voices.map((voice, index) => <div key={`voice-${index}`} className="grid gap-3 rounded-2xl border border-[var(--nimi-border-subtle)] p-3 md:grid-cols-3"><Input label="Voice ID" value={voice.voiceId} onChange={(value) => updateVoice(index, { voiceId: value })} /><Input label="Name" value={voice.name} onChange={(value) => updateVoice(index, { name: value })} /><Input label="Langs" value={voice.langs} onChange={(value) => updateVoice(index, { langs: value })} placeholder="zh-cn, en-us" /><Input label="Model IDs" value={voice.modelIds} onChange={(value) => updateVoice(index, { modelIds: value })} placeholder={props.formState.modelId || 'model-id'} /><Input label="Source URL" value={voice.sourceUrl} onChange={(value) => updateVoice(index, { sourceUrl: value })} /><Input label="Retrieved At" value={voice.sourceRetrievedAt} onChange={(value) => updateVoice(index, { sourceRetrievedAt: value })} /><div className="md:col-span-3"><label className="mb-1.5 block text-sm font-medium text-[var(--nimi-text-secondary)]">Voice Note</label><textarea value={voice.sourceNote} onChange={(event) => updateVoice(index, { sourceNote: event.target.value })} className="min-h-[64px] w-full rounded-[10px] border border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_18%,transparent)] bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_8%,var(--nimi-surface-card))] p-3 text-sm text-[var(--nimi-text-primary)] outline-none focus:border-[var(--nimi-field-focus)] focus:bg-white focus:ring-2 focus:ring-mint-100" /></div></div>)}</div>
+        <div className="space-y-3">{props.formState.voices.map((voice, index) => <div key={`voice-${index}`} className="grid gap-3 rounded-2xl border border-[var(--nimi-border-subtle)] p-3 md:grid-cols-3"><Input label="Voice ID" value={voice.voiceId} onChange={(value) => updateVoice(index, { voiceId: value })} /><Input label="Name" value={voice.name} onChange={(value) => updateVoice(index, { name: value })} /><Input label="Langs" value={voice.langs} onChange={(value) => updateVoice(index, { langs: value })} placeholder="zh-cn, en-us" /><Input label="Model IDs" value={voice.modelIds} onChange={(value) => updateVoice(index, { modelIds: value })} placeholder={props.formState.modelId || 'model-id'} /><Input label="Source URL" value={voice.sourceUrl} onChange={(value) => updateVoice(index, { sourceUrl: value })} /><Input label="Retrieved At" value={voice.sourceRetrievedAt} onChange={(value) => updateVoice(index, { sourceRetrievedAt: value })} /><div className="md:col-span-3"><label className="mb-1.5 block text-sm font-medium text-[var(--nimi-text-secondary)]">Voice Note</label><textarea value={voice.sourceNote} onChange={(event) => updateVoice(index, { sourceNote: event.target.value })} className="min-h-[64px] w-full rounded-[var(--nimi-radius-md)] border border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_18%,transparent)] bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_8%,var(--nimi-surface-card))] p-3 text-sm text-[var(--nimi-text-primary)] outline-none focus:border-[var(--nimi-field-focus)] focus:bg-[var(--nimi-field-bg)] focus:ring-2 focus:ring-[var(--nimi-focus-ring-color)]" /></div></div>)}</div>
         <SectionHeader title="Voice Workflow Models" actionLabel="Add Workflow" onAction={() => props.onChange({ ...props.formState, workflows: [...props.formState.workflows, createEmptyWorkflowRow(bindings.clock.now)] })} />
         <div className="space-y-3">{props.formState.workflows.map((workflow, index) => <div key={`workflow-${index}`} className="grid gap-3 rounded-2xl border border-[var(--nimi-border-subtle)] p-3 md:grid-cols-3"><Input label="Workflow Model ID" value={workflow.workflowModelId} onChange={(value) => updateWorkflow(index, { workflowModelId: value })} /><Input label="Workflow Type" value={workflow.workflowType} onChange={(value) => updateWorkflow(index, { workflowType: value })} /><Input label="Input Contract Ref" value={workflow.inputContractRef} onChange={(value) => updateWorkflow(index, { inputContractRef: value })} /><Input label="Output Persistence" value={workflow.outputPersistence} onChange={(value) => updateWorkflow(index, { outputPersistence: value })} /><Input label="Target Model Refs" value={workflow.targetModelRefs} onChange={(value) => updateWorkflow(index, { targetModelRefs: value })} placeholder={props.formState.modelId || 'model-id'} /><Input label="Langs" value={workflow.langs} onChange={(value) => updateWorkflow(index, { langs: value })} /><Input label="Source URL" value={workflow.sourceUrl} onChange={(value) => updateWorkflow(index, { sourceUrl: value })} /><Input label="Retrieved At" value={workflow.sourceRetrievedAt} onChange={(value) => updateWorkflow(index, { sourceRetrievedAt: value })} /><Input label="Note" value={workflow.sourceNote} onChange={(value) => updateWorkflow(index, { sourceNote: value })} /></div>)}</div>
         <div className="mt-4 grid gap-3 md:grid-cols-2"><Input label="Binding Workflow Refs" value={props.formState.bindingRefsText} onChange={(value) => setField('bindingRefsText', value)} placeholder="workflow-a, workflow-b" /><Input label="Binding Workflow Types" value={props.formState.bindingTypesText} onChange={(value) => setField('bindingTypesText', value)} placeholder="voice_clone, voice_design" /></div>
-        <div className="mt-5 flex items-center justify-end gap-2"><Button variant="secondary" onClick={props.onClose}>Cancel</Button><Button onClick={props.onSubmit} disabled={props.saving}>{props.saving ? 'Saving...' : 'Save Model'}</Button></div>
-      </ScrollArea>
-    </div>
+    </OverlayShell>
   );
 }
 
 function JsonArea({ label, value, onChange, placeholder }: { label: string; value: string; onChange: (value: string) => void; placeholder?: string }) {
-  return <div><label className="mb-1.5 block text-sm font-medium text-[var(--nimi-text-secondary)]">{label}</label><textarea value={value} onChange={(event) => onChange(event.target.value)} placeholder={placeholder} className="min-h-[96px] w-full rounded-[10px] border border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_18%,transparent)] bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_8%,var(--nimi-surface-card))] p-3 font-mono text-xs text-[var(--nimi-text-primary)] outline-none focus:border-[var(--nimi-field-focus)] focus:bg-white focus:ring-2 focus:ring-mint-100" /></div>;
+  return <div><label className="mb-1.5 block text-sm font-medium text-[var(--nimi-text-secondary)]">{label}</label><textarea value={value} onChange={(event) => onChange(event.target.value)} placeholder={placeholder} className="min-h-[96px] w-full rounded-[var(--nimi-radius-md)] border border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_18%,transparent)] bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_8%,var(--nimi-surface-card))] p-3 font-mono text-xs text-[var(--nimi-text-primary)] outline-none focus:border-[var(--nimi-field-focus)] focus:bg-[var(--nimi-field-bg)] focus:ring-2 focus:ring-[var(--nimi-focus-ring-color)]" /></div>;
 }
 
 function SectionHeader({ title, actionLabel, onAction }: { title: string; actionLabel: string; onAction: () => void }) {
-  return <div className="mt-5 mb-3 flex items-center justify-between gap-3"><p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--nimi-text-muted)]">{title}</p><Button variant="secondary" size="sm" onClick={onAction}>{actionLabel}</Button></div>;
+  return <div className="mt-5 mb-3 flex items-center justify-between gap-3"><SectionTitle>{title}</SectionTitle><Button variant="secondary" size="sm" onClick={onAction}>{actionLabel}</Button></div>;
 }
