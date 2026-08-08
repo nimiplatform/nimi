@@ -47,7 +47,7 @@ export type TesterTrace = {
 export type TesterTypedOutput =
   | { kind: 'text'; text: string; finishReason: string; inputTokens?: number; outputTokens?: number; totalTokens?: number; streamed: boolean }
   | { kind: 'embedding'; vectorCount: number; dimensions: number; sample: number[]; totalTokens?: number }
-  | { kind: 'artifacts'; jobId: string; jobState: string; artifactCount: number; firstArtifact?: { artifactId?: string; mimeType?: string; url?: string; displayName?: string } }
+  | { kind: 'artifacts'; jobId: string; jobState: string; artifactCount: number; firstArtifact?: { artifactId?: string; mimeType?: string; url?: string; displayName?: string; previewSource?: 'hosted-uri' | 'inline-bytes' | 'metadata-only'; sizeBytes?: number } }
   | { kind: 'transcript'; text: string; jobId: string; jobState: string; artifactCount: number }
   | { kind: 'voice-catalog'; voiceCount: number; sample: Array<{ voiceId: string; workflowType: string; status: string }> };
 
@@ -264,7 +264,7 @@ export async function runTesterCapability(
           scenarioId,
           surfaceId: TESTER_RUNTIME_SURFACE_ID,
         });
-        return projectArtifactRunnerResult(capability, result);
+        return await projectArtifactRunnerResult(capability, result, client);
       }
       case 'video.generate': {
         const parameters = input.parameters as TesterVideoGenerationParameters | undefined;
@@ -282,7 +282,7 @@ export async function runTesterCapability(
           scenarioId,
           surfaceId: TESTER_RUNTIME_SURFACE_ID,
         });
-        return projectArtifactRunnerResult(capability, result);
+        return await projectArtifactRunnerResult(capability, result, client);
       }
       case 'audio.synthesize': {
         const parameters = input.parameters as TesterSpeechSynthesizeParameters | undefined;
@@ -303,7 +303,7 @@ export async function runTesterCapability(
           scenarioId,
           surfaceId: TESTER_RUNTIME_SURFACE_ID,
         });
-        return projectArtifactRunnerResult(capability, result);
+        return await projectArtifactRunnerResult(capability, result, client);
       }
       case 'audio.transcribe': {
         const parameters = transcribeParameters;
@@ -568,13 +568,17 @@ type ArtifactRunnerResult = Awaited<ReturnType<
   | typeof runRuntimeVideoGenerate
   | typeof runRuntimeSpeechSynthesize
 >>;
+type ArtifactRunnerSummary = NonNullable<Extract<ArtifactRunnerResult, { ok: true }>['output']['firstArtifact']>;
 
-function projectArtifactRunnerResult(
+async function projectArtifactRunnerResult(
   capability: TesterCapability,
   result: ArtifactRunnerResult,
-): TesterCapabilityRunResult {
+  client: NimiLocalAppClient,
+): Promise<TesterCapabilityRunResult> {
   if (result.ok === false) return projectRunnerUnavailable(capability, result);
-  const artifact = result.output.firstArtifact;
+  const artifact = result.output.firstArtifact
+    ? await hydrateMetadataOnlyArtifact(result.output.firstArtifact, client)
+    : undefined;
   return {
     ok: true,
     capabilityId: capability.id,
@@ -590,12 +594,46 @@ function projectArtifactRunnerResult(
           ...(artifact.artifactId ? { artifactId: artifact.artifactId } : {}),
           mimeType: artifact.mimeType,
           ...(artifact.previewUrl ? { url: artifact.previewUrl } : {}),
+          previewSource: artifact.previewSource,
+          ...(artifact.sizeBytes !== undefined ? { sizeBytes: artifact.sizeBytes } : {}),
           displayName: capability.label,
         },
       } : {}),
     },
     ...(result.trace?.traceId ? { trace: { traceId: result.trace.traceId } } : {}),
   };
+}
+
+async function hydrateMetadataOnlyArtifact(
+  artifact: ArtifactRunnerSummary,
+  client: NimiLocalAppClient,
+): Promise<ArtifactRunnerSummary> {
+  if (artifact.previewSource !== 'metadata-only' || !artifact.artifactId) return artifact;
+  try {
+    const read = await client.ai.artifacts.read(artifact.artifactId);
+    if (read.bytes.length === 0) return artifact;
+    const mimeType = read.mimeType.trim() || artifact.mimeType;
+    return {
+      ...artifact,
+      mimeType,
+      previewUrl: artifactDataUrl(read.bytes, mimeType),
+      previewSource: 'inline-bytes',
+      sizeBytes: read.sizeBytes,
+    };
+  } catch {
+    // Generation remains a typed success, but the renderer receives the exact
+    // metadata-only state and explains that no preview bytes were available.
+    return artifact;
+  }
+}
+
+function artifactDataUrl(bytes: Uint8Array, mimeType: string): string {
+  let binary = '';
+  const chunkSize = 0x8000;
+  for (let offset = 0; offset < bytes.length; offset += chunkSize) {
+    binary += String.fromCharCode(...bytes.subarray(offset, offset + chunkSize));
+  }
+  return `data:${mimeType};base64,${btoa(binary)}`;
 }
 
 function projectRunnerUnavailable(

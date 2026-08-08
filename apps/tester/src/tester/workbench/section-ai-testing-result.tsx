@@ -1,11 +1,11 @@
 import { useState, type ReactNode } from 'react';
 import { IconButton, nimiToast, StatusBadge, Tooltip } from '@nimiplatform/kit/ui';
-import { AlertTriangle, ChevronRight, Copy as CopyIcon, Download as DownloadIcon, FileText, MessageSquare, RefreshCw, SlidersHorizontal } from 'lucide-react';
+import { AlertTriangle, ChevronRight, Copy as CopyIcon, Download as DownloadIcon, FileText, MessageSquare, RefreshCw, SlidersHorizontal, SquarePen } from 'lucide-react';
 import { useTranslation } from '../../shell/i18n/index.js';
 import type { TesterCapability } from '../tester-capabilities.js';
 import { formatTesterRunTimestamp, getTesterRunConfigParamRows, getTesterRunIntentLabel, getTesterRunPromptControlFacts, getTesterRunResultTags, getTesterRunStatusTone, type TesterRunConfigParamRow, type TesterRunHistoryRecord, type TesterRunHistoryResultSnapshot, type TesterRunPromptControlFact } from '../tester-history.js';
 import { unavailableReasonUserAction, unavailableReasonUserMessage } from '../tester-unavailable.js';
-import { ArtifactMediaPreview, RuntimeDiagnosticsActions, StudioResult, TextStudioOutputBody, artifactExtension, downloadArtifactUrl, downloadTextFile, hasPreviewableArtifact, statusForCapability } from './section-ai-testing-surface.js';
+import { ArtifactMediaResult, RuntimeDiagnosticsActions, StudioResult, TextStudioOutputBody, artifactExtension, downloadArtifactUrl, downloadTextFile, statusForCapability } from './section-ai-testing-surface.js';
 import type { TextStudioActiveRun } from './section-ai-testing-run.js';
 import { useTesterRendererHost } from '../../renderer/context.js';
 
@@ -146,9 +146,11 @@ function historyResultToneClass(record: TesterRunHistoryRecord): string {
 function TextStudioHistoryRecordResult({
   record,
   onRegenerate,
+  onUseAsDraft,
 }: {
   record: TesterRunHistoryRecord;
   onRegenerate: () => void;
+  onUseAsDraft: (record: TesterRunHistoryRecord) => void;
 }) {
   const rendererHost = useTesterRendererHost();
   const { t } = useTranslation();
@@ -241,6 +243,9 @@ function TextStudioHistoryRecordResult({
               </Tooltip>
             </>
           ) : null}
+          <Tooltip content={t('StudioShell.useAsDraft')} placement="top">
+            <IconButton type="button" className="studio-result__action" onClick={() => onUseAsDraft(record)} aria-label={t('StudioShell.useAsDraft')} icon={<SquarePen size={16} aria-hidden="true" />} />
+          </Tooltip>
           <Tooltip content={t('StudioShell.regenerate')} placement="top">
             <IconButton type="button" className="studio-result__action" onClick={onRegenerate} aria-label={t('StudioShell.regenerate')} icon={<RefreshCw size={16} aria-hidden="true" />} />
           </Tooltip>
@@ -290,13 +295,9 @@ function TextStudioHistorySnapshotBody({ snapshot }: { snapshot: Extract<TesterR
     );
   }
   if (snapshot.kind === 'artifacts') {
-    const preview = hasPreviewableArtifact(snapshot.firstArtifact)
-      ? <ArtifactMediaPreview artifact={snapshot.firstArtifact} fallbackLabel={snapshot.jobId} />
-      : null;
     return (
       <div className="studio-result__rich">
-        {preview}
-        {!preview ? <p className="studio-result__plain">{t('StudioShell.mediaSuccess')}</p> : null}
+        <ArtifactMediaResult artifact={snapshot.firstArtifact} fallbackLabel={snapshot.jobId} />
       </div>
     );
   }
@@ -344,6 +345,7 @@ export function TextStudioResultState({
   onCopy,
   onDownload,
   onRegenerate,
+  onUseAsDraft,
 }: {
   capability: TesterCapability;
   activeRun: TextStudioActiveRun;
@@ -356,6 +358,7 @@ export function TextStudioResultState({
   onCopy: () => void;
   onDownload: () => void;
   onRegenerate: () => void;
+  onUseAsDraft: (record: TesterRunHistoryRecord) => void;
 }) {
   const { t } = useTranslation();
   return (
@@ -394,7 +397,7 @@ export function TextStudioResultState({
               />
             </>
           ) : activeRun.record ? (
-            <TextStudioHistoryRecordResult record={activeRun.record} onRegenerate={onRegenerate} />
+            <TextStudioHistoryRecordResult record={activeRun.record} onRegenerate={onRegenerate} onUseAsDraft={onUseAsDraft} />
           ) : null}
         </article>
       </div>

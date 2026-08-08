@@ -89,6 +89,52 @@ test('tester preferences use a versioned localStorage schema and fail closed', (
   assert.equal(corrupt.status.state, 'corrupt');
 });
 
+test('legacy stored preferences gain history panel defaults and keep saved panel state', () => {
+  const {
+    TESTER_PREFERENCES_STORAGE_KEY,
+    loadTesterPreferences,
+    saveTesterPreferences,
+  } = preferencesModule;
+  const storage = createStorage({
+    [TESTER_PREFERENCES_STORAGE_KEY]: JSON.stringify({
+      schemaVersion: 1,
+      draftPersistence: false,
+      verboseConsole: true,
+    }),
+  });
+
+  const legacy = loadTesterPreferences(storage);
+  assert.equal(legacy.status.state, 'ready');
+  assert.equal(legacy.preferences.draftPersistence, false);
+  assert.deepEqual(legacy.preferences.historyPanel, { collapsed: true, scope: 'capability', hideFailures: false });
+  assert.equal(legacy.preferences.lastCapabilityId, null);
+
+  const saved = saveTesterPreferences({
+    ...legacy.preferences,
+    historyPanel: { collapsed: false, scope: 'media', hideFailures: true },
+    lastCapabilityId: 'image.generate',
+  }, storage);
+  assert.equal(saved.status.state, 'ready');
+
+  const loaded = loadTesterPreferences(storage);
+  assert.deepEqual(loaded.preferences.historyPanel, { collapsed: false, scope: 'media', hideFailures: true });
+  assert.equal(loaded.preferences.lastCapabilityId, 'image.generate');
+
+  const invalidScope = createStorage({
+    [TESTER_PREFERENCES_STORAGE_KEY]: JSON.stringify({
+      schemaVersion: 1,
+      draftPersistence: true,
+      verboseConsole: false,
+      historyPanel: { collapsed: 'yes', scope: 'everything', hideFailures: 1 },
+      lastCapabilityId: 42,
+    }),
+  });
+  const recovered = loadTesterPreferences(invalidScope);
+  assert.equal(recovered.status.state, 'ready');
+  assert.deepEqual(recovered.preferences.historyPanel, { collapsed: true, scope: 'capability', hideFailures: false });
+  assert.equal(recovered.preferences.lastCapabilityId, null);
+});
+
 test('reset removes only the preference key and leaves unrelated app state untouched', () => {
   const {
     TESTER_PREFERENCES_STORAGE_KEY,

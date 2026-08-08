@@ -15,8 +15,10 @@
     "filters": {
       "status": {
         "all": "All statuses",
-        "active": "Active",
-        "blocked": "Blocked",
+        "ready": "Runtime ready",
+        "simulated": "Simulated result",
+        "failed": "Failed",
+        "unavailable": "SDK unavailable",
         "localFixture": "Local fixture"
       },
       "environment": {
@@ -46,6 +48,24 @@
       }
     },
     "clearFilters": "Clear all filters",
+    "scopeAriaLabel": "History scope",
+    "scope": {
+      "capability": "This capability",
+      "all": "All",
+      "media": "Media"
+    },
+    "hideFailures": "Hide failed",
+    "showFailures": "Show failed",
+    "unsupportedCapability": "This record's capability cannot be opened here",
+    "searchPlaceholder": "Search prompts or results",
+    "deleteRun": "Delete this record",
+    "deleteFailed": "Delete failed, please retry",
+    "clearScope": "Clear current scope",
+    "clearScopeConfirm": "Click again to confirm",
+    "cleared": "History cleared",
+    "clearFailed": "Clear failed, please retry",
+    "linkedRunMissing": "The linked run record is no longer retained",
+    "emptyMedia": "No media records yet",
     "source": {
       "local": "Local",
       "cloud": "Cloud",

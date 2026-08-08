@@ -8,13 +8,8 @@ import type { TesterCapabilityRunResult } from '../tester-runtime.js';
 import { unavailableReasonUserAction, unavailableReasonUserMessage } from '../tester-unavailable.js';
 import { countStudioWords, getCapabilityStudioProfile, runtimeMethodFor } from './capability-studio-profiles.js';
 import type { CapabilityStatus } from './section-ai-testing-admission.js';
-import { ArtifactMediaPreview, RuntimeDiagnosticsActions, formatTypedOutput, formatUnavailableOutput, hasPreviewableArtifact, resultPlainText, TextStudioOutputBody } from './section-ai-testing-output.js';
+import { ArtifactMediaResult, RuntimeDiagnosticsActions, formatTypedOutput, formatUnavailableOutput, resultPlainText, TextStudioOutputBody } from './section-ai-testing-output.js';
 import { useTesterRendererHost } from '../../renderer/context.js';
-
-function ArtifactPreview({ result }: { result: TesterCapabilityRunResult & { ok: true } }) {
-  if (result.output.kind !== 'artifacts') return null;
-  return <ArtifactMediaPreview artifact={result.output.firstArtifact} fallbackLabel={result.output.jobId} />;
-}
 
 // Readable body for a successful typed result (light surface), with structured
 // summaries for embedding / voice-catalog rather than raw JSON (which moves to
@@ -26,11 +21,9 @@ function ReadyBody({ result }: { result: TesterCapabilityRunResult & { ok: true 
     return <TextStudioOutputBody text={output.text} />;
   }
   if (output.kind === 'artifacts') {
-    const preview = hasPreviewableArtifact(output.firstArtifact) ? <ArtifactPreview result={result} /> : null;
     return (
       <div className="studio-result__rich">
-        {preview}
-        {!preview ? <p className="studio-result__plain">{t('StudioShell.mediaSuccess')}</p> : null}
+        <ArtifactMediaResult artifact={output.firstArtifact} fallbackLabel={output.jobId} />
       </div>
     );
   }

@@ -1,6 +1,8 @@
 import { createContext } from 'react';
 import type { TesterCapabilityId } from '../tester-capabilities.js';
 import type { TesterCapabilityParameterState } from '../tester-capability-parameters.js';
+import type { TesterHistoryPanelScope } from '../tester-preferences.js';
+import type { TesterImageHistoryRecord } from '../tester-image-history.js';
 
 // The tester shell is a single-level capability workspace (mirrors the Nimi
 // Desktop tester): the left rail IS the capability matrix grouped by family,
@@ -40,6 +42,27 @@ export type TesterHistoryLoadState = {
 };
 
 export const TesterHistoryLoadContext = createContext<TesterHistoryLoadState | null>(null);
+
+// History mutation + panel-preference actions owned by TesterWorkbench, surfaced
+// inside the history panel without threading props through the studio shell.
+export type TesterHistoryActions = {
+  removeRecord(recordId: string): Promise<void>;
+  clearScope(capabilityId: string | null): Promise<void>;
+};
+
+export const TesterHistoryActionsContext = createContext<TesterHistoryActions | null>(null);
+
+export type TesterHistoryPanelState = {
+  collapsed: boolean;
+  scope: TesterHistoryPanelScope;
+  hideFailures: boolean;
+  imageRecords: readonly TesterImageHistoryRecord[];
+  setCollapsed(collapsed: boolean): void;
+  setScope(scope: TesterHistoryPanelScope): void;
+  setHideFailures(hideFailures: boolean): void;
+};
+
+export const TesterHistoryPanelContext = createContext<TesterHistoryPanelState | null>(null);
 
 export type TesterCapabilityParameterStore = {
   state: TesterCapabilityParameterState;

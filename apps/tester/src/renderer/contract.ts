@@ -52,6 +52,7 @@ export interface TesterRendererProjectionPort {
   runtimePlatform(): Promise<RuntimePlatformProjection>;
   aiConfigSummary(): Promise<TesterAIConfigSummary>;
   runHistory(): Promise<TesterRunHistory>;
+  imageHistory(): Promise<readonly TesterImageHistoryRecord[]>;
   ecosystemReference(): TesterEcosystemReferenceProjection | null;
   personaReference(): TesterPersonaReferenceProjection | null;
   preferences(): TesterPreferences;
@@ -61,7 +62,10 @@ export interface TesterRendererProjectionPort {
 export interface TesterRendererCommandPort {
   nextRunIdentity(): Promise<{ readonly runId: string; readonly createdAt: string }>;
   appendRunHistory(record: TesterRunHistoryRecord): Promise<TesterRunHistory>;
+  removeRunHistory(recordId: string): Promise<TesterRunHistory>;
+  clearRunHistory(input: { readonly capabilityId?: string }): Promise<TesterRunHistory>;
   appendImageHistory(record: TesterImageHistoryRecord): Promise<readonly TesterImageHistoryRecord[]>;
+  savePreferences(preferences: TesterPreferences): Promise<void>;
   savePromptDraft(key: TesterPromptDraftKey, prompt: string, enabled: boolean): Promise<TesterPromptDraftSaveResult>;
   copyText(text: string): Promise<NimiRendererHostResult<{ readonly copied: boolean }>>;
   exportText(input: { readonly filename: string; readonly body: string }): Promise<NimiRendererHostResult<{ readonly filename: string }>>;
@@ -107,6 +111,7 @@ export interface TesterRendererSdkPort {
       readonly displayName: string | null;
       readonly supportedFeatures: readonly string[];
       readonly reasons: readonly string[];
+      readonly effectiveDefaults: Readonly<Record<string, string>> | null;
     }[]>;
   };
   settings: {

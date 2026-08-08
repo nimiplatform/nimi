@@ -271,6 +271,28 @@ export const testerSimulatorBehavior = Object.freeze({
         events: [],
       };
     }
+    if (envelope.type === 'tester.history.remove') {
+      const recordId = text(payload.recordId, 'HISTORY_RECORD_ID');
+      const runHistory = Object.fromEntries(
+        Object.entries(current.runHistory).map(([capabilityId, entries]) => [
+          capabilityId,
+          entries.filter((entry) => entry.id !== recordId),
+        ]),
+      );
+      return { state: { ...current, runHistory }, events: [] };
+    }
+    if (envelope.type === 'tester.history.clear') {
+      const capabilityId = typeof payload.capabilityId === 'string' ? payload.capabilityId : null;
+      const runHistory = capabilityId === null
+        ? {}
+        : Object.fromEntries(
+            Object.entries(current.runHistory).filter(([key]) => key !== capabilityId),
+          );
+      return { state: { ...current, runHistory }, events: [] };
+    }
+    if (envelope.type === 'tester.preferences.save') {
+      return { state: current, events: [] };
+    }
     if (envelope.type === 'tester.image-history.append') {
       const imageRecord = record(payload.record, 'IMAGE_HISTORY_RECORD');
       const linkageId = text(

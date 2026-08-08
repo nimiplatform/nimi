@@ -27,11 +27,12 @@ import { loadTesterAIConfig, requireTesterAIConfigOwner } from '../tester/tester
 import { loadTesterAIConfigSummary } from '../tester/tester-ai-config.js';
 import { runTesterConversationJourney } from '../tester/local-app-conversation-journey.js';
 import { saveTesterExport } from '../tester/tester-export.js';
-import { appendTesterRunHistory, loadTesterRunHistory } from '../tester/tester-history-storage.js';
-import { appendTesterImageHistoryRecord } from '../tester/tester-image-history.js';
+import { appendTesterRunHistory, clearTesterRunHistory, loadTesterRunHistory, removeTesterRunHistoryRecord } from '../tester/tester-history-storage.js';
+import { appendTesterImageHistoryRecord, loadTesterImageHistory } from '../tester/tester-image-history.js';
 import {
   loadTesterPreferences,
   loadTesterPromptDraft,
+  saveTesterPreferences,
   saveTesterPromptDraft,
 } from '../tester/tester-preferences.js';
 import { runTesterCapability } from '../tester/tester-runtime.js';
@@ -170,6 +171,10 @@ export function createTesterProductionBindings(
           executor: loadTesterRunHistory,
           options: { maxAttempts: 2, initialDelayMs: 25, maxDelayMs: 50 },
         }),
+        imageHistory: () => requestWithRetry({
+          executor: loadTesterImageHistory,
+          options: { maxAttempts: 2, initialDelayMs: 25, maxDelayMs: 50 },
+        }),
         ecosystemReference: () => null,
         personaReference: () => null,
         preferences: () => loadTesterPreferences().preferences,
@@ -180,7 +185,17 @@ export function createTesterProductionBindings(
           return { runId: createNimiClientId('run'), createdAt: new Date().toISOString() };
         },
         appendRunHistory: appendTesterRunHistory,
+        removeRunHistory: removeTesterRunHistoryRecord,
+        async clearRunHistory(input: { readonly capabilityId?: string }) {
+          return clearTesterRunHistory(input.capabilityId);
+        },
         appendImageHistory: appendTesterImageHistoryRecord,
+        async savePreferences(preferences: Parameters<TesterRendererCommandPort['savePreferences']>[0]) {
+          const result = saveTesterPreferences(preferences);
+          if (result.status.state === 'write-error' || result.status.state === 'unavailable') {
+            throw new Error(result.status.error || result.status.message);
+          }
+        },
         async savePromptDraft(
           key: Parameters<TesterRendererCommandPort['savePromptDraft']>[0],
           prompt: string,

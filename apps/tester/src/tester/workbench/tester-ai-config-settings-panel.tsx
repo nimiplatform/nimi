@@ -66,6 +66,9 @@ function useTesterModelConfigCopy(): ModelConfigCopy {
     defaultsTrueLabel: t('ModelConfig.defaultsTrueLabel'),
     defaultsFalseLabel: t('ModelConfig.defaultsFalseLabel'),
     defaultsListPlaceholder: t('ModelConfig.defaultsListPlaceholder'),
+    defaultsLocalEffectivePlaceholder: (value: string) => t('ModelConfig.defaultsLocalEffectivePlaceholder', { value }),
+    defaultsCloudEffectivePlaceholder: t('ModelConfig.defaultsCloudEffectivePlaceholder'),
+    defaultsRandomValue: t('ModelConfig.defaultsRandomValue'),
     localChoiceDescription: t('ModelConfig.localChoiceDescription'),
     localSelectedLabel: t('ModelConfig.localSelectedLabel'),
     localMissingLabel: t('ModelConfig.localMissingLabel'),
@@ -148,6 +151,7 @@ export function TesterAiConfigSettingsPanel({
           displayName: null,
           supportedFeatures: [],
           reasons: ['machine-local-ai-configuration-unavailable'],
+          effectiveDefaults: null,
         })));
       }
     } catch (cause) {

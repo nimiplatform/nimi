@@ -12,10 +12,20 @@ export const TESTER_PROMPT_DRAFTS_SCHEMA_VERSION = 1;
 
 export type TesterPromptDraftSurfaceId = 'app-lab' | 'ai-capabilities';
 
+export type TesterHistoryPanelScope = 'capability' | 'all' | 'media';
+
+export type TesterHistoryPanelPreferences = {
+  collapsed: boolean;
+  scope: TesterHistoryPanelScope;
+  hideFailures: boolean;
+};
+
 export type TesterPreferences = {
   schemaVersion: typeof TESTER_PREFERENCES_SCHEMA_VERSION;
   draftPersistence: boolean;
   verboseConsole: boolean;
+  historyPanel: TesterHistoryPanelPreferences;
+  lastCapabilityId: string | null;
 };
 
 export type TesterPreferenceStoreState =
@@ -95,11 +105,21 @@ function defaultDraftStatus(
   };
 }
 
+export function defaultTesterHistoryPanelPreferences(): TesterHistoryPanelPreferences {
+  return {
+    collapsed: true,
+    scope: 'capability',
+    hideFailures: false,
+  };
+}
+
 export function defaultTesterPreferences(): TesterPreferences {
   return {
     schemaVersion: TESTER_PREFERENCES_SCHEMA_VERSION,
     draftPersistence: true,
     verboseConsole: false,
+    historyPanel: defaultTesterHistoryPanelPreferences(),
+    lastCapabilityId: null,
   };
 }
 
@@ -129,6 +149,21 @@ function getLocalPreferenceStorage(): Storage | null {
   return resolveBrowserStorage('local');
 }
 
+const TESTER_HISTORY_PANEL_SCOPES: readonly TesterHistoryPanelScope[] = ['capability', 'all', 'media'];
+
+function parseHistoryPanelPreferences(value: unknown): TesterHistoryPanelPreferences {
+  const defaults = defaultTesterHistoryPanelPreferences();
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return defaults;
+  const parsed = value as Partial<TesterHistoryPanelPreferences>;
+  return {
+    collapsed: typeof parsed.collapsed === 'boolean' ? parsed.collapsed : defaults.collapsed,
+    scope: TESTER_HISTORY_PANEL_SCOPES.includes(parsed.scope as TesterHistoryPanelScope)
+      ? parsed.scope as TesterHistoryPanelScope
+      : defaults.scope,
+    hideFailures: typeof parsed.hideFailures === 'boolean' ? parsed.hideFailures : defaults.hideFailures,
+  };
+}
+
 function parseTesterPreferences(value: unknown): TesterPreferences {
   const parsed = value as Partial<TesterPreferences>;
   if (
@@ -142,6 +177,10 @@ function parseTesterPreferences(value: unknown): TesterPreferences {
     schemaVersion: TESTER_PREFERENCES_SCHEMA_VERSION,
     draftPersistence: parsed.draftPersistence,
     verboseConsole: parsed.verboseConsole,
+    historyPanel: parseHistoryPanelPreferences(parsed.historyPanel),
+    lastCapabilityId: typeof parsed.lastCapabilityId === 'string' && parsed.lastCapabilityId.trim()
+      ? parsed.lastCapabilityId
+      : null,
   };
 }
 
@@ -237,6 +276,10 @@ export function saveTesterPreferences(
     schemaVersion: TESTER_PREFERENCES_SCHEMA_VERSION,
     draftPersistence: Boolean(preferences.draftPersistence),
     verboseConsole: Boolean(preferences.verboseConsole),
+    historyPanel: parseHistoryPanelPreferences(preferences.historyPanel),
+    lastCapabilityId: typeof preferences.lastCapabilityId === 'string' && preferences.lastCapabilityId.trim()
+      ? preferences.lastCapabilityId
+      : null,
   };
 
   try {

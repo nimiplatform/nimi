@@ -200,3 +200,42 @@ test('run-history loading fails closed on a malformed capability list', async ()
     delete globalThis.__NIMI_TESTER_HISTORY_STORAGE_CLIENT__;
   }
 });
+
+test('removeTesterRunHistoryRecord deletes only the targeted record', async () => {
+  const storage = createStorageClient();
+  globalThis.__NIMI_TESTER_HISTORY_STORAGE_CLIENT__ = storage.client;
+  try {
+    await historyStorageModule.appendTesterRunHistory(runRecord('run-1', '2026-08-08T08:00:00.000Z'));
+    await historyStorageModule.appendTesterRunHistory(runRecord('run-2', '2026-08-08T08:01:00.000Z'));
+    await historyStorageModule.appendTesterRunHistory(runRecord('run-3', '2026-08-08T08:02:00.000Z', { capabilityId: 'image.generate' }));
+
+    const next = await historyStorageModule.removeTesterRunHistoryRecord('run-1');
+    assert.deepEqual(next['text.generate'].map((record) => record.id), ['run-2']);
+    assert.deepEqual(next['image.generate'].map((record) => record.id), ['run-3']);
+
+    const reloaded = await historyStorageModule.loadTesterRunHistory();
+    assert.deepEqual(reloaded['text.generate'].map((record) => record.id), ['run-2']);
+  } finally {
+    delete globalThis.__NIMI_TESTER_HISTORY_STORAGE_CLIENT__;
+  }
+});
+
+test('clearTesterRunHistory clears one capability or the whole store', async () => {
+  const storage = createStorageClient();
+  globalThis.__NIMI_TESTER_HISTORY_STORAGE_CLIENT__ = storage.client;
+  try {
+    await historyStorageModule.appendTesterRunHistory(runRecord('run-1', '2026-08-08T08:00:00.000Z'));
+    await historyStorageModule.appendTesterRunHistory(runRecord('run-2', '2026-08-08T08:01:00.000Z', { capabilityId: 'image.generate' }));
+
+    const afterScopedClear = await historyStorageModule.clearTesterRunHistory('text.generate');
+    assert.equal(Object.hasOwn(afterScopedClear, 'text.generate'), false);
+    assert.deepEqual(afterScopedClear['image.generate'].map((record) => record.id), ['run-2']);
+
+    const afterFullClear = await historyStorageModule.clearTesterRunHistory();
+    assert.deepEqual(afterFullClear, {});
+    const reloaded = await historyStorageModule.loadTesterRunHistory();
+    assert.deepEqual(reloaded, {});
+  } finally {
+    delete globalThis.__NIMI_TESTER_HISTORY_STORAGE_CLIENT__;
+  }
+});

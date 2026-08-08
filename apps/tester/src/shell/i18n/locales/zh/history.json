@@ -15,8 +15,10 @@
     "filters": {
       "status": {
         "all": "全部状态",
-        "active": "活跃",
-        "blocked": "受阻",
+        "ready": "Runtime 就绪",
+        "simulated": "模拟结果",
+        "failed": "失败",
+        "unavailable": "SDK 不可用",
         "localFixture": "本地夹具"
       },
       "environment": {
@@ -46,6 +48,24 @@
       }
     },
     "clearFilters": "清除全部筛选",
+    "scopeAriaLabel": "历史范围",
+    "scope": {
+      "capability": "本能力",
+      "all": "全部",
+      "media": "媒体"
+    },
+    "hideFailures": "隐藏失败",
+    "showFailures": "显示失败",
+    "unsupportedCapability": "这条记录的能力无法在此打开",
+    "searchPlaceholder": "搜索提示词或结果",
+    "deleteRun": "删除这条记录",
+    "deleteFailed": "删除失败，请重试",
+    "clearScope": "清空当前范围",
+    "clearScopeConfirm": "再次点击确认清空",
+    "cleared": "历史已清空",
+    "clearFailed": "清空失败，请重试",
+    "linkedRunMissing": "关联的运行记录已被淘汰",
+    "emptyMedia": "还没有媒体记录",
     "source": {
       "local": "本地",
       "cloud": "云端",

@@ -1,11 +1,12 @@
-import { Suspense, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { Suspense, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { IconButton, LoadingSkeleton, nimiToast, OverlayShell, StatusBadge, Tooltip } from '@nimiplatform/kit/ui';
-import { PanelRight } from 'lucide-react';
+import { PanelRight, SquarePen } from 'lucide-react';
 import { createBrowserDataUrlAttachmentAdapter, useChatComposer, type BrowserDataUrlAttachment } from '@nimiplatform/kit/features/chat/headless';
 import { useTranslation } from '../../shell/i18n/index.js';
 import { useTesterRendererHost } from '../../renderer/context.js';
 import { type TesterCapability } from '../tester-capabilities.js';
 import { nonEmptyEmbeddingInputs, summarizeTesterCapabilityParameters, type TesterEmbeddingParameters, type TesterSpeechTranscribeParameters } from '../tester-capability-parameters.js';
+import { projectTesterCapabilityParamsForRoute } from '../tester-capability-params.js';
 import { getTesterRunIntentLabel, restoreTesterCapabilityRunResult, type TesterRunConfigSnapshot, type TesterRunHistory, type TesterRunHistoryRecord } from '../tester-history.js';
 import type { TesterCapabilityRunResult, TesterRuntimeInspection } from '../tester-runtime.js';
 import { capabilityUnavailable } from '../tester-unavailable.js';
@@ -15,7 +16,7 @@ import { TextStudioComposer, TextStudioStartState } from './section-ai-testing-c
 import { CapabilityParameterPanel } from './section-ai-testing-parameters.js';
 import { TextStudioResultState } from './section-ai-testing-result.js';
 import { canConfigureRunTarget, createRunConfigSnapshot, effectiveTextStudioPromptStyle, textStudioDirectiveForTarget, textStudioRunTargetIntentSummary, textStudioRuntimePrompt, useTesterRunTargetSummary, type TextStudioActiveRun } from './section-ai-testing-run.js';
-import { TesterCapabilityParameterContext, TesterHistoryLoadContext } from './workbench-context.js';
+import { TesterCapabilityParameterContext, TesterHistoryLoadContext, TesterHistoryPanelContext } from './workbench-context.js';
 
 // Admission pill labels are keyed by the typed status so locale changes do not
 // touch the admission state machine in section-ai-testing-admission.ts.
@@ -73,8 +74,9 @@ function TextStudioShell({
   const [streamingText, setStreamingText] = useState<string | null>(null);
   const [activeRun, setActiveRun] = useState<TextStudioActiveRun | null>(null);
   const [sessionRuns, setSessionRuns] = useState<Record<string, TextStudioActiveRun>>({});
-  const [historyCollapsed, setHistoryCollapsed] = useState(true);
-  const [historyFilterResetNonce, setHistoryFilterResetNonce] = useState(0);
+  const historyPanel = useContext(TesterHistoryPanelContext);
+  const historyCollapsed = historyPanel?.collapsed ?? true;
+  const runSeqRef = useRef(0);
   const attachmentAdapter = useMemo(
     () => createBrowserDataUrlAttachmentAdapter({ idPrefix: 'tester-attachment' }),
     [],
@@ -97,7 +99,12 @@ function TextStudioShell({
   const requiresPrompt = profile.inputKind !== 'none';
   const supportsMedia = profile.supportsAttachments;
   const capabilityParameters = parameterStore?.state[capability.id] ?? {};
-  const parameterSummary = summarizeTesterCapabilityParameters(capability.id, capabilityParameters);
+  const effectiveCapabilityParameters = useMemo(() => projectTesterCapabilityParamsForRoute(
+    capability.id,
+    runTarget.source,
+    capabilityParameters,
+  ), [capability.id, capabilityParameters, runTarget.source]);
+  const parameterSummary = summarizeTesterCapabilityParameters(capability.id, effectiveCapabilityParameters);
   const hasAlternativeInput = capability.id === 'text.embed'
     ? nonEmptyEmbeddingInputs(capabilityParameters as TesterEmbeddingParameters).length > 0
     : capability.id === 'audio.transcribe'
@@ -105,8 +112,8 @@ function TextStudioShell({
       : false;
 
   useEffect(() => {
-    if (historyLoad?.error) setHistoryCollapsed(false);
-  }, [historyLoad?.error]);
+    if (historyLoad?.error) historyPanel?.setCollapsed(false);
+  }, [historyLoad?.error, historyPanel]);
 
   function updatePrompt(nextPrompt: string) {
     setPrompt(nextPrompt);
@@ -123,16 +130,21 @@ function TextStudioShell({
       capabilityId: capability.id,
       scenarioId: preset.id,
     }, draftPersistence);
+    runSeqRef.current += 1;
     setPrompt(draft.prompt ?? preset.prompt);
     setContext('');
     setActiveRun(null);
     setSessionRuns({});
+    setRunning(false);
+    setStreamingText(null);
   }, [capability.id, draftPersistence, preset, rendererHost]);
 
   async function run(nextPrompt = prompt, nextContext = context) {
     const displayPrompt = nextPrompt.trim();
     if (requiresPrompt && !displayPrompt) return;
     if (!runTarget.canDispatch) return;
+    const runSeq = runSeqRef.current + 1;
+    runSeqRef.current = runSeq;
     const startedAt = rendererHost.clock.now();
     const pendingRun: TextStudioActiveRun = {
       id: `pending-${startedAt}`,
@@ -175,7 +187,7 @@ function TextStudioShell({
             scenarioId: preset.id,
             onPartial: isStreaming ? setStreamingText : undefined,
             attachments: supportsMedia ? [...composerState.attachments] : undefined,
-            parameters: capabilityParameters,
+            parameters: effectiveCapabilityParameters,
           });
         }
       } catch (error) {
@@ -195,6 +207,9 @@ function TextStudioShell({
         requestParameters: parameterSummary,
       });
       const record = await onResult(result, displayPrompt, runConfig);
+      // The run always lands in history (onResult above), but only touches the
+      // visible stage when the capability view has not moved on meanwhile.
+      if (runSeq !== runSeqRef.current) return;
       const finishedRun: TextStudioActiveRun = {
         ...pendingRun,
         id: record?.id ?? pendingRun.id,
@@ -205,11 +220,14 @@ function TextStudioShell({
       setSessionRuns((current) => ({ ...current, [finishedRun.id]: finishedRun }));
       setActiveRun(finishedRun);
     } catch (error) {
+      if (runSeq !== runSeqRef.current) return;
       const message = error instanceof Error ? error.message : String(error || 'Runtime call failed.');
       setActiveRun({ ...pendingRun, error: message });
     } finally {
-      setRunning(false);
-      setStreamingText(null);
+      if (runSeq === runSeqRef.current) {
+        setRunning(false);
+        setStreamingText(null);
+      }
     }
   }
 
@@ -236,12 +254,18 @@ function TextStudioShell({
     if (currentResult.ok && currentResult.output.kind === 'artifacts') {
       const output = currentResult.output;
       const firstArtifact = output.firstArtifact;
-      if (!firstArtifact?.url) return;
-      void downloadArtifactUrl(
-        rendererHost.app.commands,
-        `${capability.id}-${stamp}.${artifactExtension(firstArtifact.mimeType)}`,
-        firstArtifact.url,
-      );
+      if (firstArtifact?.url) {
+        void downloadArtifactUrl(
+          rendererHost.app.commands,
+          `${capability.id}-${stamp}.${artifactExtension(firstArtifact.mimeType)}`,
+          firstArtifact.url,
+        );
+        return;
+      }
+      const metadata = resultPlainText(currentResult);
+      if (metadata) {
+        void downloadTextFile(rendererHost.app.commands, `${capability.id}-${stamp}-artifact-metadata.txt`, metadata);
+      }
       return;
     }
     const text = resultPlainText(currentResult);
@@ -249,26 +273,29 @@ function TextStudioShell({
     void downloadTextFile(rendererHost.app.commands, `${capability.id}-${stamp}.txt`, text);
   }
 
+  // Selecting a history record is a read-only preview: it never writes the
+  // composer draft. Reusing a record's prompt is an explicit action instead.
   function selectHistoryRun(record: TesterRunHistoryRecord) {
     const sessionRun = sessionRuns[record.id];
-    const historyContext = record.runConfig?.promptControls.context ?? '';
     if (sessionRun) {
       setActiveRun(sessionRun);
-      updatePrompt(sessionRun.prompt);
-      setContext(record.runConfig ? historyContext : sessionRun.context);
       return;
     }
     setActiveRun({
       id: record.id,
       prompt: record.prompt,
-      context: historyContext,
+      context: record.runConfig?.promptControls.context ?? '',
       createdAt: record.createdAt,
       result: null,
       record,
       error: null,
     });
+  }
+
+  function useHistoryRunAsDraft(record: TesterRunHistoryRecord) {
     updatePrompt(record.prompt);
-    setContext(historyContext);
+    setContext(record.runConfig?.promptControls.context ?? '');
+    setActiveRun(null);
   }
 
   useEffect(() => {
@@ -311,10 +338,11 @@ function TextStudioShell({
   const showAdmissionBadge = true;
 
   function handleHistoryCollapseToggle() {
-    if (!historyCollapsed) {
-      setHistoryFilterResetNonce((value) => value + 1);
-    }
-    setHistoryCollapsed((value) => !value);
+    historyPanel?.setCollapsed(!historyCollapsed);
+  }
+
+  function handleNewRun() {
+    setActiveRun(null);
   }
 
   return (
@@ -329,6 +357,17 @@ function TextStudioShell({
             </div>
             <div className="studio__head-actions">
               {headerActions}
+              {hasActiveRun ? (
+                <Tooltip content={t('StudioShell.newRun')} placement="bottom">
+                  <IconButton
+                    type="button"
+                    className="studio-history-toggle"
+                    aria-label={t('StudioShell.newRun')}
+                    onClick={handleNewRun}
+                    icon={<SquarePen size={17} strokeWidth={1.8} aria-hidden="true" />}
+                  />
+                </Tooltip>
+              ) : null}
               <Tooltip
                 content={historyCollapsed ? t('StudioShell.showHistory') : t('StudioShell.hideHistory')}
                 placement="bottom"
@@ -358,6 +397,7 @@ function TextStudioShell({
                 onCopy={handleCopy}
                 onDownload={handleDownload}
                 onRegenerate={() => void run(activeRun.prompt, activeRun.context)}
+                onUseAsDraft={useHistoryRunAsDraft}
               />
             ) : (
               <TextStudioStartState
@@ -372,7 +412,7 @@ function TextStudioShell({
           activeRunId={activeRun?.id ?? null}
           onSelectRun={onSelectHistoryRun}
           collapsed={historyCollapsed}
-          filterResetNonce={historyFilterResetNonce}
+          currentCapabilityId={capability.id}
         />
       </div>
     </div>

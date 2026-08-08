@@ -91,6 +91,11 @@ function validateHistoryResult(value: unknown, path: string): void {
       optionalString(value.firstArtifact.mimeType, `${path}.firstArtifact.mimeType`);
       optionalString(value.firstArtifact.url, `${path}.firstArtifact.url`);
       optionalString(value.firstArtifact.displayName, `${path}.firstArtifact.displayName`);
+      if (value.firstArtifact.previewSource !== undefined
+        && !['hosted-uri', 'inline-bytes', 'metadata-only'].includes(String(value.firstArtifact.previewSource))) {
+        historyPayloadError(`${path}.firstArtifact.previewSource`, 'has an unsupported value');
+      }
+      optionalNonNegativeNumber(value.firstArtifact.sizeBytes, `${path}.firstArtifact.sizeBytes`);
     }
     return;
   }
@@ -258,6 +263,31 @@ export async function appendTesterRunHistory(record: TesterRunHistoryRecord): Pr
   return enqueueHistoryMutation(async () => {
     const history = await loadTesterRunHistory();
     const next = boundedHistoryWithRecord(history, record);
+    await saveTesterRunHistory(next);
+    return next;
+  });
+}
+
+export async function removeTesterRunHistoryRecord(recordId: string): Promise<TesterRunHistory> {
+  return enqueueHistoryMutation(async () => {
+    const history = await loadTesterRunHistory();
+    const retained = allHistoryRecords(history).filter((existing) => existing.id !== recordId);
+    const next = historyFromRecords(retained);
+    await saveTesterRunHistory(next);
+    return next;
+  });
+}
+
+export async function clearTesterRunHistory(capabilityId?: string): Promise<TesterRunHistory> {
+  return enqueueHistoryMutation(async () => {
+    if (!capabilityId) {
+      const next: TesterRunHistory = {};
+      await saveTesterRunHistory(next);
+      return next;
+    }
+    const history = await loadTesterRunHistory();
+    const retained = allHistoryRecords(history).filter((existing) => existing.capabilityId !== capabilityId);
+    const next = historyFromRecords(retained);
     await saveTesterRunHistory(next);
     return next;
   });

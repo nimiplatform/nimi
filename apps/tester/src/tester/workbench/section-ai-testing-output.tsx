@@ -6,6 +6,11 @@ import { useTesterRendererHost } from '../../renderer/context.js';
 import type { TesterRendererCommandPort } from '../../renderer/contract.js';
 import type { TesterCapabilityRunResult } from '../tester-runtime.js';
 import { unavailableReasonTitle } from '../tester-unavailable.js';
+import {
+  hasStudioArtifactMedia,
+  studioArtifactRenderBranch,
+  type StudioArtifactPreviewSource,
+} from './section-ai-testing-artifact-preview.js';
 
 export function formatTypedOutput(result: TesterCapabilityRunResult & { ok: true }): string {
   const output = result.output;
@@ -114,19 +119,10 @@ export function RuntimeDiagnosticsActions({
   );
 }
 
-export type StudioArtifactPreviewSource = {
-  artifactId?: string;
-  mimeType?: string;
-  url?: string;
-  displayName?: string;
-};
+export type { StudioArtifactPreviewSource } from './section-ai-testing-artifact-preview.js';
 
 export function hasPreviewableArtifact(artifact?: StudioArtifactPreviewSource): boolean {
-  const mimeType = artifact?.mimeType ?? '';
-  return Boolean(
-    artifact?.url
-      && (mimeType.startsWith('image/') || mimeType.startsWith('audio/') || mimeType.startsWith('video/')),
-  );
+  return hasStudioArtifactMedia(artifact);
 }
 
 // Rich media preview for runtime artifact results (image / audio / video).
@@ -141,6 +137,7 @@ export function ArtifactMediaPreview({
 }) {
   const url = artifact?.url;
   const mimeType = artifact?.mimeType ?? '';
+  const branch = studioArtifactRenderBranch(artifact);
   const { t } = useTranslation();
   const [imagePreviewOpen, setImagePreviewOpen] = useState(false);
   useEffect(() => {
@@ -148,7 +145,7 @@ export function ArtifactMediaPreview({
   }, [mimeType, url]);
   if (!hasPreviewableArtifact(artifact) || !url) return null;
   const label = artifact?.displayName || artifact?.artifactId || fallbackLabel;
-  const isImage = mimeType.startsWith('image/');
+  const isImage = branch === 'image';
   let media: ReactNode = null;
   if (isImage) {
     media = (
@@ -167,9 +164,9 @@ export function ArtifactMediaPreview({
         </Tooltip>
       </div>
     );
-  } else if (mimeType.startsWith('audio/')) {
+  } else if (branch === 'audio') {
     media = <audio controls src={url} />;
-  } else if (mimeType.startsWith('video/')) {
+  } else if (branch === 'video') {
     media = <video controls src={url} />;
   }
   if (!media) return null;
@@ -198,6 +195,30 @@ export function ArtifactMediaPreview({
         </Dialog>
       ) : null}
     </>
+  );
+}
+
+export function ArtifactMediaResult({
+  artifact,
+  fallbackLabel,
+}: {
+  artifact?: StudioArtifactPreviewSource;
+  fallbackLabel: string;
+}) {
+  const { t } = useTranslation();
+  const branch = studioArtifactRenderBranch(artifact);
+  if (branch === 'image' || branch === 'audio' || branch === 'video') {
+    return <ArtifactMediaPreview artifact={artifact} fallbackLabel={fallbackLabel} />;
+  }
+  return (
+    <div className="studio-result__media-unavailable">
+      <p className="studio-result__plain">
+        {branch === 'unsupported'
+          ? t('StudioShell.mediaPreviewUnsupported')
+          : t('StudioShell.mediaPreviewMetadataOnly')}
+      </p>
+      <p className="studio-result__hint">{t('StudioShell.mediaMetadataDownloadHint')}</p>
+    </div>
   );
 }
 

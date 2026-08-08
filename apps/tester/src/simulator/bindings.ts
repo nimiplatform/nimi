@@ -24,12 +24,14 @@ import { getTesterCapability } from '../tester/tester-capabilities.js';
 import type { TesterImageHistoryRecord } from '../tester/tester-image-history.js';
 import type { TesterRunHistory, TesterRunHistoryRecord } from '../tester/tester-history.js';
 import type {
+  TesterPreferences,
   TesterPromptDraftKey,
   TesterPromptDraftLoadResult,
   TesterPromptDraftSaveResult,
 } from '../tester/tester-preferences.js';
 import type { TesterCapabilityRunInput, TesterCapabilityRunResult } from '../tester/tester-runtime.js';
 import { capabilityUnavailable } from '../tester/tester-unavailable.js';
+import { defaultTesterPreferences } from '../tester/tester-preferences.js';
 import type {
   ClaimWorldTourViewerLaunchInput,
   OpenWorldTourWindowInput,
@@ -320,9 +322,20 @@ function createCommandPort(context: TesterSimulatorPrepareContext) {
       await invoke(context, 'tester.history.append', { record: historyRecord });
       return projection(context).runHistory as unknown as TesterRunHistory;
     },
+    async removeRunHistory(recordId: string) {
+      await invoke(context, 'tester.history.remove', { recordId });
+      return projection(context).runHistory as unknown as TesterRunHistory;
+    },
+    async clearRunHistory(input: { readonly capabilityId?: string }) {
+      await invoke(context, 'tester.history.clear', { capabilityId: input.capabilityId ?? null });
+      return projection(context).runHistory as unknown as TesterRunHistory;
+    },
     async appendImageHistory(imageRecord: TesterImageHistoryRecord) {
       await invoke(context, 'tester.image-history.append', { record: imageRecord });
       return projection(context).imageHistory as unknown as readonly TesterImageHistoryRecord[];
+    },
+    async savePreferences(preferences: TesterPreferences) {
+      await invoke(context, 'tester.preferences.save', { preferences });
     },
     async savePromptDraft(key: TesterPromptDraftKey, prompt: string, enabled: boolean): Promise<TesterPromptDraftSaveResult> {
       try {
@@ -471,6 +484,9 @@ export function createTesterSimulatorBindings(
         async runHistory() {
           return projection(context).runHistory as unknown as TesterRunHistory;
         },
+        async imageHistory() {
+          return projection(context).imageHistory as unknown as readonly TesterImageHistoryRecord[];
+        },
         ecosystemReference() {
           const reference = projection(context).ecosystemReference;
           if (!reference || !Number.isSafeInteger(reference.ecosystemRevision)) {
@@ -494,7 +510,7 @@ export function createTesterSimulatorBindings(
           });
         },
         preferences() {
-          return { schemaVersion: 1 as const, draftPersistence: true, verboseConsole: false };
+          return defaultTesterPreferences();
         },
         promptDraft(key: TesterPromptDraftKey, enabled: boolean): TesterPromptDraftLoadResult {
           if (!enabled) {

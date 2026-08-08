@@ -1,11 +1,12 @@
 import { Suspense, lazy, useCallback, useEffect, useMemo, useState } from 'react';
-import { LoadingSkeleton, StatusBadge } from '@nimiplatform/kit/ui';
+import { LoadingSkeleton, nimiToast, StatusBadge } from '@nimiplatform/kit/ui';
 import { useTranslation } from '../shell/i18n/index.js';
 import { NimiLabAccountMenu } from '../shell/account/account-panel.js';
 import { useTesterRendererHost } from '../renderer/context.js';
 import type { TesterEcosystemReferenceProjection } from '../renderer/contract.js';
 import { getTesterCapability, testerCapabilities, type TesterCapabilityId } from './tester-capabilities.js';
 import { shouldPersistTesterArtifactRecord } from './tester-artifact-persistence.js';
+import type { TesterImageHistoryRecord } from './tester-image-history.js';
 import {
   createTesterRunHistoryResultSnapshot,
   type TesterRunConfigSnapshot,
@@ -20,9 +21,15 @@ import { AppAccessPanel } from './app-access/app-access-panel.js';
 import { testerTestIds } from './tester-test-ids.js';
 import { WorkbenchSideNav } from './workbench/workbench-side-nav.js';
 import { SectionAITesting } from './workbench/section-ai-testing.js';
-import { TesterCapabilityParameterContext, TesterHistoryLoadContext, type WorkbenchView } from './workbench/workbench-context.js';
+import { TesterCapabilityParameterContext, TesterHistoryActionsContext, TesterHistoryLoadContext, TesterHistoryPanelContext, type TesterHistoryPanelState, type WorkbenchView } from './workbench/workbench-context.js';
 
 const initialCapabilityId: TesterCapabilityId = 'text.generate';
+
+function restoredInitialCapabilityId(preferences: TesterPreferences): TesterCapabilityId {
+  const saved = preferences.lastCapabilityId;
+  if (!saved) return initialCapabilityId;
+  return testerCapabilities.some((item) => item.id === saved) ? saved as TesterCapabilityId : initialCapabilityId;
+}
 const SettingsRoute = lazy(async () => ({
   default: (await import('../shell/routes/settings-route.js')).SettingsRoute,
 }));
@@ -55,18 +62,52 @@ function getResultTraceId(result: TesterCapabilityRunResult): string | undefined
 export function TesterWorkbench(_props: TesterWorkbenchProps) {
   const rendererHost = useTesterRendererHost();
   const { t } = useTranslation();
-  const [view, setView] = useState<WorkbenchView>({ kind: 'capability', capabilityId: initialCapabilityId });
+  const [preferences, setPreferences] = useState<TesterPreferences>(() => rendererHost.app.projection.preferences());
+  const [view, setView] = useState<WorkbenchView>(() => ({
+    kind: 'capability',
+    capabilityId: restoredInitialCapabilityId(rendererHost.app.projection.preferences()),
+  }));
   const activeCapabilityId: TesterCapabilityId = view.kind === 'capability' ? view.capabilityId : initialCapabilityId;
   const [summary, setSummary] = useState<TesterAIConfigSummary | null>(null);
   const [history, setHistory] = useState<TesterRunHistory | null>(null);
+  const [imageHistory, setImageHistory] = useState<readonly TesterImageHistoryRecord[]>([]);
   const [historyIssue, setHistoryIssue] = useState<TesterHistoryIssue | null>(null);
   const [lastResult, setLastResult] = useState<TesterCapabilityRunResult | null>(null);
   const [capabilityParameters, setCapabilityParameters] = useState(createTesterCapabilityParameterState);
   const [historySelectionRequest, setHistorySelectionRequest] = useState<TesterHistorySelectionRequest | null>(null);
-  const [preferences] = useState<TesterPreferences>(() => rendererHost.app.projection.preferences());
   const [ecosystemReference, setEcosystemReference] = useState<TesterEcosystemReferenceProjection | null>(
     () => rendererHost.app.projection.ecosystemReference(),
   );
+
+  const updatePreferences = useCallback((patch: Partial<TesterPreferences>) => {
+    setPreferences((current) => {
+      const next = { ...current, ...patch };
+      void rendererHost.app.commands.savePreferences(next).catch((error: unknown) => {
+        void rendererHost.app.commands.runtimeLog({
+          level: 'warn',
+          area: 'tester-preferences',
+          message: 'preferences-save-failed',
+          details: { error: error instanceof Error ? error.message : String(error || 'Preferences save failed.') },
+        });
+      });
+      return next;
+    });
+  }, [rendererHost]);
+
+  const selectCapabilityView = useCallback((capabilityId: TesterCapabilityId) => {
+    setView({ kind: 'capability', capabilityId });
+    updatePreferences({ lastCapabilityId: capabilityId });
+  }, [updatePreferences]);
+
+  const historyPanelState = useMemo<TesterHistoryPanelState>(() => ({
+    collapsed: preferences.historyPanel.collapsed,
+    scope: preferences.historyPanel.scope,
+    hideFailures: preferences.historyPanel.hideFailures,
+    imageRecords: imageHistory,
+    setCollapsed: (collapsed) => updatePreferences({ historyPanel: { ...preferences.historyPanel, collapsed } }),
+    setScope: (scope) => updatePreferences({ historyPanel: { ...preferences.historyPanel, scope } }),
+    setHideFailures: (hideFailures) => updatePreferences({ historyPanel: { ...preferences.historyPanel, hideFailures } }),
+  }), [imageHistory, preferences.historyPanel, updatePreferences]);
 
   const capability = useMemo(() => getTesterCapability(activeCapabilityId), [activeCapabilityId]);
   const capabilityParameterStore = useMemo(() => ({
@@ -92,7 +133,51 @@ export function TesterWorkbench(_props: TesterWorkbenchProps) {
         details: { error: message },
       });
     }
+    try {
+      setImageHistory(await rendererHost.app.projection.imageHistory());
+    } catch (error) {
+      void rendererHost.app.commands.runtimeLog({
+        level: 'warn',
+        area: 'tester-history',
+        message: 'image-history-load-failed',
+        details: { error: error instanceof Error ? error.message : String(error || 'Image history load failed.') },
+      });
+    }
   }, [rendererHost]);
+
+  const removeHistoryRecord = useCallback(async (recordId: string) => {
+    try {
+      setHistory(await rendererHost.app.commands.removeRunHistory(recordId));
+    } catch (error) {
+      nimiToast.danger(t('History.deleteFailed'));
+      void rendererHost.app.commands.runtimeLog({
+        level: 'warn',
+        area: 'tester-history',
+        message: 'history-remove-failed',
+        details: { recordId, error: error instanceof Error ? error.message : String(error || 'History remove failed.') },
+      });
+    }
+  }, [rendererHost, t]);
+
+  const clearHistoryScope = useCallback(async (capabilityId: string | null) => {
+    try {
+      setHistory(await rendererHost.app.commands.clearRunHistory(capabilityId ? { capabilityId } : {}));
+      nimiToast.success(t('History.cleared'));
+    } catch (error) {
+      nimiToast.danger(t('History.clearFailed'));
+      void rendererHost.app.commands.runtimeLog({
+        level: 'warn',
+        area: 'tester-history',
+        message: 'history-clear-failed',
+        details: { capabilityId, error: error instanceof Error ? error.message : String(error || 'History clear failed.') },
+      });
+    }
+  }, [rendererHost, t]);
+
+  const historyActions = useMemo(() => ({
+    removeRecord: removeHistoryRecord,
+    clearScope: clearHistoryScope,
+  }), [removeHistoryRecord, clearHistoryScope]);
 
   const retryHistory = useCallback(async () => {
     const pending = historyIssue?.kind === 'save' ? historyIssue.records : null;
@@ -165,13 +250,16 @@ export function TesterWorkbench(_props: TesterWorkbenchProps) {
       item.id === capabilityId
       && (item.execution === 'runtime-sdk' || item.execution === 'standalone-tauri')
     ));
-    if (!selectedCapability) return;
-    setView({ kind: 'capability', capabilityId: selectedCapability.id });
+    if (!selectedCapability) {
+      nimiToast.warning(t('History.unsupportedCapability'));
+      return;
+    }
+    selectCapabilityView(selectedCapability.id);
     setHistorySelectionRequest((current) => ({
       requestId: (current?.requestId ?? 0) + 1,
       record,
     }));
-  }, []);
+  }, [selectCapabilityView, t]);
 
   const handleCapabilityResult = useCallback(
     async (
@@ -237,7 +325,7 @@ export function TesterWorkbench(_props: TesterWorkbenchProps) {
       if (shouldPersistTesterArtifactRecord(historyResult)) {
         try {
           const firstArtifact = historyResult.output.firstArtifact;
-          await rendererHost.app.commands.appendImageHistory({
+          const nextImageHistory = await rendererHost.app.commands.appendImageHistory({
             id: runId,
             runId,
             kind: 'runtime-media',
@@ -256,6 +344,7 @@ export function TesterWorkbench(_props: TesterWorkbenchProps) {
             traceState: hasTraceMetadata(result) ? 'captured' : 'not-captured',
             traceId,
           });
+          setImageHistory(nextImageHistory);
           artifactPersisted = true;
         } catch (error) {
           void rendererHost.app.commands.rendererLog({
@@ -301,7 +390,7 @@ export function TesterWorkbench(_props: TesterWorkbenchProps) {
       <div className="workbench__body">
         <WorkbenchSideNav
           view={view}
-          onSelectCapability={(id) => setView({ kind: 'capability', capabilityId: id })}
+          onSelectCapability={selectCapabilityView}
           onSelectRecipes={() => setView({ kind: 'ui-recipes' })}
           onSelectAppAccess={() => setView({ kind: 'app-access' })}
           accountSlot={(
@@ -329,38 +418,42 @@ export function TesterWorkbench(_props: TesterWorkbenchProps) {
                 <KitComponentGallery
                   onOpenSection={(target) => {
                     const capabilityId = testerCapabilities.find((item) => item.id === target)?.id ?? initialCapabilityId;
-                    setView({ kind: 'capability', capabilityId });
+                    selectCapabilityView(capabilityId);
                   }}
                 />
               </Suspense>
             ) : (
               <TesterCapabilityParameterContext.Provider value={capabilityParameterStore}>
                 <TesterHistoryLoadContext.Provider value={historyLoadState}>
-                  <SectionAITesting
-                  capability={capability}
-                  onResult={handleCapabilityResult}
-                  summary={summary}
-                  history={history}
-                  lastResult={lastResult}
-                  historySelectionRequest={historySelectionRequest}
-                  onSelectHistoryRun={handleSelectHistoryRun}
-                  verboseConsole={preferences.verboseConsole}
-                  draftPersistence={preferences.draftPersistence}
-                  headerActions={(
-                    <>
-                      {ecosystemReference ? (
-                        <StatusBadge
-                          tone="success"
-                          shape="dot"
-                          data-nimi-semantic-id="tester-ecosystem-reference"
-                          data-ecosystem-revision={ecosystemReference.ecosystemRevision}
-                        >
-                          {t('WorkbenchTop.ecosystemRevision', { revision: ecosystemReference.ecosystemRevision })}
-                        </StatusBadge>
-                      ) : null}
-                    </>
-                  )}
-                  />
+                  <TesterHistoryActionsContext.Provider value={historyActions}>
+                    <TesterHistoryPanelContext.Provider value={historyPanelState}>
+                      <SectionAITesting
+                      capability={capability}
+                      onResult={handleCapabilityResult}
+                      summary={summary}
+                      history={history}
+                      lastResult={lastResult}
+                      historySelectionRequest={historySelectionRequest}
+                      onSelectHistoryRun={handleSelectHistoryRun}
+                      verboseConsole={preferences.verboseConsole}
+                      draftPersistence={preferences.draftPersistence}
+                      headerActions={(
+                        <>
+                          {ecosystemReference ? (
+                            <StatusBadge
+                              tone="success"
+                              shape="dot"
+                              data-nimi-semantic-id="tester-ecosystem-reference"
+                              data-ecosystem-revision={ecosystemReference.ecosystemRevision}
+                            >
+                              {t('WorkbenchTop.ecosystemRevision', { revision: ecosystemReference.ecosystemRevision })}
+                            </StatusBadge>
+                          ) : null}
+                        </>
+                      )}
+                      />
+                    </TesterHistoryPanelContext.Provider>
+                  </TesterHistoryActionsContext.Provider>
                 </TesterHistoryLoadContext.Provider>
               </TesterCapabilityParameterContext.Provider>
             )}

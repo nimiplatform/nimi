@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type ChangeEvent, type ReactNode } from 'react';
 import { Button, SelectField, TextareaField, TextField, Toggle } from '@nimiplatform/kit/ui';
-import { Plus, Trash2, Upload } from 'lucide-react';
+import { ChevronDown, Plus, Trash2, Upload } from 'lucide-react';
 import { useTesterRendererHost } from '../../renderer/context.js';
 import { useTranslation } from '../../shell/i18n/index.js';
 import type { TesterCapabilityId } from '../tester-capabilities.js';
@@ -15,6 +15,7 @@ import {
   type TesterTextGenerationParameters,
   type TesterVideoGenerationParameters,
 } from '../tester-capability-parameters.js';
+import { getTesterCapabilityParamPresentation } from '../tester-capability-params.js';
 import type { TesterRunTargetSource } from '../tester-run-target.js';
 
 const TESTER_IMAGE_MIME_TYPES = ['image/png', 'image/jpeg', 'image/webp', 'image/gif'] as const;
@@ -34,24 +35,97 @@ type ParameterPanelProps<TCapabilityId extends TesterCapabilityId = TesterCapabi
 
 type ParameterFieldProps = {
   label: string;
-  cloudOnly?: boolean;
-  source?: TesterRunTargetSource;
   children: ReactNode;
 };
 
-function ParameterField({ label, cloudOnly = false, source, children }: ParameterFieldProps) {
-  const { t } = useTranslation();
+type RouteAwareParameterField = {
+  field: string;
+  label: string;
+  render: (routeDisabled: boolean) => ReactNode;
+};
+
+function ParameterField({ label, children }: ParameterFieldProps) {
   return (
     <label className="studio-parameters__field">
-      <span className="studio-parameters__label">
-        {label}
-        {cloudOnly ? <em>{t('Studio.parameters.cloudOnly')}</em> : null}
-      </span>
+      <span className="studio-parameters__label">{label}</span>
       {children}
-      {cloudOnly && source === 'local' ? (
-        <small>{t('Studio.parameters.localRejectHint')}</small>
-      ) : null}
     </label>
+  );
+}
+
+function RouteAwareParameterFields({
+  capabilityId,
+  source,
+  fields,
+  contentClassName = 'studio-parameters__grid',
+}: {
+  capabilityId: TesterCapabilityId;
+  source: TesterRunTargetSource;
+  fields: readonly RouteAwareParameterField[];
+  contentClassName?: string;
+}) {
+  const { t } = useTranslation();
+  const presentation = new Map(
+    getTesterCapabilityParamPresentation(capabilityId, source).map((item) => [item.field, item]),
+  );
+  const available = fields.filter((field) => presentation.get(field.field)?.state !== 'disabled');
+  const routeUnavailable = fields.filter((field) => (
+    presentation.get(field.field)?.state === 'disabled'
+    && presentation.get(field.field)?.unavailableBecause === 'route'
+  ));
+  const surfaceUnavailable = fields.filter((field) => (
+    presentation.get(field.field)?.state === 'disabled'
+    && presentation.get(field.field)?.unavailableBecause === 'local-app-surface'
+  ));
+  const renderAvailable = (field: RouteAwareParameterField) => {
+    const item = presentation.get(field.field);
+    if (item?.state === 'fixed') {
+      return (
+        <ParameterField key={field.field} label={field.label}>
+          <span className="studio-parameters__fixed" role="status">
+            {t('Studio.parameters.fixedValue', { value: item.fixedValue })}
+          </span>
+        </ParameterField>
+      );
+    }
+    return <div className="studio-parameters__field-slot" key={field.field}>{field.render(false)}</div>;
+  };
+  return (
+    <>
+      <div className={contentClassName}>{available.map(renderAvailable)}</div>
+      {routeUnavailable.length > 0 && (source === 'local' || source === 'cloud') ? (
+        <details className="studio-parameters__route-group">
+          <summary>
+            <span>
+              <strong>{t(source === 'local' ? 'Studio.parameters.cloudOnlyGroup' : 'Studio.parameters.localOnlyGroup')}</strong>
+              <small>{t(source === 'local' ? 'Studio.parameters.switchToCloudHint' : 'Studio.parameters.switchToLocalHint')}</small>
+            </span>
+            <ChevronDown size={15} aria-hidden="true" />
+          </summary>
+          <div className={contentClassName} aria-disabled="true">
+            {routeUnavailable.map((field) => (
+              <div className="studio-parameters__field-slot" key={field.field}>{field.render(true)}</div>
+            ))}
+          </div>
+        </details>
+      ) : null}
+      {surfaceUnavailable.length > 0 ? (
+        <details className="studio-parameters__route-group">
+          <summary>
+            <span>
+              <strong>{t('Studio.parameters.localAppUnavailableGroup')}</strong>
+              <small>{t('Studio.parameters.localAppUnavailableHint')}</small>
+            </span>
+            <ChevronDown size={15} aria-hidden="true" />
+          </summary>
+          <div className={contentClassName} aria-disabled="true">
+            {surfaceUnavailable.map((field) => (
+              <div className="studio-parameters__field-slot" key={field.field}>{field.render(true)}</div>
+            ))}
+          </div>
+        </details>
+      ) : null}
+    </>
   );
 }
 
@@ -78,8 +152,6 @@ function NumberParameter<T extends object>({
   min,
   max,
   step = 'any',
-  cloudOnly,
-  source,
 }: {
   current: T;
   field: keyof T;
@@ -89,12 +161,10 @@ function NumberParameter<T extends object>({
   min?: number;
   max?: number;
   step?: number | 'any';
-  cloudOnly?: boolean;
-  source?: TesterRunTargetSource;
 }) {
   const value = current[field];
   return (
-    <ParameterField label={label} cloudOnly={cloudOnly} source={source}>
+    <ParameterField label={label}>
       <TextField
         type="number"
         value={typeof value === 'number' ? value : ''}
@@ -115,8 +185,6 @@ function TextParameter<T extends object>({
   onChange,
   disabled,
   placeholder,
-  cloudOnly,
-  source,
 }: {
   current: T;
   field: keyof T;
@@ -124,12 +192,10 @@ function TextParameter<T extends object>({
   onChange: (next: T) => void;
   disabled: boolean;
   placeholder?: string;
-  cloudOnly?: boolean;
-  source?: TesterRunTargetSource;
 }) {
   const value = current[field];
   return (
-    <ParameterField label={label} cloudOnly={cloudOnly} source={source}>
+    <ParameterField label={label}>
       <TextField
         value={typeof value === 'string' ? value : ''}
         placeholder={placeholder}
@@ -146,19 +212,15 @@ function BooleanParameter<T extends object>({
   label,
   onChange,
   disabled,
-  cloudOnly,
-  source,
 }: {
   current: T;
   field: keyof T;
   label: string;
   onChange: (next: T) => void;
   disabled: boolean;
-  cloudOnly?: boolean;
-  source?: TesterRunTargetSource;
 }) {
   return (
-    <ParameterField label={label} cloudOnly={cloudOnly} source={source}>
+    <ParameterField label={label}>
       <Toggle
         checked={current[field] === true}
         disabled={disabled}
@@ -173,34 +235,49 @@ function TextGenerationFields(props: ParameterPanelProps<'text.generate' | 'chat
   const { t } = useTranslation();
   const parameters = props.parameters as TesterTextGenerationParameters;
   const update = props.onChange as (next: TesterTextGenerationParameters) => void;
-  return (
-    <div className="studio-parameters__grid">
-      <NumberParameter current={parameters} field="temperature" label={t('Studio.parameters.fields.temperature')} onChange={update} disabled={props.disabled} />
-      <NumberParameter current={parameters} field="topP" label={t('Studio.parameters.fields.topP')} onChange={update} disabled={props.disabled} min={0} max={1} />
-      <NumberParameter current={parameters} field="maxTokens" label={t('Studio.parameters.fields.maxTokens')} onChange={update} disabled={props.disabled} min={0} step={1} />
-      <NumberParameter current={parameters} field="topK" label={t('Studio.parameters.fields.topK')} onChange={update} disabled={props.disabled} min={0} step={1} />
-      <NumberParameter current={parameters} field="presencePenalty" label={t('Studio.parameters.fields.presencePenalty')} onChange={update} disabled={props.disabled} />
-      <NumberParameter current={parameters} field="frequencyPenalty" label={t('Studio.parameters.fields.frequencyPenalty')} onChange={update} disabled={props.disabled} />
-      <ParameterField label={t('Studio.parameters.fields.stop')}>
-        <TextareaField
-          rows={3}
-          value={parameters.stop?.join('\n') ?? ''}
-          placeholder={t('Studio.parameters.stopPlaceholder')}
-          disabled={props.disabled}
-          onChange={(event) => {
-            const values = event.currentTarget.value.split(/\r?\n/u).map((value) => value.trim()).filter(Boolean);
-            if (values.length > 0) update({ ...parameters, stop: values });
-            else {
-              const next = { ...parameters };
-              delete next.stop;
-              update(next);
-            }
-          }}
-        />
-      </ParameterField>
-      <NumberParameter current={parameters} field="seed" label={t('Studio.parameters.fields.seed')} onChange={update} disabled={props.disabled} step={1} />
-    </div>
-  );
+  const numberField = (
+    field: keyof TesterTextGenerationParameters,
+    label: string,
+    options: { min?: number; max?: number; step?: number | 'any' } = {},
+  ): RouteAwareParameterField => ({
+    field,
+    label,
+    render: (routeDisabled) => <NumberParameter current={parameters} field={field} label={label} onChange={update} disabled={props.disabled || routeDisabled} {...options} />,
+  });
+  const stopLabel = t('Studio.parameters.fields.stop');
+  const fields: RouteAwareParameterField[] = [
+    numberField('temperature', t('Studio.parameters.fields.temperature')),
+    numberField('topP', t('Studio.parameters.fields.topP'), { min: 0, max: 1 }),
+    numberField('maxTokens', t('Studio.parameters.fields.maxTokens'), { min: 0, step: 1 }),
+    numberField('topK', t('Studio.parameters.fields.topK'), { min: 0, step: 1 }),
+    numberField('presencePenalty', t('Studio.parameters.fields.presencePenalty')),
+    numberField('frequencyPenalty', t('Studio.parameters.fields.frequencyPenalty')),
+    {
+      field: 'stop',
+      label: stopLabel,
+      render: (routeDisabled) => (
+        <ParameterField label={stopLabel}>
+          <TextareaField
+            rows={3}
+            value={parameters.stop?.join('\n') ?? ''}
+            placeholder={t('Studio.parameters.stopPlaceholder')}
+            disabled={props.disabled || routeDisabled}
+            onChange={(event) => {
+              const values = event.currentTarget.value.split(/\r?\n/u).map((value) => value.trim()).filter(Boolean);
+              if (values.length > 0) update({ ...parameters, stop: values });
+              else {
+                const next = { ...parameters };
+                delete next.stop;
+                update(next);
+              }
+            }}
+          />
+        </ParameterField>
+      ),
+    },
+    numberField('seed', t('Studio.parameters.fields.seed'), { step: 1 }),
+  ];
+  return <RouteAwareParameterFields capabilityId={props.capabilityId} source={props.source} fields={fields} />;
 }
 
 function EmbeddingFields(props: ParameterPanelProps<'text.embed'>) {
@@ -211,49 +288,67 @@ function EmbeddingFields(props: ParameterPanelProps<'text.embed'>) {
     if (nextValues.some((value) => value.trim())) props.onChange({ inputs: nextValues });
     else props.onChange({});
   };
-  return (
-    <div className="studio-parameters__stack">
-      {values.map((value, index) => (
-        <div className="studio-parameters__repeat" key={index}>
-          <TextareaField
-            rows={2}
-            value={value}
-            disabled={props.disabled}
-            aria-label={t('Studio.parameters.embeddingInput', { index: index + 1 })}
-            placeholder={t('Studio.parameters.embeddingInputPlaceholder')}
-            onChange={(event) => updateValues(values.map((entry, itemIndex) => itemIndex === index ? event.currentTarget.value : entry))}
-          />
-          {values.length > 1 ? (
-            <Button type="button" tone="ghost" size="sm" disabled={props.disabled} onClick={() => updateValues(values.filter((_, itemIndex) => itemIndex !== index))} aria-label={t('Studio.parameters.removeInput', { index: index + 1 })}>
-              <Trash2 size={14} aria-hidden="true" />
-            </Button>
-          ) : null}
-        </div>
-      ))}
-      <Button type="button" tone="ghost" size="sm" disabled={props.disabled} leadingIcon={<Plus size={14} aria-hidden="true" />} onClick={() => updateValues([...values, ''])}>
-        {t('Studio.parameters.addInput')}
-      </Button>
-    </div>
-  );
+  const label = t('Studio.parameters.fields.inputs');
+  const fields: RouteAwareParameterField[] = [{
+    field: 'inputs',
+    label,
+    render: (routeDisabled) => (
+      <div className="studio-parameters__stack">
+        {values.map((value, index) => (
+          <div className="studio-parameters__repeat" key={index}>
+            <TextareaField
+              rows={2}
+              value={value}
+              disabled={props.disabled || routeDisabled}
+              aria-label={t('Studio.parameters.embeddingInput', { index: index + 1 })}
+              placeholder={t('Studio.parameters.embeddingInputPlaceholder')}
+              onChange={(event) => updateValues(values.map((entry, itemIndex) => itemIndex === index ? event.currentTarget.value : entry))}
+            />
+            {values.length > 1 ? (
+              <Button type="button" tone="ghost" size="sm" disabled={props.disabled || routeDisabled} onClick={() => updateValues(values.filter((_, itemIndex) => itemIndex !== index))} aria-label={t('Studio.parameters.removeInput', { index: index + 1 })}>
+                <Trash2 size={14} aria-hidden="true" />
+              </Button>
+            ) : null}
+          </div>
+        ))}
+        <Button type="button" tone="ghost" size="sm" disabled={props.disabled || routeDisabled} leadingIcon={<Plus size={14} aria-hidden="true" />} onClick={() => updateValues([...values, ''])}>
+          {t('Studio.parameters.addInput')}
+        </Button>
+      </div>
+    ),
+  }];
+  return <RouteAwareParameterFields capabilityId={props.capabilityId} source={props.source} fields={fields} contentClassName="studio-parameters__stack" />;
 }
 
 function ImageFields(props: ParameterPanelProps<'image.generate'>) {
   const { t } = useTranslation();
   const parameters = props.parameters as TesterImageGenerationParameters;
   const update = props.onChange as (next: TesterImageGenerationParameters) => void;
-  return (
-    <div className="studio-parameters__grid">
-      <TextParameter current={parameters} field="negativePrompt" label={t('Studio.parameters.fields.negativePrompt')} onChange={update} disabled={props.disabled} />
-      <NumberParameter current={parameters} field="count" label={t('Studio.parameters.fields.count')} onChange={update} disabled={props.disabled} min={1} step={1} />
-      <TextParameter current={parameters} field="size" label={t('Studio.parameters.fields.size')} placeholder="1024x1024" onChange={update} disabled={props.disabled} />
-      <NumberParameter current={parameters} field="seed" label={t('Studio.parameters.fields.seed')} onChange={update} disabled={props.disabled} step={1} />
-      <TextParameter current={parameters} field="aspectRatio" label={t('Studio.parameters.fields.aspectRatio')} onChange={update} disabled={props.disabled} cloudOnly source={props.source} />
-      <TextParameter current={parameters} field="quality" label={t('Studio.parameters.fields.quality')} onChange={update} disabled={props.disabled} cloudOnly source={props.source} />
-      <TextParameter current={parameters} field="style" label={t('Studio.parameters.fields.style')} onChange={update} disabled={props.disabled} cloudOnly source={props.source} />
-      <TextParameter current={parameters} field="referenceImage" label={t('Studio.parameters.fields.referenceImage')} placeholder="https://…" onChange={update} disabled={props.disabled} />
-      <TextParameter current={parameters} field="mask" label={t('Studio.parameters.fields.mask')} placeholder="https://…" onChange={update} disabled={props.disabled} />
-    </div>
-  );
+  const textField = (field: keyof TesterImageGenerationParameters, label: string, placeholder?: string): RouteAwareParameterField => ({
+    field,
+    label,
+    render: (routeDisabled) => <TextParameter current={parameters} field={field} label={label} placeholder={placeholder} onChange={update} disabled={props.disabled || routeDisabled} />,
+  });
+  const fields: RouteAwareParameterField[] = [
+    textField('negativePrompt', t('Studio.parameters.fields.negativePrompt')),
+    {
+      field: 'count',
+      label: t('Studio.parameters.fields.count'),
+      render: (routeDisabled) => <NumberParameter current={parameters} field="count" label={t('Studio.parameters.fields.count')} onChange={update} disabled={props.disabled || routeDisabled} min={1} step={1} />,
+    },
+    textField('size', t('Studio.parameters.fields.size'), '1024x1024'),
+    {
+      field: 'seed',
+      label: t('Studio.parameters.fields.seed'),
+      render: (routeDisabled) => <NumberParameter current={parameters} field="seed" label={t('Studio.parameters.fields.seed')} onChange={update} disabled={props.disabled || routeDisabled} step={1} />,
+    },
+    textField('aspectRatio', t('Studio.parameters.fields.aspectRatio')),
+    textField('quality', t('Studio.parameters.fields.quality')),
+    textField('style', t('Studio.parameters.fields.style')),
+    textField('referenceImage', t('Studio.parameters.fields.referenceImage'), 'https://…'),
+    textField('mask', t('Studio.parameters.fields.mask'), 'https://…'),
+  ];
+  return <RouteAwareParameterFields capabilityId={props.capabilityId} source={props.source} fields={fields} />;
 }
 
 function VideoFields(props: ParameterPanelProps<'video.generate'>) {
@@ -292,50 +387,76 @@ function VideoFields(props: ParameterPanelProps<'video.generate'>) {
       setUploading(false);
     }
   }
-  return (
-    <div className="studio-parameters__grid">
-      <ParameterField label={t('Studio.parameters.fields.mode')}>
-        <SelectField
-          value={parameters.mode ?? 't2v'}
-          disabled={props.disabled}
-          options={[
-            { value: 't2v', label: t('Studio.parameters.videoModeT2v') },
-            { value: 'i2v-reference', label: t('Studio.parameters.videoModeReference') },
-          ]}
-          onValueChange={(value) => update({ ...parameters, mode: value as TesterVideoGenerationParameters['mode'] })}
-        />
-      </ParameterField>
-      {parameters.mode === 'i2v-reference' ? (
-        <>
-          <TextParameter current={parameters} field="referenceArtifactId" label={t('Studio.parameters.fields.referenceArtifactId')} placeholder="artifact_…" onChange={update} disabled={props.disabled || uploading} />
+  const textField = (field: keyof TesterVideoGenerationParameters, label: string, placeholder?: string): RouteAwareParameterField => ({
+    field,
+    label,
+    render: (routeDisabled) => <TextParameter current={parameters} field={field} label={label} placeholder={placeholder} onChange={update} disabled={props.disabled || routeDisabled} />,
+  });
+  const numberField = (field: keyof TesterVideoGenerationParameters, label: string, min?: number): RouteAwareParameterField => ({
+    field,
+    label,
+    render: (routeDisabled) => <NumberParameter current={parameters} field={field} label={label} onChange={update} disabled={props.disabled || routeDisabled} min={min} step={1} />,
+  });
+  const booleanField = (field: keyof TesterVideoGenerationParameters, label: string): RouteAwareParameterField => ({
+    field,
+    label,
+    render: (routeDisabled) => <BooleanParameter current={parameters} field={field} label={label} onChange={update} disabled={props.disabled || routeDisabled} />,
+  });
+  const modeLabel = t('Studio.parameters.fields.mode');
+  const referenceLabel = t('Studio.parameters.fields.referenceArtifactId');
+  const fields: RouteAwareParameterField[] = [
+    {
+      field: 'mode',
+      label: modeLabel,
+      render: (routeDisabled) => (
+        <ParameterField label={modeLabel}>
+          <SelectField
+            value={parameters.mode ?? 't2v'}
+            disabled={props.disabled || routeDisabled}
+            options={[
+              { value: 't2v', label: t('Studio.parameters.videoModeT2v') },
+              { value: 'i2v-reference', label: t('Studio.parameters.videoModeReference') },
+            ]}
+            onValueChange={(value) => update({ ...parameters, mode: value as TesterVideoGenerationParameters['mode'] })}
+          />
+        </ParameterField>
+      ),
+    },
+    ...(parameters.mode === 'i2v-reference' ? [{
+      field: 'referenceArtifactId',
+      label: referenceLabel,
+      render: (routeDisabled: boolean) => (
+        <div className="studio-parameters__reference-fields">
+          <TextParameter current={parameters} field="referenceArtifactId" label={referenceLabel} placeholder="artifact_…" onChange={update} disabled={props.disabled || routeDisabled || uploading} />
           <ParameterField label={t('Studio.parameters.fields.referenceImageFile')}>
-            <input ref={inputRef} className="studio-parameters__file-input" type="file" accept="image/png,image/jpeg,image/webp,image/gif" onChange={(event) => void selectReferenceImage(event)} />
+            <input ref={inputRef} className="studio-parameters__file-input" type="file" accept="image/png,image/jpeg,image/webp,image/gif" disabled={props.disabled || routeDisabled || uploading} onChange={(event) => void selectReferenceImage(event)} />
             <div className="studio-parameters__file-row">
-              <Button type="button" tone="ghost" size="sm" disabled={props.disabled || uploading} leadingIcon={<Upload size={14} aria-hidden="true" />} onClick={() => inputRef.current?.click()}>
+              <Button type="button" tone="ghost" size="sm" disabled={props.disabled || routeDisabled || uploading} leadingIcon={<Upload size={14} aria-hidden="true" />} onClick={() => inputRef.current?.click()}>
                 {uploading ? t('Studio.parameters.uploadingImage') : t('Studio.parameters.chooseImageFile')}
               </Button>
               {uploadedFileName ? <span>{uploadedFileName}</span> : null}
             </div>
             {uploadError ? <small>{uploadError}</small> : null}
           </ParameterField>
-        </>
-      ) : null}
-      <TextParameter current={parameters} field="negativePrompt" label={t('Studio.parameters.fields.negativePrompt')} onChange={update} disabled={props.disabled} />
-      <TextParameter current={parameters} field="resolution" label={t('Studio.parameters.fields.resolution')} placeholder="720p" onChange={update} disabled={props.disabled} />
-      <NumberParameter current={parameters} field="frames" label={t('Studio.parameters.fields.frames')} onChange={update} disabled={props.disabled} min={1} step={1} />
-      <NumberParameter current={parameters} field="seed" label={t('Studio.parameters.fields.seed')} onChange={update} disabled={props.disabled} step={1} />
-      <BooleanParameter current={parameters} field="generateAudio" label={t('Studio.parameters.fields.generateAudio')} onChange={update} disabled={props.disabled} />
-      <TextParameter current={parameters} field="ratio" label={t('Studio.parameters.fields.ratio')} onChange={update} disabled={props.disabled} cloudOnly source={props.source} />
-      <NumberParameter current={parameters} field="durationSec" label={t('Studio.parameters.fields.durationSec')} onChange={update} disabled={props.disabled} min={0} cloudOnly source={props.source} />
-      <NumberParameter current={parameters} field="fps" label={t('Studio.parameters.fields.fps')} onChange={update} disabled={props.disabled} min={1} step={1} cloudOnly source={props.source} />
-      <BooleanParameter current={parameters} field="cameraFixed" label={t('Studio.parameters.fields.cameraFixed')} onChange={update} disabled={props.disabled} cloudOnly source={props.source} />
-      <BooleanParameter current={parameters} field="watermark" label={t('Studio.parameters.fields.watermark')} onChange={update} disabled={props.disabled} cloudOnly source={props.source} />
-      <BooleanParameter current={parameters} field="draft" label={t('Studio.parameters.fields.draft')} onChange={update} disabled={props.disabled} cloudOnly source={props.source} />
-      <BooleanParameter current={parameters} field="returnLastFrame" label={t('Studio.parameters.fields.returnLastFrame')} onChange={update} disabled={props.disabled} cloudOnly source={props.source} />
-      <TextParameter current={parameters} field="serviceTier" label={t('Studio.parameters.fields.serviceTier')} onChange={update} disabled={props.disabled} cloudOnly source={props.source} />
-      <NumberParameter current={parameters} field="executionExpiresAfterSec" label={t('Studio.parameters.fields.executionExpiresAfterSec')} onChange={update} disabled={props.disabled} min={0} cloudOnly source={props.source} />
-    </div>
-  );
+        </div>
+      ),
+    }] : []),
+    textField('negativePrompt', t('Studio.parameters.fields.negativePrompt')),
+    textField('resolution', t('Studio.parameters.fields.resolution'), '720p'),
+    numberField('frames', t('Studio.parameters.fields.frames'), 1),
+    numberField('seed', t('Studio.parameters.fields.seed')),
+    booleanField('generateAudio', t('Studio.parameters.fields.generateAudio')),
+    textField('ratio', t('Studio.parameters.fields.ratio')),
+    numberField('durationSec', t('Studio.parameters.fields.durationSec'), 0),
+    numberField('fps', t('Studio.parameters.fields.fps'), 1),
+    booleanField('cameraFixed', t('Studio.parameters.fields.cameraFixed')),
+    booleanField('watermark', t('Studio.parameters.fields.watermark')),
+    booleanField('draft', t('Studio.parameters.fields.draft')),
+    booleanField('returnLastFrame', t('Studio.parameters.fields.returnLastFrame')),
+    textField('serviceTier', t('Studio.parameters.fields.serviceTier')),
+    numberField('executionExpiresAfterSec', t('Studio.parameters.fields.executionExpiresAfterSec'), 0),
+  ];
+  return <RouteAwareParameterFields capabilityId={props.capabilityId} source={props.source} fields={fields} />;
 }
 
 function SpeechSynthesizeFields(props: ParameterPanelProps<'audio.synthesize'>) {
@@ -353,53 +474,78 @@ function SpeechSynthesizeFields(props: ParameterPanelProps<'audio.synthesize'>) 
     );
     return () => { cancelled = true; };
   }, [rendererHost]);
-  return (
-    <div className="studio-parameters__grid">
-      <ParameterField label={t('Studio.parameters.fields.voiceSource')}>
-        <SelectField
-          value={parameters.voiceKind}
-          placeholder={t('Studio.parameters.runtimeDefault')}
-          disabled={props.disabled}
-          options={[
-            { value: 'preset', label: t('Studio.parameters.voicePreset') },
-            { value: 'asset', label: t('Studio.parameters.voiceAsset') },
-          ]}
-          onValueChange={(value) => update({ ...parameters, voiceKind: value as 'preset' | 'asset' })}
-        />
-      </ParameterField>
-      {parameters.voiceKind === 'preset' ? (
-        <TextParameter current={parameters} field="voicePreset" label={t('Studio.parameters.fields.voicePreset')} onChange={update} disabled={props.disabled} />
-      ) : null}
-      {parameters.voiceKind === 'asset' ? (
+  const textField = (field: keyof TesterSpeechSynthesizeParameters, label: string): RouteAwareParameterField => ({
+    field,
+    label,
+    render: (routeDisabled) => <TextParameter current={parameters} field={field} label={label} onChange={update} disabled={props.disabled || routeDisabled} />,
+  });
+  const numberField = (field: keyof TesterSpeechSynthesizeParameters, label: string, min?: number): RouteAwareParameterField => ({
+    field,
+    label,
+    render: (routeDisabled) => <NumberParameter current={parameters} field={field} label={label} onChange={update} disabled={props.disabled || routeDisabled} min={min} />,
+  });
+  const voiceSourceLabel = t('Studio.parameters.fields.voiceSource');
+  const timingModeLabel = t('Studio.parameters.fields.timingMode');
+  const fields: RouteAwareParameterField[] = [
+    {
+      field: 'voiceKind',
+      label: voiceSourceLabel,
+      render: (routeDisabled) => (
+        <ParameterField label={voiceSourceLabel}>
+          <SelectField
+            value={parameters.voiceKind}
+            placeholder={t('Studio.parameters.runtimeDefault')}
+            disabled={props.disabled || routeDisabled}
+            options={[
+              { value: 'preset', label: t('Studio.parameters.voicePreset') },
+              { value: 'asset', label: t('Studio.parameters.voiceAsset') },
+            ]}
+            onValueChange={(value) => update({ ...parameters, voiceKind: value as 'preset' | 'asset' })}
+          />
+        </ParameterField>
+      ),
+    },
+    ...(parameters.voiceKind === 'preset' ? [textField('voicePreset', t('Studio.parameters.fields.voicePreset'))] : []),
+    ...(parameters.voiceKind === 'asset' ? [{
+      field: 'voiceAssetId',
+      label: t('Studio.parameters.fields.voiceAsset'),
+      render: (routeDisabled: boolean) => (
         <ParameterField label={t('Studio.parameters.fields.voiceAsset')}>
           <SelectField
             value={parameters.voiceAssetId}
             placeholder={voices.length ? t('Studio.parameters.selectVoiceAsset') : t('Studio.parameters.noVoiceAssets')}
-            disabled={props.disabled || voices.length === 0}
+            disabled={props.disabled || routeDisabled || voices.length === 0}
             options={voices.map((voice) => ({ value: voice.voiceAssetId, label: `${voice.voiceAssetId} · ${voice.workflowType} · ${voice.status}` }))}
             onValueChange={(voiceAssetId) => update({ ...parameters, voiceAssetId })}
           />
           {voiceError ? <small>{voiceError}</small> : null}
         </ParameterField>
-      ) : null}
-      <TextParameter current={parameters} field="language" label={t('Studio.parameters.fields.language')} onChange={update} disabled={props.disabled} />
-      <TextParameter current={parameters} field="audioFormat" label={t('Studio.parameters.fields.audioFormat')} onChange={update} disabled={props.disabled} />
-      <NumberParameter current={parameters} field="sampleRateHz" label={t('Studio.parameters.fields.sampleRateHz')} onChange={update} disabled={props.disabled} min={0} step={1} />
-      <NumberParameter current={parameters} field="speed" label={t('Studio.parameters.fields.speed')} onChange={update} disabled={props.disabled} />
-      <NumberParameter current={parameters} field="pitch" label={t('Studio.parameters.fields.pitch')} onChange={update} disabled={props.disabled} />
-      <NumberParameter current={parameters} field="volume" label={t('Studio.parameters.fields.volume')} onChange={update} disabled={props.disabled} />
-      <TextParameter current={parameters} field="emotion" label={t('Studio.parameters.fields.emotion')} onChange={update} disabled={props.disabled} />
-      <ParameterField label={t('Studio.parameters.fields.timingMode')}>
-        <SelectField
-          value={parameters.timingMode}
-          placeholder={t('Studio.parameters.runtimeDefault')}
-          disabled={props.disabled}
-          options={['unspecified', 'none', 'word', 'char'].map((value) => ({ value, label: value }))}
-          onValueChange={(timingMode) => update({ ...parameters, timingMode: timingMode as TesterSpeechSynthesizeParameters['timingMode'] })}
-        />
-      </ParameterField>
-    </div>
-  );
+      ),
+    }] : []),
+    textField('language', t('Studio.parameters.fields.language')),
+    textField('audioFormat', t('Studio.parameters.fields.audioFormat')),
+    numberField('sampleRateHz', t('Studio.parameters.fields.sampleRateHz'), 0),
+    numberField('speed', t('Studio.parameters.fields.speed')),
+    numberField('pitch', t('Studio.parameters.fields.pitch')),
+    numberField('volume', t('Studio.parameters.fields.volume')),
+    textField('emotion', t('Studio.parameters.fields.emotion')),
+    {
+      field: 'timingMode',
+      label: timingModeLabel,
+      render: (routeDisabled) => (
+        <ParameterField label={timingModeLabel}>
+          <SelectField
+            value={parameters.timingMode}
+            placeholder={t('Studio.parameters.runtimeDefault')}
+            disabled={props.disabled || routeDisabled}
+            options={['unspecified', 'none', 'word', 'char'].map((value) => ({ value, label: value }))}
+            onValueChange={(timingMode) => update({ ...parameters, timingMode: timingMode as TesterSpeechSynthesizeParameters['timingMode'] })}
+          />
+        </ParameterField>
+      ),
+    },
+  ];
+  return <RouteAwareParameterFields capabilityId={props.capabilityId} source={props.source} fields={fields} />;
 }
 
 function SpeechTranscribeFields(props: ParameterPanelProps<'audio.transcribe'>) {
@@ -421,28 +567,48 @@ function SpeechTranscribeFields(props: ParameterPanelProps<'audio.transcribe'>) 
     setFileError('');
     update({ ...parameters, audioFile: { name: file.name, mimeType, sizeBytes: file.size, bytes }, mimeType });
   }
-  return (
-    <div className="studio-parameters__grid">
-      <ParameterField label={t('Studio.parameters.fields.audioFile')}>
-        <input ref={inputRef} className="studio-parameters__file-input" type="file" accept="audio/*,.wav,.mp3,.m4a,.ogg,.webm,.flac" onChange={(event) => void selectFile(event)} />
-        <div className="studio-parameters__file-row">
-          <Button type="button" tone="ghost" size="sm" disabled={props.disabled} leadingIcon={<Upload size={14} aria-hidden="true" />} onClick={() => inputRef.current?.click()}>
-            {t('Studio.parameters.chooseAudioFile')}
-          </Button>
-          {parameters.audioFile ? <span>{parameters.audioFile.name}</span> : null}
-          {parameters.audioFile ? <Button type="button" tone="ghost" size="sm" onClick={() => { const next = { ...parameters }; delete next.audioFile; update(next); }}>{t('Studio.parameters.removeFile')}</Button> : null}
-        </div>
-        {fileError ? <small>{fileError}</small> : null}
-      </ParameterField>
-      <TextParameter current={parameters} field="mimeType" label={t('Studio.parameters.fields.mimeType')} onChange={update} disabled={props.disabled} />
-      <TextParameter current={parameters} field="language" label={t('Studio.parameters.fields.language')} onChange={update} disabled={props.disabled} />
-      <BooleanParameter current={parameters} field="timestamps" label={t('Studio.parameters.fields.timestamps')} onChange={update} disabled={props.disabled} />
-      <BooleanParameter current={parameters} field="diarization" label={t('Studio.parameters.fields.diarization')} onChange={update} disabled={props.disabled} />
-      <NumberParameter current={parameters} field="speakerCount" label={t('Studio.parameters.fields.speakerCount')} onChange={update} disabled={props.disabled} min={0} step={1} />
-      <TextParameter current={parameters} field="prompt" label={t('Studio.parameters.fields.transcriptionPrompt')} onChange={update} disabled={props.disabled} />
-      <TextParameter current={parameters} field="responseFormat" label={t('Studio.parameters.fields.responseFormat')} onChange={update} disabled={props.disabled} />
-    </div>
-  );
+  const textField = (field: keyof TesterSpeechTranscribeParameters, label: string): RouteAwareParameterField => ({
+    field,
+    label,
+    render: (routeDisabled) => <TextParameter current={parameters} field={field} label={label} onChange={update} disabled={props.disabled || routeDisabled} />,
+  });
+  const booleanField = (field: keyof TesterSpeechTranscribeParameters, label: string): RouteAwareParameterField => ({
+    field,
+    label,
+    render: (routeDisabled) => <BooleanParameter current={parameters} field={field} label={label} onChange={update} disabled={props.disabled || routeDisabled} />,
+  });
+  const audioFileLabel = t('Studio.parameters.fields.audioFile');
+  const fields: RouteAwareParameterField[] = [
+    {
+      field: 'audioFile',
+      label: audioFileLabel,
+      render: (routeDisabled) => (
+        <ParameterField label={audioFileLabel}>
+          <input ref={inputRef} className="studio-parameters__file-input" type="file" accept="audio/*,.wav,.mp3,.m4a,.ogg,.webm,.flac" disabled={props.disabled || routeDisabled} onChange={(event) => void selectFile(event)} />
+          <div className="studio-parameters__file-row">
+            <Button type="button" tone="ghost" size="sm" disabled={props.disabled || routeDisabled} leadingIcon={<Upload size={14} aria-hidden="true" />} onClick={() => inputRef.current?.click()}>
+              {t('Studio.parameters.chooseAudioFile')}
+            </Button>
+            {parameters.audioFile ? <span>{parameters.audioFile.name}</span> : null}
+            {parameters.audioFile ? <Button type="button" tone="ghost" size="sm" disabled={props.disabled || routeDisabled} onClick={() => { const next = { ...parameters }; delete next.audioFile; update(next); }}>{t('Studio.parameters.removeFile')}</Button> : null}
+          </div>
+          {fileError ? <small>{fileError}</small> : null}
+        </ParameterField>
+      ),
+    },
+    textField('mimeType', t('Studio.parameters.fields.mimeType')),
+    textField('language', t('Studio.parameters.fields.language')),
+    booleanField('timestamps', t('Studio.parameters.fields.timestamps')),
+    booleanField('diarization', t('Studio.parameters.fields.diarization')),
+    {
+      field: 'speakerCount',
+      label: t('Studio.parameters.fields.speakerCount'),
+      render: (routeDisabled) => <NumberParameter current={parameters} field="speakerCount" label={t('Studio.parameters.fields.speakerCount')} onChange={update} disabled={props.disabled || routeDisabled} min={0} step={1} />,
+    },
+    textField('prompt', t('Studio.parameters.fields.transcriptionPrompt')),
+    textField('responseFormat', t('Studio.parameters.fields.responseFormat')),
+  ];
+  return <RouteAwareParameterFields capabilityId={props.capabilityId} source={props.source} fields={fields} />;
 }
 
 export function CapabilityParameterPanel(props: ParameterPanelProps) {

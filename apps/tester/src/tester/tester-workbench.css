@@ -66,8 +66,20 @@
 .studio-parameters__stack{ display: grid; gap: 9px;}
 .studio-parameters__field{ display: grid; align-content: start; gap: 6px; min-width: 0; color: var(--nimi-text-secondary);}
 .studio-parameters__label{ display: flex; align-items: center; flex-wrap: wrap; gap: 6px; font-size: 12px; font-weight: var(--nimi-type-page-title-weight);}
-.studio-parameters__label em{ border-radius: 999px; background: var(--nimi-status-info-soft-bg); padding: 2px 7px; color: var(--nimi-status-info-soft-text); font-size: 10px; font-style: normal; font-weight: var(--nimi-type-label-weight);}
 .studio-parameters__field small{ color: var(--nimi-status-warning); font-size: 10px; line-height: 1.35;}
+.studio-parameters__field-slot,
+.studio-parameters__reference-fields{ display: grid; align-content: start; gap: 12px; min-width: 0;}
+.studio-parameters__fixed{ justify-self: start; border: 1px solid var(--nimi-border-subtle); border-radius: 999px; background: var(--nimi-surface-active); padding: 5px 10px; color: var(--nimi-text-secondary); font-family: var(--nimi-font-mono); font-size: 11px; font-weight: var(--nimi-type-label-weight);}
+.studio-parameters__route-group{ grid-column: 1 / -1; overflow: hidden; border: 1px solid var(--nimi-border-subtle); border-radius: var(--nimi-radius-md); background: color-mix(in srgb, var(--nimi-surface-panel) 58%, transparent);}
+.studio-parameters__route-group > summary{ display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 12px; color: var(--nimi-text-secondary); cursor: pointer; list-style: none;}
+.studio-parameters__route-group > summary::-webkit-details-marker{ display: none;}
+.studio-parameters__route-group > summary > span{ display: grid; gap: 2px; min-width: 0;}
+.studio-parameters__route-group > summary strong{ font-size: 12px; font-weight: var(--nimi-type-page-title-weight);}
+.studio-parameters__route-group > summary small{ color: var(--nimi-text-muted); font-size: 10px; line-height: 1.35;}
+.studio-parameters__route-group > summary svg{ flex: none; transition: transform 160ms ease;}
+.studio-parameters__route-group[open] > summary svg{ transform: rotate(180deg);}
+.studio-parameters__route-group > .studio-parameters__grid,
+.studio-parameters__route-group > .studio-parameters__stack{ border-top: 1px solid var(--nimi-border-subtle); padding: 12px; opacity: 0.62;}
 .studio-parameters__repeat{ display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: start; gap: 8px;}
 .studio-parameters__note{ grid-column: 1 / -1; margin: 0; color: var(--nimi-text-muted); font-size: 11px; line-height: 1.45;}
 .studio-parameters__file-input{ position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0);}
@@ -209,7 +221,7 @@
 .studio-history-shell::before{ content: ""; position: absolute; top: 0; bottom: 0; left: 0; z-index: 8; width: 1px; background: var(--nimi-border-subtle); pointer-events: none;}
 .studio-history-shell--collapsed{ width: 0; pointer-events: none;}
 .studio-history-shell--collapsed::before{ display: none;}
-.studio-history{ position: relative; display: grid; grid-template-rows: auto minmax(0, 1fr); width: 100%; height: 100%; min-width: 0; min-height: 0; overflow: visible; border-left: 1px solid var(--nimi-border-subtle); background: transparent; box-shadow: none; padding: 36px 14px 28px;}
+.studio-history{ position: relative; display: grid; grid-template-rows: auto auto auto minmax(0, 1fr); width: 100%; height: 100%; min-width: 0; min-height: 0; overflow: visible; border-left: 1px solid var(--nimi-border-subtle); background: transparent; box-shadow: none; padding: 36px 14px 28px;}
 .studio-recent__head{ display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 41px; margin: 0 8px 12px;}
 .studio-history__title{ min-width: 0;}
 .studio-history__title strong{ color: color-mix(in srgb, var(--nimi-text-primary) 76%, transparent); font-size: 18px; line-height: 1.05; font-weight: var(--nimi-type-caption-weight);}
@@ -223,6 +235,24 @@
 .studio-history--collapsed .studio-history__title{ display: none;}
 .studio-history--collapsed .studio-history__runs{ display: none;}
 .studio-history--collapsed .studio-history__filter-trigger{ display: none;}
+.studio-history__toolbar{ display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 0 9px 10px;}
+.studio-history__scope{ display: flex; align-items: center; gap: 4px; min-width: 0;}
+.studio-history__scope-option{ height: 26px; min-height: 26px; padding: 0 10px; border-radius: var(--nimi-radius-sm); font-size: 12px; color: var(--nimi-text-muted); white-space: nowrap;}
+.studio-history__scope-option:hover{ background: var(--nimi-material-glass-regular-bg);}
+.studio-history__scope-option--active{ background: var(--nimi-material-glass-regular-bg); color: var(--nimi-text-primary); font-weight: var(--nimi-type-page-title-weight);}
+.studio-history--collapsed .studio-history__toolbar{ display: none;}
+.studio-history__search{ display: flex; align-items: center; gap: 6px; margin: 0 9px 8px; padding: 0 10px; height: 30px; border-radius: var(--nimi-radius-sm); background: var(--nimi-material-glass-regular-bg); color: var(--nimi-text-muted);}
+.studio-history__search input{ flex: 1; min-width: 0; border: 0; background: transparent; font-size: 12px; color: var(--nimi-text-primary); outline: none;}
+.studio-history__search input::placeholder{ color: var(--nimi-text-muted);}
+.studio-history--collapsed .studio-history__search{ display: none;}
+.studio-history__scope-option--danger{ color: var(--nimi-status-danger-text, #c43d3d);}
+.studio-recent__rows li{ position: relative;}
+.studio-recent__row-delete{ position: absolute; top: 6px; right: 6px; z-index: 1; display: grid; place-items: center; width: 22px; height: 22px; border: 0; border-radius: var(--nimi-radius-sm); background: transparent; color: var(--nimi-text-muted); cursor: pointer; opacity: 0; transition: opacity 120ms ease;}
+.studio-recent__rows li:hover .studio-recent__row-delete,
+.studio-recent__rows li:focus-within .studio-recent__row-delete{ opacity: 1;}
+.studio-recent__row-delete:hover{ background: var(--nimi-surface-active); color: var(--nimi-text-primary);}
+.studio-recent__icon--media{ overflow: hidden; border-radius: var(--nimi-radius-sm);}
+.studio-recent__icon--media img{ display: block; width: 22px; height: 22px; object-fit: cover;}
 /* Kit Popover owns the filter layer chrome (positioning, focus, Escape); these
    rules only lay out the menu + submenu columns inside PopoverContent. */
 .studio-history-filter{ display: flex; align-items: flex-start; gap: 8px;}

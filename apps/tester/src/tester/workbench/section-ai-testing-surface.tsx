@@ -16,6 +16,7 @@ export { CapabilityRunHistory } from './section-ai-testing-history.js';
 export { DrawerErrorBoundary, TesterAiConfigSettingsPanel } from './section-ai-testing-ai-config.js';
 export {
   ArtifactMediaPreview,
+  ArtifactMediaResult,
   RuntimeDiagnosticsActions,
   TextStudioOutputBody,
   artifactExtension,

@@ -68,6 +68,8 @@ export type TesterRunHistoryResultSnapshot =
         mimeType?: string;
         url?: string;
         displayName?: string;
+        previewSource?: 'hosted-uri' | 'inline-bytes' | 'metadata-only';
+        sizeBytes?: number;
       };
       traceId?: string;
       simulated?: boolean;
@@ -294,12 +296,17 @@ export function createTesterRunHistoryResultSnapshot(result: TesterCapabilityRun
   }
   if (output.kind === 'artifacts') {
     const firstArtifact = output.firstArtifact
-      ? {
-          artifactId: output.firstArtifact.artifactId,
-          mimeType: output.firstArtifact.mimeType,
-          url: hostedArtifactUrl(output.firstArtifact.url),
-          displayName: output.firstArtifact.displayName,
-        }
+      ? (() => {
+          const url = hostedArtifactUrl(output.firstArtifact.url);
+          return {
+            artifactId: output.firstArtifact.artifactId,
+            mimeType: output.firstArtifact.mimeType,
+            url,
+            displayName: output.firstArtifact.displayName,
+            previewSource: url ? 'hosted-uri' as const : 'metadata-only' as const,
+            sizeBytes: output.firstArtifact.sizeBytes,
+          };
+        })()
       : undefined;
     return {
       ok: true,

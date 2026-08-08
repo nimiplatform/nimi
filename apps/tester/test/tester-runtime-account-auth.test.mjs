@@ -24,6 +24,7 @@ function buildModule() {
     '--noEmit', 'false',
     'src/shell/auth/runtime-platform.ts',
     'src/shell/local-app-runtime-platform.ts',
+    'src/tester/tester-ai-config-store.ts',
     'src/tester/tester-runtime.ts',
   ], {
     cwd: root,
@@ -42,6 +43,10 @@ async function importLocalAppRuntimePlatform() {
 
 async function importTesterRuntime() {
   return import(pathToFileURL(path.join(buildModule(), 'tester/tester-runtime.js')).href);
+}
+
+async function importTesterAIConfigStore() {
+  return import(pathToFileURL(path.join(buildModule(), 'tester/tester-ai-config-store.js')).href);
 }
 
 function ownerUnavailable(command) {
@@ -220,6 +225,25 @@ test('Tester app-private storage reaches typed ingress and preserves owner-unava
   }
 });
 
+test('Tester preserves Model Config defaults as the portable Runtime Struct carrier', async () => {
+  const {
+    toTesterModelConfigCapabilities,
+    toTesterPortableAIConfigCapabilities,
+  } = await importTesterAIConfigStore();
+  const portable = [{
+    capabilityContract: 'text.generate',
+    requiredFeatures: [],
+    defaults: {
+      fields: { temperature: { kind: { oneofKind: 'numberValue', numberValue: 0.3 } } },
+    },
+    route: { oneofKind: 'local', local: {} },
+  }];
+
+  const modelConfig = toTesterModelConfigCapabilities(portable);
+  assert.deepEqual(modelConfig[0]?.defaults, portable[0].defaults);
+  assert.deepEqual(toTesterPortableAIConfigCapabilities(modelConfig), portable);
+});
+
 test('Tester reports typed owner unavailability after protected ingress', async () => {
   const previousElectronTest = globalThis.__NIMI_ELECTRON_TEST__;
   const calls = [];
@@ -290,7 +314,9 @@ function fakeLocalAppClient(overrides = {}) {
         execute: overrides.executeScenario ?? unavailable('scenario.execute'),
       },
       scenarioJobs: {},
-      artifacts: {},
+      artifacts: {
+        read: overrides.readArtifact ?? unavailable('artifacts.read'),
+      },
       voiceAssets: {
         list: overrides.listVoiceAssets ?? unavailable('voiceAssets.list'),
       },
@@ -307,7 +333,7 @@ function localTextSubscription(events) {
   };
 }
 
-function artifactRunnerSuccess(capabilityId, mimeType, previewUrl) {
+function artifactRunnerSuccess(capabilityId, mimeType, previewUrl, previewSource = 'inline-bytes') {
   return {
     ok: true,
     capabilityId,
@@ -320,8 +346,8 @@ function artifactRunnerSuccess(capabilityId, mimeType, previewUrl) {
       firstArtifact: {
         artifactId: `artifact:${capabilityId}`,
         mimeType,
-        previewUrl,
-        previewSource: 'inline-bytes',
+        ...(previewUrl ? { previewUrl } : {}),
+        previewSource,
       },
       artifacts: [],
     },
@@ -391,6 +417,54 @@ for (const [capabilityId, runnerName, mimeType, previewUrl] of MEDIA_HAPPY_CASES
     }
   });
 }
+
+test('Tester hydrates a metadata-only video artifact through the admitted Local App artifact reader', async () => {
+  const { runTesterCapability } = await importTesterRuntime();
+  const client = fakeLocalAppClient({
+    async readArtifact(artifactId) {
+      assert.equal(artifactId, 'artifact:video.generate');
+      return { bytes: Uint8Array.from([1, 2, 3]), mimeType: 'video/mp4', sizeBytes: 3 };
+    },
+  });
+  const result = await runTesterCapability({
+    capabilityId: 'video.generate',
+    prompt: 'ocean wave',
+  }, readyRuntimeDependencies(client, {
+    createScenarioJobClient() { return { marker: 'job-client:video.generate' }; },
+    runners: {
+      async videoGenerate() {
+        return artifactRunnerSuccess('video.generate', 'video/mp4', undefined, 'metadata-only');
+      },
+    },
+  }));
+
+  assert.equal(result.ok, true);
+  assert.equal(result.output.kind, 'artifacts');
+  assert.equal(result.output.firstArtifact.previewSource, 'inline-bytes');
+  assert.equal(result.output.firstArtifact.sizeBytes, 3);
+  assert.equal(result.output.firstArtifact.url, `data:video/mp4;base64,${btoa(String.fromCharCode(1, 2, 3))}`);
+});
+
+test('Tester preserves metadata-only success when artifact bytes cannot be read', async () => {
+  const { runTesterCapability } = await importTesterRuntime();
+  const client = fakeLocalAppClient();
+  const result = await runTesterCapability({
+    capabilityId: 'video.generate',
+    prompt: 'ocean wave',
+  }, readyRuntimeDependencies(client, {
+    createScenarioJobClient() { return { marker: 'job-client:video.generate' }; },
+    runners: {
+      async videoGenerate() {
+        return artifactRunnerSuccess('video.generate', 'video/mp4', undefined, 'metadata-only');
+      },
+    },
+  }));
+
+  assert.equal(result.ok, true);
+  assert.equal(result.output.kind, 'artifacts');
+  assert.equal(result.output.firstArtifact.previewSource, 'metadata-only');
+  assert.equal(result.output.firstArtifact.url, undefined);
+});
 
 test('Tester text.generate projects the protected Local App candidate happy path without sampling fallbacks', async () => {
   const { runTesterCapability } = await importTesterRuntime();
