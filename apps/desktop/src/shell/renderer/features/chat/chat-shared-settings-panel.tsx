@@ -86,16 +86,20 @@ function useNimiChatModelConfigCopy(): ModelConfigCopy {
     savingLabel: t('Chat.settingsSavingIntent', { defaultValue: 'Saving…' }),
     advancedLabel: t('Chat.settingsAdvanced', { defaultValue: 'Advanced intent' }),
     advancedHint: t('Chat.settingsAdvancedHint', {
-      defaultValue: 'Required features and portable defaults travel with this App AIConfig intent.',
+      defaultValue: 'Required features and default parameters travel with this App AIConfig intent.',
     }),
     requiredFeaturesLabel: t('Chat.settingsRequiredFeatures', { defaultValue: 'Required features' }),
     requiredFeaturesPlaceholder: t('Chat.settingsRequiredFeaturesPlaceholder', {
       defaultValue: 'Comma-separated CapabilityContract features',
     }),
-    defaultsLabel: t('Chat.settingsPortableDefaults', { defaultValue: 'Portable defaults (JSON)' }),
+    defaultsLabel: t('Chat.settingsPortableDefaults', { defaultValue: 'Default parameters' }),
     defaultsPlaceholder: t('Chat.settingsPortableDefaultsPlaceholder', {
-      defaultValue: 'Optional capability defaults',
+      defaultValue: 'Leave a field empty to keep that parameter unset.',
     }),
+    defaultsUnsetLabel: t('Chat.settingsDefaultsUnset', { defaultValue: 'Not set' }),
+    defaultsTrueLabel: t('Chat.settingsDefaultsTrue', { defaultValue: 'True' }),
+    defaultsFalseLabel: t('Chat.settingsDefaultsFalse', { defaultValue: 'False' }),
+    defaultsListPlaceholder: t('Chat.settingsDefaultsListPlaceholder', { defaultValue: 'One value per line' }),
     localChoiceDescription: t('Chat.settingsLocalChoiceDescription', {
       defaultValue: 'Use the model selected in Local AI Configurations.',
     }),

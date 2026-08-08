@@ -503,6 +503,7 @@ test('agent runtime provider keeps the Desktop stream alive during the Runtime t
   const baseStreamController = createTestStreamController();
   let keepaliveStarted = 0;
   let keepaliveStopped = 0;
+  let totalTimeoutRearmed = 0;
   const provider = createRuntimeAgentChatConversationProvider({
     streamController: {
       ...baseStreamController,
@@ -513,6 +514,10 @@ test('agent runtime provider keeps the Desktop stream alive during the Runtime t
           keepaliveStopped += 1;
           stop();
         };
+      },
+      rearmTotalTimeout(chatId, totalTimeoutMs) {
+        totalTimeoutRearmed += 1;
+        return baseStreamController.rearmTotalTimeout(chatId, totalTimeoutMs);
       },
     },
     t: testTranslate,
@@ -561,6 +566,7 @@ test('agent runtime provider keeps the Desktop stream alive during the Runtime t
 
   resolveHandshake();
   const terminal = await terminalPending;
+  assert.equal(totalTimeoutRearmed, 1);
   assert.equal(terminal.value?.type, 'turn-failed');
   if (terminal.value?.type === 'turn-failed') {
     assert.equal(terminal.value.error.code, 'AI_OUTPUT_INVALID');

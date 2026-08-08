@@ -277,6 +277,87 @@ test('D-STRM: keepalive clears first-packet timeout while preserving waiting pha
   }
 });
 
+test('D-STRM: Runtime request ack rearms the total timeout budget', () => {
+  type ScheduledTimer = {
+    active: boolean;
+    delayMs: number;
+    listener: (result: { ok: true }) => void;
+  };
+  const timers: ScheduledTimer[] = [];
+  let now = 1_000;
+  const controller = createStreamController({
+    now: () => now,
+    schedule(delayMs, listener) {
+      const timer: ScheduledTimer = { active: true, delayMs, listener };
+      timers.push(timer);
+      return () => {
+        timer.active = false;
+      };
+    },
+    animationFrame() {
+      return () => undefined;
+    },
+  });
+
+  const abortController = controller.startStream('runtime-ack-rearm', 120_000);
+  const originalTotalTimer = timers.find((timer) => timer.delayMs === 120_000);
+  assert.ok(originalTotalTimer);
+
+  now += 42_251;
+  assert.equal(controller.rearmTotalTimeout('runtime-ack-rearm', 120_000), true);
+  const activeTotalTimers = timers.filter((timer) => timer.delayMs === 120_000 && timer.active);
+  assert.equal(originalTotalTimer.active, false);
+  assert.equal(activeTotalTimers.length, 1);
+  assert.equal(controller.getStreamState('runtime-ack-rearm').phase, 'waiting');
+  assert.equal(abortController.signal.aborted, false);
+
+  activeTotalTimers[0]?.listener({ ok: true });
+  assert.equal(controller.getStreamState('runtime-ack-rearm').phase, 'error');
+  assert.equal(abortController.signal.aborted, true);
+  controller.dispose();
+});
+
+test('D-STRM: first real content starts a fresh completion budget', () => {
+  type ScheduledTimer = {
+    active: boolean;
+    delayMs: number;
+    listener: (result: { ok: true }) => void;
+  };
+  const timers: ScheduledTimer[] = [];
+  const controller = createStreamController({
+    now: () => 10_000,
+    schedule(delayMs, listener) {
+      const timer: ScheduledTimer = { active: true, delayMs, listener };
+      timers.push(timer);
+      return () => {
+        timer.active = false;
+      };
+    },
+    animationFrame() {
+      return () => undefined;
+    },
+  });
+
+  const abortController = controller.startStream('first-content-rearm', 120_000);
+  const originalTotalTimer = timers.find((timer) => timer.delayMs === 120_000);
+  assert.ok(originalTotalTimer);
+
+  controller.feedStreamEvent('first-content-rearm', { type: 'keepalive' });
+  assert.equal(originalTotalTimer.active, true);
+  controller.feedStreamEvent('first-content-rearm', { type: 'text_delta', textDelta: 'ready' });
+
+  const activeTotalTimers = timers.filter((timer) => timer.delayMs === 120_000 && timer.active);
+  assert.equal(originalTotalTimer.active, false);
+  assert.equal(activeTotalTimers.length, 1);
+  assert.equal(controller.getStreamState('first-content-rearm').phase, 'streaming');
+  assert.equal(abortController.signal.aborted, false);
+
+  controller.feedStreamEvent('first-content-rearm', { type: 'done', finalText: 'ready' });
+  assert.equal(activeTotalTimers[0]?.active, false);
+  assert.equal(controller.getStreamState('first-content-rearm').phase, 'done');
+  controller.dispose();
+});
+
 test('D-STRM: idle state for unknown chatId', () => {
   const state = getStreamState('unknown-chat');
   assert.equal(state.phase, 'idle');

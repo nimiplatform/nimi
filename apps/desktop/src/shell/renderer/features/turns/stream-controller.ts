@@ -49,6 +49,7 @@ export interface StreamController {
   subscribeStream(chatId: string, listener: StreamListener): () => void;
   subscribeStream(listener: StreamListener): () => void;
   startStream(chatId: string, totalTimeoutMs?: number): AbortController;
+  rearmTotalTimeout(chatId: string, totalTimeoutMs?: number): boolean;
   feedStreamEvent(chatId: string, event: StreamEvent): void;
   startKeepalive(chatId: string, intervalMs: number): () => void;
   cancelStream(chatId: string): void;
@@ -63,6 +64,7 @@ const abortControllers = new Map<string, AbortController>();
 const firstPacketTimers = new Map<string, () => void>();
 const idleTimers = new Map<string, () => void>();
 const totalTimers = new Map<string, () => void>();
+const totalTimeoutDurations = new Map<string, number>();
 const terminalCleanupTimers = new Map<string, () => void>();
 const listenersByChatId = new Map<string, Set<StreamListener>>();
 
@@ -117,6 +119,7 @@ function clearTimers(chatId: string) {
     tt();
     totalTimers.delete(chatId);
   }
+  totalTimeoutDurations.delete(chatId);
 }
 
 function clearTerminalCleanup(chatId: string) {
@@ -289,8 +292,24 @@ function startStream(chatId: string, totalTimeoutMs = STREAM_TEXT_TOTAL_TIMEOUT_
   });
   firstPacketTimers.set(chatId, fpt);
 
-  // Total timeout
-  const tt = scheduleTimer(chatId, totalTimeoutMs, () => {
+  scheduleTotalTimeout(chatId, totalTimeoutMs, abortController);
+
+  notify(state);
+  return abortController;
+}
+
+function scheduleTotalTimeout(
+  chatId: string,
+  totalTimeoutMs: number,
+  abortController: AbortController,
+) {
+  const existing = totalTimers.get(chatId);
+  if (existing) {
+    existing();
+    totalTimers.delete(chatId);
+  }
+  totalTimeoutDurations.set(chatId, totalTimeoutMs);
+  const timer = scheduleTimer(chatId, totalTimeoutMs, () => {
     const current = activeStreams.get(chatId);
     if (current && (current.phase === 'waiting' || current.phase === 'streaming')) {
       const errorState: StreamState = {
@@ -314,10 +333,34 @@ function startStream(chatId: string, totalTimeoutMs = STREAM_TEXT_TOTAL_TIMEOUT_
       });
     }
   });
-  totalTimers.set(chatId, tt);
+  totalTimers.set(chatId, timer);
+}
 
-  notify(state);
-  return abortController;
+function rearmTotalTimeout(
+  chatId: string,
+  totalTimeoutMs = STREAM_TEXT_TOTAL_TIMEOUT_MS,
+): boolean {
+  const current = activeStreams.get(chatId);
+  const abortController = abortControllers.get(chatId);
+  if (
+    !current
+    || (current.phase !== 'waiting' && current.phase !== 'streaming')
+    || !abortController
+  ) {
+    return false;
+  }
+  scheduleTotalTimeout(chatId, totalTimeoutMs, abortController);
+  logRendererEvent({
+    level: 'info',
+    area: 'stream-controller',
+    message: 'stream:total-timeout-rearmed',
+    details: {
+      chatId,
+      totalTimeoutMs,
+      elapsedBeforeRearmMs: Math.max(0, clock.now() - current.startedAt),
+    },
+  });
+  return true;
 }
 
 function hasPartialContent(state: StreamState): boolean {
@@ -436,6 +479,11 @@ function feedStreamEvent(chatId: string, event: StreamEvent) {
       if (fpt) {
         fpt();
         firstPacketTimers.delete(chatId);
+      }
+      const totalTimeoutMs = totalTimeoutDurations.get(chatId);
+      const abortController = abortControllers.get(chatId);
+      if (totalTimeoutMs && abortController) {
+        scheduleTotalTimeout(chatId, totalTimeoutMs, abortController);
       }
     }
     const abortController = abortControllers.get(chatId);
@@ -596,6 +644,7 @@ return Object.freeze({
   getStreamState,
   subscribeStream,
   startStream,
+  rearmTotalTimeout,
   feedStreamEvent,
   startKeepalive,
   cancelStream,

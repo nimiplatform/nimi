@@ -21,6 +21,7 @@ import { normalizeText } from './chat-agent-runtime-normalize';
 import { encodeBytesAsDataUrl } from './chat-agent-runtime-shared';
 import { toChatAgentRuntimeError } from './chat-agent-runtime';
 import { RUNTIME_AGENT_CHAT_MODE_ID } from './chat-agent-runtime-mode';
+import { resolveAgentTurnTotalTimeoutMs } from './chat-agent-timeouts';
 import type { TFunction } from 'i18next';
 
 type AgentRuntimeChatProviderOptions = {
@@ -135,6 +136,10 @@ async function* runRuntimeOwnedAgentTurn(input: {
       reasoningPreference: input.metadata.reasoningPreference,
       signal: input.baseInput.signal,
     });
+    input.streamController.rearmTotalTimeout(
+      input.baseInput.threadId,
+      resolveAgentTurnTotalTimeoutMs(),
+    );
 
     for await (const part of runtimeResult.stream) {
       switch (part.type) {

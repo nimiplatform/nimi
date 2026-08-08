@@ -27,6 +27,7 @@ export const {
   clearStream,
   feedStreamEvent,
   getStreamState,
+  rearmTotalTimeout,
   startKeepalive,
   startStream,
   subscribeStream,
