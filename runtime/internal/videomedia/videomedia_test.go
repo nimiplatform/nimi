@@ -1,9 +1,11 @@
 package videomedia
 
 import (
+	"bytes"
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"image/png"
 	"math"
 	"os"
 	"path/filepath"
@@ -43,7 +45,7 @@ func TestEncodeMapsNonzeroCodecProcessFailure(t *testing.T) {
 	if err != nil {
 		t.Fatalf("New: %v", err)
 	}
-	plan := videoPlanForTest(t, 5)
+	plan := videoPlanForTest(t, 5, false)
 	_, err = processor.EncodeAndInspect(context.Background(), plan, rawCandidateForTest(plan))
 	if err == nil || FailureKindOf(err) != FailureEncode {
 		t.Fatalf("EncodeAndInspect() error=%v kind=%q", err, FailureKindOf(err))
@@ -51,7 +53,7 @@ func TestEncodeMapsNonzeroCodecProcessFailure(t *testing.T) {
 }
 
 func TestValidateCandidateRejectsEveryRawContractViolation(t *testing.T) {
-	plan := videoPlanForTest(t, 5)
+	plan := videoPlanForTest(t, 5, false)
 	valid := rawCandidateForTest(plan)
 	tests := []struct {
 		name   string
@@ -100,7 +102,7 @@ func TestFFmpegEncodeAndInspectIntegration(t *testing.T) {
 	if err != nil {
 		t.Fatalf("New: %v", err)
 	}
-	plan := videoPlanForTest(t, 5)
+	plan := videoPlanForTest(t, 5, true)
 	candidate := rawCandidateForTest(plan)
 	result, err := processor.EncodeAndInspect(context.Background(), plan, candidate)
 	if err != nil {
@@ -118,9 +120,16 @@ func TestFFmpegEncodeAndInspectIntegration(t *testing.T) {
 	if result.Facts.SHA256 != hex.EncodeToString(digest[:]) {
 		t.Fatalf("sha256 = %q", result.Facts.SHA256)
 	}
+	if result.LastFrame == nil || result.LastFrame.MIMEType != MIMETypePNG || result.LastFrame.FrameIndex != 4 || len(result.LastFrame.Bytes) == 0 {
+		t.Fatalf("last frame = %+v", result.LastFrame)
+	}
+	config, err := png.DecodeConfig(bytes.NewReader(result.LastFrame.Bytes))
+	if err != nil || config.Width != 64 || config.Height != 64 {
+		t.Fatalf("decode last frame: config=%+v error=%v", config, err)
+	}
 }
 
-func videoPlanForTest(t *testing.T, frameCount int) *capabilitydriver.VideoInvocationPlan {
+func videoPlanForTest(t *testing.T, frameCount int, returnLastFrame bool) *capabilitydriver.VideoInvocationPlan {
 	t.Helper()
 	root := t.TempDir()
 	requirements := []string{
@@ -143,7 +152,8 @@ func videoPlanForTest(t *testing.T, frameCount int) *capabilitydriver.VideoInvoc
 	plan, err := (capabilitydriver.StableDiffusionVideoDriver{}).PlanVideoInvocation(capabilitydriver.VideoInvocationInput{
 		ConfigurationID: "video-media-test", ExactBindings: bindings,
 		Request: capabilitydriver.VideoInvocationRequest{
-			Prompt: "a test clip", Width: 64, Height: 64, FrameCount: frameCount, FPS: 24, GenerateAudio: true,
+			Prompt: "a test clip", Width: 64, Height: 64, FrameCount: frameCount, FPS: 24,
+			GenerateAudio: true, ReturnLastFrame: returnLastFrame,
 		},
 	})
 	if err != nil {

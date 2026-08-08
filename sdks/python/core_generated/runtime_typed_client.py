@@ -3426,6 +3426,7 @@ class LocalCapabilityRequirement:
 class LocalCapabilitySelection:
     capability_contract: str | None = None
     configuration_id: str | None = None
+    effective_defaults: Mapping[str, object] | None = None
 
 @dataclass(frozen=True)
 class LocalCatalogModelDescriptor:

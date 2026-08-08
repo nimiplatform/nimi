@@ -4937,6 +4937,7 @@ type LocalCapabilityRequirement struct {
 type LocalCapabilitySelection struct {
 	CapabilityContract string `json:"capability_contract,omitempty"`
 	ConfigurationId string `json:"configuration_id,omitempty"`
+	EffectiveDefaults map[string]any `json:"effective_defaults,omitempty"`
 }
 
 type LocalCatalogModelDescriptor struct {

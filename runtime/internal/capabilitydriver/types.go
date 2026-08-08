@@ -119,6 +119,10 @@ type Driver interface {
 	Interpret(input InterpretInput) ([]*runtimev1.LocalCapabilityRequirement, runtimev1.LocalCapabilityReason)
 	ValidateBinding(requirement *runtimev1.LocalCapabilityRequirement, binding *runtimev1.LocalAssetExactBinding, asset AssetDescriptor) runtimev1.LocalCapabilityReason
 	ValidateCombination(requirements []*runtimev1.LocalCapabilityRequirement, bindings []*runtimev1.LocalAssetExactBinding, assets []AssetDescriptor) runtimev1.LocalCapabilityReason
+	// EffectiveRequestDefaults projects read-only display values for request
+	// parameters the exact Driver will apply when the App intent leaves them
+	// unset. Keys use the canonical AIConfig defaults paths.
+	EffectiveRequestDefaults(portableConfig *structpb.Struct) map[string]string
 }
 
 // InvocationExactBinding is the immutable, already-verified occurrence passed
@@ -174,15 +178,18 @@ type VideoResolvedInput struct {
 // VideoInvocationRequest is the resolved, URL-free video request presented to
 // a Driver before execution dispatch.
 type VideoInvocationRequest struct {
-	Prompt         string
-	NegativePrompt string
-	Width          int
-	Height         int
-	FrameCount     int
-	FPS            int
-	Seed           int64
-	GenerateAudio  bool
-	Inputs         []VideoResolvedInput
+	Prompt          string
+	NegativePrompt  string
+	Width           int
+	Height          int
+	Ratio           string
+	DurationSec     int
+	FrameCount      int
+	FPS             int
+	Seed            int64
+	GenerateAudio   bool
+	ReturnLastFrame bool
+	Inputs          []VideoResolvedInput
 }
 
 // VideoInvocationInput is the complete Driver-owned video invocation input.
@@ -527,6 +534,7 @@ type VideoInvocationPlan struct {
 	fps                     int
 	seed                    int64
 	audioRequired           bool
+	returnLastFrame         bool
 	conditioningMode        VideoConditioningMode
 	referenceImage          *VideoResolvedInput
 	cfgScale                float64
@@ -655,6 +663,10 @@ func (p *VideoInvocationPlan) Seed() int64 {
 
 func (p *VideoInvocationPlan) AudioRequired() bool {
 	return p != nil && p.audioRequired
+}
+
+func (p *VideoInvocationPlan) ReturnLastFrame() bool {
+	return p != nil && p.returnLastFrame
 }
 
 func (p *VideoInvocationPlan) ConditioningMode() VideoConditioningMode {

@@ -40,6 +40,14 @@ const stableDiffusionVideoReferenceImageFeature = "input.image"
 // components; each invocation loads exactly one route transformer.
 type StableDiffusionVideoDriver struct{}
 
+func (StableDiffusionVideoDriver) EffectiveRequestDefaults(_ *structpb.Struct) map[string]string {
+	return map[string]string{
+		"options.resolution": "512x288",
+		"options.frames":     "22",
+		"options.seed":       "0",
+	}
+}
+
 type stableDiffusionVideoSlotSpec struct {
 	id           string
 	role         runtimev1.LocalCapabilityRequirementRole
@@ -528,6 +536,7 @@ func (StableDiffusionVideoDriver) PlanVideoInvocation(input VideoInvocationInput
 		fps:                     24,
 		seed:                    request.seed,
 		audioRequired:           true,
+		returnLastFrame:         request.returnLastFrame,
 		conditioningMode:        request.conditioningMode,
 		referenceImage:          request.referenceImage,
 		cfgScale:                portable.recipe.cfgScale,
@@ -584,6 +593,7 @@ type normalizedStableDiffusionVideoRequest struct {
 	height           int
 	frameCount       int
 	seed             int64
+	returnLastFrame  bool
 	conditioningMode VideoConditioningMode
 	referenceImage   *VideoResolvedInput
 }
@@ -593,33 +603,44 @@ func normalizeStableDiffusionVideoRequest(request VideoInvocationRequest) (norma
 	if prompt == "" {
 		return normalizedStableDiffusionVideoRequest{}, invocationError(InvocationFailureInvalidRequest, fmt.Errorf("video.generate prompt is required"))
 	}
-	// First-party vertical-slice defaults, aligned with the L0 acceptance
-	// profile (512x288 / 22 frames / 24 fps): first-party callers may omit
-	// video options, and the service boundary erases proto3 presence, so a
-	// zero value means "absent" and receives the documented default. Any
-	// provided-but-invalid value is still a typed reject; the driver never
-	// rounds or overrides a caller-supplied value.
-	width := request.Width
-	if width == 0 {
-		width = 512
+	// The canonical ratio profiles keep the 288px short-edge baseline while
+	// remaining exactly 32-aligned. Square uses the balanced 384px profile:
+	// 16:9=512x288, 4:3=384x288, 1:1=384x384, 3:4=288x384,
+	// 9:16=288x512, and 21:9=672x288.
+	width, height := request.Width, request.Height
+	ratio := strings.TrimSpace(request.Ratio)
+	if width == 0 && height == 0 {
+		if ratio == "" {
+			width, height = 512, 288
+		} else {
+			var ok bool
+			width, height, ok = stableDiffusionVideoSizeForRatio(ratio)
+			if !ok {
+				return normalizedStableDiffusionVideoRequest{}, invocationError(InvocationFailureInvalidRequest, fmt.Errorf("video.generate ratio %q cannot determine a local resolution", ratio))
+			}
+		}
 	}
-	height := request.Height
-	if height == 0 {
-		height = 288
+	if width <= 0 || height <= 0 || width%32 != 0 || height%32 != 0 {
+		return normalizedStableDiffusionVideoRequest{}, invocationError(InvocationFailureInvalidRequest, fmt.Errorf("video.generate width and height must be positive multiples of 32"))
+	}
+	if ratio != "" && !stableDiffusionVideoResolutionMatchesRatio(width, height, ratio) {
+		return normalizedStableDiffusionVideoRequest{}, invocationError(InvocationFailureInvalidRequest, fmt.Errorf("video.generate resolution %dx%d contradicts ratio %q", width, height, ratio))
 	}
 	fps := request.FPS
 	if fps == 0 {
 		fps = 24
 	}
-	frameCount := request.FrameCount
-	if frameCount == 0 {
-		frameCount = 22
-	}
-	if width <= 0 || height <= 0 || width%32 != 0 || height%32 != 0 {
-		return normalizedStableDiffusionVideoRequest{}, invocationError(InvocationFailureInvalidRequest, fmt.Errorf("video.generate width and height must be positive multiples of 32"))
-	}
 	if fps != 24 {
 		return normalizedStableDiffusionVideoRequest{}, invocationError(InvocationFailureInvalidRequest, fmt.Errorf("video.generate fps must be 24"))
+	}
+	if request.DurationSec < 0 || request.DurationSec > 600 || (request.DurationSec > 0 && request.FrameCount > 0) {
+		return normalizedStableDiffusionVideoRequest{}, invocationError(InvocationFailureInvalidRequest, fmt.Errorf("video.generate duration and frame count are invalid"))
+	}
+	frameCount := request.FrameCount
+	if request.DurationSec > 0 {
+		frameCount = stableDiffusionVideoDurationFrameCount(request.DurationSec)
+	} else if frameCount == 0 {
+		frameCount = 22
 	}
 	if frameCount < 5 || (frameCount-5)%17 != 0 {
 		return normalizedStableDiffusionVideoRequest{}, invocationError(InvocationFailureInvalidRequest, fmt.Errorf("video.generate frame count must be 17k+5 with k >= 0"))
@@ -639,6 +660,7 @@ func normalizeStableDiffusionVideoRequest(request VideoInvocationRequest) (norma
 		height:           height,
 		frameCount:       frameCount,
 		seed:             request.Seed,
+		returnLastFrame:  request.ReturnLastFrame,
 		conditioningMode: VideoConditioningModeFL2VAT2VA,
 	}
 	if len(request.Inputs) == 0 {
@@ -655,4 +677,52 @@ func normalizeStableDiffusionVideoRequest(request VideoInvocationRequest) (norma
 	result.conditioningMode = VideoConditioningModeRef2VAImage
 	result.referenceImage = &reference
 	return result, nil
+}
+
+func stableDiffusionVideoDurationFrameCount(durationSec int) int {
+	target := int(math.Ceil(float64(durationSec) * 24))
+	if target <= 5 {
+		return 5
+	}
+	return ((target-5+16)/17)*17 + 5
+}
+
+func stableDiffusionVideoSizeForRatio(ratio string) (int, int, bool) {
+	switch strings.TrimSpace(ratio) {
+	case "16:9":
+		return 512, 288, true
+	case "4:3":
+		return 384, 288, true
+	case "1:1":
+		return 384, 384, true
+	case "3:4":
+		return 288, 384, true
+	case "9:16":
+		return 288, 512, true
+	case "21:9":
+		return 672, 288, true
+	default:
+		return 0, 0, false
+	}
+}
+
+func stableDiffusionVideoResolutionMatchesRatio(width int, height int, ratio string) bool {
+	var numerator, denominator int
+	switch strings.TrimSpace(ratio) {
+	case "16:9":
+		numerator, denominator = 16, 9
+	case "4:3":
+		numerator, denominator = 4, 3
+	case "1:1":
+		numerator, denominator = 1, 1
+	case "3:4":
+		numerator, denominator = 3, 4
+	case "9:16":
+		numerator, denominator = 9, 16
+	case "21:9":
+		numerator, denominator = 21, 9
+	default:
+		return false
+	}
+	return width*denominator == height*numerator
 }

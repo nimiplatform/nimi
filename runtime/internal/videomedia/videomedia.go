@@ -11,6 +11,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"image/png"
 	"io"
 	"math"
 	"os"
@@ -27,6 +28,7 @@ import (
 
 const (
 	MIMETypeMP4 = "video/mp4"
+	MIMETypePNG = "image/png"
 
 	FailureUnavailable FailureKind = "unavailable"
 	FailureMedia       FailureKind = "media"
@@ -87,10 +89,23 @@ type Facts struct {
 	SampleRate int
 }
 
-// Result is the final inspected artifact candidate.
+// StillImage is an inspected image derived from the final video container.
+type StillImage struct {
+	Bytes      []byte
+	MIMEType   string
+	SizeBytes  int64
+	SHA256     string
+	Width      int
+	Height     int
+	FrameIndex int
+}
+
+// Result is the final inspected artifact candidate. LastFrame is populated
+// only when the captured invocation requested it.
 type Result struct {
-	Bytes []byte
-	Facts Facts
+	Bytes     []byte
+	Facts     Facts
+	LastFrame *StillImage
 }
 
 // Pipeline is the narrow ScenarioJob-facing encode/mux/inspect seam.
@@ -256,7 +271,48 @@ func (p *Processor) EncodeAndInspect(ctx context.Context, plan *capabilitydriver
 	facts.MIMEType = MIMETypeMP4
 	facts.SizeBytes = int64(len(payload))
 	facts.SHA256 = hex.EncodeToString(digest[:])
-	return Result{Bytes: payload, Facts: facts}, nil
+	result := Result{Bytes: payload, Facts: facts}
+	if plan.ReturnLastFrame() {
+		lastFrame, err := p.extractLastFrame(ctx, outputPath, stagingDir, plan)
+		if err != nil {
+			return Result{}, err
+		}
+		result.LastFrame = lastFrame
+	}
+	return result, nil
+}
+
+func (p *Processor) extractLastFrame(ctx context.Context, videoPath string, stagingDir string, plan *capabilitydriver.VideoInvocationPlan) (*StillImage, error) {
+	outputPath := filepath.Join(stagingDir, "last-frame.png")
+	args := []string{
+		"-hide_banner", "-loglevel", "error", "-y",
+		"-i", videoPath, "-map", "0:v:0",
+		"-vf", fmt.Sprintf("select=eq(n\\,%d)", plan.FrameCount()-1),
+		"-frames:v", "1", "-c:v", "png", outputPath,
+	}
+	command := exec.CommandContext(ctx, p.ffmpegPath, args...)
+	var stderr bytes.Buffer
+	command.Stderr = &stderr
+	if err := command.Run(); err != nil {
+		return nil, &Error{Kind: FailureEncode, Op: "ffmpeg extract last frame", Err: commandFailure(err, stderr.String())}
+	}
+	payload, err := os.ReadFile(outputPath)
+	if err != nil {
+		return nil, mediaFailure("read extracted last frame", err)
+	}
+	config, err := png.DecodeConfig(bytes.NewReader(payload))
+	if err != nil {
+		return nil, mediaFailure("inspect extracted last frame PNG", err)
+	}
+	width, height := plan.Size()
+	if config.Width != width || config.Height != height {
+		return nil, mediaFailure("inspect extracted last frame PNG", fmt.Errorf("image shape %dx%d does not match %dx%d", config.Width, config.Height, width, height))
+	}
+	digest := sha256.Sum256(payload)
+	return &StillImage{
+		Bytes: payload, MIMEType: MIMETypePNG, SizeBytes: int64(len(payload)), SHA256: hex.EncodeToString(digest[:]),
+		Width: config.Width, Height: config.Height, FrameIndex: plan.FrameCount() - 1,
+	}, nil
 }
 
 func writeFloat32WAV(path string, audio localexecution.RawAudio) error {

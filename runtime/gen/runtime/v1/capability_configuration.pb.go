@@ -665,8 +665,12 @@ type LocalCapabilitySelection struct {
 	state              protoimpl.MessageState `protogen:"open.v1"`
 	CapabilityContract string                 `protobuf:"bytes,1,opt,name=capability_contract,json=capabilityContract,proto3" json:"capability_contract,omitempty"`
 	ConfigurationId    string                 `protobuf:"bytes,2,opt,name=configuration_id,json=configurationId,proto3" json:"configuration_id,omitempty"`
-	unknownFields      protoimpl.UnknownFields
-	sizeCache          protoimpl.SizeCache
+	// Read-only Driver-owned effective request defaults for the selected
+	// configuration. Runtime projects only string display values and never
+	// persists this field as machine selection intent.
+	EffectiveDefaults *structpb.Struct `protobuf:"bytes,3,opt,name=effective_defaults,json=effectiveDefaults,proto3" json:"effective_defaults,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
 }
 
 func (x *LocalCapabilitySelection) Reset() {
@@ -711,6 +715,13 @@ func (x *LocalCapabilitySelection) GetConfigurationId() string {
 		return x.ConfigurationId
 	}
 	return ""
+}
+
+func (x *LocalCapabilitySelection) GetEffectiveDefaults() *structpb.Struct {
+	if x != nil {
+		return x.EffectiveDefaults
+	}
+	return nil
 }
 
 type MachineLocalAIConfiguration struct {
@@ -2548,10 +2559,11 @@ const file_runtime_v1_capability_configuration_proto_rawDesc = "" +
 	"\fdisplay_name\x18\v \x01(\tR\vdisplayName\x127\n" +
 	"\n" +
 	"provenance\x18\f \x01(\v2\x17.google.protobuf.StructR\n" +
-	"provenance\"v\n" +
+	"provenance\"\xbe\x01\n" +
 	"\x18LocalCapabilitySelection\x12/\n" +
 	"\x13capability_contract\x18\x01 \x01(\tR\x12capabilityContract\x12)\n" +
-	"\x10configuration_id\x18\x02 \x01(\tR\x0fconfigurationId\"\xbf\x01\n" +
+	"\x10configuration_id\x18\x02 \x01(\tR\x0fconfigurationId\x12F\n" +
+	"\x12effective_defaults\x18\x03 \x01(\v2\x17.google.protobuf.StructR\x11effectiveDefaults\"\xbf\x01\n" +
 	"\x1bMachineLocalAIConfiguration\x12U\n" +
 	"\x0econfigurations\x18\x01 \x03(\v2-.nimi.runtime.v1.LocalCapabilityConfigurationR\x0econfigurations\x12I\n" +
 	"\n" +
@@ -2757,44 +2769,45 @@ var file_runtime_v1_capability_configuration_proto_depIdxs = []int32{
 	1,  // 8: nimi.runtime.v1.LocalCapabilityConfiguration.requirement_resolution:type_name -> nimi.runtime.v1.LocalCapabilityRequirementResolution
 	4,  // 9: nimi.runtime.v1.LocalCapabilityConfiguration.reasons:type_name -> nimi.runtime.v1.LocalCapabilityReason
 	45, // 10: nimi.runtime.v1.LocalCapabilityConfiguration.provenance:type_name -> google.protobuf.Struct
-	8,  // 11: nimi.runtime.v1.MachineLocalAIConfiguration.configurations:type_name -> nimi.runtime.v1.LocalCapabilityConfiguration
-	9,  // 12: nimi.runtime.v1.MachineLocalAIConfiguration.selections:type_name -> nimi.runtime.v1.LocalCapabilitySelection
-	11, // 13: nimi.runtime.v1.AIConfigOwner.app:type_name -> nimi.runtime.v1.AIConfigAppOwner
-	12, // 14: nimi.runtime.v1.AIConfigOwner.runtime_local_agent_subsystem:type_name -> nimi.runtime.v1.AIConfigRuntimeLocalAgentSubsystemOwner
-	5,  // 15: nimi.runtime.v1.AIConfigCloudIntent.implementation:type_name -> nimi.runtime.v1.CapabilityImplementationIdentity
-	45, // 16: nimi.runtime.v1.AIConfigCloudIntent.provider_model_target:type_name -> google.protobuf.Struct
-	45, // 17: nimi.runtime.v1.AIConfigCapabilityIntent.defaults:type_name -> google.protobuf.Struct
-	14, // 18: nimi.runtime.v1.AIConfigCapabilityIntent.local:type_name -> nimi.runtime.v1.AIConfigLocalIntent
-	15, // 19: nimi.runtime.v1.AIConfigCapabilityIntent.cloud:type_name -> nimi.runtime.v1.AIConfigCloudIntent
-	13, // 20: nimi.runtime.v1.AIConfig.owner:type_name -> nimi.runtime.v1.AIConfigOwner
-	16, // 21: nimi.runtime.v1.AIConfig.capabilities:type_name -> nimi.runtime.v1.AIConfigCapabilityIntent
-	13, // 22: nimi.runtime.v1.GetAppAIConfigRequest.owner:type_name -> nimi.runtime.v1.AIConfigOwner
-	17, // 23: nimi.runtime.v1.GetAppAIConfigResponse.config:type_name -> nimi.runtime.v1.AIConfig
-	17, // 24: nimi.runtime.v1.OverwriteAppAIConfigRequest.config:type_name -> nimi.runtime.v1.AIConfig
-	17, // 25: nimi.runtime.v1.OverwriteAppAIConfigResponse.config:type_name -> nimi.runtime.v1.AIConfig
-	10, // 26: nimi.runtime.v1.GetMachineLocalAIConfigurationResponse.aggregate:type_name -> nimi.runtime.v1.MachineLocalAIConfiguration
-	8,  // 27: nimi.runtime.v1.GetLocalCapabilityConfigurationResponse.configuration:type_name -> nimi.runtime.v1.LocalCapabilityConfiguration
-	5,  // 28: nimi.runtime.v1.AddLocalCapabilityConfigurationRequest.implementation:type_name -> nimi.runtime.v1.CapabilityImplementationIdentity
-	45, // 29: nimi.runtime.v1.AddLocalCapabilityConfigurationRequest.portable_config:type_name -> google.protobuf.Struct
-	45, // 30: nimi.runtime.v1.AddLocalCapabilityConfigurationRequest.provenance:type_name -> google.protobuf.Struct
-	8,  // 31: nimi.runtime.v1.AddLocalCapabilityConfigurationResponse.configuration:type_name -> nimi.runtime.v1.LocalCapabilityConfiguration
-	45, // 32: nimi.runtime.v1.UpdateLocalCapabilityConfigurationRequest.portable_config:type_name -> google.protobuf.Struct
-	45, // 33: nimi.runtime.v1.UpdateLocalCapabilityConfigurationRequest.provenance:type_name -> google.protobuf.Struct
-	8,  // 34: nimi.runtime.v1.UpdateLocalCapabilityConfigurationResponse.configuration:type_name -> nimi.runtime.v1.LocalCapabilityConfiguration
-	9,  // 35: nimi.runtime.v1.SelectLocalCapabilityConfigurationResponse.selection:type_name -> nimi.runtime.v1.LocalCapabilitySelection
-	8,  // 36: nimi.runtime.v1.ReprojectLocalCapabilityRequirementsResponse.configuration:type_name -> nimi.runtime.v1.LocalCapabilityConfiguration
-	38, // 37: nimi.runtime.v1.BindLocalCapabilityRequirementRequest.target:type_name -> nimi.runtime.v1.LocalAssetExactBindingTarget
-	8,  // 38: nimi.runtime.v1.BindLocalCapabilityRequirementResponse.configuration:type_name -> nimi.runtime.v1.LocalCapabilityConfiguration
-	7,  // 39: nimi.runtime.v1.RebindLocalCapabilityRequirementRequest.expected_current_binding:type_name -> nimi.runtime.v1.LocalAssetExactBinding
-	38, // 40: nimi.runtime.v1.RebindLocalCapabilityRequirementRequest.target:type_name -> nimi.runtime.v1.LocalAssetExactBindingTarget
-	8,  // 41: nimi.runtime.v1.RebindLocalCapabilityRequirementResponse.configuration:type_name -> nimi.runtime.v1.LocalCapabilityConfiguration
-	7,  // 42: nimi.runtime.v1.UnbindLocalCapabilityRequirementRequest.expected_current_binding:type_name -> nimi.runtime.v1.LocalAssetExactBinding
-	8,  // 43: nimi.runtime.v1.UnbindLocalCapabilityRequirementResponse.configuration:type_name -> nimi.runtime.v1.LocalCapabilityConfiguration
-	44, // [44:44] is the sub-list for method output_type
-	44, // [44:44] is the sub-list for method input_type
-	44, // [44:44] is the sub-list for extension type_name
-	44, // [44:44] is the sub-list for extension extendee
-	0,  // [0:44] is the sub-list for field type_name
+	45, // 11: nimi.runtime.v1.LocalCapabilitySelection.effective_defaults:type_name -> google.protobuf.Struct
+	8,  // 12: nimi.runtime.v1.MachineLocalAIConfiguration.configurations:type_name -> nimi.runtime.v1.LocalCapabilityConfiguration
+	9,  // 13: nimi.runtime.v1.MachineLocalAIConfiguration.selections:type_name -> nimi.runtime.v1.LocalCapabilitySelection
+	11, // 14: nimi.runtime.v1.AIConfigOwner.app:type_name -> nimi.runtime.v1.AIConfigAppOwner
+	12, // 15: nimi.runtime.v1.AIConfigOwner.runtime_local_agent_subsystem:type_name -> nimi.runtime.v1.AIConfigRuntimeLocalAgentSubsystemOwner
+	5,  // 16: nimi.runtime.v1.AIConfigCloudIntent.implementation:type_name -> nimi.runtime.v1.CapabilityImplementationIdentity
+	45, // 17: nimi.runtime.v1.AIConfigCloudIntent.provider_model_target:type_name -> google.protobuf.Struct
+	45, // 18: nimi.runtime.v1.AIConfigCapabilityIntent.defaults:type_name -> google.protobuf.Struct
+	14, // 19: nimi.runtime.v1.AIConfigCapabilityIntent.local:type_name -> nimi.runtime.v1.AIConfigLocalIntent
+	15, // 20: nimi.runtime.v1.AIConfigCapabilityIntent.cloud:type_name -> nimi.runtime.v1.AIConfigCloudIntent
+	13, // 21: nimi.runtime.v1.AIConfig.owner:type_name -> nimi.runtime.v1.AIConfigOwner
+	16, // 22: nimi.runtime.v1.AIConfig.capabilities:type_name -> nimi.runtime.v1.AIConfigCapabilityIntent
+	13, // 23: nimi.runtime.v1.GetAppAIConfigRequest.owner:type_name -> nimi.runtime.v1.AIConfigOwner
+	17, // 24: nimi.runtime.v1.GetAppAIConfigResponse.config:type_name -> nimi.runtime.v1.AIConfig
+	17, // 25: nimi.runtime.v1.OverwriteAppAIConfigRequest.config:type_name -> nimi.runtime.v1.AIConfig
+	17, // 26: nimi.runtime.v1.OverwriteAppAIConfigResponse.config:type_name -> nimi.runtime.v1.AIConfig
+	10, // 27: nimi.runtime.v1.GetMachineLocalAIConfigurationResponse.aggregate:type_name -> nimi.runtime.v1.MachineLocalAIConfiguration
+	8,  // 28: nimi.runtime.v1.GetLocalCapabilityConfigurationResponse.configuration:type_name -> nimi.runtime.v1.LocalCapabilityConfiguration
+	5,  // 29: nimi.runtime.v1.AddLocalCapabilityConfigurationRequest.implementation:type_name -> nimi.runtime.v1.CapabilityImplementationIdentity
+	45, // 30: nimi.runtime.v1.AddLocalCapabilityConfigurationRequest.portable_config:type_name -> google.protobuf.Struct
+	45, // 31: nimi.runtime.v1.AddLocalCapabilityConfigurationRequest.provenance:type_name -> google.protobuf.Struct
+	8,  // 32: nimi.runtime.v1.AddLocalCapabilityConfigurationResponse.configuration:type_name -> nimi.runtime.v1.LocalCapabilityConfiguration
+	45, // 33: nimi.runtime.v1.UpdateLocalCapabilityConfigurationRequest.portable_config:type_name -> google.protobuf.Struct
+	45, // 34: nimi.runtime.v1.UpdateLocalCapabilityConfigurationRequest.provenance:type_name -> google.protobuf.Struct
+	8,  // 35: nimi.runtime.v1.UpdateLocalCapabilityConfigurationResponse.configuration:type_name -> nimi.runtime.v1.LocalCapabilityConfiguration
+	9,  // 36: nimi.runtime.v1.SelectLocalCapabilityConfigurationResponse.selection:type_name -> nimi.runtime.v1.LocalCapabilitySelection
+	8,  // 37: nimi.runtime.v1.ReprojectLocalCapabilityRequirementsResponse.configuration:type_name -> nimi.runtime.v1.LocalCapabilityConfiguration
+	38, // 38: nimi.runtime.v1.BindLocalCapabilityRequirementRequest.target:type_name -> nimi.runtime.v1.LocalAssetExactBindingTarget
+	8,  // 39: nimi.runtime.v1.BindLocalCapabilityRequirementResponse.configuration:type_name -> nimi.runtime.v1.LocalCapabilityConfiguration
+	7,  // 40: nimi.runtime.v1.RebindLocalCapabilityRequirementRequest.expected_current_binding:type_name -> nimi.runtime.v1.LocalAssetExactBinding
+	38, // 41: nimi.runtime.v1.RebindLocalCapabilityRequirementRequest.target:type_name -> nimi.runtime.v1.LocalAssetExactBindingTarget
+	8,  // 42: nimi.runtime.v1.RebindLocalCapabilityRequirementResponse.configuration:type_name -> nimi.runtime.v1.LocalCapabilityConfiguration
+	7,  // 43: nimi.runtime.v1.UnbindLocalCapabilityRequirementRequest.expected_current_binding:type_name -> nimi.runtime.v1.LocalAssetExactBinding
+	8,  // 44: nimi.runtime.v1.UnbindLocalCapabilityRequirementResponse.configuration:type_name -> nimi.runtime.v1.LocalCapabilityConfiguration
+	45, // [45:45] is the sub-list for method output_type
+	45, // [45:45] is the sub-list for method input_type
+	45, // [45:45] is the sub-list for extension type_name
+	45, // [45:45] is the sub-list for extension extendee
+	0,  // [0:45] is the sub-list for field type_name
 }
 
 func init() { file_runtime_v1_capability_configuration_proto_init() }

@@ -94,6 +94,10 @@ message LocalCapabilityConfiguration {
 message LocalCapabilitySelection {
   string capability_contract = 1;
   string configuration_id = 2;
+  // Read-only Driver-owned effective request defaults for the selected
+  // configuration. Runtime projects only string display values and never
+  // persists this field as machine selection intent.
+  google.protobuf.Struct effective_defaults = 3;
 }
 
 message MachineLocalAIConfiguration {

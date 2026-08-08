@@ -132,18 +132,18 @@ func (s *Service) runLocalVideoScenarioJob(ctx context.Context, jobID string, ef
 		s.finishLocalVideoJobFailure(ctx, jobID, err)
 		return
 	}
-	artifact, err := localVideoArtifact(effective, encoded)
+	artifacts, err := localVideoArtifacts(effective, encoded)
 	if err != nil {
 		s.finishLocalVideoJobFailure(ctx, jobID, localVideoMediaError(err))
 		return
 	}
-	_, err = s.storeAndAttachRuntimeJobArtifact(jobID, effective.head, artifact, func(candidate *runtimev1.ScenarioArtifact) bool {
+	_, err = s.storeAndAttachRuntimeJobArtifacts(jobID, effective.head, artifacts, func(candidates []*runtimev1.ScenarioArtifact) bool {
 		_, ok := s.scenarioJobs.transition(
 			jobID,
 			runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED,
 			runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_COMPLETED,
 			func(job *runtimev1.ScenarioJob) {
-				job.Artifacts = []*runtimev1.ScenarioArtifact{cloneScenarioArtifact(candidate)}
+				job.Artifacts = cloneScenarioArtifacts(candidates)
 				job.ProgressCurrentStep, job.ProgressTotalSteps, job.ProgressPercent = encodeTotal, encodeTotal, 100
 				if rawCandidate.ComputeMS > 0 {
 					job.Usage = &runtimev1.UsageStats{ComputeMs: rawCandidate.ComputeMS}

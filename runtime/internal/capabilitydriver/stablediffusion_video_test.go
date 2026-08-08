@@ -204,6 +204,81 @@ func TestStableDiffusionVideoPlanAppliesFirstPartyDefaultsForAbsentFields(t *tes
 	}
 }
 
+func TestStableDiffusionVideoDurationAlignsUpToH3FrameGrid(t *testing.T) {
+	driver := StableDiffusionVideoDriver{}
+	bindings := stableDiffusionVideoInvocationBindingsForTest(t.TempDir())
+	for _, test := range []struct {
+		durationSec int
+		wantFrames  int
+	}{
+		{durationSec: 1, wantFrames: 39},
+		{durationSec: 2, wantFrames: 56},
+		{durationSec: 3, wantFrames: 73},
+		{durationSec: 5, wantFrames: 124},
+		{durationSec: 10, wantFrames: 243},
+		{durationSec: 600, wantFrames: 14404},
+	} {
+		request := stableDiffusionVideoRequestForTest()
+		request.FrameCount = 0
+		request.DurationSec = test.durationSec
+		plan, err := driver.PlanVideoInvocation(VideoInvocationInput{ConfigurationID: "configuration-h3", ExactBindings: bindings, Request: request})
+		if err != nil {
+			t.Fatalf("duration %ds: %v", test.durationSec, err)
+		}
+		if plan.FrameCount() != test.wantFrames {
+			t.Fatalf("duration %ds frames=%d, want %d", test.durationSec, plan.FrameCount(), test.wantFrames)
+		}
+	}
+}
+
+func TestStableDiffusionVideoRatioDerivationAndContradiction(t *testing.T) {
+	driver := StableDiffusionVideoDriver{}
+	bindings := stableDiffusionVideoInvocationBindingsForTest(t.TempDir())
+	for _, test := range []struct {
+		ratio         string
+		width, height int
+	}{
+		{ratio: "16:9", width: 512, height: 288},
+		{ratio: "4:3", width: 384, height: 288},
+		{ratio: "1:1", width: 384, height: 384},
+		{ratio: "3:4", width: 288, height: 384},
+		{ratio: "9:16", width: 288, height: 512},
+		{ratio: "21:9", width: 672, height: 288},
+	} {
+		request := stableDiffusionVideoRequestForTest()
+		request.Width, request.Height, request.Ratio = 0, 0, test.ratio
+		plan, err := driver.PlanVideoInvocation(VideoInvocationInput{ConfigurationID: "configuration-h3", ExactBindings: bindings, Request: request})
+		if err != nil {
+			t.Fatalf("ratio %s: %v", test.ratio, err)
+		}
+		width, height := plan.Size()
+		if width != test.width || height != test.height {
+			t.Fatalf("ratio %s size=%dx%d, want %dx%d", test.ratio, width, height, test.width, test.height)
+		}
+	}
+
+	consistent := stableDiffusionVideoRequestForTest()
+	consistent.Width, consistent.Height, consistent.Ratio = 1024, 576, "16:9"
+	if _, err := driver.PlanVideoInvocation(VideoInvocationInput{ConfigurationID: "configuration-h3", ExactBindings: bindings, Request: consistent}); err != nil {
+		t.Fatalf("consistent explicit resolution and ratio: %v", err)
+	}
+	for _, request := range []VideoInvocationRequest{
+		func() VideoInvocationRequest {
+			value := stableDiffusionVideoRequestForTest()
+			value.Width, value.Height, value.Ratio = 512, 512, "16:9"
+			return value
+		}(),
+		func() VideoInvocationRequest {
+			value := stableDiffusionVideoRequestForTest()
+			value.Width, value.Height, value.Ratio = 0, 0, "adaptive"
+			return value
+		}(),
+	} {
+		_, err := driver.PlanVideoInvocation(VideoInvocationInput{ConfigurationID: "configuration-h3", ExactBindings: bindings, Request: request})
+		assertVideoInvocationErrorKind(t, err, InvocationFailureInvalidRequest)
+	}
+}
+
 func TestStableDiffusionVideoPlanRejectsEveryH3AdmissionViolation(t *testing.T) {
 	driver := StableDiffusionVideoDriver{}
 	bindings := stableDiffusionVideoInvocationBindingsForTest(t.TempDir())
@@ -220,6 +295,8 @@ func TestStableDiffusionVideoPlanRejectsEveryH3AdmissionViolation(t *testing.T) 
 		{name: "fps", mutate: func(request *VideoInvocationRequest) { request.FPS = 25 }},
 		{name: "frame minimum", mutate: func(request *VideoInvocationRequest) { request.FrameCount = 4 }},
 		{name: "frame grid", mutate: func(request *VideoInvocationRequest) { request.FrameCount = 23 }},
+		{name: "duration range", mutate: func(request *VideoInvocationRequest) { request.FrameCount, request.DurationSec = 0, 601 }},
+		{name: "duration and frames", mutate: func(request *VideoInvocationRequest) { request.DurationSec = 2 }},
 		{name: "audio required", mutate: func(request *VideoInvocationRequest) { request.GenerateAudio = false }},
 	}
 	for _, test := range tests {
@@ -399,6 +476,13 @@ func TestStableDiffusionVideoProcessKeyTracksOnlyExactLoadInstructions(t *testin
 		if baseline.ProcessKey() == plan("one", portable, bindings, request).ProcessKey() {
 			t.Fatalf("%s was omitted from process key", name)
 		}
+	}
+}
+
+func TestStableDiffusionVideoEffectiveRequestDefaultsMatchPlanDefaults(t *testing.T) {
+	defaults := (StableDiffusionVideoDriver{}).EffectiveRequestDefaults(nil)
+	if defaults["options.resolution"] != "512x288" || defaults["options.frames"] != "22" || defaults["options.seed"] != "0" {
+		t.Fatalf("effective request defaults = %#v", defaults)
 	}
 }
 

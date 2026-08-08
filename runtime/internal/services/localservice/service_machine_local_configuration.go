@@ -13,6 +13,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/structpb"
 )
 
 func (s *Service) restoreMachineLocalConfigurations() error {
@@ -53,7 +54,7 @@ func (s *Service) GetMachineLocalAIConfiguration(_ context.Context, _ *runtimev1
 	for _, stored := range s.machineLocalConfigurations {
 		rows = append(rows, s.deriveLocalCapabilityConfiguration(stored))
 	}
-	selections := s.machineLocalSelectionsLocked()
+	selections := s.machineLocalSelectionDisplaysLocked()
 	s.mu.RUnlock()
 	sort.Slice(rows, func(i, j int) bool {
 		return rows[i].GetConfigurationId() < rows[j].GetConfigurationId()
@@ -534,6 +535,39 @@ func (s *Service) machineLocalSelectionsLocked() []*runtimev1.LocalCapabilitySel
 	sort.Slice(selections, func(i, j int) bool {
 		return selections[i].GetCapabilityContract() < selections[j].GetCapabilityContract()
 	})
+	return selections
+}
+
+func (s *Service) machineLocalSelectionDisplaysLocked() []*runtimev1.LocalCapabilitySelection {
+	selections := s.machineLocalSelectionsLocked()
+	for _, selection := range selections {
+		stored := s.machineLocalConfigurations[selection.GetConfigurationId()]
+		configuration := s.deriveLocalCapabilityConfiguration(stored)
+		if configuration == nil ||
+			configuration.GetCapabilityContract() != selection.GetCapabilityContract() ||
+			configuration.GetInterpretability() != runtimev1.LocalCapabilityInterpretability_LOCAL_CAPABILITY_INTERPRETABILITY_INTERPRETABLE {
+			continue
+		}
+		driver, reason := s.capabilityDrivers.Resolve(
+			configuration.GetCapabilityContract(),
+			capabilitydriver.IdentityFromProto(configuration.GetImplementation()),
+		)
+		if reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED || driver == nil {
+			continue
+		}
+		defaults := driver.EffectiveRequestDefaults(cloneStruct(configuration.GetPortableConfig()))
+		if len(defaults) == 0 {
+			continue
+		}
+		values := make(map[string]any, len(defaults))
+		for key, value := range defaults {
+			values[key] = value
+		}
+		projected, err := structpb.NewStruct(values)
+		if err == nil {
+			selection.EffectiveDefaults = projected
+		}
+	}
 	return selections
 }
 

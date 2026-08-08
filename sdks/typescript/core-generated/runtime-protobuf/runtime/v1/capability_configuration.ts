@@ -162,6 +162,14 @@ export interface LocalCapabilitySelection {
      * @generated from protobuf field: string configuration_id = 2
      */
     configurationId: string;
+    /**
+     * Read-only Driver-owned effective request defaults for the selected
+     * configuration. Runtime projects only string display values and never
+     * persists this field as machine selection intent.
+     *
+     * @generated from protobuf field: google.protobuf.Struct effective_defaults = 3
+     */
+    effectiveDefaults?: Struct;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.MachineLocalAIConfiguration
@@ -1117,7 +1125,8 @@ class LocalCapabilitySelection$Type extends MessageType<LocalCapabilitySelection
     constructor() {
         super("nimi.runtime.v1.LocalCapabilitySelection", [
             { no: 1, name: "capability_contract", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "configuration_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 2, name: "configuration_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "effective_defaults", kind: "message", T: () => Struct }
         ]);
     }
     create(value?: PartialMessage<LocalCapabilitySelection>): LocalCapabilitySelection {
@@ -1139,6 +1148,9 @@ class LocalCapabilitySelection$Type extends MessageType<LocalCapabilitySelection
                 case /* string configuration_id */ 2:
                     message.configurationId = reader.string();
                     break;
+                case /* google.protobuf.Struct effective_defaults */ 3:
+                    message.effectiveDefaults = Struct.internalBinaryRead(reader, reader.uint32(), options, message.effectiveDefaults);
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -1157,6 +1169,9 @@ class LocalCapabilitySelection$Type extends MessageType<LocalCapabilitySelection
         /* string configuration_id = 2; */
         if (message.configurationId !== "")
             writer.tag(2, WireType.LengthDelimited).string(message.configurationId);
+        /* google.protobuf.Struct effective_defaults = 3; */
+        if (message.effectiveDefaults)
+            Struct.internalBinaryWrite(message.effectiveDefaults, writer.tag(3, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

@@ -143,6 +143,7 @@ test('Machine Local AI Configuration typed client maps every admitted RPC throug
           selections: [{
             capabilityContract: NIMI_MACHINE_LOCAL_TEXT_GENERATE_CAPABILITY_CONTRACT,
             configurationId: 'lcc_test',
+            effectiveDefaults: toNimiRuntimeProtoStruct({ temperature: '0.8', seed: 'random' }),
           }],
         },
       };
@@ -205,6 +206,7 @@ test('Machine Local AI Configuration typed client maps every admitted RPC throug
   assert.deepEqual(aggregate.selections, [{
     capabilityContract: 'text.generate',
     configurationId: 'lcc_test',
+    effectiveDefaults: { temperature: '0.8', seed: 'random' },
   }]);
 
   const textOnlyInput = createNimiMachineLocalLlamaCppTextConfigurationInput({
@@ -501,6 +503,7 @@ test('Machine Local AI Configuration impact is derived ephemerally from Local fe
     selections: [{
       capabilityContract: NIMI_MACHINE_LOCAL_IMAGE_GENERATE_CAPABILITY_CONTRACT,
       configurationId: 'lcc_image',
+      effectiveDefaults: null,
     }],
   };
   const matchingApp = impactAIConfig({

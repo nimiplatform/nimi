@@ -1,11 +1,15 @@
 package ai
 
 import (
+	"bytes"
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"image"
+	"image/color"
+	"image/png"
 	"math"
 	"os"
 	"path/filepath"
@@ -73,11 +77,12 @@ func (h *localVideoHostStub) ExecuteVideo(ctx context.Context, plan *capabilityd
 }
 
 type videoMediaPipelineStub struct {
-	mu      sync.Mutex
-	calls   int
-	entered chan struct{}
-	release chan struct{}
-	err     error
+	mu            sync.Mutex
+	calls         int
+	entered       chan struct{}
+	release       chan struct{}
+	err           error
+	omitLastFrame bool
 }
 
 func (p *videoMediaPipelineStub) EncodeAndInspect(ctx context.Context, plan *capabilitydriver.VideoInvocationPlan, candidate localexecution.RawAVCandidate) (videomedia.Result, error) {
@@ -101,11 +106,27 @@ func (p *videoMediaPipelineStub) EncodeAndInspect(ctx context.Context, plan *cap
 	payload := []byte("\x00\x00\x00\x18ftypisom-local-video")
 	digest := sha256.Sum256(payload)
 	width, height := plan.Size()
-	return videomedia.Result{Bytes: payload, Facts: videomedia.Facts{
+	result := videomedia.Result{Bytes: payload, Facts: videomedia.Facts{
 		MIMEType: videomedia.MIMETypeMP4, SizeBytes: int64(len(payload)), SHA256: hex.EncodeToString(digest[:]),
 		Width: width, Height: height, FPS: plan.FPS(), FrameCount: plan.FrameCount(),
 		Duration: time.Duration(float64(plan.FrameCount()) / float64(plan.FPS()) * float64(time.Second)), Channels: 2, SampleRate: 32000,
-	}}, nil
+	}}
+	if plan.ReturnLastFrame() && !p.omitLastFrame {
+		frame := image.NewNRGBA(image.Rect(0, 0, width, height))
+		frame.SetNRGBA(width-1, height-1, color.NRGBA{R: 0x24, G: 0x68, B: 0xac, A: 0xff})
+		var encoded bytes.Buffer
+		if err := png.Encode(&encoded, frame); err != nil {
+			return videomedia.Result{}, err
+		}
+		frameBytes := encoded.Bytes()
+		frameDigest := sha256.Sum256(frameBytes)
+		result.LastFrame = &videomedia.StillImage{
+			Bytes: append([]byte(nil), frameBytes...), MIMEType: videomedia.MIMETypePNG,
+			SizeBytes: int64(len(frameBytes)), SHA256: hex.EncodeToString(frameDigest[:]),
+			Width: width, Height: height, FrameIndex: plan.FrameCount() - 1,
+		}
+	}
+	return result, nil
 }
 
 type countingLocalExecutionResolver struct {
@@ -143,6 +164,19 @@ func (s *rejectingRuntimeArtifactStore) Put(string, runtimeartifact.ArtifactReco
 	return errors.New("artifact store rejected candidate")
 }
 
+type secondPutRejectingRuntimeArtifactStore struct {
+	*runtimeartifact.MemoryStore
+	puts int
+}
+
+func (s *secondPutRejectingRuntimeArtifactStore) Put(artifactID string, record runtimeartifact.ArtifactRecord) error {
+	s.puts++
+	if s.puts == 2 {
+		return errors.New("artifact store rejected second candidate")
+	}
+	return s.MemoryStore.Put(artifactID, record)
+}
+
 func TestNormalizeLocalVideoSpecExplicitZeroAndFalseOverrideDefaults(t *testing.T) {
 	defaults, _ := structpb.NewStruct(map[string]any{"options": map[string]any{
 		"seed": 19.0, "cameraFixed": true, "watermark": true,
@@ -165,6 +199,38 @@ func TestNormalizeLocalVideoSpecExplicitZeroAndFalseOverrideDefaults(t *testing.
 	if options.Seed == nil || options.CameraFixed == nil || options.Watermark == nil ||
 		options.GetSeed() != 0 || options.GetCameraFixed() || options.GetWatermark() {
 		t.Fatalf("explicit zero/false values were replaced by defaults: %+v", options)
+	}
+}
+
+func TestLocalVideoRatioDerivationAndContradictionAreTypedAtAdmission(t *testing.T) {
+	svc := newTestService(nil)
+	svc.SetLocalExecutionResolver(&countingLocalExecutionResolver{projection: selectedVideoExecutionForTest(t, "video-ratio")})
+	for _, test := range []struct {
+		ratio         string
+		width, height int
+	}{
+		{ratio: "16:9", width: 512, height: 288},
+		{ratio: "9:16", width: 288, height: 512},
+		{ratio: "1:1", width: 384, height: 384},
+	} {
+		request := localVideoJobRequestForTest(64, 64, 5)
+		options := request.GetSpec().GetVideoGenerate().GetOptions()
+		options.Resolution, options.Ratio = "", test.ratio
+		effective, err := svc.captureLocalVideoEffectiveInputs(localVideoIntentContext(context.Background()), request.GetHead(), request.GetSpec().GetVideoGenerate())
+		if err != nil {
+			t.Fatalf("ratio %s admission: %v", test.ratio, err)
+		}
+		width, height := effective.plan.Size()
+		if width != test.width || height != test.height {
+			t.Fatalf("ratio %s size=%dx%d, want %dx%d", test.ratio, width, height, test.width, test.height)
+		}
+	}
+
+	request := localVideoJobRequestForTest(512, 512, 5)
+	request.GetSpec().GetVideoGenerate().GetOptions().Ratio = "16:9"
+	_, err := svc.captureLocalVideoEffectiveInputs(localVideoIntentContext(context.Background()), request.GetHead(), request.GetSpec().GetVideoGenerate())
+	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_INPUT_INVALID {
+		t.Fatalf("ratio contradiction error=%v reason=%v present=%v", err, reason, ok)
 	}
 }
 
@@ -251,6 +317,87 @@ func TestLocalVideoHappyPathPreservesProgressSnapshotAndJobCustody(t *testing.T)
 	}
 }
 
+func TestLocalVideoDurationReachesPlanAndArtifactMetadata(t *testing.T) {
+	svc := newTestService(nil)
+	host := &localVideoHostStub{}
+	svc.SetLocalExecutionResolver(&countingLocalExecutionResolver{projection: selectedVideoExecutionForTest(t, "video-duration")})
+	svc.SetLocalVideoExecutionHost(host)
+	svc.SetLocalVideoMediaPipeline(&videoMediaPipelineStub{})
+	request := localVideoJobRequestForTest(64, 64, 5)
+	options := request.GetSpec().GetVideoGenerate().GetOptions()
+	options.Frames = nil
+	options.DurationSec = testInt32(2)
+	response, err := svc.SubmitScenarioJob(localVideoIntentContext(scenarioJobUserContext("app.local", "user-duration")), request)
+	if err != nil {
+		t.Fatalf("SubmitScenarioJob: %v", err)
+	}
+	terminal := waitForScenarioJobTerminalForLocalTextTest(t, svc, response.GetJob().GetJobId())
+	if terminal.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED || len(terminal.GetArtifacts()) != 1 {
+		t.Fatalf("duration terminal = %+v", terminal)
+	}
+	host.mu.Lock()
+	plan := host.plans[0]
+	host.mu.Unlock()
+	if plan.FrameCount() != 56 || terminal.GetArtifacts()[0].GetMetadata().GetFields()["frame_count"].GetNumberValue() != 56 {
+		t.Fatalf("duration frame propagation: plan=%d metadata=%+v", plan.FrameCount(), terminal.GetArtifacts()[0].GetMetadata())
+	}
+}
+
+func TestLocalVideoReturnLastFramePublishesReadableJobBoundPNG(t *testing.T) {
+	svc := newTestService(nil)
+	svc.SetLocalExecutionResolver(&countingLocalExecutionResolver{projection: selectedVideoExecutionForTest(t, "video-last-frame")})
+	svc.SetLocalVideoExecutionHost(&localVideoHostStub{})
+	svc.SetLocalVideoMediaPipeline(&videoMediaPipelineStub{})
+	request := localVideoJobRequestForTest(64, 64, 5)
+	request.GetSpec().GetVideoGenerate().GetOptions().ReturnLastFrame = testBool(true)
+	ctx := localVideoIntentContext(scenarioJobUserContext("app.local", "user-last-frame"))
+	response, err := svc.SubmitScenarioJob(ctx, request)
+	if err != nil {
+		t.Fatalf("SubmitScenarioJob: %v", err)
+	}
+	terminal := waitForScenarioJobTerminalForLocalTextTest(t, svc, response.GetJob().GetJobId())
+	if terminal.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED || len(terminal.GetArtifacts()) != 2 {
+		t.Fatalf("last-frame terminal = %+v", terminal)
+	}
+	main, lastFrame := terminal.GetArtifacts()[0], terminal.GetArtifacts()[1]
+	if main.GetMimeType() != videomedia.MIMETypeMP4 || lastFrame.GetMimeType() != videomedia.MIMETypePNG ||
+		lastFrame.GetWidth() != 64 || lastFrame.GetHeight() != 64 || len(lastFrame.GetBytes()) == 0 {
+		t.Fatalf("last-frame artifacts = main=%+v last=%+v", main, lastFrame)
+	}
+	config, err := png.DecodeConfig(bytes.NewReader(lastFrame.GetBytes()))
+	if err != nil || config.Width != 64 || config.Height != 64 {
+		t.Fatalf("decode last-frame PNG: config=%+v error=%v", config, err)
+	}
+	metadata := lastFrame.GetMetadata().GetFields()
+	if metadata["artifact_role"].GetStringValue() != "last_frame" || metadata["frame_index"].GetNumberValue() != 4 ||
+		metadata["producer_job_id"].GetStringValue() != terminal.GetJobId() || metadata["artifact_custody"].GetStringValue() != "runtime" {
+		t.Fatalf("last-frame metadata = %+v", lastFrame.GetMetadata())
+	}
+	for _, artifact := range terminal.GetArtifacts() {
+		record, ok := svc.runtimeArtifacts.Get(artifact.GetArtifactId())
+		if !ok || record.ProducerJobID != terminal.GetJobId() || record.Owner == nil || record.Owner.SubjectUserID != "user-last-frame" || record.Owner.AppID != "app.local" {
+			t.Fatalf("job-bound artifact %q = %+v present=%v", artifact.GetArtifactId(), record, ok)
+		}
+	}
+}
+
+func TestLocalVideoMissingRequestedLastFrameFailsWithoutPartialArtifact(t *testing.T) {
+	svc := newTestService(nil)
+	svc.SetLocalExecutionResolver(&countingLocalExecutionResolver{projection: selectedVideoExecutionForTest(t, "video-last-frame-missing")})
+	svc.SetLocalVideoExecutionHost(&localVideoHostStub{})
+	svc.SetLocalVideoMediaPipeline(&videoMediaPipelineStub{omitLastFrame: true})
+	request := localVideoJobRequestForTest(64, 64, 5)
+	request.GetSpec().GetVideoGenerate().GetOptions().ReturnLastFrame = testBool(true)
+	response, err := svc.SubmitScenarioJob(localVideoIntentContext(context.Background()), request)
+	if err != nil {
+		t.Fatalf("SubmitScenarioJob: %v", err)
+	}
+	terminal := waitForScenarioJobTerminalForLocalTextTest(t, svc, response.GetJob().GetJobId())
+	if terminal.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_FAILED || len(terminal.GetArtifacts()) != 0 || svc.runtimeArtifacts.Len() != 0 {
+		t.Fatalf("missing last-frame terminal=%+v stored=%d", terminal, svc.runtimeArtifacts.Len())
+	}
+}
+
 func TestLocalVideoAdmissionRejectsBeforeJobOrHostDispatch(t *testing.T) {
 	tests := []struct {
 		name   string
@@ -269,6 +416,21 @@ func TestLocalVideoAdmissionRejectsBeforeJobOrHostDispatch(t *testing.T) {
 		{name: "audio required", mutate: func(req *runtimev1.SubmitScenarioJobRequest, _ *localexecution.SelectedLocalExecution) {
 			req.Spec.GetVideoGenerate().Options.GenerateAudio = testBool(false)
 		}, reason: runtimev1.ReasonCode_AI_INPUT_INVALID},
+		{name: "camera fixed", mutate: func(req *runtimev1.SubmitScenarioJobRequest, _ *localexecution.SelectedLocalExecution) {
+			req.Spec.GetVideoGenerate().Options.CameraFixed = testBool(true)
+		}, reason: runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED},
+		{name: "watermark", mutate: func(req *runtimev1.SubmitScenarioJobRequest, _ *localexecution.SelectedLocalExecution) {
+			req.Spec.GetVideoGenerate().Options.Watermark = testBool(true)
+		}, reason: runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED},
+		{name: "draft", mutate: func(req *runtimev1.SubmitScenarioJobRequest, _ *localexecution.SelectedLocalExecution) {
+			req.Spec.GetVideoGenerate().Options.Draft = testBool(true)
+		}, reason: runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED},
+		{name: "service tier", mutate: func(req *runtimev1.SubmitScenarioJobRequest, _ *localexecution.SelectedLocalExecution) {
+			req.Spec.GetVideoGenerate().Options.ServiceTier = "priority"
+		}, reason: runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED},
+		{name: "execution expiry", mutate: func(req *runtimev1.SubmitScenarioJobRequest, _ *localexecution.SelectedLocalExecution) {
+			req.Spec.GetVideoGenerate().Options.ExecutionExpiresAfterSec = 60
+		}, reason: runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED},
 		{name: "missing slot", mutate: func(_ *runtimev1.SubmitScenarioJobRequest, selected *localexecution.SelectedLocalExecution) {
 			selected.ExactBindings = selected.ExactBindings[:len(selected.ExactBindings)-1]
 		}, reason: runtimev1.ReasonCode_AI_LOCAL_CONFIGURATION_NOT_CONFIGURED},
@@ -353,12 +515,17 @@ func TestLocalVideoSubmitFailsClosedWhenHostOrMediaIsUnavailable(t *testing.T) {
 
 func TestLocalVideoMediaAndCustodyFailuresNeverPublishCandidate(t *testing.T) {
 	tests := []struct {
-		name     string
-		pipeline *videoMediaPipelineStub
-		store    runtimeartifact.Store
+		name            string
+		pipeline        *videoMediaPipelineStub
+		store           runtimeartifact.Store
+		returnLastFrame bool
 	}{
 		{name: "media", pipeline: &videoMediaPipelineStub{err: &videomedia.Error{Kind: videomedia.FailureEncode, Op: "stub encode", Err: errors.New("boom")}}},
 		{name: "custody", pipeline: &videoMediaPipelineStub{}, store: &rejectingRuntimeArtifactStore{MemoryStore: runtimeartifact.NewMemoryStore()}},
+		{
+			name: "last frame batch custody", pipeline: &videoMediaPipelineStub{}, returnLastFrame: true,
+			store: &secondPutRejectingRuntimeArtifactStore{MemoryStore: runtimeartifact.NewMemoryStore()},
+		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
@@ -369,7 +536,11 @@ func TestLocalVideoMediaAndCustodyFailuresNeverPublishCandidate(t *testing.T) {
 			svc.SetLocalExecutionResolver(&countingLocalExecutionResolver{projection: selectedVideoExecutionForTest(t, "failure-"+test.name)})
 			svc.SetLocalVideoExecutionHost(&localVideoHostStub{})
 			svc.SetLocalVideoMediaPipeline(test.pipeline)
-			response, err := svc.SubmitScenarioJob(localVideoIntentContext(context.Background()), localVideoJobRequestForTest(64, 64, 5))
+			request := localVideoJobRequestForTest(64, 64, 5)
+			if test.returnLastFrame {
+				request.GetSpec().GetVideoGenerate().GetOptions().ReturnLastFrame = testBool(true)
+			}
+			response, err := svc.SubmitScenarioJob(localVideoIntentContext(context.Background()), request)
 			if err != nil {
 				t.Fatalf("SubmitScenarioJob: %v", err)
 			}

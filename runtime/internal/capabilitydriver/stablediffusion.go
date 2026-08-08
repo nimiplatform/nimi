@@ -42,6 +42,18 @@ func StableDiffusionLoRARequirementID(ordinal uint32) string {
 // StableDiffusionImageDriver owns the stable-diffusion.cpp portable dialect.
 type StableDiffusionImageDriver struct{}
 
+func (StableDiffusionImageDriver) EffectiveRequestDefaults(value *structpb.Struct) map[string]string {
+	portable, reason := parseStableDiffusionPortableConfig(value)
+	if reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED {
+		return nil
+	}
+	return map[string]string{
+		"n":    "1",
+		"size": strconv.Itoa(portable.execution.width) + "x" + strconv.Itoa(portable.execution.height),
+		"seed": strconv.FormatInt(portable.execution.seed, 10),
+	}
+}
+
 type stableDiffusionFamilySpec struct {
 	name           string
 	requiresUncond bool

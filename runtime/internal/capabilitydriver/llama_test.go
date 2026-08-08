@@ -249,6 +249,13 @@ func TestLlamaValidateCombinationAllowsOneAssetToSatisfyDistinctOccurrences(t *t
 	}
 }
 
+func TestLlamaEffectiveRequestDefaultsMatchServerDialect(t *testing.T) {
+	defaults := (LlamaTextDriver{}).EffectiveRequestDefaults(nil)
+	if defaults["temperature"] != "0.8" || defaults["topP"] != "0.95" || defaults["topK"] != "40" || defaults["seed"] != "random" {
+		t.Fatalf("effective request defaults = %#v", defaults)
+	}
+}
+
 func TestLlamaInvocationPlanUsesExactTextBindingAndPortableOptions(t *testing.T) {
 	portable, err := structpb.NewStruct(map[string]any{
 		"contextSize":    8192,

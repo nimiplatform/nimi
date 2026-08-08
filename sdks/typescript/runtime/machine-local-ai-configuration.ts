@@ -181,6 +181,7 @@ export interface NimiMachineLocalCapabilityConfiguration {
 export interface NimiMachineLocalCapabilitySelection {
   readonly capabilityContract: string;
   readonly configurationId: string;
+  readonly effectiveDefaults: Readonly<Record<string, string>> | null;
 }
 
 export interface NimiMachineLocalAIConfiguration {
@@ -1440,7 +1441,29 @@ function projectSelection(
   return {
     capabilityContract: requireResponseText(value.capabilityContract, 'selection.capabilityContract'),
     configurationId: requireResponseText(value.configurationId, 'selection.configurationId'),
+    effectiveDefaults: value.effectiveDefaults
+      ? projectEffectiveDefaults(value.effectiveDefaults, operation)
+      : null,
   };
+}
+
+function projectEffectiveDefaults(
+  value: NonNullable<LocalCapabilitySelection['effectiveDefaults']>,
+  operation: string,
+): Readonly<Record<string, string>> {
+  const projected = fromNimiRuntimeProtoStruct(value);
+  const entries = Object.entries(projected);
+  if (entries.length === 0 || entries.length > 64) {
+    return responseError(`${operation} returned invalid effective request defaults`);
+  }
+  const result: Record<string, string> = {};
+  for (const [key, item] of entries) {
+    if (!key || key.trim() !== key || typeof item !== 'string' || !item || item.trim() !== item) {
+      return responseError(`${operation} returned invalid effective request defaults`);
+    }
+    result[key] = item;
+  }
+  return Object.freeze(result);
 }
 
 function projectInterpretability(

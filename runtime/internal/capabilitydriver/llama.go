@@ -20,6 +20,20 @@ const inputImageFeature = "input.image"
 // LlamaTextDriver projects only llama.cpp text resource intent.
 type LlamaTextDriver struct{}
 
+func (LlamaTextDriver) EffectiveRequestDefaults(_ *structpb.Struct) map[string]string {
+	// These are the request defaults owned by the pinned llama-server dialect
+	// when llamaTextRequestBody omits unset sampling fields.
+	return map[string]string{
+		"temperature":      "0.8",
+		"topP":             "0.95",
+		"topK":             "40",
+		"maxTokens":        "-1",
+		"presencePenalty":  "0",
+		"frequencyPenalty": "0",
+		"seed":             "random",
+	}
+}
+
 func (LlamaTextDriver) Interpret(input InterpretInput) ([]*runtimev1.LocalCapabilityRequirement, runtimev1.LocalCapabilityReason) {
 	features, reason := normalizedFeatures(input.SupportedFeatures)
 	if reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED {

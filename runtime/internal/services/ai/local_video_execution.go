@@ -210,8 +210,12 @@ func (s *Service) resolveLocalVideoInvocationRequest(head *runtimev1.ScenarioReq
 		return capabilitydriver.VideoInvocationRequest{}, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 	}
 	options := spec.GetOptions()
-	if strings.TrimSpace(options.GetRatio()) != "" || options.GetDurationSec() != 0 || options.GetCameraFixed() || options.GetWatermark() ||
-		options.GetDraft() || strings.TrimSpace(options.GetServiceTier()) != "" || options.GetExecutionExpiresAfterSec() != 0 || options.GetReturnLastFrame() {
+	if options.GetCameraFixed() || options.GetWatermark() || options.GetDraft() || strings.TrimSpace(options.GetServiceTier()) != "" ||
+		options.GetExecutionExpiresAfterSec() != 0 {
+		return capabilitydriver.VideoInvocationRequest{}, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
+	}
+	ratio := strings.TrimSpace(options.GetRatio())
+	if ratio == "adaptive" {
 		return capabilitydriver.VideoInvocationRequest{}, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
 	}
 	inputs := make([]capabilitydriver.VideoResolvedInput, 0)
@@ -234,11 +238,16 @@ func (s *Service) resolveLocalVideoInvocationRequest(head *runtimev1.ScenarioReq
 		}
 		inputs = append(inputs, resolved)
 	}
-	width, height := nimillm.ParseDimensionPair(options.GetResolution())
+	resolution := strings.TrimSpace(options.GetResolution())
+	width, height := nimillm.ParseDimensionPair(resolution)
+	if resolution != "" && (width == 0 || height == 0) {
+		return capabilitydriver.VideoInvocationRequest{}, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
+	}
 	return capabilitydriver.VideoInvocationRequest{
 		Prompt: nimillm.VideoPrompt(spec), NegativePrompt: nimillm.VideoNegativePrompt(spec),
-		Width: int(width), Height: int(height), FrameCount: int(options.GetFrames()), FPS: int(options.GetFps()),
-		Seed: options.GetSeed(), GenerateAudio: options.GetGenerateAudio(), Inputs: inputs,
+		Width: int(width), Height: int(height), Ratio: ratio, DurationSec: int(options.GetDurationSec()),
+		FrameCount: int(options.GetFrames()), FPS: int(options.GetFps()), Seed: options.GetSeed(),
+		GenerateAudio: options.GetGenerateAudio(), ReturnLastFrame: options.GetReturnLastFrame(), Inputs: inputs,
 	}, nil
 }
 
@@ -328,8 +337,26 @@ func (s *Service) executeCapturedLocalVideo(ctx context.Context, effective *loca
 	return candidate, nil
 }
 
+func localVideoArtifacts(effective *localVideoEffectiveInputs, result videomedia.Result) ([]*runtimev1.ScenarioArtifact, error) {
+	main, err := localVideoArtifact(effective, result)
+	if err != nil {
+		return nil, err
+	}
+	if !effective.plan.ReturnLastFrame() {
+		if result.LastFrame != nil {
+			return nil, fmt.Errorf("local video media returned an unrequested last frame")
+		}
+		return []*runtimev1.ScenarioArtifact{main}, nil
+	}
+	lastFrame, err := localVideoLastFrameArtifact(result)
+	if err != nil {
+		return nil, err
+	}
+	return []*runtimev1.ScenarioArtifact{main, lastFrame}, nil
+}
+
 func localVideoArtifact(effective *localVideoEffectiveInputs, result videomedia.Result) (*runtimev1.ScenarioArtifact, error) {
-	if effective == nil || len(result.Bytes) == 0 || result.Facts.MIMEType != videomedia.MIMETypeMP4 {
+	if effective == nil || effective.plan == nil || len(result.Bytes) == 0 || result.Facts.MIMEType != videomedia.MIMETypeMP4 {
 		return nil, fmt.Errorf("local video artifact projection is incomplete")
 	}
 	metadata, err := structpb.NewStruct(map[string]any{
@@ -348,5 +375,27 @@ func localVideoArtifact(effective *localVideoEffectiveInputs, result videomedia.
 		Bytes: append([]byte(nil), result.Bytes...), Sha256: result.Facts.SHA256, SizeBytes: result.Facts.SizeBytes,
 		DurationMs: result.Facts.Duration.Milliseconds(), Fps: int32(result.Facts.FPS), Width: int32(result.Facts.Width), Height: int32(result.Facts.Height),
 		SampleRateHz: int32(result.Facts.SampleRate), Channels: int32(result.Facts.Channels), Metadata: metadata,
+	}, nil
+}
+
+func localVideoLastFrameArtifact(result videomedia.Result) (*runtimev1.ScenarioArtifact, error) {
+	frame := result.LastFrame
+	if frame == nil || len(frame.Bytes) == 0 || frame.MIMEType != videomedia.MIMETypePNG || frame.SizeBytes != int64(len(frame.Bytes)) ||
+		frame.Width <= 0 || frame.Height <= 0 || frame.FrameIndex < 0 || strings.TrimSpace(frame.SHA256) == "" {
+		return nil, fmt.Errorf("local video last-frame artifact projection is incomplete")
+	}
+	metadata, err := structpb.NewStruct(map[string]any{
+		"artifact_role":    "last_frame",
+		"source_container": "mp4",
+		"frame_index":      frame.FrameIndex,
+		"media_validation": "ffmpeg_png_decode",
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &runtimev1.ScenarioArtifact{
+		ArtifactId: "artifact_" + ulid.Make().String(), MimeType: frame.MIMEType,
+		Bytes: append([]byte(nil), frame.Bytes...), Sha256: frame.SHA256, SizeBytes: frame.SizeBytes,
+		Width: int32(frame.Width), Height: int32(frame.Height), Metadata: metadata,
 	}, nil
 }

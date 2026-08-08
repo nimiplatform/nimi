@@ -49,6 +49,33 @@ func TestMachineLocalSelectionOverwritesOneCapabilityAndPersistsClear(t *testing
 	assertOnlyMachineLocalSelection(t, restartedAgain, "", "")
 }
 
+func TestMachineLocalSelectionProjectsDriverOwnedEffectiveRequestDefaultsWithoutPersistingThem(t *testing.T) {
+	root := t.TempDir()
+	service := newMachineLocalConfigurationTestServiceWithoutCleanup(t, root)
+	configuration := addConfiguredMachineLocalSelectionForTest(t, service, "asset-defaults", 'd')
+	selectMachineLocalConfigurationForTest(t, service, capabilitydriver.LlamaCapabilityContract, configuration.GetConfigurationId())
+
+	selection := machineLocalAggregateForTest(t, service).GetSelections()[0]
+	defaults := selection.GetEffectiveDefaults().AsMap()
+	if defaults["temperature"] != "0.8" || defaults["topP"] != "0.95" || defaults["seed"] != "random" {
+		t.Fatalf("effective defaults = %#v", defaults)
+	}
+	service.Close()
+
+	restarted := newMachineLocalConfigurationTestServiceWithoutCleanup(t, root)
+	defer restarted.Close()
+	selection = machineLocalAggregateForTest(t, restarted).GetSelections()[0]
+	if selection.GetEffectiveDefaults().AsMap()["temperature"] != "0.8" {
+		t.Fatalf("reprojected effective defaults = %#v", selection.GetEffectiveDefaults().AsMap())
+	}
+	restarted.mu.RLock()
+	stored := cloneLocalCapabilitySelection(restarted.machineLocalSelections[capabilitydriver.LlamaCapabilityContract])
+	restarted.mu.RUnlock()
+	if stored.GetEffectiveDefaults() != nil {
+		t.Fatalf("effective defaults leaked into persisted selection: %#v", stored.GetEffectiveDefaults())
+	}
+}
+
 func TestMachineLocalSelectionRejectsUnresolvedAndPreservesPriorSelection(t *testing.T) {
 	root := t.TempDir()
 	service := newMachineLocalConfigurationTestServiceWithoutCleanup(t, root)

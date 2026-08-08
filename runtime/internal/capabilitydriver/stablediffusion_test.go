@@ -190,6 +190,17 @@ func TestStableDiffusionValidateBindingChecksCanonicalBundleDigest(t *testing.T)
 	}
 }
 
+func TestStableDiffusionEffectiveRequestDefaultsUsePortableExecutionOptions(t *testing.T) {
+	portable := stableDiffusionPortableForTest(t, map[string]any{
+		"modelFamily":      "z-image",
+		"executionOptions": map[string]any{"width": 768, "height": 512, "seed": 13},
+	})
+	defaults := (StableDiffusionImageDriver{}).EffectiveRequestDefaults(portable)
+	if defaults["n"] != "1" || defaults["size"] != "768x512" || defaults["seed"] != "13" {
+		t.Fatalf("effective request defaults = %#v", defaults)
+	}
+}
+
 func TestStableDiffusionPlanPreservesDeclaredLoRAOrderAndNormalizesRequest(t *testing.T) {
 	portable := stableDiffusionPortableForTest(t, map[string]any{
 		"modelFamily": "z-image",

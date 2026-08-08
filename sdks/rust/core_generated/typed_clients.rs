@@ -17600,6 +17600,7 @@ impl LocalCapabilityRequirement {
 pub struct LocalCapabilitySelection {
     pub capability_contract: Option<String>,
     pub configuration_id: Option<String>,
+    pub effective_defaults: Option<BTreeMap<String, String>>,
 }
 
 impl LocalCapabilitySelection {
@@ -17607,12 +17608,18 @@ impl LocalCapabilitySelection {
         let mut pairs: Vec<String> = Vec::new();
         if let Some(value) = &self.capability_contract { pairs.push(format!("capability_contract={}", value)); }
         if let Some(value) = &self.configuration_id { pairs.push(format!("configuration_id={}", value)); }
+        if self.effective_defaults.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode effective_defaults"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
         let mut out = Self::default();
+        for key in ["effective_defaults"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
 
         out.capability_contract = pairs.get("capability_contract").cloned();
         out.configuration_id = pairs.get("configuration_id").cloned();

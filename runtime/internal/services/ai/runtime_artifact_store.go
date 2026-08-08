@@ -99,6 +99,36 @@ func (s *Service) storeAndAttachRuntimeJobArtifact(
 	return candidate, nil
 }
 
+func (s *Service) storeAndAttachRuntimeJobArtifacts(
+	jobID string,
+	head *runtimev1.ScenarioRequestHead,
+	artifacts []*runtimev1.ScenarioArtifact,
+	attach func([]*runtimev1.ScenarioArtifact) bool,
+) ([]*runtimev1.ScenarioArtifact, error) {
+	bound, err := bindRuntimeJobArtifacts(jobID, head, artifacts)
+	if err != nil {
+		return nil, fmt.Errorf("bind Runtime job artifacts: %w", err)
+	}
+	storedIDs := make([]string, 0, len(bound))
+	rollback := func(reason string) {
+		for _, artifactID := range storedIDs {
+			s.deleteRuntimeArtifactCandidate(artifactID, reason)
+		}
+	}
+	for _, candidate := range bound {
+		if err := s.storeRuntimeJobArtifact(jobID, head, candidate); err != nil {
+			rollback("job artifact batch store failed")
+			return nil, err
+		}
+		storedIDs = append(storedIDs, candidate.GetArtifactId())
+	}
+	if attach == nil || !attach(bound) {
+		rollback("job artifact batch attach failed")
+		return nil, fmt.Errorf("attach Runtime job artifact batch")
+	}
+	return bound, nil
+}
+
 func (s *Service) storeRuntimeOwnedArtifacts(head *runtimev1.ScenarioRequestHead, artifacts []*runtimev1.ScenarioArtifact) error {
 	if s == nil || s.runtimeArtifacts == nil {
 		return nil

@@ -270,6 +270,7 @@ func canonicalizeStoredLocalCapabilitySelection(selection *runtimev1.LocalCapabi
 	}
 	selection.CapabilityContract = strings.TrimSpace(selection.GetCapabilityContract())
 	selection.ConfigurationId = strings.TrimSpace(selection.GetConfigurationId())
+	selection.EffectiveDefaults = nil
 }
 
 func cloneCanonicalStoredConfiguration(input *runtimev1.LocalCapabilityConfiguration) *runtimev1.LocalCapabilityConfiguration {

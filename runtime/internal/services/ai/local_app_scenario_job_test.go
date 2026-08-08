@@ -30,9 +30,12 @@ func TestLocalAppJobSpecsPreservePresenceAndOwnerClamps(t *testing.T) {
 	}
 
 	video, err := validateLocalAppVideoGenerationOptions(&runtimev1.LocalAppVideoGenerationOptions{
+		Ratio: "16:9", DurationSec: testInt32(2), ReturnLastFrame: testBool(true),
 		Seed: testInt64(0), GenerateAudio: testBool(false), CameraFixed: testBool(false),
 	})
-	if err != nil || video.Seed == nil || video.GenerateAudio == nil || video.CameraFixed == nil || video.GetGenerateAudio() {
+	if err != nil || video.Seed == nil || video.GenerateAudio == nil || video.CameraFixed == nil ||
+		video.DurationSec == nil || video.ReturnLastFrame == nil || video.GetRatio() != "16:9" || video.GetDurationSec() != 2 ||
+		!video.GetReturnLastFrame() || video.GetGenerateAudio() {
 		t.Fatalf("video carrier projection=%+v error=%v", video, err)
 	}
 
