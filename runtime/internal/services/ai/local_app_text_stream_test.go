@@ -148,4 +148,27 @@ func TestLocalAppTextTurnStreamBridgeDropsStartedAndUsage(t *testing.T) {
 	if len(mock.events) != 0 {
 		t.Fatalf("started/usage leaked into trimmed stream = %+v", mock.events)
 	}
+	for _, event := range []*runtimev1.StreamScenarioEvent{
+		{
+			Sequence: 41,
+			TraceId:  "trace-local-app",
+			Payload: &runtimev1.StreamScenarioEvent_Delta{Delta: &runtimev1.ScenarioStreamDelta{
+				Delta: &runtimev1.ScenarioStreamDelta_Text{Text: &runtimev1.TextStreamDelta{Text: "hello"}},
+			}},
+		},
+		{
+			Sequence: 42,
+			TraceId:  "trace-local-app",
+			Payload: &runtimev1.StreamScenarioEvent_Completed{Completed: &runtimev1.ScenarioStreamCompleted{
+				FinishReason: runtimev1.FinishReason_FINISH_REASON_STOP,
+			}},
+		},
+	} {
+		if err := bridge.Send(event); err != nil {
+			t.Fatalf("project event: %v", err)
+		}
+	}
+	if len(mock.events) != 2 || mock.events[0].GetSequence() != 1 || mock.events[1].GetSequence() != 2 {
+		t.Fatalf("trimmed stream sequence = %+v", mock.events)
+	}
 }

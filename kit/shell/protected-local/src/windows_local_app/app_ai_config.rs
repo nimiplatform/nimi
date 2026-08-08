@@ -64,6 +64,7 @@ fn project_local_selections(
                     "displayName": null,
                     "supportedFeatures": [],
                     "reasons": ["selected-configuration-not-found"],
+                    "effectiveDefaults": null,
                 }));
             };
             if configuration.capability_contract != selection.capability_contract {
@@ -95,6 +96,10 @@ fn project_local_selections(
             reasons.sort();
             reasons.dedup();
             let display_name = configuration.display_name.trim();
+            let effective_defaults = selection
+                .effective_defaults
+                .map(project_effective_defaults)
+                .transpose()?;
             Ok(json!({
                 "capabilityContract": selection.capability_contract,
                 "state": if reasons.is_empty() { "selected" } else { "broken" },
@@ -102,10 +107,36 @@ fn project_local_selections(
                 "displayName": if display_name.is_empty() { JsonValue::Null } else { JsonValue::String(display_name.to_string()) },
                 "supportedFeatures": configuration.supported_features,
                 "reasons": reasons,
+                "effectiveDefaults": effective_defaults,
             }))
         })
         .collect::<Result<Vec<_>, LocalAppOperationError>>()?;
     Ok(JsonValue::Array(selections))
+}
+
+fn project_effective_defaults(value: ProtoStruct) -> Result<JsonValue, LocalAppOperationError> {
+    if value.fields.is_empty() || value.fields.len() > 64 {
+        return Err(untrusted());
+    }
+    let fields = value
+        .fields
+        .into_iter()
+        .map(|(key, value)| {
+            if key.is_empty() || key.trim() != key || key.len() > 128 {
+                return Err(untrusted());
+            }
+            let text = match value.kind.ok_or_else(untrusted)? {
+                ProtoValueKind::StringValue(text)
+                    if !text.is_empty() && text.trim() == text && text.len() <= 128 =>
+                {
+                    text
+                }
+                _ => return Err(untrusted()),
+            };
+            Ok((key, JsonValue::String(text)))
+        })
+        .collect::<Result<Map<_, _>, LocalAppOperationError>>()?;
+    Ok(JsonValue::Object(fields))
 }
 
 pub async fn overwrite(
@@ -526,8 +557,7 @@ fn untrusted() -> LocalAppOperationError {
 mod tests {
     use super::*;
     use crate::generated::{
-        AiConfigAppOwner, AiConfigOwner, LocalCapabilityConfiguration,
-        LocalCapabilitySelection,
+        AiConfigAppOwner, AiConfigOwner, LocalCapabilityConfiguration, LocalCapabilitySelection,
     };
 
     #[test]
@@ -601,6 +631,14 @@ mod tests {
             selections: vec![LocalCapabilitySelection {
                 capability_contract: "text.generate".to_string(),
                 configuration_id: "config-private".to_string(),
+                effective_defaults: Some(ProtoStruct {
+                    fields: BTreeMap::from([(
+                        "temperature".to_string(),
+                        ProtoValue {
+                            kind: Some(ProtoValueKind::StringValue("0.8".to_string())),
+                        },
+                    )]),
+                }),
             }],
         })
         .unwrap();
@@ -608,6 +646,7 @@ mod tests {
         assert_eq!(projected[0]["displayName"], "gemma4-26b");
         assert_eq!(projected[0]["configurationId"], JsonValue::Null);
         assert_eq!(projected[0]["supportedFeatures"], json!(["input.image"]));
+        assert_eq!(projected[0]["effectiveDefaults"]["temperature"], "0.8");
         assert!(!projected.to_string().contains("config-private"));
     }
 

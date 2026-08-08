@@ -188,6 +188,7 @@ export type NimiLocalAppModelConfigLocalSelection = {
   readonly displayName: string | null;
   readonly supportedFeatures: readonly string[];
   readonly reasons: readonly string[];
+  readonly effectiveDefaults: Readonly<Record<string, string>> | null;
 };
 
 export type NimiLocalAppTextCandidateResult = {
@@ -722,7 +723,7 @@ function projectModelConfigLocalSelections(
     const record = asRecord(entry);
     assertExactProjectionKeys(record, [
       'capabilityContract', 'state', 'configurationId', 'displayName',
-      'supportedFeatures', 'reasons',
+      'supportedFeatures', 'reasons', 'effectiveDefaults',
     ], 'Model Config local selection');
     assertSafeProjection(record);
     const capabilityContract = projectionText(
@@ -751,8 +752,23 @@ function projectModelConfigLocalSelections(
       displayName: record.displayName as string | null,
       supportedFeatures: Object.freeze([...record.supportedFeatures] as string[]),
       reasons: Object.freeze([...record.reasons] as string[]),
+      effectiveDefaults: projectEffectiveDefaults(record.effectiveDefaults),
     });
   }));
+}
+
+function projectEffectiveDefaults(value: unknown): Readonly<Record<string, string>> | null {
+  if (value === null) return null;
+  const record = asRecord(value);
+  const entries = record ? Object.entries(record) : [];
+  if (!record || entries.length === 0 || entries.length > 64 || entries.some(([key, item]) => (
+    !key || key.trim() !== key || new TextEncoder().encode(key).byteLength > 128
+    || typeof item !== 'string' || !item || item.trim() !== item
+    || new TextEncoder().encode(item).byteLength > 128
+  ))) {
+    return localAppProjectionError('Model Config effective defaults');
+  }
+  return Object.freeze(Object.fromEntries(entries) as Record<string, string>);
 }
 
 function projectAuth(value: unknown): NimiAppAuthProjection {

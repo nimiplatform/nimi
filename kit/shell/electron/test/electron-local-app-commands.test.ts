@@ -33,6 +33,7 @@ describe('Electron local-app standard-shell operations', () => {
     })).resolves.toEqual([{
       capabilityContract: 'text.generate', state: 'selected', configurationId: null,
       displayName: 'gemma4-26b', supportedFeatures: [], reasons: [],
+      effectiveDefaults: { temperature: '0.8' },
     }]);
     expect(calls).toEqual([['modelConfigLocalSelectionsGet']]);
   });
@@ -493,6 +494,7 @@ function localAppHost(calls: unknown[]) {
       return [{
         capabilityContract: 'text.generate', state: 'selected', configurationId: null,
         displayName: 'gemma4-26b', supportedFeatures: [], reasons: [],
+        effectiveDefaults: { temperature: '0.8' },
       }];
     },
     textGenerateCandidate: async (input: unknown) => {

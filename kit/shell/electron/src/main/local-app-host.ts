@@ -1174,7 +1174,7 @@ async function invokeModelConfigLocalSelections(
     if (!isPlainRecord(entry)
       || !hasExactKeys(entry, [
         'capabilityContract', 'state', 'configurationId', 'displayName',
-        'supportedFeatures', 'reasons',
+        'supportedFeatures', 'reasons', 'effectiveDefaults',
       ])
       || typeof entry.capabilityContract !== 'string'
       || !entry.capabilityContract
@@ -1202,8 +1202,23 @@ async function invokeModelConfigLocalSelections(
       displayName: entry.displayName,
       supportedFeatures: Object.freeze([...entry.supportedFeatures]),
       reasons: Object.freeze([...entry.reasons]),
+      effectiveDefaults: boundedEffectiveDefaults(entry.effectiveDefaults),
     }) as NimiElectronLocalAppRecord;
   }));
+}
+
+function boundedEffectiveDefaults(value: unknown): Readonly<Record<string, string>> | null {
+  if (value === null) return null;
+  if (!isPlainRecord(value)) throw untrustedRuntimeError();
+  const entries = Object.entries(value);
+  if (entries.length === 0 || entries.length > 64 || entries.some(([key, item]) => (
+    !key || key.trim() !== key || Buffer.byteLength(key, 'utf8') > 128
+    || typeof item !== 'string' || !item || item.trim() !== item
+    || Buffer.byteLength(item, 'utf8') > 128
+  ))) {
+    throw untrustedRuntimeError();
+  }
+  return Object.freeze(Object.fromEntries(entries) as Record<string, string>);
 }
 
 async function invokeWorldCoreList(

@@ -623,7 +623,7 @@ function projectTextTurnEvent(value: unknown): NimiLocalAppTextTurnEvent {
   const base = { sequence: String(record.sequence), traceId: boundedProjectionText(record.traceId, 'text-turn traceId', 512) };
   if (record.type === 'delta') {
     assertExactProjectionKeys(record, ['type', 'sequence', 'traceId', 'text'], 'text-turn delta');
-    return Object.freeze({ ...base, type: 'delta', text: boundedProjectionText(record.text, 'text-turn text', 64 * 1024) });
+    return Object.freeze({ ...base, type: 'delta', text: boundedProjectionContent(record.text, 'text-turn text', 64 * 1024) });
   }
   if (record.type === 'completed') {
     assertExactProjectionKeys(record, ['type', 'sequence', 'traceId', 'finishReason'], 'text-turn completed');
@@ -1081,6 +1081,13 @@ function boundedProjectionText(value: unknown, field: string, maximum: number): 
 
 function optionalProjectionText(value: unknown, field: string, maximum: number): string {
   if (typeof value !== 'string' || value.trim() !== value || utf8Length(value) > maximum || hasControl(value)) localAppProjectionError(field);
+  return value;
+}
+
+function boundedProjectionContent(value: unknown, field: string, maximum: number): string {
+  if (typeof value !== 'string' || !value || utf8Length(value) > maximum || value.includes('\0')) {
+    localAppProjectionError(field);
+  }
   return value;
 }
 

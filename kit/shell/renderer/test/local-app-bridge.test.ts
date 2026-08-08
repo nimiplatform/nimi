@@ -1,5 +1,8 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import { createNimiClient } from '@nimiplatform/kit/core/sdk-contract';
+import {
+  createNimiClient,
+  createNimiLocalAIConfigCapabilityIntent,
+} from '@nimiplatform/kit/core/sdk-contract';
 import { NIMI_STANDARD_SHELL_COMMANDS } from '@nimiplatform/kit/shell/capabilities';
 
 import { createNimiLocalAppStandardShellSurface } from '../src/bridge/index.js';
@@ -38,13 +41,14 @@ describe('renderer local-app standard-shell surface', () => {
 
   it('maps owner-free App AIConfig operations to exact host commands', async () => {
     const invocations: Array<{ command: string; payload: unknown }> = [];
+    const generatedIntent = createNimiLocalAIConfigCapabilityIntent({
+      capabilityContract: 'text.generate',
+      defaults: { temperature: 0.3 },
+    });
+    expect(Object.getPrototypeOf(generatedIntent.defaults)).not.toBe(Object.prototype);
     const config = {
       owner: { owner: { oneofKind: 'app', app: { appId: 'app.example' } } },
-      capabilities: [{
-        capabilityContract: 'text.generate',
-        requiredFeatures: [],
-        route: { oneofKind: 'local', local: {} },
-      }],
+      capabilities: structuredClone([generatedIntent]),
     };
     (globalThis as { __NIMI_ELECTRON_TEST__?: unknown }).__NIMI_ELECTRON_TEST__ = {
       invoke: async (command: string, payload: unknown) => {
@@ -55,7 +59,7 @@ describe('renderer local-app standard-shell surface', () => {
     };
     const aiConfig = createNimiLocalAppStandardShellSurface().aiConfig;
     await expect(aiConfig.get()).resolves.toEqual(config);
-    await expect(aiConfig.overwrite(config.capabilities as never)).resolves.toEqual(config);
+    await expect(aiConfig.overwrite([generatedIntent])).resolves.toEqual(config);
     expect(invocations).toEqual([
       { command: 'nimi.shell.localApp.aiConfigGet', payload: {} },
       {
@@ -75,6 +79,7 @@ describe('renderer local-app standard-shell surface', () => {
         displayName: 'gemma4-26b',
         supportedFeatures: ['input.image'],
         reasons: [],
+        effectiveDefaults: { temperature: '0.8' },
       }],
       listen: () => () => {},
     };
@@ -87,7 +92,24 @@ describe('renderer local-app standard-shell surface', () => {
       displayName: 'gemma4-26b',
       supportedFeatures: ['input.image'],
       reasons: [],
+      effectiveDefaults: { temperature: '0.8' },
     }]);
+
+    (globalThis as { __NIMI_ELECTRON_TEST__?: unknown }).__NIMI_ELECTRON_TEST__ = {
+      invoke: async () => [{
+        capabilityContract: 'text.generate',
+        state: 'selected',
+        configurationId: null,
+        displayName: 'gemma4-26b',
+        supportedFeatures: [],
+        reasons: [],
+        effectiveDefaults: { temperature: '界'.repeat(43) },
+      }],
+      listen: () => () => {},
+    };
+    await expect(
+      createNimiLocalAppStandardShellSurface().modelConfig.localSelections(),
+    ).rejects.toThrow('effective defaults are invalid');
   });
 
   it('exposes typed scenario execution and rejects untrusted projection expansion', async () => {

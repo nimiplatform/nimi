@@ -92,6 +92,7 @@ export type NimiLocalAppModelConfigLocalSelection = {
   readonly displayName: string | null;
   readonly supportedFeatures: readonly string[];
   readonly reasons: readonly string[];
+  readonly effectiveDefaults: Readonly<Record<string, string>> | null;
 };
 
 export type NimiLocalAppTextCandidateMessage = {
@@ -1618,7 +1619,7 @@ function parseModelConfigLocalSelections(
     const record = assertRecord(entry, `${command}: local selection is invalid`);
     assertProjectionKeys(record, [
       'capabilityContract', 'state', 'configurationId', 'displayName',
-      'supportedFeatures', 'reasons',
+      'supportedFeatures', 'reasons', 'effectiveDefaults',
     ], command, 'Model Config local selection');
     const capabilityContract = requiredText(
       record.capabilityContract,
@@ -1648,8 +1649,26 @@ function parseModelConfigLocalSelections(
       displayName: record.displayName as string | null,
       supportedFeatures: Object.freeze([...record.supportedFeatures] as string[]),
       reasons: Object.freeze([...record.reasons] as string[]),
+      effectiveDefaults: parseEffectiveDefaults(record.effectiveDefaults, command),
     });
   }));
+}
+
+function parseEffectiveDefaults(
+  value: unknown,
+  command: string,
+): Readonly<Record<string, string>> | null {
+  if (value === null) return null;
+  const record = assertRecord(value, `${command}: effective defaults are invalid`);
+  const entries = Object.entries(record);
+  if (entries.length === 0 || entries.length > 64 || entries.some(([key, item]) => (
+    !key || key.trim() !== key || new TextEncoder().encode(key).byteLength > 128
+    || typeof item !== 'string' || !item || item.trim() !== item
+    || new TextEncoder().encode(item).byteLength > 128
+  ))) {
+    throw new Error(`${command}: effective defaults are invalid`);
+  }
+  return Object.freeze(Object.fromEntries(entries) as Record<string, string>);
 }
 
 function parseAppAIConfig(value: unknown, command: string): NimiPortableAppAIConfig {
@@ -1781,9 +1800,36 @@ function canonicalAIConfigRoute(route: JsonObject, index: number, command: strin
 }
 
 function canonicalAIConfigJsonValue(value: unknown, command: string): JsonValue {
-  validateStorageJsonValue(value, command);
-  rejectAIConfigAuthorityFields(value, command);
-  return value as JsonValue;
+  const canonical = cloneAIConfigJsonValue(value, command);
+  rejectAIConfigAuthorityFields(canonical, command);
+  return canonical;
+}
+
+function cloneAIConfigJsonValue(
+  value: unknown,
+  command: string,
+  depth = 0,
+  nodes = { value: 0 },
+): JsonValue {
+  nodes.value += 1;
+  if (depth > 32 || nodes.value > 100_000) throw invalidInput(command, 'AIConfig value exceeds structural bounds');
+  if (value === null || typeof value === 'string' || typeof value === 'boolean') return value;
+  if (typeof value === 'number' && Number.isFinite(value)) return value;
+  if (Array.isArray(value)) {
+    return value.map((entry) => cloneAIConfigJsonValue(entry, command, depth + 1, nodes));
+  }
+  if (!value || typeof value !== 'object') throw invalidInput(command, 'AIConfig value is not JSON-compatible');
+  const keys = Reflect.ownKeys(value);
+  if (keys.some((key) => typeof key !== 'string')) throw invalidInput(command, 'AIConfig value has symbol fields');
+  const output: JsonObject = {};
+  for (const key of keys as string[]) {
+    const descriptor = Object.getOwnPropertyDescriptor(value, key);
+    if (!descriptor?.enumerable || !Object.hasOwn(descriptor, 'value')) {
+      throw invalidInput(command, 'AIConfig value has non-data fields');
+    }
+    output[key] = cloneAIConfigJsonValue(descriptor.value, command, depth + 1, nodes);
+  }
+  return output;
 }
 
 function rejectAIConfigAuthorityFields(value: unknown, command: string): void {

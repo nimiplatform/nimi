@@ -76,7 +76,7 @@ export function validateCapabilityIntents(
         || feature.trim() !== feature)) {
       invalidIntent(`capability ${index} requiredFeatures`);
     }
-    if (intent.defaults !== undefined && !asRecord(intent.defaults)) {
+    if (intent.defaults !== undefined && !isRuntimeStruct(intent.defaults)) {
       invalidIntent(`capability ${index} defaults`);
     }
     const route = asRecord(intent.route);
@@ -105,10 +105,18 @@ export function validateCapabilityIntents(
     requireText(implementation.implementationId, `ai_config_implementation_${index}`);
     requireText(implementation.driverId, `ai_config_driver_${index}`);
     requireText(implementation.driverDialect, `ai_config_driver_dialect_${index}`);
-    if (cloud.providerModelTarget !== undefined && !asRecord(cloud.providerModelTarget)) {
+    if (cloud.providerModelTarget !== undefined && !isRuntimeStruct(cloud.providerModelTarget)) {
       invalidIntent(`capability ${index} providerModelTarget`);
     }
   });
+}
+
+function isRuntimeStruct(value: unknown): boolean {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+  const record = value as Record<string, unknown>;
+  if (Object.keys(record).length !== 1 || !Object.hasOwn(record, 'fields')) return false;
+  const fields = record.fields;
+  return Boolean(fields && typeof fields === 'object' && !Array.isArray(fields));
 }
 
 function projectAppAIConfig(value: unknown): NimiPortableAppAIConfig {

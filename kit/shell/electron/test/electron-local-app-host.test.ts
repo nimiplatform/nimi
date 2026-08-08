@@ -362,6 +362,7 @@ function binding(calls: Array<{ method: string; input?: unknown }>) {
     localAppModelConfigLocalSelectionsGet: record('localAppModelConfigLocalSelectionsGet', [{
       capabilityContract: 'text.generate', state: 'selected', configurationId: null,
       displayName: 'gemma4-26b', supportedFeatures: [], reasons: [],
+      effectiveDefaults: { temperature: '0.8' },
     }]),
     localAppTextGenerateCandidate: record('localAppTextGenerateCandidate', { text: 'hello', finishReason: 'stop', traceId: 'trace-1' }),
     localAppTextTurnSubscribe: record('localAppTextTurnSubscribe', { streamId: 'text-turn-1' }),

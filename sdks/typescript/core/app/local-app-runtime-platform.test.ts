@@ -7,6 +7,7 @@ import {
   RenewLocalAppSessionRequest,
 } from '../../core-generated/runtime-protobuf/runtime/v1/auth.js';
 import { runNimiRuntimeImageGeneration } from '../../features/generation/runtime-image-generation.js';
+import { createNimiLocalAIConfigCapabilityIntent } from '../ai/config-profile.js';
 import {
   createNimiLocalAppClient,
   createNimiLocalAppRuntimeScenarioJobClient,
@@ -140,6 +141,7 @@ test('Model Config projects bounded read-only machine selections', async () => {
       displayName: 'gemma4-26b',
       supportedFeatures: ['input.image'],
       reasons: [],
+      effectiveDefaults: { temperature: '0.8', seed: 'random' },
     }] },
   };
   const selections = await createNimiLocalAppClient({ standardShell: shell })
@@ -151,8 +153,26 @@ test('Model Config projects bounded read-only machine selections', async () => {
     displayName: 'gemma4-26b',
     supportedFeatures: ['input.image'],
     reasons: [],
+    effectiveDefaults: { temperature: '0.8', seed: 'random' },
   }]);
   assert.doesNotMatch(JSON.stringify(selections), /config-private|binding|asset|path/iu);
+
+  const invalidShell: NimiLocalAppStandardShell = {
+    ...base,
+    modelConfig: { localSelections: async () => [{
+      capabilityContract: 'text.generate',
+      state: 'selected',
+      configurationId: null,
+      displayName: 'gemma4-26b',
+      supportedFeatures: [],
+      reasons: [],
+      effectiveDefaults: { temperature: '界'.repeat(43) },
+    }] },
+  };
+  await assert.rejects(
+    () => createNimiLocalAppClient({ standardShell: invalidShell }).modelConfig.localSelections(),
+    (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_LOCAL_APP_PROJECTION_INVALID',
+  );
 });
 
 test('Current User failure is isolated from the ready App session', async () => {
@@ -325,6 +345,37 @@ test('Agent conversation projects only the exact typed union and bounded snapsho
   );
 });
 
+test('Local App text stream preserves whitespace-bearing deltas as content', async () => {
+  const base = standardShell([]);
+  const shell: NimiLocalAppStandardShell = {
+    ...base,
+    ai: {
+      ...base.ai,
+      text: {
+        ...base.ai.text,
+        streamTurn: async () => ({
+          events: {
+            async *[Symbol.asyncIterator]() {
+              yield { type: 'delta', sequence: '1', traceId: 'trace-text', text: 'hello ' };
+              yield { type: 'delta', sequence: '2', traceId: 'trace-text', text: '\nworld' };
+              yield { type: 'completed', sequence: '3', traceId: 'trace-text', finishReason: 'stop' };
+            },
+          },
+          cancel: async () => undefined,
+        }),
+      },
+    },
+  };
+  const subscription = await createNimiLocalAppClient({ standardShell: shell }).ai.text.streamTurn({
+    messages: [{ role: 'user', text: 'hello' }],
+  });
+  const events = [];
+  for await (const event of subscription) events.push(event);
+  assert.deepEqual(events.map((event) => event.type === 'delta' ? event.text : event.finishReason), [
+    'hello ', '\nworld', 'stop',
+  ]);
+});
+
 test('App AIConfig accepts only portable intent and rejects binding material in input or projection', async () => {
   const calls: unknown[] = [];
   const portableConfig = {
@@ -332,6 +383,9 @@ test('App AIConfig accepts only portable intent and rejects binding material in 
     capabilities: [{
       capabilityContract: 'text.generate',
       requiredFeatures: [],
+      defaults: {
+        fields: { temperature: { kind: { oneofKind: 'numberValue', numberValue: 0.3 } } },
+      },
       route: {
         oneofKind: 'cloud',
         cloud: {
@@ -352,13 +406,23 @@ test('App AIConfig accepts only portable intent and rejects binding material in 
       get: async () => portableConfig,
       overwrite: async (capabilities) => {
         calls.push(capabilities);
-        return { ...portableConfig, capabilities };
+        return { ...portableConfig, capabilities: structuredClone(capabilities) };
       },
     },
   };
   const client = createNimiLocalAppClient({ standardShell: shell });
   assert.deepEqual(await client.aiConfig.get(), portableConfig);
   assert.deepEqual(await client.aiConfig.overwrite(portableConfig.capabilities), portableConfig);
+  const generatedIntent = createNimiLocalAIConfigCapabilityIntent({
+    capabilityContract: 'text.generate',
+    defaults: { temperature: 0.3 },
+  });
+  assert.notEqual(Object.getPrototypeOf(generatedIntent.defaults), Object.prototype);
+  assert.deepEqual(
+    await client.aiConfig.overwrite([generatedIntent]),
+    { ...portableConfig, capabilities: structuredClone([generatedIntent]) },
+  );
+  assert.deepEqual(calls, [portableConfig.capabilities, [generatedIntent]]);
   assert.equal(JSON.stringify(calls).includes('connectorGrant'), false);
 
   await assert.rejects(
@@ -371,7 +435,7 @@ test('App AIConfig accepts only portable intent and rejects binding material in 
     }] as never),
     (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_LOCAL_APP_AUTHORITY_FIELD_FORBIDDEN',
   );
-  assert.equal(calls.length, 1);
+  assert.equal(calls.length, 2);
 
   const bindingProjection: NimiLocalAppStandardShell = {
     ...base,

@@ -38,6 +38,8 @@ fn main() {
     let agent_proto = proto_root.join("runtime/v1/agent_service.proto");
     let ai_proto = proto_root.join("runtime/v1/ai.proto");
     let local_runtime_proto = proto_root.join("runtime/v1/local_runtime.proto");
+    let capability_configuration_proto =
+        proto_root.join("runtime/v1/capability_configuration.proto");
     let protoc = protoc_bin_vendored::protoc_bin_path().expect("vendored protoc");
     std::env::set_var("PROTOC", protoc);
     tonic_prost_build::configure()
@@ -67,6 +69,10 @@ fn main() {
     println!("cargo:rerun-if-changed=../../../proto/runtime/v1/agent_service.proto");
     println!("cargo:rerun-if-changed=../../../proto/runtime/v1/ai.proto");
     println!("cargo:rerun-if-changed=../../../proto/runtime/v1/agent_configure.proto");
+    println!(
+        "cargo:rerun-if-changed={}",
+        capability_configuration_proto.display()
+    );
     println!("cargo:rerun-if-changed=../../../proto/runtime/v1/local_runtime.proto");
     println!("cargo:rerun-if-changed=../../../proto/runtime/v1/common.proto");
 }

@@ -58,6 +58,7 @@ func (s *Service) StreamLocalAppTextTurn(req *runtimev1.StreamLocalAppTextTurnRe
 type localAppTextTurnStreamBridge struct {
 	grpc.ServerStreamingServer[runtimev1.StreamLocalAppTextTurnEvent]
 	totalBytes int
+	sequence   uint64
 }
 
 func (b *localAppTextTurnStreamBridge) Send(event *runtimev1.StreamScenarioEvent) error {
@@ -71,8 +72,7 @@ func (b *localAppTextTurnStreamBridge) Send(event *runtimev1.StreamScenarioEvent
 		return invalid()
 	}
 	out := &runtimev1.StreamLocalAppTextTurnEvent{
-		Sequence: event.GetSequence(),
-		TraceId:  event.GetTraceId(),
+		TraceId: event.GetTraceId(),
 	}
 	switch payload := event.GetPayload().(type) {
 	case *runtimev1.StreamScenarioEvent_Started:
@@ -121,6 +121,10 @@ func (b *localAppTextTurnStreamBridge) Send(event *runtimev1.StreamScenarioEvent
 		// shapes; the trimmed text-turn stream fails closed on them.
 		return invalid()
 	}
+	// Owner-only Started and Usage events are intentionally omitted, so the
+	// Local App stream owns a dense sequence over only its projected events.
+	b.sequence++
+	out.Sequence = b.sequence
 	return b.ServerStreamingServer.Send(out)
 }
 
