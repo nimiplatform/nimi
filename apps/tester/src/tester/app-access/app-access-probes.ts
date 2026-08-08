@@ -12,14 +12,14 @@ import {
   type TesterConversationPort,
 } from '../local-app-conversation-journey.js';
 import {
-  appAccessHumanFailure,
+  appAccessHumanFailureKey,
   type AppAccessCloudDraft,
   type AppAccessProbeId,
 } from './app-access-catalog.js';
 
 export type AppAccessProbeOutcome =
   | { readonly ok: true; readonly headline: string; readonly facts: readonly string[] }
-  | { readonly ok: false; readonly headline: string; readonly reasonCode: string; readonly detail?: string };
+  | { readonly ok: false; readonly headlineKey: string; readonly reasonCode: string; readonly detail?: string };
 
 export type AppAccessAgentReferencesRun = {
   readonly outcome: AppAccessProbeOutcome;
@@ -53,7 +53,9 @@ function fail(error: unknown): AppAccessProbeOutcome {
   const reasonCode = boundedReasonCode(error);
   return {
     ok: false,
-    headline: appAccessHumanFailure(reasonCode),
+    // Failure headlines are catalog i18n keys; the probe card resolves them
+    // through t() at render time so locale switches re-translate them.
+    headlineKey: appAccessHumanFailureKey(reasonCode),
     reasonCode,
     detail: boundedDetail(error),
   };

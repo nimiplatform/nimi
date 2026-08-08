@@ -1,0 +1,175 @@
+{
+  "AppAccess": {
+    "page": {
+      "title": "App 访问",
+      "eyebrow": "Nimi Lab",
+      "blurb": "针对真实 Runtime 链路验证第三方本地 App 契约：会话与身份状态、App 私有存储、Realm 数据、AI 消费、Agent 会话以及边界拒绝。每个探针都走真实路径，不做任何模拟。",
+      "refreshSession": "刷新会话",
+      "runAll": "运行全部探针",
+      "runGroup": "运行分组",
+      "signedOut": "请通过账户菜单登录 Nimi 后再运行 App 访问探针。",
+      "sessionLost": "Nimi 会话已丢失，此前会话的探针证据已清除。",
+      "noAgentReferences": "当前账户下没有已激活的 Agent。请在 Nimi Desktop 中创建并激活一个，然后重新运行“激活的 Agent 引用”探针。",
+      "technicalDetails": "技术细节",
+      "notRun": "尚未运行。",
+      "sessionBound": "会话已绑定",
+      "noSession": "无会话",
+      "agentSelectAriaLabel": "当前激活的 Agent",
+      "agentSelectPlaceholder": "无激活的 Agent"
+    },
+    "sessionStates": {
+      "sessionBound": "会话已绑定",
+      "actionRequired": "需要操作 — 请检查 Nimi Desktop",
+      "revoked": "会话已撤销 — 请重新登录",
+      "projectChanged": "项目已变更 — 请重新打开 App",
+      "processReplaced": "App 进程已被替换 — 请重启 App",
+      "accountChanged": "账户已变更 — 请重新登录",
+      "runtimeRestarted": "Runtime 已重启 — 请刷新会话",
+      "unavailable": "会话不可用"
+    },
+    "factDetails": {
+      "rendererSince": "渲染进程启动于 {{time}}",
+      "checkingSession": "正在检查 Nimi 会话…",
+      "toolingHmrActive": "Vite HMR 客户端已激活",
+      "toolingHmrMissing": "未观察到官方 HMR 客户端",
+      "checkingCurrentUser": "正在检查当前用户…",
+      "sessionLostRecheck": "会话丢失 — 请刷新以重新检查",
+      "currentUserSummary": "{{name}} · @{{handle}} · 头像{{avatar}}",
+      "avatarSet": "已设置",
+      "avatarNone": "未设置",
+      "currentUserUnavailable": "当前用户不可用",
+      "hmrUpdateObserved": "观察到 HMR 更新 · {{time}}"
+    },
+    "sessionFacts": {
+      "appProcess": "App 进程",
+      "session": "Nimi 会话",
+      "tooling": "开发者工具",
+      "currentUser": "当前用户"
+    },
+    "sessionBar": {
+      "ariaLabel": "会话与身份",
+      "title": "会话与身份",
+      "blurb": "各项事实独立查询，互不派生。"
+    },
+    "groups": {
+      "storage": {
+        "title": "App 存储（基础）",
+        "blurb": "App 私有 JSON 存储，按 App 隔离。"
+      },
+      "realm": {
+        "title": "Realm 数据",
+        "blurb": "声明式 Realm 数据访问：列出并创建 WorldCore。"
+      },
+      "aiConsumption": {
+        "title": "AI 消费",
+        "blurb": "便携式 AIConfig、本地文本生成与无授权 Cloud 姿态。"
+      },
+      "agentConversation": {
+        "title": "Agent 会话",
+        "blurb": "激活的 Agent 引用、输入式会话与回合中断 — 按依赖顺序执行。"
+      },
+      "boundary": {
+        "title": "边界探针",
+        "blurb": "越权字段与存储越界必须被拒绝。"
+      }
+    },
+    "probes": {
+      "storageIsolation": {
+        "title": "存储隔离",
+        "proves": "App 私有 JSON 的写入、回读与删除在 App 存储边界内保持一致。",
+        "running": "正在写入、回读并删除 App 私有文档…"
+      },
+      "worldList": {
+        "title": "WorldCore 列表",
+        "proves": "App 可以通过声明的 Realm 数据访问列出本地 Realm WorldCore。",
+        "running": "正在列出本地 WorldCore…"
+      },
+      "worldCreate": {
+        "title": "WorldCore 创建与回读",
+        "proves": "通过 App Realm owner 创建的 WorldCore 回读时身份与内容哈希一致。",
+        "running": "正在创建 WorldCore 并验证回读…"
+      },
+      "portableAiConfig": {
+        "title": "便携式 AIConfig",
+        "proves": "对便携式 App AIConfig 进行 Local 路由整体覆写后可持久化并回读，且不携带托管字段。",
+        "running": "正在整体覆写便携式 Local 路由…"
+      },
+      "localText": {
+        "title": "本地文本生成",
+        "proves": "已提交的 Local 路由通过真实 Runtime 路径提供一元文本生成。",
+        "running": "正在通过已提交的 Local 路由生成文本…",
+        "requires": "便携式 AIConfig",
+        "gateGuidance": "请先运行“便携式 AIConfig”，以提交一个 Local 路由。"
+      },
+      "cloudPosture": {
+        "title": "Cloud 授权姿态",
+        "proves": "无授权的 Cloud 意图可持久化，且其执行必须要求 Nimi 侧的授权选择。",
+        "running": "正在保存无授权 Cloud 意图并验证需要选择授权…",
+        "requires": "目录派生的 Cloud 参数",
+        "gateGuidance": "请为全部五个字段粘贴目录派生值 — 按设计 Tester 不提供 provider/model 默认值。可在 Runtime 模型目录中查找。"
+      },
+      "agentReferences": {
+        "title": "激活的 Agent 引用",
+        "proves": "App 可以列出当前账户下激活的 Agent 引用，用于输入式会话。",
+        "running": "正在列出当前账户激活的 Agent 引用…"
+      },
+      "agentConversation": {
+        "title": "Agent 会话",
+        "proves": "输入式 Agent 会话可打开、流式输出并以已提交的助手回复完成。",
+        "running": "正在打开输入式 Agent 会话…",
+        "requires": "已选择的 Agent 引用",
+        "gateGuidance": "请先选择一个激活的 Agent 引用。"
+      },
+      "agentInterrupt": {
+        "title": "Agent 回合中断",
+        "proves": "已接受的 Agent 回合可以被显式中断，并终止于 interrupted 终态。",
+        "running": "正在打开输入式 Agent 会话以执行中断…",
+        "requires": "已选择的 Agent 引用",
+        "gateGuidance": "请先选择一个激活的 Agent 引用。"
+      },
+      "authorityInjection": {
+        "title": "拒绝注入越权字段",
+        "proves": "注入到便携式 AIConfig 的 owner 与托管字段在离开 App 前被拒绝。",
+        "running": "正在注入禁止的 owner 与托管字段…"
+      },
+      "storageBoundary": {
+        "title": "拒绝存储越界",
+        "proves": "针对 App 私有存储的路径逃逸与超限写入被拒绝。",
+        "running": "正在尝试路径逃逸与超限写入…"
+      }
+    },
+    "cloudFields": {
+      "implementationId": "实现 ID",
+      "driverId": "驱动 ID",
+      "driverDialect": "驱动方言",
+      "provider": "Provider",
+      "providerModelId": "Provider 模型 ID"
+    },
+    "status": {
+      "setupNeeded": "需要先完成设置",
+      "running": "运行中",
+      "passed": "通过",
+      "failed": "失败",
+      "notRun": "未运行"
+    },
+    "probeCard": {
+      "run": "运行",
+      "requires": "前提：{{requires}}"
+    },
+    "details": {
+      "reasonCode": "原因码",
+      "detail": "详情"
+    },
+    "failures": {
+      "storageRoundtripMismatch": "存储的数据与写入内容不一致。",
+      "storageRemoveFailed": "无法删除已存储的文档。",
+      "unexpectedSuccess": "Runtime 接受了必须被拒绝的操作 — 边界已失效。",
+      "unexpectedRejection": "操作被拒绝，但原因与预期不符。",
+      "aiConfigReadbackInvalid": "保存的 AI 配置回读时不是干净的便携式 Local 路由。",
+      "cloudReadbackInvalid": "保存的 Cloud 意图回读时不是无授权的便携式意图。",
+      "cloudIntentFieldInvalid": "某个 Cloud 意图字段为空、首尾含空白或超长。",
+      "worldCoreListReadMismatch": "创建的 WorldCore 回读时身份或内容哈希不一致。",
+      "operationFailed": "探针未能完成，请查看技术细节。"
+    }
+  }
+}

@@ -1,23 +1,32 @@
-import { Suspense, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { IconButton, StatusBadge, Tooltip } from '@nimiplatform/kit/ui';
-import {
-  AnimatePresence,
-  motion,
-  nimiOverlayBackdropMotion,
-  nimiOverlayPanelMotion,
-  useNimiReducedMotion,
-} from '@nimiplatform/kit/ui/motion';
+import { Suspense, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { IconButton, LoadingSkeleton, nimiToast, OverlayShell, StatusBadge, Tooltip } from '@nimiplatform/kit/ui';
 import { PanelRight } from 'lucide-react';
 import { createBrowserDataUrlAttachmentAdapter, useChatComposer, type BrowserDataUrlAttachment } from '@nimiplatform/kit/features/chat/headless';
+import { useTranslation } from '../../shell/i18n/index.js';
 import { useTesterRendererHost } from '../../renderer/context.js';
 import { type TesterCapability } from '../tester-capabilities.js';
-import { getTesterRunIntentLabel, type TesterRunConfigSnapshot, type TesterRunHistory, type TesterRunHistoryRecord } from '../tester-history.js';
+import { nonEmptyEmbeddingInputs, summarizeTesterCapabilityParameters, type TesterEmbeddingParameters, type TesterSpeechTranscribeParameters } from '../tester-capability-parameters.js';
+import { getTesterRunIntentLabel, restoreTesterCapabilityRunResult, type TesterRunConfigSnapshot, type TesterRunHistory, type TesterRunHistoryRecord } from '../tester-history.js';
 import type { TesterCapabilityRunResult, TesterRuntimeInspection } from '../tester-runtime.js';
+import { capabilityUnavailable } from '../tester-unavailable.js';
 import { getCapabilityStudioProfile } from './capability-studio-profiles.js';
-import { CapabilityRunHistory, DrawerErrorBoundary, STATUS_PILL_LABEL, TesterAiConfigSettingsPanel, artifactExtension, downloadArtifactUrl, downloadTextFile, presetFor, resultPlainText, statusForCapability, type SectionAITestingProps } from './section-ai-testing-surface.js';
+import { CapabilityRunHistory, DrawerErrorBoundary, TesterAiConfigSettingsPanel, artifactExtension, downloadArtifactUrl, downloadTextFile, presetFor, resultPlainText, statusForCapability, type CapabilityStatus, type SectionAITestingProps } from './section-ai-testing-surface.js';
 import { TextStudioComposer, TextStudioStartState } from './section-ai-testing-composer.js';
+import { CapabilityParameterPanel } from './section-ai-testing-parameters.js';
 import { TextStudioResultState } from './section-ai-testing-result.js';
 import { canConfigureRunTarget, createRunConfigSnapshot, effectiveTextStudioPromptStyle, textStudioDirectiveForTarget, textStudioRunTargetIntentSummary, textStudioRuntimePrompt, useTesterRunTargetSummary, type TextStudioActiveRun } from './section-ai-testing-run.js';
+import { TesterCapabilityParameterContext, TesterHistoryLoadContext } from './workbench-context.js';
+
+// Admission pill labels are keyed by the typed status so locale changes do not
+// touch the admission state machine in section-ai-testing-admission.ts.
+const ADMISSION_STATUS_LABEL_KEY: Record<CapabilityStatus['label'], string> = {
+  configured: 'StudioShell.statusConfigured',
+  blocked: 'StudioShell.statusBlocked',
+  'not admitted': 'StudioShell.statusNotAdmitted',
+  'SDK gap': 'StudioShell.statusSdkGap',
+  'tauri-only': 'StudioShell.statusTauriOnly',
+  checking: 'StudioShell.statusChecking',
+};
 
 function TextStudioShell({
   capability,
@@ -47,6 +56,9 @@ function TextStudioShell({
   aiConfigRefreshKey: number;
 }) {
   const rendererHost = useTesterRendererHost();
+  const { t } = useTranslation();
+  const historyLoad = useContext(TesterHistoryLoadContext);
+  const parameterStore = useContext(TesterCapabilityParameterContext);
   const profile = getCapabilityStudioProfile(capability.id);
   const preset = useMemo(() => presetFor(capability), [capability]);
   const [prompt, setPrompt] = useState(() => (
@@ -75,13 +87,26 @@ function TextStudioShell({
     disabled: running,
   });
   const hasActiveRun = Boolean(activeRun);
-  const currentResult = activeRun?.result ?? (lastResult?.capabilityId === capability.id ? lastResult : null);
+  const currentResult = activeRun
+    ? activeRun.result ?? (activeRun.record ? restoreTesterCapabilityRunResult(activeRun.record) : null)
+    : lastResult?.capabilityId === capability.id ? lastResult : null;
   const headerResult = hasActiveRun ? currentResult : null;
   const runTarget = useTesterRunTargetSummary(capability, runtime, aiConfigRefreshKey);
   const admission = statusForCapability(capability, runTarget, headerResult);
   const isWorldTour = capability.execution === 'standalone-tauri';
   const requiresPrompt = profile.inputKind !== 'none';
   const supportsMedia = profile.supportsAttachments;
+  const capabilityParameters = parameterStore?.state[capability.id] ?? {};
+  const parameterSummary = summarizeTesterCapabilityParameters(capability.id, capabilityParameters);
+  const hasAlternativeInput = capability.id === 'text.embed'
+    ? nonEmptyEmbeddingInputs(capabilityParameters as TesterEmbeddingParameters).length > 0
+    : capability.id === 'audio.transcribe'
+      ? Boolean((capabilityParameters as TesterSpeechTranscribeParameters).audioFile)
+      : false;
+
+  useEffect(() => {
+    if (historyLoad?.error) setHistoryCollapsed(false);
+  }, [historyLoad?.error]);
 
   function updatePrompt(nextPrompt: string) {
     setPrompt(nextPrompt);
@@ -122,32 +147,43 @@ function TextStudioShell({
     setRunning(true);
     try {
       let result: TesterCapabilityRunResult;
-      if (isWorldTour) {
-        const fixture = await rendererHost.app.commands.resolveWorldTourFixture({});
-        const opened = await rendererHost.app.commands.openWorldTourWindow({ manifestPath: fixture.manifestPath });
-        result = {
-          ok: true,
-          capabilityId: capability.id,
-          capabilityLabel: capability.label,
-          message: `Viewer opened for a Tauri-only local fixture (${fixture.manifestPath}); local fixture record only, with no runtime generation or runtime artifact.`,
-          output: {
-            kind: 'text',
-            text: `Local fixture viewer opened (${opened.windowLabel}). This is not a runtime result or runtime artifact.`,
-            finishReason: 'viewer-opened',
-            streamed: false,
-          },
-        };
-      } else {
-        const isStreaming = capability.id === 'chat.stream';
-        if (isStreaming) setStreamingText('');
-        const directive = textStudioDirectiveForTarget(runTarget, profile);
-        result = await rendererHost.sdk.runCapability({
-          capabilityId: capability.id,
-          prompt: textStudioRuntimePrompt(displayPrompt, nextContext, directive),
-          scenarioId: preset.id,
-          onPartial: isStreaming ? setStreamingText : undefined,
-          attachments: supportsMedia ? [...composerState.attachments] : undefined,
-        });
+      try {
+        if (isWorldTour) {
+          const fixture = await rendererHost.app.commands.resolveWorldTourFixture({});
+          const opened = await rendererHost.app.commands.openWorldTourWindow({ manifestPath: fixture.manifestPath });
+          result = {
+            ok: true,
+            capabilityId: capability.id,
+            capabilityLabel: t(capability.labelKey),
+            message: t('StudioShell.worldTourViewerMessage', { manifestPath: fixture.manifestPath }),
+            output: {
+              kind: 'text',
+              text: t('StudioShell.worldTourViewerOutput', { windowLabel: opened.windowLabel }),
+              finishReason: 'viewer-opened',
+              streamed: false,
+            },
+          };
+        } else {
+          const isStreaming = capability.id === 'chat.stream';
+          if (isStreaming) setStreamingText('');
+          const directive = textStudioDirectiveForTarget(runTarget, profile);
+          result = await rendererHost.sdk.runCapability({
+            capabilityId: capability.id,
+            prompt: capability.id === 'audio.transcribe'
+              ? displayPrompt
+              : textStudioRuntimePrompt(displayPrompt, nextContext, directive),
+            scenarioId: preset.id,
+            onPartial: isStreaming ? setStreamingText : undefined,
+            attachments: supportsMedia ? [...composerState.attachments] : undefined,
+            parameters: capabilityParameters,
+          });
+        }
+      } catch (error) {
+        result = capabilityUnavailable(
+          capability,
+          'runtime-call-failed',
+          error instanceof Error ? error.message : String(error || t('Unavailable.title.runtimeCallFailed')),
+        );
       }
       const runConfig = createRunConfigSnapshot({
         target: runTarget,
@@ -156,6 +192,7 @@ function TextStudioShell({
           : null,
         context: nextContext,
         attachmentCount: supportsMedia ? composerState.attachments.length : 0,
+        requestParameters: parameterSummary,
       });
       const record = await onResult(result, displayPrompt, runConfig);
       const finishedRun: TextStudioActiveRun = {
@@ -180,11 +217,17 @@ function TextStudioShell({
     if (!currentResult) return;
     const text = resultPlainText(currentResult);
     if (!text) return;
-    try {
-      void rendererHost.app.commands.copyText(text);
-    } catch {
-      // Clipboard is best-effort; Download remains the durable export path.
-    }
+    void rendererHost.app.commands.copyText(text)
+      .then((result) => {
+        if (result.ok) {
+          nimiToast.success(t('Common.copied'));
+        } else {
+          nimiToast.danger(t('Common.copyFailed'));
+        }
+      })
+      .catch(() => {
+        nimiToast.danger(t('Common.copyFailed'));
+      });
   }
 
   function handleDownload() {
@@ -248,6 +291,17 @@ function TextStudioShell({
       canConfigureIntent={canConfigureRunTarget(runTarget)}
       intentConfigurable={capability.execution === 'runtime-sdk'}
       compact={Boolean(activeRun)}
+      parameterPanel={parameterStore && capability.execution === 'runtime-sdk' && capability.id !== 'speech.bundle' ? (
+        <CapabilityParameterPanel
+          capabilityId={capability.id}
+          source={runTarget.source}
+          parameters={capabilityParameters}
+          disabled={running}
+          onChange={(next) => parameterStore.setParameters(capability.id, next)}
+        />
+      ) : undefined}
+      parametersActive={Object.keys(parameterSummary).length > 0}
+      hasAlternativeInput={hasAlternativeInput}
       onPromptChange={updatePrompt}
       onContextChange={setContext}
       onOpenIntentConfig={onOpenConfig}
@@ -270,19 +324,19 @@ function TextStudioShell({
           <header className="studio__head">
             <div className="studio__title">
               {showAdmissionBadge ? (
-                <StatusBadge tone={admission.tone} shape="dot">{STATUS_PILL_LABEL[admission.label]}</StatusBadge>
+                <StatusBadge tone={admission.tone} shape="dot">{t(ADMISSION_STATUS_LABEL_KEY[admission.label])}</StatusBadge>
               ) : null}
             </div>
             <div className="studio__head-actions">
               {headerActions}
               <Tooltip
-                content={historyCollapsed ? 'Show history' : 'Hide history'}
+                content={historyCollapsed ? t('StudioShell.showHistory') : t('StudioShell.hideHistory')}
                 placement="bottom"
               >
                 <IconButton
                   type="button"
                   className={historyCollapsed ? 'studio-history-toggle' : 'studio-history-toggle studio-history-toggle--expanded'}
-                  aria-label={historyCollapsed ? 'Show history' : 'Hide history'}
+                  aria-label={historyCollapsed ? t('StudioShell.showHistory') : t('StudioShell.hideHistory')}
                   aria-expanded={!historyCollapsed}
                   onClick={handleHistoryCollapseToggle}
                   icon={<PanelRight size={17} strokeWidth={1.8} aria-hidden="true" />}
@@ -338,11 +392,9 @@ export function SectionAITesting({
   headerActions,
 }: SectionAITestingProps) {
   const runtime = summary?.runtime ?? null;
+  const { t } = useTranslation();
   const [configOpen, setConfigOpen] = useState(false);
   const [aiConfigRefreshKey, setAIConfigRefreshKey] = useState(0);
-  const reducedMotion = useNimiReducedMotion();
-  const drawerMotion = nimiOverlayPanelMotion({ kind: 'drawer', reducedMotion });
-  const backdropMotion = nimiOverlayBackdropMotion({ reducedMotion });
 
   return (
     <div
@@ -367,37 +419,27 @@ export function SectionAITesting({
         />
       </div>
 
-      <AnimatePresence>
-        {configOpen ? (
-          <motion.button
-            key="intent-config-backdrop"
-            type="button"
-            className="section-ai-testing__drawer-backdrop"
-            aria-label="Close AI intent configuration"
-            onClick={() => setConfigOpen(false)}
-            {...backdropMotion}
-          />
-        ) : null}
-        {configOpen ? (
-          <motion.aside
-            key="intent-config-drawer"
-            className="section-ai-testing__drawer"
-            aria-label="Configure AI intent"
-            {...drawerMotion}
-          >
-            <DrawerErrorBoundary onClose={() => setConfigOpen(false)}>
-              <Suspense fallback={<div className="section-ai-testing__drawer-loading">Loading App AIConfig...</div>}>
-                <TesterAiConfigSettingsPanel
-                  runtime={runtime}
-                  capabilityId={capability.capabilityContract ?? capability.id}
-                  onConfigChanged={() => setAIConfigRefreshKey((value) => value + 1)}
-                  onClose={() => setConfigOpen(false)}
-                />
-              </Suspense>
-            </DrawerErrorBoundary>
-          </motion.aside>
-        ) : null}
-      </AnimatePresence>
+      <OverlayShell
+        open={configOpen}
+        kind="drawer"
+        size="M"
+        title={t('ModelConfig.drawerTitle')}
+        description={t('ModelConfig.drawerDescription')}
+        panelClassName="flex flex-col"
+        contentClassName="min-h-0 flex-1 overflow-y-auto p-0"
+        onClose={() => setConfigOpen(false)}
+      >
+        <DrawerErrorBoundary onClose={() => setConfigOpen(false)}>
+          <Suspense fallback={<div className="p-5"><LoadingSkeleton lines={4} /></div>}>
+            <TesterAiConfigSettingsPanel
+              runtime={runtime}
+              capabilityId={capability.capabilityContract ?? capability.id}
+              onConfigChanged={() => setAIConfigRefreshKey((value) => value + 1)}
+              onClose={() => setConfigOpen(false)}
+            />
+          </Suspense>
+        </DrawerErrorBoundary>
+      </OverlayShell>
     </div>
   );
 }

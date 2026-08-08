@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { OfflineCoordinator, type OfflineTier } from '@nimiplatform/kit/core/offline-coordinator';
 import { StatusBadge } from '@nimiplatform/kit/ui';
+import { t, useTranslation } from '../i18n/index.js';
 import {
   clearRuntimePlatformProjection,
   getRuntimePlatformProjection,
@@ -22,7 +23,7 @@ type GateState =
     };
 
 function toMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error || 'Runtime check failed');
+  return error instanceof Error ? error.message : String(error || t('Auth.runtime.checkFailed'));
 }
 
 async function resolveGateState(): Promise<GateState> {
@@ -36,6 +37,7 @@ async function resolveGateState(): Promise<GateState> {
 }
 
 export function AuthGate({ children }: { children: ReactNode }) {
+  const { t: translate } = useTranslation();
   const [state, setState] = useState<GateState>({ kind: 'checking' });
   const [reloadKey, setReloadKey] = useState(0);
 
@@ -67,7 +69,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
   if (state.kind === 'checking') {
     return (
       <main className="runtime-check-screen">
-        <StatusBadge tone="neutral" shape="dot">Runtime check</StatusBadge>
+        <StatusBadge tone="neutral" shape="dot">{translate('Auth.runtime.check')}</StatusBadge>
       </main>
     );
   }

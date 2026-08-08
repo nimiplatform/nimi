@@ -1,0 +1,57 @@
+{
+  "Workbench": {
+    "sideNavAriaLabel": "Nimi Lab 工作区导航",
+    "uiRecipes": "UI Recipes"
+  },
+  "Capabilities": {
+    "textGenerate": {
+      "label": "文本工作室",
+      "summary": "提示词 → text.generate 能力契约 → 类型化 Runtime 结果。"
+    },
+    "chatStream": {
+      "label": "聊天流",
+      "summary": "会话轮次 → 受保护的 text.generate 流 → 增量类型化 Runtime 结果。"
+    },
+    "textEmbed": {
+      "label": "向量嵌入",
+      "summary": "输入字符串 → 受保护的 scenario.execute text.embed → 类型化向量结果。"
+    },
+    "imageGenerate": {
+      "label": "图像生成",
+      "summary": "提示词 → image.generate 场景任务 → 类型化产物预览结果。"
+    },
+    "videoGenerate": {
+      "label": "视频生成",
+      "summary": "提示词 → video.generate 场景任务 → 类型化产物预览结果。"
+    },
+    "audioSynthesize": {
+      "label": "语音合成",
+      "summary": "文本 → audio.synthesize 场景任务 → 类型化音频产物结果。"
+    },
+    "audioTranscribe": {
+      "label": "语音转写",
+      "summary": "音频 URL → audio.transcribe 场景任务 → 类型化转写结果。"
+    },
+    "speechBundle": {
+      "label": "语音包",
+      "summary": "通过受保护的 Runtime 语音目录查看所有者范围内的语音引用。"
+    },
+    "worldGenerate": {
+      "label": "世界巡游",
+      "summary": "通过 App 自有的 open_world_tour_window 命令启动独立 Tauri 查看器。"
+    }
+  },
+  "WorldTour": {
+    "eyebrow": "Nimi Lab",
+    "viewerTitle": "世界巡游查看器",
+    "viewerDescription": "App 自有的独立查看器界面，用于检查本地夹具。",
+    "launchTokenRequired": "世界巡游查看器需要独立 App 启动令牌。",
+    "launchClaimFailed": "认领查看器启动失败。",
+    "launchUnavailableTitle": "查看器启动不可用",
+    "canvasEyebrow": "独立世界查看器",
+    "fixtureTitle": "世界巡游夹具",
+    "savePreset": "保存预设",
+    "presetSaved": "预设已保存：{{path}}",
+    "presetSaveFailed": "保存预设失败。"
+  }
+}

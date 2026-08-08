@@ -119,15 +119,17 @@ test('app-access catalog is complete, consistent, and campaign-free', async () =
 test('app-access page copy keeps machine codes out of primary text', async () => {
   const { appAccessProbes, appAccessPageCopy, appAccessFailureCopy } = await catalogModule();
   for (const probe of appAccessProbes) {
-    for (const text of [probe.title, probe.proves, probe.running, probe.gate?.guidance ?? '']) {
+    for (const text of [probe.titleKey, probe.provesKey, probe.runningKey, probe.gate?.guidanceKey ?? '']) {
       assert.doesNotMatch(text, /\b[A-Z]{3,}_[A-Z0-9_]+\b/u, `no typed reason in primary copy: ${text}`);
       assert.doesNotMatch(text, /imp[45]/iu);
+      if (text) assert.match(text, /^AppAccess\./u, `copy is an AppAccess i18n key: ${text}`);
     }
   }
   assert.ok(appAccessPageCopy.signedOut.length > 0);
   assert.ok(appAccessPageCopy.notRun.length > 0);
   for (const [reason, copy] of Object.entries(appAccessFailureCopy)) {
     assert.ok(!copy.includes(reason), `human copy for ${reason} must not embed the reason code`);
+    assert.match(copy, /^AppAccess\.failures\./u, `failure copy is an i18n key: ${copy}`);
   }
 });
 
@@ -163,7 +165,7 @@ test('app-access state model starts neutral and transitions honestly', async () 
 
   const failed = applyProbeOutcome(passed, 'world-list', {
     ok: false,
-    headline: 'The probe could not be completed. See technical details.',
+    headlineKey: 'AppAccess.failures.operationFailed',
     reasonCode: 'SDK_LOCAL_APP_ACCESS_UNAVAILABLE',
     detail: 'bounded detail',
   });
@@ -200,7 +202,7 @@ test('app-access AIConfig overwrites invalidate replaced-config evidence only', 
 
   states = applyProbeOutcome(states, 'cloud-posture', {
     ok: false,
-    headline: 'failed',
+    headlineKey: 'AppAccess.failures.operationFailed',
     reasonCode: 'operation-failed',
   });
   assert.equal(states['portable-ai-config'].status, 'passed', 'failed overwrite invalidates nothing');
@@ -216,7 +218,7 @@ test('app-access gates guide instead of erroring', async () => {
   for (const id of Object.keys(states)) {
     const gate = resolveProbeGate(id, states, signedOut);
     assert.equal(gate.runnable, false);
-    assert.equal(gate.guidance, appAccessPageCopy.signedOut);
+    assert.equal(gate.guidanceKey, appAccessPageCopy.signedOut);
   }
 
   const bound = { sessionBound: true, cloudDraftComplete: false, agentReferenceSelected: false };
@@ -226,15 +228,15 @@ test('app-access gates guide instead of erroring', async () => {
 
   const localText = resolveProbeGate('local-text', states, bound);
   assert.equal(localText.runnable, false);
-  assert.match(localText.guidance, /Portable AIConfig/u);
+  assert.equal(localText.guidanceKey, 'AppAccess.probes.localText.gateGuidance');
 
   const cloud = resolveProbeGate('cloud-posture', states, bound);
   assert.equal(cloud.runnable, false);
-  assert.match(cloud.guidance, /no provider\/model defaults/u);
+  assert.equal(cloud.guidanceKey, 'AppAccess.probes.cloudPosture.gateGuidance');
 
   const conversation = resolveProbeGate('agent-conversation', states, bound);
   assert.equal(conversation.runnable, false);
-  assert.match(conversation.guidance, /Select an active Agent/u);
+  assert.equal(conversation.guidanceKey, 'AppAccess.probes.agentConversation.gateGuidance');
 
   const ready = applyProbeOutcome(states, 'portable-ai-config', { ok: true, headline: 'ok', facts: [] });
   assert.equal(resolveProbeGate('local-text', ready, bound).runnable, true);
@@ -279,6 +281,7 @@ test('storage isolation probe runs the real roundtrip and stays bounded', async 
 
 test('storage isolation probe reports a bounded typed failure on mismatch', async () => {
   const { runStorageIsolationProbe } = await probesModule();
+  const { appAccessFailureCopy } = await catalogModule();
   const storage = storagePort();
   const originalRead = storage.readJson;
   storage.readJson = async (relativePath) => {
@@ -288,8 +291,8 @@ test('storage isolation probe reports a bounded typed failure on mismatch', asyn
   const outcome = await runStorageIsolationProbe(clientPort({ storage }));
   assert.equal(outcome.ok, false);
   assert.equal(outcome.reasonCode, 'storage-roundtrip-mismatch');
-  assert.equal(outcome.headline, 'Stored data did not match what was written.');
-  assert.ok(!outcome.headline.includes('storage-roundtrip-mismatch'));
+  assert.equal(outcome.headlineKey, appAccessFailureCopy['storage-roundtrip-mismatch']);
+  assert.ok(!outcome.headlineKey.includes('storage-roundtrip-mismatch'));
 });
 
 test('storage boundary probe expects real rejections for escape and oversize', async () => {
@@ -306,7 +309,7 @@ test('storage boundary probe fails closed when an escape write succeeds', async 
   const outcome = await runStorageBoundaryProbe(clientPort({ storage }));
   assert.equal(outcome.ok, false);
   assert.equal(outcome.reasonCode, 'unexpected-success');
-  assert.match(outcome.headline, /boundary is broken/u);
+  assert.equal(outcome.headlineKey, 'AppAccess.failures.unexpectedSuccess');
 });
 
 test('authority injection probe sends forbidden fields and expects typed rejection', async () => {

@@ -1,0 +1,15 @@
+{
+  "Common": {
+    "loading": "加载中…",
+    "retry": "重试",
+    "close": "关闭",
+    "cancel": "取消",
+    "save": "保存",
+    "copy": "复制",
+    "copied": "已复制",
+    "copyFailed": "复制失败",
+    "language": "语言",
+    "languageEnglish": "English",
+    "languageChinese": "中文"
+  }
+}

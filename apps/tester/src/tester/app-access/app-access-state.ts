@@ -17,6 +17,8 @@ export type AppAccessProbeStatus = 'not-run' | 'running' | 'passed' | 'failed';
 
 export type AppAccessProbeState = {
   readonly status: AppAccessProbeStatus;
+  // Passed headlines are literal run evidence; not-run/running/failed headlines
+  // are catalog i18n keys the probe card resolves through t() at render time.
   readonly headline: string;
   readonly facts: readonly string[];
   readonly reasonCode?: string;
@@ -52,7 +54,7 @@ function resetProbe(states: AppAccessProbeStates, id: AppAccessProbeId): AppAcce
 export function applyProbeStart(states: AppAccessProbeStates, id: AppAccessProbeId): AppAccessProbeStates {
   return withProbe(states, id, {
     status: 'running',
-    headline: appAccessProbeById[id].running,
+    headline: appAccessProbeById[id].runningKey,
     facts: [],
   });
 }
@@ -77,7 +79,7 @@ export function applyProbeOutcome(
   } else {
     next = withProbe(states, id, {
       status: 'failed',
-      headline: outcome.headline,
+      headline: outcome.headlineKey,
       facts: [],
       reasonCode: outcome.reasonCode,
       detail: outcome.detail,
@@ -105,7 +107,7 @@ export type AppAccessGateContext = {
 
 export type AppAccessGate =
   | { readonly runnable: true }
-  | { readonly runnable: false; readonly guidance: string };
+  | { readonly runnable: false; readonly guidanceKey: string };
 
 export function resolveProbeGate(
   id: AppAccessProbeId,
@@ -113,7 +115,7 @@ export function resolveProbeGate(
   context: AppAccessGateContext,
 ): AppAccessGate {
   if (!context.sessionBound) {
-    return { runnable: false, guidance: appAccessPageCopy.signedOut };
+    return { runnable: false, guidanceKey: appAccessPageCopy.signedOut };
   }
   const gate = appAccessProbeById[id].gate;
   if (!gate) return { runnable: true };
@@ -121,15 +123,15 @@ export function resolveProbeGate(
     case 'probe-passed':
       return gate.probe && states[gate.probe].status === 'passed'
         ? { runnable: true }
-        : { runnable: false, guidance: gate.guidance };
+        : { runnable: false, guidanceKey: gate.guidanceKey };
     case 'cloud-draft':
       return context.cloudDraftComplete
         ? { runnable: true }
-        : { runnable: false, guidance: gate.guidance };
+        : { runnable: false, guidanceKey: gate.guidanceKey };
     case 'agent-selection':
       return context.agentReferenceSelected
         ? { runnable: true }
-        : { runnable: false, guidance: gate.guidance };
+        : { runnable: false, guidanceKey: gate.guidanceKey };
   }
 }
 

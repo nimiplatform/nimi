@@ -17,6 +17,6 @@ body {
 }
 
 body {
-  background: linear-gradient(135deg, #f7f8fb 0%, #eef3f7 48%, #f8fbfa 100%);
+  background: var(--nimi-surface-canvas);
   color: var(--nimi-text-primary);
 }

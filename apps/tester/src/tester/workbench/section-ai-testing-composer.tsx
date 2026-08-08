@@ -1,7 +1,8 @@
 import { useState, type ChangeEvent, type ReactNode } from 'react';
-import { Button, IconButton, TextareaField, Tooltip } from '@nimiplatform/kit/ui';
-import { ArrowUp, Maximize2, Paperclip, Play, Plus, RefreshCw, SlidersHorizontal, X } from 'lucide-react';
+import { Button, IconButton, NimiText, TextareaField, Tooltip } from '@nimiplatform/kit/ui';
+import { ArrowUp, Paperclip, Play, Plus, RefreshCw, SlidersHorizontal, X } from 'lucide-react';
 import type { BrowserDataUrlAttachment } from '@nimiplatform/kit/features/chat/headless';
+import { useTranslation } from '../../shell/i18n/index.js';
 import type { TesterCapability } from '../tester-capabilities.js';
 import { getCapabilityStudioProfile } from './capability-studio-profiles.js';
 
@@ -14,11 +15,12 @@ function IntentSummaryChip({
   onOpen: () => void;
   configurable: boolean;
 }) {
+  const { t } = useTranslation();
   if (!configurable) {
     return (
       <span
         className="studio-intent-chip studio-intent-chip--static"
-        aria-label="Runtime-owned capability intent"
+        aria-label={t('Studio.composer.runtimeOwnedIntent')}
       >
         <SlidersHorizontal size={15} aria-hidden="true" />
         <span>{label}</span>
@@ -33,7 +35,7 @@ function IntentSummaryChip({
       size="sm"
       leadingIcon={<SlidersHorizontal size={15} aria-hidden="true" />}
       onClick={onOpen}
-      aria-label="Open AI intent configuration"
+      aria-label={t('Studio.composer.openIntentConfig')}
     >
       {label}
     </Button>
@@ -53,6 +55,9 @@ export function TextStudioComposer({
   canConfigureIntent,
   intentConfigurable = true,
   compact = false,
+  parameterPanel,
+  parametersActive = false,
+  hasAlternativeInput = false,
   onPromptChange,
   onContextChange,
   onOpenIntentConfig,
@@ -70,29 +75,34 @@ export function TextStudioComposer({
   canConfigureIntent: boolean;
   intentConfigurable?: boolean;
   compact?: boolean;
+  parameterPanel?: ReactNode;
+  parametersActive?: boolean;
+  hasAlternativeInput?: boolean;
   onPromptChange: (value: string) => void;
   onContextChange: (value: string) => void;
   onOpenIntentConfig: () => void;
   onSubmit: () => void;
 }) {
+  const { t } = useTranslation();
   const profile = getCapabilityStudioProfile(capability.id);
   const isReadOnlyComposer = profile.inputKind === 'none';
   const requiresPrompt = !isReadOnlyComposer;
-  const composerInputValue = isReadOnlyComposer ? (profile.inputNote ?? '') : prompt;
   const contextAttached = Boolean(context.trim());
+  const supportsContext = requiresPrompt && capability.id !== 'audio.transcribe';
   const [contextOpen, setContextOpen] = useState(false);
-  const promptReady = !requiresPrompt || Boolean(prompt.trim());
+  const [parametersOpen, setParametersOpen] = useState(false);
+  const promptReady = !requiresPrompt || Boolean(prompt.trim()) || hasAlternativeInput;
   const intentConfigAction = !canDispatch && canConfigureIntent;
   const generateDisabled = running || !promptReady || (!canDispatch && !canConfigureIntent);
   const generateLabel = running
-    ? profile.primaryRunningLabel
+    ? t(profile.primaryRunningLabelKey)
     : intentConfigAction
-      ? 'Configure capability intent'
-      : profile.primaryLabel;
+      ? t('Studio.composer.configureIntent')
+      : t(profile.primaryLabelKey);
   const composerBar = (
     <div className="studio-composer__bar">
       <div className="studio-composer__controls">
-        {requiresPrompt ? (
+        {supportsContext ? (
           <Button
             type="button"
             tone="ghost"
@@ -102,7 +112,20 @@ export function TextStudioComposer({
             onClick={() => setContextOpen((current) => !current)}
             aria-expanded={contextOpen}
           >
-            {contextAttached ? 'Context attached' : 'Context'}
+            {contextAttached ? t('Studio.composer.contextAttached') : t('Studio.composer.context')}
+          </Button>
+        ) : null}
+        {parameterPanel ? (
+          <Button
+            type="button"
+            tone="ghost"
+            size="sm"
+            className={parametersActive ? 'studio-context-chip studio-context-chip--attached' : 'studio-context-chip'}
+            leadingIcon={<SlidersHorizontal size={16} aria-hidden="true" />}
+            onClick={() => setParametersOpen((current) => !current)}
+            aria-expanded={parametersOpen}
+          >
+            {t('Studio.parameters.title')}
           </Button>
         ) : null}
       </div>
@@ -114,7 +137,7 @@ export function TextStudioComposer({
         />
         {profile.supportsAttachments ? (
           <div className="tester-attach-strip tester-attach-strip--icon">
-            <Tooltip content="Attach context" placement="top">
+            <Tooltip content={t('Studio.composer.attachContext')} placement="top">
               <Button
                 type="button"
                 className="h-8 w-8 rounded-full px-0"
@@ -122,7 +145,7 @@ export function TextStudioComposer({
                 tone="ghost"
                 onClick={onOpenAttachmentPicker}
                 disabled={running}
-                aria-label="Attach context"
+                aria-label={t('Studio.composer.attachContext')}
               >
                 <Paperclip size={15} aria-hidden="true" />
               </Button>
@@ -138,7 +161,7 @@ export function TextStudioComposer({
                 )}
                 <span className="tester-attach-chip__name">{item.name}</span>
                 <IconButton
-                  aria-label={`Remove ${item.name}`}
+                  aria-label={t('Studio.composer.removeAttachment', { name: item.name })}
                   onClick={() => onRemoveAttachment(index)}
                   icon={<X size={13} aria-hidden="true" />}
                   size="sm"
@@ -167,37 +190,44 @@ export function TextStudioComposer({
   return (
     <div className={compact ? 'studio-composer studio-composer--compact' : 'studio-composer'}>
       <div className={isReadOnlyComposer ? 'studio-input studio-input--readonly' : 'studio-input'}>
-        <TextareaField
-          className="studio-input__box"
-          textareaClassName="studio-input__textarea"
-          rows={2}
-          wrap="soft"
-          maxLength={isReadOnlyComposer ? undefined : 2000}
-          aria-label={`${capability.label} request`}
-          aria-readonly={isReadOnlyComposer ? true : undefined}
-          placeholder={isReadOnlyComposer ? '' : capability.id === 'text.generate' ? 'Ask Nimi to draft, rewrite, summarize, or structure something...' : profile.inputPlaceholder}
-          readOnly={isReadOnlyComposer}
-          value={composerInputValue}
-          onChange={isReadOnlyComposer ? undefined : (event: ChangeEvent<HTMLTextAreaElement>) => onPromptChange(event.currentTarget.value)}
-        />
-        {requiresPrompt ? (
-          <>
-            <span className="studio-input__count">{prompt.length} / 2000</span>
-            <Maximize2 size={13} aria-hidden="true" className="studio-input__expand" />
-            <div className={contextOpen ? 'studio-context studio-context--open' : 'studio-context'}>
-              <TextareaField
-                className="studio-context__box"
-                textareaClassName="studio-context__draft"
-                rows={compact ? 2 : 3}
-                wrap="soft"
-                maxLength={1600}
-                aria-label="Context"
-                placeholder="Optional context, audience, source notes, or constraints"
-                value={context}
-                onChange={(event: ChangeEvent<HTMLTextAreaElement>) => onContextChange(event.currentTarget.value)}
-              />
-            </div>
-          </>
+        {isReadOnlyComposer ? (
+          <NimiText role="body" className="studio-input__note">
+            {profile.inputNoteKey ? t(profile.inputNoteKey) : ''}
+          </NimiText>
+        ) : (
+          <TextareaField
+            tone="quiet"
+            className="rounded-none focus-within:border-transparent focus-within:ring-0"
+            textareaClassName="min-h-[calc(2*1.55em)] resize-none px-0 py-0 text-[15px] leading-[1.55]"
+            rows={2}
+            wrap="soft"
+            maxLength={2000}
+            aria-label={t('Studio.composer.requestAriaLabel', { capability: t(capability.labelKey) })}
+            placeholder={capability.id === 'text.generate' ? t('Studio.composer.textGeneratePlaceholder') : t(profile.inputPlaceholderKey)}
+            value={prompt}
+            onChange={(event: ChangeEvent<HTMLTextAreaElement>) => onPromptChange(event.currentTarget.value)}
+          />
+        )}
+        {supportsContext ? (
+          <div className={contextOpen ? 'studio-context studio-context--open' : 'studio-context'}>
+            <TextareaField
+              tone="quiet"
+              className="rounded-none focus-within:border-transparent focus-within:ring-0"
+              textareaClassName="min-h-[56px] resize-none px-0 py-0 text-[15px] leading-[1.55]"
+              rows={compact ? 2 : 3}
+              wrap="soft"
+              maxLength={1600}
+              aria-label={t('Studio.composer.context')}
+              placeholder={t('Studio.composer.contextPlaceholder')}
+              value={context}
+              onChange={(event: ChangeEvent<HTMLTextAreaElement>) => onContextChange(event.currentTarget.value)}
+            />
+          </div>
+        ) : null}
+        {parameterPanel ? (
+          <div className={parametersOpen ? 'studio-parameters-drawer studio-parameters-drawer--open' : 'studio-parameters-drawer'}>
+            {parameterPanel}
+          </div>
         ) : null}
         {composerBar}
       </div>
@@ -212,11 +242,12 @@ export function TextStudioStartState({
   capability: TesterCapability;
   composer: ReactNode;
 }) {
+  const { t } = useTranslation();
   const profile = getCapabilityStudioProfile(capability.id);
   return (
-    <section className="studio-start" aria-label={`${capability.label} start`}>
+    <section className="studio-start" aria-label={t('Studio.composer.startAriaLabel', { capability: t(capability.labelKey) })}>
       <div className="studio-start__center">
-        <h2>{profile.inputTitle}</h2>
+        <h2>{t(profile.inputTitleKey)}</h2>
         <div className="studio-start__composer">{composer}</div>
       </div>
     </section>

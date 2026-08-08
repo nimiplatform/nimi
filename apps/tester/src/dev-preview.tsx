@@ -9,8 +9,17 @@ import React, { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { AmbientBackground, NimiThemeProvider, TooltipProvider } from '@nimiplatform/kit/ui';
 import './styles.css';
-import './shell/auth/auth-i18n.js';
+import { i18n } from './shell/i18n/index.js';
+import { installDocumentLangSync } from './shell/i18n/document-lang.js';
 import { TesterWorkbench } from './tester/tester-workbench.js';
+
+installDocumentLangSync();
+
+// Pin English for the preview so the aria-label click map below (English
+// labels) keeps working regardless of the developer's persisted locale.
+// changeLanguage only — deliberately no localStorage write, so the developer's
+// own locale preference survives the preview session.
+void i18n.changeLanguage('en');
 
 function DevPreview() {
   const [section, setSection] = useState<string | null>(null);

@@ -46,6 +46,7 @@ import type {
   TesterRendererCommandPort,
   TesterRendererRoutePort,
   TesterRendererRouteView,
+  TesterRendererSdkPort,
 } from './contract.js';
 
 function productionRoutePort(): TesterRendererRoutePort {
@@ -117,6 +118,15 @@ export function createTesterProductionBindings(
     kit,
     sdk: Object.freeze({
       runCapability: runTesterCapability,
+      async listLocalAppVoiceAssets() {
+        const result = await testerLocalAppClient.ai.voiceAssets.list({ pageSize: 100, pageToken: '' });
+        return result.assets.map((asset) => ({
+          voiceAssetId: asset.voiceAssetId,
+          workflowType: asset.workflowType,
+          status: asset.status,
+        }));
+      },
+      uploadLocalAppArtifact: (input: Parameters<TesterRendererSdkPort['uploadLocalAppArtifact']>[0]) => testerLocalAppClient.ai.artifacts.upload(input),
       aiConfig: Object.freeze({
         get: () => loadTesterAIConfig(testerLocalAppClient.aiConfig),
         async overwrite(capabilities: readonly NimiPortableAppAIConfigIntent[]) {
@@ -124,6 +134,9 @@ export function createTesterProductionBindings(
             await testerLocalAppClient.aiConfig.overwrite(capabilities),
           );
         },
+      }),
+      modelConfig: Object.freeze({
+        localSelections: () => testerLocalAppClient.modelConfig.localSelections(),
       }),
       settings: Object.freeze({
         notificationUnread: async () => loadNimiRealmNotificationUnreadCount(await requireTesterRealm()),

@@ -105,6 +105,7 @@ test('Tester presents typed unavailable posture without terminating its App carr
       reasonCode: 'local-app-operation-unavailable',
       actionHint: 'wait_for_app_access_admission',
       message: 'Protected App Access is unavailable until Runtime admits a fresh access session.',
+      messageKey: 'Auth.runtime.messages.operationUnavailable',
     });
     assert.deepEqual(calls, [
       { command: 'nimi.shell.localApp.sessionStatus', payload: {} },
@@ -139,6 +140,7 @@ test('Tester names a signed-out account without reporting carrier distrust', asy
       reasonCode: 'runtime-unauthenticated',
       actionHint: 'sign_in_to_nimi_desktop',
       message: 'No Nimi account is signed in. Sign in through Nimi Desktop, then retry.',
+      messageKey: 'Auth.runtime.messages.unauthenticated',
     });
     assert.doesNotMatch(projection.message, /untrusted|carrier|machine/iu);
   } finally {
@@ -249,6 +251,7 @@ test('Tester reports typed owner unavailability after protected ingress', async 
     const result = await runTesterCapability({
       capabilityId: 'text.generate',
       prompt: 'Write an acceptance note.',
+      parameters: { temperature: 0.7, topP: 0.9, maxTokens: 1024 },
     });
 
     assert.equal(result.ok, false);
@@ -262,3 +265,366 @@ test('Tester reports typed owner unavailability after protected ingress', async 
     else globalThis.__NIMI_ELECTRON_TEST__ = previousElectronTest;
   }
 });
+
+function readyRuntimeDependencies(client, overrides = {}) {
+  return {
+    async getRuntimeProjection() { return { status: 'ready', mode: 'local-app' }; },
+    getLocalAppClient() { return client; },
+    ...overrides,
+  };
+}
+
+function fakeLocalAppClient(overrides = {}) {
+  const unavailable = (name) => async () => {
+    throw Object.assign(new Error(`${name} was not configured by this test.`), {
+      reasonCode: 'TEST_METHOD_UNAVAILABLE',
+    });
+  };
+  return {
+    ai: {
+      text: {
+        generateCandidate: overrides.generateCandidate ?? unavailable('text.generateCandidate'),
+        streamTurn: overrides.streamTurn ?? unavailable('text.streamTurn'),
+      },
+      scenario: {
+        execute: overrides.executeScenario ?? unavailable('scenario.execute'),
+      },
+      scenarioJobs: {},
+      artifacts: {},
+      voiceAssets: {
+        list: overrides.listVoiceAssets ?? unavailable('voiceAssets.list'),
+      },
+    },
+  };
+}
+
+function localTextSubscription(events) {
+  return {
+    async *[Symbol.asyncIterator]() {
+      for (const event of events) yield event;
+    },
+    async cancel() {},
+  };
+}
+
+function artifactRunnerSuccess(capabilityId, mimeType, previewUrl) {
+  return {
+    ok: true,
+    capabilityId,
+    message: `${capabilityId} completed`,
+    output: {
+      kind: 'test-artifacts',
+      jobId: `job:${capabilityId}`,
+      jobStatus: 'COMPLETED',
+      artifactCount: 1,
+      firstArtifact: {
+        artifactId: `artifact:${capabilityId}`,
+        mimeType,
+        previewUrl,
+        previewSource: 'inline-bytes',
+      },
+      artifacts: [],
+    },
+    trace: { traceId: `trace:${capabilityId}` },
+  };
+}
+
+const MEDIA_HAPPY_CASES = [
+  ['image.generate', 'imageGenerate', 'image/png', 'data:image/png;base64,AQ=='],
+  ['video.generate', 'videoGenerate', 'video/mp4', 'data:video/mp4;base64,AQ=='],
+  ['audio.synthesize', 'speechSynthesize', 'audio/mpeg', 'data:audio/mpeg;base64,AQ=='],
+];
+
+for (const [capabilityId, runnerName, mimeType, previewUrl] of MEDIA_HAPPY_CASES) {
+  test(`Tester ${capabilityId} assembles the Local App Scenario Job adapter and projects artifact preview`, async () => {
+    const { runTesterCapability } = await importTesterRuntime();
+    const client = fakeLocalAppClient();
+    const jobClient = { marker: `job-client:${capabilityId}` };
+    const calls = [];
+    const parameters = capabilityId === 'image.generate'
+      ? { negativePrompt: 'no fog', count: 2, size: '768x512', seed: 0, aspectRatio: '3:2', quality: 'hd', style: 'natural', referenceImage: 'https://example.test/reference.png', mask: 'https://example.test/mask.png' }
+      : capabilityId === 'video.generate'
+        ? { mode: 'i2v-reference', referenceArtifactId: 'artifact-reference', negativePrompt: 'no shake', resolution: '720p', frames: 49, seed: 0, generateAudio: false, ratio: '16:9', durationSec: 2, fps: 24, cameraFixed: false, watermark: true, draft: false, returnLastFrame: true, serviceTier: 'standard', executionExpiresAfterSec: 60 }
+        : { voiceKind: 'preset', voicePreset: 'voice-preset', language: 'en', audioFormat: 'mp3', sampleRateHz: 0, speed: 0, pitch: 0, volume: 0, emotion: 'calm', timingMode: 'word' };
+    const result = await runTesterCapability({ capabilityId, prompt: `run ${capabilityId}`, scenarioId: 'scenario-1', parameters }, readyRuntimeDependencies(client, {
+      createScenarioJobClient(ai) {
+        assert.equal(ai, client.ai);
+        return jobClient;
+      },
+      runners: {
+        async [runnerName](input) {
+          calls.push(input);
+          assert.equal(input.runtime.ai, jobClient);
+          assert.equal(input.appId, 'nimi.tester');
+          assert.equal(input.scenarioId, 'scenario-1');
+          return artifactRunnerSuccess(capabilityId, mimeType, previewUrl);
+        },
+      },
+    }));
+
+    assert.equal(result.ok, true);
+    assert.equal(result.output.kind, 'artifacts');
+    assert.equal(result.output.firstArtifact.url, previewUrl);
+    assert.equal(result.output.firstArtifact.mimeType, mimeType);
+    assert.equal(calls.length, 1);
+    if (capabilityId === 'image.generate') {
+      assert.equal(calls[0].negativePrompt, 'no fog');
+      assert.equal(calls[0].count, 2);
+      assert.equal(calls[0].seed, 0);
+      assert.deepEqual(calls[0].referenceImages, ['https://example.test/reference.png']);
+      assert.equal(calls[0].mask, 'https://example.test/mask.png');
+    } else if (capabilityId === 'video.generate') {
+      assert.equal(calls[0].mode, 'i2v-reference');
+      assert.deepEqual(calls[0].content, [{ type: 'artifact-ref', role: 'reference-image', artifactId: 'artifact-reference' }]);
+      assert.deepEqual(calls[0].options, {
+        resolution: '720p', ratio: '16:9', durationSec: 2, frames: 49, fps: 24, seed: 0,
+        cameraFixed: false, watermark: true, generateAudio: false, draft: false,
+        serviceTier: 'standard', executionExpiresAfterSec: 60, returnLastFrame: true,
+      });
+    } else {
+      assert.deepEqual(calls[0].voiceRef, { kind: 'preset_voice_id', presetVoiceId: 'voice-preset' });
+      assert.equal(calls[0].sampleRateHz, 0);
+      assert.equal(calls[0].speed, 0);
+      assert.equal(calls[0].pitch, 0);
+      assert.equal(calls[0].volume, 0);
+      assert.equal(calls[0].timingMode, 'word');
+    }
+  });
+}
+
+test('Tester text.generate projects the protected Local App candidate happy path without sampling fallbacks', async () => {
+  const { runTesterCapability } = await importTesterRuntime();
+  const calls = [];
+  const client = fakeLocalAppClient({
+    async generateCandidate(input) {
+      calls.push(input);
+      return { text: 'generated text', finishReason: 'stop', traceId: 'trace-text' };
+    },
+  });
+  const result = await runTesterCapability({ capabilityId: 'text.generate', prompt: 'hello' }, readyRuntimeDependencies(client));
+  assert.deepEqual(calls, [{ messages: [{ role: 'user', text: 'hello' }] }]);
+  assert.deepEqual(result.output, { kind: 'text', text: 'generated text', finishReason: 'stop', streamed: false });
+  assert.equal(result.trace.traceId, 'trace-text');
+});
+
+test('Tester text.generate preserves the complete parameter set including explicit zero values', async () => {
+  const { runTesterCapability } = await importTesterRuntime();
+  const calls = [];
+  const client = fakeLocalAppClient({
+    async generateCandidate(input) {
+      calls.push(input);
+      return { text: 'generated text', finishReason: 'stop' };
+    },
+  });
+  await runTesterCapability({
+    capabilityId: 'text.generate',
+    prompt: 'hello',
+    parameters: { temperature: 0, topP: 0, maxTokens: 0, topK: 0, presencePenalty: 0, frequencyPenalty: 0, stop: ['END'], seed: 0 },
+  }, readyRuntimeDependencies(client));
+  assert.deepEqual(calls[0], {
+    messages: [{ role: 'user', text: 'hello' }],
+    temperature: 0, topP: 0, maxTokens: 0, topK: 0,
+    presencePenalty: 0, frequencyPenalty: 0, stop: ['END'], seed: 0,
+  });
+});
+
+test('Tester chat.stream runs the Kit streaming face and forwards accumulated partials', async () => {
+  const { runTesterCapability } = await importTesterRuntime();
+  const streamInputs = [];
+  const partials = [];
+  const client = fakeLocalAppClient({
+    async streamTurn(input) {
+      streamInputs.push(input);
+      return localTextSubscription([
+        { type: 'delta', sequence: '1', traceId: 'trace-stream', text: 'hello ' },
+        { type: 'delta', sequence: '2', traceId: 'trace-stream', text: 'world' },
+        { type: 'completed', sequence: '3', traceId: 'trace-stream', finishReason: 'stop' },
+      ]);
+    },
+  });
+  const result = await runTesterCapability({
+    capabilityId: 'chat.stream',
+    prompt: 'say hello',
+    scenarioId: 'chat-1',
+    onPartial(value) { partials.push(value); },
+    parameters: { temperature: 0, topP: 0, maxTokens: 0, topK: 0, presencePenalty: 0, frequencyPenalty: 0, stop: ['END'], seed: 0 },
+  }, readyRuntimeDependencies(client));
+
+  assert.equal(result.ok, true);
+  assert.deepEqual(result.output, { kind: 'text', text: 'hello world', finishReason: 'stop', streamed: true });
+  assert.deepEqual(partials, ['hello ', 'hello world']);
+  assert.equal(streamInputs[0].messages.at(-1).text, 'say hello');
+  assert.deepEqual({ ...streamInputs[0], messages: undefined }, {
+    messages: undefined,
+    temperature: 0, topP: 0, maxTokens: 0, topK: 0,
+    presencePenalty: 0, frequencyPenalty: 0, stop: ['END'], seed: 0,
+  });
+});
+
+test('Tester text.embed executes the closed Local App scenario face and projects vectors', async () => {
+  const { runTesterCapability } = await importTesterRuntime();
+  const calls = [];
+  const client = fakeLocalAppClient({
+    async executeScenario(spec) {
+      calls.push(spec);
+      return { output: { type: 'text-embed', vectors: [[0.1, 0.2, 0.3]] }, traceId: 'trace-embed' };
+    },
+  });
+  const result = await runTesterCapability({
+    capabilityId: 'text.embed',
+    prompt: 'embed me',
+    parameters: { inputs: ['first', ' second '] },
+  }, readyRuntimeDependencies(client));
+  assert.deepEqual(calls, [{ type: 'text-embed', inputs: ['first', 'second'] }]);
+  assert.deepEqual(result.output, { kind: 'embedding', vectorCount: 1, dimensions: 3, sample: [0.1, 0.2, 0.3] });
+});
+
+test('Tester audio.transcribe supplies inferred MIME and projects the Kit transcript', async () => {
+  const { runTesterCapability } = await importTesterRuntime();
+  const client = fakeLocalAppClient();
+  const jobClient = { marker: 'transcribe-job-client' };
+  const calls = [];
+  const result = await runTesterCapability({
+    capabilityId: 'audio.transcribe',
+    prompt: 'https://example.test/sample.wav',
+    scenarioId: 'stt-1',
+  }, readyRuntimeDependencies(client, {
+    createScenarioJobClient() { return jobClient; },
+    runners: {
+      async speechTranscribe(input) {
+        calls.push(input);
+        return {
+          ok: true,
+          capabilityId: 'audio.transcribe',
+          message: 'transcribed',
+          output: { kind: 'transcript', text: 'hello audio', jobId: 'job-stt', jobStatus: 'COMPLETED', artifactCount: 1 },
+          trace: { traceId: 'trace-stt' },
+        };
+      },
+    },
+  }));
+  assert.equal(calls[0].runtime.ai, jobClient);
+  assert.equal(calls[0].audioUrl, 'https://example.test/sample.wav');
+  assert.equal(calls[0].mimeType, 'audio/wav');
+  assert.deepEqual(result.output, { kind: 'transcript', text: 'hello audio', jobId: 'job-stt', jobState: 'COMPLETED', artifactCount: 1 });
+});
+
+test('Tester audio.transcribe forwards local bytes and the complete transcription parameters', async () => {
+  const { runTesterCapability } = await importTesterRuntime();
+  const client = fakeLocalAppClient();
+  const calls = [];
+  const bytes = new Uint8Array([1, 2, 3]);
+  const result = await runTesterCapability({
+    capabilityId: 'audio.transcribe',
+    prompt: '',
+    scenarioId: 'stt-bytes',
+    parameters: {
+      audioFile: { name: 'sample.wav', mimeType: 'audio/wav', sizeBytes: bytes.byteLength, bytes },
+      mimeType: 'audio/custom', language: 'zh', timestamps: false, diarization: true,
+      speakerCount: 0, prompt: 'names', responseFormat: 'verbose_json',
+    },
+  }, readyRuntimeDependencies(client, {
+    createScenarioJobClient() { return {}; },
+    runners: {
+      async speechTranscribe(input) {
+        calls.push(input);
+        return {
+          ok: true, capabilityId: 'audio.transcribe', message: 'transcribed',
+          output: { kind: 'transcript', text: 'hello', jobId: 'job', jobStatus: 'COMPLETED', artifactCount: 0 },
+        };
+      },
+    },
+  }));
+  assert.equal(result.ok, true);
+  assert.deepEqual(calls[0].audio, { type: 'bytes', bytes, mimeType: 'audio/custom' });
+  assert.equal(calls[0].timestamps, false);
+  assert.equal(calls[0].diarization, true);
+  assert.equal(calls[0].speakerCount, 0);
+  assert.equal(calls[0].prompt, 'names');
+  assert.equal(calls[0].responseFormat, 'verbose_json');
+});
+
+test('Tester speech.bundle runs the Kit voice catalog over the Local App list client', async () => {
+  const { runTesterCapability } = await importTesterRuntime();
+  const calls = [];
+  const client = fakeLocalAppClient({
+    async listVoiceAssets(input) {
+      calls.push(input);
+      return {
+        assets: [{ voiceAssetId: 'voice-1', workflowType: 'voice-clone', status: 'active', createdAt: null, updatedAt: null, expiresAt: null }],
+        nextPageToken: '',
+      };
+    },
+  });
+  const result = await runTesterCapability({ capabilityId: 'speech.bundle', prompt: '' }, readyRuntimeDependencies(client));
+  assert.equal(result.ok, true);
+  assert.deepEqual(calls, [{ pageSize: 100, pageToken: '' }]);
+  assert.deepEqual(result.output, {
+    kind: 'voice-catalog',
+    voiceCount: 1,
+    sample: [{ voiceId: 'voice-1', workflowType: 'VOICE_CLONE', status: 'ACTIVE' }],
+  });
+});
+
+const TYPED_FAILURE_CASES = [
+  {
+    capabilityId: 'text.generate',
+    prompt: 'hello',
+    expectedReason: 'runtime-call-failed',
+    client: () => fakeLocalAppClient({
+      async generateCandidate() { throw Object.assign(new Error('text failed'), { reasonCode: 'TEXT_FAILED' }); },
+    }),
+  },
+  {
+    capabilityId: 'chat.stream',
+    prompt: 'hello',
+    expectedReason: 'runtime-call-failed',
+    client: () => fakeLocalAppClient({
+      async streamTurn() {
+        return localTextSubscription([{ type: 'failed', sequence: '1', traceId: 'trace', reasonCode: 'STREAM_FAILED', actionHint: 'retry stream' }]);
+      },
+    }),
+  },
+  {
+    capabilityId: 'text.embed',
+    prompt: 'hello',
+    expectedReason: 'runtime-call-failed',
+    client: () => fakeLocalAppClient({
+      async executeScenario() { throw Object.assign(new Error('embed failed'), { reasonCode: 'EMBED_FAILED' }); },
+    }),
+  },
+  { capabilityId: 'image.generate', prompt: 'image', expectedReason: 'input-invalid', runnerName: 'imageGenerate' },
+  { capabilityId: 'video.generate', prompt: 'video', expectedReason: 'runtime-call-failed', runnerName: 'videoGenerate' },
+  { capabilityId: 'audio.synthesize', prompt: 'speech', expectedReason: 'principal-unauthorized', runnerName: 'speechSynthesize' },
+  { capabilityId: 'audio.transcribe', prompt: 'https://example.test/audio.wav', expectedReason: 'runtime-call-failed', runnerName: 'speechTranscribe' },
+  {
+    capabilityId: 'speech.bundle',
+    prompt: '',
+    expectedReason: 'runtime-call-failed',
+    client: () => fakeLocalAppClient({
+      async listVoiceAssets() { throw Object.assign(new Error('catalog failed'), { reasonCode: 'CATALOG_FAILED' }); },
+    }),
+  },
+];
+
+for (const failureCase of TYPED_FAILURE_CASES) {
+  test(`Tester ${failureCase.capabilityId} preserves a typed failure projection`, async () => {
+    const { runTesterCapability } = await importTesterRuntime();
+    const client = failureCase.client?.() ?? fakeLocalAppClient();
+    const runner = async () => ({
+      ok: false,
+      capabilityId: failureCase.capabilityId,
+      reason: failureCase.expectedReason,
+      message: `${failureCase.capabilityId} typed failure`,
+      error: { reasonCode: 'TYPED_FAILURE' },
+    });
+    const dependencies = readyRuntimeDependencies(client, failureCase.runnerName ? {
+      createScenarioJobClient() { return {}; },
+      runners: { [failureCase.runnerName]: runner },
+    } : {});
+    const result = await runTesterCapability({ capabilityId: failureCase.capabilityId, prompt: failureCase.prompt }, dependencies);
+    assert.equal(result.ok, false);
+    assert.equal(result.reason, failureCase.expectedReason);
+    assert.match(result.message, /failed|failure|retry/iu);
+  });
+}

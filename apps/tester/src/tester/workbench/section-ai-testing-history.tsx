@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Button, IconButton, Tooltip } from '@nimiplatform/kit/ui';
+import { useContext, useEffect, useMemo, useState } from 'react';
+import { Button, IconButton, InlineAlert, Popover, PopoverContent, PopoverTrigger, Tooltip } from '@nimiplatform/kit/ui';
 import { Check, ChevronRight, Funnel, RefreshCw, Sparkles } from 'lucide-react';
+import { useTranslation } from '../../shell/i18n/index.js';
 import { testerCapabilities, type TesterCapabilityId } from '../tester-capabilities.js';
 import {
   flattenTesterRunHistory,
@@ -16,6 +17,7 @@ import {
   type TesterRunHistoryRecord,
 } from '../tester-history.js';
 import { capabilityIcons } from './capability-icons.js';
+import { TesterHistoryLoadContext } from './workbench-context.js';
 import { useTesterRendererHost } from '../../renderer/context.js';
 
 type HistoryStatusFilter = 'all' | 'active' | 'blocked' | 'local-fixture';
@@ -28,40 +30,51 @@ type HistoryFilterMenuId = 'status' | 'capability' | 'environment' | 'activity' 
 const runtimeHistoryCapabilities = Object.freeze(
   testerCapabilities.filter((item) => item.execution === 'runtime-sdk' || item.execution === 'standalone-tauri'),
 );
-const runtimeHistoryCapabilityIds = Object.freeze(runtimeHistoryCapabilities.map((capability) => capability.id));
-const historyDateGroupFormatter = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' });
-const historyDateGroupWithYearFormatter = new Intl.DateTimeFormat('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
 
-const HISTORY_STATUS_OPTIONS: ReadonlyArray<{ id: HistoryStatusFilter; label: string }> = [
-  { id: 'all', label: 'All statuses' },
-  { id: 'active', label: 'Active' },
-  { id: 'blocked', label: 'Blocked' },
-  { id: 'local-fixture', label: 'Local fixture' },
+// Date group formatters follow the active UI locale. Frozen literal with the
+// conformance-whitelisted Intl.DateTimeFormat constructor — module-scope
+// Map/Set caches are forbidden in the canonical local closure.
+const historyDateGroupFormatters = Object.freeze({
+  'zh-CN:year': new Intl.DateTimeFormat('zh-CN', { year: 'numeric', month: 'short', day: 'numeric' }),
+  'zh-CN:plain': new Intl.DateTimeFormat('zh-CN', { month: 'short', day: 'numeric' }),
+  'en-US:year': new Intl.DateTimeFormat('en-US', { year: 'numeric', month: 'short', day: 'numeric' }),
+  'en-US:plain': new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' }),
+} as Record<string, Intl.DateTimeFormat>);
+function historyDateGroupFormatter(locale: string, withYear: boolean): Intl.DateTimeFormat {
+  const suffix = withYear ? 'year' : 'plain';
+  return historyDateGroupFormatters[`${locale}:${suffix}`] ?? historyDateGroupFormatters[`en-US:${suffix}`];
+}
+
+const HISTORY_STATUS_OPTIONS: ReadonlyArray<{ id: HistoryStatusFilter; labelKey: string }> = [
+  { id: 'all', labelKey: 'History.filters.status.all' },
+  { id: 'active', labelKey: 'History.filters.status.active' },
+  { id: 'blocked', labelKey: 'History.filters.status.blocked' },
+  { id: 'local-fixture', labelKey: 'History.filters.status.localFixture' },
 ];
 
-const HISTORY_ENVIRONMENT_OPTIONS: ReadonlyArray<{ id: HistoryEnvironmentFilter; label: string }> = [
-  { id: 'all', label: 'All' },
-  { id: 'local', label: 'Local' },
-  { id: 'cloud', label: 'Cloud' },
-  { id: 'remote-control', label: 'Remote Control' },
+const HISTORY_ENVIRONMENT_OPTIONS: ReadonlyArray<{ id: HistoryEnvironmentFilter; labelKey: string }> = [
+  { id: 'all', labelKey: 'History.filters.environment.all' },
+  { id: 'local', labelKey: 'History.filters.environment.local' },
+  { id: 'cloud', labelKey: 'History.filters.environment.cloud' },
+  { id: 'remote-control', labelKey: 'History.filters.environment.remoteControl' },
 ];
 
-const HISTORY_ACTIVITY_OPTIONS: ReadonlyArray<{ id: HistoryActivityFilter; label: string }> = [
-  { id: 'all', label: 'All' },
-  { id: 'today', label: 'Today' },
-  { id: '7d', label: 'Last 7 days' },
-  { id: '30d', label: 'Last 30 days' },
+const HISTORY_ACTIVITY_OPTIONS: ReadonlyArray<{ id: HistoryActivityFilter; labelKey: string }> = [
+  { id: 'all', labelKey: 'History.filters.activity.all' },
+  { id: 'today', labelKey: 'History.filters.activity.today' },
+  { id: '7d', labelKey: 'History.filters.activity.last7Days' },
+  { id: '30d', labelKey: 'History.filters.activity.last30Days' },
 ];
 
-const HISTORY_GROUP_OPTIONS: ReadonlyArray<{ id: HistoryGroupBy; label: string }> = [
-  { id: 'none', label: 'None' },
-  { id: 'date', label: 'Date' },
-  { id: 'capability', label: 'Capability' },
+const HISTORY_GROUP_OPTIONS: ReadonlyArray<{ id: HistoryGroupBy; labelKey: string }> = [
+  { id: 'none', labelKey: 'History.filters.group.none' },
+  { id: 'date', labelKey: 'History.filters.group.date' },
+  { id: 'capability', labelKey: 'History.filters.group.capability' },
 ];
 
-const HISTORY_SORT_OPTIONS: ReadonlyArray<{ id: HistorySortBy; label: string }> = [
-  { id: 'recency', label: 'Recency' },
-  { id: 'oldest', label: 'Oldest' },
+const HISTORY_SORT_OPTIONS: ReadonlyArray<{ id: HistorySortBy; labelKey: string }> = [
+  { id: 'recency', labelKey: 'History.filters.sort.recency' },
+  { id: 'oldest', labelKey: 'History.filters.sort.oldest' },
 ];
 
 // Local run history recovered from the desktop tester history panel. Reads only
@@ -83,13 +96,6 @@ function historyIntentTitleForRun(record: TesterRunHistoryRecord): string {
   return getTesterRunIntentLabel(record);
 }
 
-function historySourceLabelForRun(record: TesterRunHistoryRecord): string {
-  const source = getTesterRunIntentSource(record);
-  if (source === 'local') return 'Local';
-  if (source === 'cloud') return 'Cloud';
-  return 'Unknown';
-}
-
 function historyFailureReasonForRun(record: TesterRunHistoryRecord): string {
   const result = record.result;
   if (result && result.ok === false) {
@@ -98,44 +104,8 @@ function historyFailureReasonForRun(record: TesterRunHistoryRecord): string {
   return getTesterRunResultSummary(record);
 }
 
-function historySubtitleForRun(record: TesterRunHistoryRecord): string {
-  const source = historySourceLabelForRun(record);
-  if (record.status === 'failed' || record.status === 'unavailable') {
-    return ['Failed', source, historyFailureReasonForRun(record)].filter(Boolean).join(' / ');
-  }
-  return source;
-}
-
-function historyLabelForRun(record: TesterFlatRunRecord, now: Date): string {
-  const prompt = historyTitleForRun(record);
-  const intent = getTesterRunIntentLabel(record);
-  const source = getTesterRunIntentSource(record);
-  const metrics = getTesterRunMetricSummary(record);
-  return [source === 'unknown' ? intent : `${source} intent: ${intent}`, record.capabilityLabel, formatTesterRunHistoryTimestamp(record.createdAt, now), metrics, prompt ? `Prompt: ${prompt}` : ''].filter(Boolean).join(' / ');
-}
-
-function optionLabel<T extends string>(options: ReadonlyArray<{ id: T; label: string }>, id: T): string {
-  return options.find((option) => option.id === id)?.label ?? id;
-}
-
-function historyCapabilityLabel(id: TesterCapabilityId | 'all'): string {
-  if (id === 'all') return 'All';
-  return runtimeHistoryCapabilities.find((capability) => capability.id === id)?.label ?? id;
-}
-
 function isSameHistoryDate(left: Date, right: Date): boolean {
   return left.getFullYear() === right.getFullYear() && left.getMonth() === right.getMonth() && left.getDate() === right.getDate();
-}
-
-function historyDateGroupLabel(value: string, now: Date): string {
-  const date = new Date(value);
-  if (Number.isNaN(date.valueOf())) return 'Unknown date';
-  if (isSameHistoryDate(date, now)) return 'Today';
-  const yesterday = new Date(now);
-  yesterday.setDate(now.getDate() - 1);
-  if (isSameHistoryDate(date, yesterday)) return 'Yesterday';
-  if (date.getFullYear() === now.getFullYear()) return historyDateGroupFormatter.format(date);
-  return historyDateGroupWithYearFormatter.format(date);
 }
 
 function matchesHistoryStatus(record: TesterRunHistoryRecord, status: HistoryStatusFilter): boolean {
@@ -160,22 +130,6 @@ function matchesHistoryActivity(record: TesterRunHistoryRecord, activity: Histor
   if (activity === 'today') return isSameHistoryDate(createdAt, now);
   const days = activity === '7d' ? 7 : 30;
   return now.valueOf() - createdAt.valueOf() <= days * 24 * 60 * 60 * 1000;
-}
-
-function groupedHistoryRecords(records: TesterFlatRunRecord[], groupBy: HistoryGroupBy, now: Date): Array<{ id: string; label: string; records: TesterFlatRunRecord[] }> {
-  if (groupBy === 'none') return [{ id: 'all', label: '', records }];
-  const groups = new Map<string, { id: string; label: string; records: TesterFlatRunRecord[] }>();
-  for (const record of records) {
-    const label = groupBy === 'date' ? historyDateGroupLabel(record.createdAt, now) : record.capabilityLabel;
-    const id = groupBy === 'date' ? `date:${label}` : `capability:${record.capabilityId}`;
-    const existing = groups.get(id);
-    if (existing) {
-      existing.records.push(record);
-    } else {
-      groups.set(id, { id, label, records: [record] });
-    }
-  }
-  return [...groups.values()];
 }
 
 function HistoryFilterOption({
@@ -215,6 +169,9 @@ export function CapabilityRunHistory({
   filterResetNonce: number;
 }) {
   const rendererHost = useTesterRendererHost();
+  const { t, i18n } = useTranslation();
+  const historyLoad = useContext(TesterHistoryLoadContext);
+  const locale = i18n.language.startsWith('zh') ? 'zh-CN' : 'en-US';
   const [filterOpen, setFilterOpen] = useState(false);
   const [activeMenu, setActiveMenu] = useState<HistoryFilterMenuId | null>(null);
   const [statusFilter, setStatusFilter] = useState<HistoryStatusFilter>('all');
@@ -225,7 +182,6 @@ export function CapabilityRunHistory({
   const [sortBy, setSortBy] = useState<HistorySortBy>('recency');
   const now = useMemo(() => new Date(rendererHost.clock.now()), [history, rendererHost]);
   const records = useMemo(() => flattenTesterRunHistory(history)
-    .filter((record) => runtimeHistoryCapabilityIds.includes(record.capabilityId as TesterCapabilityId))
     .filter((record) => capabilityFilter === 'all' || record.capabilityId === capabilityFilter)
     .filter((record) => matchesHistoryStatus(record, statusFilter))
     .filter((record) => matchesHistoryEnvironment(record, environmentFilter))
@@ -233,7 +189,73 @@ export function CapabilityRunHistory({
     .sort((left, right) => sortBy === 'recency'
       ? right.createdAt.localeCompare(left.createdAt)
       : left.createdAt.localeCompare(right.createdAt)), [activityFilter, capabilityFilter, environmentFilter, history, now, sortBy, statusFilter]);
-  const groups = useMemo(() => groupedHistoryRecords(records, groupBy, now), [groupBy, now, records]);
+
+  function historySourceLabelForRun(record: TesterRunHistoryRecord): string {
+    const source = getTesterRunIntentSource(record);
+    if (source === 'local') return t('History.source.local');
+    if (source === 'cloud') return t('History.source.cloud');
+    return t('History.source.unknown');
+  }
+
+  function historySubtitleForRun(record: TesterRunHistoryRecord): string {
+    const source = historySourceLabelForRun(record);
+    if (record.status === 'failed' || record.status === 'unavailable') {
+      return [t('History.failed'), source, historyFailureReasonForRun(record)].filter(Boolean).join(' / ');
+    }
+    return source;
+  }
+
+  function historyLabelForRun(record: TesterFlatRunRecord): string {
+    const prompt = historyTitleForRun(record);
+    const intent = getTesterRunIntentLabel(record);
+    const source = getTesterRunIntentSource(record);
+    const metrics = getTesterRunMetricSummary(record);
+    return [
+      source === 'unknown' ? intent : t('History.runAriaIntent', { source: historySourceLabelForRun(record), intent }),
+      historyCapabilityLabel(record.capabilityId as TesterCapabilityId),
+      formatTesterRunHistoryTimestamp(record.createdAt, now),
+      metrics,
+      prompt ? t('History.runAriaPrompt', { prompt }) : '',
+    ].filter(Boolean).join(' / ');
+  }
+
+  function optionLabel<T extends string>(options: ReadonlyArray<{ id: T; labelKey: string }>, id: T): string {
+    const option = options.find((entry) => entry.id === id);
+    return option ? t(option.labelKey) : id;
+  }
+
+  function historyCapabilityLabel(id: TesterCapabilityId | 'all'): string {
+    if (id === 'all') return t('History.filters.capability.all');
+    const capability = runtimeHistoryCapabilities.find((entry) => entry.id === id);
+    return capability ? t(capability.labelKey) : id;
+  }
+
+  function historyDateGroupLabel(value: string): string {
+    const date = new Date(value);
+    if (Number.isNaN(date.valueOf())) return t('History.unknownDate');
+    if (isSameHistoryDate(date, now)) return t('History.today');
+    const yesterday = new Date(now);
+    yesterday.setDate(now.getDate() - 1);
+    if (isSameHistoryDate(date, yesterday)) return t('History.yesterday');
+    if (date.getFullYear() === now.getFullYear()) return historyDateGroupFormatter(locale, false).format(date);
+    return historyDateGroupFormatter(locale, true).format(date);
+  }
+
+  const groups = useMemo(() => {
+    if (groupBy === 'none') return [{ id: 'all', label: '', records }];
+    const grouped = new Map<string, { id: string; label: string; records: TesterFlatRunRecord[] }>();
+    for (const record of records) {
+      const label = groupBy === 'date' ? historyDateGroupLabel(record.createdAt) : historyCapabilityLabel(record.capabilityId as TesterCapabilityId);
+      const id = groupBy === 'date' ? `date:${label}` : `capability:${record.capabilityId}`;
+      const existing = grouped.get(id);
+      if (existing) {
+        existing.records.push(record);
+      } else {
+        grouped.set(id, { id, label, records: [record] });
+      }
+    }
+    return [...grouped.values()];
+  }, [groupBy, now, records, locale, t]);
   const activeMenuLabel = {
     status: optionLabel(HISTORY_STATUS_OPTIONS, statusFilter),
     capability: historyCapabilityLabel(capabilityFilter),
@@ -261,44 +283,35 @@ export function CapabilityRunHistory({
     }
     if (activeMenu === 'status') {
       return HISTORY_STATUS_OPTIONS.map((option) => (
-        <HistoryFilterOption key={option.id} label={option.label} selected={statusFilter === option.id} onSelect={() => setStatusFilter(option.id)} />
+        <HistoryFilterOption key={option.id} label={t(option.labelKey)} selected={statusFilter === option.id} onSelect={() => setStatusFilter(option.id)} />
       ));
     }
     if (activeMenu === 'capability') {
       return [
-        <HistoryFilterOption key="all" label="All capabilities" selected={capabilityFilter === 'all'} onSelect={() => setCapabilityFilter('all')} />,
+        <HistoryFilterOption key="all" label={t('History.filters.capability.allCapabilities')} selected={capabilityFilter === 'all'} onSelect={() => setCapabilityFilter('all')} />,
         ...runtimeHistoryCapabilities.map((capability) => (
-          <HistoryFilterOption key={capability.id} label={capability.label} selected={capabilityFilter === capability.id} onSelect={() => setCapabilityFilter(capability.id)} />
+          <HistoryFilterOption key={capability.id} label={t(capability.labelKey)} selected={capabilityFilter === capability.id} onSelect={() => setCapabilityFilter(capability.id)} />
         )),
       ];
     }
     if (activeMenu === 'environment') {
       return HISTORY_ENVIRONMENT_OPTIONS.map((option) => (
-        <HistoryFilterOption key={option.id} label={option.label} selected={environmentFilter === option.id} onSelect={() => setEnvironmentFilter(option.id)} />
+        <HistoryFilterOption key={option.id} label={t(option.labelKey)} selected={environmentFilter === option.id} onSelect={() => setEnvironmentFilter(option.id)} />
       ));
     }
     if (activeMenu === 'activity') {
       return HISTORY_ACTIVITY_OPTIONS.map((option) => (
-        <HistoryFilterOption key={option.id} label={option.label} selected={activityFilter === option.id} onSelect={() => setActivityFilter(option.id)} />
+        <HistoryFilterOption key={option.id} label={t(option.labelKey)} selected={activityFilter === option.id} onSelect={() => setActivityFilter(option.id)} />
       ));
     }
     if (activeMenu === 'group') {
       return HISTORY_GROUP_OPTIONS.map((option) => (
-        <HistoryFilterOption key={option.id} label={option.label} selected={groupBy === option.id} onSelect={() => setGroupBy(option.id)} />
+        <HistoryFilterOption key={option.id} label={t(option.labelKey)} selected={groupBy === option.id} onSelect={() => setGroupBy(option.id)} />
       ));
     }
     return HISTORY_SORT_OPTIONS.map((option) => (
-      <HistoryFilterOption key={option.id} label={option.label} selected={sortBy === option.id} onSelect={() => setSortBy(option.id)} />
+      <HistoryFilterOption key={option.id} label={t(option.labelKey)} selected={sortBy === option.id} onSelect={() => setSortBy(option.id)} />
     ));
-  }
-
-  function handleFilterToggle() {
-    setFilterOpen((value) => {
-      if (value) {
-        setActiveMenu(null);
-      }
-      return !value;
-    });
   }
 
   function clearHistoryFilters() {
@@ -312,90 +325,99 @@ export function CapabilityRunHistory({
   }
 
   return (
-    <div
-      className={collapsed ? 'studio-history-shell studio-history-shell--collapsed' : 'studio-history-shell'}
-      onBlur={(event) => {
-        if (!filterOpen || event.currentTarget.contains(event.relatedTarget)) return;
-        setFilterOpen(false);
-        setActiveMenu(null);
-      }}
-    >
-      <aside className={collapsed ? 'studio-history studio-history--collapsed' : 'studio-history'} aria-label="Runtime test History">
+    <div className={collapsed ? 'studio-history-shell studio-history-shell--collapsed' : 'studio-history-shell'}>
+      <aside className={collapsed ? 'studio-history studio-history--collapsed' : 'studio-history'} aria-label={t('History.panelAriaLabel')}>
         <div className="studio-recent__head">
           <div className="studio-history__title">
-            <strong>History</strong>
+            <strong>{t('History.title')}</strong>
           </div>
           <div className="studio-history__actions">
-            <IconButton
-              type="button"
-              tone="ghost"
-              size="sm"
-              className={filterOpen ? 'studio-history__filter-trigger studio-history__filter-trigger--active' : 'studio-history__filter-trigger'}
-              aria-label="Filter history"
-              aria-expanded={filterOpen}
-              onClick={handleFilterToggle}
-              icon={<Funnel size={18} strokeWidth={1.9} aria-hidden="true" />}
-            />
+            <Popover
+              open={filterOpen && !collapsed}
+              onOpenChange={(open) => {
+                setFilterOpen(open);
+                if (!open) setActiveMenu(null);
+              }}
+            >
+              <PopoverTrigger asChild>
+                <IconButton
+                  type="button"
+                  tone="ghost"
+                  size="sm"
+                  className={filterOpen ? 'studio-history__filter-trigger studio-history__filter-trigger--active' : 'studio-history__filter-trigger'}
+                  aria-label={t('History.filterAriaLabel')}
+                  aria-expanded={filterOpen}
+                  icon={<Funnel size={18} strokeWidth={1.9} aria-hidden="true" />}
+                />
+              </PopoverTrigger>
+              <PopoverContent align="end" side="bottom" sideOffset={8} className="studio-history-filter-popover p-2" aria-label={t('History.filtersAriaLabel')}>
+                <div className="studio-history-filter">
+                  <div className="studio-history-filter__menu">
+                    {([
+                      ['status', t('History.menus.status')],
+                      ['capability', t('History.menus.capability')],
+                      ['environment', t('History.menus.environment')],
+                      ['activity', t('History.menus.activity')],
+                      ['group', t('History.menus.group')],
+                      ['sort', t('History.menus.sort')],
+                    ] as const).map(([id, label], index) => (
+                      <Button
+                        key={id}
+                        type="button"
+                        tone="ghost"
+                        size="sm"
+                        className={activeMenu === id ? 'studio-history-filter__row studio-history-filter__row--active' : 'studio-history-filter__row'}
+                        aria-expanded={activeMenu === id}
+                        data-divider={index === 4 ? '' : undefined}
+                        onClick={() => setActiveMenu((value) => value === id ? null : id)}
+                      >
+                        <span>{label}</span>
+                        <strong>{activeMenuLabel[id]}</strong>
+                        <ChevronRight size={17} strokeWidth={1.9} aria-hidden="true" />
+                      </Button>
+                    ))}
+                    {hasActiveHistoryFilters ? (
+                      <Button
+                        type="button"
+                        tone="ghost"
+                        size="sm"
+                        className="studio-history-filter__clear"
+                        onClick={clearHistoryFilters}
+                      >
+                        <RefreshCw size={14} strokeWidth={1.9} aria-hidden="true" />
+                        <span>{t('History.clearFilters')}</span>
+                      </Button>
+                    ) : null}
+                  </div>
+                  {activeMenu ? (
+                    <div className="studio-history-filter__submenu">
+                      {renderSubmenu()}
+                    </div>
+                  ) : null}
+                </div>
+              </PopoverContent>
+            </Popover>
           </div>
         </div>
-        {!collapsed && filterOpen ? (
-          <div className="studio-history-filter" role="dialog" aria-label="History filters">
-            <div
-              className="studio-history-filter__menu nimi-material-glass-regular backdrop-blur-[var(--nimi-backdrop-blur-regular)]"
-              data-nimi-material="glass-regular"
-              data-nimi-tone="overlay"
-            >
-              {([
-                ['status', 'Status'],
-                ['capability', 'Capability'],
-                ['environment', 'Environment'],
-                ['activity', 'Last activity'],
-                ['group', 'Group by'],
-                ['sort', 'Sort by'],
-              ] as const).map(([id, label], index) => (
-                <Button
-                  key={id}
-                  type="button"
-                  tone="ghost"
-                  size="sm"
-                  className={activeMenu === id ? 'studio-history-filter__row studio-history-filter__row--active' : 'studio-history-filter__row'}
-                  aria-expanded={activeMenu === id}
-                  data-divider={index === 4 ? '' : undefined}
-                  onClick={() => setActiveMenu((value) => value === id ? null : id)}
-                >
-                  <span>{label}</span>
-                  <strong>{activeMenuLabel[id]}</strong>
-                  <ChevronRight size={17} strokeWidth={1.9} aria-hidden="true" />
-                </Button>
-              ))}
-              {hasActiveHistoryFilters ? (
-                <Button
-                  type="button"
-                  tone="ghost"
-                  size="sm"
-                  className="studio-history-filter__clear"
-                  onClick={clearHistoryFilters}
-                >
-                  <RefreshCw size={14} strokeWidth={1.9} aria-hidden="true" />
-                  <span>Clear all filters</span>
-                </Button>
-              ) : null}
-            </div>
-            {activeMenu ? (
-              <div
-                className="studio-history-filter__submenu nimi-material-glass-regular backdrop-blur-[var(--nimi-backdrop-blur-regular)]"
-                data-nimi-material="glass-regular"
-                data-nimi-tone="overlay"
-              >
-                {renderSubmenu()}
-              </div>
-            ) : null}
-          </div>
-        ) : null}
         <div className="studio-history__runs">
-          {hasRecords ? (
+          {historyLoad?.error ? (
+            <InlineAlert
+              tone="danger"
+              className="studio-history__load-error"
+              action={(
+                <Button type="button" tone="secondary" size="sm" onClick={historyLoad.retry}>
+                  {t('Common.retry')}
+                </Button>
+              )}
+            >
+              <div className="studio-history__load-error-copy">
+                <strong>{historyLoad.title}</strong>
+                <span>{historyLoad.error}</span>
+              </div>
+            </InlineAlert>
+          ) : hasRecords ? (
             groups.map((group) => (
-              <section key={group.id} className="studio-history__group" aria-label={group.label ? `${group.label} runs` : 'Recent runs'}>
+              <section key={group.id} className="studio-history__group" aria-label={group.label ? t('History.groupRunsAriaLabel', { group: group.label }) : t('History.recentRuns')}>
                 {group.label ? <h2 className="studio-history__group-title">{group.label}</h2> : null}
                 <ul className="studio-recent__rows">
                   {group.records.map((record) => {
@@ -410,7 +432,7 @@ export function CapabilityRunHistory({
                           className={record.id === activeRunId ? 'studio-recent__row studio-recent__row--active' : 'studio-recent__row'}
                           onClick={() => onSelectRun(record)}
                           aria-current={record.id === activeRunId ? 'true' : undefined}
-                          aria-label={historyLabelForRun(record, now)}
+                          aria-label={historyLabelForRun(record)}
                         >
                           <span className={`studio-recent__dot studio-recent__dot--${historyToneForRun(record)}`} aria-hidden="true" />
                           <span className="studio-recent__icon" aria-hidden="true">
@@ -439,7 +461,7 @@ export function CapabilityRunHistory({
               </section>
             ))
           ) : (
-            <p className="studio-history__empty">{history ? 'No runs match these filters' : 'No runs yet'}</p>
+            <p className="studio-history__empty">{history ? t('History.emptyFiltered') : t('History.emptyNone')}</p>
           )}
         </div>
       </aside>

@@ -1,0 +1,202 @@
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
+import test from 'node:test';
+import ts from 'typescript';
+
+const root = path.resolve(import.meta.dirname, '..');
+const clientModuleUrl = `data:text/javascript;base64,${Buffer.from(`
+  export function getTesterLocalAppClient() {
+    return globalThis.__NIMI_TESTER_HISTORY_STORAGE_CLIENT__;
+  }
+`).toString('base64')}`;
+const jsonTypesModuleUrl = `data:text/javascript;base64,${Buffer.from(`
+  export function isJsonObject(value) {
+    return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+  }
+`).toString('base64')}`;
+
+function compileModule(relativePath, replacements) {
+  const source = readFileSync(path.join(root, relativePath), 'utf8');
+  const output = ts.transpileModule(source, {
+    compilerOptions: {
+      module: ts.ModuleKind.ES2022,
+      target: ts.ScriptTarget.ES2022,
+    },
+  }).outputText;
+  const rewritten = replacements.reduce(
+    (current, [specifier, replacement]) => current.replace(
+      new RegExp(`from\\s+['"]${specifier.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}['"]`, 'g'),
+      `from ${JSON.stringify(replacement)}`,
+    ),
+    output,
+  );
+  return `data:text/javascript;base64,${Buffer.from(rewritten).toString('base64')}`;
+}
+
+const standardStorageModuleUrl = compileModule('src/tester/tester-standard-storage.ts', [
+  ['../shell/local-app-runtime-platform.js', clientModuleUrl],
+]);
+const historyStorageModuleUrl = compileModule('src/tester/tester-history-storage.ts', [
+  ['@nimiplatform/sdk/types', jsonTypesModuleUrl],
+  ['./tester-standard-storage.js', standardStorageModuleUrl],
+]);
+const standardStorageModule = await import(standardStorageModuleUrl);
+const historyStorageModule = await import(historyStorageModuleUrl);
+
+function createStorageClient(seed = {}) {
+  const documents = new Map(Object.entries(seed));
+  const writes = [];
+  return {
+    documents,
+    writes,
+    client: {
+      storage: {
+        async readJson(relativePath) {
+          if (!documents.has(relativePath)) throw { code: 'not-found', reasonCode: 'not-found' };
+          const value = structuredClone(documents.get(relativePath));
+          return { value, sizeBytes: Buffer.byteLength(JSON.stringify(value)) };
+        },
+        async writeJson(relativePath, value) {
+          const body = JSON.stringify(value);
+          const stored = JSON.parse(body);
+          documents.set(relativePath, stored);
+          writes.push({ relativePath, value: stored });
+          return { value: stored, sizeBytes: Buffer.byteLength(body) };
+        },
+      },
+    },
+  };
+}
+
+function runRecord(id, createdAt, overrides = {}) {
+  return {
+    id,
+    capabilityId: 'text.generate',
+    prompt: `prompt-${id}`,
+    status: 'ready',
+    message: `message-${id}`,
+    createdAt,
+    result: {
+      ok: true,
+      kind: 'text',
+      summary: `summary-${id}`,
+      body: `body-${id}`,
+      charCount: 6,
+      finishReason: 'stop',
+      streamed: false,
+      inputTokens: undefined,
+      outputTokens: undefined,
+      traceId: undefined,
+    },
+    runConfig: {
+      target: {
+        capabilityId: 'text.generate',
+        capabilityContract: 'text.generate',
+        section: 'text',
+        status: 'configured',
+        source: 'local',
+        intentLabel: 'Local',
+        detail: 'Configured local intent.',
+        params: { temperature: 0.7, optional: undefined },
+        paramsSummary: [],
+        profileOrigin: null,
+      },
+      promptControls: {
+        tone: undefined,
+        contextAttached: false,
+        context: undefined,
+        attachmentCount: 0,
+      },
+      traceId: undefined,
+    },
+    ...overrides,
+  };
+}
+
+function assertNoUndefined(value, path = '$') {
+  assert.notEqual(value, undefined, `${path} must not be undefined`);
+  if (Array.isArray(value)) {
+    value.forEach((entry, index) => assertNoUndefined(entry, `${path}[${index}]`));
+    return;
+  }
+  if (value && typeof value === 'object') {
+    Object.entries(value).forEach(([key, entry]) => assertNoUndefined(entry, `${path}.${key}`));
+  }
+}
+
+test('standard storage normalizes optional object fields without weakening JSON validation', () => {
+  const normalized = standardStorageModule.normalizeTesterStandardStorageJsonValue({
+    kept: true,
+    omitted: undefined,
+    nested: { value: 'ready', traceId: undefined },
+  });
+  assert.deepEqual(normalized, { kept: true, nested: { value: 'ready' } });
+  assert.throws(
+    () => standardStorageModule.normalizeTesterStandardStorageJsonValue([undefined]),
+    /contains undefined in an array/u,
+  );
+  assert.throws(
+    () => standardStorageModule.normalizeTesterStandardStorageJsonValue({ value: Number.POSITIVE_INFINITY }),
+    /non-finite number/u,
+  );
+  const cyclic = {};
+  cyclic.self = cyclic;
+  assert.throws(
+    () => standardStorageModule.normalizeTesterStandardStorageJsonValue(cyclic),
+    /contains a cycle/u,
+  );
+});
+
+test('run history persists optional snapshots, reloads them, and retries idempotently', async () => {
+  const storage = createStorageClient();
+  globalThis.__NIMI_TESTER_HISTORY_STORAGE_CLIENT__ = storage.client;
+  try {
+    const record = runRecord('run-1', '2026-08-08T08:00:00.000Z');
+    await historyStorageModule.appendTesterRunHistory(record);
+    await historyStorageModule.appendTesterRunHistory({ ...record, message: 'updated-message' });
+
+    const stored = storage.documents.get('tester-run-history.json');
+    assertNoUndefined(stored);
+    assert.equal(stored['text.generate'].length, 1);
+    assert.equal(stored['text.generate'][0].message, 'updated-message');
+    assert.equal(Object.hasOwn(stored['text.generate'][0].result, 'traceId'), false);
+    assert.equal(Object.hasOwn(stored['text.generate'][0].runConfig.promptControls, 'tone'), false);
+
+    const reloaded = await historyStorageModule.loadTesterRunHistory();
+    assert.equal(reloaded['text.generate'].length, 1);
+    assert.equal(reloaded['text.generate'][0].id, 'run-1');
+  } finally {
+    delete globalThis.__NIMI_TESTER_HISTORY_STORAGE_CLIENT__;
+  }
+});
+
+test('concurrent run-history appends are serialized and retain both records', async () => {
+  const storage = createStorageClient();
+  globalThis.__NIMI_TESTER_HISTORY_STORAGE_CLIENT__ = storage.client;
+  try {
+    await Promise.all([
+      historyStorageModule.appendTesterRunHistory(runRecord('run-1', '2026-08-08T08:00:00.000Z')),
+      historyStorageModule.appendTesterRunHistory(runRecord('run-2', '2026-08-08T08:01:00.000Z')),
+    ]);
+    const reloaded = await historyStorageModule.loadTesterRunHistory();
+    assert.deepEqual(reloaded['text.generate'].map((record) => record.id), ['run-2', 'run-1']);
+  } finally {
+    delete globalThis.__NIMI_TESTER_HISTORY_STORAGE_CLIENT__;
+  }
+});
+
+test('run-history loading fails closed on a malformed capability list', async () => {
+  const storage = createStorageClient({
+    'tester-run-history.json': { 'text.generate': {} },
+  });
+  globalThis.__NIMI_TESTER_HISTORY_STORAGE_CLIENT__ = storage.client;
+  try {
+    await assert.rejects(
+      historyStorageModule.loadTesterRunHistory(),
+      /requires an array/u,
+    );
+  } finally {
+    delete globalThis.__NIMI_TESTER_HISTORY_STORAGE_CLIENT__;
+  }
+});

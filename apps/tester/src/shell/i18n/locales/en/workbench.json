@@ -1,0 +1,57 @@
+{
+  "Workbench": {
+    "sideNavAriaLabel": "Nimi Lab workspace navigation",
+    "uiRecipes": "UI Recipes"
+  },
+  "Capabilities": {
+    "textGenerate": {
+      "label": "Text Studio",
+      "summary": "Prompt → text.generate CapabilityContract → typed Runtime result."
+    },
+    "chatStream": {
+      "label": "Chat Stream",
+      "summary": "Conversation turn → protected text.generate stream → incremental typed Runtime result."
+    },
+    "textEmbed": {
+      "label": "Embeddings",
+      "summary": "Input string → protected scenario.execute text.embed → typed vector result."
+    },
+    "imageGenerate": {
+      "label": "Image Generate",
+      "summary": "Prompt → image.generate Scenario Job → typed artifact preview result."
+    },
+    "videoGenerate": {
+      "label": "Video Generate",
+      "summary": "Prompt → video.generate Scenario Job → typed artifact preview result."
+    },
+    "audioSynthesize": {
+      "label": "Speech Synthesis",
+      "summary": "Text → audio.synthesize Scenario Job → typed audio artifact result."
+    },
+    "audioTranscribe": {
+      "label": "Speech Transcribe",
+      "summary": "Audio URL → audio.transcribe Scenario Job → typed transcript result."
+    },
+    "speechBundle": {
+      "label": "Speech Bundle",
+      "summary": "Inspect owner-scoped voice references through the protected Runtime voice catalog."
+    },
+    "worldGenerate": {
+      "label": "World Tour",
+      "summary": "Standalone Tauri viewer launch via app-owned open_world_tour_window command."
+    }
+  },
+  "WorldTour": {
+    "eyebrow": "Nimi Lab",
+    "viewerTitle": "World Tour Viewer",
+    "viewerDescription": "Standalone app-owned viewer surface for local fixture inspection.",
+    "launchTokenRequired": "World-tour viewer requires a standalone app launch token.",
+    "launchClaimFailed": "Failed to claim viewer launch.",
+    "launchUnavailableTitle": "Viewer launch unavailable",
+    "canvasEyebrow": "Standalone World Viewer",
+    "fixtureTitle": "World-tour fixture",
+    "savePreset": "Save preset",
+    "presetSaved": "Preset saved: {{path}}",
+    "presetSaveFailed": "Failed to save preset."
+  }
+}

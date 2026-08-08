@@ -5,20 +5,35 @@ import {
 } from 'lucide-react';
 import { AccountPanel, IconButton, Tooltip } from '@nimiplatform/kit/ui';
 import { useTesterRendererHost } from '../../renderer/context.js';
+import { useTranslation } from '../i18n/index.js';
 
 type NimiLabAccountMenuProps = {
   onOpenSettings: () => void;
 };
 
-function toAccountStatusMessage(error: unknown, fallback: string): string {
+// runtime-platform projections carry i18n message keys; session-ended keys map
+// to the account-menu specific explanation, everything else resolves via t().
+// Frozen array: module-scope constructed resources (new Set/Map) are forbidden
+// by simulator conformance.
+const sessionEndedMessageKeys = Object.freeze([
+  'Auth.runtime.messages.revoked',
+  'Auth.runtime.messages.accountChanged',
+  'Auth.runtime.messages.runtimeRestarted',
+]);
+
+function toAccountStatusMessage(error: unknown, fallbackKey: string, translate: (key: string) => string): string {
   const message = error instanceof Error ? error.message : String(error || '');
-  if (message.includes('protected local-app session')) {
-    return 'Nimi Lab requires a verified Desktop-supervised local-app session.';
+  if (sessionEndedMessageKeys.includes(message)) {
+    return translate('Auth.account.sessionRequired');
   }
-  return message || fallback;
+  if (message.startsWith('Auth.')) {
+    return translate(message);
+  }
+  return message || translate(fallbackKey);
 }
 
 export function NimiLabAccountMenu({ onOpenSettings }: NimiLabAccountMenuProps) {
+  const { t } = useTranslation();
   const rendererHost = useTesterRendererHost();
   const rootRef = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
@@ -29,39 +44,42 @@ export function NimiLabAccountMenu({ onOpenSettings }: NimiLabAccountMenuProps) 
   const refreshAccountUser = useCallback(async () => {
     const projection = await rendererHost.app.projection.runtimePlatform();
     if (projection.status !== 'ready') {
-      throw new Error(projection.message || 'Protected local-app session unavailable.');
+      // Simulator fixtures may carry a literal `message` without a `messageKey`.
+      throw new Error(projection.messageKey || projection.message || 'Auth.account.sessionUnavailable');
     }
     setLocalAppSessionReady(true);
-    setStatusMessage('The protected identity session is bound independently. Protected App Access operations remain unavailable until Runtime establishes the common ingress. This App receives no account token, registration handle, or subject identifier.');
+    setStatusMessage(t('Auth.account.sessionBoundDetail'));
     return projection.localAppSession;
-  }, [rendererHost]);
+  }, [rendererHost, t]);
 
   useEffect(() => {
     let active = true;
     setLoadingUser(true);
     void refreshAccountUser().catch((error) => {
       if (!active) return;
-      setStatusMessage(toAccountStatusMessage(error, 'Protected local-app session unavailable.'));
+      setStatusMessage(toAccountStatusMessage(error, 'Auth.account.sessionUnavailable', t));
     }).finally(() => {
       if (active) setLoadingUser(false);
     });
     return () => {
       active = false;
     };
-  }, [refreshAccountUser]);
+  }, [refreshAccountUser, t]);
 
-  const displayName = localAppSessionReady ? 'Nimi protected local app' : (loadingUser ? 'Checking local-app session' : 'Local-app session unavailable');
+  const displayName = localAppSessionReady
+    ? t('Auth.account.displayReady')
+    : (loadingUser ? t('Auth.account.displayChecking') : t('Auth.account.displayUnavailable'));
   const fallback = 'N';
   const items = [
     {
       id: 'desktop-account-owner',
-      label: localAppSessionReady ? 'Identity protected by Nimi Desktop' : 'Open Nimi Desktop',
+      label: localAppSessionReady ? t('Auth.account.identityProtected') : t('Auth.account.openDesktop'),
       icon: <LogIn size={18} strokeWidth={1.8} aria-hidden="true" />,
       disabled: true,
     },
     {
       id: 'nimi-lab-settings',
-      label: 'Nimi Lab Settings',
+      label: t('Auth.account.settings'),
       icon: <Settings size={18} strokeWidth={1.8} aria-hidden="true" />,
       onSelect: () => {
         setOpen(false);
@@ -89,7 +107,7 @@ export function NimiLabAccountMenu({ onOpenSettings }: NimiLabAccountMenuProps) 
           size="sm"
           data-workbench-account-trigger=""
           data-open={open ? 'true' : undefined}
-          aria-label="Open Nimi Lab Desktop-owned account status"
+          aria-label={t('Auth.account.triggerAriaLabel')}
           aria-expanded={open}
           aria-haspopup="menu"
           onClick={() => setOpen((value) => !value)}
@@ -103,7 +121,7 @@ export function NimiLabAccountMenu({ onOpenSettings }: NimiLabAccountMenuProps) 
             user={{ displayName, fallback }}
             items={items}
             footerItems={[]}
-            ariaLabel="Nimi Lab account menu"
+            ariaLabel={t('Auth.account.menuAriaLabel')}
             statusMessage={statusMessage}
           />
         </div>

@@ -1,12 +1,23 @@
 import { useState, type ReactNode } from 'react';
-import { IconButton, Tooltip } from '@nimiplatform/kit/ui';
+import { IconButton, nimiToast, StatusBadge, Tooltip } from '@nimiplatform/kit/ui';
 import { AlertTriangle, ChevronRight, Copy as CopyIcon, Download as DownloadIcon, FileText, MessageSquare, RefreshCw, SlidersHorizontal } from 'lucide-react';
+import { useTranslation } from '../../shell/i18n/index.js';
 import type { TesterCapability } from '../tester-capabilities.js';
-import { formatTesterRunTimestamp, getTesterRunConfigParamRows, getTesterRunIntentLabel, getTesterRunPromptControlFacts, getTesterRunResultTags, getTesterRunStatusLabel, getTesterRunStatusTone, type TesterRunConfigParamRow, type TesterRunHistoryRecord, type TesterRunHistoryResultSnapshot, type TesterRunPromptControlFact } from '../tester-history.js';
+import { formatTesterRunTimestamp, getTesterRunConfigParamRows, getTesterRunIntentLabel, getTesterRunPromptControlFacts, getTesterRunResultTags, getTesterRunStatusTone, type TesterRunConfigParamRow, type TesterRunHistoryRecord, type TesterRunHistoryResultSnapshot, type TesterRunPromptControlFact } from '../tester-history.js';
 import { unavailableReasonUserAction, unavailableReasonUserMessage } from '../tester-unavailable.js';
 import { ArtifactMediaPreview, RuntimeDiagnosticsActions, StudioResult, TextStudioOutputBody, artifactExtension, downloadArtifactUrl, downloadTextFile, hasPreviewableArtifact, statusForCapability } from './section-ai-testing-surface.js';
 import type { TextStudioActiveRun } from './section-ai-testing-run.js';
 import { useTesterRendererHost } from '../../renderer/context.js';
+
+// Persisted run status labels are keyed by the typed status so the history
+// projection in tester-history.ts stays locale-agnostic.
+const RUN_STATUS_LABEL_KEY: Record<TesterRunHistoryRecord['status'], string> = {
+  ready: 'StudioShell.runStatusReady',
+  simulated: 'StudioShell.runStatusSimulated',
+  unavailable: 'StudioShell.runStatusUnavailable',
+  failed: 'StudioShell.runStatusFailed',
+  'local-fixture': 'StudioShell.runStatusLocalFixture',
+};
 
 function TextStudioPromptControlFacts({ facts }: { facts: readonly TesterRunPromptControlFact[] }) {
   if (facts.length === 0) return null;
@@ -23,6 +34,7 @@ function TextStudioPromptControlFacts({ facts }: { facts: readonly TesterRunProm
 }
 
 function TextStudioPromptSettings({ activeRun }: { activeRun: TextStudioActiveRun }) {
+  const { t } = useTranslation();
   const runConfig = activeRun.record?.runConfig;
   const facts = runConfig ? getTesterRunPromptControlFacts(runConfig) : [];
   const context = (runConfig?.promptControls.context ?? activeRun.context).trim();
@@ -32,7 +44,7 @@ function TextStudioPromptSettings({ activeRun }: { activeRun: TextStudioActiveRu
       <TextStudioPromptControlFacts facts={facts} />
       {context ? (
         <div className="studio-prompt-settings__context">
-          <strong>Context</strong>
+          <strong>{t('StudioShell.contextLabel')}</strong>
           <p>{context}</p>
         </div>
       ) : null}
@@ -54,6 +66,7 @@ function groupParamRows(rows: readonly TesterRunConfigParamRow[]): Array<{ group
 }
 
 function TextStudioRequestSettings({ record }: { record: TesterRunHistoryRecord }) {
+  const { t } = useTranslation();
   const runConfig = record.runConfig;
   if (!runConfig) {
     return null;
@@ -67,10 +80,10 @@ function TextStudioRequestSettings({ record }: { record: TesterRunHistoryRecord 
   const paramGroups = groupParamRows(paramRows);
 
   return (
-    <section className="studio-history-settings" aria-label="Request settings">
+    <section className="studio-history-settings" aria-label={t('StudioShell.requestSettings')}>
       <div className="studio-history-settings__head">
         <SlidersHorizontal size={14} aria-hidden="true" />
-        <strong>Request settings</strong>
+        <strong>{t('StudioShell.requestSettings')}</strong>
       </div>
       {paramGroups.map((group) => (
         <div key={group.group} className="studio-history-settings__group">
@@ -138,6 +151,7 @@ function TextStudioHistoryRecordResult({
   onRegenerate: () => void;
 }) {
   const rendererHost = useTesterRendererHost();
+  const { t } = useTranslation();
   const snapshot = record.result;
   const tags = getTesterRunResultTags(record);
   const intentLabel = getTesterRunIntentLabel(record);
@@ -149,11 +163,17 @@ function TextStudioHistoryRecordResult({
   const [requestSettingsOpen, setRequestSettingsOpen] = useState(false);
   function handleCopy() {
     if (!exportText.trim()) return;
-    try {
-      void rendererHost.app.commands.copyText(exportText);
-    } catch {
-      // Clipboard remains best-effort; download is the durable path.
-    }
+    void rendererHost.app.commands.copyText(exportText)
+      .then((result) => {
+        if (result.ok) {
+          nimiToast.success(t('Common.copied'));
+        } else {
+          nimiToast.danger(t('Common.copyFailed'));
+        }
+      })
+      .catch(() => {
+        nimiToast.danger(t('Common.copyFailed'));
+      });
   }
   function handleDownload() {
     const artifact = historyRecordArtifact(record);
@@ -175,7 +195,7 @@ function TextStudioHistoryRecordResult({
       <>
         <p>{record.message}</p>
         <p className="studio-result__hint">
-          This older persisted run record contains only status metadata. Run it again to persist the typed result snapshot.
+          {t('StudioShell.legacyRecordHint')}
         </p>
       </>
     );
@@ -185,12 +205,12 @@ function TextStudioHistoryRecordResult({
       <div className="studio-result__blocked">
         <div className="studio-result__blocked-line">
           <AlertTriangle size={15} aria-hidden="true" />
-          <span>Generation could not be completed</span>
+          <span>{t('StudioShell.generationFailed')}</span>
         </div>
         <p>{unavailableReasonUserMessage(snapshot.reason)}</p>
         <p className="studio-result__hint">{unavailableReasonUserAction(snapshot.reason)}</p>
         <details className="studio-diag">
-          <summary>Runtime details</summary>
+          <summary>{t('StudioShell.runtimeDetails')}</summary>
           <RuntimeDiagnosticsActions text={diagnosticsText} filenameBase={record.capabilityId} />
           <pre className="studio-diag__json">{diagnosticsText}</pre>
         </details>
@@ -203,25 +223,26 @@ function TextStudioHistoryRecordResult({
     <div className="studio-history-result" role="status">
       <div className="studio-history-result__head">
         <div className="studio-history-result__line">
-          <span className={`studio-history-result__status-mark studio-history-result__status-mark--${toneClass}`} aria-hidden="true" />
+          <StatusBadge tone={getTesterRunStatusTone(record.status)} shape="dot">
+            {t(RUN_STATUS_LABEL_KEY[record.status])}
+          </StatusBadge>
           <span className="studio-history-result__title-stack">
-            <strong>{getTesterRunStatusLabel(record.status)}</strong>
-            <time dateTime={record.createdAt}>Run / {formatTesterRunTimestamp(record.createdAt, new Date(rendererHost.clock.now()))}</time>
+            <time dateTime={record.createdAt}>{t('StudioShell.runLabel')} / {formatTesterRunTimestamp(record.createdAt, new Date(rendererHost.clock.now()))}</time>
           </span>
         </div>
         <div className="studio-result__actions studio-history-result__actions">
           {!blocked ? (
             <>
-              <Tooltip content="Copy" placement="top">
-                <IconButton type="button" className="studio-result__action" onClick={handleCopy} disabled={!canExport} aria-label="Copy generation" icon={<CopyIcon size={16} aria-hidden="true" />} />
+              <Tooltip content={t('Common.copy')} placement="top">
+                <IconButton type="button" className="studio-result__action" onClick={handleCopy} disabled={!canExport} aria-label={t('StudioShell.copyGeneration')} icon={<CopyIcon size={16} aria-hidden="true" />} />
               </Tooltip>
-              <Tooltip content="Download" placement="top">
-                <IconButton type="button" className="studio-result__action" onClick={handleDownload} disabled={!canExport} aria-label="Download generation" icon={<DownloadIcon size={16} aria-hidden="true" />} />
+              <Tooltip content={t('StudioShell.download')} placement="top">
+                <IconButton type="button" className="studio-result__action" onClick={handleDownload} disabled={!canExport} aria-label={t('StudioShell.downloadGeneration')} icon={<DownloadIcon size={16} aria-hidden="true" />} />
               </Tooltip>
             </>
           ) : null}
-          <Tooltip content="Regenerate" placement="top">
-            <IconButton type="button" className="studio-result__action" onClick={onRegenerate} aria-label="Regenerate" icon={<RefreshCw size={16} aria-hidden="true" />} />
+          <Tooltip content={t('StudioShell.regenerate')} placement="top">
+            <IconButton type="button" className="studio-result__action" onClick={onRegenerate} aria-label={t('StudioShell.regenerate')} icon={<RefreshCw size={16} aria-hidden="true" />} />
           </Tooltip>
         </div>
       </div>
@@ -230,17 +251,17 @@ function TextStudioHistoryRecordResult({
           {tags.map((tag, index) => <span key={tag} className={index === 0 ? `studio-history-result__tag--${toneClass}` : undefined}>{tag}</span>)}
         </div>
         <div className="studio-history-result__intent">
-          <span>Intent</span>
+          <span>{t('StudioShell.intentLabel')}</span>
           <div className={hasRequestSettings ? 'studio-intent-pill__box' : 'studio-intent-pill__box studio-intent-pill__box--static'}>
             <Tooltip content={intentLabel} placement="top" className="min-w-0">
               <strong>{intentLabel}</strong>
             </Tooltip>
             {hasRequestSettings ? (
-              <Tooltip content={requestSettingsOpen ? 'Hide request settings' : 'Show request settings'} placement="top">
+              <Tooltip content={requestSettingsOpen ? t('StudioShell.hideRequestSettings') : t('StudioShell.showRequestSettings')} placement="top">
                 <IconButton
                   type="button"
                   className={requestSettingsOpen ? 'studio-intent-pill__trigger studio-intent-pill__trigger--open' : 'studio-intent-pill__trigger'}
-                  aria-label={requestSettingsOpen ? 'Hide request settings' : 'Show request settings'}
+                  aria-label={requestSettingsOpen ? t('StudioShell.hideRequestSettings') : t('StudioShell.showRequestSettings')}
                   aria-expanded={requestSettingsOpen}
                   onClick={() => setRequestSettingsOpen((value) => !value)}
                   icon={<ChevronRight size={15} aria-hidden="true" />}
@@ -257,13 +278,14 @@ function TextStudioHistoryRecordResult({
 }
 
 function TextStudioHistorySnapshotBody({ snapshot }: { snapshot: Extract<TesterRunHistoryResultSnapshot, { ok: true }> }) {
+  const { t } = useTranslation();
   if (snapshot.kind === 'text' || snapshot.kind === 'transcript') {
     return <TextStudioOutputBody text={snapshot.body} />;
   }
   if (snapshot.kind === 'embedding') {
     return (
       <div className="studio-result__rich">
-        <p className="studio-result__plain">Embedding generated successfully.</p>
+        <p className="studio-result__plain">{t('StudioShell.embeddingSuccess')}</p>
       </div>
     );
   }
@@ -274,34 +296,35 @@ function TextStudioHistorySnapshotBody({ snapshot }: { snapshot: Extract<TesterR
     return (
       <div className="studio-result__rich">
         {preview}
-        {!preview ? <p className="studio-result__plain">Media generated successfully.</p> : null}
+        {!preview ? <p className="studio-result__plain">{t('StudioShell.mediaSuccess')}</p> : null}
       </div>
     );
   }
   return (
     <ul className="studio-voice-list">
       {snapshot.sample.map((voice) => (
-        <li key={voice.voiceId || voice.name}>
-          <strong>{voice.name || voice.voiceId}</strong>
-          <span>{voice.voiceId} / {voice.lang}</span>
+        <li key={voice.voiceId}>
+          <strong>{voice.voiceId}</strong>
+          <span>{voice.workflowType} / {voice.status}</span>
         </li>
       ))}
-      {snapshot.sample.length === 0 ? <li><span>No voices returned.</span></li> : null}
+      {snapshot.sample.length === 0 ? <li><span>{t('StudioShell.noVoices')}</span></li> : null}
     </ul>
   );
 }
 
 function TextStudioRunError({ message }: { message: string }) {
+  const { t } = useTranslation();
   return (
     <div className="studio-result__blocked" role="alert">
       <div className="studio-result__blocked-line">
         <AlertTriangle size={15} aria-hidden="true" />
-        <span>Generation could not be completed</span>
+        <span>{t('StudioShell.generationFailed')}</span>
       </div>
-      <p>The run stopped before a typed Runtime result was returned.</p>
-      <p className="studio-result__hint">No result was produced. Resolve the typed Runtime failure before retrying.</p>
+      <p>{t('StudioShell.runStoppedEarly')}</p>
+      <p className="studio-result__hint">{t('StudioShell.noResultProduced')}</p>
       <details className="studio-diag">
-        <summary>Runtime details</summary>
+        <summary>{t('StudioShell.runtimeDetails')}</summary>
         <RuntimeDiagnosticsActions text={message} filenameBase="runtime-call" />
         <pre className="studio-diag__json">{message}</pre>
       </details>
@@ -334,13 +357,14 @@ export function TextStudioResultState({
   onDownload: () => void;
   onRegenerate: () => void;
 }) {
+  const { t } = useTranslation();
   return (
-    <section className="studio-thread" aria-label={`${capability.label} result`}>
+    <section className="studio-thread" aria-label={t('StudioShell.resultAriaLabel', { capability: t(capability.labelKey) })}>
       <div className="studio-thread__scroll">
         <article className="studio-turn studio-turn--user">
           <div className="studio-turn__label">
             <MessageSquare size={14} aria-hidden="true" />
-            <span>Prompt</span>
+            <span>{t('StudioShell.promptLabel')}</span>
           </div>
           <p>{activeRun.prompt}</p>
           <TextStudioPromptSettings activeRun={activeRun} />
@@ -348,7 +372,7 @@ export function TextStudioResultState({
         <article className="studio-turn studio-turn--assistant">
           <div className="studio-turn__label">
             <FileText size={14} aria-hidden="true" />
-            <span>Generation</span>
+            <span>{t('StudioShell.generationLabel')}</span>
           </div>
           {activeRun.error ? (
             <TextStudioRunError message={activeRun.error} />

@@ -97,7 +97,7 @@ function RecipeTile({
             aria-pressed={active}
             leadingIcon={<Code2 size={14} strokeWidth={2.2} aria-hidden="true" />}
             aria-label={`Inspect ${recipe.name}`}
-            className="kit-recipe-inspect-action min-h-10 rounded-full border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_44%,var(--nimi-border-strong))] bg-[var(--nimi-surface-card)] px-4 text-[var(--nimi-text-primary)] shadow-[0_10px_22px_rgba(15,23,42,0.10)] hover:border-[var(--nimi-action-primary-bg)] hover:bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,var(--nimi-surface-card))] hover:shadow-[0_12px_26px_rgba(44,184,154,0.18)] data-[active]:border-[var(--nimi-action-primary-bg)] data-[active]:bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_16%,var(--nimi-surface-card))] data-[active]:text-[var(--nimi-text-primary)]"
+            className="kit-recipe-inspect-action min-h-10 rounded-full border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_44%,var(--nimi-border-strong))] bg-[var(--nimi-surface-card)] px-4 text-[var(--nimi-text-primary)] shadow-[var(--nimi-elevation-raised)] hover:border-[var(--nimi-action-primary-bg)] hover:bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,var(--nimi-surface-card))] hover:shadow-[0_12px_26px_rgba(44,184,154,0.18)] data-[active]:border-[var(--nimi-action-primary-bg)] data-[active]:bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_16%,var(--nimi-surface-card))] data-[active]:text-[var(--nimi-text-primary)]"
             onClick={onInspect}
           >
             Inspect

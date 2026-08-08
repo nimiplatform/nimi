@@ -2,6 +2,7 @@ import { getTesterCapability, type TesterCapabilityId } from './tester-capabilit
 import { isJsonObject } from '@nimiplatform/sdk/types';
 import type { TesterCapabilityRunResult } from './tester-runtime.js';
 import type { TesterRunTargetSummary } from './tester-run-target.js';
+import type { TesterUnavailableReason } from './tester-unavailable.js';
 
 export type TesterRunConfigSnapshot = {
   target: Pick<
@@ -88,7 +89,7 @@ export type TesterRunHistoryResultSnapshot =
       kind: 'voice-catalog';
       summary: string;
       voiceCount: number;
-      sample: Array<{ voiceId: string; name: string; lang: string }>;
+      sample: Array<{ voiceId: string; workflowType: string; status: string }>;
       traceId?: string;
       simulated?: boolean;
     }
@@ -96,7 +97,7 @@ export type TesterRunHistoryResultSnapshot =
       ok: false;
       kind: 'unavailable';
       summary: string;
-      reason: string;
+      reason: TesterUnavailableReason;
       message: string;
       actionHint: string;
       missingSurface?: string;
@@ -327,11 +328,101 @@ export function createTesterRunHistoryResultSnapshot(result: TesterCapabilityRun
   return {
     ok: true,
     kind: 'voice-catalog',
-    summary: `${output.voiceCount} voice${output.voiceCount === 1 ? '' : 's'}${output.sample.length ? ` / ${output.sample.map((voice) => voice.name || voice.voiceId).filter(Boolean).join(', ')}` : ''}`,
+    summary: `${output.voiceCount} voice${output.voiceCount === 1 ? '' : 's'}${output.sample.length ? ` / ${output.sample.map((voice) => voice.voiceId).filter(Boolean).join(', ')}` : ''}`,
     voiceCount: output.voiceCount,
     sample: output.sample,
     traceId: result.trace?.traceId,
     simulated: result.trace?.simulated,
+  };
+}
+
+export function restoreTesterCapabilityRunResult(record: TesterRunHistoryRecord): TesterCapabilityRunResult | null {
+  const snapshot = record.result;
+  if (!snapshot) return null;
+  if (isTesterUnavailableHistorySnapshot(snapshot)) {
+    return {
+      ok: false,
+      capabilityId: record.capabilityId,
+      reason: snapshot.reason,
+      message: snapshot.message,
+      actionHint: snapshot.actionHint,
+      ...(snapshot.missingSurface ? { missingSurface: snapshot.missingSurface } : {}),
+    };
+  }
+
+  let capabilityLabel: string;
+  try {
+    capabilityLabel = getTesterCapability(record.capabilityId as TesterCapabilityId).label;
+  } catch {
+    return null;
+  }
+  const trace = snapshot.traceId || snapshot.simulated !== undefined
+    ? { traceId: snapshot.traceId, simulated: snapshot.simulated }
+    : undefined;
+  const common = {
+    ok: true as const,
+    capabilityId: record.capabilityId as TesterCapabilityId,
+    capabilityLabel,
+    message: record.message,
+    ...(trace ? { trace } : {}),
+  };
+  if (snapshot.kind === 'text') {
+    return {
+      ...common,
+      output: {
+        kind: 'text',
+        text: snapshot.body,
+        finishReason: snapshot.finishReason,
+        streamed: snapshot.streamed,
+        inputTokens: snapshot.inputTokens,
+        outputTokens: snapshot.outputTokens,
+        totalTokens: snapshot.totalTokens,
+      },
+    };
+  }
+  if (snapshot.kind === 'embedding') {
+    return {
+      ...common,
+      output: {
+        kind: 'embedding',
+        vectorCount: snapshot.vectorCount,
+        dimensions: snapshot.dimensions,
+        sample: snapshot.sample,
+        totalTokens: snapshot.totalTokens,
+      },
+    };
+  }
+  if (snapshot.kind === 'artifacts') {
+    return {
+      ...common,
+      output: {
+        kind: 'artifacts',
+        jobId: snapshot.jobId,
+        jobState: snapshot.jobState,
+        artifactCount: snapshot.artifactCount,
+        ...(snapshot.firstArtifact ? { firstArtifact: snapshot.firstArtifact } : {}),
+      },
+    };
+  }
+  if (snapshot.kind === 'transcript') {
+    return {
+      ...common,
+      output: {
+        kind: 'transcript',
+        text: snapshot.body,
+        jobId: snapshot.jobId,
+        jobState: snapshot.jobState,
+        artifactCount: snapshot.artifactCount,
+      },
+    };
+  }
+  return {
+    ...common,
+    output: {
+      kind: 'voice-catalog',
+      voiceCount: snapshot.voiceCount,
+      sample: snapshot.sample,
+    },
   };
 }
 
@@ -410,8 +501,8 @@ const TEXT_REQUEST_PARAM_ORDER: ReadonlyArray<{ key: string; label: string; grou
   { key: 'maxTokens', label: 'Max Tokens', group: PARAM_GROUP_LABELS.generation },
   { key: 'topP', label: 'Top P', group: PARAM_GROUP_LABELS.generation },
   { key: 'topK', label: 'Top K', group: PARAM_GROUP_LABELS.generation },
-  { key: 'timeoutMs', label: 'Timeout', group: PARAM_GROUP_LABELS.response },
-  { key: 'stopSequences', label: 'Stop Sequences', group: PARAM_GROUP_LABELS.response },
+  { key: 'stop', label: 'Stop Sequences', group: PARAM_GROUP_LABELS.response },
+  { key: 'seed', label: 'Seed', group: PARAM_GROUP_LABELS.response },
   { key: 'presencePenalty', label: 'Presence Penalty', group: PARAM_GROUP_LABELS.advanced },
   { key: 'frequencyPenalty', label: 'Frequency Penalty', group: PARAM_GROUP_LABELS.advanced },
 ];
@@ -427,7 +518,7 @@ const HIDDEN_REQUEST_PARAM_KEYS = Object.freeze([
 function hasRunConfigParam(value: unknown): boolean {
   if (typeof value === 'string') return value.trim().length > 0;
   if (typeof value === 'number') return Number.isFinite(value);
-  if (typeof value === 'boolean') return value;
+  if (typeof value === 'boolean') return true;
   if (Array.isArray(value)) return value.length > 0;
   return Boolean(value);
 }

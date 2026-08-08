@@ -3,6 +3,7 @@ import type {
   TesterCapabilityRunResult,
 } from '../tester-runtime.js';
 import type { TesterRunTargetSummary } from '../tester-run-target.js';
+import { t } from '../../shell/i18n/index.js';
 
 export type ScenarioPreset = {
   id: string;
@@ -97,14 +98,14 @@ export function statusForCapability(
     return {
       label: 'tauri-only',
       tone: 'info',
-      detail: 'Standalone viewer fixture. It can write a local run record, but it is not a runtime artifact.',
+      detail: t('Studio.admission.tauriOnlyDetail'),
     };
   }
   if (capability.execution === 'typed-unavailable') {
     return {
       label: 'SDK gap',
       tone: 'warning',
-      detail: capability.missingSurface || 'No admitted typed SDK method is available for this capability.',
+      detail: capability.missingSurface || t('Studio.admission.sdkGapDetail'),
     };
   }
   if (
@@ -160,12 +161,3 @@ export function statusForCapability(
     detail: target.detail,
   };
 }
-
-export const STATUS_PILL_LABEL: Record<CapabilityStatus['label'], string> = {
-  configured: 'Configured',
-  blocked: 'Blocked',
-  'not admitted': 'Not admitted',
-  'SDK gap': 'SDK gap',
-  'tauri-only': 'Tauri only',
-  checking: 'Checking',
-};

@@ -1,8 +1,11 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
 import test from 'node:test';
 import {
   cleanupBehaviorModules,
   importBehaviorModule,
+  root,
 } from './helpers.mjs';
 
 test.after(cleanupBehaviorModules);
@@ -29,90 +32,103 @@ test('tester treats AI_CONFIG_NOT_FOUND as one unconfigured App AIConfig project
   }));
 });
 
-test('tester Local selection preserves unrelated intents and carries no model or binding truth', async () => {
+test('tester delegates one complete portable AIConfig overwrite without app-local route construction', async () => {
+  const { overwriteTesterAIConfig } = await importBehaviorModule('tester/tester-ai-config-store.js');
+  const capabilities = [
+    localIntent('text.generate'),
+    {
+      capabilityContract: 'video.generate',
+      requiredFeatures: [],
+      route: {
+        oneofKind: 'cloud',
+        cloud: {
+          implementation: {
+            implementationId: 'cloud.video.from-host',
+            driverId: 'cloud.driver.from-host',
+            driverDialect: 'video/v1',
+          },
+          providerModelTarget: { provider: 'host-provider', providerModelId: 'host-video-model' },
+        },
+      },
+    },
+  ];
+  const calls = [];
+  const next = await overwriteTesterAIConfig({
+    async overwrite(input) {
+      calls.push(input);
+      return config(...input);
+    },
+  }, capabilities);
+
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0], capabilities);
+  assert.deepEqual(next.capabilities, capabilities);
+  assert.equal('connectorGrantId' in next.capabilities[1].route.cloud, false);
+});
+
+test('tester Model Config adapter preserves portable video intent and rejects grant binding output', async () => {
   const {
-    createTesterLocalCapabilityIntent,
-    overwriteTesterCapabilityIntent,
+    toTesterModelConfigCapabilities,
+    toTesterPortableAIConfigCapabilities,
   } = await importBehaviorModule('tester/tester-ai-config-store.js');
-  const cloud = {
-    capabilityContract: 'image.generate',
+  const portable = [{
+    capabilityContract: 'video.generate',
     requiredFeatures: [],
     route: {
       oneofKind: 'cloud',
       cloud: {
         implementation: {
-          implementationId: 'image.cloud',
-          driverId: 'cloud.driver',
-          driverDialect: 'v1',
+          implementationId: 'cloud.video.from-host',
+          driverId: 'cloud.driver.from-host',
+          driverDialect: 'video/v1',
         },
+        providerModelTarget: { provider: 'host-provider', providerModelId: 'host-video-model' },
       },
     },
-  };
-  const current = config(cloud);
-  const calls = [];
-  const next = await overwriteTesterCapabilityIntent({
-    async get() {
-      return current;
-    },
-    async overwrite(capabilities) {
-      calls.push(capabilities);
-      return config(...capabilities);
-    },
-  }, current, createTesterLocalCapabilityIntent('text.generate'));
+  }];
+  const draft = toTesterModelConfigCapabilities(portable);
+  assert.equal(draft[0].route.cloud.connectorGrantId, '');
+  assert.deepEqual(toTesterPortableAIConfigCapabilities(draft), portable);
 
-  assert.equal(next.capabilities.length, 2);
-  assert.equal(next.capabilities[0].capabilityContract, 'image.generate');
-  assert.deepEqual(next.capabilities[1], localIntent('text.generate'));
-  assert.doesNotMatch(JSON.stringify(next.capabilities[1]), /model|asset|binding|target|path/iu);
-  assert.equal(calls.length, 1);
+  draft[0].route.cloud.connectorGrantId = 'forbidden-grant';
+  assert.throws(
+    () => toTesterPortableAIConfigCapabilities(draft),
+    /must not submit ConnectorGrant/u,
+  );
 });
 
-test('tester image Cloud intent preserves whole-object neighbors without hardcoded provider or model choices', async () => {
+test('tester shared Model Config inventory includes video.generate and deduplicates studio aliases', async () => {
   const {
-    createTesterCloudCapabilityIntent,
-    overwriteTesterCapabilityIntent,
-  } = await importBehaviorModule('tester/tester-ai-config-store.js');
-  const current = config(localIntent('text.generate'));
-  const cloud = createTesterCloudCapabilityIntent('image.generate', null, {
-    implementationId: 'cloud.image.custom',
-    driverId: 'cloud.driver.custom',
-    driverDialect: 'custom/image/v1',
-    provider: 'provider-from-runtime-catalog',
-    providerModelId: 'model-from-runtime-catalog',
-    remoteModelCatalogId: 'catalog-entry-7',
-  });
-  const next = await overwriteTesterCapabilityIntent({
-    async overwrite(capabilities) {
-      return config(...capabilities);
-    },
-  }, current, cloud);
+    testerCapabilities,
+    testerModelConfigCapabilityContracts,
+  } = await importBehaviorModule('tester/tester-capabilities.js');
+  assert.deepEqual(testerModelConfigCapabilityContracts, [
+    'text.generate',
+    'text.embed',
+    'image.generate',
+    'video.generate',
+    'audio.synthesize',
+    'audio.transcribe',
+  ]);
+  for (const capability of testerCapabilities.filter((entry) => entry.execution === 'runtime-sdk')) {
+    assert.doesNotMatch(capability.summary, /currently unavailable/iu);
+    assert.doesNotMatch(capability.surface, /typed unavailable/iu);
+  }
+});
 
-  assert.equal(next.capabilities[0].capabilityContract, 'text.generate');
-  assert.equal(next.capabilities[1].route.oneofKind, 'cloud');
-  assert.deepEqual(next.capabilities[1].route.cloud.implementation, {
-    implementationId: 'cloud.image.custom',
-    driverId: 'cloud.driver.custom',
-    driverDialect: 'custom/image/v1',
-  });
-  assert.equal(
-    next.capabilities[1].route.cloud.providerModelTarget.fields.provider.kind.stringValue,
-    'provider-from-runtime-catalog',
-  );
-  assert.equal(
-    next.capabilities[1].route.cloud.providerModelTarget.fields.providerModelId.kind.stringValue,
-    'model-from-runtime-catalog',
-  );
-  assert.equal('connectorGrantId' in next.capabilities[1].route.cloud, false);
-
-  assert.throws(() => createTesterCloudCapabilityIntent('image.generate', null, {
-    implementationId: 'cloud.image.custom',
-    driverId: 'cloud.driver.custom',
-    driverDialect: 'custom/image/v1',
-    provider: 'provider-from-runtime-catalog',
-    providerModelId: 'model-from-runtime-catalog',
-    remoteModelCatalogId: 'catalog-entry-7',
-    connectorGrantId: 'forbidden-custody',
-  }), /must not carry binding or custody/u);
+test('tester mounts the shared third-party App AIConfig surface instead of custom model fields', () => {
+  const source = readFileSync(path.join(
+    root,
+    'src/tester/workbench/tester-ai-config-settings-panel.tsx',
+  ), 'utf8');
+  assert.match(source, /ModelConfigAIConfigSurface/u);
+  assert.match(source, /consumer: 'third-party-app'/u);
+  assert.match(source, /initialCapabilityContract=\{capabilityId\}/u);
+  assert.match(source, /rendererHost\.sdk\.modelConfig\.localSelections\(\)/u);
+  assert.doesNotMatch(source, /machine-local-ai-configuration-not-exposed-to-local-app/u);
+  assert.match(source, /onOpenCloudConnectorConfiguration/u);
+  assert.match(source, /kind: 'open-runtime-config'[\s\S]*page: 'cloud'[\s\S]*action: 'add-connector'/u);
+  assert.doesNotMatch(source, /Implementation ID|Provider model ID|remoteModelCatalogId/u);
 });
 
 test('tester rejects any AIConfig projection not owned by the exact nimi.tester App', async () => {

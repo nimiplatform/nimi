@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { NimiPortableAppAIConfig } from '@nimiplatform/sdk/ai';
 import { hasTauriRuntime } from '@nimiplatform/kit/shell/renderer/bridge';
+import { t } from '../../shell/i18n/index.js';
 import type { TesterCapability } from '../tester-capabilities.js';
 import { getTesterRunIntentLabel, type TesterRunConfigSnapshot, type TesterRunHistoryRecord } from '../tester-history.js';
 import { useTesterRendererHost } from '../../renderer/context.js';
@@ -33,12 +34,12 @@ export function textStudioIntentSummary(
   runTarget: TesterRunTargetSummary,
   record: TesterRunHistoryRecord | null,
 ): string {
-  if (record) return `Intent: ${getTesterRunIntentLabel(record)}`;
-  return `Intent: ${runTarget.intentLabel}`;
+  if (record) return t('Studio.composer.intentSummary', { intent: getTesterRunIntentLabel(record) });
+  return t('Studio.composer.intentSummary', { intent: runTarget.intentLabel });
 }
 
 export function textStudioRunTargetIntentSummary(runTarget: TesterRunTargetSummary): string {
-  return `Intent: ${runTarget.intentLabel}`;
+  return t('Studio.composer.intentSummary', { intent: runTarget.intentLabel });
 }
 
 export function canConfigureRunTarget(runTarget: TesterRunTargetSummary): boolean {
@@ -73,7 +74,7 @@ export function useTesterRunTargetSummary(
           setConfigProjection({
             state: 'failed',
             config: null,
-            error: cause instanceof Error ? cause.message : String(cause || 'App AIConfig load failed.'),
+            error: cause instanceof Error ? cause.message : String(cause || t('Studio.run.aiConfigLoadFailed')),
           });
         }
       });
@@ -135,10 +136,12 @@ export function createRunConfigSnapshot(input: {
   promptStyle?: TextStudioPromptStyle | null;
   context: string;
   attachmentCount: number;
+  requestParameters?: Readonly<Record<string, unknown>>;
 }): TesterRunConfigSnapshot {
   const { target } = input;
   const params = {
     ...target.params,
+    ...(input.requestParameters ?? {}),
     ...(input.promptStyle ? {
       tone: input.promptStyle.tone,
       length: input.promptStyle.length,

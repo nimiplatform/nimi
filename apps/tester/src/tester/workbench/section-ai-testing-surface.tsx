@@ -5,7 +5,6 @@ import type { TesterRunConfigSnapshot, TesterRunHistory, TesterRunHistoryRecord 
 import type { TesterCapabilityRunResult } from '../tester-runtime.js';
 
 export {
-  STATUS_PILL_LABEL,
   presetFor,
   statusForCapability,
 } from './section-ai-testing-admission.js';

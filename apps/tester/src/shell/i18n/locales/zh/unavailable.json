@@ -1,0 +1,34 @@
+{
+  "Unavailable": {
+    "title": {
+      "runtimeUnavailable": "Runtime 不可用",
+      "inputInvalid": "请求输入无效",
+      "sdkMethodUnavailable": "SDK 方法不可用",
+      "principalUnauthorized": "Runtime 所有者未授权",
+      "runtimeCallFailed": "Runtime 调用失败"
+    },
+    "message": {
+      "runtimeUnavailable": "本次请求中 Runtime 不可用。",
+      "inputInvalid": "请求需要提供有效的提示词或必填输入后才能运行。",
+      "sdkMethodUnavailable": "当前 App 构建中此能力不可用。",
+      "principalUnauthorized": "Runtime 拒绝了本次请求的受保护所有者。",
+      "runtimeCallFailed": "Runtime 未能完成本次生成。",
+      "fallback": "本次生成未完成。"
+    },
+    "action": {
+      "runtimeUnavailable": "启动或重新连接 Runtime 后重试。",
+      "inputInvalid": "检查提示词与必填字段后重新运行。",
+      "sdkMethodUnavailable": "更新 App 或切换到受支持的能力。",
+      "principalUnauthorized": "恢复受保护的 App 会话后重试。",
+      "runtimeCallFailed": "查看带类型的 Runtime 错误，解决其原因后重试。",
+      "fallback": "查看 Runtime 诊断详情后重试。"
+    },
+    "hint": {
+      "runtimeUnavailable": "恢复受保护的 Runtime 连接后重试同一请求。",
+      "inputInvalid": "为此能力提供有效的请求体后重试。",
+      "sdkMethodUnavailable": "添加一个已准入的 SDK Nimi App 执行方法。不要用 App 本地 REST 绕过 Runtime。",
+      "principalUnauthorized": "Runtime 拒绝了受保护的所有者身份。请先恢复已准入的 App 会话再重试。",
+      "runtimeCallFailed": "Runtime 返回了带类型的契约失败。请查看原始 Runtime 错误，不要推断为成功。"
+    }
+  }
+}

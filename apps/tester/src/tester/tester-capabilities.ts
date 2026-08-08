@@ -11,9 +11,15 @@ export type TesterCapabilityId =
 
 export type TesterCapability = {
   id: TesterCapabilityId;
+  /** English technical identity; also persisted into run records and results. */
   label: string;
+  /** Locale key for the rendering-layer label (side nav, panels). */
+  labelKey: string;
   group: 'text' | 'media' | 'audio' | 'world';
+  /** English technical summary; persisted/diagnostic surfaces only. */
   summary: string;
+  /** Locale key for the rendering-layer summary. */
+  summaryKey: string;
   surface: string;
   execution: 'runtime-sdk' | 'standalone-tauri' | 'typed-unavailable';
   capabilityContract?: string;
@@ -24,8 +30,10 @@ export const testerCapabilities: TesterCapability[] = [
   {
     id: 'text.generate',
     label: 'Text Studio',
+    labelKey: 'Capabilities.textGenerate.label',
     group: 'text',
     summary: 'Prompt → text.generate CapabilityContract → typed Runtime result.',
+    summaryKey: 'Capabilities.textGenerate.summary',
     surface: 'sdk.localApp.ai.text.generateCandidate → RuntimeAiService.GenerateLocalAppTextCandidate',
     execution: 'runtime-sdk',
     capabilityContract: 'text.generate',
@@ -33,75 +41,101 @@ export const testerCapabilities: TesterCapability[] = [
   {
     id: 'chat.stream',
     label: 'Chat Stream',
+    labelKey: 'Capabilities.chatStream.label',
     group: 'text',
-    summary: 'Conversation turn → text.generate stream semantics (currently unavailable in this carrier).',
-    surface: 'CapabilityContract:text.generate → typed unavailable',
+    summary: 'Conversation turn → protected text.generate stream → incremental typed Runtime result.',
+    summaryKey: 'Capabilities.chatStream.summary',
+    surface: 'kit.runRuntimeAIConsumeCapability → sdk.localApp.ai.text.streamTurn',
     execution: 'runtime-sdk',
     capabilityContract: 'text.generate',
   },
   {
     id: 'text.embed',
     label: 'Embeddings',
+    labelKey: 'Capabilities.textEmbed.label',
     group: 'text',
-    summary: 'Input string → text.embed CapabilityContract (currently unavailable in this carrier).',
-    surface: 'CapabilityContract:text.embed → typed unavailable',
+    summary: 'Input string → protected scenario.execute text.embed → typed vector result.',
+    summaryKey: 'Capabilities.textEmbed.summary',
+    surface: 'sdk.localApp.ai.scenario.execute:text-embed',
     execution: 'runtime-sdk',
     capabilityContract: 'text.embed',
   },
   {
     id: 'image.generate',
     label: 'Image Generate',
+    labelKey: 'Capabilities.imageGenerate.label',
     group: 'media',
-    summary: 'Prompt → image.generate CapabilityContract (currently unavailable in this carrier).',
-    surface: 'CapabilityContract:image.generate → typed unavailable',
+    summary: 'Prompt → image.generate Scenario Job → typed artifact preview result.',
+    summaryKey: 'Capabilities.imageGenerate.summary',
+    surface: 'kit.runRuntimeImageGenerate → sdk.localApp.ai.scenarioJobs + artifacts',
     execution: 'runtime-sdk',
     capabilityContract: 'image.generate',
   },
   {
     id: 'video.generate',
     label: 'Video Generate',
+    labelKey: 'Capabilities.videoGenerate.label',
     group: 'media',
-    summary: 'Prompt → video.generate CapabilityContract (currently unavailable in this carrier).',
-    surface: 'CapabilityContract:video.generate → typed unavailable',
+    summary: 'Prompt → video.generate Scenario Job → typed artifact preview result.',
+    summaryKey: 'Capabilities.videoGenerate.summary',
+    surface: 'kit.runRuntimeVideoGenerate → sdk.localApp.ai.scenarioJobs + artifacts',
     execution: 'runtime-sdk',
     capabilityContract: 'video.generate',
   },
   {
     id: 'audio.synthesize',
     label: 'Speech Synthesis',
+    labelKey: 'Capabilities.audioSynthesize.label',
     group: 'audio',
-    summary: 'Text → audio.synthesize CapabilityContract (currently unavailable in this carrier).',
-    surface: 'CapabilityContract:audio.synthesize → typed unavailable',
+    summary: 'Text → audio.synthesize Scenario Job → typed audio artifact result.',
+    summaryKey: 'Capabilities.audioSynthesize.summary',
+    surface: 'kit.runRuntimeSpeechSynthesize → sdk.localApp.ai.scenarioJobs + artifacts',
     execution: 'runtime-sdk',
     capabilityContract: 'audio.synthesize',
   },
   {
     id: 'audio.transcribe',
     label: 'Speech Transcribe',
+    labelKey: 'Capabilities.audioTranscribe.label',
     group: 'audio',
-    summary: 'Audio URL → audio.transcribe CapabilityContract (currently unavailable in this carrier).',
-    surface: 'CapabilityContract:audio.transcribe → typed unavailable',
+    summary: 'Audio URL → audio.transcribe Scenario Job → typed transcript result.',
+    summaryKey: 'Capabilities.audioTranscribe.summary',
+    surface: 'kit.runRuntimeSpeechTranscribe → sdk.localApp.ai.scenarioJobs + artifacts',
     execution: 'runtime-sdk',
     capabilityContract: 'audio.transcribe',
   },
   {
     id: 'speech.bundle',
     label: 'Speech Bundle',
+    labelKey: 'Capabilities.speechBundle.label',
     group: 'audio',
-    summary: 'Inspect the audio.synthesize voice catalog surface (currently unavailable in this carrier).',
-    surface: 'CapabilityContract:audio.synthesize voice catalog → typed unavailable',
+    summary: 'Inspect owner-scoped voice references through the protected Runtime voice catalog.',
+    summaryKey: 'Capabilities.speechBundle.summary',
+    surface: 'kit.runRuntimeVoiceCatalog → sdk.localApp.ai.voiceAssets.list',
     execution: 'runtime-sdk',
     capabilityContract: 'audio.synthesize',
   },
   {
     id: 'world.generate',
     label: 'World Tour',
+    labelKey: 'Capabilities.worldGenerate.label',
     group: 'world',
     summary: 'Standalone Tauri viewer launch via app-owned open_world_tour_window command.',
+    summaryKey: 'Capabilities.worldGenerate.summary',
     surface: 'app-owned tauri: resolve_world_tour_fixture + open_world_tour_window',
     execution: 'standalone-tauri',
   },
 ];
+
+export const testerModelConfigCapabilityContracts: readonly string[] = Object.freeze(
+  testerCapabilities
+    .flatMap((capability) => (
+      capability.execution === 'runtime-sdk' && capability.capabilityContract
+        ? [capability.capabilityContract]
+        : []
+    ))
+    .filter((capabilityContract, index, contracts) => contracts.indexOf(capabilityContract) === index),
+);
 
 export function getTesterCapability(id: TesterCapabilityId): TesterCapability {
   const capability = testerCapabilities.find((item) => item.id === id);

@@ -1,3 +1,4 @@
+import { useTranslation } from '../../shell/i18n/index.js';
 import {
   appAccessSessionFacts,
   type AppAccessSessionFactId,
@@ -15,11 +16,12 @@ export type AppAccessSessionFact = {
 export type AppAccessSessionFacts = Readonly<Record<AppAccessSessionFactId, AppAccessSessionFact>>;
 
 export function AppAccessSessionBar({ facts }: { readonly facts: AppAccessSessionFacts }) {
+  const { t } = useTranslation();
   return (
-    <section className="app-access-session" aria-label="Session and identity">
+    <section className="app-access-session" aria-label={t('AppAccess.sessionBar.ariaLabel')}>
       <div className="app-access-session__head">
-        <h2 className="app-access-group__title">Session &amp; Identity</h2>
-        <p className="app-access-group__blurb">Independent facts, each queried on its own — none is derived from another.</p>
+        <h2 className="app-access-group__title">{t('AppAccess.sessionBar.title')}</h2>
+        <p className="app-access-group__blurb">{t('AppAccess.sessionBar.blurb')}</p>
       </div>
       <div className="app-access-session__grid">
         {(Object.keys(appAccessSessionFacts) as AppAccessSessionFactId[]).map((id) => {
@@ -32,11 +34,11 @@ export function AppAccessSessionBar({ facts }: { readonly facts: AppAccessSessio
               data-testid={meta.testId}
               data-state={fact.state}
             >
-              <span className="app-access-fact__label">{meta.label}</span>
+              <span className="app-access-fact__label">{t(meta.labelKey)}</span>
               <span className="app-access-fact__detail">{fact.detail}</span>
               {fact.technical ? (
                 <details className="app-access-diag">
-                  <summary>Technical details</summary>
+                  <summary>{t('AppAccess.page.technicalDetails')}</summary>
                   <p className="app-access-diag__note"><code>{fact.technical}</code></p>
                 </details>
               ) : null}

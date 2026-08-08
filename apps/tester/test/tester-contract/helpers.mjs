@@ -32,6 +32,7 @@ function buildBehaviorModules() {
     'false',
     'src/tester/local-app-conversation-journey.ts',
     'src/tester/tester-ai-config-store.ts',
+    'src/tester/tester-capabilities.ts',
     'src/tester/tester-run-target.ts',
     'src/tester/tester-history.ts',
     'src/tester/workbench/section-ai-testing-admission.ts',

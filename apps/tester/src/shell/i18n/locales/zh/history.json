@@ -1,0 +1,67 @@
+{
+  "History": {
+    "title": "历史",
+    "panelAriaLabel": "Runtime 测试历史",
+    "filterAriaLabel": "筛选历史",
+    "filtersAriaLabel": "历史筛选",
+    "menus": {
+      "status": "状态",
+      "capability": "能力",
+      "environment": "环境",
+      "activity": "最近活动",
+      "group": "分组方式",
+      "sort": "排序方式"
+    },
+    "filters": {
+      "status": {
+        "all": "全部状态",
+        "active": "活跃",
+        "blocked": "受阻",
+        "localFixture": "本地夹具"
+      },
+      "environment": {
+        "all": "全部",
+        "local": "本地",
+        "cloud": "云端",
+        "remoteControl": "远程控制"
+      },
+      "activity": {
+        "all": "全部",
+        "today": "今天",
+        "last7Days": "最近 7 天",
+        "last30Days": "最近 30 天"
+      },
+      "group": {
+        "none": "无",
+        "date": "日期",
+        "capability": "能力"
+      },
+      "sort": {
+        "recency": "最近优先",
+        "oldest": "最早优先"
+      },
+      "capability": {
+        "all": "全部",
+        "allCapabilities": "全部能力"
+      }
+    },
+    "clearFilters": "清除全部筛选",
+    "source": {
+      "local": "本地",
+      "cloud": "云端",
+      "unknown": "未知"
+    },
+    "failed": "失败",
+    "today": "今天",
+    "yesterday": "昨天",
+    "unknownDate": "未知日期",
+    "runAriaIntent": "{{source}}意图：{{intent}}",
+    "runAriaPrompt": "提示词：{{prompt}}",
+    "groupRunsAriaLabel": "{{group}}的运行",
+    "recentRuns": "最近运行",
+    "emptyNone": "还没有运行记录",
+    "emptyFiltered": "没有符合这些筛选条件的运行",
+    "loadFailedTitle": "历史加载失败",
+    "saveFailedTitle": "历史保存失败"
+  }
+}

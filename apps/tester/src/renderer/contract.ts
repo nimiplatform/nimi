@@ -9,7 +9,7 @@ import type {
   NimiPortableAppAIConfig,
   NimiPortableAppAIConfigIntent,
 } from '@nimiplatform/sdk/ai';
-import type { NimiLocalAppAgentHandle } from '@nimiplatform/sdk/app';
+import type { NimiLocalAppAgentHandle, NimiLocalAppArtifactImageMime } from '@nimiplatform/sdk/app';
 import type { RealmListChatsResultDto } from '@nimiplatform/kit/features/chat/realm';
 import type {
   AnyNimiCanonicalRendererHostBindingsV1,
@@ -84,11 +84,30 @@ export interface TesterRendererEventPort {
 
 export interface TesterRendererSdkPort {
   runCapability(input: TesterCapabilityRunInput): Promise<TesterCapabilityRunResult>;
+  listLocalAppVoiceAssets(): Promise<readonly {
+    readonly voiceAssetId: string;
+    readonly workflowType: string;
+    readonly status: string;
+  }[]>;
+  uploadLocalAppArtifact(input: {
+    readonly bytes: Uint8Array;
+    readonly mimeType: NimiLocalAppArtifactImageMime;
+  }): Promise<{ readonly artifactId: string; readonly sizeBytes: number; readonly mimeType: NimiLocalAppArtifactImageMime }>;
   aiConfig: {
     get(): Promise<NimiPortableAppAIConfig | null>;
     overwrite(
       capabilities: readonly NimiPortableAppAIConfigIntent[],
     ): Promise<NimiPortableAppAIConfig>;
+  };
+  modelConfig: {
+    localSelections(): Promise<readonly {
+      readonly capabilityContract: string;
+      readonly state: 'selected' | 'broken';
+      readonly configurationId: null;
+      readonly displayName: string | null;
+      readonly supportedFeatures: readonly string[];
+      readonly reasons: readonly string[];
+    }[]>;
   };
   settings: {
     notificationUnread(): Promise<NimiRealmNotificationUnreadView>;

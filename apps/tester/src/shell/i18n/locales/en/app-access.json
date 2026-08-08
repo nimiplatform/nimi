@@ -1,0 +1,175 @@
+{
+  "AppAccess": {
+    "page": {
+      "title": "App Access",
+      "eyebrow": "Nimi Lab",
+      "blurb": "Verify a third-party local App contract against the real Runtime link: session and identity posture, app-private storage, Realm data, AI consumption, Agent conversation, and boundary rejections. Every probe runs the real path; nothing is simulated.",
+      "refreshSession": "Refresh session",
+      "runAll": "Run all probes",
+      "runGroup": "Run group",
+      "signedOut": "Sign in to Nimi from the account menu to run App Access probes.",
+      "sessionLost": "The Nimi session was lost. Probe evidence from the previous session has been cleared.",
+      "noAgentReferences": "No active Agent under the current account. Create and activate one in Nimi Desktop, then re-run Active Agent references.",
+      "technicalDetails": "Technical details",
+      "notRun": "Not run yet.",
+      "sessionBound": "Session bound",
+      "noSession": "No session",
+      "agentSelectAriaLabel": "Current active Agent",
+      "agentSelectPlaceholder": "No active Agent"
+    },
+    "sessionStates": {
+      "sessionBound": "Session bound",
+      "actionRequired": "Action required — check Nimi Desktop",
+      "revoked": "Session revoked — sign in again",
+      "projectChanged": "Project changed — re-open the App",
+      "processReplaced": "App process was replaced — restart the App",
+      "accountChanged": "Account changed — sign in again",
+      "runtimeRestarted": "Runtime restarted — refresh the session",
+      "unavailable": "Session unavailable"
+    },
+    "factDetails": {
+      "rendererSince": "Renderer since {{time}}",
+      "checkingSession": "Checking the Nimi session…",
+      "toolingHmrActive": "Vite HMR client active",
+      "toolingHmrMissing": "No official HMR client observed",
+      "checkingCurrentUser": "Checking the current user…",
+      "sessionLostRecheck": "Session lost — refresh to re-check",
+      "currentUserSummary": "{{name}} · @{{handle}} · avatar {{avatar}}",
+      "avatarSet": "set",
+      "avatarNone": "none",
+      "currentUserUnavailable": "Current user unavailable",
+      "hmrUpdateObserved": "HMR update observed · {{time}}"
+    },
+    "sessionFacts": {
+      "appProcess": "App process",
+      "session": "Nimi session",
+      "tooling": "Developer tooling",
+      "currentUser": "Current user"
+    },
+    "sessionBar": {
+      "ariaLabel": "Session and identity",
+      "title": "Session & Identity",
+      "blurb": "Independent facts, each queried on its own — none is derived from another."
+    },
+    "groups": {
+      "storage": {
+        "title": "App Storage (Base)",
+        "blurb": "App-private JSON storage, isolated per App."
+      },
+      "realm": {
+        "title": "Realm Data",
+        "blurb": "Declared Realm data access: list and create WorldCores."
+      },
+      "aiConsumption": {
+        "title": "AI Consumption",
+        "blurb": "Portable AIConfig, Local text generation, and grantless Cloud posture."
+      },
+      "agentConversation": {
+        "title": "Agent Conversation",
+        "blurb": "Active Agent references, typed conversation, and turn interrupt — in dependency order."
+      },
+      "boundary": {
+        "title": "Boundary Probes",
+        "blurb": "Forbidden authority fields and storage escapes must be rejected."
+      }
+    },
+    "probes": {
+      "storageIsolation": {
+        "title": "Storage isolation",
+        "proves": "App-private JSON write, read-back, and removal stay consistent inside the App storage boundary.",
+        "running": "Writing, reading back, and removing an App-private document…"
+      },
+      "worldList": {
+        "title": "WorldCore listing",
+        "proves": "The App can list local Realm WorldCores through its declared Realm data access.",
+        "running": "Listing local WorldCores…"
+      },
+      "worldCreate": {
+        "title": "WorldCore create & read-back",
+        "proves": "A WorldCore created through the App Realm owner reads back with matching identity and content hash.",
+        "running": "Creating a WorldCore and verifying the read-back…"
+      },
+      "portableAiConfig": {
+        "title": "Portable AIConfig",
+        "proves": "A portable App AIConfig whole-overwrite with a Local route persists and reads back without custody fields.",
+        "running": "Whole-overwriting a portable Local route…"
+      },
+      "localText": {
+        "title": "Local text generation",
+        "proves": "The committed Local route serves a unary text generation through the real Runtime path.",
+        "running": "Generating text through the committed Local route…",
+        "requires": "Portable AIConfig",
+        "gateGuidance": "Run Portable AIConfig first so a Local route is committed."
+      },
+      "cloudPosture": {
+        "title": "Cloud authorization posture",
+        "proves": "A grantless Cloud intent persists, and its execution must demand a Nimi-owned authorization selection.",
+        "running": "Saving a grantless Cloud intent and proving selection-required…",
+        "requires": "Catalog-derived Cloud values",
+        "gateGuidance": "Paste catalog-derived values for all five fields — Tester has no provider/model defaults by design. Find them in the Runtime model catalog."
+      },
+      "agentReferences": {
+        "title": "Active Agent references",
+        "proves": "The App can list the current account’s active Agent references for typed conversation.",
+        "running": "Listing current-account active Agent references…"
+      },
+      "agentConversation": {
+        "title": "Agent conversation",
+        "proves": "A typed Agent conversation opens, streams, and completes with a committed assistant reply.",
+        "running": "Opening a typed Agent conversation…",
+        "requires": "Selected Agent reference",
+        "gateGuidance": "Select an active Agent reference first."
+      },
+      "agentInterrupt": {
+        "title": "Agent turn interrupt",
+        "proves": "An accepted Agent turn can be explicitly interrupted and ends in the interrupted terminal state.",
+        "running": "Opening a typed Agent conversation to interrupt…",
+        "requires": "Selected Agent reference",
+        "gateGuidance": "Select an active Agent reference first."
+      },
+      "authorityInjection": {
+        "title": "Authority injection rejected",
+        "proves": "Owner and custody fields injected into a portable AIConfig are rejected before leaving the App.",
+        "running": "Injecting forbidden owner and custody fields…"
+      },
+      "storageBoundary": {
+        "title": "Storage boundary rejected",
+        "proves": "Path escapes and oversized writes against App-private storage are rejected.",
+        "running": "Attempting a path escape and an oversized write…"
+      }
+    },
+    "cloudFields": {
+      "implementationId": "Implementation ID",
+      "driverId": "Driver ID",
+      "driverDialect": "Driver dialect",
+      "provider": "Provider",
+      "providerModelId": "Provider model ID"
+    },
+    "status": {
+      "setupNeeded": "Setup needed",
+      "running": "Running",
+      "passed": "Passed",
+      "failed": "Failed",
+      "notRun": "Not run"
+    },
+    "probeCard": {
+      "run": "Run",
+      "requires": "Requires: {{requires}}"
+    },
+    "details": {
+      "reasonCode": "Reason code",
+      "detail": "Detail"
+    },
+    "failures": {
+      "storageRoundtripMismatch": "Stored data did not match what was written.",
+      "storageRemoveFailed": "The stored document could not be removed.",
+      "unexpectedSuccess": "The Runtime accepted an operation that must be rejected — the boundary is broken.",
+      "unexpectedRejection": "The operation was rejected for a different reason than expected.",
+      "aiConfigReadbackInvalid": "The saved AI configuration did not read back as a clean portable Local route.",
+      "cloudReadbackInvalid": "The saved Cloud intent did not read back as a grantless portable intent.",
+      "cloudIntentFieldInvalid": "A Cloud intent field is empty, has surrounding whitespace, or is too long.",
+      "worldCoreListReadMismatch": "The created WorldCore did not read back with matching identity and content hash.",
+      "operationFailed": "The probe could not be completed. See technical details."
+    }
+  }
+}

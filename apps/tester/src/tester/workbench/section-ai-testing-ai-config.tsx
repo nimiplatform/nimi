@@ -1,5 +1,6 @@
 import { Component, lazy, type ReactNode } from 'react';
 import { Button } from '@nimiplatform/kit/ui';
+import { t } from '../../shell/i18n/index.js';
 
 // The Runtime-owned App AIConfig drawer is loaded only when the settings gear
 // opens it. The always-on studio surface carries no configuration authority.
@@ -21,9 +22,9 @@ export class DrawerErrorBoundary extends Component<{ onClose: () => void; childr
     if (this.state.error) {
       return (
         <div className="section-ai-testing__drawer-error" role="alert">
-          <strong>App AIConfig unavailable</strong>
-          <p>{this.state.error.message || 'The App AIConfig surface failed to load.'}</p>
-          <Button type="button" tone="secondary" size="sm" onClick={this.props.onClose}>Close</Button>
+          <strong>{t('Studio.drawerError.title')}</strong>
+          <p>{this.state.error.message || t('Studio.drawerError.fallback')}</p>
+          <Button type="button" tone="secondary" size="sm" onClick={this.props.onClose}>{t('Common.close')}</Button>
         </div>
       );
     }

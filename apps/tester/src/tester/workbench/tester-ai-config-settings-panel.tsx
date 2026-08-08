@@ -1,18 +1,26 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { NimiPortableAppAIConfig } from '@nimiplatform/sdk/ai';
-import { fromNimiRuntimeProtoStruct } from '@nimiplatform/sdk/runtime';
-import { Button, StatusBadge, TextField } from '@nimiplatform/kit/ui';
+import {
+  ModelConfigAIConfigSurface,
+  type ModelConfigCopy,
+  type ModelConfigLocalSelectionProjection,
+} from '@nimiplatform/kit/features/model-config';
+import { openDesktopIntent } from '@nimiplatform/kit/shell/renderer/bridge';
+import { StatusBadge } from '@nimiplatform/kit/ui';
 
+import { useTranslation } from '../../shell/i18n/index.js';
 import { useTesterRendererHost } from '../../renderer/context.js';
+import { appId } from '../../shell/auth/app-identity.js';
+import {
+  testerCapabilities,
+  testerModelConfigCapabilityContracts,
+} from '../tester-capabilities.js';
 import type { TesterRuntimeInspection } from '../tester-runtime.js';
 import {
-  createTesterCloudCapabilityIntent,
-  createTesterLocalCapabilityIntent,
-  findTesterCapabilityIntent,
   loadTesterAIConfig,
-  overwriteTesterCapabilityIntent,
-  removeTesterCapabilityIntent,
-  type TesterCloudCapabilityIntentInput,
+  overwriteTesterAIConfig,
+  toTesterModelConfigCapabilities,
+  toTesterPortableAIConfigCapabilities,
 } from '../tester-ai-config-store.js';
 
 type TesterAiConfigSettingsPanelProps = {
@@ -22,234 +30,196 @@ type TesterAiConfigSettingsPanelProps = {
   onClose?: () => void;
 };
 
+// Full ModelConfigCopy override so the shared Kit surface never falls back to
+// its built-in English defaults. Values come from the tester i18n bundle; zh
+// wording mirrors Nimi Desktop's Chat settings copy.
+function useTesterModelConfigCopy(): ModelConfigCopy {
+  const { t } = useTranslation();
+  return useMemo(() => ({
+    title: t('ModelConfig.title'),
+    description: t('ModelConfig.description'),
+    backLabel: t('ModelConfig.backLabel'),
+    detailTitle: (capabilityLabel: string) => t('ModelConfig.detailTitle', { capability: capabilityLabel }),
+    activeModelLabel: t('ModelConfig.activeModelLabel'),
+    activeModelHint: t('ModelConfig.activeModelHint'),
+    activeModelConfiguredLabel: t('ModelConfig.activeModelConfiguredLabel'),
+    activeModelSetupPendingLabel: t('ModelConfig.activeModelSetupPendingLabel'),
+    modelPickerTitle: t('ModelConfig.modelPickerTitle'),
+    modelPickerSearchPlaceholder: t('ModelConfig.modelPickerSearchPlaceholder'),
+    modelPickerLoadingLabel: t('ModelConfig.modelPickerLoadingLabel'),
+    modelPickerEmptyLabel: t('ModelConfig.modelPickerEmptyLabel'),
+    configuredSummary: t('ModelConfig.configuredSummary'),
+    emptySummary: t('ModelConfig.emptySummary'),
+    routeLabel: t('ModelConfig.routeLabel'),
+    localLabel: t('ModelConfig.localLabel'),
+    cloudLabel: t('ModelConfig.cloudLabel'),
+    saveLocalLabel: t('ModelConfig.saveLocalLabel'),
+    saveCloudLabel: t('ModelConfig.saveCloudLabel'),
+    savingLabel: t('ModelConfig.savingLabel'),
+    advancedLabel: t('ModelConfig.advancedLabel'),
+    advancedHint: t('ModelConfig.advancedHint'),
+    requiredFeaturesLabel: t('ModelConfig.requiredFeaturesLabel'),
+    requiredFeaturesPlaceholder: t('ModelConfig.requiredFeaturesPlaceholder'),
+    defaultsLabel: t('ModelConfig.defaultsLabel'),
+    defaultsPlaceholder: t('ModelConfig.defaultsPlaceholder'),
+    defaultsUnsetLabel: t('ModelConfig.defaultsUnsetLabel'),
+    defaultsTrueLabel: t('ModelConfig.defaultsTrueLabel'),
+    defaultsFalseLabel: t('ModelConfig.defaultsFalseLabel'),
+    defaultsListPlaceholder: t('ModelConfig.defaultsListPlaceholder'),
+    localChoiceDescription: t('ModelConfig.localChoiceDescription'),
+    localSelectedLabel: t('ModelConfig.localSelectedLabel'),
+    localMissingLabel: t('ModelConfig.localMissingLabel'),
+    localBrokenLabel: t('ModelConfig.localBrokenLabel'),
+    localUnavailableLabel: t('ModelConfig.localUnavailableLabel'),
+    localMismatchLabel: (features: string) => t('ModelConfig.localMismatchLabel', { features }),
+    openMachineLabel: t('ModelConfig.openMachineLabel'),
+    cloudConnectorPickerLabel: t('ModelConfig.cloudConnectorPickerLabel'),
+    cloudConnectorPickerPlaceholder: t('ModelConfig.cloudConnectorPickerPlaceholder'),
+    cloudConnectorSelectionRequired: t('ModelConfig.cloudConnectorSelectionRequired'),
+    cloudNoConnectorsLabel: t('ModelConfig.cloudNoConnectorsLabel'),
+    openCloudConnectorsLabel: t('ModelConfig.openCloudConnectorsLabel'),
+    cloudImplementationLabel: t('ModelConfig.cloudImplementationLabel'),
+    cloudImplementationPlaceholder: t('ModelConfig.cloudImplementationPlaceholder'),
+    cloudTargetLabel: t('ModelConfig.cloudTargetLabel'),
+    cloudTargetPlaceholder: t('ModelConfig.cloudTargetPlaceholder'),
+    cloudTargetDialogTitle: t('ModelConfig.cloudTargetDialogTitle'),
+    cloudTargetDialogDescription: t('ModelConfig.cloudTargetDialogDescription'),
+    cloudTargetConfirmation: t('ModelConfig.cloudTargetConfirmation'),
+    cloudAuthorizationLabel: t('ModelConfig.cloudAuthorizationLabel'),
+    cloudAuthorizationNone: t('ModelConfig.cloudAuthorizationNone'),
+    cloudAuthorizationNeeded: t('ModelConfig.cloudAuthorizationNeeded'),
+    cloudAuthorizationRevoked: t('ModelConfig.cloudAuthorizationRevoked'),
+    cloudConnectorLabel: t('ModelConfig.cloudConnectorLabel'),
+    cloudConnectorPlaceholder: t('ModelConfig.cloudConnectorPlaceholder'),
+    cloudCreateGrantLabel: t('ModelConfig.cloudCreateGrantLabel'),
+    cloudAuthorizationSeparation: t('ModelConfig.cloudAuthorizationSeparation'),
+    cloudAccountLabel: (account: string) => t('ModelConfig.cloudAccountLabel', { account }),
+    cloudImpactAppLabel: (account: string) => t('ModelConfig.cloudImpactAppLabel', { account }),
+    cloudImpactSharedLabel: (account: string) => t('ModelConfig.cloudImpactSharedLabel', { account }),
+    cloudLoadFailed: t('ModelConfig.cloudLoadFailed'),
+    retryLabel: t('Common.retry'),
+    loadFailed: t('ModelConfig.loadFailed'),
+    saveFailed: t('ModelConfig.saveFailed'),
+    technicalDetailsLabel: t('ModelConfig.technicalDetailsLabel'),
+    unsupportedCapabilityLabel: t('ModelConfig.unsupportedCapabilityLabel'),
+    notConfiguredLabel: t('ModelConfig.notConfiguredLabel'),
+    configuredLabel: t('ModelConfig.configuredLabel'),
+    selectionRequiredLabel: t('ModelConfig.selectionRequiredLabel'),
+    blockedLabel: t('ModelConfig.blockedLabel'),
+    mismatchLabel: t('ModelConfig.mismatchLabel'),
+    cancelLabel: t('Common.cancel'),
+    confirmSelectionLabel: t('ModelConfig.confirmSelectionLabel'),
+    capabilityLabel: (capabilityContract, fallback) => {
+      const entry = testerCapabilities.find((item) => item.capabilityContract === capabilityContract);
+      return entry ? t(entry.labelKey) : fallback;
+    },
+    capabilityDescription: (capabilityContract, fallback) => {
+      const entry = testerCapabilities.find((item) => item.capabilityContract === capabilityContract);
+      return entry ? t(entry.summaryKey) : fallback;
+    },
+  }), [t]);
+}
+
 export function TesterAiConfigSettingsPanel({
   runtime,
   capabilityId,
   onConfigChanged,
-  onClose,
 }: TesterAiConfigSettingsPanelProps) {
   const rendererHost = useTesterRendererHost();
+  const { t } = useTranslation();
+  const copy = useTesterModelConfigCopy();
   const [config, setConfig] = useState<NimiPortableAppAIConfig | null>(null);
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [cloudTargetConfirmed, setCloudTargetConfirmed] = useState(false);
-  const [cloudDraft, setCloudDraft] = useState<TesterCloudCapabilityIntentInput>({
-    implementationId: '',
-    driverId: '',
-    driverDialect: '',
-    provider: '',
-    providerModelId: '',
-    remoteModelCatalogId: '',
-  });
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [localSelections, setLocalSelections] = useState<readonly ModelConfigLocalSelectionProjection[]>([]);
 
   const refresh = useCallback(async () => {
     setLoading(true);
-    setError(null);
+    setLoadError(null);
     try {
       setConfig(await loadTesterAIConfig(rendererHost.sdk.aiConfig));
+      try {
+        setLocalSelections(await rendererHost.sdk.modelConfig.localSelections());
+      } catch {
+        setLocalSelections(testerModelConfigCapabilityContracts.map((capabilityContract) => ({
+          capabilityContract,
+          state: 'unavailable',
+          configurationId: null,
+          displayName: null,
+          supportedFeatures: [],
+          reasons: ['machine-local-ai-configuration-unavailable'],
+        })));
+      }
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : String(cause || 'App AIConfig load failed.'));
+      setLoadError(cause instanceof Error ? cause.message : String(cause || t('ModelConfig.loadFailed')));
     } finally {
       setLoading(false);
     }
-  }, [rendererHost]);
+  }, [rendererHost, t]);
 
   useEffect(() => {
     void refresh();
   }, [refresh]);
 
-  const intent = findTesterCapabilityIntent(config, capabilityId);
-  const intentKind = intent?.route.oneofKind ?? null;
-  const cloudAvailable = capabilityId === 'image.generate';
-
-  useEffect(() => {
-    if (intent?.route.oneofKind !== 'cloud' || !('cloud' in intent.route)) return;
-    const cloud = intent.route.cloud;
-    const target = fromNimiRuntimeProtoStruct(cloud.providerModelTarget);
-    setCloudDraft({
-      implementationId: cloud.implementation?.implementationId ?? '',
-      driverId: cloud.implementation?.driverId ?? '',
-      driverDialect: cloud.implementation?.driverDialect ?? '',
-      provider: stringField(target.provider),
-      providerModelId: stringField(target.providerModelId) || stringField(target.model),
-      remoteModelCatalogId: stringField(target.remoteModelCatalogId),
-    });
-    setCloudTargetConfirmed(false);
-  }, [intent]);
-  const configStatus = loading ? 'Loading' : error ? 'Unavailable' : intentKind === 'local'
-    ? 'Local selected'
-    : intentKind === 'cloud' ? 'Cloud selected' : 'Not configured';
-
-  async function selectLocal() {
-    setSaving(true);
-    setError(null);
-    try {
-      const next = await overwriteTesterCapabilityIntent(
-        rendererHost.sdk.aiConfig,
-        config,
-        createTesterLocalCapabilityIntent(capabilityId, intent),
-      );
-      setConfig(next);
-      onConfigChanged();
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : String(cause || 'App AIConfig update failed.'));
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  async function selectCloud() {
-    setSaving(true);
-    setError(null);
-    try {
-      const next = await overwriteTesterCapabilityIntent(
-        rendererHost.sdk.aiConfig,
-        config,
-        createTesterCloudCapabilityIntent(capabilityId, intent, cloudDraft),
-      );
-      setConfig(next);
-      onConfigChanged();
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : String(cause || 'App AIConfig update failed.'));
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  async function removeIntent() {
-    setSaving(true);
-    setError(null);
-    try {
-      const next = await removeTesterCapabilityIntent(
-        rendererHost.sdk.aiConfig,
-        config,
-        capabilityId,
-      );
-      setConfig(next);
-      onConfigChanged();
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : String(cause || 'App AIConfig update failed.'));
-    } finally {
-      setSaving(false);
-    }
-  }
-
   const runtimeLabel = runtime?.status === 'connected'
-    ? 'Runtime connected'
+    ? t('ModelConfig.runtimeConnected')
     : runtime?.status === 'simulated'
-      ? 'Simulator only'
-      : 'Runtime unavailable';
+      ? t('ModelConfig.runtimeSimulated')
+      : t('ModelConfig.runtimeUnavailable');
 
   return (
-    <section className="flex h-full min-h-0 flex-col bg-white/95" aria-label="App AI configuration">
-      <header className="flex items-start justify-between gap-4 border-b border-[var(--nimi-border-subtle)] px-5 py-4">
-        <div className="grid gap-1">
-          <h2 className="text-base font-semibold text-[var(--nimi-text-primary)]">App AIConfig</h2>
-          <p className="text-sm text-[var(--nimi-text-muted)]">{capabilityId}</p>
-        </div>
-        {onClose ? <Button type="button" tone="secondary" size="sm" onClick={onClose}>Close</Button> : null}
-      </header>
-
-      <div className="grid gap-5 overflow-y-auto p-5">
-        <div className="flex flex-wrap gap-2">
-          <StatusBadge tone={runtime?.status === 'connected' ? 'neutral' : 'warning'} shape="dot">
-            {runtimeLabel}
-          </StatusBadge>
-          <StatusBadge tone={!loading && !error && intentKind ? 'success' : 'warning'} shape="dot">
-            {configStatus}
-          </StatusBadge>
-        </div>
-
-        {loading ? (
-          <p className="text-sm text-[var(--nimi-text-muted)]">Reading the current Runtime-owned App AIConfig…</p>
-        ) : error ? (
-          <div className="grid gap-3 rounded-lg border border-[var(--nimi-border-subtle)] p-4">
-            <strong className="text-sm text-[var(--nimi-text-primary)]">App AIConfig unavailable</strong>
-            <p role="alert" className="text-sm text-[var(--nimi-status-danger-text)]">{error}</p>
-            <Button type="button" tone="secondary" onClick={() => void refresh()}>Retry</Button>
-          </div>
-        ) : (
-          <div className="grid gap-3 rounded-lg border border-[var(--nimi-border-subtle)] p-4">
-            <strong className="text-sm text-[var(--nimi-text-primary)]">Capability intent</strong>
-            <p className="text-sm text-[var(--nimi-text-muted)]">
-              Selecting Local stores only consumer intent. Runtime chooses and validates the implementation when execution begins.
-            </p>
-            {intentKind === 'cloud' ? (
-              <p className="text-sm text-[var(--nimi-text-muted)]">
-                This capability currently has Cloud intent. Tester preserves it until you explicitly replace or remove it.
+    <section className="flex h-full min-h-0 flex-col" aria-label={t('ModelConfig.drawerDescription')}>
+      <div className="min-h-0 flex-1 overflow-y-auto p-5">
+        <ModelConfigAIConfigSurface
+          context={{ owner: 'app-ai-config', consumer: 'third-party-app', appId }}
+          capabilityContracts={testerModelConfigCapabilityContracts}
+          initialCapabilityContract={capabilityId}
+          capabilities={loading || loadError
+            ? undefined
+            : config ? toTesterModelConfigCapabilities(config.capabilities) : null}
+          localSelections={localSelections}
+          loading={loading}
+          loadError={loadError}
+          onRetry={() => { void refresh(); }}
+          onOpenCloudConnectorConfiguration={() => {
+            void openDesktopIntent({
+              intent: {
+                kind: 'open-runtime-config',
+                page: 'cloud',
+                action: 'add-connector',
+              },
+            });
+          }}
+          onOverwrite={async (capabilities) => {
+            const next = await overwriteTesterAIConfig(
+              rendererHost.sdk.aiConfig,
+              toTesterPortableAIConfigCapabilities(capabilities),
+            );
+            setConfig(next);
+            onConfigChanged();
+          }}
+          formatError={(error) => ({
+            message: t('ModelConfig.saveFailed'),
+            technicalDetail: error instanceof Error ? error.message : String(error || ''),
+          })}
+          copy={copy}
+          headerSlot={(
+            <div className="space-y-3">
+              <StatusBadge tone={runtime?.status === 'connected' ? 'neutral' : 'warning'} shape="dot">
+                {runtimeLabel}
+              </StatusBadge>
+              <p className="m-0 text-sm leading-5 text-[var(--nimi-text-muted)]">
+                {t('ModelConfig.headerDescription')}
               </p>
-            ) : null}
-            <div className="flex flex-wrap gap-2">
-              <Button type="button" disabled={saving || intentKind === 'local'} onClick={() => void selectLocal()}>
-                {intentKind === 'local' ? 'Local selected' : 'Select Local'}
-              </Button>
-              {intent ? (
-                <Button type="button" tone="secondary" disabled={saving} onClick={() => void removeIntent()}>
-                  Remove capability intent
-                </Button>
-              ) : null}
             </div>
-            {cloudAvailable ? (
-              <fieldset className="mt-2 grid gap-3 border-t border-[var(--nimi-border-subtle)] pt-4" data-testid="tester-image-cloud-intent">
-                <legend className="text-sm font-semibold text-[var(--nimi-text-primary)]">Cloud intent</legend>
-                <p className="text-sm text-[var(--nimi-text-muted)]">
-                  Enter the exact Runtime catalog target, then confirm it explicitly. Account authorization is a separate optional selection; Tester does not choose or recommend a provider or model.
-                </p>
-                <div className="grid gap-3 md:grid-cols-2">
-                  {TESTER_CLOUD_INTENT_FIELDS.map(([field, label]) => (
-                    <label key={field} className="grid gap-1 text-xs font-medium text-[var(--nimi-text-muted)]">
-                      <span>{label}</span>
-                      <TextField
-                        value={cloudDraft[field]}
-                        disabled={saving}
-                        onChange={(event) => {
-                          setCloudDraft((current) => ({
-                            ...current,
-                            [field]: event.currentTarget.value,
-                          }));
-                          setCloudTargetConfirmed(false);
-                        }}
-                      />
-                    </label>
-                  ))}
-                </div>
-                <label className="flex items-start gap-2 text-sm text-[var(--nimi-text-muted)]">
-                  <input
-                    checked={cloudTargetConfirmed}
-                    onChange={(event) => setCloudTargetConfirmed(event.currentTarget.checked)}
-                    type="checkbox"
-                  />
-                  <span>I confirm this Cloud implementation and provider-model target.</span>
-                </label>
-                <p className="rounded-lg border border-[var(--nimi-border-subtle)] p-3 text-sm text-[var(--nimi-text-muted)]">
-                  Account authorization remains Nimi-owned. This grantless intent may be saved now and will require explicit selection before execution.
-                </p>
-                <Button type="button" disabled={saving || !cloudTargetConfirmed} onClick={() => void selectCloud()}>
-                  {intentKind === 'cloud' ? 'Save Cloud intent' : 'Select Cloud'}
-                </Button>
-              </fieldset>
-            ) : null}
-          </div>
-        )}
-
-        <p className="text-xs leading-5 text-[var(--nimi-text-muted)]">
-          Runtime owns machine selection and returns the typed execution result when a request begins.
-        </p>
+          )}
+          footer={(
+            <p className="m-0 border-t border-[var(--nimi-border-subtle)] pt-4 text-xs leading-5 text-[var(--nimi-text-muted)]">
+              {t('ModelConfig.footerNote')}
+            </p>
+          )}
+        />
       </div>
     </section>
   );
-}
-
-const TESTER_CLOUD_INTENT_FIELDS = [
-  ['implementationId', 'Implementation ID'],
-  ['driverId', 'Driver ID'],
-  ['driverDialect', 'Driver dialect'],
-  ['provider', 'Provider'],
-  ['providerModelId', 'Provider model ID'],
-  ['remoteModelCatalogId', 'Remote model catalog ID'],
-] as const satisfies readonly (readonly [keyof TesterCloudCapabilityIntentInput, string])[];
-
-function stringField(value: unknown): string {
-  return typeof value === 'string' ? value : '';
 }

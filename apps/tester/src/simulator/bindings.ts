@@ -266,7 +266,18 @@ function createSdkFacade(context: TesterSimulatorPrepareContext) {
 
   return Object.freeze({
     runCapability: execute,
+    async listLocalAppVoiceAssets() {
+      return Object.freeze([]);
+    },
+    async uploadLocalAppArtifact() {
+      return unmodeledSdkMethod('Local App artifact upload');
+    },
     aiConfig: configPort,
+    modelConfig: Object.freeze({
+      async localSelections() {
+        return Object.freeze([]);
+      },
+    }),
     settings: Object.freeze({
       async notificationUnread() {
         return unmodeledSdkMethod('Notification unread projection');

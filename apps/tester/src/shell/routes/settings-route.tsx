@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useTesterRendererHost } from '../../renderer/context.js';
+import { t } from '../i18n/index.js';
 import type {
   AccountDataProjectionState,
   AccountSettingsProjectionState,
@@ -11,7 +12,7 @@ import type {
 import { SettingsRouteView } from './settings/view.js';
 
 function errorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error || 'Settings projection unavailable');
+  return error instanceof Error ? error.message : String(error || t('Settings.projectionUnavailable'));
 }
 
 export function SettingsRoute() {

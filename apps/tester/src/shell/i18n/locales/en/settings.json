@@ -1,0 +1,25 @@
+{
+  "Settings": {
+    "title": "Settings",
+    "localDrafts": "Local draft data",
+    "liveBadge": "Live",
+    "refresh": "Refresh",
+    "request": "Request",
+    "notLoaded": "not loaded",
+    "notRequested": "not requested",
+    "rows": {
+      "notificationProjection": "Realm notification projection",
+      "notificationList": "Realm notification list + Kit headless projection",
+      "accountDataExport": "Realm account-data export projection",
+      "accountSettings": "SDK Realm account settings projection",
+      "humanChat": "Kit Realm human chat projection",
+      "groupChat": "SDK Realm group chat projection"
+    },
+    "unreadCount": "Unread {{count}}",
+    "notificationListEmpty": "0 items via system filter",
+    "notificationListSummary": "{{count}} item{{plural}}; first {{category}}:{{badgeKey}}",
+    "chatCount": "{{count}} chat{{plural}}",
+    "groupCount": "{{count}} group{{plural}}",
+    "projectionUnavailable": "Settings projection unavailable"
+  }
+}

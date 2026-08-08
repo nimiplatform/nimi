@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { Button } from '@nimiplatform/kit/ui';
 
+import { useTranslation } from '../../shell/i18n/index.js';
 import {
   appAccessPageCopy,
   appAccessProbeById,
@@ -27,12 +28,13 @@ export function AppAccessGroup({
   readonly onRunGroup: () => void;
   readonly renderExtras?: (id: AppAccessProbeId) => ReactNode;
 }) {
+  const { t } = useTranslation();
   return (
-    <section className="app-access-group" data-testid={definition.testId} aria-label={definition.title}>
+    <section className="app-access-group" data-testid={definition.testId} aria-label={t(definition.titleKey)}>
       <div className="app-access-group__head">
         <div className="app-access-group__head-text">
-          <h2 className="app-access-group__title">{definition.title}</h2>
-          <p className="app-access-group__blurb">{definition.blurb}</p>
+          <h2 className="app-access-group__title">{t(definition.titleKey)}</h2>
+          <p className="app-access-group__blurb">{t(definition.blurbKey)}</p>
         </div>
         <Button
           type="button"
@@ -43,7 +45,7 @@ export function AppAccessGroup({
           loading={groupRunning}
           onClick={onRunGroup}
         >
-          {appAccessPageCopy.runGroup}
+          {t(appAccessPageCopy.runGroup)}
         </Button>
       </div>
       <div className="app-access-group__cards">

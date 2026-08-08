@@ -5,6 +5,7 @@ import {
   Compass,
 } from 'lucide-react';
 import { Button, Tooltip } from '@nimiplatform/kit/ui';
+import { useTranslation } from '../../shell/i18n/index.js';
 import { getTesterCapability, type TesterCapabilityId } from '../tester-capabilities.js';
 import { capabilityIcons } from './capability-icons.js';
 import { workbenchLibraryCapabilityId, workbenchNavGroups, type WorkbenchView } from './workbench-context.js';
@@ -24,11 +25,14 @@ export function WorkbenchSideNav({
   onSelectAppAccess,
   accountSlot,
 }: WorkbenchSideNavProps) {
+  const { t } = useTranslation();
   const activeCapabilityId = view.kind === 'capability' ? view.capabilityId : null;
+  const appAccessLabel = t('AppAccess.page.title');
+  const recipesLabel = t('Workbench.uiRecipes');
   return (
     <aside
       className="workbench-side-nav"
-      aria-label="Nimi Lab workspace navigation"
+      aria-label={t('Workbench.sideNavAriaLabel')}
     >
       <nav className="workbench-side-nav__groups">
         {workbenchNavGroups.map((group) => (
@@ -37,7 +41,7 @@ export function WorkbenchSideNav({
               {group.capabilityIds.map((id) => {
                 const Icon = capabilityIcons[id];
                 const active = activeCapabilityId === id;
-                const label = getTesterCapability(id).label;
+                const label = t(getTesterCapability(id).labelKey);
                 return (
                   <li key={id}>
                     <Tooltip
@@ -70,7 +74,7 @@ export function WorkbenchSideNav({
           <ul>
             <li>
               <Tooltip
-                content={getTesterCapability(workbenchLibraryCapabilityId).label}
+                content={t(getTesterCapability(workbenchLibraryCapabilityId).labelKey)}
                 placement="right"
                 className="w-full"
               >
@@ -81,11 +85,11 @@ export function WorkbenchSideNav({
                   data-workbench-rail-item=""
                   className={activeCapabilityId === workbenchLibraryCapabilityId ? 'workbench-side-nav__item workbench-side-nav__item--active' : 'workbench-side-nav__item'}
                   onClick={() => onSelectCapability(workbenchLibraryCapabilityId)}
-                  aria-label={getTesterCapability(workbenchLibraryCapabilityId).label}
+                  aria-label={t(getTesterCapability(workbenchLibraryCapabilityId).labelKey)}
                   aria-current={activeCapabilityId === workbenchLibraryCapabilityId ? 'page' : undefined}
                 >
                   <Compass size={18} strokeWidth={1.9} aria-hidden="true" />
-                  <span className="workbench-side-nav__item-label" data-workbench-rail-label="">{getTesterCapability(workbenchLibraryCapabilityId).label}</span>
+                  <span className="workbench-side-nav__item-label" data-workbench-rail-label="">{t(getTesterCapability(workbenchLibraryCapabilityId).labelKey)}</span>
                 </Button>
               </Tooltip>
             </li>
@@ -95,7 +99,7 @@ export function WorkbenchSideNav({
           <ul>
             <li>
               <Tooltip
-                content="App Access"
+                content={appAccessLabel}
                 placement="right"
                 className="w-full"
               >
@@ -106,17 +110,17 @@ export function WorkbenchSideNav({
                   data-workbench-rail-item=""
                   className={view.kind === 'app-access' ? 'workbench-side-nav__item workbench-side-nav__item--active' : 'workbench-side-nav__item'}
                   onClick={onSelectAppAccess}
-                  aria-label="App Access"
+                  aria-label={appAccessLabel}
                   aria-current={view.kind === 'app-access' ? 'page' : undefined}
                 >
                   <Cable size={18} strokeWidth={1.9} aria-hidden="true" />
-                  <span className="workbench-side-nav__item-label" data-workbench-rail-label="">App Access</span>
+                  <span className="workbench-side-nav__item-label" data-workbench-rail-label="">{appAccessLabel}</span>
                 </Button>
               </Tooltip>
             </li>
             <li>
               <Tooltip
-                content="UI Recipes"
+                content={recipesLabel}
                 placement="right"
                 className="w-full"
               >
@@ -127,11 +131,11 @@ export function WorkbenchSideNav({
                   data-workbench-rail-item=""
                   className={view.kind === 'ui-recipes' ? 'workbench-side-nav__item workbench-side-nav__item--active' : 'workbench-side-nav__item'}
                   onClick={onSelectRecipes}
-                  aria-label="UI Recipes"
+                  aria-label={recipesLabel}
                   aria-current={view.kind === 'ui-recipes' ? 'page' : undefined}
                 >
                   <Boxes size={18} strokeWidth={1.9} aria-hidden="true" />
-                  <span className="workbench-side-nav__item-label" data-workbench-rail-label="">UI Recipes</span>
+                  <span className="workbench-side-nav__item-label" data-workbench-rail-label="">{recipesLabel}</span>
                 </Button>
               </Tooltip>
             </li>

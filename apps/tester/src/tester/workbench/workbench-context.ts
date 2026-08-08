@@ -1,4 +1,6 @@
+import { createContext } from 'react';
 import type { TesterCapabilityId } from '../tester-capabilities.js';
+import type { TesterCapabilityParameterState } from '../tester-capability-parameters.js';
 
 // The tester shell is a single-level capability workspace (mirrors the Nimi
 // Desktop tester): the left rail IS the capability matrix grouped by family,
@@ -27,3 +29,24 @@ export const workbenchNavGroups: WorkbenchNavGroup[] = [
 // World Tour is a standalone Tauri viewer rather than a runtime capability lane,
 // so the left rail lists it under Library alongside the UI Recipes gallery.
 export const workbenchLibraryCapabilityId: TesterCapabilityId = 'world.generate';
+
+// Run-history load state owned by TesterWorkbench, surfaced inside the history
+// panel (which sits several layers below) without threading new props through
+// the studio section shell.
+export type TesterHistoryLoadState = {
+  title: string;
+  error: string | null;
+  retry: () => void;
+};
+
+export const TesterHistoryLoadContext = createContext<TesterHistoryLoadState | null>(null);
+
+export type TesterCapabilityParameterStore = {
+  state: TesterCapabilityParameterState;
+  setParameters: <TCapabilityId extends TesterCapabilityId>(
+    capabilityId: TCapabilityId,
+    parameters: TesterCapabilityParameterState[TCapabilityId],
+  ) => void;
+};
+
+export const TesterCapabilityParameterContext = createContext<TesterCapabilityParameterStore | null>(null);

@@ -1,0 +1,25 @@
+{
+  "Settings": {
+    "title": "设置",
+    "localDrafts": "本地草稿数据",
+    "liveBadge": "实时",
+    "refresh": "刷新",
+    "request": "请求",
+    "notLoaded": "未加载",
+    "notRequested": "未请求",
+    "rows": {
+      "notificationProjection": "Realm 通知投影",
+      "notificationList": "Realm 通知列表 + Kit 无头投影",
+      "accountDataExport": "Realm 账户数据导出投影",
+      "accountSettings": "SDK Realm 账户设置投影",
+      "humanChat": "Kit Realm 双人聊天投影",
+      "groupChat": "SDK Realm 群聊投影"
+    },
+    "unreadCount": "未读 {{count}}",
+    "notificationListEmpty": "经系统筛选共 0 条",
+    "notificationListSummary": "{{count}} 条；首条 {{category}}:{{badgeKey}}",
+    "chatCount": "{{count}} 个会话",
+    "groupCount": "{{count}} 个群组",
+    "projectionUnavailable": "设置投影不可用"
+  }
+}

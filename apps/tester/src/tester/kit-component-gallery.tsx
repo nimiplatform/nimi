@@ -7,7 +7,6 @@ import {
   FormInput,
   Layers,
   PanelsTopLeft,
-  Search,
   Zap,
   type LucideIcon,
 } from 'lucide-react';
@@ -71,11 +70,6 @@ export function KitComponentGallery(_props: { onOpenSection?: (target: string) =
         <div className="kit-doc__intro min-w-0">
           <p className="eyebrow">Nimi UI Kit</p>
           <h1 className="m-0 text-2xl font-bold tracking-tight">UI Recipes</h1>
-        </div>
-        <div className="kit-doc__search flex min-h-10 items-center gap-2 rounded-[var(--nimi-radius-field)] border border-[var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_55%,transparent)] px-3 text-xs text-[var(--nimi-text-muted)]" aria-hidden="true">
-          <Search size={14} />
-          <span className="min-w-0 flex-1 truncate">Search the kit</span>
-          <kbd className="shrink-0 rounded-md border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-canvas)] px-1.5 py-0.5 font-mono text-[10px]">/</kbd>
         </div>
         <div className="flex min-h-0 flex-1 flex-col gap-2">
           <p className="kit-doc__browse-label px-1 text-[10px] font-bold uppercase tracking-wider text-[var(--nimi-text-muted)]">Browse</p>

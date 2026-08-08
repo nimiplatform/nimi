@@ -19,6 +19,9 @@ export type RuntimePlatformUnavailableProjection = {
   readonly mode: RuntimeAuthMode;
   readonly reasonCode: string;
   readonly message: string;
+  // i18n key into Auth.runtime.messages.* mirroring `message`; localized
+  // renderers resolve it through t(), non-i18n consumers keep `message`.
+  readonly messageKey: string;
   readonly actionHint?: string;
 };
 
@@ -60,6 +63,7 @@ function unavailableFromAuth(status: NimiAppAuthProjection): RuntimePlatformUnav
     reasonCode: status.reasonCode,
     actionHint: status.actionHint,
     message: messageForState(status.state, status.reasonCode),
+    messageKey: messageKeyForState(status.state, status.reasonCode),
   };
 }
 
@@ -73,6 +77,7 @@ function unavailableFromError(error: unknown): RuntimePlatformUnavailableProject
     reasonCode,
     actionHint: actionHintFor(reasonCode),
     message: messageFor(reasonCode),
+    messageKey: messageKeyFor(reasonCode),
   };
 }
 
@@ -121,6 +126,54 @@ function messageFor(reasonCode: string): string {
       return 'The project identity no longer matches the registered development project.';
     default:
       return 'The protected Nimi local-app carrier is unavailable.';
+  }
+}
+
+function messageKeyForState(state: NimiAppAuthProjection['state'], reasonCode: string): string {
+  switch (state) {
+    case 'action-required':
+      return 'Auth.runtime.messages.actionRequired';
+    case 'revoked':
+      return 'Auth.runtime.messages.revoked';
+    case 'project-changed':
+      return 'Auth.runtime.messages.projectChanged';
+    case 'process-replaced':
+      return 'Auth.runtime.messages.processReplaced';
+    case 'account-changed':
+      return 'Auth.runtime.messages.accountChanged';
+    case 'runtime-restarted':
+      return 'Auth.runtime.messages.runtimeRestarted';
+    default:
+      return messageKeyFor(reasonCode);
+  }
+}
+
+function messageKeyFor(reasonCode: string): string {
+  switch (reasonCode) {
+    case 'runtime-service-unavailable':
+      return 'Auth.runtime.messages.serviceUnavailable';
+    case 'runtime-service-untrusted':
+      return 'Auth.runtime.messages.serviceUntrusted';
+    case 'runtime-unauthenticated':
+      return 'Auth.runtime.messages.unauthenticated';
+    case 'process-replaced':
+      return 'Auth.runtime.messages.processMismatch';
+    case 'account-changed':
+      return 'Auth.runtime.messages.accountChanged';
+    case 'runtime-restarted':
+      return 'Auth.runtime.messages.runtimeRestarted';
+    case 'revoked':
+      return 'Auth.runtime.messages.revoked';
+    case 'project-changed':
+      return 'Auth.runtime.messages.registrationMismatch';
+    case 'local-app-operation-unavailable':
+      return 'Auth.runtime.messages.operationUnavailable';
+    case 'local-development-registration-not-found':
+      return 'Auth.runtime.messages.registrationNotFound';
+    case 'local-development-project-changed':
+      return 'Auth.runtime.messages.devProjectChanged';
+    default:
+      return 'Auth.runtime.messages.fallback';
   }
 }
 

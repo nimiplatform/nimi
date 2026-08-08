@@ -1,5 +1,6 @@
 import type { OfflineTier } from '@nimiplatform/kit/core/offline-coordinator';
 import { Button, InlineAlert, StatusBadge, Surface } from '@nimiplatform/kit/ui';
+import { useTranslation } from '../i18n/index.js';
 import { appTitle, type RuntimePlatformUnavailableProjection } from './runtime-platform.js';
 
 type RuntimeUnavailablePageProps = {
@@ -10,47 +11,51 @@ type RuntimeUnavailablePageProps = {
 };
 
 export function RuntimeUnavailablePage({ projection, message, offlineTier, onRetry }: RuntimeUnavailablePageProps) {
-  const body = message || projection?.message || 'Runtime session projection is not ready.';
+  const { t } = useTranslation();
+  // Simulator fixtures may carry a literal `message` without a `messageKey`.
+  const body = message
+    || (projection?.messageKey ? t(projection.messageKey) : projection?.message)
+    || t('Auth.runtime.projectionNotReady');
   const accountSignInRequired = projection?.reasonCode === 'runtime-unauthenticated';
-  const nextAction = userAction(projection?.actionHint);
+  const nextAction = userAction(t, projection?.actionHint);
   return (
     <main className="runtime-unavailable-screen" aria-live="polite">
       <Surface className="runtime-unavailable-panel" material="glass-thick" tone="panel" elevation="floating">
         <div className="runtime-unavailable-heading">
-          <StatusBadge tone="warning" shape="dot">Setup required</StatusBadge>
+          <StatusBadge tone="warning" shape="dot">{t('Auth.runtime.setupRequired')}</StatusBadge>
           <h1>{appTitle}</h1>
         </div>
         <InlineAlert tone="warning">
           <div className="runtime-alert-copy">
-            <strong>{accountSignInRequired ? 'Nimi account sign-in required' : 'Nimi Desktop connection required'}</strong>
+            <strong>{accountSignInRequired ? t('Auth.runtime.signInRequired') : t('Auth.runtime.connectionRequired')}</strong>
             <span>{body}</span>
           </div>
         </InlineAlert>
-        {offlineTier ? <p className="runtime-action-hint">Protection state: offline tier {offlineTier}</p> : null}
-        {nextAction ? <p className="runtime-action-hint">Next: {nextAction}</p> : null}
-        <Button type="button" tone="primary" onClick={onRetry}>Retry Runtime check</Button>
+        {offlineTier ? <p className="runtime-action-hint">{t('Auth.runtime.offlineTier', { tier: offlineTier })}</p> : null}
+        {nextAction ? <p className="runtime-action-hint">{t('Auth.runtime.next', { action: nextAction })}</p> : null}
+        <Button type="button" tone="primary" onClick={onRetry}>{t('Auth.runtime.retryCheck')}</Button>
       </Surface>
     </main>
   );
 }
 
-function userAction(actionHint: string | undefined): string {
+function userAction(t: (key: string) => string, actionHint: string | undefined): string {
   switch (actionHint) {
     case 'restart_official_nimi_app_dev_command':
-      return 'Run the official development command again.';
+      return t('Auth.runtime.actions.restartDevCommand');
     case 'register_local_development_project':
-      return 'Register the current App ID, project root, shell, and App Access declaration through Nimi Desktop.';
+      return t('Auth.runtime.actions.registerProject');
     case 'open_nimi_desktop_and_retry':
     case 'start_fixed_runtime_service':
-      return 'Open Nimi Desktop, confirm Runtime is available, then retry.';
+      return t('Auth.runtime.actions.openDesktopAndRetry');
     case 'restart_through_verified_desktop_supervisor':
-      return 'Close this process and relaunch the project through Nimi Desktop.';
+      return t('Auth.runtime.actions.restartThroughSupervisor');
     case 'sign_in_to_nimi_desktop':
-      return 'Sign in through Nimi Desktop, then retry without relaunching this App.';
+      return t('Auth.runtime.actions.signInToDesktop');
     case 'reopen_local_app_session':
-      return 'Reopen the protected local-app session through Nimi Desktop.';
+      return t('Auth.runtime.actions.reopenSession');
     case 'wait_for_app_access_admission':
-      return 'Protected App Access is not available in this Runtime phase.';
+      return t('Auth.runtime.actions.waitForAdmission');
     default:
       return '';
   }

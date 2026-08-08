@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import { Dialog, DialogContent, DialogTitle, IconButton, Tooltip } from '@nimiplatform/kit/ui';
+import { Dialog, DialogContent, DialogTitle, IconButton, nimiToast, Tooltip } from '@nimiplatform/kit/ui';
 import { Copy as CopyIcon, Download as DownloadIcon, Maximize2, X } from 'lucide-react';
+import { t as i18nT, useTranslation } from '../../shell/i18n/index.js';
 import { useTesterRendererHost } from '../../renderer/context.js';
 import type { TesterRendererCommandPort } from '../../renderer/contract.js';
 import type { TesterCapabilityRunResult } from '../tester-runtime.js';
@@ -18,7 +19,7 @@ export function formatTypedOutput(result: TesterCapabilityRunResult & { ok: true
     }, null, 2);
   }
   if (output.kind === 'text') {
-    return output.text || '(empty body)';
+    return output.text || i18nT('StudioShell.emptyBody');
   }
   if (output.kind === 'embedding') {
     return JSON.stringify({
@@ -37,7 +38,7 @@ export function formatTypedOutput(result: TesterCapabilityRunResult & { ok: true
     }, null, 2);
   }
   if (output.kind === 'transcript') {
-    return output.text || '(empty transcript)';
+    return output.text || i18nT('StudioShell.emptyTranscript');
   }
   return JSON.stringify({
     voiceCount: output.voiceCount,
@@ -80,14 +81,21 @@ export function RuntimeDiagnosticsActions({
   filenameBase: string;
 }) {
   const rendererHost = useTesterRendererHost();
+  const { t } = useTranslation();
   const canExport = text.trim().length > 0;
   function handleCopyDiagnostics() {
     if (!canExport) return;
-    try {
-      void rendererHost.app.commands.copyText(text);
-    } catch {
-      // Clipboard remains best-effort; download is the durable path.
-    }
+    void rendererHost.app.commands.copyText(text)
+      .then((result) => {
+        if (result.ok) {
+          nimiToast.success(t('Common.copied'));
+        } else {
+          nimiToast.danger(t('Common.copyFailed'));
+        }
+      })
+      .catch(() => {
+        nimiToast.danger(t('Common.copyFailed'));
+      });
   }
   function handleDownloadDiagnostics() {
     if (!canExport) return;
@@ -96,11 +104,11 @@ export function RuntimeDiagnosticsActions({
   }
   return (
     <div className="studio-diag__actions">
-      <Tooltip content="Copy Runtime details" placement="top">
-        <IconButton type="button" className="studio-result__action" onClick={handleCopyDiagnostics} disabled={!canExport} aria-label="Copy Runtime details" icon={<CopyIcon size={15} aria-hidden="true" />} />
+      <Tooltip content={t('StudioShell.copyRuntimeDetails')} placement="top">
+        <IconButton type="button" className="studio-result__action" onClick={handleCopyDiagnostics} disabled={!canExport} aria-label={t('StudioShell.copyRuntimeDetails')} icon={<CopyIcon size={15} aria-hidden="true" />} />
       </Tooltip>
-      <Tooltip content="Download Runtime details" placement="top">
-        <IconButton type="button" className="studio-result__action" onClick={handleDownloadDiagnostics} disabled={!canExport} aria-label="Download Runtime details" icon={<DownloadIcon size={15} aria-hidden="true" />} />
+      <Tooltip content={t('StudioShell.downloadRuntimeDetails')} placement="top">
+        <IconButton type="button" className="studio-result__action" onClick={handleDownloadDiagnostics} disabled={!canExport} aria-label={t('StudioShell.downloadRuntimeDetails')} icon={<DownloadIcon size={15} aria-hidden="true" />} />
       </Tooltip>
     </div>
   );
@@ -133,6 +141,7 @@ export function ArtifactMediaPreview({
 }) {
   const url = artifact?.url;
   const mimeType = artifact?.mimeType ?? '';
+  const { t } = useTranslation();
   const [imagePreviewOpen, setImagePreviewOpen] = useState(false);
   useEffect(() => {
     setImagePreviewOpen(false);
@@ -145,13 +154,13 @@ export function ArtifactMediaPreview({
     media = (
       <div className="ai-result__media-frame">
         <img src={url} alt={label} loading="lazy" />
-        <Tooltip content="Expand image" placement="top">
+        <Tooltip content={t('StudioShell.expandImage')} placement="top">
           <IconButton
             type="button"
             className="ai-result__media-expand nimi-material-glass-thin backdrop-blur-[var(--nimi-backdrop-blur-thin)]"
             data-nimi-material="glass-thin"
             data-nimi-tone="overlay"
-            aria-label="Expand generated image"
+            aria-label={t('StudioShell.expandGeneratedImage')}
             onClick={() => setImagePreviewOpen(true)}
             icon={<Maximize2 size={16} aria-hidden="true" />}
           />
@@ -176,11 +185,11 @@ export function ArtifactMediaPreview({
             overlayClassName="ai-result-preview-modal__overlay"
             className="ai-result-preview-modal"
           >
-            <DialogTitle className="ai-result-preview-modal__title">Image preview</DialogTitle>
+            <DialogTitle className="ai-result-preview-modal__title">{t('StudioShell.imagePreview')}</DialogTitle>
             <IconButton
               type="button"
               className="ai-result-preview-modal__close"
-              aria-label="Close image preview"
+              aria-label={t('StudioShell.closeImagePreview')}
               onClick={() => setImagePreviewOpen(false)}
               icon={<X size={20} aria-hidden="true" />}
             />
@@ -204,7 +213,9 @@ function splitSubjectLine(text: string): { subject: string; body: string } | nul
 }
 
 export function TextStudioOutputBody({ text }: { text: string }) {
-  const value = text || '(empty body)';
+  const { t } = useTranslation();
+  const emptyBody = t('StudioShell.emptyBody');
+  const value = text || emptyBody;
   const subject = splitSubjectLine(value);
   if (!subject) {
     return <div className="studio-result__text">{value}</div>;
@@ -213,7 +224,7 @@ export function TextStudioOutputBody({ text }: { text: string }) {
     <div className="studio-result__text studio-result__text--formatted">
       <h2 className="studio-result__subject">{subject.subject}</h2>
       <div className="studio-result__divider" aria-hidden="true" />
-      <div className="studio-result__text-body">{subject.body || '(empty body)'}</div>
+      <div className="studio-result__text-body">{subject.body || emptyBody}</div>
     </div>
   );
 }

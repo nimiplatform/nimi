@@ -4,6 +4,7 @@ import { Button, FieldShell, InlineAlert, SelectField, StatusBadge, TextField } 
 import type { NimiLocalAppAgentReference } from '@nimiplatform/sdk/app';
 
 import { getTesterLocalAppClient } from '../../shell/local-app-runtime-platform.js';
+import { useTranslation } from '../../shell/i18n/index.js';
 import {
   appAccessCloudFields,
   appAccessGroups,
@@ -39,19 +40,19 @@ type TesterHotContext = {
 
 const testerHot = (import.meta as ImportMeta & { readonly hot?: TesterHotContext }).hot;
 
-const sessionStateCopy: Readonly<Record<string, string>> = {
-  'session-bound': 'Session bound',
-  'action-required': 'Action required — check Nimi Desktop',
-  revoked: 'Session revoked — sign in again',
-  'project-changed': 'Project changed — re-open the App',
-  'process-replaced': 'App process was replaced — restart the App',
-  'account-changed': 'Account changed — sign in again',
-  'runtime-restarted': 'Runtime restarted — refresh the session',
-  unavailable: 'Session unavailable',
+const sessionStateKeys: Readonly<Record<string, string>> = {
+  'session-bound': 'AppAccess.sessionStates.sessionBound',
+  'action-required': 'AppAccess.sessionStates.actionRequired',
+  revoked: 'AppAccess.sessionStates.revoked',
+  'project-changed': 'AppAccess.sessionStates.projectChanged',
+  'process-replaced': 'AppAccess.sessionStates.processReplaced',
+  'account-changed': 'AppAccess.sessionStates.accountChanged',
+  'runtime-restarted': 'AppAccess.sessionStates.runtimeRestarted',
+  unavailable: 'AppAccess.sessionStates.unavailable',
 };
 
-function sessionStateLabel(state: string): string {
-  return sessionStateCopy[state] ?? 'Session unavailable';
+function sessionStateKey(state: string): string {
+  return sessionStateKeys[state] ?? 'AppAccess.sessionStates.unavailable';
 }
 
 function boundedError(error: unknown): string {
@@ -61,14 +62,15 @@ function boundedError(error: unknown): string {
 }
 
 export function AppAccessPanel() {
+  const { t } = useTranslation();
   const [facts, setFacts] = useState<AppAccessSessionFacts>(() => ({
-    'app-process': { state: 'ready', detail: `Renderer since ${new Date(performance.timeOrigin).toISOString()}` },
-    session: { state: 'checking', detail: 'Checking the Nimi session…' },
+    'app-process': { state: 'ready', detail: t('AppAccess.factDetails.rendererSince', { time: new Date(performance.timeOrigin).toISOString() }) },
+    session: { state: 'checking', detail: t('AppAccess.factDetails.checkingSession') },
     tooling: {
       state: testerHot ? 'ready' : 'unavailable',
-      detail: testerHot ? 'Vite HMR client active' : 'No official HMR client observed',
+      detail: t(testerHot ? 'AppAccess.factDetails.toolingHmrActive' : 'AppAccess.factDetails.toolingHmrMissing'),
     },
-    'current-user': { state: 'checking', detail: 'Checking the current user…' },
+    'current-user': { state: 'checking', detail: t('AppAccess.factDetails.checkingCurrentUser') },
   }));
   const [sessionBound, setSessionBound] = useState(false);
   const [sessionLost, setSessionLost] = useState<string | null>(null);
@@ -101,7 +103,7 @@ export function AppAccessPanel() {
     updateProbeStates((current) => applySessionLoss(current));
     setFacts((current) => ({
       ...current,
-      session: { state: 'unavailable', detail: 'Session lost — refresh to re-check', technical },
+      session: { state: 'unavailable', detail: t('AppAccess.factDetails.sessionLostRecheck'), technical },
     }));
   }, [updateProbeStates]);
 
@@ -123,7 +125,7 @@ export function AppAccessPanel() {
         ...current,
         session: {
           state: status.sessionBound ? 'ready' : 'unavailable',
-          detail: sessionStateLabel(status.state),
+          detail: t(sessionStateKey(status.state)),
           technical: `${status.state} · ${status.reasonCode}`,
         },
       }));
@@ -136,13 +138,17 @@ export function AppAccessPanel() {
         ...current,
         'current-user': {
           state: 'ready',
-          detail: `${user.displayName} · @${user.handle} · avatar ${user.avatarUrl ? 'set' : 'none'}`,
+          detail: t('AppAccess.factDetails.currentUserSummary', {
+            name: user.displayName,
+            handle: user.handle,
+            avatar: t(user.avatarUrl ? 'AppAccess.factDetails.avatarSet' : 'AppAccess.factDetails.avatarNone'),
+          }),
         },
       }));
     } catch (error) {
       setFacts((current) => ({
         ...current,
-        'current-user': { state: 'unavailable', detail: 'Current user unavailable', technical: boundedError(error) },
+        'current-user': { state: 'unavailable', detail: t('AppAccess.factDetails.currentUserUnavailable'), technical: boundedError(error) },
       }));
     }
   }, [markSessionLost]);
@@ -180,7 +186,7 @@ export function AppAccessPanel() {
     if (!testerHot) return undefined;
     const onUpdate = () => setFacts((current) => ({
       ...current,
-      tooling: { state: 'ready', detail: `HMR update observed · ${new Date().toISOString()}` },
+      tooling: { state: 'ready', detail: t('AppAccess.factDetails.hmrUpdateObserved', { time: new Date().toISOString() }) },
     }));
     testerHot.on('vite:beforeUpdate', onUpdate);
     return () => testerHot.off('vite:beforeUpdate', onUpdate);
@@ -282,7 +288,7 @@ export function AppAccessPanel() {
       return (
         <div className="app-access-cloud-form">
           {appAccessCloudFields.map((field) => (
-            <FieldShell key={field.id} label={field.label} className="app-access-cloud-form__field">
+            <FieldShell key={field.id} label={t(field.labelKey)} className="app-access-cloud-form__field">
               <TextField
                 value={cloudDraft[field.id]}
                 data-testid={field.testId}
@@ -297,10 +303,10 @@ export function AppAccessPanel() {
       return (
         <div className="app-access-agent-picker">
           <SelectField
-            aria-label="Current active Agent"
+            aria-label={t('AppAccess.page.agentSelectAriaLabel')}
             data-testid={appAccessPageIds.agentSelect}
             value={selectedAgentHandle}
-            placeholder="No active Agent"
+            placeholder={t('AppAccess.page.agentSelectPlaceholder')}
             options={agentReferences.map((reference) => ({
               value: reference.agentHandle,
               label: reference.displayName,
@@ -317,13 +323,13 @@ export function AppAccessPanel() {
     <section className="app-access" data-testid={appAccessPageIds.page} aria-labelledby="app-access-title">
       <header className="app-access__head">
         <div className="app-access__head-text">
-          <p className="app-access__eyebrow">{appAccessPageCopy.eyebrow}</p>
-          <h1 id="app-access-title" className="app-access__title">{appAccessPageCopy.title}</h1>
-          <p className="app-access__blurb">{appAccessPageCopy.blurb}</p>
+          <p className="app-access__eyebrow">{t(appAccessPageCopy.eyebrow)}</p>
+          <h1 id="app-access-title" className="app-access__title">{t(appAccessPageCopy.title)}</h1>
+          <p className="app-access__blurb">{t(appAccessPageCopy.blurb)}</p>
         </div>
         <div className="app-access__head-actions">
           <StatusBadge tone={sessionBound ? 'success' : 'neutral'} shape="dot">
-            {sessionBound ? 'Session bound' : 'No session'}
+            {sessionBound ? t('AppAccess.page.sessionBound') : t('AppAccess.page.noSession')}
           </StatusBadge>
           <Button
             type="button"
@@ -333,7 +339,7 @@ export function AppAccessPanel() {
             data-testid={appAccessPageIds.refreshSession}
             onClick={() => void refreshSession()}
           >
-            {appAccessPageCopy.refreshSession}
+            {t(appAccessPageCopy.refreshSession)}
           </Button>
           <Button
             type="button"
@@ -344,16 +350,16 @@ export function AppAccessPanel() {
             loading={runningGroup === 'all'}
             onClick={() => void runAll()}
           >
-            {appAccessPageCopy.runAll}
+            {t(appAccessPageCopy.runAll)}
           </Button>
         </div>
       </header>
 
       {sessionLost ? (
-        <InlineAlert tone="info" className="app-access__banner">{appAccessPageCopy.sessionLost}</InlineAlert>
+        <InlineAlert tone="info" className="app-access__banner">{t(appAccessPageCopy.sessionLost)}</InlineAlert>
       ) : null}
       {!sessionBound ? (
-        <InlineAlert tone="info" className="app-access__banner">{appAccessPageCopy.signedOut}</InlineAlert>
+        <InlineAlert tone="info" className="app-access__banner">{t(appAccessPageCopy.signedOut)}</InlineAlert>
       ) : null}
 
       <AppAccessSessionBar facts={facts} />
