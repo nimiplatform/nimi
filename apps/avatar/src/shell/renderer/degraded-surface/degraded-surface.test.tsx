@@ -46,12 +46,12 @@ afterEach(() => {
 describe('DegradedSurface — composition postures', () => {
   it.each([
     ['loading', 'Preparing the avatar'],
-    ['degraded_reauth_required', 'Runtime account session is not authenticated'],
-    ['degraded_cloud_offline', 'Realm cloud is temporarily unavailable'],
-    ['degraded_runtime_unavailable', 'Runtime interaction path is not ready'],
-    ['degraded_launch_context_invalid', 'Launch context invalid'],
-    ['error_bootstrap_fatal', 'Avatar surface failed to start'],
-    ['relaunch_pending', 'Desktop sent a launch update'],
+    ['degraded_reauth_required', 'Sign in to continue'],
+    ['degraded_cloud_offline', 'Nimi Cloud is temporarily unavailable'],
+    ['degraded_runtime_unavailable', "Can't connect to Runtime"],
+    ['degraded_launch_context_invalid', 'Open the avatar from Nimi Desktop'],
+    ['error_bootstrap_fatal', "The avatar couldn't start"],
+    ['relaunch_pending', 'Switching avatar'],
   ] as const)('renders %s posture with i18n title', (state, expectedTitle) => {
     render(<DegradedSurface composition={makeComposition(state as CompositionState)} />);
     expect(screen.getByText(expectedTitle)).toBeTruthy();
@@ -59,7 +59,7 @@ describe('DegradedSurface — composition postures', () => {
 
   it('falls through to unknown posture for ready (defensive)', () => {
     render(<DegradedSurface composition={makeComposition('ready')} />);
-    expect(screen.getByText('Avatar surface paused')).toBeTruthy();
+    expect(screen.getByText('Avatar paused')).toBeTruthy();
   });
 });
 
@@ -77,7 +77,7 @@ describe('DegradedSurface — reason interpolation', () => {
   it('uses bare summary text when reason is empty', () => {
     render(<DegradedSurface composition={makeComposition('degraded_runtime_unavailable')} />);
     expect(
-      screen.getByText('The local Runtime is not currently delivering the avatar carrier.'),
+      screen.getByText("The avatar isn't receiving live data from Runtime."),
     ).toBeTruthy();
   });
 
@@ -130,7 +130,7 @@ describe('DegradedSurface — reason interpolation', () => {
 describe('DegradedSurface — reload affordance', () => {
   it('renders reload button and triggers reloadAvatarShell on click', () => {
     render(<DegradedSurface composition={makeComposition('degraded_runtime_unavailable')} />);
-    const button = screen.getByRole('button', { name: 'Reload shell' });
+    const button = screen.getByRole('button', { name: 'Reload avatar' });
     fireEvent.click(button);
     expect(reloadAvatarShellMock).toHaveBeenCalledTimes(1);
   });

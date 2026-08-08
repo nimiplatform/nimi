@@ -32,11 +32,11 @@ type RightAgentPanelProps = {
 };
 
 const ZHIYU_AGENT_CENTER_OVERRIDES = {
-  'AgentCenter.chrome.title': '织羽智能体中心',
-  'AgentCenter.chrome.eyebrow': '织羽智能体中心',
-  'AgentCenter.chrome.closeLabel': '关闭织羽智能体中心',
-  'AgentCenter.chrome.navLabel': '织羽智能体中心分区',
-  'AgentCenter.chrome.projectionLoadFailed': '织羽智能体中心投影加载失败。',
+  'AgentCenter.chrome.title': '织羽伙伴中心',
+  'AgentCenter.chrome.eyebrow': '织羽伙伴中心',
+  'AgentCenter.chrome.closeLabel': '关闭织羽伙伴中心',
+  'AgentCenter.chrome.navLabel': '织羽伙伴中心分区',
+  'AgentCenter.chrome.projectionLoadFailed': '织羽伙伴中心加载失败。',
 } as const satisfies Partial<Record<AgentCenterTranslationKey, string>>;
 
 export function RightAgentPanel(props: RightAgentPanelProps) {
@@ -57,7 +57,7 @@ export function RightAgentPanel(props: RightAgentPanelProps) {
       data-zhiyu-agent-panel-mode={props.mode}
       data-zhiyu-agent-center-side-sheet="desktop"
       data-zhiyu-agent-panel-tab={props.activeTab}
-      aria-label="智能体中心区域"
+      aria-label="伙伴中心"
     >
       {moodLabel || activityLabel || agentCenterWorld ? (
         <div
@@ -102,13 +102,13 @@ export function RightAgentPanel(props: RightAgentPanelProps) {
         <section
           className="flex min-h-0 flex-1 flex-col gap-3 rounded-2xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-4"
           data-zhiyu-agent-center-unavailable="protected-app-access-unavailable"
-          aria-label="织羽智能体中心暂不可用"
+          aria-label="织羽伙伴中心暂不可用"
         >
           <div className="flex min-w-0 items-center justify-between gap-2">
-            <h2 className="m-0 text-sm font-semibold">织羽智能体中心</h2>
+            <h2 className="m-0 text-sm font-semibold">织羽伙伴中心</h2>
             <button
               type="button"
-              aria-label="关闭织羽智能体中心"
+              aria-label="关闭织羽伙伴中心"
               data-zhiyu-agent-center-unavailable-close="true"
               onClick={props.onClose}
             >
@@ -116,7 +116,7 @@ export function RightAgentPanel(props: RightAgentPanelProps) {
             </button>
           </div>
           <p className="m-0 text-xs leading-relaxed text-[var(--nimi-text-secondary)]">
-            伙伴设置暂时无法在织羽内修改，本地 App 的受保护配置能力尚未开放。
+            伙伴设置暂时无法在织羽内修改，请前往 Nimi Desktop 继续设置。
           </p>
           <button
             type="button"
@@ -124,7 +124,7 @@ export function RightAgentPanel(props: RightAgentPanelProps) {
             data-zhiyu-desktop-open-action="desktop_open_agent_config"
             onClick={props.onOpenDesktopAgentConfig}
           >
-            在桌面端打开伙伴配置
+            在 Nimi Desktop 中打开伙伴设置
           </button>
         </section>
       )}

@@ -59,7 +59,7 @@ export function formatProjectionValue(value: string | null | undefined): string 
     return '等待授权';
   }
   if (/zhiyu-avatar-projected/i.test(value)) {
-    return '已投影';
+    return '已同步';
   }
   return value;
 }
@@ -70,7 +70,7 @@ export function formatReasonLabel(ready: boolean, reasonCode: string): string {
   }
   if (/missing|required|unavailable|blocked|not[_-]projected|not[_-]admitted/i.test(reasonCode)) {
     if (/ai-config|capability[-_]intent/i.test(reasonCode)) {
-      return '需要能力意图';
+      return '需要模型设置';
     }
     if (/local-agent|agent|required|source/i.test(reasonCode)) {
       return '需要伙伴';
@@ -131,8 +131,10 @@ export function AvatarPresenceSection({
 }) {
   const controlState = avatar.launchAvailable || avatar.manageAvailable ? 'authorized' : 'blocked';
   const resourceState = avatar.ready ? 'avatar-facade-projected' : 'blocked';
-  const avatarStatusLabel = avatar.ready ? '形象入口已连接' : '等待形象授权';
-  const avatarMessage = avatar.ready ? avatar.message : '形象启动和管理会在获得授权后出现。';
+  const avatarStatusLabel = avatar.ready ? '伙伴形象已连接' : '等待形象权限';
+  const avatarMessage = avatar.ready
+    ? '可以启动或管理当前伙伴形象。'
+    : '获得权限后即可启动或管理伙伴形象。';
   return (
     <Surface
       as="section"
@@ -264,7 +266,7 @@ export function IdentityFloorSection({
       </div>
       <div className="zhiyu-home__identity-summary">
         <StatusBadge tone={identityFloor.state === 'ready' ? 'success' : 'warning'} shape="dot">
-          {identityFloor.state === 'ready' ? '已就绪' : '等待投影'}
+          {identityFloor.state === 'ready' ? '已就绪' : '等待同步'}
         </StatusBadge>
         <span>{identityFloor.readyCount} 项就绪</span>
         <span>{identityFloor.blockedCount} 项等待</span>
@@ -276,12 +278,12 @@ export function IdentityFloorSection({
       >
         身份不会被单条消息或一条记忆冲突覆盖。
       </p>
-      <div className="zhiyu-home__identity-grid" aria-label="身份地板投影">
+      <div className="zhiyu-home__identity-grid" aria-label="身份保护状态">
         {identityFloor.items.map((item) => (
           <IdentityFloorItemRow key={item.key} item={item} />
         ))}
       </div>
-      <div className="zhiyu-home__identity-unsupported" aria-label="身份地板未开放投影">
+      <div className="zhiyu-home__identity-unsupported" aria-label="尚未开放的身份保护信息">
         {identityFloor.unsupportedProjectionFields.map((field) => (
           <span
             key={field}
@@ -321,7 +323,7 @@ function IdentityFloorItemRow({ item }: { readonly item: ZhiyuIdentityFloorItem 
 function identityItemStateLabel(state: ZhiyuIdentityFloorItemState): string {
   if (state === 'ready') return '已就绪';
   if (state === 'not-admitted') return '尚未开放';
-  return '等待投影';
+  return '等待同步';
 }
 
 function identityUnsupportedLabel(field: string): string {
@@ -352,31 +354,31 @@ export function DiagnosticSurface({ diagnostics }: { readonly diagnostics: Zhiyu
         <Route size={18} aria-hidden="true" />
         <div>
           <h2>诊断</h2>
-          <p>把当前 Runtime、账户、来源、Agent、会话和回合状态整理成可追踪的 fail-closed 修复队列。</p>
+          <p>汇总本地服务、账户、来源、伙伴、会话和回复状态，便于定位问题。</p>
         </div>
       </div>
       <div className="zhiyu-home__diagnostic-summary">
         <StatusBadge tone={diagnostics.mode === 'ready' ? 'success' : 'warning'} shape="dot">
-          {diagnostics.mode}
+          {diagnosticModeLabel(diagnostics.mode)}
         </StatusBadge>
-        <span>{diagnostics.readyCount} ready</span>
-        <span>{diagnostics.blockedCount} blocked</span>
-        <span>{diagnostics.errorCount} error</span>
+        <span>{diagnostics.readyCount} 项正常</span>
+        <span>{diagnostics.blockedCount} 项受阻</span>
+        <span>{diagnostics.errorCount} 项错误</span>
       </div>
       {primary ? (
         <div className="zhiyu-home__diagnostic-primary">
-          <span>Primary blocker</span>
+          <span>主要问题</span>
           <strong>{primary.reasonCode}</strong>
           <small>{primary.actionHint}</small>
         </div>
       ) : (
         <div className="zhiyu-home__diagnostic-primary">
-          <span>Primary blocker</span>
-          <strong>none</strong>
+          <span>主要问题</span>
+          <strong>无</strong>
           <small>all_required_runtime_surfaces_ready</small>
         </div>
       )}
-      <div className="zhiyu-home__diagnostic-list" aria-label="fail-closed diagnostic queue">
+      <div className="zhiyu-home__diagnostic-list" aria-label="诊断问题列表">
         {visibleItems.map((item) => (
           <DiagnosticRow key={item.key} item={item} />
         ))}
@@ -472,4 +474,10 @@ function toneForDiagnosticSeverity(severity: ZhiyuDiagnosticSeverity) {
     default:
       return 'warning';
   }
+}
+
+function diagnosticModeLabel(mode: ZhiyuDiagnosticState['mode']): string {
+  if (mode === 'ready') return '运行正常';
+  if (mode === 'probing') return '检查中';
+  return '需要处理';
 }

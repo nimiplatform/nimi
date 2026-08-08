@@ -26,10 +26,10 @@ export function chatBlockedHint(evidence: ZhiyuEvidence): string {
   }
   if (!evidence.turn.ready) {
     if (evidence.turn.reasonCode.includes('ACCESS_UNAVAILABLE')) {
-      return '受保护的 App Access 当前不可用。';
+      return '当前应用暂时没有发送消息的权限。';
     }
     if (evidence.turn.reasonCode === 'zhiyu-agent-handle-not-covered') {
-      return '当前伙伴已不在 Runtime 清单中，请刷新伙伴列表。';
+      return '当前伙伴已不在本地伙伴列表中，请刷新伙伴列表。';
     }
     return '当前会话暂时不能发送，请刷新伙伴或重新打开会话。';
   }
@@ -45,7 +45,7 @@ function conversationReadinessHint(conversation: ZhiyuEvidence['conversation']):
     return '请先选择已存在的本地伙伴。';
   }
   if (reasonCode === 'electron-runtime-bridge-unavailable') {
-    return '本地应用桥接暂时不可用，请重启织羽。';
+    return '本地连接暂时不可用，请重启织羽。';
   }
   if (
     reasonCode.includes('anchor')
@@ -104,10 +104,10 @@ function isTechnicalPartnerDisplayName(value: string): boolean {
 export function stateDisplayLabel(value: string | null | undefined): string {
   const normalized = value?.trim();
   if (!normalized || normalized === 'not_projected') {
-    return '未投影';
+    return '暂无数据';
   }
   if (normalized === 'projected') {
-    return '已投影';
+    return '已同步';
   }
   if (normalized === 'idle') {
     return '空闲';
@@ -160,9 +160,9 @@ export function avatarStatusMessage(action: ZhiyuAvatarLaunchAction): string {
     return '可以从输入区启动形象。';
   }
   if (action.state === 'blocked') {
-    return '形象配置由 Avatar 管理。';
+    return '请先在伙伴中心完成形象设置。';
   }
-  return '形象入口已保留，等待上游配置。';
+  return '伙伴形象尚未设置完成。';
 }
 
 export function partnerInitial(value: string | null | undefined): string {

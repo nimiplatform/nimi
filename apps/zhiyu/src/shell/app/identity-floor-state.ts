@@ -22,7 +22,7 @@ export type ZhiyuIdentityFloorItem = {
 };
 
 export type ZhiyuIdentityFloorState = {
-  readonly title: '身份地板';
+  readonly title: '身份保护';
   readonly state: ZhiyuIdentityFloorStateKind;
   readonly summaryReasonCode: string;
   readonly actionHint: string;
@@ -127,7 +127,7 @@ export function projectZhiyuIdentityFloorState(evidence: ZhiyuEvidence): ZhiyuId
       : 'ready';
 
   return {
-    title: '身份地板',
+    title: '身份保护',
     state,
     summaryReasonCode: firstBlocked?.reasonCode
       ?? (notAdmittedCount > 0 ? 'zhiyu-identity-floor-user-visible-projection-not-admitted' : 'zhiyu-identity-floor-ready'),

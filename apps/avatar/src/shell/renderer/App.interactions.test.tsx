@@ -670,7 +670,7 @@ describe('App transient composer overlay', () => {
     });
 
     await openComposer();
-    const textarea = screen.getByLabelText('Type a message to send to this anchor') as HTMLTextAreaElement;
+    const textarea = screen.getByLabelText('Write a message to this agent') as HTMLTextAreaElement;
     fireEvent.change(textarea, { target: { value: 'first note' } });
     fireEvent.keyDown(textarea, { key: 'Enter', shiftKey: false });
 
@@ -709,7 +709,7 @@ describe('App transient composer overlay', () => {
     });
 
     await openComposer();
-    const textarea = screen.getByLabelText('Type a message to send to this anchor') as HTMLTextAreaElement;
+    const textarea = screen.getByLabelText('Write a message to this agent') as HTMLTextAreaElement;
     fireEvent.change(textarea, { target: { value: 'blocked note' } });
     fireEvent.keyDown(textarea, { key: 'Enter', shiftKey: false });
 
@@ -729,14 +729,14 @@ describe('App transient composer overlay', () => {
     });
 
     await openComposer();
-    const textarea = screen.getByLabelText('Type a message to send to this anchor') as HTMLTextAreaElement;
+    const textarea = screen.getByLabelText('Write a message to this agent') as HTMLTextAreaElement;
     fireEvent.keyDown(textarea, { key: 'Escape' });
     await waitFor(() => {
       expect(screen.queryByTestId('avatar-transient-composer')).toBeNull();
     });
 
     await openComposer();
-    const activeTextarea = screen.getByLabelText('Type a message to send to this anchor') as HTMLTextAreaElement;
+    const activeTextarea = screen.getByLabelText('Write a message to this agent') as HTMLTextAreaElement;
     activeTextarea.blur();
     await act(async () => {
       await new Promise((resolve) => requestAnimationFrame(resolve));

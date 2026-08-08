@@ -55,8 +55,8 @@ test('Zhiyu can render Kit Agent Center sections from the shipped Chinese catalo
   const behavior = renderSection('behavior', session);
   const cognition = renderSection('cognition', session);
   assert.match(appearance, />外观</u);
-  assert.match(appearance, /尚未(?:导入|配置).*Avatar/u);
-  assert.match(behavior, /让伙伴在合适的时候出现/u);
-  assert.match(cognition, /认知状态/u);
+  assert.match(appearance, /尚未设置伙伴形象/u);
+  assert.match(behavior, /让伙伴主动联系你/u);
+  assert.match(cognition, /状态与记忆/u);
   assert.doesNotMatch(appearance, /Configure this partner avatar/u);
 });

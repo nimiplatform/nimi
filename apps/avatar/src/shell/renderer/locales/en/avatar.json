@@ -2,7 +2,7 @@
   "Avatar": {
     "composer": {
       "placeholder": "Type a message…",
-      "aria_label": "Type a message to send to this anchor",
+      "aria_label": "Write a message to this agent",
       "send_aria": "Send message",
       "close_aria": "Close text input",
       "send_failed_prefix": "Send failed"
@@ -20,30 +20,30 @@
       "idle": "Idle",
       "listening": "Listening…",
       "transcribing": "Transcribing…",
-      "pending": "Reply pending",
-      "replying": "Reply active",
+      "pending": "Waiting for reply",
+      "replying": "Replying…",
       "interrupted": "Interrupted",
       "error": "Voice unavailable",
       "sending": "Sending…",
       "blocked": "Voice blocked",
       "audio_unavailable_short": "Audio unavailable",
-      "toolbar_aria": "Companion status",
-      "mic_listen_aria": "Voice listening is controlled by Runtime",
-      "mic_commit_aria": "Voice capture is controlled by Runtime",
+      "toolbar_aria": "Agent status",
+      "mic_listen_aria": "Voice listening is managed by Runtime",
+      "mic_commit_aria": "Voice capture is managed by Runtime",
       "mic_blocked_aria": "Voice input unavailable for this state",
       "interrupt_aria": "Interrupt current reply",
       "settings_aria": "Open Avatar settings",
       "voice_capture_inactive_error": "Foreground voice capture is no longer active.",
-      "audio_unavailable": "Audio playback is unavailable; lipsync continues from frames only.",
-      "lipsync_disabled": "Lipsync is disabled for this model.",
+      "audio_unavailable": "Audio playback is unavailable; lip sync will continue using timing data only.",
+      "lipsync_disabled": "Lip sync is disabled for this model.",
       "privacy_indicator_aria": "Privacy indicator: {{state}}"
     },
     "bubble": {
-      "close_aria": "Close assistant bubble"
+      "close_aria": "Close reply"
     },
     "degraded": {
-      "surface_aria": "Avatar surface unavailable",
-      "reload": "Reload shell",
+      "surface_aria": "Avatar unavailable",
+      "reload": "Reload avatar",
       "diagnostics": {
         "summary": "Diagnostics",
         "composition_state": "Composition state",
@@ -60,59 +60,59 @@
         "model_error": "Model error",
         "yes": "Yes",
         "no": "No",
-        "audio_artifact_synthetic": "Audio is a synthetic frame-only artifact; no playback was attempted."
+        "audio_artifact_synthetic": "The audio contains timing frames only; playback was not attempted."
       },
       "loading": {
         "badge": "Warming up",
         "title": "Preparing the avatar",
-        "summary": "The local visual carrier is loading and the first-party Runtime path is being prepared from the desktop launch handoff.",
-        "recovery": "Keep this surface open while Runtime prepares the live companion path."
+        "summary": "The avatar is loading and connecting to Runtime.",
+        "recovery": "Keep this window open while the avatar finishes connecting."
       },
       "degraded_reauth_required": {
         "badge": "Sign-in required",
-        "title": "Runtime account session is not authenticated",
-        "summary": "Avatar requires an authenticated Runtime account before it can mount the live carrier.",
-        "summary_with_reason": "Avatar requires an authenticated Runtime account. Reason: {{reason}}.",
-        "recovery": "Sign in through the desktop account flow, then relaunch this avatar surface."
+        "title": "Sign in to continue",
+        "summary": "Sign in to Nimi Desktop before launching the avatar.",
+        "summary_with_reason": "Sign in to Nimi Desktop before launching the avatar. Reason: {{reason}}.",
+        "recovery": "Sign in through Nimi Desktop, then launch the avatar again."
       },
       "degraded_cloud_offline": {
         "badge": "Cloud offline",
-        "title": "Realm cloud is temporarily unavailable",
-        "summary": "Runtime is available, but the Realm transport could not reach the cloud service.",
-        "summary_with_reason": "Runtime is available, but the Realm transport could not reach the cloud service. Reason: {{reason}}.",
-        "recovery": "Keep Runtime running and retry this avatar surface when Realm connectivity returns."
+        "title": "Nimi Cloud is temporarily unavailable",
+        "summary": "Runtime is running, but it can't reach Nimi Cloud.",
+        "summary_with_reason": "Runtime is running, but it can't reach Nimi Cloud. Reason: {{reason}}.",
+        "recovery": "Keep Runtime running and try launching the avatar again when the connection returns."
       },
       "degraded_runtime_unavailable": {
         "badge": "Runtime unavailable",
-        "title": "Runtime interaction path is not ready",
-        "summary": "The local Runtime is not currently delivering the avatar carrier.",
-        "summary_with_reason": "Runtime rejected or did not deliver the avatar carrier. Reason: {{reason}}.",
-        "recovery": "Restore the local Runtime daemon, then relaunch this surface from desktop."
+        "title": "Can't connect to Runtime",
+        "summary": "The avatar isn't receiving live data from Runtime.",
+        "summary_with_reason": "The avatar isn't receiving live data from Runtime. Reason: {{reason}}.",
+        "recovery": "Start or restart Runtime, then launch the avatar again from Nimi Desktop."
       },
       "degraded_launch_context_invalid": {
         "badge": "Launch required",
-        "title": "Launch context invalid",
-        "summary": "This avatar instance was reached without a valid launch handoff. Avatar must be opened from a desktop orchestrator with a real agent target.",
-        "recovery": "Start the avatar again from the desktop orchestrator."
+        "title": "Open the avatar from Nimi Desktop",
+        "summary": "This avatar was opened without a valid agent selection.",
+        "recovery": "Choose an agent in Nimi Desktop, then launch the avatar again."
       },
       "error_bootstrap_fatal": {
         "badge": "Surface unavailable",
-        "title": "Avatar surface failed to start",
-        "summary": "An untyped bootstrap error stopped the shell before it could mount.",
-        "summary_with_reason": "An untyped bootstrap error stopped the shell. Reason: {{reason}}.",
-        "recovery": "Reload the avatar shell. If the failure repeats, check Runtime daemon logs."
+        "title": "The avatar couldn't start",
+        "summary": "An unexpected error stopped the avatar before it opened.",
+        "summary_with_reason": "An unexpected error stopped the avatar before it opened. Reason: {{reason}}.",
+        "recovery": "Reload the avatar. If it happens again, check the Runtime logs."
       },
       "relaunch_pending": {
         "badge": "Preparing",
-        "title": "Desktop sent a launch update",
-        "summary": "The desktop orchestrator pushed a new launch context. This shell will reload to bind the new agent / instance.",
-        "recovery": "Reload the shell to prepare the new desktop-selected context. No prior ready state is kept alive locally."
+        "title": "Switching avatar",
+        "summary": "Nimi Desktop selected a different agent or avatar instance.",
+        "recovery": "Reload to apply the new selection."
       },
       "unknown": {
         "badge": "Surface paused",
-        "title": "Avatar surface paused",
-        "summary": "The shell is in an unexpected composition state. This is a defensive degraded posture.",
-        "recovery": "Reload the avatar shell to restore a known posture."
+        "title": "Avatar paused",
+        "summary": "The avatar entered an unexpected state and paused safely.",
+        "recovery": "Reload the avatar to continue."
       }
     },
     "creator_capabilities": {
@@ -120,32 +120,32 @@
       "header": "Creator capabilities",
       "backend": "{{kind}} backend",
       "status": {
-        "passed": "Proven",
-        "unsupported": "Not proven",
+        "passed": "Available",
+        "unsupported": "Not confirmed",
         "failed": "Failed"
       },
       "motion": {
         "label": "Motion",
         "proof_vrm": "{{count}} generated routes",
         "proof_live2d": "{{count}} motion groups",
-        "proof_missing": "No admitted route or group evidence"
+        "proof_missing": "No supported motion route or group found"
       },
       "expression": {
         "label": "Expression",
         "proof_vrm": "Expression manager present",
         "proof_live2d": "{{count}} expressions loaded",
         "proof_adapter": "Adapter {{adapter}} maps expressions",
-        "proof_missing": "No expression evidence"
+        "proof_missing": "No expression support detected"
       },
       "hit_region": {
         "label": "Hit region",
         "proof_present": "{{strategy}}, {{width}}x{{height}} bounds",
-        "proof_missing": "No valid bounds evidence"
+        "proof_missing": "No valid interaction bounds detected"
       },
       "lipsync": {
         "label": "LipSync",
         "proof_present": "Audio profile loaded",
-        "proof_missing": "No lipsync profile evidence"
+        "proof_missing": "No lip-sync profile detected"
       },
       "nas_handlers": {
         "label": "NAS handlers",
@@ -164,7 +164,7 @@
       "show_voice_captions": {
         "label": "Show voice captions",
         "help": "Bounded foreground voice captions only.",
-        "note": "Voice captions remain bounded to the current explicit anchor either way."
+        "note": "Voice captions only show speech from the current agent conversation."
       }
     },
     "appearance": {
@@ -176,10 +176,10 @@
         "model": "Model",
         "source": "Source",
         "scale": "Scale",
-        "selection_owner": "Selection owner"
+        "selection_owner": "Managed by"
       },
       "owner": {
-        "desktop_configuration": "Desktop avatar configuration"
+        "desktop_configuration": "Nimi Desktop avatar settings"
       },
       "backend": {
         "live2d": "Live2D",
@@ -187,8 +187,8 @@
         "unknown": "Unknown"
       },
       "source": {
-        "runtime": "Runtime-bound",
-        "fixture": "Fixture",
+        "runtime": "Connected to Runtime",
+        "fixture": "Test asset",
         "unknown": "Unknown"
       },
       "not_loaded": "Not loaded"
@@ -198,17 +198,17 @@
       "header": "Avatar debug",
       "close_aria": "Close debug",
       "refresh": "Refresh",
-      "request_all": "Request probes",
-      "loading": "Loading debug snapshot",
-      "empty": "No probe results yet",
+      "request_all": "Run all checks",
+      "loading": "Loading diagnostics",
+      "empty": "No check results yet",
       "error_prefix": "Debug request failed",
       "columns": {
-        "probe": "Probe",
+        "probe": "Check",
         "status": "Status",
         "evidence": "Evidence",
         "replay": "Replay"
       },
-      "evidence_count": "{{count}} refs",
+      "evidence_count": "{{count}} references",
       "no_replay": "No replay",
       "status": {
         "passed": "Passed",
@@ -224,7 +224,7 @@
         "route_support_matrix": "Route support",
         "generated_motion": "Generated motion",
         "emotion_expression": "Emotion expression",
-        "speech_lipsync": "Speech lipsync",
+        "speech_lipsync": "Speech lip sync",
         "window_hit_region": "Window hit region"
       }
     },
@@ -240,10 +240,10 @@
       "close": "Close this avatar",
       "settings": "Settings",
       "debug": "Debug",
-      "pending": "Pending"
+      "pending": "In progress"
     },
     "shell": {
-      "companion_aria": "Avatar companion",
+      "companion_aria": "Agent avatar",
       "document_title": "Nimi Avatar"
     }
   }

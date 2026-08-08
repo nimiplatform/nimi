@@ -153,14 +153,14 @@ function primaryCopy(stage: ZhiyuHomeProductStage): {
     case 'source-required':
       return {
         title: '选择已存在伙伴',
-        description: '当前没有可打开的伙伴。请到 Desktop Explore 的角色/人格页选择来源；等本地伙伴出现在清单后，织羽会打开它。',
-        actionHint: '打开 Desktop Explore 的角色/人格语境；织羽只读取已在本地清单中的伙伴。',
+        description: '当前没有可打开的伙伴。请前往 Nimi Desktop 的“探索”页选择角色或人设；伙伴出现在本地列表后，织羽会打开它。',
+        actionHint: '前往 Nimi Desktop 的“探索”页选择角色或人设。',
       };
     case 'agent-required':
       return {
         title: '选择已存在伙伴',
-        description: '已经连接到账户，但当前没有可打开的伙伴。请从 Desktop Explore 的角色/人格页确认来源后返回。',
-        actionHint: '打开 Desktop Explore 的角色/人格语境；织羽只读取已在本地清单中的伙伴。',
+        description: '账户已连接，但当前没有可打开的伙伴。请前往 Nimi Desktop 的“探索”页选择角色或人设。',
+        actionHint: '前往 Nimi Desktop 的“探索”页选择角色或人设。',
       };
     case 'conversation-required':
       return {
@@ -172,7 +172,7 @@ function primaryCopy(stage: ZhiyuHomeProductStage): {
       return {
         title: '需要恢复当前会话权限',
         description: '当前伙伴已经选定，但账户授权或会话句柄已发生变化。',
-        actionHint: '刷新伙伴列表并确认账户级 Agent 交互授权。',
+        actionHint: '刷新伙伴列表并确认账户已允许与伙伴互动。',
       };
     case 'ready':
       return {
@@ -187,8 +187,8 @@ function gatedSurfaces(evidence: ZhiyuEvidence): readonly ZhiyuHomeGatedSurface[
   return [
     {
       key: 'memory',
-      title: '记忆观测',
-      description: '只读展示当前伙伴的记忆摘要；没有数据时不会伪造记忆。',
+      title: '记忆摘要',
+      description: '查看当前伙伴的记忆摘要；没有数据时会显示为空。',
       stateLabel: evidence.conversation.ready ? '等待记忆摘要' : '等待当前伙伴会话',
       reasonCode: evidence.conversation.reasonCode,
       actionHint: evidence.conversation.actionHint,
@@ -204,7 +204,7 @@ function gatedSurfaces(evidence: ZhiyuEvidence): readonly ZhiyuHomeGatedSurface[
     {
       key: 'delegation',
       title: '委托审批',
-      description: '只显示受控委托、输出防护和回放审计。',
+      description: '查看需要确认的委托、输出保护和操作记录。',
       stateLabel: evidence.delegation.ready
         ? '委托控制可用'
         : '等待委托控制开放',
@@ -213,9 +213,9 @@ function gatedSurfaces(evidence: ZhiyuEvidence): readonly ZhiyuHomeGatedSurface[
     },
     {
       key: 'identity',
-      title: '身份安全',
-      description: '只读展示伙伴身份、会话连续性和安全边界。',
-      stateLabel: evidence.localAgent.ready ? '等待身份安全说明' : '等待当前伙伴',
+      title: '身份保护',
+      description: '查看伙伴身份、会话连续性和安全保护状态。',
+      stateLabel: evidence.localAgent.ready ? '等待身份保护信息' : '等待当前伙伴',
       reasonCode: evidence.localAgent.ready
         ? 'zhiyu-identity-floor-user-visible-projection-not-admitted'
         : evidence.localAgent.reasonCode,
@@ -234,8 +234,8 @@ function gatedSurfaces(evidence: ZhiyuEvidence): readonly ZhiyuHomeGatedSurface[
     {
       key: 'avatar',
       title: '形象状态',
-      description: '展示当前伙伴形象是否可启动、可管理。',
-      stateLabel: evidence.avatar.ready ? '形象已就绪' : '等待形象授权',
+      description: '查看当前伙伴形象是否可以启动或管理。',
+      stateLabel: evidence.avatar.ready ? '形象已就绪' : '等待形象权限',
       reasonCode: evidence.avatar.reasonCode,
       actionHint: evidence.avatar.actionHint,
     },

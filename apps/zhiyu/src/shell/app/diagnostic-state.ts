@@ -44,13 +44,13 @@ type EvidenceStatus = {
 
 export function projectZhiyuDiagnosticState(evidence: ZhiyuEvidence): ZhiyuDiagnosticState {
   const items: readonly ZhiyuDiagnosticItem[] = [
-    diagnosticItem('runtime', 'Runtime', evidence.runtime),
+    diagnosticItem('runtime', '运行时', evidence.runtime),
     diagnosticItem('auth', '账户', evidence.auth),
-    diagnosticItem('source', '来源投影', evidence.source),
-    diagnosticItem('inventory', 'Agent 清单', evidence.inventory),
-    diagnosticItem('localAgent', 'LocalAgent', evidence.localAgent),
-    diagnosticItem('conversation', '会话锚点', evidence.conversation),
-    diagnosticItem('turn', '回合通路', evidence.turn),
+    diagnosticItem('source', '伙伴来源', evidence.source),
+    diagnosticItem('inventory', '伙伴清单', evidence.inventory),
+    diagnosticItem('localAgent', '当前伙伴', evidence.localAgent),
+    diagnosticItem('conversation', '当前会话', evidence.conversation),
+    diagnosticItem('turn', '消息回复', evidence.turn),
     diagnosticItem('composer', '输入状态', {
       ready: composerReady(evidence),
       reasonCode: evidence.composer.reasonCode,

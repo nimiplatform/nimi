@@ -2,13 +2,13 @@
   "Avatar": {
     "composer": {
       "placeholder": "输入消息……",
-      "aria_label": "向当前 anchor 发送一条消息",
+      "aria_label": "给当前伙伴发送消息",
       "send_aria": "发送消息",
       "close_aria": "关闭文字输入",
       "send_failed_prefix": "发送失败"
     },
     "action_radial": {
-      "aria": "Avatar 动作",
+      "aria": "伙伴形象动作",
       "greet": "打招呼",
       "look_at_me": "看向我",
       "happy": "开心",
@@ -27,26 +27,26 @@
       "sending": "发送中……",
       "blocked": "语音已阻止",
       "audio_unavailable_short": "音频不可用",
-      "toolbar_aria": "Companion 状态",
-      "mic_listen_aria": "语音聆听由 Runtime 控制",
-      "mic_commit_aria": "语音采集由 Runtime 控制",
+      "toolbar_aria": "伙伴状态",
+      "mic_listen_aria": "语音聆听由运行时管理",
+      "mic_commit_aria": "语音采集由运行时管理",
       "mic_blocked_aria": "当前状态无法使用语音输入",
       "interrupt_aria": "打断当前回复",
-      "settings_aria": "打开 Avatar 设置",
+      "settings_aria": "打开伙伴形象设置",
       "voice_capture_inactive_error": "前台语音采集已结束。",
-      "audio_unavailable": "音频播放不可用，仅依靠 lipsync 帧驱动嘴型。",
-      "lipsync_disabled": "当前模型已禁用 lipsync。",
+      "audio_unavailable": "音频暂时无法播放，嘴型会继续根据时间数据变化。",
+      "lipsync_disabled": "当前模型已关闭嘴型同步。",
       "privacy_indicator_aria": "隐私指示：{{state}}"
     },
     "bubble": {
-      "close_aria": "关闭助手气泡"
+      "close_aria": "关闭回复"
     },
     "degraded": {
-      "surface_aria": "Avatar 表面不可用",
-      "reload": "重新加载界面",
+      "surface_aria": "伙伴形象不可用",
+      "reload": "重新加载伙伴形象",
       "diagnostics": {
         "summary": "诊断信息",
-        "composition_state": "Composition 状态",
+        "composition_state": "界面状态",
         "reason": "原因",
         "reason_code": "原因代码",
         "account_reason_code": "账户原因代码",
@@ -60,59 +60,59 @@
         "model_error": "模型错误",
         "yes": "是",
         "no": "否",
-        "audio_artifact_synthetic": "当前音频载体为合成的纯帧 artifact，不会发起播放。"
+        "audio_artifact_synthetic": "当前音频只包含时间帧，未尝试播放。"
       },
       "loading": {
         "badge": "正在准备",
-        "title": "正在准备 Avatar",
-        "summary": "本地视觉载体加载中，正在按 desktop 启动握手准备 first-party Runtime 路径。",
-        "recovery": "请保持此界面打开，等待 Runtime 准备好实时 companion 路径。"
+        "title": "正在准备伙伴形象",
+        "summary": "伙伴形象正在加载并连接运行时。",
+        "recovery": "请保持窗口打开，等待连接完成。"
       },
       "degraded_reauth_required": {
         "badge": "需要登录",
-        "title": "Runtime 账号会话未通过认证",
-        "summary": "Avatar 需要已登录的 Runtime 账号才能挂载实时载体。",
-        "summary_with_reason": "Avatar 需要已登录的 Runtime 账号。原因：{{reason}}。",
-        "recovery": "请通过桌面账号流程完成登录，然后重新启动此 Avatar 表面。"
+        "title": "登录后继续",
+        "summary": "请先登录 Nimi Desktop，再启动伙伴形象。",
+        "summary_with_reason": "请先登录 Nimi Desktop，再启动伙伴形象。原因：{{reason}}。",
+        "recovery": "请在 Nimi Desktop 中登录，然后重新启动伙伴形象。"
       },
       "degraded_cloud_offline": {
         "badge": "云服务离线",
-        "title": "Realm 云服务暂时不可用",
-        "summary": "本地 Runtime 正常，但 Realm 传输当前无法连接云服务。",
-        "summary_with_reason": "本地 Runtime 正常，但 Realm 传输当前无法连接云服务。原因：{{reason}}。",
-        "recovery": "请保持 Runtime 运行，并在 Realm 连通性恢复后重试此 Avatar 表面。"
+        "title": "Nimi 云服务暂时不可用",
+        "summary": "运行时已启动，但暂时无法连接 Nimi 云服务。",
+        "summary_with_reason": "运行时已启动，但暂时无法连接 Nimi 云服务。原因：{{reason}}。",
+        "recovery": "请保持运行时启动，并在网络恢复后重新启动伙伴形象。"
       },
       "degraded_runtime_unavailable": {
-        "badge": "Runtime 不可用",
-        "title": "Runtime 交互通道未就绪",
-        "summary": "本地 Runtime 当前未提供 Avatar 载体。",
-        "summary_with_reason": "Runtime 拒绝或未交付 Avatar 载体。原因：{{reason}}。",
-        "recovery": "请恢复本地 Runtime 守护进程，然后从 desktop 重新启动此表面。"
+        "badge": "运行时不可用",
+        "title": "无法连接运行时",
+        "summary": "伙伴形象暂时没有收到运行时数据。",
+        "summary_with_reason": "伙伴形象暂时没有收到运行时数据。原因：{{reason}}。",
+        "recovery": "请启动或重启运行时，然后从 Nimi Desktop 重新启动伙伴形象。"
       },
       "degraded_launch_context_invalid": {
         "badge": "需要重新启动",
-        "title": "启动上下文无效",
-        "summary": "此 Avatar 实例未携带有效的启动握手。Avatar 必须由 desktop orchestrator 携带真实 agent 目标启动。",
-        "recovery": "请从 desktop orchestrator 重新启动 Avatar。"
+        "title": "请从 Nimi Desktop 启动伙伴形象",
+        "summary": "当前伙伴形象没有关联有效的伙伴选择。",
+        "recovery": "请在 Nimi Desktop 中选择伙伴，然后重新启动伙伴形象。"
       },
       "error_bootstrap_fatal": {
         "badge": "界面不可用",
-        "title": "Avatar 界面启动失败",
-        "summary": "未分类的 bootstrap 错误终止了 shell 挂载。",
-        "summary_with_reason": "未分类的 bootstrap 错误终止了 shell。原因：{{reason}}。",
-        "recovery": "请重新加载 Avatar 界面；若失败重复出现，请检查 Runtime 守护进程日志。"
+        "title": "伙伴形象启动失败",
+        "summary": "出现意外错误，伙伴形象未能打开。",
+        "summary_with_reason": "出现意外错误，伙伴形象未能打开。原因：{{reason}}。",
+        "recovery": "请重新加载伙伴形象；如果问题再次出现，请检查运行时日志。"
       },
       "relaunch_pending": {
         "badge": "正在切换",
-        "title": "Desktop 推送了新的启动上下文",
-        "summary": "Desktop orchestrator 推送了新的启动上下文。本界面将重新加载以绑定新的 agent / instance。",
-        "recovery": "请重新加载界面以接管新的 desktop 选定上下文。本地不会保留先前的 ready 状态。"
+        "title": "正在切换伙伴形象",
+        "summary": "Nimi Desktop 选择了其他伙伴或形象实例。",
+        "recovery": "请重新加载以应用新选择。"
       },
       "unknown": {
         "badge": "界面已暂停",
-        "title": "Avatar 界面已暂停",
-        "summary": "Shell 处于未预期的 composition 状态。这是防御性的降级姿态。",
-        "recovery": "请重新加载 Avatar 界面以恢复已知姿态。"
+        "title": "伙伴形象已暂停",
+        "summary": "伙伴形象进入了异常状态，已安全暂停。",
+        "recovery": "请重新加载伙伴形象以继续。"
       }
     },
     "creator_capabilities": {
@@ -120,55 +120,55 @@
       "header": "创作者能力",
       "backend": "{{kind}} 后端",
       "status": {
-        "passed": "已证明",
-        "unsupported": "未证明",
+        "passed": "可用",
+        "unsupported": "尚未确认",
         "failed": "失败"
       },
       "motion": {
         "label": "动作",
-        "proof_vrm": "{{count}} 条生成动作路由",
-        "proof_live2d": "{{count}} 个 motion 组",
-        "proof_missing": "没有已准入的路由或 motion 组证据"
+        "proof_vrm": "{{count}} 条生成动作路径",
+        "proof_live2d": "{{count}} 个动作组",
+        "proof_missing": "未检测到受支持的动作路径或动作组"
       },
       "expression": {
         "label": "表情",
-        "proof_vrm": "Expression manager 已存在",
+        "proof_vrm": "表情管理器可用",
         "proof_live2d": "已加载 {{count}} 个表情",
-        "proof_adapter": "Adapter {{adapter}} 映射表情",
-        "proof_missing": "没有表情证据"
+        "proof_adapter": "适配器 {{adapter}} 已映射表情",
+        "proof_missing": "未检测到表情支持"
       },
       "hit_region": {
         "label": "命中区域",
         "proof_present": "{{strategy}}，{{width}}x{{height}} 边界",
-        "proof_missing": "没有有效边界证据"
+        "proof_missing": "未检测到有效的交互边界"
       },
       "lipsync": {
-        "label": "LipSync",
-        "proof_present": "已加载音频 profile",
-        "proof_missing": "没有 lipsync profile 证据"
+        "label": "嘴型同步",
+        "proof_present": "已加载音频配置",
+        "proof_missing": "未检测到嘴型同步配置"
       },
       "nas_handlers": {
-        "label": "NAS handlers",
-        "proof_present": "已注册 {{count}} 个 handler",
-        "proof_missing": "没有注册 handler"
+        "label": "NAS 处理器",
+        "proof_present": "已注册 {{count}} 个处理器",
+        "proof_missing": "尚未注册处理器"
       }
     },
     "settings": {
-      "popover_aria": "Avatar 设置",
-      "header": "Avatar 设置",
+      "popover_aria": "伙伴形象设置",
+      "header": "伙伴形象设置",
       "close_aria": "关闭设置",
       "always_on_top": {
         "label": "始终置顶",
-        "help": "将 Avatar 钉在其他窗口之上。"
+        "help": "让伙伴形象始终显示在其他窗口上方。"
       },
       "show_voice_captions": {
         "label": "显示语音字幕",
-        "help": "仅显示受限的前台语音字幕。",
-        "note": "无论是否开启，语音字幕始终被限制在当前显式 anchor 范围内。"
+        "help": "显示当前伙伴会话的语音字幕。",
+        "note": "语音字幕只会显示当前伙伴会话中的语音内容。"
       }
     },
     "appearance": {
-      "popover_aria": "Avatar 外观",
+      "popover_aria": "伙伴形象外观",
       "header": "外观",
       "close_aria": "关闭外观",
       "labels": {
@@ -176,10 +176,10 @@
         "model": "模型",
         "source": "来源",
         "scale": "缩放",
-        "selection_owner": "选择权"
+        "selection_owner": "设置来源"
       },
       "owner": {
-        "desktop_configuration": "Desktop Avatar 配置"
+        "desktop_configuration": "Nimi Desktop 伙伴形象设置"
       },
       "backend": {
         "live2d": "Live2D",
@@ -187,28 +187,28 @@
         "unknown": "未知"
       },
       "source": {
-        "runtime": "Runtime 绑定",
-        "fixture": "Fixture",
+        "runtime": "已连接运行时",
+        "fixture": "测试资源",
         "unknown": "未知"
       },
       "not_loaded": "未加载"
     },
     "debug": {
-      "popover_aria": "Avatar 调试",
-      "header": "Avatar 调试",
+      "popover_aria": "伙伴形象调试",
+      "header": "伙伴形象调试",
       "close_aria": "关闭调试",
       "refresh": "刷新",
-      "request_all": "请求探针",
-      "loading": "正在加载调试快照",
-      "empty": "暂无探针结果",
+      "request_all": "运行全部检查",
+      "loading": "正在加载诊断信息",
+      "empty": "暂无检查结果",
       "error_prefix": "调试请求失败",
       "columns": {
-        "probe": "探针",
+        "probe": "检查项",
         "status": "状态",
         "evidence": "证据",
         "replay": "回放"
       },
-      "evidence_count": "{{count}} 个 ref",
+      "evidence_count": "{{count}} 条引用",
       "no_replay": "无回放",
       "status": {
         "passed": "通过",
@@ -220,30 +220,30 @@
       },
       "probe": {
         "backend_load": "后端加载",
-        "capability_profile": "能力 profile",
+        "capability_profile": "能力配置",
         "route_support_matrix": "路由支持",
         "generated_motion": "生成动作",
         "emotion_expression": "情绪表情",
-        "speech_lipsync": "语音 lipsync",
+        "speech_lipsync": "语音嘴型同步",
         "window_hit_region": "窗口命中区域"
       }
     },
     "context_menu": {
-      "aria": "Avatar 工具",
+      "aria": "伙伴形象工具",
       "open_text_input": "打开文字输入",
       "wake_foreground": "唤醒为前台",
       "interrupt": "打断输出",
       "appearance": "外观",
       "reset_scale": "重置缩放",
       "always_on_top": "始终置顶",
-      "hide": "隐藏 Avatar",
-      "close": "关闭此 Avatar",
+      "hide": "隐藏伙伴形象",
+      "close": "关闭伙伴形象",
       "settings": "设置",
       "debug": "调试",
-      "pending": "待接入"
+      "pending": "处理中"
     },
     "shell": {
-      "companion_aria": "Avatar Companion",
+      "companion_aria": "伙伴形象",
       "document_title": "Nimi Avatar"
     }
   }

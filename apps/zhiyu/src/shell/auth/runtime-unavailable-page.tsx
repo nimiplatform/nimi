@@ -15,7 +15,7 @@ export function RuntimeUnavailablePage({
   offlineTier,
   onRetry,
 }: RuntimeUnavailablePageProps) {
-  const diagnosticMessage = message || projection?.message || 'Runtime session projection is not ready.';
+  const diagnosticMessage = message || projection?.message || '本地服务会话尚未就绪。';
   const reasonCode = projection?.reasonCode ?? 'runtime-unavailable';
   const actionHint = projection?.actionHint ?? 'start_external_runtime_daemon';
   return (
@@ -68,5 +68,5 @@ function runtimeUnavailablePrimaryCopy(reasonCode: string): string {
   if (/permission|forbidden|scope/i.test(reasonCode)) {
     return '当前应用还没有获得本地会话权限，请在诊断中确认授权状态。';
   }
-  return '织羽需要本地运行服务提供账户和伙伴投影；连接恢复后会自动回到工作区。';
+  return '织羽需要连接本地服务以获取账户和伙伴信息；连接恢复后会自动回到工作区。';
 }

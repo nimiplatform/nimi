@@ -166,12 +166,12 @@ test('projects no-runtime home stage without inventing success', async () => {
   assert.equal(product.statusCards[0]?.key, 'runtime');
   assert.equal(product.statusCards[0]?.tone, 'danger');
   assert.equal(product.gatedSurfaces.length, 6);
-  assert.equal(product.gatedSurfaces[0]?.title, '记忆观测');
+  assert.equal(product.gatedSurfaces[0]?.title, '记忆摘要');
   assert.equal(product.gatedSurfaces[1]?.title, '能力申请');
   assert.equal(product.gatedSurfaces[1]?.reasonCode, 'not-probed');
   assert.equal(product.gatedSurfaces[2]?.title, '委托审批');
   assert.equal(product.gatedSurfaces[2]?.reasonCode, 'not-probed');
-  assert.equal(product.gatedSurfaces[3]?.title, '身份安全');
+  assert.equal(product.gatedSurfaces[3]?.title, '身份保护');
   assert.equal(product.gatedSurfaces[4]?.title, '相处状态');
   assert.equal(product.gatedSurfaces[5]?.title, '形象状态');
 });

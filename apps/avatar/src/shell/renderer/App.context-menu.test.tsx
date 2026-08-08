@@ -843,9 +843,9 @@ describe('App context menu overlay', () => {
     expect(screen.queryByTestId('avatar-context-menu')).toBeNull();
     expect(screen.getByText('Live2D')).toBeTruthy();
     expect(screen.getByText('ren-prod')).toBeTruthy();
-    expect(screen.getByText('Runtime-bound')).toBeTruthy();
+    expect(screen.getByText('Connected to Runtime')).toBeTruthy();
     expect(screen.getByText('100%')).toBeTruthy();
-    expect(screen.getByText('Desktop avatar configuration')).toBeTruthy();
+    expect(screen.getByText('Nimi Desktop avatar settings')).toBeTruthy();
     expect(container.textContent).not.toContain('/private/runtime');
     expect(container.textContent).not.toContain('ren.model3.json');
     expect(handle.requestCompanionParticipation).not.toHaveBeenCalled();

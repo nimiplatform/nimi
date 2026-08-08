@@ -16,15 +16,15 @@ export function RuntimeLoginPage({ errorMessage, onRetry }: RuntimeLoginPageProp
         </div>
         <InlineAlert tone="warning">
           <div className="runtime-alert-copy">
-            <strong>需要 Runtime 账户</strong>
-            <span>{errorMessage || '当前没有可用的 Runtime 共享账户投影。'}</span>
+            <strong>需要登录 Nimi 账户</strong>
+            <span>{errorMessage || '当前没有可用的账户会话。'}</span>
           </div>
         </InlineAlert>
         <p className="runtime-account-owner-copy">
-          账户操作仅由 Nimi Desktop 提供。请在 Desktop 中登录、退出或切换账户，然后返回织羽重试。
+          请在 Nimi Desktop 中登录、退出或切换账户，然后返回织羽重试。
         </p>
         <p className="runtime-account-owner-copy">
-          织羽只消费 Runtime 授权结果，不接收、不刷新、也不保存账户令牌。
+          织羽只读取登录结果，不会接收、刷新或保存账户令牌。
         </p>
         <Button type="button" tone="primary" onClick={onRetry}>重新检查账户状态</Button>
       </Surface>

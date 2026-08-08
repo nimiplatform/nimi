@@ -113,16 +113,15 @@ export function RuntimeChatFailureNotice({
       data-zhiyu-agent-chat-failure-reason={chat.reasonCode}
       data-zhiyu-agent-chat-failure-action={chat.actionHint}
       aria-live="polite"
-      aria-label="Runtime Agent chat failure"
+      aria-label="伙伴回复失败"
     >
       <div className="zhiyu-home__chat-failure-mark" aria-hidden="true">
         <AlertTriangle size={17} />
       </div>
       <div className="zhiyu-home__chat-failure-copy">
         <span>回复失败</span>
-        <strong>{chat.reasonCode}</strong>
-        <p>{chat.message || 'Runtime Agent turn failed.'}</p>
-        <small>{chat.actionHint}</small>
+        <strong>回复暂时没有完成</strong>
+        <p>请稍后重试；如果问题持续，请打开诊断查看详情。</p>
       </div>
     </section>
   );

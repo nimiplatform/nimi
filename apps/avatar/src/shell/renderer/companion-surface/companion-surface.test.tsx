@@ -88,8 +88,8 @@ describe('CompanionSurface - stage-first render', () => {
   it('renders the presence capsule by default and keeps composer tray collapsed', () => {
     render(<CompanionSurface {...makeProps({ bootstrapHandle: createBootstrapHandle() })} />);
     expect(screen.getByTestId('avatar-companion-presence-capsule')).toBeTruthy();
-    expect(screen.getByLabelText('Companion status')).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Type a message to send to this anchor' })).toBeTruthy();
+    expect(screen.getByLabelText('Agent status')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Write a message to this agent' })).toBeTruthy();
     expect(screen.queryByTestId('avatar-companion-composer')).toBeNull();
     expect(screen.getByTestId('avatar-companion-surface').getAttribute('data-presence-state')).toBe('idle');
     expect(screen.getByTestId('avatar-companion-surface').getAttribute('data-privacy-indicator')).toBe('none');
@@ -97,7 +97,7 @@ describe('CompanionSurface - stage-first render', () => {
 
   it('expands the composer tray only after explicit text-entry action', () => {
     render(<StatefulCompanionSurface />);
-    fireEvent.click(screen.getByRole('button', { name: 'Type a message to send to this anchor' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Write a message to this agent' }));
     expect(screen.getByTestId('avatar-companion-composer')).toBeTruthy();
     expect(screen.getByPlaceholderText(/Type a message/)).toBeTruthy();
   });
