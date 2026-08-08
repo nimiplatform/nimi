@@ -49,16 +49,27 @@ async function main() {
     'localAppAgentAIProfileApply',
     'localAppArtifactPut',
     'localAppArtifactReadBytes',
-    'localAppSharedAgentAIConfigGet',
-    'localAppSharedAgentAIConfigOverwrite',
     'localAppSharedAgentAIProfilePreview',
     'localAppSharedAgentAIProfileApply',
-    'localAppAgentAutonomySnapshot',
-    'localAppAgentUpdateAutonomy',
-    'localAppAgentPresentationSnapshot',
-    'localAppAgentCommitPresentation',
   ]) {
     assert.equal(addon[retired], undefined, `${retired} must remain hard-cut`);
+  }
+  for (const name of [
+    'localAppScenarioExecute',
+    'localAppScenarioJobSubmit',
+    'localAppScenarioJobGet',
+    'localAppScenarioJobCancel',
+    'localAppArtifactRead',
+    'localAppArtifactUpload',
+    'localAppVoiceAssetsList',
+    'localAppTextTurnSubscribe',
+    'localAppTextTurnStreamNext',
+    'localAppTextTurnStreamClose',
+    'localAppScenarioJobSubscribe',
+    'localAppScenarioJobStreamNext',
+    'localAppScenarioJobStreamClose',
+  ]) {
+    assert.equal(typeof addon[name], 'function', `${name} export is missing`);
   }
   assert.equal(typeof addon.localAppAIConfigGet, 'function', 'localAppAIConfigGet export is missing');
   const aiConfigGet = addon.localAppAIConfigGet();

@@ -82,7 +82,7 @@ func computeImportFileSHA256(path string) (string, error) {
 	return computeImportFileSHA256WithProgress(path, nil)
 }
 
-func computeImportFileSHA256WithProgress(path string, onProgress func(processedBytes int64)) (string, error) {
+func computeImportFileSHA256WithProgress(path string, onProgress func(processedBytes int64) error) (string, error) {
 	file, err := os.Open(strings.TrimSpace(path))
 	if err != nil {
 		return "", err
@@ -103,7 +103,9 @@ func computeImportFileSHA256WithProgress(path string, onProgress func(processedB
 			}
 			processedBytes += int64(readCount)
 			if onProgress != nil && processedBytes-reportedBytes >= progressStepBytes {
-				onProgress(processedBytes)
+				if err := onProgress(processedBytes); err != nil {
+					return "", err
+				}
 				reportedBytes = processedBytes
 			}
 		}
@@ -115,7 +117,9 @@ func computeImportFileSHA256WithProgress(path string, onProgress func(processedB
 		}
 	}
 	if onProgress != nil && processedBytes != reportedBytes {
-		onProgress(processedBytes)
+		if err := onProgress(processedBytes); err != nil {
+			return "", err
+		}
 	}
 	return hex.EncodeToString(hasher.Sum(nil)), nil
 }
@@ -137,11 +141,22 @@ func runtimeManagedPassiveAssetManifestPath(modelsRoot string, assetID string) s
 }
 
 func maybeMoveOrCopyFile(sourcePath string, destPath string, removeSource bool) error {
+	return maybeMoveOrCopyFileWithProgress(sourcePath, destPath, removeSource, nil)
+}
+
+func maybeMoveOrCopyFileWithProgress(sourcePath string, destPath string, removeSource bool, onProgress func(processedBytes int64) error) error {
 	if err := os.MkdirAll(filepath.Dir(destPath), 0o755); err != nil {
 		return err
 	}
 	if removeSource {
 		if err := os.Rename(sourcePath, destPath); err == nil {
+			if onProgress != nil {
+				info, statErr := os.Stat(destPath)
+				if statErr != nil {
+					return statErr
+				}
+				return onProgress(info.Size())
+			}
 			return nil
 		}
 	}
@@ -149,7 +164,7 @@ func maybeMoveOrCopyFile(sourcePath string, destPath string, removeSource bool) 
 	if err != nil {
 		return err
 	}
-	if err := copyFile(sourcePath, destPath, info.Mode().Perm()); err != nil {
+	if err := copyFileWithProgress(sourcePath, destPath, info.Mode().Perm(), onProgress); err != nil {
 		return err
 	}
 	if removeSource {
@@ -161,6 +176,10 @@ func maybeMoveOrCopyFile(sourcePath string, destPath string, removeSource bool) 
 }
 
 func copyFile(src, dst string, perm os.FileMode) error {
+	return copyFileWithProgress(src, dst, perm, nil)
+}
+
+func copyFileWithProgress(src, dst string, perm os.FileMode, onProgress func(processedBytes int64) error) error {
 	source, err := os.Open(src)
 	if err != nil {
 		return fmt.Errorf("open source file: %w", err)
@@ -172,7 +191,32 @@ func copyFile(src, dst string, perm os.FileMode) error {
 	if err != nil {
 		return fmt.Errorf("open destination file: %w", err)
 	}
-	_, copyErr := io.Copy(target, source)
+	buffer := make([]byte, 4*1024*1024)
+	var processedBytes int64
+	var copyErr error
+	for {
+		readCount, readErr := source.Read(buffer)
+		if readCount > 0 {
+			if _, writeErr := target.Write(buffer[:readCount]); writeErr != nil {
+				copyErr = writeErr
+				break
+			}
+			processedBytes += int64(readCount)
+			if onProgress != nil {
+				if progressErr := onProgress(processedBytes); progressErr != nil {
+					copyErr = progressErr
+					break
+				}
+			}
+		}
+		if errors.Is(readErr, io.EOF) {
+			break
+		}
+		if readErr != nil {
+			copyErr = readErr
+			break
+		}
+	}
 	closeErr := target.Close()
 	if copyErr != nil {
 		return fmt.Errorf("copy source file: %w", copyErr)
@@ -271,7 +315,6 @@ func (s *Service) ScaffoldOrphanAsset(ctx context.Context, req *runtimev1.Scaffo
 		Kind:         req.GetKind(),
 		Capabilities: append([]string(nil), req.GetCapabilities()...),
 		Engine:       req.GetEngine(),
-		Endpoint:     req.GetEndpoint(),
 	}, true)
 	if err != nil {
 		return nil, err
@@ -293,18 +336,21 @@ func (s *Service) importLocalModelFile(
 			grpcerr.ReasonOptions{Message: "local model source file is invalid"},
 		)
 	}
+	kind := req.GetKind()
+	if kind == runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_UNSPECIFIED {
+		kind = normalizeAssetKindForPath(sourcePath)
+	}
 	capabilities := normalizeAssetCapabilities(req.GetCapabilities())
 	if len(capabilities) == 0 {
-		kind := req.GetKind()
-		if kind == runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_UNSPECIFIED {
-			kind = normalizeAssetKindForPath(sourcePath)
-		}
 		capabilities = defaultCapabilitiesForAssetKind(kind)
 	}
 	if len(capabilities) == 0 {
 		capabilities = []string{"chat"}
 	}
-	engine := defaultLocalEngine(strings.TrimSpace(req.GetEngine()), capabilities)
+	engine := strings.TrimSpace(req.GetEngine())
+	if engine == "" {
+		engine = defaultEngineForAssetKind(kind)
+	}
 	modelName := strings.TrimSpace(req.GetAssetName())
 	if modelName == "" {
 		modelName = strings.TrimSuffix(filepath.Base(sourcePath), filepath.Ext(sourcePath))
@@ -324,33 +370,26 @@ func (s *Service) importLocalModelFile(
 		BytesTotal: sourceInfo.Size(),
 	})
 	transferID := transfer.GetInstallSessionId()
+	control := s.transferControl(transferID)
+	// checkActive honors CancelLocalTransfer (via the transfer control) and a
+	// dead client (ctx done) so an import never outlives its cancellation.
+	checkActive := func() error {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+		if control != nil {
+			if err := control.wait(ctx); err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+	isAbort := func(err error) bool {
+		return errors.Is(err, errLocalTransferCancelled) || errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded)
+	}
 	logicalModelID := filepath.ToSlash(filepath.Join("nimi", slugifyLocalModelID(modelID)))
 	modelsRoot := resolveLocalModelsPath(s.localModelsPath)
 	destDir := runtimeManagedResolvedModelDir(modelsRoot, logicalModelID)
-	binding := resolveInstallRuntimeBinding(
-		engine,
-		capabilities,
-		inferAssetKindFromCapabilities(capabilities),
-		strings.TrimSpace(req.GetEndpoint()),
-		collectDeviceProfile(),
-	)
-	binding = normalizeLocalImportRuntimeBinding(
-		engine,
-		capabilities,
-		inferAssetKindFromCapabilities(capabilities),
-		binding,
-	)
-	if normalizeRuntimeMode(binding.mode) == runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_ATTACHED_ENDPOINT && strings.TrimSpace(binding.endpoint) == "" {
-		err := grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_ENDPOINT_REQUIRED)
-		if detail := attachedEndpointRequiredDetailForAsset(engine, capabilities, inferAssetKindFromCapabilities(capabilities), collectDeviceProfile()); detail != "" {
-			err = grpcerr.WithReasonCodeOptions(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_ENDPOINT_REQUIRED, grpcerr.ReasonOptions{
-				Message:    detail,
-				ActionHint: "set_local_provider_endpoint",
-			})
-		}
-		s.failTransfer(transferID, err.Error(), false)
-		return nil, err
-	}
 	stageDir, err := prepareManagedModelBundleStageDir(destDir, "import")
 	if err != nil {
 		s.failTransfer(transferID, err.Error(), false)
@@ -363,7 +402,36 @@ func (s *Service) importLocalModelFile(
 	}
 	destFileName := filepath.Base(sourcePath)
 	stageFilePath := filepath.Join(stageDir, destFileName)
-	if err := maybeMoveOrCopyFile(sourcePath, stageFilePath, removeSource); err != nil {
+	// abortStagedImport settles the session as cancelled and undoes the
+	// staging: before the move/copy completed the source file is untouched, so
+	// the partial stage is simply dropped; afterwards the staged file is moved
+	// back to the source path when the import consumed it (removeSource).
+	abortStagedImport := func(staged bool) error {
+		if staged {
+			if _, rollbackErr := s.rollbackManagedModelStageBeforeActivation(modelsRoot, logicalModelID, sourcePath, stageFilePath, stageDir, removeSource, "local_model_import", "cancelled", modelID); rollbackErr != nil {
+				s.cancelTransfer(transferID, fmt.Sprintf("transfer cancelled; rollback=%v", rollbackErr))
+				return errLocalTransferCancelled
+			}
+		} else {
+			_ = os.RemoveAll(stageDir)
+		}
+		s.cancelTransfer(transferID, "transfer cancelled")
+		return errLocalTransferCancelled
+	}
+	if err := checkActive(); err != nil {
+		return nil, abortStagedImport(false)
+	}
+	staged := false
+	if err := maybeMoveOrCopyFileWithProgress(sourcePath, stageFilePath, removeSource, func(processedBytes int64) error {
+		if err := checkActive(); err != nil {
+			return err
+		}
+		s.updateTransferProgress(transferID, transferPhase, processedBytes, sourceInfo.Size(), "staging local model file")
+		return nil
+	}); err != nil {
+		if isAbort(err) {
+			return nil, abortStagedImport(false)
+		}
 		s.failTransfer(transferID, fmt.Sprintf("stage managed model file: %v", err), false)
 		return nil, grpcerr.WrapWithReasonCode(
 			codes.Internal,
@@ -372,10 +440,18 @@ func (s *Service) importLocalModelFile(
 			grpcerr.ReasonOptions{Message: "managed model file could not be staged"},
 		)
 	}
-	stageFileHash, err := computeImportFileSHA256WithProgress(stageFilePath, func(processedBytes int64) {
+	staged = true
+	stageFileHash, err := computeImportFileSHA256WithProgress(stageFilePath, func(processedBytes int64) error {
+		if err := checkActive(); err != nil {
+			return err
+		}
 		s.updateTransferProgress(transferID, transferPhase, processedBytes, sourceInfo.Size(), "staging local model file")
+		return nil
 	})
 	if err != nil {
+		if isAbort(err) {
+			return nil, abortStagedImport(staged)
+		}
 		s.failTransfer(transferID, fmt.Sprintf("hash staged managed model file: %v", err), false)
 		return nil, grpcerr.WrapWithReasonCode(
 			codes.Internal,
@@ -385,8 +461,10 @@ func (s *Service) importLocalModelFile(
 		)
 	}
 	s.updateTransferProgress(transferID, transferPhase, sourceInfo.Size(), sourceInfo.Size(), "local model staged")
+	if err := checkActive(); err != nil {
+		return nil, abortStagedImport(staged)
+	}
 	manifestPath := filepath.Join(stageDir, "asset.manifest.json")
-	kind := inferAssetKindFromCapabilities(capabilities)
 	kindToken, err := localAssetKindToken(kind)
 	if err != nil {
 		s.failTransfer(transferID, err.Error(), false)
@@ -416,9 +494,6 @@ func (s *Service) importLocalModelFile(
 		},
 		"integrity_mode": "local_unverified",
 		"hashes":         map[string]string{destFileName: "sha256:" + stageFileHash},
-	}
-	if strings.TrimSpace(binding.endpoint) != "" {
-		manifest["endpoint"] = binding.endpoint
 	}
 	s.updateTransferProgress(transferID, "manifest", sourceInfo.Size(), sourceInfo.Size(), "writing runtime manifest")
 	payload, err := json.MarshalIndent(manifest, "", "  ")
@@ -479,10 +554,7 @@ func (s *Service) importLocalModelFile(
 	}
 	manifestPath = runtimeManagedAssetManifestPath(modelsRoot, logicalModelID)
 	s.updateTransferProgress(transferID, "register", sourceInfo.Size(), sourceInfo.Size(), "registering local model")
-	imported, err := s.ImportLocalAsset(ctx, &runtimev1.ImportLocalAssetRequest{
-		ManifestPath: manifestPath,
-		Endpoint:     binding.endpoint,
-	})
+	imported, err := s.ImportLocalAsset(ctx, &runtimev1.ImportLocalAssetRequest{ManifestPath: manifestPath})
 	if err != nil {
 		restoreErr := error(nil)
 		if removeSource {
@@ -560,10 +632,37 @@ func (s *Service) importLocalPassiveAssetFile(
 		BytesTotal: sourceInfo.Size(),
 	})
 	transferID := transfer.GetInstallSessionId()
+	control := s.transferControl(transferID)
+	checkActive := func() error {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+		if control != nil {
+			if err := control.wait(ctx); err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+	isAbort := func(err error) bool {
+		return errors.Is(err, errLocalTransferCancelled) || errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded)
+	}
 	modelsRoot := resolveLocalModelsPath(s.localModelsPath)
 	destDir := runtimeManagedPassiveAssetDir(modelsRoot, artifactID)
 	destFileName := filepath.Base(sourcePath)
 	destFilePath := filepath.Join(destDir, destFileName)
+	// abortPassiveImport settles the session as cancelled and undoes the
+	// staging: a partial copy is dropped; a fully staged file that consumed
+	// the source (removeSource) is moved back to the source path.
+	abortPassiveImport := func(staged bool) error {
+		if staged && removeSource {
+			_ = maybeMoveOrCopyFile(destFilePath, sourcePath, false)
+		} else {
+			_ = os.Remove(destFilePath)
+		}
+		s.cancelTransfer(transferID, "transfer cancelled")
+		return errLocalTransferCancelled
+	}
 	if err := os.MkdirAll(destDir, 0o755); err != nil {
 		s.failTransfer(transferID, fmt.Sprintf("create runtime managed artifact directory: %v", err), false)
 		return nil, grpcerr.WrapWithReasonCode(
@@ -573,7 +672,20 @@ func (s *Service) importLocalPassiveAssetFile(
 			grpcerr.ReasonOptions{Message: "managed artifact directory could not be prepared"},
 		)
 	}
-	if err := maybeMoveOrCopyFile(sourcePath, destFilePath, removeSource); err != nil {
+	if err := checkActive(); err != nil {
+		return nil, abortPassiveImport(false)
+	}
+	staged := false
+	if err := maybeMoveOrCopyFileWithProgress(sourcePath, destFilePath, removeSource, func(processedBytes int64) error {
+		if err := checkActive(); err != nil {
+			return err
+		}
+		s.updateTransferProgress(transferID, transferPhase, processedBytes, sourceInfo.Size(), "staging local artifact file")
+		return nil
+	}); err != nil {
+		if isAbort(err) {
+			return nil, abortPassiveImport(false)
+		}
 		s.failTransfer(transferID, fmt.Sprintf("stage managed artifact file: %v", err), false)
 		return nil, grpcerr.WrapWithReasonCode(
 			codes.Internal,
@@ -582,10 +694,18 @@ func (s *Service) importLocalPassiveAssetFile(
 			grpcerr.ReasonOptions{Message: "managed artifact file could not be staged"},
 		)
 	}
-	destFileHash, err := computeImportFileSHA256WithProgress(destFilePath, func(processedBytes int64) {
+	staged = true
+	destFileHash, err := computeImportFileSHA256WithProgress(destFilePath, func(processedBytes int64) error {
+		if err := checkActive(); err != nil {
+			return err
+		}
 		s.updateTransferProgress(transferID, transferPhase, processedBytes, sourceInfo.Size(), "staging local artifact file")
+		return nil
 	})
 	if err != nil {
+		if isAbort(err) {
+			return nil, abortPassiveImport(staged)
+		}
 		s.failTransfer(transferID, fmt.Sprintf("hash staged managed artifact file: %v", err), false)
 		return nil, grpcerr.WrapWithReasonCode(
 			codes.Internal,
@@ -595,6 +715,9 @@ func (s *Service) importLocalPassiveAssetFile(
 		)
 	}
 	s.updateTransferProgress(transferID, transferPhase, sourceInfo.Size(), sourceInfo.Size(), "local artifact staged")
+	if err := checkActive(); err != nil {
+		return nil, abortPassiveImport(staged)
+	}
 	manifestPath := runtimeManagedPassiveAssetManifestPath(modelsRoot, artifactID)
 	kindToken, err := localAssetKindToken(kind)
 	if err != nil {

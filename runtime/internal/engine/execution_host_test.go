@@ -461,7 +461,8 @@ func llamaInvocationPlanForHostTest(t *testing.T, name string, portable *structp
 		t.Fatalf("write captured model: %v", err)
 	}
 	plan, err := (capabilitydriver.LlamaTextDriver{}).PlanTextInvocation(capabilitydriver.TextInvocationInput{
-		PortableConfig: portable,
+		PortableConfig:           portable,
+		ModelContextWindowTokens: 32768,
 		ExactBindings: []capabilitydriver.InvocationExactBinding{{
 			RequirementID:     capabilitydriver.MainGGUFRequirementID,
 			LocalAssetID:      "asset-" + name,

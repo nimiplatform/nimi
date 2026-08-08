@@ -6,6 +6,11 @@ import {
   type NimiLocalAppAIConfigShell,
 } from './local-app-runtime-platform-ai-config.js';
 import {
+  createNimiLocalAppAIConsumptionClient,
+  type NimiLocalAppAIConsumptionClient,
+  type NimiLocalAppAIConsumptionShell,
+} from './local-app-runtime-platform-ai.js';
+import {
   createNimiLocalAppAgentReferencesClient,
   type NimiLocalAppAgentReferencesClient,
   type NimiLocalAppAgentReferencesShell,
@@ -49,6 +54,29 @@ export type {
   NimiLocalAppAIConfigClient,
   NimiLocalAppAIConfigShell,
 } from './local-app-runtime-platform-ai-config.js';
+export {
+  createNimiLocalAppRuntimeScenarioJobClient,
+} from './local-app-runtime-platform-ai.js';
+export type {
+  NimiLocalAppAIConsumptionClient,
+  NimiLocalAppAIConsumptionShell,
+  NimiLocalAppArtifactImageMime,
+  NimiLocalAppArtifactUploadResult,
+  NimiLocalAppImageGenerateSpec,
+  NimiLocalAppScenarioArtifact,
+  NimiLocalAppScenarioExecuteResult,
+  NimiLocalAppScenarioExecuteSpec,
+  NimiLocalAppScenarioJob,
+  NimiLocalAppScenarioJobEvent,
+  NimiLocalAppScenarioJobSpec,
+  NimiLocalAppScenarioJobSubmitResult,
+  NimiLocalAppScenarioTimestamp,
+  NimiLocalAppSubscription,
+  NimiLocalAppTextTurnEvent,
+  NimiLocalAppVideoContent,
+  NimiLocalAppVideoContentRole,
+  NimiLocalAppVoiceAsset,
+} from './local-app-runtime-platform-ai.js';
 export type {
   NimiLocalAppAgentReference,
   NimiLocalAppAgentReferencesClient,
@@ -143,9 +171,23 @@ export type NimiLocalAppTextCandidateMessage = {
 
 export type NimiLocalAppTextCandidateInput = {
   readonly messages: readonly NimiLocalAppTextCandidateMessage[];
-  readonly temperature: number;
-  readonly topP: number;
-  readonly maxTokens: number;
+  readonly temperature?: number;
+  readonly topP?: number;
+  readonly maxTokens?: number;
+  readonly topK?: number;
+  readonly presencePenalty?: number;
+  readonly frequencyPenalty?: number;
+  readonly stop?: readonly string[];
+  readonly seed?: number;
+};
+
+export type NimiLocalAppModelConfigLocalSelection = {
+  readonly capabilityContract: string;
+  readonly state: 'selected' | 'broken';
+  readonly configurationId: null;
+  readonly displayName: string | null;
+  readonly supportedFeatures: readonly string[];
+  readonly reasons: readonly string[];
 };
 
 export type NimiLocalAppTextCandidateResult = {
@@ -166,9 +208,17 @@ export type NimiLocalAppStandardShell = {
   readonly ai: {
     readonly text: {
       readonly generateCandidate: (input: NimiLocalAppTextCandidateInput) => Promise<unknown>;
+      readonly streamTurn: NimiLocalAppAIConsumptionShell['text']['streamTurn'];
     };
+    readonly scenario: NimiLocalAppAIConsumptionShell['scenario'];
+    readonly scenarioJobs: NimiLocalAppAIConsumptionShell['scenarioJobs'];
+    readonly artifacts: NimiLocalAppAIConsumptionShell['artifacts'];
+    readonly voiceAssets: NimiLocalAppAIConsumptionShell['voiceAssets'];
   };
   readonly aiConfig: NimiLocalAppAIConfigShell;
+  readonly modelConfig: {
+    readonly localSelections: () => Promise<unknown>;
+  };
   readonly storage: {
     readonly readJson: (relativePath: string) => Promise<unknown>;
     readonly writeJson: (relativePath: string, value: JsonValue) => Promise<unknown>;
@@ -201,9 +251,17 @@ export type NimiLocalAppClient = {
       readonly generateCandidate: (
         input: NimiLocalAppTextCandidateInput,
       ) => Promise<NimiLocalAppTextCandidateResult>;
+      readonly streamTurn: NimiLocalAppAIConsumptionClient['text']['streamTurn'];
     };
+    readonly scenario: NimiLocalAppAIConsumptionClient['scenario'];
+    readonly scenarioJobs: NimiLocalAppAIConsumptionClient['scenarioJobs'];
+    readonly artifacts: NimiLocalAppAIConsumptionClient['artifacts'];
+    readonly voiceAssets: NimiLocalAppAIConsumptionClient['voiceAssets'];
   };
   readonly aiConfig: NimiLocalAppAIConfigClient;
+  readonly modelConfig: {
+    readonly localSelections: () => Promise<readonly NimiLocalAppModelConfigLocalSelection[]>;
+  };
   readonly storage: {
     readonly readJson: (relativePath: string) => Promise<NimiAppRuntimeStorageDocument>;
     readonly writeJson: (
@@ -238,7 +296,7 @@ export function createNimiLocalAppClient(
 ): NimiLocalAppClient {
   assertExactKeys(input, ['standardShell'], 'SDK local-app client input');
   const standardShell = input.standardShell;
-  const expectedNamespaces = ['session', 'ai', 'aiConfig', 'storage', 'realm', 'agents', 'conversation', 'agentConfigure'] as const;
+  const expectedNamespaces = ['session', 'ai', 'aiConfig', 'modelConfig', 'storage', 'realm', 'agents', 'conversation', 'agentConfigure'] as const;
   if (!asRecord(standardShell)
     || Object.keys(standardShell).sort().join('|') !== [...expectedNamespaces].sort().join('|')) {
     return localAppError(
@@ -249,15 +307,21 @@ export function createNimiLocalAppClient(
   }
   assertExactMethodNamespace(standardShell.session, ['status'], 'session');
   const ai = asRecord(standardShell.ai);
-  if (!ai || Object.keys(ai).length !== 1 || !Object.hasOwn(ai, 'text')) {
+  const aiNamespaces = ['text', 'scenario', 'scenarioJobs', 'artifacts', 'voiceAssets'] as const;
+  if (!ai || Object.keys(ai).sort().join('|') !== [...aiNamespaces].sort().join('|')) {
     return localAppError(
       'Host-injected local-app standardShell ai namespace is invalid.',
       'SDK_LOCAL_APP_CARRIER_REQUIRED',
       'use_host_injected_standard_shell',
     );
   }
-  assertExactMethodNamespace(ai.text, ['generateCandidate'], 'ai.text');
+  assertExactMethodNamespace(ai.text, ['generateCandidate', 'streamTurn'], 'ai.text');
+  assertExactMethodNamespace(ai.scenario, ['execute'], 'ai.scenario');
+  assertExactMethodNamespace(ai.scenarioJobs, ['submit', 'get', 'subscribe', 'cancel'], 'ai.scenarioJobs');
+  assertExactMethodNamespace(ai.artifacts, ['read', 'upload'], 'ai.artifacts');
+  assertExactMethodNamespace(ai.voiceAssets, ['list'], 'ai.voiceAssets');
   assertExactMethodNamespace(standardShell.aiConfig, ['get', 'overwrite'], 'aiConfig');
+  assertExactMethodNamespace(standardShell.modelConfig, ['localSelections'], 'modelConfig');
   assertExactMethodNamespace(standardShell.storage, ['readJson', 'writeJson', 'removeJson'], 'storage');
   const realm = asRecord(standardShell.realm);
   if (!realm || Object.keys(realm).length !== 1 || !Object.hasOwn(realm, 'worldCore')) {
@@ -293,13 +357,31 @@ export function createNimiLocalAppClient(
     currentUser: Object.freeze({
       get: async () => projectCurrentUser(await standardShell.session.status()),
     }),
-    ai: Object.freeze({ text: createTextCandidateClient(standardShell.ai.text) }),
+    ai: createAIClient(standardShell.ai),
     aiConfig: createNimiLocalAppAIConfigClient(standardShell.aiConfig),
+    modelConfig: Object.freeze({
+      localSelections: async () => projectModelConfigLocalSelections(
+        await standardShell.modelConfig.localSelections(),
+      ),
+    }),
     storage: createNimiAppRuntimeStorageClient(standardShell.storage),
     realm: Object.freeze({ worldCore: createWorldCoreClient(standardShell.realm.worldCore) }),
     agents: createNimiLocalAppAgentReferencesClient(standardShell.agents),
     conversation: createNimiLocalAppConversationClient(standardShell.conversation),
     agentConfigure: createNimiLocalAppAgentConfigureClient(standardShell.agentConfigure),
+  });
+}
+
+function createAIClient(
+  shell: NimiLocalAppStandardShell['ai'],
+): NimiLocalAppClient['ai'] {
+  const consumption = createNimiLocalAppAIConsumptionClient(shell);
+  return Object.freeze({
+    ...consumption,
+    text: Object.freeze({
+      generateCandidate: createTextCandidateClient(shell.text).generateCandidate,
+      streamTurn: consumption.text.streamTurn,
+    }),
   });
 }
 
@@ -311,12 +393,15 @@ const MAX_TEXT_CANDIDATE_TOKENS = 4096;
 
 function createTextCandidateClient(
   shell: NimiLocalAppStandardShell['ai']['text'],
-): NimiLocalAppClient['ai']['text'] {
+): Pick<NimiLocalAppClient['ai']['text'], 'generateCandidate'> {
   return Object.freeze({
     generateCandidate: async (
       input: NimiLocalAppTextCandidateInput,
     ): Promise<NimiLocalAppTextCandidateResult> => {
-      assertExactKeys(input, ['messages', 'temperature', 'topP', 'maxTokens'], 'text candidate input');
+      assertExactKeys(input, [
+        'messages', 'temperature', 'topP', 'maxTokens', 'topK',
+        'presencePenalty', 'frequencyPenalty', 'stop', 'seed',
+      ], 'text candidate input');
       if (!Array.isArray(input.messages)
         || input.messages.length === 0
         || input.messages.length > MAX_TEXT_CANDIDATE_MESSAGES) {
@@ -351,18 +436,24 @@ function createTextCandidateClient(
         return Object.freeze({ role: message.role, text });
       });
       if (!sawUser) invalidTextCandidateInput('at least one user message is required');
-      const temperature = boundedTextCandidateNumber(input.temperature, 0, 2, 'temperature');
-      const topP = boundedTextCandidateNumber(input.topP, 0, 1, 'topP');
-      if (!Number.isSafeInteger(input.maxTokens)
-        || input.maxTokens < 1
-        || input.maxTokens > MAX_TEXT_CANDIDATE_TOKENS) {
-        invalidTextCandidateInput('maxTokens is invalid');
-      }
+      const temperature = optionalBoundedTextCandidateNumber(input.temperature, 0, 2, 'temperature');
+      const topP = optionalBoundedTextCandidateNumber(input.topP, 0, 1, 'topP');
+      const maxTokens = optionalBoundedTextCandidateInteger(input.maxTokens, 0, MAX_TEXT_CANDIDATE_TOKENS, 'maxTokens');
+      const topK = optionalBoundedTextCandidateInteger(input.topK, 0, Number.MAX_SAFE_INTEGER, 'topK');
+      const presencePenalty = optionalBoundedTextCandidateNumber(input.presencePenalty, -2, 2, 'presencePenalty');
+      const frequencyPenalty = optionalBoundedTextCandidateNumber(input.frequencyPenalty, -2, 2, 'frequencyPenalty');
+      const seed = optionalBoundedTextCandidateInteger(input.seed, Number.MIN_SAFE_INTEGER, Number.MAX_SAFE_INTEGER, 'seed');
+      const stop = validateTextCandidateStop(input.stop);
       const value = await shell.generateCandidate({
         messages: Object.freeze(messages),
-        temperature,
-        topP,
-        maxTokens: input.maxTokens,
+        ...(temperature !== undefined ? { temperature } : {}),
+        ...(topP !== undefined ? { topP } : {}),
+        ...(maxTokens !== undefined ? { maxTokens } : {}),
+        ...(topK !== undefined ? { topK } : {}),
+        ...(presencePenalty !== undefined ? { presencePenalty } : {}),
+        ...(frequencyPenalty !== undefined ? { frequencyPenalty } : {}),
+        ...(stop !== undefined ? { stop } : {}),
+        ...(seed !== undefined ? { seed } : {}),
       });
       const record = asRecord(value);
       assertExactProjectionKeys(record, ['text', 'finishReason', 'traceId'], 'text candidate');
@@ -383,6 +474,36 @@ function createTextCandidateClient(
       });
     },
   });
+}
+
+function optionalBoundedTextCandidateNumber(
+  value: number | undefined,
+  minimum: number,
+  maximum: number,
+  field: string,
+): number | undefined {
+  return value === undefined ? undefined : boundedTextCandidateNumber(value, minimum, maximum, field);
+}
+
+function optionalBoundedTextCandidateInteger(
+  value: number | undefined,
+  minimum: number,
+  maximum: number,
+  field: string,
+): number | undefined {
+  if (value === undefined) return undefined;
+  if (!Number.isSafeInteger(value) || value < minimum || value > maximum) {
+    invalidTextCandidateInput(`${field} is invalid`);
+  }
+  return value;
+}
+
+function validateTextCandidateStop(value: readonly string[] | undefined): readonly string[] | undefined {
+  if (value === undefined) return undefined;
+  if (!Array.isArray(value) || value.some((entry) => typeof entry !== 'string' || !entry.trim())) {
+    invalidTextCandidateInput('stop is invalid');
+  }
+  return Object.freeze([...value]);
 }
 
 function invalidTextCandidateInput(reason: string): never {
@@ -589,6 +710,49 @@ function assertWorldCoreInputJson(
     for (const entry of Object.values(record)) assertWorldCoreInputJson(entry, depth + 1, state);
   }
   state.ancestors.delete(value);
+}
+
+function projectModelConfigLocalSelections(
+  value: unknown,
+): readonly NimiLocalAppModelConfigLocalSelection[] {
+  if (!Array.isArray(value) || value.length > 64) {
+    return localAppProjectionError('Model Config local selections');
+  }
+  return Object.freeze(value.map((entry) => {
+    const record = asRecord(entry);
+    assertExactProjectionKeys(record, [
+      'capabilityContract', 'state', 'configurationId', 'displayName',
+      'supportedFeatures', 'reasons',
+    ], 'Model Config local selection');
+    assertSafeProjection(record);
+    const capabilityContract = projectionText(
+      record.capabilityContract,
+      'Model Config capabilityContract',
+    );
+    if ((record.state !== 'selected' && record.state !== 'broken')
+      || record.configurationId !== null
+      || (record.displayName !== null && (
+        typeof record.displayName !== 'string'
+        || !record.displayName
+        || record.displayName.trim() !== record.displayName
+      ))
+      || !Array.isArray(record.supportedFeatures)
+      || record.supportedFeatures.some((feature) => typeof feature !== 'string'
+        || !feature || feature.trim() !== feature)
+      || !Array.isArray(record.reasons)
+      || record.reasons.some((reason) => typeof reason !== 'string'
+        || !reason || reason.trim() !== reason)) {
+      return localAppProjectionError('Model Config local selection');
+    }
+    return Object.freeze({
+      capabilityContract,
+      state: record.state,
+      configurationId: null,
+      displayName: record.displayName as string | null,
+      supportedFeatures: Object.freeze([...record.supportedFeatures] as string[]),
+      reasons: Object.freeze([...record.reasons] as string[]),
+    });
+  }));
 }
 
 function projectAuth(value: unknown): NimiAppAuthProjection {

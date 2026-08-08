@@ -2538,6 +2538,15 @@ type CancelHookResponse struct {
 	Outcome *HookExecutionOutcome `json:"outcome,omitempty"`
 }
 
+type CancelLocalAppScenarioJobRequest struct {
+	JobId string `json:"job_id,omitempty"`
+	Reason string `json:"reason,omitempty"`
+}
+
+type CancelLocalAppScenarioJobResponse struct {
+	Job *LocalAppScenarioJob `json:"job,omitempty"`
+}
+
 type CancelLocalEnvironmentDependencyJobRequest struct {
 	JobId string `json:"job_id,omitempty"`
 }
@@ -3224,6 +3233,17 @@ type ErrorInfo struct {
 	Message string `json:"message,omitempty"`
 }
 
+type ExecuteLocalAppScenarioRequest struct {
+	TextEmbed *LocalAppTextEmbedScenarioSpec `json:"text_embed,omitempty"`
+	ImageGenerate *LocalAppImageGenerateScenarioSpec `json:"image_generate,omitempty"`
+}
+
+type ExecuteLocalAppScenarioResponse struct {
+	TextEmbed *LocalAppTextEmbedOutput `json:"text_embed,omitempty"`
+	ImageGenerate *LocalAppImageGenerateOutput `json:"image_generate,omitempty"`
+	TraceId string `json:"trace_id,omitempty"`
+}
+
 type ExecuteLocalStateCutoverRequest struct {
 	NimiDataDir string `json:"nimi_data_dir,omitempty"`
 	PlanId string `json:"plan_id,omitempty"`
@@ -3333,9 +3353,14 @@ type ExternalAgentTokenRecord struct {
 
 type GenerateLocalAppTextCandidateRequest struct {
 	Messages []LocalAppTextCandidateMessage `json:"messages,omitempty"`
-	Temperature float32 `json:"temperature,omitempty"`
-	TopP float32 `json:"top_p,omitempty"`
-	MaxTokens int32 `json:"max_tokens,omitempty"`
+	Temperature *float32 `json:"temperature,omitempty"`
+	TopP *float32 `json:"top_p,omitempty"`
+	MaxTokens *int32 `json:"max_tokens,omitempty"`
+	TopK *int32 `json:"top_k,omitempty"`
+	PresencePenalty *float32 `json:"presence_penalty,omitempty"`
+	FrequencyPenalty *float32 `json:"frequency_penalty,omitempty"`
+	Stop []string `json:"stop,omitempty"`
+	Seed *int64 `json:"seed,omitempty"`
 }
 
 type GenerateLocalAppTextCandidateResponse struct {
@@ -3578,6 +3603,14 @@ type GetLocalAppConversationSnapshotResponse struct {
 	Snapshot *LocalAppConversationSnapshot `json:"snapshot,omitempty"`
 }
 
+type GetLocalAppScenarioJobRequest struct {
+	JobId string `json:"job_id,omitempty"`
+}
+
+type GetLocalAppScenarioJobResponse struct {
+	Job *LocalAppScenarioJob `json:"job,omitempty"`
+}
+
 type GetLocalAppSharedLocalAgentAIConfigRequest struct {
 
 }
@@ -3756,12 +3789,12 @@ type ImageGenerateResult struct {
 type ImageGenerateScenarioSpec struct {
 	Prompt string `json:"prompt,omitempty"`
 	NegativePrompt string `json:"negative_prompt,omitempty"`
-	N int32 `json:"n,omitempty"`
+	N *int32 `json:"n,omitempty"`
 	Size string `json:"size,omitempty"`
 	AspectRatio string `json:"aspect_ratio,omitempty"`
 	Quality string `json:"quality,omitempty"`
 	Style string `json:"style,omitempty"`
-	Seed int64 `json:"seed,omitempty"`
+	Seed *int64 `json:"seed,omitempty"`
 	ReferenceImages []string `json:"reference_images,omitempty"`
 	Mask string `json:"mask,omitempty"`
 	ResponseFormat string `json:"response_format,omitempty"`
@@ -3772,7 +3805,6 @@ type ImportLocalAssetBundleRequest struct {
 	ModelName string `json:"model_name,omitempty"`
 	Capabilities []string `json:"capabilities,omitempty"`
 	Engine string `json:"engine,omitempty"`
-	Endpoint string `json:"endpoint,omitempty"`
 	OrderedBundleEntries []string `json:"ordered_bundle_entries,omitempty"`
 }
 
@@ -3786,7 +3818,6 @@ type ImportLocalAssetFileRequest struct {
 	Engine string `json:"engine,omitempty"`
 	AssetName string `json:"asset_name,omitempty"`
 	Capabilities []string `json:"capabilities,omitempty"`
-	Endpoint string `json:"endpoint,omitempty"`
 }
 
 type ImportLocalAssetFileResponse struct {
@@ -3795,7 +3826,6 @@ type ImportLocalAssetFileResponse struct {
 
 type ImportLocalAssetRequest struct {
 	ManifestPath string `json:"manifest_path,omitempty"`
-	Endpoint string `json:"endpoint,omitempty"`
 	EngineConfig map[string]any `json:"engine_config,omitempty"`
 }
 
@@ -4263,6 +4293,16 @@ type ListLocalAppAgentReferencesResponse struct {
 	References []LocalAppAgentReference `json:"references,omitempty"`
 }
 
+type ListLocalAppVoiceAssetsRequest struct {
+	PageSize int32 `json:"page_size,omitempty"`
+	PageToken string `json:"page_token,omitempty"`
+}
+
+type ListLocalAppVoiceAssetsResponse struct {
+	Assets []LocalAppVoiceAsset `json:"assets,omitempty"`
+	NextPageToken string `json:"next_page_token,omitempty"`
+}
+
 type ListLocalAssetsRequest struct {
 	StatusFilter LocalAssetStatus `json:"status_filter,omitempty"`
 	KindFilter LocalAssetKind `json:"kind_filter,omitempty"`
@@ -4642,13 +4682,152 @@ type LocalAppConversationTurnStarted struct {
 	TurnId string `json:"turn_id,omitempty"`
 }
 
+type LocalAppImageGenerateOutput struct {
+	Artifacts []LocalAppScenarioArtifact `json:"artifacts,omitempty"`
+}
+
+type LocalAppImageGenerateScenarioSpec struct {
+	Prompt string `json:"prompt,omitempty"`
+	NegativePrompt string `json:"negative_prompt,omitempty"`
+	N *int32 `json:"n,omitempty"`
+	Size string `json:"size,omitempty"`
+	AspectRatio string `json:"aspect_ratio,omitempty"`
+	Quality string `json:"quality,omitempty"`
+	Style string `json:"style,omitempty"`
+	Seed *int64 `json:"seed,omitempty"`
+	ReferenceImages []string `json:"reference_images,omitempty"`
+	Mask string `json:"mask,omitempty"`
+	ResponseFormat string `json:"response_format,omitempty"`
+}
+
+type LocalAppScenarioArtifact struct {
+	ArtifactId string `json:"artifact_id,omitempty"`
+	MimeType string `json:"mime_type,omitempty"`
+	Bytes []byte `json:"bytes,omitempty"`
+	SizeBytes int64 `json:"size_bytes,omitempty"`
+	Sha256 string `json:"sha256,omitempty"`
+	DurationMs int64 `json:"duration_ms,omitempty"`
+	Width int32 `json:"width,omitempty"`
+	Height int32 `json:"height,omitempty"`
+	SampleRateHz int32 `json:"sample_rate_hz,omitempty"`
+	Channels int32 `json:"channels,omitempty"`
+}
+
+type LocalAppScenarioJob struct {
+	JobId string `json:"job_id,omitempty"`
+	ScenarioType ScenarioType `json:"scenario_type,omitempty"`
+	Status ScenarioJobStatus `json:"status,omitempty"`
+	ProgressPercent int32 `json:"progress_percent,omitempty"`
+	ProgressCurrentStep int32 `json:"progress_current_step,omitempty"`
+	ProgressTotalSteps int32 `json:"progress_total_steps,omitempty"`
+	ReasonCode ReasonCode `json:"reason_code,omitempty"`
+	ReasonDetail string `json:"reason_detail,omitempty"`
+	Artifacts []LocalAppScenarioArtifact `json:"artifacts,omitempty"`
+	TraceId string `json:"trace_id,omitempty"`
+	CreatedAt string `json:"created_at,omitempty"`
+	UpdatedAt string `json:"updated_at,omitempty"`
+}
+
+type LocalAppScenarioJobEvent struct {
+	EventType ScenarioJobEventType `json:"event_type,omitempty"`
+	Sequence uint64 `json:"sequence,omitempty"`
+	TraceId string `json:"trace_id,omitempty"`
+	Timestamp string `json:"timestamp,omitempty"`
+	Job *LocalAppScenarioJob `json:"job,omitempty"`
+}
+
 type LocalAppSharedLocalAgentAIConfigProjection struct {
 	Config *AIConfig `json:"config,omitempty"`
+}
+
+type LocalAppSpeechSynthesizeJobSpec struct {
+	Text string `json:"text,omitempty"`
+	Language string `json:"language,omitempty"`
+	AudioFormat string `json:"audio_format,omitempty"`
+	SampleRateHz *int32 `json:"sample_rate_hz,omitempty"`
+	Speed *float32 `json:"speed,omitempty"`
+	Pitch *float32 `json:"pitch,omitempty"`
+	Volume *float32 `json:"volume,omitempty"`
+	Emotion string `json:"emotion,omitempty"`
+	VoiceRef *VoiceReference `json:"voice_ref,omitempty"`
+	TimingMode SpeechTimingMode `json:"timing_mode,omitempty"`
+	VoiceRenderHints *VoiceRenderHints `json:"voice_render_hints,omitempty"`
+}
+
+type LocalAppSpeechTranscribeJobSpec struct {
+	MimeType string `json:"mime_type,omitempty"`
+	Language string `json:"language,omitempty"`
+	Timestamps *bool `json:"timestamps,omitempty"`
+	Diarization *bool `json:"diarization,omitempty"`
+	SpeakerCount *int32 `json:"speaker_count,omitempty"`
+	Prompt string `json:"prompt,omitempty"`
+	AudioSource *SpeechTranscriptionAudioSource `json:"audio_source,omitempty"`
+	ResponseFormat string `json:"response_format,omitempty"`
 }
 
 type LocalAppTextCandidateMessage struct {
 	Role string `json:"role,omitempty"`
 	Text string `json:"text,omitempty"`
+}
+
+type LocalAppTextEmbedOutput struct {
+	Vectors []EmbeddingVector `json:"vectors,omitempty"`
+}
+
+type LocalAppTextEmbedScenarioSpec struct {
+	Inputs []string `json:"inputs,omitempty"`
+}
+
+type LocalAppTextTurnCompleted struct {
+	FinishReason FinishReason `json:"finish_reason,omitempty"`
+}
+
+type LocalAppTextTurnDelta struct {
+	Text string `json:"text,omitempty"`
+}
+
+type LocalAppTextTurnFailed struct {
+	ReasonCode ReasonCode `json:"reason_code,omitempty"`
+	ActionHint string `json:"action_hint,omitempty"`
+}
+
+type LocalAppVideoGenerateJobSpec struct {
+	Prompt string `json:"prompt,omitempty"`
+	NegativePrompt string `json:"negative_prompt,omitempty"`
+	Mode VideoMode `json:"mode,omitempty"`
+	Content []VideoContentItem `json:"content,omitempty"`
+	Options *LocalAppVideoGenerationOptions `json:"options,omitempty"`
+}
+
+type LocalAppVideoGenerationOptions struct {
+	Resolution string `json:"resolution,omitempty"`
+	Ratio string `json:"ratio,omitempty"`
+	DurationSec *int32 `json:"duration_sec,omitempty"`
+	Frames *int32 `json:"frames,omitempty"`
+	Fps *int32 `json:"fps,omitempty"`
+	Seed *int64 `json:"seed,omitempty"`
+	CameraFixed *bool `json:"camera_fixed,omitempty"`
+	Watermark *bool `json:"watermark,omitempty"`
+	GenerateAudio *bool `json:"generate_audio,omitempty"`
+	Draft *bool `json:"draft,omitempty"`
+	ReturnLastFrame *bool `json:"return_last_frame,omitempty"`
+}
+
+type LocalAppVoiceAsset struct {
+	VoiceAssetId string `json:"voice_asset_id,omitempty"`
+	WorkflowType VoiceWorkflowType `json:"workflow_type,omitempty"`
+	Status VoiceAssetStatus `json:"status,omitempty"`
+	CreatedAt string `json:"created_at,omitempty"`
+	UpdatedAt string `json:"updated_at,omitempty"`
+	ExpiresAt string `json:"expires_at,omitempty"`
+}
+
+type LocalAppVoiceCloneJobSpec struct {
+	Input *VoiceV2VInput `json:"input,omitempty"`
+}
+
+type LocalAppVoiceDesignJobSpec struct {
+	Input *VoiceT2VInput `json:"input,omitempty"`
 }
 
 type LocalAssetExactBinding struct {
@@ -4687,7 +4866,6 @@ type LocalAssetRecord struct {
 	HostRequirements *LocalHostRequirements `json:"host_requirements,omitempty"`
 	LocalInvokeProfileId string `json:"local_invoke_profile_id,omitempty"`
 	EngineConfig map[string]any `json:"engine_config,omitempty"`
-	Endpoint string `json:"endpoint,omitempty"`
 	ReasonCode ReasonCode `json:"reason_code,omitempty"`
 	Metadata map[string]any `json:"metadata,omitempty"`
 	DisplayName string `json:"display_name,omitempty"`
@@ -6005,6 +6183,16 @@ type ReadArtifactBytesResponse struct {
 	MimeInferred bool `json:"mime_inferred,omitempty"`
 }
 
+type ReadLocalAppArtifactRequest struct {
+	ArtifactId string `json:"artifact_id,omitempty"`
+}
+
+type ReadLocalAppArtifactResponse struct {
+	Bytes []byte `json:"bytes,omitempty"`
+	MimeType string `json:"mime_type,omitempty"`
+	SizeBytes int64 `json:"size_bytes,omitempty"`
+}
+
 type ReadLocalAppStorageJsonRequest struct {
 	RelativePath string `json:"relative_path,omitempty"`
 }
@@ -6535,7 +6723,6 @@ type ScaffoldOrphanAssetRequest struct {
 	Kind LocalAssetKind `json:"kind,omitempty"`
 	Engine string `json:"engine,omitempty"`
 	Capabilities []string `json:"capabilities,omitempty"`
-	Endpoint string `json:"endpoint,omitempty"`
 }
 
 type ScaffoldOrphanAssetResponse struct {
@@ -6850,10 +7037,10 @@ type SpeechSynthesizeScenarioSpec struct {
 	Text string `json:"text,omitempty"`
 	Language string `json:"language,omitempty"`
 	AudioFormat string `json:"audio_format,omitempty"`
-	SampleRateHz int32 `json:"sample_rate_hz,omitempty"`
-	Speed float32 `json:"speed,omitempty"`
-	Pitch float32 `json:"pitch,omitempty"`
-	Volume float32 `json:"volume,omitempty"`
+	SampleRateHz *int32 `json:"sample_rate_hz,omitempty"`
+	Speed *float32 `json:"speed,omitempty"`
+	Pitch *float32 `json:"pitch,omitempty"`
+	Volume *float32 `json:"volume,omitempty"`
 	Emotion string `json:"emotion,omitempty"`
 	VoiceRef *VoiceReference `json:"voice_ref,omitempty"`
 	TimingMode SpeechTimingMode `json:"timing_mode,omitempty"`
@@ -6868,9 +7055,9 @@ type SpeechTranscribeResult struct {
 type SpeechTranscribeScenarioSpec struct {
 	MimeType string `json:"mime_type,omitempty"`
 	Language string `json:"language,omitempty"`
-	Timestamps bool `json:"timestamps,omitempty"`
-	Diarization bool `json:"diarization,omitempty"`
-	SpeakerCount int32 `json:"speaker_count,omitempty"`
+	Timestamps *bool `json:"timestamps,omitempty"`
+	Diarization *bool `json:"diarization,omitempty"`
+	SpeakerCount *int32 `json:"speaker_count,omitempty"`
 	Prompt string `json:"prompt,omitempty"`
 	AudioSource *SpeechTranscriptionAudioSource `json:"audio_source,omitempty"`
 	ResponseFormat string `json:"response_format,omitempty"`
@@ -6945,6 +7132,26 @@ type StopLocalServiceResponse struct {
 	Service *LocalServiceDescriptor `json:"service,omitempty"`
 }
 
+type StreamLocalAppTextTurnEvent struct {
+	Sequence uint64 `json:"sequence,omitempty"`
+	TraceId string `json:"trace_id,omitempty"`
+	Delta *LocalAppTextTurnDelta `json:"delta,omitempty"`
+	Completed *LocalAppTextTurnCompleted `json:"completed,omitempty"`
+	Failed *LocalAppTextTurnFailed `json:"failed,omitempty"`
+}
+
+type StreamLocalAppTextTurnRequest struct {
+	Messages []LocalAppTextCandidateMessage `json:"messages,omitempty"`
+	Temperature *float32 `json:"temperature,omitempty"`
+	TopP *float32 `json:"top_p,omitempty"`
+	MaxTokens *int32 `json:"max_tokens,omitempty"`
+	TopK *int32 `json:"top_k,omitempty"`
+	PresencePenalty *float32 `json:"presence_penalty,omitempty"`
+	FrequencyPenalty *float32 `json:"frequency_penalty,omitempty"`
+	Stop []string `json:"stop,omitempty"`
+	Seed *int64 `json:"seed,omitempty"`
+}
+
 type StreamScenarioEvent struct {
 	EventType StreamEventType `json:"event_type,omitempty"`
 	Sequence uint64 `json:"sequence,omitempty"`
@@ -6989,6 +7196,20 @@ type SubmitDelegatedApprovalDecisionRequest struct {
 
 type SubmitDelegatedApprovalDecisionResponse struct {
 	ApprovalRequest *DelegatedApprovalRequest `json:"approval_request,omitempty"`
+}
+
+type SubmitLocalAppScenarioJobRequest struct {
+	ImageGenerate *LocalAppImageGenerateScenarioSpec `json:"image_generate,omitempty"`
+	VideoGenerate *LocalAppVideoGenerateJobSpec `json:"video_generate,omitempty"`
+	SpeechSynthesize *LocalAppSpeechSynthesizeJobSpec `json:"speech_synthesize,omitempty"`
+	SpeechTranscribe *LocalAppSpeechTranscribeJobSpec `json:"speech_transcribe,omitempty"`
+	VoiceClone *LocalAppVoiceCloneJobSpec `json:"voice_clone,omitempty"`
+	VoiceDesign *LocalAppVoiceDesignJobSpec `json:"voice_design,omitempty"`
+}
+
+type SubmitLocalAppScenarioJobResponse struct {
+	Job *LocalAppScenarioJob `json:"job,omitempty"`
+	Asset *LocalAppVoiceAsset `json:"asset,omitempty"`
 }
 
 type SubmitScenarioJobRequest struct {
@@ -7043,6 +7264,10 @@ type SubscribeAppMessagesRequest struct {
 type SubscribeLocalAppConversationEventsRequest struct {
 	AgentHandle string `json:"agent_handle,omitempty"`
 	ConversationAnchorId string `json:"conversation_anchor_id,omitempty"`
+}
+
+type SubscribeLocalAppScenarioJobEventsRequest struct {
+	JobId string `json:"job_id,omitempty"`
 }
 
 type SubscribeMemoryEventsRequest struct {
@@ -7113,18 +7338,18 @@ type TextGenerateScenarioSpec struct {
 	Input []ChatMessage `json:"input,omitempty"`
 	SystemPrompt string `json:"system_prompt,omitempty"`
 	Tools []ToolSpec `json:"tools,omitempty"`
-	Temperature float32 `json:"temperature,omitempty"`
-	TopP float32 `json:"top_p,omitempty"`
-	MaxTokens int32 `json:"max_tokens,omitempty"`
+	Temperature *float32 `json:"temperature,omitempty"`
+	TopP *float32 `json:"top_p,omitempty"`
+	MaxTokens *int32 `json:"max_tokens,omitempty"`
 	Reasoning *ReasoningConfig `json:"reasoning,omitempty"`
 	ToolChoice ToolChoiceMode `json:"tool_choice,omitempty"`
 	ToolChoiceName string `json:"tool_choice_name,omitempty"`
 	ResponseFormat *ResponseFormat `json:"response_format,omitempty"`
-	TopK int32 `json:"top_k,omitempty"`
-	PresencePenalty float32 `json:"presence_penalty,omitempty"`
-	FrequencyPenalty float32 `json:"frequency_penalty,omitempty"`
+	TopK *int32 `json:"top_k,omitempty"`
+	PresencePenalty *float32 `json:"presence_penalty,omitempty"`
+	FrequencyPenalty *float32 `json:"frequency_penalty,omitempty"`
 	Stop []string `json:"stop,omitempty"`
-	Seed int64 `json:"seed,omitempty"`
+	Seed *int64 `json:"seed,omitempty"`
 	IncludeRawChunks bool `json:"include_raw_chunks,omitempty"`
 }
 
@@ -7241,6 +7466,18 @@ type UpdateLocalAppAgentAutonomyRequest struct {
 	Intent *LocalAppAgentAutonomyIntent `json:"intent,omitempty"`
 }
 
+type UpdateLocalCapabilityConfigurationRequest struct {
+	ConfigurationId string `json:"configuration_id,omitempty"`
+	PortableConfig map[string]any `json:"portable_config,omitempty"`
+	SupportedFeatures []string `json:"supported_features,omitempty"`
+	DisplayName string `json:"display_name,omitempty"`
+	Provenance map[string]any `json:"provenance,omitempty"`
+}
+
+type UpdateLocalCapabilityConfigurationResponse struct {
+	Configuration *LocalCapabilityConfiguration `json:"configuration,omitempty"`
+}
+
 type UploadArtifactChunk struct {
 	Sequence uint64 `json:"sequence,omitempty"`
 	Bytes []byte `json:"bytes,omitempty"`
@@ -7261,6 +7498,17 @@ type UploadArtifactRequest struct {
 type UploadArtifactResponse struct {
 	Artifact *ScenarioArtifact `json:"artifact,omitempty"`
 	TraceId string `json:"trace_id,omitempty"`
+}
+
+type UploadLocalAppArtifactRequest struct {
+	Bytes []byte `json:"bytes,omitempty"`
+	MimeType string `json:"mime_type,omitempty"`
+}
+
+type UploadLocalAppArtifactResponse struct {
+	ArtifactId string `json:"artifact_id,omitempty"`
+	SizeBytes int64 `json:"size_bytes,omitempty"`
+	MimeType string `json:"mime_type,omitempty"`
 }
 
 type UpsertCatalogModelOverlayRequest struct {
@@ -7353,17 +7601,17 @@ type VideoGenerateScenarioSpec struct {
 type VideoGenerationOptions struct {
 	Resolution string `json:"resolution,omitempty"`
 	Ratio string `json:"ratio,omitempty"`
-	DurationSec int32 `json:"duration_sec,omitempty"`
-	Frames int32 `json:"frames,omitempty"`
-	Fps int32 `json:"fps,omitempty"`
-	Seed int64 `json:"seed,omitempty"`
-	CameraFixed bool `json:"camera_fixed,omitempty"`
-	Watermark bool `json:"watermark,omitempty"`
-	GenerateAudio bool `json:"generate_audio,omitempty"`
-	Draft bool `json:"draft,omitempty"`
+	DurationSec *int32 `json:"duration_sec,omitempty"`
+	Frames *int32 `json:"frames,omitempty"`
+	Fps *int32 `json:"fps,omitempty"`
+	Seed *int64 `json:"seed,omitempty"`
+	CameraFixed *bool `json:"camera_fixed,omitempty"`
+	Watermark *bool `json:"watermark,omitempty"`
+	GenerateAudio *bool `json:"generate_audio,omitempty"`
+	Draft *bool `json:"draft,omitempty"`
 	ServiceTier string `json:"service_tier,omitempty"`
 	ExecutionExpiresAfterSec int32 `json:"execution_expires_after_sec,omitempty"`
-	ReturnLastFrame bool `json:"return_last_frame,omitempty"`
+	ReturnLastFrame *bool `json:"return_last_frame,omitempty"`
 }
 
 type VoiceAsset struct {
@@ -8251,6 +8499,14 @@ func (c RuntimeTypedClient) ReadRealtimeEvents(ctx context.Context, request Read
 	return &RuntimeTypedStream[RealtimeEvent]{reader: reader}, nil
 }
 
+func (c RuntimeTypedClient) CancelLocalAppScenarioJob(ctx context.Context, request CancelLocalAppScenarioJobRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (CancelLocalAppScenarioJobResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAiService/CancelLocalAppScenarioJob", request, metadata, timeoutMS)
+	if err != nil {
+		return CancelLocalAppScenarioJobResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[CancelLocalAppScenarioJobResponse](raw, "CancelLocalAppScenarioJobResponse")
+}
+
 func (c RuntimeTypedClient) CancelScenarioJob(ctx context.Context, request CancelScenarioJobRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (CancelScenarioJobResponse, error) {
 	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAiService/CancelScenarioJob", request, metadata, timeoutMS)
 	if err != nil {
@@ -8265,6 +8521,14 @@ func (c RuntimeTypedClient) DeleteVoiceAsset(ctx context.Context, request Delete
 		return DeleteVoiceAssetResponse{}, err
 	}
 	return decodeRuntimeTypedResponse[DeleteVoiceAssetResponse](raw, "DeleteVoiceAssetResponse")
+}
+
+func (c RuntimeTypedClient) ExecuteLocalAppScenario(ctx context.Context, request ExecuteLocalAppScenarioRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ExecuteLocalAppScenarioResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAiService/ExecuteLocalAppScenario", request, metadata, timeoutMS)
+	if err != nil {
+		return ExecuteLocalAppScenarioResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[ExecuteLocalAppScenarioResponse](raw, "ExecuteLocalAppScenarioResponse")
 }
 
 func (c RuntimeTypedClient) ExecuteScenario(ctx context.Context, request ExecuteScenarioRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ExecuteScenarioResponse, error) {
@@ -8291,6 +8555,14 @@ func (c RuntimeTypedClient) GetAppAIConfig(ctx context.Context, request GetAppAI
 	return decodeRuntimeTypedResponse[GetAppAIConfigResponse](raw, "GetAppAIConfigResponse")
 }
 
+func (c RuntimeTypedClient) GetLocalAppScenarioJob(ctx context.Context, request GetLocalAppScenarioJobRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetLocalAppScenarioJobResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAiService/GetLocalAppScenarioJob", request, metadata, timeoutMS)
+	if err != nil {
+		return GetLocalAppScenarioJobResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[GetLocalAppScenarioJobResponse](raw, "GetLocalAppScenarioJobResponse")
+}
+
 func (c RuntimeTypedClient) GetScenarioArtifacts(ctx context.Context, request GetScenarioArtifactsRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetScenarioArtifactsResponse, error) {
 	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAiService/GetScenarioArtifacts", request, metadata, timeoutMS)
 	if err != nil {
@@ -8313,6 +8585,14 @@ func (c RuntimeTypedClient) GetVoiceAsset(ctx context.Context, request GetVoiceA
 		return GetVoiceAssetResponse{}, err
 	}
 	return decodeRuntimeTypedResponse[GetVoiceAssetResponse](raw, "GetVoiceAssetResponse")
+}
+
+func (c RuntimeTypedClient) ListLocalAppVoiceAssets(ctx context.Context, request ListLocalAppVoiceAssetsRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ListLocalAppVoiceAssetsResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAiService/ListLocalAppVoiceAssets", request, metadata, timeoutMS)
+	if err != nil {
+		return ListLocalAppVoiceAssetsResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[ListLocalAppVoiceAssetsResponse](raw, "ListLocalAppVoiceAssetsResponse")
 }
 
 func (c RuntimeTypedClient) ListPresetVoices(ctx context.Context, request ListPresetVoicesRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ListPresetVoicesResponse, error) {
@@ -8355,6 +8635,22 @@ func (c RuntimeTypedClient) PeekScheduling(ctx context.Context, request PeekSche
 	return decodeRuntimeTypedResponse[PeekSchedulingResponse](raw, "PeekSchedulingResponse")
 }
 
+func (c RuntimeTypedClient) ReadLocalAppArtifact(ctx context.Context, request ReadLocalAppArtifactRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ReadLocalAppArtifactResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAiService/ReadLocalAppArtifact", request, metadata, timeoutMS)
+	if err != nil {
+		return ReadLocalAppArtifactResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[ReadLocalAppArtifactResponse](raw, "ReadLocalAppArtifactResponse")
+}
+
+func (c RuntimeTypedClient) StreamLocalAppTextTurn(ctx context.Context, request StreamLocalAppTextTurnRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (*RuntimeTypedStream[StreamLocalAppTextTurnEvent], error) {
+	reader, err := c.streamTyped(ctx, "/nimi.runtime.v1.RuntimeAiService/StreamLocalAppTextTurn", request, metadata, timeoutMS)
+	if err != nil {
+		return nil, err
+	}
+	return &RuntimeTypedStream[StreamLocalAppTextTurnEvent]{reader: reader}, nil
+}
+
 func (c RuntimeTypedClient) StreamScenario(ctx context.Context, request StreamScenarioRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (*RuntimeTypedStream[StreamScenarioEvent], error) {
 	reader, err := c.streamTyped(ctx, "/nimi.runtime.v1.RuntimeAiService/StreamScenario", request, metadata, timeoutMS)
 	if err != nil {
@@ -8363,12 +8659,28 @@ func (c RuntimeTypedClient) StreamScenario(ctx context.Context, request StreamSc
 	return &RuntimeTypedStream[StreamScenarioEvent]{reader: reader}, nil
 }
 
+func (c RuntimeTypedClient) SubmitLocalAppScenarioJob(ctx context.Context, request SubmitLocalAppScenarioJobRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (SubmitLocalAppScenarioJobResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAiService/SubmitLocalAppScenarioJob", request, metadata, timeoutMS)
+	if err != nil {
+		return SubmitLocalAppScenarioJobResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[SubmitLocalAppScenarioJobResponse](raw, "SubmitLocalAppScenarioJobResponse")
+}
+
 func (c RuntimeTypedClient) SubmitScenarioJob(ctx context.Context, request SubmitScenarioJobRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (SubmitScenarioJobResponse, error) {
 	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAiService/SubmitScenarioJob", request, metadata, timeoutMS)
 	if err != nil {
 		return SubmitScenarioJobResponse{}, err
 	}
 	return decodeRuntimeTypedResponse[SubmitScenarioJobResponse](raw, "SubmitScenarioJobResponse")
+}
+
+func (c RuntimeTypedClient) SubscribeLocalAppScenarioJobEvents(ctx context.Context, request SubscribeLocalAppScenarioJobEventsRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (*RuntimeTypedStream[LocalAppScenarioJobEvent], error) {
+	reader, err := c.streamTyped(ctx, "/nimi.runtime.v1.RuntimeAiService/SubscribeLocalAppScenarioJobEvents", request, metadata, timeoutMS)
+	if err != nil {
+		return nil, err
+	}
+	return &RuntimeTypedStream[LocalAppScenarioJobEvent]{reader: reader}, nil
 }
 
 func (c RuntimeTypedClient) SubscribeScenarioJobEvents(ctx context.Context, request SubscribeScenarioJobEventsRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (*RuntimeTypedStream[ScenarioJobEvent], error) {
@@ -8381,6 +8693,14 @@ func (c RuntimeTypedClient) SubscribeScenarioJobEvents(ctx context.Context, requ
 
 func (c RuntimeTypedClient) UploadArtifact(context.Context, UploadArtifactRequest, sdkstypes.CoreMetadata, int64) (UploadArtifactResponse, error) {
 	return UploadArtifactResponse{}, fmt.Errorf("SDK_RUNTIME_METHOD_UNAVAILABLE: Runtime method kind is not supported by the unary/server-stream core transport: /nimi.runtime.v1.RuntimeAiService/UploadArtifact")
+}
+
+func (c RuntimeTypedClient) UploadLocalAppArtifact(ctx context.Context, request UploadLocalAppArtifactRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (UploadLocalAppArtifactResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAiService/UploadLocalAppArtifact", request, metadata, timeoutMS)
+	if err != nil {
+		return UploadLocalAppArtifactResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[UploadLocalAppArtifactResponse](raw, "UploadLocalAppArtifactResponse")
 }
 
 func (c RuntimeTypedClient) BindLocalAppProcess(ctx context.Context, request BindLocalAppProcessRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (BindLocalAppProcessResponse, error) {
@@ -9621,6 +9941,14 @@ func (c RuntimeTypedClient) UnbindLocalCapabilityRequirement(ctx context.Context
 		return UnbindLocalCapabilityRequirementResponse{}, err
 	}
 	return decodeRuntimeTypedResponse[UnbindLocalCapabilityRequirementResponse](raw, "UnbindLocalCapabilityRequirementResponse")
+}
+
+func (c RuntimeTypedClient) UpdateLocalCapabilityConfiguration(ctx context.Context, request UpdateLocalCapabilityConfigurationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (UpdateLocalCapabilityConfigurationResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeLocalService/UpdateLocalCapabilityConfiguration", request, metadata, timeoutMS)
+	if err != nil {
+		return UpdateLocalCapabilityConfigurationResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[UpdateLocalCapabilityConfigurationResponse](raw, "UpdateLocalCapabilityConfigurationResponse")
 }
 
 func (c RuntimeTypedClient) WatchLocalTransfers(ctx context.Context, request WatchLocalTransfersRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (*RuntimeTypedStream[LocalTransferProgressEvent], error) {

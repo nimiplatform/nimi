@@ -80,6 +80,9 @@ func (s *Service) captureLocalImageEffectiveInputs(
 	if err != nil {
 		return nil, err
 	}
+	if format := strings.TrimSpace(request.GetResponseFormat()); format != "" && format != "b64_json" {
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
+	}
 	if err := requireSelectedImageRequestFeatures(request, selected.SupportedFeatures); err != nil {
 		return nil, err
 	}
@@ -197,12 +200,12 @@ func normalizeLocalImageRequest(
 				cloned.NegativePrompt = text
 			}
 		case "n":
-			if cloned.GetN() == 0 {
+			if cloned.N == nil {
 				number, ok := integerDefault(value)
 				if !ok || number < 1 || number > 4 {
 					return nil, invalidAppAIConfigError()
 				}
-				cloned.N = int32(number)
+				cloned.N = proto.Int32(int32(number))
 			}
 		case "size":
 			if cloned.GetSize() == "" {
@@ -237,12 +240,12 @@ func normalizeLocalImageRequest(
 				cloned.Style = text
 			}
 		case "seed":
-			if cloned.GetSeed() == 0 {
+			if cloned.Seed == nil {
 				number, ok := finiteDefaultNumber(value)
 				if !ok || math.Trunc(number) != number || number < math.MinInt32 || number > math.MaxInt32 {
 					return nil, invalidAppAIConfigError()
 				}
-				cloned.Seed = int64(number)
+				cloned.Seed = proto.Int64(int64(number))
 			}
 		case "responseFormat", "response_format":
 			if cloned.GetResponseFormat() == "" {

@@ -46,9 +46,9 @@ units:
     kind: rule
     title: Desktop remains a canonical-owner configuration consumer
     modality: must
-    statement: Each App or product owner owns one canonical AIConfig and the Runtime LocalAgent subsystem owns one shared AIConfig for all LocalAgents; the machine owner separately owns Machine Local AI Configuration, Runtime owns deterministic composition, derived admission, process and Job facts, SDK owns typed projection, and Desktop owns only authorized placement and editing interaction.
+    statement: Each App or product owner owns one canonical AIConfig and the Runtime LocalAgent subsystem owns one shared AIConfig for all LocalAgents; the machine owner separately owns Machine Local AI Configuration, where Desktop presents omitted Local text context size as the recommended automatic mode and an explicit positive size as an advanced fixed override, Runtime owns deterministic composition, derived admission, process and Job facts, SDK owns typed projection, and Desktop owns only authorized placement and editing interaction.
     condition: Whenever renderer, Chat, Settings, Runtime Config, or another Desktop surface reads or mutates AI configuration.
-    failure: Reject renderer-local, per-Agent, module, feature, route, chat-mode, cross-App, or mixed machine-and-AIConfig persistence as canonical truth.
+    failure: Reject renderer-local, per-Agent, module, feature, route, chat-mode, cross-App, or mixed machine-and-AIConfig persistence as canonical truth, and never require an ordinary user to calculate token budgets to recover a capacity failure.
     relations:
       - type: applies_to
         target: definition.nimi.desktop.ai-consumption.profile-config

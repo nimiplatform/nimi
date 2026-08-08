@@ -107,6 +107,37 @@ func (h *localImageHostStub) ExecuteImage(ctx context.Context, plan *capabilityd
 	return result, nil
 }
 
+func TestNormalizeLocalImageRequestExplicitZeroOverridesDefaults(t *testing.T) {
+	defaults, _ := structpb.NewStruct(map[string]any{"n": 3.0, "seed": 19.0})
+	got, err := normalizeLocalImageRequest(&runtimev1.ImageGenerateScenarioSpec{
+		Prompt: "image", N: testInt32(0), Seed: testInt64(0),
+	}, defaults)
+	if err != nil {
+		t.Fatalf("normalizeLocalImageRequest: %v", err)
+	}
+	if got.N == nil || got.Seed == nil || got.GetN() != 0 || got.GetSeed() != 0 {
+		t.Fatalf("explicit zero values were replaced by defaults: %+v", got)
+	}
+}
+
+func TestLocalImageRejectsNonDefaultResponseFormatBeforeHostDispatch(t *testing.T) {
+	svc := newTestService(nil)
+	host := &localImageHostStub{}
+	svc.SetLocalExecutionResolver(&mutableLocalExecutionResolver{projection: selectedImageExecutionForTest(t, "image-format")})
+	svc.SetLocalImageExecutionHost(host)
+	request := localImageExecuteRequestForTest(1)
+	request.Spec.GetImageGenerate().ResponseFormat = "url"
+	_, err := svc.ExecuteScenario(localImageIntentContext(context.Background(), nil), request)
+	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED {
+		t.Fatalf("response_format error=%v reason=%v present=%v", err, reason, ok)
+	}
+	host.mu.Lock()
+	defer host.mu.Unlock()
+	if len(host.plans) != 0 {
+		t.Fatalf("unsupported response_format dispatched %d plans", len(host.plans))
+	}
+}
+
 func TestLocalImageWithoutSelectionFailsClosed(t *testing.T) {
 	svc := newTestService(nil)
 	svc.SetLocalExecutionResolver(&mutableLocalExecutionResolver{err: grpcerr.WithReasonCode(
@@ -172,8 +203,9 @@ func TestLocalImageJobStaysQueuedThenCommitsArtifactsIncrementallyFromImmutableC
 		t.Fatalf("OverwriteAppAIConfig(initial): %v", err)
 	}
 	request := localImageJobRequestForTest(0)
+	request.Spec.GetImageGenerate().N = nil
 	request.Spec.GetImageGenerate().Size = ""
-	request.Spec.GetImageGenerate().Seed = 0
+	request.Spec.GetImageGenerate().Seed = nil
 	response, err := svc.SubmitScenarioJob(ownerCtx, request)
 	if err != nil {
 		t.Fatalf("SubmitScenarioJob: %v", err)
@@ -493,7 +525,7 @@ func localImageExecuteRequestForTest(count int32) *runtimev1.ExecuteScenarioRequ
 		Head:         &runtimev1.ScenarioRequestHead{AppId: "app.local", SubjectUserId: "anonymous"},
 		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE, ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_SYNC,
 		Spec: &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_ImageGenerate{ImageGenerate: &runtimev1.ImageGenerateScenarioSpec{
-			Prompt: "a copper robot", N: count, Size: "64x64", Seed: 7,
+			Prompt: "a copper robot", N: testInt32(count), Size: "64x64", Seed: testInt64(7),
 		}}},
 	}
 }

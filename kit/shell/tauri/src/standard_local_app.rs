@@ -1,9 +1,9 @@
 use nimi_shell_protected_local::{
     LocalAppAIConfigOverwriteRequest, LocalAppAgentCommitPresentationRequest,
     LocalAppAgentHandleRequest, LocalAppAgentUpdateAutonomyRequest, LocalAppOperationError,
-    LocalAppSharedAgentAIConfigOverwriteRequest, LocalAppStorageReadRequest,
-    LocalAppStorageRemoveRequest, LocalAppStorageWriteRequest, LocalAppTextCandidateMessage,
-    LocalAppTextCandidateRequest,
+    LocalAppScenarioUploadArtifactRequest, LocalAppSharedAgentAIConfigOverwriteRequest,
+    LocalAppStorageReadRequest, LocalAppStorageRemoveRequest, LocalAppStorageWriteRequest,
+    LocalAppTextCandidateMessage, LocalAppTextCandidateRequest,
 };
 use serde::Deserialize;
 use serde_json::{json, Value};
@@ -26,15 +26,28 @@ pub struct LocalAppTextCandidateMessagePayload {
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct LocalAppTextCandidatePayload {
     messages: Vec<LocalAppTextCandidateMessagePayload>,
-    temperature: f32,
-    top_p: f32,
-    max_tokens: i32,
+    temperature: Option<f32>,
+    top_p: Option<f32>,
+    max_tokens: Option<i32>,
+    top_k: Option<i32>,
+    presence_penalty: Option<f32>,
+    frequency_penalty: Option<f32>,
+    #[serde(default)]
+    stop: Vec<String>,
+    seed: Option<i64>,
 }
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct LocalAppAIConfigOverwritePayload {
     capabilities: Value,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct LocalAppArtifactUploadPayload {
+    bytes: Vec<u8>,
+    mime_type: String,
 }
 
 #[derive(Debug, Deserialize)]
@@ -96,11 +109,23 @@ pub async fn text_generate_candidate_for_host(
         parse_payload(payload, "local_app_text_generate_candidate")?;
     if payload.messages.is_empty()
         || payload.messages.len() > MAX_TEXT_CANDIDATE_MESSAGES
-        || !payload.temperature.is_finite()
-        || !(0.0..=2.0).contains(&payload.temperature)
-        || !payload.top_p.is_finite()
-        || !(0.0..=1.0).contains(&payload.top_p)
-        || !(1..=MAX_TEXT_CANDIDATE_TOKENS).contains(&payload.max_tokens)
+        || payload
+            .temperature
+            .is_some_and(|value| !value.is_finite() || !(0.0..=2.0).contains(&value))
+        || payload
+            .top_p
+            .is_some_and(|value| !value.is_finite() || !(0.0..=1.0).contains(&value))
+        || payload
+            .max_tokens
+            .is_some_and(|value| !(0..=MAX_TEXT_CANDIDATE_TOKENS).contains(&value))
+        || payload.top_k.is_some_and(|value| value < 0)
+        || payload
+            .presence_penalty
+            .is_some_and(|value| !value.is_finite() || !(-2.0..=2.0).contains(&value))
+        || payload
+            .frequency_penalty
+            .is_some_and(|value| !value.is_finite() || !(-2.0..=2.0).contains(&value))
+        || payload.stop.iter().any(|value| value.trim().is_empty())
     {
         return Err(invalid_payload("local_app_text_generate_candidate"));
     }
@@ -137,6 +162,11 @@ pub async fn text_generate_candidate_for_host(
             temperature: payload.temperature,
             top_p: payload.top_p,
             max_tokens: payload.max_tokens,
+            top_k: payload.top_k,
+            presence_penalty: payload.presence_penalty,
+            frequency_penalty: payload.frequency_penalty,
+            stop: payload.stop,
+            seed: payload.seed,
         })
         .await
         .map_err(map_local_app_error)?;
@@ -147,8 +177,39 @@ pub async fn text_generate_candidate_for_host(
     }))
 }
 
+pub async fn artifact_upload_for_host(
+    host: &RuntimeBridgeLocalAppHost,
+    payload: Value,
+) -> Result<Value, String> {
+    let payload: LocalAppArtifactUploadPayload =
+        parse_payload(payload, "local_app_artifact_upload")?;
+    if payload.bytes.is_empty()
+        || payload.bytes.len() > 32 * 1024 * 1024
+        || !matches!(
+            payload.mime_type.as_str(),
+            "image/png" | "image/jpeg" | "image/webp" | "image/gif"
+        )
+    {
+        return Err(invalid_payload("local_app_artifact_upload"));
+    }
+    host.upload_scenario_artifact(LocalAppScenarioUploadArtifactRequest {
+        bytes: payload.bytes,
+        mime_type: payload.mime_type,
+    })
+    .await
+    .map_err(map_local_app_error)
+}
+
 pub async fn ai_config_get_for_host(host: &RuntimeBridgeLocalAppHost) -> Result<Value, String> {
     host.app_ai_config_get().await.map_err(map_local_app_error)
+}
+
+pub async fn model_config_local_selections_get_for_host(
+    host: &RuntimeBridgeLocalAppHost,
+) -> Result<Value, String> {
+    host.model_config_local_selections_get()
+        .await
+        .map_err(map_local_app_error)
 }
 
 pub async fn ai_config_overwrite_for_host(
@@ -395,7 +456,7 @@ mod tests {
     }
 
     #[test]
-    fn text_candidate_payload_rejects_authority_and_role_expansion() {
+    fn text_candidate_payload_rejects_authority_and_preserves_optional_zero() {
         assert!(parse_payload::<LocalAppTextCandidatePayload>(
             json!({
                 "messages": [{"role": "user", "text": "Create one persona."}],
@@ -407,6 +468,18 @@ mod tests {
             "text_candidate"
         )
         .is_err());
+        let payload = parse_payload::<LocalAppTextCandidatePayload>(
+            json!({
+                "messages": [{"role": "user", "text": "Create one persona."}],
+                "temperature": 0, "topP": 0, "maxTokens": 0, "topK": 0,
+                "presencePenalty": -2, "frequencyPenalty": 2, "stop": ["END"], "seed": 0
+            }),
+            "text_candidate",
+        )
+        .expect("explicit zero sampling");
+        assert_eq!(payload.temperature, Some(0.0));
+        assert_eq!(payload.max_tokens, Some(0));
+        assert_eq!(payload.seed, Some(0));
     }
 
     #[test]

@@ -30,19 +30,11 @@ func (s *Service) StartLocalAsset(ctx context.Context, req *runtimev1.StartLocal
 	if isLlamaLocalAsset(current) {
 		return nil, privateExecutionHostEngineError()
 	}
-	if healedModel, _, err := s.healManagedSupervisedRuntimeMode(localModelID); err != nil {
-		detail := managedLocalAssetRecordFailureDetail(err)
-		if current.GetStatus() == runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY {
-			s.setModelHealthDetail(localModelID, detail)
-			return &runtimev1.StartLocalAssetResponse{Asset: s.modelByID(localModelID)}, nil
-		}
-		unhealthy, updateErr := s.transitionModelToUnhealthy(localModelID, detail)
-		if updateErr != nil {
-			return nil, updateErr
-		}
-		return &runtimev1.StartLocalAssetResponse{Asset: unhealthy}, nil
-	} else if healedModel != nil {
-		current = healedModel
+	if s.modelRuntimeMode(localModelID) == runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_ATTACHED_ENDPOINT {
+		return nil, grpcerr.WithReasonCodeOptions(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_ENDPOINT_REQUIRED, grpcerr.ReasonOptions{
+			Message:    "this asset requires an attached endpoint from an exact local capability configuration",
+			ActionHint: "configure_local_capability_endpoint",
+		})
 	}
 	if err := validateManagedLocalAssetRecord(current, s.modelRuntimeMode(localModelID)); err != nil {
 		detail := managedLocalAssetRecordFailureDetail(err)
@@ -208,11 +200,6 @@ func (s *Service) checkManagedSupervisedSpeechHealthWithReason(ctx context.Conte
 		return nil, nil
 	}
 	localModelID := strings.TrimSpace(model.GetLocalAssetId())
-	if healedModel, _, err := s.healManagedSupervisedRuntimeMode(localModelID); err != nil {
-		return s.setManagedSupervisedSpeechUnhealthy(model, managedLocalAssetRecordFailureDetail(err))
-	} else if healedModel != nil {
-		model = healedModel
-	}
 	if err := validateManagedLocalAssetRecord(model, s.modelRuntimeMode(localModelID)); err != nil {
 		return s.setManagedSupervisedSpeechUnhealthy(model, managedLocalAssetRecordFailureDetail(err))
 	}

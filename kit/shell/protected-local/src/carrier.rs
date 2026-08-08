@@ -212,9 +212,14 @@ pub struct LocalAppTextCandidateMessage {
 #[derive(Clone, Debug, PartialEq)]
 pub struct LocalAppTextCandidateRequest {
     pub messages: Vec<LocalAppTextCandidateMessage>,
-    pub temperature: f32,
-    pub top_p: f32,
-    pub max_tokens: i32,
+    pub temperature: Option<f32>,
+    pub top_p: Option<f32>,
+    pub max_tokens: Option<i32>,
+    pub top_k: Option<i32>,
+    pub presence_penalty: Option<f32>,
+    pub frequency_penalty: Option<f32>,
+    pub stop: Vec<String>,
+    pub seed: Option<i64>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -223,6 +228,52 @@ pub struct LocalAppTextCandidateResult {
     pub finish_reason: String,
     pub trace_id: String,
 }
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct LocalAppScenarioExecuteRequest {
+    pub spec: JsonValue,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct LocalAppScenarioSubmitRequest {
+    pub spec: JsonValue,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct LocalAppScenarioGetRequest {
+    pub job_id: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct LocalAppScenarioCancelRequest {
+    pub job_id: String,
+    pub reason: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct LocalAppScenarioJobSubscribeRequest {
+    pub job_id: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct LocalAppScenarioReadArtifactRequest {
+    pub artifact_id: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct LocalAppScenarioUploadArtifactRequest {
+    pub bytes: Vec<u8>,
+    pub mime_type: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct LocalAppScenarioListVoiceAssetsRequest {
+    pub page_size: i32,
+    pub page_token: String,
+}
+
+pub type LocalAppScenarioStreamReceiver =
+    tokio::sync::mpsc::Receiver<Result<JsonValue, LocalAppOperationError>>;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct LocalAppAIConfigOverwriteRequest {
@@ -376,9 +427,17 @@ pub struct LocalAppConversationEvent {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum LocalAppConversationEventKind {
-    TurnAccepted { turn_id: String, request_id: String },
-    TurnStarted { turn_id: String },
-    TextDelta { turn_id: String, text: String },
+    TurnAccepted {
+        turn_id: String,
+        request_id: String,
+    },
+    TurnStarted {
+        turn_id: String,
+    },
+    TextDelta {
+        turn_id: String,
+        text: String,
+    },
     MessageCommitted {
         turn_id: String,
         message_id: String,
@@ -393,7 +452,10 @@ pub enum LocalAppConversationEventKind {
         reason_code: String,
         message: Option<String>,
     },
-    TurnInterrupted { turn_id: String, reason: String },
+    TurnInterrupted {
+        turn_id: String,
+        reason: String,
+    },
 }
 
 pub type LocalAppConversationSubscriptionReceiver =
@@ -638,6 +700,63 @@ pub trait NimiLocalAppSession: Send + Sync {
         >,
     >;
 
+    fn stream_text_turn(
+        &self,
+        request: LocalAppTextCandidateRequest,
+    ) -> Pin<
+        Box<
+            dyn Future<Output = Result<LocalAppScenarioStreamReceiver, LocalAppOperationError>>
+                + Send
+                + '_,
+        >,
+    >;
+
+    fn execute_scenario(
+        &self,
+        request: LocalAppScenarioExecuteRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
+
+    fn submit_scenario_job(
+        &self,
+        request: LocalAppScenarioSubmitRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
+
+    fn get_scenario_job(
+        &self,
+        request: LocalAppScenarioGetRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
+
+    fn subscribe_scenario_job(
+        &self,
+        request: LocalAppScenarioJobSubscribeRequest,
+    ) -> Pin<
+        Box<
+            dyn Future<Output = Result<LocalAppScenarioStreamReceiver, LocalAppOperationError>>
+                + Send
+                + '_,
+        >,
+    >;
+
+    fn cancel_scenario_job(
+        &self,
+        request: LocalAppScenarioCancelRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
+
+    fn read_scenario_artifact(
+        &self,
+        request: LocalAppScenarioReadArtifactRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
+
+    fn upload_scenario_artifact(
+        &self,
+        request: LocalAppScenarioUploadArtifactRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
+
+    fn list_scenario_voice_assets(
+        &self,
+        request: LocalAppScenarioListVoiceAssetsRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
+
     fn app_ai_config_get(
         &self,
     ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
@@ -645,6 +764,10 @@ pub trait NimiLocalAppSession: Send + Sync {
     fn app_ai_config_overwrite(
         &self,
         request: LocalAppAIConfigOverwriteRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
+
+    fn model_config_local_selections_get(
+        &self,
     ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
 
     fn realm_world_core_list(

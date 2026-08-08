@@ -177,6 +177,69 @@ func TestManagedVideoCancelReachesEngineAndWaitsForGenerateExit(t *testing.T) {
 	}
 }
 
+func TestStableDiffusionVideoFFIMapsPortableRecipeIntoFloorParameters(t *testing.T) {
+	model := validVideoModelRequest("")
+	model.CFGScale = 2.5
+	model.FlowShift = 8
+	model.SampleMethod = "euler"
+	model.Scheduler = "karras"
+	model.DiffusionFlashAttention = false
+	model.OffloadToCPU = false
+	model.RNG = "cuda"
+	if err := validateVideoModelRecipe(model); err != nil {
+		t.Fatalf("validate recipe: %v", err)
+	}
+	ctxParams := sdCtxParams{}
+	if err := applyVideoContextRecipe(&ctxParams, model); err != nil {
+		t.Fatalf("apply context recipe: %v", err)
+	}
+	if ctxParams.DiffusionFlashAttention != 0 || ctxParams.RNGType != sdCUDARNG || ctxParams.SamplerRNGType != sdCUDARNG || videoParamsBackendSpec(model.OffloadToCPU) != "" {
+		t.Fatalf("context recipe = %#v backend=%q", ctxParams, videoParamsBackendSpec(model.OffloadToCPU))
+	}
+	if videoParamsBackendSpec(true) != "*=cpu" {
+		t.Fatalf("CPU offload backend = %q", videoParamsBackendSpec(true))
+	}
+	videoParams := sdVideoGenParams{}
+	converted := make([]string, 0, 2)
+	convert := func(label, value string, count int32) (int32, bool, error) {
+		converted = append(converted, label+":"+value)
+		if count <= 0 {
+			t.Fatalf("%s count = %d", label, count)
+		}
+		if label == "sample method" {
+			return 4, true, nil
+		}
+		return 6, true, nil
+	}
+	if err := applyVideoGenerateRecipe(&videoParams, model, convert); err != nil {
+		t.Fatalf("apply generation recipe: %v", err)
+	}
+	if videoParams.SampleParams.Guidance.TextCFG != 2.5 || videoParams.SampleParams.FlowShift != 8 || videoParams.SampleParams.SampleMethod != 4 || videoParams.SampleParams.Scheduler != 6 {
+		t.Fatalf("generation recipe = %#v", videoParams.SampleParams)
+	}
+	if len(converted) != 2 || converted[0] != "sample method:euler" || converted[1] != "scheduler:karras" {
+		t.Fatalf("converter calls = %#v", converted)
+	}
+}
+
+func TestManagedVideoRecipeRejectsIllegalValues(t *testing.T) {
+	for name, mutate := range map[string]func(*VideoModelRequest){
+		"cfg":       func(request *VideoModelRequest) { request.CFGScale = 31 },
+		"flow":      func(request *VideoModelRequest) { request.FlowShift = -1 },
+		"sample":    func(request *VideoModelRequest) { request.SampleMethod = "bad token" },
+		"scheduler": func(request *VideoModelRequest) { request.Scheduler = " bad" },
+		"rng":       func(request *VideoModelRequest) { request.RNG = "other" },
+	} {
+		t.Run(name, func(t *testing.T) {
+			request := validVideoModelRequest("")
+			mutate(&request)
+			if err := validateVideoModelRecipe(request); VideoErrorKindOf(err) != VideoErrorLoad {
+				t.Fatalf("error = %v kind=%q", err, VideoErrorKindOf(err))
+			}
+		})
+	}
+}
+
 func TestStableDiffusionVideoFFILayoutMatchesFloorHeader(t *testing.T) {
 	if got := unsafe.Sizeof(sdCtxParams{}); got != 280 {
 		t.Fatalf("sizeof(sd_ctx_params_t) = %d", got)

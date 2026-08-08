@@ -14,13 +14,6 @@ import (
 	"google.golang.org/grpc/codes"
 )
 
-func resolveServiceInstallEndpoint(requestEndpoint string, modelEndpoint string) string {
-	if endpoint := strings.TrimSpace(requestEndpoint); endpoint != "" {
-		return endpoint
-	}
-	return strings.TrimSpace(modelEndpoint)
-}
-
 func (s *Service) ListLocalServices(_ context.Context, req *runtimev1.ListLocalServicesRequest) (*runtimev1.ListLocalServicesResponse, error) {
 	statusFilter := req.GetStatusFilter()
 	s.mu.RLock()
@@ -72,8 +65,6 @@ func (s *Service) InstallLocalService(_ context.Context, req *runtimev1.InstallL
 	if model == nil || model.GetStatus() == runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_REMOVED {
 		return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_LOCAL_SERVICE_UNAVAILABLE)
 	}
-	modelMode := normalizeRuntimeMode(s.assetRuntimeModes[localModelID])
-
 	engine := defaultString(strings.TrimSpace(req.GetEngine()), model.GetEngine())
 	if !strings.EqualFold(engine, model.GetEngine()) {
 		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_MODEL_PROVIDER_MISMATCH)
@@ -105,12 +96,15 @@ func (s *Service) InstallLocalService(_ context.Context, req *runtimev1.InstallL
 	if len(capabilities) == 0 {
 		capabilities = []string{"chat"}
 	}
-	serviceMode := modelMode
-	if strings.TrimSpace(req.GetEndpoint()) != "" {
-		serviceMode = runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_ATTACHED_ENDPOINT
-	}
-	modelEndpoint := effectiveEndpointForRuntimeMode(engine, modelMode, model.GetEndpoint(), s.managedEndpointForEngineLocked(engine))
-	endpoint := resolveServiceInstallEndpoint(strings.TrimSpace(req.GetEndpoint()), modelEndpoint)
+	binding := resolveInstallRuntimeBinding(
+		engine,
+		capabilities,
+		model.GetKind(),
+		strings.TrimSpace(req.GetEndpoint()),
+		collectDeviceProfile(),
+	)
+	serviceMode := normalizeRuntimeMode(binding.mode)
+	endpoint := effectiveEndpointForRuntimeMode(engine, serviceMode, binding.endpoint, s.managedEndpointForEngineLocked(engine))
 	if normalizeRuntimeMode(serviceMode) == runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_ATTACHED_ENDPOINT && strings.TrimSpace(endpoint) == "" {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_ENDPOINT_REQUIRED)
 	}

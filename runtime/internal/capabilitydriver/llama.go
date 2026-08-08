@@ -134,18 +134,20 @@ func (driver LlamaTextDriver) PlanTextInvocation(input TextInvocationInput) (*Te
 	if err != nil {
 		return nil, err
 	}
+	contextWindow, err := driver.TextContextWindow(input.PortableConfig, input.ModelContextWindowTokens)
+	if err != nil {
+		return nil, err
+	}
 
 	const modelAlias = "nimi-selected-local"
 	processArgs := []string{
 		"--reasoning", "off",
 		"--model", bindings[MainGGUFRequirementID].AbsolutePath,
 		"--alias", modelAlias,
+		"--ctx-size", strconv.FormatUint(contextWindow, 10),
 	}
 	if companion, ok := bindings[CompanionMMProjRequirementID]; ok {
 		processArgs = append(processArgs, "--mmproj", companion.AbsolutePath)
-	}
-	if portable.contextSize > 0 {
-		processArgs = append(processArgs, "--ctx-size", strconv.Itoa(portable.contextSize))
 	}
 	if portable.cacheTypeK != "" {
 		processArgs = append(processArgs, "--cache-type-k", portable.cacheTypeK)
@@ -179,10 +181,6 @@ func (driver LlamaTextDriver) PlanTextInvocation(input TextInvocationInput) (*Te
 			_, _ = hash.Write([]byte{0})
 		}
 	}
-	contextWindow := uint64(4096)
-	if portable.contextSize > 0 {
-		contextWindow = uint64(portable.contextSize)
-	}
 	modelFiles := make([]InvocationExactBinding, 0, len(bindings))
 	for _, requirementID := range []string{MainGGUFRequirementID, CompanionMMProjRequirementID} {
 		if binding, ok := bindings[requirementID]; ok {
@@ -200,18 +198,25 @@ func (driver LlamaTextDriver) PlanTextInvocation(input TextInvocationInput) (*Te
 	}, nil
 }
 
-func (LlamaTextDriver) TextContextWindow(value *structpb.Struct) (uint64, error) {
-	if value == nil {
-		return 4096, nil
+func (LlamaTextDriver) TextContextWindow(value *structpb.Struct, modelContextWindowTokens uint64) (uint64, error) {
+	if modelContextWindowTokens == 0 {
+		return 0, invocationError(InvocationFailureInvalidConfig, fmt.Errorf("llama model-authored context capacity is unavailable"))
 	}
-	fields := value.GetFields()
+	fields := map[string]*structpb.Value(nil)
+	if value != nil {
+		fields = value.GetFields()
+	}
 	if reason := validatePortableExecutionOptions(fields); reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED {
 		return 0, invocationError(InvocationFailureInvalidConfig, fmt.Errorf("llama portable config: %s", reason.String()))
 	}
 	if contextSize := fields["contextSize"]; contextSize != nil {
-		return uint64(contextSize.GetNumberValue()), nil
+		fixed := uint64(contextSize.GetNumberValue())
+		if fixed > modelContextWindowTokens {
+			return 0, invocationError(InvocationFailureInvalidConfig, fmt.Errorf("llama fixed context capacity %d exceeds model-authored capacity %d", fixed, modelContextWindowTokens))
+		}
+		return fixed, nil
 	}
-	return 4096, nil
+	return modelContextWindowTokens, nil
 }
 
 func exactLlamaInvocationBindings(values []InvocationExactBinding) (map[string]InvocationExactBinding, bool, error) {

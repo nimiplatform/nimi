@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math"
 	"strings"
 )
 
@@ -83,6 +84,49 @@ func (request VideoModelRequest) selectedDiffusionPath() string {
 		return request.Ref2VADiffusionPath
 	}
 	return request.FL2VADiffusionPath
+}
+
+func validateVideoModelRecipe(request VideoModelRequest) error {
+	if math.IsNaN(request.CFGScale) || math.IsInf(request.CFGScale, 0) || request.CFGScale < 0 || request.CFGScale > 30 || request.CFGScale > math.MaxFloat32 {
+		return videoError(VideoErrorLoad, fmt.Errorf("managed H3 video cfg scale is invalid"))
+	}
+	if math.IsNaN(request.FlowShift) || math.IsInf(request.FlowShift, 0) || request.FlowShift < 0 || request.FlowShift > math.MaxFloat32 {
+		return videoError(VideoErrorLoad, fmt.Errorf("managed H3 video flow shift is invalid"))
+	}
+	for label, value := range map[string]string{
+		"sample method": request.SampleMethod,
+		"scheduler":     request.Scheduler,
+	} {
+		if !validVideoRecipeToken(value, true) {
+			return videoError(VideoErrorLoad, fmt.Errorf("managed H3 video %s is invalid", label))
+		}
+	}
+	switch request.RNG {
+	case "std_default", "cuda", "cpu":
+	default:
+		return videoError(VideoErrorLoad, fmt.Errorf("managed H3 video RNG is invalid"))
+	}
+	return nil
+}
+
+func validVideoRecipeToken(value string, engineDefault bool) bool {
+	if value == "" {
+		return true
+	}
+	if value != strings.TrimSpace(value) || len(value) > 64 {
+		return false
+	}
+	if engineDefault && value == "engine-default" {
+		return true
+	}
+	for _, character := range value {
+		if character >= 'a' && character <= 'z' || character >= 'A' && character <= 'Z' ||
+			character >= '0' && character <= '9' || strings.ContainsRune("+_.-", character) {
+			continue
+		}
+		return false
+	}
+	return true
 }
 
 type VideoLoadDiagnostics struct {

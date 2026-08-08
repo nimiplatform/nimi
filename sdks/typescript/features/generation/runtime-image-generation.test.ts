@@ -6,6 +6,7 @@ import {
   ScenarioJobEventType,
   ScenarioJobStatus,
   ScenarioType,
+  VideoContentType,
 } from '../../core-generated/runtime-typed-client';
 import { runNimiRuntimeImageGeneration, runNimiRuntimeVideoGeneration } from './index';
 
@@ -95,7 +96,7 @@ test('runNimiRuntimeImageGeneration submits an image scenario job and returns im
   assert.equal(submitted[0].request.spec.spec.imageGenerate.prompt, 'Song dynasty scholar portrait');
   assert.equal(submitted[0].request.spec.spec.imageGenerate.negativePrompt, 'low quality');
   assert.equal(submitted[0].request.spec.spec.imageGenerate.size, '1024x1024');
-  assert.equal(submitted[0].request.spec.spec.imageGenerate.n, 1);
+  assert.equal(submitted[0].request.spec.spec.imageGenerate.n, undefined);
   assert.equal(submitted[0].request.spec.spec.imageGenerate.seed, '42');
   assert.equal(submitted[0].request.spec.spec.imageGenerate.responseFormat, 'b64_json');
   assert.equal(submitted[0].request.labels.gateway, 'openai-compatible');
@@ -168,7 +169,10 @@ test('runNimiRuntimeVideoGeneration submits a video scenario job and returns vid
     mode: 't2v',
     prompt: 'Generate a moving product shot',
     negativePrompt: 'blur',
-    content: [{ type: 'text', role: 'prompt', text: 'Generate a moving product shot' }],
+    content: [
+      { type: 'text', role: 'prompt', text: 'Generate a moving product shot' },
+      { type: 'artifact-ref', role: 'first-frame', artifactId: 'artifact-image-source-1' },
+    ],
     options: {
       ratio: '9:16',
       durationSec: 6,
@@ -198,6 +202,8 @@ test('runNimiRuntimeVideoGeneration submits a video scenario job and returns vid
   assert.equal(submitted[0].request.spec.spec.videoGenerate.prompt, 'Generate a moving product shot');
   assert.equal(submitted[0].request.spec.spec.videoGenerate.negativePrompt, 'blur');
   assert.equal(submitted[0].request.spec.spec.videoGenerate.mode, 1);
+  assert.equal(submitted[0].request.spec.spec.videoGenerate.content[1].type, VideoContentType.ARTIFACT_REF);
+  assert.equal(submitted[0].request.spec.spec.videoGenerate.content[1].artifactRef.artifactId, 'artifact-image-source-1');
   assert.equal(submitted[0].request.spec.spec.videoGenerate.options.ratio, '9:16');
   assert.equal(submitted[0].request.spec.spec.videoGenerate.options.durationSec, 6);
   assert.equal(submitted[0].request.spec.spec.videoGenerate.options.resolution, '720p');

@@ -25,6 +25,7 @@ export const NIMI_ELECTRON_FIRST_PARTY_PROTECTED_RUNTIME_PROFILES = {
       "/nimi.runtime.v1.RuntimeLocalService/GetMachineLocalAIConfiguration": { kind: "unary" },
       "/nimi.runtime.v1.RuntimeLocalService/GetLocalCapabilityConfiguration": { kind: "unary" },
       "/nimi.runtime.v1.RuntimeLocalService/AddLocalCapabilityConfiguration": { kind: "unary" },
+      "/nimi.runtime.v1.RuntimeLocalService/UpdateLocalCapabilityConfiguration": { kind: "unary" },
       "/nimi.runtime.v1.RuntimeLocalService/SelectLocalCapabilityConfiguration": { kind: "unary" },
       "/nimi.runtime.v1.RuntimeLocalService/ClearLocalCapabilitySelection": { kind: "unary" },
       "/nimi.runtime.v1.RuntimeLocalService/DeleteLocalCapabilityConfiguration": { kind: "unary" },

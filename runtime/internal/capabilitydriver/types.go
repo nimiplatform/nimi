@@ -136,10 +136,11 @@ type InvocationExactBinding struct {
 // deliberately contains no binary, port, endpoint, resident-process, route,
 // model-selector, or fallback facts.
 type TextInvocationInput struct {
-	PortableConfig *structpb.Struct
-	ExactBindings  []InvocationExactBinding
-	Request        *runtimev1.TextGenerateScenarioSpec
-	Stream         bool
+	PortableConfig           *structpb.Struct
+	ModelContextWindowTokens uint64
+	ExactBindings            []InvocationExactBinding
+	Request                  *runtimev1.TextGenerateScenarioSpec
+	Stream                   bool
 }
 
 // ImageInvocationInput is the complete Driver-owned image invocation input.
@@ -293,7 +294,7 @@ func (p *TextInvocationPlan) ContextWindowTokens() uint64 {
 type TextInvocationDriver interface {
 	Driver
 	PlanTextInvocation(input TextInvocationInput) (*TextInvocationPlan, error)
-	TextContextWindow(portableConfig *structpb.Struct) (uint64, error)
+	TextContextWindow(portableConfig *structpb.Struct, modelContextWindowTokens uint64) (uint64, error)
 }
 
 // ImageInvocationLoRA is one exact Driver-declared ordered LoRA occurrence.

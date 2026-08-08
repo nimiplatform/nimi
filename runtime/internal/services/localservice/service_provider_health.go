@@ -23,24 +23,8 @@ func (s *Service) hasSupervisedEngineBinding(engineName string, activeOnly bool)
 	if s == nil || normalizedEngine == "" {
 		return false
 	}
-
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-
-	for localAssetID, model := range s.assets {
-		if model == nil || model.GetStatus() == runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_REMOVED {
-			continue
-		}
-		if normalizeRuntimeMode(s.assetRuntimeModes[localAssetID]) != runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED {
-			continue
-		}
-		if activeOnly && model.GetStatus() != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE {
-			continue
-		}
-		if normalizeManagedEngineName(executionRuntimeEngineForModel(model)) == normalizedEngine {
-			return true
-		}
-	}
 
 	for serviceID, service := range s.services {
 		if service == nil || service.GetStatus() == runtimev1.LocalServiceStatus_LOCAL_SERVICE_STATUS_REMOVED {

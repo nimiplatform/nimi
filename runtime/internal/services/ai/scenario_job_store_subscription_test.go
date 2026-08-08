@@ -56,7 +56,7 @@ func TestScenarioJobStoreDetachedVideoJobRemainsQueryableDuringLongPoll(t *testi
 					Content: []*runtimev1.VideoContentItem{
 						{Type: runtimev1.VideoContentType_VIDEO_CONTENT_TYPE_TEXT, Role: runtimev1.VideoContentRole_VIDEO_CONTENT_ROLE_PROMPT, Text: "A short product shot."},
 					},
-					Options: &runtimev1.VideoGenerationOptions{DurationSec: 4, Ratio: "16:9"},
+					Options: &runtimev1.VideoGenerationOptions{DurationSec: testInt32(4), Ratio: "16:9"},
 				},
 			},
 		},

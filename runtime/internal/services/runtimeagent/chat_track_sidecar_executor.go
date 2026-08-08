@@ -121,7 +121,7 @@ func buildChatTrackSidecarScenarioRequest(req *ChatTrackSidecarExecutorRequest) 
 			Spec: &runtimev1.ScenarioSpec_TextGenerate{
 				TextGenerate: &runtimev1.TextGenerateScenarioSpec{
 					SystemPrompt: systemPrompt,
-					MaxTokens:    chatTrackSidecarPromptMaxTokens,
+					MaxTokens:    proto.Int32(chatTrackSidecarPromptMaxTokens),
 					Input: []*runtimev1.ChatMessage{
 						{
 							Role:    "user",

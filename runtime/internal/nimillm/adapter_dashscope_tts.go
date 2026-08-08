@@ -64,7 +64,7 @@ func buildAlibabaQwenTTSPayload(
 		"voice":    requestedVoice,
 		"language": strings.TrimSpace(spec.GetLanguage()),
 		"emotion":  strings.TrimSpace(spec.GetEmotion()),
-		"speed":    spec.GetSpeed(),
+		"speed":    scenarioSpeechSpeed(spec),
 		"pitch":    spec.GetPitch(),
 		"volume":   spec.GetVolume(),
 		"format":   strings.TrimSpace(spec.GetAudioFormat()),
@@ -111,7 +111,7 @@ func buildAlibabaCosyVoiceTTSPayload(
 	if volume := spec.GetVolume(); volume > 0 {
 		input["volume"] = volume
 	}
-	if speed := spec.GetSpeed(); speed > 0 {
+	if speed := scenarioSpeechSpeed(spec); speed > 0 {
 		input["rate"] = speed
 	}
 	if pitch := spec.GetPitch(); pitch > 0 {

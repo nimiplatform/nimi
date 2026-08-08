@@ -7,6 +7,7 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
+	"github.com/nimiplatform/nimi/runtime/internal/ggufmeta"
 	"github.com/nimiplatform/nimi/runtime/internal/localexecution"
 	"google.golang.org/grpc/codes"
 )
@@ -88,6 +89,7 @@ func (s *Service) ResolveSelectedLocalExecution(capabilityContract string) (*loc
 	descriptors := make([]capabilitydriver.AssetDescriptor, 0, len(bindings))
 	resolvedBindings := make([]localexecution.ExactBinding, 0, len(bindings))
 	boundAssetIDs := make([]string, 0, len(bindings))
+	var modelContextWindowTokens uint64
 	for _, binding := range bindings {
 		asset := inventory.exactAsset(binding.GetLocalAssetId())
 		if asset == nil || asset.GetStatus() == runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_REMOVED {
@@ -128,6 +130,12 @@ func (s *Service) ResolveSelectedLocalExecution(capabilityContract string) (*loc
 			VerifiedContentID: binding.GetVerifiedContentId(),
 			EntrySHA256:       binding.GetEntrySha256(),
 		})
+		if requirement.GetRole() == runtimev1.LocalCapabilityRequirementRole_LOCAL_CAPABILITY_REQUIREMENT_ROLE_MAIN &&
+			capabilityContract == capabilitydriver.LlamaCapabilityContract {
+			if summary, inspectErr := ggufmeta.InspectPath(absolutePath); inspectErr == nil {
+				modelContextWindowTokens, _ = ggufmeta.LLMContextLength(summary)
+			}
+		}
 		boundAssetIDs = append(boundAssetIDs, binding.GetLocalAssetId())
 	}
 
@@ -158,15 +166,16 @@ func (s *Service) ResolveSelectedLocalExecution(capabilityContract string) (*loc
 	}
 
 	return &localexecution.SelectedLocalExecution{
-		ConfigurationID:    configurationID,
-		CapabilityContract: capabilityContract,
-		DisplayName:        strings.TrimSpace(configuration.GetDisplayName()),
-		DriverIdentity:     cloneImplementationIdentity(configuration.GetImplementation()),
-		PortableConfig:     cloneStruct(configuration.GetPortableConfig()),
-		Requirements:       cloneLocalCapabilityRequirements(configuration.GetProjectedRequirements()),
-		ExactBindings:      resolvedBindings,
-		SupportedFeatures:  append([]string(nil), configuration.GetSupportedFeatures()...),
-		Configured:         true,
+		ConfigurationID:          configurationID,
+		CapabilityContract:       capabilityContract,
+		DisplayName:              strings.TrimSpace(configuration.GetDisplayName()),
+		DriverIdentity:           cloneImplementationIdentity(configuration.GetImplementation()),
+		PortableConfig:           cloneStruct(configuration.GetPortableConfig()),
+		ModelContextWindowTokens: modelContextWindowTokens,
+		Requirements:             cloneLocalCapabilityRequirements(configuration.GetProjectedRequirements()),
+		ExactBindings:            resolvedBindings,
+		SupportedFeatures:        append([]string(nil), configuration.GetSupportedFeatures()...),
+		Configured:               true,
 	}, nil
 }
 

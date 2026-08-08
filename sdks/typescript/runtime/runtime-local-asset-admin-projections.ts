@@ -147,10 +147,10 @@ export function projectNimiRuntimeLocalAssetRecord(
   return {
     localAssetId,
     assetId: toCanonicalNimiRuntimeLocalAssetId(value.assetId),
+    displayName: normalizeText(value.displayName),
+    sourceFileName: normalizeText(value.sourceFileName),
     kind,
     engine: normalizeText(value.engine),
-    engineRuntimeMode: undefined,
-    endpoint: normalizeText(value.endpoint) || undefined,
     entry: normalizeText(value.entry),
     files: textList(value.files),
     license: normalizeText(value.license),

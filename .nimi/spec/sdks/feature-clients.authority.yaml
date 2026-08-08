@@ -826,3 +826,17 @@ units:
         target: definition.nimi.platform.core-protocol.effective-app-access-snapshot
       - type: applies_to
         target: definition.nimi.sdks.feature-clients.app-client-plane
+  - id: rule.nimi.sdks.feature-clients.r102
+    kind: rule
+    title: Local App scenario consumption is a bounded typed operation family
+    modality: must
+    statement: The host-injected App client exposes only bounded typed methods for the runtime.ai.text-turn.stream, runtime.ai.scenario.execute, runtime.ai.scenario-job.submit, runtime.ai.scenario-job.get, runtime.ai.scenario-job.subscribe, runtime.ai.scenario-job.cancel, runtime.ai.artifact.read, runtime.ai.artifact.upload, and runtime.ai.voice-assets.list operations while the central App Operation Contract maps each of those operations to runtime.consume and Runtime alone admits a call when its internal Effective App Access Snapshot covers runtime.consume; each method accepts only bounded closed-set scenario input, Job identifiers, artifact identifiers, inline image bytes with a closed MIME whitelist, or catalog page controls and returns only the operation-specific typed projection, and the client never exposes the snapshot, ExecuteScenario, SubmitScenarioJob, a Runtime client, method names, protobuf bytes, model or provider selection, route or target refs, tools, credentials, account authority, or generic forwarding; Runtime consumes the calling App owner's committed AIConfig without SDK override or fallback, and artifact upload cannot supply or acquire cross-owner reference authority.
+    condition: Whenever a Local App executes a scenario, submits, observes, or cancels a scenario Job, streams a text turn, reads or uploads an artifact, or lists voice assets through the SDK.
+    failure: Fail closed before transport on invalid input, unsupported image MIME, oversized upload, or absent host carrier and preserve Runtime admission and execution failures without fabricating scenario output or artifact custody.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.app-operation-contract
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.effective-app-access-snapshot
+      - type: applies_to
+        target: definition.nimi.sdks.feature-clients.app-client-plane

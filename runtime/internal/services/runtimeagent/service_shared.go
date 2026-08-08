@@ -2,6 +2,7 @@ package runtimeagent
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -157,6 +158,14 @@ type runtimeErrorDetail struct {
 func runtimeErrorDetailFromError(err error) runtimeErrorDetail {
 	if err == nil {
 		return runtimeErrorDetail{ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED}
+	}
+	var capacity *agentTurnContextCapacityExceededError
+	if errors.As(err, &capacity) {
+		return runtimeErrorDetail{
+			ReasonCode: runtimev1.ReasonCode_AI_CONFIG_INVALID,
+			ActionHint: "open_machine_local_ai_configuration",
+			Message:    capacity.Error(),
+		}
 	}
 	detail := runtimeErrorDetail{
 		ReasonCode: reasonCodeFromError(err),

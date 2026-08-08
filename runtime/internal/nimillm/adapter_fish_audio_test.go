@@ -114,8 +114,8 @@ func TestExecuteFishAudioTTS_MapsProsodyAndProviderOptions(t *testing.T) {
 				SpeechSynthesize: &runtimev1.SpeechSynthesizeScenarioSpec{
 					Text:         "Fish Audio options",
 					AudioFormat:  "opus",
-					SampleRateHz: 48000,
-					Speed:        1.15,
+					SampleRateHz: testInt32(48000),
+					Speed:        testFloat32(1.15),
 					Language:     "ja",
 					VoiceRef: &runtimev1.VoiceReference{
 						Kind: runtimev1.VoiceReferenceKind_VOICE_REFERENCE_KIND_PROVIDER_VOICE_REF,

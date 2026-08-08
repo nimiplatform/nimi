@@ -44,6 +44,48 @@ func TestStableDiffusionVideoRegistryAndRequirementProjection(t *testing.T) {
 	}
 }
 
+func TestStableDiffusionVideoPortableRecipeParsesEveryKeyAndRejectsUnknown(t *testing.T) {
+	portable := stableDiffusionVideoPortableForTest(t, map[string]any{
+		"executionOptions": map[string]any{
+			"cfgScale": 2.5, "flowShift": 8.5, "sampleMethod": "euler", "scheduler": "karras",
+			"diffusionFlashAttention": false, "offloadParamsToCPU": false, "rng": "cuda",
+		},
+	})
+	parsed, reason := parseStableDiffusionVideoPortableConfig(portable)
+	if reason != success {
+		t.Fatalf("parse recipe: %v", reason)
+	}
+	if parsed.recipe.cfgScale != 2.5 || parsed.recipe.flowShift != 8.5 || parsed.recipe.sampleMethod != "euler" || parsed.recipe.scheduler != "karras" ||
+		parsed.recipe.diffusionFlashAttention || parsed.recipe.offloadToCPU || parsed.recipe.rng != "cuda" {
+		t.Fatalf("parsed recipe = %#v", parsed.recipe)
+	}
+	defaults, reason := parseStableDiffusionVideoPortableConfig(nil)
+	if reason != success || defaults.recipe != defaultStableDiffusionVideoRecipe() {
+		t.Fatalf("default recipe = %#v reason=%v", defaults.recipe, reason)
+	}
+	engineDefault := stableDiffusionVideoPortableForTest(t, map[string]any{
+		"executionOptions": map[string]any{"sampleMethod": "engine-default", "scheduler": "engine-default"},
+	})
+	parsed, reason = parseStableDiffusionVideoPortableConfig(engineDefault)
+	if reason != success || parsed.recipe.sampleMethod != "" || parsed.recipe.scheduler != "" {
+		t.Fatalf("engine-default recipe = %#v reason=%v", parsed.recipe, reason)
+	}
+	for _, fields := range []map[string]any{
+		{"executionOptions": map[string]any{"unknown": true}},
+		{"executionOptions": map[string]any{"cfgScale": 31}},
+		{"executionOptions": map[string]any{"flowShift": -1}},
+		{"executionOptions": map[string]any{"sampleMethod": "bad token"}},
+		{"executionOptions": map[string]any{"scheduler": true}},
+		{"executionOptions": map[string]any{"diffusionFlashAttention": "true"}},
+		{"executionOptions": map[string]any{"offloadParamsToCPU": 1}},
+		{"executionOptions": map[string]any{"rng": "other"}},
+	} {
+		if _, reason := parseStableDiffusionVideoPortableConfig(stableDiffusionVideoPortableForTest(t, fields)); reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_PORTABLE_CONFIG_INVALID {
+			t.Fatalf("fields %#v reason = %v", fields, reason)
+		}
+	}
+}
+
 func TestStableDiffusionVideoInterpretRejectsWrongPortableSlotShape(t *testing.T) {
 	driver := StableDiffusionVideoDriver{}
 	for _, fields := range []map[string]any{
@@ -140,6 +182,28 @@ func TestStableDiffusionVideoValidateBindingChecksExactSlotAndBoundedFormat(t *t
 	}
 }
 
+func TestStableDiffusionVideoPlanAppliesFirstPartyDefaultsForAbsentFields(t *testing.T) {
+	driver := StableDiffusionVideoDriver{}
+	bindings := stableDiffusionVideoInvocationBindingsForTest(t.TempDir())
+	// Absent (zero) width/height/fps/frameCount receive the documented
+	// first-party vertical-slice default profile (L0: 512x288 / 22f / 24fps).
+	request := stableDiffusionVideoRequestForTest()
+	request.Width = 0
+	request.Height = 0
+	request.FrameCount = 0
+	request.FPS = 0
+	plan, err := driver.PlanVideoInvocation(VideoInvocationInput{
+		ConfigurationID: "configuration-h3", ExactBindings: bindings, Request: request,
+	})
+	if err != nil {
+		t.Fatalf("absent-field plan: %v", err)
+	}
+	width, height := plan.Size()
+	if width != 512 || height != 288 || plan.FrameCount() != 22 || plan.FPS() != 24 || !plan.AudioRequired() {
+		t.Fatalf("defaulted plan = %dx%d frames=%d fps=%d audio=%v", width, height, plan.FrameCount(), plan.FPS(), plan.AudioRequired())
+	}
+}
+
 func TestStableDiffusionVideoPlanRejectsEveryH3AdmissionViolation(t *testing.T) {
 	driver := StableDiffusionVideoDriver{}
 	bindings := stableDiffusionVideoInvocationBindingsForTest(t.TempDir())
@@ -150,6 +214,8 @@ func TestStableDiffusionVideoPlanRejectsEveryH3AdmissionViolation(t *testing.T) 
 	}{
 		{name: "empty prompt", mutate: func(request *VideoInvocationRequest) { request.Prompt = " " }},
 		{name: "width", mutate: func(request *VideoInvocationRequest) { request.Width = 641 }},
+		{name: "negative width", mutate: func(request *VideoInvocationRequest) { request.Width = -32 }},
+		{name: "negative height", mutate: func(request *VideoInvocationRequest) { request.Height = -288 }},
 		{name: "height", mutate: func(request *VideoInvocationRequest) { request.Height = 481 }},
 		{name: "fps", mutate: func(request *VideoInvocationRequest) { request.FPS = 25 }},
 		{name: "frame minimum", mutate: func(request *VideoInvocationRequest) { request.FrameCount = 4 }},
@@ -247,6 +313,10 @@ func TestStableDiffusionVideoPlanIsImmutableAndRecipeIsExact(t *testing.T) {
 	portable := stableDiffusionVideoPortableForTest(t, map[string]any{
 		"fl2vaRequirementPolicy": "strict",
 		"fl2vaVerifiedContentId": "sha256:" + strings.Repeat("a", 64),
+		"executionOptions": map[string]any{
+			"cfgScale": 2.5, "flowShift": 8, "sampleMethod": "euler", "scheduler": "karras",
+			"diffusionFlashAttention": false, "offloadParamsToCPU": false, "rng": "std_default",
+		},
 	})
 	bindings := stableDiffusionVideoInvocationBindingsForTest(t.TempDir())
 	request := stableDiffusionVideoRequestForTest()
@@ -262,8 +332,8 @@ func TestStableDiffusionVideoPlanIsImmutableAndRecipeIsExact(t *testing.T) {
 	if plan.ConfigurationID() != "configuration-h3" || plan.DriverIdentity().DriverDialect != StableDiffusionVideoDriverDialect ||
 		plan.Prompt() != "ocean" || plan.NegativePrompt() != "blur" || width != 640 || height != 480 ||
 		plan.FrameCount() != 22 || plan.FPS() != 24 || plan.Seed() != 42 || !plan.AudioRequired() ||
-		plan.CFGScale() != 1 || plan.FlowShift() != 12 || plan.SampleMethod() != "" || plan.Scheduler() != "" ||
-		!plan.DiffusionFlashAttention() || !plan.OffloadToCPU() || plan.RNG() != "cpu" {
+		plan.CFGScale() != 2.5 || plan.FlowShift() != 8 || plan.SampleMethod() != "euler" || plan.Scheduler() != "karras" ||
+		plan.DiffusionFlashAttention() || plan.OffloadToCPU() || plan.RNG() != "std_default" {
 		t.Fatalf("plan recipe is incomplete: %#v", plan)
 	}
 	portable.Fields["fl2vaRequirementPolicy"] = structpb.NewStringValue("substitutable")
@@ -286,35 +356,49 @@ func TestStableDiffusionVideoProcessKeyTracksOnlyExactLoadInstructions(t *testin
 	root := t.TempDir()
 	bindings := stableDiffusionVideoInvocationBindingsForTest(root)
 	driver := StableDiffusionVideoDriver{}
-	plan := func(configurationID string, values []InvocationExactBinding, request VideoInvocationRequest) *VideoInvocationPlan {
-		planned, err := driver.PlanVideoInvocation(VideoInvocationInput{ConfigurationID: configurationID, ExactBindings: values, Request: request})
+	plan := func(configurationID string, portable *structpb.Struct, values []InvocationExactBinding, request VideoInvocationRequest) *VideoInvocationPlan {
+		planned, err := driver.PlanVideoInvocation(VideoInvocationInput{ConfigurationID: configurationID, PortableConfig: portable, ExactBindings: values, Request: request})
 		if err != nil {
 			t.Fatal(err)
 		}
 		return planned
 	}
 	request := stableDiffusionVideoRequestForTest()
-	baseline := plan("one", bindings, request)
+	baseline := plan("one", nil, bindings, request)
 	changedRequest := request
 	changedRequest.Prompt = "different prompt"
 	changedRequest.Width = 672
-	if baseline.ProcessKey() != plan("two", bindings, changedRequest).ProcessKey() {
+	if baseline.ProcessKey() != plan("two", nil, bindings, changedRequest).ProcessKey() {
 		t.Fatal("request-only or configuration identity changed process key")
 	}
 	changedUnused := append([]InvocationExactBinding(nil), bindings...)
 	changedUnused[1] = stableDiffusionInvocationBindingForTest(StableDiffusionVideoRef2VARequirementID, "new-ref", filepath.Join(root, "new-ref.gguf"), 'f')
-	if baseline.ProcessKey() != plan("one", changedUnused, request).ProcessKey() {
+	if baseline.ProcessKey() != plan("one", nil, changedUnused, request).ProcessKey() {
 		t.Fatal("unused Ref2VA binding changed FL2VA process key")
 	}
 	changedLoaded := append([]InvocationExactBinding(nil), bindings...)
 	changedLoaded[0] = stableDiffusionInvocationBindingForTest(StableDiffusionVideoFL2VARequirementID, "new-fl", filepath.Join(root, "new-fl.gguf"), 'e')
-	if baseline.ProcessKey() == plan("one", changedLoaded, request).ProcessKey() {
+	if baseline.ProcessKey() == plan("one", nil, changedLoaded, request).ProcessKey() {
 		t.Fatal("loaded exact identity was omitted from process key")
 	}
 	refRequest := request
 	refRequest.Inputs = []VideoResolvedInput{{Role: VideoInputRoleReferenceImage, SourceIdentity: "image", ImageBytes: []byte{1}}}
-	if baseline.ProcessKey() == plan("one", bindings, refRequest).ProcessKey() {
+	if baseline.ProcessKey() == plan("one", nil, bindings, refRequest).ProcessKey() {
 		t.Fatal("conditioning route was omitted from process key")
+	}
+	for name, options := range map[string]map[string]any{
+		"cfg scale":       {"cfgScale": 2},
+		"flow shift":      {"flowShift": 9},
+		"sample method":   {"sampleMethod": "euler"},
+		"scheduler":       {"scheduler": "karras"},
+		"flash attention": {"diffusionFlashAttention": false},
+		"CPU offload":     {"offloadParamsToCPU": false},
+		"RNG":             {"rng": "cuda"},
+	} {
+		portable := stableDiffusionVideoPortableForTest(t, map[string]any{"executionOptions": options})
+		if baseline.ProcessKey() == plan("one", portable, bindings, request).ProcessKey() {
+			t.Fatalf("%s was omitted from process key", name)
+		}
 	}
 }
 

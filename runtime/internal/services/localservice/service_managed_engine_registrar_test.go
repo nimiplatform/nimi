@@ -242,22 +242,6 @@ func TestSetManagedSpeechEndpointSyncsSupervisedSpeechProjection(t *testing.T) {
 
 	svc.SetManagedSpeechEndpoint("http://127.0.0.1:18330/v1")
 
-	supervisedModel := svc.modelByID(supervised.GetLocalAssetId())
-	if supervisedModel == nil {
-		t.Fatal("expected supervised speech model to exist")
-	}
-	if got := supervisedModel.GetEndpoint(); got != "http://127.0.0.1:18330/v1" {
-		t.Fatalf("supervised speech model endpoint = %q", got)
-	}
-
-	attachedModel := svc.modelByID(attached.GetLocalAssetId())
-	if attachedModel == nil {
-		t.Fatal("expected attached speech model to exist")
-	}
-	if got := attachedModel.GetEndpoint(); got != "https://speech.example.com/v1" {
-		t.Fatalf("attached speech model endpoint must stay explicit, got %q", got)
-	}
-
 	supervisedService := svc.serviceByID("svc-speech-supervised")
 	if supervisedService == nil {
 		t.Fatal("expected supervised speech service to exist")

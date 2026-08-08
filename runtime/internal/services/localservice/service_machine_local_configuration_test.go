@@ -56,6 +56,55 @@ func TestMachineLocalConfigurationAddProjectsTextAndImageIntent(t *testing.T) {
 	}
 }
 
+func TestMachineLocalConfigurationUpdateContextCapacityPreservesBindingAndSelection(t *testing.T) {
+	service := newMachineLocalConfigurationTestService(t, t.TempDir())
+	contentID := seedMachineLocalAssetForTest(t, service, "asset-main", 'a', "llm")
+	created := addMachineLocalConfigurationForTest(t, service, nil, nil, llamaIdentityForTest())
+	bound, err := service.BindLocalCapabilityRequirement(context.Background(), &runtimev1.BindLocalCapabilityRequirementRequest{
+		ConfigurationId: created.GetConfigurationId(),
+		RequirementId:   capabilitydriver.MainGGUFRequirementID,
+		Target: &runtimev1.LocalAssetExactBindingTarget{
+			LocalAssetId:              "asset-main",
+			ExpectedVerifiedContentId: "sha256:" + contentID,
+		},
+	})
+	if err != nil {
+		t.Fatalf("BindLocalCapabilityRequirement: %v", err)
+	}
+	if _, err := service.SelectLocalCapabilityConfiguration(context.Background(), &runtimev1.SelectLocalCapabilityConfigurationRequest{
+		CapabilityContract: capabilitydriver.LlamaCapabilityContract,
+		ConfigurationId:    created.GetConfigurationId(),
+	}); err != nil {
+		t.Fatalf("SelectLocalCapabilityConfiguration: %v", err)
+	}
+
+	updated, err := service.UpdateLocalCapabilityConfiguration(context.Background(), &runtimev1.UpdateLocalCapabilityConfigurationRequest{
+		ConfigurationId:   created.GetConfigurationId(),
+		PortableConfig:    mustStructForTest(t, map[string]any{"contextSize": 8192}),
+		SupportedFeatures: created.GetSupportedFeatures(),
+		DisplayName:       "Test llama configuration",
+		Provenance:        created.GetProvenance(),
+	})
+	if err != nil {
+		t.Fatalf("UpdateLocalCapabilityConfiguration: %v", err)
+	}
+	configuration := updated.GetConfiguration()
+	if configuration.GetPortableConfig().GetFields()["contextSize"].GetNumberValue() != 8192 {
+		t.Fatalf("updated portable config = %#v", configuration.GetPortableConfig())
+	}
+	if !proto.Equal(bound.GetConfiguration().GetExactBindings()[0], configuration.GetExactBindings()[0]) {
+		t.Fatalf("update changed exact binding: before=%#v after=%#v", bound.GetConfiguration().GetExactBindings(), configuration.GetExactBindings())
+	}
+	aggregate, err := service.GetMachineLocalAIConfiguration(context.Background(), &runtimev1.GetMachineLocalAIConfigurationRequest{})
+	if err != nil {
+		t.Fatalf("GetMachineLocalAIConfiguration: %v", err)
+	}
+	if len(aggregate.GetAggregate().GetConfigurations()) != 1 || len(aggregate.GetAggregate().GetSelections()) != 1 ||
+		aggregate.GetAggregate().GetSelections()[0].GetConfigurationId() != created.GetConfigurationId() {
+		t.Fatalf("update changed record or selection identity: %#v", aggregate.GetAggregate())
+	}
+}
+
 func TestMachineLocalConfigurationLegacyLlamaOccurrenceDefaultsAreLossless(t *testing.T) {
 	binding := &runtimev1.LocalAssetExactBinding{
 		RequirementId:     capabilitydriver.MainGGUFRequirementID,

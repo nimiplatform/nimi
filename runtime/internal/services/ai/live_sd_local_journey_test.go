@@ -280,7 +280,7 @@ func liveSDJobRequest() *runtimev1.SubmitScenarioJobRequest {
 		Head:         &runtimev1.ScenarioRequestHead{AppId: "nimi.live-sd-journey", TimeoutMs: 20 * 60 * 1000},
 		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE, ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB,
 		Spec: &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_ImageGenerate{ImageGenerate: &runtimev1.ImageGenerateScenarioSpec{
-			Prompt: "A small polished copper robot on a clean white studio background, product photograph", N: 1, Size: "512x512", Seed: 42,
+			Prompt: "A small polished copper robot on a clean white studio background, product photograph", N: testInt32(1), Size: "512x512", Seed: testInt64(42),
 		}}},
 	}
 }

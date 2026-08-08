@@ -58,7 +58,7 @@ func executeStepFunTTS(
 	if audioFormat := strings.TrimSpace(spec.GetAudioFormat()); audioFormat != "" {
 		payload["response_format"] = audioFormat
 	}
-	if speed := spec.GetSpeed(); speed > 0 {
+	if speed := scenarioSpeechSpeed(spec); speed > 0 {
 		payload["speed"] = speed
 	}
 

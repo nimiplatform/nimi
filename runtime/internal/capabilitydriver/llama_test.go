@@ -262,17 +262,18 @@ func TestLlamaInvocationPlanUsesExactTextBindingAndPortableOptions(t *testing.T)
 	}
 	mainPath := filepath.Join(t.TempDir(), "main.gguf")
 	plan, err := (LlamaTextDriver{}).PlanTextInvocation(TextInvocationInput{
-		PortableConfig: portable,
+		PortableConfig:           portable,
+		ModelContextWindowTokens: 32768,
 		ExactBindings: []InvocationExactBinding{{
 			RequirementID: MainGGUFRequirementID, LocalAssetID: "main", AbsolutePath: mainPath,
 			VerifiedContentID: "sha256:" + strings.Repeat("a", 64), EntrySHA256: strings.Repeat("b", 64),
 		}},
 		Request: &runtimev1.TextGenerateScenarioSpec{
 			Input:       []*runtimev1.ChatMessage{{Role: "user", Content: "hello"}},
-			Temperature: 0.7,
-			TopP:        0.9,
-			TopK:        40,
-			MaxTokens:   128,
+			Temperature: testFloat32(0.7),
+			TopP:        testFloat32(0.9),
+			TopK:        testInt32(40),
+			MaxTokens:   testInt32(128),
 		},
 	})
 	if err != nil {
@@ -329,6 +330,7 @@ func TestLlamaInvocationPlanRequiresAndUsesExactMMProjForImage(t *testing.T) {
 		t.Fatal("image invocation without configured mmproj must fail closed")
 	}
 	plan, err := (LlamaTextDriver{}).PlanTextInvocation(TextInvocationInput{
+		ModelContextWindowTokens: 32768,
 		ExactBindings: []InvocationExactBinding{main, {
 			RequirementID: CompanionMMProjRequirementID, LocalAssetID: "mmproj", AbsolutePath: mmprojPath,
 			VerifiedContentID: "sha256:" + strings.Repeat("c", 64), EntrySHA256: strings.Repeat("d", 64),
@@ -344,6 +346,26 @@ func TestLlamaInvocationPlanRequiresAndUsesExactMMProjForImage(t *testing.T) {
 	}
 	if !plan.Stream() {
 		t.Fatal("stream invocation did not retain request mode")
+	}
+}
+
+func TestLlamaTextContextWindowUsesModelAuthoredCapacityUnlessFixed(t *testing.T) {
+	driver := LlamaTextDriver{}
+	if got, err := driver.TextContextWindow(nil, 32768); err != nil || got != 32768 {
+		t.Fatalf("automatic context window = (%d, %v), want (32768, nil)", got, err)
+	}
+	fixed, err := structpb.NewStruct(map[string]any{"contextSize": 8192})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got, err := driver.TextContextWindow(fixed, 32768); err != nil || got != 8192 {
+		t.Fatalf("fixed context window = (%d, %v), want (8192, nil)", got, err)
+	}
+	if _, err := driver.TextContextWindow(fixed, 4096); err == nil {
+		t.Fatal("fixed context window above model-authored capacity must fail closed")
+	}
+	if _, err := driver.TextContextWindow(nil, 0); err == nil {
+		t.Fatal("missing model-authored context capacity must fail closed")
 	}
 }
 

@@ -649,6 +649,13 @@ pub mod local_app {
     }
 
     #[tauri::command]
+    pub async fn local_app_model_config_local_selections_get(
+        host: tauri::State<'_, crate::runtime_bridge::RuntimeBridgeLocalAppHost>,
+    ) -> Result<serde_json::Value, String> {
+        crate::standard_local_app::model_config_local_selections_get_for_host(host.inner()).await
+    }
+
+    #[tauri::command]
     pub async fn local_app_ai_config_overwrite(
         host: tauri::State<'_, crate::runtime_bridge::RuntimeBridgeLocalAppHost>,
         payload: serde_json::Value,
@@ -710,6 +717,14 @@ pub mod local_app {
         payload: serde_json::Value,
     ) -> Result<serde_json::Value, String> {
         crate::standard_local_app::text_generate_candidate_for_host(host.inner(), payload).await
+    }
+
+    #[tauri::command]
+    pub async fn local_app_artifact_upload(
+        host: tauri::State<'_, crate::runtime_bridge::RuntimeBridgeLocalAppHost>,
+        payload: serde_json::Value,
+    ) -> Result<serde_json::Value, String> {
+        crate::standard_local_app::artifact_upload_for_host(host.inner(), payload).await
     }
 }
 

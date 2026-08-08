@@ -134,6 +134,10 @@ func (e *aiBackedPublicChatTurnExecutor) StreamChatTurn(
 		ctx = context.Background()
 	}
 	ctx = withPublicChatExecutionIntent(ctx, req.Binding, req.Binding.CapabilityContract)
+	var maxTokens *int32
+	if req.MaxTokens != 0 {
+		maxTokens = proto.Int32(req.MaxTokens)
+	}
 	streamReq := &runtimev1.StreamScenarioRequest{
 		Head: &runtimev1.ScenarioRequestHead{
 			AppId:         firstNonEmpty(strings.TrimSpace(req.AppID), publicChatRuntimeAppID),
@@ -147,7 +151,7 @@ func (e *aiBackedPublicChatTurnExecutor) StreamChatTurn(
 				TextGenerate: &runtimev1.TextGenerateScenarioSpec{
 					Input:        cloneChatMessages(req.Messages),
 					SystemPrompt: strings.TrimSpace(req.SystemPrompt),
-					MaxTokens:    req.MaxTokens,
+					MaxTokens:    maxTokens,
 					Reasoning:    toProtoReasoningConfig(req.Reasoning),
 				},
 			},

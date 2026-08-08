@@ -37,6 +37,7 @@ import {
   parseNimiRuntimeLocalRecommendationParamsFromTitle,
   parseNimiRuntimeLocalRecommendationQuantBitsFromEntry,
   parseNimiRuntimeLocalRecommendationQuantLevelFromEntry,
+  projectNimiRuntimeLocalAssetRecord,
   projectNimiRuntimeLocalCatalogItemDescriptor,
   projectNimiRuntimeLocalCatalogVariantDescriptor,
   projectNimiRuntimeLocalDeviceProfile,
@@ -134,6 +135,35 @@ test('Runtime local model center client pages, dedupes, and projects generated l
       status: 'installed',
     },
   ]);
+});
+
+test('Runtime local asset projection carries display identity facts', async () => {
+  const client = createNimiRuntimeLocalAssetAdminClient({
+    local: {
+      ...emptyLocalRpc(),
+      async listLocalAssets() {
+        return {
+          assets: [
+            generatedAsset({
+              localAssetId: 'local-tts',
+              assetId: 'local/local-import/qwen3-tts/01KZFPYNCX823S5KY9X57XN8JZ',
+              displayName: 'Qwen3 TTS',
+              sourceFileName: 'qwen3-tts.gguf',
+            }),
+          ],
+          nextPageToken: '',
+        };
+      },
+    },
+  });
+
+  const [asset] = await client.listAssets();
+  assert.equal(asset?.displayName, 'Qwen3 TTS');
+  assert.equal(asset?.sourceFileName, 'qwen3-tts.gguf');
+
+  const legacy = projectNimiRuntimeLocalAssetRecord(generatedAsset({ localAssetId: 'local-legacy' }));
+  assert.equal(legacy.displayName, '');
+  assert.equal(legacy.sourceFileName, '');
 });
 
 test('Runtime local model center write path fails closed for non-core callers', async () => {
@@ -510,7 +540,6 @@ test('Runtime local model center client maps catalog, writes, transfers, profile
     status: LocalAssetStatus.ACTIVE,
     capabilities: ['image'],
     engine: 'media',
-    endpoint: 'http://127.0.0.1:7860',
   });
   const transfer = generatedTransferSummary();
   const dependencyJob = generatedEnvironmentDependencyJob();
@@ -700,7 +729,7 @@ test('Runtime local model center client maps catalog, writes, transfers, profile
   assert.equal(plan.engineRuntimeMode, 'supervised');
   assert.equal((await client.install(plan, writeOptions)).localAssetId, 'local-image');
   assert.equal((await client.installVerifiedAsset({ templateId: 'verified.image' }, writeOptions)).kind, 'image');
-  assert.equal((await client.importAsset({ manifestPath: '/models/manifest.json', engineConfig: { batch: 1 } }, writeOptions)).endpoint, 'http://127.0.0.1:7860');
+  assert.equal((await client.importAsset({ manifestPath: '/models/manifest.json', engineConfig: { batch: 1 } }, writeOptions)).engine, 'media');
   assert.equal((await client.importAssetManifest('/models/manifest.json', writeOptions)).asset.localAssetId, 'local-image');
   assert.equal((await client.importAssetFile({
     filePath: '/models/model.gguf',
@@ -768,9 +797,10 @@ test('Runtime local model center client maps catalog, writes, transfers, profile
     modelName: 'Image',
     capabilities: [],
     engine: '',
-    endpoint: '',
     orderedBundleEntries: ['model-00001.gguf', 'model-00002.gguf'],
   });
+  const importRequest = calls.find((call) => call.method === 'importLocalAsset')?.request as Record<string, unknown>;
+  assert.equal('endpoint' in importRequest, false);
   assert.deepEqual(calls.find((call) => call.method === 'repairLocalEnvironmentDependency')?.request, {
     environmentKey: 'env-1',
     dependencyFamily: 'image-native',
@@ -1090,6 +1120,8 @@ function recommendationFeedItem(input: {
 function generatedAsset(input: Partial<Parameters<typeof projectNimiRuntimeLocalCatalogItemDescriptor>[0]> & {
   readonly localAssetId?: string;
   readonly status?: LocalAssetStatus;
+  readonly displayName?: string;
+  readonly sourceFileName?: string;
 }) {
   return {
     localAssetId: input.localAssetId ?? 'local-asset',
@@ -1116,8 +1148,9 @@ function generatedAsset(input: Partial<Parameters<typeof projectNimiRuntimeLocal
     fallbackEngines: [],
     bundleState: 0,
     localInvokeProfileId: '',
-    endpoint: input.endpoint ?? '',
     reasonCode: 0,
+    displayName: input.displayName ?? '',
+    sourceFileName: input.sourceFileName ?? '',
   };
 }
 

@@ -144,6 +144,27 @@ func (h *localTextHostStub) StreamText(
 	return localexecution.TextResult{Text: "captured response", FinishReason: runtimev1.FinishReason_FINISH_REASON_STOP}, nil
 }
 
+func TestNormalizeLocalTextRequestExplicitZeroOverridesDefaults(t *testing.T) {
+	defaults, _ := structpb.NewStruct(map[string]any{
+		"temperature": 0.7, "top_p": 0.9, "max_tokens": 128.0, "top_k": 40.0,
+		"presence_penalty": 1.0, "frequency_penalty": -1.0, "seed": 42.0,
+	})
+	spec := &runtimev1.TextGenerateScenarioSpec{
+		Temperature: testFloat32(0), TopP: testFloat32(0), MaxTokens: testInt32(0), TopK: testInt32(0),
+		PresencePenalty: testFloat32(0), FrequencyPenalty: testFloat32(0), Seed: testInt64(0),
+	}
+	got, err := normalizeLocalTextRequest(spec, defaults)
+	if err != nil {
+		t.Fatalf("normalizeLocalTextRequest: %v", err)
+	}
+	if got.Temperature == nil || got.TopP == nil || got.MaxTokens == nil || got.TopK == nil ||
+		got.PresencePenalty == nil || got.FrequencyPenalty == nil || got.Seed == nil ||
+		got.GetTemperature() != 0 || got.GetTopP() != 0 || got.GetMaxTokens() != 0 || got.GetTopK() != 0 ||
+		got.GetPresencePenalty() != 0 || got.GetFrequencyPenalty() != 0 || got.GetSeed() != 0 {
+		t.Fatalf("explicit zero values were replaced by defaults: %+v", got)
+	}
+}
+
 func TestSubmitLocalTextCapturesSelectionBeforeRunningJob(t *testing.T) {
 	svc := newTestService(nil)
 	resolver := &mutableLocalExecutionResolver{projection: selectedTextExecutionForTest(t, "config-first", "first.gguf")}
@@ -479,7 +500,8 @@ func selectedTextExecutionForTest(t *testing.T, configurationID string, filename
 			DriverID:         capabilitydriver.LlamaDriverID,
 			DriverDialect:    capabilitydriver.LlamaDriverDialect,
 		}).Proto(),
-		Requirements: []*runtimev1.LocalCapabilityRequirement{{RequirementId: capabilitydriver.MainGGUFRequirementID}},
+		ModelContextWindowTokens: 32768,
+		Requirements:             []*runtimev1.LocalCapabilityRequirement{{RequirementId: capabilitydriver.MainGGUFRequirementID}},
 		ExactBindings: []localexecution.ExactBinding{{
 			RequirementID:     capabilitydriver.MainGGUFRequirementID,
 			LocalAssetID:      "asset-" + configurationID,

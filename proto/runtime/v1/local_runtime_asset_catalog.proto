@@ -134,7 +134,8 @@ message LocalAssetRecord {
   LocalHostRequirements host_requirements = 28;
   string local_invoke_profile_id       = 29;
   google.protobuf.Struct engine_config = 30;
-  string endpoint                      = 31;
+  reserved 31;
+  reserved "endpoint";
   ReasonCode reason_code               = 32;
 
   // Passive-only fields

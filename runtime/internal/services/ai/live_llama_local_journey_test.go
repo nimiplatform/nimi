@@ -650,8 +650,8 @@ func liveLlamaStreamRequest(prompt string, maxTokens int32) *runtimev1.StreamSce
 		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_STREAM,
 		Spec: &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_TextGenerate{TextGenerate: &runtimev1.TextGenerateScenarioSpec{
 			Input:       []*runtimev1.ChatMessage{{Role: "user", Content: prompt}},
-			MaxTokens:   maxTokens,
-			Temperature: 0.1,
+			MaxTokens:   testInt32(maxTokens),
+			Temperature: testFloat32(0.1),
 		}}},
 	}
 }

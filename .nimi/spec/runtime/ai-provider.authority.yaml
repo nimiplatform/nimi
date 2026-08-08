@@ -86,9 +86,9 @@ units:
     kind: rule
     title: Implementation Driver and dialect mismatches fail closed
     modality: must
-    statement: Runtime consumes the exact committed CapabilityImplementation, CapabilityImplementationDriver and dialect identity plus Driver-owned portable configuration as validation inputs rather than resolver hints, and any unknown implementation, Driver, dialect, configuration, requirement projection, binding, or feature mismatch fails closed without adapter inference, engine substitution, or fallback.
+    statement: Runtime consumes the exact committed CapabilityImplementation, CapabilityImplementationDriver and dialect identity plus Driver-owned portable configuration as validation inputs rather than resolver hints; for Local text execution an omitted Driver context-size field selects the Driver-owned automatic capacity derived from the exact bound model's authored capacity while an explicit positive context-size field is a fixed advanced override, and any unknown implementation, Driver, dialect, configuration, authored capacity, requirement projection, binding, or feature mismatch fails closed without adapter inference, engine substitution, or fallback.
     condition: Whenever Runtime interprets a committed Local or Cloud implementation configuration.
-    failure: Return the typed admission reason without inferring or substituting implementation, Driver, dialect, engine, or target.
+    failure: Return the typed admission reason without guessing capacity or inferring or substituting implementation, Driver, dialect, engine, or target.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.ai-provider.capability-execution-composition-plane
@@ -1092,5 +1092,21 @@ units:
     condition: Whenever video.generate content carries a Runtime artifact reference.
     failure: Reject missing, unreadable, cross-owner, non-image, or oversized artifacts with the exact typed failure before Job creation, and reject artifact-backed Cloud video input as typed unsupported without fallback or passthrough.
     relations:
+      - type: applies_to
+        target: definition.nimi.runtime.ai-provider.multimodal-provider-plane
+  - id: rule.nimi.runtime.ai-provider.r109
+    kind: rule
+    title: Local App scenario consumption composes App AIConfig
+    modality: must
+    statement: The runtime.ai.text-turn.stream, runtime.ai.scenario.execute, runtime.ai.scenario-job.submit, runtime.ai.scenario-job.get, runtime.ai.scenario-job.subscribe, runtime.ai.scenario-job.cancel, runtime.ai.artifact.read, runtime.ai.artifact.upload, and runtime.ai.voice-assets.list Local App operations accept only bounded closed-set scenario specifications, Job identifiers, artifact identifiers, inline image bytes with a closed MIME whitelist, and catalog page controls; Runtime admits each exact operation only for a current protected App session whose Effective App Access Snapshot covers runtime.consume, derives the current account and App identity from that session and the operation classification from the typed protected ingress, and deterministically composes Local with the current machine-selected Local Capability Configuration or Cloud with the calling App owner's committed AIConfig-owned CapabilityImplementation, Driver target, and explicitly selected ConnectorGrant, returning selection-required when Cloud intent lacks a grant. Admission never chooses Local or Cloud, overrides AIConfig, or creates fallback; scenario-job get, subscribe, and cancel act only on Jobs owned by the session-derived owner, artifact read returns at most 32 MiB of inline bytes only for artifacts owned by that same owner, artifact upload accepts at most 32 MiB and writes owner custody as the session-derived App and subject without granting cross-owner reference authority, the text-turn stream projects only typed text increments and terminal finish or failure state with trace correlation, and responses expose only operation-specific typed Job, artifact, and voice-asset projections with trace correlation; request and response contain no account, principal, Agent, provider, model, route, target, connector, credential, grant, tool, raw-chunk, reasoning-trace, or background-execution field.
+    condition: Whenever a third-party Local App executes a synchronous scenario, submits, observes, or cancels a scenario Job, reads or uploads a scenario artifact, lists voice assets, or streams a text turn.
+    failure: Reject a missing or non-current protected App session, missing runtime.consume coverage, unbounded or out-of-closed-set input, unsupported artifact upload MIME, cross-owner Job or artifact access, oversized inline artifact read or upload, absent or inadmissible owner AIConfig composition, and every caller-selected route or generic AI payload without forcing Local, changing the committed route, fallback, or synthesized output.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.ai-config
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.app-operation-contract
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.effective-app-access-snapshot
       - type: applies_to
         target: definition.nimi.runtime.ai-provider.multimodal-provider-plane

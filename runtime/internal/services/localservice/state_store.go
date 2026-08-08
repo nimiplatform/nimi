@@ -40,27 +40,25 @@ type localStateBundleEntryState struct {
 
 // localStateAssetState is the unified persistence row for all asset kinds.
 type localStateAssetState struct {
-	LocalAssetID      string                       `json:"localAssetId"`
-	AssetID           string                       `json:"assetId"`
-	DisplayName       string                       `json:"displayName,omitempty"`
-	SourceFileName    string                       `json:"sourceFileName,omitempty"`
-	ImportInstanceID  string                       `json:"importInstanceId,omitempty"`
-	Kind              int32                        `json:"kind"`
-	Engine            string                       `json:"engine"`
-	Entry             string                       `json:"entry"`
-	Files             []string                     `json:"files,omitempty"`
-	BundleEntries     []localStateBundleEntryState `json:"bundleEntries,omitempty"`
-	License           string                       `json:"license"`
-	SourceRepo        string                       `json:"sourceRepo"`
-	SourceRev         string                       `json:"sourceRevision"`
-	Hashes            map[string]string            `json:"hashes"`
-	Status            int32                        `json:"status"`
-	InstalledAt       string                       `json:"installedAt"`
-	UpdatedAt         string                       `json:"updatedAt"`
-	HealthDetail      string                       `json:"healthDetail"`
-	ReasonCode        string                       `json:"reasonCode,omitempty"`
-	EngineRuntimeMode int32                        `json:"engineRuntimeMode,omitempty"`
-	Endpoint          string                       `json:"endpoint,omitempty"`
+	LocalAssetID     string                       `json:"localAssetId"`
+	AssetID          string                       `json:"assetId"`
+	DisplayName      string                       `json:"displayName,omitempty"`
+	SourceFileName   string                       `json:"sourceFileName,omitempty"`
+	ImportInstanceID string                       `json:"importInstanceId,omitempty"`
+	Kind             int32                        `json:"kind"`
+	Engine           string                       `json:"engine"`
+	Entry            string                       `json:"entry"`
+	Files            []string                     `json:"files,omitempty"`
+	BundleEntries    []localStateBundleEntryState `json:"bundleEntries,omitempty"`
+	License          string                       `json:"license"`
+	SourceRepo       string                       `json:"sourceRepo"`
+	SourceRev        string                       `json:"sourceRevision"`
+	Hashes           map[string]string            `json:"hashes"`
+	Status           int32                        `json:"status"`
+	InstalledAt      string                       `json:"installedAt"`
+	UpdatedAt        string                       `json:"updatedAt"`
+	HealthDetail     string                       `json:"healthDetail"`
+	ReasonCode       string                       `json:"reasonCode,omitempty"`
 	// Runnable-only fields
 	Capabilities         []string       `json:"capabilities,omitempty"`
 	LogicalModelID       string         `json:"logicalModelId,omitempty"`
@@ -203,7 +201,6 @@ func (s *Service) restoreState() error {
 			UpdatedAt:            item.UpdatedAt,
 			HealthDetail:         item.HealthDetail,
 			ReasonCode:           parseProjectionReasonCode(item.ReasonCode),
-			Endpoint:             item.Endpoint,
 			Capabilities:         normalizeStringSlice(item.Capabilities),
 			LogicalModelId:       item.LogicalModelID,
 			Family:               item.Family,
@@ -220,8 +217,12 @@ func (s *Service) restoreState() error {
 		if record.GetLocalAssetId() == "" {
 			continue
 		}
+		if strings.TrimSpace(record.GetDisplayName()) == "" {
+			// Heal display facts for records persisted before display_name existed.
+			record.DisplayName = defaultLocalImportDisplayName(record.GetAssetId(), record.GetImportInstanceId())
+			healedSnapshot = true
+		}
 		assetRows = append(assetRows, record)
-		s.setModelRuntimeModeLocked(record.GetLocalAssetId(), runtimev1.LocalEngineRuntimeMode(item.EngineRuntimeMode))
 	}
 	assetRows, changed := dedupeLocalAssetRecords(assetRows)
 	if changed {
@@ -312,9 +313,6 @@ func (s *Service) restoreState() error {
 			continue
 		}
 		s.transfers[summary.GetInstallSessionId()] = summary
-		if !isTerminalTransferState(summary.GetState()) && summary.GetSessionKind() == localTransferKindDownload {
-			s.transferControls[summary.GetInstallSessionId()] = newLocalTransferControl()
-		}
 	}
 	s.localEnvironmentHostProfiles = make(map[string]localEnvironmentHostProfileState, len(snapshot.LocalEnvironmentHostProfiles))
 	for _, item := range snapshot.LocalEnvironmentHostProfiles {
@@ -374,6 +372,12 @@ func (s *Service) restoreState() error {
 	if s.failOrphanedLocalEnvironmentDependencyJobsLocked() > 0 {
 		healedSnapshot = true
 	}
+	// Same crash recovery for transfer sessions: a download/import persisted
+	// at a non-terminal state has no driver after a restart and would
+	// otherwise stay "running" forever with no way to interrupt it.
+	if s.failOrphanedLocalTransfersLocked() > 0 {
+		healedSnapshot = true
+	}
 	if healedSnapshot {
 		s.persistStateLocked()
 	}
@@ -430,8 +434,6 @@ func (s *Service) persistStateLocked() {
 			UpdatedAt:            asset.GetUpdatedAt(),
 			HealthDetail:         asset.GetHealthDetail(),
 			ReasonCode:           formatProjectionReasonCode(asset.GetReasonCode()),
-			EngineRuntimeMode:    int32(s.assetRuntimeModes[id]),
-			Endpoint:             asset.GetEndpoint(),
 			Capabilities:         append([]string(nil), asset.GetCapabilities()...),
 			LogicalModelID:       asset.GetLogicalModelId(),
 			Family:               asset.GetFamily(),

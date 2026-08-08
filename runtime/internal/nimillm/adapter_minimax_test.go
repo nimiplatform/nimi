@@ -15,6 +15,51 @@ import (
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
+func TestExecuteMiniMaxTaskMapsVoiceRenderHintSpeed(t *testing.T) {
+	var captured map[string]any
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if err := json.NewDecoder(r.Body).Decode(&captured); err != nil {
+			t.Fatalf("decode request body: %v", err)
+		}
+		w.Header().Set("Content-Type", "audio/mpeg")
+		_, _ = w.Write([]byte("audio"))
+	}))
+	defer func() { server.Close() }()
+
+	_, _, _, err := ExecuteMiniMaxTask(
+		context.Background(),
+		MediaAdapterConfig{BaseURL: server.URL, AllowLoopbackEndpoint: true, APIKey: "test-key"},
+		nil,
+		"job-hints",
+		&runtimev1.SubmitScenarioJobRequest{
+			ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE,
+			Spec: &runtimev1.ScenarioSpec{
+				Spec: &runtimev1.ScenarioSpec_SpeechSynthesize{
+					SpeechSynthesize: &runtimev1.SpeechSynthesizeScenarioSpec{
+						Text:  "hello world",
+						Speed: testFloat32(0.8),
+						VoiceRenderHints: &runtimev1.VoiceRenderHints{
+							Speed: 1.25,
+						},
+					},
+				},
+			},
+		},
+		"speech-02-hd",
+		func(*runtimev1.SubmitScenarioJobRequest) *structpb.Struct { return nil },
+	)
+	if err != nil {
+		t.Fatalf("ExecuteMiniMaxTask: %v", err)
+	}
+	voiceSetting, ok := captured["voice_setting"].(map[string]any)
+	if !ok {
+		t.Fatalf("voice_setting=%T, want object", captured["voice_setting"])
+	}
+	if got := ValueAsFloat64(voiceSetting["speed"]); got != 1.25 {
+		t.Fatalf("voice_setting.speed=%v, want 1.25", voiceSetting["speed"])
+	}
+}
+
 func TestExecuteMiniMaxTaskPreservesNonNotFoundTTSFailureAcrossFallbacks(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {

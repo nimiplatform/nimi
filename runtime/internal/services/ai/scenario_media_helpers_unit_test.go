@@ -146,7 +146,7 @@ func TestValidateSubmitScenarioAsyncJobRequest(t *testing.T) {
 	t.Run("image valid", func(t *testing.T) {
 		req := baseScenarioJobRequest()
 		req.ScenarioType = runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE
-		req.Spec = &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_ImageGenerate{ImageGenerate: &runtimev1.ImageGenerateScenarioSpec{Prompt: "cat", N: 1}}}
+		req.Spec = &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_ImageGenerate{ImageGenerate: &runtimev1.ImageGenerateScenarioSpec{Prompt: "cat", N: testInt32(1)}}}
 		if err := validateSubmitScenarioAsyncJobRequest(req); err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -155,7 +155,7 @@ func TestValidateSubmitScenarioAsyncJobRequest(t *testing.T) {
 	t.Run("image invalid n", func(t *testing.T) {
 		req := baseScenarioJobRequest()
 		req.ScenarioType = runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE
-		req.Spec = &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_ImageGenerate{ImageGenerate: &runtimev1.ImageGenerateScenarioSpec{Prompt: "cat", N: 99}}}
+		req.Spec = &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_ImageGenerate{ImageGenerate: &runtimev1.ImageGenerateScenarioSpec{Prompt: "cat", N: testInt32(99)}}}
 		err := validateSubmitScenarioAsyncJobRequest(req)
 		reason, _ := grpcerr.ExtractReasonCode(err)
 		if reason != runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED {
@@ -169,7 +169,7 @@ func TestValidateSubmitScenarioAsyncJobRequest(t *testing.T) {
 		req.Spec = &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_VideoGenerate{VideoGenerate: &runtimev1.VideoGenerateScenarioSpec{
 			Mode:    runtimev1.VideoMode_VIDEO_MODE_T2V,
 			Content: []*runtimev1.VideoContentItem{{Type: runtimev1.VideoContentType_VIDEO_CONTENT_TYPE_TEXT, Text: "a running cat"}},
-			Options: &runtimev1.VideoGenerationOptions{DurationSec: 4, Ratio: "16:9"},
+			Options: &runtimev1.VideoGenerationOptions{DurationSec: testInt32(4), Ratio: "16:9"},
 		}}}
 		if err := validateSubmitScenarioAsyncJobRequest(req); err != nil {
 			t.Fatalf("unexpected error: %v", err)
@@ -187,7 +187,7 @@ func TestValidateSubmitScenarioAsyncJobRequest(t *testing.T) {
 				{Type: runtimev1.VideoContentType_VIDEO_CONTENT_TYPE_VIDEO_URL, Role: runtimev1.VideoContentRole_VIDEO_CONTENT_ROLE_REFERENCE_VIDEO, VideoUrl: &runtimev1.VideoContentVideoURL{Url: "https://example.com/ref.mp4"}},
 				{Type: runtimev1.VideoContentType_VIDEO_CONTENT_TYPE_AUDIO_URL, Role: runtimev1.VideoContentRole_VIDEO_CONTENT_ROLE_REFERENCE_AUDIO, AudioUrl: &runtimev1.VideoContentAudioURL{Url: "https://example.com/ref.mp3"}},
 			},
-			Options: &runtimev1.VideoGenerationOptions{DurationSec: 11, Ratio: "16:9"},
+			Options: &runtimev1.VideoGenerationOptions{DurationSec: testInt32(11), Ratio: "16:9"},
 		}}}
 		if err := validateSubmitScenarioAsyncJobRequest(req); err != nil {
 			t.Fatalf("unexpected error: %v", err)
@@ -218,7 +218,7 @@ func TestValidateSubmitScenarioAsyncJobRequest(t *testing.T) {
 		req := baseScenarioJobRequest()
 		req.ScenarioType = runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_TRANSCRIBE
 		req.Spec = &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_SpeechTranscribe{SpeechTranscribe: &runtimev1.SpeechTranscribeScenarioSpec{
-			SpeakerCount: 100,
+			SpeakerCount: testInt32(100),
 			AudioSource:  &runtimev1.SpeechTranscriptionAudioSource{Source: &runtimev1.SpeechTranscriptionAudioSource_AudioUri{AudioUri: "https://example.com/a.wav"}},
 		}}}
 		err := validateSubmitScenarioAsyncJobRequest(req)

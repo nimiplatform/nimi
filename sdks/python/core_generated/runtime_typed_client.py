@@ -1027,6 +1027,15 @@ class CancelHookResponse:
     outcome: HookExecutionOutcome | None = None
 
 @dataclass(frozen=True)
+class CancelLocalAppScenarioJobRequest:
+    job_id: str | None = None
+    reason: str | None = None
+
+@dataclass(frozen=True)
+class CancelLocalAppScenarioJobResponse:
+    job: LocalAppScenarioJob | None = None
+
+@dataclass(frozen=True)
 class CancelLocalEnvironmentDependencyJobRequest:
     job_id: str | None = None
 
@@ -1713,6 +1722,17 @@ class ErrorInfo:
     message: str | None = None
 
 @dataclass(frozen=True)
+class ExecuteLocalAppScenarioRequest:
+    text_embed: LocalAppTextEmbedScenarioSpec | None = None
+    image_generate: LocalAppImageGenerateScenarioSpec | None = None
+
+@dataclass(frozen=True)
+class ExecuteLocalAppScenarioResponse:
+    text_embed: LocalAppTextEmbedOutput | None = None
+    image_generate: LocalAppImageGenerateOutput | None = None
+    trace_id: str | None = None
+
+@dataclass(frozen=True)
 class ExecuteLocalStateCutoverRequest:
     nimi_data_dir: str | None = None
     plan_id: str | None = None
@@ -1825,6 +1845,11 @@ class GenerateLocalAppTextCandidateRequest:
     temperature: float | None = None
     top_p: float | None = None
     max_tokens: int | None = None
+    top_k: int | None = None
+    presence_penalty: float | None = None
+    frequency_penalty: float | None = None
+    stop: tuple[str, ...] = field(default_factory=tuple)
+    seed: int | None = None
 
 @dataclass(frozen=True)
 class GenerateLocalAppTextCandidateResponse:
@@ -2067,6 +2092,14 @@ class GetLocalAppConversationSnapshotResponse:
     snapshot: LocalAppConversationSnapshot | None = None
 
 @dataclass(frozen=True)
+class GetLocalAppScenarioJobRequest:
+    job_id: str | None = None
+
+@dataclass(frozen=True)
+class GetLocalAppScenarioJobResponse:
+    job: LocalAppScenarioJob | None = None
+
+@dataclass(frozen=True)
 class GetLocalAppSharedLocalAgentAIConfigRequest:
     pass
 
@@ -2261,7 +2294,6 @@ class ImportLocalAssetBundleRequest:
     model_name: str | None = None
     capabilities: tuple[str, ...] = field(default_factory=tuple)
     engine: str | None = None
-    endpoint: str | None = None
     ordered_bundle_entries: tuple[str, ...] = field(default_factory=tuple)
 
 @dataclass(frozen=True)
@@ -2275,7 +2307,6 @@ class ImportLocalAssetFileRequest:
     engine: str | None = None
     asset_name: str | None = None
     capabilities: tuple[str, ...] = field(default_factory=tuple)
-    endpoint: str | None = None
 
 @dataclass(frozen=True)
 class ImportLocalAssetFileResponse:
@@ -2284,7 +2315,6 @@ class ImportLocalAssetFileResponse:
 @dataclass(frozen=True)
 class ImportLocalAssetRequest:
     manifest_path: str | None = None
-    endpoint: str | None = None
     engine_config: Mapping[str, object] | None = None
 
 @dataclass(frozen=True)
@@ -2752,6 +2782,16 @@ class ListLocalAppAgentReferencesResponse:
     references: tuple[LocalAppAgentReference, ...] = field(default_factory=tuple)
 
 @dataclass(frozen=True)
+class ListLocalAppVoiceAssetsRequest:
+    page_size: int | None = None
+    page_token: str | None = None
+
+@dataclass(frozen=True)
+class ListLocalAppVoiceAssetsResponse:
+    assets: tuple[LocalAppVoiceAsset, ...] = field(default_factory=tuple)
+    next_page_token: str | None = None
+
+@dataclass(frozen=True)
 class ListLocalAssetsRequest:
     status_filter: LocalAssetStatus | None = None
     kind_filter: LocalAssetKind | None = None
@@ -3131,13 +3171,152 @@ class LocalAppConversationTurnStarted:
     turn_id: str | None = None
 
 @dataclass(frozen=True)
+class LocalAppImageGenerateOutput:
+    artifacts: tuple[LocalAppScenarioArtifact, ...] = field(default_factory=tuple)
+
+@dataclass(frozen=True)
+class LocalAppImageGenerateScenarioSpec:
+    prompt: str | None = None
+    negative_prompt: str | None = None
+    n: int | None = None
+    size: str | None = None
+    aspect_ratio: str | None = None
+    quality: str | None = None
+    style: str | None = None
+    seed: int | None = None
+    reference_images: tuple[str, ...] = field(default_factory=tuple)
+    mask: str | None = None
+    response_format: str | None = None
+
+@dataclass(frozen=True)
+class LocalAppScenarioArtifact:
+    artifact_id: str | None = None
+    mime_type: str | None = None
+    bytes: bytes | None = None
+    size_bytes: int | None = None
+    sha256: str | None = None
+    duration_ms: int | None = None
+    width: int | None = None
+    height: int | None = None
+    sample_rate_hz: int | None = None
+    channels: int | None = None
+
+@dataclass(frozen=True)
+class LocalAppScenarioJob:
+    job_id: str | None = None
+    scenario_type: ScenarioType | None = None
+    status: ScenarioJobStatus | None = None
+    progress_percent: int | None = None
+    progress_current_step: int | None = None
+    progress_total_steps: int | None = None
+    reason_code: ReasonCode | None = None
+    reason_detail: str | None = None
+    artifacts: tuple[LocalAppScenarioArtifact, ...] = field(default_factory=tuple)
+    trace_id: str | None = None
+    created_at: str | None = None
+    updated_at: str | None = None
+
+@dataclass(frozen=True)
+class LocalAppScenarioJobEvent:
+    event_type: ScenarioJobEventType | None = None
+    sequence: int | None = None
+    trace_id: str | None = None
+    timestamp: str | None = None
+    job: LocalAppScenarioJob | None = None
+
+@dataclass(frozen=True)
 class LocalAppSharedLocalAgentAIConfigProjection:
     config: AIConfig | None = None
+
+@dataclass(frozen=True)
+class LocalAppSpeechSynthesizeJobSpec:
+    text: str | None = None
+    language: str | None = None
+    audio_format: str | None = None
+    sample_rate_hz: int | None = None
+    speed: float | None = None
+    pitch: float | None = None
+    volume: float | None = None
+    emotion: str | None = None
+    voice_ref: VoiceReference | None = None
+    timing_mode: SpeechTimingMode | None = None
+    voice_render_hints: VoiceRenderHints | None = None
+
+@dataclass(frozen=True)
+class LocalAppSpeechTranscribeJobSpec:
+    mime_type: str | None = None
+    language: str | None = None
+    timestamps: bool | None = None
+    diarization: bool | None = None
+    speaker_count: int | None = None
+    prompt: str | None = None
+    audio_source: SpeechTranscriptionAudioSource | None = None
+    response_format: str | None = None
 
 @dataclass(frozen=True)
 class LocalAppTextCandidateMessage:
     role: str | None = None
     text: str | None = None
+
+@dataclass(frozen=True)
+class LocalAppTextEmbedOutput:
+    vectors: tuple[EmbeddingVector, ...] = field(default_factory=tuple)
+
+@dataclass(frozen=True)
+class LocalAppTextEmbedScenarioSpec:
+    inputs: tuple[str, ...] = field(default_factory=tuple)
+
+@dataclass(frozen=True)
+class LocalAppTextTurnCompleted:
+    finish_reason: FinishReason | None = None
+
+@dataclass(frozen=True)
+class LocalAppTextTurnDelta:
+    text: str | None = None
+
+@dataclass(frozen=True)
+class LocalAppTextTurnFailed:
+    reason_code: ReasonCode | None = None
+    action_hint: str | None = None
+
+@dataclass(frozen=True)
+class LocalAppVideoGenerateJobSpec:
+    prompt: str | None = None
+    negative_prompt: str | None = None
+    mode: VideoMode | None = None
+    content: tuple[VideoContentItem, ...] = field(default_factory=tuple)
+    options: LocalAppVideoGenerationOptions | None = None
+
+@dataclass(frozen=True)
+class LocalAppVideoGenerationOptions:
+    resolution: str | None = None
+    ratio: str | None = None
+    duration_sec: int | None = None
+    frames: int | None = None
+    fps: int | None = None
+    seed: int | None = None
+    camera_fixed: bool | None = None
+    watermark: bool | None = None
+    generate_audio: bool | None = None
+    draft: bool | None = None
+    return_last_frame: bool | None = None
+
+@dataclass(frozen=True)
+class LocalAppVoiceAsset:
+    voice_asset_id: str | None = None
+    workflow_type: VoiceWorkflowType | None = None
+    status: VoiceAssetStatus | None = None
+    created_at: str | None = None
+    updated_at: str | None = None
+    expires_at: str | None = None
+
+@dataclass(frozen=True)
+class LocalAppVoiceCloneJobSpec:
+    input: VoiceV2VInput | None = None
+
+@dataclass(frozen=True)
+class LocalAppVoiceDesignJobSpec:
+    input: VoiceT2VInput | None = None
 
 @dataclass(frozen=True)
 class LocalAssetExactBinding:
@@ -3176,7 +3355,6 @@ class LocalAssetRecord:
     host_requirements: LocalHostRequirements | None = None
     local_invoke_profile_id: str | None = None
     engine_config: Mapping[str, object] | None = None
-    endpoint: str | None = None
     reason_code: ReasonCode | None = None
     metadata: Mapping[str, object] | None = None
     display_name: str | None = None
@@ -4494,6 +4672,16 @@ class ReadArtifactBytesResponse:
     mime_inferred: bool | None = None
 
 @dataclass(frozen=True)
+class ReadLocalAppArtifactRequest:
+    artifact_id: str | None = None
+
+@dataclass(frozen=True)
+class ReadLocalAppArtifactResponse:
+    bytes: bytes | None = None
+    mime_type: str | None = None
+    size_bytes: int | None = None
+
+@dataclass(frozen=True)
 class ReadLocalAppStorageJsonRequest:
     relative_path: str | None = None
 
@@ -5024,7 +5212,6 @@ class ScaffoldOrphanAssetRequest:
     kind: LocalAssetKind | None = None
     engine: str | None = None
     capabilities: tuple[str, ...] = field(default_factory=tuple)
-    endpoint: str | None = None
 
 @dataclass(frozen=True)
 class ScaffoldOrphanAssetResponse:
@@ -5434,6 +5621,26 @@ class StopLocalServiceResponse:
     service: LocalServiceDescriptor | None = None
 
 @dataclass(frozen=True)
+class StreamLocalAppTextTurnEvent:
+    sequence: int | None = None
+    trace_id: str | None = None
+    delta: LocalAppTextTurnDelta | None = None
+    completed: LocalAppTextTurnCompleted | None = None
+    failed: LocalAppTextTurnFailed | None = None
+
+@dataclass(frozen=True)
+class StreamLocalAppTextTurnRequest:
+    messages: tuple[LocalAppTextCandidateMessage, ...] = field(default_factory=tuple)
+    temperature: float | None = None
+    top_p: float | None = None
+    max_tokens: int | None = None
+    top_k: int | None = None
+    presence_penalty: float | None = None
+    frequency_penalty: float | None = None
+    stop: tuple[str, ...] = field(default_factory=tuple)
+    seed: int | None = None
+
+@dataclass(frozen=True)
 class StreamScenarioEvent:
     event_type: StreamEventType | None = None
     sequence: int | None = None
@@ -5478,6 +5685,20 @@ class SubmitDelegatedApprovalDecisionRequest:
 @dataclass(frozen=True)
 class SubmitDelegatedApprovalDecisionResponse:
     approval_request: DelegatedApprovalRequest | None = None
+
+@dataclass(frozen=True)
+class SubmitLocalAppScenarioJobRequest:
+    image_generate: LocalAppImageGenerateScenarioSpec | None = None
+    video_generate: LocalAppVideoGenerateJobSpec | None = None
+    speech_synthesize: LocalAppSpeechSynthesizeJobSpec | None = None
+    speech_transcribe: LocalAppSpeechTranscribeJobSpec | None = None
+    voice_clone: LocalAppVoiceCloneJobSpec | None = None
+    voice_design: LocalAppVoiceDesignJobSpec | None = None
+
+@dataclass(frozen=True)
+class SubmitLocalAppScenarioJobResponse:
+    job: LocalAppScenarioJob | None = None
+    asset: LocalAppVoiceAsset | None = None
 
 @dataclass(frozen=True)
 class SubmitScenarioJobRequest:
@@ -5532,6 +5753,10 @@ class SubscribeAppMessagesRequest:
 class SubscribeLocalAppConversationEventsRequest:
     agent_handle: str | None = None
     conversation_anchor_id: str | None = None
+
+@dataclass(frozen=True)
+class SubscribeLocalAppScenarioJobEventsRequest:
+    job_id: str | None = None
 
 @dataclass(frozen=True)
 class SubscribeMemoryEventsRequest:
@@ -5730,6 +5955,18 @@ class UpdateLocalAppAgentAutonomyRequest:
     intent: LocalAppAgentAutonomyIntent | None = None
 
 @dataclass(frozen=True)
+class UpdateLocalCapabilityConfigurationRequest:
+    configuration_id: str | None = None
+    portable_config: Mapping[str, object] | None = None
+    supported_features: tuple[str, ...] = field(default_factory=tuple)
+    display_name: str | None = None
+    provenance: Mapping[str, object] | None = None
+
+@dataclass(frozen=True)
+class UpdateLocalCapabilityConfigurationResponse:
+    configuration: LocalCapabilityConfiguration | None = None
+
+@dataclass(frozen=True)
 class UploadArtifactChunk:
     sequence: int | None = None
     bytes: bytes | None = None
@@ -5750,6 +5987,17 @@ class UploadArtifactRequest:
 class UploadArtifactResponse:
     artifact: ScenarioArtifact | None = None
     trace_id: str | None = None
+
+@dataclass(frozen=True)
+class UploadLocalAppArtifactRequest:
+    bytes: bytes | None = None
+    mime_type: str | None = None
+
+@dataclass(frozen=True)
+class UploadLocalAppArtifactResponse:
+    artifact_id: str | None = None
+    size_bytes: int | None = None
+    mime_type: str | None = None
 
 @dataclass(frozen=True)
 class UpsertCatalogModelOverlayRequest:
@@ -6347,6 +6595,10 @@ class RuntimeTypedClient:
     def read_realtime_events(self, request: ReadRealtimeEventsRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> AsyncIterator[RealtimeEvent]:
         return self._stream("/nimi.runtime.v1.RuntimeAiRealtimeService/ReadRealtimeEvents", _model_body(request), RealtimeEvent, metadata=metadata, timeout_ms=timeout_ms)
 
+    async def cancel_local_app_scenario_job(self, request: CancelLocalAppScenarioJobRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> CancelLocalAppScenarioJobResponse:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAiService/CancelLocalAppScenarioJob", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(CancelLocalAppScenarioJobResponse, raw)
+
     async def cancel_scenario_job(self, request: CancelScenarioJobRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> CancelScenarioJobResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAiService/CancelScenarioJob", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(CancelScenarioJobResponse, raw)
@@ -6354,6 +6606,10 @@ class RuntimeTypedClient:
     async def delete_voice_asset(self, request: DeleteVoiceAssetRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> DeleteVoiceAssetResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAiService/DeleteVoiceAsset", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(DeleteVoiceAssetResponse, raw)
+
+    async def execute_local_app_scenario(self, request: ExecuteLocalAppScenarioRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ExecuteLocalAppScenarioResponse:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAiService/ExecuteLocalAppScenario", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(ExecuteLocalAppScenarioResponse, raw)
 
     async def execute_scenario(self, request: ExecuteScenarioRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ExecuteScenarioResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAiService/ExecuteScenario", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
@@ -6367,6 +6623,10 @@ class RuntimeTypedClient:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAiService/GetAppAIConfig", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(GetAppAIConfigResponse, raw)
 
+    async def get_local_app_scenario_job(self, request: GetLocalAppScenarioJobRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> GetLocalAppScenarioJobResponse:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAiService/GetLocalAppScenarioJob", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(GetLocalAppScenarioJobResponse, raw)
+
     async def get_scenario_artifacts(self, request: GetScenarioArtifactsRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> GetScenarioArtifactsResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAiService/GetScenarioArtifacts", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(GetScenarioArtifactsResponse, raw)
@@ -6378,6 +6638,10 @@ class RuntimeTypedClient:
     async def get_voice_asset(self, request: GetVoiceAssetRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> GetVoiceAssetResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAiService/GetVoiceAsset", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(GetVoiceAssetResponse, raw)
+
+    async def list_local_app_voice_assets(self, request: ListLocalAppVoiceAssetsRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ListLocalAppVoiceAssetsResponse:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAiService/ListLocalAppVoiceAssets", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(ListLocalAppVoiceAssetsResponse, raw)
 
     async def list_preset_voices(self, request: ListPresetVoicesRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ListPresetVoicesResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAiService/ListPresetVoices", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
@@ -6399,18 +6663,36 @@ class RuntimeTypedClient:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAiService/PeekScheduling", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(PeekSchedulingResponse, raw)
 
+    async def read_local_app_artifact(self, request: ReadLocalAppArtifactRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ReadLocalAppArtifactResponse:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAiService/ReadLocalAppArtifact", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(ReadLocalAppArtifactResponse, raw)
+
+    def stream_local_app_text_turn(self, request: StreamLocalAppTextTurnRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> AsyncIterator[StreamLocalAppTextTurnEvent]:
+        return self._stream("/nimi.runtime.v1.RuntimeAiService/StreamLocalAppTextTurn", _model_body(request), StreamLocalAppTextTurnEvent, metadata=metadata, timeout_ms=timeout_ms)
+
     def stream_scenario(self, request: StreamScenarioRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> AsyncIterator[StreamScenarioEvent]:
         return self._stream("/nimi.runtime.v1.RuntimeAiService/StreamScenario", _model_body(request), StreamScenarioEvent, metadata=metadata, timeout_ms=timeout_ms)
+
+    async def submit_local_app_scenario_job(self, request: SubmitLocalAppScenarioJobRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> SubmitLocalAppScenarioJobResponse:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAiService/SubmitLocalAppScenarioJob", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(SubmitLocalAppScenarioJobResponse, raw)
 
     async def submit_scenario_job(self, request: SubmitScenarioJobRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> SubmitScenarioJobResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAiService/SubmitScenarioJob", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(SubmitScenarioJobResponse, raw)
+
+    def subscribe_local_app_scenario_job_events(self, request: SubscribeLocalAppScenarioJobEventsRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> AsyncIterator[LocalAppScenarioJobEvent]:
+        return self._stream("/nimi.runtime.v1.RuntimeAiService/SubscribeLocalAppScenarioJobEvents", _model_body(request), LocalAppScenarioJobEvent, metadata=metadata, timeout_ms=timeout_ms)
 
     def subscribe_scenario_job_events(self, request: SubscribeScenarioJobEventsRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> AsyncIterator[ScenarioJobEvent]:
         return self._stream("/nimi.runtime.v1.RuntimeAiService/SubscribeScenarioJobEvents", _model_body(request), ScenarioJobEvent, metadata=metadata, timeout_ms=timeout_ms)
 
     async def upload_artifact(self, request: UploadArtifactRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> UploadArtifactResponse:
         raise RuntimeError("SDK_RUNTIME_METHOD_UNAVAILABLE: Runtime method kind is not supported by the unary/server-stream core transport: /nimi.runtime.v1.RuntimeAiService/UploadArtifact")
+
+    async def upload_local_app_artifact(self, request: UploadLocalAppArtifactRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> UploadLocalAppArtifactResponse:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAiService/UploadLocalAppArtifact", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(UploadLocalAppArtifactResponse, raw)
 
     async def bind_local_app_process(self, request: BindLocalAppProcessRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> BindLocalAppProcessResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAppService/BindLocalAppProcess", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
@@ -7026,6 +7308,10 @@ class RuntimeTypedClient:
     async def unbind_local_capability_requirement(self, request: UnbindLocalCapabilityRequirementRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> UnbindLocalCapabilityRequirementResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeLocalService/UnbindLocalCapabilityRequirement", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(UnbindLocalCapabilityRequirementResponse, raw)
+
+    async def update_local_capability_configuration(self, request: UpdateLocalCapabilityConfigurationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> UpdateLocalCapabilityConfigurationResponse:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeLocalService/UpdateLocalCapabilityConfiguration", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(UpdateLocalCapabilityConfigurationResponse, raw)
 
     def watch_local_transfers(self, request: WatchLocalTransfersRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> AsyncIterator[LocalTransferProgressEvent]:
         return self._stream("/nimi.runtime.v1.RuntimeLocalService/WatchLocalTransfers", _model_body(request), LocalTransferProgressEvent, metadata=metadata, timeout_ms=timeout_ms)

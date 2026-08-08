@@ -75,7 +75,7 @@ func newAsyncVideoJobRequest(prompt string) *runtimev1.SubmitScenarioJobRequest 
 							Text: prompt,
 						},
 					},
-					Options: &runtimev1.VideoGenerationOptions{DurationSec: 4},
+					Options: &runtimev1.VideoGenerationOptions{DurationSec: testInt32(4)},
 				},
 			},
 		},

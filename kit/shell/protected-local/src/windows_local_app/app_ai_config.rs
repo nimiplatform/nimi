@@ -8,9 +8,12 @@ use tonic::transport::Channel;
 
 use crate::generated::{
     ai_config_capability_intent, ai_config_owner,
-    runtime_ai_service_client::RuntimeAiServiceClient, AiConfig, AiConfigCapabilityIntent,
+    runtime_ai_service_client::RuntimeAiServiceClient,
+    runtime_local_service_client::RuntimeLocalServiceClient, AiConfig, AiConfigCapabilityIntent,
     AiConfigCloudIntent, AiConfigLocalIntent, CapabilityImplementationIdentity,
-    GetAppAiConfigRequest, OverwriteAppAiConfigRequest,
+    GetAppAiConfigRequest, GetMachineLocalAiConfigurationRequest, LocalCapabilityInterpretability,
+    LocalCapabilityReason, LocalCapabilityRequirementResolution, MachineLocalAiConfiguration,
+    OverwriteAppAiConfigRequest,
 };
 use crate::grpc_status::local_app_error_from_status;
 use crate::{LocalAppAIConfigOverwriteRequest, LocalAppOperationError, LocalAppReasonCode};
@@ -25,6 +28,84 @@ pub async fn get(channel: Channel) -> Result<JsonValue, LocalAppOperationError> 
         .map_err(local_app_error_from_status)?
         .into_inner();
     project_config(response.config.ok_or_else(untrusted)?)
+}
+
+pub async fn local_selections(channel: Channel) -> Result<JsonValue, LocalAppOperationError> {
+    let response = RuntimeLocalServiceClient::new(channel)
+        .get_machine_local_ai_configuration(GetMachineLocalAiConfigurationRequest {})
+        .await
+        .map_err(local_app_error_from_status)?
+        .into_inner();
+    project_local_selections(response.aggregate.ok_or_else(untrusted)?)
+}
+
+fn project_local_selections(
+    aggregate: MachineLocalAiConfiguration,
+) -> Result<JsonValue, LocalAppOperationError> {
+    let configurations = aggregate
+        .configurations
+        .into_iter()
+        .map(|configuration| (configuration.configuration_id.clone(), configuration))
+        .collect::<BTreeMap<_, _>>();
+    let selections = aggregate
+        .selections
+        .into_iter()
+        .map(|selection| {
+            if selection.capability_contract.trim().is_empty()
+                || selection.configuration_id.trim().is_empty()
+            {
+                return Err(untrusted());
+            }
+            let Some(configuration) = configurations.get(&selection.configuration_id) else {
+                return Ok(json!({
+                    "capabilityContract": selection.capability_contract,
+                    "state": "broken",
+                    "configurationId": null,
+                    "displayName": null,
+                    "supportedFeatures": [],
+                    "reasons": ["selected-configuration-not-found"],
+                }));
+            };
+            if configuration.capability_contract != selection.capability_contract {
+                return Err(untrusted());
+            }
+            let mut reasons = Vec::new();
+            if configuration.interpretability
+                != LocalCapabilityInterpretability::Interpretable as i32
+            {
+                reasons.push("configuration-uninterpretable".to_string());
+            }
+            if configuration.requirement_resolution
+                != LocalCapabilityRequirementResolution::Configured as i32
+            {
+                reasons.push("configuration-unresolved".to_string());
+            }
+            for reason in &configuration.reasons {
+                let reason = LocalCapabilityReason::try_from(*reason).map_err(|_| untrusted())?;
+                if reason != LocalCapabilityReason::Unspecified {
+                    reasons.push(
+                        reason
+                            .as_str_name()
+                            .trim_start_matches("LOCAL_CAPABILITY_REASON_")
+                            .to_ascii_lowercase()
+                            .replace('_', "-"),
+                    );
+                }
+            }
+            reasons.sort();
+            reasons.dedup();
+            let display_name = configuration.display_name.trim();
+            Ok(json!({
+                "capabilityContract": selection.capability_contract,
+                "state": if reasons.is_empty() { "selected" } else { "broken" },
+                "configurationId": null,
+                "displayName": if display_name.is_empty() { JsonValue::Null } else { JsonValue::String(display_name.to_string()) },
+                "supportedFeatures": configuration.supported_features,
+                "reasons": reasons,
+            }))
+        })
+        .collect::<Result<Vec<_>, LocalAppOperationError>>()?;
+    Ok(JsonValue::Array(selections))
 }
 
 pub async fn overwrite(
@@ -444,7 +525,10 @@ fn untrusted() -> LocalAppOperationError {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::generated::{AiConfigAppOwner, AiConfigOwner};
+    use crate::generated::{
+        AiConfigAppOwner, AiConfigOwner, LocalCapabilityConfiguration,
+        LocalCapabilitySelection,
+    };
 
     #[test]
     fn capability_round_trip_preserves_local_and_cloud_intent_without_owner_input() {
@@ -500,6 +584,31 @@ mod tests {
         .unwrap();
         assert_eq!(projected["capabilities"], source);
         assert_eq!(projected["owner"]["owner"]["app"]["appId"], "app.example");
+    }
+
+    #[test]
+    fn local_selection_projection_keeps_display_facts_and_removes_configuration_identity() {
+        let projected = project_local_selections(MachineLocalAiConfiguration {
+            configurations: vec![LocalCapabilityConfiguration {
+                configuration_id: "config-private".to_string(),
+                capability_contract: "text.generate".to_string(),
+                supported_features: vec!["input.image".to_string()],
+                interpretability: LocalCapabilityInterpretability::Interpretable as i32,
+                requirement_resolution: LocalCapabilityRequirementResolution::Configured as i32,
+                display_name: "gemma4-26b".to_string(),
+                ..Default::default()
+            }],
+            selections: vec![LocalCapabilitySelection {
+                capability_contract: "text.generate".to_string(),
+                configuration_id: "config-private".to_string(),
+            }],
+        })
+        .unwrap();
+        assert_eq!(projected[0]["state"], "selected");
+        assert_eq!(projected[0]["displayName"], "gemma4-26b");
+        assert_eq!(projected[0]["configurationId"], JsonValue::Null);
+        assert_eq!(projected[0]["supportedFeatures"], json!(["input.image"]));
+        assert!(!projected.to_string().contains("config-private"));
     }
 
     #[test]

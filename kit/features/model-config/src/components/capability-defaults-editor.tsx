@@ -1,0 +1,203 @@
+import type { NimiJsonObject } from '@nimiplatform/kit/core/sdk-contract';
+import { SelectField, TextareaField, TextField } from '@nimiplatform/kit/ui';
+import {
+  capabilityDefaultFields,
+  type CapabilityDefaultField,
+} from '../capability-defaults.js';
+
+export type CapabilityDefaultsEditorCopy = {
+  readonly label: string;
+  readonly hint: string;
+  readonly unsetLabel: string;
+  readonly trueLabel: string;
+  readonly falseLabel: string;
+  readonly listPlaceholder: string;
+};
+
+export type CapabilityDefaultsEditorProps = {
+  readonly capabilityContract: string;
+  readonly value: NimiJsonObject;
+  readonly onChange: (value: NimiJsonObject) => void;
+  readonly copy: CapabilityDefaultsEditorCopy;
+  readonly disabled?: boolean;
+};
+
+function asRecord(value: unknown): Readonly<Record<string, unknown>> {
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? value as Readonly<Record<string, unknown>>
+    : {};
+}
+
+function setPath(
+  source: Readonly<Record<string, unknown>>,
+  path: readonly string[],
+  value: unknown,
+): NimiJsonObject {
+  const [head, ...tail] = path;
+  if (!head) return source as NimiJsonObject;
+  const next: Record<string, unknown> = { ...source };
+  if (tail.length === 0) {
+    if (value === undefined) delete next[head];
+    else next[head] = value;
+    return next as NimiJsonObject;
+  }
+  const nested = setPath(asRecord(source[head]), tail, value);
+  if (Object.keys(nested).length === 0) delete next[head];
+  else next[head] = nested;
+  return next as NimiJsonObject;
+}
+
+function displayValue(source: Readonly<Record<string, unknown>>, field: CapabilityDefaultField): unknown {
+  return source[field.key];
+}
+
+function DefaultFieldControl(props: {
+  readonly field: CapabilityDefaultField;
+  readonly source: Readonly<Record<string, unknown>>;
+  readonly path: readonly string[];
+  readonly rootValue: NimiJsonObject;
+  readonly onChange: (value: NimiJsonObject) => void;
+  readonly copy: CapabilityDefaultsEditorCopy;
+  readonly disabled?: boolean;
+}) {
+  const path = [...props.path, props.field.key];
+  const parameterPath = path.join('.');
+  const value = displayValue(props.source, props.field);
+  const update = (next: unknown) => props.onChange(setPath(props.rootValue, path, next));
+
+  if (props.field.kind === 'object') {
+    const nested = asRecord(value);
+    return (
+      <fieldset
+        className="col-span-full grid min-w-0 grid-cols-1 gap-3 rounded-[var(--nimi-radius-sm)] border border-[var(--nimi-border-subtle)] p-3 sm:grid-cols-2"
+        data-nimi-default-parameter-group={parameterPath}
+      >
+        <legend className="px-1 font-mono text-[11px] font-semibold text-[var(--nimi-text-secondary)]">
+          {props.field.key}
+        </legend>
+        {(props.field.fields || []).map((field) => (
+          <DefaultFieldControl
+            key={field.key}
+            field={field}
+            source={nested}
+            path={path}
+            rootValue={props.rootValue}
+            onChange={props.onChange}
+            copy={props.copy}
+            disabled={props.disabled}
+          />
+        ))}
+      </fieldset>
+    );
+  }
+
+  let control;
+  if (props.field.kind === 'boolean') {
+    control = (
+      <SelectField
+        aria-label={parameterPath}
+        value={typeof value === 'boolean' ? String(value) : 'unset'}
+        disabled={props.disabled}
+        options={[
+          { value: 'unset', label: props.copy.unsetLabel },
+          { value: 'true', label: props.copy.trueLabel },
+          { value: 'false', label: props.copy.falseLabel },
+        ]}
+        onValueChange={(next) => update(next === 'unset' ? undefined : next === 'true')}
+      />
+    );
+  } else if (props.field.kind === 'string-list') {
+    control = (
+      <TextareaField
+        aria-label={parameterPath}
+        value={Array.isArray(value) ? value.join('\n') : ''}
+        placeholder={props.copy.listPlaceholder}
+        disabled={props.disabled}
+        rows={3}
+        onChange={(event) => {
+          const entries = event.currentTarget.value
+            .split('\n')
+            .map((entry) => entry.trim())
+            .filter(Boolean);
+          update(entries.length > 0 ? entries : undefined);
+        }}
+      />
+    );
+  } else {
+    const numeric = props.field.kind === 'number' || props.field.kind === 'integer';
+    control = (
+      <TextField
+        aria-label={parameterPath}
+        type={numeric ? 'number' : 'text'}
+        step={props.field.kind === 'integer' ? 1 : numeric ? 'any' : undefined}
+        value={numeric && typeof value === 'number' ? String(value) : typeof value === 'string' ? value : ''}
+        placeholder={props.copy.unsetLabel}
+        disabled={props.disabled}
+        onChange={(event) => {
+          const raw = event.currentTarget.value;
+          if (!raw.trim()) {
+            update(undefined);
+            return;
+          }
+          if (!numeric) {
+            update(raw);
+            return;
+          }
+          const parsed = Number(raw);
+          if (Number.isFinite(parsed) && (props.field.kind !== 'integer' || Number.isInteger(parsed))) {
+            update(parsed);
+          }
+        }}
+      />
+    );
+  }
+
+  return (
+    <label
+      className="grid min-w-0 gap-1.5 text-xs text-[var(--nimi-text-primary)]"
+      data-nimi-default-parameter={parameterPath}
+    >
+      <span className="font-mono text-[11px] font-semibold text-[var(--nimi-text-secondary)]">
+        {props.field.key}
+      </span>
+      {control}
+    </label>
+  );
+}
+
+export function CapabilityDefaultsEditor(props: CapabilityDefaultsEditorProps) {
+  const fields = capabilityDefaultFields(props.capabilityContract);
+  if (!fields) return null;
+  const source = asRecord(props.value);
+
+  return (
+    <details
+      className="rounded-[var(--nimi-radius-md)] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)]"
+      data-nimi-model-config-defaults={props.capabilityContract}
+    >
+      <summary className="cursor-pointer list-none px-3 py-2.5 text-xs font-semibold text-[var(--nimi-text-primary)]">
+        <span className="flex items-center justify-between gap-3">
+          <span>{props.copy.label}</span>
+          <span aria-hidden="true" className="text-[var(--nimi-text-muted)]">⌄</span>
+        </span>
+      </summary>
+      <div className="space-y-3 border-t border-[var(--nimi-border-subtle)] p-3">
+        <p className="m-0 text-[11px] leading-relaxed text-[var(--nimi-text-muted)]">{props.copy.hint}</p>
+        <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2">
+          {fields.map((field) => (
+            <DefaultFieldControl
+              key={field.key}
+              field={field}
+              source={source}
+              path={[]}
+              rootValue={props.value}
+              onChange={props.onChange}
+              copy={props.copy}
+              disabled={props.disabled}
+            />
+          ))}
+        </div>
+      </div>
+    </details>
+  );
+}

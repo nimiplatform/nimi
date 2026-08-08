@@ -100,7 +100,7 @@ func ExecuteGeminiOperation(
 		submitPayload["voice"] = scenarioVoiceRef(spec)
 		submitPayload["language"] = spec.GetLanguage()
 		submitPayload["emotion"] = spec.GetEmotion()
-		submitPayload["speed"] = spec.GetSpeed()
+		submitPayload["speed"] = scenarioSpeechSpeed(spec)
 		submitPayload["pitch"] = spec.GetPitch()
 		submitPayload["volume"] = spec.GetVolume()
 		submitPayload["sample_rate_hz"] = spec.GetSampleRateHz()

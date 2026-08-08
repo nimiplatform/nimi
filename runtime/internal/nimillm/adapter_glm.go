@@ -253,7 +253,7 @@ func ExecuteGLMNative(
 		if language := strings.TrimSpace(spec.GetLanguage()); language != "" {
 			payload["language"] = language
 		}
-		if speed := spec.GetSpeed(); speed > 0 {
+		if speed := scenarioSpeechSpeed(spec); speed > 0 {
 			payload["speed"] = speed
 		}
 		if options := scenarioExtensionPayloadForScenario(req); len(options) > 0 {

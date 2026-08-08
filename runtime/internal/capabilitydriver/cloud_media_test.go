@@ -10,6 +10,39 @@ import (
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
+func TestApplyCloudMediaDefaultsExplicitZeroOverridesDefaults(t *testing.T) {
+	request := &runtimev1.SubmitScenarioJobRequest{
+		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE,
+		Spec: &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_ImageGenerate{ImageGenerate: &runtimev1.ImageGenerateScenarioSpec{
+			Prompt: "image", N: testInt32(0), Seed: testInt64(0),
+		}}},
+	}
+	defaults, _ := structpb.NewStruct(map[string]any{"n": 3.0, "seed": 19.0})
+	if err := applyCloudMediaDefaults(request, defaults); err != nil {
+		t.Fatalf("applyCloudMediaDefaults: %v", err)
+	}
+	spec := request.GetSpec().GetImageGenerate()
+	if spec.N == nil || spec.Seed == nil || spec.GetN() != 0 || spec.GetSeed() != 0 {
+		t.Fatalf("explicit zero values were replaced by defaults: %+v", spec)
+	}
+
+	transcribe := &runtimev1.SubmitScenarioJobRequest{
+		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_TRANSCRIBE,
+		Spec: &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_SpeechTranscribe{SpeechTranscribe: &runtimev1.SpeechTranscribeScenarioSpec{
+			Timestamps: testBool(false), Diarization: testBool(false), SpeakerCount: testInt32(0),
+		}}},
+	}
+	transcribeDefaults, _ := structpb.NewStruct(map[string]any{"timestamps": true, "diarization": true, "speaker_count": 2.0})
+	if err := applyCloudMediaDefaults(transcribe, transcribeDefaults); err != nil {
+		t.Fatalf("applyCloudMediaDefaults(STT): %v", err)
+	}
+	stt := transcribe.GetSpec().GetSpeechTranscribe()
+	if stt.Timestamps == nil || stt.Diarization == nil || stt.SpeakerCount == nil ||
+		stt.GetTimestamps() || stt.GetDiarization() || stt.GetSpeakerCount() != 0 {
+		t.Fatalf("explicit false/zero values were replaced by defaults: %+v", stt)
+	}
+}
+
 func TestCloudMediaDriverReasonNormalizationTables(t *testing.T) {
 	cases := []struct {
 		capability string

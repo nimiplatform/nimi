@@ -18,9 +18,9 @@ units:
     kind: rule
     title: LocalAgent turn context is Runtime-owned
     modality: must
-    statement: Runtime composes every LocalAgent turn from admitted source, Conversation, Memory, Knowledge, policy, tool, media, and AI route inputs and keeps model-facing context private from Apps and presentation consumers.
+    statement: Runtime composes every LocalAgent turn from admitted source, Conversation, Memory, Knowledge, policy, tool, media, and AI route inputs, resolves the selected route's exact context capacity before provider execution, and keeps model-facing context private from Apps and presentation consumers.
     condition: Whenever a LocalAgent turn is prepared or executed.
-    failure: Reject caller-composed context, missing required Runtime inputs, or context ownership outside Runtime.
+    failure: Reject caller-composed context, missing required Runtime inputs, unresolved or insufficient exact context capacity, or context ownership outside Runtime with a typed pre-provider admission result.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.agent-service.context-composition-plane

@@ -27,6 +27,8 @@ import { ClearLocalCapabilitySelectionResponse } from "./capability_configuratio
 import { ClearLocalCapabilitySelectionRequest } from "./capability_configuration";
 import { SelectLocalCapabilityConfigurationResponse } from "./capability_configuration";
 import { SelectLocalCapabilityConfigurationRequest } from "./capability_configuration";
+import { UpdateLocalCapabilityConfigurationResponse } from "./capability_configuration";
+import { UpdateLocalCapabilityConfigurationRequest } from "./capability_configuration";
 import { AddLocalCapabilityConfigurationResponse } from "./capability_configuration";
 import { AddLocalCapabilityConfigurationRequest } from "./capability_configuration";
 import { GetLocalCapabilityConfigurationResponse } from "./capability_configuration";
@@ -170,10 +172,6 @@ export interface ImportLocalAssetRequest {
      */
     manifestPath: string;
     /**
-     * @generated from protobuf field: string endpoint = 2
-     */
-    endpoint: string;
-    /**
      * @generated from protobuf field: google.protobuf.Struct engine_config = 3
      */
     engineConfig?: Struct;
@@ -211,10 +209,6 @@ export interface ImportLocalAssetFileRequest {
      * @generated from protobuf field: repeated string capabilities = 5
      */
     capabilities: string[];
-    /**
-     * @generated from protobuf field: string endpoint = 6
-     */
-    endpoint: string;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.ImportLocalAssetFileResponse
@@ -245,10 +239,6 @@ export interface ScaffoldOrphanAssetRequest {
      * @generated from protobuf field: repeated string capabilities = 4
      */
     capabilities: string[];
-    /**
-     * @generated from protobuf field: string endpoint = 5
-     */
-    endpoint: string;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.ScaffoldOrphanAssetResponse
@@ -279,10 +269,6 @@ export interface ImportLocalAssetBundleRequest {
      * @generated from protobuf field: string engine = 4
      */
     engine: string;
-    /**
-     * @generated from protobuf field: string endpoint = 5
-     */
-    endpoint: string;
     /**
      * Explicit one-based content order for a sharded resource. Empty retains
      * the existing single-entry digest semantics even when sidecar files exist.
@@ -2113,14 +2099,12 @@ class ImportLocalAssetRequest$Type extends MessageType<ImportLocalAssetRequest> 
     constructor() {
         super("nimi.runtime.v1.ImportLocalAssetRequest", [
             { no: 1, name: "manifest_path", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "endpoint", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 3, name: "engine_config", kind: "message", T: () => Struct }
         ]);
     }
     create(value?: PartialMessage<ImportLocalAssetRequest>): ImportLocalAssetRequest {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.manifestPath = "";
-        message.endpoint = "";
         if (value !== undefined)
             reflectionMergePartial<ImportLocalAssetRequest>(this, message, value);
         return message;
@@ -2132,9 +2116,6 @@ class ImportLocalAssetRequest$Type extends MessageType<ImportLocalAssetRequest> 
             switch (fieldNo) {
                 case /* string manifest_path */ 1:
                     message.manifestPath = reader.string();
-                    break;
-                case /* string endpoint */ 2:
-                    message.endpoint = reader.string();
                     break;
                 case /* google.protobuf.Struct engine_config */ 3:
                     message.engineConfig = Struct.internalBinaryRead(reader, reader.uint32(), options, message.engineConfig);
@@ -2154,9 +2135,6 @@ class ImportLocalAssetRequest$Type extends MessageType<ImportLocalAssetRequest> 
         /* string manifest_path = 1; */
         if (message.manifestPath !== "")
             writer.tag(1, WireType.LengthDelimited).string(message.manifestPath);
-        /* string endpoint = 2; */
-        if (message.endpoint !== "")
-            writer.tag(2, WireType.LengthDelimited).string(message.endpoint);
         /* google.protobuf.Struct engine_config = 3; */
         if (message.engineConfig)
             Struct.internalBinaryWrite(message.engineConfig, writer.tag(3, WireType.LengthDelimited).fork(), options).join();
@@ -2224,8 +2202,7 @@ class ImportLocalAssetFileRequest$Type extends MessageType<ImportLocalAssetFileR
             { no: 2, name: "kind", kind: "enum", T: () => ["nimi.runtime.v1.LocalAssetKind", LocalAssetKind, "LOCAL_ASSET_KIND_"] },
             { no: 3, name: "engine", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 4, name: "asset_name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 5, name: "capabilities", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
-            { no: 6, name: "endpoint", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 5, name: "capabilities", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<ImportLocalAssetFileRequest>): ImportLocalAssetFileRequest {
@@ -2235,7 +2212,6 @@ class ImportLocalAssetFileRequest$Type extends MessageType<ImportLocalAssetFileR
         message.engine = "";
         message.assetName = "";
         message.capabilities = [];
-        message.endpoint = "";
         if (value !== undefined)
             reflectionMergePartial<ImportLocalAssetFileRequest>(this, message, value);
         return message;
@@ -2259,9 +2235,6 @@ class ImportLocalAssetFileRequest$Type extends MessageType<ImportLocalAssetFileR
                     break;
                 case /* repeated string capabilities */ 5:
                     message.capabilities.push(reader.string());
-                    break;
-                case /* string endpoint */ 6:
-                    message.endpoint = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -2290,9 +2263,6 @@ class ImportLocalAssetFileRequest$Type extends MessageType<ImportLocalAssetFileR
         /* repeated string capabilities = 5; */
         for (let i = 0; i < message.capabilities.length; i++)
             writer.tag(5, WireType.LengthDelimited).string(message.capabilities[i]);
-        /* string endpoint = 6; */
-        if (message.endpoint !== "")
-            writer.tag(6, WireType.LengthDelimited).string(message.endpoint);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -2356,8 +2326,7 @@ class ScaffoldOrphanAssetRequest$Type extends MessageType<ScaffoldOrphanAssetReq
             { no: 1, name: "path", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 2, name: "kind", kind: "enum", T: () => ["nimi.runtime.v1.LocalAssetKind", LocalAssetKind, "LOCAL_ASSET_KIND_"] },
             { no: 3, name: "engine", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 4, name: "capabilities", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
-            { no: 5, name: "endpoint", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 4, name: "capabilities", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<ScaffoldOrphanAssetRequest>): ScaffoldOrphanAssetRequest {
@@ -2366,7 +2335,6 @@ class ScaffoldOrphanAssetRequest$Type extends MessageType<ScaffoldOrphanAssetReq
         message.kind = 0;
         message.engine = "";
         message.capabilities = [];
-        message.endpoint = "";
         if (value !== undefined)
             reflectionMergePartial<ScaffoldOrphanAssetRequest>(this, message, value);
         return message;
@@ -2387,9 +2355,6 @@ class ScaffoldOrphanAssetRequest$Type extends MessageType<ScaffoldOrphanAssetReq
                     break;
                 case /* repeated string capabilities */ 4:
                     message.capabilities.push(reader.string());
-                    break;
-                case /* string endpoint */ 5:
-                    message.endpoint = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -2415,9 +2380,6 @@ class ScaffoldOrphanAssetRequest$Type extends MessageType<ScaffoldOrphanAssetReq
         /* repeated string capabilities = 4; */
         for (let i = 0; i < message.capabilities.length; i++)
             writer.tag(4, WireType.LengthDelimited).string(message.capabilities[i]);
-        /* string endpoint = 5; */
-        if (message.endpoint !== "")
-            writer.tag(5, WireType.LengthDelimited).string(message.endpoint);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -2482,7 +2444,6 @@ class ImportLocalAssetBundleRequest$Type extends MessageType<ImportLocalAssetBun
             { no: 2, name: "model_name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 3, name: "capabilities", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
             { no: 4, name: "engine", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 5, name: "endpoint", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 6, name: "ordered_bundle_entries", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ }
         ]);
     }
@@ -2492,7 +2453,6 @@ class ImportLocalAssetBundleRequest$Type extends MessageType<ImportLocalAssetBun
         message.modelName = "";
         message.capabilities = [];
         message.engine = "";
-        message.endpoint = "";
         message.orderedBundleEntries = [];
         if (value !== undefined)
             reflectionMergePartial<ImportLocalAssetBundleRequest>(this, message, value);
@@ -2514,9 +2474,6 @@ class ImportLocalAssetBundleRequest$Type extends MessageType<ImportLocalAssetBun
                     break;
                 case /* string engine */ 4:
                     message.engine = reader.string();
-                    break;
-                case /* string endpoint */ 5:
-                    message.endpoint = reader.string();
                     break;
                 case /* repeated string ordered_bundle_entries */ 6:
                     message.orderedBundleEntries.push(reader.string());
@@ -2545,9 +2502,6 @@ class ImportLocalAssetBundleRequest$Type extends MessageType<ImportLocalAssetBun
         /* string engine = 4; */
         if (message.engine !== "")
             writer.tag(4, WireType.LengthDelimited).string(message.engine);
-        /* string endpoint = 5; */
-        if (message.endpoint !== "")
-            writer.tag(5, WireType.LengthDelimited).string(message.endpoint);
         /* repeated string ordered_bundle_entries = 6; */
         for (let i = 0; i < message.orderedBundleEntries.length; i++)
             writer.tag(6, WireType.LengthDelimited).string(message.orderedBundleEntries[i]);

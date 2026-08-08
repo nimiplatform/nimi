@@ -51,8 +51,22 @@ func ExecuteElevenLabsTTS(
 		"stability":        0.5,
 		"similarity_boost": 0.75,
 	}
-	if spec.GetSpeed() > 0 {
-		voiceSettings["speed"] = spec.GetSpeed()
+	if hints := spec.GetVoiceRenderHints(); hints != nil {
+		if stability := hints.GetStability(); stability > 0 {
+			voiceSettings["stability"] = stability
+		}
+		if similarityBoost := hints.GetSimilarityBoost(); similarityBoost > 0 {
+			voiceSettings["similarity_boost"] = similarityBoost
+		}
+		if style := hints.GetStyle(); style > 0 {
+			voiceSettings["style"] = style
+		}
+		if hints.GetUseSpeakerBoost() {
+			voiceSettings["use_speaker_boost"] = true
+		}
+	}
+	if speed := scenarioSpeechSpeed(spec); speed > 0 {
+		voiceSettings["speed"] = speed
 	}
 	if spec.GetVolume() > 0 {
 		voiceSettings["speaking_rate"] = spec.GetVolume()

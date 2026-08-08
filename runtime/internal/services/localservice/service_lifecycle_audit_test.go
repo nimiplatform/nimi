@@ -49,7 +49,6 @@ func TestLocalStateRestoresAfterRestart(t *testing.T) {
 		"logical_model_id":        "nimi/persisted-import",
 		"engine":                  "llama",
 		"capabilities":            []string{"chat"},
-		"endpoint":                "http://127.0.0.1:8091/v1",
 		"local_invoke_profile_id": "profile-persisted",
 	})
 	if err := os.MkdirAll(filepath.Dir(manifestPath), 0o755); err != nil {

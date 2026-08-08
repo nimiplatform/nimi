@@ -151,10 +151,12 @@ func (e *aiBackedPublicChatActionExecutor) ExecuteImageAction(ctx context.Contex
 func buildPublicChatImageActionSubmitRequest(binding publicChatExecutionBinding, params map[string]any, prompt string, idempotencyKey string, waitTimeout time.Duration) *runtimev1.SubmitScenarioJobRequest {
 	spec := &runtimev1.ImageGenerateScenarioSpec{
 		Prompt:         strings.TrimSpace(prompt),
-		N:              1,
+		N:              proto.Int32(1),
 		Size:           publicChatStringParam(params, "size"),
 		ResponseFormat: normalizePublicChatImageResponseFormat(publicChatStringParam(params, "responseFormat", "response_format")),
-		Seed:           int64(publicChatPositiveIntParam(params, "seed")),
+	}
+	if seed := publicChatPositiveIntParam(params, "seed"); seed != 0 {
+		spec.Seed = proto.Int64(int64(seed))
 	}
 	return &runtimev1.SubmitScenarioJobRequest{
 		Head: &runtimev1.ScenarioRequestHead{

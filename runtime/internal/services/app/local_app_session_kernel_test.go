@@ -271,6 +271,59 @@ func TestLocalAppSessionAgentConfigureRequiresIndependentDeclarationDomain(t *te
 	)
 }
 
+func TestLocalAppSessionScenarioConsumptionFamilyAuthorization(t *testing.T) {
+	fixture := newLocalAppSessionFixture(t, []string{"runtime.consume"})
+	if _, err := fixture.service.OpenLocalAppSessionProjection(fixture.context); err != nil {
+		t.Fatal(err)
+	}
+	for ingress, want := range map[localappop.Ingress]struct {
+		operation  accountservice.LocalAppOperation
+		capability string
+	}{
+		localappop.IngressTextTurnStream:       {operation: accountservice.LocalAppOperationTextTurnStream, capability: localappop.AppOperationIDTextTurnStream},
+		localappop.IngressScenarioExecute:      {operation: accountservice.LocalAppOperationScenarioExecute, capability: localappop.AppOperationIDScenarioExecute},
+		localappop.IngressScenarioJobSubmit:    {operation: accountservice.LocalAppOperationScenarioJobSubmit, capability: localappop.AppOperationIDScenarioJobSubmit},
+		localappop.IngressScenarioJobGet:       {operation: accountservice.LocalAppOperationScenarioJobGet, capability: localappop.AppOperationIDScenarioJobGet},
+		localappop.IngressScenarioJobSubscribe: {operation: accountservice.LocalAppOperationScenarioJobSubscribe, capability: localappop.AppOperationIDScenarioJobSubscribe},
+		localappop.IngressScenarioJobCancel:    {operation: accountservice.LocalAppOperationScenarioJobCancel, capability: localappop.AppOperationIDScenarioJobCancel},
+		localappop.IngressArtifactRead:         {operation: accountservice.LocalAppOperationArtifactRead, capability: localappop.AppOperationIDArtifactRead},
+		localappop.IngressArtifactUpload:       {operation: accountservice.LocalAppOperationArtifactUpload, capability: localappop.AppOperationIDArtifactUpload},
+		localappop.IngressVoiceAssetsList:      {operation: accountservice.LocalAppOperationVoiceAssetsList, capability: localappop.AppOperationIDVoiceAssetsList},
+	} {
+		authorized, err := fixture.service.AuthorizeLocalAppIngress(fixture.context, ingress)
+		if err != nil {
+			t.Fatalf("authorize %v: %v", ingress, err)
+		}
+		decision, ok := accountservice.AuthorizedLocalAppDecisionFromContext(authorized)
+		if !ok || decision.Operation != want.operation || decision.AuthorityClass != localappop.AuthorityClassAppAccess ||
+			decision.OperationCapability != want.capability {
+			t.Fatalf("scenario family handoff for %v = %+v", ingress, decision)
+		}
+	}
+
+	denied := newLocalAppSessionFixture(t, []string{"realm.data"})
+	if _, err := denied.service.OpenLocalAppSessionProjection(denied.context); err != nil {
+		t.Fatal(err)
+	}
+	for _, ingress := range []localappop.Ingress{
+		localappop.IngressTextTurnStream,
+		localappop.IngressScenarioExecute,
+		localappop.IngressScenarioJobSubmit,
+		localappop.IngressScenarioJobGet,
+		localappop.IngressScenarioJobSubscribe,
+		localappop.IngressScenarioJobCancel,
+		localappop.IngressArtifactRead,
+		localappop.IngressArtifactUpload,
+		localappop.IngressVoiceAssetsList,
+	} {
+		assertLocalAppReason(
+			t,
+			denied.service.AdmitLocalAppIngress(denied.context, ingress),
+			runtimev1.ReasonCode_LOCAL_APP_ACCESS_DENIED,
+		)
+	}
+}
+
 func assertLocalAppReason(t testing.TB, err error, want runtimev1.ReasonCode) {
 	t.Helper()
 	if got, ok := grpcerr.ExtractReasonCode(err); !ok || got != want {

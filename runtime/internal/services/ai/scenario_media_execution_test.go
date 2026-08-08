@@ -177,7 +177,7 @@ func TestCloudMediaJobCapturesRequestAndBindsRuntimeArtifactCustody(t *testing.T
 		Head:         &runtimev1.ScenarioRequestHead{AppId: "nimi.desktop", SubjectUserId: "user-001"},
 		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE,
 		Spec: &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_ImageGenerate{ImageGenerate: &runtimev1.ImageGenerateScenarioSpec{
-			Prompt: "captured prompt", N: 1, Size: "1024x1024", ResponseFormat: "base64",
+			Prompt: "captured prompt", N: testInt32(1), Size: "1024x1024", ResponseFormat: "base64",
 		}}},
 	}
 	submitted, err := fixture.service.SubmitScenarioJob(ctx, request)

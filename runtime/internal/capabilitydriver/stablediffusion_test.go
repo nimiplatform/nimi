@@ -215,7 +215,7 @@ func TestStableDiffusionPlanPreservesDeclaredLoRAOrderAndNormalizesRequest(t *te
 		PortableConfig: portable,
 		ExactBindings:  bindings,
 		Request: &runtimev1.ImageGenerateScenarioSpec{
-			Prompt: "  a lighthouse  ", NegativePrompt: " fog ", N: 2, Size: "768x512", Seed: 99,
+			Prompt: "  a lighthouse  ", NegativePrompt: " fog ", N: testInt32(2), Size: "768x512", Seed: testInt64(99),
 		},
 	})
 	if err != nil {
@@ -261,7 +261,7 @@ func TestStableDiffusionProcessKeyCoversEveryLoadTimeInstruction(t *testing.T) {
 		})
 		planned, err := (StableDiffusionImageDriver{}).PlanImageInvocation(ImageInvocationInput{
 			PortableConfig: portable, ExactBindings: bindings,
-			Request: &runtimev1.ImageGenerateScenarioSpec{Prompt: prompt, N: 1, Size: "512x512", Seed: 7},
+			Request: &runtimev1.ImageGenerateScenarioSpec{Prompt: prompt, N: testInt32(1), Size: "512x512", Seed: testInt64(7)},
 		})
 		if err != nil {
 			t.Fatal(err)

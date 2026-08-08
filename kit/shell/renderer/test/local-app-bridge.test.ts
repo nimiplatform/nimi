@@ -15,12 +15,14 @@ describe('renderer local-app standard-shell surface', () => {
       NIMI_STANDARD_SHELL_COMMANDS['local-app.textGenerateCandidate'],
     )).toBe('local_app_text_generate_candidate');
     const mappings = [
+      ['local-app.modelConfigLocalSelectionsGet', 'local_app_model_config_local_selections_get'],
       ['local-app.sharedAgentAIConfigGet', 'local_app_shared_agent_ai_config_get'],
       ['local-app.sharedAgentAIConfigOverwrite', 'local_app_shared_agent_ai_config_overwrite'],
       ['local-app.agentAutonomySnapshot', 'local_app_agent_autonomy_snapshot'],
       ['local-app.agentUpdateAutonomy', 'local_app_agent_update_autonomy'],
       ['local-app.agentPresentationSnapshot', 'local_app_agent_presentation_snapshot'],
       ['local-app.agentCommitPresentation', 'local_app_agent_commit_presentation'],
+      ['local-app.artifactUpload', 'local_app_artifact_upload'],
     ] as const;
     for (const [operation, command] of mappings) {
       expect(resolveTauriStandardCommand(NIMI_STANDARD_SHELL_COMMANDS[operation])).toBe(command);
@@ -64,6 +66,66 @@ describe('renderer local-app standard-shell surface', () => {
     expect(JSON.stringify(invocations)).not.toContain('app.example');
   });
 
+  it('projects bounded machine selections without configuration identity', async () => {
+    (globalThis as { __NIMI_ELECTRON_TEST__?: unknown }).__NIMI_ELECTRON_TEST__ = {
+      invoke: async () => [{
+        capabilityContract: 'text.generate',
+        state: 'selected',
+        configurationId: null,
+        displayName: 'gemma4-26b',
+        supportedFeatures: ['input.image'],
+        reasons: [],
+      }],
+      listen: () => () => {},
+    };
+    await expect(
+      createNimiLocalAppStandardShellSurface().modelConfig.localSelections(),
+    ).resolves.toEqual([{
+      capabilityContract: 'text.generate',
+      state: 'selected',
+      configurationId: null,
+      displayName: 'gemma4-26b',
+      supportedFeatures: ['input.image'],
+      reasons: [],
+    }]);
+  });
+
+  it('exposes typed scenario execution and rejects untrusted projection expansion', async () => {
+    const invocations: Array<{ command: string; payload: unknown }> = [];
+    (globalThis as { __NIMI_ELECTRON_TEST__?: unknown }).__NIMI_ELECTRON_TEST__ = {
+      invoke: async (command: string, payload: unknown) => {
+        invocations.push({ command, payload });
+        return { output: { type: 'text-embed', vectors: [[0.1, 0.2]] }, traceId: 'trace-1' };
+      },
+      listen: () => () => {},
+    };
+    await expect(createNimiLocalAppStandardShellSurface().ai.scenario.execute({
+      type: 'text-embed', inputs: ['hello'],
+    })).resolves.toEqual({ output: { type: 'text-embed', vectors: [[0.1, 0.2]] }, traceId: 'trace-1' });
+    expect(invocations).toEqual([{
+      command: 'nimi.shell.localApp.scenarioExecute',
+      payload: { payload: { spec: { type: 'text-embed', inputs: ['hello'] } } },
+    }]);
+  });
+
+  it('uploads bounded image bytes through the typed artifact surface', async () => {
+    const invocations: Array<{ command: string; payload: unknown }> = [];
+    (globalThis as { __NIMI_ELECTRON_TEST__?: unknown }).__NIMI_ELECTRON_TEST__ = {
+      invoke: async (command: string, payload: unknown) => {
+        invocations.push({ command, payload });
+        return { artifactId: 'artifact-upload-1', sizeBytes: 2, mimeType: 'image/png' };
+      },
+      listen: () => () => {},
+    };
+    await expect(createNimiLocalAppStandardShellSurface().ai.artifacts.upload({
+      bytes: [1, 2], mimeType: 'image/png',
+    })).resolves.toEqual({ artifactId: 'artifact-upload-1', sizeBytes: 2, mimeType: 'image/png' });
+    expect(invocations).toEqual([{
+      command: 'nimi.shell.localApp.artifactUpload',
+      payload: { payload: { bytes: [1, 2], mimeType: 'image/png' } },
+    }]);
+  });
+
   it('is consumed directly by the SDK without an app-local adapter', async () => {
     (globalThis as { __NIMI_ELECTRON_TEST__?: unknown }).__NIMI_ELECTRON_TEST__ = {
       invoke: async (command: string) => {
@@ -95,6 +157,60 @@ describe('renderer local-app standard-shell surface', () => {
     await expect(client.currentUser.get()).resolves.toEqual({
       handle: 'halliday', displayName: 'Halliday', avatarUrl: null,
     });
+  });
+
+  it('projects every legal carrier Job event variant through the renderer and SDK', async () => {
+    let emit: ((event: { payload: unknown }) => void) | undefined;
+    (globalThis as { __NIMI_ELECTRON_TEST__?: unknown }).__NIMI_ELECTRON_TEST__ = {
+      invoke: async (command: string) => {
+        if (command === NIMI_STANDARD_SHELL_COMMANDS['local-app.scenarioJobSubscribe']) {
+          return { subscriptionId: 'scenario-job-1', eventName: 'local-app-ai.scenario-job-1' };
+        }
+        throw new Error(`unexpected command ${command}`);
+      },
+      listen: (_eventName: string, handler: (event: { payload: unknown }) => void) => {
+        emit = handler;
+        return () => { emit = undefined; };
+      },
+    };
+    const client = createNimiClient({
+      localApp: { standardShell: createNimiLocalAppStandardShellSurface() },
+    });
+    const subscription = await client.ai.scenarioJobs.subscribe('job-1');
+    expect(emit).toBeTypeOf('function');
+
+    const baseJob = {
+      jobId: 'job-1', scenarioType: 'video-generate', status: 'submitted',
+      progressPercent: 0, progressCurrentStep: 0, progressTotalSteps: 4,
+      reasonCode: 'unspecified', reasonDetail: '', artifacts: [], traceId: 'trace-1',
+      createdAt: null, updatedAt: null,
+    };
+    const events = [
+      { eventType: 'submitted', sequence: '1', traceId: 'trace-1', timestamp: null, job: baseJob },
+      { eventType: 'running', sequence: '2', traceId: 'trace-1', timestamp: { seconds: '1786170000', nanos: 1 }, job: {
+        ...baseJob, status: 'running', progressPercent: 50, progressCurrentStep: 2,
+      } },
+      { eventType: 'completed', sequence: '3', traceId: 'trace-1', timestamp: null, job: {
+        ...baseJob, status: 'completed', progressPercent: 100, progressCurrentStep: 4,
+        artifacts: [{
+          artifactId: 'artifact-1', mimeType: 'video/mp4', bytes: [], sizeBytes: 1024,
+          sha256: 'abc123', durationMs: 3000, width: 1280, height: 720,
+          sampleRateHz: 0, channels: 0,
+        }],
+      } },
+      { eventType: 'failed', sequence: '4', traceId: 'trace-1', timestamp: null, job: {
+        ...baseJob, status: 'failed', reasonCode: 'runtime-call-failed',
+        reasonDetail: 'provider execution failed',
+      } },
+    ];
+    for (const event of events) {
+      emit!({ payload: { subscriptionId: 'scenario-job-1', eventType: 'next', event } });
+    }
+    emit!({ payload: { subscriptionId: 'scenario-job-1', eventType: 'completed' } });
+
+    const received = [];
+    for await (const event of subscription) received.push(event);
+    expect(received).toEqual(events);
   });
 
   it('projects the exact minimal Agent reference catalog', async () => {
@@ -193,7 +309,7 @@ describe('renderer local-app standard-shell surface', () => {
   it('physically omits the retired access-workflow namespace', () => {
     const surface = createNimiLocalAppStandardShellSurface() as unknown as Record<string, unknown>;
     expect(Object.keys(surface).sort()).toEqual([
-      'session', 'ai', 'aiConfig', 'storage', 'realm', 'agents', 'agentConfigure', 'conversation',
+      'session', 'ai', 'aiConfig', 'modelConfig', 'storage', 'realm', 'agents', 'agentConfigure', 'conversation',
     ].sort());
     expect(Object.keys(surface.agentConfigure as Record<string, unknown>).sort()).toEqual([
       'sharedAIConfig', 'autonomy', 'presentation',
@@ -214,9 +330,14 @@ describe('renderer local-app standard-shell surface', () => {
         { role: 'system', text: 'Return JSON.' },
         { role: 'user', text: 'Create one persona.' },
       ],
-      temperature: 0.7,
-      topP: 0.9,
-      maxTokens: 512,
+      temperature: 0,
+      topP: 0,
+      maxTokens: 0,
+      topK: 0,
+      presencePenalty: -2,
+      frequencyPenalty: 2,
+      stop: ['END'],
+      seed: 0,
     })).resolves.toEqual({ text: '  {"name":"Lin"}\n', finishReason: 'stop', traceId: 'trace-1' });
     expect(invocations).toEqual([{
       command: 'nimi.shell.localApp.textGenerateCandidate',
@@ -225,9 +346,14 @@ describe('renderer local-app standard-shell surface', () => {
           { role: 'system', text: 'Return JSON.' },
           { role: 'user', text: 'Create one persona.' },
         ],
-        temperature: 0.7,
-        topP: 0.9,
-        maxTokens: 512,
+        temperature: 0,
+        topP: 0,
+        maxTokens: 0,
+        topK: 0,
+        presencePenalty: -2,
+        frequencyPenalty: 2,
+        stop: ['END'],
+        seed: 0,
       } },
     }]);
   });

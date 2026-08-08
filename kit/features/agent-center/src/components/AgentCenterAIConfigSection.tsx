@@ -52,15 +52,19 @@ function aiConfigCopy(i18n: AgentCenterI18n | undefined): ModelConfigCopy {
     advancedLabel: t('AgentCenter.aiConfig.advancedLabel', 'Advanced intent'),
     advancedHint: t(
       'AgentCenter.aiConfig.advancedHint',
-      'Required features and portable defaults apply to this shared LocalAgent AIConfig intent.',
+      'Required features and default parameters apply to this shared LocalAgent AIConfig intent.',
     ),
     requiredFeaturesLabel: t('AgentCenter.aiConfig.requiredFeaturesLabel', 'Required features'),
     requiredFeaturesPlaceholder: t(
       'AgentCenter.aiConfig.requiredFeaturesPlaceholder',
       'Comma-separated CapabilityContract features',
     ),
-    defaultsLabel: t('AgentCenter.aiConfig.defaultsLabel', 'Portable defaults (JSON)'),
-    defaultsPlaceholder: t('AgentCenter.aiConfig.defaultsPlaceholder', 'Optional capability defaults'),
+    defaultsLabel: t('AgentCenter.aiConfig.defaultsLabel', 'Default parameters'),
+    defaultsPlaceholder: t('AgentCenter.aiConfig.defaultsPlaceholder', 'Leave a field empty to keep that parameter unset.'),
+    defaultsUnsetLabel: t('AgentCenter.aiConfig.defaultsUnsetLabel', 'Not set'),
+    defaultsTrueLabel: t('AgentCenter.aiConfig.defaultsTrueLabel', 'True'),
+    defaultsFalseLabel: t('AgentCenter.aiConfig.defaultsFalseLabel', 'False'),
+    defaultsListPlaceholder: t('AgentCenter.aiConfig.defaultsListPlaceholder', 'One value per line'),
     localChoiceDescription: t(
       'AgentCenter.aiConfig.localChoiceDescription',
       'Use the model selected in Local AI Configurations.',

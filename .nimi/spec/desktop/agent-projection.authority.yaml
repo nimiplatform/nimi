@@ -70,9 +70,9 @@ units:
     kind: rule
     title: LocalAgent context status is bounded
     modality: must
-    statement: Desktop may render typed readiness, reason, budget, truncation, count, provenance, and safe correlation facts but never raw source, World context, prompt, transcript, private Memory or Knowledge, proof, credentials, provider payloads, or tool payloads.
+    statement: Desktop may render typed readiness, reason, budget, truncation, count, provenance, and safe correlation facts but never raw source, World context, prompt, transcript, private Memory or Knowledge, proof, credentials, provider payloads, or tool payloads; a context-capacity failure is presented in user language with current and required capacity plus an explicit route to the owning Machine Local AI Configuration instead of a duplicated raw internal error.
     condition: Whenever LocalAgent source or turn-context status is displayed.
-    failure: Reject an over-broad projection and show unavailable status.
+    failure: Reject an over-broad projection or raw duplicated technical failure and show bounded unavailable status with an actionable owner route.
     relations:
       - type: applies_to
         target: definition.nimi.desktop.agent-projection.agent-chat

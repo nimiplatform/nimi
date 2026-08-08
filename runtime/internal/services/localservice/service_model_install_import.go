@@ -119,7 +119,7 @@ func (s *Service) importLocalAsset(_ context.Context, req *runtimev1.ImportLocal
 		)
 	}
 
-	if manifestHasAnyKey(manifest, "model_id", "modelId", "artifact_id", "artifactId", "assetId", "asset_kind", "assetKind", "logicalModelId", "localInvokeProfileId") {
+	if manifestHasAnyKey(manifest, "model_id", "modelId", "artifact_id", "artifactId", "assetId", "asset_kind", "assetKind", "logicalModelId", "localInvokeProfileId", "endpoint") {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_MANIFEST_SCHEMA_INVALID)
 	}
 	assetID, ok := manifestString(manifest, "asset_id")
@@ -194,58 +194,13 @@ func (s *Service) importLocalAsset(_ context.Context, req *runtimev1.ImportLocal
 	entry := defaultString(manifestStringDefault(manifest, "entry"), "./dist/index.js")
 	importFacts := localAssetImportFactsFromManifest(manifest, assetID, entry)
 	license := defaultString(manifestStringDefault(manifest, "license"), "unknown")
-	endpoint := strings.TrimSpace(req.GetEndpoint())
-	if endpoint == "" {
-		endpoint = manifestStringDefault(manifest, "endpoint")
-	}
-	binding := resolveInstallRuntimeBinding(
-		engine,
-		capabilities,
-		kind,
-		endpoint,
-		collectDeviceProfile(),
-	)
-	binding = normalizeLocalImportRuntimeBinding(engine, capabilities, kind, binding)
-	if err := validateImportManifestDeclaredFileHashes(manifest, manifestPath, hashes, normalizeRuntimeMode(binding.mode) == runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED); err != nil {
+	if err := validateImportManifestDeclaredFileHashes(manifest, hashes); err != nil {
 		return nil, grpcerr.WrapWithReasonCode(
 			codes.InvalidArgument,
 			runtimev1.ReasonCode_AI_LOCAL_MANIFEST_INVALID,
 			err,
 			grpcerr.ReasonOptions{Message: "local asset manifest requires non-empty sha256 hash declarations"},
 		)
-	}
-	deviceProfile := collectDeviceProfile()
-	importCompatibilityDetail := ""
-	if isCanonicalSupervisedImageAsset(engine, capabilities, kind) {
-		manifestFacts := canonicalImageResolverFactsForImport(
-			engine,
-			capabilities,
-			kind,
-			entry,
-			nil,
-			hashes,
-			artifactRoles,
-			preferredEngine,
-			engineConfig,
-		)
-		if !canonicalSupervisedImageSelectionSupported(deviceProfile, manifestFacts) {
-			importCompatibilityDetail = strings.TrimSpace(canonicalSupervisedImageSelection(deviceProfile, manifestFacts).CompatibilityDetail)
-		}
-	}
-	if isRunnableKind(kind) && normalizeRuntimeMode(binding.mode) == runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_ATTACHED_ENDPOINT && strings.TrimSpace(binding.endpoint) == "" {
-		if detail := attachedEndpointRequiredDetailForAsset(engine, capabilities, kind, collectDeviceProfile()); detail != "" {
-			return nil, grpcerr.WithReasonCodeOptions(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_ENDPOINT_REQUIRED, grpcerr.ReasonOptions{
-				Message:    detail,
-				ActionHint: "set_local_provider_endpoint",
-			})
-		}
-		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_ENDPOINT_REQUIRED)
-	}
-	if detail := attachedLoopbackConfigErrorDetail(engine, binding.mode, binding.endpoint, collectDeviceProfile()); detail != "" {
-		return nil, grpcerr.WithReasonCodeOptions(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_ENDPOINT_REQUIRED, grpcerr.ReasonOptions{
-			Message:    detail,
-			ActionHint: "set_local_provider_endpoint",
-		})
 	}
 	fallbackEngines, fallbackEnginesErr := manifestStringSliceKeys(manifest, "fallback_engines", "fallbackEngines")
 	if fallbackEnginesErr != nil {
@@ -274,16 +229,15 @@ func (s *Service) importLocalAsset(_ context.Context, req *runtimev1.ImportLocal
 	if repo == "" {
 		repo = "file://" + manifestPath
 	}
-	if normalizeRuntimeMode(binding.mode) == runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED {
+	if len(manifestFiles) > 0 {
 		repo = "file://" + filepath.ToSlash(manifestPath)
-	}
-	if normalizeRuntimeMode(binding.mode) == runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED {
 		tempModel := &runtimev1.LocalAssetRecord{
 			AssetId:        assetID,
 			Kind:           kind,
 			Capabilities:   append([]string(nil), capabilities...),
 			Engine:         engine,
 			Entry:          entry,
+			Files:          append([]string(nil), manifestFiles...),
 			Source:         &runtimev1.LocalAssetSource{Repo: repo, Revision: revision},
 			Hashes:         cloneStringMap(hashes),
 			LogicalModelId: logicalModelID,
@@ -302,21 +256,8 @@ func (s *Service) importLocalAsset(_ context.Context, req *runtimev1.ImportLocal
 				codes.InvalidArgument,
 				runtimev1.ReasonCode_AI_LOCAL_MANIFEST_INVALID,
 				validateErr,
-				grpcerr.ReasonOptions{Message: "local model entry is incompatible with its runtime-supported diffusion or model declaration"},
+				grpcerr.ReasonOptions{Message: "local model entry is incompatible with its declared asset kind"},
 			)
-		}
-		bundleFiles := valueAsStringSlice(manifest["files"])
-		if len(bundleFiles) == 0 {
-			discoveredFiles, err := listManagedBundleRelativeFiles(filepath.Dir(manifestPath))
-			if err != nil {
-				return nil, grpcerr.WrapWithReasonCode(
-					codes.InvalidArgument,
-					runtimev1.ReasonCode_AI_LOCAL_MANIFEST_INVALID,
-					err,
-					grpcerr.ReasonOptions{Message: "managed model bundle contents could not be enumerated"},
-				)
-			}
-			bundleFiles = discoveredFiles
 		}
 		engineConfig, projectionOverride, augmentErr := augmentManagedGGUFBundleFacts(
 			resolveLocalModelsPath(s.localModelsPath),
@@ -325,7 +266,7 @@ func (s *Service) importLocalAsset(_ context.Context, req *runtimev1.ImportLocal
 			entryPath,
 			engine,
 			capabilities,
-			bundleFiles,
+			manifestFiles,
 			engineConfig,
 			&modelregistry.NativeProjection{
 				LogicalModelID:  logicalModelID,
@@ -340,7 +281,7 @@ func (s *Service) importLocalAsset(_ context.Context, req *runtimev1.ImportLocal
 				codes.InvalidArgument,
 				runtimev1.ReasonCode_AI_LOCAL_MANIFEST_INVALID,
 				augmentErr,
-				grpcerr.ReasonOptions{Message: "managed model bundle metadata is invalid"},
+				grpcerr.ReasonOptions{Message: "local model bundle metadata is invalid"},
 			)
 		}
 		record, err := s.installLocalAssetRecord(
@@ -353,8 +294,6 @@ func (s *Service) importLocalAsset(_ context.Context, req *runtimev1.ImportLocal
 			repo,
 			revision,
 			hashes,
-			binding.endpoint,
-			binding.mode,
 			manifestStringDefault(manifest, "local_invoke_profile_id"),
 			engineConfig,
 			projectionOverride,
@@ -367,10 +306,6 @@ func (s *Service) importLocalAsset(_ context.Context, req *runtimev1.ImportLocal
 		}
 		record = s.applyLocalAssetImportFacts(record, importFacts)
 		record = applyLocalAssetBundleManifest(s, record, manifestFiles, bundleEntries)
-		record, err = s.finalizeImportedCanonicalImageRecord(record, importCompatibilityDetail)
-		if err != nil {
-			return nil, err
-		}
 		return &runtimev1.ImportLocalAssetResponse{Asset: record}, nil
 	}
 	record, err := s.installLocalAssetRecord(
@@ -383,8 +318,6 @@ func (s *Service) importLocalAsset(_ context.Context, req *runtimev1.ImportLocal
 		repo,
 		revision,
 		hashes,
-		binding.endpoint,
-		binding.mode,
 		manifestStringDefault(manifest, "local_invoke_profile_id"),
 		engineConfig,
 		&modelregistry.NativeProjection{
@@ -403,27 +336,13 @@ func (s *Service) importLocalAsset(_ context.Context, req *runtimev1.ImportLocal
 	}
 	record = s.applyLocalAssetImportFacts(record, importFacts)
 	record = applyLocalAssetBundleManifest(s, record, manifestFiles, bundleEntries)
-	record, err = s.finalizeImportedCanonicalImageRecord(record, importCompatibilityDetail)
-	if err != nil {
-		return nil, err
-	}
 	return &runtimev1.ImportLocalAssetResponse{Asset: record}, nil
 }
 
-func validateImportManifestDeclaredFileHashes(manifest map[string]any, manifestPath string, hashes map[string]string, supervised bool) error {
+func validateImportManifestDeclaredFileHashes(manifest map[string]any, hashes map[string]string) error {
 	files := normalizeStringSlice(valueAsStringSlice(manifest["files"]))
 	if len(files) == 0 {
-		if !supervised {
-			return nil
-		}
-		discovered, err := listManagedBundleRelativeFiles(filepath.Dir(manifestPath))
-		if err != nil {
-			return err
-		}
-		files = normalizeStringSlice(discovered)
-	}
-	if supervised && len(files) == 0 {
-		return fmt.Errorf("supervised import manifest files are required")
+		return nil
 	}
 	for _, file := range files {
 		if strings.TrimSpace(file) == "" {
@@ -434,18 +353,4 @@ func validateImportManifestDeclaredFileHashes(manifest map[string]any, manifestP
 		}
 	}
 	return nil
-}
-
-func (s *Service) finalizeImportedCanonicalImageRecord(record *runtimev1.LocalAssetRecord, compatibilityDetail string) (*runtimev1.LocalAssetRecord, error) {
-	if record == nil {
-		return nil, nil
-	}
-	if strings.TrimSpace(compatibilityDetail) == "" {
-		return record, nil
-	}
-	return s.updateModelStatus(
-		record.GetLocalAssetId(),
-		runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY,
-		strings.TrimSpace(compatibilityDetail),
-	)
 }

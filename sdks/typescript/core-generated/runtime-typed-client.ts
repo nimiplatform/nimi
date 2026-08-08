@@ -8,14 +8,14 @@ import type { CancelCompanionParticipationRequest, CancelCompanionParticipationR
 import type { CommitLocalAppAgentPresentationRequest, GetLocalAppAgentAutonomySnapshotRequest, GetLocalAppAgentPresentationSnapshotRequest, GetLocalAppSharedLocalAgentAIConfigRequest, GetLocalAppSharedLocalAgentAIConfigResponse, LocalAppAgentAutonomySnapshotResponse, LocalAppAgentCommitPresentationResponse, LocalAppAgentPresentationSnapshotResponse, LocalAppAgentUpdateAutonomyResponse, OverwriteLocalAppSharedLocalAgentAIConfigRequest, OverwriteLocalAppSharedLocalAgentAIConfigResponse, UpdateLocalAppAgentAutonomyRequest } from "./runtime-protobuf/runtime/v1/agent_configure";
 import type { AgentEvent, AgentVoiceStreamEvent, ApplySharedLocalAgentAIProfileRequest, ApplySharedLocalAgentAIProfileResponse, CancelHookRequest, CancelHookResponse, DisableAutonomyRequest, DisableAutonomyResponse, EnableAutonomyRequest, EnableAutonomyResponse, GetAgentCanonicalMemoryBankStatusRequest, GetAgentCanonicalMemoryBankStatusResponse, GetAgentCanonicalMemoryReviewStatusRequest, GetAgentCanonicalMemoryReviewStatusResponse, GetAgentPresentationAssetRequest, GetAgentPresentationAssetResponse, GetAgentRequest, GetAgentResponse, GetAgentStateRequest, GetAgentStateResponse, GetAvatarDebugReplayRequest, GetAvatarDebugReplayResponse, GetAvatarDebugSnapshotRequest, GetAvatarDebugSnapshotResponse, GetConversationAnchorSnapshotRequest, GetConversationAnchorSnapshotResponse, GetLocalAppConversationSnapshotRequest, GetLocalAppConversationSnapshotResponse, GetPublicChatSessionSnapshotRequest, GetPublicChatSessionSnapshotResponse, GetSharedLocalAgentAIConfigRequest, GetSharedLocalAgentAIConfigResponse, InterruptAgentVoicePlaybackRequest, InterruptAgentVoicePlaybackResponse, InterruptLocalAppConversationTurnRequest, InterruptLocalAppConversationTurnResponse, ListAgentConversationSummariesRequest, ListAgentConversationSummariesResponse, ListAgentsRequest, ListAgentsResponse, ListAvatarDebugProbeResultsRequest, ListAvatarDebugProbeResultsResponse, ListLocalAppAgentReferencesRequest, ListLocalAppAgentReferencesResponse, ListPendingHooksRequest, ListPendingHooksResponse, LocalAppConversationEvent, OpenConversationAnchorRequest, OpenConversationAnchorResponse, OpenLocalAppConversationRequest, OpenLocalAppConversationResponse, OverwriteSharedLocalAgentAIConfigRequest, OverwriteSharedLocalAgentAIConfigResponse, PreviewSharedLocalAgentAIProfileRequest, PreviewSharedLocalAgentAIProfileResponse, QueryAgentMemoryRequest, QueryAgentMemoryResponse, RegisterAvatarLiveInstanceBindingRequest, RegisterAvatarLiveInstanceBindingResponse, RequestAgentCanonicalMemoryBankBindRequest, RequestAgentCanonicalMemoryBankBindResponse, RequestAvatarDebugProbeRequest, RequestAvatarDebugProbeResponse, ResolveAvatarLiveInstanceBindingRequest, ResolveAvatarLiveInstanceBindingResponse, SendLocalAppConversationTurnRequest, SendLocalAppConversationTurnResponse, SetAgentPresentationProfileRequest, SetAgentPresentationProfileResponse, SetAutonomyConfigRequest, SetAutonomyConfigResponse, SubmitAvatarDebugProbeResultRequest, SubmitAvatarDebugProbeResultResponse, SubscribeAgentEventsRequest, SubscribeAgentVoiceStreamRequest, SubscribeLocalAppConversationEventsRequest, TerminateAgentRequest, TerminateAgentResponse, UpdateAgentStateRequest, UpdateAgentStateResponse, WriteAgentMemoryRequest, WriteAgentMemoryResponse } from "./runtime-protobuf/runtime/v1/agent_service";
 import type { MaterializeRealmSourceRequest, MaterializeRealmSourceResponse } from "./runtime-protobuf/runtime/v1/agent_source_materialization";
-import type { CancelScenarioJobRequest, CancelScenarioJobResponse, ExecuteScenarioRequest, ExecuteScenarioResponse, GenerateLocalAppTextCandidateRequest, GenerateLocalAppTextCandidateResponse, GetScenarioArtifactsRequest, GetScenarioArtifactsResponse, GetScenarioJobRequest, GetScenarioJobResponse, ListScenarioProfilesRequest, ListScenarioProfilesResponse, ScenarioJobEvent, StreamScenarioEvent, StreamScenarioRequest, SubmitScenarioJobRequest, SubmitScenarioJobResponse, SubscribeScenarioJobEventsRequest, UploadArtifactRequest, UploadArtifactResponse } from "./runtime-protobuf/runtime/v1/ai";
+import type { CancelLocalAppScenarioJobRequest, CancelLocalAppScenarioJobResponse, CancelScenarioJobRequest, CancelScenarioJobResponse, ExecuteLocalAppScenarioRequest, ExecuteLocalAppScenarioResponse, ExecuteScenarioRequest, ExecuteScenarioResponse, GenerateLocalAppTextCandidateRequest, GenerateLocalAppTextCandidateResponse, GetLocalAppScenarioJobRequest, GetLocalAppScenarioJobResponse, GetScenarioArtifactsRequest, GetScenarioArtifactsResponse, GetScenarioJobRequest, GetScenarioJobResponse, ListLocalAppVoiceAssetsRequest, ListLocalAppVoiceAssetsResponse, ListScenarioProfilesRequest, ListScenarioProfilesResponse, LocalAppScenarioJobEvent, ReadLocalAppArtifactRequest, ReadLocalAppArtifactResponse, ScenarioJobEvent, StreamLocalAppTextTurnEvent, StreamLocalAppTextTurnRequest, StreamScenarioEvent, StreamScenarioRequest, SubmitLocalAppScenarioJobRequest, SubmitLocalAppScenarioJobResponse, SubmitScenarioJobRequest, SubmitScenarioJobResponse, SubscribeLocalAppScenarioJobEventsRequest, SubscribeScenarioJobEventsRequest, UploadArtifactRequest, UploadArtifactResponse, UploadLocalAppArtifactRequest, UploadLocalAppArtifactResponse } from "./runtime-protobuf/runtime/v1/ai";
 import type { AppendRealtimeInputRequest, AppendRealtimeInputResponse, CloseRealtimeSessionRequest, CloseRealtimeSessionResponse, OpenRealtimeSessionRequest, OpenRealtimeSessionResponse, ReadRealtimeEventsRequest, RealtimeEvent } from "./runtime-protobuf/runtime/v1/ai_realtime";
 import type { PeekSchedulingRequest, PeekSchedulingResponse } from "./runtime-protobuf/runtime/v1/ai_scheduling";
 import type { AppMessageEvent, BindLocalAppProcessRequest, BindLocalAppProcessResponse, GetAppStorageRequest, GetAppStorageResponse, PrepareLocalAppLaunchRequest, PrepareLocalAppLaunchResponse, ReadLocalAppStorageJsonRequest, ReadLocalAppStorageJsonResponse, RebindLocalAppProcessRequest, RebindLocalAppProcessResponse, RemoveLocalAppStorageJsonRequest, RemoveLocalAppStorageJsonResponse, SendAppMessageRequest, SendAppMessageResponse, SubscribeAppMessagesRequest, WriteLocalAppStorageJsonRequest, WriteLocalAppStorageJsonResponse } from "./runtime-protobuf/runtime/v1/app";
 import type { CleanupGeneratedVoiceArtifactsRequest, CleanupGeneratedVoiceArtifactsResponse, PutArtifactRequest, PutArtifactResponse, ReadArtifactBytesRequest, ReadArtifactBytesResponse } from "./runtime-protobuf/runtime/v1/artifact_service";
 import type { AIProviderHealthEvent, AuditExportChunk, ExportAuditEventsRequest, GetRuntimeHealthRequest, GetRuntimeHealthResponse, ListAIProviderHealthRequest, ListAIProviderHealthResponse, ListAuditEventsRequest, ListAuditEventsResponse, ListDesktopAuditEventsRequest, ListDesktopAuditEventsResponse, ListUsageStatsRequest, ListUsageStatsResponse, RuntimeHealthEvent, SubscribeAIProviderHealthEventsRequest, SubscribeRuntimeHealthEventsRequest } from "./runtime-protobuf/runtime/v1/audit";
 import type { OpenDesktopSessionRequest, OpenDesktopSessionResponse, OpenExternalPrincipalSessionRequest, OpenExternalPrincipalSessionResponse, OpenLocalAppSessionRequest, OpenLocalAppSessionResponse, OpenSessionRequest, OpenSessionResponse, RefreshSessionRequest, RefreshSessionResponse, RegisterAppRequest, RegisterAppResponse, RegisterExternalPrincipalRequest, RegisterExternalPrincipalResponse, RenewLocalAppSessionRequest, RevokeExternalPrincipalSessionRequest, RevokeSessionRequest } from "./runtime-protobuf/runtime/v1/auth";
-import type { AddLocalCapabilityConfigurationRequest, AddLocalCapabilityConfigurationResponse, BindLocalCapabilityRequirementRequest, BindLocalCapabilityRequirementResponse, ClearLocalCapabilitySelectionRequest, ClearLocalCapabilitySelectionResponse, DeleteLocalCapabilityConfigurationRequest, DeleteLocalCapabilityConfigurationResponse, GetAppAIConfigRequest, GetAppAIConfigResponse, GetLocalCapabilityConfigurationRequest, GetLocalCapabilityConfigurationResponse, GetMachineLocalAIConfigurationRequest, GetMachineLocalAIConfigurationResponse, OverwriteAppAIConfigRequest, OverwriteAppAIConfigResponse, RebindLocalCapabilityRequirementRequest, RebindLocalCapabilityRequirementResponse, ReprojectLocalCapabilityRequirementsRequest, ReprojectLocalCapabilityRequirementsResponse, SelectLocalCapabilityConfigurationRequest, SelectLocalCapabilityConfigurationResponse, UnbindLocalCapabilityRequirementRequest, UnbindLocalCapabilityRequirementResponse } from "./runtime-protobuf/runtime/v1/capability_configuration";
+import type { AddLocalCapabilityConfigurationRequest, AddLocalCapabilityConfigurationResponse, BindLocalCapabilityRequirementRequest, BindLocalCapabilityRequirementResponse, ClearLocalCapabilitySelectionRequest, ClearLocalCapabilitySelectionResponse, DeleteLocalCapabilityConfigurationRequest, DeleteLocalCapabilityConfigurationResponse, GetAppAIConfigRequest, GetAppAIConfigResponse, GetLocalCapabilityConfigurationRequest, GetLocalCapabilityConfigurationResponse, GetMachineLocalAIConfigurationRequest, GetMachineLocalAIConfigurationResponse, OverwriteAppAIConfigRequest, OverwriteAppAIConfigResponse, RebindLocalCapabilityRequirementRequest, RebindLocalCapabilityRequirementResponse, ReprojectLocalCapabilityRequirementsRequest, ReprojectLocalCapabilityRequirementsResponse, SelectLocalCapabilityConfigurationRequest, SelectLocalCapabilityConfigurationResponse, UnbindLocalCapabilityRequirementRequest, UnbindLocalCapabilityRequirementResponse, UpdateLocalCapabilityConfigurationRequest, UpdateLocalCapabilityConfigurationResponse } from "./runtime-protobuf/runtime/v1/capability_configuration";
 import type { Ack } from "./runtime-protobuf/runtime/v1/common";
 import type { CreateConnectorGrantRequest, CreateConnectorGrantResponse, CreateConnectorRequest, CreateConnectorResponse, DeleteCatalogModelOverlayRequest, DeleteCatalogModelOverlayResponse, DeleteConnectorRequest, DeleteConnectorResponse, DeleteModelCatalogProviderRequest, DeleteModelCatalogProviderResponse, GetCatalogModelDetailRequest, GetCatalogModelDetailResponse, GetConnectorRequest, GetConnectorResponse, ListCatalogProviderModelsRequest, ListCatalogProviderModelsResponse, ListConnectorGrantsRequest, ListConnectorGrantsResponse, ListConnectorModelsRequest, ListConnectorModelsResponse, ListConnectorsRequest, ListConnectorsResponse, ListModelCatalogProvidersRequest, ListModelCatalogProvidersResponse, ListProviderCatalogRequest, ListProviderCatalogResponse, RevokeConnectorGrantRequest, RevokeConnectorGrantResponse, TestConnectorRequest, TestConnectorResponse, UpdateConnectorRequest, UpdateConnectorResponse, UpsertCatalogModelOverlayRequest, UpsertCatalogModelOverlayResponse, UpsertModelCatalogProviderRequest, UpsertModelCatalogProviderResponse } from "./runtime-protobuf/runtime/v1/connector";
 import type { GetDelegatedControlSurfaceSnapshotRequest, GetDelegatedControlSurfaceSnapshotResponse, GetDelegatedReplayTraceRequest, GetDelegatedReplayTraceResponse, ListDelegatedApprovalRequestsRequest, ListDelegatedApprovalRequestsResponse, ListDelegatedDiagnosticsRequest, ListDelegatedDiagnosticsResponse, ListDelegatedProviderProfilesRequest, ListDelegatedProviderProfilesResponse, SubmitDelegatedApprovalDecisionRequest, SubmitDelegatedApprovalDecisionResponse } from "./runtime-protobuf/runtime/v1/delegated_control";
@@ -43,14 +43,14 @@ export type { CommitLocalAppAgentPresentationRequest, GetLocalAppAgentAutonomySn
 export type { AgentPresentationAssetMaterial, AgentPresentationEventDetail, AgentPresentationProfile, AgentPresentationProfilePatch, ClearAgentPresentationProfile } from "./runtime-protobuf/runtime/v1/agent_presentation";
 export type { AgentAutonomyConfig, AgentAutonomyState, AgentAvatarDebugEventDetail, AgentBudgetEventDetail, AgentCanonicalMemoryBankStatus, AgentCanonicalMemoryReviewStatus, AgentConversationSummary, AgentEvent, AgentHookEventDetail, AgentLifecycleEventDetail, AgentMemoryEventDetail, AgentPostureProjection, AgentProactiveEventDetail, AgentProactiveInterruptibilityProjection, AgentReplicationEventDetail, AgentStateClearDyadicContext, AgentStateClearWorldContext, AgentStateEventDetail, AgentStateMutation, AgentStateProjection, AgentStatePutAttribute, AgentStateRemoveAttribute, AgentStateSetDyadicContext, AgentStateSetStatusText, AgentStateSetWorldContext, AgentVoiceStreamEvent, ApplySharedLocalAgentAIProfileRequest, ApplySharedLocalAgentAIProfileResponse, AvatarDebugProbeRequestEnvelope, AvatarDebugProbeResultEnvelope, AvatarDebugReplayRef, AvatarLiveInstanceBinding, CancelHookRequest, CancelHookResponse, CanonicalMemoryCandidate, CanonicalMemoryRejection, CanonicalMemoryView, ConversationAnchor, ConversationAnchorSnapshot, DisableAutonomyRequest, DisableAutonomyResponse, EnableAutonomyRequest, EnableAutonomyResponse, GetAgentCanonicalMemoryBankStatusRequest, GetAgentCanonicalMemoryBankStatusResponse, GetAgentCanonicalMemoryReviewStatusRequest, GetAgentCanonicalMemoryReviewStatusResponse, GetAgentPresentationAssetRequest, GetAgentPresentationAssetResponse, GetAgentRequest, GetAgentResponse, GetAgentStateRequest, GetAgentStateResponse, GetAvatarDebugReplayRequest, GetAvatarDebugReplayResponse, GetAvatarDebugSnapshotRequest, GetAvatarDebugSnapshotResponse, GetConversationAnchorSnapshotRequest, GetConversationAnchorSnapshotResponse, GetLocalAppConversationSnapshotRequest, GetLocalAppConversationSnapshotResponse, GetPublicChatSessionSnapshotRequest, GetPublicChatSessionSnapshotResponse, GetSharedLocalAgentAIConfigRequest, GetSharedLocalAgentAIConfigResponse, HookExecutionOutcome, HookIntent, HookTriggerDetail, HookTriggerEventChatEndedDetail, HookTriggerEventUserIdleDetail, HookTriggerTimeDetail, InterruptAgentVoicePlaybackRequest, InterruptAgentVoicePlaybackResponse, InterruptLocalAppConversationTurnRequest, InterruptLocalAppConversationTurnResponse, ListAgentConversationSummariesRequest, ListAgentConversationSummariesResponse, ListAgentsRequest, ListAgentsResponse, ListAvatarDebugProbeResultsRequest, ListAvatarDebugProbeResultsResponse, ListLocalAppAgentReferencesRequest, ListLocalAppAgentReferencesResponse, ListPendingHooksRequest, ListPendingHooksResponse, LocalAgentRecord, LocalAppAgentReference, LocalAppConversationEvent, LocalAppConversationMessage, LocalAppConversationMessageCommitted, LocalAppConversationSnapshot, LocalAppConversationTextDelta, LocalAppConversationTurnAccepted, LocalAppConversationTurnCompleted, LocalAppConversationTurnFailed, LocalAppConversationTurnInterrupted, LocalAppConversationTurnStarted, OpenConversationAnchorRequest, OpenConversationAnchorResponse, OpenLocalAppConversationRequest, OpenLocalAppConversationResponse, OverwriteSharedLocalAgentAIConfigRequest, OverwriteSharedLocalAgentAIConfigResponse, PendingHook, PreviewSharedLocalAgentAIProfileRequest, PreviewSharedLocalAgentAIProfileResponse, QueryAgentMemoryRequest, QueryAgentMemoryResponse, RegisterAvatarLiveInstanceBindingRequest, RegisterAvatarLiveInstanceBindingResponse, RequestAgentCanonicalMemoryBankBindRequest, RequestAgentCanonicalMemoryBankBindResponse, RequestAvatarDebugProbeRequest, RequestAvatarDebugProbeResponse, ResolveAvatarLiveInstanceBindingRequest, ResolveAvatarLiveInstanceBindingResponse, SendLocalAppConversationTurnRequest, SendLocalAppConversationTurnResponse, SetAgentPresentationProfileRequest, SetAgentPresentationProfileResponse, SetAutonomyConfigRequest, SetAutonomyConfigResponse, SubmitAvatarDebugProbeResultRequest, SubmitAvatarDebugProbeResultResponse, SubscribeAgentEventsRequest, SubscribeAgentVoiceStreamRequest, SubscribeLocalAppConversationEventsRequest, TerminateAgentRequest, TerminateAgentResponse, UpdateAgentStateRequest, UpdateAgentStateResponse, WriteAgentMemoryRequest, WriteAgentMemoryResponse } from "./runtime-protobuf/runtime/v1/agent_service";
 export type { AgentTurnContextBudgetSummary, AgentTurnContextLaneSummary, AgentTurnContextSummary, AgentTurnContextTruncationSummary, CharacterSourceRefV3, LocalAgentSourceContextStatus, LocalAgentSourceCoverageSectionStatus, MaterializeRealmSourceRequest, MaterializeRealmSourceResponse, PersonaCharacterSourceRefV3, WorldCharacterSourceRefV3, WorldEntityRefV3 } from "./runtime-protobuf/runtime/v1/agent_source_materialization";
-export type { ArtifactChunk, ArtifactStreamDelta, AudioChunks, CancelScenarioJobRequest, CancelScenarioJobResponse, ChatContentArtifactRef, ChatContentImageURL, ChatContentPart, ChatMessage, EmbeddingVector, ExecuteScenarioRequest, ExecuteScenarioResponse, GenerateLocalAppTextCandidateRequest, GenerateLocalAppTextCandidateResponse, GetScenarioArtifactsRequest, GetScenarioArtifactsResponse, GetScenarioJobRequest, GetScenarioJobResponse, IgnoredScenarioExtension, ImageGenerateResult, ImageGenerateScenarioSpec, ListScenarioProfilesRequest, ListScenarioProfilesResponse, LocalAppTextCandidateMessage, MusicGenerateResult, MusicGenerateScenarioSpec, RawChunk, ReasoningConfig, ReasoningStreamDelta, ResponseFormat, ScenarioArtifact, ScenarioExtension, ScenarioJob, ScenarioJobEvent, ScenarioOutput, ScenarioProfile, ScenarioRequestHead, ScenarioSpec, ScenarioStreamCompleted, ScenarioStreamDelta, ScenarioStreamFailed, ScenarioStreamStarted, SpeechAlignment, SpeechAlignmentToken, SpeechSynthesizeResult, SpeechSynthesizeScenarioSpec, SpeechTranscribeResult, SpeechTranscribeScenarioSpec, SpeechTranscriptionAudioSource, StreamScenarioEvent, StreamScenarioRequest, SubmitScenarioJobRequest, SubmitScenarioJobResponse, SubscribeScenarioJobEventsRequest, TextEmbedOutput, TextEmbedScenarioSpec, TextGenerateOutput, TextGenerateScenarioSpec, TextSource, TextStreamDelta, ToolApprovalRequest, ToolApprovalResponse, ToolCall, ToolResult, ToolSpec, UploadArtifactChunk, UploadArtifactMetadata, UploadArtifactRequest, UploadArtifactResponse, VideoContentArtifactRef, VideoContentAudioURL, VideoContentImageURL, VideoContentItem, VideoContentVideoURL, VideoGenerateResult, VideoGenerateScenarioSpec, VideoGenerationOptions, VoiceCloneScenarioSpec, VoiceDesignScenarioSpec, VoiceRenderHints, WorldGenerateAssetSource, WorldGenerateImagePrompt, WorldGenerateMultiImagePrompt, WorldGenerateMultiImageReference, WorldGenerateResult, WorldGenerateScenarioSpec, WorldGenerateSemanticsMetadata, WorldGenerateVideoPrompt } from "./runtime-protobuf/runtime/v1/ai";
+export type { ArtifactChunk, ArtifactStreamDelta, AudioChunks, CancelLocalAppScenarioJobRequest, CancelLocalAppScenarioJobResponse, CancelScenarioJobRequest, CancelScenarioJobResponse, ChatContentArtifactRef, ChatContentImageURL, ChatContentPart, ChatMessage, EmbeddingVector, ExecuteLocalAppScenarioRequest, ExecuteLocalAppScenarioResponse, ExecuteScenarioRequest, ExecuteScenarioResponse, GenerateLocalAppTextCandidateRequest, GenerateLocalAppTextCandidateResponse, GetLocalAppScenarioJobRequest, GetLocalAppScenarioJobResponse, GetScenarioArtifactsRequest, GetScenarioArtifactsResponse, GetScenarioJobRequest, GetScenarioJobResponse, IgnoredScenarioExtension, ImageGenerateResult, ImageGenerateScenarioSpec, ListLocalAppVoiceAssetsRequest, ListLocalAppVoiceAssetsResponse, ListScenarioProfilesRequest, ListScenarioProfilesResponse, LocalAppImageGenerateOutput, LocalAppImageGenerateScenarioSpec, LocalAppScenarioArtifact, LocalAppScenarioJob, LocalAppScenarioJobEvent, LocalAppSpeechSynthesizeJobSpec, LocalAppSpeechTranscribeJobSpec, LocalAppTextCandidateMessage, LocalAppTextEmbedOutput, LocalAppTextEmbedScenarioSpec, LocalAppTextTurnCompleted, LocalAppTextTurnDelta, LocalAppTextTurnFailed, LocalAppVideoGenerateJobSpec, LocalAppVideoGenerationOptions, LocalAppVoiceAsset, LocalAppVoiceCloneJobSpec, LocalAppVoiceDesignJobSpec, MusicGenerateResult, MusicGenerateScenarioSpec, RawChunk, ReadLocalAppArtifactRequest, ReadLocalAppArtifactResponse, ReasoningConfig, ReasoningStreamDelta, ResponseFormat, ScenarioArtifact, ScenarioExtension, ScenarioJob, ScenarioJobEvent, ScenarioOutput, ScenarioProfile, ScenarioRequestHead, ScenarioSpec, ScenarioStreamCompleted, ScenarioStreamDelta, ScenarioStreamFailed, ScenarioStreamStarted, SpeechAlignment, SpeechAlignmentToken, SpeechSynthesizeResult, SpeechSynthesizeScenarioSpec, SpeechTranscribeResult, SpeechTranscribeScenarioSpec, SpeechTranscriptionAudioSource, StreamLocalAppTextTurnEvent, StreamLocalAppTextTurnRequest, StreamScenarioEvent, StreamScenarioRequest, SubmitLocalAppScenarioJobRequest, SubmitLocalAppScenarioJobResponse, SubmitScenarioJobRequest, SubmitScenarioJobResponse, SubscribeLocalAppScenarioJobEventsRequest, SubscribeScenarioJobEventsRequest, TextEmbedOutput, TextEmbedScenarioSpec, TextGenerateOutput, TextGenerateScenarioSpec, TextSource, TextStreamDelta, ToolApprovalRequest, ToolApprovalResponse, ToolCall, ToolResult, ToolSpec, UploadArtifactChunk, UploadArtifactMetadata, UploadArtifactRequest, UploadArtifactResponse, UploadLocalAppArtifactRequest, UploadLocalAppArtifactResponse, VideoContentArtifactRef, VideoContentAudioURL, VideoContentImageURL, VideoContentItem, VideoContentVideoURL, VideoGenerateResult, VideoGenerateScenarioSpec, VideoGenerationOptions, VoiceCloneScenarioSpec, VoiceDesignScenarioSpec, VoiceRenderHints, WorldGenerateAssetSource, WorldGenerateImagePrompt, WorldGenerateMultiImagePrompt, WorldGenerateMultiImageReference, WorldGenerateResult, WorldGenerateScenarioSpec, WorldGenerateSemanticsMetadata, WorldGenerateVideoPrompt } from "./runtime-protobuf/runtime/v1/ai";
 export type { AppendRealtimeInputRequest, AppendRealtimeInputResponse, CloseRealtimeSessionRequest, CloseRealtimeSessionResponse, OpenRealtimeSessionRequest, OpenRealtimeSessionResponse, ReadRealtimeEventsRequest, RealtimeAudioChunk, RealtimeAudioInput, RealtimeCompleted, RealtimeEvent, RealtimeFailed, RealtimeInputItem, RealtimeSessionOpened, RealtimeTextDelta } from "./runtime-protobuf/runtime/v1/ai_realtime";
 export type { PeekSchedulingRequest, PeekSchedulingResponse, SchedulingEvaluationTarget, SchedulingJudgement, SchedulingOccupancySnapshot, SchedulingResourceHint, SchedulingTargetJudgement } from "./runtime-protobuf/runtime/v1/ai_scheduling";
 export type { AppMessageEvent, AppStorageProjection, BindLocalAppProcessRequest, BindLocalAppProcessResponse, GetAppStorageRequest, GetAppStorageResponse, PrepareLocalAppLaunchRequest, PrepareLocalAppLaunchResponse, ReadLocalAppStorageJsonRequest, ReadLocalAppStorageJsonResponse, RebindLocalAppProcessRequest, RebindLocalAppProcessResponse, RemoveLocalAppStorageJsonRequest, RemoveLocalAppStorageJsonResponse, SendAppMessageRequest, SendAppMessageResponse, SubscribeAppMessagesRequest, WriteLocalAppStorageJsonRequest, WriteLocalAppStorageJsonResponse } from "./runtime-protobuf/runtime/v1/app";
 export type { CleanupGeneratedVoiceArtifactsRequest, CleanupGeneratedVoiceArtifactsResponse, PutArtifactRequest, PutArtifactResponse, ReadArtifactBytesRequest, ReadArtifactBytesResponse } from "./runtime-protobuf/runtime/v1/artifact_service";
 export type { AIProviderHealthEvent, AIProviderHealthSnapshot, AIProviderSubHealth, AuditEventRecord, AuditExportChunk, DesktopAuditEventProjection, ExportAuditEventsRequest, GetRuntimeHealthRequest, GetRuntimeHealthResponse, ListAIProviderHealthRequest, ListAIProviderHealthResponse, ListAuditEventsRequest, ListAuditEventsResponse, ListDesktopAuditEventsRequest, ListDesktopAuditEventsResponse, ListUsageStatsRequest, ListUsageStatsResponse, RuntimeHealthEvent, SubscribeAIProviderHealthEventsRequest, SubscribeRuntimeHealthEventsRequest, UsageStatRecord } from "./runtime-protobuf/runtime/v1/audit";
 export type { AppModeManifest, CurrentUserDisplayProjection, OpenDesktopSessionRequest, OpenDesktopSessionResponse, OpenExternalPrincipalSessionRequest, OpenExternalPrincipalSessionResponse, OpenLocalAppSessionRequest, OpenLocalAppSessionResponse, OpenSessionRequest, OpenSessionResponse, RefreshSessionRequest, RefreshSessionResponse, RegisterAppRequest, RegisterAppResponse, RegisterExternalPrincipalRequest, RegisterExternalPrincipalResponse, RenewLocalAppSessionRequest, RevokeExternalPrincipalSessionRequest, RevokeSessionRequest } from "./runtime-protobuf/runtime/v1/auth";
-export type { AIConfig, AIConfigAppOwner, AIConfigCapabilityIntent, AIConfigCloudIntent, AIConfigLocalIntent, AIConfigOwner, AIConfigRuntimeLocalAgentSubsystemOwner, AddLocalCapabilityConfigurationRequest, AddLocalCapabilityConfigurationResponse, BindLocalCapabilityRequirementRequest, BindLocalCapabilityRequirementResponse, CapabilityImplementationIdentity, ClearLocalCapabilitySelectionRequest, ClearLocalCapabilitySelectionResponse, DeleteLocalCapabilityConfigurationRequest, DeleteLocalCapabilityConfigurationResponse, GetAppAIConfigRequest, GetAppAIConfigResponse, GetLocalCapabilityConfigurationRequest, GetLocalCapabilityConfigurationResponse, GetMachineLocalAIConfigurationRequest, GetMachineLocalAIConfigurationResponse, LocalAssetExactBinding, LocalAssetExactBindingTarget, LocalCapabilityConfiguration, LocalCapabilityRequirement, LocalCapabilitySelection, MachineLocalAIConfiguration, OverwriteAppAIConfigRequest, OverwriteAppAIConfigResponse, RebindLocalCapabilityRequirementRequest, RebindLocalCapabilityRequirementResponse, ReprojectLocalCapabilityRequirementsRequest, ReprojectLocalCapabilityRequirementsResponse, SelectLocalCapabilityConfigurationRequest, SelectLocalCapabilityConfigurationResponse, UnbindLocalCapabilityRequirementRequest, UnbindLocalCapabilityRequirementResponse } from "./runtime-protobuf/runtime/v1/capability_configuration";
+export type { AIConfig, AIConfigAppOwner, AIConfigCapabilityIntent, AIConfigCloudIntent, AIConfigLocalIntent, AIConfigOwner, AIConfigRuntimeLocalAgentSubsystemOwner, AddLocalCapabilityConfigurationRequest, AddLocalCapabilityConfigurationResponse, BindLocalCapabilityRequirementRequest, BindLocalCapabilityRequirementResponse, CapabilityImplementationIdentity, ClearLocalCapabilitySelectionRequest, ClearLocalCapabilitySelectionResponse, DeleteLocalCapabilityConfigurationRequest, DeleteLocalCapabilityConfigurationResponse, GetAppAIConfigRequest, GetAppAIConfigResponse, GetLocalCapabilityConfigurationRequest, GetLocalCapabilityConfigurationResponse, GetMachineLocalAIConfigurationRequest, GetMachineLocalAIConfigurationResponse, LocalAssetExactBinding, LocalAssetExactBindingTarget, LocalCapabilityConfiguration, LocalCapabilityRequirement, LocalCapabilitySelection, MachineLocalAIConfiguration, OverwriteAppAIConfigRequest, OverwriteAppAIConfigResponse, RebindLocalCapabilityRequirementRequest, RebindLocalCapabilityRequirementResponse, ReprojectLocalCapabilityRequirementsRequest, ReprojectLocalCapabilityRequirementsResponse, SelectLocalCapabilityConfigurationRequest, SelectLocalCapabilityConfigurationResponse, UnbindLocalCapabilityRequirementRequest, UnbindLocalCapabilityRequirementResponse, UpdateLocalCapabilityConfigurationRequest, UpdateLocalCapabilityConfigurationResponse } from "./runtime-protobuf/runtime/v1/capability_configuration";
 export type { Ack, ConsentRef, ErrorInfo, ResourceSelectors, UsageStats, WorkspaceBindingAttachment } from "./runtime-protobuf/runtime/v1/common";
 export type { CatalogModelDetail, CatalogModelInput, CatalogModelSummary, CatalogModelWorkflowBinding, CatalogOverlayWarning, CatalogPricing, CatalogSourceRef, CatalogStringListEntry, CatalogVideoGenerationCapability, CatalogVideoGenerationOutputs, CatalogVoiceEntry, CatalogWorkflowModel, Connector, ConnectorGrant, ConnectorModelDescriptor, CreateConnectorGrantRequest, CreateConnectorGrantResponse, CreateConnectorRequest, CreateConnectorResponse, DeleteCatalogModelOverlayRequest, DeleteCatalogModelOverlayResponse, DeleteConnectorRequest, DeleteConnectorResponse, DeleteModelCatalogProviderRequest, DeleteModelCatalogProviderResponse, GetCatalogModelDetailRequest, GetCatalogModelDetailResponse, GetConnectorRequest, GetConnectorResponse, ListCatalogProviderModelsRequest, ListCatalogProviderModelsResponse, ListConnectorGrantsRequest, ListConnectorGrantsResponse, ListConnectorModelsRequest, ListConnectorModelsResponse, ListConnectorsRequest, ListConnectorsResponse, ListModelCatalogProvidersRequest, ListModelCatalogProvidersResponse, ListProviderCatalogRequest, ListProviderCatalogResponse, ModelCatalogProviderEntry, ProviderCatalogEntry, RevokeConnectorGrantRequest, RevokeConnectorGrantResponse, TestConnectorRequest, TestConnectorResponse, UpdateConnectorRequest, UpdateConnectorResponse, UpsertCatalogModelOverlayRequest, UpsertCatalogModelOverlayResponse, UpsertModelCatalogProviderRequest, UpsertModelCatalogProviderResponse } from "./runtime-protobuf/runtime/v1/connector";
 export type { DelegatedApprovalRequest, DelegatedControlSurfaceSnapshot, DelegatedDiagnostic, DelegatedProviderProfile, DelegatedReplayTrace, DelegatedReplayTraceStage, DelegatedToolAllowlistEntry, GetDelegatedControlSurfaceSnapshotRequest, GetDelegatedControlSurfaceSnapshotResponse, GetDelegatedReplayTraceRequest, GetDelegatedReplayTraceResponse, ListDelegatedApprovalRequestsRequest, ListDelegatedApprovalRequestsResponse, ListDelegatedDiagnosticsRequest, ListDelegatedDiagnosticsResponse, ListDelegatedProviderProfilesRequest, ListDelegatedProviderProfilesResponse, SubmitDelegatedApprovalDecisionRequest, SubmitDelegatedApprovalDecisionResponse } from "./runtime-protobuf/runtime/v1/delegated_control";
@@ -889,6 +889,17 @@ export class RuntimeTypedClient {
     });
   }
 
+  async cancelLocalAppScenarioJob(request: CancelLocalAppScenarioJobRequest, options: RuntimeTypedCallOptions = {}): Promise<CancelLocalAppScenarioJobResponse> {
+    return this.core.unary<CancelLocalAppScenarioJobResponse, CancelLocalAppScenarioJobRequest>({
+      methodId: "/nimi.runtime.v1.RuntimeAiService/CancelLocalAppScenarioJob",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
+    });
+  }
+
   async cancelScenarioJob(request: CancelScenarioJobRequest, options: RuntimeTypedCallOptions = {}): Promise<CancelScenarioJobResponse> {
     return this.core.unary<CancelScenarioJobResponse, CancelScenarioJobRequest>({
       methodId: "/nimi.runtime.v1.RuntimeAiService/CancelScenarioJob",
@@ -903,6 +914,17 @@ export class RuntimeTypedClient {
   async deleteVoiceAsset(request: DeleteVoiceAssetRequest, options: RuntimeTypedCallOptions = {}): Promise<DeleteVoiceAssetResponse> {
     return this.core.unary<DeleteVoiceAssetResponse, DeleteVoiceAssetRequest>({
       methodId: "/nimi.runtime.v1.RuntimeAiService/DeleteVoiceAsset",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
+    });
+  }
+
+  async executeLocalAppScenario(request: ExecuteLocalAppScenarioRequest, options: RuntimeTypedCallOptions = {}): Promise<ExecuteLocalAppScenarioResponse> {
+    return this.core.unary<ExecuteLocalAppScenarioResponse, ExecuteLocalAppScenarioRequest>({
+      methodId: "/nimi.runtime.v1.RuntimeAiService/ExecuteLocalAppScenario",
       body: request,
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
@@ -944,6 +966,17 @@ export class RuntimeTypedClient {
     });
   }
 
+  async getLocalAppScenarioJob(request: GetLocalAppScenarioJobRequest, options: RuntimeTypedCallOptions = {}): Promise<GetLocalAppScenarioJobResponse> {
+    return this.core.unary<GetLocalAppScenarioJobResponse, GetLocalAppScenarioJobRequest>({
+      methodId: "/nimi.runtime.v1.RuntimeAiService/GetLocalAppScenarioJob",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
+    });
+  }
+
   async getScenarioArtifacts(request: GetScenarioArtifactsRequest, options: RuntimeTypedCallOptions = {}): Promise<GetScenarioArtifactsResponse> {
     return this.core.unary<GetScenarioArtifactsResponse, GetScenarioArtifactsRequest>({
       methodId: "/nimi.runtime.v1.RuntimeAiService/GetScenarioArtifacts",
@@ -969,6 +1002,17 @@ export class RuntimeTypedClient {
   async getVoiceAsset(request: GetVoiceAssetRequest, options: RuntimeTypedCallOptions = {}): Promise<GetVoiceAssetResponse> {
     return this.core.unary<GetVoiceAssetResponse, GetVoiceAssetRequest>({
       methodId: "/nimi.runtime.v1.RuntimeAiService/GetVoiceAsset",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
+    });
+  }
+
+  async listLocalAppVoiceAssets(request: ListLocalAppVoiceAssetsRequest, options: RuntimeTypedCallOptions = {}): Promise<ListLocalAppVoiceAssetsResponse> {
+    return this.core.unary<ListLocalAppVoiceAssetsResponse, ListLocalAppVoiceAssetsRequest>({
+      methodId: "/nimi.runtime.v1.RuntimeAiService/ListLocalAppVoiceAssets",
       body: request,
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
@@ -1032,6 +1076,28 @@ export class RuntimeTypedClient {
     });
   }
 
+  async readLocalAppArtifact(request: ReadLocalAppArtifactRequest, options: RuntimeTypedCallOptions = {}): Promise<ReadLocalAppArtifactResponse> {
+    return this.core.unary<ReadLocalAppArtifactResponse, ReadLocalAppArtifactRequest>({
+      methodId: "/nimi.runtime.v1.RuntimeAiService/ReadLocalAppArtifact",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
+    });
+  }
+
+  streamLocalAppTextTurn(request: StreamLocalAppTextTurnRequest, options: RuntimeTypedCallOptions = {}): AsyncIterable<StreamLocalAppTextTurnEvent> {
+    return this.core.serverStream<StreamLocalAppTextTurnEvent, StreamLocalAppTextTurnRequest>({
+      methodId: "/nimi.runtime.v1.RuntimeAiService/StreamLocalAppTextTurn",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
+    });
+  }
+
   streamScenario(request: StreamScenarioRequest, options: RuntimeTypedCallOptions = {}): AsyncIterable<StreamScenarioEvent> {
     return this.core.serverStream<StreamScenarioEvent, StreamScenarioRequest>({
       methodId: "/nimi.runtime.v1.RuntimeAiService/StreamScenario",
@@ -1043,9 +1109,31 @@ export class RuntimeTypedClient {
     });
   }
 
+  async submitLocalAppScenarioJob(request: SubmitLocalAppScenarioJobRequest, options: RuntimeTypedCallOptions = {}): Promise<SubmitLocalAppScenarioJobResponse> {
+    return this.core.unary<SubmitLocalAppScenarioJobResponse, SubmitLocalAppScenarioJobRequest>({
+      methodId: "/nimi.runtime.v1.RuntimeAiService/SubmitLocalAppScenarioJob",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
+    });
+  }
+
   async submitScenarioJob(request: SubmitScenarioJobRequest, options: RuntimeTypedCallOptions = {}): Promise<SubmitScenarioJobResponse> {
     return this.core.unary<SubmitScenarioJobResponse, SubmitScenarioJobRequest>({
       methodId: "/nimi.runtime.v1.RuntimeAiService/SubmitScenarioJob",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
+    });
+  }
+
+  subscribeLocalAppScenarioJobEvents(request: SubscribeLocalAppScenarioJobEventsRequest, options: RuntimeTypedCallOptions = {}): AsyncIterable<LocalAppScenarioJobEvent> {
+    return this.core.serverStream<LocalAppScenarioJobEvent, SubscribeLocalAppScenarioJobEventsRequest>({
+      methodId: "/nimi.runtime.v1.RuntimeAiService/SubscribeLocalAppScenarioJobEvents",
       body: request,
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
@@ -1068,6 +1156,17 @@ export class RuntimeTypedClient {
   async uploadArtifact(_request: UploadArtifactRequest, _options: RuntimeTypedCallOptions = {}): Promise<UploadArtifactResponse> {
     throw Object.assign(new Error("Runtime method kind is not supported by the unary/server-stream core transport: /nimi.runtime.v1.RuntimeAiService/UploadArtifact"), {
       code: 'SDK_RUNTIME_METHOD_UNAVAILABLE',
+    });
+  }
+
+  async uploadLocalAppArtifact(request: UploadLocalAppArtifactRequest, options: RuntimeTypedCallOptions = {}): Promise<UploadLocalAppArtifactResponse> {
+    return this.core.unary<UploadLocalAppArtifactResponse, UploadLocalAppArtifactRequest>({
+      methodId: "/nimi.runtime.v1.RuntimeAiService/UploadLocalAppArtifact",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -2768,6 +2867,17 @@ export class RuntimeTypedClient {
   async unbindLocalCapabilityRequirement(request: UnbindLocalCapabilityRequirementRequest, options: RuntimeTypedCallOptions = {}): Promise<UnbindLocalCapabilityRequirementResponse> {
     return this.core.unary<UnbindLocalCapabilityRequirementResponse, UnbindLocalCapabilityRequirementRequest>({
       methodId: "/nimi.runtime.v1.RuntimeLocalService/UnbindLocalCapabilityRequirement",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
+    });
+  }
+
+  async updateLocalCapabilityConfiguration(request: UpdateLocalCapabilityConfigurationRequest, options: RuntimeTypedCallOptions = {}): Promise<UpdateLocalCapabilityConfigurationResponse> {
+    return this.core.unary<UpdateLocalCapabilityConfigurationResponse, UpdateLocalCapabilityConfigurationRequest>({
+      methodId: "/nimi.runtime.v1.RuntimeLocalService/UpdateLocalCapabilityConfiguration",
       body: request,
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,

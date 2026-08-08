@@ -411,6 +411,44 @@ export interface AddLocalCapabilityConfigurationResponse {
     configuration?: LocalCapabilityConfiguration;
 }
 /**
+ * UpdateLocalCapabilityConfiguration replaces the mutable portable intent of
+ * one saved record. Capability and implementation identity remain immutable;
+ * callers create a new record when either identity changes.
+ *
+ * @generated from protobuf message nimi.runtime.v1.UpdateLocalCapabilityConfigurationRequest
+ */
+export interface UpdateLocalCapabilityConfigurationRequest {
+    /**
+     * @generated from protobuf field: string configuration_id = 1
+     */
+    configurationId: string;
+    /**
+     * @generated from protobuf field: google.protobuf.Struct portable_config = 2
+     */
+    portableConfig?: Struct;
+    /**
+     * @generated from protobuf field: repeated string supported_features = 3
+     */
+    supportedFeatures: string[];
+    /**
+     * @generated from protobuf field: string display_name = 4
+     */
+    displayName: string;
+    /**
+     * @generated from protobuf field: google.protobuf.Struct provenance = 5
+     */
+    provenance?: Struct;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.UpdateLocalCapabilityConfigurationResponse
+ */
+export interface UpdateLocalCapabilityConfigurationResponse {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.LocalCapabilityConfiguration configuration = 1
+     */
+    configuration?: LocalCapabilityConfiguration;
+}
+/**
  * @generated from protobuf message nimi.runtime.v1.SelectLocalCapabilityConfigurationRequest
  */
 export interface SelectLocalCapabilityConfigurationRequest {
@@ -2056,6 +2094,129 @@ class AddLocalCapabilityConfigurationResponse$Type extends MessageType<AddLocalC
  * @generated MessageType for protobuf message nimi.runtime.v1.AddLocalCapabilityConfigurationResponse
  */
 export const AddLocalCapabilityConfigurationResponse = new AddLocalCapabilityConfigurationResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class UpdateLocalCapabilityConfigurationRequest$Type extends MessageType<UpdateLocalCapabilityConfigurationRequest> {
+    constructor() {
+        super("nimi.runtime.v1.UpdateLocalCapabilityConfigurationRequest", [
+            { no: 1, name: "configuration_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "portable_config", kind: "message", T: () => Struct },
+            { no: 3, name: "supported_features", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "display_name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "provenance", kind: "message", T: () => Struct }
+        ]);
+    }
+    create(value?: PartialMessage<UpdateLocalCapabilityConfigurationRequest>): UpdateLocalCapabilityConfigurationRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.configurationId = "";
+        message.supportedFeatures = [];
+        message.displayName = "";
+        if (value !== undefined)
+            reflectionMergePartial<UpdateLocalCapabilityConfigurationRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: UpdateLocalCapabilityConfigurationRequest): UpdateLocalCapabilityConfigurationRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string configuration_id */ 1:
+                    message.configurationId = reader.string();
+                    break;
+                case /* google.protobuf.Struct portable_config */ 2:
+                    message.portableConfig = Struct.internalBinaryRead(reader, reader.uint32(), options, message.portableConfig);
+                    break;
+                case /* repeated string supported_features */ 3:
+                    message.supportedFeatures.push(reader.string());
+                    break;
+                case /* string display_name */ 4:
+                    message.displayName = reader.string();
+                    break;
+                case /* google.protobuf.Struct provenance */ 5:
+                    message.provenance = Struct.internalBinaryRead(reader, reader.uint32(), options, message.provenance);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: UpdateLocalCapabilityConfigurationRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string configuration_id = 1; */
+        if (message.configurationId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.configurationId);
+        /* google.protobuf.Struct portable_config = 2; */
+        if (message.portableConfig)
+            Struct.internalBinaryWrite(message.portableConfig, writer.tag(2, WireType.LengthDelimited).fork(), options).join();
+        /* repeated string supported_features = 3; */
+        for (let i = 0; i < message.supportedFeatures.length; i++)
+            writer.tag(3, WireType.LengthDelimited).string(message.supportedFeatures[i]);
+        /* string display_name = 4; */
+        if (message.displayName !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.displayName);
+        /* google.protobuf.Struct provenance = 5; */
+        if (message.provenance)
+            Struct.internalBinaryWrite(message.provenance, writer.tag(5, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.UpdateLocalCapabilityConfigurationRequest
+ */
+export const UpdateLocalCapabilityConfigurationRequest = new UpdateLocalCapabilityConfigurationRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class UpdateLocalCapabilityConfigurationResponse$Type extends MessageType<UpdateLocalCapabilityConfigurationResponse> {
+    constructor() {
+        super("nimi.runtime.v1.UpdateLocalCapabilityConfigurationResponse", [
+            { no: 1, name: "configuration", kind: "message", T: () => LocalCapabilityConfiguration }
+        ]);
+    }
+    create(value?: PartialMessage<UpdateLocalCapabilityConfigurationResponse>): UpdateLocalCapabilityConfigurationResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        if (value !== undefined)
+            reflectionMergePartial<UpdateLocalCapabilityConfigurationResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: UpdateLocalCapabilityConfigurationResponse): UpdateLocalCapabilityConfigurationResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.LocalCapabilityConfiguration configuration */ 1:
+                    message.configuration = LocalCapabilityConfiguration.internalBinaryRead(reader, reader.uint32(), options, message.configuration);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: UpdateLocalCapabilityConfigurationResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.LocalCapabilityConfiguration configuration = 1; */
+        if (message.configuration)
+            LocalCapabilityConfiguration.internalBinaryWrite(message.configuration, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.UpdateLocalCapabilityConfigurationResponse
+ */
+export const UpdateLocalCapabilityConfigurationResponse = new UpdateLocalCapabilityConfigurationResponse$Type();
 // @generated message type with reflection information, may provide speed optimized methods
 class SelectLocalCapabilityConfigurationRequest$Type extends MessageType<SelectLocalCapabilityConfigurationRequest> {
     constructor() {

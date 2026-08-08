@@ -32,6 +32,11 @@ pub(super) async fn generate(
         temperature: request.temperature,
         top_p: request.top_p,
         max_tokens: request.max_tokens,
+        top_k: request.top_k,
+        presence_penalty: request.presence_penalty,
+        frequency_penalty: request.frequency_penalty,
+        stop: request.stop,
+        seed: request.seed,
     });
     grpc_request.set_timeout(std::time::Duration::from_secs(120));
     let response = RuntimeAiServiceClient::new(channel)
@@ -62,14 +67,28 @@ fn valid_response_text(text: &str) -> bool {
     !text.trim().is_empty() && text.len() <= MAX_OUTPUT_BYTES
 }
 
-fn validate_request(request: &LocalAppTextCandidateRequest) -> Result<(), LocalAppOperationError> {
+pub(super) fn validate_request(
+    request: &LocalAppTextCandidateRequest,
+) -> Result<(), LocalAppOperationError> {
     if request.messages.is_empty()
         || request.messages.len() > MAX_MESSAGES
-        || !request.temperature.is_finite()
-        || !(0.0..=2.0).contains(&request.temperature)
-        || !request.top_p.is_finite()
-        || !(0.0..=1.0).contains(&request.top_p)
-        || !(1..=MAX_TOKENS).contains(&request.max_tokens)
+        || request
+            .temperature
+            .is_some_and(|value| !value.is_finite() || !(0.0..=2.0).contains(&value))
+        || request
+            .top_p
+            .is_some_and(|value| !value.is_finite() || !(0.0..=1.0).contains(&value))
+        || request
+            .max_tokens
+            .is_some_and(|value| !(0..=MAX_TOKENS).contains(&value))
+        || request.top_k.is_some_and(|value| value < 0)
+        || request
+            .presence_penalty
+            .is_some_and(|value| !value.is_finite() || !(-2.0..=2.0).contains(&value))
+        || request
+            .frequency_penalty
+            .is_some_and(|value| !value.is_finite() || !(-2.0..=2.0).contains(&value))
+        || request.stop.iter().any(|value| value.trim().is_empty())
     {
         return Err(invalid_payload());
     }
@@ -120,9 +139,14 @@ mod tests {
                     text: "Create a persona.".to_string(),
                 },
             ],
-            temperature: 0.7,
-            top_p: 0.9,
-            max_tokens: 512,
+            temperature: Some(0.7),
+            top_p: Some(0.9),
+            max_tokens: Some(512),
+            top_k: Some(40),
+            presence_penalty: Some(-2.0),
+            frequency_penalty: Some(2.0),
+            stop: vec!["END".to_string()],
+            seed: Some(0),
         };
         validate_request(&valid).expect("valid exact request");
 
@@ -132,6 +156,18 @@ mod tests {
             text: "not admitted".to_string(),
         });
         assert!(validate_request(&invalid).is_err());
+
+        let mut explicit_zero = valid.clone();
+        explicit_zero.temperature = Some(0.0);
+        explicit_zero.top_p = Some(0.0);
+        explicit_zero.max_tokens = Some(0);
+        explicit_zero.top_k = Some(0);
+        explicit_zero.seed = Some(0);
+        validate_request(&explicit_zero).expect("explicit zero remains present and valid");
+
+        let mut blank_stop = valid;
+        blank_stop.stop = vec!["  ".to_string()];
+        assert!(validate_request(&blank_stop).is_err());
     }
 
     #[test]

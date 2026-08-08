@@ -62,7 +62,7 @@ func ExecuteMiniMaxTask(
 		if emotion := strings.TrimSpace(spec.GetEmotion()); emotion != "" {
 			voiceSetting["emotion"] = emotion
 		}
-		if speed := spec.GetSpeed(); speed > 0 {
+		if speed := scenarioSpeechSpeed(spec); speed > 0 {
 			voiceSetting["speed"] = speed
 		}
 		if pitch := spec.GetPitch(); pitch != 0 {
@@ -101,7 +101,7 @@ func ExecuteMiniMaxTask(
 		if emotion := strings.TrimSpace(spec.GetEmotion()); emotion != "" {
 			openAIPayload["emotion"] = emotion
 		}
-		if speed := spec.GetSpeed(); speed > 0 {
+		if speed := scenarioSpeechSpeed(spec); speed > 0 {
 			openAIPayload["speed"] = speed
 		}
 		if pitch := spec.GetPitch(); pitch != 0 {

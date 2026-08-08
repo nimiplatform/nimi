@@ -113,6 +113,62 @@ func (s *Service) AddLocalCapabilityConfiguration(_ context.Context, request *ru
 	}, nil
 }
 
+func (s *Service) UpdateLocalCapabilityConfiguration(_ context.Context, request *runtimev1.UpdateLocalCapabilityConfigurationRequest) (*runtimev1.UpdateLocalCapabilityConfigurationResponse, error) {
+	if err := validateUpdateLocalCapabilityConfigurationRequest(request); err != nil {
+		return nil, status.Error(codes.InvalidArgument, err.Error())
+	}
+	configurationID := strings.TrimSpace(request.GetConfigurationId())
+
+	s.machineLocalConfigurationMutationMu.Lock()
+	defer s.machineLocalConfigurationMutationMu.Unlock()
+	s.mu.RLock()
+	current := cloneStoredLocalCapabilityConfiguration(s.machineLocalConfigurations[configurationID])
+	inventory := s.snapshotLocalCapabilityAssetInventoryLocked()
+	s.mu.RUnlock()
+	if current == nil || current.Configuration == nil {
+		return nil, status.Error(codes.NotFound, "local capability configuration not found")
+	}
+
+	intent := &runtimev1.LocalCapabilityConfiguration{
+		ConfigurationId:    configurationID,
+		CapabilityContract: current.Configuration.GetCapabilityContract(),
+		Implementation:     cloneImplementationIdentity(current.Configuration.GetImplementation()),
+		PortableConfig:     cloneStruct(request.GetPortableConfig()),
+		SupportedFeatures:  normalizeStableStringSet(request.GetSupportedFeatures()),
+		DisplayName:        strings.TrimSpace(request.GetDisplayName()),
+		Provenance:         cloneStruct(request.GetProvenance()),
+	}
+	projected, observedContentIDs := s.projectLocalCapabilityConfiguration(intent, inventory)
+	if proto.Equal(
+		&runtimev1.LocalCapabilityConfiguration{ProjectedRequirements: current.Configuration.GetProjectedRequirements()},
+		&runtimev1.LocalCapabilityConfiguration{ProjectedRequirements: projected.Configuration.GetProjectedRequirements()},
+	) {
+		projected.Configuration.ExactBindings = cloneLocalAssetExactBindings(current.Configuration.GetExactBindings())
+		projected.ResolutionReasons = append([]runtimev1.LocalCapabilityReason(nil), current.ResolutionReasons...)
+		for _, binding := range projected.Configuration.GetExactBindings() {
+			if contentID := normalizeVerifiedContentID(binding.GetVerifiedContentId()); contentID != "" {
+				observedContentIDs[contentID] = struct{}{}
+			}
+		}
+	}
+	if err := validateStoredLocalCapabilityConfiguration(projected); err != nil {
+		return nil, status.Error(codes.Internal, "local capability update produced invalid canonical state")
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if !inventory.stillMatchesLocked(s, observedContentIDs) {
+		return nil, status.Error(codes.Aborted, "LocalAsset inventory changed during exact binding; retry")
+	}
+	next := s.machineLocalConfigurationRowsLocked(projected)
+	if err := s.machineLocalConfigurationStore.Save(next, s.machineLocalSelectionsLocked()); err != nil {
+		return nil, status.Error(codes.Internal, "persist Machine Local AI Configuration failed")
+	}
+	s.machineLocalConfigurations[configurationID] = cloneStoredLocalCapabilityConfiguration(projected)
+	return &runtimev1.UpdateLocalCapabilityConfigurationResponse{
+		Configuration: s.deriveLocalCapabilityConfiguration(projected),
+	}, nil
+}
+
 func (s *Service) ReprojectLocalCapabilityRequirements(_ context.Context, request *runtimev1.ReprojectLocalCapabilityRequirementsRequest) (*runtimev1.ReprojectLocalCapabilityRequirementsResponse, error) {
 	configurationID := strings.TrimSpace(request.GetConfigurationId())
 	if configurationID == "" {
@@ -371,6 +427,19 @@ func validateAddLocalCapabilityConfigurationRequest(request *runtimev1.AddLocalC
 	identity := request.GetImplementation()
 	if identity == nil || strings.TrimSpace(identity.GetImplementationId()) == "" || strings.TrimSpace(identity.GetDriverId()) == "" || strings.TrimSpace(identity.GetDriverDialect()) == "" {
 		return fmt.Errorf("complete implementation identity is required")
+	}
+	return nil
+}
+
+func validateUpdateLocalCapabilityConfigurationRequest(request *runtimev1.UpdateLocalCapabilityConfigurationRequest) error {
+	if request == nil {
+		return fmt.Errorf("request is required")
+	}
+	if value := strings.TrimSpace(request.GetConfigurationId()); value == "" || value != request.GetConfigurationId() {
+		return fmt.Errorf("configuration_id is required and canonical")
+	}
+	if value := strings.TrimSpace(request.GetDisplayName()); value == "" || value != request.GetDisplayName() {
+		return fmt.Errorf("display_name is required and canonical")
 	}
 	return nil
 }

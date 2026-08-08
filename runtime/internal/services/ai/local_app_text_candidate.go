@@ -10,6 +10,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/localappop"
 	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/protobuf/proto"
 )
 
 const (
@@ -43,11 +44,16 @@ func (s *Service) GenerateLocalAppTextCandidate(ctx context.Context, req *runtim
 		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_SYNC,
 		Spec: &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_TextGenerate{
 			TextGenerate: &runtimev1.TextGenerateScenarioSpec{
-				Input:        messages,
-				SystemPrompt: systemPrompt,
-				Temperature:  req.GetTemperature(),
-				TopP:         req.GetTopP(),
-				MaxTokens:    req.GetMaxTokens(),
+				Input:            messages,
+				SystemPrompt:     systemPrompt,
+				Temperature:      localAppOptionalFloat32(req.Temperature),
+				TopP:             localAppOptionalFloat32(req.TopP),
+				MaxTokens:        localAppOptionalInt32(req.MaxTokens),
+				TopK:             localAppOptionalInt32(req.TopK),
+				PresencePenalty:  localAppOptionalFloat32(req.PresencePenalty),
+				FrequencyPenalty: localAppOptionalFloat32(req.FrequencyPenalty),
+				Stop:             append([]string(nil), req.GetStop()...),
+				Seed:             localAppOptionalInt64(req.Seed),
 			},
 		}},
 	})
@@ -83,19 +89,47 @@ func localAppTextCandidateFinishReason(reason runtimev1.FinishReason) bool {
 }
 
 func validateLocalAppTextCandidateRequest(req *runtimev1.GenerateLocalAppTextCandidateRequest) (string, []*runtimev1.ChatMessage, error) {
-	if req == nil || len(req.GetMessages()) == 0 || len(req.GetMessages()) > maxLocalAppTextCandidateMessages ||
-		req.GetMaxTokens() < 1 || req.GetMaxTokens() > maxLocalAppTextCandidateTokens ||
-		math.IsNaN(float64(req.GetTemperature())) || math.IsInf(float64(req.GetTemperature()), 0) ||
-		req.GetTemperature() < 0 || req.GetTemperature() > 2 ||
-		math.IsNaN(float64(req.GetTopP())) || math.IsInf(float64(req.GetTopP()), 0) ||
-		req.GetTopP() < 0 || req.GetTopP() > 1 {
+	if req == nil {
 		return "", nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}
+	return validateLocalAppTextCandidateFields(
+		req.GetMessages(), req.Temperature, req.TopP, req.MaxTokens, req.TopK,
+		req.PresencePenalty, req.FrequencyPenalty, req.GetStop(),
+	)
+}
+
+// validateLocalAppTextCandidateFields is the shared closed input boundary for
+// the Local App unary text-candidate and streaming text-turn surfaces.
+func validateLocalAppTextCandidateFields(
+	messages []*runtimev1.LocalAppTextCandidateMessage,
+	temperature *float32,
+	topP *float32,
+	maxTokens *int32,
+	topK *int32,
+	presencePenalty *float32,
+	frequencyPenalty *float32,
+	stop []string,
+) (string, []*runtimev1.ChatMessage, error) {
+	invalidScalar := func(value *float32, minValue float32, maxValue float32) bool {
+		return value != nil && (math.IsNaN(float64(*value)) || math.IsInf(float64(*value), 0) || *value < minValue || *value > maxValue)
+	}
+	if len(messages) == 0 || len(messages) > maxLocalAppTextCandidateMessages ||
+		(maxTokens != nil && (*maxTokens < 0 || *maxTokens > maxLocalAppTextCandidateTokens)) ||
+		(topK != nil && *topK < 0) ||
+		invalidScalar(temperature, 0, 2) || invalidScalar(topP, 0, 1) ||
+		invalidScalar(presencePenalty, -2, 2) || invalidScalar(frequencyPenalty, -2, 2) {
+		return "", nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+	}
+	for _, value := range stop {
+		if strings.TrimSpace(value) == "" {
+			return "", nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+		}
+	}
 	var systemPrompt string
-	messages := make([]*runtimev1.ChatMessage, 0, len(req.GetMessages()))
+	out := make([]*runtimev1.ChatMessage, 0, len(messages))
 	totalBytes := 0
 	seenUser := false
-	for _, message := range req.GetMessages() {
+	for _, message := range messages {
 		if message == nil {
 			return "", nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 		}
@@ -118,7 +152,7 @@ func validateLocalAppTextCandidateRequest(req *runtimev1.GenerateLocalAppTextCan
 			systemPrompt = text
 		case "user":
 			seenUser = true
-			messages = append(messages, &runtimev1.ChatMessage{Role: role, Content: text})
+			out = append(out, &runtimev1.ChatMessage{Role: role, Content: text})
 		default:
 			return "", nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 		}
@@ -126,5 +160,33 @@ func validateLocalAppTextCandidateRequest(req *runtimev1.GenerateLocalAppTextCan
 	if !seenUser {
 		return "", nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 	}
-	return systemPrompt, messages, nil
+	return systemPrompt, out, nil
+}
+
+func localAppOptionalFloat32(value *float32) *float32 {
+	if value == nil {
+		return nil
+	}
+	return proto.Float32(*value)
+}
+
+func localAppOptionalInt32(value *int32) *int32 {
+	if value == nil {
+		return nil
+	}
+	return proto.Int32(*value)
+}
+
+func localAppOptionalInt64(value *int64) *int64 {
+	if value == nil {
+		return nil
+	}
+	return proto.Int64(*value)
+}
+
+func localAppOptionalBool(value *bool) *bool {
+	if value == nil {
+		return nil
+	}
+	return proto.Bool(*value)
 }

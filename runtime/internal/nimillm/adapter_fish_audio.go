@@ -58,7 +58,7 @@ func ExecuteFishAudioTTS(
 	if audioFormat := strings.TrimSpace(spec.GetAudioFormat()); audioFormat != "" {
 		payload["format"] = audioFormat
 	}
-	if speed := spec.GetSpeed(); speed > 0 {
+	if speed := scenarioSpeechSpeed(spec); speed > 0 {
 		payload["prosody"] = map[string]any{
 			"speed": speed,
 		}

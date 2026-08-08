@@ -591,6 +591,14 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "RealtimeEvent"
   },
   {
+    "methodId": "/nimi.runtime.v1.RuntimeAiService/CancelLocalAppScenarioJob",
+    "service": "RuntimeAiService",
+    "method": "CancelLocalAppScenarioJob",
+    "kind": "unary",
+    "requestType": "CancelLocalAppScenarioJobRequest",
+    "responseType": "CancelLocalAppScenarioJobResponse"
+  },
+  {
     "methodId": "/nimi.runtime.v1.RuntimeAiService/CancelScenarioJob",
     "service": "RuntimeAiService",
     "method": "CancelScenarioJob",
@@ -605,6 +613,14 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "kind": "unary",
     "requestType": "DeleteVoiceAssetRequest",
     "responseType": "DeleteVoiceAssetResponse"
+  },
+  {
+    "methodId": "/nimi.runtime.v1.RuntimeAiService/ExecuteLocalAppScenario",
+    "service": "RuntimeAiService",
+    "method": "ExecuteLocalAppScenario",
+    "kind": "unary",
+    "requestType": "ExecuteLocalAppScenarioRequest",
+    "responseType": "ExecuteLocalAppScenarioResponse"
   },
   {
     "methodId": "/nimi.runtime.v1.RuntimeAiService/ExecuteScenario",
@@ -631,6 +647,14 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "GetAppAIConfigResponse"
   },
   {
+    "methodId": "/nimi.runtime.v1.RuntimeAiService/GetLocalAppScenarioJob",
+    "service": "RuntimeAiService",
+    "method": "GetLocalAppScenarioJob",
+    "kind": "unary",
+    "requestType": "GetLocalAppScenarioJobRequest",
+    "responseType": "GetLocalAppScenarioJobResponse"
+  },
+  {
     "methodId": "/nimi.runtime.v1.RuntimeAiService/GetScenarioArtifacts",
     "service": "RuntimeAiService",
     "method": "GetScenarioArtifacts",
@@ -653,6 +677,14 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "kind": "unary",
     "requestType": "GetVoiceAssetRequest",
     "responseType": "GetVoiceAssetResponse"
+  },
+  {
+    "methodId": "/nimi.runtime.v1.RuntimeAiService/ListLocalAppVoiceAssets",
+    "service": "RuntimeAiService",
+    "method": "ListLocalAppVoiceAssets",
+    "kind": "unary",
+    "requestType": "ListLocalAppVoiceAssetsRequest",
+    "responseType": "ListLocalAppVoiceAssetsResponse"
   },
   {
     "methodId": "/nimi.runtime.v1.RuntimeAiService/ListPresetVoices",
@@ -695,6 +727,22 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "PeekSchedulingResponse"
   },
   {
+    "methodId": "/nimi.runtime.v1.RuntimeAiService/ReadLocalAppArtifact",
+    "service": "RuntimeAiService",
+    "method": "ReadLocalAppArtifact",
+    "kind": "unary",
+    "requestType": "ReadLocalAppArtifactRequest",
+    "responseType": "ReadLocalAppArtifactResponse"
+  },
+  {
+    "methodId": "/nimi.runtime.v1.RuntimeAiService/StreamLocalAppTextTurn",
+    "service": "RuntimeAiService",
+    "method": "StreamLocalAppTextTurn",
+    "kind": "server_stream",
+    "requestType": "StreamLocalAppTextTurnRequest",
+    "responseType": "StreamLocalAppTextTurnEvent"
+  },
+  {
     "methodId": "/nimi.runtime.v1.RuntimeAiService/StreamScenario",
     "service": "RuntimeAiService",
     "method": "StreamScenario",
@@ -703,12 +751,28 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "StreamScenarioEvent"
   },
   {
+    "methodId": "/nimi.runtime.v1.RuntimeAiService/SubmitLocalAppScenarioJob",
+    "service": "RuntimeAiService",
+    "method": "SubmitLocalAppScenarioJob",
+    "kind": "unary",
+    "requestType": "SubmitLocalAppScenarioJobRequest",
+    "responseType": "SubmitLocalAppScenarioJobResponse"
+  },
+  {
     "methodId": "/nimi.runtime.v1.RuntimeAiService/SubmitScenarioJob",
     "service": "RuntimeAiService",
     "method": "SubmitScenarioJob",
     "kind": "unary",
     "requestType": "SubmitScenarioJobRequest",
     "responseType": "SubmitScenarioJobResponse"
+  },
+  {
+    "methodId": "/nimi.runtime.v1.RuntimeAiService/SubscribeLocalAppScenarioJobEvents",
+    "service": "RuntimeAiService",
+    "method": "SubscribeLocalAppScenarioJobEvents",
+    "kind": "server_stream",
+    "requestType": "SubscribeLocalAppScenarioJobEventsRequest",
+    "responseType": "LocalAppScenarioJobEvent"
   },
   {
     "methodId": "/nimi.runtime.v1.RuntimeAiService/SubscribeScenarioJobEvents",
@@ -725,6 +789,14 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "kind": "client_stream",
     "requestType": "UploadArtifactRequest",
     "responseType": "UploadArtifactResponse"
+  },
+  {
+    "methodId": "/nimi.runtime.v1.RuntimeAiService/UploadLocalAppArtifact",
+    "service": "RuntimeAiService",
+    "method": "UploadLocalAppArtifact",
+    "kind": "unary",
+    "requestType": "UploadLocalAppArtifactRequest",
+    "responseType": "UploadLocalAppArtifactResponse"
   },
   {
     "methodId": "/nimi.runtime.v1.RuntimeAppService/BindLocalAppProcess",
@@ -1965,6 +2037,14 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "kind": "unary",
     "requestType": "UnbindLocalCapabilityRequirementRequest",
     "responseType": "UnbindLocalCapabilityRequirementResponse"
+  },
+  {
+    "methodId": "/nimi.runtime.v1.RuntimeLocalService/UpdateLocalCapabilityConfiguration",
+    "service": "RuntimeLocalService",
+    "method": "UpdateLocalCapabilityConfiguration",
+    "kind": "unary",
+    "requestType": "UpdateLocalCapabilityConfigurationRequest",
+    "responseType": "UpdateLocalCapabilityConfigurationResponse"
   },
   {
     "methodId": "/nimi.runtime.v1.RuntimeLocalService/WatchLocalTransfers",

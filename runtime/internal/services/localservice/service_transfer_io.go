@@ -27,6 +27,11 @@ func (s *Service) updateTransferProgress(
 	// established, in which case speed/eta are left absent rather than guessed.
 	speed, speedKnown := s.observeTransferRate(sessionID, maxInt64(bytesReceived, 0), time.Now())
 	_ = s.mutateLocalTransfer(sessionID, false, func(summary *runtimev1.LocalTransferSessionSummary) {
+		// A terminal session must never be resurrected by a late in-flight
+		// progress sample (e.g. a copy/hash callback racing a cancel).
+		if isTerminalTransferState(summary.GetState()) {
+			return
+		}
 		summary.Phase = phase
 		summary.State = localTransferStateRunning
 		summary.BytesReceived = maxInt64(bytesReceived, 0)
@@ -81,6 +86,11 @@ func (s *Service) completeTransfer(
 	apply func(summary *runtimev1.LocalTransferSessionSummary),
 ) {
 	_ = s.mutateLocalTransfer(sessionID, true, func(summary *runtimev1.LocalTransferSessionSummary) {
+		// A session that already settled (e.g. cancelled while the worker was
+		// mid-flight) must not be flipped back to a different terminal state.
+		if isTerminalTransferState(summary.GetState()) {
+			return
+		}
 		summary.Phase = phase
 		summary.State = localTransferStateCompleted
 		summary.Message = message

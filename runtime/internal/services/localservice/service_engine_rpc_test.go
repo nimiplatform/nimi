@@ -574,7 +574,6 @@ func TestBootstrapSelectionAwareManagedMediaEngineSkipsRestartWhenMediaAlreadyOw
 		LocalAssetId: "image-local-id",
 		AssetId:      "local-import/z_image_turbo-Q4_K",
 		Engine:       "media",
-		Endpoint:     "http://127.0.0.1:8321/v1",
 		Capabilities: []string{"image"},
 	}
 	selection := engine.ImageSupervisedMatrixSelection{
@@ -612,7 +611,6 @@ func TestBootstrapSelectionAwareManagedMediaEngineSkipsNativeBinaryDirectBackend
 		LocalAssetId: "image-local-id",
 		AssetId:      "local-import/z_image_turbo-Q4_K",
 		Engine:       "media",
-		Endpoint:     "",
 		Capabilities: []string{"image"},
 	}
 	selection := engine.ImageSupervisedMatrixSelection{

@@ -3,6 +3,7 @@ package localservice
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/fs"
 	"os"
@@ -189,7 +190,7 @@ func normalizeExistingBundleManifest(sourceManifestPath string, managedManifestP
 	return manifest, nil
 }
 
-func scaffoldBundleManifest(manifestPath string, modelName string, capabilities []string, engine string, endpoint string, sourceDir string, scan bundleDirectoryScan) (map[string]any, error) {
+func scaffoldBundleManifest(manifestPath string, modelName string, capabilities []string, engine string, sourceDir string, scan bundleDirectoryScan) (map[string]any, error) {
 	entry, err := requireSingleBundleEntry(scan)
 	if err != nil {
 		return nil, err
@@ -225,9 +226,6 @@ func scaffoldBundleManifest(manifestPath string, modelName string, capabilities 
 		},
 		"integrity_mode": "local_unverified",
 		"hashes":         hashes,
-	}
-	if strings.TrimSpace(endpoint) != "" {
-		manifest["endpoint"] = strings.TrimSpace(endpoint)
 	}
 	return manifest, nil
 }
@@ -479,7 +477,6 @@ func (s *Service) ImportLocalAssetBundle(_ context.Context, req *runtimev1.Impor
 		ModelName:            strings.TrimSpace(req.GetModelName()),
 		Capabilities:         append([]string(nil), req.GetCapabilities()...),
 		Engine:               strings.TrimSpace(req.GetEngine()),
-		Endpoint:             strings.TrimSpace(req.GetEndpoint()),
 		OrderedBundleEntries: append([]string(nil), req.GetOrderedBundleEntries()...),
 	}
 	go s.runImportLocalAssetBundle(s.jobLifetimeCtx, transfer.GetInstallSessionId(), reqCopy)
@@ -489,6 +486,10 @@ func (s *Service) ImportLocalAssetBundle(_ context.Context, req *runtimev1.Impor
 func (s *Service) runImportLocalAssetBundle(ctx context.Context, transferID string, req *runtimev1.ImportLocalAssetBundleRequest) {
 	asset, err := s.importLocalAssetBundleSync(ctx, transferID, req)
 	if err != nil {
+		if errors.Is(err, errLocalTransferCancelled) || errors.Is(err, context.Canceled) {
+			s.cancelTransfer(transferID, "transfer cancelled")
+			return
+		}
 		s.failTransfer(transferID, err.Error(), false)
 		return
 	}
@@ -499,6 +500,23 @@ func (s *Service) runImportLocalAssetBundle(ctx context.Context, transferID stri
 }
 
 func (s *Service) importLocalAssetBundleSync(ctx context.Context, transferID string, req *runtimev1.ImportLocalAssetBundleRequest) (*runtimev1.LocalAssetRecord, error) {
+	control := s.transferControl(transferID)
+	// checkActive honors CancelLocalTransfer at phase boundaries so a bundle
+	// import never runs to completion after being cancelled.
+	checkActive := func() error {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+		if control != nil {
+			if err := control.wait(ctx); err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+	if err := checkActive(); err != nil {
+		return nil, err
+	}
 	sourceDir, err := validateImportSourceDirectory(req.GetDirectoryPath())
 	if err != nil {
 		return nil, grpcerr.WrapWithReasonCode(
@@ -520,8 +538,6 @@ func (s *Service) importLocalAssetBundleSync(ctx context.Context, transferID str
 	modelsRoot := resolveLocalModelsPath(s.localModelsPath)
 	sourceManifestPath := filepath.Join(sourceDir, localAssetManifestFileName)
 	sourceHasManifest := fileExists(sourceManifestPath)
-	endpoint := strings.TrimSpace(req.GetEndpoint())
-
 	var destDir string
 	var manifestPath string
 	var manifest map[string]any
@@ -564,7 +580,7 @@ func (s *Service) importLocalAssetBundleSync(ctx context.Context, transferID str
 		logicalModelID = defaultLogicalModelID(assetID)
 		destDir = runtimeManagedResolvedModelDir(modelsRoot, logicalModelID)
 		manifestPath = filepath.Join(destDir, localAssetManifestFileName)
-		manifest, err = scaffoldBundleManifest(manifestPath, modelName, req.GetCapabilities(), req.GetEngine(), endpoint, sourceDir, scan)
+		manifest, err = scaffoldBundleManifest(manifestPath, modelName, req.GetCapabilities(), req.GetEngine(), sourceDir, scan)
 		if err != nil {
 			return nil, grpcerr.WrapWithReasonCode(
 				codes.InvalidArgument,
@@ -588,7 +604,7 @@ func (s *Service) importLocalAssetBundleSync(ctx context.Context, transferID str
 		var imported *runtimev1.ImportLocalAssetResponse
 		err := replaceBundleManifestWithRollback(manifestPath, manifest, func() error {
 			var importErr error
-			imported, importErr = s.ImportLocalAsset(ctx, &runtimev1.ImportLocalAssetRequest{ManifestPath: manifestPath, Endpoint: endpoint})
+			imported, importErr = s.ImportLocalAsset(ctx, &runtimev1.ImportLocalAssetRequest{ManifestPath: manifestPath})
 			return importErr
 		})
 		if err != nil {
@@ -606,6 +622,10 @@ func (s *Service) importLocalAssetBundleSync(ctx context.Context, transferID str
 			grpcerr.ReasonOptions{Message: "bundle staging directory could not be prepared"},
 		)
 	}
+	if err := checkActive(); err != nil {
+		_ = os.RemoveAll(stageDir)
+		return nil, err
+	}
 	if err := copyDirRecursive(sourceDir, stageDir); err != nil {
 		_ = os.RemoveAll(stageDir)
 		return nil, grpcerr.WrapWithReasonCode(
@@ -614,6 +634,10 @@ func (s *Service) importLocalAssetBundleSync(ctx context.Context, transferID str
 			err,
 			grpcerr.ReasonOptions{Message: "bundle files could not be staged"},
 		)
+	}
+	if err := checkActive(); err != nil {
+		_ = os.RemoveAll(stageDir)
+		return nil, err
 	}
 	if err := writeBundleManifest(filepath.Join(stageDir, localAssetManifestFileName), manifest); err != nil {
 		_ = os.RemoveAll(stageDir)
@@ -635,7 +659,7 @@ func (s *Service) importLocalAssetBundleSync(ctx context.Context, transferID str
 		)
 	}
 	s.updateTransferProgress(transferID, "register", 1, 1, "registering bundle")
-	imported, err := s.ImportLocalAsset(ctx, &runtimev1.ImportLocalAssetRequest{ManifestPath: manifestPath, Endpoint: endpoint})
+	imported, err := s.ImportLocalAsset(ctx, &runtimev1.ImportLocalAssetRequest{ManifestPath: manifestPath})
 	if err != nil {
 		if quarantinePath, rollbackErr := activation.Rollback(s, modelsRoot, logicalModelID, "bundle_import", err.Error(), "", ""); rollbackErr != nil {
 			return nil, fmt.Errorf("%s; rollback=%v", err.Error(), rollbackErr)
@@ -714,7 +738,7 @@ func (s *Service) rescanLocalAssetBundleSync(ctx context.Context, transferID str
 	if fileExists(manifestPath) {
 		manifest, err = normalizeExistingBundleManifest(manifestPath, manifestPath, bundleDir, scan, identity)
 	} else {
-		manifest, err = scaffoldBundleManifest(manifestPath, asset.GetAssetId(), asset.GetCapabilities(), asset.GetEngine(), asset.GetEndpoint(), bundleDir, scan)
+		manifest, err = scaffoldBundleManifest(manifestPath, asset.GetAssetId(), asset.GetCapabilities(), asset.GetEngine(), bundleDir, scan)
 	}
 	if err != nil {
 		return nil, grpcerr.WrapWithReasonCode(
@@ -736,7 +760,7 @@ func (s *Service) rescanLocalAssetBundleSync(ctx context.Context, transferID str
 	var imported *runtimev1.ImportLocalAssetResponse
 	err = replaceBundleManifestWithRollback(manifestPath, manifest, func() error {
 		var importErr error
-		imported, importErr = s.importLocalAsset(ctx, &runtimev1.ImportLocalAssetRequest{ManifestPath: manifestPath, Endpoint: asset.GetEndpoint()}, localAssetExistingPolicyRebind)
+		imported, importErr = s.importLocalAsset(ctx, &runtimev1.ImportLocalAssetRequest{ManifestPath: manifestPath}, localAssetExistingPolicyRebind)
 		return importErr
 	})
 	if err != nil {

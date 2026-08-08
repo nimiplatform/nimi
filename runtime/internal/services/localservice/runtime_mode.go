@@ -12,22 +12,6 @@ type localRuntimeBinding struct {
 	autoRecommended bool
 }
 
-func normalizeLocalImportRuntimeBinding(
-	engine string,
-	capabilities []string,
-	kind runtimev1.LocalAssetKind,
-	binding localRuntimeBinding,
-) localRuntimeBinding {
-	if !isCanonicalSupervisedImageAsset(engine, capabilities, kind) {
-		return binding
-	}
-	return localRuntimeBinding{
-		mode:            runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED,
-		endpoint:        "",
-		autoRecommended: binding.autoRecommended,
-	}
-}
-
 func normalizeRuntimeMode(mode runtimev1.LocalEngineRuntimeMode) runtimev1.LocalEngineRuntimeMode {
 	if mode == runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_UNSPECIFIED {
 		return runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_ATTACHED_ENDPOINT
@@ -208,16 +192,6 @@ func (s *Service) managedEndpointForEngineLocked(engine string) string {
 	}
 }
 
-func (s *Service) managedEndpointForAssetLocked(
-	engine string,
-	capabilities []string,
-	kind runtimev1.LocalAssetKind,
-) string {
-	return s.managedEndpointForEngineLocked(
-		executionRuntimeEngineForAsset(engine, capabilities, kind),
-	)
-}
-
 func effectiveEndpointForRuntimeMode(engine string, mode runtimev1.LocalEngineRuntimeMode, endpoint string, managedEndpoint string) string {
 	if normalizeRuntimeMode(mode) != runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED {
 		return strings.TrimSpace(endpoint)
@@ -238,47 +212,8 @@ func storedEndpointForRuntimeMode(mode runtimev1.LocalEngineRuntimeMode, endpoin
 	return ""
 }
 
-func effectiveEndpointForAssetRuntimeMode(
-	engine string,
-	capabilities []string,
-	kind runtimev1.LocalAssetKind,
-	mode runtimev1.LocalEngineRuntimeMode,
-	endpoint string,
-	managedEndpoint string,
-) string {
-	return effectiveEndpointForRuntimeMode(
-		executionRuntimeEngineForAsset(engine, capabilities, kind),
-		mode,
-		endpoint,
-		managedEndpoint,
-	)
-}
-
-func storedEndpointForAssetRuntimeMode(
-	engine string,
-	capabilities []string,
-	kind runtimev1.LocalAssetKind,
-	mode runtimev1.LocalEngineRuntimeMode,
-	endpoint string,
-	managedEndpoint string,
-) string {
-	targetEngine := executionRuntimeEngineForAsset(engine, capabilities, kind)
-	if strings.TrimSpace(managedEndpoint) == "" {
-		managedEndpoint = managedDefaultEndpointForEngine(targetEngine)
-	}
-	return storedEndpointForRuntimeMode(
-		mode,
-		endpoint,
-		managedEndpoint,
-	)
-}
-
 func (s *Service) effectiveEndpointForRuntimeMode(engine string, mode runtimev1.LocalEngineRuntimeMode, endpoint string) string {
 	return effectiveEndpointForRuntimeMode(engine, mode, endpoint, s.managedEndpointForEngine(engine))
-}
-
-func (s *Service) storedEndpointForRuntimeMode(engine string, mode runtimev1.LocalEngineRuntimeMode, endpoint string) string {
-	return storedEndpointForRuntimeMode(mode, endpoint, s.managedEndpointForEngine(engine))
 }
 
 func (s *Service) modelRuntimeMode(localModelID string) runtimev1.LocalEngineRuntimeMode {
@@ -287,8 +222,22 @@ func (s *Service) modelRuntimeMode(localModelID string) runtimev1.LocalEngineRun
 		return runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_ATTACHED_ENDPOINT
 	}
 	s.mu.RLock()
-	defer s.mu.RUnlock()
-	return normalizeRuntimeMode(s.assetRuntimeModes[id])
+	asset := cloneLocalAsset(s.assets[id])
+	s.mu.RUnlock()
+	return runtimeModeForAsset(asset, collectDeviceProfile())
+}
+
+func runtimeModeForAsset(asset *runtimev1.LocalAssetRecord, profile *runtimev1.LocalDeviceProfile) runtimev1.LocalEngineRuntimeMode {
+	if asset == nil {
+		return runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_ATTACHED_ENDPOINT
+	}
+	return normalizeRuntimeMode(resolveInstallRuntimeBinding(
+		asset.GetEngine(),
+		asset.GetCapabilities(),
+		asset.GetKind(),
+		"",
+		profile,
+	).mode)
 }
 
 func (s *Service) serviceRuntimeMode(serviceID string) runtimev1.LocalEngineRuntimeMode {
@@ -301,19 +250,7 @@ func (s *Service) serviceRuntimeMode(serviceID string) runtimev1.LocalEngineRunt
 	if mode, ok := s.serviceRuntimeModes[id]; ok && mode != runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_UNSPECIFIED {
 		return normalizeRuntimeMode(mode)
 	}
-	service := s.services[id]
-	if service == nil {
-		return runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_ATTACHED_ENDPOINT
-	}
-	return normalizeRuntimeMode(s.assetRuntimeModes[strings.TrimSpace(service.GetLocalModelId())])
-}
-
-func (s *Service) setModelRuntimeModeLocked(localModelID string, mode runtimev1.LocalEngineRuntimeMode) {
-	id := strings.TrimSpace(localModelID)
-	if id == "" {
-		return
-	}
-	s.assetRuntimeModes[id] = normalizeRuntimeMode(mode)
+	return runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_ATTACHED_ENDPOINT
 }
 
 func (s *Service) setServiceRuntimeModeLocked(serviceID string, mode runtimev1.LocalEngineRuntimeMode) {

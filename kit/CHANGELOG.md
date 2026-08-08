@@ -11,8 +11,23 @@ Discipline.
 
 ### Added
 
+- Generation runners expose the bounded text/chat sampling set, batch text
+  embeddings, video artifact references, and speech synthesis timing mode while
+  preserving explicit optional scalar zero values on Runtime requests.
 - The protected Local App standard shell exposes Runtime-selected foreground
   text candidate generation through the public renderer bridge.
+- The Local App AI surface now includes bounded text-turn streaming, synchronous
+  scenarios, Scenario Jobs, artifact reads, and voice-asset listing. Kit also
+  re-exports the SDK Local App Scenario Job adapter so existing generation
+  runners can consume the protected carrier without a Runtime proxy.
+- Model Config can open an explicitly requested capability detail on first
+  mount, allowing capability-specific host entry points to reuse the shared hub.
+  Third-party App hosts may also expose the Cloud source as an explicit handoff
+  to Nimi Desktop Connector configuration without receiving Connector inventory
+  or ConnectorGrant material. The protected Local App carrier now supplies the
+  bounded current Local-selection display projection used by Model Config while
+  withholding configuration identity, bindings, LocalAssets, paths, and
+  execution truth.
 
 ### Changed
 

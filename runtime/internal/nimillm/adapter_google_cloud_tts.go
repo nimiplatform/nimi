@@ -131,7 +131,7 @@ func resolveGoogleCloudTTSAudioConfig(spec *runtimev1.SpeechSynthesizeScenarioSp
 	if sampleRate := spec.GetSampleRateHz(); sampleRate > 0 {
 		audioConfig["sampleRateHertz"] = sampleRate
 	}
-	if speed := spec.GetSpeed(); speed > 0 {
+	if speed := scenarioSpeechSpeed(spec); speed > 0 {
 		audioConfig["speakingRate"] = speed
 	}
 	mergeGoogleCloudTTSMap(audioConfig, MapField(scenarioExtensions, "audio_config"))

@@ -85,7 +85,6 @@ type Service struct {
 
 	mu                                      sync.RWMutex
 	assets                                  map[string]*runtimev1.LocalAssetRecord
-	assetRuntimeModes                       map[string]runtimev1.LocalEngineRuntimeMode
 	services                                map[string]*runtimev1.LocalServiceDescriptor
 	serviceRuntimeModes                     map[string]runtimev1.LocalEngineRuntimeMode
 	audits                                  []*runtimev1.LocalAuditEvent
@@ -196,7 +195,6 @@ func newService(logger *slog.Logger, store *auditlog.Store, stateStorePath strin
 		localModelsPath:                         resolveLocalModelsPath(localModelsPath),
 		runtimeDataRoot:                         resolveLocalEnvironmentRuntimeDataRoot(runtimeDataRoot),
 		assets:                                  make(map[string]*runtimev1.LocalAssetRecord),
-		assetRuntimeModes:                       make(map[string]runtimev1.LocalEngineRuntimeMode),
 		services:                                make(map[string]*runtimev1.LocalServiceDescriptor),
 		serviceRuntimeModes:                     make(map[string]runtimev1.LocalEngineRuntimeMode),
 		audits:                                  make([]*runtimev1.LocalAuditEvent, 0, localAuditCapacity),

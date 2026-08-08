@@ -177,10 +177,6 @@ export interface LocalAssetRecord {
      */
     engineConfig?: Struct;
     /**
-     * @generated from protobuf field: string endpoint = 31
-     */
-    endpoint: string;
-    /**
      * @generated from protobuf field: nimi.runtime.v1.ReasonCode reason_code = 32
      */
     reasonCode: ReasonCode;
@@ -1070,7 +1066,6 @@ class LocalAssetRecord$Type extends MessageType<LocalAssetRecord> {
             { no: 28, name: "host_requirements", kind: "message", T: () => LocalHostRequirements },
             { no: 29, name: "local_invoke_profile_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 30, name: "engine_config", kind: "message", T: () => Struct },
-            { no: 31, name: "endpoint", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 32, name: "reason_code", kind: "enum", T: () => ["nimi.runtime.v1.ReasonCode", ReasonCode] },
             { no: 40, name: "metadata", kind: "message", T: () => Struct },
             { no: 41, name: "display_name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
@@ -1101,7 +1096,6 @@ class LocalAssetRecord$Type extends MessageType<LocalAssetRecord> {
         message.fallbackEngines = [];
         message.bundleState = 0;
         message.localInvokeProfileId = "";
-        message.endpoint = "";
         message.reasonCode = 0;
         message.displayName = "";
         message.sourceFileName = "";
@@ -1184,9 +1178,6 @@ class LocalAssetRecord$Type extends MessageType<LocalAssetRecord> {
                     break;
                 case /* google.protobuf.Struct engine_config */ 30:
                     message.engineConfig = Struct.internalBinaryRead(reader, reader.uint32(), options, message.engineConfig);
-                    break;
-                case /* string endpoint */ 31:
-                    message.endpoint = reader.string();
                     break;
                 case /* nimi.runtime.v1.ReasonCode reason_code */ 32:
                     message.reasonCode = reader.int32();
@@ -1303,9 +1294,6 @@ class LocalAssetRecord$Type extends MessageType<LocalAssetRecord> {
         /* google.protobuf.Struct engine_config = 30; */
         if (message.engineConfig)
             Struct.internalBinaryWrite(message.engineConfig, writer.tag(30, WireType.LengthDelimited).fork(), options).join();
-        /* string endpoint = 31; */
-        if (message.endpoint !== "")
-            writer.tag(31, WireType.LengthDelimited).string(message.endpoint);
         /* nimi.runtime.v1.ReasonCode reason_code = 32; */
         if (message.reasonCode !== 0)
             writer.tag(32, WireType.Varint).int32(message.reasonCode);

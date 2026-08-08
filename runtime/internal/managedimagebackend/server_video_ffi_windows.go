@@ -19,7 +19,6 @@ import (
 )
 
 const (
-	sdCPURNG           = 2
 	sdCancelAll        = 0
 	sdCancelReset      = 2
 	maxFFIVideoFrames  = 512
@@ -110,8 +109,20 @@ func (engine *stableDiffusionVideoFFI) Load(request VideoModelRequest) (bool, er
 			return false, videoError(VideoErrorEngineIncompatible, fmt.Errorf("stable-diffusion video export %s unavailable: %w", proc.Name, err))
 		}
 	}
-	if request.CFGScale != 1 || request.FlowShift != 12 || !request.DiffusionFlashAttention || !request.OffloadToCPU || !strings.EqualFold(strings.TrimSpace(request.RNG), "cpu") {
-		return false, videoError(VideoErrorLoad, fmt.Errorf("managed H3 video load recipe is incompatible"))
+	if err := validateVideoModelRecipe(request); err != nil {
+		return false, err
+	}
+	for _, option := range []struct {
+		label string
+		value string
+		count int32
+	}{
+		{label: "sample method", value: request.SampleMethod, count: sdSampleMethodCount},
+		{label: "scheduler", value: request.Scheduler, count: sdSchedulerCount},
+	} {
+		if _, _, err := engine.convertVideoRecipeToken(option.label, option.value, option.count); err != nil {
+			return false, err
+		}
 	}
 	if request.ConditioningMode != "fl2va-t2va" && request.ConditioningMode != "ref2va-image" {
 		return false, videoError(VideoErrorLoad, fmt.Errorf("managed H3 video conditioning mode is unsupported"))
@@ -163,17 +174,14 @@ func (engine *stableDiffusionVideoFFI) Load(request VideoModelRequest) (bool, er
 			return false, videoError(VideoErrorLoad, fmt.Errorf("encode video model path: %w", err))
 		}
 	}
-	params.DiffusionFlashAttention = boolByte(request.DiffusionFlashAttention)
-	params.RNGType = sdCPURNG
-	params.SamplerRNGType = sdCPURNG
-	if !strings.EqualFold(strings.TrimSpace(request.RNG), "cpu") {
-		return false, videoError(VideoErrorLoad, fmt.Errorf("managed H3 video requires CPU RNG"))
+	if err := applyVideoContextRecipe(&params, request); err != nil {
+		return false, err
 	}
-	if request.OffloadToCPU {
+	if backendSpec := videoParamsBackendSpec(request.OffloadToCPU); backendSpec != "" {
 		// Floor CLI maps --offload-to-cpu by prepending the "*=cpu" backend
 		// assignment spec to params_backend (examples/common/common.cpp:775-777
 		// @ c6beeef3), not the bare literal "cpu".
-		if err := setCString(&params.ParamsBackend, "*=cpu"); err != nil {
+		if err := setCString(&params.ParamsBackend, backendSpec); err != nil {
 			return false, videoError(VideoErrorLoad, fmt.Errorf("encode CPU params backend: %w", err))
 		}
 	}
@@ -235,25 +243,10 @@ func (engine *stableDiffusionVideoFFI) Generate(request VideoGenerateRequest, pr
 	params.Seed = request.Seed
 	params.VideoFrames = int32(request.FrameCount)
 	params.FPS = int32(request.FPS)
-	params.SampleParams.Guidance.TextCFG = float32(model.CFGScale)
-	params.SampleParams.FlowShift = float32(model.FlowShift)
-	if sample := strings.TrimSpace(model.SampleMethod); sample != "" {
-		value, conversionErr := syscall.BytePtrFromString(sample)
-		if conversionErr != nil {
-			return VideoCandidate{}, videoError(VideoErrorInference, fmt.Errorf("encode sample method: %w", conversionErr))
-		}
-		converted, _, _ := engine.strToSample.Call(uintptr(unsafe.Pointer(value)))
-		params.SampleParams.SampleMethod = int32(converted)
-		runtime.KeepAlive(value)
-	}
-	if scheduler := strings.TrimSpace(model.Scheduler); scheduler != "" {
-		value, conversionErr := syscall.BytePtrFromString(scheduler)
-		if conversionErr != nil {
-			return VideoCandidate{}, videoError(VideoErrorInference, fmt.Errorf("encode scheduler: %w", conversionErr))
-		}
-		converted, _, _ := engine.strToScheduler.Call(uintptr(unsafe.Pointer(value)))
-		params.SampleParams.Scheduler = int32(converted)
-		runtime.KeepAlive(value)
+	if err := applyVideoGenerateRecipe(&params, model, func(label, value string, count int32) (int32, bool, error) {
+		return engine.convertVideoRecipeToken(label, value, count)
+	}); err != nil {
+		return VideoCandidate{}, err
 	}
 	if (model.ConditioningMode == "ref2va-image") != (len(request.ReferenceImage) > 0) {
 		return VideoCandidate{}, videoError(VideoErrorInference, fmt.Errorf("video conditioning payload does not match loaded route"))
@@ -389,9 +382,24 @@ func copyFFIVideoCandidate(framesPointer unsafe.Pointer, frameCount int32, audio
 	return candidate, nil
 }
 
-func boolByte(value bool) uint8 {
-	if value {
-		return 1
+func (engine *stableDiffusionVideoFFI) convertVideoRecipeToken(label, value string, count int32) (int32, bool, error) {
+	value = strings.TrimSpace(value)
+	if value == "" || value == "engine-default" {
+		return 0, false, nil
 	}
-	return 0
+	pointer, err := syscall.BytePtrFromString(value)
+	if err != nil {
+		return 0, false, videoError(VideoErrorLoad, fmt.Errorf("encode video %s: %w", label, err))
+	}
+	proc := engine.strToScheduler
+	if label == "sample method" {
+		proc = engine.strToSample
+	}
+	converted, _, _ := proc.Call(uintptr(unsafe.Pointer(pointer)))
+	runtime.KeepAlive(pointer)
+	result := int32(converted)
+	if result < 0 || result >= count {
+		return 0, false, videoError(VideoErrorLoad, fmt.Errorf("managed H3 video %s is unsupported", label))
+	}
+	return result, true, nil
 }

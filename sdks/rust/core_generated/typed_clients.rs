@@ -5929,6 +5929,59 @@ impl CancelHookResponse {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct CancelLocalAppScenarioJobRequest {
+    pub job_id: Option<String>,
+    pub reason: Option<String>,
+}
+
+impl CancelLocalAppScenarioJobRequest {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.job_id { pairs.push(format!("job_id={}", value)); }
+        if let Some(value) = &self.reason { pairs.push(format!("reason={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+
+        out.job_id = pairs.get("job_id").cloned();
+        out.reason = pairs.get("reason").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct CancelLocalAppScenarioJobResponse {
+    pub job: Option<Box<LocalAppScenarioJob>>,
+}
+
+impl CancelLocalAppScenarioJobResponse {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let pairs: Vec<String> = Vec::new();
+        if self.job.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode job"); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let out = Self::default();
+        for key in ["job"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+        if !pairs.is_empty() {
+            panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client has no decoder for response fields");
+        }
+
+
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct CancelLocalEnvironmentDependencyJobRequest {
     pub job_id: Option<String>,
 }
@@ -9152,6 +9205,67 @@ impl ErrorInfo {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct ExecuteLocalAppScenarioRequest {
+    pub text_embed: Option<Box<LocalAppTextEmbedScenarioSpec>>,
+    pub image_generate: Option<Box<LocalAppImageGenerateScenarioSpec>>,
+}
+
+impl ExecuteLocalAppScenarioRequest {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let pairs: Vec<String> = Vec::new();
+        if self.text_embed.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode text_embed"); }
+        if self.image_generate.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode image_generate"); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let out = Self::default();
+        for key in ["text_embed", "image_generate"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+        if !pairs.is_empty() {
+            panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client has no decoder for response fields");
+        }
+
+
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ExecuteLocalAppScenarioResponse {
+    pub text_embed: Option<Box<LocalAppTextEmbedOutput>>,
+    pub image_generate: Option<Box<LocalAppImageGenerateOutput>>,
+    pub trace_id: Option<String>,
+}
+
+impl ExecuteLocalAppScenarioResponse {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if self.text_embed.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode text_embed"); }
+        if self.image_generate.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode image_generate"); }
+        if let Some(value) = &self.trace_id { pairs.push(format!("trace_id={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        for key in ["text_embed", "image_generate"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+
+        out.trace_id = pairs.get("trace_id").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct ExecuteLocalStateCutoverRequest {
     pub nimi_data_dir: Option<String>,
     pub plan_id: Option<String>,
@@ -9628,6 +9742,11 @@ pub struct GenerateLocalAppTextCandidateRequest {
     pub temperature: Option<f32>,
     pub top_p: Option<f32>,
     pub max_tokens: Option<i32>,
+    pub top_k: Option<i32>,
+    pub presence_penalty: Option<f32>,
+    pub frequency_penalty: Option<f32>,
+    pub stop: Vec<String>,
+    pub seed: Option<i64>,
 }
 
 impl GenerateLocalAppTextCandidateRequest {
@@ -9637,6 +9756,11 @@ impl GenerateLocalAppTextCandidateRequest {
         if let Some(value) = &self.temperature { pairs.push(format!("temperature={}", value)); }
         if let Some(value) = &self.top_p { pairs.push(format!("top_p={}", value)); }
         if let Some(value) = &self.max_tokens { pairs.push(format!("max_tokens={}", value)); }
+        if let Some(value) = &self.top_k { pairs.push(format!("top_k={}", value)); }
+        if let Some(value) = &self.presence_penalty { pairs.push(format!("presence_penalty={}", value)); }
+        if let Some(value) = &self.frequency_penalty { pairs.push(format!("frequency_penalty={}", value)); }
+        for value in &self.stop { pairs.push(format!("stop={}", value)); }
+        if let Some(value) = &self.seed { pairs.push(format!("seed={}", value)); }
         pairs.join(";").into_bytes()
     }
 
@@ -9652,6 +9776,11 @@ impl GenerateLocalAppTextCandidateRequest {
         out.temperature = pairs.get("temperature").and_then(|value| value.parse().ok());
         out.top_p = pairs.get("top_p").and_then(|value| value.parse().ok());
         out.max_tokens = pairs.get("max_tokens").and_then(|value| value.parse().ok());
+        out.top_k = pairs.get("top_k").and_then(|value| value.parse().ok());
+        out.presence_penalty = pairs.get("presence_penalty").and_then(|value| value.parse().ok());
+        out.frequency_penalty = pairs.get("frequency_penalty").and_then(|value| value.parse().ok());
+        out.stop = parse_repeated_string(raw, "stop");
+        out.seed = pairs.get("seed").and_then(|value| value.parse().ok());
         out
     }
 }
@@ -11014,6 +11143,56 @@ impl GetLocalAppConversationSnapshotResponse {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct GetLocalAppScenarioJobRequest {
+    pub job_id: Option<String>,
+}
+
+impl GetLocalAppScenarioJobRequest {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.job_id { pairs.push(format!("job_id={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+
+        out.job_id = pairs.get("job_id").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct GetLocalAppScenarioJobResponse {
+    pub job: Option<Box<LocalAppScenarioJob>>,
+}
+
+impl GetLocalAppScenarioJobResponse {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let pairs: Vec<String> = Vec::new();
+        if self.job.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode job"); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let out = Self::default();
+        for key in ["job"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+        if !pairs.is_empty() {
+            panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client has no decoder for response fields");
+        }
+
+
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct GetLocalAppSharedLocalAgentAIConfigRequest {
 
 }
@@ -12006,7 +12185,6 @@ pub struct ImportLocalAssetBundleRequest {
     pub model_name: Option<String>,
     pub capabilities: Vec<String>,
     pub engine: Option<String>,
-    pub endpoint: Option<String>,
     pub ordered_bundle_entries: Vec<String>,
 }
 
@@ -12017,7 +12195,6 @@ impl ImportLocalAssetBundleRequest {
         if let Some(value) = &self.model_name { pairs.push(format!("model_name={}", value)); }
         for value in &self.capabilities { pairs.push(format!("capabilities={}", value)); }
         if let Some(value) = &self.engine { pairs.push(format!("engine={}", value)); }
-        if let Some(value) = &self.endpoint { pairs.push(format!("endpoint={}", value)); }
         for value in &self.ordered_bundle_entries { pairs.push(format!("ordered_bundle_entries={}", value)); }
         pairs.join(";").into_bytes()
     }
@@ -12030,7 +12207,6 @@ impl ImportLocalAssetBundleRequest {
         out.model_name = pairs.get("model_name").cloned();
         out.capabilities = parse_repeated_string(raw, "capabilities");
         out.engine = pairs.get("engine").cloned();
-        out.endpoint = pairs.get("endpoint").cloned();
         out.ordered_bundle_entries = parse_repeated_string(raw, "ordered_bundle_entries");
         out
     }
@@ -12072,7 +12248,6 @@ pub struct ImportLocalAssetFileRequest {
     pub engine: Option<String>,
     pub asset_name: Option<String>,
     pub capabilities: Vec<String>,
-    pub endpoint: Option<String>,
 }
 
 impl ImportLocalAssetFileRequest {
@@ -12083,7 +12258,6 @@ impl ImportLocalAssetFileRequest {
         if let Some(value) = &self.engine { pairs.push(format!("engine={}", value)); }
         if let Some(value) = &self.asset_name { pairs.push(format!("asset_name={}", value)); }
         for value in &self.capabilities { pairs.push(format!("capabilities={}", value)); }
-        if let Some(value) = &self.endpoint { pairs.push(format!("endpoint={}", value)); }
         pairs.join(";").into_bytes()
     }
 
@@ -12100,7 +12274,6 @@ impl ImportLocalAssetFileRequest {
         out.engine = pairs.get("engine").cloned();
         out.asset_name = pairs.get("asset_name").cloned();
         out.capabilities = parse_repeated_string(raw, "capabilities");
-        out.endpoint = pairs.get("endpoint").cloned();
         out
     }
 }
@@ -12137,7 +12310,6 @@ impl ImportLocalAssetFileResponse {
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct ImportLocalAssetRequest {
     pub manifest_path: Option<String>,
-    pub endpoint: Option<String>,
     pub engine_config: Option<BTreeMap<String, String>>,
 }
 
@@ -12145,7 +12317,6 @@ impl ImportLocalAssetRequest {
     pub fn to_transport(&self) -> Vec<u8> {
         let mut pairs: Vec<String> = Vec::new();
         if let Some(value) = &self.manifest_path { pairs.push(format!("manifest_path={}", value)); }
-        if let Some(value) = &self.endpoint { pairs.push(format!("endpoint={}", value)); }
         if self.engine_config.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode engine_config"); }
         pairs.join(";").into_bytes()
     }
@@ -12160,7 +12331,6 @@ impl ImportLocalAssetRequest {
         }
 
         out.manifest_path = pairs.get("manifest_path").cloned();
-        out.endpoint = pairs.get("endpoint").cloned();
         out
     }
 }
@@ -14458,6 +14628,58 @@ impl ListLocalAppAgentReferencesResponse {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct ListLocalAppVoiceAssetsRequest {
+    pub page_size: Option<i32>,
+    pub page_token: Option<String>,
+}
+
+impl ListLocalAppVoiceAssetsRequest {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.page_size { pairs.push(format!("page_size={}", value)); }
+        if let Some(value) = &self.page_token { pairs.push(format!("page_token={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+
+        out.page_size = pairs.get("page_size").and_then(|value| value.parse().ok());
+        out.page_token = pairs.get("page_token").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ListLocalAppVoiceAssetsResponse {
+    pub assets: Vec<Box<LocalAppVoiceAsset>>,
+    pub next_page_token: Option<String>,
+}
+
+impl ListLocalAppVoiceAssetsResponse {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if !self.assets.is_empty() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode assets"); }
+        if let Some(value) = &self.next_page_token { pairs.push(format!("next_page_token={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        for key in ["assets"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+
+        out.next_page_token = pairs.get("next_page_token").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct ListLocalAssetsRequest {
     pub status_filter: Option<LocalAssetStatus>,
     pub kind_filter: Option<LocalAssetKind>,
@@ -16299,6 +16521,229 @@ impl LocalAppConversationTurnStarted {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct LocalAppImageGenerateOutput {
+    pub artifacts: Vec<Box<LocalAppScenarioArtifact>>,
+}
+
+impl LocalAppImageGenerateOutput {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let pairs: Vec<String> = Vec::new();
+        if !self.artifacts.is_empty() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode artifacts"); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let out = Self::default();
+        for key in ["artifacts"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+        if !pairs.is_empty() {
+            panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client has no decoder for response fields");
+        }
+
+
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct LocalAppImageGenerateScenarioSpec {
+    pub prompt: Option<String>,
+    pub negative_prompt: Option<String>,
+    pub n: Option<i32>,
+    pub size: Option<String>,
+    pub aspect_ratio: Option<String>,
+    pub quality: Option<String>,
+    pub style: Option<String>,
+    pub seed: Option<i64>,
+    pub reference_images: Vec<String>,
+    pub mask: Option<String>,
+    pub response_format: Option<String>,
+}
+
+impl LocalAppImageGenerateScenarioSpec {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.prompt { pairs.push(format!("prompt={}", value)); }
+        if let Some(value) = &self.negative_prompt { pairs.push(format!("negative_prompt={}", value)); }
+        if let Some(value) = &self.n { pairs.push(format!("n={}", value)); }
+        if let Some(value) = &self.size { pairs.push(format!("size={}", value)); }
+        if let Some(value) = &self.aspect_ratio { pairs.push(format!("aspect_ratio={}", value)); }
+        if let Some(value) = &self.quality { pairs.push(format!("quality={}", value)); }
+        if let Some(value) = &self.style { pairs.push(format!("style={}", value)); }
+        if let Some(value) = &self.seed { pairs.push(format!("seed={}", value)); }
+        for value in &self.reference_images { pairs.push(format!("reference_images={}", value)); }
+        if let Some(value) = &self.mask { pairs.push(format!("mask={}", value)); }
+        if let Some(value) = &self.response_format { pairs.push(format!("response_format={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+
+        out.prompt = pairs.get("prompt").cloned();
+        out.negative_prompt = pairs.get("negative_prompt").cloned();
+        out.n = pairs.get("n").and_then(|value| value.parse().ok());
+        out.size = pairs.get("size").cloned();
+        out.aspect_ratio = pairs.get("aspect_ratio").cloned();
+        out.quality = pairs.get("quality").cloned();
+        out.style = pairs.get("style").cloned();
+        out.seed = pairs.get("seed").and_then(|value| value.parse().ok());
+        out.reference_images = parse_repeated_string(raw, "reference_images");
+        out.mask = pairs.get("mask").cloned();
+        out.response_format = pairs.get("response_format").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct LocalAppScenarioArtifact {
+    pub artifact_id: Option<String>,
+    pub mime_type: Option<String>,
+    pub bytes: Option<Vec<u8>>,
+    pub size_bytes: Option<i64>,
+    pub sha256: Option<String>,
+    pub duration_ms: Option<i64>,
+    pub width: Option<i32>,
+    pub height: Option<i32>,
+    pub sample_rate_hz: Option<i32>,
+    pub channels: Option<i32>,
+}
+
+impl LocalAppScenarioArtifact {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.artifact_id { pairs.push(format!("artifact_id={}", value)); }
+        if let Some(value) = &self.mime_type { pairs.push(format!("mime_type={}", value)); }
+        if self.bytes.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode bytes"); }
+        if let Some(value) = &self.size_bytes { pairs.push(format!("size_bytes={}", value)); }
+        if let Some(value) = &self.sha256 { pairs.push(format!("sha256={}", value)); }
+        if let Some(value) = &self.duration_ms { pairs.push(format!("duration_ms={}", value)); }
+        if let Some(value) = &self.width { pairs.push(format!("width={}", value)); }
+        if let Some(value) = &self.height { pairs.push(format!("height={}", value)); }
+        if let Some(value) = &self.sample_rate_hz { pairs.push(format!("sample_rate_hz={}", value)); }
+        if let Some(value) = &self.channels { pairs.push(format!("channels={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        for key in ["bytes"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+
+        out.artifact_id = pairs.get("artifact_id").cloned();
+        out.mime_type = pairs.get("mime_type").cloned();
+        out.size_bytes = pairs.get("size_bytes").and_then(|value| value.parse().ok());
+        out.sha256 = pairs.get("sha256").cloned();
+        out.duration_ms = pairs.get("duration_ms").and_then(|value| value.parse().ok());
+        out.width = pairs.get("width").and_then(|value| value.parse().ok());
+        out.height = pairs.get("height").and_then(|value| value.parse().ok());
+        out.sample_rate_hz = pairs.get("sample_rate_hz").and_then(|value| value.parse().ok());
+        out.channels = pairs.get("channels").and_then(|value| value.parse().ok());
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct LocalAppScenarioJob {
+    pub job_id: Option<String>,
+    pub scenario_type: Option<ScenarioType>,
+    pub status: Option<ScenarioJobStatus>,
+    pub progress_percent: Option<i32>,
+    pub progress_current_step: Option<i32>,
+    pub progress_total_steps: Option<i32>,
+    pub reason_code: Option<ReasonCode>,
+    pub reason_detail: Option<String>,
+    pub artifacts: Vec<Box<LocalAppScenarioArtifact>>,
+    pub trace_id: Option<String>,
+    pub created_at: Option<String>,
+    pub updated_at: Option<String>,
+}
+
+impl LocalAppScenarioJob {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.job_id { pairs.push(format!("job_id={}", value)); }
+        if let Some(value) = &self.scenario_type { pairs.push(format!("scenario_type={:?}", value)); }
+        if let Some(value) = &self.status { pairs.push(format!("status={:?}", value)); }
+        if let Some(value) = &self.progress_percent { pairs.push(format!("progress_percent={}", value)); }
+        if let Some(value) = &self.progress_current_step { pairs.push(format!("progress_current_step={}", value)); }
+        if let Some(value) = &self.progress_total_steps { pairs.push(format!("progress_total_steps={}", value)); }
+        if let Some(value) = &self.reason_code { pairs.push(format!("reason_code={:?}", value)); }
+        if let Some(value) = &self.reason_detail { pairs.push(format!("reason_detail={}", value)); }
+        if !self.artifacts.is_empty() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode artifacts"); }
+        if let Some(value) = &self.trace_id { pairs.push(format!("trace_id={}", value)); }
+        if let Some(value) = &self.created_at { pairs.push(format!("created_at={}", value)); }
+        if let Some(value) = &self.updated_at { pairs.push(format!("updated_at={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        for key in ["scenario_type", "status", "reason_code", "artifacts"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+
+        out.job_id = pairs.get("job_id").cloned();
+        out.progress_percent = pairs.get("progress_percent").and_then(|value| value.parse().ok());
+        out.progress_current_step = pairs.get("progress_current_step").and_then(|value| value.parse().ok());
+        out.progress_total_steps = pairs.get("progress_total_steps").and_then(|value| value.parse().ok());
+        out.reason_detail = pairs.get("reason_detail").cloned();
+        out.trace_id = pairs.get("trace_id").cloned();
+        out.created_at = pairs.get("created_at").cloned();
+        out.updated_at = pairs.get("updated_at").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct LocalAppScenarioJobEvent {
+    pub event_type: Option<ScenarioJobEventType>,
+    pub sequence: Option<u64>,
+    pub trace_id: Option<String>,
+    pub timestamp: Option<String>,
+    pub job: Option<Box<LocalAppScenarioJob>>,
+}
+
+impl LocalAppScenarioJobEvent {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.event_type { pairs.push(format!("event_type={:?}", value)); }
+        if let Some(value) = &self.sequence { pairs.push(format!("sequence={}", value)); }
+        if let Some(value) = &self.trace_id { pairs.push(format!("trace_id={}", value)); }
+        if let Some(value) = &self.timestamp { pairs.push(format!("timestamp={}", value)); }
+        if self.job.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode job"); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        for key in ["event_type", "job"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+
+        out.sequence = pairs.get("sequence").and_then(|value| value.parse().ok());
+        out.trace_id = pairs.get("trace_id").cloned();
+        out.timestamp = pairs.get("timestamp").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct LocalAppSharedLocalAgentAIConfigProjection {
     pub config: Option<Box<AIConfig>>,
 }
@@ -16328,6 +16773,105 @@ impl LocalAppSharedLocalAgentAIConfigProjection {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct LocalAppSpeechSynthesizeJobSpec {
+    pub text: Option<String>,
+    pub language: Option<String>,
+    pub audio_format: Option<String>,
+    pub sample_rate_hz: Option<i32>,
+    pub speed: Option<f32>,
+    pub pitch: Option<f32>,
+    pub volume: Option<f32>,
+    pub emotion: Option<String>,
+    pub voice_ref: Option<Box<VoiceReference>>,
+    pub timing_mode: Option<SpeechTimingMode>,
+    pub voice_render_hints: Option<Box<VoiceRenderHints>>,
+}
+
+impl LocalAppSpeechSynthesizeJobSpec {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.text { pairs.push(format!("text={}", value)); }
+        if let Some(value) = &self.language { pairs.push(format!("language={}", value)); }
+        if let Some(value) = &self.audio_format { pairs.push(format!("audio_format={}", value)); }
+        if let Some(value) = &self.sample_rate_hz { pairs.push(format!("sample_rate_hz={}", value)); }
+        if let Some(value) = &self.speed { pairs.push(format!("speed={}", value)); }
+        if let Some(value) = &self.pitch { pairs.push(format!("pitch={}", value)); }
+        if let Some(value) = &self.volume { pairs.push(format!("volume={}", value)); }
+        if let Some(value) = &self.emotion { pairs.push(format!("emotion={}", value)); }
+        if self.voice_ref.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode voice_ref"); }
+        if let Some(value) = &self.timing_mode { pairs.push(format!("timing_mode={:?}", value)); }
+        if self.voice_render_hints.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode voice_render_hints"); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        for key in ["voice_ref", "timing_mode", "voice_render_hints"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+
+        out.text = pairs.get("text").cloned();
+        out.language = pairs.get("language").cloned();
+        out.audio_format = pairs.get("audio_format").cloned();
+        out.sample_rate_hz = pairs.get("sample_rate_hz").and_then(|value| value.parse().ok());
+        out.speed = pairs.get("speed").and_then(|value| value.parse().ok());
+        out.pitch = pairs.get("pitch").and_then(|value| value.parse().ok());
+        out.volume = pairs.get("volume").and_then(|value| value.parse().ok());
+        out.emotion = pairs.get("emotion").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct LocalAppSpeechTranscribeJobSpec {
+    pub mime_type: Option<String>,
+    pub language: Option<String>,
+    pub timestamps: Option<bool>,
+    pub diarization: Option<bool>,
+    pub speaker_count: Option<i32>,
+    pub prompt: Option<String>,
+    pub audio_source: Option<Box<SpeechTranscriptionAudioSource>>,
+    pub response_format: Option<String>,
+}
+
+impl LocalAppSpeechTranscribeJobSpec {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.mime_type { pairs.push(format!("mime_type={}", value)); }
+        if let Some(value) = &self.language { pairs.push(format!("language={}", value)); }
+        if let Some(value) = &self.timestamps { pairs.push(format!("timestamps={}", value)); }
+        if let Some(value) = &self.diarization { pairs.push(format!("diarization={}", value)); }
+        if let Some(value) = &self.speaker_count { pairs.push(format!("speaker_count={}", value)); }
+        if let Some(value) = &self.prompt { pairs.push(format!("prompt={}", value)); }
+        if self.audio_source.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode audio_source"); }
+        if let Some(value) = &self.response_format { pairs.push(format!("response_format={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        for key in ["audio_source"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+
+        out.mime_type = pairs.get("mime_type").cloned();
+        out.language = pairs.get("language").cloned();
+        out.timestamps = pairs.get("timestamps").and_then(|value| value.parse().ok());
+        out.diarization = pairs.get("diarization").and_then(|value| value.parse().ok());
+        out.speaker_count = pairs.get("speaker_count").and_then(|value| value.parse().ok());
+        out.prompt = pairs.get("prompt").cloned();
+        out.response_format = pairs.get("response_format").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct LocalAppTextCandidateMessage {
     pub role: Option<String>,
     pub text: Option<String>,
@@ -16347,6 +16891,316 @@ impl LocalAppTextCandidateMessage {
 
         out.role = pairs.get("role").cloned();
         out.text = pairs.get("text").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct LocalAppTextEmbedOutput {
+    pub vectors: Vec<Box<EmbeddingVector>>,
+}
+
+impl LocalAppTextEmbedOutput {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let pairs: Vec<String> = Vec::new();
+        if !self.vectors.is_empty() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode vectors"); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let out = Self::default();
+        for key in ["vectors"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+        if !pairs.is_empty() {
+            panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client has no decoder for response fields");
+        }
+
+
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct LocalAppTextEmbedScenarioSpec {
+    pub inputs: Vec<String>,
+}
+
+impl LocalAppTextEmbedScenarioSpec {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        for value in &self.inputs { pairs.push(format!("inputs={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let mut out = Self::default();
+
+        out.inputs = parse_repeated_string(raw, "inputs");
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct LocalAppTextTurnCompleted {
+    pub finish_reason: Option<FinishReason>,
+}
+
+impl LocalAppTextTurnCompleted {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.finish_reason { pairs.push(format!("finish_reason={:?}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let out = Self::default();
+        for key in ["finish_reason"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+        if !pairs.is_empty() {
+            panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client has no decoder for response fields");
+        }
+
+
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct LocalAppTextTurnDelta {
+    pub text: Option<String>,
+}
+
+impl LocalAppTextTurnDelta {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.text { pairs.push(format!("text={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+
+        out.text = pairs.get("text").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct LocalAppTextTurnFailed {
+    pub reason_code: Option<ReasonCode>,
+    pub action_hint: Option<String>,
+}
+
+impl LocalAppTextTurnFailed {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.reason_code { pairs.push(format!("reason_code={:?}", value)); }
+        if let Some(value) = &self.action_hint { pairs.push(format!("action_hint={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        for key in ["reason_code"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+
+        out.action_hint = pairs.get("action_hint").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct LocalAppVideoGenerateJobSpec {
+    pub prompt: Option<String>,
+    pub negative_prompt: Option<String>,
+    pub mode: Option<VideoMode>,
+    pub content: Vec<Box<VideoContentItem>>,
+    pub options: Option<Box<LocalAppVideoGenerationOptions>>,
+}
+
+impl LocalAppVideoGenerateJobSpec {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.prompt { pairs.push(format!("prompt={}", value)); }
+        if let Some(value) = &self.negative_prompt { pairs.push(format!("negative_prompt={}", value)); }
+        if let Some(value) = &self.mode { pairs.push(format!("mode={:?}", value)); }
+        if !self.content.is_empty() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode content"); }
+        if self.options.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode options"); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        for key in ["mode", "content", "options"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+
+        out.prompt = pairs.get("prompt").cloned();
+        out.negative_prompt = pairs.get("negative_prompt").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct LocalAppVideoGenerationOptions {
+    pub resolution: Option<String>,
+    pub ratio: Option<String>,
+    pub duration_sec: Option<i32>,
+    pub frames: Option<i32>,
+    pub fps: Option<i32>,
+    pub seed: Option<i64>,
+    pub camera_fixed: Option<bool>,
+    pub watermark: Option<bool>,
+    pub generate_audio: Option<bool>,
+    pub draft: Option<bool>,
+    pub return_last_frame: Option<bool>,
+}
+
+impl LocalAppVideoGenerationOptions {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.resolution { pairs.push(format!("resolution={}", value)); }
+        if let Some(value) = &self.ratio { pairs.push(format!("ratio={}", value)); }
+        if let Some(value) = &self.duration_sec { pairs.push(format!("duration_sec={}", value)); }
+        if let Some(value) = &self.frames { pairs.push(format!("frames={}", value)); }
+        if let Some(value) = &self.fps { pairs.push(format!("fps={}", value)); }
+        if let Some(value) = &self.seed { pairs.push(format!("seed={}", value)); }
+        if let Some(value) = &self.camera_fixed { pairs.push(format!("camera_fixed={}", value)); }
+        if let Some(value) = &self.watermark { pairs.push(format!("watermark={}", value)); }
+        if let Some(value) = &self.generate_audio { pairs.push(format!("generate_audio={}", value)); }
+        if let Some(value) = &self.draft { pairs.push(format!("draft={}", value)); }
+        if let Some(value) = &self.return_last_frame { pairs.push(format!("return_last_frame={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+
+        out.resolution = pairs.get("resolution").cloned();
+        out.ratio = pairs.get("ratio").cloned();
+        out.duration_sec = pairs.get("duration_sec").and_then(|value| value.parse().ok());
+        out.frames = pairs.get("frames").and_then(|value| value.parse().ok());
+        out.fps = pairs.get("fps").and_then(|value| value.parse().ok());
+        out.seed = pairs.get("seed").and_then(|value| value.parse().ok());
+        out.camera_fixed = pairs.get("camera_fixed").and_then(|value| value.parse().ok());
+        out.watermark = pairs.get("watermark").and_then(|value| value.parse().ok());
+        out.generate_audio = pairs.get("generate_audio").and_then(|value| value.parse().ok());
+        out.draft = pairs.get("draft").and_then(|value| value.parse().ok());
+        out.return_last_frame = pairs.get("return_last_frame").and_then(|value| value.parse().ok());
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct LocalAppVoiceAsset {
+    pub voice_asset_id: Option<String>,
+    pub workflow_type: Option<VoiceWorkflowType>,
+    pub status: Option<VoiceAssetStatus>,
+    pub created_at: Option<String>,
+    pub updated_at: Option<String>,
+    pub expires_at: Option<String>,
+}
+
+impl LocalAppVoiceAsset {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.voice_asset_id { pairs.push(format!("voice_asset_id={}", value)); }
+        if let Some(value) = &self.workflow_type { pairs.push(format!("workflow_type={:?}", value)); }
+        if let Some(value) = &self.status { pairs.push(format!("status={:?}", value)); }
+        if let Some(value) = &self.created_at { pairs.push(format!("created_at={}", value)); }
+        if let Some(value) = &self.updated_at { pairs.push(format!("updated_at={}", value)); }
+        if let Some(value) = &self.expires_at { pairs.push(format!("expires_at={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        for key in ["workflow_type", "status"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+
+        out.voice_asset_id = pairs.get("voice_asset_id").cloned();
+        out.created_at = pairs.get("created_at").cloned();
+        out.updated_at = pairs.get("updated_at").cloned();
+        out.expires_at = pairs.get("expires_at").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct LocalAppVoiceCloneJobSpec {
+    pub input: Option<Box<VoiceV2VInput>>,
+}
+
+impl LocalAppVoiceCloneJobSpec {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let pairs: Vec<String> = Vec::new();
+        if self.input.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode input"); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let out = Self::default();
+        for key in ["input"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+        if !pairs.is_empty() {
+            panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client has no decoder for response fields");
+        }
+
+
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct LocalAppVoiceDesignJobSpec {
+    pub input: Option<Box<VoiceT2VInput>>,
+}
+
+impl LocalAppVoiceDesignJobSpec {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let pairs: Vec<String> = Vec::new();
+        if self.input.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode input"); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let out = Self::default();
+        for key in ["input"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+        if !pairs.is_empty() {
+            panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client has no decoder for response fields");
+        }
+
+
         out
     }
 }
@@ -16430,7 +17284,6 @@ pub struct LocalAssetRecord {
     pub host_requirements: Option<Box<LocalHostRequirements>>,
     pub local_invoke_profile_id: Option<String>,
     pub engine_config: Option<BTreeMap<String, String>>,
-    pub endpoint: Option<String>,
     pub reason_code: Option<ReasonCode>,
     pub metadata: Option<BTreeMap<String, String>>,
     pub display_name: Option<String>,
@@ -16465,7 +17318,6 @@ impl LocalAssetRecord {
         if self.host_requirements.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode host_requirements"); }
         if let Some(value) = &self.local_invoke_profile_id { pairs.push(format!("local_invoke_profile_id={}", value)); }
         if self.engine_config.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode engine_config"); }
-        if let Some(value) = &self.endpoint { pairs.push(format!("endpoint={}", value)); }
         if let Some(value) = &self.reason_code { pairs.push(format!("reason_code={:?}", value)); }
         if self.metadata.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode metadata"); }
         if let Some(value) = &self.display_name { pairs.push(format!("display_name={}", value)); }
@@ -16500,7 +17352,6 @@ impl LocalAssetRecord {
         out.preferred_engine = pairs.get("preferred_engine").cloned();
         out.fallback_engines = parse_repeated_string(raw, "fallback_engines");
         out.local_invoke_profile_id = pairs.get("local_invoke_profile_id").cloned();
-        out.endpoint = pairs.get("endpoint").cloned();
         out.display_name = pairs.get("display_name").cloned();
         out.source_file_name = pairs.get("source_file_name").cloned();
         out.import_instance_id = pairs.get("import_instance_id").cloned();
@@ -22080,6 +22931,58 @@ impl ReadArtifactBytesResponse {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct ReadLocalAppArtifactRequest {
+    pub artifact_id: Option<String>,
+}
+
+impl ReadLocalAppArtifactRequest {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.artifact_id { pairs.push(format!("artifact_id={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+
+        out.artifact_id = pairs.get("artifact_id").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ReadLocalAppArtifactResponse {
+    pub bytes: Option<Vec<u8>>,
+    pub mime_type: Option<String>,
+    pub size_bytes: Option<i64>,
+}
+
+impl ReadLocalAppArtifactResponse {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if self.bytes.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode bytes"); }
+        if let Some(value) = &self.mime_type { pairs.push(format!("mime_type={}", value)); }
+        if let Some(value) = &self.size_bytes { pairs.push(format!("size_bytes={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        for key in ["bytes"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+
+        out.mime_type = pairs.get("mime_type").cloned();
+        out.size_bytes = pairs.get("size_bytes").and_then(|value| value.parse().ok());
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct ReadLocalAppStorageJsonRequest {
     pub relative_path: Option<String>,
 }
@@ -24793,7 +25696,6 @@ pub struct ScaffoldOrphanAssetRequest {
     pub kind: Option<LocalAssetKind>,
     pub engine: Option<String>,
     pub capabilities: Vec<String>,
-    pub endpoint: Option<String>,
 }
 
 impl ScaffoldOrphanAssetRequest {
@@ -24803,7 +25705,6 @@ impl ScaffoldOrphanAssetRequest {
         if let Some(value) = &self.kind { pairs.push(format!("kind={:?}", value)); }
         if let Some(value) = &self.engine { pairs.push(format!("engine={}", value)); }
         for value in &self.capabilities { pairs.push(format!("capabilities={}", value)); }
-        if let Some(value) = &self.endpoint { pairs.push(format!("endpoint={}", value)); }
         pairs.join(";").into_bytes()
     }
 
@@ -24819,7 +25720,6 @@ impl ScaffoldOrphanAssetRequest {
         out.path = pairs.get("path").cloned();
         out.engine = pairs.get("engine").cloned();
         out.capabilities = parse_repeated_string(raw, "capabilities");
-        out.endpoint = pairs.get("endpoint").cloned();
         out
     }
 }
@@ -26791,6 +27691,90 @@ impl StopLocalServiceResponse {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct StreamLocalAppTextTurnEvent {
+    pub sequence: Option<u64>,
+    pub trace_id: Option<String>,
+    pub delta: Option<Box<LocalAppTextTurnDelta>>,
+    pub completed: Option<Box<LocalAppTextTurnCompleted>>,
+    pub failed: Option<Box<LocalAppTextTurnFailed>>,
+}
+
+impl StreamLocalAppTextTurnEvent {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.sequence { pairs.push(format!("sequence={}", value)); }
+        if let Some(value) = &self.trace_id { pairs.push(format!("trace_id={}", value)); }
+        if self.delta.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode delta"); }
+        if self.completed.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode completed"); }
+        if self.failed.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode failed"); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        for key in ["delta", "completed", "failed"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+
+        out.sequence = pairs.get("sequence").and_then(|value| value.parse().ok());
+        out.trace_id = pairs.get("trace_id").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct StreamLocalAppTextTurnRequest {
+    pub messages: Vec<Box<LocalAppTextCandidateMessage>>,
+    pub temperature: Option<f32>,
+    pub top_p: Option<f32>,
+    pub max_tokens: Option<i32>,
+    pub top_k: Option<i32>,
+    pub presence_penalty: Option<f32>,
+    pub frequency_penalty: Option<f32>,
+    pub stop: Vec<String>,
+    pub seed: Option<i64>,
+}
+
+impl StreamLocalAppTextTurnRequest {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if !self.messages.is_empty() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode messages"); }
+        if let Some(value) = &self.temperature { pairs.push(format!("temperature={}", value)); }
+        if let Some(value) = &self.top_p { pairs.push(format!("top_p={}", value)); }
+        if let Some(value) = &self.max_tokens { pairs.push(format!("max_tokens={}", value)); }
+        if let Some(value) = &self.top_k { pairs.push(format!("top_k={}", value)); }
+        if let Some(value) = &self.presence_penalty { pairs.push(format!("presence_penalty={}", value)); }
+        if let Some(value) = &self.frequency_penalty { pairs.push(format!("frequency_penalty={}", value)); }
+        for value in &self.stop { pairs.push(format!("stop={}", value)); }
+        if let Some(value) = &self.seed { pairs.push(format!("seed={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        for key in ["messages"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+
+        out.temperature = pairs.get("temperature").and_then(|value| value.parse().ok());
+        out.top_p = pairs.get("top_p").and_then(|value| value.parse().ok());
+        out.max_tokens = pairs.get("max_tokens").and_then(|value| value.parse().ok());
+        out.top_k = pairs.get("top_k").and_then(|value| value.parse().ok());
+        out.presence_penalty = pairs.get("presence_penalty").and_then(|value| value.parse().ok());
+        out.frequency_penalty = pairs.get("frequency_penalty").and_then(|value| value.parse().ok());
+        out.stop = parse_repeated_string(raw, "stop");
+        out.seed = pairs.get("seed").and_then(|value| value.parse().ok());
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct StreamScenarioEvent {
     pub event_type: Option<StreamEventType>,
     pub sequence: Option<u64>,
@@ -26991,6 +27975,76 @@ impl SubmitDelegatedApprovalDecisionResponse {
         let pairs = parse_pairs(raw);
         let out = Self::default();
         for key in ["approval_request"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+        if !pairs.is_empty() {
+            panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client has no decoder for response fields");
+        }
+
+
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct SubmitLocalAppScenarioJobRequest {
+    pub image_generate: Option<Box<LocalAppImageGenerateScenarioSpec>>,
+    pub video_generate: Option<Box<LocalAppVideoGenerateJobSpec>>,
+    pub speech_synthesize: Option<Box<LocalAppSpeechSynthesizeJobSpec>>,
+    pub speech_transcribe: Option<Box<LocalAppSpeechTranscribeJobSpec>>,
+    pub voice_clone: Option<Box<LocalAppVoiceCloneJobSpec>>,
+    pub voice_design: Option<Box<LocalAppVoiceDesignJobSpec>>,
+}
+
+impl SubmitLocalAppScenarioJobRequest {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let pairs: Vec<String> = Vec::new();
+        if self.image_generate.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode image_generate"); }
+        if self.video_generate.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode video_generate"); }
+        if self.speech_synthesize.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode speech_synthesize"); }
+        if self.speech_transcribe.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode speech_transcribe"); }
+        if self.voice_clone.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode voice_clone"); }
+        if self.voice_design.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode voice_design"); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let out = Self::default();
+        for key in ["image_generate", "video_generate", "speech_synthesize", "speech_transcribe", "voice_clone", "voice_design"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+        if !pairs.is_empty() {
+            panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client has no decoder for response fields");
+        }
+
+
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct SubmitLocalAppScenarioJobResponse {
+    pub job: Option<Box<LocalAppScenarioJob>>,
+    pub asset: Option<Box<LocalAppVoiceAsset>>,
+}
+
+impl SubmitLocalAppScenarioJobResponse {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let pairs: Vec<String> = Vec::new();
+        if self.job.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode job"); }
+        if self.asset.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode asset"); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let out = Self::default();
+        for key in ["job", "asset"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
             }
@@ -27248,6 +28302,27 @@ impl SubscribeLocalAppConversationEventsRequest {
 
         out.agent_handle = pairs.get("agent_handle").cloned();
         out.conversation_anchor_id = pairs.get("conversation_anchor_id").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct SubscribeLocalAppScenarioJobEventsRequest {
+    pub job_id: Option<String>,
+}
+
+impl SubscribeLocalAppScenarioJobEventsRequest {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.job_id { pairs.push(format!("job_id={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+
+        out.job_id = pairs.get("job_id").cloned();
         out
     }
 }
@@ -28197,6 +29272,71 @@ impl UpdateLocalAppAgentAutonomyRequest {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct UpdateLocalCapabilityConfigurationRequest {
+    pub configuration_id: Option<String>,
+    pub portable_config: Option<BTreeMap<String, String>>,
+    pub supported_features: Vec<String>,
+    pub display_name: Option<String>,
+    pub provenance: Option<BTreeMap<String, String>>,
+}
+
+impl UpdateLocalCapabilityConfigurationRequest {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.configuration_id { pairs.push(format!("configuration_id={}", value)); }
+        if self.portable_config.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode portable_config"); }
+        for value in &self.supported_features { pairs.push(format!("supported_features={}", value)); }
+        if let Some(value) = &self.display_name { pairs.push(format!("display_name={}", value)); }
+        if self.provenance.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode provenance"); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        for key in ["portable_config", "provenance"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+
+        out.configuration_id = pairs.get("configuration_id").cloned();
+        out.supported_features = parse_repeated_string(raw, "supported_features");
+        out.display_name = pairs.get("display_name").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct UpdateLocalCapabilityConfigurationResponse {
+    pub configuration: Option<Box<LocalCapabilityConfiguration>>,
+}
+
+impl UpdateLocalCapabilityConfigurationResponse {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let pairs: Vec<String> = Vec::new();
+        if self.configuration.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode configuration"); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let out = Self::default();
+        for key in ["configuration"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+        if !pairs.is_empty() {
+            panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client has no decoder for response fields");
+        }
+
+
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct UploadArtifactChunk {
     pub sequence: Option<u64>,
     pub bytes: Option<Vec<u8>>,
@@ -28309,6 +29449,61 @@ impl UploadArtifactResponse {
         }
 
         out.trace_id = pairs.get("trace_id").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct UploadLocalAppArtifactRequest {
+    pub bytes: Option<Vec<u8>>,
+    pub mime_type: Option<String>,
+}
+
+impl UploadLocalAppArtifactRequest {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if self.bytes.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode bytes"); }
+        if let Some(value) = &self.mime_type { pairs.push(format!("mime_type={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        for key in ["bytes"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+
+        out.mime_type = pairs.get("mime_type").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct UploadLocalAppArtifactResponse {
+    pub artifact_id: Option<String>,
+    pub size_bytes: Option<i64>,
+    pub mime_type: Option<String>,
+}
+
+impl UploadLocalAppArtifactResponse {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.artifact_id { pairs.push(format!("artifact_id={}", value)); }
+        if let Some(value) = &self.size_bytes { pairs.push(format!("size_bytes={}", value)); }
+        if let Some(value) = &self.mime_type { pairs.push(format!("mime_type={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+
+        out.artifact_id = pairs.get("artifact_id").cloned();
+        out.size_bytes = pairs.get("size_bytes").and_then(|value| value.parse().ok());
+        out.mime_type = pairs.get("mime_type").cloned();
         out
     }
 }
@@ -30259,6 +31454,18 @@ impl From<Vec<u8>> for CancelHookResponse {
     }
 }
 
+impl From<Vec<u8>> for CancelLocalAppScenarioJobRequest {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for CancelLocalAppScenarioJobResponse {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
 impl From<Vec<u8>> for CancelLocalEnvironmentDependencyJobRequest {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
@@ -30847,6 +32054,18 @@ impl From<Vec<u8>> for ErrorInfo {
     }
 }
 
+impl From<Vec<u8>> for ExecuteLocalAppScenarioRequest {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for ExecuteLocalAppScenarioResponse {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
 impl From<Vec<u8>> for ExecuteLocalStateCutoverRequest {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
@@ -31214,6 +32433,18 @@ impl From<Vec<u8>> for GetLocalAppConversationSnapshotRequest {
 }
 
 impl From<Vec<u8>> for GetLocalAppConversationSnapshotResponse {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for GetLocalAppScenarioJobRequest {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for GetLocalAppScenarioJobResponse {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
     }
@@ -31885,6 +33116,18 @@ impl From<Vec<u8>> for ListLocalAppAgentReferencesResponse {
     }
 }
 
+impl From<Vec<u8>> for ListLocalAppVoiceAssetsRequest {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for ListLocalAppVoiceAssetsResponse {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
 impl From<Vec<u8>> for ListLocalAssetsRequest {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
@@ -32239,13 +33482,115 @@ impl From<Vec<u8>> for LocalAppConversationTurnStarted {
     }
 }
 
+impl From<Vec<u8>> for LocalAppImageGenerateOutput {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for LocalAppImageGenerateScenarioSpec {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for LocalAppScenarioArtifact {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for LocalAppScenarioJob {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for LocalAppScenarioJobEvent {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
 impl From<Vec<u8>> for LocalAppSharedLocalAgentAIConfigProjection {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
     }
 }
 
+impl From<Vec<u8>> for LocalAppSpeechSynthesizeJobSpec {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for LocalAppSpeechTranscribeJobSpec {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
 impl From<Vec<u8>> for LocalAppTextCandidateMessage {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for LocalAppTextEmbedOutput {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for LocalAppTextEmbedScenarioSpec {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for LocalAppTextTurnCompleted {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for LocalAppTextTurnDelta {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for LocalAppTextTurnFailed {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for LocalAppVideoGenerateJobSpec {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for LocalAppVideoGenerationOptions {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for LocalAppVoiceAsset {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for LocalAppVoiceCloneJobSpec {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for LocalAppVoiceDesignJobSpec {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
     }
@@ -33134,6 +34479,18 @@ impl From<Vec<u8>> for ReadArtifactBytesRequest {
 }
 
 impl From<Vec<u8>> for ReadArtifactBytesResponse {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for ReadLocalAppArtifactRequest {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for ReadLocalAppArtifactResponse {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
     }
@@ -34051,6 +35408,18 @@ impl From<Vec<u8>> for StopLocalServiceResponse {
     }
 }
 
+impl From<Vec<u8>> for StreamLocalAppTextTurnEvent {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for StreamLocalAppTextTurnRequest {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
 impl From<Vec<u8>> for StreamScenarioEvent {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
@@ -34082,6 +35451,18 @@ impl From<Vec<u8>> for SubmitDelegatedApprovalDecisionRequest {
 }
 
 impl From<Vec<u8>> for SubmitDelegatedApprovalDecisionResponse {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for SubmitLocalAppScenarioJobRequest {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for SubmitLocalAppScenarioJobResponse {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
     }
@@ -34130,6 +35511,12 @@ impl From<Vec<u8>> for SubscribeAppMessagesRequest {
 }
 
 impl From<Vec<u8>> for SubscribeLocalAppConversationEventsRequest {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for SubscribeLocalAppScenarioJobEventsRequest {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
     }
@@ -34309,6 +35696,18 @@ impl From<Vec<u8>> for UpdateLocalAppAgentAutonomyRequest {
     }
 }
 
+impl From<Vec<u8>> for UpdateLocalCapabilityConfigurationRequest {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for UpdateLocalCapabilityConfigurationResponse {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
 impl From<Vec<u8>> for UploadArtifactChunk {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
@@ -34328,6 +35727,18 @@ impl From<Vec<u8>> for UploadArtifactRequest {
 }
 
 impl From<Vec<u8>> for UploadArtifactResponse {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for UploadLocalAppArtifactRequest {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for UploadLocalAppArtifactResponse {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
     }
@@ -35337,6 +36748,16 @@ where
         Ok(RuntimeTypedStream { inner, _response: std::marker::PhantomData })
     }
 
+    pub fn cancel_local_app_scenario_job(&self, request: CancelLocalAppScenarioJobRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<CancelLocalAppScenarioJobResponse, T::Error> {
+        let raw = self.core.unary(CoreUnaryRequest {
+            method_id: "/nimi.runtime.v1.RuntimeAiService/CancelLocalAppScenarioJob".to_string(),
+            metadata,
+            body: request.to_transport(),
+            timeout,
+        })?;
+        Ok(CancelLocalAppScenarioJobResponse::from_transport(&raw))
+    }
+
     pub fn cancel_scenario_job(&self, request: CancelScenarioJobRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<CancelScenarioJobResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
             method_id: "/nimi.runtime.v1.RuntimeAiService/CancelScenarioJob".to_string(),
@@ -35355,6 +36776,16 @@ where
             timeout,
         })?;
         Ok(DeleteVoiceAssetResponse::from_transport(&raw))
+    }
+
+    pub fn execute_local_app_scenario(&self, request: ExecuteLocalAppScenarioRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ExecuteLocalAppScenarioResponse, T::Error> {
+        let raw = self.core.unary(CoreUnaryRequest {
+            method_id: "/nimi.runtime.v1.RuntimeAiService/ExecuteLocalAppScenario".to_string(),
+            metadata,
+            body: request.to_transport(),
+            timeout,
+        })?;
+        Ok(ExecuteLocalAppScenarioResponse::from_transport(&raw))
     }
 
     pub fn execute_scenario(&self, request: ExecuteScenarioRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ExecuteScenarioResponse, T::Error> {
@@ -35387,6 +36818,16 @@ where
         Ok(GetAppAIConfigResponse::from_transport(&raw))
     }
 
+    pub fn get_local_app_scenario_job(&self, request: GetLocalAppScenarioJobRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<GetLocalAppScenarioJobResponse, T::Error> {
+        let raw = self.core.unary(CoreUnaryRequest {
+            method_id: "/nimi.runtime.v1.RuntimeAiService/GetLocalAppScenarioJob".to_string(),
+            metadata,
+            body: request.to_transport(),
+            timeout,
+        })?;
+        Ok(GetLocalAppScenarioJobResponse::from_transport(&raw))
+    }
+
     pub fn get_scenario_artifacts(&self, request: GetScenarioArtifactsRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<GetScenarioArtifactsResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
             method_id: "/nimi.runtime.v1.RuntimeAiService/GetScenarioArtifacts".to_string(),
@@ -35415,6 +36856,16 @@ where
             timeout,
         })?;
         Ok(GetVoiceAssetResponse::from_transport(&raw))
+    }
+
+    pub fn list_local_app_voice_assets(&self, request: ListLocalAppVoiceAssetsRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ListLocalAppVoiceAssetsResponse, T::Error> {
+        let raw = self.core.unary(CoreUnaryRequest {
+            method_id: "/nimi.runtime.v1.RuntimeAiService/ListLocalAppVoiceAssets".to_string(),
+            metadata,
+            body: request.to_transport(),
+            timeout,
+        })?;
+        Ok(ListLocalAppVoiceAssetsResponse::from_transport(&raw))
     }
 
     pub fn list_preset_voices(&self, request: ListPresetVoicesRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ListPresetVoicesResponse, T::Error> {
@@ -35467,6 +36918,29 @@ where
         Ok(PeekSchedulingResponse::from_transport(&raw))
     }
 
+    pub fn read_local_app_artifact(&self, request: ReadLocalAppArtifactRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ReadLocalAppArtifactResponse, T::Error> {
+        let raw = self.core.unary(CoreUnaryRequest {
+            method_id: "/nimi.runtime.v1.RuntimeAiService/ReadLocalAppArtifact".to_string(),
+            metadata,
+            body: request.to_transport(),
+            timeout,
+        })?;
+        Ok(ReadLocalAppArtifactResponse::from_transport(&raw))
+    }
+
+    pub fn stream_local_app_text_turn(&self, request: StreamLocalAppTextTurnRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<RuntimeTypedStream<T::Stream, StreamLocalAppTextTurnEvent>, T::Error>
+    where
+        T::Stream: CoreTypedStream,
+    {
+        let inner = self.core.server_stream(CoreStreamRequest {
+            method_id: "/nimi.runtime.v1.RuntimeAiService/StreamLocalAppTextTurn".to_string(),
+            metadata,
+            body: request.to_transport(),
+            timeout,
+        })?;
+        Ok(RuntimeTypedStream { inner, _response: std::marker::PhantomData })
+    }
+
     pub fn stream_scenario(&self, request: StreamScenarioRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<RuntimeTypedStream<T::Stream, StreamScenarioEvent>, T::Error>
     where
         T::Stream: CoreTypedStream,
@@ -35480,6 +36954,16 @@ where
         Ok(RuntimeTypedStream { inner, _response: std::marker::PhantomData })
     }
 
+    pub fn submit_local_app_scenario_job(&self, request: SubmitLocalAppScenarioJobRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<SubmitLocalAppScenarioJobResponse, T::Error> {
+        let raw = self.core.unary(CoreUnaryRequest {
+            method_id: "/nimi.runtime.v1.RuntimeAiService/SubmitLocalAppScenarioJob".to_string(),
+            metadata,
+            body: request.to_transport(),
+            timeout,
+        })?;
+        Ok(SubmitLocalAppScenarioJobResponse::from_transport(&raw))
+    }
+
     pub fn submit_scenario_job(&self, request: SubmitScenarioJobRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<SubmitScenarioJobResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
             method_id: "/nimi.runtime.v1.RuntimeAiService/SubmitScenarioJob".to_string(),
@@ -35488,6 +36972,19 @@ where
             timeout,
         })?;
         Ok(SubmitScenarioJobResponse::from_transport(&raw))
+    }
+
+    pub fn subscribe_local_app_scenario_job_events(&self, request: SubscribeLocalAppScenarioJobEventsRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<RuntimeTypedStream<T::Stream, LocalAppScenarioJobEvent>, T::Error>
+    where
+        T::Stream: CoreTypedStream,
+    {
+        let inner = self.core.server_stream(CoreStreamRequest {
+            method_id: "/nimi.runtime.v1.RuntimeAiService/SubscribeLocalAppScenarioJobEvents".to_string(),
+            metadata,
+            body: request.to_transport(),
+            timeout,
+        })?;
+        Ok(RuntimeTypedStream { inner, _response: std::marker::PhantomData })
     }
 
     pub fn subscribe_scenario_job_events(&self, request: SubscribeScenarioJobEventsRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<RuntimeTypedStream<T::Stream, ScenarioJobEvent>, T::Error>
@@ -35505,6 +37002,16 @@ where
 
     pub fn upload_artifact(&self, _request: UploadArtifactRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<UploadArtifactResponse, T::Error> {
         panic!("SDK_RUNTIME_METHOD_UNAVAILABLE: Runtime method kind is not supported by the unary/server-stream core transport: /nimi.runtime.v1.RuntimeAiService/UploadArtifact");
+    }
+
+    pub fn upload_local_app_artifact(&self, request: UploadLocalAppArtifactRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<UploadLocalAppArtifactResponse, T::Error> {
+        let raw = self.core.unary(CoreUnaryRequest {
+            method_id: "/nimi.runtime.v1.RuntimeAiService/UploadLocalAppArtifact".to_string(),
+            metadata,
+            body: request.to_transport(),
+            timeout,
+        })?;
+        Ok(UploadLocalAppArtifactResponse::from_transport(&raw))
     }
 
     pub fn bind_local_app_process(&self, request: BindLocalAppProcessRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<BindLocalAppProcessResponse, T::Error> {
@@ -37070,6 +38577,16 @@ where
             timeout,
         })?;
         Ok(UnbindLocalCapabilityRequirementResponse::from_transport(&raw))
+    }
+
+    pub fn update_local_capability_configuration(&self, request: UpdateLocalCapabilityConfigurationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<UpdateLocalCapabilityConfigurationResponse, T::Error> {
+        let raw = self.core.unary(CoreUnaryRequest {
+            method_id: "/nimi.runtime.v1.RuntimeLocalService/UpdateLocalCapabilityConfiguration".to_string(),
+            metadata,
+            body: request.to_transport(),
+            timeout,
+        })?;
+        Ok(UpdateLocalCapabilityConfigurationResponse::from_transport(&raw))
     }
 
     pub fn watch_local_transfers(&self, request: WatchLocalTransfersRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<RuntimeTypedStream<T::Stream, LocalTransferProgressEvent>, T::Error>

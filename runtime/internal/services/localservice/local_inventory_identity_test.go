@@ -42,8 +42,6 @@ func TestListLocalAssetsPreservesImageCompanionKind(t *testing.T) {
 		"local",
 		nil,
 		"",
-		runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED,
-		"",
 		nil,
 		&modelregistry.NativeProjection{
 			Family:           "ideogram4",
@@ -99,5 +97,78 @@ func TestListLocalAssetsPreservesImageCompanionKind(t *testing.T) {
 	}
 	if got := stored.GetKind(); got != runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_IMAGE {
 		t.Fatalf("stored kind should remain image for materialization: got=%s", got)
+	}
+}
+
+func TestInstallLocalAssetRecordDefaultsDisplayName(t *testing.T) {
+	svc := newTestService(t)
+	record, err := svc.installLocalAssetRecord(
+		"verified/qwen3-4b-instruct",
+		runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_CHAT,
+		[]string{"chat"},
+		"llama",
+		"model.gguf",
+		"unknown",
+		"https://example.invalid/catalog",
+		"main",
+		nil,
+		"",
+		nil,
+		nil,
+		"runtime_model_ready_after_install",
+		"model installed",
+		localAssetExistingPolicyFail,
+	)
+	if err != nil {
+		t.Fatalf("install catalog record: %v", err)
+	}
+	if got, want := record.GetDisplayName(), "qwen3-4b-instruct"; got != want {
+		t.Fatalf("display name default mismatch: got=%q want=%q", got, want)
+	}
+}
+
+func TestRestoreStateHealsMissingAssetDisplayName(t *testing.T) {
+	svc := newTestService(t)
+	record, err := svc.installLocalAssetRecord(
+		"local/local-import/legacy-model/01KZFPYNCX823S5KY9X57XN8JZ",
+		runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_CHAT,
+		[]string{"chat"},
+		"llama",
+		"model.gguf",
+		"unknown",
+		"file:///tmp/legacy-model/asset.manifest.json",
+		"local",
+		nil,
+		"",
+		nil,
+		nil,
+		"runtime_model_imported",
+		"legacy import without display facts",
+		localAssetExistingPolicyFail,
+	)
+	if err != nil {
+		t.Fatalf("install legacy record: %v", err)
+	}
+	svc.mu.Lock()
+	stored := svc.assets[record.GetLocalAssetId()]
+	stored.DisplayName = ""
+	stored.ImportInstanceId = "01KZFPYNCX823S5KY9X57XN8JZ"
+	svc.persistStateLocked()
+	svc.mu.Unlock()
+	svc.Close()
+
+	restored, err := New(svc.logger, nil, svc.stateStorePath, 0, svc.localModelsPath)
+	if err != nil {
+		t.Fatalf("restore service: %v", err)
+	}
+	t.Cleanup(restored.Close)
+	restored.mu.RLock()
+	healed := restored.assets[record.GetLocalAssetId()]
+	restored.mu.RUnlock()
+	if healed == nil {
+		t.Fatal("expected asset after restart")
+	}
+	if got, want := healed.GetDisplayName(), "legacy-model"; got != want {
+		t.Fatalf("healed display name mismatch: got=%q want=%q", got, want)
 	}
 }

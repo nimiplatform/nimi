@@ -121,6 +121,7 @@ func (s *Service) runRecoverySweep(ctx context.Context) {
 func (s *Service) collectUnhealthyRecoveryTargets() ([]modelRecoveryTarget, []serviceRecoveryTarget) {
 	manager := s.engineManagerOrNil()
 	speechEngineActive := managedRecoveryEngineActive(manager, "speech")
+	profile := collectDeviceProfile()
 
 	s.mu.RLock()
 	defer s.mu.RUnlock()
@@ -129,7 +130,7 @@ func (s *Service) collectUnhealthyRecoveryTargets() ([]modelRecoveryTarget, []se
 		if model == nil {
 			continue
 		}
-		mode := s.assetRuntimeModes[model.GetLocalAssetId()]
+		mode := runtimeModeForAsset(model, profile)
 		if isLlamaLocalAsset(model) {
 			continue
 		}

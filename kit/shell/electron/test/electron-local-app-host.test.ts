@@ -33,7 +33,8 @@ describe('Electron protected local-app host', () => {
     const methods = Object.getOwnPropertyNames(Object.getPrototypeOf(host));
     expect(methods).not.toContain('permission');
     expect(methods.some((key) => /request|grant|revoke/iu.test(key))).toBe(false);
-    expect(methods.some((key) => /artifact/iu.test(key))).toBe(false);
+    expect(methods).toContain('artifactRead');
+    expect(methods).toContain('artifactUpload');
     expect(methods).toEqual(expect.arrayContaining([
       'sharedAgentAIConfigGet',
       'sharedAgentAIConfigOverwrite',
@@ -249,6 +250,69 @@ describe('Electron protected local-app host', () => {
     });
   });
 
+  it('strictly validates scenario Job and artifact projections', async () => {
+    const calls: Array<{ method: string; input?: unknown }> = [];
+    const host = createNimiElectronLocalAppHostForBinding(binding(calls));
+    await expect(host.scenarioJobGet({ jobId: 'job-1' })).resolves.toEqual({ job: scenarioJobProjection() });
+    await expect(host.artifactRead({ artifactId: 'artifact-1' })).resolves.toEqual({
+      bytes: [1, 2], mimeType: 'image/png', sizeBytes: 2,
+    });
+    await expect(host.artifactUpload({ bytes: [1, 2], mimeType: 'image/png' })).resolves.toEqual({
+      artifactId: 'artifact-upload-1', mimeType: 'image/png', sizeBytes: 2,
+    });
+    expect(calls.find(({ method }) => method === 'localAppArtifactUpload')?.input).toEqual({
+      bytes: Buffer.from([1, 2]), mimeType: 'image/png',
+    });
+
+    const untrusted = {
+      ...binding([]),
+      localAppScenarioJobGet: async () => ({
+        status: 'ok' as const,
+        value: { job: { ...scenarioJobProjection(), provider: 'private' } },
+      }),
+    };
+    await expect(createNimiElectronLocalAppHostForBinding(untrusted).scenarioJobGet({ jobId: 'job-1' }))
+      .rejects.toMatchObject({ reasonCode: 'runtime-service-untrusted', retryable: false });
+  });
+
+  it('accepts every legal Rust carrier Job stream projection', async () => {
+    const baseJob = scenarioJobProjection({
+      scenarioType: 'video-generate', status: 'submitted', progressPercent: 0,
+      progressCurrentStep: 0, progressTotalSteps: 4,
+    });
+    const events = [
+      { eventType: 'submitted', sequence: '1', traceId: 'trace-1', timestamp: null, job: baseJob },
+      { eventType: 'running', sequence: '2', traceId: 'trace-1', timestamp: { seconds: '1786170000', nanos: 1 }, job: {
+        ...baseJob, status: 'running', progressPercent: 50, progressCurrentStep: 2,
+      } },
+      { eventType: 'completed', sequence: '3', traceId: 'trace-1', timestamp: null, job: {
+        ...baseJob, status: 'completed', progressPercent: 100, progressCurrentStep: 4,
+        artifacts: [{
+          artifactId: 'artifact-1', mimeType: 'video/mp4', bytes: [], sizeBytes: 1024,
+          sha256: 'abc123', durationMs: 3000, width: 1280, height: 720,
+          sampleRateHz: 0, channels: 0,
+        }],
+      } },
+      { eventType: 'failed', sequence: '4', traceId: 'trace-1', timestamp: null, job: {
+        ...baseJob, status: 'failed', reasonCode: 'runtime-call-failed',
+        reasonDetail: 'provider execution failed',
+      } },
+    ];
+    let index = 0;
+    const candidate = {
+      ...binding([]),
+      localAppScenarioJobStreamNext: async () => ({
+        status: 'ok' as const,
+        value: { completed: false, event: events[index++] },
+      }),
+    };
+    const host = createNimiElectronLocalAppHostForBinding(candidate);
+    for (const event of events) {
+      await expect(host.scenarioJobStreamNext({ streamId: 'scenario-job-1' }))
+        .resolves.toEqual({ completed: false, event });
+    }
+  });
+
   it('resolves only independently admitted fixed native binding package identities', () => {
     expect(resolveNimiElectronProtectedLocalBindingPackage('win32', 'x64')).toBe(
       '@nimiplatform/kit-protected-local-win32-x64',
@@ -275,6 +339,16 @@ function statusProjection() {
   };
 }
 
+function scenarioJobProjection(overrides: Record<string, unknown> = {}) {
+  return {
+    jobId: 'job-1', scenarioType: 'image-generate', status: 'running',
+    progressPercent: 20, progressCurrentStep: 1, progressTotalSteps: 5,
+    reasonCode: 'unspecified', reasonDetail: '', artifacts: [], traceId: 'trace-1',
+    createdAt: null, updatedAt: null,
+    ...overrides,
+  };
+}
+
 function binding(calls: Array<{ method: string; input?: unknown }>) {
   const record = (method: string, value: unknown) => async (input?: unknown) => {
     calls.push({ method, ...(input === undefined ? {} : { input }) });
@@ -285,7 +359,26 @@ function binding(calls: Array<{ method: string; input?: unknown }>) {
     localAppSessionRenew: record('localAppSessionRenew', statusProjection()),
     localAppAIConfigGet: record('localAppAIConfigGet', { owner: { owner: { oneofKind: 'app', app: { appId: 'app.example' } } }, capabilities: [] }),
     localAppAIConfigOverwrite: record('localAppAIConfigOverwrite', { owner: { owner: { oneofKind: 'app', app: { appId: 'app.example' } } }, capabilities: [] }),
+    localAppModelConfigLocalSelectionsGet: record('localAppModelConfigLocalSelectionsGet', [{
+      capabilityContract: 'text.generate', state: 'selected', configurationId: null,
+      displayName: 'gemma4-26b', supportedFeatures: [], reasons: [],
+    }]),
     localAppTextGenerateCandidate: record('localAppTextGenerateCandidate', { text: 'hello', finishReason: 'stop', traceId: 'trace-1' }),
+    localAppTextTurnSubscribe: record('localAppTextTurnSubscribe', { streamId: 'text-turn-1' }),
+    localAppTextTurnStreamNext: record('localAppTextTurnStreamNext', { completed: true }),
+    localAppTextTurnStreamClose: record('localAppTextTurnStreamClose', { closed: true }),
+    localAppScenarioExecute: record('localAppScenarioExecute', {
+      output: { type: 'text-embed', vectors: [[0.1, 0.2]] }, traceId: 'trace-1',
+    }),
+    localAppScenarioJobSubmit: record('localAppScenarioJobSubmit', { job: scenarioJobProjection(), asset: null }),
+    localAppScenarioJobGet: record('localAppScenarioJobGet', { job: scenarioJobProjection() }),
+    localAppScenarioJobSubscribe: record('localAppScenarioJobSubscribe', { streamId: 'scenario-job-1' }),
+    localAppScenarioJobStreamNext: record('localAppScenarioJobStreamNext', { completed: true }),
+    localAppScenarioJobStreamClose: record('localAppScenarioJobStreamClose', { closed: true }),
+    localAppScenarioJobCancel: record('localAppScenarioJobCancel', { job: scenarioJobProjection() }),
+    localAppArtifactRead: record('localAppArtifactRead', { bytes: [1, 2], mimeType: 'image/png', sizeBytes: 2 }),
+    localAppArtifactUpload: record('localAppArtifactUpload', { artifactId: 'artifact-upload-1', sizeBytes: 2, mimeType: 'image/png' }),
+    localAppVoiceAssetsList: record('localAppVoiceAssetsList', { assets: [], nextPageToken: '' }),
     localAppRealmWorldCoreList: record('localAppRealmWorldCoreList', [{ id: 'world-1', visibility: 'private' }]),
     localAppRealmWorldCoreCreate: record('localAppRealmWorldCoreCreate', { id: 'world-2', visibility: 'private' }),
     localAppAgentReferenceList: record('localAppAgentReferenceList', [{

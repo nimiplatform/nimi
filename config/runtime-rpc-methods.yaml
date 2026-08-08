@@ -122,6 +122,9 @@ services:
       - name: AddLocalCapabilityConfiguration
         type: unary
         protected_transport_ref: /nimi.runtime.v1.RuntimeLocalService/AddLocalCapabilityConfiguration
+      - name: UpdateLocalCapabilityConfiguration
+        type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeLocalService/UpdateLocalCapabilityConfiguration
       - name: SelectLocalCapabilityConfiguration
         type: unary
         protected_transport_ref: /nimi.runtime.v1.RuntimeLocalService/SelectLocalCapabilityConfiguration

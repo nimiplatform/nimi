@@ -143,6 +143,7 @@ mod tests {
             vec![
                 "local_app_session_status",
                 "local_app_ai_config_get",
+                "local_app_model_config_local_selections_get",
                 "local_app_ai_config_overwrite",
                 "local_app_shared_agent_ai_config_get",
                 "local_app_shared_agent_ai_config_overwrite",
@@ -151,6 +152,7 @@ mod tests {
                 "local_app_agent_presentation_snapshot",
                 "local_app_agent_commit_presentation",
                 "local_app_text_generate_candidate",
+                "local_app_artifact_upload",
                 "storage_read_json",
                 "storage_write_json",
                 "storage_remove_json",
@@ -319,6 +321,7 @@ mod tests {
             vec![
                 "local_app_session_status",
                 "local_app_ai_config_get",
+                "local_app_model_config_local_selections_get",
                 "local_app_ai_config_overwrite",
                 "local_app_shared_agent_ai_config_get",
                 "local_app_shared_agent_ai_config_overwrite",
@@ -327,6 +330,7 @@ mod tests {
                 "local_app_agent_presentation_snapshot",
                 "local_app_agent_commit_presentation",
                 "local_app_text_generate_candidate",
+                "local_app_artifact_upload",
                 "storage_read_json",
                 "storage_write_json",
                 "storage_remove_json",

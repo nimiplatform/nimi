@@ -142,6 +142,10 @@ export type ModelConfigCopy = Partial<{
   readonly requiredFeaturesPlaceholder: string;
   readonly defaultsLabel: string;
   readonly defaultsPlaceholder: string;
+  readonly defaultsUnsetLabel: string;
+  readonly defaultsTrueLabel: string;
+  readonly defaultsFalseLabel: string;
+  readonly defaultsListPlaceholder: string;
   readonly localChoiceDescription: string;
   readonly localSelectedLabel: string;
   readonly localMissingLabel: string;

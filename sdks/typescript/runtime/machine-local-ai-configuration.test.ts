@@ -155,6 +155,10 @@ test('Machine Local AI Configuration typed client maps every admitted RPC throug
       calls.push({ method: 'add', request, options });
       return { configuration: unresolved };
     },
+    async updateLocalCapabilityConfiguration(request, options) {
+      calls.push({ method: 'update', request, options });
+      return { configuration: configured };
+    },
     async selectLocalCapabilityConfiguration(request, options) {
       calls.push({ method: 'select', request, options });
       return { selection: request };
@@ -213,9 +217,16 @@ test('Machine Local AI Configuration typed client maps every admitted RPC throug
   const addInput = createNimiMachineLocalLlamaCppTextConfigurationInput({
     displayName: 'Local writing model',
     acceptsImageInput: true,
+    contextSize: 8192,
   });
   assert.deepEqual(addInput.supportedFeatures, [NIMI_MACHINE_LOCAL_INPUT_IMAGE_FEATURE]);
   await client.addConfiguration(addInput);
+  await client.updateConfiguration({
+    configurationId: 'lcc_test',
+    portableConfig: addInput.portableConfig,
+    supportedFeatures: addInput.supportedFeatures,
+    displayName: addInput.displayName,
+  });
   await client.getConfiguration('lcc_test');
   await client.reprojectRequirements('lcc_test');
   await client.select('text.generate', 'lcc_test');
@@ -259,6 +270,7 @@ test('Machine Local AI Configuration typed client maps every admitted RPC throug
   assert.deepEqual(calls.map((call) => call.method), [
     'get',
     'add',
+    'update',
     'getConfiguration',
     'reproject',
     'select',
@@ -277,6 +289,7 @@ test('Machine Local AI Configuration typed client maps every admitted RPC throug
   assert.deepEqual(fromNimiRuntimeProtoStruct(addRequest.portableConfig), {
     mainRequirementPolicy: 'substitutable',
     mmprojRequirementPolicy: 'substitutable',
+    contextSize: 8192,
   });
   assert.deepEqual(addRequest.supportedFeatures, ['input.image']);
   for (const call of calls.filter((item) => !['get', 'getConfiguration', 'listLocalAssets'].includes(item.method))) {

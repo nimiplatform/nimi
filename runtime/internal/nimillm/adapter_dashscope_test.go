@@ -183,11 +183,14 @@ func TestExecuteAlibabaNativeCosyVoiceTTSUsesSpeechSynthesizerContract(t *testin
 						Text:         "你好，Nimi。",
 						Language:     "zh",
 						AudioFormat:  "wav",
-						SampleRateHz: 24000,
-						Speed:        0.9,
-						Pitch:        1.1,
-						Volume:       50,
+						SampleRateHz: testInt32(24000),
+						Speed:        testFloat32(0.9),
+						Pitch:        testFloat32(1.1),
+						Volume:       testFloat32(50),
 						TimingMode:   runtimev1.SpeechTimingMode_SPEECH_TIMING_MODE_WORD,
+						VoiceRenderHints: &runtimev1.VoiceRenderHints{
+							Speed: 1.2,
+						},
 						VoiceRef: &runtimev1.VoiceReference{
 							Kind: runtimev1.VoiceReferenceKind_VOICE_REFERENCE_KIND_PROVIDER_VOICE_REF,
 							Reference: &runtimev1.VoiceReference_ProviderVoiceRef{
@@ -231,8 +234,8 @@ func TestExecuteAlibabaNativeCosyVoiceTTSUsesSpeechSynthesizerContract(t *testin
 	if got := ValueAsInt64(input["sample_rate"]); got != 24000 {
 		t.Fatalf("unexpected sample_rate: %#v", input["sample_rate"])
 	}
-	if got := ValueAsFloat64(input["rate"]); got != 0.9 {
-		t.Fatalf("unexpected rate: %#v", input["rate"])
+	if got := ValueAsFloat64(input["rate"]); got != 1.2 {
+		t.Fatalf("unexpected rate from voice render hints: %#v", input["rate"])
 	}
 	if got := ValueAsFloat64(input["pitch"]); got != 1.1 {
 		t.Fatalf("unexpected pitch: %#v", input["pitch"])
@@ -340,10 +343,10 @@ func TestBackendStreamSynthesizeSpeechDashScopeCosyVoiceUsesWebSocketProtocol(t 
 		Text:         "你好，Nimi。",
 		Language:     "zh",
 		AudioFormat:  "mp3",
-		SampleRateHz: 24000,
-		Speed:        0.9,
-		Pitch:        1.1,
-		Volume:       50,
+		SampleRateHz: testInt32(24000),
+		Speed:        testFloat32(0.9),
+		Pitch:        testFloat32(1.1),
+		Volume:       testFloat32(50),
 		VoiceRef: &runtimev1.VoiceReference{
 			Kind: runtimev1.VoiceReferenceKind_VOICE_REFERENCE_KIND_PROVIDER_VOICE_REF,
 			Reference: &runtimev1.VoiceReference_ProviderVoiceRef{
@@ -571,7 +574,7 @@ func TestExecuteDashScopeTranscribeRejectsUnsupportedAdvancedOptions(t *testing.
 			Spec: &runtimev1.ScenarioSpec{
 				Spec: &runtimev1.ScenarioSpec_SpeechTranscribe{
 					SpeechTranscribe: &runtimev1.SpeechTranscribeScenarioSpec{
-						Diarization: true,
+						Diarization: testBool(true),
 						AudioSource: &runtimev1.SpeechTranscriptionAudioSource{
 							Source: &runtimev1.SpeechTranscriptionAudioSource_AudioBytes{
 								AudioBytes: []byte("audio"),
@@ -594,7 +597,7 @@ func TestBuildAlibabaImageSubmitRequestDashScopeQwenImageUsesSyncMultimodalContr
 		&runtimev1.ImageGenerateScenarioSpec{
 			Prompt:         "一只穿宇航服的橘猫，电影感，细节丰富",
 			NegativePrompt: "low quality, blurry",
-			N:              1,
+			N:              testInt32(1),
 			Size:           "1024x1024",
 		},
 		nil,
@@ -843,7 +846,7 @@ func TestExecuteAlibabaNativeVideoUsesAsyncTaskContract(t *testing.T) {
 							},
 						},
 						Options: &runtimev1.VideoGenerationOptions{
-							DurationSec: 4,
+							DurationSec: testInt32(4),
 							Resolution:  "720p",
 						},
 					},

@@ -241,8 +241,6 @@ func (s *Service) installLocalAssetRecord(
 	repo string,
 	revision string,
 	hashes map[string]string,
-	endpoint string,
-	mode runtimev1.LocalEngineRuntimeMode,
 	localInvokeProfileID string,
 	engineConfig *structpb.Struct,
 	projectionOverride *modelregistry.NativeProjection,
@@ -293,6 +291,9 @@ func (s *Service) installLocalAssetRecord(
 	record := &runtimev1.LocalAssetRecord{
 		LocalAssetId: ulid.Make().String(),
 		AssetId:      modelID,
+		// Display name is a non-identity fact; install paths default it from the
+		// asset id while import paths overwrite it with manifest/file facts.
+		DisplayName:  defaultLocalImportDisplayName(modelID, ""),
 		Kind:         kind,
 		Capabilities: capabilities,
 		Engine:       engine,
@@ -315,18 +316,6 @@ func (s *Service) installLocalAssetRecord(
 		FallbackEngines:      append([]string(nil), projection.FallbackEngines...),
 		BundleState:          projection.BundleState,
 		HostRequirements:     cloneHostRequirements(projection.HostRequirements),
-		Endpoint: storedEndpointForAssetRuntimeMode(
-			engine,
-			capabilities,
-			kind,
-			mode,
-			endpoint,
-			s.managedEndpointForAssetLocked(engine, capabilities, kind),
-		),
-	}
-	if normalizeRuntimeMode(mode) == runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED &&
-		isCanonicalSupervisedImageAsset(engine, capabilities, kind) {
-		record.HealthDetail = managedLocalImagePendingValidationDetail("")
 	}
 	if isRunnableKind(kind) && len(record.GetCapabilities()) == 0 {
 		record.Capabilities = defaultCapabilitiesForAssetKind(kind)
@@ -375,9 +364,7 @@ func (s *Service) installLocalAssetRecord(
 				cloned.FallbackEngines = append([]string(nil), record.GetFallbackEngines()...)
 				cloned.BundleState = record.GetBundleState()
 				cloned.HostRequirements = cloneHostRequirements(record.GetHostRequirements())
-				cloned.Endpoint = record.GetEndpoint()
 				s.assets[cloned.GetLocalAssetId()] = cloneLocalAsset(cloned)
-				s.setModelRuntimeModeLocked(cloned.GetLocalAssetId(), mode)
 				delete(s.assetProbeState, cloned.GetLocalAssetId())
 				s.appendRuntimeAuditLocked(&runtimev1.LocalAuditEvent{
 					Id:           "audit_" + ulid.Make().String(),
@@ -398,7 +385,6 @@ func (s *Service) installLocalAssetRecord(
 		}
 	}
 	s.assets[record.GetLocalAssetId()] = cloneLocalAsset(record)
-	s.setModelRuntimeModeLocked(record.GetLocalAssetId(), mode)
 	s.appendRuntimeAuditLocked(&runtimev1.LocalAuditEvent{
 		Id:           "audit_" + ulid.Make().String(),
 		EventType:    auditEventType,
@@ -486,8 +472,6 @@ func (s *Service) installLocalAsset(ctx context.Context, params installLocalAsse
 			repo:         strings.TrimSpace(params.repo),
 			revision:     defaultString(strings.TrimSpace(params.revision), "main"),
 			hashes:       cloneStringMap(params.hashes),
-			endpoint:     binding.endpoint,
-			mode:         binding.mode,
 			engineConfig: params.engineConfig,
 		})
 		if err != nil {
@@ -520,8 +504,6 @@ func (s *Service) installLocalAsset(ctx context.Context, params installLocalAsse
 		strings.TrimSpace(params.repo),
 		defaultString(strings.TrimSpace(params.revision), "main"),
 		params.hashes,
-		binding.endpoint,
-		binding.mode,
 		"",
 		params.engineConfig,
 		nil,
@@ -686,8 +668,6 @@ func (s *Service) installVerifiedAssetByTemplateIDWithExistingPolicy(
 			repo:           matched.GetRepo(),
 			revision:       defaultString(matched.GetRevision(), "main"),
 			hashes:         cloneStringMap(matched.GetHashes()),
-			endpoint:       binding.endpoint,
-			mode:           binding.mode,
 			engineConfig:   matched.GetEngineConfig(),
 			existingPolicy: existingPolicy,
 			projectionOverride: &modelregistry.NativeProjection{
@@ -712,8 +692,6 @@ func (s *Service) installVerifiedAssetByTemplateIDWithExistingPolicy(
 		matched.GetRepo(),
 		matched.GetRevision(),
 		matched.GetHashes(),
-		binding.endpoint,
-		binding.mode,
 		"",
 		matched.GetEngineConfig(),
 		&modelregistry.NativeProjection{

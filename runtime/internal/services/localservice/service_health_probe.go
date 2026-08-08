@@ -534,13 +534,12 @@ func (s *Service) effectiveLocalModelEndpoint(model *runtimev1.LocalAssetRecord)
 	if model == nil {
 		return ""
 	}
-	return effectiveEndpointForAssetRuntimeMode(
-		model.GetEngine(),
-		model.GetCapabilities(),
-		model.GetKind(),
+	executionEngine := executionRuntimeEngineForAsset(model.GetEngine(), model.GetCapabilities(), model.GetKind())
+	return effectiveEndpointForRuntimeMode(
+		executionEngine,
 		s.modelRuntimeMode(model.GetLocalAssetId()),
-		model.GetEndpoint(),
-		s.managedEndpointForAsset(model.GetEngine(), model.GetCapabilities(), model.GetKind()),
+		"",
+		s.managedEndpointForEngine(executionEngine),
 	)
 }
 

@@ -10,6 +10,7 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	memoryservice "github.com/nimiplatform/nimi/runtime/internal/services/memory"
 	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/proto"
 )
 
 const (
@@ -131,7 +132,7 @@ func buildCanonicalReviewScenarioRequest(req *CanonicalReviewExecutorRequest) (*
 			Spec: &runtimev1.ScenarioSpec_TextGenerate{
 				TextGenerate: &runtimev1.TextGenerateScenarioSpec{
 					SystemPrompt: systemPrompt,
-					MaxTokens:    canonicalReviewPromptMaxTokens,
+					MaxTokens:    proto.Int32(canonicalReviewPromptMaxTokens),
 					Input: []*runtimev1.ChatMessage{
 						{
 							Role:    "user",

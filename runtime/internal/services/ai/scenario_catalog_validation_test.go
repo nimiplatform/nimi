@@ -24,7 +24,7 @@ func TestValidateVideoGenerateAgainstCatalogAllowsDeclaredOptions(t *testing.T) 
 			},
 		},
 		Options: &runtimev1.VideoGenerationOptions{
-			DurationSec: 1,
+			DurationSec: testInt32(1),
 			Ratio:       "16:9",
 		},
 	})
@@ -46,8 +46,8 @@ func TestValidateVideoGenerateAgainstCatalogRejectsUndeclaredOption(t *testing.T
 			},
 		},
 		Options: &runtimev1.VideoGenerationOptions{
-			DurationSec: 1,
-			Fps:         24,
+			DurationSec: testInt32(1),
+			Fps:         testInt32(24),
 		},
 	})
 	if err == nil {
@@ -72,8 +72,8 @@ func TestValidateVideoGenerateAgainstCatalogRejectsUnavailableOutput(t *testing.
 			},
 		},
 		Options: &runtimev1.VideoGenerationOptions{
-			DurationSec:     1,
-			ReturnLastFrame: true,
+			DurationSec:     testInt32(1),
+			ReturnLastFrame: testBool(true),
 		},
 	})
 	if err == nil {
@@ -113,7 +113,7 @@ func TestValidateVideoGenerateAgainstCatalogRejectsInvalidShape(t *testing.T) {
 				Text: "not a video model",
 			},
 		},
-		Options: &runtimev1.VideoGenerationOptions{DurationSec: 1},
+		Options: &runtimev1.VideoGenerationOptions{DurationSec: testInt32(1)},
 	})
 	reason, ok := grpcerr.ExtractReasonCode(err)
 	if !ok || reason != runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED {
@@ -133,7 +133,7 @@ func TestValidateVideoGenerateAgainstCatalogRejectsInvalidModeAndRoles(t *testin
 				Text: "missing first frame",
 			},
 		},
-		Options: &runtimev1.VideoGenerationOptions{DurationSec: 1},
+		Options: &runtimev1.VideoGenerationOptions{DurationSec: testInt32(1)},
 	})
 	reason, ok := grpcerr.ExtractReasonCode(err)
 	if !ok || reason != runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED {
@@ -149,7 +149,7 @@ func TestValidateVideoGenerateAgainstCatalogRejectsInvalidModeAndRoles(t *testin
 				Text: "invalid mode",
 			},
 		},
-		Options: &runtimev1.VideoGenerationOptions{DurationSec: 1},
+		Options: &runtimev1.VideoGenerationOptions{DurationSec: testInt32(1)},
 	})
 	reason, ok = grpcerr.ExtractReasonCode(err)
 	if !ok || reason != runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED {
@@ -170,7 +170,7 @@ func TestValidateVideoGenerateAgainstCatalogAllowsSeedancePromptOnlyT2V(t *testi
 			},
 		},
 		Options: &runtimev1.VideoGenerationOptions{
-			DurationSec: 4,
+			DurationSec: testInt32(4),
 			Ratio:       "16:9",
 			Resolution:  "480p",
 		},
@@ -208,11 +208,11 @@ func TestValidateVideoGenerateAgainstCatalogAllowsSeedanceReferenceVideoAndAudio
 			},
 		},
 		Options: &runtimev1.VideoGenerationOptions{
-			DurationSec:     11,
+			DurationSec:     testInt32(11),
 			Ratio:           "16:9",
 			Resolution:      "720p",
-			GenerateAudio:   true,
-			ReturnLastFrame: true,
+			GenerateAudio:   testBool(true),
+			ReturnLastFrame: testBool(true),
 		},
 	})
 	if err != nil {
@@ -258,7 +258,7 @@ func TestValidateVideoGenerateAgainstCatalogRejectsSeedanceTooManyReferenceVideo
 			},
 		},
 		Options: &runtimev1.VideoGenerationOptions{
-			DurationSec: 11,
+			DurationSec: testInt32(11),
 			Ratio:       "16:9",
 		},
 	}

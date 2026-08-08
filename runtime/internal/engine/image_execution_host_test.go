@@ -17,6 +17,7 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
 	"github.com/nimiplatform/nimi/runtime/internal/localexecution"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
@@ -406,7 +407,7 @@ func imagePlanForHostTest(t *testing.T, prompt string, count int32) *capabilityd
 	plan, err := (capabilitydriver.StableDiffusionImageDriver{}).PlanImageInvocation(capabilitydriver.ImageInvocationInput{
 		PortableConfig: portable,
 		ExactBindings:  bindings,
-		Request:        &runtimev1.ImageGenerateScenarioSpec{Prompt: prompt, N: count, Size: "64x64", Seed: 7},
+		Request:        &runtimev1.ImageGenerateScenarioSpec{Prompt: prompt, N: proto.Int32(count), Size: "64x64", Seed: proto.Int64(7)},
 	})
 	if err != nil {
 		t.Fatalf("PlanImageInvocation: %v", err)
@@ -454,7 +455,7 @@ func imagePlanWithLoRAsForHostTest(t *testing.T) *capabilitydriver.ImageInvocati
 	}
 	plan, err := (capabilitydriver.StableDiffusionImageDriver{}).PlanImageInvocation(capabilitydriver.ImageInvocationInput{
 		PortableConfig: portable, ExactBindings: bindings,
-		Request: &runtimev1.ImageGenerateScenarioSpec{Prompt: "ordered", N: 1, Size: "64x64", Seed: 8},
+		Request: &runtimev1.ImageGenerateScenarioSpec{Prompt: "ordered", N: proto.Int32(1), Size: "64x64", Seed: proto.Int64(8)},
 	})
 	if err != nil {
 		t.Fatal(err)

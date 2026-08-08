@@ -30,6 +30,21 @@ type Domain string
 // vocabulary in an owner adapter.
 const AppOperationIDTextCandidateGenerate = "runtime.ai.text-candidate.generate"
 
+// Canonical operation identifiers for the scenario-consumption operation
+// family. Each literal is owned by the closed operation contract and carried
+// into the exact owner handoff.
+const (
+	AppOperationIDTextTurnStream       = "runtime.ai.text-turn.stream"
+	AppOperationIDScenarioExecute      = "runtime.ai.scenario.execute"
+	AppOperationIDScenarioJobSubmit    = "runtime.ai.scenario-job.submit"
+	AppOperationIDScenarioJobGet       = "runtime.ai.scenario-job.get"
+	AppOperationIDScenarioJobSubscribe = "runtime.ai.scenario-job.subscribe"
+	AppOperationIDScenarioJobCancel    = "runtime.ai.scenario-job.cancel"
+	AppOperationIDArtifactRead         = "runtime.ai.artifact.read"
+	AppOperationIDArtifactUpload       = "runtime.ai.artifact.upload"
+	AppOperationIDVoiceAssetsList      = "runtime.ai.voice-assets.list"
+)
+
 const (
 	IngressUnknown Ingress = iota
 	IngressStorageJSONRead
@@ -40,6 +55,15 @@ const (
 	IngressRealmWorldCoreList
 	IngressRealmWorldCoreCreate
 	IngressTextCandidateGenerate
+	IngressTextTurnStream
+	IngressScenarioExecute
+	IngressScenarioJobSubmit
+	IngressScenarioJobGet
+	IngressScenarioJobSubscribe
+	IngressScenarioJobCancel
+	IngressArtifactRead
+	IngressArtifactUpload
+	IngressVoiceAssetsList
 	IngressAgentReferenceList
 	IngressConversationOpen
 	IngressConversationTurnSend
@@ -64,6 +88,15 @@ const (
 	OperationRealmWorldCoreList
 	OperationRealmWorldCoreCreate
 	OperationTextCandidateGenerate
+	OperationTextTurnStream
+	OperationScenarioExecute
+	OperationScenarioJobSubmit
+	OperationScenarioJobGet
+	OperationScenarioJobSubscribe
+	OperationScenarioJobCancel
+	OperationArtifactRead
+	OperationArtifactUpload
+	OperationVoiceAssetsList
 	OperationAgentReferenceList
 	OperationConversationOpen
 	OperationConversationTurnSend
@@ -97,6 +130,15 @@ var canonicalAppOperationContract = [...]contractRow{
 	{IngressRealmWorldCoreList, OperationRealmWorldCoreList, "realm.world-core.list", AuthorityClassAppAccess, "realm.data"},
 	{IngressRealmWorldCoreCreate, OperationRealmWorldCoreCreate, "realm.world-core.create", AuthorityClassAppAccess, "realm.data"},
 	{IngressTextCandidateGenerate, OperationTextCandidateGenerate, AppOperationIDTextCandidateGenerate, AuthorityClassAppAccess, "runtime.consume"},
+	{IngressTextTurnStream, OperationTextTurnStream, AppOperationIDTextTurnStream, AuthorityClassAppAccess, "runtime.consume"},
+	{IngressScenarioExecute, OperationScenarioExecute, AppOperationIDScenarioExecute, AuthorityClassAppAccess, "runtime.consume"},
+	{IngressScenarioJobSubmit, OperationScenarioJobSubmit, AppOperationIDScenarioJobSubmit, AuthorityClassAppAccess, "runtime.consume"},
+	{IngressScenarioJobGet, OperationScenarioJobGet, AppOperationIDScenarioJobGet, AuthorityClassAppAccess, "runtime.consume"},
+	{IngressScenarioJobSubscribe, OperationScenarioJobSubscribe, AppOperationIDScenarioJobSubscribe, AuthorityClassAppAccess, "runtime.consume"},
+	{IngressScenarioJobCancel, OperationScenarioJobCancel, AppOperationIDScenarioJobCancel, AuthorityClassAppAccess, "runtime.consume"},
+	{IngressArtifactRead, OperationArtifactRead, AppOperationIDArtifactRead, AuthorityClassAppAccess, "runtime.consume"},
+	{IngressArtifactUpload, OperationArtifactUpload, AppOperationIDArtifactUpload, AuthorityClassAppAccess, "runtime.consume"},
+	{IngressVoiceAssetsList, OperationVoiceAssetsList, AppOperationIDVoiceAssetsList, AuthorityClassAppAccess, "runtime.consume"},
 	{IngressAgentReferenceList, OperationAgentReferenceList, "runtime.agent.reference.list", AuthorityClassAppAccess, "agent.local"},
 	{IngressConversationOpen, OperationConversationOpen, "runtime.agent.conversation.open", AuthorityClassAppAccess, "agent.local"},
 	{IngressConversationTurnSend, OperationConversationTurnSend, "runtime.agent.conversation.turn.send", AuthorityClassAppAccess, "agent.local"},
@@ -157,7 +199,7 @@ func IsSupportedDomain(value string) bool {
 
 func validateContractRows(rows []contractRow) error {
 	if len(rows) != len(canonicalAppOperationContract) {
-		return fmt.Errorf("%w: expected twenty rows", ErrContractInvalid)
+		return fmt.Errorf("%w: expected twenty-nine rows", ErrContractInvalid)
 	}
 	seenIngress := make(map[Ingress]struct{}, len(rows))
 	seenOperation := make(map[Operation]struct{}, len(rows))

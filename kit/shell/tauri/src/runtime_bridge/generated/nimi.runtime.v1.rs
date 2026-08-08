@@ -3673,6 +3673,27 @@ pub struct AddLocalCapabilityConfigurationResponse {
     #[prost(message, optional, tag = "1")]
     pub configuration: ::core::option::Option<LocalCapabilityConfiguration>,
 }
+/// UpdateLocalCapabilityConfiguration replaces the mutable portable intent of
+/// one saved record. Capability and implementation identity remain immutable;
+/// callers create a new record when either identity changes.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct UpdateLocalCapabilityConfigurationRequest {
+    #[prost(string, tag = "1")]
+    pub configuration_id: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "2")]
+    pub portable_config: ::core::option::Option<::prost_types::Struct>,
+    #[prost(string, repeated, tag = "3")]
+    pub supported_features: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(string, tag = "4")]
+    pub display_name: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "5")]
+    pub provenance: ::core::option::Option<::prost_types::Struct>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct UpdateLocalCapabilityConfigurationResponse {
+    #[prost(message, optional, tag = "1")]
+    pub configuration: ::core::option::Option<LocalCapabilityConfiguration>,
+}
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct SelectLocalCapabilityConfigurationRequest {
     #[prost(string, tag = "1")]
@@ -4570,12 +4591,12 @@ pub struct TextGenerateScenarioSpec {
     pub system_prompt: ::prost::alloc::string::String,
     #[prost(message, repeated, tag = "3")]
     pub tools: ::prost::alloc::vec::Vec<ToolSpec>,
-    #[prost(float, tag = "4")]
-    pub temperature: f32,
-    #[prost(float, tag = "5")]
-    pub top_p: f32,
-    #[prost(int32, tag = "6")]
-    pub max_tokens: i32,
+    #[prost(float, optional, tag = "4")]
+    pub temperature: ::core::option::Option<f32>,
+    #[prost(float, optional, tag = "5")]
+    pub top_p: ::core::option::Option<f32>,
+    #[prost(int32, optional, tag = "6")]
+    pub max_tokens: ::core::option::Option<i32>,
     #[prost(message, optional, tag = "7")]
     pub reasoning: ::core::option::Option<ReasoningConfig>,
     #[prost(enumeration = "ToolChoiceMode", tag = "8")]
@@ -4584,16 +4605,16 @@ pub struct TextGenerateScenarioSpec {
     pub tool_choice_name: ::prost::alloc::string::String,
     #[prost(message, optional, tag = "10")]
     pub response_format: ::core::option::Option<ResponseFormat>,
-    #[prost(int32, tag = "11")]
-    pub top_k: i32,
-    #[prost(float, tag = "12")]
-    pub presence_penalty: f32,
-    #[prost(float, tag = "13")]
-    pub frequency_penalty: f32,
+    #[prost(int32, optional, tag = "11")]
+    pub top_k: ::core::option::Option<i32>,
+    #[prost(float, optional, tag = "12")]
+    pub presence_penalty: ::core::option::Option<f32>,
+    #[prost(float, optional, tag = "13")]
+    pub frequency_penalty: ::core::option::Option<f32>,
     #[prost(string, repeated, tag = "14")]
     pub stop: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
-    #[prost(int64, tag = "15")]
-    pub seed: i64,
+    #[prost(int64, optional, tag = "15")]
+    pub seed: ::core::option::Option<i64>,
     #[prost(bool, tag = "16")]
     pub include_raw_chunks: bool,
 }
@@ -4608,8 +4629,8 @@ pub struct ImageGenerateScenarioSpec {
     pub prompt: ::prost::alloc::string::String,
     #[prost(string, tag = "2")]
     pub negative_prompt: ::prost::alloc::string::String,
-    #[prost(int32, tag = "3")]
-    pub n: i32,
+    #[prost(int32, optional, tag = "3")]
+    pub n: ::core::option::Option<i32>,
     #[prost(string, tag = "4")]
     pub size: ::prost::alloc::string::String,
     #[prost(string, tag = "5")]
@@ -4618,8 +4639,8 @@ pub struct ImageGenerateScenarioSpec {
     pub quality: ::prost::alloc::string::String,
     #[prost(string, tag = "7")]
     pub style: ::prost::alloc::string::String,
-    #[prost(int64, tag = "8")]
-    pub seed: i64,
+    #[prost(int64, optional, tag = "8")]
+    pub seed: ::core::option::Option<i64>,
     #[prost(string, repeated, tag = "9")]
     pub reference_images: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
     #[prost(string, tag = "10")]
@@ -4648,14 +4669,14 @@ pub struct SpeechSynthesizeScenarioSpec {
     pub language: ::prost::alloc::string::String,
     #[prost(string, tag = "3")]
     pub audio_format: ::prost::alloc::string::String,
-    #[prost(int32, tag = "4")]
-    pub sample_rate_hz: i32,
-    #[prost(float, tag = "5")]
-    pub speed: f32,
-    #[prost(float, tag = "6")]
-    pub pitch: f32,
-    #[prost(float, tag = "7")]
-    pub volume: f32,
+    #[prost(int32, optional, tag = "4")]
+    pub sample_rate_hz: ::core::option::Option<i32>,
+    #[prost(float, optional, tag = "5")]
+    pub speed: ::core::option::Option<f32>,
+    #[prost(float, optional, tag = "6")]
+    pub pitch: ::core::option::Option<f32>,
+    #[prost(float, optional, tag = "7")]
+    pub volume: ::core::option::Option<f32>,
     #[prost(string, tag = "8")]
     pub emotion: ::prost::alloc::string::String,
     #[prost(message, optional, tag = "9")]
@@ -4671,12 +4692,12 @@ pub struct SpeechTranscribeScenarioSpec {
     pub mime_type: ::prost::alloc::string::String,
     #[prost(string, tag = "2")]
     pub language: ::prost::alloc::string::String,
-    #[prost(bool, tag = "3")]
-    pub timestamps: bool,
-    #[prost(bool, tag = "4")]
-    pub diarization: bool,
-    #[prost(int32, tag = "5")]
-    pub speaker_count: i32,
+    #[prost(bool, optional, tag = "3")]
+    pub timestamps: ::core::option::Option<bool>,
+    #[prost(bool, optional, tag = "4")]
+    pub diarization: ::core::option::Option<bool>,
+    #[prost(int32, optional, tag = "5")]
+    pub speaker_count: ::core::option::Option<i32>,
     #[prost(string, tag = "6")]
     pub prompt: ::prost::alloc::string::String,
     #[prost(message, optional, tag = "7")]
@@ -4966,12 +4987,22 @@ pub struct LocalAppTextCandidateMessage {
 pub struct GenerateLocalAppTextCandidateRequest {
     #[prost(message, repeated, tag = "1")]
     pub messages: ::prost::alloc::vec::Vec<LocalAppTextCandidateMessage>,
-    #[prost(float, tag = "2")]
-    pub temperature: f32,
-    #[prost(float, tag = "3")]
-    pub top_p: f32,
-    #[prost(int32, tag = "4")]
-    pub max_tokens: i32,
+    #[prost(float, optional, tag = "2")]
+    pub temperature: ::core::option::Option<f32>,
+    #[prost(float, optional, tag = "3")]
+    pub top_p: ::core::option::Option<f32>,
+    #[prost(int32, optional, tag = "4")]
+    pub max_tokens: ::core::option::Option<i32>,
+    #[prost(int32, optional, tag = "5")]
+    pub top_k: ::core::option::Option<i32>,
+    #[prost(float, optional, tag = "6")]
+    pub presence_penalty: ::core::option::Option<f32>,
+    #[prost(float, optional, tag = "7")]
+    pub frequency_penalty: ::core::option::Option<f32>,
+    #[prost(string, repeated, tag = "8")]
+    pub stop: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(int64, optional, tag = "9")]
+    pub seed: ::core::option::Option<i64>,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct GenerateLocalAppTextCandidateResponse {
@@ -4981,6 +5012,435 @@ pub struct GenerateLocalAppTextCandidateResponse {
     pub finish_reason: i32,
     #[prost(string, tag = "3")]
     pub trace_id: ::prost::alloc::string::String,
+}
+/// Trimmed artifact projection for Local App scenario outputs. Runtime-private
+/// uri, producer, and owner fields are never projected; oversized payloads are
+/// reachable only through ReadLocalAppArtifact.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalAppScenarioArtifact {
+    #[prost(string, tag = "1")]
+    pub artifact_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub mime_type: ::prost::alloc::string::String,
+    #[prost(bytes = "vec", tag = "3")]
+    pub bytes: ::prost::alloc::vec::Vec<u8>,
+    #[prost(int64, tag = "4")]
+    pub size_bytes: i64,
+    #[prost(string, tag = "5")]
+    pub sha256: ::prost::alloc::string::String,
+    #[prost(int64, tag = "6")]
+    pub duration_ms: i64,
+    #[prost(int32, tag = "7")]
+    pub width: i32,
+    #[prost(int32, tag = "8")]
+    pub height: i32,
+    #[prost(int32, tag = "9")]
+    pub sample_rate_hz: i32,
+    #[prost(int32, tag = "10")]
+    pub channels: i32,
+}
+/// Synchronous closed-set scenario specs admitted for ExecuteLocalAppScenario.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalAppTextEmbedScenarioSpec {
+    #[prost(string, repeated, tag = "1")]
+    pub inputs: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalAppImageGenerateScenarioSpec {
+    #[prost(string, tag = "1")]
+    pub prompt: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub negative_prompt: ::prost::alloc::string::String,
+    #[prost(int32, optional, tag = "3")]
+    pub n: ::core::option::Option<i32>,
+    #[prost(string, tag = "4")]
+    pub size: ::prost::alloc::string::String,
+    #[prost(string, tag = "5")]
+    pub aspect_ratio: ::prost::alloc::string::String,
+    #[prost(string, tag = "6")]
+    pub quality: ::prost::alloc::string::String,
+    #[prost(string, tag = "7")]
+    pub style: ::prost::alloc::string::String,
+    #[prost(int64, optional, tag = "8")]
+    pub seed: ::core::option::Option<i64>,
+    #[prost(string, repeated, tag = "9")]
+    pub reference_images: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(string, tag = "10")]
+    pub mask: ::prost::alloc::string::String,
+    #[prost(string, tag = "11")]
+    pub response_format: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ExecuteLocalAppScenarioRequest {
+    #[prost(oneof = "execute_local_app_scenario_request::Spec", tags = "1, 2")]
+    pub spec: ::core::option::Option<execute_local_app_scenario_request::Spec>,
+}
+/// Nested message and enum types in `ExecuteLocalAppScenarioRequest`.
+pub mod execute_local_app_scenario_request {
+    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
+    pub enum Spec {
+        #[prost(message, tag = "1")]
+        TextEmbed(super::LocalAppTextEmbedScenarioSpec),
+        #[prost(message, tag = "2")]
+        ImageGenerate(super::LocalAppImageGenerateScenarioSpec),
+    }
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct LocalAppTextEmbedOutput {
+    #[prost(message, repeated, tag = "1")]
+    pub vectors: ::prost::alloc::vec::Vec<EmbeddingVector>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct LocalAppImageGenerateOutput {
+    #[prost(message, repeated, tag = "1")]
+    pub artifacts: ::prost::alloc::vec::Vec<LocalAppScenarioArtifact>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ExecuteLocalAppScenarioResponse {
+    #[prost(string, tag = "3")]
+    pub trace_id: ::prost::alloc::string::String,
+    #[prost(oneof = "execute_local_app_scenario_response::Output", tags = "1, 2")]
+    pub output: ::core::option::Option<execute_local_app_scenario_response::Output>,
+}
+/// Nested message and enum types in `ExecuteLocalAppScenarioResponse`.
+pub mod execute_local_app_scenario_response {
+    #[derive(Clone, PartialEq, ::prost::Oneof)]
+    pub enum Output {
+        #[prost(message, tag = "1")]
+        TextEmbed(super::LocalAppTextEmbedOutput),
+        #[prost(message, tag = "2")]
+        ImageGenerate(super::LocalAppImageGenerateOutput),
+    }
+}
+/// Asynchronous closed-set Job specs admitted for SubmitLocalAppScenarioJob.
+/// Per-capability selection happens through the scenario spec type plus the
+/// calling App owner's committed AIConfig capability intent, never through
+/// caller-supplied route, provider, model, or target fields.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalAppVideoGenerationOptions {
+    #[prost(string, tag = "1")]
+    pub resolution: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub ratio: ::prost::alloc::string::String,
+    #[prost(int32, optional, tag = "3")]
+    pub duration_sec: ::core::option::Option<i32>,
+    #[prost(int32, optional, tag = "4")]
+    pub frames: ::core::option::Option<i32>,
+    #[prost(int32, optional, tag = "5")]
+    pub fps: ::core::option::Option<i32>,
+    #[prost(int64, optional, tag = "6")]
+    pub seed: ::core::option::Option<i64>,
+    #[prost(bool, optional, tag = "7")]
+    pub camera_fixed: ::core::option::Option<bool>,
+    #[prost(bool, optional, tag = "8")]
+    pub watermark: ::core::option::Option<bool>,
+    #[prost(bool, optional, tag = "9")]
+    pub generate_audio: ::core::option::Option<bool>,
+    #[prost(bool, optional, tag = "10")]
+    pub draft: ::core::option::Option<bool>,
+    #[prost(bool, optional, tag = "11")]
+    pub return_last_frame: ::core::option::Option<bool>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct LocalAppVideoGenerateJobSpec {
+    #[prost(string, tag = "1")]
+    pub prompt: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub negative_prompt: ::prost::alloc::string::String,
+    #[prost(enumeration = "VideoMode", tag = "3")]
+    pub mode: i32,
+    #[prost(message, repeated, tag = "4")]
+    pub content: ::prost::alloc::vec::Vec<VideoContentItem>,
+    #[prost(message, optional, tag = "5")]
+    pub options: ::core::option::Option<LocalAppVideoGenerationOptions>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct LocalAppSpeechSynthesizeJobSpec {
+    #[prost(string, tag = "1")]
+    pub text: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub language: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub audio_format: ::prost::alloc::string::String,
+    #[prost(int32, optional, tag = "4")]
+    pub sample_rate_hz: ::core::option::Option<i32>,
+    #[prost(float, optional, tag = "5")]
+    pub speed: ::core::option::Option<f32>,
+    #[prost(float, optional, tag = "6")]
+    pub pitch: ::core::option::Option<f32>,
+    #[prost(float, optional, tag = "7")]
+    pub volume: ::core::option::Option<f32>,
+    #[prost(string, tag = "8")]
+    pub emotion: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "9")]
+    pub voice_ref: ::core::option::Option<VoiceReference>,
+    #[prost(enumeration = "SpeechTimingMode", tag = "10")]
+    pub timing_mode: i32,
+    #[prost(message, optional, tag = "11")]
+    pub voice_render_hints: ::core::option::Option<VoiceRenderHints>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalAppSpeechTranscribeJobSpec {
+    #[prost(string, tag = "1")]
+    pub mime_type: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub language: ::prost::alloc::string::String,
+    #[prost(bool, optional, tag = "3")]
+    pub timestamps: ::core::option::Option<bool>,
+    #[prost(bool, optional, tag = "4")]
+    pub diarization: ::core::option::Option<bool>,
+    #[prost(int32, optional, tag = "5")]
+    pub speaker_count: ::core::option::Option<i32>,
+    #[prost(string, tag = "6")]
+    pub prompt: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "7")]
+    pub audio_source: ::core::option::Option<SpeechTranscriptionAudioSource>,
+    #[prost(string, tag = "8")]
+    pub response_format: ::prost::alloc::string::String,
+}
+/// Voice workflow specs omit target_model_id: Runtime resolves the exact
+/// execution target from the App owner's committed AIConfig intent.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalAppVoiceCloneJobSpec {
+    #[prost(message, optional, tag = "1")]
+    pub input: ::core::option::Option<VoiceV2vInput>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalAppVoiceDesignJobSpec {
+    #[prost(message, optional, tag = "1")]
+    pub input: ::core::option::Option<VoiceT2vInput>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct SubmitLocalAppScenarioJobRequest {
+    #[prost(
+        oneof = "submit_local_app_scenario_job_request::Spec",
+        tags = "1, 2, 3, 4, 5, 6"
+    )]
+    pub spec: ::core::option::Option<submit_local_app_scenario_job_request::Spec>,
+}
+/// Nested message and enum types in `SubmitLocalAppScenarioJobRequest`.
+pub mod submit_local_app_scenario_job_request {
+    #[derive(Clone, PartialEq, ::prost::Oneof)]
+    pub enum Spec {
+        #[prost(message, tag = "1")]
+        ImageGenerate(super::LocalAppImageGenerateScenarioSpec),
+        #[prost(message, tag = "2")]
+        VideoGenerate(super::LocalAppVideoGenerateJobSpec),
+        #[prost(message, tag = "3")]
+        SpeechSynthesize(super::LocalAppSpeechSynthesizeJobSpec),
+        #[prost(message, tag = "4")]
+        SpeechTranscribe(super::LocalAppSpeechTranscribeJobSpec),
+        #[prost(message, tag = "5")]
+        VoiceClone(super::LocalAppVoiceCloneJobSpec),
+        #[prost(message, tag = "6")]
+        VoiceDesign(super::LocalAppVoiceDesignJobSpec),
+    }
+}
+/// Trimmed Job projection for Local App consumption: status, progress, typed
+/// reason, artifact summaries, and trace correlation only. Head, route, model,
+/// provider, usage, and extension fields are never projected.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct LocalAppScenarioJob {
+    #[prost(string, tag = "1")]
+    pub job_id: ::prost::alloc::string::String,
+    #[prost(enumeration = "ScenarioType", tag = "2")]
+    pub scenario_type: i32,
+    #[prost(enumeration = "ScenarioJobStatus", tag = "3")]
+    pub status: i32,
+    #[prost(int32, tag = "4")]
+    pub progress_percent: i32,
+    #[prost(int32, tag = "5")]
+    pub progress_current_step: i32,
+    #[prost(int32, tag = "6")]
+    pub progress_total_steps: i32,
+    #[prost(enumeration = "ReasonCode", tag = "7")]
+    pub reason_code: i32,
+    #[prost(string, tag = "8")]
+    pub reason_detail: ::prost::alloc::string::String,
+    #[prost(message, repeated, tag = "9")]
+    pub artifacts: ::prost::alloc::vec::Vec<LocalAppScenarioArtifact>,
+    #[prost(string, tag = "10")]
+    pub trace_id: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "11")]
+    pub created_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(message, optional, tag = "12")]
+    pub updated_at: ::core::option::Option<::prost_types::Timestamp>,
+}
+/// Trimmed voice asset catalog projection. Provider, model, provider voice
+/// ref, and owner identity fields are never projected.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalAppVoiceAsset {
+    #[prost(string, tag = "1")]
+    pub voice_asset_id: ::prost::alloc::string::String,
+    #[prost(enumeration = "VoiceWorkflowType", tag = "2")]
+    pub workflow_type: i32,
+    #[prost(enumeration = "VoiceAssetStatus", tag = "3")]
+    pub status: i32,
+    #[prost(message, optional, tag = "4")]
+    pub created_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(message, optional, tag = "5")]
+    pub updated_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(message, optional, tag = "6")]
+    pub expires_at: ::core::option::Option<::prost_types::Timestamp>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct SubmitLocalAppScenarioJobResponse {
+    #[prost(message, optional, tag = "1")]
+    pub job: ::core::option::Option<LocalAppScenarioJob>,
+    #[prost(message, optional, tag = "2")]
+    pub asset: ::core::option::Option<LocalAppVoiceAsset>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct GetLocalAppScenarioJobRequest {
+    #[prost(string, tag = "1")]
+    pub job_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct GetLocalAppScenarioJobResponse {
+    #[prost(message, optional, tag = "1")]
+    pub job: ::core::option::Option<LocalAppScenarioJob>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct CancelLocalAppScenarioJobRequest {
+    #[prost(string, tag = "1")]
+    pub job_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub reason: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct CancelLocalAppScenarioJobResponse {
+    #[prost(message, optional, tag = "1")]
+    pub job: ::core::option::Option<LocalAppScenarioJob>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct SubscribeLocalAppScenarioJobEventsRequest {
+    #[prost(string, tag = "1")]
+    pub job_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct LocalAppScenarioJobEvent {
+    #[prost(enumeration = "ScenarioJobEventType", tag = "1")]
+    pub event_type: i32,
+    #[prost(uint64, tag = "2")]
+    pub sequence: u64,
+    #[prost(string, tag = "3")]
+    pub trace_id: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "4")]
+    pub timestamp: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(message, optional, tag = "5")]
+    pub job: ::core::option::Option<LocalAppScenarioJob>,
+}
+/// Streaming TEXT_GENERATE trimmed surface: typed text increments and terminal
+/// finish or failure state only. Raw chunks, reasoning traces, sources, and
+/// tool events never reach the Local App stream.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct StreamLocalAppTextTurnRequest {
+    #[prost(message, repeated, tag = "1")]
+    pub messages: ::prost::alloc::vec::Vec<LocalAppTextCandidateMessage>,
+    #[prost(float, optional, tag = "2")]
+    pub temperature: ::core::option::Option<f32>,
+    #[prost(float, optional, tag = "3")]
+    pub top_p: ::core::option::Option<f32>,
+    #[prost(int32, optional, tag = "4")]
+    pub max_tokens: ::core::option::Option<i32>,
+    #[prost(int32, optional, tag = "5")]
+    pub top_k: ::core::option::Option<i32>,
+    #[prost(float, optional, tag = "6")]
+    pub presence_penalty: ::core::option::Option<f32>,
+    #[prost(float, optional, tag = "7")]
+    pub frequency_penalty: ::core::option::Option<f32>,
+    #[prost(string, repeated, tag = "8")]
+    pub stop: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(int64, optional, tag = "9")]
+    pub seed: ::core::option::Option<i64>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalAppTextTurnDelta {
+    #[prost(string, tag = "1")]
+    pub text: ::prost::alloc::string::String,
+}
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalAppTextTurnCompleted {
+    #[prost(enumeration = "FinishReason", tag = "1")]
+    pub finish_reason: i32,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalAppTextTurnFailed {
+    #[prost(enumeration = "ReasonCode", tag = "1")]
+    pub reason_code: i32,
+    #[prost(string, tag = "2")]
+    pub action_hint: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct StreamLocalAppTextTurnEvent {
+    #[prost(uint64, tag = "1")]
+    pub sequence: u64,
+    #[prost(string, tag = "2")]
+    pub trace_id: ::prost::alloc::string::String,
+    #[prost(oneof = "stream_local_app_text_turn_event::Payload", tags = "3, 4, 5")]
+    pub payload: ::core::option::Option<stream_local_app_text_turn_event::Payload>,
+}
+/// Nested message and enum types in `StreamLocalAppTextTurnEvent`.
+pub mod stream_local_app_text_turn_event {
+    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
+    pub enum Payload {
+        #[prost(message, tag = "3")]
+        Delta(super::LocalAppTextTurnDelta),
+        #[prost(message, tag = "4")]
+        Completed(super::LocalAppTextTurnCompleted),
+        #[prost(message, tag = "5")]
+        Failed(super::LocalAppTextTurnFailed),
+    }
+}
+/// Bounded inline artifact read limited to artifacts owned by the calling App
+/// session owner; payloads above 32 MiB fail closed with ARTIFACT_TOO_LARGE.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ReadLocalAppArtifactRequest {
+    #[prost(string, tag = "1")]
+    pub artifact_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ReadLocalAppArtifactResponse {
+    #[prost(bytes = "vec", tag = "1")]
+    pub bytes: ::prost::alloc::vec::Vec<u8>,
+    #[prost(string, tag = "2")]
+    pub mime_type: ::prost::alloc::string::String,
+    #[prost(int64, tag = "3")]
+    pub size_bytes: i64,
+}
+/// Bounded single-message image upload for the calling Local App owner. The
+/// protected Local App transport reserves enough receive capacity for this
+/// exact 32 MiB operation; the trimmed unary shape avoids caller-supplied owner
+/// metadata and chunk state while preserving UploadArtifact owner custody.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct UploadLocalAppArtifactRequest {
+    #[prost(bytes = "vec", tag = "1")]
+    pub bytes: ::prost::alloc::vec::Vec<u8>,
+    #[prost(string, tag = "2")]
+    pub mime_type: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct UploadLocalAppArtifactResponse {
+    #[prost(string, tag = "1")]
+    pub artifact_id: ::prost::alloc::string::String,
+    #[prost(int64, tag = "2")]
+    pub size_bytes: i64,
+    #[prost(string, tag = "3")]
+    pub mime_type: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ListLocalAppVoiceAssetsRequest {
+    #[prost(int32, tag = "1")]
+    pub page_size: i32,
+    #[prost(string, tag = "2")]
+    pub page_token: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ListLocalAppVoiceAssetsResponse {
+    #[prost(message, repeated, tag = "1")]
+    pub assets: ::prost::alloc::vec::Vec<LocalAppVoiceAsset>,
+    #[prost(string, tag = "2")]
+    pub next_page_token: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct StreamScenarioRequest {
@@ -5330,28 +5790,28 @@ pub struct VideoGenerationOptions {
     pub resolution: ::prost::alloc::string::String,
     #[prost(string, tag = "2")]
     pub ratio: ::prost::alloc::string::String,
-    #[prost(int32, tag = "3")]
-    pub duration_sec: i32,
-    #[prost(int32, tag = "4")]
-    pub frames: i32,
-    #[prost(int32, tag = "5")]
-    pub fps: i32,
-    #[prost(int64, tag = "6")]
-    pub seed: i64,
-    #[prost(bool, tag = "7")]
-    pub camera_fixed: bool,
-    #[prost(bool, tag = "8")]
-    pub watermark: bool,
-    #[prost(bool, tag = "9")]
-    pub generate_audio: bool,
-    #[prost(bool, tag = "10")]
-    pub draft: bool,
+    #[prost(int32, optional, tag = "3")]
+    pub duration_sec: ::core::option::Option<i32>,
+    #[prost(int32, optional, tag = "4")]
+    pub frames: ::core::option::Option<i32>,
+    #[prost(int32, optional, tag = "5")]
+    pub fps: ::core::option::Option<i32>,
+    #[prost(int64, optional, tag = "6")]
+    pub seed: ::core::option::Option<i64>,
+    #[prost(bool, optional, tag = "7")]
+    pub camera_fixed: ::core::option::Option<bool>,
+    #[prost(bool, optional, tag = "8")]
+    pub watermark: ::core::option::Option<bool>,
+    #[prost(bool, optional, tag = "9")]
+    pub generate_audio: ::core::option::Option<bool>,
+    #[prost(bool, optional, tag = "10")]
+    pub draft: ::core::option::Option<bool>,
     #[prost(string, tag = "11")]
     pub service_tier: ::prost::alloc::string::String,
     #[prost(int32, tag = "12")]
     pub execution_expires_after_sec: i32,
-    #[prost(bool, tag = "13")]
-    pub return_last_frame: bool,
+    #[prost(bool, optional, tag = "13")]
+    pub return_last_frame: ::core::option::Option<bool>,
 }
 #[derive(Clone, Copy, PartialEq, ::prost::Message)]
 pub struct VoiceRenderHints {
@@ -6412,6 +6872,269 @@ pub mod runtime_ai_service_client {
                 );
             self.inner.unary(req, path, codec).await
         }
+        pub async fn execute_local_app_scenario(
+            &mut self,
+            request: impl tonic::IntoRequest<super::ExecuteLocalAppScenarioRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::ExecuteLocalAppScenarioResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAiService/ExecuteLocalAppScenario",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAiService",
+                        "ExecuteLocalAppScenario",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn submit_local_app_scenario_job(
+            &mut self,
+            request: impl tonic::IntoRequest<super::SubmitLocalAppScenarioJobRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::SubmitLocalAppScenarioJobResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAiService/SubmitLocalAppScenarioJob",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAiService",
+                        "SubmitLocalAppScenarioJob",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn get_local_app_scenario_job(
+            &mut self,
+            request: impl tonic::IntoRequest<super::GetLocalAppScenarioJobRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::GetLocalAppScenarioJobResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAiService/GetLocalAppScenarioJob",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAiService",
+                        "GetLocalAppScenarioJob",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn cancel_local_app_scenario_job(
+            &mut self,
+            request: impl tonic::IntoRequest<super::CancelLocalAppScenarioJobRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::CancelLocalAppScenarioJobResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAiService/CancelLocalAppScenarioJob",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAiService",
+                        "CancelLocalAppScenarioJob",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn subscribe_local_app_scenario_job_events(
+            &mut self,
+            request: impl tonic::IntoRequest<
+                super::SubscribeLocalAppScenarioJobEventsRequest,
+            >,
+        ) -> std::result::Result<
+            tonic::Response<tonic::codec::Streaming<super::LocalAppScenarioJobEvent>>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAiService/SubscribeLocalAppScenarioJobEvents",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAiService",
+                        "SubscribeLocalAppScenarioJobEvents",
+                    ),
+                );
+            self.inner.server_streaming(req, path, codec).await
+        }
+        pub async fn stream_local_app_text_turn(
+            &mut self,
+            request: impl tonic::IntoRequest<super::StreamLocalAppTextTurnRequest>,
+        ) -> std::result::Result<
+            tonic::Response<tonic::codec::Streaming<super::StreamLocalAppTextTurnEvent>>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAiService/StreamLocalAppTextTurn",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAiService",
+                        "StreamLocalAppTextTurn",
+                    ),
+                );
+            self.inner.server_streaming(req, path, codec).await
+        }
+        pub async fn read_local_app_artifact(
+            &mut self,
+            request: impl tonic::IntoRequest<super::ReadLocalAppArtifactRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::ReadLocalAppArtifactResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAiService/ReadLocalAppArtifact",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAiService",
+                        "ReadLocalAppArtifact",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn upload_local_app_artifact(
+            &mut self,
+            request: impl tonic::IntoRequest<super::UploadLocalAppArtifactRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::UploadLocalAppArtifactResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAiService/UploadLocalAppArtifact",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAiService",
+                        "UploadLocalAppArtifact",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn list_local_app_voice_assets(
+            &mut self,
+            request: impl tonic::IntoRequest<super::ListLocalAppVoiceAssetsRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::ListLocalAppVoiceAssetsResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAiService/ListLocalAppVoiceAssets",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAiService",
+                        "ListLocalAppVoiceAssets",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
         pub async fn execute_scenario(
             &mut self,
             request: impl tonic::IntoRequest<super::ExecuteScenarioRequest>,
@@ -6892,8 +7615,6 @@ pub struct LocalAssetRecord {
     pub local_invoke_profile_id: ::prost::alloc::string::String,
     #[prost(message, optional, tag = "30")]
     pub engine_config: ::core::option::Option<::prost_types::Struct>,
-    #[prost(string, tag = "31")]
-    pub endpoint: ::prost::alloc::string::String,
     #[prost(enumeration = "ReasonCode", tag = "32")]
     pub reason_code: i32,
     /// Passive-only fields
@@ -8668,8 +9389,6 @@ pub struct InstallVerifiedAssetResponse {
 pub struct ImportLocalAssetRequest {
     #[prost(string, tag = "1")]
     pub manifest_path: ::prost::alloc::string::String,
-    #[prost(string, tag = "2")]
-    pub endpoint: ::prost::alloc::string::String,
     #[prost(message, optional, tag = "3")]
     pub engine_config: ::core::option::Option<::prost_types::Struct>,
 }
@@ -8690,8 +9409,6 @@ pub struct ImportLocalAssetFileRequest {
     pub asset_name: ::prost::alloc::string::String,
     #[prost(string, repeated, tag = "5")]
     pub capabilities: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
-    #[prost(string, tag = "6")]
-    pub endpoint: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ImportLocalAssetFileResponse {
@@ -8708,8 +9425,6 @@ pub struct ScaffoldOrphanAssetRequest {
     pub engine: ::prost::alloc::string::String,
     #[prost(string, repeated, tag = "4")]
     pub capabilities: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
-    #[prost(string, tag = "5")]
-    pub endpoint: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ScaffoldOrphanAssetResponse {
@@ -8726,8 +9441,6 @@ pub struct ImportLocalAssetBundleRequest {
     pub capabilities: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
     #[prost(string, tag = "4")]
     pub engine: ::prost::alloc::string::String,
-    #[prost(string, tag = "5")]
-    pub endpoint: ::prost::alloc::string::String,
     /// Explicit one-based content order for a sharded resource. Empty retains
     /// the existing single-entry digest semantics even when sidecar files exist.
     #[prost(string, repeated, tag = "6")]
@@ -9675,6 +10388,37 @@ pub mod runtime_local_service_client {
                     GrpcMethod::new(
                         "nimi.runtime.v1.RuntimeLocalService",
                         "AddLocalCapabilityConfiguration",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn update_local_capability_configuration(
+            &mut self,
+            request: impl tonic::IntoRequest<
+                super::UpdateLocalCapabilityConfigurationRequest,
+            >,
+        ) -> std::result::Result<
+            tonic::Response<super::UpdateLocalCapabilityConfigurationResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeLocalService/UpdateLocalCapabilityConfiguration",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeLocalService",
+                        "UpdateLocalCapabilityConfiguration",
                     ),
                 );
             self.inner.unary(req, path, codec).await

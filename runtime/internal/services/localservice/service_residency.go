@@ -66,13 +66,6 @@ func (s *Service) seedInitialResidencyState() {
 			IdleDeadline: now.Add(keepAlive),
 			LastReason:   "runtime_startup",
 		}
-		for _, engineName := range residencyEnginesForModel(model, s.assetRuntimeModes[localAssetID]) {
-			s.engineResidency[engineName] = localEngineResidencyState{
-				LastUsedAt:   now,
-				IdleDeadline: now.Add(keepAlive),
-				LastReason:   "runtime_startup",
-			}
-		}
 	}
 }
 
@@ -363,11 +356,8 @@ func (s *Service) markAssetsIdleForEngine(engineName string) {
 	for _, model := range s.assets {
 		models = append(models, cloneLocalAsset(model))
 	}
-	modes := make(map[string]runtimev1.LocalEngineRuntimeMode, len(s.assetRuntimeModes))
-	for localAssetID, mode := range s.assetRuntimeModes {
-		modes[localAssetID] = mode
-	}
 	s.mu.RUnlock()
+	profile := collectDeviceProfile()
 
 	for _, model := range models {
 		if model == nil {
@@ -377,11 +367,12 @@ func (s *Service) markAssetsIdleForEngine(engineName string) {
 		if localAssetID == "" {
 			continue
 		}
-		engineNames := residencyEnginesForModel(model, modes[localAssetID])
+		mode := runtimeModeForAsset(model, profile)
+		engineNames := residencyEnginesForModel(model, mode)
 		if !containsStringFold(engineNames, trimmed) {
 			continue
 		}
-		if isManagedSupervisedImageModel(model, modes[localAssetID]) {
+		if isManagedSupervisedImageModel(model, mode) {
 			_, _ = s.ensureModelInstalled(localAssetID, managedLocalImagePendingValidationDetail("keep_alive expired"))
 			continue
 		}

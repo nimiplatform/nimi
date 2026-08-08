@@ -8,6 +8,7 @@ import {
   ResponseFormatKind,
   RoutePolicy,
   ScenarioType,
+  TextGenerateScenarioSpec,
   ToolChoiceMode,
   type ExecuteScenarioRequest,
   type ExecuteScenarioResponse,
@@ -185,6 +186,58 @@ test('Runtime-backed Nimi AI maps generateText to Runtime Scenario text_generate
   assert.equal(request?.spec?.spec.oneofKind === 'textGenerate' ? request.spec.spec.textGenerate.systemPrompt : '', 'You are precise.');
   assert.equal(request?.spec?.spec.oneofKind === 'textGenerate' ? request.spec.spec.textGenerate.input[0]?.content : '', 'Say hello.');
   assert.equal(request?.spec?.spec.oneofKind === 'textGenerate' ? request.spec.spec.textGenerate.topK : 0, 32);
+});
+
+test('Runtime-backed Nimi AI preserves optional sampling presence and explicit zero values', async () => {
+  const client = new FakeScenarioClient();
+  const model = createNimiRuntimeAIModel({ runtime: client, appId: 'app-runtime-ai' });
+
+  await model.generateText({
+    messages: [{ role: 'user', content: [textPart('Use defaults.')] }],
+  });
+  await model.generateText({
+    messages: [{ role: 'user', content: [textPart('Use zero values.')] }],
+    parameters: {
+      temperature: 0,
+      topP: 0,
+      maxTokens: 0,
+      topK: 0,
+      presencePenalty: 0,
+      frequencyPenalty: 0,
+      seed: 0,
+    },
+  });
+
+  const absent = client.executeRequests[0]?.spec?.spec;
+  const explicit = client.executeRequests[1]?.spec?.spec;
+  assert.equal(absent?.oneofKind, 'textGenerate');
+  assert.equal(explicit?.oneofKind, 'textGenerate');
+  if (absent?.oneofKind !== 'textGenerate' || explicit?.oneofKind !== 'textGenerate') {
+    throw new Error('expected textGenerate specs');
+  }
+  for (const field of [
+    'temperature', 'topP', 'maxTokens', 'topK', 'presencePenalty', 'frequencyPenalty', 'seed',
+  ] as const) {
+    assert.equal(absent.textGenerate[field], undefined);
+  }
+  assert.equal(explicit.textGenerate.temperature, 0);
+  assert.equal(explicit.textGenerate.topP, 0);
+  assert.equal(explicit.textGenerate.maxTokens, 0);
+  assert.equal(explicit.textGenerate.topK, 0);
+  assert.equal(explicit.textGenerate.presencePenalty, 0);
+  assert.equal(explicit.textGenerate.frequencyPenalty, 0);
+  assert.equal(explicit.textGenerate.seed, '0');
+
+  const decoded = TextGenerateScenarioSpec.fromBinary(
+    TextGenerateScenarioSpec.toBinary(explicit.textGenerate),
+  );
+  assert.equal(decoded.temperature, 0);
+  assert.equal(decoded.topP, 0);
+  assert.equal(decoded.maxTokens, 0);
+  assert.equal(decoded.topK, 0);
+  assert.equal(decoded.presencePenalty, 0);
+  assert.equal(decoded.frequencyPenalty, 0);
+  assert.equal(decoded.seed, '0');
 });
 
 test('Runtime-backed Nimi AI maps streamScenario to Nimi run events', async () => {

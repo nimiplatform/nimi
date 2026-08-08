@@ -352,13 +352,13 @@ func TestProbeLocalModelEndpointJoinsConcurrentSameAssetProbe(t *testing.T) {
 		LocalAssetId: "local-asset-concurrent-probe",
 		AssetId:      "local/concurrent-probe-model",
 		Engine:       "llama",
-		Endpoint:     "http://127.0.0.1:18888/v1",
 	}
+	endpoint := "http://127.0.0.1:18888/v1"
 
 	errs := make(chan error, 2)
 	for i := 0; i < 2; i++ {
 		go func() {
-			probe := svc.probeLocalModelEndpoint(context.Background(), model, model.GetEndpoint())
+			probe := svc.probeLocalModelEndpoint(context.Background(), model, endpoint)
 			if !probe.healthy || !probe.responded {
 				errs <- fmt.Errorf("probe = healthy:%v responded:%v, want healthy/responded", probe.healthy, probe.responded)
 				return
@@ -391,13 +391,17 @@ func TestProbeLocalModelEndpointJoinsConcurrentSameAssetProbe(t *testing.T) {
 
 func TestCollectUnhealthyRecoveryTargetsSnapshotsRuntimeModes(t *testing.T) {
 	svc := newTestService(t)
+	setLocalRuntimePlatformForTest(t, "windows", "amd64")
+	setNvidiaGPUProbeForTest(t, true)
 	svc.mu.Lock()
 	svc.assets["model-1"] = &runtimev1.LocalAssetRecord{
 		LocalAssetId: "model-1",
 		AssetId:      "local/recovery-snapshot-model",
+		Kind:         runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_VIDEO,
+		Engine:       "media",
+		Capabilities: []string{"video.generate"},
 		Status:       runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY,
 	}
-	svc.assetRuntimeModes["model-1"] = runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED
 	svc.services["service-1"] = &runtimev1.LocalServiceDescriptor{
 		ServiceId: "service-1",
 		Engine:    "media",
@@ -408,7 +412,7 @@ func TestCollectUnhealthyRecoveryTargetsSnapshotsRuntimeModes(t *testing.T) {
 
 	models, services := svc.collectUnhealthyRecoveryTargets()
 	svc.mu.Lock()
-	svc.assetRuntimeModes["model-1"] = runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_ATTACHED_ENDPOINT
+	svc.assets["model-1"].Engine = "external"
 	svc.serviceRuntimeModes["service-1"] = runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED
 	svc.mu.Unlock()
 

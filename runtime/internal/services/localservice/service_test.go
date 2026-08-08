@@ -411,8 +411,6 @@ func mustInstallUnsupportedSafetensorsNativeImageForTest(t *testing.T, svc *Serv
 		"local",
 		nil,
 		"",
-		runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED,
-		"",
 		nil,
 		nil,
 		"runtime_model_ready_after_install",
@@ -461,12 +459,23 @@ func almostEqualFloat32(a float32, b float32) bool {
 	return math.Abs(float64(a-b)) < 0.001
 }
 
-func TestLocalImportVideoModelRejectsManagedLoopbackEndpointOnAttachedOnlyHost(t *testing.T) {
+func TestLocalImportVideoModelIgnoresHostRuntimeTopology(t *testing.T) {
 	svc := newTestService(t)
 	setLocalRuntimePlatformForTest(t, "darwin", "arm64")
 	tmpDir := t.TempDir()
 	setLocalModelsPathForTest(t, svc, tmpDir)
 	manifestPath := filepath.Join(tmpDir, "resolved", "nimi", "video-model-loopback", "asset.manifest.json")
+	entryPath := filepath.Join(filepath.Dir(manifestPath), "z_video_turbo.bin")
+	if err := os.MkdirAll(filepath.Dir(manifestPath), 0o755); err != nil {
+		t.Fatalf("create manifest dir: %v", err)
+	}
+	if err := os.WriteFile(entryPath, []byte("video-model-content"), 0o600); err != nil {
+		t.Fatalf("write model entry: %v", err)
+	}
+	entryHash, err := computeImportFileSHA256(entryPath)
+	if err != nil {
+		t.Fatalf("hash model entry: %v", err)
+	}
 	rawManifest, err := json.Marshal(map[string]any{
 		"asset_id":         "local-import/z_video_turbo_loopback",
 		"kind":             "video",
@@ -474,38 +483,43 @@ func TestLocalImportVideoModelRejectsManagedLoopbackEndpointOnAttachedOnlyHost(t
 		"engine":           "media",
 		"capabilities":     []string{"video.generate"},
 		"entry":            "z_video_turbo.bin",
-		"endpoint":         defaultMediaEndpoint,
+		"hashes":           map[string]string{"z_video_turbo.bin": "sha256:" + entryHash},
 	})
 	if err != nil {
 		t.Fatalf("marshal manifest: %v", err)
-	}
-	if err := os.MkdirAll(filepath.Dir(manifestPath), 0o755); err != nil {
-		t.Fatalf("create manifest dir: %v", err)
 	}
 	if err := os.WriteFile(manifestPath, rawManifest, 0o600); err != nil {
 		t.Fatalf("write manifest: %v", err)
 	}
 
-	_, err = svc.ImportLocalAsset(context.Background(), &runtimev1.ImportLocalAssetRequest{
+	imported, err := svc.ImportLocalAsset(context.Background(), &runtimev1.ImportLocalAssetRequest{
 		ManifestPath: manifestPath,
 	})
-	if err == nil {
-		t.Fatal("expected managed media loopback endpoint to fail-close on attached-only host")
+	if err != nil {
+		t.Fatalf("video asset import must not materialize a host binding: %v", err)
 	}
-	assertGRPCCode(t, err, "ImportLocalAsset(media managed loopback attached host)", codes.InvalidArgument)
-	assertGRPCReasonCode(t, err, "ImportLocalAsset(media managed loopback attached host)", runtimev1.ReasonCode_AI_LOCAL_ENDPOINT_REQUIRED)
-	st, _ := status.FromError(err)
-	if !strings.Contains(st.Message(), "attached endpoint") {
-		t.Fatalf("expected explicit attached endpoint detail, got %q", st.Message())
+	if imported.GetAsset().GetKind() != runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_VIDEO {
+		t.Fatalf("unexpected imported kind: %s", imported.GetAsset().GetKind())
 	}
 }
 
-func TestLocalImportManifestDuplicateCreatesDistinctAssetEndpoint(t *testing.T) {
+func TestLocalImportManifestDuplicateCreatesDistinctAssetRecord(t *testing.T) {
 	svc := newTestService(t)
 	setLocalRuntimePlatformForTest(t, "darwin", "arm64")
 	tmpDir := t.TempDir()
 	setLocalModelsPathForTest(t, svc, tmpDir)
 	manifestPath := filepath.Join(tmpDir, "resolved", "nimi", "video-model-rebind", "asset.manifest.json")
+	entryPath := filepath.Join(filepath.Dir(manifestPath), "z_video_turbo.bin")
+	if err := os.MkdirAll(filepath.Dir(manifestPath), 0o755); err != nil {
+		t.Fatalf("create manifest dir: %v", err)
+	}
+	if err := os.WriteFile(entryPath, []byte("video-model-content"), 0o600); err != nil {
+		t.Fatalf("write model entry: %v", err)
+	}
+	entryHash, err := computeImportFileSHA256(entryPath)
+	if err != nil {
+		t.Fatalf("hash model entry: %v", err)
+	}
 	rawManifest, err := json.Marshal(map[string]any{
 		"asset_id":         "local-import/z_video_turbo_rebind",
 		"kind":             "video",
@@ -513,12 +527,10 @@ func TestLocalImportManifestDuplicateCreatesDistinctAssetEndpoint(t *testing.T) 
 		"engine":           "media",
 		"capabilities":     []string{"video.generate"},
 		"entry":            "z_video_turbo.bin",
+		"hashes":           map[string]string{"z_video_turbo.bin": "sha256:" + entryHash},
 	})
 	if err != nil {
 		t.Fatalf("marshal manifest: %v", err)
-	}
-	if err := os.MkdirAll(filepath.Dir(manifestPath), 0o755); err != nil {
-		t.Fatalf("create manifest dir: %v", err)
 	}
 	if err := os.WriteFile(manifestPath, rawManifest, 0o600); err != nil {
 		t.Fatalf("write manifest: %v", err)
@@ -533,9 +545,7 @@ func TestLocalImportManifestDuplicateCreatesDistinctAssetEndpoint(t *testing.T) 
 		"unknown",
 		"file://"+filepath.ToSlash(manifestPath),
 		"local",
-		map[string]string{},
-		defaultMediaEndpoint,
-		runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_ATTACHED_ENDPOINT,
+		map[string]string{"z_video_turbo.bin": "sha256:" + entryHash},
 		"",
 		nil,
 		nil,
@@ -551,18 +561,12 @@ func TestLocalImportManifestDuplicateCreatesDistinctAssetEndpoint(t *testing.T) 
 		t.Fatalf("seed unhealthy status: %v", err)
 	}
 
-	imported, err := svc.ImportLocalAsset(context.Background(), &runtimev1.ImportLocalAssetRequest{
-		ManifestPath: manifestPath,
-		Endpoint:     "http://127.0.0.1:9321/v1",
-	})
+	imported, err := svc.ImportLocalAsset(context.Background(), &runtimev1.ImportLocalAssetRequest{ManifestPath: manifestPath})
 	if err != nil {
 		t.Fatalf("duplicate manifest import: %v", err)
 	}
 	if imported.GetAsset().GetLocalAssetId() == existing.GetLocalAssetId() {
 		t.Fatalf("duplicate import must mint a distinct local_asset_id: %q", imported.GetAsset().GetLocalAssetId())
-	}
-	if imported.GetAsset().GetEndpoint() != "http://127.0.0.1:9321/v1" {
-		t.Fatalf("imported endpoint mismatch: %q", imported.GetAsset().GetEndpoint())
 	}
 	if imported.GetAsset().GetStatus() != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED {
 		t.Fatalf("imported asset should be installed, got %s", imported.GetAsset().GetStatus())
@@ -576,9 +580,6 @@ func TestLocalImportManifestDuplicateCreatesDistinctAssetEndpoint(t *testing.T) 
 	}
 	if storedExisting.GetStatus() != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY {
 		t.Fatalf("existing asset status should remain unhealthy, got %s", storedExisting.GetStatus())
-	}
-	if storedExisting.GetEndpoint() == "http://127.0.0.1:9321/v1" {
-		t.Fatalf("duplicate import must not rewrite existing endpoint")
 	}
 }
 
@@ -605,8 +606,6 @@ func TestStartLocalModelAttachedLoopbackConfigFailsBeforeProbe(t *testing.T) {
 		"local-import/z_video_turbo_fastfail",
 		"local",
 		map[string]string{},
-		defaultMediaEndpoint,
-		runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_ATTACHED_ENDPOINT,
 		"",
 		nil,
 		nil,
@@ -625,20 +624,15 @@ func TestStartLocalModelAttachedLoopbackConfigFailsBeforeProbe(t *testing.T) {
 		t.Fatalf("write managed entry file: %v", err)
 	}
 
-	started, err := svc.StartLocalAsset(context.Background(), &runtimev1.StartLocalAssetRequest{
+	_, err = svc.StartLocalAsset(context.Background(), &runtimev1.StartLocalAssetRequest{
 		LocalAssetId: model.GetLocalAssetId(),
 	})
-	if err != nil {
-		t.Fatalf("start local asset: %v", err)
+	if err == nil {
+		t.Fatal("expected attached endpoint to be required at execution host materialization")
 	}
-	if started.GetAsset().GetStatus() != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY {
-		t.Fatalf("expected unhealthy fast-fail status, got %s", started.GetAsset().GetStatus())
-	}
+	assertGRPCReasonCode(t, err, "StartLocalAsset(attached endpoint missing)", runtimev1.ReasonCode_AI_LOCAL_ENDPOINT_REQUIRED)
 	if probeCalls != 0 {
 		t.Fatalf("expected no probe for attached-loopback config error, got %d probe calls", probeCalls)
-	}
-	if !strings.Contains(started.GetAsset().GetHealthDetail(), "attached endpoint") {
-		t.Fatalf("expected attached endpoint config detail, got %q", started.GetAsset().GetHealthDetail())
 	}
 }
 
@@ -744,7 +738,7 @@ func TestResolveModelInstallPlanSidecarEndpointRequired(t *testing.T) {
 	}
 }
 
-func TestInstallModelFromPlanRegistersAttachedEndpoint(t *testing.T) {
+func TestInstallModelFromPlanRegistersAssetWithoutHostProjection(t *testing.T) {
 	svc := newTestService(t)
 	resp, err := svc.InstallModelFromPlan(context.Background(), &runtimev1.InstallModelFromPlanRequest{
 		Plan: &runtimev1.LocalInstallPlanDescriptor{
@@ -766,8 +760,8 @@ func TestInstallModelFromPlanRegistersAttachedEndpoint(t *testing.T) {
 	if asset.GetAssetId() != "local/test-attached" {
 		t.Fatalf("unexpected asset id: %q", asset.GetAssetId())
 	}
-	if asset.GetEndpoint() != "http://127.0.0.1:1234/v1" {
-		t.Fatalf("unexpected endpoint: %q", asset.GetEndpoint())
+	if asset.GetEngine() != "llama" {
+		t.Fatalf("unexpected engine: %q", asset.GetEngine())
 	}
 }
 
@@ -818,6 +812,7 @@ func TestLocalNodeCatalogSidecarMusicAdapter(t *testing.T) {
 		Engine:       "sidecar",
 		Capabilities: []string{"music"},
 		LocalModelId: modelResp.GetLocalAssetId(),
+		Endpoint:     "http://127.0.0.1:19191",
 	}); err != nil {
 		t.Fatalf("install local service: %v", err)
 	}

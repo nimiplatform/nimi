@@ -61,6 +61,9 @@ export {
   type NimiDesktopSourceReadinessRealmOperationID,
   type RuntimeAccountMediatedRealmRuntime,
 } from './runtime-account-realm.js';
+export {
+  createNimiLocalAppRuntimeScenarioJobClient,
+} from './local-app-runtime-platform.js';
 export type {
   NimiAppAuthMode,
   NimiAppAuthProjection,
@@ -109,6 +112,22 @@ export type {
   NimiLocalAppTextCandidateInput,
   NimiLocalAppTextCandidateMessage,
   NimiLocalAppTextCandidateResult,
+  NimiLocalAppArtifactImageMime,
+  NimiLocalAppArtifactUploadResult,
+  NimiLocalAppImageGenerateSpec,
+  NimiLocalAppScenarioArtifact,
+  NimiLocalAppScenarioExecuteResult,
+  NimiLocalAppScenarioExecuteSpec,
+  NimiLocalAppScenarioJob,
+  NimiLocalAppScenarioJobEvent,
+  NimiLocalAppScenarioJobSpec,
+  NimiLocalAppScenarioJobSubmitResult,
+  NimiLocalAppScenarioTimestamp,
+  NimiLocalAppSubscription,
+  NimiLocalAppTextTurnEvent,
+  NimiLocalAppVideoContent,
+  NimiLocalAppVideoContentRole,
+  NimiLocalAppVoiceAsset,
   NimiAppRuntimeStorageDocument,
   NimiAppRuntimeStorageRemoveResult,
 } from './local-app-runtime-platform.js';

@@ -10,6 +10,26 @@ import (
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
+func TestApplyCloudTextDefaultsExplicitZeroOverridesDefaults(t *testing.T) {
+	defaults, _ := structpb.NewStruct(map[string]any{
+		"temperature": 0.7, "top_p": 0.9, "max_tokens": 128.0, "top_k": 40.0,
+		"presence_penalty": 1.0, "frequency_penalty": -1.0, "seed": 42.0,
+	})
+	spec := &runtimev1.TextGenerateScenarioSpec{
+		Temperature: testFloat32(0), TopP: testFloat32(0), MaxTokens: testInt32(0), TopK: testInt32(0),
+		PresencePenalty: testFloat32(0), FrequencyPenalty: testFloat32(0), Seed: testInt64(0),
+	}
+	if err := applyCloudTextDefaults(spec, defaults); err != nil {
+		t.Fatalf("applyCloudTextDefaults: %v", err)
+	}
+	if spec.Temperature == nil || spec.TopP == nil || spec.MaxTokens == nil || spec.TopK == nil ||
+		spec.PresencePenalty == nil || spec.FrequencyPenalty == nil || spec.Seed == nil ||
+		spec.GetTemperature() != 0 || spec.GetTopP() != 0 || spec.GetMaxTokens() != 0 || spec.GetTopK() != 0 ||
+		spec.GetPresencePenalty() != 0 || spec.GetFrequencyPenalty() != 0 || spec.GetSeed() != 0 {
+		t.Fatalf("explicit zero values were replaced by defaults: %+v", spec)
+	}
+}
+
 func TestCloudTextDriverReasonNormalizationTable(t *testing.T) {
 	cases := []struct {
 		status int

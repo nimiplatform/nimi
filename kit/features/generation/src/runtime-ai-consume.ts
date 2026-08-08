@@ -3,15 +3,14 @@ import {
   asNimiError,
   createNimiError,
   createNimiRuntimeAIModel,
+  createNimiRuntimeEmbeddingClient,
+  streamNimiTextResponse,
   textPart,
   type NimiError,
   type NimiRuntimeAIScenarioClient,
   type NimiRuntimeEmbeddingScenarioClient,
 } from '@nimiplatform/kit/core/sdk-contract';
-import {
-  runtimeExecutionUnavailable,
-  runtimeUnavailableReasonFromError,
-} from './runtime-diagnostics.js';
+import { runtimeUnavailableReasonFromError } from './runtime-diagnostics.js';
 
 export type RuntimeAIConsumeCapabilityId = 'text.generate' | 'chat.stream' | 'text.embed';
 
@@ -67,17 +66,31 @@ export type RuntimeAIConsumeRuntime = {
   readonly ai: NimiRuntimeAIScenarioClient & NimiRuntimeEmbeddingScenarioClient;
 };
 
+export type RuntimeAIConsumeParameters = {
+  readonly temperature?: number;
+  readonly topP?: number;
+  readonly maxTokens?: number;
+  readonly topK?: number;
+  readonly presencePenalty?: number;
+  readonly frequencyPenalty?: number;
+  readonly stop?: string | readonly string[];
+  readonly seed?: number;
+};
+
 export type RuntimeAIConsumeInput = {
   readonly runtime: RuntimeAIConsumeRuntime;
   readonly appId: string;
   readonly capabilityId: RuntimeAIConsumeCapabilityId;
   readonly prompt: string;
+  readonly inputs?: readonly string[];
   readonly directive?: string;
+  readonly parameters?: RuntimeAIConsumeParameters;
   readonly scenarioId: string;
   readonly subjectUserId?: string;
   readonly surfaceId: string;
   readonly metadata?: Readonly<Record<string, string | undefined>>;
-  readonly onPartial?: (accumulatedText: string) => void;
+  readonly onDelta?: (textDelta: string, accumulatedText: string) => void | Promise<void>;
+  readonly onPartial?: (accumulatedText: string) => void | Promise<void>;
   readonly signal?: AbortSignal;
 };
 
@@ -89,14 +102,7 @@ export type RuntimeAIConsumeInput = {
 export async function runRuntimeAIConsumeCapability(
   input: RuntimeAIConsumeInput,
 ): Promise<RuntimeAIConsumeResult> {
-  if (input.capabilityId !== 'text.generate') {
-    return {
-      ok: false,
-      capabilityId: input.capabilityId,
-      ...runtimeExecutionUnavailable(input.capabilityId),
-    };
-  }
-  if (!input.prompt.trim()) {
+  if (input.capabilityId !== 'text.embed' && !input.prompt.trim()) {
     const error = createNimiError({
       message: 'Text generation input is required.',
       code: ReasonCode.SDK_AI_INPUT_INVALID,
@@ -114,21 +120,82 @@ export async function runRuntimeAIConsumeCapability(
   }
 
   try {
+    if (input.capabilityId === 'text.embed') {
+      const embedding = createNimiRuntimeEmbeddingClient({
+        runtime: input.runtime,
+        appId: input.appId,
+        subjectUserId: input.subjectUserId,
+        metadata: runtimeConsumeMetadata(input),
+      });
+      const result = await embedding.embedText({
+        values: input.inputs ?? [input.prompt],
+      });
+      const first = result.embeddings[0] ?? [];
+      const trace = runtimeConsumeTrace(result.raw);
+      return {
+        ok: true,
+        capabilityId: input.capabilityId,
+        message: `Runtime completed text.embed with ${result.embeddings.length} vector(s).`,
+        output: {
+          kind: 'embedding',
+          vectorCount: result.embeddings.length,
+          dimensions: first.length,
+          sample: first.slice(0, 8),
+          ...(result.usage ? { totalTokens: result.usage.totalTokens } : {}),
+        },
+        ...(trace ? { trace } : {}),
+      };
+    }
     const model = createNimiRuntimeAIModel({
       runtime: input.runtime,
       appId: input.appId,
       subjectUserId: input.subjectUserId,
       metadata: runtimeConsumeMetadata(input),
     });
-    const result = await model.generateText({
+    const request = {
       messages: [
         ...(input.directive?.trim()
           ? [{ role: 'system' as const, content: [textPart(input.directive.trim())] }]
           : []),
-        { role: 'user', content: [textPart(input.prompt)] },
+        { role: 'user' as const, content: [textPart(input.prompt)] },
       ],
-      signal: input.signal,
-    });
+      ...(input.parameters !== undefined ? { parameters: input.parameters } : {}),
+      ...(input.signal !== undefined ? { signal: input.signal } : {}),
+    };
+    if (input.capabilityId === 'chat.stream') {
+      let accumulatedText = '';
+      const result = await streamNimiTextResponse({
+        runtime: { model },
+        request,
+        turnId: input.scenarioId,
+        signal: input.signal,
+      }, {
+        onDelta: async (textDelta) => {
+          accumulatedText += textDelta;
+          await input.onDelta?.(textDelta, accumulatedText);
+          await input.onPartial?.(accumulatedText);
+        },
+      });
+      const trace = runtimeConsumeTrace(result);
+      return {
+        ok: true,
+        capabilityId: input.capabilityId,
+        message: result.text,
+        output: {
+          kind: 'text',
+          text: result.text,
+          finishReason: result.finishReason ?? '',
+          ...(result.usage ? {
+            inputTokens: result.usage.promptTokens,
+            outputTokens: result.usage.completionTokens,
+            totalTokens: result.usage.totalTokens,
+          } : {}),
+          streamed: true,
+        },
+        ...(trace ? { trace } : {}),
+      };
+    }
+    const result = await model.generateText(request);
     const trace = runtimeConsumeTrace(result.raw);
     return {
       ok: true,
@@ -156,11 +223,18 @@ export async function runRuntimeAIConsumeCapability(
     return {
       ok: false,
       capabilityId: input.capabilityId,
-      reason: runtimeUnavailableReasonFromError(error),
+      reason: runtimeAIConsumeUnavailableReasonFromError(error),
       message: error.message,
       error,
     };
   }
+}
+
+function runtimeAIConsumeUnavailableReasonFromError(error: NimiError): RuntimeAIConsumeUnavailableReason {
+  const reasonCode = text(error.reasonCode) || text(error.code);
+  return reasonCode === ReasonCode.SDK_AI_INPUT_INVALID
+    ? 'input-invalid'
+    : runtimeUnavailableReasonFromError(error);
 }
 
 function runtimeConsumeMetadata(input: RuntimeAIConsumeInput): Record<string, string> {

@@ -250,6 +250,24 @@ func (s *Service) AuthorizeLocalAppIngress(ctx context.Context, ingress localapp
 		capability = "realm.world-core.create"
 	case localappop.OperationTextCandidateGenerate:
 		capability = localappop.AppOperationIDTextCandidateGenerate
+	case localappop.OperationTextTurnStream:
+		capability = localappop.AppOperationIDTextTurnStream
+	case localappop.OperationScenarioExecute:
+		capability = localappop.AppOperationIDScenarioExecute
+	case localappop.OperationScenarioJobSubmit:
+		capability = localappop.AppOperationIDScenarioJobSubmit
+	case localappop.OperationScenarioJobGet:
+		capability = localappop.AppOperationIDScenarioJobGet
+	case localappop.OperationScenarioJobSubscribe:
+		capability = localappop.AppOperationIDScenarioJobSubscribe
+	case localappop.OperationScenarioJobCancel:
+		capability = localappop.AppOperationIDScenarioJobCancel
+	case localappop.OperationArtifactRead:
+		capability = localappop.AppOperationIDArtifactRead
+	case localappop.OperationArtifactUpload:
+		capability = localappop.AppOperationIDArtifactUpload
+	case localappop.OperationVoiceAssetsList:
+		capability = localappop.AppOperationIDVoiceAssetsList
 	case localappop.OperationAgentReferenceList,
 		localappop.OperationConversationOpen,
 		localappop.OperationConversationTurnSend,

@@ -15,6 +15,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
@@ -68,7 +69,7 @@ func main() {
 				ImageGenerate: &runtimev1.ImageGenerateScenarioSpec{
 					Prompt:         strings.TrimSpace(*prompt),
 					NegativePrompt: strings.TrimSpace(*negativePrompt),
-					N:              1,
+					N:              proto.Int32(1),
 					Size:           strings.TrimSpace(*size),
 				},
 			},

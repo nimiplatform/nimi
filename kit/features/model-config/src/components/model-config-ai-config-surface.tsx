@@ -39,6 +39,8 @@ import type {
   ModelConfigLocalSelectionProjection,
   ModelConfigOverwrite,
 } from '../types.js';
+import { sanitizeCapabilityDefaults } from '../capability-defaults.js';
+import { CapabilityDefaultsEditor } from './capability-defaults-editor.js';
 import { ModelConfigOwnerBoundary } from './model-config-owner-boundary.js';
 
 const EMPTY_AUTHORIZATION: ModelConfigCloudAuthorizationOptions = Object.freeze({
@@ -72,6 +74,8 @@ type ModelConfigRouteChoice =
 export type ModelConfigAIConfigSurfaceProps = {
   readonly context: ModelConfigAIConfigOwnerContext;
   readonly capabilityContracts: readonly string[];
+  /** Opens one requested capability detail on first mount when it is in capabilityContracts. */
+  readonly initialCapabilityContract?: string | null;
   /** Null is canonical absence/not configured; undefined is an unavailable read. */
   readonly capabilities: readonly NimiCapabilityAIConfigIntent[] | null | undefined;
   readonly localSelections?: readonly ModelConfigLocalSelectionProjection[];
@@ -308,7 +312,10 @@ export function ModelConfigAIConfigSurface(props: ModelConfigAIConfigSurfaceProp
     () => uniqueContracts(props.capabilityContracts, props.capabilities),
     [props.capabilities, props.capabilityContracts],
   );
-  const [activeContract, setActiveContract] = useState<string | null>(null);
+  const [activeContract, setActiveContract] = useState<string | null>(() => {
+    const initial = props.initialCapabilityContract?.trim() || '';
+    return initial && contracts.includes(initial) ? initial : null;
+  });
 
   useEffect(() => {
     if (activeContract && !contracts.includes(activeContract)) setActiveContract(null);
@@ -456,8 +463,11 @@ function CapabilityIntentEditor(props: CapabilityIntentEditorProps) {
     ? props.currentIntent.route.cloud.connectorGrantId || ''
     : '';
   const currentDefaults = useMemo(
-    () => runtimeAIConfigStructToJson(props.currentIntent?.defaults),
-    [props.currentIntent?.defaults],
+    () => sanitizeCapabilityDefaults(
+      props.capabilityContract,
+      runtimeAIConfigStructToJson(props.currentIntent?.defaults),
+    ),
+    [props.capabilityContract, props.currentIntent?.defaults],
   );
   const syncKey = useMemo(() => JSON.stringify({
     choice: currentChoice?.id || null,
@@ -467,6 +477,7 @@ function CapabilityIntentEditor(props: CapabilityIntentEditorProps) {
   }), [currentChoice?.id, currentCloudGrantId, currentDefaults, props.currentIntent?.requiredFeatures]);
   const lastSyncKey = useRef('');
   const [draftChoice, setDraftChoice] = useState<ModelConfigRouteChoice | null>(currentChoice);
+  const [draftDefaults, setDraftDefaults] = useState(currentDefaults);
   const [grantId, setGrantId] = useState(currentCloudGrantId);
   const [authorization, setAuthorization] = useState<ModelConfigCloudAuthorizationOptions>(EMPTY_AUTHORIZATION);
   const [connectorId, setConnectorId] = useState('');
@@ -484,6 +495,7 @@ function CapabilityIntentEditor(props: CapabilityIntentEditorProps) {
       && draftChoice?.route === 'cloud'
       && currentChoice.id === draftChoice.id;
     setDraftChoice(currentChoice);
+    setDraftDefaults(currentDefaults);
     setGrantId(currentCloudGrantId);
     if (!preserveConnector) {
       setConnectorId('');
@@ -491,7 +503,7 @@ function CapabilityIntentEditor(props: CapabilityIntentEditorProps) {
     }
     setImpactConfirmed(false);
     setSaveFailure(null);
-  }, [currentChoice, currentCloudGrantId, draftChoice, syncKey]);
+  }, [currentChoice, currentCloudGrantId, currentDefaults, draftChoice, syncKey]);
 
   useEffect(() => {
     if (
@@ -611,7 +623,7 @@ function CapabilityIntentEditor(props: CapabilityIntentEditorProps) {
     setSaveFailure(null);
     try {
       const requiredFeatures = [...(props.currentIntent?.requiredFeatures || [])];
-      const defaults = Object.keys(currentDefaults).length > 0 ? currentDefaults : undefined;
+      const defaults = Object.keys(draftDefaults).length > 0 ? draftDefaults : undefined;
       let intent: NimiCapabilityAIConfigIntent;
       if (draftChoice.route === 'local') {
         intent = createNimiLocalAIConfigCapabilityIntent({
@@ -699,7 +711,9 @@ function CapabilityIntentEditor(props: CapabilityIntentEditorProps) {
           adapter={pickerAdapter}
           selectedId={draftChoice?.id || ''}
           initialSourceFilter={draftChoice?.route || 'local'}
-          sourceOptions={props.cloudAIConfig ? ['local', 'cloud'] : ['local']}
+          sourceOptions={props.cloudAIConfig || props.onOpenCloudConnectorConfiguration
+            ? ['local', 'cloud']
+            : ['local']}
           copy={{
             searchPlaceholder: props.copy.modelPickerSearchPlaceholder,
             loadingLabel: props.copy.modelPickerLoadingLabel,
@@ -714,8 +728,31 @@ function CapabilityIntentEditor(props: CapabilityIntentEditorProps) {
             cancelLabel: props.copy.cancelLabel,
             confirmLabel: props.copy.confirmSelectionLabel,
           }}
-          renderSourceControls={({ source, isLoading, clearSelection }) => (
-            source === 'cloud' && props.context.consumer === 'nimi-first-party' ? (
+          renderSourceControls={({ source, isLoading, clearSelection }) => {
+            if (source !== 'cloud') return null;
+            if (props.context.consumer !== 'nimi-first-party') {
+              return !props.cloudAIConfig && props.onOpenCloudConnectorConfiguration ? (
+                <div
+                  className="flex items-center justify-between gap-3"
+                  data-nimi-model-config-cloud-connector-handoff="true"
+                >
+                  <span className="text-xs text-[var(--nimi-text-muted)]">
+                    {props.copy.cloudConnectorSelectionRequired}
+                  </span>
+                  <Button
+                    size="sm"
+                    tone="secondary"
+                    onClick={() => {
+                      setPickerOpen(false);
+                      props.onOpenCloudConnectorConfiguration?.();
+                    }}
+                  >
+                    {props.copy.openCloudConnectorsLabel}
+                  </Button>
+                </div>
+              ) : null;
+            }
+            return (
               <div className="space-y-2" data-nimi-model-config-cloud-connector-picker="true">
                 {authorization.connectors.length > 0 ? (
                   <label className="grid gap-1.5 text-xs font-semibold text-[var(--nimi-text-primary)]">
@@ -760,8 +797,8 @@ function CapabilityIntentEditor(props: CapabilityIntentEditorProps) {
                   <p className="m-0 text-[11px] text-[var(--nimi-text-muted)]">{props.copy.cloudConnectorSelectionRequired}</p>
                 ) : null}
               </div>
-            ) : null
-          )}
+            );
+          }}
           renderItemActions={(choice) => choice.route === 'local' && props.onOpenMachineConfiguration ? (
             <Button
               size="sm"
@@ -848,6 +885,21 @@ function CapabilityIntentEditor(props: CapabilityIntentEditorProps) {
           </InlineAlert>
         </div>
       ) : null}
+
+      <CapabilityDefaultsEditor
+        capabilityContract={props.capabilityContract}
+        value={draftDefaults}
+        onChange={setDraftDefaults}
+        disabled={routeDisabled}
+        copy={{
+          label: props.copy.defaultsLabel,
+          hint: props.copy.defaultsPlaceholder,
+          unsetLabel: props.copy.defaultsUnsetLabel,
+          trueLabel: props.copy.defaultsTrueLabel,
+          falseLabel: props.copy.defaultsFalseLabel,
+          listPlaceholder: props.copy.defaultsListPlaceholder,
+        }}
+      />
 
       {saveFailure ? (
         <div className="space-y-2">

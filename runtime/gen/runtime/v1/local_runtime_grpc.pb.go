@@ -22,6 +22,7 @@ const (
 	RuntimeLocalService_GetMachineLocalAIConfiguration_FullMethodName                      = "/nimi.runtime.v1.RuntimeLocalService/GetMachineLocalAIConfiguration"
 	RuntimeLocalService_GetLocalCapabilityConfiguration_FullMethodName                     = "/nimi.runtime.v1.RuntimeLocalService/GetLocalCapabilityConfiguration"
 	RuntimeLocalService_AddLocalCapabilityConfiguration_FullMethodName                     = "/nimi.runtime.v1.RuntimeLocalService/AddLocalCapabilityConfiguration"
+	RuntimeLocalService_UpdateLocalCapabilityConfiguration_FullMethodName                  = "/nimi.runtime.v1.RuntimeLocalService/UpdateLocalCapabilityConfiguration"
 	RuntimeLocalService_SelectLocalCapabilityConfiguration_FullMethodName                  = "/nimi.runtime.v1.RuntimeLocalService/SelectLocalCapabilityConfiguration"
 	RuntimeLocalService_ClearLocalCapabilitySelection_FullMethodName                       = "/nimi.runtime.v1.RuntimeLocalService/ClearLocalCapabilitySelection"
 	RuntimeLocalService_DeleteLocalCapabilityConfiguration_FullMethodName                  = "/nimi.runtime.v1.RuntimeLocalService/DeleteLocalCapabilityConfiguration"
@@ -98,6 +99,7 @@ type RuntimeLocalServiceClient interface {
 	GetMachineLocalAIConfiguration(ctx context.Context, in *GetMachineLocalAIConfigurationRequest, opts ...grpc.CallOption) (*GetMachineLocalAIConfigurationResponse, error)
 	GetLocalCapabilityConfiguration(ctx context.Context, in *GetLocalCapabilityConfigurationRequest, opts ...grpc.CallOption) (*GetLocalCapabilityConfigurationResponse, error)
 	AddLocalCapabilityConfiguration(ctx context.Context, in *AddLocalCapabilityConfigurationRequest, opts ...grpc.CallOption) (*AddLocalCapabilityConfigurationResponse, error)
+	UpdateLocalCapabilityConfiguration(ctx context.Context, in *UpdateLocalCapabilityConfigurationRequest, opts ...grpc.CallOption) (*UpdateLocalCapabilityConfigurationResponse, error)
 	SelectLocalCapabilityConfiguration(ctx context.Context, in *SelectLocalCapabilityConfigurationRequest, opts ...grpc.CallOption) (*SelectLocalCapabilityConfigurationResponse, error)
 	ClearLocalCapabilitySelection(ctx context.Context, in *ClearLocalCapabilitySelectionRequest, opts ...grpc.CallOption) (*ClearLocalCapabilitySelectionResponse, error)
 	DeleteLocalCapabilityConfiguration(ctx context.Context, in *DeleteLocalCapabilityConfigurationRequest, opts ...grpc.CallOption) (*DeleteLocalCapabilityConfigurationResponse, error)
@@ -211,6 +213,16 @@ func (c *runtimeLocalServiceClient) AddLocalCapabilityConfiguration(ctx context.
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(AddLocalCapabilityConfigurationResponse)
 	err := c.cc.Invoke(ctx, RuntimeLocalService_AddLocalCapabilityConfiguration_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeLocalServiceClient) UpdateLocalCapabilityConfiguration(ctx context.Context, in *UpdateLocalCapabilityConfigurationRequest, opts ...grpc.CallOption) (*UpdateLocalCapabilityConfigurationResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UpdateLocalCapabilityConfigurationResponse)
+	err := c.cc.Invoke(ctx, RuntimeLocalService_UpdateLocalCapabilityConfiguration_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -894,6 +906,7 @@ type RuntimeLocalServiceServer interface {
 	GetMachineLocalAIConfiguration(context.Context, *GetMachineLocalAIConfigurationRequest) (*GetMachineLocalAIConfigurationResponse, error)
 	GetLocalCapabilityConfiguration(context.Context, *GetLocalCapabilityConfigurationRequest) (*GetLocalCapabilityConfigurationResponse, error)
 	AddLocalCapabilityConfiguration(context.Context, *AddLocalCapabilityConfigurationRequest) (*AddLocalCapabilityConfigurationResponse, error)
+	UpdateLocalCapabilityConfiguration(context.Context, *UpdateLocalCapabilityConfigurationRequest) (*UpdateLocalCapabilityConfigurationResponse, error)
 	SelectLocalCapabilityConfiguration(context.Context, *SelectLocalCapabilityConfigurationRequest) (*SelectLocalCapabilityConfigurationResponse, error)
 	ClearLocalCapabilitySelection(context.Context, *ClearLocalCapabilitySelectionRequest) (*ClearLocalCapabilitySelectionResponse, error)
 	DeleteLocalCapabilityConfiguration(context.Context, *DeleteLocalCapabilityConfigurationRequest) (*DeleteLocalCapabilityConfigurationResponse, error)
@@ -990,6 +1003,9 @@ func (UnimplementedRuntimeLocalServiceServer) GetLocalCapabilityConfiguration(co
 }
 func (UnimplementedRuntimeLocalServiceServer) AddLocalCapabilityConfiguration(context.Context, *AddLocalCapabilityConfigurationRequest) (*AddLocalCapabilityConfigurationResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method AddLocalCapabilityConfiguration not implemented")
+}
+func (UnimplementedRuntimeLocalServiceServer) UpdateLocalCapabilityConfiguration(context.Context, *UpdateLocalCapabilityConfigurationRequest) (*UpdateLocalCapabilityConfigurationResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method UpdateLocalCapabilityConfiguration not implemented")
 }
 func (UnimplementedRuntimeLocalServiceServer) SelectLocalCapabilityConfiguration(context.Context, *SelectLocalCapabilityConfigurationRequest) (*SelectLocalCapabilityConfigurationResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method SelectLocalCapabilityConfiguration not implemented")
@@ -1259,6 +1275,24 @@ func _RuntimeLocalService_AddLocalCapabilityConfiguration_Handler(srv interface{
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(RuntimeLocalServiceServer).AddLocalCapabilityConfiguration(ctx, req.(*AddLocalCapabilityConfigurationRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeLocalService_UpdateLocalCapabilityConfiguration_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateLocalCapabilityConfigurationRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeLocalServiceServer).UpdateLocalCapabilityConfiguration(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeLocalService_UpdateLocalCapabilityConfiguration_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeLocalServiceServer).UpdateLocalCapabilityConfiguration(ctx, req.(*UpdateLocalCapabilityConfigurationRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -2462,6 +2496,10 @@ var RuntimeLocalService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "AddLocalCapabilityConfiguration",
 			Handler:    _RuntimeLocalService_AddLocalCapabilityConfiguration_Handler,
+		},
+		{
+			MethodName: "UpdateLocalCapabilityConfiguration",
+			Handler:    _RuntimeLocalService_UpdateLocalCapabilityConfiguration_Handler,
 		},
 		{
 			MethodName: "SelectLocalCapabilityConfiguration",

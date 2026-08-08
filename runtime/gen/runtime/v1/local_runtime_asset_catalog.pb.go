@@ -632,7 +632,6 @@ type LocalAssetRecord struct {
 	HostRequirements     *LocalHostRequirements `protobuf:"bytes,28,opt,name=host_requirements,json=hostRequirements,proto3" json:"host_requirements,omitempty"`
 	LocalInvokeProfileId string                 `protobuf:"bytes,29,opt,name=local_invoke_profile_id,json=localInvokeProfileId,proto3" json:"local_invoke_profile_id,omitempty"`
 	EngineConfig         *structpb.Struct       `protobuf:"bytes,30,opt,name=engine_config,json=engineConfig,proto3" json:"engine_config,omitempty"`
-	Endpoint             string                 `protobuf:"bytes,31,opt,name=endpoint,proto3" json:"endpoint,omitempty"`
 	ReasonCode           ReasonCode             `protobuf:"varint,32,opt,name=reason_code,json=reasonCode,proto3,enum=nimi.runtime.v1.ReasonCode" json:"reason_code,omitempty"`
 	// Passive-only fields
 	Metadata *structpb.Struct `protobuf:"bytes,40,opt,name=metadata,proto3" json:"metadata,omitempty"`
@@ -837,13 +836,6 @@ func (x *LocalAssetRecord) GetEngineConfig() *structpb.Struct {
 		return x.EngineConfig
 	}
 	return nil
-}
-
-func (x *LocalAssetRecord) GetEndpoint() string {
-	if x != nil {
-		return x.Endpoint
-	}
-	return ""
 }
 
 func (x *LocalAssetRecord) GetReasonCode() ReasonCode {
@@ -1969,7 +1961,7 @@ const file_runtime_v1_local_runtime_asset_catalog_proto_rawDesc = "" +
 	"\x16LocalBundleEntryDigest\x12\x18\n" +
 	"\aordinal\x18\x01 \x01(\rR\aordinal\x12#\n" +
 	"\rrelative_path\x18\x02 \x01(\tR\frelativePath\x12\x16\n" +
-	"\x06sha256\x18\x03 \x01(\tR\x06sha256\"\xfd\v\n" +
+	"\x06sha256\x18\x03 \x01(\tR\x06sha256\"\xf1\v\n" +
 	"\x10LocalAssetRecord\x12$\n" +
 	"\x0elocal_asset_id\x18\x01 \x01(\tR\flocalAssetId\x12\x19\n" +
 	"\basset_id\x18\x02 \x01(\tR\aassetId\x123\n" +
@@ -1995,8 +1987,7 @@ const file_runtime_v1_local_runtime_asset_catalog_proto_rawDesc = "" +
 	"\fbundle_state\x18\x1a \x01(\x0e2!.nimi.runtime.v1.LocalBundleStateR\vbundleState\x12S\n" +
 	"\x11host_requirements\x18\x1c \x01(\v2&.nimi.runtime.v1.LocalHostRequirementsR\x10hostRequirements\x125\n" +
 	"\x17local_invoke_profile_id\x18\x1d \x01(\tR\x14localInvokeProfileId\x12<\n" +
-	"\rengine_config\x18\x1e \x01(\v2\x17.google.protobuf.StructR\fengineConfig\x12\x1a\n" +
-	"\bendpoint\x18\x1f \x01(\tR\bendpoint\x12<\n" +
+	"\rengine_config\x18\x1e \x01(\v2\x17.google.protobuf.StructR\fengineConfig\x12<\n" +
 	"\vreason_code\x18  \x01(\x0e2\x1b.nimi.runtime.v1.ReasonCodeR\n" +
 	"reasonCode\x123\n" +
 	"\bmetadata\x18( \x01(\v2\x17.google.protobuf.StructR\bmetadata\x12!\n" +
@@ -2006,8 +1997,8 @@ const file_runtime_v1_local_runtime_asset_catalog_proto_rawDesc = "" +
 	"\x0ebundle_entries\x18/ \x03(\v2'.nimi.runtime.v1.LocalBundleEntryDigestR\rbundleEntries\x1a9\n" +
 	"\vHashesEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01J\x04\b\x1b\x10\x1cJ\x04\b,\x10-J\x04\b-\x10.J\x04\b.\x10/R\n" +
-	"warm_stateR\x12durable_target_refR\x15durable_target_statusR\x1adurable_target_reason_code\"\x92\b\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01J\x04\b\x1b\x10\x1cJ\x04\b\x1f\x10 J\x04\b,\x10-J\x04\b-\x10.J\x04\b.\x10/R\n" +
+	"warm_stateR\bendpointR\x12durable_target_refR\x15durable_target_statusR\x1adurable_target_reason_code\"\x92\b\n" +
 	"\x1cLocalVerifiedAssetDescriptor\x12\x1f\n" +
 	"\vtemplate_id\x18\x01 \x01(\tR\n" +
 	"templateId\x12\x14\n" +

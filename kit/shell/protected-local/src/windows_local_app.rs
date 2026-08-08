@@ -1,10 +1,11 @@
-mod app_ai_config;
 mod agent_configure;
+mod app_ai_config;
 mod conversation;
 mod realm_world_core;
 mod reference;
-mod storage;
+mod scenario;
 mod shared_agent_ai_config;
+mod storage;
 mod text_candidate;
 
 use std::future::Future;
@@ -22,31 +23,37 @@ use crate::grpc_status::local_app_error_from_status;
 use crate::macos_service_control::open_verified_local_app_runtime_channel;
 #[cfg(target_os = "windows")]
 use crate::windows_peer_trust::VerifiedRuntimePeer;
-#[cfg(all(target_os = "windows", not(feature = "windows-source-local-development")))]
+#[cfg(all(
+    target_os = "windows",
+    not(feature = "windows-source-local-development")
+))]
 use crate::windows_service_control::open_verified_runtime_channel;
 #[cfg(all(target_os = "windows", feature = "windows-source-local-development"))]
-use crate::windows_service_control::{
-    open_verified_runtime_channel, SOURCE_LOCAL_APP_PIPE_REF,
-};
+use crate::windows_service_control::{open_verified_runtime_channel, SOURCE_LOCAL_APP_PIPE_REF};
 use crate::{
     LocalAppAIConfigOverwriteRequest, LocalAppAgentCommitPresentationRequest,
     LocalAppAgentHandleRequest, LocalAppAgentReference, LocalAppAgentUpdateAutonomyRequest,
-    LocalAppConversationInterruptRequest,
-    LocalAppConversationInterruptResult, LocalAppConversationOpenRequest,
-    LocalAppConversationOpenResult, LocalAppConversationSendRequest,
-    LocalAppConversationSendResult, LocalAppConversationSnapshot,
+    LocalAppConversationInterruptRequest, LocalAppConversationInterruptResult,
+    LocalAppConversationOpenRequest, LocalAppConversationOpenResult,
+    LocalAppConversationSendRequest, LocalAppConversationSendResult, LocalAppConversationSnapshot,
     LocalAppConversationSnapshotRequest, LocalAppConversationSubscribeRequest,
-    LocalAppConversationSubscriptionReceiver,
-    LocalAppCurrentUserDisplay, LocalAppCurrentUserStatus, LocalAppOperationError,
-    LocalAppReasonCode, LocalAppSessionState, LocalAppSessionStatus,
-    LocalAppSharedAgentAIConfigOverwriteRequest,
-    LocalAppStorageDocument, LocalAppStorageReadRequest, LocalAppStorageRemoveRequest,
-    LocalAppStorageRemoveResult, LocalAppStorageWriteRequest, LocalAppTextCandidateRequest,
-    LocalAppTextCandidateResult, LocalAppWorldCoreCreateRequest, LocalAppWorldCoreListRequest,
-    NimiLocalAppCarrier, NimiLocalAppSession,
+    LocalAppConversationSubscriptionReceiver, LocalAppCurrentUserDisplay,
+    LocalAppCurrentUserStatus, LocalAppOperationError, LocalAppReasonCode,
+    LocalAppScenarioCancelRequest, LocalAppScenarioExecuteRequest, LocalAppScenarioGetRequest,
+    LocalAppScenarioJobSubscribeRequest, LocalAppScenarioListVoiceAssetsRequest,
+    LocalAppScenarioReadArtifactRequest, LocalAppScenarioStreamReceiver,
+    LocalAppScenarioSubmitRequest, LocalAppScenarioUploadArtifactRequest, LocalAppSessionState,
+    LocalAppSessionStatus, LocalAppSharedAgentAIConfigOverwriteRequest, LocalAppStorageDocument,
+    LocalAppStorageReadRequest, LocalAppStorageRemoveRequest, LocalAppStorageRemoveResult,
+    LocalAppStorageWriteRequest, LocalAppTextCandidateRequest, LocalAppTextCandidateResult,
+    LocalAppWorldCoreCreateRequest, LocalAppWorldCoreListRequest, NimiLocalAppCarrier,
+    NimiLocalAppSession,
 };
 
-#[cfg(all(target_os = "windows", not(feature = "windows-source-local-development")))]
+#[cfg(all(
+    target_os = "windows",
+    not(feature = "windows-source-local-development")
+))]
 const RUNTIME_LOCAL_APP_PIPE_NAME: &str = r"\\.\pipe\nimi-runtime-local-app-v1";
 #[cfg(all(target_os = "windows", feature = "windows-source-local-development"))]
 const RUNTIME_LOCAL_APP_PIPE_NAME: &str = SOURCE_LOCAL_APP_PIPE_REF;
@@ -201,6 +208,115 @@ impl NimiLocalAppSession for PlatformLocalAppSession {
         })
     }
 
+    fn stream_text_turn(
+        &self,
+        request: LocalAppTextCandidateRequest,
+    ) -> Pin<
+        Box<
+            dyn Future<Output = Result<LocalAppScenarioStreamReceiver, LocalAppOperationError>>
+                + Send
+                + '_,
+        >,
+    > {
+        Box::pin(async move {
+            let _operation = self.operation_gate.read().await;
+            scenario::stream_text_turn(self.checked_channel()?, request).await
+        })
+    }
+
+    fn execute_scenario(
+        &self,
+        request: LocalAppScenarioExecuteRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<serde_json::Value, LocalAppOperationError>> + Send + '_>>
+    {
+        Box::pin(async move {
+            let _operation = self.operation_gate.read().await;
+            scenario::execute(self.checked_channel()?, request).await
+        })
+    }
+
+    fn submit_scenario_job(
+        &self,
+        request: LocalAppScenarioSubmitRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<serde_json::Value, LocalAppOperationError>> + Send + '_>>
+    {
+        Box::pin(async move {
+            let _operation = self.operation_gate.read().await;
+            scenario::submit_job(self.checked_channel()?, request).await
+        })
+    }
+
+    fn get_scenario_job(
+        &self,
+        request: LocalAppScenarioGetRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<serde_json::Value, LocalAppOperationError>> + Send + '_>>
+    {
+        Box::pin(async move {
+            let _operation = self.operation_gate.read().await;
+            scenario::get_job(self.checked_channel()?, request).await
+        })
+    }
+
+    fn subscribe_scenario_job(
+        &self,
+        request: LocalAppScenarioJobSubscribeRequest,
+    ) -> Pin<
+        Box<
+            dyn Future<Output = Result<LocalAppScenarioStreamReceiver, LocalAppOperationError>>
+                + Send
+                + '_,
+        >,
+    > {
+        Box::pin(async move {
+            let _operation = self.operation_gate.read().await;
+            scenario::subscribe_job(self.checked_channel()?, request).await
+        })
+    }
+
+    fn cancel_scenario_job(
+        &self,
+        request: LocalAppScenarioCancelRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<serde_json::Value, LocalAppOperationError>> + Send + '_>>
+    {
+        Box::pin(async move {
+            let _operation = self.operation_gate.read().await;
+            scenario::cancel_job(self.checked_channel()?, request).await
+        })
+    }
+
+    fn read_scenario_artifact(
+        &self,
+        request: LocalAppScenarioReadArtifactRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<serde_json::Value, LocalAppOperationError>> + Send + '_>>
+    {
+        Box::pin(async move {
+            let _operation = self.operation_gate.read().await;
+            scenario::read_artifact(self.checked_channel()?, request).await
+        })
+    }
+
+    fn upload_scenario_artifact(
+        &self,
+        request: LocalAppScenarioUploadArtifactRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<serde_json::Value, LocalAppOperationError>> + Send + '_>>
+    {
+        Box::pin(async move {
+            let _operation = self.operation_gate.read().await;
+            scenario::upload_artifact(self.checked_channel()?, request).await
+        })
+    }
+
+    fn list_scenario_voice_assets(
+        &self,
+        request: LocalAppScenarioListVoiceAssetsRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<serde_json::Value, LocalAppOperationError>> + Send + '_>>
+    {
+        Box::pin(async move {
+            let _operation = self.operation_gate.read().await;
+            scenario::list_voice_assets(self.checked_channel()?, request).await
+        })
+    }
+
     fn app_ai_config_get(
         &self,
     ) -> Pin<Box<dyn Future<Output = Result<serde_json::Value, LocalAppOperationError>> + Send + '_>>
@@ -219,6 +335,16 @@ impl NimiLocalAppSession for PlatformLocalAppSession {
         Box::pin(async move {
             let _operation = self.operation_gate.read().await;
             app_ai_config::overwrite(self.checked_channel()?, request).await
+        })
+    }
+
+    fn model_config_local_selections_get(
+        &self,
+    ) -> Pin<Box<dyn Future<Output = Result<serde_json::Value, LocalAppOperationError>> + Send + '_>>
+    {
+        Box::pin(async move {
+            let _operation = self.operation_gate.read().await;
+            app_ai_config::local_selections(self.checked_channel()?).await
         })
     }
 
@@ -455,7 +581,6 @@ impl NimiLocalAppSession for PlatformLocalAppSession {
             agent_configure::commit_presentation(self.checked_channel()?, request).await
         })
     }
-
 }
 
 #[cfg(target_os = "windows")]

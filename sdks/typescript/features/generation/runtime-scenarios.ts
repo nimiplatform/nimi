@@ -89,6 +89,11 @@ export type NimiRuntimeVideoContentPart =
     readonly type: 'audio-url';
     readonly role: 'reference-audio';
     readonly url: string;
+  }
+  | {
+    readonly type: 'artifact-ref';
+    readonly role: 'first-frame' | 'last-frame' | 'reference-image' | 'reference-video' | 'reference-audio';
+    readonly artifactId: string;
   };
 
 export interface NimiRuntimeVideoGenerationOptions {
@@ -200,12 +205,12 @@ function toRuntimeImageGenerationSpec(
   return {
     prompt: requireScenarioText(input.prompt, 'image generation prompt is required', 'provide_image_generation_prompt'),
     negativePrompt: normalizeScenarioText(input.negativePrompt),
-    n: Number(input.count ?? 1),
+    n: input.count,
     size: normalizeScenarioText(input.size),
     aspectRatio: normalizeScenarioText(input.aspectRatio),
     quality: normalizeScenarioText(input.quality),
     style: normalizeScenarioText(input.style),
-    seed: normalizeScenarioInt64(input.seed),
+    seed: normalizeOptionalScenarioInt64(input.seed),
     referenceImages: [...(input.referenceImages ?? [])],
     mask: normalizeScenarioText(input.mask),
     responseFormat: normalizeScenarioText(input.responseFormat),
@@ -239,10 +244,10 @@ function toRuntimeSpeechSynthesizeSpec(
     text: requireScenarioText(input.text, 'speech synthesis requires text', 'provide_speech_text'),
     language: normalizeScenarioText(input.language),
     audioFormat: normalizeScenarioText(input.audioFormat),
-    sampleRateHz: Number(input.sampleRateHz ?? 0),
-    speed: Number(input.speed ?? 0),
-    pitch: Number(input.pitch ?? 0),
-    volume: Number(input.volume ?? 0),
+    sampleRateHz: input.sampleRateHz,
+    speed: input.speed,
+    pitch: input.pitch,
+    volume: input.volume,
     emotion: normalizeScenarioText(input.emotion),
     voiceRef: input.voiceRef,
     timingMode: toRuntimeSpeechTimingMode(input.timingMode),
@@ -256,9 +261,9 @@ function toRuntimeSpeechTranscribeSpec(
   return {
     mimeType: requireScenarioText(input.mimeType, 'speech transcription requires mimeType', 'provide_transcription_mime_type'),
     language: normalizeScenarioText(input.language),
-    timestamps: Boolean(input.timestamps),
-    diarization: Boolean(input.diarization),
-    speakerCount: Number(input.speakerCount ?? 0),
+    timestamps: input.timestamps,
+    diarization: input.diarization,
+    speakerCount: input.speakerCount,
     prompt: normalizeScenarioText(input.prompt),
     audioSource: toRuntimeSpeechTranscriptionAudioSource(input.audio),
     responseFormat: normalizeScenarioText(input.responseFormat),
@@ -271,17 +276,17 @@ function toRuntimeVideoGenerationOptions(
   return {
     resolution: normalizeScenarioText(input?.resolution),
     ratio: normalizeScenarioText(input?.ratio),
-    durationSec: Number(input?.durationSec ?? 0),
-    frames: Number(input?.frames ?? 0),
-    fps: Number(input?.fps ?? 0),
-    seed: normalizeScenarioInt64(input?.seed),
-    cameraFixed: Boolean(input?.cameraFixed),
-    watermark: Boolean(input?.watermark),
-    generateAudio: Boolean(input?.generateAudio),
-    draft: Boolean(input?.draft),
+    durationSec: input?.durationSec,
+    frames: input?.frames,
+    fps: input?.fps,
+    seed: normalizeOptionalScenarioInt64(input?.seed),
+    cameraFixed: input?.cameraFixed,
+    watermark: input?.watermark,
+    generateAudio: input?.generateAudio,
+    draft: input?.draft,
     serviceTier: normalizeScenarioText(input?.serviceTier),
     executionExpiresAfterSec: Number(input?.executionExpiresAfterSec ?? 0),
-    returnLastFrame: Boolean(input?.returnLastFrame),
+    returnLastFrame: input?.returnLastFrame,
   };
 }
 
@@ -294,6 +299,7 @@ function toRuntimeVideoContentItem(input: NimiRuntimeVideoContentPart): VideoCon
       imageUrl: undefined,
       videoUrl: undefined,
       audioUrl: undefined,
+      artifactRef: undefined,
     };
   }
   if (input.type === 'image-url') {
@@ -304,6 +310,7 @@ function toRuntimeVideoContentItem(input: NimiRuntimeVideoContentPart): VideoCon
       imageUrl: { url: ensureSafeExternalUrl(input.url, 'video image url') },
       videoUrl: undefined,
       audioUrl: undefined,
+      artifactRef: undefined,
     };
   }
   if (input.type === 'video-url') {
@@ -314,15 +321,34 @@ function toRuntimeVideoContentItem(input: NimiRuntimeVideoContentPart): VideoCon
       imageUrl: undefined,
       videoUrl: { url: ensureSafeExternalUrl(input.url, 'video reference url') },
       audioUrl: undefined,
+      artifactRef: undefined,
+    };
+  }
+  if (input.type === 'audio-url') {
+    return {
+      type: VideoContentType.AUDIO_URL,
+      role: toRuntimeVideoContentRole(input.role),
+      text: '',
+      imageUrl: undefined,
+      videoUrl: undefined,
+      audioUrl: { url: ensureSafeExternalUrl(input.url, 'video audio url') },
+      artifactRef: undefined,
     };
   }
   return {
-    type: VideoContentType.AUDIO_URL,
+    type: VideoContentType.ARTIFACT_REF,
     role: toRuntimeVideoContentRole(input.role),
     text: '',
     imageUrl: undefined,
     videoUrl: undefined,
-    audioUrl: { url: ensureSafeExternalUrl(input.url, 'video audio url') },
+    audioUrl: undefined,
+    artifactRef: {
+      artifactId: requireScenarioText(
+        input.artifactId,
+        'video artifact reference is required',
+        'provide_video_artifact_reference',
+      ),
+    },
   };
 }
 
@@ -375,9 +401,9 @@ function toRuntimeSpeechTimingMode(
   return SpeechTimingMode.UNSPECIFIED;
 }
 
-function normalizeScenarioInt64(value: string | number | bigint | undefined): string {
+function normalizeOptionalScenarioInt64(value: string | number | bigint | undefined): string | undefined {
   if (value === undefined || value === null || value === '') {
-    return '0';
+    return undefined;
   }
   if (typeof value === 'bigint') {
     return value.toString();

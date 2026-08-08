@@ -197,6 +197,14 @@ export interface NimiMachineLocalAIConfigurationAddInput {
   readonly provenance?: Readonly<JsonObject>;
 }
 
+export interface NimiMachineLocalAIConfigurationUpdateInput {
+  readonly configurationId: string;
+  readonly portableConfig?: Readonly<JsonObject>;
+  readonly supportedFeatures?: readonly string[];
+  readonly displayName: string;
+  readonly provenance?: Readonly<JsonObject>;
+}
+
 export interface NimiMachineLocalAIConfigurationBindingTarget {
   readonly localAssetId: string;
   readonly expectedVerifiedContentId: string;
@@ -300,6 +308,7 @@ export type NimiMachineLocalAIConfigurationRpcClient = Pick<
   | 'getMachineLocalAIConfiguration'
   | 'getLocalCapabilityConfiguration'
   | 'addLocalCapabilityConfiguration'
+  | 'updateLocalCapabilityConfiguration'
   | 'selectLocalCapabilityConfiguration'
   | 'clearLocalCapabilitySelection'
   | 'deleteLocalCapabilityConfiguration'
@@ -314,6 +323,10 @@ export interface NimiMachineLocalAIConfigurationClient {
   get(options?: RuntimeTypedCallOptions): Promise<NimiMachineLocalAIConfiguration>;
   addConfiguration(
     input: NimiMachineLocalAIConfigurationAddInput,
+    options?: RuntimeTypedCallOptions,
+  ): Promise<NimiMachineLocalCapabilityConfiguration>;
+  updateConfiguration(
+    input: NimiMachineLocalAIConfigurationUpdateInput,
     options?: RuntimeTypedCallOptions,
   ): Promise<NimiMachineLocalCapabilityConfiguration>;
   deleteConfiguration(
@@ -357,22 +370,29 @@ export interface NimiMachineLocalAIConfigurationClient {
 export function createNimiMachineLocalLlamaCppTextConfigurationInput(input: {
   readonly displayName: string;
   readonly acceptsImageInput?: boolean;
+  /** Omit for model-authored automatic capacity; positive values are advanced fixed overrides. */
+  readonly contextSize?: number;
 }): NimiMachineLocalAIConfigurationAddInput {
-  assertExactRecord(input, new Set(['displayName', 'acceptsImageInput']), 'llama.cpp configuration input');
+  assertExactRecord(input, new Set(['displayName', 'acceptsImageInput', 'contextSize']), 'llama.cpp configuration input');
   const displayName = requireInputText(input.displayName, 'displayName');
   if (input.acceptsImageInput !== undefined && typeof input.acceptsImageInput !== 'boolean') {
     return inputError('acceptsImageInput must be a boolean when provided');
   }
   const acceptsImageInput = input.acceptsImageInput === true;
+  const contextSize = input.contextSize === undefined
+    ? undefined
+    : requireIntegerInRange(input.contextSize, 1, 2_147_483_647, 'contextSize');
+  const portableConfig: JsonObject = acceptsImageInput
+    ? {
+      mainRequirementPolicy: 'substitutable',
+      mmprojRequirementPolicy: 'substitutable',
+    }
+    : { mainRequirementPolicy: 'substitutable' };
+  if (contextSize !== undefined) portableConfig.contextSize = contextSize;
   return {
     capabilityContract: NIMI_MACHINE_LOCAL_TEXT_GENERATE_CAPABILITY_CONTRACT,
     implementation: { ...NIMI_MACHINE_LOCAL_LLAMA_CPP_TEXT_IMPLEMENTATION },
-    portableConfig: acceptsImageInput
-      ? {
-        mainRequirementPolicy: 'substitutable',
-        mmprojRequirementPolicy: 'substitutable',
-      }
-      : { mainRequirementPolicy: 'substitutable' },
+    portableConfig,
     supportedFeatures: acceptsImageInput
       ? [NIMI_MACHINE_LOCAL_INPUT_IMAGE_FEATURE]
       : [],
@@ -680,6 +700,22 @@ export function createNimiMachineLocalAIConfigurationClient(input: {
         return responseError('AddLocalCapabilityConfiguration returned a mismatched capability contract');
       }
       return configuration;
+    },
+
+    async updateConfiguration(
+      value: NimiMachineLocalAIConfigurationUpdateInput,
+      options?: RuntimeTypedCallOptions,
+    ) {
+      const request = buildUpdateRequest(value);
+      const response = await runtime.updateLocalCapabilityConfiguration(
+        request,
+        writeOptions('update', options),
+      );
+      return requireConfigurationIdentity(
+        requireConfigurationResponse(response.configuration, 'UpdateLocalCapabilityConfiguration'),
+        request.configurationId,
+        'UpdateLocalCapabilityConfiguration',
+      );
     },
 
     async deleteConfiguration(configurationId: string, options?: RuntimeTypedCallOptions) {
@@ -1210,6 +1246,34 @@ function buildAddRequest(value: NimiMachineLocalAIConfigurationAddInput) {
   return {
     capabilityContract: requireInputText(value.capabilityContract, 'capabilityContract'),
     implementation,
+    ...(value.portableConfig === undefined
+      ? {}
+      : { portableConfig: buildProtoStruct(value.portableConfig, 'portableConfig') }),
+    supportedFeatures,
+    displayName: requireInputText(value.displayName, 'displayName'),
+    ...(value.provenance === undefined
+      ? {}
+      : { provenance: buildProtoStruct(value.provenance, 'provenance') }),
+  };
+}
+
+function buildUpdateRequest(value: NimiMachineLocalAIConfigurationUpdateInput) {
+  assertExactRecord(
+    value,
+    new Set([
+      'configurationId',
+      'portableConfig',
+      'supportedFeatures',
+      'displayName',
+      'provenance',
+    ]),
+    'updateConfiguration input',
+  );
+  const supportedFeatures = value.supportedFeatures === undefined
+    ? []
+    : buildCanonicalTextList(value.supportedFeatures, 'supportedFeatures');
+  return {
+    configurationId: requireInputText(value.configurationId, 'configurationId'),
     ...(value.portableConfig === undefined
       ? {}
       : { portableConfig: buildProtoStruct(value.portableConfig, 'portableConfig') }),

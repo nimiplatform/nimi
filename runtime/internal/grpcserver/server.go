@@ -69,10 +69,11 @@ type Server struct {
 }
 
 const (
-	maxGRPCRecvMessageBytes  = 8 << 20
-	maxGRPCSendMessageBytes  = runtimeartifactservice.MaxInlineBytes + (1 << 20)
-	maxGRPCConcurrentStreams = 128
-	grpcIOBufferBytes        = 32 << 10
+	maxGRPCRecvMessageBytes              = 8 << 20
+	maxProtectedLocalAppRecvMessageBytes = runtimeartifactservice.MaxInlineBytes + (1 << 20)
+	maxGRPCSendMessageBytes              = runtimeartifactservice.MaxInlineBytes + (1 << 20)
+	maxGRPCConcurrentStreams             = 128
+	grpcIOBufferBytes                    = 32 << 10
 
 	sourceMaterializationRealmJWKSPath = "/api/auth/jwks/source-materialization"
 )
@@ -836,7 +837,7 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 	)
 	if protected != nil {
 		protectedGRPCServer = newProtectedDesktopRPCServer(runtimeControlSvc, authSvc, accountSvc, auditSvc, localSvc, aiSvc, agentSvc, connSvc, externalAgentSvc, appSvc, appSvc, artifactSvc, protected.DesktopSessions, accountSvc)
-		localAppGRPCServer = newProtectedLocalAppRPCServer(runtimeControlSvc, authSvc, accountSvc, aiSvc, agentSvc, appSvc)
+		localAppGRPCServer = newProtectedLocalAppRPCServer(runtimeControlSvc, authSvc, accountSvc, localSvc, aiSvc, agentSvc, appSvc)
 	}
 	appSvc.RegisterInternalConsumer("runtime.agent.internal.chat_track_sidecar", agentSvc.ConsumeChatTrackSidecarAppMessage)
 	appSvc.RegisterInternalConsumer("runtime.agent", agentSvc.ConsumePublicChatAppMessage)

@@ -212,8 +212,6 @@ func (s *Service) applyExecutionPlanStrict(ctx context.Context, plan *runtimev1.
 				dep.GetRepo(),
 				"main",
 				map[string]string{},
-				binding.endpoint,
-				binding.mode,
 				"",
 				nil,
 				nil,

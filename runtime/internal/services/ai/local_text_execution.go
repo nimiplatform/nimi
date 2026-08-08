@@ -129,10 +129,11 @@ func (s *Service) captureLocalTextEffectiveInputs(
 	portable, _ := proto.Clone(selected.PortableConfig).(*structpb.Struct)
 	request, _ := proto.Clone(resolved.spec).(*runtimev1.TextGenerateScenarioSpec)
 	plan, err := textDriver.PlanTextInvocation(capabilitydriver.TextInvocationInput{
-		PortableConfig: portable,
-		ExactBindings:  append([]capabilitydriver.InvocationExactBinding(nil), exactBindings...),
-		Request:        request,
-		Stream:         stream,
+		PortableConfig:           portable,
+		ModelContextWindowTokens: selected.ModelContextWindowTokens,
+		ExactBindings:            append([]capabilitydriver.InvocationExactBinding(nil), exactBindings...),
+		Request:                  request,
+		Stream:                   stream,
 	})
 	if err != nil {
 		return fail(localTextInvocationError(err))
@@ -173,7 +174,7 @@ func (s *Service) resolveSelectedLocalTextContextMetadata(context.Context) (publ
 	if reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED || !ok {
 		return publicChatTextContextMetadataResolution{}, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_DRIVER_UNAVAILABLE)
 	}
-	contextWindow, err := textDriver.TextContextWindow(selected.PortableConfig)
+	contextWindow, err := textDriver.TextContextWindow(selected.PortableConfig, selected.ModelContextWindowTokens)
 	if err != nil || contextWindow == 0 {
 		return publicChatTextContextMetadataResolution{}, localTextInvocationError(err)
 	}
@@ -284,60 +285,60 @@ func normalizeLocalTextRequest(
 	for key, value := range defaults.GetFields() {
 		switch key {
 		case "temperature":
-			if cloned.GetTemperature() == 0 {
+			if cloned.Temperature == nil {
 				number, ok := finiteDefaultNumber(value)
 				if !ok {
 					return nil, invalidAppAIConfigError()
 				}
-				cloned.Temperature = float32(number)
+				cloned.Temperature = proto.Float32(float32(number))
 			}
 		case "topP", "top_p":
-			if cloned.GetTopP() == 0 {
+			if cloned.TopP == nil {
 				number, ok := finiteDefaultNumber(value)
 				if !ok {
 					return nil, invalidAppAIConfigError()
 				}
-				cloned.TopP = float32(number)
+				cloned.TopP = proto.Float32(float32(number))
 			}
 		case "maxTokens", "max_tokens":
-			if cloned.GetMaxTokens() == 0 {
+			if cloned.MaxTokens == nil {
 				number, ok := integerDefault(value)
 				if !ok {
 					return nil, invalidAppAIConfigError()
 				}
-				cloned.MaxTokens = int32(number)
+				cloned.MaxTokens = proto.Int32(int32(number))
 			}
 		case "topK", "top_k":
-			if cloned.GetTopK() == 0 {
+			if cloned.TopK == nil {
 				number, ok := integerDefault(value)
 				if !ok {
 					return nil, invalidAppAIConfigError()
 				}
-				cloned.TopK = int32(number)
+				cloned.TopK = proto.Int32(int32(number))
 			}
 		case "presencePenalty", "presence_penalty":
-			if cloned.GetPresencePenalty() == 0 {
+			if cloned.PresencePenalty == nil {
 				number, ok := finiteDefaultNumber(value)
 				if !ok {
 					return nil, invalidAppAIConfigError()
 				}
-				cloned.PresencePenalty = float32(number)
+				cloned.PresencePenalty = proto.Float32(float32(number))
 			}
 		case "frequencyPenalty", "frequency_penalty":
-			if cloned.GetFrequencyPenalty() == 0 {
+			if cloned.FrequencyPenalty == nil {
 				number, ok := finiteDefaultNumber(value)
 				if !ok {
 					return nil, invalidAppAIConfigError()
 				}
-				cloned.FrequencyPenalty = float32(number)
+				cloned.FrequencyPenalty = proto.Float32(float32(number))
 			}
 		case "seed":
-			if cloned.GetSeed() == 0 {
+			if cloned.Seed == nil {
 				number, ok := integerDefault(value)
 				if !ok {
 					return nil, invalidAppAIConfigError()
 				}
-				cloned.Seed = number
+				cloned.Seed = proto.Int64(number)
 			}
 		case "stop":
 			if len(cloned.GetStop()) == 0 {

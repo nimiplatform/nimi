@@ -143,6 +143,31 @@ func (s *rejectingRuntimeArtifactStore) Put(string, runtimeartifact.ArtifactReco
 	return errors.New("artifact store rejected candidate")
 }
 
+func TestNormalizeLocalVideoSpecExplicitZeroAndFalseOverrideDefaults(t *testing.T) {
+	defaults, _ := structpb.NewStruct(map[string]any{"options": map[string]any{
+		"seed": 19.0, "cameraFixed": true, "watermark": true,
+	}})
+	got, err := normalizeLocalVideoSpec(&runtimev1.VideoGenerateScenarioSpec{
+		Mode: runtimev1.VideoMode_VIDEO_MODE_T2V,
+		Content: []*runtimev1.VideoContentItem{{
+			Type: runtimev1.VideoContentType_VIDEO_CONTENT_TYPE_TEXT,
+			Role: runtimev1.VideoContentRole_VIDEO_CONTENT_ROLE_PROMPT,
+			Text: "video",
+		}},
+		Options: &runtimev1.VideoGenerationOptions{
+			Seed: testInt64(0), CameraFixed: testBool(false), Watermark: testBool(false),
+		},
+	}, defaults)
+	if err != nil {
+		t.Fatalf("normalizeLocalVideoSpec: %v", err)
+	}
+	options := got.GetOptions()
+	if options.Seed == nil || options.CameraFixed == nil || options.Watermark == nil ||
+		options.GetSeed() != 0 || options.GetCameraFixed() || options.GetWatermark() {
+		t.Fatalf("explicit zero/false values were replaced by defaults: %+v", options)
+	}
+}
+
 func TestLocalVideoHappyPathPreservesProgressSnapshotAndJobCustody(t *testing.T) {
 	svc := newTestService(nil)
 	first := selectedVideoExecutionForTest(t, "video-first")
@@ -236,13 +261,13 @@ func TestLocalVideoAdmissionRejectsBeforeJobOrHostDispatch(t *testing.T) {
 			req.Spec.GetVideoGenerate().Options.Resolution = "510x288"
 		}, reason: runtimev1.ReasonCode_AI_INPUT_INVALID},
 		{name: "fps", mutate: func(req *runtimev1.SubmitScenarioJobRequest, _ *localexecution.SelectedLocalExecution) {
-			req.Spec.GetVideoGenerate().Options.Fps = 23
+			req.Spec.GetVideoGenerate().Options.Fps = testInt32(23)
 		}, reason: runtimev1.ReasonCode_AI_INPUT_INVALID},
 		{name: "frame grid", mutate: func(req *runtimev1.SubmitScenarioJobRequest, _ *localexecution.SelectedLocalExecution) {
-			req.Spec.GetVideoGenerate().Options.Frames = 21
+			req.Spec.GetVideoGenerate().Options.Frames = testInt32(21)
 		}, reason: runtimev1.ReasonCode_AI_INPUT_INVALID},
 		{name: "audio required", mutate: func(req *runtimev1.SubmitScenarioJobRequest, _ *localexecution.SelectedLocalExecution) {
-			req.Spec.GetVideoGenerate().Options.GenerateAudio = false
+			req.Spec.GetVideoGenerate().Options.GenerateAudio = testBool(false)
 		}, reason: runtimev1.ReasonCode_AI_INPUT_INVALID},
 		{name: "missing slot", mutate: func(_ *runtimev1.SubmitScenarioJobRequest, selected *localexecution.SelectedLocalExecution) {
 			selected.ExactBindings = selected.ExactBindings[:len(selected.ExactBindings)-1]
@@ -446,7 +471,7 @@ func localVideoJobRequestForTest(width int, height int, frames int32) *runtimev1
 		Spec: &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_VideoGenerate{VideoGenerate: &runtimev1.VideoGenerateScenarioSpec{
 			Prompt: prompt, Mode: runtimev1.VideoMode_VIDEO_MODE_T2V,
 			Content: []*runtimev1.VideoContentItem{{Type: runtimev1.VideoContentType_VIDEO_CONTENT_TYPE_TEXT, Role: runtimev1.VideoContentRole_VIDEO_CONTENT_ROLE_PROMPT, Text: prompt}},
-			Options: &runtimev1.VideoGenerationOptions{Resolution: fmt.Sprintf("%dx%d", width, height), Frames: frames, Fps: 24, Seed: 0, GenerateAudio: true},
+			Options: &runtimev1.VideoGenerationOptions{Resolution: fmt.Sprintf("%dx%d", width, height), Frames: testInt32(frames), Fps: testInt32(24), GenerateAudio: testBool(true)},
 		}}},
 	}
 }

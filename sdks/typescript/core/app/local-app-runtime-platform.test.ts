@@ -6,8 +6,10 @@ import {
   OpenLocalAppSessionResponse,
   RenewLocalAppSessionRequest,
 } from '../../core-generated/runtime-protobuf/runtime/v1/auth.js';
+import { runNimiRuntimeImageGeneration } from '../../features/generation/runtime-image-generation.js';
 import {
   createNimiLocalAppClient,
+  createNimiLocalAppRuntimeScenarioJobClient,
   type NimiLocalAppAgentHandle,
   type NimiLocalAppStandardShell,
 } from './local-app-runtime-platform.js';
@@ -32,8 +34,26 @@ function standardShell(operationCalls: string[]): NimiLocalAppStandardShell {
         };
       },
     },
-    ai: { text: { generateCandidate: touched('ai.text.generateCandidate') } },
+    ai: {
+      text: {
+        generateCandidate: touched('ai.text.generateCandidate'),
+        streamTurn: touched('ai.text.streamTurn'),
+      },
+      scenario: { execute: touched('ai.scenario.execute') },
+      scenarioJobs: {
+        submit: touched('ai.scenarioJobs.submit'),
+        get: touched('ai.scenarioJobs.get'),
+        subscribe: touched('ai.scenarioJobs.subscribe'),
+        cancel: touched('ai.scenarioJobs.cancel'),
+      },
+      artifacts: {
+        read: touched('ai.artifacts.read'),
+        upload: touched('ai.artifacts.upload'),
+      },
+      voiceAssets: { list: touched('ai.voiceAssets.list') },
+    },
     aiConfig: { get: touched('aiConfig.get'), overwrite: touched('aiConfig.overwrite') },
+    modelConfig: { localSelections: touched('modelConfig.localSelections') },
     storage: {
       readJson: touched('storage.readJson'),
       writeJson: touched('storage.writeJson'),
@@ -84,10 +104,13 @@ test('generated local-app session wire projection is posture-only', () => {
 test('local-app client hard-cuts the access workflow namespace', () => {
   const client = createNimiLocalAppClient({ standardShell: standardShell([]) });
   assert.deepEqual(Object.keys(client).sort(), [
-    'agentConfigure', 'agents', 'ai', 'aiConfig', 'auth', 'conversation', 'currentUser', 'realm', 'storage',
+    'agentConfigure', 'agents', 'ai', 'aiConfig', 'auth', 'conversation', 'currentUser', 'modelConfig', 'realm', 'storage',
   ]);
   assert.equal('permissions' in client, false);
   assert.equal('artifacts' in client, false);
+  assert.deepEqual(Object.keys(client.ai).sort(), ['artifacts', 'scenario', 'scenarioJobs', 'text', 'voiceAssets']);
+  assert.deepEqual(Object.keys(client.ai.text).sort(), ['generateCandidate', 'streamTurn']);
+  assert.deepEqual(Object.keys(client.ai.artifacts).sort(), ['read', 'upload']);
   assert.deepEqual(Object.keys(client.agentConfigure).sort(), ['autonomy', 'presentation', 'sharedAIConfig']);
   assert.deepEqual(Object.keys(client.agentConfigure.sharedAIConfig).sort(), ['get', 'overwrite']);
   assert.deepEqual(Object.keys(client.agentConfigure.autonomy).sort(), ['snapshot', 'update']);
@@ -104,6 +127,32 @@ test('local-app auth remains a separate availability projection', async () => {
     actionHint: 'start_fixed_runtime_service',
     retryable: true,
   });
+});
+
+test('Model Config projects bounded read-only machine selections', async () => {
+  const base = standardShell([]);
+  const shell: NimiLocalAppStandardShell = {
+    ...base,
+    modelConfig: { localSelections: async () => [{
+      capabilityContract: 'text.generate',
+      state: 'selected',
+      configurationId: null,
+      displayName: 'gemma4-26b',
+      supportedFeatures: ['input.image'],
+      reasons: [],
+    }] },
+  };
+  const selections = await createNimiLocalAppClient({ standardShell: shell })
+    .modelConfig.localSelections();
+  assert.deepEqual(selections, [{
+    capabilityContract: 'text.generate',
+    state: 'selected',
+    configurationId: null,
+    displayName: 'gemma4-26b',
+    supportedFeatures: ['input.image'],
+    reasons: [],
+  }]);
+  assert.doesNotMatch(JSON.stringify(selections), /config-private|binding|asset|path/iu);
 });
 
 test('Current User failure is isolated from the ready App session', async () => {
@@ -384,7 +433,27 @@ test('canonical protected operations reach typed ingress and preserve owner-unav
   const client = createNimiLocalAppClient({ standardShell: standardShell(calls) });
   const handle = 'agent_ref_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA' as NimiLocalAppAgentHandle;
   const operations: Array<() => Promise<unknown>> = [
-    () => client.ai.text.generateCandidate({ messages: [{ role: 'user', text: 'hello' }], temperature: 0, topP: 1, maxTokens: 1 }),
+    () => client.ai.text.generateCandidate({
+      messages: [{ role: 'user', text: 'hello' }], temperature: 0, topP: 0, maxTokens: 0,
+      topK: 0, presencePenalty: 0, frequencyPenalty: 0, stop: ['END'], seed: 0,
+    }),
+    () => client.ai.text.streamTurn({
+      messages: [{ role: 'user', text: 'hello' }], temperature: 0, topP: 0, maxTokens: 0,
+      topK: 0, presencePenalty: 0, frequencyPenalty: 0, stop: ['END'], seed: 0,
+    }),
+    () => client.ai.scenario.execute({ type: 'text-embed', inputs: ['hello'] }),
+    () => client.ai.scenarioJobs.submit({
+      type: 'image-generate', prompt: 'hello', negativePrompt: '', n: 1,
+      size: '', aspectRatio: '', quality: '', style: '', seed: 0,
+      referenceImages: ['https://example.com/reference.png'],
+      mask: 'https://example.com/mask.png', responseFormat: 'b64_json',
+    }),
+    () => client.ai.scenarioJobs.get('job-1'),
+    () => client.ai.scenarioJobs.subscribe('job-1'),
+    () => client.ai.scenarioJobs.cancel('job-1'),
+    () => client.ai.artifacts.read('artifact-1'),
+    () => client.ai.artifacts.upload({ bytes: new Uint8Array([1, 2]), mimeType: 'image/png' }),
+    () => client.ai.voiceAssets.list(),
     () => client.aiConfig.get(),
     () => client.aiConfig.overwrite([]),
     () => client.storage.readJson('settings.json'),
@@ -428,6 +497,15 @@ test('canonical protected operations reach typed ingress and preserve owner-unav
   }
   assert.deepEqual(calls, [
     'ai.text.generateCandidate',
+    'ai.text.streamTurn',
+    'ai.scenario.execute',
+    'ai.scenarioJobs.submit',
+    'ai.scenarioJobs.get',
+    'ai.scenarioJobs.subscribe',
+    'ai.scenarioJobs.cancel',
+    'ai.artifacts.read',
+    'ai.artifacts.upload',
+    'ai.voiceAssets.list',
     'aiConfig.get',
     'aiConfig.overwrite',
     'storage.readJson',
@@ -450,6 +528,100 @@ test('canonical protected operations reach typed ingress and preserve owner-unav
   ]);
 
   assert.equal(calls.length, operations.length);
+});
+
+test('local-app artifact upload validates the closed image input and exact custody projection', async () => {
+  const calls: unknown[] = [];
+  const base = standardShell([]);
+  const shell: NimiLocalAppStandardShell = {
+    ...base,
+    ai: {
+      ...base.ai,
+      artifacts: {
+        ...base.ai.artifacts,
+        async upload(input) {
+          calls.push(input);
+          return { artifactId: 'artifact-upload-1', sizeBytes: 2, mimeType: 'image/png' };
+        },
+      },
+    },
+  };
+  const client = createNimiLocalAppClient({ standardShell: shell });
+  await assert.deepEqual(
+    await client.ai.artifacts.upload({ bytes: new Uint8Array([1, 2]), mimeType: 'image/png' }),
+    { artifactId: 'artifact-upload-1', sizeBytes: 2, mimeType: 'image/png' },
+  );
+  assert.deepEqual(calls, [{ bytes: [1, 2], mimeType: 'image/png' }]);
+  await assert.rejects(
+    () => client.ai.artifacts.upload({ bytes: new Uint8Array([1]), mimeType: 'video/mp4' as never }),
+    (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_LOCAL_APP_INPUT_INVALID',
+  );
+});
+
+test('local-app Scenario Job adapter runs the unchanged SDK image runner and reads artifact bytes', async () => {
+  const calls: unknown[] = [];
+  const base = standardShell([]);
+  const job = {
+    jobId: 'job-1', scenarioType: 'image-generate' as const, status: 'completed' as const,
+    progressPercent: 100, progressCurrentStep: 1, progressTotalSteps: 1,
+    reasonCode: '', reasonDetail: '', traceId: 'trace-1',
+    artifacts: [{
+      artifactId: 'artifact-1', mimeType: 'image/png', bytes: [], sizeBytes: 2,
+      sha256: 'sha256', durationMs: 0, width: 1, height: 1, sampleRateHz: 0, channels: 0,
+    }],
+    createdAt: null, updatedAt: null,
+  };
+  const shell: NimiLocalAppStandardShell = {
+    ...base,
+    ai: {
+      ...base.ai,
+      scenarioJobs: {
+        async submit(spec) { calls.push(['submit', spec]); return { job, asset: null }; },
+        async get(jobId) { calls.push(['get', jobId]); return { job }; },
+        async subscribe(jobId) {
+          calls.push(['subscribe', jobId]);
+          return {
+            events: (async function* () {
+              yield { eventType: 'completed', sequence: '1', traceId: 'trace-1', timestamp: null, job };
+            })(),
+            async cancel() { calls.push(['stream.cancel']); },
+          };
+        },
+        async cancel(jobId, reason) { calls.push(['cancel', jobId, reason]); return { job }; },
+      },
+      artifacts: {
+        ...base.ai.artifacts,
+        async read(artifactId) {
+          calls.push(['artifact.read', artifactId]);
+          return { bytes: [1, 2], mimeType: 'image/png', sizeBytes: 2 };
+        },
+      },
+    },
+  };
+  const local = createNimiLocalAppClient({ standardShell: shell });
+  const adapter = createNimiLocalAppRuntimeScenarioJobClient(local.ai);
+  const result = await runNimiRuntimeImageGeneration({
+    runtime: adapter,
+    head: { appId: 'app.test' },
+    prompt: 'draw a moon',
+    requestId: 'request-1',
+    idempotencyKey: 'idempotency-1',
+  });
+
+  assert.equal(result.job.jobId, 'job-1');
+  assert.deepEqual([...result.artifacts[0]!.bytes], [1, 2]);
+  assert.deepEqual(calls[0], ['submit', {
+    type: 'image-generate', prompt: 'draw a moon', negativePrompt: '',
+    size: '', aspectRatio: '', quality: '', style: '',
+    referenceImages: [], mask: '', responseFormat: '',
+  }]);
+  assert.deepEqual(calls.slice(1), [
+    ['subscribe', 'job-1'],
+    ['get', 'job-1'],
+    ['artifact.read', 'artifact-1'],
+  ]);
+  assert.equal(JSON.stringify(calls).includes('app.test'), false);
+  assert.equal(JSON.stringify(calls).includes('idempotency-1'), false);
 });
 
 test('local-app client rejects the retired host namespace instead of decoding it', () => {

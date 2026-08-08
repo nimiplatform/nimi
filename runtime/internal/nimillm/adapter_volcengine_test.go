@@ -250,7 +250,7 @@ func TestExecuteBytedanceARKTaskVideoForwardsResolution(t *testing.T) {
 							},
 						},
 						Options: &runtimev1.VideoGenerationOptions{
-							DurationSec: 4,
+							DurationSec: testInt32(4),
 							Resolution:  "480p",
 							Ratio:       "16:9",
 						},

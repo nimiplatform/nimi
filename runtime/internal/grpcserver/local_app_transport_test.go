@@ -14,7 +14,23 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/peer"
+	"google.golang.org/protobuf/proto"
 )
+
+func TestProtectedLocalAppRPCServerRegistersBoundedMachineLocalConfigurationOwner(t *testing.T) {
+	server := newProtectedLocalAppRPCServer(
+		&runtimev1.UnimplementedRuntimeServiceControlServiceServer{},
+		&runtimev1.UnimplementedRuntimeAuthServiceServer{},
+		&runtimev1.UnimplementedRuntimeAccountServiceServer{},
+		&runtimev1.UnimplementedRuntimeLocalServiceServer{},
+		&runtimev1.UnimplementedRuntimeAiServiceServer{},
+		&runtimev1.UnimplementedRuntimeAgentServiceServer{},
+		&runtimev1.UnimplementedRuntimeAppServiceServer{},
+	)
+	if _, registered := server.GetServiceInfo()["nimi.runtime.v1.RuntimeLocalService"]; !registered {
+		t.Fatal("protected Local App server did not register RuntimeLocalService")
+	}
+}
 
 func TestProtectedLocalAppTransportRejectsOrdinaryConnection(t *testing.T) {
 	serverSide, clientSide := net.Pipe()
@@ -88,6 +104,7 @@ func TestProtectedLocalAppAIConfigOwnersDispatchAfterAdmission(t *testing.T) {
 		ingress localappop.Ingress
 	}{
 		{method: protectedGetAppAIConfigMethod, request: &runtimev1.GetAppAIConfigRequest{}, ingress: localappop.IngressAppAIConfigGet},
+		{method: protectedGetMachineLocalAIConfigMethod, request: &runtimev1.GetMachineLocalAIConfigurationRequest{}, ingress: localappop.IngressAppAIConfigGet},
 		{method: protectedOverwriteAppAIConfigMethod, request: &runtimev1.OverwriteAppAIConfigRequest{Config: &runtimev1.AIConfig{}}, ingress: localappop.IngressAppAIConfigOverwrite},
 	}
 	for _, test := range tests {
@@ -150,9 +167,9 @@ func TestProtectedLocalAppRealmListAndCreateDispatchToExactOwners(t *testing.T) 
 func TestProtectedLocalAppCallerAssertionScannerHandlesRepeatedMessages(t *testing.T) {
 	request := &runtimev1.GenerateLocalAppTextCandidateRequest{
 		Messages:    []*runtimev1.LocalAppTextCandidateMessage{{Role: "user", Text: "deny before dispatch"}},
-		Temperature: 0,
-		TopP:        1,
-		MaxTokens:   1,
+		Temperature: proto.Float32(0),
+		TopP:        proto.Float32(1),
+		MaxTokens:   proto.Int32(1),
 	}
 	if protectedLocalAppRequestHasCallerAssertion(context.Background(), request) {
 		t.Fatal("ordinary repeated message content was treated as a caller assertion")
@@ -209,6 +226,86 @@ func TestProtectedLocalAppStreamFailsClosedBeforeOwnerDispatch(t *testing.T) {
 	})
 	if handlerCalled || localAppTransportReason(err) != runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE {
 		t.Fatalf("protected stream = called:%v reason:%v", handlerCalled, localAppTransportReason(err))
+	}
+}
+
+func TestProtectedLocalAppScenarioConsumptionUnaryDispatchesAfterAdmission(t *testing.T) {
+	connection := newGRPCLocalAppConnection(t, 0x61)
+	if err := connection.BindSession(protectedlocal.LocalAppSessionHandle{SessionID: grpcLocalAppIdentifier(0x62), SessionProof: grpcLocalAppIdentifier(0x63)}); err != nil {
+		t.Fatal(err)
+	}
+	ctx := peer.NewContext(context.Background(), &peer.Peer{AuthInfo: &protectedLocalAppAuthInfo{connection: connection}})
+	admission := &localAppAdmissionStub{}
+	tests := []struct {
+		method  string
+		request any
+		ingress localappop.Ingress
+	}{
+		{method: protectedExecuteLocalAppScenarioMethod, request: &runtimev1.ExecuteLocalAppScenarioRequest{}, ingress: localappop.IngressScenarioExecute},
+		{method: protectedSubmitScenarioJobMethod, request: &runtimev1.SubmitLocalAppScenarioJobRequest{}, ingress: localappop.IngressScenarioJobSubmit},
+		{method: protectedGetScenarioJobMethod, request: &runtimev1.GetLocalAppScenarioJobRequest{}, ingress: localappop.IngressScenarioJobGet},
+		{method: protectedCancelScenarioJobMethod, request: &runtimev1.CancelLocalAppScenarioJobRequest{}, ingress: localappop.IngressScenarioJobCancel},
+		{method: protectedReadLocalAppArtifactMethod, request: &runtimev1.ReadLocalAppArtifactRequest{}, ingress: localappop.IngressArtifactRead},
+		{method: protectedUploadLocalAppArtifactMethod, request: &runtimev1.UploadLocalAppArtifactRequest{}, ingress: localappop.IngressArtifactUpload},
+		{method: protectedListLocalAppVoiceAssetsMethod, request: &runtimev1.ListLocalAppVoiceAssetsRequest{}, ingress: localappop.IngressVoiceAssetsList},
+	}
+	for _, test := range tests {
+		admission.calls = 0
+		admission.ingress = localappop.IngressUnknown
+		handlerCalled := false
+		_, err := newUnaryProtectedLocalAppTransportInterceptor(admission)(ctx, test.request, &grpc.UnaryServerInfo{FullMethod: test.method}, func(context.Context, any) (any, error) {
+			handlerCalled = true
+			return &runtimev1.GetLocalAppScenarioJobResponse{}, nil
+		})
+		if err != nil || !handlerCalled || admission.calls != 1 || admission.ingress != test.ingress {
+			t.Fatalf("scenario operation %s = handler:%v admission:%+v error:%v", test.method, handlerCalled, admission, err)
+		}
+	}
+}
+
+func TestProtectedLocalAppScenarioConsumptionStreamsDispatchAfterAdmission(t *testing.T) {
+	connection := newGRPCLocalAppConnection(t, 0x64)
+	if err := connection.BindSession(protectedlocal.LocalAppSessionHandle{SessionID: grpcLocalAppIdentifier(0x65), SessionProof: grpcLocalAppIdentifier(0x66)}); err != nil {
+		t.Fatal(err)
+	}
+	ctx := peer.NewContext(context.Background(), &peer.Peer{AuthInfo: &protectedLocalAppAuthInfo{connection: connection}})
+	admission := &localAppAdmissionStub{}
+	tests := []struct {
+		method  string
+		ingress localappop.Ingress
+	}{
+		{method: protectedStreamTextTurnMethod, ingress: localappop.IngressTextTurnStream},
+		{method: protectedSubscribeScenarioJobMethod, ingress: localappop.IngressScenarioJobSubscribe},
+	}
+	for _, test := range tests {
+		admission.calls = 0
+		admission.ingress = localappop.IngressUnknown
+		handlerCalled := false
+		err := newStreamProtectedLocalAppTransportInterceptor(admission)(nil, &localAppTransportTestStream{ctx: ctx}, &grpc.StreamServerInfo{FullMethod: test.method}, func(_ any, stream grpc.ServerStream) error {
+			handlerCalled = true
+			return nil
+		})
+		if err != nil || !handlerCalled || admission.calls != 1 || admission.ingress != test.ingress {
+			t.Fatalf("scenario stream %s = handler:%v admission:%+v error:%v", test.method, handlerCalled, admission, err)
+		}
+	}
+}
+
+func TestProtectedLocalAppScenarioConsumptionOwnerSurfacesStayUnadmitted(t *testing.T) {
+	for _, method := range []string{
+		"/nimi.runtime.v1.RuntimeAiService/ExecuteScenario",
+		"/nimi.runtime.v1.RuntimeAiService/StreamScenario",
+		"/nimi.runtime.v1.RuntimeAiService/SubmitScenarioJob",
+		"/nimi.runtime.v1.RuntimeAiService/GetScenarioJob",
+		"/nimi.runtime.v1.RuntimeAiService/CancelScenarioJob",
+		"/nimi.runtime.v1.RuntimeAiService/SubscribeScenarioJobEvents",
+		"/nimi.runtime.v1.RuntimeAiService/GetScenarioArtifacts",
+		"/nimi.runtime.v1.RuntimeAiService/ListVoiceAssets",
+		"/nimi.runtime.v1.RuntimeArtifactService/ReadArtifactBytes",
+	} {
+		if protectedLocalAppUnaryMethodAllowed(method) || protectedLocalAppStreamMethodAllowed(method) {
+			t.Fatalf("owner method %s leaked onto the local-app transport", method)
+		}
 	}
 }
 

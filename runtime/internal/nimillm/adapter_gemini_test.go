@@ -119,7 +119,7 @@ func TestExecuteGeminiTranscribeRejectsUnsupportedAdvancedOptions(t *testing.T) 
 			Spec: &runtimev1.ScenarioSpec{
 				Spec: &runtimev1.ScenarioSpec_SpeechTranscribe{
 					SpeechTranscribe: &runtimev1.SpeechTranscribeScenarioSpec{
-						Timestamps: true,
+						Timestamps: testBool(true),
 						AudioSource: &runtimev1.SpeechTranscriptionAudioSource{
 							Source: &runtimev1.SpeechTranscriptionAudioSource_AudioBytes{
 								AudioBytes: []byte("audio"),
@@ -304,7 +304,7 @@ func TestExecuteGeminiOperationReturnsCanceledOnContextCancelWhilePolling(t *tes
 						Content: []*runtimev1.VideoContentItem{
 							{Type: runtimev1.VideoContentType_VIDEO_CONTENT_TYPE_TEXT, Role: runtimev1.VideoContentRole_VIDEO_CONTENT_ROLE_PROMPT, Text: "A short scene."},
 						},
-						Options: &runtimev1.VideoGenerationOptions{DurationSec: 4},
+						Options: &runtimev1.VideoGenerationOptions{DurationSec: testInt32(4)},
 					},
 				},
 			},

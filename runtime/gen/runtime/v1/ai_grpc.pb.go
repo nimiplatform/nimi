@@ -19,23 +19,32 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	RuntimeAiService_GetAppAIConfig_FullMethodName                = "/nimi.runtime.v1.RuntimeAiService/GetAppAIConfig"
-	RuntimeAiService_OverwriteAppAIConfig_FullMethodName          = "/nimi.runtime.v1.RuntimeAiService/OverwriteAppAIConfig"
-	RuntimeAiService_GenerateLocalAppTextCandidate_FullMethodName = "/nimi.runtime.v1.RuntimeAiService/GenerateLocalAppTextCandidate"
-	RuntimeAiService_ExecuteScenario_FullMethodName               = "/nimi.runtime.v1.RuntimeAiService/ExecuteScenario"
-	RuntimeAiService_StreamScenario_FullMethodName                = "/nimi.runtime.v1.RuntimeAiService/StreamScenario"
-	RuntimeAiService_SubmitScenarioJob_FullMethodName             = "/nimi.runtime.v1.RuntimeAiService/SubmitScenarioJob"
-	RuntimeAiService_GetScenarioJob_FullMethodName                = "/nimi.runtime.v1.RuntimeAiService/GetScenarioJob"
-	RuntimeAiService_CancelScenarioJob_FullMethodName             = "/nimi.runtime.v1.RuntimeAiService/CancelScenarioJob"
-	RuntimeAiService_SubscribeScenarioJobEvents_FullMethodName    = "/nimi.runtime.v1.RuntimeAiService/SubscribeScenarioJobEvents"
-	RuntimeAiService_GetScenarioArtifacts_FullMethodName          = "/nimi.runtime.v1.RuntimeAiService/GetScenarioArtifacts"
-	RuntimeAiService_ListScenarioProfiles_FullMethodName          = "/nimi.runtime.v1.RuntimeAiService/ListScenarioProfiles"
-	RuntimeAiService_GetVoiceAsset_FullMethodName                 = "/nimi.runtime.v1.RuntimeAiService/GetVoiceAsset"
-	RuntimeAiService_ListVoiceAssets_FullMethodName               = "/nimi.runtime.v1.RuntimeAiService/ListVoiceAssets"
-	RuntimeAiService_DeleteVoiceAsset_FullMethodName              = "/nimi.runtime.v1.RuntimeAiService/DeleteVoiceAsset"
-	RuntimeAiService_ListPresetVoices_FullMethodName              = "/nimi.runtime.v1.RuntimeAiService/ListPresetVoices"
-	RuntimeAiService_UploadArtifact_FullMethodName                = "/nimi.runtime.v1.RuntimeAiService/UploadArtifact"
-	RuntimeAiService_PeekScheduling_FullMethodName                = "/nimi.runtime.v1.RuntimeAiService/PeekScheduling"
+	RuntimeAiService_GetAppAIConfig_FullMethodName                     = "/nimi.runtime.v1.RuntimeAiService/GetAppAIConfig"
+	RuntimeAiService_OverwriteAppAIConfig_FullMethodName               = "/nimi.runtime.v1.RuntimeAiService/OverwriteAppAIConfig"
+	RuntimeAiService_GenerateLocalAppTextCandidate_FullMethodName      = "/nimi.runtime.v1.RuntimeAiService/GenerateLocalAppTextCandidate"
+	RuntimeAiService_ExecuteLocalAppScenario_FullMethodName            = "/nimi.runtime.v1.RuntimeAiService/ExecuteLocalAppScenario"
+	RuntimeAiService_SubmitLocalAppScenarioJob_FullMethodName          = "/nimi.runtime.v1.RuntimeAiService/SubmitLocalAppScenarioJob"
+	RuntimeAiService_GetLocalAppScenarioJob_FullMethodName             = "/nimi.runtime.v1.RuntimeAiService/GetLocalAppScenarioJob"
+	RuntimeAiService_CancelLocalAppScenarioJob_FullMethodName          = "/nimi.runtime.v1.RuntimeAiService/CancelLocalAppScenarioJob"
+	RuntimeAiService_SubscribeLocalAppScenarioJobEvents_FullMethodName = "/nimi.runtime.v1.RuntimeAiService/SubscribeLocalAppScenarioJobEvents"
+	RuntimeAiService_StreamLocalAppTextTurn_FullMethodName             = "/nimi.runtime.v1.RuntimeAiService/StreamLocalAppTextTurn"
+	RuntimeAiService_ReadLocalAppArtifact_FullMethodName               = "/nimi.runtime.v1.RuntimeAiService/ReadLocalAppArtifact"
+	RuntimeAiService_UploadLocalAppArtifact_FullMethodName             = "/nimi.runtime.v1.RuntimeAiService/UploadLocalAppArtifact"
+	RuntimeAiService_ListLocalAppVoiceAssets_FullMethodName            = "/nimi.runtime.v1.RuntimeAiService/ListLocalAppVoiceAssets"
+	RuntimeAiService_ExecuteScenario_FullMethodName                    = "/nimi.runtime.v1.RuntimeAiService/ExecuteScenario"
+	RuntimeAiService_StreamScenario_FullMethodName                     = "/nimi.runtime.v1.RuntimeAiService/StreamScenario"
+	RuntimeAiService_SubmitScenarioJob_FullMethodName                  = "/nimi.runtime.v1.RuntimeAiService/SubmitScenarioJob"
+	RuntimeAiService_GetScenarioJob_FullMethodName                     = "/nimi.runtime.v1.RuntimeAiService/GetScenarioJob"
+	RuntimeAiService_CancelScenarioJob_FullMethodName                  = "/nimi.runtime.v1.RuntimeAiService/CancelScenarioJob"
+	RuntimeAiService_SubscribeScenarioJobEvents_FullMethodName         = "/nimi.runtime.v1.RuntimeAiService/SubscribeScenarioJobEvents"
+	RuntimeAiService_GetScenarioArtifacts_FullMethodName               = "/nimi.runtime.v1.RuntimeAiService/GetScenarioArtifacts"
+	RuntimeAiService_ListScenarioProfiles_FullMethodName               = "/nimi.runtime.v1.RuntimeAiService/ListScenarioProfiles"
+	RuntimeAiService_GetVoiceAsset_FullMethodName                      = "/nimi.runtime.v1.RuntimeAiService/GetVoiceAsset"
+	RuntimeAiService_ListVoiceAssets_FullMethodName                    = "/nimi.runtime.v1.RuntimeAiService/ListVoiceAssets"
+	RuntimeAiService_DeleteVoiceAsset_FullMethodName                   = "/nimi.runtime.v1.RuntimeAiService/DeleteVoiceAsset"
+	RuntimeAiService_ListPresetVoices_FullMethodName                   = "/nimi.runtime.v1.RuntimeAiService/ListPresetVoices"
+	RuntimeAiService_UploadArtifact_FullMethodName                     = "/nimi.runtime.v1.RuntimeAiService/UploadArtifact"
+	RuntimeAiService_PeekScheduling_FullMethodName                     = "/nimi.runtime.v1.RuntimeAiService/PeekScheduling"
 )
 
 // RuntimeAiServiceClient is the client API for RuntimeAiService service.
@@ -45,6 +54,15 @@ type RuntimeAiServiceClient interface {
 	GetAppAIConfig(ctx context.Context, in *GetAppAIConfigRequest, opts ...grpc.CallOption) (*GetAppAIConfigResponse, error)
 	OverwriteAppAIConfig(ctx context.Context, in *OverwriteAppAIConfigRequest, opts ...grpc.CallOption) (*OverwriteAppAIConfigResponse, error)
 	GenerateLocalAppTextCandidate(ctx context.Context, in *GenerateLocalAppTextCandidateRequest, opts ...grpc.CallOption) (*GenerateLocalAppTextCandidateResponse, error)
+	ExecuteLocalAppScenario(ctx context.Context, in *ExecuteLocalAppScenarioRequest, opts ...grpc.CallOption) (*ExecuteLocalAppScenarioResponse, error)
+	SubmitLocalAppScenarioJob(ctx context.Context, in *SubmitLocalAppScenarioJobRequest, opts ...grpc.CallOption) (*SubmitLocalAppScenarioJobResponse, error)
+	GetLocalAppScenarioJob(ctx context.Context, in *GetLocalAppScenarioJobRequest, opts ...grpc.CallOption) (*GetLocalAppScenarioJobResponse, error)
+	CancelLocalAppScenarioJob(ctx context.Context, in *CancelLocalAppScenarioJobRequest, opts ...grpc.CallOption) (*CancelLocalAppScenarioJobResponse, error)
+	SubscribeLocalAppScenarioJobEvents(ctx context.Context, in *SubscribeLocalAppScenarioJobEventsRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[LocalAppScenarioJobEvent], error)
+	StreamLocalAppTextTurn(ctx context.Context, in *StreamLocalAppTextTurnRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[StreamLocalAppTextTurnEvent], error)
+	ReadLocalAppArtifact(ctx context.Context, in *ReadLocalAppArtifactRequest, opts ...grpc.CallOption) (*ReadLocalAppArtifactResponse, error)
+	UploadLocalAppArtifact(ctx context.Context, in *UploadLocalAppArtifactRequest, opts ...grpc.CallOption) (*UploadLocalAppArtifactResponse, error)
+	ListLocalAppVoiceAssets(ctx context.Context, in *ListLocalAppVoiceAssetsRequest, opts ...grpc.CallOption) (*ListLocalAppVoiceAssetsResponse, error)
 	ExecuteScenario(ctx context.Context, in *ExecuteScenarioRequest, opts ...grpc.CallOption) (*ExecuteScenarioResponse, error)
 	StreamScenario(ctx context.Context, in *StreamScenarioRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[StreamScenarioEvent], error)
 	SubmitScenarioJob(ctx context.Context, in *SubmitScenarioJobRequest, opts ...grpc.CallOption) (*SubmitScenarioJobResponse, error)
@@ -100,6 +118,114 @@ func (c *runtimeAiServiceClient) GenerateLocalAppTextCandidate(ctx context.Conte
 	return out, nil
 }
 
+func (c *runtimeAiServiceClient) ExecuteLocalAppScenario(ctx context.Context, in *ExecuteLocalAppScenarioRequest, opts ...grpc.CallOption) (*ExecuteLocalAppScenarioResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ExecuteLocalAppScenarioResponse)
+	err := c.cc.Invoke(ctx, RuntimeAiService_ExecuteLocalAppScenario_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeAiServiceClient) SubmitLocalAppScenarioJob(ctx context.Context, in *SubmitLocalAppScenarioJobRequest, opts ...grpc.CallOption) (*SubmitLocalAppScenarioJobResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(SubmitLocalAppScenarioJobResponse)
+	err := c.cc.Invoke(ctx, RuntimeAiService_SubmitLocalAppScenarioJob_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeAiServiceClient) GetLocalAppScenarioJob(ctx context.Context, in *GetLocalAppScenarioJobRequest, opts ...grpc.CallOption) (*GetLocalAppScenarioJobResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetLocalAppScenarioJobResponse)
+	err := c.cc.Invoke(ctx, RuntimeAiService_GetLocalAppScenarioJob_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeAiServiceClient) CancelLocalAppScenarioJob(ctx context.Context, in *CancelLocalAppScenarioJobRequest, opts ...grpc.CallOption) (*CancelLocalAppScenarioJobResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CancelLocalAppScenarioJobResponse)
+	err := c.cc.Invoke(ctx, RuntimeAiService_CancelLocalAppScenarioJob_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeAiServiceClient) SubscribeLocalAppScenarioJobEvents(ctx context.Context, in *SubscribeLocalAppScenarioJobEventsRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[LocalAppScenarioJobEvent], error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	stream, err := c.cc.NewStream(ctx, &RuntimeAiService_ServiceDesc.Streams[0], RuntimeAiService_SubscribeLocalAppScenarioJobEvents_FullMethodName, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &grpc.GenericClientStream[SubscribeLocalAppScenarioJobEventsRequest, LocalAppScenarioJobEvent]{ClientStream: stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type RuntimeAiService_SubscribeLocalAppScenarioJobEventsClient = grpc.ServerStreamingClient[LocalAppScenarioJobEvent]
+
+func (c *runtimeAiServiceClient) StreamLocalAppTextTurn(ctx context.Context, in *StreamLocalAppTextTurnRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[StreamLocalAppTextTurnEvent], error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	stream, err := c.cc.NewStream(ctx, &RuntimeAiService_ServiceDesc.Streams[1], RuntimeAiService_StreamLocalAppTextTurn_FullMethodName, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &grpc.GenericClientStream[StreamLocalAppTextTurnRequest, StreamLocalAppTextTurnEvent]{ClientStream: stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type RuntimeAiService_StreamLocalAppTextTurnClient = grpc.ServerStreamingClient[StreamLocalAppTextTurnEvent]
+
+func (c *runtimeAiServiceClient) ReadLocalAppArtifact(ctx context.Context, in *ReadLocalAppArtifactRequest, opts ...grpc.CallOption) (*ReadLocalAppArtifactResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ReadLocalAppArtifactResponse)
+	err := c.cc.Invoke(ctx, RuntimeAiService_ReadLocalAppArtifact_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeAiServiceClient) UploadLocalAppArtifact(ctx context.Context, in *UploadLocalAppArtifactRequest, opts ...grpc.CallOption) (*UploadLocalAppArtifactResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UploadLocalAppArtifactResponse)
+	err := c.cc.Invoke(ctx, RuntimeAiService_UploadLocalAppArtifact_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeAiServiceClient) ListLocalAppVoiceAssets(ctx context.Context, in *ListLocalAppVoiceAssetsRequest, opts ...grpc.CallOption) (*ListLocalAppVoiceAssetsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListLocalAppVoiceAssetsResponse)
+	err := c.cc.Invoke(ctx, RuntimeAiService_ListLocalAppVoiceAssets_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *runtimeAiServiceClient) ExecuteScenario(ctx context.Context, in *ExecuteScenarioRequest, opts ...grpc.CallOption) (*ExecuteScenarioResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ExecuteScenarioResponse)
@@ -112,7 +238,7 @@ func (c *runtimeAiServiceClient) ExecuteScenario(ctx context.Context, in *Execut
 
 func (c *runtimeAiServiceClient) StreamScenario(ctx context.Context, in *StreamScenarioRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[StreamScenarioEvent], error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	stream, err := c.cc.NewStream(ctx, &RuntimeAiService_ServiceDesc.Streams[0], RuntimeAiService_StreamScenario_FullMethodName, cOpts...)
+	stream, err := c.cc.NewStream(ctx, &RuntimeAiService_ServiceDesc.Streams[2], RuntimeAiService_StreamScenario_FullMethodName, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -161,7 +287,7 @@ func (c *runtimeAiServiceClient) CancelScenarioJob(ctx context.Context, in *Canc
 
 func (c *runtimeAiServiceClient) SubscribeScenarioJobEvents(ctx context.Context, in *SubscribeScenarioJobEventsRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[ScenarioJobEvent], error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	stream, err := c.cc.NewStream(ctx, &RuntimeAiService_ServiceDesc.Streams[1], RuntimeAiService_SubscribeScenarioJobEvents_FullMethodName, cOpts...)
+	stream, err := c.cc.NewStream(ctx, &RuntimeAiService_ServiceDesc.Streams[3], RuntimeAiService_SubscribeScenarioJobEvents_FullMethodName, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -240,7 +366,7 @@ func (c *runtimeAiServiceClient) ListPresetVoices(ctx context.Context, in *ListP
 
 func (c *runtimeAiServiceClient) UploadArtifact(ctx context.Context, opts ...grpc.CallOption) (grpc.ClientStreamingClient[UploadArtifactRequest, UploadArtifactResponse], error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	stream, err := c.cc.NewStream(ctx, &RuntimeAiService_ServiceDesc.Streams[2], RuntimeAiService_UploadArtifact_FullMethodName, cOpts...)
+	stream, err := c.cc.NewStream(ctx, &RuntimeAiService_ServiceDesc.Streams[4], RuntimeAiService_UploadArtifact_FullMethodName, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -268,6 +394,15 @@ type RuntimeAiServiceServer interface {
 	GetAppAIConfig(context.Context, *GetAppAIConfigRequest) (*GetAppAIConfigResponse, error)
 	OverwriteAppAIConfig(context.Context, *OverwriteAppAIConfigRequest) (*OverwriteAppAIConfigResponse, error)
 	GenerateLocalAppTextCandidate(context.Context, *GenerateLocalAppTextCandidateRequest) (*GenerateLocalAppTextCandidateResponse, error)
+	ExecuteLocalAppScenario(context.Context, *ExecuteLocalAppScenarioRequest) (*ExecuteLocalAppScenarioResponse, error)
+	SubmitLocalAppScenarioJob(context.Context, *SubmitLocalAppScenarioJobRequest) (*SubmitLocalAppScenarioJobResponse, error)
+	GetLocalAppScenarioJob(context.Context, *GetLocalAppScenarioJobRequest) (*GetLocalAppScenarioJobResponse, error)
+	CancelLocalAppScenarioJob(context.Context, *CancelLocalAppScenarioJobRequest) (*CancelLocalAppScenarioJobResponse, error)
+	SubscribeLocalAppScenarioJobEvents(*SubscribeLocalAppScenarioJobEventsRequest, grpc.ServerStreamingServer[LocalAppScenarioJobEvent]) error
+	StreamLocalAppTextTurn(*StreamLocalAppTextTurnRequest, grpc.ServerStreamingServer[StreamLocalAppTextTurnEvent]) error
+	ReadLocalAppArtifact(context.Context, *ReadLocalAppArtifactRequest) (*ReadLocalAppArtifactResponse, error)
+	UploadLocalAppArtifact(context.Context, *UploadLocalAppArtifactRequest) (*UploadLocalAppArtifactResponse, error)
+	ListLocalAppVoiceAssets(context.Context, *ListLocalAppVoiceAssetsRequest) (*ListLocalAppVoiceAssetsResponse, error)
 	ExecuteScenario(context.Context, *ExecuteScenarioRequest) (*ExecuteScenarioResponse, error)
 	StreamScenario(*StreamScenarioRequest, grpc.ServerStreamingServer[StreamScenarioEvent]) error
 	SubmitScenarioJob(context.Context, *SubmitScenarioJobRequest) (*SubmitScenarioJobResponse, error)
@@ -300,6 +435,33 @@ func (UnimplementedRuntimeAiServiceServer) OverwriteAppAIConfig(context.Context,
 }
 func (UnimplementedRuntimeAiServiceServer) GenerateLocalAppTextCandidate(context.Context, *GenerateLocalAppTextCandidateRequest) (*GenerateLocalAppTextCandidateResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GenerateLocalAppTextCandidate not implemented")
+}
+func (UnimplementedRuntimeAiServiceServer) ExecuteLocalAppScenario(context.Context, *ExecuteLocalAppScenarioRequest) (*ExecuteLocalAppScenarioResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ExecuteLocalAppScenario not implemented")
+}
+func (UnimplementedRuntimeAiServiceServer) SubmitLocalAppScenarioJob(context.Context, *SubmitLocalAppScenarioJobRequest) (*SubmitLocalAppScenarioJobResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method SubmitLocalAppScenarioJob not implemented")
+}
+func (UnimplementedRuntimeAiServiceServer) GetLocalAppScenarioJob(context.Context, *GetLocalAppScenarioJobRequest) (*GetLocalAppScenarioJobResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetLocalAppScenarioJob not implemented")
+}
+func (UnimplementedRuntimeAiServiceServer) CancelLocalAppScenarioJob(context.Context, *CancelLocalAppScenarioJobRequest) (*CancelLocalAppScenarioJobResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method CancelLocalAppScenarioJob not implemented")
+}
+func (UnimplementedRuntimeAiServiceServer) SubscribeLocalAppScenarioJobEvents(*SubscribeLocalAppScenarioJobEventsRequest, grpc.ServerStreamingServer[LocalAppScenarioJobEvent]) error {
+	return status.Error(codes.Unimplemented, "method SubscribeLocalAppScenarioJobEvents not implemented")
+}
+func (UnimplementedRuntimeAiServiceServer) StreamLocalAppTextTurn(*StreamLocalAppTextTurnRequest, grpc.ServerStreamingServer[StreamLocalAppTextTurnEvent]) error {
+	return status.Error(codes.Unimplemented, "method StreamLocalAppTextTurn not implemented")
+}
+func (UnimplementedRuntimeAiServiceServer) ReadLocalAppArtifact(context.Context, *ReadLocalAppArtifactRequest) (*ReadLocalAppArtifactResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ReadLocalAppArtifact not implemented")
+}
+func (UnimplementedRuntimeAiServiceServer) UploadLocalAppArtifact(context.Context, *UploadLocalAppArtifactRequest) (*UploadLocalAppArtifactResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method UploadLocalAppArtifact not implemented")
+}
+func (UnimplementedRuntimeAiServiceServer) ListLocalAppVoiceAssets(context.Context, *ListLocalAppVoiceAssetsRequest) (*ListLocalAppVoiceAssetsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListLocalAppVoiceAssets not implemented")
 }
 func (UnimplementedRuntimeAiServiceServer) ExecuteScenario(context.Context, *ExecuteScenarioRequest) (*ExecuteScenarioResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ExecuteScenario not implemented")
@@ -413,6 +575,154 @@ func _RuntimeAiService_GenerateLocalAppTextCandidate_Handler(srv interface{}, ct
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(RuntimeAiServiceServer).GenerateLocalAppTextCandidate(ctx, req.(*GenerateLocalAppTextCandidateRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeAiService_ExecuteLocalAppScenario_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ExecuteLocalAppScenarioRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeAiServiceServer).ExecuteLocalAppScenario(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeAiService_ExecuteLocalAppScenario_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeAiServiceServer).ExecuteLocalAppScenario(ctx, req.(*ExecuteLocalAppScenarioRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeAiService_SubmitLocalAppScenarioJob_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SubmitLocalAppScenarioJobRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeAiServiceServer).SubmitLocalAppScenarioJob(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeAiService_SubmitLocalAppScenarioJob_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeAiServiceServer).SubmitLocalAppScenarioJob(ctx, req.(*SubmitLocalAppScenarioJobRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeAiService_GetLocalAppScenarioJob_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetLocalAppScenarioJobRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeAiServiceServer).GetLocalAppScenarioJob(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeAiService_GetLocalAppScenarioJob_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeAiServiceServer).GetLocalAppScenarioJob(ctx, req.(*GetLocalAppScenarioJobRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeAiService_CancelLocalAppScenarioJob_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CancelLocalAppScenarioJobRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeAiServiceServer).CancelLocalAppScenarioJob(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeAiService_CancelLocalAppScenarioJob_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeAiServiceServer).CancelLocalAppScenarioJob(ctx, req.(*CancelLocalAppScenarioJobRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeAiService_SubscribeLocalAppScenarioJobEvents_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(SubscribeLocalAppScenarioJobEventsRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(RuntimeAiServiceServer).SubscribeLocalAppScenarioJobEvents(m, &grpc.GenericServerStream[SubscribeLocalAppScenarioJobEventsRequest, LocalAppScenarioJobEvent]{ServerStream: stream})
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type RuntimeAiService_SubscribeLocalAppScenarioJobEventsServer = grpc.ServerStreamingServer[LocalAppScenarioJobEvent]
+
+func _RuntimeAiService_StreamLocalAppTextTurn_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(StreamLocalAppTextTurnRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(RuntimeAiServiceServer).StreamLocalAppTextTurn(m, &grpc.GenericServerStream[StreamLocalAppTextTurnRequest, StreamLocalAppTextTurnEvent]{ServerStream: stream})
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type RuntimeAiService_StreamLocalAppTextTurnServer = grpc.ServerStreamingServer[StreamLocalAppTextTurnEvent]
+
+func _RuntimeAiService_ReadLocalAppArtifact_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ReadLocalAppArtifactRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeAiServiceServer).ReadLocalAppArtifact(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeAiService_ReadLocalAppArtifact_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeAiServiceServer).ReadLocalAppArtifact(ctx, req.(*ReadLocalAppArtifactRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeAiService_UploadLocalAppArtifact_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UploadLocalAppArtifactRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeAiServiceServer).UploadLocalAppArtifact(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeAiService_UploadLocalAppArtifact_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeAiServiceServer).UploadLocalAppArtifact(ctx, req.(*UploadLocalAppArtifactRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeAiService_ListLocalAppVoiceAssets_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListLocalAppVoiceAssetsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeAiServiceServer).ListLocalAppVoiceAssets(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeAiService_ListLocalAppVoiceAssets_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeAiServiceServer).ListLocalAppVoiceAssets(ctx, req.(*ListLocalAppVoiceAssetsRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -664,6 +974,34 @@ var RuntimeAiService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _RuntimeAiService_GenerateLocalAppTextCandidate_Handler,
 		},
 		{
+			MethodName: "ExecuteLocalAppScenario",
+			Handler:    _RuntimeAiService_ExecuteLocalAppScenario_Handler,
+		},
+		{
+			MethodName: "SubmitLocalAppScenarioJob",
+			Handler:    _RuntimeAiService_SubmitLocalAppScenarioJob_Handler,
+		},
+		{
+			MethodName: "GetLocalAppScenarioJob",
+			Handler:    _RuntimeAiService_GetLocalAppScenarioJob_Handler,
+		},
+		{
+			MethodName: "CancelLocalAppScenarioJob",
+			Handler:    _RuntimeAiService_CancelLocalAppScenarioJob_Handler,
+		},
+		{
+			MethodName: "ReadLocalAppArtifact",
+			Handler:    _RuntimeAiService_ReadLocalAppArtifact_Handler,
+		},
+		{
+			MethodName: "UploadLocalAppArtifact",
+			Handler:    _RuntimeAiService_UploadLocalAppArtifact_Handler,
+		},
+		{
+			MethodName: "ListLocalAppVoiceAssets",
+			Handler:    _RuntimeAiService_ListLocalAppVoiceAssets_Handler,
+		},
+		{
 			MethodName: "ExecuteScenario",
 			Handler:    _RuntimeAiService_ExecuteScenario_Handler,
 		},
@@ -709,6 +1047,16 @@ var RuntimeAiService_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "SubscribeLocalAppScenarioJobEvents",
+			Handler:       _RuntimeAiService_SubscribeLocalAppScenarioJobEvents_Handler,
+			ServerStreams: true,
+		},
+		{
+			StreamName:    "StreamLocalAppTextTurn",
+			Handler:       _RuntimeAiService_StreamLocalAppTextTurn_Handler,
+			ServerStreams: true,
+		},
 		{
 			StreamName:    "StreamScenario",
 			Handler:       _RuntimeAiService_StreamScenario_Handler,

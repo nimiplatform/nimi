@@ -167,7 +167,7 @@ func localVideoL1Request(artifactID string) *runtimev1.SubmitScenarioJobRequest 
 				{Type: runtimev1.VideoContentType_VIDEO_CONTENT_TYPE_TEXT, Role: runtimev1.VideoContentRole_VIDEO_CONTENT_ROLE_PROMPT, Text: "animate this frame"},
 				{Type: runtimev1.VideoContentType_VIDEO_CONTENT_TYPE_ARTIFACT_REF, Role: runtimev1.VideoContentRole_VIDEO_CONTENT_ROLE_REFERENCE_IMAGE, ArtifactRef: &runtimev1.VideoContentArtifactRef{ArtifactId: artifactID}},
 			},
-			Options: &runtimev1.VideoGenerationOptions{Resolution: "512x288", Frames: 22, Fps: 24, GenerateAudio: true},
+			Options: &runtimev1.VideoGenerationOptions{Resolution: "512x288", Frames: testInt32(22), Fps: testInt32(24), GenerateAudio: testBool(true)},
 		}}},
 	}
 }

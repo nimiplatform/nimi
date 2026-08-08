@@ -1554,7 +1554,7 @@ units:
     kind: rule
     title: P-ECO-005 future world and game app boundary
     modality: must
-    statement: A future world or game App remains only a registry candidate, and any cross-world or cross-game flow requires a separate owner-complete authority cut and typed projection while retaining source App, target App, and canonical App owner references on the Realm audit surface; it cannot widen the current four AppAccess domains or twenty operations through registry, review, trust inheritance, or raw sharing.
+    statement: A future world or game App remains only a registry candidate, and any cross-world or cross-game flow requires a separate owner-complete authority cut and typed projection while retaining source App, target App, and canonical App owner references on the Realm audit surface; it cannot widen the current four AppAccess domains or twenty-nine operations through registry, review, trust inheritance, or raw sharing.
     condition: Whenever a world or game app class or cross-app flow is proposed.
     failure: Deny admission or data flow without the separate owner authority, projection, audit reference, and trust-tier boundary.
     relations:

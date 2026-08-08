@@ -26,7 +26,7 @@ units:
   - id: definition.nimi.platform.core-protocol.app-operation-contract
     kind: definition
     title: Canonical App operation contract
-    meaning: The closed App operation contract contains exactly twenty mappings—runtime.app-storage.json.read as Base, runtime.app-storage.json.write as Base, runtime.app-storage.json.remove as Base, runtime.ai.app-config.get as Base, runtime.ai.app-config.overwrite as Base, realm.world-core.list as AppAccess realm.data, realm.world-core.create as AppAccess realm.data, runtime.ai.text-candidate.generate as AppAccess runtime.consume, runtime.agent.reference.list as AppAccess agent.local, runtime.agent.conversation.open as AppAccess agent.local, runtime.agent.conversation.turn.send as AppAccess agent.local, runtime.agent.conversation.turn.interrupt as AppAccess agent.local, runtime.agent.conversation.events.subscribe as AppAccess agent.local, runtime.agent.conversation.snapshot.get as AppAccess agent.local, runtime.agent.ai-config.get as AppAccess agent.configure, runtime.agent.ai-config.overwrite as AppAccess agent.configure, runtime.agent.autonomy.snapshot.get as AppAccess agent.configure, runtime.agent.autonomy.update as AppAccess agent.configure, runtime.agent.presentation.snapshot.get as AppAccess agent.configure, and runtime.agent.presentation.commit as AppAccess agent.configure; each AppOperationId is a stable callable identity derived by Runtime from the typed protected ingress rather than caller-supplied classification, authority, exact handler identity, implementation detail, or an extensible public catalog.
+    meaning: The closed App operation contract contains exactly twenty-nine mappings—runtime.app-storage.json.read as Base, runtime.app-storage.json.write as Base, runtime.app-storage.json.remove as Base, runtime.ai.app-config.get as Base, runtime.ai.app-config.overwrite as Base, realm.world-core.list as AppAccess realm.data, realm.world-core.create as AppAccess realm.data, runtime.ai.text-candidate.generate as AppAccess runtime.consume, runtime.ai.text-turn.stream as AppAccess runtime.consume, runtime.ai.scenario.execute as AppAccess runtime.consume, runtime.ai.scenario-job.submit as AppAccess runtime.consume, runtime.ai.scenario-job.get as AppAccess runtime.consume, runtime.ai.scenario-job.subscribe as AppAccess runtime.consume, runtime.ai.scenario-job.cancel as AppAccess runtime.consume, runtime.ai.artifact.read as AppAccess runtime.consume, runtime.ai.artifact.upload as AppAccess runtime.consume, runtime.ai.voice-assets.list as AppAccess runtime.consume, runtime.agent.reference.list as AppAccess agent.local, runtime.agent.conversation.open as AppAccess agent.local, runtime.agent.conversation.turn.send as AppAccess agent.local, runtime.agent.conversation.turn.interrupt as AppAccess agent.local, runtime.agent.conversation.events.subscribe as AppAccess agent.local, runtime.agent.conversation.snapshot.get as AppAccess agent.local, runtime.agent.ai-config.get as AppAccess agent.configure, runtime.agent.ai-config.overwrite as AppAccess agent.configure, runtime.agent.autonomy.snapshot.get as AppAccess agent.configure, runtime.agent.autonomy.update as AppAccess agent.configure, runtime.agent.presentation.snapshot.get as AppAccess agent.configure, and runtime.agent.presentation.commit as AppAccess agent.configure; each AppOperationId is a stable callable identity derived by Runtime from the typed protected ingress rather than caller-supplied classification, authority, exact handler identity, implementation detail, or an extensible public catalog.
     relations:
       - type: supersedes
         target: definition.nimi.platform.core-protocol.protected-app-authorization
@@ -273,9 +273,9 @@ units:
         target: definition.nimi.platform.core-protocol.effective-app-access-snapshot
   - id: rule.nimi.platform.core-protocol.p-proto-021
     kind: rule
-    title: P-PROTO-021 canonical twenty-operation mapping
+    title: P-PROTO-021 canonical twenty-nine-operation mapping
     modality: must_not
-    statement: An App, declaration, SDK, Host, manifest, catalog, endpoint string, free-form scope, or owner-local allowlist adds, aliases, reclassifies, or widens an AppOperationId or changes its one Base or AppAccess domain mapping outside the canonical twenty-row contract.
+    statement: An App, declaration, SDK, Host, manifest, catalog, endpoint string, free-form scope, or owner-local allowlist adds, aliases, reclassifies, or widens an AppOperationId or changes its one Base or AppAccess domain mapping outside the canonical twenty-nine-row contract.
     condition: Whenever an App operation is declared, admitted, mapped, or described.
     failure: Reject the unknown, aliased, duplicated, or mismapped operation and use only the stable callable identity selected by the typed protected ingress and its canonical mapping.
     relations:
@@ -375,7 +375,7 @@ units:
     kind: rule
     title: P-PROTO-046 Base App operations remain bounded
     modality: must
-    statement: The three Base JSON storage operations address only the registered subject's current-account private partition, runtime.ai.app-config.get returns only the calling App owner's portable AIConfig intent, and runtime.ai.app-config.overwrite atomically writes one complete portable intent without merge or ConnectorGrant input and applies the canonical binding-clearing behavior; no Base operation exposes internal identity, account, session, snapshot, credential, owner inventory, or generic Runtime access.
+    statement: The three Base JSON storage operations address only the registered subject's current-account private partition, runtime.ai.app-config.get returns the calling App owner's portable AIConfig intent and may additionally return a bounded read-only Model Config projection containing only each currently selected Local CapabilityContract's state, display name, supported features, and safe reason codes without configuration identity, implementation, binding, LocalAsset, path, or execution truth, and runtime.ai.app-config.overwrite atomically writes one complete portable intent without merge or ConnectorGrant input and applies the canonical binding-clearing behavior; no Base operation exposes internal identity, account, session, snapshot, credential, owner inventory beyond that bounded current-selection projection, or generic Runtime access.
     condition: Whenever one of the five Base App operations is invoked.
     failure: Deny the exact operation on missing session, owner, partition, path, quota, schema, or positive projection and never manufacture AppAccess coverage or preserve a Cloud binding through App overwrite.
     relations:
@@ -383,6 +383,20 @@ units:
         target: definition.nimi.platform.core-protocol.ai-config
       - type: applies_to
         target: definition.nimi.platform.core-protocol.app-operation-contract
+  - id: rule.nimi.platform.core-protocol.p-proto-047
+    kind: rule
+    title: P-PROTO-047 scenario consumption App operation family
+    modality: must
+    statement: runtime.ai.text-turn.stream, runtime.ai.scenario.execute, runtime.ai.scenario-job.submit, runtime.ai.scenario-job.get, runtime.ai.scenario-job.subscribe, runtime.ai.scenario-job.cancel, runtime.ai.artifact.read, runtime.ai.artifact.upload, and runtime.ai.voice-assets.list are runtime.consume operations that consume the calling App owner's committed AIConfig without caller-selected route, provider, model, target, connector, credential, grant, tool, background authority, or fallback; the four scenario-job operations act only on Jobs owned by the owner derived from the calling App session, runtime.ai.artifact.read returns at most 32 MiB of inline bytes only for an artifact owned by that same owner, runtime.ai.artifact.upload accepts at most 32 MiB of inline bytes with an image MIME from the closed whitelist and stores the artifact in the custody of that same App and subject owner without granting cross-owner reference authority, runtime.ai.text-turn.stream carries only typed text increments and terminal finish or failure state, and every response returns only the operation-specific typed projection with trace correlation.
+    condition: Whenever one of the nine scenario-consumption App operations is invoked.
+    failure: Deny the exact operation on missing runtime.consume coverage, invalid bounded input, unsupported artifact upload MIME, cross-owner Job or artifact access, oversized inline artifact read or upload, owner AIConfig composition failure, or execution failure, and never expose route, provider, model, account, connector, credential, or grant internals in any request or response field.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.ai-config
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.app-operation-contract
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.effective-app-access-snapshot
   - id: rule.nimi.platform.core-protocol.p-proto-040
     kind: rule
     lifecycle: removed
@@ -962,9 +976,9 @@ units:
     kind: rule
     title: compliance-test-matrix L1 App access compatibility
     modality: must
-    statement: Local App access compatibility preserves Desktop-verified exact Host launch, a fresh process-bound session and snapshot derived without caller-supplied protected context, exactly five Base rows plus fifteen AppAccess rows across four declared domains, and typed SDK and Host projections without credential, generic Runtime forwarder, permission, grant, or project-consent surfaces.
+    statement: Local App access compatibility preserves Desktop-verified exact Host launch, a fresh process-bound session and snapshot derived without caller-supplied protected context, exactly five Base rows plus twenty-four AppAccess rows across four declared domains, and typed SDK and Host projections without credential, generic Runtime forwarder, permission, grant, or project-consent surfaces.
     condition: Whenever the local App session, operation contract, or consumer projection changes.
-    failure: Reject the change when session opening gains caller-supplied access truth, the twenty-row mapping diverges, or a consumer gains credential, owner, generic-forwarding, or durable access state.
+    failure: Reject the change when session opening gains caller-supplied access truth, the twenty-nine-row mapping diverges, or a consumer gains credential, owner, generic-forwarding, or durable access state.
     relations:
       - type: applies_to
         target: definition.nimi.platform.core-protocol.app-operation-contract

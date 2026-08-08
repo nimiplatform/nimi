@@ -13,7 +13,7 @@ import (
 
 func TestBuildTextGenParamsCarriesTopK(t *testing.T) {
 	spec := &runtimev1.TextGenerateScenarioSpec{
-		TopK:             19,
+		TopK:             testInt32(19),
 		IncludeRawChunks: true,
 		Tools: []*runtimev1.ToolSpec{{
 			Name:           "web_search",

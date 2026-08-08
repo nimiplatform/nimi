@@ -57,7 +57,7 @@ func ExecuteBytedanceOpenSpeech(
 			"voice":       scenarioVoiceRef(spec),
 			"language":    spec.GetLanguage(),
 			"emotion":     spec.GetEmotion(),
-			"speed":       spec.GetSpeed(),
+			"speed":       scenarioSpeechSpeed(spec),
 			"pitch":       spec.GetPitch(),
 			"volume":      spec.GetVolume(),
 			"sample_rate": spec.GetSampleRateHz(),

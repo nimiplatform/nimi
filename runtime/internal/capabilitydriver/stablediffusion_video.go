@@ -7,6 +7,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"math"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -81,6 +82,27 @@ var stableDiffusionVideoSlots = []stableDiffusionVideoSlotSpec{
 
 type stableDiffusionVideoPortableConfig struct {
 	intents map[string]stableDiffusionRequirementIntent
+	recipe  stableDiffusionVideoRecipe
+}
+
+type stableDiffusionVideoRecipe struct {
+	cfgScale                float64
+	flowShift               float64
+	sampleMethod            string
+	scheduler               string
+	diffusionFlashAttention bool
+	offloadToCPU            bool
+	rng                     string
+}
+
+func defaultStableDiffusionVideoRecipe() stableDiffusionVideoRecipe {
+	return stableDiffusionVideoRecipe{
+		cfgScale:                1,
+		flowShift:               12,
+		diffusionFlashAttention: true,
+		offloadToCPU:            true,
+		rng:                     "cpu",
+	}
 }
 
 func (StableDiffusionVideoDriver) Interpret(input InterpretInput) ([]*runtimev1.LocalCapabilityRequirement, runtimev1.LocalCapabilityReason) {
@@ -308,14 +330,18 @@ func probeContainsAll(probe []byte, signatures ...string) bool {
 }
 
 func parseStableDiffusionVideoPortableConfig(value *structpb.Struct) (stableDiffusionVideoPortableConfig, runtimev1.LocalCapabilityReason) {
-	result := stableDiffusionVideoPortableConfig{intents: make(map[string]stableDiffusionRequirementIntent, len(stableDiffusionVideoSlots))}
+	result := stableDiffusionVideoPortableConfig{
+		intents: make(map[string]stableDiffusionRequirementIntent, len(stableDiffusionVideoSlots)),
+		recipe:  defaultStableDiffusionVideoRecipe(),
+	}
+	for _, slot := range stableDiffusionVideoSlots {
+		result.intents[slot.id] = stableDiffusionRequirementIntent{policy: runtimev1.LocalCapabilityRequirementPolicy_LOCAL_CAPABILITY_REQUIREMENT_POLICY_SUBSTITUTABLE}
+	}
 	if value == nil {
-		for _, slot := range stableDiffusionVideoSlots {
-			result.intents[slot.id] = stableDiffusionRequirementIntent{policy: runtimev1.LocalCapabilityRequirementPolicy_LOCAL_CAPABILITY_REQUIREMENT_POLICY_SUBSTITUTABLE}
-		}
 		return result, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED
 	}
-	allowed := make(map[string]struct{}, len(stableDiffusionVideoSlots)*2)
+	allowed := make(map[string]struct{}, len(stableDiffusionVideoSlots)*2+1)
+	allowed["executionOptions"] = struct{}{}
 	for _, slot := range stableDiffusionVideoSlots {
 		allowed[slot.policyKey] = struct{}{}
 		allowed[slot.contentIDKey] = struct{}{}
@@ -332,14 +358,98 @@ func parseStableDiffusionVideoPortableConfig(value *structpb.Struct) (stableDiff
 		}
 		result.intents[slot.id] = intent
 	}
+	var reason runtimev1.LocalCapabilityReason
+	result.recipe, reason = stableDiffusionVideoRecipeFromValue(value.GetFields()["executionOptions"], result.recipe)
+	if reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED {
+		return stableDiffusionVideoPortableConfig{}, reason
+	}
 	return result, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED
+}
+
+func stableDiffusionVideoRecipeFromValue(
+	value *structpb.Value,
+	defaults stableDiffusionVideoRecipe,
+) (stableDiffusionVideoRecipe, runtimev1.LocalCapabilityReason) {
+	if value == nil {
+		return defaults, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED
+	}
+	object := value.GetStructValue()
+	if object == nil {
+		return stableDiffusionVideoRecipe{}, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_PORTABLE_CONFIG_INVALID
+	}
+	fields := object.GetFields()
+	for key := range fields {
+		switch key {
+		case "cfgScale", "flowShift", "sampleMethod", "scheduler", "diffusionFlashAttention", "offloadParamsToCPU", "rng":
+		default:
+			return stableDiffusionVideoRecipe{}, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_PORTABLE_CONFIG_INVALID
+		}
+	}
+	result := defaults
+	for key, target := range map[string]*float64{"cfgScale": &result.cfgScale, "flowShift": &result.flowShift} {
+		field := fields[key]
+		if field == nil {
+			continue
+		}
+		if _, ok := field.Kind.(*structpb.Value_NumberValue); !ok {
+			return stableDiffusionVideoRecipe{}, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_PORTABLE_CONFIG_INVALID
+		}
+		number := field.GetNumberValue()
+		if math.IsNaN(number) || math.IsInf(number, 0) || number < 0 || number > math.MaxFloat32 || (key == "cfgScale" && number > 30) {
+			return stableDiffusionVideoRecipe{}, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_PORTABLE_CONFIG_INVALID
+		}
+		*target = number
+	}
+	for key, target := range map[string]*string{"sampleMethod": &result.sampleMethod, "scheduler": &result.scheduler} {
+		field := fields[key]
+		if field == nil {
+			continue
+		}
+		text, ok := portableStringValue(field)
+		if !ok || !stableDiffusionOptionToken(text) {
+			return stableDiffusionVideoRecipe{}, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_PORTABLE_CONFIG_INVALID
+		}
+		if text == "engine-default" {
+			text = ""
+		}
+		*target = text
+	}
+	for key, target := range map[string]*bool{
+		"diffusionFlashAttention": &result.diffusionFlashAttention,
+		"offloadParamsToCPU":      &result.offloadToCPU,
+	} {
+		field := fields[key]
+		if field == nil {
+			continue
+		}
+		if _, ok := field.Kind.(*structpb.Value_BoolValue); !ok {
+			return stableDiffusionVideoRecipe{}, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_PORTABLE_CONFIG_INVALID
+		}
+		*target = field.GetBoolValue()
+	}
+	if field := fields["rng"]; field != nil {
+		text, ok := portableStringValue(field)
+		if !ok || (text != "std_default" && text != "cuda" && text != "cpu") {
+			return stableDiffusionVideoRecipe{}, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_PORTABLE_CONFIG_INVALID
+		}
+		result.rng = text
+	}
+	return result, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED
+}
+
+func stableDiffusionVideoEngineOptionIdentity(value string) string {
+	if value == "" {
+		return "engine-default"
+	}
+	return value
 }
 
 func (StableDiffusionVideoDriver) PlanVideoInvocation(input VideoInvocationInput) (*VideoInvocationPlan, error) {
 	if input.ConfigurationID == "" || input.ConfigurationID != strings.TrimSpace(input.ConfigurationID) {
 		return nil, invocationError(InvocationFailureInvalidConfig, fmt.Errorf("stable-diffusion video configuration identity is required"))
 	}
-	if _, reason := parseStableDiffusionVideoPortableConfig(input.PortableConfig); reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED {
+	portable, reason := parseStableDiffusionVideoPortableConfig(input.PortableConfig)
+	if reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED {
 		return nil, invocationError(InvocationFailureInvalidConfig, fmt.Errorf("stable-diffusion video portable config: %s", reason.String()))
 	}
 	bindings, err := exactStableDiffusionVideoInvocationBindings(input.ExactBindings)
@@ -381,13 +491,13 @@ func (StableDiffusionVideoDriver) PlanVideoInvocation(input VideoInvocationInput
 		identity.DriverID,
 		identity.DriverDialect,
 		string(request.conditioningMode),
-		strconv.FormatFloat(1.0, 'g', -1, 64),
-		strconv.FormatFloat(12.0, 'g', -1, 64),
-		"engine-default",
-		"engine-default",
-		strconv.FormatBool(true),
-		strconv.FormatBool(true),
-		"cpu",
+		strconv.FormatFloat(portable.recipe.cfgScale, 'g', -1, 64),
+		strconv.FormatFloat(portable.recipe.flowShift, 'g', -1, 64),
+		stableDiffusionVideoEngineOptionIdentity(portable.recipe.sampleMethod),
+		stableDiffusionVideoEngineOptionIdentity(portable.recipe.scheduler),
+		strconv.FormatBool(portable.recipe.diffusionFlashAttention),
+		strconv.FormatBool(portable.recipe.offloadToCPU),
+		portable.recipe.rng,
 	} {
 		_, _ = hasher.Write([]byte(value))
 		_, _ = hasher.Write([]byte{0})
@@ -420,13 +530,13 @@ func (StableDiffusionVideoDriver) PlanVideoInvocation(input VideoInvocationInput
 		audioRequired:           true,
 		conditioningMode:        request.conditioningMode,
 		referenceImage:          request.referenceImage,
-		cfgScale:                1.0,
-		flowShift:               12.0,
-		sampleMethod:            "",
-		scheduler:               "",
-		diffusionFlashAttention: true,
-		offloadToCPU:            true,
-		rng:                     "cpu",
+		cfgScale:                portable.recipe.cfgScale,
+		flowShift:               portable.recipe.flowShift,
+		sampleMethod:            portable.recipe.sampleMethod,
+		scheduler:               portable.recipe.scheduler,
+		diffusionFlashAttention: portable.recipe.diffusionFlashAttention,
+		offloadToCPU:            portable.recipe.offloadToCPU,
+		rng:                     portable.recipe.rng,
 	}, nil
 }
 
@@ -483,24 +593,51 @@ func normalizeStableDiffusionVideoRequest(request VideoInvocationRequest) (norma
 	if prompt == "" {
 		return normalizedStableDiffusionVideoRequest{}, invocationError(InvocationFailureInvalidRequest, fmt.Errorf("video.generate prompt is required"))
 	}
-	if request.Width <= 0 || request.Height <= 0 || request.Width%32 != 0 || request.Height%32 != 0 {
+	// First-party vertical-slice defaults, aligned with the L0 acceptance
+	// profile (512x288 / 22 frames / 24 fps): first-party callers may omit
+	// video options, and the service boundary erases proto3 presence, so a
+	// zero value means "absent" and receives the documented default. Any
+	// provided-but-invalid value is still a typed reject; the driver never
+	// rounds or overrides a caller-supplied value.
+	width := request.Width
+	if width == 0 {
+		width = 512
+	}
+	height := request.Height
+	if height == 0 {
+		height = 288
+	}
+	fps := request.FPS
+	if fps == 0 {
+		fps = 24
+	}
+	frameCount := request.FrameCount
+	if frameCount == 0 {
+		frameCount = 22
+	}
+	if width <= 0 || height <= 0 || width%32 != 0 || height%32 != 0 {
 		return normalizedStableDiffusionVideoRequest{}, invocationError(InvocationFailureInvalidRequest, fmt.Errorf("video.generate width and height must be positive multiples of 32"))
 	}
-	if request.FPS != 24 {
+	if fps != 24 {
 		return normalizedStableDiffusionVideoRequest{}, invocationError(InvocationFailureInvalidRequest, fmt.Errorf("video.generate fps must be 24"))
 	}
-	if request.FrameCount < 5 || (request.FrameCount-5)%17 != 0 {
+	if frameCount < 5 || (frameCount-5)%17 != 0 {
 		return normalizedStableDiffusionVideoRequest{}, invocationError(InvocationFailureInvalidRequest, fmt.Errorf("video.generate frame count must be 17k+5 with k >= 0"))
 	}
+	// GenerateAudio stays a typed reject when false: proto3 erases bool
+	// presence upstream, so the driver cannot distinguish "absent" from an
+	// explicit opt-out, and silently overriding an explicit false would break
+	// fail-closed packet semantics. The first-party absent-to-true default is
+	// applied by the Kit caller instead.
 	if !request.GenerateAudio {
 		return normalizedStableDiffusionVideoRequest{}, invocationError(InvocationFailureInvalidRequest, fmt.Errorf("video.generate audio is required for MiniMax-H3"))
 	}
 	result := normalizedStableDiffusionVideoRequest{
 		prompt:           prompt,
 		negativePrompt:   strings.TrimSpace(request.NegativePrompt),
-		width:            request.Width,
-		height:           request.Height,
-		frameCount:       request.FrameCount,
+		width:            width,
+		height:           height,
+		frameCount:       frameCount,
 		seed:             request.Seed,
 		conditioningMode: VideoConditioningModeFL2VAT2VA,
 	}

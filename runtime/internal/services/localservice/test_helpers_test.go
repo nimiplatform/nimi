@@ -52,8 +52,6 @@ func mustInstallSupervisedLocalModel(t *testing.T, svc *Service, req installLoca
 		defaultString(req.revision, "main"),
 		req.hashes,
 		"",
-		runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED,
-		"",
 		req.engineConfig,
 		nil,
 		"runtime_model_ready_after_install",
@@ -158,7 +156,6 @@ func writeManagedBundleFilesForTest(t *testing.T, svc *Service, model *runtimev1
 		repo:           defaultString(model.GetSource().GetRepo(), "test/managed-bundle"),
 		revision:       defaultString(model.GetSource().GetRevision(), "main"),
 		hashes:         cloneStringMap(model.GetHashes()),
-		endpoint:       model.GetEndpoint(),
 		engineConfig:   cloneStruct(model.GetEngineConfig()),
 		integrityMode:  "test",
 	}); err != nil {

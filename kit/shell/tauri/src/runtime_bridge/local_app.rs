@@ -7,10 +7,11 @@ use nimi_shell_protected_local::WindowsLocalAppCarrier;
 use nimi_shell_protected_local::{
     LocalAppAIConfigOverwriteRequest, LocalAppAgentCommitPresentationRequest,
     LocalAppAgentHandleRequest, LocalAppAgentUpdateAutonomyRequest, LocalAppOperationError,
-    LocalAppReasonCode, LocalAppSessionStatus, LocalAppSharedAgentAIConfigOverwriteRequest,
-    LocalAppStorageDocument, LocalAppStorageReadRequest, LocalAppStorageRemoveRequest,
-    LocalAppStorageRemoveResult, LocalAppStorageWriteRequest, LocalAppTextCandidateRequest,
-    LocalAppTextCandidateResult, NimiLocalAppCarrier, NimiLocalAppSession,
+    LocalAppReasonCode, LocalAppScenarioUploadArtifactRequest, LocalAppSessionStatus,
+    LocalAppSharedAgentAIConfigOverwriteRequest, LocalAppStorageDocument,
+    LocalAppStorageReadRequest, LocalAppStorageRemoveRequest, LocalAppStorageRemoveResult,
+    LocalAppStorageWriteRequest, LocalAppTextCandidateRequest, LocalAppTextCandidateResult,
+    NimiLocalAppCarrier, NimiLocalAppSession,
 };
 use std::sync::Arc;
 use tokio::sync::Mutex;
@@ -81,9 +82,36 @@ impl RuntimeBridgeLocalAppHost {
         }
     }
 
+    pub async fn upload_scenario_artifact(
+        &self,
+        request: LocalAppScenarioUploadArtifactRequest,
+    ) -> Result<serde_json::Value, LocalAppOperationError> {
+        let session = self.current_or_open_session().await?;
+        match session.upload_scenario_artifact(request).await {
+            Ok(value) => Ok(value),
+            Err(error) => {
+                self.clear_on_transport_failure(&session, &error).await;
+                Err(error)
+            }
+        }
+    }
+
     pub async fn app_ai_config_get(&self) -> Result<serde_json::Value, LocalAppOperationError> {
         let session = self.current_or_open_session().await?;
         match session.app_ai_config_get().await {
+            Ok(value) => Ok(value),
+            Err(error) => {
+                self.clear_on_transport_failure(&session, &error).await;
+                Err(error)
+            }
+        }
+    }
+
+    pub async fn model_config_local_selections_get(
+        &self,
+    ) -> Result<serde_json::Value, LocalAppOperationError> {
+        let session = self.current_or_open_session().await?;
+        match session.model_config_local_selections_get().await {
             Ok(value) => Ok(value),
             Err(error) => {
                 self.clear_on_transport_failure(&session, &error).await;

@@ -364,6 +364,8 @@ describe('AgentCenter UI session contract', () => {
     const node = render(<AgentCenter activeSection="ai-config" session={session} />);
     await flush();
     await openTextCapability(node);
+    expect(node.querySelector('[data-nimi-model-config-defaults="text.generate"]')).not.toBeNull();
+    expect(node.textContent).toContain('Default parameters');
     await chooseLocalIntent(node);
     const configure = node.querySelector(
       '[data-testid="model-config-save:text.generate"]',

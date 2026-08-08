@@ -138,7 +138,7 @@ function classifyElectronHostCommand(
   command: string,
   hasCommandHandler: boolean,
 ): NimiElectronHostCommandKind {
-  if (isStandardShellCommand(command)) {
+  if (isStandardShellCommand(command) || isElectronLocalAppCommand(command)) {
     return 'standard';
   }
   if (hasCommandHandler

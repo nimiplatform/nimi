@@ -127,6 +127,53 @@ func TestBackendStreamGenerateTextRichKeepsReasoningSeparate(t *testing.T) {
 	}
 }
 
+func TestBackendStreamGenerateTextCarriesAdvancedSamplingParameters(t *testing.T) {
+	var captured map[string]any
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if err := json.NewDecoder(r.Body).Decode(&captured); err != nil {
+			t.Fatalf("decode request body: %v", err)
+		}
+		w.Header().Set("Content-Type", "text/event-stream")
+		_, _ = w.Write([]byte("data: {\"choices\":[{\"delta\":{\"content\":\"hello\"},\"finish_reason\":\"stop\"}]}\n\n"))
+		_, _ = w.Write([]byte("data: [DONE]\n\n"))
+	}))
+	defer func() { server.Close() }()
+
+	backend := NewBackend("openai", server.URL, "", 5*time.Second)
+	_, _, err := backend.StreamGenerateText(
+		context.Background(),
+		"gpt-4o-mini",
+		[]*runtimev1.ChatMessage{{Role: "user", Content: "hello"}},
+		"",
+		0,
+		0,
+		0,
+		textGenParams{
+			presencePenalty:  0.4,
+			frequencyPenalty: -0.3,
+			stop:             []string{"END", "STOP"},
+			seed:             73,
+		},
+		func(string) error { return nil },
+	)
+	if err != nil {
+		t.Fatalf("unexpected stream error: %v", err)
+	}
+	if got := ValueAsFloat64(captured["presence_penalty"]); got != 0.4 {
+		t.Fatalf("presence_penalty=%v, want 0.4", captured["presence_penalty"])
+	}
+	if got := ValueAsFloat64(captured["frequency_penalty"]); got != -0.3 {
+		t.Fatalf("frequency_penalty=%v, want -0.3", captured["frequency_penalty"])
+	}
+	stop, ok := captured["stop"].([]any)
+	if !ok || len(stop) != 2 || ValueAsString(stop[0]) != "END" || ValueAsString(stop[1]) != "STOP" {
+		t.Fatalf("stop=%#v, want [END STOP]", captured["stop"])
+	}
+	if got := ValueAsInt64(captured["seed"]); got != 73 {
+		t.Fatalf("seed=%v, want 73", captured["seed"])
+	}
+}
+
 func TestBackendGenerateTextUsesFlexibleMessageExtraction(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")

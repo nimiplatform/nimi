@@ -125,26 +125,6 @@ func (s *Service) syncManagedEndpointProjectionLocked(engineName string, endpoin
 	changed := false
 	now := nowISO()
 
-	for id, record := range s.assets {
-		if record == nil {
-			continue
-		}
-		if normalizeRuntimeMode(s.assetRuntimeModes[id]) != runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED {
-			continue
-		}
-		if managedRuntimeEngineForModel(record) != normalizedEngine {
-			continue
-		}
-		if strings.TrimSpace(record.GetEndpoint()) == normalizedEndpoint {
-			continue
-		}
-		cloned := cloneLocalAsset(record)
-		cloned.Endpoint = normalizedEndpoint
-		cloned.UpdatedAt = now
-		s.assets[id] = cloned
-		changed = true
-	}
-
 	for id, record := range s.services {
 		if record == nil {
 			continue

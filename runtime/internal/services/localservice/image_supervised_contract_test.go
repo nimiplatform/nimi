@@ -229,7 +229,6 @@ func TestManagedSupervisedImageBootstrapSelectionPrefersActiveSupportedSelection
 		Entry:        "z_image_turbo-q4.gguf",
 		Status:       runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE,
 	}
-	svc.assetRuntimeModes["asset_gguf"] = runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED
 	svc.assets["asset_workflow"] = &runtimev1.LocalAssetRecord{
 		LocalAssetId:  "asset_workflow",
 		AssetId:       "local/workflow-image",
@@ -242,7 +241,6 @@ func TestManagedSupervisedImageBootstrapSelectionPrefersActiveSupportedSelection
 		ArtifactRoles: []string{"transformer", "vae"},
 		Status:        runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED,
 	}
-	svc.assetRuntimeModes["asset_workflow"] = runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED
 	svc.mu.Unlock()
 
 	selection, ok := svc.ManagedSupervisedImageBootstrapSelection()
@@ -278,7 +276,6 @@ func TestManagedSupervisedImageBootstrapSelectionIgnoresSafetensorsNativeInstall
 		Entry:        "z_image_turbo-q4.gguf",
 		Status:       runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE,
 	}
-	svc.assetRuntimeModes["asset_gguf"] = runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED
 	svc.assets["asset_st_native"] = &runtimev1.LocalAssetRecord{
 		LocalAssetId: "asset_st_native",
 		AssetId:      "local/safetensors-image",
@@ -289,7 +286,6 @@ func TestManagedSupervisedImageBootstrapSelectionIgnoresSafetensorsNativeInstall
 		Files:        []string{"model.safetensors"},
 		Status:       runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED,
 	}
-	svc.assetRuntimeModes["asset_st_native"] = runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED
 	svc.mu.Unlock()
 
 	selection, ok := svc.ManagedSupervisedImageBootstrapSelection()
@@ -325,7 +321,6 @@ func TestManagedSupervisedImageBootstrapSelectionPrefersSupportedInstalledWindow
 		Entry:        "z_image_turbo-q4.gguf",
 		Status:       runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED,
 	}
-	svc.assetRuntimeModes["asset_gguf"] = runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED
 	svc.assets["asset_workflow"] = &runtimev1.LocalAssetRecord{
 		LocalAssetId:  "asset_workflow",
 		AssetId:       "local/workflow-image",
@@ -338,7 +333,6 @@ func TestManagedSupervisedImageBootstrapSelectionPrefersSupportedInstalledWindow
 		ArtifactRoles: []string{"transformer", "vae"},
 		Status:        runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED,
 	}
-	svc.assetRuntimeModes["asset_workflow"] = runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED
 	svc.mu.Unlock()
 
 	selection, ok := svc.ManagedSupervisedImageBootstrapSelection()
@@ -375,7 +369,6 @@ func TestManagedSupervisedImageBootstrapSelectionDoesNotAutoSelectUnsupportedSaf
 		Files:        []string{"model.safetensors"},
 		Status:       runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED,
 	}
-	svc.assetRuntimeModes["asset_st_native"] = runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED
 	svc.mu.Unlock()
 
 	selection, ok := svc.ManagedSupervisedImageBootstrapSelection()

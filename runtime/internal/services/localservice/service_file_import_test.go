@@ -38,8 +38,9 @@ func TestComputeImportFileSHA256WithProgressReportsProcessedBytes(t *testing.T) 
 	}
 
 	progress := make([]int64, 0, 2)
-	hash, err := computeImportFileSHA256WithProgress(path, func(processedBytes int64) {
+	hash, err := computeImportFileSHA256WithProgress(path, func(processedBytes int64) error {
 		progress = append(progress, processedBytes)
+		return nil
 	})
 	if err != nil {
 		t.Fatalf("compute hash with progress: %v", err)
@@ -693,8 +694,8 @@ func TestImportLocalImageModelFileRejectsMissingRuntimeSupportedDiffusionIdentit
 		t.Fatal("expected invalid image gguf import to fail")
 	}
 	assertGRPCReasonCode(t, err, "ImportLocalAssetFile(image unsupported diffusion identity)", runtimev1.ReasonCode_AI_LOCAL_MANIFEST_INVALID)
-	if !strings.Contains(err.Error(), "runtime-supported diffusion") {
-		t.Fatalf("expected diffusion compatibility validation detail, got %v", err)
+	if !strings.Contains(err.Error(), "declared asset kind") {
+		t.Fatalf("expected asset content compatibility validation detail, got %v", err)
 	}
 }
 
@@ -746,7 +747,7 @@ func TestImportLocalImageModelFileSupportsAppleSiliconManagedImageHost(t *testin
 	}
 }
 
-func TestImportLocalImageModelFileUnsupportedHostRegistersUnhealthyAsset(t *testing.T) {
+func TestImportLocalImageModelFileUnsupportedHostRegistersAssetWithoutHostHealth(t *testing.T) {
 	svc := newTestService(t)
 	setLocalRuntimePlatformForTest(t, "linux", "amd64")
 	setNvidiaGPUProbeForTest(t, true)
@@ -763,20 +764,20 @@ func TestImportLocalImageModelFileUnsupportedHostRegistersUnhealthyAsset(t *test
 		Engine:   "media",
 	})
 	if err != nil {
-		t.Fatalf("expected unsupported-host image import to register unhealthy asset instead of failing, got %v", err)
+		t.Fatalf("expected unsupported-host image import to remain an asset-only operation, got %v", err)
 	}
 	if got := svc.modelRuntimeMode(resp.GetAsset().GetLocalAssetId()); got != runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED {
 		t.Fatalf("runtime mode mismatch: got=%s", got)
 	}
-	if got := resp.GetAsset().GetStatus(); got != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY {
+	if got := resp.GetAsset().GetStatus(); got != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED {
 		t.Fatalf("status mismatch: got=%s", got)
 	}
-	if detail := resp.GetAsset().GetHealthDetail(); !strings.Contains(detail, "no published runtime-owned managed image backend package") {
-		t.Fatalf("expected compatibility detail, got %q", detail)
+	if detail := strings.TrimSpace(resp.GetAsset().GetHealthDetail()); detail != "" {
+		t.Fatalf("asset import must not persist host compatibility detail, got %q", detail)
 	}
 }
 
-func TestScaffoldOrphanVideoModelRestoresSourceWhenRegistrationFails(t *testing.T) {
+func TestScaffoldOrphanVideoModelImportsWithoutHostEndpoint(t *testing.T) {
 	svc := newTestService(t)
 	setLocalRuntimePlatformForTest(t, "windows", "amd64")
 	setUnsupportedGPUProbeForTest(t)
@@ -789,23 +790,20 @@ func TestScaffoldOrphanVideoModelRestoresSourceWhenRegistrationFails(t *testing.
 		t.Fatalf("write source model: %v", err)
 	}
 
-	_, err := svc.ScaffoldOrphanAsset(context.Background(), &runtimev1.ScaffoldOrphanAssetRequest{
+	resp, err := svc.ScaffoldOrphanAsset(context.Background(), &runtimev1.ScaffoldOrphanAssetRequest{
 		Path:         sourcePath,
+		Kind:         runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_VIDEO,
 		Capabilities: []string{"video.generate"},
 		Engine:       "media",
 	})
-	if err == nil {
-		t.Fatal("expected scaffold orphan video import to fail without explicit media endpoint")
+	if err != nil {
+		t.Fatalf("video asset import must not require an execution endpoint: %v", err)
 	}
-	assertGRPCReasonCode(t, err, "ScaffoldOrphanAsset(video missing endpoint)", runtimev1.ReasonCode_AI_LOCAL_ENDPOINT_REQUIRED)
-
-	logicalModelID := filepath.ToSlash(filepath.Join("nimi", slugifyLocalModelID("local-import/z_image_turbo-Q4_K_M")))
-	stagedDir := runtimeManagedResolvedModelDir(resolveLocalModelsPath(svc.localModelsPath), logicalModelID)
-	if _, statErr := os.Stat(stagedDir); !os.IsNotExist(statErr) {
-		t.Fatalf("expected staged dir rollback, stat err=%v", statErr)
+	if resp.GetAsset().GetKind() != runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_VIDEO {
+		t.Fatalf("unexpected imported kind: %s", resp.GetAsset().GetKind())
 	}
-	if _, statErr := os.Stat(sourcePath); statErr != nil {
-		t.Fatalf("source file should be restored after failed orphan scaffold: %v", statErr)
+	if _, statErr := os.Stat(sourcePath); !os.IsNotExist(statErr) {
+		t.Fatalf("scaffolded source should move into Runtime storage, stat err=%v", statErr)
 	}
 
 	transfers, listErr := svc.ListLocalTransfers(context.Background(), &runtimev1.ListLocalTransfersRequest{})
@@ -815,8 +813,8 @@ func TestScaffoldOrphanVideoModelRestoresSourceWhenRegistrationFails(t *testing.
 	if len(transfers.GetTransfers()) != 1 {
 		t.Fatalf("expected one failed transfer, got %d", len(transfers.GetTransfers()))
 	}
-	if transfers.GetTransfers()[0].GetState() != "failed" {
-		t.Fatalf("expected failed transfer, got %q", transfers.GetTransfers()[0].GetState())
+	if transfers.GetTransfers()[0].GetState() != "completed" {
+		t.Fatalf("expected completed transfer, got %q", transfers.GetTransfers()[0].GetState())
 	}
 }
 
@@ -851,7 +849,7 @@ func TestScaffoldOrphanImageModelInfersCapabilitiesFromKindWithoutEndpoint(t *te
 	}
 }
 
-func TestScaffoldOrphanImageModelUnsupportedHostRegistersUnhealthyAsset(t *testing.T) {
+func TestScaffoldOrphanImageModelUnsupportedHostRegistersAssetWithoutHostHealth(t *testing.T) {
 	svc := newTestService(t)
 	setLocalRuntimePlatformForTest(t, "linux", "amd64")
 	setNvidiaGPUProbeForTest(t, true)
@@ -868,16 +866,16 @@ func TestScaffoldOrphanImageModelUnsupportedHostRegistersUnhealthyAsset(t *testi
 		Engine: "media",
 	})
 	if err != nil {
-		t.Fatalf("expected unsupported-host orphan image import to register unhealthy asset instead of failing, got %v", err)
+		t.Fatalf("expected unsupported-host orphan image import to remain asset-only, got %v", err)
 	}
 	if got := svc.modelRuntimeMode(resp.GetAsset().GetLocalAssetId()); got != runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED {
 		t.Fatalf("runtime mode mismatch: got=%s", got)
 	}
-	if got := resp.GetAsset().GetStatus(); got != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY {
+	if got := resp.GetAsset().GetStatus(); got != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED {
 		t.Fatalf("status mismatch: got=%s", got)
 	}
-	if detail := resp.GetAsset().GetHealthDetail(); !strings.Contains(detail, "no published runtime-owned managed image backend package") {
-		t.Fatalf("expected compatibility detail, got %q", detail)
+	if detail := strings.TrimSpace(resp.GetAsset().GetHealthDetail()); detail != "" {
+		t.Fatalf("asset import must not persist host compatibility detail, got %q", detail)
 	}
 	if _, statErr := os.Stat(sourcePath); !os.IsNotExist(statErr) {
 		t.Fatalf("expected orphan source to move into runtime-managed storage, stat err=%v", statErr)

@@ -197,6 +197,21 @@ message AddLocalCapabilityConfigurationResponse {
   LocalCapabilityConfiguration configuration = 1;
 }
 
+// UpdateLocalCapabilityConfiguration replaces the mutable portable intent of
+// one saved record. Capability and implementation identity remain immutable;
+// callers create a new record when either identity changes.
+message UpdateLocalCapabilityConfigurationRequest {
+  string configuration_id = 1;
+  google.protobuf.Struct portable_config = 2;
+  repeated string supported_features = 3;
+  string display_name = 4;
+  google.protobuf.Struct provenance = 5;
+}
+
+message UpdateLocalCapabilityConfigurationResponse {
+  LocalCapabilityConfiguration configuration = 1;
+}
+
 message SelectLocalCapabilityConfigurationRequest {
   string capability_contract = 1;
   string configuration_id = 2;

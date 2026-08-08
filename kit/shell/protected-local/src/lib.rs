@@ -43,13 +43,19 @@ mod windows_source_policy;
 ))]
 compile_error!("macos-local-development and macos-source-local-development are mutually exclusive");
 
-#[cfg(all(feature = "windows-source-local-development", not(target_os = "windows")))]
+#[cfg(all(
+    feature = "windows-source-local-development",
+    not(target_os = "windows")
+))]
 compile_error!("windows-source-local-development requires a Windows target");
 
 mod generated {
     tonic::include_proto!("nimi.runtime.v1");
 }
-#[cfg(all(target_os = "windows", not(feature = "windows-source-local-development")))]
+#[cfg(all(
+    target_os = "windows",
+    not(feature = "windows-source-local-development")
+))]
 #[allow(unsafe_code)]
 mod windows_data_root;
 #[cfg(all(target_os = "windows", feature = "windows-source-local-development"))]
@@ -65,7 +71,10 @@ mod windows_local_app;
 #[allow(unsafe_code)]
 mod windows_local_development;
 #[cfg(any(target_os = "windows", target_os = "macos"))]
-#[cfg(all(target_os = "windows", not(feature = "windows-source-local-development")))]
+#[cfg(all(
+    target_os = "windows",
+    not(feature = "windows-source-local-development")
+))]
 #[allow(unsafe_code)]
 mod windows_peer_trust;
 #[cfg(all(target_os = "windows", feature = "windows-source-local-development"))]
@@ -91,16 +100,19 @@ pub use bundled_avatar::{
 pub use carrier::{
     DesktopControlFuture, LocalAppAIConfigOverwriteRequest, LocalAppAgentCommitPresentationRequest,
     LocalAppAgentHandleRequest, LocalAppAgentReference, LocalAppAgentUpdateAutonomyRequest,
-    LocalAppConversationEvent, LocalAppConversationEventKind,
-    LocalAppConversationInterruptRequest, LocalAppConversationInterruptResult,
-    LocalAppConversationMessage, LocalAppConversationMessageRole, LocalAppConversationOpenRequest,
+    LocalAppConversationEvent, LocalAppConversationEventKind, LocalAppConversationInterruptRequest,
+    LocalAppConversationInterruptResult, LocalAppConversationMessage,
+    LocalAppConversationMessageRole, LocalAppConversationOpenRequest,
     LocalAppConversationOpenResult, LocalAppConversationSendRequest,
     LocalAppConversationSendResult, LocalAppConversationSnapshot,
     LocalAppConversationSnapshotRequest, LocalAppConversationSubscribeRequest,
-    LocalAppConversationSubscriptionReceiver,
-    LocalAppCurrentUserDisplay, LocalAppCurrentUserStatus, LocalAppOperationError,
-    LocalAppReasonCode, LocalAppSessionFuture, LocalAppSessionState, LocalAppSessionStatus,
-    LocalAppSharedAgentAIConfigOverwriteRequest,
+    LocalAppConversationSubscriptionReceiver, LocalAppCurrentUserDisplay,
+    LocalAppCurrentUserStatus, LocalAppOperationError, LocalAppReasonCode,
+    LocalAppScenarioCancelRequest, LocalAppScenarioExecuteRequest, LocalAppScenarioGetRequest,
+    LocalAppScenarioJobSubscribeRequest, LocalAppScenarioListVoiceAssetsRequest,
+    LocalAppScenarioReadArtifactRequest, LocalAppScenarioStreamReceiver,
+    LocalAppScenarioSubmitRequest, LocalAppScenarioUploadArtifactRequest, LocalAppSessionFuture,
+    LocalAppSessionState, LocalAppSessionStatus, LocalAppSharedAgentAIConfigOverwriteRequest,
     LocalAppStorageDocument, LocalAppStorageReadRequest, LocalAppStorageRemoveRequest,
     LocalAppStorageRemoveResult, LocalAppStorageWriteRequest, LocalAppTextCandidateMessage,
     LocalAppTextCandidateRequest, LocalAppTextCandidateResult, LocalAppWorldCoreCreateRequest,
@@ -147,9 +159,9 @@ pub use service::{
 pub use windows_data_root::{prepare_fixed_runtime_data_root, FixedRuntimeDataRootError};
 #[cfg(target_os = "macos")]
 pub use windows_local_app::MacOsLocalAppCarrier;
+#[cfg(all(target_os = "windows", feature = "windows-source-local-development"))]
+pub use windows_service_control::terminate_source_local_development_host;
 #[cfg(target_os = "windows")]
 pub use windows_service_control::{
     invalidate_verified_desktop_runtime_channel, open_verified_desktop_runtime_channel,
 };
-#[cfg(all(target_os = "windows", feature = "windows-source-local-development"))]
-pub use windows_service_control::terminate_source_local_development_host;

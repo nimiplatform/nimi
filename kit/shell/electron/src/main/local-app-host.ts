@@ -8,7 +8,21 @@ const LOCAL_APP_BINDING_METHODS = [
   'localAppSessionRenew',
   'localAppAIConfigGet',
   'localAppAIConfigOverwrite',
+  'localAppModelConfigLocalSelectionsGet',
   'localAppTextGenerateCandidate',
+  'localAppTextTurnSubscribe',
+  'localAppTextTurnStreamNext',
+  'localAppTextTurnStreamClose',
+  'localAppScenarioExecute',
+  'localAppScenarioJobSubmit',
+  'localAppScenarioJobGet',
+  'localAppScenarioJobSubscribe',
+  'localAppScenarioJobStreamNext',
+  'localAppScenarioJobStreamClose',
+  'localAppScenarioJobCancel',
+  'localAppArtifactRead',
+  'localAppArtifactUpload',
+  'localAppVoiceAssetsList',
   'localAppRealmWorldCoreList',
   'localAppRealmWorldCoreCreate',
   'localAppAgentReferenceList',
@@ -132,6 +146,11 @@ export type NimiElectronLocalAppRecord = {
   readonly [key: string]: NimiElectronLocalAppJson;
 };
 
+type NimiElectronLocalAppArtifactUploadBindingInput = {
+  readonly bytes: Buffer;
+  readonly mimeType: string;
+};
+
 type NativeLocalAppOutcome =
   | { readonly status: 'ok'; readonly value: unknown }
   | {
@@ -146,7 +165,21 @@ export type NimiElectronProtectedLocalBinding = {
   readonly localAppSessionRenew: () => Promise<NativeLocalAppOutcome>;
   readonly localAppAIConfigGet: () => Promise<NativeLocalAppOutcome>;
   readonly localAppAIConfigOverwrite: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
+  readonly localAppModelConfigLocalSelectionsGet: () => Promise<NativeLocalAppOutcome>;
   readonly localAppTextGenerateCandidate: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
+  readonly localAppTextTurnSubscribe: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
+  readonly localAppTextTurnStreamNext: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
+  readonly localAppTextTurnStreamClose: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
+  readonly localAppScenarioExecute: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
+  readonly localAppScenarioJobSubmit: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
+  readonly localAppScenarioJobGet: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
+  readonly localAppScenarioJobSubscribe: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
+  readonly localAppScenarioJobStreamNext: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
+  readonly localAppScenarioJobStreamClose: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
+  readonly localAppScenarioJobCancel: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
+  readonly localAppArtifactRead: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
+  readonly localAppArtifactUpload: (input: NimiElectronLocalAppArtifactUploadBindingInput) => Promise<NativeLocalAppOutcome>;
+  readonly localAppVoiceAssetsList: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppRealmWorldCoreList: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppRealmWorldCoreCreate: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppAgentReferenceList: () => Promise<NativeLocalAppOutcome>;
@@ -173,7 +206,21 @@ export type NimiElectronLocalAppHost = {
   readonly renewTechnicalSession: () => Promise<NimiElectronLocalAppRecord>;
   readonly aiConfigGet: () => Promise<NimiElectronLocalAppRecord>;
   readonly aiConfigOverwrite: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
+  readonly modelConfigLocalSelectionsGet: () => Promise<readonly NimiElectronLocalAppRecord[]>;
   readonly textGenerateCandidate: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
+  readonly textTurnSubscribe: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
+  readonly textTurnStreamNext: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
+  readonly textTurnStreamClose: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
+  readonly scenarioExecute: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
+  readonly scenarioJobSubmit: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
+  readonly scenarioJobGet: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
+  readonly scenarioJobSubscribe: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
+  readonly scenarioJobStreamNext: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
+  readonly scenarioJobStreamClose: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
+  readonly scenarioJobCancel: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
+  readonly artifactRead: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
+  readonly artifactUpload: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
+  readonly voiceAssetsList: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly realmWorldCoreList: (input: NimiElectronLocalAppRecord) => Promise<readonly NimiElectronLocalAppRecord[]>;
   readonly realmWorldCoreCreate: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly agentReferenceList: () => Promise<readonly NimiElectronLocalAppRecord[]>;
@@ -317,6 +364,7 @@ function untrustedNativeOutcome(): NativeLocalAppOutcome {
 
 class ElectronLocalAppHost implements NimiElectronLocalAppHost {
   private readonly binding: NimiElectronProtectedLocalBinding;
+  private readonly textTurnStreams = new Map<string, { bytes: number; sequence: bigint }>();
 
   constructor(binding: NimiElectronProtectedLocalBinding) {
     this.binding = withBoundedSessionRebind(binding);
@@ -338,8 +386,99 @@ class ElectronLocalAppHost implements NimiElectronLocalAppHost {
     return invokePortableAppAIConfig(() => this.binding.localAppAIConfigOverwrite(input));
   }
 
+  modelConfigLocalSelectionsGet(): Promise<readonly NimiElectronLocalAppRecord[]> {
+    return invokeModelConfigLocalSelections(
+      () => this.binding.localAppModelConfigLocalSelectionsGet(),
+    );
+  }
+
   textGenerateCandidate(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
     return invokeTextCandidate(() => this.binding.localAppTextGenerateCandidate(input));
+  }
+
+  async textTurnSubscribe(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    const opened = await invokeExactTextRecord(() => this.binding.localAppTextTurnSubscribe(input), ['streamId']);
+    this.textTurnStreams.set(String(opened.streamId), { bytes: 0, sequence: 0n });
+    return opened;
+  }
+
+  async textTurnStreamNext(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    const streamId = String(input.streamId);
+    const state = this.textTurnStreams.get(streamId);
+    if (!state) throw untrustedRuntimeError();
+    const next = await invokeScenarioStreamNext(
+      () => this.binding.localAppTextTurnStreamNext(input),
+      validateTextTurnEvent,
+    );
+    if (next.completed === true) {
+      this.textTurnStreams.delete(streamId);
+      return next;
+    }
+    const event = next.event;
+    if (!isPlainRecord(event) || typeof event.sequence !== 'string') throw untrustedRuntimeError();
+    const sequence = BigInt(event.sequence);
+    if (sequence !== state.sequence + 1n) throw untrustedRuntimeError();
+    state.sequence = sequence;
+    if (event.type === 'delta' && typeof event.text === 'string') {
+      state.bytes += Buffer.byteLength(event.text, 'utf8');
+      if (state.bytes > 256 * 1024) {
+        this.textTurnStreams.delete(streamId);
+        throw untrustedRuntimeError();
+      }
+    }
+    return next;
+  }
+
+  async textTurnStreamClose(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    this.textTurnStreams.delete(String(input.streamId));
+    return invokeConversationStreamClose(() => this.binding.localAppTextTurnStreamClose(input));
+  }
+
+  scenarioExecute(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    return invokeScenarioExecute(() => this.binding.localAppScenarioExecute(input));
+  }
+
+  scenarioJobSubmit(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    return invokeScenarioJobSubmit(() => this.binding.localAppScenarioJobSubmit(input));
+  }
+
+  scenarioJobGet(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    return invokeScenarioJobEnvelope(() => this.binding.localAppScenarioJobGet(input));
+  }
+
+  scenarioJobSubscribe(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    return invokeExactTextRecord(() => this.binding.localAppScenarioJobSubscribe(input), ['streamId']);
+  }
+
+  scenarioJobStreamNext(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    return invokeScenarioStreamNext(() => this.binding.localAppScenarioJobStreamNext(input), validateScenarioJobEvent);
+  }
+
+  scenarioJobStreamClose(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    return invokeConversationStreamClose(() => this.binding.localAppScenarioJobStreamClose(input));
+  }
+
+  scenarioJobCancel(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    return invokeScenarioJobEnvelope(() => this.binding.localAppScenarioJobCancel(input));
+  }
+
+  artifactRead(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    return invokeArtifactRead(() => this.binding.localAppArtifactRead(input));
+  }
+
+  artifactUpload(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    const bytes = validateByteArray(input.bytes);
+    const mimeType = boundedImageMime(input.mimeType);
+    if (bytes.length === 0) throw untrustedRuntimeError();
+    return invokeArtifactUpload(
+      () => this.binding.localAppArtifactUpload({ bytes: Buffer.from(bytes), mimeType }),
+      bytes.length,
+      mimeType,
+    );
+  }
+
+  voiceAssetsList(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    return invokeVoiceAssetsList(() => this.binding.localAppVoiceAssetsList(input));
   }
 
   realmWorldCoreList(input: NimiElectronLocalAppRecord): Promise<readonly NimiElectronLocalAppRecord[]> {
@@ -444,8 +583,64 @@ class LazyElectronLocalAppHost implements NimiElectronLocalAppHost {
     return this.resolve().aiConfigOverwrite(input);
   }
 
+  modelConfigLocalSelectionsGet(): Promise<readonly NimiElectronLocalAppRecord[]> {
+    return this.resolve().modelConfigLocalSelectionsGet();
+  }
+
   textGenerateCandidate(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
     return this.resolve().textGenerateCandidate(input);
+  }
+
+  textTurnSubscribe(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    return this.resolve().textTurnSubscribe(input);
+  }
+
+  textTurnStreamNext(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    return this.resolve().textTurnStreamNext(input);
+  }
+
+  textTurnStreamClose(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    return this.resolve().textTurnStreamClose(input);
+  }
+
+  scenarioExecute(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    return this.resolve().scenarioExecute(input);
+  }
+
+  scenarioJobSubmit(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    return this.resolve().scenarioJobSubmit(input);
+  }
+
+  scenarioJobGet(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    return this.resolve().scenarioJobGet(input);
+  }
+
+  scenarioJobSubscribe(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    return this.resolve().scenarioJobSubscribe(input);
+  }
+
+  scenarioJobStreamNext(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    return this.resolve().scenarioJobStreamNext(input);
+  }
+
+  scenarioJobStreamClose(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    return this.resolve().scenarioJobStreamClose(input);
+  }
+
+  scenarioJobCancel(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    return this.resolve().scenarioJobCancel(input);
+  }
+
+  artifactRead(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    return this.resolve().artifactRead(input);
+  }
+
+  artifactUpload(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    return this.resolve().artifactUpload(input);
+  }
+
+  voiceAssetsList(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    return this.resolve().voiceAssetsList(input);
   }
 
   realmWorldCoreList(input: NimiElectronLocalAppRecord): Promise<readonly NimiElectronLocalAppRecord[]> {
@@ -693,6 +888,322 @@ async function invokeTextCandidate(
   }
   const traceId = exactText(value.traceId);
   return Object.freeze({ text: value.text, finishReason: value.finishReason, traceId });
+}
+
+async function invokeScenarioExecute(
+  call: () => Promise<NativeLocalAppOutcome>,
+): Promise<NimiElectronLocalAppRecord> {
+  const value = await invoke(call);
+  if (!isPlainRecord(value) || !hasExactKeys(value, ['output', 'traceId']) || !isPlainRecord(value.output)) {
+    throw untrustedRuntimeError();
+  }
+  const traceId = boundedExactText(value.traceId, 512, false);
+  const output = value.output;
+  if (output.type === 'text-embed') {
+    if (!hasExactKeys(output, ['type', 'vectors']) || !Array.isArray(output.vectors)
+      || output.vectors.length === 0 || output.vectors.length > 16) throw untrustedRuntimeError();
+    const vectors = output.vectors.map((vector) => {
+      if (!Array.isArray(vector) || vector.length === 0 || vector.length > 8192
+        || vector.some((entry) => typeof entry !== 'number' || !Number.isFinite(entry))) {
+        throw untrustedRuntimeError();
+      }
+      return Object.freeze([...vector]);
+    });
+    return Object.freeze({ output: Object.freeze({ type: 'text-embed', vectors: Object.freeze(vectors) }), traceId });
+  }
+  if (output.type === 'image-generate') {
+    if (!hasExactKeys(output, ['type', 'artifacts']) || !Array.isArray(output.artifacts)) throw untrustedRuntimeError();
+    return Object.freeze({
+      output: Object.freeze({ type: 'image-generate', artifacts: validateScenarioArtifacts(output.artifacts) }),
+      traceId,
+    });
+  }
+  throw untrustedRuntimeError();
+}
+
+async function invokeScenarioJobSubmit(
+  call: () => Promise<NativeLocalAppOutcome>,
+): Promise<NimiElectronLocalAppRecord> {
+  const value = await invoke(call);
+  if (!isPlainRecord(value) || !hasExactKeys(value, ['job', 'asset'])
+    || (value.job === null && value.asset === null)) throw untrustedRuntimeError();
+  return Object.freeze({
+    job: value.job === null ? null : validateScenarioJob(value.job),
+    asset: value.asset === null ? null : validateVoiceAsset(value.asset),
+  });
+}
+
+async function invokeScenarioJobEnvelope(
+  call: () => Promise<NativeLocalAppOutcome>,
+): Promise<NimiElectronLocalAppRecord> {
+  const value = await invoke(call);
+  if (!isPlainRecord(value) || !hasExactKeys(value, ['job'])) throw untrustedRuntimeError();
+  return Object.freeze({ job: validateScenarioJob(value.job) });
+}
+
+async function invokeArtifactRead(
+  call: () => Promise<NativeLocalAppOutcome>,
+): Promise<NimiElectronLocalAppRecord> {
+  const value = await invoke(call);
+  if (!isPlainRecord(value) || !hasExactKeys(value, ['bytes', 'mimeType', 'sizeBytes'])) {
+    throw untrustedRuntimeError();
+  }
+  const bytes = validateByteArray(value.bytes);
+  const sizeBytes = boundedInteger(value.sizeBytes, 0, 32 * 1024 * 1024);
+  if (sizeBytes !== bytes.length) throw untrustedRuntimeError();
+  return Object.freeze({ bytes, mimeType: boundedMime(value.mimeType), sizeBytes });
+}
+
+async function invokeArtifactUpload(
+  call: () => Promise<NativeLocalAppOutcome>,
+  expectedSize: number,
+  expectedMimeType: string,
+): Promise<NimiElectronLocalAppRecord> {
+  const value = await invoke(call);
+  if (!isPlainRecord(value) || !hasExactKeys(value, ['artifactId', 'sizeBytes', 'mimeType'])) {
+    throw untrustedRuntimeError();
+  }
+  const artifactId = boundedExactText(value.artifactId, 128, false);
+  const sizeBytes = boundedInteger(value.sizeBytes, 1, 32 * 1024 * 1024);
+  const mimeType = boundedImageMime(value.mimeType);
+  if (sizeBytes !== expectedSize || mimeType !== expectedMimeType) throw untrustedRuntimeError();
+  return Object.freeze({ artifactId, sizeBytes, mimeType });
+}
+
+async function invokeVoiceAssetsList(
+  call: () => Promise<NativeLocalAppOutcome>,
+): Promise<NimiElectronLocalAppRecord> {
+  const value = await invoke(call);
+  if (!isPlainRecord(value) || !hasExactKeys(value, ['assets', 'nextPageToken'])
+    || !Array.isArray(value.assets) || value.assets.length > 200
+    || typeof value.nextPageToken !== 'string' || !/^[0-9]{0,10}$/u.test(value.nextPageToken)) {
+    throw untrustedRuntimeError();
+  }
+  return Object.freeze({
+    assets: Object.freeze(value.assets.map(validateVoiceAsset)),
+    nextPageToken: value.nextPageToken,
+  });
+}
+
+async function invokeScenarioStreamNext(
+  call: () => Promise<NativeLocalAppOutcome>,
+  validateEvent: (value: unknown) => NimiElectronLocalAppRecord,
+): Promise<NimiElectronLocalAppRecord> {
+  const value = await invoke(call);
+  if (!isPlainRecord(value) || typeof value.completed !== 'boolean') throw untrustedRuntimeError();
+  if (value.completed) {
+    if (!hasExactKeys(value, ['completed'])) throw untrustedRuntimeError();
+    return Object.freeze({ completed: true });
+  }
+  if (!hasExactKeys(value, ['completed', 'event'])) throw untrustedRuntimeError();
+  return Object.freeze({ completed: false, event: validateEvent(value.event) });
+}
+
+function validateScenarioJob(value: unknown): NimiElectronLocalAppRecord {
+  if (!isPlainRecord(value) || !hasExactKeys(value, [
+    'jobId', 'scenarioType', 'status', 'progressPercent', 'progressCurrentStep',
+    'progressTotalSteps', 'reasonCode', 'reasonDetail', 'artifacts', 'traceId',
+    'createdAt', 'updatedAt',
+  ])) throw untrustedRuntimeError();
+  const scenarioTypes = ['image-generate', 'video-generate', 'speech-synthesize', 'speech-transcribe', 'voice-clone', 'voice-design'];
+  const statuses = ['submitted', 'queued', 'running', 'completed', 'failed', 'canceled', 'timeout'];
+  if (!scenarioTypes.includes(String(value.scenarioType)) || !statuses.includes(String(value.status))) {
+    throw untrustedRuntimeError();
+  }
+  const progressPercent = boundedInteger(value.progressPercent, 0, 100);
+  const progressCurrentStep = boundedInteger(value.progressCurrentStep, 0, Number.MAX_SAFE_INTEGER);
+  const progressTotalSteps = boundedInteger(value.progressTotalSteps, 0, Number.MAX_SAFE_INTEGER);
+  if (progressCurrentStep > progressTotalSteps) throw untrustedRuntimeError();
+  return Object.freeze({
+    jobId: boundedExactText(value.jobId, 128, false),
+    scenarioType: value.scenarioType,
+    status: value.status,
+    progressPercent,
+    progressCurrentStep,
+    progressTotalSteps,
+    reasonCode: boundedExactText(value.reasonCode, 128, true),
+    reasonDetail: boundedExactText(value.reasonDetail, 1024, true),
+    artifacts: validateScenarioArtifacts(value.artifacts),
+    traceId: boundedExactText(value.traceId, 512, true),
+    createdAt: validateTimestamp(value.createdAt),
+    updatedAt: validateTimestamp(value.updatedAt),
+  }) as NimiElectronLocalAppRecord;
+}
+
+function validateScenarioArtifacts(value: unknown): readonly NimiElectronLocalAppRecord[] {
+  if (!Array.isArray(value) || value.length > 16) throw untrustedRuntimeError();
+  return Object.freeze(value.map((entry) => {
+    if (!isPlainRecord(entry) || !hasExactKeys(entry, [
+      'artifactId', 'mimeType', 'bytes', 'sizeBytes', 'sha256', 'durationMs',
+      'width', 'height', 'sampleRateHz', 'channels',
+    ])) throw untrustedRuntimeError();
+    const bytes = validateByteArray(entry.bytes);
+    const sizeBytes = boundedInteger(entry.sizeBytes, 0, Number.MAX_SAFE_INTEGER);
+    if (bytes.length > 0 && sizeBytes !== bytes.length) throw untrustedRuntimeError();
+    return Object.freeze({
+      artifactId: boundedExactText(entry.artifactId, 128, false),
+      mimeType: boundedMime(entry.mimeType),
+      bytes,
+      sizeBytes,
+      sha256: boundedExactText(entry.sha256, 128, true),
+      durationMs: boundedInteger(entry.durationMs, 0, Number.MAX_SAFE_INTEGER),
+      width: boundedInteger(entry.width, 0, Number.MAX_SAFE_INTEGER),
+      height: boundedInteger(entry.height, 0, Number.MAX_SAFE_INTEGER),
+      sampleRateHz: boundedInteger(entry.sampleRateHz, 0, Number.MAX_SAFE_INTEGER),
+      channels: boundedInteger(entry.channels, 0, Number.MAX_SAFE_INTEGER),
+    }) as NimiElectronLocalAppRecord;
+  }));
+}
+
+function validateVoiceAsset(value: unknown): NimiElectronLocalAppRecord {
+  if (!isPlainRecord(value) || !hasExactKeys(value, [
+    'voiceAssetId', 'workflowType', 'status', 'createdAt', 'updatedAt', 'expiresAt',
+  ]) || (value.workflowType !== 'voice-clone' && value.workflowType !== 'voice-design')
+    || !['active', 'expired', 'deleted', 'failed'].includes(String(value.status))) {
+    throw untrustedRuntimeError();
+  }
+  return Object.freeze({
+    voiceAssetId: boundedExactText(value.voiceAssetId, 128, false),
+    workflowType: value.workflowType,
+    status: value.status,
+    createdAt: validateTimestamp(value.createdAt),
+    updatedAt: validateTimestamp(value.updatedAt),
+    expiresAt: validateTimestamp(value.expiresAt),
+  }) as NimiElectronLocalAppRecord;
+}
+
+function validateScenarioJobEvent(value: unknown): NimiElectronLocalAppRecord {
+  if (!isPlainRecord(value) || !hasExactKeys(value, ['eventType', 'sequence', 'traceId', 'timestamp', 'job'])
+    || !['submitted', 'queued', 'running', 'completed', 'failed', 'canceled', 'timeout'].includes(String(value.eventType))
+    || typeof value.sequence !== 'string' || !/^[1-9][0-9]*$/u.test(value.sequence)) {
+    throw untrustedRuntimeError();
+  }
+  return Object.freeze({
+    eventType: value.eventType,
+    sequence: value.sequence,
+    traceId: boundedExactText(value.traceId, 512, true),
+    timestamp: validateTimestamp(value.timestamp),
+    job: validateScenarioJob(value.job),
+  }) as NimiElectronLocalAppRecord;
+}
+
+function validateTextTurnEvent(value: unknown): NimiElectronLocalAppRecord {
+  if (!isPlainRecord(value) || typeof value.type !== 'string'
+    || typeof value.sequence !== 'string' || !/^[1-9][0-9]*$/u.test(value.sequence)) {
+    throw untrustedRuntimeError();
+  }
+  const traceId = boundedExactText(value.traceId, 512, false);
+  if (value.type === 'delta') {
+    if (!hasExactKeys(value, ['type', 'sequence', 'traceId', 'text'])) throw untrustedRuntimeError();
+    return Object.freeze({ type: 'delta', sequence: value.sequence, traceId,
+      text: boundedUtf8Content(value.text, 64 * 1024) });
+  }
+  if (value.type === 'completed') {
+    if (!hasExactKeys(value, ['type', 'sequence', 'traceId', 'finishReason'])
+      || !['stop', 'length', 'content-filter'].includes(String(value.finishReason))) throw untrustedRuntimeError();
+    return Object.freeze({ type: 'completed', sequence: value.sequence, traceId, finishReason: String(value.finishReason) });
+  }
+  if (value.type === 'failed') {
+    if (!hasExactKeys(value, ['type', 'sequence', 'traceId', 'reasonCode', 'actionHint'])) throw untrustedRuntimeError();
+    return Object.freeze({ type: 'failed', sequence: value.sequence, traceId,
+      reasonCode: boundedExactText(value.reasonCode, 128, false),
+      actionHint: boundedExactText(value.actionHint, 512, true) });
+  }
+  throw untrustedRuntimeError();
+}
+
+function validateTimestamp(value: unknown): NimiElectronLocalAppRecord | null {
+  if (value === null) return null;
+  if (!isPlainRecord(value) || !hasExactKeys(value, ['seconds', 'nanos'])
+    || typeof value.seconds !== 'string' || !/^-?(?:0|[1-9][0-9]*)$/u.test(value.seconds)) {
+    throw untrustedRuntimeError();
+  }
+  return Object.freeze({ seconds: value.seconds, nanos: boundedInteger(value.nanos, 0, 999_999_999) });
+}
+
+function validateByteArray(value: unknown): readonly number[] {
+  if (!Array.isArray(value) || value.length > 32 * 1024 * 1024
+    || value.some((entry) => !Number.isInteger(entry) || Number(entry) < 0 || Number(entry) > 255)) {
+    throw untrustedRuntimeError();
+  }
+  return Object.freeze([...value] as number[]);
+}
+
+function boundedInteger(value: unknown, minimum: number, maximum: number): number {
+  if (typeof value !== 'number' || !Number.isSafeInteger(value) || value < minimum || value > maximum) {
+    throw untrustedRuntimeError();
+  }
+  return value;
+}
+
+function boundedExactText(value: unknown, maximumBytes: number, allowEmpty: boolean): string {
+  if (typeof value !== 'string' || (!allowEmpty && !value) || value.trim() !== value
+    || Buffer.byteLength(value, 'utf8') > maximumBytes || /[\u0000-\u001f\u007f]/u.test(value)) {
+    throw untrustedRuntimeError();
+  }
+  return value;
+}
+
+function boundedUtf8Content(value: unknown, maximumBytes: number): string {
+  if (typeof value !== 'string' || !value || Buffer.byteLength(value, 'utf8') > maximumBytes || value.includes('\0')) {
+    throw untrustedRuntimeError();
+  }
+  return value;
+}
+
+function boundedMime(value: unknown): string {
+  const mime = boundedExactText(value, 128, false);
+  if (!mime.includes('/')) throw untrustedRuntimeError();
+  return mime;
+}
+
+function boundedImageMime(value: unknown): string {
+  const mime = boundedMime(value);
+  if (!['image/png', 'image/jpeg', 'image/webp', 'image/gif'].includes(mime)) {
+    throw untrustedRuntimeError();
+  }
+  return mime;
+}
+
+async function invokeModelConfigLocalSelections(
+  call: () => Promise<NativeLocalAppOutcome>,
+): Promise<readonly NimiElectronLocalAppRecord[]> {
+  const value = await invoke(call);
+  if (!Array.isArray(value) || value.length > 64) throw untrustedRuntimeError();
+  return Object.freeze(value.map((entry) => {
+    if (!isPlainRecord(entry)
+      || !hasExactKeys(entry, [
+        'capabilityContract', 'state', 'configurationId', 'displayName',
+        'supportedFeatures', 'reasons',
+      ])
+      || typeof entry.capabilityContract !== 'string'
+      || !entry.capabilityContract
+      || entry.capabilityContract.trim() !== entry.capabilityContract
+      || (entry.state !== 'selected' && entry.state !== 'broken')
+      || entry.configurationId !== null
+      || (entry.displayName !== null && (
+        typeof entry.displayName !== 'string'
+        || !entry.displayName
+        || entry.displayName.trim() !== entry.displayName
+        || Buffer.byteLength(entry.displayName, 'utf8') > 256
+      ))
+      || !Array.isArray(entry.supportedFeatures)
+      || entry.supportedFeatures.some((feature) => typeof feature !== 'string'
+        || !feature || feature.trim() !== feature)
+      || !Array.isArray(entry.reasons)
+      || entry.reasons.some((reason) => typeof reason !== 'string'
+        || !reason || reason.trim() !== reason)) {
+      throw untrustedRuntimeError();
+    }
+    return Object.freeze({
+      capabilityContract: entry.capabilityContract,
+      state: entry.state,
+      configurationId: null,
+      displayName: entry.displayName,
+      supportedFeatures: Object.freeze([...entry.supportedFeatures]),
+      reasons: Object.freeze([...entry.reasons]),
+    }) as NimiElectronLocalAppRecord;
+  }));
 }
 
 async function invokeWorldCoreList(

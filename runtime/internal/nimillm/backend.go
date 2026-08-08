@@ -513,6 +513,10 @@ func (b *Backend) StreamGenerateTextRich(ctx context.Context, modelID string, in
 		MaxCompletionTokens *int32         `json:"max_completion_tokens,omitempty"`
 		Stream              bool           `json:"stream"`
 		StreamOptions       *streamOptions `json:"stream_options,omitempty"`
+		PresencePenalty     *float32       `json:"presence_penalty,omitempty"`
+		FrequencyPenalty    *float32       `json:"frequency_penalty,omitempty"`
+		Stop                []string       `json:"stop,omitempty"`
+		Seed                *int64         `json:"seed,omitempty"`
 		TopK                *int32         `json:"top_k,omitempty"`
 	}
 	type streamResponse struct {
@@ -561,6 +565,21 @@ func (b *Backend) StreamGenerateTextRich(ctx context.Context, modelID string, in
 		} else {
 			reqBody.MaxTokens = &max
 		}
+	}
+	if params.presencePenalty != 0 {
+		penalty := params.presencePenalty
+		reqBody.PresencePenalty = &penalty
+	}
+	if params.frequencyPenalty != 0 {
+		penalty := params.frequencyPenalty
+		reqBody.FrequencyPenalty = &penalty
+	}
+	if len(params.stop) > 0 {
+		reqBody.Stop = params.stop
+	}
+	if params.seed != 0 {
+		seed := params.seed
+		reqBody.Seed = &seed
 	}
 	if params.topK > 0 && b.supportsOpenAICompatibleTopK() {
 		topK := params.topK

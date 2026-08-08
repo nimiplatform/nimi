@@ -74,10 +74,12 @@ export interface NimiRuntimeLocalProviderHints {
 export interface NimiRuntimeLocalAssetRecord {
   readonly localAssetId: string;
   readonly assetId: string;
+  /** User-facing display name; non-identity. Empty only when an older runtime predates display facts. */
+  readonly displayName: string;
+  /** Original file name the asset was imported from, when known. */
+  readonly sourceFileName: string;
   readonly kind: NimiRuntimeLocalAssetKind;
   readonly engine: string;
-  readonly engineRuntimeMode?: NimiRuntimeLocalEngineRuntimeModeId;
-  readonly endpoint?: string;
   readonly entry: string;
   readonly files: readonly string[];
   readonly license: string;
@@ -556,29 +558,26 @@ export interface NimiRuntimeLocalAssetAdminClient {
     Promise<NimiRuntimeLocalAssetRecord>;
   installVerifiedAsset(input: { readonly templateId: string; readonly endpoint?: string }, options?: NimiRuntimeLocalWriteOptions):
     Promise<NimiRuntimeLocalAssetRecord>;
-  importAsset(input: { readonly manifestPath: string; readonly endpoint?: string; readonly engineConfig?: JsonObject }, options?: NimiRuntimeLocalWriteOptions):
+  importAsset(input: { readonly manifestPath: string; readonly engineConfig?: JsonObject }, options?: NimiRuntimeLocalWriteOptions):
     Promise<NimiRuntimeLocalAssetRecord>;
-  importAssetManifest(manifestPath: string, options?: NimiRuntimeLocalWriteOptions & { readonly endpoint?: string }):
+  importAssetManifest(manifestPath: string, options?: NimiRuntimeLocalWriteOptions):
     Promise<{ readonly asset: NimiRuntimeLocalAssetRecord }>;
   importAssetFile(input: {
     readonly filePath: string;
     readonly declaration: NimiRuntimeLocalAssetDeclaration;
     readonly assetName?: string;
-    readonly endpoint?: string;
   }, options?: NimiRuntimeLocalWriteOptions): Promise<{ readonly asset: NimiRuntimeLocalAssetRecord }>;
   importFile(input: {
     readonly filePath: string;
     readonly assetName?: string;
     readonly kind: NimiRuntimeLocalAssetKind;
     readonly engine?: string;
-    readonly endpoint?: string;
   }, options?: NimiRuntimeLocalWriteOptions): Promise<NimiRuntimeLocalAssetRecord>;
   importBundle(input: {
     readonly directoryPath: string;
     readonly modelName?: string;
     readonly capabilities?: readonly string[];
     readonly engine?: string;
-    readonly endpoint?: string;
     /** Explicit ordered sharded-resource entries; empty keeps single-entry identity. */
     readonly orderedBundleEntries?: readonly string[];
   }, options?: NimiRuntimeLocalWriteOptions): Promise<NimiRuntimeLocalTransferAccepted>;
@@ -640,6 +639,5 @@ export interface NimiRuntimeLocalAssetAdminClient {
     readonly path: string;
     readonly kind: NimiRuntimeLocalAssetKind;
     readonly engine?: string;
-    readonly endpoint?: string;
   }, options?: NimiRuntimeLocalWriteOptions): Promise<NimiRuntimeLocalAssetRecord>;
 }

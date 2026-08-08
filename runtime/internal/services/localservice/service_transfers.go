@@ -216,7 +216,10 @@ func (s *Service) newLocalTransfer(kind string, input localTransferMutation) *ru
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.transfers[summary.GetInstallSessionId()] = cloneLocalTransferSummary(summary)
-	if !isTerminalTransferState(summary.GetState()) && summary.GetSessionKind() == localTransferKindDownload {
+	if !isTerminalTransferState(summary.GetState()) {
+		// Every non-terminal transfer gets a control, not only downloads: import
+		// sessions honor cancellation through it as well. Pause/resume remain
+		// download-only (see PauseLocalTransfer / ResumeLocalTransfer).
 		s.transferControls[summary.GetInstallSessionId()] = newLocalTransferControl()
 	}
 	s.persistStateLocked()
@@ -261,6 +264,32 @@ func (s *Service) mutateLocalTransfer(sessionID string, persist bool, mutate fun
 	}
 	s.publishTransferEventLocked(localTransferEventFromSummary(current))
 	return cloneLocalTransferSummary(current)
+}
+
+// failOrphanedLocalTransfersLocked fails every transfer persisted at a
+// non-terminal state across a daemon restart. No goroutine drives those
+// sessions anymore, so without this they would project a permanently frozen
+// in-progress session that can neither advance nor be retried in place.
+// Caller must hold s.mu.
+func (s *Service) failOrphanedLocalTransfersLocked() int {
+	healed := 0
+	for _, summary := range s.transfers {
+		if summary == nil || isTerminalTransferState(summary.GetState()) {
+			continue
+		}
+		summary.State = localTransferStateFailed
+		summary.Message = "transfer interrupted by runtime restart"
+		summary.ReasonCode = "LOCAL_TRANSFER_INTERRUPTED"
+		// Not retryable in place: the driver goroutine is gone, so a resume
+		// would resurrect a running state nothing advances. Start a new
+		// download/import instead.
+		summary.Retryable = false
+		summary.SpeedBytesPerSec = 0
+		summary.EtaSeconds = 0
+		summary.UpdatedAt = nowISO()
+		healed++
+	}
+	return healed
 }
 
 func (s *Service) transferControl(sessionID string) *localTransferControl {

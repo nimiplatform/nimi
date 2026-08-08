@@ -46,7 +46,6 @@ func TestInstallManagedDownloadedModelInfersEmbeddingKindWhenUnspecified(t *test
 		repo:         "Qwen/Qwen3-Embedding-8B-GGUF",
 		revision:     "main",
 		hashes:       map[string]string{"Qwen3-Embedding-8B-Q4_K_M.gguf": "sha256:" + hex.EncodeToString(sum[:])},
-		mode:         runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED,
 	})
 	if err != nil {
 		t.Fatalf("installManagedDownloadedModel: %v", err)
@@ -107,7 +106,6 @@ func TestInstallManagedDownloadedModelStagesUnderConfiguredModelsRoot(t *testing
 		repo:         "Qwen/Qwen3-Embedding-8B-GGUF",
 		revision:     "main",
 		hashes:       map[string]string{"Qwen3-Embedding-8B-Q4_K_M.gguf": "sha256:" + hex.EncodeToString(sum[:])},
-		mode:         runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED,
 	})
 	if err != nil {
 		t.Fatalf("installManagedDownloadedModel: %v", err)
@@ -186,7 +184,6 @@ func TestInstallManagedDownloadedModelRequiresExpectedHash(t *testing.T) {
 		repo:         "Qwen/Qwen3-Embedding-8B-GGUF",
 		revision:     "main",
 		hashes:       map[string]string{},
-		mode:         runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED,
 	})
 	if err == nil {
 		t.Fatal("expected managed download without expected hash to fail")

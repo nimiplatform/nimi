@@ -223,7 +223,6 @@ export function createNimiRuntimeLocalAssetAdminClient(
       assertNimiRuntimeLocalWriteAllowed('runtime_local_import_asset', writeOptions?.caller);
       const response = await resolveLocal().importLocalAsset({
         manifestPath: requireLocalText(input.manifestPath, 'Runtime local asset manifest path is required', 'provide_local_asset_manifest_path'),
-        endpoint: normalizeText(input.endpoint),
         engineConfig: input.engineConfig ? toNimiRuntimeProtoStruct(input.engineConfig) : undefined,
       }, callOptions(writeOptions));
       return projectRequiredLocal(
@@ -236,7 +235,6 @@ export function createNimiRuntimeLocalAssetAdminClient(
     async importAssetManifest(manifestPath, writeOptions) {
       const asset = await this.importAsset({
         manifestPath,
-        endpoint: normalizeText(writeOptions?.endpoint),
       }, writeOptions);
       return { asset };
     },
@@ -246,7 +244,6 @@ export function createNimiRuntimeLocalAssetAdminClient(
         assetName: input.assetName,
         kind: input.declaration.assetKind,
         engine: input.declaration.engine,
-        endpoint: input.endpoint,
       }, writeOptions);
       return { asset };
     },
@@ -258,7 +255,6 @@ export function createNimiRuntimeLocalAssetAdminClient(
         kind: toNimiRuntimeLocalAssetKindRequestValue(input.kind),
         capabilities: nimiRuntimeLocalCapabilitiesForAssetKind(input.kind),
         engine: normalizeText(input.engine),
-        endpoint: normalizeText(input.endpoint),
       }, callOptions(writeOptions));
       return projectRequiredLocal(
         response.asset,
@@ -274,7 +270,6 @@ export function createNimiRuntimeLocalAssetAdminClient(
         modelName: normalizeText(input.modelName),
         capabilities: textList(input.capabilities),
         engine: normalizeText(input.engine),
-        endpoint: normalizeText(input.endpoint),
         orderedBundleEntries: textList(input.orderedBundleEntries),
       }, callOptions(writeOptions));
       return projectRequiredLocal(
@@ -559,7 +554,6 @@ export function createNimiRuntimeLocalAssetAdminClient(
         kind: toNimiRuntimeLocalAssetKindRequestValue(input.kind),
         capabilities: [],
         engine: normalizeText(input.engine),
-        endpoint: normalizeText(input.endpoint),
       }, callOptions(writeOptions));
       return projectRequiredLocal(
         response.asset,

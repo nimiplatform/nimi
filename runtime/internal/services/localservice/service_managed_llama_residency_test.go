@@ -10,9 +10,7 @@ import (
 
 func TestLegacyLlamaLeaseActivationFailsClosed(t *testing.T) {
 	const localAssetID = "asset-main"
-	svc := &Service{assetRuntimeModes: map[string]runtimev1.LocalEngineRuntimeMode{
-		localAssetID: runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED,
-	}}
+	svc := &Service{}
 	model := &runtimev1.LocalAssetRecord{
 		LocalAssetId: localAssetID,
 		Engine:       "llama",
@@ -28,7 +26,7 @@ func TestLegacyLlamaLeaseActivationFailsClosed(t *testing.T) {
 }
 
 func TestRetiredLlamaResidencyLeavesUnrelatedAssetsAlone(t *testing.T) {
-	svc := &Service{assetRuntimeModes: map[string]runtimev1.LocalEngineRuntimeMode{}}
+	svc := &Service{}
 	model := &runtimev1.LocalAssetRecord{LocalAssetId: "image", Engine: "media", Entry: "image.gguf"}
 	got, err := svc.rejectLlamaLocalAssetResidency(context.Background(), model, "image-lease")
 	if err != nil || got != model {

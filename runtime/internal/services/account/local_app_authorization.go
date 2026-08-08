@@ -36,6 +36,15 @@ const (
 	LocalAppOperationAppAIConfigRead         = localappop.OperationAppAIConfigGet
 	LocalAppOperationAppAIConfigOverwrite    = localappop.OperationAppAIConfigOverwrite
 	LocalAppOperationTextCandidateGenerate   = localappop.OperationTextCandidateGenerate
+	LocalAppOperationTextTurnStream          = localappop.OperationTextTurnStream
+	LocalAppOperationScenarioExecute         = localappop.OperationScenarioExecute
+	LocalAppOperationScenarioJobSubmit       = localappop.OperationScenarioJobSubmit
+	LocalAppOperationScenarioJobGet          = localappop.OperationScenarioJobGet
+	LocalAppOperationScenarioJobSubscribe    = localappop.OperationScenarioJobSubscribe
+	LocalAppOperationScenarioJobCancel       = localappop.OperationScenarioJobCancel
+	LocalAppOperationArtifactRead            = localappop.OperationArtifactRead
+	LocalAppOperationArtifactUpload          = localappop.OperationArtifactUpload
+	LocalAppOperationVoiceAssetsList         = localappop.OperationVoiceAssetsList
 	LocalAppOperationSharedAIConfigGet       = localappop.OperationAgentAIConfigGet
 	LocalAppOperationSharedAIConfigOverwrite = localappop.OperationAgentAIConfigOverwrite
 	LocalAppOperationAutonomySnapshot        = localappop.OperationAgentAutonomySnapshotGet

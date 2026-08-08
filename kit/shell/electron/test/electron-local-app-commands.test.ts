@@ -8,6 +8,7 @@ import {
   NimiElectronLocalAppHostError,
   registerNimiElectronRuntimeBridge,
 } from '../src/main/index.js';
+import { dispatchElectronLocalAppCommand } from '../src/main/local-app-commands.js';
 import { FakeIpcMain, createInvokeEvent, invokeBridge } from './electron-shell-test-utils.js';
 
 describe('Electron local-app standard-shell operations', () => {
@@ -20,6 +21,114 @@ describe('Electron local-app standard-shell operations', () => {
       payload: { payload: { sessionProof: 'forged' } },
     })).rejects.toMatchObject({ code: 'invalid-payload', reasonCode: 'invalid-payload' });
     expect(calls).toEqual([]);
+  });
+
+  it('routes the bounded Model Config local-selection projection', async () => {
+    const ipcMain = new FakeIpcMain();
+    const calls: unknown[] = [];
+    registerBridge(ipcMain, calls);
+    await expect(invokeBridge(ipcMain, createInvokeEvent().event, {
+      command: NIMI_STANDARD_SHELL_COMMANDS['local-app.modelConfigLocalSelectionsGet'],
+      payload: { payload: {} },
+    })).resolves.toEqual([{
+      capabilityContract: 'text.generate', state: 'selected', configurationId: null,
+      displayName: 'gemma4-26b', supportedFeatures: [], reasons: [],
+    }]);
+    expect(calls).toEqual([['modelConfigLocalSelectionsGet']]);
+  });
+
+  it('routes a closed scenario execute payload without route selection', async () => {
+    const calls: unknown[] = [];
+    const command = 'nimi.shell.localApp.scenarioExecute';
+    const host = localAppHost(calls);
+    await expect(dispatchElectronLocalAppCommand({
+      host,
+      command,
+      payload: { spec: { type: 'text-embed', inputs: ['hello'] } },
+    })).resolves.toEqual({ output: { type: 'text-embed', vectors: [[0.1]] }, traceId: 'trace-1' });
+    expect(calls).toEqual([['scenarioExecute', { spec: { type: 'text-embed', inputs: ['hello'] } }]]);
+
+    await expect(dispatchElectronLocalAppCommand({
+      host,
+      command,
+      payload: { spec: { type: 'text-embed', inputs: ['hello'], modelId: 'forbidden' } },
+    })).rejects.toMatchObject({ reasonCode: 'invalid-payload' });
+  });
+
+  it('preserves optional parameter presence and applies owner clamps', async () => {
+    const calls: unknown[] = [];
+    const host = localAppHost(calls);
+    await dispatchElectronLocalAppCommand({
+      host,
+      command: NIMI_STANDARD_SHELL_COMMANDS['local-app.textGenerateCandidate'],
+      payload: {
+        messages: [{ role: 'user', text: 'hello' }],
+        temperature: 0, topP: 0, maxTokens: 0, topK: 0,
+        presencePenalty: -2, frequencyPenalty: 2, stop: ['END'], seed: 0,
+      },
+    });
+    await dispatchElectronLocalAppCommand({
+      host,
+      command: NIMI_STANDARD_SHELL_COMMANDS['local-app.scenarioExecute'],
+      payload: { spec: {
+        type: 'image-generate', prompt: 'portrait', negativePrompt: '', n: 0,
+        size: '', aspectRatio: '', quality: '', style: '', seed: 0,
+        referenceImages: ['https://example.com/reference.png'],
+        mask: 'https://example.com/mask.png', responseFormat: 'b64_json',
+      } },
+    });
+    await dispatchElectronLocalAppCommand({
+      host,
+      command: NIMI_STANDARD_SHELL_COMMANDS['local-app.scenarioJobSubmit'],
+      payload: { spec: {
+        type: 'speech-synthesize', text: 'hello', language: '', audioFormat: '',
+        sampleRateHz: 0, speed: 4, pitch: -24, volume: 4, emotion: '',
+        voiceRef: null, timingMode: 'none', voiceRenderHints: null,
+      } },
+    });
+    expect(calls[0]).toEqual(['textGenerateCandidate', {
+      messages: [{ role: 'user', text: 'hello' }],
+      temperature: 0, topP: 0, maxTokens: 0, topK: 0,
+      presencePenalty: -2, frequencyPenalty: 2, stop: ['END'], seed: 0,
+    }]);
+    expect(calls[1]).toEqual(['scenarioExecute', expect.objectContaining({ spec: expect.objectContaining({ n: 0, seed: 0 }) })]);
+    expect(calls[2]).toEqual(['scenarioJobSubmit', expect.objectContaining({ spec: expect.objectContaining({ pitch: -24 }) })]);
+
+    await expect(dispatchElectronLocalAppCommand({
+      host,
+      command: NIMI_STANDARD_SHELL_COMMANDS['local-app.scenarioJobSubmit'],
+      payload: { spec: {
+        type: 'speech-synthesize', text: 'hello', language: '', audioFormat: '',
+        pitch: -24.1, emotion: '', voiceRef: null, timingMode: 'none', voiceRenderHints: null,
+      } },
+    })).rejects.toMatchObject({ reasonCode: 'invalid-payload' });
+  });
+
+  it('routes bounded image artifact upload and rejects MIME or authority expansion', async () => {
+    const calls: unknown[] = [];
+    const host = localAppHost(calls);
+    const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.artifactUpload'];
+    await expect(dispatchElectronLocalAppCommand({
+      host, command, payload: { bytes: [1, 2], mimeType: 'image/png' },
+    })).resolves.toEqual({ artifactId: 'artifact-upload-1', sizeBytes: 2, mimeType: 'image/png' });
+    expect(calls).toEqual([['artifactUpload', { bytes: [1, 2], mimeType: 'image/png' }]]);
+    await expect(dispatchElectronLocalAppCommand({
+      host, command, payload: { bytes: [1], mimeType: 'video/mp4' },
+    })).rejects.toMatchObject({ reasonCode: 'invalid-payload' });
+    await expect(dispatchElectronLocalAppCommand({
+      host, command, payload: { bytes: [1], mimeType: 'image/png', appId: 'forged' },
+    })).rejects.toMatchObject({ reasonCode: 'invalid-payload' });
+  });
+
+  it('admits AIC commands through the registered local-app capability set', async () => {
+    const ipcMain = new FakeIpcMain();
+    const calls: unknown[] = [];
+    registerBridge(ipcMain, calls);
+    await expect(invokeBridge(ipcMain, createInvokeEvent().event, {
+      command: NIMI_STANDARD_SHELL_COMMANDS['local-app.scenarioExecute'],
+      payload: { payload: { spec: { type: 'text-embed', inputs: ['hello'] } } },
+    })).resolves.toEqual({ output: { type: 'text-embed', vectors: [[0.1]] }, traceId: 'trace-1' });
+    expect(calls).toEqual([['scenarioExecute', { spec: { type: 'text-embed', inputs: ['hello'] } }]]);
   });
 
   it('routes App AIConfig without accepting renderer owner identity', async () => {
@@ -379,6 +488,39 @@ function localAppHost(calls: unknown[]) {
       calls.push(['aiConfigOverwrite', input]);
       return { owner: { owner: { oneofKind: 'app', app: { appId: 'app.example' } } }, capabilities: [] };
     },
+    modelConfigLocalSelectionsGet: async () => {
+      calls.push(['modelConfigLocalSelectionsGet']);
+      return [{
+        capabilityContract: 'text.generate', state: 'selected', configurationId: null,
+        displayName: 'gemma4-26b', supportedFeatures: [], reasons: [],
+      }];
+    },
+    textGenerateCandidate: async (input: unknown) => {
+      calls.push(['textGenerateCandidate', input]);
+      return { text: 'hello', finishReason: 'stop', traceId: 'trace-1' };
+    },
+    textTurnSubscribe: async () => ({ streamId: 'text-turn-1' }),
+    textTurnStreamNext: async () => ({ completed: true }),
+    textTurnStreamClose: async () => ({ closed: true }),
+    scenarioExecute: async (input: unknown) => {
+      calls.push(['scenarioExecute', input]);
+      return { output: { type: 'text-embed', vectors: [[0.1]] }, traceId: 'trace-1' };
+    },
+    scenarioJobSubmit: async (input: unknown) => {
+      calls.push(['scenarioJobSubmit', input]);
+      return { job: null, asset: null };
+    },
+    scenarioJobGet: async () => ({ job: {} }),
+    scenarioJobSubscribe: async () => ({ streamId: 'scenario-job-1' }),
+    scenarioJobStreamNext: async () => ({ completed: true }),
+    scenarioJobStreamClose: async () => ({ closed: true }),
+    scenarioJobCancel: async () => ({ job: {} }),
+    artifactRead: async () => ({ bytes: [1], mimeType: 'image/png', sizeBytes: 1 }),
+    artifactUpload: async (input: unknown) => {
+      calls.push(['artifactUpload', input]);
+      return { artifactId: 'artifact-upload-1', sizeBytes: 2, mimeType: 'image/png' };
+    },
+    voiceAssetsList: async () => ({ assets: [], nextPageToken: '' }),
     realmWorldCoreList: async (input: unknown) => {
       calls.push(['realmWorldCoreList', input]);
       return [{ id: 'world-1' }];

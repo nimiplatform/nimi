@@ -61,6 +61,8 @@ func FirstPartyProfileMethod(profileID, methodID string) (FirstPartyMethodKind, 
 			return FirstPartyMethodUnary, true
 		case "/nimi.runtime.v1.RuntimeLocalService/AddLocalCapabilityConfiguration":
 			return FirstPartyMethodUnary, true
+		case "/nimi.runtime.v1.RuntimeLocalService/UpdateLocalCapabilityConfiguration":
+			return FirstPartyMethodUnary, true
 		case "/nimi.runtime.v1.RuntimeLocalService/SelectLocalCapabilityConfiguration":
 			return FirstPartyMethodUnary, true
 		case "/nimi.runtime.v1.RuntimeLocalService/ClearLocalCapabilitySelection":
@@ -355,6 +357,7 @@ func FirstPartyProfileMethods(profileID string) []FirstPartyProfileMethodEntry {
 			{MethodID: "/nimi.runtime.v1.RuntimeLocalService/GetMachineLocalAIConfiguration", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeLocalService/GetLocalCapabilityConfiguration", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeLocalService/AddLocalCapabilityConfiguration", Kind: FirstPartyMethodUnary},
+			{MethodID: "/nimi.runtime.v1.RuntimeLocalService/UpdateLocalCapabilityConfiguration", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeLocalService/SelectLocalCapabilityConfiguration", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeLocalService/ClearLocalCapabilitySelection", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeLocalService/DeleteLocalCapabilityConfiguration", Kind: FirstPartyMethodUnary},

@@ -20,10 +20,18 @@ whole-object mutations. Kit never persists AIConfig, invents an owner, mutates
 machine selection from an App/Agent surface, or presents execution readiness.
 
 The AIConfig presentation keeps the established AI Model hub, capability
-detail, Active Model trigger, and Local/Cloud picker flow. Local projects the
-Machine's current selection and deep-links to the Machine Local AI owner; it
-does not list or switch machine models. In first-party Cloud flows, the host
-must first supply configured Connectors, the user chooses one, and only then
+detail, Active Model trigger, and Local/Cloud picker flow. A host may request
+one initial capability detail while preserving Back navigation to the complete
+hub. Local projects the
+Machine's current selection and deep-links to the Machine Local AI owner; a
+protected Third-party Local App receives only the bounded current-selection
+state, display name, supported features, and safe reasons, never configuration
+identity, bindings, LocalAssets, paths, or execution truth. It
+does not list or switch machine models. A Third-party App whose protected
+carrier cannot receive Connector inventory may still expose the Cloud source
+and hand off Connector configuration to the Nimi Desktop owner surface; it
+must not fabricate Connector or ConnectorGrant choices. In first-party Cloud
+flows, the host must first supply configured Connectors, the user chooses one, and only then
 does Model Config request that Connector provider's implementation/model
 targets. An empty or failed Connector projection exposes no Cloud models and
 may deep-link to the host's Connector configuration. Connector choice scopes

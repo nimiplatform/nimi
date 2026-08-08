@@ -193,6 +193,9 @@ func decodeVideoModelRequest(message *dynamicpb.Message) (VideoModelRequest, err
 	if strings.TrimSpace(request.ProcessKey) == "" || strings.TrimSpace(request.FL2VADiffusionPath) == "" || strings.TrimSpace(request.Ref2VADiffusionPath) == "" || strings.TrimSpace(request.EncoderPath) == "" || strings.TrimSpace(request.VideoVAEPath) == "" || strings.TrimSpace(request.AudioVAEPath) == "" {
 		return VideoModelRequest{}, videoError(VideoErrorLoad, fmt.Errorf("managed video model request is incomplete"))
 	}
+	if err := validateVideoModelRecipe(request); err != nil {
+		return VideoModelRequest{}, err
+	}
 	return request, nil
 }
 

@@ -699,6 +699,87 @@
           "response_stream": false
         },
         {
+          "name": "ExecuteLocalAppScenario",
+          "method_id": "/nimi.runtime.v1.RuntimeAiService/ExecuteLocalAppScenario",
+          "kind": "unary",
+          "request_type": "ExecuteLocalAppScenarioRequest",
+          "response_type": "ExecuteLocalAppScenarioResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
+          "name": "SubmitLocalAppScenarioJob",
+          "method_id": "/nimi.runtime.v1.RuntimeAiService/SubmitLocalAppScenarioJob",
+          "kind": "unary",
+          "request_type": "SubmitLocalAppScenarioJobRequest",
+          "response_type": "SubmitLocalAppScenarioJobResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
+          "name": "GetLocalAppScenarioJob",
+          "method_id": "/nimi.runtime.v1.RuntimeAiService/GetLocalAppScenarioJob",
+          "kind": "unary",
+          "request_type": "GetLocalAppScenarioJobRequest",
+          "response_type": "GetLocalAppScenarioJobResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
+          "name": "CancelLocalAppScenarioJob",
+          "method_id": "/nimi.runtime.v1.RuntimeAiService/CancelLocalAppScenarioJob",
+          "kind": "unary",
+          "request_type": "CancelLocalAppScenarioJobRequest",
+          "response_type": "CancelLocalAppScenarioJobResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
+          "name": "SubscribeLocalAppScenarioJobEvents",
+          "method_id": "/nimi.runtime.v1.RuntimeAiService/SubscribeLocalAppScenarioJobEvents",
+          "kind": "server_stream",
+          "request_type": "SubscribeLocalAppScenarioJobEventsRequest",
+          "response_type": "LocalAppScenarioJobEvent",
+          "request_stream": false,
+          "response_stream": true
+        },
+        {
+          "name": "StreamLocalAppTextTurn",
+          "method_id": "/nimi.runtime.v1.RuntimeAiService/StreamLocalAppTextTurn",
+          "kind": "server_stream",
+          "request_type": "StreamLocalAppTextTurnRequest",
+          "response_type": "StreamLocalAppTextTurnEvent",
+          "request_stream": false,
+          "response_stream": true
+        },
+        {
+          "name": "ReadLocalAppArtifact",
+          "method_id": "/nimi.runtime.v1.RuntimeAiService/ReadLocalAppArtifact",
+          "kind": "unary",
+          "request_type": "ReadLocalAppArtifactRequest",
+          "response_type": "ReadLocalAppArtifactResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
+          "name": "UploadLocalAppArtifact",
+          "method_id": "/nimi.runtime.v1.RuntimeAiService/UploadLocalAppArtifact",
+          "kind": "unary",
+          "request_type": "UploadLocalAppArtifactRequest",
+          "response_type": "UploadLocalAppArtifactResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
+          "name": "ListLocalAppVoiceAssets",
+          "method_id": "/nimi.runtime.v1.RuntimeAiService/ListLocalAppVoiceAssets",
+          "kind": "unary",
+          "request_type": "ListLocalAppVoiceAssetsRequest",
+          "response_type": "ListLocalAppVoiceAssetsResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
           "name": "ExecuteScenario",
           "method_id": "/nimi.runtime.v1.RuntimeAiService/ExecuteScenario",
           "kind": "unary",
@@ -1731,6 +1812,15 @@
           "response_stream": false
         },
         {
+          "name": "UpdateLocalCapabilityConfiguration",
+          "method_id": "/nimi.runtime.v1.RuntimeLocalService/UpdateLocalCapabilityConfiguration",
+          "kind": "unary",
+          "request_type": "UpdateLocalCapabilityConfigurationRequest",
+          "response_type": "UpdateLocalCapabilityConfigurationResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
           "name": "SelectLocalCapabilityConfiguration",
           "method_id": "/nimi.runtime.v1.RuntimeLocalService/SelectLocalCapabilityConfiguration",
           "kind": "unary",
@@ -2457,23 +2547,32 @@
     "/nimi.runtime.v1.RuntimeAiRealtimeService/CloseRealtimeSession",
     "/nimi.runtime.v1.RuntimeAiRealtimeService/OpenRealtimeSession",
     "/nimi.runtime.v1.RuntimeAiRealtimeService/ReadRealtimeEvents",
+    "/nimi.runtime.v1.RuntimeAiService/CancelLocalAppScenarioJob",
     "/nimi.runtime.v1.RuntimeAiService/CancelScenarioJob",
     "/nimi.runtime.v1.RuntimeAiService/DeleteVoiceAsset",
+    "/nimi.runtime.v1.RuntimeAiService/ExecuteLocalAppScenario",
     "/nimi.runtime.v1.RuntimeAiService/ExecuteScenario",
     "/nimi.runtime.v1.RuntimeAiService/GenerateLocalAppTextCandidate",
     "/nimi.runtime.v1.RuntimeAiService/GetAppAIConfig",
+    "/nimi.runtime.v1.RuntimeAiService/GetLocalAppScenarioJob",
     "/nimi.runtime.v1.RuntimeAiService/GetScenarioArtifacts",
     "/nimi.runtime.v1.RuntimeAiService/GetScenarioJob",
     "/nimi.runtime.v1.RuntimeAiService/GetVoiceAsset",
+    "/nimi.runtime.v1.RuntimeAiService/ListLocalAppVoiceAssets",
     "/nimi.runtime.v1.RuntimeAiService/ListPresetVoices",
     "/nimi.runtime.v1.RuntimeAiService/ListScenarioProfiles",
     "/nimi.runtime.v1.RuntimeAiService/ListVoiceAssets",
     "/nimi.runtime.v1.RuntimeAiService/OverwriteAppAIConfig",
     "/nimi.runtime.v1.RuntimeAiService/PeekScheduling",
+    "/nimi.runtime.v1.RuntimeAiService/ReadLocalAppArtifact",
+    "/nimi.runtime.v1.RuntimeAiService/StreamLocalAppTextTurn",
     "/nimi.runtime.v1.RuntimeAiService/StreamScenario",
+    "/nimi.runtime.v1.RuntimeAiService/SubmitLocalAppScenarioJob",
     "/nimi.runtime.v1.RuntimeAiService/SubmitScenarioJob",
+    "/nimi.runtime.v1.RuntimeAiService/SubscribeLocalAppScenarioJobEvents",
     "/nimi.runtime.v1.RuntimeAiService/SubscribeScenarioJobEvents",
     "/nimi.runtime.v1.RuntimeAiService/UploadArtifact",
+    "/nimi.runtime.v1.RuntimeAiService/UploadLocalAppArtifact",
     "/nimi.runtime.v1.RuntimeAppService/BindLocalAppProcess",
     "/nimi.runtime.v1.RuntimeAppService/GetAppStorage",
     "/nimi.runtime.v1.RuntimeAppService/PrepareLocalAppLaunch",
@@ -2629,6 +2728,7 @@
     "/nimi.runtime.v1.RuntimeLocalService/StopLocalAsset",
     "/nimi.runtime.v1.RuntimeLocalService/StopLocalService",
     "/nimi.runtime.v1.RuntimeLocalService/UnbindLocalCapabilityRequirement",
+    "/nimi.runtime.v1.RuntimeLocalService/UpdateLocalCapabilityConfiguration",
     "/nimi.runtime.v1.RuntimeLocalService/WatchLocalTransfers",
     "/nimi.runtime.v1.RuntimeModelService/CheckModelHealth",
     "/nimi.runtime.v1.RuntimeModelService/ListModels",
@@ -3214,6 +3314,14 @@
       "response_type": "RealtimeEvent"
     },
     {
+      "method_id": "/nimi.runtime.v1.RuntimeAiService/CancelLocalAppScenarioJob",
+      "service": "RuntimeAiService",
+      "method": "CancelLocalAppScenarioJob",
+      "kind": "unary",
+      "request_type": "CancelLocalAppScenarioJobRequest",
+      "response_type": "CancelLocalAppScenarioJobResponse"
+    },
+    {
       "method_id": "/nimi.runtime.v1.RuntimeAiService/CancelScenarioJob",
       "service": "RuntimeAiService",
       "method": "CancelScenarioJob",
@@ -3228,6 +3336,14 @@
       "kind": "unary",
       "request_type": "DeleteVoiceAssetRequest",
       "response_type": "DeleteVoiceAssetResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAiService/ExecuteLocalAppScenario",
+      "service": "RuntimeAiService",
+      "method": "ExecuteLocalAppScenario",
+      "kind": "unary",
+      "request_type": "ExecuteLocalAppScenarioRequest",
+      "response_type": "ExecuteLocalAppScenarioResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAiService/ExecuteScenario",
@@ -3254,6 +3370,14 @@
       "response_type": "GetAppAIConfigResponse"
     },
     {
+      "method_id": "/nimi.runtime.v1.RuntimeAiService/GetLocalAppScenarioJob",
+      "service": "RuntimeAiService",
+      "method": "GetLocalAppScenarioJob",
+      "kind": "unary",
+      "request_type": "GetLocalAppScenarioJobRequest",
+      "response_type": "GetLocalAppScenarioJobResponse"
+    },
+    {
       "method_id": "/nimi.runtime.v1.RuntimeAiService/GetScenarioArtifacts",
       "service": "RuntimeAiService",
       "method": "GetScenarioArtifacts",
@@ -3276,6 +3400,14 @@
       "kind": "unary",
       "request_type": "GetVoiceAssetRequest",
       "response_type": "GetVoiceAssetResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAiService/ListLocalAppVoiceAssets",
+      "service": "RuntimeAiService",
+      "method": "ListLocalAppVoiceAssets",
+      "kind": "unary",
+      "request_type": "ListLocalAppVoiceAssetsRequest",
+      "response_type": "ListLocalAppVoiceAssetsResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAiService/ListPresetVoices",
@@ -3318,6 +3450,22 @@
       "response_type": "PeekSchedulingResponse"
     },
     {
+      "method_id": "/nimi.runtime.v1.RuntimeAiService/ReadLocalAppArtifact",
+      "service": "RuntimeAiService",
+      "method": "ReadLocalAppArtifact",
+      "kind": "unary",
+      "request_type": "ReadLocalAppArtifactRequest",
+      "response_type": "ReadLocalAppArtifactResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAiService/StreamLocalAppTextTurn",
+      "service": "RuntimeAiService",
+      "method": "StreamLocalAppTextTurn",
+      "kind": "server_stream",
+      "request_type": "StreamLocalAppTextTurnRequest",
+      "response_type": "StreamLocalAppTextTurnEvent"
+    },
+    {
       "method_id": "/nimi.runtime.v1.RuntimeAiService/StreamScenario",
       "service": "RuntimeAiService",
       "method": "StreamScenario",
@@ -3326,12 +3474,28 @@
       "response_type": "StreamScenarioEvent"
     },
     {
+      "method_id": "/nimi.runtime.v1.RuntimeAiService/SubmitLocalAppScenarioJob",
+      "service": "RuntimeAiService",
+      "method": "SubmitLocalAppScenarioJob",
+      "kind": "unary",
+      "request_type": "SubmitLocalAppScenarioJobRequest",
+      "response_type": "SubmitLocalAppScenarioJobResponse"
+    },
+    {
       "method_id": "/nimi.runtime.v1.RuntimeAiService/SubmitScenarioJob",
       "service": "RuntimeAiService",
       "method": "SubmitScenarioJob",
       "kind": "unary",
       "request_type": "SubmitScenarioJobRequest",
       "response_type": "SubmitScenarioJobResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAiService/SubscribeLocalAppScenarioJobEvents",
+      "service": "RuntimeAiService",
+      "method": "SubscribeLocalAppScenarioJobEvents",
+      "kind": "server_stream",
+      "request_type": "SubscribeLocalAppScenarioJobEventsRequest",
+      "response_type": "LocalAppScenarioJobEvent"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAiService/SubscribeScenarioJobEvents",
@@ -3348,6 +3512,14 @@
       "kind": "client_stream",
       "request_type": "UploadArtifactRequest",
       "response_type": "UploadArtifactResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAiService/UploadLocalAppArtifact",
+      "service": "RuntimeAiService",
+      "method": "UploadLocalAppArtifact",
+      "kind": "unary",
+      "request_type": "UploadLocalAppArtifactRequest",
+      "response_type": "UploadLocalAppArtifactResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAppService/BindLocalAppProcess",
@@ -4588,6 +4760,14 @@
       "kind": "unary",
       "request_type": "UnbindLocalCapabilityRequirementRequest",
       "response_type": "UnbindLocalCapabilityRequirementResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeLocalService/UpdateLocalCapabilityConfiguration",
+      "service": "RuntimeLocalService",
+      "method": "UpdateLocalCapabilityConfiguration",
+      "kind": "unary",
+      "request_type": "UpdateLocalCapabilityConfigurationRequest",
+      "response_type": "UpdateLocalCapabilityConfigurationResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeLocalService/WatchLocalTransfers",
@@ -5216,6 +5396,14 @@
       "response_type": "RealtimeEvent"
     },
     {
+      "method_id": "/nimi.runtime.v1.RuntimeAiService/CancelLocalAppScenarioJob",
+      "service": "RuntimeAiService",
+      "method": "CancelLocalAppScenarioJob",
+      "kind": "unary",
+      "request_type": "CancelLocalAppScenarioJobRequest",
+      "response_type": "CancelLocalAppScenarioJobResponse"
+    },
+    {
       "method_id": "/nimi.runtime.v1.RuntimeAiService/CancelScenarioJob",
       "service": "RuntimeAiService",
       "method": "CancelScenarioJob",
@@ -5230,6 +5418,14 @@
       "kind": "unary",
       "request_type": "DeleteVoiceAssetRequest",
       "response_type": "DeleteVoiceAssetResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAiService/ExecuteLocalAppScenario",
+      "service": "RuntimeAiService",
+      "method": "ExecuteLocalAppScenario",
+      "kind": "unary",
+      "request_type": "ExecuteLocalAppScenarioRequest",
+      "response_type": "ExecuteLocalAppScenarioResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAiService/ExecuteScenario",
@@ -5256,6 +5452,14 @@
       "response_type": "GetAppAIConfigResponse"
     },
     {
+      "method_id": "/nimi.runtime.v1.RuntimeAiService/GetLocalAppScenarioJob",
+      "service": "RuntimeAiService",
+      "method": "GetLocalAppScenarioJob",
+      "kind": "unary",
+      "request_type": "GetLocalAppScenarioJobRequest",
+      "response_type": "GetLocalAppScenarioJobResponse"
+    },
+    {
       "method_id": "/nimi.runtime.v1.RuntimeAiService/GetScenarioArtifacts",
       "service": "RuntimeAiService",
       "method": "GetScenarioArtifacts",
@@ -5278,6 +5482,14 @@
       "kind": "unary",
       "request_type": "GetVoiceAssetRequest",
       "response_type": "GetVoiceAssetResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAiService/ListLocalAppVoiceAssets",
+      "service": "RuntimeAiService",
+      "method": "ListLocalAppVoiceAssets",
+      "kind": "unary",
+      "request_type": "ListLocalAppVoiceAssetsRequest",
+      "response_type": "ListLocalAppVoiceAssetsResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAiService/ListPresetVoices",
@@ -5320,6 +5532,22 @@
       "response_type": "PeekSchedulingResponse"
     },
     {
+      "method_id": "/nimi.runtime.v1.RuntimeAiService/ReadLocalAppArtifact",
+      "service": "RuntimeAiService",
+      "method": "ReadLocalAppArtifact",
+      "kind": "unary",
+      "request_type": "ReadLocalAppArtifactRequest",
+      "response_type": "ReadLocalAppArtifactResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAiService/StreamLocalAppTextTurn",
+      "service": "RuntimeAiService",
+      "method": "StreamLocalAppTextTurn",
+      "kind": "server_stream",
+      "request_type": "StreamLocalAppTextTurnRequest",
+      "response_type": "StreamLocalAppTextTurnEvent"
+    },
+    {
       "method_id": "/nimi.runtime.v1.RuntimeAiService/StreamScenario",
       "service": "RuntimeAiService",
       "method": "StreamScenario",
@@ -5328,12 +5556,28 @@
       "response_type": "StreamScenarioEvent"
     },
     {
+      "method_id": "/nimi.runtime.v1.RuntimeAiService/SubmitLocalAppScenarioJob",
+      "service": "RuntimeAiService",
+      "method": "SubmitLocalAppScenarioJob",
+      "kind": "unary",
+      "request_type": "SubmitLocalAppScenarioJobRequest",
+      "response_type": "SubmitLocalAppScenarioJobResponse"
+    },
+    {
       "method_id": "/nimi.runtime.v1.RuntimeAiService/SubmitScenarioJob",
       "service": "RuntimeAiService",
       "method": "SubmitScenarioJob",
       "kind": "unary",
       "request_type": "SubmitScenarioJobRequest",
       "response_type": "SubmitScenarioJobResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAiService/SubscribeLocalAppScenarioJobEvents",
+      "service": "RuntimeAiService",
+      "method": "SubscribeLocalAppScenarioJobEvents",
+      "kind": "server_stream",
+      "request_type": "SubscribeLocalAppScenarioJobEventsRequest",
+      "response_type": "LocalAppScenarioJobEvent"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAiService/SubscribeScenarioJobEvents",
@@ -5350,6 +5594,14 @@
       "kind": "client_stream",
       "request_type": "UploadArtifactRequest",
       "response_type": "UploadArtifactResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAiService/UploadLocalAppArtifact",
+      "service": "RuntimeAiService",
+      "method": "UploadLocalAppArtifact",
+      "kind": "unary",
+      "request_type": "UploadLocalAppArtifactRequest",
+      "response_type": "UploadLocalAppArtifactResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAppService/BindLocalAppProcess",
@@ -6592,6 +6844,14 @@
       "response_type": "UnbindLocalCapabilityRequirementResponse"
     },
     {
+      "method_id": "/nimi.runtime.v1.RuntimeLocalService/UpdateLocalCapabilityConfiguration",
+      "service": "RuntimeLocalService",
+      "method": "UpdateLocalCapabilityConfiguration",
+      "kind": "unary",
+      "request_type": "UpdateLocalCapabilityConfigurationRequest",
+      "response_type": "UpdateLocalCapabilityConfigurationResponse"
+    },
+    {
       "method_id": "/nimi.runtime.v1.RuntimeLocalService/WatchLocalTransfers",
       "service": "RuntimeLocalService",
       "method": "WatchLocalTransfers",
@@ -6730,6 +6990,8 @@
       "CancelCompanionParticipationResponse",
       "CancelHookRequest",
       "CancelHookResponse",
+      "CancelLocalAppScenarioJobRequest",
+      "CancelLocalAppScenarioJobResponse",
       "CancelLocalEnvironmentDependencyJobRequest",
       "CancelLocalEnvironmentDependencyJobResponse",
       "CancelLocalTransferRequest",
@@ -6828,6 +7090,8 @@
       "EnsureProductControlRecordCreatedRequest",
       "EpisodicMemoryRecord",
       "ErrorInfo",
+      "ExecuteLocalAppScenarioRequest",
+      "ExecuteLocalAppScenarioResponse",
       "ExecuteLocalStateCutoverRequest",
       "ExecuteLocalStateCutoverResponse",
       "ExecuteScenarioRequest",
@@ -6890,6 +7154,8 @@
       "GetLocalAppAgentPresentationSnapshotRequest",
       "GetLocalAppConversationSnapshotRequest",
       "GetLocalAppConversationSnapshotResponse",
+      "GetLocalAppScenarioJobRequest",
+      "GetLocalAppScenarioJobResponse",
       "GetLocalAppSharedLocalAgentAIConfigRequest",
       "GetLocalAppSharedLocalAgentAIConfigResponse",
       "GetLocalCapabilityConfigurationRequest",
@@ -7001,6 +7267,8 @@
       "ListLinksResponse",
       "ListLocalAppAgentReferencesRequest",
       "ListLocalAppAgentReferencesResponse",
+      "ListLocalAppVoiceAssetsRequest",
+      "ListLocalAppVoiceAssetsResponse",
       "ListLocalAssetsRequest",
       "ListLocalAssetsResponse",
       "ListLocalAuditsRequest",
@@ -7060,8 +7328,25 @@
       "LocalAppConversationTurnFailed",
       "LocalAppConversationTurnInterrupted",
       "LocalAppConversationTurnStarted",
+      "LocalAppImageGenerateOutput",
+      "LocalAppImageGenerateScenarioSpec",
+      "LocalAppScenarioArtifact",
+      "LocalAppScenarioJob",
+      "LocalAppScenarioJobEvent",
       "LocalAppSharedLocalAgentAIConfigProjection",
+      "LocalAppSpeechSynthesizeJobSpec",
+      "LocalAppSpeechTranscribeJobSpec",
       "LocalAppTextCandidateMessage",
+      "LocalAppTextEmbedOutput",
+      "LocalAppTextEmbedScenarioSpec",
+      "LocalAppTextTurnCompleted",
+      "LocalAppTextTurnDelta",
+      "LocalAppTextTurnFailed",
+      "LocalAppVideoGenerateJobSpec",
+      "LocalAppVideoGenerationOptions",
+      "LocalAppVoiceAsset",
+      "LocalAppVoiceCloneJobSpec",
+      "LocalAppVoiceDesignJobSpec",
       "LocalAssetExactBinding",
       "LocalAssetExactBindingTarget",
       "LocalAssetRecord",
@@ -7210,6 +7495,8 @@
       "RawChunk",
       "ReadArtifactBytesRequest",
       "ReadArtifactBytesResponse",
+      "ReadLocalAppArtifactRequest",
+      "ReadLocalAppArtifactResponse",
       "ReadLocalAppStorageJsonRequest",
       "ReadLocalAppStorageJsonResponse",
       "ReadRealtimeEventsRequest",
@@ -7362,12 +7649,16 @@
       "StopLocalAssetResponse",
       "StopLocalServiceRequest",
       "StopLocalServiceResponse",
+      "StreamLocalAppTextTurnEvent",
+      "StreamLocalAppTextTurnRequest",
       "StreamScenarioEvent",
       "StreamScenarioRequest",
       "SubmitAvatarDebugProbeResultRequest",
       "SubmitAvatarDebugProbeResultResponse",
       "SubmitDelegatedApprovalDecisionRequest",
       "SubmitDelegatedApprovalDecisionResponse",
+      "SubmitLocalAppScenarioJobRequest",
+      "SubmitLocalAppScenarioJobResponse",
       "SubmitScenarioJobRequest",
       "SubmitScenarioJobResponse",
       "SubscribeAIProviderHealthEventsRequest",
@@ -7376,6 +7667,7 @@
       "SubscribeAgentVoiceStreamRequest",
       "SubscribeAppMessagesRequest",
       "SubscribeLocalAppConversationEventsRequest",
+      "SubscribeLocalAppScenarioJobEventsRequest",
       "SubscribeMemoryEventsRequest",
       "SubscribeRuntimeHealthEventsRequest",
       "SubscribeScenarioJobEventsRequest",
@@ -7405,10 +7697,14 @@
       "UpdateConnectorRequest",
       "UpdateConnectorResponse",
       "UpdateLocalAppAgentAutonomyRequest",
+      "UpdateLocalCapabilityConfigurationRequest",
+      "UpdateLocalCapabilityConfigurationResponse",
       "UploadArtifactChunk",
       "UploadArtifactMetadata",
       "UploadArtifactRequest",
       "UploadArtifactResponse",
+      "UploadLocalAppArtifactRequest",
+      "UploadLocalAppArtifactResponse",
       "UpsertCatalogModelOverlayRequest",
       "UpsertCatalogModelOverlayResponse",
       "UpsertModelCatalogProviderRequest",
@@ -11726,6 +12022,39 @@
         "source_file": "proto/runtime/v1/agent_service.proto"
       },
       {
+        "name": "CancelLocalAppScenarioJobRequest",
+        "fields": [
+          {
+            "name": "job_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "reason",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/ai.proto"
+      },
+      {
+        "name": "CancelLocalAppScenarioJobResponse",
+        "fields": [
+          {
+            "name": "job",
+            "type": "LocalAppScenarioJob",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/ai.proto"
+      },
+      {
         "name": "CancelLocalEnvironmentDependencyJobRequest",
         "fields": [
           {
@@ -15018,6 +15347,53 @@
         "source_file": "proto/runtime/v1/common.proto"
       },
       {
+        "name": "ExecuteLocalAppScenarioRequest",
+        "fields": [
+          {
+            "name": "text_embed",
+            "type": "LocalAppTextEmbedScenarioSpec",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "image_generate",
+            "type": "LocalAppImageGenerateScenarioSpec",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/ai.proto"
+      },
+      {
+        "name": "ExecuteLocalAppScenarioResponse",
+        "fields": [
+          {
+            "name": "text_embed",
+            "type": "LocalAppTextEmbedOutput",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "image_generate",
+            "type": "LocalAppImageGenerateOutput",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "trace_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          }
+        ],
+        "source_file": "proto/runtime/v1/ai.proto"
+      },
+      {
         "name": "ExecuteLocalStateCutoverRequest",
         "fields": [
           {
@@ -15562,22 +15938,57 @@
             "name": "temperature",
             "type": "float",
             "repeated": false,
-            "optional": false,
+            "optional": true,
             "number": 2
           },
           {
             "name": "top_p",
             "type": "float",
             "repeated": false,
-            "optional": false,
+            "optional": true,
             "number": 3
           },
           {
             "name": "max_tokens",
             "type": "int32",
             "repeated": false,
-            "optional": false,
+            "optional": true,
             "number": 4
+          },
+          {
+            "name": "top_k",
+            "type": "int32",
+            "repeated": false,
+            "optional": true,
+            "number": 5
+          },
+          {
+            "name": "presence_penalty",
+            "type": "float",
+            "repeated": false,
+            "optional": true,
+            "number": 6
+          },
+          {
+            "name": "frequency_penalty",
+            "type": "float",
+            "repeated": false,
+            "optional": true,
+            "number": 7
+          },
+          {
+            "name": "stop",
+            "type": "string",
+            "repeated": true,
+            "optional": false,
+            "number": 8
+          },
+          {
+            "name": "seed",
+            "type": "int64",
+            "repeated": false,
+            "optional": true,
+            "number": 9
           }
         ],
         "source_file": "proto/runtime/v1/ai.proto"
@@ -16550,6 +16961,32 @@
         "source_file": "proto/runtime/v1/agent_service.proto"
       },
       {
+        "name": "GetLocalAppScenarioJobRequest",
+        "fields": [
+          {
+            "name": "job_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/ai.proto"
+      },
+      {
+        "name": "GetLocalAppScenarioJobResponse",
+        "fields": [
+          {
+            "name": "job",
+            "type": "LocalAppScenarioJob",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/ai.proto"
+      },
+      {
         "name": "GetLocalAppSharedLocalAgentAIConfigRequest",
         "fields": [],
         "source_file": "proto/runtime/v1/agent_configure.proto"
@@ -17237,7 +17674,7 @@
             "name": "n",
             "type": "int32",
             "repeated": false,
-            "optional": false,
+            "optional": true,
             "number": 3
           },
           {
@@ -17272,7 +17709,7 @@
             "name": "seed",
             "type": "int64",
             "repeated": false,
-            "optional": false,
+            "optional": true,
             "number": 8
           },
           {
@@ -17329,13 +17766,6 @@
             "repeated": false,
             "optional": false,
             "number": 4
-          },
-          {
-            "name": "endpoint",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 5
           },
           {
             "name": "ordered_bundle_entries",
@@ -17397,13 +17827,6 @@
             "repeated": true,
             "optional": false,
             "number": 5
-          },
-          {
-            "name": "endpoint",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 6
           }
         ],
         "source_file": "proto/runtime/v1/local_runtime.proto"
@@ -17430,13 +17853,6 @@
             "repeated": false,
             "optional": false,
             "number": 1
-          },
-          {
-            "name": "endpoint",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
           },
           {
             "name": "engine_config",
@@ -19608,6 +20024,46 @@
         "source_file": "proto/runtime/v1/agent_service.proto"
       },
       {
+        "name": "ListLocalAppVoiceAssetsRequest",
+        "fields": [
+          {
+            "name": "page_size",
+            "type": "int32",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "page_token",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/ai.proto"
+      },
+      {
+        "name": "ListLocalAppVoiceAssetsResponse",
+        "fields": [
+          {
+            "name": "assets",
+            "type": "LocalAppVoiceAsset",
+            "repeated": true,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "next_page_token",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/ai.proto"
+      },
+      {
         "name": "ListLocalAssetsRequest",
         "fields": [
           {
@@ -21336,6 +21792,309 @@
         "source_file": "proto/runtime/v1/agent_service.proto"
       },
       {
+        "name": "LocalAppImageGenerateOutput",
+        "fields": [
+          {
+            "name": "artifacts",
+            "type": "LocalAppScenarioArtifact",
+            "repeated": true,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/ai.proto"
+      },
+      {
+        "name": "LocalAppImageGenerateScenarioSpec",
+        "fields": [
+          {
+            "name": "prompt",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "negative_prompt",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "n",
+            "type": "int32",
+            "repeated": false,
+            "optional": true,
+            "number": 3
+          },
+          {
+            "name": "size",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "aspect_ratio",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 5
+          },
+          {
+            "name": "quality",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 6
+          },
+          {
+            "name": "style",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 7
+          },
+          {
+            "name": "seed",
+            "type": "int64",
+            "repeated": false,
+            "optional": true,
+            "number": 8
+          },
+          {
+            "name": "reference_images",
+            "type": "string",
+            "repeated": true,
+            "optional": false,
+            "number": 9
+          },
+          {
+            "name": "mask",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 10
+          },
+          {
+            "name": "response_format",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 11
+          }
+        ],
+        "source_file": "proto/runtime/v1/ai.proto"
+      },
+      {
+        "name": "LocalAppScenarioArtifact",
+        "fields": [
+          {
+            "name": "artifact_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "mime_type",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "bytes",
+            "type": "bytes",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "size_bytes",
+            "type": "int64",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "sha256",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 5
+          },
+          {
+            "name": "duration_ms",
+            "type": "int64",
+            "repeated": false,
+            "optional": false,
+            "number": 6
+          },
+          {
+            "name": "width",
+            "type": "int32",
+            "repeated": false,
+            "optional": false,
+            "number": 7
+          },
+          {
+            "name": "height",
+            "type": "int32",
+            "repeated": false,
+            "optional": false,
+            "number": 8
+          },
+          {
+            "name": "sample_rate_hz",
+            "type": "int32",
+            "repeated": false,
+            "optional": false,
+            "number": 9
+          },
+          {
+            "name": "channels",
+            "type": "int32",
+            "repeated": false,
+            "optional": false,
+            "number": 10
+          }
+        ],
+        "source_file": "proto/runtime/v1/ai.proto"
+      },
+      {
+        "name": "LocalAppScenarioJob",
+        "fields": [
+          {
+            "name": "job_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "scenario_type",
+            "type": "ScenarioType",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "status",
+            "type": "ScenarioJobStatus",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "progress_percent",
+            "type": "int32",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "progress_current_step",
+            "type": "int32",
+            "repeated": false,
+            "optional": false,
+            "number": 5
+          },
+          {
+            "name": "progress_total_steps",
+            "type": "int32",
+            "repeated": false,
+            "optional": false,
+            "number": 6
+          },
+          {
+            "name": "reason_code",
+            "type": "ReasonCode",
+            "repeated": false,
+            "optional": false,
+            "number": 7
+          },
+          {
+            "name": "reason_detail",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 8
+          },
+          {
+            "name": "artifacts",
+            "type": "LocalAppScenarioArtifact",
+            "repeated": true,
+            "optional": false,
+            "number": 9
+          },
+          {
+            "name": "trace_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 10
+          },
+          {
+            "name": "created_at",
+            "type": "google.protobuf.Timestamp",
+            "repeated": false,
+            "optional": false,
+            "number": 11
+          },
+          {
+            "name": "updated_at",
+            "type": "google.protobuf.Timestamp",
+            "repeated": false,
+            "optional": false,
+            "number": 12
+          }
+        ],
+        "source_file": "proto/runtime/v1/ai.proto"
+      },
+      {
+        "name": "LocalAppScenarioJobEvent",
+        "fields": [
+          {
+            "name": "event_type",
+            "type": "ScenarioJobEventType",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "sequence",
+            "type": "uint64",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "trace_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "timestamp",
+            "type": "google.protobuf.Timestamp",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "job",
+            "type": "LocalAppScenarioJob",
+            "repeated": false,
+            "optional": false,
+            "number": 5
+          }
+        ],
+        "source_file": "proto/runtime/v1/ai.proto"
+      },
+      {
         "name": "LocalAppSharedLocalAgentAIConfigProjection",
         "fields": [
           {
@@ -21347,6 +22106,151 @@
           }
         ],
         "source_file": "proto/runtime/v1/agent_configure.proto"
+      },
+      {
+        "name": "LocalAppSpeechSynthesizeJobSpec",
+        "fields": [
+          {
+            "name": "text",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "language",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "audio_format",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "sample_rate_hz",
+            "type": "int32",
+            "repeated": false,
+            "optional": true,
+            "number": 4
+          },
+          {
+            "name": "speed",
+            "type": "float",
+            "repeated": false,
+            "optional": true,
+            "number": 5
+          },
+          {
+            "name": "pitch",
+            "type": "float",
+            "repeated": false,
+            "optional": true,
+            "number": 6
+          },
+          {
+            "name": "volume",
+            "type": "float",
+            "repeated": false,
+            "optional": true,
+            "number": 7
+          },
+          {
+            "name": "emotion",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 8
+          },
+          {
+            "name": "voice_ref",
+            "type": "VoiceReference",
+            "repeated": false,
+            "optional": false,
+            "number": 9
+          },
+          {
+            "name": "timing_mode",
+            "type": "SpeechTimingMode",
+            "repeated": false,
+            "optional": false,
+            "number": 10
+          },
+          {
+            "name": "voice_render_hints",
+            "type": "VoiceRenderHints",
+            "repeated": false,
+            "optional": false,
+            "number": 11
+          }
+        ],
+        "source_file": "proto/runtime/v1/ai.proto"
+      },
+      {
+        "name": "LocalAppSpeechTranscribeJobSpec",
+        "fields": [
+          {
+            "name": "mime_type",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "language",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "timestamps",
+            "type": "bool",
+            "repeated": false,
+            "optional": true,
+            "number": 3
+          },
+          {
+            "name": "diarization",
+            "type": "bool",
+            "repeated": false,
+            "optional": true,
+            "number": 4
+          },
+          {
+            "name": "speaker_count",
+            "type": "int32",
+            "repeated": false,
+            "optional": true,
+            "number": 5
+          },
+          {
+            "name": "prompt",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 6
+          },
+          {
+            "name": "audio_source",
+            "type": "SpeechTranscriptionAudioSource",
+            "repeated": false,
+            "optional": false,
+            "number": 7
+          },
+          {
+            "name": "response_format",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 8
+          }
+        ],
+        "source_file": "proto/runtime/v1/ai.proto"
       },
       {
         "name": "LocalAppTextCandidateMessage",
@@ -21364,6 +22268,276 @@
             "repeated": false,
             "optional": false,
             "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/ai.proto"
+      },
+      {
+        "name": "LocalAppTextEmbedOutput",
+        "fields": [
+          {
+            "name": "vectors",
+            "type": "EmbeddingVector",
+            "repeated": true,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/ai.proto"
+      },
+      {
+        "name": "LocalAppTextEmbedScenarioSpec",
+        "fields": [
+          {
+            "name": "inputs",
+            "type": "string",
+            "repeated": true,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/ai.proto"
+      },
+      {
+        "name": "LocalAppTextTurnCompleted",
+        "fields": [
+          {
+            "name": "finish_reason",
+            "type": "FinishReason",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/ai.proto"
+      },
+      {
+        "name": "LocalAppTextTurnDelta",
+        "fields": [
+          {
+            "name": "text",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/ai.proto"
+      },
+      {
+        "name": "LocalAppTextTurnFailed",
+        "fields": [
+          {
+            "name": "reason_code",
+            "type": "ReasonCode",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "action_hint",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/ai.proto"
+      },
+      {
+        "name": "LocalAppVideoGenerateJobSpec",
+        "fields": [
+          {
+            "name": "prompt",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "negative_prompt",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "mode",
+            "type": "VideoMode",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "content",
+            "type": "VideoContentItem",
+            "repeated": true,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "options",
+            "type": "LocalAppVideoGenerationOptions",
+            "repeated": false,
+            "optional": false,
+            "number": 5
+          }
+        ],
+        "source_file": "proto/runtime/v1/ai.proto"
+      },
+      {
+        "name": "LocalAppVideoGenerationOptions",
+        "fields": [
+          {
+            "name": "resolution",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "ratio",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "duration_sec",
+            "type": "int32",
+            "repeated": false,
+            "optional": true,
+            "number": 3
+          },
+          {
+            "name": "frames",
+            "type": "int32",
+            "repeated": false,
+            "optional": true,
+            "number": 4
+          },
+          {
+            "name": "fps",
+            "type": "int32",
+            "repeated": false,
+            "optional": true,
+            "number": 5
+          },
+          {
+            "name": "seed",
+            "type": "int64",
+            "repeated": false,
+            "optional": true,
+            "number": 6
+          },
+          {
+            "name": "camera_fixed",
+            "type": "bool",
+            "repeated": false,
+            "optional": true,
+            "number": 7
+          },
+          {
+            "name": "watermark",
+            "type": "bool",
+            "repeated": false,
+            "optional": true,
+            "number": 8
+          },
+          {
+            "name": "generate_audio",
+            "type": "bool",
+            "repeated": false,
+            "optional": true,
+            "number": 9
+          },
+          {
+            "name": "draft",
+            "type": "bool",
+            "repeated": false,
+            "optional": true,
+            "number": 10
+          },
+          {
+            "name": "return_last_frame",
+            "type": "bool",
+            "repeated": false,
+            "optional": true,
+            "number": 11
+          }
+        ],
+        "source_file": "proto/runtime/v1/ai.proto"
+      },
+      {
+        "name": "LocalAppVoiceAsset",
+        "fields": [
+          {
+            "name": "voice_asset_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "workflow_type",
+            "type": "VoiceWorkflowType",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "status",
+            "type": "VoiceAssetStatus",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "created_at",
+            "type": "google.protobuf.Timestamp",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "updated_at",
+            "type": "google.protobuf.Timestamp",
+            "repeated": false,
+            "optional": false,
+            "number": 5
+          },
+          {
+            "name": "expires_at",
+            "type": "google.protobuf.Timestamp",
+            "repeated": false,
+            "optional": false,
+            "number": 6
+          }
+        ],
+        "source_file": "proto/runtime/v1/ai.proto"
+      },
+      {
+        "name": "LocalAppVoiceCloneJobSpec",
+        "fields": [
+          {
+            "name": "input",
+            "type": "VoiceV2VInput",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/ai.proto"
+      },
+      {
+        "name": "LocalAppVoiceDesignJobSpec",
+        "fields": [
+          {
+            "name": "input",
+            "type": "VoiceT2VInput",
+            "repeated": false,
+            "optional": false,
+            "number": 1
           }
         ],
         "source_file": "proto/runtime/v1/ai.proto"
@@ -21586,13 +22760,6 @@
             "repeated": false,
             "optional": false,
             "number": 30
-          },
-          {
-            "name": "endpoint",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 31
           },
           {
             "name": "reason_code",
@@ -28619,6 +29786,46 @@
         "source_file": "proto/runtime/v1/artifact_service.proto"
       },
       {
+        "name": "ReadLocalAppArtifactRequest",
+        "fields": [
+          {
+            "name": "artifact_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/ai.proto"
+      },
+      {
+        "name": "ReadLocalAppArtifactResponse",
+        "fields": [
+          {
+            "name": "bytes",
+            "type": "bytes",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "mime_type",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "size_bytes",
+            "type": "int64",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          }
+        ],
+        "source_file": "proto/runtime/v1/ai.proto"
+      },
+      {
         "name": "ReadLocalAppStorageJsonRequest",
         "fields": [
           {
@@ -30966,13 +32173,6 @@
             "repeated": true,
             "optional": false,
             "number": 4
-          },
-          {
-            "name": "endpoint",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 5
           }
         ],
         "source_file": "proto/runtime/v1/local_runtime.proto"
@@ -32493,28 +33693,28 @@
             "name": "sample_rate_hz",
             "type": "int32",
             "repeated": false,
-            "optional": false,
+            "optional": true,
             "number": 4
           },
           {
             "name": "speed",
             "type": "float",
             "repeated": false,
-            "optional": false,
+            "optional": true,
             "number": 5
           },
           {
             "name": "pitch",
             "type": "float",
             "repeated": false,
-            "optional": false,
+            "optional": true,
             "number": 6
           },
           {
             "name": "volume",
             "type": "float",
             "repeated": false,
-            "optional": false,
+            "optional": true,
             "number": 7
           },
           {
@@ -32589,21 +33789,21 @@
             "name": "timestamps",
             "type": "bool",
             "repeated": false,
-            "optional": false,
+            "optional": true,
             "number": 3
           },
           {
             "name": "diarization",
             "type": "bool",
             "repeated": false,
-            "optional": false,
+            "optional": true,
             "number": 4
           },
           {
             "name": "speaker_count",
             "type": "int32",
             "repeated": false,
-            "optional": false,
+            "optional": true,
             "number": 5
           },
           {
@@ -32889,6 +34089,116 @@
         "source_file": "proto/runtime/v1/local_runtime.proto"
       },
       {
+        "name": "StreamLocalAppTextTurnEvent",
+        "fields": [
+          {
+            "name": "sequence",
+            "type": "uint64",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "trace_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "delta",
+            "type": "LocalAppTextTurnDelta",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "completed",
+            "type": "LocalAppTextTurnCompleted",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "failed",
+            "type": "LocalAppTextTurnFailed",
+            "repeated": false,
+            "optional": false,
+            "number": 5
+          }
+        ],
+        "source_file": "proto/runtime/v1/ai.proto"
+      },
+      {
+        "name": "StreamLocalAppTextTurnRequest",
+        "fields": [
+          {
+            "name": "messages",
+            "type": "LocalAppTextCandidateMessage",
+            "repeated": true,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "temperature",
+            "type": "float",
+            "repeated": false,
+            "optional": true,
+            "number": 2
+          },
+          {
+            "name": "top_p",
+            "type": "float",
+            "repeated": false,
+            "optional": true,
+            "number": 3
+          },
+          {
+            "name": "max_tokens",
+            "type": "int32",
+            "repeated": false,
+            "optional": true,
+            "number": 4
+          },
+          {
+            "name": "top_k",
+            "type": "int32",
+            "repeated": false,
+            "optional": true,
+            "number": 5
+          },
+          {
+            "name": "presence_penalty",
+            "type": "float",
+            "repeated": false,
+            "optional": true,
+            "number": 6
+          },
+          {
+            "name": "frequency_penalty",
+            "type": "float",
+            "repeated": false,
+            "optional": true,
+            "number": 7
+          },
+          {
+            "name": "stop",
+            "type": "string",
+            "repeated": true,
+            "optional": false,
+            "number": 8
+          },
+          {
+            "name": "seed",
+            "type": "int64",
+            "repeated": false,
+            "optional": true,
+            "number": 9
+          }
+        ],
+        "source_file": "proto/runtime/v1/ai.proto"
+      },
+      {
         "name": "StreamScenarioEvent",
         "fields": [
           {
@@ -33119,6 +34429,74 @@
           }
         ],
         "source_file": "proto/runtime/v1/delegated_control.proto"
+      },
+      {
+        "name": "SubmitLocalAppScenarioJobRequest",
+        "fields": [
+          {
+            "name": "image_generate",
+            "type": "LocalAppImageGenerateScenarioSpec",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "video_generate",
+            "type": "LocalAppVideoGenerateJobSpec",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "speech_synthesize",
+            "type": "LocalAppSpeechSynthesizeJobSpec",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "speech_transcribe",
+            "type": "LocalAppSpeechTranscribeJobSpec",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "voice_clone",
+            "type": "LocalAppVoiceCloneJobSpec",
+            "repeated": false,
+            "optional": false,
+            "number": 5
+          },
+          {
+            "name": "voice_design",
+            "type": "LocalAppVoiceDesignJobSpec",
+            "repeated": false,
+            "optional": false,
+            "number": 6
+          }
+        ],
+        "source_file": "proto/runtime/v1/ai.proto"
+      },
+      {
+        "name": "SubmitLocalAppScenarioJobResponse",
+        "fields": [
+          {
+            "name": "job",
+            "type": "LocalAppScenarioJob",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "asset",
+            "type": "LocalAppVoiceAsset",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/ai.proto"
       },
       {
         "name": "SubmitScenarioJobRequest",
@@ -33370,6 +34748,19 @@
           }
         ],
         "source_file": "proto/runtime/v1/agent_service.proto"
+      },
+      {
+        "name": "SubscribeLocalAppScenarioJobEventsRequest",
+        "fields": [
+          {
+            "name": "job_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/ai.proto"
       },
       {
         "name": "SubscribeMemoryEventsRequest",
@@ -33659,21 +35050,21 @@
             "name": "temperature",
             "type": "float",
             "repeated": false,
-            "optional": false,
+            "optional": true,
             "number": 4
           },
           {
             "name": "top_p",
             "type": "float",
             "repeated": false,
-            "optional": false,
+            "optional": true,
             "number": 5
           },
           {
             "name": "max_tokens",
             "type": "int32",
             "repeated": false,
-            "optional": false,
+            "optional": true,
             "number": 6
           },
           {
@@ -33708,21 +35099,21 @@
             "name": "top_k",
             "type": "int32",
             "repeated": false,
-            "optional": false,
+            "optional": true,
             "number": 11
           },
           {
             "name": "presence_penalty",
             "type": "float",
             "repeated": false,
-            "optional": false,
+            "optional": true,
             "number": 12
           },
           {
             "name": "frequency_penalty",
             "type": "float",
             "repeated": false,
-            "optional": false,
+            "optional": true,
             "number": 13
           },
           {
@@ -33736,7 +35127,7 @@
             "name": "seed",
             "type": "int64",
             "repeated": false,
-            "optional": false,
+            "optional": true,
             "number": 15
           },
           {
@@ -34301,6 +35692,60 @@
         "source_file": "proto/runtime/v1/agent_configure.proto"
       },
       {
+        "name": "UpdateLocalCapabilityConfigurationRequest",
+        "fields": [
+          {
+            "name": "configuration_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "portable_config",
+            "type": "google.protobuf.Struct",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "supported_features",
+            "type": "string",
+            "repeated": true,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "display_name",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "provenance",
+            "type": "google.protobuf.Struct",
+            "repeated": false,
+            "optional": false,
+            "number": 5
+          }
+        ],
+        "source_file": "proto/runtime/v1/capability_configuration.proto"
+      },
+      {
+        "name": "UpdateLocalCapabilityConfigurationResponse",
+        "fields": [
+          {
+            "name": "configuration",
+            "type": "LocalCapabilityConfiguration",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/capability_configuration.proto"
+      },
+      {
         "name": "UploadArtifactChunk",
         "fields": [
           {
@@ -34390,6 +35835,53 @@
             "repeated": false,
             "optional": false,
             "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/ai.proto"
+      },
+      {
+        "name": "UploadLocalAppArtifactRequest",
+        "fields": [
+          {
+            "name": "bytes",
+            "type": "bytes",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "mime_type",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/ai.proto"
+      },
+      {
+        "name": "UploadLocalAppArtifactResponse",
+        "fields": [
+          {
+            "name": "artifact_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "size_bytes",
+            "type": "int64",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "mime_type",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
           }
         ],
         "source_file": "proto/runtime/v1/ai.proto"
@@ -34829,56 +36321,56 @@
             "name": "duration_sec",
             "type": "int32",
             "repeated": false,
-            "optional": false,
+            "optional": true,
             "number": 3
           },
           {
             "name": "frames",
             "type": "int32",
             "repeated": false,
-            "optional": false,
+            "optional": true,
             "number": 4
           },
           {
             "name": "fps",
             "type": "int32",
             "repeated": false,
-            "optional": false,
+            "optional": true,
             "number": 5
           },
           {
             "name": "seed",
             "type": "int64",
             "repeated": false,
-            "optional": false,
+            "optional": true,
             "number": 6
           },
           {
             "name": "camera_fixed",
             "type": "bool",
             "repeated": false,
-            "optional": false,
+            "optional": true,
             "number": 7
           },
           {
             "name": "watermark",
             "type": "bool",
             "repeated": false,
-            "optional": false,
+            "optional": true,
             "number": 8
           },
           {
             "name": "generate_audio",
             "type": "bool",
             "repeated": false,
-            "optional": false,
+            "optional": true,
             "number": 9
           },
           {
             "name": "draft",
             "type": "bool",
             "repeated": false,
-            "optional": false,
+            "optional": true,
             "number": 10
           },
           {
@@ -34899,7 +36391,7 @@
             "name": "return_last_frame",
             "type": "bool",
             "repeated": false,
-            "optional": false,
+            "optional": true,
             "number": 13
           }
         ],

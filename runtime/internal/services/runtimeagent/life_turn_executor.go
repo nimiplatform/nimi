@@ -9,6 +9,7 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -158,7 +159,7 @@ func buildLifeTurnScenarioRequest(req *lifeTurnRequest) (*runtimev1.ExecuteScena
 			Spec: &runtimev1.ScenarioSpec_TextGenerate{
 				TextGenerate: &runtimev1.TextGenerateScenarioSpec{
 					SystemPrompt: systemPrompt,
-					MaxTokens:    lifeTurnPromptMaxTokens,
+					MaxTokens:    proto.Int32(lifeTurnPromptMaxTokens),
 					Input: []*runtimev1.ChatMessage{
 						{
 							Role:    "user",

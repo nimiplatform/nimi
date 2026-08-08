@@ -149,9 +149,52 @@ pub struct NativeTextCandidateMessage {
 #[napi(object)]
 pub struct NativeTextCandidateInput {
     pub messages: Vec<NativeTextCandidateMessage>,
-    pub temperature: f64,
-    pub top_p: f64,
-    pub max_tokens: u32,
+    pub temperature: Option<f64>,
+    pub top_p: Option<f64>,
+    pub max_tokens: Option<f64>,
+    pub top_k: Option<f64>,
+    pub presence_penalty: Option<f64>,
+    pub frequency_penalty: Option<f64>,
+    pub stop: Option<Vec<String>>,
+    pub seed: Option<f64>,
+}
+
+#[napi(object)]
+pub struct NativeScenarioSpecInput {
+    pub spec: JsonValue,
+}
+
+#[napi(object)]
+pub struct NativeScenarioJobInput {
+    pub job_id: String,
+}
+
+#[napi(object)]
+pub struct NativeScenarioJobCancelInput {
+    pub job_id: String,
+    pub reason: String,
+}
+
+#[napi(object)]
+pub struct NativeScenarioArtifactInput {
+    pub artifact_id: String,
+}
+
+#[napi(object)]
+pub struct NativeScenarioArtifactUploadInput {
+    pub bytes: Buffer,
+    pub mime_type: String,
+}
+
+#[napi(object)]
+pub struct NativeScenarioVoiceAssetsInput {
+    pub page_size: i32,
+    pub page_token: String,
+}
+
+#[napi(object)]
+pub struct NativeScenarioStreamInput {
+    pub stream_id: String,
 }
 
 #[napi(object)]

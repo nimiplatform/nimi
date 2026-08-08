@@ -32,7 +32,8 @@
  *   @nimiplatform/sdk/features/conversation — conversation primitives
  *     - history windows, text accumulation, and stream snapshots
  *   @nimiplatform/sdk/features/generation — neutral Scenario identity and
- *       media request payload types (Kit execution remains fail-closed)
+ *       media request payload types; image/video/speech generation executes
+ *       through the owner-driven Scenario job runner
  *   @nimiplatform/sdk/app — app-side Desktop Open Intent data surface
  *     - closed intent parser, renderer request parser, envelope composition,
  *       and result parser
@@ -50,7 +51,8 @@
  *    generate/stream helpers and text-turn stream assembly; Kit maps the
  *    resulting events into reusable conversation headless events.
  *  - Kit generation keeps request/result contracts and owner-scoped voice
- *    references, but does not submit target-bearing Scenario requests.
+ *    references; image/video/speech media capabilities submit owner-driven
+ *    Scenario jobs through the SDK typed runners.
  *
  * Dynamic-import rule
  * -------------------
@@ -66,8 +68,17 @@
  */
 
 // --- Root facade ------------------------------------------------------------
-export { NimiClient, createNimiClient } from '@nimiplatform/sdk';
-export type { NimiClientConfig } from '@nimiplatform/sdk';
+export {
+  NimiClient,
+  createNimiClient,
+  createNimiLocalAppRuntimeScenarioJobClient,
+} from '@nimiplatform/sdk';
+export type {
+  NimiClientConfig,
+  NimiLocalAppClient,
+  NimiLocalAppScenarioJobSpec,
+  NimiLocalAppTextTurnEvent,
+} from '@nimiplatform/sdk';
 export {
   createNimiCloudAIConfigCapabilityIntent,
   createNimiLocalAIConfigCapabilityIntent,
@@ -88,6 +99,7 @@ export {
   Runtime,
   createNimiHostRuntimeAgentInspectSurface,
   getNimiRuntimeReasonCodeMessage,
+  toNimiRuntimeVoiceReference,
 } from '@nimiplatform/sdk/runtime';
 export {
   NIMI_RUNTIME_AGENT_RESOLVED_STATUS_CUE_MOODS,
@@ -176,8 +188,13 @@ export type {
 } from '@nimiplatform/sdk/ai';
 export {
   buildNimiRuntimeScenarioJobIdentity,
+  runNimiRuntimeImageGeneration,
+  runNimiRuntimeSpeechSynthesis,
+  runNimiRuntimeSpeechTranscription,
+  runNimiRuntimeVideoGeneration,
 } from '@nimiplatform/sdk/features/generation';
 export type {
+  NimiRuntimeSpeechTranscriptionAudioSource,
   NimiRuntimeVideoContentPart,
   NimiRuntimeVideoGenerationOptions,
 } from '@nimiplatform/sdk/features/generation';
@@ -212,7 +229,9 @@ export {
   AccountReasonCode,
   AccountSessionState,
   ReasonCode as RuntimeReasonCode,
+  RoutePolicy,
   VoiceAssetStatus,
+  VoiceReferenceKind,
   VoiceWorkflowType,
 } from '@nimiplatform/sdk/runtime/generated';
 export {

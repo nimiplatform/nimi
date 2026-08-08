@@ -141,7 +141,7 @@ func TestExecuteGoogleCloudTTS_GeminiRequestAddsModelPromptAndProviderOverrides(
 					Text:         "Host: Hi there.\nGuest: Hello.",
 					Language:     "en-US",
 					AudioFormat:  "wav",
-					SampleRateHz: 22050,
+					SampleRateHz: testInt32(22050),
 				},
 			},
 		},

@@ -34,10 +34,13 @@ type SelectedLocalExecution struct {
 	DisplayName        string
 	DriverIdentity     *runtimev1.CapabilityImplementationIdentity
 	PortableConfig     *structpb.Struct
-	Requirements       []*runtimev1.LocalCapabilityRequirement
-	ExactBindings      []ExactBinding
-	SupportedFeatures  []string
-	Configured         bool
+	// ModelContextWindowTokens is the exact bound model's authored capacity.
+	// Zero means the verified model does not expose a usable capacity fact.
+	ModelContextWindowTokens uint64
+	Requirements             []*runtimev1.LocalCapabilityRequirement
+	ExactBindings            []ExactBinding
+	SupportedFeatures        []string
+	Configured               bool
 }
 
 // Resolver is the private machine-configuration seam consumed by Runtime job

@@ -284,5 +284,16 @@ func (e *agentTurnContextCapacityExceededError) Error() string {
 	if e == nil {
 		return "context_capacity_exceeded"
 	}
+	if budget := e.Summary.GetBudget(); budget != nil {
+		requiredWindow := e.RequiredTokens + budget.GetReservedOutputTokens() + budget.GetReservedSafetyTokens() + budget.GetReservedAdapterTokens()
+		return fmt.Sprintf(
+			"context_capacity_exceeded: required=%d available=%d required_window=%d current_window=%d blocking_lane=%s",
+			e.RequiredTokens,
+			e.AvailableTokens,
+			requiredWindow,
+			budget.GetContextWindowTokens(),
+			e.BlockingLane,
+		)
+	}
 	return fmt.Sprintf("context_capacity_exceeded: required=%d available=%d blocking_lane=%s", e.RequiredTokens, e.AvailableTokens, e.BlockingLane)
 }

@@ -15,7 +15,26 @@ import (
 
 	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
 	"github.com/nimiplatform/nimi/runtime/internal/localexecution"
+	"google.golang.org/protobuf/types/known/structpb"
 )
+
+func TestVideoLoadRequestTransmitsPortableRecipe(t *testing.T) {
+	portable, err := structpb.NewStruct(map[string]any{
+		"executionOptions": map[string]any{
+			"cfgScale": 2.5, "flowShift": 8, "sampleMethod": "euler", "scheduler": "karras",
+			"diffusionFlashAttention": false, "offloadParamsToCPU": false, "rng": "cuda",
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	plan := videoPlanForHostTestWithPortable(t, "recipe", portable)
+	request := videoLoadRequest("127.0.0.1:54321", plan)
+	if request.CFGScale != 2.5 || request.FlowShift != 8 || request.SampleMethod != "euler" || request.Scheduler != "karras" ||
+		request.DiffusionFlashAttention || request.OffloadToCPU || request.RNG != "cuda" {
+		t.Fatalf("load recipe = %#v", request)
+	}
+}
 
 func TestVideoExecutionEngineConfigFromDirectoryUsesExplicitWrapperSeam(t *testing.T) {
 	root := t.TempDir()
@@ -266,6 +285,11 @@ func executeVideoForTest(host *VideoExecutionHost, ctx context.Context, plan *ca
 
 func videoPlanForHostTest(t *testing.T, prompt string) *capabilitydriver.VideoInvocationPlan {
 	t.Helper()
+	return videoPlanForHostTestWithPortable(t, prompt, nil)
+}
+
+func videoPlanForHostTestWithPortable(t *testing.T, prompt string, portable *structpb.Struct) *capabilitydriver.VideoInvocationPlan {
+	t.Helper()
 	root := t.TempDir()
 	requirements := []string{
 		capabilitydriver.StableDiffusionVideoFL2VARequirementID,
@@ -286,7 +310,7 @@ func videoPlanForHostTest(t *testing.T, prompt string) *capabilitydriver.VideoIn
 		bindings = append(bindings, capabilitydriver.InvocationExactBinding{RequirementID: requirement, LocalAssetID: fmt.Sprintf("asset-%d", index), AbsolutePath: path, VerifiedContentID: "sha256:" + digest, EntrySHA256: digest})
 	}
 	plan, err := (capabilitydriver.StableDiffusionVideoDriver{}).PlanVideoInvocation(capabilitydriver.VideoInvocationInput{
-		ConfigurationID: "video-config", ExactBindings: bindings,
+		ConfigurationID: "video-config", PortableConfig: portable, ExactBindings: bindings,
 		Request: capabilitydriver.VideoInvocationRequest{Prompt: prompt, Width: 32, Height: 32, FrameCount: 5, FPS: 24, Seed: 7, GenerateAudio: true},
 	})
 	if err != nil {

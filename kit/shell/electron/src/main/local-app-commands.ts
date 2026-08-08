@@ -2,9 +2,22 @@ import { NIMI_STANDARD_SHELL_COMMANDS } from '@nimiplatform/kit/shell/capabiliti
 import {
   NimiElectronLocalAppHostError,
   type NimiElectronLocalAppHost,
+  type NimiElectronLocalAppJson,
   type NimiElectronLocalAppRecord,
 } from './local-app-host.js';
 import { NimiElectronShellHostError } from './types.js';
+
+const AIC_COMMANDS = {
+  textTurnStream: NIMI_STANDARD_SHELL_COMMANDS['local-app.textTurnStream'],
+  scenarioExecute: NIMI_STANDARD_SHELL_COMMANDS['local-app.scenarioExecute'],
+  scenarioJobSubmit: NIMI_STANDARD_SHELL_COMMANDS['local-app.scenarioJobSubmit'],
+  scenarioJobGet: NIMI_STANDARD_SHELL_COMMANDS['local-app.scenarioJobGet'],
+  scenarioJobSubscribe: NIMI_STANDARD_SHELL_COMMANDS['local-app.scenarioJobSubscribe'],
+  scenarioJobCancel: NIMI_STANDARD_SHELL_COMMANDS['local-app.scenarioJobCancel'],
+  artifactRead: NIMI_STANDARD_SHELL_COMMANDS['local-app.artifactRead'],
+  artifactUpload: NIMI_STANDARD_SHELL_COMMANDS['local-app.artifactUpload'],
+  voiceAssetsList: NIMI_STANDARD_SHELL_COMMANDS['local-app.voiceAssetsList'],
+} as const;
 
 const MAX_IDENTIFIER_LENGTH = 512;
 const MAX_TEXT_CANDIDATE_MESSAGES = 8;
@@ -27,16 +40,30 @@ const FORBIDDEN_RENDERER_FIELDS = new Set([
 
 type RendererLocalAppHostMethod = Exclude<
   keyof NimiElectronLocalAppHost,
-  'renewTechnicalSession' | 'conversationStreamNext' | 'conversationStreamClose'
+  | 'renewTechnicalSession'
+  | 'conversationStreamNext' | 'conversationStreamClose'
+  | 'textTurnStreamNext' | 'textTurnStreamClose'
+  | 'scenarioJobStreamNext' | 'scenarioJobStreamClose'
 >;
 
 const ACTIVE_CONVERSATION_STREAMS = new WeakMap<NimiElectronLocalAppHost, Set<string>>();
+const ACTIVE_SCENARIO_STREAMS = new WeakMap<NimiElectronLocalAppHost, Set<string>>();
 
 const COMMAND_METHODS = new Map<string, RendererLocalAppHostMethod>([
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.sessionStatus'], 'sessionStatus'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.aiConfigGet'], 'aiConfigGet'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.aiConfigOverwrite'], 'aiConfigOverwrite'],
+  [NIMI_STANDARD_SHELL_COMMANDS['local-app.modelConfigLocalSelectionsGet'], 'modelConfigLocalSelectionsGet'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.textGenerateCandidate'], 'textGenerateCandidate'],
+  [AIC_COMMANDS.textTurnStream, 'textTurnSubscribe'],
+  [AIC_COMMANDS.scenarioExecute, 'scenarioExecute'],
+  [AIC_COMMANDS.scenarioJobSubmit, 'scenarioJobSubmit'],
+  [AIC_COMMANDS.scenarioJobGet, 'scenarioJobGet'],
+  [AIC_COMMANDS.scenarioJobSubscribe, 'scenarioJobSubscribe'],
+  [AIC_COMMANDS.scenarioJobCancel, 'scenarioJobCancel'],
+  [AIC_COMMANDS.artifactRead, 'artifactRead'],
+  [AIC_COMMANDS.artifactUpload, 'artifactUpload'],
+  [AIC_COMMANDS.voiceAssetsList, 'voiceAssetsList'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.realmWorldCoreList'], 'realmWorldCoreList'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.realmWorldCoreCreate'], 'realmWorldCoreCreate'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.agentReferenceList'], 'agentReferenceList'],
@@ -74,11 +101,37 @@ export async function dispatchElectronLocalAppCommand(input: {
   try {
     if (method === 'sessionStatus') return await input.host.sessionStatus();
     if (method === 'aiConfigGet') return await input.host.aiConfigGet();
+    if (method === 'modelConfigLocalSelectionsGet') return await input.host.modelConfigLocalSelectionsGet();
     if (method === 'agentReferenceList') return await input.host.agentReferenceList();
     if (method === 'sharedAgentAIConfigGet') return await input.host.sharedAgentAIConfigGet();
     if (method === 'storageReadJson') return await input.host.storageReadJson(payload);
     if (method === 'storageWriteJson') return await input.host.storageWriteJson(payload);
     if (method === 'storageRemoveJson') return await input.host.storageRemoveJson(payload);
+    if (method === 'textTurnSubscribe' || method === 'scenarioJobSubscribe') {
+      const streams = activeScenarioStreams(input.host);
+      if (payload.action === 'cancel') {
+        const subscriptionId = String(payload.subscriptionId);
+        streams.delete(subscriptionId);
+        const result = method === 'textTurnSubscribe'
+          ? await input.host.textTurnStreamClose({ streamId: subscriptionId })
+          : await input.host.scenarioJobStreamClose({ streamId: subscriptionId });
+        return { subscriptionId, closed: result.closed };
+      }
+      if (!input.sendEvent) throw carrierRequired(input.command);
+      const opened = method === 'textTurnSubscribe'
+        ? await input.host.textTurnSubscribe(payload)
+        : await input.host.scenarioJobSubscribe(payload);
+      const subscriptionId = String(opened.streamId);
+      const eventName = `local-app-ai.${subscriptionId}`;
+      streams.add(subscriptionId);
+      const pumpTimer = setTimeout(() => {
+        void pumpScenarioStream(
+          input.host!, method, subscriptionId, eventName, input.sendEvent!, input.command,
+        );
+      }, 0);
+      pumpTimer.unref?.();
+      return { subscriptionId, eventName };
+    }
     if (method === 'conversationSubscribe') {
       if (payload.action === 'cancel') {
         const subscriptionId = String(payload.subscriptionId);
@@ -120,6 +173,7 @@ function validatePayload(
       assertExactKeys(payload, [], command);
       return {};
     case 'aiConfigGet':
+    case 'modelConfigLocalSelectionsGet':
     case 'agentReferenceList':
     case 'sharedAgentAIConfigGet':
       assertExactKeys(payload, [], command);
@@ -142,6 +196,59 @@ function validatePayload(
       return { capabilities: payload.capabilities as NimiElectronLocalAppRecord[string] };
     case 'textGenerateCandidate':
       return textCandidatePayload(payload, command);
+    case 'textTurnSubscribe':
+      if (payload.action === 'cancel') {
+        return {
+          ...identifiers(payload, ['subscriptionId'], command, new Set(), ['action', 'subscriptionId']),
+          action: 'cancel',
+        };
+      }
+      return textCandidatePayload(payload, command);
+    case 'scenarioExecute':
+    case 'scenarioJobSubmit':
+      assertExactKeys(payload, ['spec'], command);
+      validateScenarioSpec(payload.spec, command, method === 'scenarioExecute');
+      return { spec: payload.spec as NimiElectronLocalAppRecord[string] };
+    case 'scenarioJobGet':
+      return identifiers(payload, ['jobId'], command);
+    case 'scenarioJobCancel': {
+      assertExactKeys(payload, ['jobId', 'reason'], command);
+      const reason = typeof payload.reason === 'string' ? payload.reason : '';
+      if (reason.length > 512 || reason.trim() !== reason || reason.includes('\0')) {
+        throw invalidPayload(command, 'reason is invalid');
+      }
+      return {
+        jobId: requiredText(payload.jobId, 'jobId', command, 128),
+        reason,
+      };
+    }
+    case 'scenarioJobSubscribe':
+      if (payload.action === 'cancel') {
+        return {
+          ...identifiers(payload, ['subscriptionId'], command, new Set(), ['action', 'subscriptionId']),
+          action: 'cancel',
+        };
+      }
+      return identifiers(payload, ['jobId'], command);
+    case 'artifactRead':
+      return identifiers(payload, ['artifactId'], command);
+    case 'artifactUpload': {
+      assertExactKeys(payload, ['bytes', 'mimeType'], command);
+      if (!Array.isArray(payload.bytes) || payload.bytes.length === 0 || payload.bytes.length > 32 * 1024 * 1024
+        || payload.bytes.some((entry) => !Number.isInteger(entry) || Number(entry) < 0 || Number(entry) > 255)
+        || !['image/png', 'image/jpeg', 'image/webp', 'image/gif'].includes(String(payload.mimeType))) {
+        throw invalidPayload(command, 'artifact upload is invalid');
+      }
+      return { bytes: [...payload.bytes] as NimiElectronLocalAppJson, mimeType: String(payload.mimeType) };
+    }
+    case 'voiceAssetsList': {
+      assertExactKeys(payload, ['pageSize', 'pageToken'], command);
+      const pageSize = nonNegativeInteger(payload.pageSize, command, 'pageSize');
+      if (pageSize > 200 || typeof payload.pageToken !== 'string' || !/^[0-9]{0,10}$/u.test(payload.pageToken)) {
+        throw invalidPayload(command, 'voice asset page is invalid');
+      }
+      return { pageSize, pageToken: payload.pageToken };
+    }
     case 'realmWorldCoreList': {
       assertAllowedKeys(payload, ['take', 'visibility'], [], command);
       const result: Record<string, NimiElectronLocalAppRecord[string]> = {};
@@ -241,7 +348,12 @@ function textCandidatePayload(
   payload: Readonly<Record<string, unknown>>,
   command: string,
 ): NimiElectronLocalAppRecord {
-  assertExactKeys(payload, ['messages', 'temperature', 'topP', 'maxTokens'], command);
+  assertAllowedKeys(
+    payload,
+    ['messages', 'temperature', 'topP', 'maxTokens', 'topK', 'presencePenalty', 'frequencyPenalty', 'stop', 'seed'],
+    ['messages'],
+    command,
+  );
   if (!Array.isArray(payload.messages)
     || payload.messages.length === 0
     || payload.messages.length > MAX_TEXT_CANDIDATE_MESSAGES) {
@@ -275,19 +387,228 @@ function textCandidatePayload(
     return { role, text };
   });
   if (!sawUser) throw invalidPayload(command, 'at least one user message is required');
-  const temperature = boundedFiniteNumber(payload.temperature, 'temperature', command, 0, 2);
-  const topP = boundedFiniteNumber(payload.topP, 'topP', command, 0, 1);
-  if (!Number.isSafeInteger(payload.maxTokens)
-    || Number(payload.maxTokens) < 1
-    || Number(payload.maxTokens) > MAX_TEXT_CANDIDATE_TOKENS) {
-    throw invalidPayload(command, 'maxTokens is invalid');
-  }
-  return {
+  const output: Record<string, NimiElectronLocalAppJson> = {
     messages: messages as unknown as NimiElectronLocalAppRecord[string],
-    temperature,
-    topP,
-    maxTokens: Number(payload.maxTokens),
   };
+  if (payload.temperature !== undefined) output.temperature = boundedFiniteNumber(payload.temperature, 'temperature', command, 0, 2);
+  if (payload.topP !== undefined) output.topP = boundedFiniteNumber(payload.topP, 'topP', command, 0, 1);
+  if (payload.maxTokens !== undefined) output.maxTokens = boundedSafeInteger(payload.maxTokens, 'maxTokens', command, 0, MAX_TEXT_CANDIDATE_TOKENS);
+  if (payload.topK !== undefined) output.topK = boundedSafeInteger(payload.topK, 'topK', command, 0, 2_147_483_647);
+  if (payload.presencePenalty !== undefined) output.presencePenalty = boundedFiniteNumber(payload.presencePenalty, 'presencePenalty', command, -2, 2);
+  if (payload.frequencyPenalty !== undefined) output.frequencyPenalty = boundedFiniteNumber(payload.frequencyPenalty, 'frequencyPenalty', command, -2, 2);
+  if (payload.stop !== undefined) {
+    if (!Array.isArray(payload.stop)
+      || payload.stop.some((value) => typeof value !== 'string' || value.trim() === '')) {
+      throw invalidPayload(command, 'stop is invalid');
+    }
+    output.stop = [...payload.stop];
+  }
+  if (payload.seed !== undefined) output.seed = boundedSafeInteger(payload.seed, 'seed', command, Number.MIN_SAFE_INTEGER, Number.MAX_SAFE_INTEGER);
+  return output;
+}
+
+function validateScenarioSpec(value: unknown, command: string, execute: boolean): void {
+  if (!isPlainRecord(value) || typeof value.type !== 'string') {
+    throw invalidPayload(command, 'scenario spec is invalid');
+  }
+  assertNoForbiddenAuthorityValue(value, command);
+  validateJsonValue(value, command, 40 * 1024 * 1024);
+  if (value.type === 'text-embed' && execute) {
+    assertExactKeys(value, ['type', 'inputs'], command);
+    if (!Array.isArray(value.inputs) || value.inputs.length === 0 || value.inputs.length > 16) {
+      throw invalidPayload(command, 'embed inputs are invalid');
+    }
+    let total = 0;
+    for (const input of value.inputs) {
+      requiredUtf8Text(input, 'inputs', command, 32 * 1024);
+      total += Buffer.byteLength(String(input), 'utf8');
+    }
+    if (total > 64 * 1024) throw invalidPayload(command, 'embed inputs exceed the prompt bound');
+    return;
+  }
+  if (value.type === 'image-generate') {
+    validateImageSpec(value, command);
+    return;
+  }
+  if (execute) throw invalidPayload(command, 'execute scenario type is invalid');
+  switch (value.type) {
+    case 'video-generate': validateVideoSpec(value, command); return;
+    case 'speech-synthesize': validateSpeechSynthesizeSpec(value, command); return;
+    case 'speech-transcribe': validateSpeechTranscribeSpec(value, command); return;
+    case 'voice-clone': validateVoiceCloneSpec(value, command); return;
+    case 'voice-design': validateVoiceDesignSpec(value, command); return;
+    default: throw invalidPayload(command, 'job scenario type is invalid');
+  }
+}
+
+function validateImageSpec(value: Record<string, unknown>, command: string): void {
+  assertAllowedKeys(
+    value,
+    ['type', 'prompt', 'negativePrompt', 'n', 'size', 'aspectRatio', 'quality', 'style', 'seed', 'referenceImages', 'mask', 'responseFormat'],
+    ['type', 'prompt', 'negativePrompt', 'size', 'aspectRatio', 'quality', 'style', 'referenceImages', 'mask', 'responseFormat'],
+    command,
+  );
+  requiredUtf8Text(value.prompt, 'prompt', command, 32 * 1024);
+  optionalExactText(value.negativePrompt, 'negativePrompt', command, 32 * 1024);
+  for (const key of ['size', 'aspectRatio', 'quality', 'style']) optionalExactText(value[key], key, command, 128);
+  if (value.n !== undefined) boundedSafeInteger(value.n, 'n', command, 0, 4);
+  if (value.seed !== undefined) boundedSafeInteger(value.seed, 'seed', command, 0, Number.MAX_SAFE_INTEGER);
+  if (!Array.isArray(value.referenceImages) || value.referenceImages.length > 1) {
+    throw invalidPayload(command, 'referenceImages is invalid');
+  }
+  for (const reference of value.referenceImages) requiredHttpsUrl(reference, 'referenceImages', command);
+  const mask = optionalExactText(value.mask, 'mask', command, 2048);
+  if (mask !== '') requiredHttpsUrl(mask, 'mask', command);
+  if (!['', 'b64_json', 'url'].includes(String(value.responseFormat))) {
+    throw invalidPayload(command, 'responseFormat is invalid');
+  }
+}
+
+function validateVideoSpec(value: Record<string, unknown>, command: string): void {
+  assertExactKeys(value, ['type', 'prompt', 'negativePrompt', 'mode', 'content', 'options'], command);
+  optionalExactText(value.prompt, 'prompt', command, 32 * 1024);
+  optionalExactText(value.negativePrompt, 'negativePrompt', command, 32 * 1024);
+  if (!['t2v', 'i2v-first-frame', 'i2v-first-last', 'i2v-reference'].includes(String(value.mode))
+    || !Array.isArray(value.content) || value.content.length > 8
+    || (value.prompt === '' && value.content.length === 0)) throw invalidPayload(command, 'video spec is invalid');
+  for (const itemValue of value.content) {
+    if (!isPlainRecord(itemValue) || typeof itemValue.type !== 'string'
+      || !['prompt', 'first-frame', 'last-frame', 'reference-image', 'reference-video', 'reference-audio'].includes(String(itemValue.role))) {
+      throw invalidPayload(command, 'video content is invalid');
+    }
+    if (itemValue.type === 'text') {
+      assertExactKeys(itemValue, ['type', 'role', 'text'], command);
+      requiredUtf8Text(itemValue.text, 'content.text', command, 8 * 1024);
+    } else if (['image-url', 'video-url', 'audio-url'].includes(itemValue.type)) {
+      assertExactKeys(itemValue, ['type', 'role', 'url'], command);
+      requiredHttpsUrl(itemValue.url, 'content.url', command);
+    } else if (itemValue.type === 'artifact-ref') {
+      assertExactKeys(itemValue, ['type', 'role', 'artifactId'], command);
+      requiredText(itemValue.artifactId, 'artifactId', command, 128);
+    } else throw invalidPayload(command, 'video content type is invalid');
+  }
+  if (!isPlainRecord(value.options)) throw invalidPayload(command, 'video options are invalid');
+  assertAllowedKeys(
+    value.options,
+    ['resolution', 'ratio', 'durationSec', 'frames', 'fps', 'seed', 'cameraFixed', 'watermark', 'generateAudio', 'draft', 'returnLastFrame'],
+    ['resolution', 'ratio'],
+    command,
+  );
+  optionalExactText(value.options.resolution, 'resolution', command, 64);
+  optionalExactText(value.options.ratio, 'ratio', command, 64);
+  if (value.options.durationSec !== undefined) boundedSafeInteger(value.options.durationSec, 'durationSec', command, 0, 600);
+  if (value.options.frames !== undefined) boundedSafeInteger(value.options.frames, 'frames', command, 0, 100_000);
+  if (value.options.fps !== undefined) boundedSafeInteger(value.options.fps, 'fps', command, 0, 120);
+  if (value.options.seed !== undefined) boundedSafeInteger(value.options.seed, 'seed', command, 0, Number.MAX_SAFE_INTEGER);
+  for (const key of ['cameraFixed', 'watermark', 'generateAudio', 'draft', 'returnLastFrame']) {
+    if (value.options[key] !== undefined && typeof value.options[key] !== 'boolean') throw invalidPayload(command, `${key} is invalid`);
+  }
+}
+
+function validateSpeechSynthesizeSpec(value: Record<string, unknown>, command: string): void {
+  assertAllowedKeys(
+    value,
+    ['type', 'text', 'language', 'audioFormat', 'sampleRateHz', 'speed', 'pitch', 'volume', 'emotion', 'voiceRef', 'timingMode', 'voiceRenderHints'],
+    ['type', 'text', 'language', 'audioFormat', 'emotion', 'voiceRef', 'timingMode', 'voiceRenderHints'],
+    command,
+  );
+  requiredUtf8Text(value.text, 'text', command, 32 * 1024);
+  optionalExactText(value.language, 'language', command, 64);
+  optionalExactText(value.audioFormat, 'audioFormat', command, 64);
+  optionalExactText(value.emotion, 'emotion', command, 128);
+  if (value.sampleRateHz !== undefined) boundedSafeInteger(value.sampleRateHz, 'sampleRateHz', command, 0, 192_000);
+  if (!['none', 'word', 'char'].includes(String(value.timingMode))) throw invalidPayload(command, 'speech options are invalid');
+  if (value.speed !== undefined) boundedFiniteNumber(value.speed, 'speed', command, 0, 4);
+  if (value.pitch !== undefined) boundedFiniteNumber(value.pitch, 'pitch', command, -24, 24);
+  if (value.volume !== undefined) boundedFiniteNumber(value.volume, 'volume', command, 0, 4);
+  if (value.voiceRef !== null) {
+    if (!isPlainRecord(value.voiceRef)) throw invalidPayload(command, 'voiceRef is invalid');
+    assertExactKeys(value.voiceRef, ['type', 'id'], command);
+    if (!['preset', 'voice-asset'].includes(String(value.voiceRef.type))) throw invalidPayload(command, 'voiceRef type is invalid');
+    requiredText(value.voiceRef.id, 'voiceRef.id', command, 128);
+  }
+  if (value.voiceRenderHints !== null) {
+    if (!isPlainRecord(value.voiceRenderHints)) throw invalidPayload(command, 'voiceRenderHints is invalid');
+    assertExactKeys(value.voiceRenderHints, ['stability', 'similarityBoost', 'style', 'useSpeakerBoost', 'speed'], command);
+    for (const key of ['stability', 'similarityBoost', 'style', 'speed']) boundedFiniteNumber(value.voiceRenderHints[key], key, command, 0, 10);
+    if (typeof value.voiceRenderHints.useSpeakerBoost !== 'boolean') throw invalidPayload(command, 'useSpeakerBoost is invalid');
+  }
+}
+
+function validateSpeechTranscribeSpec(value: Record<string, unknown>, command: string): void {
+  assertAllowedKeys(
+    value,
+    ['type', 'mimeType', 'language', 'timestamps', 'diarization', 'speakerCount', 'prompt', 'audioSource', 'responseFormat'],
+    ['type', 'mimeType', 'language', 'prompt', 'audioSource', 'responseFormat'],
+    command,
+  );
+  optionalExactText(value.mimeType, 'mimeType', command, 128);
+  optionalExactText(value.language, 'language', command, 64);
+  optionalExactText(value.prompt, 'prompt', command, 4 * 1024);
+  optionalExactText(value.responseFormat, 'responseFormat', command, 64);
+  if ((value.timestamps !== undefined && typeof value.timestamps !== 'boolean')
+    || (value.diarization !== undefined && typeof value.diarization !== 'boolean')
+    || !isPlainRecord(value.audioSource)) throw invalidPayload(command, 'transcription spec is invalid');
+  if (value.speakerCount !== undefined) boundedSafeInteger(value.speakerCount, 'speakerCount', command, 0, 32);
+  if (value.audioSource.type === 'bytes') {
+    assertExactKeys(value.audioSource, ['type', 'bytes'], command);
+    validateInputBytes(value.audioSource.bytes, 32 * 1024 * 1024, command);
+    if (value.mimeType === '') throw invalidPayload(command, 'mimeType is required for bytes');
+  } else if (value.audioSource.type === 'uri') {
+    assertExactKeys(value.audioSource, ['type', 'uri'], command);
+    requiredHttpsUrl(value.audioSource.uri, 'audioSource.uri', command);
+  } else throw invalidPayload(command, 'audioSource type is invalid');
+}
+
+function validateVoiceCloneSpec(value: Record<string, unknown>, command: string): void {
+  assertExactKeys(value, ['type', 'referenceAudio', 'referenceAudioMime', 'languageHints', 'preferredName', 'text'], command);
+  optionalExactText(value.referenceAudioMime, 'referenceAudioMime', command, 128);
+  optionalExactText(value.preferredName, 'preferredName', command, 256);
+  optionalExactText(value.text, 'text', command, 32 * 1024);
+  if (!Array.isArray(value.languageHints) || value.languageHints.length > 8 || !isPlainRecord(value.referenceAudio)) {
+    throw invalidPayload(command, 'voice clone input is invalid');
+  }
+  for (const hint of value.languageHints) requiredText(hint, 'languageHint', command, 64);
+  if (value.referenceAudio.type === 'bytes') {
+    assertExactKeys(value.referenceAudio, ['type', 'bytes'], command);
+    validateInputBytes(value.referenceAudio.bytes, 20 * 1024 * 1024, command);
+    if (value.referenceAudioMime === '') throw invalidPayload(command, 'referenceAudioMime is required');
+  } else if (value.referenceAudio.type === 'uri') {
+    assertExactKeys(value.referenceAudio, ['type', 'uri'], command);
+    requiredHttpsUrl(value.referenceAudio.uri, 'referenceAudio.uri', command);
+  } else throw invalidPayload(command, 'referenceAudio type is invalid');
+}
+
+function validateVoiceDesignSpec(value: Record<string, unknown>, command: string): void {
+  assertExactKeys(value, ['type', 'instructionText', 'previewText', 'language', 'preferredName'], command);
+  requiredUtf8Text(value.instructionText, 'instructionText', command, 8 * 1024);
+  optionalExactText(value.previewText, 'previewText', command, 8 * 1024);
+  optionalExactText(value.language, 'language', command, 64);
+  optionalExactText(value.preferredName, 'preferredName', command, 256);
+}
+
+function optionalExactText(value: unknown, field: string, command: string, maxBytes: number): string {
+  if (typeof value !== 'string' || value.trim() !== value || value.includes('\0')
+    || Buffer.byteLength(value, 'utf8') > maxBytes) throw invalidPayload(command, `${field} is invalid`);
+  return value;
+}
+
+function validateInputBytes(value: unknown, maximum: number, command: string): void {
+  if (!Array.isArray(value) || value.length === 0 || value.length > maximum
+    || value.some((entry) => !Number.isInteger(entry) || Number(entry) < 0 || Number(entry) > 255)) {
+    throw invalidPayload(command, 'inline bytes are invalid');
+  }
+}
+
+function requiredHttpsUrl(value: unknown, field: string, command: string): string {
+  const text = requiredText(value, field, command, 2048);
+  try {
+    const parsed = new URL(text);
+    if (parsed.protocol !== 'https:' || !parsed.hostname) throw new Error('invalid');
+  } catch {
+    throw invalidPayload(command, `${field} is invalid`);
+  }
+  return text;
 }
 
 function boundedFiniteNumber(
@@ -298,6 +619,19 @@ function boundedFiniteNumber(
   maximum: number,
 ): number {
   if (typeof value !== 'number' || !Number.isFinite(value) || value < minimum || value > maximum) {
+    throw invalidPayload(command, `${field} is invalid`);
+  }
+  return value;
+}
+
+function boundedSafeInteger(
+  value: unknown,
+  field: string,
+  command: string,
+  minimum: number,
+  maximum: number,
+): number {
+  if (typeof value !== 'number' || !Number.isSafeInteger(value) || value < minimum || value > maximum) {
     throw invalidPayload(command, `${field} is invalid`);
   }
   return value;
@@ -514,6 +848,67 @@ function activeConversationStreams(host: NimiElectronLocalAppHost): Set<string> 
     ACTIVE_CONVERSATION_STREAMS.set(host, streams);
   }
   return streams;
+}
+
+function activeScenarioStreams(host: NimiElectronLocalAppHost): Set<string> {
+  let streams = ACTIVE_SCENARIO_STREAMS.get(host);
+  if (!streams) {
+    streams = new Set();
+    ACTIVE_SCENARIO_STREAMS.set(host, streams);
+  }
+  return streams;
+}
+
+async function pumpScenarioStream(
+  host: NimiElectronLocalAppHost,
+  method: 'textTurnSubscribe' | 'scenarioJobSubscribe',
+  subscriptionId: string,
+  eventName: string,
+  sendEvent: (eventName: string, payload: NimiElectronLocalAppRecord) => void,
+  command: string,
+): Promise<void> {
+  const streams = activeScenarioStreams(host);
+  try {
+    while (streams.has(subscriptionId)) {
+      const next = method === 'textTurnSubscribe'
+        ? await host.textTurnStreamNext({ streamId: subscriptionId })
+        : await host.scenarioJobStreamNext({ streamId: subscriptionId });
+      if (!streams.has(subscriptionId)) return;
+      if (next.completed === true) {
+        streams.delete(subscriptionId);
+        sendEvent(eventName, { subscriptionId, eventType: 'completed' });
+        return;
+      }
+      sendEvent(eventName, { subscriptionId, eventType: 'next', event: next.event ?? null });
+    }
+  } catch (error) {
+    if (!streams.delete(subscriptionId)) return;
+    const mapped = error instanceof NimiElectronLocalAppHostError
+      ? mapHostError(error, command)
+      : new NimiElectronShellHostError({
+          code: 'runtime-service-untrusted',
+          message: 'Electron local-app AI stream returned an untrusted failure',
+          reasonCode: 'runtime-service-untrusted',
+          actionHint: 'restart_fixed_runtime_service',
+          details: { command },
+        });
+    sendEvent(eventName, {
+      subscriptionId,
+      eventType: 'error',
+      error: {
+        code: mapped.code,
+        reasonCode: mapped.reasonCode,
+        actionHint: mapped.actionHint,
+        source: mapped.source,
+        details: { command, retryable: error instanceof NimiElectronLocalAppHostError && error.retryable },
+      },
+    });
+  } finally {
+    if (!streams.has(subscriptionId)) {
+      const close = method === 'textTurnSubscribe' ? host.textTurnStreamClose : host.scenarioJobStreamClose;
+      await close.call(host, { streamId: subscriptionId }).catch(() => undefined);
+    }
+  }
 }
 
 async function pumpConversationStream(

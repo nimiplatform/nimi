@@ -13,6 +13,18 @@ import { listenShell } from './tauri-api.js';
 import { assertRecord, parseRequiredString } from './types.js';
 import type { JsonObject, JsonValue } from './types.js';
 
+const AIC_COMMANDS = {
+  textTurnStream: NIMI_STANDARD_SHELL_COMMANDS['local-app.textTurnStream'],
+  scenarioExecute: NIMI_STANDARD_SHELL_COMMANDS['local-app.scenarioExecute'],
+  scenarioJobSubmit: NIMI_STANDARD_SHELL_COMMANDS['local-app.scenarioJobSubmit'],
+  scenarioJobGet: NIMI_STANDARD_SHELL_COMMANDS['local-app.scenarioJobGet'],
+  scenarioJobSubscribe: NIMI_STANDARD_SHELL_COMMANDS['local-app.scenarioJobSubscribe'],
+  scenarioJobCancel: NIMI_STANDARD_SHELL_COMMANDS['local-app.scenarioJobCancel'],
+  artifactRead: NIMI_STANDARD_SHELL_COMMANDS['local-app.artifactRead'],
+  artifactUpload: NIMI_STANDARD_SHELL_COMMANDS['local-app.artifactUpload'],
+  voiceAssetsList: NIMI_STANDARD_SHELL_COMMANDS['local-app.voiceAssetsList'],
+} as const;
+
 const MAX_IDENTIFIER_LENGTH = 512;
 const MAX_TEXT_CANDIDATE_MESSAGES = 8;
 const MAX_TEXT_CANDIDATE_MESSAGE_BYTES = 32 * 1024;
@@ -73,6 +85,15 @@ export type NimiLocalAppSessionStatus = {
   readonly currentUser: NimiLocalAppCurrentUserStatus;
 };
 
+export type NimiLocalAppModelConfigLocalSelection = {
+  readonly capabilityContract: string;
+  readonly state: 'selected' | 'broken';
+  readonly configurationId: null;
+  readonly displayName: string | null;
+  readonly supportedFeatures: readonly string[];
+  readonly reasons: readonly string[];
+};
+
 export type NimiLocalAppTextCandidateMessage = {
   readonly role: 'system' | 'user';
   readonly text: string;
@@ -80,15 +101,134 @@ export type NimiLocalAppTextCandidateMessage = {
 
 export type NimiLocalAppTextCandidateInput = {
   readonly messages: readonly NimiLocalAppTextCandidateMessage[];
-  readonly temperature: number;
-  readonly topP: number;
-  readonly maxTokens: number;
+  readonly temperature?: number;
+  readonly topP?: number;
+  readonly maxTokens?: number;
+  readonly topK?: number;
+  readonly presencePenalty?: number;
+  readonly frequencyPenalty?: number;
+  readonly stop?: readonly string[];
+  readonly seed?: number;
 };
 
 export type NimiLocalAppTextCandidateResult = {
   readonly text: string;
   readonly finishReason: 'stop' | 'length' | 'content-filter';
   readonly traceId: string;
+};
+
+export type NimiLocalAppScenarioExecuteSpec =
+  | { readonly type: 'text-embed'; readonly inputs: readonly string[] }
+  | NimiLocalAppImageGenerateSpec;
+
+export type NimiLocalAppImageGenerateSpec = {
+  readonly type: 'image-generate';
+  readonly prompt: string;
+  readonly negativePrompt: string;
+  readonly n?: number;
+  readonly size: string;
+  readonly aspectRatio: string;
+  readonly quality: string;
+  readonly style: string;
+  readonly seed?: number;
+  readonly referenceImages: readonly string[];
+  readonly mask: string;
+  readonly responseFormat: '' | 'b64_json' | 'url';
+};
+
+export type NimiLocalAppVideoContent =
+  | { readonly type: 'text'; readonly role: NimiLocalAppVideoContentRole; readonly text: string }
+  | { readonly type: 'image-url' | 'video-url' | 'audio-url'; readonly role: NimiLocalAppVideoContentRole; readonly url: string }
+  | { readonly type: 'artifact-ref'; readonly role: NimiLocalAppVideoContentRole; readonly artifactId: string };
+export type NimiLocalAppVideoContentRole =
+  | 'prompt' | 'first-frame' | 'last-frame' | 'reference-image' | 'reference-video' | 'reference-audio';
+
+export type NimiLocalAppScenarioJobSpec =
+  | NimiLocalAppImageGenerateSpec
+  | {
+      readonly type: 'video-generate'; readonly prompt: string; readonly negativePrompt: string;
+      readonly mode: 't2v' | 'i2v-first-frame' | 'i2v-first-last' | 'i2v-reference';
+      readonly content: readonly NimiLocalAppVideoContent[];
+      readonly options: {
+        readonly resolution: string; readonly ratio: string; readonly durationSec?: number;
+        readonly frames?: number; readonly fps?: number; readonly seed?: number;
+        readonly cameraFixed?: boolean; readonly watermark?: boolean; readonly generateAudio?: boolean;
+        readonly draft?: boolean; readonly returnLastFrame?: boolean;
+      };
+    }
+  | {
+      readonly type: 'speech-synthesize'; readonly text: string; readonly language: string;
+      readonly audioFormat: string; readonly sampleRateHz?: number; readonly speed?: number;
+      readonly pitch?: number; readonly volume?: number; readonly emotion: string;
+      readonly voiceRef: { readonly type: 'preset' | 'voice-asset'; readonly id: string } | null;
+      readonly timingMode: 'none' | 'word' | 'char';
+      readonly voiceRenderHints: {
+        readonly stability: number; readonly similarityBoost: number; readonly style: number;
+        readonly useSpeakerBoost: boolean; readonly speed: number;
+      } | null;
+    }
+  | {
+      readonly type: 'speech-transcribe'; readonly mimeType: string; readonly language: string;
+      readonly timestamps?: boolean; readonly diarization?: boolean; readonly speakerCount?: number;
+      readonly prompt: string; readonly responseFormat: string;
+      readonly audioSource: { readonly type: 'bytes'; readonly bytes: readonly number[] }
+        | { readonly type: 'uri'; readonly uri: string };
+    }
+  | {
+      readonly type: 'voice-clone';
+      readonly referenceAudio: { readonly type: 'bytes'; readonly bytes: readonly number[] }
+        | { readonly type: 'uri'; readonly uri: string };
+      readonly referenceAudioMime: string; readonly languageHints: readonly string[];
+      readonly preferredName: string; readonly text: string;
+    }
+  | {
+      readonly type: 'voice-design'; readonly instructionText: string; readonly previewText: string;
+      readonly language: string; readonly preferredName: string;
+    };
+
+export type NimiLocalAppScenarioTimestamp = { readonly seconds: string; readonly nanos: number };
+export type NimiLocalAppScenarioArtifact = {
+  readonly artifactId: string; readonly mimeType: string; readonly bytes: readonly number[];
+  readonly sizeBytes: number; readonly sha256: string; readonly durationMs: number;
+  readonly width: number; readonly height: number; readonly sampleRateHz: number; readonly channels: number;
+};
+export type NimiLocalAppScenarioJob = {
+  readonly jobId: string;
+  readonly scenarioType: 'image-generate' | 'video-generate' | 'speech-synthesize' | 'speech-transcribe' | 'voice-clone' | 'voice-design';
+  readonly status: 'submitted' | 'queued' | 'running' | 'completed' | 'failed' | 'canceled' | 'timeout';
+  readonly progressPercent: number; readonly progressCurrentStep: number; readonly progressTotalSteps: number;
+  readonly reasonCode: string; readonly reasonDetail: string;
+  readonly artifacts: readonly NimiLocalAppScenarioArtifact[]; readonly traceId: string;
+  readonly createdAt: NimiLocalAppScenarioTimestamp | null; readonly updatedAt: NimiLocalAppScenarioTimestamp | null;
+};
+export type NimiLocalAppVoiceAsset = {
+  readonly voiceAssetId: string; readonly workflowType: 'voice-clone' | 'voice-design';
+  readonly status: 'active' | 'expired' | 'deleted' | 'failed';
+  readonly createdAt: NimiLocalAppScenarioTimestamp | null; readonly updatedAt: NimiLocalAppScenarioTimestamp | null;
+  readonly expiresAt: NimiLocalAppScenarioTimestamp | null;
+};
+export type NimiLocalAppScenarioExecuteResult =
+  | { readonly output: { readonly type: 'text-embed'; readonly vectors: readonly (readonly number[])[] }; readonly traceId: string }
+  | { readonly output: { readonly type: 'image-generate'; readonly artifacts: readonly NimiLocalAppScenarioArtifact[] }; readonly traceId: string };
+export type NimiLocalAppScenarioJobSubmitResult = { readonly job: NimiLocalAppScenarioJob | null; readonly asset: NimiLocalAppVoiceAsset | null };
+export type NimiLocalAppArtifactUploadResult = {
+  readonly artifactId: string;
+  readonly sizeBytes: number;
+  readonly mimeType: 'image/png' | 'image/jpeg' | 'image/webp' | 'image/gif';
+};
+export type NimiLocalAppTextTurnEvent =
+  | { readonly type: 'delta'; readonly sequence: string; readonly traceId: string; readonly text: string }
+  | { readonly type: 'completed'; readonly sequence: string; readonly traceId: string; readonly finishReason: 'stop' | 'length' | 'content-filter' }
+  | { readonly type: 'failed'; readonly sequence: string; readonly traceId: string; readonly reasonCode: string; readonly actionHint: string };
+export type NimiLocalAppScenarioJobEvent = {
+  readonly eventType: 'submitted' | 'queued' | 'running' | 'completed' | 'failed' | 'canceled' | 'timeout';
+  readonly sequence: string; readonly traceId: string; readonly timestamp: NimiLocalAppScenarioTimestamp | null;
+  readonly job: NimiLocalAppScenarioJob;
+};
+
+export type NimiLocalAppStream<T> = {
+  readonly events: AsyncIterable<T>;
+  readonly cancel: () => Promise<void>;
 };
 
 export type NimiLocalAppStorageDocument = {
@@ -156,6 +296,25 @@ export type NimiLocalAppStandardShellSurface = {
       readonly generateCandidate: (
         input: NimiLocalAppTextCandidateInput,
       ) => Promise<NimiLocalAppTextCandidateResult>;
+      readonly streamTurn: (
+        input: NimiLocalAppTextCandidateInput,
+      ) => Promise<NimiLocalAppStream<NimiLocalAppTextTurnEvent>>;
+    };
+    readonly scenario: {
+      readonly execute: (spec: NimiLocalAppScenarioExecuteSpec) => Promise<NimiLocalAppScenarioExecuteResult>;
+    };
+    readonly scenarioJobs: {
+      readonly submit: (spec: NimiLocalAppScenarioJobSpec) => Promise<NimiLocalAppScenarioJobSubmitResult>;
+      readonly get: (jobId: string) => Promise<{ readonly job: NimiLocalAppScenarioJob }>;
+      readonly subscribe: (jobId: string) => Promise<NimiLocalAppStream<NimiLocalAppScenarioJobEvent>>;
+      readonly cancel: (jobId: string, reason?: string) => Promise<{ readonly job: NimiLocalAppScenarioJob }>;
+    };
+    readonly artifacts: {
+      readonly read: (artifactId: string) => Promise<{ readonly bytes: readonly number[]; readonly mimeType: string; readonly sizeBytes: number }>;
+      readonly upload: (input: { readonly bytes: readonly number[]; readonly mimeType: NimiLocalAppArtifactUploadResult['mimeType'] }) => Promise<NimiLocalAppArtifactUploadResult>;
+    };
+    readonly voiceAssets: {
+      readonly list: (input?: { readonly pageSize?: number; readonly pageToken?: string }) => Promise<{ readonly assets: readonly NimiLocalAppVoiceAsset[]; readonly nextPageToken: string }>;
     };
   };
   readonly aiConfig: {
@@ -163,6 +322,9 @@ export type NimiLocalAppStandardShellSurface = {
     readonly overwrite: (
       capabilities: readonly NimiPortableAppAIConfigIntent[],
     ) => Promise<NimiPortableAppAIConfig>;
+  };
+  readonly modelConfig: {
+    readonly localSelections: () => Promise<readonly NimiLocalAppModelConfigLocalSelection[]>;
   };
   readonly storage: {
     readonly readJson: (relativePath: string) => Promise<NimiLocalAppStorageDocument>;
@@ -199,11 +361,31 @@ export function createNimiLocalAppStandardShellSurface(): NimiLocalAppStandardSh
     ai: {
       text: {
         generateCandidate: generateNimiLocalAppTextCandidate,
+        streamTurn: streamNimiLocalAppTextTurn,
+      },
+      scenario: {
+        execute: executeNimiLocalAppScenario,
+      },
+      scenarioJobs: {
+        submit: submitNimiLocalAppScenarioJob,
+        get: getNimiLocalAppScenarioJob,
+        subscribe: subscribeNimiLocalAppScenarioJob,
+        cancel: cancelNimiLocalAppScenarioJob,
+      },
+      artifacts: {
+        read: readNimiLocalAppScenarioArtifact,
+        upload: uploadNimiLocalAppScenarioArtifact,
+      },
+      voiceAssets: {
+        list: listNimiLocalAppVoiceAssets,
       },
     },
     aiConfig: {
       get: getNimiLocalAppAIConfig,
       overwrite: overwriteNimiLocalAppAIConfig,
+    },
+    modelConfig: {
+      localSelections: getNimiLocalAppModelConfigLocalSelections,
     },
     storage: {
       readJson: readNimiLocalAppStorageJson,
@@ -248,6 +430,11 @@ export function getNimiLocalAppAIConfig(): Promise<NimiPortableAppAIConfig> {
   return invokeChecked(command, {}, (value) => parseAppAIConfig(value, command));
 }
 
+export function getNimiLocalAppModelConfigLocalSelections(): Promise<readonly NimiLocalAppModelConfigLocalSelection[]> {
+  const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.modelConfigLocalSelectionsGet'];
+  return invokeChecked(command, {}, (value) => parseModelConfigLocalSelections(value, command));
+}
+
 export function overwriteNimiLocalAppAIConfig(
   capabilities: readonly NimiPortableAppAIConfigIntent[],
 ): Promise<NimiPortableAppAIConfig> {
@@ -270,7 +457,24 @@ export function generateNimiLocalAppTextCandidate(
   input: NimiLocalAppTextCandidateInput,
 ): Promise<NimiLocalAppTextCandidateResult> {
   const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.textGenerateCandidate'];
-  assertExactInput(input, ['messages', 'temperature', 'topP', 'maxTokens'], command);
+  const payload = canonicalTextTurnInput(input, command);
+  return invokeChecked(
+    command,
+    { payload },
+    (value) => parseTextCandidate(value, command),
+  );
+}
+
+function canonicalTextTurnInput(
+  input: NimiLocalAppTextCandidateInput,
+  command: string,
+): JsonObject {
+  assertAllowedInputKeys(
+    input,
+    ['messages', 'temperature', 'topP', 'maxTokens', 'topK', 'presencePenalty', 'frequencyPenalty', 'stop', 'seed'],
+    ['messages'],
+    command,
+  );
   if (!Array.isArray(input.messages)
     || input.messages.length === 0
     || input.messages.length > MAX_TEXT_CANDIDATE_MESSAGES) {
@@ -303,18 +507,131 @@ export function generateNimiLocalAppTextCandidate(
     return { role: message.role, text };
   });
   if (!sawUser) throw invalidInput(command, 'at least one user message is required');
-  const temperature = boundedFiniteNumber(input.temperature, 'temperature', command, 0, 2);
-  const topP = boundedFiniteNumber(input.topP, 'topP', command, 0, 1);
-  if (!Number.isSafeInteger(input.maxTokens)
-    || input.maxTokens < 1
-    || input.maxTokens > MAX_TEXT_CANDIDATE_TOKENS) {
-    throw invalidInput(command, 'maxTokens is invalid');
+  const output: JsonObject = { messages: messages as unknown as JsonValue };
+  if (input.temperature !== undefined) output.temperature = boundedFiniteNumber(input.temperature, 'temperature', command, 0, 2);
+  if (input.topP !== undefined) output.topP = boundedFiniteNumber(input.topP, 'topP', command, 0, 1);
+  if (input.maxTokens !== undefined) output.maxTokens = boundedSafeInteger(input.maxTokens, 'maxTokens', command, 0, MAX_TEXT_CANDIDATE_TOKENS);
+  if (input.topK !== undefined) output.topK = boundedSafeInteger(input.topK, 'topK', command, 0, 2_147_483_647);
+  if (input.presencePenalty !== undefined) output.presencePenalty = boundedFiniteNumber(input.presencePenalty, 'presencePenalty', command, -2, 2);
+  if (input.frequencyPenalty !== undefined) output.frequencyPenalty = boundedFiniteNumber(input.frequencyPenalty, 'frequencyPenalty', command, -2, 2);
+  if (input.stop !== undefined) {
+    if (!Array.isArray(input.stop)
+      || input.stop.some((value) => typeof value !== 'string' || value.trim() === '')) {
+      throw invalidInput(command, 'stop is invalid');
+    }
+    output.stop = [...input.stop];
   }
-  return invokeChecked(
+  if (input.seed !== undefined) output.seed = boundedSafeInteger(input.seed, 'seed', command, Number.MIN_SAFE_INTEGER, Number.MAX_SAFE_INTEGER);
+  return output;
+}
+
+export async function streamNimiLocalAppTextTurn(
+  input: NimiLocalAppTextCandidateInput,
+): Promise<NimiLocalAppStream<NimiLocalAppTextTurnEvent>> {
+  const command = AIC_COMMANDS.textTurnStream;
+  let deltaBytes = 0;
+  return openNimiLocalAppAIStream(
     command,
-    { payload: { messages, temperature, topP, maxTokens: input.maxTokens } },
-    (value) => parseTextCandidate(value, command),
+    canonicalTextTurnInput(input, command),
+    (value) => {
+      const event = parseTextTurnEvent(value, command);
+      if (event.type === 'delta' && typeof event.text === 'string') {
+        deltaBytes += new TextEncoder().encode(event.text).byteLength;
+        if (deltaBytes > MAX_TEXT_CANDIDATE_RESULT_BYTES) throw new Error(`${command}: text-turn output is too large`);
+      }
+      return event as NimiLocalAppTextTurnEvent;
+    },
   );
+}
+
+export function executeNimiLocalAppScenario(
+  spec: NimiLocalAppScenarioExecuteSpec,
+): Promise<NimiLocalAppScenarioExecuteResult> {
+  const command = AIC_COMMANDS.scenarioExecute;
+  return invokeChecked(command, { payload: { spec: canonicalScenarioSpec(spec, command) } },
+    (value) => parseScenarioExecute(value, command));
+}
+
+export function submitNimiLocalAppScenarioJob(
+  spec: NimiLocalAppScenarioJobSpec,
+): Promise<NimiLocalAppScenarioJobSubmitResult> {
+  const command = AIC_COMMANDS.scenarioJobSubmit;
+  return invokeChecked(command, { payload: { spec: canonicalScenarioSpec(spec, command) } },
+    (value) => parseScenarioJobSubmit(value, command));
+}
+
+export function getNimiLocalAppScenarioJob(jobId: string): Promise<{ readonly job: NimiLocalAppScenarioJob }> {
+  const command = AIC_COMMANDS.scenarioJobGet;
+  return invokeChecked(command, { payload: { jobId: requiredText(jobId, 'jobId', command, 128) } },
+    (value) => parseScenarioJobEnvelope(value, command));
+}
+
+export async function subscribeNimiLocalAppScenarioJob(
+  jobId: string,
+): Promise<NimiLocalAppStream<NimiLocalAppScenarioJobEvent>> {
+  const command = AIC_COMMANDS.scenarioJobSubscribe;
+  return openNimiLocalAppAIStream(
+    command,
+    { jobId: requiredText(jobId, 'jobId', command, 128) },
+    (value) => parseScenarioJobEvent(value, command) as NimiLocalAppScenarioJobEvent,
+  );
+}
+
+export function cancelNimiLocalAppScenarioJob(
+  jobId: string,
+  reason = '',
+): Promise<{ readonly job: NimiLocalAppScenarioJob }> {
+  const command = AIC_COMMANDS.scenarioJobCancel;
+  if (typeof reason !== 'string' || reason.trim() !== reason || reason.length > 512 || reason.includes('\0')) {
+    throw invalidInput(command, 'reason is invalid');
+  }
+  return invokeChecked(command, { payload: {
+    jobId: requiredText(jobId, 'jobId', command, 128), reason,
+  } }, (value) => parseScenarioJobEnvelope(value, command));
+}
+
+export function readNimiLocalAppScenarioArtifact(artifactId: string): Promise<{ readonly bytes: readonly number[]; readonly mimeType: string; readonly sizeBytes: number }> {
+  const command = AIC_COMMANDS.artifactRead;
+  return invokeChecked(command, { payload: {
+    artifactId: requiredText(artifactId, 'artifactId', command, 128),
+  } }, (value) => parseArtifactRead(value, command));
+}
+
+export function uploadNimiLocalAppScenarioArtifact(input: {
+  readonly bytes: readonly number[];
+  readonly mimeType: NimiLocalAppArtifactUploadResult['mimeType'];
+}): Promise<NimiLocalAppArtifactUploadResult> {
+  const command = AIC_COMMANDS.artifactUpload;
+  assertAllowedInputKeys(input, ['bytes', 'mimeType'], ['bytes', 'mimeType'], command);
+  if (!Array.isArray(input.bytes) || input.bytes.length === 0 || input.bytes.length > 32 * 1024 * 1024
+    || input.bytes.some((entry) => !Number.isInteger(entry) || entry < 0 || entry > 255)
+    || !['image/png', 'image/jpeg', 'image/webp', 'image/gif'].includes(input.mimeType)) {
+    throw invalidInput(command, 'artifact upload is invalid');
+  }
+  return invokeChecked(command, { payload: { bytes: [...input.bytes], mimeType: input.mimeType } },
+    (value) => parseArtifactUpload(value, command, input.bytes.length, input.mimeType));
+}
+
+export function listNimiLocalAppVoiceAssets(
+  input: { readonly pageSize?: number; readonly pageToken?: string } = {},
+): Promise<{ readonly assets: readonly NimiLocalAppVoiceAsset[]; readonly nextPageToken: string }> {
+  const command = AIC_COMMANDS.voiceAssetsList;
+  assertAllowedInputKeys(input, ['pageSize', 'pageToken'], [], command);
+  const pageSize = input.pageSize === undefined ? 0 : nonNegativeInteger(input.pageSize, command, 'pageSize');
+  const pageToken = input.pageToken ?? '';
+  if (pageSize > 200 || !/^[0-9]{0,10}$/u.test(pageToken)) throw invalidInput(command, 'page is invalid');
+  return invokeChecked(command, { payload: { pageSize, pageToken } },
+    (value) => parseVoiceAssetsList(value, command));
+}
+
+function canonicalScenarioSpec(spec: Readonly<JsonObject>, command: string): JsonObject {
+  const record = assertRecord(spec, `${command}: scenario spec must be an object`);
+  validateProjectionValue(record as JsonValue, command);
+  const encoded = JSON.stringify(record);
+  if (new TextEncoder().encode(encoded).byteLength > 40 * 1024 * 1024) {
+    throw invalidInput(command, 'scenario spec exceeds the input bound');
+  }
+  return { ...record } as JsonObject;
 }
 
 export function listNimiLocalAppWorldCores(
@@ -693,6 +1010,303 @@ function parseConversationSnapshot(value: unknown, command: string): JsonObject 
   }) as JsonObject;
 }
 
+function parseScenarioExecute(value: unknown, command: string): NimiLocalAppScenarioExecuteResult {
+  const record = assertRecord(value, `${command}: execute result is invalid`);
+  assertProjectionKeys(record, ['output', 'traceId'], command, 'scenario execute');
+  requiredText(record.traceId, 'traceId', command, 512);
+  const output = assertRecord(record.output, `${command}: execute output is invalid`);
+  if (output.type === 'text-embed') {
+    assertProjectionKeys(output, ['type', 'vectors'], command, 'embed output');
+    if (!Array.isArray(output.vectors) || output.vectors.length === 0 || output.vectors.length > 16
+      || output.vectors.some((vector) => !Array.isArray(vector) || vector.length === 0 || vector.length > 8192
+        || vector.some((entry) => typeof entry !== 'number' || !Number.isFinite(entry)))) {
+      throw new Error(`${command}: embed output is invalid`);
+    }
+  } else if (output.type === 'image-generate') {
+    assertProjectionKeys(output, ['type', 'artifacts'], command, 'image output');
+    parseScenarioArtifacts(output.artifacts, command);
+  } else throw new Error(`${command}: execute output type is invalid`);
+  return Object.freeze({ ...record }) as unknown as NimiLocalAppScenarioExecuteResult;
+}
+
+function parseScenarioJobSubmit(value: unknown, command: string): NimiLocalAppScenarioJobSubmitResult {
+  const record = assertRecord(value, `${command}: submit result is invalid`);
+  assertProjectionKeys(record, ['job', 'asset'], command, 'scenario Job submit');
+  if (record.job === null && record.asset === null) throw new Error(`${command}: submit result is empty`);
+  return Object.freeze({
+    job: record.job === null ? null : parseScenarioJob(record.job, command),
+    asset: record.asset === null ? null : parseVoiceAsset(record.asset, command),
+  }) as unknown as NimiLocalAppScenarioJobSubmitResult;
+}
+
+function parseScenarioJobEnvelope(value: unknown, command: string): { readonly job: NimiLocalAppScenarioJob } {
+  const record = assertRecord(value, `${command}: Job result is invalid`);
+  assertProjectionKeys(record, ['job'], command, 'scenario Job envelope');
+  return Object.freeze({ job: parseScenarioJob(record.job, command) });
+}
+
+function parseScenarioJob(value: unknown, command: string): NimiLocalAppScenarioJob {
+  const record = assertRecord(value, `${command}: Job is invalid`);
+  assertProjectionKeys(record, [
+    'jobId', 'scenarioType', 'status', 'progressPercent', 'progressCurrentStep',
+    'progressTotalSteps', 'reasonCode', 'reasonDetail', 'artifacts', 'traceId',
+    'createdAt', 'updatedAt',
+  ], command, 'scenario Job');
+  if (!['image-generate', 'video-generate', 'speech-synthesize', 'speech-transcribe', 'voice-clone', 'voice-design'].includes(String(record.scenarioType))
+    || !['submitted', 'queued', 'running', 'completed', 'failed', 'canceled', 'timeout'].includes(String(record.status))) {
+    throw new Error(`${command}: Job enum is invalid`);
+  }
+  const progressCurrentStep = boundedProjectionInteger(record.progressCurrentStep, 0, Number.MAX_SAFE_INTEGER, command);
+  const progressTotalSteps = boundedProjectionInteger(record.progressTotalSteps, 0, Number.MAX_SAFE_INTEGER, command);
+  if (progressCurrentStep > progressTotalSteps) throw new Error(`${command}: Job progress is invalid`);
+  return Object.freeze({
+    jobId: requiredText(record.jobId, 'jobId', command, 128),
+    scenarioType: record.scenarioType,
+    status: record.status,
+    progressPercent: boundedProjectionInteger(record.progressPercent, 0, 100, command),
+    progressCurrentStep,
+    progressTotalSteps,
+    reasonCode: optionalProjectionText(record.reasonCode, 128, command),
+    reasonDetail: optionalProjectionText(record.reasonDetail, 1024, command),
+    artifacts: parseScenarioArtifacts(record.artifacts, command),
+    traceId: optionalProjectionText(record.traceId, 512, command),
+    createdAt: parseScenarioTimestamp(record.createdAt, command),
+    updatedAt: parseScenarioTimestamp(record.updatedAt, command),
+  }) as unknown as NimiLocalAppScenarioJob;
+}
+
+function parseScenarioArtifacts(value: unknown, command: string): readonly NimiLocalAppScenarioArtifact[] {
+  if (!Array.isArray(value) || value.length > 16) throw new Error(`${command}: artifacts are invalid`);
+  return Object.freeze(value.map((entry) => {
+    const record = assertRecord(entry, `${command}: artifact is invalid`);
+    assertProjectionKeys(record, [
+      'artifactId', 'mimeType', 'bytes', 'sizeBytes', 'sha256', 'durationMs',
+      'width', 'height', 'sampleRateHz', 'channels',
+    ], command, 'scenario artifact');
+    const bytes = parseProjectionBytes(record.bytes, command);
+    const sizeBytes = boundedProjectionInteger(record.sizeBytes, 0, Number.MAX_SAFE_INTEGER, command);
+    if (bytes.length > 0 && sizeBytes !== bytes.length) throw new Error(`${command}: artifact size is invalid`);
+    const mimeType = requiredText(record.mimeType, 'mimeType', command, 128);
+    if (!mimeType.includes('/')) throw new Error(`${command}: artifact mimeType is invalid`);
+    return Object.freeze({
+      artifactId: requiredText(record.artifactId, 'artifactId', command, 128), mimeType, bytes,
+      sizeBytes, sha256: optionalProjectionText(record.sha256, 128, command),
+      durationMs: boundedProjectionInteger(record.durationMs, 0, Number.MAX_SAFE_INTEGER, command),
+      width: boundedProjectionInteger(record.width, 0, Number.MAX_SAFE_INTEGER, command),
+      height: boundedProjectionInteger(record.height, 0, Number.MAX_SAFE_INTEGER, command),
+      sampleRateHz: boundedProjectionInteger(record.sampleRateHz, 0, Number.MAX_SAFE_INTEGER, command),
+      channels: boundedProjectionInteger(record.channels, 0, Number.MAX_SAFE_INTEGER, command),
+    }) as NimiLocalAppScenarioArtifact;
+  }));
+}
+
+function parseArtifactUpload(
+  value: unknown,
+  command: string,
+  expectedSize: number,
+  expectedMimeType: string,
+): NimiLocalAppArtifactUploadResult {
+  const record = assertRecord(value, `${command}: artifact upload is invalid`);
+  assertProjectionKeys(record, ['artifactId', 'sizeBytes', 'mimeType'], command, 'artifact upload');
+  const artifactId = requiredText(record.artifactId, 'artifactId', command, 128);
+  const sizeBytes = boundedProjectionInteger(record.sizeBytes, 1, 32 * 1024 * 1024, command);
+  if (sizeBytes !== expectedSize || record.mimeType !== expectedMimeType
+    || !['image/png', 'image/jpeg', 'image/webp', 'image/gif'].includes(String(record.mimeType))) {
+    throw new Error(`${command}: artifact upload result is invalid`);
+  }
+  return Object.freeze({ artifactId, sizeBytes, mimeType: record.mimeType }) as NimiLocalAppArtifactUploadResult;
+}
+
+function parseArtifactRead(value: unknown, command: string): { readonly bytes: readonly number[]; readonly mimeType: string; readonly sizeBytes: number } {
+  const record = assertRecord(value, `${command}: artifact read is invalid`);
+  assertProjectionKeys(record, ['bytes', 'mimeType', 'sizeBytes'], command, 'artifact read');
+  const bytes = parseProjectionBytes(record.bytes, command);
+  const sizeBytes = boundedProjectionInteger(record.sizeBytes, 0, 32 * 1024 * 1024, command);
+  const mimeType = requiredText(record.mimeType, 'mimeType', command, 128);
+  if (bytes.length !== sizeBytes || !mimeType.includes('/')) throw new Error(`${command}: artifact read is invalid`);
+  return Object.freeze({ bytes, mimeType, sizeBytes });
+}
+
+function parseVoiceAsset(value: unknown, command: string): NimiLocalAppVoiceAsset {
+  const record = assertRecord(value, `${command}: voice asset is invalid`);
+  assertProjectionKeys(record, ['voiceAssetId', 'workflowType', 'status', 'createdAt', 'updatedAt', 'expiresAt'], command, 'voice asset');
+  if (!['voice-clone', 'voice-design'].includes(String(record.workflowType))
+    || !['active', 'expired', 'deleted', 'failed'].includes(String(record.status))) throw new Error(`${command}: voice asset enum is invalid`);
+  return Object.freeze({
+    voiceAssetId: requiredText(record.voiceAssetId, 'voiceAssetId', command, 128),
+    workflowType: record.workflowType, status: record.status,
+    createdAt: parseScenarioTimestamp(record.createdAt, command),
+    updatedAt: parseScenarioTimestamp(record.updatedAt, command),
+    expiresAt: parseScenarioTimestamp(record.expiresAt, command),
+  }) as unknown as NimiLocalAppVoiceAsset;
+}
+
+function parseVoiceAssetsList(value: unknown, command: string): { readonly assets: readonly NimiLocalAppVoiceAsset[]; readonly nextPageToken: string } {
+  const record = assertRecord(value, `${command}: voice asset list is invalid`);
+  assertProjectionKeys(record, ['assets', 'nextPageToken'], command, 'voice asset list');
+  if (!Array.isArray(record.assets) || record.assets.length > 200
+    || typeof record.nextPageToken !== 'string' || !/^[0-9]{0,10}$/u.test(record.nextPageToken)) {
+    throw new Error(`${command}: voice asset list is invalid`);
+  }
+  return Object.freeze({
+    assets: Object.freeze(record.assets.map((asset) => parseVoiceAsset(asset, command))),
+    nextPageToken: record.nextPageToken,
+  });
+}
+
+function parseScenarioJobEvent(value: unknown, command: string): NimiLocalAppScenarioJobEvent {
+  const record = assertRecord(value, `${command}: Job event is invalid`);
+  assertProjectionKeys(record, ['eventType', 'sequence', 'traceId', 'timestamp', 'job'], command, 'scenario Job event');
+  if (!['submitted', 'queued', 'running', 'completed', 'failed', 'canceled', 'timeout'].includes(String(record.eventType))
+    || typeof record.sequence !== 'string' || !/^[1-9][0-9]*$/u.test(record.sequence)) {
+    throw new Error(`${command}: Job event envelope is invalid`);
+  }
+  return Object.freeze({
+    eventType: record.eventType, sequence: record.sequence,
+    traceId: optionalProjectionText(record.traceId, 512, command),
+    timestamp: parseScenarioTimestamp(record.timestamp, command),
+    job: parseScenarioJob(record.job, command),
+  }) as unknown as NimiLocalAppScenarioJobEvent;
+}
+
+function parseTextTurnEvent(value: unknown, command: string): NimiLocalAppTextTurnEvent {
+  const record = assertRecord(value, `${command}: text-turn event is invalid`);
+  if (typeof record.sequence !== 'string' || !/^[1-9][0-9]*$/u.test(record.sequence)) {
+    throw new Error(`${command}: text-turn sequence is invalid`);
+  }
+  const traceId = requiredText(record.traceId, 'traceId', command, 512);
+  if (record.type === 'delta') {
+    assertProjectionKeys(record, ['type', 'sequence', 'traceId', 'text'], command, 'text delta');
+    return Object.freeze({ type: 'delta', sequence: record.sequence, traceId,
+      text: requiredUtf8Content(record.text, 'text', command, 64 * 1024) });
+  }
+  if (record.type === 'completed') {
+    assertProjectionKeys(record, ['type', 'sequence', 'traceId', 'finishReason'], command, 'text completion');
+    if (!['stop', 'length', 'content-filter'].includes(String(record.finishReason))) throw new Error(`${command}: finishReason is invalid`);
+    return Object.freeze({ ...record }) as unknown as NimiLocalAppTextTurnEvent;
+  }
+  if (record.type === 'failed') {
+    assertProjectionKeys(record, ['type', 'sequence', 'traceId', 'reasonCode', 'actionHint'], command, 'text failure');
+    requiredText(record.reasonCode, 'reasonCode', command, 128);
+    optionalProjectionText(record.actionHint, 512, command);
+    return Object.freeze({ ...record }) as unknown as NimiLocalAppTextTurnEvent;
+  }
+  throw new Error(`${command}: text-turn event type is invalid`);
+}
+
+function parseScenarioTimestamp(value: unknown, command: string): NimiLocalAppScenarioTimestamp | null {
+  if (value === null) return null;
+  const record = assertRecord(value, `${command}: timestamp is invalid`);
+  assertProjectionKeys(record, ['seconds', 'nanos'], command, 'timestamp');
+  if (typeof record.seconds !== 'string' || !/^-?(?:0|[1-9][0-9]*)$/u.test(record.seconds)) throw new Error(`${command}: timestamp is invalid`);
+  return Object.freeze({ seconds: record.seconds, nanos: boundedProjectionInteger(record.nanos, 0, 999_999_999, command) });
+}
+
+function parseProjectionBytes(value: unknown, command: string): readonly number[] {
+  if (!Array.isArray(value) || value.length > 32 * 1024 * 1024
+    || value.some((byte) => !Number.isInteger(byte) || Number(byte) < 0 || Number(byte) > 255)) throw new Error(`${command}: bytes are invalid`);
+  return Object.freeze([...value] as number[]);
+}
+
+function boundedProjectionInteger(value: unknown, minimum: number, maximum: number, command: string): number {
+  if (typeof value !== 'number' || !Number.isSafeInteger(value) || value < minimum || value > maximum) throw new Error(`${command}: integer projection is invalid`);
+  return value;
+}
+
+function optionalProjectionText(value: unknown, maximum: number, command: string): string {
+  if (typeof value !== 'string' || value.trim() !== value || new TextEncoder().encode(value).byteLength > maximum
+    || /[\u0000-\u001f\u007f]/u.test(value)) throw new Error(`${command}: text projection is invalid`);
+  return value;
+}
+
+async function openNimiLocalAppAIStream<T>(
+  command: string,
+  payload: JsonObject,
+  parser: (value: unknown) => T,
+): Promise<NimiLocalAppStream<T>> {
+  const opened = await invokeChecked(command, { payload }, (value) => {
+    const record = assertRecord(value, `${command}: stream open is invalid`);
+    assertProjectionKeys(record, ['subscriptionId', 'eventName'], command, 'AI stream');
+    return {
+      subscriptionId: requiredText(record.subscriptionId, 'subscriptionId', command, MAX_IDENTIFIER_LENGTH),
+      eventName: requiredText(record.eventName, 'eventName', command, MAX_IDENTIFIER_LENGTH),
+    };
+  });
+  const subscription = new LocalAppAIEventSubscription(command, opened.subscriptionId, parser);
+  try {
+    subscription.attach(await listenShell(opened.eventName, ({ payload: event }) => subscription.accept(event)));
+  } catch (error) {
+    await subscription.cancel().catch(() => undefined);
+    throw error;
+  }
+  return Object.freeze({
+    events: subscription.events,
+    cancel: () => subscription.cancel(),
+  });
+}
+
+class LocalAppAIEventSubscription<T> implements NimiLocalAppStream<T> {
+  readonly events: AsyncIterable<T> = this;
+  private readonly queued: T[] = [];
+  private readonly waiting: Array<{ resolve: (result: IteratorResult<T>) => void; reject: (error: unknown) => void }> = [];
+  private unlisten: (() => void) | undefined;
+  private terminalError: unknown;
+  private done = false;
+  private remoteCompleted = false;
+  private cancelPromise: Promise<void> | undefined;
+
+  constructor(private readonly command: string, private readonly subscriptionId: string,
+    private readonly parser: (value: unknown) => T) {}
+
+  attach(unlisten: () => void): void { if (this.done) unlisten(); else this.unlisten = unlisten; }
+  [Symbol.asyncIterator](): AsyncIterator<T> {
+    return { next: () => this.next(), return: async () => { await this.cancel(); return { done: true, value: undefined }; } };
+  }
+  cancel(): Promise<void> {
+    if (this.cancelPromise) return this.cancelPromise;
+    if (this.remoteCompleted) return this.cancelPromise = Promise.resolve();
+    this.finish();
+    this.cancelPromise = invokeChecked(this.command, { payload: { action: 'cancel', subscriptionId: this.subscriptionId } }, (value) => {
+      const record = assertRecord(value, `${this.command}: cancel result is invalid`);
+      assertProjectionKeys(record, ['subscriptionId', 'closed'], this.command, 'AI stream cancel');
+      if (record.subscriptionId !== this.subscriptionId || typeof record.closed !== 'boolean') throw new Error(`${this.command}: cancel result is invalid`);
+    });
+    return this.cancelPromise;
+  }
+  accept(value: unknown): void {
+    if (this.done) return;
+    try {
+      const record = assertRecord(value, `${this.command}: stream event is invalid`);
+      if (record.subscriptionId !== this.subscriptionId) throw new Error(`${this.command}: subscription binding is invalid`);
+      if (record.eventType === 'completed') {
+        assertProjectionKeys(record, ['subscriptionId', 'eventType'], this.command, 'AI stream completion');
+        this.remoteCompleted = true; this.finish(); return;
+      }
+      if (record.eventType === 'error') {
+        assertProjectionKeys(record, ['subscriptionId', 'eventType', 'error'], this.command, 'AI stream error');
+        this.fail(parseConversationStreamError(record.error, this.command)); return;
+      }
+      if (record.eventType !== 'next') throw new Error(`${this.command}: stream event type is invalid`);
+      assertProjectionKeys(record, ['subscriptionId', 'eventType', 'event'], this.command, 'AI stream event');
+      const event = this.parser(record.event);
+      const waiter = this.waiting.shift();
+      if (waiter) waiter.resolve({ done: false, value: event });
+      else if (this.queued.length < 32) this.queued.push(event);
+      else throw new Error(`${this.command}: stream buffer is exhausted`);
+    } catch (error) { this.fail(error); void this.cancel().catch(() => undefined); }
+  }
+  private next(): Promise<IteratorResult<T>> {
+    if (this.queued.length > 0) return Promise.resolve({ done: false, value: this.queued.shift()! });
+    if (this.terminalError) return Promise.reject(this.terminalError);
+    if (this.done) return Promise.resolve({ done: true, value: undefined });
+    return new Promise((resolve, reject) => this.waiting.push({ resolve, reject }));
+  }
+  private finish(): void { if (this.done) return; this.done = true; this.unlisten?.(); this.unlisten = undefined;
+    for (const waiter of this.waiting.splice(0)) waiter.resolve({ done: true, value: undefined }); }
+  private fail(error: unknown): void { if (this.done) return; this.terminalError = error; this.done = true;
+    this.unlisten?.(); this.unlisten = undefined; for (const waiter of this.waiting.splice(0)) waiter.reject(error); }
+}
+
 class LocalAppConversationEventSubscription implements NimiLocalAppConversationSubscription {
   readonly events: AsyncIterable<unknown> = this;
   private readonly queued: unknown[] = [];
@@ -993,6 +1607,51 @@ function parseSafeProjection(value: unknown, command: string): JsonObject {
   return record;
 }
 
+function parseModelConfigLocalSelections(
+  value: unknown,
+  command: string,
+): readonly NimiLocalAppModelConfigLocalSelection[] {
+  if (!Array.isArray(value) || value.length > 64) {
+    throw new Error(`${command}: local selection projection is invalid`);
+  }
+  return Object.freeze(value.map((entry) => {
+    const record = assertRecord(entry, `${command}: local selection is invalid`);
+    assertProjectionKeys(record, [
+      'capabilityContract', 'state', 'configurationId', 'displayName',
+      'supportedFeatures', 'reasons',
+    ], command, 'Model Config local selection');
+    const capabilityContract = requiredText(
+      record.capabilityContract,
+      'capabilityContract',
+      command,
+      MAX_IDENTIFIER_LENGTH,
+    );
+    if ((record.state !== 'selected' && record.state !== 'broken')
+      || record.configurationId !== null
+      || (record.displayName !== null && (
+        typeof record.displayName !== 'string'
+        || !record.displayName
+        || record.displayName.trim() !== record.displayName
+      ))
+      || !Array.isArray(record.supportedFeatures)
+      || record.supportedFeatures.some((feature) => typeof feature !== 'string'
+        || !feature || feature.trim() !== feature)
+      || !Array.isArray(record.reasons)
+      || record.reasons.some((reason) => typeof reason !== 'string'
+        || !reason || reason.trim() !== reason)) {
+      throw new Error(`${command}: local selection projection is invalid`);
+    }
+    return Object.freeze({
+      capabilityContract,
+      state: record.state,
+      configurationId: null,
+      displayName: record.displayName as string | null,
+      supportedFeatures: Object.freeze([...record.supportedFeatures] as string[]),
+      reasons: Object.freeze([...record.reasons] as string[]),
+    });
+  }));
+}
+
 function parseAppAIConfig(value: unknown, command: string): NimiPortableAppAIConfig {
   const config = parseSafeProjection(value, command);
   rejectPortableAppAIConfigFields(config, command, false);
@@ -1199,6 +1858,19 @@ function boundedFiniteNumber(
   maximum: number,
 ): number {
   if (typeof value !== 'number' || !Number.isFinite(value) || value < minimum || value > maximum) {
+    throw invalidInput(command, `${field} is invalid`);
+  }
+  return value;
+}
+
+function boundedSafeInteger(
+  value: unknown,
+  field: string,
+  command: string,
+  minimum: number,
+  maximum: number,
+): number {
+  if (typeof value !== 'number' || !Number.isSafeInteger(value) || value < minimum || value > maximum) {
     throw invalidInput(command, `${field} is invalid`);
   }
   return value;

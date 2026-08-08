@@ -13,7 +13,6 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/ggufmeta"
-	"github.com/oklog/ulid/v2"
 )
 
 const ggufMagicHeader = "GGUF"
@@ -416,9 +415,6 @@ func isManagedSupervisedLlamaModel(model *runtimev1.LocalAssetRecord, mode runti
 	if strings.ToLower(filepath.Ext(strings.TrimSpace(model.GetEntry()))) != ".gguf" {
 		return false
 	}
-	if shouldHealManagedSupervisedRuntimeMode(model, mode) {
-		return true
-	}
 	return normalizeRuntimeMode(mode) == runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED
 }
 
@@ -438,9 +434,6 @@ func isManagedSupervisedImageModel(model *runtimev1.LocalAssetRecord, mode runti
 	if ext != ".gguf" && ext != ".safetensors" && !strings.EqualFold(filepath.Base(entry), "model_index.json") {
 		return false
 	}
-	if shouldHealManagedSupervisedRuntimeMode(model, mode) {
-		return true
-	}
 	return normalizeRuntimeMode(mode) == runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED
 }
 
@@ -454,101 +447,7 @@ func isManagedSupervisedSpeechModel(model *runtimev1.LocalAssetRecord, mode runt
 	) {
 		return false
 	}
-	if shouldHealManagedSupervisedRuntimeMode(model, mode) {
-		return true
-	}
 	return normalizeRuntimeMode(mode) == runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED
-}
-
-func shouldHealManagedSupervisedRuntimeMode(model *runtimev1.LocalAssetRecord, mode runtimev1.LocalEngineRuntimeMode) bool {
-	if model == nil {
-		return false
-	}
-	isManagedGGUFLLM := strings.EqualFold(managedRuntimeEngineForModel(model), "llama")
-	isManagedImage := isCanonicalSupervisedImageAsset(model.GetEngine(), model.GetCapabilities(), model.GetKind())
-	isManagedSpeech := strings.EqualFold(managedRuntimeEngineForModel(model), "speech")
-	if !isManagedGGUFLLM && !isManagedImage && !isManagedSpeech {
-		return false
-	}
-	if !isManagedSpeech && strings.ToLower(filepath.Ext(strings.TrimSpace(model.GetEntry()))) != ".gguf" {
-		return false
-	}
-	expectedEndpoint := storedEndpointForAssetRuntimeMode(
-		model.GetEngine(),
-		model.GetCapabilities(),
-		model.GetKind(),
-		runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED,
-		"",
-		"",
-	)
-	if normalizeRuntimeMode(mode) == runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED {
-		return strings.TrimSpace(expectedEndpoint) != "" && strings.TrimSpace(model.GetEndpoint()) != strings.TrimSpace(expectedEndpoint)
-	}
-	repo := strings.ToLower(strings.TrimSpace(model.GetSource().GetRepo()))
-	if strings.HasPrefix(repo, "file://") && strings.HasSuffix(repo, "/asset.manifest.json") {
-		return true
-	}
-	if strings.HasPrefix(repo, "local-import/") {
-		return true
-	}
-	logicalModelID := strings.Trim(strings.TrimSpace(model.GetLogicalModelId()), "/")
-	return strings.HasPrefix(strings.ToLower(logicalModelID), "nimi/")
-}
-
-func managedSupervisedRuntimeBindingHealDetail(model *runtimev1.LocalAssetRecord) string {
-	if isCanonicalSupervisedImageAsset(model.GetEngine(), model.GetCapabilities(), model.GetKind()) {
-		return "managed image runtime binding healed to supervised managed endpoint"
-	}
-	if strings.EqualFold(managedRuntimeEngineForModel(model), "speech") {
-		return "managed speech runtime binding healed to supervised managed endpoint"
-	}
-	return "managed llama runtime binding healed to supervised managed endpoint"
-}
-
-func (s *Service) healManagedSupervisedRuntimeMode(localModelID string) (*runtimev1.LocalAssetRecord, bool, error) {
-	id := strings.TrimSpace(localModelID)
-	if id == "" {
-		return nil, false, nil
-	}
-	current := s.modelByID(id)
-	if current == nil {
-		return nil, false, nil
-	}
-	if !shouldHealManagedSupervisedRuntimeMode(current, s.modelRuntimeMode(id)) {
-		return current, false, nil
-	}
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	record := s.assets[id]
-	if record == nil {
-		return nil, false, nil
-	}
-	if !shouldHealManagedSupervisedRuntimeMode(record, s.assetRuntimeModes[id]) {
-		return cloneLocalAsset(record), false, nil
-	}
-	s.setModelRuntimeModeLocked(id, runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED)
-	record.Endpoint = storedEndpointForAssetRuntimeMode(
-		record.GetEngine(),
-		record.GetCapabilities(),
-		record.GetKind(),
-		runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED,
-		"",
-		s.managedEndpointForAssetLocked(record.GetEngine(), record.GetCapabilities(), record.GetKind()),
-	)
-	cloned := cloneLocalAsset(record)
-	s.assets[id] = cloned
-	s.appendRuntimeAuditLocked(&runtimev1.LocalAuditEvent{
-		Id:           "audit_" + ulid.Make().String(),
-		EventType:    "runtime_model_runtime_binding_healed",
-		OccurredAt:   nowISO(),
-		Source:       "local",
-		ReasonCode:   "LOCAL_MANAGED_SPEECH_RUNTIME_BINDING_HEALED",
-		ModelId:      cloned.GetAssetId(),
-		LocalModelId: cloned.GetLocalAssetId(),
-		Detail:       managedSupervisedRuntimeBindingHealDetail(cloned),
-	})
-	s.persistStateLocked()
-	return cloneLocalAsset(cloned), true, nil
 }
 
 func validateManagedLocalAssetRecord(model *runtimev1.LocalAssetRecord, mode runtimev1.LocalEngineRuntimeMode) error {
@@ -571,11 +470,12 @@ func validateManagedLocalAssetRecord(model *runtimev1.LocalAssetRecord, mode run
 func (s *Service) HasManagedSupervisedLlamaModels() bool {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	for localModelID, model := range s.assets {
+	profile := collectDeviceProfile()
+	for _, model := range s.assets {
 		if model == nil || model.GetStatus() == runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_REMOVED {
 			continue
 		}
-		if isManagedSupervisedLlamaModel(model, s.assetRuntimeModes[localModelID]) {
+		if isManagedSupervisedLlamaModel(model, runtimeModeForAsset(model, profile)) {
 			return true
 		}
 	}
@@ -585,11 +485,12 @@ func (s *Service) HasManagedSupervisedLlamaModels() bool {
 func (s *Service) HasManagedSupervisedImageModels() bool {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	for localModelID, model := range s.assets {
+	profile := collectDeviceProfile()
+	for _, model := range s.assets {
 		if model == nil || model.GetStatus() == runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_REMOVED {
 			continue
 		}
-		if isManagedSupervisedImageModel(model, s.assetRuntimeModes[localModelID]) {
+		if isManagedSupervisedImageModel(model, runtimeModeForAsset(model, profile)) {
 			return true
 		}
 	}
@@ -603,11 +504,6 @@ func (s *Service) ensureManagedLocalModelBundleReady(_ context.Context, model *r
 	localModelID := strings.TrimSpace(model.GetLocalAssetId())
 	if localModelID == "" {
 		return "", false, fmt.Errorf("managed local model is unavailable")
-	}
-	if healedModel, _, err := s.healManagedSupervisedRuntimeMode(localModelID); err != nil {
-		return "", false, err
-	} else if healedModel != nil {
-		model = healedModel
 	}
 	if err := validateManagedLocalAssetRecord(model, s.modelRuntimeMode(localModelID)); err != nil {
 		return "", false, err

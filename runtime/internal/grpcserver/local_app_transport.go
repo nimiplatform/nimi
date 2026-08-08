@@ -39,8 +39,18 @@ const (
 	protectedPresentationSnapshotMethod      = "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentPresentationSnapshot"
 	protectedCommitPresentationMethod        = "/nimi.runtime.v1.RuntimeAgentService/CommitLocalAppAgentPresentation"
 	protectedGenerateTextCandidateMethod     = "/nimi.runtime.v1.RuntimeAiService/GenerateLocalAppTextCandidate"
+	protectedStreamTextTurnMethod            = "/nimi.runtime.v1.RuntimeAiService/StreamLocalAppTextTurn"
+	protectedExecuteLocalAppScenarioMethod   = "/nimi.runtime.v1.RuntimeAiService/ExecuteLocalAppScenario"
+	protectedSubmitScenarioJobMethod         = "/nimi.runtime.v1.RuntimeAiService/SubmitLocalAppScenarioJob"
+	protectedGetScenarioJobMethod            = "/nimi.runtime.v1.RuntimeAiService/GetLocalAppScenarioJob"
+	protectedSubscribeScenarioJobMethod      = "/nimi.runtime.v1.RuntimeAiService/SubscribeLocalAppScenarioJobEvents"
+	protectedCancelScenarioJobMethod         = "/nimi.runtime.v1.RuntimeAiService/CancelLocalAppScenarioJob"
+	protectedReadLocalAppArtifactMethod      = "/nimi.runtime.v1.RuntimeAiService/ReadLocalAppArtifact"
+	protectedUploadLocalAppArtifactMethod    = "/nimi.runtime.v1.RuntimeAiService/UploadLocalAppArtifact"
+	protectedListLocalAppVoiceAssetsMethod   = "/nimi.runtime.v1.RuntimeAiService/ListLocalAppVoiceAssets"
 	protectedGetAppAIConfigMethod            = "/nimi.runtime.v1.RuntimeAiService/GetAppAIConfig"
 	protectedOverwriteAppAIConfigMethod      = "/nimi.runtime.v1.RuntimeAiService/OverwriteAppAIConfig"
+	protectedGetMachineLocalAIConfigMethod   = "/nimi.runtime.v1.RuntimeLocalService/GetMachineLocalAIConfiguration"
 	protectedInvokeRealmUnaryMethod          = "/nimi.runtime.v1.RuntimeAccountService/InvokeRealmUnary"
 )
 
@@ -76,13 +86,23 @@ var protectedLocalAppUnaryMethodPolicies = map[string]protectedLocalAppMethodPol
 	protectedPresentationSnapshotMethod:      localAppSessionMethodPolicy(),
 	protectedCommitPresentationMethod:        localAppSessionMethodPolicy(),
 	protectedGenerateTextCandidateMethod:     localAppSessionMethodPolicy(),
+	protectedExecuteLocalAppScenarioMethod:   localAppSessionMethodPolicy(),
+	protectedSubmitScenarioJobMethod:         localAppSessionMethodPolicy(),
+	protectedGetScenarioJobMethod:            localAppSessionMethodPolicy(),
+	protectedCancelScenarioJobMethod:         localAppSessionMethodPolicy(),
+	protectedReadLocalAppArtifactMethod:      localAppSessionMethodPolicy(),
+	protectedUploadLocalAppArtifactMethod:    localAppSessionMethodPolicy(),
+	protectedListLocalAppVoiceAssetsMethod:   localAppSessionMethodPolicy(),
 	protectedGetAppAIConfigMethod:            localAppSessionMethodPolicy(),
 	protectedOverwriteAppAIConfigMethod:      localAppSessionMethodPolicy(),
+	protectedGetMachineLocalAIConfigMethod:   localAppSessionMethodPolicy(),
 	protectedInvokeRealmUnaryMethod:          localAppSessionMethodPolicy(),
 }
 
 var protectedLocalAppStreamMethodPolicies = map[string]protectedLocalAppMethodPolicy{
 	protectedSubscribeConversationMethod: localAppSessionMethodPolicy(),
+	protectedStreamTextTurnMethod:        localAppSessionMethodPolicy(),
+	protectedSubscribeScenarioJobMethod:  localAppSessionMethodPolicy(),
 }
 
 func localAppSessionMethodPolicy() protectedLocalAppMethodPolicy {
@@ -169,10 +189,10 @@ func (protectedLocalAppTransportCredentials) OverrideServerName(string) error {
 	return fmt.Errorf("protected local-app transport has no portable server name")
 }
 
-func newProtectedLocalAppRPCServer(runtimeControlService runtimev1.RuntimeServiceControlServiceServer, authService runtimev1.RuntimeAuthServiceServer, accountService runtimev1.RuntimeAccountServiceServer, aiService runtimev1.RuntimeAiServiceServer, agentService runtimev1.RuntimeAgentServiceServer, appService runtimev1.RuntimeAppServiceServer) *grpc.Server {
+func newProtectedLocalAppRPCServer(runtimeControlService runtimev1.RuntimeServiceControlServiceServer, authService runtimev1.RuntimeAuthServiceServer, accountService runtimev1.RuntimeAccountServiceServer, localService runtimev1.RuntimeLocalServiceServer, aiService runtimev1.RuntimeAiServiceServer, agentService runtimev1.RuntimeAgentServiceServer, appService runtimev1.RuntimeAppServiceServer) *grpc.Server {
 	admission, _ := appService.(protectedLocalAppAdmission)
 	server := grpc.NewServer(
-		grpc.Creds(protectedLocalAppTransportCredentials{}), grpc.MaxRecvMsgSize(maxGRPCRecvMessageBytes),
+		grpc.Creds(protectedLocalAppTransportCredentials{}), grpc.MaxRecvMsgSize(maxProtectedLocalAppRecvMessageBytes),
 		grpc.MaxSendMsgSize(maxGRPCSendMessageBytes), grpc.MaxConcurrentStreams(maxGRPCConcurrentStreams),
 		grpc.UnaryInterceptor(newUnaryProtectedLocalAppTransportInterceptor(admission)),
 		grpc.StreamInterceptor(newStreamProtectedLocalAppTransportInterceptor(admission)),
@@ -180,6 +200,7 @@ func newProtectedLocalAppRPCServer(runtimeControlService runtimev1.RuntimeServic
 	runtimev1.RegisterRuntimeServiceControlServiceServer(server, runtimeControlService)
 	runtimev1.RegisterRuntimeAuthServiceServer(server, authService)
 	runtimev1.RegisterRuntimeAccountServiceServer(server, accountService)
+	runtimev1.RegisterRuntimeLocalServiceServer(server, localService)
 	runtimev1.RegisterRuntimeAiServiceServer(server, aiService)
 	runtimev1.RegisterRuntimeAgentServiceServer(server, agentService)
 	runtimev1.RegisterRuntimeAppServiceServer(server, appService)
@@ -294,12 +315,26 @@ func protectedLocalAppUnaryIngress(method string, request any) localappop.Ingres
 		return localappop.IngressStorageJSONWrite
 	case protectedRemoveLocalAppStorageJSONMethod:
 		return localappop.IngressStorageJSONRemove
-	case protectedGetAppAIConfigMethod:
+	case protectedGetAppAIConfigMethod, protectedGetMachineLocalAIConfigMethod:
 		return localappop.IngressAppAIConfigGet
 	case protectedOverwriteAppAIConfigMethod:
 		return localappop.IngressAppAIConfigOverwrite
 	case protectedGenerateTextCandidateMethod:
 		return localappop.IngressTextCandidateGenerate
+	case protectedExecuteLocalAppScenarioMethod:
+		return localappop.IngressScenarioExecute
+	case protectedSubmitScenarioJobMethod:
+		return localappop.IngressScenarioJobSubmit
+	case protectedGetScenarioJobMethod:
+		return localappop.IngressScenarioJobGet
+	case protectedCancelScenarioJobMethod:
+		return localappop.IngressScenarioJobCancel
+	case protectedReadLocalAppArtifactMethod:
+		return localappop.IngressArtifactRead
+	case protectedUploadLocalAppArtifactMethod:
+		return localappop.IngressArtifactUpload
+	case protectedListLocalAppVoiceAssetsMethod:
+		return localappop.IngressVoiceAssetsList
 	case protectedAgentReferenceListMethod:
 		return localappop.IngressAgentReferenceList
 	case protectedInvokeRealmUnaryMethod:
@@ -343,7 +378,9 @@ func protectedLocalAppUnaryIngress(method string, request any) localappop.Ingres
 func protectedLocalAppOwnerEnabled(method string, request any, ingress localappop.Ingress) bool {
 	switch method {
 	case protectedReadLocalAppStorageJSONMethod, protectedWriteLocalAppStorageJSONMethod, protectedRemoveLocalAppStorageJSONMethod,
-		protectedGetAppAIConfigMethod, protectedOverwriteAppAIConfigMethod, protectedGenerateTextCandidateMethod,
+		protectedGetAppAIConfigMethod, protectedGetMachineLocalAIConfigMethod, protectedOverwriteAppAIConfigMethod, protectedGenerateTextCandidateMethod,
+		protectedExecuteLocalAppScenarioMethod, protectedSubmitScenarioJobMethod, protectedGetScenarioJobMethod, protectedCancelScenarioJobMethod,
+		protectedReadLocalAppArtifactMethod, protectedUploadLocalAppArtifactMethod, protectedListLocalAppVoiceAssetsMethod,
 		protectedAgentReferenceListMethod, protectedOpenConversationMethod, protectedSendConversationTurnMethod,
 		protectedInterruptConversationTurnMethod, protectedConversationSnapshotMethod,
 		protectedGetSharedAIConfigMethod, protectedOverwriteSharedAIConfigMethod,
@@ -369,10 +406,16 @@ func protectedLocalAppOwnerEnabled(method string, request any, ingress localappo
 }
 
 func protectedLocalAppStreamIngress(method string) localappop.Ingress {
-	if method == protectedSubscribeConversationMethod {
+	switch method {
+	case protectedSubscribeConversationMethod:
 		return localappop.IngressConversationEventsSubscribe
+	case protectedStreamTextTurnMethod:
+		return localappop.IngressTextTurnStream
+	case protectedSubscribeScenarioJobMethod:
+		return localappop.IngressScenarioJobSubscribe
+	default:
+		return localappop.IngressUnknown
 	}
-	return localappop.IngressUnknown
 }
 
 func protectedLocalAppRequestHasCallerAssertion(ctx context.Context, request any) bool {

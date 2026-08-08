@@ -1,6 +1,12 @@
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import {
+  createNimiLocalAIConfigCapabilityIntent,
+  runtimeAIConfigStructToJson,
+  type NimiCapabilityAIConfigIntent,
+} from '@nimiplatform/kit/core/sdk-contract';
+import { CAPABILITY_DEFAULT_FIELDS } from '../src/capability-defaults.js';
 import { ModelConfigAIConfigSurface } from '../src/components/model-config-ai-config-surface.js';
 import type { ModelConfigCloudAIConfigModule, ModelConfigOverwrite } from '../src/types.js';
 import {
@@ -41,7 +47,11 @@ async function renderSurface(
   onOpenMachineConfiguration = vi.fn(),
   options: {
     readonly cloudAIConfig?: ModelConfigCloudAIConfigModule;
+    readonly consumer?: 'nimi-first-party' | 'third-party-app';
+    readonly initialCapabilityContract?: string;
     readonly onOpenCloudConnectorConfiguration?: () => void;
+    readonly capabilityContracts?: readonly string[];
+    readonly capabilities?: readonly NimiCapabilityAIConfigIntent[];
   } = {},
 ) {
   container = document.createElement('div');
@@ -50,9 +60,10 @@ async function renderSurface(
   await act(async () => {
     root?.render(
       <ModelConfigAIConfigSurface
-        context={{ owner: 'app-ai-config', consumer: 'nimi-first-party', appId: 'test.app' }}
-        capabilityContracts={['text.generate']}
-        capabilities={[{
+        context={{ owner: 'app-ai-config', consumer: options.consumer || 'nimi-first-party', appId: 'test.app' }}
+        capabilityContracts={options.capabilityContracts || ['text.generate']}
+        initialCapabilityContract={options.initialCapabilityContract}
+        capabilities={options.capabilities || [{
           capabilityContract: 'text.generate',
           requiredFeatures: [],
           defaults: undefined,
@@ -66,7 +77,7 @@ async function renderSurface(
           supportedFeatures: [],
           reasons: [],
         }]}
-        cloudAIConfig={options.cloudAIConfig || {
+        cloudAIConfig={Object.hasOwn(options, 'cloudAIConfig') ? options.cloudAIConfig : {
           listImplementations: async () => [{
             optionId: 'cloud-test',
             label: 'Cloud Test',
@@ -118,6 +129,56 @@ async function selectField(node: HTMLElement, ariaLabel: string, optionLabel: st
 }
 
 describe('public Model Config contract', () => {
+  it('matches the Runtime defaults allowlist for every editable capability', () => {
+    const paths = (capability: string): string[] => {
+      const walk = (fields: typeof CAPABILITY_DEFAULT_FIELDS[string], prefix = ''): string[] => fields.flatMap((field) => {
+        const path = prefix ? `${prefix}.${field.key}` : field.key;
+        return field.kind === 'object' ? walk(field.fields || [], path) : [path];
+      });
+      return walk(CAPABILITY_DEFAULT_FIELDS[capability] || []);
+    };
+
+    expect(paths('text.generate')).toEqual([
+      'temperature', 'topP', 'topK', 'maxTokens', 'presencePenalty',
+      'frequencyPenalty', 'seed', 'stop',
+    ]);
+    expect(paths('image.generate')).toEqual([
+      'negative_prompt', 'n', 'size', 'aspect_ratio', 'quality', 'style', 'seed', 'response_format',
+    ]);
+    expect(paths('video.generate')).toEqual([
+      'negative_prompt', 'options.resolution', 'options.ratio', 'options.durationSec',
+      'options.frames', 'options.fps', 'options.seed', 'options.cameraFixed',
+      'options.watermark', 'options.generateAudio', 'options.draft', 'options.serviceTier',
+      'options.executionExpiresAfterSec', 'options.returnLastFrame',
+    ]);
+    expect(paths('audio.synthesize')).toEqual([
+      'language', 'audio_format', 'sample_rate_hz', 'speed', 'pitch', 'volume', 'emotion',
+      'timing_mode', 'voice_render_hints.stability', 'voice_render_hints.similarity_boost',
+      'voice_render_hints.style', 'voice_render_hints.use_speaker_boost', 'voice_render_hints.speed',
+    ]);
+    expect(paths('audio.transcribe')).toEqual([
+      'mime_type', 'language', 'timestamps', 'diarization', 'speaker_count', 'prompt', 'response_format',
+    ]);
+    expect(CAPABILITY_DEFAULT_FIELDS['text.embed']).toBeUndefined();
+    expect(CAPABILITY_DEFAULT_FIELDS['voice_workflow.voice_clone']).toBeUndefined();
+    expect(CAPABILITY_DEFAULT_FIELDS['voice_workflow.voice_design']).toBeUndefined();
+  });
+
+  it.each([
+    'text.embed',
+    'voice_workflow.voice_clone',
+    'voice_workflow.voice_design',
+  ])('does not render defaults for Runtime-rejected %s intents', async (capabilityContract) => {
+    const node = await renderSurface(vi.fn(async () => undefined), vi.fn(), {
+      capabilityContracts: [capabilityContract],
+      capabilities: [createNimiLocalAIConfigCapabilityIntent({ capabilityContract })],
+      initialCapabilityContract: capabilityContract,
+    });
+
+    expect(node.querySelector('[data-nimi-model-config-defaults]')).toBeNull();
+    expect(node.textContent).not.toContain('Default parameters');
+  });
+
   it('projects selected, broken, and feature-mismatch machine context without owning it', () => {
     const selections = projectModelConfigLocalSelections({
       selections: [
@@ -144,6 +205,45 @@ describe('public Model Config contract', () => {
     };
     expect(modelConfigMissingRequiredFeatures(intent, selections[0])).toEqual(['tool.use']);
     expect(modelConfigCapabilityPosture(intent, selections[0])).toBe('local-feature-mismatch');
+  });
+
+  it('opens an explicitly requested capability detail on first mount', async () => {
+    const node = await renderSurface(vi.fn(async () => undefined), vi.fn(), {
+      initialCapabilityContract: 'text.generate',
+    });
+
+    expect(node.querySelector('[data-nimi-model-config-detail="text.generate"]')).toBeTruthy();
+    expect(node.querySelector('[data-testid="model-config-model-trigger:text.generate"]')).toBeTruthy();
+  });
+
+  it('offers a Cloud Connector handoff for a third-party App without exposing Connector inventory', async () => {
+    const onOpenCloudConnectorConfiguration = vi.fn();
+    const node = await renderSurface(vi.fn(async () => undefined), vi.fn(), {
+      cloudAIConfig: undefined,
+      consumer: 'third-party-app',
+      initialCapabilityContract: 'text.generate',
+      onOpenCloudConnectorConfiguration,
+    });
+
+    act(() => {
+      (node.querySelector('[data-testid="model-config-model-trigger:text.generate"]') as HTMLButtonElement).click();
+    });
+    await flush();
+    const cloudTab = Array.from(document.body.querySelectorAll('[data-nimi-model-picker="true"] button'))
+      .find((button) => button.textContent?.trim() === 'Cloud') as HTMLButtonElement;
+    expect(cloudTab).toBeTruthy();
+    act(() => { cloudTab.click(); });
+    await flush();
+    const handoff = document.body.querySelector(
+      '[data-nimi-model-config-cloud-connector-handoff="true"]',
+    ) as HTMLElement;
+    expect(handoff.textContent).toContain('Configure Cloud Connectors');
+    const open = Array.from(handoff.querySelectorAll('button')).find((button) => (
+      button.textContent?.trim() === 'Configure Cloud Connectors'
+    )) as HTMLButtonElement;
+    act(() => { open.click(); });
+
+    expect(onOpenCloudConnectorConfiguration).toHaveBeenCalledTimes(1);
   });
 
   it('commits canonical App AIConfig intent through the owner callback', async () => {
@@ -173,6 +273,41 @@ describe('public Model Config contract', () => {
     expect(JSON.stringify(onOverwrite.mock.calls[0]?.[0])).not.toMatch(/modelId|targetRef|configurationId/u);
   });
 
+  it('saves typed defaults with explicit zero and false while dropping unknown keys', async () => {
+    const onOverwrite = vi.fn<ModelConfigOverwrite>(async () => undefined);
+    const intent = createNimiLocalAIConfigCapabilityIntent({
+      capabilityContract: 'video.generate',
+      defaults: {
+        negativePrompt: 'blur',
+        unknown: 'drop-me',
+        options: { seed: 0, generate_audio: false, unknown: true },
+      },
+    });
+    const node = await renderSurface(onOverwrite, vi.fn(), {
+      capabilityContracts: ['video.generate'],
+      capabilities: [intent],
+      initialCapabilityContract: 'video.generate',
+    });
+
+    const defaults = node.querySelector('[data-nimi-model-config-defaults="video.generate"]') as HTMLDetailsElement;
+    expect(defaults).toBeTruthy();
+    act(() => { defaults.open = true; defaults.dispatchEvent(new Event('toggle', { bubbles: true })); });
+    const seed = node.querySelector('[data-nimi-default-parameter="options.seed"] input') as HTMLInputElement;
+    const generateAudio = node.querySelector('button[aria-label="options.generateAudio"]') as HTMLButtonElement;
+    expect(seed.value).toBe('0');
+    expect(generateAudio.textContent).toContain('False');
+
+    const save = node.querySelector('[data-testid="model-config-save:video.generate"]') as HTMLButtonElement;
+    await act(async () => { save.click(); await Promise.resolve(); });
+
+    const saved = onOverwrite.mock.calls[0]?.[0][0];
+    expect(saved).toBeTruthy();
+    expect(runtimeAIConfigStructToJson(saved?.defaults)).toEqual({
+      negative_prompt: 'blur',
+      options: { seed: 0, generateAudio: false },
+    });
+  });
+
   it('restores the model hub and delegates Local model changes to Machine Local AI', async () => {
     const onOverwrite = vi.fn<ModelConfigOverwrite>(async () => undefined);
     const onOpenMachineConfiguration = vi.fn();
@@ -180,13 +315,15 @@ describe('public Model Config contract', () => {
 
     expect(node.textContent).toContain('AI Model');
     expect(node.textContent).toContain('Machine text model');
-    expect(node.textContent).not.toContain('Portable defaults');
+    expect(node.textContent).not.toContain('Default parameters');
     expect(node.textContent).not.toContain('Required features');
 
     const capability = node.querySelector(
       '[data-nimi-model-config-capability="text.generate"]',
     ) as HTMLButtonElement;
     act(() => { capability.click(); });
+    expect(node.textContent).toContain('Default parameters');
+    expect(node.textContent).not.toContain('Required features');
     const trigger = node.querySelector(
       '[data-testid="model-config-model-trigger:text.generate"]',
     ) as HTMLButtonElement;

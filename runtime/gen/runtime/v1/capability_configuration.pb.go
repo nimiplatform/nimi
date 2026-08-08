@@ -1668,6 +1668,129 @@ func (x *AddLocalCapabilityConfigurationResponse) GetConfiguration() *LocalCapab
 	return nil
 }
 
+// UpdateLocalCapabilityConfiguration replaces the mutable portable intent of
+// one saved record. Capability and implementation identity remain immutable;
+// callers create a new record when either identity changes.
+type UpdateLocalCapabilityConfigurationRequest struct {
+	state             protoimpl.MessageState `protogen:"open.v1"`
+	ConfigurationId   string                 `protobuf:"bytes,1,opt,name=configuration_id,json=configurationId,proto3" json:"configuration_id,omitempty"`
+	PortableConfig    *structpb.Struct       `protobuf:"bytes,2,opt,name=portable_config,json=portableConfig,proto3" json:"portable_config,omitempty"`
+	SupportedFeatures []string               `protobuf:"bytes,3,rep,name=supported_features,json=supportedFeatures,proto3" json:"supported_features,omitempty"`
+	DisplayName       string                 `protobuf:"bytes,4,opt,name=display_name,json=displayName,proto3" json:"display_name,omitempty"`
+	Provenance        *structpb.Struct       `protobuf:"bytes,5,opt,name=provenance,proto3" json:"provenance,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
+}
+
+func (x *UpdateLocalCapabilityConfigurationRequest) Reset() {
+	*x = UpdateLocalCapabilityConfigurationRequest{}
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[23]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateLocalCapabilityConfigurationRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateLocalCapabilityConfigurationRequest) ProtoMessage() {}
+
+func (x *UpdateLocalCapabilityConfigurationRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[23]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateLocalCapabilityConfigurationRequest.ProtoReflect.Descriptor instead.
+func (*UpdateLocalCapabilityConfigurationRequest) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{23}
+}
+
+func (x *UpdateLocalCapabilityConfigurationRequest) GetConfigurationId() string {
+	if x != nil {
+		return x.ConfigurationId
+	}
+	return ""
+}
+
+func (x *UpdateLocalCapabilityConfigurationRequest) GetPortableConfig() *structpb.Struct {
+	if x != nil {
+		return x.PortableConfig
+	}
+	return nil
+}
+
+func (x *UpdateLocalCapabilityConfigurationRequest) GetSupportedFeatures() []string {
+	if x != nil {
+		return x.SupportedFeatures
+	}
+	return nil
+}
+
+func (x *UpdateLocalCapabilityConfigurationRequest) GetDisplayName() string {
+	if x != nil {
+		return x.DisplayName
+	}
+	return ""
+}
+
+func (x *UpdateLocalCapabilityConfigurationRequest) GetProvenance() *structpb.Struct {
+	if x != nil {
+		return x.Provenance
+	}
+	return nil
+}
+
+type UpdateLocalCapabilityConfigurationResponse struct {
+	state         protoimpl.MessageState        `protogen:"open.v1"`
+	Configuration *LocalCapabilityConfiguration `protobuf:"bytes,1,opt,name=configuration,proto3" json:"configuration,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdateLocalCapabilityConfigurationResponse) Reset() {
+	*x = UpdateLocalCapabilityConfigurationResponse{}
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[24]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateLocalCapabilityConfigurationResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateLocalCapabilityConfigurationResponse) ProtoMessage() {}
+
+func (x *UpdateLocalCapabilityConfigurationResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[24]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateLocalCapabilityConfigurationResponse.ProtoReflect.Descriptor instead.
+func (*UpdateLocalCapabilityConfigurationResponse) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{24}
+}
+
+func (x *UpdateLocalCapabilityConfigurationResponse) GetConfiguration() *LocalCapabilityConfiguration {
+	if x != nil {
+		return x.Configuration
+	}
+	return nil
+}
+
 type SelectLocalCapabilityConfigurationRequest struct {
 	state              protoimpl.MessageState `protogen:"open.v1"`
 	CapabilityContract string                 `protobuf:"bytes,1,opt,name=capability_contract,json=capabilityContract,proto3" json:"capability_contract,omitempty"`
@@ -1678,7 +1801,7 @@ type SelectLocalCapabilityConfigurationRequest struct {
 
 func (x *SelectLocalCapabilityConfigurationRequest) Reset() {
 	*x = SelectLocalCapabilityConfigurationRequest{}
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[23]
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1690,7 +1813,7 @@ func (x *SelectLocalCapabilityConfigurationRequest) String() string {
 func (*SelectLocalCapabilityConfigurationRequest) ProtoMessage() {}
 
 func (x *SelectLocalCapabilityConfigurationRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[23]
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1703,7 +1826,7 @@ func (x *SelectLocalCapabilityConfigurationRequest) ProtoReflect() protoreflect.
 
 // Deprecated: Use SelectLocalCapabilityConfigurationRequest.ProtoReflect.Descriptor instead.
 func (*SelectLocalCapabilityConfigurationRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{23}
+	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{25}
 }
 
 func (x *SelectLocalCapabilityConfigurationRequest) GetCapabilityContract() string {
@@ -1729,7 +1852,7 @@ type SelectLocalCapabilityConfigurationResponse struct {
 
 func (x *SelectLocalCapabilityConfigurationResponse) Reset() {
 	*x = SelectLocalCapabilityConfigurationResponse{}
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[24]
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[26]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1741,7 +1864,7 @@ func (x *SelectLocalCapabilityConfigurationResponse) String() string {
 func (*SelectLocalCapabilityConfigurationResponse) ProtoMessage() {}
 
 func (x *SelectLocalCapabilityConfigurationResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[24]
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[26]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1754,7 +1877,7 @@ func (x *SelectLocalCapabilityConfigurationResponse) ProtoReflect() protoreflect
 
 // Deprecated: Use SelectLocalCapabilityConfigurationResponse.ProtoReflect.Descriptor instead.
 func (*SelectLocalCapabilityConfigurationResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{24}
+	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{26}
 }
 
 func (x *SelectLocalCapabilityConfigurationResponse) GetSelection() *LocalCapabilitySelection {
@@ -1773,7 +1896,7 @@ type ClearLocalCapabilitySelectionRequest struct {
 
 func (x *ClearLocalCapabilitySelectionRequest) Reset() {
 	*x = ClearLocalCapabilitySelectionRequest{}
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[25]
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[27]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1785,7 +1908,7 @@ func (x *ClearLocalCapabilitySelectionRequest) String() string {
 func (*ClearLocalCapabilitySelectionRequest) ProtoMessage() {}
 
 func (x *ClearLocalCapabilitySelectionRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[25]
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[27]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1798,7 +1921,7 @@ func (x *ClearLocalCapabilitySelectionRequest) ProtoReflect() protoreflect.Messa
 
 // Deprecated: Use ClearLocalCapabilitySelectionRequest.ProtoReflect.Descriptor instead.
 func (*ClearLocalCapabilitySelectionRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{25}
+	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{27}
 }
 
 func (x *ClearLocalCapabilitySelectionRequest) GetCapabilityContract() string {
@@ -1816,7 +1939,7 @@ type ClearLocalCapabilitySelectionResponse struct {
 
 func (x *ClearLocalCapabilitySelectionResponse) Reset() {
 	*x = ClearLocalCapabilitySelectionResponse{}
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[26]
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[28]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1828,7 +1951,7 @@ func (x *ClearLocalCapabilitySelectionResponse) String() string {
 func (*ClearLocalCapabilitySelectionResponse) ProtoMessage() {}
 
 func (x *ClearLocalCapabilitySelectionResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[26]
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[28]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1841,7 +1964,7 @@ func (x *ClearLocalCapabilitySelectionResponse) ProtoReflect() protoreflect.Mess
 
 // Deprecated: Use ClearLocalCapabilitySelectionResponse.ProtoReflect.Descriptor instead.
 func (*ClearLocalCapabilitySelectionResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{26}
+	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{28}
 }
 
 type DeleteLocalCapabilityConfigurationRequest struct {
@@ -1853,7 +1976,7 @@ type DeleteLocalCapabilityConfigurationRequest struct {
 
 func (x *DeleteLocalCapabilityConfigurationRequest) Reset() {
 	*x = DeleteLocalCapabilityConfigurationRequest{}
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[27]
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[29]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1865,7 +1988,7 @@ func (x *DeleteLocalCapabilityConfigurationRequest) String() string {
 func (*DeleteLocalCapabilityConfigurationRequest) ProtoMessage() {}
 
 func (x *DeleteLocalCapabilityConfigurationRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[27]
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[29]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1878,7 +2001,7 @@ func (x *DeleteLocalCapabilityConfigurationRequest) ProtoReflect() protoreflect.
 
 // Deprecated: Use DeleteLocalCapabilityConfigurationRequest.ProtoReflect.Descriptor instead.
 func (*DeleteLocalCapabilityConfigurationRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{27}
+	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{29}
 }
 
 func (x *DeleteLocalCapabilityConfigurationRequest) GetConfigurationId() string {
@@ -1896,7 +2019,7 @@ type DeleteLocalCapabilityConfigurationResponse struct {
 
 func (x *DeleteLocalCapabilityConfigurationResponse) Reset() {
 	*x = DeleteLocalCapabilityConfigurationResponse{}
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[28]
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[30]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1908,7 +2031,7 @@ func (x *DeleteLocalCapabilityConfigurationResponse) String() string {
 func (*DeleteLocalCapabilityConfigurationResponse) ProtoMessage() {}
 
 func (x *DeleteLocalCapabilityConfigurationResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[28]
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[30]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1921,7 +2044,7 @@ func (x *DeleteLocalCapabilityConfigurationResponse) ProtoReflect() protoreflect
 
 // Deprecated: Use DeleteLocalCapabilityConfigurationResponse.ProtoReflect.Descriptor instead.
 func (*DeleteLocalCapabilityConfigurationResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{28}
+	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{30}
 }
 
 type ReprojectLocalCapabilityRequirementsRequest struct {
@@ -1933,7 +2056,7 @@ type ReprojectLocalCapabilityRequirementsRequest struct {
 
 func (x *ReprojectLocalCapabilityRequirementsRequest) Reset() {
 	*x = ReprojectLocalCapabilityRequirementsRequest{}
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[29]
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[31]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1945,7 +2068,7 @@ func (x *ReprojectLocalCapabilityRequirementsRequest) String() string {
 func (*ReprojectLocalCapabilityRequirementsRequest) ProtoMessage() {}
 
 func (x *ReprojectLocalCapabilityRequirementsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[29]
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[31]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1958,7 +2081,7 @@ func (x *ReprojectLocalCapabilityRequirementsRequest) ProtoReflect() protoreflec
 
 // Deprecated: Use ReprojectLocalCapabilityRequirementsRequest.ProtoReflect.Descriptor instead.
 func (*ReprojectLocalCapabilityRequirementsRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{29}
+	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{31}
 }
 
 func (x *ReprojectLocalCapabilityRequirementsRequest) GetConfigurationId() string {
@@ -1977,7 +2100,7 @@ type ReprojectLocalCapabilityRequirementsResponse struct {
 
 func (x *ReprojectLocalCapabilityRequirementsResponse) Reset() {
 	*x = ReprojectLocalCapabilityRequirementsResponse{}
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[30]
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[32]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1989,7 +2112,7 @@ func (x *ReprojectLocalCapabilityRequirementsResponse) String() string {
 func (*ReprojectLocalCapabilityRequirementsResponse) ProtoMessage() {}
 
 func (x *ReprojectLocalCapabilityRequirementsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[30]
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[32]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2002,7 +2125,7 @@ func (x *ReprojectLocalCapabilityRequirementsResponse) ProtoReflect() protorefle
 
 // Deprecated: Use ReprojectLocalCapabilityRequirementsResponse.ProtoReflect.Descriptor instead.
 func (*ReprojectLocalCapabilityRequirementsResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{30}
+	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{32}
 }
 
 func (x *ReprojectLocalCapabilityRequirementsResponse) GetConfiguration() *LocalCapabilityConfiguration {
@@ -2025,7 +2148,7 @@ type LocalAssetExactBindingTarget struct {
 
 func (x *LocalAssetExactBindingTarget) Reset() {
 	*x = LocalAssetExactBindingTarget{}
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[31]
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[33]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2037,7 +2160,7 @@ func (x *LocalAssetExactBindingTarget) String() string {
 func (*LocalAssetExactBindingTarget) ProtoMessage() {}
 
 func (x *LocalAssetExactBindingTarget) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[31]
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[33]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2050,7 +2173,7 @@ func (x *LocalAssetExactBindingTarget) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LocalAssetExactBindingTarget.ProtoReflect.Descriptor instead.
 func (*LocalAssetExactBindingTarget) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{31}
+	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{33}
 }
 
 func (x *LocalAssetExactBindingTarget) GetLocalAssetId() string {
@@ -2078,7 +2201,7 @@ type BindLocalCapabilityRequirementRequest struct {
 
 func (x *BindLocalCapabilityRequirementRequest) Reset() {
 	*x = BindLocalCapabilityRequirementRequest{}
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[32]
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[34]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2090,7 +2213,7 @@ func (x *BindLocalCapabilityRequirementRequest) String() string {
 func (*BindLocalCapabilityRequirementRequest) ProtoMessage() {}
 
 func (x *BindLocalCapabilityRequirementRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[32]
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[34]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2103,7 +2226,7 @@ func (x *BindLocalCapabilityRequirementRequest) ProtoReflect() protoreflect.Mess
 
 // Deprecated: Use BindLocalCapabilityRequirementRequest.ProtoReflect.Descriptor instead.
 func (*BindLocalCapabilityRequirementRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{32}
+	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{34}
 }
 
 func (x *BindLocalCapabilityRequirementRequest) GetConfigurationId() string {
@@ -2136,7 +2259,7 @@ type BindLocalCapabilityRequirementResponse struct {
 
 func (x *BindLocalCapabilityRequirementResponse) Reset() {
 	*x = BindLocalCapabilityRequirementResponse{}
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[33]
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[35]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2148,7 +2271,7 @@ func (x *BindLocalCapabilityRequirementResponse) String() string {
 func (*BindLocalCapabilityRequirementResponse) ProtoMessage() {}
 
 func (x *BindLocalCapabilityRequirementResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[33]
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[35]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2161,7 +2284,7 @@ func (x *BindLocalCapabilityRequirementResponse) ProtoReflect() protoreflect.Mes
 
 // Deprecated: Use BindLocalCapabilityRequirementResponse.ProtoReflect.Descriptor instead.
 func (*BindLocalCapabilityRequirementResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{33}
+	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{35}
 }
 
 func (x *BindLocalCapabilityRequirementResponse) GetConfiguration() *LocalCapabilityConfiguration {
@@ -2183,7 +2306,7 @@ type RebindLocalCapabilityRequirementRequest struct {
 
 func (x *RebindLocalCapabilityRequirementRequest) Reset() {
 	*x = RebindLocalCapabilityRequirementRequest{}
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[34]
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[36]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2195,7 +2318,7 @@ func (x *RebindLocalCapabilityRequirementRequest) String() string {
 func (*RebindLocalCapabilityRequirementRequest) ProtoMessage() {}
 
 func (x *RebindLocalCapabilityRequirementRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[34]
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[36]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2208,7 +2331,7 @@ func (x *RebindLocalCapabilityRequirementRequest) ProtoReflect() protoreflect.Me
 
 // Deprecated: Use RebindLocalCapabilityRequirementRequest.ProtoReflect.Descriptor instead.
 func (*RebindLocalCapabilityRequirementRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{34}
+	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{36}
 }
 
 func (x *RebindLocalCapabilityRequirementRequest) GetConfigurationId() string {
@@ -2248,7 +2371,7 @@ type RebindLocalCapabilityRequirementResponse struct {
 
 func (x *RebindLocalCapabilityRequirementResponse) Reset() {
 	*x = RebindLocalCapabilityRequirementResponse{}
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[35]
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[37]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2260,7 +2383,7 @@ func (x *RebindLocalCapabilityRequirementResponse) String() string {
 func (*RebindLocalCapabilityRequirementResponse) ProtoMessage() {}
 
 func (x *RebindLocalCapabilityRequirementResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[35]
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[37]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2273,7 +2396,7 @@ func (x *RebindLocalCapabilityRequirementResponse) ProtoReflect() protoreflect.M
 
 // Deprecated: Use RebindLocalCapabilityRequirementResponse.ProtoReflect.Descriptor instead.
 func (*RebindLocalCapabilityRequirementResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{35}
+	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{37}
 }
 
 func (x *RebindLocalCapabilityRequirementResponse) GetConfiguration() *LocalCapabilityConfiguration {
@@ -2294,7 +2417,7 @@ type UnbindLocalCapabilityRequirementRequest struct {
 
 func (x *UnbindLocalCapabilityRequirementRequest) Reset() {
 	*x = UnbindLocalCapabilityRequirementRequest{}
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[36]
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[38]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2306,7 +2429,7 @@ func (x *UnbindLocalCapabilityRequirementRequest) String() string {
 func (*UnbindLocalCapabilityRequirementRequest) ProtoMessage() {}
 
 func (x *UnbindLocalCapabilityRequirementRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[36]
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[38]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2319,7 +2442,7 @@ func (x *UnbindLocalCapabilityRequirementRequest) ProtoReflect() protoreflect.Me
 
 // Deprecated: Use UnbindLocalCapabilityRequirementRequest.ProtoReflect.Descriptor instead.
 func (*UnbindLocalCapabilityRequirementRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{36}
+	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{38}
 }
 
 func (x *UnbindLocalCapabilityRequirementRequest) GetConfigurationId() string {
@@ -2352,7 +2475,7 @@ type UnbindLocalCapabilityRequirementResponse struct {
 
 func (x *UnbindLocalCapabilityRequirementResponse) Reset() {
 	*x = UnbindLocalCapabilityRequirementResponse{}
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[37]
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[39]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2364,7 +2487,7 @@ func (x *UnbindLocalCapabilityRequirementResponse) String() string {
 func (*UnbindLocalCapabilityRequirementResponse) ProtoMessage() {}
 
 func (x *UnbindLocalCapabilityRequirementResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[37]
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[39]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2377,7 +2500,7 @@ func (x *UnbindLocalCapabilityRequirementResponse) ProtoReflect() protoreflect.M
 
 // Deprecated: Use UnbindLocalCapabilityRequirementResponse.ProtoReflect.Descriptor instead.
 func (*UnbindLocalCapabilityRequirementResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{37}
+	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{39}
 }
 
 func (x *UnbindLocalCapabilityRequirementResponse) GetConfiguration() *LocalCapabilityConfiguration {
@@ -2481,6 +2604,16 @@ const file_runtime_v1_capability_configuration_proto_rawDesc = "" +
 	"provenance\x18\x06 \x01(\v2\x17.google.protobuf.StructR\n" +
 	"provenance\"~\n" +
 	"'AddLocalCapabilityConfigurationResponse\x12S\n" +
+	"\rconfiguration\x18\x01 \x01(\v2-.nimi.runtime.v1.LocalCapabilityConfigurationR\rconfiguration\"\xa3\x02\n" +
+	")UpdateLocalCapabilityConfigurationRequest\x12)\n" +
+	"\x10configuration_id\x18\x01 \x01(\tR\x0fconfigurationId\x12@\n" +
+	"\x0fportable_config\x18\x02 \x01(\v2\x17.google.protobuf.StructR\x0eportableConfig\x12-\n" +
+	"\x12supported_features\x18\x03 \x03(\tR\x11supportedFeatures\x12!\n" +
+	"\fdisplay_name\x18\x04 \x01(\tR\vdisplayName\x127\n" +
+	"\n" +
+	"provenance\x18\x05 \x01(\v2\x17.google.protobuf.StructR\n" +
+	"provenance\"\x81\x01\n" +
+	"*UpdateLocalCapabilityConfigurationResponse\x12S\n" +
 	"\rconfiguration\x18\x01 \x01(\v2-.nimi.runtime.v1.LocalCapabilityConfigurationR\rconfiguration\"\x87\x01\n" +
 	")SelectLocalCapabilityConfigurationRequest\x12/\n" +
 	"\x13capability_contract\x18\x01 \x01(\tR\x12capabilityContract\x12)\n" +
@@ -2563,7 +2696,7 @@ func file_runtime_v1_capability_configuration_proto_rawDescGZIP() []byte {
 }
 
 var file_runtime_v1_capability_configuration_proto_enumTypes = make([]protoimpl.EnumInfo, 5)
-var file_runtime_v1_capability_configuration_proto_msgTypes = make([]protoimpl.MessageInfo, 38)
+var file_runtime_v1_capability_configuration_proto_msgTypes = make([]protoimpl.MessageInfo, 40)
 var file_runtime_v1_capability_configuration_proto_goTypes = []any{
 	(LocalCapabilityInterpretability)(0),                 // 0: nimi.runtime.v1.LocalCapabilityInterpretability
 	(LocalCapabilityRequirementResolution)(0),            // 1: nimi.runtime.v1.LocalCapabilityRequirementResolution
@@ -2593,42 +2726,44 @@ var file_runtime_v1_capability_configuration_proto_goTypes = []any{
 	(*GetLocalCapabilityConfigurationResponse)(nil),      // 25: nimi.runtime.v1.GetLocalCapabilityConfigurationResponse
 	(*AddLocalCapabilityConfigurationRequest)(nil),       // 26: nimi.runtime.v1.AddLocalCapabilityConfigurationRequest
 	(*AddLocalCapabilityConfigurationResponse)(nil),      // 27: nimi.runtime.v1.AddLocalCapabilityConfigurationResponse
-	(*SelectLocalCapabilityConfigurationRequest)(nil),    // 28: nimi.runtime.v1.SelectLocalCapabilityConfigurationRequest
-	(*SelectLocalCapabilityConfigurationResponse)(nil),   // 29: nimi.runtime.v1.SelectLocalCapabilityConfigurationResponse
-	(*ClearLocalCapabilitySelectionRequest)(nil),         // 30: nimi.runtime.v1.ClearLocalCapabilitySelectionRequest
-	(*ClearLocalCapabilitySelectionResponse)(nil),        // 31: nimi.runtime.v1.ClearLocalCapabilitySelectionResponse
-	(*DeleteLocalCapabilityConfigurationRequest)(nil),    // 32: nimi.runtime.v1.DeleteLocalCapabilityConfigurationRequest
-	(*DeleteLocalCapabilityConfigurationResponse)(nil),   // 33: nimi.runtime.v1.DeleteLocalCapabilityConfigurationResponse
-	(*ReprojectLocalCapabilityRequirementsRequest)(nil),  // 34: nimi.runtime.v1.ReprojectLocalCapabilityRequirementsRequest
-	(*ReprojectLocalCapabilityRequirementsResponse)(nil), // 35: nimi.runtime.v1.ReprojectLocalCapabilityRequirementsResponse
-	(*LocalAssetExactBindingTarget)(nil),                 // 36: nimi.runtime.v1.LocalAssetExactBindingTarget
-	(*BindLocalCapabilityRequirementRequest)(nil),        // 37: nimi.runtime.v1.BindLocalCapabilityRequirementRequest
-	(*BindLocalCapabilityRequirementResponse)(nil),       // 38: nimi.runtime.v1.BindLocalCapabilityRequirementResponse
-	(*RebindLocalCapabilityRequirementRequest)(nil),      // 39: nimi.runtime.v1.RebindLocalCapabilityRequirementRequest
-	(*RebindLocalCapabilityRequirementResponse)(nil),     // 40: nimi.runtime.v1.RebindLocalCapabilityRequirementResponse
-	(*UnbindLocalCapabilityRequirementRequest)(nil),      // 41: nimi.runtime.v1.UnbindLocalCapabilityRequirementRequest
-	(*UnbindLocalCapabilityRequirementResponse)(nil),     // 42: nimi.runtime.v1.UnbindLocalCapabilityRequirementResponse
-	(*structpb.Struct)(nil),                              // 43: google.protobuf.Struct
+	(*UpdateLocalCapabilityConfigurationRequest)(nil),    // 28: nimi.runtime.v1.UpdateLocalCapabilityConfigurationRequest
+	(*UpdateLocalCapabilityConfigurationResponse)(nil),   // 29: nimi.runtime.v1.UpdateLocalCapabilityConfigurationResponse
+	(*SelectLocalCapabilityConfigurationRequest)(nil),    // 30: nimi.runtime.v1.SelectLocalCapabilityConfigurationRequest
+	(*SelectLocalCapabilityConfigurationResponse)(nil),   // 31: nimi.runtime.v1.SelectLocalCapabilityConfigurationResponse
+	(*ClearLocalCapabilitySelectionRequest)(nil),         // 32: nimi.runtime.v1.ClearLocalCapabilitySelectionRequest
+	(*ClearLocalCapabilitySelectionResponse)(nil),        // 33: nimi.runtime.v1.ClearLocalCapabilitySelectionResponse
+	(*DeleteLocalCapabilityConfigurationRequest)(nil),    // 34: nimi.runtime.v1.DeleteLocalCapabilityConfigurationRequest
+	(*DeleteLocalCapabilityConfigurationResponse)(nil),   // 35: nimi.runtime.v1.DeleteLocalCapabilityConfigurationResponse
+	(*ReprojectLocalCapabilityRequirementsRequest)(nil),  // 36: nimi.runtime.v1.ReprojectLocalCapabilityRequirementsRequest
+	(*ReprojectLocalCapabilityRequirementsResponse)(nil), // 37: nimi.runtime.v1.ReprojectLocalCapabilityRequirementsResponse
+	(*LocalAssetExactBindingTarget)(nil),                 // 38: nimi.runtime.v1.LocalAssetExactBindingTarget
+	(*BindLocalCapabilityRequirementRequest)(nil),        // 39: nimi.runtime.v1.BindLocalCapabilityRequirementRequest
+	(*BindLocalCapabilityRequirementResponse)(nil),       // 40: nimi.runtime.v1.BindLocalCapabilityRequirementResponse
+	(*RebindLocalCapabilityRequirementRequest)(nil),      // 41: nimi.runtime.v1.RebindLocalCapabilityRequirementRequest
+	(*RebindLocalCapabilityRequirementResponse)(nil),     // 42: nimi.runtime.v1.RebindLocalCapabilityRequirementResponse
+	(*UnbindLocalCapabilityRequirementRequest)(nil),      // 43: nimi.runtime.v1.UnbindLocalCapabilityRequirementRequest
+	(*UnbindLocalCapabilityRequirementResponse)(nil),     // 44: nimi.runtime.v1.UnbindLocalCapabilityRequirementResponse
+	(*structpb.Struct)(nil),                              // 45: google.protobuf.Struct
 }
 var file_runtime_v1_capability_configuration_proto_depIdxs = []int32{
 	3,  // 0: nimi.runtime.v1.LocalCapabilityRequirement.role:type_name -> nimi.runtime.v1.LocalCapabilityRequirementRole
 	2,  // 1: nimi.runtime.v1.LocalCapabilityRequirement.policy:type_name -> nimi.runtime.v1.LocalCapabilityRequirementPolicy
-	43, // 2: nimi.runtime.v1.LocalCapabilityRequirement.compatibility_constraints:type_name -> google.protobuf.Struct
+	45, // 2: nimi.runtime.v1.LocalCapabilityRequirement.compatibility_constraints:type_name -> google.protobuf.Struct
 	5,  // 3: nimi.runtime.v1.LocalCapabilityConfiguration.implementation:type_name -> nimi.runtime.v1.CapabilityImplementationIdentity
-	43, // 4: nimi.runtime.v1.LocalCapabilityConfiguration.portable_config:type_name -> google.protobuf.Struct
+	45, // 4: nimi.runtime.v1.LocalCapabilityConfiguration.portable_config:type_name -> google.protobuf.Struct
 	6,  // 5: nimi.runtime.v1.LocalCapabilityConfiguration.projected_requirements:type_name -> nimi.runtime.v1.LocalCapabilityRequirement
 	7,  // 6: nimi.runtime.v1.LocalCapabilityConfiguration.exact_bindings:type_name -> nimi.runtime.v1.LocalAssetExactBinding
 	0,  // 7: nimi.runtime.v1.LocalCapabilityConfiguration.interpretability:type_name -> nimi.runtime.v1.LocalCapabilityInterpretability
 	1,  // 8: nimi.runtime.v1.LocalCapabilityConfiguration.requirement_resolution:type_name -> nimi.runtime.v1.LocalCapabilityRequirementResolution
 	4,  // 9: nimi.runtime.v1.LocalCapabilityConfiguration.reasons:type_name -> nimi.runtime.v1.LocalCapabilityReason
-	43, // 10: nimi.runtime.v1.LocalCapabilityConfiguration.provenance:type_name -> google.protobuf.Struct
+	45, // 10: nimi.runtime.v1.LocalCapabilityConfiguration.provenance:type_name -> google.protobuf.Struct
 	8,  // 11: nimi.runtime.v1.MachineLocalAIConfiguration.configurations:type_name -> nimi.runtime.v1.LocalCapabilityConfiguration
 	9,  // 12: nimi.runtime.v1.MachineLocalAIConfiguration.selections:type_name -> nimi.runtime.v1.LocalCapabilitySelection
 	11, // 13: nimi.runtime.v1.AIConfigOwner.app:type_name -> nimi.runtime.v1.AIConfigAppOwner
 	12, // 14: nimi.runtime.v1.AIConfigOwner.runtime_local_agent_subsystem:type_name -> nimi.runtime.v1.AIConfigRuntimeLocalAgentSubsystemOwner
 	5,  // 15: nimi.runtime.v1.AIConfigCloudIntent.implementation:type_name -> nimi.runtime.v1.CapabilityImplementationIdentity
-	43, // 16: nimi.runtime.v1.AIConfigCloudIntent.provider_model_target:type_name -> google.protobuf.Struct
-	43, // 17: nimi.runtime.v1.AIConfigCapabilityIntent.defaults:type_name -> google.protobuf.Struct
+	45, // 16: nimi.runtime.v1.AIConfigCloudIntent.provider_model_target:type_name -> google.protobuf.Struct
+	45, // 17: nimi.runtime.v1.AIConfigCapabilityIntent.defaults:type_name -> google.protobuf.Struct
 	14, // 18: nimi.runtime.v1.AIConfigCapabilityIntent.local:type_name -> nimi.runtime.v1.AIConfigLocalIntent
 	15, // 19: nimi.runtime.v1.AIConfigCapabilityIntent.cloud:type_name -> nimi.runtime.v1.AIConfigCloudIntent
 	13, // 20: nimi.runtime.v1.AIConfig.owner:type_name -> nimi.runtime.v1.AIConfigOwner
@@ -2640,23 +2775,26 @@ var file_runtime_v1_capability_configuration_proto_depIdxs = []int32{
 	10, // 26: nimi.runtime.v1.GetMachineLocalAIConfigurationResponse.aggregate:type_name -> nimi.runtime.v1.MachineLocalAIConfiguration
 	8,  // 27: nimi.runtime.v1.GetLocalCapabilityConfigurationResponse.configuration:type_name -> nimi.runtime.v1.LocalCapabilityConfiguration
 	5,  // 28: nimi.runtime.v1.AddLocalCapabilityConfigurationRequest.implementation:type_name -> nimi.runtime.v1.CapabilityImplementationIdentity
-	43, // 29: nimi.runtime.v1.AddLocalCapabilityConfigurationRequest.portable_config:type_name -> google.protobuf.Struct
-	43, // 30: nimi.runtime.v1.AddLocalCapabilityConfigurationRequest.provenance:type_name -> google.protobuf.Struct
+	45, // 29: nimi.runtime.v1.AddLocalCapabilityConfigurationRequest.portable_config:type_name -> google.protobuf.Struct
+	45, // 30: nimi.runtime.v1.AddLocalCapabilityConfigurationRequest.provenance:type_name -> google.protobuf.Struct
 	8,  // 31: nimi.runtime.v1.AddLocalCapabilityConfigurationResponse.configuration:type_name -> nimi.runtime.v1.LocalCapabilityConfiguration
-	9,  // 32: nimi.runtime.v1.SelectLocalCapabilityConfigurationResponse.selection:type_name -> nimi.runtime.v1.LocalCapabilitySelection
-	8,  // 33: nimi.runtime.v1.ReprojectLocalCapabilityRequirementsResponse.configuration:type_name -> nimi.runtime.v1.LocalCapabilityConfiguration
-	36, // 34: nimi.runtime.v1.BindLocalCapabilityRequirementRequest.target:type_name -> nimi.runtime.v1.LocalAssetExactBindingTarget
-	8,  // 35: nimi.runtime.v1.BindLocalCapabilityRequirementResponse.configuration:type_name -> nimi.runtime.v1.LocalCapabilityConfiguration
-	7,  // 36: nimi.runtime.v1.RebindLocalCapabilityRequirementRequest.expected_current_binding:type_name -> nimi.runtime.v1.LocalAssetExactBinding
-	36, // 37: nimi.runtime.v1.RebindLocalCapabilityRequirementRequest.target:type_name -> nimi.runtime.v1.LocalAssetExactBindingTarget
-	8,  // 38: nimi.runtime.v1.RebindLocalCapabilityRequirementResponse.configuration:type_name -> nimi.runtime.v1.LocalCapabilityConfiguration
-	7,  // 39: nimi.runtime.v1.UnbindLocalCapabilityRequirementRequest.expected_current_binding:type_name -> nimi.runtime.v1.LocalAssetExactBinding
-	8,  // 40: nimi.runtime.v1.UnbindLocalCapabilityRequirementResponse.configuration:type_name -> nimi.runtime.v1.LocalCapabilityConfiguration
-	41, // [41:41] is the sub-list for method output_type
-	41, // [41:41] is the sub-list for method input_type
-	41, // [41:41] is the sub-list for extension type_name
-	41, // [41:41] is the sub-list for extension extendee
-	0,  // [0:41] is the sub-list for field type_name
+	45, // 32: nimi.runtime.v1.UpdateLocalCapabilityConfigurationRequest.portable_config:type_name -> google.protobuf.Struct
+	45, // 33: nimi.runtime.v1.UpdateLocalCapabilityConfigurationRequest.provenance:type_name -> google.protobuf.Struct
+	8,  // 34: nimi.runtime.v1.UpdateLocalCapabilityConfigurationResponse.configuration:type_name -> nimi.runtime.v1.LocalCapabilityConfiguration
+	9,  // 35: nimi.runtime.v1.SelectLocalCapabilityConfigurationResponse.selection:type_name -> nimi.runtime.v1.LocalCapabilitySelection
+	8,  // 36: nimi.runtime.v1.ReprojectLocalCapabilityRequirementsResponse.configuration:type_name -> nimi.runtime.v1.LocalCapabilityConfiguration
+	38, // 37: nimi.runtime.v1.BindLocalCapabilityRequirementRequest.target:type_name -> nimi.runtime.v1.LocalAssetExactBindingTarget
+	8,  // 38: nimi.runtime.v1.BindLocalCapabilityRequirementResponse.configuration:type_name -> nimi.runtime.v1.LocalCapabilityConfiguration
+	7,  // 39: nimi.runtime.v1.RebindLocalCapabilityRequirementRequest.expected_current_binding:type_name -> nimi.runtime.v1.LocalAssetExactBinding
+	38, // 40: nimi.runtime.v1.RebindLocalCapabilityRequirementRequest.target:type_name -> nimi.runtime.v1.LocalAssetExactBindingTarget
+	8,  // 41: nimi.runtime.v1.RebindLocalCapabilityRequirementResponse.configuration:type_name -> nimi.runtime.v1.LocalCapabilityConfiguration
+	7,  // 42: nimi.runtime.v1.UnbindLocalCapabilityRequirementRequest.expected_current_binding:type_name -> nimi.runtime.v1.LocalAssetExactBinding
+	8,  // 43: nimi.runtime.v1.UnbindLocalCapabilityRequirementResponse.configuration:type_name -> nimi.runtime.v1.LocalCapabilityConfiguration
+	44, // [44:44] is the sub-list for method output_type
+	44, // [44:44] is the sub-list for method input_type
+	44, // [44:44] is the sub-list for extension type_name
+	44, // [44:44] is the sub-list for extension extendee
+	0,  // [0:44] is the sub-list for field type_name
 }
 
 func init() { file_runtime_v1_capability_configuration_proto_init() }
@@ -2678,7 +2816,7 @@ func file_runtime_v1_capability_configuration_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_runtime_v1_capability_configuration_proto_rawDesc), len(file_runtime_v1_capability_configuration_proto_rawDesc)),
 			NumEnums:      5,
-			NumMessages:   38,
+			NumMessages:   40,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

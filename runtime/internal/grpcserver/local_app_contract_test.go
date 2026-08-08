@@ -93,6 +93,19 @@ func TestLocalAppMethodsHaveClosedFinalTransportPosture(t *testing.T) {
 		}
 	}
 	assertProtectedLocalAppStreamMethodPolicy(t, protectedSubscribeConversationMethod, protectedlocal.TransportLocalAppHost, protectedlocal.RoleLocalAppSession)
+	assertProtectedLocalAppStreamMethodPolicy(t, protectedStreamTextTurnMethod, protectedlocal.TransportLocalAppHost, protectedlocal.RoleLocalAppSession)
+	assertProtectedLocalAppStreamMethodPolicy(t, protectedSubscribeScenarioJobMethod, protectedlocal.TransportLocalAppHost, protectedlocal.RoleLocalAppSession)
+	for _, method := range []string{
+		protectedExecuteLocalAppScenarioMethod,
+		protectedSubmitScenarioJobMethod,
+		protectedGetScenarioJobMethod,
+		protectedCancelScenarioJobMethod,
+		protectedReadLocalAppArtifactMethod,
+		protectedUploadLocalAppArtifactMethod,
+		protectedListLocalAppVoiceAssetsMethod,
+	} {
+		assertProtectedLocalAppMethodPolicy(t, method, protectedlocal.TransportLocalAppHost, protectedlocal.RoleLocalAppSession)
+	}
 }
 
 func assertProtectedLocalAppStreamMethodPolicy(t testing.TB, method string, transport protectedlocal.TransportClass, role protectedlocal.OriginRole) {

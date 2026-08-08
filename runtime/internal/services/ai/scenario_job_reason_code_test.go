@@ -93,7 +93,7 @@ func TestScenarioJobReasonCodeClassification(t *testing.T) {
 				Spec: &runtimev1.ScenarioSpec_ImageGenerate{
 					ImageGenerate: &runtimev1.ImageGenerateScenarioSpec{
 						Prompt: "test",
-						N:      17,
+						N:      testInt32(17),
 					},
 				},
 			},

@@ -49,7 +49,7 @@ func TestLocalImportManifestValidation(t *testing.T) {
 	if err := os.MkdirAll(filepath.Dir(schemaInvalidPath), 0o755); err != nil {
 		t.Fatalf("create schema invalid manifest dir: %v", err)
 	}
-	if err := os.WriteFile(schemaInvalidPath, []byte(`{"asset_id":"local/test","kind":"chat","engine":"llama","endpoint":"http://127.0.0.1:1234/v1","capabilities":"chat"}`), 0o600); err != nil {
+	if err := os.WriteFile(schemaInvalidPath, []byte(`{"asset_id":"local/test","kind":"chat","engine":"llama","endpoint":"http://127.0.0.1:1234/v1","capabilities":["chat"]}`), 0o600); err != nil {
 		t.Fatalf("write schema invalid manifest: %v", err)
 	}
 	_, err = svc.ImportLocalAsset(context.Background(), &runtimev1.ImportLocalAssetRequest{ManifestPath: schemaInvalidPath})
@@ -60,10 +60,7 @@ func TestLocalImportManifestValidation(t *testing.T) {
 	if st.Code() != codes.InvalidArgument {
 		t.Fatalf("unexpected schema invalid manifest error: %v", err)
 	}
-	assertGRPCReasonCode(t, err, "ImportLocalAsset(invalid capabilities)", runtimev1.ReasonCode_AI_LOCAL_MANIFEST_SCHEMA_INVALID)
-	if errors.Unwrap(err) == nil {
-		t.Fatal("expected manifest schema cause to remain available in-process")
-	}
+	assertGRPCReasonCode(t, err, "ImportLocalAsset(retired endpoint field)", runtimev1.ReasonCode_AI_LOCAL_MANIFEST_SCHEMA_INVALID)
 
 	validPath := filepath.Join(tmpDir, "resolved", "nimi", "import-manifest-ok", "asset.manifest.json")
 	validManifest := map[string]any{
@@ -74,7 +71,6 @@ func TestLocalImportManifestValidation(t *testing.T) {
 		"capabilities":            []string{"chat"},
 		"entry":                   "./dist/index.js",
 		"local_invoke_profile_id": "profile-chat-default",
-		"endpoint":                "http://127.0.0.1:1234/v1",
 		"source": map[string]any{
 			"repo":     "nimiplatform/import-model",
 			"revision": "main",
@@ -303,7 +299,7 @@ func TestLocalImportImageModelSupportsAppleSiliconManagedImageHost(t *testing.T)
 	}
 }
 
-func TestLocalImportImageModelUnsupportedHostRegistersUnhealthyAsset(t *testing.T) {
+func TestLocalImportImageModelUnsupportedHostRegistersAssetWithoutHostHealth(t *testing.T) {
 	svc := newTestService(t)
 	setLocalRuntimePlatformForTest(t, "linux", "amd64")
 	setNvidiaGPUProbeForTest(t, true)
@@ -338,16 +334,16 @@ func TestLocalImportImageModelUnsupportedHostRegistersUnhealthyAsset(t *testing.
 		ManifestPath: manifestPath,
 	})
 	if err != nil {
-		t.Fatalf("expected unsupported-host image import to register unhealthy asset instead of failing, got %v", err)
+		t.Fatalf("expected unsupported-host image import to remain asset-only, got %v", err)
 	}
 	if got := svc.modelRuntimeMode(resp.GetAsset().GetLocalAssetId()); got != runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED {
 		t.Fatalf("expected supervised runtime mode, got %s", got)
 	}
-	if got := resp.GetAsset().GetStatus(); got != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY {
+	if got := resp.GetAsset().GetStatus(); got != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED {
 		t.Fatalf("status mismatch: got=%s", got)
 	}
-	if detail := resp.GetAsset().GetHealthDetail(); !strings.Contains(detail, "no published runtime-owned managed image backend package") {
-		t.Fatalf("expected compatibility detail, got %q", detail)
+	if detail := strings.TrimSpace(resp.GetAsset().GetHealthDetail()); detail != "" {
+		t.Fatalf("asset import must not persist host compatibility detail, got %q", detail)
 	}
 }
 

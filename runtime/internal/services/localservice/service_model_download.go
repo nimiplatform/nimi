@@ -55,8 +55,6 @@ type managedDownloadedModelSpec struct {
 	repo               string
 	revision           string
 	hashes             map[string]string
-	endpoint           string
-	mode               runtimev1.LocalEngineRuntimeMode
 	engineConfig       *structpb.Struct
 	projectionOverride *modelregistry.NativeProjection
 	existingPolicy     localAssetExistingPolicy
@@ -198,7 +196,6 @@ func (s *Service) installManagedDownloadedModel(
 		repo:               spec.repo,
 		revision:           spec.revision,
 		hashes:             actualHashes,
-		endpoint:           spec.endpoint,
 		engineConfig:       engineConfig,
 		projectionOverride: projectionOverride,
 		integrityMode:      "verified",
@@ -242,8 +239,6 @@ func (s *Service) installManagedDownloadedModel(
 		spec.repo,
 		spec.revision,
 		actualHashes,
-		spec.endpoint,
-		spec.mode,
 		"",
 		engineConfig,
 		projectionOverride,
@@ -452,7 +447,6 @@ type managedModelManifestDescriptor struct {
 	repo               string
 	revision           string
 	hashes             map[string]string
-	endpoint           string
 	engineConfig       *structpb.Struct
 	projectionOverride *modelregistry.NativeProjection
 	integrityMode      string
@@ -479,9 +473,6 @@ func writeModelManifest(manifestPath string, descriptor managedModelManifestDesc
 		},
 		"hashes":         descriptor.hashes,
 		"integrity_mode": descriptor.integrityMode,
-	}
-	if endpoint := strings.TrimSpace(descriptor.endpoint); endpoint != "" {
-		manifest["endpoint"] = endpoint
 	}
 	if descriptor.engineConfig != nil {
 		rawConfig, err := protojson.Marshal(descriptor.engineConfig)

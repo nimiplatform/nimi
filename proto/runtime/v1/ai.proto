@@ -301,18 +301,18 @@ message TextGenerateScenarioSpec {
   repeated ChatMessage input = 1;
   string system_prompt = 2;
   repeated ToolSpec tools = 3;
-  float temperature = 4;
-  float top_p = 5;
-  int32 max_tokens = 6;
+  optional float temperature = 4;
+  optional float top_p = 5;
+  optional int32 max_tokens = 6;
   ReasoningConfig reasoning = 7;
   ToolChoiceMode tool_choice = 8;
   string tool_choice_name = 9;
   ResponseFormat response_format = 10;
-  int32 top_k = 11;
-  float presence_penalty = 12;
-  float frequency_penalty = 13;
+  optional int32 top_k = 11;
+  optional float presence_penalty = 12;
+  optional float frequency_penalty = 13;
   repeated string stop = 14;
-  int64 seed = 15;
+  optional int64 seed = 15;
   bool include_raw_chunks = 16;
 }
 
@@ -323,12 +323,12 @@ message TextEmbedScenarioSpec {
 message ImageGenerateScenarioSpec {
   string prompt = 1;
   string negative_prompt = 2;
-  int32 n = 3;
+  optional int32 n = 3;
   string size = 4;
   string aspect_ratio = 5;
   string quality = 6;
   string style = 7;
-  int64 seed = 8;
+  optional int64 seed = 8;
   repeated string reference_images = 9;
   string mask = 10;
   string response_format = 11;
@@ -346,10 +346,10 @@ message SpeechSynthesizeScenarioSpec {
   string text = 1;
   string language = 2;
   string audio_format = 3;
-  int32 sample_rate_hz = 4;
-  float speed = 5;
-  float pitch = 6;
-  float volume = 7;
+  optional int32 sample_rate_hz = 4;
+  optional float speed = 5;
+  optional float pitch = 6;
+  optional float volume = 7;
   string emotion = 8;
   VoiceReference voice_ref = 9;
   SpeechTimingMode timing_mode = 10;
@@ -359,9 +359,9 @@ message SpeechSynthesizeScenarioSpec {
 message SpeechTranscribeScenarioSpec {
   string mime_type = 1;
   string language = 2;
-  bool timestamps = 3;
-  bool diarization = 4;
-  int32 speaker_count = 5;
+  optional bool timestamps = 3;
+  optional bool diarization = 4;
+  optional int32 speaker_count = 5;
   string prompt = 6;
   SpeechTranscriptionAudioSource audio_source = 7;
   string response_format = 8;
@@ -538,15 +538,294 @@ message LocalAppTextCandidateMessage {
 
 message GenerateLocalAppTextCandidateRequest {
   repeated LocalAppTextCandidateMessage messages = 1;
-  float temperature = 2;
-  float top_p = 3;
-  int32 max_tokens = 4;
+  optional float temperature = 2;
+  optional float top_p = 3;
+  optional int32 max_tokens = 4;
+  optional int32 top_k = 5;
+  optional float presence_penalty = 6;
+  optional float frequency_penalty = 7;
+  repeated string stop = 8;
+  optional int64 seed = 9;
 }
 
 message GenerateLocalAppTextCandidateResponse {
   string text = 1;
   FinishReason finish_reason = 2;
   string trace_id = 3;
+}
+
+// Exact third-party Local App scenario-consumption contracts. Runtime derives
+// account, App identity, permission and managed route composition from the
+// protected session and the calling App owner's committed AIConfig; callers
+// cannot supply generic Scenario head, route, provider, model, target, grant,
+// or tool fields.
+
+// Trimmed artifact projection for Local App scenario outputs. Runtime-private
+// uri, producer, and owner fields are never projected; oversized payloads are
+// reachable only through ReadLocalAppArtifact.
+message LocalAppScenarioArtifact {
+  string artifact_id = 1;
+  string mime_type = 2;
+  bytes bytes = 3;
+  int64 size_bytes = 4;
+  string sha256 = 5;
+  int64 duration_ms = 6;
+  int32 width = 7;
+  int32 height = 8;
+  int32 sample_rate_hz = 9;
+  int32 channels = 10;
+}
+
+// Synchronous closed-set scenario specs admitted for ExecuteLocalAppScenario.
+message LocalAppTextEmbedScenarioSpec {
+  repeated string inputs = 1;
+}
+
+message LocalAppImageGenerateScenarioSpec {
+  string prompt = 1;
+  string negative_prompt = 2;
+  optional int32 n = 3;
+  string size = 4;
+  string aspect_ratio = 5;
+  string quality = 6;
+  string style = 7;
+  optional int64 seed = 8;
+  repeated string reference_images = 9;
+  string mask = 10;
+  string response_format = 11;
+}
+
+message ExecuteLocalAppScenarioRequest {
+  oneof spec {
+    LocalAppTextEmbedScenarioSpec text_embed = 1;
+    LocalAppImageGenerateScenarioSpec image_generate = 2;
+  }
+}
+
+message LocalAppTextEmbedOutput {
+  repeated EmbeddingVector vectors = 1;
+}
+
+message LocalAppImageGenerateOutput {
+  repeated LocalAppScenarioArtifact artifacts = 1;
+}
+
+message ExecuteLocalAppScenarioResponse {
+  oneof output {
+    LocalAppTextEmbedOutput text_embed = 1;
+    LocalAppImageGenerateOutput image_generate = 2;
+  }
+  string trace_id = 3;
+}
+
+// Asynchronous closed-set Job specs admitted for SubmitLocalAppScenarioJob.
+// Per-capability selection happens through the scenario spec type plus the
+// calling App owner's committed AIConfig capability intent, never through
+// caller-supplied route, provider, model, or target fields.
+message LocalAppVideoGenerationOptions {
+  string resolution = 1;
+  string ratio = 2;
+  optional int32 duration_sec = 3;
+  optional int32 frames = 4;
+  optional int32 fps = 5;
+  optional int64 seed = 6;
+  optional bool camera_fixed = 7;
+  optional bool watermark = 8;
+  optional bool generate_audio = 9;
+  optional bool draft = 10;
+  optional bool return_last_frame = 11;
+}
+
+message LocalAppVideoGenerateJobSpec {
+  string prompt = 1;
+  string negative_prompt = 2;
+  VideoMode mode = 3;
+  repeated VideoContentItem content = 4;
+  LocalAppVideoGenerationOptions options = 5;
+}
+
+message LocalAppSpeechSynthesizeJobSpec {
+  string text = 1;
+  string language = 2;
+  string audio_format = 3;
+  optional int32 sample_rate_hz = 4;
+  optional float speed = 5;
+  optional float pitch = 6;
+  optional float volume = 7;
+  string emotion = 8;
+  VoiceReference voice_ref = 9;
+  SpeechTimingMode timing_mode = 10;
+  VoiceRenderHints voice_render_hints = 11;
+}
+
+message LocalAppSpeechTranscribeJobSpec {
+  string mime_type = 1;
+  string language = 2;
+  optional bool timestamps = 3;
+  optional bool diarization = 4;
+  optional int32 speaker_count = 5;
+  string prompt = 6;
+  SpeechTranscriptionAudioSource audio_source = 7;
+  string response_format = 8;
+}
+
+// Voice workflow specs omit target_model_id: Runtime resolves the exact
+// execution target from the App owner's committed AIConfig intent.
+message LocalAppVoiceCloneJobSpec {
+  VoiceV2VInput input = 1;
+}
+
+message LocalAppVoiceDesignJobSpec {
+  VoiceT2VInput input = 1;
+}
+
+message SubmitLocalAppScenarioJobRequest {
+  oneof spec {
+    LocalAppImageGenerateScenarioSpec image_generate = 1;
+    LocalAppVideoGenerateJobSpec video_generate = 2;
+    LocalAppSpeechSynthesizeJobSpec speech_synthesize = 3;
+    LocalAppSpeechTranscribeJobSpec speech_transcribe = 4;
+    LocalAppVoiceCloneJobSpec voice_clone = 5;
+    LocalAppVoiceDesignJobSpec voice_design = 6;
+  }
+}
+
+// Trimmed Job projection for Local App consumption: status, progress, typed
+// reason, artifact summaries, and trace correlation only. Head, route, model,
+// provider, usage, and extension fields are never projected.
+message LocalAppScenarioJob {
+  string job_id = 1;
+  ScenarioType scenario_type = 2;
+  ScenarioJobStatus status = 3;
+  int32 progress_percent = 4;
+  int32 progress_current_step = 5;
+  int32 progress_total_steps = 6;
+  ReasonCode reason_code = 7;
+  string reason_detail = 8;
+  repeated LocalAppScenarioArtifact artifacts = 9;
+  string trace_id = 10;
+  google.protobuf.Timestamp created_at = 11;
+  google.protobuf.Timestamp updated_at = 12;
+}
+
+// Trimmed voice asset catalog projection. Provider, model, provider voice
+// ref, and owner identity fields are never projected.
+message LocalAppVoiceAsset {
+  string voice_asset_id = 1;
+  VoiceWorkflowType workflow_type = 2;
+  VoiceAssetStatus status = 3;
+  google.protobuf.Timestamp created_at = 4;
+  google.protobuf.Timestamp updated_at = 5;
+  google.protobuf.Timestamp expires_at = 6;
+}
+
+message SubmitLocalAppScenarioJobResponse {
+  LocalAppScenarioJob job = 1;
+  LocalAppVoiceAsset asset = 2;
+}
+
+message GetLocalAppScenarioJobRequest {
+  string job_id = 1;
+}
+
+message GetLocalAppScenarioJobResponse {
+  LocalAppScenarioJob job = 1;
+}
+
+message CancelLocalAppScenarioJobRequest {
+  string job_id = 1;
+  string reason = 2;
+}
+
+message CancelLocalAppScenarioJobResponse {
+  LocalAppScenarioJob job = 1;
+}
+
+message SubscribeLocalAppScenarioJobEventsRequest {
+  string job_id = 1;
+}
+
+message LocalAppScenarioJobEvent {
+  ScenarioJobEventType event_type = 1;
+  uint64 sequence = 2;
+  string trace_id = 3;
+  google.protobuf.Timestamp timestamp = 4;
+  LocalAppScenarioJob job = 5;
+}
+
+// Streaming TEXT_GENERATE trimmed surface: typed text increments and terminal
+// finish or failure state only. Raw chunks, reasoning traces, sources, and
+// tool events never reach the Local App stream.
+message StreamLocalAppTextTurnRequest {
+  repeated LocalAppTextCandidateMessage messages = 1;
+  optional float temperature = 2;
+  optional float top_p = 3;
+  optional int32 max_tokens = 4;
+  optional int32 top_k = 5;
+  optional float presence_penalty = 6;
+  optional float frequency_penalty = 7;
+  repeated string stop = 8;
+  optional int64 seed = 9;
+}
+
+message LocalAppTextTurnDelta {
+  string text = 1;
+}
+
+message LocalAppTextTurnCompleted {
+  FinishReason finish_reason = 1;
+}
+
+message LocalAppTextTurnFailed {
+  ReasonCode reason_code = 1;
+  string action_hint = 2;
+}
+
+message StreamLocalAppTextTurnEvent {
+  uint64 sequence = 1;
+  string trace_id = 2;
+  oneof payload {
+    LocalAppTextTurnDelta delta = 3;
+    LocalAppTextTurnCompleted completed = 4;
+    LocalAppTextTurnFailed failed = 5;
+  }
+}
+
+// Bounded inline artifact read limited to artifacts owned by the calling App
+// session owner; payloads above 32 MiB fail closed with ARTIFACT_TOO_LARGE.
+message ReadLocalAppArtifactRequest {
+  string artifact_id = 1;
+}
+
+message ReadLocalAppArtifactResponse {
+  bytes bytes = 1;
+  string mime_type = 2;
+  int64 size_bytes = 3;
+}
+
+// Bounded single-message image upload for the calling Local App owner. The
+// protected Local App transport reserves enough receive capacity for this
+// exact 32 MiB operation; the trimmed unary shape avoids caller-supplied owner
+// metadata and chunk state while preserving UploadArtifact owner custody.
+message UploadLocalAppArtifactRequest {
+  bytes bytes = 1;
+  string mime_type = 2;
+}
+
+message UploadLocalAppArtifactResponse {
+  string artifact_id = 1;
+  int64 size_bytes = 2;
+  string mime_type = 3;
+}
+
+message ListLocalAppVoiceAssetsRequest {
+  int32 page_size = 1;
+  string page_token = 2;
+}
+
+message ListLocalAppVoiceAssetsResponse {
+  repeated LocalAppVoiceAsset assets = 1;
+  string next_page_token = 2;
 }
 
 message StreamScenarioRequest {
@@ -789,17 +1068,17 @@ message VideoContentItem {
 message VideoGenerationOptions {
   string resolution = 1;
   string ratio = 2;
-  int32 duration_sec = 3;
-  int32 frames = 4;
-  int32 fps = 5;
-  int64 seed = 6;
-  bool camera_fixed = 7;
-  bool watermark = 8;
-  bool generate_audio = 9;
-  bool draft = 10;
+  optional int32 duration_sec = 3;
+  optional int32 frames = 4;
+  optional int32 fps = 5;
+  optional int64 seed = 6;
+  optional bool camera_fixed = 7;
+  optional bool watermark = 8;
+  optional bool generate_audio = 9;
+  optional bool draft = 10;
   string service_tier = 11;
   int32 execution_expires_after_sec = 12;
-  bool return_last_frame = 13;
+  optional bool return_last_frame = 13;
 }
 
 message VoiceRenderHints {
@@ -878,6 +1157,15 @@ service RuntimeAiService {
   rpc GetAppAIConfig(GetAppAIConfigRequest) returns (GetAppAIConfigResponse);
   rpc OverwriteAppAIConfig(OverwriteAppAIConfigRequest) returns (OverwriteAppAIConfigResponse);
   rpc GenerateLocalAppTextCandidate(GenerateLocalAppTextCandidateRequest) returns (GenerateLocalAppTextCandidateResponse);
+  rpc ExecuteLocalAppScenario(ExecuteLocalAppScenarioRequest) returns (ExecuteLocalAppScenarioResponse);
+  rpc SubmitLocalAppScenarioJob(SubmitLocalAppScenarioJobRequest) returns (SubmitLocalAppScenarioJobResponse);
+  rpc GetLocalAppScenarioJob(GetLocalAppScenarioJobRequest) returns (GetLocalAppScenarioJobResponse);
+  rpc CancelLocalAppScenarioJob(CancelLocalAppScenarioJobRequest) returns (CancelLocalAppScenarioJobResponse);
+  rpc SubscribeLocalAppScenarioJobEvents(SubscribeLocalAppScenarioJobEventsRequest) returns (stream LocalAppScenarioJobEvent);
+  rpc StreamLocalAppTextTurn(StreamLocalAppTextTurnRequest) returns (stream StreamLocalAppTextTurnEvent);
+  rpc ReadLocalAppArtifact(ReadLocalAppArtifactRequest) returns (ReadLocalAppArtifactResponse);
+  rpc UploadLocalAppArtifact(UploadLocalAppArtifactRequest) returns (UploadLocalAppArtifactResponse);
+  rpc ListLocalAppVoiceAssets(ListLocalAppVoiceAssetsRequest) returns (ListLocalAppVoiceAssetsResponse);
   rpc ExecuteScenario(ExecuteScenarioRequest) returns (ExecuteScenarioResponse);
   rpc StreamScenario(StreamScenarioRequest) returns (stream StreamScenarioEvent);
   rpc SubmitScenarioJob(SubmitScenarioJobRequest) returns (SubmitScenarioJobResponse);

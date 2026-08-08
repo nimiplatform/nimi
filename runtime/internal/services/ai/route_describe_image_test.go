@@ -36,7 +36,7 @@ func TestExecuteScenarioImageGenerateRouteDescribeProbeWritesHeaderForManagedClo
 			Spec: &runtimev1.ScenarioSpec_ImageGenerate{
 				ImageGenerate: &runtimev1.ImageGenerateScenarioSpec{
 					Prompt: "route describe probe",
-					N:      1,
+					N:      testInt32(1),
 				},
 			},
 		},

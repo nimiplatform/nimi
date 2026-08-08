@@ -193,7 +193,7 @@ func dashScopeRealtimeTTSRunTaskPayload(taskID string, modelID string, spec *run
 	if volume := spec.GetVolume(); volume > 0 {
 		parameters["volume"] = volume
 	}
-	if speed := spec.GetSpeed(); speed > 0 {
+	if speed := scenarioSpeechSpeed(spec); speed > 0 {
 		parameters["rate"] = speed
 	}
 	if pitch := spec.GetPitch(); pitch > 0 {

@@ -678,7 +678,7 @@ func normalizeStableDiffusionImageRequest(
 		return normalizedStableDiffusionImageRequest{}, invocationError(InvocationFailureInvalidRequest, fmt.Errorf("image.generate mask requires an input image"))
 	}
 	seed := portable.execution.seed
-	if spec.GetSeed() != 0 {
+	if spec.Seed != nil {
 		seed = spec.GetSeed()
 	}
 	return normalizedStableDiffusionImageRequest{

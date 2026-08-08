@@ -248,6 +248,7 @@ const RUNTIME_RPC_AUTH_POSTURES: Readonly<Record<string, RuntimeRpcAuthPosture>>
   "/nimi.runtime.v1.RuntimeLocalService/StopLocalAsset": "anonymous_read",
   "/nimi.runtime.v1.RuntimeLocalService/StopLocalService": "anonymous_read",
   "/nimi.runtime.v1.RuntimeLocalService/UnbindLocalCapabilityRequirement": "protected_origin_required",
+  "/nimi.runtime.v1.RuntimeLocalService/UpdateLocalCapabilityConfiguration": "protected_origin_required",
   "/nimi.runtime.v1.RuntimeLocalService/WatchLocalTransfers": "anonymous_read",
   "/nimi.runtime.v1.RuntimeModelService/CheckModelHealth": "anonymous_read",
   "/nimi.runtime.v1.RuntimeModelService/ListModels": "anonymous_read",

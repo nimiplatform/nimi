@@ -247,24 +247,24 @@ func (s *Service) checkLocalModelHealthViaLocalService(ctx context.Context, mode
 	}
 
 	if localSpeechAssetMissingAdmittedPlainCapability(selected) {
-		return modelHealthResponse(false, runtimev1.ModelHealthStatus_MODEL_HEALTH_STATUS_DEGRADED, runtimev1.ReasonCode_AI_MODEL_NOT_READY, "repair local model metadata", "", selected.GetEndpoint(), normalizedModelID), true
+		return modelHealthResponse(false, runtimev1.ModelHealthStatus_MODEL_HEALTH_STATUS_DEGRADED, runtimev1.ReasonCode_AI_MODEL_NOT_READY, "repair local model metadata", "", "", normalizedModelID), true
 	}
 
 	switch selected.GetStatus() {
 	case runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE,
 		runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED:
-		return modelHealthResponse(false, runtimev1.ModelHealthStatus_MODEL_HEALTH_STATUS_DEGRADED, runtimev1.ReasonCode_AI_MODEL_NOT_READY, "execute through selected Local Capability Configuration", "execution health is Runtime-private", selected.GetEndpoint(), normalizedModelID), true
+		return modelHealthResponse(false, runtimev1.ModelHealthStatus_MODEL_HEALTH_STATUS_DEGRADED, runtimev1.ReasonCode_AI_MODEL_NOT_READY, "execute through selected Local Capability Configuration", "execution health is Runtime-private", "", normalizedModelID), true
 	case runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY:
 		detail := strings.TrimSpace(selected.GetHealthDetail())
 		if isRecoverableSupervisedIdleProbe(detail) {
-			return modelHealthResponse(false, runtimev1.ModelHealthStatus_MODEL_HEALTH_STATUS_DEGRADED, runtimev1.ReasonCode_AI_MODEL_NOT_READY, "execute through selected Local Capability Configuration", "execution health is Runtime-private", selected.GetEndpoint(), normalizedModelID), true
+			return modelHealthResponse(false, runtimev1.ModelHealthStatus_MODEL_HEALTH_STATUS_DEGRADED, runtimev1.ReasonCode_AI_MODEL_NOT_READY, "execute through selected Local Capability Configuration", "execution health is Runtime-private", "", normalizedModelID), true
 		}
 		if detail == "" {
 			detail = "runtime local model unhealthy"
 		}
-		return modelHealthResponse(false, runtimev1.ModelHealthStatus_MODEL_HEALTH_STATUS_UNREACHABLE, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE, "inspect_local_runtime_model_health", detail, selected.GetEndpoint(), normalizedModelID), true
+		return modelHealthResponse(false, runtimev1.ModelHealthStatus_MODEL_HEALTH_STATUS_UNREACHABLE, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE, "inspect_local_runtime_model_health", detail, "", normalizedModelID), true
 	case runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_REMOVED:
-		return modelHealthResponse(false, runtimev1.ModelHealthStatus_MODEL_HEALTH_STATUS_UNREACHABLE, runtimev1.ReasonCode_AI_MODEL_NOT_FOUND, "pull model first", "", selected.GetEndpoint(), normalizedModelID), true
+		return modelHealthResponse(false, runtimev1.ModelHealthStatus_MODEL_HEALTH_STATUS_UNREACHABLE, runtimev1.ReasonCode_AI_MODEL_NOT_FOUND, "pull model first", "", "", normalizedModelID), true
 	default:
 		return nil, false
 	}

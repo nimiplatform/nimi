@@ -369,60 +369,60 @@ func applyCloudTextDefaults(spec *runtimev1.TextGenerateScenarioSpec, defaults *
 	for key, value := range defaults.GetFields() {
 		switch key {
 		case "temperature":
-			if spec.GetTemperature() == 0 {
+			if spec.Temperature == nil {
 				number, ok := cloudDefaultNumber(value)
 				if !ok {
 					return cloudInvocationError(CloudInvocationFailureRequest, fmt.Errorf("temperature default is invalid"))
 				}
-				spec.Temperature = float32(number)
+				spec.Temperature = proto.Float32(float32(number))
 			}
 		case "topP", "top_p":
-			if spec.GetTopP() == 0 {
+			if spec.TopP == nil {
 				number, ok := cloudDefaultNumber(value)
 				if !ok {
 					return cloudInvocationError(CloudInvocationFailureRequest, fmt.Errorf("top_p default is invalid"))
 				}
-				spec.TopP = float32(number)
+				spec.TopP = proto.Float32(float32(number))
 			}
 		case "maxTokens", "max_tokens":
-			if spec.GetMaxTokens() == 0 {
+			if spec.MaxTokens == nil {
 				number, ok := cloudDefaultInteger(value)
 				if !ok {
 					return cloudInvocationError(CloudInvocationFailureRequest, fmt.Errorf("max_tokens default is invalid"))
 				}
-				spec.MaxTokens = int32(number)
+				spec.MaxTokens = proto.Int32(int32(number))
 			}
 		case "topK", "top_k":
-			if spec.GetTopK() == 0 {
+			if spec.TopK == nil {
 				number, ok := cloudDefaultInteger(value)
 				if !ok {
 					return cloudInvocationError(CloudInvocationFailureRequest, fmt.Errorf("top_k default is invalid"))
 				}
-				spec.TopK = int32(number)
+				spec.TopK = proto.Int32(int32(number))
 			}
 		case "presencePenalty", "presence_penalty":
-			if spec.GetPresencePenalty() == 0 {
+			if spec.PresencePenalty == nil {
 				number, ok := cloudDefaultNumber(value)
 				if !ok {
 					return cloudInvocationError(CloudInvocationFailureRequest, fmt.Errorf("presence_penalty default is invalid"))
 				}
-				spec.PresencePenalty = float32(number)
+				spec.PresencePenalty = proto.Float32(float32(number))
 			}
 		case "frequencyPenalty", "frequency_penalty":
-			if spec.GetFrequencyPenalty() == 0 {
+			if spec.FrequencyPenalty == nil {
 				number, ok := cloudDefaultNumber(value)
 				if !ok {
 					return cloudInvocationError(CloudInvocationFailureRequest, fmt.Errorf("frequency_penalty default is invalid"))
 				}
-				spec.FrequencyPenalty = float32(number)
+				spec.FrequencyPenalty = proto.Float32(float32(number))
 			}
 		case "seed":
-			if spec.GetSeed() == 0 {
+			if spec.Seed == nil {
 				number, ok := cloudDefaultInteger(value)
 				if !ok {
 					return cloudInvocationError(CloudInvocationFailureRequest, fmt.Errorf("seed default is invalid"))
 				}
-				spec.Seed = number
+				spec.Seed = proto.Int64(number)
 			}
 		case "stop":
 			if len(spec.GetStop()) == 0 {

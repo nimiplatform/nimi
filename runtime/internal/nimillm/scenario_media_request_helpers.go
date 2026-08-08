@@ -63,6 +63,16 @@ func scenarioWorldGenerateSpec(req *runtimev1.SubmitScenarioJobRequest) *runtime
 	return req.GetSpec().GetWorldGenerate()
 }
 
+func scenarioSpeechSpeed(spec *runtimev1.SpeechSynthesizeScenarioSpec) float32 {
+	if spec == nil {
+		return 0
+	}
+	if hints := spec.GetVoiceRenderHints(); hints != nil && hints.GetSpeed() > 0 {
+		return hints.GetSpeed()
+	}
+	return spec.GetSpeed()
+}
+
 func scenarioVoiceRef(spec *runtimev1.SpeechSynthesizeScenarioSpec) string {
 	if spec == nil || spec.GetVoiceRef() == nil {
 		return ""

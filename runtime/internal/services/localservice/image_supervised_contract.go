@@ -398,10 +398,8 @@ func (s *Service) ResolveCanonicalImageSelectionForLocalAsset(_ context.Context,
 func (s *Service) ManagedSupervisedImageBootstrapSelection() (engine.ImageSupervisedMatrixSelection, bool) {
 	s.mu.RLock()
 	models := make([]*runtimev1.LocalAssetRecord, 0, len(s.assets))
-	modes := make(map[string]runtimev1.LocalEngineRuntimeMode, len(s.assetRuntimeModes))
-	for localModelID, model := range s.assets {
+	for _, model := range s.assets {
 		models = append(models, cloneLocalAsset(model))
-		modes[localModelID] = s.assetRuntimeModes[localModelID]
 	}
 	s.mu.RUnlock()
 
@@ -416,8 +414,7 @@ func (s *Service) ManagedSupervisedImageBootstrapSelection() (engine.ImageSuperv
 		if model == nil || model.GetStatus() == runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_REMOVED {
 			continue
 		}
-		localModelID := strings.TrimSpace(model.GetLocalAssetId())
-		if normalizeRuntimeMode(modes[localModelID]) != runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED {
+		if runtimeModeForAsset(model, profile) != runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED {
 			continue
 		}
 		if !isCanonicalSupervisedImageAsset(model.GetEngine(), model.GetCapabilities(), model.GetKind()) {
