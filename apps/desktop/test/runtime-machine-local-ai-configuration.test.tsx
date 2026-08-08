@@ -119,8 +119,8 @@ test('Local AI Configurations renders the first-use empty projection as an infor
 
   assert.match(markup, /data-nimi-model-config-owner="machine-local-ai-configuration"/u);
   assert.match(markup, /data-testid="machine-local-ai-configurations-empty-info"/u);
-  assert.match(markup, /No local AI configurations yet/u);
-  assert.match(markup, /You can save it before its files are connected/u);
+  assert.match(markup, /No on-device models set up yet/u);
+  assert.match(markup, /You can save it before linking all required files/u);
   assert.doesNotMatch(markup, /nimi-status-warning/u);
   assert.doesNotMatch(markup, /warning/iu);
 });
@@ -148,10 +148,10 @@ test('Local AI Configurations state and rendered copy move from unresolved to co
   assert.equal(machineLocalConfigurationFileState(configured), 'configured');
   const configuredMarkup = renderView(baseProps(state.aggregate!));
   assert.match(configuredMarkup, /data-file-state="configured"/u);
-  assert.match(configuredMarkup, />Configured</u);
-  assert.match(configuredMarkup, /does not verify that a request can run/u);
+  assert.match(configuredMarkup, />Files linked</u);
+  assert.match(configuredMarkup, /model has not been test-run/u);
   assert.match(configuredMarkup, /Automatic \(recommended\)/u);
-  assert.match(configuredMarkup, /Advanced: context capacity/u);
+  assert.match(configuredMarkup, /Advanced: context length/u);
   assert.doesNotMatch(configuredMarkup, /\bready\b/iu);
   assert.doesNotMatch(configuredMarkup, /Technical details/u);
   assert.doesNotMatch(configuredMarkup, /required_binding_missing/u);
@@ -177,7 +177,7 @@ test('Local AI Configurations shows the current selection independently for ever
   assert.match(markup, /Local image model/u);
   assert.match(markup, /Text generation/u);
   assert.match(markup, /Local writing model/u);
-  assert.equal((markup.match(/>Selected</gu) ?? []).length, 2);
+  assert.equal((markup.match(/>In use on this device</gu) ?? []).length, 2);
 });
 
 test('Local AI Configurations impact state requires a separate explicit confirmation before commit', () => {
@@ -308,9 +308,9 @@ test('Local AI Configurations renders future image impact separately from explic
   );
 
   assert.match(markup, /data-testid="machine-local-ai-impact-confirmation"/u);
-  assert.match(markup, /future image generation/u);
+  assert.match(markup, /image generation for these apps and local agents/u);
   assert.match(markup, /Nimi Desktop App/u);
-  assert.match(markup, /Shared LocalAgent/u);
+  assert.match(markup, /Shared local agents/u);
   assert.match(markup, /Reviewing this impact does not confirm the change/u);
   assert.match(markup, /data-testid="machine-local-ai-impact-confirm"/u);
 });
@@ -350,7 +350,7 @@ test('Local AI Configurations renders the video form and builds the video add in
   assert.match(markup, /Main video model \(FL2VA\)/u);
   assert.match(markup, /FL2VA transformer/u);
   assert.match(markup, /data-testid="machine-local-ai-video-execution-options"/u);
-  assert.match(markup, /Video execution recipe/u);
+  assert.match(markup, /Video generation preset/u);
   assert.match(markup, /Flow shift/u);
   assert.match(markup, /Random number generator/u);
   assert.doesNotMatch(markup, /data-testid="machine-local-ai-image-fields"/u);
@@ -432,7 +432,7 @@ test('Local AI Configurations keeps video configuration management available whe
   assert.match(markup, />Select configuration</u);
   assert.match(markup, /aria-label="More actions"/u);
   assert.match(markup, /data-testid="machine-local-video-recipe:lcc_video"/u);
-  assert.match(markup, /Save video recipe/u);
+  assert.match(markup, /Save video preset/u);
   assert.match(markup, /value="2.5"/u);
   assert.match(markup, /value="euler"/u);
   assert.doesNotMatch(markup, /Technical details/u);
@@ -520,7 +520,7 @@ test('Local AI Configurations has matching Chinese user-facing status copy', asy
       configurations: [configuration('unresolved')],
       selections: [],
     }));
-    assert.match(markup, /本地 AI 配置/u);
+    assert.match(markup, /本机模型设置/u);
     assert.match(markup, /待补齐文件/u);
     assert.doesNotMatch(markup, /就绪/u);
   } finally {

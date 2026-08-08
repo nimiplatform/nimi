@@ -28,6 +28,10 @@ Discipline.
   bounded current Local-selection display projection used by Model Config while
   withholding configuration identity, bindings, LocalAssets, paths, and
   execution truth.
+- Model Config local-selection projections now include bounded, read-only
+  Driver-owned effective request defaults. Empty fields can explain the active
+  on-device engine default without writing that value into App or Agent
+  AIConfig intent.
 
 ### Changed
 

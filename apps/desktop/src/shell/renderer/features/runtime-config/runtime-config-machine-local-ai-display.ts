@@ -131,15 +131,15 @@ export function machineLocalRequirementGroupDisplay(
   occurrenceOrdinal: number,
   t: TFunction,
 ): string {
-  const roleLabel = role === 'main'
-    ? t('runtimeConfig.machineLocalAIConfigurations.roleMain')
-    : t('runtimeConfig.machineLocalAIConfigurations.roleCompanion');
-  return occurrenceOrdinal > 0
-    ? t('runtimeConfig.machineLocalAIConfigurations.roleOrdinal', {
-      role: roleLabel,
-      position: occurrenceOrdinal,
-    })
-    : t('runtimeConfig.machineLocalAIConfigurations.roleSingleton', { role: roleLabel });
+  if (role === 'main') {
+    return t('runtimeConfig.machineLocalAIConfigurations.roleSingleton', {
+      role: t('runtimeConfig.machineLocalAIConfigurations.roleMain'),
+    });
+  }
+  return t('runtimeConfig.machineLocalAIConfigurations.roleOrdinal', {
+    role: t('runtimeConfig.machineLocalAIConfigurations.roleCompanion'),
+    position: occurrenceOrdinal + 1,
+  });
 }
 
 export const machineLocalReadOnlyFieldClassName = 'flex min-h-10 items-center rounded-xl border border-[var(--nimi-field-border)] bg-[var(--nimi-field-bg)] px-3 text-sm text-[var(--nimi-field-text)]';

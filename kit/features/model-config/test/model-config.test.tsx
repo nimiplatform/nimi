@@ -2,6 +2,7 @@ import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
+  createNimiCloudAIConfigCapabilityIntent,
   createNimiLocalAIConfigCapabilityIntent,
   runtimeAIConfigStructToJson,
   type NimiCapabilityAIConfigIntent,
@@ -76,6 +77,7 @@ async function renderSurface(
           displayName: 'Machine text model',
           supportedFeatures: [],
           reasons: [],
+          effectiveDefaults: { temperature: '0.8', seed: 'random' },
         }]}
         cloudAIConfig={Object.hasOwn(options, 'cloudAIConfig') ? options.cloudAIConfig : {
           listImplementations: async () => [{
@@ -183,7 +185,11 @@ describe('public Model Config contract', () => {
     const selections = projectModelConfigLocalSelections({
       selections: [
         { capabilityContract: 'text.generate', configurationId: 'text-local' },
-        { capabilityContract: 'audio.transcribe', configurationId: 'missing' },
+        {
+          capabilityContract: 'audio.transcribe',
+          configurationId: 'missing',
+          effectiveDefaults: { language: 'stale' },
+        },
       ],
       configurations: [{
         configurationId: 'text-local',
@@ -205,6 +211,8 @@ describe('public Model Config contract', () => {
     };
     expect(modelConfigMissingRequiredFeatures(intent, selections[0])).toEqual(['tool.use']);
     expect(modelConfigCapabilityPosture(intent, selections[0])).toBe('local-feature-mismatch');
+    expect(selections[0]?.effectiveDefaults).toBeNull();
+    expect(selections[1]?.effectiveDefaults).toBeNull();
   });
 
   it('opens an explicitly requested capability detail on first mount', async () => {
@@ -273,6 +281,34 @@ describe('public Model Config contract', () => {
     expect(JSON.stringify(onOverwrite.mock.calls[0]?.[0])).not.toMatch(/modelId|targetRef|configurationId/u);
   });
 
+  it('shows Driver-owned Local defaults and provider-owned Cloud placeholders without setting keys', async () => {
+    const local = await renderSurface(vi.fn(async () => undefined), vi.fn(), {
+      initialCapabilityContract: 'text.generate',
+    });
+    const localTemperature = local.querySelector('[data-nimi-default-parameter="temperature"] input') as HTMLInputElement;
+    const localSeed = local.querySelector('[data-nimi-default-parameter="seed"] input') as HTMLInputElement;
+    expect(localTemperature.placeholder).toBe('Not set · Engine default 0.8');
+    expect(localSeed.placeholder).toBe('Not set · Engine default random');
+    expect(localTemperature.value).toBe('');
+
+    if (root) act(() => root?.unmount());
+    local.remove();
+    root = null;
+    container = null;
+    const cloud = await renderSurface(vi.fn(async () => undefined), vi.fn(), {
+      initialCapabilityContract: 'text.generate',
+      capabilities: [createNimiCloudAIConfigCapabilityIntent({
+        capabilityContract: 'text.generate',
+        implementation: { implementationId: 'cloud-test', driverId: 'nimillm', driverDialect: 'openai' },
+        providerModelTarget: { provider: 'provider-test', providerModelId: 'cloud-model' },
+        connectorGrantId: 'grant-test',
+      })],
+    });
+    const cloudTemperature = cloud.querySelector('[data-nimi-default-parameter="temperature"] input') as HTMLInputElement;
+    expect(cloudTemperature.placeholder).toBe('Not set · Provider decides');
+    expect(cloudTemperature.value).toBe('');
+  });
+
   it('saves typed defaults with explicit zero and false while dropping unknown keys', async () => {
     const onOverwrite = vi.fn<ModelConfigOverwrite>(async () => undefined);
     const intent = createNimiLocalAIConfigCapabilityIntent({
@@ -313,7 +349,7 @@ describe('public Model Config contract', () => {
     const onOpenMachineConfiguration = vi.fn();
     const node = await renderSurface(onOverwrite, onOpenMachineConfiguration);
 
-    expect(node.textContent).toContain('AI Model');
+    expect(node.textContent).toContain('Models');
     expect(node.textContent).toContain('Machine text model');
     expect(node.textContent).not.toContain('Default parameters');
     expect(node.textContent).not.toContain('Required features');
@@ -334,10 +370,10 @@ describe('public Model Config contract', () => {
     const routePicker = document.body.querySelector(
       '[data-nimi-model-picker-presentation="route"]',
     ) as HTMLElement;
-    expect(routePicker.textContent).toContain('Local');
+    expect(routePicker.textContent).toContain('On-device');
     expect(routePicker.textContent).toContain('Cloud');
     const openMachine = Array.from(routePicker.querySelectorAll('button')).find((button) => (
-      button.textContent?.trim() === 'Open Local AI Configurations'
+      button.textContent?.trim() === 'Open on-device models'
     )) as HTMLButtonElement;
     act(() => { openMachine.click(); });
 

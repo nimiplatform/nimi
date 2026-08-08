@@ -81,6 +81,7 @@ export type ModelConfigLocalSelectionProjection = {
   readonly displayName: string | null;
   readonly supportedFeatures: readonly string[];
   readonly reasons: readonly string[];
+  readonly effectiveDefaults?: Readonly<Record<string, string>> | null;
 };
 
 export interface ModelConfigMachineConfigurationInput {
@@ -97,6 +98,7 @@ export interface ModelConfigMachineAggregateInput {
   readonly selections: readonly {
     readonly capabilityContract: string;
     readonly configurationId: string;
+    readonly effectiveDefaults?: Readonly<Record<string, string>> | null;
   }[];
   readonly configurations: readonly ModelConfigMachineConfigurationInput[];
 }
@@ -146,6 +148,9 @@ export type ModelConfigCopy = Partial<{
   readonly defaultsTrueLabel: string;
   readonly defaultsFalseLabel: string;
   readonly defaultsListPlaceholder: string;
+  readonly defaultsLocalEffectivePlaceholder: (value: string) => string;
+  readonly defaultsCloudEffectivePlaceholder: string;
+  readonly defaultsRandomValue: string;
   readonly localChoiceDescription: string;
   readonly localSelectedLabel: string;
   readonly localMissingLabel: string;

@@ -337,7 +337,7 @@ test('Desktop locale seam renders Appearance and Behavior in zh through one sess
     <AgentCenter activeSection="behavior" chrome="embedded" i18n={desktopAgentCenterI18n()} session={session} />,
   );
   assert.match(appearance, />外观</u);
-  assert.match(appearance, /尚未(?:导入|配置).*Avatar/u);
-  assert.match(behavior, /让伙伴在合适的时候出现/u);
+  assert.match(appearance, /尚未设置伙伴形象/u);
+  assert.match(behavior, /让伙伴主动联系你/u);
   assert.doesNotMatch(appearance, /permission-posture|posture-group/u);
 });

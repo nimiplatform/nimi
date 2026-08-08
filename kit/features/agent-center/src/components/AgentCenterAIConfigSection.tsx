@@ -65,6 +65,17 @@ function aiConfigCopy(i18n: AgentCenterI18n | undefined): ModelConfigCopy {
     defaultsTrueLabel: t('AgentCenter.aiConfig.defaultsTrueLabel', 'True'),
     defaultsFalseLabel: t('AgentCenter.aiConfig.defaultsFalseLabel', 'False'),
     defaultsListPlaceholder: t('AgentCenter.aiConfig.defaultsListPlaceholder', 'One value per line'),
+    defaultsLocalEffectivePlaceholder: (value: string) => translateAgentCenter(
+      i18n,
+      'AgentCenter.aiConfig.defaultsLocalEffectivePlaceholder',
+      'Not set · Engine default {{value}}',
+      { value },
+    ),
+    defaultsCloudEffectivePlaceholder: t(
+      'AgentCenter.aiConfig.defaultsCloudEffectivePlaceholder',
+      'Not set · Provider decides',
+    ),
+    defaultsRandomValue: t('AgentCenter.aiConfig.defaultsRandomValue', 'random'),
     localChoiceDescription: t(
       'AgentCenter.aiConfig.localChoiceDescription',
       'Use the model selected in Local AI Configurations.',

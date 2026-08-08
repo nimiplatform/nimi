@@ -12,6 +12,9 @@ export type CapabilityDefaultsEditorCopy = {
   readonly trueLabel: string;
   readonly falseLabel: string;
   readonly listPlaceholder: string;
+  readonly localEffectivePlaceholder: (value: string) => string;
+  readonly cloudEffectivePlaceholder: string;
+  readonly randomValue: string;
 };
 
 export type CapabilityDefaultsEditorProps = {
@@ -19,6 +22,8 @@ export type CapabilityDefaultsEditorProps = {
   readonly value: NimiJsonObject;
   readonly onChange: (value: NimiJsonObject) => void;
   readonly copy: CapabilityDefaultsEditorCopy;
+  readonly route: 'local' | 'cloud' | null;
+  readonly effectiveDefaults?: Readonly<Record<string, string>> | null;
   readonly disabled?: boolean;
 };
 
@@ -58,12 +63,22 @@ function DefaultFieldControl(props: {
   readonly rootValue: NimiJsonObject;
   readonly onChange: (value: NimiJsonObject) => void;
   readonly copy: CapabilityDefaultsEditorCopy;
+  readonly route: 'local' | 'cloud' | null;
+  readonly effectiveDefaults?: Readonly<Record<string, string>> | null;
   readonly disabled?: boolean;
 }) {
   const path = [...props.path, props.field.key];
   const parameterPath = path.join('.');
   const value = displayValue(props.source, props.field);
   const update = (next: unknown) => props.onChange(setPath(props.rootValue, path, next));
+  const effectiveValue = props.effectiveDefaults?.[parameterPath];
+  const unsetPlaceholder = props.route === 'cloud'
+    ? props.copy.cloudEffectivePlaceholder
+    : props.route === 'local' && effectiveValue
+      ? props.copy.localEffectivePlaceholder(
+          effectiveValue === 'random' ? props.copy.randomValue : effectiveValue,
+        )
+      : props.copy.unsetLabel;
 
   if (props.field.kind === 'object') {
     const nested = asRecord(value);
@@ -84,6 +99,8 @@ function DefaultFieldControl(props: {
             rootValue={props.rootValue}
             onChange={props.onChange}
             copy={props.copy}
+            route={props.route}
+            effectiveDefaults={props.effectiveDefaults}
             disabled={props.disabled}
           />
         ))}
@@ -99,7 +116,7 @@ function DefaultFieldControl(props: {
         value={typeof value === 'boolean' ? String(value) : 'unset'}
         disabled={props.disabled}
         options={[
-          { value: 'unset', label: props.copy.unsetLabel },
+          { value: 'unset', label: unsetPlaceholder },
           { value: 'true', label: props.copy.trueLabel },
           { value: 'false', label: props.copy.falseLabel },
         ]}
@@ -111,7 +128,9 @@ function DefaultFieldControl(props: {
       <TextareaField
         aria-label={parameterPath}
         value={Array.isArray(value) ? value.join('\n') : ''}
-        placeholder={props.copy.listPlaceholder}
+        placeholder={props.route === null || (props.route === 'local' && !effectiveValue)
+          ? props.copy.listPlaceholder
+          : unsetPlaceholder}
         disabled={props.disabled}
         rows={3}
         onChange={(event) => {
@@ -131,7 +150,7 @@ function DefaultFieldControl(props: {
         type={numeric ? 'number' : 'text'}
         step={props.field.kind === 'integer' ? 1 : numeric ? 'any' : undefined}
         value={numeric && typeof value === 'number' ? String(value) : typeof value === 'string' ? value : ''}
-        placeholder={props.copy.unsetLabel}
+        placeholder={unsetPlaceholder}
         disabled={props.disabled}
         onChange={(event) => {
           const raw = event.currentTarget.value;
@@ -193,6 +212,8 @@ export function CapabilityDefaultsEditor(props: CapabilityDefaultsEditorProps) {
               rootValue={props.value}
               onChange={props.onChange}
               copy={props.copy}
+              route={props.route}
+              effectiveDefaults={props.effectiveDefaults}
               disabled={props.disabled}
             />
           ))}

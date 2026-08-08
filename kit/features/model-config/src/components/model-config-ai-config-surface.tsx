@@ -890,6 +890,8 @@ function CapabilityIntentEditor(props: CapabilityIntentEditorProps) {
         capabilityContract={props.capabilityContract}
         value={draftDefaults}
         onChange={setDraftDefaults}
+        route={draftChoice?.route || null}
+        effectiveDefaults={draftChoice?.route === 'local' ? props.selection?.effectiveDefaults : null}
         disabled={routeDisabled}
         copy={{
           label: props.copy.defaultsLabel,
@@ -898,6 +900,9 @@ function CapabilityIntentEditor(props: CapabilityIntentEditorProps) {
           trueLabel: props.copy.defaultsTrueLabel,
           falseLabel: props.copy.defaultsFalseLabel,
           listPlaceholder: props.copy.defaultsListPlaceholder,
+          localEffectivePlaceholder: props.copy.defaultsLocalEffectivePlaceholder,
+          cloudEffectivePlaceholder: props.copy.defaultsCloudEffectivePlaceholder,
+          randomValue: props.copy.defaultsRandomValue,
         }}
       />
 

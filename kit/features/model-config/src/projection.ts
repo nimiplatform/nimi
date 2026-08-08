@@ -21,6 +21,7 @@ export function projectModelConfigLocalSelections(
         displayName: null,
         supportedFeatures: [],
         reasons: ['selected-configuration-not-found'],
+        effectiveDefaults: null,
       };
     }
     const reasons = [
@@ -35,6 +36,7 @@ export function projectModelConfigLocalSelections(
       displayName: configuration.displayName,
       supportedFeatures: configuration.supportedFeatures,
       reasons: [...new Set(reasons)],
+      effectiveDefaults: selection.effectiveDefaults ?? null,
     };
   });
 }

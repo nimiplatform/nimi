@@ -36,7 +36,11 @@ test('Nimi Chat locates canonical text intent without owning its construction', 
 
 test('Nimi Chat projects machine-local selection as read-only Model Config context', () => {
   assert.deepEqual(projectModelConfigLocalSelections({
-    selections: [{ capabilityContract: 'text.generate', configurationId: 'local-text' }],
+    selections: [{
+      capabilityContract: 'text.generate',
+      configurationId: 'local-text',
+      effectiveDefaults: { temperature: '0.8' },
+    }],
     configurations: [{
       configurationId: 'local-text',
       capabilityContract: 'text.generate',
@@ -53,6 +57,7 @@ test('Nimi Chat projects machine-local selection as read-only Model Config conte
     displayName: 'Local text',
     supportedFeatures: ['tool.use'],
     reasons: [],
+    effectiveDefaults: { temperature: '0.8' },
   }]);
 });
 

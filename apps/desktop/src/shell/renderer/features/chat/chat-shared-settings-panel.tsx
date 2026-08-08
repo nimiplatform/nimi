@@ -100,6 +100,14 @@ function useNimiChatModelConfigCopy(): ModelConfigCopy {
     defaultsTrueLabel: t('Chat.settingsDefaultsTrue', { defaultValue: 'True' }),
     defaultsFalseLabel: t('Chat.settingsDefaultsFalse', { defaultValue: 'False' }),
     defaultsListPlaceholder: t('Chat.settingsDefaultsListPlaceholder', { defaultValue: 'One value per line' }),
+    defaultsLocalEffectivePlaceholder: (value: string) => t('Chat.settingsDefaultsLocalEffectivePlaceholder', {
+      defaultValue: 'Not set · Engine default {{value}}',
+      value,
+    }),
+    defaultsCloudEffectivePlaceholder: t('Chat.settingsDefaultsCloudEffectivePlaceholder', {
+      defaultValue: 'Not set · Provider decides',
+    }),
+    defaultsRandomValue: t('Chat.settingsDefaultsRandomValue', { defaultValue: 'random' }),
     localChoiceDescription: t('Chat.settingsLocalChoiceDescription', {
       defaultValue: 'Use the model selected in Local AI Configurations.',
     }),
