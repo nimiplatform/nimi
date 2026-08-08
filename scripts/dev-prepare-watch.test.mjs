@@ -21,7 +21,7 @@ import {
   resolveCanonicalSurfaceBuildPlan,
   workspaceSurfaceBuildDiagnostic,
 } from './lib/dev-workspace-surfaces.mjs';
-import { quietBuildDelayMs, stableBuildSurfaces } from './lib/dev-build-scheduler.mjs';
+import { findMetadataOnlySurfaces, quietBuildDelayMs, stableBuildSurfaces } from './lib/dev-build-scheduler.mjs';
 
 const repoRoot = path.resolve(import.meta.dirname, '..');
 
@@ -40,6 +40,42 @@ test('build scheduling waits for quiet after both edits and the previous build',
   assert.deepEqual(
     stableBuildSurfaces(['sdk', 'kit'], { sdk: 2, kit: 4 }, { sdk: 2, kit: 5 }),
     ['sdk'],
+  );
+});
+
+test('metadata-only watch events are droppable while edits and structural changes rebuild', () => {
+  const graceMs = 30_000;
+  const baselines = { sdk: 100_000, kit: 50_000 };
+  assert.deepEqual(
+    findMetadataOnlySurfaces(
+      new Map([
+        // Deferred last-access flush: content predates the completed build.
+        ['sdk', { structural: false, newestMtimeMs: 60_000 }],
+        // Recent edit inside the grace window must still rebuild.
+        ['kit', { structural: false, newestMtimeMs: 45_000 }],
+      ]),
+      baselines,
+      graceMs,
+    ),
+    ['sdk'],
+  );
+  // Deletions and directory events are structural and never droppable.
+  assert.deepEqual(
+    findMetadataOnlySurfaces(
+      new Map([['sdk', { structural: true, newestMtimeMs: 1 }]]),
+      baselines,
+      graceMs,
+    ),
+    [],
+  );
+  // Without a completed-build baseline nothing is droppable.
+  assert.deepEqual(
+    findMetadataOnlySurfaces(
+      new Map([['sdk', { structural: false, newestMtimeMs: 1 }]]),
+      {},
+      graceMs,
+    ),
+    [],
   );
 });
 
