@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { spawnSync } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 
@@ -59,6 +59,26 @@ function runSdkDistLock(lockDir) {
       stdio: 'pipe',
     },
   );
+}
+
+function waitForOutput(stream, expected) {
+  return new Promise((resolve, reject) => {
+    const onData = (chunk) => {
+      if (!String(chunk).includes(expected)) return;
+      cleanup();
+      resolve();
+    };
+    const onError = (error) => {
+      cleanup();
+      reject(error);
+    };
+    const cleanup = () => {
+      stream.off('data', onData);
+      stream.off('error', onError);
+    };
+    stream.on('data', onData);
+    stream.on('error', onError);
+  });
 }
 
 test('SDK dist lock runner does not use deprecated shell args on Windows', () => {
@@ -177,6 +197,69 @@ test('TypeScript package build runner does not use deprecated shell args on Wind
     assert.equal(existsSync(path.join(tempRoot, 'dist', 'index.js')), true);
     assert.equal(existsSync(path.join(tempRoot, 'dist', 'stale.js')), false);
   } finally {
+    rmSync(tempRoot, { recursive: true, force: true });
+  }
+});
+
+test('TypeScript package build runner publishes while a consumer holds the output directory', async () => {
+  const tempRoot = mkdtempSync(path.join(os.tmpdir(), 'nimi-package-build-runner-live-consumer-'));
+  const distRoot = path.join(tempRoot, 'dist');
+  let consumer;
+  try {
+    mkdirSync(path.join(tempRoot, 'src'));
+    mkdirSync(distRoot);
+    writeFileSync(path.join(tempRoot, 'src', 'index.ts'), 'export const value = 2;\n');
+    writeFileSync(path.join(distRoot, 'stale.js'), 'export const stale = true;\n');
+    writeFileSync(
+      path.join(tempRoot, 'tsconfig.json'),
+      `${JSON.stringify({
+        compilerOptions: {
+          declaration: true,
+          module: 'NodeNext',
+          moduleResolution: 'NodeNext',
+          outDir: 'dist',
+          rootDir: 'src',
+          target: 'ES2022',
+        },
+        include: ['src/**/*.ts'],
+      }, null, 2)}\n`,
+    );
+
+    consumer = spawn(
+      process.execPath,
+      ['-e', 'process.stdout.write("ready\\n"); setInterval(() => {}, 1000)'],
+      { cwd: distRoot, stdio: ['ignore', 'pipe', 'pipe'] },
+    );
+    await waitForOutput(consumer.stdout, 'ready');
+
+    const result = spawnSync(
+      process.execPath,
+      [
+        path.join(repoRoot, 'scripts/build-typescript-package.mjs'),
+        '--tsconfig',
+        'tsconfig.json',
+        '--out-dir',
+        'dist',
+        '--tsc-cwd',
+        sdkRoot,
+      ],
+      {
+        cwd: tempRoot,
+        env: envWithThrowDeprecation(),
+        encoding: 'utf8',
+        stdio: 'pipe',
+      },
+    );
+
+    assertSuccessful(result);
+    assert.equal(existsSync(path.join(distRoot, 'index.js')), true);
+    assert.equal(existsSync(path.join(distRoot, 'stale.js')), false);
+  } finally {
+    if (consumer && consumer.exitCode === null) {
+      const exited = new Promise((resolve) => consumer.once('exit', resolve));
+      consumer.kill();
+      await exited;
+    }
     rmSync(tempRoot, { recursive: true, force: true });
   }
 });

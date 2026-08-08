@@ -3,7 +3,12 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const kitRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const distRoot = path.join(kitRoot, 'dist');
+const outDirIndex = process.argv.indexOf('--out-dir');
+const outDirArgument = outDirIndex >= 0 ? process.argv[outDirIndex + 1] : 'dist';
+if (!outDirArgument || (outDirIndex >= 0 && outDirArgument.startsWith('--'))) {
+  throw new Error('Missing value after --out-dir');
+}
+const distRoot = path.resolve(kitRoot, outDirArgument);
 
 const srcRoots = [
   'auth/src',

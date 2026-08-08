@@ -1,15 +1,27 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import {
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  utimesSync,
+  writeFileSync,
+} from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 
 import {
   assessWorkspaceSurfaceFreshness,
   canonicalSurfaceBuildCommand,
+  captureWorkspaceSurfaceSnapshot,
   classifyWorkspaceSurfacePath,
+  DEV_WORKSPACE_SURFACES,
+  DEV_WORKSPACE_SURFACE_WATCH_TARGETS,
   resolveCanonicalSurfaceBuildPlan,
   workspaceSurfaceBuildDiagnostic,
 } from './lib/dev-workspace-surfaces.mjs';
+import { quietBuildDelayMs, stableBuildSurfaces } from './lib/dev-build-scheduler.mjs';
 
 const repoRoot = path.resolve(import.meta.dirname, '..');
 
@@ -21,18 +33,70 @@ test('SDK changes rebuild SDK then Kit while Kit changes rebuild only Kit', () =
   assert.deepEqual(canonicalSurfaceBuildCommand('kit'), ['build:kit']);
 });
 
+test('build scheduling waits for quiet after both edits and the previous build', () => {
+  assert.equal(quietBuildDelayMs({ now: 1_000, lastChangeAt: 900, lastBuildCompletedAt: 0, quietMs: 500 }), 400);
+  assert.equal(quietBuildDelayMs({ now: 1_000, lastChangeAt: 400, lastBuildCompletedAt: 800, quietMs: 500 }), 300);
+  assert.equal(quietBuildDelayMs({ now: 1_500, lastChangeAt: 400, lastBuildCompletedAt: 800, quietMs: 500 }), 0);
+  assert.deepEqual(
+    stableBuildSurfaces(['sdk', 'kit'], { sdk: 2, kit: 4 }, { sdk: 2, kit: 5 }),
+    ['sdk'],
+  );
+});
+
 test('watch classification ignores canonical build outputs and dependencies', () => {
+  assert.equal(classifyWorkspaceSurfacePath(repoRoot, path.join(repoRoot, 'tsconfig.json')), 'sdk');
   assert.equal(classifyWorkspaceSurfacePath(repoRoot, path.join(repoRoot, 'sdks/typescript/runtime/index.ts')), 'sdk');
-  assert.equal(classifyWorkspaceSurfacePath(repoRoot, path.join(repoRoot, 'kit/ui/index.ts')), 'kit');
+  assert.equal(classifyWorkspaceSurfacePath(repoRoot, path.join(repoRoot, 'sdks/typescript/core-generated/runtime-client.ts')), 'sdk');
+  assert.equal(classifyWorkspaceSurfacePath(repoRoot, path.join(repoRoot, 'sdks/typescript/runtime/client.test.ts')), null);
+  assert.equal(classifyWorkspaceSurfacePath(repoRoot, path.join(repoRoot, 'sdks/typescript/adapters/mastra/src/index.ts')), null);
+  assert.equal(classifyWorkspaceSurfacePath(repoRoot, path.join(repoRoot, 'sdks/typescript/README.md')), null);
+  assert.equal(classifyWorkspaceSurfacePath(repoRoot, path.join(repoRoot, 'sdks/typescript/core')), null);
+  assert.equal(classifyWorkspaceSurfacePath(repoRoot, path.join(repoRoot, 'kit/ui/src/index.ts')), 'kit');
+  assert.equal(classifyWorkspaceSurfacePath(repoRoot, path.join(repoRoot, 'kit/features/chat/src/index.ts')), 'kit');
+  assert.equal(classifyWorkspaceSurfacePath(repoRoot, path.join(repoRoot, 'kit/shell/electron/src/main/index.ts')), 'kit');
+  assert.equal(classifyWorkspaceSurfacePath(repoRoot, path.join(repoRoot, 'kit/scripts/build-package.mjs')), 'kit');
+  assert.equal(classifyWorkspaceSurfacePath(repoRoot, path.join(repoRoot, 'kit/package.json')), 'kit');
   assert.equal(classifyWorkspaceSurfacePath(repoRoot, path.join(repoRoot, 'sdks/typescript/dist/index.js')), null);
+  assert.equal(classifyWorkspaceSurfacePath(repoRoot, path.join(repoRoot, 'sdks/typescript/.dist.staging-123/index.js')), null);
+  assert.equal(classifyWorkspaceSurfacePath(repoRoot, path.join(repoRoot, 'sdks/typescript/.dist.previous-123/index.js')), null);
   assert.equal(classifyWorkspaceSurfacePath(repoRoot, path.join(repoRoot, 'kit/node_modules/example/index.js')), null);
+  assert.equal(classifyWorkspaceSurfacePath(repoRoot, path.join(repoRoot, 'kit/shell/protected-local-node/target/release/addon.dll')), null);
+  assert.equal(classifyWorkspaceSurfacePath(repoRoot, path.join(repoRoot, 'kit/shell/protected-local-node')), null);
+  assert.equal(classifyWorkspaceSurfacePath(repoRoot, path.join(repoRoot, 'kit/shell/protected-local-node/npm/win32-x64')), null);
+  assert.equal(classifyWorkspaceSurfacePath(repoRoot, path.join(repoRoot, 'kit/shell/protected-local-node/npm/win32-x64/addon.node')), null);
+  assert.equal(classifyWorkspaceSurfacePath(repoRoot, path.join(repoRoot, 'kit/shell/protected-local-node/npm/win32-x64/index.cjs')), null);
+  assert.equal(classifyWorkspaceSurfacePath(repoRoot, path.join(repoRoot, 'kit/features/chat/test/chat.test.ts')), null);
+  assert.equal(classifyWorkspaceSurfacePath(repoRoot, path.join(repoRoot, 'kit/ui/src/button.test.tsx')), null);
+  assert.equal(classifyWorkspaceSurfacePath(repoRoot, path.join(repoRoot, 'kit/CHANGELOG.md')), null);
+  assert.equal(classifyWorkspaceSurfacePath(repoRoot, path.join(repoRoot, 'kit/shell/tauri/src/lib.rs')), null);
+});
+
+test('recursive watch targets never contain their surface dist directory', () => {
+  for (const [surface, targets] of Object.entries(DEV_WORKSPACE_SURFACE_WATCH_TARGETS)) {
+    const dist = path.resolve(repoRoot, DEV_WORKSPACE_SURFACES[surface].dist);
+    for (const target of targets) {
+      if (!target.recursive) continue;
+      const root = path.resolve(repoRoot, target.root);
+      const relativeDist = path.relative(root, dist);
+      assert.equal(
+        !relativeDist.startsWith('..') && !path.isAbsolute(relativeDist),
+        false,
+        `${surface} recursive watcher covers dist: ${target.root}`,
+      );
+    }
+  }
 });
 
 test('freshness is fail-closed for missing stamps, missing dist and newer sources', () => {
-  const snapshot = { sourceLatestMtimeUnixMs: 100, distLatestMtimeUnixMs: 110 };
+  const snapshot = { sourceLatestMtimeUnixMs: 100, distLatestMtimeUnixMs: 110, outputComplete: true };
   assert.equal(assessWorkspaceSurfaceFreshness(null, 'sdk', snapshot).state, 'missing');
   const stamp = { schemaVersion: 1, surfaces: { sdk: { completedAtUnixMs: 105 } } };
   assert.equal(assessWorkspaceSurfaceFreshness(stamp, 'sdk', { ...snapshot, distLatestMtimeUnixMs: 0 }).state, 'stale');
+  assert.equal(assessWorkspaceSurfaceFreshness(stamp, 'sdk', { ...snapshot, outputComplete: false }).state, 'stale');
+  assert.equal(
+    workspaceSurfaceBuildDiagnostic('sdk', { state: 'stale' }, { ...snapshot, outputComplete: false }),
+    'sdk:dist-incomplete',
+  );
   assert.equal(assessWorkspaceSurfaceFreshness(stamp, 'sdk', { ...snapshot, sourceLatestMtimeUnixMs: 106 }).state, 'stale');
   assert.equal(assessWorkspaceSurfaceFreshness(stamp, 'sdk', snapshot).state, 'fresh');
   assert.equal(
@@ -47,6 +111,36 @@ test('freshness is fail-closed for missing stamps, missing dist and newer source
     workspaceSurfaceBuildDiagnostic('sdk', { state: 'fresh' }, snapshot),
     null,
   );
+});
+
+test('freshness ignores native binding outputs just like watch classification', async () => {
+  const temporaryRoot = mkdtempSync(path.join(os.tmpdir(), 'nimi-dev-surfaces-'));
+  try {
+    const sourceFile = path.join(temporaryRoot, 'kit', 'ui', 'src', 'index.ts');
+    const nativeFile = path.join(
+      temporaryRoot,
+      'kit',
+      'shell',
+      'protected-local-node',
+      'npm',
+      'win32-x64',
+      'addon.node',
+    );
+    const distFile = path.join(temporaryRoot, 'kit', 'dist', 'index.js');
+    for (const filePath of [sourceFile, nativeFile, distFile]) {
+      mkdirSync(path.dirname(filePath), { recursive: true });
+      writeFileSync(filePath, 'fixture\n', 'utf8');
+    }
+    utimesSync(sourceFile, new Date(100_000), new Date(100_000));
+    utimesSync(distFile, new Date(200_000), new Date(200_000));
+    utimesSync(nativeFile, new Date(300_000), new Date(300_000));
+
+    const snapshot = await captureWorkspaceSurfaceSnapshot(temporaryRoot, 'kit');
+    assert.equal(snapshot.sourceLatestMtimeUnixMs, 100_000);
+    assert.equal(snapshot.distLatestMtimeUnixMs, 200_000);
+  } finally {
+    rmSync(temporaryRoot, { recursive: true, force: true });
+  }
 });
 
 test('Desktop owns dev surface preparation while supervised Apps only consume it', () => {

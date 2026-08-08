@@ -2,8 +2,8 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
-import { randomUUID } from 'node:crypto';
 import { spawnSyncCommand } from './lib/command-runner.mjs';
+import { publishBuildOutput, temporaryOutputPath } from './lib/build-output-publisher.mjs';
 
 const PNPM_BIN = process.platform === 'win32' ? 'pnpm.cmd' : 'pnpm';
 
@@ -190,43 +190,6 @@ function runTsc(cwd, tsconfigPath, outDir) {
   });
   if (result.status !== 0) {
     throw new Error(`tsc failed for ${tsconfigPath}`);
-  }
-}
-
-function temporaryOutputPath(outDirAbsolute, purpose) {
-  const parent = path.dirname(outDirAbsolute);
-  const name = path.basename(outDirAbsolute);
-  return path.join(parent, `.${name}.${purpose}-${process.pid}-${randomUUID()}`);
-}
-
-function publishBuildOutput(stagingDir, outDirAbsolute) {
-  const previousDir = temporaryOutputPath(outDirAbsolute, 'previous');
-  const hadPreviousOutput = fs.existsSync(outDirAbsolute);
-  let previousOutputMoved = false;
-
-  try {
-    if (hadPreviousOutput) {
-      fs.renameSync(outDirAbsolute, previousDir);
-      previousOutputMoved = true;
-    }
-    fs.renameSync(stagingDir, outDirAbsolute);
-  } catch (error) {
-    if (previousOutputMoved && !fs.existsSync(outDirAbsolute)) {
-      try {
-        fs.renameSync(previousDir, outDirAbsolute);
-        previousOutputMoved = false;
-      } catch (restoreError) {
-        throw new AggregateError(
-          [error, restoreError],
-          `failed to publish build output and restore previous output at ${outDirAbsolute}`,
-        );
-      }
-    }
-    throw error;
-  }
-
-  if (previousOutputMoved) {
-    fs.rmSync(previousDir, { recursive: true, force: true });
   }
 }
 

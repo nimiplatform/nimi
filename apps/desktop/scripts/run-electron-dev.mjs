@@ -5,6 +5,7 @@ import { existsSync, mkdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { inspectWorkspaceSurfaceFreshness } from '../../../scripts/lib/dev-workspace-surfaces.mjs';
+import { withSdkDistLock } from '../../../scripts/lib/sdk-dist-lock.mjs';
 import {
   resolveDesktopDevLaunchOptions,
   resolvePersistentDesktopDevProfile,
@@ -83,7 +84,7 @@ async function runWindowsDesktopDev() {
     const workspaceSurfaceWatcher = spawnWorkspaceSurfaceWatcher();
     buildWindowsSourceLocalDevelopmentRuntime();
     await waitForWorkspaceSurfaces(workspaceSurfaceWatcher, 180_000);
-    await buildElectronHostForDesktopDev();
+    await buildElectronHostForDesktopDev(workspaceSurfaceWatcher);
     const electronBin = resolveWorkspaceElectronDevCarrier({
       platform: process.platform,
       architecture: process.arch,
@@ -158,7 +159,7 @@ async function runMacOSDesktopDev() {
     const workspaceSurfaceWatcher = spawnWorkspaceSurfaceWatcher();
     buildMacOSSourceLocalDevelopmentRuntime();
     await waitForWorkspaceSurfaces(workspaceSurfaceWatcher, 180_000);
-    await buildElectronHostForDesktopDev();
+    await buildElectronHostForDesktopDev(workspaceSurfaceWatcher);
     const electronBin = resolveWorkspaceElectronDevCarrier({
       platform: process.platform,
       architecture: process.arch,
@@ -310,7 +311,25 @@ function quoteCmdArg(value) {
   return `"${raw.replaceAll('"', '\\"')}"`;
 }
 
-async function buildElectronHostForDesktopDev() {
+async function buildElectronHostForDesktopDev(workspaceSurfaceWatcher) {
+  const deadline = Date.now() + 180_000;
+  for (;;) {
+    const remainingMs = Math.max(1, deadline - Date.now());
+    const built = await withSdkDistLock('Desktop Electron host build against workspace surfaces', async () => {
+      const freshness = await inspectWorkspaceSurfaceFreshness(workspaceRoot);
+      if (!freshness.fresh) return false;
+      runElectronHostBuild();
+      return true;
+    }, { timeoutMs: remainingMs });
+    if (built) return;
+    if (Date.now() >= deadline) {
+      throw new Error('[run-electron-dev] timed out waiting for stable SDK/Kit dist before Electron host build');
+    }
+    await waitForWorkspaceSurfaces(workspaceSurfaceWatcher, Math.max(1, deadline - Date.now()));
+  }
+}
+
+function runElectronHostBuild() {
   const pnpmBin = process.platform === 'win32' ? 'pnpm.cmd' : 'pnpm';
   const pnpmArgs = ['--dir', appRoot, 'run', 'build:electron:prepared'];
   const buildCommand = process.platform === 'win32' ? 'cmd.exe' : pnpmBin;

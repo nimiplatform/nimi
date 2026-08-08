@@ -79,6 +79,11 @@ function windowsBatchCommandLine(command, args) {
 }
 
 function spawnOptionsWithoutShell(options) {
+  const { shell, ...rest } = options;
+  return rest;
+}
+
+function spawnOptionsWithoutShellOrWindowsVerbatimArguments(options) {
   const { shell, windowsVerbatimArguments, ...rest } = options;
   return rest;
 }
@@ -86,7 +91,7 @@ function spawnOptionsWithoutShell(options) {
 export function spawnSyncCommand(command, args = [], options = {}) {
   if (process.platform !== 'win32') {
     return spawnSync(command, args, {
-      ...spawnOptionsWithoutShell(options),
+      ...spawnOptionsWithoutShellOrWindowsVerbatimArguments(options),
       shell: false,
     });
   }
@@ -102,7 +107,7 @@ export function spawnSyncCommand(command, args = [], options = {}) {
 
   const comspec = env.ComSpec || env.COMSPEC || env.comspec || process.env.ComSpec || process.env.COMSPEC || 'cmd.exe';
   return spawnSync(comspec, ['/d', '/c', windowsBatchCommandLine(resolvedCommand, args)], {
-    ...spawnOptionsWithoutShell(options),
+    ...spawnOptionsWithoutShellOrWindowsVerbatimArguments(options),
     env,
     shell: false,
     windowsVerbatimArguments: true,
@@ -112,7 +117,7 @@ export function spawnSyncCommand(command, args = [], options = {}) {
 export function spawnCommand(command, args = [], options = {}) {
   if (process.platform !== 'win32') {
     return spawn(command, args, {
-      ...spawnOptionsWithoutShell(options),
+      ...spawnOptionsWithoutShellOrWindowsVerbatimArguments(options),
       shell: false,
     });
   }
@@ -128,7 +133,7 @@ export function spawnCommand(command, args = [], options = {}) {
 
   const comspec = env.ComSpec || env.COMSPEC || env.comspec || process.env.ComSpec || process.env.COMSPEC || 'cmd.exe';
   return spawn(comspec, ['/d', '/c', windowsBatchCommandLine(resolvedCommand, args)], {
-    ...spawnOptionsWithoutShell(options),
+    ...spawnOptionsWithoutShellOrWindowsVerbatimArguments(options),
     env,
     shell: false,
     windowsVerbatimArguments: true,

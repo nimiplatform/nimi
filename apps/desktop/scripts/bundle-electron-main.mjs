@@ -49,3 +49,14 @@ await build({
   external: releaseBuild ? [] : ['@nimiplatform/*'],
   logLevel: 'silent',
 });
+
+await build({
+  entryPoints: [path.join(appRoot, 'scripts/local-development-process-guardian.mjs')],
+  outfile: path.join(appRoot, 'dist-electron/local-development-process-guardian.js'),
+  bundle: true,
+  platform: 'node',
+  target: 'node22',
+  format: 'esm',
+  packages: 'external',
+  logLevel: 'silent',
+});

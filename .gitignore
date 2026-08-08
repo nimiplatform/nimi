@@ -1,6 +1,8 @@
 node_modules/
 dist/
 dist-electron/
+**/.dist.staging-*/
+**/.dist.previous-*/
 /apps/simulator/.generated/
 /apps/simulator/.generated-stage-*/
 /apps/simulator/.generated-backup-*/

@@ -2,7 +2,7 @@ import { randomBytes } from 'node:crypto';
 import { watch, type FSWatcher } from 'node:fs';
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
 import path from 'node:path';
-import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
+import type { ChildProcessWithoutNullStreams } from 'node:child_process';
 
 import {
   createNimiElectronLocalDevelopmentControl,
@@ -24,8 +24,8 @@ import {
   resolveLocalAppUserDataArguments,
 } from './local-development-host-arguments.js';
 import {
-  localDevelopmentToolEnvironment,
-  resolveLocalDevelopmentPackageScriptInvocation,
+  assertLocalDevelopmentRendererOriginAvailable,
+  spawnLocalDevelopmentPackageScript,
   terminateLocalDevelopmentProcessTree as terminateTree,
   type LocalDevelopmentPackageScript,
   waitForLocalDevelopmentRenderer as waitForRenderer,
@@ -46,6 +46,7 @@ const COMMANDS = new Set([
   'local_development_registration_remove',
 ]);
 const HEALTH_MS = 2_000;
+const LAUNCHER_LEASE_MS = 10_000;
 const REBUILD_DEBOUNCE_MS = 450;
 const RESTARTABLE_RUN_STATES = new Set([
   'failed',
@@ -83,8 +84,10 @@ type RunContext = {
   renderer?: ChildProcessWithoutNullStreams;
   watcher?: FSWatcher;
   healthTimer?: ReturnType<typeof setInterval>;
+  launcherLeaseTimer?: ReturnType<typeof setTimeout>;
   rebuildTimer?: ReturnType<typeof setTimeout>;
   stopped: boolean;
+  stoppedCleanupComplete: boolean;
   tearingDown: boolean;
   supervising: boolean;
   rebuilding: boolean;
@@ -146,6 +149,7 @@ export class ElectronLocalDevelopmentHost {
   constructor(
     private readonly control: NimiElectronLocalDevelopmentControl,
     private readonly homeDirectory: string,
+    private readonly launcherLeaseMs = LAUNCHER_LEASE_MS,
   ) {
     this.presencePublisher = createDesktopElectronLocalDevelopmentPresencePublisher({ homeDirectory });
   }
@@ -247,6 +251,7 @@ export class ElectronLocalDevelopmentHost {
         const run = this.runs.get(selector(value.runId, 'dev-run'));
         if (!run) throw new Error('local-development-run-not-found');
         if (request.url === '/v1/cancel') await this.stopRun(run, 'stopped');
+        else this.touchLauncherLease(run);
         return json(response, { status: 'ok', run: run.status });
       }
       json(response, { status: 'error', reasonCode: 'local-development-intent-invalid', actionHint: 'use_official_nimi_app_dev_launcher' });
@@ -284,6 +289,7 @@ export class ElectronLocalDevelopmentHost {
       if (existing.cdpPort !== requestedCdpPort) {
         throw new Error('local-development-cdp-configuration-conflict');
       }
+      this.touchLauncherLease(existing);
       return existing.status;
     }
     if (requestedCdpPort !== undefined
@@ -296,6 +302,7 @@ export class ElectronLocalDevelopmentHost {
       cdpPort: requestedCdpPort,
       supervisorRunId: randomIdentifier(),
       stopped: false,
+      stoppedCleanupComplete: false,
       tearingDown: false,
       supervising: false,
       rebuilding: false,
@@ -319,6 +326,7 @@ export class ElectronLocalDevelopmentHost {
       },
     };
     this.runs.set(runId, run);
+    this.touchLauncherLease(run);
     // Registration can legitimately outlive the launcher's short loopback
     // request timeout while Runtime is rebinding. Return the preparing run
     // immediately and let the existing status polling carry that transition.
@@ -394,11 +402,27 @@ export class ElectronLocalDevelopmentHost {
     });
   }
 
+  private touchLauncherLease(run: RunContext): void {
+    if (run.stopped) return;
+    if (run.launcherLeaseTimer) clearTimeout(run.launcherLeaseTimer);
+    run.launcherLeaseTimer = setTimeout(() => {
+      run.launcherLeaseTimer = undefined;
+      if (run.stopped) return;
+      void this.stopRun(run, 'launcher-disconnected').catch(() => undefined);
+    }, this.launcherLeaseMs);
+  }
+
+  private clearLauncherLease(run: RunContext): void {
+    if (run.launcherLeaseTimer) clearTimeout(run.launcherLeaseTimer);
+    run.launcherLeaseTimer = undefined;
+  }
+
   private async supervise(run: RunContext): Promise<void> {
     try {
       setRunState(run, 'building', 'Building Electron main and preload', undefined, false);
       await this.runPackageScript(run, 'build:electron');
       if (run.stopped) return;
+      await assertLocalDevelopmentRendererOriginAvailable(run.plan.rendererOrigin);
       run.renderer = this.spawnPackageScript(run, 'dev:renderer');
       await waitForRenderer(run.plan.rendererOrigin, run.renderer, () => run.stopped);
       await this.launchHost(run);
@@ -578,12 +602,18 @@ export class ElectronLocalDevelopmentHost {
   }): Promise<void> {
     if (run.stopped || run.tearingDown) return;
     run.tearingDown = true;
-    if (!outcome.resumeRegistrationRefresh) run.stopped = true;
+    if (!outcome.resumeRegistrationRefresh) {
+      run.stopped = true;
+      run.stoppedCleanupComplete = false;
+      this.clearLauncherLease(run);
+    }
     try {
       await this.teardownRun(run, outcome.endRun);
+      if (!outcome.resumeRegistrationRefresh) run.stoppedCleanupComplete = true;
       setRunState(run, outcome.state, outcome.message, outcome.reasonCode, outcome.retryable);
     } catch {
       run.stopped = true;
+      run.stoppedCleanupComplete = false;
       setRunState(run, 'cleanup-failed', 'local-development-process-cleanup-failed', 'local-development-process-cleanup-failed', false);
     } finally {
       run.tearingDown = false;
@@ -608,15 +638,7 @@ export class ElectronLocalDevelopmentHost {
   }
 
   private spawnPackageScript(run: RunContext, script: LocalDevelopmentPackageScript): ChildProcessWithoutNullStreams {
-    const invocation = resolveLocalDevelopmentPackageScriptInvocation(script);
-    const child = spawn(invocation.command, invocation.args, {
-      cwd: run.plan.projectRoot,
-      env: localDevelopmentToolEnvironment(),
-      shell: invocation.shell,
-      detached: true,
-      windowsHide: true,
-      stdio: 'pipe',
-    });
+    const child = spawnLocalDevelopmentPackageScript(script, run.plan.projectRoot);
     child.stdout.setEncoding('utf8');
     child.stderr.setEncoding('utf8');
     child.stdout.on('data', (chunk: string) => appendLog(run, `${script}:stdout`, chunk));
@@ -625,13 +647,17 @@ export class ElectronLocalDevelopmentHost {
   }
 
   private async stopRun(run: RunContext, state: string): Promise<void> {
+    if (run.stopped && run.stoppedCleanupComplete) return;
     run.stopped = true;
+    run.stoppedCleanupComplete = false;
+    this.clearLauncherLease(run);
     try {
       await this.teardownRun(run, true);
     } catch (error) {
       setRunState(run, 'cleanup-failed', 'local-development-process-cleanup-failed', 'local-development-process-cleanup-failed', false);
       throw error;
     }
+    run.stoppedCleanupComplete = true;
     setRunState(run, state, 'Development run stopped', undefined, false);
   }
 

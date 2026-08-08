@@ -9,6 +9,12 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const kitRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const outDirIndex = process.argv.indexOf('--out-dir');
+const outDirArgument = outDirIndex >= 0 ? process.argv[outDirIndex + 1] : 'dist';
+if (!outDirArgument || (outDirIndex >= 0 && outDirArgument.startsWith('--'))) {
+  throw new Error('Missing value after --out-dir');
+}
+const distRoot = path.resolve(kitRoot, outDirArgument);
 const copiedAssetExtensions = new Set(['.css', '.html']);
 
 const publishedStyleSourceReplacements = [
@@ -78,7 +84,7 @@ for (const relativePath of [
   // and leak assets to dist/ui/src/.
   const normalizedRelativePath = relativePath.split(path.sep).join('/');
   const flattened = normalizedRelativePath.replace('/src/', '/');
-  const target = path.join(kitRoot, 'dist', flattened);
+  const target = path.join(distRoot, flattened);
   mkdirSync(path.dirname(target), { recursive: true });
   copyDistAsset(source, target, normalizedRelativePath);
 }

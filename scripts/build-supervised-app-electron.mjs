@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 
 import { spawnSyncCommand } from './lib/command-runner.mjs';
 import { inspectWorkspaceSurfaceFreshness } from './lib/dev-workspace-surfaces.mjs';
+import { withSdkDistLock } from './lib/sdk-dist-lock.mjs';
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const appRoot = process.cwd();
@@ -31,15 +32,17 @@ function runChecked(command, args) {
 
 try {
   const consumer = parseConsumer(process.argv.slice(2));
-  const freshness = await inspectWorkspaceSurfaceFreshness(repoRoot);
-  if (!freshness.fresh) {
-    throw new Error(
-      `Desktop-owned SDK/Kit dist is not ready (${freshness.diagnostics.join(', ')}). `
-      + 'Start or restart pnpm dev:desktop before launching supervised Apps.',
-    );
-  }
-  runChecked(pnpmBin, ['exec', 'tsc', '-p', 'tsconfig.electron.json']);
-  runChecked(process.execPath, ['scripts/bundle-electron-preload.mjs']);
+  await withSdkDistLock(`${consumer} Electron build against workspace surfaces`, async () => {
+    const freshness = await inspectWorkspaceSurfaceFreshness(repoRoot);
+    if (!freshness.fresh) {
+      throw new Error(
+        `Desktop-owned SDK/Kit dist is not ready (${freshness.diagnostics.join(', ')}). `
+        + 'Wait for Desktop preparation to settle before launching supervised Apps.',
+      );
+    }
+    runChecked(pnpmBin, ['exec', 'tsc', '-p', 'tsconfig.electron.json']);
+    runChecked(process.execPath, ['scripts/bundle-electron-preload.mjs']);
+  });
   process.stdout.write(`[${consumer} build:electron] built from Desktop-owned SDK/Kit dist\n`);
 } catch (error) {
   const message = error instanceof Error ? error.message : String(error);

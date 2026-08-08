@@ -347,7 +347,7 @@
     "./ui/themes/nimi-density-compact.css": "./dist/ui/themes/nimi-density-compact.css"
   },
   "scripts": {
-    "build": "node scripts/clean-dist.mjs && tsc -p tsconfig.build.json && node scripts/normalize-dist-layout.mjs && node scripts/copy-dist-assets.mjs",
+    "build": "node scripts/build-package.mjs",
     "prepack": "pnpm run build",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "lint": "pnpm run typecheck",

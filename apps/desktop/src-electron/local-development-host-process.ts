@@ -1,5 +1,7 @@
 import { spawn, type ChildProcess, type ChildProcessWithoutNullStreams } from 'node:child_process';
+import { createServer } from 'node:net';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const LOCAL_DEVELOPMENT_PACKAGE_SCRIPTS = new Set(['build:electron', 'dev:renderer']);
 
@@ -25,6 +27,71 @@ export function localDevelopmentToolEnvironment(
     if (typeof value === 'string' && value.length > 0 && !value.includes('\0')) output[key] = value;
   }
   return output;
+}
+
+export function spawnLocalDevelopmentPackageScript(
+  script: LocalDevelopmentPackageScript,
+  cwd: string,
+  options: {
+    readonly platform?: NodeJS.Platform;
+    readonly executablePath?: string;
+    readonly guardianPath?: string;
+    readonly sourceEnvironment?: NodeJS.ProcessEnv;
+  } = {},
+): ChildProcessWithoutNullStreams {
+  const platform = options.platform ?? process.platform;
+  const invocation = resolveLocalDevelopmentPackageScriptInvocation(script, platform);
+  const environment = localDevelopmentToolEnvironment(options.sourceEnvironment ?? process.env);
+  if (platform !== 'win32') {
+    return spawn(invocation.command, invocation.args, {
+      cwd,
+      env: environment,
+      shell: invocation.shell,
+      detached: true,
+      windowsHide: true,
+      stdio: 'pipe',
+    });
+  }
+  const guardianPath = options.guardianPath
+    ?? fileURLToPath(new URL('./local-development-process-guardian.js', import.meta.url));
+  const encodedInvocation = Buffer.from(JSON.stringify(invocation), 'utf8').toString('base64url');
+  return spawn(options.executablePath ?? process.execPath, [guardianPath, encodedInvocation], {
+    cwd,
+    env: {
+      ...environment,
+      ELECTRON_RUN_AS_NODE: '1',
+    },
+    detached: true,
+    windowsHide: true,
+    stdio: 'pipe',
+  });
+}
+
+export async function assertLocalDevelopmentRendererOriginAvailable(origin: string): Promise<void> {
+  const url = new URL(origin);
+  const host = url.hostname === 'localhost'
+    ? '127.0.0.1'
+    : url.hostname.replace(/^\[|\]$/gu, '');
+  const port = Number(url.port);
+  const server = createServer();
+  try {
+    await new Promise<void>((resolve, reject) => {
+      const onError = (error: NodeJS.ErrnoException) => {
+        if (error.code === 'EADDRINUSE' || error.code === 'EACCES') {
+          reject(new Error('local-development-dev-server-port-in-use'));
+          return;
+        }
+        reject(error);
+      };
+      server.once('error', onError);
+      server.listen({ host, port, exclusive: true }, () => {
+        server.off('error', onError);
+        resolve();
+      });
+    });
+  } finally {
+    await closeProbeServer(server);
+  }
 }
 
 export async function waitForLocalDevelopmentRenderer(
@@ -99,6 +166,13 @@ async function waitForChildExit(
     const fail = (error: Error) => { cleanup(); reject(error); };
     child.once('exit', onExit);
     child.once('error', onError);
+  });
+}
+
+async function closeProbeServer(server: ReturnType<typeof createServer>): Promise<void> {
+  if (!server.listening) return;
+  await new Promise<void>((resolve, reject) => {
+    server.close((error) => error ? reject(error) : resolve());
   });
 }
 

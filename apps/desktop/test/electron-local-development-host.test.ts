@@ -197,6 +197,58 @@ describe('Desktop Electron local-development registration host', () => {
     assert.equal(calls, 2);
   });
 
+  it('ends the run when the launcher stops renewing its lease', async () => {
+    let terminated = 0;
+    let ended = 0;
+    const host = new ElectronLocalDevelopmentHost(control({
+      terminateHost: async () => { terminated += 1; },
+      endRun: async () => { ended += 1; },
+    }), '/tmp', 25);
+    const run = {
+      plan: plan(),
+      supervisorRunId: SUPERVISOR,
+      registrationHandle: HANDLE,
+      stopped: false,
+      tearingDown: false,
+      supervising: false,
+      rebuilding: false,
+      rebuildRequested: false,
+      refreshingRegistration: false,
+      recoveringRuntimeTransport: false,
+      status: {
+        schemaVersion: 1,
+        runId: 'dev-run-example',
+        state: 'running',
+        appId: 'example.local-app',
+        displayName: 'Example Local App',
+        canonicalProjectRoot: '/projects/example',
+        shell: 'electron',
+        rendererOrigin: 'http://127.0.0.1:1420',
+        message: 'Supervised electron host is running',
+        retryable: false,
+        hostGeneration: 1,
+        logSequence: 0,
+        logs: [],
+      },
+    };
+    const leaseHost = host as unknown as {
+      touchLauncherLease(context: typeof run): void;
+      stopRun(context: typeof run, state: string): Promise<void>;
+    };
+
+    leaseHost.touchLauncherLease(run);
+    await new Promise((resolve) => setTimeout(resolve, 75));
+
+    assert.equal(run.stopped, true);
+    assert.equal(run.status.state, 'launcher-disconnected');
+    assert.equal(terminated, 1);
+    assert.equal(ended, 1);
+
+    await leaseHost.stopRun(run, 'stopped');
+    assert.equal(terminated, 1);
+    assert.equal(ended, 1);
+  });
+
   it('uses a positional source Electron entry only for source local development', () => {
     const base = {
       mainEntry: '/projects/example/dist/main.js',
