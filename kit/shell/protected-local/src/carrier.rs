@@ -70,6 +70,13 @@ pub enum LocalAppReasonCode {
     InvalidPath,
     NotFound,
     ResourceExhausted,
+    AlreadyExists,
+    ObjectTooLarge,
+    InvalidRange,
+    InvalidCursor,
+    IntegrityFailure,
+    ArtifactUnavailable,
+    Canceled,
 }
 
 impl LocalAppReasonCode {
@@ -122,6 +129,13 @@ impl LocalAppReasonCode {
             Self::InvalidPath => "invalid-path",
             Self::NotFound => "not-found",
             Self::ResourceExhausted => "resource-exhausted",
+            Self::AlreadyExists => "already-exists",
+            Self::ObjectTooLarge => "object-too-large",
+            Self::InvalidRange => "invalid-range",
+            Self::InvalidCursor => "invalid-cursor",
+            Self::IntegrityFailure => "integrity-failure",
+            Self::ArtifactUnavailable => "artifact-unavailable",
+            Self::Canceled => "canceled",
         }
     }
 }
@@ -305,6 +319,90 @@ pub struct LocalAppStorageDocument {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct LocalAppStorageRemoveResult {
     pub removed: bool,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct LocalAppAssetRecord {
+    pub relative_path: String,
+    pub media_type: String,
+    pub size_bytes: i64,
+    pub sha256: String,
+    pub created_at: String,
+    pub updated_at: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct LocalAppAssetStatRequest {
+    pub relative_path: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct LocalAppAssetListRequest {
+    pub prefix: String,
+    pub cursor: String,
+    pub page_size: i32,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct LocalAppAssetListResult {
+    pub assets: Vec<LocalAppAssetRecord>,
+    pub next_cursor: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct LocalAppAssetWriteRequest {
+    pub relative_path: String,
+    pub media_type: String,
+    pub overwrite: bool,
+}
+
+pub type LocalAppAssetWriteReceiver = tokio::sync::mpsc::Receiver<Vec<u8>>;
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct LocalAppAssetReadRequest {
+    pub relative_path: String,
+    pub offset: Option<i64>,
+    pub length: Option<i64>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct LocalAppAssetRange {
+    pub offset: i64,
+    pub length: i64,
+    pub total_size: i64,
+}
+
+pub type LocalAppAssetReadReceiver =
+    tokio::sync::mpsc::Receiver<Result<Vec<u8>, LocalAppOperationError>>;
+
+pub struct LocalAppAssetReadResult {
+    pub asset: LocalAppAssetRecord,
+    pub range: LocalAppAssetRange,
+    pub body: LocalAppAssetReadReceiver,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct LocalAppAssetRemoveRequest {
+    pub relative_path: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct LocalAppAssetRemoveResult {
+    pub removed: bool,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct LocalAppAssetMoveRequest {
+    pub from_relative_path: String,
+    pub to_relative_path: String,
+    pub overwrite: bool,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct LocalAppAssetAdoptRequest {
+    pub artifact_id: String,
+    pub relative_path: String,
+    pub overwrite: bool,
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
@@ -812,6 +910,42 @@ pub trait NimiLocalAppSession: Send + Sync {
                 + '_,
         >,
     >;
+
+    fn storage_asset_stat(
+        &self,
+        request: LocalAppAssetStatRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<LocalAppAssetRecord, LocalAppOperationError>> + Send + '_>>;
+
+    fn storage_asset_list(
+        &self,
+        request: LocalAppAssetListRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<LocalAppAssetListResult, LocalAppOperationError>> + Send + '_>>;
+
+    fn storage_asset_write(
+        &self,
+        request: LocalAppAssetWriteRequest,
+        body: LocalAppAssetWriteReceiver,
+    ) -> Pin<Box<dyn Future<Output = Result<LocalAppAssetRecord, LocalAppOperationError>> + Send + '_>>;
+
+    fn storage_asset_read(
+        &self,
+        request: LocalAppAssetReadRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<LocalAppAssetReadResult, LocalAppOperationError>> + Send + '_>>;
+
+    fn storage_asset_remove(
+        &self,
+        request: LocalAppAssetRemoveRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<LocalAppAssetRemoveResult, LocalAppOperationError>> + Send + '_>>;
+
+    fn storage_asset_move(
+        &self,
+        request: LocalAppAssetMoveRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<LocalAppAssetRecord, LocalAppOperationError>> + Send + '_>>;
+
+    fn storage_asset_adopt(
+        &self,
+        request: LocalAppAssetAdoptRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<LocalAppAssetRecord, LocalAppOperationError>> + Send + '_>>;
 
     fn agent_reference_list(
         &self,

@@ -64,7 +64,7 @@ func (s *Service) submitLocalImageScenarioJob(ctx context.Context, req *runtimev
 		ExecutionMode: mode, Head: cloneScenarioHead(effective.head), TraceId: ulid.Make().String(),
 		IgnoredExtensions: cloneIgnoredScenarioExtensions(ignored),
 	}
-	stored := s.scenarioJobs.create(job, cancel)
+	stored := s.scenarioJobs.createOwned(job, cancel, localAppJobOwnerFromContext(ctx))
 	if stored == nil {
 		cancel()
 		return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
@@ -118,7 +118,7 @@ func (s *Service) runLocalImageScenarioJob(ctx context.Context, jobID string, ef
 		}
 		ensureRunning()
 		current := produced.Index + 1
-		_, err := s.storeAndAttachRuntimeJobArtifact(jobID, effective.head, artifact, func(candidate *runtimev1.ScenarioArtifact) bool {
+		_, err := s.storeAndAttachRuntimeJobArtifact(ctx, jobID, effective.head, artifact, func(candidate *runtimev1.ScenarioArtifact) bool {
 			_, ok := s.scenarioJobs.commitArtifact(jobID, candidate, current, total, imageJobProgressPercent(current, total))
 			return ok
 		})

@@ -1719,6 +1719,14 @@ export interface LocalAppScenarioJob {
      * @generated from protobuf field: google.protobuf.Timestamp updated_at = 12
      */
     updatedAt?: Timestamp;
+    /**
+     * Bounded immutable speech-transcription result captured at Job completion.
+     * Empty for every non-transcription Job and never reconstructed by reading
+     * an artifact body.
+     *
+     * @generated from protobuf field: string transcription_text = 13
+     */
+    transcriptionText: string;
 }
 /**
  * Trimmed voice asset catalog projection. Provider, model, provider voice
@@ -2425,6 +2433,14 @@ export interface ScenarioJob {
      * @generated from protobuf field: int32 progress_total_steps = 22
      */
     progressTotalSteps: number;
+    /**
+     * Runtime-owned immutable typed result state for speech transcription.
+     * It is projected independently from artifact bytes and does not imply Job
+     * persistence across Runtime restart.
+     *
+     * @generated from protobuf field: string transcription_text = 23
+     */
+    transcriptionText: string;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.SubmitScenarioJobRequest
@@ -8306,7 +8322,8 @@ class LocalAppScenarioJob$Type extends MessageType<LocalAppScenarioJob> {
             { no: 9, name: "artifacts", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LocalAppScenarioArtifact },
             { no: 10, name: "trace_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 11, name: "created_at", kind: "message", T: () => Timestamp },
-            { no: 12, name: "updated_at", kind: "message", T: () => Timestamp }
+            { no: 12, name: "updated_at", kind: "message", T: () => Timestamp },
+            { no: 13, name: "transcription_text", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<LocalAppScenarioJob>): LocalAppScenarioJob {
@@ -8321,6 +8338,7 @@ class LocalAppScenarioJob$Type extends MessageType<LocalAppScenarioJob> {
         message.reasonDetail = "";
         message.artifacts = [];
         message.traceId = "";
+        message.transcriptionText = "";
         if (value !== undefined)
             reflectionMergePartial<LocalAppScenarioJob>(this, message, value);
         return message;
@@ -8365,6 +8383,9 @@ class LocalAppScenarioJob$Type extends MessageType<LocalAppScenarioJob> {
                     break;
                 case /* google.protobuf.Timestamp updated_at */ 12:
                     message.updatedAt = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.updatedAt);
+                    break;
+                case /* string transcription_text */ 13:
+                    message.transcriptionText = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -8414,6 +8435,9 @@ class LocalAppScenarioJob$Type extends MessageType<LocalAppScenarioJob> {
         /* google.protobuf.Timestamp updated_at = 12; */
         if (message.updatedAt)
             Timestamp.internalBinaryWrite(message.updatedAt, writer.tag(12, WireType.LengthDelimited).fork(), options).join();
+        /* string transcription_text = 13; */
+        if (message.transcriptionText !== "")
+            writer.tag(13, WireType.LengthDelimited).string(message.transcriptionText);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -10377,7 +10401,8 @@ class ScenarioJob$Type extends MessageType<ScenarioJob> {
             { no: 19, name: "reason_metadata", kind: "message", T: () => Struct },
             { no: 20, name: "progress_percent", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
             { no: 21, name: "progress_current_step", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
-            { no: 22, name: "progress_total_steps", kind: "scalar", T: 5 /*ScalarType.INT32*/ }
+            { no: 22, name: "progress_total_steps", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
+            { no: 23, name: "transcription_text", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<ScenarioJob>): ScenarioJob {
@@ -10398,6 +10423,7 @@ class ScenarioJob$Type extends MessageType<ScenarioJob> {
         message.progressPercent = 0;
         message.progressCurrentStep = 0;
         message.progressTotalSteps = 0;
+        message.transcriptionText = "";
         if (value !== undefined)
             reflectionMergePartial<ScenarioJob>(this, message, value);
         return message;
@@ -10472,6 +10498,9 @@ class ScenarioJob$Type extends MessageType<ScenarioJob> {
                     break;
                 case /* int32 progress_total_steps */ 22:
                     message.progressTotalSteps = reader.int32();
+                    break;
+                case /* string transcription_text */ 23:
+                    message.transcriptionText = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -10551,6 +10580,9 @@ class ScenarioJob$Type extends MessageType<ScenarioJob> {
         /* int32 progress_total_steps = 22; */
         if (message.progressTotalSteps !== 0)
             writer.tag(22, WireType.Varint).int32(message.progressTotalSteps);
+        /* string transcription_text = 23; */
+        if (message.transcriptionText !== "")
+            writer.tag(23, WireType.LengthDelimited).string(message.transcriptionText);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

@@ -5,7 +5,7 @@ import { useTranslation } from '../../shell/i18n/index.js';
 import type { TesterCapability } from '../tester-capabilities.js';
 import { formatTesterRunTimestamp, getTesterRunConfigParamRows, getTesterRunIntentLabel, getTesterRunPromptControlFacts, getTesterRunResultTags, getTesterRunStatusTone, type TesterRunConfigParamRow, type TesterRunHistoryRecord, type TesterRunHistoryResultSnapshot, type TesterRunPromptControlFact } from '../tester-history.js';
 import { unavailableReasonUserAction, unavailableReasonUserMessage } from '../tester-unavailable.js';
-import { ArtifactMediaResult, RuntimeDiagnosticsActions, StudioResult, TextStudioOutputBody, artifactExtension, downloadArtifactUrl, downloadTextFile, statusForCapability } from './section-ai-testing-surface.js';
+import { ArtifactMediaResult, RuntimeDiagnosticsActions, StudioResult, TextStudioOutputBody, downloadTextFile, statusForCapability } from './section-ai-testing-surface.js';
 import type { TextStudioActiveRun } from './section-ai-testing-run.js';
 import { useTesterRendererHost } from '../../renderer/context.js';
 
@@ -129,15 +129,6 @@ function historyUnavailableDiagnosticsText(snapshot: Extract<TesterRunHistoryRes
   ].filter(Boolean).join('\n');
 }
 
-function historyRecordArtifact(record: TesterRunHistoryRecord): { url: string; mimeType?: string } | null {
-  const snapshot = record.result;
-  if (!snapshot?.ok || snapshot.kind !== 'artifacts' || !snapshot.firstArtifact?.url) return null;
-  return {
-    url: snapshot.firstArtifact.url,
-    mimeType: snapshot.firstArtifact.mimeType,
-  };
-}
-
 function historyResultToneClass(record: TesterRunHistoryRecord): string {
   const tone = getTesterRunStatusTone(record.status);
   return tone === 'danger' ? 'warning' : tone;
@@ -160,7 +151,7 @@ function TextStudioHistoryRecordResult({
   const toneClass = historyResultToneClass(record);
   const exportText = historyRecordPlainText(record);
   const blocked = snapshot && !snapshot.ok ? snapshot : null;
-  const canExport = !blocked && Boolean(exportText.trim() || historyRecordArtifact(record));
+  const canExport = !blocked && Boolean(exportText.trim());
   const hasRequestSettings = hasTextStudioRequestSettings(record);
   const [requestSettingsOpen, setRequestSettingsOpen] = useState(false);
   function handleCopy() {
@@ -178,16 +169,7 @@ function TextStudioHistoryRecordResult({
       });
   }
   function handleDownload() {
-    const artifact = historyRecordArtifact(record);
     const stamp = record.createdAt.replace(/[:.]/g, '-');
-    if (artifact) {
-      void downloadArtifactUrl(
-        rendererHost.app.commands,
-        `${record.capabilityId}-${stamp}.${artifactExtension(artifact.mimeType)}`,
-        artifact.url,
-      );
-      return;
-    }
     if (!exportText.trim()) return;
     void downloadTextFile(rendererHost.app.commands, `${record.capabilityId}-${stamp}.txt`, exportText);
   }

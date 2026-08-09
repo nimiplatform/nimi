@@ -1,4 +1,3 @@
-import type { JsonValue } from './types.js';
 import { hasShellHostInvoke } from './env.js';
 import { invokeShell } from './tauri-api.js';
 import {
@@ -30,7 +29,7 @@ export class BridgeError extends Error {
   }
 }
 
-type ShellInvokeFn = (command: string, payload?: JsonValue) => Promise<JsonValue>;
+type ShellInvokeFn = (command: string, payload?: unknown) => Promise<unknown>;
 
 function resolveShellInvoke(): ShellInvokeFn {
   if (!hasShellHostInvoke()) {
@@ -39,7 +38,7 @@ function resolveShellInvoke(): ShellInvokeFn {
   return invokeShell;
 }
 
-export async function invoke(command: string, payload: JsonValue = {}): Promise<JsonValue> {
+export async function invoke(command: string, payload: unknown = {}): Promise<unknown> {
   if (!hasShellHostInvoke()) {
     throw createUnavailableBridgeError(command);
   }
@@ -64,7 +63,7 @@ export async function invoke(command: string, payload: JsonValue = {}): Promise<
 
 export async function invokeChecked<T>(
   command: string,
-  payload: JsonValue,
+  payload: unknown,
   parseResult: (value: unknown) => T,
 ): Promise<T> {
   const value = await invoke(command, payload);

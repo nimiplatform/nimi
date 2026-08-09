@@ -1,10 +1,34 @@
 package runtimeartifact
 
 import (
+	"context"
+	"errors"
+	"io"
 	"os"
 	"path/filepath"
+	"sync/atomic"
 	"testing"
+	"time"
 )
+
+type artifactTestZeroReader struct{}
+
+func (artifactTestZeroReader) Read(payload []byte) (int, error) {
+	for index := range payload {
+		payload[index] = byte(index % 251)
+	}
+	return len(payload), nil
+}
+
+type artifactTestCountingCloser struct {
+	io.Reader
+	closes atomic.Int32
+}
+
+func (source *artifactTestCountingCloser) Close() error {
+	source.closes.Add(1)
+	return nil
+}
 
 func TestDiskStorePersistsGeneratedVoiceArtifactsAcrossReopen(t *testing.T) {
 	root := filepath.Join(t.TempDir(), "runtime-artifacts")
@@ -135,5 +159,84 @@ func TestDiskStoreForLocalStatePathUsesRuntimeArtifactsSiblingDirectory(t *testi
 	}
 	if _, ok := reopened.Get("artifact-1"); !ok {
 		t.Fatalf("expected artifact under sibling runtime-artifacts directory")
+	}
+}
+
+func TestDiskStoreStreamsLargeArtifactAndSeparatesStatFromOpen(t *testing.T) {
+	store, err := NewDiskStore(filepath.Join(t.TempDir(), "runtime-artifacts"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	sizeBytes := int64(MaxInlineBytes + 1024*1024)
+	source := &artifactTestCountingCloser{Reader: io.LimitReader(artifactTestZeroReader{}, sizeBytes)}
+	if err := store.PutStream(context.Background(), "artifact-large", ArtifactRecord{
+		MimeType: "video/mp4",
+		Owner:    &ArtifactOwner{SubjectUserID: "account-1", RegisteredAppSubject: "subject-1", AppID: "producer-app"},
+	}, source); err != nil {
+		t.Fatalf("PutStream: %v", err)
+	}
+	if source.closes.Load() != 1 {
+		t.Fatalf("source closes=%d, want exactly one", source.closes.Load())
+	}
+	metadata, ok := store.Stat("artifact-large")
+	if !ok || metadata.SizeBytes != sizeBytes || len(metadata.Bytes) != 0 || metadata.ContentSHA256 == "" {
+		t.Fatalf("Stat metadata=%+v present=%v", metadata, ok)
+	}
+	opened, ok := store.Open(context.Background(), "artifact-large")
+	if !ok {
+		t.Fatal("Open large committed artifact")
+	}
+	readBytes, err := io.Copy(io.Discard, opened.Body)
+	if closeErr := opened.Body.Close(); err != nil || closeErr != nil || readBytes != sizeBytes {
+		t.Fatalf("streamed read bytes=%d err=%v close=%v", readBytes, err, closeErr)
+	}
+}
+
+func TestDiskStoreOpenPinsSourceAgainstCleanup(t *testing.T) {
+	store, err := NewDiskStore(filepath.Join(t.TempDir(), "runtime-artifacts"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := store.Put("artifact-pinned", ArtifactRecord{Bytes: []byte("immutable-source")}); err != nil {
+		t.Fatal(err)
+	}
+	opened, ok := store.Open(context.Background(), "artifact-pinned")
+	if !ok {
+		t.Fatal("Open pinned source")
+	}
+	deleted := make(chan error, 1)
+	go func() { deleted <- store.Delete("artifact-pinned") }()
+	select {
+	case err := <-deleted:
+		t.Fatalf("cleanup completed while source open: %v", err)
+	case <-time.After(50 * time.Millisecond):
+	}
+	payload, readErr := io.ReadAll(opened.Body)
+	closeErr := opened.Body.Close()
+	if readErr != nil || closeErr != nil || string(payload) != "immutable-source" {
+		t.Fatalf("pinned read=%q readErr=%v closeErr=%v", payload, readErr, closeErr)
+	}
+	if err := <-deleted; err != nil {
+		t.Fatalf("cleanup after close: %v", err)
+	}
+	if _, ok := store.Stat("artifact-pinned"); ok {
+		t.Fatal("artifact remained after cleanup")
+	}
+}
+
+func TestDiskStoreStreamCancellationCleansCandidateAndClosesOnce(t *testing.T) {
+	store, err := NewDiskStore(filepath.Join(t.TempDir(), "runtime-artifacts"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	source := &artifactTestCountingCloser{Reader: io.LimitReader(artifactTestZeroReader{}, 4*1024*1024)}
+	err = store.PutStream(ctx, "artifact-canceled", ArtifactRecord{MimeType: "video/mp4"}, source)
+	if !errors.Is(err, context.Canceled) {
+		t.Fatalf("PutStream error=%v, want context.Canceled", err)
+	}
+	if source.closes.Load() != 1 || store.Len() != 0 {
+		t.Fatalf("canceled source closes=%d store len=%d", source.closes.Load(), store.Len())
 	}
 }

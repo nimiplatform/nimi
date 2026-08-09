@@ -38,6 +38,11 @@ import {
   type NimiAppRuntimeStorageRemoveResult,
 } from './local-app-runtime-platform-protected-operations.js';
 import {
+  createNimiLocalAppAssetsClient,
+  type NimiLocalAppAssetsClient,
+  type NimiLocalAppAssetsShell,
+} from './local-app-runtime-platform-assets.js';
+import {
   asRecord,
   assertExactKeys,
   assertExactMethodNamespace,
@@ -121,6 +126,13 @@ export type {
   NimiAppRuntimeStorageDocument,
   NimiAppRuntimeStorageRemoveResult,
 } from './local-app-runtime-platform-protected-operations';
+export type {
+  NimiLocalAppAssetBody,
+  NimiLocalAppAssetReadResult,
+  NimiLocalAppAssetRecord,
+  NimiLocalAppAssetsClient,
+  NimiLocalAppAssetsShell,
+} from './local-app-runtime-platform-assets.js';
 
 export type NimiAppAuthMode = 'local-first-party-app' | 'local-app';
 
@@ -224,6 +236,7 @@ export type NimiLocalAppStandardShell = {
     readonly readJson: (relativePath: string) => Promise<unknown>;
     readonly writeJson: (relativePath: string, value: JsonValue) => Promise<unknown>;
     readonly removeJson: (relativePath: string) => Promise<unknown>;
+    readonly assets: NimiLocalAppAssetsShell;
   };
   readonly realm: {
     readonly worldCore: {
@@ -270,6 +283,7 @@ export type NimiLocalAppClient = {
       value: JsonValue,
     ) => Promise<NimiAppRuntimeStorageDocument>;
     readonly removeJson: (relativePath: string) => Promise<NimiAppRuntimeStorageRemoveResult>;
+    readonly assets: NimiLocalAppAssetsClient;
   };
   readonly realm: {
     readonly worldCore: {
@@ -323,7 +337,14 @@ export function createNimiLocalAppClient(
   assertExactMethodNamespace(ai.voiceAssets, ['list'], 'ai.voiceAssets');
   assertExactMethodNamespace(standardShell.aiConfig, ['get', 'overwrite'], 'aiConfig');
   assertExactMethodNamespace(standardShell.modelConfig, ['localSelections'], 'modelConfig');
-  assertExactMethodNamespace(standardShell.storage, ['readJson', 'writeJson', 'removeJson'], 'storage');
+  const storage = asRecord(standardShell.storage);
+  if (!storage || Object.keys(storage).sort().join('|') !== ['assets', 'readJson', 'removeJson', 'writeJson'].sort().join('|')) {
+    return localAppError('Host-injected local-app standardShell storage namespace is invalid.', 'SDK_LOCAL_APP_CARRIER_REQUIRED', 'use_host_injected_standard_shell');
+  }
+  if (typeof storage.readJson !== 'function' || typeof storage.writeJson !== 'function' || typeof storage.removeJson !== 'function') {
+    return localAppError('Host-injected local-app standardShell storage namespace is invalid.', 'SDK_LOCAL_APP_CARRIER_REQUIRED', 'use_host_injected_standard_shell');
+  }
+  assertExactMethodNamespace(storage.assets, ['stat', 'list', 'write', 'read', 'remove', 'move', 'adoptArtifact'], 'storage.assets');
   const realm = asRecord(standardShell.realm);
   if (!realm || Object.keys(realm).length !== 1 || !Object.hasOwn(realm, 'worldCore')) {
     return localAppError(
@@ -365,7 +386,10 @@ export function createNimiLocalAppClient(
         await standardShell.modelConfig.localSelections(),
       ),
     }),
-    storage: createNimiAppRuntimeStorageClient(standardShell.storage),
+    storage: Object.freeze({
+      ...createNimiAppRuntimeStorageClient(standardShell.storage),
+      assets: createNimiLocalAppAssetsClient(standardShell.storage.assets),
+    }),
     realm: Object.freeze({ worldCore: createWorldCoreClient(standardShell.realm.worldCore) }),
     agents: createNimiLocalAppAgentReferencesClient(standardShell.agents),
     conversation: createNimiLocalAppConversationClient(standardShell.conversation),

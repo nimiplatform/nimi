@@ -32,7 +32,14 @@ export type NimiStandardShellNegativeState =
   | 'process-replaced'
   | 'account-changed'
   | 'runtime-restarted'
-  | 'revoked';
+  | 'revoked'
+  | 'already-exists'
+  | 'object-too-large'
+  | 'invalid-range'
+  | 'invalid-cursor'
+  | 'integrity-failure'
+  | 'artifact-unavailable'
+  | 'canceled';
 
 export interface NimiStandardShellOperation {
   id: string;
@@ -128,6 +135,20 @@ export const NIMI_STANDARD_SHELL_CAPABILITIES = [
       { id: 'readJson', command: 'nimi.shell.storage.readJson', negativeStates: ['capability-unavailable', 'invalid-path', 'not-found', 'invalid-payload'] },
       { id: 'writeJson', command: 'nimi.shell.storage.writeJson', negativeStates: ['capability-unavailable', 'invalid-path', 'invalid-payload'] },
       { id: 'removeJson', command: 'nimi.shell.storage.removeJson', negativeStates: ['capability-unavailable', 'invalid-path', 'invalid-payload'] },
+      { id: 'assetStat', command: 'nimi.shell.storage.assetStat', negativeStates: ['capability-unavailable', 'invalid-path', 'not-found', 'invalid-payload'] },
+      { id: 'assetList', command: 'nimi.shell.storage.assetList', negativeStates: ['capability-unavailable', 'invalid-path', 'invalid-cursor', 'invalid-payload'] },
+      { id: 'assetWriteOpen', command: 'nimi.shell.storage.assetWriteOpen', negativeStates: ['capability-unavailable', 'invalid-path', 'resource-exhausted', 'invalid-payload'] },
+      { id: 'assetWriteChunk', command: 'nimi.shell.storage.assetWriteChunk', negativeStates: ['capability-unavailable', 'canceled', 'not-found', 'invalid-payload'] },
+      { id: 'assetWriteCommit', command: 'nimi.shell.storage.assetWriteCommit', negativeStates: ['capability-unavailable', 'already-exists', 'object-too-large', 'resource-exhausted', 'integrity-failure', 'canceled', 'not-found'] },
+      { id: 'assetWriteAbort', command: 'nimi.shell.storage.assetWriteAbort', negativeStates: ['capability-unavailable', 'invalid-payload'] },
+      { id: 'assetReadOpen', command: 'nimi.shell.storage.assetReadOpen', negativeStates: ['capability-unavailable', 'invalid-path', 'invalid-range', 'not-found', 'integrity-failure', 'invalid-payload'] },
+      { id: 'assetReadNext', command: 'nimi.shell.storage.assetReadNext', negativeStates: ['capability-unavailable', 'canceled', 'not-found', 'integrity-failure'] },
+      { id: 'assetReadClose', command: 'nimi.shell.storage.assetReadClose', negativeStates: ['capability-unavailable', 'invalid-payload'] },
+      { id: 'assetRemove', command: 'nimi.shell.storage.assetRemove', negativeStates: ['capability-unavailable', 'invalid-path', 'invalid-payload'] },
+      { id: 'assetMove', command: 'nimi.shell.storage.assetMove', negativeStates: ['capability-unavailable', 'invalid-path', 'already-exists', 'not-found', 'invalid-payload'] },
+      { id: 'assetAdopt', command: 'nimi.shell.storage.assetAdopt', negativeStates: ['capability-unavailable', 'invalid-path', 'already-exists', 'artifact-unavailable', 'resource-exhausted', 'canceled', 'invalid-payload'] },
+      { id: 'assetMediaOpen', command: 'nimi.shell.storage.assetMediaOpen', negativeStates: ['capability-unavailable', 'forbidden-renderer-access', 'invalid-path', 'not-found', 'integrity-failure', 'invalid-payload'] },
+      { id: 'assetMediaRevoke', command: 'nimi.shell.storage.assetMediaRevoke', negativeStates: ['capability-unavailable', 'forbidden-renderer-access', 'invalid-payload'] },
     ],
   },
   {
@@ -298,6 +319,20 @@ const LOCAL_APP_ALLOWED_OPERATIONS = [
   'storage.readJson',
   'storage.writeJson',
   'storage.removeJson',
+  'storage.assetStat',
+  'storage.assetList',
+  'storage.assetWriteOpen',
+  'storage.assetWriteChunk',
+  'storage.assetWriteCommit',
+  'storage.assetWriteAbort',
+  'storage.assetReadOpen',
+  'storage.assetReadNext',
+  'storage.assetReadClose',
+  'storage.assetRemove',
+  'storage.assetMove',
+  'storage.assetAdopt',
+  'storage.assetMediaOpen',
+  'storage.assetMediaRevoke',
   'desktop-open.openIntent',
 ];
 

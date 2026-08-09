@@ -83,7 +83,7 @@ func (s *Service) submitCloudTextScenarioJob(
 		TraceId:           effective.traceID,
 		IgnoredExtensions: cloneIgnoredScenarioExtensions(ignored),
 	}
-	snapshot := s.scenarioJobs.create(job, cancel)
+	snapshot := s.scenarioJobs.createOwned(job, cancel, localAppJobOwnerFromContext(ctx))
 	if snapshot == nil {
 		cancel()
 		return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)

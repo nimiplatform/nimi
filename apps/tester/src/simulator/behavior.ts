@@ -30,6 +30,7 @@ interface TesterSimulatorScenarioData extends JsonRecord {
       readonly detail: string;
     };
   };
+  readonly adoptionArtifacts: Readonly<Record<string, JsonRecord>>;
 }
 
 interface TesterSimulatorState extends JsonRecord {
@@ -38,6 +39,7 @@ interface TesterSimulatorState extends JsonRecord {
   readonly runSequence: number;
   readonly runHistory: Readonly<Record<string, readonly JsonRecord[]>>;
   readonly imageHistory: readonly JsonRecord[];
+  readonly assets: Readonly<Record<string, JsonRecord>>;
   readonly promptDrafts: Readonly<Record<string, string>>;
   readonly aiConfig: JsonRecord;
   readonly actionLog: readonly JsonRecord[];
@@ -65,6 +67,7 @@ function scenarioData(value: TesterSimulatorJsonValue): TesterSimulatorScenarioD
   const runtimePlatform = record(input.runtimePlatform, 'RUNTIME_PLATFORM');
   const aiConfigSummary = record(input.aiConfigSummary, 'AI_CONFIG_SUMMARY');
   const runtimeSummary = record(aiConfigSummary.runtime, 'AI_CONFIG_RUNTIME');
+  const adoptionArtifacts = record(input.adoptionArtifacts, 'ADOPTION_ARTIFACTS');
   if (runtimePlatform.status !== 'unavailable'
     || runtimePlatform.mode !== 'local-app'
     || runtimeSummary.status !== 'simulated'
@@ -87,6 +90,34 @@ function scenarioData(value: TesterSimulatorJsonValue): TesterSimulatorScenarioD
         detail: text(runtimeSummary.detail, 'RUNTIME_DETAIL'),
       },
     },
+    adoptionArtifacts: Object.fromEntries(Object.entries(adoptionArtifacts).map(([artifactId, value]) => [
+      text(artifactId, 'ADOPTION_ARTIFACT_ID'),
+      assetValue(record(value, 'ADOPTION_ARTIFACT'), '', false),
+    ])),
+  };
+}
+
+function assetValue(value: JsonRecord, relativePath: string, requirePath = true): JsonRecord {
+  const body = value.body;
+  if ((requirePath && (!relativePath || relativePath.includes('..')))
+    || typeof value.mediaType !== 'string'
+    || !Number.isSafeInteger(value.sizeBytes)
+    || (value.sizeBytes as number) < 0
+    || typeof value.sha256 !== 'string'
+    || !/^sha256:[0-9a-f]{64}$/u.test(value.sha256)
+    || !Array.isArray(body)
+    || body.length !== value.sizeBytes
+    || body.some((byte) => !Number.isSafeInteger(byte) || byte < 0 || byte > 255)) {
+    throw new Error('TESTER_SIMULATOR_ASSET_INVALID');
+  }
+  return {
+    relativePath,
+    mediaType: value.mediaType,
+    sizeBytes: value.sizeBytes,
+    sha256: value.sha256,
+    body,
+    createdAt: typeof value.createdAt === 'string' ? value.createdAt : '',
+    updatedAt: typeof value.updatedAt === 'string' ? value.updatedAt : '',
   };
 }
 
@@ -190,6 +221,7 @@ export const testerSimulatorBehavior = Object.freeze({
       runSequence: 0,
       runHistory: {},
       imageHistory: [],
+      assets: {},
       promptDrafts: {},
       aiConfig: initialConfig(),
       actionLog: [],
@@ -306,6 +338,90 @@ export const testerSimulatorBehavior = Object.freeze({
             imageRecord,
             ...current.imageHistory.filter((entry) => (entry.runId ?? entry.id) !== linkageId),
           ].slice(0, MAX_IMAGE_HISTORY),
+        },
+        events: [],
+      };
+    }
+    if (envelope.type === 'tester.image-history.remove') {
+      const runId = text(payload.runId, 'IMAGE_HISTORY_ID');
+      return {
+        state: {
+          ...current,
+          imageHistory: current.imageHistory.filter((entry) => (entry.runId ?? entry.id) !== runId),
+        },
+        events: [],
+      };
+    }
+    if (envelope.type === 'tester.image-history.clear') {
+      const capabilityId = typeof payload.capabilityId === 'string' ? payload.capabilityId : null;
+      return {
+        state: {
+          ...current,
+          imageHistory: capabilityId === null
+            ? []
+            : current.imageHistory.filter((entry) => entry.capabilityId !== capabilityId),
+        },
+        events: [],
+      };
+    }
+    if (envelope.type === 'tester.asset.write') {
+      const relativePath = text(payload.relativePath, 'ASSET_PATH');
+      const existing = current.assets[relativePath];
+      if (existing && payload.overwrite !== true) throw new Error('TESTER_SIMULATOR_ASSET_ALREADY_EXISTS');
+      const timestamp = new Date(context.now).toISOString();
+      const next = assetValue(payload, relativePath);
+      return {
+        state: {
+          ...current,
+          assets: {
+            ...current.assets,
+            [relativePath]: {
+              ...next,
+              createdAt: typeof existing?.createdAt === 'string' ? existing.createdAt : timestamp,
+              updatedAt: timestamp,
+            },
+          },
+        },
+        events: [],
+      };
+    }
+    if (envelope.type === 'tester.asset.remove') {
+      const relativePath = text(payload.relativePath, 'ASSET_PATH');
+      const assets = { ...current.assets };
+      delete assets[relativePath];
+      return { state: { ...current, assets }, events: [] };
+    }
+    if (envelope.type === 'tester.asset.move') {
+      const from = text(payload.from, 'ASSET_FROM_PATH');
+      const to = text(payload.to, 'ASSET_TO_PATH');
+      const source = current.assets[from];
+      if (!source) throw new Error('TESTER_SIMULATOR_ASSET_NOT_FOUND');
+      if (current.assets[to] && payload.overwrite !== true) throw new Error('TESTER_SIMULATOR_ASSET_ALREADY_EXISTS');
+      const assets = { ...current.assets };
+      delete assets[from];
+      assets[to] = { ...source, relativePath: to, updatedAt: new Date(context.now).toISOString() };
+      return { state: { ...current, assets }, events: [] };
+    }
+    if (envelope.type === 'tester.asset.adopt') {
+      const artifactId = text(payload.artifactId, 'ASSET_ARTIFACT_ID');
+      const relativePath = text(payload.relativePath, 'ASSET_PATH');
+      const source = current.scenario.adoptionArtifacts[artifactId];
+      if (!source) throw new Error('TESTER_SIMULATOR_ARTIFACT_UNAVAILABLE');
+      const existing = current.assets[relativePath];
+      if (existing && payload.overwrite !== true) throw new Error('TESTER_SIMULATOR_ASSET_ALREADY_EXISTS');
+      const timestamp = new Date(context.now).toISOString();
+      const adopted = assetValue(source, relativePath);
+      return {
+        state: {
+          ...current,
+          assets: {
+            ...current.assets,
+            [relativePath]: {
+              ...adopted,
+              createdAt: typeof existing?.createdAt === 'string' ? existing.createdAt : timestamp,
+              updatedAt: timestamp,
+            },
+          },
         },
         events: [],
       };

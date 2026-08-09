@@ -33,7 +33,7 @@ func (s *Service) UploadLocalAppArtifact(ctx context.Context, req *runtimev1.Upl
 	default:
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_ARTIFACT_UPLOAD_MIME_UNSUPPORTED)
 	}
-	stored, _, err := s.storeUploadedArtifact(decision.AppID, decision.AccountID, mimeType, req.GetBytes())
+	stored, _, err := s.storeUploadedArtifact(ctx, decision.AppID, decision.AccountID, decision.RegisteredAppSubject, mimeType, req.GetBytes())
 	if err != nil {
 		return nil, err
 	}

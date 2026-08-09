@@ -15,6 +15,7 @@ import {
 } from './tester-history.js';
 import type { TesterAIConfigSummary } from './tester-ai-config.js';
 import type { TesterCapabilityRunResult } from './tester-runtime.js';
+import { clearTesterManagedHistoryScope, deleteTesterManagedHistoryRecord } from './tester-managed-history.js';
 import { createTesterCapabilityParameterState } from './tester-capability-parameters.js';
 import type { TesterPreferences } from './tester-preferences.js';
 import { AppAccessPanel } from './app-access/app-access-panel.js';
@@ -78,6 +79,15 @@ export function TesterWorkbench(_props: TesterWorkbenchProps) {
   const [ecosystemReference, setEcosystemReference] = useState<TesterEcosystemReferenceProjection | null>(
     () => rendererHost.app.projection.ecosystemReference(),
   );
+  const managedHistoryPort = useMemo(() => ({
+    loadRunHistory: () => rendererHost.app.projection.runHistory(),
+    loadImageHistory: () => rendererHost.app.projection.imageHistory(),
+    removeAsset: (relativePath: string) => rendererHost.sdk.storage.assets.remove(relativePath),
+    removeRunHistory: (runId: string) => rendererHost.app.commands.removeRunHistory(runId),
+    removeImageHistory: (runId: string) => rendererHost.app.commands.removeImageHistory(runId),
+    clearRunHistory: (capabilityId?: string) => rendererHost.app.commands.clearRunHistory(capabilityId ? { capabilityId } : {}),
+    clearImageHistory: (capabilityId?: string) => rendererHost.app.commands.clearImageHistory(capabilityId ? { capabilityId } : {}),
+  }), [rendererHost]);
 
   const updatePreferences = useCallback((patch: Partial<TesterPreferences>) => {
     setPreferences((current) => {
@@ -145,10 +155,28 @@ export function TesterWorkbench(_props: TesterWorkbenchProps) {
     }
   }, [rendererHost]);
 
-  const removeHistoryRecord = useCallback(async (recordId: string) => {
+  const removeHistoryRecord = useCallback(async (recordId: string, deleteAsset = false) => {
     try {
-      setHistory(await rendererHost.app.commands.removeRunHistory(recordId));
+      const outcome = await deleteTesterManagedHistoryRecord(managedHistoryPort, recordId, deleteAsset);
+      setHistory(outcome.runHistory);
+      setImageHistory(outcome.imageHistory);
+      if (outcome.skipped > 0) {
+        nimiToast.danger(t('History.deleteAssetFailed'));
+      } else if (outcome.failed > 0) {
+        nimiToast.danger(t('History.deleteFailed'));
+      } else {
+        nimiToast.success(t(deleteAsset ? 'History.deletedRecordAndAsset' : 'History.deletedRecordOnly'));
+      }
+      for (const issue of outcome.issues) {
+        void rendererHost.app.commands.runtimeLog({
+          level: 'warn',
+          area: 'tester-history',
+          message: issue.step === 'asset' ? 'history-remove-asset-failed' : 'history-remove-failed',
+          details: { recordId: issue.runId, error: issue.message },
+        });
+      }
     } catch (error) {
+      await refreshHistory();
       nimiToast.danger(t('History.deleteFailed'));
       void rendererHost.app.commands.runtimeLog({
         level: 'warn',
@@ -157,13 +185,26 @@ export function TesterWorkbench(_props: TesterWorkbenchProps) {
         details: { recordId, error: error instanceof Error ? error.message : String(error || 'History remove failed.') },
       });
     }
-  }, [rendererHost, t]);
+  }, [managedHistoryPort, refreshHistory, rendererHost, t]);
 
-  const clearHistoryScope = useCallback(async (capabilityId: string | null) => {
+  const clearHistoryScope = useCallback(async (capabilityId: string | null, deleteAssets: boolean) => {
     try {
-      setHistory(await rendererHost.app.commands.clearRunHistory(capabilityId ? { capabilityId } : {}));
-      nimiToast.success(t('History.cleared'));
+      const outcome = await clearTesterManagedHistoryScope(managedHistoryPort, capabilityId, deleteAssets);
+      setHistory(outcome.runHistory);
+      setImageHistory(outcome.imageHistory);
+      for (const issue of outcome.issues) {
+        void rendererHost.app.commands.runtimeLog({
+          level: 'warn',
+          area: 'tester-history',
+          message: issue.step === 'asset' ? 'history-clear-asset-skipped' : 'history-clear-record-failed',
+          details: { runId: issue.runId, error: issue.message },
+        });
+      }
+      nimiToast.success(deleteAssets
+        ? t('History.clearOutcome', { completed: outcome.completed, skipped: outcome.skipped, failed: outcome.failed })
+        : t('History.clearedRecordsOnly'));
     } catch (error) {
+      await refreshHistory();
       nimiToast.danger(t('History.clearFailed'));
       void rendererHost.app.commands.runtimeLog({
         level: 'warn',
@@ -172,7 +213,7 @@ export function TesterWorkbench(_props: TesterWorkbenchProps) {
         details: { capabilityId, error: error instanceof Error ? error.message : String(error || 'History clear failed.') },
       });
     }
-  }, [rendererHost, t]);
+  }, [managedHistoryPort, refreshHistory, rendererHost, t]);
 
   const historyActions = useMemo(() => ({
     removeRecord: removeHistoryRecord,
@@ -331,13 +372,15 @@ export function TesterWorkbench(_props: TesterWorkbenchProps) {
             kind: 'runtime-media',
             capabilityId: historyResult.capabilityId,
             capabilityLabel: historyResult.capabilityLabel,
-            title: firstArtifact?.displayName || firstArtifact?.artifactId || historyResult.output.jobId || historyResult.capabilityLabel,
+            title: firstArtifact?.displayName || firstArtifact?.relativePath || historyResult.output.jobId || historyResult.capabilityLabel,
             status: 'ready',
             createdAt,
             artifactCount: historyResult.output.artifactCount,
-            artifactLabel: firstArtifact?.displayName || firstArtifact?.artifactId,
-            mimeType: firstArtifact?.mimeType,
-            url: firstArtifact?.url && !firstArtifact.url.startsWith('data:') ? firstArtifact.url : undefined,
+            artifactLabel: firstArtifact?.displayName || firstArtifact?.relativePath,
+            relativePath: firstArtifact?.relativePath,
+            mediaType: firstArtifact?.mediaType,
+            sizeBytes: firstArtifact?.sizeBytes,
+            sha256: firstArtifact?.sha256,
             jobId: historyResult.output.jobId,
             jobState: historyResult.output.jobState,
             message: historyResult.message,

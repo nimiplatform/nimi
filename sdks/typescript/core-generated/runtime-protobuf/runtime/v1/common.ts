@@ -668,8 +668,8 @@ export enum ReasonCode {
      */
     AI_LOCAL_SPEECH_BUNDLE_DEGRADED = 565,
     /**
-     * APP_STORAGE family (566+). Exact protected local-app JSON operations
-     * never expose Runtime-owned roots or absolute paths.
+     * APP_STORAGE family (566+). Exact protected local-app JSON and asset
+     * operations never expose Runtime-owned roots or absolute paths.
      *
      * @generated from protobuf enum value: APP_STORAGE_PATH_INVALID = 566;
      */
@@ -686,6 +686,30 @@ export enum ReasonCode {
      * @generated from protobuf enum value: APP_STORAGE_UNAVAILABLE = 569;
      */
     APP_STORAGE_UNAVAILABLE = 569,
+    /**
+     * @generated from protobuf enum value: APP_STORAGE_ENTRY_ALREADY_EXISTS = 581;
+     */
+    APP_STORAGE_ENTRY_ALREADY_EXISTS = 581,
+    /**
+     * @generated from protobuf enum value: APP_STORAGE_OBJECT_TOO_LARGE = 582;
+     */
+    APP_STORAGE_OBJECT_TOO_LARGE = 582,
+    /**
+     * @generated from protobuf enum value: APP_STORAGE_RANGE_INVALID = 583;
+     */
+    APP_STORAGE_RANGE_INVALID = 583,
+    /**
+     * @generated from protobuf enum value: APP_STORAGE_CURSOR_INVALID = 584;
+     */
+    APP_STORAGE_CURSOR_INVALID = 584,
+    /**
+     * @generated from protobuf enum value: APP_STORAGE_INTEGRITY_FAILURE = 585;
+     */
+    APP_STORAGE_INTEGRITY_FAILURE = 585,
+    /**
+     * @generated from protobuf enum value: APP_STORAGE_ARTIFACT_UNAVAILABLE = 586;
+     */
+    APP_STORAGE_ARTIFACT_UNAVAILABLE = 586,
     /**
      * WORKSPACE_BINDING family (570+)
      *

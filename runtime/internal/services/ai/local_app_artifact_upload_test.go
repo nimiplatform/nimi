@@ -28,7 +28,7 @@ func TestUploadLocalAppArtifactStoresSessionOwnerCustody(t *testing.T) {
 		t.Fatalf("upload response = %+v", response)
 	}
 	record, ok := svc.runtimeArtifacts.Get(response.GetArtifactId())
-	if !ok || record.Owner == nil || record.Owner.AppID != "nimi.realm-persona-studio" || record.Owner.SubjectUserID != "account-1" {
+	if !ok || record.Owner == nil || record.Owner.AppID != "nimi.realm-persona-studio" || record.Owner.SubjectUserID != "account-1" || record.Owner.RegisteredAppSubject != "principal-1" {
 		t.Fatalf("stored owner = %+v, present=%v", record.Owner, ok)
 	}
 	read, err := svc.ReadLocalAppArtifact(localAppArtifactReadContext(), &runtimev1.ReadLocalAppArtifactRequest{ArtifactId: response.GetArtifactId()})
@@ -36,7 +36,7 @@ func TestUploadLocalAppArtifactStoresSessionOwnerCustody(t *testing.T) {
 		t.Fatalf("owner read = %+v, error=%v", read, err)
 	}
 	wrongOwner := accountservice.ContextWithAuthorizedLocalAppDecision(context.Background(), accountservice.LocalAppCallerDecision{
-		AccountID: "account-1", AppID: "other-app", RegisteredAppSubject: "principal-1",
+		AccountID: "account-1", AppID: "nimi.realm-persona-studio", RegisteredAppSubject: "principal-2",
 		Operation: accountservice.LocalAppOperationArtifactRead, AuthorityClass: localappop.AuthorityClassAppAccess,
 		OperationCapability: localappop.AppOperationIDArtifactRead,
 	})

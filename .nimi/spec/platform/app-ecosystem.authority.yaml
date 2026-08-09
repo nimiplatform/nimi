@@ -668,7 +668,7 @@ units:
   - id: definition.nimi.platform.app-ecosystem.storage-posture
     kind: definition
     title: Third-party app storage posture
-    meaning: Third-party app storage posture is exactly nimi-mediated-default with the Runtime-derived bounded private-storage template or app-owned-os-storage with explicit OS-path disclosure.
+    meaning: Third-party app storage posture is exactly nimi-mediated-default with Runtime-derived collision-proof private JSON and binary asset namespaces partitioned by current account plus Registered App Subject, or app-owned-os-storage with explicit OS-path disclosure.
   - id: definition.nimi.platform.app-ecosystem.review-decision
     kind: definition
     title: Terminal app admission review decision
@@ -915,7 +915,7 @@ units:
     kind: rule
     title: P-NAPP-015 subject-scoped app storage
     modality: must
-    statement: Mediated storage is a Runtime-private Registered-App-Subject-scoped logical partition whose physical layout remains an implementation detail; Runtime alone resolves the registered subject, uninstall or registration removal tombstones its partition, retained durable data becomes orphaned and delete-only, deletion requires explicit fresh-presence confirmation, and reinstall or a new registration never rebinds it.
+    statement: Mediated storage is a Runtime-private current-account-plus-Registered-App-Subject logical partition whose physical layout remains an implementation detail; Runtime alone resolves both owner components, account switch selects another partition and switching back restores the prior partition, explicit Nimi data reset may remove the current account partition, uninstall or registration removal tombstones retained durable data as orphaned and delete-only, deletion requires explicit fresh-presence confirmation, reinstall or a new registration never rebinds it, and historical subject-only JSON data is a hard cut that the product path neither reads, migrates, nor silently reuses across accounts.
     condition: Whenever app storage is resolved or lifecycle changes.
     failure: Deny caller-derived roots, implicit deletion, or orphan rebinding.
     relations:
@@ -1071,7 +1071,7 @@ units:
     kind: rule
     title: P-NAPP-027 closed storage posture
     modality: must
-    statement: storage_policy_ref.kind is exactly nimi-mediated-default or app-owned-os-storage with no in-place third value, and mediated posture resolves to a Runtime-private Registered-App-Subject-scoped logical partition without exposing its physical layout while materialization remains unavailable until package mapping is admitted.
+    statement: storage_policy_ref.kind is exactly nimi-mediated-default or app-owned-os-storage with no in-place third value, and mediated posture resolves to Runtime-private collision-proof JSON and binary asset namespaces under the current-account-plus-Registered-App-Subject partition without exposing physical layout; once package mapping and a protected session are admitted, the exact managed storage operations may materialize JSON documents and assets without admitting a raw or general filesystem surface.
     condition: Whenever storage posture is admitted or resolved.
     failure: Return storage_policy_kind_unresolved for invalid kind or nimi_mediated_storage_unresolved for unresolved template and typed unavailable for premature materialization.
     relations:
@@ -1085,7 +1085,7 @@ units:
     kind: rule
     title: P-NAPP-027 storage authority classes
     modality: must
-    statement: The calling App's mediated JSON partition is reachable only through the three exact Base storage operations and requires the registered subject, fresh session, current account partition, canonical relative path, type, quota, and symlink policy; cross-App and destructive retained-data access is excluded, while App-owned OS storage remains outside Nimi protected-operation semantics and only an opaque session partition handle is exposed when needed.
+    statement: The calling App's mediated partition is reachable for JSON only through runtime.app-storage.json.read, runtime.app-storage.json.write, and runtime.app-storage.json.remove and for binary assets only through the six Base operations runtime.app-storage.asset.stat, runtime.app-storage.asset.list, runtime.app-storage.asset.write, runtime.app-storage.asset.read, runtime.app-storage.asset.remove, and runtime.app-storage.asset.move; every call requires a fresh session, Runtime-derived current account and Registered App Subject, canonical relative path or bounded prefix, type and integrity validation, the independent JSON or asset quota policy, and filesystem safety, while cross-owner and destructive retained-data access is excluded and App-owned OS storage remains outside Nimi protected-operation semantics.
     condition: Whenever either storage posture is authorized.
     failure: Deny access outside the exact Base operation and storage boundary or any raw account or credential exposure without treating App-owned OS storage as Nimi-mediated.
     relations:
@@ -1554,7 +1554,7 @@ units:
     kind: rule
     title: P-ECO-005 future world and game app boundary
     modality: must
-    statement: A future world or game App remains only a registry candidate, and any cross-world or cross-game flow requires a separate owner-complete authority cut and typed projection while retaining source App, target App, and canonical App owner references on the Realm audit surface; it cannot widen the current four AppAccess domains or twenty-nine operations through registry, review, trust inheritance, or raw sharing.
+    statement: A future world or game App remains only a registry candidate, and any cross-world or cross-game flow requires a separate owner-complete authority cut and typed projection while retaining source App, target App, and canonical App owner references on the Realm audit surface; it cannot widen the current four AppAccess domains or thirty-six operations through registry, review, trust inheritance, or raw sharing.
     condition: Whenever a world or game app class or cross-app flow is proposed.
     failure: Deny admission or data flow without the separate owner authority, projection, audit reference, and trust-tier boundary.
     relations:

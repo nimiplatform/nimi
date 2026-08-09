@@ -24,6 +24,7 @@ const (
 
 type scenarioJobRecord struct {
 	job              *runtimev1.ScenarioJob
+	localAppOwner    *localAppJobOwner
 	events           []*runtimev1.ScenarioJobEvent
 	subscribers      map[uint64]chan *runtimev1.ScenarioJobEvent
 	nextSubID        uint64
@@ -70,6 +71,10 @@ func newScenarioJobStore() *scenarioJobStore {
 }
 
 func (s *scenarioJobStore) create(job *runtimev1.ScenarioJob, cancel context.CancelFunc) *runtimev1.ScenarioJob {
+	return s.createOwned(job, cancel, nil)
+}
+
+func (s *scenarioJobStore) createOwned(job *runtimev1.ScenarioJob, cancel context.CancelFunc, owner *localAppJobOwner) *runtimev1.ScenarioJob {
 	if job == nil {
 		return nil
 	}
@@ -89,13 +94,14 @@ func (s *scenarioJobStore) create(job *runtimev1.ScenarioJob, cancel context.Can
 		job.Status = runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_SUBMITTED
 	}
 	record := &scenarioJobRecord{
-		job:         cloneScenarioJob(job),
-		events:      make([]*runtimev1.ScenarioJobEvent, 0, 8),
-		subscribers: make(map[uint64]chan *runtimev1.ScenarioJobEvent),
-		done:        make(chan struct{}),
-		cancel:      cancel,
-		createdAt:   nowTime,
-		updatedAt:   nowTime,
+		job:           cloneScenarioJob(job),
+		localAppOwner: cloneLocalAppJobOwner(owner),
+		events:        make([]*runtimev1.ScenarioJobEvent, 0, 8),
+		subscribers:   make(map[uint64]chan *runtimev1.ScenarioJobEvent),
+		done:          make(chan struct{}),
+		cancel:        cancel,
+		createdAt:     nowTime,
+		updatedAt:     nowTime,
 	}
 
 	s.mu.Lock()
@@ -105,6 +111,22 @@ func (s *scenarioJobStore) create(job *runtimev1.ScenarioJob, cancel context.Can
 	s.pruneLocked(nowTime)
 	s.mu.Unlock()
 	return cloneScenarioJob(record.job)
+}
+
+func (s *scenarioJobStore) localAppOwner(jobID string) (*localAppJobOwner, bool) {
+	id := strings.TrimSpace(jobID)
+	if id == "" {
+		return nil, false
+	}
+	s.mu.RLock()
+	record := s.jobs[id]
+	if record == nil || !record.localAppOwner.valid() {
+		s.mu.RUnlock()
+		return nil, false
+	}
+	owner := cloneLocalAppJobOwner(record.localAppOwner)
+	s.mu.RUnlock()
+	return owner, true
 }
 
 func (s *scenarioJobStore) get(jobID string) (*runtimev1.ScenarioJob, bool) {

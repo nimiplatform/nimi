@@ -22,7 +22,8 @@ func (s *Service) ReadLocalAppStorageJson(ctx context.Context, req *runtimev1.Re
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_APP_STORAGE_PATH_INVALID)
 	}
 	s.localAppStorageMu.RLock()
-	document, readErr := appstorage.ReadLocalAppJSON(s.appStorageDataRoot, decision.RegisteredAppSubject, req.GetRelativePath())
+	owner := appstorage.ManagedOwner{AccountID: decision.AccountID, RegisteredAppSubject: decision.RegisteredAppSubject}
+	document, readErr := appstorage.ReadLocalAppJSON(s.appStorageDataRoot, owner, req.GetRelativePath())
 	s.localAppStorageMu.RUnlock()
 	if readErr != nil {
 		return nil, localAppStorageFailure(readErr)
@@ -43,7 +44,8 @@ func (s *Service) WriteLocalAppStorageJson(ctx context.Context, req *runtimev1.W
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}
 	s.localAppStorageMu.Lock()
-	document, writeErr := appstorage.WriteLocalAppJSON(s.appStorageDataRoot, decision.RegisteredAppSubject, req.GetRelativePath(), req.GetJsonValue())
+	owner := appstorage.ManagedOwner{AccountID: decision.AccountID, RegisteredAppSubject: decision.RegisteredAppSubject}
+	document, writeErr := appstorage.WriteLocalAppJSON(s.appStorageDataRoot, owner, req.GetRelativePath(), req.GetJsonValue())
 	s.localAppStorageMu.Unlock()
 	if writeErr != nil {
 		return nil, localAppStorageFailure(writeErr)
@@ -64,7 +66,8 @@ func (s *Service) RemoveLocalAppStorageJson(ctx context.Context, req *runtimev1.
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_APP_STORAGE_PATH_INVALID)
 	}
 	s.localAppStorageMu.Lock()
-	removed, removeErr := appstorage.RemoveLocalAppJSON(s.appStorageDataRoot, decision.RegisteredAppSubject, req.GetRelativePath())
+	owner := appstorage.ManagedOwner{AccountID: decision.AccountID, RegisteredAppSubject: decision.RegisteredAppSubject}
+	removed, removeErr := appstorage.RemoveLocalAppJSON(s.appStorageDataRoot, owner, req.GetRelativePath())
 	s.localAppStorageMu.Unlock()
 	if removeErr != nil {
 		return nil, localAppStorageFailure(removeErr)
@@ -79,6 +82,7 @@ func (s *Service) localAppStorageDecision(ctx context.Context, operation account
 	decision, ok := accountservice.AuthorizedLocalAppDecisionFromContext(ctx)
 	if !ok || decision.Operation != operation || decision.AuthorityClass != localappop.AuthorityClassBase ||
 		decision.OperationCapability != appstorage.LocalAppPrivateStorageEntitlement ||
+		strings.TrimSpace(decision.AccountID) == "" || decision.AccountID != strings.TrimSpace(decision.AccountID) ||
 		strings.TrimSpace(decision.RegisteredAppSubject) == "" || decision.RegisteredAppSubject != strings.TrimSpace(decision.RegisteredAppSubject) ||
 		decision.ExpiresAt.IsZero() || !s.now().UTC().Before(decision.ExpiresAt.UTC()) {
 		return accountservice.LocalAppCallerDecision{}, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE)

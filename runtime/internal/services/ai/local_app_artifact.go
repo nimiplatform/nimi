@@ -2,9 +2,7 @@ package ai
 
 import (
 	"context"
-	"crypto/sha256"
-	"encoding/hex"
-	"strings"
+	"io"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
@@ -30,37 +28,25 @@ func (s *Service) ReadLocalAppArtifact(ctx context.Context, req *runtimev1.ReadL
 	if !localAppBoundedIdentifier(artifactID) {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_ARTIFACT_INVALID_INPUT)
 	}
-	if s == nil || s.runtimeArtifacts == nil {
-		return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_ARTIFACT_FORBIDDEN)
+	source, err := s.openAuthorizedLocalAppArtifact(ctx, decision, artifactID, localAppArtifactOperationInlineRead)
+	if err != nil {
+		return nil, err
 	}
-	record, ok := s.runtimeArtifacts.Get(artifactID)
-	if !ok {
-		return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_ARTIFACT_NOT_FOUND)
-	}
-	if record.Owner == nil ||
-		strings.TrimSpace(record.Owner.SubjectUserID) != decision.AccountID ||
-		strings.TrimSpace(record.Owner.AppID) != decision.AppID {
-		return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_ARTIFACT_FORBIDDEN)
-	}
-	if !localAppArtifactRecordIntegrityValid(record) {
-		return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_ARTIFACT_NOT_FOUND)
-	}
+	defer source.Body.Close()
+	record := source.Record
 	if record.SizeBytes > runtimeartifact.MaxInlineBytes {
 		return nil, grpcerr.WithReasonCode(codes.ResourceExhausted, runtimev1.ReasonCode_ARTIFACT_TOO_LARGE)
 	}
+	payload, readErr := io.ReadAll(io.LimitReader(source.Body, runtimeartifact.MaxInlineBytes+1))
+	if readErr != nil || int64(len(payload)) != record.SizeBytes {
+		return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_ARTIFACT_FORBIDDEN)
+	}
+	if len(payload) > runtimeartifact.MaxInlineBytes {
+		return nil, grpcerr.WithReasonCode(codes.ResourceExhausted, runtimev1.ReasonCode_ARTIFACT_TOO_LARGE)
+	}
 	return &runtimev1.ReadLocalAppArtifactResponse{
-		Bytes:     record.Bytes,
+		Bytes:     payload,
 		MimeType:  record.MimeType,
 		SizeBytes: record.SizeBytes,
 	}, nil
-}
-
-// localAppArtifactRecordIntegrityValid mirrors
-// runtimeartifact.artifactRecordIntegrityValid for the Local App read surface.
-func localAppArtifactRecordIntegrityValid(record runtimeartifact.ArtifactRecord) bool {
-	if record.SizeBytes != int64(len(record.Bytes)) || strings.TrimSpace(record.ContentSHA256) == "" {
-		return false
-	}
-	digest := sha256.Sum256(record.Bytes)
-	return strings.EqualFold(strings.TrimSpace(record.ContentSHA256), "sha256:"+hex.EncodeToString(digest[:]))
 }

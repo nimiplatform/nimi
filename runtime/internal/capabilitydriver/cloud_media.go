@@ -6,10 +6,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"math"
 	"net/http"
 	"strconv"
 	"strings"
+	"sync"
+	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
@@ -145,21 +148,167 @@ type CloudMediaStreamChunk struct {
 	FailureReason runtimev1.ReasonCode
 }
 
+type ArtifactBodyKind string
+
+const (
+	ArtifactBodyBoundedBytes       ArtifactBodyKind = "bounded_bytes"
+	ArtifactBodyIncrementalStream  ArtifactBodyKind = "incremental_stream"
+	ArtifactBodyCommittedReference ArtifactBodyKind = "committed_custody_reference"
+)
+
+// ArtifactBody is the closed Host/Driver body handoff. Exactly one variant is
+// present. An accepted incremental stream has one consumer and one Close owner.
+type ArtifactBody struct {
+	mu        sync.Mutex
+	kind      ArtifactBodyKind
+	bytes     []byte
+	stream    io.ReadCloser
+	reference *RuntimeCustodyReference
+}
+
+func NewBoundedArtifactBody(payload []byte) (*ArtifactBody, error) {
+	if len(payload) == 0 {
+		return nil, fmt.Errorf("bounded artifact body is empty")
+	}
+	return &ArtifactBody{kind: ArtifactBodyBoundedBytes, bytes: append([]byte(nil), payload...)}, nil
+}
+
+func NewIncrementalArtifactBody(source io.ReadCloser) (*ArtifactBody, error) {
+	if source == nil {
+		return nil, fmt.Errorf("incremental artifact body is missing")
+	}
+	return &ArtifactBody{kind: ArtifactBodyIncrementalStream, stream: source}, nil
+}
+
+func NewCommittedArtifactBody(reference *RuntimeCustodyReference) (*ArtifactBody, error) {
+	if reference == nil {
+		return nil, fmt.Errorf("committed artifact reference is missing")
+	}
+	return &ArtifactBody{kind: ArtifactBodyCommittedReference, reference: reference}, nil
+}
+
+func (body *ArtifactBody) Kind() ArtifactBodyKind {
+	if body == nil {
+		return ""
+	}
+	return body.kind
+}
+
+func (body *ArtifactBody) BoundedBytes() []byte {
+	if body == nil || body.kind != ArtifactBodyBoundedBytes {
+		return nil
+	}
+	return append([]byte(nil), body.bytes...)
+}
+
+func (body *ArtifactBody) TakeIncrementalStream() io.ReadCloser {
+	if body == nil || body.kind != ArtifactBodyIncrementalStream {
+		return nil
+	}
+	body.mu.Lock()
+	defer body.mu.Unlock()
+	source := body.stream
+	body.stream = nil
+	return source
+}
+
+func (body *ArtifactBody) CommittedReference() *RuntimeCustodyReference {
+	if body == nil || body.kind != ArtifactBodyCommittedReference {
+		return nil
+	}
+	return body.reference
+}
+
+func (body *ArtifactBody) valid() bool {
+	if body == nil {
+		return false
+	}
+	switch body.kind {
+	case ArtifactBodyBoundedBytes:
+		return len(body.bytes) > 0 && body.stream == nil && body.reference == nil
+	case ArtifactBodyIncrementalStream:
+		return len(body.bytes) == 0 && body.stream != nil && body.reference == nil
+	case ArtifactBodyCommittedReference:
+		return len(body.bytes) == 0 && body.stream == nil && body.reference != nil
+	default:
+		return false
+	}
+}
+
+type RuntimeCustodyDescriptor struct {
+	ArtifactID           string
+	AccountID            string
+	RegisteredAppSubject string
+	ProducerAppID        string
+	SizeBytes            int64
+	ContentSHA256        string
+	MIMEType             string
+	EligibleOperation    string
+	ExpiresAt            time.Time
+}
+
+// RuntimeCustodyIssuer is process-private Runtime identity. References issued
+// by another issuer cannot validate even when every visible descriptor value
+// is copied.
+type RuntimeCustodyIssuer struct{ identity *byte }
+
+type RuntimeCustodyReference struct {
+	issuer     *RuntimeCustodyIssuer
+	descriptor RuntimeCustodyDescriptor
+}
+
+func (reference *RuntimeCustodyReference) ArtifactID() string {
+	if reference == nil {
+		return ""
+	}
+	return reference.descriptor.ArtifactID
+}
+
+func NewRuntimeCustodyIssuer() *RuntimeCustodyIssuer {
+	return &RuntimeCustodyIssuer{identity: new(byte)}
+}
+
+func (issuer *RuntimeCustodyIssuer) Issue(descriptor RuntimeCustodyDescriptor) (*RuntimeCustodyReference, error) {
+	descriptor.ArtifactID = strings.TrimSpace(descriptor.ArtifactID)
+	descriptor.AccountID = strings.TrimSpace(descriptor.AccountID)
+	descriptor.RegisteredAppSubject = strings.TrimSpace(descriptor.RegisteredAppSubject)
+	descriptor.ProducerAppID = strings.TrimSpace(descriptor.ProducerAppID)
+	descriptor.ContentSHA256 = strings.ToLower(strings.TrimSpace(descriptor.ContentSHA256))
+	descriptor.MIMEType = strings.ToLower(strings.TrimSpace(descriptor.MIMEType))
+	descriptor.EligibleOperation = strings.TrimSpace(descriptor.EligibleOperation)
+	if issuer == nil || issuer.identity == nil || descriptor.ArtifactID == "" || descriptor.AccountID == "" ||
+		descriptor.RegisteredAppSubject == "" || descriptor.SizeBytes < 0 || descriptor.ContentSHA256 == "" ||
+		descriptor.MIMEType == "" || descriptor.EligibleOperation == "" || !descriptor.ExpiresAt.After(time.Now()) {
+		return nil, fmt.Errorf("Runtime custody descriptor is invalid")
+	}
+	return &RuntimeCustodyReference{issuer: issuer, descriptor: descriptor}, nil
+}
+
+func (issuer *RuntimeCustodyIssuer) Resolve(reference *RuntimeCustodyReference) (RuntimeCustodyDescriptor, bool) {
+	if issuer == nil || issuer.identity == nil || reference == nil || reference.issuer != issuer ||
+		reference.issuer.identity != issuer.identity || !reference.descriptor.ExpiresAt.After(time.Now()) {
+		return RuntimeCustodyDescriptor{}, false
+	}
+	return reference.descriptor, true
+}
+
 // CloudMediaTransportResponse is the credential-free carrier returned by the
 // Remote ExecutionHost before Driver response normalization.
 type CloudMediaTransportResponse struct {
-	Artifacts    []*runtimev1.ScenarioArtifact
-	Usage        *runtimev1.UsageStats
-	FinishReason runtimev1.FinishReason
-	Streamed     bool
+	Artifacts      []*runtimev1.ScenarioArtifact
+	ArtifactBodies map[string]*ArtifactBody
+	Usage          *runtimev1.UsageStats
+	FinishReason   runtimev1.FinishReason
+	Streamed       bool
 }
 
 // CloudMediaResult is the Runtime-normalized media Driver result.
 type CloudMediaResult struct {
-	Artifacts    []*runtimev1.ScenarioArtifact
-	Usage        *runtimev1.UsageStats
-	FinishReason runtimev1.FinishReason
-	Streamed     bool
+	Artifacts      []*runtimev1.ScenarioArtifact
+	ArtifactBodies map[string]*ArtifactBody
+	Usage          *runtimev1.UsageStats
+	FinishReason   runtimev1.FinishReason
+	Streamed       bool
 }
 
 // CloudVoiceWorkflowConfig is catalog/config input to Driver request mapping.
@@ -786,23 +935,31 @@ func (providerCloudMediaDriver) NormalizeVoiceWorkflowResponse(response CloudVoi
 }
 
 func (providerCloudMediaDriver) NormalizeResponse(response CloudMediaTransportResponse) (CloudMediaResult, error) {
+	fail := func(err error) (CloudMediaResult, error) {
+		closeArtifactBodies(response.ArtifactBodies)
+		return CloudMediaResult{}, err
+	}
 	finish := response.FinishReason
 	if finish == runtimev1.FinishReason_FINISH_REASON_UNSPECIFIED {
 		finish = runtimev1.FinishReason_FINISH_REASON_STOP
 	}
 	if finish == runtimev1.FinishReason_FINISH_REASON_ERROR {
-		return CloudMediaResult{}, cloudInvocationError(CloudInvocationFailureResponse, fmt.Errorf("provider returned an error finish reason without an error"))
+		return fail(cloudInvocationError(CloudInvocationFailureResponse, fmt.Errorf("provider returned an error finish reason without an error")))
 	}
 	artifacts := cloneCloudMediaArtifacts(response.Artifacts)
 	if !response.Streamed && len(artifacts) == 0 {
-		return CloudMediaResult{}, cloudInvocationError(CloudInvocationFailureResponse, fmt.Errorf("provider returned no media artifact"))
+		return fail(cloudInvocationError(CloudInvocationFailureResponse, fmt.Errorf("provider returned no media artifact")))
+	}
+	if len(response.ArtifactBodies) != len(artifacts) {
+		return fail(cloudInvocationError(CloudInvocationFailureResponse, fmt.Errorf("remote media artifact body count is invalid")))
 	}
 	for _, artifact := range artifacts {
 		if artifact.GetArtifactId() == "" || artifact.GetArtifactId() != strings.TrimSpace(artifact.GetArtifactId()) {
-			return CloudMediaResult{}, cloudInvocationError(CloudInvocationFailureResponse, fmt.Errorf("provider artifact identity is invalid"))
+			return fail(cloudInvocationError(CloudInvocationFailureResponse, fmt.Errorf("provider artifact identity is invalid")))
 		}
-		if len(artifact.GetBytes()) == 0 && strings.TrimSpace(artifact.GetMimeType()) != "text/plain" && strings.TrimSpace(artifact.GetMimeType()) != "text/plain; charset=utf-8" {
-			return CloudMediaResult{}, cloudInvocationError(CloudInvocationFailureResponse, fmt.Errorf("remote media artifact did not enter Runtime byte custody"))
+		body, ok := response.ArtifactBodies[artifact.GetArtifactId()]
+		if !ok || !body.valid() || len(artifact.GetBytes()) != 0 || strings.TrimSpace(artifact.GetUri()) != "" {
+			return fail(cloudInvocationError(CloudInvocationFailureResponse, fmt.Errorf("remote media artifact body handoff is invalid")))
 		}
 		// Provider URLs and polling envelopes are transport details. The public
 		// artifact is identified by its Runtime artifact id and owned bytes.
@@ -814,11 +971,27 @@ func (providerCloudMediaDriver) NormalizeResponse(response CloudMediaTransportRe
 		usage, _ = proto.Clone(response.Usage).(*runtimev1.UsageStats)
 	}
 	return CloudMediaResult{
-		Artifacts:    artifacts,
-		Usage:        usage,
-		FinishReason: finish,
-		Streamed:     response.Streamed,
+		Artifacts:      artifacts,
+		ArtifactBodies: response.ArtifactBodies,
+		Usage:          usage,
+		FinishReason:   finish,
+		Streamed:       response.Streamed,
 	}, nil
+}
+
+func closeArtifactBodies(values map[string]*ArtifactBody) {
+	for _, body := range values {
+		if body == nil {
+			continue
+		}
+		if stream := body.TakeIncrementalStream(); stream != nil {
+			_ = stream.Close()
+		}
+	}
+}
+
+func CloseArtifactBodies(values map[string]*ArtifactBody) {
+	closeArtifactBodies(values)
 }
 
 func cloneCloudMediaArtifacts(values []*runtimev1.ScenarioArtifact) []*runtimev1.ScenarioArtifact {

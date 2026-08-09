@@ -12,6 +12,38 @@ import { dispatchElectronLocalAppCommand } from '../src/main/local-app-commands.
 import { FakeIpcMain, createInvokeEvent, invokeBridge } from './electron-shell-test-utils.js';
 
 describe('Electron local-app standard-shell operations', () => {
+  it('projects the Runtime asset path and list bounds without narrowing Unicode paths', async () => {
+    const calls: unknown[] = [];
+    const host = {
+      assetStat: async (input: unknown) => { calls.push(['stat', input]); return {}; },
+      assetList: async (input: unknown) => { calls.push(['list', input]); return {}; },
+    } as never;
+    const unicodePath = '媒体/é.wav';
+    const maximumPath = `${'a'.repeat(255)}/${'b'.repeat(255)}/${'c'.repeat(255)}/${'d'.repeat(254)}/e`;
+    await dispatchElectronLocalAppCommand({
+      host, command: NIMI_STANDARD_SHELL_COMMANDS['storage.assetStat'], payload: { relativePath: unicodePath },
+    });
+    await dispatchElectronLocalAppCommand({
+      host, command: NIMI_STANDARD_SHELL_COMMANDS['storage.assetStat'], payload: { relativePath: maximumPath },
+    });
+    await dispatchElectronLocalAppCommand({
+      host, command: NIMI_STANDARD_SHELL_COMMANDS['storage.assetList'],
+      payload: { prefix: '媒体/', cursor: '', pageSize: 500 },
+    });
+    expect(calls).toEqual([
+      ['stat', { relativePath: unicodePath }],
+      ['stat', { relativePath: maximumPath }],
+      ['list', { prefix: '媒体/', cursor: '', pageSize: 500 }],
+    ]);
+    await expect(dispatchElectronLocalAppCommand({
+      host, command: NIMI_STANDARD_SHELL_COMMANDS['storage.assetStat'], payload: { relativePath: '媒体/e\u0301.wav' },
+    })).rejects.toMatchObject({ reasonCode: 'invalid-payload' });
+    await expect(dispatchElectronLocalAppCommand({
+      host, command: NIMI_STANDARD_SHELL_COMMANDS['storage.assetList'],
+      payload: { prefix: '媒体/', cursor: '', pageSize: 501 },
+    })).rejects.toMatchObject({ reasonCode: 'invalid-payload' });
+  });
+
   it('rejects renderer authority before invoking the protected host', async () => {
     const ipcMain = new FakeIpcMain();
     const calls: unknown[] = [];

@@ -1008,6 +1008,69 @@
           "response_stream": false
         },
         {
+          "name": "StatLocalAppAsset",
+          "method_id": "/nimi.runtime.v1.RuntimeAppService/StatLocalAppAsset",
+          "kind": "unary",
+          "request_type": "StatLocalAppAssetRequest",
+          "response_type": "StatLocalAppAssetResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
+          "name": "ListLocalAppAssets",
+          "method_id": "/nimi.runtime.v1.RuntimeAppService/ListLocalAppAssets",
+          "kind": "unary",
+          "request_type": "ListLocalAppAssetsRequest",
+          "response_type": "ListLocalAppAssetsResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
+          "name": "WriteLocalAppAsset",
+          "method_id": "/nimi.runtime.v1.RuntimeAppService/WriteLocalAppAsset",
+          "kind": "client_stream",
+          "request_type": "WriteLocalAppAssetRequest",
+          "response_type": "WriteLocalAppAssetResponse",
+          "request_stream": true,
+          "response_stream": false
+        },
+        {
+          "name": "ReadLocalAppAsset",
+          "method_id": "/nimi.runtime.v1.RuntimeAppService/ReadLocalAppAsset",
+          "kind": "server_stream",
+          "request_type": "ReadLocalAppAssetRequest",
+          "response_type": "ReadLocalAppAssetResponse",
+          "request_stream": false,
+          "response_stream": true
+        },
+        {
+          "name": "RemoveLocalAppAsset",
+          "method_id": "/nimi.runtime.v1.RuntimeAppService/RemoveLocalAppAsset",
+          "kind": "unary",
+          "request_type": "RemoveLocalAppAssetRequest",
+          "response_type": "RemoveLocalAppAssetResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
+          "name": "MoveLocalAppAsset",
+          "method_id": "/nimi.runtime.v1.RuntimeAppService/MoveLocalAppAsset",
+          "kind": "unary",
+          "request_type": "MoveLocalAppAssetRequest",
+          "response_type": "MoveLocalAppAssetResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
+          "name": "AdoptLocalAppArtifact",
+          "method_id": "/nimi.runtime.v1.RuntimeAppService/AdoptLocalAppArtifact",
+          "kind": "unary",
+          "request_type": "AdoptLocalAppArtifactRequest",
+          "response_type": "AdoptLocalAppArtifactResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
           "name": "PrepareLocalAppLaunch",
           "method_id": "/nimi.runtime.v1.RuntimeAppService/PrepareLocalAppLaunch",
           "kind": "unary",
@@ -2573,14 +2636,21 @@
     "/nimi.runtime.v1.RuntimeAiService/SubscribeScenarioJobEvents",
     "/nimi.runtime.v1.RuntimeAiService/UploadArtifact",
     "/nimi.runtime.v1.RuntimeAiService/UploadLocalAppArtifact",
+    "/nimi.runtime.v1.RuntimeAppService/AdoptLocalAppArtifact",
     "/nimi.runtime.v1.RuntimeAppService/BindLocalAppProcess",
     "/nimi.runtime.v1.RuntimeAppService/GetAppStorage",
+    "/nimi.runtime.v1.RuntimeAppService/ListLocalAppAssets",
+    "/nimi.runtime.v1.RuntimeAppService/MoveLocalAppAsset",
     "/nimi.runtime.v1.RuntimeAppService/PrepareLocalAppLaunch",
+    "/nimi.runtime.v1.RuntimeAppService/ReadLocalAppAsset",
     "/nimi.runtime.v1.RuntimeAppService/ReadLocalAppStorageJson",
     "/nimi.runtime.v1.RuntimeAppService/RebindLocalAppProcess",
+    "/nimi.runtime.v1.RuntimeAppService/RemoveLocalAppAsset",
     "/nimi.runtime.v1.RuntimeAppService/RemoveLocalAppStorageJson",
     "/nimi.runtime.v1.RuntimeAppService/SendAppMessage",
+    "/nimi.runtime.v1.RuntimeAppService/StatLocalAppAsset",
     "/nimi.runtime.v1.RuntimeAppService/SubscribeAppMessages",
+    "/nimi.runtime.v1.RuntimeAppService/WriteLocalAppAsset",
     "/nimi.runtime.v1.RuntimeAppService/WriteLocalAppStorageJson",
     "/nimi.runtime.v1.RuntimeArtifactService/CleanupGeneratedVoiceArtifacts",
     "/nimi.runtime.v1.RuntimeArtifactService/PutArtifact",
@@ -3522,6 +3592,14 @@
       "response_type": "UploadLocalAppArtifactResponse"
     },
     {
+      "method_id": "/nimi.runtime.v1.RuntimeAppService/AdoptLocalAppArtifact",
+      "service": "RuntimeAppService",
+      "method": "AdoptLocalAppArtifact",
+      "kind": "unary",
+      "request_type": "AdoptLocalAppArtifactRequest",
+      "response_type": "AdoptLocalAppArtifactResponse"
+    },
+    {
       "method_id": "/nimi.runtime.v1.RuntimeAppService/BindLocalAppProcess",
       "service": "RuntimeAppService",
       "method": "BindLocalAppProcess",
@@ -3538,12 +3616,36 @@
       "response_type": "GetAppStorageResponse"
     },
     {
+      "method_id": "/nimi.runtime.v1.RuntimeAppService/ListLocalAppAssets",
+      "service": "RuntimeAppService",
+      "method": "ListLocalAppAssets",
+      "kind": "unary",
+      "request_type": "ListLocalAppAssetsRequest",
+      "response_type": "ListLocalAppAssetsResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAppService/MoveLocalAppAsset",
+      "service": "RuntimeAppService",
+      "method": "MoveLocalAppAsset",
+      "kind": "unary",
+      "request_type": "MoveLocalAppAssetRequest",
+      "response_type": "MoveLocalAppAssetResponse"
+    },
+    {
       "method_id": "/nimi.runtime.v1.RuntimeAppService/PrepareLocalAppLaunch",
       "service": "RuntimeAppService",
       "method": "PrepareLocalAppLaunch",
       "kind": "unary",
       "request_type": "PrepareLocalAppLaunchRequest",
       "response_type": "PrepareLocalAppLaunchResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAppService/ReadLocalAppAsset",
+      "service": "RuntimeAppService",
+      "method": "ReadLocalAppAsset",
+      "kind": "server_stream",
+      "request_type": "ReadLocalAppAssetRequest",
+      "response_type": "ReadLocalAppAssetResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAppService/ReadLocalAppStorageJson",
@@ -3562,6 +3664,14 @@
       "response_type": "RebindLocalAppProcessResponse"
     },
     {
+      "method_id": "/nimi.runtime.v1.RuntimeAppService/RemoveLocalAppAsset",
+      "service": "RuntimeAppService",
+      "method": "RemoveLocalAppAsset",
+      "kind": "unary",
+      "request_type": "RemoveLocalAppAssetRequest",
+      "response_type": "RemoveLocalAppAssetResponse"
+    },
+    {
       "method_id": "/nimi.runtime.v1.RuntimeAppService/RemoveLocalAppStorageJson",
       "service": "RuntimeAppService",
       "method": "RemoveLocalAppStorageJson",
@@ -3578,12 +3688,28 @@
       "response_type": "SendAppMessageResponse"
     },
     {
+      "method_id": "/nimi.runtime.v1.RuntimeAppService/StatLocalAppAsset",
+      "service": "RuntimeAppService",
+      "method": "StatLocalAppAsset",
+      "kind": "unary",
+      "request_type": "StatLocalAppAssetRequest",
+      "response_type": "StatLocalAppAssetResponse"
+    },
+    {
       "method_id": "/nimi.runtime.v1.RuntimeAppService/SubscribeAppMessages",
       "service": "RuntimeAppService",
       "method": "SubscribeAppMessages",
       "kind": "server_stream",
       "request_type": "SubscribeAppMessagesRequest",
       "response_type": "AppMessageEvent"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAppService/WriteLocalAppAsset",
+      "service": "RuntimeAppService",
+      "method": "WriteLocalAppAsset",
+      "kind": "client_stream",
+      "request_type": "WriteLocalAppAssetRequest",
+      "response_type": "WriteLocalAppAssetResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAppService/WriteLocalAppStorageJson",
@@ -5604,6 +5730,14 @@
       "response_type": "UploadLocalAppArtifactResponse"
     },
     {
+      "method_id": "/nimi.runtime.v1.RuntimeAppService/AdoptLocalAppArtifact",
+      "service": "RuntimeAppService",
+      "method": "AdoptLocalAppArtifact",
+      "kind": "unary",
+      "request_type": "AdoptLocalAppArtifactRequest",
+      "response_type": "AdoptLocalAppArtifactResponse"
+    },
+    {
       "method_id": "/nimi.runtime.v1.RuntimeAppService/BindLocalAppProcess",
       "service": "RuntimeAppService",
       "method": "BindLocalAppProcess",
@@ -5620,12 +5754,36 @@
       "response_type": "GetAppStorageResponse"
     },
     {
+      "method_id": "/nimi.runtime.v1.RuntimeAppService/ListLocalAppAssets",
+      "service": "RuntimeAppService",
+      "method": "ListLocalAppAssets",
+      "kind": "unary",
+      "request_type": "ListLocalAppAssetsRequest",
+      "response_type": "ListLocalAppAssetsResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAppService/MoveLocalAppAsset",
+      "service": "RuntimeAppService",
+      "method": "MoveLocalAppAsset",
+      "kind": "unary",
+      "request_type": "MoveLocalAppAssetRequest",
+      "response_type": "MoveLocalAppAssetResponse"
+    },
+    {
       "method_id": "/nimi.runtime.v1.RuntimeAppService/PrepareLocalAppLaunch",
       "service": "RuntimeAppService",
       "method": "PrepareLocalAppLaunch",
       "kind": "unary",
       "request_type": "PrepareLocalAppLaunchRequest",
       "response_type": "PrepareLocalAppLaunchResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAppService/ReadLocalAppAsset",
+      "service": "RuntimeAppService",
+      "method": "ReadLocalAppAsset",
+      "kind": "server_stream",
+      "request_type": "ReadLocalAppAssetRequest",
+      "response_type": "ReadLocalAppAssetResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAppService/ReadLocalAppStorageJson",
@@ -5644,6 +5802,14 @@
       "response_type": "RebindLocalAppProcessResponse"
     },
     {
+      "method_id": "/nimi.runtime.v1.RuntimeAppService/RemoveLocalAppAsset",
+      "service": "RuntimeAppService",
+      "method": "RemoveLocalAppAsset",
+      "kind": "unary",
+      "request_type": "RemoveLocalAppAssetRequest",
+      "response_type": "RemoveLocalAppAssetResponse"
+    },
+    {
       "method_id": "/nimi.runtime.v1.RuntimeAppService/RemoveLocalAppStorageJson",
       "service": "RuntimeAppService",
       "method": "RemoveLocalAppStorageJson",
@@ -5660,12 +5826,28 @@
       "response_type": "SendAppMessageResponse"
     },
     {
+      "method_id": "/nimi.runtime.v1.RuntimeAppService/StatLocalAppAsset",
+      "service": "RuntimeAppService",
+      "method": "StatLocalAppAsset",
+      "kind": "unary",
+      "request_type": "StatLocalAppAssetRequest",
+      "response_type": "StatLocalAppAssetResponse"
+    },
+    {
       "method_id": "/nimi.runtime.v1.RuntimeAppService/SubscribeAppMessages",
       "service": "RuntimeAppService",
       "method": "SubscribeAppMessages",
       "kind": "server_stream",
       "request_type": "SubscribeAppMessagesRequest",
       "response_type": "AppMessageEvent"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAppService/WriteLocalAppAsset",
+      "service": "RuntimeAppService",
+      "method": "WriteLocalAppAsset",
+      "kind": "client_stream",
+      "request_type": "WriteLocalAppAssetRequest",
+      "response_type": "WriteLocalAppAssetResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAppService/WriteLocalAppStorageJson",
@@ -6922,6 +7104,8 @@
       "AddLocalCapabilityConfigurationRequest",
       "AddLocalCapabilityConfigurationResponse",
       "AdmitProductControlReadyForUseRequest",
+      "AdoptLocalAppArtifactRequest",
+      "AdoptLocalAppArtifactResponse",
       "AgentAutonomyConfig",
       "AgentAutonomyState",
       "AgentAvatarDebugEventDetail",
@@ -7267,6 +7451,8 @@
       "ListLinksResponse",
       "ListLocalAppAgentReferencesRequest",
       "ListLocalAppAgentReferencesResponse",
+      "ListLocalAppAssetsRequest",
+      "ListLocalAppAssetsResponse",
       "ListLocalAppVoiceAssetsRequest",
       "ListLocalAppVoiceAssetsResponse",
       "ListLocalAssetsRequest",
@@ -7318,6 +7504,8 @@
       "LocalAppAgentPresentationSnapshotResponse",
       "LocalAppAgentReference",
       "LocalAppAgentUpdateAutonomyResponse",
+      "LocalAppAssetRange",
+      "LocalAppAssetRecord",
       "LocalAppConversationEvent",
       "LocalAppConversationMessage",
       "LocalAppConversationMessageCommitted",
@@ -7440,6 +7628,8 @@
       "ModelCapabilityProfile",
       "ModelCatalogProviderEntry",
       "ModelDescriptor",
+      "MoveLocalAppAssetRequest",
+      "MoveLocalAppAssetResponse",
       "MusicGenerateResult",
       "MusicGenerateScenarioSpec",
       "NarrativeRecallHit",
@@ -7497,6 +7687,9 @@
       "ReadArtifactBytesResponse",
       "ReadLocalAppArtifactRequest",
       "ReadLocalAppArtifactResponse",
+      "ReadLocalAppAssetMetadata",
+      "ReadLocalAppAssetRequest",
+      "ReadLocalAppAssetResponse",
       "ReadLocalAppStorageJsonRequest",
       "ReadLocalAppStorageJsonResponse",
       "ReadRealtimeEventsRequest",
@@ -7529,6 +7722,8 @@
       "RegisterLocalDevelopmentProjectResponse",
       "RemoveLinkRequest",
       "RemoveLinkResponse",
+      "RemoveLocalAppAssetRequest",
+      "RemoveLocalAppAssetResponse",
       "RemoveLocalAppStorageJsonRequest",
       "RemoveLocalAppStorageJsonResponse",
       "RemoveLocalAssetRequest",
@@ -7643,6 +7838,8 @@
       "StartLocalEnvironmentDependencyJobResponse",
       "StartLocalServiceRequest",
       "StartLocalServiceResponse",
+      "StatLocalAppAssetRequest",
+      "StatLocalAppAssetResponse",
       "StopEngineRequest",
       "StopEngineResponse",
       "StopLocalAssetRequest",
@@ -7745,6 +7942,9 @@
       "WorldSharedBankOwner",
       "WriteAgentMemoryRequest",
       "WriteAgentMemoryResponse",
+      "WriteLocalAppAssetMetadata",
+      "WriteLocalAppAssetRequest",
+      "WriteLocalAppAssetResponse",
       "WriteLocalAppStorageJsonRequest",
       "WriteLocalAppStorageJsonResponse"
     ],
@@ -8258,6 +8458,53 @@
         "name": "AdmitProductControlReadyForUseRequest",
         "fields": [],
         "source_file": "proto/runtime/v1/local_runtime.proto"
+      },
+      {
+        "name": "AdoptLocalAppArtifactRequest",
+        "fields": [
+          {
+            "name": "artifact_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "relative_path",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "overwrite",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          }
+        ],
+        "source_file": "proto/runtime/v1/app.proto"
+      },
+      {
+        "name": "AdoptLocalAppArtifactResponse",
+        "fields": [
+          {
+            "name": "asset",
+            "type": "LocalAppAssetRecord",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "reason_code",
+            "type": "ReasonCode",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/app.proto"
       },
       {
         "name": "AgentAutonomyConfig",
@@ -20024,6 +20271,60 @@
         "source_file": "proto/runtime/v1/agent_service.proto"
       },
       {
+        "name": "ListLocalAppAssetsRequest",
+        "fields": [
+          {
+            "name": "prefix",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "cursor",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "page_size",
+            "type": "int32",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          }
+        ],
+        "source_file": "proto/runtime/v1/app.proto"
+      },
+      {
+        "name": "ListLocalAppAssetsResponse",
+        "fields": [
+          {
+            "name": "assets",
+            "type": "LocalAppAssetRecord",
+            "repeated": true,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "next_cursor",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "reason_code",
+            "type": "ReasonCode",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          }
+        ],
+        "source_file": "proto/runtime/v1/app.proto"
+      },
+      {
         "name": "ListLocalAppVoiceAssetsRequest",
         "fields": [
           {
@@ -21515,6 +21816,81 @@
         "source_file": "proto/runtime/v1/agent_configure.proto"
       },
       {
+        "name": "LocalAppAssetRange",
+        "fields": [
+          {
+            "name": "offset",
+            "type": "int64",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "length",
+            "type": "int64",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "total_size",
+            "type": "int64",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          }
+        ],
+        "source_file": "proto/runtime/v1/app.proto"
+      },
+      {
+        "name": "LocalAppAssetRecord",
+        "fields": [
+          {
+            "name": "relative_path",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "media_type",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "size_bytes",
+            "type": "int64",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "sha256",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "created_at",
+            "type": "google.protobuf.Timestamp",
+            "repeated": false,
+            "optional": false,
+            "number": 5
+          },
+          {
+            "name": "updated_at",
+            "type": "google.protobuf.Timestamp",
+            "repeated": false,
+            "optional": false,
+            "number": 6
+          }
+        ],
+        "source_file": "proto/runtime/v1/app.proto"
+      },
+      {
         "name": "LocalAppConversationEvent",
         "fields": [
           {
@@ -22049,6 +22425,13 @@
             "repeated": false,
             "optional": false,
             "number": 12
+          },
+          {
+            "name": "transcription_text",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 13
           }
         ],
         "source_file": "proto/runtime/v1/ai.proto"
@@ -28317,6 +28700,53 @@
         "source_file": "proto/runtime/v1/model.proto"
       },
       {
+        "name": "MoveLocalAppAssetRequest",
+        "fields": [
+          {
+            "name": "from_relative_path",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "to_relative_path",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "overwrite",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          }
+        ],
+        "source_file": "proto/runtime/v1/app.proto"
+      },
+      {
+        "name": "MoveLocalAppAssetResponse",
+        "fields": [
+          {
+            "name": "asset",
+            "type": "LocalAppAssetRecord",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "reason_code",
+            "type": "ReasonCode",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/app.proto"
+      },
+      {
         "name": "MusicGenerateResult",
         "fields": [
           {
@@ -29833,6 +30263,73 @@
         "source_file": "proto/runtime/v1/ai.proto"
       },
       {
+        "name": "ReadLocalAppAssetMetadata",
+        "fields": [
+          {
+            "name": "asset",
+            "type": "LocalAppAssetRecord",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "range",
+            "type": "LocalAppAssetRange",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/app.proto"
+      },
+      {
+        "name": "ReadLocalAppAssetRequest",
+        "fields": [
+          {
+            "name": "relative_path",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "offset",
+            "type": "int64",
+            "repeated": false,
+            "optional": true,
+            "number": 2
+          },
+          {
+            "name": "length",
+            "type": "int64",
+            "repeated": false,
+            "optional": true,
+            "number": 3
+          }
+        ],
+        "source_file": "proto/runtime/v1/app.proto"
+      },
+      {
+        "name": "ReadLocalAppAssetResponse",
+        "fields": [
+          {
+            "name": "metadata",
+            "type": "ReadLocalAppAssetMetadata",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "body_chunk",
+            "type": "bytes",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/app.proto"
+      },
+      {
         "name": "ReadLocalAppStorageJsonRequest",
         "fields": [
           {
@@ -30673,6 +31170,39 @@
           }
         ],
         "source_file": "proto/runtime/v1/knowledge.proto"
+      },
+      {
+        "name": "RemoveLocalAppAssetRequest",
+        "fields": [
+          {
+            "name": "relative_path",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/app.proto"
+      },
+      {
+        "name": "RemoveLocalAppAssetResponse",
+        "fields": [
+          {
+            "name": "removed",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "reason_code",
+            "type": "ReasonCode",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/app.proto"
       },
       {
         "name": "RemoveLocalAppStorageJsonRequest",
@@ -32495,6 +33025,13 @@
             "repeated": false,
             "optional": false,
             "number": 22
+          },
+          {
+            "name": "transcription_text",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 23
           }
         ],
         "source_file": "proto/runtime/v1/ai.proto"
@@ -34016,6 +34553,39 @@
           }
         ],
         "source_file": "proto/runtime/v1/local_runtime.proto"
+      },
+      {
+        "name": "StatLocalAppAssetRequest",
+        "fields": [
+          {
+            "name": "relative_path",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/app.proto"
+      },
+      {
+        "name": "StatLocalAppAssetResponse",
+        "fields": [
+          {
+            "name": "asset",
+            "type": "LocalAppAssetRecord",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "reason_code",
+            "type": "ReasonCode",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/app.proto"
       },
       {
         "name": "StopEngineRequest",
@@ -37340,6 +37910,73 @@
         "source_file": "proto/runtime/v1/agent_service.proto"
       },
       {
+        "name": "WriteLocalAppAssetMetadata",
+        "fields": [
+          {
+            "name": "relative_path",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "media_type",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "overwrite",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          }
+        ],
+        "source_file": "proto/runtime/v1/app.proto"
+      },
+      {
+        "name": "WriteLocalAppAssetRequest",
+        "fields": [
+          {
+            "name": "metadata",
+            "type": "WriteLocalAppAssetMetadata",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "body_chunk",
+            "type": "bytes",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/app.proto"
+      },
+      {
+        "name": "WriteLocalAppAssetResponse",
+        "fields": [
+          {
+            "name": "asset",
+            "type": "LocalAppAssetRecord",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "reason_code",
+            "type": "ReasonCode",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/app.proto"
+      },
+      {
         "name": "WriteLocalAppStorageJsonRequest",
         "fields": [
           {
@@ -38807,6 +39444,12 @@
           "APP_STORAGE_ENTRY_NOT_FOUND",
           "APP_STORAGE_QUOTA_EXCEEDED",
           "APP_STORAGE_UNAVAILABLE",
+          "APP_STORAGE_ENTRY_ALREADY_EXISTS",
+          "APP_STORAGE_OBJECT_TOO_LARGE",
+          "APP_STORAGE_RANGE_INVALID",
+          "APP_STORAGE_CURSOR_INVALID",
+          "APP_STORAGE_INTEGRITY_FAILURE",
+          "APP_STORAGE_ARTIFACT_UNAVAILABLE",
           "WORKSPACE_BINDING_MISSING",
           "WORKSPACE_BINDING_MALFORMED",
           "WORKSPACE_BINDING_NOT_FOUND",

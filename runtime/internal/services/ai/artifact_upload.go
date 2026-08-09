@@ -1,6 +1,7 @@
 package ai
 
 import (
+	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
@@ -12,6 +13,7 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"github.com/nimiplatform/nimi/runtime/internal/services/runtimeartifact"
 )
 
 const (
@@ -73,7 +75,7 @@ func (s *Service) UploadArtifact(stream runtimev1.RuntimeAiService_UploadArtifac
 		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_ARTIFACT_UPLOAD_INVALID)
 	}
 
-	stored, traceID, err := s.storeUploadedArtifact(meta.GetAppId(), meta.GetSubjectUserId(), meta.GetMimeType(), payload)
+	stored, traceID, err := s.storeUploadedArtifact(stream.Context(), meta.GetAppId(), meta.GetSubjectUserId(), "", meta.GetMimeType(), payload)
 	if err != nil {
 		return err
 	}
@@ -84,7 +86,14 @@ func (s *Service) UploadArtifact(stream runtimev1.RuntimeAiService_UploadArtifac
 // UploadArtifact RPC and the trimmed Local App upload. Caller-specific
 // admission and MIME clamps run before this helper; owner identity is always a
 // Runtime-derived argument and is persisted in both artifact indexes.
-func (s *Service) storeUploadedArtifact(appID string, subjectUserID string, mimeType string, payload []byte) (*runtimev1.ScenarioArtifact, string, error) {
+func (s *Service) storeUploadedArtifact(
+	ctx context.Context,
+	appID string,
+	subjectUserID string,
+	registeredAppSubject string,
+	mimeType string,
+	payload []byte,
+) (*runtimev1.ScenarioArtifact, string, error) {
 	if s == nil || s.scenarioJobs == nil || s.runtimeArtifacts == nil ||
 		strings.TrimSpace(appID) == "" || strings.TrimSpace(subjectUserID) == "" || len(payload) == 0 {
 		return nil, "", grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL)
@@ -102,8 +111,12 @@ func (s *Service) storeUploadedArtifact(appID string, subjectUserID string, mime
 	if stored == nil {
 		return nil, "", grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL)
 	}
-	uploadHead := &runtimev1.ScenarioRequestHead{AppId: appID, SubjectUserId: subjectUserID}
-	if err := s.storeRuntimeOwnedArtifacts(uploadHead, []*runtimev1.ScenarioArtifact{stored}); err != nil {
+	owner := &runtimeartifact.ArtifactOwner{
+		SubjectUserID:        strings.TrimSpace(subjectUserID),
+		RegisteredAppSubject: strings.TrimSpace(registeredAppSubject),
+		AppID:                strings.TrimSpace(appID),
+	}
+	if err := s.storeRuntimeOwnedArtifacts(ctx, owner, []*runtimev1.ScenarioArtifact{stored}); err != nil {
 		if s.logger != nil {
 			s.logger.Warn("store uploaded runtime artifact failed", "artifact_id", stored.GetArtifactId(), "error", err)
 		}

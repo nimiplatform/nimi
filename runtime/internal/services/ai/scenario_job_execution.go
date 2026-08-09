@@ -3,9 +3,13 @@ package ai
 import (
 	"context"
 	"errors"
+	"fmt"
+	"io"
 	"strings"
+	"unicode/utf8"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -68,9 +72,20 @@ func (s *Service) executeScenarioAsyncJob(
 	if existing, ok := s.scenarioJobs.get(jobID); ok && isTerminalScenarioJobStatus(existing.GetStatus()) {
 		return
 	}
+	transcriptionText := ""
 	artifacts, custodyErr := bindRuntimeJobArtifacts(jobID, req.GetHead(), result.Artifacts)
+	var newCustodyIDs []string
 	if custodyErr == nil {
-		custodyErr = s.storeRuntimeJobArtifacts(jobID, req.GetHead(), artifacts)
+		newCustodyIDs, custodyErr = s.storeRuntimeJobArtifacts(ctx, jobID, req.GetHead(), artifacts, result.ArtifactBodies)
+	}
+	if custodyErr == nil {
+		transcriptionText, custodyErr = s.captureScenarioTranscriptionText(ctx, req.GetScenarioType(), artifacts)
+	}
+	if custodyErr != nil {
+		capabilitydriver.CloseArtifactBodies(result.ArtifactBodies)
+		for _, artifactID := range newCustodyIDs {
+			s.deleteRuntimeArtifactCandidate(artifactID, "typed result capture failed")
+		}
 	}
 	if custodyErr != nil {
 		if _, ok := s.scenarioJobs.transition(jobID, runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_FAILED, runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_FAILED, func(job *runtimev1.ScenarioJob) {
@@ -101,8 +116,46 @@ func (s *Service) executeScenarioAsyncJob(
 		}
 		job.ProgressPercent = 100
 		job.Artifacts = cloneScenarioArtifacts(artifacts)
+		job.TranscriptionText = transcriptionText
 		job.Usage = result.Usage
-	}); !ok && s.logger != nil {
-		s.logger.Warn("scenario job transition to COMPLETED failed", "job_id", jobID)
+	}); !ok {
+		for _, artifactID := range newCustodyIDs {
+			s.deleteRuntimeArtifactCandidate(artifactID, "job metadata attachment failed")
+		}
+		if s.logger != nil {
+			s.logger.Warn("scenario job transition to COMPLETED failed", "job_id", jobID)
+		}
 	}
+}
+
+func (s *Service) captureScenarioTranscriptionText(ctx context.Context, scenarioType runtimev1.ScenarioType, artifacts []*runtimev1.ScenarioArtifact) (string, error) {
+	if scenarioType != runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_TRANSCRIBE {
+		return "", nil
+	}
+	for _, artifact := range artifacts {
+		if artifact == nil || !strings.HasPrefix(strings.ToLower(strings.TrimSpace(artifact.GetMimeType())), "text/plain") {
+			continue
+		}
+		if s == nil || s.runtimeArtifacts == nil || artifact.GetSizeBytes() <= 0 || artifact.GetSizeBytes() > maxLocalAppTranscriptionTextBytes {
+			return "", fmt.Errorf("speech transcription result is not bounded UTF-8 text")
+		}
+		source, ok := s.runtimeArtifacts.Open(ctx, artifact.GetArtifactId())
+		if !ok {
+			return "", fmt.Errorf("speech transcription result custody is unavailable")
+		}
+		payload, err := io.ReadAll(io.LimitReader(source.Body, maxLocalAppTranscriptionTextBytes+1))
+		closeErr := source.Body.Close()
+		if err != nil || closeErr != nil || int64(len(payload)) != artifact.GetSizeBytes() {
+			return "", fmt.Errorf("speech transcription result custody could not be read")
+		}
+		if len(payload) == 0 || len(payload) > maxLocalAppTranscriptionTextBytes || !utf8.Valid(payload) {
+			return "", fmt.Errorf("speech transcription result is not bounded UTF-8 text")
+		}
+		text := strings.TrimSpace(string(payload))
+		if text == "" || len([]byte(text)) > maxLocalAppTranscriptionTextBytes {
+			return "", fmt.Errorf("speech transcription result is empty")
+		}
+		return text, nil
+	}
+	return "", fmt.Errorf("speech transcription result artifact is missing")
 }

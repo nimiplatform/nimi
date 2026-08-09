@@ -85,6 +85,7 @@ export type NimiElectronIpcMainInvokeEvent = {
     readonly url?: string;
   } | null;
   readonly sender?: {
+    readonly id?: number;
     readonly send?: (channel: string, payload: unknown) => void;
   };
 };
@@ -334,6 +335,7 @@ export type NimiElectronStandardShellHost = {
   readonly capabilitySetRef?: string;
   readonly allowAllStandardShellCommands?: boolean;
   readonly localAppHost?: import('./local-app-host.js').NimiElectronLocalAppHost;
+  readonly localAppAssetMediaHost?: import('./app-asset-protocol.js').NimiElectronLocalAppAssetMediaHost;
   readonly standardDataRootBinding?: NimiElectronStandardDataRootBinding;
   readonly localAssetRoots?: readonly string[];
   readonly localAssetProtocolHost?: NimiElectronShellFileProtocolHost;

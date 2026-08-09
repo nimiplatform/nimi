@@ -1,6 +1,7 @@
 export * from './host.js';
 export * from './data-root-binding.js';
 export * from './local-asset-protocol.js';
+export * from './app-asset-protocol.js';
 export * from './bundled-avatar-asset-host.js';
 export * from './app-menu.js';
 export * from './agent-center.js';

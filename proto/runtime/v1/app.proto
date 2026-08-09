@@ -136,6 +136,112 @@ message RemoveLocalAppStorageJsonResponse {
   ReasonCode reason_code = 2;
 }
 
+// LocalAppAssetRecord is public metadata for one committed App-private asset.
+// Runtime derives its owner from the protected session and never exposes a
+// physical path or producer identity here.
+message LocalAppAssetRecord {
+  string relative_path = 1;
+  string media_type = 2;
+  int64 size_bytes = 3;
+  string sha256 = 4;
+  google.protobuf.Timestamp created_at = 5;
+  google.protobuf.Timestamp updated_at = 6;
+}
+
+message StatLocalAppAssetRequest {
+  string relative_path = 1;
+}
+
+message StatLocalAppAssetResponse {
+  LocalAppAssetRecord asset = 1;
+  ReasonCode reason_code = 2;
+}
+
+message ListLocalAppAssetsRequest {
+  string prefix = 1;
+  string cursor = 2;
+  int32 page_size = 3;
+}
+
+message ListLocalAppAssetsResponse {
+  repeated LocalAppAssetRecord assets = 1;
+  string next_cursor = 2;
+  ReasonCode reason_code = 3;
+}
+
+message WriteLocalAppAssetMetadata {
+  string relative_path = 1;
+  string media_type = 2;
+  bool overwrite = 3;
+}
+
+message WriteLocalAppAssetRequest {
+  oneof frame {
+    WriteLocalAppAssetMetadata metadata = 1;
+    bytes body_chunk = 2;
+  }
+}
+
+message WriteLocalAppAssetResponse {
+  LocalAppAssetRecord asset = 1;
+  ReasonCode reason_code = 2;
+}
+
+message ReadLocalAppAssetRequest {
+  string relative_path = 1;
+  optional int64 offset = 2;
+  optional int64 length = 3;
+}
+
+message LocalAppAssetRange {
+  int64 offset = 1;
+  int64 length = 2;
+  int64 total_size = 3;
+}
+
+message ReadLocalAppAssetMetadata {
+  LocalAppAssetRecord asset = 1;
+  LocalAppAssetRange range = 2;
+}
+
+message ReadLocalAppAssetResponse {
+  oneof frame {
+    ReadLocalAppAssetMetadata metadata = 1;
+    bytes body_chunk = 2;
+  }
+}
+
+message RemoveLocalAppAssetRequest {
+  string relative_path = 1;
+}
+
+message RemoveLocalAppAssetResponse {
+  bool removed = 1;
+  ReasonCode reason_code = 2;
+}
+
+message MoveLocalAppAssetRequest {
+  string from_relative_path = 1;
+  string to_relative_path = 2;
+  bool overwrite = 3;
+}
+
+message MoveLocalAppAssetResponse {
+  LocalAppAssetRecord asset = 1;
+  ReasonCode reason_code = 2;
+}
+
+message AdoptLocalAppArtifactRequest {
+  string artifact_id = 1;
+  string relative_path = 2;
+  bool overwrite = 3;
+}
+
+message AdoptLocalAppArtifactResponse {
+  LocalAppAssetRecord asset = 1;
+  ReasonCode reason_code = 2;
+}
+
 // === Shared local-app protected launch (K-APP-017 / K-PLOCAL-008) ===
 
 message PrepareLocalAppLaunchRequest {
@@ -187,6 +293,13 @@ service RuntimeAppService {
   rpc ReadLocalAppStorageJson(ReadLocalAppStorageJsonRequest) returns (ReadLocalAppStorageJsonResponse);
   rpc WriteLocalAppStorageJson(WriteLocalAppStorageJsonRequest) returns (WriteLocalAppStorageJsonResponse);
   rpc RemoveLocalAppStorageJson(RemoveLocalAppStorageJsonRequest) returns (RemoveLocalAppStorageJsonResponse);
+  rpc StatLocalAppAsset(StatLocalAppAssetRequest) returns (StatLocalAppAssetResponse);
+  rpc ListLocalAppAssets(ListLocalAppAssetsRequest) returns (ListLocalAppAssetsResponse);
+  rpc WriteLocalAppAsset(stream WriteLocalAppAssetRequest) returns (WriteLocalAppAssetResponse);
+  rpc ReadLocalAppAsset(ReadLocalAppAssetRequest) returns (stream ReadLocalAppAssetResponse);
+  rpc RemoveLocalAppAsset(RemoveLocalAppAssetRequest) returns (RemoveLocalAppAssetResponse);
+  rpc MoveLocalAppAsset(MoveLocalAppAssetRequest) returns (MoveLocalAppAssetResponse);
+  rpc AdoptLocalAppArtifact(AdoptLocalAppArtifactRequest) returns (AdoptLocalAppArtifactResponse);
   rpc PrepareLocalAppLaunch(PrepareLocalAppLaunchRequest) returns (PrepareLocalAppLaunchResponse);
   rpc BindLocalAppProcess(BindLocalAppProcessRequest) returns (BindLocalAppProcessResponse);
   rpc RebindLocalAppProcess(RebindLocalAppProcessRequest) returns (RebindLocalAppProcessResponse);

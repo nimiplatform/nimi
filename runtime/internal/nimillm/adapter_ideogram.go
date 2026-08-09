@@ -65,8 +65,8 @@ func ExecuteIdeogramImage(
 	if err := DoJSONRequest(ctx, http.MethodPost, JoinURL(baseURL, endpoint), apiKey, payload, &resp); err != nil {
 		return nil, nil, "", err
 	}
-	artifactBytes, mimeType, artifactURI := ExtractTaskArtifactBytesAndMIME(ctx, resp)
-	if len(artifactBytes) == 0 {
+	artifactBytes, mimeType, artifactURI := ExtractTaskArtifactSource(ctx, resp)
+	if len(artifactBytes) == 0 && strings.TrimSpace(artifactURI) == "" {
 		return nil, nil, "", grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 	}
 	if mimeType == "" {

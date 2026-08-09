@@ -26,6 +26,8 @@ const (
 	maxLocalAppEmbeddingVectors        = 16
 	maxLocalAppEmbeddingDimensions     = 8192
 	maxLocalAppTraceIDBytes            = 512
+	maxLocalAppTranscriptionTextBytes  = 1 << 20
+	maxLocalAppSafeInteger             = int64(1<<53 - 1)
 )
 
 // localAppScenarioDecision mirrors the GenerateLocalAppTextCandidate admission
@@ -95,18 +97,11 @@ func projectLocalAppScenarioArtifact(artifact *runtimev1.ScenarioArtifact) (*run
 		return invalid()
 	}
 	artifactID := artifact.GetArtifactId()
-	if artifactID != "" && !localAppBoundedIdentifier(artifactID) {
+	if !localAppBoundedIdentifier(artifactID) {
 		return invalid()
 	}
 	mimeType := artifact.GetMimeType()
 	if !localAppExactText(mimeType, maxLocalAppScenarioOptionTextBytes) {
-		return invalid()
-	}
-	payload := artifact.GetBytes()
-	if len(payload) > maxLocalAppInlineArtifactBytes {
-		return invalid()
-	}
-	if artifactID == "" && len(payload) == 0 {
 		return invalid()
 	}
 	sha256 := artifact.GetSha256()
@@ -114,11 +109,11 @@ func projectLocalAppScenarioArtifact(artifact *runtimev1.ScenarioArtifact) (*run
 		return invalid()
 	}
 	sizeBytes := artifact.GetSizeBytes()
-	if sizeBytes < 0 || sizeBytes > maxLocalAppInlineArtifactBytes {
+	if sizeBytes < 0 || sizeBytes > maxLocalAppSafeInteger {
 		return invalid()
 	}
-	if sizeBytes == 0 && len(payload) > 0 {
-		sizeBytes = int64(len(payload))
+	if sizeBytes == 0 && len(artifact.GetBytes()) > 0 {
+		sizeBytes = int64(len(artifact.GetBytes()))
 	}
 	if artifact.GetDurationMs() < 0 || artifact.GetWidth() < 0 || artifact.GetHeight() < 0 ||
 		artifact.GetSampleRateHz() < 0 || artifact.GetChannels() < 0 || artifact.GetFps() < 0 {
@@ -127,7 +122,6 @@ func projectLocalAppScenarioArtifact(artifact *runtimev1.ScenarioArtifact) (*run
 	return &runtimev1.LocalAppScenarioArtifact{
 		ArtifactId:   artifactID,
 		MimeType:     mimeType,
-		Bytes:        payload,
 		SizeBytes:    sizeBytes,
 		Sha256:       sha256,
 		DurationMs:   artifact.GetDurationMs(),

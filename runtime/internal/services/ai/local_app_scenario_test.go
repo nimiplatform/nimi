@@ -130,15 +130,16 @@ func TestProjectLocalAppScenarioArtifactTrimsOwnerFields(t *testing.T) {
 		t.Fatalf("project artifact: %v", err)
 	}
 	if projected.GetArtifactId() != "artifact-1" || projected.GetMimeType() != "image/png" ||
-		string(projected.GetBytes()) != "payload" || projected.GetSizeBytes() != 7 || projected.GetSha256() != "sha256:abc" {
+		len(projected.GetBytes()) != 0 || projected.GetSizeBytes() != 7 || projected.GetSha256() != "sha256:abc" {
 		t.Fatalf("projected artifact = %+v", projected)
 	}
 
-	if _, err := projectLocalAppScenarioArtifact(&runtimev1.ScenarioArtifact{
+	large, err := projectLocalAppScenarioArtifact(&runtimev1.ScenarioArtifact{
 		ArtifactId: "artifact-1", MimeType: "image/png", Bytes: make([]byte, maxLocalAppInlineArtifactBytes+1),
 		SizeBytes: maxLocalAppInlineArtifactBytes + 1,
-	}); err == nil {
-		t.Fatal("oversize inline artifact bytes passed projection")
+	})
+	if err != nil || large.GetSizeBytes() != maxLocalAppInlineArtifactBytes+1 || len(large.GetBytes()) != 0 {
+		t.Fatalf("large metadata projection = %+v, error=%v", large, err)
 	}
 	if _, err := projectLocalAppScenarioArtifact(&runtimev1.ScenarioArtifact{MimeType: "image/png"}); err == nil {
 		t.Fatal("artifact without id or bytes passed projection")

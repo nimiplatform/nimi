@@ -78,7 +78,7 @@ func (s *Service) submitLocalVideoScenarioJob(
 		CreatedAt: now, UpdatedAt: now, TraceId: ulid.Make().String(),
 		ProgressTotalSteps: int32(effective.plan.FrameCount() + 1), IgnoredExtensions: cloneIgnoredScenarioExtensions(ignored),
 	}
-	stored := s.scenarioJobs.create(job, cancel)
+	stored := s.scenarioJobs.createOwned(job, cancel, localAppJobOwnerFromContext(ctx))
 	if stored == nil {
 		cancel()
 		return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
@@ -137,7 +137,7 @@ func (s *Service) runLocalVideoScenarioJob(ctx context.Context, jobID string, ef
 		s.finishLocalVideoJobFailure(ctx, jobID, localVideoMediaError(err))
 		return
 	}
-	_, err = s.storeAndAttachRuntimeJobArtifacts(jobID, effective.head, artifacts, func(candidates []*runtimev1.ScenarioArtifact) bool {
+	_, err = s.storeAndAttachRuntimeJobArtifacts(ctx, jobID, effective.head, artifacts, func(candidates []*runtimev1.ScenarioArtifact) bool {
 		_, ok := s.scenarioJobs.transition(
 			jobID,
 			runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED,

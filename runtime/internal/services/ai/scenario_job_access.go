@@ -9,6 +9,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/protectedprincipal"
 	"github.com/nimiplatform/nimi/runtime/internal/rpcctx"
+	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 )
@@ -242,6 +243,21 @@ func authorizeScenarioJob(ctx context.Context, job *runtimev1.ScenarioJob) error
 }
 
 func (s *Service) authorizeScenarioJob(ctx context.Context, job *runtimev1.ScenarioJob) error {
+	if _, localAppCall := accountservice.AuthorizedLocalAppDecisionFromContext(ctx); localAppCall {
+		jobID := ""
+		if job != nil {
+			jobID = strings.TrimSpace(job.GetJobId())
+		}
+		if owner, ok := s.scenarioJobs.localAppOwner(jobID); ok {
+			return authorizeLocalAppJobOwner(ctx, owner)
+		}
+		if owner, ok := s.voiceAssets.localAppOwner(jobID); ok {
+			return authorizeLocalAppJobOwner(ctx, owner)
+		}
+		// Historical Local App Jobs without an immutable subject-bound owner
+		// are a hard cut and cannot fall back to AppID or ScenarioRequestHead.
+		return grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_APP_SCOPE_FORBIDDEN)
+	}
 	return authorizeScenarioJobWithProvider(ctx, job, s.runtimeAccountProjection)
 }
 

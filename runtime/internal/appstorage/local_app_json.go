@@ -72,19 +72,18 @@ func ParseLocalAppJSONResourceRef(resourceRef string) (string, error) {
 	return NormalizeLocalAppJSONRelativePath(strings.TrimPrefix(resourceRef, prefix))
 }
 
-func ReadLocalAppJSON(dataRootRef, principalID, relativePath string) (LocalAppJSONDocument, error) {
-	root, normalized, err := localAppJSONRoot(dataRootRef, principalID, relativePath)
+func ReadLocalAppJSON(dataRootRef string, owner ManagedOwner, relativePath string) (LocalAppJSONDocument, error) {
+	root, normalized, err := localAppJSONRoot(dataRootRef, owner, relativePath)
 	if err != nil {
 		return LocalAppJSONDocument{}, err
 	}
-	parent, exists, err := resolveLocalAppJSONParent(root, normalized, false)
+	target, exists, err := resolveLocalAppJSONTarget(root, normalized, false)
 	if err != nil {
 		return LocalAppJSONDocument{}, err
 	}
 	if !exists {
 		return LocalAppJSONDocument{}, ErrLocalAppJSONNotFound
 	}
-	target := filepath.Join(parent, filepath.Base(filepath.FromSlash(normalized)))
 	info, err := os.Lstat(target)
 	if errors.Is(err, os.ErrNotExist) {
 		return LocalAppJSONDocument{}, ErrLocalAppJSONNotFound
@@ -105,8 +104,8 @@ func ReadLocalAppJSON(dataRootRef, principalID, relativePath string) (LocalAppJS
 	return LocalAppJSONDocument{JSONValue: value, SizeBytes: int64(len(value))}, nil
 }
 
-func WriteLocalAppJSON(dataRootRef, principalID, relativePath string, value []byte) (LocalAppJSONDocument, error) {
-	root, normalized, err := localAppJSONRoot(dataRootRef, principalID, relativePath)
+func WriteLocalAppJSON(dataRootRef string, owner ManagedOwner, relativePath string, value []byte) (LocalAppJSONDocument, error) {
+	root, normalized, err := localAppJSONRoot(dataRootRef, owner, relativePath)
 	if err != nil {
 		return LocalAppJSONDocument{}, err
 	}
@@ -118,13 +117,12 @@ func WriteLocalAppJSON(dataRootRef, principalID, relativePath string, value []by
 	if err != nil {
 		return LocalAppJSONDocument{}, err
 	}
-	parent, exists, err := resolveLocalAppJSONParent(root, normalized, false)
+	target, exists, err := resolveLocalAppJSONTarget(root, normalized, false)
 	if err != nil {
 		return LocalAppJSONDocument{}, err
 	}
 	var existingSize int64
 	if exists {
-		target := filepath.Join(parent, filepath.Base(filepath.FromSlash(normalized)))
 		if info, statErr := os.Lstat(target); statErr == nil {
 			if !info.Mode().IsRegular() || info.Mode()&os.ModeSymlink != 0 {
 				return LocalAppJSONDocument{}, ErrLocalAppJSONUnavailable
@@ -137,11 +135,11 @@ func WriteLocalAppJSON(dataRootRef, principalID, relativePath string, value []by
 	if usage-existingSize+int64(len(canonical)) > LocalAppJSONPartitionQuotaBytes {
 		return LocalAppJSONDocument{}, ErrLocalAppJSONQuota
 	}
-	parent, _, err = resolveLocalAppJSONParent(root, normalized, true)
+	target, _, err = resolveLocalAppJSONTarget(root, normalized, true)
 	if err != nil {
 		return LocalAppJSONDocument{}, err
 	}
-	target := filepath.Join(parent, filepath.Base(filepath.FromSlash(normalized)))
+	parent := filepath.Dir(target)
 	temporary, err := os.CreateTemp(parent, ".nimi-json-*.tmp")
 	if err != nil {
 		return LocalAppJSONDocument{}, ErrLocalAppJSONUnavailable
@@ -175,16 +173,15 @@ func WriteLocalAppJSON(dataRootRef, principalID, relativePath string, value []by
 	return LocalAppJSONDocument{JSONValue: canonical, SizeBytes: int64(len(canonical))}, nil
 }
 
-func RemoveLocalAppJSON(dataRootRef, principalID, relativePath string) (bool, error) {
-	root, normalized, err := localAppJSONRoot(dataRootRef, principalID, relativePath)
+func RemoveLocalAppJSON(dataRootRef string, owner ManagedOwner, relativePath string) (bool, error) {
+	root, normalized, err := localAppJSONRoot(dataRootRef, owner, relativePath)
 	if err != nil {
 		return false, err
 	}
-	parent, exists, err := resolveLocalAppJSONParent(root, normalized, false)
+	target, exists, err := resolveLocalAppJSONTarget(root, normalized, false)
 	if err != nil || !exists {
 		return false, err
 	}
-	target := filepath.Join(parent, filepath.Base(filepath.FromSlash(normalized)))
 	info, err := os.Lstat(target)
 	if errors.Is(err, os.ErrNotExist) {
 		return false, nil
@@ -198,41 +195,32 @@ func RemoveLocalAppJSON(dataRootRef, principalID, relativePath string) (bool, er
 	return true, nil
 }
 
-func localAppJSONRoot(dataRootRef, principalID, relativePath string) (string, string, error) {
+func localAppJSONRoot(dataRootRef string, owner ManagedOwner, relativePath string) (string, string, error) {
 	normalized, err := NormalizeLocalAppJSONRelativePath(relativePath)
 	if err != nil {
 		return "", "", err
 	}
-	plan, err := ResolveAppRoots(dataRootRef, principalID, "nimi-data-app-roots")
+	ownerRoot, _, err := managedOwnerRoot(dataRootRef, owner)
 	if err != nil {
 		return "", "", ErrLocalAppJSONUnavailable
 	}
-	if err := MaterializeAppRoots(plan); err != nil {
+	root := filepath.Join(ownerRoot, "json", "objects")
+	if err := materializeRoot(dataRootRef, root); err != nil {
 		return "", "", ErrLocalAppJSONUnavailable
 	}
-	return plan.DurableDataRoot, normalized, nil
+	return root, normalized, nil
 }
 
-func resolveLocalAppJSONParent(root, relativePath string, create bool) (string, bool, error) {
-	segments := strings.Split(filepath.FromSlash(relativePath), string(filepath.Separator))
-	current := root
-	for _, segment := range segments[:len(segments)-1] {
-		current = filepath.Join(current, segment)
-		info, err := os.Lstat(current)
-		if errors.Is(err, os.ErrNotExist) {
-			if !create {
-				return "", false, nil
-			}
-			if mkdirErr := os.Mkdir(current, 0o700); mkdirErr != nil && !errors.Is(mkdirErr, os.ErrExist) {
-				return "", false, ErrLocalAppJSONUnavailable
-			}
-			info, err = os.Lstat(current)
-		}
-		if err != nil || info.Mode()&os.ModeSymlink != 0 || !info.IsDir() {
-			return "", false, ErrLocalAppJSONUnavailable
-		}
+func resolveLocalAppJSONTarget(root, relativePath string, create bool) (string, bool, error) {
+	target, err := encodedLogicalPath(root, relativePath, "document.json")
+	if err != nil {
+		return "", false, ErrLocalAppJSONUnavailable
 	}
-	return current, true, nil
+	exists, err := ensureManagedParent(root, target, create)
+	if err != nil {
+		return "", false, ErrLocalAppJSONUnavailable
+	}
+	return target, exists, nil
 }
 
 func localAppJSONPartitionUsage(root string) (int64, error) {
@@ -245,6 +233,9 @@ func localAppJSONPartitionUsage(root string) (int64, error) {
 			return ErrLocalAppJSONUnavailable
 		}
 		if entry.IsDir() {
+			return nil
+		}
+		if entry.Name() != "document.json" {
 			return nil
 		}
 		info, err := entry.Info()

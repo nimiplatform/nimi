@@ -5,6 +5,10 @@ import {
   startNimiElectronLocalAppHostMaintenance,
 } from './local-app-host.js';
 import {
+  createNimiElectronLocalAppAssetMediaHost,
+  type NimiElectronAppAssetMediaPlatform,
+} from './app-asset-protocol.js';
+import {
   NimiElectronShellHostError,
   type NimiElectronCommandHandler,
   type NimiElectronIpcMain,
@@ -12,7 +16,7 @@ import {
 } from './types.js';
 
 const LOCAL_APP_PROTECTED_CARRIER_SENTINEL = 'local-app-protected-carrier-only';
-const REQUIRED_INPUT_KEYS = ['allowedRendererUrls', 'appId', 'ipcMain'] as const;
+const REQUIRED_INPUT_KEYS = ['allowedRendererUrls', 'appId', 'assetMediaPlatform', 'ipcMain'] as const;
 const OPTIONAL_INPUT_KEYS = ['appCommandHandlers'] as const;
 const RESERVED_COMMAND_PREFIX = 'nimi.shell.';
 let sourceLocalDevelopmentParentMonitor: NodeJS.Timeout | undefined;
@@ -20,6 +24,7 @@ let sourceLocalDevelopmentParentMonitor: NodeJS.Timeout | undefined;
 export type RegisterNimiElectronAppBridgeInput = {
   readonly appId: string;
   readonly allowedRendererUrls: readonly string[];
+  readonly assetMediaPlatform: NimiElectronAppAssetMediaPlatform;
   readonly ipcMain: NimiElectronIpcMain;
   /**
    * Exact commands implemented by this app's own native host. These commands
@@ -52,7 +57,12 @@ export function registerNimiElectronAppBridge(
       'provide_exact_local_app_renderer_url',
     );
   }
-  const localAppHost = createNimiElectronLocalAppHost();
+  let localAppAssetMediaHost: ReturnType<typeof createNimiElectronLocalAppAssetMediaHost> | undefined;
+  const localAppHost = createNimiElectronLocalAppHost(() => localAppAssetMediaHost?.invalidateAll());
+  localAppAssetMediaHost = createNimiElectronLocalAppAssetMediaHost({
+    localAppHost,
+    platform: input.assetMediaPlatform,
+  });
   const registered = registerNimiElectronRuntimeBridge({
     appId: input.appId,
     runtimeEndpoint: LOCAL_APP_PROTECTED_CARRIER_SENTINEL,
@@ -70,6 +80,7 @@ export function registerNimiElectronAppBridge(
     standardShellHost: {
       capabilitySetRef: NIMI_LOCAL_APP_STANDARD_SHELL_CAPABILITY_SET_ID,
       localAppHost,
+      localAppAssetMediaHost,
     },
     commandHandlers: validateAppCommandHandlers(input.appCommandHandlers),
   });
@@ -83,9 +94,12 @@ export function registerNimiElectronAppBridge(
     if (closed) return;
     closed = true;
     maintenance?.close();
+    localAppAssetMediaHost.close();
     registered.unregister();
   };
-  maintenance = startNimiElectronLocalAppHostMaintenance(localAppHost);
+  maintenance = startNimiElectronLocalAppHostMaintenance(localAppHost, undefined, () => {
+    localAppAssetMediaHost.invalidateAll();
+  });
   void maintenance.ready.catch(() => undefined);
   return {
     invokeChannel: registered.invokeChannel,

@@ -64,12 +64,12 @@ export type TesterRunHistoryResultSnapshot =
       jobState: string;
       artifactCount: number;
       firstArtifact?: {
-        artifactId?: string;
-        mimeType?: string;
-        url?: string;
+        relativePath: string;
+        mediaType?: string;
+        sizeBytes: number;
+        sha256: string;
         displayName?: string;
-        previewSource?: 'hosted-uri' | 'inline-bytes' | 'metadata-only';
-        sizeBytes?: number;
+        previewSource: 'managed-asset';
       };
       traceId?: string;
       simulated?: boolean;
@@ -247,11 +247,6 @@ function isTesterUnavailableHistorySnapshot(result: TesterRunHistoryResultSnapsh
   return result.ok === false;
 }
 
-function hostedArtifactUrl(url: string | undefined): string | undefined {
-  if (!url || url.startsWith('data:')) return undefined;
-  return url;
-}
-
 export function createTesterRunHistoryResultSnapshot(result: TesterCapabilityRunResult): TesterRunHistoryResultSnapshot {
   if (isTesterUnavailableRunResult(result)) {
     return {
@@ -295,23 +290,11 @@ export function createTesterRunHistoryResultSnapshot(result: TesterCapabilityRun
     };
   }
   if (output.kind === 'artifacts') {
-    const firstArtifact = output.firstArtifact
-      ? (() => {
-          const url = hostedArtifactUrl(output.firstArtifact.url);
-          return {
-            artifactId: output.firstArtifact.artifactId,
-            mimeType: output.firstArtifact.mimeType,
-            url,
-            displayName: output.firstArtifact.displayName,
-            previewSource: url ? 'hosted-uri' as const : 'metadata-only' as const,
-            sizeBytes: output.firstArtifact.sizeBytes,
-          };
-        })()
-      : undefined;
+    const firstArtifact = output.firstArtifact ? { ...output.firstArtifact } : undefined;
     return {
       ok: true,
       kind: 'artifacts',
-      summary: `${output.jobState || 'unknown'} / ${output.artifactCount} artifact${output.artifactCount === 1 ? '' : 's'}${firstArtifact?.mimeType ? ` / ${firstArtifact.mimeType}` : ''}`,
+      summary: `${output.jobState || 'unknown'} / ${output.artifactCount} artifact${output.artifactCount === 1 ? '' : 's'}${firstArtifact?.mediaType ? ` / ${firstArtifact.mediaType}` : ''}`,
       jobId: output.jobId,
       jobState: output.jobState,
       artifactCount: output.artifactCount,

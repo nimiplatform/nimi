@@ -11,7 +11,7 @@ import { getTesterRunIntentLabel, restoreTesterCapabilityRunResult, type TesterR
 import type { TesterCapabilityRunResult, TesterRuntimeInspection } from '../tester-runtime.js';
 import { capabilityUnavailable } from '../tester-unavailable.js';
 import { getCapabilityStudioProfile } from './capability-studio-profiles.js';
-import { CapabilityRunHistory, DrawerErrorBoundary, TesterAiConfigSettingsPanel, artifactExtension, downloadArtifactUrl, downloadTextFile, presetFor, resultPlainText, statusForCapability, type CapabilityStatus, type SectionAITestingProps } from './section-ai-testing-surface.js';
+import { CapabilityRunHistory, DrawerErrorBoundary, TesterAiConfigSettingsPanel, downloadTextFile, presetFor, resultPlainText, statusForCapability, type CapabilityStatus, type SectionAITestingProps } from './section-ai-testing-surface.js';
 import { TextStudioComposer, TextStudioStartState } from './section-ai-testing-composer.js';
 import { CapabilityParameterPanel } from './section-ai-testing-parameters.js';
 import { TextStudioResultState } from './section-ai-testing-result.js';
@@ -252,16 +252,6 @@ function TextStudioShell({
     if (!currentResult) return;
     const stamp = new Date(rendererHost.clock.now()).toISOString().replace(/[:.]/g, '-');
     if (currentResult.ok && currentResult.output.kind === 'artifacts') {
-      const output = currentResult.output;
-      const firstArtifact = output.firstArtifact;
-      if (firstArtifact?.url) {
-        void downloadArtifactUrl(
-          rendererHost.app.commands,
-          `${capability.id}-${stamp}.${artifactExtension(firstArtifact.mimeType)}`,
-          firstArtifact.url,
-        );
-        return;
-      }
       const metadata = resultPlainText(currentResult);
       if (metadata) {
         void downloadTextFile(rendererHost.app.commands, `${capability.id}-${stamp}-artifact-metadata.txt`, metadata);

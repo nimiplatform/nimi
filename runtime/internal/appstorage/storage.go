@@ -338,7 +338,15 @@ func materializeRoot(dataRoot string, target string) error {
 		if err := ensureDirectoryNoSymlink(current); err != nil {
 			if errors.Is(err, os.ErrNotExist) {
 				if mkdirErr := os.Mkdir(current, 0o755); mkdirErr != nil {
-					return mkdirErr
+					// Another operation may have created the same managed
+					// directory after Lstat. Revalidate the winner instead of
+					// treating that safe race as an unavailable storage root.
+					if !errors.Is(mkdirErr, os.ErrExist) {
+						return mkdirErr
+					}
+					if validateErr := ensureDirectoryNoSymlink(current); validateErr != nil {
+						return validateErr
+					}
 				}
 				continue
 			}

@@ -95,13 +95,59 @@ func (h *ProviderMediaHost) ExecuteMedia(
 		return capabilitydriver.CloudMediaTransportResponse{}, h.auditedError(audit, dispatchExit(ctx, "error"), err)
 	}
 	if err := h.recordDispatch(audit, "complete", runtimev1.ReasonCode_ACTION_EXECUTED, false); err != nil {
+		closeNimiArtifactBodies(result.ArtifactBodies)
 		return capabilitydriver.CloudMediaTransportResponse{}, err
 	}
+	bodies, err := cloudArtifactBodiesFromNimi(result.ArtifactBodies)
+	if err != nil {
+		return capabilitydriver.CloudMediaTransportResponse{}, h.auditedError(audit, "error", err)
+	}
 	return capabilitydriver.CloudMediaTransportResponse{
-		Artifacts:    result.Artifacts,
-		Usage:        result.Usage,
-		FinishReason: runtimev1.FinishReason_FINISH_REASON_STOP,
+		Artifacts:      result.Artifacts,
+		ArtifactBodies: bodies,
+		Usage:          result.Usage,
+		FinishReason:   runtimev1.FinishReason_FINISH_REASON_STOP,
 	}, nil
+}
+
+func cloudArtifactBodiesFromNimi(values map[string]*nimillm.MediaArtifactBody) (map[string]*capabilitydriver.ArtifactBody, error) {
+	if len(values) == 0 {
+		return nil, nil
+	}
+	out := make(map[string]*capabilitydriver.ArtifactBody, len(values))
+	for artifactID, body := range values {
+		if strings.TrimSpace(artifactID) == "" || body == nil || (len(body.Bytes) == 0) == (body.Stream == nil) {
+			closeNimiArtifactBodies(values)
+			capabilitydriver.CloseArtifactBodies(out)
+			return nil, fmt.Errorf("provider artifact body handoff is invalid")
+		}
+		var (
+			converted *capabilitydriver.ArtifactBody
+			err       error
+		)
+		if body.Stream != nil {
+			converted, err = capabilitydriver.NewIncrementalArtifactBody(body.Stream)
+			body.Stream = nil
+		} else {
+			converted, err = capabilitydriver.NewBoundedArtifactBody(body.Bytes)
+		}
+		if err != nil {
+			closeNimiArtifactBodies(values)
+			capabilitydriver.CloseArtifactBodies(out)
+			return nil, err
+		}
+		out[artifactID] = converted
+	}
+	return out, nil
+}
+
+func closeNimiArtifactBodies(values map[string]*nimillm.MediaArtifactBody) {
+	for _, body := range values {
+		if body != nil && body.Stream != nil {
+			_ = body.Stream.Close()
+			body.Stream = nil
+		}
+	}
 }
 
 func (h *ProviderMediaHost) DeleteVoiceAsset(

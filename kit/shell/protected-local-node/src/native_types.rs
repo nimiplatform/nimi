@@ -225,6 +225,57 @@ pub struct NativeStorageRemoveInput {
 }
 
 #[napi(object)]
+pub struct NativeAssetListInput {
+    pub prefix: String,
+    pub cursor: String,
+    pub page_size: i32,
+}
+
+#[napi(object)]
+pub struct NativeAssetWriteOpenInput {
+    pub relative_path: String,
+    pub media_type: String,
+    pub overwrite: bool,
+}
+
+#[napi(object)]
+pub struct NativeAssetWriteChunkInput {
+    pub stream_id: String,
+    pub body_chunk: Buffer,
+}
+
+#[napi(object)]
+pub struct NativeAssetReadInput {
+    pub relative_path: String,
+    pub offset: Option<f64>,
+    pub length: Option<f64>,
+}
+
+#[napi(object)]
+pub struct NativeAssetMoveInput {
+    pub from_relative_path: String,
+    pub to_relative_path: String,
+    pub overwrite: bool,
+}
+
+#[napi(object)]
+pub struct NativeAssetAdoptInput {
+    pub artifact_id: String,
+    pub relative_path: String,
+    pub overwrite: bool,
+}
+
+#[napi(object)]
+pub struct NativeAssetReadNextOutcome {
+    pub status: String,
+    pub value: Option<Buffer>,
+    pub completed: Option<bool>,
+    pub reason_code: Option<String>,
+    pub retryable: Option<bool>,
+    pub reason_metadata: Option<JsonValue>,
+}
+
+#[napi(object)]
 pub struct NativeConversationOpenInput {
     pub agent_handle: String,
 }

@@ -1,8 +1,9 @@
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { app, BrowserWindow, ipcMain, Menu } from 'electron';
+import { app, BrowserWindow, ipcMain, Menu, protocol, session, webContents } from 'electron';
 import {
   isAllowedElectronRendererUrl,
+  registerNimiElectronAppAssetProtocolScheme,
   registerNimiElectronAppBridge,
 } from '@nimiplatform/kit/shell/electron/main';
 
@@ -20,11 +21,13 @@ const rendererUrl = readDevelopmentRendererUrl()
 app.setName('Nimi Tester');
 Menu.setApplicationMenu(null);
 configureTesterElectronChromiumRuntime();
+registerNimiElectronAppAssetProtocolScheme(protocol);
 
 void app.whenReady().then(async () => {
   registerNimiElectronAppBridge({
     appId: APP_ID,
     allowedRendererUrls: allowedRendererUrls(),
+    assetMediaPlatform: { protocol, webRequest: session.defaultSession.webRequest, webContents },
     ipcMain,
   });
 

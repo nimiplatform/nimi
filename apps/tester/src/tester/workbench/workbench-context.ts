@@ -46,8 +46,8 @@ export const TesterHistoryLoadContext = createContext<TesterHistoryLoadState | n
 // History mutation + panel-preference actions owned by TesterWorkbench, surfaced
 // inside the history panel without threading props through the studio shell.
 export type TesterHistoryActions = {
-  removeRecord(recordId: string): Promise<void>;
-  clearScope(capabilityId: string | null): Promise<void>;
+  removeRecord(recordId: string, deleteAsset?: boolean): Promise<void>;
+  clearScope(capabilityId: string | null, deleteAssets: boolean): Promise<void>;
 };
 
 export const TesterHistoryActionsContext = createContext<TesterHistoryActions | null>(null);

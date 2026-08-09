@@ -47,7 +47,7 @@ export type TesterTrace = {
 export type TesterTypedOutput =
   | { kind: 'text'; text: string; finishReason: string; inputTokens?: number; outputTokens?: number; totalTokens?: number; streamed: boolean }
   | { kind: 'embedding'; vectorCount: number; dimensions: number; sample: number[]; totalTokens?: number }
-  | { kind: 'artifacts'; jobId: string; jobState: string; artifactCount: number; firstArtifact?: { artifactId?: string; mimeType?: string; url?: string; displayName?: string; previewSource?: 'hosted-uri' | 'inline-bytes' | 'metadata-only'; sizeBytes?: number } }
+  | { kind: 'artifacts'; jobId: string; jobState: string; artifactCount: number; firstArtifact?: { relativePath: string; mediaType?: string; sizeBytes: number; sha256: string; displayName?: string; previewSource: 'managed-asset' } }
   | { kind: 'transcript'; text: string; jobId: string; jobState: string; artifactCount: number }
   | { kind: 'voice-catalog'; voiceCount: number; sample: Array<{ voiceId: string; workflowType: string; status: string }> };
 
@@ -568,17 +568,33 @@ type ArtifactRunnerResult = Awaited<ReturnType<
   | typeof runRuntimeVideoGenerate
   | typeof runRuntimeSpeechSynthesize
 >>;
-type ArtifactRunnerSummary = NonNullable<Extract<ArtifactRunnerResult, { ok: true }>['output']['firstArtifact']>;
-
 async function projectArtifactRunnerResult(
   capability: TesterCapability,
   result: ArtifactRunnerResult,
   client: NimiLocalAppClient,
 ): Promise<TesterCapabilityRunResult> {
   if (result.ok === false) return projectRunnerUnavailable(capability, result);
-  const artifact = result.output.firstArtifact
-    ? await hydrateMetadataOnlyArtifact(result.output.firstArtifact, client)
-    : undefined;
+  const sourceArtifact = result.output.firstArtifact;
+  let artifact: Extract<TesterTypedOutput, { kind: 'artifacts' }>['firstArtifact'];
+  if (sourceArtifact) {
+    if (!sourceArtifact.artifactId) {
+      throw new Error('Runtime artifact metadata omitted the custody artifact identifier required for adoption.');
+    }
+    const relativePath = await managedAssetPath(capability.id, result.output.jobId);
+    const adopted = await client.storage.assets.adoptArtifact({
+      artifactId: sourceArtifact.artifactId,
+      relativePath,
+      overwrite: false,
+    });
+    artifact = {
+      relativePath: adopted.relativePath,
+      ...(adopted.mediaType ? { mediaType: adopted.mediaType } : {}),
+      sizeBytes: adopted.sizeBytes,
+      sha256: adopted.sha256,
+      displayName: capability.label,
+      previewSource: 'managed-asset',
+    };
+  }
   return {
     ok: true,
     capabilityId: capability.id,
@@ -591,12 +607,12 @@ async function projectArtifactRunnerResult(
       artifactCount: result.output.artifactCount,
       ...(artifact ? {
         firstArtifact: {
-          ...(artifact.artifactId ? { artifactId: artifact.artifactId } : {}),
-          mimeType: artifact.mimeType,
-          ...(artifact.previewUrl ? { url: artifact.previewUrl } : {}),
+          relativePath: artifact.relativePath,
+          ...(artifact.mediaType ? { mediaType: artifact.mediaType } : {}),
+          sha256: artifact.sha256,
           previewSource: artifact.previewSource,
-          ...(artifact.sizeBytes !== undefined ? { sizeBytes: artifact.sizeBytes } : {}),
-          displayName: capability.label,
+          sizeBytes: artifact.sizeBytes,
+          ...(artifact.displayName ? { displayName: artifact.displayName } : {}),
         },
       } : {}),
     },
@@ -604,36 +620,11 @@ async function projectArtifactRunnerResult(
   };
 }
 
-async function hydrateMetadataOnlyArtifact(
-  artifact: ArtifactRunnerSummary,
-  client: NimiLocalAppClient,
-): Promise<ArtifactRunnerSummary> {
-  if (artifact.previewSource !== 'metadata-only' || !artifact.artifactId) return artifact;
-  try {
-    const read = await client.ai.artifacts.read(artifact.artifactId);
-    if (read.bytes.length === 0) return artifact;
-    const mimeType = read.mimeType.trim() || artifact.mimeType;
-    return {
-      ...artifact,
-      mimeType,
-      previewUrl: artifactDataUrl(read.bytes, mimeType),
-      previewSource: 'inline-bytes',
-      sizeBytes: read.sizeBytes,
-    };
-  } catch {
-    // Generation remains a typed success, but the renderer receives the exact
-    // metadata-only state and explains that no preview bytes were available.
-    return artifact;
-  }
-}
-
-function artifactDataUrl(bytes: Uint8Array, mimeType: string): string {
-  let binary = '';
-  const chunkSize = 0x8000;
-  for (let offset = 0; offset < bytes.length; offset += chunkSize) {
-    binary += String.fromCharCode(...bytes.subarray(offset, offset + chunkSize));
-  }
-  return `data:${mimeType};base64,${btoa(binary)}`;
+async function managedAssetPath(capabilityId: TesterCapabilityId, jobId: string): Promise<string> {
+  const bytes = new TextEncoder().encode(jobId);
+  const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', bytes));
+  const token = Array.from(digest, (byte) => byte.toString(16).padStart(2, '0')).join('');
+  return `media/${capabilityId.replaceAll('.', '-')}/${token}.asset`;
 }
 
 function projectRunnerUnavailable(

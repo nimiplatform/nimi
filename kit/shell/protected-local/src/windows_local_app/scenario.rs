@@ -50,6 +50,7 @@ const MAX_PROMPT_BYTES: usize = 32 * 1024;
 const MAX_VIDEO_TEXT_BYTES: usize = 8 * 1024;
 const MAX_URI_BYTES: usize = 2048;
 const MAX_REFERENCE_AUDIO_BYTES: usize = 20 * 1024 * 1024;
+const MAX_TRANSCRIPTION_TEXT_BYTES: usize = 256 * 1024;
 
 pub(super) async fn execute(
     channel: Channel,
@@ -848,6 +849,8 @@ fn project_job(job: LocalAppScenarioJob) -> Result<JsonValue, LocalAppOperationE
         || job.progress_current_step > job.progress_total_steps
         || job.reason_detail.len() > MAX_REASON_DETAIL_BYTES
         || (!job.reason_detail.is_empty() && job.reason_detail.trim() != job.reason_detail)
+        || job.transcription_text.len() > MAX_TRANSCRIPTION_TEXT_BYTES
+        || (scenario_type != "speech-transcribe" && !job.transcription_text.is_empty())
     {
         return Err(untrusted());
     }
@@ -871,6 +874,7 @@ fn project_job(job: LocalAppScenarioJob) -> Result<JsonValue, LocalAppOperationE
         "traceId": job.trace_id,
         "createdAt": project_timestamp(job.created_at)?,
         "updatedAt": project_timestamp(job.updated_at)?,
+        "transcriptionText": job.transcription_text,
     }))
 }
 

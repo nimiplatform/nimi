@@ -221,6 +221,11 @@ func projectLocalAppScenarioJob(job *runtimev1.ScenarioJob) (*runtimev1.LocalApp
 	if !localAppOptionalExactText(job.GetTraceId(), maxLocalAppTraceIDBytes) {
 		return invalid()
 	}
+	transcriptionText := job.GetTranscriptionText()
+	if !localAppOptionalExactText(transcriptionText, maxLocalAppTranscriptionTextBytes) ||
+		(job.GetScenarioType() != runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_TRANSCRIBE && transcriptionText != "") {
+		return invalid()
+	}
 	var artifacts []*runtimev1.LocalAppScenarioArtifact
 	if len(job.GetArtifacts()) > 0 {
 		projected, err := projectLocalAppScenarioArtifacts(job.GetArtifacts())
@@ -242,6 +247,7 @@ func projectLocalAppScenarioJob(job *runtimev1.ScenarioJob) (*runtimev1.LocalApp
 		TraceId:             job.GetTraceId(),
 		CreatedAt:           job.GetCreatedAt(),
 		UpdatedAt:           job.GetUpdatedAt(),
+		TranscriptionText:   transcriptionText,
 	}, nil
 }
 

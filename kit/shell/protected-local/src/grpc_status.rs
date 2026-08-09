@@ -90,7 +90,8 @@ pub(crate) fn local_app_error_from_status(status: Status) -> LocalAppOperationEr
         Code::PermissionDenied => LocalAppReasonCode::RuntimeAccessDenied,
         Code::NotFound => LocalAppReasonCode::NotFound,
         Code::ResourceExhausted => LocalAppReasonCode::ResourceExhausted,
-        Code::Unavailable | Code::DeadlineExceeded | Code::Cancelled => {
+        Code::Cancelled => LocalAppReasonCode::Canceled,
+        Code::Unavailable | Code::DeadlineExceeded => {
             LocalAppReasonCode::RuntimeServiceUnavailable
         }
         _ => LocalAppReasonCode::RuntimeServiceErrorUnclassified,
@@ -148,6 +149,12 @@ pub(crate) fn local_app_reason_from_proto(value: i32) -> Option<LocalAppReasonCo
         566 => LocalAppReasonCode::InvalidPath,
         567 | 662 => LocalAppReasonCode::NotFound,
         568 | 664 => LocalAppReasonCode::ResourceExhausted,
+        581 => LocalAppReasonCode::AlreadyExists,
+        582 => LocalAppReasonCode::ObjectTooLarge,
+        583 => LocalAppReasonCode::InvalidRange,
+        584 => LocalAppReasonCode::InvalidCursor,
+        585 => LocalAppReasonCode::IntegrityFailure,
+        586 => LocalAppReasonCode::ArtifactUnavailable,
         569 | 661 | 667 => LocalAppReasonCode::RuntimeServiceUnavailable,
         663 | 665 => LocalAppReasonCode::InvalidPayload,
         666 => LocalAppReasonCode::RuntimeServiceUntrusted,
@@ -205,6 +212,13 @@ fn local_app_reason_from_runtime_reason(value: &str) -> Option<LocalAppReasonCod
         "AI_CONFIG_PERSISTENCE_UNAVAILABLE" => LocalAppReasonCode::AiConfigPersistenceUnavailable,
         "PROTOCOL_ENVELOPE_INVALID" => LocalAppReasonCode::InvalidPayload,
         "APP_STORAGE_PATH_INVALID" => LocalAppReasonCode::InvalidPath,
+        "APP_STORAGE_ENTRY_ALREADY_EXISTS" => LocalAppReasonCode::AlreadyExists,
+        "APP_STORAGE_OBJECT_TOO_LARGE" => LocalAppReasonCode::ObjectTooLarge,
+        "APP_STORAGE_RANGE_INVALID" => LocalAppReasonCode::InvalidRange,
+        "APP_STORAGE_CURSOR_INVALID" => LocalAppReasonCode::InvalidCursor,
+        "APP_STORAGE_INTEGRITY_FAILURE" => LocalAppReasonCode::IntegrityFailure,
+        "APP_STORAGE_ARTIFACT_UNAVAILABLE" => LocalAppReasonCode::ArtifactUnavailable,
+        "OPERATION_CANCELED" | "CANCELED" => LocalAppReasonCode::Canceled,
         "APP_STORAGE_ENTRY_NOT_FOUND" | "ARTIFACT_NOT_FOUND" => LocalAppReasonCode::NotFound,
         "APP_STORAGE_QUOTA_EXCEEDED" | "RESOURCE_EXHAUSTED" | "ARTIFACT_TOO_LARGE" => {
             LocalAppReasonCode::ResourceExhausted

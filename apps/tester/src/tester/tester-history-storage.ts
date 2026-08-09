@@ -87,15 +87,17 @@ function validateHistoryResult(value: unknown, path: string): void {
     nonNegativeNumber(value.artifactCount, `${path}.artifactCount`);
     if (value.firstArtifact !== undefined) {
       if (!isJsonObject(value.firstArtifact)) historyPayloadError(`${path}.firstArtifact`, 'requires an object when present');
-      optionalString(value.firstArtifact.artifactId, `${path}.firstArtifact.artifactId`);
-      optionalString(value.firstArtifact.mimeType, `${path}.firstArtifact.mimeType`);
-      optionalString(value.firstArtifact.url, `${path}.firstArtifact.url`);
-      optionalString(value.firstArtifact.displayName, `${path}.firstArtifact.displayName`);
-      if (value.firstArtifact.previewSource !== undefined
-        && !['hosted-uri', 'inline-bytes', 'metadata-only'].includes(String(value.firstArtifact.previewSource))) {
-        historyPayloadError(`${path}.firstArtifact.previewSource`, 'has an unsupported value');
+      requiredString(value.firstArtifact.relativePath, `${path}.firstArtifact.relativePath`);
+      optionalString(value.firstArtifact.mediaType, `${path}.firstArtifact.mediaType`);
+      nonNegativeNumber(value.firstArtifact.sizeBytes, `${path}.firstArtifact.sizeBytes`);
+      requiredString(value.firstArtifact.sha256, `${path}.firstArtifact.sha256`);
+      if (!/^sha256:[0-9a-f]{64}$/u.test(value.firstArtifact.sha256 as string)) {
+        historyPayloadError(`${path}.firstArtifact.sha256`, 'requires a canonical SHA-256 digest');
       }
-      optionalNonNegativeNumber(value.firstArtifact.sizeBytes, `${path}.firstArtifact.sizeBytes`);
+      optionalString(value.firstArtifact.displayName, `${path}.firstArtifact.displayName`);
+      if (value.firstArtifact.previewSource !== 'managed-asset') {
+        historyPayloadError(`${path}.firstArtifact.previewSource`, 'requires managed-asset');
+      }
     }
     return;
   }

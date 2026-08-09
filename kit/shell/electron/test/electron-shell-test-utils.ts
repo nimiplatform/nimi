@@ -33,6 +33,7 @@ export function createInvokeEvent(origin = 'http://localhost:1430') {
     event: {
       senderFrame: { origin },
       sender: {
+        id: 1,
         send: (channel: string, payload: unknown) => {
           sent.push({ channel, payload });
         },

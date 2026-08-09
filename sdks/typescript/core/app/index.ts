@@ -130,6 +130,10 @@ export type {
   NimiLocalAppVoiceAsset,
   NimiAppRuntimeStorageDocument,
   NimiAppRuntimeStorageRemoveResult,
+  NimiLocalAppAssetBody,
+  NimiLocalAppAssetReadResult,
+  NimiLocalAppAssetRecord,
+  NimiLocalAppAssetsClient,
 } from './local-app-runtime-platform.js';
 export {
   NIMI_APP_AI_PROFILE_FACTORY_ROWS,

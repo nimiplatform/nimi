@@ -10,6 +10,7 @@ import (
 	"image"
 	"image/color"
 	"image/png"
+	"io"
 	"math"
 	"os"
 	"path/filepath"
@@ -164,6 +165,11 @@ func (s *rejectingRuntimeArtifactStore) Put(string, runtimeartifact.ArtifactReco
 	return errors.New("artifact store rejected candidate")
 }
 
+func (s *rejectingRuntimeArtifactStore) PutStream(_ context.Context, _ string, _ runtimeartifact.ArtifactRecord, source io.ReadCloser) error {
+	_ = source.Close()
+	return errors.New("artifact store rejected candidate")
+}
+
 type secondPutRejectingRuntimeArtifactStore struct {
 	*runtimeartifact.MemoryStore
 	puts int
@@ -175,6 +181,15 @@ func (s *secondPutRejectingRuntimeArtifactStore) Put(artifactID string, record r
 		return errors.New("artifact store rejected second candidate")
 	}
 	return s.MemoryStore.Put(artifactID, record)
+}
+
+func (s *secondPutRejectingRuntimeArtifactStore) PutStream(ctx context.Context, artifactID string, record runtimeartifact.ArtifactRecord, source io.ReadCloser) error {
+	s.puts++
+	if s.puts == 2 {
+		_ = source.Close()
+		return errors.New("artifact store rejected second candidate")
+	}
+	return s.MemoryStore.PutStream(ctx, artifactID, record, source)
 }
 
 func TestNormalizeLocalVideoSpecExplicitZeroAndFalseOverrideDefaults(t *testing.T) {
@@ -291,7 +306,7 @@ func TestLocalVideoHappyPathPreservesProgressSnapshotAndJobCustody(t *testing.T)
 	}
 	artifact := terminal.GetArtifacts()[0]
 	if artifact.GetMimeType() != videomedia.MIMETypeMP4 || artifact.GetWidth() != 512 || artifact.GetHeight() != 288 || artifact.GetFps() != 24 ||
-		artifact.GetChannels() != 2 || artifact.GetSampleRateHz() != 32000 || artifact.GetDurationMs() <= 0 || len(artifact.GetBytes()) == 0 {
+		artifact.GetChannels() != 2 || artifact.GetSampleRateHz() != 32000 || artifact.GetDurationMs() <= 0 || len(artifact.GetBytes()) != 0 || artifact.GetSizeBytes() == 0 {
 		t.Fatalf("video artifact = %+v", artifact)
 	}
 	if artifact.GetMetadata().GetFields()["frame_count"].GetNumberValue() != 22 || artifact.GetMetadata().GetFields()["producer_job_id"].GetStringValue() != jobID ||
@@ -304,7 +319,7 @@ func TestLocalVideoHappyPathPreservesProgressSnapshotAndJobCustody(t *testing.T)
 	}
 	artifactService := runtimeartifact.New(svc.runtimeArtifacts, nil)
 	read, err := artifactService.ReadArtifactBytes(ownerCtx, &runtimev1.ReadArtifactBytesRequest{ArtifactId: artifact.GetArtifactId()})
-	if err != nil || string(read.GetBytes()) != string(artifact.GetBytes()) {
+	if err != nil || len(read.GetBytes()) == 0 || read.GetSizeBytes() != artifact.GetSizeBytes() {
 		t.Fatalf("owner read = %+v error=%v", read, err)
 	}
 	host.mu.Lock()
@@ -361,10 +376,14 @@ func TestLocalVideoReturnLastFramePublishesReadableJobBoundPNG(t *testing.T) {
 	}
 	main, lastFrame := terminal.GetArtifacts()[0], terminal.GetArtifacts()[1]
 	if main.GetMimeType() != videomedia.MIMETypeMP4 || lastFrame.GetMimeType() != videomedia.MIMETypePNG ||
-		lastFrame.GetWidth() != 64 || lastFrame.GetHeight() != 64 || len(lastFrame.GetBytes()) == 0 {
+		lastFrame.GetWidth() != 64 || lastFrame.GetHeight() != 64 || len(lastFrame.GetBytes()) != 0 || lastFrame.GetSizeBytes() == 0 {
 		t.Fatalf("last-frame artifacts = main=%+v last=%+v", main, lastFrame)
 	}
-	config, err := png.DecodeConfig(bytes.NewReader(lastFrame.GetBytes()))
+	lastFrameRecord, ok := svc.runtimeArtifacts.Get(lastFrame.GetArtifactId())
+	if !ok {
+		t.Fatalf("last-frame custody missing")
+	}
+	config, err := png.DecodeConfig(bytes.NewReader(lastFrameRecord.Bytes))
 	if err != nil || config.Width != 64 || config.Height != 64 {
 		t.Fatalf("decode last-frame PNG: config=%+v error=%v", config, err)
 	}

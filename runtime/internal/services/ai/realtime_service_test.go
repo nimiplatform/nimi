@@ -61,8 +61,8 @@ func TestUploadArtifactStoresArtifact(t *testing.T) {
 	if artifact.GetArtifactId() == "" {
 		t.Fatal("expected artifact id")
 	}
-	if string(artifact.GetBytes()) != "wave-bytes" {
-		t.Fatalf("unexpected artifact bytes: %q", string(artifact.GetBytes()))
+	if len(artifact.GetBytes()) != 0 || artifact.GetSizeBytes() != int64(len("wave-bytes")) {
+		t.Fatalf("unexpected artifact projection: %+v", artifact)
 	}
 	stored, _, ok := svc.scenarioJobs.findArtifact("nimi.desktop", "user-001", artifact.GetArtifactId())
 	if !ok || stored == nil {

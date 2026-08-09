@@ -3,6 +3,7 @@ import { Dialog, DialogContent, DialogTitle, IconButton, nimiToast, Tooltip } fr
 import { Copy as CopyIcon, Download as DownloadIcon, Maximize2, X } from 'lucide-react';
 import { t as i18nT, useTranslation } from '../../shell/i18n/index.js';
 import { useTesterRendererHost } from '../../renderer/context.js';
+import { openNimiLocalAppAssetMediaUrl } from '@nimiplatform/kit/shell/renderer/bridge';
 import type { TesterRendererCommandPort } from '../../renderer/contract.js';
 import type { TesterCapabilityRunResult } from '../tester-runtime.js';
 import { unavailableReasonTitle } from '../tester-unavailable.js';
@@ -125,9 +126,8 @@ export function hasPreviewableArtifact(artifact?: StudioArtifactPreviewSource): 
   return hasStudioArtifactMedia(artifact);
 }
 
-// Rich media preview for runtime artifact results (image / audio / video).
-// It only renders from a typed artifact URL/MIME pair; no placeholder media is
-// fabricated when Runtime returns metadata without previewable bytes.
+// Rich media preview for managed Runtime assets. The only URL exposed to the
+// renderer is Kit's short-lived opaque handle; cleanup revokes it.
 export function ArtifactMediaPreview({
   artifact,
   fallbackLabel,
@@ -135,16 +135,35 @@ export function ArtifactMediaPreview({
   artifact?: StudioArtifactPreviewSource;
   fallbackLabel: string;
 }) {
-  const url = artifact?.url;
-  const mimeType = artifact?.mimeType ?? '';
+  const relativePath = artifact?.relativePath;
+  const mimeType = artifact?.mediaType ?? '';
   const branch = studioArtifactRenderBranch(artifact);
   const { t } = useTranslation();
   const [imagePreviewOpen, setImagePreviewOpen] = useState(false);
+  const [url, setUrl] = useState<string | null>(null);
   useEffect(() => {
     setImagePreviewOpen(false);
-  }, [mimeType, url]);
+    setUrl(null);
+    if (!relativePath || !hasPreviewableArtifact(artifact)) return undefined;
+    let active = true;
+    let revoke: (() => Promise<void>) | null = null;
+    void openNimiLocalAppAssetMediaUrl(relativePath)
+      .then((handle) => {
+        revoke = handle.revoke;
+        if (active) setUrl(handle.url);
+        else void handle.revoke();
+      })
+      .catch(() => {
+        if (active) setUrl(null);
+      });
+    return () => {
+      active = false;
+      setUrl(null);
+      if (revoke) void revoke();
+    };
+  }, [artifact, mimeType, relativePath]);
   if (!hasPreviewableArtifact(artifact) || !url) return null;
-  const label = artifact?.displayName || artifact?.artifactId || fallbackLabel;
+  const label = artifact?.displayName || relativePath || fallbackLabel;
   const isImage = branch === 'image';
   let media: ReactNode = null;
   if (isImage) {

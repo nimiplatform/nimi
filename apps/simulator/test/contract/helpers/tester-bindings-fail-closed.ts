@@ -5,6 +5,18 @@ import { createTesterSimulatorBindings } from '../../../../tester/src/simulator/
 import { simulatorConformanceFixture } from '../../../../tester/src/simulator/fixture.ts';
 import { fixtureCanonicalBindings } from '../fixtures.mjs';
 
+function asset(relativePath: string, body: readonly number[]) {
+  return {
+    relativePath,
+    mediaType: 'application/octet-stream',
+    sizeBytes: body.length,
+    sha256: `sha256:${'a'.repeat(64)}`,
+    createdAt: '2026-08-09T00:00:00Z',
+    updatedAt: '2026-08-09T00:00:00Z',
+    body,
+  };
+}
+
 const projection = {
   protocolRevision: 1,
   scenario: {
@@ -23,6 +35,12 @@ const projection = {
   },
   runHistory: {},
   imageHistory: [],
+  assets: {
+    foo: asset('foo', [1, 2, 3]),
+    'foo/child.bin': asset('foo/child.bin', [4]),
+    foobar: asset('foobar', [5]),
+    '媒体/é.wav': asset('媒体/é.wav', [6, 7]),
+  },
   promptDrafts: {},
   ecosystemReference: null,
   personaReference: null,
@@ -119,8 +137,35 @@ assert.deepEqual(await bindings.app.commands.rendererLog({ message: 'rejected re
 });
 assert.equal(rejectedCommandCount, 3);
 
+await assert.rejects(
+  () => bindings.sdk.storage.assets.write({ relativePath: 'media/x.png', body: Uint8Array.from([1]) }),
+  { code: 'TESTER_SIMULATED_ACTION_REJECTED' },
+);
+assert.equal(rejectedCommandCount, 4, 'modeled asset writes must enter the State Engine');
+
+assert.equal((await bindings.sdk.storage.assets.stat('媒体/é.wav')).relativePath, '媒体/é.wav');
+const exactPrefix = await bindings.sdk.storage.assets.list({ prefix: 'foo', pageSize: 500 });
+assert.deepEqual(exactPrefix.assets.map(({ relativePath }) => relativePath), ['foo']);
+const componentPrefix = await bindings.sdk.storage.assets.list({ prefix: 'foo/' });
+assert.deepEqual(componentPrefix.assets.map(({ relativePath }) => relativePath), ['foo/child.bin']);
+const firstPage = await bindings.sdk.storage.assets.list({ prefix: '', pageSize: 1 });
+assert.notEqual(firstPage.nextCursor, '');
+await assert.rejects(
+  () => bindings.sdk.storage.assets.list({ prefix: 'foo/', cursor: firstPage.nextCursor, pageSize: 1 }),
+  { reasonCode: 'invalid-cursor' },
+);
+const emptyRead = await bindings.sdk.storage.assets.read({ relativePath: 'foo', offset: 3 });
+assert.deepEqual(emptyRead.range, { offset: 3, length: 0, totalSize: 3 });
+const emptyChunks: number[][] = [];
+for await (const chunk of emptyRead.body) emptyChunks.push([...chunk]);
+assert.deepEqual(emptyChunks, []);
+const clampedRead = await bindings.sdk.storage.assets.read({ relativePath: 'foo', offset: 1, length: 100 });
+assert.deepEqual(clampedRead.range, { offset: 1, length: 2, totalSize: 3 });
+const clampedChunks: number[] = [];
+for await (const chunk of clampedRead.body) clampedChunks.push(...chunk);
+assert.deepEqual(clampedChunks, [2, 3]);
+
 for (const operation of [
-  () => bindings.app.commands.saveArtifact({ filename: 'x.png', dataUrl: 'data:,' }),
   () => bindings.app.commands.resolveWorldTourFixture({}),
   () => bindings.app.commands.openWorldTourWindow({ manifestPath: 'fixture.json' }),
   () => bindings.app.commands.claimWorldTourViewerLaunch({ manifestPath: 'fixture.json', launchToken: 'token' }),

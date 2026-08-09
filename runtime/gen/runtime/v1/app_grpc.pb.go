@@ -25,6 +25,13 @@ const (
 	RuntimeAppService_ReadLocalAppStorageJson_FullMethodName   = "/nimi.runtime.v1.RuntimeAppService/ReadLocalAppStorageJson"
 	RuntimeAppService_WriteLocalAppStorageJson_FullMethodName  = "/nimi.runtime.v1.RuntimeAppService/WriteLocalAppStorageJson"
 	RuntimeAppService_RemoveLocalAppStorageJson_FullMethodName = "/nimi.runtime.v1.RuntimeAppService/RemoveLocalAppStorageJson"
+	RuntimeAppService_StatLocalAppAsset_FullMethodName         = "/nimi.runtime.v1.RuntimeAppService/StatLocalAppAsset"
+	RuntimeAppService_ListLocalAppAssets_FullMethodName        = "/nimi.runtime.v1.RuntimeAppService/ListLocalAppAssets"
+	RuntimeAppService_WriteLocalAppAsset_FullMethodName        = "/nimi.runtime.v1.RuntimeAppService/WriteLocalAppAsset"
+	RuntimeAppService_ReadLocalAppAsset_FullMethodName         = "/nimi.runtime.v1.RuntimeAppService/ReadLocalAppAsset"
+	RuntimeAppService_RemoveLocalAppAsset_FullMethodName       = "/nimi.runtime.v1.RuntimeAppService/RemoveLocalAppAsset"
+	RuntimeAppService_MoveLocalAppAsset_FullMethodName         = "/nimi.runtime.v1.RuntimeAppService/MoveLocalAppAsset"
+	RuntimeAppService_AdoptLocalAppArtifact_FullMethodName     = "/nimi.runtime.v1.RuntimeAppService/AdoptLocalAppArtifact"
 	RuntimeAppService_PrepareLocalAppLaunch_FullMethodName     = "/nimi.runtime.v1.RuntimeAppService/PrepareLocalAppLaunch"
 	RuntimeAppService_BindLocalAppProcess_FullMethodName       = "/nimi.runtime.v1.RuntimeAppService/BindLocalAppProcess"
 	RuntimeAppService_RebindLocalAppProcess_FullMethodName     = "/nimi.runtime.v1.RuntimeAppService/RebindLocalAppProcess"
@@ -40,6 +47,13 @@ type RuntimeAppServiceClient interface {
 	ReadLocalAppStorageJson(ctx context.Context, in *ReadLocalAppStorageJsonRequest, opts ...grpc.CallOption) (*ReadLocalAppStorageJsonResponse, error)
 	WriteLocalAppStorageJson(ctx context.Context, in *WriteLocalAppStorageJsonRequest, opts ...grpc.CallOption) (*WriteLocalAppStorageJsonResponse, error)
 	RemoveLocalAppStorageJson(ctx context.Context, in *RemoveLocalAppStorageJsonRequest, opts ...grpc.CallOption) (*RemoveLocalAppStorageJsonResponse, error)
+	StatLocalAppAsset(ctx context.Context, in *StatLocalAppAssetRequest, opts ...grpc.CallOption) (*StatLocalAppAssetResponse, error)
+	ListLocalAppAssets(ctx context.Context, in *ListLocalAppAssetsRequest, opts ...grpc.CallOption) (*ListLocalAppAssetsResponse, error)
+	WriteLocalAppAsset(ctx context.Context, opts ...grpc.CallOption) (grpc.ClientStreamingClient[WriteLocalAppAssetRequest, WriteLocalAppAssetResponse], error)
+	ReadLocalAppAsset(ctx context.Context, in *ReadLocalAppAssetRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[ReadLocalAppAssetResponse], error)
+	RemoveLocalAppAsset(ctx context.Context, in *RemoveLocalAppAssetRequest, opts ...grpc.CallOption) (*RemoveLocalAppAssetResponse, error)
+	MoveLocalAppAsset(ctx context.Context, in *MoveLocalAppAssetRequest, opts ...grpc.CallOption) (*MoveLocalAppAssetResponse, error)
+	AdoptLocalAppArtifact(ctx context.Context, in *AdoptLocalAppArtifactRequest, opts ...grpc.CallOption) (*AdoptLocalAppArtifactResponse, error)
 	PrepareLocalAppLaunch(ctx context.Context, in *PrepareLocalAppLaunchRequest, opts ...grpc.CallOption) (*PrepareLocalAppLaunchResponse, error)
 	BindLocalAppProcess(ctx context.Context, in *BindLocalAppProcessRequest, opts ...grpc.CallOption) (*BindLocalAppProcessResponse, error)
 	RebindLocalAppProcess(ctx context.Context, in *RebindLocalAppProcessRequest, opts ...grpc.CallOption) (*RebindLocalAppProcessResponse, error)
@@ -122,6 +136,88 @@ func (c *runtimeAppServiceClient) RemoveLocalAppStorageJson(ctx context.Context,
 	return out, nil
 }
 
+func (c *runtimeAppServiceClient) StatLocalAppAsset(ctx context.Context, in *StatLocalAppAssetRequest, opts ...grpc.CallOption) (*StatLocalAppAssetResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(StatLocalAppAssetResponse)
+	err := c.cc.Invoke(ctx, RuntimeAppService_StatLocalAppAsset_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeAppServiceClient) ListLocalAppAssets(ctx context.Context, in *ListLocalAppAssetsRequest, opts ...grpc.CallOption) (*ListLocalAppAssetsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListLocalAppAssetsResponse)
+	err := c.cc.Invoke(ctx, RuntimeAppService_ListLocalAppAssets_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeAppServiceClient) WriteLocalAppAsset(ctx context.Context, opts ...grpc.CallOption) (grpc.ClientStreamingClient[WriteLocalAppAssetRequest, WriteLocalAppAssetResponse], error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	stream, err := c.cc.NewStream(ctx, &RuntimeAppService_ServiceDesc.Streams[1], RuntimeAppService_WriteLocalAppAsset_FullMethodName, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &grpc.GenericClientStream[WriteLocalAppAssetRequest, WriteLocalAppAssetResponse]{ClientStream: stream}
+	return x, nil
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type RuntimeAppService_WriteLocalAppAssetClient = grpc.ClientStreamingClient[WriteLocalAppAssetRequest, WriteLocalAppAssetResponse]
+
+func (c *runtimeAppServiceClient) ReadLocalAppAsset(ctx context.Context, in *ReadLocalAppAssetRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[ReadLocalAppAssetResponse], error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	stream, err := c.cc.NewStream(ctx, &RuntimeAppService_ServiceDesc.Streams[2], RuntimeAppService_ReadLocalAppAsset_FullMethodName, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &grpc.GenericClientStream[ReadLocalAppAssetRequest, ReadLocalAppAssetResponse]{ClientStream: stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type RuntimeAppService_ReadLocalAppAssetClient = grpc.ServerStreamingClient[ReadLocalAppAssetResponse]
+
+func (c *runtimeAppServiceClient) RemoveLocalAppAsset(ctx context.Context, in *RemoveLocalAppAssetRequest, opts ...grpc.CallOption) (*RemoveLocalAppAssetResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RemoveLocalAppAssetResponse)
+	err := c.cc.Invoke(ctx, RuntimeAppService_RemoveLocalAppAsset_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeAppServiceClient) MoveLocalAppAsset(ctx context.Context, in *MoveLocalAppAssetRequest, opts ...grpc.CallOption) (*MoveLocalAppAssetResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(MoveLocalAppAssetResponse)
+	err := c.cc.Invoke(ctx, RuntimeAppService_MoveLocalAppAsset_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeAppServiceClient) AdoptLocalAppArtifact(ctx context.Context, in *AdoptLocalAppArtifactRequest, opts ...grpc.CallOption) (*AdoptLocalAppArtifactResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(AdoptLocalAppArtifactResponse)
+	err := c.cc.Invoke(ctx, RuntimeAppService_AdoptLocalAppArtifact_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *runtimeAppServiceClient) PrepareLocalAppLaunch(ctx context.Context, in *PrepareLocalAppLaunchRequest, opts ...grpc.CallOption) (*PrepareLocalAppLaunchResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(PrepareLocalAppLaunchResponse)
@@ -162,6 +258,13 @@ type RuntimeAppServiceServer interface {
 	ReadLocalAppStorageJson(context.Context, *ReadLocalAppStorageJsonRequest) (*ReadLocalAppStorageJsonResponse, error)
 	WriteLocalAppStorageJson(context.Context, *WriteLocalAppStorageJsonRequest) (*WriteLocalAppStorageJsonResponse, error)
 	RemoveLocalAppStorageJson(context.Context, *RemoveLocalAppStorageJsonRequest) (*RemoveLocalAppStorageJsonResponse, error)
+	StatLocalAppAsset(context.Context, *StatLocalAppAssetRequest) (*StatLocalAppAssetResponse, error)
+	ListLocalAppAssets(context.Context, *ListLocalAppAssetsRequest) (*ListLocalAppAssetsResponse, error)
+	WriteLocalAppAsset(grpc.ClientStreamingServer[WriteLocalAppAssetRequest, WriteLocalAppAssetResponse]) error
+	ReadLocalAppAsset(*ReadLocalAppAssetRequest, grpc.ServerStreamingServer[ReadLocalAppAssetResponse]) error
+	RemoveLocalAppAsset(context.Context, *RemoveLocalAppAssetRequest) (*RemoveLocalAppAssetResponse, error)
+	MoveLocalAppAsset(context.Context, *MoveLocalAppAssetRequest) (*MoveLocalAppAssetResponse, error)
+	AdoptLocalAppArtifact(context.Context, *AdoptLocalAppArtifactRequest) (*AdoptLocalAppArtifactResponse, error)
 	PrepareLocalAppLaunch(context.Context, *PrepareLocalAppLaunchRequest) (*PrepareLocalAppLaunchResponse, error)
 	BindLocalAppProcess(context.Context, *BindLocalAppProcessRequest) (*BindLocalAppProcessResponse, error)
 	RebindLocalAppProcess(context.Context, *RebindLocalAppProcessRequest) (*RebindLocalAppProcessResponse, error)
@@ -191,6 +294,27 @@ func (UnimplementedRuntimeAppServiceServer) WriteLocalAppStorageJson(context.Con
 }
 func (UnimplementedRuntimeAppServiceServer) RemoveLocalAppStorageJson(context.Context, *RemoveLocalAppStorageJsonRequest) (*RemoveLocalAppStorageJsonResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method RemoveLocalAppStorageJson not implemented")
+}
+func (UnimplementedRuntimeAppServiceServer) StatLocalAppAsset(context.Context, *StatLocalAppAssetRequest) (*StatLocalAppAssetResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method StatLocalAppAsset not implemented")
+}
+func (UnimplementedRuntimeAppServiceServer) ListLocalAppAssets(context.Context, *ListLocalAppAssetsRequest) (*ListLocalAppAssetsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListLocalAppAssets not implemented")
+}
+func (UnimplementedRuntimeAppServiceServer) WriteLocalAppAsset(grpc.ClientStreamingServer[WriteLocalAppAssetRequest, WriteLocalAppAssetResponse]) error {
+	return status.Error(codes.Unimplemented, "method WriteLocalAppAsset not implemented")
+}
+func (UnimplementedRuntimeAppServiceServer) ReadLocalAppAsset(*ReadLocalAppAssetRequest, grpc.ServerStreamingServer[ReadLocalAppAssetResponse]) error {
+	return status.Error(codes.Unimplemented, "method ReadLocalAppAsset not implemented")
+}
+func (UnimplementedRuntimeAppServiceServer) RemoveLocalAppAsset(context.Context, *RemoveLocalAppAssetRequest) (*RemoveLocalAppAssetResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method RemoveLocalAppAsset not implemented")
+}
+func (UnimplementedRuntimeAppServiceServer) MoveLocalAppAsset(context.Context, *MoveLocalAppAssetRequest) (*MoveLocalAppAssetResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method MoveLocalAppAsset not implemented")
+}
+func (UnimplementedRuntimeAppServiceServer) AdoptLocalAppArtifact(context.Context, *AdoptLocalAppArtifactRequest) (*AdoptLocalAppArtifactResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method AdoptLocalAppArtifact not implemented")
 }
 func (UnimplementedRuntimeAppServiceServer) PrepareLocalAppLaunch(context.Context, *PrepareLocalAppLaunchRequest) (*PrepareLocalAppLaunchResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method PrepareLocalAppLaunch not implemented")
@@ -322,6 +446,114 @@ func _RuntimeAppService_RemoveLocalAppStorageJson_Handler(srv interface{}, ctx c
 	return interceptor(ctx, in, info, handler)
 }
 
+func _RuntimeAppService_StatLocalAppAsset_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(StatLocalAppAssetRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeAppServiceServer).StatLocalAppAsset(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeAppService_StatLocalAppAsset_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeAppServiceServer).StatLocalAppAsset(ctx, req.(*StatLocalAppAssetRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeAppService_ListLocalAppAssets_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListLocalAppAssetsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeAppServiceServer).ListLocalAppAssets(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeAppService_ListLocalAppAssets_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeAppServiceServer).ListLocalAppAssets(ctx, req.(*ListLocalAppAssetsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeAppService_WriteLocalAppAsset_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(RuntimeAppServiceServer).WriteLocalAppAsset(&grpc.GenericServerStream[WriteLocalAppAssetRequest, WriteLocalAppAssetResponse]{ServerStream: stream})
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type RuntimeAppService_WriteLocalAppAssetServer = grpc.ClientStreamingServer[WriteLocalAppAssetRequest, WriteLocalAppAssetResponse]
+
+func _RuntimeAppService_ReadLocalAppAsset_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(ReadLocalAppAssetRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(RuntimeAppServiceServer).ReadLocalAppAsset(m, &grpc.GenericServerStream[ReadLocalAppAssetRequest, ReadLocalAppAssetResponse]{ServerStream: stream})
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type RuntimeAppService_ReadLocalAppAssetServer = grpc.ServerStreamingServer[ReadLocalAppAssetResponse]
+
+func _RuntimeAppService_RemoveLocalAppAsset_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RemoveLocalAppAssetRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeAppServiceServer).RemoveLocalAppAsset(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeAppService_RemoveLocalAppAsset_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeAppServiceServer).RemoveLocalAppAsset(ctx, req.(*RemoveLocalAppAssetRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeAppService_MoveLocalAppAsset_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(MoveLocalAppAssetRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeAppServiceServer).MoveLocalAppAsset(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeAppService_MoveLocalAppAsset_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeAppServiceServer).MoveLocalAppAsset(ctx, req.(*MoveLocalAppAssetRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeAppService_AdoptLocalAppArtifact_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AdoptLocalAppArtifactRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeAppServiceServer).AdoptLocalAppArtifact(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeAppService_AdoptLocalAppArtifact_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeAppServiceServer).AdoptLocalAppArtifact(ctx, req.(*AdoptLocalAppArtifactRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _RuntimeAppService_PrepareLocalAppLaunch_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(PrepareLocalAppLaunchRequest)
 	if err := dec(in); err != nil {
@@ -404,6 +636,26 @@ var RuntimeAppService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _RuntimeAppService_RemoveLocalAppStorageJson_Handler,
 		},
 		{
+			MethodName: "StatLocalAppAsset",
+			Handler:    _RuntimeAppService_StatLocalAppAsset_Handler,
+		},
+		{
+			MethodName: "ListLocalAppAssets",
+			Handler:    _RuntimeAppService_ListLocalAppAssets_Handler,
+		},
+		{
+			MethodName: "RemoveLocalAppAsset",
+			Handler:    _RuntimeAppService_RemoveLocalAppAsset_Handler,
+		},
+		{
+			MethodName: "MoveLocalAppAsset",
+			Handler:    _RuntimeAppService_MoveLocalAppAsset_Handler,
+		},
+		{
+			MethodName: "AdoptLocalAppArtifact",
+			Handler:    _RuntimeAppService_AdoptLocalAppArtifact_Handler,
+		},
+		{
 			MethodName: "PrepareLocalAppLaunch",
 			Handler:    _RuntimeAppService_PrepareLocalAppLaunch_Handler,
 		},
@@ -420,6 +672,16 @@ var RuntimeAppService_ServiceDesc = grpc.ServiceDesc{
 		{
 			StreamName:    "SubscribeAppMessages",
 			Handler:       _RuntimeAppService_SubscribeAppMessages_Handler,
+			ServerStreams: true,
+		},
+		{
+			StreamName:    "WriteLocalAppAsset",
+			Handler:       _RuntimeAppService_WriteLocalAppAsset_Handler,
+			ClientStreams: true,
+		},
+		{
+			StreamName:    "ReadLocalAppAsset",
+			Handler:       _RuntimeAppService_ReadLocalAppAsset_Handler,
 			ServerStreams: true,
 		},
 	},

@@ -10,6 +10,7 @@ package runtimeartifact
 
 import (
 	"context"
+	"io"
 	"log/slog"
 	"sort"
 	"strings"
@@ -131,25 +132,30 @@ func (s *Service) ReadArtifactBytes(
 		return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_ARTIFACT_FORBIDDEN)
 	}
 
-	record, ok := s.store.Get(artifactID)
+	source, ok := s.store.Open(ctx, artifactID)
 	if !ok {
 		return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_ARTIFACT_NOT_FOUND)
 	}
+	defer source.Body.Close()
+	record := source.Record
 	if !artifactOwnerMatches(record.Owner, principal.AccountID, principal.AppID) &&
 		(s.protectedGeneratedVoiceAuthorizer == nil ||
 			!s.protectedGeneratedVoiceAuthorizer.AuthorizeProtectedGeneratedVoiceArtifact(ctx, record)) {
 		return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_ARTIFACT_FORBIDDEN)
 	}
-	if !artifactRecordIntegrityValid(record) {
+	if record.SizeBytes > MaxInlineBytes {
+		return nil, grpcerr.WithReasonCode(codes.ResourceExhausted, runtimev1.ReasonCode_ARTIFACT_TOO_LARGE)
+	}
+	payload, err := io.ReadAll(io.LimitReader(source.Body, MaxInlineBytes+1))
+	if err != nil || int64(len(payload)) != record.SizeBytes {
 		return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_ARTIFACT_NOT_FOUND)
 	}
-
-	if record.SizeBytes > MaxInlineBytes {
+	if len(payload) > MaxInlineBytes {
 		return nil, grpcerr.WithReasonCode(codes.ResourceExhausted, runtimev1.ReasonCode_ARTIFACT_TOO_LARGE)
 	}
 
 	return &runtimev1.ReadArtifactBytesResponse{
-		Bytes:        record.Bytes,
+		Bytes:        payload,
 		MimeType:     record.MimeType,
 		SizeBytes:    record.SizeBytes,
 		MimeInferred: record.MimeInferred,
@@ -161,7 +167,7 @@ func (s *Service) ReadArtifactBytes(
 // uploaded the artifact may read it back. Records without owner metadata
 // (historical or producer records) never match.
 func artifactOwnerMatches(owner *ArtifactOwner, subjectUserID string, appID string) bool {
-	if owner == nil {
+	if owner == nil || strings.TrimSpace(owner.RegisteredAppSubject) != "" {
 		return false
 	}
 	subjectUserID = strings.TrimSpace(subjectUserID)

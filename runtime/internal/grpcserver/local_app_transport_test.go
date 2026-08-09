@@ -263,6 +263,51 @@ func TestProtectedLocalAppScenarioConsumptionUnaryDispatchesAfterAdmission(t *te
 	}
 }
 
+func TestProtectedLocalAppAssetCRUDDispatchesOnlyExactIngress(t *testing.T) {
+	connection := newGRPCLocalAppConnection(t, 0x67)
+	if err := connection.BindSession(protectedlocal.LocalAppSessionHandle{SessionID: grpcLocalAppIdentifier(0x68), SessionProof: grpcLocalAppIdentifier(0x69)}); err != nil {
+		t.Fatal(err)
+	}
+	ctx := peer.NewContext(context.Background(), &peer.Peer{AuthInfo: &protectedLocalAppAuthInfo{connection: connection}})
+	admission := &localAppAdmissionStub{}
+	unary := []struct {
+		method  string
+		request any
+		ingress localappop.Ingress
+	}{
+		{protectedStatLocalAppAssetMethod, &runtimev1.StatLocalAppAssetRequest{}, localappop.IngressStorageAssetStat},
+		{protectedListLocalAppAssetsMethod, &runtimev1.ListLocalAppAssetsRequest{}, localappop.IngressStorageAssetList},
+		{protectedRemoveLocalAppAssetMethod, &runtimev1.RemoveLocalAppAssetRequest{}, localappop.IngressStorageAssetRemove},
+		{protectedMoveLocalAppAssetMethod, &runtimev1.MoveLocalAppAssetRequest{}, localappop.IngressStorageAssetMove},
+		{protectedAdoptLocalAppArtifactMethod, &runtimev1.AdoptLocalAppArtifactRequest{}, localappop.IngressArtifactAdoptToStorage},
+	}
+	for _, test := range unary {
+		admission.calls = 0
+		handlerCalled := false
+		_, err := newUnaryProtectedLocalAppTransportInterceptor(admission)(ctx, test.request, &grpc.UnaryServerInfo{FullMethod: test.method}, func(context.Context, any) (any, error) {
+			handlerCalled = true
+			return &runtimev1.StatLocalAppAssetResponse{}, nil
+		})
+		if err != nil || !handlerCalled || admission.calls != 1 || admission.ingress != test.ingress {
+			t.Fatalf("asset unary %s handler=%v admission=%+v err=%v", test.method, handlerCalled, admission, err)
+		}
+	}
+	for _, test := range []struct {
+		method  string
+		ingress localappop.Ingress
+	}{{protectedWriteLocalAppAssetMethod, localappop.IngressStorageAssetWrite}, {protectedReadLocalAppAssetMethod, localappop.IngressStorageAssetRead}} {
+		admission.calls = 0
+		handlerCalled := false
+		err := newStreamProtectedLocalAppTransportInterceptor(admission)(nil, &localAppTransportTestStream{ctx: ctx}, &grpc.StreamServerInfo{FullMethod: test.method}, func(any, grpc.ServerStream) error {
+			handlerCalled = true
+			return nil
+		})
+		if err != nil || !handlerCalled || admission.calls != 1 || admission.ingress != test.ingress {
+			t.Fatalf("asset stream %s handler=%v admission=%+v err=%v", test.method, handlerCalled, admission, err)
+		}
+	}
+}
+
 func TestProtectedLocalAppScenarioConsumptionStreamsDispatchAfterAdmission(t *testing.T) {
 	connection := newGRPCLocalAppConnection(t, 0x64)
 	if err := connection.BindSession(protectedlocal.LocalAppSessionHandle{SessionID: grpcLocalAppIdentifier(0x65), SessionProof: grpcLocalAppIdentifier(0x66)}); err != nil {

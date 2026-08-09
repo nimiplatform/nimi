@@ -258,6 +258,55 @@ func ExtractTaskArtifactBytesAndMIME(ctx context.Context, payload map[string]any
 	return nil, "", ""
 }
 
+// ExtractTaskArtifactSource keeps provider URLs as call-local stream sources.
+// It does not fetch them into memory; Runtime opens and owns the response body
+// only when the Host/Driver handoff is accepted. Inline/base64-only responses
+// continue through the bounded existing-bytes path.
+func ExtractTaskArtifactSource(ctx context.Context, payload map[string]any) ([]byte, string, string) {
+	if uri, mimeType := findTaskArtifactURL(payload); uri != "" {
+		return nil, mimeType, uri
+	}
+	return ExtractTaskArtifactBytesAndMIME(ctx, payload)
+}
+
+func findTaskArtifactURL(value any) (string, string) {
+	switch typed := value.(type) {
+	case map[string]any:
+		mimeType := strings.TrimSpace(FirstNonEmpty(
+			ValueAsString(typed["mime_type"]),
+			ValueAsString(typed["mimeType"]),
+			ValueAsString(typed["content_type"]),
+		))
+		for _, key := range []string{"url", "video_url", "audio_url", "image_url", "fileUri", "file_uri", "uri"} {
+			if candidate := strings.TrimSpace(ValueAsString(typed[key])); strings.HasPrefix(candidate, "https://") || strings.HasPrefix(candidate, "http://") {
+				return candidate, mimeType
+			}
+			if nested, ok := typed[key].(map[string]any); ok {
+				if candidate, nestedMIME := findTaskArtifactURL(nested); candidate != "" {
+					return candidate, FirstNonEmpty(mimeType, nestedMIME)
+				}
+			}
+		}
+		for _, key := range []string{"artifact", "result", "data", "output", "content", "parts", "choices", "message", "inlineData", "inline_data", "fileData", "file_data"} {
+			if candidate, nestedMIME := findTaskArtifactURL(typed[key]); candidate != "" {
+				return candidate, FirstNonEmpty(mimeType, nestedMIME)
+			}
+		}
+	case []any:
+		for _, item := range typed {
+			if candidate, mimeType := findTaskArtifactURL(item); candidate != "" {
+				return candidate, mimeType
+			}
+		}
+	case string:
+		candidate := strings.TrimSpace(typed)
+		if strings.HasPrefix(candidate, "https://") || strings.HasPrefix(candidate, "http://") {
+			return candidate, ""
+		}
+	}
+	return "", ""
+}
+
 // ResolveTaskQueryPath substitutes a provider job ID into a query path
 // template, replacing {task_id} or appending it.
 func ResolveTaskQueryPath(queryTemplate, providerJobID string) string {

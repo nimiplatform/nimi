@@ -31,6 +31,13 @@ const (
 	LocalAppOperationStorageJSONRead         = localappop.OperationStorageJSONRead
 	LocalAppOperationStorageJSONWrite        = localappop.OperationStorageJSONWrite
 	LocalAppOperationStorageJSONRemove       = localappop.OperationStorageJSONRemove
+	LocalAppOperationStorageAssetStat        = localappop.OperationStorageAssetStat
+	LocalAppOperationStorageAssetList        = localappop.OperationStorageAssetList
+	LocalAppOperationStorageAssetWrite       = localappop.OperationStorageAssetWrite
+	LocalAppOperationStorageAssetRead        = localappop.OperationStorageAssetRead
+	LocalAppOperationStorageAssetRemove      = localappop.OperationStorageAssetRemove
+	LocalAppOperationStorageAssetMove        = localappop.OperationStorageAssetMove
+	LocalAppOperationArtifactAdoptToStorage  = localappop.OperationArtifactAdoptToStorage
 	LocalAppOperationRealmWorldCoreList      = localappop.OperationRealmWorldCoreList
 	LocalAppOperationRealmWorldCoreCreate    = localappop.OperationRealmWorldCoreCreate
 	LocalAppOperationAppAIConfigRead         = localappop.OperationAppAIConfigGet

@@ -13,7 +13,7 @@ units:
   - id: definition.nimi.runtime.app-surface.app-projection-plane
     kind: definition
     title: Runtime app projection plane
-    meaning: The Runtime app projection plane owns current app-private storage truth, protected local-app JSON storage operations, and the retired local adoption boundary; ordinary app health, response-state, support next-action, package-readiness, and account app-inventory projections are deferred and physically absent.
+    meaning: The Runtime app projection plane owns current App-private JSON and binary asset storage truth, the protected exact local-app storage operations, and Runtime-custody artifact adoption into the caller's asset namespace; ordinary app health, response-state, support next-action, package-readiness, and account app-inventory projections are deferred and physically absent.
   - id: definition.nimi.runtime.app-surface.local-app-principal-record-plane
     kind: definition
     lifecycle: removed
@@ -127,9 +127,9 @@ units:
         target: definition.nimi.runtime.app-surface.app-lifecycle-plane
   - id: rule.nimi.runtime.app-surface.r011
     kind: rule
-    title: No generic local-app file API is admitted
+    title: Managed assets do not admit a generic local-app filesystem
     modality: must
-    statement: No generic local-app file API is admitted, registered-subject-keyed private storage exists as an owner seam that Apps cannot convert into raw filesystem or path authority, and each typed storage operation resolves the current subject, classifies its exact AppOperationId as Base, enforces the Base-row invariants with the Runtime-private current snapshot context, and never exposes another subject's root; the JSON operations admit no raw bytes, roots, absolute paths, directory listing, range reads, move, mode, or arbitrary delete.
+    statement: No raw-root, absolute-path, directory, mode, arbitrary OS-file, or generic local-app filesystem API is admitted; current-account-plus-Registered-App-Subject private storage is an owner seam that Apps cannot convert into physical layout or path authority, each typed Base operation resolves both owner components and its exact AppOperationId at protected ingress, and only the three JSON methods plus asset stat, bounded list, streamed write, immutable-source ranged read, idempotent remove, and same-partition move are admitted without exposing another owner's root or a caller-selected identity, operation, or transport.
     condition: Whenever local-app file or storage access is designed or requested.
     failure: Reject generic file APIs and conversions of private storage into path authority.
     relations:
@@ -330,7 +330,7 @@ units:
     kind: rule
     title: App storage partitions are Registered-App-Subject-scoped Runtime truth
     modality: must
-    statement: App-private storage is Runtime-owned registered-subject-scoped truth, a Local App session resolves its opaque subject internally with the request accepting no app_id or subject override, Runtime derives the per-subject data, cache, and temporary roots for trusted host use, installed, local-import, and development subjects use the same partition semantics, same-app-id subjects remain isolated, and tombstoned data is never rebound to another registration.
+    statement: App-private storage is Runtime-owned current-account-plus-Registered-App-Subject truth, a Local App protected session resolves both opaque owner components internally with the request accepting no account, app_id, subject, registration, partition, or root override, Runtime derives collision-proof JSON, asset, candidate, and internal physical namespaces for trusted host use, account switch selects a different partition and switching back restores the prior partition, installed, local-import, and development subjects use the same semantics, same-app-id registrations remain isolated, tombstoned data is never rebound, and historical subject-only JSON data is unavailable through the product path rather than migrated or reused.
     condition: Whenever app storage roots are derived or resolved.
     failure: Reject caller-supplied subjects, cross-subject partitions, and tombstone rebinding.
     relations:
@@ -348,9 +348,9 @@ units:
         target: definition.nimi.runtime.app-surface.app-projection-plane
   - id: rule.nimi.runtime.app-surface.r042
     kind: rule
-    title: Local-app JSON storage operations are exactly three
+    title: Local-app managed storage operations are exact
     modality: must
-    statement: The canonical App operation contract admits exactly runtime.app-storage.json.read, runtime.app-storage.json.write, and runtime.app-storage.json.remove for App-private JSON storage; Runtime revalidates the current exact Host-bound session, Registered App Subject, account partition, Runtime-private snapshot context, exact Base classification, and Base-row invariants, while each purpose-specific typed request accepts only its relative JSON path and, for write, its JSON value and accepts no app id, subject id, account id, root, absolute path, quota, permission id, decision id, credential, endpoint, or caller-selected operation or method.
+    statement: The canonical App operation contract admits exactly runtime.app-storage.json.read, runtime.app-storage.json.write, and runtime.app-storage.json.remove for App-private JSON plus runtime.app-storage.asset.stat, runtime.app-storage.asset.list, runtime.app-storage.asset.write, runtime.app-storage.asset.read, runtime.app-storage.asset.remove, and runtime.app-storage.asset.move for App-private binary assets; Runtime revalidates the current exact Host-bound session, current AccountID, Registered App Subject, Runtime-private snapshot context, exact Base classification, and Base-row invariants, while purpose-specific typed requests accept only canonical relative paths or bounded list and range inputs, JSON values, streamed asset chunks, optional descriptive media type, and explicit overwrite intent and accept no app id, subject id, account id, registration, partition, root, absolute path, quota, permission id, decision id, credential, endpoint, or caller-selected operation or method.
     condition: Whenever local-app JSON storage operations are admitted.
     failure: Reject operations outside the current exact Host-bound session and requests carrying excluded fields.
     relations:
@@ -362,20 +362,20 @@ units:
         target: definition.nimi.runtime.app-surface.app-projection-plane
   - id: rule.nimi.runtime.app-surface.r043
     kind: rule
-    title: JSON storage paths and quotas are enforced
+    title: Managed storage paths, streams, commits, and quotas are enforced
     modality: must
-    statement: Runtime resolves App-private JSON storage only from the current session-derived Registered App Subject and account partition, accepts canonical relative JSON paths, enforces owner-defined document and partition resource bounds plus filesystem safety, writes atomically, and treats removal of an absent record as idempotent.
-    condition: Whenever a local-app JSON storage path or write is validated.
-    failure: Reject invalid paths, oversize documents, and quota violations.
+    statement: Runtime resolves App-private storage only from the protected-session current AccountID plus Registered App Subject; JSON retains its 256-KiB document and 16-MiB committed-partition quota, while assets use collision-proof case- and Unicode-stable keys, a 1024-byte UTF-8 path bound, at most 32 components of at most 255 UTF-8 bytes each, chunks of at most 1 MiB, list pages defaulting to 100 and capped at 500, at most 16 active asset streams per owner, an 8-GiB object limit, a 64-GiB and 100000-object committed asset partition limit, and a 1-GiB minimum-free-space reserve; JSON quota counts committed JSON only, asset quota counts committed assets only, and candidates or internal metadata count toward neither public quota; writes and same-partition moves serialize affected paths and publish at one atomic commit point, final asset byte and object admission occurs under one short owner lock, failed or cancelled candidates leave the prior target unchanged and uncharged, committed records are durable quota truth reconciled before the next mutation after startup or ambiguous publish, list is deterministic but not snapshot-isolated, and each read holds one immutable committed source through EOF or cancellation.
+    condition: Whenever a local-app managed storage path, stream, list, mutation, quota, or startup reconciliation is evaluated.
+    failure: Reject invalid paths or prefixes, malformed media types, out-of-order or oversized chunks, invalid ranges or cursors, object, partition, concurrency, or free-space violations, corrupt committed records, symlink or reparse traversal, and any commit that would oversubscribe owner quota; never publish a partial target or splice versions into an open read.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.app-surface.app-projection-plane
   - id: rule.nimi.runtime.app-surface.r044
     kind: rule
-    title: JSON storage responses disclose no paths
+    title: Managed storage responses disclose no physical paths or owner facts
     modality: must
-    statement: Read and write responses contain only the JSON value, size_bytes, and canonical reason code, remove contains only removed and the reason code, no response, error detail, audit projection, log, Kit or SDK projection, or renderer payload may contain a root or absolute path, and Runtime emits APP_STORAGE_PATH_INVALID, APP_STORAGE_ENTRY_NOT_FOUND, APP_STORAGE_QUOTA_EXCEEDED, or APP_STORAGE_UNAVAILABLE as applicable and never falls back to GetAppStorage, public TCP, Node filesystem access, app-id partitioning, or a generic file API.
-    condition: Whenever local-app JSON storage responds or fails.
+    statement: JSON read and write responses contain only the JSON value, size_bytes, and canonical reason code and JSON remove contains only removed and the reason code; asset stat and list expose only canonical relative path, optional media type, safe observed byte size, lowercase sha256 digest, and creation and modification timestamps, asset read adds only the resolved range and incremental body from the opened committed source, asset remove returns only removed, and move returns only the committed target record; Runtime uses typed invalid-path, not-found, already-exists, quota-exceeded, object-too-large, invalid-range, invalid-cursor, integrity-failure, storage-unavailable, and canceled results, while artifact adoption uses APP_STORAGE_ARTIFACT_UNAVAILABLE for missing, foreign, subject-unbound, expired, or corrupt sources without distinguishing existence or mutating the target; no response, error detail, audit projection, log, Kit or SDK projection, or renderer payload may contain a root, absolute path, account, subject, provider URL, endpoint, credential, or proof, and Runtime never falls back to GetAppStorage, public TCP, Node filesystem access, app-id partitioning, or a generic file API.
+    condition: Whenever local-app managed storage responds or fails.
     failure: Reject path disclosure and any fallback path.
     relations:
       - type: applies_to
@@ -519,7 +519,7 @@ units:
     kind: rule
     title: Account-scoped data keys are fixed
     modality: must
-    statement: Account-scoped App-private data remains partitioned from machine-local App identity, while canonical LocalAgent, Conversation, transcript, presentation, Memory, and Knowledge truth remains with Runtime owners and is never repartitioned or owned by the Registered App Subject.
+    statement: Account-scoped App-private JSON and asset data is keyed only by the Runtime-derived current AccountID within the stable Registered App Subject and remains partitioned from machine-local App identity; account switch selects another partition, switching back restores the prior partition, explicit Nimi data reset may remove it, and canonical LocalAgent, Conversation, transcript, presentation, Memory, and Knowledge truth remains with Runtime owners and is never repartitioned or owned by the Registered App Subject.
     condition: Whenever account-scoped app data or canonical identity is keyed.
     failure: Reject alternate keying and Registered-App-Subject ownership of canonical identity.
     relations:

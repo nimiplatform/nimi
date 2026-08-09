@@ -1308,6 +1308,12 @@ const (
 	APPSTORAGEENTRYNOTFOUND ReasonCode = "APP_STORAGE_ENTRY_NOT_FOUND"
 	APPSTORAGEQUOTAEXCEEDED ReasonCode = "APP_STORAGE_QUOTA_EXCEEDED"
 	APPSTORAGEUNAVAILABLE ReasonCode = "APP_STORAGE_UNAVAILABLE"
+	APPSTORAGEENTRYALREADYEXISTS ReasonCode = "APP_STORAGE_ENTRY_ALREADY_EXISTS"
+	APPSTORAGEOBJECTTOOLARGE ReasonCode = "APP_STORAGE_OBJECT_TOO_LARGE"
+	APPSTORAGERANGEINVALID ReasonCode = "APP_STORAGE_RANGE_INVALID"
+	APPSTORAGECURSORINVALID ReasonCode = "APP_STORAGE_CURSOR_INVALID"
+	APPSTORAGEINTEGRITYFAILURE ReasonCode = "APP_STORAGE_INTEGRITY_FAILURE"
+	APPSTORAGEARTIFACTUNAVAILABLE ReasonCode = "APP_STORAGE_ARTIFACT_UNAVAILABLE"
 	WORKSPACEBINDINGMISSING ReasonCode = "WORKSPACE_BINDING_MISSING"
 	WORKSPACEBINDINGMALFORMED ReasonCode = "WORKSPACE_BINDING_MALFORMED"
 	WORKSPACEBINDINGNOTFOUND ReasonCode = "WORKSPACE_BINDING_NOT_FOUND"
@@ -1893,6 +1899,17 @@ type AddLocalCapabilityConfigurationResponse struct {
 
 type AdmitProductControlReadyForUseRequest struct {
 
+}
+
+type AdoptLocalAppArtifactRequest struct {
+	ArtifactId string `json:"artifact_id,omitempty"`
+	RelativePath string `json:"relative_path,omitempty"`
+	Overwrite bool `json:"overwrite,omitempty"`
+}
+
+type AdoptLocalAppArtifactResponse struct {
+	Asset *LocalAppAssetRecord `json:"asset,omitempty"`
+	ReasonCode ReasonCode `json:"reason_code,omitempty"`
 }
 
 type AgentAutonomyConfig struct {
@@ -4293,6 +4310,18 @@ type ListLocalAppAgentReferencesResponse struct {
 	References []LocalAppAgentReference `json:"references,omitempty"`
 }
 
+type ListLocalAppAssetsRequest struct {
+	Prefix string `json:"prefix,omitempty"`
+	Cursor string `json:"cursor,omitempty"`
+	PageSize int32 `json:"page_size,omitempty"`
+}
+
+type ListLocalAppAssetsResponse struct {
+	Assets []LocalAppAssetRecord `json:"assets,omitempty"`
+	NextCursor string `json:"next_cursor,omitempty"`
+	ReasonCode ReasonCode `json:"reason_code,omitempty"`
+}
+
 type ListLocalAppVoiceAssetsRequest struct {
 	PageSize int32 `json:"page_size,omitempty"`
 	PageToken string `json:"page_token,omitempty"`
@@ -4621,6 +4650,21 @@ type LocalAppAgentUpdateAutonomyResponse struct {
 	Projection *LocalAppAgentAutonomyProjection `json:"projection,omitempty"`
 }
 
+type LocalAppAssetRange struct {
+	Offset int64 `json:"offset,omitempty"`
+	Length int64 `json:"length,omitempty"`
+	TotalSize int64 `json:"total_size,omitempty"`
+}
+
+type LocalAppAssetRecord struct {
+	RelativePath string `json:"relative_path,omitempty"`
+	MediaType string `json:"media_type,omitempty"`
+	SizeBytes int64 `json:"size_bytes,omitempty"`
+	Sha256 string `json:"sha256,omitempty"`
+	CreatedAt string `json:"created_at,omitempty"`
+	UpdatedAt string `json:"updated_at,omitempty"`
+}
+
 type LocalAppConversationEvent struct {
 	ConversationAnchorId string `json:"conversation_anchor_id,omitempty"`
 	Sequence uint64 `json:"sequence,omitempty"`
@@ -4726,6 +4770,7 @@ type LocalAppScenarioJob struct {
 	TraceId string `json:"trace_id,omitempty"`
 	CreatedAt string `json:"created_at,omitempty"`
 	UpdatedAt string `json:"updated_at,omitempty"`
+	TranscriptionText string `json:"transcription_text,omitempty"`
 }
 
 type LocalAppScenarioJobEvent struct {
@@ -5853,6 +5898,17 @@ type ModelDescriptor struct {
 	HostRequirements *LocalHostRequirements `json:"host_requirements,omitempty"`
 }
 
+type MoveLocalAppAssetRequest struct {
+	FromRelativePath string `json:"from_relative_path,omitempty"`
+	ToRelativePath string `json:"to_relative_path,omitempty"`
+	Overwrite bool `json:"overwrite,omitempty"`
+}
+
+type MoveLocalAppAssetResponse struct {
+	Asset *LocalAppAssetRecord `json:"asset,omitempty"`
+	ReasonCode ReasonCode `json:"reason_code,omitempty"`
+}
+
 type MusicGenerateResult struct {
 	Artifacts []ScenarioArtifact `json:"artifacts,omitempty"`
 }
@@ -6194,6 +6250,22 @@ type ReadLocalAppArtifactResponse struct {
 	SizeBytes int64 `json:"size_bytes,omitempty"`
 }
 
+type ReadLocalAppAssetMetadata struct {
+	Asset *LocalAppAssetRecord `json:"asset,omitempty"`
+	Range *LocalAppAssetRange `json:"range,omitempty"`
+}
+
+type ReadLocalAppAssetRequest struct {
+	RelativePath string `json:"relative_path,omitempty"`
+	Offset *int64 `json:"offset,omitempty"`
+	Length *int64 `json:"length,omitempty"`
+}
+
+type ReadLocalAppAssetResponse struct {
+	Metadata *ReadLocalAppAssetMetadata `json:"metadata,omitempty"`
+	BodyChunk []byte `json:"body_chunk,omitempty"`
+}
+
 type ReadLocalAppStorageJsonRequest struct {
 	RelativePath string `json:"relative_path,omitempty"`
 }
@@ -6382,6 +6454,15 @@ type RemoveLinkRequest struct {
 
 type RemoveLinkResponse struct {
 	Ack *Ack `json:"ack,omitempty"`
+}
+
+type RemoveLocalAppAssetRequest struct {
+	RelativePath string `json:"relative_path,omitempty"`
+}
+
+type RemoveLocalAppAssetResponse struct {
+	Removed bool `json:"removed,omitempty"`
+	ReasonCode ReasonCode `json:"reason_code,omitempty"`
 }
 
 type RemoveLocalAppStorageJsonRequest struct {
@@ -6783,6 +6864,7 @@ type ScenarioJob struct {
 	ProgressPercent int32 `json:"progress_percent,omitempty"`
 	ProgressCurrentStep int32 `json:"progress_current_step,omitempty"`
 	ProgressTotalSteps int32 `json:"progress_total_steps,omitempty"`
+	TranscriptionText string `json:"transcription_text,omitempty"`
 }
 
 type ScenarioJobEvent struct {
@@ -7107,6 +7189,15 @@ type StartLocalServiceRequest struct {
 
 type StartLocalServiceResponse struct {
 	Service *LocalServiceDescriptor `json:"service,omitempty"`
+}
+
+type StatLocalAppAssetRequest struct {
+	RelativePath string `json:"relative_path,omitempty"`
+}
+
+type StatLocalAppAssetResponse struct {
+	Asset *LocalAppAssetRecord `json:"asset,omitempty"`
+	ReasonCode ReasonCode `json:"reason_code,omitempty"`
 }
 
 type StopEngineRequest struct {
@@ -7803,6 +7894,22 @@ type WriteAgentMemoryRequest struct {
 type WriteAgentMemoryResponse struct {
 	Accepted []CanonicalMemoryView `json:"accepted,omitempty"`
 	Rejected []CanonicalMemoryRejection `json:"rejected,omitempty"`
+}
+
+type WriteLocalAppAssetMetadata struct {
+	RelativePath string `json:"relative_path,omitempty"`
+	MediaType string `json:"media_type,omitempty"`
+	Overwrite bool `json:"overwrite,omitempty"`
+}
+
+type WriteLocalAppAssetRequest struct {
+	Metadata *WriteLocalAppAssetMetadata `json:"metadata,omitempty"`
+	BodyChunk []byte `json:"body_chunk,omitempty"`
+}
+
+type WriteLocalAppAssetResponse struct {
+	Asset *LocalAppAssetRecord `json:"asset,omitempty"`
+	ReasonCode ReasonCode `json:"reason_code,omitempty"`
 }
 
 type WriteLocalAppStorageJsonRequest struct {
@@ -8704,6 +8811,14 @@ func (c RuntimeTypedClient) UploadLocalAppArtifact(ctx context.Context, request 
 	return decodeRuntimeTypedResponse[UploadLocalAppArtifactResponse](raw, "UploadLocalAppArtifactResponse")
 }
 
+func (c RuntimeTypedClient) AdoptLocalAppArtifact(ctx context.Context, request AdoptLocalAppArtifactRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (AdoptLocalAppArtifactResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAppService/AdoptLocalAppArtifact", request, metadata, timeoutMS)
+	if err != nil {
+		return AdoptLocalAppArtifactResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[AdoptLocalAppArtifactResponse](raw, "AdoptLocalAppArtifactResponse")
+}
+
 func (c RuntimeTypedClient) BindLocalAppProcess(ctx context.Context, request BindLocalAppProcessRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (BindLocalAppProcessResponse, error) {
 	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAppService/BindLocalAppProcess", request, metadata, timeoutMS)
 	if err != nil {
@@ -8720,12 +8835,36 @@ func (c RuntimeTypedClient) GetAppStorage(ctx context.Context, request GetAppSto
 	return decodeRuntimeTypedResponse[GetAppStorageResponse](raw, "GetAppStorageResponse")
 }
 
+func (c RuntimeTypedClient) ListLocalAppAssets(ctx context.Context, request ListLocalAppAssetsRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ListLocalAppAssetsResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAppService/ListLocalAppAssets", request, metadata, timeoutMS)
+	if err != nil {
+		return ListLocalAppAssetsResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[ListLocalAppAssetsResponse](raw, "ListLocalAppAssetsResponse")
+}
+
+func (c RuntimeTypedClient) MoveLocalAppAsset(ctx context.Context, request MoveLocalAppAssetRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (MoveLocalAppAssetResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAppService/MoveLocalAppAsset", request, metadata, timeoutMS)
+	if err != nil {
+		return MoveLocalAppAssetResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[MoveLocalAppAssetResponse](raw, "MoveLocalAppAssetResponse")
+}
+
 func (c RuntimeTypedClient) PrepareLocalAppLaunch(ctx context.Context, request PrepareLocalAppLaunchRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (PrepareLocalAppLaunchResponse, error) {
 	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAppService/PrepareLocalAppLaunch", request, metadata, timeoutMS)
 	if err != nil {
 		return PrepareLocalAppLaunchResponse{}, err
 	}
 	return decodeRuntimeTypedResponse[PrepareLocalAppLaunchResponse](raw, "PrepareLocalAppLaunchResponse")
+}
+
+func (c RuntimeTypedClient) ReadLocalAppAsset(ctx context.Context, request ReadLocalAppAssetRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (*RuntimeTypedStream[ReadLocalAppAssetResponse], error) {
+	reader, err := c.streamTyped(ctx, "/nimi.runtime.v1.RuntimeAppService/ReadLocalAppAsset", request, metadata, timeoutMS)
+	if err != nil {
+		return nil, err
+	}
+	return &RuntimeTypedStream[ReadLocalAppAssetResponse]{reader: reader}, nil
 }
 
 func (c RuntimeTypedClient) ReadLocalAppStorageJson(ctx context.Context, request ReadLocalAppStorageJsonRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ReadLocalAppStorageJsonResponse, error) {
@@ -8744,6 +8883,14 @@ func (c RuntimeTypedClient) RebindLocalAppProcess(ctx context.Context, request R
 	return decodeRuntimeTypedResponse[RebindLocalAppProcessResponse](raw, "RebindLocalAppProcessResponse")
 }
 
+func (c RuntimeTypedClient) RemoveLocalAppAsset(ctx context.Context, request RemoveLocalAppAssetRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (RemoveLocalAppAssetResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAppService/RemoveLocalAppAsset", request, metadata, timeoutMS)
+	if err != nil {
+		return RemoveLocalAppAssetResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[RemoveLocalAppAssetResponse](raw, "RemoveLocalAppAssetResponse")
+}
+
 func (c RuntimeTypedClient) RemoveLocalAppStorageJson(ctx context.Context, request RemoveLocalAppStorageJsonRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (RemoveLocalAppStorageJsonResponse, error) {
 	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAppService/RemoveLocalAppStorageJson", request, metadata, timeoutMS)
 	if err != nil {
@@ -8760,12 +8907,24 @@ func (c RuntimeTypedClient) SendAppMessage(ctx context.Context, request SendAppM
 	return decodeRuntimeTypedResponse[SendAppMessageResponse](raw, "SendAppMessageResponse")
 }
 
+func (c RuntimeTypedClient) StatLocalAppAsset(ctx context.Context, request StatLocalAppAssetRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (StatLocalAppAssetResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAppService/StatLocalAppAsset", request, metadata, timeoutMS)
+	if err != nil {
+		return StatLocalAppAssetResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[StatLocalAppAssetResponse](raw, "StatLocalAppAssetResponse")
+}
+
 func (c RuntimeTypedClient) SubscribeAppMessages(ctx context.Context, request SubscribeAppMessagesRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (*RuntimeTypedStream[AppMessageEvent], error) {
 	reader, err := c.streamTyped(ctx, "/nimi.runtime.v1.RuntimeAppService/SubscribeAppMessages", request, metadata, timeoutMS)
 	if err != nil {
 		return nil, err
 	}
 	return &RuntimeTypedStream[AppMessageEvent]{reader: reader}, nil
+}
+
+func (c RuntimeTypedClient) WriteLocalAppAsset(context.Context, WriteLocalAppAssetRequest, sdkstypes.CoreMetadata, int64) (WriteLocalAppAssetResponse, error) {
+	return WriteLocalAppAssetResponse{}, fmt.Errorf("SDK_RUNTIME_METHOD_UNAVAILABLE: Runtime method kind is not supported by the unary/server-stream core transport: /nimi.runtime.v1.RuntimeAppService/WriteLocalAppAsset")
 }
 
 func (c RuntimeTypedClient) WriteLocalAppStorageJson(ctx context.Context, request WriteLocalAppStorageJsonRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (WriteLocalAppStorageJsonResponse, error) {

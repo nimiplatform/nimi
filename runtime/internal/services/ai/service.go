@@ -61,6 +61,7 @@ type Service struct {
 	realtimeSessions                       *realtimeSessionStore
 	voiceAssets                            *voiceAssetStore
 	runtimeArtifacts                       runtimeartifact.Store
+	runtimeCustodyIssuer                   *capabilitydriver.RuntimeCustodyIssuer
 	aiConfigStore                          aiconfig.Store
 	spendDisclosureReporter                SpendDisclosureReporter
 	connStore                              *connector.ConnectorStore
@@ -204,6 +205,7 @@ func newFromProviderConfig(logger *slog.Logger, registry *modelregistry.Registry
 		realtimeSessions:                       realtimeSessions,
 		voiceAssets:                            newVoiceAssetStore(),
 		runtimeArtifacts:                       runtimeartifact.NewMemoryStore(),
+		runtimeCustodyIssuer:                   capabilitydriver.NewRuntimeCustodyIssuer(),
 		aiConfigStore:                          aiconfig.NewMemoryStore(),
 		capabilityDrivers:                      capabilitydriver.NewProductionRegistry(),
 		cloudTextDrivers:                       capabilitydriver.NewProductionCloudTextRegistry(),

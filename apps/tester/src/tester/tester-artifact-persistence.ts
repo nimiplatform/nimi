@@ -5,9 +5,10 @@ export type TesterArtifactPersistenceCandidate = {
     kind?: string;
     artifactCount?: number;
     firstArtifact?: {
-      artifactId?: string;
-      mimeType?: string;
-      url?: string;
+      relativePath?: string;
+      mediaType?: string;
+      sizeBytes?: number;
+      sha256?: string;
       displayName?: string;
     };
     jobId?: string;
@@ -20,10 +21,11 @@ export type TesterPersistableArtifactResult = TesterArtifactPersistenceCandidate
   output: {
     kind: 'artifacts';
     artifactCount: number;
-    firstArtifact?: {
-      artifactId?: string;
-      mimeType?: string;
-      url?: string;
+    firstArtifact: {
+      relativePath: string;
+      mediaType?: string;
+      sizeBytes: number;
+      sha256: string;
       displayName?: string;
     };
     jobId: string;
@@ -39,6 +41,9 @@ export function shouldPersistTesterArtifactRecord(
     && result.capabilityId !== 'world.generate'
     && result.output?.kind === 'artifacts'
     && typeof result.output.artifactCount === 'number'
-    && result.output.artifactCount > 0,
+    && result.output.artifactCount > 0
+    && typeof result.output.firstArtifact?.relativePath === 'string'
+    && typeof result.output.firstArtifact.sizeBytes === 'number'
+    && typeof result.output.firstArtifact.sha256 === 'string',
   );
 }

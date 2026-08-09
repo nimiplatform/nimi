@@ -1,9 +1,9 @@
 export type StudioArtifactPreviewSource = {
-  artifactId?: string;
-  mimeType?: string;
-  url?: string;
+  relativePath?: string;
+  mediaType?: string;
+  sha256?: string;
   displayName?: string;
-  previewSource?: 'hosted-uri' | 'inline-bytes' | 'metadata-only';
+  previewSource?: 'managed-asset';
   sizeBytes?: number;
 };
 
@@ -15,16 +15,15 @@ export type StudioArtifactRenderBranch =
   | 'unsupported'
   | 'none';
 
-// Single pure projection shared by the current-result and persisted-history
-// renderers. Legacy records did not persist previewSource, so a valid URL/MIME
-// pair remains previewable; every artifact without usable bytes is explicit.
+// Single pure projection shared by current and persisted result renderers.
+// Playback exists only for managed assets; source artifact URLs and bodies are
+// never treated as persistent media truth.
 export function studioArtifactRenderBranch(
   artifact?: StudioArtifactPreviewSource,
 ): StudioArtifactRenderBranch {
   if (!artifact) return 'none';
-  const url = artifact.url?.trim();
-  if (artifact.previewSource === 'metadata-only' || !url) return 'metadata-only';
-  const mimeType = artifact.mimeType?.trim().toLowerCase() ?? '';
+  if (artifact.previewSource !== 'managed-asset' || !artifact.relativePath?.trim()) return 'metadata-only';
+  const mimeType = artifact.mediaType?.trim().toLowerCase() ?? '';
   if (mimeType.startsWith('image/')) return 'image';
   if (mimeType.startsWith('audio/')) return 'audio';
   if (mimeType.startsWith('video/')) return 'video';

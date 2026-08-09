@@ -9,7 +9,11 @@ import type {
   NimiPortableAppAIConfig,
   NimiPortableAppAIConfigIntent,
 } from '@nimiplatform/sdk/ai';
-import type { NimiLocalAppAgentHandle, NimiLocalAppArtifactImageMime } from '@nimiplatform/sdk/app';
+import type {
+  NimiLocalAppAgentHandle,
+  NimiLocalAppArtifactImageMime,
+  NimiLocalAppAssetsClient,
+} from '@nimiplatform/sdk/app';
 import type { RealmListChatsResultDto } from '@nimiplatform/kit/features/chat/realm';
 import type {
   AnyNimiCanonicalRendererHostBindingsV1,
@@ -65,6 +69,8 @@ export interface TesterRendererCommandPort {
   removeRunHistory(recordId: string): Promise<TesterRunHistory>;
   clearRunHistory(input: { readonly capabilityId?: string }): Promise<TesterRunHistory>;
   appendImageHistory(record: TesterImageHistoryRecord): Promise<readonly TesterImageHistoryRecord[]>;
+  removeImageHistory(runId: string): Promise<readonly TesterImageHistoryRecord[]>;
+  clearImageHistory(input: { readonly capabilityId?: string }): Promise<readonly TesterImageHistoryRecord[]>;
   savePreferences(preferences: TesterPreferences): Promise<void>;
   savePromptDraft(key: TesterPromptDraftKey, prompt: string, enabled: boolean): Promise<TesterPromptDraftSaveResult>;
   copyText(text: string): Promise<NimiRendererHostResult<{ readonly copied: boolean }>>;
@@ -113,6 +119,9 @@ export interface TesterRendererSdkPort {
       readonly reasons: readonly string[];
       readonly effectiveDefaults: Readonly<Record<string, string>> | null;
     }[]>;
+  };
+  storage: {
+    readonly assets: NimiLocalAppAssetsClient;
   };
   settings: {
     notificationUnread(): Promise<NimiRealmNotificationUnreadView>;

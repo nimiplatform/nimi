@@ -243,13 +243,13 @@ export function CapabilityRunHistory({
     void historyActions?.removeRecord(record.id);
   }
 
-  function handleClearScope() {
-    if (!clearArmed) {
-      setClearArmed(true);
-      return;
-    }
+  function handleRemoveMediaRecord(record: TesterImageHistoryRecord) {
+    void historyActions?.removeRecord(record.runId || record.id, true);
+  }
+
+  function handleClearScope(deleteAssets: boolean) {
     setClearArmed(false);
-    void historyActions?.clearScope(scope === 'capability' ? currentCapabilityId : null);
+    void historyActions?.clearScope(scope === 'capability' ? currentCapabilityId : null, deleteAssets);
   }
 
   function historySourceLabelForRun(record: TesterRunHistoryRecord): string {
@@ -513,16 +513,20 @@ export function CapabilityRunHistory({
             {hideFailures ? t('History.showFailures') : t('History.hideFailures')}
           </Button>
           {scope !== 'media' && historyActions ? (
-            <Button
-              type="button"
-              tone="ghost"
-              size="sm"
-              className={clearArmed ? 'studio-history__scope-option studio-history__scope-option--danger' : 'studio-history__scope-option'}
-              onClick={handleClearScope}
-              onBlur={() => setClearArmed(false)}
-            >
-              {clearArmed ? t('History.clearScopeConfirm') : t('History.clearScope')}
-            </Button>
+            clearArmed ? (
+              <div role="group" aria-label={t('History.clearChoiceAriaLabel')}>
+                <Button type="button" tone="ghost" size="sm" className="studio-history__scope-option" onClick={() => handleClearScope(false)}>
+                  {t('History.clearRecordsOnly')}
+                </Button>
+                <Button type="button" tone="ghost" size="sm" className="studio-history__scope-option studio-history__scope-option--danger" onClick={() => handleClearScope(true)}>
+                  {t('History.clearRecordsAndAssets')}
+                </Button>
+              </div>
+            ) : (
+              <Button type="button" tone="ghost" size="sm" className="studio-history__scope-option" onClick={() => setClearArmed(true)}>
+                {t('History.clearScope')}
+              </Button>
+            )
           ) : null}
         </div>
         <div className="studio-history__runs">
@@ -556,7 +560,7 @@ export function CapabilityRunHistory({
                     >
                       <span className={`studio-recent__dot studio-recent__dot--${record.status === 'ready' ? 'success' : 'warning'}`} aria-hidden="true" />
                       <span className="studio-recent__icon studio-recent__icon--media" aria-hidden="true">
-                        {record.url ? <img src={record.url} alt="" loading="lazy" /> : <Sparkles size={16} strokeWidth={1.9} />}
+                        <Sparkles size={16} strokeWidth={1.9} />
                       </span>
                       <span className="studio-recent__copy">
                         <span className="studio-recent__summary">
@@ -572,6 +576,19 @@ export function CapabilityRunHistory({
                         </span>
                       </span>
                     </Button>
+                    {historyActions ? (
+                      <Tooltip content={t('History.deleteRecordAndAsset')} placement="left">
+                        <IconButton
+                          type="button"
+                          tone="ghost"
+                          size="sm"
+                          className="studio-recent__row-delete"
+                          aria-label={t('History.deleteRecordAndAsset')}
+                          onClick={() => handleRemoveMediaRecord(record)}
+                          icon={<Trash2 size={13} strokeWidth={1.9} aria-hidden="true" />}
+                        />
+                      </Tooltip>
+                    ) : null}
                   </li>
                 ))}
               </ul>
@@ -618,13 +635,13 @@ export function CapabilityRunHistory({
                           </span>
                         </Button>
                         {historyActions ? (
-                          <Tooltip content={t('History.deleteRun')} placement="left">
+                          <Tooltip content={t('History.deleteRecordOnly')} placement="left">
                             <IconButton
                               type="button"
                               tone="ghost"
                               size="sm"
                               className="studio-recent__row-delete"
-                              aria-label={t('History.deleteRun')}
+                              aria-label={t('History.deleteRecordOnly')}
                               onClick={() => handleRemoveRecord(record)}
                               icon={<Trash2 size={13} strokeWidth={1.9} aria-hidden="true" />}
                             />

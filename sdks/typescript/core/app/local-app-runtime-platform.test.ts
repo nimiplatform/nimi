@@ -59,6 +59,15 @@ function standardShell(operationCalls: string[]): NimiLocalAppStandardShell {
       readJson: touched('storage.readJson'),
       writeJson: touched('storage.writeJson'),
       removeJson: touched('storage.removeJson'),
+      assets: {
+        stat: touched('storage.assets.stat'),
+        list: touched('storage.assets.list'),
+        write: touched('storage.assets.write'),
+        read: touched('storage.assets.read'),
+        remove: touched('storage.assets.remove'),
+        move: touched('storage.assets.move'),
+        adoptArtifact: touched('storage.assets.adoptArtifact'),
+      },
     },
     realm: { worldCore: { list: touched('realm.worldCore.list'), create: touched('realm.worldCore.create') } },
     agents: { listReferences: touched('agents.listReferences') },
@@ -116,6 +125,89 @@ test('local-app client hard-cuts the access workflow namespace', () => {
   assert.deepEqual(Object.keys(client.agentConfigure.sharedAIConfig).sort(), ['get', 'overwrite']);
   assert.deepEqual(Object.keys(client.agentConfigure.autonomy).sort(), ['snapshot', 'update']);
   assert.deepEqual(Object.keys(client.agentConfigure.presentation).sort(), ['commit', 'snapshot']);
+  assert.deepEqual(Object.keys(client.storage).sort(), ['assets', 'readJson', 'removeJson', 'writeJson']);
+  assert.deepEqual(Object.keys(client.storage.assets).sort(), [
+    'adoptArtifact', 'list', 'move', 'read', 'remove', 'stat', 'write',
+  ]);
+});
+
+test('local-app managed assets preserve incremental bodies, cancellation, and exact owner-free inputs', async () => {
+  const base = standardShell([]);
+  const calls: unknown[] = [];
+  const asset = {
+    relativePath: 'media/generated.png', mediaType: 'image/png', sizeBytes: 4,
+    sha256: `sha256:${'a'.repeat(64)}`,
+    createdAt: '2026-08-09T00:00:00Z', updatedAt: '2026-08-09T00:00:00Z',
+  };
+  let readCanceled = false;
+  const shell: NimiLocalAppStandardShell = {
+    ...base,
+    storage: {
+      ...base.storage,
+      assets: {
+        async stat(relativePath) { calls.push(['stat', relativePath]); return asset; },
+        async list(input) { calls.push(['list', input]); return { assets: [asset], nextCursor: '' }; },
+        async write(input) {
+          const chunks: number[][] = [];
+          if (input.body instanceof Uint8Array) chunks.push([...input.body]);
+          else if (typeof Blob !== 'undefined' && input.body instanceof Blob) chunks.push([...new Uint8Array(await input.body.arrayBuffer())]);
+          else for await (const chunk of input.body) chunks.push([...chunk]);
+          calls.push(['write', { ...input, body: chunks }]);
+          return asset;
+        },
+        async read(input) {
+          calls.push(['read', input]);
+          return {
+            asset,
+            range: { offset: 0, length: 4, totalSize: 4 },
+            body: (async function* () {
+              try { yield Uint8Array.from([1, 2]); yield Uint8Array.from([3, 4]); }
+              finally { readCanceled = true; }
+            })(),
+          };
+        },
+        async remove(relativePath) { calls.push(['remove', relativePath]); return { removed: true }; },
+        async move(input) { calls.push(['move', input]); return { ...asset, relativePath: input.to }; },
+        async adoptArtifact(input) { calls.push(['adopt', input]); return { ...asset, relativePath: input.relativePath }; },
+      },
+    },
+  };
+  const assets = createNimiLocalAppClient({ standardShell: shell }).storage.assets;
+  await assets.write({
+    relativePath: asset.relativePath,
+    mediaType: 'IMAGE/PNG',
+    body: (async function* () { yield Uint8Array.from([1, 2]); yield Uint8Array.from([3, 4]); })(),
+  });
+  const read = await assets.read({ relativePath: asset.relativePath });
+  for await (const chunk of read.body) {
+    assert.deepEqual([...chunk], [1, 2]);
+    break;
+  }
+  assert.equal(readCanceled, true);
+  assert.deepEqual(await assets.list({ prefix: 'media/' }), { assets: [asset], nextCursor: '' });
+  assert.deepEqual(calls.slice(0, 3), [
+    ['write', { relativePath: asset.relativePath, mediaType: 'image/png', body: [[1, 2], [3, 4]] }],
+    ['read', { relativePath: asset.relativePath }],
+    ['list', { prefix: 'media/' }],
+  ]);
+  assert.doesNotMatch(JSON.stringify(calls), /account|subject|endpoint|proof|providerUrl|data:/iu);
+  const unicodePath = '媒体/é.wav';
+  const maximumPath = `${'a'.repeat(255)}/${'b'.repeat(255)}/${'c'.repeat(255)}/${'d'.repeat(254)}/e`;
+  await assets.stat(unicodePath);
+  await assets.stat(maximumPath);
+  await assets.list({ prefix: '媒体/', pageSize: 500 });
+  assert.deepEqual(calls.slice(-3), [
+    ['stat', unicodePath],
+    ['stat', maximumPath],
+    ['list', { prefix: '媒体/', pageSize: 500 }],
+  ]);
+  await assert.rejects(() => assets.stat('媒体/e\u0301.wav'), { reasonCode: 'SDK_LOCAL_APP_ASSET_INPUT_INVALID' });
+  await assert.rejects(() => assets.stat(`${maximumPath}x`), { reasonCode: 'SDK_LOCAL_APP_ASSET_INPUT_INVALID' });
+  await assert.rejects(() => assets.list({ prefix: '媒体/', pageSize: 501 }), { reasonCode: 'SDK_LOCAL_APP_ASSET_INPUT_INVALID' });
+  await assert.rejects(
+    () => assets.adoptArtifact({ artifactId: 'artifact-1', relativePath: '../escape.png' }),
+    (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_LOCAL_APP_ASSET_INPUT_INVALID',
+  );
 });
 
 test('local-app auth remains a separate availability projection', async () => {
@@ -622,7 +714,7 @@ test('local-app artifact upload validates the closed image input and exact custo
   );
 });
 
-test('local-app Scenario Job adapter runs the unchanged SDK image runner and reads artifact bytes', async () => {
+test('local-app Scenario Job adapter runs the unchanged SDK image runner without reading artifact bytes', async () => {
   const calls: unknown[] = [];
   const base = standardShell([]);
   const job = {
@@ -633,7 +725,7 @@ test('local-app Scenario Job adapter runs the unchanged SDK image runner and rea
       artifactId: 'artifact-1', mimeType: 'image/png', bytes: [], sizeBytes: 2,
       sha256: 'sha256', durationMs: 0, width: 1, height: 1, sampleRateHz: 0, channels: 0,
     }],
-    createdAt: null, updatedAt: null,
+    createdAt: null, updatedAt: null, transcriptionText: '',
   };
   const shell: NimiLocalAppStandardShell = {
     ...base,
@@ -673,7 +765,7 @@ test('local-app Scenario Job adapter runs the unchanged SDK image runner and rea
   });
 
   assert.equal(result.job.jobId, 'job-1');
-  assert.deepEqual([...result.artifacts[0]!.bytes], [1, 2]);
+  assert.deepEqual([...result.artifacts[0]!.bytes], []);
   assert.deepEqual(calls[0], ['submit', {
     type: 'image-generate', prompt: 'draw a moon', negativePrompt: '',
     size: '', aspectRatio: '', quality: '', style: '',
@@ -682,7 +774,6 @@ test('local-app Scenario Job adapter runs the unchanged SDK image runner and rea
   assert.deepEqual(calls.slice(1), [
     ['subscribe', 'job-1'],
     ['get', 'job-1'],
-    ['artifact.read', 'artifact-1'],
   ]);
   assert.equal(JSON.stringify(calls).includes('app.test'), false);
   assert.equal(JSON.stringify(calls).includes('idempotency-1'), false);

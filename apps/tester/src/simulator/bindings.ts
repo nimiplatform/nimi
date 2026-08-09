@@ -7,6 +7,12 @@ import type {
   NimiPortableAppAIConfig,
   NimiPortableAppAIConfigIntent,
 } from '@nimiplatform/sdk/ai';
+import type {
+  NimiLocalAppAssetBody,
+  NimiLocalAppAssetReadResult,
+  NimiLocalAppAssetRecord,
+  NimiLocalAppAssetsClient,
+} from '@nimiplatform/sdk/app';
 import {
   NIMI_TESTING_AI_GENERATE_TEXT_METHOD,
   createNimiTestingAiModel,
@@ -46,6 +52,11 @@ import type {
 } from './protocol.js';
 
 const MAX_COMMAND_BYTES = 262_144;
+const MAX_SIMULATED_ASSET_BYTES = 32 * 1024;
+const SIMULATED_ASSET_CHUNK_BYTES = 8 * 1024;
+const MAX_ASSET_PATH_BYTES = 1024;
+const MAX_ASSET_PATH_COMPONENTS = 32;
+const MAX_ASSET_COMPONENT_BYTES = 255;
 const PROMPT_DRAFT_STORAGE_KEY = 'nimiapp-tester:prompt-drafts:v1' as const;
 
 type JsonRecord = { readonly [key: string]: TesterSimulatorJsonValue };
@@ -59,6 +70,7 @@ interface TesterProjection extends JsonRecord {
   };
   readonly runHistory: Readonly<Record<string, readonly JsonRecord[]>>;
   readonly imageHistory: readonly JsonRecord[];
+  readonly assets: Readonly<Record<string, JsonRecord>>;
   readonly promptDrafts: Readonly<Record<string, string>>;
   readonly aiConfig: JsonRecord;
   readonly ecosystemReference: JsonRecord | null;
@@ -113,6 +125,7 @@ function projection(context: TesterSimulatorPrepareContext): TesterProjection {
     || !isRecord(value.scenario)
     || !isRecord(value.runHistory)
     || !Array.isArray(value.imageHistory)
+    || !isRecord(value.assets)
     || !isRecord(value.promptDrafts)
     || !isRecord(value.aiConfig)
     || (value.ecosystemReference !== null && !isRecord(value.ecosystemReference))
@@ -200,6 +213,255 @@ function createAIConfigPort(context: TesterSimulatorPrepareContext) {
   });
 }
 
+function createAssetPort(context: TesterSimulatorPrepareContext): NimiLocalAppAssetsClient {
+  const stat = async (relativePath: string): Promise<NimiLocalAppAssetRecord> => {
+    const path = assetPath(relativePath);
+    const value = projection(context).assets[path];
+    if (!value) return assetFailure('not-found', `Simulated asset does not exist: ${path}`);
+    return assetRecord(value);
+  };
+  return Object.freeze({
+    stat,
+    async list(input) {
+      exactKeys(input, ['prefix', 'cursor', 'pageSize']);
+      const prefix = input.prefix === '' ? '' : assetPrefix(input.prefix);
+      const cursor = input.cursor ?? '';
+      const pageSize = input.pageSize ?? 100;
+      if (!Number.isSafeInteger(pageSize) || pageSize < 1 || pageSize > 500) {
+        return assetFailure('invalid-cursor', 'Simulated asset page is invalid.');
+      }
+      const offset = assetCursorOffset(cursor, prefix);
+      const values = Object.entries(projection(context).assets)
+        .filter(([path]) => assetMatchesPrefix(path, prefix))
+        .sort(([left], [right]) => left.localeCompare(right));
+      if (!Number.isSafeInteger(offset) || offset < 0 || offset > values.length) {
+        return assetFailure('invalid-cursor', 'Simulated asset cursor is invalid.');
+      }
+      const assets = values.slice(offset, offset + pageSize).map(([, value]) => assetRecord(value));
+      const nextOffset = offset + assets.length;
+      return Object.freeze({
+        assets: Object.freeze(assets),
+        nextCursor: nextOffset < values.length ? `sim:${nextOffset}:${encodeURIComponent(prefix)}` : '',
+      });
+    },
+    async write(input) {
+      exactKeys(input, ['relativePath', 'body', 'mediaType', 'overwrite']);
+      const relativePath = assetPath(input.relativePath);
+      const overwrite = optionalBoolean(input.overwrite, 'overwrite');
+      if (projection(context).assets[relativePath] && !overwrite) {
+        return assetFailure('already-exists', `Simulated asset already exists: ${relativePath}`);
+      }
+      const mediaType = input.mediaType === undefined ? '' : assetMediaType(input.mediaType);
+      const body = await collectAssetBody(input.body);
+      await invoke(context, 'tester.asset.write', {
+        relativePath, mediaType, overwrite, sizeBytes: body.byteLength,
+        sha256: await assetSha256(body), body: [...body],
+      });
+      return stat(relativePath);
+    },
+    async read(input): Promise<NimiLocalAppAssetReadResult> {
+      exactKeys(input, ['relativePath', 'offset', 'length']);
+      const relativePath = assetPath(input.relativePath);
+      const value = projection(context).assets[relativePath];
+      if (!value) return assetFailure('not-found', `Simulated asset does not exist: ${relativePath}`);
+      const asset = assetRecord(value);
+      const stored = assetBytes(value);
+      const offset = input.offset ?? 0;
+      const requestedLength = input.length;
+      if (!Number.isSafeInteger(offset) || offset < 0 || offset > asset.sizeBytes
+        || (requestedLength !== undefined && (!Number.isSafeInteger(requestedLength) || requestedLength <= 0))) {
+        return assetFailure('invalid-range', 'Simulated asset range is invalid.');
+      }
+      const length = requestedLength === undefined
+        ? asset.sizeBytes - offset
+        : Math.min(requestedLength, asset.sizeBytes - offset);
+      const body = Object.freeze({
+        async *[Symbol.asyncIterator](): AsyncGenerator<Uint8Array> {
+          for (let cursor = offset; cursor < offset + length; cursor += SIMULATED_ASSET_CHUNK_BYTES) {
+            yield stored.slice(cursor, Math.min(cursor + SIMULATED_ASSET_CHUNK_BYTES, offset + length));
+          }
+        },
+      });
+      return Object.freeze({
+        asset,
+        range: Object.freeze({ offset, length, totalSize: asset.sizeBytes }),
+        body,
+      });
+    },
+    async remove(relativePath) {
+      const path = assetPath(relativePath);
+      const removed = Boolean(projection(context).assets[path]);
+      await invoke(context, 'tester.asset.remove', { relativePath: path });
+      return Object.freeze({ removed });
+    },
+    async move(input) {
+      exactKeys(input, ['from', 'to', 'overwrite']);
+      const from = assetPath(input.from);
+      const to = assetPath(input.to);
+      const overwrite = optionalBoolean(input.overwrite, 'overwrite');
+      if (!projection(context).assets[from]) return assetFailure('not-found', `Simulated asset does not exist: ${from}`);
+      if (projection(context).assets[to] && !overwrite) return assetFailure('already-exists', `Simulated asset already exists: ${to}`);
+      await invoke(context, 'tester.asset.move', { from, to, overwrite });
+      return stat(to);
+    },
+    async adoptArtifact(input) {
+      exactKeys(input, ['artifactId', 'relativePath', 'overwrite']);
+      const artifactId = requiredAssetText(input.artifactId, 512, 'artifactId');
+      const relativePath = assetPath(input.relativePath);
+      const overwrite = optionalBoolean(input.overwrite, 'overwrite');
+      if (projection(context).assets[relativePath] && !overwrite) {
+        return assetFailure('already-exists', `Simulated asset already exists: ${relativePath}`);
+      }
+      await invoke(context, 'tester.asset.adopt', { artifactId, relativePath, overwrite });
+      return stat(relativePath);
+    },
+  });
+}
+
+function assetRecord(value: JsonRecord): NimiLocalAppAssetRecord {
+  const relativePath = assetPath(value.relativePath);
+  const mediaType = value.mediaType === '' ? undefined : assetMediaType(value.mediaType);
+  if (!Number.isSafeInteger(value.sizeBytes) || (value.sizeBytes as number) < 0
+    || typeof value.sha256 !== 'string' || !/^sha256:[0-9a-f]{64}$/u.test(value.sha256)
+    || typeof value.createdAt !== 'string' || !Number.isFinite(Date.parse(value.createdAt))
+    || typeof value.updatedAt !== 'string' || !Number.isFinite(Date.parse(value.updatedAt))) {
+    return assetFailure('integrity-failure', 'Simulated asset metadata is invalid.');
+  }
+  return Object.freeze({
+    relativePath, ...(mediaType === undefined ? {} : { mediaType }), sizeBytes: value.sizeBytes as number,
+    sha256: value.sha256, createdAt: value.createdAt, updatedAt: value.updatedAt,
+  });
+}
+
+function assetBytes(value: JsonRecord): Uint8Array {
+  if (!Array.isArray(value.body) || value.body.length > MAX_SIMULATED_ASSET_BYTES
+    || value.body.some((byte) => !Number.isSafeInteger(byte) || byte < 0 || byte > 255)) {
+    return assetFailure('integrity-failure', 'Simulated asset body is invalid.');
+  }
+  const bytes = Uint8Array.from(value.body as number[]);
+  if (bytes.byteLength !== value.sizeBytes) return assetFailure('integrity-failure', 'Simulated asset size is invalid.');
+  return bytes;
+}
+
+async function collectAssetBody(value: NimiLocalAppAssetBody): Promise<Uint8Array> {
+  const chunks: Uint8Array[] = [];
+  let size = 0;
+  const pushChunk = (chunk: Uint8Array) => {
+    if (!(chunk instanceof Uint8Array) || chunk.byteLength === 0) return assetFailure('invalid-payload', 'Simulated asset chunk is invalid.');
+    size += chunk.byteLength;
+    if (size > MAX_SIMULATED_ASSET_BYTES) return assetFailure('object-too-large', 'Simulated assets are bounded to 32 KiB.');
+    chunks.push(new Uint8Array(chunk));
+  };
+  if (value instanceof Uint8Array) pushChunk(value);
+  else if (typeof Blob !== 'undefined' && value instanceof Blob) pushChunk(new Uint8Array(await value.arrayBuffer()));
+  else {
+    const source = value as AsyncIterable<Uint8Array>;
+    if (!source || typeof source !== 'object' || typeof source[Symbol.asyncIterator] !== 'function') {
+      return assetFailure('invalid-payload', 'Simulated asset body is invalid.');
+    }
+    for await (const chunk of source) pushChunk(chunk);
+  }
+  const body = new Uint8Array(size);
+  let offset = 0;
+  for (const chunk of chunks) { body.set(chunk, offset); offset += chunk.byteLength; }
+  return body;
+}
+
+async function assetSha256(value: Uint8Array): Promise<string> {
+  const digest = await globalThis.crypto.subtle.digest('SHA-256', Uint8Array.from(value).buffer);
+  return `sha256:${[...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, '0')).join('')}`;
+}
+
+function assetPath(value: unknown): string {
+  if (typeof value !== 'string') return assetFailure('invalid-path', 'Simulated asset path is invalid.');
+  const path = value;
+  const components = path.split('/');
+  if (!path || path.trim() !== path || !isWellFormedUnicode(path) || path.normalize('NFC') !== path
+    || new TextEncoder().encode(path).byteLength > MAX_ASSET_PATH_BYTES
+    || path.startsWith('/') || path.endsWith('/') || /[\\\0<>:"|?*]/u.test(path)
+    || components.length > MAX_ASSET_PATH_COMPONENTS
+    || components.some((component) => !validAssetComponent(component))) {
+    return assetFailure('invalid-path', 'Simulated asset path is invalid.');
+  }
+  return path;
+}
+
+function assetPrefix(value: unknown): string {
+  if (typeof value !== 'string' || value.length === 0) return assetFailure('invalid-path', 'Simulated asset prefix is invalid.');
+  const prefix = value;
+  const trailing = prefix.endsWith('/');
+  return `${assetPath(trailing ? prefix.slice(0, -1) : prefix)}${trailing ? '/' : ''}`;
+}
+
+function validAssetComponent(component: string): boolean {
+  if (!component || component === '.' || component === '..'
+    || new TextEncoder().encode(component).byteLength > MAX_ASSET_COMPONENT_BYTES
+    || component.endsWith('.') || component.endsWith(' ') || /[\u0000-\u001f\u007f]/u.test(component)) return false;
+  const base = component.split('.')[0]?.toUpperCase() ?? '';
+  return !/^(?:CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9])$/u.test(base);
+}
+
+function isWellFormedUnicode(value: string): boolean {
+  for (let index = 0; index < value.length; index += 1) {
+    const unit = value.charCodeAt(index);
+    if (unit < 0xd800 || unit > 0xdfff) continue;
+    if (unit > 0xdbff || index + 1 >= value.length) return false;
+    const next = value.charCodeAt(index + 1);
+    if (next < 0xdc00 || next > 0xdfff) return false;
+    index += 1;
+  }
+  return true;
+}
+
+function assetMatchesPrefix(path: string, prefix: string): boolean {
+  if (prefix === '') return true;
+  return prefix.endsWith('/') ? path.startsWith(prefix) : path === prefix;
+}
+
+function assetCursorOffset(cursor: string, prefix: string): number {
+  if (cursor === '') return 0;
+  if (cursor.length > 4096) return assetFailure('invalid-cursor', 'Simulated asset cursor is invalid.');
+  const match = /^sim:([0-9]+):(.*)$/u.exec(cursor);
+  if (!match || match[2] !== encodeURIComponent(prefix)) {
+    return assetFailure('invalid-cursor', 'Simulated asset cursor is invalid.');
+  }
+  const offset = Number(match[1]);
+  if (!Number.isSafeInteger(offset) || String(offset) !== match[1]) {
+    return assetFailure('invalid-cursor', 'Simulated asset cursor is invalid.');
+  }
+  return offset;
+}
+
+function assetMediaType(value: unknown): string {
+  const mediaType = requiredAssetText(value, 255, 'mediaType').toLowerCase();
+  if (!/^[a-z0-9!#$&^_.+-]+\/[a-z0-9!#$&^_.+-]+$/u.test(mediaType)) return assetFailure('invalid-payload', 'Simulated media type is invalid.');
+  return mediaType;
+}
+
+function requiredAssetText(value: unknown, maximum: number, field: string): string {
+  if (typeof value !== 'string' || !value || value.trim() !== value || new TextEncoder().encode(value).byteLength > maximum) {
+    return assetFailure('invalid-payload', `Simulated asset ${field} is invalid.`);
+  }
+  return value;
+}
+
+function optionalBoolean(value: unknown, field: string): boolean {
+  if (value === undefined) return false;
+  if (typeof value !== 'boolean') return assetFailure('invalid-payload', `Simulated asset ${field} is invalid.`);
+  return value;
+}
+
+function exactKeys(value: unknown, allowed: readonly string[]): void {
+  if (!value || typeof value !== 'object' || Array.isArray(value)
+    || Object.keys(value).some((key) => !allowed.includes(key))) {
+    return assetFailure('invalid-payload', 'Simulated asset input is invalid.');
+  }
+}
+
+function assetFailure(reasonCode: string, message: string): never {
+  throw hostError(message, reasonCode);
+}
+
 function createSdkFacade(context: TesterSimulatorPrepareContext) {
   const port = {
       async invoke(methodId: string, request: NimiGenerateTextRequest) {
@@ -233,6 +495,7 @@ function createSdkFacade(context: TesterSimulatorPrepareContext) {
   });
   const model = createNimiTestingAiModel({ harness });
   const configPort = createAIConfigPort(context);
+  const assetPort = createAssetPort(context);
 
   async function execute(input: TesterCapabilityRunInput): Promise<TesterCapabilityRunResult> {
     const capability = getTesterCapability(input.capabilityId);
@@ -280,6 +543,7 @@ function createSdkFacade(context: TesterSimulatorPrepareContext) {
         return Object.freeze([]);
       },
     }),
+    storage: Object.freeze({ assets: assetPort }),
     settings: Object.freeze({
       async notificationUnread() {
         return unmodeledSdkMethod('Notification unread projection');
@@ -332,6 +596,14 @@ function createCommandPort(context: TesterSimulatorPrepareContext) {
     },
     async appendImageHistory(imageRecord: TesterImageHistoryRecord) {
       await invoke(context, 'tester.image-history.append', { record: imageRecord });
+      return projection(context).imageHistory as unknown as readonly TesterImageHistoryRecord[];
+    },
+    async removeImageHistory(runId: string) {
+      await invoke(context, 'tester.image-history.remove', { runId });
+      return projection(context).imageHistory as unknown as readonly TesterImageHistoryRecord[];
+    },
+    async clearImageHistory(input: { readonly capabilityId?: string }) {
+      await invoke(context, 'tester.image-history.clear', { capabilityId: input.capabilityId ?? null });
       return projection(context).imageHistory as unknown as readonly TesterImageHistoryRecord[];
     },
     async savePreferences(preferences: TesterPreferences) {

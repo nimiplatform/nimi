@@ -113,12 +113,13 @@ func (s *voiceAssetStore) submit(input *voiceWorkflowSubmitInput) (*runtimev1.Sc
 		IgnoredExtensions: cloneIgnoredScenarioExtensions(input.IgnoredExtensions),
 	}
 	record := &voiceScenarioJobRecord{
-		job:         cloneScenarioJob(job),
-		assetID:     assetID,
-		events:      make([]*runtimev1.ScenarioJobEvent, 0, 4),
-		subscribers: make(map[uint64]chan *runtimev1.ScenarioJobEvent),
-		createdAt:   now.AsTime(),
-		updatedAt:   now.AsTime(),
+		job:           cloneScenarioJob(job),
+		localAppOwner: cloneLocalAppJobOwner(input.LocalAppOwner),
+		assetID:       assetID,
+		events:        make([]*runtimev1.ScenarioJobEvent, 0, 4),
+		subscribers:   make(map[uint64]chan *runtimev1.ScenarioJobEvent),
+		createdAt:     now.AsTime(),
+		updatedAt:     now.AsTime(),
 	}
 	s.mu.Lock()
 	s.publishLocked(record, runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_SUBMITTED)
@@ -131,6 +132,22 @@ func (s *voiceAssetStore) submit(input *voiceWorkflowSubmitInput) (*runtimev1.Sc
 	s.pruneLocked(now.AsTime())
 	s.mu.Unlock()
 	return cloneScenarioJob(job), cloneVoiceAsset(asset)
+}
+
+func (s *voiceAssetStore) localAppOwner(jobID string) (*localAppJobOwner, bool) {
+	id := strings.TrimSpace(jobID)
+	if id == "" {
+		return nil, false
+	}
+	s.mu.RLock()
+	record := s.jobs[id]
+	if record == nil || !record.localAppOwner.valid() {
+		s.mu.RUnlock()
+		return nil, false
+	}
+	owner := cloneLocalAppJobOwner(record.localAppOwner)
+	s.mu.RUnlock()
+	return owner, true
 }
 
 func (s *voiceAssetStore) getJob(jobID string) (*runtimev1.ScenarioJob, bool) {

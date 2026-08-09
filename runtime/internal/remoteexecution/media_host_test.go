@@ -66,7 +66,8 @@ func TestProviderMediaHostOpensCredentialOnlyInsideDispatch(t *testing.T) {
 		t.Fatalf("ExecuteMedia: %v", err)
 	}
 	result, err := driver.NormalizeResponse(response)
-	if err != nil || len(result.Artifacts) != 1 || string(result.Artifacts[0].GetBytes()) != "audio-bytes" {
+	if err != nil || len(result.Artifacts) != 1 || len(result.Artifacts[0].GetBytes()) != 0 ||
+		string(result.ArtifactBodies[result.Artifacts[0].GetArtifactId()].BoundedBytes()) != "audio-bytes" {
 		t.Fatalf("NormalizeResponse=%+v err=%v", result, err)
 	}
 	if authorization != "Bearer "+secret {

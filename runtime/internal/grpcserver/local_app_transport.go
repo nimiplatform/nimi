@@ -26,6 +26,13 @@ const (
 	protectedReadLocalAppStorageJSONMethod   = "/nimi.runtime.v1.RuntimeAppService/ReadLocalAppStorageJson"
 	protectedWriteLocalAppStorageJSONMethod  = "/nimi.runtime.v1.RuntimeAppService/WriteLocalAppStorageJson"
 	protectedRemoveLocalAppStorageJSONMethod = "/nimi.runtime.v1.RuntimeAppService/RemoveLocalAppStorageJson"
+	protectedStatLocalAppAssetMethod         = "/nimi.runtime.v1.RuntimeAppService/StatLocalAppAsset"
+	protectedListLocalAppAssetsMethod        = "/nimi.runtime.v1.RuntimeAppService/ListLocalAppAssets"
+	protectedWriteLocalAppAssetMethod        = "/nimi.runtime.v1.RuntimeAppService/WriteLocalAppAsset"
+	protectedReadLocalAppAssetMethod         = "/nimi.runtime.v1.RuntimeAppService/ReadLocalAppAsset"
+	protectedRemoveLocalAppAssetMethod       = "/nimi.runtime.v1.RuntimeAppService/RemoveLocalAppAsset"
+	protectedMoveLocalAppAssetMethod         = "/nimi.runtime.v1.RuntimeAppService/MoveLocalAppAsset"
+	protectedAdoptLocalAppArtifactMethod     = "/nimi.runtime.v1.RuntimeAppService/AdoptLocalAppArtifact"
 	protectedAgentReferenceListMethod        = "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentReferences"
 	protectedOpenConversationMethod          = "/nimi.runtime.v1.RuntimeAgentService/OpenLocalAppConversation"
 	protectedSendConversationTurnMethod      = "/nimi.runtime.v1.RuntimeAgentService/SendLocalAppConversationTurn"
@@ -74,6 +81,11 @@ var protectedLocalAppUnaryMethodPolicies = map[string]protectedLocalAppMethodPol
 	protectedReadLocalAppStorageJSONMethod:   localAppSessionMethodPolicy(),
 	protectedWriteLocalAppStorageJSONMethod:  localAppSessionMethodPolicy(),
 	protectedRemoveLocalAppStorageJSONMethod: localAppSessionMethodPolicy(),
+	protectedStatLocalAppAssetMethod:         localAppSessionMethodPolicy(),
+	protectedListLocalAppAssetsMethod:        localAppSessionMethodPolicy(),
+	protectedRemoveLocalAppAssetMethod:       localAppSessionMethodPolicy(),
+	protectedMoveLocalAppAssetMethod:         localAppSessionMethodPolicy(),
+	protectedAdoptLocalAppArtifactMethod:     localAppSessionMethodPolicy(),
 	protectedAgentReferenceListMethod:        localAppSessionMethodPolicy(),
 	protectedOpenConversationMethod:          localAppSessionMethodPolicy(),
 	protectedSendConversationTurnMethod:      localAppSessionMethodPolicy(),
@@ -103,6 +115,8 @@ var protectedLocalAppStreamMethodPolicies = map[string]protectedLocalAppMethodPo
 	protectedSubscribeConversationMethod: localAppSessionMethodPolicy(),
 	protectedStreamTextTurnMethod:        localAppSessionMethodPolicy(),
 	protectedSubscribeScenarioJobMethod:  localAppSessionMethodPolicy(),
+	protectedWriteLocalAppAssetMethod:    localAppSessionMethodPolicy(),
+	protectedReadLocalAppAssetMethod:     localAppSessionMethodPolicy(),
 }
 
 func localAppSessionMethodPolicy() protectedLocalAppMethodPolicy {
@@ -315,6 +329,16 @@ func protectedLocalAppUnaryIngress(method string, request any) localappop.Ingres
 		return localappop.IngressStorageJSONWrite
 	case protectedRemoveLocalAppStorageJSONMethod:
 		return localappop.IngressStorageJSONRemove
+	case protectedStatLocalAppAssetMethod:
+		return localappop.IngressStorageAssetStat
+	case protectedListLocalAppAssetsMethod:
+		return localappop.IngressStorageAssetList
+	case protectedRemoveLocalAppAssetMethod:
+		return localappop.IngressStorageAssetRemove
+	case protectedMoveLocalAppAssetMethod:
+		return localappop.IngressStorageAssetMove
+	case protectedAdoptLocalAppArtifactMethod:
+		return localappop.IngressArtifactAdoptToStorage
 	case protectedGetAppAIConfigMethod, protectedGetMachineLocalAIConfigMethod:
 		return localappop.IngressAppAIConfigGet
 	case protectedOverwriteAppAIConfigMethod:
@@ -378,6 +402,8 @@ func protectedLocalAppUnaryIngress(method string, request any) localappop.Ingres
 func protectedLocalAppOwnerEnabled(method string, request any, ingress localappop.Ingress) bool {
 	switch method {
 	case protectedReadLocalAppStorageJSONMethod, protectedWriteLocalAppStorageJSONMethod, protectedRemoveLocalAppStorageJSONMethod,
+		protectedStatLocalAppAssetMethod, protectedListLocalAppAssetsMethod, protectedRemoveLocalAppAssetMethod, protectedMoveLocalAppAssetMethod,
+		protectedAdoptLocalAppArtifactMethod,
 		protectedGetAppAIConfigMethod, protectedGetMachineLocalAIConfigMethod, protectedOverwriteAppAIConfigMethod, protectedGenerateTextCandidateMethod,
 		protectedExecuteLocalAppScenarioMethod, protectedSubmitScenarioJobMethod, protectedGetScenarioJobMethod, protectedCancelScenarioJobMethod,
 		protectedReadLocalAppArtifactMethod, protectedUploadLocalAppArtifactMethod, protectedListLocalAppVoiceAssetsMethod,
@@ -413,6 +439,10 @@ func protectedLocalAppStreamIngress(method string) localappop.Ingress {
 		return localappop.IngressTextTurnStream
 	case protectedSubscribeScenarioJobMethod:
 		return localappop.IngressScenarioJobSubscribe
+	case protectedWriteLocalAppAssetMethod:
+		return localappop.IngressStorageAssetWrite
+	case protectedReadLocalAppAssetMethod:
+		return localappop.IngressStorageAssetRead
 	default:
 		return localappop.IngressUnknown
 	}

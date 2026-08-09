@@ -2,6 +2,7 @@ package nimillm
 
 import (
 	"context"
+	"io"
 	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
@@ -13,9 +14,15 @@ import (
 // MediaExecutionResult is the credential-free output of one exact media
 // dialect invocation. Credential lifetime remains owned by the caller.
 type MediaExecutionResult struct {
-	Artifacts     []*runtimev1.ScenarioArtifact
-	Usage         *runtimev1.UsageStats
-	ProviderJobID string
+	Artifacts      []*runtimev1.ScenarioArtifact
+	ArtifactBodies map[string]*MediaArtifactBody
+	Usage          *runtimev1.UsageStats
+	ProviderJobID  string
+}
+
+type MediaArtifactBody struct {
+	Bytes  []byte
+	Stream io.ReadCloser
 }
 
 // ExecuteMediaAdapter invokes one Driver-selected existing provider dialect.
@@ -108,10 +115,15 @@ func (p *CloudProvider) ExecuteMediaAdapter(
 	default:
 		err = grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
 	}
+	var bodies map[string]*MediaArtifactBody
+	if err == nil {
+		bodies, err = detachMediaArtifactBodies(ctx, artifacts)
+	}
 	return MediaExecutionResult{
-		Artifacts:     artifacts,
-		Usage:         usage,
-		ProviderJobID: strings.TrimSpace(providerJobID),
+		Artifacts:      artifacts,
+		ArtifactBodies: bodies,
+		Usage:          usage,
+		ProviderJobID:  strings.TrimSpace(providerJobID),
 	}, err
 }
 

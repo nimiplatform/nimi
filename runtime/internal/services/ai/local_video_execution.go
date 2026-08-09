@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
@@ -13,6 +14,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/localexecution"
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
+	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
 	runtimeartifact "github.com/nimiplatform/nimi/runtime/internal/services/runtimeartifact"
 	"github.com/nimiplatform/nimi/runtime/internal/videomedia"
 	"github.com/oklog/ulid/v2"
@@ -76,7 +78,7 @@ func (s *Service) captureLocalVideoEffectiveInputs(
 	if err != nil {
 		return nil, err
 	}
-	resolvedRequest, err := s.resolveLocalVideoInvocationRequest(head, capturedSpec)
+	resolvedRequest, err := s.resolveLocalVideoInvocationRequest(ctx, head, capturedSpec)
 	if err != nil {
 		return nil, err
 	}
@@ -205,7 +207,7 @@ func mergeLocalVideoDefault(existing any, incoming any) any {
 	return merged
 }
 
-func (s *Service) resolveLocalVideoInvocationRequest(head *runtimev1.ScenarioRequestHead, spec *runtimev1.VideoGenerateScenarioSpec) (capabilitydriver.VideoInvocationRequest, error) {
+func (s *Service) resolveLocalVideoInvocationRequest(ctx context.Context, head *runtimev1.ScenarioRequestHead, spec *runtimev1.VideoGenerateScenarioSpec) (capabilitydriver.VideoInvocationRequest, error) {
 	if spec == nil || spec.GetOptions() == nil {
 		return capabilitydriver.VideoInvocationRequest{}, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 	}
@@ -232,7 +234,7 @@ func (s *Service) resolveLocalVideoInvocationRequest(head *runtimev1.ScenarioReq
 				grpcerr.ReasonOptions{Message: "local video media input requires an explicit Runtime Artifact reference"},
 			)
 		}
-		resolved, err := s.resolveLocalVideoArtifactInput(head, item)
+		resolved, err := s.resolveLocalVideoArtifactInput(ctx, head, item)
 		if err != nil {
 			return capabilitydriver.VideoInvocationRequest{}, err
 		}
@@ -251,29 +253,47 @@ func (s *Service) resolveLocalVideoInvocationRequest(head *runtimev1.ScenarioReq
 	}, nil
 }
 
-func (s *Service) resolveLocalVideoArtifactInput(head *runtimev1.ScenarioRequestHead, item *runtimev1.VideoContentItem) (capabilitydriver.VideoResolvedInput, error) {
+func (s *Service) resolveLocalVideoArtifactInput(ctx context.Context, head *runtimev1.ScenarioRequestHead, item *runtimev1.VideoContentItem) (capabilitydriver.VideoResolvedInput, error) {
 	artifactID := strings.TrimSpace(item.GetArtifactRef().GetArtifactId())
 	if artifactID == "" {
 		return capabilitydriver.VideoResolvedInput{}, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_ARTIFACT_INVALID_INPUT)
 	}
-	if s == nil || s.runtimeArtifacts == nil {
-		return capabilitydriver.VideoResolvedInput{}, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_ARTIFACT_NOT_FOUND)
+	var source *runtimeartifact.ArtifactSource
+	if decision, localApp := accountservice.AuthorizedLocalAppDecisionFromContext(ctx); localApp {
+		var err error
+		source, err = s.openAuthorizedLocalAppArtifact(ctx, decision, artifactID, localAppArtifactOperationInput)
+		if err != nil {
+			return capabilitydriver.VideoResolvedInput{}, err
+		}
+	} else {
+		if s == nil || s.runtimeArtifacts == nil {
+			return capabilitydriver.VideoResolvedInput{}, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_ARTIFACT_NOT_FOUND)
+		}
+		var ok bool
+		source, ok = s.runtimeArtifacts.Open(ctx, artifactID)
+		if !ok {
+			return capabilitydriver.VideoResolvedInput{}, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_ARTIFACT_NOT_FOUND)
+		}
+		owner := runtimeArtifactOwner(head)
+		if owner == nil || source.Record.Owner == nil || source.Record.Owner.RegisteredAppSubject != "" ||
+			source.Record.Owner.SubjectUserID != owner.SubjectUserID || source.Record.Owner.AppID != owner.AppID {
+			_ = source.Body.Close()
+			return capabilitydriver.VideoResolvedInput{}, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_ARTIFACT_FORBIDDEN)
+		}
 	}
-	record, ok := s.runtimeArtifacts.Get(artifactID)
-	if !ok {
-		return capabilitydriver.VideoResolvedInput{}, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_ARTIFACT_NOT_FOUND)
-	}
-	owner := runtimeArtifactOwner(head)
-	if owner == nil || record.Owner == nil || record.Owner.SubjectUserID != owner.SubjectUserID || record.Owner.AppID != owner.AppID {
-		return capabilitydriver.VideoResolvedInput{}, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_ARTIFACT_FORBIDDEN)
-	}
+	defer source.Body.Close()
+	record := source.Record
 	if !strings.HasPrefix(strings.ToLower(strings.TrimSpace(record.MimeType)), "image/") {
 		return capabilitydriver.VideoResolvedInput{}, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_ARTIFACT_MIME_MISMATCH)
 	}
-	if record.SizeBytes > runtimeartifact.MaxInlineBytes || len(record.Bytes) > runtimeartifact.MaxInlineBytes {
+	if record.SizeBytes > runtimeartifact.MaxInlineBytes {
 		return capabilitydriver.VideoResolvedInput{}, grpcerr.WithReasonCode(codes.ResourceExhausted, runtimev1.ReasonCode_ARTIFACT_TOO_LARGE)
 	}
-	if record.SizeBytes != int64(len(record.Bytes)) || len(record.Bytes) == 0 {
+	payload, err := io.ReadAll(io.LimitReader(source.Body, runtimeartifact.MaxInlineBytes+1))
+	if err != nil || len(payload) == 0 || int64(len(payload)) != record.SizeBytes {
+		if _, localApp := accountservice.AuthorizedLocalAppDecisionFromContext(ctx); localApp {
+			return capabilitydriver.VideoResolvedInput{}, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_ARTIFACT_FORBIDDEN)
+		}
 		return capabilitydriver.VideoResolvedInput{}, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_ARTIFACT_NOT_FOUND)
 	}
 	role := capabilitydriver.VideoInputRole("")
@@ -288,7 +308,7 @@ func (s *Service) resolveLocalVideoArtifactInput(head *runtimev1.ScenarioRequest
 		return capabilitydriver.VideoResolvedInput{}, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_SPEC_INVALID)
 	}
 	return capabilitydriver.VideoResolvedInput{
-		Role: role, SourceIdentity: artifactID, ImageBytes: append([]byte(nil), record.Bytes...),
+		Role: role, SourceIdentity: artifactID, ImageBytes: payload,
 	}, nil
 }
 

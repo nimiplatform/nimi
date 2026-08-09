@@ -44,6 +44,10 @@ use crate::{
     LocalAppScenarioReadArtifactRequest, LocalAppScenarioStreamReceiver,
     LocalAppScenarioSubmitRequest, LocalAppScenarioUploadArtifactRequest, LocalAppSessionState,
     LocalAppSessionStatus, LocalAppSharedAgentAIConfigOverwriteRequest, LocalAppStorageDocument,
+    LocalAppAssetAdoptRequest, LocalAppAssetListRequest, LocalAppAssetListResult,
+    LocalAppAssetMoveRequest, LocalAppAssetReadRequest, LocalAppAssetReadResult,
+    LocalAppAssetRecord, LocalAppAssetRemoveRequest, LocalAppAssetRemoveResult,
+    LocalAppAssetStatRequest, LocalAppAssetWriteReceiver, LocalAppAssetWriteRequest,
     LocalAppStorageReadRequest, LocalAppStorageRemoveRequest, LocalAppStorageRemoveResult,
     LocalAppStorageWriteRequest, LocalAppTextCandidateRequest, LocalAppTextCandidateResult,
     LocalAppWorldCoreCreateRequest, LocalAppWorldCoreListRequest, NimiLocalAppCarrier,
@@ -416,6 +420,34 @@ impl NimiLocalAppSession for PlatformLocalAppSession {
             let _operation = self.operation_gate.read().await;
             storage::remove_local_app_storage_json(self.checked_channel()?, request).await
         })
+    }
+
+    fn storage_asset_stat(&self, request: LocalAppAssetStatRequest) -> Pin<Box<dyn Future<Output = Result<LocalAppAssetRecord, LocalAppOperationError>> + Send + '_>> {
+        Box::pin(async move { let _operation = self.operation_gate.read().await; storage::stat_local_app_asset(self.checked_channel()?, request).await })
+    }
+
+    fn storage_asset_list(&self, request: LocalAppAssetListRequest) -> Pin<Box<dyn Future<Output = Result<LocalAppAssetListResult, LocalAppOperationError>> + Send + '_>> {
+        Box::pin(async move { let _operation = self.operation_gate.read().await; storage::list_local_app_assets(self.checked_channel()?, request).await })
+    }
+
+    fn storage_asset_write(&self, request: LocalAppAssetWriteRequest, body: LocalAppAssetWriteReceiver) -> Pin<Box<dyn Future<Output = Result<LocalAppAssetRecord, LocalAppOperationError>> + Send + '_>> {
+        Box::pin(async move { let _operation = self.operation_gate.read().await; storage::write_local_app_asset(self.checked_channel()?, request, body).await })
+    }
+
+    fn storage_asset_read(&self, request: LocalAppAssetReadRequest) -> Pin<Box<dyn Future<Output = Result<LocalAppAssetReadResult, LocalAppOperationError>> + Send + '_>> {
+        Box::pin(async move { let _operation = self.operation_gate.read().await; storage::read_local_app_asset(self.checked_channel()?, request).await })
+    }
+
+    fn storage_asset_remove(&self, request: LocalAppAssetRemoveRequest) -> Pin<Box<dyn Future<Output = Result<LocalAppAssetRemoveResult, LocalAppOperationError>> + Send + '_>> {
+        Box::pin(async move { let _operation = self.operation_gate.read().await; storage::remove_local_app_asset(self.checked_channel()?, request).await })
+    }
+
+    fn storage_asset_move(&self, request: LocalAppAssetMoveRequest) -> Pin<Box<dyn Future<Output = Result<LocalAppAssetRecord, LocalAppOperationError>> + Send + '_>> {
+        Box::pin(async move { let _operation = self.operation_gate.read().await; storage::move_local_app_asset(self.checked_channel()?, request).await })
+    }
+
+    fn storage_asset_adopt(&self, request: LocalAppAssetAdoptRequest) -> Pin<Box<dyn Future<Output = Result<LocalAppAssetRecord, LocalAppOperationError>> + Send + '_>> {
+        Box::pin(async move { let _operation = self.operation_gate.read().await; storage::adopt_local_app_artifact(self.checked_channel()?, request).await })
     }
 
     fn agent_reference_list(

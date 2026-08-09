@@ -12,8 +12,10 @@ package runtimeartifact
 
 import (
 	"bytes"
+	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"io"
 	"strings"
 	"sync"
 	"time"
@@ -23,6 +25,10 @@ import (
 // Larger artifacts return ARTIFACT_TOO_LARGE; chunked retrieval remains
 // unadmitted until explicit platform authority is added.
 const MaxInlineBytes = 32 * 1024 * 1024
+
+// MaxCustodyBytes bounds streamed Runtime artifact custody independently from
+// the complete inline-read ceiling.
+const MaxCustodyBytes int64 = 8 * 1024 * 1024 * 1024
 
 // ArtifactRecord holds artifact bytes + metadata indexed by artifact_id.
 type ArtifactRecord struct {
@@ -40,8 +46,16 @@ type ArtifactRecord struct {
 // ArtifactOwner is the Runtime-owned uploader identity written at protected
 // PutArtifact admission. A nil owner never authorizes owner-based read.
 type ArtifactOwner struct {
-	SubjectUserID string
-	AppID         string
+	SubjectUserID        string
+	RegisteredAppSubject string
+	AppID                string
+}
+
+// ArtifactSource is one immutable committed source held through Close.
+// Record contains metadata only; Body owns the opened read handle.
+type ArtifactSource struct {
+	Record ArtifactRecord
+	Body   io.ReadSeekCloser
 }
 
 // GeneratedVoiceArtifactMetadata is the durable cleanup index for assistant
@@ -63,6 +77,9 @@ type GeneratedVoiceArtifactMetadata struct {
 type Store interface {
 	Put(artifactID string, record ArtifactRecord) error
 	Get(artifactID string) (ArtifactRecord, bool)
+	PutStream(context.Context, string, ArtifactRecord, io.ReadCloser) error
+	Stat(string) (ArtifactRecord, bool)
+	Open(context.Context, string) (*ArtifactSource, bool)
 	Delete(artifactID string) error
 	CleanupGeneratedVoiceArtifacts(selector GeneratedVoiceArtifactSelector) ([]string, error)
 	Len() int
@@ -115,6 +132,21 @@ func (s *MemoryStore) Put(artifactID string, record ArtifactRecord) error {
 	return nil
 }
 
+// PutStream accepts one context-aware incremental body and owns exactly one
+// source Close after admission.
+func (s *MemoryStore) PutStream(ctx context.Context, artifactID string, record ArtifactRecord, source io.ReadCloser) error {
+	if source == nil {
+		return ErrInvalidArtifactRecord
+	}
+	defer source.Close()
+	payload, err := readArtifactStream(ctx, source)
+	if err != nil {
+		return err
+	}
+	record.Bytes = payload
+	return s.Put(artifactID, record)
+}
+
 // Get retrieves an artifact record by id. Second return value indicates
 // presence; missing id maps to ARTIFACT_NOT_FOUND at the gRPC layer.
 func (s *MemoryStore) Get(artifactID string) (ArtifactRecord, bool) {
@@ -129,6 +161,34 @@ func (s *MemoryStore) Get(artifactID string) (ArtifactRecord, bool) {
 		return ArtifactRecord{}, false
 	}
 	return cloneArtifactRecord(record), true
+}
+
+// Stat returns committed metadata without loading a caller-visible body.
+func (s *MemoryStore) Stat(artifactID string) (ArtifactRecord, bool) {
+	record, ok := s.Get(artifactID)
+	if !ok {
+		return ArtifactRecord{}, false
+	}
+	record.Bytes = nil
+	return record, true
+}
+
+// Open returns one immutable in-memory snapshot that remains readable after a
+// concurrent delete or overwrite attempt.
+func (s *MemoryStore) Open(ctx context.Context, artifactID string) (*ArtifactSource, bool) {
+	if err := ctx.Err(); err != nil {
+		return nil, false
+	}
+	record, ok := s.Get(artifactID)
+	if !ok || !artifactRecordIntegrityValid(record) {
+		return nil, false
+	}
+	payload := bytes.Clone(record.Bytes)
+	record.Bytes = nil
+	return &ArtifactSource{
+		Record: record,
+		Body:   &memoryArtifactBody{Reader: *bytes.NewReader(payload)},
+	}, true
 }
 
 // Delete removes an artifact record. Idempotent: deleting missing id is
@@ -236,6 +296,7 @@ func cloneArtifactRecord(record ArtifactRecord) ArtifactRecord {
 
 func normalizeArtifactOwner(input ArtifactOwner) (ArtifactOwner, error) {
 	input.SubjectUserID = strings.TrimSpace(input.SubjectUserID)
+	input.RegisteredAppSubject = strings.TrimSpace(input.RegisteredAppSubject)
 	input.AppID = strings.TrimSpace(input.AppID)
 	if input.SubjectUserID == "" || input.AppID == "" {
 		return ArtifactOwner{}, ErrInvalidArtifactRecord
@@ -250,7 +311,43 @@ func artifactOwnersEqual(left, right *ArtifactOwner) bool {
 	if left == nil {
 		return true
 	}
-	return left.SubjectUserID == right.SubjectUserID && left.AppID == right.AppID
+	return left.SubjectUserID == right.SubjectUserID &&
+		left.RegisteredAppSubject == right.RegisteredAppSubject &&
+		left.AppID == right.AppID
+}
+
+type memoryArtifactBody struct{ bytes.Reader }
+
+func (*memoryArtifactBody) Close() error { return nil }
+
+func readArtifactStream(ctx context.Context, source io.Reader) ([]byte, error) {
+	if ctx == nil || source == nil {
+		return nil, ErrInvalidArtifactRecord
+	}
+	var out bytes.Buffer
+	chunk := make([]byte, 1024*1024)
+	var total int64
+	for {
+		if err := ctx.Err(); err != nil {
+			return nil, err
+		}
+		read, err := source.Read(chunk)
+		if read > 0 {
+			total += int64(read)
+			if total > MaxCustodyBytes {
+				return nil, ErrArtifactTooLarge
+			}
+			if _, writeErr := out.Write(chunk[:read]); writeErr != nil {
+				return nil, writeErr
+			}
+		}
+		if err != nil {
+			if err == io.EOF {
+				return out.Bytes(), nil
+			}
+			return nil, err
+		}
+	}
 }
 
 func artifactRecordIntegrityValid(record ArtifactRecord) bool {

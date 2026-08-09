@@ -203,14 +203,15 @@ func TestCloudMediaDriverHidesProviderURLsAndPollingMetadata(t *testing.T) {
 		"provider_job_id": "provider-job", "uri": "https://provider.invalid/image.png", "adapter": "openai_compat",
 		"response": map[string]any{"task_id": "provider-task", "status": "done"},
 	})
+	body, _ := NewBoundedArtifactBody([]byte("owned"))
 	result, err := driver.NormalizeResponse(CloudMediaTransportResponse{Artifacts: []*runtimev1.ScenarioArtifact{{
-		ArtifactId: "runtime-artifact", MimeType: "image/png", Bytes: []byte("owned"), Uri: "https://provider.invalid/image.png", Metadata: metadata,
-	}}})
+		ArtifactId: "runtime-artifact", MimeType: "image/png", SizeBytes: 5, Metadata: metadata,
+	}}, ArtifactBodies: map[string]*ArtifactBody{"runtime-artifact": body}})
 	if err != nil {
 		t.Fatalf("NormalizeResponse: %v", err)
 	}
 	artifact := result.Artifacts[0]
-	if artifact.GetUri() != "" {
+	if artifact.GetUri() != "" || len(artifact.GetBytes()) != 0 || string(result.ArtifactBodies["runtime-artifact"].BoundedBytes()) != "owned" {
 		t.Fatalf("provider URI escaped Driver: %q", artifact.GetUri())
 	}
 	values := artifact.GetMetadata().AsMap()

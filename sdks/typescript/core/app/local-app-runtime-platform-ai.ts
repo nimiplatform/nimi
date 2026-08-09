@@ -169,6 +169,7 @@ export type NimiLocalAppScenarioJob = {
   readonly traceId: string;
   readonly createdAt: NimiLocalAppScenarioTimestamp | null;
   readonly updatedAt: NimiLocalAppScenarioTimestamp | null;
+  readonly transcriptionText: string;
 };
 
 export type NimiLocalAppVoiceAsset = {
@@ -386,10 +387,7 @@ export function createNimiLocalAppRuntimeScenarioJobClient(
     async getScenarioArtifacts(request) {
       assertExactKeys(request, ['jobId'], 'local-app Scenario artifact request');
       const { job } = await ai.scenarioJobs.get(request.jobId);
-      const artifacts = await Promise.all(job.artifacts.map(async (artifact) => {
-        const read = await ai.artifacts.read(artifact.artifactId);
-        return runtimeArtifactFromLocal(artifact, read.bytes, read.mimeType, read.sizeBytes);
-      }));
+      const artifacts = job.artifacts.map((artifact) => runtimeArtifactFromLocal(artifact));
       return runtimeArtifactResponse(job, artifacts);
     },
   };
@@ -679,7 +677,7 @@ function projectScenarioJobEnvelope(value: unknown): { readonly job: NimiLocalAp
 
 function projectScenarioJob(value: unknown): NimiLocalAppScenarioJob {
   const record = asRecord(value);
-  assertExactProjectionKeys(record, ['jobId', 'scenarioType', 'status', 'progressPercent', 'progressCurrentStep', 'progressTotalSteps', 'reasonCode', 'reasonDetail', 'artifacts', 'traceId', 'createdAt', 'updatedAt'], 'scenario Job');
+  assertExactProjectionKeys(record, ['jobId', 'scenarioType', 'status', 'progressPercent', 'progressCurrentStep', 'progressTotalSteps', 'reasonCode', 'reasonDetail', 'artifacts', 'traceId', 'createdAt', 'updatedAt', 'transcriptionText'], 'scenario Job');
   assertSafeProjection(record);
   if (!LOCAL_SCENARIO_TYPES.includes(record.scenarioType as never) || !LOCAL_JOB_STATUSES.includes(record.status as never)) localAppProjectionError('scenario Job enum');
   const current = projectionInteger(record.progressCurrentStep, 'scenario Job current step', 0, Number.MAX_SAFE_INTEGER);
@@ -698,6 +696,7 @@ function projectScenarioJob(value: unknown): NimiLocalAppScenarioJob {
     traceId: optionalProjectionText(record.traceId, 'scenario Job traceId', 512),
     createdAt: projectTimestamp(record.createdAt, 'scenario Job createdAt'),
     updatedAt: projectTimestamp(record.updatedAt, 'scenario Job updatedAt'),
+    transcriptionText: optionalProjectionText(record.transcriptionText, 'scenario Job transcriptionText', MAX_RESULT_BYTES),
   }) as NimiLocalAppScenarioJob;
 }
 
@@ -916,6 +915,7 @@ function runtimeJobFromLocal(job: NimiLocalAppScenarioJob): ScenarioJob {
     artifacts: job.artifacts.map((artifact) => runtimeArtifactFromLocal(artifact)), usage: undefined, traceId: job.traceId,
     ignoredExtensions: [], reasonMetadata: undefined, progressPercent: job.progressPercent,
     progressCurrentStep: job.progressCurrentStep, progressTotalSteps: job.progressTotalSteps,
+    transcriptionText: job.transcriptionText,
   };
 }
 
@@ -928,21 +928,18 @@ function runtimeJobEventFromLocal(event: NimiLocalAppScenarioJobEvent): Scenario
 }
 
 function runtimeArtifactResponse(job: NimiLocalAppScenarioJob, artifacts: ScenarioArtifact[]): GetScenarioArtifactsResponse {
-  const output = runtimeOutput(job.scenarioType, artifacts);
+  const output = runtimeOutput(job.scenarioType, artifacts, job.transcriptionText);
   return { jobId: job.jobId, artifacts, traceId: job.traceId, output };
 }
 
-function runtimeOutput(type: NimiLocalAppScenarioJob['scenarioType'], artifacts: ScenarioArtifact[]): ScenarioOutput | undefined {
+function runtimeOutput(type: NimiLocalAppScenarioJob['scenarioType'], artifacts: ScenarioArtifact[], transcriptionText: string): ScenarioOutput | undefined {
   switch (type) {
     case 'image-generate': return { output: { oneofKind: 'imageGenerate', imageGenerate: { artifacts } } };
     case 'video-generate': return { output: { oneofKind: 'videoGenerate', videoGenerate: { artifacts } } };
     case 'speech-synthesize': return { output: { oneofKind: 'speechSynthesize', speechSynthesize: { artifacts } } };
     case 'speech-transcribe': {
-      const first = artifacts[0];
-      let text = '';
-      try { text = first ? new TextDecoder('utf-8', { fatal: true }).decode(first.bytes) : ''; } catch { localAppProjectionError('speech transcription artifact text'); }
-      if (!text.trim() || utf8Length(text) > MAX_RESULT_BYTES) localAppProjectionError('speech transcription artifact text');
-      return { output: { oneofKind: 'speechTranscribe', speechTranscribe: { text, artifacts } } };
+      if (!transcriptionText.trim() || utf8Length(transcriptionText) > MAX_RESULT_BYTES) localAppProjectionError('speech transcription text');
+      return { output: { oneofKind: 'speechTranscribe', speechTranscribe: { text: transcriptionText, artifacts } } };
     }
     default: return undefined;
   }

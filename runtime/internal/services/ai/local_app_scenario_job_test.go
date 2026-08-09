@@ -16,6 +16,13 @@ func localAppScenarioJobContext(operation accountservice.LocalAppOperation, capa
 	return localAppScenarioDecisionContext(operation, capability)
 }
 
+func localAppScenarioJobContextForSubject(operation accountservice.LocalAppOperation, capability string, subject string) context.Context {
+	return accountservice.ContextWithAuthorizedLocalAppDecision(context.Background(), accountservice.LocalAppCallerDecision{
+		AccountID: "account-1", AppID: "nimi.realm-persona-studio", RegisteredAppSubject: subject,
+		Operation: operation, AuthorityClass: localappop.AuthorityClassAppAccess, OperationCapability: capability,
+	})
+}
+
 func TestLocalAppJobSpecsPreservePresenceAndOwnerClamps(t *testing.T) {
 	tts, err := validateLocalAppSpeechSynthesizeJobSpec(&runtimev1.LocalAppSpeechSynthesizeJobSpec{
 		Text: "hello", SampleRateHz: testInt32(0), Speed: testFloat32(4), Pitch: testFloat32(-24), Volume: testFloat32(4),
@@ -165,19 +172,30 @@ func TestSubmitLocalAppScenarioJobLocalVoiceWorkflowFailsClosed(t *testing.T) {
 	assertLocalAppTextCandidateError(t, err, codes.FailedPrecondition, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
 }
 
-func createLocalAppScenarioJobForTest(svc *Service, jobID string, appID string, subject string, status runtimev1.ScenarioJobStatus) {
-	svc.scenarioJobs.create(&runtimev1.ScenarioJob{
+func createLocalAppScenarioJobForTest(
+	svc *Service,
+	jobID string,
+	appID string,
+	accountID string,
+	registeredAppSubject string,
+	status runtimev1.ScenarioJobStatus,
+) {
+	svc.scenarioJobs.createOwned(&runtimev1.ScenarioJob{
 		JobId:        jobID,
-		Head:         &runtimev1.ScenarioRequestHead{AppId: appID, SubjectUserId: subject},
+		Head:         &runtimev1.ScenarioRequestHead{AppId: appID, SubjectUserId: accountID},
 		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE,
 		Status:       status,
 		TraceId:      "trace-" + jobID,
-	}, nil)
+	}, nil, &localAppJobOwner{
+		AccountID:            accountID,
+		RegisteredAppSubject: registeredAppSubject,
+		ProducerAppID:        appID,
+	})
 }
 
 func TestGetLocalAppScenarioJobProjectsTrimmedJob(t *testing.T) {
 	svc := newTestService(nil)
-	createLocalAppScenarioJobForTest(svc, "job-1", "nimi.realm-persona-studio", "account-1", runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_RUNNING)
+	createLocalAppScenarioJobForTest(svc, "job-1", "nimi.realm-persona-studio", "account-1", "principal-1", runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_RUNNING)
 	response, err := svc.GetLocalAppScenarioJob(
 		localAppScenarioJobContext(accountservice.LocalAppOperationScenarioJobGet, localappop.AppOperationIDScenarioJobGet),
 		&runtimev1.GetLocalAppScenarioJobRequest{JobId: "job-1"})
@@ -193,12 +211,19 @@ func TestGetLocalAppScenarioJobProjectsTrimmedJob(t *testing.T) {
 
 func TestGetLocalAppScenarioJobRejectsCrossOwnerAndUnknown(t *testing.T) {
 	svc := newTestService(nil)
-	createLocalAppScenarioJobForTest(svc, "job-other", "other-app", "account-1", runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_RUNNING)
-	createLocalAppScenarioJobForTest(svc, "job-other-account", "nimi.realm-persona-studio", "account-2", runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_RUNNING)
+	createLocalAppScenarioJobForTest(svc, "job-other-subject", "nimi.realm-persona-studio", "account-1", "principal-2", runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_RUNNING)
+	createLocalAppScenarioJobForTest(svc, "job-other-account", "nimi.realm-persona-studio", "account-2", "principal-1", runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_RUNNING)
+	svc.scenarioJobs.create(&runtimev1.ScenarioJob{
+		JobId: "job-historical", Head: &runtimev1.ScenarioRequestHead{AppId: "nimi.realm-persona-studio", SubjectUserId: "account-1"},
+		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE,
+		Status:       runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_RUNNING,
+	}, nil)
 	ctx := localAppScenarioJobContext(accountservice.LocalAppOperationScenarioJobGet, localappop.AppOperationIDScenarioJobGet)
-	_, err := svc.GetLocalAppScenarioJob(ctx, &runtimev1.GetLocalAppScenarioJobRequest{JobId: "job-other"})
+	_, err := svc.GetLocalAppScenarioJob(ctx, &runtimev1.GetLocalAppScenarioJobRequest{JobId: "job-other-subject"})
 	assertLocalAppTextCandidateError(t, err, codes.PermissionDenied, runtimev1.ReasonCode_APP_SCOPE_FORBIDDEN)
 	_, err = svc.GetLocalAppScenarioJob(ctx, &runtimev1.GetLocalAppScenarioJobRequest{JobId: "job-other-account"})
+	assertLocalAppTextCandidateError(t, err, codes.PermissionDenied, runtimev1.ReasonCode_APP_SCOPE_FORBIDDEN)
+	_, err = svc.GetLocalAppScenarioJob(ctx, &runtimev1.GetLocalAppScenarioJobRequest{JobId: "job-historical"})
 	assertLocalAppTextCandidateError(t, err, codes.PermissionDenied, runtimev1.ReasonCode_APP_SCOPE_FORBIDDEN)
 	_, err = svc.GetLocalAppScenarioJob(ctx, &runtimev1.GetLocalAppScenarioJobRequest{JobId: "job-missing"})
 	assertLocalAppTextCandidateError(t, err, codes.NotFound, runtimev1.ReasonCode_AI_MEDIA_JOB_NOT_FOUND)
@@ -208,7 +233,7 @@ func TestGetLocalAppScenarioJobRejectsCrossOwnerAndUnknown(t *testing.T) {
 
 func TestCancelLocalAppScenarioJobCancelsOwnedJob(t *testing.T) {
 	svc := newTestService(nil)
-	createLocalAppScenarioJobForTest(svc, "job-cancel", "nimi.realm-persona-studio", "account-1", runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_SUBMITTED)
+	createLocalAppScenarioJobForTest(svc, "job-cancel", "nimi.realm-persona-studio", "account-1", "principal-1", runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_SUBMITTED)
 	response, err := svc.CancelLocalAppScenarioJob(
 		localAppScenarioJobContext(accountservice.LocalAppOperationScenarioJobCancel, localappop.AppOperationIDScenarioJobCancel),
 		&runtimev1.CancelLocalAppScenarioJobRequest{JobId: "job-cancel", Reason: "user stopped"})
@@ -239,7 +264,7 @@ func (m *mockLocalAppScenarioJobEventStream) SendMsg(any) error            { ret
 
 func TestSubscribeLocalAppScenarioJobEventsProjectsTerminalBacklog(t *testing.T) {
 	svc := newTestService(nil)
-	createLocalAppScenarioJobForTest(svc, "job-done", "nimi.realm-persona-studio", "account-1", runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED)
+	createLocalAppScenarioJobForTest(svc, "job-done", "nimi.realm-persona-studio", "account-1", "principal-1", runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED)
 	stream := &mockLocalAppScenarioJobEventStream{
 		ctx: localAppScenarioJobContext(accountservice.LocalAppOperationScenarioJobSubscribe, localappop.AppOperationIDScenarioJobSubscribe),
 	}
@@ -249,6 +274,55 @@ func TestSubscribeLocalAppScenarioJobEventsProjectsTerminalBacklog(t *testing.T)
 	if len(stream.events) != 1 || stream.events[0].GetJob().GetJobId() != "job-done" ||
 		stream.events[0].GetJob().GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED {
 		t.Fatalf("subscribed events = %+v", stream.events)
+	}
+}
+
+func TestLocalAppTranscriptionJobProjectsImmutableTextOnGetAndSubscribe(t *testing.T) {
+	svc := newTestService(nil)
+	svc.scenarioJobs.createOwned(&runtimev1.ScenarioJob{
+		JobId: "job-transcribe", Head: &runtimev1.ScenarioRequestHead{AppId: "producer-app", SubjectUserId: "account-1"},
+		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_TRANSCRIBE,
+		Status:       runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED, TranscriptionText: "hello from immutable state",
+		Artifacts: []*runtimev1.ScenarioArtifact{{ArtifactId: "artifact-transcript", MimeType: "text/plain", SizeBytes: 26}},
+	}, nil, &localAppJobOwner{AccountID: "account-1", RegisteredAppSubject: "principal-1", ProducerAppID: "producer-app"})
+	response, err := svc.GetLocalAppScenarioJob(
+		localAppScenarioJobContext(accountservice.LocalAppOperationScenarioJobGet, localappop.AppOperationIDScenarioJobGet),
+		&runtimev1.GetLocalAppScenarioJobRequest{JobId: "job-transcribe"})
+	if err != nil || response.GetJob().GetTranscriptionText() != "hello from immutable state" ||
+		len(response.GetJob().GetArtifacts()) != 1 || len(response.GetJob().GetArtifacts()[0].GetBytes()) != 0 {
+		t.Fatalf("get transcription projection=%+v err=%v", response, err)
+	}
+	stream := &mockLocalAppScenarioJobEventStream{
+		ctx: localAppScenarioJobContext(accountservice.LocalAppOperationScenarioJobSubscribe, localappop.AppOperationIDScenarioJobSubscribe),
+	}
+	if err := svc.SubscribeLocalAppScenarioJobEvents(&runtimev1.SubscribeLocalAppScenarioJobEventsRequest{JobId: "job-transcribe"}, stream); err != nil {
+		t.Fatal(err)
+	}
+	if len(stream.events) != 1 || stream.events[0].GetJob().GetTranscriptionText() != "hello from immutable state" {
+		t.Fatalf("subscribe transcription projection=%+v", stream.events)
+	}
+}
+
+func TestLocalAppJobControlRejectsSameAppIDCrossSubjectAndHistoricalOwner(t *testing.T) {
+	svc := newTestService(nil)
+	createLocalAppScenarioJobForTest(svc, "job-subject-1", "nimi.realm-persona-studio", "account-1", "principal-1", runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_SUBMITTED)
+	svc.scenarioJobs.create(&runtimev1.ScenarioJob{
+		JobId: "job-historical-control", Head: &runtimev1.ScenarioRequestHead{AppId: "nimi.realm-persona-studio", SubjectUserId: "account-1"},
+		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE, Status: runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_SUBMITTED,
+	}, nil)
+	for _, jobID := range []string{"job-subject-1", "job-historical-control"} {
+		_, err := svc.CancelLocalAppScenarioJob(
+			localAppScenarioJobContextForSubject(accountservice.LocalAppOperationScenarioJobCancel, localappop.AppOperationIDScenarioJobCancel, "principal-2"),
+			&runtimev1.CancelLocalAppScenarioJobRequest{JobId: jobID})
+		assertLocalAppTextCandidateError(t, err, codes.PermissionDenied, runtimev1.ReasonCode_APP_SCOPE_FORBIDDEN)
+		stream := &mockLocalAppScenarioJobEventStream{
+			ctx: localAppScenarioJobContextForSubject(accountservice.LocalAppOperationScenarioJobSubscribe, localappop.AppOperationIDScenarioJobSubscribe, "principal-2"),
+		}
+		err = svc.SubscribeLocalAppScenarioJobEvents(&runtimev1.SubscribeLocalAppScenarioJobEventsRequest{JobId: jobID}, stream)
+		assertLocalAppTextCandidateError(t, err, codes.PermissionDenied, runtimev1.ReasonCode_APP_SCOPE_FORBIDDEN)
+		if len(stream.events) != 0 {
+			t.Fatalf("forbidden job %q leaked events: %+v", jobID, stream.events)
+		}
 	}
 }
 

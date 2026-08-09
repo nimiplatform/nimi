@@ -726,6 +726,102 @@ pub mod local_app {
     ) -> Result<serde_json::Value, String> {
         crate::standard_local_app::artifact_upload_for_host(host.inner(), payload).await
     }
+
+    #[tauri::command]
+    pub async fn local_app_asset_stat(
+        host: tauri::State<'_, crate::runtime_bridge::RuntimeBridgeLocalAppHost>,
+        payload: serde_json::Value,
+    ) -> Result<serde_json::Value, String> {
+        crate::standard_local_app::asset_stat_for_host(host.inner(), payload).await
+    }
+
+    #[tauri::command]
+    pub async fn local_app_asset_list(
+        host: tauri::State<'_, crate::runtime_bridge::RuntimeBridgeLocalAppHost>,
+        payload: serde_json::Value,
+    ) -> Result<serde_json::Value, String> {
+        crate::standard_local_app::asset_list_for_host(host.inner(), payload).await
+    }
+
+    #[tauri::command]
+    pub async fn local_app_asset_write_open(
+        host: tauri::State<'_, crate::runtime_bridge::RuntimeBridgeLocalAppHost>,
+        payload: serde_json::Value,
+    ) -> Result<serde_json::Value, String> {
+        crate::standard_local_app::asset_write_open_for_host(host.inner(), payload).await
+    }
+
+    #[tauri::command]
+    pub async fn local_app_asset_write_chunk(
+        host: tauri::State<'_, crate::runtime_bridge::RuntimeBridgeLocalAppHost>,
+        payload: serde_json::Value,
+    ) -> Result<serde_json::Value, String> {
+        crate::standard_local_app::asset_write_chunk_for_host(host.inner(), payload).await
+    }
+
+    #[tauri::command]
+    pub async fn local_app_asset_write_commit(
+        host: tauri::State<'_, crate::runtime_bridge::RuntimeBridgeLocalAppHost>,
+        payload: serde_json::Value,
+    ) -> Result<serde_json::Value, String> {
+        crate::standard_local_app::asset_write_commit_for_host(host.inner(), payload).await
+    }
+
+    #[tauri::command]
+    pub async fn local_app_asset_write_abort(
+        host: tauri::State<'_, crate::runtime_bridge::RuntimeBridgeLocalAppHost>,
+        payload: serde_json::Value,
+    ) -> Result<serde_json::Value, String> {
+        crate::standard_local_app::asset_write_abort_for_host(host.inner(), payload).await
+    }
+
+    #[tauri::command]
+    pub async fn local_app_asset_read_open(
+        host: tauri::State<'_, crate::runtime_bridge::RuntimeBridgeLocalAppHost>,
+        payload: serde_json::Value,
+    ) -> Result<serde_json::Value, String> {
+        crate::standard_local_app::asset_read_open_for_host(host.inner(), payload).await
+    }
+
+    #[tauri::command]
+    pub async fn local_app_asset_read_next(
+        host: tauri::State<'_, crate::runtime_bridge::RuntimeBridgeLocalAppHost>,
+        payload: serde_json::Value,
+    ) -> Result<serde_json::Value, String> {
+        crate::standard_local_app::asset_read_next_for_host(host.inner(), payload).await
+    }
+
+    #[tauri::command]
+    pub async fn local_app_asset_read_close(
+        host: tauri::State<'_, crate::runtime_bridge::RuntimeBridgeLocalAppHost>,
+        payload: serde_json::Value,
+    ) -> Result<serde_json::Value, String> {
+        crate::standard_local_app::asset_read_close_for_host(host.inner(), payload).await
+    }
+
+    #[tauri::command]
+    pub async fn local_app_asset_remove(
+        host: tauri::State<'_, crate::runtime_bridge::RuntimeBridgeLocalAppHost>,
+        payload: serde_json::Value,
+    ) -> Result<serde_json::Value, String> {
+        crate::standard_local_app::asset_remove_for_host(host.inner(), payload).await
+    }
+
+    #[tauri::command]
+    pub async fn local_app_asset_move(
+        host: tauri::State<'_, crate::runtime_bridge::RuntimeBridgeLocalAppHost>,
+        payload: serde_json::Value,
+    ) -> Result<serde_json::Value, String> {
+        crate::standard_local_app::asset_move_for_host(host.inner(), payload).await
+    }
+
+    #[tauri::command]
+    pub async fn local_app_asset_adopt(
+        host: tauri::State<'_, crate::runtime_bridge::RuntimeBridgeLocalAppHost>,
+        payload: serde_json::Value,
+    ) -> Result<serde_json::Value, String> {
+        crate::standard_local_app::asset_adopt_for_host(host.inner(), payload).await
+    }
 }
 
 pub mod floating_window {

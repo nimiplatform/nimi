@@ -28,7 +28,12 @@ import { loadTesterAIConfigSummary } from '../tester/tester-ai-config.js';
 import { runTesterConversationJourney } from '../tester/local-app-conversation-journey.js';
 import { saveTesterExport } from '../tester/tester-export.js';
 import { appendTesterRunHistory, clearTesterRunHistory, loadTesterRunHistory, removeTesterRunHistoryRecord } from '../tester/tester-history-storage.js';
-import { appendTesterImageHistoryRecord, loadTesterImageHistory } from '../tester/tester-image-history.js';
+import {
+  appendTesterImageHistoryRecord,
+  clearTesterImageHistory,
+  loadTesterImageHistory,
+  removeTesterImageHistoryRecord,
+} from '../tester/tester-image-history.js';
 import {
   loadTesterPreferences,
   loadTesterPromptDraft,
@@ -139,6 +144,7 @@ export function createTesterProductionBindings(
       modelConfig: Object.freeze({
         localSelections: () => testerLocalAppClient.modelConfig.localSelections(),
       }),
+      storage: Object.freeze({ assets: testerLocalAppClient.storage.assets }),
       settings: Object.freeze({
         notificationUnread: async () => loadNimiRealmNotificationUnreadCount(await requireTesterRealm()),
         async notifications() {
@@ -190,6 +196,10 @@ export function createTesterProductionBindings(
           return clearTesterRunHistory(input.capabilityId);
         },
         appendImageHistory: appendTesterImageHistoryRecord,
+        removeImageHistory: removeTesterImageHistoryRecord,
+        async clearImageHistory(input: { readonly capabilityId?: string }) {
+          return clearTesterImageHistory(input.capabilityId);
+        },
         async savePreferences(preferences: Parameters<TesterRendererCommandPort['savePreferences']>[0]) {
           const result = saveTesterPreferences(preferences);
           if (result.status.state === 'write-error' || result.status.state === 'unavailable') {

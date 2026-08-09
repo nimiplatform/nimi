@@ -3,6 +3,8 @@ package ai
 import (
 	"context"
 	"encoding/base64"
+	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"os"
@@ -15,6 +17,8 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
+	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
+	"github.com/nimiplatform/nimi/runtime/internal/services/runtimeartifact"
 )
 
 type textGenerateResolution struct {
@@ -236,6 +240,19 @@ func (s *Service) resolveTextGenerateArtifactPath(
 	}
 
 	if artifactID := strings.TrimSpace(ref.GetArtifactId()); artifactID != "" {
+		if decision, localApp := accountservice.AuthorizedLocalAppDecisionFromContext(ctx); localApp {
+			source, err := s.openAuthorizedLocalAppArtifact(ctx, decision, artifactID, localAppArtifactOperationInput)
+			if err != nil {
+				return "", "", nil, err
+			}
+			defer source.Body.Close()
+			mimeType := firstNonEmpty(strings.TrimSpace(source.Record.MimeType), strings.TrimSpace(ref.GetMimeType()))
+			path, cleanup, writeErr := writeTextGenerateArtifactTempStream(ctx, mimeType, source.Body, source.Record.SizeBytes)
+			if writeErr != nil {
+				return "", "", nil, writeErr
+			}
+			return path, mimeType, cleanup, nil
+		}
 		artifact, _, ok := s.scenarioJobs.findArtifact(head.GetAppId(), head.GetSubjectUserId(), artifactID)
 		if !ok || artifact == nil {
 			return "", "", nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
@@ -259,6 +276,19 @@ func (s *Service) resolveTextGenerateArtifactPath(
 	localArtifactID := strings.TrimSpace(ref.GetLocalArtifactId())
 	if localArtifactID == "" {
 		return "", "", nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
+	}
+	if decision, localApp := accountservice.AuthorizedLocalAppDecisionFromContext(ctx); localApp {
+		source, err := s.openAuthorizedLocalAppArtifact(ctx, decision, localArtifactID, localAppArtifactOperationInput)
+		if err != nil {
+			return "", "", nil, err
+		}
+		defer source.Body.Close()
+		mimeType := firstNonEmpty(strings.TrimSpace(source.Record.MimeType), strings.TrimSpace(ref.GetMimeType()))
+		path, cleanup, writeErr := writeTextGenerateArtifactTempStream(ctx, mimeType, source.Body, source.Record.SizeBytes)
+		if writeErr != nil {
+			return "", "", nil, writeErr
+		}
+		return path, mimeType, cleanup, nil
 	}
 	// User attachment plane (rule.nimi.runtime.agent-participation.r171):
 	// owner-carrying upload records resolve from the runtime artifact store,
@@ -385,6 +415,57 @@ func writeTextGenerateArtifactTempFile(mimeType string, payload []byte) (string,
 	return file.Name(), func() {
 		_ = os.Remove(file.Name())
 	}, nil
+}
+
+func writeTextGenerateArtifactTempStream(ctx context.Context, mimeType string, source io.Reader, expectedSize int64) (string, func(), error) {
+	if ctx == nil || source == nil || expectedSize <= 0 || expectedSize > runtimeartifact.MaxCustodyBytes {
+		return "", nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
+	}
+	ext := extensionForMimeType(mimeType)
+	file, err := os.CreateTemp("", "nimi-text-multimodal-*"+ext)
+	if err != nil {
+		return "", nil, grpcerr.WrapWithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL, err, grpcerr.ReasonOptions{Message: "failed to create temporary artifact file"})
+	}
+	cleanup := func() {
+		_ = file.Close()
+		_ = os.Remove(file.Name())
+	}
+	buffer := make([]byte, 1024*1024)
+	var written int64
+	for {
+		if err := ctx.Err(); err != nil {
+			cleanup()
+			return "", nil, err
+		}
+		read, readErr := source.Read(buffer)
+		if read > 0 {
+			written += int64(read)
+			if written > expectedSize || written > runtimeartifact.MaxCustodyBytes {
+				cleanup()
+				return "", nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
+			}
+			if _, err := file.Write(buffer[:read]); err != nil {
+				cleanup()
+				return "", nil, grpcerr.WrapWithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL, err, grpcerr.ReasonOptions{Message: "failed to write temporary artifact file"})
+			}
+		}
+		if readErr != nil {
+			if readErr == io.EOF {
+				break
+			}
+			cleanup()
+			return "", nil, grpcerr.WrapWithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL, readErr, grpcerr.ReasonOptions{Message: "failed to read Runtime artifact"})
+		}
+	}
+	if written != expectedSize {
+		cleanup()
+		return "", nil, grpcerr.WrapWithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL, fmt.Errorf("artifact size mismatch"), grpcerr.ReasonOptions{Message: "Runtime artifact size mismatch"})
+	}
+	if err := file.Close(); err != nil {
+		cleanup()
+		return "", nil, grpcerr.WrapWithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL, err, grpcerr.ReasonOptions{Message: "failed to close temporary artifact file"})
+	}
+	return file.Name(), func() { _ = os.Remove(file.Name()) }, nil
 }
 
 func inlineRemoteTextGenerateImageURL(location string, mimeType string) (string, error) {

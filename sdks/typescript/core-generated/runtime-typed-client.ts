@@ -11,7 +11,7 @@ import type { MaterializeRealmSourceRequest, MaterializeRealmSourceResponse } fr
 import type { CancelLocalAppScenarioJobRequest, CancelLocalAppScenarioJobResponse, CancelScenarioJobRequest, CancelScenarioJobResponse, ExecuteLocalAppScenarioRequest, ExecuteLocalAppScenarioResponse, ExecuteScenarioRequest, ExecuteScenarioResponse, GenerateLocalAppTextCandidateRequest, GenerateLocalAppTextCandidateResponse, GetLocalAppScenarioJobRequest, GetLocalAppScenarioJobResponse, GetScenarioArtifactsRequest, GetScenarioArtifactsResponse, GetScenarioJobRequest, GetScenarioJobResponse, ListLocalAppVoiceAssetsRequest, ListLocalAppVoiceAssetsResponse, ListScenarioProfilesRequest, ListScenarioProfilesResponse, LocalAppScenarioJobEvent, ReadLocalAppArtifactRequest, ReadLocalAppArtifactResponse, ScenarioJobEvent, StreamLocalAppTextTurnEvent, StreamLocalAppTextTurnRequest, StreamScenarioEvent, StreamScenarioRequest, SubmitLocalAppScenarioJobRequest, SubmitLocalAppScenarioJobResponse, SubmitScenarioJobRequest, SubmitScenarioJobResponse, SubscribeLocalAppScenarioJobEventsRequest, SubscribeScenarioJobEventsRequest, UploadArtifactRequest, UploadArtifactResponse, UploadLocalAppArtifactRequest, UploadLocalAppArtifactResponse } from "./runtime-protobuf/runtime/v1/ai";
 import type { AppendRealtimeInputRequest, AppendRealtimeInputResponse, CloseRealtimeSessionRequest, CloseRealtimeSessionResponse, OpenRealtimeSessionRequest, OpenRealtimeSessionResponse, ReadRealtimeEventsRequest, RealtimeEvent } from "./runtime-protobuf/runtime/v1/ai_realtime";
 import type { PeekSchedulingRequest, PeekSchedulingResponse } from "./runtime-protobuf/runtime/v1/ai_scheduling";
-import type { AppMessageEvent, BindLocalAppProcessRequest, BindLocalAppProcessResponse, GetAppStorageRequest, GetAppStorageResponse, PrepareLocalAppLaunchRequest, PrepareLocalAppLaunchResponse, ReadLocalAppStorageJsonRequest, ReadLocalAppStorageJsonResponse, RebindLocalAppProcessRequest, RebindLocalAppProcessResponse, RemoveLocalAppStorageJsonRequest, RemoveLocalAppStorageJsonResponse, SendAppMessageRequest, SendAppMessageResponse, SubscribeAppMessagesRequest, WriteLocalAppStorageJsonRequest, WriteLocalAppStorageJsonResponse } from "./runtime-protobuf/runtime/v1/app";
+import type { AdoptLocalAppArtifactRequest, AdoptLocalAppArtifactResponse, AppMessageEvent, BindLocalAppProcessRequest, BindLocalAppProcessResponse, GetAppStorageRequest, GetAppStorageResponse, ListLocalAppAssetsRequest, ListLocalAppAssetsResponse, MoveLocalAppAssetRequest, MoveLocalAppAssetResponse, PrepareLocalAppLaunchRequest, PrepareLocalAppLaunchResponse, ReadLocalAppAssetRequest, ReadLocalAppAssetResponse, ReadLocalAppStorageJsonRequest, ReadLocalAppStorageJsonResponse, RebindLocalAppProcessRequest, RebindLocalAppProcessResponse, RemoveLocalAppAssetRequest, RemoveLocalAppAssetResponse, RemoveLocalAppStorageJsonRequest, RemoveLocalAppStorageJsonResponse, SendAppMessageRequest, SendAppMessageResponse, StatLocalAppAssetRequest, StatLocalAppAssetResponse, SubscribeAppMessagesRequest, WriteLocalAppAssetRequest, WriteLocalAppAssetResponse, WriteLocalAppStorageJsonRequest, WriteLocalAppStorageJsonResponse } from "./runtime-protobuf/runtime/v1/app";
 import type { CleanupGeneratedVoiceArtifactsRequest, CleanupGeneratedVoiceArtifactsResponse, PutArtifactRequest, PutArtifactResponse, ReadArtifactBytesRequest, ReadArtifactBytesResponse } from "./runtime-protobuf/runtime/v1/artifact_service";
 import type { AIProviderHealthEvent, AuditExportChunk, ExportAuditEventsRequest, GetRuntimeHealthRequest, GetRuntimeHealthResponse, ListAIProviderHealthRequest, ListAIProviderHealthResponse, ListAuditEventsRequest, ListAuditEventsResponse, ListDesktopAuditEventsRequest, ListDesktopAuditEventsResponse, ListUsageStatsRequest, ListUsageStatsResponse, RuntimeHealthEvent, SubscribeAIProviderHealthEventsRequest, SubscribeRuntimeHealthEventsRequest } from "./runtime-protobuf/runtime/v1/audit";
 import type { OpenDesktopSessionRequest, OpenDesktopSessionResponse, OpenExternalPrincipalSessionRequest, OpenExternalPrincipalSessionResponse, OpenLocalAppSessionRequest, OpenLocalAppSessionResponse, OpenSessionRequest, OpenSessionResponse, RefreshSessionRequest, RefreshSessionResponse, RegisterAppRequest, RegisterAppResponse, RegisterExternalPrincipalRequest, RegisterExternalPrincipalResponse, RenewLocalAppSessionRequest, RevokeExternalPrincipalSessionRequest, RevokeSessionRequest } from "./runtime-protobuf/runtime/v1/auth";
@@ -46,7 +46,7 @@ export type { AgentTurnContextBudgetSummary, AgentTurnContextLaneSummary, AgentT
 export type { ArtifactChunk, ArtifactStreamDelta, AudioChunks, CancelLocalAppScenarioJobRequest, CancelLocalAppScenarioJobResponse, CancelScenarioJobRequest, CancelScenarioJobResponse, ChatContentArtifactRef, ChatContentImageURL, ChatContentPart, ChatMessage, EmbeddingVector, ExecuteLocalAppScenarioRequest, ExecuteLocalAppScenarioResponse, ExecuteScenarioRequest, ExecuteScenarioResponse, GenerateLocalAppTextCandidateRequest, GenerateLocalAppTextCandidateResponse, GetLocalAppScenarioJobRequest, GetLocalAppScenarioJobResponse, GetScenarioArtifactsRequest, GetScenarioArtifactsResponse, GetScenarioJobRequest, GetScenarioJobResponse, IgnoredScenarioExtension, ImageGenerateResult, ImageGenerateScenarioSpec, ListLocalAppVoiceAssetsRequest, ListLocalAppVoiceAssetsResponse, ListScenarioProfilesRequest, ListScenarioProfilesResponse, LocalAppImageGenerateOutput, LocalAppImageGenerateScenarioSpec, LocalAppScenarioArtifact, LocalAppScenarioJob, LocalAppScenarioJobEvent, LocalAppSpeechSynthesizeJobSpec, LocalAppSpeechTranscribeJobSpec, LocalAppTextCandidateMessage, LocalAppTextEmbedOutput, LocalAppTextEmbedScenarioSpec, LocalAppTextTurnCompleted, LocalAppTextTurnDelta, LocalAppTextTurnFailed, LocalAppVideoGenerateJobSpec, LocalAppVideoGenerationOptions, LocalAppVoiceAsset, LocalAppVoiceCloneJobSpec, LocalAppVoiceDesignJobSpec, MusicGenerateResult, MusicGenerateScenarioSpec, RawChunk, ReadLocalAppArtifactRequest, ReadLocalAppArtifactResponse, ReasoningConfig, ReasoningStreamDelta, ResponseFormat, ScenarioArtifact, ScenarioExtension, ScenarioJob, ScenarioJobEvent, ScenarioOutput, ScenarioProfile, ScenarioRequestHead, ScenarioSpec, ScenarioStreamCompleted, ScenarioStreamDelta, ScenarioStreamFailed, ScenarioStreamStarted, SpeechAlignment, SpeechAlignmentToken, SpeechSynthesizeResult, SpeechSynthesizeScenarioSpec, SpeechTranscribeResult, SpeechTranscribeScenarioSpec, SpeechTranscriptionAudioSource, StreamLocalAppTextTurnEvent, StreamLocalAppTextTurnRequest, StreamScenarioEvent, StreamScenarioRequest, SubmitLocalAppScenarioJobRequest, SubmitLocalAppScenarioJobResponse, SubmitScenarioJobRequest, SubmitScenarioJobResponse, SubscribeLocalAppScenarioJobEventsRequest, SubscribeScenarioJobEventsRequest, TextEmbedOutput, TextEmbedScenarioSpec, TextGenerateOutput, TextGenerateScenarioSpec, TextSource, TextStreamDelta, ToolApprovalRequest, ToolApprovalResponse, ToolCall, ToolResult, ToolSpec, UploadArtifactChunk, UploadArtifactMetadata, UploadArtifactRequest, UploadArtifactResponse, UploadLocalAppArtifactRequest, UploadLocalAppArtifactResponse, VideoContentArtifactRef, VideoContentAudioURL, VideoContentImageURL, VideoContentItem, VideoContentVideoURL, VideoGenerateResult, VideoGenerateScenarioSpec, VideoGenerationOptions, VoiceCloneScenarioSpec, VoiceDesignScenarioSpec, VoiceRenderHints, WorldGenerateAssetSource, WorldGenerateImagePrompt, WorldGenerateMultiImagePrompt, WorldGenerateMultiImageReference, WorldGenerateResult, WorldGenerateScenarioSpec, WorldGenerateSemanticsMetadata, WorldGenerateVideoPrompt } from "./runtime-protobuf/runtime/v1/ai";
 export type { AppendRealtimeInputRequest, AppendRealtimeInputResponse, CloseRealtimeSessionRequest, CloseRealtimeSessionResponse, OpenRealtimeSessionRequest, OpenRealtimeSessionResponse, ReadRealtimeEventsRequest, RealtimeAudioChunk, RealtimeAudioInput, RealtimeCompleted, RealtimeEvent, RealtimeFailed, RealtimeInputItem, RealtimeSessionOpened, RealtimeTextDelta } from "./runtime-protobuf/runtime/v1/ai_realtime";
 export type { PeekSchedulingRequest, PeekSchedulingResponse, SchedulingEvaluationTarget, SchedulingJudgement, SchedulingOccupancySnapshot, SchedulingResourceHint, SchedulingTargetJudgement } from "./runtime-protobuf/runtime/v1/ai_scheduling";
-export type { AppMessageEvent, AppStorageProjection, BindLocalAppProcessRequest, BindLocalAppProcessResponse, GetAppStorageRequest, GetAppStorageResponse, PrepareLocalAppLaunchRequest, PrepareLocalAppLaunchResponse, ReadLocalAppStorageJsonRequest, ReadLocalAppStorageJsonResponse, RebindLocalAppProcessRequest, RebindLocalAppProcessResponse, RemoveLocalAppStorageJsonRequest, RemoveLocalAppStorageJsonResponse, SendAppMessageRequest, SendAppMessageResponse, SubscribeAppMessagesRequest, WriteLocalAppStorageJsonRequest, WriteLocalAppStorageJsonResponse } from "./runtime-protobuf/runtime/v1/app";
+export type { AdoptLocalAppArtifactRequest, AdoptLocalAppArtifactResponse, AppMessageEvent, AppStorageProjection, BindLocalAppProcessRequest, BindLocalAppProcessResponse, GetAppStorageRequest, GetAppStorageResponse, ListLocalAppAssetsRequest, ListLocalAppAssetsResponse, LocalAppAssetRange, LocalAppAssetRecord, MoveLocalAppAssetRequest, MoveLocalAppAssetResponse, PrepareLocalAppLaunchRequest, PrepareLocalAppLaunchResponse, ReadLocalAppAssetMetadata, ReadLocalAppAssetRequest, ReadLocalAppAssetResponse, ReadLocalAppStorageJsonRequest, ReadLocalAppStorageJsonResponse, RebindLocalAppProcessRequest, RebindLocalAppProcessResponse, RemoveLocalAppAssetRequest, RemoveLocalAppAssetResponse, RemoveLocalAppStorageJsonRequest, RemoveLocalAppStorageJsonResponse, SendAppMessageRequest, SendAppMessageResponse, StatLocalAppAssetRequest, StatLocalAppAssetResponse, SubscribeAppMessagesRequest, WriteLocalAppAssetMetadata, WriteLocalAppAssetRequest, WriteLocalAppAssetResponse, WriteLocalAppStorageJsonRequest, WriteLocalAppStorageJsonResponse } from "./runtime-protobuf/runtime/v1/app";
 export type { CleanupGeneratedVoiceArtifactsRequest, CleanupGeneratedVoiceArtifactsResponse, PutArtifactRequest, PutArtifactResponse, ReadArtifactBytesRequest, ReadArtifactBytesResponse } from "./runtime-protobuf/runtime/v1/artifact_service";
 export type { AIProviderHealthEvent, AIProviderHealthSnapshot, AIProviderSubHealth, AuditEventRecord, AuditExportChunk, DesktopAuditEventProjection, ExportAuditEventsRequest, GetRuntimeHealthRequest, GetRuntimeHealthResponse, ListAIProviderHealthRequest, ListAIProviderHealthResponse, ListAuditEventsRequest, ListAuditEventsResponse, ListDesktopAuditEventsRequest, ListDesktopAuditEventsResponse, ListUsageStatsRequest, ListUsageStatsResponse, RuntimeHealthEvent, SubscribeAIProviderHealthEventsRequest, SubscribeRuntimeHealthEventsRequest, UsageStatRecord } from "./runtime-protobuf/runtime/v1/audit";
 export type { AppModeManifest, CurrentUserDisplayProjection, OpenDesktopSessionRequest, OpenDesktopSessionResponse, OpenExternalPrincipalSessionRequest, OpenExternalPrincipalSessionResponse, OpenLocalAppSessionRequest, OpenLocalAppSessionResponse, OpenSessionRequest, OpenSessionResponse, RefreshSessionRequest, RefreshSessionResponse, RegisterAppRequest, RegisterAppResponse, RegisterExternalPrincipalRequest, RegisterExternalPrincipalResponse, RenewLocalAppSessionRequest, RevokeExternalPrincipalSessionRequest, RevokeSessionRequest } from "./runtime-protobuf/runtime/v1/auth";
@@ -1170,6 +1170,17 @@ export class RuntimeTypedClient {
     });
   }
 
+  async adoptLocalAppArtifact(request: AdoptLocalAppArtifactRequest, options: RuntimeTypedCallOptions = {}): Promise<AdoptLocalAppArtifactResponse> {
+    return this.core.unary<AdoptLocalAppArtifactResponse, AdoptLocalAppArtifactRequest>({
+      methodId: "/nimi.runtime.v1.RuntimeAppService/AdoptLocalAppArtifact",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
+    });
+  }
+
   async bindLocalAppProcess(request: BindLocalAppProcessRequest, options: RuntimeTypedCallOptions = {}): Promise<BindLocalAppProcessResponse> {
     return this.core.unary<BindLocalAppProcessResponse, BindLocalAppProcessRequest>({
       methodId: "/nimi.runtime.v1.RuntimeAppService/BindLocalAppProcess",
@@ -1192,9 +1203,42 @@ export class RuntimeTypedClient {
     });
   }
 
+  async listLocalAppAssets(request: ListLocalAppAssetsRequest, options: RuntimeTypedCallOptions = {}): Promise<ListLocalAppAssetsResponse> {
+    return this.core.unary<ListLocalAppAssetsResponse, ListLocalAppAssetsRequest>({
+      methodId: "/nimi.runtime.v1.RuntimeAppService/ListLocalAppAssets",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
+    });
+  }
+
+  async moveLocalAppAsset(request: MoveLocalAppAssetRequest, options: RuntimeTypedCallOptions = {}): Promise<MoveLocalAppAssetResponse> {
+    return this.core.unary<MoveLocalAppAssetResponse, MoveLocalAppAssetRequest>({
+      methodId: "/nimi.runtime.v1.RuntimeAppService/MoveLocalAppAsset",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
+    });
+  }
+
   async prepareLocalAppLaunch(request: PrepareLocalAppLaunchRequest, options: RuntimeTypedCallOptions = {}): Promise<PrepareLocalAppLaunchResponse> {
     return this.core.unary<PrepareLocalAppLaunchResponse, PrepareLocalAppLaunchRequest>({
       methodId: "/nimi.runtime.v1.RuntimeAppService/PrepareLocalAppLaunch",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
+    });
+  }
+
+  readLocalAppAsset(request: ReadLocalAppAssetRequest, options: RuntimeTypedCallOptions = {}): AsyncIterable<ReadLocalAppAssetResponse> {
+    return this.core.serverStream<ReadLocalAppAssetResponse, ReadLocalAppAssetRequest>({
+      methodId: "/nimi.runtime.v1.RuntimeAppService/ReadLocalAppAsset",
       body: request,
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
@@ -1225,6 +1269,17 @@ export class RuntimeTypedClient {
     });
   }
 
+  async removeLocalAppAsset(request: RemoveLocalAppAssetRequest, options: RuntimeTypedCallOptions = {}): Promise<RemoveLocalAppAssetResponse> {
+    return this.core.unary<RemoveLocalAppAssetResponse, RemoveLocalAppAssetRequest>({
+      methodId: "/nimi.runtime.v1.RuntimeAppService/RemoveLocalAppAsset",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
+    });
+  }
+
   async removeLocalAppStorageJson(request: RemoveLocalAppStorageJsonRequest, options: RuntimeTypedCallOptions = {}): Promise<RemoveLocalAppStorageJsonResponse> {
     return this.core.unary<RemoveLocalAppStorageJsonResponse, RemoveLocalAppStorageJsonRequest>({
       methodId: "/nimi.runtime.v1.RuntimeAppService/RemoveLocalAppStorageJson",
@@ -1247,6 +1302,17 @@ export class RuntimeTypedClient {
     });
   }
 
+  async statLocalAppAsset(request: StatLocalAppAssetRequest, options: RuntimeTypedCallOptions = {}): Promise<StatLocalAppAssetResponse> {
+    return this.core.unary<StatLocalAppAssetResponse, StatLocalAppAssetRequest>({
+      methodId: "/nimi.runtime.v1.RuntimeAppService/StatLocalAppAsset",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
+    });
+  }
+
   subscribeAppMessages(request: SubscribeAppMessagesRequest, options: RuntimeTypedCallOptions = {}): AsyncIterable<AppMessageEvent> {
     return this.core.serverStream<AppMessageEvent, SubscribeAppMessagesRequest>({
       methodId: "/nimi.runtime.v1.RuntimeAppService/SubscribeAppMessages",
@@ -1255,6 +1321,12 @@ export class RuntimeTypedClient {
       timeoutMs: options.timeoutMs,
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
+    });
+  }
+
+  async writeLocalAppAsset(_request: WriteLocalAppAssetRequest, _options: RuntimeTypedCallOptions = {}): Promise<WriteLocalAppAssetResponse> {
+    throw Object.assign(new Error("Runtime method kind is not supported by the unary/server-stream core transport: /nimi.runtime.v1.RuntimeAppService/WriteLocalAppAsset"), {
+      code: 'SDK_RUNTIME_METHOD_UNAVAILABLE',
     });
   }
 

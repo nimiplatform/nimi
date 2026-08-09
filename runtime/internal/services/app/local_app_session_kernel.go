@@ -241,6 +241,15 @@ func (s *Service) AuthorizeLocalAppIngress(ctx context.Context, ingress localapp
 	switch admission.Operation {
 	case localappop.OperationStorageJSONRead, localappop.OperationStorageJSONWrite, localappop.OperationStorageJSONRemove:
 		capability = appstorage.LocalAppPrivateStorageEntitlement
+	case localappop.OperationStorageAssetStat,
+		localappop.OperationStorageAssetList,
+		localappop.OperationStorageAssetWrite,
+		localappop.OperationStorageAssetRead,
+		localappop.OperationStorageAssetRemove,
+		localappop.OperationStorageAssetMove:
+		capability = appstorage.LocalAppPrivateStorageEntitlement
+	case localappop.OperationArtifactAdoptToStorage:
+		capability = "runtime.consume"
 	case localappop.OperationAppAIConfigGet, localappop.OperationAppAIConfigOverwrite:
 		// The AIConfig owner validates the exact admitted operation directly;
 		// it has no separate capability string or caller-selected owner input.

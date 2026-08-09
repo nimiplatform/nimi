@@ -10,6 +10,7 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/appstorage"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/localappkernel"
 	"github.com/nimiplatform/nimi/runtime/internal/localappop"
@@ -280,15 +281,16 @@ func TestLocalAppSessionScenarioConsumptionFamilyAuthorization(t *testing.T) {
 		operation  accountservice.LocalAppOperation
 		capability string
 	}{
-		localappop.IngressTextTurnStream:       {operation: accountservice.LocalAppOperationTextTurnStream, capability: localappop.AppOperationIDTextTurnStream},
-		localappop.IngressScenarioExecute:      {operation: accountservice.LocalAppOperationScenarioExecute, capability: localappop.AppOperationIDScenarioExecute},
-		localappop.IngressScenarioJobSubmit:    {operation: accountservice.LocalAppOperationScenarioJobSubmit, capability: localappop.AppOperationIDScenarioJobSubmit},
-		localappop.IngressScenarioJobGet:       {operation: accountservice.LocalAppOperationScenarioJobGet, capability: localappop.AppOperationIDScenarioJobGet},
-		localappop.IngressScenarioJobSubscribe: {operation: accountservice.LocalAppOperationScenarioJobSubscribe, capability: localappop.AppOperationIDScenarioJobSubscribe},
-		localappop.IngressScenarioJobCancel:    {operation: accountservice.LocalAppOperationScenarioJobCancel, capability: localappop.AppOperationIDScenarioJobCancel},
-		localappop.IngressArtifactRead:         {operation: accountservice.LocalAppOperationArtifactRead, capability: localappop.AppOperationIDArtifactRead},
-		localappop.IngressArtifactUpload:       {operation: accountservice.LocalAppOperationArtifactUpload, capability: localappop.AppOperationIDArtifactUpload},
-		localappop.IngressVoiceAssetsList:      {operation: accountservice.LocalAppOperationVoiceAssetsList, capability: localappop.AppOperationIDVoiceAssetsList},
+		localappop.IngressTextTurnStream:         {operation: accountservice.LocalAppOperationTextTurnStream, capability: localappop.AppOperationIDTextTurnStream},
+		localappop.IngressScenarioExecute:        {operation: accountservice.LocalAppOperationScenarioExecute, capability: localappop.AppOperationIDScenarioExecute},
+		localappop.IngressScenarioJobSubmit:      {operation: accountservice.LocalAppOperationScenarioJobSubmit, capability: localappop.AppOperationIDScenarioJobSubmit},
+		localappop.IngressScenarioJobGet:         {operation: accountservice.LocalAppOperationScenarioJobGet, capability: localappop.AppOperationIDScenarioJobGet},
+		localappop.IngressScenarioJobSubscribe:   {operation: accountservice.LocalAppOperationScenarioJobSubscribe, capability: localappop.AppOperationIDScenarioJobSubscribe},
+		localappop.IngressScenarioJobCancel:      {operation: accountservice.LocalAppOperationScenarioJobCancel, capability: localappop.AppOperationIDScenarioJobCancel},
+		localappop.IngressArtifactRead:           {operation: accountservice.LocalAppOperationArtifactRead, capability: localappop.AppOperationIDArtifactRead},
+		localappop.IngressArtifactUpload:         {operation: accountservice.LocalAppOperationArtifactUpload, capability: localappop.AppOperationIDArtifactUpload},
+		localappop.IngressArtifactAdoptToStorage: {operation: accountservice.LocalAppOperationArtifactAdoptToStorage, capability: "runtime.consume"},
+		localappop.IngressVoiceAssetsList:        {operation: accountservice.LocalAppOperationVoiceAssetsList, capability: localappop.AppOperationIDVoiceAssetsList},
 	} {
 		authorized, err := fixture.service.AuthorizeLocalAppIngress(fixture.context, ingress)
 		if err != nil {
@@ -314,6 +316,7 @@ func TestLocalAppSessionScenarioConsumptionFamilyAuthorization(t *testing.T) {
 		localappop.IngressScenarioJobCancel,
 		localappop.IngressArtifactRead,
 		localappop.IngressArtifactUpload,
+		localappop.IngressArtifactAdoptToStorage,
 		localappop.IngressVoiceAssetsList,
 	} {
 		assertLocalAppReason(
@@ -321,6 +324,31 @@ func TestLocalAppSessionScenarioConsumptionFamilyAuthorization(t *testing.T) {
 			denied.service.AdmitLocalAppIngress(denied.context, ingress),
 			runtimev1.ReasonCode_LOCAL_APP_ACCESS_DENIED,
 		)
+	}
+}
+
+func TestLocalAppSessionAssetStorageBaseAuthorization(t *testing.T) {
+	fixture := newLocalAppSessionFixture(t, nil)
+	if _, err := fixture.service.OpenLocalAppSessionProjection(fixture.context); err != nil {
+		t.Fatal(err)
+	}
+	for ingress, operation := range map[localappop.Ingress]accountservice.LocalAppOperation{
+		localappop.IngressStorageAssetStat:   accountservice.LocalAppOperationStorageAssetStat,
+		localappop.IngressStorageAssetList:   accountservice.LocalAppOperationStorageAssetList,
+		localappop.IngressStorageAssetWrite:  accountservice.LocalAppOperationStorageAssetWrite,
+		localappop.IngressStorageAssetRead:   accountservice.LocalAppOperationStorageAssetRead,
+		localappop.IngressStorageAssetRemove: accountservice.LocalAppOperationStorageAssetRemove,
+		localappop.IngressStorageAssetMove:   accountservice.LocalAppOperationStorageAssetMove,
+	} {
+		authorized, err := fixture.service.AuthorizeLocalAppIngress(fixture.context, ingress)
+		if err != nil {
+			t.Fatalf("authorize %v: %v", ingress, err)
+		}
+		decision, ok := accountservice.AuthorizedLocalAppDecisionFromContext(authorized)
+		if !ok || decision.Operation != operation || decision.AuthorityClass != localappop.AuthorityClassBase ||
+			decision.OperationCapability != appstorage.LocalAppPrivateStorageEntitlement {
+			t.Fatalf("asset storage Base handoff for %v = %+v", ingress, decision)
+		}
 	}
 }
 

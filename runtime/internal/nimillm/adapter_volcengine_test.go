@@ -75,8 +75,8 @@ func TestExecuteBytedanceARKTaskImageOmitsUnsupportedResponseFormat(t *testing.T
 	if len(artifacts) != 1 {
 		t.Fatalf("expected one image artifact, got=%d", len(artifacts))
 	}
-	if got := string(artifacts[0].GetBytes()); got != "ark-image-bytes" {
-		t.Fatalf("unexpected image bytes: %q", got)
+	if len(artifacts[0].GetBytes()) != 0 || artifacts[0].GetUri() != server.URL+"/artifact.png" {
+		t.Fatalf("unexpected private image source: %+v", artifacts[0])
 	}
 }
 
@@ -278,7 +278,7 @@ func TestExecuteBytedanceARKTaskVideoForwardsResolution(t *testing.T) {
 	if len(artifacts) != 1 {
 		t.Fatalf("expected one video artifact, got=%d", len(artifacts))
 	}
-	if got := string(artifacts[0].GetBytes()); got != "ark-video-bytes" {
-		t.Fatalf("unexpected video bytes: %q", got)
+	if len(artifacts[0].GetBytes()) != 0 || artifacts[0].GetUri() != server.URL+"/artifact.mp4" {
+		t.Fatalf("unexpected private video source: %+v", artifacts[0])
 	}
 }

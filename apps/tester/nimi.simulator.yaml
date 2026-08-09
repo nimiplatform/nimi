@@ -21,10 +21,16 @@ requires:
   simulator_commands:
     - tester.action.record
     - tester.ai-config.update
+    - tester.asset.adopt
+    - tester.asset.move
+    - tester.asset.remove
+    - tester.asset.write
     - tester.capability.execute
     - tester.ecosystem.observe
     - tester.history.append
     - tester.image-history.append
+    - tester.image-history.clear
+    - tester.image-history.remove
     - tester.persona.observe
     - tester.prompt.save
     - tester.run.allocate

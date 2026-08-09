@@ -799,6 +799,14 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "UploadLocalAppArtifactResponse"
   },
   {
+    "methodId": "/nimi.runtime.v1.RuntimeAppService/AdoptLocalAppArtifact",
+    "service": "RuntimeAppService",
+    "method": "AdoptLocalAppArtifact",
+    "kind": "unary",
+    "requestType": "AdoptLocalAppArtifactRequest",
+    "responseType": "AdoptLocalAppArtifactResponse"
+  },
+  {
     "methodId": "/nimi.runtime.v1.RuntimeAppService/BindLocalAppProcess",
     "service": "RuntimeAppService",
     "method": "BindLocalAppProcess",
@@ -815,12 +823,36 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "GetAppStorageResponse"
   },
   {
+    "methodId": "/nimi.runtime.v1.RuntimeAppService/ListLocalAppAssets",
+    "service": "RuntimeAppService",
+    "method": "ListLocalAppAssets",
+    "kind": "unary",
+    "requestType": "ListLocalAppAssetsRequest",
+    "responseType": "ListLocalAppAssetsResponse"
+  },
+  {
+    "methodId": "/nimi.runtime.v1.RuntimeAppService/MoveLocalAppAsset",
+    "service": "RuntimeAppService",
+    "method": "MoveLocalAppAsset",
+    "kind": "unary",
+    "requestType": "MoveLocalAppAssetRequest",
+    "responseType": "MoveLocalAppAssetResponse"
+  },
+  {
     "methodId": "/nimi.runtime.v1.RuntimeAppService/PrepareLocalAppLaunch",
     "service": "RuntimeAppService",
     "method": "PrepareLocalAppLaunch",
     "kind": "unary",
     "requestType": "PrepareLocalAppLaunchRequest",
     "responseType": "PrepareLocalAppLaunchResponse"
+  },
+  {
+    "methodId": "/nimi.runtime.v1.RuntimeAppService/ReadLocalAppAsset",
+    "service": "RuntimeAppService",
+    "method": "ReadLocalAppAsset",
+    "kind": "server_stream",
+    "requestType": "ReadLocalAppAssetRequest",
+    "responseType": "ReadLocalAppAssetResponse"
   },
   {
     "methodId": "/nimi.runtime.v1.RuntimeAppService/ReadLocalAppStorageJson",
@@ -839,6 +871,14 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "RebindLocalAppProcessResponse"
   },
   {
+    "methodId": "/nimi.runtime.v1.RuntimeAppService/RemoveLocalAppAsset",
+    "service": "RuntimeAppService",
+    "method": "RemoveLocalAppAsset",
+    "kind": "unary",
+    "requestType": "RemoveLocalAppAssetRequest",
+    "responseType": "RemoveLocalAppAssetResponse"
+  },
+  {
     "methodId": "/nimi.runtime.v1.RuntimeAppService/RemoveLocalAppStorageJson",
     "service": "RuntimeAppService",
     "method": "RemoveLocalAppStorageJson",
@@ -855,12 +895,28 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "SendAppMessageResponse"
   },
   {
+    "methodId": "/nimi.runtime.v1.RuntimeAppService/StatLocalAppAsset",
+    "service": "RuntimeAppService",
+    "method": "StatLocalAppAsset",
+    "kind": "unary",
+    "requestType": "StatLocalAppAssetRequest",
+    "responseType": "StatLocalAppAssetResponse"
+  },
+  {
     "methodId": "/nimi.runtime.v1.RuntimeAppService/SubscribeAppMessages",
     "service": "RuntimeAppService",
     "method": "SubscribeAppMessages",
     "kind": "server_stream",
     "requestType": "SubscribeAppMessagesRequest",
     "responseType": "AppMessageEvent"
+  },
+  {
+    "methodId": "/nimi.runtime.v1.RuntimeAppService/WriteLocalAppAsset",
+    "service": "RuntimeAppService",
+    "method": "WriteLocalAppAsset",
+    "kind": "client_stream",
+    "requestType": "WriteLocalAppAssetRequest",
+    "responseType": "WriteLocalAppAssetResponse"
   },
   {
     "methodId": "/nimi.runtime.v1.RuntimeAppService/WriteLocalAppStorageJson",

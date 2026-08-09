@@ -55,14 +55,10 @@ func buildScenarioOutputFromArtifacts(
 			},
 		}
 	case runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_TRANSCRIBE:
-		text := ""
-		if len(artifacts) > 0 && artifacts[0] != nil {
-			text = string(artifacts[0].GetBytes())
-		}
 		return &runtimev1.ScenarioOutput{
 			Output: &runtimev1.ScenarioOutput_SpeechTranscribe{
 				SpeechTranscribe: &runtimev1.SpeechTranscribeResult{
-					Text:      text,
+					Text:      job.GetTranscriptionText(),
 					Artifacts: clonedArtifacts,
 				},
 			},

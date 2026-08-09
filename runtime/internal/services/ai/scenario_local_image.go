@@ -40,7 +40,7 @@ func executeLocalImageGenerateScenario(
 		if artifact == nil {
 			return fmt.Errorf("local image artifact projection failed")
 		}
-		if err := s.storeRuntimeOwnedArtifacts(effective.head, []*runtimev1.ScenarioArtifact{artifact}); err != nil {
+		if err := s.storeRuntimeOwnedArtifacts(ctx, runtimeArtifactOwnerFromContext(ctx, effective.head), []*runtimev1.ScenarioArtifact{artifact}); err != nil {
 			return err
 		}
 		artifacts = append(artifacts, artifact)

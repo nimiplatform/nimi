@@ -1,7 +1,10 @@
 import { describe, expect, it, vi } from 'vitest';
-import { NIMI_STANDARD_SHELL_CAPABILITIES } from '@nimiplatform/kit/shell/capabilities';
+import {
+  NIMI_LOCAL_APP_STANDARD_SHELL_CAPABILITY_SET_ID,
+  NIMI_STANDARD_SHELL_CAPABILITIES,
+} from '@nimiplatform/kit/shell/capabilities';
 
-import { registerNimiElectronAppBridge } from '../src/main/index.js';
+import { registerNimiElectronAppBridge, registerNimiElectronRuntimeBridge } from '../src/main/index.js';
 import { dispatchElectronLocalAppCommand } from '../src/main/local-app-commands.js';
 import { NimiElectronLocalAppHostError } from '../src/main/local-app-host.js';
 import { FakeIpcMain, createInvokeEvent, invokeBridge } from './electron-shell-test-utils.js';
@@ -11,6 +14,16 @@ vi.mock('../src/main/protected-local-binding-loader.js', () => ({
     throw new Error('protected carrier fixture unavailable');
   },
 }));
+
+const ASSET_MEDIA_PLATFORM = {
+  protocol: {
+    registerSchemesAsPrivileged: () => undefined,
+    handle: () => undefined,
+    unhandle: () => undefined,
+  },
+  session: { defaultSession: { webRequest: { onBeforeRequest: () => undefined } } },
+  webContents: { fromId: () => undefined },
+};
 
 const FINAL_LOCAL_APP_COMMANDS = [
   'nimi.shell.localApp.sessionStatus',
@@ -38,6 +51,20 @@ const FINAL_LOCAL_APP_COMMANDS = [
   'nimi.shell.storage.readJson',
   'nimi.shell.storage.writeJson',
   'nimi.shell.storage.removeJson',
+  'nimi.shell.storage.assetStat',
+  'nimi.shell.storage.assetList',
+  'nimi.shell.storage.assetWriteOpen',
+  'nimi.shell.storage.assetWriteChunk',
+  'nimi.shell.storage.assetWriteCommit',
+  'nimi.shell.storage.assetWriteAbort',
+  'nimi.shell.storage.assetReadOpen',
+  'nimi.shell.storage.assetReadNext',
+  'nimi.shell.storage.assetReadClose',
+  'nimi.shell.storage.assetRemove',
+  'nimi.shell.storage.assetMove',
+  'nimi.shell.storage.assetAdopt',
+  'nimi.shell.storage.assetMediaOpen',
+  'nimi.shell.storage.assetMediaRevoke',
 ] as const;
 
 function createBridge() {
@@ -45,6 +72,11 @@ function createBridge() {
   registerNimiElectronAppBridge({
     appId: 'nimi.thirdparty.fixture',
     allowedRendererUrls: ['http://localhost:1430/'],
+    assetMediaPlatform: {
+      protocol: ASSET_MEDIA_PLATFORM.protocol,
+      webRequest: ASSET_MEDIA_PLATFORM.session.defaultSession.webRequest,
+      webContents: ASSET_MEDIA_PLATFORM.webContents,
+    },
     ipcMain,
   });
   const { event } = createInvokeEvent();
@@ -63,6 +95,11 @@ describe('Electron local-app carrier behavior', () => {
     const bridge = registerNimiElectronAppBridge({
       appId: 'nimi.thirdparty.fixture',
       allowedRendererUrls: ['http://localhost:1430/'],
+      assetMediaPlatform: {
+        protocol: ASSET_MEDIA_PLATFORM.protocol,
+        webRequest: ASSET_MEDIA_PLATFORM.session.defaultSession.webRequest,
+        webContents: ASSET_MEDIA_PLATFORM.webContents,
+      },
       ipcMain,
       appCommandHandlers: {
         'fixture.app.alive': () => ({ running: true }),
@@ -93,6 +130,11 @@ describe('Electron local-app carrier behavior', () => {
     expect(() => registerNimiElectronAppBridge({
       appId: 'nimi.thirdparty.fixture',
       allowedRendererUrls: ['http://localhost:1430/'],
+      assetMediaPlatform: {
+        protocol: ASSET_MEDIA_PLATFORM.protocol,
+        webRequest: ASSET_MEDIA_PLATFORM.session.defaultSession.webRequest,
+        webContents: ASSET_MEDIA_PLATFORM.webContents,
+      },
       ipcMain: new FakeIpcMain(),
       onProtectedSessionFailure: () => undefined,
     } as never)).toThrow(/input contains forbidden authority fields/i);
@@ -103,6 +145,11 @@ describe('Electron local-app carrier behavior', () => {
     registerNimiElectronAppBridge({
       appId: 'nimi.thirdparty.fixture',
       allowedRendererUrls: ['http://localhost:1430/'],
+      assetMediaPlatform: {
+        protocol: ASSET_MEDIA_PLATFORM.protocol,
+        webRequest: ASSET_MEDIA_PLATFORM.session.defaultSession.webRequest,
+        webContents: ASSET_MEDIA_PLATFORM.webContents,
+      },
       ipcMain,
       appCommandHandlers: {
         'fixture.sqlite.read': ({ payload }) => ({ owner: 'fixture', payload }),
@@ -123,6 +170,11 @@ describe('Electron local-app carrier behavior', () => {
     registerNimiElectronAppBridge({
       appId: 'nimi.thirdparty.fixture',
       allowedRendererUrls: ['http://localhost:1430/timeline?child=local#today'],
+      assetMediaPlatform: {
+        protocol: ASSET_MEDIA_PLATFORM.protocol,
+        webRequest: ASSET_MEDIA_PLATFORM.session.defaultSession.webRequest,
+        webContents: ASSET_MEDIA_PLATFORM.webContents,
+      },
       ipcMain: routeIpcMain,
       appCommandHandlers: {
         'fixture.sqlite.read': ({ payload }) => ({ owner: 'fixture', payload }),
@@ -142,6 +194,11 @@ describe('Electron local-app carrier behavior', () => {
     registerNimiElectronAppBridge({
       appId: 'nimi.thirdparty.fixture',
       allowedRendererUrls: ['http://localhost:1430/'],
+      assetMediaPlatform: {
+        protocol: ASSET_MEDIA_PLATFORM.protocol,
+        webRequest: ASSET_MEDIA_PLATFORM.session.defaultSession.webRequest,
+        webContents: ASSET_MEDIA_PLATFORM.webContents,
+      },
       ipcMain: foreignIpcMain,
       appCommandHandlers: {
         'fixture.sqlite.read': ({ payload }) => ({ owner: 'fixture', payload }),
@@ -166,6 +223,11 @@ describe('Electron local-app carrier behavior', () => {
     expect(() => registerNimiElectronAppBridge({
       appId: 'nimi.thirdparty.fixture',
       allowedRendererUrls: ['http://localhost:1430/'],
+      assetMediaPlatform: {
+        protocol: ASSET_MEDIA_PLATFORM.protocol,
+        webRequest: ASSET_MEDIA_PLATFORM.session.defaultSession.webRequest,
+        webContents: ASSET_MEDIA_PLATFORM.webContents,
+      },
       ipcMain,
       appCommandHandlers: {
         'nimi.shell.runtime.unary': () => ({ forged: true }),
@@ -183,6 +245,51 @@ describe('Electron local-app carrier behavior', () => {
         /^(protected-carrier-required|runtime-service-unavailable|runtime-service-untrusted|runtime-service-error-unclassified|runtime-unauthenticated|local-app-operation-unavailable|invalid-payload)$/,
       );
     }
+  });
+
+  it('invalidates opaque handles after successful managed remove, move, adopt, and overwrite commit', async () => {
+    const invalidated: string[] = [];
+    const asset = {
+      relativePath: 'media/target.png', mediaType: 'image/png', sizeBytes: 8,
+      sha256: `sha256:${'a'.repeat(64)}`,
+      createdAt: '2026-08-09T00:00:00Z', updatedAt: '2026-08-09T00:00:00Z',
+    };
+    const localAppHost = {
+      assetRemove: async () => ({ removed: true }),
+      assetMove: async () => asset,
+      assetAdopt: async () => asset,
+      assetWriteCommit: async () => asset,
+    } as never;
+    const localAppAssetMediaHost = {
+      invalidatePath: (relativePath: string) => { invalidated.push(relativePath); },
+    } as never;
+    const ipcMain = new FakeIpcMain();
+    registerNimiElectronRuntimeBridge({
+      appId: 'nimi.thirdparty.fixture',
+      runtimeEndpoint: 'protected-carrier-test',
+      allowedOrigins: ['http://localhost:1430'],
+      allowedRendererUrls: ['http://localhost:1430/'],
+      ipcMain,
+      createGrpcClient: async () => { throw new Error('ordinary transport is not used'); },
+      standardShellHost: {
+        capabilitySetRef: NIMI_LOCAL_APP_STANDARD_SHELL_CAPABILITY_SET_ID,
+        localAppHost,
+        localAppAssetMediaHost,
+      },
+    });
+    const { event } = createInvokeEvent();
+    const exactEvent = { ...event, senderFrame: { ...event.senderFrame, url: 'http://localhost:1430/' } };
+    for (const request of [
+      { command: 'nimi.shell.storage.assetRemove', payload: { relativePath: 'media/remove.png' } },
+      { command: 'nimi.shell.storage.assetMove', payload: { fromRelativePath: 'media/from.png', toRelativePath: 'media/to.png', overwrite: true } },
+      { command: 'nimi.shell.storage.assetAdopt', payload: { artifactId: 'artifact-1', relativePath: 'media/adopt.png', overwrite: true } },
+      { command: 'nimi.shell.storage.assetWriteCommit', payload: { streamId: 'write-1' } },
+    ]) {
+      await expect(invokeBridge(ipcMain, exactEvent, { command: request.command, payload: { payload: request.payload } })).resolves.toBeDefined();
+    }
+    expect(invalidated).toEqual([
+      'media/remove.png', 'media/from.png', 'media/to.png', 'media/adopt.png', 'media/target.png',
+    ]);
   });
 
   it('maps AI Runtime failures to a declared text-candidate negative state', async () => {

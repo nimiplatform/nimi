@@ -43,6 +43,10 @@ import {
 } from './errors.js';
 import { writeElectronShellArtifact } from './artifacts.js';
 import { dispatchElectronLocalAppCommand, isElectronLocalAppCommand } from './local-app-commands.js';
+import {
+  dispatchElectronLocalAppAssetMediaCommand,
+  isElectronLocalAppAssetMediaCommand,
+} from './app-asset-protocol.js';
 import { bindElectronStandardDataRootRuntimeResolver } from './data-root-binding.js';
 import { openElectronDesktopIntent } from './desktop-open.js';
 import { saveElectronShellExportFile } from './export.js';
@@ -345,8 +349,16 @@ export function registerNimiElectronRuntimeBridge(
       throw createElectronExternalDaemonRequiredError(command);
     }
     const standardPayload = standardNestedPayload(payload, command);
+    if (isElectronLocalAppAssetMediaCommand(command)) {
+      return dispatchElectronLocalAppAssetMediaCommand({
+        host: effectiveStandardShellHost?.localAppAssetMediaHost,
+        command,
+        payload: standardPayload,
+        event,
+      });
+    }
     if (effectiveStandardShellHost?.localAppHost && isElectronLocalAppCommand(command)) {
-      return dispatchElectronLocalAppCommand({
+      const result = await dispatchElectronLocalAppCommand({
         host: effectiveStandardShellHost.localAppHost,
         payload: standardPayload,
         command,
@@ -354,6 +366,19 @@ export function registerNimiElectronRuntimeBridge(
           ? (eventName, eventPayload) => event.sender?.send?.(`${eventChannelPrefix}${eventName}`, eventPayload)
           : undefined,
       });
+      const mediaHost = effectiveStandardShellHost.localAppAssetMediaHost;
+      if (mediaHost) {
+        if (command === NIMI_STANDARD_SHELL_COMMANDS['storage.assetRemove']) mediaHost.invalidatePath(String(standardPayload.relativePath));
+        if (command === NIMI_STANDARD_SHELL_COMMANDS['storage.assetMove']) {
+          mediaHost.invalidatePath(String(standardPayload.fromRelativePath));
+          mediaHost.invalidatePath(String(standardPayload.toRelativePath));
+        }
+        if (command === NIMI_STANDARD_SHELL_COMMANDS['storage.assetAdopt']) mediaHost.invalidatePath(String(standardPayload.relativePath));
+        if (command === NIMI_STANDARD_SHELL_COMMANDS['storage.assetWriteCommit'] && result && typeof result === 'object') {
+          mediaHost.invalidatePath(String((result as Record<string, unknown>).relativePath));
+        }
+      }
+      return result;
     }
     if (command === NIMI_STANDARD_SHELL_COMMANDS['data.pathResolve']) return resolveElectronStandardDataPath(effectiveStandardShellHost, standardPayload, command);
     if (command === NIMI_STANDARD_SHELL_COMMANDS['storage.readJson']) return readElectronStandardStorageJson(effectiveStandardShellHost, standardPayload, command);

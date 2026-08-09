@@ -792,6 +792,14 @@ RUNTIME_METHODS = [
     "response_type": "UploadLocalAppArtifactResponse"
   },
   {
+    "method_id": "/nimi.runtime.v1.RuntimeAppService/AdoptLocalAppArtifact",
+    "service": "RuntimeAppService",
+    "method": "AdoptLocalAppArtifact",
+    "kind": "unary",
+    "request_type": "AdoptLocalAppArtifactRequest",
+    "response_type": "AdoptLocalAppArtifactResponse"
+  },
+  {
     "method_id": "/nimi.runtime.v1.RuntimeAppService/BindLocalAppProcess",
     "service": "RuntimeAppService",
     "method": "BindLocalAppProcess",
@@ -808,12 +816,36 @@ RUNTIME_METHODS = [
     "response_type": "GetAppStorageResponse"
   },
   {
+    "method_id": "/nimi.runtime.v1.RuntimeAppService/ListLocalAppAssets",
+    "service": "RuntimeAppService",
+    "method": "ListLocalAppAssets",
+    "kind": "unary",
+    "request_type": "ListLocalAppAssetsRequest",
+    "response_type": "ListLocalAppAssetsResponse"
+  },
+  {
+    "method_id": "/nimi.runtime.v1.RuntimeAppService/MoveLocalAppAsset",
+    "service": "RuntimeAppService",
+    "method": "MoveLocalAppAsset",
+    "kind": "unary",
+    "request_type": "MoveLocalAppAssetRequest",
+    "response_type": "MoveLocalAppAssetResponse"
+  },
+  {
     "method_id": "/nimi.runtime.v1.RuntimeAppService/PrepareLocalAppLaunch",
     "service": "RuntimeAppService",
     "method": "PrepareLocalAppLaunch",
     "kind": "unary",
     "request_type": "PrepareLocalAppLaunchRequest",
     "response_type": "PrepareLocalAppLaunchResponse"
+  },
+  {
+    "method_id": "/nimi.runtime.v1.RuntimeAppService/ReadLocalAppAsset",
+    "service": "RuntimeAppService",
+    "method": "ReadLocalAppAsset",
+    "kind": "server_stream",
+    "request_type": "ReadLocalAppAssetRequest",
+    "response_type": "ReadLocalAppAssetResponse"
   },
   {
     "method_id": "/nimi.runtime.v1.RuntimeAppService/ReadLocalAppStorageJson",
@@ -832,6 +864,14 @@ RUNTIME_METHODS = [
     "response_type": "RebindLocalAppProcessResponse"
   },
   {
+    "method_id": "/nimi.runtime.v1.RuntimeAppService/RemoveLocalAppAsset",
+    "service": "RuntimeAppService",
+    "method": "RemoveLocalAppAsset",
+    "kind": "unary",
+    "request_type": "RemoveLocalAppAssetRequest",
+    "response_type": "RemoveLocalAppAssetResponse"
+  },
+  {
     "method_id": "/nimi.runtime.v1.RuntimeAppService/RemoveLocalAppStorageJson",
     "service": "RuntimeAppService",
     "method": "RemoveLocalAppStorageJson",
@@ -848,12 +888,28 @@ RUNTIME_METHODS = [
     "response_type": "SendAppMessageResponse"
   },
   {
+    "method_id": "/nimi.runtime.v1.RuntimeAppService/StatLocalAppAsset",
+    "service": "RuntimeAppService",
+    "method": "StatLocalAppAsset",
+    "kind": "unary",
+    "request_type": "StatLocalAppAssetRequest",
+    "response_type": "StatLocalAppAssetResponse"
+  },
+  {
     "method_id": "/nimi.runtime.v1.RuntimeAppService/SubscribeAppMessages",
     "service": "RuntimeAppService",
     "method": "SubscribeAppMessages",
     "kind": "server_stream",
     "request_type": "SubscribeAppMessagesRequest",
     "response_type": "AppMessageEvent"
+  },
+  {
+    "method_id": "/nimi.runtime.v1.RuntimeAppService/WriteLocalAppAsset",
+    "service": "RuntimeAppService",
+    "method": "WriteLocalAppAsset",
+    "kind": "client_stream",
+    "request_type": "WriteLocalAppAssetRequest",
+    "response_type": "WriteLocalAppAssetResponse"
   },
   {
     "method_id": "/nimi.runtime.v1.RuntimeAppService/WriteLocalAppStorageJson",

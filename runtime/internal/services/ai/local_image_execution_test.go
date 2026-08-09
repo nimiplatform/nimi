@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"reflect"
 	"strings"
 	"sync"
 	"testing"
@@ -161,7 +160,7 @@ func TestLocalImageSyncExecutesCapturedDriverPlan(t *testing.T) {
 	}
 	artifacts := response.GetOutput().GetImageGenerate().GetArtifacts()
 	if response.GetRouteDecision() != runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL || response.GetModelResolved() != "image-sync" ||
-		len(artifacts) != 1 || !strings.HasPrefix(artifacts[0].GetMimeType(), "image/png") || !reflect.DeepEqual(artifacts[0].GetBytes()[:8], serviceTestPNGBytes()[:8]) {
+		len(artifacts) != 1 || !strings.HasPrefix(artifacts[0].GetMimeType(), "image/png") || len(artifacts[0].GetBytes()) != 0 || artifacts[0].GetSizeBytes() != int64(len(serviceTestPNGBytes())) {
 		t.Fatalf("local image response = %+v", response)
 	}
 	record, ok := svc.runtimeArtifacts.Get(artifacts[0].GetArtifactId())
@@ -274,7 +273,7 @@ func TestLocalImageJobStaysQueuedThenCommitsArtifactsIncrementallyFromImmutableC
 func TestLocalImageArtifactAttachFailureDeletesExactCandidate(t *testing.T) {
 	svc := newTestService(nil)
 	artifact := &runtimev1.ScenarioArtifact{ArtifactId: "candidate-local-image", MimeType: "image/png", Bytes: serviceTestPNGBytes()}
-	_, err := svc.storeAndAttachRuntimeJobArtifact(
+	_, err := svc.storeAndAttachRuntimeJobArtifact(context.Background(),
 		"job-attach-failure",
 		&runtimev1.ScenarioRequestHead{AppId: "app.local", SubjectUserId: "account-a"},
 		artifact,
@@ -291,7 +290,7 @@ func TestLocalImageArtifactAttachFailureDeletesExactCandidate(t *testing.T) {
 	if err := svc.runtimeArtifacts.Put(existingID, runtimeartifact.ArtifactRecord{Bytes: []byte("existing"), MimeType: "image/png"}); err != nil {
 		t.Fatalf("seed existing artifact: %v", err)
 	}
-	_, err = svc.storeAndAttachRuntimeJobArtifact(
+	_, err = svc.storeAndAttachRuntimeJobArtifact(context.Background(),
 		"job-attach-collision",
 		&runtimev1.ScenarioRequestHead{AppId: "app.local", SubjectUserId: "account-a"},
 		&runtimev1.ScenarioArtifact{ArtifactId: existingID, MimeType: "image/png", Bytes: []byte("replacement")},
@@ -353,8 +352,11 @@ func TestLocalImageJobPartialFailurePreservesProducedArtifactAndTypedFailure(t *
 	}
 	artifactCtx := metadata.NewIncomingContext(context.Background(), metadata.Pairs("x-nimi-app-id", "app.local"))
 	artifactsResponse, err := svc.GetScenarioArtifacts(artifactCtx, &runtimev1.GetScenarioArtifactsRequest{JobId: job.GetJobId()})
-	if err != nil || len(artifactsResponse.GetArtifacts()) != 1 || len(artifactsResponse.GetArtifacts()[0].GetBytes()) == 0 {
+	if err != nil || len(artifactsResponse.GetArtifacts()) != 1 || len(artifactsResponse.GetArtifacts()[0].GetBytes()) != 0 || artifactsResponse.GetArtifacts()[0].GetSizeBytes() == 0 {
 		t.Fatalf("partial artifact retrieval = response=%+v error=%v", artifactsResponse, err)
+	}
+	if record, ok := svc.runtimeArtifacts.Get(artifactsResponse.GetArtifacts()[0].GetArtifactId()); !ok || len(record.Bytes) == 0 {
+		t.Fatalf("partial artifact custody = %+v present=%v", record, ok)
 	}
 }
 

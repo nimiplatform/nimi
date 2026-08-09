@@ -24,6 +24,7 @@ const (
 
 type voiceScenarioJobRecord struct {
 	job              *runtimev1.ScenarioJob
+	localAppOwner    *localAppJobOwner
 	assetID          string
 	events           []*runtimev1.ScenarioJobEvent
 	subscribers      map[uint64]chan *runtimev1.ScenarioJobEvent
@@ -70,6 +71,7 @@ func (b *voiceAssetCloudBinding) Valid() bool {
 
 type voiceWorkflowSubmitInput struct {
 	Head              *runtimev1.ScenarioRequestHead
+	LocalAppOwner     *localAppJobOwner
 	ScenarioType      runtimev1.ScenarioType
 	Spec              *runtimev1.ScenarioSpec
 	TraceID           string

@@ -5,7 +5,10 @@ import {
 } from '@nimiplatform/kit/core/sdk-contract';
 import { NIMI_STANDARD_SHELL_COMMANDS } from '@nimiplatform/kit/shell/capabilities';
 
-import { createNimiLocalAppStandardShellSurface } from '../src/bridge/index.js';
+import {
+  createNimiLocalAppStandardShellSurface,
+  openNimiLocalAppAssetMediaUrl,
+} from '../src/bridge/index.js';
 import { resolveTauriStandardCommand } from '../src/bridge/tauri-api.js';
 
 afterEach(() => {
@@ -205,7 +208,7 @@ describe('renderer local-app standard-shell surface', () => {
       jobId: 'job-1', scenarioType: 'video-generate', status: 'submitted',
       progressPercent: 0, progressCurrentStep: 0, progressTotalSteps: 4,
       reasonCode: 'unspecified', reasonDetail: '', artifacts: [], traceId: 'trace-1',
-      createdAt: null, updatedAt: null,
+      createdAt: null, updatedAt: null, transcriptionText: '',
     };
     const events = [
       { eventType: 'submitted', sequence: '1', traceId: 'trace-1', timestamp: null, job: baseJob },
@@ -553,5 +556,97 @@ describe('renderer local-app standard-shell surface', () => {
       },
     ]);
     expect(() => storage.readJson('../escape.json')).toThrow(/relativePath is invalid/u);
+  });
+
+  it('streams managed asset writes and reads with bounded chunks and cancellation', async () => {
+    const invocations: Array<{ command: string; payload: unknown }> = [];
+    const asset = {
+      relativePath: 'media/generated.png', mediaType: 'image/png', sizeBytes: 1_048_579,
+      sha256: `sha256:${'a'.repeat(64)}`,
+      createdAt: '2026-08-09T00:00:00Z', updatedAt: '2026-08-09T00:00:00Z',
+    };
+    let readNext = 0;
+    (globalThis as { __NIMI_ELECTRON_TEST__?: unknown }).__NIMI_ELECTRON_TEST__ = {
+      invoke: async (command: string, payload: unknown) => {
+        invocations.push({ command, payload });
+        if (command.endsWith('assetWriteOpen')) return { streamId: 'write-1' };
+        if (command.endsWith('assetWriteChunk')) return { accepted: true };
+        if (command.endsWith('assetWriteCommit')) return asset;
+        if (command.endsWith('assetWriteAbort')) return { aborted: true };
+        if (command.endsWith('assetStat')) return asset;
+        if (command.endsWith('assetList')) return { assets: [asset], nextCursor: '' };
+        if (command.endsWith('assetReadOpen')) return {
+          streamId: 'read-1', asset: { ...asset, sizeBytes: 4 }, range: { offset: 0, length: 4, totalSize: 4 },
+        };
+        if (command.endsWith('assetReadNext')) {
+          readNext += 1;
+          return readNext === 1
+            ? { completed: false, bodyChunk: Uint8Array.from([1, 2]) }
+            : { completed: false, bodyChunk: Uint8Array.from([3, 4]) };
+        }
+        if (command.endsWith('assetReadClose')) return { closed: true };
+        throw new Error(`unexpected command: ${command}`);
+      },
+      listen: () => () => {},
+    };
+    const assets = createNimiLocalAppStandardShellSurface().storage.assets;
+    const body = new Uint8Array(1_048_579);
+    await expect(assets.write({ relativePath: asset.relativePath, mediaType: 'image/png', body })).resolves.toEqual(asset);
+    const chunkCalls = invocations.filter(({ command }) => command.endsWith('assetWriteChunk'));
+    expect(chunkCalls.map(({ payload }) => (
+      payload as { payload: { bodyChunk: Uint8Array } }
+    ).payload.bodyChunk.byteLength)).toEqual([1_048_576, 3]);
+
+    const read = await assets.read({ relativePath: asset.relativePath });
+    for await (const chunk of read.body) {
+      expect(chunk).toEqual(Uint8Array.from([1, 2]));
+      break;
+    }
+    expect(invocations.some(({ command }) => command.endsWith('assetReadClose'))).toBe(true);
+    const unicodePath = '媒体/é.wav';
+    const maximumPath = `${'a'.repeat(255)}/${'b'.repeat(255)}/${'c'.repeat(255)}/${'d'.repeat(254)}/e`;
+    await expect(assets.stat(unicodePath)).resolves.toEqual(asset);
+    await expect(assets.stat(maximumPath)).resolves.toEqual(asset);
+    await expect(assets.list({ prefix: '媒体/', pageSize: 500 })).resolves.toEqual({ assets: [asset], nextCursor: '' });
+    expect(() => assets.stat('媒体/e\u0301.wav')).toThrow(/relativePath is invalid/u);
+    expect(() => assets.stat(`${maximumPath}x`)).toThrow(/relativePath is invalid/u);
+    expect(() => assets.list({ prefix: '媒体/', pageSize: 501 })).toThrow(/page is invalid/u);
+    const visibleKeys = invocations.flatMap(({ payload }) => {
+      const outer = payload && typeof payload === 'object' ? Object.keys(payload) : [];
+      const nested = (payload as { payload?: unknown })?.payload;
+      return [...outer, ...(nested && typeof nested === 'object' ? Object.keys(nested) : [])];
+    });
+    expect(visibleKeys.join('|')).not.toMatch(/account|subject|endpoint|proof|base64/iu);
+  });
+
+  it('aborts failed asset writes and returns only an opaque revocable playback URL', async () => {
+    const invocations: string[] = [];
+    const handle = 'A'.repeat(43);
+    (globalThis as { __NIMI_ELECTRON_TEST__?: unknown }).__NIMI_ELECTRON_TEST__ = {
+      invoke: async (command: string) => {
+        invocations.push(command);
+        if (command.endsWith('assetWriteOpen')) return { streamId: 'write-2' };
+        if (command.endsWith('assetWriteChunk')) throw new Error('stream canceled');
+        if (command.endsWith('assetWriteAbort')) return { aborted: true };
+        if (command.endsWith('assetMediaOpen')) return { handle, url: `nimi-app-asset://media/${handle}` };
+        if (command.endsWith('assetMediaRevoke')) return { revoked: true };
+        throw new Error(`unexpected command: ${command}`);
+      },
+      listen: () => () => {},
+    };
+    const assets = createNimiLocalAppStandardShellSurface().storage.assets;
+    await expect(assets.write({ relativePath: 'media/fail.png', body: Uint8Array.from([1]) })).rejects.toThrow('stream canceled');
+    expect(invocations.slice(0, 3)).toEqual([
+      'nimi.shell.storage.assetWriteOpen',
+      'nimi.shell.storage.assetWriteChunk',
+      'nimi.shell.storage.assetWriteAbort',
+    ]);
+
+    const media = await openNimiLocalAppAssetMediaUrl('media/generated.png');
+    expect(media.url).toBe(`nimi-app-asset://media/${handle}`);
+    expect(media.url).not.toContain('nimi-shell-file');
+    await media.revoke();
+    await media.revoke();
+    expect(invocations.filter((command) => command.endsWith('assetMediaRevoke'))).toHaveLength(1);
   });
 });

@@ -263,6 +263,20 @@ capability_sets:
       - storage.readJson
       - storage.writeJson
       - storage.removeJson
+      - storage.assetStat
+      - storage.assetList
+      - storage.assetWriteOpen
+      - storage.assetWriteChunk
+      - storage.assetWriteCommit
+      - storage.assetWriteAbort
+      - storage.assetReadOpen
+      - storage.assetReadNext
+      - storage.assetReadClose
+      - storage.assetRemove
+      - storage.assetMove
+      - storage.assetAdopt
+      - storage.assetMediaOpen
+      - storage.assetMediaRevoke
       - desktop-open.openIntent
     planned_operations:
       - data.pathResolve
@@ -760,6 +774,48 @@ capabilities:
           - capability-unavailable
           - invalid-path
           - invalid-payload
+      - id: assetStat
+        command: nimi.shell.storage.assetStat
+        negative_states: [capability-unavailable, invalid-path, not-found, invalid-payload]
+      - id: assetList
+        command: nimi.shell.storage.assetList
+        negative_states: [capability-unavailable, invalid-path, invalid-cursor, invalid-payload]
+      - id: assetWriteOpen
+        command: nimi.shell.storage.assetWriteOpen
+        negative_states: [capability-unavailable, invalid-path, resource-exhausted, invalid-payload]
+      - id: assetWriteChunk
+        command: nimi.shell.storage.assetWriteChunk
+        negative_states: [capability-unavailable, canceled, not-found, invalid-payload]
+      - id: assetWriteCommit
+        command: nimi.shell.storage.assetWriteCommit
+        negative_states: [capability-unavailable, already-exists, object-too-large, resource-exhausted, integrity-failure, canceled, not-found]
+      - id: assetWriteAbort
+        command: nimi.shell.storage.assetWriteAbort
+        negative_states: [capability-unavailable, invalid-payload]
+      - id: assetReadOpen
+        command: nimi.shell.storage.assetReadOpen
+        negative_states: [capability-unavailable, invalid-path, invalid-range, not-found, integrity-failure, invalid-payload]
+      - id: assetReadNext
+        command: nimi.shell.storage.assetReadNext
+        negative_states: [capability-unavailable, canceled, not-found, integrity-failure]
+      - id: assetReadClose
+        command: nimi.shell.storage.assetReadClose
+        negative_states: [capability-unavailable, invalid-payload]
+      - id: assetRemove
+        command: nimi.shell.storage.assetRemove
+        negative_states: [capability-unavailable, invalid-path, invalid-payload]
+      - id: assetMove
+        command: nimi.shell.storage.assetMove
+        negative_states: [capability-unavailable, invalid-path, already-exists, not-found, invalid-payload]
+      - id: assetAdopt
+        command: nimi.shell.storage.assetAdopt
+        negative_states: [capability-unavailable, invalid-path, already-exists, artifact-unavailable, resource-exhausted, canceled, invalid-payload]
+      - id: assetMediaOpen
+        command: nimi.shell.storage.assetMediaOpen
+        negative_states: [capability-unavailable, forbidden-renderer-access, invalid-path, not-found, integrity-failure, invalid-payload]
+      - id: assetMediaRevoke
+        command: nimi.shell.storage.assetMediaRevoke
+        negative_states: [capability-unavailable, forbidden-renderer-access, invalid-payload]
   - id: config
     host_contract: NimiStandardShellCapabilityHost
     operations:

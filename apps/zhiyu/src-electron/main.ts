@@ -1,9 +1,10 @@
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { app, BrowserWindow, Menu, ipcMain } from 'electron';
+import { app, BrowserWindow, Menu, ipcMain, protocol, session, webContents } from 'electron';
 import {
   createNimiElectronStandardApplicationMenuTemplate,
   isAllowedElectronRendererUrl,
+  registerNimiElectronAppAssetProtocolScheme,
   registerNimiElectronAppBridge,
 } from '@nimiplatform/kit/shell/electron/main';
 
@@ -28,11 +29,13 @@ const applicationMenu = Menu.buildFromTemplate(
 );
 Menu.setApplicationMenu(applicationMenu);
 configureZhiyuElectronChromiumRuntime();
+registerNimiElectronAppAssetProtocolScheme(protocol);
 
 void app.whenReady().then(async () => {
   registerNimiElectronAppBridge({
     appId: APP_ID,
     allowedRendererUrls: allowedRendererUrls(),
+    assetMediaPlatform: { protocol, webRequest: session.defaultSession.webRequest, webContents },
     ipcMain,
   });
 

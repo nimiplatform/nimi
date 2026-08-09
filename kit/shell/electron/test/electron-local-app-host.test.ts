@@ -118,6 +118,7 @@ describe('Electron protected local-app host', () => {
 
   it('performs one bounded same-Host rebind on typed session invalidation', async () => {
     const calls: Array<{ method: string; input?: unknown }> = [];
+    let sessionChanges = 0;
     let attempts = 0;
     const candidate = {
       ...binding(calls),
@@ -133,7 +134,7 @@ describe('Electron protected local-app host', () => {
           : { status: 'error' as const, reasonCode: 'local-app-owner-unavailable', retryable: false };
       },
     };
-    const host = createNimiElectronLocalAppHostForBinding(candidate);
+    const host = createNimiElectronLocalAppHostForBinding(candidate, () => { sessionChanges += 1; });
     await expect(host.storageReadJson({ relativePath: 'state.json' })).rejects.toMatchObject({
       reasonCode: 'local-app-owner-unavailable', retryable: false,
     });
@@ -142,6 +143,7 @@ describe('Electron protected local-app host', () => {
       { method: 'localAppSessionRenew' },
       { method: 'localAppStorageReadJson', input: { relativePath: 'state.json' } },
     ]);
+    expect(sessionChanges).toBe(1);
   });
 
   it('does not disguise access denial as rebind or owner unavailability', async () => {
@@ -345,6 +347,7 @@ function scenarioJobProjection(overrides: Record<string, unknown> = {}) {
     progressPercent: 20, progressCurrentStep: 1, progressTotalSteps: 5,
     reasonCode: 'unspecified', reasonDetail: '', artifacts: [], traceId: 'trace-1',
     createdAt: null, updatedAt: null,
+    transcriptionText: '',
     ...overrides,
   };
 }
@@ -419,6 +422,20 @@ function binding(calls: Array<{ method: string; input?: unknown }>) {
     localAppStorageReadJson: record('localAppStorageReadJson', { value: { version: 1 }, sizeBytes: 13 }),
     localAppStorageWriteJson: record('localAppStorageWriteJson', { value: { version: 2 }, sizeBytes: 13 }),
     localAppStorageRemoveJson: record('localAppStorageRemoveJson', { removed: false }),
+    localAppAssetStat: record('localAppAssetStat', assetProjection()),
+    localAppAssetList: record('localAppAssetList', { assets: [assetProjection()], nextCursor: '' }),
+    localAppAssetWriteOpen: record('localAppAssetWriteOpen', { streamId: 'asset-write-1' }),
+    localAppAssetWriteChunk: record('localAppAssetWriteChunk', { accepted: true }),
+    localAppAssetWriteCommit: record('localAppAssetWriteCommit', assetProjection()),
+    localAppAssetWriteAbort: record('localAppAssetWriteAbort', { closed: true }),
+    localAppAssetReadOpen: record('localAppAssetReadOpen', {
+      streamId: 'asset-read-1', asset: assetProjection(), range: { offset: 0, length: 3, totalSize: 3 },
+    }),
+    localAppAssetReadNext: async () => ({ status: 'ok' as const, value: null, completed: true }),
+    localAppAssetReadClose: record('localAppAssetReadClose', { closed: true }),
+    localAppAssetRemove: record('localAppAssetRemove', { removed: true }),
+    localAppAssetMove: record('localAppAssetMove', assetProjection()),
+    localAppAssetAdopt: record('localAppAssetAdopt', assetProjection()),
     localAppConversationOpen: record('localAppConversationOpen', { conversationAnchorId: 'anchor-1', activeTurnId: null }),
     localAppConversationSendTurn: record('localAppConversationSendTurn', { turnId: 'turn-1' }),
     localAppConversationInterruptTurn: record('localAppConversationInterruptTurn', { turnId: 'turn-1' }),
@@ -428,5 +445,12 @@ function binding(calls: Array<{ method: string; input?: unknown }>) {
     localAppConversationSnapshot: record('localAppConversationSnapshot', {
       conversationAnchorId: 'anchor-1', activeTurnId: null, messages: [], truncatedBefore: false,
     }),
+  };
+}
+
+function assetProjection() {
+  return {
+    relativePath: 'media/example.png', mediaType: 'image/png', sizeBytes: 3,
+    sha256: `sha256:${'a'.repeat(64)}`, createdAt: '2026-08-09T00:00:00Z', updatedAt: '2026-08-09T00:00:00Z',
   };
 }

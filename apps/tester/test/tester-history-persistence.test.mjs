@@ -41,8 +41,13 @@ const historyStorageModuleUrl = compileModule('src/tester/tester-history-storage
   ['@nimiplatform/sdk/types', jsonTypesModuleUrl],
   ['./tester-standard-storage.js', standardStorageModuleUrl],
 ]);
+const imageHistoryModuleUrl = compileModule('src/tester/tester-image-history.ts', [
+  ['@nimiplatform/sdk/types', jsonTypesModuleUrl],
+  ['./tester-standard-storage.js', standardStorageModuleUrl],
+]);
 const standardStorageModule = await import(standardStorageModuleUrl);
 const historyStorageModule = await import(historyStorageModuleUrl);
+const imageHistoryModule = await import(imageHistoryModuleUrl);
 
 function createStorageClient(seed = {}) {
   const documents = new Map(Object.entries(seed));
@@ -235,6 +240,42 @@ test('clearTesterRunHistory clears one capability or the whole store', async () 
     assert.deepEqual(afterFullClear, {});
     const reloaded = await historyStorageModule.loadTesterRunHistory();
     assert.deepEqual(reloaded, {});
+  } finally {
+    delete globalThis.__NIMI_TESTER_HISTORY_STORAGE_CLIENT__;
+  }
+});
+
+test('image-history append, remove, and clear share the serialized JSON mutation queue', async () => {
+  const storage = createStorageClient();
+  globalThis.__NIMI_TESTER_HISTORY_STORAGE_CLIENT__ = storage.client;
+  const record = (id, capabilityId, relativePath) => ({
+    id,
+    runId: id,
+    kind: 'runtime-media',
+    capabilityId,
+    title: id,
+    status: 'ready',
+    createdAt: '2026-08-09T00:00:00.000Z',
+    relativePath,
+    mediaType: 'image/png',
+    sizeBytes: 8,
+    sha256: `sha256:${'a'.repeat(64)}`,
+  });
+  try {
+    await Promise.all([
+      imageHistoryModule.appendTesterImageHistoryRecord(record('run-1', 'image.generate', 'media/one.asset')),
+      imageHistoryModule.appendTesterImageHistoryRecord(record('run-2', 'video.generate', 'media/two.asset')),
+    ]);
+    let loaded = await imageHistoryModule.loadTesterImageHistory();
+    assert.deepEqual(new Set(loaded.map((entry) => entry.id)), new Set(['run-1', 'run-2']));
+
+    loaded = await imageHistoryModule.removeTesterImageHistoryRecord('run-1');
+    assert.deepEqual(loaded.map((entry) => entry.id), ['run-2']);
+
+    loaded = await imageHistoryModule.clearTesterImageHistory('image.generate');
+    assert.deepEqual(loaded.map((entry) => entry.id), ['run-2']);
+    loaded = await imageHistoryModule.clearTesterImageHistory();
+    assert.deepEqual(loaded, []);
   } finally {
     delete globalThis.__NIMI_TESTER_HISTORY_STORAGE_CLIENT__;
   }

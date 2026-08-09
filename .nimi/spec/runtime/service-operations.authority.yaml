@@ -9,7 +9,7 @@ units:
   - id: definition.nimi.runtime.service-operations.artifact-plane
     kind: definition
     title: Runtime artifact operations plane
-    meaning: The Runtime artifact operations plane owns opaque artifact identity, immutable bytes and metadata, durable audience, authorized inline retrieval, generated voice retention, and bounded cleanup.
+    meaning: The Runtime artifact operations plane owns opaque artifact identity, immutable committed byte custody and metadata, current-account-plus-Registered-App-Subject Local App audience, shared typed-consumer authorization, bounded inline retrieval, internal streamed open and copy, App asset adoption, generated voice retention, and bounded cleanup.
   - id: definition.nimi.runtime.service-operations.scenario-job-plane
     kind: definition
     title: Runtime scenario job operations plane
@@ -182,9 +182,9 @@ units:
         target: definition.nimi.runtime.service-operations.local-service-plane
   - id: rule.nimi.runtime.service-operations.r016
     kind: rule
-    title: Generic artifact bytes have one authorized read surface
+    title: Complete external artifact bytes have one bounded authorized read surface
     modality: must
-    statement: RuntimeArtifactService exposes ReadArtifactBytes for full bytes by artifact_id only when the current protected caller matches the durable artifact audience, independently of getScenarioArtifacts job projection and the voice asset library.
+    statement: RuntimeArtifactService exposes ReadArtifactBytes as the single external complete-body artifact read by artifact_id and only within the 32-MiB inline policy when the current protected caller matches the durable artifact audience; metadata-only Job projection, Runtime-internal streamed custody and adoption, Base asset streaming, and the voice asset library remain distinct typed surfaces and do not widen that complete-body operation.
     condition: Whenever an event consumer retrieves a Runtime artifact by id.
     failure: Reject the read when protected caller or durable audience does not match and never substitute a job or voice-library projection.
     relations:
@@ -204,9 +204,9 @@ units:
     kind: rule
     title: Runtime owns artifact creation reference and idempotent reads
     modality: must
-    statement: A TTS provider, scenario job, realtime session, local voice engine, cache, streaming TTS path, or user upload creates an artifact when bytes materialize, events reference its id, and repeated reads return identical bytes while the artifact remains stored.
-    condition: Whenever Runtime materializes, emits, or rereads an artifact.
-    failure: Reject a reference to unmaterialized bytes or a reread that changes content for the same id.
+    statement: A TTS provider, scenario job, realtime session, local voice engine, cache, streaming TTS path, or user upload creates an artifact body as exactly bounded existing bytes, a context-aware incremental stream, or a Runtime-issued already-committed custody reference; Runtime owns an accepted stream's single close or abort, applies bounded accounting, cancellation and backpressure, validates any reference against committed owner, size, digest, MIME, typed-operation eligibility, integrity, expiry, and availability, events or Job metadata reference only committed custody, and repeated reads return identical bytes while the artifact remains stored.
+    condition: Whenever Runtime accepts, materializes, emits, attaches, copies, or rereads an artifact body.
+    failure: Reject a provider- or caller-selected reference, a fourth handoff form, uncommitted or mismatched custody, an oversize or cancelled stream, or a reread that changes content for the same id; remove only an owned uncommitted candidate, preserve a pre-existing committed reference on attach failure, and apply bounded cleanup to a newly committed unreferenced artifact.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.service-operations.artifact-plane
@@ -214,9 +214,9 @@ units:
     kind: rule
     title: Referenced artifacts exist before emit and generated voice is durable
     modality: must
-    statement: Store.Put of artifact id, bytes, and MIME completes before an event references the id, and generated agent voice artifacts remain on the user's local disk until explicit cleanup or a later admitted quota policy while other TTL, garbage collection, and quota choices remain Runtime implementation details.
-    condition: Whenever Runtime emits an artifact reference or applies artifact retention.
-    failure: Abort the reference and record a fatal emitter violation when storage did not complete, and reject implicit deletion of durable generated voice.
+    statement: Runtime commits the complete bounded bytes or accepted incremental stream together with immutable artifact metadata before any event, Job result, adoption source, or committed-custody reference advertises the artifact id; provider URLs and response streams are ingress only and never durable truth, and generated agent voice artifacts remain on the user's local disk until explicit cleanup or a later admitted quota policy while other TTL, garbage collection, and quota choices remain Runtime implementation details.
+    condition: Whenever Runtime emits or attaches an artifact reference, accepts provider media, or applies artifact retention.
+    failure: Abort the reference and record a fatal emitter violation when custody did not commit, remove an uncommitted candidate on failure or cancellation, never emit a provider URL as durable truth, and reject implicit deletion of durable generated voice.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.service-operations.artifact-plane
@@ -224,9 +224,9 @@ units:
     kind: rule
     title: Externally readable artifacts have complete durable audience metadata
     modality: must
-    statement: Every artifact made readable through a separately admitted non-Third-party surface binds only the owner-defined audience, producer, current account context where applicable, allowed use, observed size, content integrity, and expiry needed by that surface; the canonical Third-party App operation contract currently admits no generic artifact read, write, audience, attachment, media, Host-digest, payload-digest, or artifact-inventory operation.
-    condition: Whenever an artifact record is proposed for external readability.
-    failure: Keep the record internal and deny Third-party App retrieval or any separately admitted retrieval whose required owner audience is absent.
+    statement: Every artifact made readable through an admitted surface binds the owner-defined audience, producer metadata, current account where applicable, observed size, content integrity, MIME, expiry, and typed-operation eligibility needed by that surface; a Local App artifact audience is exactly the Runtime-derived current AccountID plus Registered App Subject, AppID may remain immutable producer or catalog metadata but is non-authorizing, and the canonical Third-party App contract admits bounded runtime.ai.artifact.read, bounded runtime.ai.artifact.upload, runtime.ai.artifact.adopt-to-app-storage, and typed artifact-reference scenario input without admitting generic artifact write, audience mutation, attachment, media inventory, Host-digest, payload-digest, discovery, or a caller-visible allowed-use selector or policy engine.
+    condition: Whenever an artifact record is proposed for Local App or other external readability or consumption.
+    failure: Keep the record internal and deny retrieval or consumption when the complete owner audience or exact Runtime-selected typed-operation eligibility is absent; never infer the Registered App Subject from AppID or disclose internal owner or policy fields.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.service-operations.artifact-plane
@@ -234,7 +234,7 @@ units:
     kind: rule
     title: Artifact content MIME integrity and audience are immutable
     modality: must
-    statement: After artifact id creation its bytes, MIME, observed size, content hash, and audience never change, except that the generated-voice producer may atomically enrich otherwise identical absent metadata to complete GeneratedVoiceArtifactMetadata before the referencing event without replacing content or audience.
+    statement: After artifact id creation its bytes, MIME, observed size, content hash, and audience never change; Local App audience contains immutable current AccountID plus Registered App Subject, AppID is non-authorizing producer or catalog metadata, and exact requested use is selected internally by the typed consumer operation and checked with its MIME, size, integrity, expiry, and availability constraints rather than stored or accepted as a caller-visible policy selector, except that the generated-voice producer may atomically enrich otherwise identical absent metadata to complete GeneratedVoiceArtifactMetadata before the referencing event without replacing content or audience.
     condition: Whenever Runtime updates or reads an existing artifact record.
     failure: Reject mutation, external access to an unbound historical record, or enrichment after the referencing event.
     relations:
@@ -294,9 +294,9 @@ units:
     kind: rule
     title: Artifact reason codes and meanings are closed
     modality: must
-    statement: Artifact failures use ARTIFACT_INVALID_INPUT value 600 for request validation, ARTIFACT_NOT_FOUND value 601 for absent, collected, never-created, or cross-Runtime ids, ARTIFACT_TOO_LARGE value 602 above the inline limit, ARTIFACT_FORBIDDEN value 603 for absent, revoked, expired, or mismatched protected caller or audience, and ARTIFACT_MIME_MISMATCH value 604 only for an SDK expected-MIME-prefix mismatch.
-    condition: Whenever Runtime or SDK classifies an artifact read or validation failure.
-    failure: Reject an unknown value, changed meaning, or server emission of the SDK-only MIME mismatch reason.
+    statement: Artifact failures use ARTIFACT_INVALID_INPUT value 600 for request validation, ARTIFACT_NOT_FOUND value 601 for absent, collected, never-created, or cross-Runtime ids outside a Local App non-disclosure path, ARTIFACT_TOO_LARGE value 602 above the 32-MiB inline limit, ARTIFACT_FORBIDDEN value 603 for absent, foreign-owner, subject-unbound, revoked, expired, or otherwise mismatched Local App read and artifact-reference lookup so those causes are publicly indistinguishable, and ARTIFACT_MIME_MISMATCH value 604 only for an SDK expected-MIME-prefix mismatch; runtime.ai.artifact.adopt-to-app-storage instead returns APP_STORAGE_ARTIFACT_UNAVAILABLE for missing, foreign-owner, subject-unbound, expired, or corrupt sources and never mutates the target for those causes.
+    condition: Whenever Runtime or SDK classifies an artifact read, artifact-reference lookup, adoption, or validation failure.
+    failure: Reject an unknown value, changed meaning, server emission of the SDK-only MIME mismatch reason, a Local App existence oracle, or an adoption error that distinguishes the collapsed unavailable causes.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.service-operations.artifact-plane
@@ -314,9 +314,9 @@ units:
     kind: rule
     title: Inline artifact retrieval has a hard size ceiling
     modality: must
-    statement: Artifact reads return a complete body only within the owner-defined bounded-read policy, reject larger stored artifacts without truncation, and keep generic chunked artifact retrieval unavailable until separately admitted.
-    condition: Whenever Runtime evaluates an artifact for inline retrieval.
-    failure: Return ARTIFACT_TOO_LARGE rather than truncate, stream, or partially succeed.
+    statement: Artifact reads return a complete inline body only at or below 32 MiB and reject larger stored artifacts without truncation; metadata-only Job projection, Runtime-internal streamed custody and adoption, and Base App asset streaming may operate above 32 MiB and do not convert ReadArtifactBytes into generic chunked artifact retrieval.
+    condition: Whenever Runtime evaluates an artifact for inline retrieval or distinguishes it from metadata or streamed custody.
+    failure: Return ARTIFACT_TOO_LARGE rather than truncate, stream, or partially succeed on the inline operation, without applying that ceiling to metadata, adoption, or asset streaming.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.service-operations.artifact-plane
@@ -334,9 +334,9 @@ units:
     kind: rule
     title: Artifact reads revalidate live caller and durable audience
     modality: must
-    statement: Before an artifact lookup on a separately admitted non-Third-party surface Runtime revalidates the current caller and owner-defined durable audience, allowed use, and expiry; the canonical Third-party App operation contract maps no artifact read operation, and unbound history, direct local gRPC, wrong audience, expired records, and guessed ids fail closed.
-    condition: Whenever ReadArtifactBytes authorizes a read.
-    failure: Return ARTIFACT_FORBIDDEN without exposing whether the id exists or which audience field mismatched.
+    statement: Before Local App artifact read, artifact adoption, or artifact-reference scenario input Runtime routes lookup through one shared authorizer that revalidates the protected session current AccountID plus Registered App Subject, the Runtime-selected exact typed consumer operation, MIME, size, integrity, expiry, and availability; AppID never authorizes, historical records without the subject fail closed without migration, and direct local gRPC, wrong owner, expired records, and guessed ids gain no fallback.
+    condition: Whenever a Local App artifact consumer or ReadArtifactBytes authorizes lookup.
+    failure: Return ARTIFACT_FORBIDDEN for absent, foreign-owner, or subject-unbound Local App read and artifact-ref lookup without exposing existence or mismatch, return the broader APP_STORAGE_ARTIFACT_UNAVAILABLE collapse for adoption, and deny every caller-selected allowed-use or owner field.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.service-operations.artifact-plane
@@ -359,7 +359,7 @@ units:
     kind: rule
     title: Artifact storage and SDK projection preserve integrity
     modality: must
-    statement: Externally readable records persist observed size, SHA-256, and complete audience, disk reads recheck size and hash, emitters store before emit, handlers use structured reasons, and the SDK exposes the class-member Runtime.artifacts.readBytes rather than a singleton export.
+    statement: Externally readable records persist observed size, SHA-256, MIME, and complete audience, bounded bytes and accepted streams are hashed during custody commit, committed references are revalidated before metadata attachment, disk opens and adoption copies recheck observed size and hash while holding one immutable readable source through completion, emitters commit before reference, handlers use structured reasons, and the SDK exposes the class-member Runtime.artifacts.readBytes rather than a singleton export.
     condition: Whenever artifact bytes cross storage, event, handler, or SDK boundaries.
     failure: Fail closed on integrity mismatch, incomplete audience, emit-before-store, unstructured failure, or an alternate SDK surface.
     relations:
@@ -369,7 +369,7 @@ units:
     kind: rule
     title: Unadmitted generic artifact operations remain unavailable
     modality: must_not
-    statement: Runtime exposes cross-device or cross-account artifact sharing, delegated audiences, generic chunked retrieval, generic describeArtifact metadata, generic by-tag or by-source discovery, upload-by-id replacement semantics, or artifact behavior that deprecates lipsync_frame_batch without separate authority.
+    statement: Runtime exposes cross-device or cross-account artifact sharing, delegated audiences, generic external chunked retrieval, generic describeArtifact metadata, generic by-tag or by-source discovery, upload-by-id replacement semantics, adoption other than runtime.ai.artifact.adopt-to-app-storage into the same current-account-plus-Registered-App-Subject Base asset partition, or artifact behavior that deprecates lipsync_frame_batch without separate authority; internal streamed custody and the exact adoption operation do not create generic artifact discovery or sharing.
     condition: Whenever the generic artifact API is extended.
     failure: Reject the operation until a future canonical authority explicitly admits it.
     relations:

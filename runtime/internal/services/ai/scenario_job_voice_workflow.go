@@ -50,6 +50,7 @@ func (s *Service) submitVoiceWorkflowJob(
 
 	job, asset := s.voiceAssets.submit(&voiceWorkflowSubmitInput{
 		Head:              req.GetHead(),
+		LocalAppOwner:     localAppJobOwnerFromContext(ctx),
 		ScenarioType:      req.GetScenarioType(),
 		Spec:              req.GetSpec(),
 		TraceID:           effective.traceID,

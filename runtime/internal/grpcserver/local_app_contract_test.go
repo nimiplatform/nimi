@@ -77,6 +77,11 @@ func TestLocalAppMethodsHaveClosedFinalTransportPosture(t *testing.T) {
 		protectedReadLocalAppStorageJSONMethod,
 		protectedWriteLocalAppStorageJSONMethod,
 		protectedRemoveLocalAppStorageJSONMethod,
+		protectedStatLocalAppAssetMethod,
+		protectedListLocalAppAssetsMethod,
+		protectedRemoveLocalAppAssetMethod,
+		protectedMoveLocalAppAssetMethod,
+		protectedAdoptLocalAppArtifactMethod,
 		protectedOpenConversationMethod,
 		protectedSendConversationTurnMethod,
 		protectedConversationSnapshotMethod,
@@ -95,6 +100,13 @@ func TestLocalAppMethodsHaveClosedFinalTransportPosture(t *testing.T) {
 	assertProtectedLocalAppStreamMethodPolicy(t, protectedSubscribeConversationMethod, protectedlocal.TransportLocalAppHost, protectedlocal.RoleLocalAppSession)
 	assertProtectedLocalAppStreamMethodPolicy(t, protectedStreamTextTurnMethod, protectedlocal.TransportLocalAppHost, protectedlocal.RoleLocalAppSession)
 	assertProtectedLocalAppStreamMethodPolicy(t, protectedSubscribeScenarioJobMethod, protectedlocal.TransportLocalAppHost, protectedlocal.RoleLocalAppSession)
+	assertProtectedLocalAppStreamMethodPolicy(t, protectedWriteLocalAppAssetMethod, protectedlocal.TransportLocalAppHost, protectedlocal.RoleLocalAppSession)
+	assertProtectedLocalAppStreamMethodPolicy(t, protectedReadLocalAppAssetMethod, protectedlocal.TransportLocalAppHost, protectedlocal.RoleLocalAppSession)
+	for _, method := range []string{protectedWriteLocalAppAssetMethod, protectedReadLocalAppAssetMethod} {
+		if _, blocked := publicTransportDenial(method); !blocked {
+			t.Fatalf("host local-app stream %s is reachable from public transport", method)
+		}
+	}
 	for _, method := range []string{
 		protectedExecuteLocalAppScenarioMethod,
 		protectedSubmitScenarioJobMethod,

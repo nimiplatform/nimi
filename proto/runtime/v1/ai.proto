@@ -706,6 +706,10 @@ message LocalAppScenarioJob {
   string trace_id = 10;
   google.protobuf.Timestamp created_at = 11;
   google.protobuf.Timestamp updated_at = 12;
+  // Bounded immutable speech-transcription result captured at Job completion.
+  // Empty for every non-transcription Job and never reconstructed by reading
+  // an artifact body.
+  string transcription_text = 13;
 }
 
 // Trimmed voice asset catalog projection. Provider, model, provider voice
@@ -967,6 +971,10 @@ message ScenarioJob {
   int32 progress_percent = 20;
   int32 progress_current_step = 21;
   int32 progress_total_steps = 22;
+  // Runtime-owned immutable typed result state for speech transcription.
+  // It is projected independently from artifact bytes and does not imply Job
+  // persistence across Runtime restart.
+  string transcription_text = 23;
 }
 
 message SubmitScenarioJobRequest {

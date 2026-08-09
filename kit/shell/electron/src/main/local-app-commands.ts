@@ -81,6 +81,18 @@ const COMMAND_METHODS = new Map<string, RendererLocalAppHostMethod>([
   [NIMI_STANDARD_SHELL_COMMANDS['storage.readJson'], 'storageReadJson'],
   [NIMI_STANDARD_SHELL_COMMANDS['storage.writeJson'], 'storageWriteJson'],
   [NIMI_STANDARD_SHELL_COMMANDS['storage.removeJson'], 'storageRemoveJson'],
+  [NIMI_STANDARD_SHELL_COMMANDS['storage.assetStat'], 'assetStat'],
+  [NIMI_STANDARD_SHELL_COMMANDS['storage.assetList'], 'assetList'],
+  [NIMI_STANDARD_SHELL_COMMANDS['storage.assetWriteOpen'], 'assetWriteOpen'],
+  [NIMI_STANDARD_SHELL_COMMANDS['storage.assetWriteChunk'], 'assetWriteChunk'],
+  [NIMI_STANDARD_SHELL_COMMANDS['storage.assetWriteCommit'], 'assetWriteCommit'],
+  [NIMI_STANDARD_SHELL_COMMANDS['storage.assetWriteAbort'], 'assetWriteAbort'],
+  [NIMI_STANDARD_SHELL_COMMANDS['storage.assetReadOpen'], 'assetReadOpen'],
+  [NIMI_STANDARD_SHELL_COMMANDS['storage.assetReadNext'], 'assetReadNext'],
+  [NIMI_STANDARD_SHELL_COMMANDS['storage.assetReadClose'], 'assetReadClose'],
+  [NIMI_STANDARD_SHELL_COMMANDS['storage.assetRemove'], 'assetRemove'],
+  [NIMI_STANDARD_SHELL_COMMANDS['storage.assetMove'], 'assetMove'],
+  [NIMI_STANDARD_SHELL_COMMANDS['storage.assetAdopt'], 'assetAdopt'],
 ]);
 
 export function isElectronLocalAppCommand(command: string): boolean {
@@ -107,6 +119,18 @@ export async function dispatchElectronLocalAppCommand(input: {
     if (method === 'storageReadJson') return await input.host.storageReadJson(payload);
     if (method === 'storageWriteJson') return await input.host.storageWriteJson(payload);
     if (method === 'storageRemoveJson') return await input.host.storageRemoveJson(payload);
+    if (method === 'assetStat') return await input.host.assetStat(payload);
+    if (method === 'assetList') return await input.host.assetList(payload);
+    if (method === 'assetWriteOpen') return await input.host.assetWriteOpen(payload);
+    if (method === 'assetWriteChunk') return await input.host.assetWriteChunk(payload as Readonly<Record<string, unknown>>);
+    if (method === 'assetWriteCommit') return await input.host.assetWriteCommit(payload);
+    if (method === 'assetWriteAbort') return await input.host.assetWriteAbort(payload);
+    if (method === 'assetReadOpen') return await input.host.assetReadOpen(payload);
+    if (method === 'assetReadNext') return await input.host.assetReadNext(payload);
+    if (method === 'assetReadClose') return await input.host.assetReadClose(payload);
+    if (method === 'assetRemove') return await input.host.assetRemove(payload);
+    if (method === 'assetMove') return await input.host.assetMove(payload);
+    if (method === 'assetAdopt') return await input.host.assetAdopt(payload);
     if (method === 'textTurnSubscribe' || method === 'scenarioJobSubscribe') {
       const streams = activeScenarioStreams(input.host);
       if (payload.action === 'cancel') {
@@ -341,6 +365,59 @@ function validatePayload(
       assertExactKeys(payload, ['relativePath', 'value'], command);
       validateStorageJsonValue(payload.value, command);
       return { ...storagePathPayload({ relativePath: payload.relativePath }, command), value: payload.value as NimiElectronLocalAppRecord[string] };
+    case 'assetStat':
+    case 'assetRemove':
+      return assetPathPayload(payload, command);
+    case 'assetList': {
+      assertExactKeys(payload, ['prefix', 'cursor', 'pageSize'], command);
+      const prefix = typeof payload.prefix === 'string' ? payload.prefix : '';
+      if (prefix && !isCanonicalAssetPrefix(prefix)) throw invalidPayload(command, 'prefix is invalid');
+      if (typeof payload.cursor !== 'string' || payload.cursor.length > 4096) throw invalidPayload(command, 'cursor is invalid');
+      const pageSize = nonNegativeInteger(payload.pageSize, command, 'pageSize');
+      if (pageSize > 500) throw invalidPayload(command, 'pageSize is invalid');
+      return { prefix, cursor: payload.cursor, pageSize };
+    }
+    case 'assetWriteOpen': {
+      assertExactKeys(payload, ['relativePath', 'mediaType', 'overwrite'], command);
+      const path = assetPathPayload({ relativePath: payload.relativePath }, command);
+      const mediaType = payload.mediaType === '' ? '' : validAssetMediaType(payload.mediaType, command);
+      if (typeof payload.overwrite !== 'boolean') throw invalidPayload(command, 'overwrite is invalid');
+      return { ...path, mediaType, overwrite: payload.overwrite };
+    }
+    case 'assetWriteChunk': {
+      assertExactKeys(payload, ['streamId', 'bodyChunk'], command);
+      const streamId = requiredText(payload.streamId, 'streamId', command, 128);
+      if (!(payload.bodyChunk instanceof Uint8Array) || payload.bodyChunk.byteLength === 0
+        || payload.bodyChunk.byteLength > 1024 * 1024) throw invalidPayload(command, 'bodyChunk is invalid');
+      return { streamId, bodyChunk: payload.bodyChunk } as unknown as NimiElectronLocalAppRecord;
+    }
+    case 'assetWriteCommit':
+    case 'assetWriteAbort':
+    case 'assetReadNext':
+    case 'assetReadClose':
+      return identifiers(payload, ['streamId'], command);
+    case 'assetReadOpen': {
+      assertAllowedKeys(payload, ['relativePath', 'offset', 'length'], ['relativePath'], command);
+      const result: Record<string, NimiElectronLocalAppJson> = { ...assetPathPayload({ relativePath: payload.relativePath }, command) };
+      if (payload.offset !== undefined) result.offset = boundedSafeInteger(payload.offset, 'offset', command, 0, Number.MAX_SAFE_INTEGER);
+      if (payload.length !== undefined) result.length = boundedSafeInteger(payload.length, 'length', command, 1, Number.MAX_SAFE_INTEGER);
+      return result;
+    }
+    case 'assetMove': {
+      assertExactKeys(payload, ['fromRelativePath', 'toRelativePath', 'overwrite'], command);
+      if (typeof payload.overwrite !== 'boolean') throw invalidPayload(command, 'overwrite is invalid');
+      return {
+        fromRelativePath: assetPath(payload.fromRelativePath, 'fromRelativePath', command),
+        toRelativePath: assetPath(payload.toRelativePath, 'toRelativePath', command),
+        overwrite: payload.overwrite,
+      };
+    }
+    case 'assetAdopt': {
+      assertExactKeys(payload, ['artifactId', 'relativePath', 'overwrite'], command);
+      if (typeof payload.overwrite !== 'boolean') throw invalidPayload(command, 'overwrite is invalid');
+      return { artifactId: requiredText(payload.artifactId, 'artifactId', command, MAX_IDENTIFIER_LENGTH),
+        relativePath: assetPath(payload.relativePath, 'relativePath', command), overwrite: payload.overwrite };
+    }
   }
 }
 
@@ -665,6 +742,54 @@ function storagePathPayload(
   const relativePath = typeof payload.relativePath === 'string' ? payload.relativePath : '';
   if (!isCanonicalStoragePath(relativePath)) throw invalidPayload(command, 'relativePath is invalid');
   return { relativePath };
+}
+
+function assetPathPayload(payload: Readonly<Record<string, unknown>>, command: string): NimiElectronLocalAppRecord {
+  assertExactKeys(payload, ['relativePath'], command);
+  return { relativePath: assetPath(payload.relativePath, 'relativePath', command) };
+}
+
+function assetPath(value: unknown, field: string, command: string): string {
+  const path = typeof value === 'string' ? value : '';
+  if (!isCanonicalAssetPath(path)) throw invalidPayload(command, `${field} is invalid`);
+  return path;
+}
+
+function isCanonicalAssetPath(value: string): boolean {
+  const components = value.split('/');
+  if (!value || value.trim() !== value || !isWellFormedUnicode(value) || value.normalize('NFC') !== value
+    || Buffer.byteLength(value, 'utf8') > 1024 || value.startsWith('/') || value.endsWith('/')
+    || /[\\\0<>:"|?*]/u.test(value) || components.length > 32) return false;
+  return components.every((segment) => {
+    if (!segment || segment === '.' || segment === '..' || Buffer.byteLength(segment, 'utf8') > 255
+      || segment.endsWith('.') || segment.endsWith(' ') || /[\u0000-\u001f\u007f]/u.test(segment)) return false;
+    const base = segment.split('.', 1)[0]?.toUpperCase() ?? '';
+    return !/^(?:CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9])$/u.test(base);
+  });
+}
+
+function isWellFormedUnicode(value: string): boolean {
+  for (let index = 0; index < value.length; index += 1) {
+    const unit = value.charCodeAt(index);
+    if (unit < 0xd800 || unit > 0xdfff) continue;
+    if (unit > 0xdbff || index + 1 >= value.length) return false;
+    const next = value.charCodeAt(index + 1);
+    if (next < 0xdc00 || next > 0xdfff) return false;
+    index += 1;
+  }
+  return true;
+}
+
+function isCanonicalAssetPrefix(value: string): boolean {
+  return isCanonicalAssetPath(value.endsWith('/') ? value.slice(0, -1) : value);
+}
+
+function validAssetMediaType(value: unknown, command: string): string {
+  const mediaType = requiredText(value, 'mediaType', command, 255);
+  if (!/^[A-Za-z0-9!#$&^_.+-]+\/[A-Za-z0-9!#$&^_.+-]+$/u.test(mediaType)) {
+    throw invalidPayload(command, 'mediaType is invalid');
+  }
+  return mediaType.toLowerCase();
 }
 
 function isCanonicalStoragePath(value: string): boolean {

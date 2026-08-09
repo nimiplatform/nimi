@@ -213,12 +213,18 @@ pub enum ReasonCode {
     AiLocalSpeechHostInitFailed = 563,
     AiLocalSpeechCapabilityDownloadFailed = 564,
     AiLocalSpeechBundleDegraded = 565,
-    /// APP_STORAGE family (566+). Exact protected local-app JSON operations
-    /// never expose Runtime-owned roots or absolute paths.
+    /// APP_STORAGE family (566+). Exact protected local-app JSON and asset
+    /// operations never expose Runtime-owned roots or absolute paths.
     AppStoragePathInvalid = 566,
     AppStorageEntryNotFound = 567,
     AppStorageQuotaExceeded = 568,
     AppStorageUnavailable = 569,
+    AppStorageEntryAlreadyExists = 581,
+    AppStorageObjectTooLarge = 582,
+    AppStorageRangeInvalid = 583,
+    AppStorageCursorInvalid = 584,
+    AppStorageIntegrityFailure = 585,
+    AppStorageArtifactUnavailable = 586,
     /// WORKSPACE_BINDING family (570+)
     WorkspaceBindingMissing = 570,
     WorkspaceBindingMalformed = 571,
@@ -535,6 +541,12 @@ impl ReasonCode {
             Self::AppStorageEntryNotFound => "APP_STORAGE_ENTRY_NOT_FOUND",
             Self::AppStorageQuotaExceeded => "APP_STORAGE_QUOTA_EXCEEDED",
             Self::AppStorageUnavailable => "APP_STORAGE_UNAVAILABLE",
+            Self::AppStorageEntryAlreadyExists => "APP_STORAGE_ENTRY_ALREADY_EXISTS",
+            Self::AppStorageObjectTooLarge => "APP_STORAGE_OBJECT_TOO_LARGE",
+            Self::AppStorageRangeInvalid => "APP_STORAGE_RANGE_INVALID",
+            Self::AppStorageCursorInvalid => "APP_STORAGE_CURSOR_INVALID",
+            Self::AppStorageIntegrityFailure => "APP_STORAGE_INTEGRITY_FAILURE",
+            Self::AppStorageArtifactUnavailable => "APP_STORAGE_ARTIFACT_UNAVAILABLE",
             Self::WorkspaceBindingMissing => "WORKSPACE_BINDING_MISSING",
             Self::WorkspaceBindingMalformed => "WORKSPACE_BINDING_MALFORMED",
             Self::WorkspaceBindingNotFound => "WORKSPACE_BINDING_NOT_FOUND",
@@ -887,6 +899,16 @@ impl ReasonCode {
             "APP_STORAGE_ENTRY_NOT_FOUND" => Some(Self::AppStorageEntryNotFound),
             "APP_STORAGE_QUOTA_EXCEEDED" => Some(Self::AppStorageQuotaExceeded),
             "APP_STORAGE_UNAVAILABLE" => Some(Self::AppStorageUnavailable),
+            "APP_STORAGE_ENTRY_ALREADY_EXISTS" => {
+                Some(Self::AppStorageEntryAlreadyExists)
+            }
+            "APP_STORAGE_OBJECT_TOO_LARGE" => Some(Self::AppStorageObjectTooLarge),
+            "APP_STORAGE_RANGE_INVALID" => Some(Self::AppStorageRangeInvalid),
+            "APP_STORAGE_CURSOR_INVALID" => Some(Self::AppStorageCursorInvalid),
+            "APP_STORAGE_INTEGRITY_FAILURE" => Some(Self::AppStorageIntegrityFailure),
+            "APP_STORAGE_ARTIFACT_UNAVAILABLE" => {
+                Some(Self::AppStorageArtifactUnavailable)
+            }
             "WORKSPACE_BINDING_MISSING" => Some(Self::WorkspaceBindingMissing),
             "WORKSPACE_BINDING_MALFORMED" => Some(Self::WorkspaceBindingMalformed),
             "WORKSPACE_BINDING_NOT_FOUND" => Some(Self::WorkspaceBindingNotFound),
@@ -3526,12 +3548,17 @@ pub struct LocalCapabilityConfiguration {
     #[prost(message, optional, tag = "12")]
     pub provenance: ::core::option::Option<::prost_types::Struct>,
 }
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct LocalCapabilitySelection {
     #[prost(string, tag = "1")]
     pub capability_contract: ::prost::alloc::string::String,
     #[prost(string, tag = "2")]
     pub configuration_id: ::prost::alloc::string::String,
+    /// Read-only Driver-owned effective request defaults for the selected
+    /// configuration. Runtime projects only string display values and never
+    /// persists this field as machine selection intent.
+    #[prost(message, optional, tag = "3")]
+    pub effective_defaults: ::core::option::Option<::prost_types::Struct>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct MachineLocalAiConfiguration {
@@ -3701,7 +3728,7 @@ pub struct SelectLocalCapabilityConfigurationRequest {
     #[prost(string, tag = "2")]
     pub configuration_id: ::prost::alloc::string::String,
 }
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct SelectLocalCapabilityConfigurationResponse {
     #[prost(message, optional, tag = "1")]
     pub selection: ::core::option::Option<LocalCapabilitySelection>,
@@ -5265,6 +5292,11 @@ pub struct LocalAppScenarioJob {
     pub created_at: ::core::option::Option<::prost_types::Timestamp>,
     #[prost(message, optional, tag = "12")]
     pub updated_at: ::core::option::Option<::prost_types::Timestamp>,
+    /// Bounded immutable speech-transcription result captured at Job completion.
+    /// Empty for every non-transcription Job and never reconstructed by reading
+    /// an artifact body.
+    #[prost(string, tag = "13")]
+    pub transcription_text: ::prost::alloc::string::String,
 }
 /// Trimmed voice asset catalog projection. Provider, model, provider voice
 /// ref, and owner identity fields are never projected.
@@ -5642,6 +5674,11 @@ pub struct ScenarioJob {
     pub progress_current_step: i32,
     #[prost(int32, tag = "22")]
     pub progress_total_steps: i32,
+    /// Runtime-owned immutable typed result state for speech transcription.
+    /// It is projected independently from artifact bytes and does not imply Job
+    /// persistence across Runtime restart.
+    #[prost(string, tag = "23")]
+    pub transcription_text: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct SubmitScenarioJobRequest {
@@ -13516,6 +13553,169 @@ pub struct RemoveLocalAppStorageJsonResponse {
     #[prost(enumeration = "ReasonCode", tag = "2")]
     pub reason_code: i32,
 }
+/// LocalAppAssetRecord is public metadata for one committed App-private asset.
+/// Runtime derives its owner from the protected session and never exposes a
+/// physical path or producer identity here.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalAppAssetRecord {
+    #[prost(string, tag = "1")]
+    pub relative_path: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub media_type: ::prost::alloc::string::String,
+    #[prost(int64, tag = "3")]
+    pub size_bytes: i64,
+    #[prost(string, tag = "4")]
+    pub sha256: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "5")]
+    pub created_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(message, optional, tag = "6")]
+    pub updated_at: ::core::option::Option<::prost_types::Timestamp>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct StatLocalAppAssetRequest {
+    #[prost(string, tag = "1")]
+    pub relative_path: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct StatLocalAppAssetResponse {
+    #[prost(message, optional, tag = "1")]
+    pub asset: ::core::option::Option<LocalAppAssetRecord>,
+    #[prost(enumeration = "ReasonCode", tag = "2")]
+    pub reason_code: i32,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ListLocalAppAssetsRequest {
+    #[prost(string, tag = "1")]
+    pub prefix: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub cursor: ::prost::alloc::string::String,
+    #[prost(int32, tag = "3")]
+    pub page_size: i32,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ListLocalAppAssetsResponse {
+    #[prost(message, repeated, tag = "1")]
+    pub assets: ::prost::alloc::vec::Vec<LocalAppAssetRecord>,
+    #[prost(string, tag = "2")]
+    pub next_cursor: ::prost::alloc::string::String,
+    #[prost(enumeration = "ReasonCode", tag = "3")]
+    pub reason_code: i32,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct WriteLocalAppAssetMetadata {
+    #[prost(string, tag = "1")]
+    pub relative_path: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub media_type: ::prost::alloc::string::String,
+    #[prost(bool, tag = "3")]
+    pub overwrite: bool,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct WriteLocalAppAssetRequest {
+    #[prost(oneof = "write_local_app_asset_request::Frame", tags = "1, 2")]
+    pub frame: ::core::option::Option<write_local_app_asset_request::Frame>,
+}
+/// Nested message and enum types in `WriteLocalAppAssetRequest`.
+pub mod write_local_app_asset_request {
+    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
+    pub enum Frame {
+        #[prost(message, tag = "1")]
+        Metadata(super::WriteLocalAppAssetMetadata),
+        #[prost(bytes, tag = "2")]
+        BodyChunk(::prost::alloc::vec::Vec<u8>),
+    }
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct WriteLocalAppAssetResponse {
+    #[prost(message, optional, tag = "1")]
+    pub asset: ::core::option::Option<LocalAppAssetRecord>,
+    #[prost(enumeration = "ReasonCode", tag = "2")]
+    pub reason_code: i32,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ReadLocalAppAssetRequest {
+    #[prost(string, tag = "1")]
+    pub relative_path: ::prost::alloc::string::String,
+    #[prost(int64, optional, tag = "2")]
+    pub offset: ::core::option::Option<i64>,
+    #[prost(int64, optional, tag = "3")]
+    pub length: ::core::option::Option<i64>,
+}
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalAppAssetRange {
+    #[prost(int64, tag = "1")]
+    pub offset: i64,
+    #[prost(int64, tag = "2")]
+    pub length: i64,
+    #[prost(int64, tag = "3")]
+    pub total_size: i64,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ReadLocalAppAssetMetadata {
+    #[prost(message, optional, tag = "1")]
+    pub asset: ::core::option::Option<LocalAppAssetRecord>,
+    #[prost(message, optional, tag = "2")]
+    pub range: ::core::option::Option<LocalAppAssetRange>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ReadLocalAppAssetResponse {
+    #[prost(oneof = "read_local_app_asset_response::Frame", tags = "1, 2")]
+    pub frame: ::core::option::Option<read_local_app_asset_response::Frame>,
+}
+/// Nested message and enum types in `ReadLocalAppAssetResponse`.
+pub mod read_local_app_asset_response {
+    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
+    pub enum Frame {
+        #[prost(message, tag = "1")]
+        Metadata(super::ReadLocalAppAssetMetadata),
+        #[prost(bytes, tag = "2")]
+        BodyChunk(::prost::alloc::vec::Vec<u8>),
+    }
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct RemoveLocalAppAssetRequest {
+    #[prost(string, tag = "1")]
+    pub relative_path: ::prost::alloc::string::String,
+}
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct RemoveLocalAppAssetResponse {
+    #[prost(bool, tag = "1")]
+    pub removed: bool,
+    #[prost(enumeration = "ReasonCode", tag = "2")]
+    pub reason_code: i32,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct MoveLocalAppAssetRequest {
+    #[prost(string, tag = "1")]
+    pub from_relative_path: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub to_relative_path: ::prost::alloc::string::String,
+    #[prost(bool, tag = "3")]
+    pub overwrite: bool,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct MoveLocalAppAssetResponse {
+    #[prost(message, optional, tag = "1")]
+    pub asset: ::core::option::Option<LocalAppAssetRecord>,
+    #[prost(enumeration = "ReasonCode", tag = "2")]
+    pub reason_code: i32,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct AdoptLocalAppArtifactRequest {
+    #[prost(string, tag = "1")]
+    pub artifact_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub relative_path: ::prost::alloc::string::String,
+    #[prost(bool, tag = "3")]
+    pub overwrite: bool,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct AdoptLocalAppArtifactResponse {
+    #[prost(message, optional, tag = "1")]
+    pub asset: ::core::option::Option<LocalAppAssetRecord>,
+    #[prost(enumeration = "ReasonCode", tag = "2")]
+    pub reason_code: i32,
+}
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct PrepareLocalAppLaunchRequest {
     /// Runtime-generated management handle resolving an active development
@@ -13896,6 +14096,211 @@ pub mod runtime_app_service_client {
                     GrpcMethod::new(
                         "nimi.runtime.v1.RuntimeAppService",
                         "RemoveLocalAppStorageJson",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn stat_local_app_asset(
+            &mut self,
+            request: impl tonic::IntoRequest<super::StatLocalAppAssetRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::StatLocalAppAssetResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAppService/StatLocalAppAsset",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAppService",
+                        "StatLocalAppAsset",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn list_local_app_assets(
+            &mut self,
+            request: impl tonic::IntoRequest<super::ListLocalAppAssetsRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::ListLocalAppAssetsResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAppService/ListLocalAppAssets",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAppService",
+                        "ListLocalAppAssets",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn write_local_app_asset(
+            &mut self,
+            request: impl tonic::IntoStreamingRequest<
+                Message = super::WriteLocalAppAssetRequest,
+            >,
+        ) -> std::result::Result<
+            tonic::Response<super::WriteLocalAppAssetResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAppService/WriteLocalAppAsset",
+            );
+            let mut req = request.into_streaming_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAppService",
+                        "WriteLocalAppAsset",
+                    ),
+                );
+            self.inner.client_streaming(req, path, codec).await
+        }
+        pub async fn read_local_app_asset(
+            &mut self,
+            request: impl tonic::IntoRequest<super::ReadLocalAppAssetRequest>,
+        ) -> std::result::Result<
+            tonic::Response<tonic::codec::Streaming<super::ReadLocalAppAssetResponse>>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAppService/ReadLocalAppAsset",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAppService",
+                        "ReadLocalAppAsset",
+                    ),
+                );
+            self.inner.server_streaming(req, path, codec).await
+        }
+        pub async fn remove_local_app_asset(
+            &mut self,
+            request: impl tonic::IntoRequest<super::RemoveLocalAppAssetRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::RemoveLocalAppAssetResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAppService/RemoveLocalAppAsset",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAppService",
+                        "RemoveLocalAppAsset",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn move_local_app_asset(
+            &mut self,
+            request: impl tonic::IntoRequest<super::MoveLocalAppAssetRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::MoveLocalAppAssetResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAppService/MoveLocalAppAsset",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAppService",
+                        "MoveLocalAppAsset",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn adopt_local_app_artifact(
+            &mut self,
+            request: impl tonic::IntoRequest<super::AdoptLocalAppArtifactRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::AdoptLocalAppArtifactResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAppService/AdoptLocalAppArtifact",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAppService",
+                        "AdoptLocalAppArtifact",
                     ),
                 );
             self.inner.unary(req, path, codec).await

@@ -24,9 +24,10 @@ func TestBuildScenarioOutputFromArtifactsForImage(t *testing.T) {
 
 func TestBuildScenarioOutputFromArtifactsForSpeechTranscribe(t *testing.T) {
 	job := &runtimev1.ScenarioJob{
-		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_TRANSCRIBE,
+		ScenarioType:      runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_TRANSCRIBE,
+		TranscriptionText: "hello runtime",
 	}
-	artifacts := []*runtimev1.ScenarioArtifact{{ArtifactId: "stt-art-1", Bytes: []byte("hello runtime")}}
+	artifacts := []*runtimev1.ScenarioArtifact{{ArtifactId: "stt-art-1"}}
 
 	output := buildScenarioOutputFromArtifacts(job, artifacts)
 	value, ok := output.GetOutput().(*runtimev1.ScenarioOutput_SpeechTranscribe)

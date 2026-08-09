@@ -70,8 +70,8 @@ func ExecutePikaTask(
 	}
 	providerJobID := ExtractTaskIDFromAdapterPayload(AdapterPikaTask, submitResp)
 	if providerJobID == "" {
-		artifactBytes, mimeType, artifactURI := ExtractTaskArtifactBytesAndMIME(ctx, submitResp)
-		if len(artifactBytes) == 0 {
+		artifactBytes, mimeType, artifactURI := ExtractTaskArtifactSource(ctx, submitResp)
+		if len(artifactBytes) == 0 && strings.TrimSpace(artifactURI) == "" {
 			return nil, nil, "", grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 		}
 		if mimeType == "" {

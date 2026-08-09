@@ -8,7 +8,7 @@ import type {
   NimiPortableAppAIConfig,
   NimiPortableAppAIConfigIntent,
 } from '@nimiplatform/kit/core/sdk-contract';
-import { BridgeError, invokeChecked } from './invoke.js';
+import { BridgeError, invoke, invokeChecked } from './invoke.js';
 import { listenShell } from './tauri-api.js';
 import { assertRecord, parseRequiredString } from './types.js';
 import type { JsonObject, JsonValue } from './types.js';
@@ -32,6 +32,9 @@ const MAX_TEXT_CANDIDATE_PROMPT_BYTES = 64 * 1024;
 const MAX_TEXT_CANDIDATE_RESULT_BYTES = 256 * 1024;
 const MAX_TEXT_CANDIDATE_TOKENS = 4096;
 const MAX_STORAGE_PATH_BYTES = 240;
+const MAX_ASSET_PATH_BYTES = 1024;
+const MAX_ASSET_PATH_COMPONENTS = 32;
+const MAX_ASSET_COMPONENT_BYTES = 255;
 const MAX_STORAGE_DOCUMENT_BYTES = 256 * 1024;
 const MAX_WORLD_CORE_REQUEST_BYTES = 2 * 1024 * 1024;
 
@@ -201,6 +204,7 @@ export type NimiLocalAppScenarioJob = {
   readonly reasonCode: string; readonly reasonDetail: string;
   readonly artifacts: readonly NimiLocalAppScenarioArtifact[]; readonly traceId: string;
   readonly createdAt: NimiLocalAppScenarioTimestamp | null; readonly updatedAt: NimiLocalAppScenarioTimestamp | null;
+  readonly transcriptionText: string;
 };
 export type NimiLocalAppVoiceAsset = {
   readonly voiceAssetId: string; readonly workflowType: 'voice-clone' | 'voice-design';
@@ -239,6 +243,37 @@ export type NimiLocalAppStorageDocument = {
 
 export type NimiLocalAppStorageRemoveResult = {
   readonly removed: boolean;
+};
+
+export type NimiLocalAppAssetRecord = {
+  readonly relativePath: string;
+  readonly mediaType?: string;
+  readonly sizeBytes: number;
+  readonly sha256: string;
+  readonly createdAt: string;
+  readonly updatedAt: string;
+};
+
+export type NimiLocalAppAssetBody = Uint8Array | Blob | AsyncIterable<Uint8Array>;
+export type NimiLocalAppAssetReadResult = {
+  readonly asset: NimiLocalAppAssetRecord;
+  readonly range: { readonly offset: number; readonly length: number; readonly totalSize: number };
+  readonly body: AsyncIterable<Uint8Array>;
+};
+
+export type NimiLocalAppAssetShell = {
+  readonly stat: (relativePath: string) => Promise<NimiLocalAppAssetRecord>;
+  readonly list: (input: { readonly prefix: string; readonly cursor?: string; readonly pageSize?: number }) => Promise<{ readonly assets: readonly NimiLocalAppAssetRecord[]; readonly nextCursor: string }>;
+  readonly write: (input: { readonly relativePath: string; readonly body: NimiLocalAppAssetBody; readonly mediaType?: string; readonly overwrite?: boolean }) => Promise<NimiLocalAppAssetRecord>;
+  readonly read: (input: { readonly relativePath: string; readonly offset?: number; readonly length?: number }) => Promise<NimiLocalAppAssetReadResult>;
+  readonly remove: (relativePath: string) => Promise<NimiLocalAppStorageRemoveResult>;
+  readonly move: (input: { readonly from: string; readonly to: string; readonly overwrite?: boolean }) => Promise<NimiLocalAppAssetRecord>;
+  readonly adoptArtifact: (input: { readonly artifactId: string; readonly relativePath: string; readonly overwrite?: boolean }) => Promise<NimiLocalAppAssetRecord>;
+};
+
+export type NimiLocalAppAssetMediaHandle = {
+  readonly url: string;
+  readonly revoke: () => Promise<void>;
 };
 
 export type NimiLocalAppWorldCoreListInput = {
@@ -331,6 +366,7 @@ export type NimiLocalAppStandardShellSurface = {
     readonly readJson: (relativePath: string) => Promise<NimiLocalAppStorageDocument>;
     readonly writeJson: (relativePath: string, value: JsonValue) => Promise<NimiLocalAppStorageDocument>;
     readonly removeJson: (relativePath: string) => Promise<NimiLocalAppStorageRemoveResult>;
+    readonly assets: NimiLocalAppAssetShell;
   };
   readonly realm: {
     readonly worldCore: {
@@ -392,6 +428,7 @@ export function createNimiLocalAppStandardShellSurface(): NimiLocalAppStandardSh
       readJson: readNimiLocalAppStorageJson,
       writeJson: writeNimiLocalAppStorageJson,
       removeJson: removeNimiLocalAppStorageJson,
+      assets: createNimiLocalAppAssetShell(),
     },
     realm: {
       worldCore: {
@@ -921,6 +958,143 @@ export function removeNimiLocalAppStorageJson(relativePath: string): Promise<Nim
   });
 }
 
+export function createNimiLocalAppAssetShell(): NimiLocalAppAssetShell {
+  return Object.freeze({
+    stat: statNimiLocalAppAsset,
+    list: listNimiLocalAppAssets,
+    write: writeNimiLocalAppAsset,
+    read: readNimiLocalAppAsset,
+    remove: removeNimiLocalAppAsset,
+    move: moveNimiLocalAppAsset,
+    adoptArtifact: adoptNimiLocalAppArtifact,
+  });
+}
+
+export function statNimiLocalAppAsset(relativePath: string): Promise<NimiLocalAppAssetRecord> {
+  const command = NIMI_STANDARD_SHELL_COMMANDS['storage.assetStat'];
+  return invokeChecked(command, { payload: { relativePath: canonicalAssetPath(relativePath, command) } },
+    (value) => parseAssetRecord(value, command));
+}
+
+export function listNimiLocalAppAssets(input: {
+  readonly prefix: string; readonly cursor?: string; readonly pageSize?: number;
+}): Promise<{ readonly assets: readonly NimiLocalAppAssetRecord[]; readonly nextCursor: string }> {
+  const command = NIMI_STANDARD_SHELL_COMMANDS['storage.assetList'];
+  if (!input || typeof input !== 'object') throw new Error(`${command}: input is invalid`);
+  const prefix = input.prefix === '' ? '' : canonicalAssetPrefix(input.prefix, command);
+  const cursor = input.cursor ?? '';
+  const pageSize = input.pageSize ?? 0;
+  if (typeof cursor !== 'string' || cursor.length > 4096 || !Number.isSafeInteger(pageSize) || pageSize < 0 || pageSize > 500) {
+    throw new Error(`${command}: page is invalid`);
+  }
+  return invokeChecked(command, { payload: { prefix, cursor, pageSize } }, (value) => {
+    const record = assertRecord(value, `${command} returned invalid payload`);
+    assertProjectionKeys(record, ['assets', 'nextCursor'], command, 'asset list');
+    if (!Array.isArray(record.assets) || record.assets.length > 500 || typeof record.nextCursor !== 'string') {
+      throw new Error(`${command}: asset list is invalid`);
+    }
+    return Object.freeze({ assets: Object.freeze(record.assets.map((asset) => parseAssetRecord(asset, command))), nextCursor: record.nextCursor });
+  });
+}
+
+export async function writeNimiLocalAppAsset(input: {
+  readonly relativePath: string; readonly body: NimiLocalAppAssetBody; readonly mediaType?: string; readonly overwrite?: boolean;
+}): Promise<NimiLocalAppAssetRecord> {
+  const openCommand = NIMI_STANDARD_SHELL_COMMANDS['storage.assetWriteOpen'];
+  const relativePath = canonicalAssetPath(input.relativePath, openCommand);
+  const mediaType = input.mediaType === undefined ? '' : canonicalMediaType(input.mediaType, openCommand);
+  if (input.overwrite !== undefined && typeof input.overwrite !== 'boolean') throw new Error(`${openCommand}: overwrite is invalid`);
+  const opened = await invokeChecked(openCommand, { payload: { relativePath, mediaType, overwrite: input.overwrite ?? false } },
+    (value) => parseStreamId(value, openCommand));
+  let committed = false;
+  try {
+    for await (const chunk of assetBodyChunks(input.body, openCommand)) {
+      await invokeChecked(NIMI_STANDARD_SHELL_COMMANDS['storage.assetWriteChunk'],
+        { payload: { streamId: opened.streamId, bodyChunk: chunk } },
+        (value) => parseBooleanResult(value, 'accepted', openCommand));
+    }
+    const asset = await invokeChecked(NIMI_STANDARD_SHELL_COMMANDS['storage.assetWriteCommit'],
+      { payload: { streamId: opened.streamId } }, (value) => parseAssetRecord(value, openCommand));
+    committed = true;
+    return asset;
+  } finally {
+    if (!committed) {
+      await invoke(NIMI_STANDARD_SHELL_COMMANDS['storage.assetWriteAbort'], { payload: { streamId: opened.streamId } }).catch(() => undefined);
+    }
+  }
+}
+
+export async function readNimiLocalAppAsset(input: {
+  readonly relativePath: string; readonly offset?: number; readonly length?: number;
+}): Promise<NimiLocalAppAssetReadResult> {
+  const command = NIMI_STANDARD_SHELL_COMMANDS['storage.assetReadOpen'];
+  const payload: Record<string, unknown> = { relativePath: canonicalAssetPath(input.relativePath, command) };
+  if (input.offset !== undefined) payload.offset = boundedAssetRange(input.offset, false, command);
+  if (input.length !== undefined) payload.length = boundedAssetRange(input.length, true, command);
+  const opened = await invokeChecked(command, { payload }, (value) => parseAssetReadOpen(value, command));
+  const body = Object.freeze({
+    async *[Symbol.asyncIterator](): AsyncGenerator<Uint8Array> {
+      try {
+        while (true) {
+          const next = await invokeChecked(NIMI_STANDARD_SHELL_COMMANDS['storage.assetReadNext'],
+            { payload: { streamId: opened.streamId } }, (value) => parseAssetReadNext(value, command));
+          if (next.completed) return;
+          yield next.bodyChunk;
+        }
+      } finally {
+        await invoke(NIMI_STANDARD_SHELL_COMMANDS['storage.assetReadClose'], { payload: { streamId: opened.streamId } }).catch(() => undefined);
+      }
+    },
+  });
+  return Object.freeze({ asset: opened.asset, range: opened.range, body });
+}
+
+export function removeNimiLocalAppAsset(relativePath: string): Promise<NimiLocalAppStorageRemoveResult> {
+  const command = NIMI_STANDARD_SHELL_COMMANDS['storage.assetRemove'];
+  return invokeChecked(command, { payload: { relativePath: canonicalAssetPath(relativePath, command) } },
+    (value) => parseBooleanResult(value, 'removed', command) as NimiLocalAppStorageRemoveResult);
+}
+
+export function moveNimiLocalAppAsset(input: { readonly from: string; readonly to: string; readonly overwrite?: boolean }): Promise<NimiLocalAppAssetRecord> {
+  const command = NIMI_STANDARD_SHELL_COMMANDS['storage.assetMove'];
+  if (input.overwrite !== undefined && typeof input.overwrite !== 'boolean') throw new Error(`${command}: overwrite is invalid`);
+  return invokeChecked(command, { payload: { fromRelativePath: canonicalAssetPath(input.from, command),
+    toRelativePath: canonicalAssetPath(input.to, command), overwrite: input.overwrite ?? false } },
+  (value) => parseAssetRecord(value, command));
+}
+
+export function adoptNimiLocalAppArtifact(input: { readonly artifactId: string; readonly relativePath: string; readonly overwrite?: boolean }): Promise<NimiLocalAppAssetRecord> {
+  const command = NIMI_STANDARD_SHELL_COMMANDS['storage.assetAdopt'];
+  if (input.overwrite !== undefined && typeof input.overwrite !== 'boolean') throw new Error(`${command}: overwrite is invalid`);
+  return invokeChecked(command, { payload: { artifactId: requiredText(input.artifactId, 'artifactId', command, MAX_IDENTIFIER_LENGTH),
+    relativePath: canonicalAssetPath(input.relativePath, command), overwrite: input.overwrite ?? false } },
+  (value) => parseAssetRecord(value, command));
+}
+
+export async function openNimiLocalAppAssetMediaUrl(relativePath: string): Promise<NimiLocalAppAssetMediaHandle> {
+  const command = NIMI_STANDARD_SHELL_COMMANDS['storage.assetMediaOpen'];
+  const opened = await invokeChecked(command, { payload: { relativePath: canonicalAssetPath(relativePath, command) } }, (value) => {
+    const record = assertRecord(value, `${command} returned invalid handle`);
+    assertProjectionKeys(record, ['url', 'handle'], command, 'asset media handle');
+    const handle = requiredText(record.handle, 'handle', command, 64);
+    const url = requiredText(record.url, 'url', command, 256);
+    if (url !== `nimi-app-asset://media/${handle}` || !/^[A-Za-z0-9_-]{43}$/u.test(handle)) {
+      throw new Error(`${command}: opaque handle is invalid`);
+    }
+    return { url, handle };
+  });
+  let active = true;
+  return Object.freeze({
+    url: opened.url,
+    async revoke() {
+      if (!active) return;
+      active = false;
+      await invokeChecked(NIMI_STANDARD_SHELL_COMMANDS['storage.assetMediaRevoke'],
+        { payload: { handle: opened.handle } }, (value) => parseBooleanResult(value, 'revoked', command));
+    },
+  });
+}
+
 function parseConversationEvent(value: unknown, command: string): JsonObject {
   const record = assertRecord(value, `${command} emitted invalid conversation event`);
   if (typeof record.type !== 'string'
@@ -1051,7 +1225,7 @@ function parseScenarioJob(value: unknown, command: string): NimiLocalAppScenario
   assertProjectionKeys(record, [
     'jobId', 'scenarioType', 'status', 'progressPercent', 'progressCurrentStep',
     'progressTotalSteps', 'reasonCode', 'reasonDetail', 'artifacts', 'traceId',
-    'createdAt', 'updatedAt',
+    'createdAt', 'updatedAt', 'transcriptionText',
   ], command, 'scenario Job');
   if (!['image-generate', 'video-generate', 'speech-synthesize', 'speech-transcribe', 'voice-clone', 'voice-design'].includes(String(record.scenarioType))
     || !['submitted', 'queued', 'running', 'completed', 'failed', 'canceled', 'timeout'].includes(String(record.status))) {
@@ -1073,6 +1247,7 @@ function parseScenarioJob(value: unknown, command: string): NimiLocalAppScenario
     traceId: optionalProjectionText(record.traceId, 512, command),
     createdAt: parseScenarioTimestamp(record.createdAt, command),
     updatedAt: parseScenarioTimestamp(record.updatedAt, command),
+    transcriptionText: optionalProjectionText(record.transcriptionText, 256 * 1024, command),
   }) as unknown as NimiLocalAppScenarioJob;
 }
 
@@ -1555,6 +1730,149 @@ function parseStorageDocument(value: unknown, command: string): NimiLocalAppStor
   if (sizeBytes > MAX_STORAGE_DOCUMENT_BYTES) throw new Error(`${command}: sizeBytes exceeds the document bound`);
   validateStorageJsonValue(record.value, command);
   return { value: record.value as JsonValue, sizeBytes };
+}
+
+function parseAssetRecord(value: unknown, command: string): NimiLocalAppAssetRecord {
+  const record = assertRecord(value, `${command} returned invalid asset metadata`);
+  assertProjectionKeys(record, ['relativePath', 'mediaType', 'sizeBytes', 'sha256', 'createdAt', 'updatedAt'], command, 'asset metadata');
+  const relativePath = canonicalAssetPath(requiredText(record.relativePath, 'relativePath', command, MAX_ASSET_PATH_BYTES), command);
+  const mediaType = record.mediaType === null ? undefined : canonicalMediaType(record.mediaType, command);
+  const sizeBytes = nonNegativeInteger(record.sizeBytes, command, 'sizeBytes');
+  if (sizeBytes > Number.MAX_SAFE_INTEGER || typeof record.sha256 !== 'string' || !/^sha256:[0-9a-f]{64}$/u.test(record.sha256)) {
+    throw new Error(`${command}: asset integrity metadata is invalid`);
+  }
+  const createdAt = requiredText(record.createdAt, 'createdAt', command, 64);
+  const updatedAt = requiredText(record.updatedAt, 'updatedAt', command, 64);
+  if (!Number.isFinite(Date.parse(createdAt)) || !Number.isFinite(Date.parse(updatedAt))) {
+    throw new Error(`${command}: asset timestamps are invalid`);
+  }
+  return Object.freeze({ relativePath, ...(mediaType === undefined ? {} : { mediaType }), sizeBytes,
+    sha256: record.sha256, createdAt, updatedAt });
+}
+
+function parseStreamId(value: unknown, command: string): { readonly streamId: string } {
+  const record = assertRecord(value, `${command} returned invalid stream`);
+  assertProjectionKeys(record, ['streamId'], command, 'asset stream');
+  return Object.freeze({ streamId: requiredText(record.streamId, 'streamId', command, 128) });
+}
+
+function parseBooleanResult(value: unknown, key: string, command: string): Readonly<Record<string, boolean>> {
+  const record = assertRecord(value, `${command} returned invalid result`);
+  assertProjectionKeys(record, [key], command, 'asset mutation');
+  if (typeof record[key] !== 'boolean') throw new Error(`${command}: ${key} is invalid`);
+  return Object.freeze({ [key]: record[key] });
+}
+
+function parseAssetReadOpen(value: unknown, command: string): {
+  readonly streamId: string; readonly asset: NimiLocalAppAssetRecord;
+  readonly range: { readonly offset: number; readonly length: number; readonly totalSize: number };
+} {
+  const record = assertRecord(value, `${command} returned invalid read metadata`);
+  assertProjectionKeys(record, ['streamId', 'asset', 'range'], command, 'asset read');
+  const asset = parseAssetRecord(record.asset, command);
+  const range = assertRecord(record.range, `${command} returned invalid range`);
+  assertProjectionKeys(range, ['offset', 'length', 'totalSize'], command, 'asset range');
+  const offset = nonNegativeInteger(range.offset, command, 'offset');
+  const length = nonNegativeInteger(range.length, command, 'length');
+  const totalSize = nonNegativeInteger(range.totalSize, command, 'totalSize');
+  if (totalSize !== asset.sizeBytes || offset > totalSize || length > totalSize - offset) throw new Error(`${command}: range is invalid`);
+  return Object.freeze({ streamId: requiredText(record.streamId, 'streamId', command, 128), asset,
+    range: Object.freeze({ offset, length, totalSize }) });
+}
+
+function parseAssetReadNext(value: unknown, command: string):
+  | { readonly completed: true }
+  | { readonly completed: false; readonly bodyChunk: Uint8Array } {
+  const record = assertRecord(value, `${command} returned invalid read chunk`);
+  if (record.completed === true) {
+    assertProjectionKeys(record, ['completed'], command, 'asset read completion');
+    return Object.freeze({ completed: true });
+  }
+  assertProjectionKeys(record, ['completed', 'bodyChunk'], command, 'asset read chunk');
+  if (record.completed !== false || !(record.bodyChunk instanceof Uint8Array)
+    || record.bodyChunk.byteLength === 0 || record.bodyChunk.byteLength > 1024 * 1024) {
+    throw new Error(`${command}: asset read chunk is invalid`);
+  }
+  return Object.freeze({ completed: false, bodyChunk: new Uint8Array(record.bodyChunk) });
+}
+
+async function* assetBodyChunks(body: NimiLocalAppAssetBody, command: string): AsyncGenerator<Uint8Array> {
+  if (body instanceof Uint8Array) {
+    yield* splitAssetChunk(body, command);
+    return;
+  }
+  if (typeof Blob !== 'undefined' && body instanceof Blob) {
+    const reader = body.stream().getReader();
+    try {
+      while (true) {
+        const next = await reader.read();
+        if (next.done) return;
+        yield* splitAssetChunk(next.value, command);
+      }
+    } finally {
+      reader.releaseLock();
+    }
+  }
+  if (!body || typeof body !== 'object' || typeof (body as AsyncIterable<Uint8Array>)[Symbol.asyncIterator] !== 'function') {
+    throw new Error(`${command}: body is invalid`);
+  }
+  for await (const chunk of body as AsyncIterable<Uint8Array>) yield* splitAssetChunk(chunk, command);
+}
+
+function* splitAssetChunk(chunk: Uint8Array, command: string): Generator<Uint8Array> {
+  if (!(chunk instanceof Uint8Array)) throw new Error(`${command}: body chunk is invalid`);
+  for (let offset = 0; offset < chunk.byteLength; offset += 1024 * 1024) {
+    yield new Uint8Array(chunk.slice(offset, offset + 1024 * 1024));
+  }
+}
+
+function boundedAssetRange(value: unknown, positive: boolean, command: string): number {
+  if (typeof value !== 'number' || !Number.isSafeInteger(value) || value < (positive ? 1 : 0)) {
+    throw new Error(`${command}: range is invalid`);
+  }
+  return value;
+}
+
+function canonicalMediaType(value: unknown, command: string): string {
+  if (typeof value !== 'string' || value.length === 0 || value.length > 255 || value.trim() !== value
+    || !/^[A-Za-z0-9!#$&^_.+-]+\/[A-Za-z0-9!#$&^_.+-]+$/u.test(value)) {
+    throw new Error(`${command}: mediaType is invalid`);
+  }
+  return value.toLowerCase();
+}
+
+function canonicalAssetPrefix(value: string, command: string): string {
+  const suffix = value.endsWith('/') ? '/' : '';
+  return `${canonicalAssetPath(value.slice(0, value.length - suffix.length), command)}${suffix}`;
+}
+
+function canonicalAssetPath(value: string, command: string): string {
+  const components = value.split('/');
+  if (!value || value.trim() !== value || !isWellFormedUnicode(value) || value.normalize('NFC') !== value
+    || new TextEncoder().encode(value).byteLength > MAX_ASSET_PATH_BYTES
+    || value.startsWith('/') || value.endsWith('/') || /[\\\0<>:"|?*]/u.test(value)
+    || components.length > MAX_ASSET_PATH_COMPONENTS) throw new Error(`${command}: relativePath is invalid`);
+  for (const segment of components) {
+    const base = segment.split('.', 1)[0]?.toUpperCase() ?? '';
+    if (!segment || segment === '.' || segment === '..'
+      || new TextEncoder().encode(segment).byteLength > MAX_ASSET_COMPONENT_BYTES
+      || segment.endsWith('.') || segment.endsWith(' ') || /[\u0000-\u001f\u007f]/u.test(segment)
+      || /^(?:CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9])$/u.test(base)
+    ) throw new Error(`${command}: relativePath is invalid`);
+  }
+  return value;
+}
+
+function isWellFormedUnicode(value: string): boolean {
+  for (let index = 0; index < value.length; index += 1) {
+    const unit = value.charCodeAt(index);
+    if (unit < 0xd800 || unit > 0xdfff) continue;
+    if (unit > 0xdbff || index + 1 >= value.length) return false;
+    const next = value.charCodeAt(index + 1);
+    if (next < 0xdc00 || next > 0xdfff) return false;
+    index += 1;
+  }
+  return true;
 }
 
 function canonicalStoragePath(value: string, command: string): string {

@@ -1,9 +1,12 @@
 use nimi_shell_protected_local::{
     LocalAppAIConfigOverwriteRequest, LocalAppAgentCommitPresentationRequest,
-    LocalAppAgentHandleRequest, LocalAppAgentUpdateAutonomyRequest, LocalAppOperationError,
-    LocalAppScenarioUploadArtifactRequest, LocalAppSharedAgentAIConfigOverwriteRequest,
-    LocalAppStorageReadRequest, LocalAppStorageRemoveRequest, LocalAppStorageWriteRequest,
-    LocalAppTextCandidateMessage, LocalAppTextCandidateRequest,
+    LocalAppAgentHandleRequest, LocalAppAgentUpdateAutonomyRequest, LocalAppAssetAdoptRequest,
+    LocalAppAssetListRequest, LocalAppAssetMoveRequest, LocalAppAssetReadRequest,
+    LocalAppAssetRecord, LocalAppAssetRemoveRequest, LocalAppAssetStatRequest,
+    LocalAppAssetWriteRequest, LocalAppOperationError, LocalAppScenarioUploadArtifactRequest,
+    LocalAppSharedAgentAIConfigOverwriteRequest, LocalAppStorageReadRequest,
+    LocalAppStorageRemoveRequest, LocalAppStorageWriteRequest, LocalAppTextCandidateMessage,
+    LocalAppTextCandidateRequest,
 };
 use serde::Deserialize;
 use serde_json::{json, Value};
@@ -14,6 +17,7 @@ const MAX_TEXT_CANDIDATE_MESSAGES: usize = 8;
 const MAX_TEXT_CANDIDATE_MESSAGE_BYTES: usize = 32 * 1024;
 const MAX_TEXT_CANDIDATE_PROMPT_BYTES: usize = 64 * 1024;
 const MAX_TEXT_CANDIDATE_TOKENS: i32 = 4096;
+const MAX_ASSET_CHUNK_BYTES: usize = 1024 * 1024;
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
@@ -90,6 +94,59 @@ pub struct LocalAppStorageWritePayload {
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct LocalAppStorageRemovePayload {
     relative_path: String,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct LocalAppAssetListPayload {
+    prefix: String,
+    cursor: String,
+    page_size: i32,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct LocalAppAssetWriteOpenPayload {
+    relative_path: String,
+    media_type: String,
+    overwrite: bool,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct LocalAppAssetWriteChunkPayload {
+    stream_id: String,
+    body_chunk: Vec<u8>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct LocalAppAssetStreamPayload {
+    stream_id: String,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct LocalAppAssetReadPayload {
+    relative_path: String,
+    offset: Option<i64>,
+    length: Option<i64>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct LocalAppAssetMovePayload {
+    from_relative_path: String,
+    to_relative_path: String,
+    overwrite: bool,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct LocalAppAssetAdoptPayload {
+    artifact_id: String,
+    relative_path: String,
+    overwrite: bool,
 }
 
 pub async fn session_status_for_host(host: &RuntimeBridgeLocalAppHost) -> Result<Value, String> {
@@ -362,6 +419,219 @@ pub async fn storage_remove_json_for_host(
         .await
         .map_err(map_local_app_error)?;
     Ok(json!({"removed": result.removed}))
+}
+
+pub async fn asset_stat_for_host(
+    host: &RuntimeBridgeLocalAppHost,
+    payload: Value,
+) -> Result<Value, String> {
+    let payload: LocalAppStorageReadPayload = parse_payload(payload, "local_app_asset_stat")?;
+    let asset = host
+        .storage_asset_stat(LocalAppAssetStatRequest {
+            relative_path: payload.relative_path,
+        })
+        .await
+        .map_err(map_local_app_error)?;
+    Ok(project_asset_record(asset))
+}
+
+pub async fn asset_list_for_host(
+    host: &RuntimeBridgeLocalAppHost,
+    payload: Value,
+) -> Result<Value, String> {
+    let payload: LocalAppAssetListPayload = parse_payload(payload, "local_app_asset_list")?;
+    if !(1..=200).contains(&payload.page_size) {
+        return Err(invalid_payload("local_app_asset_list"));
+    }
+    let result = host
+        .storage_asset_list(LocalAppAssetListRequest {
+            prefix: payload.prefix,
+            cursor: payload.cursor,
+            page_size: payload.page_size,
+        })
+        .await
+        .map_err(map_local_app_error)?;
+    Ok(json!({
+        "assets": result.assets.into_iter().map(project_asset_record).collect::<Vec<_>>(),
+        "nextCursor": result.next_cursor,
+    }))
+}
+
+pub async fn asset_write_open_for_host(
+    host: &RuntimeBridgeLocalAppHost,
+    payload: Value,
+) -> Result<Value, String> {
+    let payload: LocalAppAssetWriteOpenPayload =
+        parse_payload(payload, "local_app_asset_write_open")?;
+    if payload.media_type.is_empty()
+        || payload.media_type.trim() != payload.media_type
+        || payload.media_type.len() > 512
+    {
+        return Err(invalid_payload("local_app_asset_write_open"));
+    }
+    let stream_id = host
+        .storage_asset_write_open(LocalAppAssetWriteRequest {
+            relative_path: payload.relative_path,
+            media_type: payload.media_type,
+            overwrite: payload.overwrite,
+        })
+        .await
+        .map_err(map_local_app_error)?;
+    Ok(json!({ "streamId": stream_id }))
+}
+
+pub async fn asset_write_chunk_for_host(
+    host: &RuntimeBridgeLocalAppHost,
+    payload: Value,
+) -> Result<Value, String> {
+    let payload: LocalAppAssetWriteChunkPayload =
+        parse_payload(payload, "local_app_asset_write_chunk")?;
+    if payload.body_chunk.is_empty() || payload.body_chunk.len() > MAX_ASSET_CHUNK_BYTES {
+        return Err(invalid_payload("local_app_asset_write_chunk"));
+    }
+    host.storage_asset_write_chunk(&payload.stream_id, payload.body_chunk)
+        .await
+        .map_err(map_local_app_error)?;
+    Ok(json!({ "accepted": true }))
+}
+
+pub async fn asset_write_commit_for_host(
+    host: &RuntimeBridgeLocalAppHost,
+    payload: Value,
+) -> Result<Value, String> {
+    let payload: LocalAppAssetStreamPayload =
+        parse_payload(payload, "local_app_asset_write_commit")?;
+    let asset = host
+        .storage_asset_write_commit(&payload.stream_id)
+        .await
+        .map_err(map_local_app_error)?;
+    Ok(project_asset_record(asset))
+}
+
+pub async fn asset_write_abort_for_host(
+    host: &RuntimeBridgeLocalAppHost,
+    payload: Value,
+) -> Result<Value, String> {
+    let payload: LocalAppAssetStreamPayload =
+        parse_payload(payload, "local_app_asset_write_abort")?;
+    Ok(json!({
+        "closed": host.storage_asset_write_abort(&payload.stream_id).await,
+    }))
+}
+
+pub async fn asset_read_open_for_host(
+    host: &RuntimeBridgeLocalAppHost,
+    payload: Value,
+) -> Result<Value, String> {
+    let payload: LocalAppAssetReadPayload = parse_payload(payload, "local_app_asset_read_open")?;
+    if payload.offset.is_some_and(|value| value < 0)
+        || payload.length.is_some_and(|value| value <= 0)
+    {
+        return Err(invalid_payload("local_app_asset_read_open"));
+    }
+    let result = host
+        .storage_asset_read_open(LocalAppAssetReadRequest {
+            relative_path: payload.relative_path,
+            offset: payload.offset,
+            length: payload.length,
+        })
+        .await
+        .map_err(map_local_app_error)?;
+    Ok(json!({
+        "streamId": result.stream_id,
+        "asset": project_asset_record(result.asset),
+        "range": {
+            "offset": result.range.offset,
+            "length": result.range.length,
+            "totalSize": result.range.total_size,
+        },
+    }))
+}
+
+pub async fn asset_read_next_for_host(
+    host: &RuntimeBridgeLocalAppHost,
+    payload: Value,
+) -> Result<Value, String> {
+    let payload: LocalAppAssetStreamPayload = parse_payload(payload, "local_app_asset_read_next")?;
+    let result = host
+        .storage_asset_read_next(&payload.stream_id)
+        .await
+        .map_err(map_local_app_error)?;
+    if result.completed {
+        Ok(json!({ "completed": true }))
+    } else {
+        Ok(json!({
+            "completed": false,
+            "bodyChunk": result.body_chunk.unwrap_or_default(),
+        }))
+    }
+}
+
+pub async fn asset_read_close_for_host(
+    host: &RuntimeBridgeLocalAppHost,
+    payload: Value,
+) -> Result<Value, String> {
+    let payload: LocalAppAssetStreamPayload = parse_payload(payload, "local_app_asset_read_close")?;
+    Ok(json!({
+        "closed": host.storage_asset_read_close(&payload.stream_id).await,
+    }))
+}
+
+pub async fn asset_remove_for_host(
+    host: &RuntimeBridgeLocalAppHost,
+    payload: Value,
+) -> Result<Value, String> {
+    let payload: LocalAppStorageRemovePayload = parse_payload(payload, "local_app_asset_remove")?;
+    let result = host
+        .storage_asset_remove(LocalAppAssetRemoveRequest {
+            relative_path: payload.relative_path,
+        })
+        .await
+        .map_err(map_local_app_error)?;
+    Ok(json!({ "removed": result.removed }))
+}
+
+pub async fn asset_move_for_host(
+    host: &RuntimeBridgeLocalAppHost,
+    payload: Value,
+) -> Result<Value, String> {
+    let payload: LocalAppAssetMovePayload = parse_payload(payload, "local_app_asset_move")?;
+    let asset = host
+        .storage_asset_move(LocalAppAssetMoveRequest {
+            from_relative_path: payload.from_relative_path,
+            to_relative_path: payload.to_relative_path,
+            overwrite: payload.overwrite,
+        })
+        .await
+        .map_err(map_local_app_error)?;
+    Ok(project_asset_record(asset))
+}
+
+pub async fn asset_adopt_for_host(
+    host: &RuntimeBridgeLocalAppHost,
+    payload: Value,
+) -> Result<Value, String> {
+    let payload: LocalAppAssetAdoptPayload = parse_payload(payload, "local_app_asset_adopt")?;
+    let asset = host
+        .storage_asset_adopt(LocalAppAssetAdoptRequest {
+            artifact_id: payload.artifact_id,
+            relative_path: payload.relative_path,
+            overwrite: payload.overwrite,
+        })
+        .await
+        .map_err(map_local_app_error)?;
+    Ok(project_asset_record(asset))
+}
+
+fn project_asset_record(asset: LocalAppAssetRecord) -> Value {
+    json!({
+        "relativePath": asset.relative_path,
+        "mediaType": if asset.media_type.is_empty() { None } else { Some(asset.media_type) },
+        "sizeBytes": asset.size_bytes,
+        "sha256": asset.sha256,
+        "createdAt": asset.created_at,
+        "updatedAt": asset.updated_at,
+    })
 }
 
 fn parse_payload<T: for<'de> Deserialize<'de>>(payload: Value, command: &str) -> Result<T, String> {

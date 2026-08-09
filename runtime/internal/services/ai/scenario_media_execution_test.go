@@ -55,9 +55,14 @@ func (h *controlledRemoteMediaHost) ExecuteMedia(
 	case <-ctx.Done():
 		return capabilitydriver.CloudMediaTransportResponse{}, ctx.Err()
 	case <-h.release:
+		body, err := capabilitydriver.NewBoundedArtifactBody([]byte("captured"))
+		if err != nil {
+			return capabilitydriver.CloudMediaTransportResponse{}, err
+		}
 		return capabilitydriver.CloudMediaTransportResponse{
-			Artifacts:    []*runtimev1.ScenarioArtifact{{ArtifactId: "captured-media", MimeType: "image/png", Bytes: []byte("captured")}},
-			FinishReason: runtimev1.FinishReason_FINISH_REASON_STOP,
+			Artifacts:      []*runtimev1.ScenarioArtifact{{ArtifactId: "captured-media", MimeType: "image/png", SizeBytes: int64(len("captured"))}},
+			ArtifactBodies: map[string]*capabilitydriver.ArtifactBody{"captured-media": body},
+			FinishReason:   runtimev1.FinishReason_FINISH_REASON_STOP,
 		}, nil
 	}
 }

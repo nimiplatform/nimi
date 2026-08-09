@@ -294,6 +294,300 @@ export interface RemoveLocalAppStorageJsonResponse {
      */
     reasonCode: ReasonCode;
 }
+/**
+ * LocalAppAssetRecord is public metadata for one committed App-private asset.
+ * Runtime derives its owner from the protected session and never exposes a
+ * physical path or producer identity here.
+ *
+ * @generated from protobuf message nimi.runtime.v1.LocalAppAssetRecord
+ */
+export interface LocalAppAssetRecord {
+    /**
+     * @generated from protobuf field: string relative_path = 1
+     */
+    relativePath: string;
+    /**
+     * @generated from protobuf field: string media_type = 2
+     */
+    mediaType: string;
+    /**
+     * @generated from protobuf field: int64 size_bytes = 3
+     */
+    sizeBytes: string;
+    /**
+     * @generated from protobuf field: string sha256 = 4
+     */
+    sha256: string;
+    /**
+     * @generated from protobuf field: google.protobuf.Timestamp created_at = 5
+     */
+    createdAt?: Timestamp;
+    /**
+     * @generated from protobuf field: google.protobuf.Timestamp updated_at = 6
+     */
+    updatedAt?: Timestamp;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.StatLocalAppAssetRequest
+ */
+export interface StatLocalAppAssetRequest {
+    /**
+     * @generated from protobuf field: string relative_path = 1
+     */
+    relativePath: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.StatLocalAppAssetResponse
+ */
+export interface StatLocalAppAssetResponse {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.LocalAppAssetRecord asset = 1
+     */
+    asset?: LocalAppAssetRecord;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.ReasonCode reason_code = 2
+     */
+    reasonCode: ReasonCode;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.ListLocalAppAssetsRequest
+ */
+export interface ListLocalAppAssetsRequest {
+    /**
+     * @generated from protobuf field: string prefix = 1
+     */
+    prefix: string;
+    /**
+     * @generated from protobuf field: string cursor = 2
+     */
+    cursor: string;
+    /**
+     * @generated from protobuf field: int32 page_size = 3
+     */
+    pageSize: number;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.ListLocalAppAssetsResponse
+ */
+export interface ListLocalAppAssetsResponse {
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.LocalAppAssetRecord assets = 1
+     */
+    assets: LocalAppAssetRecord[];
+    /**
+     * @generated from protobuf field: string next_cursor = 2
+     */
+    nextCursor: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.ReasonCode reason_code = 3
+     */
+    reasonCode: ReasonCode;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.WriteLocalAppAssetMetadata
+ */
+export interface WriteLocalAppAssetMetadata {
+    /**
+     * @generated from protobuf field: string relative_path = 1
+     */
+    relativePath: string;
+    /**
+     * @generated from protobuf field: string media_type = 2
+     */
+    mediaType: string;
+    /**
+     * @generated from protobuf field: bool overwrite = 3
+     */
+    overwrite: boolean;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.WriteLocalAppAssetRequest
+ */
+export interface WriteLocalAppAssetRequest {
+    /**
+     * @generated from protobuf oneof: frame
+     */
+    frame: {
+        oneofKind: "metadata";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.WriteLocalAppAssetMetadata metadata = 1
+         */
+        metadata: WriteLocalAppAssetMetadata;
+    } | {
+        oneofKind: "bodyChunk";
+        /**
+         * @generated from protobuf field: bytes body_chunk = 2
+         */
+        bodyChunk: Uint8Array;
+    } | {
+        oneofKind: undefined;
+    };
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.WriteLocalAppAssetResponse
+ */
+export interface WriteLocalAppAssetResponse {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.LocalAppAssetRecord asset = 1
+     */
+    asset?: LocalAppAssetRecord;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.ReasonCode reason_code = 2
+     */
+    reasonCode: ReasonCode;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.ReadLocalAppAssetRequest
+ */
+export interface ReadLocalAppAssetRequest {
+    /**
+     * @generated from protobuf field: string relative_path = 1
+     */
+    relativePath: string;
+    /**
+     * @generated from protobuf field: optional int64 offset = 2
+     */
+    offset?: string;
+    /**
+     * @generated from protobuf field: optional int64 length = 3
+     */
+    length?: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.LocalAppAssetRange
+ */
+export interface LocalAppAssetRange {
+    /**
+     * @generated from protobuf field: int64 offset = 1
+     */
+    offset: string;
+    /**
+     * @generated from protobuf field: int64 length = 2
+     */
+    length: string;
+    /**
+     * @generated from protobuf field: int64 total_size = 3
+     */
+    totalSize: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.ReadLocalAppAssetMetadata
+ */
+export interface ReadLocalAppAssetMetadata {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.LocalAppAssetRecord asset = 1
+     */
+    asset?: LocalAppAssetRecord;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.LocalAppAssetRange range = 2
+     */
+    range?: LocalAppAssetRange;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.ReadLocalAppAssetResponse
+ */
+export interface ReadLocalAppAssetResponse {
+    /**
+     * @generated from protobuf oneof: frame
+     */
+    frame: {
+        oneofKind: "metadata";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.ReadLocalAppAssetMetadata metadata = 1
+         */
+        metadata: ReadLocalAppAssetMetadata;
+    } | {
+        oneofKind: "bodyChunk";
+        /**
+         * @generated from protobuf field: bytes body_chunk = 2
+         */
+        bodyChunk: Uint8Array;
+    } | {
+        oneofKind: undefined;
+    };
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.RemoveLocalAppAssetRequest
+ */
+export interface RemoveLocalAppAssetRequest {
+    /**
+     * @generated from protobuf field: string relative_path = 1
+     */
+    relativePath: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.RemoveLocalAppAssetResponse
+ */
+export interface RemoveLocalAppAssetResponse {
+    /**
+     * @generated from protobuf field: bool removed = 1
+     */
+    removed: boolean;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.ReasonCode reason_code = 2
+     */
+    reasonCode: ReasonCode;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.MoveLocalAppAssetRequest
+ */
+export interface MoveLocalAppAssetRequest {
+    /**
+     * @generated from protobuf field: string from_relative_path = 1
+     */
+    fromRelativePath: string;
+    /**
+     * @generated from protobuf field: string to_relative_path = 2
+     */
+    toRelativePath: string;
+    /**
+     * @generated from protobuf field: bool overwrite = 3
+     */
+    overwrite: boolean;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.MoveLocalAppAssetResponse
+ */
+export interface MoveLocalAppAssetResponse {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.LocalAppAssetRecord asset = 1
+     */
+    asset?: LocalAppAssetRecord;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.ReasonCode reason_code = 2
+     */
+    reasonCode: ReasonCode;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.AdoptLocalAppArtifactRequest
+ */
+export interface AdoptLocalAppArtifactRequest {
+    /**
+     * @generated from protobuf field: string artifact_id = 1
+     */
+    artifactId: string;
+    /**
+     * @generated from protobuf field: string relative_path = 2
+     */
+    relativePath: string;
+    /**
+     * @generated from protobuf field: bool overwrite = 3
+     */
+    overwrite: boolean;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.AdoptLocalAppArtifactResponse
+ */
+export interface AdoptLocalAppArtifactResponse {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.LocalAppAssetRecord asset = 1
+     */
+    asset?: LocalAppAssetRecord;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.ReasonCode reason_code = 2
+     */
+    reasonCode: ReasonCode;
+}
 // === Shared local-app protected launch (K-APP-017 / K-PLOCAL-008) ===
 
 /**
@@ -1337,6 +1631,1068 @@ class RemoveLocalAppStorageJsonResponse$Type extends MessageType<RemoveLocalAppS
  * @generated MessageType for protobuf message nimi.runtime.v1.RemoveLocalAppStorageJsonResponse
  */
 export const RemoveLocalAppStorageJsonResponse = new RemoveLocalAppStorageJsonResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class LocalAppAssetRecord$Type extends MessageType<LocalAppAssetRecord> {
+    constructor() {
+        super("nimi.runtime.v1.LocalAppAssetRecord", [
+            { no: 1, name: "relative_path", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "media_type", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "size_bytes", kind: "scalar", T: 3 /*ScalarType.INT64*/ },
+            { no: 4, name: "sha256", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "created_at", kind: "message", T: () => Timestamp },
+            { no: 6, name: "updated_at", kind: "message", T: () => Timestamp }
+        ]);
+    }
+    create(value?: PartialMessage<LocalAppAssetRecord>): LocalAppAssetRecord {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.relativePath = "";
+        message.mediaType = "";
+        message.sizeBytes = "0";
+        message.sha256 = "";
+        if (value !== undefined)
+            reflectionMergePartial<LocalAppAssetRecord>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalAppAssetRecord): LocalAppAssetRecord {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string relative_path */ 1:
+                    message.relativePath = reader.string();
+                    break;
+                case /* string media_type */ 2:
+                    message.mediaType = reader.string();
+                    break;
+                case /* int64 size_bytes */ 3:
+                    message.sizeBytes = reader.int64().toString();
+                    break;
+                case /* string sha256 */ 4:
+                    message.sha256 = reader.string();
+                    break;
+                case /* google.protobuf.Timestamp created_at */ 5:
+                    message.createdAt = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.createdAt);
+                    break;
+                case /* google.protobuf.Timestamp updated_at */ 6:
+                    message.updatedAt = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.updatedAt);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: LocalAppAssetRecord, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string relative_path = 1; */
+        if (message.relativePath !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.relativePath);
+        /* string media_type = 2; */
+        if (message.mediaType !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.mediaType);
+        /* int64 size_bytes = 3; */
+        if (message.sizeBytes !== "0")
+            writer.tag(3, WireType.Varint).int64(message.sizeBytes);
+        /* string sha256 = 4; */
+        if (message.sha256 !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.sha256);
+        /* google.protobuf.Timestamp created_at = 5; */
+        if (message.createdAt)
+            Timestamp.internalBinaryWrite(message.createdAt, writer.tag(5, WireType.LengthDelimited).fork(), options).join();
+        /* google.protobuf.Timestamp updated_at = 6; */
+        if (message.updatedAt)
+            Timestamp.internalBinaryWrite(message.updatedAt, writer.tag(6, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.LocalAppAssetRecord
+ */
+export const LocalAppAssetRecord = new LocalAppAssetRecord$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class StatLocalAppAssetRequest$Type extends MessageType<StatLocalAppAssetRequest> {
+    constructor() {
+        super("nimi.runtime.v1.StatLocalAppAssetRequest", [
+            { no: 1, name: "relative_path", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<StatLocalAppAssetRequest>): StatLocalAppAssetRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.relativePath = "";
+        if (value !== undefined)
+            reflectionMergePartial<StatLocalAppAssetRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: StatLocalAppAssetRequest): StatLocalAppAssetRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string relative_path */ 1:
+                    message.relativePath = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: StatLocalAppAssetRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string relative_path = 1; */
+        if (message.relativePath !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.relativePath);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.StatLocalAppAssetRequest
+ */
+export const StatLocalAppAssetRequest = new StatLocalAppAssetRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class StatLocalAppAssetResponse$Type extends MessageType<StatLocalAppAssetResponse> {
+    constructor() {
+        super("nimi.runtime.v1.StatLocalAppAssetResponse", [
+            { no: 1, name: "asset", kind: "message", T: () => LocalAppAssetRecord },
+            { no: 2, name: "reason_code", kind: "enum", T: () => ["nimi.runtime.v1.ReasonCode", ReasonCode] }
+        ]);
+    }
+    create(value?: PartialMessage<StatLocalAppAssetResponse>): StatLocalAppAssetResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.reasonCode = 0;
+        if (value !== undefined)
+            reflectionMergePartial<StatLocalAppAssetResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: StatLocalAppAssetResponse): StatLocalAppAssetResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.LocalAppAssetRecord asset */ 1:
+                    message.asset = LocalAppAssetRecord.internalBinaryRead(reader, reader.uint32(), options, message.asset);
+                    break;
+                case /* nimi.runtime.v1.ReasonCode reason_code */ 2:
+                    message.reasonCode = reader.int32();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: StatLocalAppAssetResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.LocalAppAssetRecord asset = 1; */
+        if (message.asset)
+            LocalAppAssetRecord.internalBinaryWrite(message.asset, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.ReasonCode reason_code = 2; */
+        if (message.reasonCode !== 0)
+            writer.tag(2, WireType.Varint).int32(message.reasonCode);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.StatLocalAppAssetResponse
+ */
+export const StatLocalAppAssetResponse = new StatLocalAppAssetResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ListLocalAppAssetsRequest$Type extends MessageType<ListLocalAppAssetsRequest> {
+    constructor() {
+        super("nimi.runtime.v1.ListLocalAppAssetsRequest", [
+            { no: 1, name: "prefix", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "cursor", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "page_size", kind: "scalar", T: 5 /*ScalarType.INT32*/ }
+        ]);
+    }
+    create(value?: PartialMessage<ListLocalAppAssetsRequest>): ListLocalAppAssetsRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.prefix = "";
+        message.cursor = "";
+        message.pageSize = 0;
+        if (value !== undefined)
+            reflectionMergePartial<ListLocalAppAssetsRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ListLocalAppAssetsRequest): ListLocalAppAssetsRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string prefix */ 1:
+                    message.prefix = reader.string();
+                    break;
+                case /* string cursor */ 2:
+                    message.cursor = reader.string();
+                    break;
+                case /* int32 page_size */ 3:
+                    message.pageSize = reader.int32();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ListLocalAppAssetsRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string prefix = 1; */
+        if (message.prefix !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.prefix);
+        /* string cursor = 2; */
+        if (message.cursor !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.cursor);
+        /* int32 page_size = 3; */
+        if (message.pageSize !== 0)
+            writer.tag(3, WireType.Varint).int32(message.pageSize);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.ListLocalAppAssetsRequest
+ */
+export const ListLocalAppAssetsRequest = new ListLocalAppAssetsRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ListLocalAppAssetsResponse$Type extends MessageType<ListLocalAppAssetsResponse> {
+    constructor() {
+        super("nimi.runtime.v1.ListLocalAppAssetsResponse", [
+            { no: 1, name: "assets", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LocalAppAssetRecord },
+            { no: 2, name: "next_cursor", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "reason_code", kind: "enum", T: () => ["nimi.runtime.v1.ReasonCode", ReasonCode] }
+        ]);
+    }
+    create(value?: PartialMessage<ListLocalAppAssetsResponse>): ListLocalAppAssetsResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.assets = [];
+        message.nextCursor = "";
+        message.reasonCode = 0;
+        if (value !== undefined)
+            reflectionMergePartial<ListLocalAppAssetsResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ListLocalAppAssetsResponse): ListLocalAppAssetsResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* repeated nimi.runtime.v1.LocalAppAssetRecord assets */ 1:
+                    message.assets.push(LocalAppAssetRecord.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                case /* string next_cursor */ 2:
+                    message.nextCursor = reader.string();
+                    break;
+                case /* nimi.runtime.v1.ReasonCode reason_code */ 3:
+                    message.reasonCode = reader.int32();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ListLocalAppAssetsResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* repeated nimi.runtime.v1.LocalAppAssetRecord assets = 1; */
+        for (let i = 0; i < message.assets.length; i++)
+            LocalAppAssetRecord.internalBinaryWrite(message.assets[i], writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* string next_cursor = 2; */
+        if (message.nextCursor !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.nextCursor);
+        /* nimi.runtime.v1.ReasonCode reason_code = 3; */
+        if (message.reasonCode !== 0)
+            writer.tag(3, WireType.Varint).int32(message.reasonCode);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.ListLocalAppAssetsResponse
+ */
+export const ListLocalAppAssetsResponse = new ListLocalAppAssetsResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class WriteLocalAppAssetMetadata$Type extends MessageType<WriteLocalAppAssetMetadata> {
+    constructor() {
+        super("nimi.runtime.v1.WriteLocalAppAssetMetadata", [
+            { no: 1, name: "relative_path", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "media_type", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "overwrite", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
+        ]);
+    }
+    create(value?: PartialMessage<WriteLocalAppAssetMetadata>): WriteLocalAppAssetMetadata {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.relativePath = "";
+        message.mediaType = "";
+        message.overwrite = false;
+        if (value !== undefined)
+            reflectionMergePartial<WriteLocalAppAssetMetadata>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: WriteLocalAppAssetMetadata): WriteLocalAppAssetMetadata {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string relative_path */ 1:
+                    message.relativePath = reader.string();
+                    break;
+                case /* string media_type */ 2:
+                    message.mediaType = reader.string();
+                    break;
+                case /* bool overwrite */ 3:
+                    message.overwrite = reader.bool();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: WriteLocalAppAssetMetadata, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string relative_path = 1; */
+        if (message.relativePath !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.relativePath);
+        /* string media_type = 2; */
+        if (message.mediaType !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.mediaType);
+        /* bool overwrite = 3; */
+        if (message.overwrite !== false)
+            writer.tag(3, WireType.Varint).bool(message.overwrite);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.WriteLocalAppAssetMetadata
+ */
+export const WriteLocalAppAssetMetadata = new WriteLocalAppAssetMetadata$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class WriteLocalAppAssetRequest$Type extends MessageType<WriteLocalAppAssetRequest> {
+    constructor() {
+        super("nimi.runtime.v1.WriteLocalAppAssetRequest", [
+            { no: 1, name: "metadata", kind: "message", oneof: "frame", T: () => WriteLocalAppAssetMetadata },
+            { no: 2, name: "body_chunk", kind: "scalar", oneof: "frame", T: 12 /*ScalarType.BYTES*/ }
+        ]);
+    }
+    create(value?: PartialMessage<WriteLocalAppAssetRequest>): WriteLocalAppAssetRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.frame = { oneofKind: undefined };
+        if (value !== undefined)
+            reflectionMergePartial<WriteLocalAppAssetRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: WriteLocalAppAssetRequest): WriteLocalAppAssetRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.WriteLocalAppAssetMetadata metadata */ 1:
+                    message.frame = {
+                        oneofKind: "metadata",
+                        metadata: WriteLocalAppAssetMetadata.internalBinaryRead(reader, reader.uint32(), options, (message.frame as any).metadata)
+                    };
+                    break;
+                case /* bytes body_chunk */ 2:
+                    message.frame = {
+                        oneofKind: "bodyChunk",
+                        bodyChunk: reader.bytes()
+                    };
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: WriteLocalAppAssetRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.WriteLocalAppAssetMetadata metadata = 1; */
+        if (message.frame.oneofKind === "metadata")
+            WriteLocalAppAssetMetadata.internalBinaryWrite(message.frame.metadata, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* bytes body_chunk = 2; */
+        if (message.frame.oneofKind === "bodyChunk")
+            writer.tag(2, WireType.LengthDelimited).bytes(message.frame.bodyChunk);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.WriteLocalAppAssetRequest
+ */
+export const WriteLocalAppAssetRequest = new WriteLocalAppAssetRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class WriteLocalAppAssetResponse$Type extends MessageType<WriteLocalAppAssetResponse> {
+    constructor() {
+        super("nimi.runtime.v1.WriteLocalAppAssetResponse", [
+            { no: 1, name: "asset", kind: "message", T: () => LocalAppAssetRecord },
+            { no: 2, name: "reason_code", kind: "enum", T: () => ["nimi.runtime.v1.ReasonCode", ReasonCode] }
+        ]);
+    }
+    create(value?: PartialMessage<WriteLocalAppAssetResponse>): WriteLocalAppAssetResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.reasonCode = 0;
+        if (value !== undefined)
+            reflectionMergePartial<WriteLocalAppAssetResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: WriteLocalAppAssetResponse): WriteLocalAppAssetResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.LocalAppAssetRecord asset */ 1:
+                    message.asset = LocalAppAssetRecord.internalBinaryRead(reader, reader.uint32(), options, message.asset);
+                    break;
+                case /* nimi.runtime.v1.ReasonCode reason_code */ 2:
+                    message.reasonCode = reader.int32();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: WriteLocalAppAssetResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.LocalAppAssetRecord asset = 1; */
+        if (message.asset)
+            LocalAppAssetRecord.internalBinaryWrite(message.asset, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.ReasonCode reason_code = 2; */
+        if (message.reasonCode !== 0)
+            writer.tag(2, WireType.Varint).int32(message.reasonCode);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.WriteLocalAppAssetResponse
+ */
+export const WriteLocalAppAssetResponse = new WriteLocalAppAssetResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ReadLocalAppAssetRequest$Type extends MessageType<ReadLocalAppAssetRequest> {
+    constructor() {
+        super("nimi.runtime.v1.ReadLocalAppAssetRequest", [
+            { no: 1, name: "relative_path", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "offset", kind: "scalar", opt: true, T: 3 /*ScalarType.INT64*/ },
+            { no: 3, name: "length", kind: "scalar", opt: true, T: 3 /*ScalarType.INT64*/ }
+        ]);
+    }
+    create(value?: PartialMessage<ReadLocalAppAssetRequest>): ReadLocalAppAssetRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.relativePath = "";
+        if (value !== undefined)
+            reflectionMergePartial<ReadLocalAppAssetRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ReadLocalAppAssetRequest): ReadLocalAppAssetRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string relative_path */ 1:
+                    message.relativePath = reader.string();
+                    break;
+                case /* optional int64 offset */ 2:
+                    message.offset = reader.int64().toString();
+                    break;
+                case /* optional int64 length */ 3:
+                    message.length = reader.int64().toString();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ReadLocalAppAssetRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string relative_path = 1; */
+        if (message.relativePath !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.relativePath);
+        /* optional int64 offset = 2; */
+        if (message.offset !== undefined)
+            writer.tag(2, WireType.Varint).int64(message.offset);
+        /* optional int64 length = 3; */
+        if (message.length !== undefined)
+            writer.tag(3, WireType.Varint).int64(message.length);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.ReadLocalAppAssetRequest
+ */
+export const ReadLocalAppAssetRequest = new ReadLocalAppAssetRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class LocalAppAssetRange$Type extends MessageType<LocalAppAssetRange> {
+    constructor() {
+        super("nimi.runtime.v1.LocalAppAssetRange", [
+            { no: 1, name: "offset", kind: "scalar", T: 3 /*ScalarType.INT64*/ },
+            { no: 2, name: "length", kind: "scalar", T: 3 /*ScalarType.INT64*/ },
+            { no: 3, name: "total_size", kind: "scalar", T: 3 /*ScalarType.INT64*/ }
+        ]);
+    }
+    create(value?: PartialMessage<LocalAppAssetRange>): LocalAppAssetRange {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.offset = "0";
+        message.length = "0";
+        message.totalSize = "0";
+        if (value !== undefined)
+            reflectionMergePartial<LocalAppAssetRange>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalAppAssetRange): LocalAppAssetRange {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* int64 offset */ 1:
+                    message.offset = reader.int64().toString();
+                    break;
+                case /* int64 length */ 2:
+                    message.length = reader.int64().toString();
+                    break;
+                case /* int64 total_size */ 3:
+                    message.totalSize = reader.int64().toString();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: LocalAppAssetRange, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* int64 offset = 1; */
+        if (message.offset !== "0")
+            writer.tag(1, WireType.Varint).int64(message.offset);
+        /* int64 length = 2; */
+        if (message.length !== "0")
+            writer.tag(2, WireType.Varint).int64(message.length);
+        /* int64 total_size = 3; */
+        if (message.totalSize !== "0")
+            writer.tag(3, WireType.Varint).int64(message.totalSize);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.LocalAppAssetRange
+ */
+export const LocalAppAssetRange = new LocalAppAssetRange$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ReadLocalAppAssetMetadata$Type extends MessageType<ReadLocalAppAssetMetadata> {
+    constructor() {
+        super("nimi.runtime.v1.ReadLocalAppAssetMetadata", [
+            { no: 1, name: "asset", kind: "message", T: () => LocalAppAssetRecord },
+            { no: 2, name: "range", kind: "message", T: () => LocalAppAssetRange }
+        ]);
+    }
+    create(value?: PartialMessage<ReadLocalAppAssetMetadata>): ReadLocalAppAssetMetadata {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        if (value !== undefined)
+            reflectionMergePartial<ReadLocalAppAssetMetadata>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ReadLocalAppAssetMetadata): ReadLocalAppAssetMetadata {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.LocalAppAssetRecord asset */ 1:
+                    message.asset = LocalAppAssetRecord.internalBinaryRead(reader, reader.uint32(), options, message.asset);
+                    break;
+                case /* nimi.runtime.v1.LocalAppAssetRange range */ 2:
+                    message.range = LocalAppAssetRange.internalBinaryRead(reader, reader.uint32(), options, message.range);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ReadLocalAppAssetMetadata, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.LocalAppAssetRecord asset = 1; */
+        if (message.asset)
+            LocalAppAssetRecord.internalBinaryWrite(message.asset, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.LocalAppAssetRange range = 2; */
+        if (message.range)
+            LocalAppAssetRange.internalBinaryWrite(message.range, writer.tag(2, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.ReadLocalAppAssetMetadata
+ */
+export const ReadLocalAppAssetMetadata = new ReadLocalAppAssetMetadata$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ReadLocalAppAssetResponse$Type extends MessageType<ReadLocalAppAssetResponse> {
+    constructor() {
+        super("nimi.runtime.v1.ReadLocalAppAssetResponse", [
+            { no: 1, name: "metadata", kind: "message", oneof: "frame", T: () => ReadLocalAppAssetMetadata },
+            { no: 2, name: "body_chunk", kind: "scalar", oneof: "frame", T: 12 /*ScalarType.BYTES*/ }
+        ]);
+    }
+    create(value?: PartialMessage<ReadLocalAppAssetResponse>): ReadLocalAppAssetResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.frame = { oneofKind: undefined };
+        if (value !== undefined)
+            reflectionMergePartial<ReadLocalAppAssetResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ReadLocalAppAssetResponse): ReadLocalAppAssetResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.ReadLocalAppAssetMetadata metadata */ 1:
+                    message.frame = {
+                        oneofKind: "metadata",
+                        metadata: ReadLocalAppAssetMetadata.internalBinaryRead(reader, reader.uint32(), options, (message.frame as any).metadata)
+                    };
+                    break;
+                case /* bytes body_chunk */ 2:
+                    message.frame = {
+                        oneofKind: "bodyChunk",
+                        bodyChunk: reader.bytes()
+                    };
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ReadLocalAppAssetResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.ReadLocalAppAssetMetadata metadata = 1; */
+        if (message.frame.oneofKind === "metadata")
+            ReadLocalAppAssetMetadata.internalBinaryWrite(message.frame.metadata, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* bytes body_chunk = 2; */
+        if (message.frame.oneofKind === "bodyChunk")
+            writer.tag(2, WireType.LengthDelimited).bytes(message.frame.bodyChunk);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.ReadLocalAppAssetResponse
+ */
+export const ReadLocalAppAssetResponse = new ReadLocalAppAssetResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class RemoveLocalAppAssetRequest$Type extends MessageType<RemoveLocalAppAssetRequest> {
+    constructor() {
+        super("nimi.runtime.v1.RemoveLocalAppAssetRequest", [
+            { no: 1, name: "relative_path", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<RemoveLocalAppAssetRequest>): RemoveLocalAppAssetRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.relativePath = "";
+        if (value !== undefined)
+            reflectionMergePartial<RemoveLocalAppAssetRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: RemoveLocalAppAssetRequest): RemoveLocalAppAssetRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string relative_path */ 1:
+                    message.relativePath = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: RemoveLocalAppAssetRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string relative_path = 1; */
+        if (message.relativePath !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.relativePath);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.RemoveLocalAppAssetRequest
+ */
+export const RemoveLocalAppAssetRequest = new RemoveLocalAppAssetRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class RemoveLocalAppAssetResponse$Type extends MessageType<RemoveLocalAppAssetResponse> {
+    constructor() {
+        super("nimi.runtime.v1.RemoveLocalAppAssetResponse", [
+            { no: 1, name: "removed", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 2, name: "reason_code", kind: "enum", T: () => ["nimi.runtime.v1.ReasonCode", ReasonCode] }
+        ]);
+    }
+    create(value?: PartialMessage<RemoveLocalAppAssetResponse>): RemoveLocalAppAssetResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.removed = false;
+        message.reasonCode = 0;
+        if (value !== undefined)
+            reflectionMergePartial<RemoveLocalAppAssetResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: RemoveLocalAppAssetResponse): RemoveLocalAppAssetResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* bool removed */ 1:
+                    message.removed = reader.bool();
+                    break;
+                case /* nimi.runtime.v1.ReasonCode reason_code */ 2:
+                    message.reasonCode = reader.int32();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: RemoveLocalAppAssetResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* bool removed = 1; */
+        if (message.removed !== false)
+            writer.tag(1, WireType.Varint).bool(message.removed);
+        /* nimi.runtime.v1.ReasonCode reason_code = 2; */
+        if (message.reasonCode !== 0)
+            writer.tag(2, WireType.Varint).int32(message.reasonCode);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.RemoveLocalAppAssetResponse
+ */
+export const RemoveLocalAppAssetResponse = new RemoveLocalAppAssetResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class MoveLocalAppAssetRequest$Type extends MessageType<MoveLocalAppAssetRequest> {
+    constructor() {
+        super("nimi.runtime.v1.MoveLocalAppAssetRequest", [
+            { no: 1, name: "from_relative_path", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "to_relative_path", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "overwrite", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
+        ]);
+    }
+    create(value?: PartialMessage<MoveLocalAppAssetRequest>): MoveLocalAppAssetRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.fromRelativePath = "";
+        message.toRelativePath = "";
+        message.overwrite = false;
+        if (value !== undefined)
+            reflectionMergePartial<MoveLocalAppAssetRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: MoveLocalAppAssetRequest): MoveLocalAppAssetRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string from_relative_path */ 1:
+                    message.fromRelativePath = reader.string();
+                    break;
+                case /* string to_relative_path */ 2:
+                    message.toRelativePath = reader.string();
+                    break;
+                case /* bool overwrite */ 3:
+                    message.overwrite = reader.bool();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: MoveLocalAppAssetRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string from_relative_path = 1; */
+        if (message.fromRelativePath !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.fromRelativePath);
+        /* string to_relative_path = 2; */
+        if (message.toRelativePath !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.toRelativePath);
+        /* bool overwrite = 3; */
+        if (message.overwrite !== false)
+            writer.tag(3, WireType.Varint).bool(message.overwrite);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.MoveLocalAppAssetRequest
+ */
+export const MoveLocalAppAssetRequest = new MoveLocalAppAssetRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class MoveLocalAppAssetResponse$Type extends MessageType<MoveLocalAppAssetResponse> {
+    constructor() {
+        super("nimi.runtime.v1.MoveLocalAppAssetResponse", [
+            { no: 1, name: "asset", kind: "message", T: () => LocalAppAssetRecord },
+            { no: 2, name: "reason_code", kind: "enum", T: () => ["nimi.runtime.v1.ReasonCode", ReasonCode] }
+        ]);
+    }
+    create(value?: PartialMessage<MoveLocalAppAssetResponse>): MoveLocalAppAssetResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.reasonCode = 0;
+        if (value !== undefined)
+            reflectionMergePartial<MoveLocalAppAssetResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: MoveLocalAppAssetResponse): MoveLocalAppAssetResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.LocalAppAssetRecord asset */ 1:
+                    message.asset = LocalAppAssetRecord.internalBinaryRead(reader, reader.uint32(), options, message.asset);
+                    break;
+                case /* nimi.runtime.v1.ReasonCode reason_code */ 2:
+                    message.reasonCode = reader.int32();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: MoveLocalAppAssetResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.LocalAppAssetRecord asset = 1; */
+        if (message.asset)
+            LocalAppAssetRecord.internalBinaryWrite(message.asset, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.ReasonCode reason_code = 2; */
+        if (message.reasonCode !== 0)
+            writer.tag(2, WireType.Varint).int32(message.reasonCode);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.MoveLocalAppAssetResponse
+ */
+export const MoveLocalAppAssetResponse = new MoveLocalAppAssetResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class AdoptLocalAppArtifactRequest$Type extends MessageType<AdoptLocalAppArtifactRequest> {
+    constructor() {
+        super("nimi.runtime.v1.AdoptLocalAppArtifactRequest", [
+            { no: 1, name: "artifact_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "relative_path", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "overwrite", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
+        ]);
+    }
+    create(value?: PartialMessage<AdoptLocalAppArtifactRequest>): AdoptLocalAppArtifactRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.artifactId = "";
+        message.relativePath = "";
+        message.overwrite = false;
+        if (value !== undefined)
+            reflectionMergePartial<AdoptLocalAppArtifactRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: AdoptLocalAppArtifactRequest): AdoptLocalAppArtifactRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string artifact_id */ 1:
+                    message.artifactId = reader.string();
+                    break;
+                case /* string relative_path */ 2:
+                    message.relativePath = reader.string();
+                    break;
+                case /* bool overwrite */ 3:
+                    message.overwrite = reader.bool();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: AdoptLocalAppArtifactRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string artifact_id = 1; */
+        if (message.artifactId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.artifactId);
+        /* string relative_path = 2; */
+        if (message.relativePath !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.relativePath);
+        /* bool overwrite = 3; */
+        if (message.overwrite !== false)
+            writer.tag(3, WireType.Varint).bool(message.overwrite);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.AdoptLocalAppArtifactRequest
+ */
+export const AdoptLocalAppArtifactRequest = new AdoptLocalAppArtifactRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class AdoptLocalAppArtifactResponse$Type extends MessageType<AdoptLocalAppArtifactResponse> {
+    constructor() {
+        super("nimi.runtime.v1.AdoptLocalAppArtifactResponse", [
+            { no: 1, name: "asset", kind: "message", T: () => LocalAppAssetRecord },
+            { no: 2, name: "reason_code", kind: "enum", T: () => ["nimi.runtime.v1.ReasonCode", ReasonCode] }
+        ]);
+    }
+    create(value?: PartialMessage<AdoptLocalAppArtifactResponse>): AdoptLocalAppArtifactResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.reasonCode = 0;
+        if (value !== undefined)
+            reflectionMergePartial<AdoptLocalAppArtifactResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: AdoptLocalAppArtifactResponse): AdoptLocalAppArtifactResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.LocalAppAssetRecord asset */ 1:
+                    message.asset = LocalAppAssetRecord.internalBinaryRead(reader, reader.uint32(), options, message.asset);
+                    break;
+                case /* nimi.runtime.v1.ReasonCode reason_code */ 2:
+                    message.reasonCode = reader.int32();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: AdoptLocalAppArtifactResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.LocalAppAssetRecord asset = 1; */
+        if (message.asset)
+            LocalAppAssetRecord.internalBinaryWrite(message.asset, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.ReasonCode reason_code = 2; */
+        if (message.reasonCode !== 0)
+            writer.tag(2, WireType.Varint).int32(message.reasonCode);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.AdoptLocalAppArtifactResponse
+ */
+export const AdoptLocalAppArtifactResponse = new AdoptLocalAppArtifactResponse$Type();
 // @generated message type with reflection information, may provide speed optimized methods
 class PrepareLocalAppLaunchRequest$Type extends MessageType<PrepareLocalAppLaunchRequest> {
     constructor() {

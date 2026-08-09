@@ -117,6 +117,7 @@ export {
   overwriteNimiLocalAppSharedAgentAIConfig,
   readNimiLocalAppStorageJson,
   removeNimiLocalAppStorageJson,
+  openNimiLocalAppAssetMediaUrl,
   sendNimiLocalAppConversationTurn,
   subscribeNimiLocalAppConversation,
   commitNimiLocalAppAgentPresentation,

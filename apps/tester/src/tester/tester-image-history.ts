@@ -14,8 +14,10 @@ export type TesterImageHistoryRecord = {
   createdAt: string;
   artifactCount?: number;
   artifactLabel?: string;
-  mimeType?: string;
-  url?: string;
+  relativePath?: string;
+  mediaType?: string;
+  sizeBytes?: number;
+  sha256?: string;
   jobId?: string;
   jobState?: string;
   message?: string;
@@ -54,12 +56,25 @@ function parseRecord(value: unknown, index: number): TesterImageHistoryRecord {
   if (Number.isNaN(new Date(value.createdAt as string).valueOf())) {
     imageHistoryPayloadError(`${path}.createdAt`, 'requires a valid timestamp');
   }
-  for (const key of ['runId', 'kind', 'capabilityLabel', 'artifactLabel', 'mimeType', 'url', 'jobId', 'jobState', 'message', 'traceState', 'traceId'] as const) {
+  for (const key of ['runId', 'kind', 'capabilityLabel', 'artifactLabel', 'relativePath', 'mediaType', 'sha256', 'jobId', 'jobState', 'message', 'traceState', 'traceId'] as const) {
     optionalString(value[key], `${path}.${key}`);
   }
   if (value.artifactCount !== undefined
     && (typeof value.artifactCount !== 'number' || !Number.isFinite(value.artifactCount) || value.artifactCount < 0)) {
     imageHistoryPayloadError(`${path}.artifactCount`, 'requires a non-negative finite number when present');
+  }
+  if (value.sizeBytes !== undefined
+    && (typeof value.sizeBytes !== 'number' || !Number.isSafeInteger(value.sizeBytes) || value.sizeBytes < 0)) {
+    imageHistoryPayloadError(`${path}.sizeBytes`, 'requires a non-negative safe integer when present');
+  }
+  if (value.sha256 !== undefined && !/^sha256:[0-9a-f]{64}$/u.test(String(value.sha256))) {
+    imageHistoryPayloadError(`${path}.sha256`, 'requires a canonical SHA-256 digest when present');
+  }
+  if (value.status === 'ready' && value.kind === 'runtime-media'
+    && (typeof value.relativePath !== 'string'
+      || typeof value.sizeBytes !== 'number'
+      || typeof value.sha256 !== 'string')) {
+    imageHistoryPayloadError(path, 'requires managed asset metadata for ready Runtime media');
   }
   return normalizeRecord(value as unknown as TesterImageHistoryRecord);
 }
@@ -97,6 +112,26 @@ export async function appendTesterImageHistoryRecord(record: TesterImageHistoryR
     const linkageId = record.runId || record.id;
     const withoutDuplicate = history.filter((existing) => (existing.runId || existing.id) !== linkageId);
     const next = [normalizeRecord(record), ...withoutDuplicate].slice(0, 80);
+    await saveTesterImageHistory(next);
+    return next;
+  });
+}
+
+export async function removeTesterImageHistoryRecord(runId: string): Promise<TesterImageHistoryRecord[]> {
+  return enqueueImageHistoryMutation(async () => {
+    const history = await loadTesterImageHistory();
+    const next = history.filter((record) => (record.runId || record.id) !== runId);
+    await saveTesterImageHistory(next);
+    return next;
+  });
+}
+
+export async function clearTesterImageHistory(capabilityId?: string): Promise<TesterImageHistoryRecord[]> {
+  return enqueueImageHistoryMutation(async () => {
+    const history = await loadTesterImageHistory();
+    const next = capabilityId === undefined
+      ? []
+      : history.filter((record) => record.capabilityId !== capabilityId);
     await saveTesterImageHistory(next);
     return next;
   });

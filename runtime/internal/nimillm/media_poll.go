@@ -302,8 +302,8 @@ func PollProviderTaskForArtifact(
 			updater.UpdatePollState(jobID, providerJobID, retryCount, nil, statusText)
 			return nil, nil, providerJobID, providerTaskFailedError(statusText, pollResp)
 		}
-		artifactBytes, mimeType, _ := ExtractTaskArtifactBytesAndMIME(ctx, pollResp)
-		if len(artifactBytes) == 0 {
+		artifactBytes, mimeType, artifactURI := ExtractTaskArtifactSource(ctx, pollResp)
+		if len(artifactBytes) == 0 && strings.TrimSpace(artifactURI) == "" {
 			updater.UpdatePollState(jobID, providerJobID, retryCount, nil, runtimev1.ReasonCode_AI_OUTPUT_INVALID.String())
 			return nil, nil, providerJobID, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 		}
@@ -320,6 +320,9 @@ func PollProviderTaskForArtifact(
 		// envelopes remain call-local Host transport state. Only safe adapter
 		// metadata can cross into Driver response normalization.
 		artifactMeta := map[string]any{"adapter": adapter}
+		if artifactURI := strings.TrimSpace(artifactURI); artifactURI != "" {
+			artifactMeta["uri"] = artifactURI
+		}
 		for key, value := range extraArtifactMeta {
 			artifactMeta[key] = value
 		}

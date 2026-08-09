@@ -1957,6 +1957,12 @@ pub enum ReasonCode {
     APPSTORAGEENTRYNOTFOUND,
     APPSTORAGEQUOTAEXCEEDED,
     APPSTORAGEUNAVAILABLE,
+    APPSTORAGEENTRYALREADYEXISTS,
+    APPSTORAGEOBJECTTOOLARGE,
+    APPSTORAGERANGEINVALID,
+    APPSTORAGECURSORINVALID,
+    APPSTORAGEINTEGRITYFAILURE,
+    APPSTORAGEARTIFACTUNAVAILABLE,
     WORKSPACEBINDINGMISSING,
     WORKSPACEBINDINGMALFORMED,
     WORKSPACEBINDINGNOTFOUND,
@@ -3219,6 +3225,64 @@ impl AdmitProductControlReadyForUseRequest {
             panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client received undecodable response payload");
         }
         Self::default()
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct AdoptLocalAppArtifactRequest {
+    pub artifact_id: Option<String>,
+    pub relative_path: Option<String>,
+    pub overwrite: Option<bool>,
+}
+
+impl AdoptLocalAppArtifactRequest {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.artifact_id { pairs.push(format!("artifact_id={}", value)); }
+        if let Some(value) = &self.relative_path { pairs.push(format!("relative_path={}", value)); }
+        if let Some(value) = &self.overwrite { pairs.push(format!("overwrite={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+
+        out.artifact_id = pairs.get("artifact_id").cloned();
+        out.relative_path = pairs.get("relative_path").cloned();
+        out.overwrite = pairs.get("overwrite").and_then(|value| value.parse().ok());
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct AdoptLocalAppArtifactResponse {
+    pub asset: Option<Box<LocalAppAssetRecord>>,
+    pub reason_code: Option<ReasonCode>,
+}
+
+impl AdoptLocalAppArtifactResponse {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if self.asset.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode asset"); }
+        if let Some(value) = &self.reason_code { pairs.push(format!("reason_code={:?}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let out = Self::default();
+        for key in ["asset", "reason_code"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+        if !pairs.is_empty() {
+            panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client has no decoder for response fields");
+        }
+
+
+        out
     }
 }
 
@@ -14628,6 +14692,63 @@ impl ListLocalAppAgentReferencesResponse {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct ListLocalAppAssetsRequest {
+    pub prefix: Option<String>,
+    pub cursor: Option<String>,
+    pub page_size: Option<i32>,
+}
+
+impl ListLocalAppAssetsRequest {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.prefix { pairs.push(format!("prefix={}", value)); }
+        if let Some(value) = &self.cursor { pairs.push(format!("cursor={}", value)); }
+        if let Some(value) = &self.page_size { pairs.push(format!("page_size={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+
+        out.prefix = pairs.get("prefix").cloned();
+        out.cursor = pairs.get("cursor").cloned();
+        out.page_size = pairs.get("page_size").and_then(|value| value.parse().ok());
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ListLocalAppAssetsResponse {
+    pub assets: Vec<Box<LocalAppAssetRecord>>,
+    pub next_cursor: Option<String>,
+    pub reason_code: Option<ReasonCode>,
+}
+
+impl ListLocalAppAssetsResponse {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if !self.assets.is_empty() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode assets"); }
+        if let Some(value) = &self.next_cursor { pairs.push(format!("next_cursor={}", value)); }
+        if let Some(value) = &self.reason_code { pairs.push(format!("reason_code={:?}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        for key in ["assets", "reason_code"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+
+        out.next_cursor = pairs.get("next_cursor").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct ListLocalAppVoiceAssetsRequest {
     pub page_size: Option<i32>,
     pub page_token: Option<String>,
@@ -16242,6 +16363,69 @@ impl LocalAppAgentUpdateAutonomyResponse {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct LocalAppAssetRange {
+    pub offset: Option<i64>,
+    pub length: Option<i64>,
+    pub total_size: Option<i64>,
+}
+
+impl LocalAppAssetRange {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.offset { pairs.push(format!("offset={}", value)); }
+        if let Some(value) = &self.length { pairs.push(format!("length={}", value)); }
+        if let Some(value) = &self.total_size { pairs.push(format!("total_size={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+
+        out.offset = pairs.get("offset").and_then(|value| value.parse().ok());
+        out.length = pairs.get("length").and_then(|value| value.parse().ok());
+        out.total_size = pairs.get("total_size").and_then(|value| value.parse().ok());
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct LocalAppAssetRecord {
+    pub relative_path: Option<String>,
+    pub media_type: Option<String>,
+    pub size_bytes: Option<i64>,
+    pub sha256: Option<String>,
+    pub created_at: Option<String>,
+    pub updated_at: Option<String>,
+}
+
+impl LocalAppAssetRecord {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.relative_path { pairs.push(format!("relative_path={}", value)); }
+        if let Some(value) = &self.media_type { pairs.push(format!("media_type={}", value)); }
+        if let Some(value) = &self.size_bytes { pairs.push(format!("size_bytes={}", value)); }
+        if let Some(value) = &self.sha256 { pairs.push(format!("sha256={}", value)); }
+        if let Some(value) = &self.created_at { pairs.push(format!("created_at={}", value)); }
+        if let Some(value) = &self.updated_at { pairs.push(format!("updated_at={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+
+        out.relative_path = pairs.get("relative_path").cloned();
+        out.media_type = pairs.get("media_type").cloned();
+        out.size_bytes = pairs.get("size_bytes").and_then(|value| value.parse().ok());
+        out.sha256 = pairs.get("sha256").cloned();
+        out.created_at = pairs.get("created_at").cloned();
+        out.updated_at = pairs.get("updated_at").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct LocalAppConversationEvent {
     pub conversation_anchor_id: Option<String>,
     pub sequence: Option<u64>,
@@ -16666,6 +16850,7 @@ pub struct LocalAppScenarioJob {
     pub trace_id: Option<String>,
     pub created_at: Option<String>,
     pub updated_at: Option<String>,
+    pub transcription_text: Option<String>,
 }
 
 impl LocalAppScenarioJob {
@@ -16683,6 +16868,7 @@ impl LocalAppScenarioJob {
         if let Some(value) = &self.trace_id { pairs.push(format!("trace_id={}", value)); }
         if let Some(value) = &self.created_at { pairs.push(format!("created_at={}", value)); }
         if let Some(value) = &self.updated_at { pairs.push(format!("updated_at={}", value)); }
+        if let Some(value) = &self.transcription_text { pairs.push(format!("transcription_text={}", value)); }
         pairs.join(";").into_bytes()
     }
 
@@ -16703,6 +16889,7 @@ impl LocalAppScenarioJob {
         out.trace_id = pairs.get("trace_id").cloned();
         out.created_at = pairs.get("created_at").cloned();
         out.updated_at = pairs.get("updated_at").cloned();
+        out.transcription_text = pairs.get("transcription_text").cloned();
         out
     }
 }
@@ -21247,6 +21434,64 @@ impl ModelDescriptor {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct MoveLocalAppAssetRequest {
+    pub from_relative_path: Option<String>,
+    pub to_relative_path: Option<String>,
+    pub overwrite: Option<bool>,
+}
+
+impl MoveLocalAppAssetRequest {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.from_relative_path { pairs.push(format!("from_relative_path={}", value)); }
+        if let Some(value) = &self.to_relative_path { pairs.push(format!("to_relative_path={}", value)); }
+        if let Some(value) = &self.overwrite { pairs.push(format!("overwrite={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+
+        out.from_relative_path = pairs.get("from_relative_path").cloned();
+        out.to_relative_path = pairs.get("to_relative_path").cloned();
+        out.overwrite = pairs.get("overwrite").and_then(|value| value.parse().ok());
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct MoveLocalAppAssetResponse {
+    pub asset: Option<Box<LocalAppAssetRecord>>,
+    pub reason_code: Option<ReasonCode>,
+}
+
+impl MoveLocalAppAssetResponse {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if self.asset.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode asset"); }
+        if let Some(value) = &self.reason_code { pairs.push(format!("reason_code={:?}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let out = Self::default();
+        for key in ["asset", "reason_code"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+        if !pairs.is_empty() {
+            panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client has no decoder for response fields");
+        }
+
+
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct MusicGenerateResult {
     pub artifacts: Vec<Box<ScenarioArtifact>>,
 }
@@ -22990,6 +23235,95 @@ impl ReadLocalAppArtifactResponse {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct ReadLocalAppAssetMetadata {
+    pub asset: Option<Box<LocalAppAssetRecord>>,
+    pub range: Option<Box<LocalAppAssetRange>>,
+}
+
+impl ReadLocalAppAssetMetadata {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let pairs: Vec<String> = Vec::new();
+        if self.asset.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode asset"); }
+        if self.range.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode range"); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let out = Self::default();
+        for key in ["asset", "range"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+        if !pairs.is_empty() {
+            panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client has no decoder for response fields");
+        }
+
+
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ReadLocalAppAssetRequest {
+    pub relative_path: Option<String>,
+    pub offset: Option<i64>,
+    pub length: Option<i64>,
+}
+
+impl ReadLocalAppAssetRequest {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.relative_path { pairs.push(format!("relative_path={}", value)); }
+        if let Some(value) = &self.offset { pairs.push(format!("offset={}", value)); }
+        if let Some(value) = &self.length { pairs.push(format!("length={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+
+        out.relative_path = pairs.get("relative_path").cloned();
+        out.offset = pairs.get("offset").and_then(|value| value.parse().ok());
+        out.length = pairs.get("length").and_then(|value| value.parse().ok());
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ReadLocalAppAssetResponse {
+    pub metadata: Option<Box<ReadLocalAppAssetMetadata>>,
+    pub body_chunk: Option<Vec<u8>>,
+}
+
+impl ReadLocalAppAssetResponse {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let pairs: Vec<String> = Vec::new();
+        if self.metadata.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode metadata"); }
+        if self.body_chunk.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode body_chunk"); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let out = Self::default();
+        for key in ["metadata", "body_chunk"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+        if !pairs.is_empty() {
+            panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client has no decoder for response fields");
+        }
+
+
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct ReadLocalAppStorageJsonRequest {
     pub relative_path: Option<String>,
 }
@@ -23957,6 +24291,55 @@ impl RemoveLinkResponse {
         }
 
 
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RemoveLocalAppAssetRequest {
+    pub relative_path: Option<String>,
+}
+
+impl RemoveLocalAppAssetRequest {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.relative_path { pairs.push(format!("relative_path={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+
+        out.relative_path = pairs.get("relative_path").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RemoveLocalAppAssetResponse {
+    pub removed: Option<bool>,
+    pub reason_code: Option<ReasonCode>,
+}
+
+impl RemoveLocalAppAssetResponse {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.removed { pairs.push(format!("removed={}", value)); }
+        if let Some(value) = &self.reason_code { pairs.push(format!("reason_code={:?}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        for key in ["reason_code"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+
+        out.removed = pairs.get("removed").and_then(|value| value.parse().ok());
         out
     }
 }
@@ -25921,6 +26304,7 @@ pub struct ScenarioJob {
     pub progress_percent: Option<i32>,
     pub progress_current_step: Option<i32>,
     pub progress_total_steps: Option<i32>,
+    pub transcription_text: Option<String>,
 }
 
 impl ScenarioJob {
@@ -25948,6 +26332,7 @@ impl ScenarioJob {
         if let Some(value) = &self.progress_percent { pairs.push(format!("progress_percent={}", value)); }
         if let Some(value) = &self.progress_current_step { pairs.push(format!("progress_current_step={}", value)); }
         if let Some(value) = &self.progress_total_steps { pairs.push(format!("progress_total_steps={}", value)); }
+        if let Some(value) = &self.transcription_text { pairs.push(format!("transcription_text={}", value)); }
         pairs.join(";").into_bytes()
     }
 
@@ -25972,6 +26357,7 @@ impl ScenarioJob {
         out.progress_percent = pairs.get("progress_percent").and_then(|value| value.parse().ok());
         out.progress_current_step = pairs.get("progress_current_step").and_then(|value| value.parse().ok());
         out.progress_total_steps = pairs.get("progress_total_steps").and_then(|value| value.parse().ok());
+        out.transcription_text = pairs.get("transcription_text").cloned();
         out
     }
 }
@@ -27534,6 +27920,58 @@ impl StartLocalServiceResponse {
         let pairs = parse_pairs(raw);
         let out = Self::default();
         for key in ["service"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+        if !pairs.is_empty() {
+            panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client has no decoder for response fields");
+        }
+
+
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct StatLocalAppAssetRequest {
+    pub relative_path: Option<String>,
+}
+
+impl StatLocalAppAssetRequest {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.relative_path { pairs.push(format!("relative_path={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+
+        out.relative_path = pairs.get("relative_path").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct StatLocalAppAssetResponse {
+    pub asset: Option<Box<LocalAppAssetRecord>>,
+    pub reason_code: Option<ReasonCode>,
+}
+
+impl StatLocalAppAssetResponse {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if self.asset.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode asset"); }
+        if let Some(value) = &self.reason_code { pairs.push(format!("reason_code={:?}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let out = Self::default();
+        for key in ["asset", "reason_code"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
             }
@@ -30854,6 +31292,95 @@ impl WriteAgentMemoryResponse {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct WriteLocalAppAssetMetadata {
+    pub relative_path: Option<String>,
+    pub media_type: Option<String>,
+    pub overwrite: Option<bool>,
+}
+
+impl WriteLocalAppAssetMetadata {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.relative_path { pairs.push(format!("relative_path={}", value)); }
+        if let Some(value) = &self.media_type { pairs.push(format!("media_type={}", value)); }
+        if let Some(value) = &self.overwrite { pairs.push(format!("overwrite={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+
+        out.relative_path = pairs.get("relative_path").cloned();
+        out.media_type = pairs.get("media_type").cloned();
+        out.overwrite = pairs.get("overwrite").and_then(|value| value.parse().ok());
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct WriteLocalAppAssetRequest {
+    pub metadata: Option<Box<WriteLocalAppAssetMetadata>>,
+    pub body_chunk: Option<Vec<u8>>,
+}
+
+impl WriteLocalAppAssetRequest {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let pairs: Vec<String> = Vec::new();
+        if self.metadata.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode metadata"); }
+        if self.body_chunk.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode body_chunk"); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let out = Self::default();
+        for key in ["metadata", "body_chunk"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+        if !pairs.is_empty() {
+            panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client has no decoder for response fields");
+        }
+
+
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct WriteLocalAppAssetResponse {
+    pub asset: Option<Box<LocalAppAssetRecord>>,
+    pub reason_code: Option<ReasonCode>,
+}
+
+impl WriteLocalAppAssetResponse {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if self.asset.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode asset"); }
+        if let Some(value) = &self.reason_code { pairs.push(format!("reason_code={:?}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let out = Self::default();
+        for key in ["asset", "reason_code"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+        if !pairs.is_empty() {
+            panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client has no decoder for response fields");
+        }
+
+
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct WriteLocalAppStorageJsonRequest {
     pub relative_path: Option<String>,
     pub json_value: Option<Vec<u8>>,
@@ -31048,6 +31575,18 @@ impl From<Vec<u8>> for AddLocalCapabilityConfigurationResponse {
 }
 
 impl From<Vec<u8>> for AdmitProductControlReadyForUseRequest {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for AdoptLocalAppArtifactRequest {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for AdoptLocalAppArtifactResponse {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
     }
@@ -33123,6 +33662,18 @@ impl From<Vec<u8>> for ListLocalAppAgentReferencesResponse {
     }
 }
 
+impl From<Vec<u8>> for ListLocalAppAssetsRequest {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for ListLocalAppAssetsResponse {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
 impl From<Vec<u8>> for ListLocalAppVoiceAssetsRequest {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
@@ -33424,6 +33975,18 @@ impl From<Vec<u8>> for LocalAppAgentReference {
 }
 
 impl From<Vec<u8>> for LocalAppAgentUpdateAutonomyResponse {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for LocalAppAssetRange {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for LocalAppAssetRecord {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
     }
@@ -34161,6 +34724,18 @@ impl From<Vec<u8>> for ModelDescriptor {
     }
 }
 
+impl From<Vec<u8>> for MoveLocalAppAssetRequest {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for MoveLocalAppAssetResponse {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
 impl From<Vec<u8>> for MusicGenerateResult {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
@@ -34503,6 +35078,24 @@ impl From<Vec<u8>> for ReadLocalAppArtifactResponse {
     }
 }
 
+impl From<Vec<u8>> for ReadLocalAppAssetMetadata {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for ReadLocalAppAssetRequest {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for ReadLocalAppAssetResponse {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
 impl From<Vec<u8>> for ReadLocalAppStorageJsonRequest {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
@@ -34690,6 +35283,18 @@ impl From<Vec<u8>> for RemoveLinkRequest {
 }
 
 impl From<Vec<u8>> for RemoveLinkResponse {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for RemoveLocalAppAssetRequest {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for RemoveLocalAppAssetResponse {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
     }
@@ -35379,6 +35984,18 @@ impl From<Vec<u8>> for StartLocalServiceResponse {
     }
 }
 
+impl From<Vec<u8>> for StatLocalAppAssetRequest {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for StatLocalAppAssetResponse {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
 impl From<Vec<u8>> for StopEngineRequest {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
@@ -35986,6 +36603,24 @@ impl From<Vec<u8>> for WriteAgentMemoryRequest {
 }
 
 impl From<Vec<u8>> for WriteAgentMemoryResponse {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for WriteLocalAppAssetMetadata {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for WriteLocalAppAssetRequest {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for WriteLocalAppAssetResponse {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
     }
@@ -37021,6 +37656,16 @@ where
         Ok(UploadLocalAppArtifactResponse::from_transport(&raw))
     }
 
+    pub fn adopt_local_app_artifact(&self, request: AdoptLocalAppArtifactRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<AdoptLocalAppArtifactResponse, T::Error> {
+        let raw = self.core.unary(CoreUnaryRequest {
+            method_id: "/nimi.runtime.v1.RuntimeAppService/AdoptLocalAppArtifact".to_string(),
+            metadata,
+            body: request.to_transport(),
+            timeout,
+        })?;
+        Ok(AdoptLocalAppArtifactResponse::from_transport(&raw))
+    }
+
     pub fn bind_local_app_process(&self, request: BindLocalAppProcessRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<BindLocalAppProcessResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
             method_id: "/nimi.runtime.v1.RuntimeAppService/BindLocalAppProcess".to_string(),
@@ -37041,6 +37686,26 @@ where
         Ok(GetAppStorageResponse::from_transport(&raw))
     }
 
+    pub fn list_local_app_assets(&self, request: ListLocalAppAssetsRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ListLocalAppAssetsResponse, T::Error> {
+        let raw = self.core.unary(CoreUnaryRequest {
+            method_id: "/nimi.runtime.v1.RuntimeAppService/ListLocalAppAssets".to_string(),
+            metadata,
+            body: request.to_transport(),
+            timeout,
+        })?;
+        Ok(ListLocalAppAssetsResponse::from_transport(&raw))
+    }
+
+    pub fn move_local_app_asset(&self, request: MoveLocalAppAssetRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<MoveLocalAppAssetResponse, T::Error> {
+        let raw = self.core.unary(CoreUnaryRequest {
+            method_id: "/nimi.runtime.v1.RuntimeAppService/MoveLocalAppAsset".to_string(),
+            metadata,
+            body: request.to_transport(),
+            timeout,
+        })?;
+        Ok(MoveLocalAppAssetResponse::from_transport(&raw))
+    }
+
     pub fn prepare_local_app_launch(&self, request: PrepareLocalAppLaunchRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<PrepareLocalAppLaunchResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
             method_id: "/nimi.runtime.v1.RuntimeAppService/PrepareLocalAppLaunch".to_string(),
@@ -37049,6 +37714,19 @@ where
             timeout,
         })?;
         Ok(PrepareLocalAppLaunchResponse::from_transport(&raw))
+    }
+
+    pub fn read_local_app_asset(&self, request: ReadLocalAppAssetRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<RuntimeTypedStream<T::Stream, ReadLocalAppAssetResponse>, T::Error>
+    where
+        T::Stream: CoreTypedStream,
+    {
+        let inner = self.core.server_stream(CoreStreamRequest {
+            method_id: "/nimi.runtime.v1.RuntimeAppService/ReadLocalAppAsset".to_string(),
+            metadata,
+            body: request.to_transport(),
+            timeout,
+        })?;
+        Ok(RuntimeTypedStream { inner, _response: std::marker::PhantomData })
     }
 
     pub fn read_local_app_storage_json(&self, request: ReadLocalAppStorageJsonRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ReadLocalAppStorageJsonResponse, T::Error> {
@@ -37071,6 +37749,16 @@ where
         Ok(RebindLocalAppProcessResponse::from_transport(&raw))
     }
 
+    pub fn remove_local_app_asset(&self, request: RemoveLocalAppAssetRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<RemoveLocalAppAssetResponse, T::Error> {
+        let raw = self.core.unary(CoreUnaryRequest {
+            method_id: "/nimi.runtime.v1.RuntimeAppService/RemoveLocalAppAsset".to_string(),
+            metadata,
+            body: request.to_transport(),
+            timeout,
+        })?;
+        Ok(RemoveLocalAppAssetResponse::from_transport(&raw))
+    }
+
     pub fn remove_local_app_storage_json(&self, request: RemoveLocalAppStorageJsonRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<RemoveLocalAppStorageJsonResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
             method_id: "/nimi.runtime.v1.RuntimeAppService/RemoveLocalAppStorageJson".to_string(),
@@ -37091,6 +37779,16 @@ where
         Ok(SendAppMessageResponse::from_transport(&raw))
     }
 
+    pub fn stat_local_app_asset(&self, request: StatLocalAppAssetRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<StatLocalAppAssetResponse, T::Error> {
+        let raw = self.core.unary(CoreUnaryRequest {
+            method_id: "/nimi.runtime.v1.RuntimeAppService/StatLocalAppAsset".to_string(),
+            metadata,
+            body: request.to_transport(),
+            timeout,
+        })?;
+        Ok(StatLocalAppAssetResponse::from_transport(&raw))
+    }
+
     pub fn subscribe_app_messages(&self, request: SubscribeAppMessagesRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<RuntimeTypedStream<T::Stream, AppMessageEvent>, T::Error>
     where
         T::Stream: CoreTypedStream,
@@ -37102,6 +37800,10 @@ where
             timeout,
         })?;
         Ok(RuntimeTypedStream { inner, _response: std::marker::PhantomData })
+    }
+
+    pub fn write_local_app_asset(&self, _request: WriteLocalAppAssetRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<WriteLocalAppAssetResponse, T::Error> {
+        panic!("SDK_RUNTIME_METHOD_UNAVAILABLE: Runtime method kind is not supported by the unary/server-stream core transport: /nimi.runtime.v1.RuntimeAppService/WriteLocalAppAsset");
     }
 
     pub fn write_local_app_storage_json(&self, request: WriteLocalAppStorageJsonRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<WriteLocalAppStorageJsonResponse, T::Error> {

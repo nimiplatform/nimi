@@ -30,6 +30,16 @@ type Domain string
 // vocabulary in an owner adapter.
 const AppOperationIDTextCandidateGenerate = "runtime.ai.text-candidate.generate"
 
+const (
+	AppOperationIDStorageAssetStat   = "runtime.app-storage.asset.stat"
+	AppOperationIDStorageAssetList   = "runtime.app-storage.asset.list"
+	AppOperationIDStorageAssetWrite  = "runtime.app-storage.asset.write"
+	AppOperationIDStorageAssetRead   = "runtime.app-storage.asset.read"
+	AppOperationIDStorageAssetRemove = "runtime.app-storage.asset.remove"
+	AppOperationIDStorageAssetMove   = "runtime.app-storage.asset.move"
+	AppOperationIDArtifactAdopt      = "runtime.ai.artifact.adopt-to-app-storage"
+)
+
 // Canonical operation identifiers for the scenario-consumption operation
 // family. Each literal is owned by the closed operation contract and carried
 // into the exact owner handoff.
@@ -50,6 +60,13 @@ const (
 	IngressStorageJSONRead
 	IngressStorageJSONWrite
 	IngressStorageJSONRemove
+	IngressStorageAssetStat
+	IngressStorageAssetList
+	IngressStorageAssetWrite
+	IngressStorageAssetRead
+	IngressStorageAssetRemove
+	IngressStorageAssetMove
+	IngressArtifactAdoptToStorage
 	IngressAppAIConfigGet
 	IngressAppAIConfigOverwrite
 	IngressRealmWorldCoreList
@@ -83,6 +100,13 @@ const (
 	OperationStorageJSONRead
 	OperationStorageJSONWrite
 	OperationStorageJSONRemove
+	OperationStorageAssetStat
+	OperationStorageAssetList
+	OperationStorageAssetWrite
+	OperationStorageAssetRead
+	OperationStorageAssetRemove
+	OperationStorageAssetMove
+	OperationArtifactAdoptToStorage
 	OperationAppAIConfigGet
 	OperationAppAIConfigOverwrite
 	OperationRealmWorldCoreList
@@ -125,6 +149,13 @@ var canonicalAppOperationContract = [...]contractRow{
 	{IngressStorageJSONRead, OperationStorageJSONRead, "runtime.app-storage.json.read", AuthorityClassBase, ""},
 	{IngressStorageJSONWrite, OperationStorageJSONWrite, "runtime.app-storage.json.write", AuthorityClassBase, ""},
 	{IngressStorageJSONRemove, OperationStorageJSONRemove, "runtime.app-storage.json.remove", AuthorityClassBase, ""},
+	{IngressStorageAssetStat, OperationStorageAssetStat, AppOperationIDStorageAssetStat, AuthorityClassBase, ""},
+	{IngressStorageAssetList, OperationStorageAssetList, AppOperationIDStorageAssetList, AuthorityClassBase, ""},
+	{IngressStorageAssetWrite, OperationStorageAssetWrite, AppOperationIDStorageAssetWrite, AuthorityClassBase, ""},
+	{IngressStorageAssetRead, OperationStorageAssetRead, AppOperationIDStorageAssetRead, AuthorityClassBase, ""},
+	{IngressStorageAssetRemove, OperationStorageAssetRemove, AppOperationIDStorageAssetRemove, AuthorityClassBase, ""},
+	{IngressStorageAssetMove, OperationStorageAssetMove, AppOperationIDStorageAssetMove, AuthorityClassBase, ""},
+	{IngressArtifactAdoptToStorage, OperationArtifactAdoptToStorage, AppOperationIDArtifactAdopt, AuthorityClassAppAccess, "runtime.consume"},
 	{IngressAppAIConfigGet, OperationAppAIConfigGet, "runtime.ai.app-config.get", AuthorityClassBase, ""},
 	{IngressAppAIConfigOverwrite, OperationAppAIConfigOverwrite, "runtime.ai.app-config.overwrite", AuthorityClassBase, ""},
 	{IngressRealmWorldCoreList, OperationRealmWorldCoreList, "realm.world-core.list", AuthorityClassAppAccess, "realm.data"},
@@ -199,7 +230,7 @@ func IsSupportedDomain(value string) bool {
 
 func validateContractRows(rows []contractRow) error {
 	if len(rows) != len(canonicalAppOperationContract) {
-		return fmt.Errorf("%w: expected twenty-nine rows", ErrContractInvalid)
+		return fmt.Errorf("%w: expected thirty-six rows", ErrContractInvalid)
 	}
 	seenIngress := make(map[Ingress]struct{}, len(rows))
 	seenOperation := make(map[Operation]struct{}, len(rows))

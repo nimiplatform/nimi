@@ -166,12 +166,18 @@ const (
 	ReasonCode_AI_LOCAL_SPEECH_HOST_INIT_FAILED               ReasonCode = 563
 	ReasonCode_AI_LOCAL_SPEECH_CAPABILITY_DOWNLOAD_FAILED     ReasonCode = 564
 	ReasonCode_AI_LOCAL_SPEECH_BUNDLE_DEGRADED                ReasonCode = 565
-	// APP_STORAGE family (566+). Exact protected local-app JSON operations
-	// never expose Runtime-owned roots or absolute paths.
-	ReasonCode_APP_STORAGE_PATH_INVALID    ReasonCode = 566
-	ReasonCode_APP_STORAGE_ENTRY_NOT_FOUND ReasonCode = 567
-	ReasonCode_APP_STORAGE_QUOTA_EXCEEDED  ReasonCode = 568
-	ReasonCode_APP_STORAGE_UNAVAILABLE     ReasonCode = 569
+	// APP_STORAGE family (566+). Exact protected local-app JSON and asset
+	// operations never expose Runtime-owned roots or absolute paths.
+	ReasonCode_APP_STORAGE_PATH_INVALID         ReasonCode = 566
+	ReasonCode_APP_STORAGE_ENTRY_NOT_FOUND      ReasonCode = 567
+	ReasonCode_APP_STORAGE_QUOTA_EXCEEDED       ReasonCode = 568
+	ReasonCode_APP_STORAGE_UNAVAILABLE          ReasonCode = 569
+	ReasonCode_APP_STORAGE_ENTRY_ALREADY_EXISTS ReasonCode = 581
+	ReasonCode_APP_STORAGE_OBJECT_TOO_LARGE     ReasonCode = 582
+	ReasonCode_APP_STORAGE_RANGE_INVALID        ReasonCode = 583
+	ReasonCode_APP_STORAGE_CURSOR_INVALID       ReasonCode = 584
+	ReasonCode_APP_STORAGE_INTEGRITY_FAILURE    ReasonCode = 585
+	ReasonCode_APP_STORAGE_ARTIFACT_UNAVAILABLE ReasonCode = 586
 	// WORKSPACE_BINDING family (570+)
 	ReasonCode_WORKSPACE_BINDING_MISSING             ReasonCode = 570
 	ReasonCode_WORKSPACE_BINDING_MALFORMED           ReasonCode = 571
@@ -469,6 +475,12 @@ var (
 		567: "APP_STORAGE_ENTRY_NOT_FOUND",
 		568: "APP_STORAGE_QUOTA_EXCEEDED",
 		569: "APP_STORAGE_UNAVAILABLE",
+		581: "APP_STORAGE_ENTRY_ALREADY_EXISTS",
+		582: "APP_STORAGE_OBJECT_TOO_LARGE",
+		583: "APP_STORAGE_RANGE_INVALID",
+		584: "APP_STORAGE_CURSOR_INVALID",
+		585: "APP_STORAGE_INTEGRITY_FAILURE",
+		586: "APP_STORAGE_ARTIFACT_UNAVAILABLE",
 		570: "WORKSPACE_BINDING_MISSING",
 		571: "WORKSPACE_BINDING_MALFORMED",
 		572: "WORKSPACE_BINDING_NOT_FOUND",
@@ -722,6 +734,12 @@ var (
 		"APP_STORAGE_ENTRY_NOT_FOUND":                          567,
 		"APP_STORAGE_QUOTA_EXCEEDED":                           568,
 		"APP_STORAGE_UNAVAILABLE":                              569,
+		"APP_STORAGE_ENTRY_ALREADY_EXISTS":                     581,
+		"APP_STORAGE_OBJECT_TOO_LARGE":                         582,
+		"APP_STORAGE_RANGE_INVALID":                            583,
+		"APP_STORAGE_CURSOR_INVALID":                           584,
+		"APP_STORAGE_INTEGRITY_FAILURE":                        585,
+		"APP_STORAGE_ARTIFACT_UNAVAILABLE":                     586,
 		"WORKSPACE_BINDING_MISSING":                            570,
 		"WORKSPACE_BINDING_MALFORMED":                          571,
 		"WORKSPACE_BINDING_NOT_FOUND":                          572,
@@ -1439,7 +1457,7 @@ const file_runtime_v1_common_proto_rawDesc = "" +
 	"\vreason_code\x18\x02 \x01(\x0e2\x1b.nimi.runtime.v1.ReasonCodeR\n" +
 	"reasonCode\x12\x1f\n" +
 	"\vaction_hint\x18\x03 \x01(\tR\n" +
-	"actionHint*\xaaL\n" +
+	"actionHint*\x80N\n" +
 	"\n" +
 	"ReasonCode\x12\x1b\n" +
 	"\x17REASON_CODE_UNSPECIFIED\x10\x00\x12\x13\n" +
@@ -1565,7 +1583,13 @@ const file_runtime_v1_common_proto_rawDesc = "" +
 	"\x18APP_STORAGE_PATH_INVALID\x10\xb6\x04\x12 \n" +
 	"\x1bAPP_STORAGE_ENTRY_NOT_FOUND\x10\xb7\x04\x12\x1f\n" +
 	"\x1aAPP_STORAGE_QUOTA_EXCEEDED\x10\xb8\x04\x12\x1c\n" +
-	"\x17APP_STORAGE_UNAVAILABLE\x10\xb9\x04\x12\x1e\n" +
+	"\x17APP_STORAGE_UNAVAILABLE\x10\xb9\x04\x12%\n" +
+	" APP_STORAGE_ENTRY_ALREADY_EXISTS\x10\xc5\x04\x12!\n" +
+	"\x1cAPP_STORAGE_OBJECT_TOO_LARGE\x10\xc6\x04\x12\x1e\n" +
+	"\x19APP_STORAGE_RANGE_INVALID\x10\xc7\x04\x12\x1f\n" +
+	"\x1aAPP_STORAGE_CURSOR_INVALID\x10\xc8\x04\x12\"\n" +
+	"\x1dAPP_STORAGE_INTEGRITY_FAILURE\x10\xc9\x04\x12%\n" +
+	" APP_STORAGE_ARTIFACT_UNAVAILABLE\x10\xca\x04\x12\x1e\n" +
 	"\x19WORKSPACE_BINDING_MISSING\x10\xba\x04\x12 \n" +
 	"\x1bWORKSPACE_BINDING_MALFORMED\x10\xbb\x04\x12 \n" +
 	"\x1bWORKSPACE_BINDING_NOT_FOUND\x10\xbc\x04\x12\x1e\n" +

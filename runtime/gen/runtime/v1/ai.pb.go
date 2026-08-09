@@ -6214,8 +6214,12 @@ type LocalAppScenarioJob struct {
 	TraceId             string                      `protobuf:"bytes,10,opt,name=trace_id,json=traceId,proto3" json:"trace_id,omitempty"`
 	CreatedAt           *timestamppb.Timestamp      `protobuf:"bytes,11,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
 	UpdatedAt           *timestamppb.Timestamp      `protobuf:"bytes,12,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
-	unknownFields       protoimpl.UnknownFields
-	sizeCache           protoimpl.SizeCache
+	// Bounded immutable speech-transcription result captured at Job completion.
+	// Empty for every non-transcription Job and never reconstructed by reading
+	// an artifact body.
+	TranscriptionText string `protobuf:"bytes,13,opt,name=transcription_text,json=transcriptionText,proto3" json:"transcription_text,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
 }
 
 func (x *LocalAppScenarioJob) Reset() {
@@ -6330,6 +6334,13 @@ func (x *LocalAppScenarioJob) GetUpdatedAt() *timestamppb.Timestamp {
 		return x.UpdatedAt
 	}
 	return nil
+}
+
+func (x *LocalAppScenarioJob) GetTranscriptionText() string {
+	if x != nil {
+		return x.TranscriptionText
+	}
+	return ""
 }
 
 // Trimmed voice asset catalog projection. Provider, model, provider voice
@@ -8374,8 +8385,12 @@ type ScenarioJob struct {
 	ProgressPercent     int32                       `protobuf:"varint,20,opt,name=progress_percent,json=progressPercent,proto3" json:"progress_percent,omitempty"`
 	ProgressCurrentStep int32                       `protobuf:"varint,21,opt,name=progress_current_step,json=progressCurrentStep,proto3" json:"progress_current_step,omitempty"`
 	ProgressTotalSteps  int32                       `protobuf:"varint,22,opt,name=progress_total_steps,json=progressTotalSteps,proto3" json:"progress_total_steps,omitempty"`
-	unknownFields       protoimpl.UnknownFields
-	sizeCache           protoimpl.SizeCache
+	// Runtime-owned immutable typed result state for speech transcription.
+	// It is projected independently from artifact bytes and does not imply Job
+	// persistence across Runtime restart.
+	TranscriptionText string `protobuf:"bytes,23,opt,name=transcription_text,json=transcriptionText,proto3" json:"transcription_text,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
 }
 
 func (x *ScenarioJob) Reset() {
@@ -8560,6 +8575,13 @@ func (x *ScenarioJob) GetProgressTotalSteps() int32 {
 		return x.ProgressTotalSteps
 	}
 	return 0
+}
+
+func (x *ScenarioJob) GetTranscriptionText() string {
+	if x != nil {
+		return x.TranscriptionText
+	}
+	return ""
 }
 
 type SubmitScenarioJobRequest struct {
@@ -10837,7 +10859,7 @@ const file_runtime_v1_ai_proto_rawDesc = "" +
 	"\vvoice_clone\x18\x05 \x01(\v2*.nimi.runtime.v1.LocalAppVoiceCloneJobSpecH\x00R\n" +
 	"voiceClone\x12P\n" +
 	"\fvoice_design\x18\x06 \x01(\v2+.nimi.runtime.v1.LocalAppVoiceDesignJobSpecH\x00R\vvoiceDesignB\x06\n" +
-	"\x04spec\"\xfa\x04\n" +
+	"\x04spec\"\xa9\x05\n" +
 	"\x13LocalAppScenarioJob\x12\x15\n" +
 	"\x06job_id\x18\x01 \x01(\tR\x05jobId\x12B\n" +
 	"\rscenario_type\x18\x02 \x01(\x0e2\x1d.nimi.runtime.v1.ScenarioTypeR\fscenarioType\x12:\n" +
@@ -10854,7 +10876,8 @@ const file_runtime_v1_ai_proto_rawDesc = "" +
 	"\n" +
 	"created_at\x18\v \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x129\n" +
 	"\n" +
-	"updated_at\x18\f \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\"\xef\x02\n" +
+	"updated_at\x18\f \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\x12-\n" +
+	"\x12transcription_text\x18\r \x01(\tR\x11transcriptionText\"\xef\x02\n" +
 	"\x12LocalAppVoiceAsset\x12$\n" +
 	"\x0evoice_asset_id\x18\x01 \x01(\tR\fvoiceAssetId\x12G\n" +
 	"\rworkflow_type\x18\x02 \x01(\x0e2\".nimi.runtime.v1.VoiceWorkflowTypeR\fworkflowType\x129\n" +
@@ -11014,7 +11037,7 @@ const file_runtime_v1_ai_proto_rawDesc = "" +
 	"\x0esample_rate_hz\x18\v \x01(\x05R\fsampleRateHz\x12\x1a\n" +
 	"\bchannels\x18\f \x01(\x05R\bchannels\x12K\n" +
 	"\x10speech_alignment\x18\r \x01(\v2 .nimi.runtime.v1.SpeechAlignmentR\x0fspeechAlignment\x123\n" +
-	"\bmetadata\x18\x0e \x01(\v2\x17.google.protobuf.StructR\bmetadata\"\xad\t\n" +
+	"\bmetadata\x18\x0e \x01(\v2\x17.google.protobuf.StructR\bmetadata\"\xdc\t\n" +
 	"\vScenarioJob\x12\x15\n" +
 	"\x06job_id\x18\x01 \x01(\tR\x05jobId\x128\n" +
 	"\x04head\x18\x02 \x01(\v2$.nimi.runtime.v1.ScenarioRequestHeadR\x04head\x12B\n" +
@@ -11043,7 +11066,8 @@ const file_runtime_v1_ai_proto_rawDesc = "" +
 	"\x0freason_metadata\x18\x13 \x01(\v2\x17.google.protobuf.StructR\x0ereasonMetadata\x12)\n" +
 	"\x10progress_percent\x18\x14 \x01(\x05R\x0fprogressPercent\x122\n" +
 	"\x15progress_current_step\x18\x15 \x01(\x05R\x13progressCurrentStep\x120\n" +
-	"\x14progress_total_steps\x18\x16 \x01(\x05R\x12progressTotalSteps\"\xa8\x04\n" +
+	"\x14progress_total_steps\x18\x16 \x01(\x05R\x12progressTotalSteps\x12-\n" +
+	"\x12transcription_text\x18\x17 \x01(\tR\x11transcriptionText\"\xa8\x04\n" +
 	"\x18SubmitScenarioJobRequest\x128\n" +
 	"\x04head\x18\x01 \x01(\v2$.nimi.runtime.v1.ScenarioRequestHeadR\x04head\x12B\n" +
 	"\rscenario_type\x18\x02 \x01(\x0e2\x1d.nimi.runtime.v1.ScenarioTypeR\fscenarioType\x12E\n" +

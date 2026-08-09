@@ -10,6 +10,7 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/appstorage"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/localappkernel"
 	"github.com/nimiplatform/nimi/runtime/internal/protectedlocal"
@@ -77,6 +78,10 @@ type Service struct {
 	localDevelopmentArtifacts runtimeartifactservice.Store
 	localAppKernel            *localappkernel.Kernel
 	localAppStorageMu         sync.RWMutex
+	localAppAssetStoreOnce    sync.Once
+	localAppAssetStore        *appstorage.AssetStore
+	localAppAssetStoreErr     error
+	localAppAssetPolicy       appstorage.AssetPolicy
 	localAppSessionMu         sync.RWMutex
 	localAppSessions          map[*protectedlocal.LocalAppConnection]localAppRuntimeSession
 	localAppSessionEntropy    io.Reader
@@ -104,6 +109,12 @@ func WithClock(now func() time.Time) Option {
 func WithAppStorageDataRoot(dataRootRef string) Option {
 	return func(s *Service) {
 		s.appStorageDataRoot = strings.TrimSpace(dataRootRef)
+	}
+}
+
+func WithLocalAppAssetPolicy(policy appstorage.AssetPolicy) Option {
+	return func(s *Service) {
+		s.localAppAssetPolicy = policy
 	}
 }
 

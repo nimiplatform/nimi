@@ -321,6 +321,11 @@ function fakeLocalAppClient(overrides = {}) {
         list: overrides.listVoiceAssets ?? unavailable('voiceAssets.list'),
       },
     },
+    storage: {
+      assets: {
+        adoptArtifact: overrides.adoptArtifact ?? unavailable('storage.assets.adoptArtifact'),
+      },
+    },
   };
 }
 
@@ -364,7 +369,20 @@ const MEDIA_HAPPY_CASES = [
 for (const [capabilityId, runnerName, mimeType, previewUrl] of MEDIA_HAPPY_CASES) {
   test(`Tester ${capabilityId} assembles the Local App Scenario Job adapter and projects artifact preview`, async () => {
     const { runTesterCapability } = await importTesterRuntime();
-    const client = fakeLocalAppClient();
+    const adoptionCalls = [];
+    const client = fakeLocalAppClient({
+      async adoptArtifact(input) {
+        adoptionCalls.push(input);
+        return {
+          relativePath: input.relativePath,
+          mediaType: mimeType,
+          sizeBytes: 33 * 1024 * 1024,
+          sha256: `sha256:${'a'.repeat(64)}`,
+          createdAt: '2026-08-09T00:00:00.000Z',
+          updatedAt: '2026-08-09T00:00:00.000Z',
+        };
+      },
+    });
     const jobClient = { marker: `job-client:${capabilityId}` };
     const calls = [];
     const parameters = capabilityId === 'image.generate'
@@ -390,8 +408,18 @@ for (const [capabilityId, runnerName, mimeType, previewUrl] of MEDIA_HAPPY_CASES
 
     assert.equal(result.ok, true);
     assert.equal(result.output.kind, 'artifacts');
-    assert.equal(result.output.firstArtifact.url, previewUrl);
-    assert.equal(result.output.firstArtifact.mimeType, mimeType);
+    assert.equal(result.output.firstArtifact.mediaType, mimeType);
+    assert.equal(result.output.firstArtifact.sizeBytes, 33 * 1024 * 1024);
+    assert.equal(result.output.firstArtifact.sha256, `sha256:${'a'.repeat(64)}`);
+    assert.match(result.output.firstArtifact.relativePath, new RegExp(`^media/${capabilityId.replaceAll('.', '-')}/[0-9a-f]{64}\\.asset$`, 'u'));
+    assert.equal(result.output.firstArtifact.previewSource, 'managed-asset');
+    assert.equal('artifactId' in result.output.firstArtifact, false);
+    assert.equal('url' in result.output.firstArtifact, false);
+    assert.deepEqual(adoptionCalls, [{
+      artifactId: `artifact:${capabilityId}`,
+      relativePath: result.output.firstArtifact.relativePath,
+      overwrite: false,
+    }]);
     assert.equal(calls.length, 1);
     if (capabilityId === 'image.generate') {
       assert.equal(calls[0].negativePrompt, 'no fog');
@@ -418,12 +446,23 @@ for (const [capabilityId, runnerName, mimeType, previewUrl] of MEDIA_HAPPY_CASES
   });
 }
 
-test('Tester hydrates a metadata-only video artifact through the admitted Local App artifact reader', async () => {
+test('Tester adopts metadata-only video without reading the source artifact body', async () => {
   const { runTesterCapability } = await importTesterRuntime();
+  let readCalls = 0;
   const client = fakeLocalAppClient({
-    async readArtifact(artifactId) {
-      assert.equal(artifactId, 'artifact:video.generate');
-      return { bytes: Uint8Array.from([1, 2, 3]), mimeType: 'video/mp4', sizeBytes: 3 };
+    async readArtifact() {
+      readCalls += 1;
+      throw new Error('source artifact body must not be read');
+    },
+    async adoptArtifact(input) {
+      return {
+        relativePath: input.relativePath,
+        mediaType: 'video/mp4',
+        sizeBytes: 35 * 1024 * 1024,
+        sha256: `sha256:${'b'.repeat(64)}`,
+        createdAt: '2026-08-09T00:00:00.000Z',
+        updatedAt: '2026-08-09T00:00:00.000Z',
+      };
     },
   });
   const result = await runTesterCapability({
@@ -440,14 +479,19 @@ test('Tester hydrates a metadata-only video artifact through the admitted Local 
 
   assert.equal(result.ok, true);
   assert.equal(result.output.kind, 'artifacts');
-  assert.equal(result.output.firstArtifact.previewSource, 'inline-bytes');
-  assert.equal(result.output.firstArtifact.sizeBytes, 3);
-  assert.equal(result.output.firstArtifact.url, `data:video/mp4;base64,${btoa(String.fromCharCode(1, 2, 3))}`);
+  assert.equal(result.output.firstArtifact.previewSource, 'managed-asset');
+  assert.equal(result.output.firstArtifact.sizeBytes, 35 * 1024 * 1024);
+  assert.equal(result.output.firstArtifact.mediaType, 'video/mp4');
+  assert.equal(readCalls, 0);
 });
 
-test('Tester preserves metadata-only success when artifact bytes cannot be read', async () => {
+test('Tester reports unavailable when adoption fails and never falls back to artifact read', async () => {
   const { runTesterCapability } = await importTesterRuntime();
-  const client = fakeLocalAppClient();
+  let readCalls = 0;
+  const client = fakeLocalAppClient({
+    async readArtifact() { readCalls += 1; },
+    async adoptArtifact() { throw new Error('adoption unavailable'); },
+  });
   const result = await runTesterCapability({
     capabilityId: 'video.generate',
     prompt: 'ocean wave',
@@ -460,10 +504,9 @@ test('Tester preserves metadata-only success when artifact bytes cannot be read'
     },
   }));
 
-  assert.equal(result.ok, true);
-  assert.equal(result.output.kind, 'artifacts');
-  assert.equal(result.output.firstArtifact.previewSource, 'metadata-only');
-  assert.equal(result.output.firstArtifact.url, undefined);
+  assert.equal(result.ok, false);
+  assert.equal(result.reason, 'runtime-call-failed');
+  assert.equal(readCalls, 0);
 });
 
 test('Tester text.generate projects the protected Local App candidate happy path without sampling fallbacks', async () => {
