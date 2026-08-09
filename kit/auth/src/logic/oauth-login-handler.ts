@@ -2,15 +2,16 @@
 // Generic OAuth login handler
 // ---------------------------------------------------------------------------
 
-import type { ShellOAuthBridge } from '@nimiplatform/kit/core/oauth';
+import type { ShellOAuthCodeBridge } from '@nimiplatform/kit/core/oauth';
+import type { NimiRealmOAuthLoginInput } from '@nimiplatform/kit/core/sdk-contract';
 import type { SocialOauthProvider } from './social-oauth.js';
 import { resolveProviderLabel, startSocialOauth } from './social-oauth.js';
 import { toErrorMessage } from './oauth-helpers.js';
 
 export type OAuthLoginInput = {
   provider: SocialOauthProvider;
-  bridge: ShellOAuthBridge;
-  oauthLogin: (provider: string, accessToken: string) => Promise<Record<string, unknown>>;
+  bridge: ShellOAuthCodeBridge;
+  oauthLogin: (input: NimiRealmOAuthLoginInput) => Promise<Record<string, unknown>>;
   onSuccess: (result: {
     accessToken: string;
     refreshToken?: string;
@@ -24,10 +25,7 @@ export async function handleSocialLogin(input: OAuthLoginInput): Promise<void> {
   try {
     const oauthResult = await startSocialOauth(input.provider, input.bridge);
 
-    const data = await input.oauthLogin(
-      oauthResult.provider,
-      oauthResult.accessToken,
-    );
+    const data = await input.oauthLogin(oauthResult);
 
     const loginState = String(data.loginState || '');
     if (loginState === 'blocked') {

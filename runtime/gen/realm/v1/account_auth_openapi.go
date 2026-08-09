@@ -66,32 +66,20 @@ var RefreshTokenOperation = OperationDescriptor{
 }
 
 type OauthAuthorizeQuery struct {
-	FreshOauthAccountHint string `url:"fresh_oauth_account_hint,omitempty"`
-	FreshOauthProof       string `url:"fresh_oauth_proof,omitempty"`
-	FreshOauthStartedAt   string `url:"fresh_oauth_started_at,omitempty"`
-	PresenceNonce         string `url:"presence_nonce,omitempty"`
-	PresencePurpose       string `url:"presence_purpose,omitempty"`
-	Prompt                string `url:"prompt,omitempty"`
-	ResponseType          string `url:"response_type,omitempty"`
-	Scope                 string `url:"scope,omitempty"`
-	State                 string `url:"state"`
-	CodeChallengeMethod   string `url:"code_challenge_method"`
-	CodeChallenge         string `url:"code_challenge"`
-	RedirectUri           string `url:"redirect_uri"`
-	ClientId              string `url:"client_id"`
+	PresenceNonce       string `url:"presence_nonce,omitempty"`
+	PresencePurpose     string `url:"presence_purpose,omitempty"`
+	Prompt              string `url:"prompt,omitempty"`
+	ResponseType        string `url:"response_type,omitempty"`
+	Scope               string `url:"scope,omitempty"`
+	State               string `url:"state"`
+	CodeChallengeMethod string `url:"code_challenge_method"`
+	CodeChallenge       string `url:"code_challenge"`
+	RedirectUri         string `url:"redirect_uri"`
+	ClientId            string `url:"client_id"`
 }
 
 func (carrier OauthAuthorizeQuery) Values() url.Values {
 	values := url.Values{}
-	if carrier.FreshOauthAccountHint != "" {
-		values.Set("fresh_oauth_account_hint", carrier.FreshOauthAccountHint)
-	}
-	if carrier.FreshOauthProof != "" {
-		values.Set("fresh_oauth_proof", carrier.FreshOauthProof)
-	}
-	if carrier.FreshOauthStartedAt != "" {
-		values.Set("fresh_oauth_started_at", carrier.FreshOauthStartedAt)
-	}
 	if carrier.PresenceNonce != "" {
 		values.Set("presence_nonce", carrier.PresenceNonce)
 	}
@@ -118,12 +106,18 @@ func (carrier OauthAuthorizeQuery) Values() url.Values {
 type AccountStatus string
 
 const (
-	AccountStatusONBOARDING   AccountStatus = "ONBOARDING"
-	AccountStatusCHECKINVITED AccountStatus = "CHECK_INVITED"
-	AccountStatusACTIVE       AccountStatus = "ACTIVE"
-	AccountStatusSUSPENDED    AccountStatus = "SUSPENDED"
-	AccountStatusBANNED       AccountStatus = "BANNED"
+	AccountStatusONBOARDING AccountStatus = "ONBOARDING"
+	AccountStatusACTIVE     AccountStatus = "ACTIVE"
+	AccountStatusSUSPENDED  AccountStatus = "SUSPENDED"
+	AccountStatusBANNED     AccountStatus = "BANNED"
 )
+
+type AuthErrorDto struct {
+	Message    string  `json:"message"`
+	ReasonCode string  `json:"reasonCode"`
+	StatusCode float64 `json:"statusCode"`
+	TraceId    string  `json:"traceId"`
+}
 
 type AuthTokensDto struct {
 	AccessToken  string       `json:"accessToken"`
@@ -195,6 +189,15 @@ const (
 	GenderNONBINARY    Gender = "NONBINARY"
 	GenderPREFERNOTSAY Gender = "PREFER_NOT_SAY"
 )
+
+type OAuthErrorResponseDto struct {
+	Error            string  `json:"error"`
+	ErrorDescription string  `json:"error_description,omitempty"`
+	Message          string  `json:"message"`
+	ReasonCode       string  `json:"reasonCode"`
+	StatusCode       float64 `json:"statusCode"`
+	TraceId          string  `json:"traceId"`
+}
 
 type OAuthTokenRequestDto struct {
 	ClientId     string `json:"client_id"`

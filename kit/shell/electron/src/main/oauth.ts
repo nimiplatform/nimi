@@ -38,12 +38,9 @@ export async function exchangeElectronOauthToken(
     code_verifier: codeVerifier,
     redirect_uri: redirectUri,
   });
-  if (provider === 'TIKTOK') {
-    body.set('client_key', clientId);
-  }
   const fetcher = host?.oauthTokenExchangeFetch ?? defaultElectronOauthTokenExchangeFetch;
   let response: Awaited<ReturnType<typeof fetcher>>;
-  const url = electronOauthTokenExchangeUrl(provider);
+  const url = electronOauthTokenExchangeUrl();
   try {
     response = await fetcher(url, {
       method: 'POST',
@@ -226,14 +223,14 @@ function parseElectronExternalUrl(value: string, command: string): URL {
     details: { command, url: parsed.toString() },
   });
 }
-type ElectronOauthTokenExchangeProvider = 'CODEX' | 'TWITTER' | 'TIKTOK';
+type ElectronOauthTokenExchangeProvider = 'CODEX';
 
 function parseElectronOauthTokenExchangeProvider(
   value: unknown,
   command: string,
 ): ElectronOauthTokenExchangeProvider {
   const provider = normalizeText(value).toUpperCase();
-  if (provider === 'CODEX' || provider === 'TWITTER' || provider === 'TIKTOK') {
+  if (provider === 'CODEX') {
     return provider;
   }
   throw new NimiElectronShellHostError({
@@ -245,14 +242,8 @@ function parseElectronOauthTokenExchangeProvider(
   });
 }
 
-function electronOauthTokenExchangeUrl(provider: ElectronOauthTokenExchangeProvider): string {
-  if (provider === 'CODEX') {
-    return 'https://auth.openai.com/oauth/token';
-  }
-  if (provider === 'TWITTER') {
-    return 'https://api.twitter.com/2/oauth2/token';
-  }
-  return 'https://open.tiktokapis.com/v2/oauth/token/';
+function electronOauthTokenExchangeUrl(): string {
+  return 'https://auth.openai.com/oauth/token';
 }
 
 async function defaultElectronOauthTokenExchangeFetch(

@@ -2,7 +2,7 @@
 // Social OAuth — parameterized on the standard shell OAuth bridge
 // ---------------------------------------------------------------------------
 
-import type { ShellOAuthBridge } from '@nimiplatform/kit/core/oauth';
+import type { ShellOAuthCodeBridge } from '@nimiplatform/kit/core/oauth';
 import {
   createDesktopCallbackRedirectUri,
   createDesktopCallbackState,
@@ -12,16 +12,14 @@ import {
 } from './oauth-helpers.js';
 
 const DEFAULT_AUTHORIZE_URL: Record<SocialOauthProvider, string> = {
-  TWITTER: 'https://twitter.com/i/oauth2/authorize',
   TIKTOK: 'https://www.tiktok.com/v2/auth/authorize/',
 };
 
 const DEFAULT_SCOPE: Record<SocialOauthProvider, string> = {
-  TWITTER: 'tweet.read users.read offline.access',
   TIKTOK: 'user.info.basic',
 };
 
-export type SocialOauthProvider = 'TWITTER' | 'TIKTOK';
+export type SocialOauthProvider = 'TIKTOK';
 
 export type SocialOauthConfig = {
   provider: SocialOauthProvider;
@@ -36,8 +34,9 @@ export type SocialOauthConfig = {
 
 type SocialOauthResult = {
   provider: SocialOauthProvider;
-  accessToken: string;
-  refreshToken?: string;
+  code: string;
+  codeVerifier: string;
+  redirectUri: string;
 };
 
 function readProviderEnv(provider: SocialOauthProvider, suffix: string): string {
@@ -68,11 +67,11 @@ function parseExtra(value: string): Record<string, string> {
 }
 
 export function resolveProviderLabel(provider: SocialOauthProvider): string {
-  return provider === 'TWITTER' ? 'Twitter' : 'TikTok';
+  return provider === 'TIKTOK' ? 'TikTok' : provider;
 }
 
 export function toOauthProvider(provider: SocialOauthProvider): string {
-  return provider === 'TWITTER' ? 'TWITTER' : 'TIKTOK';
+  return provider;
 }
 
 function normalizeProviderUrl(value: string, fallback: string): string {
@@ -93,7 +92,7 @@ function normalizeProviderUrl(value: string, fallback: string): string {
 
 export function resolveSocialOauthConfig(
   provider: SocialOauthProvider,
-  bridge: ShellOAuthBridge,
+  bridge: ShellOAuthCodeBridge,
 ): SocialOauthConfig {
   const label = resolveProviderLabel(provider);
   const clientId = readProviderEnv(provider, 'CLIENT_ID').trim();
@@ -165,7 +164,7 @@ function buildAuthorizeUrl(input: {
   url.searchParams.set('state', input.state);
   url.searchParams.set('code_challenge', input.codeChallenge);
   url.searchParams.set('code_challenge_method', 'S256');
-  if (input.config.provider === 'TIKTOK' && !url.searchParams.has('client_key')) {
+  if (!url.searchParams.has('client_key')) {
     url.searchParams.set('client_key', input.config.clientId);
   }
   for (const [key, value] of Object.entries(input.config.authorizeExtra)) {
@@ -177,7 +176,7 @@ function buildAuthorizeUrl(input: {
 
 export async function startSocialOauth(
   provider: SocialOauthProvider,
-  bridge: ShellOAuthBridge,
+  bridge: ShellOAuthCodeBridge,
 ): Promise<SocialOauthResult> {
   const config = resolveSocialOauthConfig(provider, bridge);
   if (!config.enabled) {
@@ -225,18 +224,11 @@ export async function startSocialOauth(
       throw new Error(`${config.label} OAuth callback missing code`);
     }
 
-    const exchange = await bridge.oauthTokenExchange({
+    return {
       provider,
-      clientId: config.clientId,
       code,
       codeVerifier,
       redirectUri: callbackUrl,
-    });
-
-    return {
-      provider,
-      accessToken: exchange.accessToken,
-      refreshToken: exchange.refreshToken,
     };
   } catch (error) {
     throw new Error(toDesktopBrowserAuthErrorMessage(error), { cause: error });

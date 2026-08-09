@@ -39,7 +39,7 @@ function withOpenApiNullable(schema, source) {
   return source?.nullable === true ? { ...schema, nullable: true } : schema;
 }
 
-function parseOpenApiSchema(schema) {
+export function parseOpenApiSchema(schema) {
   if (!schema || typeof schema !== 'object') {
     return { kind: 'unknown' };
   }
@@ -49,7 +49,7 @@ function parseOpenApiSchema(schema) {
   if (schema.enum) {
     return withOpenApiNullable({
       kind: 'enum',
-      values: schema.enum.map(String),
+      values: [...schema.enum],
       type: schema.type || 'string',
     }, schema);
   }

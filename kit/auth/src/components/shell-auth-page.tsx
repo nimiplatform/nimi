@@ -294,13 +294,11 @@ export function ShellAuthPage(props: ShellAuthPageProps) {
                     pending={flow.pending}
                     showAlternatives={flow.showAlternatives}
                     googleDisabledReason={t('Auth.comingSoon')}
-                    twitterDisabledReason={t('Auth.comingSoon')}
                     tikTokDisabledReason={t('Auth.comingSoon')}
                     onEmailChange={flow.setEmail}
                     onContinue={flow.handleInlineEmailContinue}
                     onAlternativeToggle={() => flow.setShowAlternatives((current) => !current)}
                     onGoogleLogin={flow.handleGoogleLogin}
-                    onTwitterLogin={flow.handleTwitterLogin}
                     onTikTokLogin={flow.handleTikTokLogin}
                     onWeb3Login={flow.handleWeb3Login}
                     testIds={{

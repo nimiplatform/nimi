@@ -8,7 +8,7 @@ export const AUTH_COPY = {
   googleInitFailed: 'Google 初始化失败，请重试。',
   googleScriptLoadFailed: '加载 Google 授权脚本失败，请稍后重试。',
   googleOAuthInitFailed: 'Google 授权初始化失败，请重试。',
-  googleAccessTokenMissing: 'Google 没有返回访问令牌',
+  googleIdTokenMissing: 'Google 没有返回身份令牌',
   desktopBrowserAuthUnsupported: '当前环境不支持浏览器授权回调',
   desktopBrowserOpenFailed: '无法打开系统浏览器',
   desktopBrowserStateInvalid: '网页登录回调 state 校验失败',

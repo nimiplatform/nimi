@@ -325,10 +325,11 @@ test('standalone scaffold creates a generic starter with rewritten identity', ()
     const electronMain = generated.read('src-electron/main.ts');
     assert.match(electronMain, /registerNimiElectronAppBridge/);
     assert.match(electronMain, /const allowedRendererUrls = \[rendererUrl\];/);
-    assert.match(electronMain, /allowedRendererUrls,\n    ipcMain,/);
+    assert.match(electronMain, /allowedRendererUrls,\n    assetMediaPlatform: \{ protocol, webRequest: session\.defaultSession\.webRequest, webContents \},\n    ipcMain,/);
     assert.match(electronMain, /isAllowedElectronRendererUrl\(url, allowedRendererUrls\)/);
     assert.equal(electronMain.match(/\[rendererUrl\]/g)?.length, 1);
-    assert.match(electronMain, /onProtectedSessionFailure: \(\) => app\.quit\(\)/);
+    assert.match(electronMain, /registerNimiElectronAppAssetProtocolScheme\(protocol\)/);
+    assert.doesNotMatch(electronMain, /onProtectedSessionFailure/);
     assert.doesNotMatch(electronMain, /runtimeEndpoint|sessionProof|launchTicket/);
     assert.match(generated.read('src-tauri/src/main.rs'), /RuntimeBridgeLocalAppHost::platform_default\(\)/);
     assert.equal(lock.managedFileHashes['src/shell/auth/auth-gate.tsx'].class, 'scaffold-managed glue');

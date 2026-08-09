@@ -18,7 +18,7 @@ export function loadGoogleScript(): Promise<void> {
     }
 
     const win = window as ShellAuthWindow;
-    if (win.google?.accounts?.oauth2?.initTokenClient) {
+    if (win.google?.accounts?.id?.initialize && win.google.accounts.id.prompt) {
       resolve();
       return;
     }
@@ -46,5 +46,48 @@ export function loadGoogleScript(): Promise<void> {
     };
     script.onerror = () => reject(new Error(AUTH_COPY.googleScriptLoadFailed));
     document.head.appendChild(script);
+  });
+}
+
+export async function requestGoogleIdToken(clientId: string): Promise<string> {
+  const normalizedClientId = String(clientId || '').trim();
+  if (!normalizedClientId) {
+    throw new Error(AUTH_COPY.googleClientIdMissing);
+  }
+  await loadGoogleScript();
+  const win = window as ShellAuthWindow;
+  const googleIdentity = win.google?.accounts?.id;
+  if (!googleIdentity?.initialize || !googleIdentity.prompt) {
+    throw new Error(AUTH_COPY.googleOAuthInitFailed);
+  }
+
+  return new Promise((resolve, reject) => {
+    let settled = false;
+    const fail = (message: string) => {
+      if (settled) return;
+      settled = true;
+      reject(new Error(message));
+    };
+    googleIdentity.initialize?.({
+      client_id: normalizedClientId,
+      callback: (response) => {
+        const idToken = String(response?.credential || '').trim();
+        if (!idToken) {
+          fail(AUTH_COPY.googleIdTokenMissing);
+          return;
+        }
+        if (settled) return;
+        settled = true;
+        resolve(idToken);
+      },
+    });
+    googleIdentity.prompt?.((notification) => {
+      if (
+        notification.isNotDisplayed?.()
+        || notification.isSkippedMoment?.()
+      ) {
+        fail(AUTH_COPY.googleInitFailed);
+      }
+    });
   });
 }

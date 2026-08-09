@@ -1,6 +1,7 @@
-import type { ShellOAuthBridge } from '@nimiplatform/kit/core/oauth';
+import type { ShellOAuthCodeBridge } from '@nimiplatform/kit/core/oauth';
 import type {
   NimiRealmAuthTokens,
+  NimiRealmOAuthLoginInput,
   NimiRealmOAuthLoginResult,
   RealmModel,
 } from '@nimiplatform/kit/core/sdk-contract';
@@ -19,10 +20,10 @@ export type AuthPlatformAdapter = {
   passwordLogin?: (identifier: string, password: string) => Promise<OAuthLoginResultDto>;
   requestEmailOtp: (email: string) => Promise<{ success: boolean; message?: string }>;
   verifyEmailOtp: (email: string, code: string) => Promise<OAuthLoginResultDto>;
-  verifyTwoFactor: (tempToken: string, code: string) => Promise<AuthTokensDto>;
+  verifyTwoFactor: (tempToken: string, code: string) => Promise<AuthTokensDto | null>;
   walletChallenge: (input: WalletChallengeInput) => Promise<WalletChallengeResult>;
   walletLogin: (input: WalletLoginInput) => Promise<OAuthLoginResultDto>;
-  oauthLogin: (provider: string, accessToken: string) => Promise<OAuthLoginResultDto>;
+  oauthLogin: (input: NimiRealmOAuthLoginInput) => Promise<OAuthLoginResultDto>;
   updatePassword: (newPassword: string) => Promise<void>;
   loadCurrentUser: () => Promise<Record<string, unknown> | null>;
 
@@ -43,15 +44,15 @@ export type AuthPlatformAdapter = {
     user?: Record<string, unknown> | null;
   }>;
 
-  // Social OAuth token-exchange bridge. Desktop-browser RuntimeAccountService
-  // login does not require or own this capability.
-  oauthBridge?: ShellOAuthBridge;
+  // Social OAuth authorization-code bridge. Realm owns provider token exchange.
+  oauthBridge?: ShellOAuthCodeBridge;
 
   // Data sync side effects (Desktop: loadChats/loadContacts; Relay: no-op)
   syncAfterLogin?: () => Promise<void>;
 
   // Login complete callback
   onLoginComplete?: () => Promise<void>;
+  completeBrowserSessionLogin?: () => boolean | Promise<boolean>;
 };
 
 // ---------------------------------------------------------------------------

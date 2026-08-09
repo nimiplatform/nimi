@@ -9,7 +9,6 @@ components:
     AccountStatus:
       enum:
         - ONBOARDING
-        - CHECK_INVITED
         - ACTIVE
         - SUSPENDED
         - BANNED
@@ -184,6 +183,69 @@ components:
       required:
         - tempToken
         - code
+      type: object
+    AuthErrorDto:
+      properties:
+        message:
+          type: string
+        reasonCode:
+          enum:
+            - AUTH_REQUIRED
+            - AUTH_INSUFFICIENT_SCOPE
+            - AUTH_INVALID_CREDENTIALS
+            - AUTH_INVALID_REQUEST
+            - AUTH_TOKEN_EXPIRED
+            - AUTH_TOKEN_VERIFICATION_UNAVAILABLE
+            - AUTH_INVALID_REFRESH_TOKEN
+            - AUTH_REFRESH_TOKEN_REVOKED
+            - AUTH_REFRESH_TOKEN_REPLAY_DETECTED
+            - AUTH_ACCOUNT_RESTRICTED
+            - AUTH_INVALID_TOKEN_TYPE
+            - AUTH_INVALID_2FA_TOKEN
+            - AUTH_INVALID_2FA_CODE
+            - AUTH_2FA_NOT_ENABLED
+            - AUTH_2FA_SETUP_EXPIRED
+            - AUTH_INVALID_WALLET_NONCE
+            - AUTH_INVALID_WALLET_SIGNATURE
+            - AUTH_WALLET_ADDRESS_REQUIRED
+            - AUTH_WALLET_MESSAGE_REQUIRED
+            - AUTH_WALLET_SIGNATURE_REQUIRED
+            - AUTH_WALLET_NONCE_REQUIRED
+            - AUTH_WALLET_CHALLENGE_UNAVAILABLE
+            - AUTH_INVALID_OAUTH_CREDENTIAL
+            - AUTH_OAUTH_PROVIDER_UNAVAILABLE
+            - AUTH_OAUTH_IDENTITY_NOT_FOUND
+            - AUTH_OAUTH_IDENTITY_CONFLICT
+            - AUTH_OAUTH_LAST_LOGIN_METHOD
+            - AUTH_CURRENT_PASSWORD_REQUIRED
+            - AUTH_INVALID_CURRENT_PASSWORD
+            - AUTH_PASSWORD_NOT_SET
+            - AUTH_HANDLE_UNAVAILABLE
+            - AUTH_EMAIL_ALREADY_IN_USE
+            - AUTH_EMAIL_OTP_EXPIRED
+            - AUTH_INVALID_EMAIL_OTP
+            - AUTH_EMAIL_OTP_UNAVAILABLE
+            - AUTH_RATE_LIMITED
+            - AUTH_SESSION_REVOCATION_UNAVAILABLE
+            - AUTH_ACCOUNT_NOT_FOUND
+          type: string
+        statusCode:
+          enum:
+            - 400
+            - 401
+            - 403
+            - 404
+            - 409
+            - 429
+            - 503
+          type: number
+        traceId:
+          type: string
+      required:
+        - statusCode
+        - message
+        - reasonCode
+        - traceId
       type: object
     AuthTokensDto:
       properties:
@@ -3396,7 +3458,6 @@ components:
             - $ref: '#/components/schemas/ChatLinkRefPayloadDto'
             - $ref: '#/components/schemas/ChatGiftPayloadDto'
             - $ref: '#/components/schemas/ChatFriendRequestPayloadDto'
-          type: object
         replyTo:
           $ref: '#/components/schemas/MessageReplyViewDto'
         senderId:
@@ -3541,11 +3602,14 @@ components:
           type: string
         expires_at:
           description: >-
-            JWT `exp` rendered as RFC3339 — informational only; the response
-            echoes the stored value (TTL invariant, K-AUTHN-006).
+            JWT `exp` rendered as RFC3339 — diagnostic only; Runtime validates
+            temporal claims and Realm does not compare it with the stored row.
+            The response echoes the stored value (TTL invariant, K-AUTHN-006).
           type: string
         issued_at:
-          description: JWT `iat` rendered as RFC3339 — MUST match the stored row.
+          description: >-
+            JWT `iat` rendered as RFC3339 — diagnostic only; Runtime validates
+            temporal claims and Realm does not compare it with the stored row.
           type: string
         issuer:
           description: JWT `iss` claim — issuer, MUST match the stored row.
@@ -3568,8 +3632,8 @@ components:
       properties:
         active:
           description: >-
-            true only when the session row exists, is not revoked, and `now <
-            expires_at`.
+            true only when the session row exists, subject/issuer/audience match
+            the stored row, and the row is not revoked.
           type: boolean
         expires_at:
           description: >-
@@ -3578,56 +3642,13 @@ components:
           type: string
         revoked:
           description: >-
-            true when the session row carries a `revoked_at` timestamp or any
-            presented claim diverges from the stored row.
+            true only when the matched session row carries a `revoked_at`
+            timestamp; missing or identity-mismatched rows use the non-revealing
+            unknown-session shape with revoked=false.
           type: boolean
       required:
         - active
         - revoked
-      type: object
-    InvitationCodeResponseDto:
-      properties:
-        code:
-          type: string
-        createdAt:
-          format: date-time
-          type: string
-        creatorId:
-          type: string
-        id:
-          type: string
-        usedAt:
-          nullable: true
-          type: string
-        usedByAccount:
-          allOf:
-            - $ref: '#/components/schemas/InvitationCodeUsedByAccountDto'
-          nullable: true
-          type: object
-        usedById:
-          nullable: true
-          type: string
-      required:
-        - id
-        - code
-        - creatorId
-        - createdAt
-      type: object
-    InvitationCodeUsedByAccountDto:
-      properties:
-        avatarUrl:
-          nullable: true
-          type: string
-        displayName:
-          nullable: true
-          type: string
-        handle:
-          nullable: true
-          type: string
-        id:
-          type: string
-      required:
-        - id
       type: object
     ListChatsResultDto:
       properties:
@@ -4203,7 +4224,6 @@ components:
             - $ref: '#/components/schemas/ChatLinkRefPayloadDto'
             - $ref: '#/components/schemas/ChatGiftPayloadDto'
             - $ref: '#/components/schemas/ChatFriendRequestPayloadDto'
-          type: object
         senderId:
           type: string
         text:
@@ -4277,7 +4297,6 @@ components:
             - $ref: '#/components/schemas/ChatLinkRefPayloadDto'
             - $ref: '#/components/schemas/ChatGiftPayloadDto'
             - $ref: '#/components/schemas/ChatFriendRequestPayloadDto'
-          type: object
         replyTo:
           $ref: '#/components/schemas/MessageReplyViewDto'
         senderId:
@@ -4479,13 +4498,85 @@ components:
           nullable: true
           type: string
       type: object
+    OAuthErrorResponseDto:
+      properties:
+        error:
+          enum:
+            - invalid_request
+            - invalid_grant
+            - unsupported_grant_type
+            - unsupported_response_type
+          type: string
+        error_description:
+          type: string
+        message:
+          type: string
+        reasonCode:
+          enum:
+            - AUTH_REQUIRED
+            - AUTH_INSUFFICIENT_SCOPE
+            - AUTH_INVALID_CREDENTIALS
+            - AUTH_INVALID_REQUEST
+            - AUTH_TOKEN_EXPIRED
+            - AUTH_TOKEN_VERIFICATION_UNAVAILABLE
+            - AUTH_INVALID_REFRESH_TOKEN
+            - AUTH_REFRESH_TOKEN_REVOKED
+            - AUTH_REFRESH_TOKEN_REPLAY_DETECTED
+            - AUTH_ACCOUNT_RESTRICTED
+            - AUTH_INVALID_TOKEN_TYPE
+            - AUTH_INVALID_2FA_TOKEN
+            - AUTH_INVALID_2FA_CODE
+            - AUTH_2FA_NOT_ENABLED
+            - AUTH_2FA_SETUP_EXPIRED
+            - AUTH_INVALID_WALLET_NONCE
+            - AUTH_INVALID_WALLET_SIGNATURE
+            - AUTH_WALLET_ADDRESS_REQUIRED
+            - AUTH_WALLET_MESSAGE_REQUIRED
+            - AUTH_WALLET_SIGNATURE_REQUIRED
+            - AUTH_WALLET_NONCE_REQUIRED
+            - AUTH_WALLET_CHALLENGE_UNAVAILABLE
+            - AUTH_INVALID_OAUTH_CREDENTIAL
+            - AUTH_OAUTH_PROVIDER_UNAVAILABLE
+            - AUTH_OAUTH_IDENTITY_NOT_FOUND
+            - AUTH_OAUTH_IDENTITY_CONFLICT
+            - AUTH_OAUTH_LAST_LOGIN_METHOD
+            - AUTH_CURRENT_PASSWORD_REQUIRED
+            - AUTH_INVALID_CURRENT_PASSWORD
+            - AUTH_PASSWORD_NOT_SET
+            - AUTH_HANDLE_UNAVAILABLE
+            - AUTH_EMAIL_ALREADY_IN_USE
+            - AUTH_EMAIL_OTP_EXPIRED
+            - AUTH_INVALID_EMAIL_OTP
+            - AUTH_EMAIL_OTP_UNAVAILABLE
+            - AUTH_RATE_LIMITED
+            - AUTH_SESSION_REVOCATION_UNAVAILABLE
+            - AUTH_ACCOUNT_NOT_FOUND
+          type: string
+        statusCode:
+          enum:
+            - 400
+            - 401
+            - 403
+            - 404
+            - 409
+            - 429
+            - 503
+          type: number
+        traceId:
+          type: string
+      required:
+        - statusCode
+        - message
+        - reasonCode
+        - traceId
+        - error
+      type: object
     OAuthLinkResponseDto:
       properties:
         provider:
           enum:
             - google
             - wechat
-            - twitter
             - tiktok
           type: string
         status:
@@ -4498,8 +4589,6 @@ components:
       type: object
     OAuthLoginDto:
       properties:
-        accessToken:
-          type: string
         code:
           type: string
         codeVerifier:
@@ -4510,7 +4599,6 @@ components:
           enum:
             - GOOGLE
             - WECHAT
-            - TWITTER
             - TIKTOK
           type: string
         redirectUri:
@@ -4545,7 +4633,6 @@ components:
       enum:
         - GOOGLE
         - WECHAT
-        - TWITTER
         - TIKTOK
       type: string
     OAuthTokenRequestDto:
@@ -7991,14 +8078,6 @@ components:
         - status
         - issues
       type: object
-    VerifyInvitationCodeDto:
-      properties:
-        invitationCode:
-          minLength: 6
-          type: string
-      required:
-        - invitationCode
-      type: object
     Visibility:
       enum:
         - PUBLIC
@@ -10006,7 +10085,14 @@ paths:
   /api/auth/2fa/verify:
     post:
       operationId: verify2Fa
-      parameters: []
+      parameters:
+        - in: header
+          name: x-nimi-auth-response
+          required: false
+          schema:
+            enum:
+              - browser-session
+            type: string
       requestBody:
         content:
           application/json:
@@ -10020,6 +10106,26 @@ paths:
               schema:
                 $ref: '#/components/schemas/AuthTokensDto'
           description: ''
+        '204':
+          description: Browser session established
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorDto'
+          description: Authentication request rejected
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorDto'
+          description: Authentication credential rejected
+        '429':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorDto'
+          description: Authentication rate limit exceeded
       summary: Verify 2FA
       tags:
         - Auth
@@ -10040,6 +10146,18 @@ paths:
               schema:
                 $ref: '#/components/schemas/CheckEmailResponseDto'
           description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorDto'
+          description: Authentication request rejected
+        '429':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorDto'
+          description: Authentication rate limit exceeded
       summary: Check email availability
       tags:
         - Auth
@@ -10060,13 +10178,32 @@ paths:
               schema:
                 $ref: '#/components/schemas/EmailOtpResponseDto'
           description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorDto'
+          description: Authentication request rejected
+        '429':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorDto'
+          description: Authentication rate limit exceeded
       summary: Request email OTP
       tags:
         - Auth
   /api/auth/email/otp/verify:
     post:
       operationId: verifyEmailOtp
-      parameters: []
+      parameters:
+        - in: header
+          name: x-nimi-auth-response
+          required: false
+          schema:
+            enum:
+              - browser-session
+            type: string
       requestBody:
         content:
           application/json:
@@ -10080,6 +10217,24 @@ paths:
               schema:
                 $ref: '#/components/schemas/OAuthLoginResultDto'
           description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorDto'
+          description: Authentication request rejected
+        '429':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorDto'
+          description: Authentication rate limit exceeded
+        '503':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorDto'
+          description: Authentication dependency unavailable
       summary: Verify email OTP and login
       tags:
         - Auth
@@ -10130,6 +10285,12 @@ paths:
                   - keys
                 type: object
           description: ''
+        '429':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorDto'
+          description: Authentication rate limit exceeded
       summary: Get JWKS
       tags:
         - Jwks
@@ -10207,6 +10368,12 @@ paths:
               schema:
                 example: no-cache
                 type: string
+        '429':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorDto'
+          description: Authentication rate limit exceeded
       summary: Get Realm source materialization verification JWKS
       tags:
         - Jwks
@@ -10223,6 +10390,30 @@ paths:
       responses:
         '204':
           description: Logout success
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorDto'
+          description: Authentication request rejected
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorDto'
+          description: Authentication credential rejected
+        '429':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorDto'
+          description: Authentication rate limit exceeded
+        '503':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorDto'
+          description: Authentication dependency unavailable
       summary: Logout
       tags:
         - Auth
@@ -10243,6 +10434,30 @@ paths:
               schema:
                 $ref: '#/components/schemas/Me2faOperationResultDto'
           description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorDto'
+          description: Authentication request rejected
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorDto'
+          description: Authentication credential rejected
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorDto'
+          description: Authenticated account or scope rejected
+        '429':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorDto'
+          description: Authentication rate limit exceeded
       security:
         - bearer: []
       summary: Disable 2FA
@@ -10265,6 +10480,30 @@ paths:
               schema:
                 $ref: '#/components/schemas/Me2faOperationResultDto'
           description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorDto'
+          description: Authentication request rejected
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorDto'
+          description: Authentication credential rejected
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorDto'
+          description: Authenticated account or scope rejected
+        '429':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorDto'
+          description: Authentication rate limit exceeded
       security:
         - bearer: []
       summary: Enable 2FA
@@ -10281,6 +10520,30 @@ paths:
               schema:
                 $ref: '#/components/schemas/Me2faPrepareResponseDto'
           description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorDto'
+          description: Authentication request rejected
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorDto'
+          description: Authentication credential rejected
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorDto'
+          description: Authenticated account or scope rejected
+        '429':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorDto'
+          description: Authentication rate limit exceeded
       security:
         - bearer: []
       summary: Prepare 2FA
@@ -10297,6 +10560,24 @@ paths:
               $ref: '#/components/schemas/RequestAccountDeletionDto'
         required: true
       responses:
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorDto'
+          description: Authentication credential rejected
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorDto'
+          description: Authenticated account or scope rejected
+        '429':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorDto'
+          description: Authentication rate limit exceeded
         '501':
           description: Account deletion backend is not implemented yet
       security:
@@ -10315,6 +10596,24 @@ paths:
               $ref: '#/components/schemas/RequestDataExportDto'
         required: true
       responses:
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorDto'
+          description: Authentication credential rejected
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorDto'
+          description: Authenticated account or scope rejected
+        '429':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorDto'
+          description: Authentication rate limit exceeded
         '501':
           description: Account data export backend is not implemented yet
       security:
@@ -10335,6 +10634,42 @@ paths:
       responses:
         '204':
           description: Email changed successfully
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorDto'
+          description: Authentication request rejected
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorDto'
+          description: Authentication credential rejected
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorDto'
+          description: Authenticated account or scope rejected
+        '409':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorDto'
+          description: Authentication state conflict
+        '429':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorDto'
+          description: Authentication rate limit exceeded
+        '503':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorDto'
+          description: Authentication dependency unavailable
       security:
         - bearer: []
       summary: Change email
@@ -10352,6 +10687,42 @@ paths:
       responses:
         '204':
           description: Email bound successfully
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorDto'
+          description: Authentication request rejected
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorDto'
+          description: Authentication credential rejected
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorDto'
+          description: Authenticated account or scope rejected
+        '409':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorDto'
+          description: Authentication state conflict
+        '429':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorDto'
+          description: Authentication rate limit exceeded
+        '503':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorDto'
+          description: Authentication dependency unavailable
       security:
         - bearer: []
       summary: Bind email
@@ -10370,6 +10741,36 @@ paths:
       responses:
         '204':
           description: Password updated successfully
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorDto'
+          description: Authentication request rejected
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorDto'
+          description: Authentication credential rejected
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorDto'
+          description: Authenticated account or scope rejected
+        '429':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorDto'
+          description: Authentication rate limit exceeded
+        '503':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorDto'
+          description: Authentication dependency unavailable
       security:
         - bearer: []
       summary: Update password
@@ -10379,21 +10780,6 @@ paths:
     get:
       operationId: oauthAuthorize
       parameters:
-        - in: query
-          name: fresh_oauth_account_hint
-          required: false
-          schema:
-            type: string
-        - in: query
-          name: fresh_oauth_proof
-          required: false
-          schema:
-            type: string
-        - in: query
-          name: fresh_oauth_started_at
-          required: false
-          schema:
-            type: string
         - in: query
           name: presence_nonce
           required: false
@@ -10455,6 +10841,18 @@ paths:
           description: >-
             Redirect to redirect_uri with code, or to login UI when
             unauthenticated.
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OAuthErrorResponseDto'
+          description: ''
+        '429':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorDto'
+          description: Authentication rate limit exceeded
       summary: OAuth authorize
       tags:
         - Auth
@@ -10475,6 +10873,42 @@ paths:
               schema:
                 $ref: '#/components/schemas/OAuthLinkResponseDto'
           description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorDto'
+          description: Authentication request rejected
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorDto'
+          description: Authentication credential rejected
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorDto'
+          description: Authenticated account or scope rejected
+        '409':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorDto'
+          description: Authentication state conflict
+        '429':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorDto'
+          description: Authentication rate limit exceeded
+        '503':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorDto'
+          description: Authentication dependency unavailable
       security:
         - bearer: []
       summary: Link OAuth
@@ -10483,7 +10917,14 @@ paths:
   /api/auth/oauth/login:
     post:
       operationId: oauthLogin
-      parameters: []
+      parameters:
+        - in: header
+          name: x-nimi-auth-response
+          required: false
+          schema:
+            enum:
+              - browser-session
+            type: string
       requestBody:
         content:
           application/json:
@@ -10497,6 +10938,30 @@ paths:
               schema:
                 $ref: '#/components/schemas/OAuthLoginResultDto'
           description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorDto'
+          description: Authentication request rejected
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorDto'
+          description: Authentication credential rejected
+        '429':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorDto'
+          description: Authentication rate limit exceeded
+        '503':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorDto'
+          description: Authentication dependency unavailable
       summary: OAuth login
       tags:
         - Auth
@@ -10517,6 +10982,18 @@ paths:
               schema:
                 $ref: '#/components/schemas/OAuthTokenResponseDto'
           description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OAuthErrorResponseDto'
+          description: ''
+        '429':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorDto'
+          description: Authentication rate limit exceeded
       summary: OAuth token exchange
       tags:
         - Auth
@@ -10532,6 +11009,36 @@ paths:
       responses:
         '204':
           description: OAuth unlinked
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorDto'
+          description: Authentication request rejected
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorDto'
+          description: Authentication credential rejected
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorDto'
+          description: Authenticated account or scope rejected
+        '409':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorDto'
+          description: Authentication state conflict
+        '429':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorDto'
+          description: Authentication rate limit exceeded
       security:
         - bearer: []
       summary: Unlink OAuth
@@ -10540,7 +11047,14 @@ paths:
   /api/auth/password/login:
     post:
       operationId: passwordLogin
-      parameters: []
+      parameters:
+        - in: header
+          name: x-nimi-auth-response
+          required: false
+          schema:
+            enum:
+              - browser-session
+            type: string
       requestBody:
         content:
           application/json:
@@ -10554,6 +11068,24 @@ paths:
               schema:
                 $ref: '#/components/schemas/OAuthLoginResultDto'
           description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorDto'
+          description: Authentication request rejected
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorDto'
+          description: Authentication credential rejected
+        '429':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorDto'
+          description: Authentication rate limit exceeded
       summary: Password login
       tags:
         - Auth
@@ -10574,6 +11106,24 @@ paths:
               schema:
                 $ref: '#/components/schemas/OAuthLoginResultDto'
           description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorDto'
+          description: Authentication request rejected
+        '409':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorDto'
+          description: Authentication state conflict
+        '429':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorDto'
+          description: Authentication rate limit exceeded
       summary: Password register
       tags:
         - Auth
@@ -10594,6 +11144,30 @@ paths:
               schema:
                 $ref: '#/components/schemas/AuthTokensDto'
           description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorDto'
+          description: Authentication request rejected
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorDto'
+          description: Authentication credential rejected
+        '429':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorDto'
+          description: Authentication rate limit exceeded
+        '503':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorDto'
+          description: Authentication dependency unavailable
       summary: Refresh token
       tags:
         - Auth
@@ -10620,6 +11194,12 @@ paths:
               schema:
                 $ref: '#/components/schemas/IntrospectSessionErrorDto'
           description: ''
+        '429':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorDto'
+          description: Authentication rate limit exceeded
       summary: Introspect session
       tags:
         - Auth
@@ -10640,13 +11220,38 @@ paths:
               schema:
                 $ref: '#/components/schemas/WalletChallengeResponseDto'
           description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorDto'
+          description: Authentication request rejected
+        '429':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorDto'
+          description: Authentication rate limit exceeded
+        '503':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorDto'
+          description: Authentication dependency unavailable
       summary: Wallet challenge
       tags:
         - Auth
   /api/auth/wallet/login:
     post:
       operationId: walletLogin
-      parameters: []
+      parameters:
+        - in: header
+          name: x-nimi-auth-response
+          required: false
+          schema:
+            enum:
+              - browser-session
+            type: string
       requestBody:
         content:
           application/json:
@@ -10660,6 +11265,30 @@ paths:
               schema:
                 $ref: '#/components/schemas/OAuthLoginResultDto'
           description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorDto'
+          description: Authentication request rejected
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorDto'
+          description: Authentication credential rejected
+        '429':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorDto'
+          description: Authentication rate limit exceeded
+        '503':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorDto'
+          description: Authentication dependency unavailable
       summary: Wallet login
       tags:
         - Auth
@@ -12868,6 +13497,36 @@ paths:
               schema:
                 $ref: '#/components/schemas/UserWalletDto'
           description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorDto'
+          description: Authentication request rejected
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorDto'
+          description: Authentication credential rejected
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorDto'
+          description: Authenticated account or scope rejected
+        '409':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorDto'
+          description: Authentication state conflict
+        '429':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorDto'
+          description: Authentication rate limit exceeded
       security:
         - bearer: []
       summary: Bind wallet
@@ -12890,6 +13549,30 @@ paths:
               schema:
                 $ref: '#/components/schemas/WalletPrepareBindResponseDto'
           description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorDto'
+          description: Authentication request rejected
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorDto'
+          description: Authentication credential rejected
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorDto'
+          description: Authenticated account or scope rejected
+        '429':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorDto'
+          description: Authentication rate limit exceeded
       security:
         - bearer: []
       summary: Prepare wallet bind
@@ -12907,6 +13590,30 @@ paths:
       responses:
         '204':
           description: Wallet unbound
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorDto'
+          description: Authentication credential rejected
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorDto'
+          description: Authenticated account or scope rejected
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorDto'
+          description: Authentication resource not found
+        '429':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorDto'
+          description: Authentication rate limit exceeded
       security:
         - bearer: []
       summary: Unbind wallet
@@ -13338,61 +14045,6 @@ paths:
       summary: Update a single visibility setting
       tags:
         - Visibility (V1)
-  /api/invitations:
-    get:
-      operationId: InvitationController_listMyCodes
-      parameters: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                items:
-                  $ref: '#/components/schemas/InvitationCodeResponseDto'
-                type: array
-          description: List of codes
-      security:
-        - bearer: []
-      summary: List my invitation codes
-      tags:
-        - Invitations
-    post:
-      operationId: InvitationController_generateCode
-      parameters: []
-      responses:
-        '201':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/InvitationCodeResponseDto'
-          description: Created code
-      security:
-        - bearer: []
-      summary: Generate a new invitation code
-      tags:
-        - Invitations
-  /api/invitations/verify:
-    post:
-      operationId: InvitationController_verifyCode
-      parameters: []
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/VerifyInvitationCodeDto'
-        required: true
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                type: boolean
-          description: Verification success
-      security:
-        - bearer: []
-      summary: Verify and redeem an invitation code
-      tags:
-        - Invitations
   /api/realm/core/oasis:
     get:
       operationId: WorldCoreController_getOasisWorld
@@ -13625,7 +14277,9 @@ paths:
         '401':
           description: Authentication required
         '403':
-          description: Access grant or source visibility denied
+          description: >-
+            Authenticated account or source visibility does not permit
+            materialization
         '409':
           description: Canonical source or dependency is stale or not ready
       security:

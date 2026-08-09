@@ -5,6 +5,7 @@ import { NIMI_REALM_OAUTH_PROVIDER } from '@nimiplatform/kit/core/sdk-contract';
 import {
   AuthViewMain,
   resolveSocialOauthConfig,
+  startSocialOauth,
   toOauthProvider,
 } from '@nimiplatform/kit/auth';
 
@@ -24,19 +25,18 @@ const desktopOAuthBridge = {
 
 describe('social OAuth config', () => {
   it('maps provider enum values correctly', () => {
-    expect(toOauthProvider('TWITTER')).toBe(NIMI_REALM_OAUTH_PROVIDER.TWITTER);
     expect(toOauthProvider('TIKTOK')).toBe(NIMI_REALM_OAUTH_PROVIDER.TIKTOK);
   });
 
   it('is disabled with an explicit reason when client id is missing', () => {
-    const previousClientId = process.env.VITE_NIMI_TWITTER_CLIENT_ID;
-    delete process.env.VITE_NIMI_TWITTER_CLIENT_ID;
+    const previousClientId = process.env.VITE_NIMI_TIKTOK_CLIENT_ID;
+    delete process.env.VITE_NIMI_TIKTOK_CLIENT_ID;
     try {
-      const config = resolveSocialOauthConfig('TWITTER', desktopOAuthBridge);
+      const config = resolveSocialOauthConfig('TIKTOK', desktopOAuthBridge);
       expect(config.enabled).toBe(false);
-      expect(config.disabledReason).toMatch(/Missing TWITTER OAuth client ID/);
+      expect(config.disabledReason).toMatch(/Missing TIKTOK OAuth client ID/);
     } finally {
-      process.env.VITE_NIMI_TWITTER_CLIENT_ID = previousClientId;
+      process.env.VITE_NIMI_TIKTOK_CLIENT_ID = previousClientId;
     }
   });
 
@@ -54,31 +54,72 @@ describe('social OAuth config', () => {
       process.env.VITE_NIMI_TIKTOK_SCOPE = previousScope;
     }
   });
+
+  it('returns the TikTok authorization proof for Realm without a shell token exchange', async () => {
+    const previousClientId = process.env.VITE_NIMI_TIKTOK_CLIENT_ID;
+    process.env.VITE_NIMI_TIKTOK_CLIENT_ID = 'tiktok-client-id';
+    const oauthTokenExchange = vi.fn(async () => ({ accessToken: 'unexpected', raw: {} }));
+    let resolveCallback: ((value: {
+      callbackUrl: string;
+      code: string;
+      state: string;
+    }) => void) | undefined;
+    try {
+      const bridge = {
+        hasShellHostInvoke: () => true,
+        oauthListenForCode: async () => new Promise((resolve) => {
+          resolveCallback = resolve;
+        }),
+        oauthTokenExchange,
+        openExternalUrl: async (value) => {
+          const authorizeUrl = new URL(value);
+          const redirectUri = authorizeUrl.searchParams.get('redirect_uri') || '';
+          const state = authorizeUrl.searchParams.get('state') || '';
+          resolveCallback?.({
+            callbackUrl: `${redirectUri}?code=authorization-code&state=${encodeURIComponent(state)}`,
+            code: 'authorization-code',
+            state,
+          });
+          return { opened: true };
+        },
+        focusMainWindow: async () => undefined,
+      };
+      const result = await startSocialOauth('TIKTOK', bridge);
+
+      expect(result).toMatchObject({
+        provider: NIMI_REALM_OAUTH_PROVIDER.TIKTOK,
+        code: 'authorization-code',
+      });
+      expect(result.redirectUri).toMatch(/^http:\/\/127\.0\.0\.1:/);
+      expect(result.codeVerifier).not.toBe('');
+      expect(oauthTokenExchange).not.toHaveBeenCalled();
+    } finally {
+      process.env.VITE_NIMI_TIKTOK_CLIENT_ID = previousClientId;
+    }
+  });
 });
 
 describe('AuthViewMain alternatives', () => {
-  it('renders google, twitter, tiktok, and web3 entry points', () => {
+  it('renders google, tiktok, and web3 entry points', () => {
     const markup = renderToStaticMarkup(
       <AuthViewMain
         email=""
         pending={false}
         showAlternatives
         googleDisabledReason="missing google"
-        twitterDisabledReason="missing twitter"
         tikTokDisabledReason="missing tiktok"
         onEmailChange={() => undefined}
         onContinue={() => undefined}
         onAlternativeToggle={() => undefined}
         onGoogleLogin={() => undefined}
-        onTwitterLogin={() => undefined}
         onTikTokLogin={() => undefined}
         onWeb3Login={() => undefined}
       />,
     );
 
     expect(markup).toContain('aria-label="Google unavailable: missing google"');
-    expect(markup).toContain('aria-label="Twitter unavailable: missing twitter"');
     expect(markup).toContain('aria-label="TikTok unavailable: missing tiktok"');
+    expect(markup).not.toContain('Twitter');
     expect(markup).toContain('aria-label="Auth.web3"');
   });
 });

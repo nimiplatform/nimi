@@ -15,13 +15,11 @@ export function AuthViewMain(props: {
   pending: boolean;
   showAlternatives: boolean;
   googleDisabledReason?: string;
-  twitterDisabledReason?: string;
   tikTokDisabledReason?: string;
   onEmailChange: (value: string) => void;
   onContinue: (event: FormEvent) => void;
   onAlternativeToggle: () => void;
   onGoogleLogin: () => void;
-  onTwitterLogin: () => void;
   onTikTokLogin: () => void;
   onWeb3Login: () => void;
   testIds?: AuthViewMainTestIds;
@@ -32,13 +30,11 @@ export function AuthViewMain(props: {
     pending,
     showAlternatives,
     googleDisabledReason,
-    twitterDisabledReason,
     tikTokDisabledReason,
     onEmailChange,
     onContinue,
     onAlternativeToggle,
     onGoogleLogin,
-    onTwitterLogin,
     onTikTokLogin,
     onWeb3Login,
     testIds,
@@ -122,22 +118,6 @@ export function AuthViewMain(props: {
             </CircleIconButton>
             {googleDisabledReason ? (
               <span className="pointer-events-none absolute -bottom-6 left-1/2 -translate-x-1/2 whitespace-nowrap rounded bg-[var(--nimi-surface-overlay)] px-2 py-0.5 text-[10px] text-[var(--nimi-text-primary)] opacity-0 transition group-hover:opacity-100">{googleDisabledReason}</span>
-            ) : null}
-          </div>
-
-          <div className="relative group">
-            <CircleIconButton
-              label={twitterDisabledReason ? `Twitter unavailable: ${twitterDisabledReason}` : 'Twitter'}
-              onClick={onTwitterLogin}
-              disabled={pending || Boolean(twitterDisabledReason)}
-              className="h-[52px] w-[52px] border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] shadow-[0_12px_24px_rgba(157,145,123,0.12)]"
-            >
-              <svg viewBox="0 0 24 24" className={`mx-auto h-5 w-5 fill-current ${twitterDisabledReason ? 'opacity-40' : ''}`}>
-                <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
-              </svg>
-            </CircleIconButton>
-            {twitterDisabledReason ? (
-              <span className="pointer-events-none absolute -bottom-6 left-1/2 -translate-x-1/2 whitespace-nowrap rounded bg-[var(--nimi-surface-overlay)] px-2 py-0.5 text-[10px] text-[var(--nimi-text-primary)] opacity-0 transition group-hover:opacity-100">{twitterDisabledReason}</span>
             ) : null}
           </div>
 

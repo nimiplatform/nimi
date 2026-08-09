@@ -400,6 +400,34 @@ describe('registerNimiElectronRuntimeBridge', () => {
       command: NIMI_STANDARD_SHELL_COMMANDS['oauth.tokenExchange'],
       payload: {
         payload: {
+          provider: 'TWITTER',
+          clientId: 'client-1',
+          code: 'code-1',
+        },
+      },
+    })).rejects.toMatchObject({
+      code: 'invalid-payload',
+      reasonCode: 'electron-oauth-token-provider-not-admitted',
+    });
+
+    await expect(invokeBridge(ipcMain, event, {
+      command: NIMI_STANDARD_SHELL_COMMANDS['oauth.tokenExchange'],
+      payload: {
+        payload: {
+          provider: 'TIKTOK',
+          clientId: 'client-1',
+          code: 'code-1',
+        },
+      },
+    })).rejects.toMatchObject({
+      code: 'invalid-payload',
+      reasonCode: 'electron-oauth-token-provider-not-admitted',
+    });
+
+    await expect(invokeBridge(ipcMain, event, {
+      command: NIMI_STANDARD_SHELL_COMMANDS['oauth.tokenExchange'],
+      payload: {
+        payload: {
           provider: 'https://evil.example.test/token',
           clientId: 'client-1',
           code: 'code-1',

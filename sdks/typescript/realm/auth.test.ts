@@ -142,7 +142,10 @@ test('Realm auth helpers map SDK-friendly calls to generated Realm auth requests
     signature: 'sig',
     walletAddress: '0x123',
   });
-  await loginNimiRealmOAuth(realm, NIMI_REALM_OAUTH_PROVIDER.GOOGLE, 'access');
+  await loginNimiRealmOAuth(realm, {
+    provider: NIMI_REALM_OAUTH_PROVIDER.GOOGLE,
+    idToken: 'id-token',
+  });
 
   assert.deepEqual(calls.map((call) => call.method), [
     'checkEmail',
@@ -162,7 +165,7 @@ test('Realm auth helpers map SDK-friendly calls to generated Realm auth requests
     path: {},
     body: {
       provider: NIMI_REALM_OAUTH_PROVIDER.GOOGLE,
-      accessToken: 'access',
+      idToken: 'id-token',
     },
   });
 });

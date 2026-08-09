@@ -25,7 +25,6 @@ import {
   type NimiRealmAuthTokens,
   type NimiRealmCheckEmailResponse,
   type NimiRealmOAuthLoginResult,
-  type NimiRealmOAuthProvider,
 } from '@nimiplatform/sdk/realm';
 import { createNimiDesktopShellRuntimeAccountCaller } from '@nimiplatform/sdk/runtime';
 import { bootstrapRuntime } from '@renderer/infra/bootstrap/runtime-bootstrap';
@@ -40,10 +39,13 @@ import { callRealmApi } from '@renderer/infra/realm/realm-api';
 import { getDesktopAccountRuntime } from '@renderer/infra/sdk/desktop-nimi-client-session';
 import { i18n } from '@renderer/i18n';
 import {
+  callFreshOauthBrowserSession,
+  continueFreshOauthBrowserSession,
   configureWebRealmPlatformClient,
   isWebRealmPlatformClientReady,
   loginFreshOauthPasswordWithBrowserSession,
   shouldUseFreshOauthBrowserSessionLogin,
+  verifyFreshOauthTwoFactorWithBrowserSession,
 } from './web-realm-session.js';
 
 export const desktopOAuthBridge: ShellOAuthBridge = {
@@ -164,9 +166,10 @@ export function createDesktopAuthAdapter(): AuthPlatformAdapter {
 
     passwordLogin: async (identifier, password): Promise<OAuthLoginResultDto> => {
       await ensureAuthApiReady();
-      if (shouldUseFreshOauthBrowserSessionLogin(readWindowLocationSearch())) {
+      const search = readWindowLocationSearch();
+      if (shouldUseFreshOauthBrowserSessionLogin(search)) {
         return loginFreshOauthPasswordWithBrowserSession({
-          realmBaseUrl: await resolveWebRealmBaseUrl(),
+          search,
           identifier,
           password,
         });
@@ -187,14 +190,26 @@ export function createDesktopAuthAdapter(): AuthPlatformAdapter {
 
     verifyEmailOtp: async (email, code): Promise<OAuthLoginResultDto> => {
       await ensureAuthApiReady();
+      const search = readWindowLocationSearch();
+      if (shouldUseFreshOauthBrowserSessionLogin(search)) {
+        return callFreshOauthBrowserSession({
+          search,
+          call: (realm) => verifyNimiRealmEmailOtp(realm, email, code),
+        });
+      }
       return callRealmApi(
         (realm) => verifyNimiRealmEmailOtp(realm, email, code),
         i18n.t('Auth.verifyEmailOtpFailed', { defaultValue: 'Failed to sign in with email code' }),
       );
     },
 
-    verifyTwoFactor: async (tempToken, code): Promise<AuthTokensDto> => {
+    verifyTwoFactor: async (tempToken, code): Promise<AuthTokensDto | null> => {
       await ensureAuthApiReady();
+      const search = readWindowLocationSearch();
+      if (shouldUseFreshOauthBrowserSessionLogin(search)) {
+        await verifyFreshOauthTwoFactorWithBrowserSession({ search, tempToken, code });
+        return null;
+      }
       return callRealmApi(
         (realm) => verifyNimiRealmTwoFactor(realm, tempToken, code),
         i18n.t('Auth.verifyTwoFactorFailed', { defaultValue: 'Two-factor verification failed' }),
@@ -211,16 +226,30 @@ export function createDesktopAuthAdapter(): AuthPlatformAdapter {
 
     walletLogin: async (input): Promise<OAuthLoginResultDto> => {
       await ensureAuthApiReady();
+      const search = readWindowLocationSearch();
+      if (shouldUseFreshOauthBrowserSessionLogin(search)) {
+        return callFreshOauthBrowserSession({
+          search,
+          call: (realm) => loginNimiRealmWallet(realm, input),
+        });
+      }
       return callRealmApi(
         (realm) => loginNimiRealmWallet(realm, input),
         i18n.t('Auth.walletLoginFailed', { defaultValue: 'Wallet sign-in failed' }),
       );
     },
 
-    oauthLogin: async (provider, accessToken): Promise<OAuthLoginResultDto> => {
+    oauthLogin: async (input): Promise<OAuthLoginResultDto> => {
       await ensureAuthApiReady();
+      const search = readWindowLocationSearch();
+      if (shouldUseFreshOauthBrowserSessionLogin(search)) {
+        return callFreshOauthBrowserSession({
+          search,
+          call: (realm) => loginNimiRealmOAuth(realm, input),
+        });
+      }
       return callRealmApi(
-        (realm) => loginNimiRealmOAuth(realm, provider as NimiRealmOAuthProvider, accessToken),
+        (realm) => loginNimiRealmOAuth(realm, input),
         i18n.t('Auth.oauthLoginFailed', { defaultValue: 'OAuth sign-in failed' }),
       );
     },
@@ -259,6 +288,7 @@ export function createDesktopAuthAdapter(): AuthPlatformAdapter {
     clearPersistedSession: async () => {
       clearPersistedAccessToken();
     },
+    completeBrowserSessionLogin: () => continueFreshOauthBrowserSession(readWindowLocationSearch()),
 
     oauthBridge: desktopOAuthBridge,
     syncAfterLogin: async () => {

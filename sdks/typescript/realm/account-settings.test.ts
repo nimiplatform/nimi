@@ -79,7 +79,10 @@ test('Realm account/settings helpers map to generated Realm modules', async () =
   assert.equal((await prepareNimiRealmTwoFactor(realm)).secret, 'secret');
   assert.deepEqual(await enableNimiRealmTwoFactor(realm, { code: '123456' }), { enabled: true, success: true });
   assert.deepEqual(await disableNimiRealmTwoFactor(realm, { code: '654321' }), { enabled: false, success: true });
-  assert.deepEqual(await linkNimiRealmOAuth(realm, NIMI_REALM_OAUTH_PROVIDER.GOOGLE, 'access'), { linked: true });
+  assert.deepEqual(await linkNimiRealmOAuth(realm, {
+    provider: NIMI_REALM_OAUTH_PROVIDER.GOOGLE,
+    idToken: 'id-token',
+  }), { linked: true });
   assert.deepEqual(await unlinkNimiRealmOAuth(realm, NIMI_REALM_OAUTH_PROVIDER.GOOGLE), { linked: false });
 
   assert.deepEqual(calls.map((call) => call.method), [
@@ -103,7 +106,7 @@ test('Realm account/settings helpers map to generated Realm modules', async () =
     path: {},
     body: {
       provider: NIMI_REALM_OAUTH_PROVIDER.GOOGLE,
-      accessToken: 'access',
+      idToken: 'id-token',
     },
   });
   assert.deepEqual(calls[10]?.request, {

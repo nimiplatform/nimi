@@ -51,14 +51,17 @@ export type WalletProvider = {
 export type ShellAuthWindow = Window & {
   google?: {
     accounts?: {
-      oauth2?: {
-        initTokenClient?: (config: {
+      id?: {
+        initialize?: (config: {
           client_id: string;
-          scope: string;
-          callback: (response: { access_token?: string }) => void;
-        }) => { requestAccessToken: () => void };
-  };
-};
+          callback: (response: { credential?: string; select_by?: string }) => void;
+        }) => void;
+        prompt?: (listener?: (notification: {
+          isNotDisplayed?: () => boolean;
+          isSkippedMoment?: () => boolean;
+        }) => void) => void;
+      };
+    };
   };
   ethereum?: WalletProvider;
   okxwallet?: WalletProvider;

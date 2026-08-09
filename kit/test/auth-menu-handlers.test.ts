@@ -8,7 +8,7 @@ import {
   handleEmailLogin,
   handleSetPasswordAfterOtp,
 } from '../auth/src/logic/auth-menu-handlers.js';
-import { handleVerifyEmailOtp } from '../auth/src/logic/auth-menu-handlers-ext.js';
+import { handleVerify2Fa, handleVerifyEmailOtp } from '../auth/src/logic/auth-menu-handlers-ext.js';
 
 function createEvent(): FormEvent {
   return {
@@ -97,6 +97,42 @@ describe('auth menu handlers', () => {
     );
 
     expect(state.loginError).toBe(AUTH_COPY.emailLoginFailed);
+  });
+
+  it('completes fresh browser-session password login without applying tokens', async () => {
+    const { state, setters } = createSetters();
+    const applyToken = vi.fn();
+    const completeBrowserSessionLogin = vi.fn(async () => true);
+    const adapter = createAdapter({
+      passwordLogin: async () => ({ loginState: 'ok' }),
+      applyToken,
+      completeBrowserSessionLogin,
+    });
+
+    await handleEmailLogin(createEvent(), 'user@example.com', 'secret123', false, setters, adapter);
+
+    expect(completeBrowserSessionLogin).toHaveBeenCalledTimes(1);
+    expect(applyToken).not.toHaveBeenCalled();
+    expect(state.authSessionCalls).toBe(0);
+    expect(state.loginError).toBeNull();
+  });
+
+  it('completes fresh browser-session 2FA without applying tokens', async () => {
+    const { state, setters } = createSetters();
+    const applyToken = vi.fn();
+    const completeBrowserSessionLogin = vi.fn(async () => true);
+    const adapter = createAdapter({
+      verifyTwoFactor: async () => null,
+      applyToken,
+      completeBrowserSessionLogin,
+    });
+
+    await handleVerify2Fa(createEvent(), 'temporary-token', '123456', setters, adapter);
+
+    expect(completeBrowserSessionLogin).toHaveBeenCalledTimes(1);
+    expect(applyToken).not.toHaveBeenCalled();
+    expect(state.authSessionCalls).toBe(0);
+    expect(state.loginError).toBeNull();
   });
 
   // The legacy "Authorize Desktop with my web session" flow

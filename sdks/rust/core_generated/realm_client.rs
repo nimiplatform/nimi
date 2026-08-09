@@ -542,24 +542,6 @@ pub static REALM_OPERATIONS: &[RealmOperationDescriptor] = &[
         path: Some("/api/auth/sessions/introspect"),
     },
     RealmOperationDescriptor {
-        operation_id: "InvitationController_generateCode",
-        service: "Invitations",
-        method: "POST",
-        path: Some("/api/invitations"),
-    },
-    RealmOperationDescriptor {
-        operation_id: "InvitationController_listMyCodes",
-        service: "Invitations",
-        method: "GET",
-        path: Some("/api/invitations"),
-    },
-    RealmOperationDescriptor {
-        operation_id: "InvitationController_verifyCode",
-        service: "Invitations",
-        method: "POST",
-        path: Some("/api/invitations/verify"),
-    },
-    RealmOperationDescriptor {
         operation_id: "likePost",
         service: "Posts",
         method: "POST",

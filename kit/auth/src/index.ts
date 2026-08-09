@@ -75,6 +75,7 @@ export {
 export {
   getGoogleClientId,
   loadGoogleScript,
+  requestGoogleIdToken,
 } from './logic/google-helpers.js';
 
 export {

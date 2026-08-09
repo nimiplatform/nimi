@@ -84,7 +84,6 @@ export type UseAuthFlowReturn = {
   handleVerify2Fa: (event: FormEvent) => void;
   handleWalletLogin: (walletType: 'metamask' | 'okx' | 'binance') => void;
   handleGoogleLogin: () => void;
-  handleTwitterLogin: () => void;
   handleTikTokLogin: () => void;
   handleWeb3Login: () => void;
 };
@@ -396,9 +395,6 @@ export function useAuthFlow(config: UseAuthFlowConfig): UseAuthFlowReturn {
     },
     handleGoogleLogin: () => {
       void doGoogleLogin(setters, adapter);
-    },
-    handleTwitterLogin: () => {
-      void doSocialLogin('TWITTER', setters, adapter);
     },
     handleTikTokLogin: () => {
       void doSocialLogin('TIKTOK', setters, adapter);

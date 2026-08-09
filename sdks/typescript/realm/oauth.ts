@@ -3,7 +3,6 @@ import type { OAuthLoginResultDto, OAuthProvider as NimiRealmOAuthProviderValue 
 export const NIMI_REALM_OAUTH_PROVIDER = Object.freeze({
   GOOGLE: 'GOOGLE',
   WECHAT: 'WECHAT',
-  TWITTER: 'TWITTER',
   TIKTOK: 'TIKTOK',
 } as const satisfies Record<string, NimiRealmOAuthProviderValue>);
 

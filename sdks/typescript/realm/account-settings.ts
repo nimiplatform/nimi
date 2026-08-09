@@ -3,6 +3,7 @@ import type {
   Me2faOperationResultDto,
   Me2faPrepareResponseDto,
   Me2faVerifyDto,
+  OAuthLoginDto,
   OAuthProvider,
   RealmTypedCallOptions,
   RealmTypedClient,
@@ -22,6 +23,7 @@ export type NimiRealmCreatorEligibility = CreatorEligibilityResponseDto;
 export type NimiRealmUpdatePasswordInput = UpdatePasswordRequestDto;
 export type NimiRealmTwoFactorPrepareOutput = Me2faPrepareResponseDto;
 export type NimiRealmTwoFactorVerifyInput = Me2faVerifyDto;
+export type NimiRealmOAuthLinkInput = OAuthLoginDto;
 
 export interface NimiRealmPasswordUpdateView {
   readonly ok: true;
@@ -137,11 +139,10 @@ export async function disableNimiRealmTwoFactor(
 
 export async function linkNimiRealmOAuth(
   realm: NimiRealmAccountSettingsApi,
-  provider: OAuthProvider,
-  accessToken: string,
+  input: NimiRealmOAuthLinkInput,
   options?: RealmTypedCallOptions,
 ): Promise<NimiRealmOAuthLinkView> {
-  await realm.auth.linkOauth({ path: {}, body: { provider, accessToken } }, options);
+  await realm.auth.linkOauth({ path: {}, body: input }, options);
   return { linked: true };
 }
 

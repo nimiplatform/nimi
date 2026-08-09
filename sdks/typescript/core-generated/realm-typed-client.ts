@@ -11,7 +11,7 @@ export interface RealmTypedCallOptions {
 }
 
 export type AccountRelationType = "ALLY" | "RIVAL" | "ENEMY";
-export type AccountStatus = "ONBOARDING" | "CHECK_INVITED" | "ACTIVE" | "SUSPENDED" | "BANNED";
+export type AccountStatus = "ONBOARDING" | "ACTIVE" | "SUSPENDED" | "BANNED";
 export interface AddFriendBodyDto {
   readonly requestMessage?: string;
 }
@@ -64,6 +64,12 @@ export type AttachmentTargetType = "RESOURCE" | "ASSET" | "BUNDLE";
 export interface Auth2faVerifyDto {
   readonly code: string;
   readonly tempToken: string;
+}
+export interface AuthErrorDto {
+  readonly message: string;
+  readonly reasonCode: "AUTH_REQUIRED" | "AUTH_INSUFFICIENT_SCOPE" | "AUTH_INVALID_CREDENTIALS" | "AUTH_INVALID_REQUEST" | "AUTH_TOKEN_EXPIRED" | "AUTH_TOKEN_VERIFICATION_UNAVAILABLE" | "AUTH_INVALID_REFRESH_TOKEN" | "AUTH_REFRESH_TOKEN_REVOKED" | "AUTH_REFRESH_TOKEN_REPLAY_DETECTED" | "AUTH_ACCOUNT_RESTRICTED" | "AUTH_INVALID_TOKEN_TYPE" | "AUTH_INVALID_2FA_TOKEN" | "AUTH_INVALID_2FA_CODE" | "AUTH_2FA_NOT_ENABLED" | "AUTH_2FA_SETUP_EXPIRED" | "AUTH_INVALID_WALLET_NONCE" | "AUTH_INVALID_WALLET_SIGNATURE" | "AUTH_WALLET_ADDRESS_REQUIRED" | "AUTH_WALLET_MESSAGE_REQUIRED" | "AUTH_WALLET_SIGNATURE_REQUIRED" | "AUTH_WALLET_NONCE_REQUIRED" | "AUTH_WALLET_CHALLENGE_UNAVAILABLE" | "AUTH_INVALID_OAUTH_CREDENTIAL" | "AUTH_OAUTH_PROVIDER_UNAVAILABLE" | "AUTH_OAUTH_IDENTITY_NOT_FOUND" | "AUTH_OAUTH_IDENTITY_CONFLICT" | "AUTH_OAUTH_LAST_LOGIN_METHOD" | "AUTH_CURRENT_PASSWORD_REQUIRED" | "AUTH_INVALID_CURRENT_PASSWORD" | "AUTH_PASSWORD_NOT_SET" | "AUTH_HANDLE_UNAVAILABLE" | "AUTH_EMAIL_ALREADY_IN_USE" | "AUTH_EMAIL_OTP_EXPIRED" | "AUTH_INVALID_EMAIL_OTP" | "AUTH_EMAIL_OTP_UNAVAILABLE" | "AUTH_RATE_LIMITED" | "AUTH_SESSION_REVOCATION_UNAVAILABLE" | "AUTH_ACCOUNT_NOT_FOUND";
+  readonly statusCode: 400 | 401 | 403 | 404 | 409 | 429 | 503;
+  readonly traceId: string;
 }
 export interface AuthTokensDto {
   readonly accessToken: string;
@@ -829,21 +835,6 @@ export interface IntrospectSessionResponseDto {
   readonly expires_at?: string;
   readonly revoked: boolean;
 }
-export interface InvitationCodeResponseDto {
-  readonly code: string;
-  readonly createdAt: string;
-  readonly creatorId: string;
-  readonly id: string;
-  readonly usedAt?: string | null;
-  readonly usedByAccount?: InvitationCodeUsedByAccountDto | null;
-  readonly usedById?: string | null;
-}
-export interface InvitationCodeUsedByAccountDto {
-  readonly avatarUrl?: string | null;
-  readonly displayName?: string | null;
-  readonly handle?: string | null;
-  readonly id: string;
-}
 export interface ListChatsResultDto {
   readonly hasMore?: boolean;
   readonly items: readonly (ChatViewDto)[];
@@ -1084,16 +1075,23 @@ export interface NotificationTargetDto {
   readonly interactionId?: string | null;
   readonly postId?: string | null;
 }
+export interface OAuthErrorResponseDto {
+  readonly error: "invalid_request" | "invalid_grant" | "unsupported_grant_type" | "unsupported_response_type";
+  readonly error_description?: string;
+  readonly message: string;
+  readonly reasonCode: "AUTH_REQUIRED" | "AUTH_INSUFFICIENT_SCOPE" | "AUTH_INVALID_CREDENTIALS" | "AUTH_INVALID_REQUEST" | "AUTH_TOKEN_EXPIRED" | "AUTH_TOKEN_VERIFICATION_UNAVAILABLE" | "AUTH_INVALID_REFRESH_TOKEN" | "AUTH_REFRESH_TOKEN_REVOKED" | "AUTH_REFRESH_TOKEN_REPLAY_DETECTED" | "AUTH_ACCOUNT_RESTRICTED" | "AUTH_INVALID_TOKEN_TYPE" | "AUTH_INVALID_2FA_TOKEN" | "AUTH_INVALID_2FA_CODE" | "AUTH_2FA_NOT_ENABLED" | "AUTH_2FA_SETUP_EXPIRED" | "AUTH_INVALID_WALLET_NONCE" | "AUTH_INVALID_WALLET_SIGNATURE" | "AUTH_WALLET_ADDRESS_REQUIRED" | "AUTH_WALLET_MESSAGE_REQUIRED" | "AUTH_WALLET_SIGNATURE_REQUIRED" | "AUTH_WALLET_NONCE_REQUIRED" | "AUTH_WALLET_CHALLENGE_UNAVAILABLE" | "AUTH_INVALID_OAUTH_CREDENTIAL" | "AUTH_OAUTH_PROVIDER_UNAVAILABLE" | "AUTH_OAUTH_IDENTITY_NOT_FOUND" | "AUTH_OAUTH_IDENTITY_CONFLICT" | "AUTH_OAUTH_LAST_LOGIN_METHOD" | "AUTH_CURRENT_PASSWORD_REQUIRED" | "AUTH_INVALID_CURRENT_PASSWORD" | "AUTH_PASSWORD_NOT_SET" | "AUTH_HANDLE_UNAVAILABLE" | "AUTH_EMAIL_ALREADY_IN_USE" | "AUTH_EMAIL_OTP_EXPIRED" | "AUTH_INVALID_EMAIL_OTP" | "AUTH_EMAIL_OTP_UNAVAILABLE" | "AUTH_RATE_LIMITED" | "AUTH_SESSION_REVOCATION_UNAVAILABLE" | "AUTH_ACCOUNT_NOT_FOUND";
+  readonly statusCode: 400 | 401 | 403 | 404 | 409 | 429 | 503;
+  readonly traceId: string;
+}
 export interface OAuthLinkResponseDto {
-  readonly provider: "google" | "wechat" | "twitter" | "tiktok";
+  readonly provider: "google" | "wechat" | "tiktok";
   readonly status: "linked";
 }
 export interface OAuthLoginDto {
-  readonly accessToken?: string;
   readonly code?: string;
   readonly codeVerifier?: string;
   readonly idToken?: string;
-  readonly provider: "GOOGLE" | "WECHAT" | "TWITTER" | "TIKTOK";
+  readonly provider: "GOOGLE" | "WECHAT" | "TIKTOK";
   readonly redirectUri?: string;
 }
 export interface OAuthLoginResultDto {
@@ -1102,7 +1100,7 @@ export interface OAuthLoginResultDto {
   readonly tempToken?: string | null;
   readonly tokens?: AuthTokensDto | null;
 }
-export type OAuthProvider = "GOOGLE" | "WECHAT" | "TWITTER" | "TIKTOK";
+export type OAuthProvider = "GOOGLE" | "WECHAT" | "TIKTOK";
 export interface OAuthTokenRequestDto {
   readonly client_id: string;
   readonly code: string;
@@ -1926,9 +1924,6 @@ export interface ValidityResultDto {
   readonly issues: readonly (ValidityIssueDto)[];
   readonly status: "valid" | "invalid";
 }
-export interface VerifyInvitationCodeDto {
-  readonly invitationCode: string;
-}
 export type Visibility = "PUBLIC" | "FRIENDS" | "PRIVATE";
 export interface VisibilityCheckResultDto {
   readonly canView: boolean;
@@ -2524,7 +2519,6 @@ export const AccountRelationTypeValue = {
 
 export const AccountStatusValues = [
   "ONBOARDING",
-  "CHECK_INVITED",
   "ACTIVE",
   "SUSPENDED",
   "BANNED",
@@ -2532,7 +2526,6 @@ export const AccountStatusValues = [
 
 export const AccountStatusValue = {
   ONBOARDING: "ONBOARDING",
-  CHECK_INVITED: "CHECK_INVITED",
   ACTIVE: "ACTIVE",
   SUSPENDED: "SUSPENDED",
   BANNED: "BANNED",
@@ -2653,14 +2646,12 @@ export const ModerationStatusStringValue = {
 export const OAuthProviderValues = [
   "GOOGLE",
   "WECHAT",
-  "TWITTER",
   "TIKTOK",
 ] as const satisfies readonly OAuthProvider[];
 
 export const OAuthProviderValue = {
   GOOGLE: "GOOGLE",
   WECHAT: "WECHAT",
-  TWITTER: "TWITTER",
   TIKTOK: "TIKTOK",
 } as const satisfies Record<string, OAuthProvider>;
 
@@ -2783,6 +2774,7 @@ export interface RealmTypedModelMap {
   readonly "AttachmentReferenceDto": AttachmentReferenceDto;
   readonly "AttachmentTargetType": AttachmentTargetType;
   readonly "Auth2faVerifyDto": Auth2faVerifyDto;
+  readonly "AuthErrorDto": AuthErrorDto;
   readonly "AuthTokensDto": AuthTokensDto;
   readonly "AuthUserDto": AuthUserDto;
   readonly "AuthUserSocialProfileDto": AuthUserSocialProfileDto;
@@ -2889,8 +2881,6 @@ export interface RealmTypedModelMap {
   readonly "IntrospectSessionErrorDto": IntrospectSessionErrorDto;
   readonly "IntrospectSessionRequestDto": IntrospectSessionRequestDto;
   readonly "IntrospectSessionResponseDto": IntrospectSessionResponseDto;
-  readonly "InvitationCodeResponseDto": InvitationCodeResponseDto;
-  readonly "InvitationCodeUsedByAccountDto": InvitationCodeUsedByAccountDto;
   readonly "ListChatsResultDto": ListChatsResultDto;
   readonly "ListGroupChatsResultDto": ListGroupChatsResultDto;
   readonly "ListGroupMessagesResultDto": ListGroupMessagesResultDto;
@@ -2927,6 +2917,7 @@ export interface RealmTypedModelMap {
   readonly "NotificationGiftsDto": NotificationGiftsDto;
   readonly "NotificationListResultDto": NotificationListResultDto;
   readonly "NotificationTargetDto": NotificationTargetDto;
+  readonly "OAuthErrorResponseDto": OAuthErrorResponseDto;
   readonly "OAuthLinkResponseDto": OAuthLinkResponseDto;
   readonly "OAuthLoginDto": OAuthLoginDto;
   readonly "OAuthLoginResultDto": OAuthLoginResultDto;
@@ -3041,7 +3032,6 @@ export interface RealmTypedModelMap {
   readonly "UserWalletListResponseDto": UserWalletListResponseDto;
   readonly "ValidityIssueDto": ValidityIssueDto;
   readonly "ValidityResultDto": ValidityResultDto;
-  readonly "VerifyInvitationCodeDto": VerifyInvitationCodeDto;
   readonly "Visibility": Visibility;
   readonly "VisibilityCheckResultDto": VisibilityCheckResultDto;
   readonly "WalletBindDto": WalletBindDto;
@@ -4296,45 +4286,6 @@ export interface RealmIntrospectSessionOperationRequest {
   readonly body: IntrospectSessionRequestDto;
 }
 export type RealmIntrospectSessionOperationResponse = IntrospectSessionResponseDto;
-export interface RealmInvitationControllerGenerateCodeOperationRequest {
-  readonly path: {
-
-  };
-  readonly query?: {
-
-  };
-  readonly headers?: {
-
-  };
-  readonly body?: Record<string, never>;
-}
-export type RealmInvitationControllerGenerateCodeOperationResponse = InvitationCodeResponseDto;
-export interface RealmInvitationControllerListMyCodesOperationRequest {
-  readonly path: {
-
-  };
-  readonly query?: {
-
-  };
-  readonly headers?: {
-
-  };
-  readonly body?: Record<string, never>;
-}
-export type RealmInvitationControllerListMyCodesOperationResponse = readonly (InvitationCodeResponseDto)[];
-export interface RealmInvitationControllerVerifyCodeOperationRequest {
-  readonly path: {
-
-  };
-  readonly query?: {
-
-  };
-  readonly headers?: {
-
-  };
-  readonly body: VerifyInvitationCodeDto;
-}
-export type RealmInvitationControllerVerifyCodeOperationResponse = boolean;
 export interface RealmLikePostOperationRequest {
   readonly path: {
     readonly postId: string;
@@ -4602,9 +4553,6 @@ export interface RealmOauthAuthorizeOperationRequest {
 
   };
   readonly query?: {
-    readonly fresh_oauth_account_hint?: string;
-    readonly fresh_oauth_proof?: string;
-    readonly fresh_oauth_started_at?: string;
     readonly presence_nonce?: string;
     readonly presence_purpose?: string;
     readonly prompt?: "login";
@@ -4630,7 +4578,7 @@ export interface RealmOauthLoginOperationRequest {
 
   };
   readonly headers?: {
-
+    readonly "x-nimi-auth-response"?: "browser-session";
   };
   readonly body: OAuthLoginDto;
 }
@@ -4656,7 +4604,7 @@ export interface RealmPasswordLoginOperationRequest {
 
   };
   readonly headers?: {
-
+    readonly "x-nimi-auth-response"?: "browser-session";
   };
   readonly body: PasswordLoginDto;
 }
@@ -5375,7 +5323,7 @@ export interface RealmVerify2FaOperationRequest {
 
   };
   readonly headers?: {
-
+    readonly "x-nimi-auth-response"?: "browser-session";
   };
   readonly body: Auth2faVerifyDto;
 }
@@ -5388,7 +5336,7 @@ export interface RealmVerifyEmailOtpOperationRequest {
 
   };
   readonly headers?: {
-
+    readonly "x-nimi-auth-response"?: "browser-session";
   };
   readonly body: EmailOtpVerifyDto;
 }
@@ -5494,7 +5442,7 @@ export interface RealmWalletLoginOperationRequest {
 
   };
   readonly headers?: {
-
+    readonly "x-nimi-auth-response"?: "browser-session";
   };
   readonly body: WalletLoginDto;
 }
@@ -6884,39 +6832,6 @@ export class RealmTypedClient {
   async introspectSession(request: RealmIntrospectSessionOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmIntrospectSessionOperationResponse> {
     return this.core.unary<RealmIntrospectSessionOperationResponse, RealmIntrospectSessionOperationRequest>({
       methodId: "introspectSession",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
-  }
-
-  async invitationControllerGenerateCode(request: RealmInvitationControllerGenerateCodeOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmInvitationControllerGenerateCodeOperationResponse> {
-    return this.core.unary<RealmInvitationControllerGenerateCodeOperationResponse, RealmInvitationControllerGenerateCodeOperationRequest>({
-      methodId: "InvitationController_generateCode",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
-  }
-
-  async invitationControllerListMyCodes(request: RealmInvitationControllerListMyCodesOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmInvitationControllerListMyCodesOperationResponse> {
-    return this.core.unary<RealmInvitationControllerListMyCodesOperationResponse, RealmInvitationControllerListMyCodesOperationRequest>({
-      methodId: "InvitationController_listMyCodes",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
-  }
-
-  async invitationControllerVerifyCode(request: RealmInvitationControllerVerifyCodeOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmInvitationControllerVerifyCodeOperationResponse> {
-    return this.core.unary<RealmInvitationControllerVerifyCodeOperationResponse, RealmInvitationControllerVerifyCodeOperationRequest>({
-      methodId: "InvitationController_verifyCode",
       body: request,
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,

@@ -35,7 +35,7 @@ def _decode_model(model_type, value: object):
 
 AccountRelationType = Literal["ALLY", "RIVAL", "ENEMY"]
 
-AccountStatus = Literal["ONBOARDING", "CHECK_INVITED", "ACTIVE", "SUSPENDED", "BANNED"]
+AccountStatus = Literal["ONBOARDING", "ACTIVE", "SUSPENDED", "BANNED"]
 
 @dataclass(frozen=True)
 class AddFriendBodyDto:
@@ -99,6 +99,13 @@ AttachmentTargetType = Literal["RESOURCE", "ASSET", "BUNDLE"]
 class Auth2faVerifyDto:
     code: str | None = None
     tempToken: str | None = None
+
+@dataclass(frozen=True)
+class AuthErrorDto:
+    message: str | None = None
+    reasonCode: Literal["AUTH_REQUIRED", "AUTH_INSUFFICIENT_SCOPE", "AUTH_INVALID_CREDENTIALS", "AUTH_INVALID_REQUEST", "AUTH_TOKEN_EXPIRED", "AUTH_TOKEN_VERIFICATION_UNAVAILABLE", "AUTH_INVALID_REFRESH_TOKEN", "AUTH_REFRESH_TOKEN_REVOKED", "AUTH_REFRESH_TOKEN_REPLAY_DETECTED", "AUTH_ACCOUNT_RESTRICTED", "AUTH_INVALID_TOKEN_TYPE", "AUTH_INVALID_2FA_TOKEN", "AUTH_INVALID_2FA_CODE", "AUTH_2FA_NOT_ENABLED", "AUTH_2FA_SETUP_EXPIRED", "AUTH_INVALID_WALLET_NONCE", "AUTH_INVALID_WALLET_SIGNATURE", "AUTH_WALLET_ADDRESS_REQUIRED", "AUTH_WALLET_MESSAGE_REQUIRED", "AUTH_WALLET_SIGNATURE_REQUIRED", "AUTH_WALLET_NONCE_REQUIRED", "AUTH_WALLET_CHALLENGE_UNAVAILABLE", "AUTH_INVALID_OAUTH_CREDENTIAL", "AUTH_OAUTH_PROVIDER_UNAVAILABLE", "AUTH_OAUTH_IDENTITY_NOT_FOUND", "AUTH_OAUTH_IDENTITY_CONFLICT", "AUTH_OAUTH_LAST_LOGIN_METHOD", "AUTH_CURRENT_PASSWORD_REQUIRED", "AUTH_INVALID_CURRENT_PASSWORD", "AUTH_PASSWORD_NOT_SET", "AUTH_HANDLE_UNAVAILABLE", "AUTH_EMAIL_ALREADY_IN_USE", "AUTH_EMAIL_OTP_EXPIRED", "AUTH_INVALID_EMAIL_OTP", "AUTH_EMAIL_OTP_UNAVAILABLE", "AUTH_RATE_LIMITED", "AUTH_SESSION_REVOCATION_UNAVAILABLE", "AUTH_ACCOUNT_NOT_FOUND"] | None = None
+    statusCode: Literal[400, 401, 403, 404, 409, 429, 503] | None = None
+    traceId: str | None = None
 
 @dataclass(frozen=True)
 class AuthTokensDto:
@@ -969,23 +976,6 @@ class IntrospectSessionResponseDto:
     revoked: bool | None = None
 
 @dataclass(frozen=True)
-class InvitationCodeResponseDto:
-    code: str | None = None
-    createdAt: str | None = None
-    creatorId: str | None = None
-    id: str | None = None
-    usedAt: str | None = None
-    usedByAccount: InvitationCodeUsedByAccountDto | None = None
-    usedById: str | None = None
-
-@dataclass(frozen=True)
-class InvitationCodeUsedByAccountDto:
-    avatarUrl: str | None = None
-    displayName: str | None = None
-    handle: str | None = None
-    id: str | None = None
-
-@dataclass(frozen=True)
 class ListChatsResultDto:
     hasMore: bool | None = None
     items: tuple[ChatViewDto, ...] = field(default_factory=tuple)
@@ -1260,17 +1250,25 @@ class NotificationTargetDto:
     postId: str | None = None
 
 @dataclass(frozen=True)
+class OAuthErrorResponseDto:
+    error: Literal["invalid_request", "invalid_grant", "unsupported_grant_type", "unsupported_response_type"] | None = None
+    error_description: str | None = None
+    message: str | None = None
+    reasonCode: Literal["AUTH_REQUIRED", "AUTH_INSUFFICIENT_SCOPE", "AUTH_INVALID_CREDENTIALS", "AUTH_INVALID_REQUEST", "AUTH_TOKEN_EXPIRED", "AUTH_TOKEN_VERIFICATION_UNAVAILABLE", "AUTH_INVALID_REFRESH_TOKEN", "AUTH_REFRESH_TOKEN_REVOKED", "AUTH_REFRESH_TOKEN_REPLAY_DETECTED", "AUTH_ACCOUNT_RESTRICTED", "AUTH_INVALID_TOKEN_TYPE", "AUTH_INVALID_2FA_TOKEN", "AUTH_INVALID_2FA_CODE", "AUTH_2FA_NOT_ENABLED", "AUTH_2FA_SETUP_EXPIRED", "AUTH_INVALID_WALLET_NONCE", "AUTH_INVALID_WALLET_SIGNATURE", "AUTH_WALLET_ADDRESS_REQUIRED", "AUTH_WALLET_MESSAGE_REQUIRED", "AUTH_WALLET_SIGNATURE_REQUIRED", "AUTH_WALLET_NONCE_REQUIRED", "AUTH_WALLET_CHALLENGE_UNAVAILABLE", "AUTH_INVALID_OAUTH_CREDENTIAL", "AUTH_OAUTH_PROVIDER_UNAVAILABLE", "AUTH_OAUTH_IDENTITY_NOT_FOUND", "AUTH_OAUTH_IDENTITY_CONFLICT", "AUTH_OAUTH_LAST_LOGIN_METHOD", "AUTH_CURRENT_PASSWORD_REQUIRED", "AUTH_INVALID_CURRENT_PASSWORD", "AUTH_PASSWORD_NOT_SET", "AUTH_HANDLE_UNAVAILABLE", "AUTH_EMAIL_ALREADY_IN_USE", "AUTH_EMAIL_OTP_EXPIRED", "AUTH_INVALID_EMAIL_OTP", "AUTH_EMAIL_OTP_UNAVAILABLE", "AUTH_RATE_LIMITED", "AUTH_SESSION_REVOCATION_UNAVAILABLE", "AUTH_ACCOUNT_NOT_FOUND"] | None = None
+    statusCode: Literal[400, 401, 403, 404, 409, 429, 503] | None = None
+    traceId: str | None = None
+
+@dataclass(frozen=True)
 class OAuthLinkResponseDto:
-    provider: Literal["google", "wechat", "twitter", "tiktok"] | None = None
+    provider: Literal["google", "wechat", "tiktok"] | None = None
     status: Literal["linked"] | None = None
 
 @dataclass(frozen=True)
 class OAuthLoginDto:
-    accessToken: str | None = None
     code: str | None = None
     codeVerifier: str | None = None
     idToken: str | None = None
-    provider: Literal["GOOGLE", "WECHAT", "TWITTER", "TIKTOK"] | None = None
+    provider: Literal["GOOGLE", "WECHAT", "TIKTOK"] | None = None
     redirectUri: str | None = None
 
 @dataclass(frozen=True)
@@ -1280,7 +1278,7 @@ class OAuthLoginResultDto:
     tempToken: str | None = None
     tokens: AuthTokensDto | None = None
 
-OAuthProvider = Literal["GOOGLE", "WECHAT", "TWITTER", "TIKTOK"]
+OAuthProvider = Literal["GOOGLE", "WECHAT", "TIKTOK"]
 
 @dataclass(frozen=True)
 class OAuthTokenRequestDto:
@@ -2212,10 +2210,6 @@ class ValidityIssueDto:
 class ValidityResultDto:
     issues: tuple[ValidityIssueDto, ...] = field(default_factory=tuple)
     status: Literal["valid", "invalid"] | None = None
-
-@dataclass(frozen=True)
-class VerifyInvitationCodeDto:
-    invitationCode: str | None = None
 
 Visibility = Literal["PUBLIC", "FRIENDS", "PRIVATE"]
 
@@ -4845,72 +4839,6 @@ class RealmIntrospectSessionOperationRequest:
     body: IntrospectSessionRequestDto | None = None
 
 @dataclass(frozen=True)
-class RealmInvitationControllerGenerateCodeOperationPath:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmInvitationControllerGenerateCodeOperationQuery:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmInvitationControllerGenerateCodeOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmInvitationControllerGenerateCodeOperationRequest:
-    path: RealmInvitationControllerGenerateCodeOperationPath
-    query: RealmInvitationControllerGenerateCodeOperationQuery | None = None
-    headers: RealmInvitationControllerGenerateCodeOperationHeaders | None = None
-    body: None | None = None
-
-@dataclass(frozen=True)
-class RealmInvitationControllerListMyCodesOperationPath:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmInvitationControllerListMyCodesOperationQuery:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmInvitationControllerListMyCodesOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmInvitationControllerListMyCodesOperationRequest:
-    path: RealmInvitationControllerListMyCodesOperationPath
-    query: RealmInvitationControllerListMyCodesOperationQuery | None = None
-    headers: RealmInvitationControllerListMyCodesOperationHeaders | None = None
-    body: None | None = None
-
-@dataclass(frozen=True)
-class RealmInvitationControllerVerifyCodeOperationPath:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmInvitationControllerVerifyCodeOperationQuery:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmInvitationControllerVerifyCodeOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmInvitationControllerVerifyCodeOperationRequest:
-    path: RealmInvitationControllerVerifyCodeOperationPath
-    query: RealmInvitationControllerVerifyCodeOperationQuery | None = None
-    headers: RealmInvitationControllerVerifyCodeOperationHeaders | None = None
-    body: VerifyInvitationCodeDto | None = None
-
-@dataclass(frozen=True)
 class RealmLikePostOperationPath:
     postId: str
 
@@ -5350,9 +5278,6 @@ class RealmOauthAuthorizeOperationPath:
 
 @dataclass(frozen=True)
 class RealmOauthAuthorizeOperationQuery:
-    fresh_oauth_account_hint: str | None = None
-    fresh_oauth_proof: str | None = None
-    fresh_oauth_started_at: str | None = None
     presence_nonce: str | None = None
     presence_purpose: str | None = None
     prompt: Literal["login"] | None = None
@@ -5389,7 +5314,7 @@ class RealmOauthLoginOperationQuery:
 
 @dataclass(frozen=True)
 class RealmOauthLoginOperationHeaders:
-    pass
+    x_nimi_auth_response: Literal["browser-session"] | None = None
 
 
 @dataclass(frozen=True)
@@ -5433,7 +5358,7 @@ class RealmPasswordLoginOperationQuery:
 
 @dataclass(frozen=True)
 class RealmPasswordLoginOperationHeaders:
-    pass
+    x_nimi_auth_response: Literal["browser-session"] | None = None
 
 
 @dataclass(frozen=True)
@@ -6620,7 +6545,7 @@ class RealmVerify2FaOperationQuery:
 
 @dataclass(frozen=True)
 class RealmVerify2FaOperationHeaders:
-    pass
+    x_nimi_auth_response: Literal["browser-session"] | None = None
 
 
 @dataclass(frozen=True)
@@ -6642,7 +6567,7 @@ class RealmVerifyEmailOtpOperationQuery:
 
 @dataclass(frozen=True)
 class RealmVerifyEmailOtpOperationHeaders:
-    pass
+    x_nimi_auth_response: Literal["browser-session"] | None = None
 
 
 @dataclass(frozen=True)
@@ -6820,7 +6745,7 @@ class RealmWalletLoginOperationQuery:
 
 @dataclass(frozen=True)
 class RealmWalletLoginOperationHeaders:
-    pass
+    x_nimi_auth_response: Literal["browser-session"] | None = None
 
 
 @dataclass(frozen=True)
@@ -8414,36 +8339,6 @@ class RealmTypedClient:
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="introspectSession", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(IntrospectSessionResponseDto, raw)
-
-    async def invitation_controller_generate_code(self, request: RealmInvitationControllerGenerateCodeOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmInvitationControllerGenerateCodeOperationResponse:
-        envelope: dict[str, object] = {
-            "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
-        }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="InvitationController_generateCode", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(InvitationCodeResponseDto, raw)
-
-    async def invitation_controller_list_my_codes(self, request: RealmInvitationControllerListMyCodesOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmInvitationControllerListMyCodesOperationResponse:
-        envelope: dict[str, object] = {
-            "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
-        }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="InvitationController_listMyCodes", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(tuple[InvitationCodeResponseDto, ...], raw)
-
-    async def invitation_controller_verify_code(self, request: RealmInvitationControllerVerifyCodeOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmInvitationControllerVerifyCodeOperationResponse:
-        envelope: dict[str, object] = {
-            "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
-        }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="InvitationController_verifyCode", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(bool, raw)
 
     async def like_post(self, request: RealmLikePostOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmLikePostOperationResponse:
         envelope: dict[str, object] = {

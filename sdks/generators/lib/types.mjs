@@ -90,7 +90,6 @@ export function protoTypeKind(type, runtime) {
 
 export function openApiSuccessSchema(operation) {
   return (operation.response_schemas || []).find((entry) => String(entry.status).startsWith('2'))?.schema
-    || operation.response_schemas?.[0]?.schema
     || { kind: 'unknown' };
 }
 
@@ -197,7 +196,12 @@ export function pyOpenApiType(schema) {
 export function goOpenApiType(schema) {
   if (!schema || schema.kind === 'unknown') return 'struct{}';
   if (schema.kind === 'ref') return schema.ref_name;
-  if (schema.kind === 'enum') return 'string';
+  if (schema.kind === 'enum') {
+    if (schema.type === 'boolean') return 'bool';
+    if (schema.type === 'integer') return 'int64';
+    if (schema.type === 'number') return 'float64';
+    return 'string';
+  }
   if (schema.kind === 'array') return `[]${goOpenApiType(schema.items)}`;
   if (schema.kind === 'object') return 'map[string]any';
   if (schema.kind === 'union') return 'any';
@@ -224,7 +228,12 @@ export function goZeroExpr(type) {
 export function rustOpenApiType(schema) {
   if (!schema || schema.kind === 'unknown') return '()';
   if (schema.kind === 'ref') return schema.ref_name;
-  if (schema.kind === 'enum') return 'String';
+  if (schema.kind === 'enum') {
+    if (schema.type === 'boolean') return 'bool';
+    if (schema.type === 'integer') return 'i64';
+    if (schema.type === 'number') return 'f64';
+    return 'String';
+  }
   if (schema.kind === 'array') return `Vec<${rustOpenApiType(schema.items)}>`;
   if (schema.kind === 'object') return 'BTreeMap<String, String>';
   if (schema.kind === 'union') return 'String';

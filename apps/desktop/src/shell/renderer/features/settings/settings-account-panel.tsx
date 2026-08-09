@@ -105,7 +105,6 @@ export function ProfilePage() {
   const connectedProviders = Array.isArray(user?.oauthProviders)
     ? user.oauthProviders.filter((item): item is NimiRealmOAuthProvider => (
       item === NIMI_REALM_OAUTH_PROVIDER.GOOGLE
-      || item === NIMI_REALM_OAUTH_PROVIDER.TWITTER
       || item === NIMI_REALM_OAUTH_PROVIDER.TIKTOK
     ))
     : [];

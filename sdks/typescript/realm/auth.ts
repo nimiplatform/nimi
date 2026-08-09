@@ -3,8 +3,8 @@ import type {
   CheckEmailResponseDto,
   EmailOtpResponseDto,
   EmailOtpVerifyDto,
+  OAuthLoginDto,
   OAuthLoginResultDto,
-  OAuthProvider,
   PasswordLoginDto,
   RealmTypedCallOptions,
   RealmTypedClient,
@@ -38,6 +38,7 @@ export type NimiRealmEmailOtpRequestResult = EmailOtpResponseDto;
 export type NimiRealmWalletChallengeInput = WalletChallengeDto;
 export type NimiRealmWalletLoginInput = WalletLoginDto;
 export type NimiRealmWalletChallengeResult = WalletChallengeResponseDto;
+export type NimiRealmOAuthLoginInput = OAuthLoginDto;
 
 export interface NimiRealmAuthApi {
   readonly auth: Pick<
@@ -283,12 +284,11 @@ export async function loginNimiRealmWallet(
 
 export async function loginNimiRealmOAuth(
   realm: NimiRealmAuthApi,
-  provider: OAuthProvider,
-  accessToken: string,
+  input: NimiRealmOAuthLoginInput,
   options?: RealmTypedCallOptions,
 ): Promise<NimiRealmOAuthLoginResult> {
   return normalizeNimiRealmOAuthLoginResult(
-    await realm.auth.oauthLogin({ path: {}, body: { provider, accessToken } }, options),
+    await realm.auth.oauthLogin({ path: {}, body: input }, options),
   );
 }
 

@@ -541,24 +541,6 @@ export const REALM_OPERATIONS: readonly RealmOperationDescriptor[] = [
     "path": "/api/auth/sessions/introspect"
   },
   {
-    "operationId": "InvitationController_generateCode",
-    "service": "Invitations",
-    "method": "POST",
-    "path": "/api/invitations"
-  },
-  {
-    "operationId": "InvitationController_listMyCodes",
-    "service": "Invitations",
-    "method": "GET",
-    "path": "/api/invitations"
-  },
-  {
-    "operationId": "InvitationController_verifyCode",
-    "service": "Invitations",
-    "method": "POST",
-    "path": "/api/invitations/verify"
-  },
-  {
     "operationId": "likePost",
     "service": "Posts",
     "method": "POST",

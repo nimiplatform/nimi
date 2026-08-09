@@ -10,7 +10,7 @@ import {
   startSocialOauth,
   type SocialOauthProvider,
 } from './social-oauth.js';
-import type { AuthView, ShellAuthWindow } from '../types/auth-types.js';
+import type { AuthView } from '../types/auth-types.js';
 import type { AuthPlatformAdapter } from '../platform/auth-platform-adapter.js';
 import { persistAuthSession } from './auth-session-storage.js';
 import {
@@ -20,7 +20,7 @@ import {
   toAuthUiErrorMessage,
 } from './auth-copy.js';
 import { saveRememberedLogin, clearRememberedLogin } from './remember-login.js';
-import { loadGoogleScript, getGoogleClientId } from './google-helpers.js';
+import { getGoogleClientId, requestGoogleIdToken } from './google-helpers.js';
 
 type AuthTokensDto = NimiRealmAuthTokens;
 type OAuthLoginResultDto = NimiRealmOAuthLoginResult;
@@ -113,6 +113,9 @@ export async function handleLoginResult(
 
   const tokens = readNimiRealmOAuthLoginTokens(result);
   if (!tokens) {
+    if (await adapter.completeBrowserSessionLogin?.()) {
+      return;
+    }
     throw new Error(AUTH_COPY.loginMissingTokenPayload);
   }
 
@@ -143,47 +146,17 @@ export async function handleGoogleLogin(
 
   setters.setPending(true);
   try {
-    await loadGoogleScript();
-    const win = window as ShellAuthWindow;
-    const initTokenClient = win.google?.accounts?.oauth2?.initTokenClient;
-    if (!initTokenClient) {
-      throw new Error(AUTH_COPY.googleOAuthInitFailed);
-    }
-
-    const tokenClient = initTokenClient({
-      client_id: googleClientId,
-      scope: 'email profile openid',
-      callback: (tokenResponse) => {
-        const accessToken = String(tokenResponse?.access_token || '').trim();
-        if (!accessToken) {
-          setters.setLoginError(AUTH_COPY.googleAccessTokenMissing);
-          setters.setPending(false);
-          return;
-        }
-
-        void (async () => {
-          try {
-            const result = await adapter.oauthLogin('GOOGLE', accessToken);
-            await handleLoginResult(
-              result,
-              formatProviderLoginSuccessMessage('Google'),
-              setters,
-              adapter,
-            );
-          } catch (error) {
-            setters.setLoginError(
-              toAuthUiErrorMessage(error, formatProviderLoginFailureMessage('Google')),
-            );
-          } finally {
-            setters.setPending(false);
-          }
-        })();
-      },
-    });
-
-    tokenClient.requestAccessToken();
+    const idToken = await requestGoogleIdToken(googleClientId);
+    const result = await adapter.oauthLogin({ provider: 'GOOGLE', idToken });
+    await handleLoginResult(
+      result,
+      formatProviderLoginSuccessMessage('Google'),
+      setters,
+      adapter,
+    );
   } catch (error) {
     setters.setLoginError(toAuthUiErrorMessage(error, AUTH_COPY.googleInitFailed));
+  } finally {
     setters.setPending(false);
   }
 }
@@ -197,7 +170,7 @@ export async function handleSocialLogin(
   setters: AuthMenuSetters,
   adapter: AuthPlatformAdapter,
 ): Promise<void> {
-  const providerLabel = provider === 'TWITTER' ? 'Twitter' : 'TikTok';
+  const providerLabel = 'TikTok';
   setters.setLoginError(null);
   setters.setPending(true);
   try {
@@ -205,10 +178,7 @@ export async function handleSocialLogin(
       throw new Error(AUTH_COPY.socialOauthBridgeMissing);
     }
     const oauthResult = await startSocialOauth(provider, adapter.oauthBridge);
-    const result = await adapter.oauthLogin(
-      oauthResult.provider,
-      oauthResult.accessToken,
-    );
+    const result = await adapter.oauthLogin(oauthResult);
     await handleLoginResult(
       result,
       formatProviderLoginSuccessMessage(providerLabel),

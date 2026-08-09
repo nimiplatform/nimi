@@ -142,7 +142,12 @@ export type {
 } from '@nimiplatform/sdk/runtime';
 
 // --- Realm type family ------------------------------------------------------
-export type { RealmHumanChatModule, NimiRealmAuthTokens, NimiRealmOAuthLoginResult } from '@nimiplatform/sdk/realm';
+export type {
+  RealmHumanChatModule,
+  NimiRealmAuthTokens,
+  NimiRealmOAuthLoginInput,
+  NimiRealmOAuthLoginResult,
+} from '@nimiplatform/sdk/realm';
 export type { RealmPublicGeneratedClient } from '@nimiplatform/sdk/realm';
 export type { RealmModel } from '@nimiplatform/sdk/realm/generated';
 export {

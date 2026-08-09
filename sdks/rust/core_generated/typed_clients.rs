@@ -39438,6 +39438,14 @@ pub struct Auth2faVerifyDto {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct AuthErrorDto {
+    pub message: String,
+    pub reason_code: String,
+    pub status_code: f64,
+    pub trace_id: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct AuthTokensDto {
     pub access_token: String,
     pub expires_in: f64,
@@ -40430,25 +40438,6 @@ pub struct IntrospectSessionResponseDto {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct InvitationCodeResponseDto {
-    pub code: String,
-    pub created_at: String,
-    pub creator_id: String,
-    pub id: String,
-    pub used_at: String,
-    pub used_by_account: Box<InvitationCodeUsedByAccountDto>,
-    pub used_by_id: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct InvitationCodeUsedByAccountDto {
-    pub avatar_url: String,
-    pub display_name: String,
-    pub handle: String,
-    pub id: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
 pub struct ListChatsResultDto {
     pub has_more: bool,
     pub items: Vec<ChatViewDto>,
@@ -40778,6 +40767,16 @@ pub struct NotificationTargetDto {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct OAuthErrorResponseDto {
+    pub error: String,
+    pub error_description: String,
+    pub message: String,
+    pub reason_code: String,
+    pub status_code: f64,
+    pub trace_id: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct OAuthLinkResponseDto {
     pub provider: String,
     pub status: String,
@@ -40785,7 +40784,6 @@ pub struct OAuthLinkResponseDto {
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct OAuthLoginDto {
-    pub access_token: String,
     pub code: String,
     pub code_verifier: String,
     pub id_token: String,
@@ -41857,11 +41855,6 @@ pub struct ValidityIssueDto {
 pub struct ValidityResultDto {
     pub issues: Vec<ValidityIssueDto>,
     pub status: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct VerifyInvitationCodeDto {
-    pub invitation_code: String,
 }
 
 pub type Visibility = String;
@@ -44651,75 +44644,6 @@ pub struct RealmIntrospectSessionOperationRequest {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmInvitationControllerGenerateCodeOperationPath {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmInvitationControllerGenerateCodeOperationQuery {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmInvitationControllerGenerateCodeOperationHeaders {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmInvitationControllerGenerateCodeOperationRequest {
-    pub path: RealmInvitationControllerGenerateCodeOperationPath,
-    pub query: RealmInvitationControllerGenerateCodeOperationQuery,
-    pub headers: RealmInvitationControllerGenerateCodeOperationHeaders,
-    pub body: (),
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmInvitationControllerListMyCodesOperationPath {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmInvitationControllerListMyCodesOperationQuery {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmInvitationControllerListMyCodesOperationHeaders {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmInvitationControllerListMyCodesOperationRequest {
-    pub path: RealmInvitationControllerListMyCodesOperationPath,
-    pub query: RealmInvitationControllerListMyCodesOperationQuery,
-    pub headers: RealmInvitationControllerListMyCodesOperationHeaders,
-    pub body: (),
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmInvitationControllerVerifyCodeOperationPath {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmInvitationControllerVerifyCodeOperationQuery {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmInvitationControllerVerifyCodeOperationHeaders {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmInvitationControllerVerifyCodeOperationRequest {
-    pub path: RealmInvitationControllerVerifyCodeOperationPath,
-    pub query: RealmInvitationControllerVerifyCodeOperationQuery,
-    pub headers: RealmInvitationControllerVerifyCodeOperationHeaders,
-    pub body: VerifyInvitationCodeDto,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
 pub struct RealmLikePostOperationPath {
     pub post_id: String,
 }
@@ -45178,9 +45102,6 @@ pub struct RealmOauthAuthorizeOperationPath {
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct RealmOauthAuthorizeOperationQuery {
-    pub fresh_oauth_account_hint: Option<String>,
-    pub fresh_oauth_proof: Option<String>,
-    pub fresh_oauth_started_at: Option<String>,
     pub presence_nonce: Option<String>,
     pub presence_purpose: Option<String>,
     pub prompt: Option<String>,
@@ -45218,7 +45139,7 @@ pub struct RealmOauthLoginOperationQuery {
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct RealmOauthLoginOperationHeaders {
-
+    pub x_nimi_auth_response: Option<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -45264,7 +45185,7 @@ pub struct RealmPasswordLoginOperationQuery {
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct RealmPasswordLoginOperationHeaders {
-
+    pub x_nimi_auth_response: Option<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -46503,7 +46424,7 @@ pub struct RealmVerify2FaOperationQuery {
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct RealmVerify2FaOperationHeaders {
-
+    pub x_nimi_auth_response: Option<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -46526,7 +46447,7 @@ pub struct RealmVerifyEmailOtpOperationQuery {
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct RealmVerifyEmailOtpOperationHeaders {
-
+    pub x_nimi_auth_response: Option<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -46712,7 +46633,7 @@ pub struct RealmWalletLoginOperationQuery {
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct RealmWalletLoginOperationHeaders {
-
+    pub x_nimi_auth_response: Option<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -47935,18 +47856,6 @@ where
 
     pub fn introspect_session(&self, _request: RealmIntrospectSessionOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<IntrospectSessionResponseDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for introspectSession");
-    }
-
-    pub fn invitation_controller_generate_code(&self, _request: RealmInvitationControllerGenerateCodeOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<InvitationCodeResponseDto, T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for InvitationController_generateCode");
-    }
-
-    pub fn invitation_controller_list_my_codes(&self, _request: RealmInvitationControllerListMyCodesOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<Vec<InvitationCodeResponseDto>, T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for InvitationController_listMyCodes");
-    }
-
-    pub fn invitation_controller_verify_code(&self, _request: RealmInvitationControllerVerifyCodeOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<bool, T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for InvitationController_verifyCode");
     }
 
     pub fn like_post(&self, _request: RealmLikePostOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<(), T::Error> {

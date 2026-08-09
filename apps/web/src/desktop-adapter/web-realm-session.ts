@@ -5,7 +5,11 @@ import {
   type NimiRealmOAuthLoginResult,
 } from '@nimiplatform/sdk/realm';
 import type { CoreMetadata } from '@nimiplatform/sdk/types';
-import { readFreshOauthLoginState } from '@renderer/features/auth/oauth-next-continuation.js';
+import {
+  continueOauthNextIfPresent,
+  readFreshOauthLoginState,
+  readValidatedOauthNext,
+} from '@renderer/features/auth/oauth-next-continuation.js';
 import {
   clearDesktopNimiClientSession,
   installRealmProjectionSession,
@@ -13,6 +17,8 @@ import {
 } from '@renderer/infra/sdk/desktop-nimi-client-session';
 
 export type WebRealmFetch = typeof fetch;
+const AUTH_RESPONSE_HEADER = 'x-nimi-auth-response';
+const BROWSER_SESSION_AUTH_RESPONSE = 'browser-session';
 
 export interface WebAuthUserRecord {
   readonly [key: string]: unknown;
@@ -64,18 +70,61 @@ export function shouldUseFreshOauthBrowserSessionLogin(search: string): boolean 
   return readFreshOauthLoginState(search) !== null;
 }
 
+function createFreshOauthBrowserRealm(input: { search: string; fetchImpl?: WebRealmFetch }): Realm {
+  const oauthNext = readValidatedOauthNext(input.search);
+  if (!readFreshOauthLoginState(input.search) || !oauthNext) {
+    throw new Error('Fresh OAuth continuation is invalid');
+  }
+  return new Realm({
+    transport: createRealmFetchTransport({
+      baseUrl: new URL(oauthNext).origin,
+      fetch: input.fetchImpl,
+      credentials: 'include',
+      headers: { [AUTH_RESPONSE_HEADER]: BROWSER_SESSION_AUTH_RESPONSE },
+    }),
+  });
+}
+
+export async function callFreshOauthBrowserSession<T>(input: {
+  search: string;
+  fetchImpl?: WebRealmFetch;
+  call: (realm: Realm) => Promise<T>;
+}): Promise<T> {
+  return input.call(createFreshOauthBrowserRealm(input));
+}
+
 export async function loginFreshOauthPasswordWithBrowserSession(input: {
-  realmBaseUrl: string;
+  search: string;
   identifier: string;
   password: string;
   fetchImpl?: WebRealmFetch;
 }): Promise<NimiRealmOAuthLoginResult> {
-  const realm = new Realm({
-    transport: createRealmFetchTransport({
-      baseUrl: input.realmBaseUrl,
-      fetch: input.fetchImpl,
-      credentials: 'include',
-    }),
+  return callFreshOauthBrowserSession({
+    ...input,
+    call: (realm) => loginNimiRealmAuthPassword(realm, input.identifier, input.password),
   });
-  return loginNimiRealmAuthPassword(realm, input.identifier, input.password);
+}
+
+export async function verifyFreshOauthTwoFactorWithBrowserSession(input: {
+  search: string;
+  tempToken: string;
+  code: string;
+  fetchImpl?: WebRealmFetch;
+}): Promise<void> {
+  await callFreshOauthBrowserSession({
+    ...input,
+    call: async (realm) => {
+      await realm.auth.verify2Fa({
+        path: {},
+        body: { tempToken: input.tempToken, code: input.code },
+      });
+    },
+  });
+}
+
+export function continueFreshOauthBrowserSession(search: string): boolean {
+  if (!shouldUseFreshOauthBrowserSessionLogin(search)) {
+    return false;
+  }
+  return continueOauthNextIfPresent(search);
 }

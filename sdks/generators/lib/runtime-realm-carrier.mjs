@@ -100,7 +100,13 @@ function goType(schema, unionNames, valueNames = new Set()) {
       ? schema.ref_name
       : `*${schema.ref_name}`;
   }
-  if (schema.kind === 'enum' || schema.type === 'string' || schema.format === 'date-time') return 'string';
+  if (schema.kind === 'enum') {
+    if (schema.type === 'boolean') return 'bool';
+    if (schema.type === 'integer') return 'int64';
+    if (schema.type === 'number') return 'float64';
+    return 'string';
+  }
+  if (schema.type === 'string' || schema.format === 'date-time') return 'string';
   if (schema.kind === 'array') return `[]${goType(schema.items, unionNames, valueNames).replace(/^\*/, '')}`;
   if (schema.kind === 'object') return 'map[string]any';
   if (schema.type === 'boolean') return 'bool';
@@ -120,10 +126,11 @@ function renderObjectModel(model, unionNames, valueNames = new Set()) {
 
 function renderEnumModel(model) {
   if (model.schema.kind !== 'enum') fail(`carrier enum ${model.name} is not an enum`);
+  const type = goType({ ...model.schema, kind: 'scalar' }, new Set());
   const constants = (model.schema.values || []).map((value) =>
     `\t${model.name}${pascalCase(value)} ${model.name} = ${quote(value)}`,
   ).join('\n');
-  return `type ${model.name} string\n\nconst (\n${constants}\n)`;
+  return `type ${model.name} ${type}\n\nconst (\n${constants}\n)`;
 }
 
 function renderUnionModel(model) {
@@ -388,6 +395,14 @@ function renderModelSet(models) {
     .join('\n\n');
 }
 
+export function claimUnownedModels(models, claimedNames) {
+  return models.filter((model) => {
+    if (claimedNames.has(model.name)) return false;
+    claimedNames.add(model.name);
+    return true;
+  });
+}
+
 function renderValuesCarrier(name, properties, methodName) {
   const fields = properties.map((property) => {
     const suffix = property.required ? '' : ',omitempty';
@@ -424,7 +439,7 @@ function promoteInlineObject(schema, name, models) {
   return { kind: 'ref', ref_name: name };
 }
 
-function writeAccountAuthCarrier(realm, rows) {
+function writeAccountAuthCarrier(realm, rows, claimedModels) {
   const oauthAuthorize = rows.find((row) => row.operation_id === 'oauthAuthorize');
   const oauthToken = rows.find((row) => row.operation_id === 'oauthToken');
   const refreshToken = rows.find((row) => row.operation_id === 'refreshToken');
@@ -435,7 +450,7 @@ function writeAccountAuthCarrier(realm, rows) {
     || refreshToken.openapi.request_schema?.ref_name !== 'RefreshTokenDto') {
     fail('account-auth request operation/schema/content-type is not admitted');
   }
-  const models = modelClosure(realm, operationModelRoots(rows));
+  const models = claimUnownedModels(modelClosure(realm, operationModelRoots(rows)), claimedModels);
   const oauthTokenRequest = models.find((model) => model.name === 'OAuthTokenRequestDto');
   if (!oauthTokenRequest || oauthTokenRequest.schema.kind !== 'object') {
     fail('OAuthTokenRequestDto is unavailable');
@@ -491,7 +506,7 @@ ${formCarrier}
 `));
 }
 
-function writeAuthnCarrier(realm, rows) {
+function writeAuthnCarrier(realm, rows, claimedModels) {
   const jwks = rows.find((row) => row.operation_id === 'getAuthJwks');
   const introspection = rows.find((row) => row.operation_id === 'introspectSession');
   const jwksSuccess = jwks ? successfulResponse(jwks) : null;
@@ -499,7 +514,7 @@ function writeAuthnCarrier(realm, rows) {
     || jwksSuccess?.schema?.kind !== 'object') {
     fail('authn operation/schema is not admitted');
   }
-  const models = modelClosure(realm, operationModelRoots(rows));
+  const models = claimUnownedModels(modelClosure(realm, operationModelRoots(rows)), claimedModels);
   const inlineModels = new Map();
   promoteInlineObject(jwksSuccess.schema, 'GetAuthJwksResponse', inlineModels);
   const rendered = renderModelSet([
@@ -521,7 +536,7 @@ ${rendered}
 `));
 }
 
-function writeSourceMaterializationCarrier(realm, rows) {
+function writeSourceMaterializationCarrier(realm, rows, claimedModels) {
   const packet = rows.find((row) => row.operation_id === 'WorldCoreController_createSourceMaterializationPacket');
   const jwks = rows.find((row) => row.operation_id === 'getSourceMaterializationJwks');
   if (!packet || packet.openapi.request_schema?.ref_name !== 'CreateSourceMaterializationPacketV3Dto') {
@@ -530,7 +545,10 @@ function writeSourceMaterializationCarrier(realm, rows) {
   if (!jwks || jwks.openapi.request_schema?.kind !== 'unknown') {
     fail('current-JWKS operation is not admitted as a bodyless request');
   }
-  const requestModels = modelClosure(realm, [packet.openapi.request_schema.ref_name]);
+  const requestModels = claimUnownedModels(
+    modelClosure(realm, [packet.openapi.request_schema.ref_name]),
+    claimedModels,
+  );
   const closureModels = modelClosure(realm, [
     packet.openapi.request_schema.ref_name,
     successfulResponse(packet)?.schema?.ref_name,
@@ -571,7 +589,8 @@ export function writeRuntimeRealmCarrier(realm) {
   for (const [family, rows] of Object.entries(byFamily)) {
     if (rows.length === 0) fail(`operation family is empty: ${family}`);
   }
-  writeAccountAuthCarrier(realm, byFamily.account_auth);
-  writeAuthnCarrier(realm, byFamily.authn);
-  writeSourceMaterializationCarrier(realm, byFamily.source_materialization);
+  const claimedModels = new Set();
+  writeAccountAuthCarrier(realm, byFamily.account_auth, claimedModels);
+  writeAuthnCarrier(realm, byFamily.authn, claimedModels);
+  writeSourceMaterializationCarrier(realm, byFamily.source_materialization, claimedModels);
 }

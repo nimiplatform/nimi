@@ -35,6 +35,17 @@ Discipline.
 
 ### Changed
 
+- **Breaking (0.x):** Realm OAuth login/link helpers and Kit auth adapters now
+  accept the canonical provider-specific credential object. Google requires a
+  Google Identity Services ID token; TikTok carries its authorization code,
+  redirect URI, and PKCE verifier to Realm for server-side exchange. The
+  retired access-token signature and Shell-side TikTok exchange are removed.
+
+- **Breaking (0.x):** Twitter OAuth is removed from Kit auth UI, social OAuth
+  provider types, account-link surfaces, and Electron token exchange. Consumers
+  must remove Twitter login/link actions; no compatibility provider alias is
+  retained.
+
 - Model Config restores the established AI Model hub, capability-detail, Active
   Model trigger, and compact Local/Cloud picker UX. App and Agent Local choices
   now project the Machine-selected configuration and deep-link to Machine Local

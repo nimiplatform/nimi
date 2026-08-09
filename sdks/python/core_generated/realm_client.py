@@ -536,24 +536,6 @@ REALM_OPERATIONS = [
     "path": "/api/auth/sessions/introspect"
   },
   {
-    "operation_id": "InvitationController_generateCode",
-    "service": "Invitations",
-    "method": "POST",
-    "path": "/api/invitations"
-  },
-  {
-    "operation_id": "InvitationController_listMyCodes",
-    "service": "Invitations",
-    "method": "GET",
-    "path": "/api/invitations"
-  },
-  {
-    "operation_id": "InvitationController_verifyCode",
-    "service": "Invitations",
-    "method": "POST",
-    "path": "/api/invitations/verify"
-  },
-  {
     "operation_id": "likePost",
     "service": "Posts",
     "method": "POST",

@@ -91,14 +91,14 @@ export function resolveWindowsPowerShell7(options = {}) {
   const existsSync = options.existsSync ?? defaultExistsSync;
   const explicit = String(env.NIMI_PWSH_PATH || '').trim();
   if (explicit) {
-    const resolved = path.resolve(explicit);
-    if (!path.isAbsolute(explicit) || !existsSync(resolved)) {
+    const resolved = path.win32.resolve(explicit);
+    if (!path.win32.isAbsolute(explicit) || !existsSync(resolved)) {
       throw new Error(`NIMI_PWSH_PATH must identify an existing absolute PowerShell 7 executable: ${explicit}`);
     }
     return resolved;
   }
   const programFiles = String(env.ProgramW6432 || env.ProgramFiles || 'C:\\Program Files').trim();
-  const bundledPath = path.join(programFiles, 'PowerShell', '7', 'pwsh.exe');
+  const bundledPath = path.win32.join(programFiles, 'PowerShell', '7', 'pwsh.exe');
   if (!existsSync(bundledPath)) {
     throw new Error(`PowerShell 7 is required for protected Windows development workflows: ${bundledPath}`);
   }

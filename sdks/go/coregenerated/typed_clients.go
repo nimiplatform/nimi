@@ -10226,6 +10226,13 @@ type Auth2faVerifyDto struct {
 	TempToken string `json:"tempToken,omitempty"`
 }
 
+type AuthErrorDto struct {
+	Message string `json:"message,omitempty"`
+	ReasonCode string `json:"reasonCode,omitempty"`
+	StatusCode float64 `json:"statusCode,omitempty"`
+	TraceId string `json:"traceId,omitempty"`
+}
+
 type AuthTokensDto struct {
 	AccessToken string `json:"accessToken,omitempty"`
 	ExpiresIn float64 `json:"expiresIn,omitempty"`
@@ -11141,23 +11148,6 @@ type IntrospectSessionResponseDto struct {
 	Revoked bool `json:"revoked,omitempty"`
 }
 
-type InvitationCodeResponseDto struct {
-	Code string `json:"code,omitempty"`
-	CreatedAt string `json:"createdAt,omitempty"`
-	CreatorId string `json:"creatorId,omitempty"`
-	Id string `json:"id,omitempty"`
-	UsedAt string `json:"usedAt,omitempty"`
-	UsedByAccount *InvitationCodeUsedByAccountDto `json:"usedByAccount,omitempty"`
-	UsedById string `json:"usedById,omitempty"`
-}
-
-type InvitationCodeUsedByAccountDto struct {
-	AvatarUrl string `json:"avatarUrl,omitempty"`
-	DisplayName string `json:"displayName,omitempty"`
-	Handle string `json:"handle,omitempty"`
-	Id string `json:"id,omitempty"`
-}
-
 type ListChatsResultDto struct {
 	HasMore bool `json:"hasMore,omitempty"`
 	Items []ChatViewDto `json:"items,omitempty"`
@@ -11479,13 +11469,21 @@ type NotificationTargetDto struct {
 	PostId string `json:"postId,omitempty"`
 }
 
+type OAuthErrorResponseDto struct {
+	Error string `json:"error,omitempty"`
+	ErrorDescription string `json:"error_description,omitempty"`
+	Message string `json:"message,omitempty"`
+	ReasonCode string `json:"reasonCode,omitempty"`
+	StatusCode float64 `json:"statusCode,omitempty"`
+	TraceId string `json:"traceId,omitempty"`
+}
+
 type OAuthLinkResponseDto struct {
 	Provider string `json:"provider,omitempty"`
 	Status string `json:"status,omitempty"`
 }
 
 type OAuthLoginDto struct {
-	AccessToken string `json:"accessToken,omitempty"`
 	Code string `json:"code,omitempty"`
 	CodeVerifier string `json:"codeVerifier,omitempty"`
 	IdToken string `json:"idToken,omitempty"`
@@ -12478,10 +12476,6 @@ type ValidityIssueDto struct {
 type ValidityResultDto struct {
 	Issues []ValidityIssueDto `json:"issues,omitempty"`
 	Status string `json:"status,omitempty"`
-}
-
-type VerifyInvitationCodeDto struct {
-	InvitationCode string `json:"invitationCode,omitempty"`
 }
 
 type Visibility string
@@ -14841,63 +14835,6 @@ type RealmIntrospectSessionOperationRequest struct {
 	Body    IntrospectSessionRequestDto `json:"body,omitempty"`
 }
 
-type RealmInvitationControllerGenerateCodeOperationPath struct {
-
-}
-
-type RealmInvitationControllerGenerateCodeOperationQuery struct {
-
-}
-
-type RealmInvitationControllerGenerateCodeOperationHeaders struct {
-
-}
-
-type RealmInvitationControllerGenerateCodeOperationRequest struct {
-	Path    RealmInvitationControllerGenerateCodeOperationPath `json:"path,omitempty"`
-	Query   RealmInvitationControllerGenerateCodeOperationQuery `json:"query,omitempty"`
-	Headers RealmInvitationControllerGenerateCodeOperationHeaders `json:"headers,omitempty"`
-	Body    struct{} `json:"body,omitempty"`
-}
-
-type RealmInvitationControllerListMyCodesOperationPath struct {
-
-}
-
-type RealmInvitationControllerListMyCodesOperationQuery struct {
-
-}
-
-type RealmInvitationControllerListMyCodesOperationHeaders struct {
-
-}
-
-type RealmInvitationControllerListMyCodesOperationRequest struct {
-	Path    RealmInvitationControllerListMyCodesOperationPath `json:"path,omitempty"`
-	Query   RealmInvitationControllerListMyCodesOperationQuery `json:"query,omitempty"`
-	Headers RealmInvitationControllerListMyCodesOperationHeaders `json:"headers,omitempty"`
-	Body    struct{} `json:"body,omitempty"`
-}
-
-type RealmInvitationControllerVerifyCodeOperationPath struct {
-
-}
-
-type RealmInvitationControllerVerifyCodeOperationQuery struct {
-
-}
-
-type RealmInvitationControllerVerifyCodeOperationHeaders struct {
-
-}
-
-type RealmInvitationControllerVerifyCodeOperationRequest struct {
-	Path    RealmInvitationControllerVerifyCodeOperationPath `json:"path,omitempty"`
-	Query   RealmInvitationControllerVerifyCodeOperationQuery `json:"query,omitempty"`
-	Headers RealmInvitationControllerVerifyCodeOperationHeaders `json:"headers,omitempty"`
-	Body    VerifyInvitationCodeDto `json:"body,omitempty"`
-}
-
 type RealmLikePostOperationPath struct {
 	PostId string `json:"postId,omitempty"`
 }
@@ -15279,9 +15216,6 @@ type RealmOauthAuthorizeOperationPath struct {
 }
 
 type RealmOauthAuthorizeOperationQuery struct {
-	FreshOauthAccountHint string `json:"fresh_oauth_account_hint,omitempty"`
-	FreshOauthProof string `json:"fresh_oauth_proof,omitempty"`
-	FreshOauthStartedAt string `json:"fresh_oauth_started_at,omitempty"`
 	PresenceNonce string `json:"presence_nonce,omitempty"`
 	PresencePurpose string `json:"presence_purpose,omitempty"`
 	Prompt string `json:"prompt,omitempty"`
@@ -15314,7 +15248,7 @@ type RealmOauthLoginOperationQuery struct {
 }
 
 type RealmOauthLoginOperationHeaders struct {
-
+	XNimiAuthResponse string `json:"x-nimi-auth-response,omitempty"`
 }
 
 type RealmOauthLoginOperationRequest struct {
@@ -15352,7 +15286,7 @@ type RealmPasswordLoginOperationQuery struct {
 }
 
 type RealmPasswordLoginOperationHeaders struct {
-
+	XNimiAuthResponse string `json:"x-nimi-auth-response,omitempty"`
 }
 
 type RealmPasswordLoginOperationRequest struct {
@@ -16383,7 +16317,7 @@ type RealmVerify2FaOperationQuery struct {
 }
 
 type RealmVerify2FaOperationHeaders struct {
-
+	XNimiAuthResponse string `json:"x-nimi-auth-response,omitempty"`
 }
 
 type RealmVerify2FaOperationRequest struct {
@@ -16402,7 +16336,7 @@ type RealmVerifyEmailOtpOperationQuery struct {
 }
 
 type RealmVerifyEmailOtpOperationHeaders struct {
-
+	XNimiAuthResponse string `json:"x-nimi-auth-response,omitempty"`
 }
 
 type RealmVerifyEmailOtpOperationRequest struct {
@@ -16556,7 +16490,7 @@ type RealmWalletLoginOperationQuery struct {
 }
 
 type RealmWalletLoginOperationHeaders struct {
-
+	XNimiAuthResponse string `json:"x-nimi-auth-response,omitempty"`
 }
 
 type RealmWalletLoginOperationRequest struct {
@@ -17891,30 +17825,6 @@ func (c RealmTypedClient) IntrospectSession(ctx context.Context, request RealmIn
 		return IntrospectSessionResponseDto{}, err
 	}
 	return decodeTypedResponse[IntrospectSessionResponseDto](raw)
-}
-
-func (c RealmTypedClient) InvitationControllerGenerateCode(ctx context.Context, request RealmInvitationControllerGenerateCodeOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (InvitationCodeResponseDto, error) {
-	raw, err := c.operationTyped(ctx, "InvitationController_generateCode", request, metadata, timeoutMS)
-	if err != nil {
-		return InvitationCodeResponseDto{}, err
-	}
-	return decodeTypedResponse[InvitationCodeResponseDto](raw)
-}
-
-func (c RealmTypedClient) InvitationControllerListMyCodes(ctx context.Context, request RealmInvitationControllerListMyCodesOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) ([]InvitationCodeResponseDto, error) {
-	raw, err := c.operationTyped(ctx, "InvitationController_listMyCodes", request, metadata, timeoutMS)
-	if err != nil {
-		return []InvitationCodeResponseDto{}, err
-	}
-	return decodeTypedResponse[[]InvitationCodeResponseDto](raw)
-}
-
-func (c RealmTypedClient) InvitationControllerVerifyCode(ctx context.Context, request RealmInvitationControllerVerifyCodeOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (bool, error) {
-	raw, err := c.operationTyped(ctx, "InvitationController_verifyCode", request, metadata, timeoutMS)
-	if err != nil {
-		return false, err
-	}
-	return decodeTypedResponse[bool](raw)
 }
 
 func (c RealmTypedClient) LikePost(ctx context.Context, request RealmLikePostOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (struct{}, error) {

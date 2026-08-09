@@ -185,6 +185,12 @@ export async function handleVerify2Fa(
   setters.setLoginError(null);
   try {
     const tokens = await adapter.verifyTwoFactor(tempToken, twoFactorCode);
+    if (!tokens) {
+      if (await adapter.completeBrowserSessionLogin?.()) {
+        return;
+      }
+      throw new Error(AUTH_COPY.loginMissingTokenPayload);
+    }
     await applyTokens(tokens, AUTH_COPY.twoFactorSuccess, setters, adapter);
   } catch (error) {
     setters.setLoginError(toAuthUiErrorMessage(error, AUTH_COPY.twoFactorFailed));

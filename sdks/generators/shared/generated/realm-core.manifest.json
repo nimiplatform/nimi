@@ -296,8 +296,88 @@
       },
       "request_schema_ref": "#/components/schemas/BindEmailDto",
       "request_content_type": "application/json",
-      "response_schemas": [],
-      "response_schema_refs": []
+      "response_schemas": [
+        {
+          "status": "400",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/AuthErrorDto",
+            "ref_name": "AuthErrorDto"
+          },
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "401",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/AuthErrorDto",
+            "ref_name": "AuthErrorDto"
+          },
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "403",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/AuthErrorDto",
+            "ref_name": "AuthErrorDto"
+          },
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "409",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/AuthErrorDto",
+            "ref_name": "AuthErrorDto"
+          },
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "429",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/AuthErrorDto",
+            "ref_name": "AuthErrorDto"
+          },
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "503",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/AuthErrorDto",
+            "ref_name": "AuthErrorDto"
+          },
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        }
+      ],
+      "response_schema_refs": [
+        {
+          "status": "400",
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "401",
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "403",
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "409",
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "429",
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "503",
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        }
+      ]
     },
     {
       "operation_id": "bindWallet",
@@ -327,12 +407,77 @@
             "ref_name": "UserWalletDto"
           },
           "schema_ref": "#/components/schemas/UserWalletDto"
+        },
+        {
+          "status": "400",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/AuthErrorDto",
+            "ref_name": "AuthErrorDto"
+          },
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "401",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/AuthErrorDto",
+            "ref_name": "AuthErrorDto"
+          },
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "403",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/AuthErrorDto",
+            "ref_name": "AuthErrorDto"
+          },
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "409",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/AuthErrorDto",
+            "ref_name": "AuthErrorDto"
+          },
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "429",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/AuthErrorDto",
+            "ref_name": "AuthErrorDto"
+          },
+          "schema_ref": "#/components/schemas/AuthErrorDto"
         }
       ],
       "response_schema_refs": [
         {
           "status": "200",
           "schema_ref": "#/components/schemas/UserWalletDto"
+        },
+        {
+          "status": "400",
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "401",
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "403",
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "409",
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "429",
+          "schema_ref": "#/components/schemas/AuthErrorDto"
         }
       ]
     },
@@ -409,8 +554,88 @@
       },
       "request_schema_ref": "#/components/schemas/ChangeEmailDto",
       "request_content_type": "application/json",
-      "response_schemas": [],
-      "response_schema_refs": []
+      "response_schemas": [
+        {
+          "status": "400",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/AuthErrorDto",
+            "ref_name": "AuthErrorDto"
+          },
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "401",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/AuthErrorDto",
+            "ref_name": "AuthErrorDto"
+          },
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "403",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/AuthErrorDto",
+            "ref_name": "AuthErrorDto"
+          },
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "409",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/AuthErrorDto",
+            "ref_name": "AuthErrorDto"
+          },
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "429",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/AuthErrorDto",
+            "ref_name": "AuthErrorDto"
+          },
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "503",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/AuthErrorDto",
+            "ref_name": "AuthErrorDto"
+          },
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        }
+      ],
+      "response_schema_refs": [
+        {
+          "status": "400",
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "401",
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "403",
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "409",
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "429",
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "503",
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        }
+      ]
     },
     {
       "operation_id": "checkEmail",
@@ -440,12 +665,38 @@
             "ref_name": "CheckEmailResponseDto"
           },
           "schema_ref": "#/components/schemas/CheckEmailResponseDto"
+        },
+        {
+          "status": "400",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/AuthErrorDto",
+            "ref_name": "AuthErrorDto"
+          },
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "429",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/AuthErrorDto",
+            "ref_name": "AuthErrorDto"
+          },
+          "schema_ref": "#/components/schemas/AuthErrorDto"
         }
       ],
       "response_schema_refs": [
         {
           "status": "200",
           "schema_ref": "#/components/schemas/CheckEmailResponseDto"
+        },
+        {
+          "status": "400",
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "429",
+          "schema_ref": "#/components/schemas/AuthErrorDto"
         }
       ]
     },
@@ -1142,12 +1393,64 @@
             "ref_name": "Me2faOperationResultDto"
           },
           "schema_ref": "#/components/schemas/Me2faOperationResultDto"
+        },
+        {
+          "status": "400",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/AuthErrorDto",
+            "ref_name": "AuthErrorDto"
+          },
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "401",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/AuthErrorDto",
+            "ref_name": "AuthErrorDto"
+          },
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "403",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/AuthErrorDto",
+            "ref_name": "AuthErrorDto"
+          },
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "429",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/AuthErrorDto",
+            "ref_name": "AuthErrorDto"
+          },
+          "schema_ref": "#/components/schemas/AuthErrorDto"
         }
       ],
       "response_schema_refs": [
         {
           "status": "200",
           "schema_ref": "#/components/schemas/Me2faOperationResultDto"
+        },
+        {
+          "status": "400",
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "401",
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "403",
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "429",
+          "schema_ref": "#/components/schemas/AuthErrorDto"
         }
       ]
     },
@@ -2798,12 +3101,64 @@
             "ref_name": "Me2faOperationResultDto"
           },
           "schema_ref": "#/components/schemas/Me2faOperationResultDto"
+        },
+        {
+          "status": "400",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/AuthErrorDto",
+            "ref_name": "AuthErrorDto"
+          },
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "401",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/AuthErrorDto",
+            "ref_name": "AuthErrorDto"
+          },
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "403",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/AuthErrorDto",
+            "ref_name": "AuthErrorDto"
+          },
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "429",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/AuthErrorDto",
+            "ref_name": "AuthErrorDto"
+          },
+          "schema_ref": "#/components/schemas/AuthErrorDto"
         }
       ],
       "response_schema_refs": [
         {
           "status": "200",
           "schema_ref": "#/components/schemas/Me2faOperationResultDto"
+        },
+        {
+          "status": "400",
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "401",
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "403",
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "429",
+          "schema_ref": "#/components/schemas/AuthErrorDto"
         }
       ]
     },
@@ -3547,9 +3902,23 @@
             "additional_properties": null
           },
           "schema_ref": null
+        },
+        {
+          "status": "429",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/AuthErrorDto",
+            "ref_name": "AuthErrorDto"
+          },
+          "schema_ref": "#/components/schemas/AuthErrorDto"
         }
       ],
-      "response_schema_refs": []
+      "response_schema_refs": [
+        {
+          "status": "429",
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        }
+      ]
     },
     {
       "operation_id": "getBundle",
@@ -5771,9 +6140,23 @@
             "additional_properties": null
           },
           "schema_ref": null
+        },
+        {
+          "status": "429",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/AuthErrorDto",
+            "ref_name": "AuthErrorDto"
+          },
+          "schema_ref": "#/components/schemas/AuthErrorDto"
         }
       ],
-      "response_schema_refs": []
+      "response_schema_refs": [
+        {
+          "status": "429",
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        }
+      ]
     },
     {
       "operation_id": "getUnreadCount",
@@ -6269,6 +6652,15 @@
             "ref_name": "IntrospectSessionErrorDto"
           },
           "schema_ref": "#/components/schemas/IntrospectSessionErrorDto"
+        },
+        {
+          "status": "429",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/AuthErrorDto",
+            "ref_name": "AuthErrorDto"
+          },
+          "schema_ref": "#/components/schemas/AuthErrorDto"
         }
       ],
       "response_schema_refs": [
@@ -6279,115 +6671,12 @@
         {
           "status": "400",
           "schema_ref": "#/components/schemas/IntrospectSessionErrorDto"
+        },
+        {
+          "status": "429",
+          "schema_ref": "#/components/schemas/AuthErrorDto"
         }
       ]
-    },
-    {
-      "operation_id": "InvitationController_generateCode",
-      "method": "POST",
-      "path": "/api/invitations",
-      "service": "Invitations",
-      "tags": [
-        "Invitations"
-      ],
-      "parameters": [],
-      "path_parameters": [],
-      "query_parameters": [],
-      "header_parameters": [],
-      "request_schema": {
-        "kind": "unknown"
-      },
-      "request_schema_ref": null,
-      "request_content_type": null,
-      "response_schemas": [
-        {
-          "status": "201",
-          "schema": {
-            "kind": "ref",
-            "ref": "#/components/schemas/InvitationCodeResponseDto",
-            "ref_name": "InvitationCodeResponseDto"
-          },
-          "schema_ref": "#/components/schemas/InvitationCodeResponseDto"
-        }
-      ],
-      "response_schema_refs": [
-        {
-          "status": "201",
-          "schema_ref": "#/components/schemas/InvitationCodeResponseDto"
-        }
-      ]
-    },
-    {
-      "operation_id": "InvitationController_listMyCodes",
-      "method": "GET",
-      "path": "/api/invitations",
-      "service": "Invitations",
-      "tags": [
-        "Invitations"
-      ],
-      "parameters": [],
-      "path_parameters": [],
-      "query_parameters": [],
-      "header_parameters": [],
-      "request_schema": {
-        "kind": "unknown"
-      },
-      "request_schema_ref": null,
-      "request_content_type": null,
-      "response_schemas": [
-        {
-          "status": "200",
-          "schema": {
-            "kind": "array",
-            "items": {
-              "kind": "ref",
-              "ref": "#/components/schemas/InvitationCodeResponseDto",
-              "ref_name": "InvitationCodeResponseDto"
-            },
-            "min_items": null,
-            "max_items": null
-          },
-          "schema_ref": null
-        }
-      ],
-      "response_schema_refs": []
-    },
-    {
-      "operation_id": "InvitationController_verifyCode",
-      "method": "POST",
-      "path": "/api/invitations/verify",
-      "service": "Invitations",
-      "tags": [
-        "Invitations"
-      ],
-      "parameters": [],
-      "path_parameters": [],
-      "query_parameters": [],
-      "header_parameters": [],
-      "request_schema": {
-        "kind": "ref",
-        "ref": "#/components/schemas/VerifyInvitationCodeDto",
-        "ref_name": "VerifyInvitationCodeDto"
-      },
-      "request_schema_ref": "#/components/schemas/VerifyInvitationCodeDto",
-      "request_content_type": "application/json",
-      "response_schemas": [
-        {
-          "status": "200",
-          "schema": {
-            "kind": "scalar",
-            "type": "boolean",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          },
-          "schema_ref": null
-        }
-      ],
-      "response_schema_refs": []
     },
     {
       "operation_id": "likePost",
@@ -6469,12 +6758,90 @@
             "ref_name": "OAuthLinkResponseDto"
           },
           "schema_ref": "#/components/schemas/OAuthLinkResponseDto"
+        },
+        {
+          "status": "400",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/AuthErrorDto",
+            "ref_name": "AuthErrorDto"
+          },
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "401",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/AuthErrorDto",
+            "ref_name": "AuthErrorDto"
+          },
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "403",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/AuthErrorDto",
+            "ref_name": "AuthErrorDto"
+          },
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "409",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/AuthErrorDto",
+            "ref_name": "AuthErrorDto"
+          },
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "429",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/AuthErrorDto",
+            "ref_name": "AuthErrorDto"
+          },
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "503",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/AuthErrorDto",
+            "ref_name": "AuthErrorDto"
+          },
+          "schema_ref": "#/components/schemas/AuthErrorDto"
         }
       ],
       "response_schema_refs": [
         {
           "status": "200",
           "schema_ref": "#/components/schemas/OAuthLinkResponseDto"
+        },
+        {
+          "status": "400",
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "401",
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "403",
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "409",
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "429",
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "503",
+          "schema_ref": "#/components/schemas/AuthErrorDto"
         }
       ]
     },
@@ -7651,8 +8018,62 @@
       },
       "request_schema_ref": "#/components/schemas/RefreshTokenDto",
       "request_content_type": "application/json",
-      "response_schemas": [],
-      "response_schema_refs": []
+      "response_schemas": [
+        {
+          "status": "400",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/AuthErrorDto",
+            "ref_name": "AuthErrorDto"
+          },
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "401",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/AuthErrorDto",
+            "ref_name": "AuthErrorDto"
+          },
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "429",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/AuthErrorDto",
+            "ref_name": "AuthErrorDto"
+          },
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "503",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/AuthErrorDto",
+            "ref_name": "AuthErrorDto"
+          },
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        }
+      ],
+      "response_schema_refs": [
+        {
+          "status": "400",
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "401",
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "429",
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "503",
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        }
+      ]
     },
     {
       "operation_id": "markChatRead",
@@ -7842,51 +8263,6 @@
       ],
       "parameters": [
         {
-          "name": "fresh_oauth_account_hint",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "kind": "scalar",
-            "type": "string",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        },
-        {
-          "name": "fresh_oauth_proof",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "kind": "scalar",
-            "type": "string",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        },
-        {
-          "name": "fresh_oauth_started_at",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "kind": "scalar",
-            "type": "string",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        },
-        {
           "name": "presence_nonce",
           "in": "query",
           "required": false,
@@ -8031,51 +8407,6 @@
       "path_parameters": [],
       "query_parameters": [
         {
-          "name": "fresh_oauth_account_hint",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "kind": "scalar",
-            "type": "string",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        },
-        {
-          "name": "fresh_oauth_proof",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "kind": "scalar",
-            "type": "string",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        },
-        {
-          "name": "fresh_oauth_started_at",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "kind": "scalar",
-            "type": "string",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        },
-        {
           "name": "presence_nonce",
           "in": "query",
           "required": false,
@@ -8223,8 +8554,36 @@
       },
       "request_schema_ref": null,
       "request_content_type": null,
-      "response_schemas": [],
-      "response_schema_refs": []
+      "response_schemas": [
+        {
+          "status": "400",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/OAuthErrorResponseDto",
+            "ref_name": "OAuthErrorResponseDto"
+          },
+          "schema_ref": "#/components/schemas/OAuthErrorResponseDto"
+        },
+        {
+          "status": "429",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/AuthErrorDto",
+            "ref_name": "AuthErrorDto"
+          },
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        }
+      ],
+      "response_schema_refs": [
+        {
+          "status": "400",
+          "schema_ref": "#/components/schemas/OAuthErrorResponseDto"
+        },
+        {
+          "status": "429",
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        }
+      ]
     },
     {
       "operation_id": "oauthLogin",
@@ -8234,10 +8593,36 @@
       "tags": [
         "Auth"
       ],
-      "parameters": [],
+      "parameters": [
+        {
+          "name": "x-nimi-auth-response",
+          "in": "header",
+          "required": false,
+          "schema": {
+            "kind": "enum",
+            "values": [
+              "browser-session"
+            ],
+            "type": "string"
+          }
+        }
+      ],
       "path_parameters": [],
       "query_parameters": [],
-      "header_parameters": [],
+      "header_parameters": [
+        {
+          "name": "x-nimi-auth-response",
+          "in": "header",
+          "required": false,
+          "schema": {
+            "kind": "enum",
+            "values": [
+              "browser-session"
+            ],
+            "type": "string"
+          }
+        }
+      ],
       "request_schema": {
         "kind": "ref",
         "ref": "#/components/schemas/OAuthLoginDto",
@@ -8254,12 +8639,64 @@
             "ref_name": "OAuthLoginResultDto"
           },
           "schema_ref": "#/components/schemas/OAuthLoginResultDto"
+        },
+        {
+          "status": "400",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/AuthErrorDto",
+            "ref_name": "AuthErrorDto"
+          },
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "401",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/AuthErrorDto",
+            "ref_name": "AuthErrorDto"
+          },
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "429",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/AuthErrorDto",
+            "ref_name": "AuthErrorDto"
+          },
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "503",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/AuthErrorDto",
+            "ref_name": "AuthErrorDto"
+          },
+          "schema_ref": "#/components/schemas/AuthErrorDto"
         }
       ],
       "response_schema_refs": [
         {
           "status": "200",
           "schema_ref": "#/components/schemas/OAuthLoginResultDto"
+        },
+        {
+          "status": "400",
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "401",
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "429",
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "503",
+          "schema_ref": "#/components/schemas/AuthErrorDto"
         }
       ]
     },
@@ -8291,12 +8728,38 @@
             "ref_name": "OAuthTokenResponseDto"
           },
           "schema_ref": "#/components/schemas/OAuthTokenResponseDto"
+        },
+        {
+          "status": "400",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/OAuthErrorResponseDto",
+            "ref_name": "OAuthErrorResponseDto"
+          },
+          "schema_ref": "#/components/schemas/OAuthErrorResponseDto"
+        },
+        {
+          "status": "429",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/AuthErrorDto",
+            "ref_name": "AuthErrorDto"
+          },
+          "schema_ref": "#/components/schemas/AuthErrorDto"
         }
       ],
       "response_schema_refs": [
         {
           "status": "200",
           "schema_ref": "#/components/schemas/OAuthTokenResponseDto"
+        },
+        {
+          "status": "400",
+          "schema_ref": "#/components/schemas/OAuthErrorResponseDto"
+        },
+        {
+          "status": "429",
+          "schema_ref": "#/components/schemas/AuthErrorDto"
         }
       ]
     },
@@ -8308,10 +8771,36 @@
       "tags": [
         "Auth"
       ],
-      "parameters": [],
+      "parameters": [
+        {
+          "name": "x-nimi-auth-response",
+          "in": "header",
+          "required": false,
+          "schema": {
+            "kind": "enum",
+            "values": [
+              "browser-session"
+            ],
+            "type": "string"
+          }
+        }
+      ],
       "path_parameters": [],
       "query_parameters": [],
-      "header_parameters": [],
+      "header_parameters": [
+        {
+          "name": "x-nimi-auth-response",
+          "in": "header",
+          "required": false,
+          "schema": {
+            "kind": "enum",
+            "values": [
+              "browser-session"
+            ],
+            "type": "string"
+          }
+        }
+      ],
       "request_schema": {
         "kind": "ref",
         "ref": "#/components/schemas/PasswordLoginDto",
@@ -8328,12 +8817,51 @@
             "ref_name": "OAuthLoginResultDto"
           },
           "schema_ref": "#/components/schemas/OAuthLoginResultDto"
+        },
+        {
+          "status": "400",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/AuthErrorDto",
+            "ref_name": "AuthErrorDto"
+          },
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "401",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/AuthErrorDto",
+            "ref_name": "AuthErrorDto"
+          },
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "429",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/AuthErrorDto",
+            "ref_name": "AuthErrorDto"
+          },
+          "schema_ref": "#/components/schemas/AuthErrorDto"
         }
       ],
       "response_schema_refs": [
         {
           "status": "200",
           "schema_ref": "#/components/schemas/OAuthLoginResultDto"
+        },
+        {
+          "status": "400",
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "401",
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "429",
+          "schema_ref": "#/components/schemas/AuthErrorDto"
         }
       ]
     },
@@ -8365,12 +8893,51 @@
             "ref_name": "OAuthLoginResultDto"
           },
           "schema_ref": "#/components/schemas/OAuthLoginResultDto"
+        },
+        {
+          "status": "400",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/AuthErrorDto",
+            "ref_name": "AuthErrorDto"
+          },
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "409",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/AuthErrorDto",
+            "ref_name": "AuthErrorDto"
+          },
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "429",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/AuthErrorDto",
+            "ref_name": "AuthErrorDto"
+          },
+          "schema_ref": "#/components/schemas/AuthErrorDto"
         }
       ],
       "response_schema_refs": [
         {
           "status": "201",
           "schema_ref": "#/components/schemas/OAuthLoginResultDto"
+        },
+        {
+          "status": "400",
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "409",
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "429",
+          "schema_ref": "#/components/schemas/AuthErrorDto"
         }
       ]
     },
@@ -8400,12 +8967,64 @@
             "ref_name": "Me2faPrepareResponseDto"
           },
           "schema_ref": "#/components/schemas/Me2faPrepareResponseDto"
+        },
+        {
+          "status": "400",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/AuthErrorDto",
+            "ref_name": "AuthErrorDto"
+          },
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "401",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/AuthErrorDto",
+            "ref_name": "AuthErrorDto"
+          },
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "403",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/AuthErrorDto",
+            "ref_name": "AuthErrorDto"
+          },
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "429",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/AuthErrorDto",
+            "ref_name": "AuthErrorDto"
+          },
+          "schema_ref": "#/components/schemas/AuthErrorDto"
         }
       ],
       "response_schema_refs": [
         {
           "status": "200",
           "schema_ref": "#/components/schemas/Me2faPrepareResponseDto"
+        },
+        {
+          "status": "400",
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "401",
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "403",
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "429",
+          "schema_ref": "#/components/schemas/AuthErrorDto"
         }
       ]
     },
@@ -8437,12 +9056,64 @@
             "ref_name": "WalletPrepareBindResponseDto"
           },
           "schema_ref": "#/components/schemas/WalletPrepareBindResponseDto"
+        },
+        {
+          "status": "400",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/AuthErrorDto",
+            "ref_name": "AuthErrorDto"
+          },
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "401",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/AuthErrorDto",
+            "ref_name": "AuthErrorDto"
+          },
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "403",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/AuthErrorDto",
+            "ref_name": "AuthErrorDto"
+          },
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "429",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/AuthErrorDto",
+            "ref_name": "AuthErrorDto"
+          },
+          "schema_ref": "#/components/schemas/AuthErrorDto"
         }
       ],
       "response_schema_refs": [
         {
           "status": "200",
           "schema_ref": "#/components/schemas/WalletPrepareBindResponseDto"
+        },
+        {
+          "status": "400",
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "401",
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "403",
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "429",
+          "schema_ref": "#/components/schemas/AuthErrorDto"
         }
       ]
     },
@@ -8705,12 +9376,64 @@
             "ref_name": "AuthTokensDto"
           },
           "schema_ref": "#/components/schemas/AuthTokensDto"
+        },
+        {
+          "status": "400",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/AuthErrorDto",
+            "ref_name": "AuthErrorDto"
+          },
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "401",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/AuthErrorDto",
+            "ref_name": "AuthErrorDto"
+          },
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "429",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/AuthErrorDto",
+            "ref_name": "AuthErrorDto"
+          },
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "503",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/AuthErrorDto",
+            "ref_name": "AuthErrorDto"
+          },
+          "schema_ref": "#/components/schemas/AuthErrorDto"
         }
       ],
       "response_schema_refs": [
         {
           "status": "200",
           "schema_ref": "#/components/schemas/AuthTokensDto"
+        },
+        {
+          "status": "400",
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "401",
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "429",
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "503",
+          "schema_ref": "#/components/schemas/AuthErrorDto"
         }
       ]
     },
@@ -9222,8 +9945,49 @@
       },
       "request_schema_ref": "#/components/schemas/RequestAccountDeletionDto",
       "request_content_type": "application/json",
-      "response_schemas": [],
-      "response_schema_refs": []
+      "response_schemas": [
+        {
+          "status": "401",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/AuthErrorDto",
+            "ref_name": "AuthErrorDto"
+          },
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "403",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/AuthErrorDto",
+            "ref_name": "AuthErrorDto"
+          },
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "429",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/AuthErrorDto",
+            "ref_name": "AuthErrorDto"
+          },
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        }
+      ],
+      "response_schema_refs": [
+        {
+          "status": "401",
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "403",
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "429",
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        }
+      ]
     },
     {
       "operation_id": "requestDataExport",
@@ -9244,8 +10008,49 @@
       },
       "request_schema_ref": "#/components/schemas/RequestDataExportDto",
       "request_content_type": "application/json",
-      "response_schemas": [],
-      "response_schema_refs": []
+      "response_schemas": [
+        {
+          "status": "401",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/AuthErrorDto",
+            "ref_name": "AuthErrorDto"
+          },
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "403",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/AuthErrorDto",
+            "ref_name": "AuthErrorDto"
+          },
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "429",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/AuthErrorDto",
+            "ref_name": "AuthErrorDto"
+          },
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        }
+      ],
+      "response_schema_refs": [
+        {
+          "status": "401",
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "403",
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "429",
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        }
+      ]
     },
     {
       "operation_id": "requestEmailOtp",
@@ -9275,12 +10080,38 @@
             "ref_name": "EmailOtpResponseDto"
           },
           "schema_ref": "#/components/schemas/EmailOtpResponseDto"
+        },
+        {
+          "status": "400",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/AuthErrorDto",
+            "ref_name": "AuthErrorDto"
+          },
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "429",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/AuthErrorDto",
+            "ref_name": "AuthErrorDto"
+          },
+          "schema_ref": "#/components/schemas/AuthErrorDto"
         }
       ],
       "response_schema_refs": [
         {
           "status": "200",
           "schema_ref": "#/components/schemas/EmailOtpResponseDto"
+        },
+        {
+          "status": "400",
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "429",
+          "schema_ref": "#/components/schemas/AuthErrorDto"
         }
       ]
     },
@@ -11558,8 +12389,62 @@
       },
       "request_schema_ref": null,
       "request_content_type": null,
-      "response_schemas": [],
-      "response_schema_refs": []
+      "response_schemas": [
+        {
+          "status": "401",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/AuthErrorDto",
+            "ref_name": "AuthErrorDto"
+          },
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "403",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/AuthErrorDto",
+            "ref_name": "AuthErrorDto"
+          },
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "404",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/AuthErrorDto",
+            "ref_name": "AuthErrorDto"
+          },
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "429",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/AuthErrorDto",
+            "ref_name": "AuthErrorDto"
+          },
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        }
+      ],
+      "response_schema_refs": [
+        {
+          "status": "401",
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "403",
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "404",
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "429",
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        }
+      ]
     },
     {
       "operation_id": "unblockUser",
@@ -11714,8 +12599,75 @@
       },
       "request_schema_ref": null,
       "request_content_type": null,
-      "response_schemas": [],
-      "response_schema_refs": []
+      "response_schemas": [
+        {
+          "status": "400",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/AuthErrorDto",
+            "ref_name": "AuthErrorDto"
+          },
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "401",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/AuthErrorDto",
+            "ref_name": "AuthErrorDto"
+          },
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "403",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/AuthErrorDto",
+            "ref_name": "AuthErrorDto"
+          },
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "409",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/AuthErrorDto",
+            "ref_name": "AuthErrorDto"
+          },
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "429",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/AuthErrorDto",
+            "ref_name": "AuthErrorDto"
+          },
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        }
+      ],
+      "response_schema_refs": [
+        {
+          "status": "400",
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "401",
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "403",
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "409",
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "429",
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        }
+      ]
     },
     {
       "operation_id": "updateAsset",
@@ -12227,8 +13179,75 @@
       },
       "request_schema_ref": "#/components/schemas/UpdatePasswordRequestDto",
       "request_content_type": "application/json",
-      "response_schemas": [],
-      "response_schema_refs": []
+      "response_schemas": [
+        {
+          "status": "400",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/AuthErrorDto",
+            "ref_name": "AuthErrorDto"
+          },
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "401",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/AuthErrorDto",
+            "ref_name": "AuthErrorDto"
+          },
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "403",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/AuthErrorDto",
+            "ref_name": "AuthErrorDto"
+          },
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "429",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/AuthErrorDto",
+            "ref_name": "AuthErrorDto"
+          },
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "503",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/AuthErrorDto",
+            "ref_name": "AuthErrorDto"
+          },
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        }
+      ],
+      "response_schema_refs": [
+        {
+          "status": "400",
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "401",
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "403",
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "429",
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "503",
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        }
+      ]
     },
     {
       "operation_id": "updatePost",
@@ -12376,10 +13395,36 @@
       "tags": [
         "Auth"
       ],
-      "parameters": [],
+      "parameters": [
+        {
+          "name": "x-nimi-auth-response",
+          "in": "header",
+          "required": false,
+          "schema": {
+            "kind": "enum",
+            "values": [
+              "browser-session"
+            ],
+            "type": "string"
+          }
+        }
+      ],
       "path_parameters": [],
       "query_parameters": [],
-      "header_parameters": [],
+      "header_parameters": [
+        {
+          "name": "x-nimi-auth-response",
+          "in": "header",
+          "required": false,
+          "schema": {
+            "kind": "enum",
+            "values": [
+              "browser-session"
+            ],
+            "type": "string"
+          }
+        }
+      ],
       "request_schema": {
         "kind": "ref",
         "ref": "#/components/schemas/Auth2faVerifyDto",
@@ -12396,12 +13441,51 @@
             "ref_name": "AuthTokensDto"
           },
           "schema_ref": "#/components/schemas/AuthTokensDto"
+        },
+        {
+          "status": "400",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/AuthErrorDto",
+            "ref_name": "AuthErrorDto"
+          },
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "401",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/AuthErrorDto",
+            "ref_name": "AuthErrorDto"
+          },
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "429",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/AuthErrorDto",
+            "ref_name": "AuthErrorDto"
+          },
+          "schema_ref": "#/components/schemas/AuthErrorDto"
         }
       ],
       "response_schema_refs": [
         {
           "status": "200",
           "schema_ref": "#/components/schemas/AuthTokensDto"
+        },
+        {
+          "status": "400",
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "401",
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "429",
+          "schema_ref": "#/components/schemas/AuthErrorDto"
         }
       ]
     },
@@ -12413,10 +13497,36 @@
       "tags": [
         "Auth"
       ],
-      "parameters": [],
+      "parameters": [
+        {
+          "name": "x-nimi-auth-response",
+          "in": "header",
+          "required": false,
+          "schema": {
+            "kind": "enum",
+            "values": [
+              "browser-session"
+            ],
+            "type": "string"
+          }
+        }
+      ],
       "path_parameters": [],
       "query_parameters": [],
-      "header_parameters": [],
+      "header_parameters": [
+        {
+          "name": "x-nimi-auth-response",
+          "in": "header",
+          "required": false,
+          "schema": {
+            "kind": "enum",
+            "values": [
+              "browser-session"
+            ],
+            "type": "string"
+          }
+        }
+      ],
       "request_schema": {
         "kind": "ref",
         "ref": "#/components/schemas/EmailOtpVerifyDto",
@@ -12433,12 +13543,51 @@
             "ref_name": "OAuthLoginResultDto"
           },
           "schema_ref": "#/components/schemas/OAuthLoginResultDto"
+        },
+        {
+          "status": "400",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/AuthErrorDto",
+            "ref_name": "AuthErrorDto"
+          },
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "429",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/AuthErrorDto",
+            "ref_name": "AuthErrorDto"
+          },
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "503",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/AuthErrorDto",
+            "ref_name": "AuthErrorDto"
+          },
+          "schema_ref": "#/components/schemas/AuthErrorDto"
         }
       ],
       "response_schema_refs": [
         {
           "status": "200",
           "schema_ref": "#/components/schemas/OAuthLoginResultDto"
+        },
+        {
+          "status": "400",
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "429",
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "503",
+          "schema_ref": "#/components/schemas/AuthErrorDto"
         }
       ]
     },
@@ -12802,12 +13951,51 @@
             "ref_name": "WalletChallengeResponseDto"
           },
           "schema_ref": "#/components/schemas/WalletChallengeResponseDto"
+        },
+        {
+          "status": "400",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/AuthErrorDto",
+            "ref_name": "AuthErrorDto"
+          },
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "429",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/AuthErrorDto",
+            "ref_name": "AuthErrorDto"
+          },
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "503",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/AuthErrorDto",
+            "ref_name": "AuthErrorDto"
+          },
+          "schema_ref": "#/components/schemas/AuthErrorDto"
         }
       ],
       "response_schema_refs": [
         {
           "status": "200",
           "schema_ref": "#/components/schemas/WalletChallengeResponseDto"
+        },
+        {
+          "status": "400",
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "429",
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "503",
+          "schema_ref": "#/components/schemas/AuthErrorDto"
         }
       ]
     },
@@ -12819,10 +14007,36 @@
       "tags": [
         "Auth"
       ],
-      "parameters": [],
+      "parameters": [
+        {
+          "name": "x-nimi-auth-response",
+          "in": "header",
+          "required": false,
+          "schema": {
+            "kind": "enum",
+            "values": [
+              "browser-session"
+            ],
+            "type": "string"
+          }
+        }
+      ],
       "path_parameters": [],
       "query_parameters": [],
-      "header_parameters": [],
+      "header_parameters": [
+        {
+          "name": "x-nimi-auth-response",
+          "in": "header",
+          "required": false,
+          "schema": {
+            "kind": "enum",
+            "values": [
+              "browser-session"
+            ],
+            "type": "string"
+          }
+        }
+      ],
       "request_schema": {
         "kind": "ref",
         "ref": "#/components/schemas/WalletLoginDto",
@@ -12839,12 +14053,64 @@
             "ref_name": "OAuthLoginResultDto"
           },
           "schema_ref": "#/components/schemas/OAuthLoginResultDto"
+        },
+        {
+          "status": "400",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/AuthErrorDto",
+            "ref_name": "AuthErrorDto"
+          },
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "401",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/AuthErrorDto",
+            "ref_name": "AuthErrorDto"
+          },
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "429",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/AuthErrorDto",
+            "ref_name": "AuthErrorDto"
+          },
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "503",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/AuthErrorDto",
+            "ref_name": "AuthErrorDto"
+          },
+          "schema_ref": "#/components/schemas/AuthErrorDto"
         }
       ],
       "response_schema_refs": [
         {
           "status": "200",
           "schema_ref": "#/components/schemas/OAuthLoginResultDto"
+        },
+        {
+          "status": "400",
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "401",
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "429",
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "503",
+          "schema_ref": "#/components/schemas/AuthErrorDto"
         }
       ]
     },
@@ -15991,24 +17257,6 @@
       "path": "/api/auth/sessions/introspect"
     },
     {
-      "operation_id": "InvitationController_generateCode",
-      "service": "Invitations",
-      "method": "POST",
-      "path": "/api/invitations"
-    },
-    {
-      "operation_id": "InvitationController_listMyCodes",
-      "service": "Invitations",
-      "method": "GET",
-      "path": "/api/invitations"
-    },
-    {
-      "operation_id": "InvitationController_verifyCode",
-      "service": "Invitations",
-      "method": "POST",
-      "path": "/api/invitations/verify"
-    },
-    {
       "operation_id": "likePost",
       "service": "Posts",
       "method": "POST",
@@ -16840,14 +18088,6 @@
       ]
     },
     {
-      "name": "Invitations",
-      "operation_ids": [
-        "InvitationController_generateCode",
-        "InvitationController_listMyCodes",
-        "InvitationController_verifyCode"
-      ]
-    },
-    {
       "name": "Jwks",
       "operation_ids": [
         "getAuthJwks",
@@ -17091,6 +18331,9 @@
     },
     {
       "name": "Auth2faVerifyDto"
+    },
+    {
+      "name": "AuthErrorDto"
     },
     {
       "name": "AuthTokensDto"
@@ -17411,12 +18654,6 @@
       "name": "IntrospectSessionResponseDto"
     },
     {
-      "name": "InvitationCodeResponseDto"
-    },
-    {
-      "name": "InvitationCodeUsedByAccountDto"
-    },
-    {
       "name": "ListChatsResultDto"
     },
     {
@@ -17523,6 +18760,9 @@
     },
     {
       "name": "NotificationTargetDto"
+    },
+    {
+      "name": "OAuthErrorResponseDto"
     },
     {
       "name": "OAuthLinkResponseDto"
@@ -17867,9 +19107,6 @@
       "name": "ValidityResultDto"
     },
     {
-      "name": "VerifyInvitationCodeDto"
-    },
-    {
       "name": "Visibility"
     },
     {
@@ -18126,7 +19363,6 @@
         "kind": "enum",
         "values": [
           "ONBOARDING",
-          "CHECK_INVITED",
           "ACTIVE",
           "SUSPENDED",
           "BANNED"
@@ -18734,6 +19970,115 @@
         "required_properties": [
           "tempToken",
           "code"
+        ],
+        "closed": false,
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "AuthErrorDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "message",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "reasonCode",
+            "required": true,
+            "schema": {
+              "kind": "enum",
+              "values": [
+                "AUTH_REQUIRED",
+                "AUTH_INSUFFICIENT_SCOPE",
+                "AUTH_INVALID_CREDENTIALS",
+                "AUTH_INVALID_REQUEST",
+                "AUTH_TOKEN_EXPIRED",
+                "AUTH_TOKEN_VERIFICATION_UNAVAILABLE",
+                "AUTH_INVALID_REFRESH_TOKEN",
+                "AUTH_REFRESH_TOKEN_REVOKED",
+                "AUTH_REFRESH_TOKEN_REPLAY_DETECTED",
+                "AUTH_ACCOUNT_RESTRICTED",
+                "AUTH_INVALID_TOKEN_TYPE",
+                "AUTH_INVALID_2FA_TOKEN",
+                "AUTH_INVALID_2FA_CODE",
+                "AUTH_2FA_NOT_ENABLED",
+                "AUTH_2FA_SETUP_EXPIRED",
+                "AUTH_INVALID_WALLET_NONCE",
+                "AUTH_INVALID_WALLET_SIGNATURE",
+                "AUTH_WALLET_ADDRESS_REQUIRED",
+                "AUTH_WALLET_MESSAGE_REQUIRED",
+                "AUTH_WALLET_SIGNATURE_REQUIRED",
+                "AUTH_WALLET_NONCE_REQUIRED",
+                "AUTH_WALLET_CHALLENGE_UNAVAILABLE",
+                "AUTH_INVALID_OAUTH_CREDENTIAL",
+                "AUTH_OAUTH_PROVIDER_UNAVAILABLE",
+                "AUTH_OAUTH_IDENTITY_NOT_FOUND",
+                "AUTH_OAUTH_IDENTITY_CONFLICT",
+                "AUTH_OAUTH_LAST_LOGIN_METHOD",
+                "AUTH_CURRENT_PASSWORD_REQUIRED",
+                "AUTH_INVALID_CURRENT_PASSWORD",
+                "AUTH_PASSWORD_NOT_SET",
+                "AUTH_HANDLE_UNAVAILABLE",
+                "AUTH_EMAIL_ALREADY_IN_USE",
+                "AUTH_EMAIL_OTP_EXPIRED",
+                "AUTH_INVALID_EMAIL_OTP",
+                "AUTH_EMAIL_OTP_UNAVAILABLE",
+                "AUTH_RATE_LIMITED",
+                "AUTH_SESSION_REVOCATION_UNAVAILABLE",
+                "AUTH_ACCOUNT_NOT_FOUND"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "statusCode",
+            "required": true,
+            "schema": {
+              "kind": "enum",
+              "values": [
+                400,
+                401,
+                403,
+                404,
+                409,
+                429,
+                503
+              ],
+              "type": "number"
+            }
+          },
+          {
+            "name": "traceId",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          }
+        ],
+        "required_properties": [
+          "statusCode",
+          "message",
+          "reasonCode",
+          "traceId"
         ],
         "closed": false,
         "additional_properties": null
@@ -31598,190 +32943,6 @@
       }
     },
     {
-      "name": "InvitationCodeResponseDto",
-      "schema": {
-        "kind": "object",
-        "properties": [
-          {
-            "name": "code",
-            "required": true,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null,
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null
-            }
-          },
-          {
-            "name": "createdAt",
-            "required": true,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": "date-time",
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null
-            }
-          },
-          {
-            "name": "creatorId",
-            "required": true,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null,
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null
-            }
-          },
-          {
-            "name": "id",
-            "required": true,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null,
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null
-            }
-          },
-          {
-            "name": "usedAt",
-            "required": false,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null,
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null,
-              "nullable": true
-            }
-          },
-          {
-            "name": "usedByAccount",
-            "required": false,
-            "schema": {
-              "kind": "ref",
-              "ref": "#/components/schemas/InvitationCodeUsedByAccountDto",
-              "ref_name": "InvitationCodeUsedByAccountDto",
-              "nullable": true
-            }
-          },
-          {
-            "name": "usedById",
-            "required": false,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null,
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null,
-              "nullable": true
-            }
-          }
-        ],
-        "required_properties": [
-          "id",
-          "code",
-          "creatorId",
-          "createdAt"
-        ],
-        "closed": false,
-        "additional_properties": null
-      }
-    },
-    {
-      "name": "InvitationCodeUsedByAccountDto",
-      "schema": {
-        "kind": "object",
-        "properties": [
-          {
-            "name": "avatarUrl",
-            "required": false,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null,
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null,
-              "nullable": true
-            }
-          },
-          {
-            "name": "displayName",
-            "required": false,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null,
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null,
-              "nullable": true
-            }
-          },
-          {
-            "name": "handle",
-            "required": false,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null,
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null,
-              "nullable": true
-            }
-          },
-          {
-            "name": "id",
-            "required": true,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null,
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null
-            }
-          }
-        ],
-        "required_properties": [
-          "id"
-        ],
-        "closed": false,
-        "additional_properties": null
-      }
-    },
-    {
       "name": "ListChatsResultDto",
       "schema": {
         "kind": "object",
@@ -34790,6 +35951,144 @@
       }
     },
     {
+      "name": "OAuthErrorResponseDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "error",
+            "required": true,
+            "schema": {
+              "kind": "enum",
+              "values": [
+                "invalid_request",
+                "invalid_grant",
+                "unsupported_grant_type",
+                "unsupported_response_type"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "error_description",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "message",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "reasonCode",
+            "required": true,
+            "schema": {
+              "kind": "enum",
+              "values": [
+                "AUTH_REQUIRED",
+                "AUTH_INSUFFICIENT_SCOPE",
+                "AUTH_INVALID_CREDENTIALS",
+                "AUTH_INVALID_REQUEST",
+                "AUTH_TOKEN_EXPIRED",
+                "AUTH_TOKEN_VERIFICATION_UNAVAILABLE",
+                "AUTH_INVALID_REFRESH_TOKEN",
+                "AUTH_REFRESH_TOKEN_REVOKED",
+                "AUTH_REFRESH_TOKEN_REPLAY_DETECTED",
+                "AUTH_ACCOUNT_RESTRICTED",
+                "AUTH_INVALID_TOKEN_TYPE",
+                "AUTH_INVALID_2FA_TOKEN",
+                "AUTH_INVALID_2FA_CODE",
+                "AUTH_2FA_NOT_ENABLED",
+                "AUTH_2FA_SETUP_EXPIRED",
+                "AUTH_INVALID_WALLET_NONCE",
+                "AUTH_INVALID_WALLET_SIGNATURE",
+                "AUTH_WALLET_ADDRESS_REQUIRED",
+                "AUTH_WALLET_MESSAGE_REQUIRED",
+                "AUTH_WALLET_SIGNATURE_REQUIRED",
+                "AUTH_WALLET_NONCE_REQUIRED",
+                "AUTH_WALLET_CHALLENGE_UNAVAILABLE",
+                "AUTH_INVALID_OAUTH_CREDENTIAL",
+                "AUTH_OAUTH_PROVIDER_UNAVAILABLE",
+                "AUTH_OAUTH_IDENTITY_NOT_FOUND",
+                "AUTH_OAUTH_IDENTITY_CONFLICT",
+                "AUTH_OAUTH_LAST_LOGIN_METHOD",
+                "AUTH_CURRENT_PASSWORD_REQUIRED",
+                "AUTH_INVALID_CURRENT_PASSWORD",
+                "AUTH_PASSWORD_NOT_SET",
+                "AUTH_HANDLE_UNAVAILABLE",
+                "AUTH_EMAIL_ALREADY_IN_USE",
+                "AUTH_EMAIL_OTP_EXPIRED",
+                "AUTH_INVALID_EMAIL_OTP",
+                "AUTH_EMAIL_OTP_UNAVAILABLE",
+                "AUTH_RATE_LIMITED",
+                "AUTH_SESSION_REVOCATION_UNAVAILABLE",
+                "AUTH_ACCOUNT_NOT_FOUND"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "statusCode",
+            "required": true,
+            "schema": {
+              "kind": "enum",
+              "values": [
+                400,
+                401,
+                403,
+                404,
+                409,
+                429,
+                503
+              ],
+              "type": "number"
+            }
+          },
+          {
+            "name": "traceId",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          }
+        ],
+        "required_properties": [
+          "statusCode",
+          "message",
+          "reasonCode",
+          "traceId",
+          "error"
+        ],
+        "closed": false,
+        "additional_properties": null
+      }
+    },
+    {
       "name": "OAuthLinkResponseDto",
       "schema": {
         "kind": "object",
@@ -34802,7 +36101,6 @@
               "values": [
                 "google",
                 "wechat",
-                "twitter",
                 "tiktok"
               ],
               "type": "string"
@@ -34833,20 +36131,6 @@
       "schema": {
         "kind": "object",
         "properties": [
-          {
-            "name": "accessToken",
-            "required": false,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null,
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null
-            }
-          },
           {
             "name": "code",
             "required": false,
@@ -34897,7 +36181,6 @@
               "values": [
                 "GOOGLE",
                 "WECHAT",
-                "TWITTER",
                 "TIKTOK"
               ],
               "type": "string"
@@ -34999,7 +36282,6 @@
         "values": [
           "GOOGLE",
           "WECHAT",
-          "TWITTER",
           "TIKTOK"
         ],
         "type": "string"
@@ -47463,33 +48745,6 @@
           "issues"
         ],
         "closed": true,
-        "additional_properties": null
-      }
-    },
-    {
-      "name": "VerifyInvitationCodeDto",
-      "schema": {
-        "kind": "object",
-        "properties": [
-          {
-            "name": "invitationCode",
-            "required": true,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null,
-              "minimum": null,
-              "maximum": null,
-              "min_length": 6,
-              "max_length": null,
-              "pattern": null
-            }
-          }
-        ],
-        "required_properties": [
-          "invitationCode"
-        ],
-        "closed": false,
         "additional_properties": null
       }
     },
