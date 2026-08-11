@@ -333,29 +333,27 @@ func TestGeneratedFirstPartyProfilesResolveExactMarkerMethodAndKind(t *testing.T
 	}
 }
 
-func TestDesktopMachineProfileStreamReachesHandler(t *testing.T) {
+func TestDesktopAccountProfileScenarioStreamReachesHandler(t *testing.T) {
 	manager, connection := newProtectedRPCFixture(t)
 	if _, err := manager.Open(protectedlocal.ContextWithDesktopConnection(context.Background(), connection)); err != nil {
 		t.Fatalf("open Desktop session: %v", err)
 	}
-	ctx := metadata.NewIncomingContext(context.Background(), metadata.Pairs(
-		protectedFirstPartyProfileMetadata, protectedlocal.DesktopMachineProductNativeMarker,
-		"x-nimi-app-id", envelope.ProtectedDesktopAppID,
-	))
-	ctx = peer.NewContext(ctx, &peer.Peer{AuthInfo: &protectedDesktopAuthInfo{connection: connection}})
+	invalidated := make(chan struct{})
+	ctx := protectedAccountProfileTestContext(connection)
 	reached := false
-	err := newStreamProtectedDesktopTransportInterceptor(manager, nil)(nil, &recordingServerStream{ctx: ctx}, &grpc.StreamServerInfo{
+	err := newStreamProtectedDesktopTransportInterceptor(manager, &protectedAccountPrincipalTestProvider{invalidated: invalidated})(nil, &recordingServerStream{ctx: ctx}, &grpc.StreamServerInfo{
 		FullMethod:     "/nimi.runtime.v1.RuntimeAiService/StreamScenario",
 		IsServerStream: true,
 	}, func(_ any, protectedStream grpc.ServerStream) error {
 		reached = true
-		if _, ok := protectedprincipal.FromContext(protectedStream.Context()); ok {
-			return status.Error(codes.Internal, "machine profile must not receive account principal")
+		principal, ok := protectedprincipal.FromContext(protectedStream.Context())
+		if !ok || principal.ProfileID != protectedlocal.DesktopAccountProductProfileID || principal.AccountID != "account-protected" {
+			return status.Error(codes.Internal, "account principal missing")
 		}
 		return nil
 	})
 	if err != nil || !reached {
-		t.Fatalf("machine stream handler result = reached=%v error=%v", reached, err)
+		t.Fatalf("account Scenario stream handler result = reached=%v error=%v", reached, err)
 	}
 }
 

@@ -182,7 +182,7 @@ export function useAiConversationModeHost(
   const isBundleLoading = Boolean(activeThreadId) && bundleQuery.isPending && !bundle;
   const composerReady = setupState.status === 'ready' && !isBundleLoading;
   const executeTextCapability = useCallback((text: string) => runDesktopNimiTextCapability({
-    runtime: { ai: bindings.sdk.machineProduct().ai },
+    runtime: bindings.sdk.aiExecution(),
     appId: DESKTOP_NIMI_APP_ID,
     prompt: text,
     subjectUserId: authUserId || undefined,

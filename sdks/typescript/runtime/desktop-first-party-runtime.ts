@@ -83,9 +83,6 @@ export type NimiDesktopMachineProductRuntimeClient = {
     | 'issueExternalAgentToken'
     | 'revokeExternalAgentToken'
     | 'listExternalAgentTokens'>;
-  readonly ai: Pick<DesktopMachineProductRuntimeMethods,
-    | 'executeScenario'
-    | 'streamScenario'>;
   readonly scheduling: Pick<DesktopMachineProductRuntimeMethods, 'peekScheduling'>;
 };
 
@@ -150,8 +147,9 @@ export type NimiDesktopAccountProductRuntimeClient = {
   ) => Promise<RuntimeMaterializeRealmSourceResult>;
 };
 
-/** Exact non-profile Runtime methods exercised by the active Desktop voice workflow. */
-export type NimiDesktopRuntimeAiScenarioJobClient = NimiRuntimeScenarioJobClient;
+/** Exact Desktop Scenario execution methods exercised by active product consumers. */
+export type NimiDesktopRuntimeAiExecutionClient = NimiRuntimeScenarioJobClient
+  & Pick<DesktopAccountProductRuntimeMethods, 'executeScenario' | 'streamScenario'>;
 
 /** Exact Agent methods exercised by active Desktop product consumers. */
 export type NimiDesktopRuntimeAgentPurposeClient =
@@ -161,7 +159,7 @@ export type NimiDesktopFirstPartyRuntimeClients = {
   readonly machineProduct: NimiDesktopMachineProductRuntimeClient;
   readonly accountProduct: NimiDesktopAccountProductRuntimeClient;
   readonly auth: NimiRuntimeAgentAuthClient;
-  readonly aiScenarioJobs: NimiDesktopRuntimeAiScenarioJobClient;
+  readonly aiExecution: NimiDesktopRuntimeAiExecutionClient;
   readonly agentPurpose: NimiDesktopRuntimeAgentPurposeClient;
 };
 
@@ -339,10 +337,6 @@ export function createNimiDesktopFirstPartyRuntimeClients(
         revokeExternalAgentToken: runtime.externalAgents.revokeExternalAgentToken,
         listExternalAgentTokens: runtime.externalAgents.listExternalAgentTokens,
       }),
-      ai: Object.freeze({
-        executeScenario: runtime.ai.executeScenario,
-        streamScenario: runtime.ai.streamScenario,
-      }),
       scheduling: Object.freeze({
         peekScheduling: runtime.scheduling.peekScheduling,
       }),
@@ -381,7 +375,9 @@ export function createNimiDesktopFirstPartyRuntimeClients(
       materializeRealmSource: runtime.materializeRealmSource.bind(runtime),
     }),
     auth: Object.freeze({}),
-    aiScenarioJobs: Object.freeze({
+    aiExecution: Object.freeze({
+      executeScenario: runtime.ai.executeScenario,
+      streamScenario: runtime.ai.streamScenario,
       submitScenarioJob: runtime.ai.submitScenarioJob,
       getScenarioJob: runtime.ai.getScenarioJob,
       cancelScenarioJob: runtime.ai.cancelScenarioJob,

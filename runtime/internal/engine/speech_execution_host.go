@@ -2,9 +2,7 @@ package engine
 
 import (
 	"context"
-	"errors"
 	"fmt"
-	"io"
 	"strings"
 	"sync"
 	"time"
@@ -36,21 +34,6 @@ type speechExecutionWaiter struct {
 	granted bool
 }
 
-type speechExecutionLeaseBody struct {
-	body         io.ReadCloser
-	expectedSize int64
-	release      func()
-	abort        func(error) error
-
-	stateMu      sync.Mutex
-	observedSize int64
-	complete     bool
-	closeOnce    sync.Once
-	closeErr     error
-	finishOnce   sync.Once
-	finishErr    error
-}
-
 const maxSpeechExecutionHostTimeout = 30 * time.Minute
 
 // SpeechExecutionHostMaterializer lazily starts the private Host for exactly
@@ -78,12 +61,7 @@ func (host *SpeechExecutionHost) ExecuteSpeechSynthesis(ctx context.Context, pla
 	if err != nil {
 		return localexecution.SpeechSynthesisResult{}, speechHostError(localexecution.FailureCanceled, err)
 	}
-	releaseOnReturn := true
-	defer func() {
-		if releaseOnReturn {
-			release()
-		}
-	}()
+	defer release()
 	if host.poisoned != nil {
 		return localexecution.SpeechSynthesisResult{}, speechHostError(localexecution.FailureProcessCrash, host.poisoned)
 	}
@@ -109,15 +87,8 @@ func (host *SpeechExecutionHost) ExecuteSpeechSynthesis(ctx context.Context, pla
 	if artifactBody == nil || artifactBody.Body == nil {
 		return localexecution.SpeechSynthesisResult{}, speechHostError(localexecution.FailureInference, fmt.Errorf("local speech synthesis returned empty audio"))
 	}
-	body := &speechExecutionLeaseBody{
-		body:         artifactBody.Body,
-		expectedSize: artifactBody.SizeBytes,
-		release:      release,
-		abort:        host.stopInterruptedExecution,
-	}
-	releaseOnReturn = false
 	return localexecution.SpeechSynthesisResult{
-		AudioBody: body,
+		AudioBody: artifactBody.Body,
 		SizeBytes: artifactBody.SizeBytes,
 		MIMEType:  artifactBody.MIMEType,
 		Usage:     usage,
@@ -158,103 +129,6 @@ func (host *SpeechExecutionHost) ExecuteSpeechTranscription(ctx context.Context,
 		return localexecution.SpeechTranscriptionResult{}, speechHostError(localexecution.FailureInference, fmt.Errorf("local speech transcription returned empty text"))
 	}
 	return localexecution.SpeechTranscriptionResult{Text: text, Usage: usage}, nil
-}
-
-func (body *speechExecutionLeaseBody) Read(buffer []byte) (int, error) {
-	if body == nil || body.body == nil {
-		return 0, io.EOF
-	}
-	read, err := body.body.Read(buffer)
-	complete, interrupted := body.observeRead(read, err)
-	if interrupted {
-		closeErr := body.closeUnderlying()
-		finishErr := body.finish(true, err)
-		return read, joinSpeechBodyErrors(err, closeErr, finishErr)
-	}
-	if complete {
-		_ = body.finish(false, nil)
-	}
-	return read, err
-}
-
-func (body *speechExecutionLeaseBody) Close() error {
-	if body == nil || body.body == nil {
-		return nil
-	}
-	closeErr := body.closeUnderlying()
-	if body.isComplete() {
-		finishErr := body.finish(false, nil)
-		return joinSpeechBodyErrors(closeErr, finishErr)
-	}
-	finishErr := body.finish(true, io.ErrUnexpectedEOF)
-	return joinSpeechBodyErrors(closeErr, finishErr)
-}
-
-func (body *speechExecutionLeaseBody) observeRead(read int, err error) (bool, bool) {
-	if body == nil {
-		return true, false
-	}
-	body.stateMu.Lock()
-	defer body.stateMu.Unlock()
-	if body.complete {
-		return true, false
-	}
-	body.observedSize += int64(read)
-	if errors.Is(err, io.EOF) || (err == nil && body.expectedSize > 0 && body.observedSize >= body.expectedSize) {
-		body.complete = true
-		return true, false
-	}
-	return false, err != nil
-}
-
-func (body *speechExecutionLeaseBody) isComplete() bool {
-	if body == nil {
-		return true
-	}
-	body.stateMu.Lock()
-	defer body.stateMu.Unlock()
-	return body.complete
-}
-
-func (body *speechExecutionLeaseBody) closeUnderlying() error {
-	if body == nil || body.body == nil {
-		return nil
-	}
-	body.closeOnce.Do(func() {
-		body.closeErr = body.body.Close()
-	})
-	return body.closeErr
-}
-
-func (body *speechExecutionLeaseBody) finish(aborted bool, cause error) error {
-	if body == nil {
-		return nil
-	}
-	body.finishOnce.Do(func() {
-		if aborted && body.abort != nil {
-			body.finishErr = body.abort(cause)
-		}
-		if body.release != nil {
-			body.release()
-		}
-	})
-	return body.finishErr
-}
-
-func joinSpeechBodyErrors(errs ...error) error {
-	joined := make([]error, 0, len(errs))
-	for _, err := range errs {
-		if err != nil {
-			joined = append(joined, err)
-		}
-	}
-	if len(joined) == 0 {
-		return nil
-	}
-	if len(joined) == 1 {
-		return joined[0]
-	}
-	return errors.Join(joined...)
 }
 
 func (lease *speechExecutionLease) acquire(ctx context.Context) (func(), error) {

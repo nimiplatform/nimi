@@ -41,8 +41,6 @@ profiles:
       - method_id: /nimi.runtime.v1.RuntimeAuditService/ListDesktopAuditEvents
       - method_id: /nimi.runtime.v1.RuntimeAuditService/ListUsageStats
       - method_id: /nimi.runtime.v1.RuntimeAiService/PeekScheduling
-      - method_id: /nimi.runtime.v1.RuntimeAiService/ExecuteScenario
-      - method_id: /nimi.runtime.v1.RuntimeAiService/StreamScenario
       - method_id: /nimi.runtime.v1.RuntimeLocalService/RemoveLocalAsset
       - method_id: /nimi.runtime.v1.RuntimeLocalService/StartLocalAsset
       - method_id: /nimi.runtime.v1.RuntimeLocalService/StopLocalAsset
@@ -80,6 +78,13 @@ profiles:
     methods:
       - method_id: /nimi.runtime.v1.RuntimeAiService/GetAppAIConfig
       - method_id: /nimi.runtime.v1.RuntimeAiService/OverwriteAppAIConfig
+      - method_id: /nimi.runtime.v1.RuntimeAiService/ExecuteScenario
+      - method_id: /nimi.runtime.v1.RuntimeAiService/StreamScenario
+      - method_id: /nimi.runtime.v1.RuntimeAiService/SubmitScenarioJob
+      - method_id: /nimi.runtime.v1.RuntimeAiService/GetScenarioJob
+      - method_id: /nimi.runtime.v1.RuntimeAiService/CancelScenarioJob
+      - method_id: /nimi.runtime.v1.RuntimeAiService/SubscribeScenarioJobEvents
+      - method_id: /nimi.runtime.v1.RuntimeAiService/GetScenarioArtifacts
       - method_id: /nimi.runtime.v1.RuntimeAgentService/MaterializeRealmSource
       - method_id: /nimi.runtime.v1.RuntimeAgentService/ListAgents
       - method_id: /nimi.runtime.v1.RuntimeAgentService/GetAgent

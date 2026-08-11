@@ -49,6 +49,29 @@ test('compiles all protected Runtime profiles and current generated consumers', 
   }
 });
 
+test('routes Desktop account-owned Scenario execution through the account product profile', () => {
+  const { model } = compile();
+  const profiles = new Map(model.profiles.map((profile) => [profile.profileId, profile]));
+  const accountMethods = new Set(
+    profiles.get('desktop_account_product_v1')?.methods.map((method) => method.methodId),
+  );
+  const machineMethods = new Set(
+    profiles.get('desktop_machine_product_v1')?.methods.map((method) => method.methodId),
+  );
+  for (const methodId of [
+    '/nimi.runtime.v1.RuntimeAiService/ExecuteScenario',
+    '/nimi.runtime.v1.RuntimeAiService/StreamScenario',
+    '/nimi.runtime.v1.RuntimeAiService/SubmitScenarioJob',
+    '/nimi.runtime.v1.RuntimeAiService/GetScenarioJob',
+    '/nimi.runtime.v1.RuntimeAiService/CancelScenarioJob',
+    '/nimi.runtime.v1.RuntimeAiService/SubscribeScenarioJobEvents',
+    '/nimi.runtime.v1.RuntimeAiService/GetScenarioArtifacts',
+  ]) {
+    assert.equal(accountMethods.has(methodId), true, `${methodId} must use the account product profile`);
+    assert.equal(machineMethods.has(methodId), false, `${methodId} must not use the machine product profile`);
+  }
+});
+
 test('rejects duplicate and wildcard methods', () => {
   rejectsMutation((value) => value.profiles[0].methods.push({ ...value.profiles[0].methods[0] }), /duplicate method/u);
   rejectsMutation((value) => { value.profiles[0].methods[0].method_id = '/nimi.runtime.v1.RuntimeLocalService/*'; }, /wildcard method id/u);

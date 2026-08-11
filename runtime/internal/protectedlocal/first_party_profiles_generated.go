@@ -93,10 +93,6 @@ func FirstPartyProfileMethod(profileID, methodID string) (FirstPartyMethodKind, 
 			return FirstPartyMethodUnary, true
 		case "/nimi.runtime.v1.RuntimeAiService/PeekScheduling":
 			return FirstPartyMethodUnary, true
-		case "/nimi.runtime.v1.RuntimeAiService/ExecuteScenario":
-			return FirstPartyMethodUnary, true
-		case "/nimi.runtime.v1.RuntimeAiService/StreamScenario":
-			return FirstPartyMethodServerStream, true
 		case "/nimi.runtime.v1.RuntimeLocalService/RemoveLocalAsset":
 			return FirstPartyMethodUnary, true
 		case "/nimi.runtime.v1.RuntimeLocalService/StartLocalAsset":
@@ -165,6 +161,20 @@ func FirstPartyProfileMethod(profileID, methodID string) (FirstPartyMethodKind, 
 		case "/nimi.runtime.v1.RuntimeAiService/GetAppAIConfig":
 			return FirstPartyMethodUnary, true
 		case "/nimi.runtime.v1.RuntimeAiService/OverwriteAppAIConfig":
+			return FirstPartyMethodUnary, true
+		case "/nimi.runtime.v1.RuntimeAiService/ExecuteScenario":
+			return FirstPartyMethodUnary, true
+		case "/nimi.runtime.v1.RuntimeAiService/StreamScenario":
+			return FirstPartyMethodServerStream, true
+		case "/nimi.runtime.v1.RuntimeAiService/SubmitScenarioJob":
+			return FirstPartyMethodUnary, true
+		case "/nimi.runtime.v1.RuntimeAiService/GetScenarioJob":
+			return FirstPartyMethodUnary, true
+		case "/nimi.runtime.v1.RuntimeAiService/CancelScenarioJob":
+			return FirstPartyMethodUnary, true
+		case "/nimi.runtime.v1.RuntimeAiService/SubscribeScenarioJobEvents":
+			return FirstPartyMethodServerStream, true
+		case "/nimi.runtime.v1.RuntimeAiService/GetScenarioArtifacts":
 			return FirstPartyMethodUnary, true
 		case "/nimi.runtime.v1.RuntimeAgentService/MaterializeRealmSource":
 			return FirstPartyMethodUnary, true
@@ -377,8 +387,6 @@ func FirstPartyProfileMethods(profileID string) []FirstPartyProfileMethodEntry {
 			{MethodID: "/nimi.runtime.v1.RuntimeAuditService/ListDesktopAuditEvents", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeAuditService/ListUsageStats", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeAiService/PeekScheduling", Kind: FirstPartyMethodUnary},
-			{MethodID: "/nimi.runtime.v1.RuntimeAiService/ExecuteScenario", Kind: FirstPartyMethodUnary},
-			{MethodID: "/nimi.runtime.v1.RuntimeAiService/StreamScenario", Kind: FirstPartyMethodServerStream},
 			{MethodID: "/nimi.runtime.v1.RuntimeLocalService/RemoveLocalAsset", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeLocalService/StartLocalAsset", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeLocalService/StopLocalAsset", Kind: FirstPartyMethodUnary},
@@ -415,6 +423,13 @@ func FirstPartyProfileMethods(profileID string) []FirstPartyProfileMethodEntry {
 		return []FirstPartyProfileMethodEntry{
 			{MethodID: "/nimi.runtime.v1.RuntimeAiService/GetAppAIConfig", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeAiService/OverwriteAppAIConfig", Kind: FirstPartyMethodUnary},
+			{MethodID: "/nimi.runtime.v1.RuntimeAiService/ExecuteScenario", Kind: FirstPartyMethodUnary},
+			{MethodID: "/nimi.runtime.v1.RuntimeAiService/StreamScenario", Kind: FirstPartyMethodServerStream},
+			{MethodID: "/nimi.runtime.v1.RuntimeAiService/SubmitScenarioJob", Kind: FirstPartyMethodUnary},
+			{MethodID: "/nimi.runtime.v1.RuntimeAiService/GetScenarioJob", Kind: FirstPartyMethodUnary},
+			{MethodID: "/nimi.runtime.v1.RuntimeAiService/CancelScenarioJob", Kind: FirstPartyMethodUnary},
+			{MethodID: "/nimi.runtime.v1.RuntimeAiService/SubscribeScenarioJobEvents", Kind: FirstPartyMethodServerStream},
+			{MethodID: "/nimi.runtime.v1.RuntimeAiService/GetScenarioArtifacts", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeAgentService/MaterializeRealmSource", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeAgentService/ListAgents", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeAgentService/GetAgent", Kind: FirstPartyMethodUnary},

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -327,7 +328,7 @@ func TestSpeechExecutionHostDoesNotPublishRunningBeforeMaterialization(t *testin
 	}
 }
 
-func TestSpeechExecutionHostKeepsLeaseUntilTTSBodyIsDrainedOrClosed(t *testing.T) {
+func TestSpeechExecutionHostReleasesLeaseWhenTTSResponseIsEstablished(t *testing.T) {
 	ttsHeaders := make(chan struct{})
 	ttsBodyRelease := make(chan struct{})
 	transcriptionEntered := make(chan struct{})
@@ -379,26 +380,21 @@ func TestSpeechExecutionHostKeepsLeaseUntilTTSBodyIsDrainedOrClosed(t *testing.T
 		t.Fatal("TTS response headers were not flushed")
 	}
 
-	secondCtx, cancelSecond := context.WithCancel(context.Background())
 	secondDone := make(chan error, 1)
 	go func() {
-		_, err := host.ExecuteSpeechTranscription(secondCtx, speechTranscriptionPlanForHostTest(t, "behind-slow-body"), nil)
-		secondDone <- err
+		result, secondErr := host.ExecuteSpeechTranscription(context.Background(), speechTranscriptionPlanForHostTest(t, "behind-slow-body"), nil)
+		if secondErr == nil && result.Text != "unexpected" {
+			secondErr = fmt.Errorf("second transcription text=%q", result.Text)
+		}
+		secondDone <- secondErr
 	}()
-	waitSpeechExecutionQueueLength(t, host, 1)
 	select {
 	case <-transcriptionEntered:
-		t.Fatal("second request entered Host before first TTS body completed")
-	default:
+	case <-time.After(2 * time.Second):
+		t.Fatal("second request remained queued after the TTS response was established")
 	}
-	cancelSecond()
-	select {
-	case err := <-secondDone:
-		if localexecution.FailureKindOf(err) != localexecution.FailureCanceled {
-			t.Fatalf("queued second request error=%v kind=%q", err, localexecution.FailureKindOf(err))
-		}
-	case <-time.After(500 * time.Millisecond):
-		t.Fatal("queued second request did not cancel while TTS body was open")
+	if err := <-secondDone; err != nil {
+		t.Fatalf("second request while TTS body remained open: %v", err)
 	}
 	select {
 	case <-stopped:
@@ -415,7 +411,7 @@ func TestSpeechExecutionHostKeepsLeaseUntilTTSBodyIsDrainedOrClosed(t *testing.T
 	}
 }
 
-func TestSpeechExecutionHostCanceledTTSBodyStopsHostBeforeLeaseRelease(t *testing.T) {
+func TestSpeechExecutionHostCanceledTTSBodyDoesNotStopHost(t *testing.T) {
 	ttsHeaders := make(chan struct{})
 	transcriptionEntered := make(chan struct{})
 	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
@@ -438,18 +434,7 @@ func TestSpeechExecutionHostCanceledTTSBodyStopsHostBeforeLeaseRelease(t *testin
 	}))
 	defer server.Close()
 
-	materializer := &speechExecutionHostMaterializerStub{
-		endpoint:    server.URL,
-		stopped:     make(chan struct{}),
-		stopRelease: make(chan struct{}),
-	}
-	t.Cleanup(func() {
-		select {
-		case <-materializer.stopRelease:
-		default:
-			close(materializer.stopRelease)
-		}
-	})
+	materializer := &speechExecutionHostMaterializerStub{endpoint: server.URL, stopped: make(chan struct{})}
 	host := NewSpeechExecutionHost(materializer, 8330, 0)
 	ctx, cancel := context.WithCancel(context.Background())
 	first, err := host.ExecuteSpeechSynthesis(ctx, speechSynthesisPlanForHostTest(t, "cancel-body"), nil)
@@ -467,50 +452,40 @@ func TestSpeechExecutionHostCanceledTTSBodyStopsHostBeforeLeaseRelease(t *testin
 		readDone <- readErr
 	}()
 
-	secondDone := make(chan error, 1)
-	go func() {
-		_, secondErr := host.ExecuteSpeechTranscription(context.Background(), speechTranscriptionPlanForHostTest(t, "after-cancel"), nil)
-		secondDone <- secondErr
-	}()
-	waitSpeechExecutionQueueLength(t, host, 1)
 	cancel()
-	select {
-	case <-materializer.stopped:
-	case <-transcriptionEntered:
-		t.Fatal("second request entered Host before canceled TTS Host stop")
-	case readErr := <-readDone:
-		t.Fatalf("canceled TTS body returned before supervised Host stop: %v", readErr)
-	case <-time.After(2 * time.Second):
-		t.Fatal("canceled TTS body did not stop supervised Host")
-	}
-	select {
-	case <-transcriptionEntered:
-		t.Fatal("second request entered Host while canceled TTS Host stop was blocked")
-	case readErr := <-readDone:
-		t.Fatalf("canceled TTS body released lease while Host stop was blocked: %v", readErr)
-	case <-time.After(100 * time.Millisecond):
-	}
-	close(materializer.stopRelease)
 	select {
 	case readErr := <-readDone:
 		if readErr == nil {
 			t.Fatal("canceled TTS body read returned nil error")
 		}
 	case <-time.After(2 * time.Second):
-		t.Fatal("canceled TTS body did not return after Host stop")
+		t.Fatal("canceled TTS body did not stop reading")
 	}
+	select {
+	case <-materializer.stopped:
+		t.Fatal("body transfer cancellation stopped the inference Host")
+	default:
+	}
+	secondDone := make(chan error, 1)
+	go func() {
+		result, secondErr := host.ExecuteSpeechTranscription(context.Background(), speechTranscriptionPlanForHostTest(t, "after-cancel"), nil)
+		if secondErr == nil && result.Text != "after-cancel" {
+			secondErr = fmt.Errorf("second transcription text=%q", result.Text)
+		}
+		secondDone <- secondErr
+	}()
 	select {
 	case <-transcriptionEntered:
 	case <-time.After(2 * time.Second):
-		t.Fatal("second request did not enter Host after canceled TTS cleanup")
+		t.Fatal("second request did not enter Host after canceled body transfer")
 	}
 	if err := <-secondDone; err != nil {
-		t.Fatalf("second request after canceled TTS: %v", err)
+		t.Fatalf("second request after canceled TTS body: %v", err)
 	}
 	_ = first.AudioBody.Close()
 }
 
-func TestSpeechExecutionHostEarlyTTSBodyCloseStopsHostBeforeLeaseRelease(t *testing.T) {
+func TestSpeechExecutionHostEarlyTTSBodyCloseDoesNotStopHost(t *testing.T) {
 	ttsHeaders := make(chan struct{})
 	ttsHandlerRelease := make(chan struct{})
 	transcriptionEntered := make(chan struct{})
@@ -541,18 +516,7 @@ func TestSpeechExecutionHostEarlyTTSBodyCloseStopsHostBeforeLeaseRelease(t *test
 		server.Close()
 	})
 
-	materializer := &speechExecutionHostMaterializerStub{
-		endpoint:    server.URL,
-		stopped:     make(chan struct{}),
-		stopRelease: make(chan struct{}),
-	}
-	t.Cleanup(func() {
-		select {
-		case <-materializer.stopRelease:
-		default:
-			close(materializer.stopRelease)
-		}
-	})
+	materializer := &speechExecutionHostMaterializerStub{endpoint: server.URL, stopped: make(chan struct{})}
 	host := NewSpeechExecutionHost(materializer, 8330, 0)
 	first, err := host.ExecuteSpeechSynthesis(context.Background(), speechSynthesisPlanForHostTest(t, "close-body"), nil)
 	if err != nil {
@@ -564,43 +528,26 @@ func TestSpeechExecutionHostEarlyTTSBodyCloseStopsHostBeforeLeaseRelease(t *test
 		t.Fatal("TTS response headers were not flushed")
 	}
 
-	secondDone := make(chan error, 1)
-	go func() {
-		_, secondErr := host.ExecuteSpeechTranscription(context.Background(), speechTranscriptionPlanForHostTest(t, "after-close"), nil)
-		secondDone <- secondErr
-	}()
-	waitSpeechExecutionQueueLength(t, host, 1)
-	closeDone := make(chan error, 1)
-	go func() { closeDone <- first.AudioBody.Close() }()
+	if closeErr := first.AudioBody.Close(); closeErr != nil {
+		t.Fatalf("early TTS body Close: %v", closeErr)
+	}
 	select {
 	case <-materializer.stopped:
-	case <-transcriptionEntered:
-		t.Fatal("second request entered Host before early-close Host stop")
-	case closeErr := <-closeDone:
-		t.Fatalf("early TTS body Close returned before supervised Host stop: %v", closeErr)
-	case <-time.After(2 * time.Second):
-		t.Fatal("early TTS body Close did not stop supervised Host")
+		t.Fatal("early TTS body Close stopped the inference Host")
+	default:
 	}
-	select {
-	case <-transcriptionEntered:
-		t.Fatal("second request entered Host while early-close Host stop was blocked")
-	case closeErr := <-closeDone:
-		t.Fatalf("early TTS body Close released lease while Host stop was blocked: %v", closeErr)
-	case <-time.After(100 * time.Millisecond):
-	}
-	close(materializer.stopRelease)
-	select {
-	case closeErr := <-closeDone:
-		if closeErr != nil {
-			t.Fatalf("early TTS body Close after successful stop: %v", closeErr)
+	secondDone := make(chan error, 1)
+	go func() {
+		result, secondErr := host.ExecuteSpeechTranscription(context.Background(), speechTranscriptionPlanForHostTest(t, "after-close"), nil)
+		if secondErr == nil && result.Text != "after-close" {
+			secondErr = fmt.Errorf("second transcription text=%q", result.Text)
 		}
-	case <-time.After(2 * time.Second):
-		t.Fatal("early TTS body Close did not return after Host stop")
-	}
+		secondDone <- secondErr
+	}()
 	select {
 	case <-transcriptionEntered:
 	case <-time.After(2 * time.Second):
-		t.Fatal("second request did not enter Host after early-close cleanup")
+		t.Fatal("second request did not enter Host after early body Close")
 	}
 	if err := <-secondDone; err != nil {
 		t.Fatalf("second request after early-close TTS: %v", err)
@@ -646,21 +593,25 @@ func TestSpeechExecutionHostCompletedTTSBodyCloseDoesNotStopHost(t *testing.T) {
 	}
 }
 
-func TestSpeechExecutionHostTTSBodyStopFailurePoisonsHost(t *testing.T) {
+func TestSpeechExecutionHostTTSBodyCloseDoesNotInvokeHostStop(t *testing.T) {
 	ttsHeaders := make(chan struct{})
 	ttsHandlerRelease := make(chan struct{})
 	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
-		if request.URL.Path != "/v1/audio/speech" {
+		switch request.URL.Path {
+		case "/v1/audio/speech":
+			writer.Header().Set("Content-Type", "audio/wav")
+			_, _ = writer.Write([]byte("RIFF"))
+			if flusher, ok := writer.(http.Flusher); ok {
+				flusher.Flush()
+			}
+			close(ttsHeaders)
+			<-ttsHandlerRelease
+		case "/v1/audio/transcriptions":
+			writer.Header().Set("Content-Type", "application/json")
+			_, _ = writer.Write([]byte(`{"text":"after-body-close"}`))
+		default:
 			writer.WriteHeader(http.StatusNotFound)
-			return
 		}
-		writer.Header().Set("Content-Type", "audio/wav")
-		_, _ = writer.Write([]byte("RIFF"))
-		if flusher, ok := writer.(http.Flusher); ok {
-			flusher.Flush()
-		}
-		close(ttsHeaders)
-		<-ttsHandlerRelease
 	}))
 	t.Cleanup(func() {
 		close(ttsHandlerRelease)
@@ -678,15 +629,15 @@ func TestSpeechExecutionHostTTSBodyStopFailurePoisonsHost(t *testing.T) {
 	case <-time.After(2 * time.Second):
 		t.Fatal("TTS response headers were not flushed")
 	}
-	if closeErr := first.AudioBody.Close(); localexecution.FailureKindOf(closeErr) != localexecution.FailureProcessCrash {
-		t.Fatalf("early-close stop failure error=%v kind=%q", closeErr, localexecution.FailureKindOf(closeErr))
+	if closeErr := first.AudioBody.Close(); closeErr != nil {
+		t.Fatalf("close TTS response body: %v", closeErr)
 	}
-	_, err = host.ExecuteSpeechTranscription(context.Background(), speechTranscriptionPlanForHostTest(t, "poisoned-after-body"), nil)
-	if localexecution.FailureKindOf(err) != localexecution.FailureProcessCrash {
-		t.Fatalf("poisoned Host error=%v kind=%q", err, localexecution.FailureKindOf(err))
+	result, err := host.ExecuteSpeechTranscription(context.Background(), speechTranscriptionPlanForHostTest(t, "after-body-close"), nil)
+	if err != nil || result.Text != "after-body-close" {
+		t.Fatalf("request after TTS body Close: result=%+v error=%v", result, err)
 	}
-	if got := len(materializer.capabilities); got != 1 {
-		t.Fatalf("poisoned Host materialization calls=%d, want 1", got)
+	if got := len(materializer.capabilities); got != 2 {
+		t.Fatalf("Host materialization calls=%d, want 2", got)
 	}
 }
 

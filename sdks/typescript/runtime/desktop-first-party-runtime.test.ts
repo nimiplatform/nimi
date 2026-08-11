@@ -122,3 +122,42 @@ test('Desktop account product binds App AIConfig to its exact product owner', as
     assert.equal(call.metadata?.appId, undefined, 'protected host owns caller identity');
   }
 });
+
+test('Desktop account execution client carries Scenario unary and streams with Scenario jobs', async () => {
+  const calls: CoreUnaryRequest[] = [];
+  const streams: CoreStreamRequest[] = [];
+  const transport: CoreTransport = {
+    async unary<Response>(request: CoreUnaryRequest): Promise<Response> {
+      calls.push(request);
+      return {} as Response;
+    },
+    async *serverStream<Response>(request: CoreStreamRequest): AsyncIterable<Response> {
+      streams.push(request);
+      yield {} as Response;
+    },
+  };
+  const clients = createNimiDesktopFirstPartyRuntimeClients({
+    appId: 'nimi.desktop',
+    transport,
+  });
+
+  await clients.aiExecution.executeScenario({
+    head: { appId: 'nimi.desktop', subjectUserId: '', timeoutMs: 0 },
+    scenarioType: 1,
+    executionMode: 1,
+    extensions: [],
+  });
+  for await (const _event of clients.aiExecution.streamScenario({
+    head: { appId: 'nimi.desktop', subjectUserId: '', timeoutMs: 0 },
+    scenarioType: 1,
+    executionMode: 2,
+    extensions: [],
+  })) {
+    break;
+  }
+
+  assert.equal(calls[0]?.methodId, '/nimi.runtime.v1.RuntimeAiService/ExecuteScenario');
+  assert.equal(calls[0]?.metadata?.appId, undefined, 'protected host owns caller identity');
+  assert.equal(streams[0]?.methodId, '/nimi.runtime.v1.RuntimeAiService/StreamScenario');
+  assert.equal(streams[0]?.metadata?.appId, undefined, 'protected host owns caller identity');
+});

@@ -61,15 +61,22 @@ func streamLocalSpeechSynthesizeScenario(s *Service, req *runtimev1.StreamScenar
 		firstTimeout = totalTimeout
 	}
 	var firstPacketTimer *time.Timer
-	if firstTimeout > 0 {
-		firstPacketTimer = time.AfterFunc(firstTimeout, func() {
-			if firstPacketSeen.Load() {
-				return
-			}
-			firstPacketTimedOut.Store(true)
-			requestCancel()
-		})
-		defer firstPacketTimer.Stop()
+	defer func() {
+		if firstPacketTimer != nil {
+			firstPacketTimer.Stop()
+		}
+	}()
+	startFirstPacketTimer := func() error {
+		if firstTimeout > 0 {
+			firstPacketTimer = time.AfterFunc(firstTimeout, func() {
+				if firstPacketSeen.Load() {
+					return
+				}
+				firstPacketTimedOut.Store(true)
+				requestCancel()
+			})
+		}
+		return nil
 	}
 
 	traceID := ulid.Make().String()
@@ -111,7 +118,7 @@ func streamLocalSpeechSynthesizeScenario(s *Service, req *runtimev1.StreamScenar
 		return err
 	}
 
-	artifacts, bodies, usage, err := s.executeCapturedLocalSpeech(requestCtx, effective, nil)
+	artifacts, bodies, usage, err := s.executeCapturedLocalSpeech(requestCtx, effective, startFirstPacketTimer)
 	if err != nil {
 		return failAndStop(err)
 	}

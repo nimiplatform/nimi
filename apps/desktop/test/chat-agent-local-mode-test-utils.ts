@@ -14,6 +14,7 @@ import {
   type NimiRuntimeAgentScopeRunner,
   type NimiDesktopAccountProductRuntimeClient,
   type NimiDesktopMachineProductRuntimeClient,
+  type NimiDesktopRuntimeAiExecutionClient,
 } from '@nimiplatform/sdk/runtime';
 import { createNimiError, ReasonCode, type JsonObject } from '@nimiplatform/sdk/types';
 import {
@@ -34,7 +35,8 @@ import type { DesktopRendererSdkPort } from '../src/shell/renderer/renderer/sdk-
 type DesktopTestRuntime =
   & NimiDesktopMachineProductRuntimeClient
   & NimiDesktopAccountProductRuntimeClient
-  & DesktopAccountRuntime;
+  & DesktopAccountRuntime
+  & { readonly ai: NimiDesktopRuntimeAiExecutionClient };
 type DesktopTestNimiClientSession = DesktopNimiClientSession & {
   readonly runtime: DesktopTestRuntime;
   readonly accountRuntime: DesktopTestRuntime;
@@ -326,7 +328,6 @@ function createDesktopTestNimiClientSession(input: {
           local: runtime.local,
           connectors: runtime.connectors,
           audit: runtime.audit,
-          ai: runtime.ai,
           scheduling: runtime.scheduling,
           externalAgents: runtime.externalAgents,
         },
@@ -339,7 +340,7 @@ function createDesktopTestNimiClientSession(input: {
         },
         agentPurpose: runtime.agents,
         auth: runtime.auth,
-        aiScenarioJobs: runtime.ai,
+        aiExecution: runtime.ai,
       };
     },
     get accountRuntime() {

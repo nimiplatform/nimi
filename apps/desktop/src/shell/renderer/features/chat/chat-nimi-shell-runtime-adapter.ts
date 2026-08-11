@@ -1,4 +1,4 @@
-import type { NimiDesktopMachineProductRuntimeClient } from '@nimiplatform/sdk/runtime';
+import type { NimiDesktopRuntimeAiExecutionClient } from '@nimiplatform/sdk/runtime';
 import {
   runRuntimeAIConsumeCapability,
   type RuntimeAIConsumeOutput,
@@ -10,7 +10,7 @@ export type DesktopNimiTextCapabilityResult = {
 };
 
 export type DesktopNimiTextCapabilityInput = {
-  readonly runtime: { readonly ai: NimiDesktopMachineProductRuntimeClient['ai'] };
+  readonly runtime: { readonly ai: NimiDesktopRuntimeAiExecutionClient };
   readonly appId: string;
   readonly prompt: string;
   readonly subjectUserId?: string;

@@ -25,20 +25,30 @@ import (
 )
 
 type localSpeechHostStub struct {
-	mu              sync.Mutex
-	synthesizePlan  *capabilitydriver.SpeechSynthesizeInvocationPlan
-	transcribePlan  *capabilitydriver.SpeechTranscribeInvocationPlan
-	entered         chan struct{}
-	release         chan struct{}
-	cancelRelease   chan struct{}
-	calls           chan string
-	synthesisResult *localexecution.SpeechSynthesisResult
-	preStartErr     error
+	mu                 sync.Mutex
+	synthesizePlan     *capabilitydriver.SpeechSynthesizeInvocationPlan
+	transcribePlan     *capabilitydriver.SpeechTranscribeInvocationPlan
+	entered            chan struct{}
+	release            chan struct{}
+	beforeStartEntered chan struct{}
+	beforeStartRelease chan struct{}
+	cancelRelease      chan struct{}
+	calls              chan string
+	synthesisResult    *localexecution.SpeechSynthesisResult
+	preStartErr        error
 }
 
 func (host *localSpeechHostStub) ExecuteSpeechSynthesis(ctx context.Context, plan *capabilitydriver.SpeechSynthesizeInvocationPlan, onStart localexecution.SpeechExecutionStartFunc) (localexecution.SpeechSynthesisResult, error) {
 	if host.preStartErr != nil {
 		return localexecution.SpeechSynthesisResult{}, host.preStartErr
+	}
+	closeOnce(host.beforeStartEntered)
+	if host.beforeStartRelease != nil {
+		select {
+		case <-host.beforeStartRelease:
+		case <-ctx.Done():
+			return localexecution.SpeechSynthesisResult{}, &localexecution.ExecutionError{Kind: localexecution.FailureCanceled, Err: ctx.Err()}
+		}
 	}
 	if onStart != nil {
 		if err := onStart(); err != nil {
@@ -659,6 +669,46 @@ func TestLocalSpeechSynthesisStreamUsesDeclaredSimulatedMode(t *testing.T) {
 		string(stream.events[1].GetDelta().GetArtifact().GetChunk()) != "RIFF-local-speech" ||
 		!stream.events[3].GetCompleted().GetStreamSimulated() {
 		t.Fatalf("local speech stream events=%+v", stream.events)
+	}
+}
+
+func TestLocalSpeechSynthesisStreamFirstPacketTimeoutStartsAfterHostLease(t *testing.T) {
+	svc := newTestService(nil)
+	svc.streamFirstPacketTimeout = 20 * time.Millisecond
+	host := &localSpeechHostStub{
+		beforeStartEntered: make(chan struct{}),
+		beforeStartRelease: make(chan struct{}),
+	}
+	svc.SetLocalExecutionResolver(&mutableLocalExecutionResolver{projection: selectedSpeechExecutionForTest(t, capabilitydriver.AudioSynthesizeContract, "speech-stream-queued")})
+	svc.SetLocalSpeechExecutionHost(host)
+	ctx := executionintent.WithIntent(context.Background(), executionintent.Intent{
+		CapabilityContract: capabilitydriver.AudioSynthesizeContract,
+		Route:              runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+	})
+	stream := &mockScenarioEventStream{ctx: ctx}
+	done := make(chan error, 1)
+	go func() {
+		done <- svc.StreamScenario(&runtimev1.StreamScenarioRequest{
+			Head:          &runtimev1.ScenarioRequestHead{AppId: "app.local", SubjectUserId: "anonymous", TimeoutMs: 1_000},
+			ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE,
+			ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_STREAM,
+			Spec: &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_SpeechSynthesize{
+				SpeechSynthesize: &runtimev1.SpeechSynthesizeScenarioSpec{Text: "queued stream"},
+			}},
+		}, stream)
+	}()
+	select {
+	case <-host.beforeStartEntered:
+	case <-time.After(time.Second):
+		t.Fatal("stream did not reach the Host queue")
+	}
+	time.Sleep(3 * svc.streamFirstPacketTimeout)
+	close(host.beforeStartRelease)
+	if err := <-done; err != nil {
+		t.Fatalf("StreamScenario after Host queue: %v", err)
+	}
+	if len(stream.events) != 4 || stream.events[1].GetDelta().GetArtifact() == nil || stream.events[3].GetCompleted() == nil {
+		t.Fatalf("queued local speech stream events=%+v", stream.events)
 	}
 }
 

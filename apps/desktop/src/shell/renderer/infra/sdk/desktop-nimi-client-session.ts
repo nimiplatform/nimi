@@ -7,7 +7,7 @@ import {
   type NimiDesktopFirstPartyRuntimeClients,
   type NimiDesktopMachineProductRuntimeClient,
   type NimiDesktopRuntimeAgentPurposeClient,
-  type NimiDesktopRuntimeAiScenarioJobClient,
+  type NimiDesktopRuntimeAiExecutionClient,
   type NimiHostRuntimeAgentDelegatedControlClient,
   type NimiHostRuntimeAgentLifecycleClient,
   type NimiHostRuntimeAgentPresentationProfileClient,
@@ -326,8 +326,8 @@ export function getDesktopAuditAdminClient(): NimiDesktopMachineProductRuntimeCl
   return getDesktopRuntimeRealmSession().runtimeClients.machineProduct.audit;
 }
 
-export function getDesktopAiExecutionClient(): { readonly ai: NimiDesktopRuntimeAiScenarioJobClient } {
-  return { ai: getDesktopRuntimeRealmSession().runtimeClients.aiScenarioJobs };
+export function getDesktopAiExecutionClient(): { readonly ai: NimiDesktopRuntimeAiExecutionClient } {
+  return { ai: getDesktopRuntimeRealmSession().runtimeClients.aiExecution };
 }
 
 export function getDesktopExternalAgentClient(): NimiDesktopMachineProductRuntimeClient['externalAgents'] {
