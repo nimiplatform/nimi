@@ -47,9 +47,18 @@ export type TesterTrace = {
 export type TesterTypedOutput =
   | { kind: 'text'; text: string; finishReason: string; inputTokens?: number; outputTokens?: number; totalTokens?: number; streamed: boolean }
   | { kind: 'embedding'; vectorCount: number; dimensions: number; sample: number[]; totalTokens?: number }
-  | { kind: 'artifacts'; jobId: string; jobState: string; artifactCount: number; firstArtifact?: { relativePath: string; mediaType?: string; sizeBytes: number; sha256: string; displayName?: string; previewSource: 'managed-asset' } }
+  | { kind: 'artifacts'; jobId: string; jobState: string; artifactCount: number; artifacts: TesterManagedArtifact[]; firstArtifact?: TesterManagedArtifact }
   | { kind: 'transcript'; text: string; jobId: string; jobState: string; artifactCount: number }
   | { kind: 'voice-catalog'; voiceCount: number; sample: Array<{ voiceId: string; workflowType: string; status: string }> };
+
+export type TesterManagedArtifact = {
+  relativePath: string;
+  mediaType?: string;
+  sizeBytes: number;
+  sha256: string;
+  displayName?: string;
+  previewSource: 'managed-asset';
+};
 
 export type TesterTypedSuccess = {
   ok: true;
@@ -574,26 +583,42 @@ async function projectArtifactRunnerResult(
   client: NimiLocalAppClient,
 ): Promise<TesterCapabilityRunResult> {
   if (result.ok === false) return projectRunnerUnavailable(capability, result);
-  const sourceArtifact = result.output.firstArtifact;
-  let artifact: Extract<TesterTypedOutput, { kind: 'artifacts' }>['firstArtifact'];
-  if (sourceArtifact) {
-    if (!sourceArtifact.artifactId) {
-      throw new Error('Runtime artifact metadata omitted the custody artifact identifier required for adoption.');
+  const artifacts: TesterManagedArtifact[] = [];
+  const adoptedPaths: string[] = [];
+  try {
+    for (const [index, sourceArtifact] of result.output.artifacts.entries()) {
+      if (!sourceArtifact.artifactId) {
+        throw new Error('Runtime artifact metadata omitted the custody artifact identifier required for adoption.');
+      }
+      const relativePath = await managedAssetPath(capability.id, result.output.jobId, index);
+      const adopted = await client.storage.assets.adoptArtifact({
+        artifactId: sourceArtifact.artifactId,
+        relativePath,
+        overwrite: false,
+      });
+      adoptedPaths.push(adopted.relativePath);
+      artifacts.push({
+        relativePath: adopted.relativePath,
+        ...(adopted.mediaType ? { mediaType: adopted.mediaType } : {}),
+        sizeBytes: adopted.sizeBytes,
+        sha256: adopted.sha256,
+        displayName: index === 0 ? capability.label : `${capability.label} ${index + 1}`,
+        previewSource: 'managed-asset',
+      });
     }
-    const relativePath = await managedAssetPath(capability.id, result.output.jobId);
-    const adopted = await client.storage.assets.adoptArtifact({
-      artifactId: sourceArtifact.artifactId,
-      relativePath,
-      overwrite: false,
-    });
-    artifact = {
-      relativePath: adopted.relativePath,
-      ...(adopted.mediaType ? { mediaType: adopted.mediaType } : {}),
-      sizeBytes: adopted.sizeBytes,
-      sha256: adopted.sha256,
-      displayName: capability.label,
-      previewSource: 'managed-asset',
-    };
+  } catch (error) {
+    const cleanupFailures: string[] = [];
+    for (const relativePath of [...adoptedPaths].reverse()) {
+      try {
+        await client.storage.assets.remove(relativePath);
+      } catch (cleanupError) {
+        cleanupFailures.push(`${relativePath}: ${testerRuntimeErrorMessage(cleanupError)}`);
+      }
+    }
+    if (cleanupFailures.length > 0) {
+      throw new Error(`${testerRuntimeErrorMessage(error)} Managed artifact cleanup also failed: ${cleanupFailures.join('; ')}`);
+    }
+    throw error;
   }
   return {
     ok: true,
@@ -605,23 +630,16 @@ async function projectArtifactRunnerResult(
       jobId: result.output.jobId,
       jobState: result.output.jobStatus,
       artifactCount: result.output.artifactCount,
-      ...(artifact ? {
-        firstArtifact: {
-          relativePath: artifact.relativePath,
-          ...(artifact.mediaType ? { mediaType: artifact.mediaType } : {}),
-          sha256: artifact.sha256,
-          previewSource: artifact.previewSource,
-          sizeBytes: artifact.sizeBytes,
-          ...(artifact.displayName ? { displayName: artifact.displayName } : {}),
-        },
-      } : {}),
+      artifacts,
+      ...(artifacts[0] ? { firstArtifact: artifacts[0] } : {}),
     },
     ...(result.trace?.traceId ? { trace: { traceId: result.trace.traceId } } : {}),
   };
 }
 
-async function managedAssetPath(capabilityId: TesterCapabilityId, jobId: string): Promise<string> {
-  const bytes = new TextEncoder().encode(jobId);
+async function managedAssetPath(capabilityId: TesterCapabilityId, jobId: string, artifactIndex: number): Promise<string> {
+  const identity = artifactIndex === 0 ? jobId : `${jobId}:${artifactIndex}`;
+  const bytes = new TextEncoder().encode(identity);
   const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', bytes));
   const token = Array.from(digest, (byte) => byte.toString(16).padStart(2, '0')).join('');
   return `media/${capabilityId.replaceAll('.', '-')}/${token}.asset`;

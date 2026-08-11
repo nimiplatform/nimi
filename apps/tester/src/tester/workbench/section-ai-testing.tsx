@@ -207,8 +207,9 @@ function TextStudioShell({
         requestParameters: parameterSummary,
       });
       const record = await onResult(result, displayPrompt, runConfig);
-      // The run always lands in history (onResult above), but only touches the
-      // visible stage when the capability view has not moved on meanwhile.
+      // A result reaches the visible completed stage only after onResult has
+      // finished its required custody/history work. Persistence failure throws
+      // and is projected by the outer failure path instead of showing success.
       if (runSeq !== runSeqRef.current) return;
       const finishedRun: TextStudioActiveRun = {
         ...pendingRun,

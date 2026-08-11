@@ -45,6 +45,21 @@ function validateTraceFields(value: Record<string, JsonValue>, path: string): vo
   }
 }
 
+function validateManagedArtifact(value: unknown, path: string): void {
+  if (!isJsonObject(value)) historyPayloadError(path, 'requires an object');
+  requiredString(value.relativePath, `${path}.relativePath`);
+  optionalString(value.mediaType, `${path}.mediaType`);
+  nonNegativeNumber(value.sizeBytes, `${path}.sizeBytes`);
+  requiredString(value.sha256, `${path}.sha256`);
+  if (!/^sha256:[0-9a-f]{64}$/u.test(value.sha256 as string)) {
+    historyPayloadError(`${path}.sha256`, 'requires a canonical SHA-256 digest');
+  }
+  optionalString(value.displayName, `${path}.displayName`);
+  if (value.previewSource !== 'managed-asset') {
+    historyPayloadError(`${path}.previewSource`, 'requires managed-asset');
+  }
+}
+
 function validateHistoryResult(value: unknown, path: string): void {
   if (!isJsonObject(value) || typeof value.ok !== 'boolean') {
     historyPayloadError(path, 'requires a discriminated result object');
@@ -85,19 +100,15 @@ function validateHistoryResult(value: unknown, path: string): void {
     requiredString(value.jobId, `${path}.jobId`);
     requiredString(value.jobState, `${path}.jobState`);
     nonNegativeNumber(value.artifactCount, `${path}.artifactCount`);
+    if (value.artifacts !== undefined) {
+      if (!Array.isArray(value.artifacts)) historyPayloadError(`${path}.artifacts`, 'requires an array when present');
+      value.artifacts.forEach((artifact, index) => validateManagedArtifact(artifact, `${path}.artifacts[${index}]`));
+      if (value.artifacts.length !== value.artifactCount) {
+        historyPayloadError(`${path}.artifacts`, 'must match artifactCount when present');
+      }
+    }
     if (value.firstArtifact !== undefined) {
-      if (!isJsonObject(value.firstArtifact)) historyPayloadError(`${path}.firstArtifact`, 'requires an object when present');
-      requiredString(value.firstArtifact.relativePath, `${path}.firstArtifact.relativePath`);
-      optionalString(value.firstArtifact.mediaType, `${path}.firstArtifact.mediaType`);
-      nonNegativeNumber(value.firstArtifact.sizeBytes, `${path}.firstArtifact.sizeBytes`);
-      requiredString(value.firstArtifact.sha256, `${path}.firstArtifact.sha256`);
-      if (!/^sha256:[0-9a-f]{64}$/u.test(value.firstArtifact.sha256 as string)) {
-        historyPayloadError(`${path}.firstArtifact.sha256`, 'requires a canonical SHA-256 digest');
-      }
-      optionalString(value.firstArtifact.displayName, `${path}.firstArtifact.displayName`);
-      if (value.firstArtifact.previewSource !== 'managed-asset') {
-        historyPayloadError(`${path}.firstArtifact.previewSource`, 'requires managed-asset');
-      }
+      validateManagedArtifact(value.firstArtifact, `${path}.firstArtifact`);
     }
     return;
   }

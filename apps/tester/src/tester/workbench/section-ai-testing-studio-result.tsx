@@ -23,7 +23,13 @@ function ReadyBody({ result }: { result: TesterCapabilityRunResult & { ok: true 
   if (output.kind === 'artifacts') {
     return (
       <div className="studio-result__rich">
-        <ArtifactMediaResult artifact={output.firstArtifact} fallbackLabel={output.jobId} />
+        {output.artifacts.map((artifact, index) => (
+          <ArtifactMediaResult
+            key={artifact.relativePath}
+            artifact={artifact}
+            fallbackLabel={`${output.jobId}:${index + 1}`}
+          />
+        ))}
       </div>
     );
   }

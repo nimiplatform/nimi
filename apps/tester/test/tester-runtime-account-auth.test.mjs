@@ -324,6 +324,7 @@ function fakeLocalAppClient(overrides = {}) {
     storage: {
       assets: {
         adoptArtifact: overrides.adoptArtifact ?? unavailable('storage.assets.adoptArtifact'),
+        remove: overrides.removeAsset ?? unavailable('storage.assets.remove'),
       },
     },
   };
@@ -339,6 +340,12 @@ function localTextSubscription(events) {
 }
 
 function artifactRunnerSuccess(capabilityId, mimeType, previewUrl, previewSource = 'inline-bytes') {
+  const artifact = {
+    artifactId: `artifact:${capabilityId}`,
+    mimeType,
+    ...(previewUrl ? { previewUrl } : {}),
+    previewSource,
+  };
   return {
     ok: true,
     capabilityId,
@@ -348,13 +355,8 @@ function artifactRunnerSuccess(capabilityId, mimeType, previewUrl, previewSource
       jobId: `job:${capabilityId}`,
       jobStatus: 'COMPLETED',
       artifactCount: 1,
-      firstArtifact: {
-        artifactId: `artifact:${capabilityId}`,
-        mimeType,
-        ...(previewUrl ? { previewUrl } : {}),
-        previewSource,
-      },
-      artifacts: [],
+      firstArtifact: artifact,
+      artifacts: [artifact],
     },
     trace: { traceId: `trace:${capabilityId}` },
   };
@@ -445,6 +447,123 @@ for (const [capabilityId, runnerName, mimeType, previewUrl] of MEDIA_HAPPY_CASES
     }
   });
 }
+
+test('Tester adopts every returned video artifact including the requested last frame', async () => {
+  const { runTesterCapability } = await importTesterRuntime();
+  const adoptionCalls = [];
+  const client = fakeLocalAppClient({
+    async adoptArtifact(input) {
+      adoptionCalls.push(input);
+      const lastFrame = input.artifactId === 'artifact:last-frame';
+      return {
+        relativePath: input.relativePath,
+        mediaType: lastFrame ? 'image/png' : 'video/mp4',
+        sizeBytes: lastFrame ? 2048 : 4096,
+        sha256: `sha256:${lastFrame ? 'b' : 'a'}`.padEnd(71, lastFrame ? 'b' : 'a'),
+        createdAt: '2026-08-09T00:00:00.000Z',
+        updatedAt: '2026-08-09T00:00:00.000Z',
+      };
+    },
+  });
+  const videoArtifact = {
+    artifactId: 'artifact:video',
+    mimeType: 'video/mp4',
+    previewSource: 'metadata-only',
+  };
+  const lastFrameArtifact = {
+    artifactId: 'artifact:last-frame',
+    mimeType: 'image/png',
+    previewSource: 'metadata-only',
+  };
+  const result = await runTesterCapability({
+    capabilityId: 'video.generate',
+    prompt: 'ocean wave',
+    parameters: { returnLastFrame: true },
+  }, readyRuntimeDependencies(client, {
+    createScenarioJobClient() { return { marker: 'job-client:video.generate' }; },
+    runners: {
+      async videoGenerate() {
+        return {
+          ok: true,
+          capabilityId: 'video.generate',
+          message: 'video.generate completed',
+          output: {
+            kind: 'video-artifacts',
+            jobId: 'job:video-with-last-frame',
+            jobStatus: 'COMPLETED',
+            artifactCount: 2,
+            firstArtifact: videoArtifact,
+            artifacts: [videoArtifact, lastFrameArtifact],
+          },
+        };
+      },
+    },
+  }));
+
+  assert.equal(result.ok, true);
+  assert.equal(result.output.kind, 'artifacts');
+  assert.equal(result.output.artifacts.length, 2);
+  assert.deepEqual(result.output.artifacts.map((artifact) => artifact.mediaType), ['video/mp4', 'image/png']);
+  assert.equal(result.output.firstArtifact.relativePath, result.output.artifacts[0].relativePath);
+  assert.equal(new Set(result.output.artifacts.map((artifact) => artifact.relativePath)).size, 2);
+  assert.deepEqual(adoptionCalls.map((call) => call.artifactId), ['artifact:video', 'artifact:last-frame']);
+});
+
+test('Tester removes already adopted artifacts when a later artifact adoption fails', async () => {
+  const { runTesterCapability } = await importTesterRuntime();
+  const adoptionCalls = [];
+  const removalCalls = [];
+  const client = fakeLocalAppClient({
+    async adoptArtifact(input) {
+      adoptionCalls.push(input);
+      if (input.artifactId === 'artifact:last-frame') throw new Error('last-frame adoption unavailable');
+      return {
+        relativePath: input.relativePath,
+        mediaType: 'video/mp4',
+        sizeBytes: 4096,
+        sha256: `sha256:${'a'.repeat(64)}`,
+        createdAt: '2026-08-09T00:00:00.000Z',
+        updatedAt: '2026-08-09T00:00:00.000Z',
+      };
+    },
+    async removeAsset(relativePath) {
+      removalCalls.push(relativePath);
+      return { removed: true };
+    },
+  });
+  const result = await runTesterCapability({
+    capabilityId: 'video.generate',
+    prompt: 'ocean wave',
+    parameters: { returnLastFrame: true },
+  }, readyRuntimeDependencies(client, {
+    createScenarioJobClient() { return { marker: 'job-client:video.generate' }; },
+    runners: {
+      async videoGenerate() {
+        return {
+          ok: true,
+          capabilityId: 'video.generate',
+          message: 'video.generate completed',
+          output: {
+            kind: 'video-artifacts',
+            jobId: 'job:video-partial-adoption',
+            jobStatus: 'COMPLETED',
+            artifactCount: 2,
+            firstArtifact: { artifactId: 'artifact:video', mimeType: 'video/mp4', previewSource: 'metadata-only' },
+            artifacts: [
+              { artifactId: 'artifact:video', mimeType: 'video/mp4', previewSource: 'metadata-only' },
+              { artifactId: 'artifact:last-frame', mimeType: 'image/png', previewSource: 'metadata-only' },
+            ],
+          },
+        };
+      },
+    },
+  }));
+
+  assert.equal(result.ok, false);
+  assert.equal(result.reason, 'runtime-call-failed');
+  assert.deepEqual(adoptionCalls.map((call) => call.artifactId), ['artifact:video', 'artifact:last-frame']);
+  assert.deepEqual(removalCalls, [adoptionCalls[0].relativePath]);
+});
 
 test('Tester adopts metadata-only video without reading the source artifact body', async () => {
   const { runTesterCapability } = await importTesterRuntime();

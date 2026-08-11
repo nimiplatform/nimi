@@ -176,6 +176,49 @@ test('run history persists optional snapshots, reloads them, and retries idempot
   }
 });
 
+test('run history preserves every managed artifact from a multi-output video job', async () => {
+  const storage = createStorageClient();
+  globalThis.__NIMI_TESTER_HISTORY_STORAGE_CLIENT__ = storage.client;
+  const artifacts = [
+    {
+      relativePath: 'media/video-generate/video.asset',
+      mediaType: 'video/mp4',
+      sizeBytes: 4096,
+      sha256: `sha256:${'a'.repeat(64)}`,
+      displayName: 'Video Generate',
+      previewSource: 'managed-asset',
+    },
+    {
+      relativePath: 'media/video-generate/last-frame.asset',
+      mediaType: 'image/png',
+      sizeBytes: 2048,
+      sha256: `sha256:${'b'.repeat(64)}`,
+      displayName: 'Video Generate 2',
+      previewSource: 'managed-asset',
+    },
+  ];
+  try {
+    await historyStorageModule.appendTesterRunHistory(runRecord('run-video', '2026-08-08T08:02:00.000Z', {
+      capabilityId: 'video.generate',
+      result: {
+        ok: true,
+        kind: 'artifacts',
+        summary: 'COMPLETED / 2 artifacts / video/mp4',
+        jobId: 'job-video',
+        jobState: 'COMPLETED',
+        artifactCount: 2,
+        artifacts,
+        firstArtifact: artifacts[0],
+      },
+    }));
+
+    const reloaded = await historyStorageModule.loadTesterRunHistory();
+    assert.deepEqual(reloaded['video.generate'][0].result.artifacts, artifacts);
+  } finally {
+    delete globalThis.__NIMI_TESTER_HISTORY_STORAGE_CLIENT__;
+  }
+});
+
 test('concurrent run-history appends are serialized and retain both records', async () => {
   const storage = createStorageClient();
   globalThis.__NIMI_TESTER_HISTORY_STORAGE_CLIENT__ = storage.client;

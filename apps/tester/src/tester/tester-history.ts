@@ -1,6 +1,6 @@
 import { getTesterCapability, type TesterCapabilityId } from './tester-capabilities.js';
 import { isJsonObject } from '@nimiplatform/sdk/types';
-import type { TesterCapabilityRunResult } from './tester-runtime.js';
+import type { TesterCapabilityRunResult, TesterManagedArtifact } from './tester-runtime.js';
 import type { TesterRunTargetSummary } from './tester-run-target.js';
 import type { TesterUnavailableReason } from './tester-unavailable.js';
 
@@ -63,14 +63,8 @@ export type TesterRunHistoryResultSnapshot =
       jobId: string;
       jobState: string;
       artifactCount: number;
-      firstArtifact?: {
-        relativePath: string;
-        mediaType?: string;
-        sizeBytes: number;
-        sha256: string;
-        displayName?: string;
-        previewSource: 'managed-asset';
-      };
+      artifacts?: TesterManagedArtifact[];
+      firstArtifact?: TesterManagedArtifact;
       traceId?: string;
       simulated?: boolean;
     }
@@ -290,7 +284,8 @@ export function createTesterRunHistoryResultSnapshot(result: TesterCapabilityRun
     };
   }
   if (output.kind === 'artifacts') {
-    const firstArtifact = output.firstArtifact ? { ...output.firstArtifact } : undefined;
+    const artifacts = output.artifacts.map((artifact) => ({ ...artifact }));
+    const firstArtifact = artifacts[0];
     return {
       ok: true,
       kind: 'artifacts',
@@ -298,6 +293,7 @@ export function createTesterRunHistoryResultSnapshot(result: TesterCapabilityRun
       jobId: output.jobId,
       jobState: output.jobState,
       artifactCount: output.artifactCount,
+      artifacts,
       firstArtifact,
       ...trace,
     };
@@ -383,6 +379,8 @@ export function restoreTesterCapabilityRunResult(record: TesterRunHistoryRecord)
     };
   }
   if (snapshot.kind === 'artifacts') {
+    const artifacts = snapshot.artifacts?.map((artifact) => ({ ...artifact }))
+      ?? (snapshot.firstArtifact ? [{ ...snapshot.firstArtifact }] : []);
     return {
       ...common,
       output: {
@@ -390,7 +388,8 @@ export function restoreTesterCapabilityRunResult(record: TesterRunHistoryRecord)
         jobId: snapshot.jobId,
         jobState: snapshot.jobState,
         artifactCount: snapshot.artifactCount,
-        ...(snapshot.firstArtifact ? { firstArtifact: snapshot.firstArtifact } : {}),
+        artifacts,
+        ...(artifacts[0] ? { firstArtifact: artifacts[0] } : {}),
       },
     };
   }

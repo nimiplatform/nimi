@@ -277,9 +277,16 @@ function TextStudioHistorySnapshotBody({ snapshot }: { snapshot: Extract<TesterR
     );
   }
   if (snapshot.kind === 'artifacts') {
+    const artifacts = snapshot.artifacts ?? (snapshot.firstArtifact ? [snapshot.firstArtifact] : []);
     return (
       <div className="studio-result__rich">
-        <ArtifactMediaResult artifact={snapshot.firstArtifact} fallbackLabel={snapshot.jobId} />
+        {artifacts.map((artifact, index) => (
+          <ArtifactMediaResult
+            key={artifact.relativePath}
+            artifact={artifact}
+            fallbackLabel={`${snapshot.jobId}:${index + 1}`}
+          />
+        ))}
       </div>
     );
   }

@@ -5,7 +5,12 @@ import { NimiLabAccountMenu } from '../shell/account/account-panel.js';
 import { useTesterRendererHost } from '../renderer/context.js';
 import type { TesterEcosystemReferenceProjection } from '../renderer/contract.js';
 import { getTesterCapability, testerCapabilities, type TesterCapabilityId } from './tester-capabilities.js';
-import { shouldPersistTesterArtifactRecord } from './tester-artifact-persistence.js';
+import {
+  cleanupTesterManagedArtifactPaths,
+  persistTesterRunHistoryWithArtifactCompensation,
+  settleTesterHistorySaveIssueAfterPersistedRun,
+  shouldPersistTesterArtifactRecord,
+} from './tester-artifact-persistence.js';
 import type { TesterImageHistoryRecord } from './tester-image-history.js';
 import {
   createTesterRunHistoryResultSnapshot,
@@ -15,7 +20,12 @@ import {
 } from './tester-history.js';
 import type { TesterAIConfigSummary } from './tester-ai-config.js';
 import type { TesterCapabilityRunResult } from './tester-runtime.js';
-import { clearTesterManagedHistoryScope, deleteTesterManagedHistoryRecord } from './tester-managed-history.js';
+import { capabilityUnavailable } from './tester-unavailable.js';
+import {
+  clearTesterManagedHistoryScope,
+  deleteTesterManagedHistoryRecord,
+  reconcileTesterManagedHistoryProjection,
+} from './tester-managed-history.js';
 import { createTesterCapabilityParameterState } from './tester-capability-parameters.js';
 import type { TesterPreferences } from './tester-preferences.js';
 import { AppAccessPanel } from './app-access/app-access-panel.js';
@@ -49,7 +59,12 @@ type TesterHistorySelectionRequest = {
 
 type TesterHistoryIssue =
   | { kind: 'load'; message: string }
-  | { kind: 'save'; message: string; records: readonly TesterRunHistoryRecord[] };
+  | {
+      kind: 'save';
+      message: string;
+      records: readonly TesterRunHistoryRecord[];
+      cleanupPaths: readonly string[];
+    };
 
 function hasTraceMetadata(result: TesterCapabilityRunResult): boolean {
   if (!result.ok || !result.trace) return false;
@@ -88,6 +103,14 @@ export function TesterWorkbench(_props: TesterWorkbenchProps) {
     clearRunHistory: (capabilityId?: string) => rendererHost.app.commands.clearRunHistory(capabilityId ? { capabilityId } : {}),
     clearImageHistory: (capabilityId?: string) => rendererHost.app.commands.clearImageHistory(capabilityId ? { capabilityId } : {}),
   }), [rendererHost]);
+  const reconcileManagedHistory = useCallback((
+    runHistory: TesterRunHistory,
+    storedImageHistory: readonly TesterImageHistoryRecord[],
+  ) => reconcileTesterManagedHistoryProjection(
+    runHistory,
+    storedImageHistory,
+    (relativePath) => rendererHost.sdk.storage.assets.stat(relativePath),
+  ), [rendererHost]);
 
   const updatePreferences = useCallback((patch: Partial<TesterPreferences>) => {
     setPreferences((current) => {
@@ -130,9 +153,9 @@ export function TesterWorkbench(_props: TesterWorkbenchProps) {
 
   const refreshHistory = useCallback(async () => {
     setHistoryIssue(null);
+    let nextRunHistory: TesterRunHistory;
     try {
-      const next = await rendererHost.app.projection.runHistory();
-      setHistory(next);
+      nextRunHistory = await rendererHost.app.projection.runHistory();
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error || 'History load failed.');
       setHistoryIssue({ kind: 'load', message });
@@ -142,9 +165,11 @@ export function TesterWorkbench(_props: TesterWorkbenchProps) {
         message: 'history-load-failed',
         details: { error: message },
       });
+      return;
     }
+    let storedImageHistory: readonly TesterImageHistoryRecord[] = [];
     try {
-      setImageHistory(await rendererHost.app.projection.imageHistory());
+      storedImageHistory = await rendererHost.app.projection.imageHistory();
     } catch (error) {
       void rendererHost.app.commands.runtimeLog({
         level: 'warn',
@@ -153,13 +178,17 @@ export function TesterWorkbench(_props: TesterWorkbenchProps) {
         details: { error: error instanceof Error ? error.message : String(error || 'Image history load failed.') },
       });
     }
-  }, [rendererHost]);
+    const projection = await reconcileManagedHistory(nextRunHistory, storedImageHistory);
+    setHistory(projection.runHistory);
+    setImageHistory(projection.imageHistory);
+  }, [reconcileManagedHistory, rendererHost]);
 
   const removeHistoryRecord = useCallback(async (recordId: string, deleteAsset = false) => {
     try {
       const outcome = await deleteTesterManagedHistoryRecord(managedHistoryPort, recordId, deleteAsset);
-      setHistory(outcome.runHistory);
-      setImageHistory(outcome.imageHistory);
+      const projection = await reconcileManagedHistory(outcome.runHistory, outcome.imageHistory);
+      setHistory(projection.runHistory);
+      setImageHistory(projection.imageHistory);
       if (outcome.skipped > 0) {
         nimiToast.danger(t('History.deleteAssetFailed'));
       } else if (outcome.failed > 0) {
@@ -185,13 +214,14 @@ export function TesterWorkbench(_props: TesterWorkbenchProps) {
         details: { recordId, error: error instanceof Error ? error.message : String(error || 'History remove failed.') },
       });
     }
-  }, [managedHistoryPort, refreshHistory, rendererHost, t]);
+  }, [managedHistoryPort, reconcileManagedHistory, refreshHistory, rendererHost, t]);
 
   const clearHistoryScope = useCallback(async (capabilityId: string | null, deleteAssets: boolean) => {
     try {
       const outcome = await clearTesterManagedHistoryScope(managedHistoryPort, capabilityId, deleteAssets);
-      setHistory(outcome.runHistory);
-      setImageHistory(outcome.imageHistory);
+      const projection = await reconcileManagedHistory(outcome.runHistory, outcome.imageHistory);
+      setHistory(projection.runHistory);
+      setImageHistory(projection.imageHistory);
       for (const issue of outcome.issues) {
         void rendererHost.app.commands.runtimeLog({
           level: 'warn',
@@ -213,7 +243,7 @@ export function TesterWorkbench(_props: TesterWorkbenchProps) {
         details: { capabilityId, error: error instanceof Error ? error.message : String(error || 'History clear failed.') },
       });
     }
-  }, [managedHistoryPort, refreshHistory, rendererHost, t]);
+  }, [managedHistoryPort, reconcileManagedHistory, refreshHistory, rendererHost, t]);
 
   const historyActions = useMemo(() => ({
     removeRecord: removeHistoryRecord,
@@ -222,29 +252,44 @@ export function TesterWorkbench(_props: TesterWorkbenchProps) {
 
   const retryHistory = useCallback(async () => {
     const pending = historyIssue?.kind === 'save' ? historyIssue.records : null;
+    const pendingCleanupPaths = historyIssue?.kind === 'save' ? historyIssue.cleanupPaths : null;
     if (!pending) {
       await refreshHistory();
       return;
     }
     setHistoryIssue(null);
+    const cleanup = await cleanupTesterManagedArtifactPaths(
+      pendingCleanupPaths ?? [],
+      (relativePath) => rendererHost.sdk.storage.assets.remove(relativePath),
+    );
+    const remainingCleanupPaths = cleanup.remainingCleanupPaths;
+    const retryErrors = [...cleanup.failures];
     let completed = 0;
-    try {
-      let next: TesterRunHistory | null = null;
-      for (const record of pending) {
+    let next: TesterRunHistory | null = null;
+    for (const record of pending) {
+      try {
         next = await rendererHost.app.commands.appendRunHistory(record);
         completed += 1;
+      } catch (error) {
+        retryErrors.push(error instanceof Error ? error.message : String(error || 'History persistence failed.'));
+        break;
       }
-      if (next) setHistory(next);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error || 'History persistence failed.');
-      const remaining = pending.slice(completed);
+    }
+    if (next) setHistory(next);
+    const remaining = pending.slice(completed);
+    if (retryErrors.length > 0 || remaining.length > 0 || remainingCleanupPaths.length > 0) {
+      const message = retryErrors.join(' ') || 'History persistence retry is incomplete.';
       setHistoryIssue((current) => {
         const merged = new Map<string, TesterRunHistoryRecord>();
         for (const record of remaining) merged.set(record.id, record);
         if (current?.kind === 'save') {
           for (const record of current.records) merged.set(record.id, record);
         }
-        return { kind: 'save', message, records: [...merged.values()] };
+        const cleanupPaths = [...new Set([
+          ...remainingCleanupPaths,
+          ...(current?.kind === 'save' ? current.cleanupPaths : []),
+        ])];
+        return { kind: 'save', message, records: [...merged.values()], cleanupPaths };
       });
     }
   }, [historyIssue, refreshHistory, rendererHost]);
@@ -331,21 +376,37 @@ export function TesterWorkbench(_props: TesterWorkbenchProps) {
         result: createTesterRunHistoryResultSnapshot(historyResult),
         runConfig: runConfig ? { ...runConfig, traceId } : undefined,
       };
-      try {
-        const next = await rendererHost.app.commands.appendRunHistory(record);
-        setHistory(next);
+      const persistedRun = await persistTesterRunHistoryWithArtifactCompensation(
+        historyResult,
+        () => rendererHost.app.commands.appendRunHistory(record),
+        (relativePath) => rendererHost.sdk.storage.assets.remove(relativePath),
+      );
+      if (persistedRun.ok) {
+        setHistory(persistedRun.value);
         setHistoryIssue((current) => {
           if (!current || current.kind === 'load') return null;
-          const remaining = current.records.filter((pending) => pending.id !== record.id);
-          return remaining.length > 0 ? { ...current, records: remaining } : null;
+          const remaining = settleTesterHistorySaveIssueAfterPersistedRun(current, record.id);
+          return remaining ? { kind: 'save', ...remaining } : null;
         });
-      } catch (error) {
-        const message = error instanceof Error ? error.message : String(error || 'History persistence failed.');
+      } else {
+        const managedArtifactResult = shouldPersistTesterArtifactRecord(historyResult);
+        if (persistedRun.displayFailure) {
+          setLastResult(capabilityUnavailable(
+            getTesterCapability(historyResult.capabilityId as TesterCapabilityId),
+            persistedRun.displayFailure.reason,
+            persistedRun.displayFailure.message,
+          ));
+        }
         setHistoryIssue((current) => {
-          const records = current?.kind === 'save'
-            ? [...current.records.filter((pending) => pending.id !== record.id), record]
-            : [record];
-          return { kind: 'save', message, records };
+          const previous = current?.kind === 'save'
+            ? current.records.filter((pending) => pending.id !== record.id)
+            : [];
+          const records = managedArtifactResult ? previous : [...previous, record];
+          const cleanupPaths = [...new Set([
+            ...(current?.kind === 'save' ? current.cleanupPaths : []),
+            ...persistedRun.remainingCleanupPaths,
+          ])];
+          return { kind: 'save', message: persistedRun.message, records, cleanupPaths };
         });
         void rendererHost.app.commands.rendererLog({
           level: 'error',
@@ -356,40 +417,57 @@ export function TesterWorkbench(_props: TesterWorkbenchProps) {
           details: {
             runId,
             capabilityId: result.capabilityId,
-            error: message,
+            error: persistedRun.message,
+            managedArtifactCleanup: persistedRun.managedArtifactCleanup,
+            remainingCleanupPaths: persistedRun.remainingCleanupPaths,
           },
         });
-        return record;
+        throw new Error(persistedRun.message);
       }
 
       let artifactPersisted = false;
       if (shouldPersistTesterArtifactRecord(historyResult)) {
         try {
-          const firstArtifact = historyResult.output.firstArtifact;
-          const nextImageHistory = await rendererHost.app.commands.appendImageHistory({
-            id: runId,
-            runId,
-            kind: 'runtime-media',
-            capabilityId: historyResult.capabilityId,
-            capabilityLabel: historyResult.capabilityLabel,
-            title: firstArtifact?.displayName || firstArtifact?.relativePath || historyResult.output.jobId || historyResult.capabilityLabel,
-            status: 'ready',
-            createdAt,
-            artifactCount: historyResult.output.artifactCount,
-            artifactLabel: firstArtifact?.displayName || firstArtifact?.relativePath,
-            relativePath: firstArtifact?.relativePath,
-            mediaType: firstArtifact?.mediaType,
-            sizeBytes: firstArtifact?.sizeBytes,
-            sha256: firstArtifact?.sha256,
-            jobId: historyResult.output.jobId,
-            jobState: historyResult.output.jobState,
-            message: historyResult.message,
-            traceState: hasTraceMetadata(result) ? 'captured' : 'not-captured',
-            traceId,
-          });
+          let nextImageHistory = imageHistory;
+          for (const [index, artifact] of historyResult.output.artifacts.entries()) {
+            nextImageHistory = await rendererHost.app.commands.appendImageHistory({
+              id: index === 0 ? runId : `${runId}:${index}`,
+              runId,
+              kind: 'runtime-media',
+              capabilityId: historyResult.capabilityId,
+              capabilityLabel: historyResult.capabilityLabel,
+              title: artifact.displayName || artifact.relativePath || historyResult.output.jobId || historyResult.capabilityLabel,
+              status: 'ready',
+              createdAt,
+              artifactCount: historyResult.output.artifactCount,
+              artifactLabel: artifact.displayName || artifact.relativePath,
+              relativePath: artifact.relativePath,
+              mediaType: artifact.mediaType,
+              sizeBytes: artifact.sizeBytes,
+              sha256: artifact.sha256,
+              jobId: historyResult.output.jobId,
+              jobState: historyResult.output.jobState,
+              message: historyResult.message,
+              traceState: hasTraceMetadata(result) ? 'captured' : 'not-captured',
+              traceId,
+            });
+          }
           setImageHistory(nextImageHistory);
           artifactPersisted = true;
         } catch (error) {
+          let storedImageHistory: readonly TesterImageHistoryRecord[] = [];
+          try {
+            storedImageHistory = await rendererHost.app.projection.imageHistory();
+          } catch {
+            // Canonical run history below remains sufficient to derive every artifact row.
+          }
+          const projection = await reconcileTesterManagedHistoryProjection(
+            persistedRun.value,
+            storedImageHistory,
+            (relativePath) => rendererHost.sdk.storage.assets.stat(relativePath),
+          );
+          setHistory(projection.runHistory);
+          setImageHistory(projection.imageHistory);
           void rendererHost.app.commands.rendererLog({
             level: 'error',
             area: 'tester.capability-run',

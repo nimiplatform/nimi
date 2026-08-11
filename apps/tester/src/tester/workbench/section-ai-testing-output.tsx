@@ -41,6 +41,7 @@ export function formatTypedOutput(result: TesterCapabilityRunResult & { ok: true
       jobId: output.jobId,
       jobState: output.jobState,
       artifactCount: output.artifactCount,
+      artifacts: output.artifacts,
       firstArtifact: output.firstArtifact,
     }, null, 2);
   }
