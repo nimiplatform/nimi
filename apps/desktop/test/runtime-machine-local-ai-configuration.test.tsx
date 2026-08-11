@@ -278,6 +278,57 @@ test('Local AI Configurations renders the image form, ordered LoRA controls, and
   assert.doesNotMatch(markup, /shard-1\.gguf|shard-2\.gguf/u);
 });
 
+test('Local AI Configurations authors and manages the exact llama embedding implementation', () => {
+  const draft = {
+    ...createRuntimeConfigMachineLocalAIAddDraft(),
+    capabilityContract: 'text.embed' as const,
+    displayName: 'Local embeddings',
+  };
+  const addMarkup = renderToStaticMarkup(
+    <MachineLocalAIAddFormFields draft={draft} assets={[]} busy={false} onChange={noop} />,
+  );
+
+  assert.match(addMarkup, />Text embedding</u);
+  assert.match(addMarkup, /data-testid="machine-local-ai-embed-fields"/u);
+  assert.match(addMarkup, /llama\.cpp/u);
+  assert.doesNotMatch(addMarkup, /data-testid="machine-local-ai-image-fields"/u);
+  assert.doesNotMatch(addMarkup, /data-testid="machine-local-ai-video-fields"/u);
+
+  const embedConfiguration: NimiMachineLocalCapabilityConfiguration = {
+    ...configuration('unresolved'),
+    configurationId: 'lcc_embed',
+    capabilityContract: 'text.embed',
+    implementation: {
+      implementationId: 'local.text.embed.llama-cpp',
+      driverId: 'nimi.runtime.driver.llama-cpp',
+      driverDialect: 'llama.cpp/text-embed/v1',
+    },
+    portableConfig: {
+      mainRequirementPolicy: 'substitutable',
+      contextSize: 4096,
+    },
+    projectedRequirements: [{
+      requirementId: 'embedding.gguf',
+      role: 'main',
+      resourceKind: 'gguf',
+      policy: 'substitutable',
+      compatibilityConstraints: { engine: 'llama', artifact_role: 'embedding' },
+      occurrenceOrdinal: 0,
+      displayLabel: 'Embedding model',
+    }],
+    displayName: 'Local embeddings',
+  };
+  const cardMarkup = renderView(baseProps({
+    configurations: [embedConfiguration],
+    selections: [],
+  }));
+
+  assert.match(cardMarkup, />Text embedding</u);
+  assert.match(cardMarkup, /llama\.cpp/u);
+  assert.match(cardMarkup, /Fixed at 4096 tokens/u);
+  assert.match(cardMarkup, /Advanced: context length/u);
+});
+
 test('Local AI Configurations renders future image impact separately from explicit confirmation', () => {
   const markup = renderToStaticMarkup(
     <MachineLocalAIImpactDialogContent

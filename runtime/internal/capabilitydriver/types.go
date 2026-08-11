@@ -20,13 +20,16 @@ const (
 	// Drivers for format and tensor-name admission.
 	MaxAssetFormatProbeBytes = 4 << 20
 
-	LlamaImplementationID   = "local.text.generate.llama-cpp"
-	LlamaDriverID           = "nimi.runtime.driver.llama-cpp"
-	LlamaDriverDialect      = "llama.cpp/text-generate/v1"
-	LlamaCapabilityContract = "text.generate"
+	LlamaImplementationID      = "local.text.generate.llama-cpp"
+	LlamaDriverID              = "nimi.runtime.driver.llama-cpp"
+	LlamaDriverDialect         = "llama.cpp/text-generate/v1"
+	LlamaEmbedImplementationID = "local.text.embed.llama-cpp"
+	LlamaEmbedDriverDialect    = "llama.cpp/text-embed/v1"
+	LlamaCapabilityContract    = "text.generate"
 
 	MainGGUFRequirementID        = "main.gguf"
 	CompanionMMProjRequirementID = "companion.mmproj"
+	EmbeddingGGUFRequirementID   = "embedding.gguf"
 )
 
 // Identity is the complete implementation vocabulary key. Partial identity
@@ -147,6 +150,16 @@ type TextInvocationInput struct {
 	Stream                   bool
 }
 
+// EmbedInvocationInput is the complete Driver-owned embedding invocation
+// input. It contains only the selected portable configuration, immutable exact
+// bindings, model-authored capacity, and the normalized request.
+type EmbedInvocationInput struct {
+	PortableConfig           *structpb.Struct
+	ModelContextWindowTokens uint64
+	ExactBindings            []InvocationExactBinding
+	Request                  *runtimev1.TextEmbedScenarioSpec
+}
+
 // ImageInvocationInput is the complete Driver-owned image invocation input.
 // Host selection, endpoints, binaries, routes, and fallback never enter it.
 type ImageInvocationInput struct {
@@ -246,6 +259,59 @@ type TextInvocationPlan struct {
 	contextWindow uint64
 }
 
+// EmbedInvocationPlan is the immutable llama embedding substrate plan. The
+// ExecutionHost adds only process, endpoint, and transport facts.
+type EmbedInvocationPlan struct {
+	processKey    string
+	processArgs   []string
+	modelFiles    []InvocationExactBinding
+	requestPath   string
+	requestBody   []byte
+	expectedCount int
+}
+
+func (p *EmbedInvocationPlan) ProcessKey() string {
+	if p == nil {
+		return ""
+	}
+	return p.processKey
+}
+
+func (p *EmbedInvocationPlan) ProcessArgs() []string {
+	if p == nil {
+		return nil
+	}
+	return append([]string(nil), p.processArgs...)
+}
+
+func (p *EmbedInvocationPlan) ModelFiles() []InvocationExactBinding {
+	if p == nil {
+		return nil
+	}
+	return append([]InvocationExactBinding(nil), p.modelFiles...)
+}
+
+func (p *EmbedInvocationPlan) RequestPath() string {
+	if p == nil {
+		return ""
+	}
+	return p.requestPath
+}
+
+func (p *EmbedInvocationPlan) RequestBody() []byte {
+	if p == nil {
+		return nil
+	}
+	return append([]byte(nil), p.requestBody...)
+}
+
+func (p *EmbedInvocationPlan) ExpectedCount() int {
+	if p == nil {
+		return 0
+	}
+	return p.expectedCount
+}
+
 func (p *TextInvocationPlan) ProcessKey() string {
 	if p == nil {
 		return ""
@@ -302,6 +368,13 @@ type TextInvocationDriver interface {
 	Driver
 	PlanTextInvocation(input TextInvocationInput) (*TextInvocationPlan, error)
 	TextContextWindow(portableConfig *structpb.Struct, modelContextWindowTokens uint64) (uint64, error)
+}
+
+// EmbedInvocationDriver is the invocation seam implemented by the exact local
+// text.embed Driver identity.
+type EmbedInvocationDriver interface {
+	Driver
+	PlanEmbedInvocation(input EmbedInvocationInput) (*EmbedInvocationPlan, error)
 }
 
 // ImageInvocationLoRA is one exact Driver-declared ordered LoRA occurrence.
@@ -814,6 +887,7 @@ func (registry *Registry) Resolve(capabilityContract string, identity Identity) 
 func NewProductionRegistry() *Registry {
 	registry, err := NewRegistry(map[RegistrationKey]Driver{
 		{CapabilityContract: LlamaCapabilityContract, Identity: Identity{ImplementationID: LlamaImplementationID, DriverID: LlamaDriverID, DriverDialect: LlamaDriverDialect}}:                                                             LlamaTextDriver{},
+		{CapabilityContract: TextEmbedCapabilityContract, Identity: Identity{ImplementationID: LlamaEmbedImplementationID, DriverID: LlamaDriverID, DriverDialect: LlamaEmbedDriverDialect}}:                                               LlamaEmbedDriver{},
 		{CapabilityContract: StableDiffusionCapabilityContract, Identity: Identity{ImplementationID: StableDiffusionImplementationID, DriverID: StableDiffusionDriverID, DriverDialect: StableDiffusionDriverDialect}}:                     StableDiffusionImageDriver{},
 		{CapabilityContract: StableDiffusionVideoCapabilityContract, Identity: Identity{ImplementationID: StableDiffusionVideoImplementationID, DriverID: StableDiffusionVideoDriverID, DriverDialect: StableDiffusionVideoDriverDialect}}: StableDiffusionVideoDriver{},
 	})

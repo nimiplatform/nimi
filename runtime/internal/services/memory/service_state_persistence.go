@@ -30,9 +30,12 @@ func (s *Service) loadState() error {
 	return s.loadStateFromDB()
 }
 func (s *Service) persistLocked() error {
-	return s.persistLockedWithTxHook(nil)
+	return s.persistLockedWithEmbeddingProjection(nil, nil)
 }
 func (s *Service) persistLockedWithTxHook(txHook persistTxHook) error {
+	return s.persistLockedWithEmbeddingProjection(nil, txHook)
+}
+func (s *Service) persistLockedWithEmbeddingProjection(projection memoryRecordEmbeddingProjection, txHook persistTxHook) error {
 	snapshot := persistedMemoryState{
 		SchemaVersion:      memoryStateSchemaVersion,
 		SavedAt:            time.Now().UTC().Format(time.RFC3339Nano),
@@ -91,7 +94,7 @@ func (s *Service) persistLockedWithTxHook(txHook persistTxHook) error {
 		return fmt.Errorf("marshal memory state snapshot: %w", err)
 	}
 	_ = payload
-	return s.persistSnapshotWithTxHook(snapshot, txHook)
+	return s.persistSnapshotWithEmbeddingProjection(snapshot, projection, txHook)
 }
 func (s *Service) loadStateFromDB() error {
 	for key := range s.banks {
@@ -202,16 +205,15 @@ func (s *Service) loadStateFromDB() error {
 	return nil
 }
 func (s *Service) persistSnapshot(snapshot persistedMemoryState) error {
-	return s.persistSnapshotWithTxHook(snapshot, nil)
+	return s.persistSnapshotWithEmbeddingProjection(snapshot, nil, nil)
 }
 func (s *Service) persistSnapshotWithTxHook(snapshot persistedMemoryState, txHook persistTxHook) error {
+	return s.persistSnapshotWithEmbeddingProjection(snapshot, nil, txHook)
+}
+func (s *Service) persistSnapshotWithEmbeddingProjection(snapshot persistedMemoryState, projection memoryRecordEmbeddingProjection, txHook persistTxHook) error {
 	if s.backend == nil {
 		return nil
 	}
-	managedProfile := cloneEmbeddingProfile(s.managedEmbeddingProfile)
-	hasResolver := s.runtimeEmbeddingResolver != nil
-	hasExecutor := s.runtimeEmbeddingExecutor != nil
-	executor := s.runtimeEmbeddingExecutor
 	return s.backend.WriteTx(context.Background(), func(tx *sql.Tx) error {
 		if _, err := tx.Exec(`DELETE FROM memory_record_fts`); err != nil {
 			return fmt.Errorf("clear memory_record_fts: %w", err)
@@ -256,15 +258,14 @@ func (s *Service) persistSnapshotWithTxHook(snapshot persistedMemoryState, txHoo
 				`, record.GetMemoryId(), item.LocatorKey, searchText, searchTokens); err != nil {
 					return fmt.Errorf("insert memory_record_fts %s: %w", record.GetMemoryId(), err)
 				}
-				if bank.GetEmbeddingProfile() != nil && embeddingAvailableForProfileWithState(bank.GetEmbeddingProfile(), managedProfile, hasResolver, hasExecutor) {
-					vector, err := embeddingVectorWithExecutor(context.Background(), executor, bank.GetEmbeddingProfile(), strings.TrimSpace(strings.Join([]string{recordContent(&record), recordContext(&record)}, " ")))
-					if err != nil {
-						return fmt.Errorf("compute memory_record_embedding %s: %w", record.GetMemoryId(), err)
+				if prepared, ok := projection[record.GetMemoryId()]; ok {
+					if prepared.LocatorKey != item.LocatorKey || prepared.Dimension <= 0 || len(prepared.Vector) != int(prepared.Dimension) {
+						return fmt.Errorf("invalid prepared memory_record_embedding %s", record.GetMemoryId())
 					}
 					if _, err := tx.Exec(`
 						INSERT OR REPLACE INTO memory_record_embedding(memory_id, locator_key, dimension, vector_json, updated_at)
 						VALUES (?, ?, ?, ?, ?)
-					`, record.GetMemoryId(), item.LocatorKey, int(bank.GetEmbeddingProfile().GetDimension()), marshalFloatVector(vector), time.Now().UTC().Format(time.RFC3339Nano)); err != nil {
+					`, record.GetMemoryId(), item.LocatorKey, int(prepared.Dimension), marshalFloatVector(prepared.Vector), time.Now().UTC().Format(time.RFC3339Nano)); err != nil {
 						return fmt.Errorf("upsert memory_record_embedding %s: %w", record.GetMemoryId(), err)
 					}
 				}
@@ -355,11 +356,9 @@ func marshalPendingEmbeddingCutoverForPersist(input *pendingEmbeddingCutoverStat
 		return nil
 	}
 	return &persistedPendingEmbeddingCutoverRef{
-		GenerationID:      strings.TrimSpace(input.GenerationID),
-		TargetProfile:     raw,
-		RevisionToken:     strings.TrimSpace(input.RevisionToken),
-		ReadyForCutover:   input.ReadyForCutover,
-		BlockedReasonCode: strings.TrimSpace(input.BlockedReasonCode.String()),
+		GenerationID:  strings.TrimSpace(input.GenerationID),
+		TargetProfile: raw,
+		RevisionToken: strings.TrimSpace(input.RevisionToken),
 	}
 }
 func unmarshalPendingEmbeddingCutoverFromPersist(input *persistedPendingEmbeddingCutoverRef) (*pendingEmbeddingCutoverState, error) {
@@ -370,20 +369,10 @@ func unmarshalPendingEmbeddingCutoverFromPersist(input *persistedPendingEmbeddin
 	if err := protojson.Unmarshal(input.TargetProfile, &profile); err != nil {
 		return nil, fmt.Errorf("unmarshal pending target profile: %w", err)
 	}
-	blockedReason := runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED
-	if raw := strings.TrimSpace(input.BlockedReasonCode); raw != "" {
-		value, ok := runtimev1.ReasonCode_value[raw]
-		if !ok {
-			return nil, fmt.Errorf("decode pending blocked reason code: %s", raw)
-		}
-		blockedReason = runtimev1.ReasonCode(value)
-	}
 	return &pendingEmbeddingCutoverState{
-		GenerationID:      strings.TrimSpace(input.GenerationID),
-		TargetProfile:     cloneEmbeddingProfile(&profile),
-		RevisionToken:     strings.TrimSpace(input.RevisionToken),
-		ReadyForCutover:   input.ReadyForCutover,
-		BlockedReasonCode: blockedReason,
+		GenerationID:  strings.TrimSpace(input.GenerationID),
+		TargetProfile: cloneEmbeddingProfile(&profile),
+		RevisionToken: strings.TrimSpace(input.RevisionToken),
 	}, nil
 }
 func (s *Service) loadPendingEmbeddingCutoverStateFromDB() error {

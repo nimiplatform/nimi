@@ -1041,6 +1041,7 @@
   },
   "capabilityLabels": {
     "textGenerate": "Text generation",
+    "textEmbed": "Text embedding",
     "imageGenerate": "Image generation",
     "videoGenerate": "Video generation"
   },

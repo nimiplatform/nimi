@@ -34,7 +34,7 @@ import {
 import {
   configuredMachineLocalFixedContextSize,
   displayMachineLocalConfigurationName,
-  isMachineLocalLlamaTextConfiguration,
+  isMachineLocalLlamaConfiguration,
   isMachineLocalStableDiffusionVideoConfiguration,
   machineLocalAssetDisplayName,
   machineLocalEngineDisplayName,
@@ -133,7 +133,7 @@ export function MachineLocalAIConfigurationCard(props: {
               <dt className="font-medium">{t('runtimeConfig.machineLocalAIConfigurations.engine')}:</dt>
               <dd>{machineLocalEngineDisplayName(configuration, t)}</dd>
             </div>
-            {isMachineLocalLlamaTextConfiguration(configuration) ? (
+            {isMachineLocalLlamaConfiguration(configuration) ? (
               <div className="flex gap-1.5">
                 <dt className="font-medium">{t('runtimeConfig.machineLocalAIConfigurations.contextCapacity')}:</dt>
                 <dd>{fixedContextSize === undefined
@@ -208,7 +208,7 @@ export function MachineLocalAIConfigurationCard(props: {
         </div>
       </div>
 
-      {isMachineLocalLlamaTextConfiguration(configuration) ? (
+      {isMachineLocalLlamaConfiguration(configuration) ? (
         <details className="rounded-xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-subtle)] p-3">
           <summary className="cursor-pointer text-sm font-semibold text-[var(--nimi-text-primary)]">
             {t('runtimeConfig.machineLocalAIConfigurations.contextCapacityAdvanced')}

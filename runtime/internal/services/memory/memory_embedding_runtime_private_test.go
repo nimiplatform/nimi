@@ -3,12 +3,16 @@ package memory
 import (
 	"context"
 	"errors"
+	"fmt"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
+	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/config"
+	"google.golang.org/protobuf/proto"
 )
 
 func newMemoryEmbeddingRuntimePrivateService(t *testing.T) *Service {
@@ -325,8 +329,8 @@ func TestRequestCanonicalMemoryEmbeddingBindStagesRebuildOnProfileMismatch(t *te
 	if err != nil {
 		t.Fatalf("InspectMemoryEmbeddingState: %v", err)
 	}
-	if state.CanonicalBankStatus != memoryEmbeddingCanonicalBankStatusCutoverReady {
-		t.Fatalf("expected cutover_ready inspect status, got %s", state.CanonicalBankStatus)
+	if state.CanonicalBankStatus != memoryEmbeddingCanonicalBankStatusRebuildPending {
+		t.Fatalf("expected rebuild_pending inspect status, got %s", state.CanonicalBankStatus)
 	}
 	if !state.OperationReadiness.CutoverAllowed {
 		t.Fatal("expected cutover to be allowed after staging")
@@ -349,6 +353,336 @@ func TestRequestCanonicalMemoryEmbeddingBindStagesRebuildOnProfileMismatch(t *te
 	}
 	if currentEmbeddingGenerationID(bank.Bank) == bank.PendingEmbeddingCutover.GenerationID {
 		t.Fatal("expected pending generation id to differ from current generation id")
+	}
+}
+
+func TestInspectMemoryEmbeddingStateDoesNotProbePendingGeneration(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	svc := newMemoryEmbeddingRuntimePrivateService(t)
+	locator := testMemoryEmbeddingLocator("agent-passive-inspect")
+	setManagedEmbeddingProfileForTest(svc, testManagedEmbeddingProfile("local/embed-old"))
+	if _, err := svc.EnsureCanonicalBank(ctx, locator, "Agent Memory", nil); err != nil {
+		t.Fatalf("EnsureCanonicalBank: %v", err)
+	}
+	if _, err := svc.BindCanonicalBankEmbeddingProfile(ctx, locator); err != nil {
+		t.Fatalf("BindCanonicalBankEmbeddingProfile(old): %v", err)
+	}
+	if _, err := svc.Retain(ctx, &runtimev1.RetainRequest{
+		Bank: locator,
+		Records: []*runtimev1.MemoryRecordInput{{
+			Kind:           runtimev1.MemoryRecordKind_MEMORY_RECORD_KIND_SEMANTIC,
+			CanonicalClass: runtimev1.MemoryCanonicalClass_MEMORY_CANONICAL_CLASS_PUBLIC_SHARED,
+			Provenance:     &runtimev1.MemoryProvenance{SourceSystem: "test", SourceEventId: "evt-passive-inspect"},
+			Payload: &runtimev1.MemoryRecordInput_Semantic{Semantic: &runtimev1.SemanticMemoryRecord{
+				Subject: "Alice", Predicate: "works_at", Object: "Nimi",
+			}},
+		}},
+	}); err != nil {
+		t.Fatalf("Retain: %v", err)
+	}
+
+	setManagedEmbeddingProfileForTest(svc, testManagedEmbeddingProfile("local/embed-new"))
+	setMemoryEmbeddingIntentForTest(t, svc, locator, testLocalBindingSnapshot("local/embed-new"))
+	if _, err := svc.RequestCanonicalMemoryEmbeddingBind(ctx, RequestCanonicalMemoryEmbeddingBindRequest{Locator: locator}); err != nil {
+		t.Fatalf("RequestCanonicalMemoryEmbeddingBind(stage): %v", err)
+	}
+	calls := 0
+	svc.SetRuntimeEmbeddingVectorExecutor(func(context.Context, *runtimev1.MemoryEmbeddingProfile, []string) ([][]float64, error) {
+		calls++
+		return nil, errors.New("inspect must not execute the embedding host")
+	})
+
+	state, err := svc.InspectMemoryEmbeddingState(ctx, InspectMemoryEmbeddingStateRequest{Locator: locator})
+	if err != nil {
+		t.Fatalf("InspectMemoryEmbeddingState: %v", err)
+	}
+	if calls != 0 {
+		t.Fatalf("inspect embedding host calls = %d, want 0", calls)
+	}
+	if state.CanonicalBankStatus != memoryEmbeddingCanonicalBankStatusRebuildPending {
+		t.Fatalf("canonical bank status = %q, want %q", state.CanonicalBankStatus, memoryEmbeddingCanonicalBankStatusRebuildPending)
+	}
+	if !state.OperationReadiness.CutoverAllowed {
+		t.Fatal("pending target generation should admit a cutover materialization attempt")
+	}
+}
+
+func TestRequestMemoryEmbeddingCutoverMaterializesBatchesOnceAndCommitsNarratives(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	svc := newMemoryEmbeddingRuntimePrivateService(t)
+	locator := testMemoryEmbeddingLocator("agent-batched-cutover")
+	oldProfile := testManagedEmbeddingProfile("local/embed-old")
+	oldProfile.Dimension = 2
+	newProfile := testManagedEmbeddingProfile("local/embed-new")
+	newProfile.Dimension = 2
+	setManagedEmbeddingProfileForTest(svc, oldProfile)
+	if _, err := svc.EnsureCanonicalBank(ctx, locator, "Agent Memory", nil); err != nil {
+		t.Fatalf("EnsureCanonicalBank: %v", err)
+	}
+	if _, err := svc.BindCanonicalBankEmbeddingProfile(ctx, locator); err != nil {
+		t.Fatalf("BindCanonicalBankEmbeddingProfile(old): %v", err)
+	}
+
+	inputs := make([]*runtimev1.MemoryRecordInput, 0, 17)
+	for index := 0; index < 17; index++ {
+		inputs = append(inputs, &runtimev1.MemoryRecordInput{
+			Kind:           runtimev1.MemoryRecordKind_MEMORY_RECORD_KIND_SEMANTIC,
+			CanonicalClass: runtimev1.MemoryCanonicalClass_MEMORY_CANONICAL_CLASS_PUBLIC_SHARED,
+			Provenance: &runtimev1.MemoryProvenance{
+				SourceSystem:  "test",
+				SourceEventId: fmt.Sprintf("evt-batched-cutover-%02d", index),
+			},
+			Payload: &runtimev1.MemoryRecordInput_Semantic{Semantic: &runtimev1.SemanticMemoryRecord{
+				Subject: fmt.Sprintf("subject-%02d", index), Predicate: "remembers", Object: fmt.Sprintf("object-%02d", index),
+			}},
+		})
+	}
+	if _, err := svc.Retain(ctx, &runtimev1.RetainRequest{Bank: locator, Records: inputs}); err != nil {
+		t.Fatalf("Retain: %v", err)
+	}
+	before, err := svc.bankForLocator(locator)
+	if err != nil {
+		t.Fatalf("bankForLocator(before): %v", err)
+	}
+	recordUpdatedAt := make(map[string]string, len(before.Order))
+	for _, recordID := range before.Order {
+		recordUpdatedAt[recordID] = before.Records[recordID].GetUpdatedAt().AsTime().UTC().Format(time.RFC3339Nano)
+	}
+
+	now := time.Now().UTC().Format(time.RFC3339Nano)
+	if _, err := svc.backend.DB().Exec(`
+		INSERT INTO memory_narrative(narrative_id, bank_locator_key, topic, content, source_version, status, created_at, updated_at)
+		VALUES
+			('narrative-active', ?, 'active topic', 'active content', 'v1', 'active', ?, ?),
+			('narrative-stale', ?, 'stale topic', 'stale content', 'v1', 'invalidated', ?, ?)
+	`, locatorKey(locator), now, now, locatorKey(locator), now, now); err != nil {
+		t.Fatalf("insert narratives: %v", err)
+	}
+	if _, err := svc.backend.DB().Exec(`
+		INSERT INTO memory_narrative_embedding(locator_key, narrative_id, embedding_profile_json, vector_json, updated_at)
+		VALUES (?, 'narrative-active', '{"provider":"local","modelId":"local/embed-old","dimension":2}', '[1,0]', ?),
+		       (?, 'narrative-stale', '{"provider":"local","modelId":"local/embed-old","dimension":2}', '[0,1]', ?)
+	`, locatorKey(locator), now, locatorKey(locator), now); err != nil {
+		t.Fatalf("insert old narrative embeddings: %v", err)
+	}
+
+	setManagedEmbeddingProfileForTest(svc, newProfile)
+	setMemoryEmbeddingIntentForTest(t, svc, locator, testLocalBindingSnapshot("local/embed-new"))
+	if _, err := svc.RequestCanonicalMemoryEmbeddingBind(ctx, RequestCanonicalMemoryEmbeddingBindRequest{Locator: locator}); err != nil {
+		t.Fatalf("RequestCanonicalMemoryEmbeddingBind(stage): %v", err)
+	}
+	staged, err := svc.bankForLocator(locator)
+	if err != nil {
+		t.Fatalf("bankForLocator(staged): %v", err)
+	}
+	pendingGenerationID := staged.PendingEmbeddingCutover.GenerationID
+
+	batchSizes := make([]int, 0, 2)
+	observedInputs := make([]string, 0, 18)
+	svc.SetRuntimeEmbeddingVectorExecutor(func(_ context.Context, profile *runtimev1.MemoryEmbeddingProfile, raws []string) ([][]float64, error) {
+		if profile == nil || profile.GetModelId() != "local/embed-new" {
+			return nil, fmt.Errorf("unexpected target profile: %#v", profile)
+		}
+		batchSizes = append(batchSizes, len(raws))
+		observedInputs = append(observedInputs, raws...)
+		if len(raws) > 16 {
+			return nil, fmt.Errorf("embedding batch exceeds 16 inputs: %d", len(raws))
+		}
+		vectors := make([][]float64, 0, len(raws))
+		for index := range raws {
+			vectors = append(vectors, []float64{float64(len(observedInputs) - len(raws) + index + 1), 1})
+		}
+		return vectors, nil
+	})
+
+	result, err := svc.RequestMemoryEmbeddingCutover(ctx, RequestMemoryEmbeddingCutoverRequest{Locator: locator})
+	if err != nil {
+		t.Fatalf("RequestMemoryEmbeddingCutover: %v", err)
+	}
+	if result.Outcome != "cutover_committed" {
+		t.Fatalf("outcome = %q, want cutover_committed", result.Outcome)
+	}
+	if !reflect.DeepEqual(batchSizes, []int{16, 2}) {
+		t.Fatalf("embedding batch sizes = %v, want [16 2]", batchSizes)
+	}
+	if len(observedInputs) != 18 || observedInputs[17] != "active topic active content" {
+		t.Fatalf("target projection input order/count = %#v", observedInputs)
+	}
+
+	after, err := svc.bankForLocator(locator)
+	if err != nil {
+		t.Fatalf("bankForLocator(after): %v", err)
+	}
+	if after.PendingEmbeddingCutover != nil {
+		t.Fatalf("pending cutover remains after commit: %#v", after.PendingEmbeddingCutover)
+	}
+	if got := currentEmbeddingGenerationID(after.Bank); got != pendingGenerationID {
+		t.Fatalf("current generation = %q, want pending %q", got, pendingGenerationID)
+	}
+	for _, recordID := range after.Order {
+		if got := after.Records[recordID].GetUpdatedAt().AsTime().UTC().Format(time.RFC3339Nano); got != recordUpdatedAt[recordID] {
+			t.Fatalf("record %s updated_at changed during private rebuild: got %s want %s", recordID, got, recordUpdatedAt[recordID])
+		}
+	}
+	var recordEmbeddingCount int
+	if err := svc.backend.DB().QueryRow(`SELECT COUNT(*) FROM memory_record_embedding WHERE locator_key = ? AND dimension = 2`, locatorKey(locator)).Scan(&recordEmbeddingCount); err != nil {
+		t.Fatalf("count target record embeddings: %v", err)
+	}
+	if recordEmbeddingCount != 17 {
+		t.Fatalf("target record embedding count = %d, want 17", recordEmbeddingCount)
+	}
+	var activeProfileRaw string
+	if err := svc.backend.DB().QueryRow(`SELECT embedding_profile_json FROM memory_narrative_embedding WHERE locator_key = ? AND narrative_id = 'narrative-active'`, locatorKey(locator)).Scan(&activeProfileRaw); err != nil {
+		t.Fatalf("load active narrative embedding: %v", err)
+	}
+	if !strings.Contains(activeProfileRaw, "local/embed-new") {
+		t.Fatalf("active narrative profile = %s, want target profile", activeProfileRaw)
+	}
+	var staleNarrativeCount int
+	if err := svc.backend.DB().QueryRow(`SELECT COUNT(*) FROM memory_narrative_embedding WHERE locator_key = ? AND narrative_id = 'narrative-stale'`, locatorKey(locator)).Scan(&staleNarrativeCount); err != nil {
+		t.Fatalf("count stale narrative embeddings: %v", err)
+	}
+	if staleNarrativeCount != 0 {
+		t.Fatalf("stale narrative embedding count = %d, want 0", staleNarrativeCount)
+	}
+}
+
+func TestRequestMemoryEmbeddingCutoverTransactionFailureKeepsCurrentAndPendingGenerations(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	svc := newMemoryEmbeddingRuntimePrivateService(t)
+	locator := testMemoryEmbeddingLocator("agent-atomic-cutover")
+	oldProfile := testManagedEmbeddingProfile("local/embed-old")
+	oldProfile.Dimension = 2
+	newProfile := testManagedEmbeddingProfile("local/embed-new")
+	newProfile.Dimension = 2
+	setManagedEmbeddingProfileForTest(svc, oldProfile)
+	if _, err := svc.EnsureCanonicalBank(ctx, locator, "Agent Memory", nil); err != nil {
+		t.Fatalf("EnsureCanonicalBank: %v", err)
+	}
+	if _, err := svc.BindCanonicalBankEmbeddingProfile(ctx, locator); err != nil {
+		t.Fatalf("BindCanonicalBankEmbeddingProfile(old): %v", err)
+	}
+	retained, err := svc.Retain(ctx, &runtimev1.RetainRequest{
+		Bank: locator,
+		Records: []*runtimev1.MemoryRecordInput{{
+			Kind:           runtimev1.MemoryRecordKind_MEMORY_RECORD_KIND_SEMANTIC,
+			CanonicalClass: runtimev1.MemoryCanonicalClass_MEMORY_CANONICAL_CLASS_PUBLIC_SHARED,
+			Provenance:     &runtimev1.MemoryProvenance{SourceSystem: "test", SourceEventId: "evt-atomic-cutover"},
+			Payload: &runtimev1.MemoryRecordInput_Semantic{Semantic: &runtimev1.SemanticMemoryRecord{
+				Subject: "Alice", Predicate: "works_at", Object: "Nimi",
+			}},
+		}},
+	})
+	if err != nil {
+		t.Fatalf("Retain: %v", err)
+	}
+	recordID := retained.GetRecords()[0].GetMemoryId()
+	now := time.Now().UTC().Format(time.RFC3339Nano)
+	if _, err := svc.backend.DB().Exec(`
+		INSERT INTO memory_narrative(narrative_id, bank_locator_key, topic, content, source_version, status, created_at, updated_at)
+		VALUES ('narrative-atomic', ?, 'atomic topic', 'atomic content', 'v1', 'active', ?, ?)
+	`, locatorKey(locator), now, now); err != nil {
+		t.Fatalf("insert narrative: %v", err)
+	}
+	if _, err := svc.backend.DB().Exec(`
+		INSERT INTO memory_narrative_embedding(locator_key, narrative_id, embedding_profile_json, vector_json, updated_at)
+		VALUES (?, 'narrative-atomic', '{"provider":"local","modelId":"local/embed-old","dimension":2}', '[0,1]', ?)
+	`, locatorKey(locator), now); err != nil {
+		t.Fatalf("insert old narrative embedding: %v", err)
+	}
+
+	setManagedEmbeddingProfileForTest(svc, newProfile)
+	setMemoryEmbeddingIntentForTest(t, svc, locator, testLocalBindingSnapshot("local/embed-new"))
+	if _, err := svc.RequestCanonicalMemoryEmbeddingBind(ctx, RequestCanonicalMemoryEmbeddingBindRequest{Locator: locator}); err != nil {
+		t.Fatalf("RequestCanonicalMemoryEmbeddingBind(stage): %v", err)
+	}
+	before, err := svc.bankForLocator(locator)
+	if err != nil {
+		t.Fatalf("bankForLocator(before): %v", err)
+	}
+	type recordEmbeddingRow struct {
+		Dimension int
+		Vector    string
+		UpdatedAt string
+	}
+	type narrativeEmbeddingRow struct {
+		Profile   string
+		Vector    string
+		UpdatedAt string
+	}
+	var beforeRecord recordEmbeddingRow
+	if err := svc.backend.DB().QueryRow(`SELECT dimension, vector_json, updated_at FROM memory_record_embedding WHERE memory_id = ?`, recordID).Scan(&beforeRecord.Dimension, &beforeRecord.Vector, &beforeRecord.UpdatedAt); err != nil {
+		t.Fatalf("load old record embedding: %v", err)
+	}
+	var beforeNarrative narrativeEmbeddingRow
+	if err := svc.backend.DB().QueryRow(`SELECT embedding_profile_json, vector_json, updated_at FROM memory_narrative_embedding WHERE locator_key = ? AND narrative_id = 'narrative-atomic'`, locatorKey(locator)).Scan(&beforeNarrative.Profile, &beforeNarrative.Vector, &beforeNarrative.UpdatedAt); err != nil {
+		t.Fatalf("load old narrative embedding: %v", err)
+	}
+	beforePendingMeta, err := svc.memoryMetaValue(pendingEmbeddingCutoverMetaKey(locatorKey(locator)))
+	if err != nil {
+		t.Fatalf("load pending meta: %v", err)
+	}
+	if _, err := svc.backend.DB().Exec(`
+		CREATE TRIGGER fail_target_narrative_embedding
+		BEFORE INSERT ON memory_narrative_embedding
+		WHEN NEW.embedding_profile_json LIKE '%local/embed-new%'
+		BEGIN
+			SELECT RAISE(ABORT, 'forced target narrative insert failure');
+		END
+	`); err != nil {
+		t.Fatalf("create failure trigger: %v", err)
+	}
+	svc.SetRuntimeEmbeddingVectorExecutor(func(_ context.Context, _ *runtimev1.MemoryEmbeddingProfile, raws []string) ([][]float64, error) {
+		vectors := make([][]float64, len(raws))
+		for index := range vectors {
+			vectors[index] = []float64{float64(index + 1), 1}
+		}
+		return vectors, nil
+	})
+
+	result, err := svc.RequestMemoryEmbeddingCutover(ctx, RequestMemoryEmbeddingCutoverRequest{Locator: locator})
+	if err == nil {
+		t.Fatalf("RequestMemoryEmbeddingCutover unexpectedly succeeded: %#v", result)
+	}
+	after, stateErr := svc.bankForLocator(locator)
+	if stateErr != nil {
+		t.Fatalf("bankForLocator(after): %v", stateErr)
+	}
+	if !proto.Equal(after.Bank, before.Bank) || !proto.Equal(after.Records[recordID], before.Records[recordID]) {
+		t.Fatalf("owner state changed after failed cutover: before=%#v after=%#v", before, after)
+	}
+	if after.PendingEmbeddingCutover == nil ||
+		after.PendingEmbeddingCutover.GenerationID != before.PendingEmbeddingCutover.GenerationID ||
+		!embeddingProfilesMatch(after.PendingEmbeddingCutover.TargetProfile, before.PendingEmbeddingCutover.TargetProfile) ||
+		after.PendingEmbeddingCutover.RevisionToken != before.PendingEmbeddingCutover.RevisionToken {
+		t.Fatalf("pending generation changed after failed cutover: before=%#v after=%#v", before.PendingEmbeddingCutover, after.PendingEmbeddingCutover)
+	}
+	var afterRecord recordEmbeddingRow
+	if err := svc.backend.DB().QueryRow(`SELECT dimension, vector_json, updated_at FROM memory_record_embedding WHERE memory_id = ?`, recordID).Scan(&afterRecord.Dimension, &afterRecord.Vector, &afterRecord.UpdatedAt); err != nil {
+		t.Fatalf("reload old record embedding: %v", err)
+	}
+	if afterRecord != beforeRecord {
+		t.Fatalf("record embedding changed after rolled-back cutover: before=%#v after=%#v", beforeRecord, afterRecord)
+	}
+	var afterNarrative narrativeEmbeddingRow
+	if err := svc.backend.DB().QueryRow(`SELECT embedding_profile_json, vector_json, updated_at FROM memory_narrative_embedding WHERE locator_key = ? AND narrative_id = 'narrative-atomic'`, locatorKey(locator)).Scan(&afterNarrative.Profile, &afterNarrative.Vector, &afterNarrative.UpdatedAt); err != nil {
+		t.Fatalf("reload old narrative embedding: %v", err)
+	}
+	if afterNarrative != beforeNarrative {
+		t.Fatalf("narrative embedding changed after rolled-back cutover: before=%#v after=%#v", beforeNarrative, afterNarrative)
+	}
+	afterPendingMeta, err := svc.memoryMetaValue(pendingEmbeddingCutoverMetaKey(locatorKey(locator)))
+	if err != nil {
+		t.Fatalf("reload pending meta: %v", err)
+	}
+	if afterPendingMeta != beforePendingMeta {
+		t.Fatalf("pending meta changed after rolled-back cutover: before=%s after=%s", beforePendingMeta, afterPendingMeta)
 	}
 }
 
@@ -458,8 +792,8 @@ func TestPendingMemoryEmbeddingCutoverPersistsAcrossRestart(t *testing.T) {
 	if err != nil {
 		t.Fatalf("InspectMemoryEmbeddingState(restarted): %v", err)
 	}
-	if state.CanonicalBankStatus != memoryEmbeddingCanonicalBankStatusCutoverReady {
-		t.Fatalf("expected persisted cutover_ready status after restart, got %s", state.CanonicalBankStatus)
+	if state.CanonicalBankStatus != memoryEmbeddingCanonicalBankStatusRebuildPending {
+		t.Fatalf("expected persisted rebuild_pending status after restart, got %s", state.CanonicalBankStatus)
 	}
 	if !state.OperationReadiness.CutoverAllowed {
 		t.Fatal("expected cutover to remain allowed after restart")
@@ -476,7 +810,7 @@ func TestPendingMemoryEmbeddingCutoverPersistsAcrossRestart(t *testing.T) {
 	}
 }
 
-func TestRequestMemoryEmbeddingCutoverReportsNotReadyWhenRebuildReadinessFails(t *testing.T) {
+func TestRequestMemoryEmbeddingCutoverLeavesPendingGenerationUnchangedWhenMaterializationFails(t *testing.T) {
 	t.Parallel()
 
 	ctx := context.Background()
@@ -536,32 +870,26 @@ func TestRequestMemoryEmbeddingCutoverReportsNotReadyWhenRebuildReadinessFails(t
 	result, err := svc.RequestMemoryEmbeddingCutover(ctx, RequestMemoryEmbeddingCutoverRequest{
 		Locator: locator,
 	})
-	if err != nil {
-		t.Fatalf("RequestMemoryEmbeddingCutover: %v", err)
+	if err == nil {
+		t.Fatalf("RequestMemoryEmbeddingCutover unexpectedly succeeded: %#v", result)
 	}
-	if result.Outcome != "not_ready" {
-		t.Fatalf("expected not_ready outcome, got %s", result.Outcome)
-	}
-	if result.CanonicalBankStatusAfter != memoryEmbeddingCanonicalBankStatusRebuildPending {
-		t.Fatalf("expected rebuild_pending after failed readiness, got %s", result.CanonicalBankStatusAfter)
-	}
-	if result.BlockedReasonCode != runtimev1.ReasonCode_AI_LOCAL_SERVICE_UNAVAILABLE {
-		t.Fatalf("expected AI_LOCAL_SERVICE_UNAVAILABLE blocked reason, got %s", result.BlockedReasonCode)
+	if result != nil {
+		t.Fatalf("failed materialization returned a result: %#v", result)
 	}
 
 	state, err := svc.inspectMemoryEmbeddingState(ctx, InspectMemoryEmbeddingStateRequest{
 		Locator: locator,
-	}, false)
+	})
 	if err != nil {
 		t.Fatalf("inspectMemoryEmbeddingState: %v", err)
 	}
 	if state.CanonicalBankStatus != memoryEmbeddingCanonicalBankStatusRebuildPending {
 		t.Fatalf("expected rebuild_pending inspect status, got %s", state.CanonicalBankStatus)
 	}
-	if state.OperationReadiness.CutoverAllowed {
-		t.Fatal("expected cutover to remain blocked while rebuild is not ready")
+	if !state.OperationReadiness.CutoverAllowed {
+		t.Fatal("pending generation should remain eligible for a later materialization retry")
 	}
-	if state.BlockedReasonCode != runtimev1.ReasonCode_AI_LOCAL_SERVICE_UNAVAILABLE {
-		t.Fatalf("expected persisted blocked reason, got %s", state.BlockedReasonCode)
+	if state.BlockedReasonCode != runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED {
+		t.Fatalf("materialization failure persisted blocked readiness state: %s", state.BlockedReasonCode)
 	}
 }

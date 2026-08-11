@@ -1041,6 +1041,7 @@
   },
   "capabilityLabels": {
     "textGenerate": "文本生成",
+    "textEmbed": "文本嵌入",
     "imageGenerate": "图像生成",
     "videoGenerate": "视频生成"
   },

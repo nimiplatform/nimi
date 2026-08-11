@@ -4,11 +4,15 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"path/filepath"
+	"strings"
 	"sync/atomic"
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"github.com/nimiplatform/nimi/runtime/internal/localexecution"
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
 	"google.golang.org/protobuf/types/known/structpb"
 )
@@ -114,18 +118,57 @@ func TestCloudEmbedExecutionUsesCapturedAIConfigGrantWithoutFallback(t *testing.
 	}
 }
 
-func TestTextEmbedLocalIntentKeepsTypedUnsupportedBehavior(t *testing.T) {
+func TestTextEmbedLocalIntentExecutesSelectedLlamaDriver(t *testing.T) {
 	service := newTestService(nil)
+	digest := strings.Repeat("a", 64)
+	service.SetLocalExecutionResolver(&mutableLocalExecutionResolver{projection: &localexecution.SelectedLocalExecution{
+		ConfigurationID:          "local-embed-config",
+		CapabilityContract:       capabilitydriver.TextEmbedCapabilityContract,
+		DisplayName:              "Local embedding",
+		DriverIdentity:           (&capabilitydriver.Identity{ImplementationID: capabilitydriver.LlamaEmbedImplementationID, DriverID: capabilitydriver.LlamaDriverID, DriverDialect: capabilitydriver.LlamaEmbedDriverDialect}).Proto(),
+		ModelContextWindowTokens: 8192,
+		Requirements: []*runtimev1.LocalCapabilityRequirement{{
+			RequirementId: capabilitydriver.EmbeddingGGUFRequirementID,
+		}},
+		ExactBindings: []localexecution.ExactBinding{{
+			RequirementID:     capabilitydriver.EmbeddingGGUFRequirementID,
+			LocalAssetID:      "embedding/test",
+			AbsolutePath:      filepath.Join(t.TempDir(), "embedding.gguf"),
+			VerifiedContentID: "sha256:" + digest,
+			EntrySHA256:       digest,
+		}},
+		Configured: true,
+	}})
+	host := &localTextHostStub{embedResult: localexecution.EmbedResult{
+		Vectors: []*runtimev1.EmbeddingVector{
+			{Values: []float64{0.1, 0.2}},
+			{Values: []float64{0.3, 0.4}},
+		},
+		InputTokens: 3,
+	}}
+	service.SetLocalTextExecutionHost(host)
 	ctx := withLocalScenarioTestIntent(scenarioJobUserContext("app.embed", "user-001"), "text.embed")
-	_, err := service.ExecuteScenario(ctx, &runtimev1.ExecuteScenarioRequest{
+	response, err := service.ExecuteScenario(ctx, &runtimev1.ExecuteScenarioRequest{
 		Head:          &runtimev1.ScenarioRequestHead{AppId: "app.embed", SubjectUserId: "user-001"},
 		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_EMBED,
 		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_SYNC,
 		Spec: &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_TextEmbed{TextEmbed: &runtimev1.TextEmbedScenarioSpec{
-			Inputs: []string{"local embedding"},
+			Inputs: []string{"first", "second"},
 		}}},
 	})
-	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED {
-		t.Fatalf("local text.embed reason = %v present=%v err=%v", reason, ok, err)
+	if err != nil {
+		t.Fatalf("ExecuteScenario(local text.embed): %v", err)
+	}
+	vectors := response.GetOutput().GetTextEmbed().GetVectors()
+	if len(vectors) != 2 || vectors[1].GetValues()[1] != 0.4 ||
+		response.GetRouteDecision() != runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL ||
+		response.GetModelResolved() != "Local embedding" || response.GetUsage().GetInputTokens() != 3 {
+		t.Fatalf("local embedding response = %+v", response)
+	}
+	host.mu.Lock()
+	plan := host.capturedEmbedPlan
+	host.mu.Unlock()
+	if plan == nil || plan.RequestPath() != "/v1/embeddings" || plan.ExpectedCount() != 2 {
+		t.Fatalf("captured local embedding plan = %+v", plan)
 	}
 }

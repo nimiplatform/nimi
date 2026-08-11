@@ -3,6 +3,7 @@ import {
   NIMI_MACHINE_LOCAL_IMAGE_GENERATE_CAPABILITY_CONTRACT,
   NIMI_MACHINE_LOCAL_STABLE_DIFFUSION_MODEL_FAMILIES,
   NIMI_MACHINE_LOCAL_STABLE_DIFFUSION_SLOT_DESCRIPTORS,
+  NIMI_MACHINE_LOCAL_TEXT_EMBED_CAPABILITY_CONTRACT,
   NIMI_MACHINE_LOCAL_TEXT_GENERATE_CAPABILITY_CONTRACT,
   NIMI_MACHINE_LOCAL_VIDEO_GENERATE_CAPABILITY_CONTRACT,
   createNimiMachineLocalStableDiffusionImageConfigurationInput,
@@ -35,6 +36,7 @@ import { displayRuntimeConfigCapabilityLabel } from './runtime-config-capability
 
 const MACHINE_LOCAL_ADD_CAPABILITY_OPTIONS = [
   NIMI_MACHINE_LOCAL_TEXT_GENERATE_CAPABILITY_CONTRACT,
+  NIMI_MACHINE_LOCAL_TEXT_EMBED_CAPABILITY_CONTRACT,
   NIMI_MACHINE_LOCAL_IMAGE_GENERATE_CAPABILITY_CONTRACT,
   NIMI_MACHINE_LOCAL_VIDEO_GENERATE_CAPABILITY_CONTRACT,
 ] as const;
@@ -160,6 +162,14 @@ export function MachineLocalAIAddFormFields(props: {
             </div>
           </fieldset>
         </>
+      ) : draft.capabilityContract === NIMI_MACHINE_LOCAL_TEXT_EMBED_CAPABILITY_CONTRACT ? (
+        <div
+          className="space-y-1.5 text-sm font-medium text-[var(--nimi-text-secondary)]"
+          data-testid="machine-local-ai-embed-fields"
+        >
+          <span>{t('runtimeConfig.machineLocalAIConfigurations.engine')}</span>
+          <div className={machineLocalReadOnlyFieldClassName}>llama.cpp</div>
+        </div>
       ) : draft.capabilityContract === NIMI_MACHINE_LOCAL_VIDEO_GENERATE_CAPABILITY_CONTRACT ? (
         <MachineLocalAIVideoAddFields
           draft={draft}

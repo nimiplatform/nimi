@@ -171,15 +171,48 @@ func (s *Service) BindCanonicalBankResolvedEmbeddingProfile(ctx context.Context,
 		return nil, memoryProviderUnavailableError()
 	}
 	key := locatorKey(locator)
+	snapshot, err := s.bankForLocator(locator)
+	if err != nil {
+		return nil, err
+	}
+	if !snapshot.Bank.GetCanonicalAgentScope() {
+		return nil, status.Error(codes.FailedPrecondition, "embedding profile bind is canonical-bank only")
+	}
+	if snapshot.Bank.GetEmbeddingProfile() != nil {
+		s.mu.Lock()
+		state := s.banks[key]
+		if !memoryEmbeddingBankStateMatchesSnapshot(state, snapshot) {
+			s.mu.Unlock()
+			return nil, memoryEmbeddingCutoverConflictError()
+		}
+		s.ensureCurrentEmbeddingGenerationID(state.Bank, state.Bank.GetEmbeddingProfile())
+		result := cloneBank(state.Bank)
+		s.mu.Unlock()
+		return result, nil
+	}
+	records := make([]*runtimev1.MemoryRecord, 0, len(snapshot.Order))
+	for _, recordID := range snapshot.Order {
+		records = append(records, cloneRecord(snapshot.Records[recordID]))
+	}
+	projectionBank := cloneBank(snapshot.Bank)
+	projectionBank.EmbeddingProfile = cloneEmbeddingProfile(profile)
+	projection, err := s.prepareMemoryRecordEmbeddingProjection(ctx, projectionBank, records)
+	if err != nil {
+		return nil, err
+	}
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+
 	s.mu.Lock()
 	state := s.banks[key]
 	if state == nil {
 		s.mu.Unlock()
 		return nil, status.Error(codes.NotFound, "memory bank not found")
 	}
-	if !state.Bank.GetCanonicalAgentScope() {
+	if !memoryEmbeddingBankStateMatchesSnapshot(state, snapshot) {
 		s.mu.Unlock()
-		return nil, status.Error(codes.FailedPrecondition, "embedding profile bind is canonical-bank only")
+		return nil, memoryEmbeddingCutoverConflictError()
 	}
 	if state.Bank.GetEmbeddingProfile() != nil {
 		s.ensureCurrentEmbeddingGenerationID(state.Bank, state.Bank.GetEmbeddingProfile())
@@ -187,19 +220,13 @@ func (s *Service) BindCanonicalBankResolvedEmbeddingProfile(ctx context.Context,
 		s.mu.Unlock()
 		return result, nil
 	}
+	previousState := cloneBankState(state)
 	state.Bank.EmbeddingProfile = cloneEmbeddingProfile(profile)
 	setCurrentEmbeddingGenerationID(state.Bank, s.newEmbeddingGenerationID(locator, profile))
 	state.PendingEmbeddingCutover = nil
 	state.Bank.UpdatedAt = timestamppb.New(time.Now().UTC())
-	for _, recordID := range state.Order {
-		record := state.Records[recordID]
-		if record == nil {
-			continue
-		}
-		record.UpdatedAt = timestamppb.Now()
-	}
-	if err := s.persistLocked(); err != nil {
-		state.Bank.EmbeddingProfile = nil
+	if err := s.persistLockedWithEmbeddingProjection(projection, nil); err != nil {
+		s.banks[key] = previousState
 		s.mu.Unlock()
 		return nil, err
 	}
@@ -227,55 +254,16 @@ func (s *Service) StageCanonicalBankEmbeddingCutover(ctx context.Context, locato
 		s.mu.Unlock()
 		return nil, status.Error(codes.FailedPrecondition, "embedding profile staging requires bound canonical bank")
 	}
+	previousState := cloneBankState(state)
 	s.ensureCurrentEmbeddingGenerationID(state.Bank, state.Bank.GetEmbeddingProfile())
-	previousPending := clonePendingEmbeddingCutoverState(state.PendingEmbeddingCutover)
 	state.PendingEmbeddingCutover = &pendingEmbeddingCutoverState{
-		GenerationID:      s.newEmbeddingGenerationID(locator, profile),
-		TargetProfile:     cloneEmbeddingProfile(profile),
-		RevisionToken:     strings.TrimSpace(revisionToken),
-		ReadyForCutover:   false,
-		BlockedReasonCode: runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED,
+		GenerationID:  s.newEmbeddingGenerationID(locator, profile),
+		TargetProfile: cloneEmbeddingProfile(profile),
+		RevisionToken: strings.TrimSpace(revisionToken),
 	}
 	state.Bank.UpdatedAt = timestamppb.New(time.Now().UTC())
 	if err := s.persistLocked(); err != nil {
-		state.PendingEmbeddingCutover = previousPending
-		s.mu.Unlock()
-		return nil, err
-	}
-	result := cloneBank(state.Bank)
-	s.mu.Unlock()
-	return result, nil
-}
-
-func (s *Service) SetCanonicalBankEmbeddingCutoverReadiness(ctx context.Context, locator *runtimev1.MemoryBankLocator, ready bool, blockedReasonCode runtimev1.ReasonCode) (*runtimev1.MemoryBank, error) {
-	key := locatorKey(locator)
-	s.mu.Lock()
-	state := s.banks[key]
-	if state == nil {
-		s.mu.Unlock()
-		return nil, status.Error(codes.NotFound, "memory bank not found")
-	}
-	if !state.Bank.GetCanonicalAgentScope() {
-		s.mu.Unlock()
-		return nil, status.Error(codes.FailedPrecondition, "embedding profile cutover readiness is canonical-bank only")
-	}
-	if state.PendingEmbeddingCutover == nil || state.PendingEmbeddingCutover.TargetProfile == nil {
-		result := cloneBank(state.Bank)
-		s.mu.Unlock()
-		return result, nil
-	}
-	previousPending := clonePendingEmbeddingCutoverState(state.PendingEmbeddingCutover)
-	previousUpdatedAt := state.Bank.GetUpdatedAt()
-	state.PendingEmbeddingCutover.ReadyForCutover = ready
-	if ready {
-		state.PendingEmbeddingCutover.BlockedReasonCode = runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED
-	} else {
-		state.PendingEmbeddingCutover.BlockedReasonCode = blockedReasonCode
-	}
-	state.Bank.UpdatedAt = timestamppb.New(time.Now().UTC())
-	if err := s.persistLocked(); err != nil {
-		state.PendingEmbeddingCutover = previousPending
-		state.Bank.UpdatedAt = previousUpdatedAt
+		s.banks[key] = previousState
 		s.mu.Unlock()
 		return nil, err
 	}
@@ -297,59 +285,11 @@ func (s *Service) ClearCanonicalBankEmbeddingCutover(ctx context.Context, locato
 		s.mu.Unlock()
 		return result, nil
 	}
-	previousPending := clonePendingEmbeddingCutoverState(state.PendingEmbeddingCutover)
+	previousState := cloneBankState(state)
 	state.PendingEmbeddingCutover = nil
 	state.Bank.UpdatedAt = timestamppb.New(time.Now().UTC())
 	if err := s.persistLocked(); err != nil {
-		state.PendingEmbeddingCutover = previousPending
-		s.mu.Unlock()
-		return nil, err
-	}
-	result := cloneBank(state.Bank)
-	s.mu.Unlock()
-	return result, nil
-}
-
-func (s *Service) CommitCanonicalBankEmbeddingCutover(ctx context.Context, locator *runtimev1.MemoryBankLocator) (*runtimev1.MemoryBank, error) {
-	key := locatorKey(locator)
-	s.mu.Lock()
-	state := s.banks[key]
-	if state == nil {
-		s.mu.Unlock()
-		return nil, status.Error(codes.NotFound, "memory bank not found")
-	}
-	if !state.Bank.GetCanonicalAgentScope() {
-		s.mu.Unlock()
-		return nil, status.Error(codes.FailedPrecondition, "embedding profile cutover is canonical-bank only")
-	}
-	if state.PendingEmbeddingCutover == nil || state.PendingEmbeddingCutover.TargetProfile == nil {
-		result := cloneBank(state.Bank)
-		s.mu.Unlock()
-		return result, nil
-	}
-	if !state.PendingEmbeddingCutover.ReadyForCutover {
-		s.mu.Unlock()
-		return nil, status.Error(codes.FailedPrecondition, "embedding profile cutover is not ready")
-	}
-	previousProfile := cloneEmbeddingProfile(state.Bank.GetEmbeddingProfile())
-	previousPending := clonePendingEmbeddingCutoverState(state.PendingEmbeddingCutover)
-	previousGenerationID := currentEmbeddingGenerationID(state.Bank)
-	state.Bank.EmbeddingProfile = cloneEmbeddingProfile(state.PendingEmbeddingCutover.TargetProfile)
-	setCurrentEmbeddingGenerationID(state.Bank, state.PendingEmbeddingCutover.GenerationID)
-	state.PendingEmbeddingCutover = nil
-	now := time.Now().UTC()
-	state.Bank.UpdatedAt = timestamppb.New(now)
-	for _, recordID := range state.Order {
-		record := state.Records[recordID]
-		if record == nil {
-			continue
-		}
-		record.UpdatedAt = timestamppb.New(now)
-	}
-	if err := s.persistLockedWithTxHook(clearNarrativeEmbeddingsForLocatorHook(locator)); err != nil {
-		state.Bank.EmbeddingProfile = previousProfile
-		setCurrentEmbeddingGenerationID(state.Bank, previousGenerationID)
-		state.PendingEmbeddingCutover = previousPending
+		s.banks[key] = previousState
 		s.mu.Unlock()
 		return nil, err
 	}

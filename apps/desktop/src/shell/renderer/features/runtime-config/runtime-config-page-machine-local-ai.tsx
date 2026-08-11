@@ -8,8 +8,10 @@ import {
 } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
+  NIMI_MACHINE_LOCAL_TEXT_EMBED_CAPABILITY_CONTRACT,
   NIMI_MACHINE_LOCAL_TEXT_GENERATE_CAPABILITY_CONTRACT,
   NIMI_MACHINE_LOCAL_VIDEO_GENERATE_CAPABILITY_CONTRACT,
+  createNimiMachineLocalLlamaCppEmbedConfigurationInput,
   createNimiMachineLocalLlamaCppTextConfigurationInput,
   loadNimiMachineLocalAIConfigurationImpact,
   type NimiMachineLocalAIConfiguration,
@@ -205,9 +207,11 @@ export function MachineLocalAIConfigurationsPage() {
           displayName,
           acceptsImageInput: addDraft.acceptsImageInput,
         })
-        : addDraft.capabilityContract === NIMI_MACHINE_LOCAL_VIDEO_GENERATE_CAPABILITY_CONTRACT
-          ? createVideoConfigurationInput(addDraft, state.assets, displayName)
-          : createMachineLocalImageConfigurationInput(addDraft, state.assets, displayName);
+        : addDraft.capabilityContract === NIMI_MACHINE_LOCAL_TEXT_EMBED_CAPABILITY_CONTRACT
+          ? createNimiMachineLocalLlamaCppEmbedConfigurationInput({ displayName })
+          : addDraft.capabilityContract === NIMI_MACHINE_LOCAL_VIDEO_GENERATE_CAPABILITY_CONTRACT
+            ? createVideoConfigurationInput(addDraft, state.assets, displayName)
+            : createMachineLocalImageConfigurationInput(addDraft, state.assets, displayName);
       void runMutation({
         key: 'add',
         operation: () => client.addConfiguration(input),

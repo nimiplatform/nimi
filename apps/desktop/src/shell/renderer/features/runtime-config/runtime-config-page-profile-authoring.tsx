@@ -10,6 +10,7 @@ import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 import {
   NIMI_AI_PROFILE_LLAMA_CACHE_TYPES,
+  NIMI_AI_PROFILE_LLAMA_CPP_EMBED_IMPLEMENTATION,
   NIMI_AI_PROFILE_LLAMA_CPP_IMPLEMENTATION,
   NIMI_AI_PROFILE_STABLE_DIFFUSION_IMPLEMENTATION,
   NIMI_AI_PROFILE_STABLE_DIFFUSION_MODEL_FAMILIES,
@@ -567,6 +568,13 @@ function LocalImplementationFields(props: {
           />
           {capability.local.driverKind === 'llama' ? (
             <LlamaAuthoringFields capability={capability} updateLocal={updateLocal} t={props.t} />
+          ) : capability.local.driverKind === 'llama-embed' ? (
+            <LlamaAuthoringFields
+              capability={capability}
+              updateLocal={updateLocal}
+              t={props.t}
+              includeProjector={false}
+            />
           ) : capability.local.driverKind === 'stable-diffusion-video' ? (
             <StableDiffusionVideoAuthoringFields
               capability={capability}
@@ -590,6 +598,7 @@ function localDriverImplementation(
   driverKind: RuntimeConfigAIProfileCapabilityDraft['local']['driverKind'],
 ) {
   if (driverKind === 'llama') return NIMI_AI_PROFILE_LLAMA_CPP_IMPLEMENTATION;
+  if (driverKind === 'llama-embed') return NIMI_AI_PROFILE_LLAMA_CPP_EMBED_IMPLEMENTATION;
   if (driverKind === 'stable-diffusion-video') {
     return NIMI_AI_PROFILE_STABLE_DIFFUSION_VIDEO_IMPLEMENTATION;
   }
@@ -600,6 +609,7 @@ function LlamaAuthoringFields(props: {
   readonly capability: RuntimeConfigAIProfileCapabilityDraft;
   readonly updateLocal: (next: Partial<RuntimeConfigAIProfileCapabilityDraft['local']>) => void;
   readonly t: TFunction;
+  readonly includeProjector?: boolean;
 }) {
   const llama = props.capability.local.llama;
   const update = (next: Partial<typeof llama>) => props.updateLocal({ llama: { ...llama, ...next } });
@@ -615,12 +625,14 @@ function LlamaAuthoringFields(props: {
           onChange={(main) => update({ main })}
           t={props.t}
         />
-        <RequirementAuthoringFields
-          title={props.t('runtimeConfig.profiles.authoring.llamaProjector')}
-          value={llama.mmproj}
-          onChange={(mmproj) => update({ mmproj })}
-          t={props.t}
-        />
+        {props.includeProjector !== false ? (
+          <RequirementAuthoringFields
+            title={props.t('runtimeConfig.profiles.authoring.llamaProjector')}
+            value={llama.mmproj}
+            onChange={(mmproj) => update({ mmproj })}
+            t={props.t}
+          />
+        ) : null}
       </div>
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
         <AuthoringTextField label={props.t('runtimeConfig.profiles.authoring.contextSize')} value={llama.contextSize} field="llama-context-size" type="number" onChange={(contextSize) => update({ contextSize })} />

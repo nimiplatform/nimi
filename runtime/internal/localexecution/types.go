@@ -82,6 +82,19 @@ type TextExecutionHost interface {
 	StreamText(context.Context, *capabilitydriver.TextInvocationPlan, func(TextDelta) error, TextProgressFunc) (TextResult, error)
 }
 
+type EmbedResult struct {
+	Vectors     []*runtimev1.EmbeddingVector
+	InputTokens int64
+	ComputeMS   int64
+}
+
+// EmbedExecutionHost executes only an exact embedding plan already formed by
+// the selected Driver. It shares the Runtime-private llama process lease with
+// text execution without becoming route or machine-selection authority.
+type EmbedExecutionHost interface {
+	ExecuteEmbed(context.Context, *capabilitydriver.EmbedInvocationPlan, TextProgressFunc) (EmbedResult, error)
+}
+
 // ImageExecutionStage reports factual private Host work after a queued request
 // acquires the engine lease. Queue position and lease occupancy never enter
 // this carrier.

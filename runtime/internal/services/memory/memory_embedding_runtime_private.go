@@ -92,7 +92,6 @@ const (
 	memoryEmbeddingCanonicalBankStatusBoundEquivalent      = "bound_equivalent"
 	memoryEmbeddingCanonicalBankStatusBoundProfileMismatch = "bound_profile_mismatch"
 	memoryEmbeddingCanonicalBankStatusRebuildPending       = "rebuild_pending"
-	memoryEmbeddingCanonicalBankStatusCutoverReady         = "cutover_ready"
 )
 
 func validateMemoryEmbeddingLocator(locator *runtimev1.MemoryBankLocator) error {
@@ -313,85 +312,12 @@ func memoryEmbeddingCanonicalBankStatus(bank *runtimev1.MemoryBank, pending *pen
 		return memoryEmbeddingCanonicalBankStatusBoundEquivalent
 	}
 	if pending != nil && pending.TargetProfile != nil && resolved != nil && embeddingProfilesMatch(resolved, pending.TargetProfile) {
-		if pending.ReadyForCutover {
-			return memoryEmbeddingCanonicalBankStatusCutoverReady
-		}
 		return memoryEmbeddingCanonicalBankStatusRebuildPending
 	}
 	return memoryEmbeddingCanonicalBankStatusBoundProfileMismatch
 }
 
-func memoryEmbeddingReadinessBlockedReason(profile *runtimev1.MemoryEmbeddingProfile) runtimev1.ReasonCode {
-	if strings.EqualFold(strings.TrimSpace(profile.GetProvider()), "local") {
-		return runtimev1.ReasonCode_AI_LOCAL_SERVICE_UNAVAILABLE
-	}
-	return runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE
-}
-
-func (s *Service) pendingEmbeddingCutoverReadinessInputs(locator *runtimev1.MemoryBankLocator) (*pendingEmbeddingCutoverState, []string, error) {
-	bankState, err := s.bankForLocator(locator)
-	if err != nil {
-		return nil, nil, err
-	}
-	pending := bankState.PendingEmbeddingCutover
-	if pending == nil || pending.TargetProfile == nil {
-		return nil, nil, nil
-	}
-	raws := make([]string, 0, len(bankState.Order))
-	for _, recordID := range bankState.Order {
-		record := bankState.Records[recordID]
-		if record == nil {
-			continue
-		}
-		raw := strings.TrimSpace(strings.Join([]string{recordContent(record), recordContext(record)}, " "))
-		if raw != "" {
-			raws = append(raws, raw)
-		}
-	}
-	narratives, err := s.loadNarrativeRecallCandidates(locator)
-	if err != nil {
-		return nil, nil, err
-	}
-	for _, candidate := range narratives {
-		if strings.ToLower(strings.TrimSpace(candidate.Status)) != "active" {
-			continue
-		}
-		raw := strings.TrimSpace(strings.Join([]string{candidate.Topic, candidate.Content}, " "))
-		if raw != "" {
-			raws = append(raws, raw)
-		}
-	}
-	return pending, raws, nil
-}
-
-func (s *Service) ensurePendingEmbeddingCutoverReady(ctx context.Context, locator *runtimev1.MemoryBankLocator) (*pendingEmbeddingCutoverState, error) {
-	pending, raws, err := s.pendingEmbeddingCutoverReadinessInputs(locator)
-	if err != nil || pending == nil || pending.TargetProfile == nil {
-		return pending, err
-	}
-	if pending.ReadyForCutover {
-		return pending, nil
-	}
-	if len(raws) > 0 {
-		if _, err := s.embeddingVectors(ctx, pending.TargetProfile, raws); err != nil {
-			blockedReasonCode := memoryEmbeddingReadinessBlockedReason(pending.TargetProfile)
-			if _, persistErr := s.SetCanonicalBankEmbeddingCutoverReadiness(ctx, cloneLocator(locator), false, blockedReasonCode); persistErr != nil {
-				return nil, persistErr
-			}
-			pending.ReadyForCutover = false
-			pending.BlockedReasonCode = blockedReasonCode
-			return pending, nil
-		}
-	}
-	if _, err := s.SetCanonicalBankEmbeddingCutoverReadiness(ctx, cloneLocator(locator), true, runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED); err != nil {
-		return nil, err
-	}
-	pending.ReadyForCutover = true
-	pending.BlockedReasonCode = runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED
-	return pending, nil
-}
-
-func (s *Service) inspectMemoryEmbeddingState(ctx context.Context, req InspectMemoryEmbeddingStateRequest, evaluateReadiness bool) (*MemoryEmbeddingRuntimePrivateState, error) {
+func (s *Service) inspectMemoryEmbeddingState(ctx context.Context, req InspectMemoryEmbeddingStateRequest) (*MemoryEmbeddingRuntimePrivateState, error) {
 	if err := s.authorizeMemoryEmbeddingTarget(ctx, req.Context, req.Locator); err != nil {
 		return nil, err
 	}
@@ -413,22 +339,9 @@ func (s *Service) inspectMemoryEmbeddingState(ctx context.Context, req InspectMe
 		pending = bankState.PendingEmbeddingCutover
 	}
 	canonicalBankStatus := memoryEmbeddingCanonicalBankStatus(bank, pending, resolvedProfile)
-	if evaluateReadiness && resolutionState == memoryEmbeddingResolutionStateResolved && canonicalBankStatus == memoryEmbeddingCanonicalBankStatusRebuildPending {
-		pending, err = s.ensurePendingEmbeddingCutoverReady(ctx, cloneLocator(req.Locator))
-		if err != nil {
-			return nil, err
-		}
-		canonicalBankStatus = memoryEmbeddingCanonicalBankStatus(bank, pending, resolvedProfile)
-	}
-	if blockedReasonCode == runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED &&
-		canonicalBankStatus == memoryEmbeddingCanonicalBankStatusRebuildPending &&
-		pending != nil &&
-		pending.BlockedReasonCode != runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED {
-		blockedReasonCode = pending.BlockedReasonCode
-	}
 	bindAllowed := resolutionState == memoryEmbeddingResolutionStateResolved &&
 		(canonicalBankStatus == memoryEmbeddingCanonicalBankStatusUnbound || canonicalBankStatus == memoryEmbeddingCanonicalBankStatusBoundProfileMismatch)
-	cutoverAllowed := resolutionState == memoryEmbeddingResolutionStateResolved && canonicalBankStatus == memoryEmbeddingCanonicalBankStatusCutoverReady
+	cutoverAllowed := resolutionState == memoryEmbeddingResolutionStateResolved && canonicalBankStatus == memoryEmbeddingCanonicalBankStatusRebuildPending
 	textEmbedSourceKind := MemoryEmbeddingTextEmbedSourceKindUnspecified
 	if textEmbedIntent != nil {
 		textEmbedSourceKind = normalizeMemoryEmbeddingSourceKind(textEmbedIntent.SourceKind)
@@ -454,7 +367,7 @@ func (s *Service) inspectMemoryEmbeddingState(ctx context.Context, req InspectMe
 }
 
 func (s *Service) InspectMemoryEmbeddingState(ctx context.Context, req InspectMemoryEmbeddingStateRequest) (*MemoryEmbeddingRuntimePrivateState, error) {
-	return s.inspectMemoryEmbeddingState(ctx, req, true)
+	return s.inspectMemoryEmbeddingState(ctx, req)
 }
 
 func (s *Service) RequestCanonicalMemoryEmbeddingBind(ctx context.Context, req RequestCanonicalMemoryEmbeddingBindRequest) (*RequestCanonicalMemoryEmbeddingBindResult, error) {
@@ -489,14 +402,6 @@ func (s *Service) RequestCanonicalMemoryEmbeddingBind(ctx context.Context, req R
 			BlockedReasonCode:        runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED,
 			CanonicalBankStatusAfter: memoryEmbeddingCanonicalBankStatusBoundEquivalent,
 			PendingCutover:           false,
-		}, nil
-	}
-	if state.CanonicalBankStatus == memoryEmbeddingCanonicalBankStatusCutoverReady {
-		return &RequestCanonicalMemoryEmbeddingBindResult{
-			Outcome:                  "staged_rebuild",
-			BlockedReasonCode:        runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED,
-			CanonicalBankStatusAfter: memoryEmbeddingCanonicalBankStatusCutoverReady,
-			PendingCutover:           true,
 		}, nil
 	}
 	if state.CanonicalBankStatus == memoryEmbeddingCanonicalBankStatusRebuildPending {
@@ -579,26 +484,14 @@ func (s *Service) RequestMemoryEmbeddingCutover(ctx context.Context, req Request
 			CanonicalBankStatusAfter: memoryEmbeddingCanonicalBankStatusBoundEquivalent,
 		}, nil
 	}
-	if state.CanonicalBankStatus == memoryEmbeddingCanonicalBankStatusRebuildPending {
-		if _, err := s.ensurePendingEmbeddingCutoverReady(ctx, cloneLocator(req.Locator)); err != nil {
-			return nil, err
-		}
-		state, err = s.inspectMemoryEmbeddingState(ctx, InspectMemoryEmbeddingStateRequest{
-			Context: req.Context,
-			Locator: cloneLocator(req.Locator),
-		}, false)
-		if err != nil {
-			return nil, err
-		}
-	}
-	if state.CanonicalBankStatus != memoryEmbeddingCanonicalBankStatusCutoverReady {
+	if state.CanonicalBankStatus != memoryEmbeddingCanonicalBankStatusRebuildPending {
 		return &RequestMemoryEmbeddingCutoverResult{
 			Outcome:                  "not_ready",
 			BlockedReasonCode:        state.BlockedReasonCode,
 			CanonicalBankStatusAfter: state.CanonicalBankStatus,
 		}, nil
 	}
-	bank, err := s.CommitCanonicalBankEmbeddingCutover(ctx, cloneLocator(req.Locator))
+	bank, err := s.commitCanonicalBankEmbeddingCutover(ctx, cloneLocator(req.Locator))
 	if err != nil {
 		return nil, err
 	}

@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"math"
 	"net/http"
 	"os"
 	"strings"
@@ -113,6 +114,100 @@ func (h *ExecutionHost) StreamText(
 		return localexecution.TextResult{}, executionFailure(localexecution.FailureInference, fmt.Errorf("invalid streaming llama invocation plan"))
 	}
 	return h.execute(ctx, plan, onDelta, progress)
+}
+
+func (h *ExecutionHost) ExecuteEmbed(
+	ctx context.Context,
+	plan *capabilitydriver.EmbedInvocationPlan,
+	progress localexecution.TextProgressFunc,
+) (localexecution.EmbedResult, error) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	if h == nil || h.substrate == nil || h.client == nil {
+		return localexecution.EmbedResult{}, executionFailure(localexecution.FailureLoad, fmt.Errorf("llama embedding execution host is unavailable"))
+	}
+	if plan == nil || plan.ProcessKey() == "" || len(plan.ProcessArgs()) == 0 ||
+		plan.RequestPath() == "" || len(plan.RequestBody()) == 0 || plan.ExpectedCount() <= 0 {
+		return localexecution.EmbedResult{}, executionFailure(localexecution.FailureInference, fmt.Errorf("llama embedding invocation plan is incomplete"))
+	}
+
+	select {
+	case <-ctx.Done():
+		return localexecution.EmbedResult{}, executionFailure(localexecution.FailureCanceled, ctx.Err())
+	case <-h.lease:
+	}
+	defer func() { h.lease <- struct{}{} }()
+
+	endpoint, _, err := h.substrate.Ensure(ctx, plan.ProcessKey(), plan.ProcessArgs(), func() error {
+		return validateInvocationModelContent(plan.ModelFiles())
+	}, progress)
+	if err != nil {
+		if ctx.Err() != nil {
+			return localexecution.EmbedResult{}, executionFailure(localexecution.FailureCanceled, ctx.Err())
+		}
+		if localexecution.FailureKindOf(err) == localexecution.FailureContentMismatch {
+			return localexecution.EmbedResult{}, err
+		}
+		return localexecution.EmbedResult{}, executionFailure(localexecution.FailureLoad, fmt.Errorf("load llama embedding process: %w", err))
+	}
+	requestURL := strings.TrimRight(strings.TrimSpace(endpoint), "/") + "/" + strings.TrimLeft(plan.RequestPath(), "/")
+	request, err := http.NewRequestWithContext(ctx, http.MethodPost, requestURL, bytes.NewReader(plan.RequestBody()))
+	if err != nil {
+		return localexecution.EmbedResult{}, executionFailure(localexecution.FailureInference, fmt.Errorf("create llama embedding request: %w", err))
+	}
+	request.Header.Set("Content-Type", "application/json")
+	response, err := h.client.Do(request)
+	if err != nil {
+		return localexecution.EmbedResult{}, h.embedInferenceFailure(ctx, err)
+	}
+	defer func() { _ = response.Body.Close() }()
+	if response.StatusCode < http.StatusOK || response.StatusCode >= http.StatusMultipleChoices {
+		body, _ := io.ReadAll(io.LimitReader(response.Body, maxLlamaInvocationErrorBody))
+		return localexecution.EmbedResult{}, h.embedInferenceFailure(ctx, fmt.Errorf("llama embedding HTTP %d: %s", response.StatusCode, strings.TrimSpace(string(body))))
+	}
+	var payload struct {
+		Data []struct {
+			Index     int       `json:"index"`
+			Embedding []float64 `json:"embedding"`
+		} `json:"data"`
+		Usage struct {
+			PromptTokens int64 `json:"prompt_tokens"`
+		} `json:"usage"`
+	}
+	if err := json.NewDecoder(response.Body).Decode(&payload); err != nil {
+		return localexecution.EmbedResult{}, h.embedInferenceFailure(ctx, fmt.Errorf("decode llama embedding response: %w", err))
+	}
+	if len(payload.Data) != plan.ExpectedCount() {
+		return localexecution.EmbedResult{}, h.embedInferenceFailure(ctx, fmt.Errorf("llama embedding response count %d does not match request %d", len(payload.Data), plan.ExpectedCount()))
+	}
+	vectors := make([]*runtimev1.EmbeddingVector, plan.ExpectedCount())
+	dimension := 0
+	for _, item := range payload.Data {
+		if item.Index < 0 || item.Index >= len(vectors) || vectors[item.Index] != nil || len(item.Embedding) == 0 {
+			return localexecution.EmbedResult{}, h.embedInferenceFailure(ctx, fmt.Errorf("llama embedding response index or vector is invalid"))
+		}
+		if dimension == 0 {
+			dimension = len(item.Embedding)
+		} else if len(item.Embedding) != dimension {
+			return localexecution.EmbedResult{}, h.embedInferenceFailure(ctx, fmt.Errorf("llama embedding response dimensions are inconsistent"))
+		}
+		values := append([]float64(nil), item.Embedding...)
+		for _, value := range values {
+			if math.IsNaN(value) || math.IsInf(value, 0) {
+				return localexecution.EmbedResult{}, h.embedInferenceFailure(ctx, fmt.Errorf("llama embedding response contains a non-finite value"))
+			}
+		}
+		vectors[item.Index] = &runtimev1.EmbeddingVector{Values: values}
+	}
+	return localexecution.EmbedResult{Vectors: vectors, InputTokens: payload.Usage.PromptTokens}, nil
+}
+
+func (h *ExecutionHost) embedInferenceFailure(ctx context.Context, err error) error {
+	if ctx != nil && ctx.Err() != nil {
+		return executionFailure(localexecution.FailureCanceled, ctx.Err())
+	}
+	return executionFailure(localexecution.FailureInference, err)
 }
 
 func (h *ExecutionHost) execute(

@@ -3,10 +3,14 @@ package memory
 import (
 	"context"
 	"fmt"
+	"sync"
 	"testing"
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -230,6 +234,130 @@ func TestMemoryServiceNarrativeEmbeddingDeletedWhenNarrativeBecomesStale(t *test
 	}
 	if len(aliasResp.GetNarrativeHits()) != 0 {
 		t.Fatalf("expected stale narrative to lose alias acceleration advantage, got %#v", aliasResp.GetNarrativeHits())
+	}
+}
+
+func TestMemoryServiceNarrativeEmbeddingRejectsStaleGenerationWriterAfterCutover(t *testing.T) {
+	ctx := context.Background()
+	svc := newMemoryEmbeddingRuntimePrivateService(t)
+	locator := testMemoryEmbeddingLocator("agent-narrative-generation-race")
+	oldProfile := testManagedEmbeddingProfile("local/embed-narrative-old")
+	oldProfile.Dimension = 2
+	targetProfile := testManagedEmbeddingProfile("local/embed-narrative-target")
+	targetProfile.Dimension = 2
+	if _, err := svc.EnsureCanonicalBank(ctx, locator, "Agent Memory", nil); err != nil {
+		t.Fatalf("EnsureCanonicalBank: %v", err)
+	}
+	if _, err := svc.BindCanonicalBankResolvedEmbeddingProfile(ctx, locator, oldProfile); err != nil {
+		t.Fatalf("BindCanonicalBankResolvedEmbeddingProfile(old): %v", err)
+	}
+
+	narrative := NarrativeCandidate{
+		NarrativeID:   "narrative-generation-race",
+		Topic:         "generation topic",
+		Content:       "generation content",
+		SourceVersion: "v1",
+		Status:        "active",
+	}
+	now := time.Now().UTC().Format(time.RFC3339Nano)
+	oldProfileRaw, err := protojson.Marshal(oldProfile)
+	if err != nil {
+		t.Fatalf("marshal old profile: %v", err)
+	}
+	if _, err := svc.backend.DB().Exec(`
+		INSERT INTO memory_narrative(narrative_id, bank_locator_key, topic, content, source_version, status, created_at, updated_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+	`, narrative.NarrativeID, locatorKey(locator), narrative.Topic, narrative.Content, narrative.SourceVersion, narrative.Status, now, now); err != nil {
+		t.Fatalf("insert narrative: %v", err)
+	}
+	if _, err := svc.backend.DB().Exec(`
+		INSERT INTO memory_narrative_embedding(locator_key, narrative_id, embedding_profile_json, vector_json, updated_at)
+		VALUES (?, ?, ?, '[1,0]', ?)
+	`, locatorKey(locator), narrative.NarrativeID, string(oldProfileRaw), now); err != nil {
+		t.Fatalf("insert old narrative embedding: %v", err)
+	}
+
+	svc.SetRuntimeEmbeddingProfileResolver(func(context.Context, *MemoryEmbeddingTextEmbedIntentSnapshot) MemoryEmbeddingResolvedProfile {
+		return MemoryEmbeddingResolvedProfile{
+			Profile:         cloneEmbeddingProfile(targetProfile),
+			ResolutionState: memoryEmbeddingResolutionStateResolved,
+		}
+	})
+	setMemoryEmbeddingIntentForTest(t, svc, locator, testLocalBindingSnapshot(targetProfile.GetModelId()))
+	oldExecutorEntered := make(chan struct{})
+	releaseOldExecutor := make(chan struct{})
+	var releaseOnce sync.Once
+	t.Cleanup(func() { releaseOnce.Do(func() { close(releaseOldExecutor) }) })
+	svc.SetRuntimeEmbeddingVectorExecutor(func(_ context.Context, profile *runtimev1.MemoryEmbeddingProfile, raws []string) ([][]float64, error) {
+		switch profile.GetModelId() {
+		case oldProfile.GetModelId():
+			close(oldExecutorEntered)
+			<-releaseOldExecutor
+		case targetProfile.GetModelId():
+		default:
+			return nil, fmt.Errorf("unexpected embedding profile: %q", profile.GetModelId())
+		}
+		vectors := make([][]float64, len(raws))
+		for index := range vectors {
+			if profile.GetModelId() == oldProfile.GetModelId() {
+				vectors[index] = []float64{1, 0}
+			} else {
+				vectors[index] = []float64{0, 1}
+			}
+		}
+		return vectors, nil
+	})
+	if _, err := svc.RequestCanonicalMemoryEmbeddingBind(ctx, RequestCanonicalMemoryEmbeddingBindRequest{Locator: locator}); err != nil {
+		t.Fatalf("RequestCanonicalMemoryEmbeddingBind(stage): %v", err)
+	}
+
+	staleWriterDone := make(chan error, 1)
+	go func() {
+		staleWriterDone <- svc.upsertNarrativeEmbeddings(context.Background(), locator, []NarrativeCandidate{narrative})
+	}()
+	select {
+	case <-oldExecutorEntered:
+	case <-time.After(time.Second):
+		t.Fatal("old-profile narrative materialization did not start")
+	}
+
+	result, err := svc.RequestMemoryEmbeddingCutover(ctx, RequestMemoryEmbeddingCutoverRequest{Locator: locator})
+	if err != nil {
+		t.Fatalf("RequestMemoryEmbeddingCutover: %v", err)
+	}
+	if result.Outcome != "cutover_committed" {
+		t.Fatalf("cutover outcome = %q, want cutover_committed", result.Outcome)
+	}
+	assertNarrativeEmbeddingProfileAndVector(t, svc, locator, narrative.NarrativeID, targetProfile.GetModelId(), "[0,1]")
+
+	releaseOnce.Do(func() { close(releaseOldExecutor) })
+	select {
+	case staleErr := <-staleWriterDone:
+		if status.Code(staleErr) != codes.Aborted {
+			t.Fatalf("stale narrative writer error = %v, want Aborted", staleErr)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("stale narrative writer did not finish")
+	}
+	assertNarrativeEmbeddingProfileAndVector(t, svc, locator, narrative.NarrativeID, targetProfile.GetModelId(), "[0,1]")
+}
+
+func assertNarrativeEmbeddingProfileAndVector(t *testing.T, svc *Service, locator *runtimev1.MemoryBankLocator, narrativeID string, wantModelID string, wantVector string) {
+	t.Helper()
+	var profileRaw, vectorRaw string
+	if err := svc.backend.DB().QueryRow(`
+		SELECT embedding_profile_json, vector_json
+		FROM memory_narrative_embedding
+		WHERE locator_key = ? AND narrative_id = ?
+	`, locatorKey(locator), narrativeID).Scan(&profileRaw, &vectorRaw); err != nil {
+		t.Fatalf("load narrative embedding: %v", err)
+	}
+	var profile runtimev1.MemoryEmbeddingProfile
+	if err := protojson.Unmarshal([]byte(profileRaw), &profile); err != nil {
+		t.Fatalf("unmarshal narrative embedding profile: %v", err)
+	}
+	if profile.GetModelId() != wantModelID || vectorRaw != wantVector {
+		t.Fatalf("narrative embedding = profile %q vector %s, want profile %q vector %s", profile.GetModelId(), vectorRaw, wantModelID, wantVector)
 	}
 }
 

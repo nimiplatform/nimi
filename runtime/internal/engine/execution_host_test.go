@@ -301,6 +301,31 @@ func TestExecutionHostStreamsSSEDeltasAndUsage(t *testing.T) {
 	}
 }
 
+func TestExecutionHostExecutesCapturedEmbeddingPlan(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/v1/embeddings" {
+			t.Fatalf("request path = %q", r.URL.Path)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"data":[{"index":1,"embedding":[0.3,0.4]},{"index":0,"embedding":[0.1,0.2]}],"usage":{"prompt_tokens":7}}`))
+	}))
+	defer server.Close()
+
+	substrate := &fakeLlamaInvocationSubstrate{endpoint: server.URL, healthy: true}
+	host := newExecutionHostWithSubstrate(substrate, server.Client())
+	result, err := host.ExecuteEmbed(context.Background(), llamaEmbedInvocationPlanForHostTest(t, "embedding"), nil)
+	if err != nil {
+		t.Fatalf("ExecuteEmbed: %v", err)
+	}
+	if len(result.Vectors) != 2 || result.Vectors[0].GetValues()[0] != 0.1 ||
+		result.Vectors[1].GetValues()[0] != 0.3 || result.InputTokens != 7 {
+		t.Fatalf("embedding result = %+v", result)
+	}
+	if substrate.starts != 1 || !containsString(substrate.args[0], "--embedding") {
+		t.Fatalf("embedding substrate starts=%d args=%v", substrate.starts, substrate.args)
+	}
+}
+
 func TestExecutionHostQueuedRequestCancellationDoesNotWaitForResidentLease(t *testing.T) {
 	requestStarted := make(chan struct{})
 	release := make(chan struct{})
@@ -477,4 +502,39 @@ func llamaInvocationPlanForHostTest(t *testing.T, name string, portable *structp
 		t.Fatalf("PlanTextInvocation: %v", err)
 	}
 	return plan
+}
+
+func llamaEmbedInvocationPlanForHostTest(t *testing.T, name string) *capabilitydriver.EmbedInvocationPlan {
+	t.Helper()
+	modelBytes := []byte("captured embedding model bytes for " + name)
+	digest := sha256.Sum256(modelBytes)
+	digestHex := fmt.Sprintf("%x", digest[:])
+	modelPath := filepath.Join(t.TempDir(), name+".gguf")
+	if err := os.WriteFile(modelPath, modelBytes, 0o600); err != nil {
+		t.Fatalf("write captured embedding model: %v", err)
+	}
+	plan, err := (capabilitydriver.LlamaEmbedDriver{}).PlanEmbedInvocation(capabilitydriver.EmbedInvocationInput{
+		ModelContextWindowTokens: 8192,
+		ExactBindings: []capabilitydriver.InvocationExactBinding{{
+			RequirementID:     capabilitydriver.EmbeddingGGUFRequirementID,
+			LocalAssetID:      "asset-" + name,
+			AbsolutePath:      modelPath,
+			VerifiedContentID: "sha256:" + digestHex,
+			EntrySHA256:       digestHex,
+		}},
+		Request: &runtimev1.TextEmbedScenarioSpec{Inputs: []string{"first", "second"}},
+	})
+	if err != nil {
+		t.Fatalf("PlanEmbedInvocation: %v", err)
+	}
+	return plan
+}
+
+func containsString(values []string, wanted string) bool {
+	for _, value := range values {
+		if value == wanted {
+			return true
+		}
+	}
+	return false
 }

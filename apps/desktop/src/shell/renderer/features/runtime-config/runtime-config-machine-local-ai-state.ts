@@ -37,6 +37,7 @@ export type RuntimeConfigMachineLocalAIState = {
 
 export type RuntimeConfigMachineLocalAICapabilityContract =
   | 'text.generate'
+  | 'text.embed'
   | 'image.generate'
   | 'video.generate';
 

@@ -1,10 +1,12 @@
 import {
   NIMI_AI_PROFILE_LLAMA_CACHE_TYPES,
+  NIMI_AI_PROFILE_LLAMA_CPP_EMBED_IMPLEMENTATION,
   NIMI_AI_PROFILE_LLAMA_CPP_IMPLEMENTATION,
   NIMI_AI_PROFILE_STABLE_DIFFUSION_IMPLEMENTATION,
   NIMI_AI_PROFILE_STABLE_DIFFUSION_MODEL_FAMILIES,
   NIMI_AI_PROFILE_STABLE_DIFFUSION_VIDEO_IMPLEMENTATION,
   createNimiAIProfileAuthoringBuilder,
+  createNimiAIProfileLlamaEmbedLocalImplementation,
   createNimiAIProfileLlamaLocalImplementation,
   createNimiAIProfileStableDiffusionLocalImplementation,
   createNimiAIProfileStableDiffusionVideoLocalImplementation,
@@ -104,7 +106,7 @@ export type RuntimeConfigAIProfileStableDiffusionVideoDraft = {
 
 export type RuntimeConfigAIProfileLocalDraft = {
   readonly includeImplementation: boolean;
-  readonly driverKind: 'none' | 'llama' | 'stable-diffusion' | 'stable-diffusion-video';
+  readonly driverKind: 'none' | 'llama' | 'llama-embed' | 'stable-diffusion' | 'stable-diffusion-video';
   readonly supportedFeaturesText: string;
   readonly llama: RuntimeConfigAIProfileLlamaDraft;
   readonly stableDiffusion: RuntimeConfigAIProfileStableDiffusionDraft;
@@ -571,6 +573,7 @@ function localDriverKind(
   capabilityContract: RuntimeConfigAIProfileCapabilityContract,
 ): RuntimeConfigAIProfileLocalDraft['driverKind'] {
   if (capabilityContract === 'text.generate') return 'llama';
+  if (capabilityContract === 'text.embed') return 'llama-embed';
   if (capabilityContract === 'image.generate') return 'stable-diffusion';
   if (capabilityContract === 'video.generate') return 'stable-diffusion-video';
   return 'none';
@@ -638,6 +641,20 @@ function localImplementationFromDraft(capability: RuntimeConfigAIProfileCapabili
       portableConfig: {
         ...requirementInput('main', llama.main),
         ...requirementInput('mmproj', llama.mmproj),
+        ...optionalNumberInput('contextSize', llama.contextSize),
+        ...(llama.cacheTypeK ? { cacheTypeK: llama.cacheTypeK } : {}),
+        ...(llama.cacheTypeV ? { cacheTypeV: llama.cacheTypeV } : {}),
+        ...optionalBooleanInput('flashAttention', llama.flashAttention),
+        ...optionalNumberInput('gpuLayers', llama.gpuLayers),
+      },
+    });
+  }
+  if (capability.local.driverKind === 'llama-embed') {
+    const llama = capability.local.llama;
+    return createNimiAIProfileLlamaEmbedLocalImplementation({
+      supportedFeatures,
+      portableConfig: {
+        ...requirementInput('main', llama.main),
         ...optionalNumberInput('contextSize', llama.contextSize),
         ...(llama.cacheTypeK ? { cacheTypeK: llama.cacheTypeK } : {}),
         ...(llama.cacheTypeV ? { cacheTypeV: llama.cacheTypeV } : {}),
@@ -811,7 +828,7 @@ function draftFromProfile(profile: NimiPortableAIProfile): RuntimeConfigAIProfil
         includeImplementation: true,
         driverKind,
         supportedFeaturesText: capability.implementation.supportedFeatures.join(', '),
-        llama: driverKind === 'llama'
+        llama: driverKind === 'llama' || driverKind === 'llama-embed'
           ? llamaDraftFromConfig(config)
           : draft.local.llama,
         stableDiffusion: driverKind === 'stable-diffusion'
@@ -844,6 +861,9 @@ function implementationDriverKind(
   },
 ): RuntimeConfigAIProfileLocalDraft['driverKind'] {
   if (sameImplementation(implementation, NIMI_AI_PROFILE_LLAMA_CPP_IMPLEMENTATION)) return 'llama';
+  if (sameImplementation(implementation, NIMI_AI_PROFILE_LLAMA_CPP_EMBED_IMPLEMENTATION)) {
+    return 'llama-embed';
+  }
   if (sameImplementation(implementation, NIMI_AI_PROFILE_STABLE_DIFFUSION_IMPLEMENTATION)) {
     return 'stable-diffusion';
   }

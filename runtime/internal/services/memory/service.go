@@ -37,19 +37,15 @@ type persistedBankState struct {
 }
 
 type persistedPendingEmbeddingCutoverRef struct {
-	GenerationID      string          `json:"generationId,omitempty"`
-	TargetProfile     json.RawMessage `json:"targetProfile"`
-	RevisionToken     string          `json:"revisionToken,omitempty"`
-	ReadyForCutover   bool            `json:"readyForCutover,omitempty"`
-	BlockedReasonCode string          `json:"blockedReasonCode,omitempty"`
+	GenerationID  string          `json:"generationId,omitempty"`
+	TargetProfile json.RawMessage `json:"targetProfile"`
+	RevisionToken string          `json:"revisionToken,omitempty"`
 }
 
 type pendingEmbeddingCutoverState struct {
-	GenerationID      string
-	TargetProfile     *runtimev1.MemoryEmbeddingProfile
-	RevisionToken     string
-	ReadyForCutover   bool
-	BlockedReasonCode runtimev1.ReasonCode
+	GenerationID  string
+	TargetProfile *runtimev1.MemoryEmbeddingProfile
+	RevisionToken string
 }
 
 type bankState struct {
@@ -92,6 +88,8 @@ type Service struct {
 	statePath string
 	backend   *runtimepersistence.Backend
 	now       func() time.Time
+	closeOnce sync.Once
+	closeErr  error
 
 	mu                      sync.RWMutex
 	banks                   map[string]*bankState
@@ -115,6 +113,12 @@ type Service struct {
 	runtimeEmbeddingResolver   MemoryEmbeddingProfileResolver
 	runtimeEmbeddingExecutor   MemoryEmbeddingVectorExecutor
 	embeddingTargetAuthorizer  MemoryEmbeddingTargetAuthorizer
+
+	embeddingLifecycleMu     sync.Mutex
+	embeddingLifecycleCtx    context.Context
+	embeddingLifecycleCancel context.CancelFunc
+	embeddingInflight        sync.WaitGroup
+	embeddingClosing         bool
 }
 
 func New(logger *slog.Logger, cfg config.Config) (*Service, error) {
@@ -125,6 +129,7 @@ func New(logger *slog.Logger, cfg config.Config) (*Service, error) {
 	if err != nil {
 		return nil, err
 	}
+	embeddingLifecycleCtx, embeddingLifecycleCancel := context.WithCancel(context.Background())
 	svc := &Service{
 		logger:                     logger,
 		statePath:                  memoryStatePath(cfg.LocalStatePath),
@@ -136,6 +141,8 @@ func New(logger *slog.Logger, cfg config.Config) (*Service, error) {
 		observers:                  make(map[uint64]func(*runtimev1.MemoryEvent)),
 		replicationBridgeAdapter:   unavailableReplicationBridgeAdapter{},
 		acceleratorCleanupCooldown: time.Minute,
+		embeddingLifecycleCtx:      embeddingLifecycleCtx,
+		embeddingLifecycleCancel:   embeddingLifecycleCancel,
 	}
 	if err := svc.loadState(); err != nil {
 		return nil, err
@@ -163,9 +170,16 @@ func (s *Service) SubscribeMemoryEvents(req *runtimev1.SubscribeMemoryEventsRequ
 }
 
 func (s *Service) Close() error {
-	if s == nil || s.backend == nil {
+	if s == nil {
 		return nil
 	}
-	s.StopReplicationLoop()
-	return s.backend.Close()
+	s.closeOnce.Do(func() {
+		s.closeMemoryEmbeddingAdmissions()
+		s.StopReplicationLoop()
+		s.embeddingInflight.Wait()
+		if s.backend != nil {
+			s.closeErr = s.backend.Close()
+		}
+	})
+	return s.closeErr
 }

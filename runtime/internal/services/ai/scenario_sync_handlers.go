@@ -74,12 +74,19 @@ func executeTextEmbedScenario(ctx context.Context, s *Service, req *runtimev1.Ex
 			return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 		}
 	}
+	describeProbe, hasDescribeProbe, err := textEmbedRouteDescribeProbeFromExtensions(req.GetExtensions())
+	if err != nil {
+		return nil, err
+	}
 	intent, err := scenarioExecutionIntentFromContext(ctx, aicapabilities.TextEmbed)
 	if err != nil {
 		return nil, err
 	}
 	if intent.IsLocal() {
-		return nil, localExactMediaUnsupportedError(req.GetScenarioType())
+		if hasDescribeProbe {
+			return nil, localExactMediaUnsupportedError(req.GetScenarioType())
+		}
+		return executeLocalTextEmbedScenario(ctx, s, req, ignored)
 	}
 
 	effective, err := s.captureCloudEmbedEffectiveInputs(ctx, req.GetHead(), req)

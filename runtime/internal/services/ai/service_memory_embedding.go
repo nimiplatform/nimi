@@ -49,10 +49,22 @@ func (s *Service) EmbedTextsForMemory(ctx context.Context, profile *runtimev1.Me
 	return out, nil
 }
 
-func (s *Service) embedMemoryTextsLocal(context.Context, *runtimev1.MemoryEmbeddingProfile, []string) ([]*runtimev1.EmbeddingVector, error) {
-	return nil, grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED, grpcerr.ReasonOptions{
-		Message: "Local memory embedding requires a private capability-configuration execution binding",
-	})
+func (s *Service) embedMemoryTextsLocal(ctx context.Context, profile *runtimev1.MemoryEmbeddingProfile, inputs []string) ([]*runtimev1.EmbeddingVector, error) {
+	localAssetID := strings.TrimSpace(profile.GetVersion())
+	if localAssetID == "" {
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEMORY_EMBEDDING_TARGET_REF_INVALID)
+	}
+	effective, err := s.captureSelectedLocalEmbedEffectiveInputs(&runtimev1.TextEmbedScenarioSpec{
+		Inputs: append([]string(nil), inputs...),
+	}, nil, localAssetID)
+	if err != nil {
+		return nil, err
+	}
+	result, err := s.executeCapturedLocalEmbed(ctx, effective)
+	if err != nil {
+		return nil, err
+	}
+	return result.Vectors, nil
 }
 
 func (s *Service) embedMemoryTextsRemote(ctx context.Context, profile *runtimev1.MemoryEmbeddingProfile, inputs []string) ([]*runtimev1.EmbeddingVector, error) {

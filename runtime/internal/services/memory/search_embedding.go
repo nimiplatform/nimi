@@ -13,8 +13,15 @@ import (
 	"unicode/utf8"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/timestamppb"
+)
+
+const (
+	memoryEmbeddingExecutorBatchSize    = 16
+	memoryEmbeddingExecutorBatchTimeout = 20 * time.Second
 )
 
 func buildSearchDocument(record *runtimev1.MemoryRecord) (string, string) {
@@ -116,18 +123,8 @@ func (s *Service) embeddingVector(ctx context.Context, profile *runtimev1.Memory
 }
 
 func (s *Service) embeddingVectors(ctx context.Context, profile *runtimev1.MemoryEmbeddingProfile, raws []string) ([][]float64, error) {
-	return embeddingVectorsWithExecutor(ctx, s.runtimeEmbeddingVectorExecutor(), profile, raws)
-}
-
-func embeddingVectorWithExecutor(ctx context.Context, executor MemoryEmbeddingVectorExecutor, profile *runtimev1.MemoryEmbeddingProfile, raw string) ([]float64, error) {
-	vectors, err := embeddingVectorsWithExecutor(ctx, executor, profile, []string{raw})
-	if err != nil {
-		return nil, err
-	}
-	if len(vectors) == 0 {
-		return nil, nil
-	}
-	return vectors[0], nil
+	executor := s.runtimeEmbeddingVectorExecutor()
+	return s.executeMemoryEmbeddingVectors(ctx, executor, profile, raws)
 }
 
 func embeddingVectorsWithExecutor(ctx context.Context, executor MemoryEmbeddingVectorExecutor, profile *runtimev1.MemoryEmbeddingProfile, raws []string) ([][]float64, error) {
@@ -138,13 +135,53 @@ func embeddingVectorsWithExecutor(ctx context.Context, executor MemoryEmbeddingV
 		if executor == nil {
 			return nil, memoryProviderUnavailableError()
 		}
-		return executor(ctx, cloneEmbeddingProfile(profile), append([]string(nil), raws...))
+		if ctx == nil {
+			ctx = context.Background()
+		}
+		expectedDimension := int(profile.GetDimension())
+		out := make([][]float64, 0, len(raws))
+		for offset := 0; offset < len(raws); offset += memoryEmbeddingExecutorBatchSize {
+			if err := ctx.Err(); err != nil {
+				return nil, err
+			}
+			end := min(offset+memoryEmbeddingExecutorBatchSize, len(raws))
+			batch := append([]string(nil), raws[offset:end]...)
+			batchCtx, cancelBatch := context.WithTimeout(ctx, memoryEmbeddingExecutorBatchTimeout)
+			vectors, err := executor(batchCtx, cloneEmbeddingProfile(profile), batch)
+			batchContextErr := batchCtx.Err()
+			cancelBatch()
+			if err != nil {
+				return nil, err
+			}
+			if batchContextErr != nil {
+				return nil, batchContextErr
+			}
+			if len(vectors) != len(batch) {
+				return nil, memoryEmbeddingOutputInvalidError()
+			}
+			for _, vector := range vectors {
+				if len(vector) != expectedDimension {
+					return nil, memoryEmbeddingOutputInvalidError()
+				}
+				for _, value := range vector {
+					if math.IsNaN(value) || math.IsInf(value, 0) {
+						return nil, memoryEmbeddingOutputInvalidError()
+					}
+				}
+				out = append(out, append([]float64(nil), vector...))
+			}
+		}
+		return out, nil
 	}
 	out := make([][]float64, 0, len(raws))
 	for _, raw := range raws {
 		out = append(out, computeEmbeddingVector(raw, 0))
 	}
 	return out, nil
+}
+
+func memoryEmbeddingOutputInvalidError() error {
+	return grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 }
 
 func cosineSimilarity(left []float64, right []float64) float64 {

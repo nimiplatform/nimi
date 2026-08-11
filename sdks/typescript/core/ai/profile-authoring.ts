@@ -27,6 +27,12 @@ export const NIMI_AI_PROFILE_LLAMA_CPP_IMPLEMENTATION = Object.freeze({
   driverDialect: 'llama.cpp/text-generate/v1',
 }) satisfies Readonly<CapabilityImplementationIdentity>;
 
+export const NIMI_AI_PROFILE_LLAMA_CPP_EMBED_IMPLEMENTATION = Object.freeze({
+  implementationId: 'local.text.embed.llama-cpp',
+  driverId: 'nimi.runtime.driver.llama-cpp',
+  driverDialect: 'llama.cpp/text-embed/v1',
+}) satisfies Readonly<CapabilityImplementationIdentity>;
+
 export const NIMI_AI_PROFILE_STABLE_DIFFUSION_IMPLEMENTATION = Object.freeze({
   implementationId: 'local.image.generate.stable-diffusion-cpp',
   driverId: 'nimi.runtime.driver.stable-diffusion-cpp',
@@ -50,6 +56,17 @@ export const NIMI_AI_PROFILE_LLAMA_PORTABLE_CONFIG_FIELDS = Object.freeze([
   'mainVerifiedContentId',
   'mmprojRequirementPolicy',
   'mmprojVerifiedContentId',
+  'contextSize',
+  'cacheTypeK',
+  'cacheTypeV',
+  'flashAttention',
+  'gpuLayers',
+] as const);
+
+/** Mirrors the non-multimodal portable fields admitted by LlamaEmbedDriver. */
+export const NIMI_AI_PROFILE_LLAMA_EMBED_PORTABLE_CONFIG_FIELDS = Object.freeze([
+  'mainRequirementPolicy',
+  'mainVerifiedContentId',
   'contextSize',
   'cacheTypeK',
   'cacheTypeV',
@@ -173,6 +190,16 @@ export interface NimiAIProfileLlamaPortableConfigInput {
   readonly gpuLayers?: number;
 }
 
+export interface NimiAIProfileLlamaEmbedPortableConfigInput {
+  readonly mainRequirementPolicy?: NimiAIProfileRequirementPolicy;
+  readonly mainVerifiedContentId?: string;
+  readonly contextSize?: number;
+  readonly cacheTypeK?: NimiAIProfileLlamaCacheType;
+  readonly cacheTypeV?: NimiAIProfileLlamaCacheType;
+  readonly flashAttention?: boolean;
+  readonly gpuLayers?: number;
+}
+
 export const NIMI_AI_PROFILE_STABLE_DIFFUSION_MODEL_FAMILIES = Object.freeze([
   'z-image',
   'z-image-turbo',
@@ -241,6 +268,10 @@ export type NimiAIProfileDriverAuthoringSection =
   | {
     readonly kind: 'llama';
     readonly portableConfig?: NimiAIProfileLlamaPortableConfigInput;
+  }
+  | {
+    readonly kind: 'llama-embed';
+    readonly portableConfig?: NimiAIProfileLlamaEmbedPortableConfigInput;
   }
   | {
     readonly kind: 'stable-diffusion';
@@ -483,6 +514,16 @@ export function createNimiAIProfileLlamaPortableConfig(
   return config;
 }
 
+export function createNimiAIProfileLlamaEmbedPortableConfig(
+  input: NimiAIProfileLlamaEmbedPortableConfigInput = {},
+  supportedFeatures: readonly string[] = [],
+): NimiJsonObject {
+  const features = normalizeFeatureSet(supportedFeatures, 'llama embedding supportedFeatures');
+  const config = normalizeAuthoringJsonObject(input, 'llama embedding portableConfig');
+  validateLlamaEmbedPortableConfig(config, features);
+  return config;
+}
+
 export function createNimiAIProfileStableDiffusionPortableConfig(
   input: NimiAIProfileStableDiffusionPortableConfigInput,
   supportedFeatures: readonly string[] = input?.enableInputImage === true
@@ -522,6 +563,30 @@ export function createNimiAIProfileLlamaLocalImplementation(input: {
     implementation: Object.freeze({ ...NIMI_AI_PROFILE_LLAMA_CPP_IMPLEMENTATION }),
     supportedFeatures,
     driverSection: Object.freeze({ kind: 'llama' as const, portableConfig }),
+  });
+}
+
+export function createNimiAIProfileLlamaEmbedLocalImplementation(input: {
+  readonly supportedFeatures?: readonly string[];
+  readonly portableConfig?: NimiAIProfileLlamaEmbedPortableConfigInput;
+} = {}): NimiAIProfileLocalImplementationAuthoringInput {
+  assertExactRecord(
+    input,
+    new Set(['supportedFeatures', 'portableConfig']),
+    'llama embedding implementation input',
+  );
+  const supportedFeatures = normalizeFeatureSet(
+    input.supportedFeatures ?? [],
+    'llama embedding supportedFeatures',
+  );
+  const portableConfig = createNimiAIProfileLlamaEmbedPortableConfig(
+    input.portableConfig ?? {},
+    supportedFeatures,
+  );
+  return Object.freeze({
+    implementation: Object.freeze({ ...NIMI_AI_PROFILE_LLAMA_CPP_EMBED_IMPLEMENTATION }),
+    supportedFeatures,
+    driverSection: Object.freeze({ kind: 'llama-embed' as const, portableConfig }),
   });
 }
 
@@ -1165,6 +1230,7 @@ const OPTIONAL_METADATA_VALIDATION: NimiAIProfileAuthoringValidationOptions = Ob
 });
 
 const LLAMA_FIELDS = new Set<string>(NIMI_AI_PROFILE_LLAMA_PORTABLE_CONFIG_FIELDS);
+const LLAMA_EMBED_FIELDS = new Set<string>(NIMI_AI_PROFILE_LLAMA_EMBED_PORTABLE_CONFIG_FIELDS);
 const STABLE_DIFFUSION_FIELDS = new Set<string>(
   NIMI_AI_PROFILE_STABLE_DIFFUSION_PORTABLE_CONFIG_FIELDS,
 );
@@ -1228,6 +1294,24 @@ function normalizeLocalImplementationInput(
       supportedFeatures,
       portableConfig: createNimiAIProfileLlamaPortableConfig(
         (section.portableConfig ?? {}) as NimiAIProfileLlamaPortableConfigInput,
+        supportedFeatures,
+      ),
+    });
+  }
+  if (section.kind === 'llama-embed') {
+    assertExactImplementation(
+      implementation,
+      NIMI_AI_PROFILE_LLAMA_CPP_EMBED_IMPLEMENTATION,
+      'llama embedding',
+    );
+    if (capabilityContract !== 'text.embed') {
+      return authoringError('llama embedding Driver section requires text.embed');
+    }
+    return Object.freeze({
+      implementation,
+      supportedFeatures,
+      portableConfig: createNimiAIProfileLlamaEmbedPortableConfig(
+        (section.portableConfig ?? {}) as NimiAIProfileLlamaEmbedPortableConfigInput,
         supportedFeatures,
       ),
     });
@@ -1347,6 +1431,13 @@ function validateKnownLocalConfiguration(
     validateLlamaPortableConfig(config, features);
     return;
   }
+  if (sameImplementation(identity, NIMI_AI_PROFILE_LLAMA_CPP_EMBED_IMPLEMENTATION)) {
+    if (capabilityContract !== 'text.embed') {
+      return authoringError('llama embedding implementation requires text.embed');
+    }
+    validateLlamaEmbedPortableConfig(config, features);
+    return;
+  }
   if (sameImplementation(identity, NIMI_AI_PROFILE_STABLE_DIFFUSION_IMPLEMENTATION)) {
     if (capabilityContract !== 'image.generate') {
       return authoringError('stable-diffusion implementation requires image.generate');
@@ -1396,6 +1487,31 @@ function validateLlamaPortableConfig(
     const value = config[key];
     if (typeof value !== 'string' || !LLAMA_CACHE_TYPES.has(value as NimiAIProfileLlamaCacheType)) {
       return authoringError(`llama ${key} is unsupported`);
+    }
+  }
+  optionalBoolean(config, 'flashAttention');
+}
+
+function validateLlamaEmbedPortableConfig(
+  config: NimiJsonObject,
+  supportedFeatures: readonly string[],
+): void {
+  assertExactJsonKeys(config, LLAMA_EMBED_FIELDS, 'llama embedding portableConfig');
+  if (supportedFeatures.length !== 0) {
+    return authoringError('llama embedding supportedFeatures must be empty');
+  }
+  const mainPolicy = optionalPolicy(config, 'mainRequirementPolicy') ?? 'substitutable';
+  const mainContent = optionalVerifiedContentId(config, 'mainVerifiedContentId');
+  if (mainPolicy === 'strict' && mainContent === undefined) {
+    return authoringError('llama embedding mainVerifiedContentId is required for strict policy');
+  }
+  optionalInteger(config, 'contextSize', 1, 2_147_483_647);
+  optionalInteger(config, 'gpuLayers', -1, 2_147_483_647);
+  for (const key of ['cacheTypeK', 'cacheTypeV'] as const) {
+    if (!hasOwn(config, key)) continue;
+    const value = config[key];
+    if (typeof value !== 'string' || !LLAMA_CACHE_TYPES.has(value as NimiAIProfileLlamaCacheType)) {
+      return authoringError(`llama embedding ${key} is unsupported`);
     }
   }
   optionalBoolean(config, 'flashAttention');
@@ -1593,6 +1709,24 @@ function projectKnownDriverRequirements(
       source: 'authoring-preview' as const,
       commitTruth: 'runtime-reproject' as const,
       requirements: Object.freeze(requirements),
+    });
+  }
+
+  if (sameImplementation(implementation, NIMI_AI_PROFILE_LLAMA_CPP_EMBED_IMPLEMENTATION)) {
+    return Object.freeze({
+      source: 'authoring-preview' as const,
+      commitTruth: 'runtime-reproject' as const,
+      requirements: Object.freeze([
+        requirementPreview(
+          'embedding.gguf',
+          'main',
+          0,
+          'Embedding model',
+          'gguf',
+          optionalPolicy(config, 'mainRequirementPolicy') ?? 'substitutable',
+          optionalVerifiedContentId(config, 'mainVerifiedContentId'),
+        ),
+      ]),
     });
   }
 

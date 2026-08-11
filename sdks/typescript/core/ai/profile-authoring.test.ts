@@ -4,7 +4,9 @@ import test from 'node:test';
 import {
   NIMI_AI_PROFILE_CLOUD_RECOMMENDATION_FIELDS,
   NIMI_AI_PROFILE_LLAMA_CACHE_TYPES,
+  NIMI_AI_PROFILE_LLAMA_CPP_EMBED_IMPLEMENTATION,
   NIMI_AI_PROFILE_LLAMA_CPP_IMPLEMENTATION,
+  NIMI_AI_PROFILE_LLAMA_EMBED_PORTABLE_CONFIG_FIELDS,
   NIMI_AI_PROFILE_LLAMA_PORTABLE_CONFIG_FIELDS,
   NIMI_AI_PROFILE_STABLE_DIFFUSION_EXECUTION_OPTION_FIELDS,
   NIMI_AI_PROFILE_STABLE_DIFFUSION_LORA_FIELDS,
@@ -12,6 +14,8 @@ import {
   NIMI_AI_PROFILE_STABLE_DIFFUSION_PORTABLE_CONFIG_FIELDS,
   NIMI_AI_PROFILE_STABLE_DIFFUSION_VIDEO_PORTABLE_CONFIG_FIELDS,
   createNimiAIProfileAuthoringBuilder,
+  createNimiAIProfileLlamaEmbedLocalImplementation,
+  createNimiAIProfileLlamaEmbedPortableConfig,
   createNimiAIProfileLlamaLocalImplementation,
   createNimiAIProfileLlamaPortableConfig,
   createNimiAIProfileStableDiffusionLocalImplementation,
@@ -488,6 +492,54 @@ test('stable-diffusion authoring projection preserves Driver-declared occurrence
   );
 });
 
+test('llama embedding authoring preserves exact portable identity and slot', () => {
+  const profile = createNimiAIProfileAuthoringBuilder({
+    profileId: 'profile.authoring.embedding',
+    title: 'Portable local embedding',
+    provenance: { publisher: 'example.test' },
+    license: 'Apache-2.0',
+  }).setLocalCapability({
+    capabilityContract: 'text.embed',
+    localConfiguration: createNimiAIProfileLlamaEmbedLocalImplementation({
+      portableConfig: {
+        mainRequirementPolicy: 'strict',
+        mainVerifiedContentId: MAIN_CONTENT_ID,
+        contextSize: 8192,
+        cacheTypeK: 'q8_0',
+        flashAttention: true,
+        gpuLayers: -1,
+      },
+    }),
+  }).build();
+
+  assert.deepEqual(
+    profile.capabilities['text.embed']?.implementation,
+    { ...NIMI_AI_PROFILE_LLAMA_CPP_EMBED_IMPLEMENTATION, supportedFeatures: [] },
+  );
+  const projection = deriveNimiAIProfileRequirementProjection(profile, 'text.embed');
+  assert.deepEqual(projection.requirements, [{
+    requirementId: 'embedding.gguf',
+    role: 'main',
+    occurrenceOrdinal: 0,
+    displayLabel: 'Embedding model',
+    resourceKind: 'gguf',
+    policy: 'strict',
+    preferredVerifiedContentId: MAIN_CONTENT_ID,
+  }]);
+  assert.throws(
+    () => createNimiAIProfileLlamaEmbedPortableConfig({
+      mmprojRequirementPolicy: 'substitutable',
+    } as never),
+    /unsupported field/u,
+  );
+  assert.throws(
+    () => createNimiAIProfileLlamaEmbedLocalImplementation({
+      supportedFeatures: ['input.image'],
+    }),
+    /must be empty/u,
+  );
+});
+
 test('stable-diffusion video authoring projection preserves Driver-declared slots', () => {
   const profile = localVideoBuilder().build();
   const projection = deriveNimiAIProfileRequirementProjection(profile, 'video.generate');
@@ -599,6 +651,15 @@ test('authoring Driver field inventories stay exact with Runtime parsers', () =>
     'mainVerifiedContentId',
     'mmprojRequirementPolicy',
     'mmprojVerifiedContentId',
+    'contextSize',
+    'cacheTypeK',
+    'cacheTypeV',
+    'flashAttention',
+    'gpuLayers',
+  ]);
+  assert.deepEqual(NIMI_AI_PROFILE_LLAMA_EMBED_PORTABLE_CONFIG_FIELDS, [
+    'mainRequirementPolicy',
+    'mainVerifiedContentId',
     'contextSize',
     'cacheTypeK',
     'cacheTypeV',

@@ -55,10 +55,12 @@ type localTextHostStub struct {
 	err          error
 	streamDeltas []localexecution.TextDelta
 	result       localexecution.TextResult
+	embedResult  localexecution.EmbedResult
 
-	mu           sync.Mutex
-	capturedArgs []string
-	capturedBody []byte
+	mu                sync.Mutex
+	capturedArgs      []string
+	capturedBody      []byte
+	capturedEmbedPlan *capabilitydriver.EmbedInvocationPlan
 }
 
 func (h *localTextHostStub) ExecuteText(
@@ -95,6 +97,24 @@ func (h *localTextHostStub) ExecuteText(
 		return h.result, nil
 	}
 	return localexecution.TextResult{Text: "captured response", FinishReason: runtimev1.FinishReason_FINISH_REASON_STOP}, nil
+}
+
+func (h *localTextHostStub) ExecuteEmbed(
+	_ context.Context,
+	plan *capabilitydriver.EmbedInvocationPlan,
+	progress localexecution.TextProgressFunc,
+) (localexecution.EmbedResult, error) {
+	h.mu.Lock()
+	h.capturedEmbedPlan = plan
+	h.mu.Unlock()
+	if progress != nil {
+		progress(localexecution.TextExecutionProgressLoading)
+		progress(localexecution.TextExecutionProgressReady)
+	}
+	if h.err != nil {
+		return localexecution.EmbedResult{}, h.err
+	}
+	return h.embedResult, nil
 }
 
 func (h *localTextHostStub) StreamText(

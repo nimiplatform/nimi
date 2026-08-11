@@ -19,12 +19,15 @@ import { ReasonCode } from '../types/index.js';
 import {
   NIMI_MACHINE_LOCAL_IMAGE_GENERATE_CAPABILITY_CONTRACT,
   NIMI_MACHINE_LOCAL_INPUT_IMAGE_FEATURE,
+  NIMI_MACHINE_LOCAL_LLAMA_CPP_EMBED_IMPLEMENTATION,
   NIMI_MACHINE_LOCAL_LLAMA_CPP_TEXT_IMPLEMENTATION,
   NIMI_MACHINE_LOCAL_STABLE_DIFFUSION_IMAGE_IMPLEMENTATION,
   NIMI_MACHINE_LOCAL_STABLE_DIFFUSION_VIDEO_IMPLEMENTATION,
   NIMI_MACHINE_LOCAL_TEXT_GENERATE_CAPABILITY_CONTRACT,
+  NIMI_MACHINE_LOCAL_TEXT_EMBED_CAPABILITY_CONTRACT,
   NIMI_MACHINE_LOCAL_VIDEO_GENERATE_CAPABILITY_CONTRACT,
   createNimiMachineLocalAIConfigurationClient,
+  createNimiMachineLocalLlamaCppEmbedConfigurationInput,
   createNimiMachineLocalLlamaCppTextConfigurationInput,
   createNimiMachineLocalStableDiffusionImageConfigurationInput,
   createNimiMachineLocalStableDiffusionVideoConfigurationInput,
@@ -216,6 +219,17 @@ test('Machine Local AI Configuration typed client maps every admitted RPC throug
   assert.deepEqual(textOnlyInput.portableConfig, {
     mainRequirementPolicy: 'substitutable',
   });
+  const embedInput = createNimiMachineLocalLlamaCppEmbedConfigurationInput({
+    displayName: 'Local embedding model',
+    contextSize: 4096,
+  });
+  assert.equal(embedInput.capabilityContract, NIMI_MACHINE_LOCAL_TEXT_EMBED_CAPABILITY_CONTRACT);
+  assert.deepEqual(embedInput.implementation, NIMI_MACHINE_LOCAL_LLAMA_CPP_EMBED_IMPLEMENTATION);
+  assert.deepEqual(embedInput.portableConfig, {
+    mainRequirementPolicy: 'substitutable',
+    contextSize: 4096,
+  });
+  assert.deepEqual(embedInput.supportedFeatures, []);
   const addInput = createNimiMachineLocalLlamaCppTextConfigurationInput({
     displayName: 'Local writing model',
     acceptsImageInput: true,

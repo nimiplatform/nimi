@@ -10,8 +10,11 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/memoryengine"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/proto"
 )
 
 const (
@@ -50,6 +53,15 @@ type narrativeRecallCandidate struct {
 	Content         string
 	Status          string
 	SourceMemoryIDs []string
+}
+
+type narrativeEmbeddingSourceSnapshot struct {
+	NarrativeID   string
+	Topic         string
+	Content       string
+	SourceVersion string
+	Status        string
+	UpdatedAt     string
 }
 
 type relationExpansion struct {
@@ -157,40 +169,136 @@ func (s *Service) upsertNarrativeEmbeddings(ctx context.Context, locator *runtim
 	if profile == nil || !s.embeddingAvailableForProfile(profile) {
 		return nil
 	}
+	profile = cloneEmbeddingProfile(profile)
+	generationID := currentEmbeddingGenerationID(bankState.Bank)
 	profileRaw, err := protojson.Marshal(profile)
 	if err != nil {
 		return err
 	}
 	locatorKeyValue := locatorKey(locator)
+	sources, err := s.captureNarrativeEmbeddingSources(ctx, locatorKeyValue, narratives)
+	if err != nil {
+		return err
+	}
+	activeRaws := make([]string, 0, len(sources))
+	for _, source := range sources {
+		if source.active() {
+			activeRaws = append(activeRaws, source.embeddingInput())
+		}
+	}
+	activeVectors, err := s.embeddingVectors(ctx, profile, activeRaws)
+	if err != nil {
+		return err
+	}
+	if err := ctx.Err(); err != nil {
+		return err
+	}
 	now := time.Now().UTC().Format(time.RFC3339Nano)
-	return s.backend.WriteTx(ctx, func(tx *sql.Tx) error {
-		for _, narrative := range narratives {
-			narrativeID := strings.TrimSpace(narrative.NarrativeID)
-			if narrativeID == "" {
-				continue
-			}
-			if strings.ToLower(strings.TrimSpace(narrative.Status)) != "active" {
-				if _, err := tx.ExecContext(ctx, `
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	current := s.banks[locatorKeyValue]
+	if current == nil || current.Bank == nil ||
+		!proto.Equal(current.Bank.GetEmbeddingProfile(), profile) ||
+		currentEmbeddingGenerationID(current.Bank) != generationID {
+		return memoryNarrativeEmbeddingConflictError()
+	}
+	return s.backend.WriteTx(context.Background(), func(tx *sql.Tx) error {
+		if err := validateNarrativeEmbeddingSourcesTx(tx, locatorKeyValue, sources); err != nil {
+			return err
+		}
+		activeIndex := 0
+		for _, source := range sources {
+			if !source.active() {
+				if _, err := tx.Exec(`
 					DELETE FROM memory_narrative_embedding
 					WHERE locator_key = ? AND narrative_id = ?
-				`, locatorKeyValue, narrativeID); err != nil {
+				`, locatorKeyValue, source.NarrativeID); err != nil {
 					return err
 				}
 				continue
 			}
-			vector, err := s.embeddingVector(ctx, profile, strings.TrimSpace(strings.Join([]string{narrative.Topic, narrative.Content}, " ")))
-			if err != nil {
-				return err
+			if activeIndex >= len(activeVectors) {
+				return memoryEmbeddingOutputInvalidError()
 			}
-			if _, err := tx.ExecContext(ctx, `
+			vector := activeVectors[activeIndex]
+			activeIndex++
+			if _, err := tx.Exec(`
 				INSERT OR REPLACE INTO memory_narrative_embedding(locator_key, narrative_id, embedding_profile_json, vector_json, updated_at)
 				VALUES (?, ?, ?, ?, ?)
-			`, locatorKeyValue, narrativeID, string(profileRaw), marshalFloatVector(vector), now); err != nil {
+			`, locatorKeyValue, source.NarrativeID, string(profileRaw), marshalFloatVector(vector), now); err != nil {
 				return err
 			}
 		}
+		if activeIndex != len(activeVectors) {
+			return memoryEmbeddingOutputInvalidError()
+		}
 		return nil
 	})
+}
+
+func (s narrativeEmbeddingSourceSnapshot) active() bool {
+	return strings.EqualFold(strings.TrimSpace(s.Status), "active")
+}
+
+func (s narrativeEmbeddingSourceSnapshot) embeddingInput() string {
+	return strings.TrimSpace(strings.Join([]string{s.Topic, s.Content}, " "))
+}
+
+func (s *Service) captureNarrativeEmbeddingSources(ctx context.Context, locatorKeyValue string, narratives []NarrativeCandidate) ([]narrativeEmbeddingSourceSnapshot, error) {
+	seen := make(map[string]struct{}, len(narratives))
+	out := make([]narrativeEmbeddingSourceSnapshot, 0, len(narratives))
+	for _, narrative := range narratives {
+		narrativeID := strings.TrimSpace(narrative.NarrativeID)
+		if narrativeID == "" {
+			continue
+		}
+		if _, exists := seen[narrativeID]; exists {
+			continue
+		}
+		seen[narrativeID] = struct{}{}
+		source := narrativeEmbeddingSourceSnapshot{NarrativeID: narrativeID}
+		err := s.backend.DB().QueryRowContext(ctx, `
+			SELECT topic, content, source_version, status, updated_at
+			FROM memory_narrative
+			WHERE bank_locator_key = ? AND narrative_id = ?
+		`, locatorKeyValue, narrativeID).Scan(&source.Topic, &source.Content, &source.SourceVersion, &source.Status, &source.UpdatedAt)
+		if err == sql.ErrNoRows {
+			return nil, memoryNarrativeEmbeddingConflictError()
+		}
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, source)
+	}
+	return out, nil
+}
+
+func validateNarrativeEmbeddingSourcesTx(tx *sql.Tx, locatorKeyValue string, expected []narrativeEmbeddingSourceSnapshot) error {
+	for _, source := range expected {
+		current := narrativeEmbeddingSourceSnapshot{NarrativeID: source.NarrativeID}
+		err := tx.QueryRow(`
+			SELECT topic, content, source_version, status, updated_at
+			FROM memory_narrative
+			WHERE bank_locator_key = ? AND narrative_id = ?
+		`, locatorKeyValue, source.NarrativeID).Scan(&current.Topic, &current.Content, &current.SourceVersion, &current.Status, &current.UpdatedAt)
+		if err == sql.ErrNoRows {
+			return memoryNarrativeEmbeddingConflictError()
+		}
+		if err != nil {
+			return err
+		}
+		if current != source {
+			return memoryNarrativeEmbeddingConflictError()
+		}
+	}
+	return nil
+}
+
+func memoryNarrativeEmbeddingConflictError() error {
+	return grpcerr.WithReasonCode(codes.Aborted, runtimev1.ReasonCode_AI_MEMORY_EMBEDDING_TARGET_REF_INVALID)
 }
 
 func (s *Service) narrativeEmbeddingRecallScores(ctx context.Context, bank *runtimev1.MemoryBank, query string) (map[string]float64, error) {

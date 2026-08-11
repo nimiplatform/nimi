@@ -72,13 +72,34 @@ func (s *Service) deleteBank(bankKey string, event *runtimev1.MemoryEvent) error
 	s.broadcast(event, targets)
 	return nil
 }
-func (s *Service) insertRecords(bankKey string, records []*runtimev1.MemoryRecord, events []*runtimev1.MemoryEvent) error {
+func (s *Service) insertRecords(bankKey string, records []*runtimev1.MemoryRecord, events []*runtimev1.MemoryEvent, expectedProfile *runtimev1.MemoryEmbeddingProfile, projection memoryRecordEmbeddingProjection) error {
 	s.mu.Lock()
 	previousSequence := s.sequence
 	state := s.banks[bankKey]
 	if state == nil {
 		s.mu.Unlock()
 		return status.Error(codes.NotFound, "memory bank not found")
+	}
+	if !memoryEmbeddingProfilesEquivalent(state.Bank.GetEmbeddingProfile(), expectedProfile) {
+		s.mu.Unlock()
+		return memoryEmbeddingCutoverConflictError()
+	}
+	if expectedProfile != nil {
+		for _, record := range records {
+			prepared, ok := projection[record.GetMemoryId()]
+			if !ok || prepared.LocatorKey != bankKey || prepared.Dimension != expectedProfile.GetDimension() {
+				s.mu.Unlock()
+				return memoryEmbeddingOutputInvalidError()
+			}
+		}
+	}
+	previousState := cloneBankState(state)
+	previousBacklog := make(map[string]*ReplicationBacklogItem)
+	for key, item := range s.replicationBacklog {
+		if item == nil || locatorKey(item.Locator) != bankKey {
+			continue
+		}
+		previousBacklog[key] = cloneReplicationBacklogItem(item)
 	}
 	for _, record := range records {
 		if _, exists := state.Records[record.GetMemoryId()]; !exists {
@@ -93,7 +114,12 @@ func (s *Service) insertRecords(bankKey string, records []*runtimev1.MemoryRecor
 		s.assignSequenceLocked(event)
 		targetsByEvent = append(targetsByEvent, s.matchingSubscribersLocked(event))
 	}
-	if err := s.persistLocked(); err != nil {
+	if err := s.persistLockedWithEmbeddingProjection(projection, nil); err != nil {
+		s.banks[bankKey] = previousState
+		s.removeReplicationBacklogForBankLocked(bankKey)
+		for key, item := range previousBacklog {
+			s.replicationBacklog[key] = item
+		}
 		s.sequence = previousSequence
 		s.mu.Unlock()
 		return err

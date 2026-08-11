@@ -69,7 +69,14 @@ func (s *Service) Retain(ctx context.Context, req *runtimev1.RetainRequest) (*ru
 		})
 	}
 	if len(inserted) > 0 {
-		if err := s.insertRecords(locatorKey(bankState.Bank.GetLocator()), inserted, events); err != nil {
+		projection, err := s.prepareMemoryRecordEmbeddingProjection(ctx, bankState.Bank, inserted)
+		if err != nil {
+			return nil, err
+		}
+		if err := ctx.Err(); err != nil {
+			return nil, err
+		}
+		if err := s.insertRecords(locatorKey(bankState.Bank.GetLocator()), inserted, events, bankState.Bank.GetEmbeddingProfile(), projection); err != nil {
 			return nil, err
 		}
 	}

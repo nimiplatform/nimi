@@ -34,6 +34,7 @@ import {
 import { withNimiRuntimeIdempotencyMetadata } from './scenario-jobs.js';
 
 export const NIMI_MACHINE_LOCAL_TEXT_GENERATE_CAPABILITY_CONTRACT = 'text.generate';
+export const NIMI_MACHINE_LOCAL_TEXT_EMBED_CAPABILITY_CONTRACT = 'text.embed';
 export const NIMI_MACHINE_LOCAL_IMAGE_GENERATE_CAPABILITY_CONTRACT = 'image.generate';
 /** Mirrors runtime/internal/capabilitydriver/stablediffusion_video.go:22. */
 export const NIMI_MACHINE_LOCAL_VIDEO_GENERATE_CAPABILITY_CONTRACT = 'video.generate';
@@ -43,6 +44,12 @@ export const NIMI_MACHINE_LOCAL_LLAMA_CPP_TEXT_IMPLEMENTATION = Object.freeze({
   implementationId: 'local.text.generate.llama-cpp',
   driverId: 'nimi.runtime.driver.llama-cpp',
   driverDialect: 'llama.cpp/text-generate/v1',
+}) satisfies Readonly<CapabilityImplementationIdentity>;
+
+export const NIMI_MACHINE_LOCAL_LLAMA_CPP_EMBED_IMPLEMENTATION = Object.freeze({
+  implementationId: 'local.text.embed.llama-cpp',
+  driverId: 'nimi.runtime.driver.llama-cpp',
+  driverDialect: 'llama.cpp/text-embed/v1',
 }) satisfies Readonly<CapabilityImplementationIdentity>;
 
 export const NIMI_MACHINE_LOCAL_STABLE_DIFFUSION_IMAGE_IMPLEMENTATION = Object.freeze({
@@ -397,6 +404,27 @@ export function createNimiMachineLocalLlamaCppTextConfigurationInput(input: {
     supportedFeatures: acceptsImageInput
       ? [NIMI_MACHINE_LOCAL_INPUT_IMAGE_FEATURE]
       : [],
+    displayName,
+  };
+}
+
+export function createNimiMachineLocalLlamaCppEmbedConfigurationInput(input: {
+  readonly displayName: string;
+  /** Omit for model-authored automatic capacity; positive values are advanced fixed overrides. */
+  readonly contextSize?: number;
+}): NimiMachineLocalAIConfigurationAddInput {
+  assertExactRecord(input, new Set(['displayName', 'contextSize']), 'llama.cpp embedding configuration input');
+  const displayName = requireInputText(input.displayName, 'displayName');
+  const contextSize = input.contextSize === undefined
+    ? undefined
+    : requireIntegerInRange(input.contextSize, 1, 2_147_483_647, 'contextSize');
+  const portableConfig: JsonObject = { mainRequirementPolicy: 'substitutable' };
+  if (contextSize !== undefined) portableConfig.contextSize = contextSize;
+  return {
+    capabilityContract: NIMI_MACHINE_LOCAL_TEXT_EMBED_CAPABILITY_CONTRACT,
+    implementation: { ...NIMI_MACHINE_LOCAL_LLAMA_CPP_EMBED_IMPLEMENTATION },
+    portableConfig,
+    supportedFeatures: [],
     displayName,
   };
 }

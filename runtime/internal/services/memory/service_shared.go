@@ -120,11 +120,9 @@ func clonePendingEmbeddingCutoverState(input *pendingEmbeddingCutoverState) *pen
 		return nil
 	}
 	return &pendingEmbeddingCutoverState{
-		GenerationID:      strings.TrimSpace(input.GenerationID),
-		TargetProfile:     cloneEmbeddingProfile(input.TargetProfile),
-		RevisionToken:     strings.TrimSpace(input.RevisionToken),
-		ReadyForCutover:   input.ReadyForCutover,
-		BlockedReasonCode: input.BlockedReasonCode,
+		GenerationID:  strings.TrimSpace(input.GenerationID),
+		TargetProfile: cloneEmbeddingProfile(input.TargetProfile),
+		RevisionToken: strings.TrimSpace(input.RevisionToken),
 	}
 }
 

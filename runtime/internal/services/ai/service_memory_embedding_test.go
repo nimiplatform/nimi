@@ -7,9 +7,13 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"path/filepath"
+	"strings"
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
+	"github.com/nimiplatform/nimi/runtime/internal/localexecution"
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
 	"github.com/nimiplatform/nimi/runtime/internal/services/connector"
 )
@@ -86,5 +90,54 @@ func TestEmbedTextsForMemoryUsesResolvedCloudBinding(t *testing.T) {
 	}
 	if len(vectors) != 1 || len(vectors[0]) != 3 {
 		t.Fatalf("unexpected vectors: %#v", vectors)
+	}
+}
+
+func TestEmbedTextsForMemoryUsesSelectedLocalLlamaBinding(t *testing.T) {
+	service := newTestService(nil)
+	digest := strings.Repeat("b", 64)
+	service.SetLocalExecutionResolver(&mutableLocalExecutionResolver{projection: &localexecution.SelectedLocalExecution{
+		ConfigurationID:          "local-memory-embed-config",
+		CapabilityContract:       capabilitydriver.TextEmbedCapabilityContract,
+		DisplayName:              "Local memory embedding",
+		DriverIdentity:           (&capabilitydriver.Identity{ImplementationID: capabilitydriver.LlamaEmbedImplementationID, DriverID: capabilitydriver.LlamaDriverID, DriverDialect: capabilitydriver.LlamaEmbedDriverDialect}).Proto(),
+		ModelContextWindowTokens: 8192,
+		Requirements: []*runtimev1.LocalCapabilityRequirement{{
+			RequirementId: capabilitydriver.EmbeddingGGUFRequirementID,
+		}},
+		ExactBindings: []localexecution.ExactBinding{{
+			RequirementID:     capabilitydriver.EmbeddingGGUFRequirementID,
+			LocalAssetID:      "embedding/memory",
+			AbsolutePath:      filepath.Join(t.TempDir(), "embedding.gguf"),
+			VerifiedContentID: "sha256:" + digest,
+			EntrySHA256:       digest,
+		}},
+		Configured: true,
+	}})
+	host := &localTextHostStub{embedResult: localexecution.EmbedResult{
+		Vectors: []*runtimev1.EmbeddingVector{
+			{Values: []float64{0.1, 0.2, 0.3}},
+			{Values: []float64{0.4, 0.5, 0.6}},
+		},
+	}}
+	service.SetLocalTextExecutionHost(host)
+
+	vectors, err := service.EmbedTextsForMemory(context.Background(), &runtimev1.MemoryEmbeddingProfile{
+		Provider:  "local",
+		ModelId:   "catalog/local-memory-embedding",
+		Dimension: 3,
+		Version:   "embedding/memory",
+	}, []string{" first ", "second"})
+	if err != nil {
+		t.Fatalf("EmbedTextsForMemory(local): %v", err)
+	}
+	if len(vectors) != 2 || vectors[1][2] != 0.6 {
+		t.Fatalf("local memory vectors = %#v", vectors)
+	}
+	host.mu.Lock()
+	plan := host.capturedEmbedPlan
+	host.mu.Unlock()
+	if plan == nil || plan.RequestPath() != "/v1/embeddings" || plan.ExpectedCount() != 2 {
+		t.Fatalf("captured local memory embedding plan = %+v", plan)
 	}
 }

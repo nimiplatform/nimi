@@ -2,6 +2,8 @@ package localservice
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"os"
 	"path/filepath"
@@ -12,6 +14,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/structpb"
 )
 
 func TestMachineLocalSelectionOverwritesOneCapabilityAndPersistsClear(t *testing.T) {
@@ -211,6 +214,71 @@ func TestResolveSelectedLocalExecutionReturnsVerifiedAbsoluteBindingsAndRejectsD
 		t.Fatalf("byte drift returned partial projection: %#v", resolved)
 	}
 	assertGRPCReasonCode(t, err, "ResolveSelectedLocalExecution(byte drift)", runtimev1.ReasonCode_AI_LOCAL_ASSET_CONTENT_MISMATCH)
+}
+
+func TestResolveSelectedLocalEmbedExecutionReturnsModelContextCapacity(t *testing.T) {
+	service := newMachineLocalConfigurationTestService(t, t.TempDir())
+	payload := validGemma4TestGGUF()
+	sum := sha256.Sum256(payload)
+	entrySHA256 := hex.EncodeToString(sum[:])
+	localAssetID := "asset-embedding"
+	logicalModelID := "test/embedding"
+	entry := "weights.gguf"
+	entryPath := filepath.Join(service.localModelsPath, "resolved", filepath.FromSlash(logicalModelID), entry)
+	if err := os.MkdirAll(filepath.Dir(entryPath), 0o755); err != nil {
+		t.Fatalf("create embedding fixture directory: %v", err)
+	}
+	if err := os.WriteFile(entryPath, payload, 0o600); err != nil {
+		t.Fatalf("write embedding fixture: %v", err)
+	}
+	service.mu.Lock()
+	service.assets[localAssetID] = &runtimev1.LocalAssetRecord{
+		LocalAssetId:   localAssetID,
+		AssetId:        "catalog-independent-embedding",
+		Kind:           runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_EMBEDDING,
+		Engine:         "llama",
+		Entry:          entry,
+		Files:          []string{entry},
+		Hashes:         map[string]string{entry: "sha256:" + entrySHA256},
+		Capabilities:   []string{capabilitydriver.TextEmbedCapabilityContract},
+		LogicalModelId: logicalModelID,
+		Source:         &runtimev1.LocalAssetSource{Repo: "test-fixture", Revision: "1"},
+		ArtifactRoles:  []string{"embedding"},
+	}
+	service.mu.Unlock()
+
+	portable, err := structpb.NewStruct(map[string]any{
+		"mainVerifiedContentId": "sha256:" + entrySHA256,
+		"contextSize":           8192,
+	})
+	if err != nil {
+		t.Fatalf("embedding portable config: %v", err)
+	}
+	added, err := service.AddLocalCapabilityConfiguration(context.Background(), &runtimev1.AddLocalCapabilityConfigurationRequest{
+		CapabilityContract: capabilitydriver.TextEmbedCapabilityContract,
+		Implementation: &runtimev1.CapabilityImplementationIdentity{
+			ImplementationId: capabilitydriver.LlamaEmbedImplementationID,
+			DriverId:         capabilitydriver.LlamaDriverID,
+			DriverDialect:    capabilitydriver.LlamaEmbedDriverDialect,
+		},
+		PortableConfig: portable,
+		DisplayName:    "Test llama embedding configuration",
+	})
+	if err != nil {
+		t.Fatalf("AddLocalCapabilityConfiguration: %v", err)
+	}
+	configuration := added.GetConfiguration()
+	selectMachineLocalConfigurationForTest(t, service, capabilitydriver.TextEmbedCapabilityContract, configuration.GetConfigurationId())
+
+	resolved, err := service.ResolveSelectedLocalExecution(capabilitydriver.TextEmbedCapabilityContract)
+	if err != nil {
+		t.Fatalf("ResolveSelectedLocalExecution: %v", err)
+	}
+	if resolved.ModelContextWindowTokens != 262144 || len(resolved.ExactBindings) != 1 ||
+		resolved.ExactBindings[0].RequirementID != capabilitydriver.EmbeddingGGUFRequirementID ||
+		resolved.ExactBindings[0].LocalAssetID != localAssetID {
+		t.Fatalf("resolved embedding execution = %#v", resolved)
+	}
 }
 
 func TestMachineLocalSelectionMutationStoreFailureDoesNotPublishMemory(t *testing.T) {

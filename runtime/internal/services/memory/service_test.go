@@ -2,14 +2,18 @@ package memory
 
 import (
 	"context"
+	"errors"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
+	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/config"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/proto"
 )
 
 func closeMemoryServiceForTest(t *testing.T, svc *Service) {
@@ -390,6 +394,352 @@ func TestMemoryServiceRetainFailsClosedWhenEmbeddingExecutorMissing(t *testing.T
 	})
 	if status.Code(err) != codes.Unavailable {
 		t.Fatalf("expected Unavailable without embedding executor, got %v", err)
+	}
+}
+
+func TestMemoryServiceRetainEmbeddingFailureRestoresOwnerState(t *testing.T) {
+	t.Parallel()
+
+	svc, err := New(nil, config.Config{
+		LocalStatePath: filepath.Join(t.TempDir(), "local-state.json"),
+	})
+	if err != nil {
+		t.Fatalf("New: %v", err)
+	}
+	closeMemoryServiceForTest(t, svc)
+	profile := &runtimev1.MemoryEmbeddingProfile{
+		Provider:        "local",
+		ModelId:         "local/embed-retain-rollback",
+		Dimension:       2,
+		DistanceMetric:  runtimev1.MemoryDistanceMetric_MEMORY_DISTANCE_METRIC_COSINE,
+		Version:         "local/embed-retain-rollback@v1",
+		MigrationPolicy: runtimev1.MemoryMigrationPolicy_MEMORY_MIGRATION_POLICY_REINDEX,
+	}
+	svc.SetManagedEmbeddingProfile(profile)
+	svc.SetRuntimeEmbeddingVectorExecutor(func(_ context.Context, _ *runtimev1.MemoryEmbeddingProfile, inputs []string) ([][]float64, error) {
+		vectors := make([][]float64, len(inputs))
+		for index := range vectors {
+			vectors[index] = []float64{1, 0}
+		}
+		return vectors, nil
+	})
+
+	ctx := context.Background()
+	locator := &runtimev1.MemoryBankLocator{
+		Scope: runtimev1.MemoryBankScope_MEMORY_BANK_SCOPE_AGENT_CORE,
+		Owner: &runtimev1.MemoryBankLocator_AgentCore{
+			AgentCore: &runtimev1.AgentCoreBankOwner{AgentId: "agent-retain-rollback"},
+		},
+	}
+	if _, err := svc.EnsureCanonicalBank(ctx, locator, "Rollback Memory", nil); err != nil {
+		t.Fatalf("EnsureCanonicalBank: %v", err)
+	}
+	if _, err := svc.BindCanonicalBankResolvedEmbeddingProfile(ctx, locator, profile); err != nil {
+		t.Fatalf("BindCanonicalBankResolvedEmbeddingProfile: %v", err)
+	}
+	seeded, err := svc.Retain(ctx, &runtimev1.RetainRequest{
+		Bank: locator,
+		Records: []*runtimev1.MemoryRecordInput{{
+			Kind: runtimev1.MemoryRecordKind_MEMORY_RECORD_KIND_OBSERVATIONAL,
+			Payload: &runtimev1.MemoryRecordInput_Observational{
+				Observational: &runtimev1.ObservationalMemoryRecord{Observation: "existing committed memory"},
+			},
+		}},
+	})
+	if err != nil {
+		t.Fatalf("Retain(seed): %v", err)
+	}
+	if len(seeded.GetRecords()) != 1 {
+		t.Fatalf("seeded records = %d want 1", len(seeded.GetRecords()))
+	}
+	executorErr := errors.New("embedding executor failed")
+	svc.SetRuntimeEmbeddingVectorExecutor(func(context.Context, *runtimev1.MemoryEmbeddingProfile, []string) ([][]float64, error) {
+		return nil, executorErr
+	})
+
+	svc.mu.RLock()
+	before := cloneBankState(svc.banks[locatorKey(locator)])
+	beforeSequence := svc.sequence
+	svc.mu.RUnlock()
+	beforeBacklog := svc.ListReplicationBacklog()
+
+	_, err = svc.Retain(ctx, &runtimev1.RetainRequest{
+		Bank: locator,
+		Records: []*runtimev1.MemoryRecordInput{{
+			Kind: runtimev1.MemoryRecordKind_MEMORY_RECORD_KIND_OBSERVATIONAL,
+			Payload: &runtimev1.MemoryRecordInput_Observational{
+				Observational: &runtimev1.ObservationalMemoryRecord{Observation: "must not survive failed retention"},
+			},
+		}},
+	})
+	if !errors.Is(err, executorErr) {
+		t.Fatalf("Retain error = %v, want executor failure", err)
+	}
+
+	svc.mu.RLock()
+	after := cloneBankState(svc.banks[locatorKey(locator)])
+	afterSequence := svc.sequence
+	svc.mu.RUnlock()
+	if !proto.Equal(after.Bank, before.Bank) {
+		t.Fatalf("bank changed after failed retention: before=%v after=%v", before.Bank, after.Bank)
+	}
+	if len(after.Records) != len(before.Records) || len(after.Order) != len(before.Order) {
+		t.Fatalf("record owner state changed after failed retention: records=%d/%d order=%d/%d", len(after.Records), len(before.Records), len(after.Order), len(before.Order))
+	}
+	if afterSequence != beforeSequence {
+		t.Fatalf("sequence changed after failed retention: got %d want %d", afterSequence, beforeSequence)
+	}
+	if backlog := svc.ListReplicationBacklog(); !reflect.DeepEqual(backlog, beforeBacklog) {
+		t.Fatalf("replication backlog changed after failed retention: before=%#v after=%#v", beforeBacklog, backlog)
+	}
+
+	history, err := svc.History(ctx, &runtimev1.HistoryRequest{
+		Bank:  locator,
+		Query: &runtimev1.MemoryHistoryQuery{PageSize: 10},
+	})
+	if err != nil {
+		t.Fatalf("History: %v", err)
+	}
+	if len(history.GetRecords()) != 1 || history.GetRecords()[0].GetMemoryId() != seeded.GetRecords()[0].GetMemoryId() {
+		t.Fatalf("failed retention changed visible history: %#v", history.GetRecords())
+	}
+	var persistedRecords int
+	if err := svc.PersistenceBackend().DB().QueryRow(`SELECT COUNT(*) FROM memory_record WHERE locator_key = ?`, locatorKey(locator)).Scan(&persistedRecords); err != nil {
+		t.Fatalf("count persisted records: %v", err)
+	}
+	if persistedRecords != 1 {
+		t.Fatalf("persisted records after failed retention = %d want 1", persistedRecords)
+	}
+}
+
+func TestMemoryServiceRetainPropagatesCallerCancellationToPersistedEmbedding(t *testing.T) {
+	t.Parallel()
+
+	svc, err := New(nil, config.Config{LocalStatePath: filepath.Join(t.TempDir(), "local-state.json")})
+	if err != nil {
+		t.Fatalf("New: %v", err)
+	}
+	closeMemoryServiceForTest(t, svc)
+	profile := &runtimev1.MemoryEmbeddingProfile{
+		Provider:        "local",
+		ModelId:         "local/embed-retain-cancel",
+		Dimension:       2,
+		DistanceMetric:  runtimev1.MemoryDistanceMetric_MEMORY_DISTANCE_METRIC_COSINE,
+		Version:         "local/embed-retain-cancel@v1",
+		MigrationPolicy: runtimev1.MemoryMigrationPolicy_MEMORY_MIGRATION_POLICY_REINDEX,
+	}
+	svc.SetManagedEmbeddingProfile(profile)
+	svc.SetRuntimeEmbeddingVectorExecutor(func(_ context.Context, _ *runtimev1.MemoryEmbeddingProfile, inputs []string) ([][]float64, error) {
+		vectors := make([][]float64, len(inputs))
+		for index := range vectors {
+			vectors[index] = []float64{1, 0}
+		}
+		return vectors, nil
+	})
+	locator := testMemoryEmbeddingLocator("agent-retain-cancel")
+	if _, err := svc.EnsureCanonicalBank(context.Background(), locator, "Cancel Memory", nil); err != nil {
+		t.Fatalf("EnsureCanonicalBank: %v", err)
+	}
+	if _, err := svc.BindCanonicalBankResolvedEmbeddingProfile(context.Background(), locator, profile); err != nil {
+		t.Fatalf("BindCanonicalBankResolvedEmbeddingProfile: %v", err)
+	}
+
+	started := make(chan struct{})
+	release := make(chan struct{})
+	svc.SetRuntimeEmbeddingVectorExecutor(func(ctx context.Context, _ *runtimev1.MemoryEmbeddingProfile, _ []string) ([][]float64, error) {
+		close(started)
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		case <-release:
+			return nil, errors.New("released unbounded embedding executor")
+		}
+	})
+	ctx, cancel := context.WithCancel(context.Background())
+	result := make(chan error, 1)
+	go func() {
+		_, retainErr := svc.Retain(ctx, &runtimev1.RetainRequest{
+			Bank: locator,
+			Records: []*runtimev1.MemoryRecordInput{{
+				Kind: runtimev1.MemoryRecordKind_MEMORY_RECORD_KIND_OBSERVATIONAL,
+				Payload: &runtimev1.MemoryRecordInput_Observational{Observational: &runtimev1.ObservationalMemoryRecord{
+					Observation: "must not survive canceled retention",
+				}},
+			}},
+		})
+		result <- retainErr
+	}()
+	select {
+	case <-started:
+	case <-time.After(time.Second):
+		close(release)
+		t.Fatal("embedding executor did not start")
+	}
+	cancel()
+	var retainErr error
+	timedOut := false
+	select {
+	case retainErr = <-result:
+	case <-time.After(time.Second):
+		timedOut = true
+		close(release)
+		retainErr = <-result
+	}
+	if timedOut {
+		t.Fatal("Retain did not stop after caller cancellation")
+	}
+	if !errors.Is(retainErr, context.Canceled) {
+		t.Fatalf("Retain error = %v, want context.Canceled", retainErr)
+	}
+	history, err := svc.History(context.Background(), &runtimev1.HistoryRequest{Bank: locator, Query: &runtimev1.MemoryHistoryQuery{PageSize: 10}})
+	if err != nil {
+		t.Fatalf("History: %v", err)
+	}
+	if len(history.GetRecords()) != 0 {
+		t.Fatalf("canceled retention changed owner history: %#v", history.GetRecords())
+	}
+	var persistedRecords int
+	if err := svc.backend.DB().QueryRow(`SELECT COUNT(*) FROM memory_record WHERE locator_key = ?`, locatorKey(locator)).Scan(&persistedRecords); err != nil {
+		t.Fatalf("count persisted records: %v", err)
+	}
+	if persistedRecords != 0 {
+		t.Fatalf("canceled retention persisted %d records", persistedRecords)
+	}
+}
+
+func TestMemoryServiceRetainEmbeddingRunsOutsideOwnerLock(t *testing.T) {
+	t.Parallel()
+
+	svc, err := New(nil, config.Config{LocalStatePath: filepath.Join(t.TempDir(), "local-state.json")})
+	if err != nil {
+		t.Fatalf("New: %v", err)
+	}
+	closeMemoryServiceForTest(t, svc)
+	profile := &runtimev1.MemoryEmbeddingProfile{
+		Provider:        "local",
+		ModelId:         "local/embed-retain-lock",
+		Dimension:       2,
+		DistanceMetric:  runtimev1.MemoryDistanceMetric_MEMORY_DISTANCE_METRIC_COSINE,
+		Version:         "local/embed-retain-lock@v1",
+		MigrationPolicy: runtimev1.MemoryMigrationPolicy_MEMORY_MIGRATION_POLICY_REINDEX,
+	}
+	svc.SetManagedEmbeddingProfile(profile)
+	svc.SetRuntimeEmbeddingVectorExecutor(func(_ context.Context, _ *runtimev1.MemoryEmbeddingProfile, inputs []string) ([][]float64, error) {
+		vectors := make([][]float64, len(inputs))
+		for index := range vectors {
+			vectors[index] = []float64{1, 0}
+		}
+		return vectors, nil
+	})
+	locator := testMemoryEmbeddingLocator("agent-retain-lock")
+	if _, err := svc.EnsureCanonicalBank(context.Background(), locator, "Lock Memory", nil); err != nil {
+		t.Fatalf("EnsureCanonicalBank: %v", err)
+	}
+	if _, err := svc.BindCanonicalBankResolvedEmbeddingProfile(context.Background(), locator, profile); err != nil {
+		t.Fatalf("BindCanonicalBankResolvedEmbeddingProfile: %v", err)
+	}
+	svc.SetRuntimeEmbeddingVectorExecutor(func(_ context.Context, _ *runtimev1.MemoryEmbeddingProfile, inputs []string) ([][]float64, error) {
+		if !svc.mu.TryRLock() {
+			return nil, errors.New("embedding executor ran while the Memory owner lock was held")
+		}
+		svc.mu.RUnlock()
+		vectors := make([][]float64, len(inputs))
+		for index := range vectors {
+			vectors[index] = []float64{1, 0}
+		}
+		return vectors, nil
+	})
+	if _, err := svc.Retain(context.Background(), &runtimev1.RetainRequest{
+		Bank: locator,
+		Records: []*runtimev1.MemoryRecordInput{{
+			Kind: runtimev1.MemoryRecordKind_MEMORY_RECORD_KIND_OBSERVATIONAL,
+			Payload: &runtimev1.MemoryRecordInput_Observational{Observational: &runtimev1.ObservationalMemoryRecord{
+				Observation: "embedding runs outside Memory owner lock",
+			}},
+		}},
+	}); err != nil {
+		t.Fatalf("Retain: %v", err)
+	}
+}
+
+func TestMemoryServiceCloseCancelsInFlightRetainEmbeddingBeforeBackendClose(t *testing.T) {
+	t.Parallel()
+
+	statePath := filepath.Join(t.TempDir(), "local-state.json")
+	svc, err := New(nil, config.Config{LocalStatePath: statePath})
+	if err != nil {
+		t.Fatalf("New: %v", err)
+	}
+	profile := &runtimev1.MemoryEmbeddingProfile{
+		Provider:        "local",
+		ModelId:         "local/embed-retain-close",
+		Dimension:       2,
+		DistanceMetric:  runtimev1.MemoryDistanceMetric_MEMORY_DISTANCE_METRIC_COSINE,
+		Version:         "local/embed-retain-close@v1",
+		MigrationPolicy: runtimev1.MemoryMigrationPolicy_MEMORY_MIGRATION_POLICY_REINDEX,
+	}
+	svc.SetManagedEmbeddingProfile(profile)
+	svc.SetRuntimeEmbeddingVectorExecutor(func(_ context.Context, _ *runtimev1.MemoryEmbeddingProfile, inputs []string) ([][]float64, error) {
+		vectors := make([][]float64, len(inputs))
+		for index := range vectors {
+			vectors[index] = []float64{1, 0}
+		}
+		return vectors, nil
+	})
+	locator := testMemoryEmbeddingLocator("agent-retain-close")
+	if _, err := svc.EnsureCanonicalBank(context.Background(), locator, "Close Memory", nil); err != nil {
+		t.Fatalf("EnsureCanonicalBank: %v", err)
+	}
+	if _, err := svc.BindCanonicalBankResolvedEmbeddingProfile(context.Background(), locator, profile); err != nil {
+		t.Fatalf("BindCanonicalBankResolvedEmbeddingProfile: %v", err)
+	}
+	started := make(chan struct{})
+	svc.SetRuntimeEmbeddingVectorExecutor(func(ctx context.Context, _ *runtimev1.MemoryEmbeddingProfile, _ []string) ([][]float64, error) {
+		close(started)
+		<-ctx.Done()
+		return nil, ctx.Err()
+	})
+	retainResult := make(chan error, 1)
+	go func() {
+		_, retainErr := svc.Retain(context.Background(), &runtimev1.RetainRequest{
+			Bank: locator,
+			Records: []*runtimev1.MemoryRecordInput{{
+				Kind: runtimev1.MemoryRecordKind_MEMORY_RECORD_KIND_OBSERVATIONAL,
+				Payload: &runtimev1.MemoryRecordInput_Observational{Observational: &runtimev1.ObservationalMemoryRecord{
+					Observation: "must not survive service close",
+				}},
+			}},
+		})
+		retainResult <- retainErr
+	}()
+	select {
+	case <-started:
+	case <-time.After(time.Second):
+		t.Fatal("embedding executor did not start")
+	}
+	if err := svc.Close(); err != nil {
+		t.Fatalf("Close: %v", err)
+	}
+	select {
+	case retainErr := <-retainResult:
+		if !errors.Is(retainErr, context.Canceled) {
+			t.Fatalf("Retain error = %v, want context.Canceled", retainErr)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("Retain did not finish before Close returned")
+	}
+
+	restarted, err := New(nil, config.Config{LocalStatePath: statePath})
+	if err != nil {
+		t.Fatalf("New(restarted): %v", err)
+	}
+	defer func() { _ = restarted.Close() }()
+	history, err := restarted.History(context.Background(), &runtimev1.HistoryRequest{Bank: locator, Query: &runtimev1.MemoryHistoryQuery{PageSize: 10}})
+	if err != nil {
+		t.Fatalf("History(restarted): %v", err)
+	}
+	if len(history.GetRecords()) != 0 {
+		t.Fatalf("closed in-flight retention reached durable state: %#v", history.GetRecords())
 	}
 }
 

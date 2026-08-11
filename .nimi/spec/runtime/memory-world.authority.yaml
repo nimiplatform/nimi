@@ -146,9 +146,9 @@ units:
     kind: rule
     title: Memory and Knowledge consume canonical capability composition
     modality: must
-    statement: Operational Memory and Knowledge use their canonical AIConfig owner route, the machine owner's Local Capability Configuration selection or the committed Cloud CapabilityImplementation target and ConnectorGrant, and Runtime's deterministic exact Driver, binding, Quota, Budget and Rate Limit composition; their bank and retrieval state stays separately owned and neither subsystem selects a model, probes readiness, or invents fallback.
+    statement: Operational Memory and Knowledge use their canonical AIConfig owner route, the machine owner's Local Capability Configuration selection or the committed Cloud CapabilityImplementation target and ConnectorGrant, and Runtime's deterministic exact Driver, binding, Quota, Budget and Rate Limit composition; Runtime-private Memory text.embed preserves input order, partitions target-generation materialization into batches of no more than sixteen inputs, gives every batch a 20-second deadline further bounded by caller and Memory-service lifetime, accepts exactly one finite vector of the exact captured embedding profile dimension per input, and commits the bank-owned rebuild or cutover generation only together with the complete validated projection; their bank and retrieval state stays separately owned and neither subsystem selects a model, probes capability readiness, or invents fallback.
     condition: Whenever Memory or Knowledge requires AI resources.
-    failure: Fail closed with the typed derived admission or Job failure when exact committed inputs are unavailable.
+    failure: Fail closed with the typed derived admission or Job failure when exact committed inputs are unavailable, discard the incomplete target-generation projection, and leave the bank profile, generation, cutover, and unrelated owner state unchanged.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.memory-world.scheduling-plane

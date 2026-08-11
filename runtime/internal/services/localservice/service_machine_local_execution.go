@@ -131,7 +131,8 @@ func (s *Service) ResolveSelectedLocalExecution(capabilityContract string) (*loc
 			EntrySHA256:       binding.GetEntrySha256(),
 		})
 		if requirement.GetRole() == runtimev1.LocalCapabilityRequirementRole_LOCAL_CAPABILITY_REQUIREMENT_ROLE_MAIN &&
-			capabilityContract == capabilitydriver.LlamaCapabilityContract {
+			(capabilityContract == capabilitydriver.LlamaCapabilityContract ||
+				capabilityContract == capabilitydriver.TextEmbedCapabilityContract) {
 			if summary, inspectErr := ggufmeta.InspectPath(absolutePath); inspectErr == nil {
 				modelContextWindowTokens, _ = ggufmeta.LLMContextLength(summary)
 			}

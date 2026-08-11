@@ -4,6 +4,7 @@ import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 
 import {
+  NIMI_AI_PROFILE_LLAMA_CPP_EMBED_IMPLEMENTATION,
   NIMI_AI_PROFILE_LLAMA_CPP_IMPLEMENTATION,
   parseNimiPortableAIProfile,
   type NimiCapabilityAIConfig,
@@ -265,6 +266,76 @@ test('AIProfile authoring renders stable-diffusion typed fields and ordered LoRA
   assert.ok(markup.indexOf('Portrait detail') < markup.indexOf('Lighting'));
   assert.match(markup, /Unconditional diffusion model/u);
   assert.match(markup, /data-testid="ai-profile-authoring-sd-execution-options"/u);
+});
+
+test('AIProfile authoring round-trips the exact portable llama embedding section', () => {
+  let draft = validTextDraft();
+  draft = changeRuntimeConfigAIProfileCapabilityContract(
+    draft,
+    draft.capabilities[0]!.draftId,
+    'text.embed',
+  );
+  const capability = draft.capabilities[0]!;
+  assert.equal(capability.local.driverKind, 'llama-embed');
+  assert.equal(capability.local.includeImplementation, true);
+  draft = {
+    ...draft,
+    capabilities: [{
+      ...capability,
+      requiredFeaturesText: '',
+      local: {
+        ...capability.local,
+        supportedFeaturesText: '',
+        llama: {
+          ...capability.local.llama,
+          main: { policy: 'substitutable', verifiedContentId: '' },
+          mmproj: { policy: '', verifiedContentId: '' },
+          contextSize: '4096',
+        },
+      },
+    }],
+  };
+  const projection: RuntimeConfigAIProfileAuthoringCurrentProjection = {
+    ...currentProjection(),
+    machine: { configurations: [], selections: [] },
+  };
+  const inspection = inspectRuntimeConfigAIProfileAuthoring(draft, projection);
+  assert.equal(inspection.status, 'valid');
+  if (inspection.status !== 'valid') assert.fail('expected valid embedding authoring inspection');
+  assert.deepEqual(inspection.model.requirements[0]?.projection.requirements.map((requirement) => [
+    requirement.requirementId,
+    requirement.role,
+    requirement.displayLabel,
+    requirement.resourceKind,
+    requirement.policy,
+  ]), [[
+    'embedding.gguf',
+    'main',
+    'Embedding model',
+    'gguf',
+    'substitutable',
+  ]]);
+
+  const markup = renderAuthoring(stateWithDraft(draft), projection);
+  assert.match(markup, /data-testid="ai-profile-authoring-capability:text\.embed"/u);
+  assert.match(markup, /data-testid="ai-profile-authoring-llama-fields"/u);
+  assert.match(markup, /llama\.cpp\/text-embed\/v1/u);
+  assert.doesNotMatch(markup, /Vision projector requirement/u);
+
+  const exported = exportRuntimeConfigAIProfileAuthoring(draft);
+  const profile = parseNimiPortableAIProfile(exported.artifactJson);
+  assert.deepEqual(profile.capabilities['text.embed']?.implementation, {
+    ...NIMI_AI_PROFILE_LLAMA_CPP_EMBED_IMPLEMENTATION,
+    supportedFeatures: [],
+  });
+  const importedDraft = importRuntimeConfigAIProfileAuthoring(exported.artifactJson);
+  assert.equal(importedDraft.capabilities[0]!.local.driverKind, 'llama-embed');
+  assert.deepEqual(
+    parseNimiPortableAIProfile(
+      exportRuntimeConfigAIProfileAuthoring(importedDraft).artifactJson,
+    ),
+    profile,
+  );
 });
 
 test('AIProfile authoring renders the stable-diffusion video section and round-trips its portable config', () => {

@@ -1,9 +1,11 @@
 import type { TFunction } from 'i18next';
 import {
   NIMI_MACHINE_LOCAL_IMAGE_GENERATE_CAPABILITY_CONTRACT,
+  NIMI_MACHINE_LOCAL_LLAMA_CPP_EMBED_IMPLEMENTATION,
   NIMI_MACHINE_LOCAL_LLAMA_CPP_TEXT_IMPLEMENTATION,
   NIMI_MACHINE_LOCAL_STABLE_DIFFUSION_IMAGE_IMPLEMENTATION,
   NIMI_MACHINE_LOCAL_STABLE_DIFFUSION_VIDEO_IMPLEMENTATION,
+  NIMI_MACHINE_LOCAL_TEXT_EMBED_CAPABILITY_CONTRACT,
   NIMI_MACHINE_LOCAL_TEXT_GENERATE_CAPABILITY_CONTRACT,
   NIMI_MACHINE_LOCAL_VIDEO_GENERATE_CAPABILITY_CONTRACT,
   type NimiMachineLocalCapabilityConfiguration,
@@ -13,12 +15,13 @@ import {
 import type { RuntimeConfigMachineLocalAIAddDraft } from './runtime-config-machine-local-ai-state.js';
 
 /**
- * Fixed product order for machine-local capability rows: text, image, video.
+ * Fixed product order for machine-local capability rows: text, embedding, image, video.
  * Any additional contracts projected by Runtime are appended in first-seen
  * order instead of relying on locale-sensitive string sorting.
  */
 export const MACHINE_LOCAL_AI_CAPABILITY_PRODUCT_ORDER = Object.freeze([
   NIMI_MACHINE_LOCAL_TEXT_GENERATE_CAPABILITY_CONTRACT,
+  NIMI_MACHINE_LOCAL_TEXT_EMBED_CAPABILITY_CONTRACT,
   NIMI_MACHINE_LOCAL_IMAGE_GENERATE_CAPABILITY_CONTRACT,
   NIMI_MACHINE_LOCAL_VIDEO_GENERATE_CAPABILITY_CONTRACT,
 ] as const);
@@ -47,13 +50,18 @@ export function displayMachineLocalConfigurationName(
     || t('runtimeConfig.machineLocalAIConfigurations.unnamedConfiguration');
 }
 
-export function isMachineLocalLlamaTextConfiguration(
+export function isMachineLocalLlamaConfiguration(
   configuration: NimiMachineLocalCapabilityConfiguration,
 ): boolean {
-  return configuration.capabilityContract === NIMI_MACHINE_LOCAL_TEXT_GENERATE_CAPABILITY_CONTRACT
-    && configuration.implementation.implementationId === NIMI_MACHINE_LOCAL_LLAMA_CPP_TEXT_IMPLEMENTATION.implementationId
-    && configuration.implementation.driverId === NIMI_MACHINE_LOCAL_LLAMA_CPP_TEXT_IMPLEMENTATION.driverId
-    && configuration.implementation.driverDialect === NIMI_MACHINE_LOCAL_LLAMA_CPP_TEXT_IMPLEMENTATION.driverDialect;
+  return exactMachineLocalImplementation(
+    configuration,
+    NIMI_MACHINE_LOCAL_TEXT_GENERATE_CAPABILITY_CONTRACT,
+    NIMI_MACHINE_LOCAL_LLAMA_CPP_TEXT_IMPLEMENTATION,
+  ) || exactMachineLocalImplementation(
+    configuration,
+    NIMI_MACHINE_LOCAL_TEXT_EMBED_CAPABILITY_CONTRACT,
+    NIMI_MACHINE_LOCAL_LLAMA_CPP_EMBED_IMPLEMENTATION,
+  );
 }
 
 export function isMachineLocalStableDiffusionVideoConfiguration(
@@ -79,12 +87,7 @@ export function machineLocalEngineDisplayName(
   t: TFunction,
 ): string {
   const implementation = configuration.implementation;
-  if (
-    implementation.implementationId
-      === NIMI_MACHINE_LOCAL_LLAMA_CPP_TEXT_IMPLEMENTATION.implementationId
-    && implementation.driverId
-      === NIMI_MACHINE_LOCAL_LLAMA_CPP_TEXT_IMPLEMENTATION.driverId
-  ) {
+  if (isMachineLocalLlamaConfiguration(configuration)) {
     return 'llama.cpp';
   }
   if (
@@ -96,6 +99,21 @@ export function machineLocalEngineDisplayName(
     return 'stable-diffusion.cpp';
   }
   return t('runtimeConfig.machineLocalAIConfigurations.otherEngine');
+}
+
+function exactMachineLocalImplementation(
+  configuration: NimiMachineLocalCapabilityConfiguration,
+  capabilityContract: string,
+  implementation: {
+    readonly implementationId: string;
+    readonly driverId: string;
+    readonly driverDialect: string;
+  },
+): boolean {
+  return configuration.capabilityContract === capabilityContract
+    && configuration.implementation.implementationId === implementation.implementationId
+    && configuration.implementation.driverId === implementation.driverId
+    && configuration.implementation.driverDialect === implementation.driverDialect;
 }
 
 export function machineLocalAssetDisplayName(
