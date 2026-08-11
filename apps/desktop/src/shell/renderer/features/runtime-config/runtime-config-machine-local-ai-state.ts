@@ -68,14 +68,6 @@ export type RuntimeConfigMachineLocalAIImageSlotDraft = {
   readonly localAssetId: string;
 };
 
-export type RuntimeConfigMachineLocalAILoRADraft = {
-  readonly draftId: string;
-  readonly displayLabel: string;
-  readonly requirementPolicy: NimiMachineLocalCapabilityRequirementPolicy;
-  readonly localAssetId: string;
-  readonly weight: string;
-};
-
 export type RuntimeConfigMachineLocalAIVideoRecipeDraft = {
   readonly cfgScale: string;
   readonly flowShift: string;
@@ -111,7 +103,6 @@ export type RuntimeConfigMachineLocalAIAddDraft = {
     RuntimeConfigMachineLocalAIVideoSlotId,
     RuntimeConfigMachineLocalAIImageSlotDraft
   >>;
-  readonly loras: readonly RuntimeConfigMachineLocalAILoRADraft[];
   readonly executionOptions: {
     readonly steps: string;
     readonly cfgScale: string;
@@ -196,7 +187,6 @@ export function createRuntimeConfigMachineLocalAIAddDraft(): RuntimeConfigMachin
       videoVAE: slot(),
       audioVAE: slot(),
     },
-    loras: [],
     executionOptions: {
       steps: '20',
       cfgScale: '7',
@@ -401,20 +391,6 @@ export function runtimeConfigMachineLocalAIImpactCommitAllowed(
     && state.impactConfirmation.status === 'ready'
     && state.impactConfirmation.impact !== null
     && state.impactConfirmation.explicitlyConfirmed;
-}
-
-export function moveRuntimeConfigMachineLocalAILoRA(
-  loras: readonly RuntimeConfigMachineLocalAILoRADraft[],
-  index: number,
-  direction: -1 | 1,
-): readonly RuntimeConfigMachineLocalAILoRADraft[] {
-  const target = index + direction;
-  if (!Number.isInteger(index) || index < 0 || index >= loras.length || target < 0 || target >= loras.length) {
-    return loras;
-  }
-  const next = [...loras];
-  [next[index], next[target]] = [next[target]!, next[index]!];
-  return next;
 }
 
 export function groupMachineLocalCapabilityRequirements(

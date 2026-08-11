@@ -561,18 +561,6 @@ func imageLoadRequest(address string, plan *capabilitydriver.ImageInvocationPlan
 			Required:      true,
 		})
 	}
-	for _, lora := range plan.LoRAs() {
-		components = append(components, managedimagebackend.ComponentBinding{
-			OccurrenceID:  lora.RequirementID,
-			Order:         int32(lora.OccurrenceOrdinal),
-			Role:          "lora",
-			ComponentKind: "lora",
-			EngineSlot:    "lora_path",
-			Path:          lora.AbsolutePath,
-			Required:      true,
-			Weight:        strconv.FormatFloat(lora.Weight, 'g', -1, 64),
-		})
-	}
 	return managedimagebackend.LoadModelRequest{
 		BackendAddress: address,
 		ModelsRoot:     imageInvocationModelsRoot(plan.MainModelPath()),
@@ -589,20 +577,17 @@ func imageInvocationLoadOptions(plan *capabilitydriver.ImageInvocationPlan) []st
 		"diffusion_model",
 		"llm_path:" + plan.TextEncoderPath(),
 		"vae_path:" + plan.VAEPath(),
-		"diffusion_flash_attn:" + strconv.FormatBool(plan.DiffusionFlashAttention()),
+		"diffusion_fa:" + strconv.FormatBool(plan.DiffusionFlashAttention()),
 		"offload_params_to_cpu:" + strconv.FormatBool(plan.OffloadParamsToCPU()),
 	}
 	if path := strings.TrimSpace(plan.UncondDiffusionPath()); path != "" {
-		options = append(options, "high_noise_diffusion_model_path:"+path)
+		options = append(options, "uncond_diffusion_model:"+path)
 	}
 	if sampler := strings.TrimSpace(plan.Sampler()); sampler != "" {
 		options = append(options, "sampler:"+sampler)
 	}
 	if scheduler := strings.TrimSpace(plan.Scheduler()); scheduler != "" {
 		options = append(options, "scheduler:"+scheduler)
-	}
-	if len(plan.LoRAs()) > 0 {
-		options = append(options, "lora_dir:"+imageInvocationModelsRoot(plan.MainModelPath()))
 	}
 	return options
 }
@@ -611,19 +596,7 @@ func imageInvocationPrompt(plan *capabilitydriver.ImageInvocationPlan) string {
 	if plan == nil {
 		return ""
 	}
-	if len(plan.LoRAs()) == 0 {
-		return plan.Prompt()
-	}
-	var prompt strings.Builder
-	for _, lora := range plan.LoRAs() {
-		prompt.WriteString("<lora:")
-		prompt.WriteString(lora.AbsolutePath)
-		prompt.WriteByte(':')
-		prompt.WriteString(strconv.FormatFloat(lora.Weight, 'g', -1, 64))
-		prompt.WriteString("> ")
-	}
-	prompt.WriteString(plan.Prompt())
-	return prompt.String()
+	return plan.Prompt()
 }
 
 func imageInvocationEnableParameters(plan *capabilitydriver.ImageInvocationPlan) string {

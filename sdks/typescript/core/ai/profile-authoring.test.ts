@@ -12,7 +12,6 @@ import {
   NIMI_AI_PROFILE_QWEN3_ASR_TRANSFORMERS_IMPLEMENTATION,
   NIMI_AI_PROFILE_QWEN3_TTS_IMPLEMENTATION,
   NIMI_AI_PROFILE_STABLE_DIFFUSION_EXECUTION_OPTION_FIELDS,
-  NIMI_AI_PROFILE_STABLE_DIFFUSION_LORA_FIELDS,
   NIMI_AI_PROFILE_STABLE_DIFFUSION_MODEL_FAMILIES,
   NIMI_AI_PROFILE_STABLE_DIFFUSION_PORTABLE_CONFIG_FIELDS,
   NIMI_AI_PROFILE_STABLE_DIFFUSION_VIDEO_PORTABLE_CONFIG_FIELDS,
@@ -439,7 +438,7 @@ test('selection mismatch preview derives current, recommended Local, and Cloud f
   assert.equal(cloudMismatch.branches[2].featureSubset.status, 'feature-mismatch');
 });
 
-test('stable-diffusion authoring projection preserves Driver-declared occurrences', () => {
+test('stable-diffusion authoring projects only supported Driver slots and rejects LoRA', () => {
   const profile = createNimiAIProfileAuthoringBuilder({
     profileId: 'profile.authoring.image',
     title: 'Portable image studio',
@@ -457,10 +456,6 @@ test('stable-diffusion authoring projection preserves Driver-declared occurrence
         textEncoderRequirementPolicy: 'substitutable',
         vaeRequirementPolicy: 'substitutable',
         uncondDiffusionRequirementPolicy: 'substitutable',
-        loras: [
-          { displayLabel: 'Portrait detail', requirementPolicy: 'substitutable' },
-          { requirementPolicy: 'substitutable', weight: 0.5 },
-        ],
         executionOptions: {
           steps: 30,
           cfgScale: 6.5,
@@ -492,10 +487,52 @@ test('stable-diffusion authoring projection preserves Driver-declared occurrence
       ['companion.text-encoder', 'companion', 0, 'Text encoder', 'chat', 'substitutable'],
       ['companion.vae', 'companion', 0, 'VAE', 'vae', 'substitutable'],
       ['companion.uncond-diffusion', 'companion', 0, 'Unconditional diffusion model', 'image', 'substitutable'],
-      ['companion.lora.1', 'companion', 1, 'Portrait detail', 'lora', 'substitutable'],
-      ['companion.lora.2', 'companion', 2, 'LoRA 2', 'lora', 'substitutable'],
     ],
   );
+  assert.throws(
+    () => createNimiAIProfileStableDiffusionLocalImplementation({
+      portableConfig: {
+        modelFamily: 'z-image',
+        loras: [],
+      },
+    } as never),
+    (error: unknown) => {
+      assert.equal(
+        (error as { reasonCode?: string }).reasonCode,
+        'AI_PROFILE_AUTHORING_INVALID',
+      );
+      return true;
+    },
+  );
+});
+
+test('stable-diffusion profile authoring constrains seed to the managed signed-int32 carrier', () => {
+  for (const seed of [-2147483648, 2147483647]) {
+    const implementation = createNimiAIProfileStableDiffusionLocalImplementation({
+      portableConfig: {
+        modelFamily: 'z-image',
+        executionOptions: { seed },
+      },
+    });
+    assert.equal(
+      (implementation.driverSection.portableConfig.executionOptions as { seed?: number } | undefined)?.seed,
+      seed,
+    );
+  }
+  for (const seed of [-2147483649, 2147483648]) {
+    assert.throws(
+      () => createNimiAIProfileStableDiffusionLocalImplementation({
+        portableConfig: {
+          modelFamily: 'z-image',
+          executionOptions: { seed },
+        },
+      }),
+      (error: unknown) => {
+        assert.equal((error as { reasonCode?: string }).reasonCode, 'AI_PROFILE_AUTHORING_INVALID');
+        return true;
+      },
+    );
+  }
 });
 
 test('llama embedding authoring preserves exact portable identity and slot', () => {
@@ -757,15 +794,7 @@ test('authoring Driver field inventories stay exact with Runtime parsers', () =>
     'vaeVerifiedContentId',
     'uncondDiffusionRequirementPolicy',
     'uncondDiffusionVerifiedContentId',
-    'loras',
     'executionOptions',
-  ]);
-  // runtime/internal/capabilitydriver/stablediffusion.go:811
-  assert.deepEqual(NIMI_AI_PROFILE_STABLE_DIFFUSION_LORA_FIELDS, [
-    'displayLabel',
-    'requirementPolicy',
-    'verifiedContentId',
-    'weight',
   ]);
   // runtime/internal/capabilitydriver/stablediffusion.go:862
   assert.deepEqual(NIMI_AI_PROFILE_STABLE_DIFFUSION_EXECUTION_OPTION_FIELDS, [

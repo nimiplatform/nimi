@@ -213,35 +213,35 @@ func validateProfileRuntimeRequiredCompanionSlots(
 		return nil
 	}
 	requiredSlots := profileRuntimeRequiredImageCompanionSlots(slice.Model.Family)
-	if len(requiredSlots) == 0 {
-		return nil
+	contractsBySlot := make(map[string]profileRuntimeImageCompanionSlotContract, len(requiredSlots))
+	for _, required := range requiredSlots {
+		contractsBySlot[required.EngineSlot] = required
 	}
 	declaredRequiredSlots := map[string]profileRuntimeDescriptorCompanionOccurrence{}
 	for _, occurrence := range slice.OrderedCompanionOccurrences {
-		if !occurrence.Required {
-			continue
-		}
 		slot := strings.TrimSpace(occurrence.EngineSlot)
-		if slot != "" {
-			declaredRequiredSlots[slot] = occurrence
-		}
-	}
-	for _, required := range requiredSlots {
-		occurrence, ok := declaredRequiredSlots[required.EngineSlot]
+		required, ok := contractsBySlot[slot]
 		if !ok {
 			return profileRuntimeDescriptorError(
-				"descriptor.required_companion_slot_missing",
-				normalizeProfileRuntimeImageModelFamily(slice.Model.Family)+":"+required.EngineSlot,
+				"descriptor.companion_slot_unsupported",
+				normalizeProfileRuntimeImageModelFamily(slice.Model.Family)+":"+slot,
 			)
 		}
-		if !strings.EqualFold(strings.TrimSpace(occurrence.Role), required.Role) {
+		if _, duplicate := declaredRequiredSlots[slot]; duplicate {
+			return profileRuntimeDescriptorError(
+				"descriptor.companion_slot_duplicate",
+				normalizeProfileRuntimeImageModelFamily(slice.Model.Family)+":"+slot,
+			)
+		}
+		if !strings.EqualFold(strings.TrimSpace(occurrence.Role), required.Role) ||
+			occurrence.Required != required.Required {
 			return profileRuntimeDescriptorError(
 				"descriptor.required_companion_slot_mismatch",
 				normalizeProfileRuntimeImageModelFamily(slice.Model.Family)+":"+required.EngineSlot+":role",
 			)
 		}
-		binding, ok := assetBindings[strings.TrimSpace(occurrence.AssetBindingRef)]
-		if !ok {
+		binding, bindingExists := assetBindings[strings.TrimSpace(occurrence.AssetBindingRef)]
+		if !bindingExists {
 			return profileRuntimeDescriptorError(
 				"descriptor.required_companion_binding_missing",
 				normalizeProfileRuntimeImageModelFamily(slice.Model.Family)+":"+required.EngineSlot,
@@ -251,6 +251,15 @@ func validateProfileRuntimeRequiredCompanionSlots(
 			return profileRuntimeDescriptorError(
 				"descriptor.required_companion_slot_mismatch",
 				normalizeProfileRuntimeImageModelFamily(slice.Model.Family)+":"+required.EngineSlot+":component_kind",
+			)
+		}
+		declaredRequiredSlots[slot] = occurrence
+	}
+	for _, required := range requiredSlots {
+		if _, ok := declaredRequiredSlots[required.EngineSlot]; !ok {
+			return profileRuntimeDescriptorError(
+				"descriptor.required_companion_slot_missing",
+				normalizeProfileRuntimeImageModelFamily(slice.Model.Family)+":"+required.EngineSlot,
 			)
 		}
 	}

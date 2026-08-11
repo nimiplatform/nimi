@@ -114,6 +114,17 @@ func timeoutDuration(timeoutMS int32, defaultTimeout time.Duration) time.Duratio
 	return clampTimeoutDuration(time.Duration(timeoutMS) * time.Millisecond)
 }
 
+func localImageJobTimeoutDuration(timeoutMS int32) (time.Duration, error) {
+	if timeoutMS == 0 {
+		return minLocalImageJobTimeout, nil
+	}
+	duration := time.Duration(timeoutMS) * time.Millisecond
+	if duration < minLocalImageJobTimeout || duration > maxLocalImageJobTimeout {
+		return 0, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
+	}
+	return duration, nil
+}
+
 func scenarioJobTimeoutDuration(
 	req *runtimev1.SubmitScenarioJobRequest,
 	defaultTimeout time.Duration,
@@ -157,12 +168,6 @@ func clampScenarioJobTimeoutDuration(
 		return 0
 	}
 	maxDuration := maxRuntimeRequestTimeout
-	if localRoute && scenarioType == runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE {
-		if duration < minLocalImageJobTimeout {
-			return minLocalImageJobTimeout
-		}
-		maxDuration = maxLocalImageJobTimeout
-	}
 	if localRoute && (scenarioType == runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE ||
 		scenarioType == runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_TRANSCRIBE) {
 		maxDuration = maxLocalSpeechJobTimeout

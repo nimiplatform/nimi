@@ -21,7 +21,7 @@ await build({
   logLevel: 'silent',
 });
 
-const { hasStudioArtifactMedia, studioArtifactRenderBranch } = await import(
+const { STUDIO_ARTIFACT_IMAGE_LOADING, hasStudioArtifactMedia, studioArtifactRenderBranch } = await import(
   pathToFileURL(path.join(buildDir, 'artifact-preview.mjs')).href
 );
 
@@ -39,6 +39,10 @@ test('artifact preview projection selects image, video, and audio controls', () 
     assert.equal(studioArtifactRenderBranch(artifact), branch);
     assert.equal(hasStudioArtifactMedia(artifact), true);
   }
+});
+
+test('managed image previews start decoding without native lazy-load deferral', () => {
+  assert.equal(STUDIO_ARTIFACT_IMAGE_LOADING, 'eager');
 });
 
 test('artifact preview projection keeps metadata-only and unsupported artifacts explicit', () => {

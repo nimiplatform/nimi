@@ -21,6 +21,10 @@ func (s *Service) submitLocalImageScenarioJob(ctx context.Context, req *runtimev
 	if err := validateSubmitScenarioAsyncJobRequest(req); err != nil {
 		return nil, err
 	}
+	timeout, err := localImageJobTimeoutDuration(req.GetHead().GetTimeoutMs())
+	if err != nil {
+		return nil, err
+	}
 	idempotencyScope, err := buildScenarioJobIdempotencyScope(ctx, req)
 	if err != nil {
 		return nil, grpcerr.WrapWithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID, err, grpcerr.ReasonOptions{})
@@ -48,7 +52,6 @@ func (s *Service) submitLocalImageScenarioJob(ctx context.Context, req *runtimev
 	if identity := authn.IdentityFromContext(ctx); identity != nil {
 		jobCtx = authn.WithIdentity(jobCtx, identity)
 	}
-	timeout := scenarioJobTimeoutDuration(req, defaultGenerateImageTimeout, true)
 	var cancel context.CancelFunc
 	if timeout > 0 {
 		jobCtx, cancel = context.WithTimeout(jobCtx, timeout)

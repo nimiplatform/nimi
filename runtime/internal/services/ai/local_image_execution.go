@@ -186,6 +186,9 @@ func normalizeLocalImageRequest(
 	if cloned == nil {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 	}
+	if cloned.Seed != nil && (cloned.GetSeed() < math.MinInt32 || cloned.GetSeed() > math.MaxInt32) {
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
+	}
 	if defaults == nil || len(defaults.GetFields()) == 0 {
 		return cloned, nil
 	}
@@ -210,7 +213,7 @@ func normalizeLocalImageRequest(
 		case "size":
 			if cloned.GetSize() == "" {
 				text, ok := localImageDefaultString(value)
-				if !ok {
+				if !ok || !capabilitydriver.StableDiffusionImageSizeSupported(text) {
 					return nil, invalidAppAIConfigError()
 				}
 				cloned.Size = text
@@ -281,6 +284,8 @@ func localImageInvocationError(err error) error {
 	switch invocationErr.Kind {
 	case capabilitydriver.InvocationFailureInvalidRequest:
 		return grpcerr.WrapWithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID, err, grpcerr.ReasonOptions{})
+	case capabilitydriver.InvocationFailureInvalidOption:
+		return grpcerr.WrapWithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED, err, grpcerr.ReasonOptions{})
 	case capabilitydriver.InvocationFailureUnsupported:
 		return grpcerr.WrapWithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MODALITY_NOT_SUPPORTED, err, grpcerr.ReasonOptions{})
 	case capabilitydriver.InvocationFailureInvalidBinding:

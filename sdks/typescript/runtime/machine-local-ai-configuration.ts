@@ -255,13 +255,6 @@ export interface NimiMachineLocalAIConfigurationUnbindInput {
   readonly expectedCurrentBinding: NimiMachineLocalAssetExactBinding;
 }
 
-export interface NimiMachineLocalStableDiffusionLoRAInput {
-  readonly displayLabel?: string;
-  readonly requirementPolicy?: NimiMachineLocalCapabilityRequirementPolicy;
-  readonly verifiedContentId?: string;
-  readonly weight?: number;
-}
-
 export interface NimiMachineLocalStableDiffusionExecutionOptionsInput {
   readonly steps?: number;
   readonly cfgScale?: number;
@@ -287,7 +280,6 @@ export interface NimiMachineLocalStableDiffusionImageConfigurationInput {
   readonly vaeVerifiedContentId?: string;
   readonly uncondDiffusionRequirementPolicy?: NimiMachineLocalCapabilityRequirementPolicy;
   readonly uncondDiffusionVerifiedContentId?: string;
-  readonly loras?: readonly NimiMachineLocalStableDiffusionLoRAInput[];
   readonly executionOptions?: NimiMachineLocalStableDiffusionExecutionOptionsInput;
 }
 
@@ -508,7 +500,6 @@ export function createNimiMachineLocalStableDiffusionImageConfigurationInput(
     'vaeVerifiedContentId',
     'uncondDiffusionRequirementPolicy',
     'uncondDiffusionVerifiedContentId',
-    'loras',
     'executionOptions',
   ]), 'stable-diffusion configuration input');
   const displayName = requireInputText(input.displayName, 'displayName');
@@ -557,9 +548,6 @@ export function createNimiMachineLocalStableDiffusionImageConfigurationInput(
     return inputError('uncondDiffusion fields are supported only for the ideogram4 model family');
   }
 
-  if (input.loras !== undefined) {
-    portableConfig.loras = buildStableDiffusionLoRAs(input.loras);
-  }
   if (input.executionOptions !== undefined) {
     portableConfig.executionOptions = buildStableDiffusionExecutionOptions(input.executionOptions);
   }
@@ -1048,50 +1036,6 @@ function appendStableDiffusionRequirementIntent(
   }
 }
 
-function buildStableDiffusionLoRAs(
-  value: readonly NimiMachineLocalStableDiffusionLoRAInput[],
-): JsonObject[] {
-  if (!Array.isArray(value) || value.length > 32) {
-    return inputError('loras must be an array with at most 32 entries');
-  }
-  return value.map((item, index) => {
-    assertExactRecord(
-      item,
-      new Set(['displayLabel', 'requirementPolicy', 'verifiedContentId', 'weight']),
-      `loras[${index}]`,
-    );
-    const result: JsonObject = {};
-    if (item.displayLabel !== undefined) {
-      result.displayLabel = requireInputText(item.displayLabel, `loras[${index}].displayLabel`);
-    }
-    if (item.requirementPolicy !== undefined) {
-      result.requirementPolicy = requireStableDiffusionRequirementPolicy(
-        item.requirementPolicy,
-        `loras[${index}].requirementPolicy`,
-      );
-    }
-    if (item.verifiedContentId !== undefined) {
-      result.verifiedContentId = requireCanonicalVerifiedContentId(
-        item.verifiedContentId,
-        `loras[${index}].verifiedContentId`,
-        inputError,
-      );
-    }
-    if (item.requirementPolicy === 'strict' && item.verifiedContentId === undefined) {
-      inputError(`loras[${index}].verifiedContentId is required for strict policy`);
-    }
-    if (item.weight !== undefined) {
-      result.weight = requireFiniteNumberInRange(
-        item.weight,
-        -4,
-        4,
-        `loras[${index}].weight`,
-      );
-    }
-    return result;
-  });
-}
-
 function buildStableDiffusionExecutionOptions(
   value: NimiMachineLocalStableDiffusionExecutionOptionsInput,
 ): JsonObject {
@@ -1138,8 +1082,8 @@ function buildStableDiffusionExecutionOptions(
   if (value.seed !== undefined) {
     output.seed = requireIntegerInRange(
       value.seed,
-      Number.MIN_SAFE_INTEGER,
-      Number.MAX_SAFE_INTEGER,
+      -2147483648,
+      2147483647,
       'executionOptions.seed',
     );
   }

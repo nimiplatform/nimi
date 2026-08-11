@@ -92,16 +92,14 @@ func buildStableDiffusionCPPGenerateRequest(loaded loadModelState, req imageGene
 	if req.Step > 0 {
 		payload["steps"] = req.Step
 	}
-	if loaded.CFGScale > 0 {
-		payload["cfg_scale"] = loaded.CFGScale
-	}
+	payload["cfg_scale"] = loaded.CFGScale
 	if sampler := strings.TrimSpace(loaded.Options.Sampler); sampler != "" {
 		payload["sampler_name"] = sampler
 	}
 	if scheduler := strings.TrimSpace(loaded.Options.Scheduler); scheduler != "" {
 		payload["scheduler"] = scheduler
 	}
-	payload["seed"] = managedImageGenerateSeed(req.Seed)
+	payload["seed"] = req.Seed
 
 	if strings.TrimSpace(req.Src) == "" && maskPath == "" {
 		return "/sdapi/v1/txt2img", payload, nil
@@ -122,13 +120,6 @@ func buildStableDiffusionCPPGenerateRequest(loaded loadModelState, req imageGene
 		payload["mask"] = maskImage
 	}
 	return "/sdapi/v1/img2img", payload, nil
-}
-
-func managedImageGenerateSeed(seed int32) int32 {
-	if seed != 0 {
-		return seed
-	}
-	return 42
 }
 
 func managedImageMaskPath(enableParams string) (string, error) {

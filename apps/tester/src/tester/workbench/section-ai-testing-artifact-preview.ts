@@ -15,6 +15,8 @@ export type StudioArtifactRenderBranch =
   | 'unsupported'
   | 'none';
 
+export const STUDIO_ARTIFACT_IMAGE_LOADING = 'eager' as const;
+
 // Single pure projection shared by current and persisted result renderers.
 // Playback exists only for managed assets; source artifact URLs and bodies are
 // never treated as persistent media truth.

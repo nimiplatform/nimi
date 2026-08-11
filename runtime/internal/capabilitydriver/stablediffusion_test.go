@@ -4,6 +4,8 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
+	"fmt"
+	"math"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -67,65 +69,43 @@ func TestStableDiffusionInterpretInputImageSupportMustMatchPortableDeclaration(t
 	}
 }
 
-func TestStableDiffusionInterpretOrderedLoRAsAndAllowsRepeatedExactAsset(t *testing.T) {
-	portable := stableDiffusionPortableForTest(t, map[string]any{
-		"modelFamily": "z-image",
-		"loras": []any{
-			map[string]any{"displayLabel": "Ink", "weight": 0.7},
-			map[string]any{"displayLabel": "Lighting", "weight": 1.1},
-		},
-	})
-	driver := StableDiffusionImageDriver{}
-	requirements, reason := driver.Interpret(InterpretInput{PortableConfig: portable})
-	if reason != success || len(requirements) != 5 {
-		t.Fatalf("Interpret = %v %#v", reason, requirements)
-	}
-	for index, label := range []string{"Ink", "Lighting"} {
-		requirement := requirements[index+3]
-		ordinal := uint32(index + 1)
-		if requirement.GetRequirementId() != StableDiffusionLoRARequirementID(ordinal) || requirement.GetOccurrenceOrdinal() != ordinal || requirement.GetDisplayLabel() != label {
-			t.Fatalf("LoRA requirement[%d] = %#v", index, requirement)
+func TestStableDiffusionInterpretRejectsUnsupportedLoRAConfiguration(t *testing.T) {
+	for _, loras := range []any{
+		[]any{},
+		[]any{map[string]any{"displayLabel": "unsupported", "weight": 0.7}},
+	} {
+		portable := stableDiffusionPortableForTest(t, map[string]any{
+			"modelFamily": "z-image",
+			"loras":       loras,
+		})
+		requirements, reason := (StableDiffusionImageDriver{}).Interpret(InterpretInput{PortableConfig: portable})
+		if reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_PORTABLE_CONFIG_INVALID || requirements != nil {
+			t.Fatalf("LoRA config admission = reason=%v requirements=%#v", reason, requirements)
 		}
 	}
+}
 
-	bindings := make([]*runtimev1.LocalAssetExactBinding, 0, len(requirements))
-	assets := make([]AssetDescriptor, 0, len(requirements))
-	for index, requirement := range requirements {
-		digest := strings.Repeat(string(rune('a'+index)), 64)
-		localAssetID := "asset-" + requirement.GetRequirementId()
-		kind := stableDiffusionAssetKind(requirement.GetResourceKind())
-		family := ""
-		if kind == runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_IMAGE || kind == runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_LORA {
-			family = "z-image"
-		}
-		if kind == runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_VAE {
-			family = "flux1-vae"
-		}
-		if requirement.GetResourceKind() == "lora" {
-			localAssetID = "asset-shared-lora"
-			digest = strings.Repeat("f", 64)
-		}
-		bindings = append(bindings, &runtimev1.LocalAssetExactBinding{
-			RequirementId: requirement.GetRequirementId(), LocalAssetId: localAssetID,
-			VerifiedContentId: "sha256:" + digest, EntrySha256: digest,
-		})
-		assets = append(assets, AssetDescriptor{
-			LocalAssetID: localAssetID, VerifiedContentID: "sha256:" + digest, EntrySHA256: digest,
-			Kind: kind, Family: family,
-		})
+func TestStableDiffusionValidateCombinationRejectsRetiredLoRARequirementTail(t *testing.T) {
+	portable := stableDiffusionPortableForTest(t, map[string]any{"modelFamily": "z-image"})
+	requirements, reason := (StableDiffusionImageDriver{}).Interpret(InterpretInput{PortableConfig: portable})
+	if reason != success {
+		t.Fatalf("Interpret: %v", reason)
 	}
-	for index := range requirements {
-		if reason := driver.ValidateBinding(requirements[index], bindings[index], assets[index]); reason != success {
-			t.Fatalf("binding[%d] reason = %v requirement=%#v asset=%#v", index, reason, requirements[index], assets[index])
-		}
-	}
-	if reason := driver.ValidateCombination(requirements, bindings, assets); reason != success {
-		t.Fatalf("repeated LoRA asset combination reason = %v", reason)
-	}
-	wrongVAE := append([]AssetDescriptor(nil), assets...)
-	wrongVAE[2].Family = "flux2-vae"
-	if reason := driver.ValidateCombination(requirements, bindings, wrongVAE); reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_LOCAL_ASSET_INCOMPATIBLE {
-		t.Fatalf("incompatible VAE family reason = %v", reason)
+	requirements = append(requirements, &runtimev1.LocalCapabilityRequirement{
+		RequirementId:     "companion.lora.1",
+		Role:              runtimev1.LocalCapabilityRequirementRole_LOCAL_CAPABILITY_REQUIREMENT_ROLE_COMPANION,
+		ResourceKind:      "lora",
+		Policy:            runtimev1.LocalCapabilityRequirementPolicy_LOCAL_CAPABILITY_REQUIREMENT_POLICY_SUBSTITUTABLE,
+		OccurrenceOrdinal: 1,
+		DisplayLabel:      "Retired LoRA",
+	})
+	reason = (StableDiffusionImageDriver{}).ValidateCombination(
+		requirements,
+		make([]*runtimev1.LocalAssetExactBinding, len(requirements)),
+		make([]AssetDescriptor, len(requirements)),
+	)
+	if reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_LOCAL_ASSET_INCOMPATIBLE {
+		t.Fatalf("retired LoRA requirement tail reason = %v", reason)
 	}
 }
 
@@ -201,13 +181,9 @@ func TestStableDiffusionEffectiveRequestDefaultsUsePortableExecutionOptions(t *t
 	}
 }
 
-func TestStableDiffusionPlanPreservesDeclaredLoRAOrderAndNormalizesRequest(t *testing.T) {
+func TestStableDiffusionPlanNormalizesRequestAndProtectsCapturedState(t *testing.T) {
 	portable := stableDiffusionPortableForTest(t, map[string]any{
 		"modelFamily": "z-image",
-		"loras": []any{
-			map[string]any{"displayLabel": "First", "weight": 0.5},
-			map[string]any{"displayLabel": "Second", "weight": 1.25},
-		},
 		"executionOptions": map[string]any{
 			"steps": 30, "cfgScale": 4.5, "width": 640, "height": 640, "seed": 13,
 			"sampler": "euler_a", "scheduler": "karras", "threads": 8,
@@ -216,10 +192,8 @@ func TestStableDiffusionPlanPreservesDeclaredLoRAOrderAndNormalizesRequest(t *te
 	})
 	root := t.TempDir()
 	bindings := []InvocationExactBinding{
-		stableDiffusionInvocationBindingForTest(StableDiffusionLoRARequirementID(2), "shared-lora", filepath.Join(root, "second.safetensors"), 'f'),
 		stableDiffusionInvocationBindingForTest(StableDiffusionVAERequirementID, "vae", filepath.Join(root, "vae.safetensors"), 'c'),
 		stableDiffusionInvocationBindingForTest(StableDiffusionMainRequirementID, "main", filepath.Join(root, "main.gguf"), 'a'),
-		stableDiffusionInvocationBindingForTest(StableDiffusionLoRARequirementID(1), "shared-lora", filepath.Join(root, "first.safetensors"), 'f'),
 		stableDiffusionInvocationBindingForTest(StableDiffusionTextEncoderRequirementID, "text", filepath.Join(root, "text.gguf"), 'b'),
 	}
 	plan, err := (StableDiffusionImageDriver{}).PlanImageInvocation(ImageInvocationInput{
@@ -235,23 +209,130 @@ func TestStableDiffusionPlanPreservesDeclaredLoRAOrderAndNormalizesRequest(t *te
 	if plan.MainModelPath() != filepath.Join(root, "main.gguf") || plan.TextEncoderPath() != filepath.Join(root, "text.gguf") || plan.VAEPath() != filepath.Join(root, "vae.safetensors") {
 		t.Fatalf("plan component paths are incomplete: %#v", plan.ModelFiles())
 	}
-	loras := plan.LoRAs()
-	if len(loras) != 2 || loras[0].OccurrenceOrdinal != 1 || loras[0].DisplayLabel != "First" ||
-		loras[0].AbsolutePath != filepath.Join(root, "first.safetensors") || loras[1].OccurrenceOrdinal != 2 || loras[1].DisplayLabel != "Second" {
-		t.Fatalf("ordered LoRAs = %#v", loras)
-	}
 	width, height := plan.Size()
 	if width != 768 || height != 512 || plan.Steps() != 30 || plan.CFGScale() != 4.5 || plan.Seed() != 99 || plan.ImageCount() != 2 ||
 		plan.Prompt() != "a lighthouse" || plan.NegativePrompt() != "fog" || plan.Sampler() != "euler_a" || plan.Scheduler() != "karras" ||
 		plan.Threads() != 8 || !plan.DiffusionFlashAttention() || !plan.OffloadParamsToCPU() {
 		t.Fatalf("normalized plan sampling fields are incorrect")
 	}
-	mutable := plan.LoRAs()
-	mutable[0].DisplayLabel = "mutated"
 	files := plan.ModelFiles()
 	files[0].AbsolutePath = "mutated"
-	if plan.LoRAs()[0].DisplayLabel == "mutated" || plan.ModelFiles()[0].AbsolutePath == "mutated" {
+	if plan.ModelFiles()[0].AbsolutePath == "mutated" {
 		t.Fatal("image plan exposed mutable captured state")
+	}
+}
+
+func TestStableDiffusionPlanClassifiesImageCountAndSizeAsInvalidOptions(t *testing.T) {
+	portable := stableDiffusionPortableForTest(t, map[string]any{"modelFamily": "z-image"})
+	root := t.TempDir()
+	bindings := []InvocationExactBinding{
+		stableDiffusionInvocationBindingForTest(StableDiffusionVAERequirementID, "vae", filepath.Join(root, "vae.safetensors"), 'c'),
+		stableDiffusionInvocationBindingForTest(StableDiffusionMainRequirementID, "main", filepath.Join(root, "main.gguf"), 'a'),
+		stableDiffusionInvocationBindingForTest(StableDiffusionTextEncoderRequirementID, "text", filepath.Join(root, "text.gguf"), 'b'),
+	}
+	driver := StableDiffusionImageDriver{}
+
+	valid := []struct {
+		name      string
+		n         *int32
+		size      string
+		wantCount int
+	}{
+		{name: "absent count", wantCount: 1},
+		{name: "minimum count and size", n: testInt32(1), size: "64x64", wantCount: 1},
+		{name: "maximum count and size", n: testInt32(4), size: "4096x4096", wantCount: 4},
+	}
+	for _, test := range valid {
+		t.Run(test.name, func(t *testing.T) {
+			plan, err := driver.PlanImageInvocation(ImageInvocationInput{
+				PortableConfig: portable,
+				ExactBindings:  bindings,
+				Request:        &runtimev1.ImageGenerateScenarioSpec{Prompt: "image", N: test.n, Size: test.size},
+			})
+			if err != nil || plan == nil || plan.ImageCount() != test.wantCount {
+				t.Fatalf("plan=%v count=%d err=%v", plan, plan.ImageCount(), err)
+			}
+		})
+	}
+
+	invalid := []struct {
+		name string
+		n    *int32
+		size string
+	}{
+		{name: "explicit zero count", n: testInt32(0)},
+		{name: "count above local maximum", n: testInt32(5)},
+		{name: "malformed size", size: "not-a-size"},
+		{name: "width below minimum", size: "63x64"},
+		{name: "height not divisible by eight", size: "64x65"},
+		{name: "dimension above maximum", size: "4104x64"},
+	}
+	for _, test := range invalid {
+		t.Run(test.name, func(t *testing.T) {
+			_, err := driver.PlanImageInvocation(ImageInvocationInput{
+				PortableConfig: portable,
+				ExactBindings:  bindings,
+				Request:        &runtimev1.ImageGenerateScenarioSpec{Prompt: "image", N: test.n, Size: test.size},
+			})
+			var invocationErr *InvocationError
+			if !errors.As(err, &invocationErr) || invocationErr.Kind != InvocationFailureInvalidOption {
+				t.Fatalf("error=%v kind=%v", err, invocationErr)
+			}
+		})
+	}
+}
+
+func TestStableDiffusionSeedAdmissionMatchesManagedInt32Carrier(t *testing.T) {
+	driver := StableDiffusionImageDriver{}
+	for _, seed := range []int64{math.MinInt32, math.MaxInt32} {
+		portable := stableDiffusionPortableForTest(t, map[string]any{
+			"modelFamily":      "z-image",
+			"executionOptions": map[string]any{"seed": seed},
+		})
+		if _, reason := driver.Interpret(InterpretInput{PortableConfig: portable}); reason != success {
+			t.Fatalf("portable seed %d reason = %v", seed, reason)
+		}
+		if got := driver.EffectiveRequestDefaults(portable)["seed"]; got != fmt.Sprint(seed) {
+			t.Fatalf("portable seed %d default = %q", seed, got)
+		}
+	}
+	for _, seed := range []int64{int64(math.MinInt32) - 1, int64(math.MaxInt32) + 1} {
+		portable := stableDiffusionPortableForTest(t, map[string]any{
+			"modelFamily":      "z-image",
+			"executionOptions": map[string]any{"seed": seed},
+		})
+		if _, reason := driver.Interpret(InterpretInput{PortableConfig: portable}); reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_PORTABLE_CONFIG_INVALID {
+			t.Fatalf("portable seed %d reason = %v", seed, reason)
+		}
+	}
+
+	portable := stableDiffusionPortableForTest(t, map[string]any{"modelFamily": "z-image"})
+	root := t.TempDir()
+	bindings := []InvocationExactBinding{
+		stableDiffusionInvocationBindingForTest(StableDiffusionVAERequirementID, "vae", filepath.Join(root, "vae.safetensors"), 'c'),
+		stableDiffusionInvocationBindingForTest(StableDiffusionMainRequirementID, "main", filepath.Join(root, "main.gguf"), 'a'),
+		stableDiffusionInvocationBindingForTest(StableDiffusionTextEncoderRequirementID, "text", filepath.Join(root, "text.gguf"), 'b'),
+	}
+	for _, seed := range []int64{math.MinInt32, math.MaxInt32} {
+		plan, err := driver.PlanImageInvocation(ImageInvocationInput{
+			PortableConfig: portable,
+			ExactBindings:  bindings,
+			Request:        &runtimev1.ImageGenerateScenarioSpec{Prompt: "image", Seed: testInt64(seed)},
+		})
+		if err != nil || plan.Seed() != seed {
+			t.Fatalf("request seed %d plan=%v err=%v", seed, plan, err)
+		}
+	}
+	for _, seed := range []int64{int64(math.MinInt32) - 1, int64(math.MaxInt32) + 1} {
+		_, err := driver.PlanImageInvocation(ImageInvocationInput{
+			PortableConfig: portable,
+			ExactBindings:  bindings,
+			Request:        &runtimev1.ImageGenerateScenarioSpec{Prompt: "image", Seed: testInt64(seed)},
+		})
+		var invocationErr *InvocationError
+		if !errors.As(err, &invocationErr) || invocationErr.Kind != InvocationFailureInvalidRequest {
+			t.Fatalf("request seed %d error = %v", seed, err)
+		}
 	}
 }
 

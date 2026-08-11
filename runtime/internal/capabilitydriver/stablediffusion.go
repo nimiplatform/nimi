@@ -33,12 +33,6 @@ const (
 	stableDiffusionUncondDiffusionLabel = "Unconditional diffusion model"
 )
 
-// StableDiffusionLoRARequirementID returns the deterministic identity for one
-// explicitly declared one-based LoRA occurrence.
-func StableDiffusionLoRARequirementID(ordinal uint32) string {
-	return "companion.lora." + strconv.FormatUint(uint64(ordinal), 10)
-}
-
 // StableDiffusionImageDriver owns the stable-diffusion.cpp portable dialect.
 type StableDiffusionImageDriver struct{}
 
@@ -87,13 +81,6 @@ type stableDiffusionRequirementIntent struct {
 	verifiedContentID string
 }
 
-type stableDiffusionLoRAIntent struct {
-	displayLabel      string
-	policy            runtimev1.LocalCapabilityRequirementPolicy
-	verifiedContentID string
-	weight            float64
-}
-
 type stableDiffusionExecutionOptions struct {
 	steps                   int
 	cfgScale                float64
@@ -114,7 +101,6 @@ type stableDiffusionPortableConfig struct {
 	textEncoder      stableDiffusionRequirementIntent
 	vae              stableDiffusionRequirementIntent
 	uncond           stableDiffusionRequirementIntent
-	loras            []stableDiffusionLoRAIntent
 	execution        stableDiffusionExecutionOptions
 }
 
@@ -169,18 +155,6 @@ func (StableDiffusionImageDriver) Interpret(input InterpretInput) ([]*runtimev1.
 			0,
 			stableDiffusionUncondDiffusionLabel,
 			map[string]any{"asset_kind": "image", "model_family": portable.family.name, "artifact_role": "uncond_diffusion_model"},
-		))
-	}
-	for index, lora := range portable.loras {
-		ordinal := uint32(index + 1)
-		requirements = append(requirements, stableDiffusionRequirement(
-			StableDiffusionLoRARequirementID(ordinal),
-			runtimev1.LocalCapabilityRequirementRole_LOCAL_CAPABILITY_REQUIREMENT_ROLE_COMPANION,
-			"lora",
-			stableDiffusionRequirementIntent{policy: lora.policy, verifiedContentID: lora.verifiedContentID},
-			ordinal,
-			lora.displayLabel,
-			map[string]any{"asset_kind": "lora", "model_family": portable.family.name},
 		))
 	}
 	return requirements, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED
@@ -330,17 +304,7 @@ func validStableDiffusionRequirementSequence(requirements []*runtimev1.LocalCapa
 	} else if len(requirements) > index && requirements[index].GetRequirementId() == StableDiffusionUncondDiffusionRequirementID {
 		return false
 	}
-	ordinal := uint32(1)
-	for ; index < len(requirements); index++ {
-		if !stableDiffusionRequirementShape(requirements[index], StableDiffusionLoRARequirementID(ordinal), "lora", ordinal) {
-			return false
-		}
-		if loraFamily, ok := stableDiffusionRequirementConstraintString(requirements[index], "model_family"); !ok || loraFamily != family {
-			return false
-		}
-		ordinal++
-	}
-	return true
+	return index == len(requirements)
 }
 
 func stableDiffusionRequirementShape(requirement *runtimev1.LocalCapabilityRequirement, id, resourceKind string, ordinal uint32) bool {
@@ -402,10 +366,7 @@ func stableDiffusionConstraintKeysValid(requirement *runtimev1.LocalCapabilityRe
 		allowed["model_family"] = struct{}{}
 		allowed["artifact_role"] = struct{}{}
 	default:
-		if !strings.HasPrefix(requirement.GetRequirementId(), "companion.lora.") {
-			return false
-		}
-		allowed["model_family"] = struct{}{}
+		return false
 	}
 	if len(fields) != len(allowed) {
 		return false
@@ -438,8 +399,6 @@ func stableDiffusionAssetKind(value string) runtimev1.LocalAssetKind {
 		return runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_CHAT
 	case "vae":
 		return runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_VAE
-	case "lora":
-		return runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_LORA
 	default:
 		return runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_UNSPECIFIED
 	}
@@ -510,19 +469,6 @@ func (StableDiffusionImageDriver) PlanImageInvocation(input ImageInvocationInput
 	for _, requirementID := range orderedIDs {
 		modelFiles = append(modelFiles, bindings[requirementID])
 	}
-	loras := make([]ImageInvocationLoRA, 0, len(portable.loras))
-	for index, lora := range portable.loras {
-		ordinal := uint32(index + 1)
-		binding := bindings[StableDiffusionLoRARequirementID(ordinal)]
-		loras = append(loras, ImageInvocationLoRA{
-			RequirementID:     binding.RequirementID,
-			OccurrenceOrdinal: ordinal,
-			DisplayLabel:      lora.displayLabel,
-			AbsolutePath:      binding.AbsolutePath,
-			Weight:            lora.weight,
-		})
-	}
-
 	hasher := sha256.New()
 	for _, value := range []string{
 		portable.family.name,
@@ -542,11 +488,6 @@ func (StableDiffusionImageDriver) PlanImageInvocation(input ImageInvocationInput
 			_, _ = hasher.Write([]byte{0})
 		}
 	}
-	for _, lora := range loras {
-		_, _ = hasher.Write([]byte(strconv.FormatFloat(lora.Weight, 'g', -1, 64)))
-		_, _ = hasher.Write([]byte{0})
-	}
-
 	return &ImageInvocationPlan{
 		processKey:              hex.EncodeToString(hasher.Sum(nil)),
 		modelFiles:              modelFiles,
@@ -554,7 +495,6 @@ func (StableDiffusionImageDriver) PlanImageInvocation(input ImageInvocationInput
 		textEncoderPath:         bindings[StableDiffusionTextEncoderRequirementID].AbsolutePath,
 		vaePath:                 bindings[StableDiffusionVAERequirementID].AbsolutePath,
 		uncondDiffusionPath:     bindings[StableDiffusionUncondDiffusionRequirementID].AbsolutePath,
-		loras:                   loras,
 		modelFamily:             portable.family.name,
 		prompt:                  request.prompt,
 		negativePrompt:          request.negativePrompt,
@@ -586,9 +526,6 @@ func exactStableDiffusionInvocationBindings(
 	}
 	if portable.family.requiresUncond {
 		expected = append(expected, StableDiffusionUncondDiffusionRequirementID)
-	}
-	for index := range portable.loras {
-		expected = append(expected, StableDiffusionLoRARequirementID(uint32(index+1)))
 	}
 	expectedSet := make(map[string]struct{}, len(expected))
 	for _, requirementID := range expected {
@@ -649,12 +586,12 @@ func normalizeStableDiffusionImageRequest(
 	if prompt == "" {
 		return normalizedStableDiffusionImageRequest{}, invocationError(InvocationFailureInvalidRequest, fmt.Errorf("image.generate prompt is required"))
 	}
-	imageCount := int(spec.GetN())
-	if imageCount == 0 {
-		imageCount = 1
-	}
-	if imageCount < 1 || imageCount > 4 {
-		return normalizedStableDiffusionImageRequest{}, invocationError(InvocationFailureInvalidRequest, fmt.Errorf("image.generate image count is outside the supported range"))
+	imageCount := 1
+	if spec.N != nil {
+		imageCount = int(spec.GetN())
+		if imageCount < 1 || imageCount > 4 {
+			return normalizedStableDiffusionImageRequest{}, invocationError(InvocationFailureInvalidOption, fmt.Errorf("image.generate image count is outside the supported range"))
+		}
 	}
 	width := portable.execution.width
 	height := portable.execution.height
@@ -662,7 +599,7 @@ func normalizeStableDiffusionImageRequest(
 		var ok bool
 		width, height, ok = parseStableDiffusionSize(size)
 		if !ok {
-			return normalizedStableDiffusionImageRequest{}, invocationError(InvocationFailureInvalidRequest, fmt.Errorf("image.generate size must be WIDTHxHEIGHT with multiples of eight from 64 through 4096"))
+			return normalizedStableDiffusionImageRequest{}, invocationError(InvocationFailureInvalidOption, fmt.Errorf("image.generate size must be WIDTHxHEIGHT with multiples of eight from 64 through 4096"))
 		}
 	}
 	if strings.TrimSpace(spec.GetAspectRatio()) != "" || strings.TrimSpace(spec.GetQuality()) != "" || strings.TrimSpace(spec.GetStyle()) != "" {
@@ -693,6 +630,9 @@ func normalizeStableDiffusionImageRequest(
 	if spec.Seed != nil {
 		seed = spec.GetSeed()
 	}
+	if seed < math.MinInt32 || seed > math.MaxInt32 {
+		return normalizedStableDiffusionImageRequest{}, invocationError(InvocationFailureInvalidRequest, fmt.Errorf("image.generate seed is outside the stable-diffusion.cpp signed-int32 range"))
+	}
 	return normalizedStableDiffusionImageRequest{
 		prompt:         prompt,
 		negativePrompt: strings.TrimSpace(spec.GetNegativePrompt()),
@@ -719,6 +659,13 @@ func parseStableDiffusionSize(value string) (int, int, bool) {
 	return width, height, true
 }
 
+// StableDiffusionImageSizeSupported reports whether value is an exact size
+// admitted by the stable-diffusion.cpp Local Driver.
+func StableDiffusionImageSizeSupported(value string) bool {
+	_, _, ok := parseStableDiffusionSize(value)
+	return ok
+}
+
 func stableDiffusionDimension(value int) bool {
 	return value >= 64 && value <= 4096 && value%8 == 0
 }
@@ -735,7 +682,7 @@ func parseStableDiffusionPortableConfig(value *structpb.Struct) (stableDiffusion
 			"textEncoderRequirementPolicy", "textEncoderVerifiedContentId",
 			"vaeRequirementPolicy", "vaeVerifiedContentId",
 			"uncondDiffusionRequirementPolicy", "uncondDiffusionVerifiedContentId",
-			"loras", "executionOptions":
+			"executionOptions":
 		default:
 			return stableDiffusionPortableConfig{}, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_PORTABLE_CONFIG_INVALID
 		}
@@ -779,9 +726,6 @@ func parseStableDiffusionPortableConfig(value *structpb.Struct) (stableDiffusion
 	if !family.requiresUncond && (fields["uncondDiffusionRequirementPolicy"] != nil || fields["uncondDiffusionVerifiedContentId"] != nil) {
 		return stableDiffusionPortableConfig{}, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_PORTABLE_CONFIG_INVALID
 	}
-	if result.loras, reason = stableDiffusionLoRAs(fields["loras"]); reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED {
-		return stableDiffusionPortableConfig{}, reason
-	}
 	if result.execution, reason = stableDiffusionExecutionOptionsFromValue(fields["executionOptions"], result.execution); reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED {
 		return stableDiffusionPortableConfig{}, reason
 	}
@@ -807,60 +751,6 @@ func stableDiffusionRequirementIntentFromFields(
 		return stableDiffusionRequirementIntent{}, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_PORTABLE_CONFIG_INVALID
 	}
 	return stableDiffusionRequirementIntent{policy: policy, verifiedContentID: contentID}, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED
-}
-
-func stableDiffusionLoRAs(value *structpb.Value) ([]stableDiffusionLoRAIntent, runtimev1.LocalCapabilityReason) {
-	if value == nil {
-		return nil, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED
-	}
-	list := value.GetListValue()
-	if list == nil || len(list.GetValues()) > 32 {
-		return nil, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_PORTABLE_CONFIG_INVALID
-	}
-	result := make([]stableDiffusionLoRAIntent, 0, len(list.GetValues()))
-	for index, item := range list.GetValues() {
-		object := item.GetStructValue()
-		if object == nil {
-			return nil, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_PORTABLE_CONFIG_INVALID
-		}
-		fields := object.GetFields()
-		for key := range fields {
-			switch key {
-			case "displayLabel", "requirementPolicy", "verifiedContentId", "weight":
-			default:
-				return nil, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_PORTABLE_CONFIG_INVALID
-			}
-		}
-		intent, reason := stableDiffusionRequirementIntentFromFields(fields, "requirementPolicy", "verifiedContentId")
-		if reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED {
-			return nil, reason
-		}
-		displayLabel := "LoRA " + strconv.Itoa(index+1)
-		if fields["displayLabel"] != nil {
-			label, ok := portableStringValue(fields["displayLabel"])
-			if !ok || strings.TrimSpace(label) == "" || label != strings.TrimSpace(label) {
-				return nil, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_PORTABLE_CONFIG_INVALID
-			}
-			displayLabel = label
-		}
-		weight := 1.0
-		if fields["weight"] != nil {
-			if _, ok := fields["weight"].Kind.(*structpb.Value_NumberValue); !ok {
-				return nil, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_PORTABLE_CONFIG_INVALID
-			}
-			weight = fields["weight"].GetNumberValue()
-			if math.IsNaN(weight) || math.IsInf(weight, 0) || weight < -4 || weight > 4 {
-				return nil, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_PORTABLE_CONFIG_INVALID
-			}
-		}
-		result = append(result, stableDiffusionLoRAIntent{
-			displayLabel:      displayLabel,
-			policy:            intent.policy,
-			verifiedContentID: intent.verifiedContentID,
-			weight:            weight,
-		})
-	}
-	return result, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED
 }
 
 func stableDiffusionExecutionOptionsFromValue(
@@ -909,7 +799,7 @@ func stableDiffusionExecutionOptionsFromValue(
 		}
 	}
 	if field := fields["seed"]; field != nil {
-		value, ok := stableDiffusionInteger(field, -9007199254740991, 9007199254740991)
+		value, ok := stableDiffusionInteger(field, math.MinInt32, math.MaxInt32)
 		if !ok {
 			return stableDiffusionExecutionOptions{}, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_PORTABLE_CONFIG_INVALID
 		}

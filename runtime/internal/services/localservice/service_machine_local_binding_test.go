@@ -40,13 +40,12 @@ func TestManualExactBindingConfiguresIndependentMainAndMMProjRequirements(t *tes
 	}
 }
 
-func TestStableDiffusionOccurrenceProjectionReprojectBindAndResolve(t *testing.T) {
+func TestStableDiffusionLoRAConfigurationFailsClosedBeforeSelection(t *testing.T) {
 	service := newMachineLocalConfigurationTestService(t, t.TempDir())
 	portable := mustStructForTest(t, map[string]any{
 		"modelFamily": "z-image",
 		"loras": []any{
-			map[string]any{"displayLabel": "First style"},
-			map[string]any{"displayLabel": "Second style"},
+			map[string]any{"displayLabel": "Unsupported style"},
 		},
 	})
 	response, err := service.AddLocalCapabilityConfiguration(context.Background(), &runtimev1.AddLocalCapabilityConfigurationRequest{
@@ -59,80 +58,23 @@ func TestStableDiffusionOccurrenceProjectionReprojectBindAndResolve(t *testing.T
 		t.Fatalf("AddLocalCapabilityConfiguration: %v", err)
 	}
 	configuration := response.GetConfiguration()
-	if len(configuration.GetProjectedRequirements()) != 5 {
-		t.Fatalf("projected requirements = %#v", configuration.GetProjectedRequirements())
+	if configuration.GetInterpretability() != runtimev1.LocalCapabilityInterpretability_LOCAL_CAPABILITY_INTERPRETABILITY_UNAVAILABLE ||
+		configuration.GetRequirementResolution() != runtimev1.LocalCapabilityRequirementResolution_LOCAL_CAPABILITY_REQUIREMENT_RESOLUTION_UNRESOLVED {
+		t.Fatalf("unsupported LoRA configuration state = %s/%s", configuration.GetInterpretability(), configuration.GetRequirementResolution())
 	}
-	firstLoRA := configuration.GetProjectedRequirements()[3]
-	secondLoRA := configuration.GetProjectedRequirements()[4]
-	if firstLoRA.GetOccurrenceOrdinal() != 1 || firstLoRA.GetDisplayLabel() != "First style" ||
-		secondLoRA.GetOccurrenceOrdinal() != 2 || secondLoRA.GetDisplayLabel() != "Second style" {
-		t.Fatalf("ordered occurrence presentation = %#v", configuration.GetProjectedRequirements())
-	}
-
-	reprojected, err := service.ReprojectLocalCapabilityRequirements(context.Background(), &runtimev1.ReprojectLocalCapabilityRequirementsRequest{ConfigurationId: configuration.GetConfigurationId()})
-	if err != nil {
-		t.Fatalf("ReprojectLocalCapabilityRequirements: %v", err)
-	}
-	if !proto.Equal(firstLoRA, reprojected.GetConfiguration().GetProjectedRequirements()[3]) ||
-		!proto.Equal(secondLoRA, reprojected.GetConfiguration().GetProjectedRequirements()[4]) {
-		t.Fatalf("reprojection changed declared occurrence truth: %#v", reprojected.GetConfiguration().GetProjectedRequirements())
+	assertLocalCapabilityReason(t, configuration, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_PORTABLE_CONFIG_INVALID)
+	if len(configuration.GetProjectedRequirements()) != 0 || len(configuration.GetExactBindings()) != 0 {
+		t.Fatalf("unsupported LoRA configuration projected execution inputs: requirements=%#v bindings=%#v", configuration.GetProjectedRequirements(), configuration.GetExactBindings())
 	}
 
-	mainDigest := seedStableDiffusionMachineAssetForTest(t, service, "sd-main", runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_IMAGE, "z-image")
-	textDigest := seedStableDiffusionMachineAssetForTest(t, service, "sd-text", runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_CHAT, "")
-	vaeDigest := seedStableDiffusionMachineAssetForTest(t, service, "sd-vae", runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_VAE, "flux1-vae")
-	loraDigest := seedStableDiffusionMachineAssetForTest(t, service, "sd-shared-lora", runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_LORA, "z-image")
-	bindings := []struct {
-		requirementID string
-		localAssetID  string
-		digest        string
-	}{
-		{capabilitydriver.StableDiffusionMainRequirementID, "sd-main", mainDigest},
-		{capabilitydriver.StableDiffusionTextEncoderRequirementID, "sd-text", textDigest},
-		{capabilitydriver.StableDiffusionVAERequirementID, "sd-vae", vaeDigest},
-		{capabilitydriver.StableDiffusionLoRARequirementID(1), "sd-shared-lora", loraDigest},
-		{capabilitydriver.StableDiffusionLoRARequirementID(2), "sd-shared-lora", loraDigest},
-	}
-	for _, binding := range bindings {
-		configuration = bindMachineLocalRequirementForTest(t, service, configuration.GetConfigurationId(), binding.requirementID, binding.localAssetID, binding.digest)
-	}
-	if configuration.GetRequirementResolution() != runtimev1.LocalCapabilityRequirementResolution_LOCAL_CAPABILITY_REQUIREMENT_RESOLUTION_CONFIGURED || len(configuration.GetExactBindings()) != 5 {
-		t.Fatalf("configured Stable Diffusion record = %#v", configuration)
-	}
-	sharedCount := 0
-	for _, binding := range configuration.GetExactBindings() {
-		if binding.GetLocalAssetId() == "sd-shared-lora" {
-			sharedCount++
-		}
-	}
-	if sharedCount != 2 {
-		t.Fatalf("shared LoRA occurrence bindings = %#v", configuration.GetExactBindings())
-	}
-
-	if _, err := service.SelectLocalCapabilityConfiguration(context.Background(), &runtimev1.SelectLocalCapabilityConfigurationRequest{
+	selected, err := service.SelectLocalCapabilityConfiguration(context.Background(), &runtimev1.SelectLocalCapabilityConfigurationRequest{
 		CapabilityContract: capabilitydriver.StableDiffusionCapabilityContract,
 		ConfigurationId:    configuration.GetConfigurationId(),
-	}); err != nil {
-		t.Fatalf("SelectLocalCapabilityConfiguration: %v", err)
+	})
+	if selected != nil || status.Code(err) != codes.FailedPrecondition {
+		t.Fatalf("unsupported LoRA selection = %#v err=%v", selected, err)
 	}
-	resolved, err := service.ResolveSelectedLocalExecution(capabilitydriver.StableDiffusionCapabilityContract)
-	if err != nil {
-		t.Fatalf("ResolveSelectedLocalExecution: %v", err)
-	}
-	if len(resolved.Requirements) != 5 || len(resolved.ExactBindings) != 5 ||
-		resolved.Requirements[3].GetOccurrenceOrdinal() != 1 || resolved.Requirements[3].GetDisplayLabel() != "First style" ||
-		resolved.Requirements[4].GetOccurrenceOrdinal() != 2 || resolved.Requirements[4].GetDisplayLabel() != "Second style" {
-		t.Fatalf("selected occurrence projection = %#v", resolved)
-	}
-	projectedOrdinals := map[uint32]string{}
-	for _, binding := range resolved.ExactBindings {
-		if binding.OccurrenceOrdinal > 0 {
-			projectedOrdinals[binding.OccurrenceOrdinal] = binding.DisplayLabel
-		}
-	}
-	if projectedOrdinals[1] != "First style" || projectedOrdinals[2] != "Second style" {
-		t.Fatalf("selected exact binding occurrence presentation = %#v", resolved.ExactBindings)
-	}
+	assertGRPCReasonCode(t, err, "SelectLocalCapabilityConfiguration(unsupported LoRA)", runtimev1.ReasonCode_AI_LOCAL_CONFIGURATION_NOT_CONFIGURED)
 }
 
 func TestManualExactBindingRebindAndUnbindRequireExactCurrentBinding(t *testing.T) {

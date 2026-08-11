@@ -677,9 +677,9 @@ units:
     kind: rule
     title: AI timeout defaults and request override are closed
     modality: must
-    statement: Default timeouts are 30 seconds for ExecuteScenario TEXT_GENERATE, 60 seconds to first byte and 120 seconds total for StreamScenario, 20 seconds for ExecuteScenario TEXT_EMBED, 120 seconds for image jobs, 300 seconds for video jobs, 45 seconds for StreamScenario SPEECH_SYNTHESIZE and non-Local speech-synthesis jobs, 90 seconds for non-Local speech-transcription jobs, and 15 minutes for Local speech-synthesis and speech-transcription jobs; Local speech Job timeout_ms may override only up to the 30-minute server maximum, and every other timeout_ms override remains within its existing server maximum.
+    statement: Default timeouts are 30 seconds for ExecuteScenario TEXT_GENERATE, 60 seconds to first byte and 120 seconds total for StreamScenario, 20 seconds for ExecuteScenario TEXT_EMBED, 120 seconds for non-Local image jobs, 20 minutes for Local image jobs when timeout_ms is absent or zero, 300 seconds for video jobs, 45 seconds for StreamScenario SPEECH_SYNTHESIZE and non-Local speech-synthesis jobs, 90 seconds for non-Local speech-transcription jobs, and 15 minutes for Local speech-synthesis and speech-transcription jobs; a nonzero Local image Job timeout_ms is admitted only from 20 through 60 minutes inclusive and otherwise fails before Job publication or Host execution with AI_MEDIA_OPTION_UNSUPPORTED, Local speech Job timeout_ms may override only up to the 30-minute server maximum, and every other timeout_ms override remains within its existing server maximum.
     condition: Whenever Runtime establishes an AI operation deadline.
-    failure: Apply the admitted default and clamp or reject an override at the operation's admitted server maximum rather than run without a bound.
+    failure: Apply the admitted default and exact caller override, reject any public timeout_ms outside its declared operation range with the operation's typed option reason before Job publication or Host execution, reserve deadline clamping for an internally derived value with no public override, and never run without a bound.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.service-operations.daemon-plane

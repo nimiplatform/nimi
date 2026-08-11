@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"math"
 	"os"
 	"path/filepath"
 	"strings"
@@ -119,6 +120,44 @@ func TestNormalizeLocalImageRequestExplicitZeroOverridesDefaults(t *testing.T) {
 	}
 }
 
+func TestNormalizeLocalImageRequestRejectsOutOfCarrierRangeSeed(t *testing.T) {
+	for _, seed := range []int64{int64(math.MinInt32) - 1, int64(math.MaxInt32) + 1} {
+		got, err := normalizeLocalImageRequest(&runtimev1.ImageGenerateScenarioSpec{
+			Prompt: "image", Seed: testInt64(seed),
+		}, nil)
+		if got != nil {
+			t.Fatalf("seed %d returned request %+v", seed, got)
+		}
+		if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED || statusCode(err) != codes.InvalidArgument {
+			t.Fatalf("seed %d error=%v code=%v reason=%v present=%v", seed, err, statusCode(err), reason, ok)
+		}
+	}
+}
+
+func TestNormalizeLocalImageRequestRejectsInvalidAIConfigImageOptions(t *testing.T) {
+	for _, test := range []struct {
+		name     string
+		defaults map[string]any
+	}{
+		{name: "count", defaults: map[string]any{"n": 5.0}},
+		{name: "size", defaults: map[string]any{"size": "65x64"}},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			defaults, err := structpb.NewStruct(test.defaults)
+			if err != nil {
+				t.Fatal(err)
+			}
+			got, err := normalizeLocalImageRequest(&runtimev1.ImageGenerateScenarioSpec{Prompt: "image"}, defaults)
+			if got != nil {
+				t.Fatalf("invalid defaults returned request: %+v", got)
+			}
+			if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_CONFIG_INVALID || statusCode(err) != codes.InvalidArgument {
+				t.Fatalf("defaults error=%v code=%v reason=%v present=%v", err, statusCode(err), reason, ok)
+			}
+		})
+	}
+}
+
 func TestLocalImageRejectsNonDefaultResponseFormatBeforeHostDispatch(t *testing.T) {
 	svc := newTestService(nil)
 	host := &localImageHostStub{}
@@ -134,6 +173,163 @@ func TestLocalImageRejectsNonDefaultResponseFormatBeforeHostDispatch(t *testing.
 	defer host.mu.Unlock()
 	if len(host.plans) != 0 {
 		t.Fatalf("unsupported response_format dispatched %d plans", len(host.plans))
+	}
+}
+
+func TestLocalImageRejectsUnsupportedCountAndSizeBeforeHostDispatch(t *testing.T) {
+	tests := []struct {
+		name string
+		n    *int32
+		size string
+	}{
+		{name: "explicit zero count", n: testInt32(0), size: "64x64"},
+		{name: "count above local maximum", n: testInt32(5), size: "64x64"},
+		{name: "invalid size", n: testInt32(1), size: "65x64"},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			svc := newTestService(nil)
+			host := &localImageHostStub{}
+			svc.SetLocalExecutionResolver(&mutableLocalExecutionResolver{projection: selectedImageExecutionForTest(t, "image-option-"+test.name)})
+			svc.SetLocalImageExecutionHost(host)
+			request := localImageExecuteRequestForTest(1)
+			request.Spec.GetImageGenerate().N = test.n
+			request.Spec.GetImageGenerate().Size = test.size
+
+			response, err := svc.ExecuteScenario(localImageIntentContext(context.Background(), nil), request)
+			if response != nil {
+				t.Fatalf("unsupported image option returned response: %+v", response)
+			}
+			if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED || statusCode(err) != codes.InvalidArgument {
+				t.Fatalf("option error=%v code=%v reason=%v present=%v", err, statusCode(err), reason, ok)
+			}
+			host.mu.Lock()
+			planCount := len(host.plans)
+			host.mu.Unlock()
+			if planCount != 0 {
+				t.Fatalf("unsupported image option dispatched %d plans", planCount)
+			}
+		})
+	}
+}
+
+func TestLocalImageJobRejectsUnsupportedCountAndSizeBeforePublicationOrHost(t *testing.T) {
+	tests := []struct {
+		name string
+		n    *int32
+		size string
+	}{
+		{name: "explicit zero count", n: testInt32(0), size: "64x64"},
+		{name: "count above local maximum", n: testInt32(5), size: "64x64"},
+		{name: "invalid size", n: testInt32(1), size: "65x64"},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			svc := newTestService(nil)
+			host := &localImageHostStub{}
+			svc.SetLocalExecutionResolver(&mutableLocalExecutionResolver{projection: selectedImageExecutionForTest(t, "image-job-option-"+test.name)})
+			svc.SetLocalImageExecutionHost(host)
+			request := localImageJobRequestForTest(1)
+			request.Spec.GetImageGenerate().N = test.n
+			request.Spec.GetImageGenerate().Size = test.size
+
+			response, err := svc.SubmitScenarioJob(localImageIntentContext(context.Background(), nil), request)
+			if response != nil {
+				t.Fatalf("unsupported image option returned Job: %+v", response)
+			}
+			if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED || statusCode(err) != codes.InvalidArgument {
+				t.Fatalf("option error=%v code=%v reason=%v present=%v", err, statusCode(err), reason, ok)
+			}
+			host.mu.Lock()
+			planCount := len(host.plans)
+			host.mu.Unlock()
+			svc.scenarioJobs.mu.RLock()
+			jobCount := len(svc.scenarioJobs.jobs)
+			svc.scenarioJobs.mu.RUnlock()
+			if planCount != 0 || jobCount != 0 {
+				t.Fatalf("unsupported image option created work: host_plans=%d jobs=%d", planCount, jobCount)
+			}
+		})
+	}
+}
+
+func TestLocalImageJobRejectsOutOfRangeTimeoutBeforeCaptureOrHost(t *testing.T) {
+	tests := []struct {
+		name    string
+		timeout time.Duration
+	}{
+		{name: "below minimum", timeout: 10 * time.Minute},
+		{name: "above maximum", timeout: 90 * time.Minute},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			svc := newTestService(nil)
+			resolver := &mutableLocalExecutionResolver{projection: selectedImageExecutionForTest(t, "image-timeout-"+test.name)}
+			host := &localImageHostStub{}
+			svc.SetLocalExecutionResolver(resolver)
+			svc.SetLocalImageExecutionHost(host)
+			request := localImageJobRequestForTest(1)
+			request.Head.TimeoutMs = int32(test.timeout.Milliseconds())
+
+			response, err := svc.SubmitScenarioJob(localImageIntentContext(context.Background(), nil), request)
+			if err == nil {
+				t.Fatalf("out-of-range timeout accepted Job: %+v", response)
+			}
+			if response != nil {
+				t.Fatalf("out-of-range timeout returned a partial Job: %+v", response)
+			}
+			if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED || statusCode(err) != codes.InvalidArgument {
+				t.Fatalf("timeout error=%v code=%v reason=%v present=%v", err, statusCode(err), reason, ok)
+			}
+			if resolver.callCount() != 0 {
+				t.Fatalf("out-of-range timeout reached Local Image capture %d times", resolver.callCount())
+			}
+			host.mu.Lock()
+			planCount := len(host.plans)
+			host.mu.Unlock()
+			svc.scenarioJobs.mu.RLock()
+			jobCount := len(svc.scenarioJobs.jobs)
+			svc.scenarioJobs.mu.RUnlock()
+			if planCount != 0 || jobCount != 0 {
+				t.Fatalf("out-of-range timeout created work: host_plans=%d jobs=%d", planCount, jobCount)
+			}
+		})
+	}
+}
+
+func TestLocalImageJobRejectsOutOfCarrierRangeSeedBeforePublicationOrHost(t *testing.T) {
+	for _, seed := range []int64{int64(math.MinInt32) - 1, int64(math.MaxInt32) + 1} {
+		t.Run(fmt.Sprintf("seed_%d", seed), func(t *testing.T) {
+			svc := newTestService(nil)
+			host := &localImageHostStub{}
+			svc.SetLocalExecutionResolver(&mutableLocalExecutionResolver{projection: selectedImageExecutionForTest(t, fmt.Sprintf("image-seed-%d", seed))})
+			svc.SetLocalImageExecutionHost(host)
+			request := localImageJobRequestForTest(1)
+			request.Spec.GetImageGenerate().Seed = testInt64(seed)
+
+			response, err := svc.SubmitScenarioJob(localImageIntentContext(context.Background(), nil), request)
+			if err == nil {
+				t.Fatalf("out-of-carrier seed accepted Job: %+v", response)
+			}
+			if response != nil {
+				t.Fatalf("out-of-carrier seed returned partial Job: %+v", response)
+			}
+			if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED || statusCode(err) != codes.InvalidArgument {
+				t.Fatalf("seed error=%v code=%v reason=%v present=%v", err, statusCode(err), reason, ok)
+			}
+			host.mu.Lock()
+			planCount := len(host.plans)
+			host.mu.Unlock()
+			svc.scenarioJobs.mu.RLock()
+			jobCount := len(svc.scenarioJobs.jobs)
+			svc.scenarioJobs.mu.RUnlock()
+			if planCount != 0 || jobCount != 0 {
+				t.Fatalf("out-of-carrier seed created work: host_plans=%d jobs=%d", planCount, jobCount)
+			}
+		})
 	}
 }
 

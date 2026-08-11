@@ -140,7 +140,7 @@ func normalizeStableDiffusionCPPComponents(components []managedImageComponent) (
 	normalized := make([]managedImageComponent, 0, len(components))
 	seenSlots := map[string]struct{}{}
 	seenOccurrences := map[string]struct{}{}
-	seenOrders := map[int32]struct{}{}
+	seenRoleOrders := map[string]struct{}{}
 	hasOccurrenceIdentity := false
 	hasLegacyIdentity := false
 	for _, component := range components {
@@ -164,11 +164,12 @@ func normalizeStableDiffusionCPPComponents(components []managedImageComponent) (
 			if component.Order < 0 {
 				return nil, fmt.Errorf("managed image component occurrence %q has invalid order", occurrenceID)
 			}
-			if _, exists := seenOrders[component.Order]; exists {
-				return nil, fmt.Errorf("duplicate managed image component order %d", component.Order)
+			roleOrder := strings.TrimSpace(component.Role) + "\x00" + strconv.Itoa(int(component.Order))
+			if _, exists := seenRoleOrders[roleOrder]; exists {
+				return nil, fmt.Errorf("duplicate managed image component order %d for role %q", component.Order, strings.TrimSpace(component.Role))
 			}
 			seenOccurrences[occurrenceID] = struct{}{}
-			seenOrders[component.Order] = struct{}{}
+			seenRoleOrders[roleOrder] = struct{}{}
 		} else if hasOccurrenceIdentity {
 			return nil, fmt.Errorf("managed image component occurrence identity is incomplete")
 		} else {
@@ -195,7 +196,15 @@ func normalizeStableDiffusionCPPComponents(components []managedImageComponent) (
 	}
 	if hasOccurrenceIdentity {
 		sort.SliceStable(normalized, func(left, right int) bool {
-			return normalized[left].Order < normalized[right].Order
+			leftRole := strings.TrimSpace(normalized[left].Role)
+			rightRole := strings.TrimSpace(normalized[right].Role)
+			if leftRole != rightRole {
+				return leftRole < rightRole
+			}
+			if normalized[left].Order != normalized[right].Order {
+				return normalized[left].Order < normalized[right].Order
+			}
+			return normalized[left].OccurrenceID < normalized[right].OccurrenceID
 		})
 	} else {
 		sort.Slice(normalized, func(left, right int) bool {

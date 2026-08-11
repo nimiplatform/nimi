@@ -204,7 +204,7 @@ test('AIProfile authoring derives all four read-only journey actions and present
   assert.doesNotMatch(markup, /Confirm Apply|Save configuration/u);
 });
 
-test('AIProfile authoring renders stable-diffusion typed fields and ordered LoRA occurrences', () => {
+test('AIProfile authoring renders stable-diffusion fields without LoRA controls or serialized intent', () => {
   let draft = validTextDraft();
   draft = changeRuntimeConfigAIProfileCapabilityContract(
     draft,
@@ -224,22 +224,6 @@ test('AIProfile authoring renders stable-diffusion typed fields and ordered LoRA
           ...capability.local.stableDiffusion,
           modelFamily: 'ideogram4',
           enableInputImage: 'true',
-          loras: [
-            {
-              draftId: 'lora-a',
-              displayLabel: 'Portrait detail',
-              policy: 'substitutable',
-              verifiedContentId: '',
-              weight: '1',
-            },
-            {
-              draftId: 'lora-b',
-              displayLabel: 'Lighting',
-              policy: 'substitutable',
-              verifiedContentId: '',
-              weight: '0.5',
-            },
-          ],
           execution: {
             ...capability.local.stableDiffusion.execution,
             steps: '30',
@@ -264,11 +248,12 @@ test('AIProfile authoring renders stable-diffusion typed fields and ordered LoRA
   const markup = renderAuthoring(stateWithDraft(draft), projection);
 
   assert.match(markup, /data-testid="ai-profile-authoring-stable-diffusion-fields"/u);
-  assert.match(markup, /data-testid="ai-profile-authoring-lora:1"[^>]*data-occurrence-ordinal="1"/u);
-  assert.match(markup, /data-testid="ai-profile-authoring-lora:2"[^>]*data-occurrence-ordinal="2"/u);
-  assert.ok(markup.indexOf('Portrait detail') < markup.indexOf('Lighting'));
+  assert.doesNotMatch(markup, /ai-profile-authoring-lora|Add LoRA/u);
   assert.match(markup, /Unconditional diffusion model/u);
   assert.match(markup, /data-testid="ai-profile-authoring-sd-execution-options"/u);
+
+  const exported = exportRuntimeConfigAIProfileAuthoring(draft);
+  assert.doesNotMatch(exported.artifactJson, /"loras"/u);
 });
 
 test('AIProfile authoring round-trips the exact portable llama embedding section', () => {

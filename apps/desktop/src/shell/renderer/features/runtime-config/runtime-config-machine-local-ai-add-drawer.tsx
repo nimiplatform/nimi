@@ -23,7 +23,6 @@ import {
   TextField,
 } from '@nimiplatform/kit/ui';
 import {
-  moveRuntimeConfigMachineLocalAILoRA,
   parseRuntimeConfigMachineLocalAIVideoRecipeDraft,
   type RuntimeConfigMachineLocalAIAddDraft,
   type RuntimeConfigMachineLocalAIVideoSlotId,
@@ -255,16 +254,6 @@ function MachineLocalAIImageAddFields(props: {
       [slotId]: { ...draft.slots[slotId], ...patch },
     },
   });
-  const updateLoRA = (
-    index: number,
-    patch: Partial<RuntimeConfigMachineLocalAIAddDraft['loras'][number]>,
-  ) => props.onChange({
-    ...draft,
-    loras: draft.loras.map((lora, itemIndex) => (
-      itemIndex === index ? { ...lora, ...patch } : lora
-    )),
-  });
-
   return (
     <div className="grid gap-4" data-testid="machine-local-ai-image-fields">
       <div className="grid gap-4 md:grid-cols-2">
@@ -364,133 +353,6 @@ function MachineLocalAIImageAddFields(props: {
             </div>
           );
         })}
-      </fieldset>
-
-      <fieldset className="grid gap-3" data-testid="machine-local-ai-lora-list">
-        <div className="flex items-center justify-between gap-3">
-          <legend className="text-sm font-semibold text-[var(--nimi-text-primary)]">
-            {t('runtimeConfig.machineLocalAIConfigurations.lorasTitle')}
-          </legend>
-          <Button
-            type="button"
-            size="sm"
-            disabled={props.busy || draft.loras.length >= 32}
-            onClick={() => {
-              const ordinal = draft.loras.length + 1;
-              props.onChange({
-                ...draft,
-                loras: [...draft.loras, {
-                  draftId: nextLoRADraftId(draft.loras),
-                  displayLabel: `LoRA ${ordinal}`,
-                  requirementPolicy: 'substitutable',
-                  localAssetId: '',
-                  weight: '1',
-                }],
-              });
-            }}
-          >
-            {t('runtimeConfig.machineLocalAIConfigurations.addLora')}
-          </Button>
-        </div>
-        {draft.loras.length === 0 ? (
-          <p className="text-xs text-[var(--nimi-text-muted)]">
-            {t('runtimeConfig.machineLocalAIConfigurations.noLoras')}
-          </p>
-        ) : draft.loras.map((lora, index) => (
-          <div
-            key={lora.draftId}
-            className="grid gap-3 rounded-xl border border-[var(--nimi-border-subtle)] p-3"
-            data-testid={`machine-local-ai-lora:${index + 1}`}
-            data-occurrence-ordinal={index + 1}
-          >
-            <div className="text-xs font-semibold text-[var(--nimi-text-muted)]">
-              {machineLocalRequirementGroupDisplay('companion', index + 1, t)}
-            </div>
-            <label className="space-y-1 text-xs font-medium text-[var(--nimi-text-secondary)]">
-              <span>{t('runtimeConfig.machineLocalAIConfigurations.slotDisplayLabel')}</span>
-              <TextField
-                value={lora.displayLabel}
-                disabled={props.busy}
-                onChange={(event) => updateLoRA(index, { displayLabel: event.currentTarget.value })}
-              />
-            </label>
-            <div className="space-y-1 text-xs font-medium text-[var(--nimi-text-secondary)]">
-              <span>{t('runtimeConfig.machineLocalAIConfigurations.requirementPolicy')}</span>
-              <SelectField
-                value={lora.requirementPolicy}
-                disabled={props.busy}
-                options={[
-                  { value: 'substitutable', label: t('runtimeConfig.machineLocalAIConfigurations.policySubstitutable') },
-                  { value: 'strict', label: t('runtimeConfig.machineLocalAIConfigurations.policyStrict') },
-                ]}
-                onValueChange={(value) => updateLoRA(index, {
-                  requirementPolicy: value as typeof lora.requirementPolicy,
-                  localAssetId: value === 'strict' ? lora.localAssetId : '',
-                })}
-                contentLayer="dialog"
-              />
-            </div>
-            <label className="space-y-1 text-xs font-medium text-[var(--nimi-text-secondary)]">
-              <span>{t('runtimeConfig.machineLocalAIConfigurations.loraWeight')}</span>
-              <TextField
-                type="number"
-                min={-4}
-                max={4}
-                step="0.1"
-                value={lora.weight}
-                disabled={props.busy}
-                onChange={(event) => updateLoRA(index, { weight: event.currentTarget.value })}
-              />
-            </label>
-            <div className="flex flex-wrap items-center gap-1">
-              <Button
-                type="button"
-                size="sm"
-                tone="ghost"
-                disabled={props.busy || index === 0}
-                onClick={() => props.onChange({
-                  ...draft,
-                  loras: moveRuntimeConfigMachineLocalAILoRA(draft.loras, index, -1),
-                })}
-              >
-                {t('runtimeConfig.machineLocalAIConfigurations.moveUp')}
-              </Button>
-              <Button
-                type="button"
-                size="sm"
-                tone="ghost"
-                disabled={props.busy || index === draft.loras.length - 1}
-                onClick={() => props.onChange({
-                  ...draft,
-                  loras: moveRuntimeConfigMachineLocalAILoRA(draft.loras, index, 1),
-                })}
-              >
-                {t('runtimeConfig.machineLocalAIConfigurations.moveDown')}
-              </Button>
-              <Button
-                type="button"
-                size="sm"
-                tone="danger"
-                disabled={props.busy}
-                onClick={() => props.onChange({
-                  ...draft,
-                  loras: draft.loras.filter((_, itemIndex) => itemIndex !== index),
-                })}
-              >
-                {t('runtimeConfig.machineLocalAIConfigurations.remove')}
-              </Button>
-            </div>
-            {lora.requirementPolicy === 'strict' ? (
-              <ExactAssetSelect
-                value={lora.localAssetId}
-                assets={verifiedAssets}
-                busy={props.busy}
-                label={t('runtimeConfig.machineLocalAIConfigurations.preferredFile')}
-                onChange={(localAssetId) => updateLoRA(index, { localAssetId })}
-              />
-            ) : null}
-          </div>
-        ))}
       </fieldset>
 
       <fieldset className="grid gap-3 md:grid-cols-5" data-testid="machine-local-ai-image-execution-options">
@@ -765,21 +627,6 @@ export function createMachineLocalImageConfigurationInput(
     if (!contentId) throw new Error(`A preferred local file is required for ${slotId}.`);
     return contentId;
   };
-  const loras = draft.loras.map((lora, index) => {
-    const contentId = lora.requirementPolicy === 'strict'
-      ? assets.find((asset) => asset.localAssetId === lora.localAssetId)
-        ?.expectedVerifiedContentId
-      : undefined;
-    if (lora.requirementPolicy === 'strict' && !contentId) {
-      throw new Error(`A preferred local file is required for LoRA ${index + 1}.`);
-    }
-    return {
-      displayLabel: requireDraftText(lora.displayLabel, `LoRA ${index + 1} label`),
-      requirementPolicy: lora.requirementPolicy,
-      ...(contentId ? { verifiedContentId: contentId } : {}),
-      weight: parseDraftNumber(lora.weight, `LoRA ${index + 1} weight`),
-    };
-  });
   const mainVerifiedContentId = preferredContentId('main');
   const textEncoderVerifiedContentId = preferredContentId('textEncoder');
   const vaeVerifiedContentId = preferredContentId('vae');
@@ -800,7 +647,6 @@ export function createMachineLocalImageConfigurationInput(
       uncondDiffusionRequirementPolicy: draft.slots.uncondDiffusion.requirementPolicy,
       ...(uncondDiffusionVerifiedContentId ? { uncondDiffusionVerifiedContentId } : {}),
     } : {}),
-    loras,
     executionOptions: {
       steps: parseDraftNumber(draft.executionOptions.steps, 'steps'),
       cfgScale: parseDraftNumber(draft.executionOptions.cfgScale, 'cfgScale'),
@@ -859,19 +705,4 @@ function parseDraftNumber(value: string, field: string): number {
   const number = Number(value);
   if (!Number.isFinite(number)) throw new Error(`${field} must be a finite number.`);
   return number;
-}
-
-function requireDraftText(value: string, field: string): string {
-  const normalized = value.trim();
-  if (!normalized) throw new Error(`${field} is required.`);
-  return normalized;
-}
-
-function nextLoRADraftId(
-  loras: RuntimeConfigMachineLocalAIAddDraft['loras'],
-): string {
-  let index = 1;
-  const ids = new Set(loras.map((lora) => lora.draftId));
-  while (ids.has(`lora-${index}`)) index += 1;
-  return `lora-${index}`;
 }

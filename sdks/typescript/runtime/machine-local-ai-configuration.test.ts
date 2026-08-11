@@ -342,9 +342,8 @@ test('Machine Local AI Configuration typed client maps every admitted RPC throug
   }
 });
 
-test('stable-diffusion image configuration constructor emits only Driver portable fields in ordered form', () => {
+test('stable-diffusion image configuration constructor emits only supported Driver portable fields', () => {
   const strictContentId = `sha256:${'c'.repeat(64)}`;
-  const loraContentId = `sha256:${'d'.repeat(64)}`;
   const input = createNimiMachineLocalStableDiffusionImageConfigurationInput({
     displayName: 'Local image studio',
     modelFamily: 'ideogram4',
@@ -354,19 +353,6 @@ test('stable-diffusion image configuration constructor emits only Driver portabl
     textEncoderRequirementPolicy: 'substitutable',
     vaeRequirementPolicy: 'substitutable',
     uncondDiffusionRequirementPolicy: 'substitutable',
-    loras: [
-      {
-        displayLabel: 'Portrait detail',
-        requirementPolicy: 'substitutable',
-        weight: 0.75,
-      },
-      {
-        displayLabel: 'Line work',
-        requirementPolicy: 'strict',
-        verifiedContentId: loraContentId,
-        weight: -0.5,
-      },
-    ],
     executionOptions: {
       steps: 30,
       cfgScale: 6.5,
@@ -392,19 +378,6 @@ test('stable-diffusion image configuration constructor emits only Driver portabl
     textEncoderRequirementPolicy: 'substitutable',
     vaeRequirementPolicy: 'substitutable',
     uncondDiffusionRequirementPolicy: 'substitutable',
-    loras: [
-      {
-        displayLabel: 'Portrait detail',
-        requirementPolicy: 'substitutable',
-        weight: 0.75,
-      },
-      {
-        displayLabel: 'Line work',
-        requirementPolicy: 'strict',
-        verifiedContentId: loraContentId,
-        weight: -0.5,
-      },
-    ],
     executionOptions: {
       steps: 30,
       cfgScale: 6.5,
@@ -419,6 +392,17 @@ test('stable-diffusion image configuration constructor emits only Driver portabl
     },
   });
 
+  assert.throws(
+    () => createNimiMachineLocalStableDiffusionImageConfigurationInput({
+      displayName: 'Unsupported LoRA configuration',
+      modelFamily: 'z-image',
+      loras: [],
+    } as never),
+    (error: unknown) => {
+      assert.equal((error as { reasonCode?: string }).reasonCode, ReasonCode.SDK_AI_INPUT_INVALID);
+      return true;
+    },
+  );
   assert.throws(
     () => createNimiMachineLocalStableDiffusionImageConfigurationInput({
       displayName: 'Invalid strict slot',
@@ -446,6 +430,33 @@ test('stable-diffusion image configuration constructor emits only Driver portabl
     } as never),
     /unsupported fields/u,
   );
+});
+
+test('stable-diffusion image configuration constrains seed to the managed signed-int32 carrier', () => {
+  for (const seed of [-2147483648, 2147483647]) {
+    const input = createNimiMachineLocalStableDiffusionImageConfigurationInput({
+      displayName: `Local image seed ${seed}`,
+      modelFamily: 'z-image',
+      executionOptions: { seed },
+    });
+    assert.equal(
+      (input.portableConfig.executionOptions as { seed?: number } | undefined)?.seed,
+      seed,
+    );
+  }
+  for (const seed of [-2147483649, 2147483648]) {
+    assert.throws(
+      () => createNimiMachineLocalStableDiffusionImageConfigurationInput({
+        displayName: `Invalid local image seed ${seed}`,
+        modelFamily: 'z-image',
+        executionOptions: { seed },
+      }),
+      (error: unknown) => {
+        assert.equal((error as { reasonCode?: string }).reasonCode, ReasonCode.SDK_AI_INPUT_INVALID);
+        return true;
+      },
+    );
+  }
 });
 
 test('stable-diffusion video configuration constructor emits only Driver portable fields in ordered form', () => {

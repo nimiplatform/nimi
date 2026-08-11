@@ -88,57 +88,43 @@ func TestSchedulerAcquireErrorPreservesCause(t *testing.T) {
 	}
 }
 
-func TestScenarioJobTimeoutDurationFloorsShortLocalImageJobs(t *testing.T) {
-	req := &runtimev1.SubmitScenarioJobRequest{
-		Head: &runtimev1.ScenarioRequestHead{
-			TimeoutMs: int32((10 * time.Minute) / time.Millisecond),
-		},
-		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE,
+func TestLocalImageJobTimeoutDurationUsesInclusivePublicRange(t *testing.T) {
+	tests := []struct {
+		name      string
+		timeoutMS int32
+		want      time.Duration
+		wantError bool
+	}{
+		{name: "absent uses internal default", timeoutMS: 0, want: minLocalImageJobTimeout},
+		{name: "minimum preserved", timeoutMS: int32(minLocalImageJobTimeout.Milliseconds()), want: minLocalImageJobTimeout},
+		{name: "interior preserved", timeoutMS: int32((30 * time.Minute).Milliseconds()), want: 30 * time.Minute},
+		{name: "maximum preserved", timeoutMS: int32(maxLocalImageJobTimeout.Milliseconds()), want: maxLocalImageJobTimeout},
+		{name: "negative", timeoutMS: -1, wantError: true},
+		{name: "ten minutes", timeoutMS: int32((10 * time.Minute).Milliseconds()), wantError: true},
+		{name: "ninety minutes", timeoutMS: int32((90 * time.Minute).Milliseconds()), wantError: true},
+		{name: "below minimum", timeoutMS: int32(minLocalImageJobTimeout.Milliseconds()) - 1, wantError: true},
+		{name: "above maximum", timeoutMS: int32(maxLocalImageJobTimeout.Milliseconds()) + 1, wantError: true},
 	}
 
-	got := scenarioJobTimeoutDuration(req, defaultGenerateImageTimeout, true)
-	if got != minLocalImageJobTimeout {
-		t.Fatalf("scenarioJobTimeoutDuration(local image 10m) = %s, want %s", got, minLocalImageJobTimeout)
-	}
-}
-
-func TestScenarioJobTimeoutDurationClampsLocalImageJobsAtSixtyMinutes(t *testing.T) {
-	req := &runtimev1.SubmitScenarioJobRequest{
-		Head: &runtimev1.ScenarioRequestHead{
-			TimeoutMs: int32((90 * time.Minute) / time.Millisecond),
-		},
-		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE,
-	}
-
-	got := scenarioJobTimeoutDuration(req, defaultGenerateImageTimeout, true)
-	if got != maxLocalImageJobTimeout {
-		t.Fatalf("scenarioJobTimeoutDuration(local image 90m) = %s, want %s", got, maxLocalImageJobTimeout)
-	}
-}
-
-func TestScenarioJobTimeoutDurationPreservesLongerLocalImageJobsWithinCap(t *testing.T) {
-	req := &runtimev1.SubmitScenarioJobRequest{
-		Head: &runtimev1.ScenarioRequestHead{
-			TimeoutMs: int32((30 * time.Minute) / time.Millisecond),
-		},
-		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE,
-	}
-
-	got := scenarioJobTimeoutDuration(req, defaultGenerateImageTimeout, true)
-	if got != 30*time.Minute {
-		t.Fatalf("scenarioJobTimeoutDuration(local image 30m) = %s, want %s", got, 30*time.Minute)
-	}
-}
-
-func TestScenarioJobTimeoutDurationFloorsDefaultLocalImageJobs(t *testing.T) {
-	req := &runtimev1.SubmitScenarioJobRequest{
-		Head:         &runtimev1.ScenarioRequestHead{},
-		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE,
-	}
-
-	got := scenarioJobTimeoutDuration(req, defaultGenerateImageTimeout, true)
-	if got != minLocalImageJobTimeout {
-		t.Fatalf("scenarioJobTimeoutDuration(local image default) = %s, want %s", got, minLocalImageJobTimeout)
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			got, err := localImageJobTimeoutDuration(test.timeoutMS)
+			if !test.wantError {
+				if err != nil {
+					t.Fatalf("localImageJobTimeoutDuration(%d): %v", test.timeoutMS, err)
+				}
+				if got != test.want {
+					t.Fatalf("localImageJobTimeoutDuration(%d) = %s, want %s", test.timeoutMS, got, test.want)
+				}
+				return
+			}
+			if got != 0 {
+				t.Fatalf("rejected timeout duration = %s, want zero", got)
+			}
+			if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED || statusCode(err) != codes.InvalidArgument {
+				t.Fatalf("timeout error=%v code=%v reason=%v present=%v", err, statusCode(err), reason, ok)
+			}
+		})
 	}
 }
 

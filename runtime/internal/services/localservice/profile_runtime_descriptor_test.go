@@ -12,85 +12,13 @@ import (
 )
 
 func testProfileRuntimeDescriptor() profileRuntimeDescriptor {
-	return profileRuntimeDescriptor{
-		SchemaVersion:       1,
-		DescriptorID:        "descriptor:test",
-		ProfileRef:          profileRuntimeDescriptorProfileRef{ProfileID: "profile:test", Version: "1"},
-		SourceProfileDigest: "sha256:test",
-		ProjectionOrigin:    map[string]any{"component": "sdk.aiProfile.formRuntimeDescriptor"},
-		RequirementRefs:     []string{"requirement:test"},
-		CapabilitySlices: []profileRuntimeDescriptorCapability{
-			{
-				SliceID:           "slice:image",
-				Capability:        "image.generate",
-				ExecutionMode:     "local",
-				ContractState:     "declared",
-				ReadinessPolicy:   "required",
-				ParamsRef:         "params:image",
-				RuntimeConsumerID: "stable-diffusion.cpp.metal",
-				Execution: profileRuntimeDescriptorExecution{
-					Backend:       "stablediffusion-ggml",
-					BackendClass:  "native_binary",
-					BackendFamily: "stablediffusion-ggml",
-				},
-				Model:        profileRuntimeDescriptorModel{Family: "flux"},
-				AssetRefs:    []string{"main"},
-				ParamsDigest: "params-digest",
-				OrderedCompanionOccurrences: []profileRuntimeDescriptorCompanionOccurrence{
-					{
-						OccurrenceID:    "lora-1",
-						Order:           0,
-						Role:            "lora",
-						EngineSlot:      "lora_path",
-						AssetBindingRef: "lora-a",
-						Required:        true,
-						Weight:          "0.7",
-					},
-					{
-						OccurrenceID:    "lora-2",
-						Order:           1,
-						Role:            "lora",
-						EngineSlot:      "lora_path",
-						AssetBindingRef: "lora-a",
-						Required:        true,
-						Weight:          "0.4",
-					},
-				},
-			},
-		},
-		AssetBindings: []profileRuntimeDescriptorAssetBinding{
-			{
-				BindingID:        "main",
-				AssetRole:        "main",
-				ComponentKind:    "image",
-				Source:           "huggingface",
-				ExpectedIdentity: "hf:nimi/z-image",
-				ReadinessPolicy:  "required",
-				PreparedAssetID:  "asset:main",
-				HuggingFace: &profileRuntimeDescriptorHFSource{
-					RepoID:       "nimiplatform/z-image",
-					Revision:     "main",
-					Entries:      []string{"model.gguf"},
-					AccessPolicy: "public",
-				},
-			},
-			{
-				BindingID:        "lora-a",
-				AssetRole:        "companion",
-				ComponentKind:    "lora",
-				Source:           "huggingface",
-				ExpectedIdentity: "hf:nimi/lora-a",
-				ReadinessPolicy:  "required",
-				PreparedAssetID:  "asset:lora-a",
-				HuggingFace: &profileRuntimeDescriptorHFSource{
-					RepoID:       "nimiplatform/lora-a",
-					Revision:     "main",
-					Entries:      []string{"lora.safetensors"},
-					AccessPolicy: "public",
-				},
-			},
-		},
-	}
+	descriptor := testProfileRuntimeImageCompanionDescriptor()
+	descriptor.DescriptorID = "descriptor:test"
+	descriptor.ProfileRef = profileRuntimeDescriptorProfileRef{ProfileID: "profile:test", Version: "1"}
+	descriptor.SourceProfileDigest = "sha256:test"
+	descriptor.RequirementRefs = []string{"requirement:test"}
+	descriptor.CapabilitySlices[0].SliceID = "slice:image"
+	return descriptor
 }
 
 func testProfileRuntimeImageCompanionDescriptor() profileRuntimeDescriptor {
@@ -475,6 +403,7 @@ func seedProfileRuntimePortableSelectedSourcesForService(
 		if strings.TrimSpace(binding.AssetRole) == "main" {
 			asset.Status = runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE
 			asset.Family = normalizeManagedImageProjectionFamily(binding.ExpectedIdentity)
+			asset.EngineConfig = mustStructForTest(t, map[string]any{"backend": "stablediffusion-ggml"})
 		}
 		if asset.Kind == runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_VAE {
 			asset.Family = "flux1-vae"
@@ -621,7 +550,7 @@ func assertProfileRuntimePlanBindingsRequired(t *testing.T, svc *Service) {
 	t.Fatalf("corrupt restored materialization must keep profile-bindings blocker, got %+v", plan.Dependencies)
 }
 
-func TestServicePrepareProfileRuntimeDescriptorAcceptsSDKFormedShape(t *testing.T) {
+func TestServicePrepareProfileRuntimeDescriptorRejectsSDKFormedLoRAOccurrence(t *testing.T) {
 	t.Parallel()
 	svc := newTestService(t)
 	raw := []byte(`{
@@ -710,27 +639,11 @@ func TestServicePrepareProfileRuntimeDescriptorAcceptsSDKFormedShape(t *testing.
 		]
 	}`)
 
-	result, err := svc.prepareProfileRuntimeDescriptor(context.Background(), ProfileRuntimeDescriptorPrepareRequest{
+	_, err := svc.prepareProfileRuntimeDescriptor(context.Background(), ProfileRuntimeDescriptorPrepareRequest{
 		DescriptorJSON: raw,
 	})
-	if err != nil {
-		t.Fatalf("prepare SDK-shaped descriptor through service: %v", err)
-	}
-	if result.DescriptorID != "descriptor:sdk-shape" || result.ProfileID != "factory:runtime-shape" {
-		t.Fatalf("unexpected descriptor identity: %+v", result)
-	}
-	if len(result.SliceResults) != 2 {
-		t.Fatalf("expected two typed slice outcomes, got %+v", result.SliceResults)
-	}
-	if result.SliceResults[0].Outcome != string(profileRuntimePrepareSetupRequiredNoLiveConfig) ||
-		!profileRuntimeStringSliceContains(result.SliceResults[0].ReasonCodes, "native_backend_package_source_missing") ||
-		!profileRuntimeStringSliceContains(result.SliceResults[0].ReasonCodes, "required_asset_missing") {
-		t.Fatalf("local slice must fail closed until Runtime facts are materialized: %+v", result.SliceResults[0])
-	}
-	if result.SliceResults[1].Outcome != string(profileRuntimePrepareSetupRequiredNoLiveConfig) ||
-		!profileRuntimeStringSliceContains(result.SliceResults[1].ReasonCodes, "credentials_required") ||
-		result.SliceResults[1].MaterializationKey != "" {
-		t.Fatalf("cloud connector must require runtime custody without local materialization: %+v", result.SliceResults[1])
+	if err == nil || !strings.Contains(err.Error(), "descriptor.companion_slot_unsupported: flux:lora_path") {
+		t.Fatalf("SDK-shaped LoRA executable occurrence must fail closed, got %v", err)
 	}
 }
 
@@ -887,6 +800,7 @@ func TestPrepareProfileRuntimeDescriptorForAIConfigAcceptsPortableInstalledCompo
 		case "main":
 			asset.Family = "z-image"
 			asset.Capabilities = []string{"image.generate"}
+			asset.EngineConfig = mustStructForTest(t, map[string]any{"backend": "stablediffusion-ggml"})
 		case "ae":
 			asset.Family = "flux1-vae"
 			asset.ArtifactRoles = []string{"vae"}
@@ -1588,7 +1502,7 @@ func TestProfileRuntimePrepareFailsClosedForPreparedAssetExactMismatch(t *testin
 	descriptor := testProfileRuntimeDescriptor()
 	facts := testProfileRuntimeReadyFacts(descriptor)
 	for index := range facts.PreparedAssets {
-		if facts.PreparedAssets[index].PreparedAssetID == "asset:main" {
+		if facts.PreparedAssets[index].PreparedAssetID == "local-z-image" {
 			facts.PreparedAssets[index].PreparedAssetID = "asset:other-main"
 			facts.PreparedAssets[index].LocalAssetID = "asset:other-main"
 		}
@@ -1610,7 +1524,7 @@ func TestProfileRuntimePrepareFailsClosedForPreparedAssetRoleMismatch(t *testing
 	descriptor := testProfileRuntimeDescriptor()
 	facts := testProfileRuntimeReadyFacts(descriptor)
 	for index := range facts.PreparedAssets {
-		if facts.PreparedAssets[index].PreparedAssetID == "asset:lora-a" {
+		if facts.PreparedAssets[index].PreparedAssetID == "local-z-image-ae" {
 			facts.PreparedAssets[index].Role = "main"
 		}
 	}
@@ -1629,13 +1543,8 @@ func TestProfileRuntimePrepareFailsClosedForPreparedAssetRoleMismatch(t *testing
 func TestProfileRuntimePrepareFailsClosedForQwenBackupOnlyCompanion(t *testing.T) {
 	t.Parallel()
 	descriptor := testProfileRuntimeDescriptor()
-	descriptor.AssetBindings[1].ComponentKind = "chat"
-	descriptor.AssetBindings[1].ExpectedIdentity = "backup:Qwen3-4B-Q4_K_M.gguf"
-	descriptor.AssetBindings[1].PreparedAssetID = "asset:qwen3-4b-backup"
-	descriptor.CapabilitySlices[0].OrderedCompanionOccurrences[0].Role = "text_encoder"
-	descriptor.CapabilitySlices[0].OrderedCompanionOccurrences[0].EngineSlot = "llm_path"
-	descriptor.CapabilitySlices[0].OrderedCompanionOccurrences[1].Role = "text_encoder"
-	descriptor.CapabilitySlices[0].OrderedCompanionOccurrences[1].EngineSlot = "llm_path_secondary"
+	descriptor.AssetBindings[2].ExpectedIdentity = "backup:Qwen3-4B-Q4_K_M.gguf"
+	descriptor.AssetBindings[2].PreparedAssetID = "asset:qwen3-4b-backup"
 	facts := testProfileRuntimeReadyFacts(descriptor)
 	filtered := facts.PreparedAssets[:0]
 	for _, fact := range facts.PreparedAssets {
@@ -1665,7 +1574,7 @@ func TestProfileRuntimePrepareFailsClosedForSourceUnreadyRequiredCompanion(t *te
 	descriptor := testProfileRuntimeDescriptor()
 	facts := testProfileRuntimeReadyFacts(descriptor)
 	for index := range facts.PreparedAssets {
-		if facts.PreparedAssets[index].PreparedAssetID == "asset:lora-a" {
+		if facts.PreparedAssets[index].PreparedAssetID == "local-z-image-ae" {
 			facts.PreparedAssets[index].SourceReady = false
 		}
 	}

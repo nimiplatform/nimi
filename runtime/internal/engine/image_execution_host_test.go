@@ -314,29 +314,29 @@ func TestImageExecutionHostPreservesProducedArtifactsOnInferenceFailure(t *testi
 	}
 }
 
-func TestImageInvocationTransportPreservesDriverOrderedComponentsAndOptions(t *testing.T) {
-	plan := imagePlanWithLoRAsForHostTest(t)
+func TestImageInvocationTransportUsesCanonicalDriverComponentsAndPrompt(t *testing.T) {
+	plan := imagePlanWithUncondForHostTest(t)
 	request, err := imageLoadRequest("127.0.0.1:43210", plan)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(request.Components) != 4 || request.Components[0].OccurrenceID != capabilitydriver.StableDiffusionTextEncoderRequirementID ||
+	if len(request.Components) != 3 || request.Components[0].OccurrenceID != capabilitydriver.StableDiffusionTextEncoderRequirementID ||
 		request.Components[1].OccurrenceID != capabilitydriver.StableDiffusionVAERequirementID ||
-		request.Components[2].OccurrenceID != capabilitydriver.StableDiffusionLoRARequirementID(1) || request.Components[2].Order != 1 ||
-		request.Components[3].OccurrenceID != capabilitydriver.StableDiffusionLoRARequirementID(2) || request.Components[3].Order != 2 {
-		t.Fatalf("ordered component transport = %+v", request.Components)
+		request.Components[2].OccurrenceID != capabilitydriver.StableDiffusionUncondDiffusionRequirementID ||
+		request.Components[2].EngineSlot != "uncond_diffusion_model" {
+		t.Fatalf("canonical component transport = %+v", request.Components)
 	}
-	options := imageInvocationLoadOptions(plan)
-	joinedOptions := strings.Join(options, "\n")
-	for _, wanted := range []string{"diffusion_model", "llm_path:" + plan.TextEncoderPath(), "vae_path:" + plan.VAEPath(), "sampler:euler_a", "scheduler:karras", "lora_dir:"} {
-		if !strings.Contains(joinedOptions, wanted) {
-			t.Fatalf("load options %q missing %q", joinedOptions, wanted)
-		}
+	if got := imageInvocationPrompt(plan); got != plan.Prompt() {
+		t.Fatalf("image prompt = %q, want %q", got, plan.Prompt())
 	}
-	prompt := imageInvocationPrompt(plan)
-	loras := plan.LoRAs()
-	if strings.Index(prompt, loras[0].AbsolutePath) < 0 || strings.Index(prompt, loras[1].AbsolutePath) <= strings.Index(prompt, loras[0].AbsolutePath) {
-		t.Fatalf("ordered LoRA prompt = %q", prompt)
+}
+
+func TestImageInvocationLoadOptionsUsesCanonicalUncondComponentToken(t *testing.T) {
+	plan := imagePlanWithUncondForHostTest(t)
+	joinedOptions := strings.Join(imageInvocationLoadOptions(plan), "\n")
+	wanted := "uncond_diffusion_model:" + plan.UncondDiffusionPath()
+	if !strings.Contains(joinedOptions, wanted) || strings.Contains(joinedOptions, "high_noise_diffusion_model_path:") {
+		t.Fatalf("unconditional diffusion options = %q, want canonical %q only", joinedOptions, wanted)
 	}
 }
 
@@ -415,19 +415,18 @@ func imagePlanForHostTest(t *testing.T, prompt string, count int32) *capabilityd
 	return plan
 }
 
-func imagePlanWithLoRAsForHostTest(t *testing.T) *capabilitydriver.ImageInvocationPlan {
+func imagePlanWithUncondForHostTest(t *testing.T) *capabilitydriver.ImageInvocationPlan {
 	t.Helper()
 	root := t.TempDir()
 	requirementIDs := []string{
 		capabilitydriver.StableDiffusionMainRequirementID,
 		capabilitydriver.StableDiffusionTextEncoderRequirementID,
 		capabilitydriver.StableDiffusionVAERequirementID,
-		capabilitydriver.StableDiffusionLoRARequirementID(1),
-		capabilitydriver.StableDiffusionLoRARequirementID(2),
+		capabilitydriver.StableDiffusionUncondDiffusionRequirementID,
 	}
 	bindings := make([]capabilitydriver.InvocationExactBinding, 0, len(requirementIDs))
 	for index, requirementID := range requirementIDs {
-		path := filepath.Join(root, fmt.Sprintf("component-%d.safetensors", index))
+		path := filepath.Join(root, fmt.Sprintf("ideogram-component-%d.gguf", index))
 		payload := []byte(requirementID)
 		if err := os.WriteFile(path, payload, 0o600); err != nil {
 			t.Fatal(err)
@@ -435,27 +434,23 @@ func imagePlanWithLoRAsForHostTest(t *testing.T) *capabilitydriver.ImageInvocati
 		digestBytes := sha256.Sum256(payload)
 		digest := hex.EncodeToString(digestBytes[:])
 		bindings = append(bindings, capabilitydriver.InvocationExactBinding{
-			RequirementID: requirementID, LocalAssetID: fmt.Sprintf("asset-%d", index), AbsolutePath: path,
+			RequirementID: requirementID, LocalAssetID: fmt.Sprintf("ideogram-asset-%d", index), AbsolutePath: path,
 			VerifiedContentID: "sha256:" + digest, EntrySHA256: digest,
 		})
 	}
 	portable, err := structpb.NewStruct(map[string]any{
-		"modelFamily": "z-image",
-		"loras": []any{
-			map[string]any{"displayLabel": "first", "weight": 0.5},
-			map[string]any{"displayLabel": "second", "weight": 1.25},
-		},
+		"modelFamily": "ideogram4",
 		"executionOptions": map[string]any{
 			"steps": 4, "cfgScale": 2, "width": 64, "height": 64, "seed": 8, "threads": 2,
-			"sampler": "euler_a", "scheduler": "karras",
 		},
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
 	plan, err := (capabilitydriver.StableDiffusionImageDriver{}).PlanImageInvocation(capabilitydriver.ImageInvocationInput{
-		PortableConfig: portable, ExactBindings: bindings,
-		Request: &runtimev1.ImageGenerateScenarioSpec{Prompt: "ordered", N: proto.Int32(1), Size: "64x64", Seed: proto.Int64(8)},
+		PortableConfig: portable,
+		ExactBindings:  bindings,
+		Request:        &runtimev1.ImageGenerateScenarioSpec{Prompt: "ideogram", N: proto.Int32(1), Size: "64x64", Seed: proto.Int64(8)},
 	})
 	if err != nil {
 		t.Fatal(err)

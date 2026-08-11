@@ -651,7 +651,7 @@ units:
     kind: rule
     title: Local image workflow mapping is fixed
     modality: must
-    statement: The exact local image CapabilityImplementationDriver maps text-to-image with empty reference images to a request without file, files, or ref_images, maps image-to-image with the first reference image to file, all reference images to files, and the remainder to ref_images, and passes through admitted negative_prompt, while provider, Driver, implementation and Host identity come from the committed Local Capability Configuration rather than inference from a resolved engine.
+    statement: The exact local image CapabilityImplementationDriver maps text-to-image with empty reference images to a request without file, files, or ref_images, maps image-to-image with the first reference image to file, all reference images to files, and the remainder to ref_images, and passes through admitted negative_prompt, while provider, Driver, implementation and Host identity come from the committed Local Capability Configuration rather than inference from a resolved engine. For the stable-diffusion.cpp Local Driver, an absent image count resolves to one, an explicit image count admits only one through four, and an explicit size admits only WIDTHxHEIGHT with each dimension from 64 through 4096 and divisible by eight. An explicit request seed is admitted only from -2147483648 through 2147483647. Any unsupported image count, size, or seed returns AI_MEDIA_OPTION_UNSUPPORTED before Job publication or ExecutionHost dispatch.
     condition: Whenever Runtime maps a local image workflow request.
     failure: Reject silent drops or mismapped image workflow inputs.
     relations:
@@ -661,7 +661,7 @@ units:
     kind: rule
     title: Local image configuration owns exact Driver slots and options
     modality: must
-    statement: The exact local image CapabilityImplementationDriver owns portable configuration and projects normalized independent requirement-occurrence slots into the Local Capability Configuration; slots carry exact verified LocalAsset bindings or unresolved state, configuration changes update current state directly, implementation or dialect changes explicitly reproject requirements without inheriting bindings by path, name, slot label or field similarity, and execution consumes only exact committed bindings without ambient inventory resolution or dynamic import.
+    statement: The exact local image CapabilityImplementationDriver owns portable configuration and projects normalized independent requirement-occurrence slots into the Local Capability Configuration; slots carry exact verified LocalAsset bindings or unresolved state, configuration changes update current state directly, implementation or dialect changes explicitly reproject requirements without inheriting bindings by path, name, slot label or field similarity, and execution consumes only exact committed bindings without ambient inventory resolution or dynamic import. The stable-diffusion.cpp portable executionOptions.seed field admits only an integer from -2147483648 through 2147483647; out-of-range configuration is PORTABLE_CONFIG_INVALID and never becomes executable.
     condition: Whenever a local image workflow consumes profile overrides or slot dependencies.
     failure: Preserve unresolved state or fail exact admission rather than guessing, inheriting, importing, or choosing companions and defaults.
     relations:

@@ -225,6 +225,7 @@ const (
 	InvocationFailureInvalidConfig  InvocationFailureKind = "invalid_config"
 	InvocationFailureInvalidBinding InvocationFailureKind = "invalid_binding"
 	InvocationFailureInvalidRequest InvocationFailureKind = "invalid_request"
+	InvocationFailureInvalidOption  InvocationFailureKind = "invalid_option"
 	InvocationFailureUnsupported    InvocationFailureKind = "unsupported"
 )
 
@@ -380,15 +381,6 @@ type EmbedInvocationDriver interface {
 	PlanEmbedInvocation(input EmbedInvocationInput) (*EmbedInvocationPlan, error)
 }
 
-// ImageInvocationLoRA is one exact Driver-declared ordered LoRA occurrence.
-type ImageInvocationLoRA struct {
-	RequirementID     string
-	OccurrenceOrdinal uint32
-	DisplayLabel      string
-	AbsolutePath      string
-	Weight            float64
-}
-
 // ImageInvocationPlan is private to the image Driver/Host seam. Its fields are
 // immutable after construction and accessors return copies where needed.
 type ImageInvocationPlan struct {
@@ -398,7 +390,6 @@ type ImageInvocationPlan struct {
 	textEncoderPath         string
 	vaePath                 string
 	uncondDiffusionPath     string
-	loras                   []ImageInvocationLoRA
 	modelFamily             string
 	prompt                  string
 	negativePrompt          string
@@ -458,13 +449,6 @@ func (p *ImageInvocationPlan) UncondDiffusionPath() string {
 		return ""
 	}
 	return p.uncondDiffusionPath
-}
-
-func (p *ImageInvocationPlan) LoRAs() []ImageInvocationLoRA {
-	if p == nil {
-		return nil
-	}
-	return append([]ImageInvocationLoRA(nil), p.loras...)
 }
 
 func (p *ImageInvocationPlan) ModelFamily() string {

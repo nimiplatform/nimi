@@ -8,6 +8,7 @@ import type { TesterRendererCommandPort } from '../../renderer/contract.js';
 import type { TesterCapabilityRunResult } from '../tester-runtime.js';
 import { unavailableReasonTitle } from '../tester-unavailable.js';
 import {
+  STUDIO_ARTIFACT_IMAGE_LOADING,
   hasStudioArtifactMedia,
   studioArtifactRenderBranch,
   type StudioArtifactPreviewSource,
@@ -169,7 +170,7 @@ export function ArtifactMediaPreview({
   if (isImage) {
     media = (
       <div className="ai-result__media-frame">
-        <img src={url} alt={label} loading="lazy" />
+        <img src={url} alt={label} loading={STUDIO_ARTIFACT_IMAGE_LOADING} />
         <Tooltip content={t('StudioShell.expandImage')} placement="top">
           <IconButton
             type="button"

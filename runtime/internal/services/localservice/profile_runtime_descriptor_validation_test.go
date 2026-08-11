@@ -556,25 +556,14 @@ func TestProfileRuntimeManualSourceReadinessFailsClosed(t *testing.T) {
 	}
 }
 
-func TestProfileRuntimeMaterializationIdentityRejectsMainAssetOnlyShortcut(t *testing.T) {
-	first := testProfileRuntimeDescriptor()
-	first.CapabilitySlices[0].OrderedCompanionOccurrences = nil
-	first.AssetBindings = first.AssetBindings[:1]
-	validatedFirst := validateProfileRuntimeDescriptorForInternalTest(t, first)
-	firstResult, err := prepareProfileRuntimeDescriptorWithFacts(validatedFirst, testProfileRuntimeReadyFacts(first))
-	if err != nil {
-		t.Fatalf("prepare first descriptor: %v", err)
-	}
+func TestProfileRuntimeDescriptorRejectsMainAssetOnlyShortcut(t *testing.T) {
+	descriptor := testProfileRuntimeDescriptor()
+	descriptor.CapabilitySlices[0].OrderedCompanionOccurrences = nil
+	descriptor.AssetBindings = descriptor.AssetBindings[:1]
 
-	second := first
-	second.CapabilitySlices[0].SliceID = "slice:image:other-workflow"
-	validatedSecond := validateProfileRuntimeDescriptorForInternalTest(t, second)
-	secondResult, err := prepareProfileRuntimeDescriptorWithFacts(validatedSecond, testProfileRuntimeReadyFacts(second))
-	if err != nil {
-		t.Fatalf("prepare second descriptor: %v", err)
-	}
-	if firstResult[0].MaterializationKey == secondResult[0].MaterializationKey {
-		t.Fatalf("materialization key used main asset only: %s", firstResult[0].MaterializationKey)
+	_, err := validateProfileRuntimeDescriptor(marshalProfileRuntimeDescriptor(t, descriptor))
+	if err == nil || !strings.Contains(err.Error(), "descriptor.required_companion_slot_missing") {
+		t.Fatalf("z-image main-only descriptor must fail closed, got %v", err)
 	}
 }
 
@@ -591,19 +580,38 @@ func TestProfileRuntimeDescriptorRejectsLocalPaths(t *testing.T) {
 	}
 }
 
-func TestProfileRuntimeDescriptorAllowsRepeatedAssetUseWithDistinctOccurrences(t *testing.T) {
+func TestProfileRuntimeDescriptorRejectsUnsupportedLoRAOccurrenceBeforeMaterialization(t *testing.T) {
 	descriptor := testProfileRuntimeDescriptor()
-	descriptor.AssetBindings[1].PreparedAssetID = "asset:shared-lora"
-	descriptor.CapabilitySlices[0].OrderedCompanionOccurrences[0].PreparedAssetID = "asset:shared-lora"
-	descriptor.CapabilitySlices[0].OrderedCompanionOccurrences[1].PreparedAssetID = "asset:shared-lora"
-
-	validated := validateProfileRuntimeDescriptorForInternalTest(t, descriptor)
-	results, err := prepareProfileRuntimeDescriptorWithFacts(validated, testProfileRuntimeReadyFacts(descriptor))
-	if err != nil {
-		t.Fatalf("prepare descriptor: %v", err)
+	descriptor.CapabilitySlices[0].Model.Family = "flux"
+	descriptor.CapabilitySlices[0].OrderedCompanionOccurrences = []profileRuntimeDescriptorCompanionOccurrence{{
+		OccurrenceID:    "lora-1",
+		Order:           0,
+		Role:            "lora",
+		EngineSlot:      "lora_path",
+		AssetBindingRef: "lora-a",
+		Required:        true,
+	}}
+	descriptor.AssetBindings = []profileRuntimeDescriptorAssetBinding{
+		descriptor.AssetBindings[0],
+		{
+			BindingID:        "lora-a",
+			AssetRole:        "companion",
+			ComponentKind:    "lora",
+			Source:           "huggingface",
+			ExpectedIdentity: "hf:nimi/lora-a",
+			ReadinessPolicy:  "required",
+			HuggingFace: &profileRuntimeDescriptorHFSource{
+				RepoID:       "nimiplatform/lora-a",
+				Revision:     "main",
+				Entries:      []string{"lora.safetensors"},
+				AccessPolicy: "public",
+			},
+		},
 	}
-	if results[0].Outcome != profileRuntimePrepareReady {
-		t.Fatalf("expected repeated asset use to remain representable, got %+v", results[0])
+
+	_, err := validateProfileRuntimeDescriptor(marshalProfileRuntimeDescriptor(t, descriptor))
+	if err == nil || !strings.Contains(err.Error(), "descriptor.companion_slot_unsupported: flux:lora_path") {
+		t.Fatalf("LoRA executable occurrence must fail closed before materialization, got %v", err)
 	}
 }
 
@@ -797,7 +805,7 @@ func TestProfileRuntimeMaterializationIdentityInvalidatesOnAllWorkflowInputs(t *
 			return next
 		},
 		"model family": func(next profileRuntimeDescriptor) profileRuntimeDescriptor {
-			next.CapabilitySlices[0].Model.Family = "sdxl"
+			next.CapabilitySlices[0].Model.Family = "z-image-turbo"
 			return next
 		},
 		"params digest": func(next profileRuntimeDescriptor) profileRuntimeDescriptor {
@@ -809,12 +817,12 @@ func TestProfileRuntimeMaterializationIdentityInvalidatesOnAllWorkflowInputs(t *
 			return next
 		},
 		"prepared main asset": func(next profileRuntimeDescriptor) profileRuntimeDescriptor {
-			next.AssetBindings[0].PreparedAssetID = "asset:main:changed"
+			next.AssetBindings[0].PreparedAssetID = "local-z-image:changed"
 			return next
 		},
 		"prepared companion asset": func(next profileRuntimeDescriptor) profileRuntimeDescriptor {
-			next.AssetBindings[1].PreparedAssetID = "asset:lora-a:changed"
-			next.CapabilitySlices[0].OrderedCompanionOccurrences[0].PreparedAssetID = "asset:lora-a:changed"
+			next.AssetBindings[1].PreparedAssetID = "local-z-image-ae:changed"
+			next.CapabilitySlices[0].OrderedCompanionOccurrences[1].PreparedAssetID = "local-z-image-ae:changed"
 			return next
 		},
 		"companion occurrence": func(next profileRuntimeDescriptor) profileRuntimeDescriptor {

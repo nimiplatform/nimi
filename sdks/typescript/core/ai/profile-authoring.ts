@@ -104,16 +104,7 @@ export const NIMI_AI_PROFILE_STABLE_DIFFUSION_PORTABLE_CONFIG_FIELDS = Object.fr
   'vaeVerifiedContentId',
   'uncondDiffusionRequirementPolicy',
   'uncondDiffusionVerifiedContentId',
-  'loras',
   'executionOptions',
-] as const);
-
-/** Mirrors runtime/internal/capabilitydriver/stablediffusion.go:811. */
-export const NIMI_AI_PROFILE_STABLE_DIFFUSION_LORA_FIELDS = Object.freeze([
-  'displayLabel',
-  'requirementPolicy',
-  'verifiedContentId',
-  'weight',
 ] as const);
 
 /** Mirrors runtime/internal/capabilitydriver/stablediffusion.go:862. */
@@ -227,13 +218,6 @@ export const NIMI_AI_PROFILE_STABLE_DIFFUSION_MODEL_FAMILIES = Object.freeze([
 export type NimiAIProfileStableDiffusionModelFamily =
   typeof NIMI_AI_PROFILE_STABLE_DIFFUSION_MODEL_FAMILIES[number];
 
-export interface NimiAIProfileStableDiffusionLoRAInput {
-  readonly displayLabel?: string;
-  readonly requirementPolicy?: NimiAIProfileRequirementPolicy;
-  readonly verifiedContentId?: string;
-  readonly weight?: number;
-}
-
 export interface NimiAIProfileStableDiffusionExecutionOptionsInput {
   readonly steps?: number;
   readonly cfgScale?: number;
@@ -258,7 +242,6 @@ export interface NimiAIProfileStableDiffusionPortableConfigInput {
   readonly vaeVerifiedContentId?: string;
   readonly uncondDiffusionRequirementPolicy?: NimiAIProfileRequirementPolicy;
   readonly uncondDiffusionVerifiedContentId?: string;
-  readonly loras?: readonly NimiAIProfileStableDiffusionLoRAInput[];
   readonly executionOptions?: NimiAIProfileStableDiffusionExecutionOptionsInput;
 }
 
@@ -1335,9 +1318,6 @@ const LLAMA_EMBED_FIELDS = new Set<string>(NIMI_AI_PROFILE_LLAMA_EMBED_PORTABLE_
 const STABLE_DIFFUSION_FIELDS = new Set<string>(
   NIMI_AI_PROFILE_STABLE_DIFFUSION_PORTABLE_CONFIG_FIELDS,
 );
-const STABLE_DIFFUSION_LORA_FIELDS = new Set<string>(
-  NIMI_AI_PROFILE_STABLE_DIFFUSION_LORA_FIELDS,
-);
 const STABLE_DIFFUSION_EXECUTION_FIELDS = new Set<string>(
   NIMI_AI_PROFILE_STABLE_DIFFUSION_EXECUTION_OPTION_FIELDS,
 );
@@ -1745,7 +1725,6 @@ function validateStableDiffusionPortableConfig(
   )) {
     return authoringError('stable-diffusion uncondDiffusion fields require ideogram4');
   }
-  if (hasOwn(config, 'loras')) validateStableDiffusionLoRAs(config.loras);
   if (hasOwn(config, 'executionOptions')) {
     validateStableDiffusionExecutionOptions(config.executionOptions);
   }
@@ -1788,29 +1767,6 @@ function validateRequirementIntent(
   }
 }
 
-function validateStableDiffusionLoRAs(value: NimiJsonValue | undefined): void {
-  if (!Array.isArray(value) || value.length > 32) {
-    return authoringError('stable-diffusion loras must be an array with at most 32 entries');
-  }
-  value.forEach((entry, index) => {
-    if (!isJsonRecord(entry)) {
-      return authoringError(`stable-diffusion loras[${index}] must be an object`);
-    }
-    assertExactJsonKeys(
-      entry,
-      STABLE_DIFFUSION_LORA_FIELDS,
-      `stable-diffusion loras[${index}]`,
-    );
-    if (hasOwn(entry, 'displayLabel')) {
-      requireExactNonEmptyText(entry.displayLabel, `stable-diffusion loras[${index}].displayLabel`);
-    }
-    validateRequirementIntent(entry, 'requirementPolicy', 'verifiedContentId');
-    if (hasOwn(entry, 'weight')) {
-      requireFiniteNumber(entry.weight, -4, 4, `stable-diffusion loras[${index}].weight`);
-    }
-  });
-}
-
 function validateStableDiffusionExecutionOptions(value: NimiJsonValue | undefined): void {
   if (!isJsonRecord(value)) {
     return authoringError('stable-diffusion executionOptions must be an object');
@@ -1839,8 +1795,8 @@ function validateStableDiffusionExecutionOptions(value: NimiJsonValue | undefine
   optionalInteger(
     value,
     'seed',
-    Number.MIN_SAFE_INTEGER,
-    Number.MAX_SAFE_INTEGER,
+    -2147483648,
+    2147483647,
   );
   for (const key of ['sampler', 'scheduler'] as const) {
     if (!hasOwn(value, key)) continue;
@@ -2054,20 +2010,6 @@ function projectKnownDriverRequirements(
       optionalVerifiedContentId(config, 'uncondDiffusionVerifiedContentId'),
     ));
   }
-  const loras = Array.isArray(config.loras) ? config.loras : [];
-  loras.forEach((entry, index) => {
-    const lora = entry as NimiJsonObject;
-    const ordinal = index + 1;
-    requirements.push(requirementPreview(
-      `companion.lora.${ordinal}`,
-      'companion',
-      ordinal,
-      typeof lora.displayLabel === 'string' ? lora.displayLabel : `LoRA ${ordinal}`,
-      'lora',
-      optionalPolicy(lora, 'requirementPolicy') ?? 'substitutable',
-      optionalVerifiedContentId(lora, 'verifiedContentId'),
-    ));
-  });
   return Object.freeze({
     source: 'authoring-preview' as const,
     commitTruth: 'runtime-reproject' as const,

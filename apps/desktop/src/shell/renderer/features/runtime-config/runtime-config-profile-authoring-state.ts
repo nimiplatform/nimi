@@ -65,14 +65,6 @@ export type RuntimeConfigAIProfileLlamaDraft = {
   readonly gpuLayers: string;
 };
 
-export type RuntimeConfigAIProfileLoRADraft = {
-  readonly draftId: string;
-  readonly displayLabel: string;
-  readonly policy: RuntimeConfigAIProfileOptionalPolicy;
-  readonly verifiedContentId: string;
-  readonly weight: string;
-};
-
 export type RuntimeConfigAIProfileStableDiffusionExecutionDraft = {
   readonly steps: string;
   readonly cfgScale: string;
@@ -93,7 +85,6 @@ export type RuntimeConfigAIProfileStableDiffusionDraft = {
   readonly textEncoder: RuntimeConfigAIProfileRequirementDraft;
   readonly vae: RuntimeConfigAIProfileRequirementDraft;
   readonly uncondDiffusion: RuntimeConfigAIProfileRequirementDraft;
-  readonly loras: readonly RuntimeConfigAIProfileLoRADraft[];
   readonly execution: RuntimeConfigAIProfileStableDiffusionExecutionDraft;
 };
 
@@ -325,24 +316,6 @@ export function changeRuntimeConfigAIProfileCapabilityContract(
   };
 }
 
-export function moveRuntimeConfigAIProfileLoRA(
-  loras: readonly RuntimeConfigAIProfileLoRADraft[],
-  index: number,
-  direction: -1 | 1,
-): readonly RuntimeConfigAIProfileLoRADraft[] {
-  const target = index + direction;
-  if (
-    !Number.isInteger(index)
-    || index < 0
-    || index >= loras.length
-    || target < 0
-    || target >= loras.length
-  ) return loras;
-  const next = [...loras];
-  [next[index], next[target]] = [next[target]!, next[index]!];
-  return next;
-}
-
 export function buildRuntimeConfigAIProfileAuthoringDraft(
   draft: RuntimeConfigAIProfileAuthoringDraft,
 ): NimiPortableAIProfile {
@@ -539,7 +512,6 @@ function createCapabilityDraft(
         textEncoder: requirementDraft(),
         vae: requirementDraft(),
         uncondDiffusion: requirementDraft(),
-        loras: [],
         execution: {
           steps: '',
           cfgScale: '',
@@ -721,16 +693,6 @@ function localImplementationFromDraft(capability: RuntimeConfigAIProfileCapabili
       ...requirementInput('textEncoder', stable.textEncoder),
       ...requirementInput('vae', stable.vae),
       ...requirementInput('uncondDiffusion', stable.uncondDiffusion),
-      ...(stable.loras.length > 0
-        ? {
-          loras: stable.loras.map((lora) => ({
-            ...(lora.displayLabel ? { displayLabel: lora.displayLabel } : {}),
-            ...(lora.policy ? { requirementPolicy: lora.policy } : {}),
-            ...(lora.verifiedContentId ? { verifiedContentId: lora.verifiedContentId } : {}),
-            ...optionalNumberInput('weight', lora.weight),
-          })),
-        }
-        : {}),
       ...(Object.keys(executionOptions).length > 0 ? { executionOptions } : {}),
     },
   });
@@ -924,7 +886,6 @@ function stableDiffusionDraftFromConfig(
   config: NimiJsonObject,
 ): RuntimeConfigAIProfileStableDiffusionDraft {
   const execution = jsonObject(config.executionOptions) ?? {};
-  const loras = Array.isArray(config.loras) ? config.loras : [];
   return {
     modelFamily: modelFamily(config.modelFamily),
     enableInputImage: optionalBooleanText(config.enableInputImage),
@@ -932,16 +893,6 @@ function stableDiffusionDraftFromConfig(
     textEncoder: requirementDraftFromConfig(config, 'textEncoder'),
     vae: requirementDraftFromConfig(config, 'vae'),
     uncondDiffusion: requirementDraftFromConfig(config, 'uncondDiffusion'),
-    loras: loras.map((entry, index) => {
-      const lora = jsonObject(entry) ?? {};
-      return {
-        draftId: `lora-${index + 1}`,
-        displayLabel: stringText(lora.displayLabel),
-        policy: optionalPolicy(lora.requirementPolicy),
-        verifiedContentId: stringText(lora.verifiedContentId),
-        weight: numberText(lora.weight),
-      };
-    }),
     execution: {
       steps: numberText(execution.steps),
       cfgScale: numberText(execution.cfgScale),

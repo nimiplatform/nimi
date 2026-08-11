@@ -40,7 +40,6 @@ import {
   importRuntimeConfigAIProfileAuthoring,
   inspectRuntimeConfigAIProfileAuthoring,
   loadRuntimeConfigAIProfileAuthoringCurrentProjection,
-  moveRuntimeConfigAIProfileLoRA,
   reduceRuntimeConfigAIProfileAuthoringState,
   technicalErrorDetail,
   type RuntimeConfigAIProfileAuthoringCurrentProjection,
@@ -49,7 +48,6 @@ import {
   type RuntimeConfigAIProfileAuthoringState,
   type RuntimeConfigAIProfileCapabilityContract,
   type RuntimeConfigAIProfileCapabilityDraft,
-  type RuntimeConfigAIProfileLoRADraft,
   type RuntimeConfigAIProfileOptionalBoolean,
   type RuntimeConfigAIProfileOptionalPolicy,
   type RuntimeConfigAIProfileRequirementDraft,
@@ -685,13 +683,6 @@ function StableDiffusionAuthoringFields(props: {
   const updateExecution = (next: Partial<RuntimeConfigAIProfileStableDiffusionExecutionDraft>) => {
     update({ execution: { ...stable.execution, ...next } });
   };
-  const updateLoRA = (index: number, next: Partial<RuntimeConfigAIProfileLoRADraft>) => {
-    update({
-      loras: stable.loras.map((lora, itemIndex) => (
-        itemIndex === index ? { ...lora, ...next } : lora
-      )),
-    });
-  };
   return (
     <fieldset className="space-y-4" data-testid="ai-profile-authoring-stable-diffusion-fields">
       <legend className="text-sm font-semibold text-[var(--nimi-text-primary)]">
@@ -725,58 +716,6 @@ function StableDiffusionAuthoringFields(props: {
         {stable.modelFamily === 'ideogram4' ? (
           <RequirementAuthoringFields title={props.t('runtimeConfig.profiles.authoring.sdUncond')} value={stable.uncondDiffusion} onChange={(uncondDiffusion) => update({ uncondDiffusion })} t={props.t} />
         ) : null}
-      </div>
-
-      <div className="space-y-3" data-testid="ai-profile-authoring-lora-list">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h6 className="text-xs font-semibold uppercase tracking-[var(--nimi-type-overline-letter-spacing)] text-[var(--nimi-text-secondary)]">
-              {props.t('runtimeConfig.profiles.authoring.orderedLoras')}
-            </h6>
-            <p className="mt-1 text-xs text-[var(--nimi-text-muted)]">
-              {props.t('runtimeConfig.profiles.authoring.orderedLorasBody')}
-            </p>
-          </div>
-          <Button
-            type="button"
-            size="sm"
-            disabled={stable.loras.length >= 32}
-            onClick={() => update({
-              loras: [...stable.loras, createLoRADraft(stable.loras)],
-            })}
-          >
-            {props.t('runtimeConfig.profiles.authoring.addLora')}
-          </Button>
-        </div>
-        {stable.loras.length === 0 ? (
-          <p className="text-xs text-[var(--nimi-text-muted)]">
-            {props.t('runtimeConfig.profiles.authoring.noLoras')}
-          </p>
-        ) : stable.loras.map((lora, index) => (
-          <div
-            key={lora.draftId}
-            className="space-y-3 rounded-xl border border-[var(--nimi-border-subtle)] p-3"
-            data-testid={`ai-profile-authoring-lora:${index + 1}`}
-            data-occurrence-ordinal={index + 1}
-          >
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <div className="text-xs font-semibold text-[var(--nimi-text-secondary)]">
-                {props.t('runtimeConfig.profiles.authoring.loraOrdinal', { position: index + 1 })}
-              </div>
-              <div className="flex flex-wrap gap-1">
-                <Button type="button" size="sm" tone="ghost" disabled={index === 0} onClick={() => update({ loras: moveRuntimeConfigAIProfileLoRA(stable.loras, index, -1) })}>{props.t('runtimeConfig.profiles.authoring.moveUp')}</Button>
-                <Button type="button" size="sm" tone="ghost" disabled={index === stable.loras.length - 1} onClick={() => update({ loras: moveRuntimeConfigAIProfileLoRA(stable.loras, index, 1) })}>{props.t('runtimeConfig.profiles.authoring.moveDown')}</Button>
-                <Button type="button" size="sm" tone="danger" onClick={() => update({ loras: stable.loras.filter((_, itemIndex) => itemIndex !== index) })}>{props.t('runtimeConfig.profiles.authoring.remove')}</Button>
-              </div>
-            </div>
-            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-              <AuthoringTextField label={props.t('runtimeConfig.profiles.authoring.displayLabel')} value={lora.displayLabel} field="lora-display-label" onChange={(displayLabel) => updateLoRA(index, { displayLabel })} />
-              <PolicySelect label={props.t('runtimeConfig.profiles.authoring.requirementPolicy')} value={lora.policy} onChange={(policy) => updateLoRA(index, { policy })} t={props.t} />
-              <AuthoringTextField label={props.t('runtimeConfig.profiles.authoring.verifiedContentId')} value={lora.verifiedContentId} field="lora-verified-content" onChange={(verifiedContentId) => updateLoRA(index, { verifiedContentId })} />
-              <AuthoringTextField label={props.t('runtimeConfig.profiles.authoring.weight')} value={lora.weight} field="lora-weight" type="number" onChange={(weight) => updateLoRA(index, { weight })} />
-            </div>
-          </div>
-        ))}
       </div>
 
       <div className="space-y-3" data-testid="ai-profile-authoring-sd-execution-options">
@@ -1363,19 +1302,6 @@ function ReadOnlyAuthoringField(props: { readonly label: string; readonly value:
       <div className="break-all rounded-lg border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] px-2.5 py-2 font-mono text-[length:var(--nimi-type-caption-size)] text-[var(--nimi-text-primary)]">{props.value}</div>
     </div>
   );
-}
-
-function createLoRADraft(current: readonly RuntimeConfigAIProfileLoRADraft[]): RuntimeConfigAIProfileLoRADraft {
-  let ordinal = 1;
-  const used = new Set(current.map((lora) => lora.draftId));
-  while (used.has(`lora-${ordinal}`)) ordinal += 1;
-  return {
-    draftId: `lora-${ordinal}`,
-    displayLabel: '',
-    policy: '',
-    verifiedContentId: '',
-    weight: '',
-  };
 }
 
 function expectedResolution(decision: NimiAIProfileLocalConfigurationDecision): string {

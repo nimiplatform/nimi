@@ -12,14 +12,16 @@ import {
   createVideoConfigurationInput,
   type MachineLocalAIConfigurationsViewProps,
 } from '../src/shell/renderer/features/runtime-config/runtime-config-page-machine-local-ai.js';
-import { MachineLocalAIAddFormFields } from '../src/shell/renderer/features/runtime-config/runtime-config-machine-local-ai-add-drawer.js';
+import {
+  MachineLocalAIAddFormFields,
+  createMachineLocalImageConfigurationInput,
+} from '../src/shell/renderer/features/runtime-config/runtime-config-machine-local-ai-add-drawer.js';
 import { MachineLocalAIImpactDialogContent } from '../src/shell/renderer/features/runtime-config/runtime-config-machine-local-ai-card.js';
 import {
   INITIAL_RUNTIME_CONFIG_MACHINE_LOCAL_AI_STATE,
   compatibleMachineLocalAssets,
   createRuntimeConfigMachineLocalAIAddDraft,
   machineLocalConfigurationFileState,
-  moveRuntimeConfigMachineLocalAILoRA,
   reduceRuntimeConfigMachineLocalAIState,
   runtimeConfigMachineLocalAIImpactCommitAllowed,
 } from '../src/shell/renderer/features/runtime-config/runtime-config-machine-local-ai-state.js';
@@ -215,25 +217,8 @@ test('Local AI Configurations impact state requires a separate explicit confirma
   assert.equal(runtimeConfigMachineLocalAIImpactCommitAllowed(state, request.requestId), true);
 });
 
-test('Local AI Configurations renders the image form, ordered LoRA controls, and a bundle as one file choice', () => {
+test('Local AI Configurations renders the image form without LoRA authoring and emits only supported fields', () => {
   const initial = createRuntimeConfigMachineLocalAIAddDraft();
-  const loras = moveRuntimeConfigMachineLocalAILoRA([
-    {
-      draftId: 'lora-a',
-      displayLabel: 'First style',
-      requirementPolicy: 'substitutable',
-      localAssetId: '',
-      weight: '1',
-    },
-    {
-      draftId: 'lora-b',
-      displayLabel: 'Second style',
-      requirementPolicy: 'substitutable',
-      localAssetId: '',
-      weight: '0.5',
-    },
-  ], 1, -1);
-  assert.deepEqual(loras.map((lora) => lora.displayLabel), ['Second style', 'First style']);
   const bundleEntries = [
     { ordinal: 1, relativePath: 'shard-1.gguf', sha256: 'a'.repeat(64) },
     { ordinal: 2, relativePath: 'shard-2.gguf', sha256: 'b'.repeat(64) },
@@ -262,7 +247,6 @@ test('Local AI Configurations renders the image form, ordered LoRA controls, and
       ...initial.slots,
       main: { requirementPolicy: 'strict' as const, localAssetId: bundle.localAssetId },
     },
-    loras,
   };
   const markup = renderToStaticMarkup(
     <MachineLocalAIAddFormFields draft={draft} assets={[bundle]} busy={false} onChange={noop} />,
@@ -272,10 +256,12 @@ test('Local AI Configurations renders the image form, ordered LoRA controls, and
   assert.match(markup, /data-testid="machine-local-ai-image-fields"/u);
   assert.match(markup, /Diffusion model/u);
   assert.match(markup, /Text encoder/u);
-  assert.match(markup, /data-testid="machine-local-ai-lora:1"[^>]*data-occurrence-ordinal="1"/u);
-  assert.ok(markup.indexOf('Second style') < markup.indexOf('First style'));
+  assert.doesNotMatch(markup, /machine-local-ai-lora|Add LoRA/u);
   assert.equal((markup.match(/Image model bundle · File bundle/gu) ?? []).length, 1);
   assert.doesNotMatch(markup, /shard-1\.gguf|shard-2\.gguf/u);
+
+  const input = createMachineLocalImageConfigurationInput(draft, [bundle], draft.displayName);
+  assert.equal(Object.hasOwn(input.portableConfig ?? {}, 'loras'), false);
 });
 
 test('Local AI Configurations authors and manages the exact llama embedding implementation', () => {

@@ -37,26 +37,14 @@ type durableLocalImageComponentMetadataSchema struct {
 // contract change instead of an accidental projection/serialization pass.
 var durableLocalImageComponentMetadataSchemas = map[string]map[string]durableLocalImageComponentMetadataSchema{
 	"stablediffusion-ggml": {
-		"image":        {},
-		"chat":         {},
-		"llm":          {},
-		"text_encoder": {},
-		"clip":         {},
-		"vae":          {},
-		"lora":         {},
-		"auxiliary":    {},
-		"embedding":    {},
+		"image": {},
+		"chat":  {},
+		"vae":   {},
 	},
 	"stable-diffusion-cpp": {
-		"image":        {},
-		"chat":         {},
-		"llm":          {},
-		"text_encoder": {},
-		"clip":         {},
-		"vae":          {},
-		"lora":         {},
-		"auxiliary":    {},
-		"embedding":    {},
+		"image": {},
+		"chat":  {},
+		"vae":   {},
 	},
 }
 
@@ -269,9 +257,6 @@ func ValidateDurableLocalImageComponentMetadata(
 	weight string,
 	options map[string]any,
 ) error {
-	if strings.TrimSpace(weight) == "" && len(options) == 0 {
-		return nil
-	}
 	if strings.TrimSpace(componentKind) == "" {
 		return durableLocalTargetCapabilityMismatchError()
 	}
@@ -289,8 +274,15 @@ func ValidateDurableLocalImageComponentMetadata(
 	if !ok {
 		return durableLocalTargetCapabilityMismatchError()
 	}
-	schema, ok := schemas[strings.ToLower(strings.TrimSpace(componentKind))]
-	if !ok || (!schema.allowWeight && strings.TrimSpace(weight) != "") ||
+	normalizedKind := strings.ToLower(strings.TrimSpace(componentKind))
+	schema, ok := schemas[normalizedKind]
+	if !ok || !durableLocalImageComponentTupleAllowed(main.GetFamily(), engineSlot, normalizedKind) {
+		return durableLocalTargetCapabilityMismatchError()
+	}
+	if strings.TrimSpace(weight) == "" && len(options) == 0 {
+		return nil
+	}
+	if (!schema.allowWeight && strings.TrimSpace(weight) != "") ||
 		(len(options) > 0 && len(schema.allowedKeys) == 0) {
 		return durableLocalTargetCapabilityMismatchError()
 	}
@@ -300,6 +292,17 @@ func ValidateDurableLocalImageComponentMetadata(
 		}
 	}
 	return nil
+}
+
+func durableLocalImageComponentTupleAllowed(family string, engineSlot string, componentKind string) bool {
+	slot := strings.TrimSpace(engineSlot)
+	kind := strings.ToLower(strings.TrimSpace(componentKind))
+	for _, contract := range profileRuntimeRequiredImageCompanionSlots(family) {
+		if slot == contract.EngineSlot && kind == strings.ToLower(contract.ComponentKind) {
+			return true
+		}
+	}
+	return false
 }
 
 // validateDurableLocalImageMainRebindCompatibility keeps a committed image

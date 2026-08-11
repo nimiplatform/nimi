@@ -557,6 +557,59 @@ func TestStableDiffusionCPPResidentRejectsDuplicateComponentSlot(t *testing.T) {
 	}
 }
 
+func TestValidateManagedImageLoadStateAllowsRoleScopedOccurrenceOrdinals(t *testing.T) {
+	modelPath, vaePath := writeManagedImageModelFixtures(t)
+	llmPath := filepath.Join(t.TempDir(), "Qwen3-4B-Q4_K_M.gguf")
+	if err := os.WriteFile(llmPath, []byte("llm"), 0o600); err != nil {
+		t.Fatalf("write llm fixture: %v", err)
+	}
+
+	err := validateManagedImageLoadState(loadModelState{
+		ModelPath: modelPath,
+		Options: managedImageOptions{
+			Components: []managedImageComponent{
+				{
+					OccurrenceID:  "companion.text-encoder",
+					Order:         0,
+					Role:          "text_encoder",
+					ComponentKind: "chat",
+					EngineSlot:    "llm_path",
+					Path:          llmPath,
+					Required:      true,
+				},
+				{
+					OccurrenceID:  "companion.vae",
+					Order:         0,
+					Role:          "vae",
+					ComponentKind: "vae",
+					EngineSlot:    "vae_path",
+					Path:          vaePath,
+					Required:      true,
+				},
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("role-scoped occurrence ordinals must remain independent: %v", err)
+	}
+}
+
+func TestValidateManagedImageLoadStateRejectsDuplicateOrdinalWithinRole(t *testing.T) {
+	modelPath, vaePath := writeManagedImageModelFixtures(t)
+	err := validateManagedImageLoadState(loadModelState{
+		ModelPath: modelPath,
+		Options: managedImageOptions{
+			Components: []managedImageComponent{
+				{OccurrenceID: "vae.primary", Order: 0, Role: "vae", EngineSlot: "vae_path", Path: vaePath},
+				{OccurrenceID: "vae.secondary", Order: 0, Role: "vae", EngineSlot: "vae_path", Path: vaePath},
+			},
+		},
+	})
+	if err == nil || !strings.Contains(err.Error(), `duplicate managed image component order 0 for role "vae"`) {
+		t.Fatalf("duplicate role-scoped ordinal error = %v", err)
+	}
+}
+
 func TestValidateManagedImageLoadStateRejectsInvalidComponentStates(t *testing.T) {
 	modelPath, vaePath := writeManagedImageModelFixtures(t)
 	missingPath := filepath.Join(t.TempDir(), "missing.safetensors")
@@ -803,6 +856,24 @@ func TestBuildStableDiffusionCPPGenerateRequestIncludesScheduler(t *testing.T) {
 	}
 	if got := strings.TrimSpace(fmt.Sprint(payload["scheduler"])); got != "karras" {
 		t.Fatalf("unexpected scheduler: %q", got)
+	}
+}
+
+func TestBuildStableDiffusionCPPGenerateRequestPreservesExplicitZeroOptions(t *testing.T) {
+	_, payload, err := buildStableDiffusionCPPGenerateRequest(loadModelState{
+		CFGScale: 0,
+	}, imageGenerateState{
+		PositivePrompt: "orange cat",
+		Seed:           0,
+	}, "")
+	if err != nil {
+		t.Fatalf("buildStableDiffusionCPPGenerateRequest: %v", err)
+	}
+	if got, ok := payload["cfg_scale"]; !ok || got != float32(0) {
+		t.Fatalf("expected explicit cfg_scale=0, got value=%v present=%t", got, ok)
+	}
+	if got, ok := payload["seed"]; !ok || got != int32(0) {
+		t.Fatalf("expected explicit seed=0, got value=%v present=%t", got, ok)
 	}
 }
 
