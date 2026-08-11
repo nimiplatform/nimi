@@ -2,7 +2,7 @@ import { spawnSync } from 'node:child_process';
 
 const MIN_GO_MAJOR = 1;
 const MIN_GO_MINOR = 26;
-const MIN_GO_PATCH = 4;
+const MIN_GO_PATCH = 5;
 const GO_INSTALL_URL = 'https://go.dev/dl/';
 const REQUIRED_TOOLCHAIN = `go${MIN_GO_MAJOR}.${MIN_GO_MINOR}.${MIN_GO_PATCH}`;
 

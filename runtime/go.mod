@@ -1,6 +1,6 @@
 module github.com/nimiplatform/nimi/runtime
 
-go 1.26.4
+go 1.26.5
 
 require (
 	github.com/Microsoft/go-winio v0.6.2
@@ -10,10 +10,9 @@ require (
 	github.com/oklog/ulid/v2 v2.1.1
 	golang.org/x/net v0.54.0
 	golang.org/x/sys v0.44.0
-	golang.org/x/term v0.43.0
-	golang.org/x/text v0.37.0
+	golang.org/x/text v0.39.0
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260504160031-60b97b32f348
-	google.golang.org/grpc v1.81.0
+	google.golang.org/grpc v1.82.1
 	google.golang.org/protobuf v1.36.11
 	gopkg.in/yaml.v3 v3.0.1
 	modernc.org/sqlite v1.48.2
