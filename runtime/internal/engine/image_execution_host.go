@@ -43,6 +43,7 @@ type imageInvocationSubstrate interface {
 type imageExecutionRequest struct {
 	ctx        context.Context
 	plan       *capabilitydriver.ImageInvocationPlan
+	onStart    localexecution.ImageExecutionStartFunc
 	onArtifact localexecution.ImageArtifactFunc
 	progress   localexecution.ImageProgressFunc
 	done       chan imageExecutionOutcome
@@ -55,14 +56,15 @@ type imageExecutionOutcome struct {
 
 // ImageExecutionHost owns one FIFO worker and therefore one serial execution
 // lease for its image engine instance. Queue state is intentionally private;
-// callers observe queued jobs through their scenario Job state until the first
-// factual Host progress callback.
+// callers observe queued jobs through their scenario Job state until the
+// factual Host start callback.
 type ImageExecutionHost struct {
 	logger    *slog.Logger
 	substrate imageInvocationSubstrate
 
 	mu             sync.Mutex
 	queue          []*imageExecutionRequest
+	active         *imageExecutionRequest
 	stopping       bool
 	wake           chan struct{}
 	stop           chan struct{}
@@ -97,6 +99,7 @@ func newImageExecutionHostWithSubstrate(substrate imageInvocationSubstrate, logg
 func (h *ImageExecutionHost) ExecuteImage(
 	ctx context.Context,
 	plan *capabilitydriver.ImageInvocationPlan,
+	onStart localexecution.ImageExecutionStartFunc,
 	onArtifact localexecution.ImageArtifactFunc,
 	progress localexecution.ImageProgressFunc,
 ) (localexecution.ImageResult, error) {
@@ -112,6 +115,7 @@ func (h *ImageExecutionHost) ExecuteImage(
 	request := &imageExecutionRequest{
 		ctx:        ctx,
 		plan:       plan,
+		onStart:    onStart,
 		onArtifact: onArtifact,
 		progress:   progress,
 		done:       make(chan imageExecutionOutcome, 1),
@@ -120,13 +124,22 @@ func (h *ImageExecutionHost) ExecuteImage(
 		return localexecution.ImageResult{}, executionFailure(localexecution.FailureCanceled, fmt.Errorf("image execution host is stopping"))
 	}
 
-	select {
-	case outcome := <-request.done:
-		return cloneImageResult(outcome.result), outcome.err
-	case <-ctx.Done():
-		return localexecution.ImageResult{}, executionFailure(localexecution.FailureCanceled, ctx.Err())
-	case <-h.stop:
-		return localexecution.ImageResult{}, executionFailure(localexecution.FailureCanceled, fmt.Errorf("image execution host stopped"))
+	for {
+		select {
+		case outcome := <-request.done:
+			return cloneImageResult(outcome.result), outcome.err
+		case <-ctx.Done():
+			if h.removeQueued(request) {
+				return localexecution.ImageResult{}, executionFailure(localexecution.FailureCanceled, ctx.Err())
+			}
+			// A running request returns only after the Host worker has observed
+			// cancellation and released the private execution lease.
+			outcome := <-request.done
+			return cloneImageResult(outcome.result), outcome.err
+		case <-h.stop:
+			outcome := <-request.done
+			return cloneImageResult(outcome.result), outcome.err
+		}
 	}
 }
 
@@ -175,6 +188,21 @@ func (h *ImageExecutionHost) enqueue(request *imageExecutionRequest) bool {
 	return true
 }
 
+func (h *ImageExecutionHost) removeQueued(request *imageExecutionRequest) bool {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	for index, queued := range h.queue {
+		if queued != request {
+			continue
+		}
+		copy(h.queue[index:], h.queue[index+1:])
+		h.queue[len(h.queue)-1] = nil
+		h.queue = h.queue[:len(h.queue)-1]
+		return true
+	}
+	return false
+}
+
 func (h *ImageExecutionHost) dequeue() *imageExecutionRequest {
 	h.mu.Lock()
 	defer h.mu.Unlock()
@@ -185,7 +213,16 @@ func (h *ImageExecutionHost) dequeue() *imageExecutionRequest {
 	copy(h.queue, h.queue[1:])
 	h.queue[len(h.queue)-1] = nil
 	h.queue = h.queue[:len(h.queue)-1]
+	h.active = request
 	return request
+}
+
+func (h *ImageExecutionHost) clearActive(request *imageExecutionRequest) {
+	h.mu.Lock()
+	if h.active == request {
+		h.active = nil
+	}
+	h.mu.Unlock()
 }
 
 func (h *ImageExecutionHost) run() {
@@ -207,6 +244,7 @@ func (h *ImageExecutionHost) run() {
 		default:
 		}
 		if request.ctx.Err() != nil {
+			h.clearActive(request)
 			h.deliver(request, imageExecutionOutcome{err: executionFailure(localexecution.FailureCanceled, request.ctx.Err())})
 			continue
 		}
@@ -214,11 +252,32 @@ func (h *ImageExecutionHost) run() {
 		stopLink := context.AfterFunc(h.lifetime, cancelExecution)
 		executionRequest := *request
 		executionRequest.ctx = executionCtx
+		if err := beginImageExecution(executionCtx, executionRequest.onStart); err != nil {
+			stopLink()
+			cancelExecution()
+			h.clearActive(request)
+			h.deliver(request, imageExecutionOutcome{err: err})
+			continue
+		}
 		result, err := h.execute(&executionRequest)
 		stopLink()
 		cancelExecution()
+		h.clearActive(request)
 		h.deliver(request, imageExecutionOutcome{result: result, err: err})
 	}
+}
+
+func beginImageExecution(ctx context.Context, onStart localexecution.ImageExecutionStartFunc) error {
+	if ctx != nil && ctx.Err() != nil {
+		return executionFailure(localexecution.FailureCanceled, ctx.Err())
+	}
+	if onStart == nil {
+		return nil
+	}
+	if err := onStart(); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (h *ImageExecutionHost) execute(request *imageExecutionRequest) (localexecution.ImageResult, error) {

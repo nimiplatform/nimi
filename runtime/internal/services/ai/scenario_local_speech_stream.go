@@ -46,8 +46,11 @@ func streamLocalSpeechSynthesizeScenario(s *Service, req *runtimev1.StreamScenar
 	stream.SetTrailer(usagemetrics.QueueWaitTrailer(waitMS))
 	s.logQueueWait("stream_scenario_local_speech_synthesize", req.GetHead().GetAppId(), acquireResult)
 
-	totalTimeout := timeoutDuration(req.GetHead().GetTimeoutMs(), defaultSynthesizeTimeout)
-	requestBaseCtx, baseCancel := withTimeout(stream.Context(), req.GetHead().GetTimeoutMs(), defaultSynthesizeTimeout)
+	totalTimeout, err := timeoutDuration(req.GetHead().GetTimeoutMs(), defaultSynthesizeTimeout)
+	if err != nil {
+		return err
+	}
+	requestBaseCtx, baseCancel := context.WithTimeout(stream.Context(), totalTimeout)
 	defer baseCancel()
 	requestCtx, requestCancel := context.WithCancel(requestBaseCtx)
 	defer requestCancel()

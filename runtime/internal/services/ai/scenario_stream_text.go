@@ -65,8 +65,11 @@ func streamTextGenerateScenario(s *Service, req *runtimev1.StreamScenarioRequest
 	waitMs := s.attachQueueWait(stream.Context(), acquireResult)
 	stream.SetTrailer(usagemetrics.QueueWaitTrailer(waitMs))
 	s.logQueueWait("stream_scenario_text_generate", req.GetHead().GetAppId(), acquireResult)
-	totalTimeout := timeoutDuration(req.GetHead().GetTimeoutMs(), defaultStreamTotalTimeout)
-	requestBaseCtx, baseCancel := withTimeout(stream.Context(), req.GetHead().GetTimeoutMs(), defaultStreamTotalTimeout)
+	totalTimeout, err := timeoutDuration(req.GetHead().GetTimeoutMs(), defaultStreamTotalTimeout)
+	if err != nil {
+		return err
+	}
+	requestBaseCtx, baseCancel := context.WithTimeout(stream.Context(), totalTimeout)
 	defer baseCancel()
 	requestCtx, requestCancel := context.WithCancel(requestBaseCtx)
 	defer requestCancel()

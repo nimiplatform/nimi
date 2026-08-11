@@ -27,45 +27,19 @@ func (s *Service) executeScenarioAsyncJob(
 	if _, ok := s.scenarioJobs.transition(jobID, runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_QUEUED, runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_QUEUED, nil); !ok {
 		return
 	}
+	release, err := s.acquireAsyncScenarioJobLease(ctx, req.GetHead().GetAppId(), "scenario_job_cloud_media")
+	if err != nil {
+		s.finishScenarioAsyncJobFailure(ctx, jobID, effective, err)
+		return
+	}
+	defer release()
 	if _, ok := s.scenarioJobs.transition(jobID, runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_RUNNING, runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_RUNNING, nil); !ok && s.logger != nil {
 		s.logger.Warn("scenario job transition to RUNNING failed", "job_id", jobID)
 	}
 
 	result, err := s.executeCapturedCloudMedia(ctx, effective)
 	if err != nil {
-		if existing, ok := s.scenarioJobs.get(jobID); ok && isTerminalScenarioJobStatus(existing.GetStatus()) {
-			return
-		}
-		reasonCode := reasonCodeFromMediaError(err)
-		if s.logger != nil {
-			s.logger.Warn("scenario job execution failed",
-				"job_id", jobID,
-				"scenario_type", req.GetScenarioType().String(),
-				"model_resolved", strings.TrimSpace(effective.modelResolved()),
-				"driver_dialect", strings.TrimSpace(effective.mapped.Adapter()),
-				"reason_code", reasonCode.String(),
-				"error", err,
-			)
-		}
-		statusValue := runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_FAILED
-		eventType := runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_FAILED
-		if errors.Is(err, context.Canceled) || status.Code(err) == codes.Canceled {
-			statusValue = runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_CANCELED
-			eventType = runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_CANCELED
-		} else if reasonCode == runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT {
-			statusValue = runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_TIMEOUT
-			eventType = runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_TIMEOUT
-		}
-		if _, ok := s.scenarioJobs.transition(jobID, statusValue, eventType, func(job *runtimev1.ScenarioJob) {
-			job.ReasonCode = reasonCode
-			job.ReasonDetail = sanitizeScenarioJobReasonDetail(err, reasonCode)
-			job.ReasonMetadata = scenarioJobReasonMetadata(err, reasonCode)
-			job.ProviderJobId = ""
-			job.RetryCount = 0
-			job.NextPollAt = nil
-		}); !ok && s.logger != nil {
-			s.logger.Warn("scenario job transition to terminal failed", "job_id", jobID, "status", statusValue.String())
-		}
+		s.finishScenarioAsyncJobFailure(ctx, jobID, effective, err)
 		return
 	}
 
@@ -125,6 +99,43 @@ func (s *Service) executeScenarioAsyncJob(
 		if s.logger != nil {
 			s.logger.Warn("scenario job transition to COMPLETED failed", "job_id", jobID)
 		}
+	}
+}
+
+func (s *Service) finishScenarioAsyncJobFailure(ctx context.Context, jobID string, effective *cloudMediaEffectiveInputs, err error) {
+	if existing, ok := s.scenarioJobs.get(jobID); ok && isTerminalScenarioJobStatus(existing.GetStatus()) {
+		return
+	}
+	reasonCode := reasonCodeFromMediaError(err)
+	if s.logger != nil && effective != nil && effective.request != nil {
+		s.logger.Warn("scenario job execution failed",
+			"job_id", jobID,
+			"scenario_type", effective.request.GetScenarioType().String(),
+			"model_resolved", strings.TrimSpace(effective.modelResolved()),
+			"driver_dialect", strings.TrimSpace(effective.mapped.Adapter()),
+			"reason_code", reasonCode.String(),
+			"error", err,
+		)
+	}
+	statusValue := runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_FAILED
+	eventType := runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_FAILED
+	if errors.Is(ctx.Err(), context.DeadlineExceeded) || errors.Is(err, context.DeadlineExceeded) || reasonCode == runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT {
+		statusValue = runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_TIMEOUT
+		eventType = runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_TIMEOUT
+		reasonCode = runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT
+	} else if errors.Is(err, context.Canceled) || status.Code(err) == codes.Canceled {
+		statusValue = runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_CANCELED
+		eventType = runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_CANCELED
+	}
+	if _, ok := s.scenarioJobs.transition(jobID, statusValue, eventType, func(job *runtimev1.ScenarioJob) {
+		job.ReasonCode = reasonCode
+		job.ReasonDetail = sanitizeScenarioJobReasonDetail(err, reasonCode)
+		job.ReasonMetadata = scenarioJobReasonMetadata(err, reasonCode)
+		job.ProviderJobId = ""
+		job.RetryCount = 0
+		job.NextPollAt = nil
+	}); !ok && s.logger != nil {
+		s.logger.Warn("scenario job transition to terminal failed", "job_id", jobID, "status", statusValue.String())
 	}
 }
 

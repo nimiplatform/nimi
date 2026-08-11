@@ -34,7 +34,10 @@ func executeLocalTextGenerateScenario(
 	}
 	defer release()
 	s.attachQueueWaitUnary(ctx, acquireResult)
-	requestCtx, cancel := withTimeout(ctx, req.GetHead().GetTimeoutMs(), defaultGenerateTimeout)
+	requestCtx, cancel, err := withTimeout(ctx, req.GetHead().GetTimeoutMs(), defaultGenerateTimeout)
+	if err != nil {
+		return nil, err
+	}
 	defer cancel()
 
 	result, err := s.executeCapturedLocalText(requestCtx, effective, nil)
@@ -74,8 +77,11 @@ func streamLocalTextGenerateScenario(
 	}
 	defer release()
 	s.attachQueueWait(ctx, acquireResult)
-	totalTimeout := timeoutDuration(req.GetHead().GetTimeoutMs(), defaultStreamTotalTimeout)
-	requestBaseCtx, baseCancel := withTimeout(ctx, req.GetHead().GetTimeoutMs(), defaultStreamTotalTimeout)
+	totalTimeout, err := timeoutDuration(req.GetHead().GetTimeoutMs(), defaultStreamTotalTimeout)
+	if err != nil {
+		return err
+	}
+	requestBaseCtx, baseCancel := context.WithTimeout(ctx, totalTimeout)
 	defer baseCancel()
 	requestCtx, requestCancel := context.WithCancel(requestBaseCtx)
 	defer requestCancel()

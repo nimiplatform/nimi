@@ -53,7 +53,10 @@ func (s *Service) submitLocalSpeechScenarioJob(ctx context.Context, req *runtime
 	if identity := authn.IdentityFromContext(ctx); identity != nil {
 		jobCtx = authn.WithIdentity(jobCtx, &authn.Identity{SubjectUserID: identity.SubjectUserID})
 	}
-	timeout := scenarioJobTimeoutDuration(req, defaultLocalSpeechJobTimeout, true)
+	timeout, err := scenarioJobTimeoutDuration(req, defaultLocalSpeechJobTimeout, true)
+	if err != nil {
+		return nil, err
+	}
 	var cancel context.CancelFunc
 	if timeout > 0 {
 		jobCtx, cancel = context.WithTimeout(jobCtx, timeout)

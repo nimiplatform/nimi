@@ -35,7 +35,8 @@ const (
 	// minStreamChunkBytes is the minimum buffered bytes before flushing a
 	// streaming text delta to the client. (K-STREAM-006)
 	minStreamChunkBytes                           = 32
-	defaultGenerateTimeout                        = 120 * time.Second
+	defaultGenerateTimeout                        = 30 * time.Second
+	defaultTextGenerateJobTimeout                 = 120 * time.Second
 	defaultStreamFirstTimeout                     = 60 * time.Second
 	defaultStreamIdleTimeout                      = 30 * time.Second
 	defaultStreamTotalTimeout                     = 120 * time.Second
@@ -72,6 +73,8 @@ type Service struct {
 	localImageHost                         localexecution.ImageExecutionHost
 	localVideoHost                         localexecution.VideoExecutionHost
 	localSpeechHost                        localexecution.SpeechExecutionHost
+	localImageJobOrder                     localMediaSubmissionOrder
+	localVideoJobOrder                     localMediaSubmissionOrder
 	localSpeechJobOrder                    localSpeechSubmissionOrder
 	localVideoMedia                        videomedia.Pipeline
 	capabilityDrivers                      *capabilitydriver.Registry

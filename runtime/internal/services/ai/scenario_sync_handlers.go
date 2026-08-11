@@ -39,7 +39,10 @@ func executeTextGenerateScenario(ctx context.Context, s *Service, req *runtimev1
 	s.attachQueueWaitUnary(capturedCtx, acquireResult)
 	s.logQueueWait("execute_scenario_text_generate", req.GetHead().GetAppId(), acquireResult)
 
-	requestCtx, cancel := withTimeout(capturedCtx, req.GetHead().GetTimeoutMs(), defaultGenerateTimeout)
+	requestCtx, cancel, err := withTimeout(capturedCtx, req.GetHead().GetTimeoutMs(), defaultGenerateTimeout)
+	if err != nil {
+		return nil, err
+	}
 	defer cancel()
 	result, err := s.executeCapturedCloudText(requestCtx, effective)
 	if err != nil {
@@ -74,18 +77,11 @@ func executeTextEmbedScenario(ctx context.Context, s *Service, req *runtimev1.Ex
 			return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 		}
 	}
-	describeProbe, hasDescribeProbe, err := textEmbedRouteDescribeProbeFromExtensions(req.GetExtensions())
-	if err != nil {
-		return nil, err
-	}
 	intent, err := scenarioExecutionIntentFromContext(ctx, aicapabilities.TextEmbed)
 	if err != nil {
 		return nil, err
 	}
 	if intent.IsLocal() {
-		if hasDescribeProbe {
-			return nil, localExactMediaUnsupportedError(req.GetScenarioType())
-		}
 		return executeLocalTextEmbedScenario(ctx, s, req, ignored)
 	}
 
@@ -103,7 +99,10 @@ func executeTextEmbedScenario(ctx context.Context, s *Service, req *runtimev1.Ex
 	s.attachQueueWaitUnary(ctx, acquireResult)
 	s.logQueueWait("execute_scenario_text_embed", req.GetHead().GetAppId(), acquireResult)
 
-	requestCtx, cancel := withTimeout(ctx, req.GetHead().GetTimeoutMs(), defaultEmbedTimeout)
+	requestCtx, cancel, err := withTimeout(ctx, req.GetHead().GetTimeoutMs(), defaultEmbedTimeout)
+	if err != nil {
+		return nil, err
+	}
 	defer cancel()
 	result, err := s.executeCapturedCloudEmbed(requestCtx, effective)
 	if err != nil {

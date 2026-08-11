@@ -105,6 +105,53 @@ func TestScenarioJobStoreDetachedVideoJobRemainsQueryableDuringLongPoll(t *testi
 	_, _ = svc.CancelScenarioJob(ctx, &runtimev1.CancelScenarioJobRequest{JobId: jobID, Reason: "test-cleanup"})
 }
 
+func TestScenarioJobStoreDetachedVideoPollingHonorsJobDeadline(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.Method == http.MethodPost && r.URL.Path == "/contents/generations/tasks":
+			w.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(w).Encode(map[string]any{"id": "task-deadline-1"})
+		case r.Method == http.MethodGet && r.URL.Path == "/contents/generations/tasks/task-deadline-1":
+			w.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(w).Encode(map[string]any{"id": "task-deadline-1", "status": "running"})
+		case r.Method == http.MethodDelete && r.URL.Path == "/contents/generations/tasks/task-deadline-1":
+			w.WriteHeader(http.StatusNoContent)
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer server.Close()
+
+	fixture := newManagedCloudScenarioTestFixture(t, "volcengine", "doubao-seedance-2-0-260128", server.URL, Config{AllowLoopbackEndpoint: true})
+	svc := fixture.service
+	ctx := withCloudScenarioTestIntent(scenarioJobUserContext("nimi.desktop", "user-001"), "video.generate", fixture.targetRef)
+	response, err := svc.SubmitScenarioJob(ctx, &runtimev1.SubmitScenarioJobRequest{
+		Head: &runtimev1.ScenarioRequestHead{
+			AppId:         "nimi.desktop",
+			SubjectUserId: "user-001",
+			TimeoutMs:     100,
+		},
+		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_GENERATE,
+		Spec: &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_VideoGenerate{VideoGenerate: &runtimev1.VideoGenerateScenarioSpec{
+			Mode: runtimev1.VideoMode_VIDEO_MODE_T2V,
+			Content: []*runtimev1.VideoContentItem{
+				{Type: runtimev1.VideoContentType_VIDEO_CONTENT_TYPE_TEXT, Role: runtimev1.VideoContentRole_VIDEO_CONTENT_ROLE_PROMPT, Text: "A short product shot."},
+			},
+			Options: &runtimev1.VideoGenerationOptions{DurationSec: testInt32(4), Ratio: "16:9"},
+		}}},
+	})
+	if err != nil {
+		t.Fatalf("SubmitScenarioJob: %v", err)
+	}
+	job := waitScenarioJobTerminal(t, svc, response.GetJob().GetJobId(), 3*time.Second)
+	if job.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_TIMEOUT || job.GetReasonCode() != runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT {
+		t.Fatalf("detached provider polling deadline = %+v", job)
+	}
+	if job.GetProviderJobId() != "" || job.GetNextPollAt() != nil || job.GetRetryCount() != 0 {
+		t.Fatalf("provider polling state escaped terminal Runtime job: %+v", job)
+	}
+}
+
 func TestScenarioJobStoreVoiceLookupPaths(t *testing.T) {
 	fixture := newManagedCloudScenarioTestFixture(t, "dashscope", "qwen3-tts-vd", "https://example.com", Config{})
 	svc := fixture.service

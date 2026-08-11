@@ -14,6 +14,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/remoteexecution"
 	"github.com/nimiplatform/nimi/runtime/internal/runtimeidentity"
+	"github.com/nimiplatform/nimi/runtime/internal/scheduler"
 	"github.com/nimiplatform/nimi/runtime/internal/services/connector"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -140,6 +141,42 @@ func TestCloudTextJobCancelStopsLocalWaitWithHonestTerminal(t *testing.T) {
 	}
 }
 
+func TestCloudTextJobSchedulerLeaseCoversRemoteHostLifetime(t *testing.T) {
+	fixture := newManagedCloudScenarioTestFixture(t, "openai", "gpt-4o-mini", "https://api.openai.com/v1", Config{})
+	fixture.service.scheduler = scheduler.New(scheduler.Config{GlobalConcurrency: 1, PerAppConcurrency: 1})
+	host := newControlledRemoteTextHost(false)
+	fixture.service.SetRemoteTextExecutionHost(host)
+	ctx := cloudTextJobContext(fixture.targetRef)
+	first, err := fixture.service.SubmitScenarioJob(ctx, cloudTextJobRequest("first scheduler-owned job"))
+	if err != nil {
+		t.Fatalf("SubmitScenarioJob(first): %v", err)
+	}
+	select {
+	case <-host.started:
+	case <-time.After(2 * time.Second):
+		t.Fatal("first cloud text job did not enter Remote Host")
+	}
+	second, err := fixture.service.SubmitScenarioJob(ctx, cloudTextJobRequest("second scheduler-owned job"))
+	if err != nil {
+		t.Fatalf("SubmitScenarioJob(second): %v", err)
+	}
+	waitCloudTextJobStatus(t, fixture.service, second.GetJob().GetJobId(), runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_QUEUED)
+	probeCtx, probeCancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
+	defer probeCancel()
+	probeRelease, _, probeErr := fixture.service.scheduler.Acquire(probeCtx, "other.app")
+	if probeErr == nil {
+		probeRelease()
+		t.Fatal("scheduler lease was released before the active Remote Host execution completed")
+	}
+	close(host.release)
+	if job := waitCloudTextJob(t, fixture.service, first.GetJob().GetJobId()); job.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED {
+		t.Fatalf("first cloud text terminal = %+v", job)
+	}
+	if job := waitCloudTextJob(t, fixture.service, second.GetJob().GetJobId()); job.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED {
+		t.Fatalf("second cloud text terminal = %+v", job)
+	}
+}
+
 func cloudTextJobContext(target *runtimeidentity.Target) context.Context {
 	ctx := metadata.NewIncomingContext(context.Background(), metadata.Pairs("x-nimi-app-id", "nimi.desktop"))
 	ctx = authn.WithIdentity(ctx, &authn.Identity{SubjectUserID: "user-001"})
@@ -169,6 +206,21 @@ func waitCloudTextJob(t *testing.T, svc *Service, jobID string) *runtimev1.Scena
 	}
 	job, _ := svc.scenarioJobs.get(jobID)
 	t.Fatalf("cloud text job did not terminate: %+v", job)
+	return nil
+}
+
+func waitCloudTextJobStatus(t *testing.T, svc *Service, jobID string, want runtimev1.ScenarioJobStatus) *runtimev1.ScenarioJob {
+	t.Helper()
+	deadline := time.Now().Add(3 * time.Second)
+	for time.Now().Before(deadline) {
+		job, ok := svc.scenarioJobs.get(jobID)
+		if ok && job.GetStatus() == want {
+			return job
+		}
+		time.Sleep(5 * time.Millisecond)
+	}
+	job, _ := svc.scenarioJobs.get(jobID)
+	t.Fatalf("cloud text job did not reach %s: %+v", want, job)
 	return nil
 }
 

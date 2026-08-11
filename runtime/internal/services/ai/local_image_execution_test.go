@@ -20,6 +20,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/localexecution"
 	"github.com/nimiplatform/nimi/runtime/internal/protectedprincipal"
+	"github.com/nimiplatform/nimi/runtime/internal/scheduler"
 	runtimeartifact "github.com/nimiplatform/nimi/runtime/internal/services/runtimeartifact"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
@@ -40,7 +41,89 @@ type localImageHostStub struct {
 	failure         error
 }
 
-func (h *localImageHostStub) ExecuteImage(ctx context.Context, plan *capabilitydriver.ImageInvocationPlan, onArtifact localexecution.ImageArtifactFunc, progress localexecution.ImageProgressFunc) (localexecution.ImageResult, error) {
+type capabilityLocalExecutionResolver struct {
+	selections map[string]*localexecution.SelectedLocalExecution
+}
+
+func (r *capabilityLocalExecutionResolver) SelectedLocalCapabilityContracts() []string {
+	contracts := make([]string, 0, len(r.selections))
+	for contract := range r.selections {
+		contracts = append(contracts, contract)
+	}
+	return contracts
+}
+
+func (r *capabilityLocalExecutionResolver) ResolveSelectedLocalExecution(contract string) (*localexecution.SelectedLocalExecution, error) {
+	selected := r.selections[contract]
+	if selected == nil {
+		return nil, fmt.Errorf("no Local execution for %s", contract)
+	}
+	return cloneSelectedExecutionForTest(selected), nil
+}
+
+type serialBlockingLocalImageHostStub struct {
+	lease        chan struct{}
+	firstEntered chan struct{}
+	releaseFirst chan struct{}
+	mu           sync.Mutex
+	calls        int
+}
+
+func newSerialBlockingLocalImageHostStub() *serialBlockingLocalImageHostStub {
+	return &serialBlockingLocalImageHostStub{
+		lease:        make(chan struct{}, 1),
+		firstEntered: make(chan struct{}),
+		releaseFirst: make(chan struct{}),
+	}
+}
+
+func (h *serialBlockingLocalImageHostStub) ExecuteImage(
+	ctx context.Context,
+	plan *capabilitydriver.ImageInvocationPlan,
+	onStart localexecution.ImageExecutionStartFunc,
+	onArtifact localexecution.ImageArtifactFunc,
+	progress localexecution.ImageProgressFunc,
+) (localexecution.ImageResult, error) {
+	select {
+	case h.lease <- struct{}{}:
+		defer func() { <-h.lease }()
+	case <-ctx.Done():
+		return localexecution.ImageResult{}, &localexecution.ExecutionError{Kind: localexecution.FailureCanceled, Err: ctx.Err()}
+	}
+	if onStart != nil {
+		if err := onStart(); err != nil {
+			return localexecution.ImageResult{}, err
+		}
+	}
+	h.mu.Lock()
+	h.calls++
+	call := h.calls
+	h.mu.Unlock()
+	if call == 1 {
+		close(h.firstEntered)
+		select {
+		case <-h.releaseFirst:
+		case <-ctx.Done():
+			return localexecution.ImageResult{}, &localexecution.ExecutionError{Kind: localexecution.FailureCanceled, Err: ctx.Err()}
+		}
+	}
+	if progress != nil {
+		progress(localexecution.ImageExecutionProgress{Stage: localexecution.ImageExecutionStageLoading, ArtifactCount: int32(plan.ImageCount())})
+	}
+	result := localexecution.ImageResult{Artifacts: make([]localexecution.ImageArtifact, 0, plan.ImageCount())}
+	for index := int32(1); index <= int32(plan.ImageCount()); index++ {
+		artifact := localexecution.ImageArtifact{Index: index, Bytes: serviceTestPNGBytes()}
+		result.Artifacts = append(result.Artifacts, artifact)
+		if onArtifact != nil {
+			if err := onArtifact(artifact); err != nil {
+				return result, err
+			}
+		}
+	}
+	return result, nil
+}
+
+func (h *localImageHostStub) ExecuteImage(ctx context.Context, plan *capabilitydriver.ImageInvocationPlan, onStart localexecution.ImageExecutionStartFunc, onArtifact localexecution.ImageArtifactFunc, progress localexecution.ImageProgressFunc) (localexecution.ImageResult, error) {
 	h.mu.Lock()
 	h.plans = append(h.plans, plan)
 	h.mu.Unlock()
@@ -54,6 +137,11 @@ func (h *localImageHostStub) ExecuteImage(ctx context.Context, plan *capabilityd
 				<-h.allowCancelExit
 			}
 			return localexecution.ImageResult{}, &localexecution.ExecutionError{Kind: localexecution.FailureCanceled, Err: ctx.Err()}
+		}
+	}
+	if onStart != nil {
+		if err := onStart(); err != nil {
+			return localexecution.ImageResult{}, err
 		}
 	}
 	if progress != nil {
@@ -463,6 +551,286 @@ func TestLocalImageJobStaysQueuedThenCommitsArtifactsIncrementallyFromImmutableC
 	if captured.MainModelPath() != first.ExactBindings[0].AbsolutePath || captured.MainModelPath() == second.ExactBindings[0].AbsolutePath ||
 		captured.ImageCount() != 2 || width != 64 || height != 64 || captured.Seed() != 19 {
 		t.Fatalf("background execution did not use immutable capture: path=%q count=%d size=%dx%d seed=%d", captured.MainModelPath(), captured.ImageCount(), width, height, captured.Seed())
+	}
+}
+
+func TestLocalImageJobSchedulerLeaseCoversHostLifetime(t *testing.T) {
+	svc := newTestService(nil)
+	svc.scheduler = scheduler.New(scheduler.Config{GlobalConcurrency: 1, PerAppConcurrency: 1})
+	svc.SetLocalExecutionResolver(&mutableLocalExecutionResolver{projection: selectedImageExecutionForTest(t, "image-scheduler")})
+	host := &localImageHostStub{
+		entered: make(chan struct{}), allowStart: make(chan struct{}),
+		firstCommitted: make(chan struct{}), allowSecond: make(chan struct{}),
+	}
+	svc.SetLocalImageExecutionHost(host)
+	ctx := localImageIntentContext(context.Background(), nil)
+
+	first, err := svc.SubmitScenarioJob(ctx, localImageJobRequestForTest(1))
+	if err != nil {
+		t.Fatalf("SubmitScenarioJob(first): %v", err)
+	}
+	select {
+	case <-host.entered:
+	case <-time.After(2 * time.Second):
+		t.Fatal("first job did not enter the image Host")
+	}
+
+	second, err := svc.SubmitScenarioJob(ctx, localImageJobRequestForTest(1))
+	if err != nil {
+		t.Fatalf("SubmitScenarioJob(second): %v", err)
+	}
+	waitForImageJobStatus(t, svc, second.GetJob().GetJobId(), runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_QUEUED)
+
+	close(host.allowStart)
+	select {
+	case <-host.firstCommitted:
+	case <-time.After(2 * time.Second):
+		t.Fatal("first image Host execution did not start")
+	}
+	probeCtx, probeCancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
+	defer probeCancel()
+	probeRelease, _, probeErr := svc.scheduler.Acquire(probeCtx, "other.app")
+	if probeErr == nil {
+		probeRelease()
+		t.Fatal("scheduler lease was released before the active image Host execution completed")
+	}
+	close(host.allowSecond)
+	if terminal := waitForScenarioJobTerminalForLocalTextTest(t, svc, first.GetJob().GetJobId()); terminal.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED {
+		t.Fatalf("first image job terminal = %+v", terminal)
+	}
+	if terminal := waitForScenarioJobTerminalForLocalTextTest(t, svc, second.GetJob().GetJobId()); terminal.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED {
+		t.Fatalf("second image job terminal = %+v", terminal)
+	}
+}
+
+func TestLocalImageJobsPreserveAcceptedOrderAcrossSchedulerReadiness(t *testing.T) {
+	svc := newTestService(nil)
+	svc.scheduler = scheduler.New(scheduler.Config{GlobalConcurrency: 3, PerAppConcurrency: 1})
+	svc.SetLocalExecutionResolver(&mutableLocalExecutionResolver{projection: selectedImageExecutionForTest(t, "image-accepted-order")})
+	host := &localImageHostStub{entered: make(chan struct{})}
+	svc.SetLocalImageExecutionHost(host)
+
+	blockerRelease, _, err := svc.scheduler.Acquire(context.Background(), "app.image.first")
+	if err != nil {
+		t.Fatalf("acquire first-app blocker: %v", err)
+	}
+	released := false
+	t.Cleanup(func() {
+		if !released {
+			blockerRelease()
+		}
+	})
+
+	firstRequest := localImageJobRequestForTest(1)
+	firstRequest.Head.AppId = "app.image.first"
+	firstRequest.GetSpec().GetImageGenerate().Prompt = "accepted-first-image"
+	first, err := svc.SubmitScenarioJob(localImageIntentContext(context.Background(), nil), firstRequest)
+	if err != nil {
+		t.Fatalf("SubmitScenarioJob(first): %v", err)
+	}
+	waitForImageJobStatus(t, svc, first.GetJob().GetJobId(), runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_QUEUED)
+	select {
+	case <-host.entered:
+	case <-time.After(2 * time.Second):
+		t.Fatal("first accepted image job did not enter the Host before scheduler admission")
+	}
+
+	secondRequest := localImageJobRequestForTest(1)
+	secondRequest.Head.AppId = "app.image.second"
+	secondRequest.GetSpec().GetImageGenerate().Prompt = "accepted-second-image"
+	second, err := svc.SubmitScenarioJob(localImageIntentContext(context.Background(), nil), secondRequest)
+	if err != nil {
+		t.Fatalf("SubmitScenarioJob(second): %v", err)
+	}
+	time.Sleep(100 * time.Millisecond)
+	host.mu.Lock()
+	queuedPlans := append([]*capabilitydriver.ImageInvocationPlan(nil), host.plans...)
+	host.mu.Unlock()
+	if len(queuedPlans) != 1 || queuedPlans[0].Prompt() != "accepted-first-image" {
+		t.Fatalf("image Host admission before first scheduler lease = %v", func() []string {
+			out := make([]string, 0, len(queuedPlans))
+			for _, plan := range queuedPlans {
+				out = append(out, plan.Prompt())
+			}
+			return out
+		}())
+	}
+
+	blockerRelease()
+	released = true
+	for _, response := range []*runtimev1.SubmitScenarioJobResponse{first, second} {
+		if terminal := waitForScenarioJobTerminalForLocalTextTest(t, svc, response.GetJob().GetJobId()); terminal.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED {
+			t.Fatalf("image job terminal = %+v", terminal)
+		}
+	}
+	host.mu.Lock()
+	plans := append([]*capabilitydriver.ImageInvocationPlan(nil), host.plans...)
+	host.mu.Unlock()
+	if len(plans) != 2 || plans[0].Prompt() != "accepted-first-image" || plans[1].Prompt() != "accepted-second-image" {
+		t.Fatalf("image Host order = %v", func() []string {
+			out := make([]string, 0, len(plans))
+			for _, plan := range plans {
+				out = append(out, plan.Prompt())
+			}
+			return out
+		}())
+	}
+}
+
+func TestLocalImageHostWaitDoesNotBlockLocalVideoSchedulerAdmission(t *testing.T) {
+	svc := newTestService(nil)
+	svc.scheduler = scheduler.New(scheduler.Config{GlobalConcurrency: 2, PerAppConcurrency: 2})
+	svc.SetLocalExecutionResolver(&capabilityLocalExecutionResolver{selections: map[string]*localexecution.SelectedLocalExecution{
+		capabilitydriver.StableDiffusionCapabilityContract:      selectedImageExecutionForTest(t, "image-host-wait"),
+		capabilitydriver.StableDiffusionVideoCapabilityContract: selectedVideoExecutionForTest(t, "video-cross-media"),
+	}})
+	imageHost := newSerialBlockingLocalImageHostStub()
+	videoHost := &localVideoHostStub{entered: make(chan struct{})}
+	svc.SetLocalImageExecutionHost(imageHost)
+	svc.SetLocalVideoExecutionHost(videoHost)
+	svc.SetLocalVideoMediaPipeline(&videoMediaPipelineStub{})
+
+	firstImage, err := svc.SubmitScenarioJob(localImageIntentContext(context.Background(), nil), localImageJobRequestForTest(1))
+	if err != nil {
+		t.Fatalf("SubmitScenarioJob(first image): %v", err)
+	}
+	select {
+	case <-imageHost.firstEntered:
+	case <-time.After(2 * time.Second):
+		t.Fatal("first image did not enter the serial Host")
+	}
+	secondImage, err := svc.SubmitScenarioJob(localImageIntentContext(context.Background(), nil), localImageJobRequestForTest(1))
+	if err != nil {
+		t.Fatalf("SubmitScenarioJob(second image): %v", err)
+	}
+	waitForImageJobStatus(t, svc, secondImage.GetJob().GetJobId(), runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_QUEUED)
+	// Give the second worker enough time to expose an incorrect scheduler-first
+	// acquisition by blocking inside the serial Host.
+	time.Sleep(50 * time.Millisecond)
+
+	videoRequest := localVideoJobRequestForTest(64, 64, 5)
+	videoRequest.Head.AppId = "app.video.cross-media"
+	video, err := svc.SubmitScenarioJob(localVideoIntentContext(context.Background()), videoRequest)
+	if err != nil {
+		t.Fatalf("SubmitScenarioJob(video): %v", err)
+	}
+	select {
+	case <-videoHost.entered:
+	case <-time.After(200 * time.Millisecond):
+		t.Fatal("queued image Host wait consumed the scheduler slot needed by local video")
+	}
+
+	close(imageHost.releaseFirst)
+	for _, response := range []*runtimev1.SubmitScenarioJobResponse{firstImage, secondImage, video} {
+		if terminal := waitForScenarioJobTerminalForLocalTextTest(t, svc, response.GetJob().GetJobId()); terminal.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED {
+			t.Fatalf("cross-media job terminal = %+v", terminal)
+		}
+	}
+}
+
+func TestLocalImageHostQueueWaitDoesNotConsumeSchedulerSlotNeededByVideo(t *testing.T) {
+	svc := newTestService(nil)
+	svc.scheduler = scheduler.New(scheduler.Config{GlobalConcurrency: 2, PerAppConcurrency: 2})
+	svc.SetLocalExecutionResolver(&capabilityLocalExecutionResolver{selections: map[string]*localexecution.SelectedLocalExecution{
+		capabilitydriver.StableDiffusionCapabilityContract:      selectedImageExecutionForTest(t, "image-sync-host-occupant"),
+		capabilitydriver.StableDiffusionVideoCapabilityContract: selectedVideoExecutionForTest(t, "video-after-image-host-wait"),
+	}})
+	imageHost := newSerialBlockingLocalImageHostStub()
+	videoHost := &localVideoHostStub{entered: make(chan struct{})}
+	svc.SetLocalImageExecutionHost(imageHost)
+	svc.SetLocalVideoExecutionHost(videoHost)
+	svc.SetLocalVideoMediaPipeline(&videoMediaPipelineStub{})
+	t.Cleanup(func() { closeOnce(imageHost.releaseFirst) })
+
+	syncResult := make(chan error, 1)
+	go func() {
+		_, err := svc.ExecuteScenario(
+			localImageIntentContext(context.Background(), nil),
+			localImageExecuteRequestForTest(1),
+		)
+		syncResult <- err
+	}()
+	select {
+	case <-imageHost.firstEntered:
+	case <-time.After(2 * time.Second):
+		t.Fatal("synchronous image request did not occupy the serial Host")
+	}
+
+	imageJob, err := svc.SubmitScenarioJob(
+		localImageIntentContext(context.Background(), nil),
+		localImageJobRequestForTest(1),
+	)
+	if err != nil {
+		t.Fatalf("SubmitScenarioJob(image waiter): %v", err)
+	}
+	waitForImageJobStatus(t, svc, imageJob.GetJob().GetJobId(), runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_QUEUED)
+	// Let an incorrect scheduler-before-Host path acquire the second global
+	// slot while this Job waits behind the synchronous Host occupant.
+	time.Sleep(50 * time.Millisecond)
+
+	videoRequest := localVideoJobRequestForTest(64, 64, 5)
+	videoRequest.Head.AppId = "app.video.after-image-host-wait"
+	videoJob, err := svc.SubmitScenarioJob(localVideoIntentContext(context.Background()), videoRequest)
+	if err != nil {
+		t.Fatalf("SubmitScenarioJob(video): %v", err)
+	}
+	select {
+	case <-videoHost.entered:
+	case <-time.After(200 * time.Millisecond):
+		t.Fatal("image Job waiting for its Host consumed the scheduler slot needed by local video")
+	}
+
+	closeOnce(imageHost.releaseFirst)
+	if err := <-syncResult; err != nil {
+		t.Fatalf("synchronous image request: %v", err)
+	}
+	for _, response := range []*runtimev1.SubmitScenarioJobResponse{imageJob, videoJob} {
+		if terminal := waitForScenarioJobTerminalForLocalTextTest(t, svc, response.GetJob().GetJobId()); terminal.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED {
+			t.Fatalf("cross-media job terminal = %+v", terminal)
+		}
+	}
+}
+
+func TestLocalImageJobSchedulerQueuedCancellationSkipsHost(t *testing.T) {
+	svc := newTestService(nil)
+	svc.scheduler = scheduler.New(scheduler.Config{GlobalConcurrency: 1, PerAppConcurrency: 1})
+	svc.SetLocalExecutionResolver(&mutableLocalExecutionResolver{projection: selectedImageExecutionForTest(t, "image-scheduler-cancel")})
+	host := &localImageHostStub{entered: make(chan struct{}), allowStart: make(chan struct{})}
+	svc.SetLocalImageExecutionHost(host)
+	ctx := localImageIntentContext(context.Background(), nil)
+
+	first, err := svc.SubmitScenarioJob(ctx, localImageJobRequestForTest(1))
+	if err != nil {
+		t.Fatalf("SubmitScenarioJob(first): %v", err)
+	}
+	select {
+	case <-host.entered:
+	case <-time.After(2 * time.Second):
+		t.Fatal("first job did not enter the image Host")
+	}
+	second, err := svc.SubmitScenarioJob(ctx, localImageJobRequestForTest(1))
+	if err != nil {
+		t.Fatalf("SubmitScenarioJob(second): %v", err)
+	}
+	secondID := second.GetJob().GetJobId()
+	waitForImageJobStatus(t, svc, secondID, runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_QUEUED)
+	cancelCtx := metadata.NewIncomingContext(context.Background(), metadata.Pairs("x-nimi-app-id", "app.local"))
+	if _, err := svc.CancelScenarioJob(cancelCtx, &runtimev1.CancelScenarioJobRequest{JobId: secondID, Reason: "owner canceled while queued"}); err != nil {
+		t.Fatalf("CancelScenarioJob(second): %v", err)
+	}
+	if terminal := waitForScenarioJobTerminalForLocalTextTest(t, svc, secondID); terminal.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_CANCELED {
+		t.Fatalf("queued second image job terminal = %+v", terminal)
+	}
+	host.mu.Lock()
+	enteredPlans := len(host.plans)
+	host.mu.Unlock()
+	if enteredPlans != 1 {
+		t.Fatalf("scheduler-queued canceled job entered Host: plans=%d", enteredPlans)
+	}
+
+	close(host.allowStart)
+	if terminal := waitForScenarioJobTerminalForLocalTextTest(t, svc, first.GetJob().GetJobId()); terminal.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED {
+		t.Fatalf("first image job terminal = %+v", terminal)
 	}
 }
 

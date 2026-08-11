@@ -17,6 +17,7 @@ func TestTimeoutDurationUsesBoundedOverride(t *testing.T) {
 		timeoutMS      int32
 		defaultTimeout time.Duration
 		want           time.Duration
+		wantError      bool
 	}{
 		{
 			name:           "use default when request missing",
@@ -37,10 +38,22 @@ func TestTimeoutDurationUsesBoundedOverride(t *testing.T) {
 			want:           5 * time.Second,
 		},
 		{
-			name:           "clamp to runtime max",
-			timeoutMS:      int32((10 * time.Minute) / time.Millisecond),
+			name:           "allow exact runtime maximum",
+			timeoutMS:      int32(maxRuntimeRequestTimeout / time.Millisecond),
 			defaultTimeout: defaultGenerateTimeout,
 			want:           maxRuntimeRequestTimeout,
+		},
+		{
+			name:           "reject public override above runtime max",
+			timeoutMS:      int32((10 * time.Minute) / time.Millisecond),
+			defaultTimeout: defaultGenerateTimeout,
+			wantError:      true,
+		},
+		{
+			name:           "reject negative public override",
+			timeoutMS:      -1,
+			defaultTimeout: defaultGenerateTimeout,
+			wantError:      true,
 		},
 		{
 			name:           "zero default stays zero",
@@ -52,7 +65,19 @@ func TestTimeoutDurationUsesBoundedOverride(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := timeoutDuration(tt.timeoutMS, tt.defaultTimeout)
+			got, err := timeoutDuration(tt.timeoutMS, tt.defaultTimeout)
+			if tt.wantError {
+				if got != 0 {
+					t.Fatalf("rejected timeout duration = %s, want zero", got)
+				}
+				if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED || statusCode(err) != codes.InvalidArgument {
+					t.Fatalf("timeout error=%v code=%v reason=%v present=%v", err, statusCode(err), reason, ok)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("timeoutDuration(%d, %s): %v", tt.timeoutMS, tt.defaultTimeout, err)
+			}
 			if got != tt.want {
 				t.Fatalf("timeoutDuration(%d, %s) = %s, want %s", tt.timeoutMS, tt.defaultTimeout, got, tt.want)
 			}
@@ -128,7 +153,7 @@ func TestLocalImageJobTimeoutDurationUsesInclusivePublicRange(t *testing.T) {
 	}
 }
 
-func TestScenarioJobTimeoutDurationKeepsRuntimeCapForRemoteImageJobs(t *testing.T) {
+func TestScenarioJobTimeoutDurationRejectsPublicOverrideAboveRuntimeCap(t *testing.T) {
 	req := &runtimev1.SubmitScenarioJobRequest{
 		Head: &runtimev1.ScenarioRequestHead{
 			TimeoutMs: int32((10 * time.Minute) / time.Millisecond),
@@ -136,13 +161,16 @@ func TestScenarioJobTimeoutDurationKeepsRuntimeCapForRemoteImageJobs(t *testing.
 		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE,
 	}
 
-	got := scenarioJobTimeoutDuration(req, defaultGenerateImageTimeout, false)
-	if got != maxRuntimeRequestTimeout {
-		t.Fatalf("scenarioJobTimeoutDuration(remote image 10m) = %s, want %s", got, maxRuntimeRequestTimeout)
+	got, err := scenarioJobTimeoutDuration(req, defaultGenerateImageTimeout, false)
+	if got != 0 {
+		t.Fatalf("scenarioJobTimeoutDuration(remote image 10m) = %s, want zero", got)
+	}
+	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED || statusCode(err) != codes.InvalidArgument {
+		t.Fatalf("timeout error=%v code=%v reason=%v present=%v", err, statusCode(err), reason, ok)
 	}
 }
 
-func TestScenarioJobTimeoutDurationBoundsLocalSpeechJobs(t *testing.T) {
+func TestScenarioJobTimeoutDurationAdmitsLocalSpeechRangeAndRejectsOverflow(t *testing.T) {
 	for _, scenarioType := range []runtimev1.ScenarioType{
 		runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE,
 		runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_TRANSCRIBE,
@@ -152,7 +180,8 @@ func TestScenarioJobTimeoutDurationBoundsLocalSpeechJobs(t *testing.T) {
 				Head:         &runtimev1.ScenarioRequestHead{},
 				ScenarioType: scenarioType,
 			}
-			if got := scenarioJobTimeoutDuration(req, defaultLocalSpeechJobTimeout, true); got != 15*time.Minute {
+			got, err := scenarioJobTimeoutDuration(req, defaultLocalSpeechJobTimeout, true)
+			if err != nil || got != 15*time.Minute {
 				t.Fatalf("scenarioJobTimeoutDuration(local speech default) = %s, want %s", got, 15*time.Minute)
 			}
 		})
@@ -163,7 +192,8 @@ func TestScenarioJobTimeoutDurationBoundsLocalSpeechJobs(t *testing.T) {
 				},
 				ScenarioType: scenarioType,
 			}
-			if got := scenarioJobTimeoutDuration(req, defaultLocalSpeechJobTimeout, true); got != 20*time.Minute {
+			got, err := scenarioJobTimeoutDuration(req, defaultLocalSpeechJobTimeout, true)
+			if err != nil || got != 20*time.Minute {
 				t.Fatalf("scenarioJobTimeoutDuration(local speech 20m) = %s, want %s", got, 20*time.Minute)
 			}
 		})
@@ -174,8 +204,12 @@ func TestScenarioJobTimeoutDurationBoundsLocalSpeechJobs(t *testing.T) {
 				},
 				ScenarioType: scenarioType,
 			}
-			if got := scenarioJobTimeoutDuration(req, defaultLocalSpeechJobTimeout, true); got != maxLocalSpeechJobTimeout {
-				t.Fatalf("scenarioJobTimeoutDuration(local speech 31m) = %s, want %s", got, maxLocalSpeechJobTimeout)
+			got, err := scenarioJobTimeoutDuration(req, defaultLocalSpeechJobTimeout, true)
+			if got != 0 {
+				t.Fatalf("scenarioJobTimeoutDuration(local speech 31m) = %s, want zero", got)
+			}
+			if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED || statusCode(err) != codes.InvalidArgument {
+				t.Fatalf("timeout error=%v code=%v reason=%v present=%v", err, statusCode(err), reason, ok)
 			}
 		})
 	}

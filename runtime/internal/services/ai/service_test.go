@@ -14,8 +14,10 @@ func TestAITimeoutDefaultsMatchSpec(t *testing.T) {
 		got    time.Duration
 		wantMS int
 	}{
-		// ExecuteScenario_text_generate → 120 000 ms
-		{name: "defaultGenerateTimeout", got: defaultGenerateTimeout, wantMS: 120_000},
+		// ExecuteScenario_text_generate → 30 000 ms
+		{name: "defaultGenerateTimeout", got: defaultGenerateTimeout, wantMS: 30_000},
+		// SubmitScenarioJob_text_generate retains its bounded 120 000 ms default.
+		{name: "defaultTextGenerateJobTimeout", got: defaultTextGenerateJobTimeout, wantMS: 120_000},
 		// StreamScenario_first_packet → 60 000 ms
 		{name: "defaultStreamFirstTimeout", got: defaultStreamFirstTimeout, wantMS: 60_000},
 		// StreamScenario_total → 120 000 ms

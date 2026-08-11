@@ -40,6 +40,7 @@ type videoInvocationSubstrate interface {
 type videoExecutionRequest struct {
 	ctx      context.Context
 	plan     *capabilitydriver.VideoInvocationPlan
+	onStart  localexecution.VideoExecutionStartFunc
 	progress localexecution.VideoProgressFunc
 	done     chan videoExecutionOutcome
 }
@@ -93,7 +94,12 @@ func newVideoExecutionHostWithSubstrate(substrate videoInvocationSubstrate, logg
 	return host
 }
 
-func (h *VideoExecutionHost) ExecuteVideo(ctx context.Context, plan *capabilitydriver.VideoInvocationPlan, progress localexecution.VideoProgressFunc) (localexecution.RawAVCandidate, error) {
+func (h *VideoExecutionHost) ExecuteVideo(
+	ctx context.Context,
+	plan *capabilitydriver.VideoInvocationPlan,
+	onStart localexecution.VideoExecutionStartFunc,
+	progress localexecution.VideoProgressFunc,
+) (localexecution.RawAVCandidate, error) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -103,7 +109,7 @@ func (h *VideoExecutionHost) ExecuteVideo(ctx context.Context, plan *capabilityd
 	if err := validateVideoInvocationPlan(plan); err != nil {
 		return localexecution.RawAVCandidate{}, executionFailure(localexecution.FailureInference, err)
 	}
-	request := &videoExecutionRequest{ctx: ctx, plan: plan, progress: progress, done: make(chan videoExecutionOutcome, 1)}
+	request := &videoExecutionRequest{ctx: ctx, plan: plan, onStart: onStart, progress: progress, done: make(chan videoExecutionOutcome, 1)}
 	if !h.enqueue(request) {
 		return localexecution.RawAVCandidate{}, executionFailure(localexecution.FailureCanceled, fmt.Errorf("video execution host is stopping"))
 	}
@@ -226,6 +232,13 @@ func (h *VideoExecutionHost) run() {
 		stopLink := context.AfterFunc(h.lifetime, cancel)
 		copyRequest := *request
 		copyRequest.ctx = executionCtx
+		if err := beginVideoExecution(executionCtx, copyRequest.onStart); err != nil {
+			stopLink()
+			cancel()
+			h.clearActive(request)
+			h.deliver(request, videoExecutionOutcome{err: err})
+			continue
+		}
 		candidate, err := h.execute(&copyRequest)
 		stopLink()
 		cancel()
@@ -237,6 +250,19 @@ func (h *VideoExecutionHost) run() {
 		default:
 		}
 	}
+}
+
+func beginVideoExecution(ctx context.Context, onStart localexecution.VideoExecutionStartFunc) error {
+	if ctx != nil && ctx.Err() != nil {
+		return executionFailure(localexecution.FailureCanceled, ctx.Err())
+	}
+	if onStart == nil {
+		return nil
+	}
+	if err := onStart(); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (h *VideoExecutionHost) execute(request *videoExecutionRequest) (localexecution.RawAVCandidate, error) {

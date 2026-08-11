@@ -288,7 +288,7 @@ func TestScenarioJobIdempotencyAndTimeoutHelpers(t *testing.T) {
 	if defaultScenarioJobTimeout(runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_TRANSCRIBE) != defaultTranscribeTimeout {
 		t.Fatalf("unexpected transcribe timeout")
 	}
-	if defaultScenarioJobTimeout(runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE) != defaultGenerateTimeout {
+	if defaultScenarioJobTimeout(runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE) != defaultTextGenerateJobTimeout {
 		t.Fatalf("unexpected default timeout")
 	}
 }
@@ -473,7 +473,7 @@ func TestResolveSynthesizeSpeechSpecVoiceRefRejectsExpiredVoiceAsset(t *testing.
 
 func init() {
 	// Compile-time guard for timeout constants to ensure tests cover helper defaults.
-	_ = []time.Duration{defaultGenerateTimeout, defaultGenerateImageTimeout, defaultGenerateVideoTimeout, defaultSynthesizeTimeout, defaultTranscribeTimeout}
+	_ = []time.Duration{defaultGenerateTimeout, defaultTextGenerateJobTimeout, defaultGenerateImageTimeout, defaultGenerateVideoTimeout, defaultSynthesizeTimeout, defaultTranscribeTimeout}
 }
 
 func mustStructPB(t *testing.T, values map[string]any) *structpb.Struct {

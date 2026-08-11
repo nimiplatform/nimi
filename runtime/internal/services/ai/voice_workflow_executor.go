@@ -123,7 +123,21 @@ func (s *Service) executeCapturedVoiceWorkflowJob(
 		return
 	}
 	defer s.voiceAssets.finishJobExecution(jobID)
-	if !s.voiceAssets.queueJob(jobID) || !s.voiceAssets.runJob(jobID) {
+	if !s.voiceAssets.queueJob(jobID) {
+		return
+	}
+	release, err := s.acquireAsyncScenarioJobLease(ctx, effective.appID, "scenario_job_voice_workflow")
+	if err != nil {
+		if errors.Is(ctx.Err(), context.DeadlineExceeded) {
+			s.voiceAssets.timeoutJob(jobID, runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT, stableScenarioJobReasonDetail(runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT), voiceWorkflowFailureMetadata(err, runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT, nil))
+		} else if !errors.Is(ctx.Err(), context.Canceled) {
+			reasonCode := runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE
+			s.voiceAssets.failJob(jobID, reasonCode, sanitizeScenarioJobReasonDetail(err, reasonCode), voiceWorkflowFailureMetadata(err, reasonCode, nil))
+		}
+		return
+	}
+	defer release()
+	if !s.voiceAssets.runJob(jobID) {
 		return
 	}
 	result, err := s.executeCapturedCloudVoiceWorkflow(ctx, effective)

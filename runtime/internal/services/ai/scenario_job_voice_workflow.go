@@ -39,14 +39,10 @@ func (s *Service) submitVoiceWorkflowJob(
 	}()
 	req = effective.request
 	resolution := effective.resolution
-
-	release, acquireResult, acquireErr := s.scheduler.Acquire(ctx, req.GetHead().GetAppId())
-	if acquireErr != nil {
-		return nil, schedulerAcquireError(acquireErr)
+	timeout, err := scenarioJobTimeoutDuration(req, defaultSynthesizeTimeout, false)
+	if err != nil {
+		return nil, err
 	}
-	defer release()
-	s.attachQueueWaitUnary(ctx, acquireResult)
-	s.logQueueWait("submit_voice_workflow_job", req.GetHead().GetAppId(), acquireResult)
 
 	job, asset := s.voiceAssets.submit(&voiceWorkflowSubmitInput{
 		Head:              req.GetHead(),
@@ -77,7 +73,6 @@ func (s *Service) submitVoiceWorkflowJob(
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_VOICE_INPUT_INVALID)
 	}
 
-	timeout := timeoutDuration(req.GetHead().GetTimeoutMs(), defaultSynthesizeTimeout)
 	// Keep caller metadata and credentials out of the detached job. The typed
 	// identity below is the only request ownership value retained.
 	jobCtx := newDetachedAsyncJobContext(ctx)

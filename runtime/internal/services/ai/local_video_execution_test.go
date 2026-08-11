@@ -24,6 +24,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/localexecution"
 	"github.com/nimiplatform/nimi/runtime/internal/protectedprincipal"
+	"github.com/nimiplatform/nimi/runtime/internal/scheduler"
 	runtimeartifact "github.com/nimiplatform/nimi/runtime/internal/services/runtimeartifact"
 	"github.com/nimiplatform/nimi/runtime/internal/videomedia"
 	"google.golang.org/grpc/codes"
@@ -37,6 +38,9 @@ type localVideoHostStub struct {
 	plans           []*capabilitydriver.VideoInvocationPlan
 	calls           int
 	entered         chan struct{}
+	callEntered     chan string
+	allowStart      chan struct{}
+	started         chan struct{}
 	release         chan struct{}
 	cancelObserved  chan struct{}
 	allowCancelExit chan struct{}
@@ -45,18 +49,39 @@ type localVideoHostStub struct {
 	err             error
 }
 
-func (h *localVideoHostStub) ExecuteVideo(ctx context.Context, plan *capabilitydriver.VideoInvocationPlan, progress localexecution.VideoProgressFunc) (localexecution.RawAVCandidate, error) {
+func (h *localVideoHostStub) ExecuteVideo(
+	ctx context.Context,
+	plan *capabilitydriver.VideoInvocationPlan,
+	onStart localexecution.VideoExecutionStartFunc,
+	progress localexecution.VideoProgressFunc,
+) (localexecution.RawAVCandidate, error) {
 	h.mu.Lock()
 	h.calls++
 	h.plans = append(h.plans, plan)
 	updates := append([]localexecution.VideoExecutionProgress(nil), h.progress...)
 	h.mu.Unlock()
+	closeOnce(h.entered)
+	if h.callEntered != nil {
+		h.callEntered <- plan.Prompt()
+	}
+	if h.allowStart != nil {
+		select {
+		case <-h.allowStart:
+		case <-ctx.Done():
+			return localexecution.RawAVCandidate{}, &localexecution.ExecutionError{Kind: localexecution.FailureCanceled, Err: ctx.Err()}
+		}
+	}
+	if onStart != nil {
+		if err := onStart(); err != nil {
+			return localexecution.RawAVCandidate{}, err
+		}
+	}
+	closeOnce(h.started)
 	for _, update := range updates {
 		if progress != nil {
 			progress(update)
 		}
 	}
-	closeOnce(h.entered)
 	if h.release != nil {
 		select {
 		case <-h.release:
@@ -329,6 +354,234 @@ func TestLocalVideoHappyPathPreservesProgressSnapshotAndJobCustody(t *testing.T)
 	if captured.ConfigurationID() != first.ConfigurationID || captured.ConfigurationID() == second.ConfigurationID || width != 512 || height != 288 ||
 		captured.FrameCount() != 22 || captured.FPS() != 24 || captured.Seed() != 19 || resolver.calls != 1 {
 		t.Fatalf("immutable capture = config=%q size=%dx%d frames=%d fps=%d seed=%d resolves=%d", captured.ConfigurationID(), width, height, captured.FrameCount(), captured.FPS(), captured.Seed(), resolver.calls)
+	}
+}
+
+func TestLocalVideoJobsPreserveAcceptedOrderAcrossSchedulerReadiness(t *testing.T) {
+	svc := newTestService(nil)
+	svc.scheduler = scheduler.New(scheduler.Config{GlobalConcurrency: 3, PerAppConcurrency: 1})
+	svc.SetLocalExecutionResolver(&countingLocalExecutionResolver{projection: selectedVideoExecutionForTest(t, "video-accepted-order")})
+	host := &localVideoHostStub{entered: make(chan struct{})}
+	svc.SetLocalVideoExecutionHost(host)
+	svc.SetLocalVideoMediaPipeline(&videoMediaPipelineStub{})
+
+	blockerRelease, _, err := svc.scheduler.Acquire(context.Background(), "app.video.first")
+	if err != nil {
+		t.Fatalf("acquire first-app blocker: %v", err)
+	}
+	released := false
+	t.Cleanup(func() {
+		if !released {
+			blockerRelease()
+		}
+	})
+
+	firstRequest := localVideoJobRequestForTest(64, 64, 5)
+	firstRequest.Head.AppId = "app.video.first"
+	firstRequest.GetSpec().GetVideoGenerate().Prompt = "accepted-first-video"
+	firstRequest.GetSpec().GetVideoGenerate().Content[0].Text = "accepted-first-video"
+	first, err := svc.SubmitScenarioJob(localVideoIntentContext(context.Background()), firstRequest)
+	if err != nil {
+		t.Fatalf("SubmitScenarioJob(first): %v", err)
+	}
+	waitForLocalVideoJob(t, svc, first.GetJob().GetJobId(), func(job *runtimev1.ScenarioJob) bool {
+		return job.GetStatus() == runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_QUEUED
+	})
+	select {
+	case <-host.entered:
+	case <-time.After(2 * time.Second):
+		t.Fatal("first accepted video job did not enter the Host before scheduler admission")
+	}
+
+	secondRequest := localVideoJobRequestForTest(64, 64, 5)
+	secondRequest.Head.AppId = "app.video.second"
+	secondRequest.GetSpec().GetVideoGenerate().Prompt = "accepted-second-video"
+	secondRequest.GetSpec().GetVideoGenerate().Content[0].Text = "accepted-second-video"
+	second, err := svc.SubmitScenarioJob(localVideoIntentContext(context.Background()), secondRequest)
+	if err != nil {
+		t.Fatalf("SubmitScenarioJob(second): %v", err)
+	}
+	time.Sleep(100 * time.Millisecond)
+	host.mu.Lock()
+	queuedPlans := append([]*capabilitydriver.VideoInvocationPlan(nil), host.plans...)
+	host.mu.Unlock()
+	if len(queuedPlans) != 1 || queuedPlans[0].Prompt() != "accepted-first-video" {
+		t.Fatalf("video Host admission before first scheduler lease = %v", func() []string {
+			out := make([]string, 0, len(queuedPlans))
+			for _, plan := range queuedPlans {
+				out = append(out, plan.Prompt())
+			}
+			return out
+		}())
+	}
+
+	blockerRelease()
+	released = true
+	for _, response := range []*runtimev1.SubmitScenarioJobResponse{first, second} {
+		if terminal := waitForScenarioJobTerminalForLocalTextTest(t, svc, response.GetJob().GetJobId()); terminal.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED {
+			t.Fatalf("video job terminal = %+v", terminal)
+		}
+	}
+	host.mu.Lock()
+	plans := append([]*capabilitydriver.VideoInvocationPlan(nil), host.plans...)
+	host.mu.Unlock()
+	if len(plans) != 2 || plans[0].Prompt() != "accepted-first-video" || plans[1].Prompt() != "accepted-second-video" {
+		t.Fatalf("video Host order = %v", func() []string {
+			out := make([]string, 0, len(plans))
+			for _, plan := range plans {
+				out = append(out, plan.Prompt())
+			}
+			return out
+		}())
+	}
+}
+
+func TestLocalVideoJobsRemainSerializedThroughMediaAndTerminalPublication(t *testing.T) {
+	svc := newTestService(nil)
+	svc.scheduler = scheduler.New(scheduler.Config{GlobalConcurrency: 3, PerAppConcurrency: 1})
+	svc.SetLocalExecutionResolver(&countingLocalExecutionResolver{projection: selectedVideoExecutionForTest(t, "video-full-job-order")})
+	host := &localVideoHostStub{callEntered: make(chan string, 2)}
+	pipeline := &videoMediaPipelineStub{entered: make(chan struct{}), release: make(chan struct{})}
+	svc.SetLocalVideoExecutionHost(host)
+	svc.SetLocalVideoMediaPipeline(pipeline)
+
+	firstRequest := localVideoJobRequestForTest(64, 64, 5)
+	firstRequest.Head.AppId = "app.video.full-job-first"
+	firstRequest.GetSpec().GetVideoGenerate().Prompt = "full-job-first-video"
+	firstRequest.GetSpec().GetVideoGenerate().Content[0].Text = "full-job-first-video"
+	first, err := svc.SubmitScenarioJob(localVideoIntentContext(context.Background()), firstRequest)
+	if err != nil {
+		t.Fatalf("SubmitScenarioJob(first): %v", err)
+	}
+	select {
+	case prompt := <-host.callEntered:
+		if prompt != "full-job-first-video" {
+			t.Fatalf("first video Host prompt = %q", prompt)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("first video did not reach the Host")
+	}
+	select {
+	case <-pipeline.entered:
+	case <-time.After(2 * time.Second):
+		t.Fatal("first video raw Host result did not reach media encoding")
+	}
+
+	secondRequest := localVideoJobRequestForTest(64, 64, 5)
+	secondRequest.Head.AppId = "app.video.full-job-second"
+	secondRequest.GetSpec().GetVideoGenerate().Prompt = "full-job-second-video"
+	secondRequest.GetSpec().GetVideoGenerate().Content[0].Text = "full-job-second-video"
+	second, err := svc.SubmitScenarioJob(localVideoIntentContext(context.Background()), secondRequest)
+	if err != nil {
+		t.Fatalf("SubmitScenarioJob(second): %v", err)
+	}
+	select {
+	case prompt := <-host.callEntered:
+		t.Fatalf("second video reached the Host while first media pipeline was blocked: %q", prompt)
+	case <-time.After(100 * time.Millisecond):
+	}
+	current, ok := svc.scenarioJobs.get(second.GetJob().GetJobId())
+	if !ok || current.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_QUEUED {
+		t.Fatalf("second video before first terminal publication = %+v present=%v", current, ok)
+	}
+
+	close(pipeline.release)
+	if terminal := waitForScenarioJobTerminalForLocalTextTest(t, svc, first.GetJob().GetJobId()); terminal.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED {
+		t.Fatalf("first video terminal = %+v", terminal)
+	}
+	select {
+	case prompt := <-host.callEntered:
+		if prompt != "full-job-second-video" {
+			t.Fatalf("second video Host prompt = %q", prompt)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("second video did not reach the Host after first terminal publication")
+	}
+	if terminal := waitForScenarioJobTerminalForLocalTextTest(t, svc, second.GetJob().GetJobId()); terminal.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED {
+		t.Fatalf("second video terminal = %+v", terminal)
+	}
+}
+
+func TestLocalVideoJobSchedulerWaitTimeoutPreservesTypedTerminal(t *testing.T) {
+	svc := newTestService(nil)
+	svc.scheduler = scheduler.New(scheduler.Config{GlobalConcurrency: 1, PerAppConcurrency: 1})
+	svc.SetLocalExecutionResolver(&countingLocalExecutionResolver{projection: selectedVideoExecutionForTest(t, "video-scheduler-timeout")})
+	host := &localVideoHostStub{entered: make(chan struct{}), started: make(chan struct{})}
+	svc.SetLocalVideoExecutionHost(host)
+	svc.SetLocalVideoMediaPipeline(&videoMediaPipelineStub{})
+
+	blockerRelease, _, err := svc.scheduler.Acquire(context.Background(), "app.scheduler.blocker")
+	if err != nil {
+		t.Fatalf("acquire scheduler blocker: %v", err)
+	}
+	released := false
+	t.Cleanup(func() {
+		if !released {
+			blockerRelease()
+		}
+	})
+
+	request := localVideoJobRequestForTest(64, 64, 5)
+	request.Head.AppId = "app.video.scheduler-timeout"
+	request.Head.TimeoutMs = 100
+	response, err := svc.SubmitScenarioJob(localVideoIntentContext(context.Background()), request)
+	if err != nil {
+		t.Fatalf("SubmitScenarioJob: %v", err)
+	}
+	select {
+	case <-host.entered:
+	case <-time.After(2 * time.Second):
+		t.Fatal("video Job did not reach factual Host admission")
+	}
+	terminal := waitForScenarioJobTerminalForLocalTextTest(t, svc, response.GetJob().GetJobId())
+	if terminal.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_TIMEOUT || terminal.GetReasonCode() != runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT {
+		t.Fatalf("scheduler-timeout terminal = %+v", terminal)
+	}
+	select {
+	case <-host.started:
+		t.Fatal("video Host began backend work without a scheduler lease")
+	default:
+	}
+
+	blockerRelease()
+	released = true
+}
+
+func TestLocalVideoJobRemainsQueuedUntilHostFactualStart(t *testing.T) {
+	svc := newTestService(nil)
+	svc.SetLocalExecutionResolver(&countingLocalExecutionResolver{projection: selectedVideoExecutionForTest(t, "video-factual-start")})
+	host := &localVideoHostStub{
+		entered: make(chan struct{}), allowStart: make(chan struct{}), started: make(chan struct{}), release: make(chan struct{}),
+	}
+	svc.SetLocalVideoExecutionHost(host)
+	svc.SetLocalVideoMediaPipeline(&videoMediaPipelineStub{})
+
+	response, err := svc.SubmitScenarioJob(localVideoIntentContext(context.Background()), localVideoJobRequestForTest(64, 64, 5))
+	if err != nil {
+		t.Fatalf("SubmitScenarioJob: %v", err)
+	}
+	select {
+	case <-host.entered:
+	case <-time.After(2 * time.Second):
+		t.Fatal("video request did not reach Host queue")
+	}
+	current, ok := svc.scenarioJobs.get(response.GetJob().GetJobId())
+	if !ok || current.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_QUEUED {
+		t.Fatalf("video job before Host factual start = %+v present=%v", current, ok)
+	}
+
+	close(host.allowStart)
+	select {
+	case <-host.started:
+	case <-time.After(2 * time.Second):
+		t.Fatal("video Host did not report factual start")
+	}
+	waitForLocalVideoJob(t, svc, response.GetJob().GetJobId(), func(job *runtimev1.ScenarioJob) bool {
+		return job.GetStatus() == runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_RUNNING
+	})
+	close(host.release)
+	if terminal := waitForScenarioJobTerminalForLocalTextTest(t, svc, response.GetJob().GetJobId()); terminal.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED {
+		t.Fatalf("video terminal = %+v", terminal)
 	}
 }
 

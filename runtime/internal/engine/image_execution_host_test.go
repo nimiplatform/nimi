@@ -103,7 +103,7 @@ func TestImageExecutionHostStrictFIFOAndQueuedCancellation(t *testing.T) {
 
 	firstDone := make(chan error, 1)
 	go func() {
-		_, err := host.ExecuteImage(context.Background(), imagePlanForHostTest(t, "first", 1), nil, nil)
+		_, err := host.ExecuteImage(context.Background(), imagePlanForHostTest(t, "first", 1), nil, nil, nil)
 		firstDone <- err
 	}()
 	select {
@@ -114,17 +114,30 @@ func TestImageExecutionHostStrictFIFOAndQueuedCancellation(t *testing.T) {
 
 	secondCtx, cancelSecond := context.WithCancel(context.Background())
 	secondProgress := make(chan localexecution.ImageExecutionProgress, 1)
+	secondHostStarted := make(chan struct{})
 	secondDone := make(chan error, 1)
 	go func() {
-		_, err := host.ExecuteImage(secondCtx, imagePlanForHostTest(t, "second", 1), nil, func(value localexecution.ImageExecutionProgress) {
+		_, err := host.ExecuteImage(secondCtx, imagePlanForHostTest(t, "second", 1), func() error {
+			close(secondHostStarted)
+			return nil
+		}, nil, func(value localexecution.ImageExecutionProgress) {
 			secondProgress <- value
 		})
 		secondDone <- err
 	}()
 	waitForImageHostQueueLength(t, host, 1)
+	select {
+	case <-secondHostStarted:
+		t.Fatal("queued image received factual start before FIFO dequeue")
+	default:
+	}
+	thirdHostStarted := make(chan struct{})
 	thirdDone := make(chan error, 1)
 	go func() {
-		_, err := host.ExecuteImage(context.Background(), imagePlanForHostTest(t, "third", 1), nil, nil)
+		_, err := host.ExecuteImage(context.Background(), imagePlanForHostTest(t, "third", 1), func() error {
+			close(thirdHostStarted)
+			return nil
+		}, nil, nil)
 		thirdDone <- err
 	}()
 	waitForImageHostQueueLength(t, host, 2)
@@ -142,12 +155,22 @@ func TestImageExecutionHostStrictFIFOAndQueuedCancellation(t *testing.T) {
 		t.Fatalf("queued request emitted Host work progress: %+v", progress)
 	default:
 	}
+	select {
+	case <-secondHostStarted:
+		t.Fatal("canceled queued image received factual Host start")
+	default:
+	}
 	close(releaseFirst)
 	if err := <-firstDone; err != nil {
 		t.Fatalf("first ExecuteImage: %v", err)
 	}
 	if err := <-thirdDone; err != nil {
 		t.Fatalf("third ExecuteImage: %v", err)
+	}
+	select {
+	case <-thirdHostStarted:
+	default:
+		t.Fatal("third image did not receive factual start after FIFO dequeue")
 	}
 
 	substrate.mu.Lock()
@@ -174,13 +197,13 @@ func TestImageExecutionHostStopCancelsActiveAndQueuedRequests(t *testing.T) {
 	host := newImageExecutionHostWithSubstrate(substrate, nil)
 	activeDone := make(chan error, 1)
 	go func() {
-		_, err := host.ExecuteImage(context.Background(), imagePlanForHostTest(t, "active-stop", 1), nil, nil)
+		_, err := host.ExecuteImage(context.Background(), imagePlanForHostTest(t, "active-stop", 1), nil, nil, nil)
 		activeDone <- err
 	}()
 	<-started
 	queuedDone := make(chan error, 1)
 	go func() {
-		_, err := host.ExecuteImage(context.Background(), imagePlanForHostTest(t, "queued-stop", 1), nil, nil)
+		_, err := host.ExecuteImage(context.Background(), imagePlanForHostTest(t, "queued-stop", 1), nil, nil, nil)
 		queuedDone <- err
 	}()
 	waitForImageHostQueueLength(t, host, 1)
@@ -213,7 +236,7 @@ func TestImageExecutionHostRunningCancellationStopsSubstrate(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	done := make(chan error, 1)
 	go func() {
-		_, err := host.ExecuteImage(ctx, imagePlanForHostTest(t, "cancel", 1), nil, nil)
+		_, err := host.ExecuteImage(ctx, imagePlanForHostTest(t, "cancel", 1), nil, nil, nil)
 		done <- err
 	}()
 	<-started
@@ -243,7 +266,7 @@ func TestImageExecutionHostRehashesEveryModelFileBeforeLoad(t *testing.T) {
 	substrate := &fakeImageInvocationSubstrate{healthy: true}
 	host := newImageExecutionHostWithSubstrate(substrate, nil)
 	defer func() { _ = host.Stop() }()
-	_, err := host.ExecuteImage(context.Background(), plan, nil, nil)
+	_, err := host.ExecuteImage(context.Background(), plan, nil, nil, nil)
 	if localexecution.FailureKindOf(err) != localexecution.FailureContentMismatch {
 		t.Fatalf("content mismatch error = %v", err)
 	}
@@ -282,10 +305,10 @@ func TestImageExecutionHostAttributesProcessCrashAndRecoversOnNextRequest(t *tes
 	}
 	host := newImageExecutionHostWithSubstrate(substrate, nil)
 	defer func() { _ = host.Stop() }()
-	if _, err := host.ExecuteImage(context.Background(), imagePlanForHostTest(t, "crash", 1), nil, nil); localexecution.FailureKindOf(err) != localexecution.FailureProcessCrash {
+	if _, err := host.ExecuteImage(context.Background(), imagePlanForHostTest(t, "crash", 1), nil, nil, nil); localexecution.FailureKindOf(err) != localexecution.FailureProcessCrash {
 		t.Fatalf("process crash error = %v", err)
 	}
-	result, err := host.ExecuteImage(context.Background(), imagePlanForHostTest(t, "recover", 1), nil, nil)
+	result, err := host.ExecuteImage(context.Background(), imagePlanForHostTest(t, "recover", 1), nil, nil, nil)
 	if err != nil || len(result.Artifacts) != 1 {
 		t.Fatalf("post-crash local recovery = %+v error=%v", result, err)
 	}
@@ -302,7 +325,7 @@ func TestImageExecutionHostPreservesProducedArtifactsOnInferenceFailure(t *testi
 	host := newImageExecutionHostWithSubstrate(substrate, nil)
 	defer func() { _ = host.Stop() }()
 	var committed []int32
-	result, err := host.ExecuteImage(context.Background(), imagePlanForHostTest(t, "partial", 2), func(artifact localexecution.ImageArtifact) error {
+	result, err := host.ExecuteImage(context.Background(), imagePlanForHostTest(t, "partial", 2), nil, func(artifact localexecution.ImageArtifact) error {
 		committed = append(committed, artifact.Index)
 		return nil
 	}, nil)

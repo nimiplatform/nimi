@@ -344,14 +344,22 @@ func localVideoMediaError(err error) error {
 	})
 }
 
-func (s *Service) executeCapturedLocalVideo(ctx context.Context, effective *localVideoEffectiveInputs, progress localexecution.VideoProgressFunc) (localexecution.RawAVCandidate, error) {
+func (s *Service) executeCapturedLocalVideo(
+	ctx context.Context,
+	effective *localVideoEffectiveInputs,
+	onStart localexecution.VideoExecutionStartFunc,
+	progress localexecution.VideoProgressFunc,
+) (localexecution.RawAVCandidate, error) {
 	if s == nil || s.localVideoHost == nil {
 		return localexecution.RawAVCandidate{}, localExecutionError(&localexecution.ExecutionError{
 			Kind: localexecution.FailureLoad, Err: fmt.Errorf("local video execution host is unavailable"),
 		})
 	}
-	candidate, err := s.localVideoHost.ExecuteVideo(ctx, effective.plan, progress)
+	candidate, err := s.localVideoHost.ExecuteVideo(ctx, effective.plan, onStart, progress)
 	if err != nil {
+		if _, ok := grpcerr.ExtractReasonCode(err); ok {
+			return candidate, err
+		}
 		return candidate, localExecutionError(err)
 	}
 	return candidate, nil

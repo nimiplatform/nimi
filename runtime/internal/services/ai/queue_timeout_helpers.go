@@ -47,6 +47,27 @@ func (s *Service) logQueueWait(operation string, appID string, result scheduler.
 	s.logger.Debug("scheduler queue wait", "operation", operation, "app_id", appID, "queue_wait_ms", waitMs)
 }
 
+func (s *Service) acquireAsyncScenarioJobLease(ctx context.Context, appID string, operation string) (func(), error) {
+	release, result, err := s.scheduler.Acquire(ctx, appID)
+	if err != nil {
+		if errors.Is(err, context.DeadlineExceeded) || errors.Is(ctx.Err(), context.DeadlineExceeded) {
+			return nil, grpcerr.WrapWithReasonCode(
+				codes.DeadlineExceeded,
+				runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT,
+				err,
+				grpcerr.ReasonOptions{
+					ActionHint: "retry_with_a_longer_timeout",
+					Message:    "runtime scheduler wait exceeded the scenario job deadline",
+				},
+			)
+		}
+		return nil, schedulerAcquireError(err)
+	}
+	s.attachQueueWait(ctx, result)
+	s.logQueueWait(operation, appID, result)
+	return release, nil
+}
+
 func schedulerAcquireError(err error) error {
 	return grpcerr.WrapWithReasonCode(
 		codes.ResourceExhausted,
@@ -99,19 +120,28 @@ func actionHintFromStreamError(err error) string {
 	return "retry_or_reopen_stream"
 }
 
-func withTimeout(ctx context.Context, timeoutMS int32, defaultTimeout time.Duration) (context.Context, context.CancelFunc) {
-	duration := timeoutDuration(timeoutMS, defaultTimeout)
-	if duration <= 0 {
-		return context.WithCancel(ctx)
+func withTimeout(ctx context.Context, timeoutMS int32, defaultTimeout time.Duration) (context.Context, context.CancelFunc, error) {
+	duration, err := timeoutDuration(timeoutMS, defaultTimeout)
+	if err != nil {
+		return nil, nil, err
 	}
-	return context.WithTimeout(ctx, duration)
+	if duration <= 0 {
+		requestCtx, cancel := context.WithCancel(ctx)
+		return requestCtx, cancel, nil
+	}
+	requestCtx, cancel := context.WithTimeout(ctx, duration)
+	return requestCtx, cancel, nil
 }
 
-func timeoutDuration(timeoutMS int32, defaultTimeout time.Duration) time.Duration {
-	if timeoutMS <= 0 {
-		return clampTimeoutDuration(defaultTimeout)
+func timeoutDuration(timeoutMS int32, defaultTimeout time.Duration) (time.Duration, error) {
+	if timeoutMS == 0 {
+		return clampTimeoutDuration(defaultTimeout), nil
 	}
-	return clampTimeoutDuration(time.Duration(timeoutMS) * time.Millisecond)
+	duration := time.Duration(timeoutMS) * time.Millisecond
+	if duration <= 0 || duration > maxRuntimeRequestTimeout {
+		return 0, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
+	}
+	return duration, nil
 }
 
 func localImageJobTimeoutDuration(timeoutMS int32) (time.Duration, error) {
@@ -129,7 +159,7 @@ func scenarioJobTimeoutDuration(
 	req *runtimev1.SubmitScenarioJobRequest,
 	defaultTimeout time.Duration,
 	localRoute bool,
-) time.Duration {
+) (time.Duration, error) {
 	timeoutMS := int32(0)
 	scenarioType := runtimev1.ScenarioType_SCENARIO_TYPE_UNSPECIFIED
 	if req != nil {
@@ -138,11 +168,19 @@ func scenarioJobTimeoutDuration(
 			timeoutMS = head.GetTimeoutMs()
 		}
 	}
-	duration := defaultTimeout
-	if timeoutMS > 0 {
-		duration = time.Duration(timeoutMS) * time.Millisecond
+	if timeoutMS == 0 {
+		return clampScenarioJobTimeoutDuration(defaultTimeout, scenarioType, localRoute), nil
 	}
-	return clampScenarioJobTimeoutDuration(duration, scenarioType, localRoute)
+	duration := time.Duration(timeoutMS) * time.Millisecond
+	maxDuration := maxRuntimeRequestTimeout
+	if localRoute && (scenarioType == runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE ||
+		scenarioType == runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_TRANSCRIBE) {
+		maxDuration = maxLocalSpeechJobTimeout
+	}
+	if duration <= 0 || duration > maxDuration {
+		return 0, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
+	}
+	return duration, nil
 }
 
 func scenarioJobUsesDetachedPolling(scenarioType runtimev1.ScenarioType, adapterName string) bool {

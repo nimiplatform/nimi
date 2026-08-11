@@ -25,14 +25,26 @@ func executeLocalImageGenerateScenario(
 		return nil, err
 	}
 
-	release, acquireResult, err := s.scheduler.Acquire(ctx, req.GetHead().GetAppId())
+	requestCtx, cancel, err := withTimeout(ctx, req.GetHead().GetTimeoutMs(), defaultGenerateImageTimeout)
 	if err != nil {
-		return nil, schedulerAcquireError(err)
+		return nil, err
 	}
-	defer release()
-	s.attachQueueWaitUnary(ctx, acquireResult)
-	requestCtx, cancel := withTimeout(ctx, req.GetHead().GetTimeoutMs(), defaultGenerateImageTimeout)
 	defer cancel()
+	var schedulerRelease func()
+	defer func() {
+		if schedulerRelease != nil {
+			schedulerRelease()
+		}
+	}()
+	onStart := func() error {
+		release, acquireResult, acquireErr := s.scheduler.Acquire(requestCtx, req.GetHead().GetAppId())
+		if acquireErr != nil {
+			return schedulerAcquireError(acquireErr)
+		}
+		s.attachQueueWaitUnary(requestCtx, acquireResult)
+		schedulerRelease = release
+		return nil
+	}
 
 	artifacts := make([]*runtimev1.ScenarioArtifact, 0, effective.plan.ImageCount())
 	onArtifact := func(produced localexecution.ImageArtifact) error {
@@ -46,7 +58,7 @@ func executeLocalImageGenerateScenario(
 		artifacts = append(artifacts, artifact)
 		return nil
 	}
-	result, err := s.executeCapturedLocalImage(requestCtx, effective, onArtifact, nil)
+	result, err := s.executeCapturedLocalImage(requestCtx, effective, onStart, onArtifact, nil)
 	if err != nil {
 		return nil, err
 	}

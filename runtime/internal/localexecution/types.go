@@ -135,11 +135,15 @@ type ImageResult struct {
 
 type ImageArtifactFunc func(ImageArtifact) error
 
+// ImageExecutionStartFunc is invoked only after the exact image request has
+// acquired the private serial Host lease and is about to begin Host work.
+type ImageExecutionStartFunc func() error
+
 // ImageExecutionHost executes only the exact substrate instructions already
 // formed by an image Driver. It owns the private serial media lease and emits
 // each artifact at its production boundary.
 type ImageExecutionHost interface {
-	ExecuteImage(context.Context, *capabilitydriver.ImageInvocationPlan, ImageArtifactFunc, ImageProgressFunc) (ImageResult, error)
+	ExecuteImage(context.Context, *capabilitydriver.ImageInvocationPlan, ImageExecutionStartFunc, ImageArtifactFunc, ImageProgressFunc) (ImageResult, error)
 }
 
 // VideoExecutionStage reports factual private Host work after the video lease
@@ -165,6 +169,10 @@ type VideoExecutionProgress struct {
 }
 
 type VideoProgressFunc func(VideoExecutionProgress)
+
+// VideoExecutionStartFunc is invoked only after the exact video request has
+// acquired the private serial Host lease and is about to begin Host work.
+type VideoExecutionStartFunc func() error
 
 // RawVideoFrame is one ordered packed-RGB frame owned by the private Runtime
 // execution seam. RGBBytes has exactly Width*Height*3 bytes.
@@ -196,7 +204,7 @@ type RawAVCandidate struct {
 // VideoExecutionHost executes one immutable Driver plan and returns only a raw
 // AV candidate. Services/encoding owners decide artifact publication.
 type VideoExecutionHost interface {
-	ExecuteVideo(context.Context, *capabilitydriver.VideoInvocationPlan, VideoProgressFunc) (RawAVCandidate, error)
+	ExecuteVideo(context.Context, *capabilitydriver.VideoInvocationPlan, VideoExecutionStartFunc, VideoProgressFunc) (RawAVCandidate, error)
 }
 
 type SpeechSynthesisResult struct {

@@ -50,15 +50,11 @@ func (s *Service) submitLocalTextScenarioJob(
 		}
 	}()
 
-	release, acquireResult, err := s.scheduler.Acquire(ctx, req.GetHead().GetAppId())
-	if err != nil {
-		return nil, schedulerAcquireError(err)
-	}
-	defer release()
-	s.attachQueueWaitUnary(ctx, acquireResult)
-
 	jobCtx := context.Background()
-	timeout := scenarioJobTimeoutDuration(req, defaultGenerateTimeout, true)
+	timeout, err := scenarioJobTimeoutDuration(req, defaultTextGenerateJobTimeout, true)
+	if err != nil {
+		return nil, err
+	}
 	var cancel context.CancelFunc
 	if timeout > 0 {
 		jobCtx, cancel = context.WithTimeout(jobCtx, timeout)
@@ -116,6 +112,16 @@ func (s *Service) executeLocalTextScenarioJob(
 	); !ok {
 		return
 	}
+	job, ok := s.scenarioJobs.get(jobID)
+	if !ok || job.GetHead() == nil {
+		return
+	}
+	release, err := s.acquireAsyncScenarioJobLease(ctx, job.GetHead().GetAppId(), "scenario_job_local_text")
+	if err != nil {
+		s.finishLocalTextScenarioJobFailure(ctx, jobID, err)
+		return
+	}
+	defer release()
 	var runningOnce sync.Once
 	ensureRunning := func() {
 		runningOnce.Do(func() {
@@ -142,24 +148,7 @@ func (s *Service) executeLocalTextScenarioJob(
 	}
 	result, err := s.executeCapturedLocalText(ctx, effective, progress)
 	if err != nil {
-		if existing, ok := s.scenarioJobs.get(jobID); ok && isTerminalScenarioJobStatus(existing.GetStatus()) {
-			return
-		}
-		reason, ok := grpcerr.ExtractReasonCode(err)
-		if !ok {
-			reason = runtimev1.ReasonCode_AI_LOCAL_EXECUTION_INFERENCE_FAILED
-		}
-		jobStatus := runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_FAILED
-		eventType := runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_FAILED
-		if errors.Is(err, context.Canceled) || status.Code(err) == codes.Canceled || reason == runtimev1.ReasonCode_AI_LOCAL_EXECUTION_CANCELED {
-			jobStatus = runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_CANCELED
-			eventType = runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_CANCELED
-		}
-		_, _ = s.scenarioJobs.transition(jobID, jobStatus, eventType, func(job *runtimev1.ScenarioJob) {
-			job.ReasonCode = reason
-			job.ReasonDetail = sanitizeScenarioJobReasonDetail(err, reason)
-			job.ReasonMetadata = scenarioJobReasonMetadata(err, reason)
-		})
+		s.finishLocalTextScenarioJobFailure(ctx, jobID, err)
 		return
 	}
 
@@ -195,4 +184,30 @@ func (s *Service) executeLocalTextScenarioJob(
 			job.Usage = localTextUsage(result, effective.request)
 		},
 	)
+}
+
+func (s *Service) finishLocalTextScenarioJobFailure(ctx context.Context, jobID string, err error) {
+	if existing, ok := s.scenarioJobs.get(jobID); ok && isTerminalScenarioJobStatus(existing.GetStatus()) {
+		return
+	}
+	reason, ok := grpcerr.ExtractReasonCode(err)
+	if !ok {
+		reason = runtimev1.ReasonCode_AI_LOCAL_EXECUTION_INFERENCE_FAILED
+	}
+	jobStatus := runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_FAILED
+	eventType := runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_FAILED
+	switch {
+	case errors.Is(ctx.Err(), context.DeadlineExceeded) || errors.Is(err, context.DeadlineExceeded) || reason == runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT:
+		jobStatus = runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_TIMEOUT
+		eventType = runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_TIMEOUT
+		reason = runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT
+	case errors.Is(err, context.Canceled) || status.Code(err) == codes.Canceled || reason == runtimev1.ReasonCode_AI_LOCAL_EXECUTION_CANCELED:
+		jobStatus = runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_CANCELED
+		eventType = runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_CANCELED
+	}
+	_, _ = s.scenarioJobs.transition(jobID, jobStatus, eventType, func(job *runtimev1.ScenarioJob) {
+		job.ReasonCode = reason
+		job.ReasonDetail = sanitizeScenarioJobReasonDetail(err, reason)
+		job.ReasonMetadata = scenarioJobReasonMetadata(err, reason)
+	})
 }

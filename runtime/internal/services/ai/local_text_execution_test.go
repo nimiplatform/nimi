@@ -17,6 +17,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/localexecution"
 	"github.com/nimiplatform/nimi/runtime/internal/protectedprincipal"
+	"github.com/nimiplatform/nimi/runtime/internal/scheduler"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
@@ -67,6 +68,7 @@ type localTextHostStub struct {
 	embedResult  localexecution.EmbedResult
 
 	mu                sync.Mutex
+	executeCalls      int
 	capturedArgs      []string
 	capturedBody      []byte
 	capturedEmbedPlan *capabilitydriver.EmbedInvocationPlan
@@ -78,6 +80,7 @@ func (h *localTextHostStub) ExecuteText(
 	progress localexecution.TextProgressFunc,
 ) (localexecution.TextResult, error) {
 	h.mu.Lock()
+	h.executeCalls++
 	h.capturedArgs = plan.ProcessArgs()
 	h.capturedBody = plan.RequestBody()
 	h.mu.Unlock()
@@ -238,6 +241,47 @@ func TestSubmitLocalTextCapturesSelectionBeforeRunningJob(t *testing.T) {
 	}
 	if job.GetModelResolved() != "config-first" {
 		t.Fatalf("model_resolved = %q", job.GetModelResolved())
+	}
+}
+
+func TestLocalTextJobSchedulerQueuedDeadlinePublishesTimeout(t *testing.T) {
+	svc := newTestService(nil)
+	svc.scheduler = scheduler.New(scheduler.Config{GlobalConcurrency: 1, PerAppConcurrency: 1})
+	svc.SetLocalExecutionResolver(&mutableLocalExecutionResolver{projection: selectedTextExecutionForTest(t, "config-timeout", "timeout.gguf")})
+	host := &localTextHostStub{started: make(chan struct{}), release: make(chan struct{})}
+	svc.SetLocalTextExecutionHost(host)
+	ctx := localTextIntentContext(context.Background(), nil)
+
+	first, err := svc.SubmitScenarioJob(ctx, localTextJobRequestForTest())
+	if err != nil {
+		t.Fatalf("SubmitScenarioJob(first): %v", err)
+	}
+	select {
+	case <-host.started:
+	case <-time.After(2 * time.Second):
+		t.Fatal("first local text job did not enter Host")
+	}
+
+	secondRequest := localTextJobRequestForTest()
+	secondRequest.Head.TimeoutMs = 100
+	second, err := svc.SubmitScenarioJob(ctx, secondRequest)
+	if err != nil {
+		t.Fatalf("SubmitScenarioJob(second): %v", err)
+	}
+	terminal := waitForScenarioJobTerminalForLocalTextTest(t, svc, second.GetJob().GetJobId())
+	if terminal.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_TIMEOUT || terminal.GetReasonCode() != runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT {
+		t.Fatalf("queued local text timeout = %+v", terminal)
+	}
+	host.mu.Lock()
+	executeCalls := host.executeCalls
+	host.mu.Unlock()
+	if executeCalls != 1 {
+		t.Fatalf("scheduler-queued timed-out job entered Host: execute_calls=%d", executeCalls)
+	}
+
+	close(host.release)
+	if terminal := waitForScenarioJobTerminalForLocalTextTest(t, svc, first.GetJob().GetJobId()); terminal.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED {
+		t.Fatalf("first local text job terminal = %+v", terminal)
 	}
 }
 

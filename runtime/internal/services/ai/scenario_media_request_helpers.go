@@ -368,6 +368,6 @@ func defaultScenarioJobTimeout(scenarioType runtimev1.ScenarioType) time.Duratio
 	case runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_GENERATE:
 		return defaultGenerateMusicTimeout
 	default:
-		return defaultGenerateTimeout
+		return defaultTextGenerateJobTimeout
 	}
 }

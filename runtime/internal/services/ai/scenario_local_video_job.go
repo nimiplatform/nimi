@@ -51,18 +51,14 @@ func (s *Service) submitLocalVideoScenarioJob(
 		})
 	}
 
-	release, acquireResult, err := s.scheduler.Acquire(ctx, req.GetHead().GetAppId())
-	if err != nil {
-		return nil, schedulerAcquireError(err)
-	}
-	defer release()
-	s.attachQueueWaitUnary(ctx, acquireResult)
-
 	jobCtx := newDetachedAsyncJobContext(ctx)
 	if identity := authn.IdentityFromContext(ctx); identity != nil {
 		jobCtx = authn.WithIdentity(jobCtx, &authn.Identity{SubjectUserID: identity.SubjectUserID})
 	}
-	timeout := scenarioJobTimeoutDuration(req, defaultGenerateVideoTimeout, true)
+	timeout, err := scenarioJobTimeoutDuration(req, defaultGenerateVideoTimeout, true)
+	if err != nil {
+		return nil, err
+	}
 	var cancel context.CancelFunc
 	if timeout > 0 {
 		jobCtx, cancel = context.WithTimeout(jobCtx, timeout)
@@ -86,11 +82,15 @@ func (s *Service) submitLocalVideoScenarioJob(
 	if idempotencyScope != "" {
 		s.scenarioJobs.bindIdempotency(idempotencyScope, jobID)
 	}
-	go s.runLocalVideoScenarioJob(jobCtx, jobID, effective)
+	ticket := s.localVideoJobOrder.reserve()
+	go s.runLocalVideoScenarioJob(jobCtx, jobID, effective, ticket)
 	return &runtimev1.SubmitScenarioJobResponse{Job: stored}, nil
 }
 
-func (s *Service) runLocalVideoScenarioJob(ctx context.Context, jobID string, effective *localVideoEffectiveInputs) {
+func (s *Service) runLocalVideoScenarioJob(ctx context.Context, jobID string, effective *localVideoEffectiveInputs, ticket *localMediaSubmissionTicket) {
+	if ticket != nil {
+		defer ticket.release()
+	}
 	if effective == nil || !s.scenarioJobs.startExecution(jobID) {
 		return
 	}
@@ -98,8 +98,30 @@ func (s *Service) runLocalVideoScenarioJob(ctx context.Context, jobID string, ef
 	if _, ok := s.scenarioJobs.transition(jobID, runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_QUEUED, runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_QUEUED, nil); !ok {
 		return
 	}
-	if _, ok := s.scenarioJobs.transition(jobID, runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_RUNNING, runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_RUNNING, nil); !ok {
+	if err := ticket.wait(ctx); err != nil {
+		s.finishLocalVideoJobFailure(ctx, jobID, err)
 		return
+	}
+	var schedulerRelease func()
+	defer func() {
+		if schedulerRelease != nil {
+			schedulerRelease()
+		}
+	}()
+	onStart := func() error {
+		release, err := s.acquireAsyncScenarioJobLease(ctx, effective.head.GetAppId(), "scenario_job_local_video")
+		if err != nil {
+			return err
+		}
+		if _, ok := s.scenarioJobs.transition(jobID, runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_RUNNING, runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_RUNNING, nil); ok {
+			schedulerRelease = release
+			return nil
+		}
+		release()
+		if err := ctx.Err(); err != nil {
+			return &localexecution.ExecutionError{Kind: localexecution.FailureCanceled, Err: err}
+		}
+		return &localexecution.ExecutionError{Kind: localexecution.FailureCanceled, Err: context.Canceled}
 	}
 
 	progress := func(update localexecution.VideoExecutionProgress) {
@@ -112,7 +134,7 @@ func (s *Service) runLocalVideoScenarioJob(ctx context.Context, jobID string, ef
 		}
 		_, _ = s.scenarioJobs.updateProgress(jobID, current, total, videoJobProgressPercent(current, total))
 	}
-	rawCandidate, err := s.executeCapturedLocalVideo(ctx, effective, progress)
+	rawCandidate, err := s.executeCapturedLocalVideo(ctx, effective, onStart, progress)
 	if err != nil {
 		s.finishLocalVideoJobFailure(ctx, jobID, err)
 		return

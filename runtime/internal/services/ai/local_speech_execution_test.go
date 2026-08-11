@@ -118,6 +118,47 @@ func TestLocalSpeechMaterializationFailureNeverPublishesRunning(t *testing.T) {
 	}
 }
 
+func TestLocalSpeechJobRejectsPublicTimeoutAboveServerMaximumBeforePublication(t *testing.T) {
+	svc := newTestService(nil)
+	host := &localSpeechHostStub{calls: make(chan string, 1)}
+	svc.SetLocalExecutionResolver(&mutableLocalExecutionResolver{projection: selectedSpeechExecutionForTest(t, capabilitydriver.AudioSynthesizeContract, "speech-timeout-admission")})
+	svc.SetLocalSpeechExecutionHost(host)
+	ownerCtx := scenarioJobUserContext("app.local", "anonymous")
+	ctx := executionintent.WithIntent(ownerCtx, executionintent.Intent{
+		CapabilityContract: capabilitydriver.AudioSynthesizeContract,
+		Route:              runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+	})
+	response, err := svc.SubmitScenarioJob(ctx, &runtimev1.SubmitScenarioJobRequest{
+		Head: &runtimev1.ScenarioRequestHead{
+			AppId:         "app.local",
+			SubjectUserId: "anonymous",
+			TimeoutMs:     int32((31 * time.Minute).Milliseconds()),
+		},
+		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE,
+		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB,
+		Spec: &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_SpeechSynthesize{
+			SpeechSynthesize: &runtimev1.SpeechSynthesizeScenarioSpec{Text: "reject timeout"},
+		}},
+	})
+	if response != nil {
+		t.Fatalf("out-of-range timeout returned response: %+v", response)
+	}
+	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED || statusCode(err) != codes.InvalidArgument {
+		t.Fatalf("timeout error=%v code=%v reason=%v present=%v", err, statusCode(err), reason, ok)
+	}
+	svc.scenarioJobs.mu.RLock()
+	jobCount := len(svc.scenarioJobs.jobs)
+	svc.scenarioJobs.mu.RUnlock()
+	if jobCount != 0 {
+		t.Fatalf("out-of-range timeout published %d jobs", jobCount)
+	}
+	select {
+	case call := <-host.calls:
+		t.Fatalf("out-of-range timeout reached Host: %q", call)
+	default:
+	}
+}
+
 func TestLocalSpeechRunningCancelRetainsSchedulerLeaseUntilHostExits(t *testing.T) {
 	svc := newTestService(nil)
 	svc.scheduler = scheduler.New(scheduler.Config{GlobalConcurrency: 1, PerAppConcurrency: 1})

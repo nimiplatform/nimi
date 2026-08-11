@@ -302,6 +302,7 @@ func localImageExecutionError(err error) error {
 func (s *Service) executeCapturedLocalImage(
 	ctx context.Context,
 	effective *localImageEffectiveInputs,
+	onStart localexecution.ImageExecutionStartFunc,
 	onArtifact localexecution.ImageArtifactFunc,
 	progress localexecution.ImageProgressFunc,
 ) (localexecution.ImageResult, error) {
@@ -311,8 +312,11 @@ func (s *Service) executeCapturedLocalImage(
 			Err:  fmt.Errorf("local image execution host is unavailable"),
 		})
 	}
-	result, err := s.localImageHost.ExecuteImage(ctx, effective.plan, onArtifact, progress)
+	result, err := s.localImageHost.ExecuteImage(ctx, effective.plan, onStart, onArtifact, progress)
 	if err != nil {
+		if _, ok := grpcerr.ExtractReasonCode(err); ok {
+			return result, err
+		}
 		return result, localImageExecutionError(err)
 	}
 	return result, nil

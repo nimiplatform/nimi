@@ -52,14 +52,6 @@ func (s *Service) submitScenarioAsyncJob(
 		return nil, err
 	}
 
-	release, acquireResult, acquireErr := s.scheduler.Acquire(ctx, req.GetHead().GetAppId())
-	if acquireErr != nil {
-		return fail(schedulerAcquireError(acquireErr))
-	}
-	defer release()
-	s.attachQueueWaitUnary(ctx, acquireResult)
-	s.logQueueWait("submit_scenario_job", req.GetHead().GetAppId(), acquireResult)
-
 	jobID := ulid.Make().String()
 	// The detached job starts from a sterile context: request metadata may
 	// contain caller credentials and must not enter job state. Only the typed
@@ -69,12 +61,13 @@ func (s *Service) submitScenarioAsyncJob(
 		jobCtx = nimillm.WithProviderPollWait(jobCtx, s.config.providerPollWait)
 	}
 	var cancel context.CancelFunc
-	timeout := scenarioJobTimeoutDuration(effective.request, defaultScenarioJobTimeout(effective.request.GetScenarioType()), false)
-	if effective.mapped.DetachedPolling() {
-		// Provider polling and its terminal state machine are private to the
-		// Remote Host. Runtime retains only an explicit cancel signal here.
-		jobCtx, cancel = context.WithCancel(jobCtx)
-	} else if timeout > 0 {
+	timeout, err := scenarioJobTimeoutDuration(effective.request, defaultScenarioJobTimeout(effective.request.GetScenarioType()), false)
+	if err != nil {
+		return fail(err)
+	}
+	if timeout > 0 {
+		// Provider task identity and polling state remain private to the Remote
+		// Host, but the Runtime-owned Job deadline still bounds detached polling.
 		jobCtx, cancel = context.WithTimeout(jobCtx, timeout)
 	} else {
 		jobCtx, cancel = context.WithCancel(jobCtx)

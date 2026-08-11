@@ -188,6 +188,77 @@ func TestVideoExecutionHostFIFOAndQueuedCancellation(t *testing.T) {
 	}
 }
 
+func TestVideoExecutionHostCallsStartOnlyAfterFIFODequeue(t *testing.T) {
+	firstGenerating := make(chan struct{})
+	releaseFirst := make(chan struct{})
+	substrate := &fakeVideoInvocationSubstrate{healthy: true}
+	var firstOnce sync.Once
+	substrate.generateFn = func(ctx context.Context, plan *capabilitydriver.VideoInvocationPlan) (localexecution.RawAVCandidate, error) {
+		if plan.Prompt() == "first-start" {
+			firstOnce.Do(func() { close(firstGenerating) })
+			select {
+			case <-releaseFirst:
+			case <-ctx.Done():
+				return localexecution.RawAVCandidate{}, ctx.Err()
+			}
+		}
+		return rawCandidateForHostTest(plan), nil
+	}
+	host := newVideoExecutionHostWithSubstrate(substrate, nil, 20*time.Millisecond)
+	defer func() { _ = host.Stop() }()
+	firstPlan := videoPlanForHostTest(t, "first-start")
+	secondPlan := videoPlanForHostTest(t, "second-start")
+
+	firstStarted := make(chan struct{})
+	firstDone := make(chan error, 1)
+	go func() {
+		_, err := host.ExecuteVideo(context.Background(), firstPlan, func() error {
+			close(firstStarted)
+			return nil
+		}, nil)
+		firstDone <- err
+	}()
+	select {
+	case <-firstStarted:
+	case <-time.After(2 * time.Second):
+		t.Fatal("first video did not receive factual Host start")
+	}
+	select {
+	case <-firstGenerating:
+	case <-time.After(2 * time.Second):
+		t.Fatal("first video did not begin backend generation")
+	}
+
+	secondStarted := make(chan struct{})
+	secondDone := make(chan error, 1)
+	go func() {
+		_, err := host.ExecuteVideo(context.Background(), secondPlan, func() error {
+			close(secondStarted)
+			return nil
+		}, nil)
+		secondDone <- err
+	}()
+	waitForVideoHostQueueLength(t, host, 1)
+	select {
+	case <-secondStarted:
+		t.Fatal("queued video received factual start before FIFO dequeue")
+	case <-time.After(100 * time.Millisecond):
+	}
+
+	close(releaseFirst)
+	if err := <-firstDone; err != nil {
+		t.Fatalf("first video: %v", err)
+	}
+	select {
+	case <-secondStarted:
+	case <-time.After(2 * time.Second):
+		t.Fatal("second video did not receive factual start after dequeue")
+	}
+	if err := <-secondDone; err != nil {
+		t.Fatalf("second video: %v", err)
+	}
+}
+
 func TestVideoExecutionHostRunningCancelStopsOwnedWorkerBeforeReturn(t *testing.T) {
 	started := make(chan struct{})
 	stopped := make(chan struct{})
@@ -238,7 +309,7 @@ func TestVideoExecutionHostPropagatesSubstrateFailure(t *testing.T) {
 	}}
 	host := newVideoExecutionHostWithSubstrate(substrate, nil, time.Second)
 	defer func() { _ = host.Stop() }()
-	_, err := host.ExecuteVideo(context.Background(), videoPlanForHostTest(t, "failure"), nil)
+	_, err := host.ExecuteVideo(context.Background(), videoPlanForHostTest(t, "failure"), nil, nil)
 	if localexecution.FailureKindOf(err) != localexecution.FailureLoad {
 		t.Fatalf("substrate failure = %v", err)
 	}
@@ -259,10 +330,10 @@ func TestVideoExecutionHostCrashRecoversOnNextJob(t *testing.T) {
 	}
 	host := newVideoExecutionHostWithSubstrate(substrate, nil, time.Second)
 	defer func() { _ = host.Stop() }()
-	if _, err := host.ExecuteVideo(context.Background(), videoPlanForHostTest(t, "crash"), nil); localexecution.FailureKindOf(err) != localexecution.FailureProcessCrash {
+	if _, err := host.ExecuteVideo(context.Background(), videoPlanForHostTest(t, "crash"), nil, nil); localexecution.FailureKindOf(err) != localexecution.FailureProcessCrash {
 		t.Fatalf("crash error = %v", err)
 	}
-	candidate, err := host.ExecuteVideo(context.Background(), videoPlanForHostTest(t, "recover"), nil)
+	candidate, err := host.ExecuteVideo(context.Background(), videoPlanForHostTest(t, "recover"), nil, nil)
 	if err != nil || len(candidate.Frames) != 5 {
 		t.Fatalf("next-job recovery candidate=%+v err=%v", candidate, err)
 	}
@@ -277,7 +348,7 @@ func TestVideoExecutionHostCrashRecoversOnNextJob(t *testing.T) {
 func executeVideoForTest(host *VideoExecutionHost, ctx context.Context, plan *capabilitydriver.VideoInvocationPlan) <-chan error {
 	done := make(chan error, 1)
 	go func() {
-		_, err := host.ExecuteVideo(ctx, plan, nil)
+		_, err := host.ExecuteVideo(ctx, plan, nil, nil)
 		done <- err
 	}()
 	return done

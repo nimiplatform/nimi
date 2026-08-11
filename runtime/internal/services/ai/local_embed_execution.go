@@ -195,7 +195,10 @@ func executeLocalTextEmbedScenario(
 	}
 	defer release()
 	s.attachQueueWaitUnary(ctx, acquireResult)
-	requestCtx, cancel := withTimeout(ctx, req.GetHead().GetTimeoutMs(), defaultEmbedTimeout)
+	requestCtx, cancel, err := withTimeout(ctx, req.GetHead().GetTimeoutMs(), defaultEmbedTimeout)
+	if err != nil {
+		return nil, err
+	}
 	defer cancel()
 
 	result, err := s.executeCapturedLocalEmbed(requestCtx, effective)
