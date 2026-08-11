@@ -576,6 +576,15 @@
           "response_stream": false
         },
         {
+          "name": "TranscribeAgentVoiceInput",
+          "method_id": "/nimi.runtime.v1.RuntimeAgentService/TranscribeAgentVoiceInput",
+          "kind": "unary",
+          "request_type": "TranscribeAgentVoiceInputRequest",
+          "response_type": "TranscribeAgentVoiceInputResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
           "name": "GetSharedLocalAgentAIConfig",
           "method_id": "/nimi.runtime.v1.RuntimeAgentService/GetSharedLocalAgentAIConfig",
           "kind": "unary",
@@ -2603,6 +2612,7 @@
     "/nimi.runtime.v1.RuntimeAgentService/SubscribeAgentVoiceStream",
     "/nimi.runtime.v1.RuntimeAgentService/SubscribeLocalAppConversationEvents",
     "/nimi.runtime.v1.RuntimeAgentService/TerminateAgent",
+    "/nimi.runtime.v1.RuntimeAgentService/TranscribeAgentVoiceInput",
     "/nimi.runtime.v1.RuntimeAgentService/UpdateAgentState",
     "/nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppAgentAutonomy",
     "/nimi.runtime.v1.RuntimeAgentService/WriteAgentMemory",
@@ -3326,6 +3336,14 @@
       "kind": "unary",
       "request_type": "TerminateAgentRequest",
       "response_type": "TerminateAgentResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAgentService/TranscribeAgentVoiceInput",
+      "service": "RuntimeAgentService",
+      "method": "TranscribeAgentVoiceInput",
+      "kind": "unary",
+      "request_type": "TranscribeAgentVoiceInputRequest",
+      "response_type": "TranscribeAgentVoiceInputResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/UpdateAgentState",
@@ -5464,6 +5482,14 @@
       "kind": "unary",
       "request_type": "TerminateAgentRequest",
       "response_type": "TerminateAgentResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAgentService/TranscribeAgentVoiceInput",
+      "service": "RuntimeAgentService",
+      "method": "TranscribeAgentVoiceInput",
+      "kind": "unary",
+      "request_type": "TranscribeAgentVoiceInputRequest",
+      "response_type": "TranscribeAgentVoiceInputResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/UpdateAgentState",
@@ -7885,6 +7911,8 @@
       "ToolCall",
       "ToolResult",
       "ToolSpec",
+      "TranscribeAgentVoiceInputRequest",
+      "TranscribeAgentVoiceInputResponse",
       "TraverseGraphRequest",
       "TraverseGraphResponse",
       "UnbindLocalCapabilityRequirementRequest",
@@ -36011,6 +36039,81 @@
           }
         ],
         "source_file": "proto/runtime/v1/ai.proto"
+      },
+      {
+        "name": "TranscribeAgentVoiceInputRequest",
+        "fields": [
+          {
+            "name": "context",
+            "type": "AgentRequestContext",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "agent_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "conversation_anchor_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "audio_bytes",
+            "type": "bytes",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "mime_type",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 5
+          },
+          {
+            "name": "request_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 6
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_service.proto"
+      },
+      {
+        "name": "TranscribeAgentVoiceInputResponse",
+        "fields": [
+          {
+            "name": "text",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "job_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "trace_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_service.proto"
       },
       {
         "name": "TraverseGraphRequest",

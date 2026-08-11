@@ -528,6 +528,14 @@ RUNTIME_METHODS = [
     "response_type": "TerminateAgentResponse"
   },
   {
+    "method_id": "/nimi.runtime.v1.RuntimeAgentService/TranscribeAgentVoiceInput",
+    "service": "RuntimeAgentService",
+    "method": "TranscribeAgentVoiceInput",
+    "kind": "unary",
+    "request_type": "TranscribeAgentVoiceInputRequest",
+    "response_type": "TranscribeAgentVoiceInputResponse"
+  },
+  {
     "method_id": "/nimi.runtime.v1.RuntimeAgentService/UpdateAgentState",
     "service": "RuntimeAgentService",
     "method": "UpdateAgentState",

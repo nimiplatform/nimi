@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { buildNimiRuntimeAgentTurnPayload } from './index';
+import { buildNimiRuntimeAgentTurnPayload, createNimiRuntimeAgentTurnsModule } from './index';
 import type { NimiRuntimeAgentTurnRequest } from './runtime-agent-turn-runner-types';
 
 const validTurn = {
@@ -12,6 +12,67 @@ const validTurn = {
   requestId: 'request',
   messages: [{ role: 'user' as const, content: 'hello' }] as const,
 } satisfies NimiRuntimeAgentTurnRequest;
+
+test('Runtime Agent voice input helper uses the dedicated typed transcription RPC', async () => {
+  const calls: Array<{ request: Record<string, unknown>; options: Record<string, unknown> | undefined }> = [];
+  const scopes: readonly string[][] = [];
+  const module = createNimiRuntimeAgentTurnsModule({
+    runtime: {
+      appId: 'nimi.desktop',
+      agents: {
+        async getPublicChatSessionSnapshot() {
+          return {};
+        },
+        async *subscribeAgentEvents() {
+          yield undefined;
+        },
+        async transcribeAgentVoiceInput(request, options) {
+          calls.push({
+            request: request as unknown as Record<string, unknown>,
+            options: options as unknown as Record<string, unknown> | undefined,
+          });
+          return { text: ' transcribed intent ', jobId: 'job-1', traceId: 'trace-1' };
+        },
+      },
+      appMessages: {
+        async sendAppMessage() {
+          return { messageId: '', accepted: false, reasonCode: 0 };
+        },
+        async *subscribeAppMessages() {
+          yield undefined as never;
+        },
+      },
+    },
+    getSubjectUserId: () => 'owner',
+    withScopes: async (nextScopes, operation) => {
+      scopes.push(nextScopes);
+      return operation({ metadata: { scoped: nextScopes.join(',') } });
+    },
+  });
+  const audioBytes = new Uint8Array([1, 2, 3]);
+
+  const result = await module.transcribeVoiceInput({
+    ownerUserId: 'owner',
+    runtimeSourceRef: 'agent',
+    localAgentRef: 'local-agent:owner:agent',
+    conversationAnchorId: 'anchor',
+    audioBytes,
+    mimeType: ' Audio/WebM;codecs=opus ',
+    requestId: 'request-1',
+  });
+
+  assert.deepEqual(result, { text: 'transcribed intent', jobId: 'job-1', traceId: 'trace-1' });
+  assert.deepEqual(scopes, [['runtime.agent.turn.write']]);
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0]?.request.agentId, 'local-agent:owner:agent');
+  assert.equal(calls[0]?.request.conversationAnchorId, 'anchor');
+  assert.equal(calls[0]?.request.mimeType, 'audio/webm;codecs=opus');
+  assert.equal(calls[0]?.request.requestId, 'request-1');
+  assert.notEqual(calls[0]?.request.audioBytes, audioBytes);
+  assert.deepEqual([...calls[0]?.request.audioBytes as Uint8Array], [1, 2, 3]);
+  assert.equal((calls[0]?.request.context as { appId?: string }).appId, 'nimi.desktop');
+  assert.equal((calls[0]?.options?.metadata as { idempotencyKey?: string }).idempotencyKey, 'request-1');
+});
 
 test('Runtime Agent turn payload admits only one current-user message', () => {
   const payload = buildNimiRuntimeAgentTurnPayload(validTurn);

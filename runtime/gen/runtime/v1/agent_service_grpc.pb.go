@@ -67,6 +67,7 @@ const (
 	RuntimeAgentService_SubscribeAgentEvents_FullMethodName                      = "/nimi.runtime.v1.RuntimeAgentService/SubscribeAgentEvents"
 	RuntimeAgentService_SubscribeAgentVoiceStream_FullMethodName                 = "/nimi.runtime.v1.RuntimeAgentService/SubscribeAgentVoiceStream"
 	RuntimeAgentService_InterruptAgentVoicePlayback_FullMethodName               = "/nimi.runtime.v1.RuntimeAgentService/InterruptAgentVoicePlayback"
+	RuntimeAgentService_TranscribeAgentVoiceInput_FullMethodName                 = "/nimi.runtime.v1.RuntimeAgentService/TranscribeAgentVoiceInput"
 	RuntimeAgentService_GetSharedLocalAgentAIConfig_FullMethodName               = "/nimi.runtime.v1.RuntimeAgentService/GetSharedLocalAgentAIConfig"
 	RuntimeAgentService_OverwriteSharedLocalAgentAIConfig_FullMethodName         = "/nimi.runtime.v1.RuntimeAgentService/OverwriteSharedLocalAgentAIConfig"
 	RuntimeAgentService_PreviewSharedLocalAgentAIProfile_FullMethodName          = "/nimi.runtime.v1.RuntimeAgentService/PreviewSharedLocalAgentAIProfile"
@@ -134,6 +135,7 @@ type RuntimeAgentServiceClient interface {
 	SubscribeAgentEvents(ctx context.Context, in *SubscribeAgentEventsRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[AgentEvent], error)
 	SubscribeAgentVoiceStream(ctx context.Context, in *SubscribeAgentVoiceStreamRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[AgentVoiceStreamEvent], error)
 	InterruptAgentVoicePlayback(ctx context.Context, in *InterruptAgentVoicePlaybackRequest, opts ...grpc.CallOption) (*InterruptAgentVoicePlaybackResponse, error)
+	TranscribeAgentVoiceInput(ctx context.Context, in *TranscribeAgentVoiceInputRequest, opts ...grpc.CallOption) (*TranscribeAgentVoiceInputResponse, error)
 	// Shared Runtime LocalAgent subsystem AIConfig surface.
 	GetSharedLocalAgentAIConfig(ctx context.Context, in *GetSharedLocalAgentAIConfigRequest, opts ...grpc.CallOption) (*GetSharedLocalAgentAIConfigResponse, error)
 	OverwriteSharedLocalAgentAIConfig(ctx context.Context, in *OverwriteSharedLocalAgentAIConfigRequest, opts ...grpc.CallOption) (*OverwriteSharedLocalAgentAIConfigResponse, error)
@@ -665,6 +667,16 @@ func (c *runtimeAgentServiceClient) InterruptAgentVoicePlayback(ctx context.Cont
 	return out, nil
 }
 
+func (c *runtimeAgentServiceClient) TranscribeAgentVoiceInput(ctx context.Context, in *TranscribeAgentVoiceInputRequest, opts ...grpc.CallOption) (*TranscribeAgentVoiceInputResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(TranscribeAgentVoiceInputResponse)
+	err := c.cc.Invoke(ctx, RuntimeAgentService_TranscribeAgentVoiceInput_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *runtimeAgentServiceClient) GetSharedLocalAgentAIConfig(ctx context.Context, in *GetSharedLocalAgentAIConfigRequest, opts ...grpc.CallOption) (*GetSharedLocalAgentAIConfigResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(GetSharedLocalAgentAIConfigResponse)
@@ -820,6 +832,7 @@ type RuntimeAgentServiceServer interface {
 	SubscribeAgentEvents(*SubscribeAgentEventsRequest, grpc.ServerStreamingServer[AgentEvent]) error
 	SubscribeAgentVoiceStream(*SubscribeAgentVoiceStreamRequest, grpc.ServerStreamingServer[AgentVoiceStreamEvent]) error
 	InterruptAgentVoicePlayback(context.Context, *InterruptAgentVoicePlaybackRequest) (*InterruptAgentVoicePlaybackResponse, error)
+	TranscribeAgentVoiceInput(context.Context, *TranscribeAgentVoiceInputRequest) (*TranscribeAgentVoiceInputResponse, error)
 	// Shared Runtime LocalAgent subsystem AIConfig surface.
 	GetSharedLocalAgentAIConfig(context.Context, *GetSharedLocalAgentAIConfigRequest) (*GetSharedLocalAgentAIConfigResponse, error)
 	OverwriteSharedLocalAgentAIConfig(context.Context, *OverwriteSharedLocalAgentAIConfigRequest) (*OverwriteSharedLocalAgentAIConfigResponse, error)
@@ -986,6 +999,9 @@ func (UnimplementedRuntimeAgentServiceServer) SubscribeAgentVoiceStream(*Subscri
 }
 func (UnimplementedRuntimeAgentServiceServer) InterruptAgentVoicePlayback(context.Context, *InterruptAgentVoicePlaybackRequest) (*InterruptAgentVoicePlaybackResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method InterruptAgentVoicePlayback not implemented")
+}
+func (UnimplementedRuntimeAgentServiceServer) TranscribeAgentVoiceInput(context.Context, *TranscribeAgentVoiceInputRequest) (*TranscribeAgentVoiceInputResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method TranscribeAgentVoiceInput not implemented")
 }
 func (UnimplementedRuntimeAgentServiceServer) GetSharedLocalAgentAIConfig(context.Context, *GetSharedLocalAgentAIConfigRequest) (*GetSharedLocalAgentAIConfigResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetSharedLocalAgentAIConfig not implemented")
@@ -1880,6 +1896,24 @@ func _RuntimeAgentService_InterruptAgentVoicePlayback_Handler(srv interface{}, c
 	return interceptor(ctx, in, info, handler)
 }
 
+func _RuntimeAgentService_TranscribeAgentVoiceInput_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(TranscribeAgentVoiceInputRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeAgentServiceServer).TranscribeAgentVoiceInput(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeAgentService_TranscribeAgentVoiceInput_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeAgentServiceServer).TranscribeAgentVoiceInput(ctx, req.(*TranscribeAgentVoiceInputRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _RuntimeAgentService_GetSharedLocalAgentAIConfig_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(GetSharedLocalAgentAIConfigRequest)
 	if err := dec(in); err != nil {
@@ -2246,6 +2280,10 @@ var RuntimeAgentService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "InterruptAgentVoicePlayback",
 			Handler:    _RuntimeAgentService_InterruptAgentVoicePlayback_Handler,
+		},
+		{
+			MethodName: "TranscribeAgentVoiceInput",
+			Handler:    _RuntimeAgentService_TranscribeAgentVoiceInput_Handler,
 		},
 		{
 			MethodName: "GetSharedLocalAgentAIConfig",

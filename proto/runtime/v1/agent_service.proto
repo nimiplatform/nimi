@@ -568,6 +568,23 @@ message InterruptAgentVoicePlaybackResponse {
   VoicePlaybackState voice_playback_state = 3;
   string terminal_reason = 4;
 }
+// First-party recorded voice ingress. Runtime validates the selected
+// LocalAgent Conversation and executes audio.transcribe through the singular
+// shared LocalAgent AIConfig before returning typed text to the caller. The
+// caller cannot provide route, model, provider, Driver, or machine selection.
+message TranscribeAgentVoiceInputRequest {
+  AgentRequestContext context = 1;
+  string agent_id = 2;
+  string conversation_anchor_id = 3;
+  bytes audio_bytes = 4;
+  string mime_type = 5;
+  string request_id = 6;
+}
+message TranscribeAgentVoiceInputResponse {
+  string text = 1;
+  string job_id = 2;
+  string trace_id = 3;
+}
 message AgentVoiceStreamEvent {
   string voice_stream_id = 1;
   string conversation_anchor_id = 2;
@@ -904,6 +921,7 @@ service RuntimeAgentService {
   rpc SubscribeAgentEvents(SubscribeAgentEventsRequest) returns (stream AgentEvent);
   rpc SubscribeAgentVoiceStream(SubscribeAgentVoiceStreamRequest) returns (stream AgentVoiceStreamEvent);
   rpc InterruptAgentVoicePlayback(InterruptAgentVoicePlaybackRequest) returns (InterruptAgentVoicePlaybackResponse);
+  rpc TranscribeAgentVoiceInput(TranscribeAgentVoiceInputRequest) returns (TranscribeAgentVoiceInputResponse);
   // Shared Runtime LocalAgent subsystem AIConfig surface.
   rpc GetSharedLocalAgentAIConfig(GetSharedLocalAgentAIConfigRequest) returns (GetSharedLocalAgentAIConfigResponse);
   rpc OverwriteSharedLocalAgentAIConfig(OverwriteSharedLocalAgentAIConfigRequest) returns (OverwriteSharedLocalAgentAIConfigResponse);

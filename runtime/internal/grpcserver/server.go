@@ -683,6 +683,7 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 	agentSvc.SetRuntimePrivateAIBridge(runtimeagentservice.NewAIBackedRuntimePrivateAIBridge(aiSvc))
 	agentSvc.SetVoiceAssetResolver(runtimeagentservice.NewAIBackedVoiceAssetResolver(aiSvc))
 	agentSvc.SetVoiceLipsyncScenarioExecutor(aiSvc, "", runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED)
+	agentSvc.SetAgentVoiceTranscriptionScenarioExecutor(aiSvc)
 	aiSvc.SetRuntimeAccountProjectionProvider(accountSvc)
 	memorySvc.SetRuntimeEmbeddingIntentResolver(agentSvc.ResolveMemoryEmbeddingIntent)
 	memorySvc.SetMemoryEmbeddingTargetAuthorizer(agentSvc.AuthorizeMemoryEmbeddingTarget)

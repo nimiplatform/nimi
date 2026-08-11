@@ -536,6 +536,14 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "TerminateAgentResponse",
     },
     RuntimeMethodDescriptor {
+        method_id: "/nimi.runtime.v1.RuntimeAgentService/TranscribeAgentVoiceInput",
+        service: "RuntimeAgentService",
+        method: "TranscribeAgentVoiceInput",
+        kind: "unary",
+        request_type: "TranscribeAgentVoiceInputRequest",
+        response_type: "TranscribeAgentVoiceInputResponse",
+    },
+    RuntimeMethodDescriptor {
         method_id: "/nimi.runtime.v1.RuntimeAgentService/UpdateAgentState",
         service: "RuntimeAgentService",
         method: "UpdateAgentState",

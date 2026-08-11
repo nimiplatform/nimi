@@ -4,6 +4,7 @@ import {
 } from './chat-agent-shell-core';
 import type { PendingAttachment } from '../turns/turn-input-attachments';
 import { submitAgentConversationTurn } from './chat-agent-shell-host-actions-submit';
+import { ensureThreadAnchorBindingForTarget } from './chat-agent-shell-host-actions-helpers';
 import { useAgentVisibleProjectionStore } from './chat-agent-visible-projection-context.js';
 import type {
   ActiveAgentSubmit,
@@ -16,6 +17,7 @@ export function useAgentConversationHostActions(
 ): {
   handleSelectAgent: (localAgentRef: string | null) => void;
   handleSubmit: (input: { text: string; attachments: readonly PendingAttachment[] }) => Promise<void>;
+  ensureConversationAnchor: () => Promise<string>;
 } {
   const visibleProjections = useAgentVisibleProjectionStore();
   useEffect(() => {
@@ -61,8 +63,25 @@ export function useAgentConversationHostActions(
     });
   }, [input]);
 
+  const ensureConversationAnchor = useCallback(async () => {
+    if (!input.activeTarget) {
+      throw new Error(input.t('Chat.agentSubmitMissingThread', {
+        defaultValue: 'Select an agent friend before starting voice input.',
+      }));
+    }
+    const ensured = await ensureThreadAnchorBindingForTarget({
+      input,
+      target: input.activeTarget,
+      thread: input.activeThreadId && input.selectedThreadRecord
+        ? input.selectedThreadRecord
+        : null,
+    });
+    return ensured.anchorBinding.conversationAnchorId;
+  }, [input]);
+
   return {
     handleSelectAgent,
     handleSubmit,
+    ensureConversationAnchor,
   };
 }

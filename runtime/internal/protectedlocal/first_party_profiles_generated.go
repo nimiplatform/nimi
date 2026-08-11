@@ -178,6 +178,8 @@ func FirstPartyProfileMethod(profileID, methodID string) (FirstPartyMethodKind, 
 			return FirstPartyMethodUnary, true
 		case "/nimi.runtime.v1.RuntimeAgentService/GetPublicChatSessionSnapshot":
 			return FirstPartyMethodUnary, true
+		case "/nimi.runtime.v1.RuntimeAgentService/TranscribeAgentVoiceInput":
+			return FirstPartyMethodUnary, true
 		case "/nimi.runtime.v1.RuntimeAgentService/RegisterAvatarLiveInstanceBinding":
 			return FirstPartyMethodUnary, true
 		case "/nimi.runtime.v1.RuntimeAgentService/ResolveAvatarLiveInstanceBinding":
@@ -417,6 +419,7 @@ func FirstPartyProfileMethods(profileID string) []FirstPartyProfileMethodEntry {
 			{MethodID: "/nimi.runtime.v1.RuntimeAgentService/GetConversationAnchorSnapshot", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeAgentService/ListAgentConversationSummaries", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeAgentService/GetPublicChatSessionSnapshot", Kind: FirstPartyMethodUnary},
+			{MethodID: "/nimi.runtime.v1.RuntimeAgentService/TranscribeAgentVoiceInput", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeAgentService/RegisterAvatarLiveInstanceBinding", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeAgentService/ResolveAvatarLiveInstanceBinding", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeAgentService/SetAgentPresentationProfile", Kind: FirstPartyMethodUnary},

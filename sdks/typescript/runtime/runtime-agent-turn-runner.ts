@@ -36,6 +36,8 @@ export type {
   NimiRuntimeAgentTurnRunnerModule,
   NimiRuntimeAgentTurnRunnerTimingStage,
   NimiRuntimeAgentTurnRunnerTrace,
+  NimiRuntimeAgentVoiceInputTranscriptionRequest,
+  NimiRuntimeAgentVoiceInputTranscriptionResult,
   NimiRuntimeAgentTurnsModule,
 } from './runtime-agent-turn-runner-types';
 

@@ -188,6 +188,11 @@ func TestProtectedCapabilityForUnaryMemoryAndRuntimeAgent(t *testing.T) {
 			capability: "runtime.agent.turn.write",
 		},
 		{
+			method:     "/nimi.runtime.v1.RuntimeAgentService/TranscribeAgentVoiceInput",
+			request:    &runtimev1.TranscribeAgentVoiceInputRequest{},
+			capability: "runtime.agent.turn.write",
+		},
+		{
 			method:     "/nimi.runtime.v1.RuntimeAgentService/ListDelegatedProviderProfiles",
 			request:    &runtimev1.ListDelegatedProviderProfilesRequest{AgentId: "agent-alpha"},
 			capability: "runtime.agent.delegation.read",

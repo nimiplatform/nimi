@@ -23,6 +23,7 @@ import type {
   NimiRuntimeAgentAIConfigSnapshot,
 } from '../../infra/runtime-agent-ai-config';
 import type { PendingAttachment } from '../turns/turn-input-attachments';
+import type { AgentVoiceSessionShellState } from './chat-agent-voice-session.js';
 
 export type UseAgentConversationPresentationInput = {
   activeTarget: AgentLocalTargetSnapshot | null;
@@ -86,4 +87,14 @@ export type UseAgentConversationPresentationInput = {
   thinkingPreference: ChatThinkingPreference;
   thinkingSupported: boolean;
   thinkingUnsupportedReason: string | null;
+  voiceInput: {
+    available: boolean;
+    state: AgentVoiceSessionShellState;
+    captureState: {
+      active: boolean;
+      amplitude: number;
+    };
+    onToggle: () => void;
+    onCancel: () => void;
+  };
 };

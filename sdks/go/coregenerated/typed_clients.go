@@ -7510,6 +7510,21 @@ type ToolSpec struct {
 	ProviderMetadata map[string]any `json:"provider_metadata,omitempty"`
 }
 
+type TranscribeAgentVoiceInputRequest struct {
+	Context *AgentRequestContext `json:"context,omitempty"`
+	AgentId string `json:"agent_id,omitempty"`
+	ConversationAnchorId string `json:"conversation_anchor_id,omitempty"`
+	AudioBytes []byte `json:"audio_bytes,omitempty"`
+	MimeType string `json:"mime_type,omitempty"`
+	RequestId string `json:"request_id,omitempty"`
+}
+
+type TranscribeAgentVoiceInputResponse struct {
+	Text string `json:"text,omitempty"`
+	JobId string `json:"job_id,omitempty"`
+	TraceId string `json:"trace_id,omitempty"`
+}
+
 type TraverseGraphRequest struct {
 	Context *KnowledgeRequestContext `json:"context,omitempty"`
 	BankId string `json:"bank_id,omitempty"`
@@ -8558,6 +8573,14 @@ func (c RuntimeTypedClient) TerminateAgent(ctx context.Context, request Terminat
 		return TerminateAgentResponse{}, err
 	}
 	return decodeRuntimeTypedResponse[TerminateAgentResponse](raw, "TerminateAgentResponse")
+}
+
+func (c RuntimeTypedClient) TranscribeAgentVoiceInput(ctx context.Context, request TranscribeAgentVoiceInputRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (TranscribeAgentVoiceInputResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/TranscribeAgentVoiceInput", request, metadata, timeoutMS)
+	if err != nil {
+		return TranscribeAgentVoiceInputResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[TranscribeAgentVoiceInputResponse](raw, "TranscribeAgentVoiceInputResponse")
 }
 
 func (c RuntimeTypedClient) UpdateAgentState(ctx context.Context, request UpdateAgentStateRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (UpdateAgentStateResponse, error) {

@@ -5986,6 +5986,21 @@ class ToolSpec:
     provider_metadata: Mapping[str, object] | None = None
 
 @dataclass(frozen=True)
+class TranscribeAgentVoiceInputRequest:
+    context: AgentRequestContext | None = None
+    agent_id: str | None = None
+    conversation_anchor_id: str | None = None
+    audio_bytes: bytes | None = None
+    mime_type: str | None = None
+    request_id: str | None = None
+
+@dataclass(frozen=True)
+class TranscribeAgentVoiceInputResponse:
+    text: str | None = None
+    job_id: str | None = None
+    trace_id: str | None = None
+
+@dataclass(frozen=True)
 class TraverseGraphRequest:
     context: KnowledgeRequestContext | None = None
     bank_id: str | None = None
@@ -6671,6 +6686,10 @@ class RuntimeTypedClient:
     async def terminate_agent(self, request: TerminateAgentRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> TerminateAgentResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/TerminateAgent", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(TerminateAgentResponse, raw)
+
+    async def transcribe_agent_voice_input(self, request: TranscribeAgentVoiceInputRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> TranscribeAgentVoiceInputResponse:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/TranscribeAgentVoiceInput", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(TranscribeAgentVoiceInputResponse, raw)
 
     async def update_agent_state(self, request: UpdateAgentStateRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> UpdateAgentStateResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/UpdateAgentState", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))

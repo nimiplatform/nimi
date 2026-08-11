@@ -99,6 +99,10 @@ type Service struct {
 	// voiceLipsync is the K-AGCORE-051/K-VOICE-018 synthesizer path. Default
 	// synthetic output is frame-only and cannot become a playable voice event.
 	voiceLipsync voiceLipsyncSynthesizer
+	// voiceTranscription is the first-party recorded voice ingress executor.
+	// Runtime Agent resolves shared LocalAgent AIConfig inputs before invoking
+	// it; callers never supply execution routing or machine selection.
+	voiceTranscription agentVoiceTranscriptionScenarioExecutor
 	// runtimeArtifacts is the runtime-owned by-id artifact byte store. Any
 	// runtime event carrying an artifact id must put bytes here before emit.
 	runtimeArtifacts  runtimeartifact.Store

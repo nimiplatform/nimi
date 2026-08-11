@@ -19409,6 +19409,34 @@ pub struct InterruptAgentVoicePlaybackResponse {
     #[prost(string, tag = "4")]
     pub terminal_reason: ::prost::alloc::string::String,
 }
+/// First-party recorded voice ingress. Runtime validates the selected
+/// LocalAgent Conversation and executes audio.transcribe through the singular
+/// shared LocalAgent AIConfig before returning typed text to the caller. The
+/// caller cannot provide route, model, provider, Driver, or machine selection.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct TranscribeAgentVoiceInputRequest {
+    #[prost(message, optional, tag = "1")]
+    pub context: ::core::option::Option<AgentRequestContext>,
+    #[prost(string, tag = "2")]
+    pub agent_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub conversation_anchor_id: ::prost::alloc::string::String,
+    #[prost(bytes = "vec", tag = "4")]
+    pub audio_bytes: ::prost::alloc::vec::Vec<u8>,
+    #[prost(string, tag = "5")]
+    pub mime_type: ::prost::alloc::string::String,
+    #[prost(string, tag = "6")]
+    pub request_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct TranscribeAgentVoiceInputResponse {
+    #[prost(string, tag = "1")]
+    pub text: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub job_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub trace_id: ::prost::alloc::string::String,
+}
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct AgentVoiceStreamEvent {
     #[prost(string, tag = "1")]
@@ -22550,6 +22578,35 @@ pub mod runtime_agent_service_client {
                     GrpcMethod::new(
                         "nimi.runtime.v1.RuntimeAgentService",
                         "InterruptAgentVoicePlayback",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn transcribe_agent_voice_input(
+            &mut self,
+            request: impl tonic::IntoRequest<super::TranscribeAgentVoiceInputRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::TranscribeAgentVoiceInputResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAgentService/TranscribeAgentVoiceInput",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAgentService",
+                        "TranscribeAgentVoiceInput",
                     ),
                 );
             self.inner.unary(req, path, codec).await

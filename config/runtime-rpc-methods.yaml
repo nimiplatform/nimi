@@ -610,6 +610,8 @@ services:
         authority_status: existing_scoped_consumer_only
       - name: InterruptAgentVoicePlayback
         type: unary
+      - name: TranscribeAgentVoiceInput
+        type: unary
       - name: GetSharedLocalAgentAIConfig
         type: unary
       - name: OverwriteSharedLocalAgentAIConfig

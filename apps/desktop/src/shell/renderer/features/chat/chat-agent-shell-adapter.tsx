@@ -55,6 +55,7 @@ import { useAgentConversationHostFeedback } from './chat-agent-shell-adapter-hos
 import { useAgentConversationPendingAttachments } from './chat-agent-shell-adapter-attachments';
 import { useStreamController } from '../turns/stream-controller-context.js';
 import { useAgentConversationAnchorBindings } from '../../app-shell/providers/agent-conversation-anchor-binding-context.js';
+import { useAgentConversationVoiceInput } from './chat-agent-voice-input.js';
 
 type UseAgentConversationModeHostInput = {
   authStatus: AuthStatus;
@@ -325,7 +326,7 @@ export function useAgentConversationModeHost(
   const currentFooterHostState = activeThreadId ? footerHostStateByThreadId[activeThreadId] || null : null;
   const { activePendingAttachments, setPendingAttachmentsForThread } = useAgentConversationPendingAttachments(activeThreadId);
   const textMaxOutputTokensRequested = behaviorSettings.maxOutputTokensOverride;
-  const { handleSelectAgent, handleSubmit } = useAgentConversationHostActions({
+  const { ensureConversationAnchor, handleSelectAgent, handleSubmit } = useAgentConversationHostActions({
     anchorBindings,
     now: bindings.clock.now,
     sdk: bindings.sdk,
@@ -374,6 +375,23 @@ export function useAgentConversationModeHost(
     threadsReady,
     textModelContextTokens: null,
     textMaxOutputTokensRequested,
+  });
+  const voiceInput = useAgentConversationVoiceInput({
+    enabled: composerReady && Boolean(activeTarget) && !submittingThreadId,
+    target: activeTarget,
+    voiceCapture: bindings.app.commands.voiceCapture,
+    runtime: bindings.sdk,
+    ensureConversationAnchor,
+    getCurrentConversationAnchorId: () => (
+      activeTarget
+        ? anchorBindings.get(activeTarget.localAgentRef)?.conversationAnchorId || null
+        : null
+    ),
+    handleSubmit,
+    reportError: reportHostError,
+    failureMessage: t('Chat.voiceInputFailed', {
+      defaultValue: 'Voice input failed. Check microphone access and the selected speech configuration.',
+    }),
   });
   const presentation = useAgentConversationPresentation({
     activeTarget,
@@ -430,6 +448,7 @@ export function useAgentConversationModeHost(
     thinkingPreference: behaviorSettings.thinkingPreference,
     thinkingSupported: thinkingSupport.supported,
     thinkingUnsupportedReason,
+    voiceInput,
   });
 
   return useMemo<DesktopConversationModeHost>(() => ({

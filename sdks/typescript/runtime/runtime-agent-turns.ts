@@ -8,6 +8,8 @@ import {
   type SendAppMessageResponse,
   type SubscribeAgentEventsRequest,
   type SubscribeAppMessagesRequest,
+  type TranscribeAgentVoiceInputRequest,
+  type TranscribeAgentVoiceInputResponse,
   type RuntimeTypedCallOptions,
 } from '../core-generated/runtime-typed-client';
 import { createNimiClientId, createNimiError, ReasonCode, type JsonObject } from '../types';
@@ -39,6 +41,7 @@ import type {
   NimiRuntimeAgentTurnInterruptRequest,
   NimiRuntimeAgentTurnRequest,
   NimiRuntimeAgentTurnVoiceRenderResult,
+  NimiRuntimeAgentVoiceInputTranscriptionRequest,
   NimiRuntimeAgentTurnsModule,
 } from './runtime-agent-turn-runner-types';
 
@@ -77,6 +80,10 @@ export interface NimiRuntimeAgentTurnsRuntime {
       request: SubscribeAgentEventsRequest,
       options?: RuntimeTypedCallOptions,
     ): AsyncIterable<unknown>;
+    transcribeAgentVoiceInput?(
+      request: TranscribeAgentVoiceInputRequest,
+      options?: RuntimeTypedCallOptions,
+    ): Promise<TranscribeAgentVoiceInputResponse>;
   };
   readonly appMessages: {
     sendAppMessage(
@@ -725,6 +732,60 @@ export function createNimiRuntimeAgentTurnsModule(
         playbackTarget,
         timeoutMs: nonNegativeTimeoutMs(request.timeoutMs, VOICE_RENDER_TIMEOUT_MS),
       });
+    },
+    async transcribeVoiceInput(request: NimiRuntimeAgentVoiceInputTranscriptionRequest) {
+      const identity = localIdentity(request);
+      const conversationAnchorId = requireConversationAnchorId(request.conversationAnchorId);
+      if (!(request.audioBytes instanceof Uint8Array) || request.audioBytes.length === 0) {
+        runtimeAgentInputError('runtime agent voice input requires recorded audio bytes', 'record_runtime_agent_voice_input');
+      }
+      const mimeType = optionalString(request.mimeType)?.toLowerCase();
+      if (!mimeType?.startsWith('audio/')) {
+        runtimeAgentInputError('runtime agent voice input requires an audio MIME type', 'provide_runtime_agent_voice_mime_type');
+      }
+      const transcribe = runtime.agents.transcribeAgentVoiceInput;
+      if (!transcribe) {
+        throw createNimiError({
+          message: 'Runtime Agent voice input transcription is unavailable.',
+          reasonCode: ReasonCode.SDK_RUNTIME_METHOD_UNAVAILABLE,
+          actionHint: 'use_runtime_agent_voice_input_surface',
+          source: 'sdk',
+        });
+      }
+      const subjectUserId = await resolveSubjectUserId(options, identity.ownerUserId);
+      const requestId = optionalString(request.requestId) || createNimiClientId('runtime-agent-voice-input');
+      const response = await withTurnScopes(options, subjectUserId, [TURN_WRITE_SCOPE], async (callOptions) =>
+        transcribe({
+          context: requestContext({
+            runtimeAppId: runtime.appId,
+            subjectUserId,
+            ownerUserId: identity.ownerUserId,
+            runtimeSourceRef: identity.runtimeSourceRef,
+            localAgentRef: identity.localAgentRef,
+          }),
+          agentId: identity.localAgentRef,
+          conversationAnchorId,
+          audioBytes: new Uint8Array(request.audioBytes),
+          mimeType,
+          requestId,
+        }, withNimiRuntimeIdempotencyMetadata(callOptions, requestId)),
+      );
+      const text = optionalString(response.text);
+      const jobId = optionalString(response.jobId);
+      if (!text || !jobId) {
+        throw createNimiError({
+          message: 'Runtime Agent voice transcription returned an invalid typed result.',
+          reasonCode: ReasonCode.SDK_RUNTIME_RESPONSE_DECODE_FAILED,
+          actionHint: 'check_runtime_agent_voice_input_response',
+          source: 'runtime',
+        });
+      }
+      const traceId = optionalString(response.traceId);
+      return {
+        text,
+        jobId,
+        ...(traceId ? { traceId } : {}),
+      };
     },
     async getSessionSnapshot(request) {
       const identity = localIdentity(request);

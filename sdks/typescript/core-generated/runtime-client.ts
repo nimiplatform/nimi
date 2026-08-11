@@ -535,6 +535,14 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "TerminateAgentResponse"
   },
   {
+    "methodId": "/nimi.runtime.v1.RuntimeAgentService/TranscribeAgentVoiceInput",
+    "service": "RuntimeAgentService",
+    "method": "TranscribeAgentVoiceInput",
+    "kind": "unary",
+    "requestType": "TranscribeAgentVoiceInputRequest",
+    "responseType": "TranscribeAgentVoiceInputResponse"
+  },
+  {
     "methodId": "/nimi.runtime.v1.RuntimeAgentService/UpdateAgentState",
     "service": "RuntimeAgentService",
     "method": "UpdateAgentState",

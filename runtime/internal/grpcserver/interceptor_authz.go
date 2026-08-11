@@ -259,6 +259,8 @@ func protectedCapabilityForUnary(fullMethod string, req any) (string, bool) {
 		return "runtime.agent.read", true
 	case "/nimi.runtime.v1.RuntimeAgentService/InterruptAgentVoicePlayback":
 		return "runtime.agent.turn.write", true
+	case "/nimi.runtime.v1.RuntimeAgentService/TranscribeAgentVoiceInput":
+		return "runtime.agent.turn.write", true
 	case "/nimi.runtime.v1.RuntimeAgentService/GetCompanionParticipationProjection":
 		return "runtime.agent.companion_participation.read", true
 	case "/nimi.runtime.v1.RuntimeAgentService/RequestCompanionParticipation":

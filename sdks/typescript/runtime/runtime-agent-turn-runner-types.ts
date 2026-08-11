@@ -104,6 +104,19 @@ export type NimiRuntimeAgentTurnVoiceRenderResult =
     readonly reason: 'voice_projection_unavailable';
   };
 
+export type NimiRuntimeAgentVoiceInputTranscriptionRequest = RuntimeLocalAgentIdentityInput & {
+  readonly conversationAnchorId: string;
+  readonly audioBytes: Uint8Array;
+  readonly mimeType: string;
+  readonly requestId?: string;
+};
+
+export type NimiRuntimeAgentVoiceInputTranscriptionResult = {
+  readonly text: string;
+  readonly jobId: string;
+  readonly traceId?: string;
+};
+
 export type NimiRuntimeAgentConsumeRequest = RuntimeLocalAgentIdentityInput & {
   readonly conversationAnchorId?: string;
   readonly subjectUserId?: string;
@@ -130,6 +143,9 @@ export type NimiRuntimeAgentTurnsModule = {
   renderVoice(
     request: NimiRuntimeAgentTurnVoiceRenderRequest,
   ): Promise<NimiRuntimeAgentTurnVoiceRenderResult>;
+  transcribeVoiceInput(
+    request: NimiRuntimeAgentVoiceInputTranscriptionRequest,
+  ): Promise<NimiRuntimeAgentVoiceInputTranscriptionResult>;
   getSessionSnapshot(
     request: NimiRuntimeAgentSessionSnapshotRequest,
   ): Promise<NimiRuntimeAgentSessionSnapshot>;

@@ -29440,6 +29440,72 @@ impl ToolSpec {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct TranscribeAgentVoiceInputRequest {
+    pub context: Option<Box<AgentRequestContext>>,
+    pub agent_id: Option<String>,
+    pub conversation_anchor_id: Option<String>,
+    pub audio_bytes: Option<Vec<u8>>,
+    pub mime_type: Option<String>,
+    pub request_id: Option<String>,
+}
+
+impl TranscribeAgentVoiceInputRequest {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if self.context.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode context"); }
+        if let Some(value) = &self.agent_id { pairs.push(format!("agent_id={}", value)); }
+        if let Some(value) = &self.conversation_anchor_id { pairs.push(format!("conversation_anchor_id={}", value)); }
+        if self.audio_bytes.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode audio_bytes"); }
+        if let Some(value) = &self.mime_type { pairs.push(format!("mime_type={}", value)); }
+        if let Some(value) = &self.request_id { pairs.push(format!("request_id={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        for key in ["context", "audio_bytes"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+
+        out.agent_id = pairs.get("agent_id").cloned();
+        out.conversation_anchor_id = pairs.get("conversation_anchor_id").cloned();
+        out.mime_type = pairs.get("mime_type").cloned();
+        out.request_id = pairs.get("request_id").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct TranscribeAgentVoiceInputResponse {
+    pub text: Option<String>,
+    pub job_id: Option<String>,
+    pub trace_id: Option<String>,
+}
+
+impl TranscribeAgentVoiceInputResponse {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.text { pairs.push(format!("text={}", value)); }
+        if let Some(value) = &self.job_id { pairs.push(format!("job_id={}", value)); }
+        if let Some(value) = &self.trace_id { pairs.push(format!("trace_id={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+
+        out.text = pairs.get("text").cloned();
+        out.job_id = pairs.get("job_id").cloned();
+        out.trace_id = pairs.get("trace_id").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct TraverseGraphRequest {
     pub context: Option<Box<KnowledgeRequestContext>>,
     pub bank_id: Option<String>,
@@ -36286,6 +36352,18 @@ impl From<Vec<u8>> for ToolSpec {
     }
 }
 
+impl From<Vec<u8>> for TranscribeAgentVoiceInputRequest {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for TranscribeAgentVoiceInputResponse {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
 impl From<Vec<u8>> for TraverseGraphRequest {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
@@ -37335,6 +37413,16 @@ where
             timeout,
         })?;
         Ok(TerminateAgentResponse::from_transport(&raw))
+    }
+
+    pub fn transcribe_agent_voice_input(&self, request: TranscribeAgentVoiceInputRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<TranscribeAgentVoiceInputResponse, T::Error> {
+        let raw = self.core.unary(CoreUnaryRequest {
+            method_id: "/nimi.runtime.v1.RuntimeAgentService/TranscribeAgentVoiceInput".to_string(),
+            metadata,
+            body: request.to_transport(),
+            timeout,
+        })?;
+        Ok(TranscribeAgentVoiceInputResponse::from_transport(&raw))
     }
 
     pub fn update_agent_state(&self, request: UpdateAgentStateRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<UpdateAgentStateResponse, T::Error> {

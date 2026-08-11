@@ -7143,6 +7143,154 @@ func (x *InterruptAgentVoicePlaybackResponse) GetTerminalReason() string {
 	return ""
 }
 
+// First-party recorded voice ingress. Runtime validates the selected
+// LocalAgent Conversation and executes audio.transcribe through the singular
+// shared LocalAgent AIConfig before returning typed text to the caller. The
+// caller cannot provide route, model, provider, Driver, or machine selection.
+type TranscribeAgentVoiceInputRequest struct {
+	state                protoimpl.MessageState `protogen:"open.v1"`
+	Context              *AgentRequestContext   `protobuf:"bytes,1,opt,name=context,proto3" json:"context,omitempty"`
+	AgentId              string                 `protobuf:"bytes,2,opt,name=agent_id,json=agentId,proto3" json:"agent_id,omitempty"`
+	ConversationAnchorId string                 `protobuf:"bytes,3,opt,name=conversation_anchor_id,json=conversationAnchorId,proto3" json:"conversation_anchor_id,omitempty"`
+	AudioBytes           []byte                 `protobuf:"bytes,4,opt,name=audio_bytes,json=audioBytes,proto3" json:"audio_bytes,omitempty"`
+	MimeType             string                 `protobuf:"bytes,5,opt,name=mime_type,json=mimeType,proto3" json:"mime_type,omitempty"`
+	RequestId            string                 `protobuf:"bytes,6,opt,name=request_id,json=requestId,proto3" json:"request_id,omitempty"`
+	unknownFields        protoimpl.UnknownFields
+	sizeCache            protoimpl.SizeCache
+}
+
+func (x *TranscribeAgentVoiceInputRequest) Reset() {
+	*x = TranscribeAgentVoiceInputRequest{}
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[76]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *TranscribeAgentVoiceInputRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*TranscribeAgentVoiceInputRequest) ProtoMessage() {}
+
+func (x *TranscribeAgentVoiceInputRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[76]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use TranscribeAgentVoiceInputRequest.ProtoReflect.Descriptor instead.
+func (*TranscribeAgentVoiceInputRequest) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{76}
+}
+
+func (x *TranscribeAgentVoiceInputRequest) GetContext() *AgentRequestContext {
+	if x != nil {
+		return x.Context
+	}
+	return nil
+}
+
+func (x *TranscribeAgentVoiceInputRequest) GetAgentId() string {
+	if x != nil {
+		return x.AgentId
+	}
+	return ""
+}
+
+func (x *TranscribeAgentVoiceInputRequest) GetConversationAnchorId() string {
+	if x != nil {
+		return x.ConversationAnchorId
+	}
+	return ""
+}
+
+func (x *TranscribeAgentVoiceInputRequest) GetAudioBytes() []byte {
+	if x != nil {
+		return x.AudioBytes
+	}
+	return nil
+}
+
+func (x *TranscribeAgentVoiceInputRequest) GetMimeType() string {
+	if x != nil {
+		return x.MimeType
+	}
+	return ""
+}
+
+func (x *TranscribeAgentVoiceInputRequest) GetRequestId() string {
+	if x != nil {
+		return x.RequestId
+	}
+	return ""
+}
+
+type TranscribeAgentVoiceInputResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Text          string                 `protobuf:"bytes,1,opt,name=text,proto3" json:"text,omitempty"`
+	JobId         string                 `protobuf:"bytes,2,opt,name=job_id,json=jobId,proto3" json:"job_id,omitempty"`
+	TraceId       string                 `protobuf:"bytes,3,opt,name=trace_id,json=traceId,proto3" json:"trace_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *TranscribeAgentVoiceInputResponse) Reset() {
+	*x = TranscribeAgentVoiceInputResponse{}
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[77]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *TranscribeAgentVoiceInputResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*TranscribeAgentVoiceInputResponse) ProtoMessage() {}
+
+func (x *TranscribeAgentVoiceInputResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[77]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use TranscribeAgentVoiceInputResponse.ProtoReflect.Descriptor instead.
+func (*TranscribeAgentVoiceInputResponse) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{77}
+}
+
+func (x *TranscribeAgentVoiceInputResponse) GetText() string {
+	if x != nil {
+		return x.Text
+	}
+	return ""
+}
+
+func (x *TranscribeAgentVoiceInputResponse) GetJobId() string {
+	if x != nil {
+		return x.JobId
+	}
+	return ""
+}
+
+func (x *TranscribeAgentVoiceInputResponse) GetTraceId() string {
+	if x != nil {
+		return x.TraceId
+	}
+	return ""
+}
+
 type AgentVoiceStreamEvent struct {
 	state                protoimpl.MessageState `protogen:"open.v1"`
 	VoiceStreamId        string                 `protobuf:"bytes,1,opt,name=voice_stream_id,json=voiceStreamId,proto3" json:"voice_stream_id,omitempty"`
@@ -7165,7 +7313,7 @@ type AgentVoiceStreamEvent struct {
 
 func (x *AgentVoiceStreamEvent) Reset() {
 	*x = AgentVoiceStreamEvent{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[76]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[78]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7177,7 +7325,7 @@ func (x *AgentVoiceStreamEvent) String() string {
 func (*AgentVoiceStreamEvent) ProtoMessage() {}
 
 func (x *AgentVoiceStreamEvent) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[76]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[78]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7190,7 +7338,7 @@ func (x *AgentVoiceStreamEvent) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AgentVoiceStreamEvent.ProtoReflect.Descriptor instead.
 func (*AgentVoiceStreamEvent) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{76}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{78}
 }
 
 func (x *AgentVoiceStreamEvent) GetVoiceStreamId() string {
@@ -7317,7 +7465,7 @@ type ConversationAnchor struct {
 
 func (x *ConversationAnchor) Reset() {
 	*x = ConversationAnchor{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[77]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[79]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7329,7 +7477,7 @@ func (x *ConversationAnchor) String() string {
 func (*ConversationAnchor) ProtoMessage() {}
 
 func (x *ConversationAnchor) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[77]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[79]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7342,7 +7490,7 @@ func (x *ConversationAnchor) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ConversationAnchor.ProtoReflect.Descriptor instead.
 func (*ConversationAnchor) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{77}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{79}
 }
 
 func (x *ConversationAnchor) GetConversationAnchorId() string {
@@ -7442,7 +7590,7 @@ type ConversationAnchorSnapshot struct {
 
 func (x *ConversationAnchorSnapshot) Reset() {
 	*x = ConversationAnchorSnapshot{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[78]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[80]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7454,7 +7602,7 @@ func (x *ConversationAnchorSnapshot) String() string {
 func (*ConversationAnchorSnapshot) ProtoMessage() {}
 
 func (x *ConversationAnchorSnapshot) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[78]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[80]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7467,7 +7615,7 @@ func (x *ConversationAnchorSnapshot) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ConversationAnchorSnapshot.ProtoReflect.Descriptor instead.
 func (*ConversationAnchorSnapshot) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{78}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{80}
 }
 
 func (x *ConversationAnchorSnapshot) GetAnchor() *ConversationAnchor {
@@ -7520,7 +7668,7 @@ type OpenConversationAnchorRequest struct {
 
 func (x *OpenConversationAnchorRequest) Reset() {
 	*x = OpenConversationAnchorRequest{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[79]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[81]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7532,7 +7680,7 @@ func (x *OpenConversationAnchorRequest) String() string {
 func (*OpenConversationAnchorRequest) ProtoMessage() {}
 
 func (x *OpenConversationAnchorRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[79]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[81]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7545,7 +7693,7 @@ func (x *OpenConversationAnchorRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use OpenConversationAnchorRequest.ProtoReflect.Descriptor instead.
 func (*OpenConversationAnchorRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{79}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{81}
 }
 
 func (x *OpenConversationAnchorRequest) GetContext() *AgentRequestContext {
@@ -7606,7 +7754,7 @@ type OpenConversationAnchorResponse struct {
 
 func (x *OpenConversationAnchorResponse) Reset() {
 	*x = OpenConversationAnchorResponse{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[80]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[82]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7618,7 +7766,7 @@ func (x *OpenConversationAnchorResponse) String() string {
 func (*OpenConversationAnchorResponse) ProtoMessage() {}
 
 func (x *OpenConversationAnchorResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[80]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[82]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7631,7 +7779,7 @@ func (x *OpenConversationAnchorResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use OpenConversationAnchorResponse.ProtoReflect.Descriptor instead.
 func (*OpenConversationAnchorResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{80}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{82}
 }
 
 func (x *OpenConversationAnchorResponse) GetSnapshot() *ConversationAnchorSnapshot {
@@ -7655,7 +7803,7 @@ type LocalAppAgentReference struct {
 
 func (x *LocalAppAgentReference) Reset() {
 	*x = LocalAppAgentReference{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[81]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[83]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7667,7 +7815,7 @@ func (x *LocalAppAgentReference) String() string {
 func (*LocalAppAgentReference) ProtoMessage() {}
 
 func (x *LocalAppAgentReference) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[81]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[83]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7680,7 +7828,7 @@ func (x *LocalAppAgentReference) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LocalAppAgentReference.ProtoReflect.Descriptor instead.
 func (*LocalAppAgentReference) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{81}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{83}
 }
 
 func (x *LocalAppAgentReference) GetAgentHandle() string {
@@ -7712,7 +7860,7 @@ type ListLocalAppAgentReferencesRequest struct {
 
 func (x *ListLocalAppAgentReferencesRequest) Reset() {
 	*x = ListLocalAppAgentReferencesRequest{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[82]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[84]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7724,7 +7872,7 @@ func (x *ListLocalAppAgentReferencesRequest) String() string {
 func (*ListLocalAppAgentReferencesRequest) ProtoMessage() {}
 
 func (x *ListLocalAppAgentReferencesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[82]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[84]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7737,7 +7885,7 @@ func (x *ListLocalAppAgentReferencesRequest) ProtoReflect() protoreflect.Message
 
 // Deprecated: Use ListLocalAppAgentReferencesRequest.ProtoReflect.Descriptor instead.
 func (*ListLocalAppAgentReferencesRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{82}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{84}
 }
 
 type ListLocalAppAgentReferencesResponse struct {
@@ -7749,7 +7897,7 @@ type ListLocalAppAgentReferencesResponse struct {
 
 func (x *ListLocalAppAgentReferencesResponse) Reset() {
 	*x = ListLocalAppAgentReferencesResponse{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[83]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[85]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7761,7 +7909,7 @@ func (x *ListLocalAppAgentReferencesResponse) String() string {
 func (*ListLocalAppAgentReferencesResponse) ProtoMessage() {}
 
 func (x *ListLocalAppAgentReferencesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[83]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[85]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7774,7 +7922,7 @@ func (x *ListLocalAppAgentReferencesResponse) ProtoReflect() protoreflect.Messag
 
 // Deprecated: Use ListLocalAppAgentReferencesResponse.ProtoReflect.Descriptor instead.
 func (*ListLocalAppAgentReferencesResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{83}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{85}
 }
 
 func (x *ListLocalAppAgentReferencesResponse) GetReferences() []*LocalAppAgentReference {
@@ -7797,7 +7945,7 @@ type OpenLocalAppConversationRequest struct {
 
 func (x *OpenLocalAppConversationRequest) Reset() {
 	*x = OpenLocalAppConversationRequest{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[84]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[86]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7809,7 +7957,7 @@ func (x *OpenLocalAppConversationRequest) String() string {
 func (*OpenLocalAppConversationRequest) ProtoMessage() {}
 
 func (x *OpenLocalAppConversationRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[84]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[86]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7822,7 +7970,7 @@ func (x *OpenLocalAppConversationRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use OpenLocalAppConversationRequest.ProtoReflect.Descriptor instead.
 func (*OpenLocalAppConversationRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{84}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{86}
 }
 
 func (x *OpenLocalAppConversationRequest) GetAgentHandle() string {
@@ -7842,7 +7990,7 @@ type OpenLocalAppConversationResponse struct {
 
 func (x *OpenLocalAppConversationResponse) Reset() {
 	*x = OpenLocalAppConversationResponse{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[85]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[87]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7854,7 +8002,7 @@ func (x *OpenLocalAppConversationResponse) String() string {
 func (*OpenLocalAppConversationResponse) ProtoMessage() {}
 
 func (x *OpenLocalAppConversationResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[85]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[87]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7867,7 +8015,7 @@ func (x *OpenLocalAppConversationResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use OpenLocalAppConversationResponse.ProtoReflect.Descriptor instead.
 func (*OpenLocalAppConversationResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{85}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{87}
 }
 
 func (x *OpenLocalAppConversationResponse) GetConversationAnchorId() string {
@@ -7896,7 +8044,7 @@ type SendLocalAppConversationTurnRequest struct {
 
 func (x *SendLocalAppConversationTurnRequest) Reset() {
 	*x = SendLocalAppConversationTurnRequest{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[86]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[88]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7908,7 +8056,7 @@ func (x *SendLocalAppConversationTurnRequest) String() string {
 func (*SendLocalAppConversationTurnRequest) ProtoMessage() {}
 
 func (x *SendLocalAppConversationTurnRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[86]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[88]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7921,7 +8069,7 @@ func (x *SendLocalAppConversationTurnRequest) ProtoReflect() protoreflect.Messag
 
 // Deprecated: Use SendLocalAppConversationTurnRequest.ProtoReflect.Descriptor instead.
 func (*SendLocalAppConversationTurnRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{86}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{88}
 }
 
 func (x *SendLocalAppConversationTurnRequest) GetAgentHandle() string {
@@ -7961,7 +8109,7 @@ type SendLocalAppConversationTurnResponse struct {
 
 func (x *SendLocalAppConversationTurnResponse) Reset() {
 	*x = SendLocalAppConversationTurnResponse{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[87]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[89]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7973,7 +8121,7 @@ func (x *SendLocalAppConversationTurnResponse) String() string {
 func (*SendLocalAppConversationTurnResponse) ProtoMessage() {}
 
 func (x *SendLocalAppConversationTurnResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[87]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[89]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7986,7 +8134,7 @@ func (x *SendLocalAppConversationTurnResponse) ProtoReflect() protoreflect.Messa
 
 // Deprecated: Use SendLocalAppConversationTurnResponse.ProtoReflect.Descriptor instead.
 func (*SendLocalAppConversationTurnResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{87}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{89}
 }
 
 func (x *SendLocalAppConversationTurnResponse) GetTurnId() string {
@@ -8006,7 +8154,7 @@ type InterruptLocalAppConversationTurnRequest struct {
 
 func (x *InterruptLocalAppConversationTurnRequest) Reset() {
 	*x = InterruptLocalAppConversationTurnRequest{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[88]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[90]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8018,7 +8166,7 @@ func (x *InterruptLocalAppConversationTurnRequest) String() string {
 func (*InterruptLocalAppConversationTurnRequest) ProtoMessage() {}
 
 func (x *InterruptLocalAppConversationTurnRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[88]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[90]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8031,7 +8179,7 @@ func (x *InterruptLocalAppConversationTurnRequest) ProtoReflect() protoreflect.M
 
 // Deprecated: Use InterruptLocalAppConversationTurnRequest.ProtoReflect.Descriptor instead.
 func (*InterruptLocalAppConversationTurnRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{88}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{90}
 }
 
 func (x *InterruptLocalAppConversationTurnRequest) GetAgentHandle() string {
@@ -8057,7 +8205,7 @@ type InterruptLocalAppConversationTurnResponse struct {
 
 func (x *InterruptLocalAppConversationTurnResponse) Reset() {
 	*x = InterruptLocalAppConversationTurnResponse{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[89]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[91]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8069,7 +8217,7 @@ func (x *InterruptLocalAppConversationTurnResponse) String() string {
 func (*InterruptLocalAppConversationTurnResponse) ProtoMessage() {}
 
 func (x *InterruptLocalAppConversationTurnResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[89]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[91]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8082,7 +8230,7 @@ func (x *InterruptLocalAppConversationTurnResponse) ProtoReflect() protoreflect.
 
 // Deprecated: Use InterruptLocalAppConversationTurnResponse.ProtoReflect.Descriptor instead.
 func (*InterruptLocalAppConversationTurnResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{89}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{91}
 }
 
 func (x *InterruptLocalAppConversationTurnResponse) GetTurnId() string {
@@ -8102,7 +8250,7 @@ type SubscribeLocalAppConversationEventsRequest struct {
 
 func (x *SubscribeLocalAppConversationEventsRequest) Reset() {
 	*x = SubscribeLocalAppConversationEventsRequest{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[90]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[92]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8114,7 +8262,7 @@ func (x *SubscribeLocalAppConversationEventsRequest) String() string {
 func (*SubscribeLocalAppConversationEventsRequest) ProtoMessage() {}
 
 func (x *SubscribeLocalAppConversationEventsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[90]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[92]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8127,7 +8275,7 @@ func (x *SubscribeLocalAppConversationEventsRequest) ProtoReflect() protoreflect
 
 // Deprecated: Use SubscribeLocalAppConversationEventsRequest.ProtoReflect.Descriptor instead.
 func (*SubscribeLocalAppConversationEventsRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{90}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{92}
 }
 
 func (x *SubscribeLocalAppConversationEventsRequest) GetAgentHandle() string {
@@ -8154,7 +8302,7 @@ type GetLocalAppConversationSnapshotRequest struct {
 
 func (x *GetLocalAppConversationSnapshotRequest) Reset() {
 	*x = GetLocalAppConversationSnapshotRequest{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[91]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[93]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8166,7 +8314,7 @@ func (x *GetLocalAppConversationSnapshotRequest) String() string {
 func (*GetLocalAppConversationSnapshotRequest) ProtoMessage() {}
 
 func (x *GetLocalAppConversationSnapshotRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[91]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[93]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8179,7 +8327,7 @@ func (x *GetLocalAppConversationSnapshotRequest) ProtoReflect() protoreflect.Mes
 
 // Deprecated: Use GetLocalAppConversationSnapshotRequest.ProtoReflect.Descriptor instead.
 func (*GetLocalAppConversationSnapshotRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{91}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{93}
 }
 
 func (x *GetLocalAppConversationSnapshotRequest) GetAgentHandle() string {
@@ -8207,7 +8355,7 @@ type LocalAppConversationMessage struct {
 
 func (x *LocalAppConversationMessage) Reset() {
 	*x = LocalAppConversationMessage{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[92]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[94]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8219,7 +8367,7 @@ func (x *LocalAppConversationMessage) String() string {
 func (*LocalAppConversationMessage) ProtoMessage() {}
 
 func (x *LocalAppConversationMessage) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[92]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[94]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8232,7 +8380,7 @@ func (x *LocalAppConversationMessage) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LocalAppConversationMessage.ProtoReflect.Descriptor instead.
 func (*LocalAppConversationMessage) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{92}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{94}
 }
 
 func (x *LocalAppConversationMessage) GetTurnId() string {
@@ -8268,7 +8416,7 @@ type LocalAppConversationSnapshot struct {
 
 func (x *LocalAppConversationSnapshot) Reset() {
 	*x = LocalAppConversationSnapshot{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[93]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[95]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8280,7 +8428,7 @@ func (x *LocalAppConversationSnapshot) String() string {
 func (*LocalAppConversationSnapshot) ProtoMessage() {}
 
 func (x *LocalAppConversationSnapshot) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[93]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[95]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8293,7 +8441,7 @@ func (x *LocalAppConversationSnapshot) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LocalAppConversationSnapshot.ProtoReflect.Descriptor instead.
 func (*LocalAppConversationSnapshot) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{93}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{95}
 }
 
 func (x *LocalAppConversationSnapshot) GetConversationAnchorId() string {
@@ -8333,7 +8481,7 @@ type GetLocalAppConversationSnapshotResponse struct {
 
 func (x *GetLocalAppConversationSnapshotResponse) Reset() {
 	*x = GetLocalAppConversationSnapshotResponse{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[94]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[96]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8345,7 +8493,7 @@ func (x *GetLocalAppConversationSnapshotResponse) String() string {
 func (*GetLocalAppConversationSnapshotResponse) ProtoMessage() {}
 
 func (x *GetLocalAppConversationSnapshotResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[94]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[96]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8358,7 +8506,7 @@ func (x *GetLocalAppConversationSnapshotResponse) ProtoReflect() protoreflect.Me
 
 // Deprecated: Use GetLocalAppConversationSnapshotResponse.ProtoReflect.Descriptor instead.
 func (*GetLocalAppConversationSnapshotResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{94}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{96}
 }
 
 func (x *GetLocalAppConversationSnapshotResponse) GetSnapshot() *LocalAppConversationSnapshot {
@@ -8378,7 +8526,7 @@ type LocalAppConversationTurnAccepted struct {
 
 func (x *LocalAppConversationTurnAccepted) Reset() {
 	*x = LocalAppConversationTurnAccepted{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[95]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[97]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8390,7 +8538,7 @@ func (x *LocalAppConversationTurnAccepted) String() string {
 func (*LocalAppConversationTurnAccepted) ProtoMessage() {}
 
 func (x *LocalAppConversationTurnAccepted) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[95]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[97]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8403,7 +8551,7 @@ func (x *LocalAppConversationTurnAccepted) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LocalAppConversationTurnAccepted.ProtoReflect.Descriptor instead.
 func (*LocalAppConversationTurnAccepted) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{95}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{97}
 }
 
 func (x *LocalAppConversationTurnAccepted) GetTurnId() string {
@@ -8429,7 +8577,7 @@ type LocalAppConversationTurnStarted struct {
 
 func (x *LocalAppConversationTurnStarted) Reset() {
 	*x = LocalAppConversationTurnStarted{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[96]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[98]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8441,7 +8589,7 @@ func (x *LocalAppConversationTurnStarted) String() string {
 func (*LocalAppConversationTurnStarted) ProtoMessage() {}
 
 func (x *LocalAppConversationTurnStarted) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[96]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[98]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8454,7 +8602,7 @@ func (x *LocalAppConversationTurnStarted) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LocalAppConversationTurnStarted.ProtoReflect.Descriptor instead.
 func (*LocalAppConversationTurnStarted) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{96}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{98}
 }
 
 func (x *LocalAppConversationTurnStarted) GetTurnId() string {
@@ -8474,7 +8622,7 @@ type LocalAppConversationTextDelta struct {
 
 func (x *LocalAppConversationTextDelta) Reset() {
 	*x = LocalAppConversationTextDelta{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[97]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[99]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8486,7 +8634,7 @@ func (x *LocalAppConversationTextDelta) String() string {
 func (*LocalAppConversationTextDelta) ProtoMessage() {}
 
 func (x *LocalAppConversationTextDelta) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[97]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[99]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8499,7 +8647,7 @@ func (x *LocalAppConversationTextDelta) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LocalAppConversationTextDelta.ProtoReflect.Descriptor instead.
 func (*LocalAppConversationTextDelta) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{97}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{99}
 }
 
 func (x *LocalAppConversationTextDelta) GetTurnId() string {
@@ -8527,7 +8675,7 @@ type LocalAppConversationMessageCommitted struct {
 
 func (x *LocalAppConversationMessageCommitted) Reset() {
 	*x = LocalAppConversationMessageCommitted{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[98]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[100]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8539,7 +8687,7 @@ func (x *LocalAppConversationMessageCommitted) String() string {
 func (*LocalAppConversationMessageCommitted) ProtoMessage() {}
 
 func (x *LocalAppConversationMessageCommitted) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[98]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[100]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8552,7 +8700,7 @@ func (x *LocalAppConversationMessageCommitted) ProtoReflect() protoreflect.Messa
 
 // Deprecated: Use LocalAppConversationMessageCommitted.ProtoReflect.Descriptor instead.
 func (*LocalAppConversationMessageCommitted) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{98}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{100}
 }
 
 func (x *LocalAppConversationMessageCommitted) GetTurnId() string {
@@ -8586,7 +8734,7 @@ type LocalAppConversationTurnCompleted struct {
 
 func (x *LocalAppConversationTurnCompleted) Reset() {
 	*x = LocalAppConversationTurnCompleted{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[99]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[101]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8598,7 +8746,7 @@ func (x *LocalAppConversationTurnCompleted) String() string {
 func (*LocalAppConversationTurnCompleted) ProtoMessage() {}
 
 func (x *LocalAppConversationTurnCompleted) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[99]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[101]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8611,7 +8759,7 @@ func (x *LocalAppConversationTurnCompleted) ProtoReflect() protoreflect.Message 
 
 // Deprecated: Use LocalAppConversationTurnCompleted.ProtoReflect.Descriptor instead.
 func (*LocalAppConversationTurnCompleted) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{99}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{101}
 }
 
 func (x *LocalAppConversationTurnCompleted) GetTurnId() string {
@@ -8639,7 +8787,7 @@ type LocalAppConversationTurnFailed struct {
 
 func (x *LocalAppConversationTurnFailed) Reset() {
 	*x = LocalAppConversationTurnFailed{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[100]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[102]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8651,7 +8799,7 @@ func (x *LocalAppConversationTurnFailed) String() string {
 func (*LocalAppConversationTurnFailed) ProtoMessage() {}
 
 func (x *LocalAppConversationTurnFailed) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[100]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[102]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8664,7 +8812,7 @@ func (x *LocalAppConversationTurnFailed) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LocalAppConversationTurnFailed.ProtoReflect.Descriptor instead.
 func (*LocalAppConversationTurnFailed) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{100}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{102}
 }
 
 func (x *LocalAppConversationTurnFailed) GetTurnId() string {
@@ -8698,7 +8846,7 @@ type LocalAppConversationTurnInterrupted struct {
 
 func (x *LocalAppConversationTurnInterrupted) Reset() {
 	*x = LocalAppConversationTurnInterrupted{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[101]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[103]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8710,7 +8858,7 @@ func (x *LocalAppConversationTurnInterrupted) String() string {
 func (*LocalAppConversationTurnInterrupted) ProtoMessage() {}
 
 func (x *LocalAppConversationTurnInterrupted) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[101]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[103]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8723,7 +8871,7 @@ func (x *LocalAppConversationTurnInterrupted) ProtoReflect() protoreflect.Messag
 
 // Deprecated: Use LocalAppConversationTurnInterrupted.ProtoReflect.Descriptor instead.
 func (*LocalAppConversationTurnInterrupted) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{101}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{103}
 }
 
 func (x *LocalAppConversationTurnInterrupted) GetTurnId() string {
@@ -8760,7 +8908,7 @@ type LocalAppConversationEvent struct {
 
 func (x *LocalAppConversationEvent) Reset() {
 	*x = LocalAppConversationEvent{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[102]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[104]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8772,7 +8920,7 @@ func (x *LocalAppConversationEvent) String() string {
 func (*LocalAppConversationEvent) ProtoMessage() {}
 
 func (x *LocalAppConversationEvent) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[102]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[104]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8785,7 +8933,7 @@ func (x *LocalAppConversationEvent) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LocalAppConversationEvent.ProtoReflect.Descriptor instead.
 func (*LocalAppConversationEvent) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{102}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{104}
 }
 
 func (x *LocalAppConversationEvent) GetConversationAnchorId() string {
@@ -8929,7 +9077,7 @@ type GetConversationAnchorSnapshotRequest struct {
 
 func (x *GetConversationAnchorSnapshotRequest) Reset() {
 	*x = GetConversationAnchorSnapshotRequest{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[103]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[105]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8941,7 +9089,7 @@ func (x *GetConversationAnchorSnapshotRequest) String() string {
 func (*GetConversationAnchorSnapshotRequest) ProtoMessage() {}
 
 func (x *GetConversationAnchorSnapshotRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[103]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[105]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8954,7 +9102,7 @@ func (x *GetConversationAnchorSnapshotRequest) ProtoReflect() protoreflect.Messa
 
 // Deprecated: Use GetConversationAnchorSnapshotRequest.ProtoReflect.Descriptor instead.
 func (*GetConversationAnchorSnapshotRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{103}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{105}
 }
 
 func (x *GetConversationAnchorSnapshotRequest) GetContext() *AgentRequestContext {
@@ -8987,7 +9135,7 @@ type GetConversationAnchorSnapshotResponse struct {
 
 func (x *GetConversationAnchorSnapshotResponse) Reset() {
 	*x = GetConversationAnchorSnapshotResponse{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[104]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[106]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8999,7 +9147,7 @@ func (x *GetConversationAnchorSnapshotResponse) String() string {
 func (*GetConversationAnchorSnapshotResponse) ProtoMessage() {}
 
 func (x *GetConversationAnchorSnapshotResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[104]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[106]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9012,7 +9160,7 @@ func (x *GetConversationAnchorSnapshotResponse) ProtoReflect() protoreflect.Mess
 
 // Deprecated: Use GetConversationAnchorSnapshotResponse.ProtoReflect.Descriptor instead.
 func (*GetConversationAnchorSnapshotResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{104}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{106}
 }
 
 func (x *GetConversationAnchorSnapshotResponse) GetSnapshot() *ConversationAnchorSnapshot {
@@ -9045,7 +9193,7 @@ type AvatarLiveInstanceBinding struct {
 
 func (x *AvatarLiveInstanceBinding) Reset() {
 	*x = AvatarLiveInstanceBinding{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[105]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[107]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9057,7 +9205,7 @@ func (x *AvatarLiveInstanceBinding) String() string {
 func (*AvatarLiveInstanceBinding) ProtoMessage() {}
 
 func (x *AvatarLiveInstanceBinding) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[105]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[107]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9070,7 +9218,7 @@ func (x *AvatarLiveInstanceBinding) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AvatarLiveInstanceBinding.ProtoReflect.Descriptor instead.
 func (*AvatarLiveInstanceBinding) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{105}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{107}
 }
 
 func (x *AvatarLiveInstanceBinding) GetAvatarInstanceId() string {
@@ -9154,7 +9302,7 @@ type RegisterAvatarLiveInstanceBindingRequest struct {
 
 func (x *RegisterAvatarLiveInstanceBindingRequest) Reset() {
 	*x = RegisterAvatarLiveInstanceBindingRequest{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[106]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[108]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9166,7 +9314,7 @@ func (x *RegisterAvatarLiveInstanceBindingRequest) String() string {
 func (*RegisterAvatarLiveInstanceBindingRequest) ProtoMessage() {}
 
 func (x *RegisterAvatarLiveInstanceBindingRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[106]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[108]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9179,7 +9327,7 @@ func (x *RegisterAvatarLiveInstanceBindingRequest) ProtoReflect() protoreflect.M
 
 // Deprecated: Use RegisterAvatarLiveInstanceBindingRequest.ProtoReflect.Descriptor instead.
 func (*RegisterAvatarLiveInstanceBindingRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{106}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{108}
 }
 
 func (x *RegisterAvatarLiveInstanceBindingRequest) GetContext() *AgentRequestContext {
@@ -9213,7 +9361,7 @@ type RegisterAvatarLiveInstanceBindingResponse struct {
 
 func (x *RegisterAvatarLiveInstanceBindingResponse) Reset() {
 	*x = RegisterAvatarLiveInstanceBindingResponse{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[107]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[109]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9225,7 +9373,7 @@ func (x *RegisterAvatarLiveInstanceBindingResponse) String() string {
 func (*RegisterAvatarLiveInstanceBindingResponse) ProtoMessage() {}
 
 func (x *RegisterAvatarLiveInstanceBindingResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[107]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[109]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9238,7 +9386,7 @@ func (x *RegisterAvatarLiveInstanceBindingResponse) ProtoReflect() protoreflect.
 
 // Deprecated: Use RegisterAvatarLiveInstanceBindingResponse.ProtoReflect.Descriptor instead.
 func (*RegisterAvatarLiveInstanceBindingResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{107}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{109}
 }
 
 func (x *RegisterAvatarLiveInstanceBindingResponse) GetBinding() *AvatarLiveInstanceBinding {
@@ -9265,7 +9413,7 @@ type ResolveAvatarLiveInstanceBindingRequest struct {
 
 func (x *ResolveAvatarLiveInstanceBindingRequest) Reset() {
 	*x = ResolveAvatarLiveInstanceBindingRequest{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[108]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[110]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9277,7 +9425,7 @@ func (x *ResolveAvatarLiveInstanceBindingRequest) String() string {
 func (*ResolveAvatarLiveInstanceBindingRequest) ProtoMessage() {}
 
 func (x *ResolveAvatarLiveInstanceBindingRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[108]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[110]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9290,7 +9438,7 @@ func (x *ResolveAvatarLiveInstanceBindingRequest) ProtoReflect() protoreflect.Me
 
 // Deprecated: Use ResolveAvatarLiveInstanceBindingRequest.ProtoReflect.Descriptor instead.
 func (*ResolveAvatarLiveInstanceBindingRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{108}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{110}
 }
 
 func (x *ResolveAvatarLiveInstanceBindingRequest) GetContext() *AgentRequestContext {
@@ -9317,7 +9465,7 @@ type ResolveAvatarLiveInstanceBindingResponse struct {
 
 func (x *ResolveAvatarLiveInstanceBindingResponse) Reset() {
 	*x = ResolveAvatarLiveInstanceBindingResponse{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[109]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[111]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9329,7 +9477,7 @@ func (x *ResolveAvatarLiveInstanceBindingResponse) String() string {
 func (*ResolveAvatarLiveInstanceBindingResponse) ProtoMessage() {}
 
 func (x *ResolveAvatarLiveInstanceBindingResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[109]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[111]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9342,7 +9490,7 @@ func (x *ResolveAvatarLiveInstanceBindingResponse) ProtoReflect() protoreflect.M
 
 // Deprecated: Use ResolveAvatarLiveInstanceBindingResponse.ProtoReflect.Descriptor instead.
 func (*ResolveAvatarLiveInstanceBindingResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{109}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{111}
 }
 
 func (x *ResolveAvatarLiveInstanceBindingResponse) GetBinding() *AvatarLiveInstanceBinding {
@@ -9372,7 +9520,7 @@ type GetPublicChatSessionSnapshotRequest struct {
 
 func (x *GetPublicChatSessionSnapshotRequest) Reset() {
 	*x = GetPublicChatSessionSnapshotRequest{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[110]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[112]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9384,7 +9532,7 @@ func (x *GetPublicChatSessionSnapshotRequest) String() string {
 func (*GetPublicChatSessionSnapshotRequest) ProtoMessage() {}
 
 func (x *GetPublicChatSessionSnapshotRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[110]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[112]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9397,7 +9545,7 @@ func (x *GetPublicChatSessionSnapshotRequest) ProtoReflect() protoreflect.Messag
 
 // Deprecated: Use GetPublicChatSessionSnapshotRequest.ProtoReflect.Descriptor instead.
 func (*GetPublicChatSessionSnapshotRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{110}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{112}
 }
 
 func (x *GetPublicChatSessionSnapshotRequest) GetContext() *AgentRequestContext {
@@ -9444,7 +9592,7 @@ type GetPublicChatSessionSnapshotResponse struct {
 
 func (x *GetPublicChatSessionSnapshotResponse) Reset() {
 	*x = GetPublicChatSessionSnapshotResponse{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[111]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[113]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9456,7 +9604,7 @@ func (x *GetPublicChatSessionSnapshotResponse) String() string {
 func (*GetPublicChatSessionSnapshotResponse) ProtoMessage() {}
 
 func (x *GetPublicChatSessionSnapshotResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[111]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[113]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9469,7 +9617,7 @@ func (x *GetPublicChatSessionSnapshotResponse) ProtoReflect() protoreflect.Messa
 
 // Deprecated: Use GetPublicChatSessionSnapshotResponse.ProtoReflect.Descriptor instead.
 func (*GetPublicChatSessionSnapshotResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{111}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{113}
 }
 
 func (x *GetPublicChatSessionSnapshotResponse) GetSnapshot() *structpb.Struct {
@@ -9496,7 +9644,7 @@ type AgentConversationSummary struct {
 
 func (x *AgentConversationSummary) Reset() {
 	*x = AgentConversationSummary{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[112]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[114]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9508,7 +9656,7 @@ func (x *AgentConversationSummary) String() string {
 func (*AgentConversationSummary) ProtoMessage() {}
 
 func (x *AgentConversationSummary) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[112]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[114]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9521,7 +9669,7 @@ func (x *AgentConversationSummary) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AgentConversationSummary.ProtoReflect.Descriptor instead.
 func (*AgentConversationSummary) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{112}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{114}
 }
 
 func (x *AgentConversationSummary) GetAnchor() *ConversationAnchor {
@@ -9600,7 +9748,7 @@ type ListAgentConversationSummariesRequest struct {
 
 func (x *ListAgentConversationSummariesRequest) Reset() {
 	*x = ListAgentConversationSummariesRequest{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[113]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[115]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9612,7 +9760,7 @@ func (x *ListAgentConversationSummariesRequest) String() string {
 func (*ListAgentConversationSummariesRequest) ProtoMessage() {}
 
 func (x *ListAgentConversationSummariesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[113]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[115]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9625,7 +9773,7 @@ func (x *ListAgentConversationSummariesRequest) ProtoReflect() protoreflect.Mess
 
 // Deprecated: Use ListAgentConversationSummariesRequest.ProtoReflect.Descriptor instead.
 func (*ListAgentConversationSummariesRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{113}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{115}
 }
 
 func (x *ListAgentConversationSummariesRequest) GetContext() *AgentRequestContext {
@@ -9673,7 +9821,7 @@ type ListAgentConversationSummariesResponse struct {
 
 func (x *ListAgentConversationSummariesResponse) Reset() {
 	*x = ListAgentConversationSummariesResponse{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[114]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[116]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9685,7 +9833,7 @@ func (x *ListAgentConversationSummariesResponse) String() string {
 func (*ListAgentConversationSummariesResponse) ProtoMessage() {}
 
 func (x *ListAgentConversationSummariesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[114]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[116]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9698,7 +9846,7 @@ func (x *ListAgentConversationSummariesResponse) ProtoReflect() protoreflect.Mes
 
 // Deprecated: Use ListAgentConversationSummariesResponse.ProtoReflect.Descriptor instead.
 func (*ListAgentConversationSummariesResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{114}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{116}
 }
 
 func (x *ListAgentConversationSummariesResponse) GetSummaries() []*AgentConversationSummary {
@@ -9726,7 +9874,7 @@ type GetAvatarDebugSnapshotRequest struct {
 
 func (x *GetAvatarDebugSnapshotRequest) Reset() {
 	*x = GetAvatarDebugSnapshotRequest{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[115]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[117]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9738,7 +9886,7 @@ func (x *GetAvatarDebugSnapshotRequest) String() string {
 func (*GetAvatarDebugSnapshotRequest) ProtoMessage() {}
 
 func (x *GetAvatarDebugSnapshotRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[115]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[117]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9751,7 +9899,7 @@ func (x *GetAvatarDebugSnapshotRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetAvatarDebugSnapshotRequest.ProtoReflect.Descriptor instead.
 func (*GetAvatarDebugSnapshotRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{115}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{117}
 }
 
 func (x *GetAvatarDebugSnapshotRequest) GetContext() *AgentRequestContext {
@@ -9788,7 +9936,7 @@ type GetAvatarDebugSnapshotResponse struct {
 
 func (x *GetAvatarDebugSnapshotResponse) Reset() {
 	*x = GetAvatarDebugSnapshotResponse{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[116]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[118]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9800,7 +9948,7 @@ func (x *GetAvatarDebugSnapshotResponse) String() string {
 func (*GetAvatarDebugSnapshotResponse) ProtoMessage() {}
 
 func (x *GetAvatarDebugSnapshotResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[116]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[118]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9813,7 +9961,7 @@ func (x *GetAvatarDebugSnapshotResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetAvatarDebugSnapshotResponse.ProtoReflect.Descriptor instead.
 func (*GetAvatarDebugSnapshotResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{116}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{118}
 }
 
 func (x *GetAvatarDebugSnapshotResponse) GetAgentId() string {
@@ -9869,7 +10017,7 @@ type RequestAvatarDebugProbeRequest struct {
 
 func (x *RequestAvatarDebugProbeRequest) Reset() {
 	*x = RequestAvatarDebugProbeRequest{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[117]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[119]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9881,7 +10029,7 @@ func (x *RequestAvatarDebugProbeRequest) String() string {
 func (*RequestAvatarDebugProbeRequest) ProtoMessage() {}
 
 func (x *RequestAvatarDebugProbeRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[117]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[119]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9894,7 +10042,7 @@ func (x *RequestAvatarDebugProbeRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RequestAvatarDebugProbeRequest.ProtoReflect.Descriptor instead.
 func (*RequestAvatarDebugProbeRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{117}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{119}
 }
 
 func (x *RequestAvatarDebugProbeRequest) GetContext() *AgentRequestContext {
@@ -9978,7 +10126,7 @@ type RequestAvatarDebugProbeResponse struct {
 
 func (x *RequestAvatarDebugProbeResponse) Reset() {
 	*x = RequestAvatarDebugProbeResponse{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[118]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[120]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9990,7 +10138,7 @@ func (x *RequestAvatarDebugProbeResponse) String() string {
 func (*RequestAvatarDebugProbeResponse) ProtoMessage() {}
 
 func (x *RequestAvatarDebugProbeResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[118]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[120]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -10003,7 +10151,7 @@ func (x *RequestAvatarDebugProbeResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RequestAvatarDebugProbeResponse.ProtoReflect.Descriptor instead.
 func (*RequestAvatarDebugProbeResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{118}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{120}
 }
 
 func (x *RequestAvatarDebugProbeResponse) GetRequest() *AvatarDebugProbeRequestEnvelope {
@@ -10039,7 +10187,7 @@ type SubmitAvatarDebugProbeResultRequest struct {
 
 func (x *SubmitAvatarDebugProbeResultRequest) Reset() {
 	*x = SubmitAvatarDebugProbeResultRequest{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[119]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[121]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -10051,7 +10199,7 @@ func (x *SubmitAvatarDebugProbeResultRequest) String() string {
 func (*SubmitAvatarDebugProbeResultRequest) ProtoMessage() {}
 
 func (x *SubmitAvatarDebugProbeResultRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[119]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[121]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -10064,7 +10212,7 @@ func (x *SubmitAvatarDebugProbeResultRequest) ProtoReflect() protoreflect.Messag
 
 // Deprecated: Use SubmitAvatarDebugProbeResultRequest.ProtoReflect.Descriptor instead.
 func (*SubmitAvatarDebugProbeResultRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{119}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{121}
 }
 
 func (x *SubmitAvatarDebugProbeResultRequest) GetContext() *AgentRequestContext {
@@ -10104,7 +10252,7 @@ type SubmitAvatarDebugProbeResultResponse struct {
 
 func (x *SubmitAvatarDebugProbeResultResponse) Reset() {
 	*x = SubmitAvatarDebugProbeResultResponse{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[120]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[122]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -10116,7 +10264,7 @@ func (x *SubmitAvatarDebugProbeResultResponse) String() string {
 func (*SubmitAvatarDebugProbeResultResponse) ProtoMessage() {}
 
 func (x *SubmitAvatarDebugProbeResultResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[120]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[122]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -10129,7 +10277,7 @@ func (x *SubmitAvatarDebugProbeResultResponse) ProtoReflect() protoreflect.Messa
 
 // Deprecated: Use SubmitAvatarDebugProbeResultResponse.ProtoReflect.Descriptor instead.
 func (*SubmitAvatarDebugProbeResultResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{120}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{122}
 }
 
 func (x *SubmitAvatarDebugProbeResultResponse) GetResult() *AvatarDebugProbeResultEnvelope {
@@ -10151,7 +10299,7 @@ type ListAvatarDebugProbeResultsRequest struct {
 
 func (x *ListAvatarDebugProbeResultsRequest) Reset() {
 	*x = ListAvatarDebugProbeResultsRequest{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[121]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[123]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -10163,7 +10311,7 @@ func (x *ListAvatarDebugProbeResultsRequest) String() string {
 func (*ListAvatarDebugProbeResultsRequest) ProtoMessage() {}
 
 func (x *ListAvatarDebugProbeResultsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[121]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[123]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -10176,7 +10324,7 @@ func (x *ListAvatarDebugProbeResultsRequest) ProtoReflect() protoreflect.Message
 
 // Deprecated: Use ListAvatarDebugProbeResultsRequest.ProtoReflect.Descriptor instead.
 func (*ListAvatarDebugProbeResultsRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{121}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{123}
 }
 
 func (x *ListAvatarDebugProbeResultsRequest) GetContext() *AgentRequestContext {
@@ -10216,7 +10364,7 @@ type ListAvatarDebugProbeResultsResponse struct {
 
 func (x *ListAvatarDebugProbeResultsResponse) Reset() {
 	*x = ListAvatarDebugProbeResultsResponse{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[122]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[124]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -10228,7 +10376,7 @@ func (x *ListAvatarDebugProbeResultsResponse) String() string {
 func (*ListAvatarDebugProbeResultsResponse) ProtoMessage() {}
 
 func (x *ListAvatarDebugProbeResultsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[122]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[124]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -10241,7 +10389,7 @@ func (x *ListAvatarDebugProbeResultsResponse) ProtoReflect() protoreflect.Messag
 
 // Deprecated: Use ListAvatarDebugProbeResultsResponse.ProtoReflect.Descriptor instead.
 func (*ListAvatarDebugProbeResultsResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{122}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{124}
 }
 
 func (x *ListAvatarDebugProbeResultsResponse) GetProbeResults() []*AvatarDebugProbeResultEnvelope {
@@ -10263,7 +10411,7 @@ type GetAvatarDebugReplayRequest struct {
 
 func (x *GetAvatarDebugReplayRequest) Reset() {
 	*x = GetAvatarDebugReplayRequest{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[123]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[125]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -10275,7 +10423,7 @@ func (x *GetAvatarDebugReplayRequest) String() string {
 func (*GetAvatarDebugReplayRequest) ProtoMessage() {}
 
 func (x *GetAvatarDebugReplayRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[123]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[125]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -10288,7 +10436,7 @@ func (x *GetAvatarDebugReplayRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetAvatarDebugReplayRequest.ProtoReflect.Descriptor instead.
 func (*GetAvatarDebugReplayRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{123}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{125}
 }
 
 func (x *GetAvatarDebugReplayRequest) GetContext() *AgentRequestContext {
@@ -10330,7 +10478,7 @@ type GetAvatarDebugReplayResponse struct {
 
 func (x *GetAvatarDebugReplayResponse) Reset() {
 	*x = GetAvatarDebugReplayResponse{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[124]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[126]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -10342,7 +10490,7 @@ func (x *GetAvatarDebugReplayResponse) String() string {
 func (*GetAvatarDebugReplayResponse) ProtoMessage() {}
 
 func (x *GetAvatarDebugReplayResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[124]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[126]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -10355,7 +10503,7 @@ func (x *GetAvatarDebugReplayResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetAvatarDebugReplayResponse.ProtoReflect.Descriptor instead.
 func (*GetAvatarDebugReplayResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{124}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{126}
 }
 
 func (x *GetAvatarDebugReplayResponse) GetRequest() *AvatarDebugProbeRequestEnvelope {
@@ -10391,7 +10539,7 @@ type GetSharedLocalAgentAIConfigRequest struct {
 
 func (x *GetSharedLocalAgentAIConfigRequest) Reset() {
 	*x = GetSharedLocalAgentAIConfigRequest{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[125]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[127]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -10403,7 +10551,7 @@ func (x *GetSharedLocalAgentAIConfigRequest) String() string {
 func (*GetSharedLocalAgentAIConfigRequest) ProtoMessage() {}
 
 func (x *GetSharedLocalAgentAIConfigRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[125]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[127]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -10416,7 +10564,7 @@ func (x *GetSharedLocalAgentAIConfigRequest) ProtoReflect() protoreflect.Message
 
 // Deprecated: Use GetSharedLocalAgentAIConfigRequest.ProtoReflect.Descriptor instead.
 func (*GetSharedLocalAgentAIConfigRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{125}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{127}
 }
 
 func (x *GetSharedLocalAgentAIConfigRequest) GetContext() *AgentRequestContext {
@@ -10435,7 +10583,7 @@ type GetSharedLocalAgentAIConfigResponse struct {
 
 func (x *GetSharedLocalAgentAIConfigResponse) Reset() {
 	*x = GetSharedLocalAgentAIConfigResponse{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[126]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[128]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -10447,7 +10595,7 @@ func (x *GetSharedLocalAgentAIConfigResponse) String() string {
 func (*GetSharedLocalAgentAIConfigResponse) ProtoMessage() {}
 
 func (x *GetSharedLocalAgentAIConfigResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[126]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[128]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -10460,7 +10608,7 @@ func (x *GetSharedLocalAgentAIConfigResponse) ProtoReflect() protoreflect.Messag
 
 // Deprecated: Use GetSharedLocalAgentAIConfigResponse.ProtoReflect.Descriptor instead.
 func (*GetSharedLocalAgentAIConfigResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{126}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{128}
 }
 
 func (x *GetSharedLocalAgentAIConfigResponse) GetConfig() *AIConfig {
@@ -10480,7 +10628,7 @@ type OverwriteSharedLocalAgentAIConfigRequest struct {
 
 func (x *OverwriteSharedLocalAgentAIConfigRequest) Reset() {
 	*x = OverwriteSharedLocalAgentAIConfigRequest{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[127]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[129]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -10492,7 +10640,7 @@ func (x *OverwriteSharedLocalAgentAIConfigRequest) String() string {
 func (*OverwriteSharedLocalAgentAIConfigRequest) ProtoMessage() {}
 
 func (x *OverwriteSharedLocalAgentAIConfigRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[127]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[129]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -10505,7 +10653,7 @@ func (x *OverwriteSharedLocalAgentAIConfigRequest) ProtoReflect() protoreflect.M
 
 // Deprecated: Use OverwriteSharedLocalAgentAIConfigRequest.ProtoReflect.Descriptor instead.
 func (*OverwriteSharedLocalAgentAIConfigRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{127}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{129}
 }
 
 func (x *OverwriteSharedLocalAgentAIConfigRequest) GetContext() *AgentRequestContext {
@@ -10531,7 +10679,7 @@ type OverwriteSharedLocalAgentAIConfigResponse struct {
 
 func (x *OverwriteSharedLocalAgentAIConfigResponse) Reset() {
 	*x = OverwriteSharedLocalAgentAIConfigResponse{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[128]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[130]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -10543,7 +10691,7 @@ func (x *OverwriteSharedLocalAgentAIConfigResponse) String() string {
 func (*OverwriteSharedLocalAgentAIConfigResponse) ProtoMessage() {}
 
 func (x *OverwriteSharedLocalAgentAIConfigResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[128]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[130]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -10556,7 +10704,7 @@ func (x *OverwriteSharedLocalAgentAIConfigResponse) ProtoReflect() protoreflect.
 
 // Deprecated: Use OverwriteSharedLocalAgentAIConfigResponse.ProtoReflect.Descriptor instead.
 func (*OverwriteSharedLocalAgentAIConfigResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{128}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{130}
 }
 
 func (x *OverwriteSharedLocalAgentAIConfigResponse) GetConfig() *AIConfig {
@@ -10578,7 +10726,7 @@ type PreviewSharedLocalAgentAIProfileRequest struct {
 
 func (x *PreviewSharedLocalAgentAIProfileRequest) Reset() {
 	*x = PreviewSharedLocalAgentAIProfileRequest{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[129]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[131]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -10590,7 +10738,7 @@ func (x *PreviewSharedLocalAgentAIProfileRequest) String() string {
 func (*PreviewSharedLocalAgentAIProfileRequest) ProtoMessage() {}
 
 func (x *PreviewSharedLocalAgentAIProfileRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[129]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[131]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -10603,7 +10751,7 @@ func (x *PreviewSharedLocalAgentAIProfileRequest) ProtoReflect() protoreflect.Me
 
 // Deprecated: Use PreviewSharedLocalAgentAIProfileRequest.ProtoReflect.Descriptor instead.
 func (*PreviewSharedLocalAgentAIProfileRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{129}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{131}
 }
 
 func (x *PreviewSharedLocalAgentAIProfileRequest) GetContext() *AgentRequestContext {
@@ -10630,7 +10778,7 @@ type PreviewSharedLocalAgentAIProfileResponse struct {
 
 func (x *PreviewSharedLocalAgentAIProfileResponse) Reset() {
 	*x = PreviewSharedLocalAgentAIProfileResponse{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[130]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[132]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -10642,7 +10790,7 @@ func (x *PreviewSharedLocalAgentAIProfileResponse) String() string {
 func (*PreviewSharedLocalAgentAIProfileResponse) ProtoMessage() {}
 
 func (x *PreviewSharedLocalAgentAIProfileResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[130]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[132]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -10655,7 +10803,7 @@ func (x *PreviewSharedLocalAgentAIProfileResponse) ProtoReflect() protoreflect.M
 
 // Deprecated: Use PreviewSharedLocalAgentAIProfileResponse.ProtoReflect.Descriptor instead.
 func (*PreviewSharedLocalAgentAIProfileResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{130}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{132}
 }
 
 func (x *PreviewSharedLocalAgentAIProfileResponse) GetBefore() *AIConfig {
@@ -10682,7 +10830,7 @@ type ApplySharedLocalAgentAIProfileRequest struct {
 
 func (x *ApplySharedLocalAgentAIProfileRequest) Reset() {
 	*x = ApplySharedLocalAgentAIProfileRequest{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[131]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[133]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -10694,7 +10842,7 @@ func (x *ApplySharedLocalAgentAIProfileRequest) String() string {
 func (*ApplySharedLocalAgentAIProfileRequest) ProtoMessage() {}
 
 func (x *ApplySharedLocalAgentAIProfileRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[131]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[133]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -10707,7 +10855,7 @@ func (x *ApplySharedLocalAgentAIProfileRequest) ProtoReflect() protoreflect.Mess
 
 // Deprecated: Use ApplySharedLocalAgentAIProfileRequest.ProtoReflect.Descriptor instead.
 func (*ApplySharedLocalAgentAIProfileRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{131}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{133}
 }
 
 func (x *ApplySharedLocalAgentAIProfileRequest) GetContext() *AgentRequestContext {
@@ -10733,7 +10881,7 @@ type ApplySharedLocalAgentAIProfileResponse struct {
 
 func (x *ApplySharedLocalAgentAIProfileResponse) Reset() {
 	*x = ApplySharedLocalAgentAIProfileResponse{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[132]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[134]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -10745,7 +10893,7 @@ func (x *ApplySharedLocalAgentAIProfileResponse) String() string {
 func (*ApplySharedLocalAgentAIProfileResponse) ProtoMessage() {}
 
 func (x *ApplySharedLocalAgentAIProfileResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[132]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[134]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -10758,7 +10906,7 @@ func (x *ApplySharedLocalAgentAIProfileResponse) ProtoReflect() protoreflect.Mes
 
 // Deprecated: Use ApplySharedLocalAgentAIProfileResponse.ProtoReflect.Descriptor instead.
 func (*ApplySharedLocalAgentAIProfileResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{132}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{134}
 }
 
 func (x *ApplySharedLocalAgentAIProfileResponse) GetConfig() *AIConfig {
@@ -11239,7 +11387,20 @@ const file_runtime_v1_agent_service_proto_rawDesc = "" +
 	"\x0fvoice_stream_id\x18\x01 \x01(\tR\rvoiceStreamId\x12L\n" +
 	"\x11voice_output_mode\x18\x02 \x01(\x0e2 .nimi.runtime.v1.VoiceOutputModeR\x0fvoiceOutputMode\x12U\n" +
 	"\x14voice_playback_state\x18\x03 \x01(\x0e2#.nimi.runtime.v1.VoicePlaybackStateR\x12voicePlaybackState\x12'\n" +
-	"\x0fterminal_reason\x18\x04 \x01(\tR\x0eterminalReason\"\xe2\x04\n" +
+	"\x0fterminal_reason\x18\x04 \x01(\tR\x0eterminalReason\"\x90\x02\n" +
+	" TranscribeAgentVoiceInputRequest\x12>\n" +
+	"\acontext\x18\x01 \x01(\v2$.nimi.runtime.v1.AgentRequestContextR\acontext\x12\x19\n" +
+	"\bagent_id\x18\x02 \x01(\tR\aagentId\x124\n" +
+	"\x16conversation_anchor_id\x18\x03 \x01(\tR\x14conversationAnchorId\x12\x1f\n" +
+	"\vaudio_bytes\x18\x04 \x01(\fR\n" +
+	"audioBytes\x12\x1b\n" +
+	"\tmime_type\x18\x05 \x01(\tR\bmimeType\x12\x1d\n" +
+	"\n" +
+	"request_id\x18\x06 \x01(\tR\trequestId\"i\n" +
+	"!TranscribeAgentVoiceInputResponse\x12\x12\n" +
+	"\x04text\x18\x01 \x01(\tR\x04text\x12\x15\n" +
+	"\x06job_id\x18\x02 \x01(\tR\x05jobId\x12\x19\n" +
+	"\btrace_id\x18\x03 \x01(\tR\atraceId\"\xe2\x04\n" +
 	"\x15AgentVoiceStreamEvent\x12&\n" +
 	"\x0fvoice_stream_id\x18\x01 \x01(\tR\rvoiceStreamId\x124\n" +
 	"\x16conversation_anchor_id\x18\x02 \x01(\tR\x14conversationAnchorId\x12\x17\n" +
@@ -11680,7 +11841,7 @@ const file_runtime_v1_agent_service_proto_rawDesc = "" +
 	"\x1fLocalAppConversationMessageRole\x123\n" +
 	"/LOCAL_APP_CONVERSATION_MESSAGE_ROLE_UNSPECIFIED\x10\x00\x12,\n" +
 	"(LOCAL_APP_CONVERSATION_MESSAGE_ROLE_USER\x10\x01\x121\n" +
-	"-LOCAL_APP_CONVERSATION_MESSAGE_ROLE_ASSISTANT\x10\x022\x93=\n" +
+	"-LOCAL_APP_CONVERSATION_MESSAGE_ROLE_ASSISTANT\x10\x022\x98>\n" +
 	"\x13RuntimeAgentService\x12y\n" +
 	"\x16MaterializeRealmSource\x12..nimi.runtime.v1.MaterializeRealmSourceRequest\x1a/.nimi.runtime.v1.MaterializeRealmSourceResponse\x12a\n" +
 	"\x0eTerminateAgent\x12&.nimi.runtime.v1.TerminateAgentRequest\x1a'.nimi.runtime.v1.TerminateAgentResponse\x12O\n" +
@@ -11731,7 +11892,8 @@ const file_runtime_v1_agent_service_proto_rawDesc = "" +
 	"#GetAgentCanonicalMemoryReviewStatus\x12;.nimi.runtime.v1.GetAgentCanonicalMemoryReviewStatusRequest\x1a<.nimi.runtime.v1.GetAgentCanonicalMemoryReviewStatusResponse\x12c\n" +
 	"\x14SubscribeAgentEvents\x12,.nimi.runtime.v1.SubscribeAgentEventsRequest\x1a\x1b.nimi.runtime.v1.AgentEvent0\x01\x12x\n" +
 	"\x19SubscribeAgentVoiceStream\x121.nimi.runtime.v1.SubscribeAgentVoiceStreamRequest\x1a&.nimi.runtime.v1.AgentVoiceStreamEvent0\x01\x12\x88\x01\n" +
-	"\x1bInterruptAgentVoicePlayback\x123.nimi.runtime.v1.InterruptAgentVoicePlaybackRequest\x1a4.nimi.runtime.v1.InterruptAgentVoicePlaybackResponse\x12\x88\x01\n" +
+	"\x1bInterruptAgentVoicePlayback\x123.nimi.runtime.v1.InterruptAgentVoicePlaybackRequest\x1a4.nimi.runtime.v1.InterruptAgentVoicePlaybackResponse\x12\x82\x01\n" +
+	"\x19TranscribeAgentVoiceInput\x121.nimi.runtime.v1.TranscribeAgentVoiceInputRequest\x1a2.nimi.runtime.v1.TranscribeAgentVoiceInputResponse\x12\x88\x01\n" +
 	"\x1bGetSharedLocalAgentAIConfig\x123.nimi.runtime.v1.GetSharedLocalAgentAIConfigRequest\x1a4.nimi.runtime.v1.GetSharedLocalAgentAIConfigResponse\x12\x9a\x01\n" +
 	"!OverwriteSharedLocalAgentAIConfig\x129.nimi.runtime.v1.OverwriteSharedLocalAgentAIConfigRequest\x1a:.nimi.runtime.v1.OverwriteSharedLocalAgentAIConfigResponse\x12\x97\x01\n" +
 	" PreviewSharedLocalAgentAIProfile\x128.nimi.runtime.v1.PreviewSharedLocalAgentAIProfileRequest\x1a9.nimi.runtime.v1.PreviewSharedLocalAgentAIProfileResponse\x12\x91\x01\n" +
@@ -11756,7 +11918,7 @@ func file_runtime_v1_agent_service_proto_rawDescGZIP() []byte {
 }
 
 var file_runtime_v1_agent_service_proto_enumTypes = make([]protoimpl.EnumInfo, 27)
-var file_runtime_v1_agent_service_proto_msgTypes = make([]protoimpl.MessageInfo, 134)
+var file_runtime_v1_agent_service_proto_msgTypes = make([]protoimpl.MessageInfo, 136)
 var file_runtime_v1_agent_service_proto_goTypes = []any{
 	(AgentLifecycleStatus)(0),                           // 0: nimi.runtime.v1.AgentLifecycleStatus
 	(AgentExecutionState)(0),                            // 1: nimi.runtime.v1.AgentExecutionState
@@ -11861,145 +12023,147 @@ var file_runtime_v1_agent_service_proto_goTypes = []any{
 	(*SubscribeAgentVoiceStreamRequest)(nil),            // 100: nimi.runtime.v1.SubscribeAgentVoiceStreamRequest
 	(*InterruptAgentVoicePlaybackRequest)(nil),          // 101: nimi.runtime.v1.InterruptAgentVoicePlaybackRequest
 	(*InterruptAgentVoicePlaybackResponse)(nil),         // 102: nimi.runtime.v1.InterruptAgentVoicePlaybackResponse
-	(*AgentVoiceStreamEvent)(nil),                       // 103: nimi.runtime.v1.AgentVoiceStreamEvent
-	(*ConversationAnchor)(nil),                          // 104: nimi.runtime.v1.ConversationAnchor
-	(*ConversationAnchorSnapshot)(nil),                  // 105: nimi.runtime.v1.ConversationAnchorSnapshot
-	(*OpenConversationAnchorRequest)(nil),               // 106: nimi.runtime.v1.OpenConversationAnchorRequest
-	(*OpenConversationAnchorResponse)(nil),              // 107: nimi.runtime.v1.OpenConversationAnchorResponse
-	(*LocalAppAgentReference)(nil),                      // 108: nimi.runtime.v1.LocalAppAgentReference
-	(*ListLocalAppAgentReferencesRequest)(nil),          // 109: nimi.runtime.v1.ListLocalAppAgentReferencesRequest
-	(*ListLocalAppAgentReferencesResponse)(nil),         // 110: nimi.runtime.v1.ListLocalAppAgentReferencesResponse
-	(*OpenLocalAppConversationRequest)(nil),             // 111: nimi.runtime.v1.OpenLocalAppConversationRequest
-	(*OpenLocalAppConversationResponse)(nil),            // 112: nimi.runtime.v1.OpenLocalAppConversationResponse
-	(*SendLocalAppConversationTurnRequest)(nil),         // 113: nimi.runtime.v1.SendLocalAppConversationTurnRequest
-	(*SendLocalAppConversationTurnResponse)(nil),        // 114: nimi.runtime.v1.SendLocalAppConversationTurnResponse
-	(*InterruptLocalAppConversationTurnRequest)(nil),    // 115: nimi.runtime.v1.InterruptLocalAppConversationTurnRequest
-	(*InterruptLocalAppConversationTurnResponse)(nil),   // 116: nimi.runtime.v1.InterruptLocalAppConversationTurnResponse
-	(*SubscribeLocalAppConversationEventsRequest)(nil),  // 117: nimi.runtime.v1.SubscribeLocalAppConversationEventsRequest
-	(*GetLocalAppConversationSnapshotRequest)(nil),      // 118: nimi.runtime.v1.GetLocalAppConversationSnapshotRequest
-	(*LocalAppConversationMessage)(nil),                 // 119: nimi.runtime.v1.LocalAppConversationMessage
-	(*LocalAppConversationSnapshot)(nil),                // 120: nimi.runtime.v1.LocalAppConversationSnapshot
-	(*GetLocalAppConversationSnapshotResponse)(nil),     // 121: nimi.runtime.v1.GetLocalAppConversationSnapshotResponse
-	(*LocalAppConversationTurnAccepted)(nil),            // 122: nimi.runtime.v1.LocalAppConversationTurnAccepted
-	(*LocalAppConversationTurnStarted)(nil),             // 123: nimi.runtime.v1.LocalAppConversationTurnStarted
-	(*LocalAppConversationTextDelta)(nil),               // 124: nimi.runtime.v1.LocalAppConversationTextDelta
-	(*LocalAppConversationMessageCommitted)(nil),        // 125: nimi.runtime.v1.LocalAppConversationMessageCommitted
-	(*LocalAppConversationTurnCompleted)(nil),           // 126: nimi.runtime.v1.LocalAppConversationTurnCompleted
-	(*LocalAppConversationTurnFailed)(nil),              // 127: nimi.runtime.v1.LocalAppConversationTurnFailed
-	(*LocalAppConversationTurnInterrupted)(nil),         // 128: nimi.runtime.v1.LocalAppConversationTurnInterrupted
-	(*LocalAppConversationEvent)(nil),                   // 129: nimi.runtime.v1.LocalAppConversationEvent
-	(*GetConversationAnchorSnapshotRequest)(nil),        // 130: nimi.runtime.v1.GetConversationAnchorSnapshotRequest
-	(*GetConversationAnchorSnapshotResponse)(nil),       // 131: nimi.runtime.v1.GetConversationAnchorSnapshotResponse
-	(*AvatarLiveInstanceBinding)(nil),                   // 132: nimi.runtime.v1.AvatarLiveInstanceBinding
-	(*RegisterAvatarLiveInstanceBindingRequest)(nil),    // 133: nimi.runtime.v1.RegisterAvatarLiveInstanceBindingRequest
-	(*RegisterAvatarLiveInstanceBindingResponse)(nil),   // 134: nimi.runtime.v1.RegisterAvatarLiveInstanceBindingResponse
-	(*ResolveAvatarLiveInstanceBindingRequest)(nil),     // 135: nimi.runtime.v1.ResolveAvatarLiveInstanceBindingRequest
-	(*ResolveAvatarLiveInstanceBindingResponse)(nil),    // 136: nimi.runtime.v1.ResolveAvatarLiveInstanceBindingResponse
-	(*GetPublicChatSessionSnapshotRequest)(nil),         // 137: nimi.runtime.v1.GetPublicChatSessionSnapshotRequest
-	(*GetPublicChatSessionSnapshotResponse)(nil),        // 138: nimi.runtime.v1.GetPublicChatSessionSnapshotResponse
-	(*AgentConversationSummary)(nil),                    // 139: nimi.runtime.v1.AgentConversationSummary
-	(*ListAgentConversationSummariesRequest)(nil),       // 140: nimi.runtime.v1.ListAgentConversationSummariesRequest
-	(*ListAgentConversationSummariesResponse)(nil),      // 141: nimi.runtime.v1.ListAgentConversationSummariesResponse
-	(*GetAvatarDebugSnapshotRequest)(nil),               // 142: nimi.runtime.v1.GetAvatarDebugSnapshotRequest
-	(*GetAvatarDebugSnapshotResponse)(nil),              // 143: nimi.runtime.v1.GetAvatarDebugSnapshotResponse
-	(*RequestAvatarDebugProbeRequest)(nil),              // 144: nimi.runtime.v1.RequestAvatarDebugProbeRequest
-	(*RequestAvatarDebugProbeResponse)(nil),             // 145: nimi.runtime.v1.RequestAvatarDebugProbeResponse
-	(*SubmitAvatarDebugProbeResultRequest)(nil),         // 146: nimi.runtime.v1.SubmitAvatarDebugProbeResultRequest
-	(*SubmitAvatarDebugProbeResultResponse)(nil),        // 147: nimi.runtime.v1.SubmitAvatarDebugProbeResultResponse
-	(*ListAvatarDebugProbeResultsRequest)(nil),          // 148: nimi.runtime.v1.ListAvatarDebugProbeResultsRequest
-	(*ListAvatarDebugProbeResultsResponse)(nil),         // 149: nimi.runtime.v1.ListAvatarDebugProbeResultsResponse
-	(*GetAvatarDebugReplayRequest)(nil),                 // 150: nimi.runtime.v1.GetAvatarDebugReplayRequest
-	(*GetAvatarDebugReplayResponse)(nil),                // 151: nimi.runtime.v1.GetAvatarDebugReplayResponse
-	(*GetSharedLocalAgentAIConfigRequest)(nil),          // 152: nimi.runtime.v1.GetSharedLocalAgentAIConfigRequest
-	(*GetSharedLocalAgentAIConfigResponse)(nil),         // 153: nimi.runtime.v1.GetSharedLocalAgentAIConfigResponse
-	(*OverwriteSharedLocalAgentAIConfigRequest)(nil),    // 154: nimi.runtime.v1.OverwriteSharedLocalAgentAIConfigRequest
-	(*OverwriteSharedLocalAgentAIConfigResponse)(nil),   // 155: nimi.runtime.v1.OverwriteSharedLocalAgentAIConfigResponse
-	(*PreviewSharedLocalAgentAIProfileRequest)(nil),     // 156: nimi.runtime.v1.PreviewSharedLocalAgentAIProfileRequest
-	(*PreviewSharedLocalAgentAIProfileResponse)(nil),    // 157: nimi.runtime.v1.PreviewSharedLocalAgentAIProfileResponse
-	(*ApplySharedLocalAgentAIProfileRequest)(nil),       // 158: nimi.runtime.v1.ApplySharedLocalAgentAIProfileRequest
-	(*ApplySharedLocalAgentAIProfileResponse)(nil),      // 159: nimi.runtime.v1.ApplySharedLocalAgentAIProfileResponse
-	nil,                                                       // 160: nimi.runtime.v1.AgentStateProjection.AttributesEntry
-	(*durationpb.Duration)(nil),                               // 161: google.protobuf.Duration
-	(*timestamppb.Timestamp)(nil),                             // 162: google.protobuf.Timestamp
-	(*structpb.Struct)(nil),                                   // 163: google.protobuf.Struct
-	(*AgentPresentationProfile)(nil),                          // 164: nimi.runtime.v1.AgentPresentationProfile
-	(*LocalAgentSourceContextStatus)(nil),                     // 165: nimi.runtime.v1.LocalAgentSourceContextStatus
-	(ReasonCode)(0),                                           // 166: nimi.runtime.v1.ReasonCode
-	(MemoryCanonicalClass)(0),                                 // 167: nimi.runtime.v1.MemoryCanonicalClass
-	(*MemoryBankLocator)(nil),                                 // 168: nimi.runtime.v1.MemoryBankLocator
-	(*MemoryRecordInput)(nil),                                 // 169: nimi.runtime.v1.MemoryRecordInput
-	(*MemoryRecord)(nil),                                      // 170: nimi.runtime.v1.MemoryRecord
-	(*MemoryReplicationState)(nil),                            // 171: nimi.runtime.v1.MemoryReplicationState
-	(*AgentPresentationEventDetail)(nil),                      // 172: nimi.runtime.v1.AgentPresentationEventDetail
-	(*AgentRequestContext)(nil),                               // 173: nimi.runtime.v1.AgentRequestContext
-	(*Ack)(nil),                                               // 174: nimi.runtime.v1.Ack
-	(*ClearAgentPresentationProfile)(nil),                     // 175: nimi.runtime.v1.ClearAgentPresentationProfile
-	(*AgentPresentationProfilePatch)(nil),                     // 176: nimi.runtime.v1.AgentPresentationProfilePatch
-	(*AgentPresentationAssetMaterial)(nil),                    // 177: nimi.runtime.v1.AgentPresentationAssetMaterial
-	(AgentPresentationAssetRole)(0),                           // 178: nimi.runtime.v1.AgentPresentationAssetRole
-	(AgentPresentationBackendKind)(0),                         // 179: nimi.runtime.v1.AgentPresentationBackendKind
-	(MemoryRecordKind)(0),                                     // 180: nimi.runtime.v1.MemoryRecordKind
-	(*NarrativeRecallHit)(nil),                                // 181: nimi.runtime.v1.NarrativeRecallHit
-	(*MemoryEmbeddingProfile)(nil),                            // 182: nimi.runtime.v1.MemoryEmbeddingProfile
-	(VoiceOutputMode)(0),                                      // 183: nimi.runtime.v1.VoiceOutputMode
-	(VoicePlaybackState)(0),                                   // 184: nimi.runtime.v1.VoicePlaybackState
-	(*AgentTurnContextSummary)(nil),                           // 185: nimi.runtime.v1.AgentTurnContextSummary
-	(*AIConfig)(nil),                                          // 186: nimi.runtime.v1.AIConfig
-	(*AIConfigCapabilityIntent)(nil),                          // 187: nimi.runtime.v1.AIConfigCapabilityIntent
-	(*MaterializeRealmSourceRequest)(nil),                     // 188: nimi.runtime.v1.MaterializeRealmSourceRequest
-	(*GetCompanionParticipationProjectionRequest)(nil),        // 189: nimi.runtime.v1.GetCompanionParticipationProjectionRequest
-	(*RequestCompanionParticipationRequest)(nil),              // 190: nimi.runtime.v1.RequestCompanionParticipationRequest
-	(*CancelCompanionParticipationRequest)(nil),               // 191: nimi.runtime.v1.CancelCompanionParticipationRequest
-	(*OpenCompanionParticipationReplayRequest)(nil),           // 192: nimi.runtime.v1.OpenCompanionParticipationReplayRequest
-	(*ListDelegatedProviderProfilesRequest)(nil),              // 193: nimi.runtime.v1.ListDelegatedProviderProfilesRequest
-	(*ListDelegatedApprovalRequestsRequest)(nil),              // 194: nimi.runtime.v1.ListDelegatedApprovalRequestsRequest
-	(*SubmitDelegatedApprovalDecisionRequest)(nil),            // 195: nimi.runtime.v1.SubmitDelegatedApprovalDecisionRequest
-	(*ListDelegatedDiagnosticsRequest)(nil),                   // 196: nimi.runtime.v1.ListDelegatedDiagnosticsRequest
-	(*GetDelegatedReplayTraceRequest)(nil),                    // 197: nimi.runtime.v1.GetDelegatedReplayTraceRequest
-	(*GetDelegatedControlSurfaceSnapshotRequest)(nil),         // 198: nimi.runtime.v1.GetDelegatedControlSurfaceSnapshotRequest
-	(*GetLocalAppSharedLocalAgentAIConfigRequest)(nil),        // 199: nimi.runtime.v1.GetLocalAppSharedLocalAgentAIConfigRequest
-	(*OverwriteLocalAppSharedLocalAgentAIConfigRequest)(nil),  // 200: nimi.runtime.v1.OverwriteLocalAppSharedLocalAgentAIConfigRequest
-	(*GetLocalAppAgentAutonomySnapshotRequest)(nil),           // 201: nimi.runtime.v1.GetLocalAppAgentAutonomySnapshotRequest
-	(*UpdateLocalAppAgentAutonomyRequest)(nil),                // 202: nimi.runtime.v1.UpdateLocalAppAgentAutonomyRequest
-	(*GetLocalAppAgentPresentationSnapshotRequest)(nil),       // 203: nimi.runtime.v1.GetLocalAppAgentPresentationSnapshotRequest
-	(*CommitLocalAppAgentPresentationRequest)(nil),            // 204: nimi.runtime.v1.CommitLocalAppAgentPresentationRequest
-	(*MaterializeRealmSourceResponse)(nil),                    // 205: nimi.runtime.v1.MaterializeRealmSourceResponse
-	(*GetCompanionParticipationProjectionResponse)(nil),       // 206: nimi.runtime.v1.GetCompanionParticipationProjectionResponse
-	(*RequestCompanionParticipationResponse)(nil),             // 207: nimi.runtime.v1.RequestCompanionParticipationResponse
-	(*CancelCompanionParticipationResponse)(nil),              // 208: nimi.runtime.v1.CancelCompanionParticipationResponse
-	(*OpenCompanionParticipationReplayResponse)(nil),          // 209: nimi.runtime.v1.OpenCompanionParticipationReplayResponse
-	(*ListDelegatedProviderProfilesResponse)(nil),             // 210: nimi.runtime.v1.ListDelegatedProviderProfilesResponse
-	(*ListDelegatedApprovalRequestsResponse)(nil),             // 211: nimi.runtime.v1.ListDelegatedApprovalRequestsResponse
-	(*SubmitDelegatedApprovalDecisionResponse)(nil),           // 212: nimi.runtime.v1.SubmitDelegatedApprovalDecisionResponse
-	(*ListDelegatedDiagnosticsResponse)(nil),                  // 213: nimi.runtime.v1.ListDelegatedDiagnosticsResponse
-	(*GetDelegatedReplayTraceResponse)(nil),                   // 214: nimi.runtime.v1.GetDelegatedReplayTraceResponse
-	(*GetDelegatedControlSurfaceSnapshotResponse)(nil),        // 215: nimi.runtime.v1.GetDelegatedControlSurfaceSnapshotResponse
-	(*GetLocalAppSharedLocalAgentAIConfigResponse)(nil),       // 216: nimi.runtime.v1.GetLocalAppSharedLocalAgentAIConfigResponse
-	(*OverwriteLocalAppSharedLocalAgentAIConfigResponse)(nil), // 217: nimi.runtime.v1.OverwriteLocalAppSharedLocalAgentAIConfigResponse
-	(*LocalAppAgentAutonomySnapshotResponse)(nil),             // 218: nimi.runtime.v1.LocalAppAgentAutonomySnapshotResponse
-	(*LocalAppAgentUpdateAutonomyResponse)(nil),               // 219: nimi.runtime.v1.LocalAppAgentUpdateAutonomyResponse
-	(*LocalAppAgentPresentationSnapshotResponse)(nil),         // 220: nimi.runtime.v1.LocalAppAgentPresentationSnapshotResponse
-	(*LocalAppAgentCommitPresentationResponse)(nil),           // 221: nimi.runtime.v1.LocalAppAgentCommitPresentationResponse
+	(*TranscribeAgentVoiceInputRequest)(nil),            // 103: nimi.runtime.v1.TranscribeAgentVoiceInputRequest
+	(*TranscribeAgentVoiceInputResponse)(nil),           // 104: nimi.runtime.v1.TranscribeAgentVoiceInputResponse
+	(*AgentVoiceStreamEvent)(nil),                       // 105: nimi.runtime.v1.AgentVoiceStreamEvent
+	(*ConversationAnchor)(nil),                          // 106: nimi.runtime.v1.ConversationAnchor
+	(*ConversationAnchorSnapshot)(nil),                  // 107: nimi.runtime.v1.ConversationAnchorSnapshot
+	(*OpenConversationAnchorRequest)(nil),               // 108: nimi.runtime.v1.OpenConversationAnchorRequest
+	(*OpenConversationAnchorResponse)(nil),              // 109: nimi.runtime.v1.OpenConversationAnchorResponse
+	(*LocalAppAgentReference)(nil),                      // 110: nimi.runtime.v1.LocalAppAgentReference
+	(*ListLocalAppAgentReferencesRequest)(nil),          // 111: nimi.runtime.v1.ListLocalAppAgentReferencesRequest
+	(*ListLocalAppAgentReferencesResponse)(nil),         // 112: nimi.runtime.v1.ListLocalAppAgentReferencesResponse
+	(*OpenLocalAppConversationRequest)(nil),             // 113: nimi.runtime.v1.OpenLocalAppConversationRequest
+	(*OpenLocalAppConversationResponse)(nil),            // 114: nimi.runtime.v1.OpenLocalAppConversationResponse
+	(*SendLocalAppConversationTurnRequest)(nil),         // 115: nimi.runtime.v1.SendLocalAppConversationTurnRequest
+	(*SendLocalAppConversationTurnResponse)(nil),        // 116: nimi.runtime.v1.SendLocalAppConversationTurnResponse
+	(*InterruptLocalAppConversationTurnRequest)(nil),    // 117: nimi.runtime.v1.InterruptLocalAppConversationTurnRequest
+	(*InterruptLocalAppConversationTurnResponse)(nil),   // 118: nimi.runtime.v1.InterruptLocalAppConversationTurnResponse
+	(*SubscribeLocalAppConversationEventsRequest)(nil),  // 119: nimi.runtime.v1.SubscribeLocalAppConversationEventsRequest
+	(*GetLocalAppConversationSnapshotRequest)(nil),      // 120: nimi.runtime.v1.GetLocalAppConversationSnapshotRequest
+	(*LocalAppConversationMessage)(nil),                 // 121: nimi.runtime.v1.LocalAppConversationMessage
+	(*LocalAppConversationSnapshot)(nil),                // 122: nimi.runtime.v1.LocalAppConversationSnapshot
+	(*GetLocalAppConversationSnapshotResponse)(nil),     // 123: nimi.runtime.v1.GetLocalAppConversationSnapshotResponse
+	(*LocalAppConversationTurnAccepted)(nil),            // 124: nimi.runtime.v1.LocalAppConversationTurnAccepted
+	(*LocalAppConversationTurnStarted)(nil),             // 125: nimi.runtime.v1.LocalAppConversationTurnStarted
+	(*LocalAppConversationTextDelta)(nil),               // 126: nimi.runtime.v1.LocalAppConversationTextDelta
+	(*LocalAppConversationMessageCommitted)(nil),        // 127: nimi.runtime.v1.LocalAppConversationMessageCommitted
+	(*LocalAppConversationTurnCompleted)(nil),           // 128: nimi.runtime.v1.LocalAppConversationTurnCompleted
+	(*LocalAppConversationTurnFailed)(nil),              // 129: nimi.runtime.v1.LocalAppConversationTurnFailed
+	(*LocalAppConversationTurnInterrupted)(nil),         // 130: nimi.runtime.v1.LocalAppConversationTurnInterrupted
+	(*LocalAppConversationEvent)(nil),                   // 131: nimi.runtime.v1.LocalAppConversationEvent
+	(*GetConversationAnchorSnapshotRequest)(nil),        // 132: nimi.runtime.v1.GetConversationAnchorSnapshotRequest
+	(*GetConversationAnchorSnapshotResponse)(nil),       // 133: nimi.runtime.v1.GetConversationAnchorSnapshotResponse
+	(*AvatarLiveInstanceBinding)(nil),                   // 134: nimi.runtime.v1.AvatarLiveInstanceBinding
+	(*RegisterAvatarLiveInstanceBindingRequest)(nil),    // 135: nimi.runtime.v1.RegisterAvatarLiveInstanceBindingRequest
+	(*RegisterAvatarLiveInstanceBindingResponse)(nil),   // 136: nimi.runtime.v1.RegisterAvatarLiveInstanceBindingResponse
+	(*ResolveAvatarLiveInstanceBindingRequest)(nil),     // 137: nimi.runtime.v1.ResolveAvatarLiveInstanceBindingRequest
+	(*ResolveAvatarLiveInstanceBindingResponse)(nil),    // 138: nimi.runtime.v1.ResolveAvatarLiveInstanceBindingResponse
+	(*GetPublicChatSessionSnapshotRequest)(nil),         // 139: nimi.runtime.v1.GetPublicChatSessionSnapshotRequest
+	(*GetPublicChatSessionSnapshotResponse)(nil),        // 140: nimi.runtime.v1.GetPublicChatSessionSnapshotResponse
+	(*AgentConversationSummary)(nil),                    // 141: nimi.runtime.v1.AgentConversationSummary
+	(*ListAgentConversationSummariesRequest)(nil),       // 142: nimi.runtime.v1.ListAgentConversationSummariesRequest
+	(*ListAgentConversationSummariesResponse)(nil),      // 143: nimi.runtime.v1.ListAgentConversationSummariesResponse
+	(*GetAvatarDebugSnapshotRequest)(nil),               // 144: nimi.runtime.v1.GetAvatarDebugSnapshotRequest
+	(*GetAvatarDebugSnapshotResponse)(nil),              // 145: nimi.runtime.v1.GetAvatarDebugSnapshotResponse
+	(*RequestAvatarDebugProbeRequest)(nil),              // 146: nimi.runtime.v1.RequestAvatarDebugProbeRequest
+	(*RequestAvatarDebugProbeResponse)(nil),             // 147: nimi.runtime.v1.RequestAvatarDebugProbeResponse
+	(*SubmitAvatarDebugProbeResultRequest)(nil),         // 148: nimi.runtime.v1.SubmitAvatarDebugProbeResultRequest
+	(*SubmitAvatarDebugProbeResultResponse)(nil),        // 149: nimi.runtime.v1.SubmitAvatarDebugProbeResultResponse
+	(*ListAvatarDebugProbeResultsRequest)(nil),          // 150: nimi.runtime.v1.ListAvatarDebugProbeResultsRequest
+	(*ListAvatarDebugProbeResultsResponse)(nil),         // 151: nimi.runtime.v1.ListAvatarDebugProbeResultsResponse
+	(*GetAvatarDebugReplayRequest)(nil),                 // 152: nimi.runtime.v1.GetAvatarDebugReplayRequest
+	(*GetAvatarDebugReplayResponse)(nil),                // 153: nimi.runtime.v1.GetAvatarDebugReplayResponse
+	(*GetSharedLocalAgentAIConfigRequest)(nil),          // 154: nimi.runtime.v1.GetSharedLocalAgentAIConfigRequest
+	(*GetSharedLocalAgentAIConfigResponse)(nil),         // 155: nimi.runtime.v1.GetSharedLocalAgentAIConfigResponse
+	(*OverwriteSharedLocalAgentAIConfigRequest)(nil),    // 156: nimi.runtime.v1.OverwriteSharedLocalAgentAIConfigRequest
+	(*OverwriteSharedLocalAgentAIConfigResponse)(nil),   // 157: nimi.runtime.v1.OverwriteSharedLocalAgentAIConfigResponse
+	(*PreviewSharedLocalAgentAIProfileRequest)(nil),     // 158: nimi.runtime.v1.PreviewSharedLocalAgentAIProfileRequest
+	(*PreviewSharedLocalAgentAIProfileResponse)(nil),    // 159: nimi.runtime.v1.PreviewSharedLocalAgentAIProfileResponse
+	(*ApplySharedLocalAgentAIProfileRequest)(nil),       // 160: nimi.runtime.v1.ApplySharedLocalAgentAIProfileRequest
+	(*ApplySharedLocalAgentAIProfileResponse)(nil),      // 161: nimi.runtime.v1.ApplySharedLocalAgentAIProfileResponse
+	nil,                                                       // 162: nimi.runtime.v1.AgentStateProjection.AttributesEntry
+	(*durationpb.Duration)(nil),                               // 163: google.protobuf.Duration
+	(*timestamppb.Timestamp)(nil),                             // 164: google.protobuf.Timestamp
+	(*structpb.Struct)(nil),                                   // 165: google.protobuf.Struct
+	(*AgentPresentationProfile)(nil),                          // 166: nimi.runtime.v1.AgentPresentationProfile
+	(*LocalAgentSourceContextStatus)(nil),                     // 167: nimi.runtime.v1.LocalAgentSourceContextStatus
+	(ReasonCode)(0),                                           // 168: nimi.runtime.v1.ReasonCode
+	(MemoryCanonicalClass)(0),                                 // 169: nimi.runtime.v1.MemoryCanonicalClass
+	(*MemoryBankLocator)(nil),                                 // 170: nimi.runtime.v1.MemoryBankLocator
+	(*MemoryRecordInput)(nil),                                 // 171: nimi.runtime.v1.MemoryRecordInput
+	(*MemoryRecord)(nil),                                      // 172: nimi.runtime.v1.MemoryRecord
+	(*MemoryReplicationState)(nil),                            // 173: nimi.runtime.v1.MemoryReplicationState
+	(*AgentPresentationEventDetail)(nil),                      // 174: nimi.runtime.v1.AgentPresentationEventDetail
+	(*AgentRequestContext)(nil),                               // 175: nimi.runtime.v1.AgentRequestContext
+	(*Ack)(nil),                                               // 176: nimi.runtime.v1.Ack
+	(*ClearAgentPresentationProfile)(nil),                     // 177: nimi.runtime.v1.ClearAgentPresentationProfile
+	(*AgentPresentationProfilePatch)(nil),                     // 178: nimi.runtime.v1.AgentPresentationProfilePatch
+	(*AgentPresentationAssetMaterial)(nil),                    // 179: nimi.runtime.v1.AgentPresentationAssetMaterial
+	(AgentPresentationAssetRole)(0),                           // 180: nimi.runtime.v1.AgentPresentationAssetRole
+	(AgentPresentationBackendKind)(0),                         // 181: nimi.runtime.v1.AgentPresentationBackendKind
+	(MemoryRecordKind)(0),                                     // 182: nimi.runtime.v1.MemoryRecordKind
+	(*NarrativeRecallHit)(nil),                                // 183: nimi.runtime.v1.NarrativeRecallHit
+	(*MemoryEmbeddingProfile)(nil),                            // 184: nimi.runtime.v1.MemoryEmbeddingProfile
+	(VoiceOutputMode)(0),                                      // 185: nimi.runtime.v1.VoiceOutputMode
+	(VoicePlaybackState)(0),                                   // 186: nimi.runtime.v1.VoicePlaybackState
+	(*AgentTurnContextSummary)(nil),                           // 187: nimi.runtime.v1.AgentTurnContextSummary
+	(*AIConfig)(nil),                                          // 188: nimi.runtime.v1.AIConfig
+	(*AIConfigCapabilityIntent)(nil),                          // 189: nimi.runtime.v1.AIConfigCapabilityIntent
+	(*MaterializeRealmSourceRequest)(nil),                     // 190: nimi.runtime.v1.MaterializeRealmSourceRequest
+	(*GetCompanionParticipationProjectionRequest)(nil),        // 191: nimi.runtime.v1.GetCompanionParticipationProjectionRequest
+	(*RequestCompanionParticipationRequest)(nil),              // 192: nimi.runtime.v1.RequestCompanionParticipationRequest
+	(*CancelCompanionParticipationRequest)(nil),               // 193: nimi.runtime.v1.CancelCompanionParticipationRequest
+	(*OpenCompanionParticipationReplayRequest)(nil),           // 194: nimi.runtime.v1.OpenCompanionParticipationReplayRequest
+	(*ListDelegatedProviderProfilesRequest)(nil),              // 195: nimi.runtime.v1.ListDelegatedProviderProfilesRequest
+	(*ListDelegatedApprovalRequestsRequest)(nil),              // 196: nimi.runtime.v1.ListDelegatedApprovalRequestsRequest
+	(*SubmitDelegatedApprovalDecisionRequest)(nil),            // 197: nimi.runtime.v1.SubmitDelegatedApprovalDecisionRequest
+	(*ListDelegatedDiagnosticsRequest)(nil),                   // 198: nimi.runtime.v1.ListDelegatedDiagnosticsRequest
+	(*GetDelegatedReplayTraceRequest)(nil),                    // 199: nimi.runtime.v1.GetDelegatedReplayTraceRequest
+	(*GetDelegatedControlSurfaceSnapshotRequest)(nil),         // 200: nimi.runtime.v1.GetDelegatedControlSurfaceSnapshotRequest
+	(*GetLocalAppSharedLocalAgentAIConfigRequest)(nil),        // 201: nimi.runtime.v1.GetLocalAppSharedLocalAgentAIConfigRequest
+	(*OverwriteLocalAppSharedLocalAgentAIConfigRequest)(nil),  // 202: nimi.runtime.v1.OverwriteLocalAppSharedLocalAgentAIConfigRequest
+	(*GetLocalAppAgentAutonomySnapshotRequest)(nil),           // 203: nimi.runtime.v1.GetLocalAppAgentAutonomySnapshotRequest
+	(*UpdateLocalAppAgentAutonomyRequest)(nil),                // 204: nimi.runtime.v1.UpdateLocalAppAgentAutonomyRequest
+	(*GetLocalAppAgentPresentationSnapshotRequest)(nil),       // 205: nimi.runtime.v1.GetLocalAppAgentPresentationSnapshotRequest
+	(*CommitLocalAppAgentPresentationRequest)(nil),            // 206: nimi.runtime.v1.CommitLocalAppAgentPresentationRequest
+	(*MaterializeRealmSourceResponse)(nil),                    // 207: nimi.runtime.v1.MaterializeRealmSourceResponse
+	(*GetCompanionParticipationProjectionResponse)(nil),       // 208: nimi.runtime.v1.GetCompanionParticipationProjectionResponse
+	(*RequestCompanionParticipationResponse)(nil),             // 209: nimi.runtime.v1.RequestCompanionParticipationResponse
+	(*CancelCompanionParticipationResponse)(nil),              // 210: nimi.runtime.v1.CancelCompanionParticipationResponse
+	(*OpenCompanionParticipationReplayResponse)(nil),          // 211: nimi.runtime.v1.OpenCompanionParticipationReplayResponse
+	(*ListDelegatedProviderProfilesResponse)(nil),             // 212: nimi.runtime.v1.ListDelegatedProviderProfilesResponse
+	(*ListDelegatedApprovalRequestsResponse)(nil),             // 213: nimi.runtime.v1.ListDelegatedApprovalRequestsResponse
+	(*SubmitDelegatedApprovalDecisionResponse)(nil),           // 214: nimi.runtime.v1.SubmitDelegatedApprovalDecisionResponse
+	(*ListDelegatedDiagnosticsResponse)(nil),                  // 215: nimi.runtime.v1.ListDelegatedDiagnosticsResponse
+	(*GetDelegatedReplayTraceResponse)(nil),                   // 216: nimi.runtime.v1.GetDelegatedReplayTraceResponse
+	(*GetDelegatedControlSurfaceSnapshotResponse)(nil),        // 217: nimi.runtime.v1.GetDelegatedControlSurfaceSnapshotResponse
+	(*GetLocalAppSharedLocalAgentAIConfigResponse)(nil),       // 218: nimi.runtime.v1.GetLocalAppSharedLocalAgentAIConfigResponse
+	(*OverwriteLocalAppSharedLocalAgentAIConfigResponse)(nil), // 219: nimi.runtime.v1.OverwriteLocalAppSharedLocalAgentAIConfigResponse
+	(*LocalAppAgentAutonomySnapshotResponse)(nil),             // 220: nimi.runtime.v1.LocalAppAgentAutonomySnapshotResponse
+	(*LocalAppAgentUpdateAutonomyResponse)(nil),               // 221: nimi.runtime.v1.LocalAppAgentUpdateAutonomyResponse
+	(*LocalAppAgentPresentationSnapshotResponse)(nil),         // 222: nimi.runtime.v1.LocalAppAgentPresentationSnapshotResponse
+	(*LocalAppAgentCommitPresentationResponse)(nil),           // 223: nimi.runtime.v1.LocalAppAgentCommitPresentationResponse
 }
 var file_runtime_v1_agent_service_proto_depIdxs = []int32{
-	161, // 0: nimi.runtime.v1.AgentAutonomyConfig.min_hook_interval:type_name -> google.protobuf.Duration
-	162, // 1: nimi.runtime.v1.AgentAutonomyConfig.suspend_until:type_name -> google.protobuf.Timestamp
+	163, // 0: nimi.runtime.v1.AgentAutonomyConfig.min_hook_interval:type_name -> google.protobuf.Duration
+	164, // 1: nimi.runtime.v1.AgentAutonomyConfig.suspend_until:type_name -> google.protobuf.Timestamp
 	22,  // 2: nimi.runtime.v1.AgentAutonomyConfig.mode:type_name -> nimi.runtime.v1.AgentAutonomyMode
-	163, // 3: nimi.runtime.v1.AgentAutonomyConfig.extensions:type_name -> google.protobuf.Struct
+	165, // 3: nimi.runtime.v1.AgentAutonomyConfig.extensions:type_name -> google.protobuf.Struct
 	27,  // 4: nimi.runtime.v1.AgentAutonomyState.config:type_name -> nimi.runtime.v1.AgentAutonomyConfig
-	162, // 5: nimi.runtime.v1.AgentAutonomyState.window_started_at:type_name -> google.protobuf.Timestamp
-	162, // 6: nimi.runtime.v1.AgentAutonomyState.suspended_until:type_name -> google.protobuf.Timestamp
+	164, // 5: nimi.runtime.v1.AgentAutonomyState.window_started_at:type_name -> google.protobuf.Timestamp
+	164, // 6: nimi.runtime.v1.AgentAutonomyState.suspended_until:type_name -> google.protobuf.Timestamp
 	0,   // 7: nimi.runtime.v1.LocalAgentRecord.lifecycle_status:type_name -> nimi.runtime.v1.AgentLifecycleStatus
 	28,  // 8: nimi.runtime.v1.LocalAgentRecord.autonomy:type_name -> nimi.runtime.v1.AgentAutonomyState
-	163, // 9: nimi.runtime.v1.LocalAgentRecord.metadata:type_name -> google.protobuf.Struct
-	162, // 10: nimi.runtime.v1.LocalAgentRecord.created_at:type_name -> google.protobuf.Timestamp
-	162, // 11: nimi.runtime.v1.LocalAgentRecord.updated_at:type_name -> google.protobuf.Timestamp
-	164, // 12: nimi.runtime.v1.LocalAgentRecord.presentation_profile:type_name -> nimi.runtime.v1.AgentPresentationProfile
-	165, // 13: nimi.runtime.v1.LocalAgentRecord.source_context_status:type_name -> nimi.runtime.v1.LocalAgentSourceContextStatus
-	164, // 14: nimi.runtime.v1.LocalAgentRecord.previous_presentation_profile:type_name -> nimi.runtime.v1.AgentPresentationProfile
+	165, // 9: nimi.runtime.v1.LocalAgentRecord.metadata:type_name -> google.protobuf.Struct
+	164, // 10: nimi.runtime.v1.LocalAgentRecord.created_at:type_name -> google.protobuf.Timestamp
+	164, // 11: nimi.runtime.v1.LocalAgentRecord.updated_at:type_name -> google.protobuf.Timestamp
+	166, // 12: nimi.runtime.v1.LocalAgentRecord.presentation_profile:type_name -> nimi.runtime.v1.AgentPresentationProfile
+	167, // 13: nimi.runtime.v1.LocalAgentRecord.source_context_status:type_name -> nimi.runtime.v1.LocalAgentSourceContextStatus
+	166, // 14: nimi.runtime.v1.LocalAgentRecord.previous_presentation_profile:type_name -> nimi.runtime.v1.AgentPresentationProfile
 	1,   // 15: nimi.runtime.v1.AgentStateProjection.execution_state:type_name -> nimi.runtime.v1.AgentExecutionState
-	160, // 16: nimi.runtime.v1.AgentStateProjection.attributes:type_name -> nimi.runtime.v1.AgentStateProjection.AttributesEntry
-	162, // 17: nimi.runtime.v1.AgentStateProjection.updated_at:type_name -> google.protobuf.Timestamp
+	162, // 16: nimi.runtime.v1.AgentStateProjection.attributes:type_name -> nimi.runtime.v1.AgentStateProjection.AttributesEntry
+	164, // 17: nimi.runtime.v1.AgentStateProjection.updated_at:type_name -> google.protobuf.Timestamp
 	57,  // 18: nimi.runtime.v1.AgentStateProjection.proactive_interruptibility:type_name -> nimi.runtime.v1.AgentProactiveInterruptibilityProjection
 	31,  // 19: nimi.runtime.v1.AgentStateMutation.set_status_text:type_name -> nimi.runtime.v1.AgentStateSetStatusText
 	32,  // 20: nimi.runtime.v1.AgentStateMutation.set_world_context:type_name -> nimi.runtime.v1.AgentStateSetWorldContext
@@ -12008,8 +12172,8 @@ var file_runtime_v1_agent_service_proto_depIdxs = []int32{
 	35,  // 23: nimi.runtime.v1.AgentStateMutation.clear_dyadic_context:type_name -> nimi.runtime.v1.AgentStateClearDyadicContext
 	36,  // 24: nimi.runtime.v1.AgentStateMutation.put_attribute:type_name -> nimi.runtime.v1.AgentStatePutAttribute
 	37,  // 25: nimi.runtime.v1.AgentStateMutation.remove_attribute:type_name -> nimi.runtime.v1.AgentStateRemoveAttribute
-	161, // 26: nimi.runtime.v1.HookTriggerTimeDetail.delay:type_name -> google.protobuf.Duration
-	161, // 27: nimi.runtime.v1.HookTriggerEventUserIdleDetail.idle_for:type_name -> google.protobuf.Duration
+	163, // 26: nimi.runtime.v1.HookTriggerTimeDetail.delay:type_name -> google.protobuf.Duration
+	163, // 27: nimi.runtime.v1.HookTriggerEventUserIdleDetail.idle_for:type_name -> google.protobuf.Duration
 	39,  // 28: nimi.runtime.v1.HookTriggerDetail.time:type_name -> nimi.runtime.v1.HookTriggerTimeDetail
 	40,  // 29: nimi.runtime.v1.HookTriggerDetail.event_user_idle:type_name -> nimi.runtime.v1.HookTriggerEventUserIdleDetail
 	41,  // 30: nimi.runtime.v1.HookTriggerDetail.event_chat_ended:type_name -> nimi.runtime.v1.HookTriggerEventChatEndedDetail
@@ -12017,32 +12181,32 @@ var file_runtime_v1_agent_service_proto_depIdxs = []int32{
 	42,  // 32: nimi.runtime.v1.HookIntent.trigger_detail:type_name -> nimi.runtime.v1.HookTriggerDetail
 	4,   // 33: nimi.runtime.v1.HookIntent.effect:type_name -> nimi.runtime.v1.HookEffect
 	5,   // 34: nimi.runtime.v1.HookIntent.admission_state:type_name -> nimi.runtime.v1.HookAdmissionState
-	162, // 35: nimi.runtime.v1.HookIntent.not_before:type_name -> google.protobuf.Timestamp
-	162, // 36: nimi.runtime.v1.HookIntent.expires_at:type_name -> google.protobuf.Timestamp
+	164, // 35: nimi.runtime.v1.HookIntent.not_before:type_name -> google.protobuf.Timestamp
+	164, // 36: nimi.runtime.v1.HookIntent.expires_at:type_name -> google.protobuf.Timestamp
 	43,  // 37: nimi.runtime.v1.HookExecutionOutcome.intent:type_name -> nimi.runtime.v1.HookIntent
-	162, // 38: nimi.runtime.v1.HookExecutionOutcome.observed_at:type_name -> google.protobuf.Timestamp
-	166, // 39: nimi.runtime.v1.HookExecutionOutcome.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	164, // 38: nimi.runtime.v1.HookExecutionOutcome.observed_at:type_name -> google.protobuf.Timestamp
+	168, // 39: nimi.runtime.v1.HookExecutionOutcome.reason_code:type_name -> nimi.runtime.v1.ReasonCode
 	43,  // 40: nimi.runtime.v1.PendingHook.intent:type_name -> nimi.runtime.v1.HookIntent
-	162, // 41: nimi.runtime.v1.PendingHook.scheduled_for:type_name -> google.protobuf.Timestamp
-	162, // 42: nimi.runtime.v1.PendingHook.admitted_at:type_name -> google.protobuf.Timestamp
-	167, // 43: nimi.runtime.v1.CanonicalMemoryCandidate.canonical_class:type_name -> nimi.runtime.v1.MemoryCanonicalClass
-	168, // 44: nimi.runtime.v1.CanonicalMemoryCandidate.target_bank:type_name -> nimi.runtime.v1.MemoryBankLocator
-	169, // 45: nimi.runtime.v1.CanonicalMemoryCandidate.record:type_name -> nimi.runtime.v1.MemoryRecordInput
-	163, // 46: nimi.runtime.v1.CanonicalMemoryCandidate.extensions:type_name -> google.protobuf.Struct
-	167, // 47: nimi.runtime.v1.CanonicalMemoryView.canonical_class:type_name -> nimi.runtime.v1.MemoryCanonicalClass
-	168, // 48: nimi.runtime.v1.CanonicalMemoryView.source_bank:type_name -> nimi.runtime.v1.MemoryBankLocator
-	170, // 49: nimi.runtime.v1.CanonicalMemoryView.record:type_name -> nimi.runtime.v1.MemoryRecord
-	166, // 50: nimi.runtime.v1.CanonicalMemoryRejection.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	164, // 41: nimi.runtime.v1.PendingHook.scheduled_for:type_name -> google.protobuf.Timestamp
+	164, // 42: nimi.runtime.v1.PendingHook.admitted_at:type_name -> google.protobuf.Timestamp
+	169, // 43: nimi.runtime.v1.CanonicalMemoryCandidate.canonical_class:type_name -> nimi.runtime.v1.MemoryCanonicalClass
+	170, // 44: nimi.runtime.v1.CanonicalMemoryCandidate.target_bank:type_name -> nimi.runtime.v1.MemoryBankLocator
+	171, // 45: nimi.runtime.v1.CanonicalMemoryCandidate.record:type_name -> nimi.runtime.v1.MemoryRecordInput
+	165, // 46: nimi.runtime.v1.CanonicalMemoryCandidate.extensions:type_name -> google.protobuf.Struct
+	169, // 47: nimi.runtime.v1.CanonicalMemoryView.canonical_class:type_name -> nimi.runtime.v1.MemoryCanonicalClass
+	170, // 48: nimi.runtime.v1.CanonicalMemoryView.source_bank:type_name -> nimi.runtime.v1.MemoryBankLocator
+	172, // 49: nimi.runtime.v1.CanonicalMemoryView.record:type_name -> nimi.runtime.v1.MemoryRecord
+	168, // 50: nimi.runtime.v1.CanonicalMemoryRejection.reason_code:type_name -> nimi.runtime.v1.ReasonCode
 	0,   // 51: nimi.runtime.v1.AgentLifecycleEventDetail.previous_status:type_name -> nimi.runtime.v1.AgentLifecycleStatus
 	0,   // 52: nimi.runtime.v1.AgentLifecycleEventDetail.current_status:type_name -> nimi.runtime.v1.AgentLifecycleStatus
 	5,   // 53: nimi.runtime.v1.AgentHookEventDetail.family:type_name -> nimi.runtime.v1.HookAdmissionState
 	43,  // 54: nimi.runtime.v1.AgentHookEventDetail.intent:type_name -> nimi.runtime.v1.HookIntent
-	162, // 55: nimi.runtime.v1.AgentHookEventDetail.observed_at:type_name -> google.protobuf.Timestamp
-	166, // 56: nimi.runtime.v1.AgentHookEventDetail.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	164, // 55: nimi.runtime.v1.AgentHookEventDetail.observed_at:type_name -> google.protobuf.Timestamp
+	168, // 56: nimi.runtime.v1.AgentHookEventDetail.reason_code:type_name -> nimi.runtime.v1.ReasonCode
 	47,  // 57: nimi.runtime.v1.AgentMemoryEventDetail.accepted:type_name -> nimi.runtime.v1.CanonicalMemoryView
 	48,  // 58: nimi.runtime.v1.AgentMemoryEventDetail.rejected:type_name -> nimi.runtime.v1.CanonicalMemoryRejection
-	162, // 59: nimi.runtime.v1.AgentBudgetEventDetail.window_started_at:type_name -> google.protobuf.Timestamp
-	171, // 60: nimi.runtime.v1.AgentReplicationEventDetail.replication:type_name -> nimi.runtime.v1.MemoryReplicationState
+	164, // 59: nimi.runtime.v1.AgentBudgetEventDetail.window_started_at:type_name -> google.protobuf.Timestamp
+	173, // 60: nimi.runtime.v1.AgentReplicationEventDetail.replication:type_name -> nimi.runtime.v1.MemoryReplicationState
 	7,   // 61: nimi.runtime.v1.AgentStateEventDetail.family:type_name -> nimi.runtime.v1.AgentStateEventFamily
 	1,   // 62: nimi.runtime.v1.AgentStateEventDetail.current_execution_state:type_name -> nimi.runtime.v1.AgentExecutionState
 	1,   // 63: nimi.runtime.v1.AgentStateEventDetail.previous_execution_state:type_name -> nimi.runtime.v1.AgentExecutionState
@@ -12057,7 +12221,7 @@ var file_runtime_v1_agent_service_proto_depIdxs = []int32{
 	13,  // 72: nimi.runtime.v1.AgentProactiveEventDetail.quiet_hours:type_name -> nimi.runtime.v1.AgentProactiveQuietHoursState
 	14,  // 73: nimi.runtime.v1.AgentProactiveEventDetail.frequency_cap:type_name -> nimi.runtime.v1.AgentProactiveFrequencyCapState
 	15,  // 74: nimi.runtime.v1.AgentProactiveEventDetail.suppression_reason:type_name -> nimi.runtime.v1.AgentProactiveSuppressionReason
-	162, // 75: nimi.runtime.v1.AgentProactiveEventDetail.observed_at:type_name -> google.protobuf.Timestamp
+	164, // 75: nimi.runtime.v1.AgentProactiveEventDetail.observed_at:type_name -> google.protobuf.Timestamp
 	22,  // 76: nimi.runtime.v1.AgentProactiveInterruptibilityProjection.mode:type_name -> nimi.runtime.v1.AgentAutonomyMode
 	12,  // 77: nimi.runtime.v1.AgentProactiveInterruptibilityProjection.opt_in_state:type_name -> nimi.runtime.v1.AgentProactiveOptInState
 	11,  // 78: nimi.runtime.v1.AgentProactiveInterruptibilityProjection.delivery_channel:type_name -> nimi.runtime.v1.AgentProactiveDeliveryChannel
@@ -12067,287 +12231,290 @@ var file_runtime_v1_agent_service_proto_depIdxs = []int32{
 	56,  // 82: nimi.runtime.v1.AgentProactiveInterruptibilityProjection.last_delivered_event:type_name -> nimi.runtime.v1.AgentProactiveEventDetail
 	56,  // 83: nimi.runtime.v1.AgentProactiveInterruptibilityProjection.last_suppressed_event:type_name -> nimi.runtime.v1.AgentProactiveEventDetail
 	16,  // 84: nimi.runtime.v1.AvatarDebugProbeRequestEnvelope.probe_kind:type_name -> nimi.runtime.v1.AvatarDebugProbeKind
-	162, // 85: nimi.runtime.v1.AvatarDebugProbeRequestEnvelope.requested_at:type_name -> google.protobuf.Timestamp
+	164, // 85: nimi.runtime.v1.AvatarDebugProbeRequestEnvelope.requested_at:type_name -> google.protobuf.Timestamp
 	18,  // 86: nimi.runtime.v1.AvatarDebugProbeRequestEnvelope.requested_by:type_name -> nimi.runtime.v1.AvatarDebugRequestedBy
 	16,  // 87: nimi.runtime.v1.AvatarDebugProbeResultEnvelope.probe_kind:type_name -> nimi.runtime.v1.AvatarDebugProbeKind
 	17,  // 88: nimi.runtime.v1.AvatarDebugProbeResultEnvelope.status:type_name -> nimi.runtime.v1.AvatarDebugProbeStatus
-	162, // 89: nimi.runtime.v1.AvatarDebugProbeResultEnvelope.observed_at:type_name -> google.protobuf.Timestamp
+	164, // 89: nimi.runtime.v1.AvatarDebugProbeResultEnvelope.observed_at:type_name -> google.protobuf.Timestamp
 	20,  // 90: nimi.runtime.v1.AvatarDebugReplayRef.redaction_state:type_name -> nimi.runtime.v1.AvatarDebugReplayRedactionState
 	21,  // 91: nimi.runtime.v1.AvatarDebugReplayRef.visibility:type_name -> nimi.runtime.v1.AvatarDebugReplayVisibility
-	162, // 92: nimi.runtime.v1.AvatarDebugReplayRef.linked_at:type_name -> google.protobuf.Timestamp
+	164, // 92: nimi.runtime.v1.AvatarDebugReplayRef.linked_at:type_name -> google.protobuf.Timestamp
 	19,  // 93: nimi.runtime.v1.AgentAvatarDebugEventDetail.family:type_name -> nimi.runtime.v1.AvatarDebugEventFamily
 	58,  // 94: nimi.runtime.v1.AgentAvatarDebugEventDetail.request:type_name -> nimi.runtime.v1.AvatarDebugProbeRequestEnvelope
 	59,  // 95: nimi.runtime.v1.AgentAvatarDebugEventDetail.result:type_name -> nimi.runtime.v1.AvatarDebugProbeResultEnvelope
 	60,  // 96: nimi.runtime.v1.AgentAvatarDebugEventDetail.replay:type_name -> nimi.runtime.v1.AvatarDebugReplayRef
 	6,   // 97: nimi.runtime.v1.AgentEvent.event_type:type_name -> nimi.runtime.v1.AgentEventType
-	162, // 98: nimi.runtime.v1.AgentEvent.timestamp:type_name -> google.protobuf.Timestamp
+	164, // 98: nimi.runtime.v1.AgentEvent.timestamp:type_name -> google.protobuf.Timestamp
 	49,  // 99: nimi.runtime.v1.AgentEvent.lifecycle:type_name -> nimi.runtime.v1.AgentLifecycleEventDetail
 	50,  // 100: nimi.runtime.v1.AgentEvent.hook:type_name -> nimi.runtime.v1.AgentHookEventDetail
 	51,  // 101: nimi.runtime.v1.AgentEvent.memory:type_name -> nimi.runtime.v1.AgentMemoryEventDetail
 	52,  // 102: nimi.runtime.v1.AgentEvent.budget:type_name -> nimi.runtime.v1.AgentBudgetEventDetail
 	53,  // 103: nimi.runtime.v1.AgentEvent.replication:type_name -> nimi.runtime.v1.AgentReplicationEventDetail
 	55,  // 104: nimi.runtime.v1.AgentEvent.state:type_name -> nimi.runtime.v1.AgentStateEventDetail
-	172, // 105: nimi.runtime.v1.AgentEvent.presentation:type_name -> nimi.runtime.v1.AgentPresentationEventDetail
+	174, // 105: nimi.runtime.v1.AgentEvent.presentation:type_name -> nimi.runtime.v1.AgentPresentationEventDetail
 	61,  // 106: nimi.runtime.v1.AgentEvent.avatar_debug:type_name -> nimi.runtime.v1.AgentAvatarDebugEventDetail
 	56,  // 107: nimi.runtime.v1.AgentEvent.proactive:type_name -> nimi.runtime.v1.AgentProactiveEventDetail
-	173, // 108: nimi.runtime.v1.TerminateAgentRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
-	174, // 109: nimi.runtime.v1.TerminateAgentResponse.ack:type_name -> nimi.runtime.v1.Ack
-	173, // 110: nimi.runtime.v1.GetAgentRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
+	175, // 108: nimi.runtime.v1.TerminateAgentRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
+	176, // 109: nimi.runtime.v1.TerminateAgentResponse.ack:type_name -> nimi.runtime.v1.Ack
+	175, // 110: nimi.runtime.v1.GetAgentRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
 	29,  // 111: nimi.runtime.v1.GetAgentResponse.agent:type_name -> nimi.runtime.v1.LocalAgentRecord
-	173, // 112: nimi.runtime.v1.ListAgentsRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
+	175, // 112: nimi.runtime.v1.ListAgentsRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
 	0,   // 113: nimi.runtime.v1.ListAgentsRequest.lifecycle_filter:type_name -> nimi.runtime.v1.AgentLifecycleStatus
 	29,  // 114: nimi.runtime.v1.ListAgentsResponse.agents:type_name -> nimi.runtime.v1.LocalAgentRecord
-	173, // 115: nimi.runtime.v1.GetAgentStateRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
+	175, // 115: nimi.runtime.v1.GetAgentStateRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
 	30,  // 116: nimi.runtime.v1.GetAgentStateResponse.state:type_name -> nimi.runtime.v1.AgentStateProjection
-	173, // 117: nimi.runtime.v1.UpdateAgentStateRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
+	175, // 117: nimi.runtime.v1.UpdateAgentStateRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
 	38,  // 118: nimi.runtime.v1.UpdateAgentStateRequest.mutations:type_name -> nimi.runtime.v1.AgentStateMutation
 	30,  // 119: nimi.runtime.v1.UpdateAgentStateResponse.state:type_name -> nimi.runtime.v1.AgentStateProjection
-	173, // 120: nimi.runtime.v1.EnableAutonomyRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
+	175, // 120: nimi.runtime.v1.EnableAutonomyRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
 	28,  // 121: nimi.runtime.v1.EnableAutonomyResponse.autonomy:type_name -> nimi.runtime.v1.AgentAutonomyState
-	173, // 122: nimi.runtime.v1.DisableAutonomyRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
+	175, // 122: nimi.runtime.v1.DisableAutonomyRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
 	28,  // 123: nimi.runtime.v1.DisableAutonomyResponse.autonomy:type_name -> nimi.runtime.v1.AgentAutonomyState
-	173, // 124: nimi.runtime.v1.SetAutonomyConfigRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
+	175, // 124: nimi.runtime.v1.SetAutonomyConfigRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
 	27,  // 125: nimi.runtime.v1.SetAutonomyConfigRequest.config:type_name -> nimi.runtime.v1.AgentAutonomyConfig
 	28,  // 126: nimi.runtime.v1.SetAutonomyConfigResponse.autonomy:type_name -> nimi.runtime.v1.AgentAutonomyState
-	173, // 127: nimi.runtime.v1.SetAgentPresentationProfileRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
-	164, // 128: nimi.runtime.v1.SetAgentPresentationProfileRequest.profile:type_name -> nimi.runtime.v1.AgentPresentationProfile
-	175, // 129: nimi.runtime.v1.SetAgentPresentationProfileRequest.clear:type_name -> nimi.runtime.v1.ClearAgentPresentationProfile
-	176, // 130: nimi.runtime.v1.SetAgentPresentationProfileRequest.patch:type_name -> nimi.runtime.v1.AgentPresentationProfilePatch
-	177, // 131: nimi.runtime.v1.SetAgentPresentationProfileRequest.imported_assets:type_name -> nimi.runtime.v1.AgentPresentationAssetMaterial
-	164, // 132: nimi.runtime.v1.SetAgentPresentationProfileResponse.profile:type_name -> nimi.runtime.v1.AgentPresentationProfile
-	164, // 133: nimi.runtime.v1.SetAgentPresentationProfileResponse.previous_profile:type_name -> nimi.runtime.v1.AgentPresentationProfile
-	173, // 134: nimi.runtime.v1.GetAgentPresentationAssetRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
-	178, // 135: nimi.runtime.v1.GetAgentPresentationAssetResponse.role:type_name -> nimi.runtime.v1.AgentPresentationAssetRole
-	179, // 136: nimi.runtime.v1.GetAgentPresentationAssetResponse.backend_kind:type_name -> nimi.runtime.v1.AgentPresentationBackendKind
-	173, // 137: nimi.runtime.v1.ListPendingHooksRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
+	175, // 127: nimi.runtime.v1.SetAgentPresentationProfileRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
+	166, // 128: nimi.runtime.v1.SetAgentPresentationProfileRequest.profile:type_name -> nimi.runtime.v1.AgentPresentationProfile
+	177, // 129: nimi.runtime.v1.SetAgentPresentationProfileRequest.clear:type_name -> nimi.runtime.v1.ClearAgentPresentationProfile
+	178, // 130: nimi.runtime.v1.SetAgentPresentationProfileRequest.patch:type_name -> nimi.runtime.v1.AgentPresentationProfilePatch
+	179, // 131: nimi.runtime.v1.SetAgentPresentationProfileRequest.imported_assets:type_name -> nimi.runtime.v1.AgentPresentationAssetMaterial
+	166, // 132: nimi.runtime.v1.SetAgentPresentationProfileResponse.profile:type_name -> nimi.runtime.v1.AgentPresentationProfile
+	166, // 133: nimi.runtime.v1.SetAgentPresentationProfileResponse.previous_profile:type_name -> nimi.runtime.v1.AgentPresentationProfile
+	175, // 134: nimi.runtime.v1.GetAgentPresentationAssetRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
+	180, // 135: nimi.runtime.v1.GetAgentPresentationAssetResponse.role:type_name -> nimi.runtime.v1.AgentPresentationAssetRole
+	181, // 136: nimi.runtime.v1.GetAgentPresentationAssetResponse.backend_kind:type_name -> nimi.runtime.v1.AgentPresentationBackendKind
+	175, // 137: nimi.runtime.v1.ListPendingHooksRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
 	3,   // 138: nimi.runtime.v1.ListPendingHooksRequest.trigger_family_filter:type_name -> nimi.runtime.v1.HookTriggerFamily
 	5,   // 139: nimi.runtime.v1.ListPendingHooksRequest.admission_state_filter:type_name -> nimi.runtime.v1.HookAdmissionState
 	45,  // 140: nimi.runtime.v1.ListPendingHooksResponse.hooks:type_name -> nimi.runtime.v1.PendingHook
-	173, // 141: nimi.runtime.v1.CancelHookRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
+	175, // 141: nimi.runtime.v1.CancelHookRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
 	44,  // 142: nimi.runtime.v1.CancelHookResponse.outcome:type_name -> nimi.runtime.v1.HookExecutionOutcome
-	173, // 143: nimi.runtime.v1.QueryAgentMemoryRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
-	167, // 144: nimi.runtime.v1.QueryAgentMemoryRequest.canonical_classes:type_name -> nimi.runtime.v1.MemoryCanonicalClass
-	180, // 145: nimi.runtime.v1.QueryAgentMemoryRequest.kinds:type_name -> nimi.runtime.v1.MemoryRecordKind
+	175, // 143: nimi.runtime.v1.QueryAgentMemoryRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
+	169, // 144: nimi.runtime.v1.QueryAgentMemoryRequest.canonical_classes:type_name -> nimi.runtime.v1.MemoryCanonicalClass
+	182, // 145: nimi.runtime.v1.QueryAgentMemoryRequest.kinds:type_name -> nimi.runtime.v1.MemoryRecordKind
 	47,  // 146: nimi.runtime.v1.QueryAgentMemoryResponse.memories:type_name -> nimi.runtime.v1.CanonicalMemoryView
-	181, // 147: nimi.runtime.v1.QueryAgentMemoryResponse.narratives:type_name -> nimi.runtime.v1.NarrativeRecallHit
-	173, // 148: nimi.runtime.v1.WriteAgentMemoryRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
+	183, // 147: nimi.runtime.v1.QueryAgentMemoryResponse.narratives:type_name -> nimi.runtime.v1.NarrativeRecallHit
+	175, // 148: nimi.runtime.v1.WriteAgentMemoryRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
 	46,  // 149: nimi.runtime.v1.WriteAgentMemoryRequest.candidates:type_name -> nimi.runtime.v1.CanonicalMemoryCandidate
 	47,  // 150: nimi.runtime.v1.WriteAgentMemoryResponse.accepted:type_name -> nimi.runtime.v1.CanonicalMemoryView
 	48,  // 151: nimi.runtime.v1.WriteAgentMemoryResponse.rejected:type_name -> nimi.runtime.v1.CanonicalMemoryRejection
 	25,  // 152: nimi.runtime.v1.AgentCanonicalMemoryBankStatus.mode:type_name -> nimi.runtime.v1.AgentCanonicalMemoryBankMode
-	182, // 153: nimi.runtime.v1.AgentCanonicalMemoryBankStatus.embedding_profile:type_name -> nimi.runtime.v1.MemoryEmbeddingProfile
-	166, // 154: nimi.runtime.v1.AgentCanonicalMemoryBankStatus.blocked_reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	173, // 155: nimi.runtime.v1.GetAgentCanonicalMemoryBankStatusRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
+	184, // 153: nimi.runtime.v1.AgentCanonicalMemoryBankStatus.embedding_profile:type_name -> nimi.runtime.v1.MemoryEmbeddingProfile
+	168, // 154: nimi.runtime.v1.AgentCanonicalMemoryBankStatus.blocked_reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	175, // 155: nimi.runtime.v1.GetAgentCanonicalMemoryBankStatusRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
 	91,  // 156: nimi.runtime.v1.GetAgentCanonicalMemoryBankStatusResponse.status:type_name -> nimi.runtime.v1.AgentCanonicalMemoryBankStatus
-	173, // 157: nimi.runtime.v1.RequestAgentCanonicalMemoryBankBindRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
+	175, // 157: nimi.runtime.v1.RequestAgentCanonicalMemoryBankBindRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
 	91,  // 158: nimi.runtime.v1.RequestAgentCanonicalMemoryBankBindResponse.status:type_name -> nimi.runtime.v1.AgentCanonicalMemoryBankStatus
-	166, // 159: nimi.runtime.v1.RequestAgentCanonicalMemoryBankBindResponse.blocked_reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	168, // 160: nimi.runtime.v1.AgentCanonicalMemoryReviewStatus.bank:type_name -> nimi.runtime.v1.MemoryBankLocator
+	168, // 159: nimi.runtime.v1.RequestAgentCanonicalMemoryBankBindResponse.blocked_reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	170, // 160: nimi.runtime.v1.AgentCanonicalMemoryReviewStatus.bank:type_name -> nimi.runtime.v1.MemoryBankLocator
 	23,  // 161: nimi.runtime.v1.AgentCanonicalMemoryReviewStatus.readiness:type_name -> nimi.runtime.v1.AgentCanonicalMemoryReviewReadiness
-	162, // 162: nimi.runtime.v1.AgentCanonicalMemoryReviewStatus.last_completed_at:type_name -> google.protobuf.Timestamp
-	162, // 163: nimi.runtime.v1.AgentCanonicalMemoryReviewStatus.next_eligible_at:type_name -> google.protobuf.Timestamp
-	173, // 164: nimi.runtime.v1.GetAgentCanonicalMemoryReviewStatusRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
-	168, // 165: nimi.runtime.v1.GetAgentCanonicalMemoryReviewStatusRequest.bank:type_name -> nimi.runtime.v1.MemoryBankLocator
+	164, // 162: nimi.runtime.v1.AgentCanonicalMemoryReviewStatus.last_completed_at:type_name -> google.protobuf.Timestamp
+	164, // 163: nimi.runtime.v1.AgentCanonicalMemoryReviewStatus.next_eligible_at:type_name -> google.protobuf.Timestamp
+	175, // 164: nimi.runtime.v1.GetAgentCanonicalMemoryReviewStatusRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
+	170, // 165: nimi.runtime.v1.GetAgentCanonicalMemoryReviewStatusRequest.bank:type_name -> nimi.runtime.v1.MemoryBankLocator
 	96,  // 166: nimi.runtime.v1.GetAgentCanonicalMemoryReviewStatusResponse.status:type_name -> nimi.runtime.v1.AgentCanonicalMemoryReviewStatus
-	173, // 167: nimi.runtime.v1.SubscribeAgentEventsRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
+	175, // 167: nimi.runtime.v1.SubscribeAgentEventsRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
 	6,   // 168: nimi.runtime.v1.SubscribeAgentEventsRequest.event_filters:type_name -> nimi.runtime.v1.AgentEventType
-	173, // 169: nimi.runtime.v1.SubscribeAgentVoiceStreamRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
-	173, // 170: nimi.runtime.v1.InterruptAgentVoicePlaybackRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
-	183, // 171: nimi.runtime.v1.InterruptAgentVoicePlaybackResponse.voice_output_mode:type_name -> nimi.runtime.v1.VoiceOutputMode
-	184, // 172: nimi.runtime.v1.InterruptAgentVoicePlaybackResponse.voice_playback_state:type_name -> nimi.runtime.v1.VoicePlaybackState
-	183, // 173: nimi.runtime.v1.AgentVoiceStreamEvent.voice_output_mode:type_name -> nimi.runtime.v1.VoiceOutputMode
-	184, // 174: nimi.runtime.v1.AgentVoiceStreamEvent.voice_playback_state:type_name -> nimi.runtime.v1.VoicePlaybackState
-	24,  // 175: nimi.runtime.v1.ConversationAnchor.status:type_name -> nimi.runtime.v1.ConversationAnchorStatus
-	162, // 176: nimi.runtime.v1.ConversationAnchor.created_at:type_name -> google.protobuf.Timestamp
-	162, // 177: nimi.runtime.v1.ConversationAnchor.updated_at:type_name -> google.protobuf.Timestamp
-	163, // 178: nimi.runtime.v1.ConversationAnchor.metadata:type_name -> google.protobuf.Struct
-	104, // 179: nimi.runtime.v1.ConversationAnchorSnapshot.anchor:type_name -> nimi.runtime.v1.ConversationAnchor
-	165, // 180: nimi.runtime.v1.ConversationAnchorSnapshot.source_context_status:type_name -> nimi.runtime.v1.LocalAgentSourceContextStatus
-	185, // 181: nimi.runtime.v1.ConversationAnchorSnapshot.turn_context_summary:type_name -> nimi.runtime.v1.AgentTurnContextSummary
-	173, // 182: nimi.runtime.v1.OpenConversationAnchorRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
-	163, // 183: nimi.runtime.v1.OpenConversationAnchorRequest.metadata:type_name -> google.protobuf.Struct
-	105, // 184: nimi.runtime.v1.OpenConversationAnchorResponse.snapshot:type_name -> nimi.runtime.v1.ConversationAnchorSnapshot
-	108, // 185: nimi.runtime.v1.ListLocalAppAgentReferencesResponse.references:type_name -> nimi.runtime.v1.LocalAppAgentReference
-	26,  // 186: nimi.runtime.v1.LocalAppConversationMessage.role:type_name -> nimi.runtime.v1.LocalAppConversationMessageRole
-	119, // 187: nimi.runtime.v1.LocalAppConversationSnapshot.messages:type_name -> nimi.runtime.v1.LocalAppConversationMessage
-	120, // 188: nimi.runtime.v1.GetLocalAppConversationSnapshotResponse.snapshot:type_name -> nimi.runtime.v1.LocalAppConversationSnapshot
-	122, // 189: nimi.runtime.v1.LocalAppConversationEvent.turn_accepted:type_name -> nimi.runtime.v1.LocalAppConversationTurnAccepted
-	123, // 190: nimi.runtime.v1.LocalAppConversationEvent.turn_started:type_name -> nimi.runtime.v1.LocalAppConversationTurnStarted
-	124, // 191: nimi.runtime.v1.LocalAppConversationEvent.text_delta:type_name -> nimi.runtime.v1.LocalAppConversationTextDelta
-	125, // 192: nimi.runtime.v1.LocalAppConversationEvent.message_committed:type_name -> nimi.runtime.v1.LocalAppConversationMessageCommitted
-	126, // 193: nimi.runtime.v1.LocalAppConversationEvent.turn_completed:type_name -> nimi.runtime.v1.LocalAppConversationTurnCompleted
-	127, // 194: nimi.runtime.v1.LocalAppConversationEvent.turn_failed:type_name -> nimi.runtime.v1.LocalAppConversationTurnFailed
-	128, // 195: nimi.runtime.v1.LocalAppConversationEvent.turn_interrupted:type_name -> nimi.runtime.v1.LocalAppConversationTurnInterrupted
-	173, // 196: nimi.runtime.v1.GetConversationAnchorSnapshotRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
-	105, // 197: nimi.runtime.v1.GetConversationAnchorSnapshotResponse.snapshot:type_name -> nimi.runtime.v1.ConversationAnchorSnapshot
-	162, // 198: nimi.runtime.v1.AvatarLiveInstanceBinding.registered_at:type_name -> google.protobuf.Timestamp
-	162, // 199: nimi.runtime.v1.AvatarLiveInstanceBinding.updated_at:type_name -> google.protobuf.Timestamp
-	173, // 200: nimi.runtime.v1.RegisterAvatarLiveInstanceBindingRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
-	132, // 201: nimi.runtime.v1.RegisterAvatarLiveInstanceBindingResponse.binding:type_name -> nimi.runtime.v1.AvatarLiveInstanceBinding
-	105, // 202: nimi.runtime.v1.RegisterAvatarLiveInstanceBindingResponse.snapshot:type_name -> nimi.runtime.v1.ConversationAnchorSnapshot
-	173, // 203: nimi.runtime.v1.ResolveAvatarLiveInstanceBindingRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
-	132, // 204: nimi.runtime.v1.ResolveAvatarLiveInstanceBindingResponse.binding:type_name -> nimi.runtime.v1.AvatarLiveInstanceBinding
-	105, // 205: nimi.runtime.v1.ResolveAvatarLiveInstanceBindingResponse.snapshot:type_name -> nimi.runtime.v1.ConversationAnchorSnapshot
-	173, // 206: nimi.runtime.v1.GetPublicChatSessionSnapshotRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
-	163, // 207: nimi.runtime.v1.GetPublicChatSessionSnapshotResponse.snapshot:type_name -> google.protobuf.Struct
-	104, // 208: nimi.runtime.v1.AgentConversationSummary.anchor:type_name -> nimi.runtime.v1.ConversationAnchor
-	162, // 209: nimi.runtime.v1.AgentConversationSummary.updated_at:type_name -> google.protobuf.Timestamp
-	165, // 210: nimi.runtime.v1.AgentConversationSummary.source_context_status:type_name -> nimi.runtime.v1.LocalAgentSourceContextStatus
-	185, // 211: nimi.runtime.v1.AgentConversationSummary.last_turn_context_summary:type_name -> nimi.runtime.v1.AgentTurnContextSummary
-	173, // 212: nimi.runtime.v1.ListAgentConversationSummariesRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
-	24,  // 213: nimi.runtime.v1.ListAgentConversationSummariesRequest.status_filter:type_name -> nimi.runtime.v1.ConversationAnchorStatus
-	139, // 214: nimi.runtime.v1.ListAgentConversationSummariesResponse.summaries:type_name -> nimi.runtime.v1.AgentConversationSummary
-	173, // 215: nimi.runtime.v1.GetAvatarDebugSnapshotRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
-	59,  // 216: nimi.runtime.v1.GetAvatarDebugSnapshotResponse.probe_results:type_name -> nimi.runtime.v1.AvatarDebugProbeResultEnvelope
-	60,  // 217: nimi.runtime.v1.GetAvatarDebugSnapshotResponse.replay_refs:type_name -> nimi.runtime.v1.AvatarDebugReplayRef
-	162, // 218: nimi.runtime.v1.GetAvatarDebugSnapshotResponse.observed_at:type_name -> google.protobuf.Timestamp
-	173, // 219: nimi.runtime.v1.RequestAvatarDebugProbeRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
-	16,  // 220: nimi.runtime.v1.RequestAvatarDebugProbeRequest.probe_kind:type_name -> nimi.runtime.v1.AvatarDebugProbeKind
-	18,  // 221: nimi.runtime.v1.RequestAvatarDebugProbeRequest.requested_by:type_name -> nimi.runtime.v1.AvatarDebugRequestedBy
-	58,  // 222: nimi.runtime.v1.RequestAvatarDebugProbeResponse.request:type_name -> nimi.runtime.v1.AvatarDebugProbeRequestEnvelope
-	59,  // 223: nimi.runtime.v1.RequestAvatarDebugProbeResponse.result:type_name -> nimi.runtime.v1.AvatarDebugProbeResultEnvelope
-	60,  // 224: nimi.runtime.v1.RequestAvatarDebugProbeResponse.replay_ref:type_name -> nimi.runtime.v1.AvatarDebugReplayRef
-	173, // 225: nimi.runtime.v1.SubmitAvatarDebugProbeResultRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
-	59,  // 226: nimi.runtime.v1.SubmitAvatarDebugProbeResultRequest.result:type_name -> nimi.runtime.v1.AvatarDebugProbeResultEnvelope
-	59,  // 227: nimi.runtime.v1.SubmitAvatarDebugProbeResultResponse.result:type_name -> nimi.runtime.v1.AvatarDebugProbeResultEnvelope
-	173, // 228: nimi.runtime.v1.ListAvatarDebugProbeResultsRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
-	16,  // 229: nimi.runtime.v1.ListAvatarDebugProbeResultsRequest.probe_kind:type_name -> nimi.runtime.v1.AvatarDebugProbeKind
-	59,  // 230: nimi.runtime.v1.ListAvatarDebugProbeResultsResponse.probe_results:type_name -> nimi.runtime.v1.AvatarDebugProbeResultEnvelope
-	173, // 231: nimi.runtime.v1.GetAvatarDebugReplayRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
-	58,  // 232: nimi.runtime.v1.GetAvatarDebugReplayResponse.request:type_name -> nimi.runtime.v1.AvatarDebugProbeRequestEnvelope
-	59,  // 233: nimi.runtime.v1.GetAvatarDebugReplayResponse.result:type_name -> nimi.runtime.v1.AvatarDebugProbeResultEnvelope
-	60,  // 234: nimi.runtime.v1.GetAvatarDebugReplayResponse.replay_ref:type_name -> nimi.runtime.v1.AvatarDebugReplayRef
-	173, // 235: nimi.runtime.v1.GetSharedLocalAgentAIConfigRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
-	186, // 236: nimi.runtime.v1.GetSharedLocalAgentAIConfigResponse.config:type_name -> nimi.runtime.v1.AIConfig
-	173, // 237: nimi.runtime.v1.OverwriteSharedLocalAgentAIConfigRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
-	187, // 238: nimi.runtime.v1.OverwriteSharedLocalAgentAIConfigRequest.capabilities:type_name -> nimi.runtime.v1.AIConfigCapabilityIntent
-	186, // 239: nimi.runtime.v1.OverwriteSharedLocalAgentAIConfigResponse.config:type_name -> nimi.runtime.v1.AIConfig
-	173, // 240: nimi.runtime.v1.PreviewSharedLocalAgentAIProfileRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
-	186, // 241: nimi.runtime.v1.PreviewSharedLocalAgentAIProfileResponse.before:type_name -> nimi.runtime.v1.AIConfig
-	186, // 242: nimi.runtime.v1.PreviewSharedLocalAgentAIProfileResponse.after:type_name -> nimi.runtime.v1.AIConfig
-	173, // 243: nimi.runtime.v1.ApplySharedLocalAgentAIProfileRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
-	186, // 244: nimi.runtime.v1.ApplySharedLocalAgentAIProfileResponse.config:type_name -> nimi.runtime.v1.AIConfig
-	188, // 245: nimi.runtime.v1.RuntimeAgentService.MaterializeRealmSource:input_type -> nimi.runtime.v1.MaterializeRealmSourceRequest
-	63,  // 246: nimi.runtime.v1.RuntimeAgentService.TerminateAgent:input_type -> nimi.runtime.v1.TerminateAgentRequest
-	65,  // 247: nimi.runtime.v1.RuntimeAgentService.GetAgent:input_type -> nimi.runtime.v1.GetAgentRequest
-	67,  // 248: nimi.runtime.v1.RuntimeAgentService.ListAgents:input_type -> nimi.runtime.v1.ListAgentsRequest
-	109, // 249: nimi.runtime.v1.RuntimeAgentService.ListLocalAppAgentReferences:input_type -> nimi.runtime.v1.ListLocalAppAgentReferencesRequest
-	111, // 250: nimi.runtime.v1.RuntimeAgentService.OpenLocalAppConversation:input_type -> nimi.runtime.v1.OpenLocalAppConversationRequest
-	113, // 251: nimi.runtime.v1.RuntimeAgentService.SendLocalAppConversationTurn:input_type -> nimi.runtime.v1.SendLocalAppConversationTurnRequest
-	115, // 252: nimi.runtime.v1.RuntimeAgentService.InterruptLocalAppConversationTurn:input_type -> nimi.runtime.v1.InterruptLocalAppConversationTurnRequest
-	117, // 253: nimi.runtime.v1.RuntimeAgentService.SubscribeLocalAppConversationEvents:input_type -> nimi.runtime.v1.SubscribeLocalAppConversationEventsRequest
-	118, // 254: nimi.runtime.v1.RuntimeAgentService.GetLocalAppConversationSnapshot:input_type -> nimi.runtime.v1.GetLocalAppConversationSnapshotRequest
-	106, // 255: nimi.runtime.v1.RuntimeAgentService.OpenConversationAnchor:input_type -> nimi.runtime.v1.OpenConversationAnchorRequest
-	130, // 256: nimi.runtime.v1.RuntimeAgentService.GetConversationAnchorSnapshot:input_type -> nimi.runtime.v1.GetConversationAnchorSnapshotRequest
-	133, // 257: nimi.runtime.v1.RuntimeAgentService.RegisterAvatarLiveInstanceBinding:input_type -> nimi.runtime.v1.RegisterAvatarLiveInstanceBindingRequest
-	135, // 258: nimi.runtime.v1.RuntimeAgentService.ResolveAvatarLiveInstanceBinding:input_type -> nimi.runtime.v1.ResolveAvatarLiveInstanceBindingRequest
-	137, // 259: nimi.runtime.v1.RuntimeAgentService.GetPublicChatSessionSnapshot:input_type -> nimi.runtime.v1.GetPublicChatSessionSnapshotRequest
-	140, // 260: nimi.runtime.v1.RuntimeAgentService.ListAgentConversationSummaries:input_type -> nimi.runtime.v1.ListAgentConversationSummariesRequest
-	189, // 261: nimi.runtime.v1.RuntimeAgentService.GetCompanionParticipationProjection:input_type -> nimi.runtime.v1.GetCompanionParticipationProjectionRequest
-	190, // 262: nimi.runtime.v1.RuntimeAgentService.RequestCompanionParticipation:input_type -> nimi.runtime.v1.RequestCompanionParticipationRequest
-	191, // 263: nimi.runtime.v1.RuntimeAgentService.CancelCompanionParticipation:input_type -> nimi.runtime.v1.CancelCompanionParticipationRequest
-	192, // 264: nimi.runtime.v1.RuntimeAgentService.OpenCompanionParticipationReplay:input_type -> nimi.runtime.v1.OpenCompanionParticipationReplayRequest
-	142, // 265: nimi.runtime.v1.RuntimeAgentService.GetAvatarDebugSnapshot:input_type -> nimi.runtime.v1.GetAvatarDebugSnapshotRequest
-	144, // 266: nimi.runtime.v1.RuntimeAgentService.RequestAvatarDebugProbe:input_type -> nimi.runtime.v1.RequestAvatarDebugProbeRequest
-	146, // 267: nimi.runtime.v1.RuntimeAgentService.SubmitAvatarDebugProbeResult:input_type -> nimi.runtime.v1.SubmitAvatarDebugProbeResultRequest
-	148, // 268: nimi.runtime.v1.RuntimeAgentService.ListAvatarDebugProbeResults:input_type -> nimi.runtime.v1.ListAvatarDebugProbeResultsRequest
-	150, // 269: nimi.runtime.v1.RuntimeAgentService.GetAvatarDebugReplay:input_type -> nimi.runtime.v1.GetAvatarDebugReplayRequest
-	69,  // 270: nimi.runtime.v1.RuntimeAgentService.GetAgentState:input_type -> nimi.runtime.v1.GetAgentStateRequest
-	71,  // 271: nimi.runtime.v1.RuntimeAgentService.UpdateAgentState:input_type -> nimi.runtime.v1.UpdateAgentStateRequest
-	79,  // 272: nimi.runtime.v1.RuntimeAgentService.SetAgentPresentationProfile:input_type -> nimi.runtime.v1.SetAgentPresentationProfileRequest
-	81,  // 273: nimi.runtime.v1.RuntimeAgentService.GetAgentPresentationAsset:input_type -> nimi.runtime.v1.GetAgentPresentationAssetRequest
-	73,  // 274: nimi.runtime.v1.RuntimeAgentService.EnableAutonomy:input_type -> nimi.runtime.v1.EnableAutonomyRequest
-	75,  // 275: nimi.runtime.v1.RuntimeAgentService.DisableAutonomy:input_type -> nimi.runtime.v1.DisableAutonomyRequest
-	77,  // 276: nimi.runtime.v1.RuntimeAgentService.SetAutonomyConfig:input_type -> nimi.runtime.v1.SetAutonomyConfigRequest
-	83,  // 277: nimi.runtime.v1.RuntimeAgentService.ListPendingHooks:input_type -> nimi.runtime.v1.ListPendingHooksRequest
-	85,  // 278: nimi.runtime.v1.RuntimeAgentService.CancelHook:input_type -> nimi.runtime.v1.CancelHookRequest
-	193, // 279: nimi.runtime.v1.RuntimeAgentService.ListDelegatedProviderProfiles:input_type -> nimi.runtime.v1.ListDelegatedProviderProfilesRequest
-	194, // 280: nimi.runtime.v1.RuntimeAgentService.ListDelegatedApprovalRequests:input_type -> nimi.runtime.v1.ListDelegatedApprovalRequestsRequest
-	195, // 281: nimi.runtime.v1.RuntimeAgentService.SubmitDelegatedApprovalDecision:input_type -> nimi.runtime.v1.SubmitDelegatedApprovalDecisionRequest
-	196, // 282: nimi.runtime.v1.RuntimeAgentService.ListDelegatedDiagnostics:input_type -> nimi.runtime.v1.ListDelegatedDiagnosticsRequest
-	197, // 283: nimi.runtime.v1.RuntimeAgentService.GetDelegatedReplayTrace:input_type -> nimi.runtime.v1.GetDelegatedReplayTraceRequest
-	198, // 284: nimi.runtime.v1.RuntimeAgentService.GetDelegatedControlSurfaceSnapshot:input_type -> nimi.runtime.v1.GetDelegatedControlSurfaceSnapshotRequest
-	87,  // 285: nimi.runtime.v1.RuntimeAgentService.QueryAgentMemory:input_type -> nimi.runtime.v1.QueryAgentMemoryRequest
-	89,  // 286: nimi.runtime.v1.RuntimeAgentService.WriteAgentMemory:input_type -> nimi.runtime.v1.WriteAgentMemoryRequest
-	92,  // 287: nimi.runtime.v1.RuntimeAgentService.GetAgentCanonicalMemoryBankStatus:input_type -> nimi.runtime.v1.GetAgentCanonicalMemoryBankStatusRequest
-	94,  // 288: nimi.runtime.v1.RuntimeAgentService.RequestAgentCanonicalMemoryBankBind:input_type -> nimi.runtime.v1.RequestAgentCanonicalMemoryBankBindRequest
-	97,  // 289: nimi.runtime.v1.RuntimeAgentService.GetAgentCanonicalMemoryReviewStatus:input_type -> nimi.runtime.v1.GetAgentCanonicalMemoryReviewStatusRequest
-	99,  // 290: nimi.runtime.v1.RuntimeAgentService.SubscribeAgentEvents:input_type -> nimi.runtime.v1.SubscribeAgentEventsRequest
-	100, // 291: nimi.runtime.v1.RuntimeAgentService.SubscribeAgentVoiceStream:input_type -> nimi.runtime.v1.SubscribeAgentVoiceStreamRequest
-	101, // 292: nimi.runtime.v1.RuntimeAgentService.InterruptAgentVoicePlayback:input_type -> nimi.runtime.v1.InterruptAgentVoicePlaybackRequest
-	152, // 293: nimi.runtime.v1.RuntimeAgentService.GetSharedLocalAgentAIConfig:input_type -> nimi.runtime.v1.GetSharedLocalAgentAIConfigRequest
-	154, // 294: nimi.runtime.v1.RuntimeAgentService.OverwriteSharedLocalAgentAIConfig:input_type -> nimi.runtime.v1.OverwriteSharedLocalAgentAIConfigRequest
-	156, // 295: nimi.runtime.v1.RuntimeAgentService.PreviewSharedLocalAgentAIProfile:input_type -> nimi.runtime.v1.PreviewSharedLocalAgentAIProfileRequest
-	158, // 296: nimi.runtime.v1.RuntimeAgentService.ApplySharedLocalAgentAIProfile:input_type -> nimi.runtime.v1.ApplySharedLocalAgentAIProfileRequest
-	199, // 297: nimi.runtime.v1.RuntimeAgentService.GetLocalAppSharedLocalAgentAIConfig:input_type -> nimi.runtime.v1.GetLocalAppSharedLocalAgentAIConfigRequest
-	200, // 298: nimi.runtime.v1.RuntimeAgentService.OverwriteLocalAppSharedLocalAgentAIConfig:input_type -> nimi.runtime.v1.OverwriteLocalAppSharedLocalAgentAIConfigRequest
-	201, // 299: nimi.runtime.v1.RuntimeAgentService.GetLocalAppAgentAutonomySnapshot:input_type -> nimi.runtime.v1.GetLocalAppAgentAutonomySnapshotRequest
-	202, // 300: nimi.runtime.v1.RuntimeAgentService.UpdateLocalAppAgentAutonomy:input_type -> nimi.runtime.v1.UpdateLocalAppAgentAutonomyRequest
-	203, // 301: nimi.runtime.v1.RuntimeAgentService.GetLocalAppAgentPresentationSnapshot:input_type -> nimi.runtime.v1.GetLocalAppAgentPresentationSnapshotRequest
-	204, // 302: nimi.runtime.v1.RuntimeAgentService.CommitLocalAppAgentPresentation:input_type -> nimi.runtime.v1.CommitLocalAppAgentPresentationRequest
-	205, // 303: nimi.runtime.v1.RuntimeAgentService.MaterializeRealmSource:output_type -> nimi.runtime.v1.MaterializeRealmSourceResponse
-	64,  // 304: nimi.runtime.v1.RuntimeAgentService.TerminateAgent:output_type -> nimi.runtime.v1.TerminateAgentResponse
-	66,  // 305: nimi.runtime.v1.RuntimeAgentService.GetAgent:output_type -> nimi.runtime.v1.GetAgentResponse
-	68,  // 306: nimi.runtime.v1.RuntimeAgentService.ListAgents:output_type -> nimi.runtime.v1.ListAgentsResponse
-	110, // 307: nimi.runtime.v1.RuntimeAgentService.ListLocalAppAgentReferences:output_type -> nimi.runtime.v1.ListLocalAppAgentReferencesResponse
-	112, // 308: nimi.runtime.v1.RuntimeAgentService.OpenLocalAppConversation:output_type -> nimi.runtime.v1.OpenLocalAppConversationResponse
-	114, // 309: nimi.runtime.v1.RuntimeAgentService.SendLocalAppConversationTurn:output_type -> nimi.runtime.v1.SendLocalAppConversationTurnResponse
-	116, // 310: nimi.runtime.v1.RuntimeAgentService.InterruptLocalAppConversationTurn:output_type -> nimi.runtime.v1.InterruptLocalAppConversationTurnResponse
-	129, // 311: nimi.runtime.v1.RuntimeAgentService.SubscribeLocalAppConversationEvents:output_type -> nimi.runtime.v1.LocalAppConversationEvent
-	121, // 312: nimi.runtime.v1.RuntimeAgentService.GetLocalAppConversationSnapshot:output_type -> nimi.runtime.v1.GetLocalAppConversationSnapshotResponse
-	107, // 313: nimi.runtime.v1.RuntimeAgentService.OpenConversationAnchor:output_type -> nimi.runtime.v1.OpenConversationAnchorResponse
-	131, // 314: nimi.runtime.v1.RuntimeAgentService.GetConversationAnchorSnapshot:output_type -> nimi.runtime.v1.GetConversationAnchorSnapshotResponse
-	134, // 315: nimi.runtime.v1.RuntimeAgentService.RegisterAvatarLiveInstanceBinding:output_type -> nimi.runtime.v1.RegisterAvatarLiveInstanceBindingResponse
-	136, // 316: nimi.runtime.v1.RuntimeAgentService.ResolveAvatarLiveInstanceBinding:output_type -> nimi.runtime.v1.ResolveAvatarLiveInstanceBindingResponse
-	138, // 317: nimi.runtime.v1.RuntimeAgentService.GetPublicChatSessionSnapshot:output_type -> nimi.runtime.v1.GetPublicChatSessionSnapshotResponse
-	141, // 318: nimi.runtime.v1.RuntimeAgentService.ListAgentConversationSummaries:output_type -> nimi.runtime.v1.ListAgentConversationSummariesResponse
-	206, // 319: nimi.runtime.v1.RuntimeAgentService.GetCompanionParticipationProjection:output_type -> nimi.runtime.v1.GetCompanionParticipationProjectionResponse
-	207, // 320: nimi.runtime.v1.RuntimeAgentService.RequestCompanionParticipation:output_type -> nimi.runtime.v1.RequestCompanionParticipationResponse
-	208, // 321: nimi.runtime.v1.RuntimeAgentService.CancelCompanionParticipation:output_type -> nimi.runtime.v1.CancelCompanionParticipationResponse
-	209, // 322: nimi.runtime.v1.RuntimeAgentService.OpenCompanionParticipationReplay:output_type -> nimi.runtime.v1.OpenCompanionParticipationReplayResponse
-	143, // 323: nimi.runtime.v1.RuntimeAgentService.GetAvatarDebugSnapshot:output_type -> nimi.runtime.v1.GetAvatarDebugSnapshotResponse
-	145, // 324: nimi.runtime.v1.RuntimeAgentService.RequestAvatarDebugProbe:output_type -> nimi.runtime.v1.RequestAvatarDebugProbeResponse
-	147, // 325: nimi.runtime.v1.RuntimeAgentService.SubmitAvatarDebugProbeResult:output_type -> nimi.runtime.v1.SubmitAvatarDebugProbeResultResponse
-	149, // 326: nimi.runtime.v1.RuntimeAgentService.ListAvatarDebugProbeResults:output_type -> nimi.runtime.v1.ListAvatarDebugProbeResultsResponse
-	151, // 327: nimi.runtime.v1.RuntimeAgentService.GetAvatarDebugReplay:output_type -> nimi.runtime.v1.GetAvatarDebugReplayResponse
-	70,  // 328: nimi.runtime.v1.RuntimeAgentService.GetAgentState:output_type -> nimi.runtime.v1.GetAgentStateResponse
-	72,  // 329: nimi.runtime.v1.RuntimeAgentService.UpdateAgentState:output_type -> nimi.runtime.v1.UpdateAgentStateResponse
-	80,  // 330: nimi.runtime.v1.RuntimeAgentService.SetAgentPresentationProfile:output_type -> nimi.runtime.v1.SetAgentPresentationProfileResponse
-	82,  // 331: nimi.runtime.v1.RuntimeAgentService.GetAgentPresentationAsset:output_type -> nimi.runtime.v1.GetAgentPresentationAssetResponse
-	74,  // 332: nimi.runtime.v1.RuntimeAgentService.EnableAutonomy:output_type -> nimi.runtime.v1.EnableAutonomyResponse
-	76,  // 333: nimi.runtime.v1.RuntimeAgentService.DisableAutonomy:output_type -> nimi.runtime.v1.DisableAutonomyResponse
-	78,  // 334: nimi.runtime.v1.RuntimeAgentService.SetAutonomyConfig:output_type -> nimi.runtime.v1.SetAutonomyConfigResponse
-	84,  // 335: nimi.runtime.v1.RuntimeAgentService.ListPendingHooks:output_type -> nimi.runtime.v1.ListPendingHooksResponse
-	86,  // 336: nimi.runtime.v1.RuntimeAgentService.CancelHook:output_type -> nimi.runtime.v1.CancelHookResponse
-	210, // 337: nimi.runtime.v1.RuntimeAgentService.ListDelegatedProviderProfiles:output_type -> nimi.runtime.v1.ListDelegatedProviderProfilesResponse
-	211, // 338: nimi.runtime.v1.RuntimeAgentService.ListDelegatedApprovalRequests:output_type -> nimi.runtime.v1.ListDelegatedApprovalRequestsResponse
-	212, // 339: nimi.runtime.v1.RuntimeAgentService.SubmitDelegatedApprovalDecision:output_type -> nimi.runtime.v1.SubmitDelegatedApprovalDecisionResponse
-	213, // 340: nimi.runtime.v1.RuntimeAgentService.ListDelegatedDiagnostics:output_type -> nimi.runtime.v1.ListDelegatedDiagnosticsResponse
-	214, // 341: nimi.runtime.v1.RuntimeAgentService.GetDelegatedReplayTrace:output_type -> nimi.runtime.v1.GetDelegatedReplayTraceResponse
-	215, // 342: nimi.runtime.v1.RuntimeAgentService.GetDelegatedControlSurfaceSnapshot:output_type -> nimi.runtime.v1.GetDelegatedControlSurfaceSnapshotResponse
-	88,  // 343: nimi.runtime.v1.RuntimeAgentService.QueryAgentMemory:output_type -> nimi.runtime.v1.QueryAgentMemoryResponse
-	90,  // 344: nimi.runtime.v1.RuntimeAgentService.WriteAgentMemory:output_type -> nimi.runtime.v1.WriteAgentMemoryResponse
-	93,  // 345: nimi.runtime.v1.RuntimeAgentService.GetAgentCanonicalMemoryBankStatus:output_type -> nimi.runtime.v1.GetAgentCanonicalMemoryBankStatusResponse
-	95,  // 346: nimi.runtime.v1.RuntimeAgentService.RequestAgentCanonicalMemoryBankBind:output_type -> nimi.runtime.v1.RequestAgentCanonicalMemoryBankBindResponse
-	98,  // 347: nimi.runtime.v1.RuntimeAgentService.GetAgentCanonicalMemoryReviewStatus:output_type -> nimi.runtime.v1.GetAgentCanonicalMemoryReviewStatusResponse
-	62,  // 348: nimi.runtime.v1.RuntimeAgentService.SubscribeAgentEvents:output_type -> nimi.runtime.v1.AgentEvent
-	103, // 349: nimi.runtime.v1.RuntimeAgentService.SubscribeAgentVoiceStream:output_type -> nimi.runtime.v1.AgentVoiceStreamEvent
-	102, // 350: nimi.runtime.v1.RuntimeAgentService.InterruptAgentVoicePlayback:output_type -> nimi.runtime.v1.InterruptAgentVoicePlaybackResponse
-	153, // 351: nimi.runtime.v1.RuntimeAgentService.GetSharedLocalAgentAIConfig:output_type -> nimi.runtime.v1.GetSharedLocalAgentAIConfigResponse
-	155, // 352: nimi.runtime.v1.RuntimeAgentService.OverwriteSharedLocalAgentAIConfig:output_type -> nimi.runtime.v1.OverwriteSharedLocalAgentAIConfigResponse
-	157, // 353: nimi.runtime.v1.RuntimeAgentService.PreviewSharedLocalAgentAIProfile:output_type -> nimi.runtime.v1.PreviewSharedLocalAgentAIProfileResponse
-	159, // 354: nimi.runtime.v1.RuntimeAgentService.ApplySharedLocalAgentAIProfile:output_type -> nimi.runtime.v1.ApplySharedLocalAgentAIProfileResponse
-	216, // 355: nimi.runtime.v1.RuntimeAgentService.GetLocalAppSharedLocalAgentAIConfig:output_type -> nimi.runtime.v1.GetLocalAppSharedLocalAgentAIConfigResponse
-	217, // 356: nimi.runtime.v1.RuntimeAgentService.OverwriteLocalAppSharedLocalAgentAIConfig:output_type -> nimi.runtime.v1.OverwriteLocalAppSharedLocalAgentAIConfigResponse
-	218, // 357: nimi.runtime.v1.RuntimeAgentService.GetLocalAppAgentAutonomySnapshot:output_type -> nimi.runtime.v1.LocalAppAgentAutonomySnapshotResponse
-	219, // 358: nimi.runtime.v1.RuntimeAgentService.UpdateLocalAppAgentAutonomy:output_type -> nimi.runtime.v1.LocalAppAgentUpdateAutonomyResponse
-	220, // 359: nimi.runtime.v1.RuntimeAgentService.GetLocalAppAgentPresentationSnapshot:output_type -> nimi.runtime.v1.LocalAppAgentPresentationSnapshotResponse
-	221, // 360: nimi.runtime.v1.RuntimeAgentService.CommitLocalAppAgentPresentation:output_type -> nimi.runtime.v1.LocalAppAgentCommitPresentationResponse
-	303, // [303:361] is the sub-list for method output_type
-	245, // [245:303] is the sub-list for method input_type
-	245, // [245:245] is the sub-list for extension type_name
-	245, // [245:245] is the sub-list for extension extendee
-	0,   // [0:245] is the sub-list for field type_name
+	175, // 169: nimi.runtime.v1.SubscribeAgentVoiceStreamRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
+	175, // 170: nimi.runtime.v1.InterruptAgentVoicePlaybackRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
+	185, // 171: nimi.runtime.v1.InterruptAgentVoicePlaybackResponse.voice_output_mode:type_name -> nimi.runtime.v1.VoiceOutputMode
+	186, // 172: nimi.runtime.v1.InterruptAgentVoicePlaybackResponse.voice_playback_state:type_name -> nimi.runtime.v1.VoicePlaybackState
+	175, // 173: nimi.runtime.v1.TranscribeAgentVoiceInputRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
+	185, // 174: nimi.runtime.v1.AgentVoiceStreamEvent.voice_output_mode:type_name -> nimi.runtime.v1.VoiceOutputMode
+	186, // 175: nimi.runtime.v1.AgentVoiceStreamEvent.voice_playback_state:type_name -> nimi.runtime.v1.VoicePlaybackState
+	24,  // 176: nimi.runtime.v1.ConversationAnchor.status:type_name -> nimi.runtime.v1.ConversationAnchorStatus
+	164, // 177: nimi.runtime.v1.ConversationAnchor.created_at:type_name -> google.protobuf.Timestamp
+	164, // 178: nimi.runtime.v1.ConversationAnchor.updated_at:type_name -> google.protobuf.Timestamp
+	165, // 179: nimi.runtime.v1.ConversationAnchor.metadata:type_name -> google.protobuf.Struct
+	106, // 180: nimi.runtime.v1.ConversationAnchorSnapshot.anchor:type_name -> nimi.runtime.v1.ConversationAnchor
+	167, // 181: nimi.runtime.v1.ConversationAnchorSnapshot.source_context_status:type_name -> nimi.runtime.v1.LocalAgentSourceContextStatus
+	187, // 182: nimi.runtime.v1.ConversationAnchorSnapshot.turn_context_summary:type_name -> nimi.runtime.v1.AgentTurnContextSummary
+	175, // 183: nimi.runtime.v1.OpenConversationAnchorRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
+	165, // 184: nimi.runtime.v1.OpenConversationAnchorRequest.metadata:type_name -> google.protobuf.Struct
+	107, // 185: nimi.runtime.v1.OpenConversationAnchorResponse.snapshot:type_name -> nimi.runtime.v1.ConversationAnchorSnapshot
+	110, // 186: nimi.runtime.v1.ListLocalAppAgentReferencesResponse.references:type_name -> nimi.runtime.v1.LocalAppAgentReference
+	26,  // 187: nimi.runtime.v1.LocalAppConversationMessage.role:type_name -> nimi.runtime.v1.LocalAppConversationMessageRole
+	121, // 188: nimi.runtime.v1.LocalAppConversationSnapshot.messages:type_name -> nimi.runtime.v1.LocalAppConversationMessage
+	122, // 189: nimi.runtime.v1.GetLocalAppConversationSnapshotResponse.snapshot:type_name -> nimi.runtime.v1.LocalAppConversationSnapshot
+	124, // 190: nimi.runtime.v1.LocalAppConversationEvent.turn_accepted:type_name -> nimi.runtime.v1.LocalAppConversationTurnAccepted
+	125, // 191: nimi.runtime.v1.LocalAppConversationEvent.turn_started:type_name -> nimi.runtime.v1.LocalAppConversationTurnStarted
+	126, // 192: nimi.runtime.v1.LocalAppConversationEvent.text_delta:type_name -> nimi.runtime.v1.LocalAppConversationTextDelta
+	127, // 193: nimi.runtime.v1.LocalAppConversationEvent.message_committed:type_name -> nimi.runtime.v1.LocalAppConversationMessageCommitted
+	128, // 194: nimi.runtime.v1.LocalAppConversationEvent.turn_completed:type_name -> nimi.runtime.v1.LocalAppConversationTurnCompleted
+	129, // 195: nimi.runtime.v1.LocalAppConversationEvent.turn_failed:type_name -> nimi.runtime.v1.LocalAppConversationTurnFailed
+	130, // 196: nimi.runtime.v1.LocalAppConversationEvent.turn_interrupted:type_name -> nimi.runtime.v1.LocalAppConversationTurnInterrupted
+	175, // 197: nimi.runtime.v1.GetConversationAnchorSnapshotRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
+	107, // 198: nimi.runtime.v1.GetConversationAnchorSnapshotResponse.snapshot:type_name -> nimi.runtime.v1.ConversationAnchorSnapshot
+	164, // 199: nimi.runtime.v1.AvatarLiveInstanceBinding.registered_at:type_name -> google.protobuf.Timestamp
+	164, // 200: nimi.runtime.v1.AvatarLiveInstanceBinding.updated_at:type_name -> google.protobuf.Timestamp
+	175, // 201: nimi.runtime.v1.RegisterAvatarLiveInstanceBindingRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
+	134, // 202: nimi.runtime.v1.RegisterAvatarLiveInstanceBindingResponse.binding:type_name -> nimi.runtime.v1.AvatarLiveInstanceBinding
+	107, // 203: nimi.runtime.v1.RegisterAvatarLiveInstanceBindingResponse.snapshot:type_name -> nimi.runtime.v1.ConversationAnchorSnapshot
+	175, // 204: nimi.runtime.v1.ResolveAvatarLiveInstanceBindingRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
+	134, // 205: nimi.runtime.v1.ResolveAvatarLiveInstanceBindingResponse.binding:type_name -> nimi.runtime.v1.AvatarLiveInstanceBinding
+	107, // 206: nimi.runtime.v1.ResolveAvatarLiveInstanceBindingResponse.snapshot:type_name -> nimi.runtime.v1.ConversationAnchorSnapshot
+	175, // 207: nimi.runtime.v1.GetPublicChatSessionSnapshotRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
+	165, // 208: nimi.runtime.v1.GetPublicChatSessionSnapshotResponse.snapshot:type_name -> google.protobuf.Struct
+	106, // 209: nimi.runtime.v1.AgentConversationSummary.anchor:type_name -> nimi.runtime.v1.ConversationAnchor
+	164, // 210: nimi.runtime.v1.AgentConversationSummary.updated_at:type_name -> google.protobuf.Timestamp
+	167, // 211: nimi.runtime.v1.AgentConversationSummary.source_context_status:type_name -> nimi.runtime.v1.LocalAgentSourceContextStatus
+	187, // 212: nimi.runtime.v1.AgentConversationSummary.last_turn_context_summary:type_name -> nimi.runtime.v1.AgentTurnContextSummary
+	175, // 213: nimi.runtime.v1.ListAgentConversationSummariesRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
+	24,  // 214: nimi.runtime.v1.ListAgentConversationSummariesRequest.status_filter:type_name -> nimi.runtime.v1.ConversationAnchorStatus
+	141, // 215: nimi.runtime.v1.ListAgentConversationSummariesResponse.summaries:type_name -> nimi.runtime.v1.AgentConversationSummary
+	175, // 216: nimi.runtime.v1.GetAvatarDebugSnapshotRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
+	59,  // 217: nimi.runtime.v1.GetAvatarDebugSnapshotResponse.probe_results:type_name -> nimi.runtime.v1.AvatarDebugProbeResultEnvelope
+	60,  // 218: nimi.runtime.v1.GetAvatarDebugSnapshotResponse.replay_refs:type_name -> nimi.runtime.v1.AvatarDebugReplayRef
+	164, // 219: nimi.runtime.v1.GetAvatarDebugSnapshotResponse.observed_at:type_name -> google.protobuf.Timestamp
+	175, // 220: nimi.runtime.v1.RequestAvatarDebugProbeRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
+	16,  // 221: nimi.runtime.v1.RequestAvatarDebugProbeRequest.probe_kind:type_name -> nimi.runtime.v1.AvatarDebugProbeKind
+	18,  // 222: nimi.runtime.v1.RequestAvatarDebugProbeRequest.requested_by:type_name -> nimi.runtime.v1.AvatarDebugRequestedBy
+	58,  // 223: nimi.runtime.v1.RequestAvatarDebugProbeResponse.request:type_name -> nimi.runtime.v1.AvatarDebugProbeRequestEnvelope
+	59,  // 224: nimi.runtime.v1.RequestAvatarDebugProbeResponse.result:type_name -> nimi.runtime.v1.AvatarDebugProbeResultEnvelope
+	60,  // 225: nimi.runtime.v1.RequestAvatarDebugProbeResponse.replay_ref:type_name -> nimi.runtime.v1.AvatarDebugReplayRef
+	175, // 226: nimi.runtime.v1.SubmitAvatarDebugProbeResultRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
+	59,  // 227: nimi.runtime.v1.SubmitAvatarDebugProbeResultRequest.result:type_name -> nimi.runtime.v1.AvatarDebugProbeResultEnvelope
+	59,  // 228: nimi.runtime.v1.SubmitAvatarDebugProbeResultResponse.result:type_name -> nimi.runtime.v1.AvatarDebugProbeResultEnvelope
+	175, // 229: nimi.runtime.v1.ListAvatarDebugProbeResultsRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
+	16,  // 230: nimi.runtime.v1.ListAvatarDebugProbeResultsRequest.probe_kind:type_name -> nimi.runtime.v1.AvatarDebugProbeKind
+	59,  // 231: nimi.runtime.v1.ListAvatarDebugProbeResultsResponse.probe_results:type_name -> nimi.runtime.v1.AvatarDebugProbeResultEnvelope
+	175, // 232: nimi.runtime.v1.GetAvatarDebugReplayRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
+	58,  // 233: nimi.runtime.v1.GetAvatarDebugReplayResponse.request:type_name -> nimi.runtime.v1.AvatarDebugProbeRequestEnvelope
+	59,  // 234: nimi.runtime.v1.GetAvatarDebugReplayResponse.result:type_name -> nimi.runtime.v1.AvatarDebugProbeResultEnvelope
+	60,  // 235: nimi.runtime.v1.GetAvatarDebugReplayResponse.replay_ref:type_name -> nimi.runtime.v1.AvatarDebugReplayRef
+	175, // 236: nimi.runtime.v1.GetSharedLocalAgentAIConfigRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
+	188, // 237: nimi.runtime.v1.GetSharedLocalAgentAIConfigResponse.config:type_name -> nimi.runtime.v1.AIConfig
+	175, // 238: nimi.runtime.v1.OverwriteSharedLocalAgentAIConfigRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
+	189, // 239: nimi.runtime.v1.OverwriteSharedLocalAgentAIConfigRequest.capabilities:type_name -> nimi.runtime.v1.AIConfigCapabilityIntent
+	188, // 240: nimi.runtime.v1.OverwriteSharedLocalAgentAIConfigResponse.config:type_name -> nimi.runtime.v1.AIConfig
+	175, // 241: nimi.runtime.v1.PreviewSharedLocalAgentAIProfileRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
+	188, // 242: nimi.runtime.v1.PreviewSharedLocalAgentAIProfileResponse.before:type_name -> nimi.runtime.v1.AIConfig
+	188, // 243: nimi.runtime.v1.PreviewSharedLocalAgentAIProfileResponse.after:type_name -> nimi.runtime.v1.AIConfig
+	175, // 244: nimi.runtime.v1.ApplySharedLocalAgentAIProfileRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
+	188, // 245: nimi.runtime.v1.ApplySharedLocalAgentAIProfileResponse.config:type_name -> nimi.runtime.v1.AIConfig
+	190, // 246: nimi.runtime.v1.RuntimeAgentService.MaterializeRealmSource:input_type -> nimi.runtime.v1.MaterializeRealmSourceRequest
+	63,  // 247: nimi.runtime.v1.RuntimeAgentService.TerminateAgent:input_type -> nimi.runtime.v1.TerminateAgentRequest
+	65,  // 248: nimi.runtime.v1.RuntimeAgentService.GetAgent:input_type -> nimi.runtime.v1.GetAgentRequest
+	67,  // 249: nimi.runtime.v1.RuntimeAgentService.ListAgents:input_type -> nimi.runtime.v1.ListAgentsRequest
+	111, // 250: nimi.runtime.v1.RuntimeAgentService.ListLocalAppAgentReferences:input_type -> nimi.runtime.v1.ListLocalAppAgentReferencesRequest
+	113, // 251: nimi.runtime.v1.RuntimeAgentService.OpenLocalAppConversation:input_type -> nimi.runtime.v1.OpenLocalAppConversationRequest
+	115, // 252: nimi.runtime.v1.RuntimeAgentService.SendLocalAppConversationTurn:input_type -> nimi.runtime.v1.SendLocalAppConversationTurnRequest
+	117, // 253: nimi.runtime.v1.RuntimeAgentService.InterruptLocalAppConversationTurn:input_type -> nimi.runtime.v1.InterruptLocalAppConversationTurnRequest
+	119, // 254: nimi.runtime.v1.RuntimeAgentService.SubscribeLocalAppConversationEvents:input_type -> nimi.runtime.v1.SubscribeLocalAppConversationEventsRequest
+	120, // 255: nimi.runtime.v1.RuntimeAgentService.GetLocalAppConversationSnapshot:input_type -> nimi.runtime.v1.GetLocalAppConversationSnapshotRequest
+	108, // 256: nimi.runtime.v1.RuntimeAgentService.OpenConversationAnchor:input_type -> nimi.runtime.v1.OpenConversationAnchorRequest
+	132, // 257: nimi.runtime.v1.RuntimeAgentService.GetConversationAnchorSnapshot:input_type -> nimi.runtime.v1.GetConversationAnchorSnapshotRequest
+	135, // 258: nimi.runtime.v1.RuntimeAgentService.RegisterAvatarLiveInstanceBinding:input_type -> nimi.runtime.v1.RegisterAvatarLiveInstanceBindingRequest
+	137, // 259: nimi.runtime.v1.RuntimeAgentService.ResolveAvatarLiveInstanceBinding:input_type -> nimi.runtime.v1.ResolveAvatarLiveInstanceBindingRequest
+	139, // 260: nimi.runtime.v1.RuntimeAgentService.GetPublicChatSessionSnapshot:input_type -> nimi.runtime.v1.GetPublicChatSessionSnapshotRequest
+	142, // 261: nimi.runtime.v1.RuntimeAgentService.ListAgentConversationSummaries:input_type -> nimi.runtime.v1.ListAgentConversationSummariesRequest
+	191, // 262: nimi.runtime.v1.RuntimeAgentService.GetCompanionParticipationProjection:input_type -> nimi.runtime.v1.GetCompanionParticipationProjectionRequest
+	192, // 263: nimi.runtime.v1.RuntimeAgentService.RequestCompanionParticipation:input_type -> nimi.runtime.v1.RequestCompanionParticipationRequest
+	193, // 264: nimi.runtime.v1.RuntimeAgentService.CancelCompanionParticipation:input_type -> nimi.runtime.v1.CancelCompanionParticipationRequest
+	194, // 265: nimi.runtime.v1.RuntimeAgentService.OpenCompanionParticipationReplay:input_type -> nimi.runtime.v1.OpenCompanionParticipationReplayRequest
+	144, // 266: nimi.runtime.v1.RuntimeAgentService.GetAvatarDebugSnapshot:input_type -> nimi.runtime.v1.GetAvatarDebugSnapshotRequest
+	146, // 267: nimi.runtime.v1.RuntimeAgentService.RequestAvatarDebugProbe:input_type -> nimi.runtime.v1.RequestAvatarDebugProbeRequest
+	148, // 268: nimi.runtime.v1.RuntimeAgentService.SubmitAvatarDebugProbeResult:input_type -> nimi.runtime.v1.SubmitAvatarDebugProbeResultRequest
+	150, // 269: nimi.runtime.v1.RuntimeAgentService.ListAvatarDebugProbeResults:input_type -> nimi.runtime.v1.ListAvatarDebugProbeResultsRequest
+	152, // 270: nimi.runtime.v1.RuntimeAgentService.GetAvatarDebugReplay:input_type -> nimi.runtime.v1.GetAvatarDebugReplayRequest
+	69,  // 271: nimi.runtime.v1.RuntimeAgentService.GetAgentState:input_type -> nimi.runtime.v1.GetAgentStateRequest
+	71,  // 272: nimi.runtime.v1.RuntimeAgentService.UpdateAgentState:input_type -> nimi.runtime.v1.UpdateAgentStateRequest
+	79,  // 273: nimi.runtime.v1.RuntimeAgentService.SetAgentPresentationProfile:input_type -> nimi.runtime.v1.SetAgentPresentationProfileRequest
+	81,  // 274: nimi.runtime.v1.RuntimeAgentService.GetAgentPresentationAsset:input_type -> nimi.runtime.v1.GetAgentPresentationAssetRequest
+	73,  // 275: nimi.runtime.v1.RuntimeAgentService.EnableAutonomy:input_type -> nimi.runtime.v1.EnableAutonomyRequest
+	75,  // 276: nimi.runtime.v1.RuntimeAgentService.DisableAutonomy:input_type -> nimi.runtime.v1.DisableAutonomyRequest
+	77,  // 277: nimi.runtime.v1.RuntimeAgentService.SetAutonomyConfig:input_type -> nimi.runtime.v1.SetAutonomyConfigRequest
+	83,  // 278: nimi.runtime.v1.RuntimeAgentService.ListPendingHooks:input_type -> nimi.runtime.v1.ListPendingHooksRequest
+	85,  // 279: nimi.runtime.v1.RuntimeAgentService.CancelHook:input_type -> nimi.runtime.v1.CancelHookRequest
+	195, // 280: nimi.runtime.v1.RuntimeAgentService.ListDelegatedProviderProfiles:input_type -> nimi.runtime.v1.ListDelegatedProviderProfilesRequest
+	196, // 281: nimi.runtime.v1.RuntimeAgentService.ListDelegatedApprovalRequests:input_type -> nimi.runtime.v1.ListDelegatedApprovalRequestsRequest
+	197, // 282: nimi.runtime.v1.RuntimeAgentService.SubmitDelegatedApprovalDecision:input_type -> nimi.runtime.v1.SubmitDelegatedApprovalDecisionRequest
+	198, // 283: nimi.runtime.v1.RuntimeAgentService.ListDelegatedDiagnostics:input_type -> nimi.runtime.v1.ListDelegatedDiagnosticsRequest
+	199, // 284: nimi.runtime.v1.RuntimeAgentService.GetDelegatedReplayTrace:input_type -> nimi.runtime.v1.GetDelegatedReplayTraceRequest
+	200, // 285: nimi.runtime.v1.RuntimeAgentService.GetDelegatedControlSurfaceSnapshot:input_type -> nimi.runtime.v1.GetDelegatedControlSurfaceSnapshotRequest
+	87,  // 286: nimi.runtime.v1.RuntimeAgentService.QueryAgentMemory:input_type -> nimi.runtime.v1.QueryAgentMemoryRequest
+	89,  // 287: nimi.runtime.v1.RuntimeAgentService.WriteAgentMemory:input_type -> nimi.runtime.v1.WriteAgentMemoryRequest
+	92,  // 288: nimi.runtime.v1.RuntimeAgentService.GetAgentCanonicalMemoryBankStatus:input_type -> nimi.runtime.v1.GetAgentCanonicalMemoryBankStatusRequest
+	94,  // 289: nimi.runtime.v1.RuntimeAgentService.RequestAgentCanonicalMemoryBankBind:input_type -> nimi.runtime.v1.RequestAgentCanonicalMemoryBankBindRequest
+	97,  // 290: nimi.runtime.v1.RuntimeAgentService.GetAgentCanonicalMemoryReviewStatus:input_type -> nimi.runtime.v1.GetAgentCanonicalMemoryReviewStatusRequest
+	99,  // 291: nimi.runtime.v1.RuntimeAgentService.SubscribeAgentEvents:input_type -> nimi.runtime.v1.SubscribeAgentEventsRequest
+	100, // 292: nimi.runtime.v1.RuntimeAgentService.SubscribeAgentVoiceStream:input_type -> nimi.runtime.v1.SubscribeAgentVoiceStreamRequest
+	101, // 293: nimi.runtime.v1.RuntimeAgentService.InterruptAgentVoicePlayback:input_type -> nimi.runtime.v1.InterruptAgentVoicePlaybackRequest
+	103, // 294: nimi.runtime.v1.RuntimeAgentService.TranscribeAgentVoiceInput:input_type -> nimi.runtime.v1.TranscribeAgentVoiceInputRequest
+	154, // 295: nimi.runtime.v1.RuntimeAgentService.GetSharedLocalAgentAIConfig:input_type -> nimi.runtime.v1.GetSharedLocalAgentAIConfigRequest
+	156, // 296: nimi.runtime.v1.RuntimeAgentService.OverwriteSharedLocalAgentAIConfig:input_type -> nimi.runtime.v1.OverwriteSharedLocalAgentAIConfigRequest
+	158, // 297: nimi.runtime.v1.RuntimeAgentService.PreviewSharedLocalAgentAIProfile:input_type -> nimi.runtime.v1.PreviewSharedLocalAgentAIProfileRequest
+	160, // 298: nimi.runtime.v1.RuntimeAgentService.ApplySharedLocalAgentAIProfile:input_type -> nimi.runtime.v1.ApplySharedLocalAgentAIProfileRequest
+	201, // 299: nimi.runtime.v1.RuntimeAgentService.GetLocalAppSharedLocalAgentAIConfig:input_type -> nimi.runtime.v1.GetLocalAppSharedLocalAgentAIConfigRequest
+	202, // 300: nimi.runtime.v1.RuntimeAgentService.OverwriteLocalAppSharedLocalAgentAIConfig:input_type -> nimi.runtime.v1.OverwriteLocalAppSharedLocalAgentAIConfigRequest
+	203, // 301: nimi.runtime.v1.RuntimeAgentService.GetLocalAppAgentAutonomySnapshot:input_type -> nimi.runtime.v1.GetLocalAppAgentAutonomySnapshotRequest
+	204, // 302: nimi.runtime.v1.RuntimeAgentService.UpdateLocalAppAgentAutonomy:input_type -> nimi.runtime.v1.UpdateLocalAppAgentAutonomyRequest
+	205, // 303: nimi.runtime.v1.RuntimeAgentService.GetLocalAppAgentPresentationSnapshot:input_type -> nimi.runtime.v1.GetLocalAppAgentPresentationSnapshotRequest
+	206, // 304: nimi.runtime.v1.RuntimeAgentService.CommitLocalAppAgentPresentation:input_type -> nimi.runtime.v1.CommitLocalAppAgentPresentationRequest
+	207, // 305: nimi.runtime.v1.RuntimeAgentService.MaterializeRealmSource:output_type -> nimi.runtime.v1.MaterializeRealmSourceResponse
+	64,  // 306: nimi.runtime.v1.RuntimeAgentService.TerminateAgent:output_type -> nimi.runtime.v1.TerminateAgentResponse
+	66,  // 307: nimi.runtime.v1.RuntimeAgentService.GetAgent:output_type -> nimi.runtime.v1.GetAgentResponse
+	68,  // 308: nimi.runtime.v1.RuntimeAgentService.ListAgents:output_type -> nimi.runtime.v1.ListAgentsResponse
+	112, // 309: nimi.runtime.v1.RuntimeAgentService.ListLocalAppAgentReferences:output_type -> nimi.runtime.v1.ListLocalAppAgentReferencesResponse
+	114, // 310: nimi.runtime.v1.RuntimeAgentService.OpenLocalAppConversation:output_type -> nimi.runtime.v1.OpenLocalAppConversationResponse
+	116, // 311: nimi.runtime.v1.RuntimeAgentService.SendLocalAppConversationTurn:output_type -> nimi.runtime.v1.SendLocalAppConversationTurnResponse
+	118, // 312: nimi.runtime.v1.RuntimeAgentService.InterruptLocalAppConversationTurn:output_type -> nimi.runtime.v1.InterruptLocalAppConversationTurnResponse
+	131, // 313: nimi.runtime.v1.RuntimeAgentService.SubscribeLocalAppConversationEvents:output_type -> nimi.runtime.v1.LocalAppConversationEvent
+	123, // 314: nimi.runtime.v1.RuntimeAgentService.GetLocalAppConversationSnapshot:output_type -> nimi.runtime.v1.GetLocalAppConversationSnapshotResponse
+	109, // 315: nimi.runtime.v1.RuntimeAgentService.OpenConversationAnchor:output_type -> nimi.runtime.v1.OpenConversationAnchorResponse
+	133, // 316: nimi.runtime.v1.RuntimeAgentService.GetConversationAnchorSnapshot:output_type -> nimi.runtime.v1.GetConversationAnchorSnapshotResponse
+	136, // 317: nimi.runtime.v1.RuntimeAgentService.RegisterAvatarLiveInstanceBinding:output_type -> nimi.runtime.v1.RegisterAvatarLiveInstanceBindingResponse
+	138, // 318: nimi.runtime.v1.RuntimeAgentService.ResolveAvatarLiveInstanceBinding:output_type -> nimi.runtime.v1.ResolveAvatarLiveInstanceBindingResponse
+	140, // 319: nimi.runtime.v1.RuntimeAgentService.GetPublicChatSessionSnapshot:output_type -> nimi.runtime.v1.GetPublicChatSessionSnapshotResponse
+	143, // 320: nimi.runtime.v1.RuntimeAgentService.ListAgentConversationSummaries:output_type -> nimi.runtime.v1.ListAgentConversationSummariesResponse
+	208, // 321: nimi.runtime.v1.RuntimeAgentService.GetCompanionParticipationProjection:output_type -> nimi.runtime.v1.GetCompanionParticipationProjectionResponse
+	209, // 322: nimi.runtime.v1.RuntimeAgentService.RequestCompanionParticipation:output_type -> nimi.runtime.v1.RequestCompanionParticipationResponse
+	210, // 323: nimi.runtime.v1.RuntimeAgentService.CancelCompanionParticipation:output_type -> nimi.runtime.v1.CancelCompanionParticipationResponse
+	211, // 324: nimi.runtime.v1.RuntimeAgentService.OpenCompanionParticipationReplay:output_type -> nimi.runtime.v1.OpenCompanionParticipationReplayResponse
+	145, // 325: nimi.runtime.v1.RuntimeAgentService.GetAvatarDebugSnapshot:output_type -> nimi.runtime.v1.GetAvatarDebugSnapshotResponse
+	147, // 326: nimi.runtime.v1.RuntimeAgentService.RequestAvatarDebugProbe:output_type -> nimi.runtime.v1.RequestAvatarDebugProbeResponse
+	149, // 327: nimi.runtime.v1.RuntimeAgentService.SubmitAvatarDebugProbeResult:output_type -> nimi.runtime.v1.SubmitAvatarDebugProbeResultResponse
+	151, // 328: nimi.runtime.v1.RuntimeAgentService.ListAvatarDebugProbeResults:output_type -> nimi.runtime.v1.ListAvatarDebugProbeResultsResponse
+	153, // 329: nimi.runtime.v1.RuntimeAgentService.GetAvatarDebugReplay:output_type -> nimi.runtime.v1.GetAvatarDebugReplayResponse
+	70,  // 330: nimi.runtime.v1.RuntimeAgentService.GetAgentState:output_type -> nimi.runtime.v1.GetAgentStateResponse
+	72,  // 331: nimi.runtime.v1.RuntimeAgentService.UpdateAgentState:output_type -> nimi.runtime.v1.UpdateAgentStateResponse
+	80,  // 332: nimi.runtime.v1.RuntimeAgentService.SetAgentPresentationProfile:output_type -> nimi.runtime.v1.SetAgentPresentationProfileResponse
+	82,  // 333: nimi.runtime.v1.RuntimeAgentService.GetAgentPresentationAsset:output_type -> nimi.runtime.v1.GetAgentPresentationAssetResponse
+	74,  // 334: nimi.runtime.v1.RuntimeAgentService.EnableAutonomy:output_type -> nimi.runtime.v1.EnableAutonomyResponse
+	76,  // 335: nimi.runtime.v1.RuntimeAgentService.DisableAutonomy:output_type -> nimi.runtime.v1.DisableAutonomyResponse
+	78,  // 336: nimi.runtime.v1.RuntimeAgentService.SetAutonomyConfig:output_type -> nimi.runtime.v1.SetAutonomyConfigResponse
+	84,  // 337: nimi.runtime.v1.RuntimeAgentService.ListPendingHooks:output_type -> nimi.runtime.v1.ListPendingHooksResponse
+	86,  // 338: nimi.runtime.v1.RuntimeAgentService.CancelHook:output_type -> nimi.runtime.v1.CancelHookResponse
+	212, // 339: nimi.runtime.v1.RuntimeAgentService.ListDelegatedProviderProfiles:output_type -> nimi.runtime.v1.ListDelegatedProviderProfilesResponse
+	213, // 340: nimi.runtime.v1.RuntimeAgentService.ListDelegatedApprovalRequests:output_type -> nimi.runtime.v1.ListDelegatedApprovalRequestsResponse
+	214, // 341: nimi.runtime.v1.RuntimeAgentService.SubmitDelegatedApprovalDecision:output_type -> nimi.runtime.v1.SubmitDelegatedApprovalDecisionResponse
+	215, // 342: nimi.runtime.v1.RuntimeAgentService.ListDelegatedDiagnostics:output_type -> nimi.runtime.v1.ListDelegatedDiagnosticsResponse
+	216, // 343: nimi.runtime.v1.RuntimeAgentService.GetDelegatedReplayTrace:output_type -> nimi.runtime.v1.GetDelegatedReplayTraceResponse
+	217, // 344: nimi.runtime.v1.RuntimeAgentService.GetDelegatedControlSurfaceSnapshot:output_type -> nimi.runtime.v1.GetDelegatedControlSurfaceSnapshotResponse
+	88,  // 345: nimi.runtime.v1.RuntimeAgentService.QueryAgentMemory:output_type -> nimi.runtime.v1.QueryAgentMemoryResponse
+	90,  // 346: nimi.runtime.v1.RuntimeAgentService.WriteAgentMemory:output_type -> nimi.runtime.v1.WriteAgentMemoryResponse
+	93,  // 347: nimi.runtime.v1.RuntimeAgentService.GetAgentCanonicalMemoryBankStatus:output_type -> nimi.runtime.v1.GetAgentCanonicalMemoryBankStatusResponse
+	95,  // 348: nimi.runtime.v1.RuntimeAgentService.RequestAgentCanonicalMemoryBankBind:output_type -> nimi.runtime.v1.RequestAgentCanonicalMemoryBankBindResponse
+	98,  // 349: nimi.runtime.v1.RuntimeAgentService.GetAgentCanonicalMemoryReviewStatus:output_type -> nimi.runtime.v1.GetAgentCanonicalMemoryReviewStatusResponse
+	62,  // 350: nimi.runtime.v1.RuntimeAgentService.SubscribeAgentEvents:output_type -> nimi.runtime.v1.AgentEvent
+	105, // 351: nimi.runtime.v1.RuntimeAgentService.SubscribeAgentVoiceStream:output_type -> nimi.runtime.v1.AgentVoiceStreamEvent
+	102, // 352: nimi.runtime.v1.RuntimeAgentService.InterruptAgentVoicePlayback:output_type -> nimi.runtime.v1.InterruptAgentVoicePlaybackResponse
+	104, // 353: nimi.runtime.v1.RuntimeAgentService.TranscribeAgentVoiceInput:output_type -> nimi.runtime.v1.TranscribeAgentVoiceInputResponse
+	155, // 354: nimi.runtime.v1.RuntimeAgentService.GetSharedLocalAgentAIConfig:output_type -> nimi.runtime.v1.GetSharedLocalAgentAIConfigResponse
+	157, // 355: nimi.runtime.v1.RuntimeAgentService.OverwriteSharedLocalAgentAIConfig:output_type -> nimi.runtime.v1.OverwriteSharedLocalAgentAIConfigResponse
+	159, // 356: nimi.runtime.v1.RuntimeAgentService.PreviewSharedLocalAgentAIProfile:output_type -> nimi.runtime.v1.PreviewSharedLocalAgentAIProfileResponse
+	161, // 357: nimi.runtime.v1.RuntimeAgentService.ApplySharedLocalAgentAIProfile:output_type -> nimi.runtime.v1.ApplySharedLocalAgentAIProfileResponse
+	218, // 358: nimi.runtime.v1.RuntimeAgentService.GetLocalAppSharedLocalAgentAIConfig:output_type -> nimi.runtime.v1.GetLocalAppSharedLocalAgentAIConfigResponse
+	219, // 359: nimi.runtime.v1.RuntimeAgentService.OverwriteLocalAppSharedLocalAgentAIConfig:output_type -> nimi.runtime.v1.OverwriteLocalAppSharedLocalAgentAIConfigResponse
+	220, // 360: nimi.runtime.v1.RuntimeAgentService.GetLocalAppAgentAutonomySnapshot:output_type -> nimi.runtime.v1.LocalAppAgentAutonomySnapshotResponse
+	221, // 361: nimi.runtime.v1.RuntimeAgentService.UpdateLocalAppAgentAutonomy:output_type -> nimi.runtime.v1.LocalAppAgentUpdateAutonomyResponse
+	222, // 362: nimi.runtime.v1.RuntimeAgentService.GetLocalAppAgentPresentationSnapshot:output_type -> nimi.runtime.v1.LocalAppAgentPresentationSnapshotResponse
+	223, // 363: nimi.runtime.v1.RuntimeAgentService.CommitLocalAppAgentPresentation:output_type -> nimi.runtime.v1.LocalAppAgentCommitPresentationResponse
+	305, // [305:364] is the sub-list for method output_type
+	246, // [246:305] is the sub-list for method input_type
+	246, // [246:246] is the sub-list for extension type_name
+	246, // [246:246] is the sub-list for extension extendee
+	0,   // [0:246] is the sub-list for field type_name
 }
 
 func init() { file_runtime_v1_agent_service_proto_init() }
@@ -12397,11 +12564,11 @@ func file_runtime_v1_agent_service_proto_init() {
 		(*SetAgentPresentationProfileRequest_Clear)(nil),
 		(*SetAgentPresentationProfileRequest_Patch)(nil),
 	}
-	file_runtime_v1_agent_service_proto_msgTypes[81].OneofWrappers = []any{}
-	file_runtime_v1_agent_service_proto_msgTypes[85].OneofWrappers = []any{}
-	file_runtime_v1_agent_service_proto_msgTypes[93].OneofWrappers = []any{}
-	file_runtime_v1_agent_service_proto_msgTypes[100].OneofWrappers = []any{}
-	file_runtime_v1_agent_service_proto_msgTypes[102].OneofWrappers = []any{
+	file_runtime_v1_agent_service_proto_msgTypes[83].OneofWrappers = []any{}
+	file_runtime_v1_agent_service_proto_msgTypes[87].OneofWrappers = []any{}
+	file_runtime_v1_agent_service_proto_msgTypes[95].OneofWrappers = []any{}
+	file_runtime_v1_agent_service_proto_msgTypes[102].OneofWrappers = []any{}
+	file_runtime_v1_agent_service_proto_msgTypes[104].OneofWrappers = []any{
 		(*LocalAppConversationEvent_TurnAccepted)(nil),
 		(*LocalAppConversationEvent_TurnStarted)(nil),
 		(*LocalAppConversationEvent_TextDelta)(nil),
@@ -12416,7 +12583,7 @@ func file_runtime_v1_agent_service_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_runtime_v1_agent_service_proto_rawDesc), len(file_runtime_v1_agent_service_proto_rawDesc)),
 			NumEnums:      27,
-			NumMessages:   134,
+			NumMessages:   136,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

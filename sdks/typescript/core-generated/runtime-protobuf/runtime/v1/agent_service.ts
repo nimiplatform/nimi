@@ -1887,6 +1887,57 @@ export interface InterruptAgentVoicePlaybackResponse {
     terminalReason: string;
 }
 /**
+ * First-party recorded voice ingress. Runtime validates the selected
+ * LocalAgent Conversation and executes audio.transcribe through the singular
+ * shared LocalAgent AIConfig before returning typed text to the caller. The
+ * caller cannot provide route, model, provider, Driver, or machine selection.
+ *
+ * @generated from protobuf message nimi.runtime.v1.TranscribeAgentVoiceInputRequest
+ */
+export interface TranscribeAgentVoiceInputRequest {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AgentRequestContext context = 1
+     */
+    context?: AgentRequestContext;
+    /**
+     * @generated from protobuf field: string agent_id = 2
+     */
+    agentId: string;
+    /**
+     * @generated from protobuf field: string conversation_anchor_id = 3
+     */
+    conversationAnchorId: string;
+    /**
+     * @generated from protobuf field: bytes audio_bytes = 4
+     */
+    audioBytes: Uint8Array;
+    /**
+     * @generated from protobuf field: string mime_type = 5
+     */
+    mimeType: string;
+    /**
+     * @generated from protobuf field: string request_id = 6
+     */
+    requestId: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.TranscribeAgentVoiceInputResponse
+ */
+export interface TranscribeAgentVoiceInputResponse {
+    /**
+     * @generated from protobuf field: string text = 1
+     */
+    text: string;
+    /**
+     * @generated from protobuf field: string job_id = 2
+     */
+    jobId: string;
+    /**
+     * @generated from protobuf field: string trace_id = 3
+     */
+    traceId: string;
+}
+/**
  * @generated from protobuf message nimi.runtime.v1.AgentVoiceStreamEvent
  */
 export interface AgentVoiceStreamEvent {
@@ -9211,6 +9262,155 @@ class InterruptAgentVoicePlaybackResponse$Type extends MessageType<InterruptAgen
  * @generated MessageType for protobuf message nimi.runtime.v1.InterruptAgentVoicePlaybackResponse
  */
 export const InterruptAgentVoicePlaybackResponse = new InterruptAgentVoicePlaybackResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class TranscribeAgentVoiceInputRequest$Type extends MessageType<TranscribeAgentVoiceInputRequest> {
+    constructor() {
+        super("nimi.runtime.v1.TranscribeAgentVoiceInputRequest", [
+            { no: 1, name: "context", kind: "message", T: () => AgentRequestContext },
+            { no: 2, name: "agent_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "conversation_anchor_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "audio_bytes", kind: "scalar", T: 12 /*ScalarType.BYTES*/ },
+            { no: 5, name: "mime_type", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 6, name: "request_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<TranscribeAgentVoiceInputRequest>): TranscribeAgentVoiceInputRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.agentId = "";
+        message.conversationAnchorId = "";
+        message.audioBytes = new Uint8Array(0);
+        message.mimeType = "";
+        message.requestId = "";
+        if (value !== undefined)
+            reflectionMergePartial<TranscribeAgentVoiceInputRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: TranscribeAgentVoiceInputRequest): TranscribeAgentVoiceInputRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.AgentRequestContext context */ 1:
+                    message.context = AgentRequestContext.internalBinaryRead(reader, reader.uint32(), options, message.context);
+                    break;
+                case /* string agent_id */ 2:
+                    message.agentId = reader.string();
+                    break;
+                case /* string conversation_anchor_id */ 3:
+                    message.conversationAnchorId = reader.string();
+                    break;
+                case /* bytes audio_bytes */ 4:
+                    message.audioBytes = reader.bytes();
+                    break;
+                case /* string mime_type */ 5:
+                    message.mimeType = reader.string();
+                    break;
+                case /* string request_id */ 6:
+                    message.requestId = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: TranscribeAgentVoiceInputRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.AgentRequestContext context = 1; */
+        if (message.context)
+            AgentRequestContext.internalBinaryWrite(message.context, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* string agent_id = 2; */
+        if (message.agentId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.agentId);
+        /* string conversation_anchor_id = 3; */
+        if (message.conversationAnchorId !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.conversationAnchorId);
+        /* bytes audio_bytes = 4; */
+        if (message.audioBytes.length)
+            writer.tag(4, WireType.LengthDelimited).bytes(message.audioBytes);
+        /* string mime_type = 5; */
+        if (message.mimeType !== "")
+            writer.tag(5, WireType.LengthDelimited).string(message.mimeType);
+        /* string request_id = 6; */
+        if (message.requestId !== "")
+            writer.tag(6, WireType.LengthDelimited).string(message.requestId);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.TranscribeAgentVoiceInputRequest
+ */
+export const TranscribeAgentVoiceInputRequest = new TranscribeAgentVoiceInputRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class TranscribeAgentVoiceInputResponse$Type extends MessageType<TranscribeAgentVoiceInputResponse> {
+    constructor() {
+        super("nimi.runtime.v1.TranscribeAgentVoiceInputResponse", [
+            { no: 1, name: "text", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "job_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "trace_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<TranscribeAgentVoiceInputResponse>): TranscribeAgentVoiceInputResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.text = "";
+        message.jobId = "";
+        message.traceId = "";
+        if (value !== undefined)
+            reflectionMergePartial<TranscribeAgentVoiceInputResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: TranscribeAgentVoiceInputResponse): TranscribeAgentVoiceInputResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string text */ 1:
+                    message.text = reader.string();
+                    break;
+                case /* string job_id */ 2:
+                    message.jobId = reader.string();
+                    break;
+                case /* string trace_id */ 3:
+                    message.traceId = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: TranscribeAgentVoiceInputResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string text = 1; */
+        if (message.text !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.text);
+        /* string job_id = 2; */
+        if (message.jobId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.jobId);
+        /* string trace_id = 3; */
+        if (message.traceId !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.traceId);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.TranscribeAgentVoiceInputResponse
+ */
+export const TranscribeAgentVoiceInputResponse = new TranscribeAgentVoiceInputResponse$Type();
 // @generated message type with reflection information, may provide speed optimized methods
 class AgentVoiceStreamEvent$Type extends MessageType<AgentVoiceStreamEvent> {
     constructor() {

@@ -163,6 +163,7 @@ func isWriteMethod(fullMethod string) bool {
 		"/nimi.runtime.v1.RuntimeAgentService/DisableAutonomy",
 		"/nimi.runtime.v1.RuntimeAgentService/EnableAutonomy",
 		"/nimi.runtime.v1.RuntimeAgentService/InterruptAgentVoicePlayback",
+		"/nimi.runtime.v1.RuntimeAgentService/TranscribeAgentVoiceInput",
 		"/nimi.runtime.v1.RuntimeAgentService/OpenLocalAppConversation",
 		"/nimi.runtime.v1.RuntimeAgentService/SendLocalAppConversationTurn",
 		"/nimi.runtime.v1.RuntimeAgentService/InterruptLocalAppConversationTurn",

@@ -26,6 +26,7 @@ import { ChatComposerLeadingAvatar } from './chat-shared-composer-leading-avatar
 import { CHAT_CONTENT_POSITION_CLASS, CHAT_CONTENT_WIDTH_CLASS, CHAT_TRANSCRIPT_BOTTOM_RESERVE_CLASS } from './chat-shared-content-layout';
 import type { UseAgentConversationPresentationInput } from './chat-agent-shell-presentation-types';
 import type { PendingAttachment } from '../turns/turn-input-attachments';
+import { resolveAgentComposerVoiceState } from './chat-agent-voice-session.js';
 
 export function useAgentConversationPresentation(
   input: UseAgentConversationPresentationInput,
@@ -79,14 +80,9 @@ export function useAgentConversationPresentation(
     activeThreadId: input.activeThreadId,
     activeConversationAnchorId: input.activeConversationAnchorId,
     submittingThreadId: input.submittingThreadId,
-    voiceCaptureState: null,
+    voiceCaptureState: input.voiceInput.captureState,
     voicePlaybackState: null,
-    voiceSessionState: {
-      status: 'idle',
-      mode: 'push-to-talk',
-      conversationAnchorId: null,
-      message: null,
-    },
+    voiceSessionState: input.voiceInput.state,
     latestStatusCue,
     runtimeCommittedStatus,
     footerViewState,
@@ -113,7 +109,7 @@ export function useAgentConversationPresentation(
         defaultValue: 'Transcribing…',
       }),
     },
-  }), [footerViewState, input.activeConversationAnchorId, input.activeTarget, input.activeThreadId, input.composerReady, input.submittingThreadId, input.t, latestStatusCue, runtimeCommittedStatus]);
+  }), [footerViewState, input.activeConversationAnchorId, input.activeTarget, input.activeThreadId, input.composerReady, input.submittingThreadId, input.t, input.voiceInput.captureState, input.voiceInput.state, latestStatusCue, runtimeCommittedStatus]);
   const localAvatar = useAgentConversationLocalAvatarControls(input);
   const characterData = useMemo(() => ({
     ...surfaceState.character,
@@ -287,6 +283,13 @@ export function useAgentConversationPresentation(
             pendingAttachments={input.pendingAttachments}
             onAttachmentsChange={input.onAttachmentsChange}
             onSubmit={input.handleSubmit}
+            voiceState={input.voiceInput.available
+              ? resolveAgentComposerVoiceState({
+                state: input.voiceInput.state,
+                onToggle: input.voiceInput.onToggle,
+                onCancel: input.voiceInput.onCancel,
+              })
+              : undefined}
             placeholder={input.t('Chat.agentComposerPlaceholder', { defaultValue: 'Talk to this agent…' })}
             onInputCaptureText={(text) => {
               input.currentComposerTextRef.current = text;
@@ -360,6 +363,7 @@ export function useAgentConversationPresentation(
     input.thinkingSupported,
     input.thinkingUnsupportedReason,
     input.pendingAttachments,
+    input.voiceInput,
     selectedTargetId,
     surfaceState.composer,
     resolvedAgentDisplayName,

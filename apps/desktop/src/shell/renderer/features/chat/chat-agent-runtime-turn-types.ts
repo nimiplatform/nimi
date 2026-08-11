@@ -10,7 +10,7 @@ export const AGENT_RUNTIME_CHAT_PROVIDER_CAPABILITIES = {
   reasoning: true,
   continuity: true,
   firstBeat: false,
-  voiceInput: false,
+  voiceInput: true,
   voiceOutput: false,
   imageGeneration: false,
   videoGeneration: false,
