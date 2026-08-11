@@ -29,6 +29,7 @@ import {
 } from './agent-center-contract.js';
 import { validateVrmGlb } from './agent-center-content.js';
 import { avatarMaterializationRef, sha256 } from './agent-center-paths.js';
+import { materializeLive2dZip } from './live2d-zip-materialization.js';
 import { isSameOrChildPath } from './paths.js';
 import type { NimiElectronShellFileProtocolHost } from './types.js';
 
@@ -265,12 +266,6 @@ async function materializeRuntimeAsset(input: {
     assetRef: input.assetRef,
   });
   validateRuntimeAsset(asset, input.assetRef, input.expectedKind, input.command);
-  if (asset.backendKind === 'live2d') {
-    throw invalidAsset(
-      input.command,
-      'Runtime-custodied Live2D ZIP materialization is not admitted by the current Electron Avatar host.',
-    );
-  }
 
   const root = await input.ensureSessionRoot();
   const stagingRoot = path.join(root, `.${asset.assetRef}.${randomUUID()}.staging`);
@@ -281,21 +276,27 @@ async function materializeRuntimeAsset(input: {
   await mkdir(stagingRoot, { recursive: false });
   let finalized = false;
   try {
-    const entryPath = path.join(stagingRoot, asset.fileName);
-    await writeFile(entryPath, asset.content, { flag: 'wx' });
-    const metadata = await lstat(entryPath);
-    if (metadata.isSymbolicLink() || !metadata.isFile() || metadata.size !== asset.content.byteLength) {
-      throw invalidAsset(input.command, 'Avatar temporary materialization did not preserve exact Runtime bytes.');
-    }
+    const materialized = asset.backendKind === 'live2d'
+      ? await materializeLive2dZip(asset.content, stagingRoot, input.command)
+      : await materializeVrm(asset, stagingRoot, input.command);
     await rename(stagingRoot, finalRoot);
     finalized = true;
     const canonicalAssetRoot = await realpath(finalRoot);
-    const canonicalEntryPath = await realpath(path.join(finalRoot, asset.fileName));
+    const canonicalEntryPath = await realpath(path.join(
+      finalRoot,
+      ...materialized.entryRelativePath.split('/'),
+    ));
     if (!isSameOrChildPath(root, canonicalAssetRoot)
       || !isSameOrChildPath(canonicalAssetRoot, canonicalEntryPath)) {
       throw invalidPath(input.command, 'Avatar temporary materialization escaped its admitted root.');
     }
-    await input.localAssetProtocolHost.registerReadableFile(canonicalEntryPath);
+    for (const relativePath of materialized.fileRelativePaths) {
+      const readablePath = await realpath(path.join(finalRoot, ...relativePath.split('/')));
+      if (!isSameOrChildPath(canonicalAssetRoot, readablePath)) {
+        throw invalidPath(input.command, 'Avatar materialized file escaped its admitted root.');
+      }
+      await input.localAssetProtocolHost.registerReadableFile(readablePath);
+    }
     input.admittedAssetRoots.add(canonicalAssetRoot);
     if (!input.localAssetRoots.some((candidate) => path.resolve(candidate) === path.resolve(canonicalAssetRoot))) {
       input.localAssetRoots.push(canonicalAssetRoot);
@@ -307,6 +308,20 @@ async function materializeRuntimeAsset(input: {
   } finally {
     if (!finalized) await rm(stagingRoot, { recursive: true, force: true });
   }
+}
+
+async function materializeVrm(
+  asset: NimiElectronBundledAvatarRuntimeAsset,
+  stagingRoot: string,
+  command: string,
+): Promise<{ readonly entryRelativePath: string; readonly fileRelativePaths: readonly string[] }> {
+  const entryPath = path.join(stagingRoot, asset.fileName);
+  await writeFile(entryPath, asset.content, { flag: 'wx' });
+  const metadata = await lstat(entryPath);
+  if (metadata.isSymbolicLink() || !metadata.isFile() || metadata.size !== asset.content.byteLength) {
+    throw invalidAsset(command, 'Avatar temporary materialization did not preserve exact Runtime bytes.');
+  }
+  return { entryRelativePath: asset.fileName, fileRelativePaths: [asset.fileName] };
 }
 
 function validateRuntimeAsset(
