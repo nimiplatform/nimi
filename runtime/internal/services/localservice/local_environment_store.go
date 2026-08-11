@@ -3,10 +3,12 @@ package localservice
 import (
 	"crypto/sha256"
 	"encoding/hex"
+	"sort"
 	"strings"
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/engine"
 )
 
 const (
@@ -37,24 +39,38 @@ type localEnvironmentHostProfileState struct {
 }
 
 type localEnvironmentSelectedSourceRecordState struct {
-	RecordID                string            `json:"recordId"`
-	DependencyFamily        string            `json:"dependencyFamily"`
-	DependencyID            string            `json:"dependencyId"`
-	EnvironmentKey          string            `json:"environmentKey"`
-	SourceKind              string            `json:"sourceKind"`
-	CanonicalRoot           string            `json:"canonicalRoot,omitempty"`
+	RecordID                string                                                         `json:"recordId"`
+	DependencyFamily        string                                                         `json:"dependencyFamily"`
+	DependencyID            string                                                         `json:"dependencyId"`
+	EnvironmentKey          string                                                         `json:"environmentKey"`
+	SourceKind              string                                                         `json:"sourceKind"`
+	CanonicalRoot           string                                                         `json:"canonicalRoot,omitempty"`
+	Version                 string                                                         `json:"version,omitempty"`
+	CompatibilityEvidence   []string                                                       `json:"compatibilityEvidence,omitempty"`
+	VerifiedArtifacts       []string                                                       `json:"verifiedArtifacts,omitempty"`
+	Hashes                  map[string]string                                              `json:"hashes,omitempty"`
+	SelectedConsumers       []string                                                       `json:"selectedConsumers,omitempty"`
+	SourceManifestRef       string                                                         `json:"sourceManifestRef,omitempty"`
+	VerificationEvidenceRef string                                                         `json:"verificationEvidenceRef,omitempty"`
+	ActivationEnvDelta      []string                                                       `json:"activationEnvDelta,omitempty"`
+	SelectedAt              string                                                         `json:"selectedAt,omitempty"`
+	LastVerifiedAt          string                                                         `json:"lastVerifiedAt,omitempty"`
+	RepairState             string                                                         `json:"repairState,omitempty"`
+	AuditReasonCode         string                                                         `json:"auditReasonCode,omitempty"`
+	ConsumerEvidence        map[string]localEnvironmentSelectedSourceConsumerEvidenceState `json:"consumerEvidence,omitempty"`
+}
+
+type localEnvironmentSelectedSourceConsumerEvidenceState struct {
+	CanonicalRoot           string            `json:"canonicalRoot"`
 	Version                 string            `json:"version,omitempty"`
 	CompatibilityEvidence   []string          `json:"compatibilityEvidence,omitempty"`
 	VerifiedArtifacts       []string          `json:"verifiedArtifacts,omitempty"`
 	Hashes                  map[string]string `json:"hashes,omitempty"`
-	SelectedConsumers       []string          `json:"selectedConsumers,omitempty"`
-	SourceManifestRef       string            `json:"sourceManifestRef,omitempty"`
-	VerificationEvidenceRef string            `json:"verificationEvidenceRef,omitempty"`
+	SourceManifestRef       string            `json:"sourceManifestRef"`
+	VerificationEvidenceRef string            `json:"verificationEvidenceRef"`
 	ActivationEnvDelta      []string          `json:"activationEnvDelta,omitempty"`
-	SelectedAt              string            `json:"selectedAt,omitempty"`
-	LastVerifiedAt          string            `json:"lastVerifiedAt,omitempty"`
-	RepairState             string            `json:"repairState,omitempty"`
-	AuditReasonCode         string            `json:"auditReasonCode,omitempty"`
+	LastVerifiedAt          string            `json:"lastVerifiedAt"`
+	AuditReasonCode         string            `json:"auditReasonCode"`
 }
 
 type localEnvironmentPlanDependencyContractState struct {
@@ -192,6 +208,18 @@ func localEnvironmentKey(dependencyFamily string, dependencyID string, hostProfi
 	return strings.Join(parts, "|")
 }
 
+func localEnvironmentPythonTorchWheelKey(identity engine.PythonTorchWheelDependencyIdentity, platformTuple string, runtimeDataRoot string) string {
+	parts := []string{
+		localEnvironmentFamilyPythonTorchWheel,
+		strings.TrimSpace(identity.TorchVersion),
+		strings.TrimSpace(identity.AcceleratorPlane),
+		strings.TrimSpace(identity.CUDAABI),
+		strings.TrimSpace(platformTuple),
+		strings.TrimSpace(runtimeDataRoot),
+	}
+	return strings.Join(parts, "|")
+}
+
 func localEnvironmentConsumerAwareIdentityKey(environmentKey string, dependencyFamily string, dependencyID string, consumerScope string) string {
 	key := strings.TrimSpace(environmentKey)
 	family := strings.TrimSpace(dependencyFamily)
@@ -248,6 +276,15 @@ func (s *Service) upsertLocalEnvironmentSelectedSourceRecordLocked(record localE
 	if record.LastVerifiedAt == "" {
 		record.LastVerifiedAt = record.SelectedAt
 	}
+	if record.DependencyFamily == localEnvironmentFamilyPythonTorchWheel {
+		incomingEvidence := cloneLocalEnvironmentSelectedSourceConsumerEvidence(record.ConsumerEvidence)
+		if len(incomingEvidence) == 0 {
+			for _, consumer := range record.SelectedConsumers {
+				incomingEvidence[consumer] = localEnvironmentSelectedSourceConsumerEvidenceFromRecord(record)
+			}
+		}
+		record.ConsumerEvidence = incomingEvidence
+	}
 
 	if s.localEnvironmentSelectedSources == nil {
 		s.localEnvironmentSelectedSources = make(map[string]localEnvironmentSelectedSourceRecordState)
@@ -264,6 +301,16 @@ func (s *Service) upsertLocalEnvironmentSelectedSourceRecordLocked(record localE
 			record.SelectedAt = existing.SelectedAt
 		}
 		record.SelectedConsumers = normalizeStringSlice(append(append([]string(nil), existing.SelectedConsumers...), record.SelectedConsumers...))
+		if record.DependencyFamily == localEnvironmentFamilyPythonTorchWheel {
+			mergedEvidence := cloneLocalEnvironmentSelectedSourceConsumerEvidence(existing.ConsumerEvidence)
+			for consumer, evidence := range record.ConsumerEvidence {
+				mergedEvidence[consumer] = cloneLocalEnvironmentSelectedSourceConsumerEvidenceState(evidence)
+			}
+			record.ConsumerEvidence = mergedEvidence
+		}
+	}
+	if record.DependencyFamily == localEnvironmentFamilyPythonTorchWheel {
+		record = aggregateLocalEnvironmentPythonTorchWheelRecord(record)
 	}
 	if record.RecordID == "" {
 		record.RecordID = "src_" + shortHash(record.EnvironmentKey+"|"+record.DependencyFamily+"|"+record.DependencyID+"|"+record.SourceKind+"|"+record.CanonicalRoot)
@@ -313,9 +360,146 @@ func (s *Service) localEnvironmentSelectedSourceRecordForDependency(environmentK
 		if !stringSliceContains(record.SelectedConsumers, trimmedConsumer) {
 			continue
 		}
+		if record.DependencyFamily == localEnvironmentFamilyPythonTorchWheel {
+			var ok bool
+			record, ok = localEnvironmentSelectedSourceRecordForConsumer(record, trimmedConsumer)
+			if !ok {
+				continue
+			}
+		}
 		return record, true
 	}
 	return localEnvironmentSelectedSourceRecordState{}, false
+}
+
+func localEnvironmentSelectedSourceConsumerEvidenceFromRecord(record localEnvironmentSelectedSourceRecordState) localEnvironmentSelectedSourceConsumerEvidenceState {
+	return localEnvironmentSelectedSourceConsumerEvidenceState{
+		CanonicalRoot:           strings.TrimSpace(record.CanonicalRoot),
+		Version:                 strings.TrimSpace(record.Version),
+		CompatibilityEvidence:   normalizeStringSlice(record.CompatibilityEvidence),
+		VerifiedArtifacts:       normalizeStringSlice(record.VerifiedArtifacts),
+		Hashes:                  cloneStringMap(record.Hashes),
+		SourceManifestRef:       strings.TrimSpace(record.SourceManifestRef),
+		VerificationEvidenceRef: strings.TrimSpace(record.VerificationEvidenceRef),
+		ActivationEnvDelta:      normalizeStringSlice(record.ActivationEnvDelta),
+		LastVerifiedAt:          strings.TrimSpace(record.LastVerifiedAt),
+		AuditReasonCode:         strings.TrimSpace(record.AuditReasonCode),
+	}
+}
+
+func localEnvironmentSelectedSourceRecordForConsumer(record localEnvironmentSelectedSourceRecordState, consumer string) (localEnvironmentSelectedSourceRecordState, bool) {
+	trimmedConsumer := strings.TrimSpace(consumer)
+	evidence, ok := record.ConsumerEvidence[trimmedConsumer]
+	if trimmedConsumer == "" || !ok {
+		return localEnvironmentSelectedSourceRecordState{}, false
+	}
+	record.CanonicalRoot = strings.TrimSpace(evidence.CanonicalRoot)
+	record.Version = strings.TrimSpace(evidence.Version)
+	record.CompatibilityEvidence = normalizeStringSlice(evidence.CompatibilityEvidence)
+	record.VerifiedArtifacts = normalizeStringSlice(evidence.VerifiedArtifacts)
+	record.Hashes = cloneStringMap(evidence.Hashes)
+	record.SelectedConsumers = []string{trimmedConsumer}
+	record.SourceManifestRef = strings.TrimSpace(evidence.SourceManifestRef)
+	record.VerificationEvidenceRef = strings.TrimSpace(evidence.VerificationEvidenceRef)
+	record.ActivationEnvDelta = normalizeStringSlice(evidence.ActivationEnvDelta)
+	record.LastVerifiedAt = strings.TrimSpace(evidence.LastVerifiedAt)
+	record.AuditReasonCode = strings.TrimSpace(evidence.AuditReasonCode)
+	return record, true
+}
+
+func cloneLocalEnvironmentSelectedSourceConsumerEvidence(source map[string]localEnvironmentSelectedSourceConsumerEvidenceState) map[string]localEnvironmentSelectedSourceConsumerEvidenceState {
+	cloned := make(map[string]localEnvironmentSelectedSourceConsumerEvidenceState, len(source))
+	for consumer, evidence := range source {
+		trimmedConsumer := strings.TrimSpace(consumer)
+		if trimmedConsumer == "" {
+			continue
+		}
+		cloned[trimmedConsumer] = cloneLocalEnvironmentSelectedSourceConsumerEvidenceState(evidence)
+	}
+	return cloned
+}
+
+func cloneLocalEnvironmentSelectedSourceConsumerEvidenceState(evidence localEnvironmentSelectedSourceConsumerEvidenceState) localEnvironmentSelectedSourceConsumerEvidenceState {
+	evidence.CompatibilityEvidence = normalizeStringSlice(evidence.CompatibilityEvidence)
+	evidence.VerifiedArtifacts = normalizeStringSlice(evidence.VerifiedArtifacts)
+	evidence.Hashes = cloneStringMap(evidence.Hashes)
+	evidence.ActivationEnvDelta = normalizeStringSlice(evidence.ActivationEnvDelta)
+	return evidence
+}
+
+func aggregateLocalEnvironmentPythonTorchWheelRecord(record localEnvironmentSelectedSourceRecordState) localEnvironmentSelectedSourceRecordState {
+	consumers := make([]string, 0, len(record.ConsumerEvidence))
+	for consumer := range record.ConsumerEvidence {
+		if trimmed := strings.TrimSpace(consumer); trimmed != "" {
+			consumers = append(consumers, trimmed)
+		}
+	}
+	sort.Strings(consumers)
+	record.SelectedConsumers = consumers
+	if len(consumers) == 0 {
+		return record
+	}
+	first := cloneLocalEnvironmentSelectedSourceConsumerEvidenceState(record.ConsumerEvidence[consumers[0]])
+	if len(consumers) == 1 {
+		record.CanonicalRoot = strings.TrimSpace(first.CanonicalRoot)
+		record.Version = strings.TrimSpace(first.Version)
+		record.CompatibilityEvidence = first.CompatibilityEvidence
+		record.VerifiedArtifacts = first.VerifiedArtifacts
+		record.Hashes = first.Hashes
+		record.SourceManifestRef = strings.TrimSpace(first.SourceManifestRef)
+		record.VerificationEvidenceRef = strings.TrimSpace(first.VerificationEvidenceRef)
+		record.ActivationEnvDelta = first.ActivationEnvDelta
+		record.LastVerifiedAt = strings.TrimSpace(first.LastVerifiedAt)
+		record.AuditReasonCode = strings.TrimSpace(first.AuditReasonCode)
+		return record
+	}
+
+	record.CanonicalRoot = localEnvironmentPythonTorchWheelRuntimeDataRoot(record.EnvironmentKey)
+	record.Version = localEnvironmentPythonTorchWheelVersion(record.EnvironmentKey)
+	record.CompatibilityEvidence = nil
+	record.VerifiedArtifacts = nil
+	record.ActivationEnvDelta = nil
+	record.Hashes = cloneStringMap(first.Hashes)
+	manifestRefs := make([]string, 0, len(consumers))
+	verificationRefs := make([]string, 0, len(consumers))
+	lastVerifiedAt := ""
+	for _, consumer := range consumers {
+		evidence := record.ConsumerEvidence[consumer]
+		record.CompatibilityEvidence = normalizeStringSlice(append(record.CompatibilityEvidence, evidence.CompatibilityEvidence...))
+		record.VerifiedArtifacts = normalizeStringSlice(append(record.VerifiedArtifacts, evidence.VerifiedArtifacts...))
+		record.ActivationEnvDelta = normalizeStringSlice(append(record.ActivationEnvDelta, evidence.ActivationEnvDelta...))
+		for key, value := range record.Hashes {
+			if evidence.Hashes[key] != value {
+				delete(record.Hashes, key)
+			}
+		}
+		manifestRefs = append(manifestRefs, strings.TrimSpace(evidence.SourceManifestRef))
+		verificationRefs = append(verificationRefs, strings.TrimSpace(evidence.VerificationEvidenceRef))
+		if evidence.LastVerifiedAt > lastVerifiedAt {
+			lastVerifiedAt = evidence.LastVerifiedAt
+		}
+	}
+	record.SourceManifestRef = "python-torch-wheel-source#" + shortHash(strings.Join(manifestRefs, "|"))
+	record.VerificationEvidenceRef = "python-torch-wheel-evidence#" + shortHash(strings.Join(verificationRefs, "|"))
+	record.LastVerifiedAt = lastVerifiedAt
+	record.AuditReasonCode = "LOCAL_ENVIRONMENT_DEPENDENCY_READY_MANAGED"
+	return record
+}
+
+func localEnvironmentPythonTorchWheelRuntimeDataRoot(environmentKey string) string {
+	parts := strings.Split(strings.TrimSpace(environmentKey), "|")
+	if len(parts) != 6 || parts[0] != localEnvironmentFamilyPythonTorchWheel {
+		return ""
+	}
+	return strings.TrimSpace(parts[5])
+}
+
+func localEnvironmentPythonTorchWheelVersion(environmentKey string) string {
+	parts := strings.Split(strings.TrimSpace(environmentKey), "|")
+	if len(parts) != 6 || parts[0] != localEnvironmentFamilyPythonTorchWheel {
+		return ""
+	}
+	return strings.TrimSpace(parts[1])
 }
 
 func (s *Service) localEnvironmentSelectedSourceRecordForRepair(environmentKey string, dependencyFamily string, dependencyID string, consumerScope string) (localEnvironmentSelectedSourceRecordState, bool) {

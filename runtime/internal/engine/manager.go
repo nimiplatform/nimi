@@ -15,6 +15,12 @@ import (
 
 var ErrManagedImageBackendMaterializationRequired = errors.New("managed image backend package materialization requires local environment dependency confirmation")
 
+// ErrEngineNotRunning identifies an idempotent stop target that is already
+// absent from the Manager. Callers that own a private execution lifecycle can
+// distinguish this from a Supervisor failure to terminate a tracked process
+// tree.
+var ErrEngineNotRunning = errors.New("engine is not running")
+
 // ErrEngineBinaryDependencyNotReady is returned when a managed engine package
 // has not been admitted by the local environment dependency state machine. It
 // is intentionally not repaired here: first network/heavy materialization must
@@ -164,11 +170,16 @@ func (m *Manager) applySpeechPaths(cfg EngineConfig) EngineConfig {
 	if cfg.ModelsPath == "" {
 		cfg.ModelsPath = modelsPath
 	}
-	if cfg.SpeechQwen3TTSPackageSetRoot == "" {
-		cfg.SpeechQwen3TTSPackageSetRoot = ttsPackageSetRoot
-	}
-	if cfg.SpeechQwen3ASRPackageSetRoot == "" {
-		cfg.SpeechQwen3ASRPackageSetRoot = asrPackageSetRoot
+	// An explicit Host root marks a capability-scoped composition. Empty
+	// sibling Driver roots are intentional there and must not be repopulated
+	// from the aggregate defaults as cross-capability prefetch.
+	if strings.TrimSpace(cfg.SpeechHostPackageSetRoot) == "" {
+		if cfg.SpeechQwen3TTSPackageSetRoot == "" {
+			cfg.SpeechQwen3TTSPackageSetRoot = ttsPackageSetRoot
+		}
+		if cfg.SpeechQwen3ASRPackageSetRoot == "" {
+			cfg.SpeechQwen3ASRPackageSetRoot = asrPackageSetRoot
+		}
 	}
 	if cfg.SpeechDriverWorkRoot == "" && runtimeWorkRoot != "" {
 		cfg.SpeechDriverWorkRoot = filepath.Join(runtimeWorkRoot, "speech-driver")
@@ -359,21 +370,32 @@ func (m *Manager) StartEngine(ctx context.Context, cfg EngineConfig) error {
 		// same engine concurrently (the port-8330 double-spawn).
 		delete(m.supervisors, cfg.Kind)
 	}
-	sup := NewSupervisor(cfg, m.logger, m.onState)
-	m.supervisors[cfg.Kind] = sup
 	m.mu.Unlock()
 
 	if hasExisting && existing != nil {
 		if err := existing.Stop(); err != nil {
-			m.logger.Warn("stop superseded engine supervisor failed",
-				"engine", cfg.Kind,
-				"error", err,
-			)
+			m.mu.Lock()
+			if _, occupied := m.supervisors[cfg.Kind]; !occupied {
+				m.supervisors[cfg.Kind] = existing
+			}
+			m.mu.Unlock()
+			return fmt.Errorf("stop superseded engine supervisor %s: %w", cfg.Kind, err)
 		}
 	}
 
+	sup := NewSupervisor(cfg, m.logger, m.onState)
+	m.mu.Lock()
+	m.supervisors[cfg.Kind] = sup
+	m.mu.Unlock()
+
 	if err := sup.Start(ctx); err != nil {
-		m.removeSupervisorIfCurrent(cfg.Kind, sup)
+		// A failed start is removable only after its tracked process tree is
+		// confirmed absent. Preserve a Supervisor whose cancellation cleanup
+		// failed so the private Host can retry Stop and poison only when tree
+		// termination still cannot be confirmed.
+		if !supervisedProcessBlocksStart(sup.currentProcess()) {
+			m.removeSupervisorIfCurrent(cfg.Kind, sup)
+		}
 		return err
 	}
 	return nil
@@ -386,7 +408,7 @@ func (m *Manager) StopEngine(kind EngineKind) error {
 	m.mu.RUnlock()
 
 	if !ok {
-		return fmt.Errorf("engine %s not found", kind)
+		return fmt.Errorf("engine %s not found: %w", kind, ErrEngineNotRunning)
 	}
 
 	if err := sup.Stop(); err != nil {

@@ -3,13 +3,21 @@
 package engine
 
 import (
+	"fmt"
 	"os"
 	"os/exec"
+	"sync"
 	"syscall"
 	"unsafe"
 
 	"golang.org/x/sys/windows"
 )
+
+type supervisorProcessLifecycle struct {
+	mu     sync.Mutex
+	job    windows.Handle
+	closed bool
+}
 
 func setSupervisorProcessGroup(cmd *exec.Cmd) {
 	// Windows services run in Session 0 without an interactive console. Keep
@@ -35,7 +43,7 @@ func signalSupervisorProcessDirect(pid int, sig syscall.Signal) error {
 	return signalSupervisorProcess(pid, sig)
 }
 
-func bindSupervisorProcessLifecycle(cmd *exec.Cmd) (func(), error) {
+func bindSupervisorProcessLifecycle(cmd *exec.Cmd) (*supervisorProcessLifecycle, error) {
 	if cmd == nil || cmd.Process == nil || cmd.Process.Pid <= 0 {
 		return nil, nil
 	}
@@ -71,7 +79,62 @@ func bindSupervisorProcessLifecycle(cmd *exec.Cmd) (func(), error) {
 		return nil, err
 	}
 
-	return func() {
-		_ = windows.CloseHandle(job)
-	}, nil
+	return &supervisorProcessLifecycle{job: job}, nil
+}
+
+func supervisorProcessLifecycleSupportsGracefulTermination(_ *supervisorProcessLifecycle) bool {
+	return false
+}
+
+func signalSupervisorProcessLifecycle(lifecycle *supervisorProcessLifecycle, sig syscall.Signal) error {
+	if lifecycle == nil {
+		return fmt.Errorf("supervised process lifecycle is unavailable")
+	}
+	if sig != syscall.SIGKILL {
+		return fmt.Errorf("graceful process-tree termination is unsupported on Windows")
+	}
+	lifecycle.mu.Lock()
+	defer lifecycle.mu.Unlock()
+	if lifecycle.closed || lifecycle.job == 0 {
+		return nil
+	}
+	return windows.TerminateJobObject(lifecycle.job, 1)
+}
+
+func supervisorProcessLifecycleExited(lifecycle *supervisorProcessLifecycle) (bool, error) {
+	if lifecycle == nil {
+		return true, nil
+	}
+	lifecycle.mu.Lock()
+	defer lifecycle.mu.Unlock()
+	if lifecycle.closed || lifecycle.job == 0 {
+		return true, nil
+	}
+	result, err := windows.WaitForSingleObject(lifecycle.job, 0)
+	if err != nil {
+		return false, err
+	}
+	switch result {
+	case windows.WAIT_OBJECT_0:
+		return true, nil
+	case uint32(windows.WAIT_TIMEOUT):
+		return false, nil
+	default:
+		return false, fmt.Errorf("unexpected Job Object wait result %#x", result)
+	}
+}
+
+func releaseSupervisorProcessLifecycle(lifecycle *supervisorProcessLifecycle) error {
+	if lifecycle == nil {
+		return nil
+	}
+	lifecycle.mu.Lock()
+	defer lifecycle.mu.Unlock()
+	if lifecycle.closed || lifecycle.job == 0 {
+		return nil
+	}
+	err := windows.CloseHandle(lifecycle.job)
+	lifecycle.job = 0
+	lifecycle.closed = true
+	return err
 }

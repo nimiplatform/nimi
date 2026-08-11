@@ -78,6 +78,7 @@ func TestTranscribeAgentVoiceInputUsesSharedLocalAgentExecutionSnapshot(t *testi
 		}},
 		ExactBindings: []localexecution.ExactBinding{{
 			RequirementID:     capabilitydriver.Qwen3ASRModelRequirementID,
+			AssetID:           "catalog/qwen3-asr",
 			LocalAssetID:      "asset-asr",
 			AbsolutePath:      modelPath,
 			VerifiedContentID: "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",

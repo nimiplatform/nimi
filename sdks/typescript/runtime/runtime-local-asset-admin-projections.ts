@@ -52,6 +52,10 @@ import type {
   NimiRuntimeLocalProfileApplyResult,
   NimiRuntimeLocalProfileResolutionPlan,
   NimiRuntimeLocalProviderHints,
+  NimiRuntimeLocalQwen3ASREnvironmentPlanInput,
+  NimiRuntimeLocalQwen3ASREnvironmentPlanRuntime,
+  NimiRuntimeLocalQwen3TTSEnvironmentPlanInput,
+  NimiRuntimeLocalQwen3TTSEnvironmentPlanRuntime,
   NimiRuntimeLocalTransferAccepted,
   NimiRuntimeLocalTransferProgressEvent,
   NimiRuntimeLocalTransferSessionSummary,
@@ -80,6 +84,9 @@ import {
 } from './runtime-local-asset-admin-values';
 
 const NIMI_RUNTIME_LOCAL_IMAGE_NATIVE_PACK_ID = 'local-image-native';
+const NIMI_RUNTIME_LOCAL_SPEECH_PACK_ID = 'local-speech';
+const NIMI_RUNTIME_LOCAL_QWEN3_ASR_CONSUMER_SCOPE = 'speech.qwen3-asr.python';
+const NIMI_RUNTIME_LOCAL_QWEN3_TTS_CONSUMER_SCOPE = 'speech.qwen3-tts.python';
 const NIMI_RUNTIME_LOCAL_ENVIRONMENT_DEPENDENCY_READY_STATES: ReadonlySet<string> = new Set([
   'ready_system',
   'ready_managed',
@@ -495,6 +502,58 @@ export async function resolveNimiRuntimeLocalImageNativeEnvironmentPlan(input: {
 }): Promise<NimiRuntimeLocalEnvironmentPlan> {
   return input.runtime.resolveEnvironmentPlan(
     buildNimiRuntimeLocalImageNativeEnvironmentPlanInput(input.asset),
+  );
+}
+
+export function buildNimiRuntimeLocalQwen3ASREnvironmentPlanInput(
+  asset: {
+    readonly assetId?: string;
+    readonly localAssetId?: string;
+  },
+): NimiRuntimeLocalQwen3ASREnvironmentPlanInput {
+  return {
+    packId: NIMI_RUNTIME_LOCAL_SPEECH_PACK_ID,
+    consumerScope: NIMI_RUNTIME_LOCAL_QWEN3_ASR_CONSUMER_SCOPE,
+    localAssetId: normalizeText(asset.localAssetId) || undefined,
+    assetId: normalizeText(asset.assetId) || undefined,
+  };
+}
+
+export async function resolveNimiRuntimeLocalQwen3ASREnvironmentPlan(input: {
+  readonly runtime: NimiRuntimeLocalQwen3ASREnvironmentPlanRuntime;
+  readonly asset: {
+    readonly assetId?: string;
+    readonly localAssetId?: string;
+  };
+}): Promise<NimiRuntimeLocalEnvironmentPlan> {
+  return input.runtime.resolveEnvironmentPlan(
+    buildNimiRuntimeLocalQwen3ASREnvironmentPlanInput(input.asset),
+  );
+}
+
+export function buildNimiRuntimeLocalQwen3TTSEnvironmentPlanInput(
+  asset: {
+    readonly assetId?: string;
+    readonly localAssetId?: string;
+  },
+): NimiRuntimeLocalQwen3TTSEnvironmentPlanInput {
+  return {
+    packId: NIMI_RUNTIME_LOCAL_SPEECH_PACK_ID,
+    consumerScope: NIMI_RUNTIME_LOCAL_QWEN3_TTS_CONSUMER_SCOPE,
+    localAssetId: normalizeText(asset.localAssetId) || undefined,
+    assetId: normalizeText(asset.assetId) || undefined,
+  };
+}
+
+export async function resolveNimiRuntimeLocalQwen3TTSEnvironmentPlan(input: {
+  readonly runtime: NimiRuntimeLocalQwen3TTSEnvironmentPlanRuntime;
+  readonly asset: {
+    readonly assetId?: string;
+    readonly localAssetId?: string;
+  };
+}): Promise<NimiRuntimeLocalEnvironmentPlan> {
+  return input.runtime.resolveEnvironmentPlan(
+    buildNimiRuntimeLocalQwen3TTSEnvironmentPlanInput(input.asset),
   );
 }
 

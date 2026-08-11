@@ -607,6 +607,7 @@
   "voiceSessionListening": "Listening",
   "voiceSessionSpeaking": "Speaking…",
   "voiceSessionTranscribing": "Transcribing…",
+  "voiceInputFailed": "Voice input failed. Check microphone access and the selected speech configuration.",
   "settingsDiagnosticsHint": "Inspect delivery and conversation details for the current chat.",
   "settingsCapabilityNeedsSetup": "Needs setup",
   "settingsUnavailableReason": "This source does not expose agent chat runtime inspect yet.",

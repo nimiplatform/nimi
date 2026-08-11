@@ -6,6 +6,8 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import {
   NIMI_AI_PROFILE_LLAMA_CPP_EMBED_IMPLEMENTATION,
   NIMI_AI_PROFILE_LLAMA_CPP_IMPLEMENTATION,
+  NIMI_AI_PROFILE_QWEN3_ASR_IMPLEMENTATION,
+  NIMI_AI_PROFILE_QWEN3_TTS_IMPLEMENTATION,
   parseNimiPortableAIProfile,
   type NimiCapabilityAIConfig,
 } from '@nimiplatform/sdk/ai';
@@ -336,6 +338,73 @@ test('AIProfile authoring round-trips the exact portable llama embedding section
     ),
     profile,
   );
+});
+
+test('AIProfile authoring round-trips exact portable Qwen3 speech sections', () => {
+  const cases = [
+    {
+      capabilityContract: 'audio.synthesize' as const,
+      driverKind: 'qwen3-tts',
+      implementation: NIMI_AI_PROFILE_QWEN3_TTS_IMPLEMENTATION,
+      requirement: ['tts.model', 'TTS model', 'tts'],
+    },
+    {
+      capabilityContract: 'audio.transcribe' as const,
+      driverKind: 'qwen3-asr',
+      implementation: NIMI_AI_PROFILE_QWEN3_ASR_IMPLEMENTATION,
+      requirement: ['stt.model', 'STT model', 'stt'],
+    },
+  ] as const;
+
+  for (const speech of cases) {
+    let draft = validTextDraft();
+    draft = changeRuntimeConfigAIProfileCapabilityContract(
+      draft,
+      draft.capabilities[0]!.draftId,
+      speech.capabilityContract,
+    );
+    const capability = draft.capabilities[0]!;
+    assert.equal(capability.local.driverKind, speech.driverKind);
+    assert.equal(capability.local.includeImplementation, true);
+    draft = {
+      ...draft,
+      capabilities: [{
+        ...capability,
+        requiredFeaturesText: '',
+        defaultsJson: '',
+        local: {
+          ...capability.local,
+          supportedFeaturesText: '',
+        },
+      }],
+    };
+    const projection: RuntimeConfigAIProfileAuthoringCurrentProjection = {
+      ...currentProjection(),
+      machine: { configurations: [], selections: [] },
+    };
+    const inspection = inspectRuntimeConfigAIProfileAuthoring(draft, projection);
+    assert.equal(inspection.status, 'valid');
+    if (inspection.status !== 'valid') assert.fail('expected valid speech authoring inspection');
+    assert.deepEqual(inspection.model.requirements[0]?.projection.requirements.map((requirement) => [
+      requirement.requirementId,
+      requirement.displayLabel,
+      requirement.resourceKind,
+      requirement.policy,
+    ]), [[...speech.requirement, 'substitutable']]);
+
+    const markup = renderAuthoring(stateWithDraft(draft), projection);
+    assert.match(markup, new RegExp(`data-testid="ai-profile-authoring-capability:${speech.capabilityContract.replace('.', '\\.')}`));
+    assert.match(markup, new RegExp(speech.implementation.driverDialect.replaceAll('.', '\\.')));
+
+    const exported = exportRuntimeConfigAIProfileAuthoring(draft);
+    const profile = parseNimiPortableAIProfile(exported.artifactJson);
+    assert.deepEqual(profile.capabilities[speech.capabilityContract]?.implementation, {
+      ...speech.implementation,
+      supportedFeatures: [],
+    });
+    const importedDraft = importRuntimeConfigAIProfileAuthoring(exported.artifactJson);
+    assert.equal(importedDraft.capabilities[0]!.local.driverKind, speech.driverKind);
+  }
 });
 
 test('AIProfile authoring renders the stable-diffusion video section and round-trips its portable config', () => {

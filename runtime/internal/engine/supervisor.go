@@ -2,6 +2,7 @@ package engine
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"math/rand/v2"
@@ -43,10 +44,15 @@ const maxConsecutiveHealthProbeFailures = 3
 const supervisorStderrTailLines = 8
 
 type supervisedProcess struct {
-	cmd     *exec.Cmd
-	done    chan struct{}
-	waitErr error
-	release func()
+	cmd                  *exec.Cmd
+	done                 chan struct{}
+	lifecycle            *supervisorProcessLifecycle
+	lifecycleWaitTimeout time.Duration
+
+	mu           sync.Mutex
+	stopping     bool
+	waitErr      error
+	lifecycleErr error
 }
 
 // NewSupervisor creates a new engine process supervisor.
@@ -66,7 +72,7 @@ func NewSupervisor(cfg EngineConfig, logger *slog.Logger, onState StateChangeFun
 // It blocks until the engine is healthy or the startup timeout is exceeded.
 func (s *Supervisor) Start(ctx context.Context) error {
 	s.mu.Lock()
-	if s.status == StatusStarting || s.status == StatusHealthy {
+	if s.status == StatusStarting || s.status == StatusHealthy || supervisedProcessBlocksStart(s.process) {
 		s.mu.Unlock()
 		return fmt.Errorf("engine %s already running", s.cfg.Kind)
 	}
@@ -101,11 +107,11 @@ func (s *Supervisor) Stop() error {
 	cancel := s.cancel
 	cmd := s.cmd
 	process := s.process
+	if process != nil {
+		process.markStopping()
+	}
 	s.runEpoch++
 	s.cancel = nil
-	s.cmd = nil
-	s.process = nil
-	s.pid = 0
 	s.mu.Unlock()
 
 	if cancel != nil {
@@ -113,6 +119,7 @@ func (s *Supervisor) Stop() error {
 	}
 
 	if cmd == nil || cmd.Process == nil {
+		s.clearStoppedProcess(process)
 		s.setStatus(StatusStopped, "not running")
 		s.removePIDFile()
 		return nil
@@ -120,27 +127,28 @@ func (s *Supervisor) Stop() error {
 
 	pid := cmd.Process.Pid
 
-	// SIGTERM first — try the process group, then fall back to direct PID.
-	// The process may have changed its PGID (e.g. setsid), so a group
-	// signal can return ESRCH even though the process is still alive.
-	if err := signalSupervisorProcess(pid, syscall.SIGTERM); err != nil {
-		_ = signalSupervisorProcessDirect(pid, syscall.SIGTERM)
+	// Windows has no service-safe SIGTERM equivalent for CREATE_NO_WINDOW
+	// processes. Do not spend the graceful timeout waiting for a signal the
+	// platform cannot deliver; terminate the tracked Job Object immediately.
+	if supervisorProcessLifecycleSupportsGracefulTermination(processLifecycle(process)) {
+		if err := signalTrackedSupervisorProcess(process, pid, syscall.SIGTERM); err != nil {
+			_ = signalSupervisorProcessDirect(pid, syscall.SIGTERM)
+		}
+
+		if waitSupervisorProcessExit(process, pid, s.cfg.ShutdownTimeout) {
+			return s.finishStoppedProcess(process, "graceful shutdown")
+		}
 	}
 
-	if waitSupervisorProcessExit(process, pid, s.cfg.ShutdownTimeout) {
-		s.setStatus(StatusStopped, "graceful shutdown")
-		s.removePIDFile()
-		return nil
-	}
-
-	// Force kill — group first, then direct PID as fallback.
-	if err := signalSupervisorProcess(pid, syscall.SIGKILL); err != nil {
-		_ = signalSupervisorProcessDirect(pid, syscall.SIGKILL)
+	// Force termination targets the tracked process tree (a Job Object on
+	// Windows and the process group on Unix), not only the parent PID.
+	if err := signalTrackedSupervisorProcess(process, pid, syscall.SIGKILL); err != nil {
+		if process != nil {
+			process.recordLifecycleError(fmt.Errorf("force terminate supervised process tree: %w", err))
+		}
 	}
 	if waitSupervisorProcessExit(process, pid, time.Second) {
-		s.setStatus(StatusStopped, "force killed after timeout")
-		s.removePIDFile()
-		return nil
+		return s.finishStoppedProcess(process, "force terminated")
 	}
 
 	s.logger.Warn("engine process remained alive after SIGKILL",
@@ -149,6 +157,29 @@ func (s *Supervisor) Stop() error {
 	)
 	s.setStatus(StatusUnhealthy, "shutdown failed: process remained alive after SIGKILL")
 	return fmt.Errorf("stop engine %s: process %d remained alive after SIGKILL", s.cfg.Kind, pid)
+}
+
+func (s *Supervisor) finishStoppedProcess(process *supervisedProcess, detail string) error {
+	if process != nil {
+		if err := process.lifecycleError(); err != nil {
+			s.setStatus(StatusUnhealthy, fmt.Sprintf("shutdown failed: %v", err))
+			return fmt.Errorf("stop engine %s: %w", s.cfg.Kind, err)
+		}
+	}
+	s.clearStoppedProcess(process)
+	s.setStatus(StatusStopped, detail)
+	s.removePIDFile()
+	return nil
+}
+
+func (s *Supervisor) clearStoppedProcess(process *supervisedProcess) {
+	s.mu.Lock()
+	if process == nil || s.process == process {
+		s.cmd = nil
+		s.process = nil
+		s.pid = 0
+	}
+	s.mu.Unlock()
 }
 
 // Status returns the current engine status.
@@ -210,10 +241,26 @@ type SupervisorInfo struct {
 }
 
 func (s *Supervisor) spawn(ctx context.Context, epoch uint64) error {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	if err := ctx.Err(); err != nil {
+		return err
+	}
 	if !s.isRunEpochActive(epoch) {
 		return nil
 	}
-	runCtx, cancel := context.WithCancel(ctx)
+	// The caller context bounds startup only. Once materialized, the cached
+	// private Host must remain monitored until Supervisor.Stop cancels this
+	// lifecycle context; a completed RPC/Job context must not silently detach
+	// supervision from a reusable process.
+	runCtx, cancel := context.WithCancel(context.Background())
+	startupCtx, cancelStartup := context.WithCancel(runCtx)
+	stopStartupContext := context.AfterFunc(ctx, cancelStartup)
+	defer func() {
+		stopStartupContext()
+		cancelStartup()
+	}()
 	s.mu.Lock()
 	if s.runEpoch != epoch {
 		s.mu.Unlock()
@@ -264,6 +311,10 @@ func (s *Supervisor) spawn(ctx context.Context, epoch uint64) error {
 		cancel()
 		return nil
 	}
+	if err := ctx.Err(); err != nil {
+		cancel()
+		return err
+	}
 	s.setStatus(StatusStarting, "spawning process")
 
 	s.mu.Lock()
@@ -296,7 +347,7 @@ func (s *Supervisor) spawn(ctx context.Context, epoch uint64) error {
 		}
 		return nil
 	}
-	processRelease, lifecycleErr := bindSupervisorProcessLifecycle(cmd)
+	processLifecycle, lifecycleErr := bindSupervisorProcessLifecycle(cmd)
 	if lifecycleErr != nil {
 		s.mu.Unlock()
 		cancel()
@@ -317,9 +368,10 @@ func (s *Supervisor) spawn(ctx context.Context, epoch uint64) error {
 	}
 	s.cmd = cmd
 	process := &supervisedProcess{
-		cmd:     cmd,
-		done:    make(chan struct{}),
-		release: processRelease,
+		cmd:                  cmd,
+		done:                 make(chan struct{}),
+		lifecycle:            processLifecycle,
+		lifecycleWaitTimeout: supervisorLifecycleWaitTimeout(s.cfg.ShutdownTimeout),
 	}
 	s.process = process
 	s.pid = cmd.Process.Pid
@@ -345,7 +397,10 @@ func (s *Supervisor) spawn(ctx context.Context, epoch uint64) error {
 	// its port) must fail the startup wait in seconds, not block the full
 	// StartupTimeout on a dead process.
 	probeInterval := 500 * time.Millisecond
-	if err := waitSupervisorHealthyOrExit(runCtx, s.cfg, process, probeInterval); err != nil {
+	if err := waitSupervisorHealthyOrExit(startupCtx, s.cfg, process, probeInterval); err != nil {
+		if ctxErr := ctx.Err(); ctxErr != nil && s.isRunEpochActive(epoch) {
+			return s.stopCanceledStart(ctxErr)
+		}
 		if runCtx.Err() != nil || !s.isRunEpochActive(epoch) {
 			s.removePIDFile()
 			return nil
@@ -379,6 +434,9 @@ func (s *Supervisor) spawn(ctx context.Context, epoch uint64) error {
 		s.setStatus(StatusHealthy, "ready")
 	}
 
+	if ctxErr := ctx.Err(); ctxErr != nil && s.isRunEpochActive(epoch) {
+		return s.stopCanceledStart(ctxErr)
+	}
 	if !s.isRunEpochActive(epoch) {
 		s.removePIDFile()
 		return nil
@@ -388,6 +446,16 @@ func (s *Supervisor) spawn(ctx context.Context, epoch uint64) error {
 	go s.monitor(runCtx, epoch)
 
 	return nil
+}
+
+func (s *Supervisor) stopCanceledStart(cancelErr error) error {
+	if cancelErr == nil {
+		cancelErr = context.Canceled
+	}
+	if stopErr := s.Stop(); stopErr != nil {
+		return errors.Join(cancelErr, fmt.Errorf("stop engine %s after startup cancellation: %w", s.cfg.Kind, stopErr))
+	}
+	return cancelErr
 }
 
 func supervisorCommandExecutablePath(cfg EngineConfig) string {

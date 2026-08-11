@@ -189,7 +189,7 @@ func (store *AssetStore) write(
 	if ctx == nil || source == nil {
 		return AssetRecord{}, ErrAssetUnavailable
 	}
-	defer source.Close()
+	defer func() { _ = source.Close() }()
 	normalizedPath, err := NormalizeAssetRelativePath(relativePath)
 	if err != nil {
 		return AssetRecord{}, err
@@ -631,7 +631,7 @@ func openAssetMetadata(target string) (*os.File, assetDiskMetadata, error) {
 	if linkErr != nil || linkInfo.Mode()&os.ModeSymlink != 0 || !linkInfo.Mode().IsRegular() {
 		return nil, assetDiskMetadata{}, ErrAssetCorrupt
 	}
-	file, err := os.Open(target)
+	file, err := openCommittedAssetFile(target)
 	if errors.Is(err, os.ErrNotExist) {
 		return nil, assetDiskMetadata{}, ErrAssetNotFound
 	}

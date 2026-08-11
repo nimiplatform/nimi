@@ -227,6 +227,13 @@ func (s *Service) selectedSourceCandidatesForFamilyAndConsumer(family string, co
 		if trimmedConsumer != "" && !stringSliceContains(record.SelectedConsumers, trimmedConsumer) {
 			continue
 		}
+		if record.DependencyFamily == localEnvironmentFamilyPythonTorchWheel && trimmedConsumer != "" {
+			projected, ok := localEnvironmentSelectedSourceRecordForConsumer(record, trimmedConsumer)
+			if !ok {
+				continue
+			}
+			record = projected
+		}
 		candidates = append(candidates, record)
 	}
 	s.mu.RUnlock()

@@ -8,6 +8,8 @@ import {
   NIMI_AI_PROFILE_LLAMA_CPP_IMPLEMENTATION,
   NIMI_AI_PROFILE_LLAMA_EMBED_PORTABLE_CONFIG_FIELDS,
   NIMI_AI_PROFILE_LLAMA_PORTABLE_CONFIG_FIELDS,
+  NIMI_AI_PROFILE_QWEN3_ASR_IMPLEMENTATION,
+  NIMI_AI_PROFILE_QWEN3_TTS_IMPLEMENTATION,
   NIMI_AI_PROFILE_STABLE_DIFFUSION_EXECUTION_OPTION_FIELDS,
   NIMI_AI_PROFILE_STABLE_DIFFUSION_LORA_FIELDS,
   NIMI_AI_PROFILE_STABLE_DIFFUSION_MODEL_FAMILIES,
@@ -18,6 +20,8 @@ import {
   createNimiAIProfileLlamaEmbedPortableConfig,
   createNimiAIProfileLlamaLocalImplementation,
   createNimiAIProfileLlamaPortableConfig,
+  createNimiAIProfileQwen3ASRLocalImplementation,
+  createNimiAIProfileQwen3TTSLocalImplementation,
   createNimiAIProfileStableDiffusionLocalImplementation,
   createNimiAIProfileStableDiffusionVideoLocalImplementation,
   createNimiAIProfileStableDiffusionVideoPortableConfig,
@@ -535,6 +539,58 @@ test('llama embedding authoring preserves exact portable identity and slot', () 
   assert.throws(
     () => createNimiAIProfileLlamaEmbedLocalImplementation({
       supportedFeatures: ['input.image'],
+    }),
+    /must be empty/u,
+  );
+});
+
+test('Qwen3 speech authoring preserves exact portable identities and slots', () => {
+  const profile = createNimiAIProfileAuthoringBuilder({
+    profileId: 'profile.authoring.speech',
+    title: 'Portable local speech',
+    provenance: { publisher: 'example.test' },
+    license: 'Apache-2.0',
+  }).setLocalCapability({
+    capabilityContract: 'audio.synthesize',
+    localConfiguration: createNimiAIProfileQwen3TTSLocalImplementation(),
+  }).setLocalCapability({
+    capabilityContract: 'audio.transcribe',
+    localConfiguration: createNimiAIProfileQwen3ASRLocalImplementation(),
+  }).build();
+
+  assert.deepEqual(profile.capabilities['audio.synthesize']?.implementation, {
+    ...NIMI_AI_PROFILE_QWEN3_TTS_IMPLEMENTATION,
+    supportedFeatures: [],
+  });
+  assert.deepEqual(profile.capabilities['audio.transcribe']?.implementation, {
+    ...NIMI_AI_PROFILE_QWEN3_ASR_IMPLEMENTATION,
+    supportedFeatures: [],
+  });
+  assert.deepEqual(
+    deriveNimiAIProfileRequirementProjection(profile, 'audio.synthesize').requirements,
+    [{
+      requirementId: 'tts.model',
+      role: 'main',
+      occurrenceOrdinal: 0,
+      displayLabel: 'TTS model',
+      resourceKind: 'tts',
+      policy: 'substitutable',
+    }],
+  );
+  assert.deepEqual(
+    deriveNimiAIProfileRequirementProjection(profile, 'audio.transcribe').requirements,
+    [{
+      requirementId: 'stt.model',
+      role: 'main',
+      occurrenceOrdinal: 0,
+      displayLabel: 'STT model',
+      resourceKind: 'stt',
+      policy: 'substitutable',
+    }],
+  );
+  assert.throws(
+    () => createNimiAIProfileQwen3TTSLocalImplementation({
+      supportedFeatures: ['input.audio'],
     }),
     /must be empty/u,
   );

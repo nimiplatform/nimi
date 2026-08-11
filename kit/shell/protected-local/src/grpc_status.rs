@@ -131,6 +131,7 @@ pub(crate) fn local_app_reason_from_proto(value: i32) -> Option<LocalAppReasonCo
         353 => LocalAppReasonCode::AiLocalModelProfileMissing,
         364 => LocalAppReasonCode::AiLocalServiceUnavailable,
         688 => LocalAppReasonCode::AiLocalDriverUnavailable,
+        692 => LocalAppReasonCode::AiLocalAssetIncompatible,
         697 => LocalAppReasonCode::AiLocalSelectionNotFound,
         698 => LocalAppReasonCode::AiLocalCapabilityMismatch,
         699 => LocalAppReasonCode::AiLocalConfigurationNotConfigured,
@@ -200,6 +201,7 @@ fn local_app_reason_from_runtime_reason(value: &str) -> Option<LocalAppReasonCod
         "AI_LOCAL_MODEL_PROFILE_MISSING" => LocalAppReasonCode::AiLocalModelProfileMissing,
         "AI_LOCAL_SERVICE_UNAVAILABLE" => LocalAppReasonCode::AiLocalServiceUnavailable,
         "AI_LOCAL_DRIVER_UNAVAILABLE" => LocalAppReasonCode::AiLocalDriverUnavailable,
+        "AI_LOCAL_ASSET_INCOMPATIBLE" => LocalAppReasonCode::AiLocalAssetIncompatible,
         "AI_LOCAL_SELECTION_NOT_FOUND" => LocalAppReasonCode::AiLocalSelectionNotFound,
         "AI_LOCAL_CAPABILITY_MISMATCH" => LocalAppReasonCode::AiLocalCapabilityMismatch,
         "AI_LOCAL_CONFIGURATION_NOT_CONFIGURED" => {
@@ -375,6 +377,11 @@ mod tests {
                 "AI_LOCAL_CONFIGURATION_NOT_CONFIGURED",
                 699,
                 LocalAppReasonCode::AiLocalConfigurationNotConfigured,
+            ),
+            (
+                "AI_LOCAL_ASSET_INCOMPATIBLE",
+                692,
+                LocalAppReasonCode::AiLocalAssetIncompatible,
             ),
         ] {
             assert_eq!(

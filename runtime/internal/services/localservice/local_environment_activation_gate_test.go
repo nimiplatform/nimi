@@ -14,6 +14,7 @@ import (
 
 func TestLocalEnvironmentActivationGateBlocksMissingSourceRecords(t *testing.T) {
 	svc := newTestService(t)
+	svc.SetEngineManager(&mockEngineManager{})
 	model := mustInstallSupervisedLocalModel(t, svc, installLocalAssetParams{
 		assetID:      "speech/gate-missing",
 		capabilities: []string{"audio.synthesize"},
@@ -40,6 +41,7 @@ func TestLocalEnvironmentActivationGateBlocksMissingSourceRecords(t *testing.T) 
 
 func TestLocalEnvironmentActivationGateAdmitsReadyRecords(t *testing.T) {
 	svc := newTestService(t)
+	svc.SetEngineManager(&mockEngineManager{})
 	model := mustInstallSupervisedLocalModel(t, svc, installLocalAssetParams{
 		assetID:      "speech/gate-ready",
 		capabilities: []string{"audio.synthesize"},
@@ -273,7 +275,7 @@ func markLocalEnvironmentPlanReadyForTest(t *testing.T, svc *Service, req localE
 			EnvironmentKey:    dep.EnvironmentKey,
 			SourceKind:        sourceKind,
 			CanonicalRoot:     filepath.Join(t.TempDir(), canonicalName),
-			SelectedConsumers: []string{req.ConsumerID},
+			SelectedConsumers: normalizeStringSlice([]string{req.ConsumerID, dep.ConsumerScope}),
 			AuditReasonCode:   "test_ready",
 		}
 		if dep.DependencyFamily == localEnvironmentFamilyPythonPackageSet {
@@ -287,6 +289,14 @@ func markLocalEnvironmentPlanReadyForTest(t *testing.T, svc *Service, req localE
 				record.VerifiedArtifacts = []string{filepath.Join(record.CanonicalRoot, "bin", "python"), driverScript}
 				record.ActivationEnvDelta = []string{"NIMI_RUNTIME_SPEECH_QWEN3_ASR_CMD='python' '" + driverScript + "'"}
 			}
+		}
+		if dep.DependencyFamily == localEnvironmentFamilyPythonTorchWheel {
+			identity, err := engine.ResolvePythonTorchWheelDependencyIdentity(dep.ConsumerScope)
+			if err != nil {
+				t.Fatalf("resolve Python Torch wheel identity for %q: %v", dep.ConsumerScope, err)
+			}
+			record.Version = identity.TorchVersion
+			record.Hashes = map[string]string{"wheel_lock_hash": identity.WheelLockHash}
 		}
 		record = verifiedSelectedSourceRecordForTest(record)
 		writeSelectedSourceLocalArtifactsForTest(t, record)

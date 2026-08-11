@@ -607,6 +607,7 @@
   "voiceSessionListening": "正在聆听",
   "voiceSessionSpeaking": "正在说话…",
   "voiceSessionTranscribing": "正在转写…",
+  "voiceInputFailed": "语音输入失败。请检查麦克风权限和所选语音配置。",
   "settingsDiagnosticsHint": "查看当前会话的投递与会话详情。",
   "settingsCapabilityNeedsSetup": "需要配置",
   "settingsUnavailableReason": "当前 source 还没有暴露 agent chat runtime inspect。",

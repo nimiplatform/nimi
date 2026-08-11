@@ -412,6 +412,15 @@ func localEnvironmentImageProfileBindingsRequiredDependency(
 
 func (s *Service) resolveLocalEnvironmentDependencyWithID(def localComputePackDefinition, family string, dependencyID string, required bool, hostState localEnvironmentHostProfileState, platformTuple string, runtimeDataRoot string, consumerScope string) localEnvironmentPlanDependency {
 	environmentKey := localEnvironmentKey(family, dependencyID, hostState.HostProfileID, platformTuple, runtimeDataRoot)
+	var torchIdentityErr error
+	if family == localEnvironmentFamilyPythonTorchWheel {
+		var identity engine.PythonTorchWheelDependencyIdentity
+		identity, torchIdentityErr = engine.ResolvePythonTorchWheelDependencyIdentity(consumerScope)
+		if torchIdentityErr == nil {
+			dependencyID = localEnvironmentPythonTorchWheelDependencyID(identity)
+			environmentKey = localEnvironmentPythonTorchWheelKey(identity, platformTuple, runtimeDataRoot)
+		}
+	}
 	dep := localEnvironmentPlanDependency{
 		DependencyFamily: family,
 		DependencyID:     dependencyID,
@@ -421,6 +430,14 @@ func (s *Service) resolveLocalEnvironmentDependencyWithID(def localComputePackDe
 		State:            localEnvironmentStateNeedsConfirmation,
 		SourceKind:       localEnvironmentSourceManaged,
 		ReasonCode:       "LOCAL_ENVIRONMENT_DEPENDENCY_CONFIRMATION_REQUIRED",
+	}
+	if torchIdentityErr != nil {
+		dep.State = localEnvironmentStateUnsupported
+		dep.SourceKind = localEnvironmentSourceUnavailable
+		dep.ConfirmationRequired = false
+		dep.ReasonCode = "LOCAL_ENVIRONMENT_DEPENDENCY_UNSUPPORTED"
+		dep.Detail = torchIdentityErr.Error()
+		return dep
 	}
 
 	if (family == localEnvironmentFamilyModelAsset || family == localEnvironmentFamilyModelCompanion) && strings.TrimSpace(dependencyID) == "" {
@@ -467,6 +484,26 @@ func (s *Service) resolveLocalEnvironmentDependencyWithID(def localComputePackDe
 			dep.Detail = err.Error()
 			return dep
 		}
+		if family == localEnvironmentFamilyPythonPackageSet {
+			expectedLockHash, err := engine.ResolvePythonPackageSetLockHash(dep.ConsumerScope)
+			storedLockHash := strings.TrimSpace(record.Hashes["package_lock_hash"])
+			if err != nil || storedLockHash != expectedLockHash || strings.TrimSpace(record.Version) != expectedLockHash {
+				dep.State = localEnvironmentStateRepairRequired
+				dep.ReasonCode = "LOCAL_ENVIRONMENT_DEPENDENCY_REPAIR_REQUIRED"
+				dep.Detail = "LOCAL_ENVIRONMENT_PACKAGE_SET_LOCK_DRIFT"
+				return dep
+			}
+		}
+		if family == localEnvironmentFamilyPythonTorchWheel {
+			expectedIdentity, err := engine.ResolvePythonTorchWheelDependencyIdentity(dep.ConsumerScope)
+			storedLockHash := strings.TrimSpace(record.Hashes["wheel_lock_hash"])
+			if err != nil || storedLockHash != expectedIdentity.WheelLockHash {
+				dep.State = localEnvironmentStateRepairRequired
+				dep.ReasonCode = "LOCAL_ENVIRONMENT_DEPENDENCY_REPAIR_REQUIRED"
+				dep.Detail = "LOCAL_ENVIRONMENT_TORCH_WHEEL_LOCK_DRIFT"
+				return dep
+			}
+		}
 		switch strings.TrimSpace(record.RepairState) {
 		case localEnvironmentRepairRequired, localEnvironmentRepairRunning, localEnvironmentRepairFailed:
 			dep.State = localEnvironmentStateRepairRequired
@@ -501,14 +538,30 @@ func (s *Service) resolveExpandedLocalEnvironmentDependencies(def localComputePa
 	if family != localEnvironmentFamilyPythonUV &&
 		family != localEnvironmentFamilyPythonRuntime &&
 		family != localEnvironmentFamilyPythonVenv &&
-		family != localEnvironmentFamilyPythonPackageSet {
+		family != localEnvironmentFamilyPythonPackageSet &&
+		family != localEnvironmentFamilyPythonTorchWheel &&
+		family != localEnvironmentFamilyCUDA {
+		return nil, false
+	}
+	if family == localEnvironmentFamilyCUDA && !localEnvironmentHostSupportsCUDA(hostState) {
 		return nil, false
 	}
 	consumers := localSpeechPlanConsumers(consumerScope)
 	dependencies := make([]localEnvironmentPlanDependency, 0, len(consumers))
 	for _, consumer := range consumers {
 		dependencyID := localSpeechPythonDependencyIDForFamily(family, consumer)
-		dependencies = append(dependencies, s.resolveLocalEnvironmentDependencyWithID(def, family, dependencyID, required, hostState, platformTuple, runtimeDataRoot, consumer))
+		dependencyConsumer := consumer
+		if family == localEnvironmentFamilyPythonTorchWheel {
+			plane := "cpu"
+			if localEnvironmentHostSupportsCUDA(hostState) {
+				plane = "cuda"
+			}
+			dependencyConsumer = consumer + "." + plane
+		} else if family == localEnvironmentFamilyCUDA {
+			dependencyID = cudaUserSpaceRuntimeDependencyID
+			dependencyConsumer = consumer + ".cuda"
+		}
+		dependencies = append(dependencies, s.resolveLocalEnvironmentDependencyWithID(def, family, dependencyID, required, hostState, platformTuple, runtimeDataRoot, dependencyConsumer))
 	}
 	return dependencies, true
 }
@@ -517,6 +570,8 @@ func localSpeechPlanConsumers(consumerScope string) []string {
 	switch strings.TrimSpace(consumerScope) {
 	case "speech.qwen3-asr.python":
 		return []string{"speech.qwen3-asr.python"}
+	case "speech.qwen3-asr-transformers.python":
+		return []string{"speech.qwen3-asr-transformers.python"}
 	case "speech.qwen3-tts.python":
 		return []string{"speech.qwen3-tts.python"}
 	default:
@@ -546,6 +601,9 @@ func localEnvironmentOptionalDependencyRequiredForConsumer(def localComputePackD
 	if localEnvironmentCUDAConsumerScopeRequiresRuntime(scope) {
 		return true
 	}
+	if def.PackID == "local-speech" && localEnvironmentHostSupportsCUDA(hostState) {
+		return true
+	}
 	return def.PackID == "local-text" &&
 		(localEnvironmentHostSupportsCUDA(hostState) || firstRunLlamaCUDARequired) &&
 		localEnvironmentFirstRunConsumerScope(scope)
@@ -571,11 +629,12 @@ func localEnvironmentDependencyConsumerScope(def localComputePackDefinition, fam
 }
 
 func localEnvironmentCUDAConsumerScopeRequiresRuntime(consumerScope string) bool {
-	switch strings.TrimSpace(consumerScope) {
+	trimmed := strings.TrimSpace(consumerScope)
+	switch trimmed {
 	case "llama.cpp.cuda", stableDiffusionCUDAConsumerID, "media.diffusers.cuda", "media.video-python.cuda":
 		return true
 	default:
-		return false
+		return strings.HasPrefix(trimmed, "speech.") && strings.HasSuffix(trimmed, ".cuda")
 	}
 }
 
@@ -601,6 +660,8 @@ func localSpeechPythonDependencyID(family string, consumer string) string {
 	switch strings.TrimSpace(consumer) {
 	case "speech.qwen3-asr.python":
 		return "local-speech-qwen3-asr." + suffix
+	case "speech.qwen3-asr-transformers.python":
+		return "local-speech-qwen3-asr-transformers." + suffix
 	case "speech.qwen3-tts.python":
 		return "local-speech-qwen3-tts." + suffix
 	default:
@@ -617,6 +678,14 @@ func localSpeechPythonDependencyIDForFamily(family string, consumer string) stri
 	default:
 		return localSpeechPythonDependencyID(family, consumer)
 	}
+}
+
+func localEnvironmentPythonTorchWheelDependencyID(identity engine.PythonTorchWheelDependencyIdentity) string {
+	return strings.Join([]string{
+		"torch-" + strings.TrimSpace(identity.TorchVersion),
+		strings.TrimSpace(identity.AcceleratorPlane) + "-" + strings.TrimSpace(identity.CUDAABI),
+		"torch-wheel",
+	}, ".")
 }
 
 func (s *Service) localEnvironmentDependencyID(packID string, family string, req localEnvironmentPlanRequest) string {
@@ -738,8 +807,8 @@ func localComputePackDefinitions() []localComputePackDefinition {
 		{
 			PackID:                     "local-speech",
 			ProductLabel:               "Local speech",
-			RequiredDependencyFamilies: []string{localEnvironmentFamilyPythonUV, localEnvironmentFamilyPythonRuntime, localEnvironmentFamilyPythonVenv, localEnvironmentFamilyPythonPackageSet, localEnvironmentFamilyModelAsset},
-			OptionalDependencyFamilies: []string{},
+			RequiredDependencyFamilies: []string{localEnvironmentFamilyPythonUV, localEnvironmentFamilyPythonRuntime, localEnvironmentFamilyPythonVenv, localEnvironmentFamilyPythonPackageSet, localEnvironmentFamilyPythonTorchWheel, localEnvironmentFamilyModelAsset},
+			OptionalDependencyFamilies: []string{localEnvironmentFamilyCUDA},
 			CloudOnlyImpact:            "none",
 			HostedCapabilities:         []string{localResolverCapabilityAudioTranscribe, localResolverCapabilityAudioSynthesize},
 		},

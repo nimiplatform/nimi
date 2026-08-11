@@ -35,6 +35,8 @@ import { withNimiRuntimeIdempotencyMetadata } from './scenario-jobs.js';
 
 export const NIMI_MACHINE_LOCAL_TEXT_GENERATE_CAPABILITY_CONTRACT = 'text.generate';
 export const NIMI_MACHINE_LOCAL_TEXT_EMBED_CAPABILITY_CONTRACT = 'text.embed';
+export const NIMI_MACHINE_LOCAL_AUDIO_SYNTHESIZE_CAPABILITY_CONTRACT = 'audio.synthesize';
+export const NIMI_MACHINE_LOCAL_AUDIO_TRANSCRIBE_CAPABILITY_CONTRACT = 'audio.transcribe';
 export const NIMI_MACHINE_LOCAL_IMAGE_GENERATE_CAPABILITY_CONTRACT = 'image.generate';
 /** Mirrors runtime/internal/capabilitydriver/stablediffusion_video.go:22. */
 export const NIMI_MACHINE_LOCAL_VIDEO_GENERATE_CAPABILITY_CONTRACT = 'video.generate';
@@ -50,6 +52,18 @@ export const NIMI_MACHINE_LOCAL_LLAMA_CPP_EMBED_IMPLEMENTATION = Object.freeze({
   implementationId: 'local.text.embed.llama-cpp',
   driverId: 'nimi.runtime.driver.llama-cpp',
   driverDialect: 'llama.cpp/text-embed/v1',
+}) satisfies Readonly<CapabilityImplementationIdentity>;
+
+export const NIMI_MACHINE_LOCAL_QWEN3_TTS_IMPLEMENTATION = Object.freeze({
+  implementationId: 'local.audio.synthesize.qwen3-tts',
+  driverId: 'nimi.runtime.driver.qwen3-tts',
+  driverDialect: 'qwen3-tts/audio-synthesize/v1',
+}) satisfies Readonly<CapabilityImplementationIdentity>;
+
+export const NIMI_MACHINE_LOCAL_QWEN3_ASR_IMPLEMENTATION = Object.freeze({
+  implementationId: 'local.audio.transcribe.qwen3-asr',
+  driverId: 'nimi.runtime.driver.qwen3-asr',
+  driverDialect: 'qwen3-asr/audio-transcribe/v1',
 }) satisfies Readonly<CapabilityImplementationIdentity>;
 
 export const NIMI_MACHINE_LOCAL_STABLE_DIFFUSION_IMAGE_IMPLEMENTATION = Object.freeze({
@@ -426,6 +440,32 @@ export function createNimiMachineLocalLlamaCppEmbedConfigurationInput(input: {
     portableConfig,
     supportedFeatures: [],
     displayName,
+  };
+}
+
+export function createNimiMachineLocalQwen3TTSConfigurationInput(input: {
+  readonly displayName: string;
+}): NimiMachineLocalAIConfigurationAddInput {
+  assertExactRecord(input, new Set(['displayName']), 'Qwen3-TTS configuration input');
+  return {
+    capabilityContract: NIMI_MACHINE_LOCAL_AUDIO_SYNTHESIZE_CAPABILITY_CONTRACT,
+    implementation: { ...NIMI_MACHINE_LOCAL_QWEN3_TTS_IMPLEMENTATION },
+    portableConfig: {},
+    supportedFeatures: [],
+    displayName: requireInputText(input.displayName, 'displayName'),
+  };
+}
+
+export function createNimiMachineLocalQwen3ASRConfigurationInput(input: {
+  readonly displayName: string;
+}): NimiMachineLocalAIConfigurationAddInput {
+  assertExactRecord(input, new Set(['displayName']), 'Qwen3-ASR configuration input');
+  return {
+    capabilityContract: NIMI_MACHINE_LOCAL_AUDIO_TRANSCRIBE_CAPABILITY_CONTRACT,
+    implementation: { ...NIMI_MACHINE_LOCAL_QWEN3_ASR_IMPLEMENTATION },
+    portableConfig: {},
+    supportedFeatures: [],
+    displayName: requireInputText(input.displayName, 'displayName'),
   };
 }
 

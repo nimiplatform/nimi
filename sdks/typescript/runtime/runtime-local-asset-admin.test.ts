@@ -17,6 +17,8 @@ import {
   NIMI_RUNTIME_LOCAL_RECOMMENDATION_FEED_CAPABILITY_IDS,
   applyNimiRuntimeLocalRecommendationFeedFilters,
   buildNimiRuntimeLocalImageNativeEnvironmentPlanInput,
+  buildNimiRuntimeLocalQwen3ASREnvironmentPlanInput,
+  buildNimiRuntimeLocalQwen3TTSEnvironmentPlanInput,
   collectNimiRuntimeLocalRecommendationFeedLicenses,
   collectNimiRuntimeLocalRecommendationFeedProviders,
   createNimiRuntimeLocalAssetAdminClient,
@@ -443,6 +445,28 @@ test('Runtime local environment dependency helpers normalize generated Runtime s
   assert.equal(isNimiRuntimeLocalEnvironmentDependencyJobFailedState('failed'), true);
   assert.equal(isNimiRuntimeLocalEnvironmentDependencyJobCancelledState('cancelled'), true);
   assert.equal(isNimiRuntimeLocalEnvironmentDependencyJobActiveState('ready_system'), false);
+});
+
+test('Qwen3 ASR environment helper preserves exact speech plan identity', () => {
+  assert.deepEqual(buildNimiRuntimeLocalQwen3ASREnvironmentPlanInput({
+    localAssetId: 'local-asr-1',
+  }), {
+    packId: 'local-speech',
+    consumerScope: 'speech.qwen3-asr.python',
+    localAssetId: 'local-asr-1',
+    assetId: undefined,
+  });
+});
+
+test('Qwen3 TTS environment helper preserves exact speech plan identity', () => {
+  assert.deepEqual(buildNimiRuntimeLocalQwen3TTSEnvironmentPlanInput({
+    localAssetId: 'local-tts-1',
+  }), {
+    packId: 'local-speech',
+    consumerScope: 'speech.qwen3-tts.python',
+    localAssetId: 'local-tts-1',
+    assetId: undefined,
+  });
 });
 
 test('Runtime local environment dependency job projection preserves Runtime-owned progress evidence', () => {

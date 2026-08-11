@@ -1,8 +1,12 @@
 import type { TFunction } from 'i18next';
 import {
+  NIMI_MACHINE_LOCAL_AUDIO_SYNTHESIZE_CAPABILITY_CONTRACT,
+  NIMI_MACHINE_LOCAL_AUDIO_TRANSCRIBE_CAPABILITY_CONTRACT,
   NIMI_MACHINE_LOCAL_IMAGE_GENERATE_CAPABILITY_CONTRACT,
   NIMI_MACHINE_LOCAL_LLAMA_CPP_EMBED_IMPLEMENTATION,
   NIMI_MACHINE_LOCAL_LLAMA_CPP_TEXT_IMPLEMENTATION,
+  NIMI_MACHINE_LOCAL_QWEN3_ASR_IMPLEMENTATION,
+  NIMI_MACHINE_LOCAL_QWEN3_TTS_IMPLEMENTATION,
   NIMI_MACHINE_LOCAL_STABLE_DIFFUSION_IMAGE_IMPLEMENTATION,
   NIMI_MACHINE_LOCAL_STABLE_DIFFUSION_VIDEO_IMPLEMENTATION,
   NIMI_MACHINE_LOCAL_TEXT_EMBED_CAPABILITY_CONTRACT,
@@ -15,13 +19,15 @@ import {
 import type { RuntimeConfigMachineLocalAIAddDraft } from './runtime-config-machine-local-ai-state.js';
 
 /**
- * Fixed product order for machine-local capability rows: text, embedding, image, video.
+ * Fixed product order for machine-local capability rows: text, embedding, speech, image, video.
  * Any additional contracts projected by Runtime are appended in first-seen
  * order instead of relying on locale-sensitive string sorting.
  */
 export const MACHINE_LOCAL_AI_CAPABILITY_PRODUCT_ORDER = Object.freeze([
   NIMI_MACHINE_LOCAL_TEXT_GENERATE_CAPABILITY_CONTRACT,
   NIMI_MACHINE_LOCAL_TEXT_EMBED_CAPABILITY_CONTRACT,
+  NIMI_MACHINE_LOCAL_AUDIO_SYNTHESIZE_CAPABILITY_CONTRACT,
+  NIMI_MACHINE_LOCAL_AUDIO_TRANSCRIBE_CAPABILITY_CONTRACT,
   NIMI_MACHINE_LOCAL_IMAGE_GENERATE_CAPABILITY_CONTRACT,
   NIMI_MACHINE_LOCAL_VIDEO_GENERATE_CAPABILITY_CONTRACT,
 ] as const);
@@ -89,6 +95,20 @@ export function machineLocalEngineDisplayName(
   const implementation = configuration.implementation;
   if (isMachineLocalLlamaConfiguration(configuration)) {
     return 'llama.cpp';
+  }
+  if (exactMachineLocalImplementation(
+    configuration,
+    NIMI_MACHINE_LOCAL_AUDIO_SYNTHESIZE_CAPABILITY_CONTRACT,
+    NIMI_MACHINE_LOCAL_QWEN3_TTS_IMPLEMENTATION,
+  )) {
+    return t('runtimeConfig.machineLocalAIConfigurations.qwen3TTSEngine');
+  }
+  if (exactMachineLocalImplementation(
+    configuration,
+    NIMI_MACHINE_LOCAL_AUDIO_TRANSCRIBE_CAPABILITY_CONTRACT,
+    NIMI_MACHINE_LOCAL_QWEN3_ASR_IMPLEMENTATION,
+  )) {
+    return t('runtimeConfig.machineLocalAIConfigurations.qwen3ASREngine');
   }
   if (
     implementation.implementationId

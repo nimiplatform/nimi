@@ -16,6 +16,10 @@ from typing import Any
 VOICE_DESIGN_PREFIX = "qwen3_tts:design:"
 DEFAULT_MAX_NEW_TOKENS = 256
 DRIVER_WORK_ROOT_ENV = "NIMI_RUNTIME_SPEECH_DRIVER_WORK_ROOT"
+DRIVER_OUTPUT_PATH_ENV = "NIMI_RUNTIME_SPEECH_DRIVER_OUTPUT_PATH"
+SYNTHESIS_BATCH_SIZE = 8
+SYNTHESIS_CHUNK_CHARACTERS = 160
+SYNTHESIS_CJK_CHUNK_CHARACTERS = 64
 
 _MODEL_CACHE: dict[tuple[str, str, str], Any] = {}
 _MODEL_PATH_CACHE: dict[str, str] = {}
@@ -151,6 +155,38 @@ def normalized_language(value: str) -> str | None:
     if lowered in mapping:
         return mapping[lowered]
     return text
+
+
+def synthesis_chunk_limit(text: str, language: str | None) -> int:
+    normalized = str(language or "").strip().lower()
+    if normalized in {"chinese", "japanese", "korean"}:
+        return SYNTHESIS_CJK_CHUNK_CHARACTERS
+    if any("\u2e80" <= character <= "\u9fff" or "\u3040" <= character <= "\u30ff" or "\uac00" <= character <= "\ud7af" for character in text):
+        return SYNTHESIS_CJK_CHUNK_CHARACTERS
+    return SYNTHESIS_CHUNK_CHARACTERS
+
+
+def split_synthesis_text(text: str, language: str | None) -> list[str]:
+    remaining = text.strip()
+    if not remaining:
+        return []
+    limit = synthesis_chunk_limit(remaining, language)
+    chunks: list[str] = []
+    preferred_breaks = ".!?;:\n。！？；："
+    while len(remaining) > limit:
+        window = remaining[: limit + 1]
+        cut = max(window.rfind(marker) + 1 for marker in preferred_breaks)
+        if cut < limit // 2:
+            cut = window.rfind(" ") + 1
+        if cut < limit // 2:
+            cut = limit
+        chunk = remaining[:cut].strip()
+        if chunk:
+            chunks.append(chunk)
+        remaining = remaining[cut:].lstrip()
+    if remaining:
+        chunks.append(remaining)
+    return chunks
 
 
 def load_entry_payload(entry_path: str) -> dict[str, Any]:
@@ -328,9 +364,142 @@ def write_audio_artifact(wav: Any, sample_rate: int) -> tuple[str, str]:
         import soundfile as sf
     except Exception as error:
         fail(f"soundfile import failed: {error}")
-    output_path = work_root / f"audio-{uuid.uuid4().hex}.wav"
+    requested_output = str(os.environ.get(DRIVER_OUTPUT_PATH_ENV) or "").strip()
+    output_path = pathlib.Path(requested_output) if requested_output else work_root / f"audio-{uuid.uuid4().hex}.wav"
+    try:
+        output_path.resolve().relative_to(work_root.resolve())
+    except ValueError as error:
+        fail(f"Runtime-owned speech output path escaped work root: {error}")
+    if not output_path.is_absolute() or output_path.is_symlink() or output_path.exists():
+        fail("Runtime-owned speech output path is invalid")
     sf.write(str(output_path), wav, int(sample_rate))
     return str(output_path), mimetypes.guess_type(str(output_path))[0] or "audio/wav"
+
+
+def append_audio_artifact(path_value: str, wav: Any, sample_rate: int) -> None:
+    try:
+        import soundfile as sf
+    except Exception as error:
+        fail(f"soundfile import failed: {error}")
+    with sf.SoundFile(path_value, mode="r+") as output:
+        if output.samplerate != int(sample_rate):
+            fail("qwen3_tts custom voice generation changed sample rate between batches")
+        output.seek(0, 2)
+        output.write(wav)
+
+
+# qwen-tts 0.1.1 decodes and returns only audio from its public generation
+# wrappers. Both admitted CustomVoice and VoiceDesign paths call this inner
+# talker exactly once, so observe that otherwise-discarded completion state.
+def generate_observed_talker_batch(
+    model: Any,
+    texts: list[str],
+    token_limit: int,
+    generation_label: str,
+    generate_batch: Any,
+) -> tuple[list[Any], int]:
+    backend = getattr(model, "model", None)
+    talker = getattr(backend, "talker", None)
+    original_generate = getattr(talker, "generate", None)
+    if not callable(original_generate):
+        fail(f"qwen3_tts {generation_label} talker generation is unavailable")
+    try:
+        talker_instance_variables = vars(talker)
+    except TypeError as error:
+        fail(f"qwen3_tts {generation_label} talker state is unavailable: {error}")
+    had_instance_generate = "generate" in talker_instance_variables
+    previous_instance_generate = talker_instance_variables.get("generate")
+    configured_eos_token = getattr(
+        getattr(getattr(backend, "config", None), "talker_config", None),
+        "codec_eos_token_id",
+        None,
+    )
+    observed_runs: list[tuple[list[list[int]], int, int]] = []
+
+    def observe_talker_generation(*args: Any, **kwargs: Any) -> Any:
+        result = original_generate(*args, **kwargs)
+        sequences = getattr(result, "sequences", None)
+        try:
+            rows = sequences.detach().cpu().tolist()
+            observed_limit = int(kwargs["max_new_tokens"])
+            observed_eos_token = int(kwargs.get("eos_token_id", configured_eos_token))
+        except Exception as error:
+            fail(f"qwen3_tts {generation_label} talker completion state is invalid: {error}")
+        if not isinstance(rows, list) or any(not isinstance(row, list) for row in rows):
+            fail(f"qwen3_tts {generation_label} talker completion state is invalid")
+        observed_runs.append((rows, observed_limit, observed_eos_token))
+        return result
+
+    setattr(talker, "generate", observe_talker_generation)
+    try:
+        wavs, sample_rate = generate_batch()
+    finally:
+        if had_instance_generate:
+            setattr(talker, "generate", previous_instance_generate)
+        else:
+            delattr(talker, "generate")
+    if len(observed_runs) != 1:
+        fail(f"qwen3_tts {generation_label} generation did not expose one talker completion state")
+    token_rows, observed_limit, eos_token = observed_runs[0]
+    if observed_limit != token_limit:
+        fail(f"qwen3_tts {generation_label} generation changed its token ceiling")
+    if len(token_rows) != len(texts):
+        fail(f"qwen3_tts {generation_label} generation returned incomplete token batch")
+    if len(wavs) != len(texts):
+        fail(f"qwen3_tts {generation_label} generation returned incomplete audio batch")
+    if any(len(row) > token_limit for row in token_rows):
+        fail(f"qwen3_tts {generation_label} talker completion state exceeds its token ceiling")
+    if any(eos_token not in row and len(row) >= token_limit for row in token_rows):
+        fail(f"qwen3_tts {generation_label} generation reached generation ceiling ({token_limit} codec tokens)")
+    if any(eos_token not in row for row in token_rows):
+        fail(f"qwen3_tts {generation_label} generation ended without a completion token")
+    return wavs, int(sample_rate)
+
+
+def generate_custom_voice_batch(
+    model: Any,
+    texts: list[str],
+    language: str | None,
+    speaker: str,
+    instruction: str,
+    token_limit: int,
+) -> tuple[list[Any], int]:
+    return generate_observed_talker_batch(
+        model,
+        texts,
+        token_limit,
+        "custom voice",
+        lambda: model.generate_custom_voice(
+            text=texts,
+            language=language,
+            speaker=speaker,
+            instruct=instruction or None,
+            non_streaming_mode=True,
+            max_new_tokens=token_limit,
+        ),
+    )
+
+
+def generate_voice_design_batch(
+    model: Any,
+    texts: list[str],
+    language: str | None,
+    instruction: str,
+    token_limit: int,
+) -> tuple[list[Any], int]:
+    return generate_observed_talker_batch(
+        model,
+        texts,
+        token_limit,
+        "voice design",
+        lambda: model.generate_voice_design(
+            text=texts,
+            language=language,
+            instruct=instruction,
+            non_streaming_mode=True,
+            max_new_tokens=token_limit,
+        ),
+    )
 
 
 def build_design_handle(request: dict[str, Any]) -> dict[str, Any]:
@@ -389,20 +558,37 @@ def synthesize_with_custom_voice(model: Any, request: dict[str, Any]) -> tuple[s
     instruct = optional_string(request, "emotion")
     if not instruct and isinstance(request.get("extensions"), dict):
         instruct = optional_string(request["extensions"], "instruct")
+    chunks = split_synthesis_text(text, language)
+    sample_rate = 0
+    audio_path = ""
+    content_type = "audio/wav"
+    token_limit = max_new_tokens()
     try:
-        wavs, sample_rate = model.generate_custom_voice(
-            text=text,
-            language=language,
-            speaker=speaker,
-            instruct=instruct or None,
-            non_streaming_mode=True,
-            max_new_tokens=max_new_tokens(),
-        )
+        for start in range(0, len(chunks), SYNTHESIS_BATCH_SIZE):
+            batch = chunks[start : start + SYNTHESIS_BATCH_SIZE]
+            wavs, batch_sample_rate = generate_custom_voice_batch(
+                model,
+                batch,
+                language,
+                speaker,
+                instruct,
+                token_limit,
+            )
+            if sample_rate and sample_rate != int(batch_sample_rate):
+                fail("qwen3_tts custom voice generation changed sample rate between batches")
+            sample_rate = int(batch_sample_rate)
+            for wav in wavs:
+                if not audio_path:
+                    audio_path, content_type = write_audio_artifact(wav, sample_rate)
+                else:
+                    append_audio_artifact(audio_path, wav, sample_rate)
     except Exception as error:
+        if audio_path:
+            pathlib.Path(audio_path).unlink(missing_ok=True)
         fail(f"qwen3_tts custom voice generation failed: {error}")
-    if not wavs:
-        fail("qwen3_tts custom voice generation returned no audio")
-    return write_audio_artifact(wavs[0], sample_rate)
+    if not audio_path:
+        fail("qwen3_tts generation returned no audio segments")
+    return audio_path, content_type
 
 
 def synthesize_with_design_handle(model: Any, request: dict[str, Any], handle_payload: dict[str, Any]) -> tuple[str, str]:
@@ -411,19 +597,36 @@ def synthesize_with_design_handle(model: Any, request: dict[str, Any], handle_pa
     if not instruction:
         fail("voice design handle missing instruction_text")
     language = normalized_language(optional_string(request, "language") or optional_string(handle_payload, "language"))
+    chunks = split_synthesis_text(text, language)
+    sample_rate = 0
+    audio_path = ""
+    content_type = "audio/wav"
+    token_limit = max_new_tokens()
     try:
-        wavs, sample_rate = model.generate_voice_design(
-            text=text,
-            language=language,
-            instruct=instruction,
-            non_streaming_mode=True,
-            max_new_tokens=max_new_tokens(),
-        )
+        for start in range(0, len(chunks), SYNTHESIS_BATCH_SIZE):
+            batch = chunks[start : start + SYNTHESIS_BATCH_SIZE]
+            wavs, batch_sample_rate = generate_voice_design_batch(
+                model,
+                batch,
+                language,
+                instruction,
+                token_limit,
+            )
+            if sample_rate and sample_rate != batch_sample_rate:
+                fail("qwen3_tts voice design generation changed sample rate between batches")
+            sample_rate = batch_sample_rate
+            for wav in wavs:
+                if not audio_path:
+                    audio_path, content_type = write_audio_artifact(wav, sample_rate)
+                else:
+                    append_audio_artifact(audio_path, wav, sample_rate)
     except Exception as error:
+        if audio_path:
+            pathlib.Path(audio_path).unlink(missing_ok=True)
         fail(f"qwen3_tts voice design generation failed: {error}")
-    if not wavs:
+    if not audio_path:
         fail("qwen3_tts voice design generation returned no audio")
-    return write_audio_artifact(wavs[0], sample_rate)
+    return audio_path, content_type
 
 
 def handle_synthesize(request: dict[str, Any], cli_default_model: str) -> dict[str, Any]:

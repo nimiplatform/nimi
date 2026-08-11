@@ -3,6 +3,7 @@ package engine
 import (
 	"bytes"
 	"context"
+	"errors"
 	"log/slog"
 	"net"
 	"os"
@@ -173,8 +174,212 @@ func TestSupervisorHelperProcess(t *testing.T) {
 		defer func() { _ = listener.Close() }()
 		time.Sleep(60 * time.Second)
 		os.Exit(0)
+	case "spawn-child", "spawn-child-exit":
+		if len(helperArgs) != 3 {
+			os.Exit(2)
+		}
+		deadline := time.Now().Add(10 * time.Second)
+		for {
+			if _, err := os.Stat(helperArgs[2]); err == nil {
+				break
+			}
+			if time.Now().After(deadline) {
+				os.Exit(2)
+			}
+			time.Sleep(10 * time.Millisecond)
+		}
+		executablePath, err := os.Executable()
+		if err != nil {
+			os.Exit(2)
+		}
+		child := exec.Command(executablePath, "-test.run=^TestSupervisorHelperProcess$", "--", "sleep")
+		child.Env = append(os.Environ(), "GO_WANT_SUPERVISOR_HELPER_PROCESS=1")
+		if err := child.Start(); err != nil {
+			os.Exit(2)
+		}
+		if err := os.WriteFile(helperArgs[1], []byte(strconv.Itoa(child.Process.Pid)), 0o600); err != nil {
+			_ = child.Process.Kill()
+			os.Exit(2)
+		}
+		if mode == "spawn-child-exit" {
+			os.Exit(1)
+		}
+		time.Sleep(60 * time.Second)
+		os.Exit(0)
 	default:
 		os.Exit(2)
+	}
+}
+
+func TestSupervisorWindowsUnexpectedParentExitCleansTrackedJobTreeBeforeDone(t *testing.T) {
+	if runtime.GOOS != "windows" {
+		t.Skip("Windows Job Object shutdown semantics")
+	}
+	setSupervisorTestHome(t)
+
+	executablePath, err := os.Executable()
+	if err != nil {
+		t.Fatalf("os.Executable: %v", err)
+	}
+	childPIDPath := filepath.Join(t.TempDir(), "child.pid")
+	childTriggerPath := filepath.Join(t.TempDir(), "spawn-child.trigger")
+	cfg := testSupervisorCfg(executablePath)
+	cfg.CommandArgs = []string{"-test.run=^TestSupervisorHelperProcess$", "--", "spawn-child-exit", childPIDPath, childTriggerPath}
+	cfg.CommandEnv = map[string]string{"GO_WANT_SUPERVISOR_HELPER_PROCESS": "1"}
+	cfg.StartupTimeout = 100 * time.Millisecond
+	cfg.MaxRestarts = 1
+
+	sup := NewSupervisor(cfg, testLogger(), nil)
+	if err := sup.Start(context.Background()); err != nil {
+		t.Fatalf("Start: %v", err)
+	}
+	defer func() { _ = sup.Stop() }()
+	process := sup.currentProcess()
+	if process == nil {
+		t.Fatal("expected tracked supervised process")
+	}
+	if err := os.WriteFile(childTriggerPath, []byte("spawn"), 0o600); err != nil {
+		t.Fatalf("write child trigger: %v", err)
+	}
+
+	var childPID int
+	if !waitForCondition(5*time.Second, func() bool {
+		encoded, readErr := os.ReadFile(childPIDPath)
+		if readErr != nil {
+			return false
+		}
+		parsed, parseErr := strconv.Atoi(strings.TrimSpace(string(encoded)))
+		if parseErr != nil || parsed <= 0 {
+			return false
+		}
+		childPID = parsed
+		return true
+	}) {
+		t.Fatal("supervised parent did not record its child")
+	}
+
+	select {
+	case <-process.done:
+	case <-time.After(5 * time.Second):
+		t.Fatal("timed out waiting for tracked Job Object cleanup")
+	}
+	if supervisorProcessAlive(childPID) {
+		t.Fatalf("process.done closed while tracked child process %d remained alive", childPID)
+	}
+}
+
+func TestSupervisorWindowsStopTerminatesTrackedJobTreeWithoutGraceDelay(t *testing.T) {
+	if runtime.GOOS != "windows" {
+		t.Skip("Windows Job Object shutdown semantics")
+	}
+	setSupervisorTestHome(t)
+
+	executablePath, err := os.Executable()
+	if err != nil {
+		t.Fatalf("os.Executable: %v", err)
+	}
+	childPIDPath := filepath.Join(t.TempDir(), "child.pid")
+	childTriggerPath := filepath.Join(t.TempDir(), "spawn-child.trigger")
+	cfg := testSupervisorCfg(executablePath)
+	cfg.CommandArgs = []string{"-test.run=^TestSupervisorHelperProcess$", "--", "spawn-child", childPIDPath, childTriggerPath}
+	cfg.CommandEnv = map[string]string{"GO_WANT_SUPERVISOR_HELPER_PROCESS": "1"}
+	cfg.StartupTimeout = 100 * time.Millisecond
+	cfg.ShutdownTimeout = 5 * time.Second
+	cfg.MaxRestarts = 1
+
+	sup := NewSupervisor(cfg, testLogger(), nil)
+	if err := sup.Start(context.Background()); err != nil {
+		t.Fatalf("Start: %v", err)
+	}
+	defer func() { _ = sup.Stop() }()
+	// Start returns only after the Supervisor assigned the parent to its Job
+	// Object. Trigger child creation afterwards so the test cannot race the
+	// assignment and accidentally create an untracked descendant.
+	if err := os.WriteFile(childTriggerPath, []byte("spawn"), 0o600); err != nil {
+		t.Fatalf("write child trigger: %v", err)
+	}
+
+	var childPID int
+	if !waitForCondition(5*time.Second, func() bool {
+		encoded, readErr := os.ReadFile(childPIDPath)
+		if readErr != nil {
+			return false
+		}
+		parsed, parseErr := strconv.Atoi(strings.TrimSpace(string(encoded)))
+		if parseErr != nil || parsed <= 0 {
+			return false
+		}
+		childPID = parsed
+		return supervisorProcessAlive(childPID)
+	}) {
+		t.Fatal("supervised parent did not spawn a live child")
+	}
+
+	started := time.Now()
+	if err := sup.Stop(); err != nil {
+		t.Fatalf("Stop: %v", err)
+	}
+	if elapsed := time.Since(started); elapsed >= 3*time.Second {
+		t.Fatalf("Windows Stop waited for unsupported graceful shutdown: %s", elapsed)
+	}
+	if supervisorProcessAlive(childPID) {
+		t.Fatalf("Stop returned while tracked child process %d remained alive", childPID)
+	}
+}
+
+func TestManagerCanceledColdStartTerminatesTrackedProcessBeforeReturn(t *testing.T) {
+	setSupervisorTestHome(t)
+	executablePath, err := os.Executable()
+	if err != nil {
+		t.Fatalf("os.Executable: %v", err)
+	}
+
+	mgr, err := NewManager(testLogger(), testManagedRoots(t), nil)
+	if err != nil {
+		t.Fatalf("NewManager: %v", err)
+	}
+	cfg := testSupervisorCfg(executablePath)
+	cfg.Kind = EngineSpeech
+	cfg.CommandArgs = []string{"-test.run=^TestSupervisorHelperProcess$", "--", "sleep"}
+	cfg.CommandEnv = map[string]string{"GO_WANT_SUPERVISOR_HELPER_PROCESS": "1"}
+	cfg.StartupTimeout = 30 * time.Second
+
+	ctx, cancel := context.WithCancel(context.Background())
+	startDone := make(chan error, 1)
+	go func() {
+		startDone <- mgr.StartEngine(ctx, cfg)
+	}()
+	t.Cleanup(func() {
+		cancel()
+		_ = mgr.StopEngine(EngineSpeech)
+	})
+
+	var startedPID int
+	if !waitForCondition(5*time.Second, func() bool {
+		info, statusErr := mgr.EngineStatus(EngineSpeech)
+		if statusErr != nil || info.Status != StatusStarting || info.PID <= 0 {
+			return false
+		}
+		startedPID = info.PID
+		return supervisorProcessAlive(startedPID)
+	}) {
+		t.Fatal("speech cold start did not publish a live tracked Starting process")
+	}
+
+	cancel()
+	select {
+	case startErr := <-startDone:
+		if !errors.Is(startErr, context.Canceled) {
+			t.Fatalf("canceled speech cold start error = %v, want context.Canceled", startErr)
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("canceled speech cold start did not return after process cleanup")
+	}
+	if supervisorProcessAlive(startedPID) {
+		t.Fatalf("canceled speech cold start returned with process %d still alive", startedPID)
+	}
+	if _, statusErr := mgr.EngineStatus(EngineSpeech); statusErr == nil {
+		t.Fatal("canceled speech cold start left a reusable supervisor in Manager")
 	}
 }
 

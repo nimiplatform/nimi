@@ -117,7 +117,7 @@ export function LocalModelCenterToolbar(props: ToolbarProps) {
                 </div>
                 <div className="mt-0.5 text-[var(--nimi-text-muted)]">
                   {i18n.t('runtimeConfig.localModelCenter.supportedAssetBundleFolder', {
-                    defaultValue: 'Bundle directory with model.gguf and optional mmproj files',
+                    defaultValue: 'Complete text-generation or verified Qwen3 speech model directory',
                   })}
                 </div>
               </button>
@@ -217,8 +217,8 @@ export function LocalModelCenterImportDialog(props: ImportDialogProps) {
       </div>
       {props.canChooseFolder === false ? (
         <p className="mt-2 text-[length:var(--nimi-type-caption-size)] text-[var(--nimi-text-muted)]">
-          {i18n.t('runtimeConfig.localModelCenter.bundleImportChatOnlyHint', {
-            defaultValue: 'Bundle folder import currently targets text-generation asset bundles.',
+          {i18n.t('runtimeConfig.localModelCenter.bundleImportSupportedKindsHint', {
+            defaultValue: 'Bundle folder import currently supports text-generation and verified Qwen3 speech assets.',
           })}
         </p>
       ) : null}

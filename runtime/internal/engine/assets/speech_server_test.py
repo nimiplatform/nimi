@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import importlib.util
 import base64
 import json
@@ -8,6 +9,8 @@ import pathlib
 import sys
 import tempfile
 import textwrap
+import threading
+import time
 import types
 import unittest
 from unittest import mock
@@ -17,6 +20,7 @@ def install_fastapi_stubs() -> None:
     fastapi = types.ModuleType("fastapi")
     responses = types.ModuleType("fastapi.responses")
     starlette = types.ModuleType("starlette")
+    starlette_background = types.ModuleType("starlette.background")
     starlette_concurrency = types.ModuleType("starlette.concurrency")
     uvicorn = types.ModuleType("uvicorn")
 
@@ -47,16 +51,26 @@ def install_fastapi_stubs() -> None:
     class UploadFile:
         pass
 
+    class Request:
+        pass
+
     class JSONResponse:
         def __init__(self, status_code: int = 200, content=None):
             self.status_code = status_code
             self.content = content
 
-    class Response:
-        def __init__(self, content=b"", media_type: str | None = None, headers=None):
-            self.content = content
+    class StreamingResponse:
+        def __init__(self, content, media_type: str | None = None, headers=None, background=None):
+            self.body_iterator = content
             self.media_type = media_type
             self.headers = headers or {}
+            self.background = background
+
+    class BackgroundTask:
+        def __init__(self, fn, *args, **kwargs):
+            self.fn = fn
+            self.args = args
+            self.kwargs = kwargs
 
     def File(default=None):
         return default
@@ -68,21 +82,24 @@ def install_fastapi_stubs() -> None:
         return None
 
     async def run_in_threadpool(fn, *args, **kwargs):
-        return fn(*args, **kwargs)
+        return await asyncio.to_thread(fn, *args, **kwargs)
 
     fastapi.FastAPI = FastAPI
     fastapi.File = File
     fastapi.Form = Form
     fastapi.HTTPException = HTTPException
+    fastapi.Request = Request
     fastapi.UploadFile = UploadFile
     responses.JSONResponse = JSONResponse
-    responses.Response = Response
+    responses.StreamingResponse = StreamingResponse
+    starlette_background.BackgroundTask = BackgroundTask
     starlette_concurrency.run_in_threadpool = run_in_threadpool
     uvicorn.run = run
 
     sys.modules["fastapi"] = fastapi
     sys.modules["fastapi.responses"] = responses
     sys.modules["starlette"] = starlette
+    sys.modules["starlette.background"] = starlette_background
     sys.modules["starlette.concurrency"] = starlette_concurrency
     sys.modules["uvicorn"] = uvicorn
 
@@ -117,16 +134,108 @@ def load_qwen3_tts_driver_module():
 QWEN3_TTS_DRIVER = load_qwen3_tts_driver_module()
 
 
+class FakeSequenceTensor:
+    def __init__(self, rows) -> None:
+        self.rows = rows
+
+    def detach(self):
+        return self
+
+    def cpu(self):
+        return self
+
+    def tolist(self):
+        return self.rows
+
+
+class FakeQwen3TTSTalker:
+    def __init__(self, owner) -> None:
+        self.owner = owner
+
+    def generate(self, **kwargs):
+        generation_kind = self.owner.active_talker_generation_kind
+        if generation_kind == "custom":
+            self.owner.custom_talker_calls.append(kwargs)
+            generation_error = self.owner.custom_talker_error
+            hits_ceiling = self.owner.custom_hits_ceiling
+            ceiling_row = self.owner.custom_ceiling_row
+            eos_at_limit = self.owner.custom_eos_at_limit
+        else:
+            self.owner.design_talker_calls.append(kwargs)
+            generation_error = self.owner.design_talker_error
+            hits_ceiling = self.owner.design_hits_ceiling
+            ceiling_row = self.owner.design_ceiling_row
+            eos_at_limit = self.owner.design_eos_at_limit
+        if generation_error is not None:
+            raise generation_error
+        token_limit = int(kwargs["max_new_tokens"])
+        eos_token_id = int(kwargs["eos_token_id"])
+        rows = []
+        for index in range(int(kwargs["batch_size"])):
+            if hits_ceiling or ceiling_row == index:
+                rows.append([7] * token_limit)
+            elif eos_at_limit:
+                rows.append(([7] * (token_limit - 1)) + [eos_token_id])
+            else:
+                rows.append([7, eos_token_id])
+        return types.SimpleNamespace(sequences=FakeSequenceTensor(rows))
+
+
 class FakeQwen3TTSModel:
     def __init__(self) -> None:
         self.custom_voice_calls = []
+        self.custom_talker_calls = []
+        self.custom_hits_ceiling = False
+        self.custom_ceiling_row = None
+        self.custom_eos_at_limit = False
+        self.custom_talker_error = None
+        self.custom_exposes_talker_completion = True
+        self.design_voice_calls = []
+        self.design_talker_calls = []
+        self.design_hits_ceiling = False
+        self.design_ceiling_row = None
+        self.design_eos_at_limit = False
+        self.design_talker_error = None
+        self.design_eos_token_id = 99
+        self.active_talker_generation_kind = ""
+        self.model = types.SimpleNamespace(
+            config=types.SimpleNamespace(
+                talker_config=types.SimpleNamespace(codec_eos_token_id=self.design_eos_token_id),
+            ),
+        )
+        self.model.talker = FakeQwen3TTSTalker(self)
 
     def get_supported_speakers(self):
         return ["Serena", "Ryan"]
 
     def generate_custom_voice(self, **kwargs):
         self.custom_voice_calls.append(kwargs)
-        return [[0.1, 0.2]], 24000
+        texts = kwargs["text"] if isinstance(kwargs["text"], list) else [kwargs["text"]]
+        if self.custom_exposes_talker_completion:
+            self.active_talker_generation_kind = "custom"
+            try:
+                self.model.talker.generate(
+                    batch_size=len(texts),
+                    eos_token_id=self.design_eos_token_id,
+                    max_new_tokens=kwargs["max_new_tokens"],
+                )
+            finally:
+                self.active_talker_generation_kind = ""
+        return [[0.1, 0.2] for _ in texts], 24000
+
+    def generate_voice_design(self, **kwargs):
+        self.design_voice_calls.append(kwargs)
+        texts = kwargs["text"] if isinstance(kwargs["text"], list) else [kwargs["text"]]
+        self.active_talker_generation_kind = "design"
+        try:
+            self.model.talker.generate(
+                batch_size=len(texts),
+                eos_token_id=self.design_eos_token_id,
+                max_new_tokens=kwargs["max_new_tokens"],
+            )
+        finally:
+            self.active_talker_generation_kind = ""
+        return [[0.3, 0.4] for _ in texts], 24000
 
 
 def write_manifest(
@@ -228,6 +337,19 @@ class SpeechServerTests(unittest.TestCase):
         finally:
             restore_env(SPEECH_SERVER.QWEN3_TTS_DRIVER_ENV, old_tts)
 
+    def test_driver_timeout_cannot_preempt_admitted_local_speech_job(self) -> None:
+        runtime = sys.modules["speech_server_runtime"]
+        old = os.environ.get(runtime.DRIVER_TIMEOUT_MS_ENV)
+        try:
+            os.environ.pop(runtime.DRIVER_TIMEOUT_MS_ENV, None)
+            self.assertEqual(runtime.driver_timeout_seconds(), 30 * 60)
+            os.environ[runtime.DRIVER_TIMEOUT_MS_ENV] = str(45 * 60_000)
+            self.assertEqual(runtime.driver_timeout_seconds(), 30 * 60)
+            os.environ[runtime.DRIVER_TIMEOUT_MS_ENV] = str(20 * 60_000)
+            self.assertEqual(runtime.driver_timeout_seconds(), 20 * 60)
+        finally:
+            restore_env(runtime.DRIVER_TIMEOUT_MS_ENV, old)
+
     def test_qwen3_tts_empty_voice_still_fails_without_first_run_probe(self) -> None:
         model = FakeQwen3TTSModel()
         with mock.patch.object(QWEN3_TTS_DRIVER, "load_qwen_tts_model", return_value=model):
@@ -251,6 +373,188 @@ class SpeechServerTests(unittest.TestCase):
             )
         self.assertEqual(response["audio_path"], "/tmp/out.wav")
         self.assertEqual(model.custom_voice_calls[0]["speaker"], "serena")
+
+    def test_qwen3_tts_long_synthesis_uses_bounded_real_audio_batches(self) -> None:
+        model = FakeQwen3TTSModel()
+        long_text = "A bounded sentence preserves the complete admitted request. " * 80
+        first_segments = []
+        appended_segments = []
+
+        def capture_audio(wav, _sample_rate):
+            first_segments.append(wav)
+            return "/tmp/out.wav", "audio/wav"
+
+        def append_audio(path_value, wav, _sample_rate):
+            self.assertEqual(path_value, "/tmp/out.wav")
+            appended_segments.append(wav)
+
+        with mock.patch.object(QWEN3_TTS_DRIVER, "load_qwen_tts_model", return_value=model), \
+            mock.patch.object(QWEN3_TTS_DRIVER, "write_audio_artifact", side_effect=capture_audio), \
+            mock.patch.object(QWEN3_TTS_DRIVER, "append_audio_artifact", side_effect=append_audio):
+            response = QWEN3_TTS_DRIVER.handle_request(
+                {
+                    "operation": "audio.synthesize",
+                    "input": long_text,
+                    "voice": "serena",
+                },
+                "Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice",
+            )
+
+        self.assertEqual(response["audio_path"], "/tmp/out.wav")
+        self.assertGreater(len(model.custom_voice_calls), 1)
+        chunks = [chunk for call in model.custom_voice_calls for chunk in call["text"]]
+        self.assertTrue(all(0 < len(chunk) <= QWEN3_TTS_DRIVER.SYNTHESIS_CHUNK_CHARACTERS for chunk in chunks))
+        self.assertTrue(all(len(call["text"]) <= QWEN3_TTS_DRIVER.SYNTHESIS_BATCH_SIZE for call in model.custom_voice_calls))
+        self.assertEqual(" ".join(chunks).split(), long_text.split())
+        self.assertEqual(len(first_segments), 1)
+        self.assertEqual(len(appended_segments), len(chunks) - 1)
+        self.assertTrue(all(len(segment) == 2 for segment in first_segments + appended_segments))
+        self.assertNotIn("generate", vars(model.model.talker))
+
+    def test_qwen3_tts_custom_voice_fails_when_a_chunk_reaches_generation_ceiling(self) -> None:
+        model = FakeQwen3TTSModel()
+        model.custom_hits_ceiling = True
+        with mock.patch.object(QWEN3_TTS_DRIVER, "write_audio_artifact") as write_audio:
+            with self.assertRaisesRegex(RuntimeError, "reached generation ceiling"):
+                QWEN3_TTS_DRIVER.synthesize_with_custom_voice(
+                    model,
+                    {"input": "This custom voice chunk must not be accepted without EOS.", "voice": "serena"},
+                )
+        write_audio.assert_not_called()
+        self.assertNotIn("generate", vars(model.model.talker))
+
+    def test_qwen3_tts_custom_voice_accepts_eos_immediately_before_generation_ceiling(self) -> None:
+        model = FakeQwen3TTSModel()
+        model.custom_eos_at_limit = True
+        with mock.patch.object(
+            QWEN3_TTS_DRIVER,
+            "write_audio_artifact",
+            return_value=("/tmp/out.wav", "audio/wav"),
+        ):
+            result = QWEN3_TTS_DRIVER.synthesize_with_custom_voice(
+                model,
+                {"input": "This custom voice chunk completes at its generation limit.", "voice": "serena"},
+            )
+        self.assertEqual(result, ("/tmp/out.wav", "audio/wav"))
+        self.assertNotIn("generate", vars(model.model.talker))
+
+    def test_qwen3_tts_custom_voice_rejects_a_mixed_batch_with_one_ceiling_hit(self) -> None:
+        model = FakeQwen3TTSModel()
+        model.custom_ceiling_row = 1
+        with self.assertRaisesRegex(RuntimeError, "reached generation ceiling"):
+            QWEN3_TTS_DRIVER.generate_custom_voice_batch(
+                model,
+                ["The first chunk reaches EOS.", "The second chunk does not."],
+                "English",
+                "serena",
+                "",
+                QWEN3_TTS_DRIVER.max_new_tokens(),
+            )
+        self.assertNotIn("generate", vars(model.model.talker))
+
+    def test_qwen3_tts_custom_voice_fails_closed_without_talker_completion_state(self) -> None:
+        model = FakeQwen3TTSModel()
+        model.custom_exposes_talker_completion = False
+        with self.assertRaisesRegex(RuntimeError, "did not expose one talker completion state"):
+            QWEN3_TTS_DRIVER.generate_custom_voice_batch(
+                model,
+                ["Completion state is required."],
+                "English",
+                "serena",
+                "",
+                QWEN3_TTS_DRIVER.max_new_tokens(),
+            )
+        self.assertNotIn("generate", vars(model.model.talker))
+
+    def test_qwen3_tts_long_voice_design_reuses_instruction_across_bounded_batches(self) -> None:
+        model = FakeQwen3TTSModel()
+        long_text = "A designed voice must preserve every bounded sentence. " * 80
+        instruction = "Warm, measured, and reassuring."
+        first_segments = []
+        appended_segments = []
+
+        def capture_audio(wav, _sample_rate):
+            first_segments.append(wav)
+            return "/tmp/design.wav", "audio/wav"
+
+        def append_audio(path_value, wav, _sample_rate):
+            self.assertEqual(path_value, "/tmp/design.wav")
+            appended_segments.append(wav)
+
+        with mock.patch.object(QWEN3_TTS_DRIVER, "write_audio_artifact", side_effect=capture_audio), \
+            mock.patch.object(QWEN3_TTS_DRIVER, "append_audio_artifact", side_effect=append_audio):
+            audio_path, content_type = QWEN3_TTS_DRIVER.synthesize_with_design_handle(
+                model,
+                {"input": long_text, "language": "en"},
+                {"instruction_text": instruction},
+            )
+
+        self.assertEqual((audio_path, content_type), ("/tmp/design.wav", "audio/wav"))
+        self.assertGreater(len(model.design_voice_calls), 1)
+        self.assertTrue(all(isinstance(call["text"], list) for call in model.design_voice_calls))
+        chunks = [chunk for call in model.design_voice_calls for chunk in call["text"]]
+        self.assertTrue(all(0 < len(chunk) <= QWEN3_TTS_DRIVER.SYNTHESIS_CHUNK_CHARACTERS for chunk in chunks))
+        self.assertTrue(all(len(call["text"]) <= QWEN3_TTS_DRIVER.SYNTHESIS_BATCH_SIZE for call in model.design_voice_calls))
+        self.assertTrue(all(call["instruct"] == instruction for call in model.design_voice_calls))
+        self.assertEqual(" ".join(chunks).split(), long_text.split())
+        self.assertEqual(len(first_segments), 1)
+        self.assertEqual(len(appended_segments), len(chunks) - 1)
+        self.assertNotIn("generate", vars(model.model.talker))
+
+    def test_qwen3_tts_voice_design_fails_when_a_chunk_reaches_generation_ceiling(self) -> None:
+        model = FakeQwen3TTSModel()
+        model.design_hits_ceiling = True
+        with mock.patch.object(QWEN3_TTS_DRIVER, "write_audio_artifact") as write_audio:
+            with self.assertRaisesRegex(RuntimeError, "reached generation ceiling"):
+                QWEN3_TTS_DRIVER.synthesize_with_design_handle(
+                    model,
+                    {"input": "This chunk must not be accepted when generation has no EOS."},
+                    {"instruction_text": "Calm and clear."},
+                )
+        write_audio.assert_not_called()
+        self.assertNotIn("generate", vars(model.model.talker))
+
+    def test_qwen3_tts_voice_design_accepts_eos_immediately_before_generation_ceiling(self) -> None:
+        model = FakeQwen3TTSModel()
+        model.design_eos_at_limit = True
+        with mock.patch.object(
+            QWEN3_TTS_DRIVER,
+            "write_audio_artifact",
+            return_value=("/tmp/design.wav", "audio/wav"),
+        ):
+            result = QWEN3_TTS_DRIVER.synthesize_with_design_handle(
+                model,
+                {"input": "This chunk reaches EOS immediately before its generation limit."},
+                {"instruction_text": "Calm and clear."},
+            )
+        self.assertEqual(result, ("/tmp/design.wav", "audio/wav"))
+        self.assertNotIn("generate", vars(model.model.talker))
+
+    def test_qwen3_tts_voice_design_rejects_a_mixed_batch_with_one_ceiling_hit(self) -> None:
+        model = FakeQwen3TTSModel()
+        model.design_ceiling_row = 1
+        with self.assertRaisesRegex(RuntimeError, "reached generation ceiling"):
+            QWEN3_TTS_DRIVER.generate_voice_design_batch(
+                model,
+                ["The first chunk reaches EOS.", "The second chunk does not."],
+                "English",
+                "Calm and clear.",
+                QWEN3_TTS_DRIVER.max_new_tokens(),
+            )
+        self.assertNotIn("generate", vars(model.model.talker))
+
+    def test_qwen3_tts_voice_design_restores_talker_after_generation_error(self) -> None:
+        model = FakeQwen3TTSModel()
+        model.design_talker_error = RuntimeError("synthetic talker failure")
+        with self.assertRaisesRegex(RuntimeError, "synthetic talker failure"):
+            QWEN3_TTS_DRIVER.generate_voice_design_batch(
+                model,
+                ["This chunk cannot complete."],
+                "English",
+                "Calm and clear.",
+                QWEN3_TTS_DRIVER.max_new_tokens(),
+            )
+        self.assertNotIn("generate", vars(model.model.talker))
 
     def test_safe_uploaded_audio_path_uses_generated_basename_for_path_filename(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -300,16 +604,24 @@ class SpeechServerTests(unittest.TestCase):
                 },
                 "model.safetensors",
             )
+            asr_files = [
+                "model.safetensors",
+                "config.json",
+                "generation_config.json",
+                "preprocessor_config.json",
+                "chat_template.json",
+                "tokenizer_config.json",
+                "vocab.json",
+                "merges.txt",
+            ]
             write_manifest(
                 root,
                 "nimi/stt-qwen3-asr",
                 "speech/qwen3asr",
                 ["audio.transcribe"],
-                ["model.bin"],
-                {
-                    "model.bin": b"fake-qwen3-asr",
-                },
-                "model.bin",
+                asr_files,
+                {name: f"fake-{name}".encode("utf-8") for name in asr_files},
+                "model.safetensors",
             )
             synth_driver = write_driver_script(
                 root / "qwen3_tts_driver.py",
@@ -372,6 +684,34 @@ class SpeechServerTests(unittest.TestCase):
             drivers = {model.model_id: model.capability_drivers for model in state.models}
             self.assertEqual(drivers["speech/qwen3tts"]["audio.synthesize"], "qwen3_tts")
             self.assertEqual(drivers["speech/qwen3asr"]["audio.transcribe"], "qwen3_asr")
+
+    def test_build_host_state_rejects_incomplete_qwen3_asr_bundle(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = pathlib.Path(temp_dir)
+            write_manifest(
+                root,
+                "nimi/stt-qwen3-asr-incomplete",
+                "local-import/Qwen3-ASR-1.7B-hf",
+                ["audio.transcribe"],
+                ["Qwen3-ASR-1.7B-hf.safetensors"],
+                {"Qwen3-ASR-1.7B-hf.safetensors": b"incomplete-qwen3-asr"},
+                "Qwen3-ASR-1.7B-hf.safetensors",
+            )
+            old_models_root = os.environ.get(SPEECH_SERVER.MODELS_ROOT_ENV)
+            old_stt = os.environ.get(SPEECH_SERVER.QWEN3_ASR_DRIVER_ENV)
+            try:
+                os.environ[SPEECH_SERVER.MODELS_ROOT_ENV] = str(root)
+                os.environ[SPEECH_SERVER.QWEN3_ASR_DRIVER_ENV] = f"{sys.executable} -c pass"
+                state = SPEECH_SERVER.build_host_state()
+            finally:
+                restore_env(SPEECH_SERVER.MODELS_ROOT_ENV, old_models_root)
+                restore_env(SPEECH_SERVER.QWEN3_ASR_DRIVER_ENV, old_stt)
+
+            self.assertFalse(state.ready)
+            self.assertEqual(len(state.models), 1)
+            self.assertFalse(state.models[0].ready)
+            self.assertIn("qwen3_asr bundle entry must be model.safetensors", state.models[0].detail)
+            self.assertIn('managed bundle file "config.json" missing', state.models[0].detail)
 
     def test_build_host_state_rejects_unresolved_driver_family(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -731,7 +1071,165 @@ class SpeechServerTests(unittest.TestCase):
             self.assertEqual(clone_result["job_id"], "job-clone-001")
             self.assertEqual(design_result["voice_id"], "design-voice-001")
 
-    def test_synthesize_with_driver_returns_audio_payload(self) -> None:
+    def test_driver_cancellation_terminates_process_and_cleans_exchange(self) -> None:
+        runtime = sys.modules["speech_server_runtime"]
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = pathlib.Path(temp_dir)
+            completed_marker = root / "completed.txt"
+            driver = write_driver_script(
+                root / "blocking_driver.py",
+                textwrap.dedent(
+                    f"""\
+                    #!/usr/bin/env python3
+                    import argparse, os, pathlib, time
+                    parser = argparse.ArgumentParser()
+                    parser.add_argument("--request", required=True)
+                    parser.add_argument("--response", required=True)
+                    parser.parse_args()
+                    pathlib.Path(os.environ["NIMI_RUNTIME_SPEECH_DRIVER_OUTPUT_PATH"]).write_bytes(b"partial")
+                    time.sleep(3)
+                    pathlib.Path({str(completed_marker)!r}).write_text("completed")
+                    """
+                ),
+            )
+            command = [sys.executable, str(root / "blocking_driver.py")]
+            cancel_event = threading.Event()
+            timer = threading.Timer(0.1, cancel_event.set)
+            started = time.monotonic()
+            timer.start()
+            try:
+                with self.assertRaisesRegex(RuntimeError, "speech driver cancelled"):
+                    runtime.run_driver_command(command, {"operation": "audio.synthesize"}, cancel_event)
+            finally:
+                timer.cancel()
+            self.assertLess(time.monotonic() - started, 2)
+            time.sleep(0.2)
+            self.assertFalse(completed_marker.exists())
+            work_root = pathlib.Path(self._driver_work_root.name)
+            self.assertEqual(list(work_root.glob("request-*.json")), [])
+            self.assertEqual(list(work_root.glob("response-*.json")), [])
+            self.assertEqual(list(work_root.glob("audio-*.wav")), [])
+
+    def test_transcription_forwards_cancellation_to_driver_process(self) -> None:
+        runtime = sys.modules["speech_server_runtime"]
+        model = runtime.SpeechModelState(
+            model_id="speech/qwen3asr-ready",
+            declared_capabilities=["audio.transcribe"],
+            ready_capabilities=["audio.transcribe"],
+            capability_drivers={"audio.transcribe": "qwen3_asr"},
+            ready=True,
+            detail="ready",
+            manifest_path="asset.manifest.json",
+            bundle_dir="bundle",
+            entry_path="model.safetensors",
+            declared_files=["model.safetensors"],
+        )
+        request_payload = {"operation": "audio.transcribe"}
+        cancel_event = threading.Event()
+        with mock.patch.object(
+            runtime,
+            "driver_command_state",
+            return_value=(["python", "qwen3_asr_driver.py"], True, "ready"),
+        ), mock.patch.object(
+            runtime,
+            "run_driver_command",
+            return_value={"text": "transcript"},
+        ) as run_driver:
+            text = runtime.transcribe_with_driver(model, request_payload, cancel_event)
+        self.assertEqual(text, "transcript")
+        run_driver.assert_called_once_with(
+            ["python", "qwen3_asr_driver.py"],
+            request_payload,
+            cancel_event,
+        )
+
+    def test_request_disconnect_propagates_to_speech_driver(self) -> None:
+        class DisconnectingRequest:
+            def __init__(self) -> None:
+                self.polls = 0
+
+            async def is_disconnected(self) -> bool:
+                self.polls += 1
+                return self.polls > 1
+
+        cancel_observed = threading.Event()
+
+        def blocked_synthesis(_model, _payload, cancel_event):
+            while not cancel_event.is_set():
+                time.sleep(0.01)
+            cancel_observed.set()
+            raise RuntimeError("speech driver cancelled")
+
+        model = SPEECH_SERVER.SpeechModelState(
+            model_id="speech/qwen3tts-ready",
+            declared_capabilities=["audio.synthesize"],
+            ready_capabilities=["audio.synthesize"],
+            capability_drivers={"audio.synthesize": "qwen3_tts"},
+            ready=True,
+            detail="ready",
+            manifest_path="asset.manifest.json",
+            bundle_dir="bundle",
+            entry_path="model.safetensors",
+            declared_files=["model.safetensors"],
+        )
+        with mock.patch.object(SPEECH_SERVER, "synthesize_with_driver", side_effect=blocked_synthesis):
+            with self.assertRaises(asyncio.CancelledError):
+                asyncio.run(SPEECH_SERVER.run_synthesis_for_request(DisconnectingRequest(), model, {}))
+        self.assertTrue(cancel_observed.is_set())
+
+    def test_transcription_disconnect_propagates_to_speech_driver(self) -> None:
+        class DisconnectingRequest:
+            def __init__(self) -> None:
+                self.polls = 0
+
+            async def is_disconnected(self) -> bool:
+                self.polls += 1
+                return self.polls > 1
+
+        cancel_observed = threading.Event()
+
+        def blocked_transcription(_model, _payload, cancel_event):
+            while not cancel_event.is_set():
+                time.sleep(0.01)
+            cancel_observed.set()
+            raise RuntimeError("speech driver cancelled")
+
+        model = SPEECH_SERVER.SpeechModelState(
+            model_id="speech/qwen3asr-ready",
+            declared_capabilities=["audio.transcribe"],
+            ready_capabilities=["audio.transcribe"],
+            capability_drivers={"audio.transcribe": "qwen3_asr"},
+            ready=True,
+            detail="ready",
+            manifest_path="asset.manifest.json",
+            bundle_dir="bundle",
+            entry_path="model.safetensors",
+            declared_files=["model.safetensors"],
+        )
+        with mock.patch.object(SPEECH_SERVER, "transcribe_with_driver", side_effect=blocked_transcription):
+            with self.assertRaises(asyncio.CancelledError):
+                asyncio.run(SPEECH_SERVER.run_transcription_for_request(DisconnectingRequest(), model, {}))
+        self.assertTrue(cancel_observed.is_set())
+
+    def test_driver_audio_artifact_streams_in_bounded_chunks_and_cleans_up(self) -> None:
+        runtime = sys.modules["speech_server_runtime"]
+        audio_path = pathlib.Path(self._driver_work_root.name) / "stream.wav"
+        payload = b"R" * (SPEECH_SERVER.SPEECH_RESPONSE_CHUNK_BYTES * 2 + 17)
+        audio_path.write_bytes(payload)
+        artifact = runtime.DriverAudioArtifact(audio_path, "audio/wav", len(payload))
+
+        async def collect() -> list[bytes]:
+            chunks = []
+            async for chunk in SPEECH_SERVER.stream_driver_audio_artifact(artifact):
+                chunks.append(chunk)
+            return chunks
+
+        chunks = asyncio.run(collect())
+        self.assertEqual(b"".join(chunks), payload)
+        self.assertTrue(all(len(chunk) <= SPEECH_SERVER.SPEECH_RESPONSE_CHUNK_BYTES for chunk in chunks))
+        self.assertFalse(audio_path.exists())
+
+    def test_synthesize_with_driver_returns_runtime_owned_audio_artifact(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             root = pathlib.Path(temp_dir)
             driver = write_driver_script(
@@ -739,7 +1237,7 @@ class SpeechServerTests(unittest.TestCase):
                 textwrap.dedent(
                     """\
                     #!/usr/bin/env python3
-                    import argparse, json, pathlib
+                    import argparse, json, os, pathlib
                     parser = argparse.ArgumentParser()
                     parser.add_argument("--request", required=True)
                     parser.add_argument("--response", required=True)
@@ -747,7 +1245,9 @@ class SpeechServerTests(unittest.TestCase):
                     request = json.loads(pathlib.Path(args.request).read_text())
                     assert request["driver"] == "qwen3_tts"
                     assert request["voice"] == "af"
-                    pathlib.Path(args.response).write_text(json.dumps({"audio_base64": "UklGRmF1ZGlv", "content_type": "audio/wav"}))
+                    audio_path = pathlib.Path(os.environ["NIMI_RUNTIME_SPEECH_DRIVER_OUTPUT_PATH"])
+                    audio_path.write_bytes(b"RIFFaudio")
+                    pathlib.Path(args.response).write_text(json.dumps({"audio_path": str(audio_path), "content_type": "audio/wav"}))
                     """
                 ),
             )
@@ -766,7 +1266,7 @@ class SpeechServerTests(unittest.TestCase):
             old_tts = os.environ.get(SPEECH_SERVER.QWEN3_TTS_DRIVER_ENV)
             try:
                 os.environ[SPEECH_SERVER.QWEN3_TTS_DRIVER_ENV] = driver
-                payload, mime = SPEECH_SERVER.synthesize_with_driver(
+                artifact = SPEECH_SERVER.synthesize_with_driver(
                     model,
                     {
                         "driver": "qwen3_tts",
@@ -780,8 +1280,12 @@ class SpeechServerTests(unittest.TestCase):
                     os.environ.pop(SPEECH_SERVER.QWEN3_TTS_DRIVER_ENV, None)
                 else:
                     os.environ[SPEECH_SERVER.QWEN3_TTS_DRIVER_ENV] = old_tts
-            self.assertEqual(payload, base64.b64decode("UklGRmF1ZGlv"))
-            self.assertEqual(mime, "audio/wav")
+            self.assertEqual(artifact.path.parent, pathlib.Path(self._driver_work_root.name).resolve())
+            self.assertEqual(artifact.size_bytes, len(b"RIFFaudio"))
+            self.assertEqual(artifact.content_type, "audio/wav")
+            self.assertEqual(artifact.path.read_bytes(), b"RIFFaudio")
+            artifact.cleanup()
+            self.assertFalse(artifact.path.exists())
 
     def test_transcribe_with_driver_returns_text(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

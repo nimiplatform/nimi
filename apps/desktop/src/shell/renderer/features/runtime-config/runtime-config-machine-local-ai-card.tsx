@@ -1,7 +1,11 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
+  NIMI_MACHINE_LOCAL_AUDIO_SYNTHESIZE_CAPABILITY_CONTRACT,
+  NIMI_MACHINE_LOCAL_AUDIO_TRANSCRIBE_CAPABILITY_CONTRACT,
   NIMI_MACHINE_LOCAL_IMAGE_GENERATE_CAPABILITY_CONTRACT,
+  NIMI_MACHINE_LOCAL_TEXT_EMBED_CAPABILITY_CONTRACT,
+  NIMI_MACHINE_LOCAL_TEXT_GENERATE_CAPABILITY_CONTRACT,
   NIMI_MACHINE_LOCAL_VIDEO_GENERATE_CAPABILITY_CONTRACT,
   type NimiMachineLocalAssetExactBinding,
   type NimiMachineLocalCapabilityConfiguration,
@@ -48,6 +52,34 @@ export type MachineLocalAIBindHandler = (
   currentBinding: NimiMachineLocalAssetExactBinding | undefined,
   localAssetId: string,
 ) => void;
+
+type MachineLocalAIImpactBodyKey =
+  | 'impactAudioSynthesizeBody'
+  | 'impactAudioTranscribeBody'
+  | 'impactCapabilityBody'
+  | 'impactImageBody'
+  | 'impactTextBody'
+  | 'impactTextEmbedBody'
+  | 'impactVideoBody';
+
+function machineLocalAIImpactBodyKey(capabilityContract: string): MachineLocalAIImpactBodyKey {
+  switch (capabilityContract) {
+    case NIMI_MACHINE_LOCAL_TEXT_GENERATE_CAPABILITY_CONTRACT:
+      return 'impactTextBody';
+    case NIMI_MACHINE_LOCAL_TEXT_EMBED_CAPABILITY_CONTRACT:
+      return 'impactTextEmbedBody';
+    case NIMI_MACHINE_LOCAL_AUDIO_SYNTHESIZE_CAPABILITY_CONTRACT:
+      return 'impactAudioSynthesizeBody';
+    case NIMI_MACHINE_LOCAL_AUDIO_TRANSCRIBE_CAPABILITY_CONTRACT:
+      return 'impactAudioTranscribeBody';
+    case NIMI_MACHINE_LOCAL_IMAGE_GENERATE_CAPABILITY_CONTRACT:
+      return 'impactImageBody';
+    case NIMI_MACHINE_LOCAL_VIDEO_GENERATE_CAPABILITY_CONTRACT:
+      return 'impactVideoBody';
+    default:
+      return 'impactCapabilityBody';
+  }
+}
 
 export function MachineLocalAIConfigurationCard(props: {
   readonly configuration: NimiMachineLocalCapabilityConfiguration;
@@ -515,13 +547,7 @@ export function MachineLocalAIImpactDialogContent(props: {
   const { confirmation } = props;
   const requestId = confirmation.request.requestId;
   const impact = confirmation.impact;
-  const impactBodyKey = confirmation.request.capabilityContract
-    === NIMI_MACHINE_LOCAL_IMAGE_GENERATE_CAPABILITY_CONTRACT
-    ? 'impactImageBody'
-    : confirmation.request.capabilityContract
-      === NIMI_MACHINE_LOCAL_VIDEO_GENERATE_CAPABILITY_CONTRACT
-      ? 'impactVideoBody'
-      : 'impactTextBody';
+  const impactBodyKey = machineLocalAIImpactBodyKey(confirmation.request.capabilityContract);
   return (
     <div
       className="py-2"

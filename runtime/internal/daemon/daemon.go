@@ -744,6 +744,9 @@ func (d *Daemon) startSupervisedEngines(ctx context.Context) {
 			PackageSource: strings.TrimSpace(d.cfg.EngineManagedImageBackendSource),
 		})
 		aiSvc.SetLocalVideoExecutionHost(d.videoExecutionHost)
+		if svc != nil {
+			aiSvc.SetLocalSpeechExecutionHost(engine.NewSpeechExecutionHost(svc, d.cfg.EngineSpeechPort, 0))
+		}
 		if videoMedia, err := videomedia.NewFromDependenciesRoot(engineRoots.Dependencies); err != nil {
 			// Local video submits fail closed with a typed unavailable reason
 			// until the pinned codec dependency is materialized.

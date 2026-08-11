@@ -329,6 +329,84 @@ test('Local AI Configurations authors and manages the exact llama embedding impl
   assert.match(cardMarkup, /Advanced: context length/u);
 });
 
+test('Local AI Configurations authors and displays exact Qwen3 speech implementations', () => {
+  const cases = [
+    {
+      capabilityContract: 'audio.synthesize' as const,
+      label: 'Speech synthesis',
+      testId: 'machine-local-ai-tts-fields',
+      displayName: 'Local speech synthesis',
+      configurationId: 'lcc_tts',
+      implementationId: 'local.audio.synthesize.qwen3-tts',
+      driverId: 'nimi.runtime.driver.qwen3-tts',
+      driverDialect: 'qwen3-tts/audio-synthesize/v1',
+      requirementId: 'tts.model',
+      resourceKind: 'tts',
+      artifactRole: 'tts_model',
+      requirementLabel: 'TTS model',
+      engineLabel: 'Qwen3-TTS',
+    },
+    {
+      capabilityContract: 'audio.transcribe' as const,
+      label: 'Speech transcription',
+      testId: 'machine-local-ai-asr-fields',
+      displayName: 'Local speech transcription',
+      configurationId: 'lcc_asr',
+      implementationId: 'local.audio.transcribe.qwen3-asr',
+      driverId: 'nimi.runtime.driver.qwen3-asr',
+      driverDialect: 'qwen3-asr/audio-transcribe/v1',
+      requirementId: 'stt.model',
+      resourceKind: 'stt',
+      artifactRole: 'stt_model',
+      requirementLabel: 'STT model',
+      engineLabel: 'Qwen3-ASR',
+    },
+  ] as const;
+
+  for (const speech of cases) {
+    const draft = {
+      ...createRuntimeConfigMachineLocalAIAddDraft(),
+      capabilityContract: speech.capabilityContract,
+      displayName: speech.displayName,
+    };
+    const addMarkup = renderToStaticMarkup(
+      <MachineLocalAIAddFormFields draft={draft} assets={[]} busy={false} onChange={noop} />,
+    );
+    assert.match(addMarkup, new RegExp(`>${speech.label}<`));
+    assert.match(addMarkup, new RegExp(`data-testid="${speech.testId}"`));
+    assert.match(addMarkup, new RegExp(speech.engineLabel));
+
+    const speechConfiguration: NimiMachineLocalCapabilityConfiguration = {
+      ...configuration('unresolved'),
+      configurationId: speech.configurationId,
+      capabilityContract: speech.capabilityContract,
+      implementation: {
+        implementationId: speech.implementationId,
+        driverId: speech.driverId,
+        driverDialect: speech.driverDialect,
+      },
+      portableConfig: {},
+      projectedRequirements: [{
+        requirementId: speech.requirementId,
+        role: 'main',
+        resourceKind: speech.resourceKind,
+        policy: 'substitutable',
+        compatibilityConstraints: { engine: speech.driverId, artifact_role: speech.artifactRole },
+        occurrenceOrdinal: 0,
+        displayLabel: speech.requirementLabel,
+      }],
+      displayName: speech.displayName,
+    };
+    const cardMarkup = renderView(baseProps({
+      configurations: [speechConfiguration],
+      selections: [],
+    }));
+    assert.match(cardMarkup, new RegExp(`>${speech.label}<`));
+    assert.match(cardMarkup, new RegExp(speech.engineLabel));
+    assert.doesNotMatch(cardMarkup, /Advanced: context length/u);
+  }
+});
+
 test('Local AI Configurations renders future image impact separately from explicit confirmation', () => {
   const markup = renderToStaticMarkup(
     <MachineLocalAIImpactDialogContent
@@ -364,6 +442,43 @@ test('Local AI Configurations renders future image impact separately from explic
   assert.match(markup, /Shared local agents/u);
   assert.match(markup, /Reviewing this impact does not confirm the change/u);
   assert.match(markup, /data-testid="machine-local-ai-impact-confirm"/u);
+});
+
+test('Local AI Configurations renders speech impact for the selected capability', () => {
+  const cases = [
+    { capabilityContract: 'audio.synthesize', expected: 'speech synthesis' },
+    { capabilityContract: 'audio.transcribe', expected: 'speech transcription' },
+  ] as const;
+
+  for (const speech of cases) {
+    const markup = renderToStaticMarkup(
+      <MachineLocalAIImpactDialogContent
+        confirmation={{
+          request: {
+            requestId: `impact-select-${speech.capabilityContract}`,
+            operation: 'select',
+            capabilityContract: speech.capabilityContract,
+            configurationId: 'lcc_speech',
+          },
+          status: 'ready',
+          impact: {
+            operation: 'select',
+            capabilityContract: speech.capabilityContract,
+            configurationId: 'lcc_speech',
+            affectedOwners: [],
+          },
+          technicalError: '',
+          explicitlyConfirmed: false,
+        }}
+        mutationBusy={false}
+        onConfirm={noop}
+        onCancel={noop}
+      />,
+    );
+
+    assert.match(markup, new RegExp(speech.expected, 'u'));
+    assert.doesNotMatch(markup, /text generation for these apps and local agents/u);
+  }
 });
 
 test('Local AI Configurations renders the video form and builds the video add input', () => {

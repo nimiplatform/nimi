@@ -6,6 +6,7 @@ package localexecution
 import (
 	"context"
 	"errors"
+	"io"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
@@ -19,6 +20,9 @@ type ExactBinding struct {
 	RequirementRole   runtimev1.LocalCapabilityRequirementRole
 	OccurrenceOrdinal uint32
 	DisplayLabel      string
+	// AssetID is the stable manifest/catalog identity admitted by supervised
+	// Hosts. LocalAssetID remains the machine-local occurrence identity.
+	AssetID           string
 	LocalAssetID      string
 	AbsolutePath      string
 	VerifiedContentID string
@@ -193,6 +197,31 @@ type RawAVCandidate struct {
 // AV candidate. Services/encoding owners decide artifact publication.
 type VideoExecutionHost interface {
 	ExecuteVideo(context.Context, *capabilitydriver.VideoInvocationPlan, VideoProgressFunc) (RawAVCandidate, error)
+}
+
+type SpeechSynthesisResult struct {
+	AudioBytes []byte
+	AudioBody  io.ReadCloser
+	SizeBytes  int64
+	MIMEType   string
+	Usage      *runtimev1.UsageStats
+}
+
+type SpeechTranscriptionResult struct {
+	Text  string
+	Usage *runtimev1.UsageStats
+}
+
+// SpeechExecutionStartFunc is invoked only after the exact speech request has
+// acquired the private serial Host lease and is about to begin Host work.
+type SpeechExecutionStartFunc func() error
+
+// SpeechExecutionHost dispatches only immutable exact Qwen3 speech plans to
+// the Runtime-supervised loopback Host. It never discovers assets or decides
+// route, machine selection, implementation identity, or fallback.
+type SpeechExecutionHost interface {
+	ExecuteSpeechSynthesis(context.Context, *capabilitydriver.SpeechSynthesizeInvocationPlan, SpeechExecutionStartFunc) (SpeechSynthesisResult, error)
+	ExecuteSpeechTranscription(context.Context, *capabilitydriver.SpeechTranscribeInvocationPlan, SpeechExecutionStartFunc) (SpeechTranscriptionResult, error)
 }
 
 type FailureKind string

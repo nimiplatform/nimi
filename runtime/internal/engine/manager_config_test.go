@@ -254,6 +254,59 @@ func TestManagerStartEngineStopsSupersededUnhealthySupervisor(t *testing.T) {
 	}
 }
 
+func TestManagerStartEngineFailsClosedWhenSupersededSupervisorStopFails(t *testing.T) {
+	setSupervisorTestHome(t)
+
+	mgr, err := NewManager(testLogger(), testManagedRoots(t), nil)
+	if err != nil {
+		t.Fatalf("NewManager: %v", err)
+	}
+	executablePath, err := os.Executable()
+	if err != nil {
+		t.Fatalf("os.Executable: %v", err)
+	}
+
+	priorCfg := testSupervisorCfg(executablePath)
+	priorCfg.CommandArgs = []string{"-test.run=^TestSupervisorHelperProcess$", "--", "sleep"}
+	priorCfg.CommandEnv = map[string]string{"GO_WANT_SUPERVISOR_HELPER_PROCESS": "1"}
+	priorCfg.StartupTimeout = 100 * time.Millisecond
+	priorCfg.MaxRestarts = 1
+	priorCfg.ExecutionHostIdentity = "prior-host"
+	prior := NewSupervisor(priorCfg, testLogger(), nil)
+	if err := prior.Start(context.Background()); err != nil {
+		t.Fatalf("prior supervisor Start: %v", err)
+	}
+	t.Cleanup(func() { _ = prior.Stop() })
+	prior.SetStateForTesting(StatusUnhealthy, time.Time{})
+	process := prior.currentProcess()
+	if process == nil {
+		t.Fatal("prior supervisor has no tracked process")
+	}
+	process.recordLifecycleError(errors.New("injected process-tree cleanup failure"))
+	mgr.SetSupervisorForTesting(EngineMedia, prior)
+
+	nextCfg := testSupervisorCfg(executablePath)
+	nextCfg.CommandArgs = []string{"-test.run=^TestSupervisorHelperProcess$", "--", "sleep"}
+	nextCfg.CommandEnv = map[string]string{"GO_WANT_SUPERVISOR_HELPER_PROCESS": "1"}
+	nextCfg.StartupTimeout = 100 * time.Millisecond
+	nextCfg.MaxRestarts = 1
+	nextCfg.ExecutionHostIdentity = "replacement-host"
+	err = mgr.StartEngine(context.Background(), nextCfg)
+	if err == nil {
+		t.Fatal("StartEngine replaced a supervisor whose process tree did not stop cleanly")
+	}
+	if !strings.Contains(err.Error(), "stop superseded engine supervisor") {
+		t.Fatalf("StartEngine error=%v, want superseded stop failure", err)
+	}
+
+	mgr.mu.RLock()
+	managed := mgr.supervisors[EngineMedia]
+	mgr.mu.RUnlock()
+	if managed != prior {
+		t.Fatal("failed supersede did not retain the poisoned prior supervisor")
+	}
+}
+
 // --- Supervisor tests ---
 
 func TestSupervisorInitialStatus(t *testing.T) {
@@ -340,6 +393,48 @@ func TestServiceAdapterStopEngineNotFound(t *testing.T) {
 	err = adapter.StopEngine("llama")
 	if err == nil {
 		t.Error("expected error for engine not started, got nil")
+	}
+}
+
+func TestApplySpeechPathsPreservesCapabilityScopedDriverRoots(t *testing.T) {
+	mgr, err := NewManager(nil, testManagedRoots(t), nil)
+	if err != nil {
+		t.Fatalf("NewManager: %v", err)
+	}
+	mgr.SetSpeechPaths("models", "tts-default", "asr-default")
+
+	tests := []struct {
+		name    string
+		config  EngineConfig
+		wantTTS string
+		wantASR string
+	}{
+		{
+			name: "transcription Host",
+			config: EngineConfig{
+				Kind:                         EngineSpeech,
+				SpeechHostPackageSetRoot:     "asr-exact",
+				SpeechQwen3ASRPackageSetRoot: "asr-exact",
+			},
+			wantASR: "asr-exact",
+		},
+		{
+			name: "synthesis Host",
+			config: EngineConfig{
+				Kind:                         EngineSpeech,
+				SpeechHostPackageSetRoot:     "tts-exact",
+				SpeechQwen3TTSPackageSetRoot: "tts-exact",
+			},
+			wantTTS: "tts-exact",
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			got := mgr.applySpeechPaths(test.config)
+			if got.SpeechQwen3TTSPackageSetRoot != test.wantTTS || got.SpeechQwen3ASRPackageSetRoot != test.wantASR {
+				t.Fatalf("speech Driver roots = tts %q asr %q, want tts %q asr %q", got.SpeechQwen3TTSPackageSetRoot, got.SpeechQwen3ASRPackageSetRoot, test.wantTTS, test.wantASR)
+			}
+		})
 	}
 }
 

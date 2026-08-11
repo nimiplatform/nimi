@@ -116,7 +116,7 @@ func (s *Service) ReadLocalAppAsset(req *runtimev1.ReadLocalAppAssetRequest, str
 	if err != nil {
 		return localAppAssetFailure(err)
 	}
-	defer source.Body.Close()
+	defer func() { _ = source.Body.Close() }()
 	offset, length, err := resolveLocalAppAssetRange(req, source.Record.SizeBytes)
 	if err != nil {
 		return localAppAssetFailure(err)

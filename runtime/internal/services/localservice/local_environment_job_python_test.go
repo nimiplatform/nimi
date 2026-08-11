@@ -737,6 +737,21 @@ func TestStartPythonTorchWheelDependencyJobPromotesVerifiedSelectedSource(t *tes
 	}
 }
 
+func TestPythonTorchWheelVerifiedArtifactsOmitAbsentSpeechTorchvision(t *testing.T) {
+	t.Parallel()
+	artifacts := pythonTorchWheelVerifiedArtifacts(engine.PythonTorchWheelDependencyStatus{
+		TorchVersion:    "2.11.0+cu128",
+		InterpreterPath: `C:\nimi\engines\speech\Scripts\python.exe`,
+		UVExecutable:    `C:\nimi\engines\uv\uv.exe`,
+	})
+	if stringSliceContains(artifacts, "torchvision==0.22.1") || stringSliceContains(artifacts, "") {
+		t.Fatalf("speech verified artifacts contain absent torchvision: %v", artifacts)
+	}
+	if !stringSliceContains(artifacts, "torch=2.11.0+cu128") {
+		t.Fatalf("speech verified artifacts missing observed Torch: %v", artifacts)
+	}
+}
+
 func TestPythonTorchWheelDependencyJobUsesInstallingWithoutDownloadProgress(t *testing.T) {
 	svc := newTestService(t)
 	upsertReadyPythonPrerequisiteForTest(t, svc, localEnvironmentSelectedSourceRecordState{

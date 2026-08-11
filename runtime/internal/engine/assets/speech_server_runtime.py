@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import base64
 import dataclasses
 import json
 import os
@@ -8,6 +7,8 @@ import pathlib
 import shlex
 import shutil
 import subprocess
+import tempfile
+import time
 import uuid
 from typing import Any
 
@@ -19,7 +20,9 @@ QWEN3_TTS_DRIVER_ENV = "NIMI_RUNTIME_SPEECH_QWEN3_TTS_CMD"
 QWEN3_ASR_DRIVER_ENV = "NIMI_RUNTIME_SPEECH_QWEN3_ASR_CMD"
 DRIVER_TIMEOUT_MS_ENV = "NIMI_RUNTIME_SPEECH_DRIVER_TIMEOUT_MS"
 DRIVER_WORK_ROOT_ENV = "NIMI_RUNTIME_SPEECH_DRIVER_WORK_ROOT"
-DEFAULT_DRIVER_TIMEOUT_MS = 60_000
+DRIVER_OUTPUT_PATH_ENV = "NIMI_RUNTIME_SPEECH_DRIVER_OUTPUT_PATH"
+DEFAULT_DRIVER_TIMEOUT_MS = 30 * 60_000
+MAX_DRIVER_TIMEOUT_MS = 30 * 60_000
 DEFAULT_MODELS_ROOT = ""
 WORKFLOW_CAPABILITIES = [
     "voice_workflow.voice_clone",
@@ -50,6 +53,16 @@ class SpeechModelState:
     entry_path: str
     declared_files: list[str]
     workflow_model_bindings: dict[str, list[str]] = dataclasses.field(default_factory=dict)
+
+
+@dataclasses.dataclass
+class DriverAudioArtifact:
+    path: pathlib.Path
+    content_type: str
+    size_bytes: int
+
+    def cleanup(self) -> None:
+        self.path.unlink(missing_ok=True)
 
 
 @dataclasses.dataclass
@@ -120,7 +133,7 @@ def driver_timeout_seconds() -> float:
         value = int(raw)
     except ValueError:
         return DEFAULT_DRIVER_TIMEOUT_MS / 1000.0
-    value = min(max(value, 5_000), 300_000)
+    value = min(max(value, 5_000), MAX_DRIVER_TIMEOUT_MS)
     return value / 1000.0
 
 
@@ -225,6 +238,40 @@ def infer_runtime_native_driver(
     return ""
 
 
+QWEN3_ASR_REQUIRED_FILES = (
+    "model.safetensors",
+    "config.json",
+    "generation_config.json",
+    "preprocessor_config.json",
+    "chat_template.json",
+    "tokenizer_config.json",
+    "vocab.json",
+    "merges.txt",
+)
+
+
+def runtime_native_bundle_layout_problems(
+    driver_kind: str,
+    entry_value: str,
+    declared_files: list[str],
+) -> list[str]:
+    if driver_kind != "qwen3_asr":
+        return []
+    problems: list[str] = []
+    normalized_entry = entry_value.strip().replace("\\", "/").lower()
+    if normalized_entry != "model.safetensors":
+        problems.append("qwen3_asr bundle entry must be model.safetensors")
+    normalized_declared = {
+        item.strip().replace("\\", "/").lower()
+        for item in declared_files
+        if item.strip()
+    }
+    for required_file in QWEN3_ASR_REQUIRED_FILES:
+        if required_file.lower() not in normalized_declared:
+            problems.append(f'managed bundle file "{required_file}" missing')
+    return problems
+
+
 def voices_file_valid(bundle_dir: str) -> tuple[bool, str]:
     voices_path = pathlib.Path(bundle_dir) / "voices.json"
     if not voices_path.exists():
@@ -255,26 +302,64 @@ def load_entry_payload(entry_path: str) -> dict[str, Any]:
     return payload if isinstance(payload, dict) else {}
 
 
-def run_driver_command(command: list[str], request_payload: dict[str, Any]) -> dict[str, Any]:
+def _read_bounded_process_output(handle: Any, limit: int = 64 * 1024) -> str:
+    handle.flush()
+    size = handle.seek(0, os.SEEK_END)
+    handle.seek(max(0, size - limit), os.SEEK_SET)
+    return handle.read(limit).decode("utf-8", errors="replace").strip()
+
+
+def _terminate_driver_process(proc: subprocess.Popen[Any]) -> None:
+    if proc.poll() is not None:
+        return
+    proc.terminate()
+    try:
+        proc.wait(timeout=5)
+    except subprocess.TimeoutExpired:
+        proc.kill()
+        proc.wait(timeout=5)
+
+
+def run_driver_command(
+    command: list[str],
+    request_payload: dict[str, Any],
+    cancel_event: Any | None = None,
+) -> dict[str, Any]:
     if not command:
         raise RuntimeError("speech driver command is not configured")
     work_root = driver_work_root()
     exchange_id = uuid.uuid4().hex
     request_path = work_root / f"request-{exchange_id}.json"
     response_path = work_root / f"response-{exchange_id}.json"
+    audio_candidate = work_root / f"audio-{exchange_id}.wav" if request_payload.get("operation") == "audio.synthesize" else None
+    keep_audio_candidate = False
+    proc: subprocess.Popen[Any] | None = None
     try:
         with request_path.open("x", encoding="utf-8") as handle:
             handle.write(json.dumps(request_payload, ensure_ascii=True))
-        proc = subprocess.run(
-            [*command, "--request", str(request_path), "--response", str(response_path)],
-            capture_output=True,
-            text=True,
-            timeout=driver_timeout_seconds(),
-            check=False,
-        )
-        if proc.returncode != 0:
-            detail = (proc.stderr or proc.stdout or "").strip() or "driver exited non-zero"
-            raise RuntimeError(f"speech driver failed: {detail}")
+        deadline = time.monotonic() + driver_timeout_seconds()
+        with tempfile.TemporaryFile() as stdout, tempfile.TemporaryFile() as stderr:
+            driver_env = os.environ.copy()
+            if audio_candidate is not None:
+                driver_env[DRIVER_OUTPUT_PATH_ENV] = str(audio_candidate)
+            proc = subprocess.Popen(
+                [*command, "--request", str(request_path), "--response", str(response_path)],
+                env=driver_env,
+                stdout=stdout,
+                stderr=stderr,
+            )
+            while proc.poll() is None:
+                if cancel_event is not None and cancel_event.is_set():
+                    _terminate_driver_process(proc)
+                    raise RuntimeError("speech driver cancelled")
+                remaining = deadline - time.monotonic()
+                if remaining <= 0:
+                    _terminate_driver_process(proc)
+                    raise RuntimeError("speech driver timed out")
+                time.sleep(min(0.05, remaining))
+            if proc.returncode != 0:
+                detail = _read_bounded_process_output(stderr) or _read_bounded_process_output(stdout) or "driver exited non-zero"
+                raise RuntimeError(f"speech driver failed: {detail}")
         if response_path.is_symlink() or not response_path.is_file():
             raise RuntimeError("speech driver did not write a response")
         try:
@@ -283,13 +368,22 @@ def run_driver_command(command: list[str], request_payload: dict[str, Any]) -> d
             raise RuntimeError(f"speech driver response invalid: {error}") from error
         if not isinstance(payload, dict):
             raise RuntimeError("speech driver response must be an object")
+        if audio_candidate is not None:
+            declared_audio = pathlib.Path(str(payload.get("audio_path") or "").strip())
+            if not declared_audio.is_absolute() or declared_audio.resolve() != audio_candidate.resolve():
+                raise RuntimeError("speech driver did not return the Runtime-owned audio candidate")
+            keep_audio_candidate = True
         return payload
     finally:
+        if proc is not None and proc.poll() is None:
+            _terminate_driver_process(proc)
         request_path.unlink(missing_ok=True)
         response_path.unlink(missing_ok=True)
+        if audio_candidate is not None and not keep_audio_candidate:
+            audio_candidate.unlink(missing_ok=True)
 
 
-def read_driver_audio_artifact(path_value: str) -> bytes:
+def claim_driver_audio_artifact(path_value: str, content_type: str) -> DriverAudioArtifact:
     work_root = driver_work_root().resolve()
     audio_path = pathlib.Path(path_value)
     if audio_path.is_symlink() or not audio_path.is_file():
@@ -299,10 +393,15 @@ def read_driver_audio_artifact(path_value: str) -> bytes:
         resolved.relative_to(work_root)
     except ValueError as error:
         raise RuntimeError("speech driver audio artifact escaped Runtime-owned work root") from error
-    try:
-        return resolved.read_bytes()
-    finally:
+    size_bytes = resolved.stat().st_size
+    if size_bytes <= 0:
         resolved.unlink(missing_ok=True)
+        raise RuntimeError("speech driver returned empty audio payload")
+    return DriverAudioArtifact(
+        path=resolved,
+        content_type=content_type,
+        size_bytes=size_bytes,
+    )
 
 
 def qwen3_tts_driver_preflight(command: list[str], model_id: str, entry_path: str) -> tuple[bool, str]:
@@ -524,6 +623,10 @@ def manifest_speech_model_state(
             if driver_kind != "qwen3_asr":
                 problems.append(f"audio.transcribe requires unsupported driver {driver_kind}")
                 continue
+            layout_problems = runtime_native_bundle_layout_problems(driver_kind, entry_value, declared_files)
+            if layout_problems:
+                problems.extend(layout_problems)
+                continue
             if not qwen3_asr_driver_state[1]:
                 problems.append(qwen3_asr_driver_state[2])
                 continue
@@ -673,7 +776,11 @@ def find_ready_workflow_model(model_id: str, capability: str, workflow_model_id:
     return model
 
 
-def synthesize_with_driver(model: SpeechModelState, request_payload: dict[str, Any]) -> tuple[bytes, str]:
+def synthesize_with_driver(
+    model: SpeechModelState,
+    request_payload: dict[str, Any],
+    cancel_event: Any | None = None,
+) -> DriverAudioArtifact:
     driver_kind = model.capability_drivers.get("audio.synthesize", "").strip()
     if driver_kind == "qwen3_tts":
         command, ready, detail = driver_command_state(QWEN3_TTS_DRIVER_ENV, "qwen3_tts")
@@ -681,31 +788,30 @@ def synthesize_with_driver(model: SpeechModelState, request_payload: dict[str, A
             raise RuntimeError(detail)
     else:
         raise RuntimeError(f"audio.synthesize runtime-native driver unavailable: {driver_kind or 'unset'}")
-    response = run_driver_command(command, request_payload)
-    if isinstance(response.get("audio_base64"), str) and response["audio_base64"].strip():
-        try:
-            payload = base64.b64decode(response["audio_base64"])
-        except Exception as error:
-            raise RuntimeError(f"speech driver audio_base64 invalid: {error}") from error
-    else:
-        audio_path = str(response.get("audio_path") or "").strip()
-        if not audio_path:
-            raise RuntimeError("speech driver response missing audio output")
-        payload = read_driver_audio_artifact(audio_path)
+    response = run_driver_command(command, request_payload, cancel_event)
+    audio_path = str(response.get("audio_path") or "").strip()
+    if not audio_path:
+        raise RuntimeError("speech driver response missing audio output")
     content_type = str(response.get("content_type") or "audio/wav").strip() or "audio/wav"
-    if not payload:
-        raise RuntimeError("speech driver returned empty audio payload")
-    return payload, content_type
+    try:
+        return claim_driver_audio_artifact(audio_path, content_type)
+    except Exception:
+        pathlib.Path(audio_path).unlink(missing_ok=True)
+        raise
 
 
-def transcribe_with_driver(model: SpeechModelState, request_payload: dict[str, Any]) -> str:
+def transcribe_with_driver(
+    model: SpeechModelState,
+    request_payload: dict[str, Any],
+    cancel_event: Any | None = None,
+) -> str:
     driver_kind = model.capability_drivers.get("audio.transcribe", "").strip()
     if driver_kind != "qwen3_asr":
         raise RuntimeError(f"audio.transcribe runtime-native driver unavailable: {driver_kind or 'unset'}")
     command, ready, detail = driver_command_state(QWEN3_ASR_DRIVER_ENV, "qwen3_asr")
     if not ready:
         raise RuntimeError(detail)
-    response = run_driver_command(command, request_payload)
+    response = run_driver_command(command, request_payload, cancel_event)
     text = str(response.get("text") or "").strip()
     if not text:
         if allow_empty_transcript_request(request_payload) and truthy_payload_value(response.get("empty_transcript")):

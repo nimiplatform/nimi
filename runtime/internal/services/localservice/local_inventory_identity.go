@@ -82,6 +82,17 @@ func defaultCapabilitiesForAssetKind(kind runtimev1.LocalAssetKind) []string {
 	}
 }
 
+func defaultArtifactRolesForAssetKind(kind runtimev1.LocalAssetKind) []string {
+	switch kind {
+	case runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_TTS:
+		return []string{"tts_model"}
+	case runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_STT:
+		return []string{"stt_model"}
+	default:
+		return nil
+	}
+}
+
 func normalizeAssetCapabilities(capabilities []string) []string {
 	if len(capabilities) == 0 {
 		return nil

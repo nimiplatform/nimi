@@ -2,12 +2,16 @@ import {
   NIMI_AI_PROFILE_LLAMA_CACHE_TYPES,
   NIMI_AI_PROFILE_LLAMA_CPP_EMBED_IMPLEMENTATION,
   NIMI_AI_PROFILE_LLAMA_CPP_IMPLEMENTATION,
+  NIMI_AI_PROFILE_QWEN3_ASR_IMPLEMENTATION,
+  NIMI_AI_PROFILE_QWEN3_TTS_IMPLEMENTATION,
   NIMI_AI_PROFILE_STABLE_DIFFUSION_IMPLEMENTATION,
   NIMI_AI_PROFILE_STABLE_DIFFUSION_MODEL_FAMILIES,
   NIMI_AI_PROFILE_STABLE_DIFFUSION_VIDEO_IMPLEMENTATION,
   createNimiAIProfileAuthoringBuilder,
   createNimiAIProfileLlamaEmbedLocalImplementation,
   createNimiAIProfileLlamaLocalImplementation,
+  createNimiAIProfileQwen3ASRLocalImplementation,
+  createNimiAIProfileQwen3TTSLocalImplementation,
   createNimiAIProfileStableDiffusionLocalImplementation,
   createNimiAIProfileStableDiffusionVideoLocalImplementation,
   deriveNimiAIProfileApplyPreview,
@@ -106,7 +110,7 @@ export type RuntimeConfigAIProfileStableDiffusionVideoDraft = {
 
 export type RuntimeConfigAIProfileLocalDraft = {
   readonly includeImplementation: boolean;
-  readonly driverKind: 'none' | 'llama' | 'llama-embed' | 'stable-diffusion' | 'stable-diffusion-video';
+  readonly driverKind: 'none' | 'llama' | 'llama-embed' | 'qwen3-tts' | 'qwen3-asr' | 'stable-diffusion' | 'stable-diffusion-video';
   readonly supportedFeaturesText: string;
   readonly llama: RuntimeConfigAIProfileLlamaDraft;
   readonly stableDiffusion: RuntimeConfigAIProfileStableDiffusionDraft;
@@ -574,6 +578,8 @@ function localDriverKind(
 ): RuntimeConfigAIProfileLocalDraft['driverKind'] {
   if (capabilityContract === 'text.generate') return 'llama';
   if (capabilityContract === 'text.embed') return 'llama-embed';
+  if (capabilityContract === 'audio.synthesize') return 'qwen3-tts';
+  if (capabilityContract === 'audio.transcribe') return 'qwen3-asr';
   if (capabilityContract === 'image.generate') return 'stable-diffusion';
   if (capabilityContract === 'video.generate') return 'stable-diffusion-video';
   return 'none';
@@ -662,6 +668,12 @@ function localImplementationFromDraft(capability: RuntimeConfigAIProfileCapabili
         ...optionalNumberInput('gpuLayers', llama.gpuLayers),
       },
     });
+  }
+  if (capability.local.driverKind === 'qwen3-tts') {
+    return createNimiAIProfileQwen3TTSLocalImplementation({ supportedFeatures });
+  }
+  if (capability.local.driverKind === 'qwen3-asr') {
+    return createNimiAIProfileQwen3ASRLocalImplementation({ supportedFeatures });
   }
   if (capability.local.driverKind === 'stable-diffusion-video') {
     const video = capability.local.stableDiffusionVideo;
@@ -863,6 +875,12 @@ function implementationDriverKind(
   if (sameImplementation(implementation, NIMI_AI_PROFILE_LLAMA_CPP_IMPLEMENTATION)) return 'llama';
   if (sameImplementation(implementation, NIMI_AI_PROFILE_LLAMA_CPP_EMBED_IMPLEMENTATION)) {
     return 'llama-embed';
+  }
+  if (sameImplementation(implementation, NIMI_AI_PROFILE_QWEN3_TTS_IMPLEMENTATION)) {
+    return 'qwen3-tts';
+  }
+  if (sameImplementation(implementation, NIMI_AI_PROFILE_QWEN3_ASR_IMPLEMENTATION)) {
+    return 'qwen3-asr';
   }
   if (sameImplementation(implementation, NIMI_AI_PROFILE_STABLE_DIFFUSION_IMPLEMENTATION)) {
     return 'stable-diffusion';

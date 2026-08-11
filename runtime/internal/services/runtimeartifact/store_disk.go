@@ -165,7 +165,7 @@ func (s *DiskStore) PutStream(ctx context.Context, artifactID string, record Art
 	if ctx == nil || artifactID == "" || source == nil {
 		return ErrInvalidArtifactRecord
 	}
-	defer source.Close()
+	defer func() { _ = source.Close() }()
 	if err := s.ensureDirs(); err != nil {
 		return err
 	}
@@ -174,7 +174,7 @@ func (s *DiskStore) PutStream(ctx context.Context, artifactID string, record Art
 		return fmt.Errorf("create artifact candidate: %w", err)
 	}
 	candidatePath := candidate.Name()
-	defer os.Remove(candidatePath)
+	defer func() { _ = os.Remove(candidatePath) }()
 	if err := candidate.Chmod(0o600); err != nil {
 		_ = candidate.Close()
 		return fmt.Errorf("chmod artifact candidate: %w", err)

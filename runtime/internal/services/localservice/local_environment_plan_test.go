@@ -3,6 +3,7 @@ package localservice
 import (
 	"context"
 	"log/slog"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -102,6 +103,200 @@ func TestResolveLocalEnvironmentPlanIncludesPythonManagedFamilies(t *testing.T) 
 		if dep.State == localEnvironmentStateReadyManaged || dep.State == localEnvironmentStateReadySystem {
 			t.Fatalf("dependency without selected source record projected ready: %+v", dep)
 		}
+	}
+}
+
+func TestResolveLocalSpeechPlanIncludesHostAppropriateTorchWheel(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name              string
+		profile           *runtimev1.LocalDeviceProfile
+		wantTorchID       string
+		wantTorchConsumer string
+		wantCUDARequired  bool
+	}{
+		{
+			name:              "nvidia",
+			profile:           localEnvironmentNvidiaProfile(),
+			wantTorchID:       "torch-2.11.0.cuda-cu128.torch-wheel",
+			wantTorchConsumer: "speech.qwen3-tts.python.cuda",
+			wantCUDARequired:  true,
+		},
+		{
+			name:              "cpu",
+			profile:           localEnvironmentCPUProfileForTest(),
+			wantTorchID:       "torch-2.11.0.cpu-none.torch-wheel",
+			wantTorchConsumer: "speech.qwen3-tts.python.cpu",
+			wantCUDARequired:  false,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+			svc := newLocalEnvironmentTestService(t)
+			defer func() { svc.Close() }()
+			svc.SetEngineManager(&mockEngineManager{})
+
+			plan := svc.resolveLocalEnvironmentPlan(localEnvironmentPlanRequest{
+				PackID:          "local-speech",
+				ConsumerScope:   "speech.qwen3-tts.python",
+				HostProfile:     test.profile,
+				RuntimeDataRoot: filepath.Join(t.TempDir(), "runtime-data"),
+				AssetID:         "speech/test-tts-model",
+			})
+			torchDep := findLocalEnvironmentDependency(t, plan, localEnvironmentFamilyPythonTorchWheel)
+			if torchDep.DependencyID != test.wantTorchID || torchDep.ConsumerScope != test.wantTorchConsumer || !torchDep.Required {
+				t.Fatalf("Torch dependency = %+v, want id=%q consumer=%q required", torchDep, test.wantTorchID, test.wantTorchConsumer)
+			}
+			cudaDep := findLocalEnvironmentDependency(t, plan, localEnvironmentFamilyCUDA)
+			if cudaDep.Required != test.wantCUDARequired {
+				t.Fatalf("CUDA dependency required = %t, want %t: %+v", cudaDep.Required, test.wantCUDARequired, cudaDep)
+			}
+			if test.wantCUDARequired && cudaDep.ConsumerScope != "speech.qwen3-tts.python.cuda" {
+				t.Fatalf("CUDA consumer = %q, want exact TTS CUDA consumer", cudaDep.ConsumerScope)
+			}
+		})
+	}
+}
+
+func TestResolveLocalSpeechTorchWheelIdentityExcludesConsumerAndHostProfile(t *testing.T) {
+	t.Parallel()
+
+	runtimeDataRoot := filepath.Join(t.TempDir(), "runtime-data")
+	ttsProfile := localEnvironmentNvidiaProfile()
+	asrProfile := localEnvironmentNvidiaProfile()
+	asrProfile.Gpu.Model = "different-card-same-plane"
+
+	resolveTorch := func(t *testing.T, consumer string, profile *runtimev1.LocalDeviceProfile) localEnvironmentPlanDependency {
+		t.Helper()
+		svc := newLocalEnvironmentTestService(t)
+		defer func() { svc.Close() }()
+		svc.SetEngineManager(&mockEngineManager{})
+		plan := svc.resolveLocalEnvironmentPlan(localEnvironmentPlanRequest{
+			PackID:          "local-speech",
+			ConsumerScope:   consumer,
+			HostProfile:     profile,
+			RuntimeDataRoot: runtimeDataRoot,
+			AssetID:         "speech/test-model",
+		})
+		return findLocalEnvironmentDependency(t, plan, localEnvironmentFamilyPythonTorchWheel)
+	}
+
+	ttsTorch := resolveTorch(t, "speech.qwen3-tts.python", ttsProfile)
+	asrTorch := resolveTorch(t, "speech.qwen3-asr-transformers.python", asrProfile)
+	if ttsTorch.DependencyID != asrTorch.DependencyID {
+		t.Fatalf("Torch dependency id varies by consumer: TTS=%q ASR=%q", ttsTorch.DependencyID, asrTorch.DependencyID)
+	}
+	if ttsTorch.EnvironmentKey != asrTorch.EnvironmentKey {
+		t.Fatalf("Torch environment key varies by consumer or host profile: TTS=%q ASR=%q", ttsTorch.EnvironmentKey, asrTorch.EnvironmentKey)
+	}
+}
+
+func TestResolveLocalSpeechTorchWheelKeepsConsumerLocalEvidence(t *testing.T) {
+	t.Parallel()
+
+	svc := newLocalEnvironmentTestService(t)
+	defer func() { svc.Close() }()
+	svc.SetEngineManager(&mockEngineManager{})
+	runtimeDataRoot := filepath.Join(t.TempDir(), "runtime-data")
+	profile := localEnvironmentNvidiaProfile()
+
+	requestFor := func(consumer string) localEnvironmentPlanRequest {
+		return localEnvironmentPlanRequest{
+			PackID:          "local-speech",
+			ConsumerScope:   consumer,
+			HostProfile:     profile,
+			RuntimeDataRoot: runtimeDataRoot,
+			AssetID:         "speech/test-asr-model",
+		}
+	}
+	installEvidence := func(t *testing.T, consumer string, root string) localEnvironmentPlanDependency {
+		t.Helper()
+		dep := findLocalEnvironmentDependency(t, svc.resolveLocalEnvironmentPlan(requestFor(consumer)), localEnvironmentFamilyPythonTorchWheel)
+		identity, err := engine.ResolvePythonTorchWheelDependencyIdentity(dep.ConsumerScope)
+		if err != nil {
+			t.Fatalf("resolve Torch identity for %q: %v", dep.ConsumerScope, err)
+		}
+		interpreter := filepath.Join(root, "Scripts", "python.exe")
+		record := verifiedSelectedSourceRecordForTest(localEnvironmentSelectedSourceRecordState{
+			DependencyFamily:      dep.DependencyFamily,
+			DependencyID:          dep.DependencyID,
+			EnvironmentKey:        dep.EnvironmentKey,
+			CanonicalRoot:         root,
+			Version:               "2.11.0+cu128",
+			CompatibilityEvidence: []string{"accelerator_plane=cuda", "cuda_abi=cu128", "import_probe=torch"},
+			VerifiedArtifacts:     []string{interpreter, "torch=2.11.0+cu128"},
+			SelectedConsumers:     []string{dep.ConsumerScope},
+			Hashes:                map[string]string{"wheel_lock_hash": identity.WheelLockHash},
+		})
+		writeSelectedSourceLocalArtifactsForTest(t, record)
+		svc.upsertLocalEnvironmentSelectedSourceRecord(record)
+		return dep
+	}
+
+	nativeRoot := filepath.Join(runtimeDataRoot, "native-asr-venv")
+	nativeDep := installEvidence(t, "speech.qwen3-asr.python", nativeRoot)
+	transformersRoot := filepath.Join(runtimeDataRoot, "transformers-asr-venv")
+	transformersDep := installEvidence(t, "speech.qwen3-asr-transformers.python", transformersRoot)
+	if nativeDep.EnvironmentKey != transformersDep.EnvironmentKey || nativeDep.DependencyID != transformersDep.DependencyID {
+		t.Fatalf("ASR consumers do not share canonical Torch identity: native=%+v transformers=%+v", nativeDep, transformersDep)
+	}
+	statePath := svc.stateStorePath
+	modelsPath := svc.localModelsPath
+	serviceRuntimeDataRoot := svc.runtimeDataRoot
+	svc.Close()
+	var err error
+	svc, err = NewWithProductControlDataRoot(slog.Default(), nil, statePath, 10, modelsPath, serviceRuntimeDataRoot)
+	if err != nil {
+		t.Fatalf("restore service with shared Torch evidence: %v", err)
+	}
+	svc.SetEngineManager(&mockEngineManager{})
+	if err := os.RemoveAll(nativeRoot); err != nil {
+		t.Fatalf("remove first consumer Torch evidence: %v", err)
+	}
+
+	nativeAfterLoss := findLocalEnvironmentDependency(t, svc.resolveLocalEnvironmentPlan(requestFor("speech.qwen3-asr.python")), localEnvironmentFamilyPythonTorchWheel)
+	if nativeAfterLoss.State != localEnvironmentStateRepairRequired {
+		t.Fatalf("first consumer Torch dependency = %+v, want repair_required after its own evidence is removed", nativeAfterLoss)
+	}
+	transformersStillReady := findLocalEnvironmentDependency(t, svc.resolveLocalEnvironmentPlan(requestFor("speech.qwen3-asr-transformers.python")), localEnvironmentFamilyPythonTorchWheel)
+	if transformersStillReady.State != localEnvironmentStateReadyManaged || transformersStillReady.CanonicalRoot != transformersRoot {
+		t.Fatalf("second consumer Torch dependency = %+v, want its own ready evidence at %q", transformersStillReady, transformersRoot)
+	}
+}
+
+func TestResolveLocalSpeechTorchWheelRejectsStaleWheelLock(t *testing.T) {
+	svc := newLocalEnvironmentTestService(t)
+	defer func() { svc.Close() }()
+	svc.SetEngineManager(&mockEngineManager{})
+	runtimeDataRoot := filepath.Join(t.TempDir(), "runtime-data")
+	request := localEnvironmentPlanRequest{
+		PackID:          "local-speech",
+		ConsumerScope:   "speech.qwen3-tts.python",
+		HostProfile:     localEnvironmentNvidiaProfile(),
+		RuntimeDataRoot: runtimeDataRoot,
+		AssetID:         "speech/test-tts-model",
+	}
+	plan := svc.resolveLocalEnvironmentPlan(request)
+	torchDep := findLocalEnvironmentDependency(t, plan, localEnvironmentFamilyPythonTorchWheel)
+	record := verifiedSelectedSourceRecordForTest(localEnvironmentSelectedSourceRecordState{
+		DependencyFamily:  torchDep.DependencyFamily,
+		DependencyID:      torchDep.DependencyID,
+		EnvironmentKey:    torchDep.EnvironmentKey,
+		SourceKind:        localEnvironmentSourceManaged,
+		CanonicalRoot:     t.TempDir(),
+		Version:           "2.11.0+cu128",
+		SelectedConsumers: []string{torchDep.ConsumerScope},
+		Hashes:            map[string]string{"wheel_lock_hash": "stale"},
+	})
+	writeSelectedSourceLocalArtifactsForTest(t, record)
+	svc.upsertLocalEnvironmentSelectedSourceRecord(record)
+
+	torchDep = findLocalEnvironmentDependency(t, svc.resolveLocalEnvironmentPlan(request), localEnvironmentFamilyPythonTorchWheel)
+	if torchDep.State != localEnvironmentStateRepairRequired || torchDep.Detail != "LOCAL_ENVIRONMENT_TORCH_WHEEL_LOCK_DRIFT" {
+		t.Fatalf("Torch dependency = %+v, want repair_required lock drift", torchDep)
 	}
 }
 

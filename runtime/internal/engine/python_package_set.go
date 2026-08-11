@@ -43,7 +43,7 @@ func resolvePythonPackageSetManifest(consumer string) (pythonPackageSetManifest,
 		return pythonPackageSetManifest{
 			ID:           "speech-qwen3-asr-python-core",
 			Packages:     append([]string{}, nimiSpeechQwen3ASRPackages...),
-			ImportProbes: []string{"qwen_asr"},
+			ImportProbes: []string{"fastapi", "uvicorn", "multipart", "qwen_asr"},
 		}, nil
 	default:
 		return pythonPackageSetManifest{}, fmt.Errorf("python package set dependency is not admitted for consumer %s", consumer)
@@ -193,10 +193,12 @@ func speechPipelineFilesForConsumer(consumer string) []struct {
 		files = append(files, speechQwen3TTSDriverScriptFile)
 		return files
 	case "speech.qwen3-asr.python":
-		return []struct {
+		files := append([]struct {
 			Name   string
 			Script *string
-		}{speechQwen3ASRDriverScriptFile}
+		}{}, speechServerScriptFiles...)
+		files = append(files, speechQwen3ASRDriverScriptFile)
+		return files
 	default:
 		return nil
 	}

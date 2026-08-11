@@ -21,6 +21,7 @@ const SUPPORTED = { kind: 'supported' } as const;
 const UNSUPPORTED = { kind: 'unsupported' } as const;
 const LOCAL_AND_CLOUD = { local: SUPPORTED, cloud: SUPPORTED } as const;
 const CLOUD_ONLY = { local: UNSUPPORTED, cloud: SUPPORTED } as const;
+const LOCAL_PRESET_CLOUD_CONFIGURABLE = { local: { kind: 'fixed', value: 'preset' }, cloud: SUPPORTED } as const;
 const LOCAL_APP_UNAVAILABLE = { local: UNSUPPORTED, cloud: UNSUPPORTED } as const;
 
 /**
@@ -90,10 +91,11 @@ export const TESTER_CAPABILITY_PARAM_ROUTE_MATRIX = {
     serviceTier: LOCAL_APP_UNAVAILABLE,
     executionExpiresAfterSec: LOCAL_APP_UNAVAILABLE,
   },
-  // P1 §6: Local has no admitted speech synthesis driver; Cloud owns these fields.
+  // The current Local Qwen path admits preset voices only. Voice-asset synthesis
+  // references remain Cloud-only until Runtime resolves them to a private Driver handle.
   'audio.synthesize': {
-    voiceKind: CLOUD_ONLY,
-    voicePreset: CLOUD_ONLY,
+    voiceKind: LOCAL_PRESET_CLOUD_CONFIGURABLE,
+    voicePreset: LOCAL_AND_CLOUD,
     voiceAssetId: CLOUD_ONLY,
     language: CLOUD_ONLY,
     audioFormat: CLOUD_ONLY,

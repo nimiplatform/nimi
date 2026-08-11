@@ -136,7 +136,7 @@ func (s *Service) ReadArtifactBytes(
 	if !ok {
 		return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_ARTIFACT_NOT_FOUND)
 	}
-	defer source.Body.Close()
+	defer func() { _ = source.Body.Close() }()
 	record := source.Record
 	if !artifactOwnerMatches(record.Owner, principal.AccountID, principal.AppID) &&
 		(s.protectedGeneratedVoiceAuthorizer == nil ||

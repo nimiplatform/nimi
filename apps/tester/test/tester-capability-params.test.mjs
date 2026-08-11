@@ -58,6 +58,26 @@ test('Local text and image preserve every field admitted by the Local App carrie
   }
 });
 
+test('Local synthesis exposes only preset voice references until Runtime owns voice asset resolution', () => {
+  const local = states('audio.synthesize', 'local');
+  assert.deepEqual(local.get('voiceKind'), { field: 'voiceKind', state: 'fixed', fixedValue: 'preset' });
+  assert.equal(local.get('voicePreset')?.state, 'enabled', 'audio.synthesize.voicePreset');
+  assert.deepEqual(local.get('voiceAssetId'), {
+    field: 'voiceAssetId',
+    state: 'disabled',
+    unavailableBecause: 'route',
+  });
+  assert.deepEqual(projectTesterCapabilityParamsForRoute('audio.synthesize', 'local', {
+    voiceKind: 'asset',
+    voicePreset: 'vivian',
+    voiceAssetId: 'voice-asset-1',
+    timingMode: 'word',
+  }), {
+    voiceKind: 'preset',
+    voicePreset: 'vivian',
+  });
+});
+
 test('Cloud enables carrier fields but not private Local App scheduling fields', () => {
   for (const capabilityId of [
     'text.generate',

@@ -32,7 +32,7 @@ func (s *Service) ReadLocalAppArtifact(ctx context.Context, req *runtimev1.ReadL
 	if err != nil {
 		return nil, err
 	}
-	defer source.Body.Close()
+	defer func() { _ = source.Body.Close() }()
 	record := source.Record
 	if record.SizeBytes > runtimeartifact.MaxInlineBytes {
 		return nil, grpcerr.WithReasonCode(codes.ResourceExhausted, runtimev1.ReasonCode_ARTIFACT_TOO_LARGE)

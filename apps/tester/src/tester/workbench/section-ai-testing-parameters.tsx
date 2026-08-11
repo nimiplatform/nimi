@@ -15,7 +15,7 @@ import {
   type TesterTextGenerationParameters,
   type TesterVideoGenerationParameters,
 } from '../tester-capability-parameters.js';
-import { getTesterCapabilityParamPresentation } from '../tester-capability-params.js';
+import { getTesterCapabilityParamPresentation, projectTesterCapabilityParamsForRoute } from '../tester-capability-params.js';
 import type { TesterRunTargetSource } from '../tester-run-target.js';
 
 const TESTER_IMAGE_MIME_TYPES = ['image/png', 'image/jpeg', 'image/webp', 'image/gif'] as const;
@@ -464,6 +464,11 @@ function SpeechSynthesizeFields(props: ParameterPanelProps<'audio.synthesize'>) 
   const { t } = useTranslation();
   const parameters = props.parameters as TesterSpeechSynthesizeParameters;
   const update = props.onChange as (next: TesterSpeechSynthesizeParameters) => void;
+  const effectiveVoiceKind = projectTesterCapabilityParamsForRoute(
+    'audio.synthesize',
+    props.source,
+    parameters,
+  ).voiceKind;
   const [voices, setVoices] = useState<readonly { voiceAssetId: string; workflowType: string; status: string }[]>([]);
   const [voiceError, setVoiceError] = useState('');
   useEffect(() => {
@@ -505,8 +510,8 @@ function SpeechSynthesizeFields(props: ParameterPanelProps<'audio.synthesize'>) 
         </ParameterField>
       ),
     },
-    ...(parameters.voiceKind === 'preset' ? [textField('voicePreset', t('Studio.parameters.fields.voicePreset'))] : []),
-    ...(parameters.voiceKind === 'asset' ? [{
+    ...(effectiveVoiceKind === 'preset' ? [textField('voicePreset', t('Studio.parameters.fields.voicePreset'))] : []),
+    ...(effectiveVoiceKind === 'asset' ? [{
       field: 'voiceAssetId',
       label: t('Studio.parameters.fields.voiceAsset'),
       render: (routeDisabled: boolean) => (

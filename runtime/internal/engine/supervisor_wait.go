@@ -6,15 +6,18 @@ func waitSupervisorProcessExit(process *supervisedProcess, pid int, timeout time
 	if timeout <= 0 {
 		timeout = 100 * time.Millisecond
 	}
+	if process != nil {
+		timer := time.NewTimer(timeout)
+		defer timer.Stop()
+		select {
+		case <-process.done:
+			return true
+		case <-timer.C:
+			return false
+		}
+	}
 	deadline := time.Now().Add(timeout)
 	for {
-		if process != nil {
-			select {
-			case <-process.done:
-				return true
-			default:
-			}
-		}
 		if pid > 0 && !supervisorProcessAlive(pid) {
 			return true
 		}

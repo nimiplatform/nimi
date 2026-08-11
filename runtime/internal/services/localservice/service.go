@@ -73,6 +73,7 @@ type Service struct {
 	runtimeDataRoot                    string
 	managedMediaEndpointValue          string
 	managedSpeechEndpointValue         string
+	managedSpeechCapability            string
 	managedMediaBackendConfigured      bool
 	managedMediaBackendHealthy         bool
 	managedMediaBackendAddress         string
@@ -84,6 +85,7 @@ type Service struct {
 	managedMediaBackendEpoch           uint64
 
 	mu                                      sync.RWMutex
+	managedSpeechMu                         sync.Mutex
 	assets                                  map[string]*runtimev1.LocalAssetRecord
 	services                                map[string]*runtimev1.LocalServiceDescriptor
 	serviceRuntimeModes                     map[string]runtimev1.LocalEngineRuntimeMode

@@ -115,6 +115,178 @@ func requireSingleBundleEntry(scan bundleDirectoryScan) (string, error) {
 	}
 }
 
+func bundleScanContainsAll(scan bundleDirectoryScan, required []string) (bool, []string) {
+	available := make(map[string]struct{}, len(scan.files))
+	for _, file := range scan.files {
+		available[filepath.ToSlash(strings.TrimSpace(file))] = struct{}{}
+	}
+	missing := make([]string, 0)
+	for _, file := range required {
+		normalized := filepath.ToSlash(strings.TrimSpace(file))
+		if normalized == "" {
+			continue
+		}
+		if _, ok := available[normalized]; !ok {
+			missing = append(missing, normalized)
+		}
+	}
+	return len(missing) == 0, missing
+}
+
+func bundleScanForDeclaredFiles(required []string) bundleDirectoryScan {
+	files := make([]string, 0, len(required))
+	entryCandidates := make([]string, 0, len(required))
+	for _, file := range required {
+		normalized := filepath.ToSlash(strings.TrimSpace(file))
+		if normalized == "" {
+			continue
+		}
+		files = append(files, normalized)
+		if isKnownModelFile(normalized) && !strings.Contains(strings.ToLower(normalized), "mmproj") {
+			entryCandidates = append(entryCandidates, normalized)
+		}
+	}
+	sort.Strings(files)
+	sort.Strings(entryCandidates)
+	return bundleDirectoryScan{files: files, entryCandidates: entryCandidates}
+}
+
+func verifiedBundleRepoName(descriptor *runtimev1.LocalVerifiedAssetDescriptor) string {
+	if descriptor == nil {
+		return ""
+	}
+	repo := strings.Trim(strings.TrimSpace(descriptor.GetRepo()), "/\\")
+	if repo == "" {
+		return ""
+	}
+	return filepath.Base(filepath.FromSlash(repo))
+}
+
+func verifiedBundleSupportsCapabilities(descriptor *runtimev1.LocalVerifiedAssetDescriptor, capabilities []string) bool {
+	if descriptor == nil {
+		return false
+	}
+	for _, capability := range normalizeAssetCapabilities(capabilities) {
+		if !localAssetHasCapability(descriptor.GetCapabilities(), capability) {
+			return false
+		}
+	}
+	return true
+}
+
+func verifiedSpeechBundleKindLabel(kind runtimev1.LocalAssetKind) string {
+	switch kind {
+	case runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_TTS:
+		return "TTS"
+	case runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_STT:
+		return "ASR"
+	default:
+		return "speech"
+	}
+}
+
+func (s *Service) resolveVerifiedSpeechBundleScaffold(
+	kind runtimev1.LocalAssetKind,
+	modelName string,
+	capabilities []string,
+	requestedEngine string,
+	scan bundleDirectoryScan,
+) (*runtimev1.LocalVerifiedAssetDescriptor, error) {
+	kindLabel := verifiedSpeechBundleKindLabel(kind)
+	s.mu.RLock()
+	eligible := make([]*runtimev1.LocalVerifiedAssetDescriptor, 0)
+	for _, descriptor := range s.verified {
+		if descriptor == nil ||
+			descriptor.GetKind() != kind ||
+			!strings.EqualFold(strings.TrimSpace(descriptor.GetInstallKind()), "verified-hf-multi-file") ||
+			!verifiedBundleSupportsCapabilities(descriptor, capabilities) {
+			continue
+		}
+		if engine := strings.TrimSpace(requestedEngine); engine != "" &&
+			!strings.EqualFold(engine, strings.TrimSpace(descriptor.GetEngine())) {
+			continue
+		}
+		eligible = append(eligible, cloneVerifiedAsset(descriptor))
+	}
+	s.mu.RUnlock()
+
+	var selected *runtimev1.LocalVerifiedAssetDescriptor
+	for _, descriptor := range eligible {
+		if strings.EqualFold(strings.TrimSpace(modelName), verifiedBundleRepoName(descriptor)) {
+			if selected != nil {
+				return nil, fmt.Errorf("multiple verified %s bundle layouts match model name %q", kindLabel, modelName)
+			}
+			selected = descriptor
+		}
+	}
+	if selected == nil && kind == runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_TTS {
+		if len(eligible) != 1 {
+			return nil, fmt.Errorf("%s bundle does not resolve one verified multi-file layout", kindLabel)
+		}
+		selected = eligible[0]
+	}
+	if selected == nil {
+		return nil, fmt.Errorf("%s bundle model name %q does not match a verified multi-file layout", kindLabel, modelName)
+	}
+	if ok, missing := bundleScanContainsAll(scan, selected.GetFiles()); !ok {
+		return nil, fmt.Errorf("%s bundle is incomplete; missing required files: %s", kindLabel, strings.Join(missing, ", "))
+	}
+	entry := filepath.ToSlash(strings.TrimSpace(selected.GetEntry()))
+	if entry == "" || !bundleStringSliceContains(scan.files, entry) {
+		return nil, fmt.Errorf("%s bundle entry is missing: %s", kindLabel, entry)
+	}
+	return selected, nil
+}
+
+func (s *Service) speechAssetMatchesVerifiedBundle(asset *runtimev1.LocalAssetRecord) bool {
+	if s == nil || asset == nil ||
+		(asset.GetKind() != runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_TTS && asset.GetKind() != runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_STT) {
+		return false
+	}
+	assetID := strings.Trim(strings.TrimSpace(asset.GetAssetId()), "/\\")
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	for _, descriptor := range s.verified {
+		if descriptor == nil ||
+			descriptor.GetKind() != asset.GetKind() ||
+			!strings.EqualFold(strings.TrimSpace(descriptor.GetInstallKind()), "verified-hf-multi-file") ||
+			!strings.EqualFold(strings.TrimSpace(descriptor.GetEngine()), strings.TrimSpace(asset.GetEngine())) ||
+			!verifiedBundleSupportsCapabilities(descriptor, asset.GetCapabilities()) ||
+			!strings.EqualFold(filepath.ToSlash(strings.TrimSpace(descriptor.GetEntry())), filepath.ToSlash(strings.TrimSpace(asset.GetEntry()))) ||
+			!stringSlicesEqual(descriptor.GetFiles(), asset.GetFiles()) ||
+			!stringSlicesEqual(descriptor.GetArtifactRoles(), asset.GetArtifactRoles()) {
+			continue
+		}
+		descriptorAssetID := strings.Trim(strings.TrimSpace(descriptor.GetAssetId()), "/\\")
+		importAssetID := "local-import/" + verifiedBundleRepoName(descriptor)
+		if strings.EqualFold(assetID, descriptorAssetID) || strings.EqualFold(assetID, importAssetID) {
+			return true
+		}
+	}
+	return false
+}
+
+func validatePlainSynthesisTTSBundleConfig(sourceDir string) error {
+	raw, err := os.ReadFile(filepath.Join(sourceDir, "config.json"))
+	if err != nil {
+		return fmt.Errorf("read TTS bundle config: %w", err)
+	}
+	var config struct {
+		ModelType    string `json:"model_type"`
+		TTSModelType string `json:"tts_model_type"`
+	}
+	if err := json.Unmarshal(raw, &config); err != nil {
+		return fmt.Errorf("parse TTS bundle config: %w", err)
+	}
+	if !strings.EqualFold(strings.TrimSpace(config.ModelType), "qwen3_tts") {
+		return fmt.Errorf("TTS bundle model_type %q is not admitted by the qwen3_tts Driver", config.ModelType)
+	}
+	if !strings.EqualFold(strings.TrimSpace(config.TTSModelType), "custom_voice") {
+		return fmt.Errorf("plain synthesis requires tts_model_type custom_voice, got %q", config.TTSModelType)
+	}
+	return nil
+}
+
 func parseBundleManifestIdentity(path string) (bundleManifestIdentity, error) {
 	raw, err := os.ReadFile(path)
 	if err != nil {
@@ -190,11 +362,7 @@ func normalizeExistingBundleManifest(sourceManifestPath string, managedManifestP
 	return manifest, nil
 }
 
-func scaffoldBundleManifest(manifestPath string, modelName string, capabilities []string, engine string, sourceDir string, scan bundleDirectoryScan) (map[string]any, error) {
-	entry, err := requireSingleBundleEntry(scan)
-	if err != nil {
-		return nil, err
-	}
+func (s *Service) scaffoldBundleManifest(manifestPath string, modelName string, capabilities []string, engine string, sourceDir string, scan bundleDirectoryScan) (map[string]any, bundleDirectoryScan, error) {
 	normalizedCapabilities := normalizeAssetCapabilities(capabilities)
 	if len(normalizedCapabilities) == 0 {
 		normalizedCapabilities = []string{"chat"}
@@ -202,23 +370,53 @@ func scaffoldBundleManifest(manifestPath string, modelName string, capabilities 
 	kind := kindFromBundleCapabilities(normalizedCapabilities)
 	kindToken, err := localAssetKindToken(kind)
 	if err != nil {
-		return nil, err
+		return nil, bundleDirectoryScan{}, err
 	}
-	assetID := "local-import/" + strings.TrimSpace(modelName)
-	normalizedEngine := defaultLocalEngine(strings.TrimSpace(engine), normalizedCapabilities)
-	hashes, err := bundleFileHashes(sourceDir, scan)
+	entry := ""
+	normalizedEngine := strings.TrimSpace(engine)
+	artifactRoles := []string(nil)
+	admittedScan := scan
+	requestedImportAssetID := "local-import/" + strings.TrimSpace(modelName)
+	assetID := requestedImportAssetID
+	if kind == runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_TTS || kind == runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_STT {
+		descriptor, resolveErr := s.resolveVerifiedSpeechBundleScaffold(kind, modelName, normalizedCapabilities, normalizedEngine, scan)
+		if resolveErr != nil {
+			return nil, bundleDirectoryScan{}, resolveErr
+		}
+		if kind == runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_TTS {
+			if configErr := validatePlainSynthesisTTSBundleConfig(sourceDir); configErr != nil {
+				return nil, bundleDirectoryScan{}, configErr
+			}
+		}
+		entry = filepath.ToSlash(strings.TrimSpace(descriptor.GetEntry()))
+		artifactRoles = normalizeStringSlice(descriptor.GetArtifactRoles())
+		admittedScan = bundleScanForDeclaredFiles(descriptor.GetFiles())
+		assetID = "local-import/" + verifiedBundleRepoName(descriptor)
+		if normalizedEngine == "" {
+			normalizedEngine = strings.TrimSpace(descriptor.GetEngine())
+		}
+	} else {
+		entry, err = requireSingleBundleEntry(scan)
+		if err != nil {
+			return nil, bundleDirectoryScan{}, err
+		}
+	}
+	if normalizedEngine == "" {
+		normalizedEngine = defaultEngineForAssetKind(kind)
+	}
+	hashes, err := bundleFileHashes(sourceDir, admittedScan)
 	if err != nil {
-		return nil, err
+		return nil, bundleDirectoryScan{}, err
 	}
 	manifest := map[string]any{
 		"schema_version":   "1.0.0",
 		"asset_id":         assetID,
 		"kind":             kindToken,
-		"logical_model_id": defaultLogicalModelID(assetID),
+		"logical_model_id": defaultLogicalModelID(requestedImportAssetID),
 		"capabilities":     normalizedCapabilities,
 		"engine":           normalizedEngine,
 		"entry":            entry,
-		"files":            append([]string(nil), scan.files...),
+		"files":            append([]string(nil), admittedScan.files...),
 		"license":          "unknown",
 		"source": map[string]any{
 			"repo":     bundleManifestRepo(manifestPath),
@@ -227,7 +425,10 @@ func scaffoldBundleManifest(manifestPath string, modelName string, capabilities 
 		"integrity_mode": "local_unverified",
 		"hashes":         hashes,
 	}
-	return manifest, nil
+	if len(artifactRoles) > 0 {
+		manifest["artifact_roles"] = artifactRoles
+	}
+	return manifest, admittedScan, nil
 }
 
 func bundleFileHashes(sourceDir string, scan bundleDirectoryScan) (map[string]string, error) {
@@ -244,6 +445,31 @@ func bundleFileHashes(sourceDir string, scan bundleDirectoryScan) (map[string]st
 		hashes[normalized] = "sha256:" + hash
 	}
 	return hashes, nil
+}
+
+func copyScannedBundleFiles(sourceDir string, destDir string, scan bundleDirectoryScan) error {
+	if err := os.MkdirAll(destDir, 0o755); err != nil {
+		return err
+	}
+	for _, file := range scan.files {
+		normalized := filepath.ToSlash(strings.TrimSpace(file))
+		if normalized == "" {
+			continue
+		}
+		sourcePath := filepath.Join(sourceDir, filepath.FromSlash(normalized))
+		destPath := filepath.Join(destDir, filepath.FromSlash(normalized))
+		info, err := os.Stat(sourcePath)
+		if err != nil {
+			return fmt.Errorf("stat bundle file %s: %w", normalized, err)
+		}
+		if err := os.MkdirAll(filepath.Dir(destPath), 0o755); err != nil {
+			return fmt.Errorf("create bundle directory for %s: %w", normalized, err)
+		}
+		if err := copyFile(sourcePath, destPath, info.Mode().Perm()); err != nil {
+			return fmt.Errorf("copy bundle file %s: %w", normalized, err)
+		}
+	}
+	return nil
 }
 
 func applyOrderedBundleEntriesToManifest(manifest map[string]any, requested []string) error {
@@ -542,6 +768,7 @@ func (s *Service) importLocalAssetBundleSync(ctx context.Context, transferID str
 	var manifestPath string
 	var manifest map[string]any
 	var logicalModelID string
+	copyScan := scan
 	if sourceHasManifest {
 		identity, err := parseBundleManifestIdentity(sourceManifestPath)
 		if err != nil {
@@ -580,7 +807,7 @@ func (s *Service) importLocalAssetBundleSync(ctx context.Context, transferID str
 		logicalModelID = defaultLogicalModelID(assetID)
 		destDir = runtimeManagedResolvedModelDir(modelsRoot, logicalModelID)
 		manifestPath = filepath.Join(destDir, localAssetManifestFileName)
-		manifest, err = scaffoldBundleManifest(manifestPath, modelName, req.GetCapabilities(), req.GetEngine(), sourceDir, scan)
+		manifest, copyScan, err = s.scaffoldBundleManifest(manifestPath, modelName, req.GetCapabilities(), req.GetEngine(), sourceDir, scan)
 		if err != nil {
 			return nil, grpcerr.WrapWithReasonCode(
 				codes.InvalidArgument,
@@ -626,7 +853,7 @@ func (s *Service) importLocalAssetBundleSync(ctx context.Context, transferID str
 		_ = os.RemoveAll(stageDir)
 		return nil, err
 	}
-	if err := copyDirRecursive(sourceDir, stageDir); err != nil {
+	if err := copyScannedBundleFiles(sourceDir, stageDir, copyScan); err != nil {
 		_ = os.RemoveAll(stageDir)
 		return nil, grpcerr.WrapWithReasonCode(
 			codes.Internal,
@@ -738,7 +965,7 @@ func (s *Service) rescanLocalAssetBundleSync(ctx context.Context, transferID str
 	if fileExists(manifestPath) {
 		manifest, err = normalizeExistingBundleManifest(manifestPath, manifestPath, bundleDir, scan, identity)
 	} else {
-		manifest, err = scaffoldBundleManifest(manifestPath, asset.GetAssetId(), asset.GetCapabilities(), asset.GetEngine(), bundleDir, scan)
+		manifest, _, err = s.scaffoldBundleManifest(manifestPath, asset.GetAssetId(), asset.GetCapabilities(), asset.GetEngine(), bundleDir, scan)
 	}
 	if err != nil {
 		return nil, grpcerr.WrapWithReasonCode(

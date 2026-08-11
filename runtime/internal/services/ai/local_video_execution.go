@@ -281,7 +281,7 @@ func (s *Service) resolveLocalVideoArtifactInput(ctx context.Context, head *runt
 			return capabilitydriver.VideoResolvedInput{}, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_ARTIFACT_FORBIDDEN)
 		}
 	}
-	defer source.Body.Close()
+	defer func() { _ = source.Body.Close() }()
 	record := source.Record
 	if !strings.HasPrefix(strings.ToLower(strings.TrimSpace(record.MimeType)), "image/") {
 		return capabilitydriver.VideoResolvedInput{}, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_ARTIFACT_MIME_MISMATCH)

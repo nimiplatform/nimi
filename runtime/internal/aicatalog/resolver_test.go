@@ -1,6 +1,7 @@
 package catalog
 
 import (
+	"slices"
 	"strings"
 	"testing"
 
@@ -302,6 +303,38 @@ func TestResolveVoicesLocalModel(t *testing.T) {
 	}
 	if result.Voices[0].VoiceID != "user-custom" {
 		t.Fatalf("unexpected local voice id: %s", result.Voices[0].VoiceID)
+	}
+	model, err := resolver.ResolveModelEntry("local", "qwen3-tts-local")
+	if err != nil {
+		t.Fatalf("ResolveModelEntry: %v", err)
+	}
+	if want := []string{"preset_voice_id", "provider_voice_ref"}; !slices.Equal(model.VoiceRefKinds, want) {
+		t.Fatalf("local qwen3 TTS voice ref kinds=%v, want %v", model.VoiceRefKinds, want)
+	}
+}
+
+func TestLocalModelsDoNotAdvertiseUnresolvedVoiceAssets(t *testing.T) {
+	resolver, err := NewResolver(ResolverConfig{})
+	if err != nil {
+		t.Fatalf("NewResolver: %v", err)
+	}
+
+	for _, modelID := range []string{
+		"qwen3-tts-local",
+		"qwen3-tts-base-local",
+		"qwen3-tts-voicedesign-local",
+		"cosyvoice2-local",
+		"gpt-sovits-local",
+		"f5-tts-local",
+		"voxcpm2-local",
+	} {
+		model, resolveErr := resolver.ResolveModelEntry("local", modelID)
+		if resolveErr != nil {
+			t.Fatalf("ResolveModelEntry(%s): %v", modelID, resolveErr)
+		}
+		if slices.Contains(model.VoiceRefKinds, "voice_asset_id") {
+			t.Fatalf("local model %s advertises unresolved voice assets: %v", modelID, model.VoiceRefKinds)
+		}
 	}
 }
 

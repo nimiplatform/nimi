@@ -29,6 +29,10 @@ export function capabilitiesForAssetKind(kind: NimiRuntimeLocalAssetKind): strin
   return nimiRuntimeLocalCapabilitiesForAssetKind(kind);
 }
 
+export function canImportBundleDirectoryForAssetKind(kind: NimiRuntimeLocalAssetKind): boolean {
+  return kind === 'chat' || kind === 'tts' || kind === 'stt';
+}
+
 export function manifestPathFromSourceRepo(repo: string | undefined): string | undefined {
   const normalized = String(repo || '').trim();
   if (!normalized.toLowerCase().startsWith('file://')) {

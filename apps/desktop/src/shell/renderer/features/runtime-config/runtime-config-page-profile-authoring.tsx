@@ -12,6 +12,8 @@ import {
   NIMI_AI_PROFILE_LLAMA_CACHE_TYPES,
   NIMI_AI_PROFILE_LLAMA_CPP_EMBED_IMPLEMENTATION,
   NIMI_AI_PROFILE_LLAMA_CPP_IMPLEMENTATION,
+  NIMI_AI_PROFILE_QWEN3_ASR_IMPLEMENTATION,
+  NIMI_AI_PROFILE_QWEN3_TTS_IMPLEMENTATION,
   NIMI_AI_PROFILE_STABLE_DIFFUSION_IMPLEMENTATION,
   NIMI_AI_PROFILE_STABLE_DIFFUSION_MODEL_FAMILIES,
   NIMI_AI_PROFILE_STABLE_DIFFUSION_VIDEO_IMPLEMENTATION,
@@ -575,7 +577,9 @@ function LocalImplementationFields(props: {
               t={props.t}
               includeProjector={false}
             />
-          ) : capability.local.driverKind === 'stable-diffusion-video' ? (
+          ) : capability.local.driverKind === 'qwen3-tts'
+            || capability.local.driverKind === 'qwen3-asr' ? null
+            : capability.local.driverKind === 'stable-diffusion-video' ? (
             <StableDiffusionVideoAuthoringFields
               capability={capability}
               updateLocal={updateLocal}
@@ -599,6 +603,8 @@ function localDriverImplementation(
 ) {
   if (driverKind === 'llama') return NIMI_AI_PROFILE_LLAMA_CPP_IMPLEMENTATION;
   if (driverKind === 'llama-embed') return NIMI_AI_PROFILE_LLAMA_CPP_EMBED_IMPLEMENTATION;
+  if (driverKind === 'qwen3-tts') return NIMI_AI_PROFILE_QWEN3_TTS_IMPLEMENTATION;
+  if (driverKind === 'qwen3-asr') return NIMI_AI_PROFILE_QWEN3_ASR_IMPLEMENTATION;
   if (driverKind === 'stable-diffusion-video') {
     return NIMI_AI_PROFILE_STABLE_DIFFUSION_VIDEO_IMPLEMENTATION;
   }

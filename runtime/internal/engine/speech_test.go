@@ -73,6 +73,11 @@ func TestMaterializePythonPipelineServerScriptDeploysSpeechSiblingModules(t *tes
 	if err := materializePythonPipelineServerScript(asrRoot, "speech.qwen3-asr.python"); err != nil {
 		t.Fatalf("materialize speech asr driver: %v", err)
 	}
+	for _, file := range speechServerScriptFiles {
+		if _, err := os.Stat(filepath.Join(asrRoot, file.Name)); err != nil {
+			t.Fatalf("speech asr Host missing deployed file %s: %v", file.Name, err)
+		}
+	}
 	if _, err := os.Stat(SpeechQwen3ASRDriverPath(asrRoot)); err != nil {
 		t.Fatalf("speech asr driver missing: %v", err)
 	}
@@ -143,11 +148,13 @@ func TestSpeechServerOffloadsBlockingDriverCallsFromAsyncEndpoints(t *testing.T)
 	if !strings.Contains(speechServerScript, "from starlette.concurrency import run_in_threadpool") {
 		t.Fatal("speech server must import run_in_threadpool for blocking driver calls")
 	}
-	if !strings.Contains(speechServerScript, "await run_in_threadpool(\n                synthesize_with_driver") {
-		t.Fatal("speech synthesize endpoint must run blocking driver work in a threadpool")
+	if !strings.Contains(speechServerScript, "run_in_threadpool(synthesize_with_driver, model, request_payload, cancel_event)") ||
+		!strings.Contains(speechServerScript, "artifact = await run_synthesis_for_request(") {
+		t.Fatal("speech synthesize endpoint must run blocking driver work in a cancellable threadpool helper")
 	}
-	if !strings.Contains(speechServerScript, "await run_in_threadpool(\n                    transcribe_with_driver") {
-		t.Fatal("speech transcribe endpoint must run blocking driver work in a threadpool")
+	if !strings.Contains(speechServerScript, "run_in_threadpool(transcribe_with_driver, model, request_payload, cancel_event)") ||
+		!strings.Contains(speechServerScript, "text = await run_transcription_for_request(") {
+		t.Fatal("speech transcribe endpoint must run blocking driver work in a cancellable threadpool helper")
 	}
 }
 
@@ -433,6 +440,48 @@ func TestSpeechCommandEnvDoesNotFallbackToDefaultModelsRoot(t *testing.T) {
 	}
 	if _, ok := env[speechDriverWorkRootEnv]; ok {
 		t.Fatal("speech command env must not inherit a work root")
+	}
+}
+
+func TestSpeechApplyDefaultEnvPreservesCapabilityScopedDriverRoots(t *testing.T) {
+	tests := []struct {
+		name      string
+		config    EngineConfig
+		wantKey   string
+		wantRoot  string
+		absentKey string
+	}{
+		{
+			name: "transcription Host",
+			config: EngineConfig{
+				SpeechHostPackageSetRoot:     "asr-exact",
+				SpeechQwen3ASRPackageSetRoot: "asr-exact",
+			},
+			wantKey:   "NIMI_RUNTIME_SPEECH_QWEN3_ASR_CMD",
+			wantRoot:  "asr-exact",
+			absentKey: "NIMI_RUNTIME_SPEECH_QWEN3_TTS_CMD",
+		},
+		{
+			name: "synthesis Host",
+			config: EngineConfig{
+				SpeechHostPackageSetRoot:     "tts-exact",
+				SpeechQwen3TTSPackageSetRoot: "tts-exact",
+			},
+			wantKey:   "NIMI_RUNTIME_SPEECH_QWEN3_TTS_CMD",
+			wantRoot:  "tts-exact",
+			absentKey: "NIMI_RUNTIME_SPEECH_QWEN3_ASR_CMD",
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			env := speechApplyDefaultEnv(test.config, test.config.SpeechHostPackageSetRoot)
+			if got := env[test.wantKey]; got == "" || !strings.Contains(got, test.wantRoot) {
+				t.Fatalf("%s = %q, want exact root %q", test.wantKey, got, test.wantRoot)
+			}
+			if got, ok := env[test.absentKey]; ok {
+				t.Fatalf("capability-scoped Host projected unrelated %s = %q", test.absentKey, got)
+			}
+		})
 	}
 }
 

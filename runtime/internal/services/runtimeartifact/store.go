@@ -138,7 +138,7 @@ func (s *MemoryStore) PutStream(ctx context.Context, artifactID string, record A
 	if source == nil {
 		return ErrInvalidArtifactRecord
 	}
-	defer source.Close()
+	defer func() { _ = source.Close() }()
 	payload, err := readArtifactStream(ctx, source)
 	if err != nil {
 		return err

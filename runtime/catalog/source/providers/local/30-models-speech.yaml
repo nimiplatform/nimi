@@ -73,7 +73,7 @@ models:
     voice:
       discovery_mode: dynamic_user_scoped
       dynamic_voice_set_ref: local_qwen3_tts_customvoice_dynamic_voice_set
-      supports_voice_ref_kinds: [voice_asset_id, provider_voice_ref]
+      supports_voice_ref_kinds: [preset_voice_id, provider_voice_ref]
       langs_ref: short_v1
     install:
       repo: Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice
@@ -129,7 +129,7 @@ models:
     voice:
       discovery_mode: dynamic_user_scoped
       dynamic_voice_set_ref: local_qwen3_tts_base_dynamic_voice_set
-      supports_voice_ref_kinds: [voice_asset_id, provider_voice_ref]
+      supports_voice_ref_kinds: [provider_voice_ref]
       langs_ref: short_v1
     aliases:
       - local/qwen3-tts-base
@@ -143,7 +143,7 @@ models:
     voice:
       discovery_mode: dynamic_user_scoped
       dynamic_voice_set_ref: local_qwen3_tts_voicedesign_dynamic_voice_set
-      supports_voice_ref_kinds: [voice_asset_id, provider_voice_ref]
+      supports_voice_ref_kinds: [provider_voice_ref]
       langs_ref: short_v1
     aliases:
       - local/qwen3-tts-voicedesign
@@ -157,7 +157,7 @@ models:
     voice:
       discovery_mode: dynamic_user_scoped
       dynamic_voice_set_ref: local_cosyvoice2_dynamic_voice_set
-      supports_voice_ref_kinds: [voice_asset_id, provider_voice_ref]
+      supports_voice_ref_kinds: [provider_voice_ref]
       langs_ref: short_v1
 
   - model_id: gpt-sovits-local
@@ -167,7 +167,7 @@ models:
     voice:
       discovery_mode: dynamic_user_scoped
       dynamic_voice_set_ref: local_gpt_sovits_dynamic_voice_set
-      supports_voice_ref_kinds: [voice_asset_id, provider_voice_ref]
+      supports_voice_ref_kinds: [provider_voice_ref]
       langs_ref: short_v1
 
   - model_id: f5-tts-local
@@ -177,7 +177,7 @@ models:
     voice:
       discovery_mode: dynamic_user_scoped
       dynamic_voice_set_ref: local_f5_tts_dynamic_voice_set
-      supports_voice_ref_kinds: [voice_asset_id, provider_voice_ref]
+      supports_voice_ref_kinds: [provider_voice_ref]
       langs_ref: short_v1
 
   - model_id: piper-local
@@ -207,7 +207,7 @@ models:
     voice:
       discovery_mode: dynamic_user_scoped
       dynamic_voice_set_ref: local_voxcpm2_dynamic_voice_set
-      supports_voice_ref_kinds: [voice_asset_id, provider_voice_ref]
+      supports_voice_ref_kinds: [provider_voice_ref]
       langs_ref: short_v1
     aliases:
       - local/voxcpm2

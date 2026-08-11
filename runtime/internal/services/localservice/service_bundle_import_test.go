@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -90,6 +91,264 @@ func TestImportLocalAssetBundleScaffoldsManagedManifest(t *testing.T) {
 	}
 	if _, err := os.Stat(filepath.Join(sourceDir, "Qwen3-4B-Q4_K_M.gguf")); err != nil {
 		t.Fatalf("bundle import must not remove source files: %v", err)
+	}
+}
+
+func writeCatalogTTSBundleFixture(t *testing.T, ttsModelType string) string {
+	t.Helper()
+	sourceDir := filepath.Join(t.TempDir(), "Qwen3-TTS-12Hz-0.6B-CustomVoice")
+	requiredFiles := []string{
+		"model.safetensors",
+		"config.json",
+		"generation_config.json",
+		"preprocessor_config.json",
+		"tokenizer_config.json",
+		"vocab.json",
+		"merges.txt",
+		"speech_tokenizer/model.safetensors",
+		"speech_tokenizer/config.json",
+		"speech_tokenizer/configuration.json",
+		"speech_tokenizer/preprocessor_config.json",
+	}
+	for _, relativePath := range requiredFiles {
+		path := filepath.Join(sourceDir, filepath.FromSlash(relativePath))
+		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+			t.Fatalf("create TTS bundle directory: %v", err)
+		}
+		content := []byte(relativePath)
+		if relativePath == "config.json" {
+			content = []byte(fmt.Sprintf(`{"model_type":"qwen3_tts","tts_model_type":%q}`, ttsModelType))
+		}
+		if err := os.WriteFile(path, content, 0o644); err != nil {
+			t.Fatalf("write TTS bundle file %s: %v", relativePath, err)
+		}
+	}
+	gitMetadata := filepath.Join(sourceDir, ".git", "lfs", "incomplete", "partial-model")
+	if err := os.MkdirAll(filepath.Dir(gitMetadata), 0o755); err != nil {
+		t.Fatalf("create source-control metadata directory: %v", err)
+	}
+	if err := os.WriteFile(gitMetadata, []byte("not a model asset"), 0o644); err != nil {
+		t.Fatalf("write source-control metadata: %v", err)
+	}
+	return sourceDir
+}
+
+func TestImportLocalAssetBundleAdmitsCompleteCatalogTTSBundle(t *testing.T) {
+	svc := newTestService(t)
+	sourceDir := writeCatalogTTSBundleFixture(t, "custom_voice")
+
+	asset, err := svc.importLocalAssetBundleSync(context.Background(), "", &runtimev1.ImportLocalAssetBundleRequest{
+		DirectoryPath: sourceDir,
+		ModelName:     "Qwen3-TTS-12Hz-0.6B-CustomVoice",
+		Capabilities:  []string{"audio.synthesize"},
+	})
+	if err != nil {
+		t.Fatalf("import complete TTS bundle: %v", err)
+	}
+	if got := asset.GetKind(); got != runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_TTS {
+		t.Fatalf("kind = %s, want TTS", got)
+	}
+	if got := asset.GetEngine(); got != "speech" {
+		t.Fatalf("engine = %q, want speech", got)
+	}
+	if got := asset.GetEntry(); got != "model.safetensors" {
+		t.Fatalf("entry = %q, want model.safetensors", got)
+	}
+	for _, role := range []string{"tts_model", "speech_tokenizer", "tokenizer"} {
+		if !stringSliceContains(asset.GetArtifactRoles(), role) {
+			t.Fatalf("artifact roles = %#v, want %q", asset.GetArtifactRoles(), role)
+		}
+	}
+	if !bundleStringSliceContains(asset.GetFiles(), "speech_tokenizer/model.safetensors") {
+		t.Fatalf("bundle files = %#v, missing nested speech tokenizer", asset.GetFiles())
+	}
+	if bundleStringSliceContains(asset.GetFiles(), ".git/lfs/incomplete/partial-model") {
+		t.Fatalf("bundle files = %#v, source-control metadata must not be imported", asset.GetFiles())
+	}
+	managedDir := filepath.Dir(runtimeManagedAssetManifestPath(resolveLocalModelsPath(svc.localModelsPath), asset.GetLogicalModelId()))
+	if _, err := os.Stat(filepath.Join(managedDir, ".git")); !os.IsNotExist(err) {
+		t.Fatalf("managed TTS bundle .git state = %v, want not present", err)
+	}
+}
+
+func TestImportLocalAssetBundleCanonicalizesUniqueTTSDescriptorAcrossFolderNames(t *testing.T) {
+	svc := newTestService(t)
+	sourceDir := writeCatalogTTSBundleFixture(t, "custom_voice")
+	renamedSourceDir := filepath.Join(filepath.Dir(sourceDir), "downloaded-voice-model")
+	if err := os.Rename(sourceDir, renamedSourceDir); err != nil {
+		t.Fatalf("rename TTS source folder: %v", err)
+	}
+
+	asset, err := svc.importLocalAssetBundleSync(context.Background(), "", &runtimev1.ImportLocalAssetBundleRequest{
+		DirectoryPath: renamedSourceDir,
+		Capabilities:  []string{"audio.synthesize"},
+	})
+	if err != nil {
+		t.Fatalf("import TTS bundle from arbitrary folder name: %v", err)
+	}
+	if got := asset.GetAssetId(); got != "local-import/Qwen3-TTS-12Hz-0.6B-CustomVoice" {
+		t.Fatalf("asset id = %q, want canonical verified bundle import identity", got)
+	}
+	if got := asset.GetLogicalModelId(); got != defaultLogicalModelID("local-import/downloaded-voice-model") {
+		t.Fatalf("logical model id = %q, want renamed-folder provenance", got)
+	}
+
+	contentID := "sha256:" + exactDeclaredContentSHA256(asset)
+	descriptor, reason, candidate := svc.verifyLocalCapabilityAssetContent(
+		asset,
+		resolveLocalModelsPath(svc.localModelsPath),
+		contentID,
+	)
+	if !candidate || reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED {
+		t.Fatalf("renamed TTS bundle verification candidate=%t reason=%s", candidate, reason)
+	}
+	if !stringSliceContains(descriptor.ArtifactRoles, "tts_model") {
+		t.Fatalf("verified descriptor roles = %#v, want tts_model", descriptor.ArtifactRoles)
+	}
+}
+
+func TestImportLocalAssetBundleRejectsIncompleteCatalogTTSBundle(t *testing.T) {
+	svc := newTestService(t)
+	sourceDir := writeCatalogTTSBundleFixture(t, "custom_voice")
+	if err := os.Remove(filepath.Join(sourceDir, "speech_tokenizer", "model.safetensors")); err != nil {
+		t.Fatalf("remove nested speech tokenizer fixture: %v", err)
+	}
+
+	scan, err := scanBundleDirectory(sourceDir)
+	if err != nil {
+		t.Fatalf("scan incomplete TTS bundle: %v", err)
+	}
+	_, _, err = svc.scaffoldBundleManifest(
+		filepath.Join(t.TempDir(), localAssetManifestFileName),
+		"Qwen3-TTS-12Hz-0.6B-CustomVoice",
+		[]string{"audio.synthesize"},
+		"",
+		sourceDir,
+		scan,
+	)
+	if err == nil || !strings.Contains(err.Error(), "speech_tokenizer/model.safetensors") {
+		t.Fatalf("incomplete TTS bundle error = %v, want missing nested tokenizer", err)
+	}
+}
+
+func TestImportLocalAssetBundleRejectsCloneModelForPlainSynthesis(t *testing.T) {
+	svc := newTestService(t)
+	sourceDir := writeCatalogTTSBundleFixture(t, "base")
+
+	scan, err := scanBundleDirectory(sourceDir)
+	if err != nil {
+		t.Fatalf("scan clone TTS bundle: %v", err)
+	}
+	_, _, err = svc.scaffoldBundleManifest(
+		filepath.Join(t.TempDir(), localAssetManifestFileName),
+		"Qwen3-TTS-12Hz-0.6B-CustomVoice",
+		[]string{"audio.synthesize"},
+		"",
+		sourceDir,
+		scan,
+	)
+	if err == nil || !strings.Contains(err.Error(), "plain synthesis requires tts_model_type custom_voice") {
+		t.Fatalf("clone TTS bundle error = %v, want plain-synthesis rejection", err)
+	}
+}
+
+func writeCatalogASRBundleFixture(t *testing.T) string {
+	t.Helper()
+	sourceDir := filepath.Join(t.TempDir(), "Qwen3-ASR-0.6B")
+	requiredFiles := []string{
+		"model.safetensors",
+		"config.json",
+		"generation_config.json",
+		"preprocessor_config.json",
+		"chat_template.json",
+		"tokenizer_config.json",
+		"vocab.json",
+		"merges.txt",
+	}
+	for _, relativePath := range requiredFiles {
+		path := filepath.Join(sourceDir, filepath.FromSlash(relativePath))
+		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+			t.Fatalf("create ASR bundle directory: %v", err)
+		}
+		if err := os.WriteFile(path, []byte(relativePath), 0o644); err != nil {
+			t.Fatalf("write ASR bundle file %s: %v", relativePath, err)
+		}
+	}
+	return sourceDir
+}
+
+func TestImportLocalAssetBundleAdmitsCompleteCatalogASRBundle(t *testing.T) {
+	svc := newTestService(t)
+	sourceDir := writeCatalogASRBundleFixture(t)
+
+	asset, err := svc.importLocalAssetBundleSync(context.Background(), "", &runtimev1.ImportLocalAssetBundleRequest{
+		DirectoryPath: sourceDir,
+		ModelName:     "Qwen3-ASR-0.6B",
+		Capabilities:  []string{"audio.transcribe"},
+	})
+	if err != nil {
+		t.Fatalf("import complete ASR bundle: %v", err)
+	}
+	if got := asset.GetKind(); got != runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_STT {
+		t.Fatalf("kind = %s, want STT", got)
+	}
+	if got := asset.GetEngine(); got != "speech" {
+		t.Fatalf("engine = %q, want speech", got)
+	}
+	if got := asset.GetEntry(); got != "model.safetensors" {
+		t.Fatalf("entry = %q, want model.safetensors", got)
+	}
+	for _, role := range []string{"stt_model", "tokenizer"} {
+		if !stringSliceContains(asset.GetArtifactRoles(), role) {
+			t.Fatalf("artifact roles = %#v, want %q", asset.GetArtifactRoles(), role)
+		}
+	}
+	if !bundleStringSliceContains(asset.GetFiles(), "chat_template.json") {
+		t.Fatalf("bundle files = %#v, missing chat template", asset.GetFiles())
+	}
+}
+
+func TestVerifyLocalCapabilityAssetRejectsSingleFileSpeechBeforeHost(t *testing.T) {
+	svc := newTestService(t)
+	asset := &runtimev1.LocalAssetRecord{
+		LocalAssetId:  "legacy-single-file-asr",
+		AssetId:       "local-import/Qwen3-ASR-1.7B-hf/01KZLEGACY",
+		Kind:          runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_STT,
+		Engine:        "speech",
+		Entry:         "Qwen3-ASR-1.7B-hf.safetensors",
+		Files:         []string{"Qwen3-ASR-1.7B-hf.safetensors"},
+		Capabilities:  []string{"audio.transcribe"},
+		ArtifactRoles: []string{"stt_model"},
+		Status:        runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED,
+	}
+
+	_, reason, candidate := svc.verifyLocalCapabilityAssetContent(asset, resolveLocalModelsPath(svc.localModelsPath), "sha256:"+strings.Repeat("a", 64))
+	if !candidate || reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_LOCAL_ASSET_INCOMPATIBLE {
+		t.Fatalf("single-file ASR verification candidate=%t reason=%s, want incompatible", candidate, reason)
+	}
+}
+
+func TestImportLocalAssetBundleRejectsIncompleteCatalogASRBundle(t *testing.T) {
+	svc := newTestService(t)
+	sourceDir := writeCatalogASRBundleFixture(t)
+	if err := os.Remove(filepath.Join(sourceDir, "merges.txt")); err != nil {
+		t.Fatalf("remove ASR bundle fixture: %v", err)
+	}
+
+	scan, err := scanBundleDirectory(sourceDir)
+	if err != nil {
+		t.Fatalf("scan incomplete ASR bundle: %v", err)
+	}
+	_, _, err = svc.scaffoldBundleManifest(
+		filepath.Join(t.TempDir(), localAssetManifestFileName),
+		"Qwen3-ASR-0.6B",
+		[]string{"audio.transcribe"},
+		"",
+		sourceDir,
+		scan,
+	)
+	if err == nil || !strings.Contains(err.Error(), "merges.txt") {
+		t.Fatalf("incomplete ASR bundle error = %v, want missing merges", err)
 	}
 }
 

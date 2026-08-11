@@ -198,7 +198,7 @@ func TestResolveSelectedLocalExecutionReturnsVerifiedAbsoluteBindingsAndRejectsD
 		t.Fatalf("resolved execution = %#v", resolved)
 	}
 	binding := resolved.ExactBindings[0]
-	if binding.RequirementID != capabilitydriver.MainGGUFRequirementID || binding.LocalAssetID != "asset-main" ||
+	if binding.RequirementID != capabilitydriver.MainGGUFRequirementID || binding.AssetID != "catalog-independent-asset-main" || binding.LocalAssetID != "asset-main" ||
 		binding.VerifiedContentID != "sha256:"+contentID || binding.EntrySHA256 != contentID || !filepath.IsAbs(binding.AbsolutePath) {
 		t.Fatalf("resolved exact binding = %#v", binding)
 	}

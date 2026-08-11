@@ -125,6 +125,7 @@ func (s *Service) ResolveSelectedLocalExecution(capabilityContract string) (*loc
 			RequirementRole:   requirement.GetRole(),
 			OccurrenceOrdinal: requirement.GetOccurrenceOrdinal(),
 			DisplayLabel:      requirement.GetDisplayLabel(),
+			AssetID:           asset.GetAssetId(),
 			LocalAssetID:      binding.GetLocalAssetId(),
 			AbsolutePath:      absolutePath,
 			VerifiedContentID: binding.GetVerifiedContentId(),

@@ -13,6 +13,7 @@ import type { RuntimeConfigPanelControllerModel } from './runtime-config-panel-t
 import { RuntimePageShell } from './runtime-config-page-shell';
 import { RuntimeOverviewTab } from './runtime-config-runtime-overview-tab';
 import { RuntimeNodeCapabilityMatrix } from './runtime-config-runtime-node-matrix';
+import { RuntimeConfigLocalSpeechEnvironmentPanel } from './runtime-config-local-speech-environment-panel';
 
 type RuntimeTabKey = 'overview' | 'health' | 'activity' | 'access';
 
@@ -79,7 +80,10 @@ export function RuntimePage({ model, state }: RuntimePageProps) {
       />
 
       {activeTab === 'overview' ? (
-        <RuntimeOverviewTab model={model} />
+        <>
+          <RuntimeConfigLocalSpeechEnvironmentPanel writesDisabled={model.runtimeWritesDisabled} />
+          <RuntimeOverviewTab model={model} />
+        </>
       ) : null}
 
       {activeTab === 'health' ? (

@@ -441,31 +441,27 @@ func (b *Backend) GenerateMusic(ctx context.Context, modelID string, spec *runti
 	return payload, usage, nil
 }
 
-// SynthesizeSpeech sends a text-to-speech request.
-func (b *Backend) SynthesizeSpeech(ctx context.Context, modelID string, spec *runtimev1.SpeechSynthesizeScenarioSpec, scenarioExtensions map[string]any) ([]byte, *runtimev1.UsageStats, error) {
-	if spec == nil {
-		return nil, nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
-	}
-	if b.supportsMimoChatCompletions() || isMimoModelID(modelID) {
-		return b.synthesizeMimoChat(ctx, modelID, spec, scenarioExtensions)
-	}
+type speechSynthesisRequest struct {
+	Model        string         `json:"model"`
+	Input        string         `json:"input"`
+	Voice        string         `json:"voice,omitempty"`
+	Language     string         `json:"language,omitempty"`
+	AudioFormat  string         `json:"audio_format,omitempty"`
+	SampleRateHz int32          `json:"sample_rate_hz,omitempty"`
+	Speed        float32        `json:"speed,omitempty"`
+	Pitch        float32        `json:"pitch,omitempty"`
+	Volume       float32        `json:"volume,omitempty"`
+	Emotion      string         `json:"emotion,omitempty"`
+	Extensions   map[string]any `json:"extensions,omitempty"`
+}
 
-	type speechRequest struct {
-		Model        string         `json:"model"`
-		Input        string         `json:"input"`
-		Voice        string         `json:"voice,omitempty"`
-		Language     string         `json:"language,omitempty"`
-		AudioFormat  string         `json:"audio_format,omitempty"`
-		SampleRateHz int32          `json:"sample_rate_hz,omitempty"`
-		Speed        float32        `json:"speed,omitempty"`
-		Pitch        float32        `json:"pitch,omitempty"`
-		Volume       float32        `json:"volume,omitempty"`
-		Emotion      string         `json:"emotion,omitempty"`
-		Extensions   map[string]any `json:"extensions,omitempty"`
+func buildSpeechSynthesisRequest(modelID string, spec *runtimev1.SpeechSynthesizeScenarioSpec, scenarioExtensions map[string]any) (speechSynthesisRequest, string, error) {
+	if spec == nil {
+		return speechSynthesisRequest{}, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 	}
 	text := strings.TrimSpace(spec.GetText())
 	requestedVoice := strings.TrimSpace(scenarioVoiceRef(spec))
-	payload, err := b.postRaw(ctx, "/v1/audio/speech", speechRequest{
+	return speechSynthesisRequest{
 		Model:        modelID,
 		Input:        text,
 		Voice:        requestedVoice,
@@ -477,7 +473,62 @@ func (b *Backend) SynthesizeSpeech(ctx context.Context, modelID string, spec *ru
 		Volume:       spec.GetVolume(),
 		Emotion:      strings.TrimSpace(spec.GetEmotion()),
 		Extensions:   scenarioExtensions,
-	})
+	}, text, nil
+}
+
+// SpeechArtifactBody is one successful speech response body accepted for
+// incremental Runtime custody. Body has exactly one consumer and Close owner.
+type SpeechArtifactBody struct {
+	Body      io.ReadCloser
+	MIMEType  string
+	SizeBytes int64
+}
+
+// SynthesizeSpeechArtifactBody leaves a successful response open so Runtime
+// can stream it directly into custody without applying the inline read limit.
+func (b *Backend) SynthesizeSpeechArtifactBody(ctx context.Context, modelID string, spec *runtimev1.SpeechSynthesizeScenarioSpec, scenarioExtensions map[string]any) (*SpeechArtifactBody, *runtimev1.UsageStats, error) {
+	request, text, err := buildSpeechSynthesisRequest(modelID, spec, scenarioExtensions)
+	if err != nil {
+		return nil, nil, err
+	}
+	response, err := b.postRawResponse(ctx, "/v1/audio/speech", request)
+	if err != nil {
+		return nil, nil, err
+	}
+	if response.Body == nil || response.ContentLength == 0 {
+		if response.Body != nil {
+			_ = response.Body.Close()
+		}
+		return nil, nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
+	}
+	mimeType := strings.TrimSpace(response.Header.Get("Content-Type"))
+	if mimeType == "" {
+		mimeType = "audio/wav"
+	}
+	sizeBytes := response.ContentLength
+	if sizeBytes < 0 {
+		sizeBytes = 0
+	}
+	usage := &runtimev1.UsageStats{InputTokens: EstimateTokens(text), ComputeMs: 120}
+	if sizeBytes > 0 {
+		usage.OutputTokens = MaxInt64(1, (sizeBytes+3)/4)
+	}
+	return &SpeechArtifactBody{Body: response.Body, MIMEType: mimeType, SizeBytes: sizeBytes}, usage, nil
+}
+
+// SynthesizeSpeech sends a text-to-speech request.
+func (b *Backend) SynthesizeSpeech(ctx context.Context, modelID string, spec *runtimev1.SpeechSynthesizeScenarioSpec, scenarioExtensions map[string]any) ([]byte, *runtimev1.UsageStats, error) {
+	if spec == nil {
+		return nil, nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
+	}
+	if b.supportsMimoChatCompletions() || isMimoModelID(modelID) {
+		return b.synthesizeMimoChat(ctx, modelID, spec, scenarioExtensions)
+	}
+	request, text, err := buildSpeechSynthesisRequest(modelID, spec, scenarioExtensions)
+	if err != nil {
+		return nil, nil, err
+	}
+	payload, err := b.postRaw(ctx, "/v1/audio/speech", request)
 	if err != nil {
 		return nil, nil, err
 	}

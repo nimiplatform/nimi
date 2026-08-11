@@ -174,6 +174,10 @@ func (s *Service) verifyLocalCapabilityAssetContent(asset *runtimev1.LocalAssetR
 	if asset == nil || strings.TrimSpace(asset.GetLocalAssetId()) == "" || asset.GetStatus() == runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_REMOVED {
 		return capabilitydriver.AssetDescriptor{}, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED, false
 	}
+	if (asset.GetKind() == runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_TTS || asset.GetKind() == runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_STT) &&
+		!s.speechAssetMatchesVerifiedBundle(asset) {
+		return capabilitydriver.AssetDescriptor{}, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_LOCAL_ASSET_INCOMPATIBLE, true
+	}
 	bundleEntries, bundleErr := localCapabilityBundleEntryDescriptors(asset)
 	if bundleErr != nil {
 		return capabilitydriver.AssetDescriptor{}, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_LOCAL_ASSET_CONTENT_UNVERIFIED, false

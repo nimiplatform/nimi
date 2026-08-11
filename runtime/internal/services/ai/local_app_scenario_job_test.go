@@ -4,8 +4,11 @@ import (
 	"context"
 	"strings"
 	"testing"
+	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
+	"github.com/nimiplatform/nimi/runtime/internal/executionintent"
 	"github.com/nimiplatform/nimi/runtime/internal/localappop"
 	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
 	"google.golang.org/grpc/codes"
@@ -148,6 +151,58 @@ func TestSubmitLocalAppScenarioJobFailsClosedWithoutAIConfig(t *testing.T) {
 		t.Fatalf("response = %+v, want nil", response)
 	}
 	assertLocalAppTextCandidateError(t, err, codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONFIG_NOT_FOUND)
+}
+
+func TestSubmitLocalAppSpeechJobAcceptsMinimalTypedSpecAndBindsOwner(t *testing.T) {
+	svc := newTestService(nil)
+	host := &localSpeechHostStub{entered: make(chan struct{}), release: make(chan struct{})}
+	svc.SetLocalExecutionResolver(&mutableLocalExecutionResolver{projection: selectedSpeechExecutionForTest(
+		t,
+		capabilitydriver.AudioSynthesizeContract,
+		"speech-tts",
+	)})
+	svc.SetLocalSpeechExecutionHost(host)
+	ctx := executionintent.WithIntent(
+		localAppScenarioJobContext(accountservice.LocalAppOperationScenarioJobSubmit, localappop.AppOperationIDScenarioJobSubmit),
+		executionintent.Intent{
+			CapabilityContract: capabilitydriver.AudioSynthesizeContract,
+			Route:              runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+		},
+	)
+	response, err := svc.SubmitLocalAppScenarioJob(ctx, &runtimev1.SubmitLocalAppScenarioJobRequest{
+		Spec: &runtimev1.SubmitLocalAppScenarioJobRequest_SpeechSynthesize{
+			SpeechSynthesize: &runtimev1.LocalAppSpeechSynthesizeJobSpec{
+				Text:       "Synthesize a short Runtime acceptance sentence.",
+				TimingMode: runtimev1.SpeechTimingMode_SPEECH_TIMING_MODE_NONE,
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("SubmitLocalAppScenarioJob: %v", err)
+	}
+	if response.GetJob().GetScenarioType() != runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE {
+		t.Fatalf("scenario type = %v", response.GetJob().GetScenarioType())
+	}
+	select {
+	case <-host.entered:
+	case <-time.After(2 * time.Second):
+		t.Fatal("local speech Host was not entered")
+	}
+	close(host.release)
+	job := waitLocalSpeechJobTerminal(t, svc, response.GetJob().GetJobId())
+	if job.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED {
+		t.Fatalf("job status = %v", job.GetStatus())
+	}
+	readback, err := svc.GetLocalAppScenarioJob(
+		localAppScenarioJobContext(accountservice.LocalAppOperationScenarioJobGet, localappop.AppOperationIDScenarioJobGet),
+		&runtimev1.GetLocalAppScenarioJobRequest{JobId: response.GetJob().GetJobId()},
+	)
+	if err != nil {
+		t.Fatalf("GetLocalAppScenarioJob: %v", err)
+	}
+	if readback.GetJob().GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED {
+		t.Fatalf("readback job status = %v", readback.GetJob().GetStatus())
+	}
 }
 
 func TestSubmitLocalAppScenarioJobVoiceWorkflowDerivesTargetFromIntent(t *testing.T) {

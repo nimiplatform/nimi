@@ -23,7 +23,7 @@ models:
     voice_set_id: local:local_qwen3_tts_customvoice_dynamic_voice_set
     voice_discovery_mode: dynamic_user_scoped
     voice_ref_kinds: &a1
-      - voice_asset_id
+      - preset_voice_id
       - provider_voice_ref
     install:
       repo: Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice
@@ -170,7 +170,6 @@ models:
     voice_set_id: local:local_qwen3_tts_base_dynamic_voice_set
     voice_discovery_mode: dynamic_user_scoped
     voice_ref_kinds: &a2
-      - voice_asset_id
       - provider_voice_ref
   - model_id: local/qwen3-tts-base
     provider: local
@@ -252,7 +251,6 @@ models:
     voice_set_id: local:local_qwen3_tts_voicedesign_dynamic_voice_set
     voice_discovery_mode: dynamic_user_scoped
     voice_ref_kinds: &a3
-      - voice_asset_id
       - provider_voice_ref
   - model_id: local/qwen3-tts-voicedesign
     provider: local
@@ -334,7 +332,6 @@ models:
     voice_set_id: local:local_cosyvoice2_dynamic_voice_set
     voice_discovery_mode: dynamic_user_scoped
     voice_ref_kinds:
-      - voice_asset_id
       - provider_voice_ref
   - model_id: gpt-sovits-local
     provider: local
@@ -356,7 +353,6 @@ models:
     voice_set_id: local:local_gpt_sovits_dynamic_voice_set
     voice_discovery_mode: dynamic_user_scoped
     voice_ref_kinds:
-      - voice_asset_id
       - provider_voice_ref
   - model_id: f5-tts-local
     provider: local
@@ -378,7 +374,6 @@ models:
     voice_set_id: local:local_f5_tts_dynamic_voice_set
     voice_discovery_mode: dynamic_user_scoped
     voice_ref_kinds:
-      - voice_asset_id
       - provider_voice_ref
   - model_id: piper-local
     provider: local
@@ -444,7 +439,6 @@ models:
     voice_set_id: local:local_voxcpm2_dynamic_voice_set
     voice_discovery_mode: dynamic_user_scoped
     voice_ref_kinds: &a4
-      - voice_asset_id
       - provider_voice_ref
   - model_id: local/voxcpm2
     provider: local

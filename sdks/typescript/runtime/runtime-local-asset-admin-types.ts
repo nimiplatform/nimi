@@ -492,6 +492,34 @@ export interface NimiRuntimeLocalImageNativeEnvironmentPlanRuntime {
   readonly resolveEnvironmentPlan: (input: NimiRuntimeLocalEnvironmentPlanInput) => Promise<NimiRuntimeLocalEnvironmentPlan>;
 }
 
+export type NimiRuntimeLocalQwen3ASREnvironmentPlanInput = Omit<
+  NimiRuntimeLocalEnvironmentPlanInput,
+  'packId' | 'consumerScope'
+> & {
+  readonly packId: 'local-speech';
+  readonly consumerScope: 'speech.qwen3-asr.python';
+};
+
+export interface NimiRuntimeLocalQwen3ASREnvironmentPlanRuntime {
+  readonly resolveEnvironmentPlan: (
+    input: NimiRuntimeLocalEnvironmentPlanInput,
+  ) => Promise<NimiRuntimeLocalEnvironmentPlan>;
+}
+
+export type NimiRuntimeLocalQwen3TTSEnvironmentPlanInput = Omit<
+  NimiRuntimeLocalEnvironmentPlanInput,
+  'packId' | 'consumerScope'
+> & {
+  readonly packId: 'local-speech';
+  readonly consumerScope: 'speech.qwen3-tts.python';
+};
+
+export interface NimiRuntimeLocalQwen3TTSEnvironmentPlanRuntime {
+  readonly resolveEnvironmentPlan: (
+    input: NimiRuntimeLocalEnvironmentPlanInput,
+  ) => Promise<NimiRuntimeLocalEnvironmentPlan>;
+}
+
 export interface NimiRuntimeLocalWriteOptions {
   readonly caller?: 'core' | 'builtin' | 'injected' | 'sideload' | string;
   readonly callOptions?: RuntimeTypedCallOptions;

@@ -39,7 +39,7 @@ func streamSpeechSynthesizeScenario(s *Service, req *runtimev1.StreamScenarioReq
 		return err
 	}
 	if intent.IsLocal() {
-		return localExactMediaUnsupportedError(req.GetScenarioType())
+		return streamLocalSpeechSynthesizeScenario(s, req, stream)
 	}
 
 	capturedRequest := &runtimev1.SubmitScenarioJobRequest{

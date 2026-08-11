@@ -17,10 +17,14 @@ import {
 } from '../core-generated/runtime-typed-client.js';
 import { ReasonCode } from '../types/index.js';
 import {
+  NIMI_MACHINE_LOCAL_AUDIO_SYNTHESIZE_CAPABILITY_CONTRACT,
+  NIMI_MACHINE_LOCAL_AUDIO_TRANSCRIBE_CAPABILITY_CONTRACT,
   NIMI_MACHINE_LOCAL_IMAGE_GENERATE_CAPABILITY_CONTRACT,
   NIMI_MACHINE_LOCAL_INPUT_IMAGE_FEATURE,
   NIMI_MACHINE_LOCAL_LLAMA_CPP_EMBED_IMPLEMENTATION,
   NIMI_MACHINE_LOCAL_LLAMA_CPP_TEXT_IMPLEMENTATION,
+  NIMI_MACHINE_LOCAL_QWEN3_ASR_IMPLEMENTATION,
+  NIMI_MACHINE_LOCAL_QWEN3_TTS_IMPLEMENTATION,
   NIMI_MACHINE_LOCAL_STABLE_DIFFUSION_IMAGE_IMPLEMENTATION,
   NIMI_MACHINE_LOCAL_STABLE_DIFFUSION_VIDEO_IMPLEMENTATION,
   NIMI_MACHINE_LOCAL_TEXT_GENERATE_CAPABILITY_CONTRACT,
@@ -29,6 +33,8 @@ import {
   createNimiMachineLocalAIConfigurationClient,
   createNimiMachineLocalLlamaCppEmbedConfigurationInput,
   createNimiMachineLocalLlamaCppTextConfigurationInput,
+  createNimiMachineLocalQwen3ASRConfigurationInput,
+  createNimiMachineLocalQwen3TTSConfigurationInput,
   createNimiMachineLocalStableDiffusionImageConfigurationInput,
   createNimiMachineLocalStableDiffusionVideoConfigurationInput,
   deriveNimiMachineLocalAIConfigurationImpact,
@@ -230,6 +236,20 @@ test('Machine Local AI Configuration typed client maps every admitted RPC throug
     contextSize: 4096,
   });
   assert.deepEqual(embedInput.supportedFeatures, []);
+  const ttsInput = createNimiMachineLocalQwen3TTSConfigurationInput({
+    displayName: 'Local speech synthesis',
+  });
+  assert.equal(ttsInput.capabilityContract, NIMI_MACHINE_LOCAL_AUDIO_SYNTHESIZE_CAPABILITY_CONTRACT);
+  assert.deepEqual(ttsInput.implementation, NIMI_MACHINE_LOCAL_QWEN3_TTS_IMPLEMENTATION);
+  assert.deepEqual(ttsInput.portableConfig, {});
+  assert.deepEqual(ttsInput.supportedFeatures, []);
+  const asrInput = createNimiMachineLocalQwen3ASRConfigurationInput({
+    displayName: 'Local speech transcription',
+  });
+  assert.equal(asrInput.capabilityContract, NIMI_MACHINE_LOCAL_AUDIO_TRANSCRIBE_CAPABILITY_CONTRACT);
+  assert.deepEqual(asrInput.implementation, NIMI_MACHINE_LOCAL_QWEN3_ASR_IMPLEMENTATION);
+  assert.deepEqual(asrInput.portableConfig, {});
+  assert.deepEqual(asrInput.supportedFeatures, []);
   const addInput = createNimiMachineLocalLlamaCppTextConfigurationInput({
     displayName: 'Local writing model',
     acceptsImageInput: true,

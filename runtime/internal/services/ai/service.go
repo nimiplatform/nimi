@@ -70,6 +70,8 @@ type Service struct {
 	localTextHost                          localexecution.TextExecutionHost
 	localImageHost                         localexecution.ImageExecutionHost
 	localVideoHost                         localexecution.VideoExecutionHost
+	localSpeechHost                        localexecution.SpeechExecutionHost
+	localSpeechJobOrder                    localSpeechSubmissionOrder
 	localVideoMedia                        videomedia.Pipeline
 	capabilityDrivers                      *capabilitydriver.Registry
 	cloudTextDrivers                       *capabilitydriver.CloudTextRegistry
@@ -261,6 +263,15 @@ func (s *Service) SetLocalImageExecutionHost(host localexecution.ImageExecutionH
 func (s *Service) SetLocalVideoExecutionHost(host localexecution.VideoExecutionHost) {
 	if s != nil {
 		s.localVideoHost = host
+	}
+}
+
+// SetLocalSpeechExecutionHost wires the supervised Qwen3 speech substrate.
+// The Host receives only exact immutable Driver plans and owns no selection or
+// route truth.
+func (s *Service) SetLocalSpeechExecutionHost(host localexecution.SpeechExecutionHost) {
+	if s != nil {
+		s.localSpeechHost = host
 	}
 }
 

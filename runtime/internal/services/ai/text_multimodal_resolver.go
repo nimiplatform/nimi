@@ -245,7 +245,7 @@ func (s *Service) resolveTextGenerateArtifactPath(
 			if err != nil {
 				return "", "", nil, err
 			}
-			defer source.Body.Close()
+			defer func() { _ = source.Body.Close() }()
 			mimeType := firstNonEmpty(strings.TrimSpace(source.Record.MimeType), strings.TrimSpace(ref.GetMimeType()))
 			path, cleanup, writeErr := writeTextGenerateArtifactTempStream(ctx, mimeType, source.Body, source.Record.SizeBytes)
 			if writeErr != nil {
@@ -282,7 +282,7 @@ func (s *Service) resolveTextGenerateArtifactPath(
 		if err != nil {
 			return "", "", nil, err
 		}
-		defer source.Body.Close()
+		defer func() { _ = source.Body.Close() }()
 		mimeType := firstNonEmpty(strings.TrimSpace(source.Record.MimeType), strings.TrimSpace(ref.GetMimeType()))
 		path, cleanup, writeErr := writeTextGenerateArtifactTempStream(ctx, mimeType, source.Body, source.Record.SizeBytes)
 		if writeErr != nil {

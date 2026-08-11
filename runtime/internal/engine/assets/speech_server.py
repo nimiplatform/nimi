@@ -2,15 +2,18 @@
 from __future__ import annotations
 
 import argparse
+import asyncio
 import json
 import mimetypes
 import pathlib
 import re
+import threading
 from typing import Any
 import uuid
 
-from fastapi import FastAPI, File, Form, HTTPException, UploadFile
-from fastapi.responses import Response
+from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
+from fastapi.responses import StreamingResponse
+from starlette.background import BackgroundTask
 from starlette.concurrency import run_in_threadpool
 import uvicorn
 from speech_server_runtime import (
@@ -19,6 +22,7 @@ from speech_server_runtime import (
     QWEN3_ASR_DRIVER_ENV,
     QWEN3_TTS_PREFLIGHT_CACHE,
     QWEN3_TTS_DRIVER_ENV,
+    DriverAudioArtifact,
     SpeechModelState,
     build_host_state,
     driver_command_state,
@@ -35,6 +39,98 @@ from speech_server_runtime import (
     voice_workflow_result_from_driver,
     workflow_execution_unavailable_response,
 )
+
+
+SPEECH_RESPONSE_CHUNK_BYTES = 256 * 1024
+SPEECH_DISCONNECT_POLL_SECONDS = 0.05
+
+
+async def run_synthesis_for_request(
+    request: Request,
+    model: SpeechModelState,
+    request_payload: dict[str, Any],
+) -> DriverAudioArtifact:
+    cancel_event = threading.Event()
+    task = asyncio.create_task(
+        run_in_threadpool(synthesize_with_driver, model, request_payload, cancel_event)
+    )
+    disconnected = False
+    try:
+        while not task.done():
+            if await request.is_disconnected():
+                cancel_event.set()
+                try:
+                    await task
+                except Exception:
+                    pass
+                disconnected = True
+                break
+            done, _ = await asyncio.wait(
+                (task,),
+                timeout=SPEECH_DISCONNECT_POLL_SECONDS,
+            )
+            if done:
+                return task.result()
+    except asyncio.CancelledError:
+        cancel_event.set()
+        try:
+            await task
+        except Exception:
+            pass
+        raise
+    if disconnected:
+        raise asyncio.CancelledError()
+    return task.result()
+
+
+async def run_transcription_for_request(
+    request: Request,
+    model: SpeechModelState,
+    request_payload: dict[str, Any],
+) -> str:
+    cancel_event = threading.Event()
+    task = asyncio.create_task(
+        run_in_threadpool(transcribe_with_driver, model, request_payload, cancel_event)
+    )
+    disconnected = False
+    try:
+        while not task.done():
+            if await request.is_disconnected():
+                cancel_event.set()
+                try:
+                    await task
+                except Exception:
+                    pass
+                disconnected = True
+                break
+            done, _ = await asyncio.wait(
+                (task,),
+                timeout=SPEECH_DISCONNECT_POLL_SECONDS,
+            )
+            if done:
+                return task.result()
+    except asyncio.CancelledError:
+        cancel_event.set()
+        try:
+            await task
+        except Exception:
+            pass
+        raise
+    if disconnected:
+        raise asyncio.CancelledError()
+    return task.result()
+
+
+async def stream_driver_audio_artifact(artifact: DriverAudioArtifact):
+    try:
+        with artifact.path.open("rb") as handle:
+            while True:
+                chunk = await run_in_threadpool(handle.read, SPEECH_RESPONSE_CHUNK_BYTES)
+                if not chunk:
+                    break
+                yield chunk
+    finally:
+        artifact.cleanup()
 
 
 def find_ready_model(model_id: str, capability: str) -> SpeechModelState:
@@ -158,18 +254,18 @@ def create_app() -> FastAPI:
         }
 
     @app.post("/v1/audio/speech")
-    async def synthesize(payload: dict[str, Any]):
-        request = SpeechSynthesizeRequest.from_payload(payload)
-        if not request.model or not request.input:
+    async def synthesize(payload: dict[str, Any], request: Request):
+        speech_request = SpeechSynthesizeRequest.from_payload(payload)
+        if not speech_request.model or not speech_request.input:
             return plain_speech_unavailable_response(
                 "audio synthesis",
                 "audio synthesis requires non-empty model and input",
                 "speech_request_invalid",
             )
         try:
-            model = find_ready_model(request.model, "audio.synthesize")
-            audio, content_type = await run_in_threadpool(
-                synthesize_with_driver,
+            model = find_ready_model(speech_request.model, "audio.synthesize")
+            artifact = await run_synthesis_for_request(
+                request,
                 model,
                 {
                     "driver": model.capability_drivers.get("audio.synthesize", ""),
@@ -179,16 +275,16 @@ def create_app() -> FastAPI:
                     "bundle_dir": model.bundle_dir,
                     "entry_path": model.entry_path,
                     "declared_files": model.declared_files,
-                    "input": request.input,
-                    "voice": request.voice,
-                    "language": request.language,
-                    "audio_format": request.audio_format,
-                    "sample_rate_hz": request.sample_rate_hz,
-                    "speed": request.speed,
-                    "pitch": request.pitch,
-                    "volume": request.volume,
-                    "emotion": request.emotion,
-                    "extensions": request.extensions,
+                    "input": speech_request.input,
+                    "voice": speech_request.voice,
+                    "language": speech_request.language,
+                    "audio_format": speech_request.audio_format,
+                    "sample_rate_hz": speech_request.sample_rate_hz,
+                    "speed": speech_request.speed,
+                    "pitch": speech_request.pitch,
+                    "volume": speech_request.volume,
+                    "emotion": speech_request.emotion,
+                    "extensions": speech_request.extensions,
                 },
             )
         except HTTPException:
@@ -199,17 +295,20 @@ def create_app() -> FastAPI:
                 f"local supervised speech synthesis failed: {error}",
                 "speech_driver_execution_failed",
             )
-        return Response(
-            content=audio,
-            media_type=content_type,
+        return StreamingResponse(
+            stream_driver_audio_artifact(artifact),
+            media_type=artifact.content_type,
             headers={
                 "x-local-engine": model.capability_drivers.get("audio.synthesize", "speech"),
                 "x-local-model-id": model.model_id,
+                "content-length": str(artifact.size_bytes),
             },
+            background=BackgroundTask(artifact.cleanup),
         )
 
     @app.post("/v1/audio/transcriptions")
     async def transcribe(
+        request: Request,
         model: str = Form(...),
         file: UploadFile = File(...),
         mime_type: str | None = Form(None),
@@ -240,8 +339,8 @@ def create_app() -> FastAPI:
             audio_path = safe_uploaded_audio_path(driver_work_root(), file.filename, mime_type)
             try:
                 audio_path.write_bytes(raw_audio)
-                text = await run_in_threadpool(
-                    transcribe_with_driver,
+                text = await run_transcription_for_request(
+                    request,
                     active_model,
                     {
                         "driver": active_model.capability_drivers.get("audio.transcribe", ""),

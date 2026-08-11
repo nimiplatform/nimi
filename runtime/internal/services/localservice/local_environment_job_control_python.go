@@ -287,26 +287,34 @@ func (s *Service) executePythonTorchWheelEnvironmentDependencyJob(ctx context.Co
 		}, nil
 	}
 	consumer := pythonMaterializerConsumerForJob(job)
-	if !strings.HasPrefix(strings.TrimSpace(consumer), "media.") {
+	if !strings.HasPrefix(strings.TrimSpace(consumer), "media.") && !strings.HasPrefix(strings.TrimSpace(consumer), "speech.") {
 		return localEnvironmentDependencyJobResult{
 			State:           localEnvironmentStateUnsupported,
 			SourceKind:      localEnvironmentSourceUnavailable,
 			AuditReasonCode: "LOCAL_ENVIRONMENT_DEPENDENCY_UNSUPPORTED",
 		}, nil
 	}
-	// Prerequisite ordering (runtime authority): wait for uv, venv, and, for a
-	// cuda consumer, the CUDA runtime, rather than failing closed under
-	// concurrent unordered desktop Start calls.
-	uvRecord, ok, detail := s.waitForSelectedSourceForFamilyAndConsumerDetail(ctx, localEnvironmentFamilyPythonUV, consumer)
+	// Prerequisite ordering (runtime authority): wait for uv, venv, package set,
+	// and, for a cuda consumer, the CUDA runtime, rather than racing a
+	// transitive package-set Torch install under concurrent Desktop Start calls.
+	prerequisiteConsumer := pythonTorchWheelPrerequisiteConsumer(consumer)
+	uvRecord, ok, detail := s.waitForSelectedSourceForFamilyAndConsumerDetail(ctx, localEnvironmentFamilyPythonUV, prerequisiteConsumer)
 	if !ok {
 		return failedPrerequisiteDependencyResult(detail), nil
 	}
-	venvRecord, ok, detail := s.waitForSelectedSourceForFamilyAndConsumerDetail(ctx, localEnvironmentFamilyPythonVenv, consumer)
+	venvRecord, ok, detail := s.waitForSelectedSourceForFamilyAndConsumerDetail(ctx, localEnvironmentFamilyPythonVenv, prerequisiteConsumer)
 	if !ok {
 		return failedPrerequisiteDependencyResult(detail), nil
 	}
 	if strings.Contains(strings.TrimSpace(consumer), ".cuda") {
 		if _, ok, detail := s.waitForSelectedSourceForFamilyAndConsumerDetail(ctx, localEnvironmentFamilyCUDA, consumer); !ok {
+			return failedPrerequisiteDependencyResult(detail), nil
+		}
+	}
+	packageRecord := localEnvironmentSelectedSourceRecordState{}
+	if strings.HasPrefix(strings.TrimSpace(consumer), "speech.") {
+		packageRecord, ok, detail = s.waitForSelectedSourceForFamilyAndConsumerDetail(ctx, localEnvironmentFamilyPythonPackageSet, prerequisiteConsumer)
+		if !ok {
 			return failedPrerequisiteDependencyResult(detail), nil
 		}
 	}
@@ -338,6 +346,9 @@ func (s *Service) executePythonTorchWheelEnvironmentDependencyJob(ctx context.Co
 		"selected_uv_record":   strings.TrimSpace(uvRecord.RecordID),
 		"selected_venv_record": strings.TrimSpace(venvRecord.RecordID),
 	}
+	if strings.TrimSpace(packageRecord.RecordID) != "" {
+		hashes["selected_package_record"] = strings.TrimSpace(packageRecord.RecordID)
+	}
 	if cudaRecord, ok, _ := s.readySelectedSourceForFamilyAndConsumer(localEnvironmentFamilyCUDA, consumer); ok {
 		hashes["selected_cuda_record"] = strings.TrimSpace(cudaRecord.RecordID)
 	}
@@ -349,6 +360,9 @@ func (s *Service) executePythonTorchWheelEnvironmentDependencyJob(ctx context.Co
 		"selected_uv_record=" + strings.TrimSpace(uvRecord.RecordID),
 		"selected_venv_record=" + strings.TrimSpace(venvRecord.RecordID),
 	}
+	if strings.TrimSpace(packageRecord.RecordID) != "" {
+		compatibilityEvidence = append(compatibilityEvidence, "selected_package_record="+strings.TrimSpace(packageRecord.RecordID))
+	}
 	for _, probe := range status.ImportProbes {
 		compatibilityEvidence = append(compatibilityEvidence, "import_probe="+strings.TrimSpace(probe))
 	}
@@ -358,16 +372,29 @@ func (s *Service) executePythonTorchWheelEnvironmentDependencyJob(ctx context.Co
 		CanonicalRoot:         strings.TrimSpace(status.VenvRoot),
 		Version:               strings.TrimSpace(status.TorchVersion),
 		CompatibilityEvidence: normalizeStringSlice(compatibilityEvidence),
-		VerifiedArtifacts: normalizeStringSlice([]string{
-			strings.TrimSpace(status.InterpreterPath),
-			strings.TrimSpace(status.UVExecutable),
-			"torch=" + strings.TrimSpace(status.TorchVersion),
-			strings.TrimSpace(status.TorchvisionSpec),
-		}),
-		Hashes:            hashes,
-		SelectedConsumers: pythonSelectedConsumersForJob(job),
-		AuditReasonCode:   "LOCAL_ENVIRONMENT_DEPENDENCY_READY_MANAGED",
+		VerifiedArtifacts:     pythonTorchWheelVerifiedArtifacts(status),
+		Hashes:                hashes,
+		SelectedConsumers:     pythonSelectedConsumersForJob(job),
+		AuditReasonCode:       "LOCAL_ENVIRONMENT_DEPENDENCY_READY_MANAGED",
 	}, nil
+}
+
+func pythonTorchWheelVerifiedArtifacts(status engine.PythonTorchWheelDependencyStatus) []string {
+	return normalizeStringSlice([]string{
+		strings.TrimSpace(status.InterpreterPath),
+		strings.TrimSpace(status.UVExecutable),
+		"torch=" + strings.TrimSpace(status.TorchVersion),
+		strings.TrimSpace(status.TorchvisionSpec),
+	})
+}
+
+func pythonTorchWheelPrerequisiteConsumer(consumer string) string {
+	trimmed := strings.TrimSpace(consumer)
+	if strings.HasPrefix(trimmed, "speech.") {
+		trimmed = strings.TrimSuffix(trimmed, ".cuda")
+		trimmed = strings.TrimSuffix(trimmed, ".cpu")
+	}
+	return trimmed
 }
 
 func pythonSelectedConsumersForDependency(dependencyID string) []string {
@@ -480,6 +507,13 @@ func (s *Service) selectedSourceForFamilyAndConsumer(family string, consumer str
 			continue
 		}
 		if trimmedConsumer == "" || stringSliceContains(record.SelectedConsumers, trimmedConsumer) {
+			if record.DependencyFamily == localEnvironmentFamilyPythonTorchWheel && trimmedConsumer != "" {
+				projected, ok := localEnvironmentSelectedSourceRecordForConsumer(record, trimmedConsumer)
+				if !ok {
+					continue
+				}
+				return projected, true
+			}
 			return record, true
 		}
 	}

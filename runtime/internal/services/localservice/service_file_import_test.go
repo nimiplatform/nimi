@@ -124,6 +124,52 @@ func TestImportLocalModelFileRegistersManagedSupervisedLlama(t *testing.T) {
 	}
 }
 
+func TestImportLocalSpeechModelFileRequiresCompleteFolderBundle(t *testing.T) {
+	tests := []struct {
+		name       string
+		fileName   string
+		kind       runtimev1.LocalAssetKind
+		capability string
+	}{
+		{
+			name:       "tts",
+			fileName:   "qwen3-tts.safetensors",
+			kind:       runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_TTS,
+			capability: "audio.synthesize",
+		},
+		{
+			name:       "stt",
+			fileName:   "qwen3-asr.safetensors",
+			kind:       runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_STT,
+			capability: "audio.transcribe",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			svc := newTestService(t)
+			sourcePath := filepath.Join(t.TempDir(), tt.fileName)
+			if err := os.WriteFile(sourcePath, []byte("speech-model"), 0o644); err != nil {
+				t.Fatalf("write source model: %v", err)
+			}
+
+			resp, err := svc.ImportLocalAssetFile(context.Background(), &runtimev1.ImportLocalAssetFileRequest{
+				FilePath:     sourcePath,
+				Kind:         tt.kind,
+				Capabilities: []string{tt.capability},
+				Engine:       "speech",
+			})
+			if resp != nil {
+				t.Fatalf("ImportLocalAssetFile response = %+v, want nil", resp)
+			}
+			assertGRPCReasonCode(t, err, "ImportLocalAssetFile(single-file speech)", runtimev1.ReasonCode_AI_LOCAL_MANIFEST_INVALID)
+			if _, statErr := os.Stat(sourcePath); statErr != nil {
+				t.Fatalf("rejected source must remain untouched: %v", statErr)
+			}
+		})
+	}
+}
+
 func TestImportLocalModelFileDuplicateNameCreatesDistinctInstances(t *testing.T) {
 	svc := newTestService(t)
 	var imported []*runtimev1.LocalAssetRecord

@@ -220,6 +220,10 @@ type EngineConfig struct {
 	// ModelsPath is the Runtime-verified speech model directory.
 	ModelsPath string
 
+	// SpeechHostPackageSetRoot is the Runtime-verified package-set root that
+	// owns the private speech server for this exact capability Host.
+	SpeechHostPackageSetRoot string
+
 	// SpeechQwen3TTSPackageSetRoot is the Runtime-verified qwen3_tts Python
 	// package-set root used to derive the supervised speech TTS driver command.
 	SpeechQwen3TTSPackageSetRoot string

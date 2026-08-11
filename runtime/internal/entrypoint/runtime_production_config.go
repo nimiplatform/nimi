@@ -14,14 +14,15 @@ func newProtectedRuntimeConfig(runtimeRoot, runtimeID, realmBaseURL string) conf
 	return config.Config{
 		// Protected startup never opens these ordinary listeners. Config keeps
 		// syntactically valid loopback values for shared service construction.
-		GRPCAddr:        "127.0.0.1:46371",
-		HTTPAddr:        "127.0.0.1:46372",
-		ShutdownTimeout: 10 * time.Second,
-		LocalStatePath:  filepath.Join(runtimeRoot, "local-state.json"),
-		LocalModelsPath: "",
-		RuntimeID:       runtimeID,
-		DataRootRef:     "",
-		ManagedRoots:    config.ManagedRootsConfig{},
+		GRPCAddr:         "127.0.0.1:46371",
+		HTTPAddr:         "127.0.0.1:46372",
+		ShutdownTimeout:  10 * time.Second,
+		LocalStatePath:   filepath.Join(runtimeRoot, "local-state.json"),
+		LocalModelsPath:  "",
+		EngineSpeechPort: 8330,
+		RuntimeID:        runtimeID,
+		DataRootRef:      "",
+		ManagedRoots:     config.ManagedRootsConfig{},
 		LocalService: config.LocalServiceConfig{
 			Enabled: true,
 			Mode:    config.LocalServiceModeDesktopLocal,

@@ -351,6 +351,16 @@ func (s *Service) importLocalModelFile(
 	if engine == "" {
 		engine = defaultEngineForAssetKind(kind)
 	}
+	if kind == runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_TTS || kind == runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_STT {
+		return nil, grpcerr.WithReasonCodeOptions(
+			codes.InvalidArgument,
+			runtimev1.ReasonCode_AI_LOCAL_MANIFEST_INVALID,
+			grpcerr.ReasonOptions{
+				Message:    "local speech models require a complete admitted folder bundle",
+				ActionHint: "import_complete_speech_model_folder",
+			},
+		)
+	}
 	modelName := strings.TrimSpace(req.GetAssetName())
 	if modelName == "" {
 		modelName = strings.TrimSuffix(filepath.Base(sourcePath), filepath.Ext(sourcePath))
@@ -494,6 +504,9 @@ func (s *Service) importLocalModelFile(
 		},
 		"integrity_mode": "local_unverified",
 		"hashes":         map[string]string{destFileName: "sha256:" + stageFileHash},
+	}
+	if artifactRoles := defaultArtifactRolesForAssetKind(kind); len(artifactRoles) > 0 {
+		manifest["artifact_roles"] = artifactRoles
 	}
 	s.updateTransferProgress(transferID, "manifest", sourceInfo.Size(), sourceInfo.Size(), "writing runtime manifest")
 	payload, err := json.MarshalIndent(manifest, "", "  ")

@@ -16,6 +16,7 @@ import {
   relatedPassiveAssetsForRunnable,
 } from './runtime-config-local-model-center-helpers';
 import {
+  canImportBundleDirectoryForAssetKind,
   canImportDeclaration,
   isRunnableAssetKind,
 } from './runtime-config-use-local-model-center-helpers.js';
@@ -397,7 +398,7 @@ export function useLocalModelCenterRuntimeState({ props }: UseLocalModelCenterRu
     importFileAssetKind,
     importFileAuxiliaryEngine,
   });
-  const canChooseImportDirectory = importFileAssetKind === 'chat';
+  const canChooseImportDirectory = canImportBundleDirectoryForAssetKind(importFileAssetKind);
 
   const rescanInstalledAsset = useCallback(async (localAssetId: string) => {
     setAssetBusy(true);

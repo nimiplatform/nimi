@@ -132,7 +132,10 @@ type Driver interface {
 // to a Driver at job submission. Drivers receive exact absolute paths; they
 // never discover files or resolve paths relative to a host model directory.
 type InvocationExactBinding struct {
-	RequirementID     string
+	RequirementID string
+	// AssetID is the stable manifest/catalog identity used by a supervised
+	// Host; LocalAssetID identifies only the machine-local occurrence.
+	AssetID           string
 	LocalAssetID      string
 	AbsolutePath      string
 	VerifiedContentID string
@@ -890,6 +893,8 @@ func NewProductionRegistry() *Registry {
 		{CapabilityContract: TextEmbedCapabilityContract, Identity: Identity{ImplementationID: LlamaEmbedImplementationID, DriverID: LlamaDriverID, DriverDialect: LlamaEmbedDriverDialect}}:                                               LlamaEmbedDriver{},
 		{CapabilityContract: StableDiffusionCapabilityContract, Identity: Identity{ImplementationID: StableDiffusionImplementationID, DriverID: StableDiffusionDriverID, DriverDialect: StableDiffusionDriverDialect}}:                     StableDiffusionImageDriver{},
 		{CapabilityContract: StableDiffusionVideoCapabilityContract, Identity: Identity{ImplementationID: StableDiffusionVideoImplementationID, DriverID: StableDiffusionVideoDriverID, DriverDialect: StableDiffusionVideoDriverDialect}}: StableDiffusionVideoDriver{},
+		{CapabilityContract: AudioSynthesizeContract, Identity: Identity{ImplementationID: Qwen3TTSImplementationID, DriverID: Qwen3TTSDriverID, DriverDialect: Qwen3TTSDriverDialect}}:                                                    Qwen3TTSDriver{},
+		{CapabilityContract: AudioTranscribeContract, Identity: Identity{ImplementationID: Qwen3ASRImplementationID, DriverID: Qwen3ASRDriverID, DriverDialect: Qwen3ASRDriverDialect}}:                                                    Qwen3ASRDriver{},
 	})
 	if err != nil {
 		panic(err)

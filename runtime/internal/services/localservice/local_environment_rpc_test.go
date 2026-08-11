@@ -11,6 +11,7 @@ import (
 
 func TestResolveLocalEnvironmentPlanProjectsSetupRequired(t *testing.T) {
 	svc := newTestService(t)
+	svc.SetEngineManager(&mockEngineManager{})
 	model := mustInstallSupervisedLocalModel(t, svc, installLocalAssetParams{
 		assetID:      "speech/test-qwen3",
 		capabilities: []string{"audio.synthesize"},
@@ -81,6 +82,7 @@ func TestLocalEnvironmentRPCRejectsRootDifferentFromProductControl(t *testing.T)
 
 func TestLocalEnvironmentRPCProjectsReadySourcesAndGate(t *testing.T) {
 	svc := newTestService(t)
+	svc.SetEngineManager(&mockEngineManager{})
 	model := mustInstallSupervisedLocalModel(t, svc, installLocalAssetParams{
 		assetID:      "speech/test-qwen3-ready",
 		capabilities: []string{"audio.synthesize"},
