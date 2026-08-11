@@ -472,6 +472,14 @@ const (
 	CATALOGMODELSOURCEOVERRIDDEN CatalogModelSource = "CATALOG_MODEL_SOURCE_OVERRIDDEN"
 )
 
+type CatalogSourceKind string
+
+const (
+	CATALOGSOURCEKINDUNSPECIFIED CatalogSourceKind = "CATALOG_SOURCE_KIND_UNSPECIFIED"
+	CATALOGSOURCEKINDPROVIDERDOCUMENTATION CatalogSourceKind = "CATALOG_SOURCE_KIND_PROVIDER_DOCUMENTATION"
+	CATALOGSOURCEKINDAUTHENTICATEDPROVIDERINVENTORY CatalogSourceKind = "CATALOG_SOURCE_KIND_AUTHENTICATED_PROVIDER_INVENTORY"
+)
+
 type CharacterSourceKindV3 string
 
 const (
@@ -2689,6 +2697,7 @@ type CatalogSourceRef struct {
 	Url string `json:"url,omitempty"`
 	RetrievedAt string `json:"retrieved_at,omitempty"`
 	Note string `json:"note,omitempty"`
+	SourceKind CatalogSourceKind `json:"source_kind,omitempty"`
 }
 
 type CatalogStringListEntry struct {

@@ -52,6 +52,23 @@ func TestLoadBuiltInLocalProviderCatalog(t *testing.T) {
 	}
 }
 
+func TestQwen3ASRPackageNativeCatalogDoesNotAdvertiseUnsupportedTimestamps(t *testing.T) {
+	local := mustLoadLocal(t)
+	row, ok := local.ModelRow("qwen3-asr-local")
+	if !ok {
+		t.Fatal("expected qwen3-asr-local catalog row")
+	}
+	if row.Transcription == nil {
+		t.Fatal("expected qwen3-asr-local transcription metadata")
+	}
+	if row.Transcription.SupportsTimestamps {
+		t.Fatal("package-native qwen3-asr must not advertise unsupported timestamps")
+	}
+	if len(row.Transcription.Tiers) != 1 || row.Transcription.Tiers[0] != "core_transcript" {
+		t.Fatalf("package-native qwen3-asr tiers = %v, want [core_transcript]", row.Transcription.Tiers)
+	}
+}
+
 func TestResolveLocalModelSetInstallLevelInvalid(t *testing.T) {
 	local := mustLoadLocal(t)
 	outcome := local.ResolveLocalModelSet("aggressive", cpuHost(64))

@@ -6,10 +6,27 @@ import (
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	aicatalog "github.com/nimiplatform/nimi/runtime/internal/aicatalog"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/fieldmaskpb"
 )
+
+func TestCatalogSourceRefProjectionPreservesAuthenticatedInventoryKind(t *testing.T) {
+	projected := mapCatalogSourceRef(aicatalog.SourceRef{
+		SourceKind:  "authenticated_provider_inventory",
+		URL:         "https://chatgpt.com/backend-api/codex/models?client_version=1.0.0",
+		RetrievedAt: "2026-08-09",
+		Note:        "Authenticated non-public provider inventory observation.",
+	})
+	if projected.GetSourceKind() != runtimev1.CatalogSourceKind_CATALOG_SOURCE_KIND_AUTHENTICATED_PROVIDER_INVENTORY {
+		t.Fatalf("source kind = %v", projected.GetSourceKind())
+	}
+	roundTrip := catalogSourceRefProtoToEntry(projected)
+	if roundTrip.SourceKind != "authenticated_provider_inventory" {
+		t.Fatalf("round-trip source kind = %q", roundTrip.SourceKind)
+	}
+}
 
 func TestListModelCatalogProvidersReturnsBuiltins(t *testing.T) {
 	svc := newTestServiceWithModelCatalog(t)

@@ -681,6 +681,10 @@ export interface CatalogSourceRef {
      * @generated from protobuf field: string note = 3
      */
     note: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.CatalogSourceKind source_kind = 4
+     */
+    sourceKind: CatalogSourceKind;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.CatalogStringListEntry
@@ -1249,6 +1253,23 @@ export enum CatalogModelSource {
      * @generated from protobuf enum value: CATALOG_MODEL_SOURCE_OVERRIDDEN = 3;
      */
     OVERRIDDEN = 3
+}
+/**
+ * @generated from protobuf enum nimi.runtime.v1.CatalogSourceKind
+ */
+export enum CatalogSourceKind {
+    /**
+     * @generated from protobuf enum value: CATALOG_SOURCE_KIND_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * @generated from protobuf enum value: CATALOG_SOURCE_KIND_PROVIDER_DOCUMENTATION = 1;
+     */
+    PROVIDER_DOCUMENTATION = 1,
+    /**
+     * @generated from protobuf enum value: CATALOG_SOURCE_KIND_AUTHENTICATED_PROVIDER_INVENTORY = 2;
+     */
+    AUTHENTICATED_PROVIDER_INVENTORY = 2
 }
 // @generated message type with reflection information, may provide speed optimized methods
 class Connector$Type extends MessageType<Connector> {
@@ -3535,7 +3556,8 @@ class CatalogSourceRef$Type extends MessageType<CatalogSourceRef> {
         super("nimi.runtime.v1.CatalogSourceRef", [
             { no: 1, name: "url", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 2, name: "retrieved_at", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 3, name: "note", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 3, name: "note", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "source_kind", kind: "enum", T: () => ["nimi.runtime.v1.CatalogSourceKind", CatalogSourceKind, "CATALOG_SOURCE_KIND_"] }
         ]);
     }
     create(value?: PartialMessage<CatalogSourceRef>): CatalogSourceRef {
@@ -3543,6 +3565,7 @@ class CatalogSourceRef$Type extends MessageType<CatalogSourceRef> {
         message.url = "";
         message.retrievedAt = "";
         message.note = "";
+        message.sourceKind = 0;
         if (value !== undefined)
             reflectionMergePartial<CatalogSourceRef>(this, message, value);
         return message;
@@ -3560,6 +3583,9 @@ class CatalogSourceRef$Type extends MessageType<CatalogSourceRef> {
                     break;
                 case /* string note */ 3:
                     message.note = reader.string();
+                    break;
+                case /* nimi.runtime.v1.CatalogSourceKind source_kind */ 4:
+                    message.sourceKind = reader.int32();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -3582,6 +3608,9 @@ class CatalogSourceRef$Type extends MessageType<CatalogSourceRef> {
         /* string note = 3; */
         if (message.note !== "")
             writer.tag(3, WireType.LengthDelimited).string(message.note);
+        /* nimi.runtime.v1.CatalogSourceKind source_kind = 4; */
+        if (message.sourceKind !== 0)
+            writer.tag(4, WireType.Varint).int32(message.sourceKind);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

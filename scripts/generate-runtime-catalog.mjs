@@ -91,8 +91,8 @@ export function generateProviderCatalog(doc) {
     throw new Error(`${provider} source is missing catalog_version`);
   }
 
-  const sourceIndex = buildSourceIndex(doc?.sources);
-  const fallbackSourceRef = defaultCatalogSource(doc?.sources);
+  const sourceIndex = buildSourceIndex(doc?.sources, provider);
+  const fallbackSourceRef = defaultCatalogSource(doc?.sources, provider);
   const languageProfiles = buildLanguageProfiles(doc?.language_profiles);
   const runtime = doc?.runtime && typeof doc.runtime === 'object' ? doc.runtime : {};
   const inventoryMode = normalizeInventoryMode(runtime.inventory_mode);

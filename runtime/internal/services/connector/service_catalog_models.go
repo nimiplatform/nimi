@@ -289,7 +289,15 @@ func mapCatalogSourceRef(sourceRef aicatalog.SourceRef) *runtimev1.CatalogSource
 		Url:         sourceRef.URL,
 		RetrievedAt: sourceRef.RetrievedAt,
 		Note:        sourceRef.Note,
+		SourceKind:  catalogSourceKindToProto(sourceRef.SourceKind),
 	}
+}
+
+func catalogSourceKindToProto(sourceKind string) runtimev1.CatalogSourceKind {
+	if strings.TrimSpace(sourceKind) == "authenticated_provider_inventory" {
+		return runtimev1.CatalogSourceKind_CATALOG_SOURCE_KIND_AUTHENTICATED_PROVIDER_INVENTORY
+	}
+	return runtimev1.CatalogSourceKind_CATALOG_SOURCE_KIND_PROVIDER_DOCUMENTATION
 }
 
 func mapCatalogVideoGeneration(video *aicatalog.VideoGenerationCapability) *runtimev1.CatalogVideoGenerationCapability {
@@ -410,9 +418,21 @@ func catalogSourceRefProtoToEntry(sourceRef *runtimev1.CatalogSourceRef) aicatal
 		return aicatalog.SourceRef{}
 	}
 	return aicatalog.SourceRef{
+		SourceKind:  catalogSourceKindProtoToEntry(sourceRef.GetSourceKind()),
 		URL:         sourceRef.GetUrl(),
 		RetrievedAt: sourceRef.GetRetrievedAt(),
 		Note:        sourceRef.GetNote(),
+	}
+}
+
+func catalogSourceKindProtoToEntry(sourceKind runtimev1.CatalogSourceKind) string {
+	switch sourceKind {
+	case runtimev1.CatalogSourceKind_CATALOG_SOURCE_KIND_PROVIDER_DOCUMENTATION:
+		return "provider_documentation"
+	case runtimev1.CatalogSourceKind_CATALOG_SOURCE_KIND_AUTHENTICATED_PROVIDER_INVENTORY:
+		return "authenticated_provider_inventory"
+	default:
+		return ""
 	}
 }
 

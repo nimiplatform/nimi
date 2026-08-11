@@ -134,6 +134,12 @@ export enum CatalogModelSource {
   OVERRIDDEN = 3,
 }
 
+export enum CatalogSourceKind {
+  UNSPECIFIED = 0,
+  PROVIDER_DOCUMENTATION = 1,
+  AUTHENTICATED_PROVIDER_INVENTORY = 2,
+}
+
 export enum ConnectorAuthKind {
   UNSPECIFIED = 0,
   API_KEY = 1,

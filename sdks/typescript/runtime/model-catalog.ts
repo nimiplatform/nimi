@@ -8,6 +8,7 @@ import {
   type CatalogOverlayWarning,
   type CatalogPricing,
   type CatalogSourceRef,
+  CatalogSourceKind,
   type CatalogVideoGenerationCapability,
   type CatalogVoiceEntry,
   type CatalogWorkflowModel,
@@ -52,6 +53,7 @@ export interface NimiRuntimeCatalogPricing {
 }
 
 export interface NimiRuntimeCatalogSourceRef {
+  readonly sourceKind: 'provider_documentation' | 'authenticated_provider_inventory' | 'unknown';
   readonly url: string;
   readonly retrievedAt: string;
   readonly note: string;
@@ -309,10 +311,25 @@ export function normalizeNimiRuntimeCatalogSourceRef(
   sourceRef?: CatalogSourceRef,
 ): NimiRuntimeCatalogSourceRef {
   return {
+    sourceKind: sourceRef?.sourceKind === CatalogSourceKind.PROVIDER_DOCUMENTATION
+      ? 'provider_documentation'
+      : sourceRef?.sourceKind === CatalogSourceKind.AUTHENTICATED_PROVIDER_INVENTORY
+        ? 'authenticated_provider_inventory'
+        : 'unknown',
     url: normalizeText(sourceRef?.url),
     retrievedAt: normalizeText(sourceRef?.retrievedAt),
     note: normalizeText(sourceRef?.note),
   };
+}
+
+function nimiRuntimeCatalogSourceKindToProto(
+  sourceKind: NimiRuntimeCatalogSourceRef['sourceKind'],
+): CatalogSourceKind {
+  if (sourceKind === 'provider_documentation') return CatalogSourceKind.PROVIDER_DOCUMENTATION;
+  if (sourceKind === 'authenticated_provider_inventory') {
+    return CatalogSourceKind.AUTHENTICATED_PROVIDER_INVENTORY;
+  }
+  return CatalogSourceKind.UNSPECIFIED;
 }
 
 export function normalizeNimiRuntimeModelCatalogProvider(
@@ -420,6 +437,7 @@ export function nimiRuntimeCatalogModelDetailToInput(
       outputs: { ...detail.videoGeneration.outputs },
     } : undefined,
     sourceRef: {
+      sourceKind: nimiRuntimeCatalogSourceKindToProto(detail.sourceRef.sourceKind),
       url: normalizeText(detail.sourceRef.url),
       retrievedAt: normalizeText(detail.sourceRef.retrievedAt),
       note: normalizeText(detail.sourceRef.note),
@@ -526,6 +544,7 @@ function nimiRuntimeCatalogVoiceToInput(
     langs: mutableTextList(voice.langs),
     modelIds: mutableTextList(voice.modelIds),
     sourceRef: {
+      sourceKind: nimiRuntimeCatalogSourceKindToProto(voice.sourceRef.sourceKind),
       url: normalizeText(voice.sourceRef.url),
       retrievedAt: normalizeText(voice.sourceRef.retrievedAt),
       note: normalizeText(voice.sourceRef.note),
@@ -544,6 +563,7 @@ function nimiRuntimeCatalogWorkflowToInput(
     targetModelRefs: mutableTextList(workflow.targetModelRefs),
     langs: mutableTextList(workflow.langs),
     sourceRef: {
+      sourceKind: nimiRuntimeCatalogSourceKindToProto(workflow.sourceRef.sourceKind),
       url: normalizeText(workflow.sourceRef.url),
       retrievedAt: normalizeText(workflow.sourceRef.retrievedAt),
       note: normalizeText(workflow.sourceRef.note),

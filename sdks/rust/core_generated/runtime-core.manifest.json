@@ -7997,6 +7997,7 @@
       "AvatarDebugRequestedBy",
       "CallerKind",
       "CatalogModelSource",
+      "CatalogSourceKind",
       "CharacterSourceKindV3",
       "ChatContentPartType",
       "CompanionParticipationStatus",
@@ -12931,6 +12932,13 @@
             "repeated": false,
             "optional": false,
             "number": 3
+          },
+          {
+            "name": "source_kind",
+            "type": "CatalogSourceKind",
+            "repeated": false,
+            "optional": false,
+            "number": 4
           }
         ],
         "source_file": "proto/runtime/v1/connector.proto"
@@ -38531,6 +38539,15 @@
           "CATALOG_MODEL_SOURCE_BUILTIN",
           "CATALOG_MODEL_SOURCE_CUSTOM",
           "CATALOG_MODEL_SOURCE_OVERRIDDEN"
+        ],
+        "source_file": "proto/runtime/v1/connector.proto"
+      },
+      {
+        "name": "CatalogSourceKind",
+        "values": [
+          "CATALOG_SOURCE_KIND_UNSPECIFIED",
+          "CATALOG_SOURCE_KIND_PROVIDER_DOCUMENTATION",
+          "CATALOG_SOURCE_KIND_AUTHENTICATED_PROVIDER_INVENTORY"
         ],
         "source_file": "proto/runtime/v1/connector.proto"
       },

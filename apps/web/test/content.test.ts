@@ -29,7 +29,7 @@ test('content includes hero source-start paths and SDK tabs in both locales', as
     assert.ok(content.desktop.features.length >= 4);
     assert.ok(content.hero.title.length > 0);
     assert.ok(content.modelCatalog.title.length > 0);
-    assert.ok(content.modelCatalog.stats.models.length > 0);
+    assert.ok(content.modelCatalog.overview.modalitiesDescription.length > 0);
     assert.ok(content.sdk.tabs.some((tab) => tab.docsPath === 'sdk/ai-config-surface'));
   }
 });
@@ -46,7 +46,7 @@ test('SDK landing content separates hero highlights from the full capability mat
     assert.equal(sdk.heroHighlights?.length, 3);
     assert.ok(sdk.heroHighlights.every((item) => item.title.length > 0 && item.description.length > 0));
     assert.ok(sdk.runtimeBadges?.includes('Type-safe SDK'));
-    assert.ok(sdk.runtimeBadges?.includes('Runtime Ready'));
+    assert.ok(sdk.runtimeBadges?.includes('Runtime-backed'));
     assert.ok(sdk.runtimeBadges?.includes('Local-first'));
     assert.ok(sdk.runtimeBadges?.includes('Agent Context'));
     assert.equal(sdk.capabilityMatrix?.length, content.sdk.tabs.length);

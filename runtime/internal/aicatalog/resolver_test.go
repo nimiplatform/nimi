@@ -64,6 +64,78 @@ func TestDashScopeCosyVoiceCatalogAdmitsNativeStreamTTSOnlyForRealtimeCapableRou
 	}
 }
 
+func TestOpenAICodexPrivateRouteUsesAuthenticatedInventorySource(t *testing.T) {
+	resolver, err := NewResolver(ResolverConfig{})
+	if err != nil {
+		t.Fatalf("NewResolver: %v", err)
+	}
+
+	model, err := resolver.ResolveModelEntry("openai_codex", "gpt-5.6-sol-wm")
+	if err != nil {
+		t.Fatalf("ResolveModelEntry: %v", err)
+	}
+	if model.SourceRef.SourceKind != "authenticated_provider_inventory" {
+		t.Fatalf("source_kind = %q, want authenticated_provider_inventory", model.SourceRef.SourceKind)
+	}
+	if model.SourceRef.URL != "https://chatgpt.com/backend-api/codex/models?client_version=1.0.0" {
+		t.Fatalf("source URL = %q", model.SourceRef.URL)
+	}
+	if model.SourceRef.RetrievedAt != "2026-08-09" {
+		t.Fatalf("retrieved_at = %q", model.SourceRef.RetrievedAt)
+	}
+	note := strings.ToLower(model.SourceRef.Note)
+	if !strings.Contains(note, "authenticated") || !strings.Contains(note, "non-public") {
+		t.Fatalf("source note does not identify the observation boundary: %q", model.SourceRef.Note)
+	}
+}
+
+func TestOpenAICodexPublicModelRoutesUseTheirExactModelDocumentation(t *testing.T) {
+	resolver, err := NewResolver(ResolverConfig{})
+	if err != nil {
+		t.Fatalf("NewResolver: %v", err)
+	}
+	wants := map[string]string{
+		"gpt-5.4":       "https://developers.openai.com/api/docs/models/gpt-5.4",
+		"gpt-5.3-codex": "https://developers.openai.com/api/docs/models/gpt-5.3-codex",
+	}
+	for modelID, wantURL := range wants {
+		model, resolveErr := resolver.ResolveModelEntry("openai_codex", modelID)
+		if resolveErr != nil {
+			t.Fatalf("ResolveModelEntry(%s): %v", modelID, resolveErr)
+		}
+		if model.SourceRef.URL != wantURL {
+			t.Fatalf("%s source URL = %q, want %q", modelID, model.SourceRef.URL, wantURL)
+		}
+	}
+}
+
+func TestCatalogSourceRefRejectsInvalidInventoryObservation(t *testing.T) {
+	tests := []SourceRef{
+		{SourceKind: "internal_note", URL: "https://provider.example/models", RetrievedAt: "2026-08-09", Note: "Authenticated non-public observation."},
+		{SourceKind: "authenticated_provider_inventory", URL: "https://provider.example", RetrievedAt: "2026-08-09", Note: "Authenticated non-public observation."},
+		{SourceKind: "authenticated_provider_inventory", URL: "https://provider.example/models", RetrievedAt: "2026-08-09", Note: "Authenticated non-public observation."},
+		{SourceKind: "authenticated_provider_inventory", URL: "https://chatgpt.com/backend-api/codex/models?client_version=1.0.0", RetrievedAt: "not-a-date", Note: "Authenticated non-public observation."},
+		{SourceKind: "authenticated_provider_inventory", URL: "https://provider.example/models", RetrievedAt: "2026-08-09", Note: "Private inventory."},
+	}
+	for _, sourceRef := range tests {
+		if err := validateCatalogSourceRef("openai_codex", sourceRef); err == nil {
+			t.Fatalf("expected invalid source_ref to be rejected: %#v", sourceRef)
+		}
+	}
+}
+
+func TestCatalogSourceRefRejectsAuthenticatedInventoryForAnotherProvider(t *testing.T) {
+	sourceRef := SourceRef{
+		SourceKind:  "authenticated_provider_inventory",
+		URL:         "https://chatgpt.com/backend-api/codex/models?client_version=1.0.0",
+		RetrievedAt: "2026-08-09",
+		Note:        "Authenticated non-public provider inventory observation.",
+	}
+	if err := validateCatalogSourceRef("dashscope", sourceRef); err == nil {
+		t.Fatal("expected an OpenAI Codex inventory endpoint to be rejected for dashscope")
+	}
+}
+
 func TestResolveAPIModelIDVolcengineAliasesUseCanonical(t *testing.T) {
 	resolver, err := NewResolver(ResolverConfig{})
 	if err != nil {

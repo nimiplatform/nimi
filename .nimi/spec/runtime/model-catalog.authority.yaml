@@ -78,9 +78,9 @@ units:
     kind: rule
     title: Catalog entries are source traceable
     modality: must
-    statement: Every model and voice entry carries a source_ref with the authoritative provider documentation URL and a retrieved_at date.
+    statement: Every model and voice entry carries a source_ref with a retrieved_at date and either the authoritative provider documentation URL or, only for an authenticated provider-private model route that is not publicly documented, the exact official provider inventory endpoint URL, source_kind authenticated_provider_inventory, and a note explicitly identifying an authenticated non-public inventory observation; documentation for a neighboring public model never proves a private inventory identifier.
     condition: Whenever a model or voice catalog entry is authored or validated.
-    failure: Reject entries without traceable source references.
+    failure: Reject entries without traceable source references, private identifiers traced only to neighboring public documentation or untyped notes, and inventory observations without the exact endpoint, source kind, date, or explicit non-public observation note.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.model-catalog.catalog-plane

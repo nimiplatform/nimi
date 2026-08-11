@@ -1,6 +1,10 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { isWebShellHashRoute, isWebShellPathRoute } from '../src/site-entry-hash.js';
+import {
+  isWebShellHashRoute,
+  isWebShellPathRoute,
+  shouldReloadForWebShellHashTransition,
+} from '../src/site-entry-hash.js';
 
 test('site entry recognizes app hash routes', () => {
   assert.equal(isWebShellHashRoute(''), false);
@@ -15,4 +19,10 @@ test('site entry recognizes app path routes', () => {
   assert.equal(isWebShellPathRoute('/docs/platform/'), false);
   assert.equal(isWebShellPathRoute('/posts/abc'), false);
   assert.equal(isWebShellPathRoute('/login'), true);
+});
+
+test('landing hash navigation reloads only when entering the web shell', () => {
+  assert.equal(shouldReloadForWebShellHashTransition('', '#sdk'), false);
+  assert.equal(shouldReloadForWebShellHashTransition('#sdk', '#/'), true);
+  assert.equal(shouldReloadForWebShellHashTransition('#/', '#/login'), false);
 });

@@ -1,7 +1,7 @@
 /**
  * @generated
  * Source: config/runtime-provider-catalog.yaml
- *   sha256: 0c9d849a17ab694757ecf6ffc478d69fffcea171e61bb88ad9c4902c439c1f3e
+ *   sha256: a8eeb769a28f8b9b0fa9a141280dd81940363714467ede4f664bee88ebb937b8
  * Generator: apps/web/scripts/generate-landing-data.mjs
  * DO NOT EDIT MANUALLY. Re-run generator (`pnpm prebuild` or
  * `node scripts/generate-landing-data.mjs` from apps/web/) to refresh.
@@ -254,7 +254,7 @@ export const ADMITTED_PROVIDERS: readonly AdmittedProvider[] = [
   {
     provider: "openai_codex",
     defaultEndpoint: "https://chatgpt.com/backend-api/codex",
-    defaultTextModel: "gpt-5.4",
+    defaultTextModel: "gpt-5.6-sol-wm",
     requiresExplicitEndpoint: false,
     inventoryMode: "static_source",
     sourceRule: "K-MCAT-027",

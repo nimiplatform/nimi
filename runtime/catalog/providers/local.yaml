@@ -891,12 +891,10 @@ models:
     transcription: &a6
       tiers:
         - core_transcript
-        - timed_transcript
       response_formats:
         - text
         - json
       supports_language: true
-      supports_timestamps: true
     install:
       repo: Qwen/Qwen3-ASR-0.6B
       revision: 5eb144179a02acc5e5ba31e748d22b0cf3e303b0

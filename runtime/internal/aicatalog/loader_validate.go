@@ -3,7 +3,9 @@ package catalog
 import (
 	"errors"
 	"fmt"
+	"net/url"
 	"strings"
+	"time"
 
 	"github.com/nimiplatform/nimi/runtime/internal/providerregistry"
 )
@@ -46,8 +48,8 @@ func validateSnapshot(snapshot Snapshot) error {
 				return fmt.Errorf("model %s:%s has incomplete pricing", provider, modelID)
 			}
 		}
-		if strings.TrimSpace(model.SourceRef.URL) == "" || strings.TrimSpace(model.SourceRef.RetrievedAt) == "" {
-			return fmt.Errorf("model %s:%s missing source_ref", provider, modelID)
+		if err := validateCatalogSourceRef(provider, model.SourceRef); err != nil {
+			return fmt.Errorf("model %s:%s has invalid source_ref: %w", provider, modelID, err)
 		}
 		key := provider + ":" + modelID
 		if _, exists := modelSet[key]; exists {
@@ -129,8 +131,8 @@ func validateSnapshot(snapshot Snapshot) error {
 		if len(voice.ModelIDs) == 0 {
 			return fmt.Errorf("voice %s:%s missing model_ids", provider, voiceID)
 		}
-		if strings.TrimSpace(voice.SourceRef.URL) == "" || strings.TrimSpace(voice.SourceRef.RetrievedAt) == "" {
-			return fmt.Errorf("voice %s:%s missing source_ref", provider, voiceID)
+		if err := validateCatalogSourceRef(provider, voice.SourceRef); err != nil {
+			return fmt.Errorf("voice %s:%s has invalid source_ref: %w", provider, voiceID, err)
 		}
 		if _, ok := voiceSetRefs[provider+":"+voiceSetID]; !ok {
 			return fmt.Errorf("voice %s:%s references missing voice set %s", provider, voiceID, voiceSetID)
@@ -197,6 +199,9 @@ func validateSnapshot(snapshot Snapshot) error {
 		provider := normalizeProvider(workflowModel.Provider)
 		if provider == "" {
 			return fmt.Errorf("voice workflow model %s is missing its provider document identity", workflowModelID)
+		}
+		if err := validateCatalogSourceRef(provider, workflowModel.SourceRef); err != nil {
+			return fmt.Errorf("voice workflow model %s has invalid source_ref: %w", workflowModelID, err)
 		}
 		if len(workflowModel.TargetModelRefs) == 0 {
 			return fmt.Errorf("voice workflow model %s must include target_model_refs", workflowModelID)
@@ -303,8 +308,9 @@ func validateSnapshot(snapshot Snapshot) error {
 		if !isAllowedVoiceDeleteSemantics(policy.DeleteSemantics) {
 			return fmt.Errorf("voice handle policy %s has invalid delete_semantics %q", policyID, policy.DeleteSemantics)
 		}
-		if strings.TrimSpace(policy.SourceRef.URL) == "" || strings.TrimSpace(policy.SourceRef.RetrievedAt) == "" {
-			return fmt.Errorf("voice handle policy %s missing source_ref", policyID)
+		provider := normalizeProvider(policy.Provider)
+		if err := validateCatalogSourceRef(provider, policy.SourceRef); err != nil {
+			return fmt.Errorf("voice handle policy %s has invalid source_ref: %w", policyID, err)
 		}
 		if _, exists := policyByKey[policyID]; exists {
 			return fmt.Errorf("duplicate voice handle policy %s", policyID)
@@ -317,6 +323,46 @@ func validateSnapshot(snapshot Snapshot) error {
 	}
 
 	return nil
+}
+
+var authenticatedProviderInventoryEndpointByProvider = map[string]string{
+	"openai_codex": "https://chatgpt.com/backend-api/codex/models?client_version=1.0.0",
+}
+
+func validateCatalogSourceRef(provider string, sourceRef SourceRef) error {
+	sourceURL := strings.TrimSpace(sourceRef.URL)
+	retrievedAt := strings.TrimSpace(sourceRef.RetrievedAt)
+	if sourceURL == "" || retrievedAt == "" {
+		return errors.New("url and retrieved_at are required")
+	}
+	if parsed, err := time.Parse("2006-01-02", retrievedAt); err != nil || parsed.Format("2006-01-02") != retrievedAt {
+		return errors.New("retrieved_at must be an exact YYYY-MM-DD calendar date")
+	}
+
+	sourceKind := strings.TrimSpace(sourceRef.SourceKind)
+	switch sourceKind {
+	case "", "provider_documentation":
+		return nil
+	case "authenticated_provider_inventory":
+		parsed, err := url.Parse(sourceURL)
+		if err != nil || !strings.EqualFold(parsed.Scheme, "https") || strings.TrimSpace(parsed.Host) == "" || parsed.EscapedPath() == "" || parsed.EscapedPath() == "/" {
+			return errors.New("authenticated_provider_inventory must use an exact HTTPS endpoint")
+		}
+		expectedEndpoint, admitted := authenticatedProviderInventoryEndpointByProvider[normalizeProvider(provider)]
+		if !admitted {
+			return fmt.Errorf("authenticated_provider_inventory is not admitted for provider %s", normalizeProvider(provider))
+		}
+		if sourceURL != expectedEndpoint {
+			return errors.New("authenticated_provider_inventory must use the exact official inventory endpoint for its provider")
+		}
+		note := strings.ToLower(strings.TrimSpace(sourceRef.Note))
+		if !strings.Contains(note, "authenticated") || !strings.Contains(note, "non-public") {
+			return errors.New("authenticated_provider_inventory must explicitly identify an authenticated non-public observation")
+		}
+		return nil
+	default:
+		return fmt.Errorf("unsupported source_kind %q", sourceKind)
+	}
 }
 
 func modelHasCapability(model ModelEntry, capability string) bool {

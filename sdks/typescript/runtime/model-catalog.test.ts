@@ -19,6 +19,7 @@ import {
 } from './index';
 import {
   CatalogModelSource,
+  CatalogSourceKind,
   ModelCatalogProviderSource,
 } from '../core-generated/runtime-typed-client';
 
@@ -175,6 +176,7 @@ test('Runtime model catalog client projects generated catalog data to SDK DX sha
             outputs: { videoUrl: true, lastFrameUrl: false },
           },
           sourceRef: {
+            sourceKind: CatalogSourceKind.AUTHENTICATED_PROVIDER_INVENTORY,
             url: 'https://example.com/catalog',
             retrievedAt: '2026-06-04',
             note: 'fixture',
@@ -281,7 +283,12 @@ test('Runtime model catalog projection normalizes sources, warnings, voices, wor
     voiceDiscoveryMode: 'catalog',
     voiceRefKinds: ['named', ''],
     videoGeneration: undefined,
-    sourceRef: { url: 'https://example.com/catalog', retrievedAt: '2026-06-05', note: 'fixture' },
+    sourceRef: {
+      sourceKind: CatalogSourceKind.AUTHENTICATED_PROVIDER_INVENTORY,
+      url: 'https://example.com/catalog',
+      retrievedAt: '2026-06-05',
+      note: 'fixture',
+    },
     warnings: [{ code: 'W_ONE', message: 'one' }],
     voices: [{
       voiceSetId: 'voice-set-1',
@@ -290,7 +297,12 @@ test('Runtime model catalog projection normalizes sources, warnings, voices, wor
       name: 'Voice One',
       langs: [' en ', ''],
       modelIds: ['acme/voice-video'],
-      sourceRef: { url: 'https://example.com/voices', retrievedAt: '2026-06-05', note: 'voices' },
+      sourceRef: {
+        sourceKind: CatalogSourceKind.PROVIDER_DOCUMENTATION,
+        url: 'https://example.com/voices',
+        retrievedAt: '2026-06-05',
+        note: 'voices',
+      },
     }],
     voiceWorkflowModels: [{
       workflowModelId: 'workflow-1',
@@ -299,7 +311,12 @@ test('Runtime model catalog projection normalizes sources, warnings, voices, wor
       outputPersistence: 'artifact',
       targetModelRefs: ['acme/voice-video'],
       langs: ['en'],
-      sourceRef: { url: 'https://example.com/workflows', retrievedAt: '2026-06-05', note: 'workflows' },
+      sourceRef: {
+        sourceKind: CatalogSourceKind.PROVIDER_DOCUMENTATION,
+        url: 'https://example.com/workflows',
+        retrievedAt: '2026-06-05',
+        note: 'workflows',
+      },
     }],
     modelWorkflowBinding: {
       modelId: 'acme/voice-video',
@@ -309,6 +326,7 @@ test('Runtime model catalog projection normalizes sources, warnings, voices, wor
   });
 
   assert.equal(detail.source, 'builtin');
+  assert.equal(detail.sourceRef.sourceKind, 'authenticated_provider_inventory');
   assert.equal(detail.videoGeneration, null);
   assert.deepEqual(detail.voiceRefKinds, ['named']);
   assert.equal(detail.voices[0]?.langs[0], 'en');
@@ -407,13 +425,18 @@ test('Runtime model catalog client maps provider and model overlay write operati
   });
   const overlayRequest = calls[4]?.request as {
     readonly provider?: string;
-    readonly model?: { readonly provider?: string; readonly videoGeneration?: { readonly limits?: { readonly fields?: Record<string, unknown> } } };
+    readonly model?: {
+      readonly provider?: string;
+      readonly sourceRef?: { readonly sourceKind?: CatalogSourceKind };
+      readonly videoGeneration?: { readonly limits?: { readonly fields?: Record<string, unknown> } };
+    };
     readonly voices?: readonly { readonly provider?: string; readonly voiceId?: string }[];
     readonly voiceWorkflowModels?: readonly { readonly workflowModelId?: string }[];
     readonly modelWorkflowBinding?: { readonly modelId?: string; readonly workflowTypes?: readonly string[] };
   };
   assert.equal(overlayRequest.provider, 'acme');
   assert.equal(overlayRequest.model?.provider, 'acme');
+  assert.equal(overlayRequest.model?.sourceRef?.sourceKind, CatalogSourceKind.PROVIDER_DOCUMENTATION);
   assert.equal(overlayRequest.voices?.[0]?.provider, 'acme');
   assert.equal(overlayRequest.voices?.[0]?.voiceId, 'voice-1');
   assert.equal(overlayRequest.voiceWorkflowModels?.[0]?.workflowModelId, 'workflow-1');
@@ -534,6 +557,7 @@ function catalogDetailFixture(): NimiRuntimeCatalogModelDetail {
       outputs: { videoUrl: true, lastFrameUrl: true },
     },
     sourceRef: {
+      sourceKind: 'provider_documentation',
       url: 'https://example.com/catalog',
       retrievedAt: '2026-06-05',
       note: 'fixture',
@@ -554,6 +578,7 @@ function catalogVoiceFixture(): NimiRuntimeCatalogVoiceEntry {
     langs: ['en', 'ja'],
     modelIds: ['acme/video'],
     sourceRef: {
+      sourceKind: 'provider_documentation',
       url: 'https://example.com/voices',
       retrievedAt: '2026-06-05',
       note: 'voices',
@@ -570,6 +595,7 @@ function catalogWorkflowFixture(): NimiRuntimeCatalogWorkflowModel {
     targetModelRefs: ['acme/video'],
     langs: ['en'],
     sourceRef: {
+      sourceKind: 'provider_documentation',
       url: 'https://example.com/workflows',
       retrievedAt: '2026-06-05',
       note: 'workflows',

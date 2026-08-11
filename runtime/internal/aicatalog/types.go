@@ -47,6 +47,7 @@ type Pricing struct {
 }
 
 type SourceRef struct {
+	SourceKind  string `yaml:"source_kind,omitempty" json:"source_kind,omitempty"`
 	URL         string `yaml:"url" json:"url"`
 	RetrievedAt string `yaml:"retrieved_at" json:"retrieved_at"`
 	Note        string `yaml:"note" json:"note"`

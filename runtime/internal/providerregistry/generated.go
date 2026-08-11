@@ -1046,7 +1046,7 @@ var Records = map[string]ProviderRecord{
 		ManagedConnectorSupported:     true,
 		InlineSupported:               false,
 		DefaultEndpoint:               "https://chatgpt.com/backend-api/codex",
-		DefaultTextModel:              "gpt-5.4",
+		DefaultTextModel:              "gpt-5.6-sol-wm",
 		RequiresExplicitEndpoint:      false,
 		InventoryMode:                 "static_source",
 		DynamicDiscoveryTransport:     "",

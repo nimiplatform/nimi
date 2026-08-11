@@ -124,34 +124,89 @@ export function ensureVoiceSetID(provider, value) {
   return `${provider}:${trimmed}`;
 }
 
-export function defaultCatalogSource(sourceList) {
+const catalogSourceKinds = new Set([
+  'provider_documentation',
+  'authenticated_provider_inventory',
+]);
+
+const authenticatedProviderInventoryEndpointByProvider = new Map([
+  ['openai_codex', 'https://chatgpt.com/backend-api/codex/models?client_version=1.0.0'],
+]);
+
+function isExactCalendarDate(value) {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/u.exec(value);
+  if (!match) return false;
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const date = new Date(Date.UTC(year, month - 1, day));
+  return date.getUTCFullYear() === year
+    && date.getUTCMonth() === month - 1
+    && date.getUTCDate() === day;
+}
+
+function normalizeCatalogSource(entry, label, provider) {
+  const sourceKind = normalizeString(entry?.source_kind);
+  const url = normalizeString(entry?.url);
+  const retrievedAt = normalizeString(entry?.retrieved_at);
+  const note = normalizeString(entry?.note);
+  if (!url || !retrievedAt) {
+    throw new Error(`${label} must include url and retrieved_at`);
+  }
+  if (!isExactCalendarDate(retrievedAt)) {
+    throw new Error(`${label} must include retrieved_at as YYYY-MM-DD`);
+  }
+  if (sourceKind && !catalogSourceKinds.has(sourceKind)) {
+    throw new Error(`${label} has unsupported source_kind: ${sourceKind}`);
+  }
+  if (sourceKind === 'authenticated_provider_inventory') {
+    let parsed;
+    try {
+      parsed = new URL(url);
+    } catch {
+      parsed = null;
+    }
+    const normalizedNote = note.toLowerCase();
+    if (!parsed
+      || parsed.protocol !== 'https:'
+      || parsed.pathname === '/'
+      || !normalizedNote.includes('authenticated')
+      || !normalizedNote.includes('non-public')) {
+      throw new Error(`authenticated_provider_inventory ${label} must use an exact HTTPS endpoint and include an observation note`);
+    }
+    const normalizedProvider = normalizeProvider(provider);
+    const expectedEndpoint = authenticatedProviderInventoryEndpointByProvider.get(normalizedProvider);
+    if (!expectedEndpoint) {
+      throw new Error(`authenticated_provider_inventory ${label} is not admitted for provider ${normalizedProvider || '<missing>'}`);
+    }
+    if (url !== expectedEndpoint) {
+      throw new Error(`authenticated_provider_inventory ${label} must use the exact official inventory endpoint for provider ${normalizedProvider}`);
+    }
+  }
+  return {
+    ...(sourceKind ? { source_kind: sourceKind } : {}),
+    url,
+    retrieved_at: retrievedAt,
+    note,
+  };
+}
+
+export function defaultCatalogSource(sourceList, provider) {
   const first = Array.isArray(sourceList) ? sourceList[0] : null;
   if (!first) {
     throw new Error('sources must include at least one entry');
   }
-  const url = normalizeString(first.url);
-  const retrievedAt = normalizeString(first.retrieved_at);
-  const note = normalizeString(first.note);
-  if (!url || !retrievedAt) {
-    throw new Error('sources entries must include url and retrieved_at');
-  }
-  return { url, retrieved_at: retrievedAt, note };
+  return normalizeCatalogSource(first, 'sources entry', provider);
 }
 
-export function buildSourceIndex(sourceList) {
+export function buildSourceIndex(sourceList, provider) {
   const out = new Map();
   for (const entry of Array.isArray(sourceList) ? sourceList : []) {
     const sourceID = normalizeString(entry?.source_id);
     if (!sourceID) {
       continue;
     }
-    const url = normalizeString(entry?.url);
-    const retrievedAt = normalizeString(entry?.retrieved_at);
-    const note = normalizeString(entry?.note);
-    if (!url || !retrievedAt) {
-      throw new Error(`source ${sourceID} must include url and retrieved_at`);
-    }
-    out.set(sourceID, { url, retrieved_at: retrievedAt, note });
+    out.set(sourceID, normalizeCatalogSource(entry, `source ${sourceID}`, provider));
   }
   return out;
 }

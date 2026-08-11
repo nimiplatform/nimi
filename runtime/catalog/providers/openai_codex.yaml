@@ -1,9 +1,28 @@
 version: 1
 provider: openai_codex
-catalog_version: 2026-07-18-openai-codex-selection-review
+catalog_version: 2026-08-11-openai-codex-provenance-review
 inventory_mode: static_source
-default_text_model: gpt-5.4
+default_text_model: gpt-5.6-sol-wm
 models:
+  - model_id: gpt-5.6-sol-wm
+    provider: openai_codex
+    model_type: chat
+    updated_at: 2026-08-09
+    capabilities:
+      - text.generate
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-08-09
+      notes: ChatGPT subscription Work Mode route for GPT-5.6 Sol; standard API pricing does not apply directly.
+    source_ref:
+      source_kind: authenticated_provider_inventory
+      url: https://chatgpt.com/backend-api/codex/models?client_version=1.0.0
+      retrieved_at: 2026-08-09
+      note: Authenticated non-public provider inventory observation; the response exposed gpt-5.6-sol-wm as the canonical ChatGPT subscription Work Mode route.
+    context_window_tokens: 8192
   - model_id: gpt-5.4
     provider: openai_codex
     model_type: chat
@@ -12,15 +31,15 @@ models:
       - text.generate
     pricing:
       unit: request
-      input: subscription_or_unknown
-      output: subscription_or_unknown
+      input: unknown
+      output: unknown
       currency: USD
       as_of: 2026-04-23
       notes: Subscription-backed Codex route; standard API pricing does not apply directly.
     source_ref:
-      url: https://developers.openai.com/codex/auth
-      retrieved_at: 2026-04-23
-      note: OpenAI Codex authentication guide covering ChatGPT subscription and API-key access.
+      url: https://developers.openai.com/api/docs/models/gpt-5.4
+      retrieved_at: 2026-08-09
+      note: Official GPT-5.4 model page.
     context_window_tokens: 8192
   - model_id: gpt-5.3-codex
     provider: openai_codex
@@ -30,15 +49,15 @@ models:
       - text.generate
     pricing:
       unit: request
-      input: subscription_or_unknown
-      output: subscription_or_unknown
+      input: unknown
+      output: unknown
       currency: USD
       as_of: 2026-04-23
       notes: Codex-oriented text route retained for compatibility with existing Codex consumers.
     source_ref:
-      url: https://developers.openai.com/codex/auth
-      retrieved_at: 2026-04-23
-      note: OpenAI Codex authentication guide covering ChatGPT subscription and API-key access.
+      url: https://developers.openai.com/api/docs/models/gpt-5.3-codex
+      retrieved_at: 2026-07-18
+      note: Official GPT-5.3 Codex model page.
     context_window_tokens: 8192
   - model_id: gpt-image-2
     provider: openai_codex
@@ -48,8 +67,8 @@ models:
       - image.generate
     pricing:
       unit: request
-      input: subscription_or_unknown
-      output: subscription_or_unknown
+      input: unknown
+      output: unknown
       currency: USD
       as_of: 2026-04-23
       notes: Image generation pricing for Codex subscription-backed consumption is not published as API request pricing.
@@ -74,14 +93,14 @@ selection_profiles:
   - provider: openai_codex
     profile_id: text.general
     capability: text.generate
-    model_id: gpt-5.4
-    reviewed_at: 2026-07-18
+    model_id: gpt-5.6-sol-wm
+    reviewed_at: 2026-08-09
     freshness_sla_days: 14
     rationale: Codex-backed default text route for general subscription-backed consume.
   - provider: openai_codex
     profile_id: image.general
     capability: image.generate
     model_id: gpt-image-2
-    reviewed_at: 2026-07-18
+    reviewed_at: 2026-08-09
     freshness_sla_days: 14
     rationale: Current Codex-backed image generation route.

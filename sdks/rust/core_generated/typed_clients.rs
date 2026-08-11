@@ -753,6 +753,19 @@ impl Default for CatalogModelSource {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub enum CatalogSourceKind {
+    CATALOGSOURCEKINDUNSPECIFIED,
+    CATALOGSOURCEKINDPROVIDERDOCUMENTATION,
+    CATALOGSOURCEKINDAUTHENTICATEDPROVIDERINVENTORY,
+}
+
+impl Default for CatalogSourceKind {
+    fn default() -> Self {
+        Self::CATALOGSOURCEKINDUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum CharacterSourceKindV3 {
     CHARACTERSOURCEKINDV3UNSPECIFIED,
     CHARACTERSOURCEKINDV3WORLDCHARACTER,
@@ -6591,6 +6604,7 @@ pub struct CatalogSourceRef {
     pub url: Option<String>,
     pub retrieved_at: Option<String>,
     pub note: Option<String>,
+    pub source_kind: Option<CatalogSourceKind>,
 }
 
 impl CatalogSourceRef {
@@ -6599,12 +6613,18 @@ impl CatalogSourceRef {
         if let Some(value) = &self.url { pairs.push(format!("url={}", value)); }
         if let Some(value) = &self.retrieved_at { pairs.push(format!("retrieved_at={}", value)); }
         if let Some(value) = &self.note { pairs.push(format!("note={}", value)); }
+        if let Some(value) = &self.source_kind { pairs.push(format!("source_kind={:?}", value)); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
         let mut out = Self::default();
+        for key in ["source_kind"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
 
         out.url = pairs.get("url").cloned();
         out.retrieved_at = pairs.get("retrieved_at").cloned();

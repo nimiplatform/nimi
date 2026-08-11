@@ -237,7 +237,7 @@ export function CatalogPage({ model, state: _state }: CatalogPageProps) {
         voiceDiscoveryMode: formState.voiceDiscoveryMode.trim(),
         voiceRefKinds: splitCsv(formState.voiceRefKindsText),
         videoGeneration: needsVideo ? { modes: splitCsv(formState.videoModesText), inputRoles: Object.entries(videoInputRoles).map(([key, values]) => ({ key, values })), limits: videoLimits, optionSupports: splitCsv(formState.videoOptionSupportsText), optionConstraints: videoConstraints, outputs: { videoUrl: formState.videoOutputVideoUrl, lastFrameUrl: formState.videoOutputLastFrameUrl } } : null,
-        sourceRef: { url: formState.sourceUrl.trim(), retrievedAt: formState.sourceRetrievedAt.trim(), note: formState.sourceNote.trim() },
+        sourceRef: { sourceKind: 'provider_documentation', url: formState.sourceUrl.trim(), retrievedAt: formState.sourceRetrievedAt.trim(), note: formState.sourceNote.trim() },
         warnings: [],
         voices: [],
         voiceWorkflowModels: [],
@@ -245,8 +245,8 @@ export function CatalogPage({ model, state: _state }: CatalogPageProps) {
       };
       const overlayInput: NimiRuntimeCatalogModelOverlayInput = {
         model: detail,
-        voices: formState.voices.filter((voice) => voice.voiceId.trim()).map((voice): NimiRuntimeCatalogVoiceEntry => ({ voiceSetId: formState.voiceSetId.trim(), provider: selectedProvider.provider, voiceId: voice.voiceId.trim(), name: voice.name.trim() || voice.voiceId.trim(), langs: splitCsv(voice.langs), modelIds: splitCsv(voice.modelIds || formState.modelId), sourceRef: { url: voice.sourceUrl.trim() || formState.sourceUrl.trim(), retrievedAt: voice.sourceRetrievedAt.trim() || formState.sourceRetrievedAt.trim(), note: voice.sourceNote.trim() } })),
-        voiceWorkflowModels: formState.workflows.filter((workflow) => workflow.workflowModelId.trim()).map((workflow): NimiRuntimeCatalogWorkflowModel => ({ workflowModelId: workflow.workflowModelId.trim(), workflowType: workflow.workflowType.trim(), inputContractRef: workflow.inputContractRef.trim(), outputPersistence: workflow.outputPersistence.trim(), targetModelRefs: splitCsv(workflow.targetModelRefs || formState.modelId), langs: splitCsv(workflow.langs), sourceRef: { url: workflow.sourceUrl.trim() || formState.sourceUrl.trim(), retrievedAt: workflow.sourceRetrievedAt.trim() || formState.sourceRetrievedAt.trim(), note: workflow.sourceNote.trim() } })),
+        voices: formState.voices.filter((voice) => voice.voiceId.trim()).map((voice): NimiRuntimeCatalogVoiceEntry => ({ voiceSetId: formState.voiceSetId.trim(), provider: selectedProvider.provider, voiceId: voice.voiceId.trim(), name: voice.name.trim() || voice.voiceId.trim(), langs: splitCsv(voice.langs), modelIds: splitCsv(voice.modelIds || formState.modelId), sourceRef: { sourceKind: 'provider_documentation', url: voice.sourceUrl.trim() || formState.sourceUrl.trim(), retrievedAt: voice.sourceRetrievedAt.trim() || formState.sourceRetrievedAt.trim(), note: voice.sourceNote.trim() } })),
+        voiceWorkflowModels: formState.workflows.filter((workflow) => workflow.workflowModelId.trim()).map((workflow): NimiRuntimeCatalogWorkflowModel => ({ workflowModelId: workflow.workflowModelId.trim(), workflowType: workflow.workflowType.trim(), inputContractRef: workflow.inputContractRef.trim(), outputPersistence: workflow.outputPersistence.trim(), targetModelRefs: splitCsv(workflow.targetModelRefs || formState.modelId), langs: splitCsv(workflow.langs), sourceRef: { sourceKind: 'provider_documentation', url: workflow.sourceUrl.trim() || formState.sourceUrl.trim(), retrievedAt: workflow.sourceRetrievedAt.trim() || formState.sourceRetrievedAt.trim(), note: workflow.sourceNote.trim() } })),
         modelWorkflowBinding: detail.modelWorkflowBinding as NimiRuntimeCatalogWorkflowBinding | null,
       };
       setSavingModel(true);

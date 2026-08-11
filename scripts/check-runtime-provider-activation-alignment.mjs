@@ -142,32 +142,20 @@ function parseCaseProviders(body) {
   return providers;
 }
 
-function parseEqualityProviders(body) {
-  const providers = new Set();
-  const patterns = [
-    /\b(?:p|provider)\s*==\s*"([^"]+)"/g,
-    /strings\.EqualFold\([^,]+,\s*"([^"]+)"\)/g,
-  ];
-
-  for (const pattern of patterns) {
-    let match;
-    while ((match = pattern.exec(body)) !== null) {
-      addProviders(providers, [match[1]]);
-    }
-  }
-
-  return providers;
-}
-
 function collectVoiceWorkflowProvidersFromSource(source) {
   const providers = new Set();
-  const supportBody = extractGoFunctionBody(source, 'func SupportsVoiceWorkflowProvider(');
-  const dispatchBody = extractGoFunctionBody(source, 'func ExecuteVoiceWorkflow(');
-
-  addProviders(providers, parseCaseProviders(supportBody));
-  addProviders(providers, parseEqualityProviders(supportBody));
-  addProviders(providers, parseCaseProviders(dispatchBody));
-  addProviders(providers, parseEqualityProviders(dispatchBody));
+  const dispatchBody = extractGoFunctionBody(source, 'func ExecuteVoiceWorkflowAdapter(');
+  const providerBody = extractGoFunctionBody(source, 'func voiceWorkflowProviderForAdapter(');
+  const dispatchedAdapters = parseCaseProviders(dispatchBody);
+  const mappingRegex = /case\s+"([^"]+)":\s*return\s+"([^"]+)"/g;
+  let match;
+  while ((match = mappingRegex.exec(providerBody)) !== null) {
+    const adapter = normalizeProviderId(match[1]);
+    const provider = normalizeProviderId(match[2]);
+    if (adapter && provider && dispatchedAdapters.has(adapter)) {
+      providers.add(provider);
+    }
+  }
 
   return providers;
 }

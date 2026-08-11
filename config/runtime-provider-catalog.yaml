@@ -229,7 +229,7 @@ providers:
     source_rule: K-MCAT-027
   - provider: openai_codex
     default_endpoint: https://chatgpt.com/backend-api/codex
-    default_text_model: gpt-5.4
+    default_text_model: gpt-5.6-sol-wm
     requires_explicit_endpoint: false
     inventory_mode: static_source
     source_rule: K-MCAT-027

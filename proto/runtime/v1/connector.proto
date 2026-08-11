@@ -295,10 +295,17 @@ message CatalogPricing {
   string notes = 6;
 }
 
+enum CatalogSourceKind {
+  CATALOG_SOURCE_KIND_UNSPECIFIED = 0;
+  CATALOG_SOURCE_KIND_PROVIDER_DOCUMENTATION = 1;
+  CATALOG_SOURCE_KIND_AUTHENTICATED_PROVIDER_INVENTORY = 2;
+}
+
 message CatalogSourceRef {
   string url = 1;
   string retrieved_at = 2;
   string note = 3;
+  CatalogSourceKind source_kind = 4;
 }
 
 message CatalogStringListEntry {

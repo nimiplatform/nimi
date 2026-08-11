@@ -1,4 +1,8 @@
-import { isWebShellHashRoute, isWebShellPathRoute } from './site-entry-hash.js';
+import {
+  isWebShellHashRoute,
+  isWebShellPathRoute,
+  shouldReloadForWebShellHashTransition,
+} from './site-entry-hash.js';
 
 function isPostPermalinkPath(pathname: string): boolean {
   return /^\/posts\/[^/]+$/.test(pathname);
@@ -15,6 +19,17 @@ async function bootstrapSiteEntry(): Promise<void> {
     return;
   }
 
+  let previousHash = window.location.hash;
+  const handleHashChange = () => {
+    const nextHash = window.location.hash;
+    if (shouldReloadForWebShellHashTransition(previousHash, nextHash)) {
+      window.removeEventListener('hashchange', handleHashChange);
+      window.location.reload();
+      return;
+    }
+    previousHash = nextHash;
+  };
+  window.addEventListener('hashchange', handleHashChange);
   await import('./landing-main.js');
 }
 
