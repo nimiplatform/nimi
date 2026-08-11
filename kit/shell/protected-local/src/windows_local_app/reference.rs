@@ -101,7 +101,7 @@ mod tests {
         assert!(safe_avatar_url("https://cdn.nimi.ai/avatar.webp"));
         for value in [
             "https://cdn.nimi.ai/avatar?token=private",
-            "https://user:secret@cdn.nimi.ai/avatar",
+            "https://user:secret@cdn.nimi.ai/avatar", // pragma: allowlist secret
             "http://127.0.0.1:3002/avatar",
             "file:///Users/private/avatar.png",
         ] {

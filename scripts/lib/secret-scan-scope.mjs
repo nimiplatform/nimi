@@ -23,6 +23,12 @@ export const generatedSecretScanExcludes = [
     source: 'config/platform-ai-profile-factory-catalog.yaml',
     driftGate: 'pnpm check:platform-catalog-drift',
   },
+  {
+    label: 'Runtime provider catalog projection',
+    pattern: /^runtime\/catalog\/providers\/[^/]+\.yaml$/u,
+    source: 'runtime/catalog/source/providers/**/*.source.yaml and runtime/catalog/source/providers/local/*.yaml',
+    driftGate: 'pnpm check:runtime-catalog-drift',
+  },
 ];
 
 export function normalizeRepoPath(filePath) {

@@ -130,7 +130,7 @@ func TestInstallLocalAssetRecordDefaultsDisplayName(t *testing.T) {
 func TestRestoreStateHealsMissingAssetDisplayName(t *testing.T) {
 	svc := newTestService(t)
 	record, err := svc.installLocalAssetRecord(
-		"local/local-import/legacy-model/01KZFPYNCX823S5KY9X57XN8JZ",
+		"local/local-import/legacy-model/01KZFPYNCX823S5KY9X57XN8JZ", // pragma: allowlist secret
 		runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_CHAT,
 		[]string{"chat"},
 		"llama",

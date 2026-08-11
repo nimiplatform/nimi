@@ -902,7 +902,7 @@ mod tests {
     fn local_app_session_rejects_malformed_or_credential_bearing_avatar_projection() {
         for avatar in [
             "https://cdn.example/a.png?token=secret",
-            "https://user:secret@cdn.example/a.png",
+            "https://user:secret@cdn.example/a.png", // pragma: allowlist secret
             "http://realm.example/a.png",
         ] {
             let response = crate::generated::OpenLocalAppSessionResponse {

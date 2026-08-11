@@ -149,7 +149,7 @@ test('Runtime local asset projection carries display identity facts', async () =
           assets: [
             generatedAsset({
               localAssetId: 'local-tts',
-              assetId: 'local/local-import/qwen3-tts/01KZFPYNCX823S5KY9X57XN8JZ',
+              assetId: 'local/local-import/qwen3-tts/01KZFPYNCX823S5KY9X57XN8JZ', // pragma: allowlist secret
               displayName: 'Qwen3 TTS',
               sourceFileName: 'qwen3-tts.gguf',
             }),

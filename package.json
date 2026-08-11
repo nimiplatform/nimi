@@ -138,6 +138,7 @@
     "check:shared-runtime-defaults-duplicate": "node scripts/check-shared-runtime-defaults-duplicate.mjs",
     "check:go-env": "node scripts/check-go-env.mjs",
     "check:secrets": "node scripts/check-secrets.mjs",
+    "update:secrets-baseline": "node scripts/check-secrets.mjs --update",
     "live:audio-fixtures": "node scripts/live-audio-fixtures.mjs",
     "run:seedance-video-smoke": "node scripts/run-seedance-video-smoke.mjs",
     "proto:generate": "node scripts/run-buf.mjs generate",

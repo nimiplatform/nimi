@@ -85,7 +85,7 @@ func TestLocalAppAgentReferenceAvatarProjectionAllowsOnlyPublicDisplayURL(t *tes
 		{name: "public https", url: "https://cdn.nimi.ai/avatars/one.webp", want: true},
 		{name: "bearer query", url: "https://cdn.nimi.ai/avatar?token=private", want: false},
 		{name: "private signature", url: "https://cdn.nimi.ai/avatar?X-Amz-Signature=private", want: false},
-		{name: "userinfo", url: "https://bearer:private@cdn.nimi.ai/avatar", want: false},
+		{name: "userinfo", url: "https://bearer:private@cdn.nimi.ai/avatar", want: false}, // pragma: allowlist secret
 		{name: "loopback endpoint", url: "http://127.0.0.1:3002/avatar", want: false},
 		{name: "private endpoint", url: "https://10.0.0.1/avatar", want: false},
 		{name: "local path", url: "file:///Users/private/avatar.png", want: false},

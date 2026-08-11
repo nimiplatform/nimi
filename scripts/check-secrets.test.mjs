@@ -5,6 +5,13 @@ import {
   generatedArtifactBaselineEntries,
   generatedSecretScanExclusion,
 } from './lib/secret-scan-scope.mjs';
+import { shouldApplySecretBaselineUpdate } from './lib/secret-scan-result.mjs';
+
+test('explicit baseline update never applies a partial scanner result', () => {
+  assert.equal(shouldApplySecretBaselineUpdate({ status: 3, baselineUpdated: true }, true), true);
+  assert.equal(shouldApplySecretBaselineUpdate({ status: 1, baselineUpdated: true }, true), false);
+  assert.equal(shouldApplySecretBaselineUpdate({ status: 3, baselineUpdated: true }, false), false);
+});
 
 test('generated protocol stubs are excluded from secret scanning', () => {
   assert.equal(
@@ -65,6 +72,29 @@ test('generated Platform AI profile projection is excluded while sources remain 
   const { scanned, excluded } = filterSecretScanFiles([...sourcePaths, ...generatedPaths]);
   assert.deepEqual(scanned, sourcePaths);
   assert.deepEqual(excluded.map((entry) => entry.file), generatedPaths);
+});
+
+test('generated Runtime provider catalogs are excluded while catalog sources remain scanned', () => {
+  assert.equal(
+    generatedSecretScanExclusion('runtime/catalog/providers/local.yaml')?.label,
+    'Runtime provider catalog projection',
+  );
+
+  const { scanned, excluded } = filterSecretScanFiles([
+    'runtime/catalog/source/providers/local/50-models-embedding-and-asr.yaml',
+    'runtime/catalog/source/providers/openai_codex.source.yaml',
+    'runtime/catalog/providers/local.yaml',
+    'runtime/catalog/providers/openai_codex.yaml',
+  ]);
+
+  assert.deepEqual(scanned, [
+    'runtime/catalog/source/providers/local/50-models-embedding-and-asr.yaml',
+    'runtime/catalog/source/providers/openai_codex.source.yaml',
+  ]);
+  assert.deepEqual(excluded.map((entry) => entry.file), [
+    'runtime/catalog/providers/local.yaml',
+    'runtime/catalog/providers/openai_codex.yaml',
+  ]);
 });
 
 test('source proto files and ordinary source files remain in secret scan scope', () => {
