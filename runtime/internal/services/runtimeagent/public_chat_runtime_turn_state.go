@@ -151,12 +151,11 @@ func (r publicChatRuntime) reserveTurn(
 		turnID := "agent_turn_" + ulid.Make().String()
 		streamID := "agent_stream_" + ulid.Make().String()
 		timelineStartedAt := time.Now()
-		turnTimeout := time.Duration(publicChatDefaultTurnTimeoutMs) * time.Millisecond
-		if turnTimeout <= 0 {
-			r.svc.chatSurfaceMu.Unlock()
-			return publicChatAnchorState{}, publicChatTurnState{}, nil, status.Error(codes.FailedPrecondition, "public chat timeout policy is not configured")
-		}
-		turnCtx, cancel := context.WithTimeout(parent, turnTimeout)
+		// Runtime AI owns text-stream first-packet, idle, and absolute timeout
+		// semantics. The public-chat turn retains explicit interruption through
+		// this cancel function but must not race the provider timeout with a
+		// duplicate outer deadline that can misproject it as turn interruption.
+		turnCtx, cancel := context.WithCancel(parent)
 		turn := &publicChatTurnState{
 			ConversationAnchorID: session.ConversationAnchorID,
 			TurnID:               turnID,

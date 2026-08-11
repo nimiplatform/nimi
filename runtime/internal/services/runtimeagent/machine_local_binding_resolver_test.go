@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
@@ -31,6 +32,16 @@ type machineLocalExecutionResolverStub struct {
 	contracts   []string
 	projections map[string]*localexecution.SelectedLocalExecution
 	errors      map[string]error
+}
+
+type recordingMachineLocalExecutionResolver struct {
+	machineLocalExecutionResolverStub
+	calls []string
+}
+
+func (stub *recordingMachineLocalExecutionResolver) ResolveSelectedLocalExecution(capabilityContract string) (*localexecution.SelectedLocalExecution, error) {
+	stub.calls = append(stub.calls, capabilityContract)
+	return stub.machineLocalExecutionResolverStub.ResolveSelectedLocalExecution(capabilityContract)
 }
 
 func (stub machineLocalExecutionResolverStub) SelectedLocalCapabilityContracts() []string {
@@ -72,7 +83,7 @@ func TestMachineLocalBindingResolverProjectsEveryConfiguredSelection(t *testing.
 	}
 	text := bindings[capabilitydriver.LlamaCapabilityContract]
 	if text.BindingAlias != "lcc_text" || text.ModelID != "Desktop llama" || text.RoutePolicy != runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL ||
-		text.TargetRef != nil || text.SelectedParams != nil {
+		text.TargetRef != nil || text.SelectedParams != nil || text.LocalExecution == nil || text.LocalExecution.ConfigurationID != "lcc_text" {
 		t.Fatalf("text binding = %#v", text)
 	}
 	image := bindings["image.generate"]
@@ -89,6 +100,62 @@ func TestMachineLocalBindingResolverProjectsEveryConfiguredSelection(t *testing.
 	}
 	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED {
 		t.Fatalf("account mismatch reason=%v ok=%v err=%v", reason, ok, err)
+	}
+}
+
+func TestPublicChatTurnAdmissionResolvesOnlyTurnExecutableSelections(t *testing.T) {
+	const (
+		textContract       = capabilitydriver.LlamaCapabilityContract
+		imageContract      = "image.generate"
+		videoContract      = "video.generate"
+		synthesizeContract = "audio.synthesize"
+		transcribeContract = "audio.transcribe"
+	)
+	service := newRuntimeAgentServiceForPublicChatTest(t)
+	installMachineAIConfigForTest(t, service, "user-1", textContract, imageContract, videoContract, synthesizeContract, transcribeContract)
+	projections := map[string]*localexecution.SelectedLocalExecution{}
+	for _, contract := range []string{textContract, imageContract, videoContract, synthesizeContract, transcribeContract} {
+		projections[contract] = machineLocalExecutionProjectionForTest("lcc_"+contract, contract, contract, nil)
+	}
+	source := &recordingMachineLocalExecutionResolver{machineLocalExecutionResolverStub: machineLocalExecutionResolverStub{
+		contracts:   []string{textContract, imageContract, videoContract, synthesizeContract, transcribeContract},
+		projections: projections,
+	}}
+	service.SetMachineLocalExecutionResolver(source)
+	var capturedConfigurationID string
+	service.SetPublicChatBindingResolver(stubPublicChatBindingResolver{resolve: func(ctx context.Context, req PublicChatBindingResolutionRequest) (PublicChatBindingResolution, error) {
+		captured, ok := localexecution.SelectedLocalExecutionFromContext(ctx, textContract)
+		if ok {
+			capturedConfigurationID = captured.ConfigurationID
+		}
+		return PublicChatBindingResolution{
+			BindingAlias: req.BindingAlias, ModelID: req.ModelID, RoutePolicy: req.RouteHint,
+			ContextWindowTokens: 32768, CatalogRevision: "catalog-v1", ModelRevision: "model-v1",
+			ProviderID: "local", RouteDigest: strings.Repeat("a", 64),
+		}, nil
+	}})
+
+	bindings, _, release, err := service.resolveExecutionBindingsFromConfig(
+		context.Background(),
+		testRuntimeAgentLocalRef("agent-alpha"),
+		"user-1",
+		publicChatTurnRequestPayload{},
+	)
+	if release != nil {
+		defer release()
+	}
+	if err != nil {
+		t.Fatalf("resolveExecutionBindingsFromConfig: %v", err)
+	}
+	wantCalls := []string{textContract, imageContract}
+	if len(source.calls) != len(wantCalls) || source.calls[0] != wantCalls[0] || source.calls[1] != wantCalls[1] {
+		t.Fatalf("turn admission resolved selections = %v, want %v", source.calls, wantCalls)
+	}
+	if len(bindings) != 2 || bindings[textContract].ModelID == "" || bindings[imageContract].ModelID == "" {
+		t.Fatalf("turn execution bindings = %#v", bindings)
+	}
+	if capturedConfigurationID != "lcc_"+textContract {
+		t.Fatalf("context metadata received captured configuration %q", capturedConfigurationID)
 	}
 }
 

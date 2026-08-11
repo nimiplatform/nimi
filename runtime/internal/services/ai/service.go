@@ -365,10 +365,7 @@ func (s *Service) ResolvePublicChatTextBinding(
 		return runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED, "", grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 	}
 	if routeHint == runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL {
-		if s.localExecution == nil {
-			return runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED, "", grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_SELECTION_NOT_FOUND)
-		}
-		selected, err := s.localExecution.ResolveSelectedLocalExecution(capabilitydriver.LlamaCapabilityContract)
+		selected, err := s.resolveSelectedLocalTextExecution(ctx)
 		if err != nil {
 			return runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED, "", err
 		}

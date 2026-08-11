@@ -10,6 +10,7 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/executionintent"
+	"github.com/nimiplatform/nimi/runtime/internal/localexecution"
 	"github.com/nimiplatform/nimi/runtime/internal/runtimeidentity"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -56,13 +57,13 @@ type PublicChatBindingResolver interface {
 type rejectingPublicChatBindingResolver struct{}
 
 type machineExecutionBindingResolver interface {
-	ResolveMachineExecutionBindings(context.Context, string) (publicChatExecutionBindings, error)
+	ResolveMachineExecutionBindings(context.Context, string, []string) (publicChatExecutionBindings, error)
 }
 
-type machineExecutionBindingResolverFunc func(context.Context, string) (publicChatExecutionBindings, error)
+type machineExecutionBindingResolverFunc func(context.Context, string, []string) (publicChatExecutionBindings, error)
 
-func (f machineExecutionBindingResolverFunc) ResolveMachineExecutionBindings(ctx context.Context, accountNamespace string) (publicChatExecutionBindings, error) {
-	return f(ctx, accountNamespace)
+func (f machineExecutionBindingResolverFunc) ResolveMachineExecutionBindings(ctx context.Context, accountNamespace string, capabilityContracts []string) (publicChatExecutionBindings, error) {
+	return f(ctx, accountNamespace, capabilityContracts)
 }
 
 type aiBackedPublicChatBindingResolver struct {
@@ -205,6 +206,21 @@ func (s *Service) setMachineExecutionBindingResolver(resolver machineExecutionBi
 }
 
 func (s *Service) machineExecutionBindings(ctx context.Context, accountNamespace string) (publicChatExecutionBindings, error) {
+	bindings, err := s.machineExecutionBindingsForCapabilities(ctx, accountNamespace)
+	if err != nil {
+		return nil, err
+	}
+	if len(bindings) == 0 {
+		return nil, unresolvedSharedAIConfigExecutionBindingError()
+	}
+	return bindings, nil
+}
+
+func (s *Service) machineExecutionBindingsForCapabilities(
+	ctx context.Context,
+	accountNamespace string,
+	capabilityContracts ...string,
+) (publicChatExecutionBindings, error) {
 	if s == nil || s.isClosed() || strings.TrimSpace(accountNamespace) == "" {
 		return nil, unresolvedSharedAIConfigExecutionBindingError()
 	}
@@ -214,28 +230,25 @@ func (s *Service) machineExecutionBindings(ctx context.Context, accountNamespace
 	if resolver == nil {
 		return nil, unresolvedSharedAIConfigExecutionBindingError()
 	}
-	bindings, err := resolver.ResolveMachineExecutionBindings(ctx, accountNamespace)
+	bindings, err := resolver.ResolveMachineExecutionBindings(ctx, accountNamespace, append([]string(nil), capabilityContracts...))
 	if err != nil {
 		return nil, err
-	}
-	if len(bindings) == 0 {
-		return nil, unresolvedSharedAIConfigExecutionBindingError()
 	}
 	return clonePublicChatExecutionBindings(bindings), nil
 }
 
-func (s *Service) machineExecutionBindingsForAgent(ctx context.Context, agentInstanceID string) (publicChatExecutionBindings, string, error) {
+func (s *Service) machineExecutionBindingsForAgent(ctx context.Context, agentInstanceID string, capabilityContracts ...string) (publicChatExecutionBindings, string, error) {
 	entry, err := s.agentByID(strings.TrimSpace(agentInstanceID))
 	if err != nil || entry == nil || entry.Agent == nil {
 		return nil, "", unresolvedSharedAIConfigExecutionBindingError()
 	}
 	accountNamespace := strings.TrimSpace(entry.Agent.GetOwnerUserId())
-	bindings, err := s.machineExecutionBindings(ctx, accountNamespace)
+	bindings, err := s.machineExecutionBindingsForCapabilities(ctx, accountNamespace, capabilityContracts...)
 	return bindings, accountNamespace, err
 }
 
 func (s *Service) committedTextGenerateExecutionBinding(agentInstanceID string) (publicChatExecutionBinding, uint64, error) {
-	bindings, _, err := s.machineExecutionBindingsForAgent(context.Background(), agentInstanceID)
+	bindings, _, err := s.machineExecutionBindingsForAgent(context.Background(), agentInstanceID, runtimeAgentAIConfigCapabilityTextGenerate)
 	if err != nil {
 		return publicChatExecutionBinding{}, 0, err
 	}
@@ -252,7 +265,12 @@ func (s *Service) resolveExecutionBindingsFromConfig(
 	subjectUserID string,
 	req publicChatTurnRequestPayload,
 ) (publicChatExecutionBindings, uint64, func(), error) {
-	bindings, accountNamespace, err := s.machineExecutionBindingsForAgent(ctx, agentInstanceID)
+	bindings, accountNamespace, err := s.machineExecutionBindingsForAgent(
+		ctx,
+		agentInstanceID,
+		runtimeAgentAIConfigCapabilityTextGenerate,
+		runtimeAgentAIConfigCapabilityImageGenerate,
+	)
 	if err != nil {
 		return nil, 0, nil, err
 	}
@@ -263,7 +281,8 @@ func (s *Service) resolveExecutionBindingsFromConfig(
 	if !ok || validateRuntimePrivateExecutorBinding("text.generate", textBinding) != nil || !s.HasPublicChatBindingResolver() {
 		return nil, 0, nil, unresolvedSharedAIConfigExecutionBindingError()
 	}
-	resolved, err := s.currentPublicChatBindingResolver().ResolvePublicChatBinding(ctx, PublicChatBindingResolutionRequest{
+	resolutionCtx := withPublicChatExecutionIntent(ctx, textBinding, runtimeAgentAIConfigCapabilityTextGenerate)
+	resolved, err := s.currentPublicChatBindingResolver().ResolvePublicChatBinding(resolutionCtx, PublicChatBindingResolutionRequest{
 		Capability:      runtimeAgentAIConfigCapabilityTextGenerate,
 		BindingAlias:    textBinding.BindingAlias,
 		ModelID:         textBinding.ModelID,
@@ -313,6 +332,7 @@ func (s *Service) resolveExecutionBindingsFromConfig(
 		ConnectorID:         strings.TrimSpace(resolved.ConnectorID),
 		TargetRef:           clonePublicChatTargetRef(resolvedTargetRef),
 		ExecutionIntent:     executionintent.Clone(textBinding.ExecutionIntent),
+		LocalExecution:      localexecution.CloneSelectedLocalExecution(textBinding.LocalExecution),
 		SelectedParams:      clonePublicChatSelectedParams(textBinding.SelectedParams),
 		CapabilityContract:  textBinding.CapabilityContract,
 		RequiredFeatures:    append([]string(nil), textBinding.RequiredFeatures...),
@@ -331,7 +351,7 @@ func (s *Service) committedOptionalExecutionBinding(agentInstanceID string, capa
 	if trimmedCapability == "" {
 		return publicChatExecutionBinding{}, false, nil
 	}
-	bindings, _, err := s.machineExecutionBindingsForAgent(context.Background(), agentInstanceID)
+	bindings, _, err := s.machineExecutionBindingsForAgent(context.Background(), agentInstanceID, trimmedCapability)
 	if err != nil {
 		return publicChatExecutionBinding{}, false, err
 	}
@@ -372,6 +392,7 @@ func clonePublicChatExecutionBindings(input publicChatExecutionBindings) publicC
 			ConnectorID:         strings.TrimSpace(binding.ConnectorID),
 			TargetRef:           clonePublicChatTargetRef(binding.TargetRef),
 			ExecutionIntent:     executionintent.Clone(binding.ExecutionIntent),
+			LocalExecution:      localexecution.CloneSelectedLocalExecution(binding.LocalExecution),
 			SelectedParams:      clonePublicChatSelectedParams(binding.SelectedParams),
 			CapabilityContract:  strings.TrimSpace(binding.CapabilityContract),
 			RequiredFeatures:    append([]string(nil), binding.RequiredFeatures...),
@@ -412,7 +433,8 @@ func (s *Service) resolveRuntimeDefaultPublicChatBinding(
 	if err != nil {
 		return publicChatExecutionBinding{}, err
 	}
-	resolved, err := s.currentPublicChatBindingResolver().ResolvePublicChatBinding(ctx, PublicChatBindingResolutionRequest{
+	resolutionCtx := withPublicChatExecutionIntent(ctx, binding, runtimeAgentAIConfigCapabilityTextGenerate)
+	resolved, err := s.currentPublicChatBindingResolver().ResolvePublicChatBinding(resolutionCtx, PublicChatBindingResolutionRequest{
 		Capability: runtimeAgentAIConfigCapabilityTextGenerate, BindingAlias: binding.BindingAlias,
 		ModelID: binding.ModelID, RouteHint: binding.RoutePolicy, ConnectorID: binding.ConnectorID,
 		SubjectUserID: strings.TrimSpace(subjectUserID), SystemPrompt: strings.TrimSpace(systemPrompt),
@@ -442,6 +464,7 @@ func (s *Service) resolveRuntimeDefaultPublicChatBinding(
 		BindingAlias: firstNonEmpty(strings.TrimSpace(resolved.BindingAlias), binding.BindingAlias),
 		ModelID:      strings.TrimSpace(resolved.ModelID), RoutePolicy: resolved.RoutePolicy,
 		ConnectorID: strings.TrimSpace(resolved.ConnectorID), TargetRef: clonePublicChatTargetRef(resolvedTargetRef),
+		ExecutionIntent: executionintent.Clone(binding.ExecutionIntent), LocalExecution: localexecution.CloneSelectedLocalExecution(binding.LocalExecution),
 		SelectedParams: clonePublicChatSelectedParams(binding.SelectedParams), CapabilityContract: binding.CapabilityContract,
 		RequiredFeatures: append([]string(nil), binding.RequiredFeatures...), LocalAIConfigIntent: binding.LocalAIConfigIntent,
 		ContextWindowTokens: resolved.ContextWindowTokens,

@@ -48,6 +48,7 @@ func (s *Service) HasMachineExecutionBindingResolver() bool {
 func (r *selectedLocalMachineExecutionBindingResolver) ResolveMachineExecutionBindings(
 	ctx context.Context,
 	accountNamespace string,
+	capabilityContracts []string,
 ) (publicChatExecutionBindings, error) {
 	if r == nil || r.owner == nil || r.source == nil {
 		return nil, unresolvedSharedAIConfigExecutionBindingError()
@@ -69,8 +70,33 @@ func (r *selectedLocalMachineExecutionBindingResolver) ResolveMachineExecutionBi
 	if err != nil {
 		return nil, err
 	}
-	bindings := make(publicChatExecutionBindings, len(config.GetCapabilities()))
-	for _, intent := range config.GetCapabilities() {
+	intents := config.GetCapabilities()
+	if len(capabilityContracts) > 0 {
+		byContract := make(map[string]*runtimev1.AIConfigCapabilityIntent, len(intents))
+		for _, intent := range intents {
+			if capabilityContract := strings.TrimSpace(intent.GetCapabilityContract()); capabilityContract != "" {
+				byContract[capabilityContract] = intent
+			}
+		}
+		scoped := make([]*runtimev1.AIConfigCapabilityIntent, 0, len(capabilityContracts))
+		seen := make(map[string]struct{}, len(capabilityContracts))
+		for _, capabilityContract := range capabilityContracts {
+			capabilityContract = strings.TrimSpace(capabilityContract)
+			if capabilityContract == "" {
+				return nil, machineExecutionProjectionError(runtimev1.ReasonCode_AI_CONFIG_INVALID, "machine execution capability scope is invalid", nil)
+			}
+			if _, duplicate := seen[capabilityContract]; duplicate {
+				continue
+			}
+			seen[capabilityContract] = struct{}{}
+			if intent := byContract[capabilityContract]; intent != nil {
+				scoped = append(scoped, intent)
+			}
+		}
+		intents = scoped
+	}
+	bindings := make(publicChatExecutionBindings, len(intents))
+	for _, intent := range intents {
 		capabilityContract := strings.TrimSpace(intent.GetCapabilityContract())
 		if capabilityContract == "" {
 			continue
@@ -113,10 +139,11 @@ func (r *selectedLocalMachineExecutionBindingResolver) ResolveMachineExecutionBi
 				Defaults: clonePublicChatSelectedParams(intent.GetDefaults()), Route: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
 			},
 			LocalAIConfigIntent: true,
+			LocalExecution:      localexecution.CloneSelectedLocalExecution(selected),
 			SelectedParams:      clonePublicChatSelectedParams(intent.GetDefaults()),
 		}
 	}
-	if len(bindings) == 0 {
+	if len(bindings) == 0 && len(capabilityContracts) == 0 {
 		return nil, machineExecutionProjectionError(
 			runtimev1.ReasonCode_AI_LOCAL_CAPABILITY_MISMATCH,
 			"shared LocalAgent AIConfig has no executable capability intent",

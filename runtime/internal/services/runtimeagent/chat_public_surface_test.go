@@ -12,6 +12,7 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/config"
 	"github.com/nimiplatform/nimi/runtime/internal/executionintent"
+	"github.com/nimiplatform/nimi/runtime/internal/localexecution"
 	"github.com/nimiplatform/nimi/runtime/internal/runtimeidentity"
 	memoryservice "github.com/nimiplatform/nimi/runtime/internal/services/memory"
 	"google.golang.org/grpc"
@@ -92,6 +93,7 @@ func TestAIBackedPublicChatTurnExecutorCarriesLocalIntentWithoutDurableTarget(t 
 	if err != nil {
 		t.Fatal(err)
 	}
+	selected := machineLocalExecutionProjectionForTest("lcc-text", "text.generate", "captured", nil)
 	if err := executor.StreamChatTurn(context.Background(), &PublicChatTurnExecutionRequest{
 		AppID:         "nimi.zhiyu",
 		SubjectUserID: "account-1",
@@ -104,6 +106,7 @@ func TestAIBackedPublicChatTurnExecutorCarriesLocalIntentWithoutDurableTarget(t 
 			RequiredFeatures:    []string{"input.image"},
 			SelectedParams:      defaults,
 			LocalAIConfigIntent: true,
+			LocalExecution:      selected,
 		},
 	}, nil); err != nil {
 		t.Fatalf("StreamChatTurn: %v", err)
@@ -113,6 +116,10 @@ func TestAIBackedPublicChatTurnExecutorCarriesLocalIntentWithoutDurableTarget(t 
 		len(intent.RequiredFeatures) != 1 || intent.RequiredFeatures[0] != "input.image" ||
 		intent.Defaults.GetFields()["temperature"].GetNumberValue() != 0.4 {
 		t.Fatalf("consumer intent = %+v, ok=%v", intent, ok)
+	}
+	captured, ok := localexecution.SelectedLocalExecutionFromContext(streamer.ctx, "text.generate")
+	if !ok || captured.ConfigurationID != "lcc-text" {
+		t.Fatalf("captured Local execution = %+v, ok=%v", captured, ok)
 	}
 }
 

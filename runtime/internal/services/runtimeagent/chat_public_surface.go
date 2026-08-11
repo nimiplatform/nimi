@@ -3,12 +3,14 @@ package runtimeagent
 import (
 	"context"
 	"encoding/json"
+	"time"
+
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/executionintent"
+	"github.com/nimiplatform/nimi/runtime/internal/localexecution"
 	"github.com/nimiplatform/nimi/runtime/internal/runtimeidentity"
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/types/known/structpb"
-	"time"
 )
 
 // K-AGCORE-032 reactive chat consume seam constants.
@@ -65,7 +67,8 @@ type publicChatExecutionBinding struct {
 	RoutePolicy         runtimev1.RoutePolicy
 	ConnectorID         string
 	TargetRef           *runtimeidentity.Target
-	ExecutionIntent     executionintent.Intent `json:"-"`
+	ExecutionIntent     executionintent.Intent                 `json:"-"`
+	LocalExecution      *localexecution.SelectedLocalExecution `json:"-"`
 	SelectedParams      *structpb.Struct
 	CapabilityContract  string
 	RequiredFeatures    []string

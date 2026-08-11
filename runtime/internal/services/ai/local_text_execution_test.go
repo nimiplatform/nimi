@@ -27,6 +27,7 @@ type mutableLocalExecutionResolver struct {
 	mu         sync.Mutex
 	projection *localexecution.SelectedLocalExecution
 	err        error
+	calls      int
 }
 
 func (r *mutableLocalExecutionResolver) SelectedLocalCapabilityContracts() []string {
@@ -36,10 +37,17 @@ func (r *mutableLocalExecutionResolver) SelectedLocalCapabilityContracts() []str
 func (r *mutableLocalExecutionResolver) ResolveSelectedLocalExecution(string) (*localexecution.SelectedLocalExecution, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
+	r.calls++
 	if r.err != nil {
 		return nil, r.err
 	}
 	return cloneSelectedExecutionForTest(r.projection), nil
+}
+
+func (r *mutableLocalExecutionResolver) callCount() int {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	return r.calls
 }
 
 func (r *mutableLocalExecutionResolver) set(projection *localexecution.SelectedLocalExecution) {
@@ -54,6 +62,7 @@ type localTextHostStub struct {
 	canceled     chan struct{}
 	err          error
 	streamDeltas []localexecution.TextDelta
+	streamFn     func(context.Context, func(localexecution.TextDelta) error) (localexecution.TextResult, error)
 	result       localexecution.TextResult
 	embedResult  localexecution.EmbedResult
 
@@ -137,6 +146,9 @@ func (h *localTextHostStub) StreamText(
 		default:
 			close(h.started)
 		}
+	}
+	if h.streamFn != nil {
+		return h.streamFn(ctx, onDelta)
 	}
 	if h.canceled != nil {
 		<-ctx.Done()
@@ -349,6 +361,49 @@ func TestSelectedLocalTextContextMetadataHasNoResidentOrDurableTarget(t *testing
 	}
 }
 
+func TestLocalTextConsumersReuseAdmissionCapturedSelection(t *testing.T) {
+	svc := newTestService(nil)
+	selected := selectedTextExecutionForTest(t, "config-captured", "captured.gguf")
+	portable, err := structpb.NewStruct(map[string]any{"contextSize": 8192})
+	if err != nil {
+		t.Fatal(err)
+	}
+	selected.PortableConfig = portable
+	resolver := &mutableLocalExecutionResolver{err: errors.New("current selection must not be re-resolved")}
+	svc.SetLocalExecutionResolver(resolver)
+	ctx := localTextIntentContext(context.Background(), nil)
+	ctx = localexecution.WithSelectedLocalExecution(ctx, selected)
+
+	route, model, err := svc.ResolvePublicChatTextBinding(ctx, runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL, "display-only")
+	if err != nil {
+		t.Fatalf("ResolvePublicChatTextBinding: %v", err)
+	}
+	if route != runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL || model != "config-captured" {
+		t.Fatalf("resolved binding = route=%v model=%q", route, model)
+	}
+	window, _, _, _, targetRef, release, err := svc.ResolvePublicChatTextContextMetadataLease(
+		ctx, runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL, model, nil,
+	)
+	if err != nil {
+		t.Fatalf("ResolvePublicChatTextContextMetadataLease: %v", err)
+	}
+	if release != nil {
+		release()
+	}
+	if window != 8192 || targetRef != nil {
+		t.Fatalf("captured metadata = window=%d target=%+v", window, targetRef)
+	}
+	request := localTextExecuteRequestForTest()
+	effective, err := svc.captureLocalTextEffectiveInputs(ctx, request.GetHead(), request.GetSpec().GetTextGenerate(), true)
+	if err != nil {
+		t.Fatalf("captureLocalTextEffectiveInputs: %v", err)
+	}
+	effective.release()
+	if calls := resolver.callCount(); calls != 0 {
+		t.Fatalf("current selection resolver calls = %d, want 0", calls)
+	}
+}
+
 func TestUnsupportedLocalSpeechFailsClosedWithoutLlamaInference(t *testing.T) {
 	tests := []struct {
 		name         string
@@ -466,6 +521,67 @@ func TestLocalTextStreamFailureEmitsTypedTerminalEvent(t *testing.T) {
 	failed := stream.events[len(stream.events)-1].GetFailed()
 	if failed == nil || failed.GetReasonCode() != runtimev1.ReasonCode_AI_LOCAL_EXECUTION_INFERENCE_FAILED ||
 		failed.GetActionHint() != "retry_or_adjust_request" {
+		t.Fatalf("terminal event = %+v", stream.events[len(stream.events)-1])
+	}
+}
+
+func TestLocalTextStreamFirstPacketTimeoutEmitsTypedTerminalEvent(t *testing.T) {
+	svc := newTestService(nil)
+	svc.streamFirstPacketTimeout = 10 * time.Millisecond
+	svc.streamIdleTimeout = time.Second
+	svc.SetLocalExecutionResolver(&mutableLocalExecutionResolver{projection: selectedTextExecutionForTest(t, "config-stream-first-timeout", "stream-first-timeout.gguf")})
+	svc.SetLocalTextExecutionHost(&localTextHostStub{streamFn: func(ctx context.Context, _ func(localexecution.TextDelta) error) (localexecution.TextResult, error) {
+		<-ctx.Done()
+		return localexecution.TextResult{}, &localexecution.ExecutionError{Kind: localexecution.FailureCanceled, Err: ctx.Err()}
+	}})
+	executeRequest := localTextExecuteRequestForTest()
+	executeRequest.Head.TimeoutMs = 150
+	stream := &mockScenarioEventStream{ctx: localTextIntentContext(context.Background(), nil)}
+	request := &runtimev1.StreamScenarioRequest{
+		Head: executeRequest.GetHead(), ScenarioType: executeRequest.GetScenarioType(),
+		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_STREAM, Spec: executeRequest.GetSpec(),
+	}
+	startedAt := time.Now()
+	if err := svc.StreamScenario(request, stream); err != nil {
+		t.Fatalf("StreamScenario: %v", err)
+	}
+	if elapsed := time.Since(startedAt); elapsed >= 100*time.Millisecond {
+		t.Fatalf("first-packet timeout elapsed = %s, want before absolute cap", elapsed)
+	}
+	failed := stream.events[len(stream.events)-1].GetFailed()
+	if failed == nil || failed.GetReasonCode() != runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT {
+		t.Fatalf("terminal event = %+v", stream.events[len(stream.events)-1])
+	}
+}
+
+func TestLocalTextStreamIdleTimeoutRefreshesFromProviderDelta(t *testing.T) {
+	svc := newTestService(nil)
+	svc.streamFirstPacketTimeout = 100 * time.Millisecond
+	svc.streamIdleTimeout = 10 * time.Millisecond
+	svc.SetLocalExecutionResolver(&mutableLocalExecutionResolver{projection: selectedTextExecutionForTest(t, "config-stream-idle-timeout", "stream-idle-timeout.gguf")})
+	svc.SetLocalTextExecutionHost(&localTextHostStub{streamFn: func(ctx context.Context, onDelta func(localexecution.TextDelta) error) (localexecution.TextResult, error) {
+		if err := onDelta(localexecution.TextDelta{Text: "activity"}); err != nil {
+			return localexecution.TextResult{}, err
+		}
+		<-ctx.Done()
+		return localexecution.TextResult{}, &localexecution.ExecutionError{Kind: localexecution.FailureCanceled, Err: ctx.Err()}
+	}})
+	executeRequest := localTextExecuteRequestForTest()
+	executeRequest.Head.TimeoutMs = 150
+	stream := &mockScenarioEventStream{ctx: localTextIntentContext(context.Background(), nil)}
+	request := &runtimev1.StreamScenarioRequest{
+		Head: executeRequest.GetHead(), ScenarioType: executeRequest.GetScenarioType(),
+		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_STREAM, Spec: executeRequest.GetSpec(),
+	}
+	startedAt := time.Now()
+	if err := svc.StreamScenario(request, stream); err != nil {
+		t.Fatalf("StreamScenario: %v", err)
+	}
+	if elapsed := time.Since(startedAt); elapsed >= 100*time.Millisecond {
+		t.Fatalf("idle timeout elapsed = %s, want before absolute cap", elapsed)
+	}
+	failed := stream.events[len(stream.events)-1].GetFailed()
+	if failed == nil || failed.GetReasonCode() != runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT {
 		t.Fatalf("terminal event = %+v", stream.events[len(stream.events)-1])
 	}
 }

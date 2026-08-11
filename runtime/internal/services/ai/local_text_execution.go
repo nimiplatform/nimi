@@ -73,10 +73,7 @@ func (s *Service) captureLocalTextEffectiveInputs(
 	if !intent.IsLocal() || intent.CapabilityContract != capabilitydriver.LlamaCapabilityContract {
 		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_CAPABILITY_MISMATCH)
 	}
-	if s.localExecution == nil {
-		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_SELECTION_NOT_FOUND)
-	}
-	selected, err := s.localExecution.ResolveSelectedLocalExecution(capabilitydriver.LlamaCapabilityContract)
+	selected, err := s.resolveSelectedLocalTextExecution(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -155,11 +152,11 @@ func (s *Service) captureLocalTextEffectiveInputs(
 	}, nil
 }
 
-func (s *Service) resolveSelectedLocalTextContextMetadata(context.Context) (publicChatTextContextMetadataResolution, error) {
-	if s == nil || s.localExecution == nil || s.capabilityDrivers == nil {
+func (s *Service) resolveSelectedLocalTextContextMetadata(ctx context.Context) (publicChatTextContextMetadataResolution, error) {
+	if s == nil || s.capabilityDrivers == nil {
 		return publicChatTextContextMetadataResolution{}, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_SELECTION_NOT_FOUND)
 	}
-	selected, err := s.localExecution.ResolveSelectedLocalExecution(capabilitydriver.LlamaCapabilityContract)
+	selected, err := s.resolveSelectedLocalTextExecution(ctx)
 	if err != nil {
 		return publicChatTextContextMetadataResolution{}, err
 	}
@@ -195,6 +192,16 @@ func (s *Service) resolveSelectedLocalTextContextMetadata(context.Context) (publ
 		provider:       "local",
 		release:        func() {},
 	}, nil
+}
+
+func (s *Service) resolveSelectedLocalTextExecution(ctx context.Context) (*localexecution.SelectedLocalExecution, error) {
+	if captured, ok := localexecution.SelectedLocalExecutionFromContext(ctx, capabilitydriver.LlamaCapabilityContract); ok {
+		return captured, nil
+	}
+	if s == nil || s.localExecution == nil {
+		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_SELECTION_NOT_FOUND)
+	}
+	return s.localExecution.ResolveSelectedLocalExecution(capabilitydriver.LlamaCapabilityContract)
 }
 
 func validSelectedTextExecution(selected *localexecution.SelectedLocalExecution) bool {

@@ -3,13 +3,16 @@ package ai
 import (
 	"context"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/localexecution"
 	"github.com/oklog/ulid/v2"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -71,8 +74,67 @@ func streamLocalTextGenerateScenario(
 	}
 	defer release()
 	s.attachQueueWait(ctx, acquireResult)
-	requestCtx, cancel := withTimeout(ctx, req.GetHead().GetTimeoutMs(), defaultStreamTotalTimeout)
-	defer cancel()
+	totalTimeout := timeoutDuration(req.GetHead().GetTimeoutMs(), defaultStreamTotalTimeout)
+	requestBaseCtx, baseCancel := withTimeout(ctx, req.GetHead().GetTimeoutMs(), defaultStreamTotalTimeout)
+	defer baseCancel()
+	requestCtx, requestCancel := context.WithCancel(requestBaseCtx)
+	defer requestCancel()
+	firstPacketTimedOut := &atomic.Bool{}
+	idleTimedOut := &atomic.Bool{}
+	firstPacketSeen := &atomic.Bool{}
+	firstTimeout := s.streamFirstPacketTimeout
+	if totalTimeout > 0 && totalTimeout < firstTimeout {
+		firstTimeout = totalTimeout
+	}
+	var firstPacketTimer *time.Timer
+	startFirstPacketTimer := func() {
+		if firstTimeout <= 0 || firstPacketTimer != nil {
+			return
+		}
+		firstPacketTimer = time.AfterFunc(firstTimeout, func() {
+			if firstPacketSeen.Load() {
+				return
+			}
+			firstPacketTimedOut.Store(true)
+			requestCancel()
+		})
+	}
+	idleTimeout := s.streamIdleTimeout
+	if totalTimeout > 0 && totalTimeout < idleTimeout {
+		idleTimeout = totalTimeout
+	}
+	var idleTimer *time.Timer
+	var idleTimerMu sync.Mutex
+	resetIdleTimer := func() {
+		if idleTimeout <= 0 || idleTimedOut.Load() {
+			return
+		}
+		idleTimerMu.Lock()
+		defer idleTimerMu.Unlock()
+		if idleTimer == nil {
+			idleTimer = time.AfterFunc(idleTimeout, func() {
+				idleTimedOut.Store(true)
+				requestCancel()
+			})
+			return
+		}
+		idleTimer.Reset(idleTimeout)
+	}
+	if idleTimeout > 0 {
+		defer func() {
+			idleTimerMu.Lock()
+			defer idleTimerMu.Unlock()
+			if idleTimer != nil {
+				idleTimer.Stop()
+			}
+		}()
+	}
+	recordActivity := func() {
+		if firstPacketSeen.CompareAndSwap(false, true) && firstPacketTimer != nil {
+			firstPacketTimer.Stop()
+		}
+		resetIdleTimer()
+	}
 
 	traceID := ulid.Make().String()
 	var sequence atomic.Uint64
@@ -92,6 +154,10 @@ func streamLocalTextGenerateScenario(
 		},
 	}); err != nil {
 		return err
+	}
+	startFirstPacketTimer()
+	if firstPacketTimer != nil {
+		defer firstPacketTimer.Stop()
 	}
 
 	var textBuffer strings.Builder
@@ -123,6 +189,9 @@ func streamLocalTextGenerateScenario(
 		})
 	}
 	onDelta := func(delta localexecution.TextDelta) error {
+		if delta.Text != "" || delta.Reasoning != "" {
+			recordActivity()
+		}
 		if delta.Text != "" {
 			textBuffer.WriteString(delta.Text)
 			if textBuffer.Len() >= minStreamChunkBytes {
@@ -169,6 +238,9 @@ func streamLocalTextGenerateScenario(
 	}
 	if requestCtx.Err() != nil && ctx.Err() != nil {
 		return err
+	}
+	if firstPacketTimedOut.Load() || idleTimedOut.Load() || requestCtx.Err() == context.DeadlineExceeded {
+		err = grpcerr.WithReasonCode(codes.DeadlineExceeded, runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT)
 	}
 	return send(&runtimev1.StreamScenarioEvent{
 		EventType: runtimev1.StreamEventType_STREAM_EVENT_FAILED,

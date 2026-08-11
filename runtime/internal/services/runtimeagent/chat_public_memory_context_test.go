@@ -199,6 +199,33 @@ func TestPublicChatTurnRequestFailsClosedWhenPreTurnMemoryReadFails(t *testing.T
 	}
 }
 
+func TestReservedPublicChatTurnLeavesTextStreamTimeoutToAIProvider(t *testing.T) {
+	t.Parallel()
+	svc := newRuntimeAgentServiceForPublicChatTest(t)
+	anchorID := openPublicChatTestAnchor(t, svc, "agent-alpha", "desktop.app", "user-1")
+	req := publicChatTurnRequestPayload{
+		LocalAgentRef:        testRuntimeAgentLocalRef("agent-alpha"),
+		OwnerUserID:          "user-1",
+		RuntimeSourceRef:     testRuntimeAgentSourceRef("agent-alpha"),
+		ConversationAnchorID: anchorID,
+		RequestID:            "desktop-turn-provider-timeout-owner",
+		ThreadID:             publicChatTestAnchorThreadID(t, svc, anchorID),
+		Messages: []publicChatMessagePayload{
+			{Role: "user", Content: "hello"},
+		},
+	}
+	runtime := publicChatRuntime{svc: svc}
+	_, turn, turnCtx, err := runtime.reserveTurn(context.Background(), "desktop.app", "user-1", req)
+	if err != nil {
+		t.Fatalf("reserveTurn: %v", err)
+	}
+	defer runtime.releaseTurn(anchorID, turn.TurnID)
+	defer turn.Cancel()
+	if deadline, ok := turnCtx.Deadline(); ok {
+		t.Fatalf("public chat turn imposed outer deadline %s; text stream timeout belongs to Runtime AI", deadline)
+	}
+}
+
 func TestPublicChatPreTurnMemoryRequiresSubjectContext(t *testing.T) {
 	t.Parallel()
 	svc := newRuntimeAgentServiceForPublicChatTest(t)

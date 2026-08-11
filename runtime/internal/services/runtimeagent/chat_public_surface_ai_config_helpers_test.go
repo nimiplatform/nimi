@@ -53,11 +53,20 @@ func upsertPublicChatTestAgentAIConfigForContext(t *testing.T, svc *Service, req
 		bindings[capability] = binding
 	}
 	frozen := clonePublicChatExecutionBindings(bindings)
-	svc.setMachineExecutionBindingResolver(machineExecutionBindingResolverFunc(func(_ context.Context, requestedAccount string) (publicChatExecutionBindings, error) {
+	svc.setMachineExecutionBindingResolver(machineExecutionBindingResolverFunc(func(_ context.Context, requestedAccount string, capabilityContracts []string) (publicChatExecutionBindings, error) {
 		if strings.TrimSpace(requestedAccount) != accountNamespace {
 			return nil, unresolvedSharedAIConfigExecutionBindingError()
 		}
-		return clonePublicChatExecutionBindings(frozen), nil
+		if len(capabilityContracts) == 0 {
+			return clonePublicChatExecutionBindings(frozen), nil
+		}
+		filtered := make(publicChatExecutionBindings, len(capabilityContracts))
+		for _, capabilityContract := range capabilityContracts {
+			if binding, ok := frozen[capabilityContract]; ok {
+				filtered[capabilityContract] = binding
+			}
+		}
+		return filtered, nil
 	}))
 }
 
