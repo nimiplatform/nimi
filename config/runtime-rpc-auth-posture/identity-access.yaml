@@ -46,6 +46,20 @@ methods:
     posture: protected_origin_required
   - method_id: /nimi.runtime.v1.RuntimeAppService/RemoveLocalAppStorageJson
     posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeAppService/StatLocalAppAsset
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeAppService/ListLocalAppAssets
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeAppService/WriteLocalAppAsset
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeAppService/ReadLocalAppAsset
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeAppService/RemoveLocalAppAsset
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeAppService/MoveLocalAppAsset
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeAppService/AdoptLocalAppArtifact
+    posture: protected_origin_required
   - method_id: /nimi.runtime.v1.RuntimeAppService/PrepareLocalAppLaunch
     posture: protected_origin_required
   - method_id: /nimi.runtime.v1.RuntimeAppService/BindLocalAppProcess

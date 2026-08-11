@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import { ReasonCode } from '../types';
-import { normalizeServiceError } from './node-grpc-errors';
+import { collectResponseMetadata, normalizeServiceError } from './node-grpc-errors';
 
 type ErrorInfoInput = {
   readonly reason: string;
@@ -62,6 +62,16 @@ function createServiceError(
     metadata,
   }) as grpc.ServiceError;
 }
+
+test('collectResponseMetadata drops the retired route-describe carrier', () => {
+  const metadata = new grpc.Metadata();
+  metadata.set('x-nimi-runtime-version', '1.0.0');
+  metadata.set('x-nimi-route-describe-result', 'retired-payload');
+
+  assert.deepEqual(collectResponseMetadata(metadata), {
+    'x-nimi-runtime-version': '1.0.0',
+  });
+});
 
 test('normalizeServiceError decodes nimi ErrorInfo fields from grpc-status-details-bin', () => {
   const publicMessage = 'Provider request failed without exposing its payload';

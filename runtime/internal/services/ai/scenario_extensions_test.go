@@ -55,48 +55,34 @@ func TestClassifyScenarioExtensionsAllowsWorldGenerateNamespace(t *testing.T) {
 	}
 }
 
-func TestClassifyScenarioExtensionsAllowsTextGenerateRouteDescribeProbe(t *testing.T) {
-	ignored, err := classifyScenarioExtensions(
-		runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE,
-		[]*runtimev1.ScenarioExtension{
-			{Namespace: textGenerateRouteDescribeExtensionNamespace},
-		},
-	)
-	if err != nil {
-		t.Fatalf("classify scenario extensions: %v", err)
+func TestClassifyScenarioExtensionsRejectsRetiredRouteDescribeNamespaces(t *testing.T) {
+	tests := []struct {
+		name         string
+		scenarioType runtimev1.ScenarioType
+		namespace    string
+		wantReason   runtimev1.ReasonCode
+	}{
+		{"text generate", runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE, "nimi.scenario.text_generate.route_describe", runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED},
+		{"text embed", runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_EMBED, "nimi.scenario.text_embed.route_describe", runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED},
+		{"image generate", runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE, "nimi.scenario.image_generate.route_describe", runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED},
+		{"speech synthesize", runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE, "nimi.scenario.speech_synthesize.route_describe", runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED},
+		{"speech transcribe", runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_TRANSCRIBE, "nimi.scenario.speech_transcribe.route_describe", runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED},
+		{"voice clone", runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE, "nimi.scenario.voice_clone.route_describe", runtimev1.ReasonCode_AI_VOICE_WORKFLOW_UNSUPPORTED},
+		{"voice design", runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_DESIGN, "nimi.scenario.voice_design.route_describe", runtimev1.ReasonCode_AI_VOICE_WORKFLOW_UNSUPPORTED},
 	}
-	if len(ignored) != 0 {
-		t.Fatalf("strict extension should not be ignored, got=%d", len(ignored))
-	}
-}
-
-func TestClassifyScenarioExtensionsAllowsTextEmbedRouteDescribeProbe(t *testing.T) {
-	ignored, err := classifyScenarioExtensions(
-		runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_EMBED,
-		[]*runtimev1.ScenarioExtension{
-			{Namespace: textEmbedRouteDescribeExtensionNamespace},
-		},
-	)
-	if err != nil {
-		t.Fatalf("classify scenario extensions: %v", err)
-	}
-	if len(ignored) != 0 {
-		t.Fatalf("strict extension should not be ignored, got=%d", len(ignored))
-	}
-}
-
-func TestClassifyScenarioExtensionsAllowsVoiceWorkflowRouteDescribeProbe(t *testing.T) {
-	ignored, err := classifyScenarioExtensions(
-		runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE,
-		[]*runtimev1.ScenarioExtension{
-			{Namespace: voiceCloneRouteDescribeExtensionNamespace},
-		},
-	)
-	if err != nil {
-		t.Fatalf("classify scenario extensions: %v", err)
-	}
-	if len(ignored) != 0 {
-		t.Fatalf("strict extension should not be ignored, got=%d", len(ignored))
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			_, err := classifyScenarioExtensions(
+				tc.scenarioType,
+				[]*runtimev1.ScenarioExtension{{Namespace: tc.namespace}},
+			)
+			if status.Code(err) != codes.InvalidArgument {
+				t.Fatalf("status code = %v, want %v", status.Code(err), codes.InvalidArgument)
+			}
+			if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != tc.wantReason {
+				t.Fatalf("reason = %v (present=%v), want %v", reason, ok, tc.wantReason)
+			}
+		})
 	}
 }
 

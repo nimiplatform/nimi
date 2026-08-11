@@ -170,6 +170,15 @@ const localAppStandardShell: NimiLocalAppStandardShell = {
     async readJson() { return {}; },
     async writeJson() { return {}; },
     async removeJson() { return {}; },
+    assets: {
+      stat: unavailableCarrier,
+      list: unavailableCarrier,
+      write: unavailableCarrier,
+      read: unavailableCarrier,
+      remove: unavailableCarrier,
+      move: unavailableCarrier,
+      adoptArtifact: unavailableCarrier,
+    },
   },
   realm: {
     worldCore: {

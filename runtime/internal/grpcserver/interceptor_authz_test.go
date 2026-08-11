@@ -15,7 +15,6 @@ import (
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
-	"google.golang.org/protobuf/types/known/structpb"
 )
 
 func TestProtectedCapabilityForStream(t *testing.T) {
@@ -339,7 +338,7 @@ func TestSetAgentPresentationProfileUnaryAuthzInterceptor(t *testing.T) {
 	}
 }
 
-func TestProtectedCapabilityForUnaryExemptsRouteDescribeProbe(t *testing.T) {
+func TestProtectedCapabilityForUnaryRetiredRouteDescribeRequestsRequireSpendMeter(t *testing.T) {
 	tests := []struct {
 		name         string
 		scenarioType runtimev1.ScenarioType
@@ -384,12 +383,12 @@ func TestProtectedCapabilityForUnaryExemptsRouteDescribeProbe(t *testing.T) {
 					Head:         &runtimev1.ScenarioRequestHead{AppId: "nimi.desktop"},
 					ScenarioType: tc.scenarioType,
 					Extensions: []*runtimev1.ScenarioExtension{
-						routeDescribeProbeExtension(t, tc.namespace, "binding-ref"),
+						{Namespace: tc.namespace},
 					},
 				},
 			)
-			if required || capability != "" {
-				t.Fatalf("expected matching route describe probe to bypass spend-meter authz, got (%q,%v)", capability, required)
+			if !required || capability != "ai.spend.meter" {
+				t.Fatalf("expected retired route describe request to require spend-meter authz, got (%q,%v)", capability, required)
 			}
 		})
 	}
@@ -405,86 +404,6 @@ func TestProtectedCapabilityForUnaryExecuteScenarioRequiresSpendMeter(t *testing
 	)
 	if !required || capability != "ai.spend.meter" {
 		t.Fatalf("expected normal ExecuteScenario to require ai.spend.meter, got (%q,%v)", capability, required)
-	}
-}
-
-func TestProtectedCapabilityForUnaryMismatchedRouteDescribeNamespaceRequiresSpendMeter(t *testing.T) {
-	capability, required := protectedCapabilityForUnary(
-		"/nimi.runtime.v1.RuntimeAiService/ExecuteScenario",
-		&runtimev1.ExecuteScenarioRequest{
-			Head:         &runtimev1.ScenarioRequestHead{AppId: "nimi.desktop"},
-			ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE,
-			Extensions: []*runtimev1.ScenarioExtension{
-				routeDescribeProbeExtension(t, "nimi.scenario.speech_synthesize.route_describe", "binding-ref"),
-			},
-		},
-	)
-	if !required || capability != "ai.spend.meter" {
-		t.Fatalf("expected mismatched route describe namespace to require ai.spend.meter, got (%q,%v)", capability, required)
-	}
-}
-
-func TestProtectedCapabilityForUnaryUnsupportedRouteDescribeScenarioRequiresSpendMeter(t *testing.T) {
-	capability, required := protectedCapabilityForUnary(
-		"/nimi.runtime.v1.RuntimeAiService/ExecuteScenario",
-		&runtimev1.ExecuteScenarioRequest{
-			Head:         &runtimev1.ScenarioRequestHead{AppId: "nimi.desktop"},
-			ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE,
-			Extensions: []*runtimev1.ScenarioExtension{
-				routeDescribeProbeExtension(t, "nimi.scenario.text_generate.route_describe", "binding-ref"),
-			},
-		},
-	)
-	if !required || capability != "ai.spend.meter" {
-		t.Fatalf("expected unsupported route describe scenario to require ai.spend.meter, got (%q,%v)", capability, required)
-	}
-}
-
-func TestProtectedCapabilityForUnaryMalformedRouteDescribeProbeRequiresSpendMeter(t *testing.T) {
-	capability, required := protectedCapabilityForUnary(
-		"/nimi.runtime.v1.RuntimeAiService/ExecuteScenario",
-		&runtimev1.ExecuteScenarioRequest{
-			Head:         &runtimev1.ScenarioRequestHead{AppId: "nimi.desktop"},
-			ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE,
-			Extensions: []*runtimev1.ScenarioExtension{
-				routeDescribeProbeExtension(t, "nimi.scenario.text_generate.route_describe", ""),
-			},
-		},
-	)
-	if !required || capability != "ai.spend.meter" {
-		t.Fatalf("expected malformed route describe probe to require ai.spend.meter, got (%q,%v)", capability, required)
-	}
-}
-
-func TestProtectedCapabilityForUnaryRouteDescribeProbeWithExtraExtensionRequiresSpendMeter(t *testing.T) {
-	capability, required := protectedCapabilityForUnary(
-		"/nimi.runtime.v1.RuntimeAiService/ExecuteScenario",
-		&runtimev1.ExecuteScenarioRequest{
-			Head:         &runtimev1.ScenarioRequestHead{AppId: "nimi.desktop"},
-			ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE,
-			Extensions: []*runtimev1.ScenarioExtension{
-				routeDescribeProbeExtension(t, "nimi.scenario.text_generate.route_describe", "binding-ref"),
-				{Namespace: "nimi.scenario.image.request"},
-			},
-		},
-	)
-	if !required || capability != "ai.spend.meter" {
-		t.Fatalf("expected route describe probe with extra extension to require ai.spend.meter, got (%q,%v)", capability, required)
-	}
-}
-
-func routeDescribeProbeExtension(t *testing.T, namespace string, resolvedBindingRef string) *runtimev1.ScenarioExtension {
-	t.Helper()
-	payload, err := structpb.NewStruct(map[string]any{
-		"version":            "v1",
-		"resolvedBindingRef": resolvedBindingRef,
-	})
-	if err != nil {
-		t.Fatalf("build route describe payload: %v", err)
-	}
-	return &runtimev1.ScenarioExtension{
-		Namespace: namespace,
-		Payload:   payload,
 	}
 }
 

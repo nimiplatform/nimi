@@ -15,8 +15,6 @@ use super::metadata;
 use super::RuntimeBridgeUnaryPayload;
 
 const EXECUTE_SCENARIO_METHOD_ID: &str = "/nimi.runtime.v1.RuntimeAiService/ExecuteScenario";
-const TEXT_GENERATE_ROUTE_DESCRIBE_EXTENSION_NAMESPACE: &str =
-    "nimi.scenario.text_generate.route_describe";
 const RUNTIME_BRIDGE_UNARY_MAX_DECODING_MESSAGE_BYTES: usize = 32 * 1024 * 1024;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum UnaryTransport {
@@ -128,7 +126,6 @@ fn extract_response_metadata(
         "x-nimi-voice-catalog-source",
         "x-nimi-voice-catalog-version",
         "x-nimi-voice-count",
-        "x-nimi-route-describe-result",
     ];
     let mut out: HashMap<String, String> = HashMap::new();
     for key in keys {
@@ -174,42 +171,14 @@ fn response_metadata_keys(response: &tonic::Response<Vec<u8>>) -> Vec<String> {
         .collect()
 }
 
-fn debug_log_execute_scenario_route_describe_request(method_id: &str, request_bytes: &[u8]) {
-    if !runtime_bridge_debug_enabled() || method_id.trim() != EXECUTE_SCENARIO_METHOD_ID {
-        return;
-    }
-    match super::generated::ExecuteScenarioRequest::decode(request_bytes) {
-        Ok(request) => {
-            let has_route_describe_probe = request.extensions.iter().any(|extension| {
-                extension.namespace.trim() == TEXT_GENERATE_ROUTE_DESCRIBE_EXTENSION_NAMESPACE
-            });
-            eprintln!(
-                "runtime_bridge_debug method=ExecuteScenario extension_count={} has_text_generate_route_describe={}",
-                request.extensions.len(),
-                has_route_describe_probe,
-            );
-        }
-        Err(error) => {
-            eprintln!(
-                "runtime_bridge_debug method=ExecuteScenario request_decode_error={}",
-                error
-            );
-        }
-    }
-}
-
 fn debug_log_unary_response_metadata(method_id: &str, response: &tonic::Response<Vec<u8>>) {
     if !runtime_bridge_debug_enabled() || method_id.trim() != EXECUTE_SCENARIO_METHOD_ID {
         return;
     }
     let keys = response_metadata_keys(response);
-    let has_route_describe_header = response
-        .metadata()
-        .contains_key(route_describe_response_header_key());
     eprintln!(
-        "runtime_bridge_debug method=ExecuteScenario response_metadata_keys={} has_route_describe_header={}",
+        "runtime_bridge_debug method=ExecuteScenario response_metadata_keys={}",
         keys.join(","),
-        has_route_describe_header,
     );
 }
 
@@ -222,10 +191,6 @@ fn debug_log_unary_status_error(method_id: &str, status: &tonic::Status) {
         status.code(),
         status.message()
     );
-}
-
-fn route_describe_response_header_key() -> &'static str {
-    "x-nimi-route-describe-result"
 }
 
 fn validate_unary_method(method_id: &str) -> Result<(), String> {
@@ -246,7 +211,6 @@ async fn invoke_validated_unary(
     transport: UnaryTransport,
 ) -> Result<RuntimeBridgeUnaryResult, String> {
     let request_bytes = decode_request_bytes(payload)?;
-    debug_log_execute_scenario_route_describe_request(payload.method_id.as_str(), &request_bytes);
     if transport == UnaryTransport::ProtectedDesktop {
         let timeout = payload
             .timeout_ms
@@ -464,19 +428,22 @@ mod tests {
     }
 
     #[test]
-    fn extract_response_metadata_keeps_route_describe_header() {
+    fn extract_response_metadata_drops_retired_route_describe_header() {
         let mut response = tonic::Response::new(Vec::<u8>::new());
+        response.metadata_mut().insert(
+            "x-nimi-runtime-version",
+            tonic::metadata::MetadataValue::try_from("1.0.0").expect("metadata value"),
+        );
         response.metadata_mut().insert(
             "x-nimi-route-describe-result",
             tonic::metadata::MetadataValue::try_from("route-payload").expect("metadata value"),
         );
         let extracted = super::extract_response_metadata(&response).expect("response metadata");
         assert_eq!(
-            extracted
-                .get("x-nimi-route-describe-result")
-                .map(String::as_str),
-            Some("route-payload")
+            extracted.get("x-nimi-runtime-version").map(String::as_str),
+            Some("1.0.0")
         );
+        assert!(!extracted.contains_key("x-nimi-route-describe-result"));
     }
 
     #[test]

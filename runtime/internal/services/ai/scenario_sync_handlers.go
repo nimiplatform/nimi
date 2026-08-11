@@ -39,26 +39,6 @@ func executeTextGenerateScenario(ctx context.Context, s *Service, req *runtimev1
 	s.attachQueueWaitUnary(capturedCtx, acquireResult)
 	s.logQueueWait("execute_scenario_text_generate", req.GetHead().GetAppId(), acquireResult)
 
-	describeProbe, hasDescribeProbe, err := textGenerateRouteDescribeProbeFromExtensions(req.GetExtensions())
-	if err != nil {
-		return nil, err
-	}
-	if hasDescribeProbe {
-		if err := s.writeTextGenerateRouteDescribeHeader(capturedCtx, req.GetHead(), describeProbe, effective.modelResolved(), effective.catalogTarget, s.cloudTextProvider); err != nil {
-			return nil, err
-		}
-		return &runtimev1.ExecuteScenarioResponse{
-			Output: &runtimev1.ScenarioOutput{Output: &runtimev1.ScenarioOutput_TextGenerate{
-				TextGenerate: &runtimev1.TextGenerateOutput{Text: ""},
-			}},
-			FinishReason:      runtimev1.FinishReason_FINISH_REASON_STOP,
-			RouteDecision:     runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
-			ModelResolved:     effective.modelResolved(),
-			TraceId:           effective.traceID,
-			IgnoredExtensions: ignored,
-		}, nil
-	}
-
 	requestCtx, cancel := withTimeout(capturedCtx, req.GetHead().GetTimeoutMs(), defaultGenerateTimeout)
 	defer cancel()
 	result, err := s.executeCapturedCloudText(requestCtx, effective)
@@ -115,26 +95,6 @@ func executeTextEmbedScenario(ctx context.Context, s *Service, req *runtimev1.Ex
 	defer release()
 	s.attachQueueWaitUnary(ctx, acquireResult)
 	s.logQueueWait("execute_scenario_text_embed", req.GetHead().GetAppId(), acquireResult)
-
-	describeProbe, hasDescribeProbe, err := textEmbedRouteDescribeProbeFromExtensions(req.GetExtensions())
-	if err != nil {
-		return nil, err
-	}
-	if hasDescribeProbe {
-		if err := s.writeTextEmbedRouteDescribeHeader(ctx, req.GetHead(), describeProbe, effective.modelResolved(), effective.catalogTarget, s.cloudTextProvider); err != nil {
-			return nil, err
-		}
-		return &runtimev1.ExecuteScenarioResponse{
-			Output: &runtimev1.ScenarioOutput{Output: &runtimev1.ScenarioOutput_TextEmbed{
-				TextEmbed: &runtimev1.TextEmbedOutput{},
-			}},
-			FinishReason:      runtimev1.FinishReason_FINISH_REASON_STOP,
-			RouteDecision:     runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
-			ModelResolved:     effective.modelResolved(),
-			TraceId:           effective.traceID,
-			IgnoredExtensions: ignored,
-		}, nil
-	}
 
 	requestCtx, cancel := withTimeout(ctx, req.GetHead().GetTimeoutMs(), defaultEmbedTimeout)
 	defer cancel()

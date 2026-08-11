@@ -13,7 +13,6 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/localappop"
-	"github.com/nimiplatform/nimi/runtime/internal/protectedlocal"
 	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
 	"google.golang.org/grpc/codes"
 )
@@ -50,7 +49,7 @@ func authorizedLocalAppAgentDecision(
 	decision, ok := accountservice.AuthorizedLocalAppDecisionFromContext(ctx)
 	return decision, ok && decision.Operation == operation &&
 		decision.AuthorityClass == localappop.AuthorityClassAppAccess &&
-		decision.SessionID != (protectedlocal.Identifier{}) &&
+		hasLocalAppSessionID(decision.SessionID[:]) &&
 		strings.TrimSpace(decision.AccountID) != "" &&
 		strings.TrimSpace(decision.AppID) != "" &&
 		strings.TrimSpace(decision.RegisteredAppSubject) != ""
@@ -103,7 +102,7 @@ func projectLocalAppAgentReferences(
 
 func mintLocalAppAgentHandle(decision accountservice.LocalAppCallerDecision, localAgentID string) string {
 	localAgentID = strings.TrimSpace(localAgentID)
-	if decision.SessionID == (protectedlocal.Identifier{}) || localAgentID == "" {
+	if !hasLocalAppSessionID(decision.SessionID[:]) || localAgentID == "" {
 		return ""
 	}
 	mac := hmac.New(sha256.New, decision.SessionID[:])
@@ -114,6 +113,15 @@ func mintLocalAppAgentHandle(decision accountservice.LocalAppCallerDecision, loc
 	_, _ = mac.Write([]byte{0})
 	_, _ = mac.Write([]byte(localAgentID))
 	return localAppAgentHandlePrefix + base64.RawURLEncoding.EncodeToString(mac.Sum(nil))
+}
+
+func hasLocalAppSessionID(value []byte) bool {
+	for _, item := range value {
+		if item != 0 {
+			return true
+		}
+	}
+	return false
 }
 
 func safeLocalAppAgentDisplayName(value string) bool {

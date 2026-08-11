@@ -15,7 +15,11 @@ func TestRuntimeBridgeKnowledgeScopeLifecycle(t *testing.T) {
 	if err != nil {
 		t.Fatalf("New: %v", err)
 	}
-	defer c.Close()
+	t.Cleanup(func() {
+		if err := c.Close(); err != nil {
+			t.Errorf("Close: %v", err)
+		}
+	})
 
 	ctx := context.Background()
 	owner := KnowledgeScopeOwner{Kind: KnowledgeScopeOwnerKindAppPrivate, AppID: "app-a"}
@@ -70,7 +74,11 @@ func TestRuntimeBridgeRejectsMissingAndCrossOwnerAuthorization(t *testing.T) {
 	if err != nil {
 		t.Fatalf("New: %v", err)
 	}
-	defer c.Close()
+	t.Cleanup(func() {
+		if err := c.Close(); err != nil {
+			t.Errorf("Close: %v", err)
+		}
+	})
 
 	ctx := context.Background()
 	owner := KnowledgeScopeOwner{Kind: KnowledgeScopeOwnerKindAppPrivate, AppID: "app-a"}

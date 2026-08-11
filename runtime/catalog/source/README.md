@@ -140,7 +140,8 @@ When a model declares `audio.synthesize`, `voice` must be defined:
 - `supports_voice_ref_kinds`
 - `langs_ref`
 
-`voice.request_options` may define route-describe metadata for plain TTS:
+`voice.request_options` may define catalog metadata for plain-TTS request
+validation and execution capability projection:
 
 - `timing_modes`
 - `audio_formats`
@@ -217,7 +218,7 @@ If `voice_workflow_models` is provided, each entry should define:
 - `langs_ref`
 
 `voice_workflow_models[].request_options` is the source-authored workflow metadata
-home for route describe / validation projection.
+home for execution-time request validation and capability projection.
 
 For `voice_clone`, `request_options` must define:
 

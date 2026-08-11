@@ -8,7 +8,6 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/aiconfig"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/localappop"
-	"github.com/nimiplatform/nimi/runtime/internal/protectedlocal"
 	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -33,12 +32,7 @@ func localAppConfigureDecision(
 	seed byte,
 	accountID string,
 ) accountservice.LocalAppCallerDecision {
-	var sessionID protectedlocal.Identifier
-	for index := range sessionID {
-		sessionID[index] = seed + byte(index)
-	}
-	return accountservice.LocalAppCallerDecision{
-		SessionID:            sessionID,
+	decision := accountservice.LocalAppCallerDecision{
 		AppID:                "nimi.thirdparty.configure",
 		AccountID:            accountID,
 		Operation:            operation,
@@ -46,6 +40,10 @@ func localAppConfigureDecision(
 		OperationCapability:  "agent.configure",
 		RegisteredAppSubject: "registered-app-subject",
 	}
+	for index := range decision.SessionID {
+		decision.SessionID[index] = seed + byte(index)
+	}
+	return decision
 }
 
 func localAppConfigureContext(

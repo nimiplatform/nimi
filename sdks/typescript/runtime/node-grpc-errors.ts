@@ -72,7 +72,6 @@ const RUNTIME_RESPONSE_METADATA_HEADERS = [
   'x-nimi-voice-catalog-source',
   'x-nimi-voice-catalog-version',
   'x-nimi-voice-count',
-  'x-nimi-route-describe-result',
 ] as const;
 
 export function collectResponseMetadata(metadata: GrpcMetadataLike): CoreResponseMetadata {

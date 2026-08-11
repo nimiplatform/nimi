@@ -7,7 +7,6 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/localappop"
-	"github.com/nimiplatform/nimi/runtime/internal/protectedlocal"
 	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
 )
 
@@ -106,12 +105,7 @@ func TestLocalAppAgentReferenceAvatarProjectionAllowsOnlyPublicDisplayURL(t *tes
 }
 
 func localAppReferenceDecision(seed byte, accountID string) accountservice.LocalAppCallerDecision {
-	var sessionID protectedlocal.Identifier
-	for index := range sessionID {
-		sessionID[index] = seed + byte(index)
-	}
-	return accountservice.LocalAppCallerDecision{
-		SessionID:            sessionID,
+	decision := accountservice.LocalAppCallerDecision{
 		AppID:                "nimi.test.local-app",
 		AccountID:            accountID,
 		Operation:            accountservice.LocalAppOperationReferenceList,
@@ -119,4 +113,8 @@ func localAppReferenceDecision(seed byte, accountID string) accountservice.Local
 		OperationCapability:  "agent.local",
 		RegisteredAppSubject: "registered-app-subject",
 	}
+	for index := range decision.SessionID {
+		decision.SessionID[index] = seed + byte(index)
+	}
+	return decision
 }

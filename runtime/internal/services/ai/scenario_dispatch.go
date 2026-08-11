@@ -18,28 +18,7 @@ func (s *Service) ExecuteScenario(ctx context.Context, req *runtimev1.ExecuteSce
 	if mode == runtimev1.ExecutionMode_EXECUTION_MODE_UNSPECIFIED {
 		mode = runtimev1.ExecutionMode_EXECUTION_MODE_SYNC
 	}
-	voiceDescribeProbe, hasVoiceDescribeProbe, err := voiceWorkflowRouteDescribeProbeFromExtensions(
-		req.GetScenarioType(),
-		req.GetExtensions(),
-	)
-	if err != nil {
-		return nil, err
-	}
-	speechDescribeProbe, hasSpeechDescribeProbe, err := speechRouteDescribeProbeFromExtensions(
-		req.GetScenarioType(),
-		req.GetExtensions(),
-	)
-	if err != nil {
-		return nil, err
-	}
-	imageDescribeProbe, hasImageDescribeProbe, err := imageGenerateRouteDescribeProbeFromExtensions(
-		req.GetScenarioType(),
-		req.GetExtensions(),
-	)
-	if err != nil {
-		return nil, err
-	}
-	if err := validateExecuteScenarioMode(req.GetScenarioType(), mode, hasVoiceDescribeProbe, hasSpeechDescribeProbe, hasImageDescribeProbe); err != nil {
+	if err := validateScenarioExecutionMode(req.GetScenarioType(), mode); err != nil {
 		return nil, err
 	}
 	if mode != runtimev1.ExecutionMode_EXECUTION_MODE_SYNC {
@@ -65,22 +44,13 @@ func (s *Service) ExecuteScenario(ctx context.Context, req *runtimev1.ExecuteSce
 		if intent, ok := executionintent.FromContext(ctx); ok && intent.IsLocal() {
 			return executeLocalImageGenerateScenario(ctx, s, req, ignored)
 		}
-		if !hasImageDescribeProbe {
-			return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
-		}
-		return executeImageGenerateRouteDescribeScenario(ctx, s, req, ignored, imageDescribeProbe)
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
 	case runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE,
 		runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_DESIGN:
-		if !hasVoiceDescribeProbe {
-			return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
-		}
-		return executeVoiceWorkflowRouteDescribeScenario(ctx, s, req, ignored, voiceDescribeProbe)
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
 	case runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE,
 		runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_TRANSCRIBE:
-		if !hasSpeechDescribeProbe {
-			return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
-		}
-		return executeSpeechRouteDescribeScenario(ctx, s, req, ignored, speechDescribeProbe)
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
 	default:
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
 	}
@@ -126,34 +96,23 @@ var internalFirstRunScenarioExtensionKeys = map[string]struct{}{
 }
 
 var scenarioExtensionRegistry = map[runtimev1.ScenarioType]map[string]scenarioExtensionStrategy{
-	runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE: {
-		textGenerateRouteDescribeExtensionNamespace: scenarioExtensionStrategyStrict,
-	},
-	runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_EMBED: {
-		textEmbedRouteDescribeExtensionNamespace: scenarioExtensionStrategyStrict,
-	},
 	runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE: {
-		imageGenerateRouteDescribeExtensionNamespace: scenarioExtensionStrategyStrict,
-		"nimi.scenario.image.request":                scenarioExtensionStrategyBestEffort,
+		"nimi.scenario.image.request": scenarioExtensionStrategyBestEffort,
 	},
 	runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_GENERATE: {
 		"nimi.scenario.video.request": scenarioExtensionStrategyBestEffort,
 	},
 	runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE: {
-		speechSynthesizeRouteDescribeExtensionNamespace: scenarioExtensionStrategyStrict,
-		"nimi.scenario.speech_synthesize.request":       scenarioExtensionStrategyBestEffort,
+		"nimi.scenario.speech_synthesize.request": scenarioExtensionStrategyBestEffort,
 	},
 	runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_TRANSCRIBE: {
-		speechTranscribeRouteDescribeExtensionNamespace: scenarioExtensionStrategyStrict,
-		"nimi.scenario.speech_transcribe.request":       scenarioExtensionStrategyBestEffort,
+		"nimi.scenario.speech_transcribe.request": scenarioExtensionStrategyBestEffort,
 	},
 	runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE: {
-		"nimi.scenario.voice_clone.request":       scenarioExtensionStrategyStrict,
-		voiceCloneRouteDescribeExtensionNamespace: scenarioExtensionStrategyStrict,
+		"nimi.scenario.voice_clone.request": scenarioExtensionStrategyStrict,
 	},
 	runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_DESIGN: {
-		"nimi.scenario.voice_design.request":       scenarioExtensionStrategyStrict,
-		voiceDesignRouteDescribeExtensionNamespace: scenarioExtensionStrategyStrict,
+		"nimi.scenario.voice_design.request": scenarioExtensionStrategyStrict,
 	},
 	runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_GENERATE: {
 		"nimi.scenario.music_generate.request": scenarioExtensionStrategyBestEffort,
@@ -161,33 +120,6 @@ var scenarioExtensionRegistry = map[runtimev1.ScenarioType]map[string]scenarioEx
 	runtimev1.ScenarioType_SCENARIO_TYPE_WORLD_GENERATE: {
 		"nimi.scenario.world_generate.request": scenarioExtensionStrategyBestEffort,
 	},
-}
-
-func validateExecuteScenarioMode(
-	scenarioType runtimev1.ScenarioType,
-	mode runtimev1.ExecutionMode,
-	hasVoiceDescribeProbe bool,
-	hasSpeechDescribeProbe bool,
-	hasImageDescribeProbe bool,
-) error {
-	if mode == runtimev1.ExecutionMode_EXECUTION_MODE_SYNC && hasImageDescribeProbe {
-		if scenarioType == runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE {
-			return nil
-		}
-	}
-	if mode == runtimev1.ExecutionMode_EXECUTION_MODE_SYNC && hasVoiceDescribeProbe {
-		switch scenarioType {
-		case runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE, runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_DESIGN:
-			return nil
-		}
-	}
-	if mode == runtimev1.ExecutionMode_EXECUTION_MODE_SYNC && hasSpeechDescribeProbe {
-		switch scenarioType {
-		case runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE, runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_TRANSCRIBE:
-			return nil
-		}
-	}
-	return validateScenarioExecutionMode(scenarioType, mode)
 }
 
 func classifyScenarioExtensions(scenarioType runtimev1.ScenarioType, items []*runtimev1.ScenarioExtension) ([]*runtimev1.IgnoredScenarioExtension, error) {

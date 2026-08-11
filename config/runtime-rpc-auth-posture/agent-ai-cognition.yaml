@@ -128,6 +128,24 @@ methods:
     posture: mixed
   - method_id: /nimi.runtime.v1.RuntimeAiService/GenerateLocalAppTextCandidate
     posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeAiService/ExecuteLocalAppScenario
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeAiService/SubmitLocalAppScenarioJob
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeAiService/GetLocalAppScenarioJob
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeAiService/CancelLocalAppScenarioJob
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeAiService/SubscribeLocalAppScenarioJobEvents
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeAiService/StreamLocalAppTextTurn
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeAiService/ReadLocalAppArtifact
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeAiService/UploadLocalAppArtifact
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeAiService/ListLocalAppVoiceAssets
+    posture: protected_origin_required
   - method_id: /nimi.runtime.v1.RuntimeAiService/GetAppAIConfig
     posture: protected_origin_required
   - method_id: /nimi.runtime.v1.RuntimeAiService/OverwriteAppAIConfig

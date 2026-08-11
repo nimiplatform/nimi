@@ -157,8 +157,6 @@ scopes:
       - kind: path_glob
         value: "runtime/internal/services/audit/**/*.go"
       - kind: path_glob
-        value: "runtime/internal/services/ai/route_describe*.go"
-      - kind: path_glob
         value: "runtime/internal/services/ai/runtime_target*.go"
       - kind: path_glob
         value: "runtime/internal/services/ai/scenario_stream*.go"
