@@ -25,7 +25,7 @@ import { resolveAgentTurnTotalTimeoutMs } from './chat-agent-timeouts';
 import { buildAgentUserProjection } from './chat-agent-user-projection';
 import {
   ensureThreadAnchorBindingForTarget,
-  isAbortLikeSubmitError,
+  isTypedSubmitCancellationError,
   resolveUploadedAttachmentProjection,
   uploadPendingAttachment,
 } from './chat-agent-shell-host-actions-helpers';
@@ -130,7 +130,7 @@ export async function submitAgentConversationTurn(input: {
       try {
         await existingSubmit.promise;
       } catch (error) {
-        if (!isAbortLikeSubmitError(error)) {
+        if (!isTypedSubmitCancellationError(error)) {
           throw error;
         }
       }

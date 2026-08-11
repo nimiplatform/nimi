@@ -6,6 +6,7 @@ import {
 } from 'react';
 import {
   createNimiRuntimeAgentTurnsModule,
+  isNimiRuntimeAgentCanceledError,
   type NimiRuntimeAgentScopeRunner,
   type NimiRuntimeAgentTurnsRuntime,
   type NimiRuntimeAgentVoiceInputTranscriptionResult,
@@ -18,6 +19,7 @@ import {
   resolveIdleAgentVoiceSessionShellState,
   type AgentVoiceSessionShellState,
 } from './chat-agent-voice-session.js';
+import type { AgentVoiceCaptureResult } from './chat-agent-voice-capture.js';
 
 type AgentVoiceInputRuntimePort = {
   runtimeAgentTurns(): NimiRuntimeAgentTurnsRuntime;
@@ -33,12 +35,8 @@ function normalizeText(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
 }
 
-function isAbortLikeError(error: unknown): boolean {
-  const record = error && typeof error === 'object'
-    ? error as { name?: unknown; message?: unknown }
-    : null;
-  return record?.name === 'AbortError'
-    || /abort|cancel/i.test(String(record?.message || error || ''));
+export function isAgentVoiceInputCancellationError(error: unknown): boolean {
+  return isNimiRuntimeAgentCanceledError(error);
 }
 
 export async function transcribeAndSubmitCapturedAgentVoiceInput(input: {
@@ -47,6 +45,7 @@ export async function transcribeAndSubmitCapturedAgentVoiceInput(input: {
   conversationAnchorId: string;
   bytes: Uint8Array;
   mimeType: string;
+  signal?: AbortSignal;
   handleSubmit: AgentVoiceInputSubmit;
   beforeSubmit?: () => boolean;
 }): Promise<NimiRuntimeAgentVoiceInputTranscriptionResult & { submitted: boolean }> {
@@ -62,6 +61,7 @@ export async function transcribeAndSubmitCapturedAgentVoiceInput(input: {
     conversationAnchorId: input.conversationAnchorId,
     audioBytes: input.bytes,
     mimeType: input.mimeType,
+    signal: input.signal,
   });
   if (input.beforeSubmit && !input.beforeSubmit()) {
     return { ...result, submitted: false };
@@ -87,6 +87,7 @@ export function useAgentConversationVoiceInput(input: {
   const [amplitude, setAmplitude] = useState(0);
   const stateRef = useRef(state);
   const captureSessionRef = useRef<Awaited<ReturnType<DesktopRendererVoiceCapturePort['start']>> | null>(null);
+  const transcriptionAbortRef = useRef<AbortController | null>(null);
   const operationRef = useRef(0);
   const actionPendingRef = useRef(false);
   const mountedRef = useRef(true);
@@ -109,6 +110,8 @@ export function useAgentConversationVoiceInput(input: {
     operationRef.current += 1;
     captureSessionRef.current?.cancel();
     captureSessionRef.current = null;
+    transcriptionAbortRef.current?.abort();
+    transcriptionAbortRef.current = null;
     resetToIdle();
   }, [resetToIdle]);
 
@@ -118,6 +121,8 @@ export function useAgentConversationVoiceInput(input: {
       operationRef.current += 1;
       captureSessionRef.current?.cancel();
       captureSessionRef.current = null;
+      transcriptionAbortRef.current?.abort();
+      transcriptionAbortRef.current = null;
     };
   }, []);
 
@@ -126,7 +131,7 @@ export function useAgentConversationVoiceInput(input: {
   }, [cancel, input.target?.localAgentRef, input.target?.ownerUserId, input.target?.runtimeSourceRef]);
 
   const fail = useCallback((error: unknown, conversationAnchorId: string | null) => {
-    if (isAbortLikeError(error)) {
+    if (isAgentVoiceInputCancellationError(error)) {
       resetToIdle();
       return;
     }
@@ -141,6 +146,52 @@ export function useAgentConversationVoiceInput(input: {
       message: input.failureMessage,
     });
   }, [commitState, input, resetToIdle]);
+
+  const transcribeRecording = useCallback(async (recording: Promise<AgentVoiceCaptureResult>, options: {
+    target: AgentLocalTargetSnapshot;
+    conversationAnchorId: string;
+    operation: number;
+  }) => {
+    const abortController = new AbortController();
+    transcriptionAbortRef.current?.abort();
+    transcriptionAbortRef.current = abortController;
+    commitState({
+      status: 'transcribing',
+      mode: stateRef.current.mode,
+      conversationAnchorId: options.conversationAnchorId,
+      message: null,
+    });
+    if (mountedRef.current) {
+      setAmplitude(0);
+    }
+    try {
+      const captured = await recording;
+      await transcribeAndSubmitCapturedAgentVoiceInput({
+        runtime: input.runtime,
+        target: options.target,
+        conversationAnchorId: options.conversationAnchorId,
+        bytes: captured.bytes,
+        mimeType: captured.mimeType,
+        signal: abortController.signal,
+        handleSubmit: input.handleSubmit,
+        beforeSubmit: () => (
+          operationRef.current === options.operation
+          && normalizeText(input.getCurrentConversationAnchorId()) === options.conversationAnchorId
+        ),
+      });
+      if (operationRef.current === options.operation) {
+        resetToIdle();
+      }
+    } catch (error) {
+      if (operationRef.current === options.operation) {
+        fail(error, options.conversationAnchorId);
+      }
+    } finally {
+      if (transcriptionAbortRef.current === abortController) {
+        transcriptionAbortRef.current = null;
+      }
+    }
+  }, [commitState, fail, input, resetToIdle]);
 
   const toggle = useCallback(() => {
     if (actionPendingRef.current || stateRef.current.status === 'transcribing') {
@@ -162,37 +213,16 @@ export function useAgentConversationVoiceInput(input: {
         }
         captureSessionRef.current = null;
         const operation = operationRef.current;
-        commitState({
-          status: 'transcribing',
-          mode: stateRef.current.mode,
+        await transcribeRecording(session.stop(), {
+          target,
           conversationAnchorId,
-          message: null,
+          operation,
         });
-        if (mountedRef.current) {
-          setAmplitude(0);
-        }
-        try {
-          const recording = await session.stop();
-          await transcribeAndSubmitCapturedAgentVoiceInput({
-            runtime: input.runtime,
-            target,
-            conversationAnchorId,
-            bytes: recording.bytes,
-            mimeType: recording.mimeType,
-            handleSubmit: input.handleSubmit,
-            beforeSubmit: () => (
-              operationRef.current === operation
-              && normalizeText(input.getCurrentConversationAnchorId()) === conversationAnchorId
-            ),
-          });
-          if (operationRef.current === operation) {
-            resetToIdle();
-          }
-        } catch (error) {
-          if (operationRef.current === operation) {
-            fail(error, conversationAnchorId);
-          }
-        }
+        return;
+      }
+
+      if (!target) {
+        resetToIdle();
         return;
       }
 
@@ -204,8 +234,29 @@ export function useAgentConversationVoiceInput(input: {
         if (!conversationAnchorId) {
           throw new Error('Runtime Agent voice input requires an active conversation.');
         }
+        const activeConversationAnchorId = conversationAnchorId;
+        const autoStopState: { recording: Promise<AgentVoiceCaptureResult> | null } = {
+          recording: null,
+        };
+        const handleAutoStop = (recording: Promise<AgentVoiceCaptureResult>) => {
+          if (operationRef.current !== operation || !mountedRef.current) {
+            void recording.catch(() => undefined);
+            return;
+          }
+          if (!captureSessionRef.current) {
+            autoStopState.recording = recording;
+            return;
+          }
+          captureSessionRef.current = null;
+          void transcribeRecording(recording, {
+            target,
+            conversationAnchorId: activeConversationAnchorId,
+            operation,
+          });
+        };
         const session = await input.voiceCapture.start({
           autoStopMode: 'manual',
+          onAutoStop: handleAutoStop,
           onLevelChange: (nextAmplitude) => {
             if (mountedRef.current && operationRef.current === operation) {
               setAmplitude(nextAmplitude);
@@ -213,6 +264,7 @@ export function useAgentConversationVoiceInput(input: {
           },
         });
         if (operationRef.current !== operation || !mountedRef.current) {
+          void autoStopState.recording?.catch(() => undefined);
           session.cancel();
           return;
         }
@@ -220,9 +272,18 @@ export function useAgentConversationVoiceInput(input: {
         commitState({
           status: 'listening',
           mode: stateRef.current.mode,
-          conversationAnchorId,
+          conversationAnchorId: activeConversationAnchorId,
           message: null,
         });
+        const pendingAutoStop = autoStopState.recording;
+        if (pendingAutoStop) {
+          captureSessionRef.current = null;
+          void transcribeRecording(pendingAutoStop, {
+            target,
+            conversationAnchorId: activeConversationAnchorId,
+            operation,
+          });
+        }
       } catch (error) {
         if (operationRef.current === operation) {
           fail(error, conversationAnchorId);
@@ -231,7 +292,7 @@ export function useAgentConversationVoiceInput(input: {
     })().finally(() => {
       actionPendingRef.current = false;
     });
-  }, [commitState, fail, input, resetToIdle]);
+  }, [commitState, fail, input, resetToIdle, transcribeRecording]);
 
   return {
     available: Boolean(input.target),

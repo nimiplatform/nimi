@@ -578,3 +578,40 @@ test('agent runtime provider keeps the Desktop stream alive during the Runtime t
   assert.equal((await iterator.next()).done, true);
   assert.equal(keepaliveStopped, 1);
 });
+
+test('agent runtime provider does not treat failure message text as cancellation', async () => {
+  const provider = createRuntimeAgentChatConversationProvider({
+    streamController: createTestStreamController(),
+    t: testTranslate,
+    runtimeAdapter: {
+      streamAgentTurn: async () => {
+        throw new Error('provider canceled while reporting an inference failure');
+      },
+    },
+  });
+  const events = [];
+
+  for await (const event of provider.runTurn({
+    modeId: 'runtime-agent-chat-v1',
+    threadId: 'thread-failure-message',
+    turnId: 'turn-failure-message',
+    userMessage: {
+      id: 'user-failure-message',
+      text: 'hello',
+    },
+    history: [],
+    metadata: {
+      ownerUserId: 'user-1',
+      runtimeSourceRef: 'agent-1',
+      localAgentRef: 'local-agent:user-1:agent-1',
+      conversationAnchorId: 'anchor-failure-message',
+      runtimeThreadId: 'runtime-thread-failure-message',
+      reasoningPreference: 'off',
+      textMaxOutputTokensRequested: null,
+    },
+  })) {
+    events.push(event);
+  }
+
+  assert.deepEqual(events.map((event) => event.type), ['turn-started', 'turn-failed']);
+});

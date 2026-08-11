@@ -184,6 +184,7 @@ pub enum ReasonCode {
     AiArtifactUploadTooLarge = 416,
     AiRealtimeSessionNotFound = 417,
     AiRealtimeSessionClosed = 418,
+    AiAudioInputTooLarge = 419,
     /// VOICE family (420+)
     AiVoiceInputInvalid = 420,
     AiVoiceWorkflowUnsupported = 421,
@@ -507,6 +508,7 @@ impl ReasonCode {
             Self::AiArtifactUploadTooLarge => "AI_ARTIFACT_UPLOAD_TOO_LARGE",
             Self::AiRealtimeSessionNotFound => "AI_REALTIME_SESSION_NOT_FOUND",
             Self::AiRealtimeSessionClosed => "AI_REALTIME_SESSION_CLOSED",
+            Self::AiAudioInputTooLarge => "AI_AUDIO_INPUT_TOO_LARGE",
             Self::AiVoiceInputInvalid => "AI_VOICE_INPUT_INVALID",
             Self::AiVoiceWorkflowUnsupported => "AI_VOICE_WORKFLOW_UNSUPPORTED",
             Self::AiVoiceAssetNotFound => "AI_VOICE_ASSET_NOT_FOUND",
@@ -863,6 +865,7 @@ impl ReasonCode {
             "AI_ARTIFACT_UPLOAD_TOO_LARGE" => Some(Self::AiArtifactUploadTooLarge),
             "AI_REALTIME_SESSION_NOT_FOUND" => Some(Self::AiRealtimeSessionNotFound),
             "AI_REALTIME_SESSION_CLOSED" => Some(Self::AiRealtimeSessionClosed),
+            "AI_AUDIO_INPUT_TOO_LARGE" => Some(Self::AiAudioInputTooLarge),
             "AI_VOICE_INPUT_INVALID" => Some(Self::AiVoiceInputInvalid),
             "AI_VOICE_WORKFLOW_UNSUPPORTED" => Some(Self::AiVoiceWorkflowUnsupported),
             "AI_VOICE_ASSET_NOT_FOUND" => Some(Self::AiVoiceAssetNotFound),
@@ -8276,6 +8279,20 @@ pub struct LocalEnvironmentPlan {
     pub reason_code: ::prost::alloc::string::String,
     #[prost(message, repeated, tag = "11")]
     pub dependencies: ::prost::alloc::vec::Vec<LocalEnvironmentPlanDependency>,
+    #[prost(string, repeated, tag = "12")]
+    pub required_dependency_families: ::prost::alloc::vec::Vec<
+        ::prost::alloc::string::String,
+    >,
+    #[prost(bool, tag = "13")]
+    pub aggregate_size_known: bool,
+    #[prost(int64, tag = "14")]
+    pub aggregate_size_bytes: i64,
+    #[prost(string, repeated, tag = "15")]
+    pub storage_categories: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(string, repeated, tag = "16")]
+    pub source_owners: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(bool, tag = "17")]
+    pub no_system_mutation: bool,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct LocalEnvironmentSelectedSourceRecord {
@@ -9783,6 +9800,22 @@ pub struct ResolveLocalEnvironmentPlanRequest {
 pub struct ResolveLocalEnvironmentPlanResponse {
     #[prost(message, optional, tag = "1")]
     pub plan: ::core::option::Option<LocalEnvironmentPlan>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ApplyLocalEnvironmentPlanRequest {
+    #[prost(message, optional, tag = "1")]
+    pub resolution: ::core::option::Option<ResolveLocalEnvironmentPlanRequest>,
+    #[prost(string, tag = "2")]
+    pub expected_plan_id: ::prost::alloc::string::String,
+    #[prost(bool, tag = "3")]
+    pub confirmed: bool,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ApplyLocalEnvironmentPlanResponse {
+    #[prost(message, optional, tag = "1")]
+    pub plan: ::core::option::Option<LocalEnvironmentPlan>,
+    #[prost(message, repeated, tag = "2")]
+    pub jobs: ::prost::alloc::vec::Vec<LocalEnvironmentDependencyJob>,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct PrepareProfileRuntimeDescriptorRequest {
@@ -11343,6 +11376,35 @@ pub mod runtime_local_service_client {
                     GrpcMethod::new(
                         "nimi.runtime.v1.RuntimeLocalService",
                         "ResolveLocalEnvironmentPlan",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn apply_local_environment_plan(
+            &mut self,
+            request: impl tonic::IntoRequest<super::ApplyLocalEnvironmentPlanRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::ApplyLocalEnvironmentPlanResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeLocalService/ApplyLocalEnvironmentPlan",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeLocalService",
+                        "ApplyLocalEnvironmentPlan",
                     ),
                 );
             self.inner.unary(req, path, codec).await
@@ -19413,6 +19475,8 @@ pub struct InterruptAgentVoicePlaybackResponse {
 /// LocalAgent Conversation and executes audio.transcribe through the singular
 /// shared LocalAgent AIConfig before returning typed text to the caller. The
 /// caller cannot provide route, model, provider, Driver, or machine selection.
+/// audio_bytes admits at most 6 MiB; Runtime rejects a larger payload with
+/// ResourceExhausted and AI_AUDIO_INPUT_TOO_LARGE before authorization or execution.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct TranscribeAgentVoiceInputRequest {
     #[prost(message, optional, tag = "1")]

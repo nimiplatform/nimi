@@ -44,6 +44,7 @@ const (
 	defaultGenerateVideoTimeout                   = 300 * time.Second
 	defaultSynthesizeTimeout                      = 45 * time.Second
 	defaultTranscribeTimeout                      = 90 * time.Second
+	defaultLocalSpeechJobTimeout                  = 15 * time.Minute
 	defaultGenerateMusicTimeout                   = 300 * time.Second
 	defaultVoiceAssetDeleteReconciliationInterval = 15 * time.Second
 )

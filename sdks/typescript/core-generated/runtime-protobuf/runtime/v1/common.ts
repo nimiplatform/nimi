@@ -562,6 +562,10 @@ export enum ReasonCode {
      */
     AI_REALTIME_SESSION_CLOSED = 418,
     /**
+     * @generated from protobuf enum value: AI_AUDIO_INPUT_TOO_LARGE = 419;
+     */
+    AI_AUDIO_INPUT_TOO_LARGE = 419,
+    /**
      * VOICE family (420+)
      *
      * @generated from protobuf enum value: AI_VOICE_INPUT_INVALID = 420;

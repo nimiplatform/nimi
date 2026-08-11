@@ -596,7 +596,7 @@ units:
     kind: rule
     title: AI operation indicators align with Runtime timeouts
     modality: must
-    statement: Desktop aligns indicators to 30 seconds for text generation, 10 seconds for streaming first chunk, 120 seconds for total text stream, 20 seconds for text embedding, 45 seconds for speech synthesis stream, 120 seconds for image job submission, 300 seconds for video job submission, and 90 seconds for speech-to-text job submission.
+    statement: Desktop aligns indicators to 30 seconds for text generation, 10 seconds for streaming first chunk, 120 seconds for total text stream, 20 seconds for text embedding, 45 seconds for speech synthesis stream and non-Local speech-synthesis jobs, 120 seconds for image job submission, 300 seconds for video job submission, 90 seconds for non-Local speech-to-text jobs, and 15 minutes for Local speech-synthesis and speech-to-text jobs.
     condition: Whenever Desktop starts an AI operation covered by the Runtime timeout hierarchy.
     failure: Stop indefinite loading and project Runtime deadline-exceeded with the typed provider-timeout reason without claiming completion.
     relations:

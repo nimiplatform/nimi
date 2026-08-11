@@ -109,6 +109,7 @@ export type NimiRuntimeAgentVoiceInputTranscriptionRequest = RuntimeLocalAgentId
   readonly audioBytes: Uint8Array;
   readonly mimeType: string;
   readonly requestId?: string;
+  readonly signal?: AbortSignal;
 };
 
 export type NimiRuntimeAgentVoiceInputTranscriptionResult = {

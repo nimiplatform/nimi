@@ -34,6 +34,7 @@ function videoJobForTest(status: ScenarioJobStatus, overrides: Partial<ScenarioJ
     progressPercent: 0,
     progressCurrentStep: 0,
     progressTotalSteps: 0,
+    transcriptionText: '',
     ...overrides,
   };
 }

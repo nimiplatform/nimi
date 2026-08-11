@@ -18,6 +18,7 @@ function transcriptionJob(status: ScenarioJobStatus): ScenarioJob {
     executionMode: ExecutionMode.ASYNC_JOB, routeDecision: 2, modelResolved: 'stt-runtime', status,
     providerJobId: '', reasonCode: 0, reasonDetail: '', retryCount: 0, artifacts: [], traceId: 'trace-stt-1',
     ignoredExtensions: [], progressPercent: 0, progressCurrentStep: 0, progressTotalSteps: 0,
+    transcriptionText: '',
   };
 }
 

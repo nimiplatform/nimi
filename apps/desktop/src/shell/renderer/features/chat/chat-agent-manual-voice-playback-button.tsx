@@ -10,8 +10,6 @@ import {
   resolveAgentManualVoiceRenderRequest,
 } from './chat-agent-manual-voice-request';
 
-const MANUAL_VOICE_RENDER_TIMEOUT_MS = 45_000;
-
 type PlaybackStatus = 'idle' | 'rendering' | 'playing' | 'unavailable' | 'error';
 
 type VoicePlaybackState = {
@@ -126,10 +124,7 @@ export function AgentManualVoicePlaybackButton(props: {
         getSubjectUserId: () => request.ownerUserId,
         withScopes: sdk.withRuntimeProtectedScopes,
       });
-      const result = await turns.renderVoice({
-        ...request,
-        timeoutMs: MANUAL_VOICE_RENDER_TIMEOUT_MS,
-      });
+      const result = await turns.renderVoice(request);
       if (result.status !== 'ready') {
         setStatus('unavailable');
         emitPlaybackState(false);

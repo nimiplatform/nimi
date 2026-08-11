@@ -173,6 +173,9 @@ func TestAIBackedVoiceLipsyncSynthesizerSubmitsSpeechSynthesisJob(t *testing.T) 
 	if got := ai.submitReq.GetScenarioType(); got != runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE {
 		t.Fatalf("scenario type = %v", got)
 	}
+	if got := ai.submitReq.GetHead().GetTimeoutMs(); got != int32((15*time.Minute)/time.Millisecond) {
+		t.Fatalf("Local speech synthesis Job timeout=%d, want 15 minutes", got)
+	}
 	intent, ok := executionintent.FromContext(ai.submitCtx)
 	if !ok || !intent.IsLocal() || intent.CapabilityContract != "audio.synthesize" {
 		t.Fatalf("private speech intent = %+v, ok=%v", intent, ok)
@@ -330,6 +333,9 @@ func TestServiceVoiceLipsyncScenarioExecutorRequiresExplicitModel(t *testing.T) 
 	}
 	if out.VoiceRouteBinding == nil || out.VoiceRouteBinding.ModelID != "speech/anchor" {
 		t.Fatalf("expected anchor model route binding, got %+v", out.VoiceRouteBinding)
+	}
+	if got := ai.submitReq.GetHead().GetTimeoutMs(); got != int32((45*time.Second)/time.Millisecond) {
+		t.Fatalf("Cloud speech synthesis Job timeout=%d, want 45 seconds", got)
 	}
 }
 

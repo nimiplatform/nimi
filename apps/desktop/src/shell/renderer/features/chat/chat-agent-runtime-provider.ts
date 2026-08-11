@@ -4,9 +4,10 @@ import type {
   ConversationTurnInput,
 } from '@nimiplatform/kit/features/chat/headless';
 import { logRendererEvent } from '@nimiplatform/kit/telemetry';
-import type {
-  NimiDesktopAccountProductRuntimeClient,
-  NimiRuntimeAgentResolvedMessageActionEnvelope,
+import {
+  isNimiRuntimeAgentCanceledError,
+  type NimiDesktopAccountProductRuntimeClient,
+  type NimiRuntimeAgentResolvedMessageActionEnvelope,
 } from '@nimiplatform/sdk/runtime';
 import type { DesktopRendererSdkPort } from '../../renderer/sdk-port.js';
 import type { StreamController } from '../turns/stream-controller.js';
@@ -64,16 +65,6 @@ function requireProviderMetadata(value: unknown): AgentRuntimeChatProviderMetada
       ? Math.floor(Number(record.textMaxOutputTokensRequested))
       : null,
   };
-}
-
-function isAbortLikeError(error: unknown): boolean {
-  if (!error || typeof error !== 'object') {
-    return false;
-  }
-  const record = error as { name?: unknown; code?: unknown; message?: unknown };
-  return record.name === 'AbortError'
-    || record.code === 'ABORT_ERR'
-    || /abort|cancel/i.test(String(record.message || ''));
 }
 
 function textMessageStateFromEnvelope(input: {
@@ -368,7 +359,7 @@ export function createRuntimeAgentChatConversationProvider(
           yield event;
         }
       } catch (error) {
-        if (isAbortLikeError(error) || input.signal?.aborted) {
+        if (isNimiRuntimeAgentCanceledError(error) || input.signal?.aborted) {
           const terminalEvent: ConversationTurnEvent = {
             type: 'turn-canceled',
             turnId: input.turnId,

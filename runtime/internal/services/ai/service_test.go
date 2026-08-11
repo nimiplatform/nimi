@@ -30,6 +30,8 @@ func TestAITimeoutDefaultsMatchSpec(t *testing.T) {
 		{name: "defaultSynthesizeTimeout", got: defaultSynthesizeTimeout, wantMS: 45_000},
 		// SubmitScenarioJob_stt → 90 000 ms
 		{name: "defaultTranscribeTimeout", got: defaultTranscribeTimeout, wantMS: 90_000},
+		// SubmitScenarioJob_local_speech_synthesize / local_stt → 900 000 ms
+		{name: "defaultLocalSpeechJobTimeout", got: defaultLocalSpeechJobTimeout, wantMS: 900_000},
 	}
 
 	for _, tt := range tests {

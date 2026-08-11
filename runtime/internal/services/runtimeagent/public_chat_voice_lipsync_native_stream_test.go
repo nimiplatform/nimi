@@ -4,6 +4,7 @@ import (
 	"context"
 	"strings"
 	"testing"
+	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/executionintent"
@@ -238,6 +239,9 @@ func TestPublicChatCommittedTurnEmitsNativeVoiceStreamChunksBeforeFinalArtifact(
 	}
 	if voiceAI.streamReq == nil || voiceAI.streamReq.GetExecutionMode() != runtimev1.ExecutionMode_EXECUTION_MODE_STREAM {
 		t.Fatalf("expected native voice StreamScenario request, got %#v", voiceAI.streamReq)
+	}
+	if got := voiceAI.streamReq.GetHead().GetTimeoutMs(); got != int32((45*time.Second)/time.Millisecond) {
+		t.Fatalf("Local speech StreamScenario timeout=%d, want 45 seconds", got)
 	}
 	intent, ok := executionintent.FromContext(voiceAI.streamCtx)
 	if !ok || !intent.IsLocal() || intent.CapabilityContract != "audio.synthesize" {

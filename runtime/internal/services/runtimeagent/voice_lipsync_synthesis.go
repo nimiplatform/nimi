@@ -47,10 +47,12 @@ const (
 	syntheticLipsyncWordBoundaryDamp   float64 = 0.32
 	syntheticLipsyncPunctuationDampDur int64   = 120
 
-	runtimeAgentVoiceSynthesisAppID     = "runtime.agent.voice_lipsync"
-	runtimeAgentVoiceSynthesisSubjectID = "anonymous"
-	defaultProviderVoiceSynthesisWait   = 45 * time.Second
-	defaultProviderVoiceSynthesisPoll   = 50 * time.Millisecond
+	runtimeAgentVoiceSynthesisAppID      = "runtime.agent.voice_lipsync"
+	runtimeAgentVoiceSynthesisSubjectID  = "anonymous"
+	defaultLocalVoiceSynthesisJobWait    = 15 * time.Minute
+	defaultNonLocalVoiceSynthesisJobWait = 45 * time.Second
+	defaultVoiceSynthesisStreamWait      = 45 * time.Second
+	defaultProviderVoiceSynthesisPoll    = 50 * time.Millisecond
 )
 
 type voiceLipsyncSynthesisInput struct {
@@ -116,7 +118,6 @@ type aiBackedVoiceLipsyncSynthesizer struct {
 	streamer     publicChatScenarioStreamer
 	modelID      string
 	routePolicy  runtimev1.RoutePolicy
-	waitTimeout  time.Duration
 	pollInterval time.Duration
 }
 
@@ -137,7 +138,6 @@ func newAIBackedVoiceLipsyncSynthesizer(ai voiceLipsyncScenarioExecutor, modelID
 		streamer:     streamer,
 		modelID:      strings.TrimSpace(modelID),
 		routePolicy:  routePolicy,
-		waitTimeout:  defaultProviderVoiceSynthesisWait,
 		pollInterval: defaultProviderVoiceSynthesisPoll,
 	}
 }
@@ -218,10 +218,7 @@ func (s *aiBackedVoiceLipsyncSynthesizer) synthesize(input voiceLipsyncSynthesis
 	if ctx == nil {
 		ctx = context.Background()
 	}
-	waitTimeout := s.waitTimeout
-	if waitTimeout <= 0 {
-		waitTimeout = defaultProviderVoiceSynthesisWait
-	}
+	waitTimeout := voiceSynthesisJobWait(routePolicy)
 	ctx, cancel := context.WithTimeout(ctx, waitTimeout)
 	defer cancel()
 	speechAppID := runtimeAgentVoiceSynthesisAppIDForInput(input)
@@ -301,6 +298,13 @@ func (s *aiBackedVoiceLipsyncSynthesizer) synthesize(input voiceLipsyncSynthesis
 		),
 		Frames: frames,
 	}, nil
+}
+
+func voiceSynthesisJobWait(routePolicy runtimev1.RoutePolicy) time.Duration {
+	if routePolicy == runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL {
+		return defaultLocalVoiceSynthesisJobWait
+	}
+	return defaultNonLocalVoiceSynthesisJobWait
 }
 
 func cloneVoiceSynthesisTargetRef(input *runtimeidentity.Target) *runtimeidentity.Target {

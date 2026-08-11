@@ -840,3 +840,13 @@ units:
         target: definition.nimi.platform.core-protocol.effective-app-access-snapshot
       - type: applies_to
         target: definition.nimi.sdks.feature-clients.app-client-plane
+  - id: rule.nimi.sdks.feature-clients.r103
+    kind: rule
+    title: Runtime Agent voice input remains bounded and typed
+    modality: must
+    statement: The TypeScript Runtime Agent voice-input facade independently admits at most 6 MiB of inline audio bytes, rejects a larger payload before protected-scope acquisition or Runtime transport with typed AI_AUDIO_INPUT_TOO_LARGE, and preserves typed Runtime cancellation and failure semantics without claiming to measure capture duration from the bytes-only request. The facade never derives cancellation from human-readable error text.
+    condition: Whenever a first-party consumer submits recorded voice input through the TypeScript Runtime Agent facade.
+    failure: Fail closed before scope acquisition or transport on over-bound inline audio, preserve typed Canceled and non-cancellation failures, and reject message-inferred cancellation or fabricated transcription success.
+    relations:
+      - type: applies_to
+        target: definition.nimi.sdks.feature-clients.package-plane

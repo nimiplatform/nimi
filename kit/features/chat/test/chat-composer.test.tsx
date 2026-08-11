@@ -266,6 +266,55 @@ describe('ChatComposer', () => {
     expect(container.querySelector('[data-chat-composer-attach="true"]')).toBeTruthy();
   });
 
+  it('exposes cancel while transcribing without changing recording toggle semantics', async () => {
+    const onToggle = vi.fn();
+    const onCancel = vi.fn();
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    root = createRoot(container);
+
+    await act(async () => {
+      root?.render(
+        <ChatComposer
+          adapter={{ submit: async () => {} }}
+          voiceState={{ status: 'transcribing', onToggle, onCancel }}
+        />,
+      );
+      await flush();
+    });
+
+    const transcribingVoice = container.querySelector('[data-chat-composer-voice="true"]');
+    const transcribingPrimary = transcribingVoice?.querySelector('button[title="Transcribing…"]');
+    const transcribingCancel = Array.from(transcribingVoice?.querySelectorAll('button') || [])
+      .find((button) => button.textContent === 'Cancel');
+    expect(transcribingPrimary?.hasAttribute('disabled')).toBe(true);
+    expect(transcribingCancel).toBeTruthy();
+    await act(async () => {
+      transcribingCancel?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      await flush();
+    });
+    expect(onCancel).toHaveBeenCalledTimes(1);
+    expect(onToggle).not.toHaveBeenCalled();
+
+    await act(async () => {
+      root?.render(
+        <ChatComposer
+          adapter={{ submit: async () => {} }}
+          voiceState={{ status: 'recording', onToggle, onCancel }}
+        />,
+      );
+      await flush();
+    });
+    const recordingPrimary = container.querySelector(
+      '[data-chat-composer-voice="true"] button[title="Stop recording"]',
+    );
+    await act(async () => {
+      recordingPrimary?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      await flush();
+    });
+    expect(onToggle).toHaveBeenCalledTimes(1);
+  });
+
   it('keeps stacked toolbar controls flat inside the composer shell', async () => {
     container = document.createElement('div');
     document.body.appendChild(container);

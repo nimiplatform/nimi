@@ -22,7 +22,7 @@ function imageJob(status: ScenarioJobStatus, overrides: Partial<ScenarioJob> = {
     executionMode: ExecutionMode.ASYNC_JOB, routeDecision: 1, modelResolved: 'image-runtime',
     status, providerJobId: '', reasonCode: 0, reasonDetail: '', retryCount: 0, artifacts: [],
     traceId: 'trace-image-1', ignoredExtensions: [], progressPercent: 0, progressCurrentStep: 0,
-    progressTotalSteps: 0, ...overrides,
+    progressTotalSteps: 0, transcriptionText: '', ...overrides,
   };
 }
 

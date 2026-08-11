@@ -13,14 +13,26 @@ import (
 )
 
 const (
-	runtimeAgentVoiceInputAppID        = "runtime.agent.voice_input"
-	defaultAgentVoiceTranscriptionWait = 90 * time.Second
-	defaultAgentVoiceTranscriptionPoll = 50 * time.Millisecond
+	runtimeAgentVoiceInputAppID             = "runtime.agent.voice_input"
+	maxRuntimeAgentVoiceInputBytes          = 6 * 1024 * 1024
+	defaultLocalAgentVoiceTranscriptionWait = 15 * time.Minute
+	defaultCloudAgentVoiceTranscriptionWait = 90 * time.Second
+	defaultAgentVoiceTranscriptionPoll      = 50 * time.Millisecond
 )
+
+func runtimeAgentVoiceInputTooLargeError() error {
+	retryable := false
+	return grpcerr.WithReasonCodeOptions(codes.ResourceExhausted, runtimev1.ReasonCode_AI_AUDIO_INPUT_TOO_LARGE, grpcerr.ReasonOptions{
+		Message:    "Recorded audio exceeds the 5-minute or 6 MiB voice-input limit.",
+		ActionHint: "record_shorter_audio_input",
+		Retryable:  &retryable,
+	})
+}
 
 type agentVoiceTranscriptionScenarioExecutor interface {
 	SubmitScenarioJob(context.Context, *runtimev1.SubmitScenarioJobRequest) (*runtimev1.SubmitScenarioJobResponse, error)
 	GetScenarioJob(context.Context, *runtimev1.GetScenarioJobRequest) (*runtimev1.GetScenarioJobResponse, error)
+	CancelScenarioJob(context.Context, *runtimev1.CancelScenarioJobRequest) (*runtimev1.CancelScenarioJobResponse, error)
 	GetScenarioArtifacts(context.Context, *runtimev1.GetScenarioArtifactsRequest) (*runtimev1.GetScenarioArtifactsResponse, error)
 }
 
@@ -39,6 +51,9 @@ func (s *Service) TranscribeAgentVoiceInput(
 	ctx context.Context,
 	req *runtimev1.TranscribeAgentVoiceInputRequest,
 ) (*runtimev1.TranscribeAgentVoiceInputResponse, error) {
+	if req != nil && len(req.GetAudioBytes()) > maxRuntimeAgentVoiceInputBytes {
+		return nil, runtimeAgentVoiceInputTooLargeError()
+	}
 	if s == nil || s.isClosed() || s.voiceTranscription == nil {
 		return nil, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
 	}
@@ -71,15 +86,17 @@ func (s *Service) TranscribeAgentVoiceInput(
 	if err != nil {
 		return nil, err
 	}
+	waitTimeout := agentVoiceTranscriptionWait(binding.RoutePolicy)
+	operationDeadline := time.Now().Add(waitTimeout)
 
-	waitCtx, cancel := context.WithTimeout(ctx, defaultAgentVoiceTranscriptionWait)
+	waitCtx, cancel := context.WithDeadline(ctx, operationDeadline)
 	defer cancel()
 	waitCtx = withPublicChatExecutionIntent(waitCtx, binding, runtimeAgentAIConfigCapabilityAudioTranscribe)
 	submit, err := s.voiceTranscription.SubmitScenarioJob(waitCtx, &runtimev1.SubmitScenarioJobRequest{
 		Head: &runtimev1.ScenarioRequestHead{
 			AppId:         runtimeAgentVoiceInputAppID,
 			SubjectUserId: identity.OwnerUserID,
-			TimeoutMs:     int32(defaultAgentVoiceTranscriptionWait.Milliseconds()),
+			TimeoutMs:     int32(waitTimeout.Milliseconds()),
 		},
 		ScenarioType:   runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_TRANSCRIBE,
 		ExecutionMode:  runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB,
@@ -103,14 +120,17 @@ func (s *Service) TranscribeAgentVoiceInput(
 	}
 	job, err := s.waitAgentVoiceTranscriptionJob(waitCtx, jobID)
 	if err != nil {
+		s.schedulePublishedAgentVoiceTranscriptionCleanup(waitCtx, operationDeadline, jobID)
 		return nil, err
 	}
 	artifacts, err := s.voiceTranscription.GetScenarioArtifacts(waitCtx, &runtimev1.GetScenarioArtifactsRequest{JobId: jobID})
 	if err != nil {
+		s.schedulePublishedAgentVoiceTranscriptionCleanup(waitCtx, operationDeadline, jobID)
 		return nil, err
 	}
 	text := strings.TrimSpace(artifacts.GetOutput().GetSpeechTranscribe().GetText())
 	if text == "" {
+		s.schedulePublishedAgentVoiceTranscriptionCleanup(waitCtx, operationDeadline, jobID)
 		return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 	}
 	traceID := strings.TrimSpace(artifacts.GetTraceId())
@@ -118,6 +138,64 @@ func (s *Service) TranscribeAgentVoiceInput(
 		traceID = strings.TrimSpace(job.GetTraceId())
 	}
 	return &runtimev1.TranscribeAgentVoiceInputResponse{Text: text, JobId: jobID, TraceId: traceID}, nil
+}
+
+func (s *Service) schedulePublishedAgentVoiceTranscriptionCleanup(
+	ownerCtx context.Context,
+	operationDeadline time.Time,
+	jobID string,
+) {
+	cleanupCtx, cancel := context.WithDeadline(context.WithoutCancel(ownerCtx), operationDeadline)
+	lifetime := s.publicChatAsyncLifetime()
+	stopLifetimeCancellation := context.AfterFunc(lifetime, cancel)
+	if lifetime.Err() != nil {
+		cancel()
+	}
+	if s.startPublicChatAsync(func() {
+		defer stopLifetimeCancellation()
+		defer cancel()
+		s.cancelPublishedAgentVoiceTranscriptionJob(cleanupCtx, jobID)
+	}) {
+		return
+	}
+	stopLifetimeCancellation()
+	cancel()
+}
+
+func (s *Service) cancelPublishedAgentVoiceTranscriptionJob(ctx context.Context, jobID string) {
+	response, err := s.voiceTranscription.CancelScenarioJob(ctx, &runtimev1.CancelScenarioJobRequest{
+		JobId:  jobID,
+		Reason: "runtime_agent_voice_input_canceled",
+	})
+	if err == nil && isTerminalAgentVoiceTranscriptionJob(response.GetJob()) {
+		return
+	}
+	// A running cancellation is not terminal until the Scenario worker has
+	// released its execution lease and published the terminal Job snapshot.
+	// Keep the owner-scoped Service observer while observing that state.
+	_, _ = s.waitAgentVoiceTranscriptionJob(ctx, jobID)
+}
+
+func isTerminalAgentVoiceTranscriptionJob(job *runtimev1.ScenarioJob) bool {
+	if job == nil {
+		return false
+	}
+	switch job.GetStatus() {
+	case runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED,
+		runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_FAILED,
+		runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_CANCELED,
+		runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_TIMEOUT:
+		return true
+	default:
+		return false
+	}
+}
+
+func agentVoiceTranscriptionWait(routePolicy runtimev1.RoutePolicy) time.Duration {
+	if routePolicy == runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL {
+		return defaultLocalAgentVoiceTranscriptionWait
+	}
+	return defaultCloudAgentVoiceTranscriptionWait
 }
 
 func (s *Service) validateAgentVoiceInputAnchor(identity localAgentIdentity, anchorID string) error {

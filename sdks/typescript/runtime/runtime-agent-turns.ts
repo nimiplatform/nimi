@@ -34,6 +34,10 @@ import {
 } from './runtime-agent-protected';
 import { normalizeNimiRuntimeAgentText, toNimiRuntimeIsoFromTimestamp, toNimiRuntimeProtoStruct } from './runtime-agent-values';
 import { withNimiRuntimeIdempotencyMetadata } from './scenario-jobs';
+import {
+  createNimiRuntimeAgentVoiceInputTooLargeError,
+  NIMI_RUNTIME_AGENT_VOICE_INPUT_MAX_BYTES,
+} from './runtime-agent-voice-input';
 import type {
   NimiRuntimeAgentConsumeRequest,
   NimiRuntimeAgentCurrentUserMessage,
@@ -52,7 +56,7 @@ const TURN_READ_SCOPE = 'runtime.agent.turn.read';
 const TURN_REQUEST_TYPE = 'runtime.agent.turn.request';
 const TURN_INTERRUPT_TYPE = 'runtime.agent.turn.interrupt';
 const TURN_VOICE_RENDER_TYPE = 'runtime.agent.turn.voice_render';
-const VOICE_RENDER_TIMEOUT_MS = 1500;
+const VOICE_RENDER_TIMEOUT_MS = 15 * 60 * 1000;
 const TURN_REQUEST_FIELDS = new Set([
   'ownerUserId',
   'runtimeSourceRef',
@@ -739,6 +743,9 @@ export function createNimiRuntimeAgentTurnsModule(
       if (!(request.audioBytes instanceof Uint8Array) || request.audioBytes.length === 0) {
         runtimeAgentInputError('runtime agent voice input requires recorded audio bytes', 'record_runtime_agent_voice_input');
       }
+      if (request.audioBytes.byteLength > NIMI_RUNTIME_AGENT_VOICE_INPUT_MAX_BYTES) {
+        throw createNimiRuntimeAgentVoiceInputTooLargeError();
+      }
       const mimeType = optionalString(request.mimeType)?.toLowerCase();
       if (!mimeType?.startsWith('audio/')) {
         runtimeAgentInputError('runtime agent voice input requires an audio MIME type', 'provide_runtime_agent_voice_mime_type');
@@ -768,7 +775,10 @@ export function createNimiRuntimeAgentTurnsModule(
           audioBytes: new Uint8Array(request.audioBytes),
           mimeType,
           requestId,
-        }, withNimiRuntimeIdempotencyMetadata(callOptions, requestId)),
+        }, withNimiRuntimeIdempotencyMetadata({
+          ...callOptions,
+          signal: request.signal,
+        }, requestId)),
       );
       const text = optionalString(response.text);
       const jobId = optionalString(response.jobId);

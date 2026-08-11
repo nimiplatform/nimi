@@ -102,6 +102,29 @@ test('Local transcription admits its supported inputs and drops unsupported opti
   });
 });
 
+test('Local transcription admits its supported inputs and drops unsupported options', () => {
+  const local = states('audio.transcribe', 'local');
+  for (const field of ['audioFile', 'mimeType', 'language', 'responseFormat']) {
+    assert.equal(local.get(field)?.state, 'enabled', `audio.transcribe.${field}`);
+  }
+  for (const field of ['timestamps', 'diarization', 'speakerCount', 'prompt']) {
+    assert.equal(local.get(field)?.state, 'disabled', `audio.transcribe.${field}`);
+  }
+  assert.deepEqual(projectTesterCapabilityParamsForRoute('audio.transcribe', 'local', {
+    audioFile: { name: 'sample.wav' },
+    mimeType: 'audio/wav',
+    language: 'en',
+    responseFormat: 'text',
+    timestamps: true,
+    prompt: 'speaker names',
+  }), {
+    audioFile: { name: 'sample.wav' },
+    mimeType: 'audio/wav',
+    language: 'en',
+    responseFormat: 'text',
+  });
+});
+
 test('Cloud enables carrier fields but not private Local App scheduling fields', () => {
   for (const capabilityId of [
     'text.generate',

@@ -92,7 +92,7 @@ export const TESTER_CAPABILITY_PARAM_ROUTE_MATRIX = {
     serviceTier: LOCAL_APP_UNAVAILABLE,
     executionExpiresAfterSec: LOCAL_APP_UNAVAILABLE,
   },
-  // The current Local Qwen path admits preset voices only. Voice-asset synthesis
+  // The current Local synthesis path admits preset voices only. Voice-asset synthesis
   // references remain Cloud-only until Runtime resolves them to a private Driver handle.
   'audio.synthesize': {
     voiceKind: LOCAL_PRESET_CLOUD_CONFIGURABLE,

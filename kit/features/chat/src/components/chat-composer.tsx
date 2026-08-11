@@ -448,10 +448,11 @@ function VoiceButton({
       >
         {isTranscribing ? ICON_SPINNER : ICON_MIC}
       </button>
-      {isRecording && onCancel ? (
+      {(isRecording || isTranscribing) && onCancel ? (
         <button
           type="button"
           onClick={onCancel}
+          aria-label={isTranscribing ? 'Cancel transcription' : 'Cancel recording'}
           className="rounded-2xl border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-600 transition-colors hover:bg-slate-50"
         >
           Cancel

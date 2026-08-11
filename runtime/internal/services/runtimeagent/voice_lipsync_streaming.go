@@ -70,10 +70,7 @@ func (s *aiBackedVoiceLipsyncSynthesizer) synthesizeNativeStream(input voiceLips
 	if ctx == nil {
 		ctx = context.Background()
 	}
-	waitTimeout := s.waitTimeout
-	if waitTimeout <= 0 {
-		waitTimeout = defaultProviderVoiceSynthesisWait
-	}
+	waitTimeout := defaultVoiceSynthesisStreamWait
 	ctx, cancel := context.WithTimeout(ctx, waitTimeout)
 	defer cancel()
 	speechAppID := runtimeAgentVoiceSynthesisAppIDForInput(input)

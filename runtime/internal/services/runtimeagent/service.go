@@ -129,8 +129,10 @@ type Service struct {
 	// chatActiveByAgent tracks the currently-active chat turn per agent.
 	// With per-anchor isolation, each agent may still run only one active
 	// chat turn at a time across anchors to preserve single-speaker truth.
-	chatActiveByAgent map[string]string
-	chatAsyncWG       sync.WaitGroup
+	chatActiveByAgent        map[string]string
+	chatAsyncWG              sync.WaitGroup
+	chatAsyncLifecycleCtx    context.Context
+	chatAsyncLifecycleCancel context.CancelFunc
 	// chatFollowUpWait is an injectable scheduling boundary. Production uses
 	// the wall clock; deterministic owner tests replace it before arming any
 	// follow-up so scheduling assertions never depend on host contention.
@@ -174,6 +176,7 @@ func New(logger *slog.Logger, localStatePath string, memorySvc *memoryservice.Se
 	if err != nil {
 		return nil, err
 	}
+	chatAsyncLifecycleCtx, chatAsyncLifecycleCancel := context.WithCancel(context.Background())
 	svc := &Service{
 		logger:                                   logger,
 		memorySvc:                                memorySvc,
@@ -199,6 +202,8 @@ func New(logger *slog.Logger, localStatePath string, memorySvc *memoryservice.Se
 		chatFollowUps:                            make(map[string]*publicChatFollowUpState),
 		avatarLiveInstanceBindings:               make(map[string]*avatarLiveInstanceBindingState),
 		chatActiveByAgent:                        make(map[string]string),
+		chatAsyncLifecycleCtx:                    chatAsyncLifecycleCtx,
+		chatAsyncLifecycleCancel:                 chatAsyncLifecycleCancel,
 		localAppConversationSubscribers:          make(map[uint64]*localAppConversationSubscriber),
 		memoryPromotionEvidence:                  make(map[string]runtimeMemoryPromotionEvidence),
 		voiceLipsync:                             newSyntheticVoiceLipsyncSynthesizer(),

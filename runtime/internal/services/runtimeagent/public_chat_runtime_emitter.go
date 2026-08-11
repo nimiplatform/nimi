@@ -132,6 +132,7 @@ func (r publicChatRuntime) emitEvent(subjectUserID string, messageType string, p
 func (r publicChatRuntime) shutdownSurface() {
 	r.svc.failLocalAppConversationSubscribers(localAppConversationOwnerUnavailable())
 	r.svc.chatSurfaceMu.Lock()
+	asyncLifecycleCancel := r.svc.chatAsyncLifecycleCancel
 	turns := make([]*publicChatTurnState, 0, len(r.svc.chatTurns))
 	for _, turn := range r.svc.chatTurns {
 		if turn != nil {
@@ -146,6 +147,9 @@ func (r publicChatRuntime) shutdownSurface() {
 	}
 	r.svc.chatSurfaceMu.Unlock()
 	r.svc.setPublicChatTurnExecutor(nil)
+	if asyncLifecycleCancel != nil {
+		asyncLifecycleCancel()
+	}
 	for _, turn := range turns {
 		if turn.Cancel != nil {
 			turn.Cancel()

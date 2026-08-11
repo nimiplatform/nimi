@@ -1,4 +1,9 @@
 import { resolveAgentVoicePlaybackAmplitude } from '@nimiplatform/kit/features/avatar/headless';
+import {
+  createNimiRuntimeAgentVoiceInputTooLargeError,
+  NIMI_RUNTIME_AGENT_VOICE_INPUT_MAX_BYTES,
+  NIMI_RUNTIME_AGENT_VOICE_INPUT_MAX_DURATION_MS,
+} from '@nimiplatform/sdk/runtime';
 
 type MediaStreamTrackLike = {
   stop: () => void;
@@ -33,7 +38,7 @@ export type MediaRecorderLike = {
   ondataavailable: ((event: { data: Blob }) => void) | null;
   onerror: ((event: { error?: unknown }) => void) | null;
   onstop: (() => void) | null;
-  start: () => void;
+  start: (timeslice?: number) => void;
   stop: () => void;
 };
 
@@ -88,6 +93,7 @@ const PREFERRED_VOICE_CAPTURE_MIME_TYPES = [
 const DEFAULT_SILENCE_WINDOW_MS = 1400;
 const DEFAULT_SILENCE_THRESHOLD = 0.02;
 const SILENCE_POLL_INTERVAL_MS = 120;
+const VOICE_CAPTURE_DATA_TIMESLICE_MS = 1000;
 
 function createAbortError(): Error {
   const error = new Error('Voice capture aborted.');
@@ -298,8 +304,19 @@ export async function startAgentVoiceCaptureSession(
     preferredMimeType ? { mimeType: preferredMimeType } : undefined,
   );
   const chunks: Blob[] = [];
+  const ownedSetTimer = deps.setTimeoutImpl;
+  const ownedClearTimer = deps.clearTimeoutImpl;
+  const setTimer = ownedSetTimer && ownedClearTimer
+    ? ownedSetTimer
+    : (handler: () => void, timeoutMs: number) => globalThis.setTimeout(handler, timeoutMs);
+  const clearTimer = ownedSetTimer && ownedClearTimer
+    ? ownedClearTimer
+    : (timerId: unknown) => globalThis.clearTimeout(timerId as number);
   let settled = false;
   let canceled = false;
+  let capturedBytes = 0;
+  let limitError: Error | null = null;
+  let durationTimerId: unknown = null;
   let stopPromise: Promise<AgentVoiceCaptureResult> | null = null;
   let resolveStop: ((value: AgentVoiceCaptureResult) => void) | null = null;
   let rejectStop: ((reason?: unknown) => void) | null = null;
@@ -329,7 +346,27 @@ export async function startAgentVoiceCaptureSession(
     return pendingStop;
   };
 
+  const exposeAutoStoppedRecording = () => {
+    const recording = ensureStopPromise();
+    void recording.catch(() => undefined);
+    deps.onAutoStop?.(recording);
+    return recording;
+  };
+
+  const requestLimitStop = () => {
+    if (settled || canceled || limitError) {
+      return;
+    }
+    limitError = createNimiRuntimeAgentVoiceInputTooLargeError();
+    exposeAutoStoppedRecording();
+    requestStop();
+  };
+
   const cleanup = () => {
+    if (durationTimerId !== null) {
+      clearTimer(durationTimerId);
+      durationTimerId = null;
+    }
     autoStopHandle?.dispose();
     autoStopHandle = null;
     levelMonitorHandle?.dispose();
@@ -350,17 +387,29 @@ export async function startAgentVoiceCaptureSession(
   };
 
   recorder.ondataavailable = (event) => {
-    if (event.data && event.data.size > 0) {
-      chunks.push(event.data);
+    if (!event.data || event.data.size <= 0 || limitError) {
+      return;
     }
+    if (capturedBytes + event.data.size > NIMI_RUNTIME_AGENT_VOICE_INPUT_MAX_BYTES) {
+      requestLimitStop();
+      return;
+    }
+    capturedBytes += event.data.size;
+    chunks.push(event.data);
   };
   recorder.onerror = (event) => {
     settle(() => {
-      rejectStop?.(event.error || new Error('Voice capture failed.'));
+      rejectStop?.(limitError || event.error || new Error('Voice capture failed.'));
     });
   };
   recorder.onstop = () => {
     void (async () => {
+      if (limitError) {
+        settle(() => {
+          rejectStop?.(limitError);
+        });
+        return;
+      }
       if (canceled) {
         settle(() => {
           rejectStop?.(createAbortError());
@@ -396,6 +445,7 @@ export async function startAgentVoiceCaptureSession(
     const buildAutoStopHandle = deps.createSilenceAutoStopHandleImpl || createSilenceAutoStopHandle;
     const requestSilenceAutoStop = () => {
       const recording = requestStop() || ensureStopPromise();
+      void recording.catch(() => undefined);
       deps.onAutoStop?.(recording);
     };
     try {
@@ -428,7 +478,13 @@ export async function startAgentVoiceCaptureSession(
     }
   }
 
-  recorder.start();
+  durationTimerId = setTimer(requestLimitStop, NIMI_RUNTIME_AGENT_VOICE_INPUT_MAX_DURATION_MS);
+  try {
+    recorder.start(VOICE_CAPTURE_DATA_TIMESLICE_MS);
+  } catch (error) {
+    cleanup();
+    throw error;
+  }
 
   return {
     stop: () => {
@@ -438,7 +494,7 @@ export async function startAgentVoiceCaptureSession(
       return requestStop() || ensureStopPromise();
     },
     cancel: () => {
-      if (settled || canceled) {
+      if (settled || canceled || limitError) {
         return;
       }
       canceled = true;

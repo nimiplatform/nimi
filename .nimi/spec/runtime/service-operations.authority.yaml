@@ -677,9 +677,9 @@ units:
     kind: rule
     title: AI timeout defaults and request override are closed
     modality: must
-    statement: Default timeouts are 30 seconds for ExecuteScenario TEXT_GENERATE, 60 seconds to first byte and 120 seconds total for StreamScenario, 20 seconds for ExecuteScenario TEXT_EMBED, 120 seconds for image jobs, 300 seconds for video jobs, 45 seconds for StreamScenario SPEECH_SYNTHESIZE, and 90 seconds for speech-transcription jobs; timeout_ms may override only within the server maximum.
+    statement: Default timeouts are 30 seconds for ExecuteScenario TEXT_GENERATE, 60 seconds to first byte and 120 seconds total for StreamScenario, 20 seconds for ExecuteScenario TEXT_EMBED, 120 seconds for image jobs, 300 seconds for video jobs, 45 seconds for StreamScenario SPEECH_SYNTHESIZE and non-Local speech-synthesis jobs, 90 seconds for non-Local speech-transcription jobs, and 15 minutes for Local speech-synthesis and speech-transcription jobs; Local speech Job timeout_ms may override only up to the 30-minute server maximum, and every other timeout_ms override remains within its existing server maximum.
     condition: Whenever Runtime establishes an AI operation deadline.
-    failure: Apply the admitted default or reject an override above the server maximum rather than run without a bound.
+    failure: Apply the admitted default and clamp or reject an override at the operation's admitted server maximum rather than run without a bound.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.service-operations.daemon-plane

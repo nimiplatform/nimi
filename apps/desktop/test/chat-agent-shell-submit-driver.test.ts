@@ -13,8 +13,15 @@ import {
   resolveCompletedAgentSubmitDriverCheckpoint,
   resolveInterruptedAgentSubmitDriverCheckpoint,
 } from '../src/shell/renderer/features/chat/chat-agent-shell-submit-driver.js';
+import { isTypedSubmitCancellationError } from '../src/shell/renderer/features/chat/chat-agent-shell-host-actions-helpers.js';
 import type { StreamState } from './helpers/test-stream-controller.js';
 import { createAgentTextMessage } from './helpers/agent-chat-record-fixtures.js';
+
+test('agent submit override cancellation ignores human-readable error text', () => {
+  assert.equal(isTypedSubmitCancellationError(new Error('provider canceled while persisting the previous turn')), false);
+  assert.equal(isTypedSubmitCancellationError(Object.assign(new Error('stopped'), { name: 'AbortError' })), true);
+  assert.equal(isTypedSubmitCancellationError({ reasonCode: 'RUNTIME_GRPC_CANCELLED' }), true);
+});
 
 function sampleThread(): AgentLocalThreadRecord {
   return {

@@ -5,11 +5,15 @@ import type {
   NimiRuntimeAgentScopeRunner,
   NimiRuntimeAgentTurnsRuntime,
 } from '@nimiplatform/sdk/runtime';
-import { transcribeAndSubmitCapturedAgentVoiceInput } from '../src/shell/renderer/features/chat/chat-agent-voice-input.js';
+import {
+  isAgentVoiceInputCancellationError,
+  transcribeAndSubmitCapturedAgentVoiceInput,
+} from '../src/shell/renderer/features/chat/chat-agent-voice-input.js';
 import { AGENT_RUNTIME_CHAT_PROVIDER_CAPABILITIES } from '../src/shell/renderer/features/chat/chat-agent-runtime-turn-types.js';
 
 test('Desktop Agent voice input transcribes the selected conversation and submits only typed text', async () => {
   const calls: Array<Record<string, unknown>> = [];
+  const callOptions: Array<Record<string, unknown> | undefined> = [];
   const submitted: Array<{ text: string; attachments: readonly unknown[] }> = [];
   const runtime = {
     appId: 'nimi.desktop',
@@ -20,8 +24,12 @@ test('Desktop Agent voice input transcribes the selected conversation and submit
       async *subscribeAgentEvents() {
         yield undefined;
       },
-      async transcribeAgentVoiceInput(request: Record<string, unknown>) {
+      async transcribeAgentVoiceInput(
+        request: Record<string, unknown>,
+        options?: Record<string, unknown>,
+      ) {
         calls.push(request);
+        callOptions.push(options);
         return { text: 'spoken intent', jobId: 'job-voice-1', traceId: 'trace-voice-1' };
       },
     },
@@ -35,6 +43,7 @@ test('Desktop Agent voice input transcribes the selected conversation and submit
     },
   } as unknown as NimiRuntimeAgentTurnsRuntime;
   const withScopes: NimiRuntimeAgentScopeRunner = async (_scopes, operation) => operation({});
+  const abortController = new AbortController();
 
   const result = await transcribeAndSubmitCapturedAgentVoiceInput({
     runtime: {
@@ -59,6 +68,7 @@ test('Desktop Agent voice input transcribes the selected conversation and submit
     conversationAnchorId: 'anchor-1',
     bytes: new Uint8Array([1, 2, 3]),
     mimeType: 'audio/webm',
+    signal: abortController.signal,
     handleSubmit: async (input) => {
       submitted.push(input);
     },
@@ -68,6 +78,7 @@ test('Desktop Agent voice input transcribes the selected conversation and submit
   assert.equal(calls.length, 1);
   assert.equal(calls[0]?.agentId, 'local-agent:user-1:agent-1');
   assert.equal(calls[0]?.conversationAnchorId, 'anchor-1');
+  assert.equal(callOptions[0]?.signal, abortController.signal);
   assert.deepEqual(submitted, [{ text: 'spoken intent', attachments: [] }]);
   assert.equal(AGENT_RUNTIME_CHAT_PROVIDER_CAPABILITIES.voiceInput, true);
 });
@@ -126,4 +137,20 @@ test('Desktop Agent voice input drops a transcript when the selected conversatio
 
   assert.equal(result.submitted, false);
   assert.equal(submitted, false);
+});
+
+test('Desktop Agent voice input cancellation ignores failure message text', () => {
+  const abort = new Error('capture stopped');
+  abort.name = 'AbortError';
+  assert.equal(isAgentVoiceInputCancellationError(abort), true);
+  assert.equal(isAgentVoiceInputCancellationError({
+    reasonCode: 'RUNTIME_GRPC_CANCELLED',
+  }), true);
+  assert.equal(isAgentVoiceInputCancellationError({
+    reasonCode: 'AI_LOCAL_EXECUTION_CANCELED',
+  }), true);
+  assert.equal(
+    isAgentVoiceInputCancellationError(new Error('provider canceled while reporting an inference failure')),
+    false,
+  );
 });

@@ -137,6 +137,7 @@ const (
 	ReasonCode_AI_ARTIFACT_UPLOAD_TOO_LARGE  ReasonCode = 416
 	ReasonCode_AI_REALTIME_SESSION_NOT_FOUND ReasonCode = 417
 	ReasonCode_AI_REALTIME_SESSION_CLOSED    ReasonCode = 418
+	ReasonCode_AI_AUDIO_INPUT_TOO_LARGE      ReasonCode = 419
 	// VOICE family (420+)
 	ReasonCode_AI_VOICE_INPUT_INVALID         ReasonCode = 420
 	ReasonCode_AI_VOICE_WORKFLOW_UNSUPPORTED  ReasonCode = 421
@@ -447,6 +448,7 @@ var (
 		416: "AI_ARTIFACT_UPLOAD_TOO_LARGE",
 		417: "AI_REALTIME_SESSION_NOT_FOUND",
 		418: "AI_REALTIME_SESSION_CLOSED",
+		419: "AI_AUDIO_INPUT_TOO_LARGE",
 		420: "AI_VOICE_INPUT_INVALID",
 		421: "AI_VOICE_WORKFLOW_UNSUPPORTED",
 		422: "AI_VOICE_ASSET_NOT_FOUND",
@@ -706,6 +708,7 @@ var (
 		"AI_ARTIFACT_UPLOAD_TOO_LARGE":                         416,
 		"AI_REALTIME_SESSION_NOT_FOUND":                        417,
 		"AI_REALTIME_SESSION_CLOSED":                           418,
+		"AI_AUDIO_INPUT_TOO_LARGE":                             419,
 		"AI_VOICE_INPUT_INVALID":                               420,
 		"AI_VOICE_WORKFLOW_UNSUPPORTED":                        421,
 		"AI_VOICE_ASSET_NOT_FOUND":                             422,
@@ -1457,7 +1460,7 @@ const file_runtime_v1_common_proto_rawDesc = "" +
 	"\vreason_code\x18\x02 \x01(\x0e2\x1b.nimi.runtime.v1.ReasonCodeR\n" +
 	"reasonCode\x12\x1f\n" +
 	"\vaction_hint\x18\x03 \x01(\tR\n" +
-	"actionHint*\x80N\n" +
+	"actionHint*\x9fN\n" +
 	"\n" +
 	"ReasonCode\x12\x1b\n" +
 	"\x17REASON_CODE_UNSPECIFIED\x10\x00\x12\x13\n" +
@@ -1555,7 +1558,8 @@ const file_runtime_v1_common_proto_rawDesc = "" +
 	"\x1aAI_ARTIFACT_UPLOAD_INVALID\x10\x9f\x03\x12!\n" +
 	"\x1cAI_ARTIFACT_UPLOAD_TOO_LARGE\x10\xa0\x03\x12\"\n" +
 	"\x1dAI_REALTIME_SESSION_NOT_FOUND\x10\xa1\x03\x12\x1f\n" +
-	"\x1aAI_REALTIME_SESSION_CLOSED\x10\xa2\x03\x12\x1b\n" +
+	"\x1aAI_REALTIME_SESSION_CLOSED\x10\xa2\x03\x12\x1d\n" +
+	"\x18AI_AUDIO_INPUT_TOO_LARGE\x10\xa3\x03\x12\x1b\n" +
 	"\x16AI_VOICE_INPUT_INVALID\x10\xa4\x03\x12\"\n" +
 	"\x1dAI_VOICE_WORKFLOW_UNSUPPORTED\x10\xa5\x03\x12\x1d\n" +
 	"\x18AI_VOICE_ASSET_NOT_FOUND\x10\xa6\x03\x12\x1b\n" +

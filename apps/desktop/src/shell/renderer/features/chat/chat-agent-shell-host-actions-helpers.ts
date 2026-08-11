@@ -1,5 +1,6 @@
 import {
   createNimiRuntimeAgentConsumeClient,
+  isNimiRuntimeAgentCanceledError,
 } from '@nimiplatform/sdk/runtime';
 import { asNimiError, ReasonCode } from '@nimiplatform/sdk/types';
 import type { DesktopRendererSdkPort } from '../../renderer/sdk-port.js';
@@ -22,12 +23,8 @@ import type { AgentChatUserAttachment } from './chat-agent-runtime-turn-types';
 import type { AgentUserProjectionAttachment } from './chat-agent-user-projection';
 import type { UseAgentConversationHostActionsInput } from './chat-agent-shell-host-actions-types';
 
-export function isAbortLikeSubmitError(error: unknown): boolean {
-  const message = String((error instanceof Error ? error.message : error) || '').toLowerCase();
-  return message.includes('aborted')
-    || message.includes('cancelled')
-    || message.includes('canceled')
-    || message.includes('generation stopped');
+export function isTypedSubmitCancellationError(error: unknown): boolean {
+  return isNimiRuntimeAgentCanceledError(error);
 }
 
 function requireRuntimeSubjectUserId(value: string): string {

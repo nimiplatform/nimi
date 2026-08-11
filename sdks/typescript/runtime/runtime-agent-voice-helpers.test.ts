@@ -210,20 +210,32 @@ test('Runtime Agent turn helper reports text_only when Runtime emits no playable
     withScopes: async (_nextScopes, operation) => operation({}),
   });
 
-  const result = await module.renderVoice({
-    ownerUserId: OWNER_USER_ID,
-    runtimeSourceRef: RUNTIME_SOURCE_REF,
-    localAgentRef: LOCAL_AGENT_REF,
-    conversationAnchorId: 'anchor-1',
-    turnId: 'turn-1',
-    messageId: 'message-1',
-    timeoutMs: 0,
-  });
+  let observedTimeoutMs: number | undefined;
+  const originalSetTimeout = globalThis.setTimeout;
+  globalThis.setTimeout = ((handler: (...args: unknown[]) => void, timeout?: number, ...args: unknown[]) => {
+    observedTimeoutMs = timeout;
+    handler(...args);
+    return 0 as unknown as ReturnType<typeof globalThis.setTimeout>;
+  }) as typeof globalThis.setTimeout;
+  let result;
+  try {
+    result = await module.renderVoice({
+      ownerUserId: OWNER_USER_ID,
+      runtimeSourceRef: RUNTIME_SOURCE_REF,
+      localAgentRef: LOCAL_AGENT_REF,
+      conversationAnchorId: 'anchor-1',
+      turnId: 'turn-1',
+      messageId: 'message-1',
+    });
+  } finally {
+    globalThis.setTimeout = originalSetTimeout;
+  }
 
   assert.deepEqual(result, {
     status: 'text_only',
     reason: 'voice_projection_unavailable',
   });
+  assert.equal(observedTimeoutMs, 15 * 60 * 1000);
   assert.equal(appStream.returnCount, 1);
   assert.equal(agentStream.returnCount, 1);
 });

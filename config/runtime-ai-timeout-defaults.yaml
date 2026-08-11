@@ -14,6 +14,8 @@ entries:
   - timeouts_6
   - timeouts_7
   - timeouts_8
+  - timeouts_9
+  - timeouts_10
 timeouts:
   - operation: ExecuteScenario_text_generate
     default_ms: 120000
@@ -45,5 +47,13 @@ timeouts:
     source_rule: K-DAEMON-008
   - operation: SubmitScenarioJob_stt
     default_ms: 90000
+    overridable: true
+    source_rule: K-DAEMON-008
+  - operation: SubmitScenarioJob_local_speech_synthesize
+    default_ms: 900000
+    overridable: true
+    source_rule: K-DAEMON-008
+  - operation: SubmitScenarioJob_local_stt
+    default_ms: 900000
     overridable: true
     source_rule: K-DAEMON-008

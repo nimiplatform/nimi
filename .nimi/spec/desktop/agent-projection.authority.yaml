@@ -110,9 +110,9 @@ units:
     kind: rule
     title: Explicit voice input uses Runtime STT
     modality: must
-    statement: Desktop sends explicit user-recorded voice input through the audio.transcribe route committed in the shared LocalAgent AIConfig and its exact Runtime-composed Local machine selection or Cloud implementation-target-grant inputs, and submits only the resulting typed text intent to the selected LocalAgent Conversation.
+    statement: Desktop stops explicit voice capture at the first of the five-minute duration bound or a payload exceeding the 6 MiB byte bound, rejects the over-bound recording with typed AI_AUDIO_INPUT_TOO_LARGE, sends only admitted user-recorded voice input through the audio.transcribe route committed in the shared LocalAgent AIConfig and its exact Runtime-composed Local machine selection or Cloud implementation-target-grant inputs, and submits only the resulting typed text intent to the selected LocalAgent Conversation. Desktop treats only AbortError or a typed Canceled result as cancellation and never classifies cancellation from human-readable error text.
     condition: Whenever the user explicitly requests voice input.
-    failure: Reject App-local provider transcription, hidden capture, and fabricated transcript.
+    failure: Stop and reject over-bound capture, surface every non-cancellation failure, and reject App-local provider transcription, hidden capture, message-inferred cancellation, and fabricated transcript.
     relations:
       - type: applies_to
         target: definition.nimi.desktop.agent-projection.agent-chat

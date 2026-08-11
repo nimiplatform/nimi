@@ -19,6 +19,7 @@ import (
 const maxRuntimeRequestTimeout = 5 * time.Minute
 const maxLocalImageJobTimeout = 60 * time.Minute
 const minLocalImageJobTimeout = 20 * time.Minute
+const maxLocalSpeechJobTimeout = 30 * time.Minute
 
 func (s *Service) attachQueueWaitUnary(ctx context.Context, result scheduler.AcquireResult) {
 	waitMs := s.attachQueueWait(ctx, result)
@@ -161,6 +162,10 @@ func clampScenarioJobTimeoutDuration(
 			return minLocalImageJobTimeout
 		}
 		maxDuration = maxLocalImageJobTimeout
+	}
+	if localRoute && (scenarioType == runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE ||
+		scenarioType == runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_TRANSCRIBE) {
+		maxDuration = maxLocalSpeechJobTimeout
 	}
 	if duration > maxDuration {
 		return maxDuration

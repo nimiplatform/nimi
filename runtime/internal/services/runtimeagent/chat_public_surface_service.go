@@ -206,6 +206,19 @@ func (s *Service) startPublicChatAsync(fn func()) bool {
 	}()
 	return true
 }
+
+func (s *Service) publicChatAsyncLifetime() context.Context {
+	if s == nil {
+		return context.Background()
+	}
+	s.chatSurfaceMu.Lock()
+	lifetime := s.chatAsyncLifecycleCtx
+	s.chatSurfaceMu.Unlock()
+	if lifetime == nil {
+		return context.Background()
+	}
+	return lifetime
+}
 func (s *Service) applyPublicChatPostTurn(
 	ctx context.Context,
 	session publicChatAnchorState,

@@ -156,6 +156,45 @@ func TestScenarioJobTimeoutDurationKeepsRuntimeCapForRemoteImageJobs(t *testing.
 	}
 }
 
+func TestScenarioJobTimeoutDurationBoundsLocalSpeechJobs(t *testing.T) {
+	for _, scenarioType := range []runtimev1.ScenarioType{
+		runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE,
+		runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_TRANSCRIBE,
+	} {
+		t.Run(scenarioType.String()+"_default", func(t *testing.T) {
+			req := &runtimev1.SubmitScenarioJobRequest{
+				Head:         &runtimev1.ScenarioRequestHead{},
+				ScenarioType: scenarioType,
+			}
+			if got := scenarioJobTimeoutDuration(req, defaultLocalSpeechJobTimeout, true); got != 15*time.Minute {
+				t.Fatalf("scenarioJobTimeoutDuration(local speech default) = %s, want %s", got, 15*time.Minute)
+			}
+		})
+		t.Run(scenarioType.String()+"_override", func(t *testing.T) {
+			req := &runtimev1.SubmitScenarioJobRequest{
+				Head: &runtimev1.ScenarioRequestHead{
+					TimeoutMs: int32((20 * time.Minute) / time.Millisecond),
+				},
+				ScenarioType: scenarioType,
+			}
+			if got := scenarioJobTimeoutDuration(req, defaultLocalSpeechJobTimeout, true); got != 20*time.Minute {
+				t.Fatalf("scenarioJobTimeoutDuration(local speech 20m) = %s, want %s", got, 20*time.Minute)
+			}
+		})
+		t.Run(scenarioType.String()+"_cap", func(t *testing.T) {
+			req := &runtimev1.SubmitScenarioJobRequest{
+				Head: &runtimev1.ScenarioRequestHead{
+					TimeoutMs: int32((31 * time.Minute) / time.Millisecond),
+				},
+				ScenarioType: scenarioType,
+			}
+			if got := scenarioJobTimeoutDuration(req, defaultLocalSpeechJobTimeout, true); got != maxLocalSpeechJobTimeout {
+				t.Fatalf("scenarioJobTimeoutDuration(local speech 31m) = %s, want %s", got, maxLocalSpeechJobTimeout)
+			}
+		})
+	}
+}
+
 func TestScenarioJobUsesDetachedPollingForVideoAdapters(t *testing.T) {
 	videoType := runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_GENERATE
 	imageType := runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE

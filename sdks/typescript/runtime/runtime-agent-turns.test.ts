@@ -1,7 +1,14 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { buildNimiRuntimeAgentTurnPayload, createNimiRuntimeAgentTurnsModule } from './index';
+import {
+  buildNimiRuntimeAgentTurnPayload,
+  createNimiRuntimeAgentTurnsModule,
+  createNimiRuntimeAgentVoiceInputTooLargeError,
+  isNimiRuntimeAgentCanceledError,
+  NIMI_RUNTIME_AGENT_VOICE_INPUT_MAX_BYTES,
+  NIMI_RUNTIME_AGENT_VOICE_INPUT_MAX_DURATION_MS,
+} from './index';
 import type { NimiRuntimeAgentTurnRequest } from './runtime-agent-turn-runner-types';
 
 const validTurn = {
@@ -50,6 +57,7 @@ test('Runtime Agent voice input helper uses the dedicated typed transcription RP
     },
   });
   const audioBytes = new Uint8Array([1, 2, 3]);
+  const abortController = new AbortController();
 
   const result = await module.transcribeVoiceInput({
     ownerUserId: 'owner',
@@ -59,6 +67,7 @@ test('Runtime Agent voice input helper uses the dedicated typed transcription RP
     audioBytes,
     mimeType: ' Audio/WebM;codecs=opus ',
     requestId: 'request-1',
+    signal: abortController.signal,
   });
 
   assert.deepEqual(result, { text: 'transcribed intent', jobId: 'job-1', traceId: 'trace-1' });
@@ -72,6 +81,65 @@ test('Runtime Agent voice input helper uses the dedicated typed transcription RP
   assert.deepEqual([...calls[0]?.request.audioBytes as Uint8Array], [1, 2, 3]);
   assert.equal((calls[0]?.request.context as { appId?: string }).appId, 'nimi.desktop');
   assert.equal((calls[0]?.options?.metadata as { idempotencyKey?: string }).idempotencyKey, 'request-1');
+  assert.equal(calls[0]?.options?.signal, abortController.signal);
+
+  await module.transcribeVoiceInput({
+    ownerUserId: 'owner',
+    runtimeSourceRef: 'agent',
+    localAgentRef: 'local-agent:owner:agent',
+    conversationAnchorId: 'anchor',
+    audioBytes: new Uint8Array(NIMI_RUNTIME_AGENT_VOICE_INPUT_MAX_BYTES),
+    mimeType: 'audio/webm;codecs=opus',
+    requestId: 'request-at-limit',
+  });
+  assert.equal(calls.length, 2, 'exactly 6 MiB must remain admitted');
+
+  await assert.rejects(
+    () => module.transcribeVoiceInput({
+      ownerUserId: 'owner',
+      runtimeSourceRef: 'agent',
+      localAgentRef: 'local-agent:owner:agent',
+      conversationAnchorId: 'anchor',
+      audioBytes: new Uint8Array(NIMI_RUNTIME_AGENT_VOICE_INPUT_MAX_BYTES + 1),
+      mimeType: 'audio/webm;codecs=opus',
+      requestId: 'request-too-large',
+    }),
+    (error: unknown) => {
+      const typed = error as { code?: unknown; reasonCode?: unknown; actionHint?: unknown; retryable?: unknown };
+      assert.equal(typed.code, 'AI_AUDIO_INPUT_TOO_LARGE');
+      assert.equal(typed.reasonCode, 'AI_AUDIO_INPUT_TOO_LARGE');
+      assert.equal(typed.actionHint, 'record_shorter_audio_input');
+      assert.equal(typed.retryable, false);
+      return true;
+    },
+  );
+  assert.equal(calls.length, 2, 'oversized audio must be rejected before Runtime transport');
+  assert.deepEqual(
+    scopes,
+    [['runtime.agent.turn.write'], ['runtime.agent.turn.write']],
+    'oversized audio must be rejected before scope acquisition',
+  );
+});
+
+test('Runtime Agent voice input exports one typed limit and exact cancellation classifier', () => {
+  assert.equal(NIMI_RUNTIME_AGENT_VOICE_INPUT_MAX_BYTES, 6 * 1024 * 1024);
+  assert.equal(NIMI_RUNTIME_AGENT_VOICE_INPUT_MAX_DURATION_MS, 5 * 60 * 1000);
+
+  const tooLarge = createNimiRuntimeAgentVoiceInputTooLargeError();
+  assert.equal(tooLarge.message, 'Recorded audio exceeds the 5-minute or 6 MiB voice-input limit.');
+  assert.equal(tooLarge.code, 'AI_AUDIO_INPUT_TOO_LARGE');
+  assert.equal(tooLarge.reasonCode, 'AI_AUDIO_INPUT_TOO_LARGE');
+  assert.equal(tooLarge.actionHint, 'record_shorter_audio_input');
+  assert.equal(tooLarge.retryable, false);
+
+  const aborted = new Error('renderer-owned detail');
+  aborted.name = 'AbortError';
+  assert.equal(isNimiRuntimeAgentCanceledError(aborted), true);
+  assert.equal(isNimiRuntimeAgentCanceledError({ code: 'RUNTIME_GRPC_CANCELLED' }), true);
+  assert.equal(isNimiRuntimeAgentCanceledError({ reasonCode: 'AI_LOCAL_EXECUTION_CANCELED' }), true);
+  assert.equal(isNimiRuntimeAgentCanceledError({ code: 'ABORT_ERR' }), false);
+  assert.equal(isNimiRuntimeAgentCanceledError(new Error('request was canceled by upstream')), false);
+  assert.equal(isNimiRuntimeAgentCanceledError(new Error('RUNTIME_GRPC_CANCELLED: transport closed')), false);
 });
 
 test('Runtime Agent turn payload admits only one current-user message', () => {

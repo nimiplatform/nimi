@@ -344,9 +344,9 @@ units:
     kind: rule
     title: Recorded voice transcription uses Runtime LocalAgent AI policy
     modality: must
-    statement: Explicit recorded voice input is transcribed through the route committed in the shared LocalAgent AIConfig before text intent reaches a LocalAgent Conversation; when that intent is Local, the shared AIConfig carries no model binding, Runtime uses the exact current machine selection, and missing or unready Local execution fails closed without automatic Cloud fallback; an explicitly committed Cloud intent instead uses its implementation-target-grant composition under current authorization, Quota, and Budget, and Runtime never searches for or chooses a substitute route.
+    statement: Explicit recorded voice input is transcribed through the route committed in the shared LocalAgent AIConfig before text intent reaches a LocalAgent Conversation; when that intent is Local, the shared AIConfig carries no model binding, Runtime uses the exact current machine selection, and missing or unready Local execution fails closed without automatic Cloud fallback; an explicitly committed Cloud intent instead uses its implementation-target-grant composition under current authorization, Quota, and Budget, and Runtime never searches for or chooses a substitute route. Runtime independently admits at most 6 MiB of inline audio bytes and rejects a larger payload before authorization or execution with typed AI_AUDIO_INPUT_TOO_LARGE; the bytes-only Runtime request neither measures nor claims capture duration.
     condition: Whenever recorded voice input is submitted to a LocalAgent.
-    failure: Return typed unavailable or failed state without App-local provider calls or fabricated transcript.
+    failure: Reject an over-bound payload before authorization or execution with typed AI_AUDIO_INPUT_TOO_LARGE; otherwise return typed unavailable or failed state without App-local provider calls or fabricated transcript.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.agent-participation.ai-config-plane

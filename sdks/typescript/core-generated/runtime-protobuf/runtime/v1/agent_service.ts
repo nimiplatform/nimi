@@ -1891,6 +1891,8 @@ export interface InterruptAgentVoicePlaybackResponse {
  * LocalAgent Conversation and executes audio.transcribe through the singular
  * shared LocalAgent AIConfig before returning typed text to the caller. The
  * caller cannot provide route, model, provider, Driver, or machine selection.
+ * audio_bytes admits at most 6 MiB; Runtime rejects a larger payload with
+ * ResourceExhausted and AI_AUDIO_INPUT_TOO_LARGE before authorization or execution.
  *
  * @generated from protobuf message nimi.runtime.v1.TranscribeAgentVoiceInputRequest
  */
