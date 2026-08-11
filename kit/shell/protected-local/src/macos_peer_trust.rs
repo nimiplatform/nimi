@@ -332,8 +332,8 @@ mod source_local_development_peer_tests {
     fn identity_or_executable_mismatch_stays_fail_closed_untrusted() {
         assert!(peer_verification_result(0).is_ok());
         for status in [libc::EACCES, libc::EPERM, libc::ENOENT, -1] {
-            let error = peer_verification_result(status)
-                .expect_err("genuine mismatch must fail closed");
+            let error =
+                peer_verification_result(status).expect_err("genuine mismatch must fail closed");
             assert_eq!(
                 error.reason_code(),
                 ProtectedCarrierReasonCode::RuntimeServiceUntrusted,

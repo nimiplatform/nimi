@@ -52,7 +52,7 @@ function quoted(value) {
   return JSON.stringify(String(value));
 }
 
-function readOpenAPIOperations(document) {
+function readOpenAPIOperations(document, admittedOperationIDs) {
   const operations = new Map();
   for (const [path, pathItem] of Object.entries(document.paths ?? {})) {
     for (const method of ['get', 'post', 'put', 'patch', 'delete', 'head', 'options']) {
@@ -60,7 +60,9 @@ function readOpenAPIOperations(document) {
       const operationID = String(operation?.operationId ?? '').trim();
       if (!operationID) continue;
       if (operations.has(operationID)) fail(`duplicate Realm OpenAPI operationId ${operationID}`);
-      const parameters = [...(pathItem?.parameters ?? []), ...(operation?.parameters ?? [])];
+      const parameters = admittedOperationIDs.has(operationID)
+        ? [...(pathItem?.parameters ?? []), ...(operation?.parameters ?? [])]
+        : [];
       const normalizedParameters = parameters.map((parameter) => {
         if (parameter?.$ref) fail(`${operationID} uses unresolved parameter ref ${parameter.$ref}`);
         const name = String(parameter?.name ?? '').trim();
@@ -200,13 +202,16 @@ if (policy?.unlisted_operation_disposition !== 'deny_broker_operation_not_admitt
 }
 const operations = policy?.operations;
 if (!Array.isArray(operations) || operations.length === 0) fail('operations must be a non-empty sequence');
-const openAPIOperations = readOpenAPIOperations(openAPI);
 const seen = new Set();
 for (const operation of operations) {
   const operationID = String(operation?.operation_id ?? '').trim();
   if (!operationID) fail('operation_id is required');
   if (seen.has(operationID)) fail(`duplicate policy operation ${operationID}`);
   seen.add(operationID);
+}
+const openAPIOperations = readOpenAPIOperations(openAPI, seen);
+for (const operation of operations) {
+  const operationID = String(operation.operation_id).trim();
   const projected = openAPIOperations.get(operationID);
   if (!projected) fail(`${operationID} is missing from Realm OpenAPI`);
   if (projected.method !== operation.http_method || projected.path !== operation.path_template) {

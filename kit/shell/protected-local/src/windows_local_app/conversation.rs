@@ -12,14 +12,13 @@ use crate::generated::{
 };
 use crate::grpc_status::local_app_error_from_status;
 use crate::{
-    LocalAppConversationEvent, LocalAppConversationEventKind,
-    LocalAppConversationInterruptRequest, LocalAppConversationInterruptResult,
-    LocalAppConversationMessage, LocalAppConversationMessageRole,
-    LocalAppConversationOpenRequest, LocalAppConversationOpenResult,
-    LocalAppConversationSendRequest, LocalAppConversationSendResult,
-    LocalAppConversationSnapshot, LocalAppConversationSnapshotRequest,
-    LocalAppConversationSubscribeRequest, LocalAppConversationSubscriptionReceiver,
-    LocalAppOperationError,
+    LocalAppConversationEvent, LocalAppConversationEventKind, LocalAppConversationInterruptRequest,
+    LocalAppConversationInterruptResult, LocalAppConversationMessage,
+    LocalAppConversationMessageRole, LocalAppConversationOpenRequest,
+    LocalAppConversationOpenResult, LocalAppConversationSendRequest,
+    LocalAppConversationSendResult, LocalAppConversationSnapshot,
+    LocalAppConversationSnapshotRequest, LocalAppConversationSubscribeRequest,
+    LocalAppConversationSubscriptionReceiver, LocalAppOperationError,
 };
 
 use super::{invalid_payload, untrusted};
@@ -321,7 +320,10 @@ fn require_bounded_runtime_text(
     value: &str,
     max_bytes: usize,
 ) -> Result<(), LocalAppOperationError> {
-    if value.is_empty() || value.len() > max_bytes || value.contains('\0') || value.trim().is_empty()
+    if value.is_empty()
+        || value.len() > max_bytes
+        || value.contains('\0')
+        || value.trim().is_empty()
     {
         return Err(untrusted());
     }
@@ -352,9 +354,9 @@ fn valid_reason_code(value: &str) -> bool {
     !value.is_empty()
         && value.len() <= 128
         && value.trim() == value
-        && value
-            .bytes()
-            .all(|byte| byte.is_ascii_uppercase() || byte.is_ascii_digit() || byte == b'_' || byte == b'-')
+        && value.bytes().all(|byte| {
+            byte.is_ascii_uppercase() || byte.is_ascii_digit() || byte == b'_' || byte == b'-'
+        })
 }
 
 #[cfg(test)]

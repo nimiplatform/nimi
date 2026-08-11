@@ -15,8 +15,7 @@ use windows_sys::Win32::Security::WinTrust::{
     WTD_REVOKE_WHOLECHAIN, WTD_STATEACTION_CLOSE, WTD_STATEACTION_VERIFY, WTD_UI_NONE,
 };
 use windows_sys::Win32::System::Threading::{
-    OpenProcess, QueryFullProcessImageNameW, WaitForSingleObject,
-    PROCESS_QUERY_LIMITED_INFORMATION,
+    OpenProcess, QueryFullProcessImageNameW, WaitForSingleObject, PROCESS_QUERY_LIMITED_INFORMATION,
 };
 
 use crate::{ProtectedCarrierError, ProtectedCarrierReasonCode};

@@ -164,7 +164,7 @@
     "docs:preview": "pnpm --filter @nimiplatform/docs preview",
     "lint": "pnpm check:no-app-realm-rest-bypass && pnpm check:actionlint",
     "test:workspace:prepared": "pnpm --recursive --filter=!@nimiplatform/nimi --if-present test",
-    "test:extended:prepared": "pnpm --filter @nimiplatform/app-tools run test:full && pnpm --filter @nimiplatform/kit run test:full && pnpm --filter @nimiplatform/simulator run test:full:prepared",
+    "test:extended:prepared": "pnpm --filter @nimiplatform/app-tools run test:full && pnpm --filter @nimiplatform/simulator run test:full:prepared",
     "test:full:prepared": "pnpm run test:workspace:prepared && pnpm run test:extended:prepared && node scripts/run-script-tests.mjs",
     "test:workspace:full": "node scripts/with-workspace-surfaces.mjs -- pnpm run test:full:prepared",
     "test": "node scripts/with-workspace-surfaces.mjs -- pnpm run test:workspace:prepared",

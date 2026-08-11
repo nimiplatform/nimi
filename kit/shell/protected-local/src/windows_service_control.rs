@@ -76,8 +76,7 @@ struct SupervisedDevelopmentEntry {
     request: LocalDevelopmentLaunchRequest,
 }
 
-type SupervisedDevelopmentRegistry =
-    Arc<Mutex<HashMap<[u8; 32], SupervisedDevelopmentEntry>>>;
+type SupervisedDevelopmentRegistry = Arc<Mutex<HashMap<[u8; 32], SupervisedDevelopmentEntry>>>;
 
 struct WindowsDesktopControl {
     session: Arc<VerifiedDesktopRuntimeSession>,
@@ -389,8 +388,11 @@ impl NimiDesktopControl for WindowsDesktopControl {
         Box::pin(async move {
             let channel = self.channel();
             #[cfg(feature = "windows-source-local-development")]
-            renew_supervised_development_rebinds(channel.clone(), self.development_processes.clone())
-                .await?;
+            renew_supervised_development_rebinds(
+                channel.clone(),
+                self.development_processes.clone(),
+            )
+            .await?;
             crate::windows_local_development::list_registrations(channel).await
         })
     }
@@ -490,9 +492,9 @@ fn terminate_development_host(
             false,
         ));
     }
-    let mut processes = registry.lock().map_err(|_| {
-        NimiHostError::new(NimiHostErrorReasonCode::RuntimeServiceUntrusted, false)
-    })?;
+    let mut processes = registry
+        .lock()
+        .map_err(|_| NimiHostError::new(NimiHostErrorReasonCode::RuntimeServiceUntrusted, false))?;
     if let Some(entry) = processes.get_mut(&supervisor_run_id) {
         entry.process.terminate()?;
     }

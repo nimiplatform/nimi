@@ -317,8 +317,11 @@ impl NimiDesktopControl for MacOSDesktopControl {
         Box::pin(async move {
             let channel = self.host_channel()?;
             #[cfg(feature = "macos-source-local-development")]
-            renew_supervised_development_rebinds(channel.clone(), self.development_processes.clone())
-                .await?;
+            renew_supervised_development_rebinds(
+                channel.clone(),
+                self.development_processes.clone(),
+            )
+            .await?;
             crate::windows_local_development::list_registrations(channel).await
         })
     }
@@ -862,7 +865,9 @@ mod source_local_development_readiness_tests {
         stream
             .shutdown(std::net::Shutdown::Write)
             .expect("shutdown test stream");
-        stream.set_nonblocking(true).expect("nonblocking test stream");
+        stream
+            .set_nonblocking(true)
+            .expect("nonblocking test stream");
         let stream = UnixStream::from_std(stream).expect("tokio test stream");
         let error = channel_from_verified_socket(stream, unavailable)
             .await
@@ -897,7 +902,9 @@ mod source_local_development_readiness_tests {
         stream
             .shutdown(std::net::Shutdown::Write)
             .expect("shutdown test stream");
-        stream.set_nonblocking(true).expect("nonblocking test stream");
+        stream
+            .set_nonblocking(true)
+            .expect("nonblocking test stream");
         let stream = UnixStream::from_std(stream).expect("tokio test stream");
         let error = channel_from_verified_socket(stream, untrusted)
             .await

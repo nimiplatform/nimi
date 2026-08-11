@@ -141,17 +141,31 @@ const appClient = createNimiAppClient({
   async get(): Promise<NimiAppInventoryEntry> { return appEntry; },
   async status() { return { appId: 'dev.nimi.surface', launchReadiness: 'ready' }; },
 });
+const unavailableCarrier = async (): Promise<never> => {
+  throw new Error('public surface smoke carrier is not executable');
+};
 const localAppStandardShell: NimiLocalAppStandardShell = {
   session: { async status() { return { state: 'ready', reasonCode: 'ACTION_EXECUTED', retryable: false }; } },
   ai: {
     text: {
       async generateCandidate() { return {}; },
+      streamTurn: unavailableCarrier,
     },
+    scenario: { execute: unavailableCarrier },
+    scenarioJobs: {
+      submit: unavailableCarrier,
+      get: unavailableCarrier,
+      subscribe: unavailableCarrier,
+      cancel: unavailableCarrier,
+    },
+    artifacts: { read: unavailableCarrier, upload: unavailableCarrier },
+    voiceAssets: { list: unavailableCarrier },
   },
   aiConfig: {
     async get() { return {}; },
     async overwrite() { return {}; },
   },
+  modelConfig: { localSelections: unavailableCarrier },
   storage: {
     async readJson() { return {}; },
     async writeJson() { return {}; },
@@ -177,6 +191,11 @@ const localAppStandardShell: NimiLocalAppStandardShell = {
       };
     },
     async snapshot() { return {}; },
+  },
+  agentConfigure: {
+    sharedAIConfig: { get: unavailableCarrier, overwrite: unavailableCarrier },
+    autonomy: { snapshot: unavailableCarrier, update: unavailableCarrier },
+    presentation: { snapshot: unavailableCarrier, commit: unavailableCarrier },
   },
 };
 const localApp = createNimiClient({ localApp: { standardShell: localAppStandardShell } });

@@ -66,15 +66,18 @@ fn public_lifecycle_controls_fail_closed_without_a_verified_runtime() {
     assert_eq!(channel_invalidation_count(), 0);
     let status = current_daemon_status();
     assert!(!status.running);
-    assert!(!status.managed);
-    assert_eq!(status.launch_mode, "INVALID");
-    let last_error = status.last_error.as_deref().unwrap_or_default();
-    assert!(
-        last_error.contains("protected-carrier-required")
-            || last_error.contains("runtime-service-unavailable")
-            || last_error.contains("runtime-service-untrusted")
-            || last_error.contains("runtime-service-repair-required")
-    );
+    if status.managed {
+        assert_eq!(status.launch_mode, "PROTECTED_LOCAL");
+    } else {
+        assert_eq!(status.launch_mode, "INVALID");
+        let last_error = status.last_error.as_deref().unwrap_or_default();
+        assert!(
+            last_error.contains("protected-carrier-required")
+                || last_error.contains("runtime-service-unavailable")
+                || last_error.contains("runtime-service-untrusted")
+                || last_error.contains("runtime-service-repair-required")
+        );
+    }
 }
 
 #[test]

@@ -72,11 +72,11 @@ bindings:
     match: token
     expectation: present
     policy: blocking
-  - id: capability.lexical.present-ai-text-generate
+  - id: capability.lexical.absent-ai-text-generate
     detector: exact-lexical-invariant/v1
     term: ai.text.generate
     match: token
-    expectation: present
+    expectation: absent
     policy: blocking
   - id: capability.lexical.present-ai-profile-recommendation-ref
     detector: exact-lexical-invariant/v1
