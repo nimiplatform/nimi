@@ -137,6 +137,81 @@ describe('Electron local-app standard-shell operations', () => {
     })).rejects.toMatchObject({ reasonCode: 'invalid-payload' });
   });
 
+  it('preserves the route-neutral safe integer image seed carrier', async () => {
+    const calls: unknown[] = [];
+    const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.scenarioJobSubmit'];
+    const spec = {
+      type: 'image-generate', prompt: 'portrait', negativePrompt: '',
+      size: '', aspectRatio: '', quality: '', style: '',
+      referenceImages: [], mask: '', responseFormat: '',
+    };
+    for (const seed of [Number.MIN_SAFE_INTEGER, Number.MAX_SAFE_INTEGER]) {
+      await expect(dispatchElectronLocalAppCommand({
+        host: localAppHost(calls), command, payload: { spec: { ...spec, seed } },
+      })).resolves.toEqual({ job: null, asset: null });
+    }
+    expect(calls).toEqual([
+      ['scenarioJobSubmit', { spec: { ...spec, seed: Number.MIN_SAFE_INTEGER } }],
+      ['scenarioJobSubmit', { spec: { ...spec, seed: Number.MAX_SAFE_INTEGER } }],
+    ]);
+    for (const seed of [Number.MIN_SAFE_INTEGER - 1, Number.MAX_SAFE_INTEGER + 1]) {
+      await expect(dispatchElectronLocalAppCommand({
+        host: localAppHost(calls), command, payload: { spec: { ...spec, seed } },
+      })).rejects.toMatchObject({ reasonCode: 'invalid-payload' });
+    }
+    expect(calls).toHaveLength(2);
+  });
+
+  it('admits only the canonical video seed range', async () => {
+    const calls: unknown[] = [];
+    const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.scenarioJobSubmit'];
+    const spec = {
+      type: 'video-generate', prompt: 'draw a moon', negativePrompt: '', mode: 't2v', content: [],
+      options: { resolution: '720p', ratio: '16:9', seed: -1 },
+    };
+
+    await expect(dispatchElectronLocalAppCommand({
+      host: localAppHost(calls), command, payload: { spec },
+    })).resolves.toEqual({ job: null, asset: null });
+    expect(calls).toEqual([['scenarioJobSubmit', { spec }]]);
+    await expect(dispatchElectronLocalAppCommand({
+      host: localAppHost(calls), command,
+      payload: { spec: { ...spec, options: { ...spec.options, seed: 4_294_967_296 } } },
+    })).rejects.toMatchObject({ reasonCode: 'invalid-payload' });
+  });
+
+  it('admits the exact typed inline transcription audio cap before generic JSON bounds', async () => {
+    const calls: unknown[] = [];
+    const maximum = 32 * 1024 * 1024;
+    const bytes = Array.from({ length: maximum + 1 }, () => 0);
+    bytes.pop();
+    const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.scenarioJobSubmit'];
+    const spec = {
+      type: 'speech-transcribe',
+      mimeType: 'audio/wav',
+      language: '',
+      prompt: '',
+      audioSource: { type: 'bytes', bytes },
+      responseFormat: '',
+    };
+    await expect(dispatchElectronLocalAppCommand({
+      host: localAppHost(calls),
+      command,
+      payload: { spec },
+    })).resolves.toEqual({ job: null, asset: null });
+    expect(calls).toHaveLength(1);
+    expect((calls[0] as [string, { spec: typeof spec }])[1].spec.audioSource.bytes).toBe(bytes);
+
+    bytes.push(0);
+    await expect(dispatchElectronLocalAppCommand({
+      host: localAppHost(calls), command, payload: { spec },
+    })).rejects.toMatchObject({
+      reasonCode: 'invalid-payload',
+      message: expect.stringContaining('inline bytes are invalid'),
+    });
+    expect(calls).toHaveLength(1);
+  });
+
   it('routes bounded image artifact upload and rejects MIME or authority expansion', async () => {
     const calls: unknown[] = [];
     const host = localAppHost(calls);

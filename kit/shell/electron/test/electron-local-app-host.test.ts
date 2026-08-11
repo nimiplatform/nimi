@@ -212,6 +212,38 @@ describe('Electron protected local-app host', () => {
     });
   });
 
+  it('preserves exact Local asset incompatibility failures', async () => {
+    const candidate = {
+      ...binding([]),
+      localAppScenarioJobSubmit: async () => ({
+        status: 'error' as const,
+        reasonCode: 'ai-local-asset-incompatible',
+        retryable: false,
+      }),
+    };
+    await expect(createNimiElectronLocalAppHostForBinding(candidate).scenarioJobSubmit({
+      capabilityContract: 'audio.transcribe',
+    })).rejects.toMatchObject({
+      reasonCode: 'ai-local-asset-incompatible', retryable: false,
+    });
+  });
+
+  it('preserves typed media validation failures', async () => {
+    for (const reasonCode of ['ai-media-spec-invalid', 'ai-media-option-unsupported']) {
+      const candidate = {
+        ...binding([]),
+        localAppScenarioJobSubmit: async () => ({
+          status: 'error' as const,
+          reasonCode,
+          retryable: false,
+        }),
+      };
+      await expect(createNimiElectronLocalAppHostForBinding(candidate).scenarioJobSubmit({
+        capabilityContract: 'video.generate',
+      })).rejects.toMatchObject({ reasonCode, retryable: false });
+    }
+  });
+
   it('rejects ConnectorGrant binding material returned by the App AIConfig carrier', async () => {
     const candidate = {
       ...binding([]),

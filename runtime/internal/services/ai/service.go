@@ -502,29 +502,6 @@ func (s *Service) resolvePublicChatTextContextMetadataLease(
 	}, nil
 }
 
-// RebindNonProductionConnectorStore replaces connector credential custody only
-// during bounded non-production owner composition, before any request is
-// admitted. Remote Hosts are rebuilt against the same store so grant capture
-// and secret opening cannot diverge.
-func (s *Service) RebindNonProductionConnectorStore(store *connector.ConnectorStore) error {
-	if s == nil || store == nil {
-		return fmt.Errorf("non-production connector store is required")
-	}
-	transport, ok := s.cloudTextProvider.(*nimillm.CloudProvider)
-	if !ok || transport == nil {
-		return fmt.Errorf("non-production remote cloud transport is unavailable")
-	}
-	hostAudit := s.audit
-	if hostAudit == nil {
-		hostAudit = auditlog.New(256, 256)
-	}
-	s.connStore = store
-	s.remoteTextHost = remoteexecution.NewProviderTextHost(store, transport, hostAudit, s.allowLoopback)
-	s.remoteEmbedHost = remoteexecution.NewProviderEmbedHost(store, transport, hostAudit, s.allowLoopback)
-	s.remoteMediaHost = remoteexecution.NewProviderMediaHost(store, transport, hostAudit, s.allowLoopback)
-	return nil
-}
-
 // CloudProvider returns the underlying cloud provider for cross-service wiring (e.g., ConnectorService probe).
 func (s *Service) CloudProvider() *nimillm.CloudProvider {
 	if s == nil {

@@ -498,7 +498,7 @@ fn parse_video_spec(
     if duration_sec.is_some_and(|value| !(0..=600).contains(&value))
         || frames.is_some_and(|value| !(0..=100_000).contains(&value))
         || fps.is_some_and(|value| !(0..=120).contains(&value))
-        || seed.is_some_and(|value| value < 0)
+        || seed.is_some_and(|value| !(-1..=4_294_967_295).contains(&value))
     {
         return Err(invalid_payload());
     }
@@ -1355,6 +1355,21 @@ mod tests {
         let mut invalid_speed = speech.as_object().unwrap().clone();
         invalid_speed.insert("speed".to_string(), json!(4.1));
         assert!(parse_job_spec(JsonValue::Object(invalid_speed)).is_err());
+    }
+
+    #[test]
+    fn video_seed_uses_the_canonical_unsigned_32_bit_range_with_random_sentinel() {
+        let video = |seed| {
+            json!({
+                "type": "video-generate", "prompt": "draw a moon", "negativePrompt": "",
+                "mode": "t2v", "content": [],
+                "options": { "resolution": "720p", "ratio": "16:9", "seed": seed }
+            })
+        };
+
+        assert!(parse_job_spec(video(-1)).is_ok());
+        assert!(parse_job_spec(video(4_294_967_295_i64)).is_ok());
+        assert!(parse_job_spec(video(4_294_967_296_i64)).is_err());
     }
 
     #[test]

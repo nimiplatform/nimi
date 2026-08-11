@@ -489,7 +489,9 @@ function validateScenarioSpec(value: unknown, command: string, execute: boolean)
     throw invalidPayload(command, 'scenario spec is invalid');
   }
   assertNoForbiddenAuthorityValue(value, command);
-  validateJsonValue(value, command, 40 * 1024 * 1024);
+  const acceptsInlineAudio = !execute
+    && (value.type === 'speech-transcribe' || value.type === 'voice-clone');
+  validateJsonValue(value, command, 40 * 1024 * 1024, acceptsInlineAudio);
   if (value.type === 'text-embed' && execute) {
     assertExactKeys(value, ['type', 'inputs'], command);
     if (!Array.isArray(value.inputs) || value.inputs.length === 0 || value.inputs.length > 16) {
@@ -529,7 +531,7 @@ function validateImageSpec(value: Record<string, unknown>, command: string): voi
   optionalExactText(value.negativePrompt, 'negativePrompt', command, 32 * 1024);
   for (const key of ['size', 'aspectRatio', 'quality', 'style']) optionalExactText(value[key], key, command, 128);
   if (value.n !== undefined) boundedSafeInteger(value.n, 'n', command, 0, 4);
-  if (value.seed !== undefined) boundedSafeInteger(value.seed, 'seed', command, 0, Number.MAX_SAFE_INTEGER);
+  if (value.seed !== undefined) boundedSafeInteger(value.seed, 'seed', command, Number.MIN_SAFE_INTEGER, Number.MAX_SAFE_INTEGER);
   if (!Array.isArray(value.referenceImages) || value.referenceImages.length > 1) {
     throw invalidPayload(command, 'referenceImages is invalid');
   }
@@ -576,7 +578,7 @@ function validateVideoSpec(value: Record<string, unknown>, command: string): voi
   if (value.options.durationSec !== undefined) boundedSafeInteger(value.options.durationSec, 'durationSec', command, 0, 600);
   if (value.options.frames !== undefined) boundedSafeInteger(value.options.frames, 'frames', command, 0, 100_000);
   if (value.options.fps !== undefined) boundedSafeInteger(value.options.fps, 'fps', command, 0, 120);
-  if (value.options.seed !== undefined) boundedSafeInteger(value.options.seed, 'seed', command, 0, Number.MAX_SAFE_INTEGER);
+  if (value.options.seed !== undefined) boundedSafeInteger(value.options.seed, 'seed', command, -1, 4_294_967_295);
   for (const key of ['cameraFixed', 'watermark', 'generateAudio', 'draft', 'returnLastFrame']) {
     if (value.options[key] !== undefined && typeof value.options[key] !== 'boolean') throw invalidPayload(command, `${key} is invalid`);
   }
@@ -806,8 +808,14 @@ function validateStorageJsonValue(value: unknown, command: string): void {
   validateJsonValue(value, command, 256 * 1024);
 }
 
-function validateJsonValue(value: unknown, command: string, maxBytes: number): void {
+function validateJsonValue(
+  value: unknown,
+  command: string,
+  maxBytes: number,
+  compactByteArrays = false,
+): void {
   const state = { nodes: 0, ancestors: new Set<object>() };
+  const compactedByteArrays = new WeakSet<object>();
   const visit = (entry: unknown, depth = 0): void => {
     state.nodes += 1;
     if (depth > 32 || state.nodes > 100_000) {
@@ -820,7 +828,14 @@ function validateJsonValue(value: unknown, command: string, maxBytes: number): v
     }
     state.ancestors.add(entry);
     if (Array.isArray(entry)) {
-      for (const item of entry) visit(item, depth + 1);
+      const isByteArray = compactByteArrays
+        && entry.length > 0
+        && entry.every((item) => Number.isInteger(item) && Number(item) >= 0 && Number(item) <= 255);
+      if (isByteArray) {
+        compactedByteArrays.add(entry);
+      } else {
+        for (const item of entry) visit(item, depth + 1);
+      }
     } else if (Object.getPrototypeOf(entry) === Object.prototype) {
       for (const item of Object.values(entry as Record<string, unknown>)) visit(item, depth + 1);
     } else {
@@ -829,7 +844,13 @@ function validateJsonValue(value: unknown, command: string, maxBytes: number): v
     state.ancestors.delete(entry);
   };
   visit(value);
-  const encoded = JSON.stringify(value);
+  const encoded = JSON.stringify(value, compactByteArrays
+    ? (_key, entry: unknown) => (
+        entry && typeof entry === 'object' && compactedByteArrays.has(entry)
+          ? `[inline-bytes:${(entry as readonly unknown[]).length}]`
+          : entry
+      )
+    : undefined);
   if (typeof encoded !== 'string' || Buffer.byteLength(encoded, 'utf8') > maxBytes) {
     throw invalidPayload(command, 'value exceeds the JSON document bound');
   }

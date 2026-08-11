@@ -271,9 +271,11 @@ func validateLocalAppImageGenerateSpec(spec *runtimev1.LocalAppImageGenerateScen
 		!localAppOptionalExactText(spec.GetAspectRatio(), maxLocalAppScenarioOptionTextBytes) ||
 		!localAppOptionalExactText(spec.GetQuality(), maxLocalAppScenarioOptionTextBytes) ||
 		!localAppOptionalExactText(spec.GetStyle(), maxLocalAppScenarioOptionTextBytes) ||
-		(spec.N != nil && (spec.GetN() < 0 || spec.GetN() > 4)) ||
-		(spec.Seed != nil && spec.GetSeed() < 0) || len(spec.GetReferenceImages()) > 1 {
+		len(spec.GetReferenceImages()) > 1 {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
+	}
+	if spec.N != nil && (spec.GetN() < 0 || spec.GetN() > 16) {
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
 	}
 	for _, reference := range spec.GetReferenceImages() {
 		if !localAppHTTPSURL(reference, maxLocalAppScenarioReferenceURIBytes) {

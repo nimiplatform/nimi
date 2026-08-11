@@ -108,28 +108,6 @@ func (m *Manager) EnsureManagedImageBackendDependency(ctx context.Context, cfg *
 	return status, nil
 }
 
-// ResolveInstalledManagedImageBackendDependency returns the exact installed
-// package facts without downloading, installing, or starting a process.
-func (m *Manager) ResolveInstalledManagedImageBackendDependency(cfg *ManagedImageBackendConfig) (ManagedImageBackendDependencyStatus, error) {
-	normalized := normalizeManagedImageBackendConfig(cfg)
-	if !normalized.Enabled() {
-		return ManagedImageBackendDependencyStatus{}, nil
-	}
-	m.mu.RLock()
-	backendsPath := strings.TrimSpace(m.managedImageBackendsPath)
-	sharedDependenciesPath := strings.TrimSpace(m.sharedAcceleratorDependenciesPath)
-	m.mu.RUnlock()
-	resolved, err := resolveInstalledManagedImageBackendConfig(backendsPath, sharedDependenciesPath, normalized)
-	if err != nil {
-		return ManagedImageBackendDependencyStatus{}, err
-	}
-	spec, ok := resolveManagedImageBackendPackageSpecForCurrentHostWithSource(resolved.BackendName, resolved.PackageSource)
-	if !ok {
-		return ManagedImageBackendDependencyStatus{}, fmt.Errorf("managed image backend package source record unavailable for %s", resolved.BackendName)
-	}
-	return managedImageBackendDependencyStatusFromConfig(resolved, spec), nil
-}
-
 // StartInstalledManagedImageBackend starts a previously materialized runtime-owned
 // image backend. It never downloads or installs packages; missing packages must
 // be handled through local environment dependency jobs.

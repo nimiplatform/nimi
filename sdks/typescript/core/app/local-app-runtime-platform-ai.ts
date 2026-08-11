@@ -466,7 +466,7 @@ function validateScenarioSpec<T extends NimiLocalAppScenarioExecuteSpec | NimiLo
       boundedToken(record.aspectRatio, 'image aspectRatio', 128);
       boundedToken(record.quality, 'image quality', 128);
       boundedToken(record.style, 'image style', 128);
-      optionalBoundedInteger(record.seed, 'image seed', 0, Number.MAX_SAFE_INTEGER);
+      optionalBoundedInteger(record.seed, 'image seed', Number.MIN_SAFE_INTEGER, Number.MAX_SAFE_INTEGER);
       if (!Array.isArray(record.referenceImages) || record.referenceImages.length > 1) invalidAIInput('image referenceImages are invalid');
       record.referenceImages.forEach((value, index) => boundedHttpsUrl(value, `image reference ${index}`));
       if (record.mask !== '') boundedHttpsUrl(record.mask, 'image mask');
@@ -532,7 +532,7 @@ function validateVideoSpec(record: Record<string, unknown>): void {
   optionalBoundedInteger(options.durationSec, 'video durationSec', 0, 600);
   optionalBoundedInteger(options.frames, 'video frames', 0, 100_000);
   optionalBoundedInteger(options.fps, 'video fps', 0, 120);
-  optionalBoundedInteger(options.seed, 'video seed', 0, Number.MAX_SAFE_INTEGER);
+  optionalBoundedInteger(options.seed, 'video seed', -1, 4_294_967_295);
   for (const field of ['cameraFixed', 'watermark', 'generateAudio', 'draft', 'returnLastFrame']) {
     if (options[field] !== undefined && typeof options[field] !== 'boolean') invalidAIInput(`video ${field} is invalid`);
   }
@@ -808,7 +808,7 @@ function localJobSpecFromRuntimeRequest(request: SubmitScenarioJobRequest): Nimi
         size: spec.imageGenerate.size, aspectRatio: spec.imageGenerate.aspectRatio,
         quality: spec.imageGenerate.quality, style: spec.imageGenerate.style,
         ...(spec.imageGenerate.seed !== undefined
-          ? { seed: safeOptionalInt64(spec.imageGenerate.seed, 'image seed') }
+          ? { seed: safeOptionalSignedInt64(spec.imageGenerate.seed, 'image seed') }
           : {}),
         referenceImages: spec.imageGenerate.referenceImages,
         mask: spec.imageGenerate.mask,
@@ -857,7 +857,7 @@ function runtimeVideoSpec(spec: Extract<ScenarioSpec['spec'], { oneofKind: 'vide
       ...(options.durationSec !== undefined ? { durationSec: options.durationSec } : {}),
       ...(options.frames !== undefined ? { frames: options.frames } : {}),
       ...(options.fps !== undefined ? { fps: options.fps } : {}),
-      ...(options.seed !== undefined ? { seed: safeOptionalInt64(options.seed, 'video seed') } : {}),
+      ...(options.seed !== undefined ? { seed: safeOptionalVideoSeed(options.seed) } : {}),
       ...(options.cameraFixed !== undefined ? { cameraFixed: options.cameraFixed } : {}),
       ...(options.watermark !== undefined ? { watermark: options.watermark } : {}),
       ...(options.generateAudio !== undefined ? { generateAudio: options.generateAudio } : {}),
@@ -1006,6 +1006,18 @@ function safeOptionalInt64(value: string | undefined, field: string): number | u
   const number = Number(value);
   if (!Number.isSafeInteger(number)) adapterInputError(`${field} exceeds the Local App integer bound`);
   return number;
+}
+
+function safeOptionalSignedInt64(value: string | undefined, field: string): number | undefined {
+  if (value === undefined) return undefined;
+  if (!/^(?:0|-?[1-9][0-9]*)$/u.test(value)) adapterInputError(`${field} is invalid`);
+  const number = Number(value);
+  if (!Number.isSafeInteger(number)) adapterInputError(`${field} exceeds the Local App integer carrier bound`);
+  return number;
+}
+
+function safeOptionalVideoSeed(value: string): number {
+  return value === '-1' ? -1 : safeOptionalInt64(value, 'video seed') as number;
 }
 
 function boundedIdentifier(value: unknown, field: string): string {

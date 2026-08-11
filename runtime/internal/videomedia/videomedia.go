@@ -315,7 +315,7 @@ func (p *Processor) extractLastFrame(ctx context.Context, videoPath string, stag
 	}, nil
 }
 
-func writeFloat32WAV(path string, audio localexecution.RawAudio) error {
+func writeFloat32WAV(path string, audio localexecution.RawAudio) (runErr error) {
 	dataSize := uint64(len(audio.PCMSamples)) * 4
 	if dataSize > math.MaxUint32-36 {
 		return fmt.Errorf("float32 WAV exceeds RIFF size limit")
@@ -324,7 +324,11 @@ func writeFloat32WAV(path string, audio localexecution.RawAudio) error {
 	if err != nil {
 		return err
 	}
-	defer file.Close()
+	defer func() {
+		if err := file.Close(); err != nil {
+			runErr = errors.Join(runErr, fmt.Errorf("close float32 WAV: %w", err))
+		}
+	}()
 	header := make([]byte, 44)
 	copy(header[0:4], "RIFF")
 	binary.LittleEndian.PutUint32(header[4:8], uint32(36+dataSize))
@@ -357,7 +361,7 @@ func writeFloat32WAV(path string, audio localexecution.RawAudio) error {
 		}
 		offset += count
 	}
-	return file.Close()
+	return nil
 }
 
 type probeDocument struct {

@@ -138,6 +138,8 @@ pub(crate) fn local_app_reason_from_proto(value: i32) -> Option<LocalAppReasonCo
         392 => LocalAppReasonCode::AiProviderInternal,
         393 => LocalAppReasonCode::AiProviderRateLimited,
         394 => LocalAppReasonCode::AiProviderTimeout,
+        410 => LocalAppReasonCode::AiMediaSpecInvalid,
+        411 => LocalAppReasonCode::AiMediaOptionUnsupported,
         694 => LocalAppReasonCode::AiConfigInvalid,
         695 => LocalAppReasonCode::AiConfigNotFound,
         696 => LocalAppReasonCode::AiConfigPersistenceUnavailable,
@@ -207,6 +209,8 @@ fn local_app_reason_from_runtime_reason(value: &str) -> Option<LocalAppReasonCod
         "AI_PROVIDER_INTERNAL" => LocalAppReasonCode::AiProviderInternal,
         "AI_PROVIDER_RATE_LIMITED" => LocalAppReasonCode::AiProviderRateLimited,
         "AI_PROVIDER_TIMEOUT" => LocalAppReasonCode::AiProviderTimeout,
+        "AI_MEDIA_SPEC_INVALID" => LocalAppReasonCode::AiMediaSpecInvalid,
+        "AI_MEDIA_OPTION_UNSUPPORTED" => LocalAppReasonCode::AiMediaOptionUnsupported,
         "AI_CONFIG_INVALID" => LocalAppReasonCode::AiConfigInvalid,
         "AI_CONFIG_NOT_FOUND" => LocalAppReasonCode::AiConfigNotFound,
         "AI_CONFIG_PERSISTENCE_UNAVAILABLE" => LocalAppReasonCode::AiConfigPersistenceUnavailable,
@@ -378,6 +382,28 @@ mod tests {
                 Some(expected)
             );
             assert_eq!(local_app_reason_from_proto(proto_reason), Some(expected));
+        }
+    }
+
+    #[test]
+    fn media_validation_failures_stay_typed_for_local_apps() {
+        for (runtime_reason, proto_reason, expected) in [
+            ("AI_MEDIA_SPEC_INVALID", 410, "ai-media-spec-invalid"),
+            (
+                "AI_MEDIA_OPTION_UNSUPPORTED",
+                411,
+                "ai-media-option-unsupported",
+            ),
+        ] {
+            assert_eq!(
+                local_app_reason_from_runtime_reason(runtime_reason)
+                    .map(LocalAppReasonCode::as_str),
+                Some(expected)
+            );
+            assert_eq!(
+                local_app_reason_from_proto(proto_reason).map(LocalAppReasonCode::as_str),
+                Some(expected)
+            );
         }
     }
 

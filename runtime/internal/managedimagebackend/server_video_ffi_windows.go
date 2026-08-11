@@ -53,6 +53,12 @@ type stableDiffusionVideoFFI struct {
 	progressCallback uintptr
 }
 
+// callVideoVoid invokes exports whose C signatures return void; syscall's
+// last-error result is not part of their contract.
+func callVideoVoid(proc *syscall.LazyProc, args ...uintptr) {
+	_, _, _ = proc.Call(args...)
+}
+
 func newStableDiffusionVideoEngine(executablePath string) (videoEngine, error) {
 	directory := filepath.Dir(strings.TrimSpace(executablePath))
 	dllPath := filepath.Join(directory, "stable-diffusion.dll")
@@ -153,7 +159,7 @@ func (engine *stableDiffusionVideoFFI) Load(request VideoModelRequest) (bool, er
 	engine.freeContextLocked()
 
 	var params sdCtxParams
-	engine.ctxParamsInit.Call(uintptr(unsafe.Pointer(&params)))
+	callVideoVoid(engine.ctxParamsInit, uintptr(unsafe.Pointer(&params)))
 	stringsToKeep := make([]*byte, 0, 5)
 	setCString := func(target *uintptr, value string) error {
 		pointer, err := syscall.BytePtrFromString(value)
@@ -191,7 +197,7 @@ func (engine *stableDiffusionVideoFFI) Load(request VideoModelRequest) (bool, er
 		return false, videoError(VideoErrorLoad, fmt.Errorf("new_sd_ctx returned null"))
 	}
 	if supported, _, _ := engine.supportsVideo.Call(contextPointer); supported == 0 {
-		engine.freeContext.Call(contextPointer)
+		callVideoVoid(engine.freeContext, contextPointer)
 		return false, videoError(VideoErrorEngineIncompatible, fmt.Errorf("loaded stable-diffusion context does not support video generation"))
 	}
 	engine.ctxMu.Lock()
@@ -214,20 +220,20 @@ func (engine *stableDiffusionVideoFFI) Generate(request VideoGenerateRequest, pr
 	}
 
 	engine.canceled.Store(false)
-	engine.cancelGenerate.Call(contextPointer, sdCancelReset)
+	callVideoVoid(engine.cancelGenerate, contextPointer, sdCancelReset)
 	engine.progressMu.Lock()
 	engine.progress = progress
 	engine.progressMu.Unlock()
-	engine.setProgress.Call(engine.progressCallback, 0)
+	callVideoVoid(engine.setProgress, engine.progressCallback, 0)
 	defer func() {
-		engine.setProgress.Call(0, 0)
+		callVideoVoid(engine.setProgress, 0, 0)
 		engine.progressMu.Lock()
 		engine.progress = nil
 		engine.progressMu.Unlock()
 	}()
 
 	var params sdVideoGenParams
-	engine.videoParamsInit.Call(uintptr(unsafe.Pointer(&params)))
+	callVideoVoid(engine.videoParamsInit, uintptr(unsafe.Pointer(&params)))
 	prompt, err := syscall.BytePtrFromString(request.Prompt)
 	if err != nil {
 		return VideoCandidate{}, videoError(VideoErrorInference, fmt.Errorf("encode video prompt: %w", err))
@@ -276,10 +282,10 @@ func (engine *stableDiffusionVideoFFI) Generate(request VideoGenerateRequest, pr
 	runtime.KeepAlive(prompt)
 	runtime.KeepAlive(negative)
 	if framesOut != nil {
-		defer engine.freeImages.Call(uintptr(framesOut), uintptr(frameCountOut))
+		defer callVideoVoid(engine.freeImages, uintptr(framesOut), uintptr(frameCountOut))
 	}
 	if audioOut != nil {
-		defer engine.freeAudio.Call(uintptr(audioOut))
+		defer callVideoVoid(engine.freeAudio, uintptr(audioOut))
 	}
 	if success == 0 {
 		if engine.canceled.Load() {
@@ -303,7 +309,7 @@ func (engine *stableDiffusionVideoFFI) Cancel() error {
 	contextPointer := engine.ctx
 	engine.ctxMu.RUnlock()
 	if contextPointer != 0 {
-		engine.cancelGenerate.Call(contextPointer, sdCancelAll)
+		callVideoVoid(engine.cancelGenerate, contextPointer, sdCancelAll)
 	}
 	return nil
 }
@@ -327,7 +333,7 @@ func (engine *stableDiffusionVideoFFI) freeContextLocked() {
 	engine.loadedModel = VideoModelRequest{}
 	engine.ctxMu.Unlock()
 	if contextPointer != 0 {
-		engine.freeContext.Call(contextPointer)
+		callVideoVoid(engine.freeContext, contextPointer)
 	}
 }
 

@@ -12,6 +12,7 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/jsonstrict"
+	"google.golang.org/protobuf/proto"
 )
 
 const (
@@ -84,19 +85,19 @@ func projectCanonicalLocalAppWorldCoreResponse(response *runtimev1.InvokeRealmUn
 	if err != nil || len(canonical) > 1<<20 {
 		return localAppWorldCoreContractFailure(response)
 	}
-	projected := *response
+	projected := proto.Clone(response).(*runtimev1.InvokeRealmUnaryResponse)
 	projected.ResponseJson = string(canonical)
-	return &projected
+	return projected
 }
 
 func sanitizeLocalAppWorldCoreFailure(response *runtimev1.InvokeRealmUnaryResponse) *runtimev1.InvokeRealmUnaryResponse {
 	if response == nil || response.GetAccepted() {
 		return response
 	}
-	projected := *response
+	projected := proto.Clone(response).(*runtimev1.InvokeRealmUnaryResponse)
 	projected.ResponseJson = ""
 	projected.ErrorMessage = ""
-	return &projected
+	return projected
 }
 
 func localAppWorldCoreContractFailure(response *runtimev1.InvokeRealmUnaryResponse) *runtimev1.InvokeRealmUnaryResponse {

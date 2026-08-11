@@ -55,6 +55,26 @@ func TestLocalAppJobSpecsPreservePresenceAndOwnerClamps(t *testing.T) {
 	}
 }
 
+func TestLocalAppVideoSeedUsesCanonicalRange(t *testing.T) {
+	video, err := validateLocalAppVideoGenerationOptions(&runtimev1.LocalAppVideoGenerationOptions{
+		Seed: testInt64(-1),
+	})
+	if err != nil || video.GetSeed() != -1 {
+		t.Fatalf("random sentinel projection=%+v error=%v", video, err)
+	}
+	video, err = validateLocalAppVideoGenerationOptions(&runtimev1.LocalAppVideoGenerationOptions{
+		Seed: testInt64(4_294_967_295),
+	})
+	if err != nil || video.GetSeed() != 4_294_967_295 {
+		t.Fatalf("maximum seed projection=%+v error=%v", video, err)
+	}
+	if _, err := validateLocalAppVideoGenerationOptions(&runtimev1.LocalAppVideoGenerationOptions{
+		Seed: testInt64(4_294_967_296),
+	}); err == nil {
+		t.Fatal("seed above canonical maximum was accepted")
+	}
+}
+
 func TestSubmitLocalAppScenarioJobRequiresExactDecision(t *testing.T) {
 	svc := &Service{}
 	request := &runtimev1.SubmitLocalAppScenarioJobRequest{

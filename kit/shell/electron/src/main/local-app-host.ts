@@ -90,6 +90,8 @@ const ADMITTED_REASON_CODES: ReadonlySet<string> = new Set([
   'ai-provider-internal',
   'ai-provider-rate-limited',
   'ai-provider-timeout',
+  'ai-media-spec-invalid',
+  'ai-media-option-unsupported',
   'local-app-operation-unavailable',
   'local-app-snapshot-unavailable',
   'local-app-access-denied',

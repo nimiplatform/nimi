@@ -434,7 +434,8 @@ func validateLocalAppVideoGenerationOptions(options *runtimev1.LocalAppVideoGene
 		!localAppOptionalExactText(options.GetRatio(), maxLocalAppScenarioVoiceHintBytes) ||
 		options.GetDurationSec() < 0 || options.GetDurationSec() > 600 ||
 		options.GetFrames() < 0 || options.GetFrames() > 100000 ||
-		options.GetFps() < 0 || options.GetFps() > 120 || options.GetSeed() < 0 {
+		options.GetFps() < 0 || options.GetFps() > 120 ||
+		options.Seed != nil && (options.GetSeed() < -1 || options.GetSeed() > 4_294_967_295) {
 		return invalid()
 	}
 	return &runtimev1.VideoGenerationOptions{

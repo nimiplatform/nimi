@@ -16,6 +16,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/localappop"
 	"github.com/nimiplatform/nimi/runtime/internal/protectedlocal"
 	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
+	"google.golang.org/protobuf/proto"
 )
 
 func TestLocalAppSessionInvalidationAndSameHostRebind(t *testing.T) {
@@ -480,8 +481,8 @@ func (account *localAppSessionTestAccount) BindAuthenticatedRuntimeGeneration(co
 	if account.projection == nil {
 		return nil, account.generation, account.invalidated, false
 	}
-	copy := *account.projection
-	return &copy, account.generation, account.invalidated, true
+	projection := proto.Clone(account.projection).(*runtimev1.AccountProjection)
+	return projection, account.generation, account.invalidated, true
 }
 
 func (account *localAppSessionTestAccount) signOut() {
