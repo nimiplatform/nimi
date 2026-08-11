@@ -59,7 +59,7 @@ import {
   resolveElectronLocalAgentIdentity,
   resolveElectronRuntimeTrustedCaller,
 } from './local-agent.js';
-import { exchangeElectronOauthToken, listenElectronOauthForCode, openElectronExternalUrl } from './oauth.js';
+import { listenElectronOauthForCode, openElectronExternalUrl } from './oauth.js';
 import { resolveElectronPlatformProjection } from './platform-projection.js';
 import { confirmElectronShellDialog, focusElectronMainWindow, startElectronWindowDrag } from './shell-ui.js';
 import { asRecord, normalizeRequiredToken, normalizeText, standardNestedPayload } from './paths.js';
@@ -72,6 +72,7 @@ import {
   invokeElectronRuntimeUnary,
   openElectronRuntimeStream,
   parseElectronRuntimeStreamOpenRequest,
+  parseElectronRuntimeUnaryCancelRequest,
   parseElectronRuntimeUnaryRequest,
   probeElectronRuntimeStatus,
   resolveElectronRuntimeDefaults,
@@ -132,6 +133,12 @@ type ResolvedElectronRendererProfile = {
   readonly commandPolicy: RegisterNimiElectronRuntimeBridgeInput['commandPolicy'];
   readonly commandHandlers: RegisterNimiElectronRuntimeBridgeInput['commandHandlers'];
   readonly streams: Map<string, RuntimeGrpcBridgeStream>;
+  readonly unaries: Map<string, ActiveRuntimeUnary>;
+};
+
+type ActiveRuntimeUnary = {
+  readonly controller: AbortController;
+  readonly completion: Promise<void>;
 };
 
 function isStandardShellCommand(command: string): boolean {
@@ -215,7 +222,9 @@ export function registerNimiElectronRuntimeBridge(
     });
   }
   const desktopStreams = new Map<string, RuntimeGrpcBridgeStream>();
+  const desktopUnaries = new Map<string, ActiveRuntimeUnary>();
   const bundledAvatarStreamsBySender = new Map<object, Map<string, RuntimeGrpcBridgeStream>>();
+  const bundledAvatarUnariesBySender = new Map<object, Map<string, ActiveRuntimeUnary>>();
   const bundledAvatarStreamsFor = (sender: object): Map<string, RuntimeGrpcBridgeStream> => {
     let streams = bundledAvatarStreamsBySender.get(sender);
     if (!streams) {
@@ -224,15 +233,34 @@ export function registerNimiElectronRuntimeBridge(
     }
     return streams;
   };
+  const bundledAvatarUnariesFor = (sender: object): Map<string, ActiveRuntimeUnary> => {
+    let unaries = bundledAvatarUnariesBySender.get(sender);
+    if (!unaries) {
+      unaries = new Map();
+      bundledAvatarUnariesBySender.set(sender, unaries);
+    }
+    return unaries;
+  };
+  const cancelRuntimeUnaries = (unaries: Map<string, ActiveRuntimeUnary>, message: string) => {
+    for (const record of unaries.values()) {
+      if (!record.controller.signal.aborted) {
+        record.controller.abort(new DOMException(message, 'AbortError'));
+      }
+    }
+  };
   const unsubscribeDesktopInvalidation = input.desktopHost?.subscribeSenderInvalidation(() => {
     for (const stream of desktopStreams.values()) stream.cancel();
     desktopStreams.clear();
+    cancelRuntimeUnaries(desktopUnaries, 'Desktop renderer was invalidated during Runtime unary');
   });
   const unsubscribeBundledAvatarInvalidation = input.bundledAvatarHost?.subscribeSenderInvalidation((sender) => {
     const streams = bundledAvatarStreamsBySender.get(sender);
     for (const stream of streams?.values() ?? []) stream.cancel();
     streams?.clear();
     bundledAvatarStreamsBySender.delete(sender);
+    const unaries = bundledAvatarUnariesBySender.get(sender);
+    cancelRuntimeUnaries(unaries ?? new Map(), 'Bundled Avatar renderer was invalidated during Runtime unary');
+    bundledAvatarUnariesBySender.delete(sender);
   });
 
   const resolveRendererProfile = (event: NimiElectronIpcMainInvokeEvent): ResolvedElectronRendererProfile => {
@@ -256,6 +284,7 @@ export function registerNimiElectronRuntimeBridge(
         commandPolicy: input.bundledAvatarHost?.commandPolicy,
         commandHandlers: input.bundledAvatarHost?.commandHandlers,
         streams: bundledAvatarStreamsFor(event.sender as object),
+        unaries: bundledAvatarUnariesFor(event.sender as object),
       };
     }
     assertAllowedElectronRendererUrl({ url: rendererUrl, allowedUrls: allowedRendererUrls });
@@ -268,6 +297,7 @@ export function registerNimiElectronRuntimeBridge(
       commandPolicy: input.commandPolicy,
       commandHandlers: input.commandHandlers,
       streams: desktopStreams,
+      unaries: desktopUnaries,
     };
   };
 
@@ -288,8 +318,22 @@ export function registerNimiElectronRuntimeBridge(
     assertElectronStandardShellCommandAllowed(command, commandKind, rendererProfile.capabilitySet, effectiveAppId, Boolean(effectiveStandardShellHost));
     if (command === commandNames.unary) {
       const runtimePayload = electronRuntimeCommandPayload(payload, command);
-      parseElectronRuntimeUnaryRequest(runtimePayload);
-      return invokeElectronRuntimeUnary({
+      if (runtimePayload.cancel === true) {
+        const cancellation = parseElectronRuntimeUnaryCancelRequest(runtimePayload);
+        const active = rendererProfile.unaries.get(cancellation.requestId);
+        if (active && !active.controller.signal.aborted) {
+          active.controller.abort(new DOMException('Runtime unary was canceled by its renderer owner', 'AbortError'));
+        }
+        if (active) await active.completion;
+        return { canceled: Boolean(active) };
+      }
+      const request = parseElectronRuntimeUnaryRequest(runtimePayload);
+      const requestId = request.requestId ?? createElectronHostUnaryRequestId();
+      if (rendererProfile.unaries.has(requestId)) {
+        throw duplicateElectronRuntimeUnaryRequest(requestId);
+      }
+      const controller = new AbortController();
+      const operation = (async () => invokeElectronRuntimeUnary({
         client: desktopControlHost ? undefined : await ensureClient(),
         payload: runtimePayload,
         appId: effectiveAppId,
@@ -300,7 +344,16 @@ export function registerNimiElectronRuntimeBridge(
         desktopControlHost,
         desktopSenderAuthorized: rendererProfile.desktopSenderAuthorized,
         bundledAvatarProfile: rendererProfile.bundledAvatarProfile,
+        requestId,
+        signal: controller.signal,
+      }))();
+      const completion = operation.then(() => undefined, () => undefined).finally(() => {
+        if (rendererProfile.unaries.get(requestId)?.controller === controller) {
+          rendererProfile.unaries.delete(requestId);
+        }
       });
+      rendererProfile.unaries.set(requestId, { controller, completion });
+      return operation;
     }
     if (command === commandNames.stream_open) {
       const runtimePayload = electronRuntimeCommandPayload(payload, command);
@@ -385,7 +438,6 @@ export function registerNimiElectronRuntimeBridge(
     if (command === NIMI_STANDARD_SHELL_COMMANDS['storage.writeJson']) return writeElectronStandardStorageJson(effectiveStandardShellHost, standardPayload, command);
     if (command === NIMI_STANDARD_SHELL_COMMANDS['storage.removeJson']) return removeElectronStandardStorageJson(effectiveStandardShellHost, standardPayload, command);
     if (command === NIMI_STANDARD_SHELL_COMMANDS['oauth.openExternalUrl']) return openElectronExternalUrl(effectiveStandardShellHost, standardPayload, command);
-    if (command === NIMI_STANDARD_SHELL_COMMANDS['oauth.tokenExchange']) return exchangeElectronOauthToken(effectiveStandardShellHost, standardPayload, command);
     if (command === NIMI_STANDARD_SHELL_COMMANDS['oauth.listenForCode']) return listenElectronOauthForCode(standardPayload, command);
     if (command === NIMI_STANDARD_SHELL_COMMANDS['desktop-open.openIntent']) return openElectronDesktopIntent({ host: effectiveStandardShellHost, payload: standardPayload, command, appId: effectiveAppId });
     if (command === NIMI_STANDARD_SHELL_COMMANDS['shell-ui.confirmDialog']) {
@@ -432,7 +484,18 @@ export function registerNimiElectronRuntimeBridge(
     if (!rendererProfile.bundledAvatarProfile && developerModeHost && isElectronDeveloperModeCommand(command)) {
       return developerModeHost.invoke(command, payload);
     }
-    if (commandHandler) return await commandHandler({ command, payload, event, appId: effectiveAppId, runtimeEndpoint });
+    if (commandHandler) {
+      return await commandHandler({
+        command,
+        payload,
+        event,
+        appId: effectiveAppId,
+        runtimeEndpoint,
+        sendEvent: event.sender?.send
+          ? (eventName, eventPayload) => event.sender?.send?.(`${eventChannelPrefix}${eventName}`, eventPayload)
+          : undefined,
+      });
+    }
     if (isStandardShellCommand(command)) throw createElectronCapabilityUnavailableError(command);
     if (
       rendererProfile.capabilitySet?.capabilitySetRef === NIMI_LOCAL_APP_STANDARD_SHELL_CAPABILITY_SET_ID
@@ -465,18 +528,41 @@ export function registerNimiElectronRuntimeBridge(
     unregister: () => {
       input.ipcMain.removeHandler?.(invokeChannel);
       for (const stream of desktopStreams.values()) stream.cancel();
+      cancelRuntimeUnaries(desktopUnaries, 'Electron Runtime bridge was unregistered during unary');
       for (const streams of bundledAvatarStreamsBySender.values()) {
         for (const stream of streams.values()) stream.cancel();
         streams.clear();
       }
+      for (const unaries of bundledAvatarUnariesBySender.values()) {
+        cancelRuntimeUnaries(unaries, 'Electron Runtime bridge was unregistered during unary');
+      }
       desktopStreams.clear();
+      desktopUnaries.clear();
       bundledAvatarStreamsBySender.clear();
+      bundledAvatarUnariesBySender.clear();
       unsubscribeDesktopInvalidation?.();
       unsubscribeBundledAvatarInvalidation?.();
       desktopAccountHost?.close();
       void clientPromise?.then((client) => client.close()).catch(() => undefined);
     },
   };
+}
+
+let electronHostUnaryRequestCounter = 0;
+
+function createElectronHostUnaryRequestId(): string {
+  electronHostUnaryRequestCounter += 1;
+  return `electron-host-unary-${Date.now()}-${electronHostUnaryRequestCounter}`;
+}
+
+function duplicateElectronRuntimeUnaryRequest(requestId: string): NimiElectronShellHostError {
+  return new NimiElectronShellHostError({
+    code: 'invalid-payload',
+    message: 'Electron Runtime unary request identity is already active',
+    reasonCode: 'electron-runtime-unary-request-active',
+    actionHint: 'use_unique_runtime_unary_request_id',
+    details: { requestId },
+  });
 }
 
 function resolveElectronStandardShellCapabilitySet(

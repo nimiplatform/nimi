@@ -117,7 +117,6 @@ describe('registerNimiElectronRuntimeBridge', () => {
     for (const command of [
       NIMI_STANDARD_SHELL_COMMANDS['runtime-lifecycle.status'],
       NIMI_STANDARD_SHELL_COMMANDS['runtime-defaults.get'],
-      NIMI_STANDARD_SHELL_COMMANDS['oauth.tokenExchange'],
       NIMI_STANDARD_SHELL_COMMANDS['local-agent.runtimeTrustedCaller'],
       NIMI_STANDARD_SHELL_COMMANDS['platform-projection.get'],
       NIMI_STANDARD_SHELL_COMMANDS['runtime.unary'],

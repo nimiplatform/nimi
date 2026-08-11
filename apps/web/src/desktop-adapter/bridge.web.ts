@@ -12,7 +12,6 @@ import {
   openExternalUrl,
   focusMainWindow,
   oauthListenForCode,
-  oauthTokenExchange,
 } from '@nimiplatform/kit/shell/renderer/bridge';
 
 // Desktop public boundary — types and functions imported via the admitted
@@ -28,8 +27,6 @@ import type {
   OpenExternalUrlResult,
   OauthListenForCodePayload,
   OauthListenForCodeResult,
-  OauthTokenExchangePayload,
-  OauthTokenExchangeResult,
   RendererLogMessage,
   RuntimeBridgeDaemonStatus,
   RuntimeDefaults,
@@ -51,8 +48,6 @@ export type {
   OpenExternalUrlResult,
   OauthListenForCodePayload,
   OauthListenForCodeResult,
-  OauthTokenExchangePayload,
-  OauthTokenExchangeResult,
   RendererLogMessage,
   RuntimeBridgeDaemonStatus,
   RuntimeDefaults,
@@ -139,6 +134,14 @@ export async function subscribeRuntimeAccountSessionEvents(
 export async function getDesktopStorageDirs(): Promise<DesktopStorageDirs> {
   unsupportedDesktopRuntime('Desktop storage directories are only available in desktop runtime');
 }
+
+export const desktopManagedConnectorCredentialAcquisitionHost = Object.freeze({
+  async acquireManagedConnectorCredential(_input: unknown): Promise<never> {
+    return unsupportedDesktopRuntime(
+      'Managed connector authorization is only available in the Desktop native host',
+    );
+  },
+});
 
 // The `nimi_data` directory cleanup surface (P-MIG-006/008) is a desktop
 // host-only capability: it plans and executes filesystem cleanup through
@@ -229,7 +232,7 @@ export async function restartRuntimeBridge(): Promise<RuntimeBridgeDaemonStatus>
   return restartDaemon();
 }
 
-export { oauthListenForCode, oauthTokenExchange, openExternalUrl, focusMainWindow };
+export { oauthListenForCode, openExternalUrl, focusMainWindow };
 export { proxyHttp, getSystemResourceSnapshot, startWindowDrag };
 
 export const desktopBridge = {
@@ -254,8 +257,8 @@ export const desktopBridge = {
   completeProductFirstRunDeviceEnvironmentScan,
   admitProductReadyForUse,
   proxyHttp,
+  desktopManagedConnectorCredentialAcquisitionHost,
   openExternalUrl,
-  oauthTokenExchange,
   oauthListenForCode,
   focusMainWindow,
   planNimiDataCleanup,

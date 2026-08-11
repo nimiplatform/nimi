@@ -2,11 +2,11 @@ import type {
   AuthPlatformAdapter,
   ShellAuthDesktopBrowserAuthRuntimeBroker,
 } from '@nimiplatform/kit/auth/shell';
-import type { ShellOAuthBridge } from '@nimiplatform/kit/core/oauth';
+import type { ShellOAuthCodeBridge } from '@nimiplatform/kit/core/oauth';
 
 export interface DesktopRendererAuthPort {
   readonly adapter: AuthPlatformAdapter;
-  readonly oauthBridge: ShellOAuthBridge;
+  readonly oauthBridge: ShellOAuthCodeBridge;
   readonly runtimeAccountBroker: ShellAuthDesktopBrowserAuthRuntimeBroker;
 }
 
@@ -35,7 +35,6 @@ export function createUnavailableDesktopRendererAuthPort(): DesktopRendererAuthP
       oauthBridge: Object.freeze({
         hasShellHostInvoke: () => false,
         oauthListenForCode: async () => authUnadmitted(),
-        oauthTokenExchange: async () => authUnadmitted(),
         openExternalUrl: async () => authUnadmitted(),
         focusMainWindow: async () => authUnadmitted(),
       }),
@@ -43,7 +42,6 @@ export function createUnavailableDesktopRendererAuthPort(): DesktopRendererAuthP
     oauthBridge: Object.freeze({
       hasShellHostInvoke: () => false,
       oauthListenForCode: async () => authUnadmitted(),
-      oauthTokenExchange: async () => authUnadmitted(),
       openExternalUrl: async () => authUnadmitted(),
       focusMainWindow: async () => authUnadmitted(),
     }),

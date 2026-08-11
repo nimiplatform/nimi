@@ -1,6 +1,6 @@
 import { createRuntimeAccountBrowserBroker } from '@nimiplatform/kit/auth';
 import type { AuthPlatformAdapter } from '@nimiplatform/kit/auth/shell';
-import type { ShellOAuthBridge } from '@nimiplatform/kit/core/oauth';
+import type { ShellOAuthCodeBridge } from '@nimiplatform/kit/core/oauth';
 import {
   createNimiTestingHarness,
   type NimiTestingHostFailureDisposition,
@@ -511,15 +511,12 @@ export function createDesktopSimulatorAuthSessionPort(
     },
   });
 
-  const oauthBridge: ShellOAuthBridge = Object.freeze({
+  const oauthBridge: ShellOAuthCodeBridge = Object.freeze({
     hasShellHostInvoke: () => true,
     oauthListenForCode: (payload) => new Promise((resolve) => {
       assertLoopbackCallback(payload.redirectUri);
       oauthListeners.set(SIMULATOR_OAUTH_REDIRECT_URI, resolve);
     }),
-    oauthTokenExchange: async () => {
-      throw new Error('Desktop OAuth exchange is owned by RuntimeAccountService');
-    },
     openExternalUrl: async (url) => {
       const state = new URL(url).searchParams.get('state') || '';
       const invoked = await invokeEngine('desktop.auth.oauth.open', {

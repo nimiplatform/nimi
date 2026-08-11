@@ -186,7 +186,6 @@ capability_sets:
       - auth.sessionSave
       - auth.sessionClear
       - oauth.openExternalUrl
-      - oauth.tokenExchange
       - oauth.listenForCode
       - local-agent.identity
       - local-agent.runtimeTrustedCaller
@@ -299,7 +298,6 @@ capability_sets:
       - auth.sessionSave
       - auth.sessionClear
       - oauth.openExternalUrl
-      - oauth.tokenExchange
       - oauth.listenForCode
       - diagnostics.rendererEntryProbe
       - local-agent.identity
@@ -694,12 +692,6 @@ capabilities:
           - capability-unavailable
           - forbidden-renderer-access
           - invalid-payload
-      - id: tokenExchange
-        command: nimi.shell.oauth.tokenExchange
-        negative_states:
-          - capability-unavailable
-          - invalid-payload
-          - host-internal-error
       - id: listenForCode
         command: nimi.shell.oauth.listenForCode
         negative_states:

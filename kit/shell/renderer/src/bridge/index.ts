@@ -58,10 +58,8 @@ export type {
   DesktopAccountSessionStatus,
 } from './runtime-account.js';
 export {
-  oauthTokenExchange,
   oauthListenForCode,
   createStandardShellOAuthCodeBridge,
-  createStandardShellOAuthBridge,
 } from './oauth.js';
 export {
   normalizeShellExternalUrl,

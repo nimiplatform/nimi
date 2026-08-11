@@ -286,10 +286,7 @@ export function createDesktopSimulatorBindings(
           'DESKTOP_SIMULATOR_SUPPORT_REPAIR_UNADMITTED',
         ),
         connectorAuth: Object.freeze({
-          async proxyHttp() {
-            throw new Error('DESKTOP_SIMULATOR_CONNECTOR_AUTH_UNADMITTED');
-          },
-          async oauthTokenExchange() {
+          async acquireManagedConnectorCredential() {
             throw new Error('DESKTOP_SIMULATOR_CONNECTOR_AUTH_UNADMITTED');
           },
         }),

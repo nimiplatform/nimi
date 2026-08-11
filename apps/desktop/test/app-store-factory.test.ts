@@ -316,8 +316,9 @@ function createCanonicalBindings(input: {
         virtualization: createDeterministicDesktopVirtualizationPort(),
         avatarHandoff: createUnavailableDesktopRendererAvatarHandoffPort('TEST_AVATAR_HANDOFF_UNAVAILABLE'),
         connectorAuth: Object.freeze({
-          async proxyHttp() { throw new Error('TEST_CONNECTOR_AUTH_UNADMITTED'); },
-          async oauthTokenExchange() { throw new Error('TEST_CONNECTOR_AUTH_UNADMITTED'); },
+          async acquireManagedConnectorCredential() {
+            throw new Error('TEST_CONNECTOR_AUTH_UNADMITTED');
+          },
         }),
         runtimeDaemon: Object.freeze({
           available: () => false,

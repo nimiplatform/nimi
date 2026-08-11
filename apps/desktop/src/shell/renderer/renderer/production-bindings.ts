@@ -197,28 +197,12 @@ export function createDesktopProductionBindings(
           ),
         }),
         connectorAuth: Object.freeze({
-          proxyHttp: async (request: Parameters<
-            DesktopCanonicalRendererBindings['app']['commands']['connectorAuth']['proxyHttp']
-          >[0]) => desktopBridge.proxyHttp({
-            url: request.url,
-            method: request.method,
-            headers: request.headers,
-            body: request.body,
-            connectorAuthProfileId: request.profileId,
-            connectorAuthPurpose: request.purpose,
-          }),
-          oauthTokenExchange: async (input: Parameters<
-            DesktopCanonicalRendererBindings['app']['commands']['connectorAuth']['oauthTokenExchange']
-          >[0]) => {
-            const result = await desktopBridge.oauthTokenExchange({
-              provider: input.provider as Parameters<typeof desktopBridge.oauthTokenExchange>[0]['provider'],
-              clientId: input.clientId,
-              code: input.code,
-              codeVerifier: input.codeVerifier,
-              redirectUri: input.redirectUri,
-            });
-            return { ...result, raw: result.raw as import('@nimiplatform/sdk/types').JsonObject };
-          },
+          acquireManagedConnectorCredential: (
+            input: Parameters<DesktopCanonicalRendererBindings[
+              'app'
+            ]['commands']['connectorAuth']['acquireManagedConnectorCredential']>[0],
+          ) => desktopBridge.desktopManagedConnectorCredentialAcquisitionHost
+            .acquireManagedConnectorCredential(input),
         }),
         runtimeDaemon: Object.freeze({
           available: hasElectronInvoke,

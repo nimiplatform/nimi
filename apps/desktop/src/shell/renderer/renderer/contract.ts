@@ -7,7 +7,7 @@ import type {
 import type { AppAttentionState } from '../app-shell/providers/app-attention-state.js';
 import type { AuthStatus } from '../app-shell/providers/store-types.js';
 import type {
-  NimiConnectorAuthAcquisitionHost,
+  NimiManagedConnectorCredentialAcquisitionHost,
   NimiProductControlRecordProjection,
 } from '@nimiplatform/sdk/runtime';
 import type { ChatThinkingPreference } from '../features/chat/chat-shared-thinking.js';
@@ -74,10 +74,7 @@ export interface DesktopRendererCommandPort {
   readonly localModelProgress: DesktopRendererLocalModelProgressPort;
   readonly avatarHandoff: DesktopRendererAvatarHandoffPort;
   readonly virtualization: DesktopRendererVirtualizationPort;
-  readonly connectorAuth: Pick<
-    NimiConnectorAuthAcquisitionHost,
-    'proxyHttp' | 'oauthTokenExchange'
-  >;
+  readonly connectorAuth: NimiManagedConnectorCredentialAcquisitionHost;
   readonly runtimeDaemon: {
     available(): boolean;
     status(): Promise<RuntimeBridgeDaemonStatus>;

@@ -11,13 +11,13 @@ use nimi_shell_protected_local::{
     DesktopMachineProductUnaryRequest, FixedRuntimeServiceControl,
     LocalAppAIConfigOverwriteRequest, LocalAppAgentCommitPresentationRequest,
     LocalAppAgentHandleRequest, LocalAppAgentReference, LocalAppAgentUpdateAutonomyRequest,
+    LocalAppAssetAdoptRequest, LocalAppAssetListRequest, LocalAppAssetMoveRequest,
+    LocalAppAssetReadReceiver, LocalAppAssetReadRequest, LocalAppAssetRecord,
+    LocalAppAssetRemoveRequest, LocalAppAssetStatRequest, LocalAppAssetWriteRequest,
     LocalAppConversationEvent, LocalAppConversationEventKind, LocalAppConversationInterruptRequest,
     LocalAppConversationMessageRole, LocalAppConversationOpenRequest,
     LocalAppConversationSendRequest, LocalAppConversationSnapshotRequest,
     LocalAppConversationSubscribeRequest, LocalAppConversationSubscriptionReceiver,
-    LocalAppAssetAdoptRequest, LocalAppAssetListRequest, LocalAppAssetMoveRequest,
-    LocalAppAssetReadReceiver, LocalAppAssetReadRequest, LocalAppAssetRecord,
-    LocalAppAssetRemoveRequest, LocalAppAssetStatRequest, LocalAppAssetWriteRequest,
     LocalAppOperationError, LocalAppReasonCode, LocalAppScenarioCancelRequest,
     LocalAppScenarioExecuteRequest, LocalAppScenarioGetRequest,
     LocalAppScenarioJobSubscribeRequest, LocalAppScenarioListVoiceAssetsRequest,
@@ -36,11 +36,32 @@ use nimi_shell_protected_local::{MacOsLocalAppCarrier, MacOsUnixSocketCarrier};
 #[cfg(target_os = "windows")]
 use nimi_shell_protected_local::{WindowsLocalAppCarrier, WindowsNamedPipeCarrier};
 use serde_json::{json, Value as JsonValue};
-use std::{path::PathBuf, sync::Arc};
-use tokio::sync::Mutex;
+use std::{
+    collections::HashMap,
+    future::Future,
+    path::PathBuf,
+    sync::{Arc, LazyLock},
+    time::Duration,
+};
+use tokio::sync::{Mutex, Notify};
 
 static LOCAL_APP_SESSION: Mutex<Option<Arc<dyn NimiLocalAppSession>>> = Mutex::const_new(None);
 static DESKTOP_CONTROL: Mutex<Option<Arc<dyn NimiDesktopControl>>> = Mutex::const_new(None);
+const FIRST_PARTY_UNARY_MAX_DURATION: Duration = Duration::from_secs(300);
+
+static FIRST_PARTY_UNARY_CANCELLATIONS: LazyLock<Mutex<FirstPartyUnaryCancellationRegistry>> =
+    LazyLock::new(|| Mutex::new(FirstPartyUnaryCancellationRegistry::default()));
+
+#[derive(Default)]
+struct FirstPartyUnaryCancellationRegistry {
+    entries: HashMap<String, FirstPartyUnaryCancellation>,
+}
+
+enum FirstPartyUnaryCancellation {
+    Pending,
+    Active(Arc<Notify>),
+    Completed,
+}
 
 #[cfg(target_os = "macos")]
 type PlatformDesktopCarrier = MacOsUnixSocketCarrier;
@@ -66,119 +87,424 @@ use projection::*;
 
 #[napi(js_name = "desktopMachineProductUnary")]
 pub async fn desktop_machine_product_unary(
-    input: NativeFirstPartyProductInput,
+    input: NativeFirstPartyProductUnaryInput,
 ) -> NativeBytesOutcome {
-    let Some(method) = DesktopMachineProductUnaryMethod::from_method_id(input.method_id.trim())
-    else {
-        return NativeBytesOutcome::error("runtime-service-untrusted", false);
+    let request_id = match admitted_first_party_unary_request_id(input.request_id) {
+        Some(request_id) => request_id,
+        None => return NativeBytesOutcome::error("runtime-service-untrusted", false),
     };
-    let timeout = input
-        .timeout_ms
-        .map(u64::from)
-        .map(std::time::Duration::from_millis);
-    if !machine_product_timeout_allowed(method, timeout) {
-        return NativeBytesOutcome::error("runtime-service-untrusted", false);
-    }
-    let control = match current_or_open_desktop_control().await {
-        Ok(control) => control,
-        Err(error) => return NativeBytesOutcome::host_error(error),
-    };
-    match control
-        .invoke_machine_product_unary(DesktopMachineProductUnaryRequest {
-            method,
-            request_bytes: input.request_bytes.to_vec(),
-            timeout,
-        })
-        .await
-    {
-        Ok(response) => NativeBytesOutcome::success(response.response_bytes),
-        Err(error) => {
-            clear_desktop_control_on_transport_reason(&control, error.reason_code()).await;
-            NativeBytesOutcome::error_with_metadata(
-                error.reason_code(),
-                error.retryable(),
-                error.reason_metadata(),
-            )
+    run_first_party_unary(request_id, async move {
+        let Some(method) = DesktopMachineProductUnaryMethod::from_method_id(input.method_id.trim())
+        else {
+            return NativeBytesOutcome::error("runtime-service-untrusted", false);
+        };
+        let timeout = input
+            .timeout_ms
+            .map(u64::from)
+            .map(std::time::Duration::from_millis);
+        if !machine_product_timeout_allowed(method, timeout) {
+            return NativeBytesOutcome::error("runtime-service-untrusted", false);
         }
-    }
+        let control = match current_or_open_desktop_control().await {
+            Ok(control) => control,
+            Err(error) => return NativeBytesOutcome::host_error(error),
+        };
+        match control
+            .invoke_machine_product_unary(DesktopMachineProductUnaryRequest {
+                method,
+                request_bytes: input.request_bytes.to_vec(),
+                timeout,
+            })
+            .await
+        {
+            Ok(response) => NativeBytesOutcome::success(response.response_bytes),
+            Err(error) => {
+                clear_desktop_control_on_transport_reason(&control, error.reason_code()).await;
+                NativeBytesOutcome::error_with_metadata(
+                    error.reason_code(),
+                    error.retryable(),
+                    error.reason_metadata(),
+                )
+            }
+        }
+    })
+    .await
 }
 
 #[napi(js_name = "desktopAccountProductUnary")]
 pub async fn desktop_account_product_unary(
-    input: NativeFirstPartyProductInput,
+    input: NativeFirstPartyProductUnaryInput,
 ) -> NativeBytesOutcome {
-    let Some(method) = DesktopAccountProductUnaryMethod::from_method_id(input.method_id.trim())
-    else {
-        return NativeBytesOutcome::error("runtime-service-untrusted", false);
+    let request_id = match admitted_first_party_unary_request_id(input.request_id) {
+        Some(request_id) => request_id,
+        None => return NativeBytesOutcome::error("runtime-service-untrusted", false),
     };
-    let timeout = input
-        .timeout_ms
-        .map(u64::from)
-        .map(std::time::Duration::from_millis);
-    if timeout.is_some_and(|value| value.is_zero() || value > std::time::Duration::from_secs(300)) {
-        return NativeBytesOutcome::error("runtime-service-untrusted", false);
-    }
-    let control = match current_or_open_desktop_control().await {
-        Ok(control) => control,
-        Err(error) => return NativeBytesOutcome::host_error(error),
-    };
-    match control
-        .invoke_account_product_unary(DesktopAccountProductUnaryRequest {
-            method,
-            request_bytes: input.request_bytes.to_vec(),
-            timeout,
-        })
-        .await
-    {
-        Ok(response) => NativeBytesOutcome::success(response.response_bytes),
-        Err(error) => {
-            clear_desktop_control_on_transport_reason(&control, error.reason_code()).await;
-            NativeBytesOutcome::error_with_metadata(
-                error.reason_code(),
-                error.retryable(),
-                error.reason_metadata(),
-            )
+    run_first_party_unary(request_id, async move {
+        let Some(method) = DesktopAccountProductUnaryMethod::from_method_id(input.method_id.trim())
+        else {
+            return NativeBytesOutcome::error("runtime-service-untrusted", false);
+        };
+        let timeout = input
+            .timeout_ms
+            .map(u64::from)
+            .map(std::time::Duration::from_millis);
+        if timeout.is_some_and(|value| value.is_zero() || value > FIRST_PARTY_UNARY_MAX_DURATION) {
+            return NativeBytesOutcome::error("runtime-service-untrusted", false);
         }
+        let control = match current_or_open_desktop_control().await {
+            Ok(control) => control,
+            Err(error) => return NativeBytesOutcome::host_error(error),
+        };
+        match control
+            .invoke_account_product_unary(DesktopAccountProductUnaryRequest {
+                method,
+                request_bytes: input.request_bytes.to_vec(),
+                timeout,
+            })
+            .await
+        {
+            Ok(response) => NativeBytesOutcome::success(response.response_bytes),
+            Err(error) => {
+                clear_desktop_control_on_transport_reason(&control, error.reason_code()).await;
+                NativeBytesOutcome::error_with_metadata(
+                    error.reason_code(),
+                    error.retryable(),
+                    error.reason_metadata(),
+                )
+            }
+        }
+    })
+    .await
+}
+
+#[napi(js_name = "desktopFirstPartyProductUnaryCancel")]
+pub async fn desktop_first_party_product_unary_cancel(
+    input: NativeFirstPartyProductUnaryCancelInput,
+) -> NativeJsonOutcome {
+    let Some(request_id) = admitted_first_party_unary_request_id(input.request_id) else {
+        return NativeJsonOutcome::host_reason("runtime-service-untrusted", false);
+    };
+    {
+        let mut registry = FIRST_PARTY_UNARY_CANCELLATIONS.lock().await;
+        let canceled = match registry.entries.get(&request_id) {
+            Some(FirstPartyUnaryCancellation::Active(cancellation)) => {
+                cancellation.notify_one();
+                true
+            }
+            Some(FirstPartyUnaryCancellation::Pending) => true,
+            Some(FirstPartyUnaryCancellation::Completed) => false,
+            None => {
+                registry
+                    .entries
+                    .insert(request_id, FirstPartyUnaryCancellation::Pending);
+                true
+            }
+        };
+        return NativeJsonOutcome::success(json!({ "canceled": canceled }));
+    }
+}
+
+#[napi(js_name = "desktopFirstPartyProductUnaryRelease")]
+pub async fn desktop_first_party_product_unary_release(
+    input: NativeFirstPartyProductUnaryCancelInput,
+) -> NativeJsonOutcome {
+    let Some(request_id) = admitted_first_party_unary_request_id(input.request_id) else {
+        return NativeJsonOutcome::host_reason("runtime-service-untrusted", false);
+    };
+    let mut registry = FIRST_PARTY_UNARY_CANCELLATIONS.lock().await;
+    let released = matches!(
+        registry.entries.get(&request_id),
+        Some(FirstPartyUnaryCancellation::Pending | FirstPartyUnaryCancellation::Completed)
+    );
+    if released {
+        registry.entries.remove(&request_id);
+    }
+    NativeJsonOutcome::success(json!({ "released": released }))
+}
+
+async fn run_first_party_unary<F>(request_id: String, operation: F) -> NativeBytesOutcome
+where
+    F: Future<Output = NativeBytesOutcome>,
+{
+    let cancellation = Arc::new(Notify::new());
+    {
+        let mut registry = FIRST_PARTY_UNARY_CANCELLATIONS.lock().await;
+        match registry.entries.remove(&request_id) {
+            Some(FirstPartyUnaryCancellation::Pending) => {
+                registry
+                    .entries
+                    .insert(request_id, FirstPartyUnaryCancellation::Completed);
+                return NativeBytesOutcome::error("runtime-request-canceled", false);
+            }
+            Some(existing) => {
+                registry.entries.insert(request_id, existing);
+                return NativeBytesOutcome::error("runtime-service-untrusted", false);
+            }
+            None => {}
+        }
+        registry.entries.insert(
+            request_id.clone(),
+            FirstPartyUnaryCancellation::Active(Arc::clone(&cancellation)),
+        );
+    }
+    tokio::pin!(operation);
+    let outcome = tokio::select! {
+        biased;
+        outcome = &mut operation => outcome,
+        () = cancellation.notified() => NativeBytesOutcome::error("runtime-request-canceled", false),
+    };
+    let mut registry = FIRST_PARTY_UNARY_CANCELLATIONS.lock().await;
+    if matches!(
+        registry.entries.get(&request_id),
+        Some(FirstPartyUnaryCancellation::Active(current)) if Arc::ptr_eq(current, &cancellation)
+    ) {
+        registry
+            .entries
+            .insert(request_id, FirstPartyUnaryCancellation::Completed);
+    }
+    outcome
+}
+
+async fn cancel_active_and_clear_completed_first_party_unaries() {
+    let active_cancellations = {
+        let mut registry = FIRST_PARTY_UNARY_CANCELLATIONS.lock().await;
+        let mut active = Vec::new();
+        registry.entries.retain(|_, entry| match entry {
+            FirstPartyUnaryCancellation::Pending => true,
+            FirstPartyUnaryCancellation::Active(cancellation) => {
+                active.push(Arc::clone(cancellation));
+                false
+            }
+            FirstPartyUnaryCancellation::Completed => false,
+        });
+        active
+    };
+    for cancellation in active_cancellations {
+        cancellation.notify_one();
+    }
+}
+
+fn admitted_first_party_unary_request_id(value: String) -> Option<String> {
+    let request_id = value.trim();
+    if request_id.is_empty()
+        || request_id.len() > 160
+        || !request_id.bytes().enumerate().all(|(index, byte)| {
+            byte.is_ascii_alphanumeric() || (index > 0 && matches!(byte, b'.' | b'_' | b':' | b'-'))
+        })
+    {
+        return None;
+    }
+    Some(request_id.to_owned())
+}
+
+#[cfg(test)]
+mod first_party_unary_cancellation_tests {
+    use super::*;
+    use std::sync::atomic::{AtomicBool, Ordering};
+
+    static CANCELLATION_TEST_LOCK: Mutex<()> = Mutex::const_new(());
+
+    struct DropMarker(Arc<AtomicBool>);
+
+    impl Drop for DropMarker {
+        fn drop(&mut self) {
+            self.0.store(true, Ordering::SeqCst);
+        }
+    }
+
+    #[tokio::test]
+    async fn cancel_before_registration_is_consumed_without_polling_the_operation() {
+        let _guard = CANCELLATION_TEST_LOCK.lock().await;
+        let operation_polled = Arc::new(AtomicBool::new(false));
+        let cancellation =
+            desktop_first_party_product_unary_cancel(NativeFirstPartyProductUnaryCancelInput {
+                request_id: "desktop-protected-account-unary-before-register".to_owned(),
+            })
+            .await;
+        assert_eq!(cancellation.status, "ok");
+        assert_eq!(cancellation.value, Some(json!({ "canceled": true })));
+
+        let polled = Arc::clone(&operation_polled);
+        let outcome = run_first_party_unary(
+            "desktop-protected-account-unary-before-register".to_owned(),
+            async move {
+                polled.store(true, Ordering::SeqCst);
+                NativeBytesOutcome::success(Vec::new())
+            },
+        )
+        .await;
+
+        assert_eq!(
+            outcome.reason_code.as_deref(),
+            Some("runtime-request-canceled")
+        );
+        assert!(!operation_polled.load(Ordering::SeqCst));
+        let release =
+            desktop_first_party_product_unary_release(NativeFirstPartyProductUnaryCancelInput {
+                request_id: "desktop-protected-account-unary-before-register".to_owned(),
+            })
+            .await;
+        assert_eq!(release.value, Some(json!({ "released": true })));
+        assert!(!FIRST_PARTY_UNARY_CANCELLATIONS
+            .lock()
+            .await
+            .entries
+            .contains_key("desktop-protected-account-unary-before-register"));
+
+        desktop_first_party_product_unary_cancel(NativeFirstPartyProductUnaryCancelInput {
+            request_id: "desktop-protected-account-unary-lifecycle-cleanup".to_owned(),
+        })
+        .await;
+        cancel_active_and_clear_completed_first_party_unaries().await;
+        assert!(matches!(
+            FIRST_PARTY_UNARY_CANCELLATIONS
+                .lock()
+                .await
+                .entries
+                .get("desktop-protected-account-unary-lifecycle-cleanup"),
+            Some(FirstPartyUnaryCancellation::Pending)
+        ));
+        let lifecycle_release =
+            desktop_first_party_product_unary_release(NativeFirstPartyProductUnaryCancelInput {
+                request_id: "desktop-protected-account-unary-lifecycle-cleanup".to_owned(),
+            })
+            .await;
+        assert_eq!(lifecycle_release.value, Some(json!({ "released": true })));
+        assert!(!FIRST_PARTY_UNARY_CANCELLATIONS
+            .lock()
+            .await
+            .entries
+            .contains_key("desktop-protected-account-unary-lifecycle-cleanup"));
+    }
+
+    #[tokio::test]
+    async fn request_keyed_cancel_drops_the_inflight_native_operation_before_request_completion() {
+        let _guard = CANCELLATION_TEST_LOCK.lock().await;
+        let started = Arc::new(Notify::new());
+        let dropped = Arc::new(AtomicBool::new(false));
+        let operation_started = Arc::clone(&started);
+        let operation_dropped = Arc::clone(&dropped);
+        let task = tokio::spawn(run_first_party_unary(
+            "runtime-client-unary-native-test".to_owned(),
+            async move {
+                let _drop_marker = DropMarker(operation_dropped);
+                operation_started.notify_one();
+                std::future::pending::<NativeBytesOutcome>().await
+            },
+        ));
+        started.notified().await;
+
+        let cancellation =
+            desktop_first_party_product_unary_cancel(NativeFirstPartyProductUnaryCancelInput {
+                request_id: "runtime-client-unary-native-test".to_owned(),
+            })
+            .await;
+        assert_eq!(cancellation.status, "ok");
+        assert_eq!(cancellation.value, Some(json!({ "canceled": true })));
+
+        let outcome = task.await.expect("cancellable unary task must join");
+        assert_eq!(outcome.status, "error");
+        assert_eq!(
+            outcome.reason_code.as_deref(),
+            Some("runtime-request-canceled")
+        );
+        assert!(dropped.load(Ordering::SeqCst));
+        let release =
+            desktop_first_party_product_unary_release(NativeFirstPartyProductUnaryCancelInput {
+                request_id: "runtime-client-unary-native-test".to_owned(),
+            })
+            .await;
+        assert_eq!(release.value, Some(json!({ "released": true })));
+        assert!(!FIRST_PARTY_UNARY_CANCELLATIONS
+            .lock()
+            .await
+            .entries
+            .contains_key("runtime-client-unary-native-test"));
+    }
+
+    #[tokio::test]
+    async fn completion_wins_a_late_cancel_until_explicit_release_cleans_the_registry() {
+        let _guard = CANCELLATION_TEST_LOCK.lock().await;
+        let request_id = "desktop-protected-account-unary-completed-before-cancel";
+        let outcome = run_first_party_unary(request_id.to_owned(), async {
+            NativeBytesOutcome::success(Vec::new())
+        })
+        .await;
+        assert_eq!(outcome.status, "ok");
+
+        let cancellation =
+            desktop_first_party_product_unary_cancel(NativeFirstPartyProductUnaryCancelInput {
+                request_id: request_id.to_owned(),
+            })
+            .await;
+        assert_eq!(cancellation.value, Some(json!({ "canceled": false })));
+        assert!(matches!(
+            FIRST_PARTY_UNARY_CANCELLATIONS
+                .lock()
+                .await
+                .entries
+                .get(request_id),
+            Some(FirstPartyUnaryCancellation::Completed)
+        ));
+
+        let release =
+            desktop_first_party_product_unary_release(NativeFirstPartyProductUnaryCancelInput {
+                request_id: request_id.to_owned(),
+            })
+            .await;
+        assert_eq!(release.value, Some(json!({ "released": true })));
+        assert!(!FIRST_PARTY_UNARY_CANCELLATIONS
+            .lock()
+            .await
+            .entries
+            .contains_key(request_id));
     }
 }
 
 #[napi(js_name = "desktopBundledAvatarUnary")]
 pub async fn desktop_bundled_avatar_unary(
-    input: NativeBundledAvatarRuntimeInput,
+    input: NativeFirstPartyProductUnaryInput,
 ) -> NativeBytesOutcome {
+    let request_id = match admitted_first_party_unary_request_id(input.request_id) {
+        Some(request_id) => request_id,
+        None => return NativeBytesOutcome::error("runtime-service-untrusted", false),
+    };
     let timeout = input
         .timeout_ms
         .map(u64::from)
         .map(std::time::Duration::from_millis);
-    let control = match current_or_open_desktop_control().await {
-        Ok(control) => control,
-        Err(error) => return NativeBytesOutcome::host_error(error),
-    };
-    match control
-        .invoke_bundled_avatar(BundledAvatarRuntimeRequest {
-            method_id: input.method_id,
-            request_bytes: input.request_bytes.to_vec(),
-            timeout,
-        })
-        .await
-    {
-        Ok(response) => NativeBytesOutcome::success(response.response_bytes),
-        Err(error) => {
-            clear_desktop_control_on_transport_reason(&control, error.reason_code()).await;
-            NativeBytesOutcome::error_with_metadata(
-                error.reason_code(),
-                error.retryable(),
-                error.reason_metadata(),
-            )
+    run_first_party_unary(request_id, async move {
+        let control = match current_or_open_desktop_control().await {
+            Ok(control) => control,
+            Err(error) => return NativeBytesOutcome::host_error(error),
+        };
+        match control
+            .invoke_bundled_avatar(BundledAvatarRuntimeRequest {
+                method_id: input.method_id,
+                request_bytes: input.request_bytes.to_vec(),
+                timeout,
+            })
+            .await
+        {
+            Ok(response) => NativeBytesOutcome::success(response.response_bytes),
+            Err(error) => {
+                clear_desktop_control_on_transport_reason(&control, error.reason_code()).await;
+                NativeBytesOutcome::error_with_metadata(
+                    error.reason_code(),
+                    error.retryable(),
+                    error.reason_metadata(),
+                )
+            }
         }
-    }
+    })
+    .await
 }
 
 fn machine_product_timeout_allowed(
     _method: DesktopMachineProductUnaryMethod,
     timeout: Option<std::time::Duration>,
 ) -> bool {
-    let maximum = std::time::Duration::from_secs(300);
+    let maximum = FIRST_PARTY_UNARY_MAX_DURATION;
     timeout.is_none_or(|value| !value.is_zero() && value <= maximum)
 }
 
@@ -364,6 +690,7 @@ pub async fn fixed_runtime_service_restart() -> NativeJsonOutcome {
         *current = None;
     }
     drop(current);
+    cancel_active_and_clear_completed_first_party_unaries().await;
     account_events::close_all_account_event_streams().await;
     bundled_avatar_streams::close_all_bundled_avatar_streams().await;
     first_party_streams::close_all_first_party_product_streams().await;
@@ -650,6 +977,7 @@ async fn clear_desktop_control(control: &Arc<dyn NimiDesktopControl>) {
     // A delayed failure from a stale pre-restart control must not invalidate a
     // newer verified session already installed by another caller.
     if removed {
+        cancel_active_and_clear_completed_first_party_unaries().await;
         account_events::close_all_account_event_streams().await;
         bundled_avatar_streams::close_all_bundled_avatar_streams().await;
         first_party_streams::close_all_first_party_product_streams().await;

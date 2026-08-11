@@ -320,9 +320,9 @@ test('Desktop Simulator projection boots authenticated and drives logout plus Ru
   assert.ok(passwordLogin);
   await assert.rejects(() => passwordLogin('linche', 'secret'), /owned by RuntimeAccountService/);
   await assert.rejects(() => adapter.applyToken('token'), /owned by RuntimeAccountService/);
-  await assert.rejects(
-    () => first.bindings.app.commands.auth.oauthBridge.oauthTokenExchange({} as never),
-    /owned by RuntimeAccountService/,
+  assert.equal(
+    'oauthTokenExchange' in first.bindings.app.commands.auth.oauthBridge,
+    false,
   );
 
   const initialLogout = await first.bindings.sdk.accountRuntime().account.logout({

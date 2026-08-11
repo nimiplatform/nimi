@@ -13,6 +13,7 @@ import type { RuntimeGrpcBridgeClient } from '../src/main/types.js';
 
 const MACHINE_METHOD = '/nimi.runtime.v1.RuntimeLocalService/GetProductControlRecord';
 const ACCOUNT_METHOD = '/nimi.runtime.v1.RuntimeAgentService/MaterializeRealmSource';
+const AVATAR_METHOD = '/nimi.runtime.v1.RuntimeAgentService/ListAgents';
 
 function binding(overrides: Partial<NimiElectronDesktopControlBinding> = {}): NimiElectronDesktopControlBinding {
   const bytesError = async () => ({
@@ -28,6 +29,8 @@ function binding(overrides: Partial<NimiElectronDesktopControlBinding> = {}): Ni
   return {
     desktopMachineProductUnary: bytesError,
     desktopAccountProductUnary: bytesError,
+    desktopFirstPartyProductUnaryCancel: async () => ({ status: 'ok' as const, value: { canceled: false } }),
+    desktopFirstPartyProductUnaryRelease: async () => ({ status: 'ok' as const, value: { released: false } }),
     desktopMachineProductStreamOpen: jsonError,
     desktopAccountProductStreamOpen: jsonError,
     desktopFirstPartyProductStreamNext: async () => ({
@@ -62,13 +65,16 @@ function unusedPublicClient(onUnary?: () => void): RuntimeGrpcBridgeClient {
 describe('Electron verified Desktop control host', () => {
   it('uses separate generated machine and account unary entrypoints', async () => {
     const calls: string[] = [];
+    const nativeRequestIds: string[] = [];
     const host = createNimiElectronDesktopControlHostForBinding(binding({
       desktopMachineProductUnary: async (input) => {
         calls.push(`machine:${input.methodId}`);
+        nativeRequestIds.push(input.requestId);
         return { status: 'ok', value: Uint8Array.from([1]) };
       },
       desktopAccountProductUnary: async (input) => {
         calls.push(`account:${input.methodId}`);
+        nativeRequestIds.push(input.requestId);
         return { status: 'ok', value: Uint8Array.from([2]) };
       },
     }));
@@ -76,10 +82,12 @@ describe('Electron verified Desktop control host', () => {
     await expect(host.machineProductUnary({
       methodId: MACHINE_METHOD,
       requestBytes: new Uint8Array(),
+      requestId: 'caller-selected-shared-request-id',
     })).resolves.toEqual(Uint8Array.from([1]));
     await expect(host.accountProductUnary({
       methodId: ACCOUNT_METHOD,
       requestBytes: new Uint8Array(),
+      requestId: 'caller-selected-shared-request-id',
     })).resolves.toEqual(Uint8Array.from([2]));
     await expect(host.machineProductUnary({
       methodId: ACCOUNT_METHOD,
@@ -90,6 +98,127 @@ describe('Electron verified Desktop control host', () => {
       requestBytes: new Uint8Array(),
     })).rejects.toMatchObject({ reasonCode: 'runtime-service-untrusted' });
     expect(calls).toEqual([`machine:${MACHINE_METHOD}`, `account:${ACCOUNT_METHOD}`]);
+    expect(nativeRequestIds[0]).toMatch(/^desktop-protected-machine-unary-/u);
+    expect(nativeRequestIds[1]).toMatch(/^desktop-protected-account-unary-/u);
+    expect(new Set(nativeRequestIds).size).toBe(2);
+    expect(nativeRequestIds).not.toContain('caller-selected-shared-request-id');
+  });
+
+  it('cancels an active account unary in the native binding before rejecting its signal', async () => {
+    const controller = new AbortController();
+    let finishNative: ((outcome: unknown) => void) | undefined;
+    let markNativeStarted: (() => void) | undefined;
+    const nativeStarted = new Promise<void>((resolve) => {
+      markNativeStarted = resolve;
+    });
+    const canceledRequestIds: string[] = [];
+    const releasedRequestIds: string[] = [];
+    let nativeRequestId = '';
+    let releaseCancelAcknowledgement: (() => void) | undefined;
+    const cancelAcknowledgement = new Promise<void>((resolve) => {
+      releaseCancelAcknowledgement = resolve;
+    });
+    const overrides = {
+      desktopAccountProductUnary: async (input: { requestId: string }) => {
+        nativeRequestId = input.requestId;
+        markNativeStarted?.();
+        return new Promise((resolve) => {
+          finishNative = resolve;
+        });
+      },
+      desktopFirstPartyProductUnaryCancel: async (input: { requestId: string }) => {
+        canceledRequestIds.push(input.requestId);
+        finishNative?.({
+          status: 'error',
+          reasonCode: 'runtime-request-canceled',
+          retryable: false,
+        });
+        await cancelAcknowledgement;
+        return { status: 'ok', value: { canceled: true } };
+      },
+      desktopFirstPartyProductUnaryRelease: async (input: { requestId: string }) => {
+        releasedRequestIds.push(input.requestId);
+        return { status: 'ok', value: { released: true } };
+      },
+    } as unknown as Partial<NimiElectronDesktopControlBinding>;
+    const host = createNimiElectronDesktopControlHostForBinding(binding(overrides));
+    const operation = host.accountProductUnary({
+      methodId: ACCOUNT_METHOD,
+      requestBytes: new Uint8Array(),
+      requestId: 'runtime-client-unary-native-1',
+      signal: controller.signal,
+    } as never);
+    try {
+      await nativeStarted;
+      controller.abort(new DOMException('voice input canceled', 'AbortError'));
+      await Promise.resolve();
+      await Promise.resolve();
+
+      expect(nativeRequestId).toMatch(/^desktop-protected-account-unary-/u);
+      expect(nativeRequestId).not.toBe('runtime-client-unary-native-1');
+      expect(canceledRequestIds).toEqual([nativeRequestId]);
+      expect(releasedRequestIds).toEqual([]);
+      releaseCancelAcknowledgement?.();
+      await expect(operation).rejects.toMatchObject({ reasonCode: 'runtime-request-canceled' });
+      expect(releasedRequestIds).toEqual([nativeRequestId]);
+    } finally {
+      releaseCancelAcknowledgement?.();
+      finishNative?.({ status: 'ok', value: new Uint8Array() });
+      await operation.catch(() => undefined);
+    }
+  });
+
+  it('carries request-keyed invalidation through the bundled Avatar unary owner', async () => {
+    const controller = new AbortController();
+    let finishNative: ((outcome: unknown) => void) | undefined;
+    let markNativeStarted: (() => void) | undefined;
+    const nativeStarted = new Promise<void>((resolve) => {
+      markNativeStarted = resolve;
+    });
+    const canceledRequestIds: string[] = [];
+    let nativeRequestId = '';
+    const host = createNimiElectronDesktopControlHostForBinding(binding({
+      desktopBundledAvatarUnary: async (input) => {
+        nativeRequestId = input.requestId;
+        markNativeStarted?.();
+        return new Promise((resolve) => {
+          finishNative = resolve;
+        });
+      },
+      desktopFirstPartyProductUnaryCancel: async (input) => {
+        canceledRequestIds.push(input.requestId);
+        finishNative?.({
+          status: 'error',
+          reasonCode: 'runtime-request-canceled',
+          retryable: false,
+        });
+        return { status: 'ok', value: { canceled: true } };
+      },
+    }));
+    const operation = invokeElectronRuntimeUnary({
+      payload: { methodId: AVATAR_METHOD, requestBytesBase64: '' },
+      appId: 'nimi.avatar',
+      event: {},
+      runtimeEndpoint: 'protected-avatar-control',
+      command: 'runtime_bridge_unary',
+      desktopControlHost: host,
+      bundledAvatarProfile: true,
+      requestId: 'runtime-client-avatar-unary-1',
+      signal: controller.signal,
+    });
+    try {
+      await nativeStarted;
+      controller.abort(new DOMException('Avatar sender invalidated', 'AbortError'));
+      await Promise.resolve();
+      await Promise.resolve();
+
+      expect(nativeRequestId).toMatch(/^desktop-protected-avatar-unary-/u);
+      expect(canceledRequestIds).toEqual([nativeRequestId]);
+      await expect(operation).rejects.toMatchObject({ reasonCode: 'runtime-request-canceled' });
+    } finally {
+      finishNative?.({ status: 'ok', value: new Uint8Array() });
+      await operation.catch(() => undefined);
+    }
   });
 
   it('routes machine and account bytes without public gRPC', async () => {

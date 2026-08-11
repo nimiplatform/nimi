@@ -6,7 +6,7 @@
 // - runtime_local_agent_identity: Runtime local-agent identity parsing/projection
 // - runtime_defaults: env reading, loopback normalization, realm/runtime defaults
 // - session_logging: panic hook, renderer log_renderer_event sink, stderr echo
-// - oauth_commands: token exchange, listen for code, open external URL
+// - oauth_commands: listen for code and open external URL
 // - desktop_paths: nimi directory resolution
 // - governed_config: shared `.nimi` current-schema repair routing
 // - nimi_data_directory: shared `nimi_data` layout and cleanup primitives

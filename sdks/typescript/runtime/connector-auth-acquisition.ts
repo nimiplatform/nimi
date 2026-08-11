@@ -11,13 +11,11 @@ import {
   type RuntimeTypedClient,
 } from '../core-generated/runtime-typed-client';
 import type { JsonObject } from '../types';
-
-export type NimiConnectorAuthAcquisitionPendingState = {
-  userCode: string;
-  verificationUrl: string;
-  expiresInSeconds: number;
-  pollIntervalSeconds: number;
-};
+import type {
+  NimiConnectorAuthAcquisitionPendingState,
+  NimiManagedConnectorCredentialAcquisitionRequest,
+  NimiManagedConnectorCredentialAcquisitionResult,
+} from './connector-auth-acquisition-client';
 
 export type NimiConnectorAuthAcquisitionHttpRequest = {
   profileId: string;
@@ -49,16 +47,19 @@ export type NimiConnectorAuthAcquisitionTokenExchangeResult = {
   tokenType?: string;
   expiresIn?: number;
   scope?: string;
-  raw?: JsonObject;
 };
 
-export type NimiConnectorAuthAcquisitionHost = {
-  proxyHttp(request: NimiConnectorAuthAcquisitionHttpRequest): Promise<NimiConnectorAuthAcquisitionHttpResponse>;
-  openExternalUrl(url: string): Promise<{ opened: boolean }>;
+export type NimiConnectorAuthAcquisitionNativeHost = {
+  proxyHttp(
+    request: NimiConnectorAuthAcquisitionHttpRequest,
+    signal?: AbortSignal,
+  ): Promise<NimiConnectorAuthAcquisitionHttpResponse>;
+  openExternalUrl(url: string, signal?: AbortSignal): Promise<{ opened: boolean }>;
   oauthTokenExchange(
     input: NimiConnectorAuthAcquisitionTokenExchangeInput,
+    signal?: AbortSignal,
   ): Promise<NimiConnectorAuthAcquisitionTokenExchangeResult>;
-  sleep(ms: number): Promise<void>;
+  sleep(ms: number, signal?: AbortSignal): Promise<void>;
   now(): number;
   log?: (
     level: 'debug' | 'info' | 'warn' | 'error',
@@ -69,24 +70,14 @@ export type NimiConnectorAuthAcquisitionHost = {
 
 export type NimiManagedConnectorCredentialRuntime = Pick<RuntimeTypedClient, 'createConnector' | 'updateConnector'>;
 
-export type NimiAcquireManagedConnectorCredentialOptions = {
-  profileId: string;
-  host: NimiConnectorAuthAcquisitionHost;
-  runtime: NimiManagedConnectorCredentialRuntime;
-  connectorId?: string;
-  provider?: string;
-  endpoint?: string;
-  label?: string;
-  callOptions?: RuntimeTypedCallOptions;
-  onPending?: (state: NimiConnectorAuthAcquisitionPendingState) => void;
-};
-
-export type NimiManagedConnectorCredentialAcquisitionResult = {
-  profileId: string;
-  providerAuthProfile: string;
-  connectorId?: string;
-  expiresAt?: string;
-};
+export type NimiAcquireManagedConnectorCredentialInHostOptions =
+  NimiManagedConnectorCredentialAcquisitionRequest & {
+    host: NimiConnectorAuthAcquisitionNativeHost;
+    runtime: NimiManagedConnectorCredentialRuntime;
+    callOptions?: RuntimeTypedCallOptions;
+    onPending?: (state: NimiConnectorAuthAcquisitionPendingState) => void;
+    signal?: AbortSignal;
+  };
 
 type DeviceCodeResponse = {
   user_code?: unknown;
@@ -101,62 +92,141 @@ type DevicePollResponse = {
   code_verifier?: unknown;
 };
 
-type DevicePollErrorSummary = {
-  errorCode?: string;
-  errorDescription?: string;
-};
+// The Electron/Node host cannot represent larger timeout delays safely. This is
+// a runtime representation limit, not a product policy for OAuth lifetimes.
+const MAX_RUNTIME_TIMER_DELAY_MS = 2_147_483_647;
+const MAX_RUNTIME_TIMER_DELAY_SECONDS = Math.floor(MAX_RUNTIME_TIMER_DELAY_MS / 1000);
 
 function toTrimmedString(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
 }
 
-function toPositiveInt(value: unknown, fallback: number): number {
-  const numeric = typeof value === 'number'
-    ? value
-    : Number.parseInt(String(value || '').trim(), 10);
-  if (!Number.isFinite(numeric) || numeric <= 0) {
+function toTimerRepresentableProviderPositiveInt(
+  value: unknown,
+  fallback: number,
+  field: string,
+): number {
+  if (value === undefined) {
     return fallback;
   }
-  return Math.trunc(numeric);
+  const numeric = typeof value === 'number'
+    ? value
+    : typeof value === 'string' && /^\d+$/u.test(value.trim())
+      ? Number(value.trim())
+      : Number.NaN;
+  if (!Number.isSafeInteger(numeric) || numeric <= 0) {
+    throw new Error(`${field} must be a positive integer`);
+  }
+  if (numeric > MAX_RUNTIME_TIMER_DELAY_SECONDS) {
+    throw new Error(`${field} exceeds the runtime timer capacity`);
+  }
+  return numeric;
+}
+
+function abortReason(signal: AbortSignal): unknown {
+  return signal.reason ?? new DOMException('Managed OAuth acquisition was canceled', 'AbortError');
+}
+
+function throwIfAborted(signal: AbortSignal | undefined): void {
+  if (signal?.aborted) throw abortReason(signal);
+}
+
+async function awaitWithCancellation<T>(promise: Promise<T>, signal: AbortSignal | undefined): Promise<T> {
+  if (!signal) return promise;
+  throwIfAborted(signal);
+  return new Promise<T>((resolve, reject) => {
+    const onAbort = () => reject(abortReason(signal));
+    signal.addEventListener('abort', onAbort, { once: true });
+    promise.then(
+      (value) => {
+        signal.removeEventListener('abort', onAbort);
+        resolve(value);
+      },
+      (error: unknown) => {
+        signal.removeEventListener('abort', onAbort);
+        reject(error);
+      },
+    );
+  });
+}
+
+function createAcquisitionSignal(
+  signals: readonly (AbortSignal | undefined)[],
+  timeoutMs?: number,
+): { signal: AbortSignal; dispose: () => void } {
+  const controller = new AbortController();
+  const activeSignals = signals.filter((signal): signal is AbortSignal => Boolean(signal));
+  const listeners = new Map<AbortSignal, () => void>();
+  const abortFrom = (signal: AbortSignal) => {
+    if (!controller.signal.aborted) controller.abort(abortReason(signal));
+  };
+  for (const signal of activeSignals) {
+    if (signal.aborted) {
+      abortFrom(signal);
+      break;
+    }
+    const listener = () => abortFrom(signal);
+    listeners.set(signal, listener);
+    signal.addEventListener('abort', listener, { once: true });
+  }
+  const timer = timeoutMs === undefined
+    ? undefined
+    : setTimeout(() => {
+        if (!controller.signal.aborted) {
+          controller.abort(new DOMException('Managed OAuth acquisition timed out', 'TimeoutError'));
+        }
+      }, timeoutMs);
+  return {
+    signal: controller.signal,
+    dispose: () => {
+      if (timer !== undefined) clearTimeout(timer);
+      for (const [signal, listener] of listeners) {
+        signal.removeEventListener('abort', listener);
+      }
+    },
+  };
+}
+
+async function runWithBoundedAcquisitionSignal<T>(
+  signals: readonly (AbortSignal | undefined)[],
+  timeoutMs: number,
+  operation: (signal: AbortSignal) => Promise<T>,
+): Promise<T> {
+  const lifecycle = createAcquisitionSignal(signals, timeoutMs);
+  try {
+    return await operation(lifecycle.signal);
+  } finally {
+    lifecycle.dispose();
+  }
+}
+
+function acquisitionNow(host: NimiConnectorAuthAcquisitionNativeHost): number {
+  const value = host.now();
+  if (!Number.isSafeInteger(value)) {
+    throw new Error('Managed OAuth acquisition clock returned an invalid value');
+  }
+  return value;
 }
 
 function parseJsonObject(body: string, errorLabel: string): JsonObject {
+  let parsed: unknown;
   try {
-    const parsed = JSON.parse(String(body || ''));
-    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
-      throw new Error(`${errorLabel} returned a non-object JSON payload`);
-    }
-    return parsed as JsonObject;
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error || 'unknown parse error');
-    throw new Error(`${errorLabel} returned invalid JSON: ${message}`, { cause: error });
-  }
-}
-
-function tryParseJsonObject(body: string): JsonObject | null {
-  try {
-    const parsed = JSON.parse(String(body || ''));
-    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
-      return null;
-    }
-    return parsed as JsonObject;
+    parsed = JSON.parse(String(body || '')) as unknown;
   } catch {
-    return null;
+    throw new Error(`${errorLabel} returned invalid JSON`);
   }
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+    throw new Error(`${errorLabel} returned a non-object JSON payload`);
+  }
+  return parsed as JsonObject;
 }
 
-function summarizePollError(body: string): DevicePollErrorSummary {
-  const parsed = tryParseJsonObject(body);
-  if (!parsed) {
-    return {};
+function toIsoTimestamp(value: number, field: string): string {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    throw new Error(`${field} exceeds the runtime date capacity`);
   }
-  return {
-    errorCode: toTrimmedString(parsed.error),
-    errorDescription:
-      toTrimmedString(parsed.error_description)
-      || toTrimmedString(parsed.message)
-      || toTrimmedString(parsed.detail),
-  };
+  return date.toISOString();
 }
 
 function maskUserCode(userCode: string): string {
@@ -171,7 +241,7 @@ function maskUserCode(userCode: string): string {
 }
 
 function logAcquisition(
-  host: NimiConnectorAuthAcquisitionHost,
+  host: NimiConnectorAuthAcquisitionNativeHost,
   level: 'debug' | 'info' | 'warn' | 'error',
   message: string,
   details: JsonObject,
@@ -180,13 +250,14 @@ function logAcquisition(
 }
 
 async function postJson(
-  host: NimiConnectorAuthAcquisitionHost,
+  host: NimiConnectorAuthAcquisitionNativeHost,
   profile: ConnectorAuthAcquisitionProfileSpec,
   purpose: NimiConnectorAuthAcquisitionHttpRequest['purpose'],
   url: string,
   payload: JsonObject,
+  signal?: AbortSignal,
 ): Promise<NimiConnectorAuthAcquisitionHttpResponse> {
-  return host.proxyHttp({
+  return awaitWithCancellation(host.proxyHttp({
     profileId: profile.profileId,
     purpose,
     url,
@@ -196,7 +267,7 @@ async function postJson(
       Accept: 'application/json',
     },
     body: JSON.stringify(payload),
-  });
+  }, signal), signal);
 }
 
 function buildManagedCredentialJson(input: {
@@ -215,11 +286,12 @@ function buildManagedCredentialJson(input: {
   const refreshToken = toTrimmedString(input.refreshToken);
   const tokenType = toTrimmedString(input.tokenType);
   const scope = toTrimmedString(input.scope);
-  const expiresIn = Number.isFinite(input.expiresIn) && Number(input.expiresIn) > 0
-    ? Math.trunc(Number(input.expiresIn))
-    : undefined;
+  const expiresIn = input.expiresIn;
+  if (expiresIn !== undefined && (!Number.isSafeInteger(expiresIn) || expiresIn <= 0)) {
+    throw new Error('Managed OAuth token exchange expires_in must be a positive integer');
+  }
   const expiresAt = typeof expiresIn === 'number'
-    ? new Date(input.now + expiresIn * 1000).toISOString()
+    ? toIsoTimestamp(input.now + expiresIn * 1000, 'Managed OAuth token exchange expires_in')
     : undefined;
 
   return {
@@ -232,7 +304,7 @@ function buildManagedCredentialJson(input: {
       expires_in: expiresIn,
       expires_at: expiresAt,
       issuer: input.profile.issuer,
-      obtained_at: new Date(input.now).toISOString(),
+      obtained_at: toIsoTimestamp(input.now, 'Managed OAuth acquisition clock'),
     }),
   };
 }
@@ -247,10 +319,13 @@ function profileForId(profileId: string): ConnectorAuthAcquisitionProfileSpec {
 }
 
 async function persistManagedConnectorCredentialThroughRuntime(input: {
-  options: NimiAcquireManagedConnectorCredentialOptions;
+  options: NimiAcquireManagedConnectorCredentialInHostOptions;
   profile: ConnectorAuthAcquisitionProfileSpec;
   credentialJson: string;
-}): Promise<string | undefined> {
+  signal: AbortSignal;
+}): Promise<string> {
+  throwIfAborted(input.signal);
+  const finalWriteCallOptions = withoutAcquisitionCancellation(input.options.callOptions);
   const provider = toTrimmedString(input.options.provider) || input.profile.providerAuthProfile;
   const endpoint = toTrimmedString(input.options.endpoint);
   const label = toTrimmedString(input.options.label) || `${input.profile.providerAuthProfile} managed OAuth`;
@@ -264,7 +339,7 @@ async function persistManagedConnectorCredentialThroughRuntime(input: {
       authKind: ConnectorAuthKind.OAUTH_MANAGED,
       providerAuthProfile: input.profile.providerAuthProfile,
       credentialJson: input.credentialJson,
-    }, input.options.callOptions);
+    }, finalWriteCallOptions);
     return response.connector?.connectorId || connectorId;
   }
   const response = await input.options.runtime.createConnector({
@@ -275,17 +350,43 @@ async function persistManagedConnectorCredentialThroughRuntime(input: {
     authKind: ConnectorAuthKind.OAUTH_MANAGED,
     providerAuthProfile: input.profile.providerAuthProfile,
     credentialJson: input.credentialJson,
-  }, input.options.callOptions);
-  return response.connector?.connectorId;
+  }, finalWriteCallOptions);
+  const createdConnectorId = toTrimmedString(response.connector?.connectorId);
+  if (!createdConnectorId) {
+    throw new Error('Managed OAuth connector creation did not return a connector ID');
+  }
+  return createdConnectorId;
 }
 
-export async function acquireNimiManagedConnectorCredential(
-  options: NimiAcquireManagedConnectorCredentialOptions,
+function withoutAcquisitionCancellation(
+  options: RuntimeTypedCallOptions | undefined,
+): RuntimeTypedCallOptions {
+  return {
+    metadata: options?.metadata,
+    timeoutMs: options?.timeoutMs,
+    responseMetadataObserver: options?.responseMetadataObserver,
+  };
+}
+
+export async function acquireNimiManagedConnectorCredentialInHost(
+  options: NimiAcquireManagedConnectorCredentialInHostOptions,
 ): Promise<NimiManagedConnectorCredentialAcquisitionResult> {
   const profile = profileForId(options.profileId);
+  const lifecycle = createAcquisitionSignal([options.signal, options.callOptions?.signal]);
+  try {
+    return await acquireManagedConnectorCredentialWithProfile(options, profile, lifecycle.signal);
+  } finally {
+    lifecycle.dispose();
+  }
+}
+
+async function acquireManagedConnectorCredentialWithProfile(
+  options: NimiAcquireManagedConnectorCredentialInHostOptions,
+  profile: ConnectorAuthAcquisitionProfileSpec,
+  signal: AbortSignal,
+): Promise<NimiManagedConnectorCredentialAcquisitionResult> {
   const host = options.host;
-  const sleep = host.sleep;
-  const now = host.now;
+  throwIfAborted(signal);
 
   logAcquisition(host, 'info', 'managed-oauth:device-code-request:start', {
     profileId: profile.profileId,
@@ -293,7 +394,7 @@ export async function acquireNimiManagedConnectorCredential(
 
   const deviceCodeResponse = await postJson(host, profile, 'device_authorization', profile.deviceAuthorizationUrl, {
     client_id: profile.clientId,
-  });
+  }, signal);
   if (!deviceCodeResponse.ok) {
     logAcquisition(host, 'error', 'managed-oauth:device-code-request:failed', {
       profileId: profile.profileId,
@@ -304,13 +405,67 @@ export async function acquireNimiManagedConnectorCredential(
   const deviceData = parseJsonObject(deviceCodeResponse.body, 'Managed OAuth device code request') as DeviceCodeResponse;
   const userCode = toTrimmedString(deviceData.user_code);
   const deviceAuthId = toTrimmedString(deviceData.device_auth_id);
-  const pollIntervalSeconds = Math.max(
-    profile.minPollIntervalSeconds,
-    toPositiveInt(deviceData.interval, profile.defaultPollIntervalSeconds),
+  const providerPollIntervalSeconds = toTimerRepresentableProviderPositiveInt(
+    deviceData.interval,
+    profile.defaultPollIntervalSeconds,
+    'Managed OAuth device code interval',
   );
-  const expiresInSeconds = toPositiveInt(deviceData.expires_in, profile.defaultExpiresInSeconds);
+  if (providerPollIntervalSeconds > profile.maxPollIntervalSeconds) {
+    throw new Error(`Managed OAuth device code interval must not exceed ${profile.maxPollIntervalSeconds}`);
+  }
+  const pollIntervalSeconds = Math.max(profile.minPollIntervalSeconds, providerPollIntervalSeconds);
+  const expiresInSeconds = toTimerRepresentableProviderPositiveInt(
+    deviceData.expires_in,
+    profile.defaultExpiresInSeconds,
+    'Managed OAuth device code expires_in',
+  );
+  if (expiresInSeconds > profile.maxExpiresInSeconds) {
+    throw new Error(`Managed OAuth device code expires_in must not exceed ${profile.maxExpiresInSeconds}`);
+  }
   const verificationUrl = toTrimmedString(deviceData.verification_uri_complete) || profile.fallbackVerificationUrl;
 
+  return runWithBoundedAcquisitionSignal(
+    [signal],
+    expiresInSeconds * 1000,
+    async (boundedSignal) => completeManagedConnectorCredentialFromDeviceCode({
+      options,
+      profile,
+      host,
+      deviceData,
+      userCode,
+      deviceAuthId,
+      pollIntervalSeconds,
+      expiresInSeconds,
+      verificationUrl,
+      signal: boundedSignal,
+    }),
+  );
+}
+
+async function completeManagedConnectorCredentialFromDeviceCode(input: {
+  options: NimiAcquireManagedConnectorCredentialInHostOptions;
+  profile: ConnectorAuthAcquisitionProfileSpec;
+  host: NimiConnectorAuthAcquisitionNativeHost;
+  deviceData: DeviceCodeResponse;
+  userCode: string;
+  deviceAuthId: string;
+  pollIntervalSeconds: number;
+  expiresInSeconds: number;
+  verificationUrl: string;
+  signal: AbortSignal;
+}): Promise<NimiManagedConnectorCredentialAcquisitionResult> {
+  const {
+    options,
+    profile,
+    host,
+    deviceData,
+    userCode,
+    deviceAuthId,
+    pollIntervalSeconds,
+    expiresInSeconds,
+    verificationUrl,
+    signal,
+  } = input;
   if (!userCode || !deviceAuthId) {
     throw new Error('Managed OAuth device code response is missing user_code or device_auth_id');
   }
@@ -323,18 +478,20 @@ export async function acquireNimiManagedConnectorCredential(
     hasVerificationUriComplete: Boolean(toTrimmedString(deviceData.verification_uri_complete)),
   });
 
+  throwIfAborted(signal);
   options.onPending?.({
     userCode,
     verificationUrl,
     expiresInSeconds,
     pollIntervalSeconds,
   });
+  throwIfAborted(signal);
 
   logAcquisition(host, 'info', 'managed-oauth:browser-open:start', {
     profileId: profile.profileId,
     verificationUrl,
   });
-  const launchResult = await host.openExternalUrl(verificationUrl);
+  const launchResult = await awaitWithCancellation(host.openExternalUrl(verificationUrl, signal), signal);
   if (!launchResult.opened) {
     logAcquisition(host, 'error', 'managed-oauth:browser-open:failed', {
       profileId: profile.profileId,
@@ -343,20 +500,25 @@ export async function acquireNimiManagedConnectorCredential(
     throw new Error('Unable to open the browser for managed OAuth sign-in');
   }
 
-  const deadlineMs = now() + expiresInSeconds * 1000;
+  const deadlineMs = acquisitionNow(host) + expiresInSeconds * 1000;
+  const maxPollAttempts = Math.ceil(expiresInSeconds / profile.minPollIntervalSeconds);
   let codeResponse: DevicePollResponse | null = null;
   let pollAttempt = 0;
   let lastPollStatus: number | null = null;
-  let lastPollError: DevicePollErrorSummary = {};
-  while (now() < deadlineMs) {
-    await sleep(pollIntervalSeconds * 1000);
+  while (acquisitionNow(host) < deadlineMs && pollAttempt < maxPollAttempts) {
+    throwIfAborted(signal);
+    const remainingMs = Math.max(0, deadlineMs - acquisitionNow(host));
+    const sleepMs = Math.min(pollIntervalSeconds * 1000, remainingMs);
+    if (sleepMs <= 0) break;
+    await awaitWithCancellation(host.sleep(sleepMs, signal), signal);
+    throwIfAborted(signal);
+    if (acquisitionNow(host) >= deadlineMs) break;
     pollAttempt += 1;
     const pollResponse = await postJson(host, profile, 'device_token', profile.deviceTokenUrl, {
       device_auth_id: deviceAuthId,
       user_code: userCode,
-    });
+    }, signal);
     lastPollStatus = pollResponse.status;
-    lastPollError = summarizePollError(pollResponse.body);
     if (pollResponse.status === 200) {
       logAcquisition(host, 'info', 'managed-oauth:poll:authorized', {
         profileId: profile.profileId,
@@ -371,8 +533,6 @@ export async function acquireNimiManagedConnectorCredential(
         profileId: profile.profileId,
         attempt: pollAttempt,
         status: pollResponse.status,
-        errorCode: lastPollError.errorCode || null,
-        errorDescription: lastPollError.errorDescription || null,
       });
       continue;
     }
@@ -380,8 +540,6 @@ export async function acquireNimiManagedConnectorCredential(
       profileId: profile.profileId,
       attempt: pollAttempt,
       status: pollResponse.status,
-      errorCode: lastPollError.errorCode || null,
-      errorDescription: lastPollError.errorDescription || null,
     });
     throw new Error(`Managed OAuth device auth polling failed with HTTP ${pollResponse.status}`);
   }
@@ -391,19 +549,11 @@ export async function acquireNimiManagedConnectorCredential(
       profileId: profile.profileId,
       attempts: pollAttempt,
       lastStatus: lastPollStatus,
-      lastErrorCode: lastPollError.errorCode || null,
-      lastErrorDescription: lastPollError.errorDescription || null,
     });
     const timeoutDetails = [
       `attempts=${pollAttempt}`,
       `lastStatus=${lastPollStatus ?? 'none'}`,
     ];
-    if (lastPollError.errorCode) {
-      timeoutDetails.push(`lastError=${lastPollError.errorCode}`);
-    }
-    if (lastPollError.errorDescription) {
-      timeoutDetails.push(`detail=${lastPollError.errorDescription}`);
-    }
     throw new Error(`Managed OAuth sign-in timed out before authorization completed (${timeoutDetails.join(', ')})`);
   }
 
@@ -418,19 +568,20 @@ export async function acquireNimiManagedConnectorCredential(
     attemptCount: pollAttempt,
     redirectUri: profile.redirectUri,
   });
-  const exchange = await host.oauthTokenExchange({
+  throwIfAborted(signal);
+  const exchange = await awaitWithCancellation(host.oauthTokenExchange({
     provider: profile.tokenExchangeProvider,
     clientId: profile.clientId,
     code: authorizationCode,
     codeVerifier,
     redirectUri: profile.redirectUri,
-  });
+  }, signal), signal);
   const accessToken = toTrimmedString(exchange.accessToken);
   if (!accessToken) {
     throw new Error('Managed OAuth token exchange did not return an access token');
   }
 
-  const nowMs = now();
+  const nowMs = acquisitionNow(host);
   const credential = buildManagedCredentialJson({
     profile,
     accessToken,
@@ -447,10 +598,12 @@ export async function acquireNimiManagedConnectorCredential(
     expiresIn: Number.isFinite(exchange.expiresIn) ? exchange.expiresIn : null,
   });
 
+  throwIfAborted(signal);
   const connectorId = await persistManagedConnectorCredentialThroughRuntime({
     options,
     profile,
     credentialJson: credential.credentialJson,
+    signal,
   });
 
   return {

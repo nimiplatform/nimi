@@ -28,6 +28,19 @@ pub struct NativeFirstPartyProductInput {
 }
 
 #[napi(object)]
+pub struct NativeFirstPartyProductUnaryInput {
+    pub method_id: String,
+    pub request_bytes: Buffer,
+    pub timeout_ms: Option<u32>,
+    pub request_id: String,
+}
+
+#[napi(object)]
+pub struct NativeFirstPartyProductUnaryCancelInput {
+    pub request_id: String,
+}
+
+#[napi(object)]
 pub struct NativeFirstPartyProductStreamInput {
     pub stream_id: String,
 }

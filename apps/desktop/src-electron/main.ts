@@ -17,12 +17,15 @@ import {
   NimiElectronShellHostError,
   createElectronRuntimeBridgeCommandNames,
   createElectronShellFileProtocolHost,
+  createNimiElectronDesktopControlHost,
   createNimiElectronFixedRuntimeLifecycleHost,
+  exchangeElectronOauthTokenInHost,
   isAllowedElectronRendererUrl,
   registerNimiElectronRuntimeBridge,
   resolveElectronRuntimeDefaults,
   type NimiElectronFileDialogOpenPayload,
   type NimiElectronFileDialogOpenResult,
+  type NimiElectronIpcMainInvokeEvent,
   type NimiElectronShellFileProtocolHost,
   type RegisteredNimiElectronRuntimeBridge,
 } from '@nimiplatform/kit/shell/electron/main';
@@ -59,6 +62,12 @@ import {
 import { createDesktopElectronDataCleanupHost } from './data-cleanup-host.js';
 import { createDesktopDataRootOperationGate } from './data-root-operation-gate.js';
 import { createDesktopElectronHttpHost } from './http-request-host.js';
+import {
+  bindDesktopSenderInvalidation,
+  createDesktopElectronConnectorAuthAcquisitionHost,
+  createDesktopManagedConnectorCredentialRuntime,
+  type DesktopElectronConnectorAuthAcquisitionHost,
+} from './connector-auth-acquisition-host.js';
 import { createDesktopElectronRendererLogHost } from './renderer-log-host.js';
 import {
   createDesktopElectronMenuBarHost,
@@ -141,6 +150,7 @@ let desktopOpenIntentHost: DesktopElectronOpenIntentHost | undefined;
 let bundledAvatarHost: DesktopElectronBundledAvatarHost | undefined;
 let chatAiStoreHost: DesktopElectronChatAiStoreHost | undefined;
 let menuBarHost: DesktopElectronMenuBarHost | undefined;
+let connectorAuthAcquisitionHost: DesktopElectronConnectorAuthAcquisitionHost | undefined;
 let registeredRuntimeBridge: RegisteredNimiElectronRuntimeBridge | undefined;
 let localDevelopmentRuntime: DesktopLocalDevelopmentRuntimeCoordinator | undefined;
 let quitCleanup: Promise<void> | undefined;
@@ -221,6 +231,28 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
     const httpRequestHost = createDesktopElectronHttpHost({
       realmBaseUrl: resolveDesktopRealmBaseUrl(runtimeDeploymentProfile),
     });
+    connectorAuthAcquisitionHost = createDesktopElectronConnectorAuthAcquisitionHost({
+      proxyHttp: httpRequestHost.connectorAuthRequest,
+      runtime: createDesktopManagedConnectorCredentialRuntime(
+        createNimiElectronDesktopControlHost(),
+      ),
+      openExternalUrl: openDesktopExternalUrl,
+      oauthTokenExchange: async (input, signal) => {
+        const result = await exchangeElectronOauthTokenInHost(input, undefined, signal);
+        return {
+          accessToken: result.accessToken,
+          refreshToken: result.refreshToken,
+          tokenType: result.tokenType,
+          expiresIn: result.expiresIn,
+          scope: result.scope,
+        };
+      },
+      authorizeSender: authorizeDesktopRendererSender,
+      subscribeSenderInvalidation: (listener) => {
+        desktopSenderInvalidationListeners.add(listener);
+        return () => desktopSenderInvalidationListeners.delete(listener);
+      },
+    });
     const rendererLogHost = createDesktopElectronRendererLogHost();
     const fixedRuntimeLifecycleHost = createNimiElectronFixedRuntimeLifecycleHost(
       PROTECTED_DESKTOP_RUNTIME_TRANSPORT_REF,
@@ -273,12 +305,7 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
       allowedRendererUrls: allowedRendererUrls(),
       ipcMain,
       desktopHost: {
-        authorizeSender: (event) => {
-          const window = mainWindow;
-          return Boolean(window && !window.isDestroyed()
-            && event.sender === window.webContents
-            && event.senderFrame === window.webContents.mainFrame);
-        },
+        authorizeSender: authorizeDesktopRendererSender,
         subscribeSenderInvalidation: (listener) => {
           desktopSenderInvalidationListeners.add(listener);
           return () => desktopSenderInvalidationListeners.delete(listener);
@@ -293,6 +320,7 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
         ...supportLogsHost.commandHandlers,
         ...dataCleanupHost.commandHandlers,
         ...httpRequestHost.commandHandlers,
+        ...connectorAuthAcquisitionHost.commandHandlers,
         ...rendererLogHost.commandHandlers,
         ...menuBarHost.commandHandlers,
         ...bundledAvatarHost.desktopCommandHandlers,
@@ -397,6 +425,7 @@ async function shutdownBeforeQuit(): Promise<void> {
   const avatarHost = bundledAvatarHost;
   const chatStoreHost = chatAiStoreHost;
   const currentMenuBarHost = menuBarHost;
+  const connectorAuthHost = connectorAuthAcquisitionHost;
   const runtimeBridge = registeredRuntimeBridge;
   const runtimeD2 = localDevelopmentRuntime;
   await localHost?.shutdown();
@@ -404,6 +433,7 @@ async function shutdownBeforeQuit(): Promise<void> {
     openIntentHost?.shutdown(),
     avatarHost?.shutdown(),
     chatStoreHost?.close(),
+    connectorAuthHost?.shutdown(),
     runtimeD2?.stop(),
   ]);
   try {
@@ -421,6 +451,7 @@ async function shutdownBeforeQuit(): Promise<void> {
   if (bundledAvatarHost === avatarHost) bundledAvatarHost = undefined;
   if (chatAiStoreHost === chatStoreHost) chatAiStoreHost = undefined;
   if (menuBarHost === currentMenuBarHost) menuBarHost = undefined;
+  if (connectorAuthAcquisitionHost === connectorAuthHost) connectorAuthAcquisitionHost = undefined;
   if (registeredRuntimeBridge === runtimeBridge) registeredRuntimeBridge = undefined;
   if (localDevelopmentRuntime === runtimeD2) localDevelopmentRuntime = undefined;
   for (const result of cleanupResults) {
@@ -462,7 +493,7 @@ async function createMainWindow(): Promise<BrowserWindow> {
   const invalidateDesktopSender = () => {
     for (const listener of desktopSenderInvalidationListeners) listener();
   };
-  window.webContents.on('render-process-gone', invalidateDesktopSender);
+  bindDesktopSenderInvalidation(window.webContents, invalidateDesktopSender);
   window.on('closed', () => {
     invalidateDesktopSender();
     if (mainWindow === window) {
@@ -592,6 +623,13 @@ function createDesktopProductControlDataRootResolver(
 
 async function openDesktopExternalUrl(url: string): Promise<void> {
   await shell.openExternal(url);
+}
+
+function authorizeDesktopRendererSender(event: NimiElectronIpcMainInvokeEvent): boolean {
+  const window = mainWindow;
+  return Boolean(window && !window.isDestroyed()
+    && event.sender === window.webContents
+    && event.senderFrame === window.webContents.mainFrame);
 }
 
 async function confirmDesktopDialog(payload: {

@@ -28,11 +28,13 @@ function invokeRawGrpcUnary(
     let callbackError: Error | null = null;
     let callbackResponse: Buffer | null | undefined;
     let settled = false;
+    let detachAbort: (() => void) | undefined;
     const settleIfComplete = () => {
       if (settled || !callbackReceived || !statusReceived) {
         return;
       }
       settled = true;
+      detachAbort?.();
       if (callbackError) {
         reject(callbackError);
         return;
@@ -70,6 +72,15 @@ function invokeRawGrpcUnary(
       statusReceived = true;
       settleIfComplete();
     });
+    if (request.signal) {
+      const abort = () => call.cancel();
+      if (request.signal.aborted) {
+        abort();
+      } else {
+        request.signal.addEventListener('abort', abort, { once: true });
+        detachAbort = () => request.signal?.removeEventListener('abort', abort);
+      }
+    }
   });
 }
 

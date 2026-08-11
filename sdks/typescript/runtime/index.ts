@@ -135,7 +135,7 @@ export * from './agent-local-identity';
 export * from './audit-projections';
 export * from './desktop-audit';
 export * from './bridge-config';
-export * from './connector-auth-acquisition';
+export * from './connector-auth-acquisition-client';
 export * from './connector-grants.js';
 export * from './connector-inventory';
 export * from './cloud-ai-config.js';

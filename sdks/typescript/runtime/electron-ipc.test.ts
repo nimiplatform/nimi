@@ -10,7 +10,7 @@ import {
   GetRuntimeHealthRequest,
   GetRuntimeHealthResponse,
 } from '../core-generated/runtime-protobuf/runtime/v1/audit';
-import { Runtime } from './index';
+import { createRuntimeElectronIpcTransport, Runtime } from './index';
 import { ReasonCode } from '../types';
 
 type ElectronInvoke = (command: string, payload?: unknown) => Promise<unknown>;
@@ -105,6 +105,56 @@ test('electron-ipc Runtime transport encodes and decodes protobuf unary calls', 
     assert.equal(runtime.runtimeVersion(), '0.5.0');
     assert.equal(runtime.versionCompatibility().state, 'compatible');
   } finally {
+    restore();
+  }
+});
+
+test('electron-ipc Runtime unary abort requests bottom transport cancellation before settling', async () => {
+  const controller = new AbortController();
+  let rejectBottomUnary: ((error: unknown) => void) | undefined;
+  let markBottomUnaryStarted: (() => void) | undefined;
+  const bottomUnaryStarted = new Promise<void>((resolve) => {
+    markBottomUnaryStarted = resolve;
+  });
+  const cancellationPayloads: Record<string, unknown>[] = [];
+  const restore = installElectronTestHook({
+    invoke: async (command, payload) => {
+      assert.equal(command, STANDARD_ELECTRON_RUNTIME_COMMANDS.unary);
+      const request = unwrapPayload(payload);
+      if (request.cancel === true) {
+        cancellationPayloads.push(request);
+        rejectBottomUnary?.({ reasonCode: 'runtime-request-canceled' });
+        return { canceled: true };
+      }
+      markBottomUnaryStarted?.();
+      return new Promise<unknown>((_resolve, reject) => {
+        rejectBottomUnary = reject;
+      });
+    },
+  });
+
+  const transport = createRuntimeElectronIpcTransport();
+  const operation = transport.unary({
+    methodId: '/nimi.runtime.v1.RuntimeAuditService/GetRuntimeHealth',
+    body: GetRuntimeHealthRequest.create(),
+    signal: controller.signal,
+  });
+  try {
+    await bottomUnaryStarted;
+    controller.abort(new DOMException('voice input canceled', 'AbortError'));
+    await Promise.resolve();
+    await Promise.resolve();
+
+    assert.equal(cancellationPayloads.length, 1);
+    assert.equal(cancellationPayloads[0]?.cancel, true);
+    assert.match(String(cancellationPayloads[0]?.requestId || ''), /^runtime-client-unary-/u);
+    await assert.rejects(
+      operation,
+      (error: unknown) => (error as { name?: string }).name === 'AbortError',
+    );
+  } finally {
+    rejectBottomUnary?.(new Error('test cleanup'));
+    await operation.catch(() => undefined);
     restore();
   }
 });

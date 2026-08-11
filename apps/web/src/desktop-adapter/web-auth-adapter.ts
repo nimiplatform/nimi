@@ -8,7 +8,7 @@ import {
 import type {
   AuthPlatformAdapter,
 } from '@nimiplatform/kit/auth/shell';
-import type { ShellOAuthBridge } from '@nimiplatform/kit/core/oauth';
+import type { ShellOAuthCodeBridge } from '@nimiplatform/kit/core/oauth';
 import type { DesktopRendererAuthPort } from '@renderer/renderer/auth-port';
 import {
   checkNimiRealmAuthEmail,
@@ -48,10 +48,9 @@ import {
   verifyFreshOauthTwoFactorWithBrowserSession,
 } from './web-realm-session.js';
 
-export const desktopOAuthBridge: ShellOAuthBridge = {
+export const desktopOAuthBridge: ShellOAuthCodeBridge = {
   hasShellHostInvoke: () => desktopBridge.hasShellHostInvoke(),
   oauthListenForCode: (payload) => desktopBridge.oauthListenForCode(payload),
-  oauthTokenExchange: (payload) => desktopBridge.oauthTokenExchange(payload),
   openExternalUrl: (url) => desktopBridge.openExternalUrl(url),
   focusMainWindow: () => desktopBridge.focusMainWindow(),
 };

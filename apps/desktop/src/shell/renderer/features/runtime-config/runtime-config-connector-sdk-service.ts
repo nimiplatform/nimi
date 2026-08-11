@@ -47,7 +47,6 @@ export type RuntimeConfigConnectorGrantService = Readonly<{
 }>;
 
 export type RuntimeConfigConnectorSdkService = Readonly<{
-  runtimeConnectors: NimiRuntimeConnectorClient;
   clearCaches(): void;
   listConnectorGrants(): Promise<readonly NimiRuntimeConnectorGrant[]>;
   revokeConnectorGrant(grantId: string): Promise<NimiRuntimeConnectorGrant>;
@@ -59,9 +58,7 @@ export type RuntimeConfigConnectorSdkService = Readonly<{
     label: string;
     apiKey?: string;
     credentialValue?: string;
-    credentialJson?: string;
-    authMode?: ApiConnectorAuthModeV11;
-    providerAuthProfile?: string;
+    authMode?: 'api_key';
   }): Promise<ApiConnector | null>;
   sdkUpdateConnector(input: {
     connectorId: string;
@@ -69,9 +66,7 @@ export type RuntimeConfigConnectorSdkService = Readonly<{
     endpoint?: string;
     apiKey?: string;
     credentialValue?: string;
-    credentialJson?: string;
-    authMode?: ApiConnectorAuthModeV11;
-    providerAuthProfile?: string;
+    authMode?: 'api_key';
   }): Promise<ApiConnector | null>;
   sdkDeleteConnector(connectorId: string): Promise<void>;
   sdkTestConnector(connectorId: string): Promise<void>;
@@ -118,7 +113,6 @@ export function createRuntimeConfigConnectorSdkService(
   });
 
   return Object.freeze({
-    runtimeConnectors,
     clearCaches: () => inventory.clearCaches(),
     async listConnectorGrants() {
       if (!getGrantService) throw new Error('DESKTOP_CONNECTOR_GRANT_SERVICE_UNAVAILABLE');
@@ -136,10 +130,12 @@ export function createRuntimeConfigConnectorSdkService(
       return connectors.map(runtimeConnectorProjectionToApiConnector);
     },
     async sdkCreateConnector(input) {
+      assertRendererConnectorMutation(input);
       const connector = await inventory.createConnector(input);
       return connector ? runtimeConnectorProjectionToApiConnector(connector) : null;
     },
     async sdkUpdateConnector(input) {
+      assertRendererConnectorMutation(input);
       const connector = await inventory.updateConnector(input);
       return connector ? runtimeConnectorProjectionToApiConnector(connector) : null;
     },
@@ -156,6 +152,12 @@ export function createRuntimeConfigConnectorSdkService(
       return [...await inventory.listConnectorModelDescriptors(connectorId, forceRefresh)];
     },
   });
+}
+
+function assertRendererConnectorMutation(input: Readonly<Record<string, unknown>>): void {
+  if (input.authMode === 'oauth_managed' || Object.hasOwn(input, 'credentialJson')) {
+    throw new Error('Managed OAuth credential custody requires the Desktop native host.');
+  }
 }
 
 export function resolveProviderEndpoint(

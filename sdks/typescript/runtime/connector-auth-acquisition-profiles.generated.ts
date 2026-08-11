@@ -12,7 +12,9 @@ export type ConnectorAuthAcquisitionProfileSpec = {
   tokenExchangeProvider: string;
   defaultPollIntervalSeconds: number;
   minPollIntervalSeconds: number;
+  maxPollIntervalSeconds: number;
   defaultExpiresInSeconds: number;
+  maxExpiresInSeconds: number;
 };
 
 export const CONNECTOR_AUTH_ACQUISITION_PROFILES: Record<string, ConnectorAuthAcquisitionProfileSpec> = {
@@ -28,6 +30,8 @@ export const CONNECTOR_AUTH_ACQUISITION_PROFILES: Record<string, ConnectorAuthAc
     tokenExchangeProvider: "CODEX",
     defaultPollIntervalSeconds: 5,
     minPollIntervalSeconds: 3,
+    maxPollIntervalSeconds: 30,
     defaultExpiresInSeconds: 900,
+    maxExpiresInSeconds: 900,
   },
 };

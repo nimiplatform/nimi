@@ -21,7 +21,6 @@ import {
 } from './electron-shell-test-utils.js';
 
 const DENIED_COMMANDS = new Set<string>([
-  NIMI_STANDARD_SHELL_COMMANDS['oauth.tokenExchange'],
   'nimi.shell.auth.session.load',
   'nimi.shell.auth.session.save',
   'nimi.shell.auth.session.clear',
@@ -46,7 +45,6 @@ function parentosFixturePolicy(): NimiElectronHostCommandPolicy {
 function registerPolicyBridge(input: {
   readonly policy?: NimiElectronHostCommandPolicy;
   readonly fakeClient?: RuntimeGrpcBridgeClient;
-  readonly tokenFetch?: () => Promise<Response>;
   readonly openExternalUrl?: (url: string) => Promise<void> | void;
   readonly commandHandlers?: Record<string, (input: { payload: Readonly<Record<string, unknown>> }) => unknown>;
 } = {}): FakeIpcMain {
@@ -68,10 +66,6 @@ function registerPolicyBridge(input: {
     standardShellHost: {
       allowAllStandardShellCommands: true,
       openExternalUrl: input.openExternalUrl ?? (() => undefined),
-      oauthTokenExchangeFetch: input.tokenFetch ?? (async () => new Response(JSON.stringify({
-        access_token: 'token',
-        token_type: 'Bearer',
-      }), { status: 200, headers: { 'content-type': 'application/json' } })),
       openFileDialog: () => ({ canceled: true, paths: [] }),
       revealInOs: () => undefined,
       exportDirectory: () => path.join(process.cwd(), '.tmp-electron-policy-export'),
@@ -82,31 +76,16 @@ function registerPolicyBridge(input: {
 }
 
 describe('Electron host command policy', () => {
-  it('denies token custody and blocked runtime host commands before their handlers run', async () => {
-    let tokenExchangeCalls = 0;
+  it('denies blocked runtime host commands before their handlers run', async () => {
     const ipcMain = registerPolicyBridge({
       policy: parentosFixturePolicy(),
-      tokenFetch: async () => {
-        tokenExchangeCalls += 1;
-        return new Response('{}', { status: 200 });
-      },
     });
     const { event } = createInvokeEvent();
 
     for (const command of DENIED_COMMANDS) {
       await expect(invokeBridge(ipcMain, event, {
         command,
-        payload: command === NIMI_STANDARD_SHELL_COMMANDS['oauth.tokenExchange']
-          ? {
-              payload: {
-                provider: 'CODEX',
-                clientId: 'client-1',
-                code: 'code-1',
-                codeVerifier: 'verifier-1',
-                redirectUri: 'http://127.0.0.1:4100/oauth/callback',
-              },
-            }
-          : {},
+        payload: {},
       })).rejects.toMatchObject({
         code: 'forbidden-renderer-access',
         reasonCode: 'parentos-electron-command-forbidden',
@@ -115,17 +94,11 @@ describe('Electron host command policy', () => {
         details: { command },
       });
     }
-    expect(tokenExchangeCalls).toBe(0);
   });
 
   it('preserves host-owned policy denial source through the preload invoke bridge', async () => {
-    let tokenExchangeCalls = 0;
     const ipcMain = registerPolicyBridge({
       policy: parentosFixturePolicy(),
-      tokenFetch: async () => {
-        tokenExchangeCalls += 1;
-        return new Response('{}', { status: 200 });
-      },
     });
     const { event } = createInvokeEvent();
     const exposed = new Map<string, unknown>();
@@ -145,15 +118,8 @@ describe('Electron host command policy', () => {
       invoke: (command: string, payload?: unknown) => Promise<unknown>;
     };
 
-    await expect(hook.invoke(NIMI_STANDARD_SHELL_COMMANDS['oauth.tokenExchange'], {
-      payload: {
-        provider: 'CODEX',
-        clientId: 'client-1',
-        code: 'code-1',
-        codeVerifier: 'verifier-1',
-        redirectUri: 'http://127.0.0.1:4100/oauth/callback',
-      },
-    })).rejects.toMatchObject({
+    const command = NIMI_STANDARD_SHELL_COMMANDS['runtime-lifecycle.start'];
+    await expect(hook.invoke(command, {})).rejects.toMatchObject({
       code: 'forbidden-renderer-access',
       reasonCode: 'parentos-electron-command-forbidden',
       actionHint: 'use_parentos_runtime_broker_or_host_owned_surface',
@@ -164,11 +130,10 @@ describe('Electron host command policy', () => {
         source: 'host',
       },
       details: {
-        command: NIMI_STANDARD_SHELL_COMMANDS['oauth.tokenExchange'],
+        command,
         commandKind: 'standard',
       },
     });
-    expect(tokenExchangeCalls).toBe(0);
   });
 
   it('allows admitted standard shell and runtime bridge commands to continue to host handlers', async () => {

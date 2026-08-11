@@ -25,6 +25,8 @@ families:
 
 - `desktopMachineProductUnary` and `desktopMachineProductStreamOpen`;
 - `desktopAccountProductUnary` and `desktopAccountProductStreamOpen`; and
+- request-keyed `desktopFirstPartyProductUnaryCancel` for active machine, account, and bundled Avatar unary work; and
+- internal `desktopFirstPartyProductUnaryRelease` cleanup after the Node promise has observed completion; and
 - shared opaque `desktopFirstPartyProductStreamNext` / `Close` lifecycle calls.
 
 Each method is converted to the generated profile-and-kind-specific native enum

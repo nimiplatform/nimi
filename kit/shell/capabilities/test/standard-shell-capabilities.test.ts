@@ -7,6 +7,7 @@ import {
   NIMI_STANDARD_SHELL_CAPABILITIES,
   NIMI_STANDARD_SHELL_CAPABILITY_IDS,
   NIMI_STANDARD_SHELL_CAPABILITY_SETS,
+  NIMI_STANDARD_SHELL_COMMANDS,
   NIMI_STANDARD_SHELL_ERROR_CODES,
   buildNimiFactoryProfileIndexRecord,
   buildNimiPlatformProjection,
@@ -138,6 +139,12 @@ describe('standard shell capabilities', () => {
     ]));
   });
 
+  it('keeps renderer OAuth token exchange outside the active product catalog', () => {
+    const catalog = readFileSync(catalogPath, 'utf8');
+    expect(Object.hasOwn(NIMI_STANDARD_SHELL_COMMANDS, 'oauth.tokenExchange')).toBe(false);
+    expect(catalog).not.toContain('nimi.shell.oauth.tokenExchange');
+  });
+
   it('keeps standard storage removal admitted only through the local-app surface', () => {
     const catalog = readFileSync(catalogPath, 'utf8');
     const command = getNimiStandardShellCommand('storage', 'removeJson');
@@ -229,7 +236,6 @@ describe('standard shell capabilities', () => {
       'auth.sessionSave',
       'auth.sessionClear',
       'oauth.openExternalUrl',
-      'oauth.tokenExchange',
       'oauth.listenForCode',
       'local-agent.identity',
       'local-agent.runtimeTrustedCaller',

@@ -23,7 +23,9 @@ const allowedProfileFields = new Set([
   'token_exchange_provider',
   'default_poll_interval_seconds',
   'min_poll_interval_seconds',
+  'max_poll_interval_seconds',
   'default_expires_in_seconds',
+  'max_expires_in_seconds',
 ]);
 
 function normalizeString(value) {
@@ -119,9 +121,17 @@ function parseProfiles(raw, runtimeAuthProfileIDs) {
 
     const defaultPollIntervalSeconds = requirePositiveInt(entry, 'default_poll_interval_seconds', profileId);
     const minPollIntervalSeconds = requirePositiveInt(entry, 'min_poll_interval_seconds', profileId);
+    const maxPollIntervalSeconds = requirePositiveInt(entry, 'max_poll_interval_seconds', profileId);
     const defaultExpiresInSeconds = requirePositiveInt(entry, 'default_expires_in_seconds', profileId);
+    const maxExpiresInSeconds = requirePositiveInt(entry, 'max_expires_in_seconds', profileId);
     if (defaultPollIntervalSeconds < minPollIntervalSeconds) {
       throw new Error(`profile ${profileId} default_poll_interval_seconds must be >= min_poll_interval_seconds`);
+    }
+    if (defaultPollIntervalSeconds > maxPollIntervalSeconds) {
+      throw new Error(`profile ${profileId} default_poll_interval_seconds must be <= max_poll_interval_seconds`);
+    }
+    if (defaultExpiresInSeconds > maxExpiresInSeconds) {
+      throw new Error(`profile ${profileId} default_expires_in_seconds must be <= max_expires_in_seconds`);
     }
 
     return {
@@ -136,7 +146,9 @@ function parseProfiles(raw, runtimeAuthProfileIDs) {
       tokenExchangeProvider: requireNonEmptyString(entry, 'token_exchange_provider', profileId),
       defaultPollIntervalSeconds,
       minPollIntervalSeconds,
+      maxPollIntervalSeconds,
       defaultExpiresInSeconds,
+      maxExpiresInSeconds,
     };
   }).sort((left, right) => left.profileId.localeCompare(right.profileId));
 
@@ -162,7 +174,9 @@ function renderTS(profiles) {
     `    tokenExchangeProvider: ${quoteTS(profile.tokenExchangeProvider)},\n` +
     `    defaultPollIntervalSeconds: ${profile.defaultPollIntervalSeconds},\n` +
     `    minPollIntervalSeconds: ${profile.minPollIntervalSeconds},\n` +
+    `    maxPollIntervalSeconds: ${profile.maxPollIntervalSeconds},\n` +
     `    defaultExpiresInSeconds: ${profile.defaultExpiresInSeconds},\n` +
+    `    maxExpiresInSeconds: ${profile.maxExpiresInSeconds},\n` +
     `  },`
   )).join('\n');
 
@@ -179,7 +193,9 @@ function renderTS(profiles) {
     `  tokenExchangeProvider: string;\n` +
     `  defaultPollIntervalSeconds: number;\n` +
     `  minPollIntervalSeconds: number;\n` +
+    `  maxPollIntervalSeconds: number;\n` +
     `  defaultExpiresInSeconds: number;\n` +
+    `  maxExpiresInSeconds: number;\n` +
     `};\n\n` +
     `export const CONNECTOR_AUTH_ACQUISITION_PROFILES: Record<string, ConnectorAuthAcquisitionProfileSpec> = {\n${records}\n};\n`;
 }

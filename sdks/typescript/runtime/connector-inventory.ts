@@ -93,9 +93,7 @@ export interface NimiRuntimeConnectorInventoryClient {
     readonly label: string;
     readonly apiKey?: string;
     readonly credentialValue?: string;
-    readonly credentialJson?: string;
-    readonly authMode?: NimiRuntimeConnectorAuthMode;
-    readonly providerAuthProfile?: string;
+    readonly authMode?: 'api_key';
   }): Promise<NimiRuntimeConnectorProjection | null>;
   updateConnector(input: {
     readonly connectorId: string;
@@ -103,9 +101,7 @@ export interface NimiRuntimeConnectorInventoryClient {
     readonly endpoint?: string;
     readonly apiKey?: string;
     readonly credentialValue?: string;
-    readonly credentialJson?: string;
-    readonly authMode?: NimiRuntimeConnectorAuthMode;
-    readonly providerAuthProfile?: string;
+    readonly authMode?: 'api_key';
   }): Promise<NimiRuntimeConnectorProjection | null>;
   deleteConnector(connectorId: string): Promise<void>;
   testConnector(connectorId: string): Promise<void>;
@@ -158,22 +154,21 @@ function normalizeProviderAuthProfile(value: unknown): string {
   return normalizeLower(value);
 }
 
-function buildCredentialJsonFromSecret(secret: unknown): string {
-  return JSON.stringify({ access_token: normalizeText(secret) });
-}
-
-function resolveCredentialJsonInput(input: {
-  readonly credentialValue?: string;
-  readonly credentialJson?: string;
-}): string {
-  const explicitCredentialJson = normalizeText(input.credentialJson);
-  return explicitCredentialJson || buildCredentialJsonFromSecret(input.credentialValue);
-}
-
 function resolveConnectors(
   connectors: NimiRuntimeConnectorClient | (() => NimiRuntimeConnectorClient),
 ): NimiRuntimeConnectorClient {
   return typeof connectors === 'function' ? connectors() : connectors;
+}
+
+function assertRendererSafeConnectorMutation(input: object): void {
+  const record = input as Readonly<Record<string, unknown>>;
+  if (
+    record.authMode === 'oauth_managed'
+    || ['credentialJson', 'providerAuthProfile', 'accessToken', 'refreshToken', 'raw']
+      .some((field) => Object.hasOwn(record, field))
+  ) {
+    throw new Error('Managed OAuth credential custody requires an authorized non-renderer host.');
+  }
 }
 
 export function nimiRuntimeConnectorVendorLabel(vendor: string): string {
@@ -407,28 +402,18 @@ export function createNimiRuntimeConnectorInventoryClient(
     readonly label: string;
     readonly apiKey?: string;
     readonly credentialValue?: string;
-    readonly credentialJson?: string;
-    readonly authMode?: NimiRuntimeConnectorAuthMode;
-    readonly providerAuthProfile?: string;
+    readonly authMode?: 'api_key';
   }): Promise<NimiRuntimeConnectorProjection | null> {
-    const authMode = input.authMode === 'oauth_managed' ? 'oauth_managed' : 'api_key';
-    const providerAuthProfile = normalizeProviderAuthProfile(input.providerAuthProfile);
+    assertRendererSafeConnectorMutation(input);
     const credentialValue = normalizeText(input.credentialValue ?? input.apiKey);
     const response = await connectors().createConnector({
       provider: input.provider,
       endpoint: input.endpoint,
       label: input.label,
-      apiKey: authMode === 'api_key' ? credentialValue : '',
-      authKind: authMode === 'oauth_managed'
-        ? ConnectorAuthKind.OAUTH_MANAGED
-        : ConnectorAuthKind.API_KEY,
-      providerAuthProfile: authMode === 'oauth_managed' ? providerAuthProfile : '',
-      credentialJson: authMode === 'oauth_managed'
-        ? resolveCredentialJsonInput({
-          credentialValue,
-          credentialJson: input.credentialJson,
-        })
-        : '',
+      apiKey: credentialValue,
+      authKind: ConnectorAuthKind.API_KEY,
+      providerAuthProfile: '',
+      credentialJson: '',
     }, options.callOptions);
     invalidateConnectorInventoryCache();
     if (!response.connector) return null;
@@ -442,31 +427,21 @@ export function createNimiRuntimeConnectorInventoryClient(
     readonly endpoint?: string;
     readonly apiKey?: string;
     readonly credentialValue?: string;
-    readonly credentialJson?: string;
-    readonly authMode?: NimiRuntimeConnectorAuthMode;
-    readonly providerAuthProfile?: string;
+    readonly authMode?: 'api_key';
   }): Promise<NimiRuntimeConnectorProjection | null> {
-    const authMode = input.authMode;
+    assertRendererSafeConnectorMutation(input);
     const credentialValue = normalizeText(input.credentialValue ?? input.apiKey);
-    const providerAuthProfile = normalizeProviderAuthProfile(input.providerAuthProfile);
     const response = await connectors().updateConnector({
       connectorId: input.connectorId,
       label: normalizeText(input.label),
       endpoint: normalizeText(input.endpoint),
-      apiKey: authMode === 'api_key' ? credentialValue : normalizeText(input.apiKey),
+      apiKey: credentialValue,
       status: ConnectorStatus.UNSPECIFIED,
-      authKind: authMode
-        ? (authMode === 'oauth_managed'
-          ? ConnectorAuthKind.OAUTH_MANAGED
-          : ConnectorAuthKind.API_KEY)
+      authKind: input.authMode
+        ? ConnectorAuthKind.API_KEY
         : undefined,
-      providerAuthProfile: authMode === 'oauth_managed' ? providerAuthProfile : undefined,
-      credentialJson: authMode === 'oauth_managed'
-        ? resolveCredentialJsonInput({
-          credentialValue,
-          credentialJson: input.credentialJson,
-        })
-        : undefined,
+      providerAuthProfile: undefined,
+      credentialJson: undefined,
     }, options.callOptions);
     invalidateConnectorInventoryCache();
     if (!response.connector) return null;

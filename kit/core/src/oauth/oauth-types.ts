@@ -2,25 +2,6 @@
 // OAuth types — extracted from Desktop runtime-bridge types
 // ---------------------------------------------------------------------------
 
-export type OauthTokenExchangeProvider = 'CODEX';
-
-export type OauthTokenExchangePayload = {
-  provider: OauthTokenExchangeProvider;
-  clientId: string;
-  code: string;
-  codeVerifier?: string;
-  redirectUri?: string;
-};
-
-export type OauthTokenExchangeResult = {
-  accessToken: string;
-  refreshToken?: string;
-  tokenType?: string;
-  expiresIn?: number;
-  scope?: string;
-  raw: Record<string, unknown>;
-};
-
 export type OauthListenForCodePayload = {
   redirectUri: string;
   timeoutMs?: number;
@@ -29,7 +10,6 @@ export type OauthListenForCodePayload = {
 export type OauthListenForCodeResult = {
   callbackUrl: string;
   code?: string;
-  refreshToken?: string;
   state?: string;
   error?: string;
 };
@@ -66,35 +46,11 @@ function parseOptionalString(value: unknown): string | undefined {
   return normalized || undefined;
 }
 
-function parsePositiveNumber(value: unknown): number | undefined {
-  const numeric = Number(value);
-  if (!Number.isFinite(numeric) || numeric <= 0) {
-    return undefined;
-  }
-  return numeric;
-}
-
-export function parseOauthTokenExchangeResult(value: unknown): OauthTokenExchangeResult {
-  const record = assertRecord(value, 'oauth_token_exchange returned invalid payload');
-  const raw = record.raw && typeof record.raw === 'object' && !Array.isArray(record.raw)
-    ? (record.raw as Record<string, unknown>)
-    : {};
-  return {
-    accessToken: parseRequiredString(record.accessToken, 'accessToken', 'oauth_token_exchange'),
-    refreshToken: parseOptionalString(record.refreshToken),
-    tokenType: parseOptionalString(record.tokenType),
-    expiresIn: parsePositiveNumber(record.expiresIn),
-    scope: parseOptionalString(record.scope),
-    raw,
-  };
-}
-
 export function parseOauthListenForCodeResult(value: unknown): OauthListenForCodeResult {
   const record = assertRecord(value, 'oauth_listen_for_code returned invalid payload');
   return {
     callbackUrl: parseRequiredString(record.callbackUrl, 'callbackUrl', 'oauth_listen_for_code'),
     code: parseOptionalString(record.code),
-    refreshToken: parseOptionalString(record.refreshToken),
     state: parseOptionalString(record.state),
     error: parseOptionalString(record.error),
   };
@@ -111,8 +67,8 @@ export function parseOpenExternalUrlResult(value: unknown): OpenExternalUrlResul
 // OAuth bridge injection points.
 //
 // Desktop browser auth only needs a code callback listener plus window
-// orchestration. Token exchange is a separate social-OAuth capability and must
-// not be required by RuntimeAccountService desktop login consumers.
+// orchestration. Token exchange and credential custody are host-owned and are
+// intentionally absent from this renderer-facing bridge.
 // ---------------------------------------------------------------------------
 
 export type ShellOAuthCodeBridge = {
@@ -120,8 +76,4 @@ export type ShellOAuthCodeBridge = {
   oauthListenForCode: (payload: OauthListenForCodePayload) => Promise<OauthListenForCodeResult>;
   openExternalUrl: (url: string) => Promise<{ opened: boolean }>;
   focusMainWindow: () => Promise<void>;
-};
-
-export type ShellOAuthBridge = ShellOAuthCodeBridge & {
-  oauthTokenExchange: (payload: OauthTokenExchangePayload) => Promise<OauthTokenExchangeResult>;
 };

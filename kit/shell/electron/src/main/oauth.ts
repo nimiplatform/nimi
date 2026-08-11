@@ -20,17 +20,46 @@ export async function openElectronExternalUrl(
   await opener(parsed.toString());
   return { opened: true };
 }
-export async function exchangeElectronOauthToken(
-  host: NimiElectronStandardShellHost | undefined,
-  payload: Readonly<Record<string, unknown>>,
-  command: string,
-): Promise<Record<string, unknown>> {
-  const commandPayload = standardNestedPayload(payload, command);
-  const provider = parseElectronOauthTokenExchangeProvider(commandPayload.provider, command);
-  const clientId = normalizeRequiredToken(commandPayload.clientId, 'clientId');
-  const code = normalizeRequiredToken(commandPayload.code, 'code');
-  const codeVerifier = normalizeRequiredToken(commandPayload.codeVerifier, 'codeVerifier');
-  const redirectUri = normalizeRequiredToken(commandPayload.redirectUri, 'redirectUri');
+export type NimiElectronOauthTokenExchangeInput = {
+  readonly provider: string;
+  readonly clientId: string;
+  readonly code: string;
+  readonly codeVerifier?: string;
+  readonly redirectUri?: string;
+};
+
+export type NimiElectronOauthTokenExchangeResult = {
+  readonly accessToken: string;
+  readonly refreshToken?: string;
+  readonly tokenType?: string;
+  readonly expiresIn?: number;
+  readonly scope?: string;
+};
+
+export type NimiElectronOauthTokenExchangeFetch = (
+  url: string,
+  init: {
+    readonly method: 'POST';
+    readonly headers: Readonly<Record<string, string>>;
+    readonly body: string;
+    readonly signal?: AbortSignal;
+  },
+) => Promise<{ readonly ok: boolean; readonly status: number; readonly text: () => Promise<string> }>;
+
+const MANAGED_CONNECTOR_OAUTH_COMMAND = 'connector_auth_acquire_managed_credential';
+
+export async function exchangeElectronOauthTokenInHost(
+  input: NimiElectronOauthTokenExchangeInput,
+  fetcher: NimiElectronOauthTokenExchangeFetch = defaultElectronOauthTokenExchangeFetch,
+  signal?: AbortSignal,
+): Promise<NimiElectronOauthTokenExchangeResult> {
+  throwIfElectronOauthAborted(signal);
+  const command = MANAGED_CONNECTOR_OAUTH_COMMAND;
+  const provider = parseElectronOauthTokenExchangeProvider(input.provider, command);
+  const clientId = normalizeRequiredToken(input.clientId, 'clientId');
+  const code = normalizeRequiredToken(input.code, 'code');
+  const codeVerifier = normalizeRequiredToken(input.codeVerifier, 'codeVerifier');
+  const redirectUri = normalizeRequiredToken(input.redirectUri, 'redirectUri');
   const body = new URLSearchParams({
     grant_type: 'authorization_code',
     client_id: clientId,
@@ -38,7 +67,6 @@ export async function exchangeElectronOauthToken(
     code_verifier: codeVerifier,
     redirect_uri: redirectUri,
   });
-  const fetcher = host?.oauthTokenExchangeFetch ?? defaultElectronOauthTokenExchangeFetch;
   let response: Awaited<ReturnType<typeof fetcher>>;
   const url = electronOauthTokenExchangeUrl();
   try {
@@ -46,8 +74,10 @@ export async function exchangeElectronOauthToken(
       method: 'POST',
       headers: { 'content-type': 'application/x-www-form-urlencoded' },
       body: body.toString(),
+      signal,
     });
   } catch (error) {
+    throwIfElectronOauthAborted(signal);
     throw new NimiElectronShellHostError({
       code: 'host-internal-error',
       message: `Electron OAuth token exchange request failed: ${errorMessage(error)}`,
@@ -56,11 +86,13 @@ export async function exchangeElectronOauthToken(
       details: { command, provider, cause: errorMessage(error) },
     });
   }
+  throwIfElectronOauthAborted(signal);
   const text = await response.text();
+  throwIfElectronOauthAborted(signal);
   if (!response.ok) {
     throw new NimiElectronShellHostError({
       code: 'host-internal-error',
-      message: `Electron OAuth token exchange failed: HTTP ${response.status} body=${redactElectronOauthBodyPreview(text, 300)}`,
+      message: `Electron OAuth token exchange failed with HTTP ${response.status}`,
       reasonCode: 'electron-oauth-token-exchange-http-failed',
       actionHint: 'retry_oauth_token_exchange_or_restart_authorization',
       details: { command, provider, status: response.status },
@@ -69,13 +101,13 @@ export async function exchangeElectronOauthToken(
   let parsed: Record<string, unknown>;
   try {
     parsed = asRecord(JSON.parse(text) as unknown, 'Electron OAuth token response must be a JSON object') as Record<string, unknown>;
-  } catch (error) {
+  } catch {
     throw new NimiElectronShellHostError({
       code: 'host-internal-error',
-      message: `Electron OAuth token response is not JSON: ${errorMessage(error)}`,
+      message: 'Electron OAuth token response is not valid JSON',
       reasonCode: 'electron-oauth-token-response-invalid-json',
       actionHint: 'check_oauth_provider_response',
-      details: { command, provider, cause: errorMessage(error) },
+      details: { command, provider },
     });
   }
   const accessToken = normalizeText(parsed.access_token);
@@ -94,7 +126,6 @@ export async function exchangeElectronOauthToken(
     tokenType: normalizeText(parsed.token_type) || undefined,
     expiresIn: parseOptionalPositiveNumber(parsed.expires_in),
     scope: normalizeText(parsed.scope) || undefined,
-    raw: parsed,
   };
 }
 export async function listenElectronOauthForCode(
@@ -252,65 +283,16 @@ async function defaultElectronOauthTokenExchangeFetch(
     readonly method: 'POST';
     readonly headers: Readonly<Record<string, string>>;
     readonly body: string;
+    readonly signal?: AbortSignal;
   },
 ): Promise<{ readonly ok: boolean; readonly status: number; readonly text: () => Promise<string> }> {
   return fetch(url, init);
 }
 
-function redactElectronOauthBodyPreview(input: string, maxBytes: number): string {
-  const trimmed = input.trim();
-  if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
-    try {
-      const parsed = JSON.parse(trimmed) as unknown;
-      redactElectronOauthJsonValue(parsed);
-      return previewElectronOauthText(JSON.stringify(parsed), maxBytes);
-    } catch {
-      return '<unparseable response body>';
-    }
+function throwIfElectronOauthAborted(signal: AbortSignal | undefined): void {
+  if (signal?.aborted) {
+    throw signal.reason ?? new DOMException('Electron OAuth token exchange was canceled', 'AbortError');
   }
-  return '<unparseable response body>';
-}
-
-function redactElectronOauthJsonValue(value: unknown): void {
-  if (Array.isArray(value)) {
-    for (const item of value) {
-      redactElectronOauthJsonValue(item);
-    }
-    return;
-  }
-  if (!value || typeof value !== 'object') {
-    return;
-  }
-  const record = value as Record<string, unknown>;
-  for (const key of Object.keys(record)) {
-    if (isElectronOauthSensitiveKey(key)) {
-      record[key] = '[REDACTED]';
-    } else {
-      redactElectronOauthJsonValue(record[key]);
-    }
-  }
-}
-
-function isElectronOauthSensitiveKey(key: string): boolean {
-  const normalized = key.trim().toLowerCase();
-  return normalized === 'authorization'
-    || normalized === 'cookie'
-    || normalized.includes('token')
-    || normalized.includes('password')
-    || normalized.includes('secret')
-    || normalized.includes('api_key')
-    || normalized.includes('apikey');
-}
-
-function previewElectronOauthText(input: string, maxBytes: number): string {
-  if (input.length <= maxBytes) {
-    return input;
-  }
-  let end = Math.min(input.length, maxBytes);
-  while (end > 0 && input.charCodeAt(end) >= 0xDC00 && input.charCodeAt(end) <= 0xDFFF) {
-    end -= 1;
-  }
-  return `${input.slice(0, end)}... (truncated, ${input.length} bytes total)`;
 }
 
 function parseElectronOauthRedirectUri(value: string, command: string): {

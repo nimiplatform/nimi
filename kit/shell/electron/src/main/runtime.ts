@@ -28,6 +28,7 @@ import {
   buildElectronRuntimeGrpcMetadata,
   fromBase64,
   parseElectronRuntimeStreamOpenRequest,
+  parseElectronRuntimeUnaryCancelRequest,
   parseElectronRuntimeUnaryRequest,
   toBase64,
 } from './runtime-bridge-protocol.js';
@@ -44,6 +45,7 @@ export {
   buildElectronRuntimeGrpcMetadata,
   electronRuntimeCommandPayload,
   parseElectronRuntimeStreamOpenRequest,
+  parseElectronRuntimeUnaryCancelRequest,
   parseElectronRuntimeUnaryRequest,
 } from './runtime-bridge-protocol.js';
 function standardCommand(key: keyof typeof NIMI_STANDARD_SHELL_COMMANDS): string {
@@ -83,6 +85,8 @@ export async function invokeElectronRuntimeUnary(input: {
   readonly desktopControlHost?: NimiElectronDesktopControlHost;
   readonly desktopSenderAuthorized?: boolean;
   readonly bundledAvatarProfile?: boolean;
+  readonly requestId?: string;
+  readonly signal?: AbortSignal;
 }): Promise<ElectronRuntimeBridgeUnaryResponse> {
   const request = parseElectronRuntimeUnaryRequest(input.payload);
   if (input.bundledAvatarProfile) {
@@ -98,6 +102,8 @@ export async function invokeElectronRuntimeUnary(input: {
         methodId: request.methodId,
         requestBytes: fromBase64(request.requestBytesBase64),
         timeoutMs: request.timeoutMs,
+        requestId: input.requestId ?? request.requestId,
+        signal: input.signal,
       });
       return { responseBytesBase64: toBase64(responseBytes) };
     } catch (error) {
@@ -133,6 +139,8 @@ export async function invokeElectronRuntimeUnary(input: {
         methodId: request.methodId,
         requestBytes: fromBase64(request.requestBytesBase64),
         timeoutMs: request.timeoutMs,
+        requestId: input.requestId ?? request.requestId,
+        signal: input.signal,
       };
       const responseBytes = machineSelected
         ? await input.desktopControlHost.machineProductUnary(nativeInput)
@@ -162,6 +170,7 @@ export async function invokeElectronRuntimeUnary(input: {
     runtimeEndpoint: input.runtimeEndpoint,
     command: input.command,
     trustedRuntimeMetadataProvider: input.trustedRuntimeMetadataProvider,
+    signal: input.signal,
   });
   return {
     responseBytesBase64: toBase64(response.responseBytes),
@@ -253,6 +262,7 @@ export async function invokeElectronRuntimeTrustedUnary(input: {
   readonly runtimeEndpoint: string;
   readonly command: string;
   readonly trustedRuntimeMetadataProvider?: ElectronRuntimeBridgeTrustedMetadataProvider;
+  readonly signal?: AbortSignal;
 }): Promise<RuntimeGrpcBridgeUnaryResponse> {
   const request = input.request;
   const metadataInput = {
@@ -274,9 +284,11 @@ export async function invokeElectronRuntimeTrustedUnary(input: {
       requestBytes: input.requestBytes,
       metadata,
       timeoutMs: request.timeoutMs,
+      signal: input.signal,
     });
   } catch (error) {
     const invalidationReason = invalidationConsumed
+      || input.signal?.aborted
       ? null
       : trustedRuntimeMetadataInvalidationReason(input.trustedRuntimeMetadataProvider, error);
     if (invalidationReason) {
@@ -290,6 +302,7 @@ export async function invokeElectronRuntimeTrustedUnary(input: {
           requestBytes: input.requestBytes,
           metadata,
           timeoutMs: request.timeoutMs,
+          signal: input.signal,
         });
       } catch (retryError) {
         throw createElectronRuntimeEndpointUnavailableError(input.command, input.runtimeEndpoint, retryError);

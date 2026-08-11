@@ -36,6 +36,89 @@ import {
 } from './electron-shell-test-utils.js';
 
 describe('registerNimiElectronRuntimeBridge', () => {
+  it('cancels request-keyed unary gRPC work from renderer abort and host unregister', async () => {
+    const signals: AbortSignal[] = [];
+    const started: Array<() => void> = [];
+    const waitForStart = () => new Promise<void>((resolve) => started.push(resolve));
+    const firstStarted = waitForStart();
+    const secondStarted = waitForStart();
+    let markClientResolutionRequested: (() => void) | undefined;
+    const clientResolutionRequested = new Promise<void>((resolve) => {
+      markClientResolutionRequested = resolve;
+    });
+    let releaseClient: (() => void) | undefined;
+    const clientGate = new Promise<void>((resolve) => {
+      releaseClient = resolve;
+    });
+    const fakeClient: RuntimeGrpcBridgeClient = {
+      unary: async (request) => {
+        if (!request.signal) throw new Error('unary cancellation signal is required');
+        signals.push(request.signal);
+        started.shift()?.();
+        return new Promise((_resolve, reject) => {
+          const abort = () => reject(Object.assign(new Error('gRPC call canceled'), { code: 1 }));
+          if (request.signal?.aborted) abort();
+          else request.signal?.addEventListener('abort', abort, { once: true });
+        });
+      },
+      serverStream: () => { throw new Error('not used'); },
+      close: () => undefined,
+    };
+    const ipcMain = new FakeIpcMain();
+    const registered = registerNimiElectronRuntimeBridge({
+      appId: 'nimi.tester',
+      runtimeEndpoint: '127.0.0.1:46371',
+      allowedOrigins: ['http://localhost:1430'],
+      ipcMain,
+      createGrpcClient: async () => {
+        markClientResolutionRequested?.();
+        await clientGate;
+        return fakeClient;
+      },
+    });
+    const { event } = createInvokeEvent();
+    const firstRequestId = 'runtime-client-unary-main-cancel-1';
+    const first = invokeBridge(ipcMain, event, {
+      command: STANDARD_COMMANDS.unary,
+      payload: {
+        methodId: '/nimi.runtime.v1.RuntimeModelService/ListModels',
+        requestId: firstRequestId,
+        requestBytesBase64: '',
+      },
+    });
+    const firstRejected = expect(first).rejects.toMatchObject({
+      reasonCode: 'electron-runtime-endpoint-unavailable',
+    });
+    await clientResolutionRequested;
+    const cancellation = invokeBridge(ipcMain, event, {
+      command: STANDARD_COMMANDS.unary,
+      payload: { cancel: true, requestId: firstRequestId },
+    });
+    await Promise.resolve();
+    await Promise.resolve();
+    releaseClient?.();
+    await firstStarted;
+    await expect(cancellation).resolves.toEqual({ canceled: true });
+    expect(signals[0]?.aborted).toBe(true);
+    await firstRejected;
+
+    const second = invokeBridge(ipcMain, event, {
+      command: STANDARD_COMMANDS.unary,
+      payload: {
+        methodId: '/nimi.runtime.v1.RuntimeModelService/ListModels',
+        requestId: 'runtime-client-unary-main-shutdown-2',
+        requestBytesBase64: '',
+      },
+    });
+    const secondRejected = expect(second).rejects.toMatchObject({
+      reasonCode: 'electron-runtime-endpoint-unavailable',
+    });
+    await secondStarted;
+    registered.unregister();
+    expect(signals[1]?.aborted).toBe(true);
+    await secondRejected;
+  });
+
   it('does not forward portable credentials from trusted metadata providers', async () => {
     let capturedMethod = '';
     let capturedBytes = new Uint8Array();

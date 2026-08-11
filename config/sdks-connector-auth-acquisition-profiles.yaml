@@ -18,4 +18,6 @@ profiles:
     token_exchange_provider: CODEX
     default_poll_interval_seconds: 5
     min_poll_interval_seconds: 3
+    max_poll_interval_seconds: 30
     default_expires_in_seconds: 900
+    max_expires_in_seconds: 900

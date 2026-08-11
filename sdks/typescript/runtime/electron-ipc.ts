@@ -83,6 +83,7 @@ const STANDARD_ELECTRON_RUNTIME_COMMANDS = {
   stream_close: 'nimi.shell.runtime.stream.close',
 } as const;
 let runtimeElectronStreamCounter = 0;
+let runtimeElectronUnaryCounter = 0;
 
 const BRIDGE_METADATA_FIELDS: Record<string, RuntimeBridgeMetadataScalarField> = {
   protocolversion: 'protocolVersion',
@@ -227,6 +228,38 @@ function createClientStreamId(): string {
     ? crypto.randomUUID().replaceAll('-', '')
     : Math.random().toString(36).slice(2);
   return `runtime-client-stream-${Date.now()}-${runtimeElectronStreamCounter}-${random}`;
+}
+
+function createClientUnaryRequestId(idempotencyKey: string | undefined): string {
+  const admittedIdempotencyKey = normalizeText(idempotencyKey);
+  if (admittedIdempotencyKey
+    && admittedIdempotencyKey.length <= 160
+    && /^[A-Za-z0-9][A-Za-z0-9._:-]*$/u.test(admittedIdempotencyKey)) {
+    return admittedIdempotencyKey;
+  }
+  runtimeElectronUnaryCounter += 1;
+  const random = typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+    ? crypto.randomUUID().replaceAll('-', '')
+    : Math.random().toString(36).slice(2);
+  return `runtime-client-unary-${Date.now()}-${runtimeElectronUnaryCounter}-${random}`;
+}
+
+function abortReason(signal: AbortSignal): unknown {
+  return signal.reason ?? new DOMException('Runtime unary request was canceled', 'AbortError');
+}
+
+function isBottomUnaryCancellation(error: unknown): boolean {
+  const direct = asObject(error);
+  const envelope = asObject(direct.envelope);
+  const details = asObject(direct.details);
+  return [
+    direct.reasonCode,
+    direct.code,
+    envelope.reasonCode,
+    envelope.code,
+    details.reasonCode,
+    details.code,
+  ].includes('runtime-request-canceled');
 }
 
 function asObject(value: unknown): Record<string, unknown> {
@@ -416,17 +449,44 @@ export function createRuntimeElectronIpcTransport(
   const invokeUnaryBytes = async (methodId: string, body: Uint8Array, request: CoreUnaryRequest): Promise<Uint8Array> => {
     const invoke = ensureInvoke();
     const { metadata } = splitRuntimeMetadata(request.metadata);
-    const response = asObject(await invoke(createCommandName('unary'), {
-      payload: {
-        methodId,
-        requestBytesBase64: toBase64(body),
-        productIntent: methodId === '/nimi.runtime.v1.RuntimeConnectorService/ListConnectors'
-          ? options.firstPartyListConnectorsIntent
-          : undefined,
-        metadata,
-        timeoutMs: request.timeoutMs,
-      },
-    })) as RuntimeBridgeUnaryResponse;
+    const requestId = createClientUnaryRequestId(metadata?.idempotencyKey);
+    const signal = request.signal;
+    if (signal?.aborted) {
+      throw abortReason(signal);
+    }
+    let detachAbort: (() => void) | undefined;
+    if (signal) {
+      const abort = () => {
+        void invoke(createCommandName('unary'), {
+          payload: { cancel: true, requestId },
+        }).catch(() => undefined);
+      };
+      signal.addEventListener('abort', abort, { once: true });
+      detachAbort = () => signal.removeEventListener('abort', abort);
+    }
+    let rawResponse: unknown;
+    try {
+      rawResponse = await invoke(createCommandName('unary'), {
+        payload: {
+          methodId,
+          requestId,
+          requestBytesBase64: toBase64(body),
+          productIntent: methodId === '/nimi.runtime.v1.RuntimeConnectorService/ListConnectors'
+            ? options.firstPartyListConnectorsIntent
+            : undefined,
+          metadata,
+          timeoutMs: request.timeoutMs,
+        },
+      });
+    } catch (error) {
+      if (signal?.aborted && isBottomUnaryCancellation(error)) {
+        throw abortReason(signal);
+      }
+      throw error;
+    } finally {
+      detachAbort?.();
+    }
+    const response = asObject(rawResponse) as RuntimeBridgeUnaryResponse;
     const responseBytesBase64 = normalizeBase64Field(response.responseBytesBase64)
       ?? normalizeBase64Field(response.response_bytes_base64);
     if (responseBytesBase64 === undefined) {
@@ -648,6 +708,9 @@ export function createRuntimeElectronIpcTransport(
         const response = await invokeUnaryBytes(request.methodId, codec.encodeRequest(request.body), request);
         return codec.decodeResponse(response) as Response;
       } catch (error) {
+        if (error && typeof error === 'object' && (error as { readonly name?: unknown }).name === 'AbortError') {
+          throw error;
+        }
         throw asNimiError(error, {
           reasonCode: ReasonCode.SDK_RUNTIME_ELECTRON_UNARY_FAILED,
           actionHint: 'check_runtime_bridge_and_daemon',

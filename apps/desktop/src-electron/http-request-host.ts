@@ -1,7 +1,9 @@
 import {
   CONNECTOR_AUTH_ACQUISITION_PROFILES,
   type ConnectorAuthAcquisitionProfileSpec,
-} from '@nimiplatform/sdk/runtime';
+  type NimiConnectorAuthAcquisitionHttpRequest,
+  type NimiConnectorAuthAcquisitionHttpResponse,
+} from '@nimiplatform/sdk/runtime/host';
 import {
   NimiElectronShellHostError,
   type NimiElectronCommandHandlerInput,
@@ -18,12 +20,9 @@ const MAX_HEADER_TOTAL_BYTES = 32 * 1024;
 const MAX_REQUEST_BODY_BYTES = 8 * 1024 * 1024;
 const MAX_RESPONSE_BODY_BYTES = 16 * 1024 * 1024;
 const METHODS = new Set(['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS', 'HEAD']);
-const PURPOSES = new Set(['device_authorization', 'device_token']);
 const RESPONSE_HEADERS_RESTRICTED = new Set(['set-cookie', 'set-cookie2']);
 const REQUEST_KEYS = [
   'body',
-  'connectorAuthProfileId',
-  'connectorAuthPurpose',
   'diagnosticSessionId',
   'headers',
   'method',
@@ -38,15 +37,13 @@ const LOOPBACK_ORIGINS = [
   'http://[::1]:3002',
 ] as const;
 
-type ConnectorAuthPurpose = 'device_authorization' | 'device_token';
+type ConnectorAuthPurpose = NimiConnectorAuthAcquisitionHttpRequest['purpose'];
 
 type HttpRequest = {
   readonly url: URL;
   readonly method: string;
   readonly headers: Headers;
   readonly body?: string;
-  readonly connectorAuthProfileId?: string;
-  readonly connectorAuthPurpose?: ConnectorAuthPurpose;
 };
 
 export type DesktopElectronHttpResponse = {
@@ -57,6 +54,10 @@ export type DesktopElectronHttpResponse = {
 };
 
 export type DesktopElectronHttpHost = {
+  readonly connectorAuthRequest: (
+    request: NimiConnectorAuthAcquisitionHttpRequest,
+    signal?: AbortSignal,
+  ) => Promise<NimiConnectorAuthAcquisitionHttpResponse>;
   readonly commandHandlers: Readonly<Record<
     typeof COMMAND,
     (context: Pick<NimiElectronCommandHandlerInput, 'payload'>) => Promise<DesktopElectronHttpResponse>
@@ -79,25 +80,69 @@ export function createDesktopElectronHttpHost(input: {
   const send = input.fetch ?? globalThis.fetch;
   const now = input.now ?? (() => performance.now());
 
+  const execute = async (
+    request: HttpRequest,
+    input: { readonly realmRequest: boolean },
+    parentSignal?: AbortSignal,
+  ): Promise<DesktopElectronHttpResponse> => {
+    if (typeof send !== 'function') {
+      throw httpError({
+        code: 'capability-unavailable',
+        reasonCode: 'DESKTOP_HTTP_FETCH_UNAVAILABLE',
+        actionHint: 'use_supported_electron_runtime',
+        message: 'Electron main-process fetch is unavailable.',
+      });
+    }
+    const origin = request.url.origin;
+    enforceRateLimit(requestHistory, origin, now());
+    const requestSignal = createRequestSignal(parentSignal);
+    const init: RequestInit = {
+      method: request.method,
+      headers: request.headers,
+      redirect: 'manual',
+      credentials: 'omit',
+      signal: requestSignal.signal,
+    };
+    if (request.method !== 'GET' && request.method !== 'HEAD' && request.body !== undefined) {
+      init.body = request.body;
+    }
+    try {
+      const response = await send(request.url, init);
+      const body = await readBoundedResponseBody(response);
+      return Object.freeze({
+        status: response.status,
+        ok: response.ok,
+        headers: responseHeadersForRenderer(response.headers),
+        body,
+      });
+    } catch (error: unknown) {
+      if (error instanceof NimiElectronShellHostError) throw error;
+      throw httpError({
+        code: input.realmRequest ? 'runtime-service-unavailable' : 'host-internal-error',
+        reasonCode: input.realmRequest ? 'REALM_UNAVAILABLE' : 'DESKTOP_HTTP_SEND_FAILED',
+        actionHint: input.realmRequest ? 'check_realm_service_status' : 'retry_or_check_network',
+        message: input.realmRequest
+          ? 'Realm service is unavailable.'
+          : 'Desktop HTTP request could not be sent.',
+        details: { origin },
+        retryable: true,
+      });
+    } finally {
+      requestSignal.dispose();
+    }
+  };
+
   return {
+    connectorAuthRequest: async (request, signal) => {
+      const parsed = parseConnectorAuthRequest(request);
+      assertConnectorAuthRequestAllowed(request.profileId, request.purpose, parsed);
+      return execute(parsed, { realmRequest: false }, signal);
+    },
     commandHandlers: {
       [COMMAND]: async ({ payload }) => {
-        if (typeof send !== 'function') {
-          throw httpError({
-            code: 'capability-unavailable',
-            reasonCode: 'DESKTOP_HTTP_FETCH_UNAVAILABLE',
-            actionHint: 'use_supported_electron_runtime',
-            message: 'Electron main-process fetch is unavailable.',
-          });
-        }
-
         const request = parseRequest(payload);
         const origin = request.url.origin;
-        const hasConnectorAuthMetadata = request.connectorAuthProfileId !== undefined
-          || request.connectorAuthPurpose !== undefined;
-        if (hasConnectorAuthMetadata) {
-          assertConnectorAuthRequestAllowed(request);
-        } else if (!ordinaryOrigins.has(origin)) {
+        if (!ordinaryOrigins.has(origin)) {
           throw httpError({
             code: 'runtime-permission-denied',
             reasonCode: 'DESKTOP_HTTP_ORIGIN_FORBIDDEN',
@@ -106,46 +151,37 @@ export function createDesktopElectronHttpHost(input: {
             details: { origin },
           });
         }
-
-        enforceRateLimit(requestHistory, origin, now());
-
-        const init: RequestInit = {
-          method: request.method,
-          headers: request.headers,
-          redirect: 'manual',
-          credentials: 'omit',
-          signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
-        };
-        if (request.method !== 'GET' && request.method !== 'HEAD' && request.body !== undefined) {
-          init.body = request.body;
-        }
-
-        try {
-          const response = await send(request.url, init);
-          const body = await readBoundedResponseBody(response);
-          return Object.freeze({
-            status: response.status,
-            ok: response.ok,
-            headers: responseHeadersForRenderer(response.headers),
-            body,
-          });
-        } catch (error: unknown) {
-          if (error instanceof NimiElectronShellHostError) {
-            throw error;
-          }
-          const realmRequest = realmOrigins.has(origin);
-          throw httpError({
-            code: realmRequest ? 'runtime-service-unavailable' : 'host-internal-error',
-            reasonCode: realmRequest ? 'REALM_UNAVAILABLE' : 'DESKTOP_HTTP_SEND_FAILED',
-            actionHint: realmRequest ? 'check_realm_service_status' : 'retry_or_check_network',
-            message: realmRequest
-              ? 'Realm service is unavailable.'
-              : 'Desktop HTTP request could not be sent.',
-            details: { origin },
-            retryable: true,
-          });
-        }
+        return execute(request, { realmRequest: realmOrigins.has(origin) });
       },
+    },
+  };
+}
+
+function createRequestSignal(parentSignal: AbortSignal | undefined): {
+  readonly signal: AbortSignal;
+  readonly dispose: () => void;
+} {
+  const controller = new AbortController();
+  const abortFromParent = () => {
+    if (!controller.signal.aborted) {
+      controller.abort(parentSignal?.reason ?? new DOMException('Desktop HTTP request was canceled', 'AbortError'));
+    }
+  };
+  if (parentSignal?.aborted) {
+    abortFromParent();
+  } else {
+    parentSignal?.addEventListener('abort', abortFromParent, { once: true });
+  }
+  const timer = setTimeout(() => {
+    if (!controller.signal.aborted) {
+      controller.abort(new DOMException('Desktop HTTP request timed out', 'TimeoutError'));
+    }
+  }, REQUEST_TIMEOUT_MS);
+  return {
+    signal: controller.signal,
+    dispose: () => {
+      clearTimeout(timer);
+      parentSignal?.removeEventListener('abort', abortFromParent);
     },
   };
 }
@@ -171,19 +207,21 @@ function parseRequest(payload: Readonly<Record<string, unknown>>): HttpRequest {
     assertByteLimit('body', body, MAX_REQUEST_BODY_BYTES);
   }
   optionalDiagnosticSessionId(request.diagnosticSessionId);
-  const connectorAuthProfileId = optionalString(
-    request.connectorAuthProfileId,
-    'DESKTOP_HTTP_PAYLOAD_INVALID',
-  );
-  const connectorAuthPurpose = optionalConnectorAuthPurpose(request.connectorAuthPurpose);
   return {
     url,
     method,
     headers,
     body,
-    connectorAuthProfileId,
-    connectorAuthPurpose,
   };
+}
+
+function parseConnectorAuthRequest(request: NimiConnectorAuthAcquisitionHttpRequest): HttpRequest {
+  const url = parseHttpUrl(request.url);
+  const method = parseMethod(request.method);
+  const headers = parseHeaders(request.headers);
+  const body = optionalString(request.body, 'DESKTOP_HTTP_PAYLOAD_INVALID');
+  if (body !== undefined) assertByteLimit('body', body, MAX_REQUEST_BODY_BYTES);
+  return { url, method, headers, body };
 }
 
 function parseHttpUrl(value: unknown): URL {
@@ -380,26 +418,15 @@ function optionalDiagnosticSessionId(value: unknown): void {
   }
 }
 
-function optionalConnectorAuthPurpose(value: unknown): ConnectorAuthPurpose | undefined {
-  if (value === undefined) return undefined;
-  if (typeof value !== 'string' || !PURPOSES.has(value)) {
-    throw httpError({
-      code: 'invalid-payload',
-      reasonCode: 'DESKTOP_HTTP_PAYLOAD_INVALID',
-      actionHint: 'provide_exact_desktop_http_payload',
-      message: 'Desktop connector-auth acquisition purpose is invalid.',
-    });
-  }
-  return value as ConnectorAuthPurpose;
-}
-
-function assertConnectorAuthRequestAllowed(request: HttpRequest): void {
-  const profileId = request.connectorAuthProfileId;
-  const purpose = request.connectorAuthPurpose;
+function assertConnectorAuthRequestAllowed(
+  profileId: string,
+  purpose: ConnectorAuthPurpose,
+  request: HttpRequest,
+): void {
   const profile = profileId && Object.hasOwn(CONNECTOR_AUTH_ACQUISITION_PROFILES, profileId)
     ? CONNECTOR_AUTH_ACQUISITION_PROFILES[profileId]
     : undefined;
-  if (!profile || !purpose || request.method !== 'POST') {
+  if (!profile || request.method !== 'POST') {
     connectorAuthDenied(profileId, purpose);
   }
   const expectedUrl = acquisitionUrl(profile, purpose);

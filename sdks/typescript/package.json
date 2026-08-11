@@ -32,6 +32,11 @@
       "import": "./dist/runtime/generated.js",
       "default": "./dist/runtime/generated.js"
     },
+    "./runtime/host": {
+      "types": "./dist/runtime/host.d.ts",
+      "import": "./dist/runtime/host.js",
+      "default": "./dist/runtime/host.js"
+    },
     "./runtime/wire-types": {
       "types": "./dist/runtime/wire-types/index.d.ts",
       "import": "./dist/runtime/wire-types/index.js",

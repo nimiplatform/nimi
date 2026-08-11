@@ -18,7 +18,6 @@ vi.mock('react-i18next', () => ({
 const desktopOAuthBridge = {
   hasShellHostInvoke: () => true,
   oauthListenForCode: async () => ({ callbackUrl: '' }),
-  oauthTokenExchange: async () => ({ accessToken: '', raw: {} }),
   openExternalUrl: async () => ({ opened: true }),
   focusMainWindow: async () => undefined,
 };
@@ -58,7 +57,6 @@ describe('social OAuth config', () => {
   it('returns the TikTok authorization proof for Realm without a shell token exchange', async () => {
     const previousClientId = process.env.VITE_NIMI_TIKTOK_CLIENT_ID;
     process.env.VITE_NIMI_TIKTOK_CLIENT_ID = 'tiktok-client-id';
-    const oauthTokenExchange = vi.fn(async () => ({ accessToken: 'unexpected', raw: {} }));
     let resolveCallback: ((value: {
       callbackUrl: string;
       code: string;
@@ -70,7 +68,6 @@ describe('social OAuth config', () => {
         oauthListenForCode: async () => new Promise((resolve) => {
           resolveCallback = resolve;
         }),
-        oauthTokenExchange,
         openExternalUrl: async (value) => {
           const authorizeUrl = new URL(value);
           const redirectUri = authorizeUrl.searchParams.get('redirect_uri') || '';
@@ -92,7 +89,7 @@ describe('social OAuth config', () => {
       });
       expect(result.redirectUri).toMatch(/^http:\/\/127\.0\.0\.1:/);
       expect(result.codeVerifier).not.toBe('');
-      expect(oauthTokenExchange).not.toHaveBeenCalled();
+      expect('oauthTokenExchange' in bridge).toBe(false);
     } finally {
       process.env.VITE_NIMI_TIKTOK_CLIENT_ID = previousClientId;
     }

@@ -35,6 +35,12 @@ Discipline.
 
 ### Changed
 
+- **Breaking (0.x):** Renderer-facing OAuth token exchange is removed from the
+  standard shell, Kit OAuth bridge, and public token-bearing types. OAuth code
+  listeners remain available; exchange and custody must stay in an authorized
+  non-renderer owner (Realm/Runtime, or Desktop native host for managed
+  connectors).
+
 - **Breaking (0.x):** Realm OAuth login/link helpers and Kit auth adapters now
   accept the canonical provider-specific credential object. Google requires a
   Google Identity Services ID token; TikTok carries its authorization code,

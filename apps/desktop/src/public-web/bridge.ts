@@ -38,6 +38,4 @@ export type {
   OpenExternalUrlResult,
   OauthListenForCodePayload,
   OauthListenForCodeResult,
-  OauthTokenExchangePayload,
-  OauthTokenExchangeResult,
 } from '@nimiplatform/kit/core/oauth';

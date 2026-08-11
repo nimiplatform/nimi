@@ -333,7 +333,6 @@ describe('Electron local-app carrier behavior', () => {
       'nimi.shell.runtime.unary',
       'nimi.shell.runtimeLifecycle.restart',
       'nimi.shell.auth.sessionLoad',
-      'nimi.shell.oauth.tokenExchange',
       'nimi.shell.fileDialog.open',
       'nimi.shell.desktopPrivate.productControl',
     ]) {
@@ -342,6 +341,17 @@ describe('Electron local-app carrier behavior', () => {
         code: 'capability-unavailable',
       });
     }
+  });
+
+  it('rejects the retired renderer OAuth token exchange command', async () => {
+    const { ipcMain, event } = createBridge();
+    await expect(invokeBridge(ipcMain, event, {
+      command: 'nimi.shell.oauth.tokenExchange',
+      payload: {},
+    })).rejects.toMatchObject({
+      code: 'invalid-payload',
+      reasonCode: 'unsupported-electron-shell-command',
+    });
   });
 
   it('rejects renderer-supplied protected authority material', async () => {

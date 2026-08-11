@@ -10,12 +10,14 @@ import {
 } from '../src/shell/renderer/features/runtime-config/runtime-config-connector-sdk-service';
 import {
   clearDesktopNimiClientSession,
+  getDesktopAccountProductClient,
   getDesktopConnectorAdminClient,
   setDesktopNimiClientSessionForTests,
   type DesktopNimiClientSession,
 } from '../src/shell/renderer/infra/sdk/desktop-nimi-client-session';
 import { ReasonCode } from '@nimiplatform/sdk/types';
 import { Runtime } from '@nimiplatform/sdk/runtime';
+import { ConnectorAuthKind } from '@nimiplatform/sdk/runtime/generated';
 import { type ProviderCatalogEntry } from '@nimiplatform/sdk/runtime/wire-types';
 import {
   CreateConnectorResponse,
@@ -727,68 +729,67 @@ test('sdkListConnectors propagates AUTH_TOKEN_INVALID without refresh or anonymo
   }
 });
 
-test('sdkCreateConnector emits oauth-managed payload when selected auth shape requires it', async () => {
+test('renderer connector service rejects managed OAuth credential custody', async () => {
   clearRuntimeConnectorSdkCaches();
   const calls: ElectronInvokeCall[] = [];
   const restoreElectron = installElectronRuntime(calls);
   try {
-    await sdkCreateConnector({
-      provider: 'openai_codex',
-      endpoint: 'https://chatgpt.com/backend-api/codex',
-      label: 'Codex Connector',
-      credentialValue: 'codex-access-token',
-      authMode: 'oauth_managed',
-      providerAuthProfile: 'openai_codex',
-    });
-
-    const createCall = calls.find((call) => (
-      call.command === 'nimi.shell.runtime.unary'
-      && call.payload.methodId === '/nimi.runtime.v1.RuntimeConnectorService/CreateConnector'
-    ));
-    assert.ok(createCall, 'expected runtime createConnector call');
-    assert.equal(createCall?.payload.methodId, '/nimi.runtime.v1.RuntimeConnectorService/CreateConnector');
-    const requestBytesBase64 = String(createCall?.payload.requestBytesBase64 || '').trim();
-    assert.ok(requestBytesBase64.length > 0);
-    const requestText = Buffer.from(requestBytesBase64, 'base64').toString('utf8');
-    assert.equal(requestText.includes('openai_codex'), true);
-    assert.equal(requestText.includes('https://chatgpt.com/backend-api/codex'), true);
-    assert.equal(requestText.includes(JSON.stringify({ access_token: 'codex-access-token' })), true);
+    await assert.rejects(
+      () => sdkCreateConnector({
+        provider: 'openai_codex',
+        endpoint: 'https://chatgpt.com/backend-api/codex',
+        label: 'Codex Connector',
+        credentialValue: 'stale-access-token',
+        credentialJson: '{"access_token":"must-not-cross"}',
+        authMode: 'oauth_managed',
+        providerAuthProfile: 'openai_codex',
+      } as never),
+      /requires the Desktop native host/,
+    );
+    assert.equal(calls.length, 0);
   } finally {
     restoreElectron();
   }
 });
 
-test('sdkCreateConnector preserves explicit credentialJson for oauth-managed providers', async () => {
+test('desktop renderer connector admin rejects managed credential carriers before Runtime', async () => {
   clearRuntimeConnectorSdkCaches();
   const calls: ElectronInvokeCall[] = [];
   const restoreElectron = installElectronRuntime(calls);
   try {
-    await sdkCreateConnector({
-      provider: 'openai_codex',
-      endpoint: 'https://chatgpt.com/backend-api/codex',
-      label: 'Codex Connector',
-      credentialValue: 'stale-access-token',
-      credentialJson: JSON.stringify({
-        access_token: 'fresh-access-token',
-        refresh_token: 'refresh-token',
-        auth_mode: 'chatgpt',
-        source: 'device-code',
-      }),
-      authMode: 'oauth_managed',
-      providerAuthProfile: 'openai_codex',
-    });
+    const connectorAdmin = getDesktopConnectorAdminClient();
+    await assert.rejects(
+      () => connectorAdmin.createConnector({
+        provider: 'openai_codex',
+        endpoint: 'https://chatgpt.com/backend-api/codex',
+        label: 'Codex Connector',
+        authKind: ConnectorAuthKind.OAUTH_MANAGED,
+        providerAuthProfile: 'openai_codex',
+        credentialJson: '{"access_token":"must-not-cross"}',
+      } as never),
+      /requires the Desktop native host/,
+    );
+    await assert.rejects(
+      () => connectorAdmin.updateConnector({
+        connectorId: 'connector-codex',
+        authKind: ConnectorAuthKind.OAUTH_MANAGED,
+        providerAuthProfile: 'openai_codex',
+        credentialJson: '{"access_token":"must-not-cross"}',
+      } as never),
+      /requires the Desktop native host/,
+    );
+    assert.equal(calls.length, 0);
+  } finally {
+    restoreElectron();
+  }
+});
 
-    const createCall = calls.find((call) => (
-      call.command === 'nimi.shell.runtime.unary'
-      && call.payload.methodId === '/nimi.runtime.v1.RuntimeConnectorService/CreateConnector'
-    ));
-    assert.ok(createCall, 'expected runtime createConnector call');
-    const requestBytesBase64 = String(createCall?.payload.requestBytesBase64 || '').trim();
-    assert.ok(requestBytesBase64.length > 0);
-    const requestText = Buffer.from(requestBytesBase64, 'base64').toString('utf8');
-    assert.equal(requestText.includes('fresh-access-token'), true);
-    assert.equal(requestText.includes('refresh-token'), true);
-    assert.equal(requestText.includes('stale-access-token'), false);
+test('desktop renderer account product projection does not expose raw connector mutation', () => {
+  const calls: ElectronInvokeCall[] = [];
+  const restoreElectron = installElectronRuntime(calls);
+  try {
+    assert.equal(Object.hasOwn(getDesktopAccountProductClient(), 'connectors'), false);
+    assert.equal(calls.length, 0);
   } finally {
     restoreElectron();
   }

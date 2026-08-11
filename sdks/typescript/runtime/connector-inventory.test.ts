@@ -172,3 +172,33 @@ test('Nimi Runtime connector test fails closed on negative Runtime ack', async (
     },
   );
 });
+
+test('Nimi Runtime connector inventory rejects managed OAuth credential carriers', async () => {
+  let createCalls = 0;
+  const client = createNimiRuntimeConnectorInventoryClient({
+    connectors: {
+      async listProviderCatalog() { return { providers: [] }; },
+      async listConnectors() { return { connectors: [], nextPageToken: '' }; },
+      async createConnector() {
+        createCalls += 1;
+        return { connector: undefined };
+      },
+      async updateConnector() { return { connector: undefined }; },
+      async deleteConnector() {},
+      async testConnector() { return { ack: { ok: true, reasonCode: 0, actionHint: '' } }; },
+      async listConnectorModels() { return { models: [], nextPageToken: '' }; },
+    },
+  });
+
+  await assert.rejects(
+    () => client.createConnector({
+      provider: 'openai_codex',
+      endpoint: 'https://chatgpt.com/backend-api/codex',
+      label: 'Codex',
+      authMode: 'oauth_managed',
+      credentialJson: '{"access_token":"must-not-cross"}',
+    } as never),
+    /authorized non-renderer host/,
+  );
+  assert.equal(createCalls, 0);
+});

@@ -23,13 +23,52 @@ export function electronRuntimeCommandPayload(
 
 export function parseElectronRuntimeUnaryRequest(payload: Readonly<Record<string, unknown>>): ElectronRuntimeBridgeUnaryRequest {
   assertNoRendererSensitiveRuntimeBridgePayload(payload);
+  if ('cancel' in payload) {
+    throw invalidUnaryCancellationPayload();
+  }
   return {
     methodId: normalizeGrpcMethodId(payload.methodId),
+    requestId: parseOptionalRuntimeUnaryRequestId(payload.requestId),
     requestBytesBase64: normalizeBase64Text(payload.requestBytesBase64, 'requestBytesBase64'),
     productIntent: normalizeText(payload.productIntent) || undefined,
     metadata: parseRuntimeBridgeMetadata(payload.metadata),
     timeoutMs: parseOptionalPositiveNumber(payload.timeoutMs),
   };
+}
+
+export function parseElectronRuntimeUnaryCancelRequest(
+  payload: Readonly<Record<string, unknown>>,
+): { readonly requestId: string } {
+  if (payload.cancel !== true
+    || Object.keys(payload).length !== 2
+    || !Object.prototype.hasOwnProperty.call(payload, 'requestId')) {
+    throw invalidUnaryCancellationPayload();
+  }
+  const requestId = parseOptionalRuntimeUnaryRequestId(payload.requestId);
+  if (!requestId) {
+    throw invalidUnaryCancellationPayload();
+  }
+  return { requestId };
+}
+
+function parseOptionalRuntimeUnaryRequestId(value: unknown): string | undefined {
+  if (value === undefined || value === null || value === '') {
+    return undefined;
+  }
+  const requestId = normalizeRequiredToken(value, 'requestId');
+  if (requestId.length > 160 || !/^[A-Za-z0-9][A-Za-z0-9._:-]*$/u.test(requestId)) {
+    throw invalidUnaryCancellationPayload();
+  }
+  return requestId;
+}
+
+function invalidUnaryCancellationPayload(): NimiElectronShellHostError {
+  return new NimiElectronShellHostError({
+    code: 'invalid-payload',
+    message: 'Electron Runtime unary cancellation requires an exact bounded request identity',
+    reasonCode: 'electron-runtime-unary-cancellation-invalid',
+    actionHint: 'use_original_runtime_unary_request_id',
+  });
 }
 
 export function parseElectronRuntimeStreamOpenRequest(

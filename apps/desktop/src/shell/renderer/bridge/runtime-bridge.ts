@@ -12,6 +12,7 @@ import {
 } from './runtime-bridge/runtime-daemon';
 import { getSystemResourceSnapshot } from './runtime-bridge/system-resources';
 import { proxyHttp } from './runtime-bridge/http';
+import { desktopManagedConnectorCredentialAcquisitionHost } from './runtime-bridge/connector-auth-acquisition';
 import {
   admitProductReadyForUse,
   ensureProductControlRecordCreated,
@@ -34,19 +35,6 @@ import {
   openExternalUrl,
   startWindowDrag,
 } from '@nimiplatform/kit/shell/renderer/bridge';
-import type {
-  OauthTokenExchangePayload,
-  OauthTokenExchangeResult,
-} from '@nimiplatform/kit/core/oauth';
-
-async function oauthTokenExchange(
-  _payload: OauthTokenExchangePayload,
-): Promise<OauthTokenExchangeResult> {
-  throw new Error(
-    'Desktop OAuth token exchange is unavailable: Runtime owns connector and account code exchange.',
-  );
-}
-
 export type {
   NimiProductControlRecord,
   NimiProductControlRecordProjection,
@@ -79,8 +67,6 @@ export type {
 
 export type {
   OpenExternalUrlResult,
-  OauthTokenExchangePayload,
-  OauthTokenExchangeResult,
   OauthListenForCodePayload,
   OauthListenForCodeResult,
 } from '@nimiplatform/kit/core/oauth';
@@ -103,6 +89,7 @@ export {
   startRuntimeBridge,
   restartRuntimeBridge,
   proxyHttp,
+  desktopManagedConnectorCredentialAcquisitionHost,
   getRuntimeDefaults,
   getProductControlRecord,
   getProductControlSelectedDataRoot,
@@ -115,7 +102,6 @@ export {
   exportDesktopLogs,
   getDesktopStorageDirs,
   oauthListenForCode,
-  oauthTokenExchange,
   focusMainWindow,
   openExternalUrl,
   startWindowDrag,

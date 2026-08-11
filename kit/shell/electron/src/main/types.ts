@@ -35,6 +35,7 @@ export type ElectronRuntimeBridgeAppSession = {
 
 export type ElectronRuntimeBridgeUnaryRequest = {
   readonly methodId: string;
+  readonly requestId?: string;
   readonly requestBytesBase64: string;
   readonly productIntent?: string;
   readonly metadata?: ElectronRuntimeBridgeMetadata;
@@ -103,6 +104,7 @@ export type RuntimeGrpcBridgeUnaryRequest = {
   readonly requestBytes: Uint8Array;
   readonly metadata: Readonly<Record<string, string>>;
   readonly timeoutMs?: number;
+  readonly signal?: AbortSignal;
 };
 
 export type RuntimeGrpcBridgeUnaryResponse = {
@@ -135,6 +137,7 @@ export type NimiElectronCommandHandlerInput = {
   readonly event: NimiElectronIpcMainInvokeEvent;
   readonly appId: string;
   readonly runtimeEndpoint: string;
+  readonly sendEvent?: (eventName: string, payload: unknown) => void;
 };
 
 export type NimiElectronCommandHandler = (
@@ -183,21 +186,6 @@ export type NimiElectronRuntimeTrustedCallerInput = {
   readonly deviceId?: string;
   readonly scopes?: readonly string[];
 };
-
-export type NimiElectronOAuthTokenExchangeResponse = {
-  readonly ok: boolean;
-  readonly status: number;
-  readonly text: () => Promise<string>;
-};
-
-export type NimiElectronOAuthTokenExchangeFetch = (
-  url: string,
-  init: {
-    readonly method: 'POST';
-    readonly headers: Readonly<Record<string, string>>;
-    readonly body: string;
-  },
-) => Promise<NimiElectronOAuthTokenExchangeResponse>;
 
 export type NimiElectronDesktopOpenFetchResponse = {
   readonly ok?: boolean;
@@ -354,7 +342,6 @@ export type NimiElectronStandardShellHost = {
   readonly focusMainWindow?: (input: NimiElectronShellUiCommandInput) => Promise<void> | void;
   readonly localAgentIdentity?: NimiElectronLocalAgentIdentityInput;
   readonly runtimeTrustedCaller?: NimiElectronRuntimeTrustedCallerInput;
-  readonly oauthTokenExchangeFetch?: NimiElectronOAuthTokenExchangeFetch;
   readonly desktopOpen?: NimiElectronDesktopOpenHost;
 };
 

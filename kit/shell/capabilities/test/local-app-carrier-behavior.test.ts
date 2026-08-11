@@ -85,7 +85,6 @@ describe('local-app public capability behavior', () => {
       'runtime.streamOpen',
       'runtime-lifecycle.status',
       'auth.sessionLoad',
-      'oauth.tokenExchange',
       'platform-projection.get',
       'file-dialog.open',
       'desktop-private.product-control',

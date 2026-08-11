@@ -3,6 +3,7 @@ import {
   createElectronCapabilityUnavailableError,
   createElectronExternalDaemonRequiredError,
   createNimiElectronStandardApplicationMenuTemplate,
+  exchangeElectronOauthTokenInHost,
   getElectronStandardShellCapabilityIds,
   registerNimiElectronRuntimeBridge,
   type ElectronRuntimeBridgeTrustedMetadataProvider,
@@ -346,45 +347,25 @@ describe('registerNimiElectronRuntimeBridge', () => {
     });
   });
 
-  it('implements OAuth token exchange through fixed provider endpoints', async () => {
+  it('keeps fixed-provider OAuth token exchange inside the native host', async () => {
     const requests: Array<{ url: string; body: string }> = [];
-    const ipcMain = new FakeIpcMain();
-    registerNimiElectronRuntimeBridge({
-      appId: 'nimi.tester',
-      runtimeEndpoint: '127.0.0.1:46371',
-      allowedOrigins: ['http://localhost:1430'],
-      ipcMain,
-      createGrpcClient: async () => {
-        throw new Error('not used');
-      },
-      standardShellHost: {
-        allowAllStandardShellCommands: true,
-        oauthTokenExchangeFetch: async (url, init) => {
-          requests.push({ url, body: String(init.body ?? '') });
-          return new Response(JSON.stringify({
-            access_token: 'access-token',
-            refresh_token: 'refresh-token',
-            token_type: 'Bearer',
-            expires_in: 3600,
-            scope: 'openid profile',
-          }), { status: 200, headers: { 'content-type': 'application/json' } });
-        },
-      },
+    const result = await exchangeElectronOauthTokenInHost({
+      provider: 'CODEX',
+      clientId: 'client-1',
+      code: 'code-1',
+      codeVerifier: 'verifier-1',
+      redirectUri: 'http://127.0.0.1:4100/oauth/callback',
+    }, async (url, init) => {
+      requests.push({ url, body: init.body });
+      return new Response(JSON.stringify({
+        access_token: 'access-token',
+        refresh_token: 'refresh-token',
+        token_type: 'Bearer',
+        expires_in: 3600,
+        scope: 'openid profile',
+      }), { status: 200, headers: { 'content-type': 'application/json' } });
     });
-    const { event } = createInvokeEvent();
-
-    await expect(invokeBridge(ipcMain, event, {
-      command: NIMI_STANDARD_SHELL_COMMANDS['oauth.tokenExchange'],
-      payload: {
-        payload: {
-          provider: 'CODEX',
-          clientId: 'client-1',
-          code: 'code-1',
-          codeVerifier: 'verifier-1',
-          redirectUri: 'http://127.0.0.1:4100/oauth/callback',
-        },
-      },
-    })).resolves.toMatchObject({
+    expect(result).toMatchObject({
       accessToken: 'access-token',
       refreshToken: 'refresh-token',
       tokenType: 'Bearer',
@@ -396,39 +377,26 @@ describe('registerNimiElectronRuntimeBridge', () => {
       body: 'grant_type=authorization_code&client_id=client-1&code=code-1&code_verifier=verifier-1&redirect_uri=http%3A%2F%2F127.0.0.1%3A4100%2Foauth%2Fcallback',
     }]);
 
-    await expect(invokeBridge(ipcMain, event, {
-      command: NIMI_STANDARD_SHELL_COMMANDS['oauth.tokenExchange'],
-      payload: {
-        payload: {
-          provider: 'TWITTER',
-          clientId: 'client-1',
-          code: 'code-1',
-        },
+    const ipcMain = new FakeIpcMain();
+    registerNimiElectronRuntimeBridge({
+      appId: 'nimi.tester',
+      runtimeEndpoint: '127.0.0.1:46371',
+      allowedOrigins: ['http://localhost:1430'],
+      ipcMain,
+      createGrpcClient: async () => {
+        throw new Error('not used');
       },
-    })).rejects.toMatchObject({
-      code: 'invalid-payload',
-      reasonCode: 'electron-oauth-token-provider-not-admitted',
+      standardShellHost: {
+        allowAllStandardShellCommands: true,
+      },
     });
+    const { event } = createInvokeEvent();
 
     await expect(invokeBridge(ipcMain, event, {
-      command: NIMI_STANDARD_SHELL_COMMANDS['oauth.tokenExchange'],
+      command: 'nimi.shell.oauth.tokenExchange',
       payload: {
         payload: {
-          provider: 'TIKTOK',
-          clientId: 'client-1',
-          code: 'code-1',
-        },
-      },
-    })).rejects.toMatchObject({
-      code: 'invalid-payload',
-      reasonCode: 'electron-oauth-token-provider-not-admitted',
-    });
-
-    await expect(invokeBridge(ipcMain, event, {
-      command: NIMI_STANDARD_SHELL_COMMANDS['oauth.tokenExchange'],
-      payload: {
-        payload: {
-          provider: 'https://evil.example.test/token',
+          provider: 'CODEX',
           clientId: 'client-1',
           code: 'code-1',
           codeVerifier: 'verifier-1',
@@ -437,8 +405,58 @@ describe('registerNimiElectronRuntimeBridge', () => {
       },
     })).rejects.toMatchObject({
       code: 'invalid-payload',
-      reasonCode: 'electron-oauth-token-provider-not-admitted',
+      reasonCode: 'unsupported-electron-shell-command',
     });
+    expect(requests).toHaveLength(1);
+  });
+
+  it('propagates cancellation into the native-host OAuth token exchange request', async () => {
+    const controller = new AbortController();
+    let observedSignal: AbortSignal | undefined;
+    const exchange = exchangeElectronOauthTokenInHost({
+      provider: 'CODEX',
+      clientId: 'client-1',
+      code: 'code-1',
+      codeVerifier: 'verifier-1',
+      redirectUri: 'http://127.0.0.1:4100/oauth/callback',
+    }, async (_url, init) => {
+      observedSignal = init.signal;
+      return new Promise<never>((_resolve, reject) => {
+        init.signal?.addEventListener('abort', () => reject(init.signal?.reason), { once: true });
+      });
+    }, controller.signal);
+    controller.abort(new DOMException('cancel token exchange', 'AbortError'));
+    await expect(exchange).rejects.toMatchObject({ name: 'AbortError' });
+    expect(observedSignal).toBe(controller.signal);
+  });
+
+  it('never projects token-exchange response bodies through native-host errors', async () => {
+    const secret = 'managed-access-token-should-remain-host-private';
+    const responses = [
+      new Response(secret, { status: 200 }),
+      new Response(JSON.stringify({ error_description: secret, ordinary: secret }), { status: 401 }),
+    ];
+    for (const response of responses) {
+      let captured: unknown;
+      try {
+        await exchangeElectronOauthTokenInHost({
+          provider: 'CODEX',
+          clientId: 'client-1',
+          code: 'code-1',
+          codeVerifier: 'verifier-1',
+          redirectUri: 'http://127.0.0.1:4100/oauth/callback',
+        }, async () => response);
+      } catch (error) {
+        captured = error;
+      }
+      expect(captured).toMatchObject({
+        reasonCode: response.ok
+          ? 'electron-oauth-token-response-invalid-json'
+          : 'electron-oauth-token-exchange-http-failed',
+      });
+      const projected = captured as { message?: string; details?: unknown };
+      expect(`${projected.message ?? ''} ${JSON.stringify(projected.details ?? {})}`).not.toContain(secret);
+    }
   });
 
   it('dispatches standard shell UI commands through host-owned callbacks', async () => {

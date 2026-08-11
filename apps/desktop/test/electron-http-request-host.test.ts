@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { CONNECTOR_AUTH_ACQUISITION_PROFILES } from '@nimiplatform/sdk/runtime';
+import { CONNECTOR_AUTH_ACQUISITION_PROFILES } from '@nimiplatform/sdk/runtime/host';
 import {
   createDesktopElectronHttpHost,
   type DesktopElectronHttpHost,
@@ -19,6 +19,17 @@ function invoke(
   return host.commandHandlers.http_request({
     payload: { payload: request },
   });
+}
+
+function invokeConnectorAuth(
+  host: DesktopElectronHttpHost,
+  request: Readonly<Record<string, unknown>>,
+  signal?: AbortSignal,
+) {
+  return host.connectorAuthRequest(
+    request as Parameters<DesktopElectronHttpHost['connectorAuthRequest']>[0],
+    signal,
+  );
 }
 
 async function expectReason(
@@ -152,21 +163,21 @@ test('Electron HTTP host uses the SDK acquisition profile for exact OAuth POST a
     },
   });
 
-  await invoke(host, {
+  await invokeConnectorAuth(host, {
     url: profile.deviceAuthorizationUrl,
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: '{"client_id":"fixture"}',
-    connectorAuthProfileId: profile.profileId,
-    connectorAuthPurpose: 'device_authorization',
+    profileId: profile.profileId,
+    purpose: 'device_authorization',
   });
-  await invoke(host, {
+  await invokeConnectorAuth(host, {
     url: profile.deviceTokenUrl,
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: '{"device_auth_id":"fixture"}',
-    connectorAuthProfileId: profile.profileId,
-    connectorAuthPurpose: 'device_token',
+    profileId: profile.profileId,
+    purpose: 'device_token',
   });
   assert.deepEqual(sent, [
     profile.deviceAuthorizationUrl,
@@ -177,26 +188,26 @@ test('Electron HTTP host uses the SDK acquisition profile for exact OAuth POST a
     {
       url: profile.deviceAuthorizationUrl,
       method: 'GET',
-      connectorAuthProfileId: profile.profileId,
-      connectorAuthPurpose: 'device_authorization',
+      profileId: profile.profileId,
+      purpose: 'device_authorization',
     },
     {
       url: profile.deviceAuthorizationUrl,
       method: 'POST',
-      connectorAuthProfileId: profile.profileId,
-      connectorAuthPurpose: 'device_token',
+      profileId: profile.profileId,
+      purpose: 'device_token',
     },
     {
       url: `${profile.deviceAuthorizationUrl}?redirect=1`,
       method: 'POST',
-      connectorAuthProfileId: profile.profileId,
-      connectorAuthPurpose: 'device_authorization',
+      profileId: profile.profileId,
+      purpose: 'device_authorization',
     },
     {
       url: profile.deviceAuthorizationUrl,
       method: 'POST',
-      connectorAuthProfileId: 'unknown-profile',
-      connectorAuthPurpose: 'device_authorization',
+      profileId: 'unknown-profile',
+      purpose: 'device_authorization',
     },
     {
       url: profile.deviceAuthorizationUrl,
@@ -204,10 +215,8 @@ test('Electron HTTP host uses the SDK acquisition profile for exact OAuth POST a
     },
   ]) {
     await expectReason(
-      invoke(host, request),
-      request.connectorAuthProfileId === undefined
-        ? 'DESKTOP_HTTP_ORIGIN_FORBIDDEN'
-        : 'DESKTOP_HTTP_CONNECTOR_AUTH_NOT_ADMITTED',
+      invokeConnectorAuth(host, request),
+      'DESKTOP_HTTP_CONNECTOR_AUTH_NOT_ADMITTED',
     );
   }
   assert.equal(sent.length, 2);
@@ -223,6 +232,14 @@ test('Electron HTTP host rejects unknown payload fields and sensitive header ove
     },
   });
 
+  await expectReason(
+    invoke(host, {
+      url: 'https://realm.nimi.ai/api/me',
+      connectorAuthProfileId: 'openai_codex',
+      connectorAuthPurpose: 'device_authorization',
+    }),
+    'DESKTOP_HTTP_PAYLOAD_INVALID',
+  );
   await expectReason(
     host.commandHandlers.http_request({
       payload: {
@@ -401,17 +418,44 @@ test('Electron HTTP host classifies Realm and acquisition transport failures', a
   const profile = CONNECTOR_AUTH_ACQUISITION_PROFILES.openai_codex;
   assert.ok(profile);
   const acquisition = await expectReason(
-    invoke(host, {
+    invokeConnectorAuth(host, {
       url: profile.deviceTokenUrl,
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: '{}',
-      connectorAuthProfileId: profile.profileId,
-      connectorAuthPurpose: 'device_token',
+      profileId: profile.profileId,
+      purpose: 'device_token',
     }),
     'DESKTOP_HTTP_SEND_FAILED',
   );
   assert.equal(acquisition.code, 'host-internal-error');
   assert.equal(acquisition.actionHint, 'retry_or_check_network');
   assert.equal(acquisition.retryable, true);
+});
+
+test('Electron HTTP host propagates managed connector cancellation into provider fetch', async () => {
+  let observedSignal: AbortSignal | undefined;
+  const host = createDesktopElectronHttpHost({
+    realmBaseUrl: 'https://realm.nimi.ai',
+    fetch: async (_input, init) => {
+      observedSignal = init?.signal ?? undefined;
+      return new Promise<never>((_resolve, reject) => {
+        observedSignal?.addEventListener('abort', () => reject(observedSignal?.reason), { once: true });
+      });
+    },
+  });
+  const profile = CONNECTOR_AUTH_ACQUISITION_PROFILES.openai_codex;
+  assert.ok(profile);
+  const controller = new AbortController();
+  const request = invokeConnectorAuth(host, {
+    url: profile.deviceTokenUrl,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: '{}',
+    profileId: profile.profileId,
+    purpose: 'device_token',
+  }, controller.signal);
+  controller.abort(new DOMException('cancel provider request', 'AbortError'));
+  await expectReason(request, 'DESKTOP_HTTP_SEND_FAILED');
+  assert.equal(observedSignal?.aborted, true);
 });

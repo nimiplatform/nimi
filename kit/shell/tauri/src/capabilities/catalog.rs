@@ -142,15 +142,6 @@ pub const STANDARD_SHELL_CAPABILITIES: &[StandardShellCapability] = &[
                 ],
             },
             StandardShellOperation {
-                id: "tokenExchange",
-                command: "nimi.shell.oauth.tokenExchange",
-                negative_states: &[
-                    "capability-unavailable",
-                    "invalid-payload",
-                    "host-internal-error",
-                ],
-            },
-            StandardShellOperation {
                 id: "listenForCode",
                 command: "nimi.shell.oauth.listenForCode",
                 negative_states: &[

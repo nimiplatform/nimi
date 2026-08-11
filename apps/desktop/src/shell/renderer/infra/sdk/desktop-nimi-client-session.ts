@@ -18,7 +18,10 @@ import {
   type NimiRuntimeAgentTurnsRuntime,
   type RuntimeAccountModule,
 } from '@nimiplatform/sdk/runtime';
-import { type RuntimeTypedCallOptions } from '@nimiplatform/sdk/runtime/generated';
+import {
+  ConnectorAuthKind,
+  type RuntimeTypedCallOptions,
+} from '@nimiplatform/sdk/runtime/generated';
 import { Realm } from '@nimiplatform/sdk/realm';
 import { createNimiError, ReasonCode } from '@nimiplatform/sdk/types';
 import {
@@ -242,12 +245,26 @@ export function getDesktopMachineProductClient(): NimiDesktopMachineProductRunti
   return getDesktopRuntimeRealmSession().runtimeClients.machineProduct;
 }
 
-export function getDesktopAccountProductClient(): NimiDesktopAccountProductRuntimeClient {
-  return getDesktopRuntimeRealmSession().runtimeClients.accountProduct;
+export type DesktopRendererAccountProductClient = Omit<
+  NimiDesktopAccountProductRuntimeClient,
+  'connectors'
+>;
+
+export function getDesktopAccountProductClient(): DesktopRendererAccountProductClient {
+  const client = getDesktopRuntimeRealmSession().runtimeClients.accountProduct;
+  return Object.freeze({
+    aiConfig: client.aiConfig,
+    connectorGrants: client.connectorGrants,
+    agents: client.agents,
+    appMessages: client.appMessages,
+    artifacts: client.artifacts,
+    materializeRealmSource: client.materializeRealmSource,
+  });
 }
 
 export function getDesktopConnectorAdminClient() {
   const clients = getDesktopRuntimeRealmSession().runtimeClients;
+  const connectorClient = clients.accountProduct.connectors;
   return {
     listProviderCatalog: clients.machineProduct.connectors.listProviderCatalog,
     listModelCatalogProviders: clients.accountProduct.connectors.listModelCatalogProviders,
@@ -258,8 +275,14 @@ export function getDesktopConnectorAdminClient() {
     upsertCatalogModelOverlay: clients.accountProduct.connectors.upsertCatalogModelOverlay,
     deleteCatalogModelOverlay: clients.accountProduct.connectors.deleteCatalogModelOverlay,
     listConnectors: clients.accountProduct.connectors.listConnectors,
-    createConnector: clients.accountProduct.connectors.createConnector,
-    updateConnector: clients.accountProduct.connectors.updateConnector,
+    createConnector: async (...args: Parameters<typeof connectorClient.createConnector>) => {
+      assertDesktopRendererConnectorMutation(args[0]);
+      return connectorClient.createConnector(...args);
+    },
+    updateConnector: async (...args: Parameters<typeof connectorClient.updateConnector>) => {
+      assertDesktopRendererConnectorMutation(args[0]);
+      return connectorClient.updateConnector(...args);
+    },
     deleteConnector: clients.accountProduct.connectors.deleteConnector,
     createConnectorGrant: clients.accountProduct.connectors.createConnectorGrant,
     listConnectorGrants: clients.accountProduct.connectors.listConnectorGrants,
@@ -267,6 +290,28 @@ export function getDesktopConnectorAdminClient() {
     testConnector: clients.accountProduct.connectors.testConnector,
     listConnectorModels: clients.accountProduct.connectors.listConnectorModels,
   };
+}
+
+function assertDesktopRendererConnectorMutation(input: Readonly<{
+  readonly authKind?: unknown;
+  readonly providerAuthProfile?: unknown;
+  readonly credentialJson?: unknown;
+}>): void {
+  const authKind = input.authKind;
+  const hasManagedAuthKind = authKind !== undefined
+    && authKind !== ConnectorAuthKind.UNSPECIFIED
+    && authKind !== ConnectorAuthKind.API_KEY;
+  const hasProviderAuthProfile = input.providerAuthProfile !== undefined
+    && input.providerAuthProfile !== '';
+  const hasCredentialJson = input.credentialJson !== undefined
+    && input.credentialJson !== '';
+  if (!hasManagedAuthKind && !hasProviderAuthProfile && !hasCredentialJson) return;
+  throw createNimiError({
+    message: 'Managed OAuth credential custody requires the Desktop native host.',
+    reasonCode: ReasonCode.AUTH_UNSUPPORTED_PROOF_TYPE,
+    actionHint: 'acquire_managed_connector_credential_through_desktop_host',
+    source: 'runtime',
+  });
 }
 
 export function getDesktopLocalAssetAdminClient(): NimiDesktopMachineProductRuntimeClient['local'] {

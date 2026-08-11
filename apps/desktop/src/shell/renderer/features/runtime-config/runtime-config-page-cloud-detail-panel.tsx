@@ -39,6 +39,7 @@ type CloudConnectorDetailPanelProps = {
   canStartCodexOAuth: boolean;
   codexOAuthBusy: boolean;
   codexOAuthPending: CodexOAuthPendingState | null;
+  connectorConfigurationLocked: boolean;
   connectorLabelDraft: string;
   isCodexManagedConnector: boolean;
   isDraft: boolean;
@@ -76,6 +77,7 @@ export function CloudConnectorDetailPanel(props: CloudConnectorDetailPanelProps)
     canStartCodexOAuth,
     codexOAuthBusy,
     codexOAuthPending,
+    connectorConfigurationLocked,
     connectorLabelDraft,
     isCodexManagedConnector,
     isDraft,
@@ -106,7 +108,7 @@ export function CloudConnectorDetailPanel(props: CloudConnectorDetailPanelProps)
                 onChange={props.onConnectorLabelDraftChange}
                 onBlur={props.onCommitConnectorLabelDraft}
                 placeholder={t('runtimeConfig.cloud.connectorNamePlaceholder', { defaultValue: 'My API Connector' })}
-                disabled={isRuntimeSystem}
+                disabled={isRuntimeSystem || connectorConfigurationLocked}
                 icon={<ServerIcon />}
               />
               <div>
@@ -131,7 +133,7 @@ export function CloudConnectorDetailPanel(props: CloudConnectorDetailPanelProps)
                 value={selectedConnector.endpoint}
                 onChange={props.onChangeConnectorEndpoint}
                 placeholder={selectedProviderCatalogEntry?.defaultEndpoint || DEFAULT_CONNECTOR_ENDPOINT_V11}
-                disabled={isRuntimeSystem}
+                disabled={isRuntimeSystem || connectorConfigurationLocked}
               />
               {isRuntimeSystem ? (
                 <div>
@@ -146,17 +148,28 @@ export function CloudConnectorDetailPanel(props: CloudConnectorDetailPanelProps)
                     </p>
                   </div>
                 </div>
+              ) : selectedConnector.authMode === 'oauth_managed' ? (
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium text-[var(--nimi-text-secondary)]">
+                    {t('runtimeConfig.cloud.managedOAuthCredential', { defaultValue: 'Managed OAuth credential' })}
+                  </label>
+                  <div className="rounded-xl bg-[color-mix(in_srgb,var(--nimi-surface-card)_90%,var(--nimi-surface-panel))] px-4 py-3 ring-1 ring-[var(--nimi-border-subtle)]">
+                    <p className="text-xs text-[var(--nimi-text-muted)]">
+                      {t('runtimeConfig.cloud.managedOAuthHostOwned', {
+                        defaultValue: 'Use the native sign-in flow below. OAuth tokens are never shown or entered here.',
+                      })}
+                    </p>
+                  </div>
+                </div>
               ) : (
                 <Input
-                  label={selectedConnector.authMode === 'oauth_managed'
-                    ? t('runtimeConfig.cloud.oauthTokenRequired', { defaultValue: 'Managed OAuth Token (required)' })
-                    : isDraft
+                  label={isDraft
                       ? t('runtimeConfig.cloud.apiKeyRequired', { defaultValue: 'API Key (required)' })
                       : t('runtimeConfig.cloud.sessionApiKey', { defaultValue: 'Session API Key' })}
                   value={tokenDraft}
                   onChange={props.setTokenDraft}
                   type={model.showCloudApiKey ? 'text' : 'password'}
-                  placeholder={selectedConnector.authMode === 'oauth_managed' ? 'access token' : 'sk-...'}
+                  placeholder="sk-..."
                   icon={<KeyIcon />}
                   rightAccessory={(
                     <button
@@ -206,7 +219,7 @@ export function CloudConnectorDetailPanel(props: CloudConnectorDetailPanelProps)
             ) : null}
 
             <div className="flex flex-wrap items-center gap-2 pt-2">
-              {!isSystemOwned && (
+              {!isSystemOwned && selectedConnector.authMode !== 'oauth_managed' && (
                 <Button
                   variant="primary"
                   size="sm"
@@ -218,9 +231,7 @@ export function CloudConnectorDetailPanel(props: CloudConnectorDetailPanelProps)
                     ? t('runtimeConfig.cloud.saving', { defaultValue: 'Saving...' })
                     : isDraft
                       ? t('runtimeConfig.cloud.createConnector', { defaultValue: 'Create Connector' })
-                      : selectedConnector.authMode === 'oauth_managed'
-                        ? t('runtimeConfig.cloud.saveManagedToken', { defaultValue: 'Save Token' })
-                        : t('runtimeConfig.cloud.saveApiKey', { defaultValue: 'Save API Key' })}
+                      : t('runtimeConfig.cloud.saveApiKey', { defaultValue: 'Save API Key' })}
                 </Button>
               )}
               {isCodexManagedConnector ? (

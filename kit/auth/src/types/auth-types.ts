@@ -3,7 +3,7 @@ import type {
   MouseEvent as ReactMouseEvent,
   ReactNode,
 } from 'react';
-import type { ShellOAuthBridge, ShellOAuthCodeBridge } from '@nimiplatform/kit/core/oauth';
+import type { ShellOAuthCodeBridge } from '@nimiplatform/kit/core/oauth';
 import type { AuthPlatformAdapter } from '../platform/auth-platform-adapter.js';
 
 // ---------------------------------------------------------------------------

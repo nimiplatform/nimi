@@ -70,7 +70,6 @@ function createAdapter(overrides?: Partial<AuthPlatformAdapter>): AuthPlatformAd
     oauthBridge: {
       hasShellHostInvoke: () => false,
       oauthListenForCode: async () => ({ code: '', state: '', error: '' }),
-      oauthTokenExchange: async () => ({ accessToken: '' }),
       openExternalUrl: async () => ({ opened: true }),
       focusMainWindow: async () => undefined,
     },

@@ -2,7 +2,7 @@ import {
   createRuntimeAccountBrowserBroker,
 } from '@nimiplatform/kit/auth';
 import type { AuthPlatformAdapter } from '@nimiplatform/kit/auth/shell';
-import type { ShellOAuthBridge } from '@nimiplatform/kit/core/oauth';
+import type { ShellOAuthCodeBridge } from '@nimiplatform/kit/core/oauth';
 import { logRendererEvent } from '@nimiplatform/kit/telemetry';
 import { createNimiDesktopShellRuntimeAccountCaller } from '@nimiplatform/sdk/runtime';
 import { productionAppStore } from '../../app-shell/providers/production-app-store';
@@ -14,12 +14,9 @@ import { productionQueryClient } from '../../infra/query-client/production-query
 import { productionRendererLifecyclePort } from '../../renderer/production-lifecycle-port';
 import type { DesktopRendererAuthPort } from '../../renderer/auth-port.js';
 
-export const desktopOAuthBridge: ShellOAuthBridge = {
+export const desktopOAuthBridge: ShellOAuthCodeBridge = {
   hasShellHostInvoke: () => desktopBridge.hasElectronInvoke(),
   oauthListenForCode: (payload) => desktopBridge.oauthListenForCode(payload),
-  oauthTokenExchange: async () => {
-    throw new Error('Desktop OAuth exchange is owned by RuntimeAccountService');
-  },
   openExternalUrl: (url) => desktopBridge.openExternalUrl(url),
   focusMainWindow: () => desktopBridge.focusMainWindow(),
 };

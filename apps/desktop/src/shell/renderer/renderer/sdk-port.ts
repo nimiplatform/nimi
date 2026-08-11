@@ -1,5 +1,4 @@
 import type {
-  NimiDesktopAccountProductRuntimeClient,
   NimiDesktopMachineProductRuntimeClient,
   NimiDesktopRuntimeAgentPurposeClient,
   NimiHostRuntimeAgentDelegatedControlClient,
@@ -13,6 +12,7 @@ import type {
   DesktopAccountRuntime,
   DesktopHostRuntimeAgentClient,
   DesktopRuntimeAgentDiscoverySurface,
+  getDesktopAccountProductClient,
   getDesktopAiExecutionClient,
   getDesktopAuditAdminClient,
   getDesktopConnectorAdminClient,
@@ -33,7 +33,7 @@ export interface DesktopRendererSdkPort {
   isRuntimeAccountSessionReady(): boolean;
   appId(): string;
   machineProduct(): NimiDesktopMachineProductRuntimeClient;
-  accountProduct(): NimiDesktopAccountProductRuntimeClient;
+  accountProduct(): ReturnType<typeof getDesktopAccountProductClient>;
   connectorAdmin(): ReturnType<typeof getDesktopConnectorAdminClient>;
   localAssetAdmin(): ReturnType<typeof getDesktopLocalAssetAdminClient>;
   localAudit(): ReturnType<typeof getDesktopLocalAuditClient>;

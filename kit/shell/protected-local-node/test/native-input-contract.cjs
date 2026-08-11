@@ -41,6 +41,25 @@ const calls = [
 ];
 
 async function main() {
+  assert.equal(
+    typeof addon.desktopFirstPartyProductUnaryCancel,
+    'function',
+    'desktopFirstPartyProductUnaryCancel export is missing',
+  );
+  const invalidUnaryCancellation = await addon.desktopFirstPartyProductUnaryCancel({
+    requestId: '',
+  });
+  assert.equal(invalidUnaryCancellation?.status, 'error');
+  assert.equal(invalidUnaryCancellation?.reasonCode, 'runtime-service-untrusted');
+  assert.equal(
+    typeof addon.desktopFirstPartyProductUnaryRelease,
+    'function',
+    'desktopFirstPartyProductUnaryRelease export is missing',
+  );
+  const invalidUnaryRelease = await addon.desktopFirstPartyProductUnaryRelease({ requestId: '' });
+  assert.equal(invalidUnaryRelease?.status, 'error');
+  assert.equal(invalidUnaryRelease?.reasonCode, 'runtime-service-untrusted');
+
   for (const retired of [
     'localAppAgentConfigurationSnapshot',
     'localAppAgentUpdateConfiguration',
