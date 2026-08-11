@@ -1,5 +1,5 @@
 import { useDesktopI18nResource } from '../../i18n/i18n-context';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAppStore } from '../../app-shell/providers/app-store';
 

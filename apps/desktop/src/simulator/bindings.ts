@@ -1,4 +1,5 @@
 import { createNimiCanonicalRendererHostBindings } from '@nimiplatform/kit/shell/renderer/host';
+import { NimiRuntimeHealthCoordinator } from '@nimiplatform/sdk/runtime';
 
 import { createIdleAppAttentionState } from '../shell/renderer/app-shell/providers/app-attention-state.js';
 import type {
@@ -35,6 +36,20 @@ function record(value: DesktopSimulatorJsonValue, label: string): JsonRecord {
 
 function simulatorSdkUnadmitted(): never {
   throw new Error('DESKTOP_SIMULATOR_SDK_UNADMITTED');
+}
+
+export function createDesktopSimulatorRuntimeHealthCoordinator(): NimiRuntimeHealthCoordinator {
+  const unavailable = async (): Promise<never> => {
+    throw new Error('DESKTOP_SIMULATOR_RUNTIME_HEALTH_UNADMITTED');
+  };
+  return new NimiRuntimeHealthCoordinator({
+    fetchRuntimeHealth: unavailable,
+    fetchProviderHealth: unavailable,
+    subscribeRuntimeHealth: unavailable,
+    subscribeProviderHealth: unavailable,
+    subscribeRuntimeConnected: () => () => undefined,
+    subscribeRuntimeDisconnected: () => () => undefined,
+  });
 }
 
 function toRendererRoute(route: DesktopSimulatorRouteState): DesktopRendererRouteView {
@@ -93,6 +108,9 @@ export function createDesktopSimulatorBindings(
   if (!timerCleanup.ok) throw new Error('DESKTOP_SIMULATOR_TIMER_CLEANUP_REJECTED');
 
   const authSession = createDesktopSimulatorAuthSessionPort(context);
+  const runtimeHealthCoordinator = createDesktopSimulatorRuntimeHealthCoordinator();
+  const runtimeHealthCleanup = context.cleanup.add(() => runtimeHealthCoordinator.stop());
+  if (!runtimeHealthCleanup.ok) throw new Error('DESKTOP_SIMULATOR_RUNTIME_HEALTH_CLEANUP_REJECTED');
 
   const handoffSubscription = context.events.subscribe('desktop.handoff.requested', (value) => {
     const payload = record(value, 'HANDOFF_REQUEST_EVENT');
@@ -194,7 +212,7 @@ export function createDesktopSimulatorBindings(
       runtimeAgentTurns: simulatorSdkUnadmitted,
       hostRuntimeAgent: simulatorSdkUnadmitted,
       accountRuntime: () => authSession.accountRuntime,
-      runtimeHealthCoordinator: simulatorSdkUnadmitted,
+      runtimeHealthCoordinator: () => runtimeHealthCoordinator,
       realm: simulatorSdkUnadmitted,
       offline: createUnavailableDesktopRendererOfflinePort('DESKTOP_SIMULATOR_OFFLINE_UNADMITTED'),
       socialData: Object.freeze({

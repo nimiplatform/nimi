@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type CSSProperties, type PointerEvent } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState, type CSSProperties, type PointerEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   ScrollArea,
@@ -14,16 +14,33 @@ import { E2E_IDS } from '../../testability/e2e-ids';
 import { RUNTIME_PAGE_META } from './runtime-config-meta-v11';
 import { RUNTIME_SIDEBAR_ITEMS } from './runtime-config-sidebar';
 import { RuntimeHealthBadge } from './runtime-config-primitives';
-import { OverviewPage } from './runtime-config-page-overview';
-import { CloudPage } from './runtime-config-page-cloud';
-import { RecommendPage } from './runtime-config-page-recommend';
-import { LocalPage } from './runtime-config-page-local';
-import { CatalogPage } from './runtime-config-page-catalog';
-import { MachineLocalAIConfigurationsPage } from './runtime-config-page-machine-local-ai.js';
-import { EnvironmentPage } from './runtime-config-page-environment';
-import { ProfileCatalogPage } from './runtime-config-page-profiles';
 import type { RuntimeConfigPanelControllerModel } from './runtime-config-panel-types';
 import { useRuntimeConfigPanelController } from './runtime-config-panel-controller';
+
+const OverviewPage = lazy(async () => ({
+  default: (await import('./runtime-config-page-overview')).OverviewPage,
+}));
+const CloudPage = lazy(async () => ({
+  default: (await import('./runtime-config-page-cloud')).CloudPage,
+}));
+const RecommendPage = lazy(async () => ({
+  default: (await import('./runtime-config-page-recommend')).RecommendPage,
+}));
+const LocalPage = lazy(async () => ({
+  default: (await import('./runtime-config-page-local')).LocalPage,
+}));
+const CatalogPage = lazy(async () => ({
+  default: (await import('./runtime-config-page-catalog')).CatalogPage,
+}));
+const MachineLocalAIConfigurationsPage = lazy(async () => ({
+  default: (await import('./runtime-config-page-machine-local-ai.js')).MachineLocalAIConfigurationsPage,
+}));
+const EnvironmentPage = lazy(async () => ({
+  default: (await import('./runtime-config-page-environment')).EnvironmentPage,
+}));
+const ProfileCatalogPage = lazy(async () => ({
+  default: (await import('./runtime-config-page-profiles')).ProfileCatalogPage,
+}));
 
 function RuntimeSkeletonBlock({ className }: { className: string }) {
   return <div className={`animate-pulse rounded-2xl bg-[color-mix(in_srgb,var(--nimi-surface-card)_92%,white)] ${className}`} />;
@@ -209,46 +226,48 @@ export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControl
         </div>
 
         <ScrollArea className="min-w-0 flex-1" viewportClassName="bg-transparent [&>div]:!block [&>div]:!min-w-0 [&>div]:!w-full [&>div]:!max-w-full" contentClassName="min-w-0 w-full max-w-full overflow-x-hidden">
-          {activePage === 'overview' && (
-            <div data-testid={E2E_IDS.runtimePageRoot('overview')} className="min-w-0">
-              <OverviewPage model={model} state={state} />
-            </div>
-          )}
-          {activePage === 'profiles' && (
-            <div data-testid={E2E_IDS.runtimePageRoot('profiles')} className="min-w-0">
-              <ProfileCatalogPage />
-            </div>
-          )}
-          {activePage === 'modelMarket' && (
-            <div data-testid={E2E_IDS.runtimePageRoot('modelMarket')} className="min-w-0">
-              <RecommendPage model={model} state={state} />
-            </div>
-          )}
-          {activePage === 'localModels' && (
-            <div data-testid={E2E_IDS.runtimePageRoot('localModels')} className="flex min-h-0 min-w-0 flex-1 flex-col">
-              <LocalPage model={model} state={state} />
-            </div>
-          )}
-          {activePage === 'localAiConfig' && (
-            <div data-testid={E2E_IDS.runtimePageRoot('localAiConfig')} className="min-w-0">
-              <MachineLocalAIConfigurationsPage />
-            </div>
-          )}
-          {activePage === 'modelCatalog' && (
-            <div data-testid={E2E_IDS.runtimePageRoot('modelCatalog')} className="min-w-0">
-              <CatalogPage model={model} state={state} />
-            </div>
-          )}
-          {activePage === 'cloud' && (
-            <div data-testid={E2E_IDS.runtimePageRoot('cloud')} className="min-w-0">
-              <CloudPage model={model} state={state} />
-            </div>
-          )}
-          {activePage === 'environment' && (
-            <div data-testid={E2E_IDS.runtimePageRoot('environment')} className="flex min-h-0 min-w-0 flex-1 flex-col">
-              <EnvironmentPage model={model} state={state} />
-            </div>
-          )}
+          <Suspense fallback={<div className="p-4"><RuntimeSkeletonBlock className="h-64 w-full" /></div>}>
+            {activePage === 'overview' && (
+              <div data-testid={E2E_IDS.runtimePageRoot('overview')} className="min-w-0">
+                <OverviewPage model={model} state={state} />
+              </div>
+            )}
+            {activePage === 'profiles' && (
+              <div data-testid={E2E_IDS.runtimePageRoot('profiles')} className="min-w-0">
+                <ProfileCatalogPage />
+              </div>
+            )}
+            {activePage === 'modelMarket' && (
+              <div data-testid={E2E_IDS.runtimePageRoot('modelMarket')} className="min-w-0">
+                <RecommendPage model={model} state={state} />
+              </div>
+            )}
+            {activePage === 'localModels' && (
+              <div data-testid={E2E_IDS.runtimePageRoot('localModels')} className="flex min-h-0 min-w-0 flex-1 flex-col">
+                <LocalPage model={model} state={state} />
+              </div>
+            )}
+            {activePage === 'localAiConfig' && (
+              <div data-testid={E2E_IDS.runtimePageRoot('localAiConfig')} className="min-w-0">
+                <MachineLocalAIConfigurationsPage />
+              </div>
+            )}
+            {activePage === 'modelCatalog' && (
+              <div data-testid={E2E_IDS.runtimePageRoot('modelCatalog')} className="min-w-0">
+                <CatalogPage model={model} state={state} />
+              </div>
+            )}
+            {activePage === 'cloud' && (
+              <div data-testid={E2E_IDS.runtimePageRoot('cloud')} className="min-w-0">
+                <CloudPage model={model} state={state} />
+              </div>
+            )}
+            {activePage === 'environment' && (
+              <div data-testid={E2E_IDS.runtimePageRoot('environment')} className="flex min-h-0 min-w-0 flex-1 flex-col">
+                <EnvironmentPage model={model} state={state} />
+              </div>
+            )}
+          </Suspense>
         </ScrollArea>
       </Surface>
     </div>

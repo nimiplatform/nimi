@@ -390,9 +390,17 @@ async function waitForWorkspaceSurfaces(watcher, timeoutMs) {
         `[run-electron-dev] SDK/Kit watcher exited before readiness with status ${watcher.child.exitCode}`,
       );
     }
-    const freshness = await inspectWorkspaceSurfaceFreshness(workspaceRoot);
+    if (!watcher.ready()) {
+      await new Promise((resolve) => setTimeout(resolve, 250));
+      continue;
+    }
+    const freshness = await withSdkDistLock(
+      'Desktop workspace surface freshness',
+      () => inspectWorkspaceSurfaceFreshness(workspaceRoot),
+      { timeoutMs: Math.max(1, deadline - Date.now()) },
+    );
     diagnostics = freshness.diagnostics;
-    if (watcher.ready() && freshness.fresh) {
+    if (freshness.fresh) {
       process.stdout.write('[run-electron-dev] Desktop owns fresh SDK/Kit dist and source watching\n');
       return;
     }
@@ -434,6 +442,7 @@ function spawnTracked(command, args, options) {
 
 async function shutdownFromSignal(signal) {
   await requestAllChildrenShutdown(signal);
+  await desktopDevSession?.release();
   process.exit(SIGNAL_EXIT_CODES.get(signal) ?? 1);
 }
 

@@ -49,6 +49,7 @@ const MODULE_MUTATING_METHODS = new Set([
   'unshift',
 ]);
 const MODULE_RESOURCE_FACTORY_PATTERN = /^(?:build|configure|create|make|open)[A-Za-z0-9_$]*(?:Cache|Channel|Client|History|I18n|Instance|Loader|Pool|QueryClient|Registry|Router|Session|Store|Transport)$/u;
+const ADAPTER_RENDERER_INVOKED_FACTORIES = new Set(['createFirstPartyAgentCenterSession']);
 const MODULE_SCOPE_IMMUTABLE_CONSTRUCTORS = new Set(['Intl.DateTimeFormat']);
 const IMPORT_META_GLOB_METHODS = new Set(['glob', 'globEager']);
 const ADAPTER_FORBIDDEN_RUNTIME_IMPORTS = [
@@ -621,7 +622,7 @@ function assertAdapterRestrictions(source, relativePath, specifiers) {
       if (ADAPTER_DOM_METHODS.has(name)) {
         fail('SIM_ADAPTER_DOM', `Adapter closure cannot call DOM method ${JSON.stringify(name)}`, relativePath);
       }
-      if (MODULE_RESOURCE_FACTORY_PATTERN.test(name)) {
+      if (MODULE_RESOURCE_FACTORY_PATTERN.test(name) && !ADAPTER_RENDERER_INVOKED_FACTORIES.has(name)) {
         fail(
           'SIM_ADAPTER_RESOURCE_FACTORY',
           `Adapter closure cannot reconstruct renderer resource ${JSON.stringify(name)}`,

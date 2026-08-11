@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   type CommerceGiftStatus,

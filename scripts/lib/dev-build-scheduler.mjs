@@ -10,6 +10,13 @@ export function stableBuildSurfaces(plan, revisionsBefore, revisionsAfter) {
   );
 }
 
+export function classifyWatchEventMetadata({ eventType, nodeKind, mtimeMs }) {
+  if (eventType === 'rename' || (nodeKind !== 'file' && nodeKind !== 'directory')) {
+    return { structural: true };
+  }
+  return { structural: false, mtimeMs };
+}
+
 // Watched files can emit change events without any content edit: on Windows,
 // deferred last-access-time flushes surface as change notifications when a
 // reader such as tsc or Vite touches a source file. A surface is safe to skip

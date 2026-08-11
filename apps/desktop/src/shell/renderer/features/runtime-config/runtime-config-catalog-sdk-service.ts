@@ -11,16 +11,16 @@ const CATALOG_CALL_OPTIONS: RuntimeTypedCallOptions = {
 };
 
 export function createRuntimeConfigCatalogClient(
-  connectors: ReturnType<DesktopRendererSdkPort['connectorAdmin']>,
+  connectors: DesktopRendererSdkPort['connectorAdmin'],
 ) {
   const runtimeCatalogConnectors: NimiRuntimeModelCatalogConnectorClient = {
-    listModelCatalogProviders: (request, options) => connectors.listModelCatalogProviders(request, options),
-    listCatalogProviderModels: (request, options) => connectors.listCatalogProviderModels(request, options),
-    getCatalogModelDetail: (request, options) => connectors.getCatalogModelDetail(request, options),
-    upsertModelCatalogProvider: (request, options) => connectors.upsertModelCatalogProvider(request, options),
-    deleteModelCatalogProvider: (request, options) => connectors.deleteModelCatalogProvider(request, options),
-    upsertCatalogModelOverlay: (request, options) => connectors.upsertCatalogModelOverlay(request, options),
-    deleteCatalogModelOverlay: (request, options) => connectors.deleteCatalogModelOverlay(request, options),
+    listModelCatalogProviders: (request, options) => connectors().listModelCatalogProviders(request, options),
+    listCatalogProviderModels: (request, options) => connectors().listCatalogProviderModels(request, options),
+    getCatalogModelDetail: (request, options) => connectors().getCatalogModelDetail(request, options),
+    upsertModelCatalogProvider: (request, options) => connectors().upsertModelCatalogProvider(request, options),
+    deleteModelCatalogProvider: (request, options) => connectors().deleteModelCatalogProvider(request, options),
+    upsertCatalogModelOverlay: (request, options) => connectors().upsertCatalogModelOverlay(request, options),
+    deleteCatalogModelOverlay: (request, options) => connectors().deleteCatalogModelOverlay(request, options),
   };
   return createNimiRuntimeModelCatalogClient({
     connectors: runtimeCatalogConnectors,

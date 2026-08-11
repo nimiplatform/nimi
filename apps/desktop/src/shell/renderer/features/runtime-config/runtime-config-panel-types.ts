@@ -1,5 +1,4 @@
 import type {
-  CapabilityV11,
   ProviderStatusV11,
   RuntimeConfigStateV11,
 } from './runtime-config-state-types';
@@ -11,7 +10,6 @@ import type {
   NimiRuntimeLocalInstallPayload,
   NimiRuntimeLocalInstallPlanDescriptor,
   NimiRuntimeLocalProfileApplyResult,
-  NimiRuntimeLocalProfileDescriptor,
   NimiRuntimeLocalProfileResolutionPlan,
 } from '@nimiplatform/sdk/runtime';
 

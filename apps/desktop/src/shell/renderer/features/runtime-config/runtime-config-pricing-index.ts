@@ -56,7 +56,7 @@ async function fetchPricingForModels(
 export function usePricingIndex(modelIds: string[]): PricingIndexState {
   const sdk = useDesktopRendererSdk();
   const catalog = useMemo(
-    () => createRuntimeConfigCatalogClient(sdk.connectorAdmin()),
+    () => createRuntimeConfigCatalogClient(() => sdk.connectorAdmin()),
     [sdk],
   );
   const [state, setState] = useState<PricingIndexState>({ index: new Map(), loading: false });

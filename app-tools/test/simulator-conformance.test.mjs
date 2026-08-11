@@ -94,6 +94,18 @@ test('per-instance resources remain allowed while module-scope resources fail cl
   expectFailure(root, 'SIM_MODULE_SCOPE_RESOURCE');
 }));
 
+test('adapter admits the renderer-invoked first-party Agent Center session factory only per instance', () => withFixture((root) => {
+  append(root, 'src/simulator/adapter.ts', `
+import { createFirstPartyAgentCenterSession } from '@nimiplatform/kit/features/agent-center';
+export function projectAgentCenterSession(input: unknown) {
+  return createFirstPartyAgentCenterSession(input);
+}
+`);
+  assert.equal(validateSimulatorAppSource(root).manifest.module_id, 'sample-app');
+  append(root, 'src/simulator/adapter.ts', 'export const sharedSession = createFirstPartyAgentCenterSession({});');
+  expectFailure(root, 'SIM_MODULE_SCOPE_RESOURCE');
+}));
+
 test('source-bound PNG and JSON imports are supported without admitting executable asset types', () => withFixture((root) => {
   assert.equal(isSimulatorStaticAssetPath('src/renderer/logo.png'), true);
   assert.equal(isSimulatorStaticAssetPath('src/renderer/messages.json'), true);

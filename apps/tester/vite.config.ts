@@ -19,6 +19,9 @@ function manualChunks(id: string) {
   if (normalized.includes('/node_modules/react/') || normalized.includes('/node_modules/react-dom/')) {
     return 'vendor-react';
   }
+  if (normalized.includes('/node_modules/i18next/') || normalized.includes('/node_modules/react-i18next/')) {
+    return 'vendor-i18n';
+  }
   if (normalized.includes('/node_modules/lucide-react/')) {
     return 'vendor-icons';
   }
@@ -55,6 +58,15 @@ function manualChunks(id: string) {
   }
   if (normalized.includes('/node_modules/@nimiplatform/kit/') || normalized.startsWith(`${repoRootNormalized}/kit/`)) {
     return 'vendor-nimi-kit';
+  }
+  if (normalized.includes('/apps/tester/src/shell/i18n/')) {
+    return 'tester-i18n';
+  }
+  if (normalized.includes('/apps/tester/src/tester/workbench/')) {
+    return 'tester-workbench';
+  }
+  if (normalized.includes('/apps/tester/src/tester/app-access/')) {
+    return 'tester-app-access';
   }
   return undefined;
 }

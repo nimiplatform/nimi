@@ -21,7 +21,12 @@ import {
   resolveCanonicalSurfaceBuildPlan,
   workspaceSurfaceBuildDiagnostic,
 } from './lib/dev-workspace-surfaces.mjs';
-import { findMetadataOnlySurfaces, quietBuildDelayMs, stableBuildSurfaces } from './lib/dev-build-scheduler.mjs';
+import {
+  classifyWatchEventMetadata,
+  findMetadataOnlySurfaces,
+  quietBuildDelayMs,
+  stableBuildSurfaces,
+} from './lib/dev-build-scheduler.mjs';
 
 const repoRoot = path.resolve(import.meta.dirname, '..');
 
@@ -59,7 +64,23 @@ test('metadata-only watch events are droppable while edits and structural change
     ),
     ['sdk'],
   );
-  // Deletions and directory events are structural and never droppable.
+  assert.deepEqual(
+    classifyWatchEventMetadata({ eventType: 'change', nodeKind: 'directory', mtimeMs: 1 }),
+    { structural: false, mtimeMs: 1 },
+  );
+  assert.deepEqual(
+    classifyWatchEventMetadata({ eventType: 'change', nodeKind: 'file', mtimeMs: 2 }),
+    { structural: false, mtimeMs: 2 },
+  );
+  // Renames, deletions, and unsupported nodes are structural and never droppable.
+  assert.deepEqual(
+    classifyWatchEventMetadata({ eventType: 'rename', nodeKind: 'directory', mtimeMs: 1 }),
+    { structural: true },
+  );
+  assert.deepEqual(
+    classifyWatchEventMetadata({ eventType: 'change', nodeKind: 'missing', mtimeMs: 0 }),
+    { structural: true },
+  );
   assert.deepEqual(
     findMetadataOnlySurfaces(
       new Map([['sdk', { structural: true, newestMtimeMs: 1 }]]),

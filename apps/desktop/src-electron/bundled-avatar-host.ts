@@ -779,11 +779,18 @@ function requiredRuntimeAvatarFileName(value: unknown): string {
     || fileName !== path.win32.basename(fileName)
     || path.isAbsolute(fileName)
     || path.win32.isAbsolute(fileName)
-    || /[\u0000-\u001f\u007f]/u.test(fileName)
+    || hasAsciiControlCharacter(fileName)
     || fileName.length > 255) {
     throw new Error('desktop-bundled-avatar-runtime-asset-response-invalid');
   }
   return fileName;
+}
+
+function hasAsciiControlCharacter(value: string): boolean {
+  return Array.from(value).some((character) => {
+    const codePoint = character.codePointAt(0);
+    return codePoint !== undefined && (codePoint <= 0x1f || codePoint === 0x7f);
+  });
 }
 
 function assertExactKeys(

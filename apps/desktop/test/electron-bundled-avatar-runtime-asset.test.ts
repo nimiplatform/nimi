@@ -108,6 +108,28 @@ test('bundled Avatar Runtime asset resolver rejects a mismatched or corrupted pr
     }),
     /desktop-bundled-avatar-runtime-asset-response-invalid/u,
   );
+
+  const resolveRuntimeAssetWithControlFileName = createDesktopBundledAvatarRuntimeAssetResolver({
+    bundledAvatarUnary: async () => GetAgentPresentationAssetResponse.toBinary(
+      GetAgentPresentationAssetResponse.create({
+        assetRef: 'vrm_aaaaaaaaaaaa',
+        role: 1,
+        backendKind: 1,
+        fileName: 'avatar\u0000.vrm',
+        mediaType: 'model/gltf-binary',
+        content,
+        sha256: createHash('sha256').update(content).digest('hex'),
+      }),
+    ),
+  });
+
+  await assert.rejects(
+    resolveRuntimeAssetWithControlFileName({
+      agentId: 'local-agent:alice',
+      assetRef: 'vrm_aaaaaaaaaaaa',
+    }),
+    /desktop-bundled-avatar-runtime-asset-response-invalid/u,
+  );
 });
 
 test('bundled Avatar asset command binds Runtime agent selection to its sender window', async () => {

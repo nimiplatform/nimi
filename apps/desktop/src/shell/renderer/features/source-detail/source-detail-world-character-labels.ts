@@ -81,20 +81,6 @@ function normalizeDynastyText(value: string): string | null {
   return null;
 }
 
-function sceneDynastyLabel(sceneRef: string): string | null {
-  const normalized = simplifyDisplayText(sceneRef.trim());
-  const direct = SCENE_REF_LABELS[normalized];
-  const directDynasty = direct ? normalizeDynastyText(direct) : null;
-  if (directDynasty) {
-    return directDynasty;
-  }
-  const [dynastyKey] = normalized.split('-').filter(Boolean);
-  if (dynastyKey && SCENE_DYNASTY_LABELS[dynastyKey]) {
-    return SCENE_DYNASTY_LABELS[dynastyKey];
-  }
-  return normalizeDynastyText(normalized);
-}
-
 export function worldCharacterHeroSubtitle(source: SourceDetailData): string | null {
   const textCandidates = [
     source.characterProfile.archetype,

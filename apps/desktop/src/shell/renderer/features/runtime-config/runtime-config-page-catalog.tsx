@@ -128,7 +128,7 @@ function splitCsv(value: string): string[] {
 export function CatalogPage({ model, state: _state }: CatalogPageProps) {
   const bindings = useDesktopRendererBindings();
   const runtimeConfigCatalogClient = useMemo(
-    () => createRuntimeConfigCatalogClient(bindings.sdk.connectorAdmin()),
+    () => createRuntimeConfigCatalogClient(() => bindings.sdk.connectorAdmin()),
     [bindings.sdk],
   );
   const [providers, setProviders] = useState<NimiRuntimeModelCatalogProvider[]>([]);

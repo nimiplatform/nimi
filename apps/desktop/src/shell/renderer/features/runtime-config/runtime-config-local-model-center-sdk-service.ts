@@ -6,9 +6,9 @@ import { useDesktopRendererSdk } from '../../renderer/binding-context.js';
 import type { DesktopRendererSdkPort } from '../../renderer/sdk-port.js';
 
 export function createRuntimeConfigLocalAssetAdminClient(
-  local: ReturnType<DesktopRendererSdkPort['localAssetAdmin']>,
+  local: DesktopRendererSdkPort['localAssetAdmin'],
 ) {
-  return createNimiRuntimeLocalAssetAdminClient({ local: () => local });
+  return createNimiRuntimeLocalAssetAdminClient({ local });
 }
 
 export type RuntimeConfigLocalAssetAdminClient = ReturnType<
@@ -18,7 +18,7 @@ export type RuntimeConfigLocalAssetAdminClient = ReturnType<
 export function useRuntimeConfigLocalAssetAdminClient(): RuntimeConfigLocalAssetAdminClient {
   const sdk = useDesktopRendererSdk();
   return useMemo(
-    () => createRuntimeConfigLocalAssetAdminClient(sdk.localAssetAdmin()),
+    () => createRuntimeConfigLocalAssetAdminClient(() => sdk.localAssetAdmin()),
     [sdk],
   );
 }

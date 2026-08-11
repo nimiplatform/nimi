@@ -5,7 +5,12 @@ import { statSync, watch } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { findMetadataOnlySurfaces, quietBuildDelayMs, stableBuildSurfaces } from './lib/dev-build-scheduler.mjs';
+import {
+  classifyWatchEventMetadata,
+  findMetadataOnlySurfaces,
+  quietBuildDelayMs,
+  stableBuildSurfaces,
+} from './lib/dev-build-scheduler.mjs';
 import {
   DEV_WORKSPACE_SURFACES,
   DEV_WORKSPACE_SURFACE_WATCH_TARGETS,
@@ -66,13 +71,18 @@ function markSurfaceChanged(surface, trigger, observedAt = Date.now(), eventMeta
 
 // Windows reports deferred last-access-time flushes as change events, so a
 // reader (tsc, Vite, Electron) can make a watched source file look edited.
-// Capture the file mtime at event time; the scheduler drops events whose
-// content the last completed build already observed. Missing or non-file
-// paths are structural and always kept.
-function observeEventMetadata(changedPath) {
+// Capture the node mtime at event time; the scheduler drops change events
+// whose content the last completed build already observed. Windows can emit
+// those deferred access notifications for directories as well as files.
+// Rename, deletion, and unsupported-node events remain structural.
+function observeEventMetadata(changedPath, eventType) {
   try {
     const stats = statSync(changedPath);
-    if (stats.isFile()) return { mtimeMs: stats.mtimeMs };
+    return classifyWatchEventMetadata({
+      eventType,
+      nodeKind: stats.isFile() ? 'file' : stats.isDirectory() ? 'directory' : 'other',
+      mtimeMs: stats.mtimeMs,
+    });
   } catch {
     // Deleted or inaccessible paths are structural changes.
   }
@@ -81,7 +91,7 @@ function observeEventMetadata(changedPath) {
 
 function observe(surface, target) {
   const root = path.resolve(repoRoot, target.root);
-  const watcher = watch(root, { recursive: target.recursive }, (_eventType, filename) => {
+  const watcher = watch(root, { recursive: target.recursive }, (eventType, filename) => {
     if (closed || !filename) return;
     const changedPath = path.resolve(root, String(filename));
     const classified = classifyWorkspaceSurfacePath(repoRoot, changedPath);
@@ -90,7 +100,7 @@ function observe(surface, target) {
       surface,
       path.relative(repoRoot, changedPath),
       Date.now(),
-      observeEventMetadata(changedPath),
+      observeEventMetadata(changedPath, eventType),
     );
     if (initialized && ready) scheduleBuild();
   });

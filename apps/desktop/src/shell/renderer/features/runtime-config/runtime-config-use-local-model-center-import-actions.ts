@@ -133,7 +133,7 @@ export function useLocalModelCenterImportActions(input: UseLocalModelCenterImpor
     if (!manifestPath) {
       return;
     }
-    const imported = await runtimeConfigLocalAssetAdminClient.importAssetManifest(manifestPath, {
+    await runtimeConfigLocalAssetAdminClient.importAssetManifest(manifestPath, {
       caller: 'core',
     });
     await input.props.onDiscover();
