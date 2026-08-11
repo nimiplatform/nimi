@@ -87,7 +87,7 @@ func (s *Service) ImportLocalAsset(ctx context.Context, req *runtimev1.ImportLoc
 	return s.importLocalAsset(ctx, req, localAssetExistingPolicyDuplicate)
 }
 
-func (s *Service) importLocalAsset(_ context.Context, req *runtimev1.ImportLocalAssetRequest, existingPolicy localAssetExistingPolicy) (*runtimev1.ImportLocalAssetResponse, error) {
+func (s *Service) importLocalAsset(_ context.Context, req *runtimev1.ImportLocalAssetRequest, existingPolicy localAssetExistingPolicy, exactRebindLocalAssetID ...string) (*runtimev1.ImportLocalAssetResponse, error) {
 	manifestPath := strings.TrimSpace(req.GetManifestPath())
 	if manifestPath == "" {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_MANIFEST_INVALID)
@@ -212,6 +212,16 @@ func (s *Service) importLocalAsset(_ context.Context, req *runtimev1.ImportLocal
 		)
 	}
 	logicalModelID := manifestStringDefault(manifest, "logical_model_id")
+	if isRunnableKind(kind) && logicalModelID != "" {
+		if err := validateManagedLogicalModelID(logicalModelID); err != nil {
+			return nil, grpcerr.WrapWithReasonCode(
+				codes.InvalidArgument,
+				runtimev1.ReasonCode_AI_LOCAL_MANIFEST_INVALID,
+				err,
+				grpcerr.ReasonOptions{Message: "local asset logical_model_id is invalid"},
+			)
+		}
+	}
 	repo := manifestStringDefault(manifest, "repo")
 	revision := defaultString(manifestStringDefault(manifest, "revision"), "import")
 	if sourceValue, ok := manifest["source"]; ok {
@@ -300,6 +310,7 @@ func (s *Service) importLocalAsset(_ context.Context, req *runtimev1.ImportLocal
 			"runtime_model_imported",
 			manifestPath,
 			existingPolicy,
+			exactRebindLocalAssetID...,
 		)
 		if err != nil {
 			return nil, err
@@ -330,6 +341,7 @@ func (s *Service) importLocalAsset(_ context.Context, req *runtimev1.ImportLocal
 		"runtime_model_imported",
 		manifestPath,
 		existingPolicy,
+		exactRebindLocalAssetID...,
 	)
 	if err != nil {
 		return nil, err

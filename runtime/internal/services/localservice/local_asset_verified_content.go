@@ -190,7 +190,10 @@ func (s *Service) verifyLocalCapabilityAssetContent(asset *runtimev1.LocalAssetR
 
 	var formatProbe []byte
 	if len(bundleEntries) > 0 {
-		bundleRoot := runtimeManagedBundleDir(modelsRoot, asset)
+		bundleRoot, err := resolveRuntimeManagedBundleDir(modelsRoot, asset)
+		if err != nil {
+			return capabilitydriver.AssetDescriptor{}, localCapabilityAssetVerificationReason(err), true
+		}
 		for index, entry := range asset.GetBundleEntries() {
 			entryPath := filepath.Join(bundleRoot, filepath.FromSlash(entry.GetRelativePath()))
 			if _, reason := verifyLocalCapabilityAssetFile(modelsRoot, entryPath, bundleEntries[index].SHA256); reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED {

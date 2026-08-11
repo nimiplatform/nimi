@@ -1591,6 +1591,14 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "Ack"
   },
   {
+    "methodId": "/nimi.runtime.v1.RuntimeLocalService/ApplyLocalEnvironmentPlan",
+    "service": "RuntimeLocalService",
+    "method": "ApplyLocalEnvironmentPlan",
+    "kind": "unary",
+    "requestType": "ApplyLocalEnvironmentPlanRequest",
+    "responseType": "ApplyLocalEnvironmentPlanResponse"
+  },
+  {
     "methodId": "/nimi.runtime.v1.RuntimeLocalService/ApplyProfile",
     "service": "RuntimeLocalService",
     "method": "ApplyProfile",

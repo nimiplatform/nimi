@@ -273,7 +273,7 @@ func (s *Service) adoptExistingResolvedModelBundle(ctx context.Context, assetID 
 		// fail closed with the typed catalog-miss reason code. Nothing to adopt.
 		return false, nil
 	}
-	logicalModelID := strings.Trim(strings.TrimSpace(descriptor.GetLogicalModelId()), "/")
+	logicalModelID := strings.TrimSpace(descriptor.GetLogicalModelId())
 	if logicalModelID == "" {
 		return false, nil
 	}
@@ -284,8 +284,11 @@ func (s *Service) adoptExistingResolvedModelBundle(ctx context.Context, assetID 
 		// the typed reason code. Do not attempt adoption against a relative root.
 		return false, nil
 	}
-	bundleDir := runtimeManagedResolvedModelDir(modelsRoot, logicalModelID)
-	manifestPath := runtimeManagedAssetManifestPath(modelsRoot, logicalModelID)
+	bundleDir, err := resolveRuntimeManagedModelBundleDir(modelsRoot, logicalModelID)
+	if err != nil {
+		return false, fmt.Errorf("resolve verified model bundle target: %w", err)
+	}
+	manifestPath := filepath.Join(bundleDir, localAssetManifestFileName)
 	if info, err := os.Stat(manifestPath); err != nil || info.IsDir() {
 		// No bundle (or no manifest) on disk — download as today.
 		return false, nil

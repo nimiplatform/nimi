@@ -34,9 +34,6 @@ func (s *Service) resolveManagedAssetEntryPath(artifact *runtimev1.LocalAssetRec
 	}
 	modelsRoot := s.resolvedLocalModelsPath()
 	repo := strings.TrimSpace(artifact.GetSource().GetRepo())
-	if strings.HasPrefix(repo, "file://") {
-		return resolveManagedEntryRelativePath(modelsRoot, artifact.GetAssetId(), repo, artifact.GetEntry())
-	}
 	if isLocalImportSourceRepo(repo) {
 		return "", grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE, grpcerr.ReasonOptions{
 			Message:    "local-import source repos are not storage truth; re-import from asset.manifest.json",
@@ -57,36 +54,14 @@ func (s *Service) resolveManagedAssetEntryPath(artifact *runtimev1.LocalAssetRec
 		)
 	}
 	rootAbs = canonicalManagedPath(rootAbs)
-	cleanEntry, err := sanitizeManagedEntryPath(artifact.GetEntry())
+	absPath, err := resolveManagedModelEntryAbsolutePath(rootAbs, artifact)
 	if err != nil {
 		return "", grpcerr.WrapWithReasonCode(
 			codes.FailedPrecondition,
 			runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE,
 			err,
-			grpcerr.ReasonOptions{Message: "managed asset entry path is invalid"},
+			grpcerr.ReasonOptions{Message: "managed asset entry path could not be resolved"},
 		)
-	}
-	var absPath string
-	if isRunnableKind(artifact.GetKind()) {
-		logicalModelID := strings.Trim(strings.TrimSpace(artifact.GetLogicalModelId()), "/")
-		if logicalModelID != "" {
-			absPath = filepath.Join(rootAbs, "resolved", filepath.FromSlash(logicalModelID), cleanEntry)
-		}
-	}
-	if absPath == "" {
-		absPath = filepath.Join(rootAbs, "resolved", slugifyLocalAssetID(artifact.GetAssetId()), cleanEntry)
-	}
-	absPath, err = filepath.Abs(absPath)
-	if err != nil {
-		return "", grpcerr.WrapWithReasonCode(
-			codes.Internal,
-			runtimev1.ReasonCode_AI_PROVIDER_INTERNAL,
-			err,
-			grpcerr.ReasonOptions{Message: "managed asset path could not be resolved"},
-		)
-	}
-	if !strings.HasPrefix(absPath, rootAbs+string(filepath.Separator)) && absPath != rootAbs {
-		return "", grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
 	}
 	if _, statErr := os.Stat(absPath); statErr != nil {
 		return "", grpcerr.WrapWithReasonCode(
@@ -96,6 +71,33 @@ func (s *Service) resolveManagedAssetEntryPath(artifact *runtimev1.LocalAssetRec
 			grpcerr.ReasonOptions{Message: "managed asset entry is unavailable"},
 		)
 	}
+	resolvedPath, err := filepath.EvalSymlinks(absPath)
+	if err != nil {
+		return "", grpcerr.WrapWithReasonCode(
+			codes.FailedPrecondition,
+			runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE,
+			err,
+			grpcerr.ReasonOptions{Message: "managed asset entry link could not be resolved"},
+		)
+	}
+	resolvedRoot := filepath.Join(rootAbs, "resolved")
+	if canonicalResolvedRoot, resolveErr := filepath.EvalSymlinks(resolvedRoot); resolveErr == nil {
+		resolvedRoot = canonicalResolvedRoot
+	} else if !os.IsNotExist(resolveErr) {
+		return "", grpcerr.WrapWithReasonCode(
+			codes.FailedPrecondition,
+			runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE,
+			resolveErr,
+			grpcerr.ReasonOptions{Message: "managed assets root link could not be resolved"},
+		)
+	}
+	if !pathWithinBase(resolvedRoot, resolvedPath, false) {
+		return "", grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE, grpcerr.ReasonOptions{
+			Message:    "managed asset entry must stay under resolved/",
+			ActionHint: "reimport_under_local_models_root",
+		})
+	}
+	absPath = resolvedPath
 	relPath, err := filepath.Rel(rootAbs, absPath)
 	if err != nil {
 		return "", grpcerr.WrapWithReasonCode(
@@ -187,7 +189,7 @@ func resolveManagedBaseDir(modelsRoot string, itemID string, sourceRepo string) 
 			ActionHint: "reimport_asset_manifest",
 		})
 	}
-	if strings.HasPrefix(repo, "file://") {
+	if strings.HasPrefix(strings.ToLower(repo), "file://") {
 		path, err := resolveManagedFileRepoPath(repo)
 		if err != nil {
 			return "", grpcerr.WrapWithReasonCode(

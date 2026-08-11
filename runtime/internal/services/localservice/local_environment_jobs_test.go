@@ -3,18 +3,20 @@ package localservice
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log/slog"
 	"path/filepath"
 	"testing"
 	"time"
+
+	"github.com/nimiplatform/nimi/runtime/internal/filedownload"
 )
 
 // localEnvironmentDependencyJobSettledForTest reports whether a job has reached
-// a state the background goroutine no longer advances: a terminal state, or
-// repair_required (a settled non-ready outcome the executor returns and does not
-// itself retry). Async-job tests poll for this.
+// a state the background goroutine no longer advances. Async-job tests poll for
+// this before asserting its final projection.
 func localEnvironmentDependencyJobSettledForTest(state string) bool {
-	return localEnvironmentDependencyJobTerminal(state) || state == localEnvironmentStateRepairRequired
+	return localEnvironmentDependencyJobTerminal(state)
 }
 
 // pollLocalEnvironmentDependencyJobToTerminal waits for the async background
@@ -176,7 +178,10 @@ func TestLocalEnvironmentDependencyJobFailureDoesNotPromote(t *testing.T) {
 	if job.ReasonCode != "LOCAL_ENVIRONMENT_DEPENDENCY_JOB_FAILED" {
 		t.Fatalf("failed job reason = %q", job.ReasonCode)
 	}
-	if job.RecoveryDisposition != localEnvironmentJobRecoveryManualRetry {
+	if job.Retryable {
+		t.Fatal("deterministic verification failure must not be retryable")
+	}
+	if job.RecoveryDisposition != localEnvironmentJobRecoveryNotRetryable {
 		t.Fatalf("failed job recovery = %q", job.RecoveryDisposition)
 	}
 	if _, ok := svc.localEnvironmentSelectedSourceRecord(req.EnvironmentKey); ok {
@@ -190,7 +195,7 @@ func TestLocalEnvironmentDependencyJobClassifiesAutoRecoveryInRuntime(t *testing
 	req := localEnvironmentJobRequestForTest(t, svc)
 
 	started, err := svc.startLocalEnvironmentDependencyJob(context.Background(), req, func(context.Context, localEnvironmentDependencyJobState, localEnvironmentDependencyJobProgressReporter) (localEnvironmentDependencyJobResult, error) {
-		return localEnvironmentDependencyJobResult{}, errors.New("download model file: unexpected EOF")
+		return localEnvironmentDependencyJobResult{}, fmt.Errorf("download model file: %w", filedownload.ErrTransientAttemptsExhausted)
 	})
 	if err != nil {
 		t.Fatalf("start job: %v", err)
@@ -202,8 +207,98 @@ func TestLocalEnvironmentDependencyJobClassifiesAutoRecoveryInRuntime(t *testing
 	if job.ReasonCode != "LOCAL_ENVIRONMENT_DEPENDENCY_JOB_INTERRUPTED" {
 		t.Fatalf("reason = %q, want interrupted", job.ReasonCode)
 	}
+	if !job.Retryable {
+		t.Fatal("interrupted initial materialization must remain retryable")
+	}
 	if job.RecoveryDisposition != localEnvironmentJobRecoveryAutoRetryTransient {
 		t.Fatalf("recovery = %q, want auto transient retry", job.RecoveryDisposition)
+	}
+}
+
+func TestLocalEnvironmentDependencyJobDiagnosticTextNeverGrantsRetry(t *testing.T) {
+	tests := []struct {
+		name   string
+		phase  string
+		detail string
+	}{
+		{name: "downloading eof", phase: localEnvironmentStateDownloading, detail: "download model file: unexpected EOF"},
+		{name: "offline frozen sync timeout", phase: localEnvironmentStateInstalling, detail: "verify offline frozen sync: context deadline exceeded"},
+		{name: "import reset", phase: localEnvironmentStateVerifying, detail: "verify import: connection reset by peer"},
+		{name: "torch broken pipe", phase: localEnvironmentStateVerifying, detail: "verify Torch allocation: broken pipe"},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			svc := newLocalEnvironmentJobTestService(t)
+			defer func() { svc.Close() }()
+			req := localEnvironmentJobRequestForTest(t, svc)
+
+			started, err := svc.startLocalEnvironmentDependencyJob(context.Background(), req, func(_ context.Context, _ localEnvironmentDependencyJobState, report localEnvironmentDependencyJobProgressReporter) (localEnvironmentDependencyJobResult, error) {
+				report.State(test.phase)
+				return localEnvironmentDependencyJobResult{}, errors.New(test.detail)
+			})
+			if err != nil {
+				t.Fatalf("start job: %v", err)
+			}
+			job := pollLocalEnvironmentDependencyJobToTerminal(t, svc, started.JobID)
+			if job.Retryable || job.RecoveryDisposition != localEnvironmentJobRecoveryNotRetryable {
+				t.Fatalf("diagnostic text granted retry: %+v", job)
+			}
+			if job.ReasonCode != "LOCAL_ENVIRONMENT_DEPENDENCY_JOB_FAILED" {
+				t.Fatalf("reason = %q, want generic typed failure", job.ReasonCode)
+			}
+		})
+	}
+}
+
+func TestImmutablePythonDependencyProfileContractFailuresAreNotRetryable(t *testing.T) {
+	tests := []struct {
+		name   string
+		result localEnvironmentDependencyJobResult
+		err    error
+	}{
+		{
+			name: "lock identity mismatch",
+			err:  errors.New("verify immutable dependency profile: exact lock digest mismatch"),
+		},
+		{
+			name: "compatibility requires repair",
+			result: localEnvironmentDependencyJobResult{
+				State:           localEnvironmentStateRepairRequired,
+				AuditReasonCode: "LOCAL_ENVIRONMENT_DEPENDENCY_REPAIR_REQUIRED",
+				FailureDetail:   "dependency profile Python ABI/import compatibility mismatch",
+			},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			svc := newLocalEnvironmentJobTestService(t)
+			defer func() { svc.Close() }()
+			req := localEnvironmentJobRequestForTest(t, svc)
+			req.DependencyFamily = localEnvironmentFamilyPythonPackageSet
+			req.DependencyID = "python-profile.test-lock-digest"
+
+			started, err := svc.startLocalEnvironmentDependencyJob(context.Background(), req, func(context.Context, localEnvironmentDependencyJobState, localEnvironmentDependencyJobProgressReporter) (localEnvironmentDependencyJobResult, error) {
+				return test.result, test.err
+			})
+			if err != nil {
+				t.Fatalf("start job: %v", err)
+			}
+			job := pollLocalEnvironmentDependencyJobToTerminal(t, svc, started.JobID)
+			if job.Retryable {
+				t.Fatalf("immutable profile contract failure projected retryable: %+v", job)
+			}
+			if test.result.State == localEnvironmentStateRepairRequired {
+				if job.State != localEnvironmentStateRepairRequired || job.RecoveryDisposition != localEnvironmentJobRecoveryRepairRequired {
+					t.Fatalf("repair-required projection = %+v", job)
+				}
+				return
+			}
+			if job.State != localEnvironmentStateFailed || job.RecoveryDisposition != localEnvironmentJobRecoveryNotRetryable {
+				t.Fatalf("failed profile projection = %+v", job)
+			}
+		})
 	}
 }
 
@@ -311,8 +406,89 @@ func TestLocalEnvironmentDependencyJobsPersistAcrossRestart(t *testing.T) {
 	if restoredJob.SelectedSourceRecordID == "" {
 		t.Fatalf("expected restored promoted selected source id")
 	}
-	if _, ok := restored.localEnvironmentSelectedSourceRecord(req.EnvironmentKey); !ok {
+	restoredRecord, ok := restored.localEnvironmentSelectedSourceRecord(req.EnvironmentKey)
+	if !ok {
 		t.Fatalf("expected restored selected source record")
+	}
+	if restoredJob.State != localEnvironmentStateReadyManaged || restoredJob.SelectedSourceRecordID != restoredRecord.RecordID {
+		t.Fatalf("restored ready job/source snapshot mismatch: job=%+v source=%+v", restoredJob, restoredRecord)
+	}
+}
+
+func TestRestoreCanonicalizesPersistedPythonSelectedSourceOwnership(t *testing.T) {
+	dir := t.TempDir()
+	statePath := filepath.Join(dir, "local-state.json")
+	runtimeDataRoot := filepath.Join(dir, "runtime-data")
+	legacy := localEnvironmentSelectedSourceRecordState{
+		RecordID:           "src_legacy_python_profile",
+		DependencyFamily:   localEnvironmentFamilyPythonPackageSet,
+		DependencyID:       "python-profile.legacy",
+		EnvironmentKey:     localEnvironmentPythonProfileKey(localEnvironmentFamilyPythonPackageSet, "python-profile.legacy", runtimeDataRoot),
+		SourceKind:         localEnvironmentSourceManaged,
+		CanonicalRoot:      filepath.Join(runtimeDataRoot, "environments", "python-profiles", "legacy"),
+		SelectedConsumers:  []string{"speech.qwen3-tts.python"},
+		ActivationEnvDelta: []string{"NIMI_RUNTIME_SPEECH_QWEN3_TTS_CMD=legacy-secret-bearing-command"},
+	}
+	if err := saveLocalStateSnapshot(statePath, localStateSnapshot{
+		SchemaVersion:                   localStateSchemaVersion,
+		SavedAt:                         nowISO(),
+		LocalEnvironmentSelectedSources: []localEnvironmentSelectedSourceRecordState{legacy},
+	}); err != nil {
+		t.Fatalf("save legacy Python selected source: %v", err)
+	}
+
+	restored, err := New(slog.Default(), nil, statePath, 10, runtimeDataRoot)
+	if err != nil {
+		t.Fatalf("restore service: %v", err)
+	}
+	defer func() { restored.Close() }()
+	restored.mu.RLock()
+	restoredRecord := restored.localEnvironmentSelectedSources[localEnvironmentSelectedSourceRecordKey(legacy)]
+	restored.mu.RUnlock()
+	if len(restoredRecord.SelectedConsumers) != 0 || len(restoredRecord.ActivationEnvDelta) != 0 {
+		t.Fatalf("restored canonical Python selected source retained consumer ownership: %+v", restoredRecord)
+	}
+
+	healed, err := loadLocalStateSnapshot(statePath)
+	if err != nil {
+		t.Fatalf("load healed state snapshot: %v", err)
+	}
+	if len(healed.LocalEnvironmentSelectedSources) != 1 {
+		t.Fatalf("healed selected source count = %d, want 1", len(healed.LocalEnvironmentSelectedSources))
+	}
+	healedRecord := healed.LocalEnvironmentSelectedSources[0]
+	if len(healedRecord.SelectedConsumers) != 0 || len(healedRecord.ActivationEnvDelta) != 0 {
+		t.Fatalf("healed snapshot retained Python consumer ownership: %+v", healedRecord)
+	}
+}
+
+func TestLocalEnvironmentSelectedSourceLockedMergeDoesNotPersistPartialPromotion(t *testing.T) {
+	svc := newLocalEnvironmentJobTestService(t)
+	defer func() { svc.Close() }()
+	req := localEnvironmentJobRequestForTest(t, svc)
+	job, err := svc.startLocalEnvironmentDependencyJob(context.Background(), req, nil)
+	if err != nil {
+		t.Fatalf("start job: %v", err)
+	}
+
+	svc.mu.Lock()
+	svc.mergeLocalEnvironmentSelectedSourceRecordLocked(verifiedSelectedSourceRecordForTest(localEnvironmentSelectedSourceRecordState{
+		DependencyFamily:  req.DependencyFamily,
+		DependencyID:      req.DependencyID,
+		EnvironmentKey:    req.EnvironmentKey,
+		SelectedConsumers: []string{req.ConsumerScope},
+	}))
+	svc.mu.Unlock()
+
+	snapshot, err := loadLocalStateSnapshot(svc.stateStorePath)
+	if err != nil {
+		t.Fatalf("load pre-promotion snapshot: %v", err)
+	}
+	if len(snapshot.LocalEnvironmentSelectedSources) != 0 {
+		t.Fatalf("locked merge persisted a partial selected source: %+v", snapshot.LocalEnvironmentSelectedSources)
+	}
+	if len(snapshot.LocalEnvironmentDependencyJobs) != 1 || snapshot.LocalEnvironmentDependencyJobs[0].JobID != job.JobID || snapshot.LocalEnvironmentDependencyJobs[0].State != localEnvironmentStateQueued {
+		t.Fatalf("pre-promotion snapshot job must remain queued: %+v", snapshot.LocalEnvironmentDependencyJobs)
 	}
 }
 
@@ -516,6 +692,62 @@ func TestLocalEnvironmentDependencyJobCrashRecoveryFailsOrphanClosed(t *testing.
 	}
 	if restoredJob.RecoveryDisposition != localEnvironmentJobRecoveryAutoRetryTransient {
 		t.Fatalf("orphan recovery = %q, want auto transient retry", restoredJob.RecoveryDisposition)
+	}
+}
+
+func TestLocalEnvironmentDependencyJobRepairRequiredSurvivesRestart(t *testing.T) {
+	dir := t.TempDir()
+	statePath := filepath.Join(dir, "local-state.json")
+	runtimeDataRoot := filepath.Join(dir, "runtime-data")
+	svc, err := New(slog.Default(), nil, statePath, 10, runtimeDataRoot)
+	if err != nil {
+		t.Fatalf("new service: %v", err)
+	}
+	req := localEnvironmentJobRequestForTestWithRoot(t, svc, runtimeDataRoot)
+	job, err := svc.startLocalEnvironmentDependencyJob(context.Background(), req, func(context.Context, localEnvironmentDependencyJobState, localEnvironmentDependencyJobProgressReporter) (localEnvironmentDependencyJobResult, error) {
+		return localEnvironmentDependencyJobResult{
+			State:           localEnvironmentStateRepairRequired,
+			AuditReasonCode: "LOCAL_ENVIRONMENT_PROFILE_REPAIR_REQUIRED",
+			FailureDetail:   "profile must be rebuilt",
+		}, nil
+	})
+	if err != nil {
+		t.Fatalf("start job: %v", err)
+	}
+	settled := pollLocalEnvironmentDependencyJobToTerminal(t, svc, job.JobID)
+	if settled.State != localEnvironmentStateRepairRequired {
+		t.Fatalf("settled state = %q, want repair_required", settled.State)
+	}
+	svc.Close()
+
+	restored, err := New(slog.Default(), nil, statePath, 10, runtimeDataRoot)
+	if err != nil {
+		t.Fatalf("restore service: %v", err)
+	}
+	defer func() { restored.Close() }()
+	restoredJob, ok := restored.localEnvironmentDependencyJob(job.JobID)
+	if !ok {
+		t.Fatalf("expected restored job %s", job.JobID)
+	}
+	if restoredJob.State != localEnvironmentStateRepairRequired {
+		t.Fatalf("restored repair state = %q, want repair_required", restoredJob.State)
+	}
+	if restoredJob.Retryable || restoredJob.RecoveryDisposition != localEnvironmentJobRecoveryRepairRequired {
+		t.Fatalf("restored repair disposition = %+v, want non-retryable repair_required", restoredJob)
+	}
+	cancelled, ok := restored.cancelLocalEnvironmentDependencyJob(job.JobID)
+	if !ok || cancelled.State != localEnvironmentStateRepairRequired {
+		t.Fatalf("cancel rewrote settled repair job: ok=%v job=%+v", ok, cancelled)
+	}
+	restarted, err := restored.startLocalEnvironmentDependencyJob(context.Background(), req, nil)
+	if err != nil {
+		t.Fatalf("restart repair-required dependency: %v", err)
+	}
+	if restarted.JobID == job.JobID {
+		t.Fatalf("repair-required job was incorrectly deduped: %q", restarted.JobID)
+	}
+	if _, ok := restored.cancelLocalEnvironmentDependencyJob(restarted.JobID); !ok {
+		t.Fatalf("cancel replacement job %s", restarted.JobID)
 	}
 }
 

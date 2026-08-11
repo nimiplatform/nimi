@@ -2,6 +2,7 @@ package engine
 
 import (
 	"reflect"
+	"strings"
 	"testing"
 )
 
@@ -79,8 +80,11 @@ func TestResolvePythonTorchWheelDependencyIdentityCarriesVersionPlaneABIAndLock(
 	if err != nil {
 		t.Fatalf("ResolvePythonTorchWheelDependencyIdentity: %v", err)
 	}
-	if identity.TorchVersion != "2.11.0" || identity.AcceleratorPlane != "cuda" || identity.CUDAABI != "cu128" || identity.WheelLockHash == "" {
+	if identity.TorchVersion != "2.11.0" || identity.AcceleratorPlane != "cuda" || identity.CUDAABI != "cu128" || identity.WheelLockHash == "" || identity.WheelIndex != defaultSpeechTorchCUDAIndexURL || identity.PackageSource != pythonTorchPackageSource {
 		t.Fatalf("unexpected Torch wheel identity: %+v", identity)
+	}
+	if got := strings.Join(identity.ImportProbes, ","); got != "torch,torchaudio" {
+		t.Fatalf("Torch wheel identity probes = %q, want torch,torchaudio", got)
 	}
 }
 

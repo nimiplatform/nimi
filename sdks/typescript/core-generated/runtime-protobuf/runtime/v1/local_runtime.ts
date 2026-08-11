@@ -54,8 +54,8 @@ import { LocalProfileResolutionPlan } from "./local_runtime_execution_profile";
 import { ProfileEntryOverride } from "./local_runtime_execution_profile";
 import { LocalProfileDescriptor } from "./local_runtime_execution_profile";
 import { LocalEnvironmentActivationGate } from "./local_runtime_device_environment";
-import { LocalEnvironmentDependencyJob } from "./local_runtime_device_environment";
 import { LocalEnvironmentSelectedSourceRecord } from "./local_runtime_device_environment";
+import { LocalEnvironmentDependencyJob } from "./local_runtime_device_environment";
 import { LocalEnvironmentPlan } from "./local_runtime_device_environment";
 import { LocalDeviceProfile } from "./local_runtime_device_environment";
 import { LocalUnregisteredAssetDescriptor } from "./local_runtime_execution_profile";
@@ -850,6 +850,36 @@ export interface ResolveLocalEnvironmentPlanResponse {
      * @generated from protobuf field: nimi.runtime.v1.LocalEnvironmentPlan plan = 1
      */
     plan?: LocalEnvironmentPlan;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.ApplyLocalEnvironmentPlanRequest
+ */
+export interface ApplyLocalEnvironmentPlanRequest {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.ResolveLocalEnvironmentPlanRequest resolution = 1
+     */
+    resolution?: ResolveLocalEnvironmentPlanRequest;
+    /**
+     * @generated from protobuf field: string expected_plan_id = 2
+     */
+    expectedPlanId: string;
+    /**
+     * @generated from protobuf field: bool confirmed = 3
+     */
+    confirmed: boolean;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.ApplyLocalEnvironmentPlanResponse
+ */
+export interface ApplyLocalEnvironmentPlanResponse {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.LocalEnvironmentPlan plan = 1
+     */
+    plan?: LocalEnvironmentPlan;
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.LocalEnvironmentDependencyJob jobs = 2
+     */
+    jobs: LocalEnvironmentDependencyJob[];
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.PrepareProfileRuntimeDescriptorRequest
@@ -4638,6 +4668,122 @@ class ResolveLocalEnvironmentPlanResponse$Type extends MessageType<ResolveLocalE
  * @generated MessageType for protobuf message nimi.runtime.v1.ResolveLocalEnvironmentPlanResponse
  */
 export const ResolveLocalEnvironmentPlanResponse = new ResolveLocalEnvironmentPlanResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ApplyLocalEnvironmentPlanRequest$Type extends MessageType<ApplyLocalEnvironmentPlanRequest> {
+    constructor() {
+        super("nimi.runtime.v1.ApplyLocalEnvironmentPlanRequest", [
+            { no: 1, name: "resolution", kind: "message", T: () => ResolveLocalEnvironmentPlanRequest },
+            { no: 2, name: "expected_plan_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "confirmed", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
+        ]);
+    }
+    create(value?: PartialMessage<ApplyLocalEnvironmentPlanRequest>): ApplyLocalEnvironmentPlanRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.expectedPlanId = "";
+        message.confirmed = false;
+        if (value !== undefined)
+            reflectionMergePartial<ApplyLocalEnvironmentPlanRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ApplyLocalEnvironmentPlanRequest): ApplyLocalEnvironmentPlanRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.ResolveLocalEnvironmentPlanRequest resolution */ 1:
+                    message.resolution = ResolveLocalEnvironmentPlanRequest.internalBinaryRead(reader, reader.uint32(), options, message.resolution);
+                    break;
+                case /* string expected_plan_id */ 2:
+                    message.expectedPlanId = reader.string();
+                    break;
+                case /* bool confirmed */ 3:
+                    message.confirmed = reader.bool();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ApplyLocalEnvironmentPlanRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.ResolveLocalEnvironmentPlanRequest resolution = 1; */
+        if (message.resolution)
+            ResolveLocalEnvironmentPlanRequest.internalBinaryWrite(message.resolution, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* string expected_plan_id = 2; */
+        if (message.expectedPlanId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.expectedPlanId);
+        /* bool confirmed = 3; */
+        if (message.confirmed !== false)
+            writer.tag(3, WireType.Varint).bool(message.confirmed);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.ApplyLocalEnvironmentPlanRequest
+ */
+export const ApplyLocalEnvironmentPlanRequest = new ApplyLocalEnvironmentPlanRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ApplyLocalEnvironmentPlanResponse$Type extends MessageType<ApplyLocalEnvironmentPlanResponse> {
+    constructor() {
+        super("nimi.runtime.v1.ApplyLocalEnvironmentPlanResponse", [
+            { no: 1, name: "plan", kind: "message", T: () => LocalEnvironmentPlan },
+            { no: 2, name: "jobs", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LocalEnvironmentDependencyJob }
+        ]);
+    }
+    create(value?: PartialMessage<ApplyLocalEnvironmentPlanResponse>): ApplyLocalEnvironmentPlanResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.jobs = [];
+        if (value !== undefined)
+            reflectionMergePartial<ApplyLocalEnvironmentPlanResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ApplyLocalEnvironmentPlanResponse): ApplyLocalEnvironmentPlanResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.LocalEnvironmentPlan plan */ 1:
+                    message.plan = LocalEnvironmentPlan.internalBinaryRead(reader, reader.uint32(), options, message.plan);
+                    break;
+                case /* repeated nimi.runtime.v1.LocalEnvironmentDependencyJob jobs */ 2:
+                    message.jobs.push(LocalEnvironmentDependencyJob.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ApplyLocalEnvironmentPlanResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.LocalEnvironmentPlan plan = 1; */
+        if (message.plan)
+            LocalEnvironmentPlan.internalBinaryWrite(message.plan, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* repeated nimi.runtime.v1.LocalEnvironmentDependencyJob jobs = 2; */
+        for (let i = 0; i < message.jobs.length; i++)
+            LocalEnvironmentDependencyJob.internalBinaryWrite(message.jobs[i], writer.tag(2, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.ApplyLocalEnvironmentPlanResponse
+ */
+export const ApplyLocalEnvironmentPlanResponse = new ApplyLocalEnvironmentPlanResponse$Type();
 // @generated message type with reflection information, may provide speed optimized methods
 class PrepareProfileRuntimeDescriptorRequest$Type extends MessageType<PrepareProfileRuntimeDescriptorRequest> {
     constructor() {

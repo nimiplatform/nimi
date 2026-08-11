@@ -8,6 +8,8 @@ import (
 	"time"
 )
 
+const localEnvironmentDependencyPrerequisiteFailedReason = "LOCAL_ENVIRONMENT_DEPENDENCY_PREREQUISITE_FAILED"
+
 const defaultLocalEnvironmentPrerequisiteWaitTimeout = 45 * time.Minute
 
 const localEnvironmentPrerequisiteWaitPoll = 25 * time.Millisecond
@@ -77,6 +79,45 @@ func (s *Service) waitForSelectedSourceForFamilyAndConsumerDetail(ctx context.Co
 				lastDetail = detail
 			}
 			if job, ok := s.latestLocalEnvironmentDependencyJobForFamilyAndConsumer(family, consumer); ok &&
+				localEnvironmentDependencyJobBlocksPrerequisiteWait(job.State) {
+				return localEnvironmentSelectedSourceRecordState{}, false, localEnvironmentPrerequisiteFailureDetail(family, consumer, job, lastDetail)
+			}
+		}
+	}
+}
+
+// waitForSelectedSourceForDependencyAndConsumerDetail is the Python profile
+// prerequisite seam. A family can contain several immutable dependency
+// profiles, so accepting the newest family record can bind one consumer to a
+// different profile root. Wait for the exact plan identity instead.
+func (s *Service) waitForSelectedSourceForDependencyAndConsumerDetail(ctx context.Context, environmentKey string, family string, dependencyID string, consumer string) (localEnvironmentSelectedSourceRecordState, bool, string) {
+	if record, ok, detail := s.readySelectedSourceForDependencyAndConsumer(environmentKey, family, dependencyID, consumer); ok {
+		return record, true, detail
+	} else if job, jobOK := s.latestLocalEnvironmentDependencyJobForDependency(environmentKey, family, dependencyID, consumer); jobOK &&
+		localEnvironmentDependencyJobBlocksPrerequisiteWait(job.State) {
+		return localEnvironmentSelectedSourceRecordState{}, false, localEnvironmentPrerequisiteFailureDetail(family, consumer, job, detail)
+	}
+	deadline := time.NewTimer(s.prerequisiteWaitTimeout())
+	defer deadline.Stop()
+	ticker := time.NewTicker(localEnvironmentPrerequisiteWaitPoll)
+	defer ticker.Stop()
+	lastDetail := "no selected source record for exact dependency identity"
+	for {
+		select {
+		case <-ctx.Done():
+			if err := ctx.Err(); err != nil {
+				return localEnvironmentSelectedSourceRecordState{}, false, err.Error()
+			}
+			return localEnvironmentSelectedSourceRecordState{}, false, "prerequisite wait cancelled"
+		case <-deadline.C:
+			return localEnvironmentSelectedSourceRecordState{}, false, lastDetail
+		case <-ticker.C:
+			if record, ok, detail := s.readySelectedSourceForDependencyAndConsumer(environmentKey, family, dependencyID, consumer); ok {
+				return record, true, detail
+			} else {
+				lastDetail = detail
+			}
+			if job, ok := s.latestLocalEnvironmentDependencyJobForDependency(environmentKey, family, dependencyID, consumer); ok &&
 				localEnvironmentDependencyJobBlocksPrerequisiteWait(job.State) {
 				return localEnvironmentSelectedSourceRecordState{}, false, localEnvironmentPrerequisiteFailureDetail(family, consumer, job, lastDetail)
 			}
@@ -186,15 +227,24 @@ func failedPrerequisiteDependencyResult(detail string) localEnvironmentDependenc
 	return localEnvironmentDependencyJobResult{
 		State:           localEnvironmentStateFailed,
 		SourceKind:      localEnvironmentSourceManaged,
-		AuditReasonCode: "LOCAL_ENVIRONMENT_DEPENDENCY_PREREQUISITE_FAILED",
+		AuditReasonCode: localEnvironmentDependencyPrerequisiteFailedReason,
 		FailureDetail:   trimmed,
 	}
 }
 
 func (s *Service) readySelectedSourceForFamilyAndConsumer(family string, consumer string) (localEnvironmentSelectedSourceRecordState, bool, string) {
 	candidates := s.selectedSourceCandidatesForFamilyAndConsumer(family, consumer)
+	return s.readySelectedSourceFromCandidates(candidates, consumer)
+}
+
+func (s *Service) readySelectedSourceForDependencyAndConsumer(environmentKey string, family string, dependencyID string, consumer string) (localEnvironmentSelectedSourceRecordState, bool, string) {
+	candidates := s.selectedSourceCandidatesForDependencyAndConsumer(environmentKey, family, dependencyID, consumer)
+	return s.readySelectedSourceFromCandidates(candidates, consumer)
+}
+
+func (s *Service) readySelectedSourceFromCandidates(candidates []localEnvironmentSelectedSourceRecordState, consumer string) (localEnvironmentSelectedSourceRecordState, bool, string) {
 	if len(candidates) == 0 {
-		return localEnvironmentSelectedSourceRecordState{}, false, "no selected source record for consumer"
+		return localEnvironmentSelectedSourceRecordState{}, false, "no selected source record for dependency identity"
 	}
 	lastDetail := "no selected source record satisfies readiness"
 	for _, record := range candidates {
@@ -210,9 +260,20 @@ func (s *Service) readySelectedSourceForFamilyAndConsumer(family string, consume
 			lastDetail = "selected source record fails local artifact verification: " + err.Error()
 			continue
 		}
+		if record.DependencyFamily == localEnvironmentFamilyPythonPackageSet {
+			if _, ok, detail := s.localEnvironmentPythonPackageSetConsumptionJob(record, consumer); !ok {
+				lastDetail = detail
+				continue
+			}
+		}
 		return record, true, ""
 	}
 	return localEnvironmentSelectedSourceRecordState{}, false, lastDetail
+}
+
+func (s *Service) selectedSourceForFamilyAndConsumer(family string, consumer string) (localEnvironmentSelectedSourceRecordState, bool) {
+	record, ok, _ := s.readySelectedSourceForFamilyAndConsumer(family, consumer)
+	return record, ok
 }
 
 func (s *Service) selectedSourceCandidatesForFamilyAndConsumer(family string, consumer string) []localEnvironmentSelectedSourceRecordState {
@@ -224,17 +285,12 @@ func (s *Service) selectedSourceCandidatesForFamilyAndConsumer(family string, co
 		if record.DependencyFamily != trimmedFamily {
 			continue
 		}
-		if trimmedConsumer != "" && !stringSliceContains(record.SelectedConsumers, trimmedConsumer) {
+		if trimmedConsumer != "" &&
+			!localEnvironmentPythonSelectedSourceFamily(record.DependencyFamily) &&
+			!stringSliceContains(record.SelectedConsumers, trimmedConsumer) {
 			continue
 		}
-		if record.DependencyFamily == localEnvironmentFamilyPythonTorchWheel && trimmedConsumer != "" {
-			projected, ok := localEnvironmentSelectedSourceRecordForConsumer(record, trimmedConsumer)
-			if !ok {
-				continue
-			}
-			record = projected
-		}
-		candidates = append(candidates, record)
+		candidates = append(candidates, canonicalLocalEnvironmentPythonSelectedSourceRecord(record))
 	}
 	s.mu.RUnlock()
 	sort.SliceStable(candidates, func(left, right int) bool {
@@ -251,6 +307,83 @@ func (s *Service) selectedSourceCandidatesForFamilyAndConsumer(family string, co
 		return strings.TrimSpace(candidates[left].RecordID) > strings.TrimSpace(candidates[right].RecordID)
 	})
 	return candidates
+}
+
+func (s *Service) selectedSourceCandidatesForDependencyAndConsumer(environmentKey string, family string, dependencyID string, consumer string) []localEnvironmentSelectedSourceRecordState {
+	trimmedKey := strings.TrimSpace(environmentKey)
+	trimmedFamily := strings.TrimSpace(family)
+	trimmedDependencyID := strings.TrimSpace(dependencyID)
+	trimmedConsumer := strings.TrimSpace(consumer)
+	if trimmedKey == "" || trimmedFamily == "" || trimmedDependencyID == "" {
+		return nil
+	}
+	s.mu.RLock()
+	candidates := make([]localEnvironmentSelectedSourceRecordState, 0)
+	for _, record := range s.localEnvironmentSelectedSources {
+		if strings.TrimSpace(record.EnvironmentKey) != trimmedKey ||
+			strings.TrimSpace(record.DependencyFamily) != trimmedFamily ||
+			strings.TrimSpace(record.DependencyID) != trimmedDependencyID {
+			continue
+		}
+		if trimmedConsumer != "" &&
+			!localEnvironmentPythonSelectedSourceFamily(record.DependencyFamily) &&
+			!stringSliceContains(record.SelectedConsumers, trimmedConsumer) {
+			continue
+		}
+		candidates = append(candidates, canonicalLocalEnvironmentPythonSelectedSourceRecord(record))
+	}
+	s.mu.RUnlock()
+	sort.SliceStable(candidates, func(left, right int) bool {
+		leftVerified := strings.TrimSpace(candidates[left].LastVerifiedAt)
+		rightVerified := strings.TrimSpace(candidates[right].LastVerifiedAt)
+		if leftVerified != rightVerified {
+			return leftVerified > rightVerified
+		}
+		leftSelected := strings.TrimSpace(candidates[left].SelectedAt)
+		rightSelected := strings.TrimSpace(candidates[right].SelectedAt)
+		if leftSelected != rightSelected {
+			return leftSelected > rightSelected
+		}
+		return strings.TrimSpace(candidates[left].RecordID) > strings.TrimSpace(candidates[right].RecordID)
+	})
+	return candidates
+}
+
+// localEnvironmentPythonPackageSetConsumptionJob projects consumer membership
+// from the existing consumer-scoped activation job. The selected-source record
+// remains canonical for the immutable profile and never owns consumers.
+func (s *Service) localEnvironmentPythonPackageSetConsumptionJob(record localEnvironmentSelectedSourceRecordState, consumer string) (localEnvironmentDependencyJobState, bool, string) {
+	if record.DependencyFamily != localEnvironmentFamilyPythonPackageSet {
+		return localEnvironmentDependencyJobState{}, false, "python dependency profile consumption requires an exact consumer"
+	}
+	return s.localEnvironmentPythonSelectedSourceConsumptionJob(record, consumer)
+}
+
+func (s *Service) localEnvironmentPythonSelectedSourceConsumptionJob(record localEnvironmentSelectedSourceRecordState, consumer string) (localEnvironmentDependencyJobState, bool, string) {
+	trimmedConsumer := strings.TrimSpace(consumer)
+	if !localEnvironmentPythonSelectedSourceFamily(record.DependencyFamily) || trimmedConsumer == "" {
+		return localEnvironmentDependencyJobState{}, false, "python selected-source consumption requires an exact consumer"
+	}
+	job, ok := s.latestLocalEnvironmentDependencyJobForDependency(
+		record.EnvironmentKey,
+		record.DependencyFamily,
+		record.DependencyID,
+		trimmedConsumer,
+	)
+	if !ok {
+		return localEnvironmentDependencyJobState{}, false, "no verified Python selected-source consumption job for consumer"
+	}
+	if job.State != localEnvironmentStateReadyManaged && job.State != localEnvironmentStateReadySystem {
+		return localEnvironmentDependencyJobState{}, false, "Python selected-source consumption job is not ready for consumer"
+	}
+	if strings.TrimSpace(job.SelectedSourceRecordID) == "" ||
+		strings.TrimSpace(job.SelectedSourceRecordID) != strings.TrimSpace(record.RecordID) {
+		return localEnvironmentDependencyJobState{}, false, "Python selected-source consumption job does not reference the canonical selected source"
+	}
+	if !sameLocalEnvironmentPath(job.CanonicalRoot, record.CanonicalRoot) {
+		return localEnvironmentDependencyJobState{}, false, "Python selected-source consumption job root does not match the canonical selected source"
+	}
+	return job, true, ""
 }
 
 // failOrphanedLocalEnvironmentDependencyJobsLocked is the crash-recovery seam.

@@ -21,6 +21,12 @@ rows:
     admission
   - materializers are RuntimeLocalService-owned job executors, not Desktop
     workflows, engine installers, scripts, or package-manager commands
+  - RuntimeLocalService composes existing Python dependency families into an
+    immutable profile by staging, exact frozen synchronization through pinned
+    managed uv 0.11.8 and the shared package cache, verification, and atomic
+    promotion; the profile is not a new materializer family
+  - consumer-specific profile activation verifies consumption compatibility
+    and never creates or owns a selected-source record
   - a materializer may request prerequisite plan resolution but must not
     silently materialize another dependency family unless confirmation
     explicitly covers that dependency environment
@@ -89,10 +95,12 @@ registry:
     source_manifest_ref: managed-uv-tool-source
     verification_evidence_ref: python-tool-uv-evidence
     confirmation_policy: first_network_materialization
-    selected_source_promotion: ready_system_or_ready_managed_after_verification
+    selected_source_promotion: ready_managed_after_verification
     repair_policy: lock_activation_until_reverified
     forbidden_readiness_inputs:
       - user_path_presence
+      - system_uv
+      - unpinned_uv
       - package_manager_global_state
       - shell_profile
       - script_exit_only
@@ -124,6 +132,9 @@ registry:
     forbidden_readiness_inputs:
       - venv_directory_presence
       - site_packages_presence
+      - mutable_in_place_sync
+      - consumer_identity_in_profile_key
+      - path_selected_uv
       - script_exit_only
 
   - materializer_id: materializer.python.package-set
@@ -138,6 +149,9 @@ registry:
     forbidden_readiness_inputs:
       - site_packages_presence
       - import_success_without_lock_identity
+      - consumer_scoped_selected_source
+      - dynamic_dependency_merge
+      - post_promotion_sync
       - package_directory_presence
       - script_exit_only
 
@@ -153,6 +167,8 @@ registry:
     forbidden_readiness_inputs:
       - import_success_without_wheel_identity
       - accelerator_runtime_assumption
+      - consumer_scoped_selected_source
+      - mutable_profile_install
       - package_directory_presence
       - script_exit_only
 
@@ -189,6 +205,9 @@ registry:
 rules:
   - every dependency family in local-environment-dependencies.yaml must either have one registry entry or an explicit exclusion before implementation admission
   - materializers are RuntimeLocalService-owned job executors, not Desktop workflows, engine installers, scripts, or package-manager commands
+  - RuntimeLocalService composes the existing Python runtime, venv, package-set, Torch, declared source, and Driver inputs into one immutable consumer-independent profile without creating a new dependency family or selected-source owner
+  - profile creation stages under Runtime-owned roots, uses pinned managed uv 0.11.8 for exact frozen synchronization against the shared package cache, verifies declared imports and host-derived accelerator execution, and atomically promotes; promoted profiles are never mutated
+  - consumer-specific profile activation is consumption verification only and never creates, replaces, or transfers selected-source ownership
   - a materializer may request prerequisite plan resolution but must not silently materialize another dependency family unless confirmation explicitly covers that dependency environment
   - startup, route resolution, Desktop page load, SDK reads, passive import review, health probes, and background maintenance must not trigger first heavy or network materialization
   - missing uv, Python, venv, package set, Torch wheel, native package, model asset, or companion asset projects Runtime local environment setup or repair state, not ordinary-user package-manager or PATH prerequisites

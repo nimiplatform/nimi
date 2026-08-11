@@ -84,7 +84,7 @@ func normalizeLocalEnvironmentDependencyJobRequest(req localEnvironmentDependenc
 
 func localEnvironmentDependencyJobTerminal(state string) bool {
 	switch strings.TrimSpace(state) {
-	case localEnvironmentStateReadySystem, localEnvironmentStateReadyManaged, localEnvironmentStateFailed, localEnvironmentStateUnsupported, localEnvironmentStateCancelled:
+	case localEnvironmentStateReadySystem, localEnvironmentStateReadyManaged, localEnvironmentStateRepairRequired, localEnvironmentStateFailed, localEnvironmentStateUnsupported, localEnvironmentStateCancelled:
 		return true
 	default:
 		return false

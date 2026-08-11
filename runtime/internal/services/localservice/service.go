@@ -33,9 +33,7 @@ type EngineManager interface {
 	EnsureEngineBinaryDependency(ctx context.Context, engine string, version string) (engine.EngineBinaryDependencyStatus, error)
 	EnsureUVToolDependency(ctx context.Context) (engine.UVToolDependencyStatus, error)
 	EnsurePythonRuntimeDependency(ctx context.Context, uvPath string, engine string, version string, pythonVersion string) (engine.PythonRuntimeDependencyStatus, error)
-	EnsurePythonVenvDependency(ctx context.Context, uvPath string, pythonRuntimePath string, engine string, version string) (engine.PythonVenvDependencyStatus, error)
-	EnsurePythonPackageSetDependency(ctx context.Context, uvPath string, venvRoot string, consumer string) (engine.PythonPackageSetDependencyStatus, error)
-	EnsurePythonTorchWheelDependency(ctx context.Context, uvPath string, venvRoot string, consumer string) (engine.PythonTorchWheelDependencyStatus, error)
+	EnsurePythonDependencyProfile(ctx context.Context, uvPath string, pythonRuntimePath string, consumer string, platformTuple string, acceleratorPlane string) (engine.PythonDependencyProfileStatus, error)
 	EnsureManagedImageBackend(ctx context.Context, cfg *engine.ManagedImageBackendConfig) error
 	EnsureManagedImageBackendDependency(ctx context.Context, cfg *engine.ManagedImageBackendConfig) (engine.ManagedImageBackendDependencyStatus, error)
 	StartInstalledManagedImageBackend(ctx context.Context, cfg *engine.ManagedImageBackendConfig) error
@@ -73,7 +71,6 @@ type Service struct {
 	runtimeDataRoot                    string
 	managedMediaEndpointValue          string
 	managedSpeechEndpointValue         string
-	managedSpeechCapability            string
 	managedMediaBackendConfigured      bool
 	managedMediaBackendHealthy         bool
 	managedMediaBackendAddress         string
@@ -85,6 +82,8 @@ type Service struct {
 	managedMediaBackendEpoch           uint64
 
 	mu                                      sync.RWMutex
+	localEnvironmentPlanApplyMu             sync.Mutex
+	managedMediaMu                          sync.Mutex
 	managedSpeechMu                         sync.Mutex
 	assets                                  map[string]*runtimev1.LocalAssetRecord
 	services                                map[string]*runtimev1.LocalServiceDescriptor

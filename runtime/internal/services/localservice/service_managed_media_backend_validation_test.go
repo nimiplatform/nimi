@@ -67,7 +67,7 @@ func TestResolveManagedMediaImageProfileRejectsPathOverrides(t *testing.T) {
 	svc.mu.Lock()
 	svc.assets[modelResp.GetLocalAssetId()].Status = runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE
 	svc.mu.Unlock()
-	writeManagedAssetEntryFixture(t, modelsRoot, modelResp, "main-model")
+	writeManagedAssetEntryFixture(t, svc, modelsRoot, modelResp, "main-model")
 
 	cases := []struct {
 		name      string
@@ -170,7 +170,7 @@ func TestResolveManagedMediaImageProfileFailsCloseWithoutProfileEntriesOrRuntime
 	svc.mu.Lock()
 	svc.assets[modelResp.GetLocalAssetId()].Status = runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE
 	svc.mu.Unlock()
-	writeManagedAssetEntryFixture(t, modelsRoot, modelResp, "main-model")
+	writeManagedAssetEntryFixture(t, svc, modelsRoot, modelResp, "main-model")
 
 	_, _, _, err = svc.ResolveManagedMediaImageProfile(context.Background(), "media/z_image_turbo", map[string]any{
 		"profile_overrides": map[string]any{
@@ -205,7 +205,7 @@ func TestResolveManagedMediaImageProfileRejectsMissingRequiredSlotAsset(t *testi
 	svc.mu.Lock()
 	svc.assets[modelResp.GetLocalAssetId()].Status = runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE
 	svc.mu.Unlock()
-	writeManagedAssetEntryFixture(t, modelsRoot, modelResp, "main-model")
+	writeManagedAssetEntryFixture(t, svc, modelsRoot, modelResp, "main-model")
 
 	required := true
 	_, _, _, err = svc.ResolveManagedMediaImageProfile(context.Background(), "media/z_image_turbo", map[string]any{
@@ -257,7 +257,7 @@ func TestResolveManagedMediaImageProfileRejectsOptionalMissingSlotAsset(t *testi
 	svc.mu.Lock()
 	svc.assets[modelResp.GetLocalAssetId()].Status = runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE
 	svc.mu.Unlock()
-	writeManagedAssetEntryFixture(t, modelsRoot, modelResp, "main-model")
+	writeManagedAssetEntryFixture(t, svc, modelsRoot, modelResp, "main-model")
 
 	optional := false
 	_, _, _, err = svc.ResolveManagedMediaImageProfile(context.Background(), "media/z_image_turbo", map[string]any{
@@ -354,7 +354,7 @@ func TestResolveManagedMediaImageProfileRejectsLocalImportSlotSourceRepo(t *test
 	svc.mu.Lock()
 	svc.assets[modelResp.GetLocalAssetId()].Status = runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE
 	svc.mu.Unlock()
-	writeManagedAssetEntryFixture(t, modelsRoot, modelResp, "main-model")
+	writeManagedAssetEntryFixture(t, svc, modelsRoot, modelResp, "main-model")
 
 	vaeRecord := &runtimev1.LocalAssetRecord{
 		LocalAssetId: "artifact_" + ulid.Make().String(),
@@ -368,7 +368,12 @@ func TestResolveManagedMediaImageProfileRejectsLocalImportSlotSourceRepo(t *test
 		},
 	}
 	svc.assets[vaeRecord.GetLocalAssetId()] = vaeRecord
-	writeManagedAssetEntryFixture(t, modelsRoot, vaeRecord, "vae")
+	writeManagedAssetEntryFixture(t, svc, modelsRoot, vaeRecord, "vae")
+	legacyRepo := "local-import/local-import-ae"
+	vaeRecord.Source.Repo = legacyRepo
+	svc.mu.Lock()
+	svc.assets[vaeRecord.GetLocalAssetId()].Source.Repo = legacyRepo
+	svc.mu.Unlock()
 
 	_, _, _, err = svc.ResolveManagedMediaImageProfile(context.Background(), "media/z_image_turbo", map[string]any{
 		"profile_entries": []*runtimev1.LocalProfileEntryDescriptor{
@@ -419,7 +424,7 @@ func TestResolveManagedMediaImageProfileRejectsRunnableEngineSlotBinding(t *test
 	svc.mu.Lock()
 	svc.assets[modelResp.GetLocalAssetId()].Status = runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE
 	svc.mu.Unlock()
-	writeManagedAssetEntryFixture(t, modelsRoot, modelResp, "main-model")
+	writeManagedAssetEntryFixture(t, svc, modelsRoot, modelResp, "main-model")
 
 	_, _, _, err = svc.ResolveManagedMediaImageProfile(context.Background(), "media/z_image_turbo", map[string]any{
 		"profile_entries": []*runtimev1.LocalProfileEntryDescriptor{
@@ -460,25 +465,10 @@ func TestResolveManagedMediaImageProfileRejectsDuplicateEngineSlotBindings(t *te
 	svc.mu.Lock()
 	svc.assets[modelResp.GetLocalAssetId()].Status = runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE
 	svc.mu.Unlock()
-	writeManagedAssetEntryFixture(t, modelsRoot, modelResp, "main-model")
-
-	firstSlotPath := filepath.Join(modelsRoot, "resolved", slugifyLocalAssetID("z_image_vae_a"), "vae", "diffusion_pytorch_model.safetensors")
-	if err := os.MkdirAll(filepath.Dir(firstSlotPath), 0o755); err != nil {
-		t.Fatalf("mkdir first slot dir: %v", err)
-	}
-	if err := os.WriteFile(firstSlotPath, []byte("vae-a"), 0o600); err != nil {
-		t.Fatalf("write first slot file: %v", err)
-	}
-	secondSlotPath := filepath.Join(modelsRoot, "resolved", slugifyLocalAssetID("z_image_vae_b"), "vae", "diffusion_pytorch_model.safetensors")
-	if err := os.MkdirAll(filepath.Dir(secondSlotPath), 0o755); err != nil {
-		t.Fatalf("mkdir second slot dir: %v", err)
-	}
-	if err := os.WriteFile(secondSlotPath, []byte("vae-b"), 0o600); err != nil {
-		t.Fatalf("write second slot file: %v", err)
-	}
+	writeManagedAssetEntryFixture(t, svc, modelsRoot, modelResp, "main-model")
 
 	firstLocalAssetID := "artifact_" + ulid.Make().String()
-	svc.assets[firstLocalAssetID] = &runtimev1.LocalAssetRecord{
+	firstSlot := &runtimev1.LocalAssetRecord{
 		LocalAssetId: firstLocalAssetID,
 		AssetId:      "z_image_vae_a",
 		Kind:         runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_VAE,
@@ -488,7 +478,7 @@ func TestResolveManagedMediaImageProfileRejectsDuplicateEngineSlotBindings(t *te
 		Source:       &runtimev1.LocalAssetSource{},
 	}
 	secondLocalAssetID := "artifact_" + ulid.Make().String()
-	svc.assets[secondLocalAssetID] = &runtimev1.LocalAssetRecord{
+	secondSlot := &runtimev1.LocalAssetRecord{
 		LocalAssetId: secondLocalAssetID,
 		AssetId:      "z_image_vae_b",
 		Kind:         runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_VAE,
@@ -497,6 +487,10 @@ func TestResolveManagedMediaImageProfileRejectsDuplicateEngineSlotBindings(t *te
 		Status:       runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED,
 		Source:       &runtimev1.LocalAssetSource{},
 	}
+	svc.assets[firstLocalAssetID] = firstSlot
+	svc.assets[secondLocalAssetID] = secondSlot
+	writeManagedAssetEntryFixture(t, svc, modelsRoot, firstSlot, "vae-a")
+	writeManagedAssetEntryFixture(t, svc, modelsRoot, secondSlot, "vae-b")
 
 	_, _, _, err = svc.ResolveManagedMediaImageProfile(context.Background(), "media/z_image_turbo", map[string]any{
 		"profile_entries": []*runtimev1.LocalProfileEntryDescriptor{
@@ -555,7 +549,7 @@ func TestResolveManagedMediaImageProfileRejectsFlux2VAEForZImage(t *testing.T) {
 	svc.assets[modelResp.GetLocalAssetId()].Status = runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE
 	svc.assets[modelResp.GetLocalAssetId()].Family = "z-image-turbo"
 	svc.mu.Unlock()
-	writeManagedAssetEntryFixture(t, modelsRoot, modelResp, "main-model")
+	writeManagedAssetEntryFixture(t, svc, modelsRoot, modelResp, "main-model")
 
 	vaeRecord := &runtimev1.LocalAssetRecord{
 		LocalAssetId:  "artifact_" + ulid.Make().String(),
@@ -569,7 +563,7 @@ func TestResolveManagedMediaImageProfileRejectsFlux2VAEForZImage(t *testing.T) {
 		Source:        &runtimev1.LocalAssetSource{},
 	}
 	svc.assets[vaeRecord.GetLocalAssetId()] = vaeRecord
-	writeManagedAssetEntryFixture(t, modelsRoot, vaeRecord, "vae")
+	writeManagedAssetEntryFixture(t, svc, modelsRoot, vaeRecord, "vae")
 
 	llmRecord := &runtimev1.LocalAssetRecord{
 		LocalAssetId: "artifact_" + ulid.Make().String(),
@@ -581,7 +575,7 @@ func TestResolveManagedMediaImageProfileRejectsFlux2VAEForZImage(t *testing.T) {
 		Source:       &runtimev1.LocalAssetSource{},
 	}
 	svc.assets[llmRecord.GetLocalAssetId()] = llmRecord
-	writeManagedAssetEntryFixture(t, modelsRoot, llmRecord, "llm")
+	writeManagedAssetEntryFixture(t, svc, modelsRoot, llmRecord, "llm")
 
 	_, _, _, err = svc.ResolveManagedMediaImageProfile(context.Background(), "media/z_image_turbo", map[string]any{
 		"profile_entries": []*runtimev1.LocalProfileEntryDescriptor{
@@ -663,6 +657,76 @@ func TestResolveManagedAssetPathRejectsSymlinkedBaseDirOutsideModelsRoot(t *test
 		t.Fatal("expected symlinked artifact base dir outside root to be rejected")
 	}
 	assertGRPCReasonCode(t, err, "ResolveManagedAssetPath(symlink outside root)", runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
+}
+
+func TestResolveManagedAssetPathRejectsPersistedLogicalModelTraversal(t *testing.T) {
+	svc := newTestService(t)
+	modelsRoot := filepath.Join(t.TempDir(), "models")
+	setLocalModelsPathForTest(t, svc, modelsRoot)
+	escapedDir := filepath.Join(modelsRoot, "escaped")
+	if err := os.MkdirAll(escapedDir, 0o755); err != nil {
+		t.Fatalf("create escaped bundle directory: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(escapedDir, "model.bin"), []byte("escaped"), 0o600); err != nil {
+		t.Fatalf("write escaped bundle entry: %v", err)
+	}
+	artifact := &runtimev1.LocalAssetRecord{
+		LocalAssetId:   "artifact_" + ulid.Make().String(),
+		AssetId:        "catalog/path-escape",
+		Kind:           runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_VIDEO,
+		Engine:         "media",
+		Entry:          "model.bin",
+		LogicalModelId: "../escaped",
+		Status:         runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED,
+		Source:         &runtimev1.LocalAssetSource{Repo: "catalog/path-escape"},
+	}
+	svc.assets[artifact.GetLocalAssetId()] = artifact
+
+	_, err := svc.ResolveManagedAssetPath(context.Background(), artifact.GetLocalAssetId())
+	if err == nil {
+		t.Fatal("expected persisted logical_model_id traversal to be rejected")
+	}
+	assertGRPCReasonCode(t, err, "ResolveManagedAssetPath(persisted logical traversal)", runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
+}
+
+func TestResolveManagedAssetPathRejectsPersistedLogicalModelSymlinkEscape(t *testing.T) {
+	svc := newTestService(t)
+	modelsRoot := filepath.Join(t.TempDir(), "models")
+	setLocalModelsPathForTest(t, svc, modelsRoot)
+	if err := os.MkdirAll(filepath.Join(modelsRoot, "resolved"), 0o755); err != nil {
+		t.Fatalf("create resolved models root: %v", err)
+	}
+	outsideDir := filepath.Join(t.TempDir(), "outside-model")
+	if err := os.MkdirAll(outsideDir, 0o755); err != nil {
+		t.Fatalf("create outside model directory: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(outsideDir, "model.bin"), []byte("outside"), 0o600); err != nil {
+		t.Fatalf("write outside model entry: %v", err)
+	}
+	linkedDir := filepath.Join(modelsRoot, "resolved", "linked-model")
+	if err := os.Symlink(outsideDir, linkedDir); err != nil {
+		if strings.Contains(err.Error(), "A required privilege is not held by the client") {
+			t.Skip("symlink privilege unavailable on this Windows host")
+		}
+		t.Fatalf("create resolved model symlink: %v", err)
+	}
+	artifact := &runtimev1.LocalAssetRecord{
+		LocalAssetId:   "artifact_" + ulid.Make().String(),
+		AssetId:        "catalog/linked-model",
+		Kind:           runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_VIDEO,
+		Engine:         "media",
+		Entry:          "model.bin",
+		LogicalModelId: "linked-model",
+		Status:         runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED,
+		Source:         &runtimev1.LocalAssetSource{Repo: "catalog/linked-model"},
+	}
+	svc.assets[artifact.GetLocalAssetId()] = artifact
+
+	_, err := svc.ResolveManagedAssetPath(context.Background(), artifact.GetLocalAssetId())
+	if err == nil {
+		t.Fatal("expected persisted logical_model_id symlink escape to be rejected")
+	}
+	assertGRPCReasonCode(t, err, "ResolveManagedAssetPath(persisted logical symlink escape)", runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
 }
 
 func containsString(values []string, target string) bool {

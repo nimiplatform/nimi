@@ -1,0 +1,27 @@
+[project]
+name = "nimi-managed-python-profile"
+version = "0.0.0"
+requires-python = "==3.12.13"
+dependencies = [
+  "fastapi==0.121.1",
+  "python-multipart==0.0.26",
+  "qwen-asr==0.0.6",
+  "torch==2.11.0",
+  "uvicorn[standard]==0.38.0",
+]
+
+[tool.uv]
+package = false
+
+[[tool.uv.index]]
+name = "pytorch"
+url = "https://download.pytorch.org/whl/cu128"
+explicit = true
+
+[[tool.uv.index]]
+name = "pypi"
+url = "https://pypi.org/simple"
+default = true
+
+[tool.uv.sources]
+torch = { index = "pytorch" }

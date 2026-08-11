@@ -220,12 +220,12 @@
     "localSpeechDependencyFailure": "Local Speech · {{capability}} · download_or_init_failed: {{detail}}",
     "localSpeechProgress": "{{percent}}%",
     "localSpeechSetup": "Set up",
-    "localSpeechStart": "Start",
-    "localSpeechRepair": "Repair",
-    "localSpeechRetry": "Retry",
     "localSpeechCancel": "Cancel",
     "localSpeechConfirmTitle": "Confirm Runtime dependency setup",
-    "localSpeechConfirmMessage": "Runtime will materialize {{family}} from {{source}} under {{root}}. The current Runtime projection does not report a download size. This does not change user or machine PATH, system CUDA, global Python, or package-manager global state.",
+    "localSpeechConfirmMessage": "{{sourceOwner}} will materialize all required families ({{family}}) into managed storage categories ({{storageCategory}}) under {{root}}. Aggregate size: {{aggregateSize}}. {{mutationPolicy}}",
+    "localSpeechAggregateSizeUnknown": "unknown",
+    "localSpeechNoSystemMutation": "System mutation: none.",
+    "localSpeechSystemMutationPolicyUnknown": "System mutation policy unavailable; setup is blocked.",
     "localSpeechConfirm": "Confirm setup"
   },
   "overview": {

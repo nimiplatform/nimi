@@ -39,8 +39,8 @@ var ErrManagedRootUnresolved = errors.New("managed engine install root unresolve
 // home-directory fallback. (K-CFG-018, K-LENG-028)
 type ManagedRoots struct {
 	// Environments is the data-plane `environments` root: native engine
-	// packages, the managed Python interpreter, venvs, package sets, Torch
-	// wheels, and the engine binary registry.
+	// packages, the managed Python interpreter, immutable dependency profiles,
+	// and the engine binary registry.
 	Environments string
 	// Dependencies is the data-plane `dependencies` root: standalone
 	// downloaded dependency payloads — the `uv` tool and the shared
@@ -67,7 +67,8 @@ type Manager struct {
 	mu                 sync.RWMutex
 	uvToolMu           sync.Mutex
 	pythonRuntimeMu    sync.Mutex
-	pythonPackageSetMu sync.Mutex
+	pythonProfileMu    sync.Mutex
+	pythonProfileLocks map[string]chan struct{}
 	supervisors        map[EngineKind]*Supervisor
 	starting           map[EngineKind]bool
 }
@@ -120,6 +121,7 @@ func NewManager(logger *slog.Logger, roots ManagedRoots, onState StateChangeFunc
 		onState:                           onState,
 		managedImageBackendsPath:          filepath.Join(baseDir, "managed-image-backends"),
 		sharedAcceleratorDependenciesPath: filepath.Join(depsDir, "accelerator-dependencies"),
+		pythonProfileLocks:                make(map[string]chan struct{}),
 		supervisors:                       make(map[EngineKind]*Supervisor),
 		starting:                          make(map[EngineKind]bool),
 	}, nil
@@ -196,7 +198,10 @@ func (m *Manager) EnsureEngine(ctx context.Context, cfg EngineConfig) (EngineCon
 	case EngineLlama:
 		return m.requireLlamaBinaryDependency(cfg)
 	case EngineMedia:
-		return ensureMedia(ctx, m.baseDir, cfg)
+		m.mu.RLock()
+		runtimeWorkRoot := strings.TrimSpace(m.runtimeWorkRoot)
+		m.mu.RUnlock()
+		return ensureMedia(ctx, runtimeWorkRoot, cfg)
 	case EngineSpeech:
 		return ensureSpeech(ctx, m.baseDir, cfg)
 	default:
@@ -551,18 +556,6 @@ func (m *Manager) stoppedEngineInfo(kind EngineKind) SupervisorInfo {
 			if fi, err := os.Stat(info.BinaryPath); err == nil {
 				info.BinarySizeBytes = fi.Size()
 			}
-		}
-	case EngineMedia:
-		path := managedPythonPath(engineVersionDir(m.baseDir, EngineMedia, cfg.Version))
-		if fi, statErr := os.Stat(path); statErr == nil {
-			info.BinaryPath = strings.TrimSpace(path)
-			info.BinarySizeBytes = fi.Size()
-		}
-	case EngineSpeech:
-		path := managedPythonPath(engineVersionDir(m.baseDir, EngineSpeech, cfg.Version))
-		if fi, statErr := os.Stat(path); statErr == nil {
-			info.BinaryPath = strings.TrimSpace(path)
-			info.BinarySizeBytes = fi.Size()
 		}
 	}
 

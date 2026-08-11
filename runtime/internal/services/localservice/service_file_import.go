@@ -10,6 +10,7 @@ import (
 	"io"
 	"io/fs"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 
@@ -124,12 +125,123 @@ func computeImportFileSHA256WithProgress(path string, onProgress func(processedB
 	return hex.EncodeToString(hasher.Sum(nil)), nil
 }
 
-func runtimeManagedResolvedModelDir(modelsRoot string, logicalModelID string) string {
-	return filepath.Join(modelsRoot, "resolved", filepath.FromSlash(strings.Trim(strings.TrimSpace(logicalModelID), "/")))
+func validateManagedLogicalModelID(logicalModelID string) error {
+	value := strings.TrimSpace(logicalModelID)
+	if value == "" || value != logicalModelID {
+		return fmt.Errorf("logical_model_id must be a non-empty canonical relative identifier")
+	}
+	if strings.ContainsAny(value, "\\:\x00") || path.IsAbs(value) {
+		return fmt.Errorf("logical_model_id must not contain an absolute or platform-specific path")
+	}
+	if cleaned := path.Clean(value); cleaned != value {
+		return fmt.Errorf("logical_model_id must not contain path traversal or non-canonical segments")
+	}
+	for _, segment := range strings.Split(value, "/") {
+		if segment == "" || segment == "." || segment == ".." {
+			return fmt.Errorf("logical_model_id must not contain empty or traversal segments")
+		}
+		if strings.HasSuffix(segment, ".") || strings.HasSuffix(segment, " ") {
+			return fmt.Errorf("logical_model_id contains a platform-ambiguous segment")
+		}
+		if isWindowsReservedPathSegment(segment) {
+			return fmt.Errorf("logical_model_id contains a reserved platform path segment")
+		}
+	}
+	return nil
 }
 
-func runtimeManagedAssetManifestPath(modelsRoot string, logicalModelID string) string {
-	return filepath.Join(runtimeManagedResolvedModelDir(modelsRoot, logicalModelID), "asset.manifest.json")
+func isWindowsReservedPathSegment(segment string) bool {
+	base := strings.ToUpper(strings.SplitN(segment, ".", 2)[0])
+	switch base {
+	case "CON", "PRN", "AUX", "NUL", "CONIN$", "CONOUT$":
+		return true
+	}
+	return len(base) == 4 &&
+		(base[:3] == "COM" || base[:3] == "LPT") &&
+		base[3] >= '1' && base[3] <= '9'
+}
+
+func pathWithinBase(basePath string, candidatePath string, allowBase bool) bool {
+	rel, err := filepath.Rel(basePath, candidatePath)
+	if err != nil || filepath.IsAbs(rel) || rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
+		return false
+	}
+	return allowBase || (rel != "." && rel != "")
+}
+
+func resolveRuntimeManagedModelBundleDir(modelsRoot string, logicalModelID string) (string, error) {
+	root := strings.TrimSpace(modelsRoot)
+	if root == "" || !filepath.IsAbs(root) {
+		return "", fmt.Errorf("runtime models root must be absolute")
+	}
+	if err := validateManagedLogicalModelID(logicalModelID); err != nil {
+		return "", err
+	}
+	rootAbs, err := filepath.Abs(filepath.Clean(root))
+	if err != nil {
+		return "", fmt.Errorf("resolve runtime models root: %w", err)
+	}
+	resolvedRoot := filepath.Join(rootAbs, "resolved")
+	target := filepath.Join(resolvedRoot, filepath.FromSlash(logicalModelID))
+	target, err = filepath.Abs(target)
+	if err != nil {
+		return "", fmt.Errorf("resolve managed model bundle target: %w", err)
+	}
+	if !pathWithinBase(resolvedRoot, target, false) {
+		return "", fmt.Errorf("managed model bundle target must stay under resolved/")
+	}
+
+	canonicalRoot := rootAbs
+	if resolved, resolveErr := filepath.EvalSymlinks(rootAbs); resolveErr == nil {
+		canonicalRoot = resolved
+	} else if !os.IsNotExist(resolveErr) {
+		return "", fmt.Errorf("resolve runtime models root links: %w", resolveErr)
+	}
+	canonicalResolvedRoot := resolvedRoot
+	if resolved, resolveErr := filepath.EvalSymlinks(resolvedRoot); resolveErr == nil {
+		canonicalResolvedRoot = resolved
+		if !pathWithinBase(canonicalRoot, canonicalResolvedRoot, false) {
+			return "", fmt.Errorf("resolved models root escapes runtime models root")
+		}
+	} else if !os.IsNotExist(resolveErr) {
+		return "", fmt.Errorf("resolve managed models directory links: %w", resolveErr)
+	}
+
+	current := resolvedRoot
+	for _, segment := range strings.Split(logicalModelID, "/") {
+		current = filepath.Join(current, segment)
+		if _, statErr := os.Lstat(current); statErr != nil {
+			if os.IsNotExist(statErr) {
+				break
+			}
+			return "", fmt.Errorf("inspect managed model bundle target: %w", statErr)
+		}
+		resolvedCurrent, resolveErr := filepath.EvalSymlinks(current)
+		if resolveErr != nil {
+			return "", fmt.Errorf("resolve managed model bundle target links: %w", resolveErr)
+		}
+		if !pathWithinBase(canonicalResolvedRoot, resolvedCurrent, true) {
+			return "", fmt.Errorf("managed model bundle target escapes resolved/ through a link")
+		}
+	}
+	return target, nil
+}
+
+func resolveRuntimeManagedImportedBundleDir(modelsRoot string, assetID string, kind runtimev1.LocalAssetKind) (string, error) {
+	identity := normalizeLocalInventoryID(assetID)
+	if identity == "" {
+		return "", fmt.Errorf("asset_id is required for managed bundle storage")
+	}
+	if kind == runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_UNSPECIFIED {
+		return "", fmt.Errorf("asset kind is required for managed bundle storage")
+	}
+	kindToken, err := localAssetKindToken(kind)
+	if err != nil {
+		return "", fmt.Errorf("asset kind is invalid for managed bundle storage: %w", err)
+	}
+	digest := sha256.Sum256([]byte("managed-import\x00" + identity + "\x00" + kindToken))
+	storageID := fmt.Sprintf("import-%s-%x", kindToken, digest)
+	return resolveRuntimeManagedModelBundleDir(modelsRoot, storageID)
 }
 
 func runtimeManagedPassiveAssetDir(modelsRoot string, assetID string) string {
@@ -399,7 +511,16 @@ func (s *Service) importLocalModelFile(
 	}
 	logicalModelID := filepath.ToSlash(filepath.Join("nimi", slugifyLocalModelID(modelID)))
 	modelsRoot := resolveLocalModelsPath(s.localModelsPath)
-	destDir := runtimeManagedResolvedModelDir(modelsRoot, logicalModelID)
+	destDir, err := resolveRuntimeManagedModelBundleDir(modelsRoot, logicalModelID)
+	if err != nil {
+		s.failTransfer(transferID, err.Error(), false)
+		return nil, grpcerr.WrapWithReasonCode(
+			codes.InvalidArgument,
+			runtimev1.ReasonCode_AI_LOCAL_MANIFEST_INVALID,
+			err,
+			grpcerr.ReasonOptions{Message: "managed model target is invalid"},
+		)
+	}
 	stageDir, err := prepareManagedModelBundleStageDir(destDir, "import")
 	if err != nil {
 		s.failTransfer(transferID, err.Error(), false)
@@ -565,7 +686,7 @@ func (s *Service) importLocalModelFile(
 			grpcerr.ReasonOptions{Message: "managed model bundle could not be activated"},
 		)
 	}
-	manifestPath = runtimeManagedAssetManifestPath(modelsRoot, logicalModelID)
+	manifestPath = filepath.Join(destDir, localAssetManifestFileName)
 	s.updateTransferProgress(transferID, "register", sourceInfo.Size(), sourceInfo.Size(), "registering local model")
 	imported, err := s.ImportLocalAsset(ctx, &runtimev1.ImportLocalAssetRequest{ManifestPath: manifestPath})
 	if err != nil {

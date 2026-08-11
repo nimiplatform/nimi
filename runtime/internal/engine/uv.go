@@ -11,11 +11,16 @@ import (
 	"time"
 )
 
-const defaultManagedPythonVersion = "3.12"
+const defaultManagedPythonVersion = ManagedPythonVersion
+
+const (
+	managedPythonHomeEnvironmentKey = "PYTHONHOME"
+	managedPythonPathEnvironmentKey = "PYTHONPATH"
+)
 
 var (
 	managedPythonCommandTimeout        = 2 * time.Minute
-	managedPythonInstallCommandTimeout = 30 * time.Minute
+	managedPythonInstallCommandTimeout = 2 * time.Minute
 	managedPythonPipCommandTimeout     = 45 * time.Minute
 )
 
@@ -71,17 +76,7 @@ func runCommandOutput(ctx context.Context, dir string, env map[string]string, bi
 	if strings.TrimSpace(dir) != "" {
 		cmd.Dir = dir
 	}
-	if len(env) > 0 {
-		commandEnv := os.Environ()
-		for key, value := range env {
-			key = strings.TrimSpace(key)
-			if key == "" {
-				continue
-			}
-			commandEnv = append(commandEnv, key+"="+managedCommandEnvironmentValue(value))
-		}
-		cmd.Env = commandEnv
-	}
+	cmd.Env = managedCommandProcessEnvironment(os.Environ(), env)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		if commandCtx.Err() != nil {
@@ -113,24 +108,6 @@ func managedCommandTimeout(args []string) time.Duration {
 		return managedPythonPipCommandTimeout
 	}
 	return managedPythonCommandTimeout
-}
-
-func ensureUV(ctx context.Context, installDir string) (string, error) {
-	_ = ctx
-	if path, err := exec.LookPath("uv"); err == nil {
-		return path, nil
-	}
-	if strings.TrimSpace(installDir) == "" {
-		return "", fmt.Errorf("uv install directory is required")
-	}
-	if err := os.MkdirAll(installDir, 0o755); err != nil {
-		return "", fmt.Errorf("create uv install directory: %w", err)
-	}
-	binaryPath := managedUVPath(installDir)
-	if _, err := os.Stat(binaryPath); err == nil {
-		return binaryPath, nil
-	}
-	return "", fmt.Errorf("python.tool.uv local environment dependency is not ready; confirm or repair the Runtime-managed uv dependency for managed executable %s", binaryPath)
 }
 
 func managedPythonInstallationDir(root string) string {
@@ -170,7 +147,52 @@ func managedPythonRuntimeEnv(root string) map[string]string {
 		// the same Runtime-managed root as uv's documented temp variables.
 		env["SystemTemp"] = tempDir
 	}
+	neutralizeAmbientPythonEnvironment(env)
 	return env
+}
+
+func neutralizeAmbientPythonEnvironment(env map[string]string) {
+	if env == nil {
+		return
+	}
+	env[managedPythonHomeEnvironmentKey] = ""
+	env[managedPythonPathEnvironmentKey] = ""
+}
+
+func managedCommandProcessEnvironment(base []string, overrides map[string]string) []string {
+	env := make([]string, 0, len(base)+len(overrides))
+	for _, entry := range base {
+		key, _, ok := strings.Cut(entry, "=")
+		if ok && isAmbientPythonEnvironmentKey(key) {
+			continue
+		}
+		env = append(env, entry)
+	}
+	type environmentOverride struct {
+		key   string
+		value string
+	}
+	values := make([]environmentOverride, 0, len(overrides))
+	for key, value := range overrides {
+		key = strings.TrimSpace(key)
+		if key == "" || isAmbientPythonEnvironmentKey(key) {
+			continue
+		}
+		values = append(values, environmentOverride{key: key, value: value})
+	}
+	sort.Slice(values, func(left int, right int) bool {
+		return values[left].key < values[right].key
+	})
+	for _, override := range values {
+		env = append(env, override.key+"="+managedCommandEnvironmentValue(override.value))
+	}
+	return env
+}
+
+func isAmbientPythonEnvironmentKey(key string) bool {
+	trimmedKey := strings.TrimSpace(key)
+	return strings.EqualFold(trimmedKey, managedPythonHomeEnvironmentKey) ||
+		strings.EqualFold(trimmedKey, managedPythonPathEnvironmentKey)
 }
 
 func managedCommandTempEnvironmentKeys() []string {
@@ -301,10 +323,14 @@ func discoverManagedPythonRuntime(root string, pythonVersion string) (string, bo
 	if len(versionParts) < 2 || versionParts[0] == "" || versionParts[1] == "" {
 		return "", false, fmt.Errorf("managed python runtime requires a major.minor version, got %q", pythonVersion)
 	}
+	versionPattern := versionParts[0] + "." + versionParts[1] + ".*"
+	if len(versionParts) >= 3 && versionParts[2] != "" {
+		versionPattern = versionParts[0] + "." + versionParts[1] + "." + versionParts[2] + "-*"
+	}
 	installationRoot := managedPythonInstallationDir(root)
 	candidates, err := filepath.Glob(filepath.Join(
 		installationRoot,
-		"cpython-"+versionParts[0]+"."+versionParts[1]+".*",
+		"cpython-"+versionPattern,
 	))
 	if err != nil {
 		return "", false, fmt.Errorf("discover managed python runtime: %w", err)
@@ -353,59 +379,22 @@ func isManagedPythonRuntimeMissing(err error) bool {
 		strings.Contains(detail, "managed python missing")
 }
 
-func ensureManagedPythonVenv(ctx context.Context, uvPath string, pythonRuntimePath string, root string) (string, error) {
-	if strings.TrimSpace(pythonRuntimePath) == "" {
-		return "", fmt.Errorf("managed python runtime path is required")
-	}
-	if err := os.MkdirAll(root, 0o755); err != nil {
-		return "", fmt.Errorf("create managed python venv root: %w", err)
-	}
-	pythonPath := managedPythonPath(root)
-	if _, err := os.Stat(pythonPath); err == nil {
-		return pythonPath, nil
-	}
-	if err := runCommand(ctx, root, managedPythonRuntimeEnv(root), uvPath, "venv", "--python", pythonRuntimePath, root); err != nil {
-		return "", err
-	}
-	if _, err := os.Stat(pythonPath); err != nil {
-		return "", fmt.Errorf("managed python venv missing at %s: %w", pythonPath, err)
-	}
-	return pythonPath, nil
-}
-
-func ensureManagedPython(ctx context.Context, uvPath string, root string, version string) (string, error) {
-	interpreterPath, _, err := ensureManagedPythonRuntime(ctx, uvPath, root, version)
-	if err != nil {
-		return "", err
-	}
-	return ensureManagedPythonVenv(ctx, uvPath, interpreterPath, root)
-}
-
 func (m *Manager) EnsurePythonRuntimeDependency(ctx context.Context, uvPath string, engineName string, version string, pythonVersion string) (PythonRuntimeDependencyStatus, error) {
-	// Speech consumers use distinct venvs but share uv's managed interpreter
-	// installation directory. Keep discovery, installation, and verification
-	// atomic so a sibling consumer cannot admit a partially extracted runtime.
+	// The managed interpreter is one consumer-independent Runtime source.
+	// Dependency isolation begins at immutable Python profiles, never in
+	// engine- or consumer-named interpreter roots.
 	m.pythonRuntimeMu.Lock()
 	defer m.pythonRuntimeMu.Unlock()
 
 	trimmedEngine := strings.TrimSpace(engineName)
+	if trimmedEngine != "" && trimmedEngine != "python" {
+		return PythonRuntimeDependencyStatus{}, fmt.Errorf("python runtime dependency is not admitted for engine %s", engineName)
+	}
 	trimmedVersion := strings.TrimSpace(version)
 	if trimmedVersion == "" {
 		trimmedVersion = strings.TrimSpace(pythonVersion)
 	}
 	kind := EngineKind("python")
-	if trimmedEngine != "" && trimmedEngine != "python" {
-		parsedKind, err := parseEngineKind(trimmedEngine)
-		if err != nil {
-			return PythonRuntimeDependencyStatus{}, err
-		}
-		switch parsedKind {
-		case EngineMedia, EngineSpeech:
-			kind = parsedKind
-		default:
-			return PythonRuntimeDependencyStatus{}, fmt.Errorf("python runtime dependency is not admitted for engine %s", engineName)
-		}
-	}
 	root := engineVersionDir(m.baseDir, kind, trimmedVersion)
 	interpreterPath, observedVersion, err := ensureManagedPythonRuntime(ctx, uvPath, root, pythonVersion)
 	if err != nil {
@@ -418,55 +407,4 @@ func (m *Manager) EnsurePythonRuntimeDependency(ctx context.Context, uvPath stri
 		UVExecutable:    strings.TrimSpace(uvPath),
 		Detail:          "Runtime-managed Python runtime verified through selected uv tool",
 	}, nil
-}
-
-func (m *Manager) EnsurePythonVenvDependency(ctx context.Context, uvPath string, pythonRuntimePath string, engineName string, version string) (PythonVenvDependencyStatus, error) {
-	kind, err := parseEngineKind(engineName)
-	if err != nil {
-		return PythonVenvDependencyStatus{}, err
-	}
-	switch kind {
-	case EngineMedia, EngineSpeech:
-	default:
-		return PythonVenvDependencyStatus{}, fmt.Errorf("python venv dependency is not admitted for engine %s", engineName)
-	}
-	root := engineVersionDir(m.baseDir, kind, version)
-	interpreterPath, err := ensureManagedPythonVenv(ctx, uvPath, pythonRuntimePath, root)
-	if err != nil {
-		return PythonVenvDependencyStatus{}, err
-	}
-	versionOutput, err := runCommandOutput(ctx, "", managedPythonRuntimeEnv(root), interpreterPath, "--version")
-	if err != nil {
-		return PythonVenvDependencyStatus{}, fmt.Errorf("verify managed python venv: %w", err)
-	}
-	if strings.TrimSpace(versionOutput) == "" {
-		return PythonVenvDependencyStatus{}, fmt.Errorf("verify managed python venv: empty version output")
-	}
-	return PythonVenvDependencyStatus{
-		VenvRoot:        root,
-		InterpreterPath: interpreterPath,
-		PythonRuntime:   strings.TrimSpace(pythonRuntimePath),
-		UVExecutable:    strings.TrimSpace(uvPath),
-		Detail:          "Runtime-managed Python venv verified through selected uv tool and Python runtime",
-	}, nil
-}
-
-func uvPipInstall(ctx context.Context, uvPath string, venvRoot string, pythonPath string, packages []string, extraArgs ...string) error {
-	if !pythonPackageSetHasPackages(packages) {
-		return fmt.Errorf("uv pip install requires at least one declared package")
-	}
-	trimmedVenvRoot := strings.TrimSpace(venvRoot)
-	if trimmedVenvRoot == "" {
-		return fmt.Errorf("uv pip install requires a managed venv root")
-	}
-	args := []string{"pip", "install", "--python", pythonPath}
-	args = append(args, extraArgs...)
-	args = append(args, packages...)
-	installEnv, err := managedPythonBuildEnvironment(trimmedVenvRoot)
-	if err != nil {
-		return fmt.Errorf("prepare managed Python build environment: %w", err)
-	}
-	installCtx, cancel := contextWithManagedCommandTimeout(ctx, managedPythonPipCommandTimeout)
-	defer cancel()
-	return runCommand(installCtx, trimmedVenvRoot, installEnv, uvPath, args...)
 }

@@ -10,20 +10,9 @@ import (
 	"time"
 )
 
-func TestEnsureUVMissingReportsRuntimeManagedDependency(t *testing.T) {
-	t.Setenv("PATH", "")
-	_, err := ensureUV(context.Background(), t.TempDir())
-	if err == nil {
-		t.Fatal("expected missing uv error")
-	}
-	message := err.Error()
-	if !strings.Contains(message, "python.tool.uv local environment dependency is not ready") {
-		t.Fatalf("expected Runtime-managed dependency message, got %q", message)
-	}
-	for _, prohibited := range []string{"package manager", "PATH"} {
-		if strings.Contains(message, prohibited) {
-			t.Fatalf("missing uv message must not direct user-managed installation via %q: %q", prohibited, message)
-		}
+func TestManagedPythonRuntimeCreationBudget(t *testing.T) {
+	if got := managedCommandTimeout([]string{"python", "install", ManagedPythonVersion}); got != 120*time.Second {
+		t.Fatalf("managed Python runtime creation timeout = %s, want 120s", got)
 	}
 }
 
@@ -107,8 +96,8 @@ func TestEnsurePythonRuntimeDependencySerializesSharedInterpreterMaterialization
 		_, ensureErr := manager.EnsurePythonRuntimeDependency(
 			context.Background(),
 			filepath.Join(root, "missing-uv"),
-			"speech",
-			"test-speech-runtime",
+			"python",
+			"test-python-runtime",
 			defaultManagedPythonVersion,
 		)
 		done <- ensureErr
@@ -128,6 +117,31 @@ func TestEnsurePythonRuntimeDependencySerializesSharedInterpreterMaterialization
 		}
 	case <-time.After(5 * time.Second):
 		t.Fatal("shared Python runtime materialization did not resume after lock release")
+	}
+}
+
+func TestEnsurePythonRuntimeDependencyRejectsLegacyEngineSpecificRoot(t *testing.T) {
+	root := t.TempDir()
+	manager, err := NewManager(slog.Default(), ManagedRoots{
+		Environments: filepath.Join(root, "environments"),
+		Dependencies: filepath.Join(root, "dependencies"),
+	}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = manager.EnsurePythonRuntimeDependency(
+		context.Background(),
+		filepath.Join(root, "missing-uv"),
+		"speech",
+		"0.1.0",
+		defaultManagedPythonVersion,
+	)
+	if err == nil || !strings.Contains(err.Error(), "not admitted for engine speech") {
+		t.Fatalf("legacy engine-specific Python root admission error = %v", err)
+	}
+	if _, statErr := os.Stat(filepath.Join(manager.baseDir, "speech")); !os.IsNotExist(statErr) {
+		t.Fatalf("legacy speech Python root was created or stat failed unexpectedly: %v", statErr)
 	}
 }
 

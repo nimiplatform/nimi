@@ -2,12 +2,10 @@ package localservice
 
 import (
 	"context"
-	"path/filepath"
 	"strings"
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
-	"github.com/nimiplatform/nimi/runtime/internal/engine"
 	"google.golang.org/grpc/codes"
 )
 
@@ -198,7 +196,7 @@ func TestInstallLocalModelMediaVideoRequiresExplicitEndpointOnUnsupportedHost(t 
 	assertGRPCReasonCode(t, err, "InstallLocalModel(media video unsupported host)", runtimev1.ReasonCode_AI_LOCAL_ENDPOINT_REQUIRED)
 }
 
-func TestStartLocalModelSpeechSupervisedStartsConfiguredSpeechEngine(t *testing.T) {
+func TestStartLocalModelSpeechSupervisedLeavesExecutionToExactCapabilityHost(t *testing.T) {
 	probedEndpoints := make([]string, 0, 1)
 	svc := newTestServiceWithProbe(t, func(_ context.Context, endpoint string) endpointProbeResult {
 		probedEndpoints = append(probedEndpoints, endpoint)
@@ -216,11 +214,6 @@ func TestStartLocalModelSpeechSupervisedStartsConfiguredSpeechEngine(t *testing.
 	mgr := &mockEngineManager{}
 	svc.SetEngineManager(mgr)
 	svc.SetManagedSpeechEndpoint("http://127.0.0.1:18330/v1")
-
-	ttsRoot := filepath.Join(t.TempDir(), "speech", "0.1.0-qwen3-tts")
-	asrRoot := filepath.Join(t.TempDir(), "speech", "0.1.0-qwen3-asr")
-	upsertVerifiedSpeechPackageSetForTest(t, svc, "speech.qwen3-tts.python", "local-speech-qwen3-tts.package-set", ttsRoot, "NIMI_RUNTIME_SPEECH_QWEN3_TTS_CMD", engine.SpeechQwen3TTSDriverPath)
-	upsertVerifiedSpeechPackageSetForTest(t, svc, "speech.qwen3-asr.python", "local-speech-qwen3-asr.package-set", asrRoot, "NIMI_RUNTIME_SPEECH_QWEN3_ASR_CMD", engine.SpeechQwen3ASRDriverPath)
 
 	installed := mustInstallSupervisedLocalModel(t, svc, installLocalAssetParams{
 		assetID:      "speech/kokoro-tts-model",
@@ -246,26 +239,60 @@ func TestStartLocalModelSpeechSupervisedStartsConfiguredSpeechEngine(t *testing.
 	if mgr.startCalls != 0 {
 		t.Fatalf("speech managed bootstrap must not use generic StartEngine, got %d calls", mgr.startCalls)
 	}
-	if mgr.startConfigCalls != 1 {
-		t.Fatalf("expected one configured speech engine start, got %d", mgr.startConfigCalls)
+	if mgr.startConfigCalls != 0 {
+		t.Fatalf("asset lifecycle started aggregate speech Host %d times", mgr.startConfigCalls)
 	}
-	if got := mgr.lastStartConfig.Kind; got != engine.EngineSpeech {
-		t.Fatalf("configured engine kind = %s, want speech", got)
+	if len(probedEndpoints) != 0 {
+		t.Fatalf("asset lifecycle probed private speech Host endpoints: %#v", probedEndpoints)
 	}
-	if got := mgr.lastStartConfig.Port; got != 18330 {
-		t.Fatalf("configured speech port = %d, want 18330", got)
+	if detail := started.GetAsset().GetHealthDetail(); !strings.Contains(detail, "execution health is private to exact local capability jobs") {
+		t.Fatalf("speech asset availability detail = %q", detail)
 	}
-	if got := mgr.lastStartConfig.ModelsPath; got != svc.resolvedLocalModelsPath() {
-		t.Fatalf("configured speech models path = %q, want %q", got, svc.resolvedLocalModelsPath())
+}
+
+func TestManagedSpeechServiceLifecycleDoesNotStartAggregateHost(t *testing.T) {
+	probeCalls := 0
+	svc := newTestServiceWithProbe(t, func(_ context.Context, endpoint string) endpointProbeResult {
+		probeCalls++
+		return endpointProbeResult{healthy: true, responded: true, probeURL: endpoint}
+	})
+	mgr := &mockEngineManager{}
+	svc.SetEngineManager(mgr)
+	svc.SetManagedSpeechEndpoint("http://127.0.0.1:18330/v1")
+
+	model := mustInstallSupervisedLocalModel(t, svc, installLocalAssetParams{
+		assetID:      "speech/private-service-model",
+		capabilities: []string{"audio.synthesize"},
+		engine:       "speech",
+		entry:        "model.safetensors",
+		files:        []string{"model.safetensors"},
+	})
+	service, err := svc.InstallLocalService(context.Background(), &runtimev1.InstallLocalServiceRequest{
+		ServiceId:    "svc-private-speech",
+		Engine:       "speech",
+		Capabilities: []string{"audio.synthesize"},
+		LocalModelId: model.GetLocalAssetId(),
+	})
+	if err != nil {
+		t.Fatalf("install managed speech service: %v", err)
 	}
-	if got := mgr.lastStartConfig.SpeechQwen3TTSPackageSetRoot; got != ttsRoot {
-		t.Fatalf("configured tts package-set root = %q, want %q", got, ttsRoot)
+	if _, err := svc.StartLocalService(context.Background(), &runtimev1.StartLocalServiceRequest{ServiceId: service.GetService().GetServiceId()}); err == nil {
+		t.Fatal("managed speech service exposed aggregate lifecycle")
+	} else {
+		assertGRPCReasonCode(t, err, "StartLocalService(private speech)", runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
 	}
-	if got := mgr.lastStartConfig.SpeechQwen3ASRPackageSetRoot; got != asrRoot {
-		t.Fatalf("configured asr package-set root = %q, want %q", got, asrRoot)
+	if _, err := svc.updateServiceStatus(service.GetService().GetServiceId(), runtimev1.LocalServiceStatus_LOCAL_SERVICE_STATUS_ACTIVE, "legacy active fixture"); err != nil {
+		t.Fatalf("seed legacy active managed speech service: %v", err)
 	}
-	if len(probedEndpoints) != 1 || probedEndpoints[0] != "http://127.0.0.1:18330/v1" {
-		t.Fatalf("unexpected speech probe endpoints: %#v", probedEndpoints)
+	health, err := svc.CheckLocalServiceHealth(context.Background(), &runtimev1.CheckLocalServiceHealthRequest{ServiceId: service.GetService().GetServiceId()})
+	if err != nil {
+		t.Fatalf("check managed speech service projection: %v", err)
+	}
+	if len(health.GetServices()) != 1 || !strings.Contains(health.GetServices()[0].GetDetail(), "exact local capability jobs") {
+		t.Fatalf("managed speech service health = %+v", health.GetServices())
+	}
+	if mgr.startCalls != 0 || mgr.startConfigCalls != 0 || probeCalls != 0 {
+		t.Fatalf("managed speech service lifecycle touched aggregate Host: start=%d configured=%d probes=%d", mgr.startCalls, mgr.startConfigCalls, probeCalls)
 	}
 }
 

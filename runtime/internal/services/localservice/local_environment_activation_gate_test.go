@@ -263,7 +263,12 @@ func markLocalEnvironmentPlanReadyForTest(t *testing.T, svc *Service, req localE
 		CompanionAssetID: req.CompanionAssetID,
 		ParentAssetID:    req.ParentAssetID,
 	})
+	acceleratorPlane := "cpu"
+	if strings.Contains(req.ConsumerID, ".cuda") || localEnvironmentHostSupportsCUDA(localEnvironmentHostProfileFromDeviceProfile(hostProfileOrCollected(req.HostProfile))) {
+		acceleratorPlane = "cuda"
+	}
 	for _, dep := range plan.Dependencies {
+		var pythonProfileIdentity engine.PythonDependencyProfileIdentity
 		sourceKind := localEnvironmentSourceManaged
 		if dep.DependencyFamily == localEnvironmentFamilyPythonRuntime || dep.DependencyFamily == localEnvironmentFamilyPythonUV {
 			sourceKind = localEnvironmentSourceSystem
@@ -275,7 +280,7 @@ func markLocalEnvironmentPlanReadyForTest(t *testing.T, svc *Service, req localE
 			EnvironmentKey:    dep.EnvironmentKey,
 			SourceKind:        sourceKind,
 			CanonicalRoot:     filepath.Join(t.TempDir(), canonicalName),
-			SelectedConsumers: normalizeStringSlice([]string{req.ConsumerID, dep.ConsumerScope}),
+			SelectedConsumers: []string{dep.ConsumerScope},
 			AuditReasonCode:   "test_ready",
 		}
 		if dep.DependencyFamily == localEnvironmentFamilyPythonPackageSet {
@@ -283,22 +288,20 @@ func markLocalEnvironmentPlanReadyForTest(t *testing.T, svc *Service, req localE
 			case "speech.qwen3-tts.python":
 				driverScript := engine.SpeechQwen3TTSDriverPath(record.CanonicalRoot)
 				record.VerifiedArtifacts = []string{filepath.Join(record.CanonicalRoot, "bin", "python"), driverScript}
-				record.ActivationEnvDelta = []string{"NIMI_RUNTIME_SPEECH_QWEN3_TTS_CMD='python' '" + driverScript + "'"}
 			case "speech.qwen3-asr.python":
 				driverScript := engine.SpeechQwen3ASRDriverPath(record.CanonicalRoot)
 				record.VerifiedArtifacts = []string{filepath.Join(record.CanonicalRoot, "bin", "python"), driverScript}
-				record.ActivationEnvDelta = []string{"NIMI_RUNTIME_SPEECH_QWEN3_ASR_CMD='python' '" + driverScript + "'"}
 			case "speech.qwen3-asr-transformers.python":
 				driverScript := engine.SpeechQwen3ASRTransformersDriverPath(record.CanonicalRoot)
 				record.VerifiedArtifacts = []string{filepath.Join(record.CanonicalRoot, "bin", "python"), driverScript}
-				record.ActivationEnvDelta = []string{"NIMI_RUNTIME_SPEECH_QWEN3_ASR_TRANSFORMERS_CMD='python' '" + driverScript + "'"}
 			}
-			lockHash, err := engine.ResolvePythonPackageSetLockHash(req.ConsumerID)
+			identity, err := engine.ResolvePythonDependencyProfileIdentity(req.ConsumerID, plan.PlatformTuple, acceleratorPlane)
 			if err != nil {
-				t.Fatalf("resolve Python package-set lock for %q: %v", req.ConsumerID, err)
+				t.Fatalf("resolve Python dependency profile for %q: %v", req.ConsumerID, err)
 			}
-			record.Version = lockHash
-			record.Hashes = map[string]string{"package_lock_hash": lockHash}
+			record.Version = identity.ProfileDigest
+			record.Hashes = pythonDependencyProfileHashes(identity)
+			pythonProfileIdentity = identity
 		}
 		if dep.DependencyFamily == localEnvironmentFamilyPythonTorchWheel {
 			identity, err := engine.ResolvePythonTorchWheelDependencyIdentity(dep.ConsumerScope)
@@ -310,7 +313,13 @@ func markLocalEnvironmentPlanReadyForTest(t *testing.T, svc *Service, req localE
 		}
 		record = verifiedSelectedSourceRecordForTest(record)
 		writeSelectedSourceLocalArtifactsForTest(t, record)
-		svc.upsertLocalEnvironmentSelectedSourceRecord(record)
+		if dep.DependencyFamily == localEnvironmentFamilyPythonPackageSet {
+			writePythonDependencyProfileStaticFilesForTest(t, record.CanonicalRoot, req.ConsumerID, pythonProfileIdentity)
+		}
+		promoted := svc.upsertLocalEnvironmentSelectedSourceRecord(record)
+		if localEnvironmentPythonSelectedSourceFamily(dep.DependencyFamily) {
+			recordReadyPythonSelectedSourceConsumptionJobForTest(svc, promoted, dep.ConsumerScope)
+		}
 	}
 	return plan.Dependencies
 }

@@ -27,6 +27,8 @@ func FirstPartyProfileMethod(profileID, methodID string) (FirstPartyMethodKind, 
 			return FirstPartyMethodUnary, true
 		case "/nimi.runtime.v1.RuntimeLocalService/ResolveLocalEnvironmentPlan":
 			return FirstPartyMethodUnary, true
+		case "/nimi.runtime.v1.RuntimeLocalService/ApplyLocalEnvironmentPlan":
+			return FirstPartyMethodUnary, true
 		case "/nimi.runtime.v1.RuntimeLocalService/ListLocalEnvironmentDependencyJobs":
 			return FirstPartyMethodUnary, true
 		case "/nimi.runtime.v1.RuntimeLocalService/StartLocalEnvironmentDependencyJob":
@@ -342,6 +344,7 @@ func FirstPartyProfileMethods(profileID string) []FirstPartyProfileMethodEntry {
 		return []FirstPartyProfileMethodEntry{
 			{MethodID: "/nimi.runtime.v1.RuntimeLocalService/CollectDeviceProfile", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeLocalService/ResolveLocalEnvironmentPlan", Kind: FirstPartyMethodUnary},
+			{MethodID: "/nimi.runtime.v1.RuntimeLocalService/ApplyLocalEnvironmentPlan", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeLocalService/ListLocalEnvironmentDependencyJobs", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeLocalService/StartLocalEnvironmentDependencyJob", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeLocalService/CancelLocalEnvironmentDependencyJob", Kind: FirstPartyMethodUnary},

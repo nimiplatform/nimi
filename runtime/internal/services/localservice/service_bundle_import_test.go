@@ -38,6 +38,414 @@ func TestImportLocalAssetBundleInvalidSourcePreservesCauseWithoutLeakingPath(t *
 	}
 }
 
+func TestImportLocalAssetBundleRejectsLogicalModelIDPathEscapeBeforeMutation(t *testing.T) {
+	svc := newTestService(t)
+	modelsRoot := filepath.Join(t.TempDir(), "models")
+	setLocalModelsPathForTest(t, svc, modelsRoot)
+	if err := os.MkdirAll(filepath.Join(modelsRoot, "resolved"), 0o755); err != nil {
+		t.Fatalf("create resolved models root: %v", err)
+	}
+	sentinelPath := filepath.Join(modelsRoot, "keep.txt")
+	if err := os.WriteFile(sentinelPath, []byte("keep"), 0o600); err != nil {
+		t.Fatalf("write models-root sentinel: %v", err)
+	}
+
+	sourceDir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(sourceDir, "model.bin"), []byte("model"), 0o600); err != nil {
+		t.Fatalf("write bundle entry: %v", err)
+	}
+	manifestRaw, err := json.Marshal(map[string]any{
+		"schema_version":   "1.0.0",
+		"asset_id":         "local-import/path-escape",
+		"kind":             "video",
+		"logical_model_id": "../escaped-bundle",
+		"engine":           "media",
+		"capabilities":     []string{"video.generate"},
+		"entry":            "model.bin",
+		"files":            []string{"model.bin"},
+		"license":          "unknown",
+		"source": map[string]any{
+			"repo":     "file://source/asset.manifest.json",
+			"revision": "local",
+		},
+		"hashes": map[string]string{"model.bin": "sha256:source"},
+	})
+	if err != nil {
+		t.Fatalf("marshal bundle manifest: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(sourceDir, localAssetManifestFileName), manifestRaw, 0o600); err != nil {
+		t.Fatalf("write bundle manifest: %v", err)
+	}
+
+	_, err = svc.importLocalAssetBundleSync(context.Background(), "", &runtimev1.ImportLocalAssetBundleRequest{
+		DirectoryPath: sourceDir,
+	})
+	if err == nil {
+		t.Fatal("expected logical_model_id path escape to fail")
+	}
+	if got, readErr := os.ReadFile(sentinelPath); readErr != nil || string(got) != "keep" {
+		t.Errorf("models-root sentinel changed: content=%q err=%v", got, readErr)
+	}
+	if matches, globErr := filepath.Glob(filepath.Join(modelsRoot, "escaped-bundle*")); globErr != nil {
+		t.Fatalf("glob escaped bundle paths: %v", globErr)
+	} else if len(matches) != 0 {
+		t.Errorf("path escape mutated models root before rejection: %#v", matches)
+	}
+	if _, statErr := os.Stat(runtimeManagedModelQuarantineRoot(modelsRoot)); !os.IsNotExist(statErr) {
+		t.Errorf("path escape reached quarantine before rejection: %v", statErr)
+	}
+	assertGRPCReasonCode(t, err, "ImportLocalAssetBundle(logical model path escape)", runtimev1.ReasonCode_AI_LOCAL_MANIFEST_INVALID)
+}
+
+func TestImportLocalAssetRejectsLogicalModelIDPathEscape(t *testing.T) {
+	svc := newTestService(t)
+	modelsRoot := filepath.Join(t.TempDir(), "models")
+	setLocalModelsPathForTest(t, svc, modelsRoot)
+	bundleDir := filepath.Join(modelsRoot, "resolved", "owned-bundle")
+	if err := os.MkdirAll(bundleDir, 0o755); err != nil {
+		t.Fatalf("create managed bundle: %v", err)
+	}
+	entryPath := filepath.Join(bundleDir, "model.bin")
+	if err := os.WriteFile(entryPath, []byte("model"), 0o600); err != nil {
+		t.Fatalf("write managed bundle entry: %v", err)
+	}
+	entryHash, err := computeImportFileSHA256(entryPath)
+	if err != nil {
+		t.Fatalf("hash managed bundle entry: %v", err)
+	}
+	manifestPath := filepath.Join(bundleDir, localAssetManifestFileName)
+	manifestRaw, err := json.Marshal(map[string]any{
+		"schema_version":   "1.0.0",
+		"asset_id":         "local-import/path-escape-direct",
+		"kind":             "video",
+		"logical_model_id": "..",
+		"engine":           "media",
+		"capabilities":     []string{"video.generate"},
+		"entry":            "model.bin",
+		"files":            []string{"model.bin"},
+		"license":          "unknown",
+		"source": map[string]any{
+			"repo":     "file://ignored-by-import",
+			"revision": "local",
+		},
+		"hashes": map[string]string{"model.bin": "sha256:" + entryHash},
+	})
+	if err != nil {
+		t.Fatalf("marshal managed bundle manifest: %v", err)
+	}
+	if err := os.WriteFile(manifestPath, manifestRaw, 0o600); err != nil {
+		t.Fatalf("write managed bundle manifest: %v", err)
+	}
+
+	_, err = svc.ImportLocalAsset(context.Background(), &runtimev1.ImportLocalAssetRequest{ManifestPath: manifestPath})
+	if err == nil {
+		t.Fatal("expected direct manifest import to reject path-shaped logical_model_id")
+	}
+	assertGRPCReasonCode(t, err, "ImportLocalAsset(logical model path escape)", runtimev1.ReasonCode_AI_LOCAL_MANIFEST_INVALID)
+	if got, readErr := os.ReadFile(entryPath); readErr != nil || string(got) != "model" {
+		t.Fatalf("direct rejected import mutated its managed bundle: content=%q err=%v", got, readErr)
+	}
+}
+
+func TestResolveRuntimeManagedModelBundleDirRejectsNonCanonicalPathForms(t *testing.T) {
+	modelsRoot := filepath.Join(t.TempDir(), "models")
+	if err := os.MkdirAll(filepath.Join(modelsRoot, "resolved"), 0o755); err != nil {
+		t.Fatalf("create resolved models root: %v", err)
+	}
+	for _, logicalModelID := range []string{
+		"..",
+		"../escape",
+		"a/../../escape",
+		`..\escape`,
+		`\escape`,
+		`C:\escape`,
+		`C:escape`,
+		`\\server\share`,
+		`\\?\C:\escape`,
+		"/escape",
+		"a//b",
+		"a/./b",
+		"a:b",
+		"CON",
+		"models/LPT1.bin",
+	} {
+		t.Run(strings.NewReplacer("/", "_", `\`, "_").Replace(logicalModelID), func(t *testing.T) {
+			if target, err := resolveRuntimeManagedModelBundleDir(modelsRoot, logicalModelID); err == nil {
+				t.Fatalf("resolve target = %q, want invalid logical_model_id %q", target, logicalModelID)
+			}
+		})
+	}
+
+	for _, logicalModelID := range []string{
+		"nimi/local-import-model",
+		"Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice",
+	} {
+		t.Run("valid_"+strings.ReplaceAll(logicalModelID, "/", "_"), func(t *testing.T) {
+			target, err := resolveRuntimeManagedModelBundleDir(modelsRoot, logicalModelID)
+			if err != nil {
+				t.Fatalf("resolve valid logical_model_id %q: %v", logicalModelID, err)
+			}
+			if !pathWithinBase(filepath.Join(modelsRoot, "resolved"), target, false) {
+				t.Fatalf("resolved target escaped managed root: %q", target)
+			}
+		})
+	}
+}
+
+func TestImportedManifestUsesItsParentForEntryAndRemovalTruth(t *testing.T) {
+	svc := newTestService(t)
+	modelsRoot := filepath.Join(t.TempDir(), "models")
+	setLocalModelsPathForTest(t, svc, modelsRoot)
+
+	victimDir := filepath.Join(modelsRoot, "resolved", "nimi", "victim-bundle")
+	if err := os.MkdirAll(victimDir, 0o755); err != nil {
+		t.Fatalf("create victim bundle: %v", err)
+	}
+	victimPath := filepath.Join(victimDir, "model.bin")
+	if err := os.WriteFile(victimPath, []byte("victim"), 0o600); err != nil {
+		t.Fatalf("write victim bundle: %v", err)
+	}
+
+	ownedDir := filepath.Join(modelsRoot, "resolved", "owned-bundle")
+	if err := os.MkdirAll(ownedDir, 0o755); err != nil {
+		t.Fatalf("create imported bundle: %v", err)
+	}
+	ownedEntryPath := filepath.Join(ownedDir, "model.bin")
+	if err := os.WriteFile(ownedEntryPath, []byte("owned"), 0o600); err != nil {
+		t.Fatalf("write imported bundle: %v", err)
+	}
+	ownedHash, err := computeImportFileSHA256(ownedEntryPath)
+	if err != nil {
+		t.Fatalf("hash imported bundle: %v", err)
+	}
+	manifestPath := filepath.Join(ownedDir, localAssetManifestFileName)
+	manifestRaw, err := json.Marshal(map[string]any{
+		"schema_version":   "1.0.0",
+		"asset_id":         "local-import/owned-bundle",
+		"kind":             "video",
+		"logical_model_id": "nimi/victim-bundle",
+		"engine":           "media",
+		"capabilities":     []string{"video.generate"},
+		"entry":            "model.bin",
+		"files":            []string{"model.bin"},
+		"license":          "unknown",
+		"source": map[string]any{
+			"repo":     "file://ignored-by-import",
+			"revision": "local",
+		},
+		"hashes": map[string]string{"model.bin": "sha256:" + ownedHash},
+	})
+	if err != nil {
+		t.Fatalf("marshal imported manifest: %v", err)
+	}
+	if err := os.WriteFile(manifestPath, manifestRaw, 0o600); err != nil {
+		t.Fatalf("write imported manifest: %v", err)
+	}
+
+	imported, err := svc.ImportLocalAsset(context.Background(), &runtimev1.ImportLocalAssetRequest{ManifestPath: manifestPath})
+	if err != nil {
+		t.Fatalf("import managed manifest: %v", err)
+	}
+	entryPath, err := resolveManagedModelEntryAbsolutePath(modelsRoot, imported.GetAsset())
+	if err != nil {
+		t.Fatalf("resolve imported entry: %v", err)
+	}
+	if entryPath != ownedEntryPath {
+		t.Fatalf("imported entry path = %q, want manifest-parent path %q", entryPath, ownedEntryPath)
+	}
+	malformedFileSource := cloneLocalAsset(imported.GetAsset())
+	malformedFileSource.Source = &runtimev1.LocalAssetSource{Repo: "file://" + filepath.ToSlash(victimPath), Revision: "local"}
+	if bundleDir, err := resolveRuntimeManagedBundleDir(modelsRoot, malformedFileSource); err == nil {
+		t.Fatalf("malformed file source fell back to logical_model_id storage: %q", bundleDir)
+	}
+	if entryPath, err := resolveManagedModelEntryAbsolutePath(modelsRoot, malformedFileSource); err == nil {
+		t.Fatalf("malformed file source resolved through logical_model_id fallback: %q", entryPath)
+	}
+
+	if _, err := svc.RemoveLocalAsset(context.Background(), &runtimev1.RemoveLocalAssetRequest{
+		LocalAssetId: imported.GetAsset().GetLocalAssetId(),
+	}); err != nil {
+		t.Fatalf("remove imported asset: %v", err)
+	}
+	if _, err := os.Stat(ownedDir); !os.IsNotExist(err) {
+		t.Fatalf("imported manifest parent was not removed: %v", err)
+	}
+	if got, err := os.ReadFile(victimPath); err != nil || string(got) != "victim" {
+		t.Fatalf("logical_model_id selected an unrelated bundle during removal: content=%q err=%v", got, err)
+	}
+}
+
+func TestImportLocalAssetBundleWithManifestUsesRuntimeOwnedStorageIdentity(t *testing.T) {
+	svc := newTestService(t)
+	modelsRoot := filepath.Join(t.TempDir(), "models")
+	setLocalModelsPathForTest(t, svc, modelsRoot)
+	sourceDir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(sourceDir, "model.bin"), []byte("model"), 0o600); err != nil {
+		t.Fatalf("write source bundle entry: %v", err)
+	}
+	manifestRaw, err := json.Marshal(map[string]any{
+		"schema_version":   "1.0.0",
+		"asset_id":         "local-import/source-manifest-bundle",
+		"kind":             "video",
+		"logical_model_id": "Qwen/Source-Manifest-Bundle",
+		"engine":           "media",
+		"capabilities":     []string{"video.generate"},
+		"entry":            "model.bin",
+		"files":            []string{"model.bin"},
+		"license":          "unknown",
+		"source": map[string]any{
+			"repo":     "file://source/asset.manifest.json",
+			"revision": "local",
+		},
+		"hashes": map[string]string{"model.bin": "sha256:source"},
+	})
+	if err != nil {
+		t.Fatalf("marshal source bundle manifest: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(sourceDir, localAssetManifestFileName), manifestRaw, 0o600); err != nil {
+		t.Fatalf("write source bundle manifest: %v", err)
+	}
+
+	asset, err := svc.importLocalAssetBundleSync(context.Background(), "", &runtimev1.ImportLocalAssetBundleRequest{
+		DirectoryPath: sourceDir,
+	})
+	if err != nil {
+		t.Fatalf("import bundle with manifest: %v", err)
+	}
+	managedDir, err := resolveManagedManifestBundleDir(modelsRoot, asset.GetSource().GetRepo())
+	if err != nil {
+		t.Fatalf("resolve imported manifest parent: %v", err)
+	}
+	expectedDir, err := resolveRuntimeManagedImportedBundleDir(modelsRoot, asset.GetAssetId(), asset.GetKind())
+	if err != nil {
+		t.Fatalf("resolve Runtime-owned storage identity: %v", err)
+	}
+	if managedDir != expectedDir {
+		t.Fatalf("managed bundle dir = %q, want Runtime-owned asset storage %q", managedDir, expectedDir)
+	}
+	logicalDir, err := resolveRuntimeManagedModelBundleDir(modelsRoot, asset.GetLogicalModelId())
+	if err != nil {
+		t.Fatalf("resolve logical metadata path for negative assertion: %v", err)
+	}
+	if _, err := os.Stat(logicalDir); !os.IsNotExist(err) {
+		t.Fatalf("logical_model_id unexpectedly selected bundle storage: %v", err)
+	}
+}
+
+func TestImportLocalAssetBundleSeparatesCollidingManifestStorageIdentities(t *testing.T) {
+	svc := newTestService(t)
+	modelsRoot := filepath.Join(t.TempDir(), "models")
+	setLocalModelsPathForTest(t, svc, modelsRoot)
+
+	importBundle := func(assetID string, logicalModelID string, content string) *runtimev1.LocalAssetRecord {
+		t.Helper()
+		sourceDir := t.TempDir()
+		if err := os.WriteFile(filepath.Join(sourceDir, "model.bin"), []byte(content), 0o600); err != nil {
+			t.Fatalf("write source bundle entry: %v", err)
+		}
+		manifestRaw, err := json.Marshal(map[string]any{
+			"schema_version":   "1.0.0",
+			"asset_id":         assetID,
+			"kind":             "video",
+			"logical_model_id": logicalModelID,
+			"engine":           "media",
+			"capabilities":     []string{"video.generate"},
+			"entry":            "model.bin",
+			"files":            []string{"model.bin"},
+			"license":          "unknown",
+			"source": map[string]any{
+				"repo":     "file://source/asset.manifest.json",
+				"revision": "local",
+			},
+			"hashes": map[string]string{"model.bin": "sha256:source"},
+		})
+		if err != nil {
+			t.Fatalf("marshal source bundle manifest: %v", err)
+		}
+		if err := os.WriteFile(filepath.Join(sourceDir, localAssetManifestFileName), manifestRaw, 0o600); err != nil {
+			t.Fatalf("write source bundle manifest: %v", err)
+		}
+		asset, err := svc.importLocalAssetBundleSync(context.Background(), "", &runtimev1.ImportLocalAssetBundleRequest{
+			DirectoryPath: sourceDir,
+		})
+		if err != nil {
+			t.Fatalf("import bundle %q: %v", assetID, err)
+		}
+		return asset
+	}
+
+	first := importBundle("Acme/Model", "Provenance/First", "first")
+	second := importBundle("acme-model", "Provenance/Second", "second")
+	firstDir, err := resolveManagedManifestBundleDir(modelsRoot, first.GetSource().GetRepo())
+	if err != nil {
+		t.Fatalf("resolve first imported bundle: %v", err)
+	}
+	secondDir, err := resolveManagedManifestBundleDir(modelsRoot, second.GetSource().GetRepo())
+	if err != nil {
+		t.Fatalf("resolve second imported bundle: %v", err)
+	}
+	if firstDir == secondDir {
+		t.Fatalf("distinct (asset_id, kind) identities shared managed storage: %q", firstDir)
+	}
+	if got, err := os.ReadFile(filepath.Join(firstDir, "model.bin")); err != nil || string(got) != "first" {
+		t.Fatalf("first bundle was overwritten: content=%q err=%v", got, err)
+	}
+	if got, err := os.ReadFile(filepath.Join(secondDir, "model.bin")); err != nil || string(got) != "second" {
+		t.Fatalf("second bundle content mismatch: content=%q err=%v", got, err)
+	}
+
+	if _, err := svc.RemoveLocalAsset(context.Background(), &runtimev1.RemoveLocalAssetRequest{LocalAssetId: first.GetLocalAssetId()}); err != nil {
+		t.Fatalf("remove first imported bundle: %v", err)
+	}
+	if _, err := os.Stat(firstDir); !os.IsNotExist(err) {
+		t.Fatalf("first imported bundle directory was not removed: %v", err)
+	}
+	if got, err := os.ReadFile(filepath.Join(secondDir, "model.bin")); err != nil || string(got) != "second" {
+		t.Fatalf("removing first bundle damaged second bundle: content=%q err=%v", got, err)
+	}
+
+	sharedFirst := importBundle("Shared/Model", "Provenance/Shared", "shared")
+	sharedSecond := importBundle("Shared/Model", "Provenance/Shared", "shared")
+	if sharedFirst.GetLocalAssetId() == sharedSecond.GetLocalAssetId() {
+		t.Fatalf("duplicate manifest import did not mint a distinct local asset id: %q", sharedFirst.GetLocalAssetId())
+	}
+	sharedDir, err := resolveManagedManifestBundleDir(modelsRoot, sharedSecond.GetSource().GetRepo())
+	if err != nil {
+		t.Fatalf("resolve shared imported bundle: %v", err)
+	}
+	if _, err := svc.updateModelStatus(sharedFirst.GetLocalAssetId(), runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY, "first remains unhealthy"); err != nil {
+		t.Fatalf("mark first shared record unhealthy: %v", err)
+	}
+	if _, err := svc.updateModelStatus(sharedSecond.GetLocalAssetId(), runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY, "second needs rescan"); err != nil {
+		t.Fatalf("mark second shared record unhealthy: %v", err)
+	}
+	rescanned, err := svc.rescanLocalAssetBundleSync(context.Background(), "", &runtimev1.RescanLocalAssetBundleRequest{
+		LocalAssetId: sharedSecond.GetLocalAssetId(),
+	})
+	if err != nil {
+		t.Fatalf("rescan second shared record: %v", err)
+	}
+	if rescanned.GetLocalAssetId() != sharedSecond.GetLocalAssetId() {
+		t.Fatalf("rescan rebound local asset %q, want exact target %q", rescanned.GetLocalAssetId(), sharedSecond.GetLocalAssetId())
+	}
+	if got := svc.modelByID(sharedFirst.GetLocalAssetId()).GetStatus(); got != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY {
+		t.Fatalf("rescan mutated peer duplicate status: %s", got)
+	}
+
+	if _, err := svc.RemoveLocalAsset(context.Background(), &runtimev1.RemoveLocalAssetRequest{LocalAssetId: sharedFirst.GetLocalAssetId()}); err != nil {
+		t.Fatalf("remove first shared record: %v", err)
+	}
+	if got, err := os.ReadFile(filepath.Join(sharedDir, "model.bin")); err != nil || string(got) != "shared" {
+		t.Fatalf("removing one shared record damaged its active peer: content=%q err=%v", got, err)
+	}
+	if _, err := svc.RemoveLocalAsset(context.Background(), &runtimev1.RemoveLocalAssetRequest{LocalAssetId: sharedSecond.GetLocalAssetId()}); err != nil {
+		t.Fatalf("remove final shared record: %v", err)
+	}
+	if _, err := os.Stat(sharedDir); !os.IsNotExist(err) {
+		t.Fatalf("final shared record removal left bundle directory behind: %v", err)
+	}
+}
+
 func TestImportLocalAssetBundleScaffoldsManagedManifest(t *testing.T) {
 	svc := newTestService(t)
 	sourceDir := t.TempDir()

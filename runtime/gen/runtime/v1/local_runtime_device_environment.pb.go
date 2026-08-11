@@ -578,20 +578,26 @@ func (x *LocalEnvironmentPlanDependency) GetConsumerScope() string {
 }
 
 type LocalEnvironmentPlan struct {
-	state           protoimpl.MessageState            `protogen:"open.v1"`
-	PlanId          string                            `protobuf:"bytes,1,opt,name=plan_id,json=planId,proto3" json:"plan_id,omitempty"`
-	PackId          string                            `protobuf:"bytes,2,opt,name=pack_id,json=packId,proto3" json:"pack_id,omitempty"`
-	ProductLabel    string                            `protobuf:"bytes,3,opt,name=product_label,json=productLabel,proto3" json:"product_label,omitempty"`
-	HostProfileId   string                            `protobuf:"bytes,4,opt,name=host_profile_id,json=hostProfileId,proto3" json:"host_profile_id,omitempty"`
-	PlatformTuple   string                            `protobuf:"bytes,5,opt,name=platform_tuple,json=platformTuple,proto3" json:"platform_tuple,omitempty"`
-	RuntimeDataRoot string                            `protobuf:"bytes,6,opt,name=runtime_data_root,json=runtimeDataRoot,proto3" json:"runtime_data_root,omitempty"`
-	ConsumerScope   string                            `protobuf:"bytes,7,opt,name=consumer_scope,json=consumerScope,proto3" json:"consumer_scope,omitempty"`
-	CloudOnlyImpact string                            `protobuf:"bytes,8,opt,name=cloud_only_impact,json=cloudOnlyImpact,proto3" json:"cloud_only_impact,omitempty"`
-	State           string                            `protobuf:"bytes,9,opt,name=state,proto3" json:"state,omitempty"`
-	ReasonCode      string                            `protobuf:"bytes,10,opt,name=reason_code,json=reasonCode,proto3" json:"reason_code,omitempty"`
-	Dependencies    []*LocalEnvironmentPlanDependency `protobuf:"bytes,11,rep,name=dependencies,proto3" json:"dependencies,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+	state                      protoimpl.MessageState            `protogen:"open.v1"`
+	PlanId                     string                            `protobuf:"bytes,1,opt,name=plan_id,json=planId,proto3" json:"plan_id,omitempty"`
+	PackId                     string                            `protobuf:"bytes,2,opt,name=pack_id,json=packId,proto3" json:"pack_id,omitempty"`
+	ProductLabel               string                            `protobuf:"bytes,3,opt,name=product_label,json=productLabel,proto3" json:"product_label,omitempty"`
+	HostProfileId              string                            `protobuf:"bytes,4,opt,name=host_profile_id,json=hostProfileId,proto3" json:"host_profile_id,omitempty"`
+	PlatformTuple              string                            `protobuf:"bytes,5,opt,name=platform_tuple,json=platformTuple,proto3" json:"platform_tuple,omitempty"`
+	RuntimeDataRoot            string                            `protobuf:"bytes,6,opt,name=runtime_data_root,json=runtimeDataRoot,proto3" json:"runtime_data_root,omitempty"`
+	ConsumerScope              string                            `protobuf:"bytes,7,opt,name=consumer_scope,json=consumerScope,proto3" json:"consumer_scope,omitempty"`
+	CloudOnlyImpact            string                            `protobuf:"bytes,8,opt,name=cloud_only_impact,json=cloudOnlyImpact,proto3" json:"cloud_only_impact,omitempty"`
+	State                      string                            `protobuf:"bytes,9,opt,name=state,proto3" json:"state,omitempty"`
+	ReasonCode                 string                            `protobuf:"bytes,10,opt,name=reason_code,json=reasonCode,proto3" json:"reason_code,omitempty"`
+	Dependencies               []*LocalEnvironmentPlanDependency `protobuf:"bytes,11,rep,name=dependencies,proto3" json:"dependencies,omitempty"`
+	RequiredDependencyFamilies []string                          `protobuf:"bytes,12,rep,name=required_dependency_families,json=requiredDependencyFamilies,proto3" json:"required_dependency_families,omitempty"`
+	AggregateSizeKnown         bool                              `protobuf:"varint,13,opt,name=aggregate_size_known,json=aggregateSizeKnown,proto3" json:"aggregate_size_known,omitempty"`
+	AggregateSizeBytes         int64                             `protobuf:"varint,14,opt,name=aggregate_size_bytes,json=aggregateSizeBytes,proto3" json:"aggregate_size_bytes,omitempty"`
+	StorageCategories          []string                          `protobuf:"bytes,15,rep,name=storage_categories,json=storageCategories,proto3" json:"storage_categories,omitempty"`
+	SourceOwners               []string                          `protobuf:"bytes,16,rep,name=source_owners,json=sourceOwners,proto3" json:"source_owners,omitempty"`
+	NoSystemMutation           bool                              `protobuf:"varint,17,opt,name=no_system_mutation,json=noSystemMutation,proto3" json:"no_system_mutation,omitempty"`
+	unknownFields              protoimpl.UnknownFields
+	sizeCache                  protoimpl.SizeCache
 }
 
 func (x *LocalEnvironmentPlan) Reset() {
@@ -699,6 +705,48 @@ func (x *LocalEnvironmentPlan) GetDependencies() []*LocalEnvironmentPlanDependen
 		return x.Dependencies
 	}
 	return nil
+}
+
+func (x *LocalEnvironmentPlan) GetRequiredDependencyFamilies() []string {
+	if x != nil {
+		return x.RequiredDependencyFamilies
+	}
+	return nil
+}
+
+func (x *LocalEnvironmentPlan) GetAggregateSizeKnown() bool {
+	if x != nil {
+		return x.AggregateSizeKnown
+	}
+	return false
+}
+
+func (x *LocalEnvironmentPlan) GetAggregateSizeBytes() int64 {
+	if x != nil {
+		return x.AggregateSizeBytes
+	}
+	return 0
+}
+
+func (x *LocalEnvironmentPlan) GetStorageCategories() []string {
+	if x != nil {
+		return x.StorageCategories
+	}
+	return nil
+}
+
+func (x *LocalEnvironmentPlan) GetSourceOwners() []string {
+	if x != nil {
+		return x.SourceOwners
+	}
+	return nil
+}
+
+func (x *LocalEnvironmentPlan) GetNoSystemMutation() bool {
+	if x != nil {
+		return x.NoSystemMutation
+	}
+	return false
 }
 
 type LocalEnvironmentSelectedSourceRecord struct {
@@ -1216,7 +1264,7 @@ const file_runtime_v1_local_runtime_device_environment_proto_rawDesc = "" +
 	" \x01(\tR\n" +
 	"reasonCode\x12\x16\n" +
 	"\x06detail\x18\v \x01(\tR\x06detail\x12%\n" +
-	"\x0econsumer_scope\x18\f \x01(\tR\rconsumerScope\"\xc7\x03\n" +
+	"\x0econsumer_scope\x18\f \x01(\tR\rconsumerScope\"\xef\x05\n" +
 	"\x14LocalEnvironmentPlan\x12\x17\n" +
 	"\aplan_id\x18\x01 \x01(\tR\x06planId\x12\x17\n" +
 	"\apack_id\x18\x02 \x01(\tR\x06packId\x12#\n" +
@@ -1230,7 +1278,13 @@ const file_runtime_v1_local_runtime_device_environment_proto_rawDesc = "" +
 	"\vreason_code\x18\n" +
 	" \x01(\tR\n" +
 	"reasonCode\x12S\n" +
-	"\fdependencies\x18\v \x03(\v2/.nimi.runtime.v1.LocalEnvironmentPlanDependencyR\fdependencies\"\x97\x06\n" +
+	"\fdependencies\x18\v \x03(\v2/.nimi.runtime.v1.LocalEnvironmentPlanDependencyR\fdependencies\x12@\n" +
+	"\x1crequired_dependency_families\x18\f \x03(\tR\x1arequiredDependencyFamilies\x120\n" +
+	"\x14aggregate_size_known\x18\r \x01(\bR\x12aggregateSizeKnown\x120\n" +
+	"\x14aggregate_size_bytes\x18\x0e \x01(\x03R\x12aggregateSizeBytes\x12-\n" +
+	"\x12storage_categories\x18\x0f \x03(\tR\x11storageCategories\x12#\n" +
+	"\rsource_owners\x18\x10 \x03(\tR\fsourceOwners\x12,\n" +
+	"\x12no_system_mutation\x18\x11 \x01(\bR\x10noSystemMutation\"\x97\x06\n" +
 	"$LocalEnvironmentSelectedSourceRecord\x12\x1b\n" +
 	"\trecord_id\x18\x01 \x01(\tR\brecordId\x12+\n" +
 	"\x11dependency_family\x18\x02 \x01(\tR\x10dependencyFamily\x12#\n" +

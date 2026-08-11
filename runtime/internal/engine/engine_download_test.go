@@ -17,6 +17,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/nimiplatform/nimi/runtime/internal/filedownload"
 )
 
 func TestDownloadFromURLSuccessDownloadHelpers(t *testing.T) {
@@ -144,6 +146,22 @@ func TestDownloadURLToFileRetriesTransientEOF(t *testing.T) {
 	}
 	if info.Size() != int64(len(fakeBinary)) {
 		t.Fatalf("downloaded size mismatch: got=%d want=%d", info.Size(), len(fakeBinary))
+	}
+}
+
+func TestEngineDownloadFailurePreservesTypedTransientMarker(t *testing.T) {
+	transient := fmt.Errorf("%w: upstream reset", filedownload.ErrTransientAttemptsExhausted)
+	err := engineDownloadFailure("https://example.invalid/uv.zip", transient)
+	if !errors.Is(err, ErrEngineBinaryDownloadFailed) {
+		t.Fatalf("engine failure marker missing: %v", err)
+	}
+	if !errors.Is(err, filedownload.ErrTransientAttemptsExhausted) {
+		t.Fatalf("transient network marker was not preserved: %v", err)
+	}
+
+	nonTransient := engineDownloadFailure("https://example.invalid/uv.zip", filedownload.ErrHashMismatch)
+	if errors.Is(nonTransient, filedownload.ErrTransientAttemptsExhausted) {
+		t.Fatalf("non-transient failure received transient marker: %v", nonTransient)
 	}
 }
 

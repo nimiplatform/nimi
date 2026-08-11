@@ -112,6 +112,7 @@ func TestLocalCheckLocalSpeechServiceHealthProjectsSpeechReasonCode(t *testing.T
 		Engine:       "speech",
 		Capabilities: []string{"audio.synthesize"},
 		LocalModelId: modelResp.GetLocalAssetId(),
+		Endpoint:     "http://127.0.0.1:18181/v1",
 	}); err != nil {
 		t.Fatalf("install local speech service: %v", err)
 	}

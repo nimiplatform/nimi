@@ -53,6 +53,7 @@ func TestNativeVerifiedDesktopListenerRejectsOrdinaryConnection(t *testing.T) {
 
 func TestProtectedDesktopProductControlAdmitsExactDependencyJobControls(t *testing.T) {
 	for _, method := range []string{
+		"/nimi.runtime.v1.RuntimeLocalService/ApplyLocalEnvironmentPlan",
 		"/nimi.runtime.v1.RuntimeLocalService/StartLocalEnvironmentDependencyJob",
 		"/nimi.runtime.v1.RuntimeLocalService/CancelLocalEnvironmentDependencyJob",
 		"/nimi.runtime.v1.RuntimeLocalService/RetryLocalEnvironmentDependencyJob",
@@ -159,6 +160,10 @@ func TestProtectedDesktopRPCTransportBindsVerifiedConnectionAndGatesAdmittedServ
 		name string
 		call func() error
 	}{
+		{name: "ApplyLocalEnvironmentPlan", call: func() error {
+			_, callErr := localClient.ApplyLocalEnvironmentPlan(machineContext, &runtimev1.ApplyLocalEnvironmentPlanRequest{})
+			return callErr
+		}},
 		{name: "StartLocalEnvironmentDependencyJob", call: func() error {
 			_, callErr := localClient.StartLocalEnvironmentDependencyJob(machineContext, &runtimev1.StartLocalEnvironmentDependencyJobRequest{})
 			return callErr
@@ -183,8 +188,8 @@ func TestProtectedDesktopRPCTransportBindsVerifiedConnectionAndGatesAdmittedServ
 			t.Fatalf("%s without Desktop session reason = %v (present=%v), err=%v", call.name, reason, ok, callErr)
 		}
 	}
-	if localService.dependencyJobBound || localService.cancelDependencyJobBound || localService.retryDependencyJobBound || localService.repairDependencyJobBound {
-		t.Fatalf("dependency job handler ran before Desktop session: start=%v cancel=%v retry=%v repair=%v", localService.dependencyJobBound, localService.cancelDependencyJobBound, localService.retryDependencyJobBound, localService.repairDependencyJobBound)
+	if localService.environmentPlanApplyBound || localService.dependencyJobBound || localService.cancelDependencyJobBound || localService.retryDependencyJobBound || localService.repairDependencyJobBound {
+		t.Fatalf("dependency plan/job handler ran before Desktop session: apply=%v start=%v cancel=%v retry=%v repair=%v", localService.environmentPlanApplyBound, localService.dependencyJobBound, localService.cancelDependencyJobBound, localService.retryDependencyJobBound, localService.repairDependencyJobBound)
 	}
 
 	response, err := client.OpenDesktopSession(context.Background(), &runtimev1.OpenDesktopSessionRequest{})
@@ -206,6 +211,14 @@ func TestProtectedDesktopRPCTransportBindsVerifiedConnectionAndGatesAdmittedServ
 	productControlResponse, err := localClient.GetProductControlRecord(machineContext, &runtimev1.GetProductControlRecordRequest{})
 	if err != nil || productControlResponse.GetJson() == "" || !localService.productControlBound {
 		t.Fatalf("GetProductControlRecord protected carrier = (%+v, %v), bound=%v", productControlResponse, err, localService.productControlBound)
+	}
+	environmentPlanApplyResponse, err := localClient.ApplyLocalEnvironmentPlan(machineContext, &runtimev1.ApplyLocalEnvironmentPlanRequest{
+		Resolution:     &runtimev1.ResolveLocalEnvironmentPlanRequest{PackId: "local-speech"},
+		ExpectedPlanId: "localenv_plan_protected",
+		Confirmed:      true,
+	})
+	if err != nil || environmentPlanApplyResponse.GetPlan().GetPlanId() == "" || !localService.environmentPlanApplyBound {
+		t.Fatalf("ApplyLocalEnvironmentPlan protected carrier = (%+v, %v), bound=%v", environmentPlanApplyResponse, err, localService.environmentPlanApplyBound)
 	}
 	dependencyJobResponse, err := localClient.StartLocalEnvironmentDependencyJob(machineContext, &runtimev1.StartLocalEnvironmentDependencyJobRequest{
 		EnvironmentKey:   "native-engine-package.llama|llama.cpp.package|host|windows/amd64|root|llama.cpp.cpu",
@@ -472,17 +485,25 @@ func (s *protectedDesktopAuditTestService) ListAuditEvents(context.Context, *run
 
 type protectedDesktopLocalTestService struct {
 	runtimev1.UnimplementedRuntimeLocalServiceServer
-	productControlBound      bool
-	dependencyJobBound       bool
-	cancelDependencyJobBound bool
-	retryDependencyJobBound  bool
-	repairDependencyJobBound bool
-	localAssetsCalled        bool
+	productControlBound       bool
+	environmentPlanApplyBound bool
+	dependencyJobBound        bool
+	cancelDependencyJobBound  bool
+	retryDependencyJobBound   bool
+	repairDependencyJobBound  bool
+	localAssetsCalled         bool
 }
 
 func (service *protectedDesktopLocalTestService) GetProductControlRecord(ctx context.Context, _ *runtimev1.GetProductControlRecordRequest) (*runtimev1.ProductControlProjectionJson, error) {
 	_, service.productControlBound = protectedlocal.DesktopConnectionFromContext(ctx)
 	return &runtimev1.ProductControlProjectionJson{Json: `{"state":"ready_for_use"}`}, nil
+}
+
+func (service *protectedDesktopLocalTestService) ApplyLocalEnvironmentPlan(ctx context.Context, _ *runtimev1.ApplyLocalEnvironmentPlanRequest) (*runtimev1.ApplyLocalEnvironmentPlanResponse, error) {
+	_, service.environmentPlanApplyBound = protectedlocal.DesktopConnectionFromContext(ctx)
+	return &runtimev1.ApplyLocalEnvironmentPlanResponse{
+		Plan: &runtimev1.LocalEnvironmentPlan{PlanId: "localenv_plan_protected"},
+	}, nil
 }
 
 func (service *protectedDesktopLocalTestService) StartLocalEnvironmentDependencyJob(ctx context.Context, _ *runtimev1.StartLocalEnvironmentDependencyJobRequest) (*runtimev1.StartLocalEnvironmentDependencyJobResponse, error) {

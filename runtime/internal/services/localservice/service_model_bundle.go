@@ -36,7 +36,7 @@ func shouldUseLogicalManagedBundlePath(model *runtimev1.LocalAssetRecord) bool {
 	if repo == "" {
 		return false
 	}
-	if strings.HasPrefix(repo, "file://") &&
+	if strings.HasPrefix(strings.ToLower(repo), "file://") &&
 		!strings.HasSuffix(strings.ToLower(repo), "/asset.manifest.json") {
 		return false
 	}
@@ -50,6 +50,26 @@ func sanitizeManagedEntryPath(entry string) (string, error) {
 		return "", fmt.Errorf("managed local model entry path is invalid")
 	}
 	return cleanEntry, nil
+}
+
+func resolveManagedManifestBundleDir(modelsRoot string, sourceRepo string) (string, error) {
+	repo := strings.TrimSpace(sourceRepo)
+	if !strings.HasPrefix(strings.ToLower(repo), "file://") ||
+		!strings.HasSuffix(strings.ToLower(repo), "/asset.manifest.json") {
+		return "", fmt.Errorf("managed asset source must be its asset.manifest.json file URL")
+	}
+	manifestPath, err := resolveManagedFileRepoPath(repo)
+	if err != nil {
+		return "", fmt.Errorf("resolve managed asset manifest source: %w", err)
+	}
+	if err := validateResolvedModelManifestPath(manifestPath, modelsRoot); err != nil {
+		return "", err
+	}
+	resolvedManifestPath, err := filepath.EvalSymlinks(filepath.Clean(manifestPath))
+	if err != nil {
+		return "", fmt.Errorf("resolve managed asset manifest path: %w", err)
+	}
+	return filepath.Dir(resolvedManifestPath), nil
 }
 
 func resolveManagedModelEntryAbsolutePath(modelsRoot string, model *runtimev1.LocalAssetRecord) (string, error) {
@@ -68,8 +88,27 @@ func resolveManagedModelEntryAbsolutePath(modelsRoot string, model *runtimev1.Lo
 	if err != nil {
 		return "", err
 	}
-	if logicalModelID := strings.Trim(strings.TrimSpace(model.GetLogicalModelId()), "/"); logicalModelID != "" && shouldUseLogicalManagedBundlePath(model) {
-		entryPath := filepath.Join(rootAbs, "resolved", filepath.FromSlash(logicalModelID), cleanEntry)
+	repo := strings.TrimSpace(model.GetSource().GetRepo())
+	if strings.HasPrefix(strings.ToLower(repo), "file://") {
+		bundleDir, err := resolveManagedManifestBundleDir(rootAbs, repo)
+		if err != nil {
+			return "", err
+		}
+		entryPath, err := filepath.Abs(filepath.Join(bundleDir, cleanEntry))
+		if err != nil {
+			return "", fmt.Errorf("resolve imported managed model entry path: %w", err)
+		}
+		if !pathWithinBase(bundleDir, entryPath, false) {
+			return "", fmt.Errorf("managed local model entry escapes its manifest directory")
+		}
+		return entryPath, nil
+	}
+	if logicalModelID := strings.TrimSpace(model.GetLogicalModelId()); logicalModelID != "" && shouldUseLogicalManagedBundlePath(model) {
+		bundleDir, err := resolveRuntimeManagedModelBundleDir(rootAbs, logicalModelID)
+		if err != nil {
+			return "", err
+		}
+		entryPath := filepath.Join(bundleDir, cleanEntry)
 		entryPath, err = filepath.Abs(entryPath)
 		if err != nil {
 			return "", fmt.Errorf("resolve managed local model entry path: %w", err)
@@ -287,19 +326,20 @@ func resolveManagedSpeechBundleManifestPath(modelsRoot string, model *runtimev1.
 		return "", fmt.Errorf("managed local model is unavailable")
 	}
 	repo := strings.TrimSpace(model.GetSource().GetRepo())
-	if strings.HasPrefix(strings.ToLower(repo), "file://") && strings.HasSuffix(strings.ToLower(repo), "/asset.manifest.json") {
-		manifestPath, err := resolveManagedFileRepoPath(repo)
+	if strings.HasPrefix(strings.ToLower(repo), "file://") {
+		bundleDir, err := resolveManagedManifestBundleDir(modelsRoot, repo)
 		if err != nil {
 			return "", fmt.Errorf("managed speech bundle manifest path invalid: %w", err)
 		}
-		if err := validateResolvedModelManifestPath(manifestPath, modelsRoot); err != nil {
+		return filepath.Join(bundleDir, localAssetManifestFileName), nil
+	}
+	logicalModelID := strings.TrimSpace(model.GetLogicalModelId())
+	if logicalModelID != "" {
+		bundleDir, err := resolveRuntimeManagedModelBundleDir(strings.TrimSpace(modelsRoot), logicalModelID)
+		if err != nil {
 			return "", err
 		}
-		return manifestPath, nil
-	}
-	logicalModelID := strings.Trim(strings.TrimSpace(model.GetLogicalModelId()), "/")
-	if logicalModelID != "" {
-		manifestPath := runtimeManagedAssetManifestPath(strings.TrimSpace(modelsRoot), logicalModelID)
+		manifestPath := filepath.Join(bundleDir, localAssetManifestFileName)
 		if _, err := os.Stat(manifestPath); err == nil {
 			return manifestPath, nil
 		}
@@ -460,7 +500,7 @@ func validateManagedLocalAssetRecord(model *runtimev1.LocalAssetRecord, mode run
 		return nil
 	}
 	repo := strings.TrimSpace(model.GetSource().GetRepo())
-	if !strings.HasPrefix(repo, "file://") ||
+	if !strings.HasPrefix(strings.ToLower(repo), "file://") ||
 		!strings.HasSuffix(strings.ToLower(repo), "/asset.manifest.json") {
 		return fmt.Errorf("managed local asset source repo must point to file://.../asset.manifest.json")
 	}

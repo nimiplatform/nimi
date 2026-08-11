@@ -34,6 +34,7 @@ export type NimiDesktopMachineProductRuntimeClient = {
   readonly local: Pick<DesktopMachineProductRuntimeMethods,
     | 'collectDeviceProfile'
     | 'resolveLocalEnvironmentPlan'
+    | 'applyLocalEnvironmentPlan'
     | 'listLocalEnvironmentDependencyJobs'
     | 'startLocalEnvironmentDependencyJob'
     | 'cancelLocalEnvironmentDependencyJob'
@@ -286,6 +287,7 @@ export function createNimiDesktopFirstPartyRuntimeClients(
       local: Object.freeze({
         collectDeviceProfile: runtime.local.collectDeviceProfile,
         resolveLocalEnvironmentPlan: runtime.local.resolveLocalEnvironmentPlan,
+        applyLocalEnvironmentPlan: runtime.local.applyLocalEnvironmentPlan,
         listLocalEnvironmentDependencyJobs: runtime.local.listLocalEnvironmentDependencyJobs,
         startLocalEnvironmentDependencyJob: runtime.local.startLocalEnvironmentDependencyJob,
         cancelLocalEnvironmentDependencyJob: runtime.local.cancelLocalEnvironmentDependencyJob,

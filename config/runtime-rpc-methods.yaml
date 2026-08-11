@@ -230,6 +230,9 @@ services:
       - name: ResolveLocalEnvironmentPlan
         type: unary
         protected_transport_ref: /nimi.runtime.v1.RuntimeLocalService/ResolveLocalEnvironmentPlan
+      - name: ApplyLocalEnvironmentPlan
+        type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeLocalService/ApplyLocalEnvironmentPlan
       - name: PrepareProfileRuntimeDescriptor
         type: unary
       - name: ListLocalEnvironmentSelectedSources

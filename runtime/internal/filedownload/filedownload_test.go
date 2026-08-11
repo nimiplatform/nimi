@@ -373,6 +373,56 @@ func TestDownloadRetriesTransient5xx(t *testing.T) {
 	}
 }
 
+func TestDownloadTypesExhaustedTransientNetworkFailure(t *testing.T) {
+	var requests int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		atomic.AddInt32(&requests, 1)
+		w.WriteHeader(http.StatusServiceUnavailable)
+	}))
+	defer server.Close()
+
+	destPath := filepath.Join(t.TempDir(), "model.bin")
+	_, err := Download(context.Background(), Options{
+		URL:          server.URL + "/model.bin",
+		DestPath:     destPath,
+		Client:       server.Client(),
+		MaxAttempts:  2,
+		RetryBackoff: time.Millisecond,
+	})
+	if err == nil {
+		t.Fatal("expected exhausted transient network failure")
+	}
+	if !errors.Is(err, ErrTransientAttemptsExhausted) {
+		t.Fatalf("exhausted transient error lacks typed marker: %v", err)
+	}
+	if got := atomic.LoadInt32(&requests); got != 2 {
+		t.Fatalf("requests = %d, want bounded two attempts", got)
+	}
+	if _, statErr := os.Stat(destPath + ".download"); statErr != nil && !os.IsNotExist(statErr) {
+		t.Fatalf("inspect resumable partial: %v", statErr)
+	}
+}
+
+func TestDownloadDoesNotTypeNonTransientFailureAsExhausted(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusNotFound)
+	}))
+	defer server.Close()
+
+	_, err := Download(context.Background(), Options{
+		URL:         server.URL + "/missing.bin",
+		DestPath:    filepath.Join(t.TempDir(), "model.bin"),
+		Client:      server.Client(),
+		MaxAttempts: 2,
+	})
+	if err == nil {
+		t.Fatal("expected non-transient HTTP failure")
+	}
+	if errors.Is(err, ErrTransientAttemptsExhausted) {
+		t.Fatalf("non-transient failure received transient marker: %v", err)
+	}
+}
+
 // TestDownloadFailsClosedOnOversizeBody asserts the MaxBodyBytes budget is a
 // non-transient failure.
 func TestDownloadFailsClosedOnOversizeBody(t *testing.T) {

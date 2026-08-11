@@ -193,12 +193,16 @@ func downloadURLToFileWithProgress(ctx context.Context, sourceURL string, destPa
 		Progress:     progress,
 	})
 	if err != nil {
-		if errors.Is(err, filedownload.ErrHTTPStatus) {
-			return "", fmt.Errorf("%w: HTTP error from %s: %v", ErrEngineBinaryDownloadFailed, sourceURL, err)
-		}
-		return "", fmt.Errorf("%w: download engine binary: %v", ErrEngineBinaryDownloadFailed, err)
+		return "", engineDownloadFailure(sourceURL, err)
 	}
 	return result.SHA256, nil
+}
+
+func engineDownloadFailure(sourceURL string, err error) error {
+	if errors.Is(err, filedownload.ErrHTTPStatus) {
+		return fmt.Errorf("%w: HTTP error from %s: %w", ErrEngineBinaryDownloadFailed, sourceURL, err)
+	}
+	return fmt.Errorf("%w: download engine binary: %w", ErrEngineBinaryDownloadFailed, err)
 }
 
 func isEngineArchiveAsset(name string) bool {

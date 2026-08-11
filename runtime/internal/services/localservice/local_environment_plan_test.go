@@ -3,7 +3,6 @@ package localservice
 import (
 	"context"
 	"log/slog"
-	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -78,11 +77,12 @@ func TestResolveLocalEnvironmentPlanIncludesPythonManagedFamilies(t *testing.T) 
 	defer func() { svc.Close() }()
 	svc.SetEngineManager(&mockEngineManager{})
 
+	runtimeDataRoot := filepath.Join(t.TempDir(), "runtime-data")
 	plan := svc.resolveLocalEnvironmentPlan(localEnvironmentPlanRequest{
 		PackID:           "local-image-python",
 		ConsumerScope:    "media.diffusers.cuda",
 		HostProfile:      localEnvironmentNvidiaProfile(),
-		RuntimeDataRoot:  filepath.Join(t.TempDir(), "runtime-data"),
+		RuntimeDataRoot:  runtimeDataRoot,
 		AssetID:          "image/test-python",
 		CompanionAssetID: "image/test-companion",
 		ParentAssetID:    "image/test-python",
@@ -103,6 +103,22 @@ func TestResolveLocalEnvironmentPlanIncludesPythonManagedFamilies(t *testing.T) 
 		if dep.State == localEnvironmentStateReadyManaged || dep.State == localEnvironmentStateReadySystem {
 			t.Fatalf("dependency without selected source record projected ready: %+v", dep)
 		}
+	}
+	imageVenv := findLocalEnvironmentDependency(t, plan, localEnvironmentFamilyPythonVenv)
+	imagePackages := findLocalEnvironmentDependency(t, plan, localEnvironmentFamilyPythonPackageSet)
+	if imageVenv.DependencyID != imagePackages.DependencyID || !strings.HasPrefix(imagePackages.DependencyID, "python-profile.") {
+		t.Fatalf("media venv/package-set do not project one complete dependency profile: venv=%+v package=%+v", imageVenv, imagePackages)
+	}
+	videoPlan := svc.resolveLocalEnvironmentPlan(localEnvironmentPlanRequest{
+		PackID:          "local-video-python",
+		ConsumerScope:   "media.video-python.cuda",
+		HostProfile:     localEnvironmentNvidiaProfile(),
+		RuntimeDataRoot: runtimeDataRoot,
+		AssetID:         "video/test-python",
+	})
+	videoPackages := findLocalEnvironmentDependency(t, videoPlan, localEnvironmentFamilyPythonPackageSet)
+	if videoPackages.DependencyID != imagePackages.DependencyID || videoPackages.EnvironmentKey != imagePackages.EnvironmentKey {
+		t.Fatalf("equal image/video dependency inputs did not reuse one media profile: image=%+v video=%+v", imagePackages, videoPackages)
 	}
 }
 
@@ -161,7 +177,65 @@ func TestResolveLocalSpeechPlanIncludesHostAppropriateTorchWheel(t *testing.T) {
 	}
 }
 
-func TestResolveLocalSpeechTorchWheelIdentityExcludesConsumerAndHostProfile(t *testing.T) {
+func TestResolveLocalSpeechPlanProjectsRuntimeOwnedCapabilityConfirmation(t *testing.T) {
+	t.Parallel()
+
+	svc := newLocalEnvironmentTestService(t)
+	defer func() { svc.Close() }()
+	svc.SetEngineManager(&mockEngineManager{})
+
+	plan := svc.resolveLocalEnvironmentPlan(localEnvironmentPlanRequest{
+		PackID:          "local-speech",
+		ConsumerScope:   "speech.qwen3-tts.python",
+		HostProfile:     localEnvironmentNvidiaProfile(),
+		RuntimeDataRoot: filepath.Join(t.TempDir(), "runtime-data"),
+		AssetID:         "speech/test-tts-model",
+	})
+
+	wantFamilies := []string{
+		localEnvironmentFamilyPythonUV,
+		localEnvironmentFamilyPythonRuntime,
+		localEnvironmentFamilyPythonVenv,
+		localEnvironmentFamilyPythonPackageSet,
+		localEnvironmentFamilyPythonTorchWheel,
+		localEnvironmentFamilyModelAsset,
+		localEnvironmentFamilyCUDA,
+	}
+	if strings.Join(plan.RequiredDependencyFamilies, "|") != strings.Join(wantFamilies, "|") {
+		t.Fatalf("required dependency families = %v, want %v", plan.RequiredDependencyFamilies, wantFamilies)
+	}
+	if plan.AggregateSizeKnown || plan.AggregateSizeBytes != 0 {
+		t.Fatalf("unmaterialized plan aggregate size = known:%t bytes:%d, want explicitly unknown", plan.AggregateSizeKnown, plan.AggregateSizeBytes)
+	}
+	wantCategories := []string{"dependencies", "environments", "models"}
+	if strings.Join(plan.StorageCategories, "|") != strings.Join(wantCategories, "|") {
+		t.Fatalf("storage categories = %v, want %v", plan.StorageCategories, wantCategories)
+	}
+	if strings.Join(plan.SourceOwners, "|") != "RuntimeLocalService" {
+		t.Fatalf("source owners = %v, want RuntimeLocalService", plan.SourceOwners)
+	}
+	if !plan.NoSystemMutation {
+		t.Fatal("Runtime confirmation projection must prohibit system mutation")
+	}
+	_, readyAggregateKnown, readyAggregateBytes, _, _ := localEnvironmentPlanConfirmationProjection([]localEnvironmentPlanDependency{{
+		DependencyFamily: localEnvironmentFamilyPythonUV,
+		Required:         true,
+		State:            localEnvironmentStateReadyManaged,
+	}})
+	if readyAggregateKnown || readyAggregateBytes != 0 {
+		t.Fatalf("ready dependency without positive size source projected known aggregate: known:%t bytes:%d", readyAggregateKnown, readyAggregateBytes)
+	}
+
+	protoPlan := localEnvironmentPlanToProto(plan)
+	if strings.Join(protoPlan.GetRequiredDependencyFamilies(), "|") != strings.Join(wantFamilies, "|") ||
+		strings.Join(protoPlan.GetStorageCategories(), "|") != strings.Join(wantCategories, "|") ||
+		strings.Join(protoPlan.GetSourceOwners(), "|") != "RuntimeLocalService" ||
+		protoPlan.GetAggregateSizeKnown() || protoPlan.GetAggregateSizeBytes() != 0 || !protoPlan.GetNoSystemMutation() {
+		t.Fatalf("proto confirmation projection does not preserve plan facts: %+v", protoPlan)
+	}
+}
+
+func TestResolveLocalSpeechTorchWheelIdentityUsesExactWheelSourceAndExcludesConsumerAndHostProfile(t *testing.T) {
 	t.Parallel()
 
 	runtimeDataRoot := filepath.Join(t.TempDir(), "runtime-data")
@@ -184,17 +258,21 @@ func TestResolveLocalSpeechTorchWheelIdentityExcludesConsumerAndHostProfile(t *t
 		return findLocalEnvironmentDependency(t, plan, localEnvironmentFamilyPythonTorchWheel)
 	}
 
-	ttsTorch := resolveTorch(t, "speech.qwen3-tts.python", ttsProfile)
-	asrTorch := resolveTorch(t, "speech.qwen3-asr-transformers.python", asrProfile)
-	if ttsTorch.DependencyID != asrTorch.DependencyID {
-		t.Fatalf("Torch dependency id varies by consumer: TTS=%q ASR=%q", ttsTorch.DependencyID, asrTorch.DependencyID)
+	nativeASRTorch := resolveTorch(t, "speech.qwen3-asr.python", ttsProfile)
+	transformersASRTorch := resolveTorch(t, "speech.qwen3-asr-transformers.python", asrProfile)
+	if nativeASRTorch.DependencyID != transformersASRTorch.DependencyID {
+		t.Fatalf("Torch dependency id varies for identical wheel inputs: native=%q transformers=%q", nativeASRTorch.DependencyID, transformersASRTorch.DependencyID)
 	}
-	if ttsTorch.EnvironmentKey != asrTorch.EnvironmentKey {
-		t.Fatalf("Torch environment key varies by consumer or host profile: TTS=%q ASR=%q", ttsTorch.EnvironmentKey, asrTorch.EnvironmentKey)
+	if nativeASRTorch.EnvironmentKey != transformersASRTorch.EnvironmentKey {
+		t.Fatalf("Torch environment key varies by consumer or host profile for identical wheel inputs: native=%q transformers=%q", nativeASRTorch.EnvironmentKey, transformersASRTorch.EnvironmentKey)
+	}
+	ttsTorch := resolveTorch(t, "speech.qwen3-tts.python", ttsProfile)
+	if ttsTorch.EnvironmentKey == nativeASRTorch.EnvironmentKey {
+		t.Fatalf("Torch environment key ignored the distinct TTS wheel lock/source: TTS=%q ASR=%q", ttsTorch.EnvironmentKey, nativeASRTorch.EnvironmentKey)
 	}
 }
 
-func TestResolveLocalSpeechTorchWheelKeepsConsumerLocalEvidence(t *testing.T) {
+func TestResolvePythonProfileKeepsConsumptionEvidenceOutsideCanonicalTorchSource(t *testing.T) {
 	t.Parallel()
 
 	svc := newLocalEnvironmentTestService(t)
@@ -202,46 +280,78 @@ func TestResolveLocalSpeechTorchWheelKeepsConsumerLocalEvidence(t *testing.T) {
 	svc.SetEngineManager(&mockEngineManager{})
 	runtimeDataRoot := filepath.Join(t.TempDir(), "runtime-data")
 	profile := localEnvironmentNvidiaProfile()
+	profileRoot := filepath.Join(runtimeDataRoot, "environments", "python-profiles", "shared-media")
+	packageCacheRoot := filepath.Join(runtimeDataRoot, "dependencies", "python-package-cache")
+	writtenProfileDigest := ""
 
-	requestFor := func(consumer string) localEnvironmentPlanRequest {
+	requestFor := func(packID string, consumer string) localEnvironmentPlanRequest {
 		return localEnvironmentPlanRequest{
-			PackID:          "local-speech",
+			PackID:          packID,
 			ConsumerScope:   consumer,
 			HostProfile:     profile,
 			RuntimeDataRoot: runtimeDataRoot,
-			AssetID:         "speech/test-asr-model",
+			AssetID:         "media/test-model",
 		}
 	}
-	installEvidence := func(t *testing.T, consumer string, root string) localEnvironmentPlanDependency {
+	installProfileEvidence := func(t *testing.T, packID string, consumer string, activationArtifact string) (localEnvironmentPlanDependency, localEnvironmentPlanDependency) {
 		t.Helper()
-		dep := findLocalEnvironmentDependency(t, svc.resolveLocalEnvironmentPlan(requestFor(consumer)), localEnvironmentFamilyPythonTorchWheel)
-		identity, err := engine.ResolvePythonTorchWheelDependencyIdentity(dep.ConsumerScope)
+		plan := svc.resolveLocalEnvironmentPlan(requestFor(packID, consumer))
+		packageDep := findLocalEnvironmentDependency(t, plan, localEnvironmentFamilyPythonPackageSet)
+		profileIdentity, err := engine.ResolvePythonDependencyProfileIdentity(consumer, plan.PlatformTuple, "cuda")
 		if err != nil {
-			t.Fatalf("resolve Torch identity for %q: %v", dep.ConsumerScope, err)
+			t.Fatalf("resolve dependency profile for %q: %v", consumer, err)
 		}
-		interpreter := filepath.Join(root, "Scripts", "python.exe")
-		record := verifiedSelectedSourceRecordForTest(localEnvironmentSelectedSourceRecordState{
-			DependencyFamily:      dep.DependencyFamily,
-			DependencyID:          dep.DependencyID,
-			EnvironmentKey:        dep.EnvironmentKey,
-			CanonicalRoot:         root,
-			Version:               "2.11.0+cu128",
-			CompatibilityEvidence: []string{"accelerator_plane=cuda", "cuda_abi=cu128", "import_probe=torch"},
-			VerifiedArtifacts:     []string{interpreter, "torch=2.11.0+cu128"},
-			SelectedConsumers:     []string{dep.ConsumerScope},
-			Hashes:                map[string]string{"wheel_lock_hash": identity.WheelLockHash},
+		profileRecord := verifiedSelectedSourceRecordForTest(localEnvironmentSelectedSourceRecordState{
+			DependencyFamily:      packageDep.DependencyFamily,
+			DependencyID:          packageDep.DependencyID,
+			EnvironmentKey:        packageDep.EnvironmentKey,
+			CanonicalRoot:         profileRoot,
+			Version:               profileIdentity.ProfileDigest,
+			CompatibilityEvidence: []string{"accelerator_plane=cuda", "import_probe=torch"},
+			VerifiedArtifacts:     []string{filepath.Join(profileRoot, activationArtifact)},
+			SelectedConsumers:     []string{consumer},
+			Hashes:                pythonDependencyProfileHashes(profileIdentity),
 		})
-		writeSelectedSourceLocalArtifactsForTest(t, record)
-		svc.upsertLocalEnvironmentSelectedSourceRecord(record)
-		return dep
+		writeSelectedSourceLocalArtifactsForTest(t, profileRecord)
+		if writtenProfileDigest == "" {
+			writePythonDependencyProfileStaticFilesForTest(t, profileRoot, consumer, profileIdentity)
+			writtenProfileDigest = profileIdentity.ProfileDigest
+		} else if writtenProfileDigest != profileIdentity.ProfileDigest {
+			t.Fatalf("shared profile fixture received distinct profile digests: first=%s %s=%s", writtenProfileDigest, consumer, profileIdentity.ProfileDigest)
+		}
+		promotedProfile := svc.upsertLocalEnvironmentSelectedSourceRecord(profileRecord)
+		recordReadyPythonPackageSetConsumptionJobForTest(svc, promotedProfile, consumer)
+
+		torchDep := findLocalEnvironmentDependency(t, plan, localEnvironmentFamilyPythonTorchWheel)
+		torchIdentity, err := engine.ResolvePythonTorchWheelDependencyIdentity(torchDep.ConsumerScope)
+		if err != nil {
+			t.Fatalf("resolve Torch identity for %q: %v", torchDep.ConsumerScope, err)
+		}
+		torchRecord := verifiedSelectedSourceRecordForTest(localEnvironmentSelectedSourceRecordState{
+			DependencyFamily:      torchDep.DependencyFamily,
+			DependencyID:          torchDep.DependencyID,
+			EnvironmentKey:        torchDep.EnvironmentKey,
+			CanonicalRoot:         packageCacheRoot,
+			Version:               torchIdentity.TorchVersion,
+			CompatibilityEvidence: []string{"accelerator_plane=cuda", "cuda_abi=cu126"},
+			VerifiedArtifacts:     []string{filepath.Join(packageCacheRoot, "torch-wheel.lock")},
+			SelectedConsumers:     []string{torchDep.ConsumerScope},
+			Hashes:                map[string]string{"wheel_lock_hash": torchIdentity.WheelLockHash},
+		})
+		writeSelectedSourceLocalArtifactsForTest(t, torchRecord)
+		svc.upsertLocalEnvironmentSelectedSourceRecord(torchRecord)
+		return packageDep, torchDep
 	}
 
-	nativeRoot := filepath.Join(runtimeDataRoot, "native-asr-venv")
-	nativeDep := installEvidence(t, "speech.qwen3-asr.python", nativeRoot)
-	transformersRoot := filepath.Join(runtimeDataRoot, "transformers-asr-venv")
-	transformersDep := installEvidence(t, "speech.qwen3-asr-transformers.python", transformersRoot)
-	if nativeDep.EnvironmentKey != transformersDep.EnvironmentKey || nativeDep.DependencyID != transformersDep.DependencyID {
-		t.Fatalf("ASR consumers do not share canonical Torch identity: native=%+v transformers=%+v", nativeDep, transformersDep)
+	imageArtifact := "image-activation.ok"
+	imageProfileDep, imageTorchDep := installProfileEvidence(t, "local-image-python", "media.diffusers.cuda", imageArtifact)
+	videoArtifact := "video-activation.ok"
+	videoProfileDep, videoTorchDep := installProfileEvidence(t, "local-video-python", "media.video-python.cuda", videoArtifact)
+	if imageProfileDep.EnvironmentKey != videoProfileDep.EnvironmentKey || imageProfileDep.DependencyID != videoProfileDep.DependencyID {
+		t.Fatalf("equal media profile inputs did not share one profile identity: image=%+v video=%+v", imageProfileDep, videoProfileDep)
+	}
+	if imageTorchDep.EnvironmentKey != videoTorchDep.EnvironmentKey || imageTorchDep.DependencyID != videoTorchDep.DependencyID {
+		t.Fatalf("equal media wheel inputs did not share one canonical Torch source: image=%+v video=%+v", imageTorchDep, videoTorchDep)
 	}
 	statePath := svc.stateStorePath
 	modelsPath := svc.localModelsPath
@@ -253,17 +363,31 @@ func TestResolveLocalSpeechTorchWheelKeepsConsumerLocalEvidence(t *testing.T) {
 		t.Fatalf("restore service with shared Torch evidence: %v", err)
 	}
 	svc.SetEngineManager(&mockEngineManager{})
-	if err := os.RemoveAll(nativeRoot); err != nil {
-		t.Fatalf("remove first consumer Torch evidence: %v", err)
+	imageRepairJob, err := svc.startLocalEnvironmentDependencyJob(context.Background(), localEnvironmentDependencyJobRequest{
+		EnvironmentKey:   imageProfileDep.EnvironmentKey,
+		DependencyFamily: imageProfileDep.DependencyFamily,
+		DependencyID:     imageProfileDep.DependencyID,
+		ConsumerScope:    "media.diffusers.cuda",
+		SourceKind:       localEnvironmentSourceManaged,
+	}, nil)
+	if err != nil {
+		t.Fatalf("start image profile repair projection: %v", err)
+	}
+	if _, ok := svc.transitionLocalEnvironmentDependencyJob(imageRepairJob.JobID, localEnvironmentStateRepairRequired, "image profile consumption requires repair", true); !ok {
+		t.Fatal("transition image profile consumption to repair_required")
 	}
 
-	nativeAfterLoss := findLocalEnvironmentDependency(t, svc.resolveLocalEnvironmentPlan(requestFor("speech.qwen3-asr.python")), localEnvironmentFamilyPythonTorchWheel)
-	if nativeAfterLoss.State != localEnvironmentStateRepairRequired {
-		t.Fatalf("first consumer Torch dependency = %+v, want repair_required after its own evidence is removed", nativeAfterLoss)
+	imageAfterLoss := findLocalEnvironmentDependency(t, svc.resolveLocalEnvironmentPlan(requestFor("local-image-python", "media.diffusers.cuda")), localEnvironmentFamilyPythonPackageSet)
+	if imageAfterLoss.State != localEnvironmentStateRepairRequired {
+		t.Fatalf("image profile consumption = %+v, want repair_required after its own evidence is removed", imageAfterLoss)
 	}
-	transformersStillReady := findLocalEnvironmentDependency(t, svc.resolveLocalEnvironmentPlan(requestFor("speech.qwen3-asr-transformers.python")), localEnvironmentFamilyPythonTorchWheel)
-	if transformersStillReady.State != localEnvironmentStateReadyManaged || transformersStillReady.CanonicalRoot != transformersRoot {
-		t.Fatalf("second consumer Torch dependency = %+v, want its own ready evidence at %q", transformersStillReady, transformersRoot)
+	videoStillReady := findLocalEnvironmentDependency(t, svc.resolveLocalEnvironmentPlan(requestFor("local-video-python", "media.video-python.cuda")), localEnvironmentFamilyPythonPackageSet)
+	if videoStillReady.State != localEnvironmentStateReadyManaged || videoStillReady.CanonicalRoot != profileRoot {
+		t.Fatalf("video profile consumption = %+v, want ready evidence at shared root %q", videoStillReady, profileRoot)
+	}
+	videoTorchStillReady := findLocalEnvironmentDependency(t, svc.resolveLocalEnvironmentPlan(requestFor("local-video-python", "media.video-python.cuda")), localEnvironmentFamilyPythonTorchWheel)
+	if videoTorchStillReady.State != localEnvironmentStateReadyManaged || videoTorchStillReady.CanonicalRoot != packageCacheRoot {
+		t.Fatalf("canonical Torch source = %+v, want ready shared package cache %q", videoTorchStillReady, packageCacheRoot)
 	}
 }
 
@@ -628,7 +752,7 @@ func TestResolveLocalEnvironmentPlanRestoresReadySelectedSourceRecord(t *testing
 	}
 }
 
-func TestResolveLocalEnvironmentPlanDemotesSelectedSourceWithMissingLocalArtifact(t *testing.T) {
+func TestResolveLocalEnvironmentPlanRejectsLinuxTTSPythonProfile(t *testing.T) {
 	svc := newLocalEnvironmentTestService(t)
 	defer func() { svc.Close() }()
 
@@ -641,103 +765,66 @@ func TestResolveLocalEnvironmentPlanDemotesSelectedSourceWithMissingLocalArtifac
 		RuntimeDataRoot: runtimeDataRoot,
 		AssetID:         "speech/test-tts-model",
 	})
-	var packageDep localEnvironmentPlanDependency
-	for _, dep := range plan.Dependencies {
-		if dep.DependencyFamily == localEnvironmentFamilyPythonPackageSet && dep.DependencyID == "local-speech-qwen3-tts.package-set" {
-			packageDep = dep
-			break
-		}
-	}
-	if packageDep.DependencyID == "" {
-		t.Fatalf("missing split tts package-set dependency in plan: %+v", plan)
-	}
-	root := filepath.Join(runtimeDataRoot, "speech", "0.1.0-qwen3-tts")
-	driverScript := engine.SpeechQwen3TTSDriverPath(root)
-	svc.upsertLocalEnvironmentSelectedSourceRecord(verifiedSelectedSourceRecordForTest(localEnvironmentSelectedSourceRecordState{
-		DependencyFamily: packageDep.DependencyFamily,
-		DependencyID:     packageDep.DependencyID,
-		EnvironmentKey:   packageDep.EnvironmentKey,
-		SourceKind:       localEnvironmentSourceManaged,
-		CanonicalRoot:    root,
-		SelectedConsumers: []string{
-			"speech.qwen3-tts.python",
-		},
-		VerifiedArtifacts: []string{
-			filepath.Join(root, "bin", "python"),
-			driverScript,
-		},
-		ActivationEnvDelta: []string{
-			"NIMI_RUNTIME_SPEECH_QWEN3_TTS_CMD='python' '" + driverScript + "'",
-		},
-	}))
+	assertUnsupportedLinuxPythonProfileDependency(t, plan, localEnvironmentFamilyPythonPackageSet, "speech.qwen3-tts.python", runtimeDataRoot)
+}
 
-	repairPlan := svc.resolveLocalEnvironmentPlan(localEnvironmentPlanRequest{
+func TestResolveLocalEnvironmentPlanRejectsLinuxTransformersASRPythonProfile(t *testing.T) {
+	svc := newLocalEnvironmentTestService(t)
+	defer func() { svc.Close() }()
+
+	runtimeDataRoot := filepath.Join(t.TempDir(), "runtime-data")
+	profile := localEnvironmentCPUProfileForTest()
+	plan := svc.resolveLocalEnvironmentPlan(localEnvironmentPlanRequest{
 		PackID:          "local-speech",
-		ConsumerScope:   "speech.qwen3-tts.python",
+		ConsumerScope:   "speech.qwen3-asr-transformers.python",
 		HostProfile:     profile,
+		RuntimeDataRoot: runtimeDataRoot,
+		AssetID:         "speech/test-transformers-asr-model",
+	})
+	assertUnsupportedLinuxPythonProfileDependency(t, plan, localEnvironmentFamilyPythonPackageSet, "speech.qwen3-asr-transformers.python", runtimeDataRoot)
+}
+
+func TestResolveLocalEnvironmentPlanRejectsAllLinuxSpeechPythonProfiles(t *testing.T) {
+	svc := newLocalEnvironmentTestService(t)
+	defer func() { svc.Close() }()
+
+	runtimeDataRoot := filepath.Join(t.TempDir(), "runtime-data")
+	consumer := "speech.qwen3-tts.python"
+	plan := svc.resolveLocalEnvironmentPlan(localEnvironmentPlanRequest{
+		PackID:          "local-speech",
+		ConsumerScope:   consumer,
+		HostProfile:     localEnvironmentCPUProfileForTest(),
 		RuntimeDataRoot: runtimeDataRoot,
 		AssetID:         "speech/test-tts-model",
 	})
-	repairDep := findLocalEnvironmentDependency(t, repairPlan, localEnvironmentFamilyPythonPackageSet)
-	if repairDep.State != localEnvironmentStateRepairRequired {
-		t.Fatalf("package-set state = %q, want repair_required: %+v", repairDep.State, repairDep)
-	}
-	if !strings.Contains(repairDep.Detail, "LOCAL_ENVIRONMENT_SELECTED_SOURCE_ARTIFACT_MISSING") {
-		t.Fatalf("repair detail = %q, want missing artifact reason", repairDep.Detail)
-	}
-	if repairPlan.State != localEnvironmentStateRepairRequired {
-		t.Fatalf("plan state = %q, want repair_required", repairPlan.State)
+	for _, family := range []string{localEnvironmentFamilyPythonVenv, localEnvironmentFamilyPythonPackageSet} {
+		assertUnsupportedLinuxPythonProfileDependency(t, plan, family, consumer, runtimeDataRoot)
 	}
 }
 
-func TestResolveLocalEnvironmentPlanDemotesStalePythonPackageSetLock(t *testing.T) {
-	svc := newLocalEnvironmentTestService(t)
-	defer func() { svc.Close() }()
-
-	runtimeDataRoot := filepath.Join(t.TempDir(), "runtime-data")
-	profile := localEnvironmentCPUProfileForTest()
-	plan := svc.resolveLocalEnvironmentPlan(localEnvironmentPlanRequest{
-		PackID:          "local-speech",
-		ConsumerScope:   "speech.qwen3-asr-transformers.python",
-		HostProfile:     profile,
-		RuntimeDataRoot: runtimeDataRoot,
-		AssetID:         "speech/test-transformers-asr-model",
-	})
-	packageDep := findLocalEnvironmentDependency(t, plan, localEnvironmentFamilyPythonPackageSet)
-	root := filepath.Join(runtimeDataRoot, "speech", "0.1.0-qwen3-asr-transformers")
-	record := verifiedSelectedSourceRecordForTest(localEnvironmentSelectedSourceRecordState{
-		DependencyFamily: packageDep.DependencyFamily,
-		DependencyID:     packageDep.DependencyID,
-		EnvironmentKey:   packageDep.EnvironmentKey,
-		SourceKind:       localEnvironmentSourceManaged,
-		CanonicalRoot:    root,
-		Version:          "stale-lock",
-		Hashes: map[string]string{
-			"package_lock_hash": "stale-lock",
-		},
-		SelectedConsumers: []string{
-			"speech.qwen3-asr-transformers.python",
-		},
-		VerifiedArtifacts: []string{
-			filepath.Join(root, "python"),
-		},
-	})
-	writeSelectedSourceLocalArtifactsForTest(t, record)
-	svc.upsertLocalEnvironmentSelectedSourceRecord(record)
-
-	repairPlan := svc.resolveLocalEnvironmentPlan(localEnvironmentPlanRequest{
-		PackID:          "local-speech",
-		ConsumerScope:   "speech.qwen3-asr-transformers.python",
-		HostProfile:     profile,
-		RuntimeDataRoot: runtimeDataRoot,
-		AssetID:         "speech/test-transformers-asr-model",
-	})
-	repairDep := findLocalEnvironmentDependency(t, repairPlan, localEnvironmentFamilyPythonPackageSet)
-	if repairDep.State != localEnvironmentStateRepairRequired {
-		t.Fatalf("package-set state = %q, want repair_required: %+v", repairDep.State, repairDep)
+func assertUnsupportedLinuxPythonProfileDependency(t *testing.T, plan localEnvironmentPlan, family string, consumer string, runtimeDataRoot string) {
+	t.Helper()
+	if plan.PlatformTuple != "linux/amd64" {
+		t.Fatalf("plan platform = %q, want linux/amd64", plan.PlatformTuple)
 	}
-	if !strings.Contains(repairDep.Detail, "LOCAL_ENVIRONMENT_PACKAGE_SET_LOCK_DRIFT") {
-		t.Fatalf("repair detail = %q, want package-set lock drift reason", repairDep.Detail)
+	dep := findLocalEnvironmentDependency(t, plan, family)
+	if dep.DependencyID != "python-profile.unavailable" || dep.ConsumerScope != consumer {
+		t.Fatalf("unsupported Python profile identity = %q/%q, want python-profile.unavailable/%s", dep.DependencyID, dep.ConsumerScope, consumer)
+	}
+	if dep.State != localEnvironmentStateUnsupported || dep.SourceKind != localEnvironmentSourceUnavailable || !dep.Required || dep.ConfirmationRequired {
+		t.Fatalf("Linux Python dependency admission = %+v, want required unsupported/unavailable without confirmation", dep)
+	}
+	if dep.EnvironmentKey != localEnvironmentPythonProfileKey(family, "python-profile.unavailable", runtimeDataRoot) {
+		t.Fatalf("unsupported Python profile environment key = %q", dep.EnvironmentKey)
+	}
+	if dep.SelectedSourceRecordID != "" || dep.CanonicalRoot != "" {
+		t.Fatalf("unsupported Linux Python profile projected selected source: %+v", dep)
+	}
+	if dep.ReasonCode != "LOCAL_ENVIRONMENT_DEPENDENCY_UNSUPPORTED" || !strings.Contains(dep.Detail, "not admitted for platform linux/amd64 and accelerator cpu") {
+		t.Fatalf("unsupported Linux Python profile reason = %q/%q", dep.ReasonCode, dep.Detail)
+	}
+	if plan.State != localEnvironmentStateUnsupported || plan.ReasonCode != "LOCAL_ENVIRONMENT_PLAN_UNSUPPORTED" {
+		t.Fatalf("Linux Python plan state = %q/%q, want unsupported", plan.State, plan.ReasonCode)
 	}
 }
 

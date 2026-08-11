@@ -228,6 +228,7 @@ export const RUNTIME_LOCAL_METHODS = [
   'stopEngine',
   'getEngineStatus',
   'resolveLocalEnvironmentPlan',
+  'applyLocalEnvironmentPlan',
   'prepareProfileRuntimeDescriptor',
   'listLocalEnvironmentSelectedSources',
   'listLocalEnvironmentDependencyJobs',

@@ -610,6 +610,9 @@ func TestRestoreStateHealsImportedIdeogram4UncondProjection(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(modelDir, "ideogram4_uncond-Q4_0.gguf"), validIdeogram4ImageTestGGUFWithoutMetadata(), 0o644); err != nil {
 		t.Fatalf("write ideogram4 uncond file: %v", err)
 	}
+	if err := os.WriteFile(filepath.Join(modelDir, localAssetManifestFileName), []byte(`{"asset_id":"local-import/ideogram4_uncond-Q4_0","kind":"image"}`), 0o644); err != nil {
+		t.Fatalf("write ideogram4 manifest: %v", err)
+	}
 	snapshot := localStateSnapshot{
 		SchemaVersion: localStateSchemaVersion,
 		Assets: []localStateAssetState{{
@@ -664,6 +667,9 @@ func TestRestoreStateHealsImportedVAEProjectionFromTensorShape(t *testing.T) {
 	}
 	if err := os.WriteFile(filepath.Join(assetDir, "ae.safetensors"), safetensorsFixtureWithDecoderConvInChannels(32), 0o644); err != nil {
 		t.Fatalf("write vae fixture: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(assetDir, localAssetManifestFileName), []byte(`{"asset_id":"local-import/ae","kind":"vae"}`), 0o644); err != nil {
+		t.Fatalf("write vae manifest: %v", err)
 	}
 	snapshot := localStateSnapshot{
 		SchemaVersion: localStateSchemaVersion,

@@ -12,7 +12,7 @@ import (
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
-func writeManagedAssetEntryFixture(t *testing.T, modelsRoot string, asset *runtimev1.LocalAssetRecord, content string) string {
+func writeManagedAssetEntryFixture(t *testing.T, svc *Service, modelsRoot string, asset *runtimev1.LocalAssetRecord, content string) string {
 	t.Helper()
 	if asset == nil {
 		t.Fatal("asset fixture requires record")
@@ -21,20 +21,72 @@ func writeManagedAssetEntryFixture(t *testing.T, modelsRoot string, asset *runti
 	if cleanEntry == "." || cleanEntry == "" {
 		t.Fatal("asset fixture requires entry path")
 	}
-	var target string
+	var bundleDir string
 	repo := strings.TrimSpace(asset.GetSource().GetRepo())
 	if strings.HasPrefix(repo, "local-import/") {
-		target = filepath.Join(modelsRoot, "resolved", filepath.FromSlash(strings.Trim(strings.TrimPrefix(repo, "local-import/"), "/")), cleanEntry)
+		bundleDir = filepath.Join(modelsRoot, "resolved", filepath.FromSlash(strings.Trim(strings.TrimPrefix(repo, "local-import/"), "/")))
 	} else if isRunnableKind(asset.GetKind()) && strings.Trim(strings.TrimSpace(asset.GetLogicalModelId()), "/") != "" {
-		target = filepath.Join(modelsRoot, "resolved", filepath.FromSlash(strings.Trim(strings.TrimSpace(asset.GetLogicalModelId()), "/")), cleanEntry)
+		bundleDir = filepath.Join(modelsRoot, "resolved", filepath.FromSlash(strings.Trim(strings.TrimSpace(asset.GetLogicalModelId()), "/")))
 	} else {
-		target = filepath.Join(modelsRoot, "resolved", slugifyLocalAssetID(asset.GetAssetId()), cleanEntry)
+		bundleDir = filepath.Join(modelsRoot, "resolved", slugifyLocalAssetID(asset.GetAssetId()))
 	}
+	target := filepath.Join(bundleDir, cleanEntry)
 	if err := os.MkdirAll(filepath.Dir(target), 0o755); err != nil {
 		t.Fatalf("mkdir asset fixture dir: %v", err)
 	}
 	if err := os.WriteFile(target, []byte(content), 0o600); err != nil {
 		t.Fatalf("write asset fixture: %v", err)
+	}
+	entryHash, err := computeFileSHA256(target)
+	if err != nil {
+		t.Fatalf("hash asset fixture entry: %v", err)
+	}
+	manifestPath := filepath.Join(bundleDir, localAssetManifestFileName)
+	manifestRepo := "file://" + filepath.ToSlash(manifestPath)
+	preserveCatalogSource := isRunnableKind(asset.GetKind()) && repo != "" && !isLocalImportSourceRepo(repo) && !strings.HasPrefix(strings.ToLower(repo), "file://")
+	manifestSourceRepo := manifestRepo
+	manifestSourceRevision := "local"
+	if preserveCatalogSource {
+		manifestSourceRepo = repo
+		manifestSourceRevision = defaultString(asset.GetSource().GetRevision(), "main")
+	}
+	logicalModelID := strings.TrimSpace(asset.GetLogicalModelId())
+	if logicalModelID == "" {
+		logicalModelID, err = filepath.Rel(filepath.Join(modelsRoot, "resolved"), bundleDir)
+		if err != nil {
+			t.Fatalf("resolve asset fixture logical model id: %v", err)
+		}
+		logicalModelID = filepath.ToSlash(logicalModelID)
+	}
+	capabilities := normalizeStringSlice(asset.GetCapabilities())
+	if isRunnableKind(asset.GetKind()) && len(capabilities) == 0 {
+		capabilities = defaultCapabilitiesForAssetKind(asset.GetKind())
+	}
+	entry := filepath.ToSlash(cleanEntry)
+	if err := writeModelManifest(manifestPath, managedModelManifestDescriptor{
+		assetID:        asset.GetAssetId(),
+		kind:           asset.GetKind(),
+		logicalModelID: logicalModelID,
+		capabilities:   capabilities,
+		engine:         asset.GetEngine(),
+		entry:          entry,
+		files:          []string{entry},
+		license:        defaultString(asset.GetLicense(), "unknown"),
+		repo:           manifestSourceRepo,
+		revision:       manifestSourceRevision,
+		hashes:         map[string]string{entry: entryHash},
+		engineConfig:   cloneStruct(asset.GetEngineConfig()),
+		integrityMode:  "verified",
+	}); err != nil {
+		t.Fatalf("write asset fixture manifest: %v", err)
+	}
+	if !preserveCatalogSource {
+		if asset.Source == nil {
+			asset.Source = &runtimev1.LocalAssetSource{}
+		}
+		asset.Source.Repo = manifestRepo
+		asset.Source.Revision = "local"
+		svc.rewriteManagedLocalAssetSourceRepo(asset.GetLocalAssetId(), manifestPath)
 	}
 	return target
 }
@@ -68,7 +120,7 @@ func TestResolveManagedMediaImageProfileInjectsDynamicSlots(t *testing.T) {
 	svc.mu.Lock()
 	svc.assets[modelResp.GetLocalAssetId()].Status = runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE
 	svc.mu.Unlock()
-	writeManagedAssetEntryFixture(t, modelsRoot, modelResp, "main-model")
+	writeManagedAssetEntryFixture(t, svc, modelsRoot, modelResp, "main-model")
 
 	vaeRecord := &runtimev1.LocalAssetRecord{
 		LocalAssetId: "artifact_" + ulid.Make().String(),
@@ -84,7 +136,7 @@ func TestResolveManagedMediaImageProfileInjectsDynamicSlots(t *testing.T) {
 		Source: &runtimev1.LocalAssetSource{},
 	}
 	svc.assets[vaeRecord.GetLocalAssetId()] = vaeRecord
-	writeManagedAssetEntryFixture(t, modelsRoot, vaeRecord, "vae")
+	writeManagedAssetEntryFixture(t, svc, modelsRoot, vaeRecord, "vae")
 
 	llmRecord := &runtimev1.LocalAssetRecord{
 		LocalAssetId:   "artifact_" + ulid.Make().String(),
@@ -97,7 +149,7 @@ func TestResolveManagedMediaImageProfileInjectsDynamicSlots(t *testing.T) {
 		Source:         &runtimev1.LocalAssetSource{},
 	}
 	svc.assets[llmRecord.GetLocalAssetId()] = llmRecord
-	writeManagedAssetEntryFixture(t, modelsRoot, llmRecord, "llm")
+	writeManagedAssetEntryFixture(t, svc, modelsRoot, llmRecord, "llm")
 
 	uncondRecord := &runtimev1.LocalAssetRecord{
 		LocalAssetId: "artifact_" + ulid.Make().String(),
@@ -109,7 +161,7 @@ func TestResolveManagedMediaImageProfileInjectsDynamicSlots(t *testing.T) {
 		Source:       &runtimev1.LocalAssetSource{},
 	}
 	svc.assets[uncondRecord.GetLocalAssetId()] = uncondRecord
-	writeManagedAssetEntryFixture(t, modelsRoot, uncondRecord, "uncond")
+	writeManagedAssetEntryFixture(t, svc, modelsRoot, uncondRecord, "uncond")
 
 	alias, profile, forwarded, err := svc.ResolveManagedMediaImageProfile(context.Background(), "media/z_image_turbo", map[string]any{
 		"profile_entries": []*runtimev1.LocalProfileEntryDescriptor{
@@ -276,7 +328,7 @@ func TestResolveManagedMediaImageProfileAcceptsLocalAssetIDRequestIdentity(t *te
 	svc.mu.Lock()
 	svc.assets[modelResp.GetLocalAssetId()].Status = runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE
 	svc.mu.Unlock()
-	writeManagedAssetEntryFixture(t, modelsRoot, modelResp, "main-model")
+	writeManagedAssetEntryFixture(t, svc, modelsRoot, modelResp, "main-model")
 
 	if _, err := svc.ResolveCanonicalImageSelection(context.Background(), modelResp.GetLocalAssetId()); err != nil {
 		t.Fatalf("canonical image selection should accept local asset id: %v", err)
@@ -317,7 +369,7 @@ func TestResolveManagedMediaImageProfileDoesNotRequireEngineConfigDefaults(t *te
 	svc.mu.Lock()
 	svc.assets[modelResp.GetLocalAssetId()].Status = runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE
 	svc.mu.Unlock()
-	writeManagedAssetEntryFixture(t, modelsRoot, modelResp, "main-model")
+	writeManagedAssetEntryFixture(t, svc, modelsRoot, modelResp, "main-model")
 
 	alias, profile, _, err := svc.ResolveManagedMediaImageProfile(context.Background(), "media/z_image_turbo", map[string]any{
 		"profile_entries": []*runtimev1.LocalProfileEntryDescriptor{
@@ -397,7 +449,7 @@ func TestResolveManagedMediaImageProfileEnablesDiffusionFAOnAppleSilicon(t *test
 	svc.mu.Lock()
 	svc.assets[modelResp.GetLocalAssetId()].Status = runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE
 	svc.mu.Unlock()
-	writeManagedAssetEntryFixture(t, modelsRoot, modelResp, "main-model")
+	writeManagedAssetEntryFixture(t, svc, modelsRoot, modelResp, "main-model")
 
 	_, profile, _, err := svc.ResolveManagedMediaImageProfile(context.Background(), "media/z_image_turbo", map[string]any{
 		"profile_entries": []*runtimev1.LocalProfileEntryDescriptor{
@@ -444,7 +496,7 @@ func TestResolveManagedMediaImageProfilePreservesExplicitCFGScale(t *testing.T) 
 	svc.mu.Lock()
 	svc.assets[modelResp.GetLocalAssetId()].Status = runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE
 	svc.mu.Unlock()
-	writeManagedAssetEntryFixture(t, modelsRoot, modelResp, "main-model")
+	writeManagedAssetEntryFixture(t, svc, modelsRoot, modelResp, "main-model")
 
 	_, profile, _, err := svc.ResolveManagedMediaImageProfile(context.Background(), "media/z_image_turbo", map[string]any{
 		"profile_entries": []*runtimev1.LocalProfileEntryDescriptor{
@@ -489,7 +541,7 @@ func TestResolveManagedMediaImageProfileRetainsDiffusionModelWhenOverridesReplac
 	svc.mu.Lock()
 	svc.assets[modelResp.GetLocalAssetId()].Status = runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE
 	svc.mu.Unlock()
-	writeManagedAssetEntryFixture(t, modelsRoot, modelResp, "main-model")
+	writeManagedAssetEntryFixture(t, svc, modelsRoot, modelResp, "main-model")
 
 	_, profile, _, err := svc.ResolveManagedMediaImageProfile(context.Background(), "media/z_image_turbo", map[string]any{
 		"profile_entries": []*runtimev1.LocalProfileEntryDescriptor{
@@ -538,7 +590,7 @@ func TestResolveManagedMediaImageProfileAppliesEntryOverrides(t *testing.T) {
 	svc.mu.Lock()
 	svc.assets[modelResp.GetLocalAssetId()].Status = runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE
 	svc.mu.Unlock()
-	writeManagedAssetEntryFixture(t, modelsRoot, modelResp, "main-model")
+	writeManagedAssetEntryFixture(t, svc, modelsRoot, modelResp, "main-model")
 
 	defaultLLM := &runtimev1.LocalAssetRecord{
 		LocalAssetId:   "asset_" + ulid.Make().String(),
@@ -551,7 +603,7 @@ func TestResolveManagedMediaImageProfileAppliesEntryOverrides(t *testing.T) {
 		Source:         &runtimev1.LocalAssetSource{},
 	}
 	svc.assets[defaultLLM.GetLocalAssetId()] = defaultLLM
-	writeManagedAssetEntryFixture(t, modelsRoot, defaultLLM, "default-llm")
+	writeManagedAssetEntryFixture(t, svc, modelsRoot, defaultLLM, "default-llm")
 
 	overrideLLM := &runtimev1.LocalAssetRecord{
 		LocalAssetId:   "asset_" + ulid.Make().String(),
@@ -564,7 +616,7 @@ func TestResolveManagedMediaImageProfileAppliesEntryOverrides(t *testing.T) {
 		Source:         &runtimev1.LocalAssetSource{},
 	}
 	svc.assets[overrideLLM.GetLocalAssetId()] = overrideLLM
-	writeManagedAssetEntryFixture(t, modelsRoot, overrideLLM, "override-llm")
+	writeManagedAssetEntryFixture(t, svc, modelsRoot, overrideLLM, "override-llm")
 
 	_, profile, _, err := svc.ResolveManagedMediaImageProfile(context.Background(), "media/z_image_turbo", map[string]any{
 		"profile_entries": []*runtimev1.LocalProfileEntryDescriptor{
@@ -625,7 +677,7 @@ func TestResolveManagedMediaImageProfileAllowsSelectedUnhealthyMainOverride(t *t
 	svc.mu.Lock()
 	svc.assets[modelResp.GetLocalAssetId()].Status = runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY
 	svc.mu.Unlock()
-	writeManagedAssetEntryFixture(t, modelsRoot, modelResp, "main-model")
+	writeManagedAssetEntryFixture(t, svc, modelsRoot, modelResp, "main-model")
 
 	llmRecord := &runtimev1.LocalAssetRecord{
 		LocalAssetId:   "artifact_" + ulid.Make().String(),
@@ -638,7 +690,7 @@ func TestResolveManagedMediaImageProfileAllowsSelectedUnhealthyMainOverride(t *t
 		Source:         &runtimev1.LocalAssetSource{},
 	}
 	svc.assets[llmRecord.GetLocalAssetId()] = llmRecord
-	writeManagedAssetEntryFixture(t, modelsRoot, llmRecord, "llm")
+	writeManagedAssetEntryFixture(t, svc, modelsRoot, llmRecord, "llm")
 
 	_, profile, _, err := svc.ResolveManagedMediaImageProfile(context.Background(), "media/z_image_turbo", map[string]any{
 		"profile_entries": []*runtimev1.LocalProfileEntryDescriptor{

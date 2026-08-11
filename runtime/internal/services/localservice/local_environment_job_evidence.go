@@ -21,7 +21,7 @@ func (s *Service) promoteLocalEnvironmentDependencyJobReady(jobID string, readyS
 		// behind for a terminal job.
 		return job, true
 	}
-	record := s.upsertLocalEnvironmentSelectedSourceRecordLocked(pendingRecord)
+	record := s.mergeLocalEnvironmentSelectedSourceRecordLocked(pendingRecord)
 	job.State = strings.TrimSpace(readyState)
 	job.FailureDetail = ""
 	job.Retryable = false
@@ -96,7 +96,14 @@ func validateLocalEnvironmentSelectedSourceRecord(record localEnvironmentSelecte
 	if strings.TrimSpace(record.Version) == "" && len(record.Hashes) == 0 {
 		return errors.New("LOCAL_ENVIRONMENT_SELECTED_SOURCE_VERSION_OR_HASH_MISSING")
 	}
-	if len(normalizeStringSlice(record.SelectedConsumers)) == 0 {
+	if localEnvironmentPythonSelectedSourceFamily(record.DependencyFamily) {
+		if len(normalizeStringSlice(record.SelectedConsumers)) != 0 {
+			return errors.New("LOCAL_ENVIRONMENT_PYTHON_SELECTED_SOURCE_CONSUMER_SCOPE_FORBIDDEN")
+		}
+		if len(normalizeStringSlice(record.ActivationEnvDelta)) != 0 {
+			return errors.New("LOCAL_ENVIRONMENT_PYTHON_SELECTED_SOURCE_ACTIVATION_DELTA_FORBIDDEN")
+		}
+	} else if len(normalizeStringSlice(record.SelectedConsumers)) == 0 {
 		return errors.New("LOCAL_ENVIRONMENT_SELECTED_SOURCE_CONSUMER_SCOPE_MISSING")
 	}
 	if strings.TrimSpace(record.LastVerifiedAt) == "" {

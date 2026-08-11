@@ -15,7 +15,7 @@ func (d *Daemon) startEngine(ctx context.Context, kind engine.EngineKind, versio
 	case engine.EngineLlama:
 		return fmt.Errorf("llama lifecycle is owned by the capability execution Host")
 	case engine.EngineMedia:
-		cfg = engine.DefaultMediaConfig()
+		return fmt.Errorf("media lifecycle is owned by the exact LocalService asset dependency profile")
 	case engine.EngineSpeech:
 		cfg = engine.DefaultSpeechConfig()
 		cfg.ModelsPath = d.cfg.LocalModelsPath
@@ -29,16 +29,6 @@ func (d *Daemon) startEngine(ctx context.Context, kind engine.EngineKind, versio
 	}
 	if port > 0 {
 		cfg.Port = port
-	}
-	if kind == engine.EngineMedia {
-		cfg.MediaMode = engine.MediaModePipelineSupervised
-		if d.resolvedImageMatrix != nil {
-			selection := *d.resolvedImageMatrix
-			if resolvedMode, err := engine.MediaModeFromSelection(selection); err == nil {
-				cfg.MediaMode = resolvedMode
-				cfg.ImageSupervisedSelection = &selection
-			}
-		}
 	}
 	cfg, err := d.engineMgr.EnsureEngine(ctx, cfg)
 	if err != nil {

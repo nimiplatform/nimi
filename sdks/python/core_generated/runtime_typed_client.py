@@ -848,6 +848,17 @@ class AppendRuntimeAuditRequest:
     payload: Mapping[str, object] | None = None
 
 @dataclass(frozen=True)
+class ApplyLocalEnvironmentPlanRequest:
+    resolution: ResolveLocalEnvironmentPlanRequest | None = None
+    expected_plan_id: str | None = None
+    confirmed: bool | None = None
+
+@dataclass(frozen=True)
+class ApplyLocalEnvironmentPlanResponse:
+    plan: LocalEnvironmentPlan | None = None
+    jobs: tuple[LocalEnvironmentDependencyJob, ...] = field(default_factory=tuple)
+
+@dataclass(frozen=True)
 class ApplyProfileRequest:
     plan: LocalProfileResolutionPlan | None = None
 
@@ -3613,6 +3624,12 @@ class LocalEnvironmentPlan:
     state: str | None = None
     reason_code: str | None = None
     dependencies: tuple[LocalEnvironmentPlanDependency, ...] = field(default_factory=tuple)
+    required_dependency_families: tuple[str, ...] = field(default_factory=tuple)
+    aggregate_size_known: bool | None = None
+    aggregate_size_bytes: int | None = None
+    storage_categories: tuple[str, ...] = field(default_factory=tuple)
+    source_owners: tuple[str, ...] = field(default_factory=tuple)
+    no_system_mutation: bool | None = None
 
 @dataclass(frozen=True)
 class LocalEnvironmentPlanDependency:
@@ -7201,6 +7218,10 @@ class RuntimeTypedClient:
     async def append_runtime_audit(self, request: AppendRuntimeAuditRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> Ack:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeLocalService/AppendRuntimeAudit", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(Ack, raw)
+
+    async def apply_local_environment_plan(self, request: ApplyLocalEnvironmentPlanRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ApplyLocalEnvironmentPlanResponse:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeLocalService/ApplyLocalEnvironmentPlan", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(ApplyLocalEnvironmentPlanResponse, raw)
 
     async def apply_profile(self, request: ApplyProfileRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ApplyProfileResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeLocalService/ApplyProfile", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))

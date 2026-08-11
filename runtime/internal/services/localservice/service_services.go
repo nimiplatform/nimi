@@ -157,6 +157,9 @@ func (s *Service) StartLocalService(ctx context.Context, req *runtimev1.StartLoc
 	if privateExecutionHostEngine(current.GetEngine()) {
 		return nil, privateExecutionHostEngineError()
 	}
+	if privateManagedSpeechExecutionHost(current.GetEngine(), s.serviceRuntimeMode(current.GetServiceId())) {
+		return nil, privateExecutionHostEngineError()
+	}
 
 	profile := collectDeviceProfile()
 	warnings := startupCompatibilityWarnings(current.GetEngine(), profile)
@@ -253,6 +256,12 @@ func (s *Service) CheckLocalServiceHealth(ctx context.Context, req *runtimev1.Ch
 			continue
 		}
 		if privateExecutionHostEngine(service.GetEngine()) {
+			health := cloneServiceDescriptor(service)
+			health.Detail = "execution health is evaluated by exact local capability jobs"
+			healthRows = append(healthRows, health)
+			continue
+		}
+		if privateManagedSpeechExecutionHost(service.GetEngine(), s.serviceRuntimeMode(service.GetServiceId())) {
 			health := cloneServiceDescriptor(service)
 			health.Detail = "execution health is evaluated by exact local capability jobs"
 			healthRows = append(healthRows, health)

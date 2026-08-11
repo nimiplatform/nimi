@@ -400,6 +400,12 @@ export function projectNimiRuntimeLocalEnvironmentPlan(
     state: normalizeText(value.state),
     reasonCode: normalizeText(value.reasonCode) || undefined,
     dependencies: value.dependencies.map(projectNimiRuntimeLocalEnvironmentPlanDependency),
+    requiredDependencyFamilies: value.requiredDependencyFamilies.map(normalizeText).filter(Boolean),
+    aggregateSizeKnown: Boolean(value.aggregateSizeKnown),
+    aggregateSizeBytes: numberFromInt64(value.aggregateSizeBytes),
+    storageCategories: value.storageCategories.map(normalizeText).filter(Boolean),
+    sourceOwners: value.sourceOwners.map(normalizeText).filter(Boolean),
+    noSystemMutation: Boolean(value.noSystemMutation),
   };
 }
 

@@ -2,6 +2,7 @@ import {
   type ApplyProfileRequest,
   type LocalDeviceProfile as GeneratedLocalDeviceProfile,
   type LocalRecommendationFeedDescriptor as GeneratedLocalRecommendationFeedDescriptor,
+  type ResolveLocalEnvironmentPlanRequest,
   type ResolveProfileRequest,
   type RuntimeTypedCallOptions,
 } from '../core-generated/runtime-typed-client';
@@ -45,6 +46,7 @@ import type {
   NimiRuntimeLocalCatalogSearchInput,
   NimiRuntimeLocalAssetAdminClient,
   NimiRuntimeLocalAssetAdminClientOptions,
+  NimiRuntimeLocalEnvironmentPlanInput,
   NimiRuntimeLocalSnapshot,
   NimiRuntimeLocalVerifiedAssetDescriptor,
   NimiRuntimeLocalWriteOptions,
@@ -102,6 +104,21 @@ export {
   resolveNimiRuntimeLocalQwen3TTSEnvironmentPlan,
 } from './runtime-local-asset-admin-projections';
 export * from './runtime-local-asset-admin-types';
+
+function toGeneratedNimiRuntimeLocalEnvironmentPlanResolution(
+  input: NimiRuntimeLocalEnvironmentPlanInput,
+): ResolveLocalEnvironmentPlanRequest {
+  return {
+    packId: requireLocalText(input.packId, 'Runtime local environment pack id is required', 'provide_local_environment_pack_id'),
+    consumerScope: normalizeText(input.consumerScope),
+    runtimeDataRoot: normalizeText(input.runtimeDataRoot),
+    assetId: normalizeText(input.assetId),
+    localAssetId: normalizeText(input.localAssetId),
+    companionAssetId: normalizeText(input.companionAssetId),
+    parentAssetId: normalizeText(input.parentAssetId),
+    installLevel: normalizeText(input.installLevel),
+  };
+}
 
 export function createNimiRuntimeLocalAssetAdminClient(
   options: NimiRuntimeLocalAssetAdminClientOptions,
@@ -466,22 +483,37 @@ export function createNimiRuntimeLocalAssetAdminClient(
       return result;
     },
     async resolveEnvironmentPlan(input) {
-      const response = await resolveLocal().resolveLocalEnvironmentPlan({
-        packId: requireLocalText(input.packId, 'Runtime local environment pack id is required', 'provide_local_environment_pack_id'),
-        consumerScope: normalizeText(input.consumerScope),
-        runtimeDataRoot: normalizeText(input.runtimeDataRoot),
-        assetId: normalizeText(input.assetId),
-        localAssetId: normalizeText(input.localAssetId),
-        companionAssetId: normalizeText(input.companionAssetId),
-        parentAssetId: normalizeText(input.parentAssetId),
-        installLevel: normalizeText(input.installLevel),
-      }, defaultCallOptions);
+      const response = await resolveLocal().resolveLocalEnvironmentPlan(
+        toGeneratedNimiRuntimeLocalEnvironmentPlanResolution(input),
+        defaultCallOptions,
+      );
       return projectRequiredLocal(
         response.plan,
         projectNimiRuntimeLocalEnvironmentPlan,
         'Runtime local environment plan response is missing plan',
         'check_runtime_local_environment_plan_response',
       );
+    },
+    async applyEnvironmentPlan(input, writeOptions) {
+      assertNimiRuntimeLocalWriteAllowed('runtime_local_environment_plan_apply', writeOptions?.caller);
+      const response = await resolveLocal().applyLocalEnvironmentPlan({
+        resolution: toGeneratedNimiRuntimeLocalEnvironmentPlanResolution(input.resolution),
+        expectedPlanId: requireLocalText(
+          input.expectedPlanId,
+          'Runtime local environment expected plan id is required',
+          'refresh_local_environment_plan',
+        ),
+        confirmed: Boolean(input.confirmed),
+      }, callOptions(writeOptions));
+      return {
+        plan: projectRequiredLocal(
+          response.plan,
+          projectNimiRuntimeLocalEnvironmentPlan,
+          'Runtime local environment plan apply response is missing plan',
+          'check_runtime_local_environment_plan_apply_response',
+        ),
+        jobs: response.jobs.map(projectNimiRuntimeLocalEnvironmentDependencyJob),
+      };
     },
     async listEnvironmentDependencyJobs(input = {}) {
       const response = await resolveLocal().listLocalEnvironmentDependencyJobs({

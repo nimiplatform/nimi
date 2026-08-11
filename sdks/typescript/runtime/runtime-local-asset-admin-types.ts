@@ -394,6 +394,12 @@ export interface NimiRuntimeLocalEnvironmentPlan {
   readonly state: string;
   readonly reasonCode?: string;
   readonly dependencies: readonly NimiRuntimeLocalEnvironmentPlanDependency[];
+  readonly requiredDependencyFamilies: readonly string[];
+  readonly aggregateSizeKnown: boolean;
+  readonly aggregateSizeBytes: number;
+  readonly storageCategories: readonly string[];
+  readonly sourceOwners: readonly string[];
+  readonly noSystemMutation: boolean;
 }
 
 export interface NimiRuntimeLocalEnvironmentDependencyJob {
@@ -476,6 +482,17 @@ export interface NimiRuntimeLocalEnvironmentPlanInput {
   readonly companionAssetId?: string;
   readonly parentAssetId?: string;
   readonly installLevel?: string;
+}
+
+export interface NimiRuntimeLocalEnvironmentPlanApplyInput {
+  readonly resolution: NimiRuntimeLocalEnvironmentPlanInput;
+  readonly expectedPlanId: string;
+  readonly confirmed: boolean;
+}
+
+export interface NimiRuntimeLocalEnvironmentPlanApplyResult {
+  readonly plan: NimiRuntimeLocalEnvironmentPlan;
+  readonly jobs: readonly NimiRuntimeLocalEnvironmentDependencyJob[];
 }
 
 export interface NimiRuntimeLocalImageNativeAssetInput {
@@ -577,6 +594,7 @@ export type NimiRuntimeLocalAssetAdminRpc = Pick<
   | 'resolveProfile'
   | 'applyProfile'
   | 'resolveLocalEnvironmentPlan'
+  | 'applyLocalEnvironmentPlan'
   | 'listLocalEnvironmentDependencyJobs'
   | 'startLocalEnvironmentDependencyJob'
   | 'cancelLocalEnvironmentDependencyJob'
@@ -654,6 +672,8 @@ export interface NimiRuntimeLocalAssetAdminClient {
   applyProfile(plan: NimiRuntimeLocalProfileResolutionPlan, options?: NimiRuntimeLocalWriteOptions):
     Promise<NimiRuntimeLocalProfileApplyResult>;
   resolveEnvironmentPlan(input: NimiRuntimeLocalEnvironmentPlanInput): Promise<NimiRuntimeLocalEnvironmentPlan>;
+  applyEnvironmentPlan(input: NimiRuntimeLocalEnvironmentPlanApplyInput, options?: NimiRuntimeLocalWriteOptions):
+    Promise<NimiRuntimeLocalEnvironmentPlanApplyResult>;
   listEnvironmentDependencyJobs(input?: { readonly environmentKey?: string; readonly state?: string }):
     Promise<readonly NimiRuntimeLocalEnvironmentDependencyJob[]>;
   startEnvironmentDependencyJob(input: {

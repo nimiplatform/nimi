@@ -58,6 +58,48 @@ func TestNewManager(t *testing.T) {
 	}
 }
 
+func TestListEnginesDoesNotProjectLegacyMutableMediaRoot(t *testing.T) {
+	roots := testManagedRoots(t)
+	legacyRoot := engineVersionDir(roots.Environments, EngineMedia, DefaultMediaConfig().Version)
+	legacyPython := managedPythonPath(legacyRoot)
+	if err := os.MkdirAll(filepath.Dir(legacyPython), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(legacyPython, []byte("legacy python"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	mgr, err := NewManager(nil, roots, nil)
+	if err != nil {
+		t.Fatalf("NewManager: %v", err)
+	}
+	for _, info := range mgr.ListEngines() {
+		if info.Kind == EngineMedia && (info.BinaryPath != "" || info.BinarySizeBytes != 0) {
+			t.Fatalf("stopped media projected retired mutable root: %+v", info)
+		}
+	}
+}
+
+func TestListEnginesDoesNotProjectLegacyMutableSpeechRoot(t *testing.T) {
+	roots := testManagedRoots(t)
+	legacyRoot := engineVersionDir(roots.Environments, EngineSpeech, DefaultSpeechConfig().Version)
+	legacyPython := managedPythonPath(legacyRoot)
+	if err := os.MkdirAll(filepath.Dir(legacyPython), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(legacyPython, []byte("legacy python"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	mgr, err := NewManager(nil, roots, nil)
+	if err != nil {
+		t.Fatalf("NewManager: %v", err)
+	}
+	for _, info := range mgr.ListEngines() {
+		if info.Kind == EngineSpeech && (info.BinaryPath != "" || info.BinarySizeBytes != 0) {
+			t.Fatalf("stopped speech projected retired mutable root: %+v", info)
+		}
+	}
+}
+
 func TestEnsureEngineLlamaDoesNotMaterializeMissingDependency(t *testing.T) {
 	mgr, err := NewManager(nil, testManagedRoots(t), nil)
 	if err != nil {

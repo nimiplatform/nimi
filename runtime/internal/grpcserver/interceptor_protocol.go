@@ -253,6 +253,7 @@ func isWriteMethod(fullMethod string) bool {
 		"/nimi.runtime.v1.RuntimeLocalService/StartLocalAsset",
 		"/nimi.runtime.v1.RuntimeLocalService/StopLocalAsset",
 		"/nimi.runtime.v1.RuntimeLocalService/ApplyProfile",
+		"/nimi.runtime.v1.RuntimeLocalService/ApplyLocalEnvironmentPlan",
 		"/nimi.runtime.v1.RuntimeLocalService/InstallLocalService",
 		"/nimi.runtime.v1.RuntimeLocalService/StartLocalService",
 		"/nimi.runtime.v1.RuntimeLocalService/StopLocalService",

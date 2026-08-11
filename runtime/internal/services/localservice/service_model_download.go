@@ -95,7 +95,15 @@ func (s *Service) installManagedDownloadedModel(
 	if logicalModelID == "" {
 		logicalModelID = filepath.ToSlash(filepath.Join("nimi", slugifyLocalModelID(modelID)))
 	}
-	modelDir := runtimeManagedResolvedModelDir(modelsRoot, logicalModelID)
+	modelDir, err := resolveRuntimeManagedModelBundleDir(modelsRoot, logicalModelID)
+	if err != nil {
+		return nil, grpcerr.WrapWithReasonCode(
+			codes.InvalidArgument,
+			runtimev1.ReasonCode_AI_LOCAL_MANIFEST_INVALID,
+			err,
+			grpcerr.ReasonOptions{Message: "downloaded model storage identity is invalid"},
+		)
+	}
 	stagingDir, err := prepareManagedModelBundleStageDir(modelDir, "staging")
 	if err != nil {
 		return nil, err

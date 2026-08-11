@@ -163,91 +163,106 @@ func TestResolveLocalEnvironmentPlanInstallLevelResolvesSpeechModelAssetsOnePerS
 	}
 }
 
-func TestResolveLocalEnvironmentPlanSplitsSpeechPythonEnvironmentByConsumer(t *testing.T) {
+func TestResolveLocalEnvironmentPlanKeysSpeechPythonProfilesByCompleteInputs(t *testing.T) {
 	svc := newLocalEnvironmentTestService(t)
 	defer func() { svc.Close() }()
 
+	runtimeDataRoot := filepath.Join(t.TempDir(), "runtime-data")
 	plan := svc.resolveLocalEnvironmentPlan(localEnvironmentPlanRequest{
 		PackID:          "local-speech",
 		ConsumerScope:   "desktop.first-run",
 		HostProfile:     localEnvironmentAppleSilicon128GBProfile(),
-		RuntimeDataRoot: filepath.Join(t.TempDir(), "runtime-data"),
+		RuntimeDataRoot: runtimeDataRoot,
 		InstallLevel:    localEnvironmentInstallLevelMinimal,
 	})
 
 	uvDeps := planDependenciesByFamily(plan, localEnvironmentFamilyPythonUV)
 	if len(uvDeps) != 2 {
-		t.Fatalf("local-speech uv deps = %d, want split qwen3_asr + qwen3_tts deps: %+v", len(uvDeps), uvDeps)
+		t.Fatalf("local-speech uv projections = %d, want one per speech consumer: %+v", len(uvDeps), uvDeps)
+	}
+	if uvDeps[0].DependencyID != uvDeps[1].DependencyID || uvDeps[0].EnvironmentKey != uvDeps[1].EnvironmentKey {
+		t.Fatalf("speech consumers must share managed uv identity: %+v", uvDeps)
 	}
 	runtimeDeps := planDependenciesByFamily(plan, localEnvironmentFamilyPythonRuntime)
 	if len(runtimeDeps) != 2 {
-		t.Fatalf("local-speech python.runtime deps = %d, want split qwen3_asr + qwen3_tts deps: %+v", len(runtimeDeps), runtimeDeps)
+		t.Fatalf("local-speech python.runtime projections = %d, want one per speech consumer: %+v", len(runtimeDeps), runtimeDeps)
+	}
+	if runtimeDeps[0].DependencyID != runtimeDeps[1].DependencyID || runtimeDeps[0].EnvironmentKey != runtimeDeps[1].EnvironmentKey {
+		t.Fatalf("speech consumers must share exact managed Python runtime identity: %+v", runtimeDeps)
 	}
 	venvDeps := planDependenciesByFamily(plan, localEnvironmentFamilyPythonVenv)
 	if len(venvDeps) != 2 {
-		t.Fatalf("local-speech venv deps = %d, want split qwen3_asr + qwen3_tts deps: %+v", len(venvDeps), venvDeps)
+		t.Fatalf("local-speech venv profile projections = %d, want one per speech consumer: %+v", len(venvDeps), venvDeps)
 	}
 	packageDeps := planDependenciesByFamily(plan, localEnvironmentFamilyPythonPackageSet)
 	if len(packageDeps) != 2 {
-		t.Fatalf("local-speech package-set deps = %d, want split qwen3_asr + qwen3_tts deps: %+v", len(packageDeps), packageDeps)
+		t.Fatalf("local-speech package-set profile projections = %d, want one per speech consumer: %+v", len(packageDeps), packageDeps)
 	}
-	dependencyIDs := map[string]bool{}
-	consumerScopes := map[string]bool{}
-	for _, dep := range append(append(append(uvDeps, runtimeDeps...), venvDeps...), packageDeps...) {
-		dependencyIDs[dep.DependencyID] = true
-		consumerScopes[dep.ConsumerScope] = true
+	venvByConsumer := make(map[string]localEnvironmentPlanDependency, len(venvDeps))
+	for _, dep := range venvDeps {
+		venvByConsumer[dep.ConsumerScope] = dep
 	}
-	for _, want := range []string{
-		"uv",
-		"local-speech-qwen3-asr.python-runtime",
-		"local-speech-qwen3-tts.python-runtime",
-		"local-speech-qwen3-asr.venv",
-		"local-speech-qwen3-tts.venv",
-		"local-speech-qwen3-asr.package-set",
-		"local-speech-qwen3-tts.package-set",
-	} {
-		if !dependencyIDs[want] {
-			t.Fatalf("speech plan missing dependency %s in %v", want, dependencyIDs)
+	packageByConsumer := make(map[string]localEnvironmentPlanDependency, len(packageDeps))
+	for _, dep := range packageDeps {
+		packageByConsumer[dep.ConsumerScope] = dep
+		if !strings.HasPrefix(dep.DependencyID, "python-profile.") {
+			t.Fatalf("speech profile dependency id %q is not derived from the complete profile fingerprint", dep.DependencyID)
+		}
+		if strings.Contains(dep.DependencyID, "qwen3") || strings.Contains(dep.DependencyID, dep.ConsumerScope) {
+			t.Fatalf("speech profile dependency id contains consumer identity: %+v", dep)
 		}
 	}
 	for _, want := range []string{"speech.qwen3-asr.python", "speech.qwen3-tts.python"} {
-		if !consumerScopes[want] {
-			t.Fatalf("speech python deps missing consumer_scope %s in %v", want, consumerScopes)
+		venvDep, hasVenv := venvByConsumer[want]
+		packageDep, hasPackage := packageByConsumer[want]
+		if !hasVenv || !hasPackage {
+			t.Fatalf("speech profile projections missing consumer %s: venv=%v package=%v", want, venvByConsumer, packageByConsumer)
+		}
+		if venvDep.DependencyID != packageDep.DependencyID {
+			t.Fatalf("speech venv/package projections disagree on profile identity for %s: venv=%q package=%q", want, venvDep.DependencyID, packageDep.DependencyID)
 		}
 	}
-	runtimeKeys := map[string]string{}
-	for _, dep := range runtimeDeps {
-		if strings.TrimSpace(dep.EnvironmentKey) == "" {
-			t.Fatalf("speech python.runtime dependency has empty environment key: %+v", dep)
-		}
-		if previous, dup := runtimeKeys[dep.EnvironmentKey]; dup {
-			t.Fatalf("speech python.runtime deps collide on environment key %q for %s and %s", dep.EnvironmentKey, previous, dep.ConsumerScope)
-		}
-		runtimeKeys[dep.EnvironmentKey] = dep.ConsumerScope
+	if packageByConsumer["speech.qwen3-asr.python"].DependencyID == packageByConsumer["speech.qwen3-tts.python"].DependencyID {
+		t.Fatal("Qwen3 ASR and TTS have different exact locks and Driver bundles and must resolve isolated profiles")
 	}
 
 	asrPlan := svc.resolveLocalEnvironmentPlan(localEnvironmentPlanRequest{
 		PackID:          "local-speech",
 		ConsumerScope:   "speech.qwen3-asr.python",
 		HostProfile:     localEnvironmentAppleSilicon128GBProfile(),
-		RuntimeDataRoot: filepath.Join(t.TempDir(), "runtime-data"),
+		RuntimeDataRoot: runtimeDataRoot,
 		AssetID:         "qwen3-asr-0.6b-local",
 	})
 	asrPackageDeps := planDependenciesByFamily(asrPlan, localEnvironmentFamilyPythonPackageSet)
-	if len(asrPackageDeps) != 1 || asrPackageDeps[0].DependencyID != "local-speech-qwen3-asr.package-set" {
-		t.Fatalf("asr activation plan package deps = %+v, want only qwen3_asr package-set", asrPackageDeps)
+	if len(asrPackageDeps) != 1 || asrPackageDeps[0].DependencyID != packageByConsumer["speech.qwen3-asr.python"].DependencyID {
+		t.Fatalf("ASR activation plan profile = %+v, want first-run profile %q", asrPackageDeps, packageByConsumer["speech.qwen3-asr.python"].DependencyID)
 	}
 
 	transformersPlan := svc.resolveLocalEnvironmentPlan(localEnvironmentPlanRequest{
 		PackID:          "local-speech",
 		ConsumerScope:   "speech.qwen3-asr-transformers.python",
 		HostProfile:     localEnvironmentAppleSilicon128GBProfile(),
-		RuntimeDataRoot: filepath.Join(t.TempDir(), "runtime-data"),
+		RuntimeDataRoot: runtimeDataRoot,
 		AssetID:         "qwen3-asr-transformers-0.6b-local",
 	})
 	transformersPackageDeps := planDependenciesByFamily(transformersPlan, localEnvironmentFamilyPythonPackageSet)
-	if len(transformersPackageDeps) != 1 || transformersPackageDeps[0].DependencyID != "local-speech-qwen3-asr-transformers.package-set" {
-		t.Fatalf("Transformers ASR activation plan package deps = %+v, want only separate Transformers package-set", transformersPackageDeps)
+	if len(transformersPackageDeps) != 1 || transformersPackageDeps[0].DependencyID == asrPackageDeps[0].DependencyID {
+		t.Fatalf("Transformers ASR must resolve its own exact-lock profile: native=%+v transformers=%+v", asrPackageDeps, transformersPackageDeps)
+	}
+
+	volatileHostProfile := localEnvironmentAppleSilicon128GBProfile()
+	volatileHostProfile.Gpu.Model = "Apple M5 Ultra"
+	volatileHostProfile.TotalRamBytes = int64(256) << 30
+	volatilePlan := svc.resolveLocalEnvironmentPlan(localEnvironmentPlanRequest{
+		PackID:          "local-speech",
+		ConsumerScope:   "speech.qwen3-asr.python",
+		HostProfile:     volatileHostProfile,
+		RuntimeDataRoot: runtimeDataRoot,
+		AssetID:         "another-qwen3-asr-model",
+	})
+	volatilePackageDeps := planDependenciesByFamily(volatilePlan, localEnvironmentFamilyPythonPackageSet)
+	if len(volatilePackageDeps) != 1 || volatilePackageDeps[0].DependencyID != asrPackageDeps[0].DependencyID || volatilePackageDeps[0].EnvironmentKey != asrPackageDeps[0].EnvironmentKey {
+		t.Fatalf("model and host-profile labels changed profile identity: before=%+v after=%+v", asrPackageDeps, volatilePackageDeps)
 	}
 }
 

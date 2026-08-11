@@ -475,7 +475,7 @@ func TestStartSupervisedEnginesRegistersSpeechWithoutBootstrapping(t *testing.T)
 	}
 }
 
-func TestStartSupervisedEnginesExposesManagedMediaLoopbackOnSupportedHost(t *testing.T) {
+func TestStartSupervisedEnginesDefersManagedMediaToExactAssetProfileOnSupportedHost(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 	cfg := config.Config{
 		GRPCAddr:             "127.0.0.1:0",
@@ -515,13 +515,21 @@ func TestStartSupervisedEnginesExposesManagedMediaLoopbackOnSupportedHost(t *tes
 	}
 
 	daemon.startSupervisedEngines(context.Background())
-	if !slices.Equal(startCalls, []engine.EngineKind{engine.EngineMedia}) {
-		t.Fatalf("expected supported host to bootstrap media engine, got=%v", startCalls)
+	if len(startCalls) != 0 {
+		t.Fatalf("daemon startup must defer media to the exact asset dependency profile, got=%v", startCalls)
 	}
 	if svc := daemon.grpc.LocalService(); svc != nil {
-		if managedEndpoint := svc.ManagedMediaEndpoint(); managedEndpoint != "http://127.0.0.1:8321/v1" {
-			t.Fatalf("expected managed media endpoint to be exposed on supported host, got %q", managedEndpoint)
+		if managedEndpoint := svc.ManagedMediaEndpoint(); managedEndpoint != "" {
+			t.Fatalf("daemon startup must not publish an ambient media endpoint, got %q", managedEndpoint)
 		}
+	}
+}
+
+func TestStartEngineRejectsGenericMediaLifecycle(t *testing.T) {
+	daemon := &Daemon{}
+	err := daemon.startEngine(context.Background(), engine.EngineMedia, "0.1.0", 8321, "NIMI_RUNTIME_LOCAL_MEDIA_BASE_URL")
+	if err == nil || !strings.Contains(err.Error(), "exact LocalService asset dependency profile") {
+		t.Fatalf("generic daemon media lifecycle must fail closed, got %v", err)
 	}
 }
 

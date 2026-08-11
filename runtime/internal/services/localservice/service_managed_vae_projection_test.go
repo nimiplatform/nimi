@@ -22,6 +22,9 @@ func TestHealManagedImageVAEProjectionAlignsStaleZImageVAEFamily(t *testing.T) {
 	); err != nil {
 		t.Fatalf("write Z-Image VAE fixture: %v", err)
 	}
+	if err := os.WriteFile(filepath.Join(assetDir, localAssetManifestFileName), []byte(`{"asset_id":"local-import/z-image-ae","kind":"vae"}`), 0o600); err != nil {
+		t.Fatalf("write Z-Image VAE manifest: %v", err)
+	}
 
 	record := &runtimev1.LocalAssetRecord{
 		LocalAssetId: "local-z-image-ae",
@@ -56,6 +59,9 @@ func TestHealManagedImagePassiveProjectionAlignsStaleLoRAFamily(t *testing.T) {
 	entryName := "z-image-turbo-ink-lora.safetensors"
 	if err := os.WriteFile(filepath.Join(assetDir, entryName), []byte("lora"), 0o600); err != nil {
 		t.Fatalf("write LoRA fixture: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(assetDir, localAssetManifestFileName), []byte(`{"asset_id":"local-import/z-image-ink-lora","kind":"lora"}`), 0o600); err != nil {
+		t.Fatalf("write LoRA manifest: %v", err)
 	}
 
 	record := &runtimev1.LocalAssetRecord{

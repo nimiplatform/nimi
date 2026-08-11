@@ -1584,6 +1584,14 @@ RUNTIME_METHODS = [
     "response_type": "Ack"
   },
   {
+    "method_id": "/nimi.runtime.v1.RuntimeLocalService/ApplyLocalEnvironmentPlan",
+    "service": "RuntimeLocalService",
+    "method": "ApplyLocalEnvironmentPlan",
+    "kind": "unary",
+    "request_type": "ApplyLocalEnvironmentPlanRequest",
+    "response_type": "ApplyLocalEnvironmentPlanResponse"
+  },
+  {
     "method_id": "/nimi.runtime.v1.RuntimeLocalService/ApplyProfile",
     "service": "RuntimeLocalService",
     "method": "ApplyProfile",

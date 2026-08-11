@@ -304,11 +304,14 @@ func (s *Service) cleanupRemovedModelBundle(model *runtimev1.LocalAssetRecord) {
 	if strings.TrimSpace(modelsRoot) == "" {
 		return
 	}
-	logicalModelID := strings.Trim(strings.TrimSpace(model.GetLogicalModelId()), "/")
-	if logicalModelID == "" {
+	bundleDir, err := resolveRuntimeManagedBundleDir(modelsRoot, model)
+	if err != nil {
+		s.logger.Warn("skip model bundle cleanup: managed bundle path is invalid", "error", err)
 		return
 	}
-	bundleDir := filepath.Join(modelsRoot, "resolved", filepath.FromSlash(logicalModelID))
+	if s.hasActiveLocalAssetBundleReference(modelsRoot, bundleDir, model.GetLocalAssetId()) {
+		return
+	}
 	info, err := os.Stat(bundleDir)
 	if err != nil || !info.IsDir() {
 		return
@@ -321,13 +324,36 @@ func (s *Service) cleanupRemovedModelBundle(model *runtimev1.LocalAssetRecord) {
 	if err != nil {
 		return
 	}
-	if !strings.HasPrefix(bundleAbs, rootAbs+string(filepath.Separator)) {
+	resolvedRootAbs := filepath.Join(rootAbs, "resolved")
+	if !pathWithinBase(resolvedRootAbs, bundleAbs, false) {
 		s.logger.Warn("skip model bundle cleanup: path escapes models root", "bundle", bundleAbs, "root", rootAbs)
 		return
 	}
 	if err := os.RemoveAll(bundleDir); err != nil {
 		s.logger.Warn("cleanup removed model bundle failed", "path", bundleDir, "error", err)
 	}
+}
+
+func (s *Service) hasActiveLocalAssetBundleReference(modelsRoot string, bundleDir string, removedLocalAssetID string) bool {
+	s.mu.RLock()
+	candidates := make([]*runtimev1.LocalAssetRecord, 0, len(s.assets))
+	for _, candidate := range s.assets {
+		if candidate == nil ||
+			candidate.GetLocalAssetId() == removedLocalAssetID ||
+			candidate.GetStatus() == runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_REMOVED {
+			continue
+		}
+		candidates = append(candidates, cloneLocalAsset(candidate))
+	}
+	s.mu.RUnlock()
+
+	for _, candidate := range candidates {
+		candidateDir, err := resolveRuntimeManagedBundleDir(modelsRoot, candidate)
+		if err == nil && sameCanonicalDirectory(candidateDir, bundleDir) {
+			return true
+		}
+	}
+	return false
 }
 
 func (s *Service) CollectDeviceProfile(_ context.Context, req *runtimev1.CollectDeviceProfileRequest) (*runtimev1.CollectDeviceProfileResponse, error) {

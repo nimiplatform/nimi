@@ -220,12 +220,12 @@
     "localSpeechDependencyFailure": "本地语音 · {{capability}} · download_or_init_failed：{{detail}}",
     "localSpeechProgress": "{{percent}}%",
     "localSpeechSetup": "设置",
-    "localSpeechStart": "启动",
-    "localSpeechRepair": "修复",
-    "localSpeechRetry": "重试",
     "localSpeechCancel": "取消",
     "localSpeechConfirmTitle": "确认 Runtime 依赖设置",
-    "localSpeechConfirmMessage": "Runtime 将从 {{source}} 把 {{family}} 物化到 {{root}}。当前 Runtime 投影未报告下载大小。此操作不会修改用户或机器 PATH、系统 CUDA、全局 Python 或包管理器全局状态。",
+    "localSpeechConfirmMessage": "{{sourceOwner}} 将把全部必需依赖族（{{family}}）物化到 {{root}} 下的受管存储类别（{{storageCategory}}）。聚合大小：{{aggregateSize}}。{{mutationPolicy}}",
+    "localSpeechAggregateSizeUnknown": "未知",
+    "localSpeechNoSystemMutation": "系统修改：无。",
+    "localSpeechSystemMutationPolicyUnknown": "系统修改策略不可用；设置已阻止。",
     "localSpeechConfirm": "确认设置"
   },
   "overview": {

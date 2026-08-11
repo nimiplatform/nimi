@@ -12,7 +12,10 @@ import (
 )
 
 func TestVerifyPythonImportProbeUsesShortLaunchAlias(t *testing.T) {
-	pythonPath, _ := pythonWithProtectedModeDirectories(t)
+	pythonPath, err := exec.LookPath("python")
+	if err != nil {
+		t.Skip("Python is not available for the managed launch integration probe")
+	}
 	venvRoot := filepath.Join(t.TempDir(), "managed python launch path with spaces")
 	for len(managedPythonPath(venvRoot)) < 150 {
 		venvRoot = filepath.Join(venvRoot, "managed python launch segment")

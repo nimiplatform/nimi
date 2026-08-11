@@ -48,12 +48,23 @@ func (s *Service) ListLocalEnvironmentSelectedSources(_ context.Context, req *ru
 		if familyFilter != "" && source.DependencyFamily != familyFilter {
 			continue
 		}
-		if consumerFilter != "" && !stringSliceContains(source.SelectedConsumers, consumerFilter) {
-			continue
-		}
-		sources = append(sources, source)
+		sources = append(sources, canonicalLocalEnvironmentPythonSelectedSourceRecord(source))
 	}
 	s.mu.RUnlock()
+	if consumerFilter != "" {
+		filtered := sources[:0]
+		for _, source := range sources {
+			if localEnvironmentPythonSelectedSourceFamily(source.DependencyFamily) {
+				if _, ok, _ := s.localEnvironmentPythonSelectedSourceConsumptionJob(source, consumerFilter); !ok {
+					continue
+				}
+			} else if !stringSliceContains(source.SelectedConsumers, consumerFilter) {
+				continue
+			}
+			filtered = append(filtered, source)
+		}
+		sources = filtered
+	}
 	sort.Slice(sources, func(i, j int) bool {
 		return sources[i].EnvironmentKey < sources[j].EnvironmentKey
 	})
@@ -138,17 +149,23 @@ func (s *Service) ResolveLocalEnvironmentActivationGate(_ context.Context, req *
 
 func localEnvironmentPlanToProto(plan localEnvironmentPlan) *runtimev1.LocalEnvironmentPlan {
 	out := &runtimev1.LocalEnvironmentPlan{
-		PlanId:          plan.PlanID,
-		PackId:          plan.PackID,
-		ProductLabel:    plan.ProductLabel,
-		HostProfileId:   plan.HostProfileID,
-		PlatformTuple:   plan.PlatformTuple,
-		RuntimeDataRoot: plan.RuntimeDataRoot,
-		ConsumerScope:   plan.ConsumerScope,
-		CloudOnlyImpact: plan.CloudOnlyImpact,
-		State:           plan.State,
-		ReasonCode:      plan.ReasonCode,
-		Dependencies:    make([]*runtimev1.LocalEnvironmentPlanDependency, 0, len(plan.Dependencies)),
+		PlanId:                     plan.PlanID,
+		PackId:                     plan.PackID,
+		ProductLabel:               plan.ProductLabel,
+		HostProfileId:              plan.HostProfileID,
+		PlatformTuple:              plan.PlatformTuple,
+		RuntimeDataRoot:            plan.RuntimeDataRoot,
+		ConsumerScope:              plan.ConsumerScope,
+		CloudOnlyImpact:            plan.CloudOnlyImpact,
+		State:                      plan.State,
+		ReasonCode:                 plan.ReasonCode,
+		Dependencies:               make([]*runtimev1.LocalEnvironmentPlanDependency, 0, len(plan.Dependencies)),
+		RequiredDependencyFamilies: append([]string(nil), plan.RequiredDependencyFamilies...),
+		AggregateSizeKnown:         plan.AggregateSizeKnown,
+		AggregateSizeBytes:         plan.AggregateSizeBytes,
+		StorageCategories:          append([]string(nil), plan.StorageCategories...),
+		SourceOwners:               append([]string(nil), plan.SourceOwners...),
+		NoSystemMutation:           plan.NoSystemMutation,
 	}
 	for _, dep := range plan.Dependencies {
 		out.Dependencies = append(out.Dependencies, localEnvironmentPlanDependencyToProto(dep))

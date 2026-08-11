@@ -91,22 +91,18 @@ func TestEngineRPCsRequireEngineName(t *testing.T) {
 
 // mockEngineManager implements EngineManager for testing with configurable errors.
 type mockEngineManager struct {
-	ensureErr                         error
-	engineBinaryDependencyStatus      *engine.EngineBinaryDependencyStatus
-	uvToolDependencyStatus            *engine.UVToolDependencyStatus
-	pythonRuntimeStatus               *engine.PythonRuntimeDependencyStatus
-	pythonVenvStatus                  *engine.PythonVenvDependencyStatus
-	pythonPackageSetStatus            *engine.PythonPackageSetDependencyStatus
-	pythonTorchWheelStatus            *engine.PythonTorchWheelDependencyStatus
-	pythonRuntimeDependencyRelease    <-chan struct{}
-	pythonPackageSetDependencyRelease <-chan struct{}
-	pythonTorchWheelDependencyRelease <-chan struct{}
-	ensureManagedImageBackendErr      error
-	managedImageBackendStatus         *engine.ManagedImageBackendDependencyStatus
-	startErr                          error
-	stopErr                           error
-	statusErr                         error
-	status                            *EngineInfo
+	ensureErr                      error
+	engineBinaryDependencyStatus   *engine.EngineBinaryDependencyStatus
+	uvToolDependencyStatus         *engine.UVToolDependencyStatus
+	pythonRuntimeStatus            *engine.PythonRuntimeDependencyStatus
+	pythonDependencyProfileStatus  *engine.PythonDependencyProfileStatus
+	pythonRuntimeDependencyRelease <-chan struct{}
+	ensureManagedImageBackendErr   error
+	managedImageBackendStatus      *engine.ManagedImageBackendDependencyStatus
+	startErr                       error
+	stopErr                        error
+	statusErr                      error
+	status                         *EngineInfo
 
 	startCalls                             int
 	startConfigCalls                       int
@@ -130,6 +126,7 @@ type mockEngineManager struct {
 func (m *mockEngineManager) ListEngines() []EngineInfo {
 	return []EngineInfo{
 		{Engine: "llama", Version: engine.DefaultLlamaConfig().Version, Status: "healthy", Port: 1234, Endpoint: "http://127.0.0.1:1234"},
+		{Engine: "speech", Version: engine.DefaultSpeechConfig().Version, Status: "healthy", Port: 8330, Endpoint: "http://127.0.0.1:8330"},
 	}
 }
 
@@ -192,58 +189,42 @@ func (m *mockEngineManager) EnsurePythonRuntimeDependency(_ context.Context, uvP
 	}, m.ensureErr
 }
 
-func (m *mockEngineManager) EnsurePythonVenvDependency(_ context.Context, uvPath string, pythonRuntimePath string, engineName string, _ string) (engine.PythonVenvDependencyStatus, error) {
-	if m.pythonVenvStatus != nil {
-		return *m.pythonVenvStatus, m.ensureErr
+func (m *mockEngineManager) EnsurePythonDependencyProfile(_ context.Context, uvPath string, _ string, consumer string, platformTuple string, acceleratorPlane string) (engine.PythonDependencyProfileStatus, error) {
+	if m.pythonDependencyProfileStatus != nil {
+		return *m.pythonDependencyProfileStatus, m.ensureErr
 	}
-	return engine.PythonVenvDependencyStatus{
-		VenvRoot:        "venv-root",
-		InterpreterPath: "venv-python.exe",
-		PythonRuntime:   pythonRuntimePath,
-		UVExecutable:    uvPath,
-		Detail:          "test python venv ready for " + engineName,
-	}, m.ensureErr
-}
-
-func (m *mockEngineManager) EnsurePythonPackageSetDependency(_ context.Context, uvPath string, venvRoot string, consumer string) (engine.PythonPackageSetDependencyStatus, error) {
-	if m.pythonPackageSetDependencyRelease != nil {
-		<-m.pythonPackageSetDependencyRelease
+	identity, err := engine.ResolvePythonDependencyProfileIdentity(consumer, platformTuple, acceleratorPlane)
+	if err != nil {
+		return engine.PythonDependencyProfileStatus{}, err
 	}
-	if m.pythonPackageSetStatus != nil {
-		return *m.pythonPackageSetStatus, m.ensureErr
+	root := "profile-root"
+	driverCommands := map[string]string{}
+	driverScripts := []string{}
+	switch consumer {
+	case "speech.qwen3-tts.python":
+		driverCommands["NIMI_RUNTIME_SPEECH_QWEN3_TTS_CMD"] = "python " + engine.SpeechQwen3TTSDriverPath(root)
+		driverScripts = append(driverScripts, engine.SpeechQwen3TTSDriverPath(root))
+	case "speech.qwen3-asr.python":
+		driverCommands["NIMI_RUNTIME_SPEECH_QWEN3_ASR_CMD"] = "python " + engine.SpeechQwen3ASRDriverPath(root)
+		driverScripts = append(driverScripts, engine.SpeechQwen3ASRDriverPath(root))
+	case "speech.qwen3-asr-transformers.python":
+		driverCommands["NIMI_RUNTIME_SPEECH_QWEN3_ASR_TRANSFORMERS_CMD"] = "python " + engine.SpeechQwen3ASRTransformersDriverPath(root)
+		driverScripts = append(driverScripts, engine.SpeechQwen3ASRTransformersDriverPath(root))
 	}
-	return engine.PythonPackageSetDependencyStatus{
-		PackageSetID:           "test-python-package-set",
-		LockHash:               "lock123",
-		VenvRoot:               venvRoot,
-		InterpreterPath:        "venv-python.exe",
+	return engine.PythonDependencyProfileStatus{
+		Identity:               identity,
+		ProfileRoot:            root,
+		InterpreterPath:        "profile-python.exe",
+		PackageCacheRoot:       "python-package-cache",
 		UVExecutable:           uvPath,
-		Packages:               []string{"fastapi==0.121.1"},
-		InstalledDistributions: []string{"fastapi==0.121.1"},
-		ImportProbes:           []string{"fastapi"},
-		Detail:                 "test python package set ready for " + consumer,
-	}, m.ensureErr
-}
-
-func (m *mockEngineManager) EnsurePythonTorchWheelDependency(_ context.Context, uvPath string, venvRoot string, consumer string) (engine.PythonTorchWheelDependencyStatus, error) {
-	if m.pythonTorchWheelDependencyRelease != nil {
-		<-m.pythonTorchWheelDependencyRelease
-	}
-	if m.pythonTorchWheelStatus != nil {
-		return *m.pythonTorchWheelStatus, m.ensureErr
-	}
-	return engine.PythonTorchWheelDependencyStatus{
-		TorchVersion:     "2.7.1+cu126",
-		TorchvisionSpec:  "torchvision==0.22.1",
-		AcceleratorPlane: "cuda",
-		CUDAABI:          "cu126",
-		WheelIndex:       "https://download.pytorch.org/whl/cu126",
-		WheelLockHash:    "torchlock123",
-		VenvRoot:         venvRoot,
-		InterpreterPath:  "venv-python.exe",
-		UVExecutable:     uvPath,
-		ImportProbes:     []string{"torch", "torchvision"},
-		Detail:           "test torch wheel ready for " + consumer,
+		InstalledDistributions: []string{"torch==" + identity.TorchVersion},
+		ImportProbes:           []string{"torch"},
+		DriverCommands:         driverCommands,
+		DriverScripts:          driverScripts,
+		ObservedPythonVersion:  identity.PythonVersion,
+		ObservedTorchVersion:   identity.TorchVersion,
+		ObservedCUDAABI:        identity.CUDAABI,
+		Detail:                 "test immutable Python dependency profile ready",
 	}, m.ensureErr
 }
 
@@ -437,26 +418,31 @@ func TestEngineRPCGetEngineStatusNotFound(t *testing.T) {
 	}
 }
 
-func TestEngineRPCStartSpeechEnginePreflightBlockedUsesSpeechReason(t *testing.T) {
+func TestEngineRPCsKeepManagedSpeechHostPrivate(t *testing.T) {
 	svc := newTestService(t)
-	svc.SetEngineManager(&mockEngineManager{
-		startErr: fmt.Errorf("speech-backed supervised mode is unavailable on this host; configure an attached endpoint instead"),
-	})
-
-	_, err := svc.StartEngine(context.Background(), &runtimev1.StartEngineRequest{Engine: "speech"})
-	assertGRPCCode(t, err, "StartEngine(speech_preflight_blocked)", codes.FailedPrecondition)
-	assertGRPCReasonCode(t, err, "StartEngine(speech_preflight_blocked)", runtimev1.ReasonCode_AI_LOCAL_SPEECH_PREFLIGHT_BLOCKED)
-}
-
-func TestEngineRPCStartSpeechEngineHostFailureUsesSpeechReason(t *testing.T) {
-	svc := newTestService(t)
-	svc.SetEngineManager(&mockEngineManager{
-		startErr: fmt.Errorf("probe request failed: connect: connection refused"),
-	})
-
-	_, err := svc.StartEngine(context.Background(), &runtimev1.StartEngineRequest{Engine: "speech"})
-	assertGRPCCode(t, err, "StartEngine(speech_host_failure)", codes.FailedPrecondition)
-	assertGRPCReasonCode(t, err, "StartEngine(speech_host_failure)", runtimev1.ReasonCode_AI_LOCAL_SPEECH_HOST_INIT_FAILED)
+	mgr := &mockEngineManager{}
+	svc.SetEngineManager(mgr)
+	ctx := context.Background()
+	for operation, err := range map[string]error{
+		"start": func() error {
+			_, err := svc.StartEngine(ctx, &runtimev1.StartEngineRequest{Engine: "speech"})
+			return err
+		}(),
+		"stop": func() error {
+			_, err := svc.StopEngine(ctx, &runtimev1.StopEngineRequest{Engine: "speech"})
+			return err
+		}(),
+		"status": func() error {
+			_, err := svc.GetEngineStatus(ctx, &runtimev1.GetEngineStatusRequest{Engine: "speech"})
+			return err
+		}(),
+	} {
+		assertGRPCCode(t, err, operation, codes.FailedPrecondition)
+		assertGRPCReasonCode(t, err, operation, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
+	}
+	if mgr.startCalls != 0 || mgr.stopCalls != 0 {
+		t.Fatalf("private speech RPC touched Host manager: start=%d stop=%d", mgr.startCalls, mgr.stopCalls)
+	}
 }
 
 func TestLocalManagementRPCsReturnStructuredModelIDErrors(t *testing.T) {

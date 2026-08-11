@@ -80,6 +80,7 @@ type localEnvironmentDependencyJobResult struct {
 	ActivationEnvDelta      []string
 	AuditReasonCode         string
 	FailureDetail           string
+	FailureKind             localEnvironmentDependencyJobFailureKind
 }
 
 // localEnvironmentDependencyJobProgressReporter lets an executor publish a
@@ -217,24 +218,38 @@ func (s *Service) runLocalEnvironmentDependencyJob(ctx context.Context, jobID st
 			cancelled, _ := s.transitionLocalEnvironmentDependencyJob(jobID, localEnvironmentStateCancelled, err.Error(), true)
 			return cancelled, err
 		}
-		failed, _ := s.transitionLocalEnvironmentDependencyJob(jobID, localEnvironmentStateFailed, err.Error(), true)
+		detail := err.Error()
+		failureKind := result.FailureKind
+		if failureKind == localEnvironmentDependencyJobFailureUnspecified {
+			failureKind = localEnvironmentDependencyJobFailureKindFromError(err)
+		}
+		failed, _ := s.transitionLocalEnvironmentDependencyJob(jobID, localEnvironmentStateFailed, detail, failureKind.retryable(), failureKind.reasonCode())
 		return failed, err
 	}
 
 	resultState := strings.TrimSpace(result.State)
 	switch resultState {
 	case localEnvironmentStateUnsupported:
-		unsupported, _ := s.transitionLocalEnvironmentDependencyJob(jobID, localEnvironmentStateUnsupported, localEnvironmentDependencyJobResultDetail(result), false)
+		unsupported, _ := s.transitionLocalEnvironmentDependencyJob(jobID, localEnvironmentStateUnsupported, localEnvironmentDependencyJobResultDetail(result), false, result.AuditReasonCode)
 		return unsupported, nil
 	case localEnvironmentStateRepairRequired:
-		repairRequired, _ := s.transitionLocalEnvironmentDependencyJob(jobID, localEnvironmentStateRepairRequired, localEnvironmentDependencyJobResultDetail(result), true)
+		repairRequired, _ := s.transitionLocalEnvironmentDependencyJob(jobID, localEnvironmentStateRepairRequired, localEnvironmentDependencyJobResultDetail(result), false, result.AuditReasonCode)
 		return repairRequired, nil
 	case localEnvironmentStateFailed:
-		failed, _ := s.transitionLocalEnvironmentDependencyJob(jobID, localEnvironmentStateFailed, localEnvironmentDependencyJobResultDetail(result), true)
+		detail := localEnvironmentDependencyJobResultDetail(result)
+		reasonCode := strings.TrimSpace(result.AuditReasonCode)
+		if result.FailureKind.retryable() {
+			reasonCode = result.FailureKind.reasonCode()
+		} else if reasonCode == "LOCAL_ENVIRONMENT_DEPENDENCY_JOB_INTERRUPTED" {
+			// An interrupted disposition requires the typed execution-only
+			// failure kind; a diagnostic/audit string cannot grant retry.
+			reasonCode = ""
+		}
+		failed, _ := s.transitionLocalEnvironmentDependencyJob(jobID, localEnvironmentStateFailed, detail, result.FailureKind.retryable(), reasonCode)
 		return failed, nil
 	case localEnvironmentStateReadySystem, localEnvironmentStateReadyManaged:
 	default:
-		failed, _ := s.transitionLocalEnvironmentDependencyJob(jobID, localEnvironmentStateFailed, "LOCAL_ENVIRONMENT_DEPENDENCY_VERIFICATION_INCOMPLETE", true)
+		failed, _ := s.transitionLocalEnvironmentDependencyJob(jobID, localEnvironmentStateFailed, "LOCAL_ENVIRONMENT_DEPENDENCY_VERIFICATION_INCOMPLETE", false)
 		return failed, nil
 	}
 
@@ -259,11 +274,12 @@ func (s *Service) runLocalEnvironmentDependencyJob(ctx context.Context, jobID st
 		result.VerificationEvidenceRef = localEnvironmentVerificationEvidenceRef(job, result)
 	}
 	if err := validateLocalEnvironmentDependencyJobReadyEvidence(job, result); err != nil {
-		failed, _ := s.transitionLocalEnvironmentDependencyJob(jobID, localEnvironmentStateFailed, err.Error(), true)
+		failed, _ := s.transitionLocalEnvironmentDependencyJob(jobID, localEnvironmentStateFailed, err.Error(), false)
 		return failed, nil
 	}
-	if !stringSliceContains(result.SelectedConsumers, job.ConsumerScope) {
-		failed, _ := s.transitionLocalEnvironmentDependencyJob(jobID, localEnvironmentStateFailed, "LOCAL_ENVIRONMENT_SELECTED_SOURCE_CONSUMER_SCOPE_MISMATCH", true)
+	if !localEnvironmentPythonSelectedSourceFamily(job.DependencyFamily) &&
+		!stringSliceContains(result.SelectedConsumers, job.ConsumerScope) {
+		failed, _ := s.transitionLocalEnvironmentDependencyJob(jobID, localEnvironmentStateFailed, "LOCAL_ENVIRONMENT_SELECTED_SOURCE_CONSUMER_SCOPE_MISMATCH", false)
 		return failed, nil
 	}
 	// Promote the job to its terminal ready state, write the selected-source
@@ -404,7 +420,9 @@ func (s *Service) markLocalEnvironmentDependencyRepairRequired(environmentKey st
 		if strings.TrimSpace(dependencyID) != "" && strings.TrimSpace(candidate.DependencyID) != strings.TrimSpace(dependencyID) {
 			continue
 		}
-		if strings.TrimSpace(consumerScope) != "" && !stringSliceContains(candidate.SelectedConsumers, strings.TrimSpace(consumerScope)) {
+		if strings.TrimSpace(consumerScope) != "" &&
+			!localEnvironmentPythonSelectedSourceFamily(candidate.DependencyFamily) &&
+			!stringSliceContains(candidate.SelectedConsumers, strings.TrimSpace(consumerScope)) {
 			continue
 		}
 		if recordKey != "" {
@@ -424,7 +442,7 @@ func (s *Service) markLocalEnvironmentDependencyRepairRequired(environmentKey st
 	return record, true
 }
 
-func (s *Service) transitionLocalEnvironmentDependencyJob(jobID string, state string, detail string, retryable bool) (localEnvironmentDependencyJobState, bool) {
+func (s *Service) transitionLocalEnvironmentDependencyJob(jobID string, state string, detail string, retryable bool, reasonCodes ...string) (localEnvironmentDependencyJobState, bool) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	job, ok := s.localEnvironmentDependencyJobs[strings.TrimSpace(jobID)]
@@ -438,7 +456,7 @@ func (s *Service) transitionLocalEnvironmentDependencyJob(jobID string, state st
 	job.State = next
 	job.FailureDetail = strings.TrimSpace(detail)
 	job.Retryable = retryable
-	job.ReasonCode, job.RecoveryDisposition = localEnvironmentDependencyJobRecoveryProjection(job, next, detail, retryable)
+	job.ReasonCode, job.RecoveryDisposition = localEnvironmentDependencyJobRecoveryProjection(job, next, detail, retryable, reasonCodes...)
 	// The K-RPC-025 download-progress projection is meaningful only while the
 	// job is actively transferring bytes. Any transition out of a transferring
 	// state (to installing, a terminal state, or repair_required) clears the
@@ -457,13 +475,18 @@ func (s *Service) transitionLocalEnvironmentDependencyJob(jobID string, state st
 	return job, true
 }
 
-func localEnvironmentDependencyJobRecoveryProjection(job localEnvironmentDependencyJobState, state string, detail string, retryable bool) (string, string) {
+func localEnvironmentDependencyJobRecoveryProjection(job localEnvironmentDependencyJobState, state string, detail string, retryable bool, reasonCodes ...string) (string, string) {
 	next := strings.TrimSpace(state)
-	normalizedDetail := strings.TrimSpace(detail)
-	reason := localEnvironmentDependencyJobReasonCode(next, normalizedDetail)
+	reason := ""
+	if len(reasonCodes) > 0 {
+		reason = strings.TrimSpace(reasonCodes[0])
+	}
+	if reason == "" {
+		reason = localEnvironmentDependencyJobReasonCode(next)
+	}
 	switch next {
 	case localEnvironmentStateFailed:
-		if retryable && localEnvironmentDependencyJobAutoRecoverable(job.DependencyFamily, normalizedDetail, reason) {
+		if retryable && localEnvironmentDependencyJobAutoRecoverable(reason) {
 			return reason, localEnvironmentJobRecoveryAutoRetryTransient
 		}
 		if retryable {
@@ -484,74 +507,23 @@ func localEnvironmentDependencyJobRecoveryProjection(job localEnvironmentDepende
 	}
 }
 
-func localEnvironmentDependencyJobReasonCode(state string, detail string) string {
-	trimmed := strings.TrimSpace(detail)
-	if strings.HasPrefix(trimmed, "LOCAL_ENVIRONMENT_") && !strings.ContainsAny(trimmed, " \t\n\r:=") {
-		return trimmed
-	}
+func localEnvironmentDependencyJobReasonCode(state string) string {
 	switch strings.TrimSpace(state) {
 	case localEnvironmentStateCancelled:
 		return "LOCAL_ENVIRONMENT_DEPENDENCY_JOB_CANCELLED"
 	case localEnvironmentStateRepairRequired:
-		if trimmed != "" {
-			return trimmed
-		}
 		return "LOCAL_ENVIRONMENT_DEPENDENCY_REPAIR_REQUIRED"
 	case localEnvironmentStateUnsupported:
-		if trimmed != "" {
-			return trimmed
-		}
 		return "LOCAL_ENVIRONMENT_DEPENDENCY_UNSUPPORTED"
 	case localEnvironmentStateFailed:
-		if localEnvironmentDependencyJobInterruptedDetail(trimmed) {
-			return "LOCAL_ENVIRONMENT_DEPENDENCY_JOB_INTERRUPTED"
-		}
 		return "LOCAL_ENVIRONMENT_DEPENDENCY_JOB_FAILED"
 	default:
 		return ""
 	}
 }
 
-func localEnvironmentDependencyJobAutoRecoverable(family string, detail string, reasonCode string) bool {
-	if strings.TrimSpace(reasonCode) == "LOCAL_ENVIRONMENT_DEPENDENCY_JOB_INTERRUPTED" {
-		return true
-	}
-	normalizedFamily := strings.ToLower(strings.TrimSpace(family))
-	normalizedDetail := strings.ToLower(strings.TrimSpace(detail))
-	if normalizedDetail == "" {
-		return false
-	}
-	interrupted := localEnvironmentDependencyJobInterruptedDetail(normalizedDetail)
-	switch normalizedFamily {
-	case localEnvironmentFamilyModelAsset, localEnvironmentFamilyModelCompanion:
-		return interrupted
-	case localEnvironmentFamilyPythonRuntime,
-		localEnvironmentFamilyPythonVenv,
-		localEnvironmentFamilyPythonPackageSet,
-		localEnvironmentFamilyPythonTorchWheel:
-		return interrupted ||
-			strings.Contains(normalizedDetail, "no virtual environment or system python installation found") ||
-			strings.Contains(normalizedDetail, "system cannot find the path specified") ||
-			strings.Contains(normalizedDetail, "cannot find the path specified") ||
-			strings.Contains(normalizedDetail, "no such file or directory") ||
-			strings.Contains(normalizedDetail, "waiting for lock on uv cache")
-	default:
-		return false
-	}
-}
-
-func localEnvironmentDependencyJobInterruptedDetail(detail string) bool {
-	normalized := strings.ToLower(strings.TrimSpace(detail))
-	return normalized == "local_environment_dependency_job_interrupted" ||
-		strings.Contains(normalized, "local_environment_dependency_job_interrupted") ||
-		strings.Contains(normalized, "unexpected eof") ||
-		strings.Contains(normalized, "client.timeout") ||
-		strings.Contains(normalized, "context deadline exceeded") ||
-		strings.Contains(normalized, "connection reset") ||
-		strings.Contains(normalized, "connection refused") ||
-		strings.Contains(normalized, "broken pipe") ||
-		strings.Contains(normalized, "tls handshake timeout") ||
-		strings.Contains(normalized, "timeout while reading body")
+func localEnvironmentDependencyJobAutoRecoverable(reasonCode string) bool {
+	return strings.TrimSpace(reasonCode) == "LOCAL_ENVIRONMENT_DEPENDENCY_JOB_INTERRUPTED"
 }
 
 // localEnvironmentDependencyJobTransferring reports whether a job state is one

@@ -201,6 +201,7 @@ const RUNTIME_RPC_AUTH_POSTURES: Readonly<Record<string, RuntimeRpcAuthPosture>>
   "/nimi.runtime.v1.RuntimeLocalService/AdmitProductControlReadyForUse": "protected_origin_required",
   "/nimi.runtime.v1.RuntimeLocalService/AppendInferenceAudit": "anonymous_read",
   "/nimi.runtime.v1.RuntimeLocalService/AppendRuntimeAudit": "anonymous_read",
+  "/nimi.runtime.v1.RuntimeLocalService/ApplyLocalEnvironmentPlan": "protected_origin_required",
   "/nimi.runtime.v1.RuntimeLocalService/ApplyProfile": "anonymous_read",
   "/nimi.runtime.v1.RuntimeLocalService/BindLocalCapabilityRequirement": "protected_origin_required",
   "/nimi.runtime.v1.RuntimeLocalService/CancelLocalEnvironmentDependencyJob": "protected_origin_required",

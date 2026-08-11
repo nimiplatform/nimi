@@ -25,6 +25,175 @@ func upsertReadyPythonPrerequisiteForTest(t *testing.T, svc *Service, record loc
 	return svc.upsertLocalEnvironmentSelectedSourceRecord(record)
 }
 
+func currentPythonDependencyProfileIdentityForTest(t *testing.T, consumer string) engine.PythonDependencyProfileIdentity {
+	t.Helper()
+	host := localEnvironmentHostProfileFromDeviceProfile(hostProfileOrCollected(nil))
+	plane := "cpu"
+	if localEnvironmentHostSupportsCUDA(host) {
+		plane = "cuda"
+	}
+	identity, err := engine.ResolvePythonDependencyProfileIdentity(consumer, localEnvironmentPlatformTuple(host), plane)
+	if err != nil {
+		t.Fatalf("resolve Python dependency profile identity for %s: %v", consumer, err)
+	}
+	return identity
+}
+
+func currentMediaPythonDependencyProfileForTest(t *testing.T) (string, engine.PythonDependencyProfileIdentity) {
+	t.Helper()
+	host := localEnvironmentHostProfileFromDeviceProfile(hostProfileOrCollected(nil))
+	plane := "cpu"
+	if localEnvironmentHostSupportsCUDA(host) {
+		plane = "cuda"
+	}
+	consumer := "media.diffusers." + plane
+	identity, err := engine.ResolvePythonDependencyProfileIdentity(consumer, localEnvironmentPlatformTuple(host), plane)
+	if err != nil {
+		t.Fatalf("resolve media Python dependency profile identity: %v", err)
+	}
+	return consumer, identity
+}
+
+func upsertReadyManagedUVForProfileTest(t *testing.T, svc *Service, consumer string, identity engine.PythonDependencyProfileIdentity) localEnvironmentSelectedSourceRecordState {
+	t.Helper()
+	return upsertReadyPythonPrerequisiteForTest(t, svc, localEnvironmentSelectedSourceRecordState{
+		DependencyFamily:  localEnvironmentFamilyPythonUV,
+		DependencyID:      "uv",
+		EnvironmentKey:    localEnvironmentManagedUVKey(identity.PlatformTuple, svc.localEnvironmentRuntimeDataRoot()),
+		SourceKind:        localEnvironmentSourceManaged,
+		Version:           engine.ManagedUVVersion,
+		SelectedConsumers: []string{consumer},
+	})
+}
+
+func upsertReadyManagedPythonRuntimeForProfileTest(t *testing.T, svc *Service, consumer string, identity engine.PythonDependencyProfileIdentity) localEnvironmentSelectedSourceRecordState {
+	t.Helper()
+	return upsertReadyPythonPrerequisiteForTest(t, svc, localEnvironmentSelectedSourceRecordState{
+		DependencyFamily:  localEnvironmentFamilyPythonRuntime,
+		DependencyID:      localEnvironmentPythonRuntimeDependencyID(),
+		EnvironmentKey:    localEnvironmentPythonRuntimeKey(identity.PlatformTuple, svc.localEnvironmentRuntimeDataRoot()),
+		SourceKind:        localEnvironmentSourceManaged,
+		Version:           "Python " + engine.ManagedPythonVersion,
+		SelectedConsumers: []string{consumer},
+	})
+}
+
+func upsertReadyCUDAForProfileTest(t *testing.T, svc *Service, consumer string, identity engine.PythonDependencyProfileIdentity) (localEnvironmentSelectedSourceRecordState, bool) {
+	t.Helper()
+	if identity.AcceleratorPlane != "cuda" {
+		return localEnvironmentSelectedSourceRecordState{}, false
+	}
+	cudaConsumer := consumer
+	if strings.HasPrefix(cudaConsumer, "speech.") {
+		cudaConsumer += ".cuda"
+	}
+	host := localEnvironmentHostProfileFromDeviceProfile(hostProfileOrCollected(nil))
+	return upsertReadyPythonPrerequisiteForTest(t, svc, localEnvironmentSelectedSourceRecordState{
+		DependencyFamily:  localEnvironmentFamilyCUDA,
+		DependencyID:      cudaUserSpaceRuntimeDependencyID,
+		EnvironmentKey:    localEnvironmentKey(localEnvironmentFamilyCUDA, cudaUserSpaceRuntimeDependencyID, host.HostProfileID, identity.PlatformTuple, svc.localEnvironmentRuntimeDataRoot()),
+		SourceKind:        localEnvironmentSourceManaged,
+		SelectedConsumers: []string{cudaConsumer},
+	}), true
+}
+
+func upsertReadyPythonProfileForTest(t *testing.T, svc *Service, family string, consumer string, identity engine.PythonDependencyProfileIdentity) localEnvironmentSelectedSourceRecordState {
+	t.Helper()
+	record := upsertReadyPythonPrerequisiteForTest(t, svc, localEnvironmentSelectedSourceRecordState{
+		DependencyFamily: family,
+		DependencyID:     identity.DependencyID,
+		EnvironmentKey:   localEnvironmentPythonProfileKey(family, identity.DependencyID, svc.localEnvironmentRuntimeDataRoot()),
+		SourceKind:       localEnvironmentSourceManaged,
+		Version:          identity.ProfileDigest,
+		Hashes:           pythonDependencyProfileHashes(identity),
+	})
+	if family == localEnvironmentFamilyPythonPackageSet {
+		recordReadyPythonPackageSetConsumptionJobForTest(svc, record, consumer)
+	}
+	return record
+}
+
+func recordReadyPythonPackageSetConsumptionJobForTest(svc *Service, record localEnvironmentSelectedSourceRecordState, consumer string) localEnvironmentDependencyJobState {
+	return recordReadyPythonSelectedSourceConsumptionJobForTest(svc, record, consumer)
+}
+
+func recordReadyPythonSelectedSourceConsumptionJobForTest(svc *Service, record localEnvironmentSelectedSourceRecordState, consumer string) localEnvironmentDependencyJobState {
+	now := nowISO()
+	job := localEnvironmentDependencyJobState{
+		JobID:                  "test_profile_consumption_" + shortHash(record.RecordID+"|"+strings.TrimSpace(consumer)+"|"+now),
+		EnvironmentKey:         record.EnvironmentKey,
+		DependencyFamily:       record.DependencyFamily,
+		DependencyID:           record.DependencyID,
+		ConsumerScope:          strings.TrimSpace(consumer),
+		State:                  localEnvironmentStateReadyManaged,
+		SourceKind:             record.SourceKind,
+		CanonicalRoot:          record.CanonicalRoot,
+		SelectedSourceRecordID: record.RecordID,
+		CreatedAt:              now,
+		UpdatedAt:              now,
+	}
+	svc.mu.Lock()
+	svc.localEnvironmentDependencyJobs[job.JobID] = job
+	svc.persistStateLocked()
+	svc.mu.Unlock()
+	return job
+}
+
+func rememberPythonProfileJobContractForTest(svc *Service, family string, consumer string, identity engine.PythonDependencyProfileIdentity) string {
+	environmentKey := localEnvironmentPythonProfileKey(family, identity.DependencyID, svc.localEnvironmentRuntimeDataRoot())
+	rememberPythonDependencyJobContractForTest(svc, family, identity.DependencyID, environmentKey, consumer)
+	return environmentKey
+}
+
+func rememberPythonDependencyJobContractForTest(svc *Service, family string, dependencyID string, environmentKey string, consumer string) {
+	svc.rememberLocalEnvironmentPlanDependencyContracts([]localEnvironmentPlanDependency{{
+		EnvironmentKey:   environmentKey,
+		DependencyFamily: family,
+		DependencyID:     dependencyID,
+		ConsumerScope:    consumer,
+	}})
+}
+
+func pythonDependencyProfileStatusForTest(identity engine.PythonDependencyProfileIdentity, consumer string, profileRoot string, uvPath string, packageCacheRoot string) engine.PythonDependencyProfileStatus {
+	interpreterDir := "bin"
+	interpreterName := "python"
+	if strings.HasPrefix(identity.PlatformTuple, "windows/") {
+		interpreterDir = "Scripts"
+		interpreterName = "python.exe"
+	}
+	driverCommands := map[string]string{}
+	driverScripts := []string{}
+	switch consumer {
+	case "speech.qwen3-tts.python":
+		driver := engine.SpeechQwen3TTSDriverPath(profileRoot)
+		driverCommands["NIMI_RUNTIME_SPEECH_QWEN3_TTS_CMD"] = "python " + driver
+		driverScripts = append(driverScripts, driver)
+	case "speech.qwen3-asr.python":
+		driver := engine.SpeechQwen3ASRDriverPath(profileRoot)
+		driverCommands["NIMI_RUNTIME_SPEECH_QWEN3_ASR_CMD"] = "python " + driver
+		driverScripts = append(driverScripts, driver)
+	case "speech.qwen3-asr-transformers.python":
+		driver := engine.SpeechQwen3ASRTransformersDriverPath(profileRoot)
+		driverCommands["NIMI_RUNTIME_SPEECH_QWEN3_ASR_TRANSFORMERS_CMD"] = "python " + driver
+		driverScripts = append(driverScripts, driver)
+	}
+	return engine.PythonDependencyProfileStatus{
+		Identity:               identity,
+		ProfileRoot:            profileRoot,
+		InterpreterPath:        filepath.Join(profileRoot, interpreterDir, interpreterName),
+		PackageCacheRoot:       packageCacheRoot,
+		UVExecutable:           uvPath,
+		InstalledDistributions: []string{"torch==" + identity.TorchVersion},
+		ImportProbes:           []string{"torch"},
+		DriverCommands:         driverCommands,
+		DriverScripts:          driverScripts,
+		ObservedPythonVersion:  identity.PythonVersion,
+		ObservedTorchVersion:   identity.TorchVersion,
+		ObservedCUDAABI:        identity.CUDAABI,
+		Detail:                 "test immutable Python dependency profile ready",
+	}
+}
+
 func startFailedLocalEnvironmentDependencyJobForTest(t *testing.T, svc *Service, req localEnvironmentDependencyJobRequest, detail string) localEnvironmentDependencyJobState {
 	t.Helper()
 	job, err := svc.startLocalEnvironmentDependencyJob(context.Background(), req, func(context.Context, localEnvironmentDependencyJobState, localEnvironmentDependencyJobProgressReporter) (localEnvironmentDependencyJobResult, error) {
@@ -60,37 +229,37 @@ func TestPythonMaterializerRejectsLocalImageNativePythonDependencies(t *testing.
 	}
 }
 
-func TestStartLocalImageNativePythonPackageSetJobUnsupported(t *testing.T) {
+func TestStartLocalImageNativePythonPackageSetJobFailsClosedAtAdmission(t *testing.T) {
 	svc := newTestService(t)
 	svc.SetEngineManager(&mockEngineManager{})
 
-	resp, err := svc.StartLocalEnvironmentDependencyJob(context.Background(), &runtimev1.StartLocalEnvironmentDependencyJobRequest{
+	_, err := svc.StartLocalEnvironmentDependencyJob(context.Background(), &runtimev1.StartLocalEnvironmentDependencyJobRequest{
 		EnvironmentKey:   "python.package-set|local-image-native.package-set|host|windows/amd64|root|stable-diffusion.cpp.cuda",
 		DependencyFamily: localEnvironmentFamilyPythonPackageSet,
 		DependencyId:     "local-image-native.package-set",
 		ConsumerScope:    stableDiffusionCUDAConsumerID,
 		Confirmed:        true,
 	})
-	if err != nil {
-		t.Fatalf("StartLocalEnvironmentDependencyJob: %v", err)
-	}
-	job := awaitLocalEnvironmentDependencyJobTerminal(t, svc, resp.GetJob().GetJobId())
-	if job.GetState() != localEnvironmentStateUnsupported {
-		t.Fatalf("job state = %q, want unsupported for retired native Python package-set dependency", job.GetState())
+	if err == nil || !strings.Contains(err.Error(), "local environment dependency profile is not admitted by the current plan") {
+		t.Fatalf("StartLocalEnvironmentDependencyJob error = %v, want fail-closed plan admission", err)
 	}
 }
 
 func TestStartPythonRuntimeDependencyJobRequiresSelectedUVRecord(t *testing.T) {
 	svc := newTestService(t)
+	consumer, identity := currentMediaPythonDependencyProfileForTest(t)
 	// A genuinely absent prerequisite still fails closed once the bounded
 	// prerequisite wait elapses; shorten it so the test does not pause.
 	svc.SetLocalEnvironmentPrerequisiteWaitTimeout(100 * time.Millisecond)
 	svc.SetEngineManager(&mockEngineManager{})
+	environmentKey := localEnvironmentPythonRuntimeKey(identity.PlatformTuple, svc.localEnvironmentRuntimeDataRoot())
+	rememberPythonDependencyJobContractForTest(svc, localEnvironmentFamilyPythonRuntime, localEnvironmentPythonRuntimeDependencyID(), environmentKey, consumer)
 
 	resp, err := svc.StartLocalEnvironmentDependencyJob(context.Background(), &runtimev1.StartLocalEnvironmentDependencyJobRequest{
-		EnvironmentKey:   "python.runtime|python.runtime|host|windows/amd64|root|media.diffusers.cuda",
+		EnvironmentKey:   environmentKey,
 		DependencyFamily: localEnvironmentFamilyPythonRuntime,
-		DependencyId:     "python.runtime",
+		DependencyId:     localEnvironmentPythonRuntimeDependencyID(),
+		ConsumerScope:    consumer,
 		Confirmed:        true,
 	})
 	if err != nil {
@@ -104,30 +273,25 @@ func TestStartPythonRuntimeDependencyJobRequiresSelectedUVRecord(t *testing.T) {
 
 func TestStartPythonRuntimeDependencyJobPromotesVerifiedSelectedSource(t *testing.T) {
 	svc := newTestService(t)
-	uvRecord := upsertReadyPythonPrerequisiteForTest(t, svc, localEnvironmentSelectedSourceRecordState{
-		DependencyFamily:  localEnvironmentFamilyPythonUV,
-		DependencyID:      "uv",
-		EnvironmentKey:    "python.tool.uv|uv|host|windows/amd64|root|media.diffusers.cuda",
-		SourceKind:        localEnvironmentSourceManaged,
-		CanonicalRoot:     `C:\nimi\engines\uv\uv.exe`,
-		Version:           "0.11.8",
-		VerifiedArtifacts: []string{`C:\nimi\engines\uv\uv.exe`},
-		SelectedConsumers: []string{"media.diffusers.cuda"},
-	})
+	consumer, identity := currentMediaPythonDependencyProfileForTest(t)
+	uvRecord := upsertReadyManagedUVForProfileTest(t, svc, consumer, identity)
+	environmentKey := localEnvironmentPythonRuntimeKey(identity.PlatformTuple, svc.localEnvironmentRuntimeDataRoot())
+	rememberPythonDependencyJobContractForTest(svc, localEnvironmentFamilyPythonRuntime, localEnvironmentPythonRuntimeDependencyID(), environmentKey, consumer)
 	svc.SetEngineManager(&mockEngineManager{
 		pythonRuntimeStatus: &engine.PythonRuntimeDependencyStatus{
-			PythonVersion:   "Python 3.12.11",
-			InterpreterPath: `C:\nimi\engines\media\0.1.0\Scripts\python.exe`,
-			RuntimeRoot:     `C:\nimi\engines\media\0.1.0`,
-			UVExecutable:    `C:\nimi\engines\uv\uv.exe`,
+			PythonVersion:   "Python " + engine.ManagedPythonVersion,
+			InterpreterPath: filepath.Join(t.TempDir(), "python.exe"),
+			RuntimeRoot:     t.TempDir(),
+			UVExecutable:    uvRecord.CanonicalRoot,
 			Detail:          "Runtime-managed Python runtime verified through selected uv tool",
 		},
 	})
 
 	resp, err := svc.StartLocalEnvironmentDependencyJob(context.Background(), &runtimev1.StartLocalEnvironmentDependencyJobRequest{
-		EnvironmentKey:   "python.runtime|python.runtime|host|windows/amd64|root|media.diffusers.cuda",
+		EnvironmentKey:   environmentKey,
 		DependencyFamily: localEnvironmentFamilyPythonRuntime,
-		DependencyId:     "python.runtime",
+		DependencyId:     localEnvironmentPythonRuntimeDependencyID(),
+		ConsumerScope:    consumer,
 		Confirmed:        true,
 	})
 	if err != nil {
@@ -147,39 +311,34 @@ func TestStartPythonRuntimeDependencyJobPromotesVerifiedSelectedSource(t *testin
 	if got := source.GetHashes()["selected_uv_record"]; got != uvRecord.RecordID {
 		t.Fatalf("selected uv record hash = %q, want %q", got, uvRecord.RecordID)
 	}
-	if got := source.GetSelectedConsumers(); len(got) != 1 || got[0] != "media.diffusers.cuda" {
-		t.Fatalf("selected consumers = %v, want media.diffusers.cuda", got)
+	if got := source.GetSelectedConsumers(); len(got) != 0 {
+		t.Fatalf("canonical Python runtime selected source owns consumers: %v", got)
 	}
 }
 
 func TestPythonRuntimeDependencyJobUsesInstallingWithoutDownloadProgress(t *testing.T) {
 	svc := newTestService(t)
-	upsertReadyPythonPrerequisiteForTest(t, svc, localEnvironmentSelectedSourceRecordState{
-		DependencyFamily:  localEnvironmentFamilyPythonUV,
-		DependencyID:      "uv",
-		EnvironmentKey:    "python.tool.uv|uv|host|windows/amd64|root|media.diffusers.cuda",
-		SourceKind:        localEnvironmentSourceManaged,
-		CanonicalRoot:     `C:\nimi\engines\uv\uv.exe`,
-		Version:           "0.11.8",
-		VerifiedArtifacts: []string{`C:\nimi\engines\uv\uv.exe`},
-		SelectedConsumers: []string{"media.diffusers.cuda"},
-	})
+	consumer, identity := currentMediaPythonDependencyProfileForTest(t)
+	uvRecord := upsertReadyManagedUVForProfileTest(t, svc, consumer, identity)
+	environmentKey := localEnvironmentPythonRuntimeKey(identity.PlatformTuple, svc.localEnvironmentRuntimeDataRoot())
+	rememberPythonDependencyJobContractForTest(svc, localEnvironmentFamilyPythonRuntime, localEnvironmentPythonRuntimeDependencyID(), environmentKey, consumer)
 	release := make(chan struct{})
 	svc.SetEngineManager(&mockEngineManager{
 		pythonRuntimeDependencyRelease: release,
 		pythonRuntimeStatus: &engine.PythonRuntimeDependencyStatus{
-			PythonVersion:   "Python 3.12.11",
-			InterpreterPath: `C:\nimi\engines\media\0.1.0\Scripts\python.exe`,
-			RuntimeRoot:     `C:\nimi\engines\media\0.1.0`,
-			UVExecutable:    `C:\nimi\engines\uv\uv.exe`,
+			PythonVersion:   "Python " + engine.ManagedPythonVersion,
+			InterpreterPath: filepath.Join(t.TempDir(), "python.exe"),
+			RuntimeRoot:     t.TempDir(),
+			UVExecutable:    uvRecord.CanonicalRoot,
 			Detail:          "Runtime-managed Python runtime verified through selected uv tool",
 		},
 	})
 
 	resp, err := svc.StartLocalEnvironmentDependencyJob(context.Background(), &runtimev1.StartLocalEnvironmentDependencyJobRequest{
-		EnvironmentKey:   "python.runtime|python.runtime|host|windows/amd64|root|media.diffusers.cuda",
+		EnvironmentKey:   environmentKey,
 		DependencyFamily: localEnvironmentFamilyPythonRuntime,
-		DependencyId:     "python.runtime",
+		DependencyId:     localEnvironmentPythonRuntimeDependencyID(),
+		ConsumerScope:    consumer,
 		Confirmed:        true,
 	})
 	if err != nil {
@@ -199,23 +358,17 @@ func TestPythonRuntimeDependencyJobUsesInstallingWithoutDownloadProgress(t *test
 
 func TestStartPythonRuntimeDependencyJobUsesRequestConsumerScope(t *testing.T) {
 	svc := newTestService(t)
-	upsertReadyPythonPrerequisiteForTest(t, svc, localEnvironmentSelectedSourceRecordState{
-		DependencyFamily:  localEnvironmentFamilyPythonUV,
-		DependencyID:      "uv",
-		EnvironmentKey:    "python.tool.uv|uv|host|windows/amd64|root",
-		SourceKind:        localEnvironmentSourceManaged,
-		CanonicalRoot:     `C:\nimi\engines\uv\uv.exe`,
-		Version:           "0.11.8",
-		VerifiedArtifacts: []string{`C:\nimi\engines\uv\uv.exe`},
-		SelectedConsumers: []string{"media.diffusers.cuda"},
-	})
+	consumer, identity := currentMediaPythonDependencyProfileForTest(t)
+	upsertReadyManagedUVForProfileTest(t, svc, consumer, identity)
+	environmentKey := localEnvironmentPythonRuntimeKey(identity.PlatformTuple, svc.localEnvironmentRuntimeDataRoot())
+	rememberPythonDependencyJobContractForTest(svc, localEnvironmentFamilyPythonRuntime, localEnvironmentPythonRuntimeDependencyID(), environmentKey, consumer)
 	svc.SetEngineManager(&mockEngineManager{})
 
 	resp, err := svc.StartLocalEnvironmentDependencyJob(context.Background(), &runtimev1.StartLocalEnvironmentDependencyJobRequest{
-		EnvironmentKey:   "python.runtime|python.runtime|host|windows/amd64|root",
+		EnvironmentKey:   environmentKey,
 		DependencyFamily: localEnvironmentFamilyPythonRuntime,
-		DependencyId:     "python.runtime",
-		ConsumerScope:    "media.diffusers.cuda",
+		DependencyId:     localEnvironmentPythonRuntimeDependencyID(),
+		ConsumerScope:    consumer,
 		Confirmed:        true,
 	})
 	if err != nil {
@@ -227,36 +380,35 @@ func TestStartPythonRuntimeDependencyJobUsesRequestConsumerScope(t *testing.T) {
 	}
 	sources, err := svc.ListLocalEnvironmentSelectedSources(context.Background(), &runtimev1.ListLocalEnvironmentSelectedSourcesRequest{
 		DependencyFamily: localEnvironmentFamilyPythonRuntime,
-		ConsumerScope:    "media.diffusers.cuda",
 	})
 	if err != nil {
 		t.Fatalf("ListLocalEnvironmentSelectedSources: %v", err)
 	}
 	source := sources.GetSources()[0]
-	if !stringSliceContains(source.GetCompatibilityEvidence(), "test python runtime ready for media") {
-		t.Fatalf("compatibility evidence = %v, want media engine target from request consumer scope", source.GetCompatibilityEvidence())
+	if job.GetConsumerScope() != consumer {
+		t.Fatalf("activation job consumer = %q, want %q", job.GetConsumerScope(), consumer)
+	}
+	if len(source.GetSelectedConsumers()) != 0 {
+		t.Fatalf("canonical Python runtime selected source owns consumers: %v", source.GetSelectedConsumers())
+	}
+	if !stringSliceContains(source.GetCompatibilityEvidence(), "test python runtime ready for python") {
+		t.Fatalf("compatibility evidence = %v, want consumer-independent managed Python runtime", source.GetCompatibilityEvidence())
 	}
 }
 
 func TestStartPythonVenvDependencyJobRequiresSelectedPythonRuntimeRecord(t *testing.T) {
 	svc := newTestService(t)
+	consumer, identity := currentMediaPythonDependencyProfileForTest(t)
 	svc.SetLocalEnvironmentPrerequisiteWaitTimeout(100 * time.Millisecond)
-	upsertReadyPythonPrerequisiteForTest(t, svc, localEnvironmentSelectedSourceRecordState{
-		DependencyFamily:  localEnvironmentFamilyPythonUV,
-		DependencyID:      "uv",
-		EnvironmentKey:    "python.tool.uv|uv|host|windows/amd64|root|media.diffusers.cuda",
-		SourceKind:        localEnvironmentSourceManaged,
-		CanonicalRoot:     `C:\nimi\engines\uv\uv.exe`,
-		Version:           "0.11.8",
-		VerifiedArtifacts: []string{`C:\nimi\engines\uv\uv.exe`},
-		SelectedConsumers: []string{"media.diffusers.cuda"},
-	})
+	upsertReadyManagedUVForProfileTest(t, svc, consumer, identity)
 	svc.SetEngineManager(&mockEngineManager{})
+	environmentKey := rememberPythonProfileJobContractForTest(svc, localEnvironmentFamilyPythonVenv, consumer, identity)
 
 	resp, err := svc.StartLocalEnvironmentDependencyJob(context.Background(), &runtimev1.StartLocalEnvironmentDependencyJobRequest{
-		EnvironmentKey:   "python.venv|local-image-python.venv|host|windows/amd64|root|media.diffusers.cuda",
+		EnvironmentKey:   environmentKey,
 		DependencyFamily: localEnvironmentFamilyPythonVenv,
-		DependencyId:     "local-image-python.venv",
+		DependencyId:     identity.DependencyID,
+		ConsumerScope:    consumer,
 		Confirmed:        true,
 	})
 	if err != nil {
@@ -270,40 +422,24 @@ func TestStartPythonVenvDependencyJobRequiresSelectedPythonRuntimeRecord(t *test
 
 func TestStartPythonVenvDependencyJobPromotesVerifiedSelectedSource(t *testing.T) {
 	svc := newTestService(t)
-	uvRecord := upsertReadyPythonPrerequisiteForTest(t, svc, localEnvironmentSelectedSourceRecordState{
-		DependencyFamily:  localEnvironmentFamilyPythonUV,
-		DependencyID:      "uv",
-		EnvironmentKey:    "python.tool.uv|uv|host|windows/amd64|root|media.diffusers.cuda",
-		SourceKind:        localEnvironmentSourceManaged,
-		CanonicalRoot:     `C:\nimi\engines\uv\uv.exe`,
-		Version:           "0.11.8",
-		VerifiedArtifacts: []string{`C:\nimi\engines\uv\uv.exe`},
-		SelectedConsumers: []string{"media.diffusers.cuda"},
-	})
-	runtimeRecord := upsertReadyPythonPrerequisiteForTest(t, svc, localEnvironmentSelectedSourceRecordState{
-		DependencyFamily:  localEnvironmentFamilyPythonRuntime,
-		DependencyID:      "python.runtime",
-		EnvironmentKey:    "python.runtime|python.runtime|host|windows/amd64|root|media.diffusers.cuda",
-		SourceKind:        localEnvironmentSourceManaged,
-		CanonicalRoot:     `C:\nimi\engines\python-installations\cpython-3.12.11\python.exe`,
-		Version:           "Python 3.12.11",
-		VerifiedArtifacts: []string{`C:\nimi\engines\python-installations\cpython-3.12.11\python.exe`},
-		SelectedConsumers: []string{"media.diffusers.cuda"},
-	})
+	consumer, identity := currentMediaPythonDependencyProfileForTest(t)
+	uvRecord := upsertReadyManagedUVForProfileTest(t, svc, consumer, identity)
+	runtimeRecord := upsertReadyManagedPythonRuntimeForProfileTest(t, svc, consumer, identity)
+	upsertReadyCUDAForProfileTest(t, svc, consumer, identity)
+	profileRoot := t.TempDir()
 	svc.SetEngineManager(&mockEngineManager{
-		pythonVenvStatus: &engine.PythonVenvDependencyStatus{
-			VenvRoot:        `C:\nimi\engines\media\0.1.0`,
-			InterpreterPath: `C:\nimi\engines\media\0.1.0\Scripts\python.exe`,
-			PythonRuntime:   `C:\nimi\engines\python-installations\cpython-3.12.11\python.exe`,
-			UVExecutable:    `C:\nimi\engines\uv\uv.exe`,
-			Detail:          "Runtime-managed Python venv verified through selected uv tool and Python runtime",
-		},
+		pythonDependencyProfileStatus: func() *engine.PythonDependencyProfileStatus {
+			status := pythonDependencyProfileStatusForTest(identity, consumer, profileRoot, uvRecord.CanonicalRoot, t.TempDir())
+			return &status
+		}(),
 	})
+	environmentKey := rememberPythonProfileJobContractForTest(svc, localEnvironmentFamilyPythonVenv, consumer, identity)
 
 	resp, err := svc.StartLocalEnvironmentDependencyJob(context.Background(), &runtimev1.StartLocalEnvironmentDependencyJobRequest{
-		EnvironmentKey:   "python.venv|local-image-python.venv|host|windows/amd64|root|media.diffusers.cuda",
+		EnvironmentKey:   environmentKey,
 		DependencyFamily: localEnvironmentFamilyPythonVenv,
-		DependencyId:     "local-image-python.venv",
+		DependencyId:     identity.DependencyID,
+		ConsumerScope:    consumer,
 		Confirmed:        true,
 	})
 	if err != nil {
@@ -313,8 +449,8 @@ func TestStartPythonVenvDependencyJobPromotesVerifiedSelectedSource(t *testing.T
 	if job.GetState() != localEnvironmentStateReadyManaged {
 		t.Fatalf("job state = %q, want ready_managed", job.GetState())
 	}
-	if job.GetCanonicalRoot() != `C:\nimi\engines\media\0.1.0` {
-		t.Fatalf("canonical root = %q, want venv root", job.GetCanonicalRoot())
+	if job.GetCanonicalRoot() != profileRoot {
+		t.Fatalf("canonical root = %q, want immutable profile root %q", job.GetCanonicalRoot(), profileRoot)
 	}
 	sources, err := svc.ListLocalEnvironmentSelectedSources(context.Background(), &runtimev1.ListLocalEnvironmentSelectedSourcesRequest{
 		DependencyFamily: localEnvironmentFamilyPythonVenv,
@@ -323,36 +459,35 @@ func TestStartPythonVenvDependencyJobPromotesVerifiedSelectedSource(t *testing.T
 		t.Fatalf("ListLocalEnvironmentSelectedSources: %v", err)
 	}
 	source := sources.GetSources()[0]
-	if got := source.GetHashes()["selected_uv_record"]; got != uvRecord.RecordID {
-		t.Fatalf("selected uv record hash = %q, want %q", got, uvRecord.RecordID)
+	if got := source.GetHashes()["profile_digest"]; got != identity.ProfileDigest {
+		t.Fatalf("profile digest = %q, want %q", got, identity.ProfileDigest)
 	}
-	if got := source.GetHashes()["selected_python_runtime_record"]; got != runtimeRecord.RecordID {
-		t.Fatalf("selected python runtime record hash = %q, want %q", got, runtimeRecord.RecordID)
+	if got := source.GetHashes()["exact_lock_sha256"]; got != identity.ExactLockDigest {
+		t.Fatalf("exact lock digest = %q, want %q", got, identity.ExactLockDigest)
 	}
-	if got := source.GetSelectedConsumers(); len(got) != 1 || got[0] != "media.diffusers.cuda" {
-		t.Fatalf("selected consumers = %v, want media.diffusers.cuda", got)
+	if !stringSliceContains(source.GetCompatibilityEvidence(), "selected_uv_record="+uvRecord.RecordID) ||
+		!stringSliceContains(source.GetCompatibilityEvidence(), "selected_python_runtime_record="+runtimeRecord.RecordID) {
+		t.Fatalf("compatibility evidence = %v, want exact uv/runtime record references", source.GetCompatibilityEvidence())
+	}
+	if got := source.GetSelectedConsumers(); len(got) != 0 {
+		t.Fatalf("canonical Python profile selected source owns consumers: %v", got)
 	}
 }
 
 func TestStartPythonPackageSetDependencyJobRequiresSelectedVenvRecord(t *testing.T) {
 	svc := newTestService(t)
+	consumer := "speech.qwen3-tts.python"
+	identity := currentPythonDependencyProfileIdentityForTest(t, consumer)
 	svc.SetLocalEnvironmentPrerequisiteWaitTimeout(100 * time.Millisecond)
-	upsertReadyPythonPrerequisiteForTest(t, svc, localEnvironmentSelectedSourceRecordState{
-		DependencyFamily:  localEnvironmentFamilyPythonUV,
-		DependencyID:      "uv",
-		EnvironmentKey:    "python.tool.uv|uv|host|windows/amd64|root|speech.qwen3-tts.python",
-		SourceKind:        localEnvironmentSourceManaged,
-		CanonicalRoot:     `C:\nimi\engines\uv\uv.exe`,
-		Version:           "0.11.8",
-		VerifiedArtifacts: []string{`C:\nimi\engines\uv\uv.exe`},
-		SelectedConsumers: []string{"speech.qwen3-tts.python"},
-	})
+	upsertReadyManagedUVForProfileTest(t, svc, consumer, identity)
 	svc.SetEngineManager(&mockEngineManager{})
+	environmentKey := rememberPythonProfileJobContractForTest(svc, localEnvironmentFamilyPythonPackageSet, consumer, identity)
 
 	resp, err := svc.StartLocalEnvironmentDependencyJob(context.Background(), &runtimev1.StartLocalEnvironmentDependencyJobRequest{
-		EnvironmentKey:   "python.package-set|local-speech-qwen3-tts.package-set|host|windows/amd64|root",
+		EnvironmentKey:   environmentKey,
 		DependencyFamily: localEnvironmentFamilyPythonPackageSet,
-		DependencyId:     "local-speech-qwen3-tts.package-set",
+		DependencyId:     identity.DependencyID,
+		ConsumerScope:    consumer,
 		Confirmed:        true,
 	})
 	if err != nil {
@@ -366,20 +501,14 @@ func TestStartPythonPackageSetDependencyJobRequiresSelectedVenvRecord(t *testing
 
 func TestStartPythonPackageSetDependencyJobFailsFastWhenVenvJobFailed(t *testing.T) {
 	svc := newTestService(t)
-	upsertReadyPythonPrerequisiteForTest(t, svc, localEnvironmentSelectedSourceRecordState{
-		DependencyFamily:  localEnvironmentFamilyPythonUV,
-		DependencyID:      "uv",
-		EnvironmentKey:    "python.tool.uv|uv|host|windows/amd64|root|speech.qwen3-tts.python",
-		SourceKind:        localEnvironmentSourceManaged,
-		CanonicalRoot:     `C:\nimi\engines\uv\uv.exe`,
-		Version:           "0.11.8",
-		VerifiedArtifacts: []string{`C:\nimi\engines\uv\uv.exe`},
-		SelectedConsumers: []string{"speech.qwen3-tts.python"},
-	})
+	consumer := "speech.qwen3-tts.python"
+	identity := currentPythonDependencyProfileIdentityForTest(t, consumer)
+	upsertReadyManagedUVForProfileTest(t, svc, consumer, identity)
 	failedVenv, err := svc.startLocalEnvironmentDependencyJob(context.Background(), localEnvironmentDependencyJobRequest{
-		EnvironmentKey:   "python.venv|local-speech-qwen3-tts.venv|host|windows/amd64|root",
+		EnvironmentKey:   localEnvironmentPythonProfileKey(localEnvironmentFamilyPythonVenv, identity.DependencyID, svc.localEnvironmentRuntimeDataRoot()),
 		DependencyFamily: localEnvironmentFamilyPythonVenv,
-		DependencyID:     "local-speech-qwen3-tts.venv",
+		DependencyID:     identity.DependencyID,
+		ConsumerScope:    consumer,
 		SourceKind:       localEnvironmentSourceManaged,
 	}, nil)
 	if err != nil {
@@ -389,12 +518,14 @@ func TestStartPythonPackageSetDependencyJobFailsFastWhenVenvJobFailed(t *testing
 		t.Fatalf("failed to transition venv seed job")
 	}
 	svc.SetEngineManager(&mockEngineManager{})
+	packageEnvironmentKey := rememberPythonProfileJobContractForTest(svc, localEnvironmentFamilyPythonPackageSet, consumer, identity)
 
 	startedAt := time.Now()
 	resp, err := svc.StartLocalEnvironmentDependencyJob(context.Background(), &runtimev1.StartLocalEnvironmentDependencyJobRequest{
-		EnvironmentKey:   "python.package-set|local-speech-qwen3-tts.package-set|host|windows/amd64|root",
+		EnvironmentKey:   packageEnvironmentKey,
 		DependencyFamily: localEnvironmentFamilyPythonPackageSet,
-		DependencyId:     "local-speech-qwen3-tts.package-set",
+		DependencyId:     identity.DependencyID,
+		ConsumerScope:    consumer,
 		Confirmed:        true,
 	})
 	if err != nil {
@@ -407,55 +538,27 @@ func TestStartPythonPackageSetDependencyJobFailsFastWhenVenvJobFailed(t *testing
 	if job.GetState() != localEnvironmentStateFailed {
 		t.Fatalf("job state = %q, want failed when venv prerequisite job failed", job.GetState())
 	}
-	if detail := job.GetFailureDetail(); !strings.Contains(detail, "uv venv failed") || !strings.Contains(detail, "python.venv/local-speech-qwen3-tts.venv") {
+	if detail := job.GetFailureDetail(); !strings.Contains(detail, "uv venv failed") || !strings.Contains(detail, "python.venv/"+identity.DependencyID) {
 		t.Fatalf("failure detail = %q, want upstream venv failure detail", detail)
 	}
 }
 
 func TestStartPythonPackageSetDependencyJobPromotesVerifiedSelectedSource(t *testing.T) {
 	svc := newTestService(t)
-	uvRecord := upsertReadyPythonPrerequisiteForTest(t, svc, localEnvironmentSelectedSourceRecordState{
-		DependencyFamily:  localEnvironmentFamilyPythonUV,
-		DependencyID:      "uv",
-		EnvironmentKey:    "python.tool.uv|uv|host|windows/amd64|root|speech.qwen3-tts.python",
-		SourceKind:        localEnvironmentSourceManaged,
-		CanonicalRoot:     `C:\nimi\engines\uv\uv.exe`,
-		Version:           "0.11.8",
-		VerifiedArtifacts: []string{`C:\nimi\engines\uv\uv.exe`},
-		SelectedConsumers: []string{"speech.qwen3-tts.python"},
-	})
-	venvRecord := upsertReadyPythonPrerequisiteForTest(t, svc, localEnvironmentSelectedSourceRecordState{
-		DependencyFamily:  localEnvironmentFamilyPythonVenv,
-		DependencyID:      "local-speech-qwen3-tts.venv",
-		EnvironmentKey:    "python.venv|local-speech-qwen3-tts.venv|host|windows/amd64|root",
-		SourceKind:        localEnvironmentSourceManaged,
-		CanonicalRoot:     `C:\nimi\engines\speech\0.1.0`,
-		Version:           "Python 3.12.11",
-		VerifiedArtifacts: []string{`C:\nimi\engines\speech\0.1.0\Scripts\python.exe`},
-		SelectedConsumers: []string{"speech.qwen3-tts.python"},
-	})
-	svc.SetEngineManager(&mockEngineManager{
-		pythonPackageSetStatus: &engine.PythonPackageSetDependencyStatus{
-			PackageSetID:           "speech-qwen3-tts-python-core",
-			LockHash:               "9a9307c48e6d92fb600d63a330c126e93c8625978b753534e65926353b85a58e",
-			VenvRoot:               `C:\nimi\engines\speech\0.1.0`,
-			InterpreterPath:        `C:\nimi\engines\speech\0.1.0\Scripts\python.exe`,
-			UVExecutable:           `C:\nimi\engines\uv\uv.exe`,
-			Packages:               []string{"fastapi==0.121.1", "uvicorn[standard]==0.38.0", "python-multipart==0.0.26"},
-			InstalledDistributions: []string{"fastapi==0.121.1", "python-multipart==0.0.26", "uvicorn==0.38.0"},
-			ImportProbes:           []string{"fastapi", "uvicorn", "multipart"},
-			DriverScripts:          []string{`C:\nimi\engines\speech\0.1.0\qwen3_tts_driver.py`},
-			DriverCommands: map[string]string{
-				"NIMI_RUNTIME_SPEECH_QWEN3_TTS_CMD": `'C:\nimi\engines\speech\0.1.0\Scripts\python.exe' 'C:\nimi\engines\speech\0.1.0\qwen3_tts_driver.py'`,
-			},
-			Detail: "Runtime-managed Python package set verified from declared lock manifest",
-		},
-	})
+	consumer := "speech.qwen3-tts.python"
+	identity := currentPythonDependencyProfileIdentityForTest(t, consumer)
+	uvRecord := upsertReadyManagedUVForProfileTest(t, svc, consumer, identity)
+	venvRecord := upsertReadyPythonProfileForTest(t, svc, localEnvironmentFamilyPythonVenv, consumer, identity)
+	runtimeRecord := upsertReadyManagedPythonRuntimeForProfileTest(t, svc, consumer, identity)
+	status := pythonDependencyProfileStatusForTest(identity, consumer, venvRecord.CanonicalRoot, uvRecord.CanonicalRoot, t.TempDir())
+	svc.SetEngineManager(&mockEngineManager{pythonDependencyProfileStatus: &status})
+	environmentKey := rememberPythonProfileJobContractForTest(svc, localEnvironmentFamilyPythonPackageSet, consumer, identity)
 
 	resp, err := svc.StartLocalEnvironmentDependencyJob(context.Background(), &runtimev1.StartLocalEnvironmentDependencyJobRequest{
-		EnvironmentKey:   "python.package-set|local-speech-qwen3-tts.package-set|host|windows/amd64|root",
+		EnvironmentKey:   environmentKey,
 		DependencyFamily: localEnvironmentFamilyPythonPackageSet,
-		DependencyId:     "local-speech-qwen3-tts.package-set",
+		DependencyId:     identity.DependencyID,
+		ConsumerScope:    consumer,
 		Confirmed:        true,
 	})
 	if err != nil {
@@ -472,121 +575,99 @@ func TestStartPythonPackageSetDependencyJobPromotesVerifiedSelectedSource(t *tes
 		t.Fatalf("ListLocalEnvironmentSelectedSources: %v", err)
 	}
 	source := sources.GetSources()[0]
-	if got := source.GetHashes()["package_lock_hash"]; got != "9a9307c48e6d92fb600d63a330c126e93c8625978b753534e65926353b85a58e" {
-		t.Fatalf("package lock hash = %q, want declared lock hash", got)
+	if got := source.GetHashes()["profile_digest"]; got != identity.ProfileDigest {
+		t.Fatalf("profile digest = %q, want %q", got, identity.ProfileDigest)
 	}
-	if got := source.GetHashes()["selected_uv_record"]; got != uvRecord.RecordID {
-		t.Fatalf("selected uv record hash = %q, want %q", got, uvRecord.RecordID)
+	if got := source.GetHashes()["exact_lock_sha256"]; got != identity.ExactLockDigest {
+		t.Fatalf("exact lock digest = %q, want %q", got, identity.ExactLockDigest)
 	}
-	if got := source.GetHashes()["selected_venv_record"]; got != venvRecord.RecordID {
-		t.Fatalf("selected venv record hash = %q, want %q", got, venvRecord.RecordID)
+	if got := source.GetVersion(); got != identity.ProfileDigest {
+		t.Fatalf("profile version = %q, want %q", got, identity.ProfileDigest)
 	}
-	if got := source.GetSelectedConsumers(); !stringSliceContains(got, "speech.qwen3-tts.python") || stringSliceContains(got, "speech.qwen3-asr.python") {
-		t.Fatalf("selected consumers = %v, want tts speech consumer only", got)
+	if got := source.GetCompatibilityEvidence(); !stringSliceContains(got, "selected_uv_record="+uvRecord.RecordID) ||
+		!stringSliceContains(got, "selected_venv_record="+venvRecord.RecordID) ||
+		!stringSliceContains(got, "selected_python_runtime_record="+runtimeRecord.RecordID) {
+		t.Fatalf("compatibility evidence = %v, want exact prerequisite record references", got)
 	}
-	if got := source.GetActivationEnvDelta(); !stringSliceContains(got, `NIMI_RUNTIME_SPEECH_QWEN3_TTS_CMD='C:\nimi\engines\speech\0.1.0\Scripts\python.exe' 'C:\nimi\engines\speech\0.1.0\qwen3_tts_driver.py'`) {
-		t.Fatalf("activation env delta = %v, want verified tts driver command", got)
+	if got := source.GetSelectedConsumers(); len(got) != 0 {
+		t.Fatalf("canonical package-set selected source owns consumers: %v", got)
 	}
-	if got := source.GetVerifiedArtifacts(); !stringSliceContains(got, `C:\nimi\engines\speech\0.1.0\qwen3_tts_driver.py`) {
+	if got := source.GetActivationEnvDelta(); len(got) != 0 {
+		t.Fatalf("canonical package-set selected source owns private activation delta: %v", got)
+	}
+	if got := job.GetConsumerScope(); got != consumer {
+		t.Fatalf("package-set activation job consumer = %q, want %q", got, consumer)
+	}
+	if got := source.GetVerifiedArtifacts(); !stringSliceContains(got, status.DriverScripts[0]) {
 		t.Fatalf("verified artifacts = %v, want tts driver script", got)
 	}
 }
 
-func TestPythonPackageSetDependencyJobUsesInstallingWithoutDownloadProgress(t *testing.T) {
+func TestPythonPackageSetDependencyJobUsesVerifyingWithoutDownloadProgress(t *testing.T) {
 	svc := newTestService(t)
-	upsertReadyPythonPrerequisiteForTest(t, svc, localEnvironmentSelectedSourceRecordState{
-		DependencyFamily:  localEnvironmentFamilyPythonUV,
-		DependencyID:      "uv",
-		EnvironmentKey:    "python.tool.uv|uv|host|windows/amd64|root|speech.qwen3-tts.python",
-		SourceKind:        localEnvironmentSourceManaged,
-		CanonicalRoot:     `C:\nimi\engines\uv\uv.exe`,
-		Version:           "0.11.8",
-		VerifiedArtifacts: []string{`C:\nimi\engines\uv\uv.exe`},
-		SelectedConsumers: []string{"speech.qwen3-tts.python"},
-	})
-	upsertReadyPythonPrerequisiteForTest(t, svc, localEnvironmentSelectedSourceRecordState{
-		DependencyFamily:  localEnvironmentFamilyPythonVenv,
-		DependencyID:      "local-speech-qwen3-tts.venv",
-		EnvironmentKey:    "python.venv|local-speech-qwen3-tts.venv|host|windows/amd64|root",
-		SourceKind:        localEnvironmentSourceManaged,
-		CanonicalRoot:     `C:\nimi\engines\speech\0.1.0`,
-		Version:           "Python 3.12.11",
-		VerifiedArtifacts: []string{`C:\nimi\engines\speech\0.1.0\Scripts\python.exe`},
-		SelectedConsumers: []string{"speech.qwen3-tts.python"},
-	})
-	release := make(chan struct{})
-	svc.SetEngineManager(&mockEngineManager{
-		pythonPackageSetDependencyRelease: release,
-		pythonPackageSetStatus: &engine.PythonPackageSetDependencyStatus{
-			PackageSetID:           "speech-qwen3-tts-python-core",
-			LockHash:               "9a9307c48e6d92fb600d63a330c126e93c8625978b753534e65926353b85a58e",
-			VenvRoot:               `C:\nimi\engines\speech\0.1.0`,
-			InterpreterPath:        `C:\nimi\engines\speech\0.1.0\Scripts\python.exe`,
-			UVExecutable:           `C:\nimi\engines\uv\uv.exe`,
-			InstalledDistributions: []string{"fastapi==0.121.1"},
-			ImportProbes:           []string{"fastapi"},
-			Detail:                 "Runtime-managed Python package set verified from declared lock manifest",
+	consumer := "speech.qwen3-tts.python"
+	identity := currentPythonDependencyProfileIdentityForTest(t, consumer)
+	uvRecord := upsertReadyManagedUVForProfileTest(t, svc, consumer, identity)
+	venvRecord := upsertReadyPythonProfileForTest(t, svc, localEnvironmentFamilyPythonVenv, consumer, identity)
+	upsertReadyManagedPythonRuntimeForProfileTest(t, svc, consumer, identity)
+	status := pythonDependencyProfileStatusForTest(identity, consumer, venvRecord.CanonicalRoot, uvRecord.CanonicalRoot, t.TempDir())
+	svc.SetEngineManager(&mockEngineManager{pythonDependencyProfileStatus: &status})
+	states := []string{}
+	progressCalled := false
+	result, err := svc.executePythonPackageSetEnvironmentDependencyJob(context.Background(), localEnvironmentDependencyJobState{
+		EnvironmentKey:   localEnvironmentPythonProfileKey(localEnvironmentFamilyPythonPackageSet, identity.DependencyID, svc.localEnvironmentRuntimeDataRoot()),
+		DependencyFamily: localEnvironmentFamilyPythonPackageSet,
+		DependencyID:     identity.DependencyID,
+		ConsumerScope:    consumer,
+	}, localEnvironmentDependencyJobProgressReporter{
+		State: func(state string) { states = append(states, state) },
+		Progress: func(localEnvironmentDependencyJobProgress) {
+			progressCalled = true
 		},
 	})
-
-	resp, err := svc.StartLocalEnvironmentDependencyJob(context.Background(), &runtimev1.StartLocalEnvironmentDependencyJobRequest{
-		EnvironmentKey:   "python.package-set|local-speech-qwen3-tts.package-set|host|windows/amd64|root",
-		DependencyFamily: localEnvironmentFamilyPythonPackageSet,
-		DependencyId:     "local-speech-qwen3-tts.package-set",
-		Confirmed:        true,
-	})
 	if err != nil {
-		t.Fatalf("StartLocalEnvironmentDependencyJob: %v", err)
+		t.Fatalf("executePythonPackageSetEnvironmentDependencyJob: %v", err)
 	}
-	installing := awaitLocalEnvironmentDependencyJobStateForTest(t, svc, resp.GetJob().GetJobId(), localEnvironmentStateInstalling)
-	if installing.GetBytesReceived() != 0 || installing.GetBytesTotal() != 0 || installing.GetPercent() != 0 {
-		t.Fatalf("package-set installing job must not fabricate download progress: %+v", installing)
+	if len(states) != 1 || states[0] != localEnvironmentStateVerifying {
+		t.Fatalf("package-set progress states = %v, want verifying only", states)
 	}
-	close(release)
-
-	terminal := awaitLocalEnvironmentDependencyJobTerminal(t, svc, resp.GetJob().GetJobId())
-	if terminal.GetState() != localEnvironmentStateReadyManaged {
-		t.Fatalf("job state = %q, want ready_managed", terminal.GetState())
+	if progressCalled {
+		t.Fatal("package-set verification must not fabricate byte progress")
+	}
+	if result.State != localEnvironmentStateReadyManaged {
+		t.Fatalf("result state = %q, want ready_managed", result.State)
 	}
 }
 
 func TestPythonPackageSetWaitsForVerifiedVenvInsteadOfStaleRepairRecord(t *testing.T) {
 	svc := newTestService(t)
-	upsertReadyPythonPrerequisiteForTest(t, svc, localEnvironmentSelectedSourceRecordState{
-		DependencyFamily:  localEnvironmentFamilyPythonUV,
-		DependencyID:      "uv",
-		EnvironmentKey:    "python.tool.uv|uv|host|windows/amd64|root|speech.qwen3-tts.python",
-		SourceKind:        localEnvironmentSourceManaged,
-		SelectedConsumers: []string{"speech.qwen3-tts.python"},
-	})
+	consumer := "speech.qwen3-tts.python"
+	identity := currentPythonDependencyProfileIdentityForTest(t, consumer)
+	uvRecord := upsertReadyManagedUVForProfileTest(t, svc, consumer, identity)
+	upsertReadyManagedPythonRuntimeForProfileTest(t, svc, consumer, identity)
+	profileEnvironmentKey := localEnvironmentPythonProfileKey(localEnvironmentFamilyPythonVenv, identity.DependencyID, svc.localEnvironmentRuntimeDataRoot())
 	svc.upsertLocalEnvironmentSelectedSourceRecord(verifiedSelectedSourceRecordForTest(localEnvironmentSelectedSourceRecordState{
 		DependencyFamily:  localEnvironmentFamilyPythonVenv,
-		DependencyID:      "local-speech-qwen3-tts.venv",
-		EnvironmentKey:    "python.venv|local-speech-qwen3-tts.venv|host|windows/amd64|stale-root",
+		DependencyID:      identity.DependencyID,
+		EnvironmentKey:    profileEnvironmentKey,
 		SourceKind:        localEnvironmentSourceManaged,
 		CanonicalRoot:     filepath.Join(t.TempDir(), "missing-venv"),
 		VerifiedArtifacts: []string{"Scripts/python.exe"},
-		SelectedConsumers: []string{"speech.qwen3-tts.python"},
+		Version:           identity.ProfileDigest,
+		Hashes:            pythonDependencyProfileHashes(identity),
+		SelectedConsumers: []string{consumer},
 		RepairState:       localEnvironmentRepairRequired,
 	}))
 	venvRoot := t.TempDir()
-	svc.SetEngineManager(&mockEngineManager{
-		pythonPackageSetStatus: &engine.PythonPackageSetDependencyStatus{
-			PackageSetID:           "speech-qwen3-tts-python-core",
-			LockHash:               "9a9307c48e6d92fb600d63a330c126e93c8625978b753534e65926353b85a58e",
-			VenvRoot:               venvRoot,
-			InterpreterPath:        filepath.Join(venvRoot, "Scripts", "python.exe"),
-			UVExecutable:           filepath.Join(t.TempDir(), "uv.exe"),
-			InstalledDistributions: []string{"qwen-tts==0.1.0"},
-			ImportProbes:           []string{"qwen_tts"},
-			Detail:                 "Runtime-managed Python package set verified from declared lock manifest",
-		},
-	})
+	status := pythonDependencyProfileStatusForTest(identity, consumer, venvRoot, uvRecord.CanonicalRoot, t.TempDir())
+	svc.SetEngineManager(&mockEngineManager{pythonDependencyProfileStatus: &status})
+	packageEnvironmentKey := rememberPythonProfileJobContractForTest(svc, localEnvironmentFamilyPythonPackageSet, consumer, identity)
 
 	resp, err := svc.StartLocalEnvironmentDependencyJob(context.Background(), &runtimev1.StartLocalEnvironmentDependencyJobRequest{
-		EnvironmentKey:   "python.package-set|local-speech-qwen3-tts.package-set|host|windows/amd64|root",
+		EnvironmentKey:   packageEnvironmentKey,
 		DependencyFamily: localEnvironmentFamilyPythonPackageSet,
-		DependencyId:     "local-speech-qwen3-tts.package-set",
+		DependencyId:     identity.DependencyID,
+		ConsumerScope:    consumer,
 		Confirmed:        true,
 	})
 	if err != nil {
@@ -594,12 +675,14 @@ func TestPythonPackageSetWaitsForVerifiedVenvInsteadOfStaleRepairRecord(t *testi
 	}
 	readyVenvRecord := verifiedSelectedSourceRecordForTest(localEnvironmentSelectedSourceRecordState{
 		DependencyFamily:  localEnvironmentFamilyPythonVenv,
-		DependencyID:      "local-speech-qwen3-tts.venv",
-		EnvironmentKey:    "python.venv|local-speech-qwen3-tts.venv|host|windows/amd64|ready-root",
+		DependencyID:      identity.DependencyID,
+		EnvironmentKey:    profileEnvironmentKey,
 		SourceKind:        localEnvironmentSourceManaged,
 		CanonicalRoot:     venvRoot,
 		VerifiedArtifacts: []string{filepath.Join(venvRoot, "Scripts", "python.exe")},
-		SelectedConsumers: []string{"speech.qwen3-tts.python"},
+		Version:           identity.ProfileDigest,
+		Hashes:            pythonDependencyProfileHashes(identity),
+		SelectedConsumers: []string{consumer},
 	})
 	writeSelectedSourceLocalArtifactsForTest(t, readyVenvRecord)
 	go func() {
@@ -613,35 +696,114 @@ func TestPythonPackageSetWaitsForVerifiedVenvInsteadOfStaleRepairRecord(t *testi
 	}
 }
 
+func TestPythonPackageSetWaitsForExactTTSProfileWhenASRProfileIsAlreadyReady(t *testing.T) {
+	svc := newTestService(t)
+	svc.SetLocalEnvironmentPrerequisiteWaitTimeout(2 * time.Second)
+	ttsConsumer := "speech.qwen3-tts.python"
+	asrConsumer := "speech.qwen3-asr.python"
+	ttsIdentity := currentPythonDependencyProfileIdentityForTest(t, ttsConsumer)
+	asrIdentity := currentPythonDependencyProfileIdentityForTest(t, asrConsumer)
+	if ttsIdentity.DependencyID == asrIdentity.DependencyID {
+		t.Fatal("ASR and TTS must resolve distinct exact dependency profiles")
+	}
+	uvRecord := upsertReadyManagedUVForProfileTest(t, svc, ttsConsumer, ttsIdentity)
+	upsertReadyManagedPythonRuntimeForProfileTest(t, svc, ttsConsumer, ttsIdentity)
+	asrVenvRecord := upsertReadyPythonProfileForTest(t, svc, localEnvironmentFamilyPythonVenv, asrConsumer, asrIdentity)
+
+	ttsVenvEnvironmentKey := localEnvironmentPythonProfileKey(localEnvironmentFamilyPythonVenv, ttsIdentity.DependencyID, svc.localEnvironmentRuntimeDataRoot())
+	ttsVenvJob, err := svc.startLocalEnvironmentDependencyJob(context.Background(), localEnvironmentDependencyJobRequest{
+		EnvironmentKey:   ttsVenvEnvironmentKey,
+		DependencyFamily: localEnvironmentFamilyPythonVenv,
+		DependencyID:     ttsIdentity.DependencyID,
+		ConsumerScope:    ttsConsumer,
+		SourceKind:       localEnvironmentSourceManaged,
+	}, nil)
+	if err != nil {
+		t.Fatalf("start in-flight TTS venv job: %v", err)
+	}
+	if _, ok := svc.transitionLocalEnvironmentDependencyJob(ttsVenvJob.JobID, localEnvironmentStateInstalling, "", true); !ok {
+		t.Fatal("transition TTS venv job to installing")
+	}
+
+	ttsProfileRoot := t.TempDir()
+	ttsVenvRecord := verifiedSelectedSourceRecordForTest(localEnvironmentSelectedSourceRecordState{
+		DependencyFamily:  localEnvironmentFamilyPythonVenv,
+		DependencyID:      ttsIdentity.DependencyID,
+		EnvironmentKey:    ttsVenvEnvironmentKey,
+		SourceKind:        localEnvironmentSourceManaged,
+		CanonicalRoot:     ttsProfileRoot,
+		Version:           ttsIdentity.ProfileDigest,
+		Hashes:            pythonDependencyProfileHashes(ttsIdentity),
+		VerifiedArtifacts: []string{filepath.Join(ttsProfileRoot, "Scripts", "python.exe")},
+	})
+	writeSelectedSourceLocalArtifactsForTest(t, ttsVenvRecord)
+	status := pythonDependencyProfileStatusForTest(ttsIdentity, ttsConsumer, ttsProfileRoot, uvRecord.CanonicalRoot, t.TempDir())
+	svc.SetEngineManager(&mockEngineManager{pythonDependencyProfileStatus: &status})
+
+	type packageResult struct {
+		result localEnvironmentDependencyJobResult
+		err    error
+	}
+	resultCh := make(chan packageResult, 1)
+	go func() {
+		result, executeErr := svc.executePythonPackageSetEnvironmentDependencyJob(context.Background(), localEnvironmentDependencyJobState{
+			EnvironmentKey:   localEnvironmentPythonProfileKey(localEnvironmentFamilyPythonPackageSet, ttsIdentity.DependencyID, svc.localEnvironmentRuntimeDataRoot()),
+			DependencyFamily: localEnvironmentFamilyPythonPackageSet,
+			DependencyID:     ttsIdentity.DependencyID,
+			ConsumerScope:    ttsConsumer,
+		}, localEnvironmentDependencyJobProgressReporter{})
+		resultCh <- packageResult{result: result, err: executeErr}
+	}()
+
+	select {
+	case got := <-resultCh:
+		t.Fatalf("TTS package-set consumed another profile before its exact venv was ready: state=%q err=%v ASR-root=%q", got.result.State, got.err, asrVenvRecord.CanonicalRoot)
+	case <-time.After(75 * time.Millisecond):
+	}
+	svc.upsertLocalEnvironmentSelectedSourceRecord(ttsVenvRecord)
+
+	select {
+	case got := <-resultCh:
+		if got.err != nil {
+			t.Fatalf("execute TTS package-set after exact venv promotion: %v", got.err)
+		}
+		if got.result.State != localEnvironmentStateReadyManaged {
+			t.Fatalf("TTS package-set state = %q, want ready_managed", got.result.State)
+		}
+		if !sameLocalEnvironmentPath(got.result.CanonicalRoot, ttsProfileRoot) {
+			t.Fatalf("TTS package-set root = %q, want exact TTS profile %q (ASR root %q)", got.result.CanonicalRoot, ttsProfileRoot, asrVenvRecord.CanonicalRoot)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("TTS package-set did not resume after exact venv promotion")
+	}
+}
+
 func TestStartPythonTorchWheelDependencyJobRequiresCUDARecordForCUDAConsumer(t *testing.T) {
 	svc := newTestService(t)
+	consumer, identity := currentMediaPythonDependencyProfileForTest(t)
+	if identity.AcceleratorPlane != "cuda" {
+		t.Skip("current host does not select the CUDA dependency profile")
+	}
 	svc.SetLocalEnvironmentPrerequisiteWaitTimeout(100 * time.Millisecond)
-	upsertReadyPythonPrerequisiteForTest(t, svc, localEnvironmentSelectedSourceRecordState{
-		DependencyFamily:  localEnvironmentFamilyPythonUV,
-		DependencyID:      "uv",
-		EnvironmentKey:    "python.tool.uv|uv|host|windows/amd64|root|media.diffusers.cuda",
-		SourceKind:        localEnvironmentSourceManaged,
-		CanonicalRoot:     `C:\nimi\engines\uv\uv.exe`,
-		Version:           "0.11.8",
-		VerifiedArtifacts: []string{`C:\nimi\engines\uv\uv.exe`},
-		SelectedConsumers: []string{"media.diffusers.cuda"},
-	})
-	upsertReadyPythonPrerequisiteForTest(t, svc, localEnvironmentSelectedSourceRecordState{
-		DependencyFamily:  localEnvironmentFamilyPythonVenv,
-		DependencyID:      "local-image-python.venv",
-		EnvironmentKey:    "python.venv|local-image-python.venv|host|windows/amd64|root|media.diffusers.cuda",
-		SourceKind:        localEnvironmentSourceManaged,
-		CanonicalRoot:     `C:\nimi\engines\media\0.1.0`,
-		Version:           "Python 3.12.11",
-		VerifiedArtifacts: []string{`C:\nimi\engines\media\0.1.0\Scripts\python.exe`},
-		SelectedConsumers: []string{"media.diffusers.cuda"},
-	})
+	upsertReadyManagedUVForProfileTest(t, svc, consumer, identity)
+	upsertReadyManagedPythonRuntimeForProfileTest(t, svc, consumer, identity)
+	upsertReadyPythonProfileForTest(t, svc, localEnvironmentFamilyPythonPackageSet, consumer, identity)
 	svc.SetEngineManager(&mockEngineManager{})
+	torchIdentity, err := engine.ResolvePythonTorchWheelDependencyIdentity(consumer)
+	if err != nil {
+		t.Fatalf("resolve Torch selected-source identity: %v", err)
+	}
 
+	environmentKey := localEnvironmentPythonTorchWheelKey(torchIdentity, identity.PlatformTuple, svc.localEnvironmentRuntimeDataRoot())
+	dependencyID := localEnvironmentPythonTorchWheelDependencyID(torchIdentity)
+	svc.rememberLocalEnvironmentPlanDependencyContracts([]localEnvironmentPlanDependency{{
+		EnvironmentKey: environmentKey, DependencyFamily: localEnvironmentFamilyPythonTorchWheel, DependencyID: dependencyID, ConsumerScope: consumer,
+	}})
 	resp, err := svc.StartLocalEnvironmentDependencyJob(context.Background(), &runtimev1.StartLocalEnvironmentDependencyJobRequest{
-		EnvironmentKey:   "python.torch-wheel|local-image-python.torch-wheel|host|windows/amd64|root|media.diffusers.cuda",
+		EnvironmentKey:   environmentKey,
 		DependencyFamily: localEnvironmentFamilyPythonTorchWheel,
-		DependencyId:     "local-image-python.torch-wheel",
+		DependencyId:     dependencyID,
+		ConsumerScope:    consumer,
 		Confirmed:        true,
 	})
 	if err != nil {
@@ -655,55 +817,29 @@ func TestStartPythonTorchWheelDependencyJobRequiresCUDARecordForCUDAConsumer(t *
 
 func TestStartPythonTorchWheelDependencyJobPromotesVerifiedSelectedSource(t *testing.T) {
 	svc := newTestService(t)
-	uvRecord := upsertReadyPythonPrerequisiteForTest(t, svc, localEnvironmentSelectedSourceRecordState{
-		DependencyFamily:  localEnvironmentFamilyPythonUV,
-		DependencyID:      "uv",
-		EnvironmentKey:    "python.tool.uv|uv|host|windows/amd64|root|media.diffusers.cuda",
-		SourceKind:        localEnvironmentSourceManaged,
-		CanonicalRoot:     `C:\nimi\engines\uv\uv.exe`,
-		Version:           "0.11.8",
-		VerifiedArtifacts: []string{`C:\nimi\engines\uv\uv.exe`},
-		SelectedConsumers: []string{"media.diffusers.cuda"},
-	})
-	venvRecord := upsertReadyPythonPrerequisiteForTest(t, svc, localEnvironmentSelectedSourceRecordState{
-		DependencyFamily:  localEnvironmentFamilyPythonVenv,
-		DependencyID:      "local-image-python.venv",
-		EnvironmentKey:    "python.venv|local-image-python.venv|host|windows/amd64|root|media.diffusers.cuda",
-		SourceKind:        localEnvironmentSourceManaged,
-		CanonicalRoot:     `C:\nimi\engines\media\0.1.0`,
-		Version:           "Python 3.12.11",
-		VerifiedArtifacts: []string{`C:\nimi\engines\media\0.1.0\Scripts\python.exe`},
-		SelectedConsumers: []string{"media.diffusers.cuda"},
-	})
-	cudaRecord := upsertReadyPythonPrerequisiteForTest(t, svc, localEnvironmentSelectedSourceRecordState{
-		DependencyFamily:  localEnvironmentFamilyCUDA,
-		DependencyID:      cudaUserSpaceRuntimeDependencyID,
-		EnvironmentKey:    "accelerator.cuda.runtime|nvidia-cuda-user-space-runtime|host|windows/amd64|root|media.diffusers.cuda",
-		SourceKind:        localEnvironmentSourceManaged,
-		CanonicalRoot:     `C:\nimi\runtime\dependencies\cuda`,
-		VerifiedArtifacts: []string{`C:\nimi\runtime\dependencies\cuda\bin\cudart64_12.dll`},
-		SelectedConsumers: []string{"media.diffusers.cuda"},
-	})
-	svc.SetEngineManager(&mockEngineManager{
-		pythonTorchWheelStatus: &engine.PythonTorchWheelDependencyStatus{
-			TorchVersion:     "2.7.1+cu126",
-			TorchvisionSpec:  "torchvision==0.22.1",
-			AcceleratorPlane: "cuda",
-			CUDAABI:          "cu126",
-			WheelIndex:       "https://download.pytorch.org/whl/cu126",
-			WheelLockHash:    "f7e7402ad7ef255ac2da7116eb5406dd403107d98035172016f749efca404546",
-			VenvRoot:         `C:\nimi\engines\media\0.1.0`,
-			InterpreterPath:  `C:\nimi\engines\media\0.1.0\Scripts\python.exe`,
-			UVExecutable:     `C:\nimi\engines\uv\uv.exe`,
-			ImportProbes:     []string{"torch", "torchvision"},
-			Detail:           "Runtime-managed Python torch wheel set verified from declared wheel index",
-		},
-	})
+	consumer, identity := currentMediaPythonDependencyProfileForTest(t)
+	uvRecord := upsertReadyManagedUVForProfileTest(t, svc, consumer, identity)
+	upsertReadyManagedPythonRuntimeForProfileTest(t, svc, consumer, identity)
+	packageRecord := upsertReadyPythonProfileForTest(t, svc, localEnvironmentFamilyPythonPackageSet, consumer, identity)
+	upsertReadyCUDAForProfileTest(t, svc, consumer, identity)
+	packageCacheRoot := t.TempDir()
+	status := pythonDependencyProfileStatusForTest(identity, consumer, packageRecord.CanonicalRoot, uvRecord.CanonicalRoot, packageCacheRoot)
+	svc.SetEngineManager(&mockEngineManager{pythonDependencyProfileStatus: &status})
+	torchIdentity, err := engine.ResolvePythonTorchWheelDependencyIdentity(consumer)
+	if err != nil {
+		t.Fatalf("resolve Torch selected-source identity: %v", err)
+	}
 
+	environmentKey := localEnvironmentPythonTorchWheelKey(torchIdentity, identity.PlatformTuple, svc.localEnvironmentRuntimeDataRoot())
+	dependencyID := localEnvironmentPythonTorchWheelDependencyID(torchIdentity)
+	svc.rememberLocalEnvironmentPlanDependencyContracts([]localEnvironmentPlanDependency{{
+		EnvironmentKey: environmentKey, DependencyFamily: localEnvironmentFamilyPythonTorchWheel, DependencyID: dependencyID, ConsumerScope: consumer,
+	}})
 	resp, err := svc.StartLocalEnvironmentDependencyJob(context.Background(), &runtimev1.StartLocalEnvironmentDependencyJobRequest{
-		EnvironmentKey:   "python.torch-wheel|local-image-python.torch-wheel|host|windows/amd64|root|media.diffusers.cuda",
+		EnvironmentKey:   environmentKey,
 		DependencyFamily: localEnvironmentFamilyPythonTorchWheel,
-		DependencyId:     "local-image-python.torch-wheel",
+		DependencyId:     dependencyID,
+		ConsumerScope:    consumer,
 		Confirmed:        true,
 	})
 	if err != nil {
@@ -720,105 +856,62 @@ func TestStartPythonTorchWheelDependencyJobPromotesVerifiedSelectedSource(t *tes
 		t.Fatalf("ListLocalEnvironmentSelectedSources: %v", err)
 	}
 	source := sources.GetSources()[0]
-	if got := source.GetHashes()["wheel_lock_hash"]; got != "f7e7402ad7ef255ac2da7116eb5406dd403107d98035172016f749efca404546" {
-		t.Fatalf("wheel lock hash = %q, want declared wheel lock hash", got)
+	if got := source.GetHashes()["wheel_lock_hash"]; got != torchIdentity.WheelLockHash {
+		t.Fatalf("wheel lock hash = %q, want %q", got, torchIdentity.WheelLockHash)
 	}
-	if got := source.GetHashes()["selected_uv_record"]; got != uvRecord.RecordID {
-		t.Fatalf("selected uv record hash = %q, want %q", got, uvRecord.RecordID)
+	for _, forbidden := range []string{"selected_uv_record", "selected_venv_record", "selected_python_runtime_record", "selected_cuda_record", "profile_digest"} {
+		if got := source.GetHashes()[forbidden]; got != "" {
+			t.Fatalf("Torch selected source must not retain consumer-local hash %q=%q", forbidden, got)
+		}
 	}
-	if got := source.GetHashes()["selected_venv_record"]; got != venvRecord.RecordID {
-		t.Fatalf("selected venv record hash = %q, want %q", got, venvRecord.RecordID)
+	if got := source.GetCanonicalRoot(); got != packageCacheRoot {
+		t.Fatalf("Torch canonical root = %q, want shared package cache %q", got, packageCacheRoot)
 	}
-	if got := source.GetHashes()["selected_cuda_record"]; got != cudaRecord.RecordID {
-		t.Fatalf("selected cuda record hash = %q, want %q", got, cudaRecord.RecordID)
+	if got := source.GetCanonicalRoot(); sameLocalEnvironmentPath(got, packageRecord.CanonicalRoot) {
+		t.Fatalf("Torch selected source must not retain consumer profile root %q", got)
 	}
-	if got := source.GetSelectedConsumers(); len(got) != 1 || got[0] != "media.diffusers.cuda" {
-		t.Fatalf("selected consumers = %v, want media.diffusers.cuda", got)
-	}
-}
-
-func TestPythonTorchWheelVerifiedArtifactsOmitAbsentSpeechTorchvision(t *testing.T) {
-	t.Parallel()
-	artifacts := pythonTorchWheelVerifiedArtifacts(engine.PythonTorchWheelDependencyStatus{
-		TorchVersion:    "2.11.0+cu128",
-		InterpreterPath: `C:\nimi\engines\speech\Scripts\python.exe`,
-		UVExecutable:    `C:\nimi\engines\uv\uv.exe`,
-	})
-	if stringSliceContains(artifacts, "torchvision==0.22.1") || stringSliceContains(artifacts, "") {
-		t.Fatalf("speech verified artifacts contain absent torchvision: %v", artifacts)
-	}
-	if !stringSliceContains(artifacts, "torch=2.11.0+cu128") {
-		t.Fatalf("speech verified artifacts missing observed Torch: %v", artifacts)
+	if got := source.GetSelectedConsumers(); len(got) != 0 {
+		t.Fatalf("canonical Torch selected source owns consumers: %v", got)
 	}
 }
 
-func TestPythonTorchWheelDependencyJobUsesInstallingWithoutDownloadProgress(t *testing.T) {
+func TestPythonTorchWheelDependencyJobUsesVerifyingWithoutDownloadProgress(t *testing.T) {
 	svc := newTestService(t)
-	upsertReadyPythonPrerequisiteForTest(t, svc, localEnvironmentSelectedSourceRecordState{
-		DependencyFamily:  localEnvironmentFamilyPythonUV,
-		DependencyID:      "uv",
-		EnvironmentKey:    "python.tool.uv|uv|host|windows/amd64|root|media.diffusers.cuda",
-		SourceKind:        localEnvironmentSourceManaged,
-		CanonicalRoot:     `C:\nimi\engines\uv\uv.exe`,
-		Version:           "0.11.8",
-		VerifiedArtifacts: []string{`C:\nimi\engines\uv\uv.exe`},
-		SelectedConsumers: []string{"media.diffusers.cuda"},
-	})
-	upsertReadyPythonPrerequisiteForTest(t, svc, localEnvironmentSelectedSourceRecordState{
-		DependencyFamily:  localEnvironmentFamilyPythonVenv,
-		DependencyID:      "local-image-python.venv",
-		EnvironmentKey:    "python.venv|local-image-python.venv|host|windows/amd64|root|media.diffusers.cuda",
-		SourceKind:        localEnvironmentSourceManaged,
-		CanonicalRoot:     `C:\nimi\engines\media\0.1.0`,
-		Version:           "Python 3.12.11",
-		VerifiedArtifacts: []string{`C:\nimi\engines\media\0.1.0\Scripts\python.exe`},
-		SelectedConsumers: []string{"media.diffusers.cuda"},
-	})
-	upsertReadyPythonPrerequisiteForTest(t, svc, localEnvironmentSelectedSourceRecordState{
-		DependencyFamily:  localEnvironmentFamilyCUDA,
-		DependencyID:      cudaUserSpaceRuntimeDependencyID,
-		EnvironmentKey:    "accelerator.cuda.runtime|nvidia-cuda-user-space-runtime|host|windows/amd64|root|media.diffusers.cuda",
-		SourceKind:        localEnvironmentSourceManaged,
-		CanonicalRoot:     `C:\nimi\runtime\dependencies\cuda`,
-		VerifiedArtifacts: []string{`C:\nimi\runtime\dependencies\cuda\bin\cudart64_12.dll`},
-		SelectedConsumers: []string{"media.diffusers.cuda"},
-	})
-	release := make(chan struct{})
-	svc.SetEngineManager(&mockEngineManager{
-		pythonTorchWheelDependencyRelease: release,
-		pythonTorchWheelStatus: &engine.PythonTorchWheelDependencyStatus{
-			TorchVersion:     "2.7.1+cu126",
-			TorchvisionSpec:  "torchvision==0.22.1",
-			AcceleratorPlane: "cuda",
-			CUDAABI:          "cu126",
-			WheelIndex:       "https://download.pytorch.org/whl/cu126",
-			WheelLockHash:    "f7e7402ad7ef255ac2da7116eb5406dd403107d98035172016f749efca404546",
-			VenvRoot:         `C:\nimi\engines\media\0.1.0`,
-			InterpreterPath:  `C:\nimi\engines\media\0.1.0\Scripts\python.exe`,
-			UVExecutable:     `C:\nimi\engines\uv\uv.exe`,
-			ImportProbes:     []string{"torch", "torchvision"},
-			Detail:           "Runtime-managed Python torch wheel set verified from declared wheel index",
+	consumer, identity := currentMediaPythonDependencyProfileForTest(t)
+	uvRecord := upsertReadyManagedUVForProfileTest(t, svc, consumer, identity)
+	upsertReadyManagedPythonRuntimeForProfileTest(t, svc, consumer, identity)
+	packageRecord := upsertReadyPythonProfileForTest(t, svc, localEnvironmentFamilyPythonPackageSet, consumer, identity)
+	upsertReadyCUDAForProfileTest(t, svc, consumer, identity)
+	status := pythonDependencyProfileStatusForTest(identity, consumer, packageRecord.CanonicalRoot, uvRecord.CanonicalRoot, t.TempDir())
+	svc.SetEngineManager(&mockEngineManager{pythonDependencyProfileStatus: &status})
+	torchIdentity, err := engine.ResolvePythonTorchWheelDependencyIdentity(consumer)
+	if err != nil {
+		t.Fatalf("resolve Torch selected-source identity: %v", err)
+	}
+	states := []string{}
+	progressCalled := false
+	result, err := svc.executePythonTorchWheelEnvironmentDependencyJob(context.Background(), localEnvironmentDependencyJobState{
+		EnvironmentKey:   localEnvironmentPythonTorchWheelKey(torchIdentity, identity.PlatformTuple, svc.localEnvironmentRuntimeDataRoot()),
+		DependencyFamily: localEnvironmentFamilyPythonTorchWheel,
+		DependencyID:     localEnvironmentPythonTorchWheelDependencyID(torchIdentity),
+		ConsumerScope:    consumer,
+	}, localEnvironmentDependencyJobProgressReporter{
+		State: func(state string) { states = append(states, state) },
+		Progress: func(localEnvironmentDependencyJobProgress) {
+			progressCalled = true
 		},
 	})
-
-	resp, err := svc.StartLocalEnvironmentDependencyJob(context.Background(), &runtimev1.StartLocalEnvironmentDependencyJobRequest{
-		EnvironmentKey:   "python.torch-wheel|local-image-python.torch-wheel|host|windows/amd64|root|media.diffusers.cuda",
-		DependencyFamily: localEnvironmentFamilyPythonTorchWheel,
-		DependencyId:     "local-image-python.torch-wheel",
-		Confirmed:        true,
-	})
 	if err != nil {
-		t.Fatalf("StartLocalEnvironmentDependencyJob: %v", err)
+		t.Fatalf("executePythonTorchWheelEnvironmentDependencyJob: %v", err)
 	}
-	installing := awaitLocalEnvironmentDependencyJobStateForTest(t, svc, resp.GetJob().GetJobId(), localEnvironmentStateInstalling)
-	if installing.GetBytesReceived() != 0 || installing.GetBytesTotal() != 0 || installing.GetPercent() != 0 {
-		t.Fatalf("torch-wheel installing job must not fabricate download progress: %+v", installing)
+	if len(states) != 1 || states[0] != localEnvironmentStateVerifying {
+		t.Fatalf("Torch progress states = %v, want verifying only", states)
 	}
-	close(release)
-
-	terminal := awaitLocalEnvironmentDependencyJobTerminal(t, svc, resp.GetJob().GetJobId())
-	if terminal.GetState() != localEnvironmentStateReadyManaged {
-		t.Fatalf("job state = %q, want ready_managed", terminal.GetState())
+	if progressCalled {
+		t.Fatal("Torch verification must not fabricate byte progress")
+	}
+	if result.State != localEnvironmentStateReadyManaged {
+		t.Fatalf("result state = %q, want ready_managed", result.State)
 	}
 }
 
@@ -1023,6 +1116,11 @@ func TestStartModelCompanionDependencyJobPromotesVerifiedSelectedSource(t *testi
 // for uv's selected-source record rather than failing closed.
 func TestPythonPrerequisiteOrderingConvergesUnderConcurrentUnorderedStart(t *testing.T) {
 	svc := newTestService(t)
+	consumer, identity := currentMediaPythonDependencyProfileForTest(t)
+	runtimeEnvironmentKey := localEnvironmentPythonRuntimeKey(identity.PlatformTuple, svc.localEnvironmentRuntimeDataRoot())
+	uvEnvironmentKey := localEnvironmentManagedUVKey(identity.PlatformTuple, svc.localEnvironmentRuntimeDataRoot())
+	rememberPythonDependencyJobContractForTest(svc, localEnvironmentFamilyPythonRuntime, localEnvironmentPythonRuntimeDependencyID(), runtimeEnvironmentKey, consumer)
+	rememberPythonDependencyJobContractForTest(svc, localEnvironmentFamilyPythonUV, "uv", uvEnvironmentKey, consumer)
 	svc.SetEngineManager(&mockEngineManager{
 		uvToolDependencyStatus: &engine.UVToolDependencyStatus{
 			Version:          "0.11.8",
@@ -1035,9 +1133,9 @@ func TestPythonPrerequisiteOrderingConvergesUnderConcurrentUnorderedStart(t *tes
 			Detail:           "Runtime-managed uv tool verified from pinned official archive",
 		},
 		pythonRuntimeStatus: &engine.PythonRuntimeDependencyStatus{
-			PythonVersion:   "Python 3.12.11",
-			InterpreterPath: `C:\nimi\engines\media\0.1.0\Scripts\python.exe`,
-			RuntimeRoot:     `C:\nimi\engines\media\0.1.0`,
+			PythonVersion:   "Python " + engine.ManagedPythonVersion,
+			InterpreterPath: filepath.Join(t.TempDir(), "python.exe"),
+			RuntimeRoot:     t.TempDir(),
 			UVExecutable:    `C:\nimi\engines\uv\uv.exe`,
 			Detail:          "Runtime-managed Python runtime verified through selected uv tool",
 		},
@@ -1046,18 +1144,20 @@ func TestPythonPrerequisiteOrderingConvergesUnderConcurrentUnorderedStart(t *tes
 	// Start the dependent python.runtime job FIRST (before uv) — the worst-case
 	// ordering. Its executor must wait for uv's record rather than fail closed.
 	runtimeResp, err := svc.StartLocalEnvironmentDependencyJob(context.Background(), &runtimev1.StartLocalEnvironmentDependencyJobRequest{
-		EnvironmentKey:   "python.runtime|python.runtime|host|windows/amd64|root|media.diffusers.cuda",
+		EnvironmentKey:   runtimeEnvironmentKey,
 		DependencyFamily: localEnvironmentFamilyPythonRuntime,
-		DependencyId:     "python.runtime",
+		DependencyId:     localEnvironmentPythonRuntimeDependencyID(),
+		ConsumerScope:    consumer,
 		Confirmed:        true,
 	})
 	if err != nil {
 		t.Fatalf("StartLocalEnvironmentDependencyJob python.runtime: %v", err)
 	}
 	uvResp, err := svc.StartLocalEnvironmentDependencyJob(context.Background(), &runtimev1.StartLocalEnvironmentDependencyJobRequest{
-		EnvironmentKey:   "python.tool.uv|uv|host|windows/amd64|root|media.diffusers.cuda",
+		EnvironmentKey:   uvEnvironmentKey,
 		DependencyFamily: localEnvironmentFamilyPythonUV,
 		DependencyId:     "uv",
+		ConsumerScope:    consumer,
 		Confirmed:        true,
 	})
 	if err != nil {
@@ -1076,6 +1176,10 @@ func TestPythonPrerequisiteOrderingConvergesUnderConcurrentUnorderedStart(t *tes
 
 func TestPythonRuntimeWaitIgnoresFailedPrerequisiteFromDifferentConsumer(t *testing.T) {
 	svc := newTestService(t)
+	consumer := "speech.qwen3-asr.python"
+	identity := currentPythonDependencyProfileIdentityForTest(t, consumer)
+	runtimeEnvironmentKey := localEnvironmentPythonRuntimeKey(identity.PlatformTuple, svc.localEnvironmentRuntimeDataRoot())
+	rememberPythonDependencyJobContractForTest(svc, localEnvironmentFamilyPythonRuntime, localEnvironmentPythonRuntimeDependencyID(), runtimeEnvironmentKey, consumer)
 	svc.SetLocalEnvironmentPrerequisiteWaitTimeout(2 * time.Second)
 	startFailedLocalEnvironmentDependencyJobForTest(t, svc, localEnvironmentDependencyJobRequest{
 		EnvironmentKey:   "python.tool.uv|uv|host|windows/amd64|root|first-run",
@@ -1086,19 +1190,19 @@ func TestPythonRuntimeWaitIgnoresFailedPrerequisiteFromDifferentConsumer(t *test
 	}, "old first-run uv job failed")
 	svc.SetEngineManager(&mockEngineManager{
 		pythonRuntimeStatus: &engine.PythonRuntimeDependencyStatus{
-			PythonVersion:   "Python 3.12.11",
-			InterpreterPath: `C:\nimi\engines\speech\0.1.0\Scripts\python.exe`,
-			RuntimeRoot:     `C:\nimi\engines\speech\0.1.0`,
+			PythonVersion:   "Python " + engine.ManagedPythonVersion,
+			InterpreterPath: filepath.Join(t.TempDir(), "python.exe"),
+			RuntimeRoot:     t.TempDir(),
 			UVExecutable:    `C:\nimi\engines\uv\uv.exe`,
 			Detail:          "Runtime-managed Python runtime verified through selected uv tool",
 		},
 	})
 
 	resp, err := svc.StartLocalEnvironmentDependencyJob(context.Background(), &runtimev1.StartLocalEnvironmentDependencyJobRequest{
-		EnvironmentKey:   "python.runtime|local-speech-qwen3-asr.python-runtime|host|windows/amd64|root|speech.qwen3-asr.python",
+		EnvironmentKey:   runtimeEnvironmentKey,
 		DependencyFamily: localEnvironmentFamilyPythonRuntime,
-		DependencyId:     "local-speech-qwen3-asr.python-runtime",
-		ConsumerScope:    "speech.qwen3-asr.python",
+		DependencyId:     localEnvironmentPythonRuntimeDependencyID(),
+		ConsumerScope:    consumer,
 		Confirmed:        true,
 	})
 	if err != nil {
@@ -1107,10 +1211,11 @@ func TestPythonRuntimeWaitIgnoresFailedPrerequisiteFromDifferentConsumer(t *test
 	uvRecord := verifiedSelectedSourceRecordForTest(localEnvironmentSelectedSourceRecordState{
 		DependencyFamily:  localEnvironmentFamilyPythonUV,
 		DependencyID:      "uv",
-		EnvironmentKey:    "python.tool.uv|uv|host|windows/amd64|root|speech.qwen3-asr.python",
+		EnvironmentKey:    localEnvironmentManagedUVKey(identity.PlatformTuple, svc.localEnvironmentRuntimeDataRoot()),
 		SourceKind:        localEnvironmentSourceManaged,
 		CanonicalRoot:     filepath.Join(t.TempDir(), "uv.exe"),
-		SelectedConsumers: []string{"speech.qwen3-asr.python"},
+		Version:           engine.ManagedUVVersion,
+		SelectedConsumers: []string{consumer},
 	})
 	writeSelectedSourceLocalArtifactsForTest(t, uvRecord)
 	go func() {
@@ -1126,46 +1231,38 @@ func TestPythonRuntimeWaitIgnoresFailedPrerequisiteFromDifferentConsumer(t *test
 
 func TestPythonVenvWaitIgnoresOlderFailedPrerequisiteWhenNewerJobInFlight(t *testing.T) {
 	svc := newTestService(t)
+	consumer := "speech.qwen3-asr.python"
+	identity := currentPythonDependencyProfileIdentityForTest(t, consumer)
 	svc.SetLocalEnvironmentPrerequisiteWaitTimeout(2 * time.Second)
-	uvRecord := upsertReadyPythonPrerequisiteForTest(t, svc, localEnvironmentSelectedSourceRecordState{
-		DependencyFamily:  localEnvironmentFamilyPythonUV,
-		DependencyID:      "uv",
-		EnvironmentKey:    "python.tool.uv|uv|host|windows/amd64|root|speech.qwen3-asr.python",
-		SourceKind:        localEnvironmentSourceManaged,
-		SelectedConsumers: []string{"speech.qwen3-asr.python"},
-	})
+	uvRecord := upsertReadyManagedUVForProfileTest(t, svc, consumer, identity)
+	upsertReadyCUDAForProfileTest(t, svc, consumer, identity)
+	runtimeEnvironmentKey := localEnvironmentPythonRuntimeKey(identity.PlatformTuple, svc.localEnvironmentRuntimeDataRoot())
 	startFailedLocalEnvironmentDependencyJobForTest(t, svc, localEnvironmentDependencyJobRequest{
-		EnvironmentKey:   "python.runtime|local-speech-qwen3-asr.python-runtime|host|windows/amd64|old-root|speech.qwen3-asr.python",
+		EnvironmentKey:   runtimeEnvironmentKey,
 		DependencyFamily: localEnvironmentFamilyPythonRuntime,
-		DependencyID:     "local-speech-qwen3-asr.python-runtime",
-		ConsumerScope:    "speech.qwen3-asr.python",
+		DependencyID:     localEnvironmentPythonRuntimeDependencyID(),
+		ConsumerScope:    consumer,
 		SourceKind:       localEnvironmentSourceManaged,
 	}, "old speech runtime job failed")
 	if _, err := svc.startLocalEnvironmentDependencyJob(context.Background(), localEnvironmentDependencyJobRequest{
-		EnvironmentKey:   "python.runtime|local-speech-qwen3-asr.python-runtime|host|windows/amd64|root|speech.qwen3-asr.python",
+		EnvironmentKey:   runtimeEnvironmentKey,
 		DependencyFamily: localEnvironmentFamilyPythonRuntime,
-		DependencyID:     "local-speech-qwen3-asr.python-runtime",
-		ConsumerScope:    "speech.qwen3-asr.python",
+		DependencyID:     localEnvironmentPythonRuntimeDependencyID(),
+		ConsumerScope:    consumer,
 		SourceKind:       localEnvironmentSourceManaged,
 	}, nil); err != nil {
 		t.Fatalf("start in-flight python.runtime job: %v", err)
 	}
 	venvRoot := t.TempDir()
-	svc.SetEngineManager(&mockEngineManager{
-		pythonVenvStatus: &engine.PythonVenvDependencyStatus{
-			VenvRoot:        venvRoot,
-			InterpreterPath: filepath.Join(venvRoot, "bin", "python"),
-			PythonRuntime:   filepath.Join(t.TempDir(), "python"),
-			UVExecutable:    uvRecord.CanonicalRoot,
-			Detail:          "Runtime-managed Python venv verified through selected runtime",
-		},
-	})
+	status := pythonDependencyProfileStatusForTest(identity, consumer, venvRoot, uvRecord.CanonicalRoot, t.TempDir())
+	svc.SetEngineManager(&mockEngineManager{pythonDependencyProfileStatus: &status})
+	venvEnvironmentKey := rememberPythonProfileJobContractForTest(svc, localEnvironmentFamilyPythonVenv, consumer, identity)
 
 	resp, err := svc.StartLocalEnvironmentDependencyJob(context.Background(), &runtimev1.StartLocalEnvironmentDependencyJobRequest{
-		EnvironmentKey:   "python.venv|local-speech-qwen3-asr.venv|host|windows/amd64|root|speech.qwen3-asr.python",
+		EnvironmentKey:   venvEnvironmentKey,
 		DependencyFamily: localEnvironmentFamilyPythonVenv,
-		DependencyId:     "local-speech-qwen3-asr.venv",
-		ConsumerScope:    "speech.qwen3-asr.python",
+		DependencyId:     identity.DependencyID,
+		ConsumerScope:    consumer,
 		Confirmed:        true,
 	})
 	if err != nil {
@@ -1173,11 +1270,12 @@ func TestPythonVenvWaitIgnoresOlderFailedPrerequisiteWhenNewerJobInFlight(t *tes
 	}
 	runtimeRecord := verifiedSelectedSourceRecordForTest(localEnvironmentSelectedSourceRecordState{
 		DependencyFamily:  localEnvironmentFamilyPythonRuntime,
-		DependencyID:      "local-speech-qwen3-asr.python-runtime",
-		EnvironmentKey:    "python.runtime|local-speech-qwen3-asr.python-runtime|host|windows/amd64|root|speech.qwen3-asr.python",
+		DependencyID:      localEnvironmentPythonRuntimeDependencyID(),
+		EnvironmentKey:    runtimeEnvironmentKey,
 		SourceKind:        localEnvironmentSourceManaged,
 		CanonicalRoot:     filepath.Join(t.TempDir(), "python"),
-		SelectedConsumers: []string{"speech.qwen3-asr.python"},
+		Version:           "Python " + engine.ManagedPythonVersion,
+		SelectedConsumers: []string{consumer},
 		Hashes:            map[string]string{"selected_uv_record": uvRecord.RecordID},
 	})
 	writeSelectedSourceLocalArtifactsForTest(t, runtimeRecord)

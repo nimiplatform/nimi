@@ -95,7 +95,8 @@ func (s *Service) runRecoverySweep(ctx context.Context) {
 	for _, service := range services {
 		serviceRecord := service.record
 		serviceID := strings.TrimSpace(serviceRecord.GetServiceId())
-		if serviceID == "" || privateExecutionHostEngine(serviceRecord.GetEngine()) || !s.shouldProbeServiceNow(serviceID, now) {
+		if serviceID == "" || privateExecutionHostEngine(serviceRecord.GetEngine()) ||
+			privateManagedSpeechExecutionHost(serviceRecord.GetEngine(), service.mode) || !s.shouldProbeServiceNow(serviceID, now) {
 			continue
 		}
 		probeEndpoint := s.serviceProbeEndpoint(serviceRecord)

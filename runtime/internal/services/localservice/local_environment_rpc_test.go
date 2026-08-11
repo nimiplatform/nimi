@@ -114,8 +114,29 @@ func TestLocalEnvironmentRPCProjectsReadySourcesAndGate(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ListLocalEnvironmentSelectedSources: %v", err)
 	}
-	if len(sourceResp.GetSources()) != len(planResp.GetPlan().GetDependencies()) {
-		t.Fatalf("source count = %d, want %d", len(sourceResp.GetSources()), len(planResp.GetPlan().GetDependencies()))
+	expectedSourceIDs := map[string]bool{}
+	for _, dep := range planResp.GetPlan().GetDependencies() {
+		if dep.GetConsumerScope() == req.ConsumerID {
+			expectedSourceIDs[dep.GetSelectedSourceRecordId()] = true
+		}
+	}
+	if len(sourceResp.GetSources()) != len(expectedSourceIDs) {
+		t.Fatalf("exact consumer source count = %d, want %d", len(sourceResp.GetSources()), len(expectedSourceIDs))
+	}
+	pythonSources := 0
+	for _, source := range sourceResp.GetSources() {
+		if !expectedSourceIDs[source.GetRecordId()] {
+			t.Fatalf("consumer-filtered RPC returned source without an exact ready consumer projection: %+v", source)
+		}
+		if localEnvironmentPythonSelectedSourceFamily(source.GetDependencyFamily()) {
+			pythonSources++
+			if len(source.GetSelectedConsumers()) != 0 {
+				t.Fatalf("canonical Python source projected consumer ownership: %+v", source)
+			}
+		}
+	}
+	if pythonSources == 0 {
+		t.Fatal("consumer-filtered RPC omitted exact ready Python source projections")
 	}
 
 	gateResp, err := svc.ResolveLocalEnvironmentActivationGate(context.Background(), &runtimev1.ResolveLocalEnvironmentActivationGateRequest{

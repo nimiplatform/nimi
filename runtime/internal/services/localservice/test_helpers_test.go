@@ -8,7 +8,28 @@ import (
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/engine"
 )
+
+func runtimeManagedResolvedModelDir(modelsRoot string, logicalModelID string) string {
+	dir, err := resolveRuntimeManagedModelBundleDir(modelsRoot, logicalModelID)
+	if err != nil {
+		panic(err)
+	}
+	return dir
+}
+
+func runtimeManagedAssetManifestPath(modelsRoot string, logicalModelID string) string {
+	return filepath.Join(runtimeManagedResolvedModelDir(modelsRoot, logicalModelID), localAssetManifestFileName)
+}
+
+func runtimeManagedBundleDir(modelsRoot string, asset *runtimev1.LocalAssetRecord) string {
+	dir, err := resolveRuntimeManagedBundleDir(modelsRoot, asset)
+	if err != nil {
+		panic(err)
+	}
+	return dir
+}
 
 func mustInstallAttachedLocalModel(t *testing.T, svc *Service, req installLocalAssetParams) *runtimev1.LocalAssetRecord {
 	t.Helper()
@@ -112,6 +133,34 @@ func writeSelectedSourceLocalArtifactsForTest(t *testing.T, record localEnvironm
 		}
 		if err := os.WriteFile(check.Path, []byte("test artifact"), 0o644); err != nil {
 			t.Fatalf("write selected source artifact %q: %v", check.Path, err)
+		}
+	}
+}
+
+func writePythonDependencyProfileStaticFilesForTest(
+	t *testing.T,
+	root string,
+	consumer string,
+	identity engine.PythonDependencyProfileIdentity,
+) {
+	t.Helper()
+	files, err := engine.PythonDependencyProfileStaticFiles(consumer, identity)
+	if err != nil {
+		t.Fatalf("resolve canonical dependency-profile static files: %v", err)
+	}
+	for _, file := range files {
+		path := filepath.Join(root, file.RelativePath)
+		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+			t.Fatalf("create dependency-profile static file parent: %v", err)
+		}
+		if err := os.Chmod(path, 0o600); err != nil && !os.IsNotExist(err) {
+			t.Fatalf("make dependency-profile static file writable: %v", err)
+		}
+		if err := os.WriteFile(path, file.Content, 0o444); err != nil {
+			t.Fatalf("write dependency-profile static file: %v", err)
+		}
+		if err := os.Chmod(path, 0o444); err != nil {
+			t.Fatalf("restore dependency-profile static file read-only mode: %v", err)
 		}
 	}
 }

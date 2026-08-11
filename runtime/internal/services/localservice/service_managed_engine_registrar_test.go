@@ -66,43 +66,23 @@ func (m *registrarTestEngineManager) EnsurePythonRuntimeDependency(_ context.Con
 	}, nil
 }
 
-func (m *registrarTestEngineManager) EnsurePythonVenvDependency(_ context.Context, uvPath string, pythonRuntimePath string, engineName string, _ string) (engine.PythonVenvDependencyStatus, error) {
-	return engine.PythonVenvDependencyStatus{
-		VenvRoot:        "venv-root",
-		InterpreterPath: "venv-python.exe",
-		PythonRuntime:   pythonRuntimePath,
-		UVExecutable:    uvPath,
-		Detail:          "test python venv ready for " + engineName,
-	}, nil
-}
-
-func (m *registrarTestEngineManager) EnsurePythonPackageSetDependency(_ context.Context, uvPath string, venvRoot string, consumer string) (engine.PythonPackageSetDependencyStatus, error) {
-	return engine.PythonPackageSetDependencyStatus{
-		PackageSetID:           "test-python-package-set",
-		LockHash:               "lock123",
-		VenvRoot:               venvRoot,
-		InterpreterPath:        "venv-python.exe",
+func (m *registrarTestEngineManager) EnsurePythonDependencyProfile(_ context.Context, uvPath string, _ string, consumer string, platformTuple string, acceleratorPlane string) (engine.PythonDependencyProfileStatus, error) {
+	identity, err := engine.ResolvePythonDependencyProfileIdentity(consumer, platformTuple, acceleratorPlane)
+	if err != nil {
+		return engine.PythonDependencyProfileStatus{}, err
+	}
+	return engine.PythonDependencyProfileStatus{
+		Identity:               identity,
+		ProfileRoot:            "profile-root",
+		InterpreterPath:        "profile-python.exe",
+		PackageCacheRoot:       "python-package-cache",
 		UVExecutable:           uvPath,
-		Packages:               []string{"fastapi==0.121.1"},
-		InstalledDistributions: []string{"fastapi==0.121.1"},
-		ImportProbes:           []string{"fastapi"},
-		Detail:                 "test python package set ready for " + consumer,
-	}, nil
-}
-
-func (m *registrarTestEngineManager) EnsurePythonTorchWheelDependency(_ context.Context, uvPath string, venvRoot string, consumer string) (engine.PythonTorchWheelDependencyStatus, error) {
-	return engine.PythonTorchWheelDependencyStatus{
-		TorchVersion:     "2.7.1+cu126",
-		TorchvisionSpec:  "torchvision==0.22.1",
-		AcceleratorPlane: "cuda",
-		CUDAABI:          "cu126",
-		WheelIndex:       "https://download.pytorch.org/whl/cu126",
-		WheelLockHash:    "torchlock123",
-		VenvRoot:         venvRoot,
-		InterpreterPath:  "venv-python.exe",
-		UVExecutable:     uvPath,
-		ImportProbes:     []string{"torch", "torchvision"},
-		Detail:           "test torch wheel ready for " + consumer,
+		InstalledDistributions: []string{"torch==" + identity.TorchVersion},
+		ImportProbes:           []string{"torch"},
+		ObservedPythonVersion:  identity.PythonVersion,
+		ObservedTorchVersion:   identity.TorchVersion,
+		ObservedCUDAABI:        identity.CUDAABI,
+		Detail:                 "test immutable Python dependency profile ready",
 	}, nil
 }
 

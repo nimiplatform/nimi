@@ -2372,6 +2372,17 @@ type AppendRuntimeAuditRequest struct {
 	Payload map[string]any `json:"payload,omitempty"`
 }
 
+type ApplyLocalEnvironmentPlanRequest struct {
+	Resolution *ResolveLocalEnvironmentPlanRequest `json:"resolution,omitempty"`
+	ExpectedPlanId string `json:"expected_plan_id,omitempty"`
+	Confirmed bool `json:"confirmed,omitempty"`
+}
+
+type ApplyLocalEnvironmentPlanResponse struct {
+	Plan *LocalEnvironmentPlan `json:"plan,omitempty"`
+	Jobs []LocalEnvironmentDependencyJob `json:"jobs,omitempty"`
+}
+
 type ApplyProfileRequest struct {
 	Plan *LocalProfileResolutionPlan `json:"plan,omitempty"`
 }
@@ -5137,6 +5148,12 @@ type LocalEnvironmentPlan struct {
 	State string `json:"state,omitempty"`
 	ReasonCode string `json:"reason_code,omitempty"`
 	Dependencies []LocalEnvironmentPlanDependency `json:"dependencies,omitempty"`
+	RequiredDependencyFamilies []string `json:"required_dependency_families,omitempty"`
+	AggregateSizeKnown bool `json:"aggregate_size_known,omitempty"`
+	AggregateSizeBytes int64 `json:"aggregate_size_bytes,omitempty"`
+	StorageCategories []string `json:"storage_categories,omitempty"`
+	SourceOwners []string `json:"source_owners,omitempty"`
+	NoSystemMutation bool `json:"no_system_mutation,omitempty"`
 }
 
 type LocalEnvironmentPlanDependency struct {
@@ -9621,6 +9638,14 @@ func (c RuntimeTypedClient) AppendRuntimeAudit(ctx context.Context, request Appe
 		return Ack{}, err
 	}
 	return decodeRuntimeTypedResponse[Ack](raw, "Ack")
+}
+
+func (c RuntimeTypedClient) ApplyLocalEnvironmentPlan(ctx context.Context, request ApplyLocalEnvironmentPlanRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ApplyLocalEnvironmentPlanResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeLocalService/ApplyLocalEnvironmentPlan", request, metadata, timeoutMS)
+	if err != nil {
+		return ApplyLocalEnvironmentPlanResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[ApplyLocalEnvironmentPlanResponse](raw, "ApplyLocalEnvironmentPlanResponse")
 }
 
 func (c RuntimeTypedClient) ApplyProfile(ctx context.Context, request ApplyProfileRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ApplyProfileResponse, error) {

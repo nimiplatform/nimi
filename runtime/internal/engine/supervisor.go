@@ -200,18 +200,19 @@ func (s *Supervisor) Info() SupervisorInfo {
 		}
 	}
 	return SupervisorInfo{
-		Kind:                s.cfg.Kind,
-		Version:             s.cfg.Version,
-		Port:                s.cfg.Port,
-		Status:              s.status,
-		Detail:              s.statusDetail,
-		PID:                 s.pid,
-		StartedAt:           s.startedAt,
-		LastHealthyAt:       s.lastHealthyAt,
-		ConsecutiveFailures: s.consecutiveFailures,
-		BinaryPath:          s.cfg.BinaryPath,
-		BinarySizeBytes:     binarySize,
-		Endpoint:            s.cfg.Endpoint(),
+		Kind:                  s.cfg.Kind,
+		Version:               s.cfg.Version,
+		ExecutionHostIdentity: s.cfg.ExecutionHostIdentity,
+		Port:                  s.cfg.Port,
+		Status:                s.status,
+		Detail:                s.statusDetail,
+		PID:                   s.pid,
+		StartedAt:             s.startedAt,
+		LastHealthyAt:         s.lastHealthyAt,
+		ConsecutiveFailures:   s.consecutiveFailures,
+		BinaryPath:            s.cfg.BinaryPath,
+		BinarySizeBytes:       binarySize,
+		Endpoint:              s.cfg.Endpoint(),
 	}
 }
 
@@ -226,18 +227,19 @@ func (s *Supervisor) SetStateForTesting(status EngineStatus, lastHealthyAt time.
 
 // SupervisorInfo holds observable state of a supervised engine.
 type SupervisorInfo struct {
-	Kind                EngineKind
-	Version             string
-	Port                int
-	Status              EngineStatus
-	Detail              string
-	PID                 int
-	StartedAt           time.Time
-	LastHealthyAt       time.Time
-	ConsecutiveFailures int
-	BinaryPath          string
-	BinarySizeBytes     int64
-	Endpoint            string
+	Kind                  EngineKind
+	Version               string
+	ExecutionHostIdentity string
+	Port                  int
+	Status                EngineStatus
+	Detail                string
+	PID                   int
+	StartedAt             time.Time
+	LastHealthyAt         time.Time
+	ConsecutiveFailures   int
+	BinaryPath            string
+	BinarySizeBytes       int64
+	Endpoint              string
 }
 
 func (s *Supervisor) spawn(ctx context.Context, epoch uint64) error {

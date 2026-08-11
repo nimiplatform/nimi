@@ -761,7 +761,6 @@ func (d *Daemon) startSupervisedEngines(ctx context.Context) {
 	if !engineWorkRequested {
 		return
 	}
-	mediaHostSupport, _ := d.detectMediaHostSupport()
 	d.cacheImageMatrix()
 	managedImageSelection := d.resolvedImageMatrix
 	managedImageLoopback := managedImageAssetsPresent &&
@@ -807,13 +806,11 @@ func (d *Daemon) startSupervisedEngines(ctx context.Context) {
 			}
 		}
 	}
-	managedMediaLoopback := d.cfg.EngineMediaEnabled && mediaHostSupport == engine.MediaHostSupportSupportedSupervised
 	if svc != nil {
-		if managedMediaLoopback {
-			svc.SetManagedMediaEndpoint(fmt.Sprintf("http://127.0.0.1:%d/v1", d.cfg.EngineMediaPort))
-		} else {
-			svc.SetManagedMediaEndpoint("")
-		}
+		// Media process lifecycle belongs to the exact LocalService asset and
+		// dependency-profile selection. Daemon startup must not publish an
+		// ambient endpoint before that owner has admitted and started it.
+		svc.SetManagedMediaEndpoint("")
 		if d.cfg.EngineSpeechEnabled {
 			svc.SetManagedSpeechEndpoint(fmt.Sprintf("http://127.0.0.1:%d/v1", d.cfg.EngineSpeechPort))
 		} else {
@@ -850,10 +847,6 @@ func (d *Daemon) startSupervisedEngines(ctx context.Context) {
 				svc.MarkManagedEngineUsed(string(kind), "engine_bootstrap")
 			}
 		}()
-	}
-	if managedMediaLoopback {
-		bootstrap(engine.EngineMedia, d.cfg.EngineMediaVersion, d.cfg.EngineMediaPort,
-			"NIMI_RUNTIME_LOCAL_MEDIA_BASE_URL")
 	}
 	if d.cfg.EngineSidecarEnabled {
 		bootstrap(engineSidecar, d.cfg.EngineSidecarVersion, d.cfg.EngineSidecarPort,

@@ -1,6 +1,7 @@
 package localservice
 
 import (
+	"strconv"
 	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
@@ -81,17 +82,23 @@ type localEnvironmentPlanRequest struct {
 }
 
 type localEnvironmentPlan struct {
-	PlanID          string
-	PackID          string
-	ProductLabel    string
-	HostProfileID   string
-	PlatformTuple   string
-	RuntimeDataRoot string
-	ConsumerScope   string
-	CloudOnlyImpact string
-	State           string
-	ReasonCode      string
-	Dependencies    []localEnvironmentPlanDependency
+	PlanID                     string
+	PackID                     string
+	ProductLabel               string
+	HostProfileID              string
+	PlatformTuple              string
+	RuntimeDataRoot            string
+	ConsumerScope              string
+	CloudOnlyImpact            string
+	State                      string
+	ReasonCode                 string
+	Dependencies               []localEnvironmentPlanDependency
+	RequiredDependencyFamilies []string
+	AggregateSizeKnown         bool
+	AggregateSizeBytes         int64
+	StorageCategories          []string
+	SourceOwners               []string
+	NoSystemMutation           bool
 }
 
 type localEnvironmentPlanDependency struct {
@@ -217,19 +224,118 @@ func (s *Service) resolveLocalEnvironmentPlan(req localEnvironmentPlanRequest) l
 	s.rememberLocalEnvironmentPlanDependencyContracts(dependencies)
 
 	state, reasonCode := localEnvironmentPlanState(dependencies)
+	requiredFamilies, aggregateSizeKnown, aggregateSizeBytes, storageCategories, sourceOwners := localEnvironmentPlanConfirmationProjection(dependencies)
 
-	return localEnvironmentPlan{
-		PlanID:          "localenv_plan_" + shortHash(def.PackID+"|"+hostState.HostProfileID+"|"+runtimeDataRoot+"|"+consumerScope),
-		PackID:          def.PackID,
-		ProductLabel:    def.ProductLabel,
-		HostProfileID:   hostState.HostProfileID,
-		PlatformTuple:   platformTuple,
-		RuntimeDataRoot: runtimeDataRoot,
-		ConsumerScope:   consumerScope,
-		CloudOnlyImpact: def.CloudOnlyImpact,
-		State:           state,
-		ReasonCode:      reasonCode,
-		Dependencies:    dependencies,
+	plan := localEnvironmentPlan{
+		PackID:                     def.PackID,
+		ProductLabel:               def.ProductLabel,
+		HostProfileID:              hostState.HostProfileID,
+		PlatformTuple:              platformTuple,
+		RuntimeDataRoot:            runtimeDataRoot,
+		ConsumerScope:              consumerScope,
+		CloudOnlyImpact:            def.CloudOnlyImpact,
+		State:                      state,
+		ReasonCode:                 reasonCode,
+		Dependencies:               dependencies,
+		RequiredDependencyFamilies: requiredFamilies,
+		AggregateSizeKnown:         aggregateSizeKnown,
+		AggregateSizeBytes:         aggregateSizeBytes,
+		StorageCategories:          storageCategories,
+		SourceOwners:               sourceOwners,
+		NoSystemMutation:           true,
+	}
+	plan.PlanID = localEnvironmentPlanIdentity(plan)
+	return plan
+}
+
+func localEnvironmentPlanIdentity(plan localEnvironmentPlan) string {
+	parts := make([]string, 0, 16+len(plan.Dependencies)*6)
+	appendPart := func(value string) {
+		parts = append(parts, strconv.Itoa(len(value))+":"+value)
+	}
+	for _, value := range []string{
+		plan.PackID,
+		plan.HostProfileID,
+		plan.PlatformTuple,
+		plan.RuntimeDataRoot,
+		plan.ConsumerScope,
+		plan.CloudOnlyImpact,
+	} {
+		appendPart(strings.TrimSpace(value))
+	}
+	for _, dep := range plan.Dependencies {
+		if !dep.Required {
+			continue
+		}
+		for _, value := range []string{
+			dep.DependencyFamily,
+			dep.DependencyID,
+			dep.EnvironmentKey,
+			dep.SourceKind,
+			dep.ConsumerScope,
+		} {
+			appendPart(strings.TrimSpace(value))
+		}
+	}
+	for _, family := range plan.RequiredDependencyFamilies {
+		appendPart(strings.TrimSpace(family))
+	}
+	appendPart(strconv.FormatBool(plan.AggregateSizeKnown))
+	appendPart(strconv.FormatInt(plan.AggregateSizeBytes, 10))
+	for _, category := range plan.StorageCategories {
+		appendPart(strings.TrimSpace(category))
+	}
+	for _, owner := range plan.SourceOwners {
+		appendPart(strings.TrimSpace(owner))
+	}
+	appendPart(strconv.FormatBool(plan.NoSystemMutation))
+	return "localenv_plan_" + shortHash(strings.Join(parts, "\x1f"))
+}
+
+func localEnvironmentPlanConfirmationProjection(dependencies []localEnvironmentPlanDependency) ([]string, bool, int64, []string, []string) {
+	requiredFamilies := make([]string, 0, len(dependencies))
+	storageCategories := make([]string, 0, 3)
+	familySeen := make(map[string]struct{}, len(dependencies))
+	categorySeen := make(map[string]struct{}, 3)
+	hasRequired := false
+
+	for _, dep := range dependencies {
+		if !dep.Required {
+			continue
+		}
+		hasRequired = true
+		family := strings.TrimSpace(dep.DependencyFamily)
+		if _, ok := familySeen[family]; family != "" && !ok {
+			familySeen[family] = struct{}{}
+			requiredFamilies = append(requiredFamilies, family)
+		}
+		category := localEnvironmentDependencyStorageCategory(family)
+		if _, ok := categorySeen[category]; category != "" && !ok {
+			categorySeen[category] = struct{}{}
+			storageCategories = append(storageCategories, category)
+		}
+	}
+
+	if !hasRequired {
+		return requiredFamilies, false, 0, storageCategories, nil
+	}
+	// The current plan contract has no complete positive byte-size source for
+	// every materializer in a capability DAG. Never infer a zero-byte download
+	// from ready state or an absent estimate.
+	return requiredFamilies, false, 0, storageCategories, []string{"RuntimeLocalService"}
+}
+
+func localEnvironmentDependencyStorageCategory(family string) string {
+	switch family {
+	case localEnvironmentFamilyCUDA, localEnvironmentFamilyPythonUV, localEnvironmentFamilyPythonTorchWheel:
+		return "dependencies"
+	case localEnvironmentFamilyNativeLlama, localEnvironmentFamilyNativeSDCPP,
+		localEnvironmentFamilyPythonRuntime, localEnvironmentFamilyPythonVenv, localEnvironmentFamilyPythonPackageSet:
+		return "environments"
+	case localEnvironmentFamilyModelAsset, localEnvironmentFamilyModelCompanion:
+		return "models"
+	default:
+		return ""
 	}
 }
 
@@ -317,6 +423,17 @@ func localEnvironmentPlanState(dependencies []localEnvironmentPlanDependency) (s
 
 func (s *Service) resolveLocalEnvironmentDependency(def localComputePackDefinition, family string, required bool, hostState localEnvironmentHostProfileState, platformTuple string, runtimeDataRoot string, consumerScope string, req localEnvironmentPlanRequest) localEnvironmentPlanDependency {
 	dependencyID := s.localEnvironmentDependencyID(def.PackID, family, req)
+	if (family == localEnvironmentFamilyPythonVenv || family == localEnvironmentFamilyPythonPackageSet) && strings.HasPrefix(strings.TrimSpace(consumerScope), "media.") {
+		plane := "cpu"
+		if localEnvironmentHostSupportsCUDA(hostState) {
+			plane = "cuda"
+		}
+		identity, err := engine.ResolvePythonDependencyProfileIdentity(consumerScope, platformTuple, plane)
+		if err != nil {
+			return localEnvironmentUnsupportedPythonProfileDependency(family, required, consumerScope, runtimeDataRoot, err)
+		}
+		dependencyID = identity.DependencyID
+	}
 	return s.resolveLocalEnvironmentDependencyWithID(def, family, dependencyID, required, hostState, platformTuple, runtimeDataRoot, consumerScope)
 }
 
@@ -413,7 +530,17 @@ func localEnvironmentImageProfileBindingsRequiredDependency(
 func (s *Service) resolveLocalEnvironmentDependencyWithID(def localComputePackDefinition, family string, dependencyID string, required bool, hostState localEnvironmentHostProfileState, platformTuple string, runtimeDataRoot string, consumerScope string) localEnvironmentPlanDependency {
 	environmentKey := localEnvironmentKey(family, dependencyID, hostState.HostProfileID, platformTuple, runtimeDataRoot)
 	var torchIdentityErr error
-	if family == localEnvironmentFamilyPythonTorchWheel {
+	switch family {
+	case localEnvironmentFamilyPythonUV:
+		environmentKey = localEnvironmentManagedUVKey(platformTuple, runtimeDataRoot)
+	case localEnvironmentFamilyPythonRuntime:
+		dependencyID = localEnvironmentPythonRuntimeDependencyID()
+		environmentKey = localEnvironmentPythonRuntimeKey(platformTuple, runtimeDataRoot)
+	case localEnvironmentFamilyPythonVenv, localEnvironmentFamilyPythonPackageSet:
+		if strings.HasPrefix(strings.TrimSpace(dependencyID), "python-profile.") {
+			environmentKey = localEnvironmentPythonProfileKey(family, dependencyID, runtimeDataRoot)
+		}
+	case localEnvironmentFamilyPythonTorchWheel:
 		var identity engine.PythonTorchWheelDependencyIdentity
 		identity, torchIdentityErr = engine.ResolvePythonTorchWheelDependencyIdentity(consumerScope)
 		if torchIdentityErr == nil {
@@ -485,12 +612,23 @@ func (s *Service) resolveLocalEnvironmentDependencyWithID(def localComputePackDe
 			return dep
 		}
 		if family == localEnvironmentFamilyPythonPackageSet {
-			expectedLockHash, err := engine.ResolvePythonPackageSetLockHash(dep.ConsumerScope)
-			storedLockHash := strings.TrimSpace(record.Hashes["package_lock_hash"])
-			if err != nil || storedLockHash != expectedLockHash || strings.TrimSpace(record.Version) != expectedLockHash {
+			plane := "cpu"
+			if localEnvironmentHostSupportsCUDA(hostState) {
+				plane = "cuda"
+			}
+			expectedProfile, err := engine.ResolvePythonDependencyProfileIdentity(dep.ConsumerScope, platformTuple, plane)
+			storedLockHash := strings.TrimSpace(record.Hashes["exact_lock_sha256"])
+			storedProfileDigest := strings.TrimSpace(record.Hashes["profile_digest"])
+			if err != nil || storedLockHash != expectedProfile.ExactLockDigest || storedProfileDigest != expectedProfile.ProfileDigest || strings.TrimSpace(record.Version) != expectedProfile.ProfileDigest {
 				dep.State = localEnvironmentStateRepairRequired
 				dep.ReasonCode = "LOCAL_ENVIRONMENT_DEPENDENCY_REPAIR_REQUIRED"
-				dep.Detail = "LOCAL_ENVIRONMENT_PACKAGE_SET_LOCK_DRIFT"
+				dep.Detail = "LOCAL_ENVIRONMENT_DEPENDENCY_PROFILE_DRIFT"
+				return dep
+			}
+			if err := engine.VerifyPythonDependencyProfileStaticContent(record.CanonicalRoot, dep.ConsumerScope, expectedProfile); err != nil {
+				dep.State = localEnvironmentStateRepairRequired
+				dep.ReasonCode = "LOCAL_ENVIRONMENT_DEPENDENCY_REPAIR_REQUIRED"
+				dep.Detail = "LOCAL_ENVIRONMENT_DEPENDENCY_PROFILE_DRIFT: " + err.Error()
 				return dep
 			}
 		}
@@ -549,13 +687,20 @@ func (s *Service) resolveExpandedLocalEnvironmentDependencies(def localComputePa
 	consumers := localSpeechPlanConsumers(consumerScope)
 	dependencies := make([]localEnvironmentPlanDependency, 0, len(consumers))
 	for _, consumer := range consumers {
-		dependencyID := localSpeechPythonDependencyIDForFamily(family, consumer)
+		dependencyID := defaultLocalEnvironmentDependencyID(def.PackID, family)
 		dependencyConsumer := consumer
-		if family == localEnvironmentFamilyPythonTorchWheel {
-			plane := "cpu"
-			if localEnvironmentHostSupportsCUDA(hostState) {
-				plane = "cuda"
+		plane := "cpu"
+		if localEnvironmentHostSupportsCUDA(hostState) {
+			plane = "cuda"
+		}
+		if family == localEnvironmentFamilyPythonVenv || family == localEnvironmentFamilyPythonPackageSet {
+			identity, err := engine.ResolvePythonDependencyProfileIdentity(consumer, platformTuple, plane)
+			if err != nil {
+				dependencies = append(dependencies, localEnvironmentUnsupportedPythonProfileDependency(family, required, consumer, runtimeDataRoot, err))
+				continue
 			}
+			dependencyID = identity.DependencyID
+		} else if family == localEnvironmentFamilyPythonTorchWheel {
 			dependencyConsumer = consumer + "." + plane
 		} else if family == localEnvironmentFamilyCUDA {
 			dependencyID = cudaUserSpaceRuntimeDependencyID
@@ -564,6 +709,22 @@ func (s *Service) resolveExpandedLocalEnvironmentDependencies(def localComputePa
 		dependencies = append(dependencies, s.resolveLocalEnvironmentDependencyWithID(def, family, dependencyID, required, hostState, platformTuple, runtimeDataRoot, dependencyConsumer))
 	}
 	return dependencies, true
+}
+
+func localEnvironmentUnsupportedPythonProfileDependency(family string, required bool, consumer string, runtimeDataRoot string, cause error) localEnvironmentPlanDependency {
+	dependencyID := "python-profile.unavailable"
+	return localEnvironmentPlanDependency{
+		DependencyFamily:     strings.TrimSpace(family),
+		DependencyID:         dependencyID,
+		ConsumerScope:        strings.TrimSpace(consumer),
+		Required:             required,
+		State:                localEnvironmentStateUnsupported,
+		SourceKind:           localEnvironmentSourceUnavailable,
+		EnvironmentKey:       localEnvironmentPythonProfileKey(family, dependencyID, runtimeDataRoot),
+		ReasonCode:           "LOCAL_ENVIRONMENT_DEPENDENCY_UNSUPPORTED",
+		Detail:               cause.Error(),
+		ConfirmationRequired: false,
+	}
 }
 
 func localSpeechPlanConsumers(consumerScope string) []string {
@@ -647,37 +808,8 @@ func localEnvironmentFirstRunConsumerScope(consumerScope string) bool {
 	}
 }
 
-func localSpeechPythonDependencyID(family string, consumer string) string {
-	suffix := ""
-	switch family {
-	case localEnvironmentFamilyPythonVenv:
-		suffix = "venv"
-	case localEnvironmentFamilyPythonPackageSet:
-		suffix = "package-set"
-	default:
-		suffix = strings.ReplaceAll(family, ".", "-")
-	}
-	switch strings.TrimSpace(consumer) {
-	case "speech.qwen3-asr.python":
-		return "local-speech-qwen3-asr." + suffix
-	case "speech.qwen3-asr-transformers.python":
-		return "local-speech-qwen3-asr-transformers." + suffix
-	case "speech.qwen3-tts.python":
-		return "local-speech-qwen3-tts." + suffix
-	default:
-		return "local-speech." + suffix
-	}
-}
-
-func localSpeechPythonDependencyIDForFamily(family string, consumer string) string {
-	switch family {
-	case localEnvironmentFamilyPythonUV:
-		return defaultLocalEnvironmentDependencyID("local-speech", family)
-	case localEnvironmentFamilyPythonRuntime:
-		return localSpeechPythonDependencyID(family, consumer)
-	default:
-		return localSpeechPythonDependencyID(family, consumer)
-	}
+func localEnvironmentPythonRuntimeDependencyID() string {
+	return "python-" + engine.ManagedPythonVersion + "-" + engine.ManagedPythonABI
 }
 
 func localEnvironmentPythonTorchWheelDependencyID(identity engine.PythonTorchWheelDependencyIdentity) string {

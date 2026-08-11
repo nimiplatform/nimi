@@ -316,6 +316,17 @@ message ResolveLocalEnvironmentPlanResponse {
   LocalEnvironmentPlan plan = 1;
 }
 
+message ApplyLocalEnvironmentPlanRequest {
+  ResolveLocalEnvironmentPlanRequest resolution = 1;
+  string expected_plan_id = 2;
+  bool confirmed = 3;
+}
+
+message ApplyLocalEnvironmentPlanResponse {
+  LocalEnvironmentPlan plan = 1;
+  repeated LocalEnvironmentDependencyJob jobs = 2;
+}
+
 message PrepareProfileRuntimeDescriptorRequest {
   bytes descriptor_json = 1;
 }
@@ -695,6 +706,7 @@ service RuntimeLocalService {
 
   // Runtime-owned local environment
   rpc ResolveLocalEnvironmentPlan(ResolveLocalEnvironmentPlanRequest) returns (ResolveLocalEnvironmentPlanResponse);
+  rpc ApplyLocalEnvironmentPlan(ApplyLocalEnvironmentPlanRequest) returns (ApplyLocalEnvironmentPlanResponse);
   rpc PrepareProfileRuntimeDescriptor(PrepareProfileRuntimeDescriptorRequest) returns (PrepareProfileRuntimeDescriptorResponse);
   rpc ListLocalEnvironmentSelectedSources(ListLocalEnvironmentSelectedSourcesRequest) returns (ListLocalEnvironmentSelectedSourcesResponse);
   rpc ListLocalEnvironmentDependencyJobs(ListLocalEnvironmentDependencyJobsRequest) returns (ListLocalEnvironmentDependencyJobsResponse);

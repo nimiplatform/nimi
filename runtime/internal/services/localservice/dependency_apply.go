@@ -423,7 +423,7 @@ func (s *Service) runApplyPreflight(ctx context.Context, dep *runtimev1.LocalExe
 		return &runtimev1.LocalPreflightDecision{
 			EntryId: dep.GetEntryId(), Target: preflightTargetForDependency(dep), Check: "capability-configuration",
 			Ok: false, ReasonCode: runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED.String(),
-			Detail: "llama execution requires AIConfig Local intent plus machine selection; Profile Apply cannot install, start, or warm a target",
+			Detail: "private local capability execution requires AIConfig Local intent plus machine selection; Profile Apply cannot install, start, or warm a target",
 		}
 	}
 

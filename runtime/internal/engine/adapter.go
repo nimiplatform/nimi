@@ -20,19 +20,22 @@ func NewServiceAdapter(mgr *Manager) *ServiceAdapter {
 
 // EngineInfo mirrors localservice.EngineInfo to avoid import.
 type EngineInfoDTO struct {
-	Engine              string
-	Version             string
-	Endpoint            string
-	Port                int
-	Status              string
-	Detail              string
-	PID                 int
-	Platform            string
-	BinaryPath          string
-	BinarySizeBytes     int64
-	StartedAt           string
-	LastHealthyAt       string
-	ConsecutiveFailures int
+	Engine  string
+	Version string
+	// ExecutionHostIdentity remains inside Runtime and lets the Local service
+	// compare a resident private Host with the exact activated composition.
+	ExecutionHostIdentity string
+	Endpoint              string
+	Port                  int
+	Status                string
+	Detail                string
+	PID                   int
+	Platform              string
+	BinaryPath            string
+	BinarySizeBytes       int64
+	StartedAt             string
+	LastHealthyAt         string
+	ConsecutiveFailures   int
 }
 
 func (a *ServiceAdapter) ListEngines() []EngineInfoDTO {
@@ -69,16 +72,8 @@ func (a *ServiceAdapter) EnsurePythonRuntimeDependency(ctx context.Context, uvPa
 	return a.mgr.EnsurePythonRuntimeDependency(ctx, uvPath, engineName, version, pythonVersion)
 }
 
-func (a *ServiceAdapter) EnsurePythonVenvDependency(ctx context.Context, uvPath string, pythonRuntimePath string, engineName string, version string) (PythonVenvDependencyStatus, error) {
-	return a.mgr.EnsurePythonVenvDependency(ctx, uvPath, pythonRuntimePath, engineName, version)
-}
-
-func (a *ServiceAdapter) EnsurePythonPackageSetDependency(ctx context.Context, uvPath string, venvRoot string, consumer string) (PythonPackageSetDependencyStatus, error) {
-	return a.mgr.EnsurePythonPackageSetDependency(ctx, uvPath, venvRoot, consumer)
-}
-
-func (a *ServiceAdapter) EnsurePythonTorchWheelDependency(ctx context.Context, uvPath string, venvRoot string, consumer string) (PythonTorchWheelDependencyStatus, error) {
-	return a.mgr.EnsurePythonTorchWheelDependency(ctx, uvPath, venvRoot, consumer)
+func (a *ServiceAdapter) EnsurePythonDependencyProfile(ctx context.Context, uvPath string, pythonRuntimePath string, consumer string, platformTuple string, acceleratorPlane string) (PythonDependencyProfileStatus, error) {
+	return a.mgr.EnsurePythonDependencyProfile(ctx, uvPath, pythonRuntimePath, consumer, platformTuple, acceleratorPlane)
 }
 
 func (a *ServiceAdapter) EnsureManagedImageBackend(ctx context.Context, cfg *ManagedImageBackendConfig) error {
@@ -142,17 +137,18 @@ func (a *ServiceAdapter) EngineStatus(engineName string) (EngineInfoDTO, error) 
 
 func supervisorInfoToDTO(info SupervisorInfo) EngineInfoDTO {
 	dto := EngineInfoDTO{
-		Engine:              publicEngineName(info.Kind),
-		Version:             info.Version,
-		Endpoint:            info.Endpoint,
-		Port:                info.Port,
-		Status:              string(info.Status),
-		Detail:              info.Detail,
-		PID:                 info.PID,
-		Platform:            PlatformString(),
-		BinaryPath:          info.BinaryPath,
-		BinarySizeBytes:     info.BinarySizeBytes,
-		ConsecutiveFailures: info.ConsecutiveFailures,
+		Engine:                publicEngineName(info.Kind),
+		Version:               info.Version,
+		ExecutionHostIdentity: info.ExecutionHostIdentity,
+		Endpoint:              info.Endpoint,
+		Port:                  info.Port,
+		Status:                string(info.Status),
+		Detail:                info.Detail,
+		PID:                   info.PID,
+		Platform:              PlatformString(),
+		BinaryPath:            info.BinaryPath,
+		BinarySizeBytes:       info.BinarySizeBytes,
+		ConsecutiveFailures:   info.ConsecutiveFailures,
 	}
 	if !info.StartedAt.IsZero() {
 		dto.StartedAt = info.StartedAt.UTC().Format(time.RFC3339)

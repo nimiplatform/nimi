@@ -18,8 +18,14 @@ entries:
   - dependency_families_10
   - dependency families are resolved by Runtime local environment plan before
     activation
-  - uv, Python, venv, package sets, and Torch wheels are managed dependency
-    families, not user prerequisites
+  - precisely pinned managed uv 0.11.8, exact Python, venv, package sets, and
+    Torch wheels are managed dependency families, not user or PATH
+    prerequisites
+  - venv, package-set, Torch, declared source, and Driver inputs compose one
+    immutable consumer-independent Python dependency profile; the profile is
+    not a new dependency family or selected-source owner
+  - equal complete profile fingerprints reuse one content-addressed capsule and
+    one shared Runtime package cache; incompatible inputs create a new capsule
   - engine package selection consumes dependency graph truth and must not select
     private prerequisites
   - each dependency family materializes strictly under its managed_root K-CFG-018
@@ -65,8 +71,8 @@ data_plane_root_binding:
     - environments
   binding:
     models: model payload trees (model.asset, model.companion-asset)
-    dependencies: standalone downloaded dependency payloads (uv tool, shared accelerator/CUDA runtime)
-    environments: Nimi-managed executable environment trees (native engine packages, the managed Python interpreter, venvs, package sets, Torch wheels)
+    dependencies: standalone downloaded dependency payloads (precisely pinned uv tool, shared accelerator/CUDA runtime, shared content-addressed Python package cache)
+    environments: Nimi-managed executable environment trees (native engine packages, the exact managed Python interpreter, immutable Python dependency-profile capsules)
 
 dependency_families:
   - family_id: accelerator.cuda.runtime
@@ -169,19 +175,20 @@ dependency_families:
     owner: runtime_local_environment_plan
     dependency_kind: python_tool
     environment_key_fields:
-      - tool_id
+      - tool_version
       - platform_tuple
       - runtime_data_root
-    source_policy: system-first-managed-fallback
+    environment_key_semantics:
+      tool_version: >-
+        Precisely pinned Runtime-managed uv version 0.11.8. A PATH-selected,
+        system, or otherwise unpinned uv executable is not admitted.
+    source_policy: pinned-managed-tool-only
     source_candidates:
-      - source_kind: system
-        priority: 1
-        admission: positive_compatibility_proof_required
       - source_kind: managed
-        priority: 2
+        priority: 1
         admission: explicit_confirmation_before_first_network_materialization
       - source_kind: unavailable
-        priority: 3
+        priority: 2
         admission: fail_closed
     managed_root: dependencies
     activation_env_delta: process_env_only
@@ -190,7 +197,8 @@ dependency_families:
     verification_evidence_ref: python-tool-uv-evidence
     required_proof:
       - canonical_executable
-      - version_metadata
+      - exact_version_0.11.8
+      - declared_archive_and_source_hash
       - selected_source_record
 
   - family_id: python.runtime
@@ -198,6 +206,7 @@ dependency_families:
     dependency_kind: python_interpreter
     environment_key_fields:
       - python_version
+      - python_abi
       - platform_tuple
       - runtime_data_root
     source_policy: uv-managed-python
@@ -223,13 +232,17 @@ dependency_families:
     owner: runtime_local_environment_plan
     dependency_kind: python_virtual_environment
     environment_key_fields:
-      - engine_id
-      - backend_family
-      - python_version
-      - package_lock_hash
-      - platform_tuple
+      - dependency_profile_digest
       - runtime_data_root
-    source_policy: runtime-built-from-managed-python
+    environment_key_semantics:
+      dependency_profile_digest: >-
+        Complete fingerprint of exact Python version and ABI, OS and
+        architecture, host-derived accelerator plane, Torch version, CUDA ABI,
+        complete transitive exact dependency lock, wheel, package index and
+        package source identities, and Driver protocol and version. Consumer,
+        model, asset, host-profile, engine, backend, user-folder, import-path,
+        selected-source, and route-local identities are excluded.
+    source_policy: runtime-composed-immutable-dependency-profile
     source_candidates:
       - source_kind: managed
         priority: 1
@@ -243,21 +256,25 @@ dependency_families:
     source_manifest_ref: managed-python-venv-source
     verification_evidence_ref: python-venv-evidence
     required_proof:
-      - canonical_venv_root
-      - interpreter_binding
-      - package_lock_hash
+      - canonical_immutable_profile_root
+      - exact_interpreter_version_and_abi
+      - complete_dependency_profile_fingerprint
+      - staged_exact_frozen_sync_verification_and_atomic_promotion
       - selected_source_record
 
   - family_id: python.package-set
     owner: runtime_local_environment_plan
     dependency_kind: python_package_set
     environment_key_fields:
-      - engine_id
-      - backend_family
-      - package_lock_hash
-      - platform_tuple
+      - dependency_profile_digest
       - runtime_data_root
-    source_policy: declared-lock-or-package-set-only
+    environment_key_semantics:
+      dependency_profile_digest: >-
+        The same complete consumer-independent dependency-profile fingerprint
+        used by python.venv. Equal fingerprints reuse one promoted capsule;
+        consumer activation is profile-consumption verification only and never
+        consumer-scoped selected-source ownership.
+    source_policy: exact-lock-and-declared-source-profile-only
     source_candidates:
       - source_kind: managed
         priority: 1
@@ -271,9 +288,13 @@ dependency_families:
     source_manifest_ref: managed-python-package-lock-source
     verification_evidence_ref: python-package-set-evidence
     required_proof:
-      - package_lock_hash
+      - complete_transitive_exact_lock_hash
+      - wheel_index_and_package_source_identity
       - installed_distribution_set
       - import_probe
+      - driver_protocol_and_bundle_verification
+      - host_derived_accelerator_execution_probe
+      - profile_consumption_evidence
       - selected_source_record
 
   - family_id: python.torch-wheel
@@ -283,8 +304,16 @@ dependency_families:
       - torch_version
       - accelerator_plane
       - cuda_abi
+      - wheel_lock_hash
+      - package_index_identity
+      - package_source_identity
       - platform_tuple
       - runtime_data_root
+    environment_key_semantics:
+      accelerator_plane: Host-derived accelerator plane; never a user override.
+      wheel_lock_hash: >-
+        Exact declared wheel set and source identity. Consumer membership is
+        excluded and projected only through dependency-profile consumption.
     source_policy: declared-wheel-index-or-artifact-only
     source_candidates:
       - source_kind: managed
@@ -293,7 +322,7 @@ dependency_families:
       - source_kind: unavailable
         priority: 2
         admission: fail_closed
-    managed_root: environments
+    managed_root: dependencies
     activation_env_delta: process_env_only
     materializer_ref: materializer.python.torch-wheel
     source_manifest_ref: managed-torch-wheel-source
@@ -301,6 +330,7 @@ dependency_families:
     required_proof:
       - wheel_source
       - wheel_hash_or_lock
+      - package_index_and_source_identity
       - torch_version
       - accelerator_abi_compatibility
       - import_probe
@@ -386,7 +416,9 @@ dependency_families:
 
 graph_rules:
   - dependency families are resolved by Runtime local environment plan before activation
-  - uv, Python, venv, package sets, and Torch wheels are managed dependency families, not user prerequisites
+  - precisely pinned managed uv 0.11.8, exact Python, venv, package sets, and Torch wheels are managed dependency families, not user or PATH prerequisites
+  - venv, package-set, Torch, declared source, and Driver inputs compose one immutable consumer-independent Python dependency profile; the profile is not a new dependency family or selected-source owner
+  - equal complete profile fingerprints reuse one content-addressed capsule and one shared Runtime package cache; incompatible inputs create a new capsule
   - engine package selection consumes dependency graph truth and must not select private prerequisites
   - each dependency family materializes strictly under its managed_root K-CFG-018 data-plane root resolved from the selected dataRootRef; engine-private or home-directory install roots are not admitted
   - model import may request a plan but must not become dependency source truth
@@ -396,5 +428,7 @@ graph_rules:
   - model.asset dependency identity is the semantic asset_id; local_asset_id is lifecycle and lookup projection only
   - model.companion-asset dependency identity is semantic asset_id plus semantic parent_asset_id; local_asset_id and selected_source_record_id must not replace either field
   - startup, route resolution, Desktop page load, SDK reads, passive import review, health probes, and background maintenance must not trigger first heavy or network materialization
+  - profile creation stages under Runtime-owned roots, uses exact frozen synchronization against declared inputs and the shared package cache, verifies imports and accelerator execution, and atomically promotes; promoted profiles are never mutated
+  - consumer activation may project profile-consumption verification but never creates, replaces, or transfers selected-source ownership
   - no dependency family may mutate user PATH, machine PATH, shell profiles, or system CUDA
   - missing, incompatible, corrupt, cancelled, or unconfirmed dependencies fail closed

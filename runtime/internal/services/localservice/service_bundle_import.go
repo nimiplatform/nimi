@@ -312,6 +312,11 @@ func parseBundleManifestIdentity(path string) (bundleManifestIdentity, error) {
 	if logicalModelID == "" && isRunnableKind(kind) {
 		logicalModelID = defaultLogicalModelID(assetID)
 	}
+	if isRunnableKind(kind) {
+		if err := validateManagedLogicalModelID(logicalModelID); err != nil {
+			return bundleManifestIdentity{}, err
+		}
+	}
 	return bundleManifestIdentity{
 		assetID:        assetID,
 		logicalModelID: logicalModelID,
@@ -781,9 +786,25 @@ func (s *Service) importLocalAssetBundleSync(ctx context.Context, transferID str
 		}
 		if isRunnableKind(identity.kind) {
 			logicalModelID = identity.logicalModelID
-			destDir = runtimeManagedResolvedModelDir(modelsRoot, logicalModelID)
+			destDir, err = resolveRuntimeManagedImportedBundleDir(modelsRoot, identity.assetID, identity.kind)
+			if err != nil {
+				return nil, grpcerr.WrapWithReasonCode(
+					codes.InvalidArgument,
+					runtimev1.ReasonCode_AI_LOCAL_MANIFEST_INVALID,
+					err,
+					grpcerr.ReasonOptions{Message: "bundle storage identity is invalid"},
+				)
+			}
 		} else {
-			destDir = runtimeManagedPassiveAssetDir(modelsRoot, identity.assetID)
+			destDir, err = resolveRuntimeManagedImportedBundleDir(modelsRoot, identity.assetID, identity.kind)
+			if err != nil {
+				return nil, grpcerr.WrapWithReasonCode(
+					codes.InvalidArgument,
+					runtimev1.ReasonCode_AI_LOCAL_MANIFEST_INVALID,
+					err,
+					grpcerr.ReasonOptions{Message: "bundle storage identity is invalid"},
+				)
+			}
 		}
 		manifestPath = filepath.Join(destDir, localAssetManifestFileName)
 		manifest, err = normalizeExistingBundleManifest(sourceManifestPath, manifestPath, sourceDir, scan, identity)
@@ -805,7 +826,15 @@ func (s *Service) importLocalAssetBundleSync(ctx context.Context, transferID str
 		}
 		assetID := "local-import/" + modelName
 		logicalModelID = defaultLogicalModelID(assetID)
-		destDir = runtimeManagedResolvedModelDir(modelsRoot, logicalModelID)
+		destDir, err = resolveRuntimeManagedModelBundleDir(modelsRoot, logicalModelID)
+		if err != nil {
+			return nil, grpcerr.WrapWithReasonCode(
+				codes.InvalidArgument,
+				runtimev1.ReasonCode_AI_LOCAL_MANIFEST_INVALID,
+				err,
+				grpcerr.ReasonOptions{Message: "bundle storage identity is invalid"},
+			)
+		}
 		manifestPath = filepath.Join(destDir, localAssetManifestFileName)
 		manifest, copyScan, err = s.scaffoldBundleManifest(manifestPath, modelName, req.GetCapabilities(), req.GetEngine(), sourceDir, scan)
 		if err != nil {
@@ -940,7 +969,15 @@ func (s *Service) rescanLocalAssetBundleSync(ctx context.Context, transferID str
 		return nil, grpcerr.WithReasonCodeOptions(codes.NotFound, runtimev1.ReasonCode_AI_LOCAL_MANIFEST_INVALID, grpcerr.ReasonOptions{Message: "local asset not found"})
 	}
 	modelsRoot := resolveLocalModelsPath(s.localModelsPath)
-	bundleDir := runtimeManagedBundleDir(modelsRoot, asset)
+	bundleDir, err := resolveRuntimeManagedBundleDir(modelsRoot, asset)
+	if err != nil {
+		return nil, grpcerr.WrapWithReasonCode(
+			codes.InvalidArgument,
+			runtimev1.ReasonCode_AI_LOCAL_MANIFEST_INVALID,
+			err,
+			grpcerr.ReasonOptions{Message: "managed bundle path is invalid"},
+		)
+	}
 	if info, err := os.Stat(bundleDir); err != nil || !info.IsDir() {
 		return nil, grpcerr.WithReasonCodeOptions(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_MANIFEST_INVALID, grpcerr.ReasonOptions{Message: fmt.Sprintf("managed bundle directory missing: %s", bundleDir)})
 	}
@@ -987,7 +1024,7 @@ func (s *Service) rescanLocalAssetBundleSync(ctx context.Context, transferID str
 	var imported *runtimev1.ImportLocalAssetResponse
 	err = replaceBundleManifestWithRollback(manifestPath, manifest, func() error {
 		var importErr error
-		imported, importErr = s.importLocalAsset(ctx, &runtimev1.ImportLocalAssetRequest{ManifestPath: manifestPath}, localAssetExistingPolicyRebind)
+		imported, importErr = s.importLocalAsset(ctx, &runtimev1.ImportLocalAssetRequest{ManifestPath: manifestPath}, localAssetExistingPolicyRebind, localAssetID)
 		return importErr
 	})
 	if err != nil {
@@ -996,18 +1033,22 @@ func (s *Service) rescanLocalAssetBundleSync(ctx context.Context, transferID str
 	return imported.GetAsset(), nil
 }
 
-func runtimeManagedBundleDir(modelsRoot string, asset *runtimev1.LocalAssetRecord) string {
+func resolveRuntimeManagedBundleDir(modelsRoot string, asset *runtimev1.LocalAssetRecord) (string, error) {
 	if asset == nil {
-		return ""
+		return "", fmt.Errorf("local asset is required")
+	}
+	repo := strings.TrimSpace(asset.GetSource().GetRepo())
+	if strings.HasPrefix(strings.ToLower(repo), "file://") {
+		return resolveManagedManifestBundleDir(modelsRoot, repo)
 	}
 	if isRunnableKind(asset.GetKind()) {
 		logicalModelID := strings.TrimSpace(asset.GetLogicalModelId())
 		if logicalModelID == "" {
 			logicalModelID = defaultLogicalModelID(asset.GetAssetId())
 		}
-		return runtimeManagedResolvedModelDir(modelsRoot, logicalModelID)
+		return resolveRuntimeManagedModelBundleDir(modelsRoot, logicalModelID)
 	}
-	return runtimeManagedPassiveAssetDir(modelsRoot, asset.GetAssetId())
+	return resolveRuntimeManagedImportedBundleDir(modelsRoot, asset.GetAssetId(), asset.GetKind())
 }
 
 func fileExists(path string) bool {

@@ -247,6 +247,7 @@ func (s *Service) installLocalAssetRecord(
 	auditEventType string,
 	auditDetail string,
 	existingPolicy localAssetExistingPolicy,
+	exactRebindLocalAssetID ...string,
 ) (*runtimev1.LocalAssetRecord, error) {
 	capabilities = normalizeAssetCapabilities(capabilities)
 	if kind == runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_UNSPECIFIED {
@@ -324,6 +325,10 @@ func (s *Service) installLocalAssetRecord(
 		record.Capabilities = []string{"chat"}
 	}
 
+	exactRebindID := ""
+	if len(exactRebindLocalAssetID) > 0 {
+		exactRebindID = strings.TrimSpace(exactRebindLocalAssetID[0])
+	}
 	s.mu.Lock()
 	for _, existing := range s.assets {
 		if existing.GetStatus() == runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_REMOVED {
@@ -334,6 +339,9 @@ func (s *Service) installLocalAssetRecord(
 			case localAssetExistingPolicyDuplicate:
 				continue
 			case localAssetExistingPolicyRebind:
+				if exactRebindID != "" && existing.GetLocalAssetId() != exactRebindID {
+					continue
+				}
 				cloned := cloneLocalAsset(existing)
 				cloned.AssetId = record.GetAssetId()
 				cloned.Kind = record.GetKind()
@@ -383,6 +391,10 @@ func (s *Service) installLocalAssetRecord(
 				return nil, grpcerr.WithReasonCode(codes.AlreadyExists, runtimev1.ReasonCode_AI_LOCAL_ASSET_ALREADY_INSTALLED)
 			}
 		}
+	}
+	if existingPolicy == localAssetExistingPolicyRebind && exactRebindID != "" {
+		s.mu.Unlock()
+		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_INVALID_TRANSITION)
 	}
 	s.assets[record.GetLocalAssetId()] = cloneLocalAsset(record)
 	s.appendRuntimeAuditLocked(&runtimev1.LocalAuditEvent{

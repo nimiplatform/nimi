@@ -51,9 +51,9 @@ func TestResolveManagedMediaImageProfilePreservesRepeatedOccurrenceBindingsToBac
 	svc.assets[first.GetLocalAssetId()] = first
 	svc.assets[second.GetLocalAssetId()] = second
 	svc.mu.Unlock()
-	writeManagedAssetEntryFixture(t, svc.resolvedLocalModelsPath(), main, "main")
-	writeManagedAssetEntryFixture(t, svc.resolvedLocalModelsPath(), first, "first")
-	writeManagedAssetEntryFixture(t, svc.resolvedLocalModelsPath(), second, "second")
+	writeManagedAssetEntryFixture(t, svc, svc.resolvedLocalModelsPath(), main, "main")
+	writeManagedAssetEntryFixture(t, svc, svc.resolvedLocalModelsPath(), first, "first")
+	writeManagedAssetEntryFixture(t, svc, svc.resolvedLocalModelsPath(), second, "second")
 
 	key := profileRuntimeMaterializationKeyPrefix + "repeated-occurrences"
 	svc.cacheManagedMediaImageProfileResolution(main.GetLocalAssetId(), key, nil, true, []managedMediaProfileMaterializationBinding{
@@ -164,7 +164,7 @@ func testResolveManagedMediaImageProfileDescriptorAcrossRestart(t *testing.T) {
 	svc.mu.Lock()
 	svc.assets[main.GetLocalAssetId()].Family = "z-image-turbo"
 	svc.mu.Unlock()
-	mainPath := writeManagedAssetEntryFixture(t, modelsRoot, main, "main-model")
+	mainPath := writeManagedAssetEntryFixture(t, svc, modelsRoot, main, "main-model")
 
 	vae := &runtimev1.LocalAssetRecord{
 		LocalAssetId:   "artifact_" + ulid.Make().String(),
@@ -195,8 +195,8 @@ func testResolveManagedMediaImageProfileDescriptorAcrossRestart(t *testing.T) {
 	svc.assets[vae.GetLocalAssetId()] = vae
 	svc.assets[qwen.GetLocalAssetId()] = qwen
 	svc.mu.Unlock()
-	vaePath := writeManagedAssetEntryFixture(t, modelsRoot, vae, "vae")
-	qwenPath := writeManagedAssetEntryFixture(t, modelsRoot, qwen, "llm")
+	vaePath := writeManagedAssetEntryFixture(t, svc, modelsRoot, vae, "vae")
+	qwenPath := writeManagedAssetEntryFixture(t, svc, modelsRoot, qwen, "llm")
 	runtimePath := func(absolutePath string) string {
 		t.Helper()
 		relativePath, relativeErr := filepath.Rel(modelsRoot, absolutePath)

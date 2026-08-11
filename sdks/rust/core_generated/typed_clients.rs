@@ -5127,6 +5127,68 @@ impl AppendRuntimeAuditRequest {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct ApplyLocalEnvironmentPlanRequest {
+    pub resolution: Option<Box<ResolveLocalEnvironmentPlanRequest>>,
+    pub expected_plan_id: Option<String>,
+    pub confirmed: Option<bool>,
+}
+
+impl ApplyLocalEnvironmentPlanRequest {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if self.resolution.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode resolution"); }
+        if let Some(value) = &self.expected_plan_id { pairs.push(format!("expected_plan_id={}", value)); }
+        if let Some(value) = &self.confirmed { pairs.push(format!("confirmed={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        for key in ["resolution"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+
+        out.expected_plan_id = pairs.get("expected_plan_id").cloned();
+        out.confirmed = pairs.get("confirmed").and_then(|value| value.parse().ok());
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ApplyLocalEnvironmentPlanResponse {
+    pub plan: Option<Box<LocalEnvironmentPlan>>,
+    pub jobs: Vec<Box<LocalEnvironmentDependencyJob>>,
+}
+
+impl ApplyLocalEnvironmentPlanResponse {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let pairs: Vec<String> = Vec::new();
+        if self.plan.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode plan"); }
+        if !self.jobs.is_empty() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode jobs"); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let out = Self::default();
+        for key in ["plan", "jobs"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+        if !pairs.is_empty() {
+            panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client has no decoder for response fields");
+        }
+
+
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct ApplyProfileRequest {
     pub plan: Option<Box<LocalProfileResolutionPlan>>,
 }
@@ -18334,6 +18396,12 @@ pub struct LocalEnvironmentPlan {
     pub state: Option<String>,
     pub reason_code: Option<String>,
     pub dependencies: Vec<Box<LocalEnvironmentPlanDependency>>,
+    pub required_dependency_families: Vec<String>,
+    pub aggregate_size_known: Option<bool>,
+    pub aggregate_size_bytes: Option<i64>,
+    pub storage_categories: Vec<String>,
+    pub source_owners: Vec<String>,
+    pub no_system_mutation: Option<bool>,
 }
 
 impl LocalEnvironmentPlan {
@@ -18350,6 +18418,12 @@ impl LocalEnvironmentPlan {
         if let Some(value) = &self.state { pairs.push(format!("state={}", value)); }
         if let Some(value) = &self.reason_code { pairs.push(format!("reason_code={}", value)); }
         if !self.dependencies.is_empty() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode dependencies"); }
+        for value in &self.required_dependency_families { pairs.push(format!("required_dependency_families={}", value)); }
+        if let Some(value) = &self.aggregate_size_known { pairs.push(format!("aggregate_size_known={}", value)); }
+        if let Some(value) = &self.aggregate_size_bytes { pairs.push(format!("aggregate_size_bytes={}", value)); }
+        for value in &self.storage_categories { pairs.push(format!("storage_categories={}", value)); }
+        for value in &self.source_owners { pairs.push(format!("source_owners={}", value)); }
+        if let Some(value) = &self.no_system_mutation { pairs.push(format!("no_system_mutation={}", value)); }
         pairs.join(";").into_bytes()
     }
 
@@ -18372,6 +18446,12 @@ impl LocalEnvironmentPlan {
         out.cloud_only_impact = pairs.get("cloud_only_impact").cloned();
         out.state = pairs.get("state").cloned();
         out.reason_code = pairs.get("reason_code").cloned();
+        out.required_dependency_families = parse_repeated_string(raw, "required_dependency_families");
+        out.aggregate_size_known = pairs.get("aggregate_size_known").and_then(|value| value.parse().ok());
+        out.aggregate_size_bytes = pairs.get("aggregate_size_bytes").and_then(|value| value.parse().ok());
+        out.storage_categories = parse_repeated_string(raw, "storage_categories");
+        out.source_owners = parse_repeated_string(raw, "source_owners");
+        out.no_system_mutation = pairs.get("no_system_mutation").and_then(|value| value.parse().ok());
         out
     }
 }
@@ -31948,6 +32028,18 @@ impl From<Vec<u8>> for AppendRuntimeAuditRequest {
     }
 }
 
+impl From<Vec<u8>> for ApplyLocalEnvironmentPlanRequest {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for ApplyLocalEnvironmentPlanResponse {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
 impl From<Vec<u8>> for ApplyProfileRequest {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
@@ -38754,6 +38846,16 @@ where
             timeout,
         })?;
         Ok(Ack::from_transport(&raw))
+    }
+
+    pub fn apply_local_environment_plan(&self, request: ApplyLocalEnvironmentPlanRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ApplyLocalEnvironmentPlanResponse, T::Error> {
+        let raw = self.core.unary(CoreUnaryRequest {
+            method_id: "/nimi.runtime.v1.RuntimeLocalService/ApplyLocalEnvironmentPlan".to_string(),
+            metadata,
+            body: request.to_transport(),
+            timeout,
+        })?;
+        Ok(ApplyLocalEnvironmentPlanResponse::from_transport(&raw))
     }
 
     pub fn apply_profile(&self, request: ApplyProfileRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ApplyProfileResponse, T::Error> {

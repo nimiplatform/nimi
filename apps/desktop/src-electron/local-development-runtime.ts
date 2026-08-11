@@ -143,7 +143,7 @@ export async function startDesktopLocalDevelopmentRuntime(input: {
   };
 }
 
-function runtimeChildEnvironment(input: {
+export function runtimeChildEnvironment(input: {
   readonly desktopEnvironment: string;
   readonly homeDirectory: string;
   readonly hostExecutable: string;
@@ -164,8 +164,10 @@ function runtimeChildEnvironment(input: {
   }
   const systemRoot = requiredWindowsEnvironment('SystemRoot');
   const localAppData = requiredWindowsEnvironment('LOCALAPPDATA');
+  const programFiles = requiredWindowsEnvironment('ProgramFiles');
   return {
     LOCALAPPDATA: localAppData,
+    ProgramFiles: programFiles,
     USERPROFILE: input.homeDirectory,
     SystemRoot: systemRoot,
     TEMP: process.env.TEMP || path.join(localAppData, 'Temp'),
@@ -178,7 +180,7 @@ function runtimeChildEnvironment(input: {
   };
 }
 
-function requiredWindowsEnvironment(name: 'LOCALAPPDATA' | 'SystemRoot'): string {
+function requiredWindowsEnvironment(name: 'LOCALAPPDATA' | 'ProgramFiles' | 'SystemRoot'): string {
   const value = process.env[name];
   if (typeof value !== 'string' || !path.isAbsolute(value) || value.trim() !== value) {
     throw new Error('source-local-development-runtime-environment-invalid');

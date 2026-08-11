@@ -239,6 +239,30 @@ export interface LocalEnvironmentPlan {
      * @generated from protobuf field: repeated nimi.runtime.v1.LocalEnvironmentPlanDependency dependencies = 11
      */
     dependencies: LocalEnvironmentPlanDependency[];
+    /**
+     * @generated from protobuf field: repeated string required_dependency_families = 12
+     */
+    requiredDependencyFamilies: string[];
+    /**
+     * @generated from protobuf field: bool aggregate_size_known = 13
+     */
+    aggregateSizeKnown: boolean;
+    /**
+     * @generated from protobuf field: int64 aggregate_size_bytes = 14
+     */
+    aggregateSizeBytes: string;
+    /**
+     * @generated from protobuf field: repeated string storage_categories = 15
+     */
+    storageCategories: string[];
+    /**
+     * @generated from protobuf field: repeated string source_owners = 16
+     */
+    sourceOwners: string[];
+    /**
+     * @generated from protobuf field: bool no_system_mutation = 17
+     */
+    noSystemMutation: boolean;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.LocalEnvironmentSelectedSourceRecord
@@ -1001,7 +1025,13 @@ class LocalEnvironmentPlan$Type extends MessageType<LocalEnvironmentPlan> {
             { no: 8, name: "cloud_only_impact", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 9, name: "state", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 10, name: "reason_code", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 11, name: "dependencies", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LocalEnvironmentPlanDependency }
+            { no: 11, name: "dependencies", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LocalEnvironmentPlanDependency },
+            { no: 12, name: "required_dependency_families", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
+            { no: 13, name: "aggregate_size_known", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 14, name: "aggregate_size_bytes", kind: "scalar", T: 3 /*ScalarType.INT64*/ },
+            { no: 15, name: "storage_categories", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
+            { no: 16, name: "source_owners", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
+            { no: 17, name: "no_system_mutation", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
         ]);
     }
     create(value?: PartialMessage<LocalEnvironmentPlan>): LocalEnvironmentPlan {
@@ -1017,6 +1047,12 @@ class LocalEnvironmentPlan$Type extends MessageType<LocalEnvironmentPlan> {
         message.state = "";
         message.reasonCode = "";
         message.dependencies = [];
+        message.requiredDependencyFamilies = [];
+        message.aggregateSizeKnown = false;
+        message.aggregateSizeBytes = "0";
+        message.storageCategories = [];
+        message.sourceOwners = [];
+        message.noSystemMutation = false;
         if (value !== undefined)
             reflectionMergePartial<LocalEnvironmentPlan>(this, message, value);
         return message;
@@ -1058,6 +1094,24 @@ class LocalEnvironmentPlan$Type extends MessageType<LocalEnvironmentPlan> {
                     break;
                 case /* repeated nimi.runtime.v1.LocalEnvironmentPlanDependency dependencies */ 11:
                     message.dependencies.push(LocalEnvironmentPlanDependency.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                case /* repeated string required_dependency_families */ 12:
+                    message.requiredDependencyFamilies.push(reader.string());
+                    break;
+                case /* bool aggregate_size_known */ 13:
+                    message.aggregateSizeKnown = reader.bool();
+                    break;
+                case /* int64 aggregate_size_bytes */ 14:
+                    message.aggregateSizeBytes = reader.int64().toString();
+                    break;
+                case /* repeated string storage_categories */ 15:
+                    message.storageCategories.push(reader.string());
+                    break;
+                case /* repeated string source_owners */ 16:
+                    message.sourceOwners.push(reader.string());
+                    break;
+                case /* bool no_system_mutation */ 17:
+                    message.noSystemMutation = reader.bool();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -1104,6 +1158,24 @@ class LocalEnvironmentPlan$Type extends MessageType<LocalEnvironmentPlan> {
         /* repeated nimi.runtime.v1.LocalEnvironmentPlanDependency dependencies = 11; */
         for (let i = 0; i < message.dependencies.length; i++)
             LocalEnvironmentPlanDependency.internalBinaryWrite(message.dependencies[i], writer.tag(11, WireType.LengthDelimited).fork(), options).join();
+        /* repeated string required_dependency_families = 12; */
+        for (let i = 0; i < message.requiredDependencyFamilies.length; i++)
+            writer.tag(12, WireType.LengthDelimited).string(message.requiredDependencyFamilies[i]);
+        /* bool aggregate_size_known = 13; */
+        if (message.aggregateSizeKnown !== false)
+            writer.tag(13, WireType.Varint).bool(message.aggregateSizeKnown);
+        /* int64 aggregate_size_bytes = 14; */
+        if (message.aggregateSizeBytes !== "0")
+            writer.tag(14, WireType.Varint).int64(message.aggregateSizeBytes);
+        /* repeated string storage_categories = 15; */
+        for (let i = 0; i < message.storageCategories.length; i++)
+            writer.tag(15, WireType.LengthDelimited).string(message.storageCategories[i]);
+        /* repeated string source_owners = 16; */
+        for (let i = 0; i < message.sourceOwners.length; i++)
+            writer.tag(16, WireType.LengthDelimited).string(message.sourceOwners[i]);
+        /* bool no_system_mutation = 17; */
+        if (message.noSystemMutation !== false)
+            writer.tag(17, WireType.Varint).bool(message.noSystemMutation);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

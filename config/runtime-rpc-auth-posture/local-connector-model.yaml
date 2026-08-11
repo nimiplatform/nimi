@@ -106,6 +106,8 @@ methods:
     posture: anonymous_read
   - method_id: /nimi.runtime.v1.RuntimeLocalService/ResolveLocalEnvironmentPlan
     posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/ApplyLocalEnvironmentPlan
+    posture: protected_origin_required
   - method_id: /nimi.runtime.v1.RuntimeLocalService/PrepareProfileRuntimeDescriptor
     posture: anonymous_read
   - method_id: /nimi.runtime.v1.RuntimeLocalService/ListLocalEnvironmentSelectedSources

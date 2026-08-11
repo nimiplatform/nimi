@@ -8,6 +8,7 @@ export const NIMI_ELECTRON_FIRST_PARTY_PROTECTED_RUNTIME_PROFILES = {
     methods: {
       "/nimi.runtime.v1.RuntimeLocalService/CollectDeviceProfile": { kind: "unary" },
       "/nimi.runtime.v1.RuntimeLocalService/ResolveLocalEnvironmentPlan": { kind: "unary" },
+      "/nimi.runtime.v1.RuntimeLocalService/ApplyLocalEnvironmentPlan": { kind: "unary" },
       "/nimi.runtime.v1.RuntimeLocalService/ListLocalEnvironmentDependencyJobs": { kind: "unary" },
       "/nimi.runtime.v1.RuntimeLocalService/StartLocalEnvironmentDependencyJob": { kind: "unary" },
       "/nimi.runtime.v1.RuntimeLocalService/CancelLocalEnvironmentDependencyJob": { kind: "unary" },

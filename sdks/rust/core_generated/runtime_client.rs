@@ -1592,6 +1592,14 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "Ack",
     },
     RuntimeMethodDescriptor {
+        method_id: "/nimi.runtime.v1.RuntimeLocalService/ApplyLocalEnvironmentPlan",
+        service: "RuntimeLocalService",
+        method: "ApplyLocalEnvironmentPlan",
+        kind: "unary",
+        request_type: "ApplyLocalEnvironmentPlanRequest",
+        response_type: "ApplyLocalEnvironmentPlanResponse",
+    },
+    RuntimeMethodDescriptor {
         method_id: "/nimi.runtime.v1.RuntimeLocalService/ApplyProfile",
         service: "RuntimeLocalService",
         method: "ApplyProfile",

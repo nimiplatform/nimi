@@ -53,6 +53,7 @@ const (
 	RuntimeLocalService_CancelLocalTransfer_FullMethodName                                 = "/nimi.runtime.v1.RuntimeLocalService/CancelLocalTransfer"
 	RuntimeLocalService_WatchLocalTransfers_FullMethodName                                 = "/nimi.runtime.v1.RuntimeLocalService/WatchLocalTransfers"
 	RuntimeLocalService_ResolveLocalEnvironmentPlan_FullMethodName                         = "/nimi.runtime.v1.RuntimeLocalService/ResolveLocalEnvironmentPlan"
+	RuntimeLocalService_ApplyLocalEnvironmentPlan_FullMethodName                           = "/nimi.runtime.v1.RuntimeLocalService/ApplyLocalEnvironmentPlan"
 	RuntimeLocalService_PrepareProfileRuntimeDescriptor_FullMethodName                     = "/nimi.runtime.v1.RuntimeLocalService/PrepareProfileRuntimeDescriptor"
 	RuntimeLocalService_ListLocalEnvironmentSelectedSources_FullMethodName                 = "/nimi.runtime.v1.RuntimeLocalService/ListLocalEnvironmentSelectedSources"
 	RuntimeLocalService_ListLocalEnvironmentDependencyJobs_FullMethodName                  = "/nimi.runtime.v1.RuntimeLocalService/ListLocalEnvironmentDependencyJobs"
@@ -135,6 +136,7 @@ type RuntimeLocalServiceClient interface {
 	WatchLocalTransfers(ctx context.Context, in *WatchLocalTransfersRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[LocalTransferProgressEvent], error)
 	// Runtime-owned local environment
 	ResolveLocalEnvironmentPlan(ctx context.Context, in *ResolveLocalEnvironmentPlanRequest, opts ...grpc.CallOption) (*ResolveLocalEnvironmentPlanResponse, error)
+	ApplyLocalEnvironmentPlan(ctx context.Context, in *ApplyLocalEnvironmentPlanRequest, opts ...grpc.CallOption) (*ApplyLocalEnvironmentPlanResponse, error)
 	PrepareProfileRuntimeDescriptor(ctx context.Context, in *PrepareProfileRuntimeDescriptorRequest, opts ...grpc.CallOption) (*PrepareProfileRuntimeDescriptorResponse, error)
 	ListLocalEnvironmentSelectedSources(ctx context.Context, in *ListLocalEnvironmentSelectedSourcesRequest, opts ...grpc.CallOption) (*ListLocalEnvironmentSelectedSourcesResponse, error)
 	ListLocalEnvironmentDependencyJobs(ctx context.Context, in *ListLocalEnvironmentDependencyJobsRequest, opts ...grpc.CallOption) (*ListLocalEnvironmentDependencyJobsResponse, error)
@@ -532,6 +534,16 @@ func (c *runtimeLocalServiceClient) ResolveLocalEnvironmentPlan(ctx context.Cont
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ResolveLocalEnvironmentPlanResponse)
 	err := c.cc.Invoke(ctx, RuntimeLocalService_ResolveLocalEnvironmentPlan_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeLocalServiceClient) ApplyLocalEnvironmentPlan(ctx context.Context, in *ApplyLocalEnvironmentPlanRequest, opts ...grpc.CallOption) (*ApplyLocalEnvironmentPlanResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ApplyLocalEnvironmentPlanResponse)
+	err := c.cc.Invoke(ctx, RuntimeLocalService_ApplyLocalEnvironmentPlan_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -942,6 +954,7 @@ type RuntimeLocalServiceServer interface {
 	WatchLocalTransfers(*WatchLocalTransfersRequest, grpc.ServerStreamingServer[LocalTransferProgressEvent]) error
 	// Runtime-owned local environment
 	ResolveLocalEnvironmentPlan(context.Context, *ResolveLocalEnvironmentPlanRequest) (*ResolveLocalEnvironmentPlanResponse, error)
+	ApplyLocalEnvironmentPlan(context.Context, *ApplyLocalEnvironmentPlanRequest) (*ApplyLocalEnvironmentPlanResponse, error)
 	PrepareProfileRuntimeDescriptor(context.Context, *PrepareProfileRuntimeDescriptorRequest) (*PrepareProfileRuntimeDescriptorResponse, error)
 	ListLocalEnvironmentSelectedSources(context.Context, *ListLocalEnvironmentSelectedSourcesRequest) (*ListLocalEnvironmentSelectedSourcesResponse, error)
 	ListLocalEnvironmentDependencyJobs(context.Context, *ListLocalEnvironmentDependencyJobsRequest) (*ListLocalEnvironmentDependencyJobsResponse, error)
@@ -1096,6 +1109,9 @@ func (UnimplementedRuntimeLocalServiceServer) WatchLocalTransfers(*WatchLocalTra
 }
 func (UnimplementedRuntimeLocalServiceServer) ResolveLocalEnvironmentPlan(context.Context, *ResolveLocalEnvironmentPlanRequest) (*ResolveLocalEnvironmentPlanResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ResolveLocalEnvironmentPlan not implemented")
+}
+func (UnimplementedRuntimeLocalServiceServer) ApplyLocalEnvironmentPlan(context.Context, *ApplyLocalEnvironmentPlanRequest) (*ApplyLocalEnvironmentPlanResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ApplyLocalEnvironmentPlan not implemented")
 }
 func (UnimplementedRuntimeLocalServiceServer) PrepareProfileRuntimeDescriptor(context.Context, *PrepareProfileRuntimeDescriptorRequest) (*PrepareProfileRuntimeDescriptorResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method PrepareProfileRuntimeDescriptor not implemented")
@@ -1826,6 +1842,24 @@ func _RuntimeLocalService_ResolveLocalEnvironmentPlan_Handler(srv interface{}, c
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(RuntimeLocalServiceServer).ResolveLocalEnvironmentPlan(ctx, req.(*ResolveLocalEnvironmentPlanRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeLocalService_ApplyLocalEnvironmentPlan_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ApplyLocalEnvironmentPlanRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeLocalServiceServer).ApplyLocalEnvironmentPlan(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeLocalService_ApplyLocalEnvironmentPlan_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeLocalServiceServer).ApplyLocalEnvironmentPlan(ctx, req.(*ApplyLocalEnvironmentPlanRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -2616,6 +2650,10 @@ var RuntimeLocalService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ResolveLocalEnvironmentPlan",
 			Handler:    _RuntimeLocalService_ResolveLocalEnvironmentPlan_Handler,
+		},
+		{
+			MethodName: "ApplyLocalEnvironmentPlan",
+			Handler:    _RuntimeLocalService_ApplyLocalEnvironmentPlan_Handler,
 		},
 		{
 			MethodName: "PrepareProfileRuntimeDescriptor",

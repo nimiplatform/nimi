@@ -203,16 +203,6 @@ func (s *Service) checkManagedSupervisedSpeechHealthWithReason(ctx context.Conte
 	if err := validateManagedLocalAssetRecord(model, s.modelRuntimeMode(localModelID)); err != nil {
 		return s.setManagedSupervisedSpeechUnhealthy(model, managedLocalAssetRecordFailureDetail(err))
 	}
-	if managedSupervisedSpeechColdRecovery(reason) && !s.managedSpeechEngineAlreadyRunning(model) {
-		if model.GetStatus() == runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE {
-			updated, err := s.updateModelStatus(localModelID, runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE, "managed speech process is not resident")
-			if err != nil {
-				return nil, err
-			}
-			return modelHealth(updated), nil
-		}
-		return modelHealth(model), nil
-	}
 	if _, _, err := s.ensureManagedLocalModelBundleReady(ctx, model); err != nil {
 		return s.setManagedSupervisedSpeechUnhealthy(model, managedLocalModelBundleFailureDetail(err))
 	}
@@ -220,56 +210,19 @@ func (s *Service) checkManagedSupervisedSpeechHealthWithReason(ctx context.Conte
 		model = refreshed
 	}
 
-	endpoint := s.effectiveLocalModelEndpoint(model)
-	bootstrapErr := s.bootstrapLocalModelIfManaged(ctx, model)
-	probe := s.probeLocalModelEndpoint(ctx, model, endpoint)
-	if modelProbeSucceeded(model, probe) {
-		if model.GetStatus() == runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY &&
-			!managedSupervisedSpeechImmediateRecovery(reason) {
-			successes := s.modelRecoverySuccess(localModelID, time.Now().UTC())
-			if successes < localRecoverySuccessThreshold {
-				health := modelHealth(model)
-				health.Detail = sanitizedModelProbeDetail(
-					fmt.Sprintf("recovery probe succeeded (%d/%d)", successes, localRecoverySuccessThreshold),
-					s.modelRuntimeMode(localModelID),
-					nil,
-				)
-				return health, nil
-			}
-		}
-		s.resetModelRecovery(localModelID)
-		updated, err := s.updateModelStatus(
-			localModelID,
-			runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE,
-			"managed speech process responded; execution health remains Runtime-private",
-		)
-		if err != nil {
-			return nil, err
-		}
-		return modelHealth(updated), nil
+	targetStatus := model.GetStatus()
+	if strings.TrimSpace(reason) == "start_local_asset" || model.GetStatus() == runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY {
+		targetStatus = runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE
 	}
-
-	failures, interval := s.modelRecoveryFailure(localModelID, time.Now().UTC())
-	detail := modelProbeFailureDetail(model, probe)
-	detail = sanitizedModelProbeDetail(detail, s.modelRuntimeMode(localModelID), bootstrapErr)
-	detail = fmt.Sprintf("%s; consecutive_failures=%d; next_probe_in=%s", detail, failures, interval.String())
-	if model.GetStatus() == runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE {
-		updated, err := s.updateModelStatus(localModelID, runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE, detail)
-		if err != nil {
-			return nil, err
-		}
-		return modelHealth(updated), nil
+	updated, err := s.updateModelStatus(
+		localModelID,
+		targetStatus,
+		"local speech asset is available; execution health is private to exact local capability jobs",
+	)
+	if err != nil {
+		return nil, err
 	}
-	return s.setManagedSupervisedSpeechUnhealthy(model, detail)
-}
-
-func managedSupervisedSpeechImmediateRecovery(reason string) bool {
-	switch strings.TrimSpace(reason) {
-	case "start_local_asset", "first_run_speech_activation":
-		return true
-	default:
-		return false
-	}
+	return modelHealth(updated), nil
 }
 
 func (s *Service) setManagedSupervisedLlamaUnhealthy(model *runtimev1.LocalAssetRecord, detail string) (*localAssetHealth, error) {

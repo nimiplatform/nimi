@@ -8,17 +8,40 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestSpeechCommandEnvIncludesDriverConfiguration(t *testing.T) {
 	t.Setenv("NIMI_RUNTIME_SPEECH_QWEN3_TTS_CMD", "python3 /tmp/qwen3_tts_driver.py")
 	t.Setenv("NIMI_RUNTIME_SPEECH_QWEN3_ASR_CMD", "python3 /tmp/qwen3_asr_driver.py")
+	t.Setenv(speechQwen3TTSDeviceMapEnv, "cpu")
+	t.Setenv(speechQwen3ASRDeviceMapEnv, "cpu")
+	t.Setenv(speechQwen3ASRTransformersDeviceMapEnv, "cpu")
 	t.Setenv("NIMI_RUNTIME_SPEECH_DRIVER_TIMEOUT_MS", "45000")
 
 	env := speechCommandEnv()
 
 	if got := env["PYTHONUNBUFFERED"]; got != "1" {
 		t.Fatalf("PYTHONUNBUFFERED = %q", got)
+	}
+	if got := env["PYTHONDONTWRITEBYTECODE"]; got != "1" {
+		t.Fatalf("PYTHONDONTWRITEBYTECODE = %q", got)
+	}
+	if got := env["PYTHONNOUSERSITE"]; got != "1" {
+		t.Fatalf("PYTHONNOUSERSITE = %q", got)
+	}
+	mergedEnv := mergeSupervisorCommandEnv([]string{
+		"PYTHONPATH=ambient-modules",
+		"PYTHONHOME=ambient-home",
+		"NIMI_TEST_SPEECH_ENV_PRESERVED=kept",
+	}, env)
+	for _, key := range []string{"PYTHONPATH", "PYTHONHOME"} {
+		if got := supervisorEnvValue(mergedEnv, key); got != "" {
+			t.Fatalf("speech child inherited %s = %q", key, got)
+		}
+	}
+	if got := supervisorEnvValue(mergedEnv, "NIMI_TEST_SPEECH_ENV_PRESERVED"); got != "kept" {
+		t.Fatalf("speech child discarded unrelated host environment = %q", got)
 	}
 	if _, ok := env["NIMI_RUNTIME_LOCAL_MODELS_PATH"]; ok {
 		t.Fatal("speech env must not synthesize local model root")
@@ -28,6 +51,11 @@ func TestSpeechCommandEnvIncludesDriverConfiguration(t *testing.T) {
 	}
 	if _, ok := env["NIMI_RUNTIME_SPEECH_QWEN3_ASR_CMD"]; ok {
 		t.Fatal("speech env must not pass through qwen3_asr driver command")
+	}
+	for _, key := range []string{speechQwen3TTSDeviceMapEnv, speechQwen3ASRDeviceMapEnv, speechQwen3ASRTransformersDeviceMapEnv} {
+		if _, ok := env[key]; ok {
+			t.Fatalf("speech base env must not pass through accelerator override %s", key)
+		}
 	}
 	if got := env["NIMI_RUNTIME_SPEECH_DRIVER_TIMEOUT_MS"]; got != "45000" {
 		t.Fatalf("NIMI_RUNTIME_SPEECH_DRIVER_TIMEOUT_MS = %q", got)
@@ -295,47 +323,49 @@ func appendPythonArgs(prefix []string, args ...string) []string {
 	return append(output, args...)
 }
 
-func TestEnsureSpeechRefreshesRuntimeOwnedSpeechScripts(t *testing.T) {
+func TestEnsureSpeechOnlyVerifiesPromotedSpeechScripts(t *testing.T) {
 	cfg := DefaultSpeechConfig()
 	root := t.TempDir()
 	asrRoot := t.TempDir()
 	cfg.ModelsPath = t.TempDir()
+	cfg.SpeechHostAcceleratorPlane = "cpu"
 	cfg.SpeechQwen3TTSPackageSetRoot = root
 	cfg.SpeechQwen3ASRPackageSetRoot = asrRoot
 	cfg.SpeechDriverWorkRoot = t.TempDir()
-	if err := os.MkdirAll(root, 0o755); err != nil {
-		t.Fatalf("create speech engine root: %v", err)
+	paths := append(
+		stageManagedSpeechProfile(t, root, "speech.qwen3-tts.python"),
+		stageManagedSpeechProfile(t, asrRoot, "speech.qwen3-asr.python")...,
+	)
+	type snapshot struct {
+		contents string
+		modTime  time.Time
 	}
-	if err := os.MkdirAll(asrRoot, 0o755); err != nil {
-		t.Fatalf("create speech asr root: %v", err)
-	}
-	// Stage managed interpreters plus stale/missing runtime-owned scripts. Engine
-	// startup must refresh those scripts from the current embedded assets.
-	pythonPath := managedPythonPath(root)
-	if err := os.MkdirAll(filepath.Dir(pythonPath), 0o755); err != nil {
-		t.Fatalf("create managed python dir: %v", err)
-	}
-	if err := os.WriteFile(pythonPath, []byte("#!/bin/sh\n"), 0o755); err != nil {
-		t.Fatalf("stage managed python: %v", err)
-	}
-	if err := os.WriteFile(filepath.Join(root, "speech_server.py"), []byte("print('stale')\n"), 0o755); err != nil {
-		t.Fatalf("stage stale speech_server.py: %v", err)
-	}
-	asrPythonPath := managedPythonPath(asrRoot)
-	if err := os.MkdirAll(filepath.Dir(asrPythonPath), 0o755); err != nil {
-		t.Fatalf("create managed asr python dir: %v", err)
-	}
-	if err := os.WriteFile(asrPythonPath, []byte("#!/bin/sh\n"), 0o755); err != nil {
-		t.Fatalf("stage managed asr python: %v", err)
-	}
-	if err := os.WriteFile(SpeechQwen3ASRDriverPath(asrRoot), []byte("print('stale-asr')\n"), 0o755); err != nil {
-		t.Fatalf("stage stale speech asr driver: %v", err)
+	snapshots := make(map[string]snapshot, len(paths))
+	for _, path := range paths {
+		stamp := time.Date(2020, time.January, 2, 3, 4, 5, 0, time.UTC)
+		if err := os.Chtimes(path, stamp, stamp); err != nil {
+			t.Fatalf("set promoted script timestamp %s: %v", path, err)
+		}
+		contents, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatalf("read promoted script %s: %v", path, err)
+		}
+		info, err := os.Stat(path)
+		if err != nil {
+			t.Fatalf("stat promoted script %s: %v", path, err)
+		}
+		snapshots[path] = snapshot{contents: string(contents), modTime: info.ModTime()}
 	}
 
-	ready, err := ensureSpeech(context.Background(), t.TempDir(), cfg)
-	if err != nil {
-		t.Fatalf("ensureSpeech rejected refreshable runtime-owned scripts: %v", err)
+	ready := cfg
+	var err error
+	for attempt := 0; attempt < 2; attempt++ {
+		ready, err = ensureSpeech(context.Background(), t.TempDir(), ready)
+		if err != nil {
+			t.Fatalf("ensureSpeech rejected promoted scripts on attempt %d: %v", attempt+1, err)
+		}
 	}
+	pythonPath := managedPythonPath(root)
 	if ready.BinaryPath != pythonPath {
 		t.Fatalf("speech canonical binary path = %q, want %q", ready.BinaryPath, pythonPath)
 	}
@@ -350,23 +380,91 @@ func TestEnsureSpeechRefreshesRuntimeOwnedSpeechScripts(t *testing.T) {
 			t.Fatalf("%s = %q, want %q", key, got, want)
 		}
 	}
-	for _, tc := range []struct {
-		path string
-		want string
-	}{
-		{path: filepath.Join(root, "speech_server.py"), want: speechServerScript},
-		{path: filepath.Join(root, "speech_server_runtime.py"), want: speechServerRuntimeScript},
-		{path: SpeechQwen3TTSDriverPath(root), want: speechQwen3TTSDriverScript},
-		{path: SpeechQwen3ASRDriverPath(asrRoot), want: speechQwen3ASRDriverScript},
-	} {
-		got, err := os.ReadFile(tc.path)
+	for path, before := range snapshots {
+		got, err := os.ReadFile(path)
 		if err != nil {
-			t.Fatalf("read refreshed script %s: %v", tc.path, err)
+			t.Fatalf("read promoted script after reuse %s: %v", path, err)
 		}
-		if string(got) != tc.want {
-			t.Fatalf("script %s was not refreshed from embedded runtime asset", tc.path)
+		if string(got) != before.contents {
+			t.Fatalf("speech startup changed promoted script %s", path)
+		}
+		info, err := os.Stat(path)
+		if err != nil {
+			t.Fatalf("stat promoted script after reuse %s: %v", path, err)
+		}
+		if !info.ModTime().Equal(before.modTime) {
+			t.Fatalf("speech startup rewrote promoted script %s: modtime %s, want %s", path, info.ModTime(), before.modTime)
 		}
 	}
+}
+
+func TestEnsureSpeechRejectsMissingOrDriftedPromotedScriptsWithoutRepair(t *testing.T) {
+	newConfig := func(t *testing.T) (EngineConfig, string) {
+		t.Helper()
+		root := t.TempDir()
+		stageManagedSpeechProfile(t, root, "speech.qwen3-tts.python")
+		cfg := DefaultSpeechConfig()
+		cfg.ModelsPath = t.TempDir()
+		cfg.SpeechHostAcceleratorPlane = "cpu"
+		cfg.SpeechQwen3TTSPackageSetRoot = root
+		cfg.SpeechDriverWorkRoot = t.TempDir()
+		return cfg, root
+	}
+
+	t.Run("missing", func(t *testing.T) {
+		cfg, root := newConfig(t)
+		missingPath := filepath.Join(root, "speech_server_runtime.py")
+		if err := os.Remove(missingPath); err != nil {
+			t.Fatalf("remove promoted script: %v", err)
+		}
+		_, err := ensureSpeech(context.Background(), t.TempDir(), cfg)
+		if err == nil || !strings.Contains(err.Error(), "inspect promoted speech pipeline script") {
+			t.Fatalf("expected missing promoted script rejection, got %v", err)
+		}
+		if _, statErr := os.Stat(missingPath); !os.IsNotExist(statErr) {
+			t.Fatalf("speech startup repaired missing promoted script or returned unexpected stat error: %v", statErr)
+		}
+	})
+
+	t.Run("drifted", func(t *testing.T) {
+		cfg, root := newConfig(t)
+		driftedPath := SpeechQwen3TTSDriverPath(root)
+		drifted := []byte("print('drifted')\n")
+		if err := os.WriteFile(driftedPath, drifted, 0o755); err != nil {
+			t.Fatalf("drift promoted driver script: %v", err)
+		}
+		_, err := ensureSpeech(context.Background(), t.TempDir(), cfg)
+		if err == nil || !strings.Contains(err.Error(), "content drift") {
+			t.Fatalf("expected drifted promoted script rejection, got %v", err)
+		}
+		got, readErr := os.ReadFile(driftedPath)
+		if readErr != nil {
+			t.Fatalf("read drifted promoted script: %v", readErr)
+		}
+		if string(got) != string(drifted) {
+			t.Fatalf("speech startup repaired drifted promoted script")
+		}
+	})
+}
+
+func stageManagedSpeechProfile(t *testing.T, root string, consumer string) []string {
+	t.Helper()
+	pythonPath := managedPythonPath(root)
+	if err := os.MkdirAll(filepath.Dir(pythonPath), 0o755); err != nil {
+		t.Fatalf("create managed python dir: %v", err)
+	}
+	if err := os.WriteFile(pythonPath, []byte("#!/bin/sh\n"), 0o755); err != nil {
+		t.Fatalf("stage managed python: %v", err)
+	}
+	if err := materializePythonPipelineServerScript(root, consumer); err != nil {
+		t.Fatalf("stage promoted speech scripts for %s: %v", consumer, err)
+	}
+	files := speechPipelineFilesForConsumer(consumer)
+	paths := make([]string, 0, len(files))
+	for _, file := range files {
+		paths = append(paths, filepath.Join(root, file.Name))
+	}
+	return paths
 }
 
 func TestEnsureSpeechRequiresRuntimeOwnedDriverWorkRoot(t *testing.T) {
@@ -374,6 +472,7 @@ func TestEnsureSpeechRequiresRuntimeOwnedDriverWorkRoot(t *testing.T) {
 	root := t.TempDir()
 	asrRoot := t.TempDir()
 	cfg.ModelsPath = t.TempDir()
+	cfg.SpeechHostAcceleratorPlane = "cpu"
 	cfg.SpeechQwen3TTSPackageSetRoot = root
 	cfg.SpeechQwen3ASRPackageSetRoot = asrRoot
 	for _, pythonPath := range []string{managedPythonPath(root), managedPythonPath(asrRoot)} {
@@ -386,6 +485,23 @@ func TestEnsureSpeechRequiresRuntimeOwnedDriverWorkRoot(t *testing.T) {
 	}
 	if _, err := ensureSpeech(context.Background(), t.TempDir(), cfg); err == nil || !strings.Contains(err.Error(), "Runtime-owned driver work root is required") {
 		t.Fatalf("expected missing Runtime-owned speech work root rejection, got %v", err)
+	}
+}
+
+func TestEnsureSpeechRequiresVerifiedHostAcceleratorPlane(t *testing.T) {
+	root := t.TempDir()
+	stageManagedSpeechProfile(t, root, "speech.qwen3-tts.python")
+	cfg := DefaultSpeechConfig()
+	cfg.ModelsPath = t.TempDir()
+	cfg.SpeechQwen3TTSPackageSetRoot = root
+	cfg.SpeechDriverWorkRoot = t.TempDir()
+
+	if _, err := ensureSpeech(context.Background(), t.TempDir(), cfg); err == nil || !strings.Contains(err.Error(), "verified accelerator plane") {
+		t.Fatalf("expected missing verified speech accelerator plane rejection, got %v", err)
+	}
+	cfg.SpeechHostAcceleratorPlane = "mps"
+	if _, err := ensureSpeech(context.Background(), t.TempDir(), cfg); err == nil || !strings.Contains(err.Error(), "verified accelerator plane") {
+		t.Fatalf("expected unsupported speech accelerator plane rejection, got %v", err)
 	}
 }
 
@@ -426,6 +542,12 @@ func TestSpeechCommandEnvDoesNotFallbackToDefaultModelsRoot(t *testing.T) {
 	if got := env["PYTHONUNBUFFERED"]; got != "1" {
 		t.Fatalf("PYTHONUNBUFFERED = %q", got)
 	}
+	if got := env["PYTHONDONTWRITEBYTECODE"]; got != "1" {
+		t.Fatalf("PYTHONDONTWRITEBYTECODE = %q", got)
+	}
+	if got := env["PYTHONNOUSERSITE"]; got != "1" {
+		t.Fatalf("PYTHONNOUSERSITE = %q", got)
+	}
 	if _, ok := env["NIMI_RUNTIME_LOCAL_MODELS_PATH"]; ok {
 		t.Fatal("unexpected default models root")
 	}
@@ -455,6 +577,7 @@ func TestSpeechApplyDefaultEnvPreservesCapabilityScopedDriverRoots(t *testing.T)
 			name: "transcription Host",
 			config: EngineConfig{
 				SpeechHostPackageSetRoot:     "asr-exact",
+				SpeechHostAcceleratorPlane:   "cpu",
 				SpeechQwen3ASRPackageSetRoot: "asr-exact",
 			},
 			wantKey:   "NIMI_RUNTIME_SPEECH_QWEN3_ASR_CMD",
@@ -465,6 +588,7 @@ func TestSpeechApplyDefaultEnvPreservesCapabilityScopedDriverRoots(t *testing.T)
 			name: "synthesis Host",
 			config: EngineConfig{
 				SpeechHostPackageSetRoot:     "tts-exact",
+				SpeechHostAcceleratorPlane:   "cpu",
 				SpeechQwen3TTSPackageSetRoot: "tts-exact",
 			},
 			wantKey:   "NIMI_RUNTIME_SPEECH_QWEN3_TTS_CMD",
@@ -489,8 +613,43 @@ func TestSpeechApplyDefaultEnvBindsRuntimeOwnedDriverWorkRoot(t *testing.T) {
 	cfg := DefaultSpeechConfig()
 	cfg.ModelsPath = t.TempDir()
 	cfg.SpeechDriverWorkRoot = t.TempDir()
+	cfg.SpeechHostAcceleratorPlane = "cpu"
 	env := speechApplyDefaultEnv(cfg, t.TempDir())
 	if got := env[speechDriverWorkRootEnv]; got != cfg.SpeechDriverWorkRoot {
 		t.Fatalf("speech driver work root = %q, want %q", got, cfg.SpeechDriverWorkRoot)
+	}
+}
+
+func TestSpeechApplyDefaultEnvOverridesInheritedDeviceMapWithVerifiedHostPlane(t *testing.T) {
+	t.Setenv(speechQwen3TTSDeviceMapEnv, "cpu")
+	t.Setenv(speechQwen3ASRDeviceMapEnv, "cpu")
+	t.Setenv(speechQwen3ASRTransformersDeviceMapEnv, "cpu")
+	cfg := EngineConfig{
+		SpeechHostPackageSetRoot:     "tts-exact",
+		SpeechHostAcceleratorPlane:   "cuda",
+		SpeechQwen3TTSPackageSetRoot: "tts-exact",
+		SpeechDriverWorkRoot:         t.TempDir(),
+	}
+	env := speechApplyDefaultEnv(cfg, cfg.SpeechHostPackageSetRoot)
+	if got := env[speechQwen3TTSDeviceMapEnv]; got != "cuda" {
+		t.Fatalf("TTS device map = %q, want verified cuda plane", got)
+	}
+	for _, key := range []string{speechQwen3ASRDeviceMapEnv, speechQwen3ASRTransformersDeviceMapEnv} {
+		if got := env[key]; got != "cuda:0" {
+			t.Fatalf("%s = %q, want verified cuda:0 plane", key, got)
+		}
+	}
+	merged := mergeSupervisorCommandEnv([]string{
+		speechQwen3TTSDeviceMapEnv + "=cpu",
+		speechQwen3ASRDeviceMapEnv + "=cpu",
+		speechQwen3ASRTransformersDeviceMapEnv + "=cpu",
+	}, env)
+	if got := supervisorEnvValue(merged, speechQwen3TTSDeviceMapEnv); got != "cuda" {
+		t.Fatalf("Supervisor child TTS device map = %q, want verified cuda plane", got)
+	}
+	for _, key := range []string{speechQwen3ASRDeviceMapEnv, speechQwen3ASRTransformersDeviceMapEnv} {
+		if got := supervisorEnvValue(merged, key); got != "cuda:0" {
+			t.Fatalf("Supervisor child %s = %q, want verified cuda:0 plane", key, got)
+		}
 	}
 }

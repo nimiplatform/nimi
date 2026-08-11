@@ -185,8 +185,9 @@ func Download(ctx context.Context, opts Options) (Result, error) {
 			// discards it.
 			if !transient {
 				removePartial(partialPath)
+				return Result{}, fmt.Errorf("filedownload: %s: %w", opts.URL, err)
 			}
-			return Result{}, fmt.Errorf("filedownload: %s: %w", opts.URL, err)
+			return Result{}, fmt.Errorf("%w: %s: %w", ErrTransientAttemptsExhausted, opts.URL, err)
 		}
 
 		// Transient: keep the partial as the resume point and back off.

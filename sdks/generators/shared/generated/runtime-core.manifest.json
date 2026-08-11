@@ -2163,6 +2163,15 @@
           "response_stream": false
         },
         {
+          "name": "ApplyLocalEnvironmentPlan",
+          "method_id": "/nimi.runtime.v1.RuntimeLocalService/ApplyLocalEnvironmentPlan",
+          "kind": "unary",
+          "request_type": "ApplyLocalEnvironmentPlanRequest",
+          "response_type": "ApplyLocalEnvironmentPlanResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
           "name": "PrepareProfileRuntimeDescriptor",
           "method_id": "/nimi.runtime.v1.RuntimeLocalService/PrepareProfileRuntimeDescriptor",
           "kind": "unary",
@@ -2744,6 +2753,7 @@
     "/nimi.runtime.v1.RuntimeLocalService/AdmitProductControlReadyForUse",
     "/nimi.runtime.v1.RuntimeLocalService/AppendInferenceAudit",
     "/nimi.runtime.v1.RuntimeLocalService/AppendRuntimeAudit",
+    "/nimi.runtime.v1.RuntimeLocalService/ApplyLocalEnvironmentPlan",
     "/nimi.runtime.v1.RuntimeLocalService/ApplyProfile",
     "/nimi.runtime.v1.RuntimeLocalService/BindLocalCapabilityRequirement",
     "/nimi.runtime.v1.RuntimeLocalService/CancelLocalEnvironmentDependencyJob",
@@ -4392,6 +4402,14 @@
       "kind": "unary",
       "request_type": "AppendRuntimeAuditRequest",
       "response_type": "Ack"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeLocalService/ApplyLocalEnvironmentPlan",
+      "service": "RuntimeLocalService",
+      "method": "ApplyLocalEnvironmentPlan",
+      "kind": "unary",
+      "request_type": "ApplyLocalEnvironmentPlanRequest",
+      "response_type": "ApplyLocalEnvironmentPlanResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeLocalService/ApplyProfile",
@@ -6540,6 +6558,14 @@
       "response_type": "Ack"
     },
     {
+      "method_id": "/nimi.runtime.v1.RuntimeLocalService/ApplyLocalEnvironmentPlan",
+      "service": "RuntimeLocalService",
+      "method": "ApplyLocalEnvironmentPlan",
+      "kind": "unary",
+      "request_type": "ApplyLocalEnvironmentPlanRequest",
+      "response_type": "ApplyLocalEnvironmentPlanResponse"
+    },
+    {
       "method_id": "/nimi.runtime.v1.RuntimeLocalService/ApplyProfile",
       "service": "RuntimeLocalService",
       "method": "ApplyProfile",
@@ -7177,6 +7203,8 @@
       "AppendRealtimeInputRequest",
       "AppendRealtimeInputResponse",
       "AppendRuntimeAuditRequest",
+      "ApplyLocalEnvironmentPlanRequest",
+      "ApplyLocalEnvironmentPlanResponse",
       "ApplyProfileRequest",
       "ApplyProfileResponse",
       "ApplySharedLocalAgentAIProfileRequest",
@@ -11095,6 +11123,53 @@
             "repeated": false,
             "optional": false,
             "number": 4
+          }
+        ],
+        "source_file": "proto/runtime/v1/local_runtime.proto"
+      },
+      {
+        "name": "ApplyLocalEnvironmentPlanRequest",
+        "fields": [
+          {
+            "name": "resolution",
+            "type": "ResolveLocalEnvironmentPlanRequest",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "expected_plan_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "confirmed",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          }
+        ],
+        "source_file": "proto/runtime/v1/local_runtime.proto"
+      },
+      {
+        "name": "ApplyLocalEnvironmentPlanResponse",
+        "fields": [
+          {
+            "name": "plan",
+            "type": "LocalEnvironmentPlan",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "jobs",
+            "type": "LocalEnvironmentDependencyJob",
+            "repeated": true,
+            "optional": false,
+            "number": 2
           }
         ],
         "source_file": "proto/runtime/v1/local_runtime.proto"
@@ -24444,6 +24519,48 @@
             "repeated": true,
             "optional": false,
             "number": 11
+          },
+          {
+            "name": "required_dependency_families",
+            "type": "string",
+            "repeated": true,
+            "optional": false,
+            "number": 12
+          },
+          {
+            "name": "aggregate_size_known",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 13
+          },
+          {
+            "name": "aggregate_size_bytes",
+            "type": "int64",
+            "repeated": false,
+            "optional": false,
+            "number": 14
+          },
+          {
+            "name": "storage_categories",
+            "type": "string",
+            "repeated": true,
+            "optional": false,
+            "number": 15
+          },
+          {
+            "name": "source_owners",
+            "type": "string",
+            "repeated": true,
+            "optional": false,
+            "number": 16
+          },
+          {
+            "name": "no_system_mutation",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 17
           }
         ],
         "source_file": "proto/runtime/v1/local_runtime_device_environment.proto"

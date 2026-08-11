@@ -1,7 +1,6 @@
 package engine
 
 import (
-	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
@@ -11,6 +10,7 @@ import (
 const (
 	defaultMediaTorchCPUIndexURL   = "https://download.pytorch.org/whl/cpu"
 	defaultSpeechTorchCUDAIndexURL = "https://download.pytorch.org/whl/cu128"
+	pythonTorchPackageSource       = "pytorch-official-wheel-index"
 	speechTorchVersion             = "2.11.0"
 )
 
@@ -20,6 +20,7 @@ type pythonTorchWheelManifest struct {
 	AcceleratorPlane string
 	CUDAABI          string
 	WheelIndex       string
+	PackageSource    string
 }
 
 type PythonTorchWheelDependencyIdentity struct {
@@ -27,6 +28,9 @@ type PythonTorchWheelDependencyIdentity struct {
 	AcceleratorPlane string
 	CUDAABI          string
 	WheelLockHash    string
+	WheelIndex       string
+	PackageSource    string
+	ImportProbes     []string
 }
 
 func ResolvePythonTorchWheelDependencyIdentity(consumer string) (PythonTorchWheelDependencyIdentity, error) {
@@ -41,7 +45,7 @@ func ResolvePythonTorchWheelDependencyIdentity(consumer string) (PythonTorchWhee
 			break
 		}
 	}
-	if torchVersion == "" || strings.TrimSpace(manifest.AcceleratorPlane) == "" || strings.TrimSpace(manifest.CUDAABI) == "" {
+	if torchVersion == "" || strings.TrimSpace(manifest.AcceleratorPlane) == "" || strings.TrimSpace(manifest.CUDAABI) == "" || strings.TrimSpace(manifest.WheelIndex) == "" || strings.TrimSpace(manifest.PackageSource) == "" {
 		return PythonTorchWheelDependencyIdentity{}, fmt.Errorf("python torch wheel dependency identity is incomplete for consumer %s", consumer)
 	}
 	return PythonTorchWheelDependencyIdentity{
@@ -49,6 +53,9 @@ func ResolvePythonTorchWheelDependencyIdentity(consumer string) (PythonTorchWhee
 		AcceleratorPlane: strings.TrimSpace(manifest.AcceleratorPlane),
 		CUDAABI:          strings.TrimSpace(manifest.CUDAABI),
 		WheelLockHash:    pythonTorchWheelLockHash(manifest),
+		WheelIndex:       strings.TrimSpace(manifest.WheelIndex),
+		PackageSource:    strings.TrimSpace(manifest.PackageSource),
+		ImportProbes:     append([]string(nil), manifest.ImportProbes...),
 	}, nil
 }
 
@@ -62,6 +69,7 @@ func resolvePythonTorchWheelManifest(consumer string) (pythonTorchWheelManifest,
 			AcceleratorPlane: "cuda",
 			CUDAABI:          "cu126",
 			WheelIndex:       defaultMediaTorchIndexURL,
+			PackageSource:    pythonTorchPackageSource,
 		}, nil
 	case strings.HasPrefix(trimmed, "media.") && strings.HasSuffix(trimmed, ".cpu"):
 		return pythonTorchWheelManifest{
@@ -70,6 +78,7 @@ func resolvePythonTorchWheelManifest(consumer string) (pythonTorchWheelManifest,
 			AcceleratorPlane: "cpu",
 			CUDAABI:          "none",
 			WheelIndex:       defaultMediaTorchCPUIndexURL,
+			PackageSource:    pythonTorchPackageSource,
 		}, nil
 	case strings.HasPrefix(trimmed, "speech.") && strings.HasSuffix(trimmed, ".cuda"):
 		packages := []string{"torch==" + speechTorchVersion}
@@ -84,6 +93,7 @@ func resolvePythonTorchWheelManifest(consumer string) (pythonTorchWheelManifest,
 			AcceleratorPlane: "cuda",
 			CUDAABI:          "cu128",
 			WheelIndex:       defaultSpeechTorchCUDAIndexURL,
+			PackageSource:    pythonTorchPackageSource,
 		}, nil
 	case strings.HasPrefix(trimmed, "speech.") && strings.HasSuffix(trimmed, ".cpu"):
 		packages := []string{"torch==" + speechTorchVersion}
@@ -98,6 +108,7 @@ func resolvePythonTorchWheelManifest(consumer string) (pythonTorchWheelManifest,
 			AcceleratorPlane: "cpu",
 			CUDAABI:          "none",
 			WheelIndex:       defaultMediaTorchCPUIndexURL,
+			PackageSource:    pythonTorchPackageSource,
 		}, nil
 	default:
 		return pythonTorchWheelManifest{}, fmt.Errorf("python torch wheel dependency is not admitted for consumer %s", consumer)
@@ -109,6 +120,7 @@ func pythonTorchWheelLockHash(manifest pythonTorchWheelManifest) string {
 		"accelerator_plane=" + strings.TrimSpace(manifest.AcceleratorPlane),
 		"cuda_abi=" + strings.TrimSpace(manifest.CUDAABI),
 		"wheel_index=" + strings.TrimSpace(manifest.WheelIndex),
+		"package_source=" + strings.TrimSpace(manifest.PackageSource),
 	}
 	for _, pkg := range manifest.Packages {
 		lines = append(lines, "package="+strings.TrimSpace(pkg))
@@ -128,70 +140,4 @@ func pythonTorchWheelPackageSpec(manifest pythonTorchWheelManifest, packageName 
 		}
 	}
 	return ""
-}
-
-func (m *Manager) EnsurePythonTorchWheelDependency(ctx context.Context, uvPath string, venvRoot string, consumer string) (PythonTorchWheelDependencyStatus, error) {
-	manifest, err := resolvePythonTorchWheelManifest(consumer)
-	if err != nil {
-		return PythonTorchWheelDependencyStatus{}, err
-	}
-	trimmedVenvRoot := strings.TrimSpace(venvRoot)
-	if trimmedVenvRoot == "" {
-		return PythonTorchWheelDependencyStatus{}, fmt.Errorf("python torch wheel venv root is required")
-	}
-	interpreterPath := managedPythonPath(trimmedVenvRoot)
-	extraArgs := []string{"--index-url", manifest.WheelIndex}
-	if err := uvPipInstall(ctx, uvPath, trimmedVenvRoot, interpreterPath, manifest.Packages, extraArgs...); err != nil {
-		return PythonTorchWheelDependencyStatus{}, err
-	}
-	for _, probe := range manifest.ImportProbes {
-		if err := verifyPythonImportProbe(ctx, trimmedVenvRoot, interpreterPath, probe); err != nil {
-			return PythonTorchWheelDependencyStatus{}, err
-		}
-	}
-	torchVersion, err := runCommandOutput(
-		ctx,
-		trimmedVenvRoot,
-		managedPythonRuntimeEnv(trimmedVenvRoot),
-		interpreterPath,
-		"-c", "import torch; print(torch.__version__); print(torch.version.cuda or 'cpu')",
-	)
-	if err != nil {
-		return PythonTorchWheelDependencyStatus{}, fmt.Errorf("verify torch version and accelerator ABI: %w", err)
-	}
-	observed := strings.Fields(strings.TrimSpace(torchVersion))
-	if len(observed) == 0 {
-		return PythonTorchWheelDependencyStatus{}, fmt.Errorf("verify torch version and accelerator ABI: empty output")
-	}
-	observedCUDA := ""
-	if len(observed) > 1 {
-		observedCUDA = observed[1]
-	}
-	if manifest.AcceleratorPlane == "cuda" && strings.TrimSpace(observedCUDA) == "" {
-		return PythonTorchWheelDependencyStatus{}, fmt.Errorf("verify torch CUDA ABI: empty CUDA version")
-	}
-	if manifest.AcceleratorPlane == "cuda" {
-		if _, err := runCommandOutput(
-			ctx,
-			trimmedVenvRoot,
-			managedPythonRuntimeEnv(trimmedVenvRoot),
-			interpreterPath,
-			"-c", "import torch; assert torch.cuda.is_available(), 'CUDA unavailable'; value = torch.ones(1, device='cuda'); print(torch.cuda.get_device_name(0)); print(float(value.item()))",
-		); err != nil {
-			return PythonTorchWheelDependencyStatus{}, fmt.Errorf("verify torch CUDA execution: %w", err)
-		}
-	}
-	return PythonTorchWheelDependencyStatus{
-		TorchVersion:     observed[0],
-		TorchvisionSpec:  pythonTorchWheelPackageSpec(manifest, "torchvision"),
-		AcceleratorPlane: manifest.AcceleratorPlane,
-		CUDAABI:          manifest.CUDAABI,
-		WheelIndex:       manifest.WheelIndex,
-		WheelLockHash:    pythonTorchWheelLockHash(manifest),
-		VenvRoot:         trimmedVenvRoot,
-		InterpreterPath:  interpreterPath,
-		UVExecutable:     strings.TrimSpace(uvPath),
-		ImportProbes:     append([]string{}, manifest.ImportProbes...),
-		Detail:           "Runtime-managed Python torch wheel set verified from declared wheel index",
-	}, nil
 }

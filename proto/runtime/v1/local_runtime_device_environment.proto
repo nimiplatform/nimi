@@ -83,6 +83,12 @@ message LocalEnvironmentPlan {
   string state = 9;
   string reason_code = 10;
   repeated LocalEnvironmentPlanDependency dependencies = 11;
+  repeated string required_dependency_families = 12;
+  bool aggregate_size_known = 13;
+  int64 aggregate_size_bytes = 14;
+  repeated string storage_categories = 15;
+  repeated string source_owners = 16;
+  bool no_system_mutation = 17;
 }
 
 message LocalEnvironmentSelectedSourceRecord {

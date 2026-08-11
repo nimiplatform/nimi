@@ -674,6 +674,9 @@ func (s *Service) bootstrapEngineIfManaged(ctx context.Context, engine string, m
 	if privateExecutionHostEngine(engine) {
 		return fmt.Errorf("llama process lifecycle is private to the capability ExecutionHost")
 	}
+	if strings.EqualFold(strings.TrimSpace(engine), "speech") {
+		return fmt.Errorf("speech process lifecycle is private to the exact capability ExecutionHost")
+	}
 	port, err := parseManagedEndpointPort(engine, endpoint)
 	if err != nil {
 		return err
@@ -684,9 +687,6 @@ func (s *Service) bootstrapEngineIfManaged(ctx context.Context, engine string, m
 			return fmt.Errorf("%s", detail)
 		}
 		return fmt.Errorf("%s managed mode is unavailable on this host", strings.TrimSpace(engine))
-	}
-	if strings.EqualFold(engine, "speech") {
-		return s.startConfiguredManagedSpeechEngine(ctx, mgr, port)
 	}
 	if err := mgr.StartEngine(ctx, strings.ToLower(strings.TrimSpace(engine)), port, ""); err != nil {
 		lower := strings.ToLower(strings.TrimSpace(err.Error()))

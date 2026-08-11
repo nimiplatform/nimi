@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-const managedUVVersion = "0.11.8"
+const ManagedUVVersion = "0.11.8"
 
 type managedUVArchiveSpec struct {
 	OS          string
@@ -96,7 +96,7 @@ func managedUVArchiveSpecForCurrentHost() (managedUVArchiveSpec, bool) {
 }
 
 func managedUVArchiveURL(spec managedUVArchiveSpec) string {
-	return fmt.Sprintf("https://releases.astral.sh/github/uv/releases/download/%s/%s", managedUVVersion, strings.TrimSpace(spec.ArchiveName))
+	return fmt.Sprintf("https://releases.astral.sh/github/uv/releases/download/%s/%s", ManagedUVVersion, strings.TrimSpace(spec.ArchiveName))
 }
 
 func verifiedManagedUVToolStatus(root string, spec managedUVArchiveSpec) (UVToolDependencyStatus, bool) {
@@ -105,7 +105,7 @@ func verifiedManagedUVToolStatus(root string, spec managedUVArchiveSpec) (UVTool
 		return UVToolDependencyStatus{}, false
 	}
 	return UVToolDependencyStatus{
-		Version:          managedUVVersion,
+		Version:          ManagedUVVersion,
 		ExecutablePath:   executablePath,
 		SourceRoot:       strings.TrimSpace(root),
 		ArchiveURL:       managedUVArchiveURL(spec),

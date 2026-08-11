@@ -26,7 +26,9 @@ func TestEnsureMediaDoesNotMaterializeHiddenDependencies(t *testing.T) {
 	baseDir := t.TempDir()
 	cfg := DefaultMediaConfig()
 	cfg.MediaMode = MediaModePipelineSupervised
-	_, err := ensureMedia(context.Background(), baseDir, cfg)
+	cfg.MediaHostAcceleratorPlane = "cpu"
+	runtimeWorkRoot := filepath.Join(baseDir, "runtime-work")
+	_, err := ensureMedia(context.Background(), runtimeWorkRoot, cfg)
 	if err == nil {
 		t.Fatal("expected media startup to fail closed without selected sources")
 	}
@@ -36,35 +38,126 @@ func TestEnsureMediaDoesNotMaterializeHiddenDependencies(t *testing.T) {
 	if _, statErr := os.Stat(filepath.Join(baseDir, "uv")); !os.IsNotExist(statErr) {
 		t.Fatalf("media startup created uv root or unexpected stat error: %v", statErr)
 	}
+	if _, statErr := os.Stat(runtimeWorkRoot); !os.IsNotExist(statErr) {
+		t.Fatalf("media startup created work state before an activated profile was admitted: %v", statErr)
+	}
 }
 
-func TestEnsureMediaKeepsCanonicalPathAndUsesManagedPythonLaunchPath(t *testing.T) {
-	baseDir := t.TempDir()
+func TestEnsureMediaUsesActivatedImmutableProfileAndExternalRuntimeCaches(t *testing.T) {
+	profileRoot := t.TempDir()
+	runtimeWorkRoot := filepath.Join(t.TempDir(), "runtime-work")
 	cfg := DefaultMediaConfig()
 	cfg.MediaMode = MediaModePipelineSupervised
-	root := engineVersionDir(baseDir, EngineMedia, cfg.Version)
-	pythonPath := managedPythonPath(root)
+	cfg.MediaHostPackageSetRoot = profileRoot
+	cfg.MediaHostAcceleratorPlane = "cpu"
+	pythonPath := managedPythonPath(profileRoot)
 	if err := os.MkdirAll(filepath.Dir(pythonPath), 0o755); err != nil {
 		t.Fatal(err)
 	}
 	if err := os.WriteFile(pythonPath, []byte("python"), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(root, "media_server.py"), []byte("print('ready')\n"), 0o755); err != nil {
+	if err := os.WriteFile(filepath.Join(profileRoot, "media_server.py"), []byte(mediaServerScript), 0o444); err != nil {
 		t.Fatal(err)
 	}
-	ready, err := ensureMedia(context.Background(), baseDir, cfg)
+	ready, err := ensureMedia(context.Background(), runtimeWorkRoot, cfg)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if ready.BinaryPath != pythonPath {
-		t.Fatalf("media canonical binary path = %q, want %q", ready.BinaryPath, pythonPath)
+		t.Fatalf("media activated profile binary path = %q, want %q", ready.BinaryPath, pythonPath)
 	}
-	if got := supervisorCommandExecutablePath(ready); got != managedPythonLaunchPath(root) {
-		t.Fatalf("media launch path = %q, want %q", got, managedPythonLaunchPath(root))
+	if got := supervisorCommandExecutablePath(ready); got != managedPythonLaunchPath(profileRoot) {
+		t.Fatalf("media launch path = %q, want %q", got, managedPythonLaunchPath(profileRoot))
 	}
-	if ready.WorkingDir != root {
-		t.Fatalf("media canonical working root = %q, want %q", ready.WorkingDir, root)
+	wantWorkRoot := filepath.Join(runtimeWorkRoot, "media-driver")
+	if ready.WorkingDir != wantWorkRoot {
+		t.Fatalf("media Runtime-owned working root = %q, want %q", ready.WorkingDir, wantWorkRoot)
+	}
+	for _, key := range []string{"HF_HOME", "HF_HUB_CACHE", "TRANSFORMERS_CACHE", "DIFFUSERS_CACHE"} {
+		path := ready.CommandEnv[key]
+		insideProfile, pathErr := mediaPathWithinRoot(profileRoot, path)
+		if pathErr != nil {
+			t.Fatalf("compare %s cache path: %v", key, pathErr)
+		}
+		if insideProfile {
+			t.Fatalf("%s cache path escaped into immutable profile: %q", key, path)
+		}
+		if _, statErr := os.Stat(path); statErr != nil {
+			t.Fatalf("%s cache path is not ready: %v", key, statErr)
+		}
+	}
+	if ready.CommandEnv["PYTHONDONTWRITEBYTECODE"] != "1" || ready.CommandEnv["PYTHONNOUSERSITE"] != "1" {
+		t.Fatalf("media immutable profile guards missing: %+v", ready.CommandEnv)
+	}
+	mergedEnv := mergeSupervisorCommandEnv([]string{
+		"PYTHONPATH=ambient-modules",
+		"PYTHONHOME=ambient-home",
+		"NIMI_TEST_MEDIA_ENV_PRESERVED=kept",
+	}, ready.CommandEnv)
+	for _, key := range []string{"PYTHONPATH", "PYTHONHOME"} {
+		if got := supervisorEnvValue(mergedEnv, key); got != "" {
+			t.Fatalf("media child inherited %s = %q", key, got)
+		}
+	}
+	if got := supervisorEnvValue(mergedEnv, "NIMI_TEST_MEDIA_ENV_PRESERVED"); got != "kept" {
+		t.Fatalf("media child discarded unrelated host environment = %q", got)
+	}
+	if ready.CommandEnv["NIMI_MEDIA_DEVICE"] != "cpu" {
+		t.Fatalf("media device = %q, want verified host plane cpu", ready.CommandEnv["NIMI_MEDIA_DEVICE"])
+	}
+	if _, statErr := os.Stat(filepath.Join(profileRoot, "cache")); !os.IsNotExist(statErr) {
+		t.Fatalf("media startup wrote a cache into the immutable profile: %v", statErr)
+	}
+	cudaConfig := cfg
+	cudaConfig.MediaHostAcceleratorPlane = " CUDA "
+	cudaReady, err := ensureMedia(context.Background(), runtimeWorkRoot, cudaConfig)
+	if err != nil {
+		t.Fatalf("ensure CUDA media profile: %v", err)
+	}
+	if cudaReady.MediaHostAcceleratorPlane != "cuda" || cudaReady.CommandEnv["NIMI_MEDIA_DEVICE"] != "cuda" {
+		t.Fatalf("CUDA media plane was not normalized and projected: %+v", cudaReady)
+	}
+}
+
+func TestEnsureMediaRejectsDriftedProfileDriverAndProfileLocalWorkRoot(t *testing.T) {
+	profileRoot := t.TempDir()
+	cfg := DefaultMediaConfig()
+	cfg.MediaMode = MediaModePipelineSupervised
+	cfg.MediaHostPackageSetRoot = profileRoot
+	cfg.MediaHostAcceleratorPlane = "cpu"
+	pythonPath := managedPythonPath(profileRoot)
+	if err := os.MkdirAll(filepath.Dir(pythonPath), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(pythonPath, []byte("python"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(profileRoot, "media_server.py"), []byte("print('drift')\n"), 0o444); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := ensureMedia(context.Background(), t.TempDir(), cfg); err == nil || !strings.Contains(err.Error(), "content drift") {
+		t.Fatalf("expected drifted promoted Driver to fail closed, got %v", err)
+	}
+	if err := os.Chmod(filepath.Join(profileRoot, "media_server.py"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(profileRoot, "media_server.py"), []byte(mediaServerScript), 0o444); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := ensureMedia(context.Background(), filepath.Join(profileRoot, "work"), cfg); err == nil || !strings.Contains(err.Error(), "outside the activated dependency profile") {
+		t.Fatalf("expected profile-local media work root to fail closed, got %v", err)
+	}
+}
+
+func TestEnsureMediaRejectsMissingOrUnsupportedHostAcceleratorPlane(t *testing.T) {
+	for _, plane := range []string{"", "metal", "cuda:0"} {
+		cfg := DefaultMediaConfig()
+		cfg.MediaMode = MediaModePipelineSupervised
+		cfg.MediaHostAcceleratorPlane = plane
+		if _, err := ensureMedia(context.Background(), t.TempDir(), cfg); err == nil || !strings.Contains(err.Error(), "must be cpu or cuda") {
+			t.Fatalf("accelerator plane %q should fail closed, got %v", plane, err)
+		}
 	}
 }
 

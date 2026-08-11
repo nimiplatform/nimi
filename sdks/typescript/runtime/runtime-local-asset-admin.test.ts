@@ -551,6 +551,12 @@ test('Runtime local image native environment helper delegates environment select
           cloudOnlyImpact: '',
           state: 'ready_system',
           dependencies: [],
+          requiredDependencyFamilies: ['native-engine-package.stablediffusion-ggml'],
+          aggregateSizeKnown: true,
+          aggregateSizeBytes: 0,
+          storageCategories: ['environments'],
+          sourceOwners: ['RuntimeLocalService'],
+          noSystemMutation: true,
         };
       },
     },
@@ -715,6 +721,10 @@ test('Runtime local model center client maps catalog, writes, transfers, profile
       calls.push({ method: 'resolveLocalEnvironmentPlan', request, options });
       return { plan: generatedEnvironmentPlan() };
     },
+    async applyLocalEnvironmentPlan(request: unknown, options?: unknown) {
+      calls.push({ method: 'applyLocalEnvironmentPlan', request, options });
+      return { plan: generatedEnvironmentPlan(), jobs: [dependencyJob] };
+    },
     async listLocalEnvironmentDependencyJobs(request: unknown, options?: unknown) {
       calls.push({ method: 'listLocalEnvironmentDependencyJobs', request, options });
       return { jobs: [dependencyJob] };
@@ -801,8 +811,35 @@ test('Runtime local model center client maps catalog, writes, transfers, profile
   });
   assert.equal(profilePlan.profileId, 'profile-image');
   assert.equal((await client.applyProfile(profilePlan, writeOptions)).installedAssets[0]?.localAssetId, 'local-image');
-  assert.equal((await client.resolveEnvironmentPlan({ packId: 'local-image-native', consumerScope: 'stable-diffusion.cpp.metal' })).dependencies[0]?.dependencyId, 'stable-diffusion.cpp');
-  assert.equal((await client.resolveEnvironmentPlan({ packId: 'local-image-native', consumerScope: 'stable-diffusion.cpp.metal' })).dependencies[0]?.consumerScope, 'stable-diffusion.cpp.metal');
+  const environmentPlan = await client.resolveEnvironmentPlan({ packId: 'local-image-native', consumerScope: 'stable-diffusion.cpp.metal' });
+  assert.equal(environmentPlan.dependencies[0]?.dependencyId, 'stable-diffusion.cpp');
+  assert.equal(environmentPlan.dependencies[0]?.consumerScope, 'stable-diffusion.cpp.metal');
+  assert.deepEqual({
+    requiredDependencyFamilies: environmentPlan.requiredDependencyFamilies,
+    aggregateSizeKnown: environmentPlan.aggregateSizeKnown,
+    aggregateSizeBytes: environmentPlan.aggregateSizeBytes,
+    storageCategories: environmentPlan.storageCategories,
+    sourceOwners: environmentPlan.sourceOwners,
+    noSystemMutation: environmentPlan.noSystemMutation,
+  }, {
+    requiredDependencyFamilies: ['native-engine-package.stablediffusion-ggml'],
+    aggregateSizeKnown: false,
+    aggregateSizeBytes: 0,
+    storageCategories: ['environments'],
+    sourceOwners: ['RuntimeLocalService'],
+    noSystemMutation: true,
+  });
+  const appliedEnvironment = await client.applyEnvironmentPlan({
+    resolution: {
+      packId: 'local-image-native',
+      consumerScope: 'stable-diffusion.cpp.metal',
+      localAssetId: 'local-image',
+    },
+    expectedPlanId: environmentPlan.planId,
+    confirmed: true,
+  }, writeOptions);
+  assert.equal(appliedEnvironment.plan.planId, environmentPlan.planId);
+  assert.equal(appliedEnvironment.jobs[0]?.jobId, 'job-1');
   assert.equal((await client.listEnvironmentDependencyJobs({ environmentKey: 'env-1', state: 'queued' }))[0]?.jobId, 'job-1');
   assert.equal((await client.listEnvironmentDependencyJobs({ environmentKey: 'env-1', state: 'queued' }))[0]?.consumerScope, 'stable-diffusion.cpp.metal');
   assert.equal((await client.startEnvironmentDependencyJob({
@@ -852,6 +889,24 @@ test('Runtime local model center client maps catalog, writes, transfers, profile
     sourceKind: 'managed',
     confirmed: true,
     consumerScope: 'stable-diffusion.cpp.metal',
+  });
+  assert.deepEqual(calls.find((call) => call.method === 'applyLocalEnvironmentPlan'), {
+    method: 'applyLocalEnvironmentPlan',
+    request: {
+      resolution: {
+        packId: 'local-image-native',
+        consumerScope: 'stable-diffusion.cpp.metal',
+        runtimeDataRoot: '',
+        assetId: '',
+        localAssetId: 'local-image',
+        companionAssetId: '',
+        parentAssetId: '',
+        installLevel: '',
+      },
+      expectedPlanId: 'env-plan-1',
+      confirmed: true,
+    },
+    options: { timeoutMs: 10 },
   });
 });
 
@@ -1042,6 +1097,12 @@ function generatedEnvironmentPlan() {
     cloudOnlyImpact: 'none',
     state: 'ready_system',
     reasonCode: '',
+    requiredDependencyFamilies: ['native-engine-package.stablediffusion-ggml'],
+    aggregateSizeKnown: false,
+    aggregateSizeBytes: '0',
+    storageCategories: ['environments'],
+    sourceOwners: ['RuntimeLocalService'],
+    noSystemMutation: true,
     dependencies: [{
       dependencyFamily: 'image-native',
       dependencyId: 'stable-diffusion.cpp',
@@ -1224,6 +1285,7 @@ function emptyLocalRpc(): NimiRuntimeLocalAssetAdminRpc {
     resolveProfile: missing,
     applyProfile: missing,
     resolveLocalEnvironmentPlan: missing,
+    applyLocalEnvironmentPlan: missing,
     listLocalEnvironmentDependencyJobs: missing,
     startLocalEnvironmentDependencyJob: missing,
     cancelLocalEnvironmentDependencyJob: missing,

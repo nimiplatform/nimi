@@ -110,42 +110,6 @@ type PythonRuntimeDependencyStatus struct {
 	Detail          string
 }
 
-type PythonVenvDependencyStatus struct {
-	VenvRoot        string
-	InterpreterPath string
-	PythonRuntime   string
-	UVExecutable    string
-	Detail          string
-}
-
-type PythonPackageSetDependencyStatus struct {
-	PackageSetID           string
-	LockHash               string
-	VenvRoot               string
-	InterpreterPath        string
-	UVExecutable           string
-	Packages               []string
-	InstalledDistributions []string
-	ImportProbes           []string
-	DriverCommands         map[string]string
-	DriverScripts          []string
-	Detail                 string
-}
-
-type PythonTorchWheelDependencyStatus struct {
-	TorchVersion     string
-	TorchvisionSpec  string
-	AcceleratorPlane string
-	CUDAABI          string
-	WheelIndex       string
-	WheelLockHash    string
-	VenvRoot         string
-	InterpreterPath  string
-	UVExecutable     string
-	ImportProbes     []string
-	Detail           string
-}
-
 func (c ManagedImageBackendConfig) Enabled() bool {
 	return c.Mode != "" && c.Mode != ManagedImageBackendDisabled
 }
@@ -182,6 +146,12 @@ type EngineConfig struct {
 	Port    int
 	Version string
 
+	// ExecutionHostIdentity is a Runtime-private lifecycle equality proof for
+	// capability Hosts whose resident process is bound to an immutable
+	// dependency profile. It is never accepted from a product request or
+	// projected through the public Runtime protocol.
+	ExecutionHostIdentity string
+
 	// SupervisedRoot is the data-plane `environments` root the engine manager
 	// installs and supervises under. The Supervisor derives its pid/metadata
 	// file path from this root; it is stamped by the Manager before the
@@ -217,12 +187,24 @@ type EngineConfig struct {
 	// WorkingDir overrides the child process working directory.
 	WorkingDir string
 
+	// MediaHostPackageSetRoot is the Runtime-verified immutable dependency
+	// profile root that owns the private media server and its Python runtime.
+	MediaHostPackageSetRoot string
+	// MediaHostAcceleratorPlane is the host-derived accelerator plane verified
+	// with MediaHostPackageSetRoot. It is Runtime-internal composition input,
+	// never a user-selectable accelerator override.
+	MediaHostAcceleratorPlane string
+
 	// ModelsPath is the Runtime-verified speech model directory.
 	ModelsPath string
 
 	// SpeechHostPackageSetRoot is the Runtime-verified package-set root that
 	// owns the private speech server for this exact capability Host.
 	SpeechHostPackageSetRoot string
+	// SpeechHostAcceleratorPlane is the host-derived accelerator plane verified
+	// with SpeechHostPackageSetRoot. It is Runtime-internal composition input,
+	// never a user-selectable accelerator override.
+	SpeechHostAcceleratorPlane string
 
 	// SpeechQwen3TTSPackageSetRoot is the Runtime-verified qwen3_tts Python
 	// package-set root used to derive the supervised speech TTS driver command.
@@ -302,7 +284,7 @@ func DefaultMediaConfig() EngineConfig {
 		HealthMode:       HealthModeHTTP,
 		HealthPath:       "/healthz",
 		HealthResponse:   "\"ready\": true",
-		StartupTimeout:   180 * time.Second,
+		StartupTimeout:   300 * time.Second,
 		HealthInterval:   30 * time.Second,
 		MaxRestarts:      5,
 		RestartBaseDelay: 2 * time.Second,
@@ -320,7 +302,7 @@ func DefaultSpeechConfig() EngineConfig {
 		HealthMode:       HealthModeHTTP,
 		HealthPath:       "/healthz",
 		HealthResponse:   "\"ready\": true",
-		StartupTimeout:   240 * time.Second,
+		StartupTimeout:   300 * time.Second,
 		HealthInterval:   30 * time.Second,
 		MaxRestarts:      5,
 		RestartBaseDelay: 2 * time.Second,

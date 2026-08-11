@@ -8,6 +8,7 @@ profiles:
     methods:
       - method_id: /nimi.runtime.v1.RuntimeLocalService/CollectDeviceProfile
       - method_id: /nimi.runtime.v1.RuntimeLocalService/ResolveLocalEnvironmentPlan
+      - method_id: /nimi.runtime.v1.RuntimeLocalService/ApplyLocalEnvironmentPlan
       - method_id: /nimi.runtime.v1.RuntimeLocalService/ListLocalEnvironmentDependencyJobs
       - method_id: /nimi.runtime.v1.RuntimeLocalService/StartLocalEnvironmentDependencyJob
       - method_id: /nimi.runtime.v1.RuntimeLocalService/CancelLocalEnvironmentDependencyJob

@@ -2,20 +2,19 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   isNimiRuntimeLocalEnvironmentDependencyJobActiveState,
-  isNimiRuntimeLocalEnvironmentDependencyJobRetryableState,
-  isNimiRuntimeLocalEnvironmentDependencyNeedsConfirmationState,
   isNimiRuntimeLocalEnvironmentDependencyReadyState,
-  isNimiRuntimeLocalEnvironmentDependencyRepairRequiredState,
-  isNimiRuntimeLocalEnvironmentDependencyStartableState,
   type NimiRuntimeLocalEnvironmentDependencyJob,
   type NimiRuntimeLocalEnvironmentPlan,
+  type NimiRuntimeLocalEnvironmentPlanInput,
   type NimiRuntimeLocalEnvironmentPlanDependency,
+  type NimiRuntimeLocalAssetAdminClient,
 } from '@nimiplatform/sdk/runtime';
 import { ConfirmDialog, Surface, cn } from '@nimiplatform/kit/ui';
 
 import { useDesktopRendererSdk } from '../../renderer/binding-context.js';
 import { Button } from './runtime-config-primitives.js';
 import { useRuntimeConfigLocalAssetAdminClient } from './runtime-config-local-model-center-sdk-service.js';
+import { formatBytes } from './runtime-config-model-center-utils.js';
 import {
   resolveRuntimeConfigLocalASREnvironmentPlan,
   resolveRuntimeConfigLocalTTSEnvironmentPlan,
@@ -26,12 +25,10 @@ import {
   TOKEN_TEXT_PRIMARY,
 } from './runtime-config-runtime-page-ui.js';
 
-type PendingDependencyAction = {
-  readonly kind: 'start' | 'repair' | 'retry';
+type PendingCapabilityAction = {
   readonly slice: LocalSpeechSlice;
   readonly plan: NimiRuntimeLocalEnvironmentPlan;
-  readonly dependency: NimiRuntimeLocalEnvironmentPlanDependency;
-  readonly job?: NimiRuntimeLocalEnvironmentDependencyJob;
+  readonly resolution: NimiRuntimeLocalEnvironmentPlanInput;
 };
 
 type LocalSpeechSlice = 'tts' | 'stt';
@@ -39,6 +36,7 @@ type LocalSpeechSlice = 'tts' | 'stt';
 type LocalSpeechPlan = {
   readonly slice: LocalSpeechSlice;
   readonly plan: NimiRuntimeLocalEnvironmentPlan;
+  readonly resolution: NimiRuntimeLocalEnvironmentPlanInput;
 };
 
 type LocalSpeechError = {
@@ -53,8 +51,62 @@ function latestDependencyJob(
   return jobs
     .filter((job) => job.environmentKey === dependency.environmentKey
       && job.dependencyFamily === dependency.dependencyFamily
-      && job.dependencyId === dependency.dependencyId)
+      && job.dependencyId === dependency.dependencyId
+      && job.consumerScope === dependency.consumerScope)
     .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt))[0];
+}
+
+function hasRuntimeOwnedCapabilityConfirmation(plan: NimiRuntimeLocalEnvironmentPlan): boolean {
+  const confirmedFamilies = new Set(plan.requiredDependencyFamilies);
+  return plan.noSystemMutation
+    && plan.requiredDependencyFamilies.length > 0
+    && plan.dependencies.every((dependency) => !dependency.required || confirmedFamilies.has(dependency.dependencyFamily))
+    && plan.storageCategories.length > 0
+    && plan.sourceOwners.length > 0;
+}
+
+export function canSubmitRuntimeConfigLocalSpeechEnvironmentPlan(
+  plan: NimiRuntimeLocalEnvironmentPlan,
+  jobs: readonly NimiRuntimeLocalEnvironmentDependencyJob[],
+): boolean {
+  if (!hasRuntimeOwnedCapabilityConfirmation(plan) || plan.state === 'unsupported') return false;
+  return plan.dependencies.some((dependency) => {
+    if (!dependency.required || isNimiRuntimeLocalEnvironmentDependencyReadyState(dependency.state)) return false;
+    const job = latestDependencyJob(jobs, dependency);
+    return !job || !isNimiRuntimeLocalEnvironmentDependencyJobActiveState(job.state);
+  });
+}
+
+export function resolveRuntimeConfigLocalSpeechConfirmationProjection(
+  plan: NimiRuntimeLocalEnvironmentPlan,
+): {
+  readonly families: string;
+  readonly aggregateSizeKnown: boolean;
+  readonly aggregateSizeBytes: number;
+  readonly storageCategories: string;
+  readonly sourceOwners: string;
+  readonly noSystemMutation: boolean;
+} {
+  return {
+    families: plan.requiredDependencyFamilies.join(', '),
+    aggregateSizeKnown: plan.aggregateSizeKnown,
+    aggregateSizeBytes: plan.aggregateSizeBytes,
+    storageCategories: plan.storageCategories.join(', '),
+    sourceOwners: plan.sourceOwners.join(', '),
+    noSystemMutation: plan.noSystemMutation,
+  };
+}
+
+export async function submitRuntimeConfigLocalSpeechEnvironmentPlan(
+  localEnvironment: Pick<NimiRuntimeLocalAssetAdminClient, 'applyEnvironmentPlan'>,
+  resolution: NimiRuntimeLocalEnvironmentPlanInput,
+  plan: NimiRuntimeLocalEnvironmentPlan,
+) {
+  return localEnvironment.applyEnvironmentPlan({
+    resolution,
+    expectedPlanId: plan.planId,
+    confirmed: true,
+  }, { caller: 'core' });
 }
 
 function errorDetail(error: unknown): string {
@@ -76,7 +128,7 @@ export function RuntimeConfigLocalSpeechEnvironmentPanel(props: {
   const [loading, setLoading] = useState(true);
   const [busyKey, setBusyKey] = useState('');
   const [errors, setErrors] = useState<readonly LocalSpeechError[]>([]);
-  const [pending, setPending] = useState<PendingDependencyAction | null>(null);
+  const [pending, setPending] = useState<PendingCapabilityAction | null>(null);
 
   const refresh = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
@@ -93,7 +145,7 @@ export function RuntimeConfigLocalSpeechEnvironmentPanel(props: {
         const slice = slices[index];
         if (!slice) return;
         if (result.status === 'fulfilled') {
-          nextPlans.push({ slice, plan: result.value });
+          nextPlans.push({ slice, plan: result.value.plan, resolution: result.value.resolution });
           return;
         }
         const detail = errorDetail(result.reason);
@@ -131,35 +183,11 @@ export function RuntimeConfigLocalSpeechEnvironmentPanel(props: {
 
   const runConfirmedAction = useCallback(async () => {
     if (!pending) return;
-    const key = `${pending.dependency.environmentKey}:${pending.kind}`;
+    const key = `${pending.slice}:setup`;
     setBusyKey(key);
     setErrors([]);
     try {
-      if (pending.kind === 'retry') {
-        if (!pending.job) throw new Error('LOCAL_SPEECH_DEPENDENCY_RETRY_JOB_REQUIRED');
-        await localEnvironment.retryEnvironmentDependencyJob({
-          jobId: pending.job.jobId,
-          confirmed: true,
-        }, { caller: 'core' });
-      } else if (pending.kind === 'repair') {
-        await localEnvironment.repairEnvironmentDependency({
-          environmentKey: pending.dependency.environmentKey,
-          dependencyFamily: pending.dependency.dependencyFamily,
-          dependencyId: pending.dependency.dependencyId,
-          confirmed: true,
-          reasonCode: pending.dependency.reasonCode,
-          consumerScope: pending.dependency.consumerScope,
-        }, { caller: 'core' });
-      } else {
-        await localEnvironment.startEnvironmentDependencyJob({
-          environmentKey: pending.dependency.environmentKey,
-          dependencyFamily: pending.dependency.dependencyFamily,
-          dependencyId: pending.dependency.dependencyId,
-          sourceKind: pending.dependency.sourceKind,
-          confirmed: true,
-          consumerScope: pending.dependency.consumerScope,
-        }, { caller: 'core' });
-      }
+      await submitRuntimeConfigLocalSpeechEnvironmentPlan(localEnvironment, pending.resolution, pending.plan);
       setPending(null);
       await refresh(true);
     } catch (nextError) {
@@ -169,14 +197,23 @@ export function RuntimeConfigLocalSpeechEnvironmentPanel(props: {
     }
   }, [localEnvironment, pending, refresh]);
 
-  const cancelJob = useCallback(async (job: NimiRuntimeLocalEnvironmentDependencyJob) => {
-    setBusyKey(`${job.environmentKey}:cancel`);
+  const cancelJobs = useCallback(async (
+    slice: LocalSpeechSlice,
+    activeJobs: readonly NimiRuntimeLocalEnvironmentDependencyJob[],
+  ) => {
+    setBusyKey(`${slice}:cancel`);
     setErrors([]);
     try {
-      await localEnvironment.cancelEnvironmentDependencyJob({ jobId: job.jobId }, { caller: 'core' });
+      const results = await Promise.allSettled(activeJobs.map((job) => (
+        localEnvironment.cancelEnvironmentDependencyJob({ jobId: job.jobId }, { caller: 'core' })
+      )));
       await refresh(true);
+      const failures = results.flatMap((result) => (
+        result.status === 'rejected' ? [{ slice, detail: errorDetail(result.reason) }] : []
+      ));
+      if (failures.length > 0) setErrors(failures);
     } catch (nextError) {
-      setErrors([{ detail: errorDetail(nextError) }]);
+      setErrors([{ slice, detail: errorDetail(nextError) }]);
     } finally {
       setBusyKey('');
     }
@@ -223,32 +260,57 @@ export function RuntimeConfigLocalSpeechEnvironmentPanel(props: {
           </div>
         ) : null}
 
-        {plans.map(({ slice, plan }) => (
+        {plans.map(({ slice, plan, resolution }) => {
+          const activeJobs = plan.dependencies.flatMap((dependency) => {
+            const job = latestDependencyJob(jobs, dependency);
+            return job && isNimiRuntimeLocalEnvironmentDependencyJobActiveState(job.state) ? [job] : [];
+          });
+          const capabilityBusy = busyKey.startsWith(`${slice}:`);
+          const canApply = canSubmitRuntimeConfigLocalSpeechEnvironmentPlan(plan, jobs);
+          return (
           <div key={slice} className="mt-4 space-y-2">
-            <h3 className={cn('text-sm font-semibold', TOKEN_TEXT_PRIMARY)}>
-              {t('runtimeConfig.environment.localSpeechSliceTitle', {
-                capability: t(`runtimeConfig.environment.localSpeech${slice.toUpperCase()}`),
-              })}
-            </h3>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <h3 className={cn('text-sm font-semibold', TOKEN_TEXT_PRIMARY)}>
+                {t('runtimeConfig.environment.localSpeechSliceTitle', {
+                  capability: t(`runtimeConfig.environment.localSpeech${slice.toUpperCase()}`),
+                })}
+              </h3>
+              <div className="flex shrink-0 gap-2">
+              {activeJobs.length > 0 ? (
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  disabled={capabilityBusy || props.writesDisabled}
+                  onClick={() => void cancelJobs(slice, activeJobs)}
+                >
+                  {t('runtimeConfig.environment.localSpeechCancel')}
+                </Button>
+              ) : null}
+              {canApply ? (
+                <Button
+                  size="sm"
+                  disabled={capabilityBusy || props.writesDisabled}
+                  onClick={() => setPending({ slice, plan, resolution })}
+                >
+                  {t('runtimeConfig.environment.localSpeechSetup')}
+                </Button>
+              ) : null}
+              </div>
+            </div>
             {plan.dependencies.map((dependency) => {
               const job = latestDependencyJob(jobs, dependency);
               const active = Boolean(job && isNimiRuntimeLocalEnvironmentDependencyJobActiveState(job.state));
               const ready = isNimiRuntimeLocalEnvironmentDependencyReadyState(dependency.state);
-              const repair = isNimiRuntimeLocalEnvironmentDependencyRepairRequiredState(dependency.state);
-              const retry = Boolean(job && isNimiRuntimeLocalEnvironmentDependencyJobRetryableState(job.state));
-              const start = isNimiRuntimeLocalEnvironmentDependencyStartableState(dependency.state)
-                && !repair && !retry;
-              const state = job?.state || dependency.state;
-              const progress = job && job.bytesTotal > 0
+              const state = active && job ? job.state : dependency.state;
+              const progress = active && job && job.bytesTotal > 0
                 ? t('runtimeConfig.environment.localSpeechProgress', { percent: Math.round(job.percent) })
                 : '';
-              const rowBusy = busyKey.startsWith(`${dependency.environmentKey}:`);
               return (
                 <div
                   key={`${slice}:${dependency.environmentKey}:${dependency.dependencyId}`}
                   className="rounded-xl border border-[var(--nimi-border-subtle)] px-3 py-3"
                 >
-                  <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div className="flex flex-wrap items-start gap-3">
                     <div className="min-w-0">
                       <div className={cn('text-sm font-medium', TOKEN_TEXT_PRIMARY)}>
                         {dependency.dependencyFamily}
@@ -260,37 +322,13 @@ export function RuntimeConfigLocalSpeechEnvironmentPanel(props: {
                         {state}{progress ? ` · ${progress}` : ''}
                         {dependency.reasonCode ? ` · ${dependency.reasonCode}` : ''}
                       </div>
-                      {dependency.detail || job?.failureDetail ? (
+                      {dependency.detail || (active ? job?.failureDetail : '') ? (
                         <div className="mt-1 text-xs text-[var(--nimi-status-danger)]">
                           {t('runtimeConfig.environment.localSpeechDependencyFailure', {
                             capability: t(`runtimeConfig.environment.localSpeech${slice.toUpperCase()}`),
-                            detail: dependency.detail || job?.failureDetail,
+                            detail: dependency.detail || (active ? job?.failureDetail : ''),
                           })}
                         </div>
-                      ) : null}
-                    </div>
-                    <div className="flex shrink-0 gap-2">
-                      {active && job ? (
-                        <Button variant="secondary" size="sm" disabled={rowBusy || props.writesDisabled} onClick={() => void cancelJob(job)}>
-                          {t('runtimeConfig.environment.localSpeechCancel')}
-                        </Button>
-                      ) : null}
-                      {!active && repair ? (
-                        <Button size="sm" disabled={rowBusy || props.writesDisabled} onClick={() => setPending({ kind: 'repair', slice, plan, dependency })}>
-                          {t('runtimeConfig.environment.localSpeechRepair')}
-                        </Button>
-                      ) : null}
-                      {!active && retry && job ? (
-                        <Button size="sm" disabled={rowBusy || props.writesDisabled} onClick={() => setPending({ kind: 'retry', slice, plan, dependency, job })}>
-                          {t('runtimeConfig.environment.localSpeechRetry')}
-                        </Button>
-                      ) : null}
-                      {!active && start ? (
-                        <Button size="sm" disabled={rowBusy || props.writesDisabled} onClick={() => setPending({ kind: 'start', slice, plan, dependency })}>
-                          {isNimiRuntimeLocalEnvironmentDependencyNeedsConfirmationState(dependency.state)
-                            ? t('runtimeConfig.environment.localSpeechSetup')
-                            : t('runtimeConfig.environment.localSpeechStart')}
-                        </Button>
                       ) : null}
                     </div>
                   </div>
@@ -298,18 +336,29 @@ export function RuntimeConfigLocalSpeechEnvironmentPanel(props: {
               );
             })}
           </div>
-        ))}
+          );
+        })}
       </Surface>
 
       <ConfirmDialog
         open={Boolean(pending)}
         title={t('runtimeConfig.environment.localSpeechConfirmTitle')}
         message={pending
-          ? t('runtimeConfig.environment.localSpeechConfirmMessage', {
-              family: pending.dependency.dependencyFamily,
-              source: pending.dependency.sourceKind,
-              root: pending.dependency.canonicalRoot || pending.plan.runtimeDataRoot || '-',
-            })
+          ? (() => {
+              const projection = resolveRuntimeConfigLocalSpeechConfirmationProjection(pending.plan);
+              return t('runtimeConfig.environment.localSpeechConfirmMessage', {
+                family: projection.families,
+                aggregateSize: projection.aggregateSizeKnown
+                  ? formatBytes(projection.aggregateSizeBytes)
+                  : t('runtimeConfig.environment.localSpeechAggregateSizeUnknown'),
+                storageCategory: projection.storageCategories,
+                sourceOwner: projection.sourceOwners,
+                mutationPolicy: projection.noSystemMutation
+                  ? t('runtimeConfig.environment.localSpeechNoSystemMutation')
+                  : t('runtimeConfig.environment.localSpeechSystemMutationPolicyUnknown'),
+                root: pending.plan.runtimeDataRoot || '-',
+              });
+            })()
           : ''}
         confirmLabel={t('runtimeConfig.environment.localSpeechConfirm')}
         cancelLabel={t('runtimeConfig.environment.localSpeechCancel')}

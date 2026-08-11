@@ -326,6 +326,11 @@ func (s *Service) restoreState() error {
 		if strings.TrimSpace(item.EnvironmentKey) == "" {
 			continue
 		}
+		if localEnvironmentPythonSelectedSourceFamily(item.DependencyFamily) &&
+			(len(item.SelectedConsumers) > 0 || len(item.ActivationEnvDelta) > 0) {
+			item = canonicalLocalEnvironmentPythonSelectedSourceRecord(item)
+			healedSnapshot = true
+		}
 		key := localEnvironmentSelectedSourceRecordKey(item)
 		if key == "" {
 			key = strings.TrimSpace(item.EnvironmentKey)
