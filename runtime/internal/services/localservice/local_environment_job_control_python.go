@@ -405,6 +405,8 @@ func pythonSelectedConsumersForDependency(dependencyID string) []string {
 		return []string{"media.video-python.cpu", "media.video-python.cuda"}
 	case strings.HasPrefix(strings.TrimSpace(dependencyID), "local-speech-qwen3-asr."):
 		return []string{"speech.qwen3-asr.python"}
+	case strings.HasPrefix(strings.TrimSpace(dependencyID), "local-speech-qwen3-asr-transformers."):
+		return []string{"speech.qwen3-asr-transformers.python"}
 	case strings.HasPrefix(strings.TrimSpace(dependencyID), "local-speech-qwen3-tts."):
 		return []string{"speech.qwen3-tts.python"}
 	case strings.HasPrefix(strings.TrimSpace(dependencyID), "local-speech."):
@@ -419,6 +421,7 @@ func pythonSelectedConsumersForDependency(dependencyID string) []string {
 			"media.video-python.cpu",
 			"media.video-python.cuda",
 			"speech.qwen3-asr.python",
+			"speech.qwen3-asr-transformers.python",
 			"speech.qwen3-tts.python",
 		}
 	default:
@@ -441,6 +444,8 @@ func pythonMaterializerConsumerForDependency(dependencyID string) string {
 		return "media.video-python.cuda"
 	case strings.HasPrefix(strings.TrimSpace(dependencyID), "local-speech-qwen3-asr."):
 		return "speech.qwen3-asr.python"
+	case strings.HasPrefix(strings.TrimSpace(dependencyID), "local-speech-qwen3-asr-transformers."):
+		return "speech.qwen3-asr-transformers.python"
 	case strings.HasPrefix(strings.TrimSpace(dependencyID), "local-speech-qwen3-tts."):
 		return "speech.qwen3-tts.python"
 	case strings.HasPrefix(strings.TrimSpace(dependencyID), "local-speech."):
@@ -484,6 +489,8 @@ func pythonRuntimeEngineTarget(consumer string) (string, string) {
 		switch strings.TrimSpace(consumer) {
 		case "speech.qwen3-asr.python":
 			return "speech", cfg.Version + "-qwen3-asr"
+		case "speech.qwen3-asr-transformers.python":
+			return "speech", cfg.Version + "-qwen3-asr-transformers"
 		case "speech.qwen3-tts.python":
 			return "speech", cfg.Version + "-qwen3-tts"
 		default:

@@ -66,6 +66,12 @@ export const NIMI_MACHINE_LOCAL_QWEN3_ASR_IMPLEMENTATION = Object.freeze({
   driverDialect: 'qwen3-asr/audio-transcribe/v1',
 }) satisfies Readonly<CapabilityImplementationIdentity>;
 
+export const NIMI_MACHINE_LOCAL_QWEN3_ASR_TRANSFORMERS_IMPLEMENTATION = Object.freeze({
+  implementationId: 'local.audio.transcribe.qwen3-asr-transformers',
+  driverId: 'nimi.runtime.driver.qwen3-asr-transformers',
+  driverDialect: 'qwen3-asr-transformers/audio-transcribe/v1',
+}) satisfies Readonly<CapabilityImplementationIdentity>;
+
 export const NIMI_MACHINE_LOCAL_STABLE_DIFFUSION_IMAGE_IMPLEMENTATION = Object.freeze({
   implementationId: 'local.image.generate.stable-diffusion-cpp',
   driverId: 'nimi.runtime.driver.stable-diffusion-cpp',
@@ -463,6 +469,19 @@ export function createNimiMachineLocalQwen3ASRConfigurationInput(input: {
   return {
     capabilityContract: NIMI_MACHINE_LOCAL_AUDIO_TRANSCRIBE_CAPABILITY_CONTRACT,
     implementation: { ...NIMI_MACHINE_LOCAL_QWEN3_ASR_IMPLEMENTATION },
+    portableConfig: {},
+    supportedFeatures: [],
+    displayName: requireInputText(input.displayName, 'displayName'),
+  };
+}
+
+export function createNimiMachineLocalQwen3ASRTransformersConfigurationInput(input: {
+  readonly displayName: string;
+}): NimiMachineLocalAIConfigurationAddInput {
+  assertExactRecord(input, new Set(['displayName']), 'Transformers-native Qwen3-ASR configuration input');
+  return {
+    capabilityContract: NIMI_MACHINE_LOCAL_AUDIO_TRANSCRIBE_CAPABILITY_CONTRACT,
+    implementation: { ...NIMI_MACHINE_LOCAL_QWEN3_ASR_TRANSFORMERS_IMPLEMENTATION },
     portableConfig: {},
     supportedFeatures: [],
     displayName: requireInputText(input.displayName, 'displayName'),

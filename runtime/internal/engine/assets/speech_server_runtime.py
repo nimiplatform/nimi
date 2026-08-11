@@ -18,6 +18,7 @@ from fastapi.responses import JSONResponse
 MODELS_ROOT_ENV = "NIMI_RUNTIME_LOCAL_MODELS_PATH"
 QWEN3_TTS_DRIVER_ENV = "NIMI_RUNTIME_SPEECH_QWEN3_TTS_CMD"
 QWEN3_ASR_DRIVER_ENV = "NIMI_RUNTIME_SPEECH_QWEN3_ASR_CMD"
+QWEN3_ASR_TRANSFORMERS_DRIVER_ENV = "NIMI_RUNTIME_SPEECH_QWEN3_ASR_TRANSFORMERS_CMD"
 DRIVER_TIMEOUT_MS_ENV = "NIMI_RUNTIME_SPEECH_DRIVER_TIMEOUT_MS"
 DRIVER_WORK_ROOT_ENV = "NIMI_RUNTIME_SPEECH_DRIVER_WORK_ROOT"
 DRIVER_OUTPUT_PATH_ENV = "NIMI_RUNTIME_SPEECH_DRIVER_OUTPUT_PATH"
@@ -77,6 +78,9 @@ class HostState:
     qwen3_asr_configured: bool
     qwen3_asr_ready: bool
     qwen3_asr_detail: str
+    qwen3_asr_transformers_configured: bool
+    qwen3_asr_transformers_ready: bool
+    qwen3_asr_transformers_detail: str
 
 
 def default_models_root() -> str:
@@ -215,6 +219,7 @@ def infer_runtime_native_driver(
     capability: str,
     entry_path: str,
     declared_files: list[str],
+    artifact_roles: list[str],
 ) -> str:
     normalized_model = model_id.strip().lower()
     normalized_entry = pathlib.Path(entry_path).name.strip().lower()
@@ -228,11 +233,10 @@ def infer_runtime_native_driver(
             return "qwen3_tts"
         return ""
     if capability == "audio.transcribe":
-        if "qwen3-asr" in normalized_model or "qwen3asr" in normalized_model:
-            return "qwen3_asr"
-        if "qwen3-asr" in normalized_entry or "qwen3asr" in normalized_entry:
-            return "qwen3_asr"
-        if any("qwen3-asr" in item or "qwen3asr" in item for item in normalized_files):
+        normalized_roles = {item.strip().lower() for item in artifact_roles}
+        if "stt_transformers_model" in normalized_roles:
+            return "qwen3_asr_transformers"
+        if "stt_model" in normalized_roles:
             return "qwen3_asr"
         return ""
     return ""
@@ -249,13 +253,23 @@ QWEN3_ASR_REQUIRED_FILES = (
     "merges.txt",
 )
 
+QWEN3_ASR_TRANSFORMERS_REQUIRED_FILES = (
+    "model.safetensors",
+    "config.json",
+    "generation_config.json",
+    "processor_config.json",
+    "chat_template.jinja",
+    "tokenizer_config.json",
+    "tokenizer.json",
+)
+
 
 def runtime_native_bundle_layout_problems(
     driver_kind: str,
     entry_value: str,
     declared_files: list[str],
 ) -> list[str]:
-    if driver_kind != "qwen3_asr":
+    if driver_kind not in {"qwen3_asr", "qwen3_asr_transformers"}:
         return []
     problems: list[str] = []
     normalized_entry = entry_value.strip().replace("\\", "/").lower()
@@ -266,7 +280,8 @@ def runtime_native_bundle_layout_problems(
         for item in declared_files
         if item.strip()
     }
-    for required_file in QWEN3_ASR_REQUIRED_FILES:
+    required_files = QWEN3_ASR_REQUIRED_FILES if driver_kind == "qwen3_asr" else QWEN3_ASR_TRANSFORMERS_REQUIRED_FILES
+    for required_file in required_files:
         if required_file.lower() not in normalized_declared:
             problems.append(f'managed bundle file "{required_file}" missing')
     return problems
@@ -542,6 +557,7 @@ def manifest_speech_model_state(
     manifest_path: pathlib.Path,
     qwen3_tts_driver_state: tuple[list[str], bool, str],
     qwen3_asr_driver_state: tuple[list[str], bool, str],
+    qwen3_asr_transformers_driver_state: tuple[list[str], bool, str],
 ) -> SpeechModelState | None:
     try:
         payload = json.loads(manifest_path.read_text(encoding="utf-8"))
@@ -567,6 +583,7 @@ def manifest_speech_model_state(
     entry_value = str(payload.get("entry") or "").strip()
     entry_path = bundle_dir / entry_value if entry_value else None
     declared_files = normalized_capabilities(payload.get("files"))
+    artifact_roles = normalized_capabilities(payload.get("artifact_roles") or payload.get("artifactRoles"))
     problems: list[str] = []
     if entry_path is None:
         problems.append("entry missing")
@@ -597,7 +614,7 @@ def manifest_speech_model_state(
                 continue
             ready_capabilities.append(capability)
             continue
-        driver_kind = infer_runtime_native_driver(model_id, capability, resolved_entry, declared_files)
+        driver_kind = infer_runtime_native_driver(model_id, capability, resolved_entry, declared_files, artifact_roles)
         if not driver_kind:
             problems.append(f"{capability} runtime-native driver unresolved")
             continue
@@ -620,15 +637,16 @@ def manifest_speech_model_state(
             ready_capabilities.append(capability)
             continue
         if capability == "audio.transcribe":
-            if driver_kind != "qwen3_asr":
+            if driver_kind not in {"qwen3_asr", "qwen3_asr_transformers"}:
                 problems.append(f"audio.transcribe requires unsupported driver {driver_kind}")
                 continue
             layout_problems = runtime_native_bundle_layout_problems(driver_kind, entry_value, declared_files)
             if layout_problems:
                 problems.extend(layout_problems)
                 continue
-            if not qwen3_asr_driver_state[1]:
-                problems.append(qwen3_asr_driver_state[2])
+            driver_state = qwen3_asr_driver_state if driver_kind == "qwen3_asr" else qwen3_asr_transformers_driver_state
+            if not driver_state[1]:
+                problems.append(driver_state[2])
                 continue
             ready_capabilities.append(capability)
     ready = len(ready_capabilities) > 0 and len(problems) == 0
@@ -652,6 +670,7 @@ def discover_speech_models(
     models_root: str,
     qwen3_tts_driver_state: tuple[list[str], bool, str],
     qwen3_asr_driver_state: tuple[list[str], bool, str],
+    qwen3_asr_transformers_driver_state: tuple[list[str], bool, str],
 ) -> list[SpeechModelState]:
     resolved_root = pathlib.Path(models_root) / "resolved"
     if not resolved_root.exists():
@@ -660,7 +679,7 @@ def discover_speech_models(
     for manifest_path in sorted(resolved_root.glob("**/asset.manifest.json")):
         if not manifest_path.is_file():
             continue
-        state = manifest_speech_model_state(manifest_path, qwen3_tts_driver_state, qwen3_asr_driver_state)
+        state = manifest_speech_model_state(manifest_path, qwen3_tts_driver_state, qwen3_asr_driver_state, qwen3_asr_transformers_driver_state)
         if state is not None:
             models.append(state)
     return models
@@ -669,13 +688,14 @@ def discover_speech_models(
 def build_host_state() -> HostState:
     qwen3_tts_driver_state = driver_command_state(QWEN3_TTS_DRIVER_ENV, "qwen3_tts")
     qwen3_asr_driver_state = driver_command_state(QWEN3_ASR_DRIVER_ENV, "qwen3_asr")
-    models = discover_speech_models(default_models_root(), qwen3_tts_driver_state, qwen3_asr_driver_state)
+    qwen3_asr_transformers_driver_state = driver_command_state(QWEN3_ASR_TRANSFORMERS_DRIVER_ENV, "qwen3_asr_transformers")
+    models = discover_speech_models(default_models_root(), qwen3_tts_driver_state, qwen3_asr_driver_state, qwen3_asr_transformers_driver_state)
     ready_models = [model for model in models if model.ready]
     if ready_models:
         detail = f"{len(ready_models)} ready local speech model(s) discovered"
         status = "ok"
         ready = True
-    elif not qwen3_tts_driver_state[0] and not qwen3_asr_driver_state[0]:
+    elif not qwen3_tts_driver_state[0] and not qwen3_asr_driver_state[0] and not qwen3_asr_transformers_driver_state[0]:
         detail = "no runtime-native speech drivers configured"
         status = "not_ready"
         ready = False
@@ -713,6 +733,9 @@ def build_host_state() -> HostState:
         qwen3_asr_configured=bool(qwen3_asr_driver_state[0]),
         qwen3_asr_ready=qwen3_asr_driver_state[1],
         qwen3_asr_detail=qwen3_asr_driver_state[2],
+        qwen3_asr_transformers_configured=bool(qwen3_asr_transformers_driver_state[0]),
+        qwen3_asr_transformers_ready=qwen3_asr_transformers_driver_state[1],
+        qwen3_asr_transformers_detail=qwen3_asr_transformers_driver_state[2],
     )
 
 
@@ -806,9 +829,13 @@ def transcribe_with_driver(
     cancel_event: Any | None = None,
 ) -> str:
     driver_kind = model.capability_drivers.get("audio.transcribe", "").strip()
-    if driver_kind != "qwen3_asr":
+    if driver_kind == "qwen3_asr":
+        env_name = QWEN3_ASR_DRIVER_ENV
+    elif driver_kind == "qwen3_asr_transformers":
+        env_name = QWEN3_ASR_TRANSFORMERS_DRIVER_ENV
+    else:
         raise RuntimeError(f"audio.transcribe runtime-native driver unavailable: {driver_kind or 'unset'}")
-    command, ready, detail = driver_command_state(QWEN3_ASR_DRIVER_ENV, "qwen3_asr")
+    command, ready, detail = driver_command_state(env_name, driver_kind)
     if not ready:
         raise RuntimeError(detail)
     response = run_driver_command(command, request_payload, cancel_event)

@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
@@ -275,6 +276,8 @@ func stringSlicesEqual(left []string, right []string) bool {
 	if len(left) != len(right) {
 		return false
 	}
+	sort.Strings(left)
+	sort.Strings(right)
 	for index := range left {
 		if left[index] != right[index] {
 			return false

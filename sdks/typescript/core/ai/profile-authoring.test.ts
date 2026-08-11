@@ -9,6 +9,7 @@ import {
   NIMI_AI_PROFILE_LLAMA_EMBED_PORTABLE_CONFIG_FIELDS,
   NIMI_AI_PROFILE_LLAMA_PORTABLE_CONFIG_FIELDS,
   NIMI_AI_PROFILE_QWEN3_ASR_IMPLEMENTATION,
+  NIMI_AI_PROFILE_QWEN3_ASR_TRANSFORMERS_IMPLEMENTATION,
   NIMI_AI_PROFILE_QWEN3_TTS_IMPLEMENTATION,
   NIMI_AI_PROFILE_STABLE_DIFFUSION_EXECUTION_OPTION_FIELDS,
   NIMI_AI_PROFILE_STABLE_DIFFUSION_LORA_FIELDS,
@@ -21,6 +22,7 @@ import {
   createNimiAIProfileLlamaLocalImplementation,
   createNimiAIProfileLlamaPortableConfig,
   createNimiAIProfileQwen3ASRLocalImplementation,
+  createNimiAIProfileQwen3ASRTransformersLocalImplementation,
   createNimiAIProfileQwen3TTSLocalImplementation,
   createNimiAIProfileStableDiffusionLocalImplementation,
   createNimiAIProfileStableDiffusionVideoLocalImplementation,
@@ -593,6 +595,27 @@ test('Qwen3 speech authoring preserves exact portable identities and slots', () 
       supportedFeatures: ['input.audio'],
     }),
     /must be empty/u,
+  );
+});
+
+test('Transformers-native Qwen3 ASR authoring remains a separate explicit implementation', () => {
+  const profile = createNimiAIProfileAuthoringBuilder({
+    profileId: 'profile.authoring.speech.transformers',
+    title: 'Transformers-native local speech',
+    provenance: { publisher: 'example.test' },
+    license: 'Apache-2.0',
+  }).setLocalCapability({
+    capabilityContract: 'audio.transcribe',
+    localConfiguration: createNimiAIProfileQwen3ASRTransformersLocalImplementation(),
+  }).build();
+
+  assert.deepEqual(profile.capabilities['audio.transcribe']?.implementation, {
+    ...NIMI_AI_PROFILE_QWEN3_ASR_TRANSFORMERS_IMPLEMENTATION,
+    supportedFeatures: [],
+  });
+  assert.notDeepEqual(
+    profile.capabilities['audio.transcribe']?.implementation,
+    { ...NIMI_AI_PROFILE_QWEN3_ASR_IMPLEMENTATION, supportedFeatures: [] },
   );
 });
 

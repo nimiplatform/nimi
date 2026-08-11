@@ -45,6 +45,12 @@ func resolvePythonPackageSetManifest(consumer string) (pythonPackageSetManifest,
 			Packages:     append([]string{}, nimiSpeechQwen3ASRPackages...),
 			ImportProbes: []string{"fastapi", "uvicorn", "multipart", "qwen_asr"},
 		}, nil
+	case trimmed == "speech.qwen3-asr-transformers.python":
+		return pythonPackageSetManifest{
+			ID:           "speech-qwen3-asr-transformers-python-core",
+			Packages:     append([]string{}, nimiSpeechQwen3ASRTransformersPackages...),
+			ImportProbes: []string{"fastapi", "uvicorn", "multipart", "torch", "transformers", "accelerate", "librosa", "soundfile"},
+		}, nil
 	default:
 		return pythonPackageSetManifest{}, fmt.Errorf("python package set dependency is not admitted for consumer %s", consumer)
 	}
@@ -61,6 +67,16 @@ func pythonPackageSetLockHash(manifest pythonPackageSetManifest) string {
 	sort.Strings(lines[1:])
 	sum := sha256.Sum256([]byte(strings.Join(lines, "\n") + "\n"))
 	return hex.EncodeToString(sum[:])
+}
+
+// ResolvePythonPackageSetLockHash returns the declaration lock for one admitted
+// consumer without installing or probing its environment.
+func ResolvePythonPackageSetLockHash(consumer string) (string, error) {
+	manifest, err := resolvePythonPackageSetManifest(consumer)
+	if err != nil {
+		return "", err
+	}
+	return pythonPackageSetLockHash(manifest), nil
 }
 
 func verifyPythonImportProbe(ctx context.Context, venvRoot string, interpreterPath string, probe string) error {
@@ -180,6 +196,11 @@ var speechQwen3ASRDriverScriptFile = struct {
 	Script *string
 }{Name: "qwen3_asr_driver.py", Script: &speechQwen3ASRDriverScript}
 
+var speechQwen3ASRTransformersDriverScriptFile = struct {
+	Name   string
+	Script *string
+}{Name: "qwen3_asr_transformers_driver.py", Script: &speechQwen3ASRTransformersDriverScript}
+
 func speechPipelineFilesForConsumer(consumer string) []struct {
 	Name   string
 	Script *string
@@ -199,6 +220,13 @@ func speechPipelineFilesForConsumer(consumer string) []struct {
 		}{}, speechServerScriptFiles...)
 		files = append(files, speechQwen3ASRDriverScriptFile)
 		return files
+	case "speech.qwen3-asr-transformers.python":
+		files := append([]struct {
+			Name   string
+			Script *string
+		}{}, speechServerScriptFiles...)
+		files = append(files, speechQwen3ASRTransformersDriverScriptFile)
+		return files
 	default:
 		return nil
 	}
@@ -210,6 +238,10 @@ func SpeechQwen3TTSDriverPath(root string) string {
 
 func SpeechQwen3ASRDriverPath(root string) string {
 	return filepath.Join(strings.TrimSpace(root), "qwen3_asr_driver.py")
+}
+
+func SpeechQwen3ASRTransformersDriverPath(root string) string {
+	return filepath.Join(strings.TrimSpace(root), "qwen3_asr_transformers_driver.py")
 }
 
 func speechDriverCommandsForConsumer(root string, consumer string) map[string]string {
@@ -226,6 +258,10 @@ func speechDriverCommandsForConsumer(root string, consumer string) map[string]st
 		return map[string]string{
 			"NIMI_RUNTIME_SPEECH_QWEN3_ASR_CMD": speechDriverCommand(trimmedRoot, SpeechQwen3ASRDriverPath),
 		}
+	case "speech.qwen3-asr-transformers.python":
+		return map[string]string{
+			"NIMI_RUNTIME_SPEECH_QWEN3_ASR_TRANSFORMERS_CMD": speechDriverCommand(trimmedRoot, SpeechQwen3ASRTransformersDriverPath),
+		}
 	default:
 		return nil
 	}
@@ -241,6 +277,8 @@ func speechDriverScriptsForConsumer(root string, consumer string) []string {
 		return []string{SpeechQwen3TTSDriverPath(trimmedRoot)}
 	case "speech.qwen3-asr.python":
 		return []string{SpeechQwen3ASRDriverPath(trimmedRoot)}
+	case "speech.qwen3-asr-transformers.python":
+		return []string{SpeechQwen3ASRTransformersDriverPath(trimmedRoot)}
 	default:
 		return nil
 	}

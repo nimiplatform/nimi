@@ -232,6 +232,11 @@ type EngineConfig struct {
 	// package-set root used to derive the supervised speech ASR driver command.
 	SpeechQwen3ASRPackageSetRoot string
 
+	// SpeechQwen3ASRTransformersPackageSetRoot is the Runtime-verified
+	// Transformers-native Qwen3-ASR package-set root. It is intentionally
+	// separate from the package-native qwen_asr root.
+	SpeechQwen3ASRTransformersPackageSetRoot string
+
 	// SpeechDriverWorkRoot is a Runtime-owned state-plane directory used only
 	// for bounded request/response exchange with supervised speech drivers.
 	// It must never be derived from process TEMP/HOME or the model payload root.

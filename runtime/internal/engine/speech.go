@@ -25,6 +25,14 @@ var nimiSpeechQwen3ASRPackages = append(append([]string{}, nimiSpeechHostPackage
 	"qwen-asr",
 )
 
+var nimiSpeechQwen3ASRTransformersPackages = append(append([]string{}, nimiSpeechHostPackages...),
+	"torch",
+	"transformers==5.13.0",
+	"accelerate",
+	"librosa",
+	"soundfile",
+)
+
 var speechPassThroughEnvKeys = []string{
 	"NIMI_RUNTIME_SPEECH_DRIVER_TIMEOUT_MS",
 }
@@ -66,9 +74,11 @@ func speechApplyDefaultEnv(cfg EngineConfig, root string) map[string]string {
 	exactCapabilityHost := strings.TrimSpace(cfg.SpeechHostPackageSetRoot) != ""
 	ttsRoot := strings.TrimSpace(cfg.SpeechQwen3TTSPackageSetRoot)
 	asrRoot := strings.TrimSpace(cfg.SpeechQwen3ASRPackageSetRoot)
+	asrTransformersRoot := strings.TrimSpace(cfg.SpeechQwen3ASRTransformersPackageSetRoot)
 	if !exactCapabilityHost {
 		ttsRoot = firstNonEmptyString(ttsRoot, root)
 		asrRoot = firstNonEmptyString(asrRoot, root)
+		asrTransformersRoot = firstNonEmptyString(asrTransformersRoot, root)
 	}
 	if strings.TrimSpace(env["NIMI_RUNTIME_SPEECH_QWEN3_TTS_CMD"]) == "" {
 		if command := speechDriverCommand(ttsRoot, SpeechQwen3TTSDriverPath); command != "" {
@@ -78,6 +88,11 @@ func speechApplyDefaultEnv(cfg EngineConfig, root string) map[string]string {
 	if strings.TrimSpace(env["NIMI_RUNTIME_SPEECH_QWEN3_ASR_CMD"]) == "" {
 		if command := speechDriverCommand(asrRoot, SpeechQwen3ASRDriverPath); command != "" {
 			env["NIMI_RUNTIME_SPEECH_QWEN3_ASR_CMD"] = command
+		}
+	}
+	if strings.TrimSpace(env["NIMI_RUNTIME_SPEECH_QWEN3_ASR_TRANSFORMERS_CMD"]) == "" {
+		if command := speechDriverCommand(asrTransformersRoot, SpeechQwen3ASRTransformersDriverPath); command != "" {
+			env["NIMI_RUNTIME_SPEECH_QWEN3_ASR_TRANSFORMERS_CMD"] = command
 		}
 	}
 	return env
@@ -95,14 +110,15 @@ func firstNonEmptyString(values ...string) string {
 func ensureSpeech(_ context.Context, _ string, cfg EngineConfig) (EngineConfig, error) {
 	ttsRoot := strings.TrimSpace(cfg.SpeechQwen3TTSPackageSetRoot)
 	asrRoot := strings.TrimSpace(cfg.SpeechQwen3ASRPackageSetRoot)
+	asrTransformersRoot := strings.TrimSpace(cfg.SpeechQwen3ASRTransformersPackageSetRoot)
 	hostRoot := strings.TrimSpace(cfg.SpeechHostPackageSetRoot)
 	if hostRoot == "" {
 		hostRoot = ttsRoot
 	}
-	if hostRoot == "" || (ttsRoot == "" && asrRoot == "") {
+	if hostRoot == "" || (ttsRoot == "" && asrRoot == "" && asrTransformersRoot == "") {
 		return cfg, fmt.Errorf("speech exact capability package-set selected source is required")
 	}
-	if hostRoot != ttsRoot && hostRoot != asrRoot {
+	if hostRoot != ttsRoot && hostRoot != asrRoot && hostRoot != asrTransformersRoot {
 		return cfg, fmt.Errorf("speech Host package-set root must own an exact configured speech Driver")
 	}
 	if strings.TrimSpace(cfg.ModelsPath) == "" {
@@ -137,6 +153,11 @@ func ensureSpeech(_ context.Context, _ string, cfg EngineConfig) (EngineConfig, 
 			return cfg, fmt.Errorf("refresh speech qwen3_asr runtime scripts: %w", err)
 		}
 	}
+	if asrTransformersRoot != "" {
+		if err := materializePythonPipelineServerScript(asrTransformersRoot, "speech.qwen3-asr-transformers.python"); err != nil {
+			return cfg, fmt.Errorf("refresh speech qwen3_asr_transformers runtime scripts: %w", err)
+		}
+	}
 	for _, file := range speechServerScriptFiles {
 		filePath := filepath.Join(hostRoot, file.Name)
 		if _, err := os.Stat(filePath); err != nil {
@@ -150,6 +171,7 @@ func ensureSpeech(_ context.Context, _ string, cfg EngineConfig) (EngineConfig, 
 	}{
 		{name: "qwen3_tts", root: ttsRoot, path: SpeechQwen3TTSDriverPath},
 		{name: "qwen3_asr", root: asrRoot, path: SpeechQwen3ASRDriverPath},
+		{name: "qwen3_asr_transformers", root: asrTransformersRoot, path: SpeechQwen3ASRTransformersDriverPath},
 	} {
 		trimmedRoot := strings.TrimSpace(driverRoot.root)
 		if trimmedRoot == "" {

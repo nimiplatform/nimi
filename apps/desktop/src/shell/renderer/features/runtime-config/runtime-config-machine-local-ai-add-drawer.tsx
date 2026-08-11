@@ -190,9 +190,25 @@ export function MachineLocalAIAddFormFields(props: {
           data-testid="machine-local-ai-asr-fields"
         >
           <span>{t('runtimeConfig.machineLocalAIConfigurations.engine')}</span>
-          <div className={machineLocalReadOnlyFieldClassName}>
-            {t('runtimeConfig.machineLocalAIConfigurations.qwen3ASREngine')}
-          </div>
+          <SelectField
+            value={draft.asrDriverKind}
+            disabled={props.busy}
+            options={[
+              {
+                value: 'qwen3-asr',
+                label: t('runtimeConfig.machineLocalAIConfigurations.qwen3ASREngine'),
+              },
+              {
+                value: 'qwen3-asr-transformers',
+                label: t('runtimeConfig.machineLocalAIConfigurations.qwen3ASRTransformersEngine'),
+              },
+            ]}
+            onValueChange={(value) => update({
+              asrDriverKind: value as RuntimeConfigMachineLocalAIAddDraft['asrDriverKind'],
+            })}
+            contentLayer="dialog"
+            data-testid="machine-local-ai-asr-driver"
+          />
         </div>
       ) : draft.capabilityContract === NIMI_MACHINE_LOCAL_VIDEO_GENERATE_CAPABILITY_CONTRACT ? (
         <MachineLocalAIVideoAddFields

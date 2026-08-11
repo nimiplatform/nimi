@@ -78,6 +78,60 @@ test('local speech environment fails closed without one exact selected ASR bindi
   );
 });
 
+test('local speech environment resolves the explicit Transformers-native ASR selection separately', async () => {
+  const requests: unknown[] = [];
+  const expectedPlan = { planId: 'plan-asr-transformers' };
+
+  const plan = await resolveRuntimeConfigLocalASREnvironmentPlan({
+    machineConfiguration: {
+      async get() {
+        return {
+          selections: [{
+            capabilityContract: 'audio.transcribe',
+            configurationId: 'asr-transformers-config',
+            effectiveDefaults: null,
+          }],
+          configurations: [{
+            configurationId: 'asr-transformers-config',
+            capabilityContract: 'audio.transcribe',
+            implementation: {
+              implementationId: 'local.audio.transcribe.qwen3-asr-transformers',
+              driverId: 'nimi.runtime.driver.qwen3-asr-transformers',
+              driverDialect: 'qwen3-asr-transformers/audio-transcribe/v1',
+            },
+            projectedRequirements: [],
+            exactBindings: [{
+              requirementId: 'stt.model',
+              localAssetId: 'local-asr-transformers-1',
+              verifiedContentId: 'nimi/stt-qwen3-asr-transformers',
+              entrySha256: 'asr-transformers-sha',
+            }],
+            supportedFeatures: [],
+            interpretability: 'interpretable',
+            requirementResolution: 'configured',
+            reasons: [],
+            displayName: 'Qwen3 ASR Transformers',
+          }],
+        };
+      },
+    },
+    localEnvironment: {
+      async resolveEnvironmentPlan(request) {
+        requests.push(request);
+        return expectedPlan as never;
+      },
+    },
+  });
+
+  assert.equal(plan, expectedPlan);
+  assert.deepEqual(requests, [{
+    packId: 'local-speech',
+    consumerScope: 'speech.qwen3-asr-transformers.python',
+    localAssetId: 'local-asr-transformers-1',
+    assetId: undefined,
+  }]);
+});
+
 test('local speech environment resolves the selected exact TTS binding through Runtime plan authority', async () => {
   const requests: unknown[] = [];
   const expectedPlan = { planId: 'plan-tts' };

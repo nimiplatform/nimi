@@ -887,7 +887,6 @@ models:
         - core_transcript
       response_formats:
         - text
-        - json
       supports_language: true
     install:
       repo: Qwen/Qwen3-ASR-0.6B
@@ -981,6 +980,232 @@ models:
       retrieved_at: 2026-04-17
       note: Default local STT checkpoint for first-wave local admission.
     transcription: *a6
+  - model_id: qwen3-asr-transformers-0.6b-local
+    provider: local
+    model_type: stt
+    updated_at: 2026-08-09
+    capabilities:
+      - audio.transcribe
+    pricing:
+      unit: request
+      input: "0"
+      output: "0"
+      currency: none
+      as_of: 2026-03-18
+      notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
+    source_ref:
+      url: https://huggingface.co/Qwen/Qwen3-ASR-0.6B-hf
+      retrieved_at: 2026-08-09
+      note: Transformers-native Qwen3-ASR 0.6B checkpoint and recommended lower-resource option.
+    transcription: &a7
+      tiers:
+        - core_transcript
+      response_formats:
+        - text
+      supports_language: true
+    install:
+      repo: Qwen/Qwen3-ASR-0.6B-hf
+      revision: 7f1569a48a89f3e3f4dc3a5c9d28bddd903bc76c
+      install_kind: verified-hf-multi-file
+      entry: model.safetensors
+      artifact_roles:
+        - stt_transformers_model
+        - tokenizer
+      preferred_engine: speech
+    variants:
+      - variant_id: local.stt.qwen3-asr-transformers-0.6b.safetensors
+        quant: F16
+        entry: model.safetensors
+        files:
+          - model.safetensors
+          - config.json
+          - generation_config.json
+          - processor_config.json
+          - chat_template.jinja
+          - tokenizer_config.json
+          - tokenizer.json
+        hashes:
+          model.safetensors: sha256:d3f212dd20abecd315d830bc54ae3865e56ebfc3276484e57b771288ba27fd35
+          config.json: sha256:9eecf6f1b383e343889c2e6010e632590fa57d4bc678e151c7d6a160a0dfb04a
+          generation_config.json: sha256:9939fc9388b79bd70757f938b87381e817173d6a6158f5af6506c0b73e775c3c
+          processor_config.json: sha256:bc0b230081b44e629dd5b9045b78495615c1831b4b9f4cffe97bd37e82a6156a
+          chat_template.jinja: sha256:f50e6b694fbf4a683206e37869990d68333fe95d285730f084c838a34b0d98c2
+          tokenizer_config.json: sha256:945e980986de2ca7768f3326bfdbb4fbea3406f972b8ae0be233089f2b253c11
+          tokenizer.json: sha256:fe1fad59be22a41ee293363fcf95fdedbc7c93f3b49270b1d2e18bd1399a7a05
+        total_size_bytes: 1576363223
+        host_requirement:
+          accelerator: cpu
+          min_ram_bytes: 6442450944
+    fitness:
+      param_count: 600000000
+      context_length: 0
+  - model_id: local/qwen3-asr-transformers-0.6b
+    provider: local
+    model_type: stt
+    updated_at: 2026-08-09
+    capabilities:
+      - audio.transcribe
+    pricing:
+      unit: request
+      input: "0"
+      output: "0"
+      currency: none
+      as_of: 2026-03-18
+      notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
+    source_ref:
+      url: https://huggingface.co/Qwen/Qwen3-ASR-0.6B-hf
+      retrieved_at: 2026-08-09
+      note: Transformers-native Qwen3-ASR 0.6B checkpoint and recommended lower-resource option.
+    transcription: *a7
+  - model_id: speech/qwen3asr-transformers-0.6b
+    provider: local
+    model_type: stt
+    updated_at: 2026-08-09
+    capabilities:
+      - audio.transcribe
+    pricing:
+      unit: request
+      input: "0"
+      output: "0"
+      currency: none
+      as_of: 2026-03-18
+      notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
+    source_ref:
+      url: https://huggingface.co/Qwen/Qwen3-ASR-0.6B-hf
+      retrieved_at: 2026-08-09
+      note: Transformers-native Qwen3-ASR 0.6B checkpoint and recommended lower-resource option.
+    transcription: *a7
+  - model_id: Qwen/Qwen3-ASR-0.6B-hf
+    provider: local
+    model_type: stt
+    updated_at: 2026-08-09
+    capabilities:
+      - audio.transcribe
+    pricing:
+      unit: request
+      input: "0"
+      output: "0"
+      currency: none
+      as_of: 2026-03-18
+      notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
+    source_ref:
+      url: https://huggingface.co/Qwen/Qwen3-ASR-0.6B-hf
+      retrieved_at: 2026-08-09
+      note: Transformers-native Qwen3-ASR 0.6B checkpoint and recommended lower-resource option.
+    transcription: *a7
+  - model_id: qwen3-asr-transformers-1.7b-local
+    provider: local
+    model_type: stt
+    updated_at: 2026-08-09
+    capabilities:
+      - audio.transcribe
+    pricing:
+      unit: request
+      input: "0"
+      output: "0"
+      currency: none
+      as_of: 2026-03-18
+      notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
+    source_ref:
+      url: https://huggingface.co/Qwen/Qwen3-ASR-1.7B-hf
+      retrieved_at: 2026-08-09
+      note: Transformers-native Qwen3-ASR 1.7B checkpoint and explicit higher-resource option.
+    transcription: &a8
+      tiers:
+        - core_transcript
+      response_formats:
+        - text
+      supports_language: true
+    install:
+      repo: Qwen/Qwen3-ASR-1.7B-hf
+      revision: bcd2b5b7f32b480ab5790554cfa8347f246a14f3
+      install_kind: verified-hf-multi-file
+      entry: model.safetensors
+      artifact_roles:
+        - stt_transformers_model
+        - tokenizer
+      preferred_engine: speech
+    variants:
+      - variant_id: local.stt.qwen3-asr-transformers-1.7b.safetensors
+        quant: F16
+        entry: model.safetensors
+        files:
+          - model.safetensors
+          - config.json
+          - generation_config.json
+          - processor_config.json
+          - chat_template.jinja
+          - tokenizer_config.json
+          - tokenizer.json
+        hashes:
+          model.safetensors: sha256:2db53c7d81bd9b8cbc6a074e89be2c968a0d373fb4ee68bb1b1e14f7042dfee1
+          config.json: sha256:117ac8e63e2af7cae3665e5a632d6eb03f5f384915519ceb6403c15ec6533f63
+          generation_config.json: sha256:9939fc9388b79bd70757f938b87381e817173d6a6158f5af6506c0b73e775c3c
+          processor_config.json: sha256:bc0b230081b44e629dd5b9045b78495615c1831b4b9f4cffe97bd37e82a6156a
+          chat_template.jinja: sha256:f50e6b694fbf4a683206e37869990d68333fe95d285730f084c838a34b0d98c2
+          tokenizer_config.json: sha256:945e980986de2ca7768f3326bfdbb4fbea3406f972b8ae0be233089f2b253c11
+          tokenizer.json: sha256:fe1fad59be22a41ee293363fcf95fdedbc7c93f3b49270b1d2e18bd1399a7a05
+        total_size_bytes: 4087628216
+        host_requirement:
+          accelerator: cpu
+          min_ram_bytes: 12884901888
+    fitness:
+      param_count: 1700000000
+      context_length: 0
+  - model_id: local/qwen3-asr-transformers-1.7b
+    provider: local
+    model_type: stt
+    updated_at: 2026-08-09
+    capabilities:
+      - audio.transcribe
+    pricing:
+      unit: request
+      input: "0"
+      output: "0"
+      currency: none
+      as_of: 2026-03-18
+      notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
+    source_ref:
+      url: https://huggingface.co/Qwen/Qwen3-ASR-1.7B-hf
+      retrieved_at: 2026-08-09
+      note: Transformers-native Qwen3-ASR 1.7B checkpoint and explicit higher-resource option.
+    transcription: *a8
+  - model_id: speech/qwen3asr-transformers-1.7b
+    provider: local
+    model_type: stt
+    updated_at: 2026-08-09
+    capabilities:
+      - audio.transcribe
+    pricing:
+      unit: request
+      input: "0"
+      output: "0"
+      currency: none
+      as_of: 2026-03-18
+      notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
+    source_ref:
+      url: https://huggingface.co/Qwen/Qwen3-ASR-1.7B-hf
+      retrieved_at: 2026-08-09
+      note: Transformers-native Qwen3-ASR 1.7B checkpoint and explicit higher-resource option.
+    transcription: *a8
+  - model_id: Qwen/Qwen3-ASR-1.7B-hf
+    provider: local
+    model_type: stt
+    updated_at: 2026-08-09
+    capabilities:
+      - audio.transcribe
+    pricing:
+      unit: request
+      input: "0"
+      output: "0"
+      currency: none
+      as_of: 2026-03-18
+      notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
+    source_ref:
+      url: https://huggingface.co/Qwen/Qwen3-ASR-1.7B-hf
+      retrieved_at: 2026-08-09
+      note: Transformers-native Qwen3-ASR 1.7B checkpoint and explicit higher-resource option.
+    transcription: *a8
   - model_id: flux.1-schnell-local
     provider: local
     model_type: image
@@ -998,7 +1223,7 @@ models:
       url: https://huggingface.co/docs/diffusers/api/pipelines/flux
       retrieved_at: 2026-03-15
       note: Official Diffusers FLUX pipeline documentation.
-    image_request_options: &a7
+    image_request_options: &a9
       response_formats:
         - b64_json
         - url
@@ -1028,7 +1253,7 @@ models:
       url: https://huggingface.co/docs/diffusers/api/pipelines/flux
       retrieved_at: 2026-03-15
       note: Official Diffusers FLUX pipeline documentation.
-    image_request_options: *a7
+    image_request_options: *a9
   - model_id: media/flux.1-schnell
     provider: local
     model_type: image
@@ -1046,7 +1271,7 @@ models:
       url: https://huggingface.co/docs/diffusers/api/pipelines/flux
       retrieved_at: 2026-03-15
       note: Official Diffusers FLUX pipeline documentation.
-    image_request_options: *a7
+    image_request_options: *a9
   - model_id: z-image-turbo-local
     provider: local
     model_type: image
@@ -1064,7 +1289,7 @@ models:
       url: https://huggingface.co/leejet/Z-Image-Turbo-GGUF
       retrieved_at: 2026-05-21
       note: Curated recommended-preset local image checkpoint (Z-Image-Turbo, stable-diffusion.cpp GGUF quants).
-    image_request_options: &a8
+    image_request_options: &a10
       response_formats:
         - b64_json
         - url
@@ -1393,7 +1618,7 @@ models:
       url: https://huggingface.co/leejet/Z-Image-Turbo-GGUF
       retrieved_at: 2026-05-21
       note: Curated recommended-preset local image checkpoint (Z-Image-Turbo, stable-diffusion.cpp GGUF quants).
-    image_request_options: *a8
+    image_request_options: *a10
   - model_id: media/z-image-turbo
     provider: local
     model_type: image
@@ -1411,7 +1636,7 @@ models:
       url: https://huggingface.co/leejet/Z-Image-Turbo-GGUF
       retrieved_at: 2026-05-21
       note: Curated recommended-preset local image checkpoint (Z-Image-Turbo, stable-diffusion.cpp GGUF quants).
-    image_request_options: *a8
+    image_request_options: *a10
   - model_id: leejet/Z-Image-Turbo-GGUF
     provider: local
     model_type: image
@@ -1429,7 +1654,7 @@ models:
       url: https://huggingface.co/leejet/Z-Image-Turbo-GGUF
       retrieved_at: 2026-05-21
       note: Curated recommended-preset local image checkpoint (Z-Image-Turbo, stable-diffusion.cpp GGUF quants).
-    image_request_options: *a8
+    image_request_options: *a10
   - model_id: wan2.1-video-local
     provider: local
     model_type: video
@@ -1447,7 +1672,7 @@ models:
       url: https://huggingface.co/docs/diffusers/api/pipelines/wan
       retrieved_at: 2026-03-15
       note: Official Diffusers Wan text-to-video and image-to-video pipeline documentation.
-    video_generation: &a9
+    video_generation: &a11
       modes:
         - t2v
         - i2v_first_frame
@@ -1486,7 +1711,7 @@ models:
       url: https://huggingface.co/docs/diffusers/api/pipelines/wan
       retrieved_at: 2026-03-15
       note: Official Diffusers Wan text-to-video and image-to-video pipeline documentation.
-    video_generation: *a9
+    video_generation: *a11
   - model_id: media/wan2.1-video
     provider: local
     model_type: video
@@ -1504,7 +1729,7 @@ models:
       url: https://huggingface.co/docs/diffusers/api/pipelines/wan
       retrieved_at: 2026-03-15
       note: Official Diffusers Wan text-to-video and image-to-video pipeline documentation.
-    video_generation: *a9
+    video_generation: *a11
   - model_id: ace-step-local
     provider: local
     model_type: music

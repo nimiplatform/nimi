@@ -288,7 +288,17 @@ func markLocalEnvironmentPlanReadyForTest(t *testing.T, svc *Service, req localE
 				driverScript := engine.SpeechQwen3ASRDriverPath(record.CanonicalRoot)
 				record.VerifiedArtifacts = []string{filepath.Join(record.CanonicalRoot, "bin", "python"), driverScript}
 				record.ActivationEnvDelta = []string{"NIMI_RUNTIME_SPEECH_QWEN3_ASR_CMD='python' '" + driverScript + "'"}
+			case "speech.qwen3-asr-transformers.python":
+				driverScript := engine.SpeechQwen3ASRTransformersDriverPath(record.CanonicalRoot)
+				record.VerifiedArtifacts = []string{filepath.Join(record.CanonicalRoot, "bin", "python"), driverScript}
+				record.ActivationEnvDelta = []string{"NIMI_RUNTIME_SPEECH_QWEN3_ASR_TRANSFORMERS_CMD='python' '" + driverScript + "'"}
 			}
+			lockHash, err := engine.ResolvePythonPackageSetLockHash(req.ConsumerID)
+			if err != nil {
+				t.Fatalf("resolve Python package-set lock for %q: %v", req.ConsumerID, err)
+			}
+			record.Version = lockHash
+			record.Hashes = map[string]string{"package_lock_hash": lockHash}
 		}
 		if dep.DependencyFamily == localEnvironmentFamilyPythonTorchWheel {
 			identity, err := engine.ResolvePythonTorchWheelDependencyIdentity(dep.ConsumerScope)

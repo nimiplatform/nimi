@@ -21,6 +21,7 @@ func TestQwen3SpeechProductionRegistryProjectsExactAssetKinds(t *testing.T) {
 	}{
 		{name: "tts", contract: AudioSynthesizeContract, identity: Identity{ImplementationID: Qwen3TTSImplementationID, DriverID: Qwen3TTSDriverID, DriverDialect: Qwen3TTSDriverDialect}, requirement: Qwen3TTSModelRequirementID, resourceKind: "tts", assetKind: runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_TTS, artifactRole: "tts_model"},
 		{name: "asr", contract: AudioTranscribeContract, identity: Identity{ImplementationID: Qwen3ASRImplementationID, DriverID: Qwen3ASRDriverID, DriverDialect: Qwen3ASRDriverDialect}, requirement: Qwen3ASRModelRequirementID, resourceKind: "stt", assetKind: runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_STT, artifactRole: "stt_model"},
+		{name: "asr-transformers", contract: AudioTranscribeContract, identity: Identity{ImplementationID: Qwen3ASRTransformersImplementationID, DriverID: Qwen3ASRTransformersDriverID, DriverDialect: Qwen3ASRTransformersDriverDialect}, requirement: Qwen3ASRModelRequirementID, resourceKind: "stt", assetKind: runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_STT, artifactRole: "stt_transformers_model"},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
@@ -68,8 +69,17 @@ func TestQwen3SpeechPlansCaptureExactModelAndAudio(t *testing.T) {
 		MIMEType:      "audio/wav",
 	})
 	audio[0] = 'X'
-	if err != nil || asrPlan.ModelAssetID() != "catalog/asr-model" || !reflect.DeepEqual(asrPlan.AudioBytes(), []byte("captured-audio")) || asrPlan.MIMEType() != "audio/wav" {
+	if err != nil || asrPlan.DriverID() != Qwen3ASRDriverID || asrPlan.ModelAssetID() != "catalog/asr-model" || !reflect.DeepEqual(asrPlan.AudioBytes(), []byte("captured-audio")) || asrPlan.MIMEType() != "audio/wav" {
 		t.Fatalf("ASR plan=%+v error=%v", asrPlan, err)
+	}
+	transformersPlan, err := (Qwen3ASRTransformersDriver{}).PlanSpeechTranscribeInvocation(SpeechTranscribeInvocationInput{
+		ExactBindings: []InvocationExactBinding{asrBinding},
+		Request:       &runtimev1.SpeechTranscribeScenarioSpec{MimeType: "audio/wav"},
+		AudioBytes:    []byte("captured-audio"),
+		MIMEType:      "audio/wav",
+	})
+	if err != nil || transformersPlan.DriverID() != Qwen3ASRTransformersDriverID {
+		t.Fatalf("Transformers ASR plan=%+v error=%v", transformersPlan, err)
 	}
 }
 
@@ -103,5 +113,35 @@ func TestQwen3SpeechDriversFailClosedOnUnimplementedOptions(t *testing.T) {
 	})
 	if invocation, ok := err.(*InvocationError); !ok || invocation.Kind != InvocationFailureUnsupported {
 		t.Fatalf("ASR option error=%T %v", err, err)
+	}
+}
+
+func TestQwen3ASRDriversRejectJSONResponseFormat(t *testing.T) {
+	digest := strings.Repeat("d", 64)
+	binding := InvocationExactBinding{
+		RequirementID:     Qwen3ASRModelRequirementID,
+		AssetID:           "catalog/asr",
+		LocalAssetID:      "asr",
+		AbsolutePath:      filepath.Join(t.TempDir(), "asr.safetensors"),
+		VerifiedContentID: "sha256:" + digest,
+		EntrySHA256:       digest,
+	}
+	for _, test := range []struct {
+		name string
+		plan func(SpeechTranscribeInvocationInput) (*SpeechTranscribeInvocationPlan, error)
+	}{
+		{name: "package-native", plan: (Qwen3ASRDriver{}).PlanSpeechTranscribeInvocation},
+		{name: "transformers-native", plan: (Qwen3ASRTransformersDriver{}).PlanSpeechTranscribeInvocation},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			_, err := test.plan(SpeechTranscribeInvocationInput{
+				ExactBindings: []InvocationExactBinding{binding},
+				Request:       &runtimev1.SpeechTranscribeScenarioSpec{ResponseFormat: "json"},
+				AudioBytes:    []byte("audio"),
+			})
+			if invocation, ok := err.(*InvocationError); !ok || invocation.Kind != InvocationFailureUnsupported {
+				t.Fatalf("JSON response format error=%T %v", err, err)
+			}
+		})
 	}
 }

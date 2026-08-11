@@ -54,6 +54,8 @@ import type {
   NimiRuntimeLocalProviderHints,
   NimiRuntimeLocalQwen3ASREnvironmentPlanInput,
   NimiRuntimeLocalQwen3ASREnvironmentPlanRuntime,
+  NimiRuntimeLocalQwen3ASRTransformersEnvironmentPlanInput,
+  NimiRuntimeLocalQwen3ASRTransformersEnvironmentPlanRuntime,
   NimiRuntimeLocalQwen3TTSEnvironmentPlanInput,
   NimiRuntimeLocalQwen3TTSEnvironmentPlanRuntime,
   NimiRuntimeLocalTransferAccepted,
@@ -86,6 +88,7 @@ import {
 const NIMI_RUNTIME_LOCAL_IMAGE_NATIVE_PACK_ID = 'local-image-native';
 const NIMI_RUNTIME_LOCAL_SPEECH_PACK_ID = 'local-speech';
 const NIMI_RUNTIME_LOCAL_QWEN3_ASR_CONSUMER_SCOPE = 'speech.qwen3-asr.python';
+const NIMI_RUNTIME_LOCAL_QWEN3_ASR_TRANSFORMERS_CONSUMER_SCOPE = 'speech.qwen3-asr-transformers.python';
 const NIMI_RUNTIME_LOCAL_QWEN3_TTS_CONSUMER_SCOPE = 'speech.qwen3-tts.python';
 const NIMI_RUNTIME_LOCAL_ENVIRONMENT_DEPENDENCY_READY_STATES: ReadonlySet<string> = new Set([
   'ready_system',
@@ -528,6 +531,32 @@ export async function resolveNimiRuntimeLocalQwen3ASREnvironmentPlan(input: {
 }): Promise<NimiRuntimeLocalEnvironmentPlan> {
   return input.runtime.resolveEnvironmentPlan(
     buildNimiRuntimeLocalQwen3ASREnvironmentPlanInput(input.asset),
+  );
+}
+
+export function buildNimiRuntimeLocalQwen3ASRTransformersEnvironmentPlanInput(
+  asset: {
+    readonly assetId?: string;
+    readonly localAssetId?: string;
+  },
+): NimiRuntimeLocalQwen3ASRTransformersEnvironmentPlanInput {
+  return {
+    packId: NIMI_RUNTIME_LOCAL_SPEECH_PACK_ID,
+    consumerScope: NIMI_RUNTIME_LOCAL_QWEN3_ASR_TRANSFORMERS_CONSUMER_SCOPE,
+    localAssetId: normalizeText(asset.localAssetId) || undefined,
+    assetId: normalizeText(asset.assetId) || undefined,
+  };
+}
+
+export async function resolveNimiRuntimeLocalQwen3ASRTransformersEnvironmentPlan(input: {
+  readonly runtime: NimiRuntimeLocalQwen3ASRTransformersEnvironmentPlanRuntime;
+  readonly asset: {
+    readonly assetId?: string;
+    readonly localAssetId?: string;
+  };
+}): Promise<NimiRuntimeLocalEnvironmentPlan> {
+  return input.runtime.resolveEnvironmentPlan(
+    buildNimiRuntimeLocalQwen3ASRTransformersEnvironmentPlanInput(input.asset),
   );
 }
 

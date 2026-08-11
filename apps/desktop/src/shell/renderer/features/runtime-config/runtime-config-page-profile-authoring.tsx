@@ -13,6 +13,7 @@ import {
   NIMI_AI_PROFILE_LLAMA_CPP_EMBED_IMPLEMENTATION,
   NIMI_AI_PROFILE_LLAMA_CPP_IMPLEMENTATION,
   NIMI_AI_PROFILE_QWEN3_ASR_IMPLEMENTATION,
+  NIMI_AI_PROFILE_QWEN3_ASR_TRANSFORMERS_IMPLEMENTATION,
   NIMI_AI_PROFILE_QWEN3_TTS_IMPLEMENTATION,
   NIMI_AI_PROFILE_STABLE_DIFFUSION_IMPLEMENTATION,
   NIMI_AI_PROFILE_STABLE_DIFFUSION_MODEL_FAMILIES,
@@ -560,6 +561,23 @@ function LocalImplementationFields(props: {
               value={localDriverImplementation(capability.local.driverKind).driverDialect}
             />
           </div>
+          {capability.capabilityContract === 'audio.transcribe' ? (
+            <AuthoringSelect
+              label={props.t('runtimeConfig.profiles.authoring.speechTranscriptionDriver')}
+              value={capability.local.driverKind}
+              field="local-asr-driver"
+              onChange={(driverKind) => updateLocal({
+                driverKind: driverKind as 'qwen3-asr' | 'qwen3-asr-transformers',
+              })}
+            >
+              <option value="qwen3-asr">
+                {props.t('runtimeConfig.machineLocalAIConfigurations.qwen3ASREngine')}
+              </option>
+              <option value="qwen3-asr-transformers">
+                {props.t('runtimeConfig.machineLocalAIConfigurations.qwen3ASRTransformersEngine')}
+              </option>
+            </AuthoringSelect>
+          ) : null}
           <AuthoringTextField
             label={props.t('runtimeConfig.profiles.authoring.supportedFeatures')}
             hint={props.t('runtimeConfig.profiles.authoring.featuresHint')}
@@ -578,7 +596,8 @@ function LocalImplementationFields(props: {
               includeProjector={false}
             />
           ) : capability.local.driverKind === 'qwen3-tts'
-            || capability.local.driverKind === 'qwen3-asr' ? null
+            || capability.local.driverKind === 'qwen3-asr'
+            || capability.local.driverKind === 'qwen3-asr-transformers' ? null
             : capability.local.driverKind === 'stable-diffusion-video' ? (
             <StableDiffusionVideoAuthoringFields
               capability={capability}
@@ -605,6 +624,9 @@ function localDriverImplementation(
   if (driverKind === 'llama-embed') return NIMI_AI_PROFILE_LLAMA_CPP_EMBED_IMPLEMENTATION;
   if (driverKind === 'qwen3-tts') return NIMI_AI_PROFILE_QWEN3_TTS_IMPLEMENTATION;
   if (driverKind === 'qwen3-asr') return NIMI_AI_PROFILE_QWEN3_ASR_IMPLEMENTATION;
+  if (driverKind === 'qwen3-asr-transformers') {
+    return NIMI_AI_PROFILE_QWEN3_ASR_TRANSFORMERS_IMPLEMENTATION;
+  }
   if (driverKind === 'stable-diffusion-video') {
     return NIMI_AI_PROFILE_STABLE_DIFFUSION_VIDEO_IMPLEMENTATION;
   }

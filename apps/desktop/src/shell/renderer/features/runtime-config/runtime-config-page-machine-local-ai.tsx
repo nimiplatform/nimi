@@ -16,6 +16,7 @@ import {
   createNimiMachineLocalLlamaCppEmbedConfigurationInput,
   createNimiMachineLocalLlamaCppTextConfigurationInput,
   createNimiMachineLocalQwen3ASRConfigurationInput,
+  createNimiMachineLocalQwen3ASRTransformersConfigurationInput,
   createNimiMachineLocalQwen3TTSConfigurationInput,
   loadNimiMachineLocalAIConfigurationImpact,
   type NimiMachineLocalAIConfiguration,
@@ -216,7 +217,9 @@ export function MachineLocalAIConfigurationsPage() {
           : addDraft.capabilityContract === NIMI_MACHINE_LOCAL_AUDIO_SYNTHESIZE_CAPABILITY_CONTRACT
             ? createNimiMachineLocalQwen3TTSConfigurationInput({ displayName })
             : addDraft.capabilityContract === NIMI_MACHINE_LOCAL_AUDIO_TRANSCRIBE_CAPABILITY_CONTRACT
-              ? createNimiMachineLocalQwen3ASRConfigurationInput({ displayName })
+              ? addDraft.asrDriverKind === 'qwen3-asr-transformers'
+                ? createNimiMachineLocalQwen3ASRTransformersConfigurationInput({ displayName })
+                : createNimiMachineLocalQwen3ASRConfigurationInput({ displayName })
               : addDraft.capabilityContract === NIMI_MACHINE_LOCAL_VIDEO_GENERATE_CAPABILITY_CONTRACT
                 ? createVideoConfigurationInput(addDraft, state.assets, displayName)
                 : createMachineLocalImageConfigurationInput(addDraft, state.assets, displayName);

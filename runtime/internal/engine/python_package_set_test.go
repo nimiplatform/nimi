@@ -28,6 +28,27 @@ func TestStableDiffusionCPPPackageSetDeclaresNoExternalPackages(t *testing.T) {
 	}
 }
 
+func TestTransformersNativeQwen3ASRPackageSetIsSeparateAndPinned(t *testing.T) {
+	manifest, err := resolvePythonPackageSetManifest("speech.qwen3-asr-transformers.python")
+	if err != nil {
+		t.Fatalf("resolve Transformers-native Qwen3-ASR package set: %v", err)
+	}
+	if manifest.ID != "speech-qwen3-asr-transformers-python-core" {
+		t.Fatalf("manifest id = %q", manifest.ID)
+	}
+	joined := strings.Join(manifest.Packages, "\n")
+	if !strings.Contains(joined, "transformers==5.13.0") || !strings.Contains(joined, "torch") || !strings.Contains(joined, "librosa") || strings.Contains(joined, "qwen-asr") {
+		t.Fatalf("Transformers-native packages = %v", manifest.Packages)
+	}
+	packageNative, err := resolvePythonPackageSetManifest("speech.qwen3-asr.python")
+	if err != nil {
+		t.Fatalf("resolve package-native Qwen3-ASR package set: %v", err)
+	}
+	if packageNative.ID == manifest.ID || !strings.Contains(strings.Join(packageNative.Packages, "\n"), "qwen-asr") {
+		t.Fatalf("package-native manifest must remain distinct: %+v", packageNative)
+	}
+}
+
 func TestEnsurePythonPackageSetDependencySerializesSharedUVBuildCache(t *testing.T) {
 	root := t.TempDir()
 	manager, err := NewManager(slog.Default(), ManagedRoots{

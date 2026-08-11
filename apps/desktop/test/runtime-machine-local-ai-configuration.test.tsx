@@ -407,6 +407,38 @@ test('Local AI Configurations authors and displays exact Qwen3 speech implementa
   }
 });
 
+test('Local AI Configurations exposes the separate Transformers-native ASR Driver explicitly', () => {
+  const draft = {
+    ...createRuntimeConfigMachineLocalAIAddDraft(),
+    capabilityContract: 'audio.transcribe' as const,
+    displayName: 'Qwen3 ASR Transformers',
+    asrDriverKind: 'qwen3-asr-transformers' as const,
+  };
+  const addMarkup = renderToStaticMarkup(
+    <MachineLocalAIAddFormFields draft={draft} assets={[]} busy={false} onChange={noop} />,
+  );
+
+  assert.match(addMarkup, /data-testid="machine-local-ai-asr-driver"/u);
+  assert.match(addMarkup, /Qwen3-ASR \(Transformers 5\.13\+\)/u);
+
+  const transformersConfiguration: NimiMachineLocalCapabilityConfiguration = {
+    ...configuration('unresolved'),
+    configurationId: 'lcc_asr_transformers',
+    capabilityContract: 'audio.transcribe',
+    implementation: {
+      implementationId: 'local.audio.transcribe.qwen3-asr-transformers',
+      driverId: 'nimi.runtime.driver.qwen3-asr-transformers',
+      driverDialect: 'qwen3-asr-transformers/audio-transcribe/v1',
+    },
+    displayName: 'Qwen3 ASR Transformers',
+  };
+  const cardMarkup = renderView(baseProps({
+    configurations: [transformersConfiguration],
+    selections: [],
+  }));
+  assert.match(cardMarkup, /Qwen3-ASR \(Transformers 5\.13\+\)/u);
+});
+
 test('Local AI Configurations renders future image impact separately from explicit confirmation', () => {
   const markup = renderToStaticMarkup(
     <MachineLocalAIImpactDialogContent

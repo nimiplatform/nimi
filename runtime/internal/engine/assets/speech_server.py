@@ -20,6 +20,7 @@ from speech_server_runtime import (
     MODELS_ROOT_ENV,
     HostState,
     QWEN3_ASR_DRIVER_ENV,
+    QWEN3_ASR_TRANSFORMERS_DRIVER_ENV,
     QWEN3_TTS_PREFLIGHT_CACHE,
     QWEN3_TTS_DRIVER_ENV,
     DriverAudioArtifact,
@@ -238,6 +239,9 @@ def create_app() -> FastAPI:
                 "qwen3_asr_driver": state.qwen3_asr_configured,
                 "qwen3_asr_driver_ready": state.qwen3_asr_ready,
                 "qwen3_asr_driver_detail": state.qwen3_asr_detail,
+                "qwen3_asr_transformers_driver": state.qwen3_asr_transformers_configured,
+                "qwen3_asr_transformers_driver_ready": state.qwen3_asr_transformers_ready,
+                "qwen3_asr_transformers_driver_detail": state.qwen3_asr_transformers_detail,
                 "models_ready": len([model for model in state.models if model.ready]),
             },
         }

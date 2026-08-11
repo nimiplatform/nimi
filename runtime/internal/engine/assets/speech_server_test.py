@@ -134,6 +134,19 @@ def load_qwen3_tts_driver_module():
 QWEN3_TTS_DRIVER = load_qwen3_tts_driver_module()
 
 
+def load_qwen3_asr_transformers_driver_module():
+    module_path = pathlib.Path(__file__).with_name("qwen3_asr_transformers_driver.py")
+    spec = importlib.util.spec_from_file_location("qwen3_asr_transformers_driver_under_test", module_path)
+    module = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+QWEN3_ASR_TRANSFORMERS_DRIVER = load_qwen3_asr_transformers_driver_module()
+
+
 class FakeSequenceTensor:
     def __init__(self, rows) -> None:
         self.rows = rows
@@ -292,6 +305,63 @@ class SpeechServerTests(unittest.TestCase):
         self._driver_work_root.cleanup()
         QWEN3_TTS_DRIVER._MODEL_CACHE.clear()
         QWEN3_TTS_DRIVER._MODEL_PATH_CACHE.clear()
+        QWEN3_ASR_TRANSFORMERS_DRIVER._MODEL_CACHE.clear()
+
+    def test_transformers_native_driver_uses_official_transcription_api(self) -> None:
+        class FakeTensor:
+            shape = (1, 3)
+
+            def __getitem__(self, _key):
+                return self
+
+        class FakeInputs(dict):
+            def to(self, device, dtype):
+                self["moved_to"] = (device, dtype)
+                return self
+
+        class FakeProcessor:
+            def __init__(self) -> None:
+                self.calls = []
+
+            def apply_transcription_request(self, **kwargs):
+                self.calls.append(kwargs)
+                return FakeInputs(input_ids=FakeTensor())
+
+            def decode(self, _value, return_format):
+                self.return_format = return_format
+                return ["hello from transformers"]
+
+        class FakeModel:
+            device = "cpu"
+            dtype = "float32"
+
+            def generate(self, **kwargs):
+                self.kwargs = kwargs
+                return FakeTensor()
+
+        processor = FakeProcessor()
+        model = FakeModel()
+        original_load_model = QWEN3_ASR_TRANSFORMERS_DRIVER.load_model
+        QWEN3_ASR_TRANSFORMERS_DRIVER.load_model = lambda _model_ref: (processor, model)
+        try:
+            with tempfile.TemporaryDirectory() as temp_dir:
+                audio_path = pathlib.Path(temp_dir) / "speech.wav"
+                audio_path.write_bytes(b"RIFFdemo")
+                result = QWEN3_ASR_TRANSFORMERS_DRIVER.handle_transcribe(
+                    {
+                        "audio_path": str(audio_path),
+                        "model_ref": "Qwen/Qwen3-ASR-0.6B-hf",
+                        "language": "en",
+                    },
+                    QWEN3_ASR_TRANSFORMERS_DRIVER.DEFAULT_ASR_MODEL,
+                )
+        finally:
+            QWEN3_ASR_TRANSFORMERS_DRIVER.load_model = original_load_model
+
+        self.assertEqual(result, {"text": "hello from transformers"})
+        self.assertEqual(processor.calls, [{"audio": str(audio_path), "language": "English"}])
+        self.assertEqual(processor.return_format, "transcription_only")
+        self.assertEqual(model.kwargs["max_new_tokens"], 256)
 
     def test_driver_work_root_is_required_and_request_exchange_is_cleaned(self) -> None:
         speech_server_runtime = sys.modules["speech_server_runtime"]
@@ -622,6 +692,7 @@ class SpeechServerTests(unittest.TestCase):
                 asr_files,
                 {name: f"fake-{name}".encode("utf-8") for name in asr_files},
                 "model.safetensors",
+                {"artifact_roles": ["stt_model", "tokenizer"]},
             )
             synth_driver = write_driver_script(
                 root / "qwen3_tts_driver.py",
@@ -696,6 +767,7 @@ class SpeechServerTests(unittest.TestCase):
                 ["Qwen3-ASR-1.7B-hf.safetensors"],
                 {"Qwen3-ASR-1.7B-hf.safetensors": b"incomplete-qwen3-asr"},
                 "Qwen3-ASR-1.7B-hf.safetensors",
+                {"artifact_roles": ["stt_model"]},
             )
             old_models_root = os.environ.get(SPEECH_SERVER.MODELS_ROOT_ENV)
             old_stt = os.environ.get(SPEECH_SERVER.QWEN3_ASR_DRIVER_ENV)
@@ -712,6 +784,46 @@ class SpeechServerTests(unittest.TestCase):
             self.assertFalse(state.models[0].ready)
             self.assertIn("qwen3_asr bundle entry must be model.safetensors", state.models[0].detail)
             self.assertIn('managed bundle file "config.json" missing', state.models[0].detail)
+
+    def test_build_host_state_selects_transformers_native_asr_driver_by_role(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = pathlib.Path(temp_dir)
+            files = [
+                "model.safetensors",
+                "config.json",
+                "generation_config.json",
+                "processor_config.json",
+                "chat_template.jinja",
+                "tokenizer_config.json",
+                "tokenizer.json",
+            ]
+            write_manifest(
+                root,
+                "nimi/stt-qwen3-asr-transformers",
+                "local-import/Qwen3-ASR-0.6B-hf",
+                ["audio.transcribe"],
+                files,
+                {name: f"fake-{name}".encode("utf-8") for name in files},
+                "model.safetensors",
+                {"artifact_roles": ["stt_transformers_model", "tokenizer"]},
+            )
+            driver = write_driver_script(root / "qwen3_asr_transformers_driver.py", "print('unused')\n")
+            old_root = os.environ.get(SPEECH_SERVER.MODELS_ROOT_ENV)
+            old_driver = os.environ.get(SPEECH_SERVER.QWEN3_ASR_TRANSFORMERS_DRIVER_ENV)
+            try:
+                os.environ[SPEECH_SERVER.MODELS_ROOT_ENV] = str(root)
+                os.environ[SPEECH_SERVER.QWEN3_ASR_TRANSFORMERS_DRIVER_ENV] = driver
+                state = SPEECH_SERVER.build_host_state()
+            finally:
+                restore_env(SPEECH_SERVER.MODELS_ROOT_ENV, old_root)
+                restore_env(SPEECH_SERVER.QWEN3_ASR_TRANSFORMERS_DRIVER_ENV, old_driver)
+
+            self.assertTrue(state.ready)
+            self.assertTrue(state.qwen3_asr_transformers_ready)
+            self.assertEqual(
+                state.models[0].capability_drivers["audio.transcribe"],
+                "qwen3_asr_transformers",
+            )
 
     def test_build_host_state_rejects_unresolved_driver_family(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -1390,6 +1502,9 @@ class SpeechServerTests(unittest.TestCase):
                 qwen3_asr_configured=True,
                 qwen3_asr_ready=True,
                 qwen3_asr_detail="ready",
+                qwen3_asr_transformers_configured=False,
+                qwen3_asr_transformers_ready=False,
+                qwen3_asr_transformers_detail="not configured",
             )
 
         SPEECH_SERVER.build_host_state = fake_build_host_state

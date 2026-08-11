@@ -11,16 +11,19 @@ import (
 )
 
 const (
-	Qwen3TTSImplementationID   = "local.audio.synthesize.qwen3-tts"
-	Qwen3TTSDriverID           = "nimi.runtime.driver.qwen3-tts"
-	Qwen3TTSDriverDialect      = "qwen3-tts/audio-synthesize/v1"
-	AudioSynthesizeContract    = "audio.synthesize"
-	Qwen3TTSModelRequirementID = "tts.model"
-	Qwen3ASRImplementationID   = "local.audio.transcribe.qwen3-asr"
-	Qwen3ASRDriverID           = "nimi.runtime.driver.qwen3-asr"
-	Qwen3ASRDriverDialect      = "qwen3-asr/audio-transcribe/v1"
-	AudioTranscribeContract    = "audio.transcribe"
-	Qwen3ASRModelRequirementID = "stt.model"
+	Qwen3TTSImplementationID             = "local.audio.synthesize.qwen3-tts"
+	Qwen3TTSDriverID                     = "nimi.runtime.driver.qwen3-tts"
+	Qwen3TTSDriverDialect                = "qwen3-tts/audio-synthesize/v1"
+	AudioSynthesizeContract              = "audio.synthesize"
+	Qwen3TTSModelRequirementID           = "tts.model"
+	Qwen3ASRImplementationID             = "local.audio.transcribe.qwen3-asr"
+	Qwen3ASRDriverID                     = "nimi.runtime.driver.qwen3-asr"
+	Qwen3ASRDriverDialect                = "qwen3-asr/audio-transcribe/v1"
+	Qwen3ASRTransformersImplementationID = "local.audio.transcribe.qwen3-asr-transformers"
+	Qwen3ASRTransformersDriverID         = "nimi.runtime.driver.qwen3-asr-transformers"
+	Qwen3ASRTransformersDriverDialect    = "qwen3-asr-transformers/audio-transcribe/v1"
+	AudioTranscribeContract              = "audio.transcribe"
+	Qwen3ASRModelRequirementID           = "stt.model"
 )
 
 // SpeechSynthesizeInvocationInput is the complete Driver-owned plain speech
@@ -43,9 +46,17 @@ type SpeechTranscribeInvocationInput struct {
 }
 
 type SpeechSynthesizeInvocationPlan struct {
+	driverID     string
 	modelAssetID string
 	modelFiles   []InvocationExactBinding
 	request      *runtimev1.SpeechSynthesizeScenarioSpec
+}
+
+func (p *SpeechSynthesizeInvocationPlan) DriverID() string {
+	if p == nil {
+		return ""
+	}
+	return p.driverID
 }
 
 func (p *SpeechSynthesizeInvocationPlan) ModelAssetID() string {
@@ -71,11 +82,19 @@ func (p *SpeechSynthesizeInvocationPlan) Request() *runtimev1.SpeechSynthesizeSc
 }
 
 type SpeechTranscribeInvocationPlan struct {
+	driverID     string
 	modelAssetID string
 	modelFiles   []InvocationExactBinding
 	request      *runtimev1.SpeechTranscribeScenarioSpec
 	audioBytes   []byte
 	mimeType     string
+}
+
+func (p *SpeechTranscribeInvocationPlan) DriverID() string {
+	if p == nil {
+		return ""
+	}
+	return p.driverID
 }
 
 func (p *SpeechTranscribeInvocationPlan) ModelAssetID() string {
@@ -165,6 +184,7 @@ func (Qwen3TTSDriver) PlanSpeechSynthesizeInvocation(input SpeechSynthesizeInvoc
 		return nil, err
 	}
 	return &SpeechSynthesizeInvocationPlan{
+		driverID:     Qwen3TTSDriverID,
 		modelAssetID: binding.AssetID,
 		modelFiles:   []InvocationExactBinding{binding},
 		request:      request,
@@ -189,8 +209,35 @@ func (driver Qwen3ASRDriver) ValidateCombination(requirements []*runtimev1.Local
 }
 
 func (Qwen3ASRDriver) PlanSpeechTranscribeInvocation(input SpeechTranscribeInvocationInput) (*SpeechTranscribeInvocationPlan, error) {
+	return planQwen3ASRInvocation(input, "qwen3-asr", Qwen3ASRDriverID)
+}
+
+// Qwen3ASRTransformersDriver owns the separate Transformers-native Qwen3-ASR dialect.
+type Qwen3ASRTransformersDriver struct{}
+
+func (Qwen3ASRTransformersDriver) EffectiveRequestDefaults(*structpb.Struct) map[string]string {
+	return nil
+}
+
+func (Qwen3ASRTransformersDriver) Interpret(input InterpretInput) ([]*runtimev1.LocalCapabilityRequirement, runtimev1.LocalCapabilityReason) {
+	return interpretQwen3Speech(input, Qwen3ASRModelRequirementID, "stt", "stt_transformers_model", "Transformers-native STT model")
+}
+
+func (Qwen3ASRTransformersDriver) ValidateBinding(requirement *runtimev1.LocalCapabilityRequirement, binding *runtimev1.LocalAssetExactBinding, asset AssetDescriptor) runtimev1.LocalCapabilityReason {
+	return validateQwen3SpeechBinding(requirement, binding, asset, Qwen3ASRModelRequirementID, runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_STT, "stt_transformers_model")
+}
+
+func (driver Qwen3ASRTransformersDriver) ValidateCombination(requirements []*runtimev1.LocalCapabilityRequirement, bindings []*runtimev1.LocalAssetExactBinding, assets []AssetDescriptor) runtimev1.LocalCapabilityReason {
+	return validateQwen3SpeechCombination(requirements, bindings, assets, driver.ValidateBinding)
+}
+
+func (Qwen3ASRTransformersDriver) PlanSpeechTranscribeInvocation(input SpeechTranscribeInvocationInput) (*SpeechTranscribeInvocationPlan, error) {
+	return planQwen3ASRInvocation(input, "qwen3-asr-transformers", Qwen3ASRTransformersDriverID)
+}
+
+func planQwen3ASRInvocation(input SpeechTranscribeInvocationInput, family string, driverID string) (*SpeechTranscribeInvocationPlan, error) {
 	if !emptySpeechPortableConfig(input.PortableConfig) {
-		return nil, invocationError(InvocationFailureInvalidConfig, fmt.Errorf("qwen3-asr portable config must be empty"))
+		return nil, invocationError(InvocationFailureInvalidConfig, fmt.Errorf("%s portable config must be empty", family))
 	}
 	binding, err := exactQwen3SpeechBinding(input.ExactBindings, Qwen3ASRModelRequirementID)
 	if err != nil {
@@ -201,9 +248,10 @@ func (Qwen3ASRDriver) PlanSpeechTranscribeInvocation(input SpeechTranscribeInvoc
 		return nil, err
 	}
 	if len(input.AudioBytes) == 0 {
-		return nil, invocationError(InvocationFailureInvalidRequest, fmt.Errorf("qwen3-asr audio bytes are required"))
+		return nil, invocationError(InvocationFailureInvalidRequest, fmt.Errorf("%s audio bytes are required", family))
 	}
 	return &SpeechTranscribeInvocationPlan{
+		driverID:     driverID,
 		modelAssetID: binding.AssetID,
 		modelFiles:   []InvocationExactBinding{binding},
 		request:      request,
@@ -322,7 +370,7 @@ func validateQwen3ASRRequest(value *runtimev1.SpeechTranscribeScenarioSpec) (*ru
 		return nil, invocationError(InvocationFailureInvalidRequest, fmt.Errorf("qwen3-asr request is required"))
 	}
 	format := strings.ToLower(strings.TrimSpace(request.GetResponseFormat()))
-	if format != "" && format != "text" && format != "json" {
+	if format != "" && format != "text" {
 		return nil, invocationError(InvocationFailureUnsupported, fmt.Errorf("qwen3-asr response format is unsupported"))
 	}
 	if request.GetTimestamps() || request.GetDiarization() || request.GetSpeakerCount() != 0 || strings.TrimSpace(request.GetPrompt()) != "" {

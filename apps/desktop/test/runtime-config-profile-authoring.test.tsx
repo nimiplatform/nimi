@@ -7,6 +7,7 @@ import {
   NIMI_AI_PROFILE_LLAMA_CPP_EMBED_IMPLEMENTATION,
   NIMI_AI_PROFILE_LLAMA_CPP_IMPLEMENTATION,
   NIMI_AI_PROFILE_QWEN3_ASR_IMPLEMENTATION,
+  NIMI_AI_PROFILE_QWEN3_ASR_TRANSFORMERS_IMPLEMENTATION,
   NIMI_AI_PROFILE_QWEN3_TTS_IMPLEMENTATION,
   parseNimiPortableAIProfile,
   type NimiCapabilityAIConfig,
@@ -354,6 +355,12 @@ test('AIProfile authoring round-trips exact portable Qwen3 speech sections', () 
       implementation: NIMI_AI_PROFILE_QWEN3_ASR_IMPLEMENTATION,
       requirement: ['stt.model', 'STT model', 'stt'],
     },
+    {
+      capabilityContract: 'audio.transcribe' as const,
+      driverKind: 'qwen3-asr-transformers',
+      implementation: NIMI_AI_PROFILE_QWEN3_ASR_TRANSFORMERS_IMPLEMENTATION,
+      requirement: ['stt.model', 'STT model', 'stt'],
+    },
   ] as const;
 
   for (const speech of cases) {
@@ -364,16 +371,22 @@ test('AIProfile authoring round-trips exact portable Qwen3 speech sections', () 
       speech.capabilityContract,
     );
     const capability = draft.capabilities[0]!;
-    assert.equal(capability.local.driverKind, speech.driverKind);
-    assert.equal(capability.local.includeImplementation, true);
+    const selectedCapability = speech.driverKind === 'qwen3-asr-transformers'
+      ? {
+        ...capability,
+        local: { ...capability.local, driverKind: speech.driverKind },
+      }
+      : capability;
+    assert.equal(selectedCapability.local.driverKind, speech.driverKind);
+    assert.equal(selectedCapability.local.includeImplementation, true);
     draft = {
       ...draft,
       capabilities: [{
-        ...capability,
+        ...selectedCapability,
         requiredFeaturesText: '',
         defaultsJson: '',
         local: {
-          ...capability.local,
+          ...selectedCapability.local,
           supportedFeaturesText: '',
         },
       }],
@@ -395,6 +408,9 @@ test('AIProfile authoring round-trips exact portable Qwen3 speech sections', () 
     const markup = renderAuthoring(stateWithDraft(draft), projection);
     assert.match(markup, new RegExp(`data-testid="ai-profile-authoring-capability:${speech.capabilityContract.replace('.', '\\.')}`));
     assert.match(markup, new RegExp(speech.implementation.driverDialect.replaceAll('.', '\\.')));
+    if (speech.capabilityContract === 'audio.transcribe') {
+      assert.match(markup, /data-authoring-field="local-asr-driver"/u);
+    }
 
     const exported = exportRuntimeConfigAIProfileAuthoring(draft);
     const profile = parseNimiPortableAIProfile(exported.artifactJson);

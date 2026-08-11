@@ -237,6 +237,18 @@ func TestResolveLocalEnvironmentPlanSplitsSpeechPythonEnvironmentByConsumer(t *t
 	if len(asrPackageDeps) != 1 || asrPackageDeps[0].DependencyID != "local-speech-qwen3-asr.package-set" {
 		t.Fatalf("asr activation plan package deps = %+v, want only qwen3_asr package-set", asrPackageDeps)
 	}
+
+	transformersPlan := svc.resolveLocalEnvironmentPlan(localEnvironmentPlanRequest{
+		PackID:          "local-speech",
+		ConsumerScope:   "speech.qwen3-asr-transformers.python",
+		HostProfile:     localEnvironmentAppleSilicon128GBProfile(),
+		RuntimeDataRoot: filepath.Join(t.TempDir(), "runtime-data"),
+		AssetID:         "qwen3-asr-transformers-0.6b-local",
+	})
+	transformersPackageDeps := planDependenciesByFamily(transformersPlan, localEnvironmentFamilyPythonPackageSet)
+	if len(transformersPackageDeps) != 1 || transformersPackageDeps[0].DependencyID != "local-speech-qwen3-asr-transformers.package-set" {
+		t.Fatalf("Transformers ASR activation plan package deps = %+v, want only separate Transformers package-set", transformersPackageDeps)
+	}
 }
 
 // TestResolveLocalEnvironmentPlanInstallLevelFailsClosedOnWeakHost verifies the

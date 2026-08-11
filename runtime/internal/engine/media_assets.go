@@ -16,3 +16,6 @@ var speechQwen3TTSDriverScript string
 
 //go:embed assets/qwen3_asr_driver.py
 var speechQwen3ASRDriverScript string
+
+//go:embed assets/qwen3_asr_transformers_driver.py
+var speechQwen3ASRTransformersDriverScript string

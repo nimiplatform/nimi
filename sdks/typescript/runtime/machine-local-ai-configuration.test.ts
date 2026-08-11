@@ -24,6 +24,7 @@ import {
   NIMI_MACHINE_LOCAL_LLAMA_CPP_EMBED_IMPLEMENTATION,
   NIMI_MACHINE_LOCAL_LLAMA_CPP_TEXT_IMPLEMENTATION,
   NIMI_MACHINE_LOCAL_QWEN3_ASR_IMPLEMENTATION,
+  NIMI_MACHINE_LOCAL_QWEN3_ASR_TRANSFORMERS_IMPLEMENTATION,
   NIMI_MACHINE_LOCAL_QWEN3_TTS_IMPLEMENTATION,
   NIMI_MACHINE_LOCAL_STABLE_DIFFUSION_IMAGE_IMPLEMENTATION,
   NIMI_MACHINE_LOCAL_STABLE_DIFFUSION_VIDEO_IMPLEMENTATION,
@@ -34,6 +35,7 @@ import {
   createNimiMachineLocalLlamaCppEmbedConfigurationInput,
   createNimiMachineLocalLlamaCppTextConfigurationInput,
   createNimiMachineLocalQwen3ASRConfigurationInput,
+  createNimiMachineLocalQwen3ASRTransformersConfigurationInput,
   createNimiMachineLocalQwen3TTSConfigurationInput,
   createNimiMachineLocalStableDiffusionImageConfigurationInput,
   createNimiMachineLocalStableDiffusionVideoConfigurationInput,
@@ -250,6 +252,13 @@ test('Machine Local AI Configuration typed client maps every admitted RPC throug
   assert.deepEqual(asrInput.implementation, NIMI_MACHINE_LOCAL_QWEN3_ASR_IMPLEMENTATION);
   assert.deepEqual(asrInput.portableConfig, {});
   assert.deepEqual(asrInput.supportedFeatures, []);
+  const transformersASRInput = createNimiMachineLocalQwen3ASRTransformersConfigurationInput({
+    displayName: 'Transformers-native local speech transcription',
+  });
+  assert.equal(transformersASRInput.capabilityContract, NIMI_MACHINE_LOCAL_AUDIO_TRANSCRIBE_CAPABILITY_CONTRACT);
+  assert.deepEqual(transformersASRInput.implementation, NIMI_MACHINE_LOCAL_QWEN3_ASR_TRANSFORMERS_IMPLEMENTATION);
+  assert.deepEqual(transformersASRInput.portableConfig, {});
+  assert.deepEqual(transformersASRInput.supportedFeatures, []);
   const addInput = createNimiMachineLocalLlamaCppTextConfigurationInput({
     displayName: 'Local writing model',
     acceptsImageInput: true,

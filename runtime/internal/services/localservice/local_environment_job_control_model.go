@@ -471,6 +471,7 @@ func modelAssetSelectedConsumers(job localEnvironmentDependencyJobState) []strin
 		"media.video-python.cuda",
 		"media.video-python.cpu",
 		"speech.qwen3-asr.python",
+		"speech.qwen3-asr-transformers.python",
 		"speech.qwen3-tts.python",
 	} {
 		if strings.Contains(environmentKey, "|"+consumer) {

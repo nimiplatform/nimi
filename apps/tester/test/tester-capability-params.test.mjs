@@ -78,6 +78,30 @@ test('Local synthesis exposes only preset voice references until Runtime owns vo
   });
 });
 
+test('Local transcription admits its supported inputs and drops unsupported options', () => {
+  const local = states('audio.transcribe', 'local');
+  for (const field of ['audioFile', 'mimeType', 'language']) {
+    assert.equal(local.get(field)?.state, 'enabled', `audio.transcribe.${field}`);
+  }
+  assert.deepEqual(local.get('responseFormat'), { field: 'responseFormat', state: 'fixed', fixedValue: 'text' });
+  for (const field of ['timestamps', 'diarization', 'speakerCount', 'prompt']) {
+    assert.equal(local.get(field)?.state, 'disabled', `audio.transcribe.${field}`);
+  }
+  assert.deepEqual(projectTesterCapabilityParamsForRoute('audio.transcribe', 'local', {
+    audioFile: { name: 'sample.wav' },
+    mimeType: 'audio/wav',
+    language: 'en',
+    responseFormat: 'json',
+    timestamps: true,
+    prompt: 'speaker names',
+  }), {
+    audioFile: { name: 'sample.wav' },
+    mimeType: 'audio/wav',
+    language: 'en',
+    responseFormat: 'text',
+  });
+});
+
 test('Cloud enables carrier fields but not private Local App scheduling fields', () => {
   for (const capabilityId of [
     'text.generate',

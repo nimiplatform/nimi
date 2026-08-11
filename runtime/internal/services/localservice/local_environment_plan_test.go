@@ -690,6 +690,57 @@ func TestResolveLocalEnvironmentPlanDemotesSelectedSourceWithMissingLocalArtifac
 	}
 }
 
+func TestResolveLocalEnvironmentPlanDemotesStalePythonPackageSetLock(t *testing.T) {
+	svc := newLocalEnvironmentTestService(t)
+	defer func() { svc.Close() }()
+
+	runtimeDataRoot := filepath.Join(t.TempDir(), "runtime-data")
+	profile := localEnvironmentCPUProfileForTest()
+	plan := svc.resolveLocalEnvironmentPlan(localEnvironmentPlanRequest{
+		PackID:          "local-speech",
+		ConsumerScope:   "speech.qwen3-asr-transformers.python",
+		HostProfile:     profile,
+		RuntimeDataRoot: runtimeDataRoot,
+		AssetID:         "speech/test-transformers-asr-model",
+	})
+	packageDep := findLocalEnvironmentDependency(t, plan, localEnvironmentFamilyPythonPackageSet)
+	root := filepath.Join(runtimeDataRoot, "speech", "0.1.0-qwen3-asr-transformers")
+	record := verifiedSelectedSourceRecordForTest(localEnvironmentSelectedSourceRecordState{
+		DependencyFamily: packageDep.DependencyFamily,
+		DependencyID:     packageDep.DependencyID,
+		EnvironmentKey:   packageDep.EnvironmentKey,
+		SourceKind:       localEnvironmentSourceManaged,
+		CanonicalRoot:    root,
+		Version:          "stale-lock",
+		Hashes: map[string]string{
+			"package_lock_hash": "stale-lock",
+		},
+		SelectedConsumers: []string{
+			"speech.qwen3-asr-transformers.python",
+		},
+		VerifiedArtifacts: []string{
+			filepath.Join(root, "python"),
+		},
+	})
+	writeSelectedSourceLocalArtifactsForTest(t, record)
+	svc.upsertLocalEnvironmentSelectedSourceRecord(record)
+
+	repairPlan := svc.resolveLocalEnvironmentPlan(localEnvironmentPlanRequest{
+		PackID:          "local-speech",
+		ConsumerScope:   "speech.qwen3-asr-transformers.python",
+		HostProfile:     profile,
+		RuntimeDataRoot: runtimeDataRoot,
+		AssetID:         "speech/test-transformers-asr-model",
+	})
+	repairDep := findLocalEnvironmentDependency(t, repairPlan, localEnvironmentFamilyPythonPackageSet)
+	if repairDep.State != localEnvironmentStateRepairRequired {
+		t.Fatalf("package-set state = %q, want repair_required: %+v", repairDep.State, repairDep)
+	}
+	if !strings.Contains(repairDep.Detail, "LOCAL_ENVIRONMENT_PACKAGE_SET_LOCK_DRIFT") {
+		t.Fatalf("repair detail = %q, want package-set lock drift reason", repairDep.Detail)
+	}
+}
+
 func TestResolveLocalEnvironmentPlanRejectsSelectedSourceWithoutVerificationEvidence(t *testing.T) {
 	svc := newLocalEnvironmentTestService(t)
 	defer func() { svc.Close() }()

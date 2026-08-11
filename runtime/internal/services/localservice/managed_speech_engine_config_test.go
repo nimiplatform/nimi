@@ -210,6 +210,31 @@ func TestSelectedSpeechPackageSetSourceRejectsStaleOrNonManagedProfileConsumptio
 	}
 }
 
+func TestMaterializeSpeechExecutionHostSelectsTransformersNativeASRPackageSet(t *testing.T) {
+	svc := newLocalEnvironmentTestService(t)
+	defer func() { svc.Close() }()
+	mgr := &mockEngineManager{}
+	svc.SetEngineManager(mgr)
+
+	root := filepath.Join(t.TempDir(), "speech", "qwen3-asr-transformers")
+	upsertVerifiedSpeechPackageSetForTest(t, svc, "speech.qwen3-asr-transformers.python", "local-speech-qwen3-asr-transformers.package-set", root, "NIMI_RUNTIME_SPEECH_QWEN3_ASR_TRANSFORMERS_CMD", engine.SpeechQwen3ASRTransformersDriverPath)
+
+	endpoint, err := svc.MaterializeSpeechExecutionHost(context.Background(), capabilitydriver.AudioTranscribeContract, capabilitydriver.Qwen3ASRTransformersDriverID, 18331)
+	if err != nil {
+		t.Fatalf("materialize Transformers-native transcription Host: %v", err)
+	}
+	if endpoint != "http://127.0.0.1:18331" {
+		t.Fatalf("transcription Host endpoint = %q", endpoint)
+	}
+	cfg := mgr.lastStartConfig
+	if cfg.SpeechHostPackageSetRoot != root || cfg.SpeechQwen3ASRTransformersPackageSetRoot != root {
+		t.Fatalf("Transformers transcription roots = host %q driver %q, want %q", cfg.SpeechHostPackageSetRoot, cfg.SpeechQwen3ASRTransformersPackageSetRoot, root)
+	}
+	if cfg.SpeechQwen3ASRPackageSetRoot != "" || cfg.SpeechQwen3TTSPackageSetRoot != "" {
+		t.Fatalf("Transformers transcription Host populated sibling roots: %+v", cfg)
+	}
+}
+
 func upsertVerifiedSpeechPackageSetForTest(
 	t *testing.T,
 	svc *Service,

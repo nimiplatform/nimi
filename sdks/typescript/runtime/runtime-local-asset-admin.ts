@@ -70,6 +70,7 @@ export {
 export {
   buildNimiRuntimeLocalImageNativeEnvironmentPlanInput,
   buildNimiRuntimeLocalQwen3ASREnvironmentPlanInput,
+  buildNimiRuntimeLocalQwen3ASRTransformersEnvironmentPlanInput,
   buildNimiRuntimeLocalQwen3TTSEnvironmentPlanInput,
   isNimiRuntimeLocalEnvironmentDependencyJobActiveState,
   isNimiRuntimeLocalEnvironmentDependencyJobCancelledState,
@@ -97,6 +98,7 @@ export {
   projectNimiRuntimeLocalVerifiedAssetDescriptor,
   resolveNimiRuntimeLocalImageNativeEnvironmentPlan,
   resolveNimiRuntimeLocalQwen3ASREnvironmentPlan,
+  resolveNimiRuntimeLocalQwen3ASRTransformersEnvironmentPlan,
   resolveNimiRuntimeLocalQwen3TTSEnvironmentPlan,
 } from './runtime-local-asset-admin-projections';
 export * from './runtime-local-asset-admin-types';

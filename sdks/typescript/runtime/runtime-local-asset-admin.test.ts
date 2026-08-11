@@ -18,6 +18,7 @@ import {
   applyNimiRuntimeLocalRecommendationFeedFilters,
   buildNimiRuntimeLocalImageNativeEnvironmentPlanInput,
   buildNimiRuntimeLocalQwen3ASREnvironmentPlanInput,
+  buildNimiRuntimeLocalQwen3ASRTransformersEnvironmentPlanInput,
   buildNimiRuntimeLocalQwen3TTSEnvironmentPlanInput,
   collectNimiRuntimeLocalRecommendationFeedLicenses,
   collectNimiRuntimeLocalRecommendationFeedProviders,
@@ -454,6 +455,17 @@ test('Qwen3 ASR environment helper preserves exact speech plan identity', () => 
     packId: 'local-speech',
     consumerScope: 'speech.qwen3-asr.python',
     localAssetId: 'local-asr-1',
+    assetId: undefined,
+  });
+});
+
+test('Transformers-native Qwen3 ASR environment helper preserves its separate package-set identity', () => {
+  assert.deepEqual(buildNimiRuntimeLocalQwen3ASRTransformersEnvironmentPlanInput({
+    localAssetId: 'local-asr-transformers-1',
+  }), {
+    packId: 'local-speech',
+    consumerScope: 'speech.qwen3-asr-transformers.python',
+    localAssetId: 'local-asr-transformers-1',
     assetId: undefined,
   });
 });

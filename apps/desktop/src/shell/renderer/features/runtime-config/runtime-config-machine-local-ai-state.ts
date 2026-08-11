@@ -43,6 +43,10 @@ export type RuntimeConfigMachineLocalAICapabilityContract =
   | 'image.generate'
   | 'video.generate';
 
+export type RuntimeConfigMachineLocalAIASRDriverKind =
+  | 'qwen3-asr'
+  | 'qwen3-asr-transformers';
+
 /**
  * MiniMax-H3 video.generate Add-form slots. The five ids are the portable-key
  * prefixes admitted by the SDK video configuration constructor; projected
@@ -95,6 +99,7 @@ export type RuntimeConfigMachineLocalAIVideoExecutionOptions = {
 export type RuntimeConfigMachineLocalAIAddDraft = {
   readonly capabilityContract: RuntimeConfigMachineLocalAICapabilityContract;
   readonly displayName: string;
+  readonly asrDriverKind: RuntimeConfigMachineLocalAIASRDriverKind;
   readonly acceptsImageInput: boolean;
   readonly modelFamily: NimiMachineLocalStableDiffusionModelFamily;
   readonly enableInputImage: boolean;
@@ -174,6 +179,7 @@ export function createRuntimeConfigMachineLocalAIAddDraft(): RuntimeConfigMachin
   return {
     capabilityContract: 'text.generate',
     displayName: '',
+    asrDriverKind: 'qwen3-asr',
     acceptsImageInput: false,
     modelFamily: 'z-image',
     enableInputImage: false,

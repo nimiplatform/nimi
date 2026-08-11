@@ -23,6 +23,14 @@ sources:
     url: https://huggingface.co/Qwen/Qwen3-ASR-0.6B
     retrieved_at: 2026-04-17
     note: Default local STT checkpoint for first-wave local admission.
+  - source_id: qwen3_asr_transformers_0_6b_modelcard
+    url: https://huggingface.co/Qwen/Qwen3-ASR-0.6B-hf
+    retrieved_at: 2026-08-09
+    note: Transformers-native Qwen3-ASR 0.6B checkpoint and recommended lower-resource option.
+  - source_id: qwen3_asr_transformers_1_7b_modelcard
+    url: https://huggingface.co/Qwen/Qwen3-ASR-1.7B-hf
+    retrieved_at: 2026-08-09
+    note: Transformers-native Qwen3-ASR 1.7B checkpoint and explicit higher-resource option.
   - source_id: gemma4_e2b_gguf_modelcard
     url: https://huggingface.co/unsloth/gemma-4-E2B-it-GGUF
     retrieved_at: 2026-05-21

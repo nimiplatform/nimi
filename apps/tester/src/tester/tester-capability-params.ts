@@ -21,6 +21,7 @@ const SUPPORTED = { kind: 'supported' } as const;
 const UNSUPPORTED = { kind: 'unsupported' } as const;
 const LOCAL_AND_CLOUD = { local: SUPPORTED, cloud: SUPPORTED } as const;
 const CLOUD_ONLY = { local: UNSUPPORTED, cloud: SUPPORTED } as const;
+const LOCAL_TEXT_CLOUD_CONFIGURABLE = { local: { kind: 'fixed', value: 'text' }, cloud: SUPPORTED } as const;
 const LOCAL_PRESET_CLOUD_CONFIGURABLE = { local: { kind: 'fixed', value: 'preset' }, cloud: SUPPORTED } as const;
 const LOCAL_APP_UNAVAILABLE = { local: UNSUPPORTED, cloud: UNSUPPORTED } as const;
 
@@ -106,16 +107,19 @@ export const TESTER_CAPABILITY_PARAM_ROUTE_MATRIX = {
     emotion: CLOUD_ONLY,
     timingMode: CLOUD_ONLY,
   },
-  // P1 §7: Local has no admitted transcription driver; Cloud accepts bytes/URI options.
+  // The admitted Local transcription path accepts bounded bytes or URI input,
+  // MIME and language. Local returns only the canonical text transcript;
+  // Cloud retains provider-specific response format selection. Advanced options remain
+  // Cloud-only until the Local contract admits them.
   'audio.transcribe': {
-    audioFile: CLOUD_ONLY,
-    mimeType: CLOUD_ONLY,
-    language: CLOUD_ONLY,
+    audioFile: LOCAL_AND_CLOUD,
+    mimeType: LOCAL_AND_CLOUD,
+    language: LOCAL_AND_CLOUD,
     timestamps: CLOUD_ONLY,
     diarization: CLOUD_ONLY,
     speakerCount: CLOUD_ONLY,
     prompt: CLOUD_ONLY,
-    responseFormat: CLOUD_ONLY,
+    responseFormat: LOCAL_TEXT_CLOUD_CONFIGURABLE,
   },
   'speech.bundle': {},
   'world.generate': {},

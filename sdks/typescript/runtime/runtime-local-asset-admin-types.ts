@@ -506,6 +506,20 @@ export interface NimiRuntimeLocalQwen3ASREnvironmentPlanRuntime {
   ) => Promise<NimiRuntimeLocalEnvironmentPlan>;
 }
 
+export type NimiRuntimeLocalQwen3ASRTransformersEnvironmentPlanInput = Omit<
+  NimiRuntimeLocalEnvironmentPlanInput,
+  'packId' | 'consumerScope'
+> & {
+  readonly packId: 'local-speech';
+  readonly consumerScope: 'speech.qwen3-asr-transformers.python';
+};
+
+export interface NimiRuntimeLocalQwen3ASRTransformersEnvironmentPlanRuntime {
+  readonly resolveEnvironmentPlan: (
+    input: NimiRuntimeLocalEnvironmentPlanInput,
+  ) => Promise<NimiRuntimeLocalEnvironmentPlan>;
+}
+
 export type NimiRuntimeLocalQwen3TTSEnvironmentPlanInput = Omit<
   NimiRuntimeLocalEnvironmentPlanInput,
   'packId' | 'consumerScope'

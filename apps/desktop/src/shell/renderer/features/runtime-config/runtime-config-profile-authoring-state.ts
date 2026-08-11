@@ -3,6 +3,7 @@ import {
   NIMI_AI_PROFILE_LLAMA_CPP_EMBED_IMPLEMENTATION,
   NIMI_AI_PROFILE_LLAMA_CPP_IMPLEMENTATION,
   NIMI_AI_PROFILE_QWEN3_ASR_IMPLEMENTATION,
+  NIMI_AI_PROFILE_QWEN3_ASR_TRANSFORMERS_IMPLEMENTATION,
   NIMI_AI_PROFILE_QWEN3_TTS_IMPLEMENTATION,
   NIMI_AI_PROFILE_STABLE_DIFFUSION_IMPLEMENTATION,
   NIMI_AI_PROFILE_STABLE_DIFFUSION_MODEL_FAMILIES,
@@ -11,6 +12,7 @@ import {
   createNimiAIProfileLlamaEmbedLocalImplementation,
   createNimiAIProfileLlamaLocalImplementation,
   createNimiAIProfileQwen3ASRLocalImplementation,
+  createNimiAIProfileQwen3ASRTransformersLocalImplementation,
   createNimiAIProfileQwen3TTSLocalImplementation,
   createNimiAIProfileStableDiffusionLocalImplementation,
   createNimiAIProfileStableDiffusionVideoLocalImplementation,
@@ -110,7 +112,7 @@ export type RuntimeConfigAIProfileStableDiffusionVideoDraft = {
 
 export type RuntimeConfigAIProfileLocalDraft = {
   readonly includeImplementation: boolean;
-  readonly driverKind: 'none' | 'llama' | 'llama-embed' | 'qwen3-tts' | 'qwen3-asr' | 'stable-diffusion' | 'stable-diffusion-video';
+  readonly driverKind: 'none' | 'llama' | 'llama-embed' | 'qwen3-tts' | 'qwen3-asr' | 'qwen3-asr-transformers' | 'stable-diffusion' | 'stable-diffusion-video';
   readonly supportedFeaturesText: string;
   readonly llama: RuntimeConfigAIProfileLlamaDraft;
   readonly stableDiffusion: RuntimeConfigAIProfileStableDiffusionDraft;
@@ -675,6 +677,9 @@ function localImplementationFromDraft(capability: RuntimeConfigAIProfileCapabili
   if (capability.local.driverKind === 'qwen3-asr') {
     return createNimiAIProfileQwen3ASRLocalImplementation({ supportedFeatures });
   }
+  if (capability.local.driverKind === 'qwen3-asr-transformers') {
+    return createNimiAIProfileQwen3ASRTransformersLocalImplementation({ supportedFeatures });
+  }
   if (capability.local.driverKind === 'stable-diffusion-video') {
     const video = capability.local.stableDiffusionVideo;
     return createNimiAIProfileStableDiffusionVideoLocalImplementation({
@@ -881,6 +886,9 @@ function implementationDriverKind(
   }
   if (sameImplementation(implementation, NIMI_AI_PROFILE_QWEN3_ASR_IMPLEMENTATION)) {
     return 'qwen3-asr';
+  }
+  if (sameImplementation(implementation, NIMI_AI_PROFILE_QWEN3_ASR_TRANSFORMERS_IMPLEMENTATION)) {
+    return 'qwen3-asr-transformers';
   }
   if (sameImplementation(implementation, NIMI_AI_PROFILE_STABLE_DIFFUSION_IMPLEMENTATION)) {
     return 'stable-diffusion';

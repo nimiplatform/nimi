@@ -308,6 +308,72 @@ func TestImportLocalAssetBundleAdmitsCompleteCatalogASRBundle(t *testing.T) {
 	}
 }
 
+func writeCatalogTransformersASRBundleFixture(t *testing.T, modelName string) string {
+	t.Helper()
+	sourceDir := filepath.Join(t.TempDir(), modelName)
+	for _, relativePath := range []string{
+		"model.safetensors",
+		"config.json",
+		"generation_config.json",
+		"processor_config.json",
+		"chat_template.jinja",
+		"tokenizer_config.json",
+		"tokenizer.json",
+	} {
+		if err := os.MkdirAll(sourceDir, 0o755); err != nil {
+			t.Fatalf("create Transformers ASR bundle directory: %v", err)
+		}
+		if err := os.WriteFile(filepath.Join(sourceDir, relativePath), []byte(relativePath), 0o644); err != nil {
+			t.Fatalf("write Transformers ASR bundle file %s: %v", relativePath, err)
+		}
+	}
+	return sourceDir
+}
+
+func TestImportLocalAssetBundleAdmitsTransformersNativeASRBundlesSeparately(t *testing.T) {
+	for _, modelName := range []string{"Qwen3-ASR-0.6B-hf", "Qwen3-ASR-1.7B-hf"} {
+		t.Run(modelName, func(t *testing.T) {
+			svc := newTestService(t)
+			sourceDir := writeCatalogTransformersASRBundleFixture(t, modelName)
+
+			asset, err := svc.importLocalAssetBundleSync(context.Background(), "", &runtimev1.ImportLocalAssetBundleRequest{
+				DirectoryPath: sourceDir,
+				ModelName:     modelName,
+				Capabilities:  []string{"audio.transcribe"},
+			})
+			if err != nil {
+				t.Fatalf("import Transformers-native ASR bundle: %v", err)
+			}
+			if got := asset.GetEngine(); got != "speech" {
+				t.Fatalf("engine = %q, want speech", got)
+			}
+			for _, role := range []string{"stt_transformers_model", "tokenizer"} {
+				if !stringSliceContains(asset.GetArtifactRoles(), role) {
+					t.Fatalf("artifact roles = %#v, want %q", asset.GetArtifactRoles(), role)
+				}
+			}
+			if stringSliceContains(asset.GetArtifactRoles(), "stt_model") {
+				t.Fatalf("Transformers-native ASR bundle must not satisfy package-native role: %#v", asset.GetArtifactRoles())
+			}
+			if !bundleStringSliceContains(asset.GetFiles(), "processor_config.json") || !bundleStringSliceContains(asset.GetFiles(), "chat_template.jinja") {
+				t.Fatalf("bundle files = %#v, missing Transformers-native processor/template", asset.GetFiles())
+			}
+			contentID := "sha256:" + exactDeclaredContentSHA256(asset)
+			descriptor, reason, candidate := svc.verifyLocalCapabilityAssetContent(
+				asset,
+				resolveLocalModelsPath(svc.localModelsPath),
+				contentID,
+			)
+			if !candidate || reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED {
+				t.Fatalf("Transformers-native ASR bundle verification candidate=%t reason=%s", candidate, reason)
+			}
+			if !stringSliceContains(descriptor.ArtifactRoles, "stt_transformers_model") {
+				t.Fatalf("verified descriptor roles = %#v, want stt_transformers_model", descriptor.ArtifactRoles)
+			}
+		})
+	}
+}
+
 func TestVerifyLocalCapabilityAssetRejectsSingleFileSpeechBeforeHost(t *testing.T) {
 	svc := newTestService(t)
 	asset := &runtimev1.LocalAssetRecord{

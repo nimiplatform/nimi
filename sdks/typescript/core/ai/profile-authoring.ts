@@ -45,6 +45,12 @@ export const NIMI_AI_PROFILE_QWEN3_ASR_IMPLEMENTATION = Object.freeze({
   driverDialect: 'qwen3-asr/audio-transcribe/v1',
 }) satisfies Readonly<CapabilityImplementationIdentity>;
 
+export const NIMI_AI_PROFILE_QWEN3_ASR_TRANSFORMERS_IMPLEMENTATION = Object.freeze({
+  implementationId: 'local.audio.transcribe.qwen3-asr-transformers',
+  driverId: 'nimi.runtime.driver.qwen3-asr-transformers',
+  driverDialect: 'qwen3-asr-transformers/audio-transcribe/v1',
+}) satisfies Readonly<CapabilityImplementationIdentity>;
+
 export const NIMI_AI_PROFILE_STABLE_DIFFUSION_IMPLEMENTATION = Object.freeze({
   implementationId: 'local.image.generate.stable-diffusion-cpp',
   driverId: 'nimi.runtime.driver.stable-diffusion-cpp',
@@ -291,6 +297,10 @@ export type NimiAIProfileDriverAuthoringSection =
   }
   | {
     readonly kind: 'qwen3-asr';
+    readonly portableConfig?: NimiJsonObject;
+  }
+  | {
+    readonly kind: 'qwen3-asr-transformers';
     readonly portableConfig?: NimiJsonObject;
   }
   | {
@@ -658,6 +668,26 @@ export function createNimiAIProfileQwen3ASRLocalImplementation(input: {
     implementation: Object.freeze({ ...NIMI_AI_PROFILE_QWEN3_ASR_IMPLEMENTATION }),
     supportedFeatures,
     driverSection: Object.freeze({ kind: 'qwen3-asr' as const, portableConfig }),
+  });
+}
+
+export function createNimiAIProfileQwen3ASRTransformersLocalImplementation(input: {
+  readonly supportedFeatures?: readonly string[];
+} = {}): NimiAIProfileLocalImplementationAuthoringInput {
+  assertExactRecord(input, new Set(['supportedFeatures']), 'Transformers-native Qwen3-ASR implementation input');
+  const supportedFeatures = normalizeFeatureSet(
+    input.supportedFeatures ?? [],
+    'Transformers-native Qwen3-ASR supportedFeatures',
+  );
+  const portableConfig = createNimiAIProfileQwen3SpeechPortableConfig(
+    {},
+    supportedFeatures,
+    'Transformers-native Qwen3-ASR',
+  );
+  return Object.freeze({
+    implementation: Object.freeze({ ...NIMI_AI_PROFILE_QWEN3_ASR_TRANSFORMERS_IMPLEMENTATION }),
+    supportedFeatures,
+    driverSection: Object.freeze({ kind: 'qwen3-asr-transformers' as const, portableConfig }),
   });
 }
 
@@ -1425,6 +1455,25 @@ function normalizeLocalImplementationInput(
       ),
     });
   }
+  if (section.kind === 'qwen3-asr-transformers') {
+    assertExactImplementation(
+      implementation,
+      NIMI_AI_PROFILE_QWEN3_ASR_TRANSFORMERS_IMPLEMENTATION,
+      'Transformers-native Qwen3-ASR',
+    );
+    if (capabilityContract !== 'audio.transcribe') {
+      return authoringError('Transformers-native Qwen3-ASR Driver section requires audio.transcribe');
+    }
+    return Object.freeze({
+      implementation,
+      supportedFeatures,
+      portableConfig: createNimiAIProfileQwen3SpeechPortableConfig(
+        (section.portableConfig ?? {}) as NimiJsonObject,
+        supportedFeatures,
+        'Transformers-native Qwen3-ASR',
+      ),
+    });
+  }
   if (section.kind === 'stable-diffusion-video') {
     assertExactImplementation(
       implementation,
@@ -1559,6 +1608,13 @@ function validateKnownLocalConfiguration(
       return authoringError('Qwen3-ASR implementation requires audio.transcribe');
     }
     validateQwen3SpeechPortableConfig(config, features, 'Qwen3-ASR');
+    return;
+  }
+  if (sameImplementation(identity, NIMI_AI_PROFILE_QWEN3_ASR_TRANSFORMERS_IMPLEMENTATION)) {
+    if (capabilityContract !== 'audio.transcribe') {
+      return authoringError('Transformers-native Qwen3-ASR implementation requires audio.transcribe');
+    }
+    validateQwen3SpeechPortableConfig(config, features, 'Transformers-native Qwen3-ASR');
     return;
   }
   if (sameImplementation(identity, NIMI_AI_PROFILE_STABLE_DIFFUSION_IMPLEMENTATION)) {
@@ -1882,7 +1938,8 @@ function projectKnownDriverRequirements(
     });
   }
 
-  if (sameImplementation(implementation, NIMI_AI_PROFILE_QWEN3_ASR_IMPLEMENTATION)) {
+  if (sameImplementation(implementation, NIMI_AI_PROFILE_QWEN3_ASR_IMPLEMENTATION)
+    || sameImplementation(implementation, NIMI_AI_PROFILE_QWEN3_ASR_TRANSFORMERS_IMPLEMENTATION)) {
     return Object.freeze({
       source: 'authoring-preview' as const,
       commitTruth: 'runtime-reproject' as const,
