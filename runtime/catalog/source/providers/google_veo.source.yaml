@@ -36,6 +36,7 @@ models:
     model_type: video
     updated_at: 2026-04-18
     capabilities: [video.generate]
+    features: [input.image]
     pricing:
       unit: second
       input: "0"
@@ -69,6 +70,7 @@ models:
     model_type: video
     updated_at: 2026-04-18
     capabilities: [video.generate]
+    features: [input.image]
     pricing:
       unit: second
       input: "0"
@@ -102,6 +104,7 @@ models:
     model_type: video
     updated_at: 2026-04-18
     capabilities: [video.generate]
+    features: [input.image]
     pricing:
       unit: second
       input: "0"
@@ -131,6 +134,7 @@ models:
     model_type: video
     updated_at: 2026-04-18
     capabilities: [video.generate]
+    features: [input.image]
     pricing:
       unit: second
       input: "0"
@@ -159,6 +163,7 @@ models:
     model_type: video
     updated_at: 2026-04-18
     capabilities: [video.generate]
+    features: [input.image]
     pricing:
       unit: second
       input: "0"

@@ -6,20 +6,14 @@ owner: runtime
 catalog_id: runtime_capability_vocabulary_mapping
 entries:
   - text.generate
-  - text.generate.vision
-  - text.generate.audio
-  - text.generate.video
   - text.embed
   - image.generate
-  - image.edit
   - video.generate
   - world.generate
   - audio.synthesize
   - audio.transcribe
   - music.generate
-  - music.generate.iteration
-  - voice_workflow.voice_clone
-  - voice_workflow.voice_design
+  - voice.create
   - chat
   - vision
   - audio_chat
@@ -45,11 +39,9 @@ entries:
   - local_to_canonical_7
   - local_to_canonical_8
   - local_to_canonical_9
+  - local_to_canonical_10
   - canonical_only_1
   - canonical_only_2
-  - canonical_only_3
-  - canonical_only_4
-  - canonical_only_5
   - huggingface_inference_1
   - huggingface_inference_2
   - huggingface_inference_3
@@ -74,20 +66,14 @@ version: 1
 # and live-provider checks.
 canonical_tokens:
   - text.generate
-  - text.generate.vision
-  - text.generate.audio
-  - text.generate.video
   - text.embed
   - image.generate
-  - image.edit
   - video.generate
   - world.generate
   - audio.synthesize
   - audio.transcribe
   - music.generate
-  - music.generate.iteration
-  - voice_workflow.voice_clone
-  - voice_workflow.voice_design
+  - voice.create
 
 # Local runtime tokens (K-LOCAL-026 manifest capabilities field)
 local_manifest_tokens:
@@ -123,20 +109,21 @@ local_to_canonical:
     source_rule: K-LOCAL-002
 
   - local_token: vision
-    canonical_token: text.generate.vision
+    canonical_token: text.generate
+    required_features: [input.image]
     local_capability_family: VISION
     source_rule: K-LOCAL-002
 
   - local_token: audio_chat
-    canonical_token: text.generate.audio
-    local_capability_family: VISION
-    note: Phase 1 local categories are fixed; multimodal chat with audio input is currently normalized under VISION rather than introducing a separate AUDIO_CHAT category.
+    canonical_token: text.generate
+    required_features: [input.audio]
+    local_capability_family: LLM
     source_rule: K-LOCAL-002
 
   - local_token: video_chat
-    canonical_token: text.generate.video
-    local_capability_family: VISION
-    note: Phase 1 local categories are fixed; multimodal chat with video input is currently normalized under VISION rather than introducing a separate VIDEO_CHAT category.
+    canonical_token: text.generate
+    required_features: [input.video]
+    local_capability_family: LLM
     source_rule: K-LOCAL-002
 
   - local_token: embedding
@@ -173,14 +160,8 @@ local_to_canonical:
 
 # Canonical tokens with no Phase 1 local equivalent
 canonical_only:
-  - canonical_token: music.generate.iteration
-    note: Iterative music generation remains provider-routed; no Phase 1 local manifest token exists
-  - canonical_token: image.edit
-    note: Prompt-based image editing is a canonical capability routed by media local adapter surfaces; no separate Phase 1 local manifest token exists
-  - canonical_token: voice_workflow.voice_clone
-    note: Voice clone workflow; requires orchestrated pipeline, not single-model local execution
-  - canonical_token: voice_workflow.voice_design
-    note: Voice design workflow; requires orchestrated pipeline, not single-model local execution
+  - canonical_token: voice.create
+    note: Voice creation requires an orchestrated pipeline; no separate Phase 1 local manifest token exists
   - canonical_token: world.generate
     note: Explorable world generation remains provider-routed; no Phase 1 local manifest token exists
 

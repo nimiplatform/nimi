@@ -33,12 +33,10 @@ pub const PLATFORM_AI_PROFILE_FACTORY_ROWS: &[PlatformAIProfileFactoryRow] = &[
         compute_posture: "cloud-only",
         capability_set: &[
             "text.generate",
-            "text.generate.vision",
             "text.embed",
             "audio.synthesize",
             "audio.transcribe",
             "image.generate",
-            "image.edit",
         ],
         routing_policy: "cloud-first",
         host_capability_profile_refs: &[
@@ -102,11 +100,9 @@ pub const PLATFORM_AI_PROFILE_FACTORY_ROWS: &[PlatformAIProfileFactoryRow] = &[
         compute_posture: "cuda-capable",
         capability_set: &[
             "text.generate",
-            "text.generate.vision",
             "audio.transcribe",
             "audio.synthesize",
             "image.generate",
-            "image.edit",
         ],
         routing_policy: "local-first",
         host_capability_profile_refs: &["windows-amd64-nvidia-cuda", "darwin-arm64-metal"],
@@ -139,12 +135,10 @@ pub const PLATFORM_AI_PROFILE_FACTORY_ROWS: &[PlatformAIProfileFactoryRow] = &[
         compute_posture: "cuda-capable",
         capability_set: &[
             "text.generate",
-            "text.generate.vision",
             "text.embed",
             "audio.transcribe",
             "audio.synthesize",
             "image.generate",
-            "image.edit",
             "video.generate",
         ],
         routing_policy: "hybrid-explicit",

@@ -10,6 +10,7 @@ models:
     updated_at: 2026-03-02
     capabilities:
       - audio.synthesize
+      - voice.create
     pricing:
       unit: char
       input: unknown
@@ -21,6 +22,9 @@ models:
       url: https://help.aliyun.com/zh/model-studio/speech-synthesis/
       retrieved_at: 2026-06-06
       note: Official speech synthesis model selection and current model matrix.
+    features:
+      - input.audio
+      - input.text
     voice_set_id: dashscope:cosyvoice-v3-5-plus-dynamic
     voice_discovery_mode: dynamic_user_scoped
     voice_request_options:
@@ -45,6 +49,7 @@ models:
     updated_at: 2026-03-02
     capabilities:
       - audio.synthesize
+      - voice.create
     pricing:
       unit: char
       input: unknown
@@ -56,6 +61,9 @@ models:
       url: https://help.aliyun.com/zh/model-studio/speech-synthesis/
       retrieved_at: 2026-06-06
       note: Official speech synthesis model selection and current model matrix.
+    features:
+      - input.audio
+      - input.text
     voice_set_id: dashscope:cosyvoice-v3-5-flash-dynamic
     voice_discovery_mode: dynamic_user_scoped
     voice_request_options:
@@ -80,6 +88,7 @@ models:
     updated_at: 2025-12-11
     capabilities:
       - audio.synthesize
+      - voice.create
     pricing:
       unit: char
       input: unknown
@@ -91,6 +100,9 @@ models:
       url: https://help.aliyun.com/zh/model-studio/speech-synthesis/
       retrieved_at: 2026-06-06
       note: Official speech synthesis model selection and current model matrix.
+    features:
+      - input.audio
+      - input.text
     voice_set_id: dashscope:cosyvoice_v3_plus_voice_set
     voice_discovery_mode: static_catalog
     voice_request_options:
@@ -117,6 +129,7 @@ models:
     updated_at: 2025-12-11
     capabilities:
       - audio.synthesize
+      - voice.create
     pricing:
       unit: char
       input: unknown
@@ -128,6 +141,9 @@ models:
       url: https://help.aliyun.com/zh/model-studio/speech-synthesis/
       retrieved_at: 2026-06-06
       note: Official speech synthesis model selection and current model matrix.
+    features:
+      - input.audio
+      - input.text
     voice_set_id: dashscope:cosyvoice_v3_flash_voice_set
     voice_discovery_mode: static_catalog
     voice_request_options:
@@ -261,6 +277,7 @@ models:
     updated_at: 2026-01-22
     capabilities:
       - audio.synthesize
+      - voice.create
     pricing:
       unit: char
       input: unknown
@@ -273,6 +290,8 @@ models:
       retrieved_at: 2026-03-05
       note: dashscope official model documentation
     api_model_id: qwen3-tts-vc-2026-01-22
+    features:
+      - input.audio
     voice_set_id: dashscope:qwen3-tts-vc-dynamic
     voice_discovery_mode: dynamic_user_scoped
     voice_ref_kinds: &a3
@@ -284,6 +303,7 @@ models:
     updated_at: 2026-01-22
     capabilities:
       - audio.synthesize
+      - voice.create
     pricing:
       unit: char
       input: unknown
@@ -296,6 +316,8 @@ models:
       retrieved_at: 2026-03-05
       note: dashscope official model documentation
     api_model_id: qwen3-tts-vc-2026-01-22
+    features:
+      - input.audio
     voice_set_id: dashscope:qwen3-tts-vc-dynamic
     voice_discovery_mode: dynamic_user_scoped
     voice_ref_kinds: *a3
@@ -305,6 +327,7 @@ models:
     updated_at: 2026-01-26
     capabilities:
       - audio.synthesize
+      - voice.create
     pricing:
       unit: char
       input: unknown
@@ -317,6 +340,8 @@ models:
       retrieved_at: 2026-03-05
       note: dashscope official model documentation
     api_model_id: qwen3-tts-vd-2026-01-26
+    features:
+      - input.text
     voice_set_id: dashscope:qwen3-tts-vd-dynamic
     voice_discovery_mode: dynamic_user_scoped
     voice_ref_kinds: &a4
@@ -328,6 +353,7 @@ models:
     updated_at: 2026-01-26
     capabilities:
       - audio.synthesize
+      - voice.create
     pricing:
       unit: char
       input: unknown
@@ -340,6 +366,8 @@ models:
       retrieved_at: 2026-03-05
       note: dashscope official model documentation
     api_model_id: qwen3-tts-vd-2026-01-26
+    features:
+      - input.text
     voice_set_id: dashscope:qwen3-tts-vd-dynamic
     voice_discovery_mode: dynamic_user_scoped
     voice_ref_kinds: *a4
@@ -477,6 +505,7 @@ models:
     updated_at: 2026-01-15
     capabilities:
       - audio.synthesize
+      - voice.create
     pricing:
       unit: char
       input: unknown
@@ -488,6 +517,8 @@ models:
       url: https://help.aliyun.com/zh/model-studio/qwen-tts-realtime
       retrieved_at: 2026-04-18
       note: Qwen realtime speech synthesis documentation covering stable and snapshot realtime models.
+    features:
+      - input.audio
     voice_set_id: dashscope:qwen3-tts-vc-realtime-2026-01-15-dynamic
     voice_discovery_mode: dynamic_user_scoped
     voice_request_options: &a9
@@ -508,6 +539,7 @@ models:
     updated_at: 2025-11-27
     capabilities:
       - audio.synthesize
+      - voice.create
     pricing:
       unit: char
       input: unknown
@@ -520,6 +552,8 @@ models:
       retrieved_at: 2026-04-18
       note: Qwen realtime speech synthesis documentation covering stable and snapshot realtime models.
     api_model_id: qwen3-tts-vc-realtime-2026-01-15
+    features:
+      - input.audio
     voice_set_id: dashscope:qwen3-tts-vc-realtime-2026-01-15-dynamic
     voice_discovery_mode: dynamic_user_scoped
     voice_request_options: *a9
@@ -530,6 +564,7 @@ models:
     updated_at: 2026-01-15
     capabilities:
       - audio.synthesize
+      - voice.create
     pricing:
       unit: char
       input: unknown
@@ -541,6 +576,8 @@ models:
       url: https://help.aliyun.com/zh/model-studio/qwen-tts-realtime
       retrieved_at: 2026-04-18
       note: Qwen realtime speech synthesis documentation covering stable and snapshot realtime models.
+    features:
+      - input.text
     voice_set_id: dashscope:qwen3-tts-vd-realtime-2026-01-15-dynamic
     voice_discovery_mode: dynamic_user_scoped
     voice_request_options: &a11
@@ -561,6 +598,7 @@ models:
     updated_at: 2025-12-16
     capabilities:
       - audio.synthesize
+      - voice.create
     pricing:
       unit: char
       input: unknown
@@ -573,6 +611,8 @@ models:
       retrieved_at: 2026-04-18
       note: Qwen realtime speech synthesis documentation covering stable and snapshot realtime models.
     api_model_id: qwen3-tts-vd-realtime-2026-01-15
+    features:
+      - input.text
     voice_set_id: dashscope:qwen3-tts-vd-realtime-2026-01-15-dynamic
     voice_discovery_mode: dynamic_user_scoped
     voice_request_options: *a11
@@ -620,7 +660,6 @@ models:
     updated_at: 2026-06-01
     capabilities:
       - text.generate
-      - text.generate.vision
     pricing:
       unit: token
       input: unknown
@@ -632,6 +671,8 @@ models:
       url: https://help.aliyun.com/zh/model-studio/newly-released-models
       retrieved_at: 2026-06-06
       note: Official DashScope model release and snapshot update feed.
+    features:
+      - input.image
     context_window_tokens: 8192
   - model_id: qwen3.7-plus-2026-05-26
     provider: dashscope
@@ -639,7 +680,6 @@ models:
     updated_at: 2026-05-26
     capabilities:
       - text.generate
-      - text.generate.vision
     pricing:
       unit: token
       input: unknown
@@ -652,6 +692,8 @@ models:
       retrieved_at: 2026-06-06
       note: Official DashScope model release and snapshot update feed.
     api_model_id: qwen3.7-plus
+    features:
+      - input.image
     context_window_tokens: 8192
   - model_id: qwen3.7-max-preview
     provider: dashscope
@@ -714,7 +756,6 @@ models:
     updated_at: 2026-04-18
     capabilities:
       - text.generate
-      - text.generate.vision
     pricing:
       unit: token
       input: unknown
@@ -726,6 +767,8 @@ models:
       url: https://help.aliyun.com/zh/model-studio/newly-released-models
       retrieved_at: 2026-06-06
       note: Official DashScope model release and snapshot update feed.
+    features:
+      - input.image
     context_window_tokens: 8192
   - model_id: qwen3.6-plus-2026-04-02
     provider: dashscope
@@ -733,7 +776,6 @@ models:
     updated_at: 2026-04-02
     capabilities:
       - text.generate
-      - text.generate.vision
     pricing:
       unit: token
       input: unknown
@@ -746,6 +788,8 @@ models:
       retrieved_at: 2026-06-06
       note: Official DashScope model release and snapshot update feed.
     api_model_id: qwen3.6-plus
+    features:
+      - input.image
     context_window_tokens: 8192
   - model_id: qwen3.5-plus
     provider: dashscope
@@ -771,7 +815,6 @@ models:
     updated_at: 2026-04-18
     capabilities:
       - text.generate
-      - text.generate.vision
     pricing:
       unit: token
       input: unknown
@@ -783,6 +826,8 @@ models:
       url: https://help.aliyun.com/zh/model-studio/newly-released-models
       retrieved_at: 2026-06-06
       note: Official DashScope model release and snapshot update feed.
+    features:
+      - input.image
     context_window_tokens: 8192
   - model_id: qwen3.6-flash-2026-04-16
     provider: dashscope
@@ -790,7 +835,6 @@ models:
     updated_at: 2026-04-16
     capabilities:
       - text.generate
-      - text.generate.vision
     pricing:
       unit: token
       input: unknown
@@ -803,6 +847,8 @@ models:
       retrieved_at: 2026-06-06
       note: Official DashScope model release and snapshot update feed.
     api_model_id: qwen3.6-flash
+    features:
+      - input.image
     context_window_tokens: 8192
   - model_id: qwen3.5-flash
     provider: dashscope
@@ -828,7 +874,6 @@ models:
     updated_at: 2026-03-05
     capabilities:
       - text.generate
-      - text.generate.vision
     pricing:
       unit: token
       input: unknown
@@ -840,6 +885,8 @@ models:
       url: https://help.aliyun.com/zh/model-studio/model-pricing
       retrieved_at: 2026-06-06
       note: DashScope official model pricing and current model listing overview.
+    features:
+      - input.image
     context_window_tokens: 8192
   - model_id: qwen3-vl-plus
     provider: dashscope
@@ -847,7 +894,6 @@ models:
     updated_at: 2026-04-18
     capabilities:
       - text.generate
-      - text.generate.vision
     pricing:
       unit: token
       input: unknown
@@ -859,6 +905,8 @@ models:
       url: https://help.aliyun.com/zh/model-studio/vision/
       retrieved_at: 2026-06-06
       note: Qwen vision-language documentation and current VL model guidance.
+    features:
+      - input.image
     context_window_tokens: 8192
   - model_id: qwen3-vl-flash
     provider: dashscope
@@ -866,7 +914,6 @@ models:
     updated_at: 2026-04-18
     capabilities:
       - text.generate
-      - text.generate.vision
     pricing:
       unit: token
       input: unknown
@@ -878,6 +925,8 @@ models:
       url: https://help.aliyun.com/zh/model-studio/vision/
       retrieved_at: 2026-06-06
       note: Qwen vision-language documentation and current VL model guidance.
+    features:
+      - input.image
     context_window_tokens: 8192
   - model_id: deepseek-v3.2
     provider: dashscope
@@ -1526,6 +1575,9 @@ models:
       url: https://help.aliyun.com/zh/model-studio/model-pricing
       retrieved_at: 2026-06-06
       note: DashScope official model pricing and current model listing overview.
+    features:
+      - input.image
+      - input.mask
     image_request_options: &a13
       response_formats:
         - b64_json
@@ -1557,6 +1609,9 @@ models:
       retrieved_at: 2026-06-06
       note: DashScope official model pricing and current model listing overview.
     api_model_id: qwen-image-2.0-pro
+    features:
+      - input.image
+      - input.mask
     image_request_options: *a13
   - model_id: qwen-image-2.0
     provider: dashscope
@@ -1575,6 +1630,9 @@ models:
       url: https://help.aliyun.com/zh/model-studio/model-pricing
       retrieved_at: 2026-06-06
       note: DashScope official model pricing and current model listing overview.
+    features:
+      - input.image
+      - input.mask
     image_request_options: &a14
       response_formats:
         - b64_json
@@ -1606,6 +1664,9 @@ models:
       retrieved_at: 2026-06-06
       note: DashScope official model pricing and current model listing overview.
     api_model_id: qwen-image-2.0
+    features:
+      - input.image
+      - input.mask
     image_request_options: *a14
   - model_id: z-image-turbo
     provider: dashscope
@@ -1624,6 +1685,9 @@ models:
       url: https://help.aliyun.com/zh/model-studio/model-pricing
       retrieved_at: 2026-06-06
       note: DashScope official model pricing and current model listing overview.
+    features:
+      - input.image
+      - input.mask
     image_request_options:
       response_formats:
         - b64_json
@@ -1654,6 +1718,8 @@ models:
       url: https://help.aliyun.com/zh/model-studio/wan-image-generation-and-editing-api-reference
       retrieved_at: 2026-04-18
       note: Wan 2.7 image generation and editing API reference.
+    features:
+      - input.image
     image_request_options:
       response_formats:
         - b64_json
@@ -1683,6 +1749,8 @@ models:
       url: https://help.aliyun.com/zh/model-studio/wan-image-generation-and-editing-api-reference
       retrieved_at: 2026-04-18
       note: Wan 2.7 image generation and editing API reference.
+    features:
+      - input.image
     image_request_options:
       response_formats:
         - b64_json
@@ -1712,6 +1780,8 @@ models:
       url: https://help.aliyun.com/zh/model-studio/model-pricing
       retrieved_at: 2026-06-06
       note: DashScope official model pricing and current model listing overview.
+    features:
+      - input.image
     image_request_options:
       response_formats:
         - b64_json
@@ -1780,6 +1850,8 @@ models:
       url: https://help.aliyun.com/zh/model-studio/use-video-generation
       retrieved_at: 2026-04-18
       note: Official Wan video generation guide covering t2v and i2v families.
+    features:
+      - input.image
     video_generation:
       modes:
         - i2v_first_frame
@@ -1826,6 +1898,8 @@ models:
       url: https://help.aliyun.com/zh/model-studio/use-video-generation
       retrieved_at: 2026-04-18
       note: Official Wan video generation guide covering t2v and i2v families.
+    features:
+      - input.image
     video_generation:
       modes:
         - i2v_reference
@@ -1866,6 +1940,8 @@ models:
       url: https://help.aliyun.com/zh/model-studio/use-video-generation
       retrieved_at: 2026-04-18
       note: Official Wan video generation guide covering t2v and i2v families.
+    features:
+      - input.image
     video_generation:
       modes:
         - i2v_reference
@@ -1907,6 +1983,9 @@ models:
       url: https://help.aliyun.com/zh/model-studio/model-pricing
       retrieved_at: 2026-06-06
       note: DashScope official model pricing and current model listing overview.
+    features:
+      - input.image
+      - input.mask
     image_request_options:
       response_formats:
         - b64_json
@@ -1937,6 +2016,9 @@ models:
       url: https://help.aliyun.com/zh/model-studio/model-pricing
       retrieved_at: 2026-06-06
       note: DashScope official model pricing and current model listing overview.
+    features:
+      - input.image
+      - input.mask
     image_request_options:
       response_formats:
         - b64_json
@@ -1967,6 +2049,9 @@ models:
       url: https://help.aliyun.com/zh/model-studio/model-pricing
       retrieved_at: 2026-06-06
       note: DashScope official model pricing and current model listing overview.
+    features:
+      - input.image
+      - input.mask
     image_request_options:
       response_formats:
         - b64_json
@@ -3497,7 +3582,7 @@ selection_profiles:
     rationale: Current Qwen Max line is documented as text-only with thinking mode enabled by default.
 voice_workflow_models:
   - workflow_model_id: qwen-voice-enrollment
-    workflow_type: voice_clone
+    workflow_type: reference_audio
     workflow_family: dashscope
     input_contract_ref: dashscope_voice_clone_input_v1
     output_persistence: provider_persistent
@@ -3534,7 +3619,7 @@ voice_workflow_models:
       - fr
       - ru
   - workflow_model_id: qwen-voice-design
-    workflow_type: voice_design
+    workflow_type: text_description
     workflow_family: dashscope
     input_contract_ref: dashscope_voice_design_input_v1
     output_persistence: provider_persistent
@@ -3563,7 +3648,7 @@ voice_workflow_models:
       - fr
       - ru
   - workflow_model_id: voice-enrollment-clone
-    workflow_type: voice_clone
+    workflow_type: reference_audio
     workflow_family: cosyvoice
     input_contract_ref: dashscope_cosyvoice_voice_clone_input_v1
     output_persistence: provider_persistent
@@ -3581,7 +3666,7 @@ voice_workflow_models:
         - audio/mp4
         - audio/m4a
       provider_extensions:
-        namespace: nimi.scenario.voice_workflow.request
+        namespace: nimi.scenario.voice_create.request
         schema_version: dashscope-cosyvoice-voice-enrollment-v1
     target_model_refs:
       - cosyvoice-v3.5-plus
@@ -3605,7 +3690,7 @@ voice_workflow_models:
       - id
       - vi
   - workflow_model_id: voice-enrollment-design
-    workflow_type: voice_design
+    workflow_type: text_description
     workflow_family: cosyvoice
     input_contract_ref: dashscope_cosyvoice_voice_design_input_v1
     output_persistence: provider_persistent
@@ -3615,7 +3700,7 @@ voice_workflow_models:
       supports_language: true
       supports_preferred_name: true
       provider_extensions:
-        namespace: nimi.scenario.voice_workflow.request
+        namespace: nimi.scenario.voice_create.request
         schema_version: dashscope-cosyvoice-voice-enrollment-v1
     target_model_refs:
       - cosyvoice-v3.5-plus
@@ -3634,65 +3719,65 @@ model_workflow_bindings:
     workflow_model_refs:
       - qwen-voice-enrollment
     workflow_types:
-      - voice_clone
+      - reference_audio
   - model_id: qwen3-tts-vc-2026-01-22
     workflow_model_refs:
       - qwen-voice-enrollment
     workflow_types:
-      - voice_clone
+      - reference_audio
   - model_id: qwen3-tts-vd
     workflow_model_refs:
       - qwen-voice-design
     workflow_types:
-      - voice_design
+      - text_description
   - model_id: qwen3-tts-vd-2026-01-26
     workflow_model_refs:
       - qwen-voice-design
     workflow_types:
-      - voice_design
+      - text_description
   - model_id: qwen3-tts-vc-realtime-2026-01-15
     workflow_model_refs:
       - qwen-voice-enrollment
     workflow_types:
-      - voice_clone
+      - reference_audio
   - model_id: qwen3-tts-vd-realtime-2026-01-15
     workflow_model_refs:
       - qwen-voice-design
     workflow_types:
-      - voice_design
+      - text_description
   - model_id: cosyvoice-v3.5-plus
     workflow_model_refs:
       - voice-enrollment-clone
       - voice-enrollment-design
     workflow_types:
-      - voice_clone
-      - voice_design
+      - reference_audio
+      - text_description
   - model_id: cosyvoice-v3.5-flash
     workflow_model_refs:
       - voice-enrollment-clone
       - voice-enrollment-design
     workflow_types:
-      - voice_clone
-      - voice_design
+      - reference_audio
+      - text_description
   - model_id: cosyvoice-v3-plus
     workflow_model_refs:
       - voice-enrollment-clone
       - voice-enrollment-design
     workflow_types:
-      - voice_clone
-      - voice_design
+      - reference_audio
+      - text_description
   - model_id: cosyvoice-v3-flash
     workflow_model_refs:
       - voice-enrollment-clone
       - voice-enrollment-design
     workflow_types:
-      - voice_clone
-      - voice_design
+      - reference_audio
+      - text_description
 voice_handle_policies:
   - policy_id: dashscope_provider_persistent_default
     applies_to_workflow_types:
-      - voice_clone
-      - voice_design
+      - reference_audio
+      - text_description
     persistence: provider_persistent
     default_ttl: none
     scope: user_scoped

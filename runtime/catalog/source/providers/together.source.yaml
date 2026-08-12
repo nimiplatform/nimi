@@ -16,7 +16,6 @@ runtime:
     failure_policy: use_cache_then_fail_closed
     allowed_capabilities:
       - text.generate
-      - text.generate.vision
       - text.embed
       - image.generate
       - video.generate

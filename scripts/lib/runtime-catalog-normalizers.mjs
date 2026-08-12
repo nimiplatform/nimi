@@ -2,7 +2,6 @@ import { promises as fs } from 'node:fs';
 
 const canonicalModelCapabilities = new Set([
   'text.generate',
-  'text.generate.vision',
   'text.embed',
   'image.generate',
   'video.generate',
@@ -10,7 +9,7 @@ const canonicalModelCapabilities = new Set([
   'audio.synthesize',
   'audio.transcribe',
   'music.generate',
-  'music.generate.iteration',
+  'voice.create',
 ]);
 
 
@@ -638,55 +637,6 @@ export function normalizeEmbeddingCapability(raw, provider, modelID) {
   return { dimension };
 }
 
-export function normalizeVoiceWorkflowRequestOptions(raw, provider, workflowModelID, workflowType) {
-  if (!raw || typeof raw !== 'object') {
-    throw new Error(`${provider} workflow model ${workflowModelID} missing request_options`);
-  }
-  const normalizedWorkflowType = normalizeWorkflowType(workflowType);
-  const out = {};
-  const readExplicitBoolean = (field) => {
-    if (typeof raw[field] !== 'boolean') {
-      throw new Error(`${provider} workflow model ${workflowModelID} request_options.${field} must be explicit boolean`);
-    }
-    return raw[field];
-  };
-  const normalizeMode = (field) => {
-    const value = normalizeString(raw[field]).toLowerCase();
-    if (value !== 'unsupported' && value !== 'optional' && value !== 'required') {
-      throw new Error(`${provider} workflow model ${workflowModelID} request_options.${field} must be unsupported|optional|required`);
-    }
-    return value;
-  };
-
-  if (normalizedWorkflowType === 'voice_clone') {
-    out.text_prompt_mode = normalizeMode('text_prompt_mode');
-    out.supports_language_hints = readExplicitBoolean('supports_language_hints');
-    out.supports_preferred_name = readExplicitBoolean('supports_preferred_name');
-    out.reference_audio_uri_input = readExplicitBoolean('reference_audio_uri_input');
-    out.reference_audio_bytes_input = readExplicitBoolean('reference_audio_bytes_input');
-    if (!out.reference_audio_uri_input && !out.reference_audio_bytes_input) {
-      throw new Error(`${provider} workflow model ${workflowModelID} must admit at least one reference audio input path`);
-    }
-    out.allowed_reference_audio_mime_types = normalizeStringArray(raw.allowed_reference_audio_mime_types).map((value) => value.toLowerCase());
-    if (out.allowed_reference_audio_mime_types.length === 0) {
-      throw new Error(`${provider} workflow model ${workflowModelID} request_options.allowed_reference_audio_mime_types must not be empty`);
-    }
-  } else if (normalizedWorkflowType === 'voice_design') {
-    out.instruction_text_mode = normalizeMode('instruction_text_mode');
-    out.preview_text_mode = normalizeMode('preview_text_mode');
-    out.supports_language = readExplicitBoolean('supports_language');
-    out.supports_preferred_name = readExplicitBoolean('supports_preferred_name');
-  } else {
-    throw new Error(`${provider} workflow model ${workflowModelID} uses unsupported workflow_type ${workflowType}`);
-  }
-
-  const providerExtensions = normalizeProviderExtensions(raw.provider_extensions, provider, workflowModelID, 'request_options');
-  if (providerExtensions) {
-    out.provider_extensions = providerExtensions;
-  }
-  return out;
-}
-
 export function normalizeSelectionProfiles(rawProfiles, provider, modelIndex) {
   if (!Array.isArray(rawProfiles)) {
     return [];
@@ -743,17 +693,6 @@ export function selectionProfileModelID(selectionProfiles, profileID) {
     ? selectionProfiles.find((entry) => normalizeString(entry?.profile_id).toLowerCase() === String(profileID || '').trim().toLowerCase())
     : null;
   return normalizeString(match?.model_id);
-}
-
-export function normalizeWorkflowType(value) {
-  const normalized = normalizeString(value).toLowerCase();
-  if (!normalized) {
-    return '';
-  }
-  if (normalized === 'voice_clone' || normalized === 'voice_design') {
-    return normalized;
-  }
-  throw new Error(`voice workflow type must be voice_clone or voice_design, got: ${normalized}`);
 }
 
 const localInstallKinds = new Set(['binary', 'weights', 'verified-hf-multi-file']);

@@ -8,10 +8,10 @@ import (
 
 func normalizeWorkflowType(value string) string {
 	switch strings.ToLower(strings.TrimSpace(value)) {
-	case "voice_clone":
-		return "voice_clone"
-	case "voice_design":
-		return "voice_design"
+	case "reference_audio":
+		return "reference_audio"
+	case "text_description":
+		return "text_description"
 	default:
 		return ""
 	}

@@ -48,27 +48,28 @@ func (r *Resolver) SupportsScenarioForSubject(subjectUserID string, providerType
 		return hasAny(aicapabilities.AudioTranscribe), nil
 	case runtimev1.ScenarioType_SCENARIO_TYPE_WORLD_GENERATE:
 		return hasAny(aicapabilities.WorldGenerate), nil
-	case runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE:
-		_, workflowErr := r.ResolveVoiceWorkflowForSubject(subjectUserID, providerType, modelID, "voice_clone")
-		if workflowErr == nil {
-			return true, nil
-		}
-		if workflowErr == ErrVoiceWorkflowUnsupported {
-			return false, nil
-		}
-		return false, workflowErr
-	case runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_DESIGN:
-		_, workflowErr := r.ResolveVoiceWorkflowForSubject(subjectUserID, providerType, modelID, "voice_design")
-		if workflowErr == nil {
-			return true, nil
-		}
-		if workflowErr == ErrVoiceWorkflowUnsupported {
-			return false, nil
-		}
-		return false, workflowErr
+	case runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CREATE:
+		return hasAny(aicapabilities.VoiceCreate), nil
 	default:
 		return false, nil
 	}
+}
+
+func (r *Resolver) SupportsFeatureForSubject(subjectUserID string, providerType string, modelID string, feature string) (bool, error) {
+	model, err := r.ResolveModelEntryForSubject(subjectUserID, providerType, modelID)
+	if err != nil {
+		return false, err
+	}
+	expected := strings.ToLower(strings.TrimSpace(feature))
+	if expected == "" {
+		return false, nil
+	}
+	for _, declared := range model.Features {
+		if strings.ToLower(strings.TrimSpace(declared)) == expected {
+			return true, nil
+		}
+	}
+	return false, nil
 }
 
 func (r *Resolver) SupportsCapability(providerType string, modelID string, capability string) (bool, error) {

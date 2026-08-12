@@ -49,8 +49,6 @@ packs:
     capabilities:
       - text.generate
       - text.embed
-      - image.understand
-      - audio.understand
     required_dependency_families:
       - native-engine-package.llama
       - model.asset
@@ -69,8 +67,7 @@ packs:
       - local_model_install
       - local_compute_setup
     capabilities:
-      - image.generate.t2i
-      - image.generate.i2i
+      - image.generate
     required_dependency_families:
       - python.tool.uv
       - python.runtime
@@ -94,8 +91,7 @@ packs:
       - local_model_install
       - local_compute_setup
     capabilities:
-      - image.generate.t2i
-      - image.generate.i2i
+      - image.generate
     required_dependency_families:
       - python.tool.uv
       - python.runtime
@@ -119,7 +115,6 @@ packs:
       - local_compute_setup
     capabilities:
       - video.generate
-      - i2v
     required_dependency_families:
       - python.tool.uv
       - python.runtime

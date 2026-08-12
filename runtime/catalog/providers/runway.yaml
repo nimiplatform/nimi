@@ -20,6 +20,8 @@ models:
       url: https://docs.dev.runwayml.com/api
       retrieved_at: 2026-04-18
       note: Runway API overview and endpoint reference.
+    features:
+      - input.image
     video_generation:
       modes:
         - t2v
@@ -71,6 +73,8 @@ models:
       url: https://docs.dev.runwayml.com/api
       retrieved_at: 2026-04-18
       note: Runway API overview and endpoint reference.
+    features:
+      - input.image
     video_generation:
       modes:
         - i2v_first_frame
@@ -119,6 +123,8 @@ models:
       url: https://docs.dev.runwayml.com/api
       retrieved_at: 2026-04-18
       note: Runway API overview and endpoint reference.
+    features:
+      - input.image
     video_generation:
       modes:
         - i2v_first_frame

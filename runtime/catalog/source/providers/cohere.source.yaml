@@ -75,7 +75,8 @@ models:
   - model_id: north-mini-code-1-0
     model_type: chat
     updated_at: 2026-06-09
-    capabilities: [text.generate, text.generate.vision]
+    capabilities: [text.generate]
+    features: [input.image]
     pricing:
       unit: token
       input: unknown
@@ -88,7 +89,8 @@ models:
   - model_id: command-a-plus-05-2026
     model_type: chat
     updated_at: 2026-06-03
-    capabilities: [text.generate, text.generate.vision]
+    capabilities: [text.generate]
+    features: [input.image]
     pricing:
       unit: token
       input: unknown

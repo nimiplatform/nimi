@@ -3,6 +3,7 @@ models:
     model_type: image
     updated_at: 2026-03-15
     capabilities: [image.generate]
+    features: [input.image, input.mask]
     image_request_options:
       response_formats: [b64_json, url]
       max_images_per_request: 1
@@ -29,6 +30,7 @@ models:
     model_type: image
     updated_at: 2026-05-21
     capabilities: [image.generate]
+    features: [input.image, input.mask]
     image_request_options:
       response_formats: [b64_json, url]
       max_images_per_request: 1

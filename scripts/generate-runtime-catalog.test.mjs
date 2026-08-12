@@ -51,6 +51,151 @@ function staticTextProviderWithSource(source, provider = 'source-test') {
   };
 }
 
+test('model features are normalized, validated, and propagated', () => {
+  const source = {
+    source_id: 'provider_documentation',
+    source_kind: 'provider_documentation',
+    url: 'https://provider.example/docs/models/private-model-route',
+    retrieved_at: '2026-08-09',
+    note: 'Provider documentation.',
+  };
+  const doc = staticTextProviderWithSource(source);
+  doc.models[0].features = [' Input.Image ', 'INPUT.IMAGE', 'input.audio'];
+
+  const generated = generateProviderCatalog(doc);
+  assert.deepEqual(generated.models[0].features, ['input.image', 'input.audio']);
+});
+
+test('model features reject names outside the capability contract', () => {
+  const source = {
+    source_id: 'provider_documentation',
+    source_kind: 'provider_documentation',
+    url: 'https://provider.example/docs/models/private-model-route',
+    retrieved_at: '2026-08-09',
+    note: 'Provider documentation.',
+  };
+  const doc = staticTextProviderWithSource(source);
+  doc.models[0].features = ['input.mask'];
+
+  assert.throws(
+    () => generateProviderCatalog(doc),
+    /feature input\.mask is not allowed by its capability contracts/u,
+  );
+});
+
+test('voice.create is canonical and propagates its source feature', () => {
+  const source = {
+    source_id: 'provider_documentation',
+    source_kind: 'provider_documentation',
+    url: 'https://provider.example/docs/models/voice-creation',
+    retrieved_at: '2026-08-11',
+    note: 'Provider documentation.',
+  };
+  const doc = staticTextProviderWithSource(source);
+  doc.models[0].capabilities = ['voice.create'];
+  doc.models[0].features = ['input.audio'];
+  delete doc.models[0].context_window_tokens;
+
+  const generated = generateProviderCatalog(doc);
+  assert.deepEqual(generated.models[0].capabilities, ['voice.create']);
+  assert.deepEqual(generated.models[0].features, ['input.audio']);
+});
+
+test('retired voice workflow capability tokens are rejected', () => {
+  const source = {
+    source_id: 'provider_documentation',
+    source_kind: 'provider_documentation',
+    url: 'https://provider.example/docs/models/voice-creation',
+    retrieved_at: '2026-08-11',
+    note: 'Provider documentation.',
+  };
+  const doc = staticTextProviderWithSource(source);
+  doc.models[0].capabilities = ['voice_workflow.voice_clone'];
+  delete doc.models[0].context_window_tokens;
+
+  assert.throws(
+    () => generateProviderCatalog(doc),
+    /canonical capability tokens only/u,
+  );
+});
+
+test('video.generate models admit input.image', () => {
+  const source = {
+    source_id: 'provider_documentation',
+    source_kind: 'provider_documentation',
+    url: 'https://provider.example/docs/models/private-model-route',
+    retrieved_at: '2026-08-09',
+    note: 'Provider documentation.',
+  };
+  const doc = staticTextProviderWithSource(source);
+  doc.models[0].capabilities = ['video.generate'];
+  doc.models[0].features = ['input.image'];
+
+  const generated = generateProviderCatalog(doc);
+  assert.deepEqual(generated.models[0].features, ['input.image']);
+});
+
+test('image-conditioned video modes require input.image', () => {
+  const source = {
+    source_id: 'provider_documentation',
+    source_kind: 'provider_documentation',
+    url: 'https://provider.example/docs/video-generation',
+    retrieved_at: '2026-08-11',
+    note: 'Provider documentation.',
+  };
+  const doc = staticTextProviderWithSource(source);
+  doc.models[0].capabilities = ['video.generate'];
+  doc.models[0].video_generation = {
+    modes: ['i2v_first_frame'],
+    input_roles: { i2v_first_frame: ['prompt', 'first_frame'] },
+    limits: { duration_sec: { min: 1, max: 8 } },
+    options: { supports: ['duration_sec'] },
+    outputs: { video_url: true },
+  };
+
+  assert.throws(
+    () => generateProviderCatalog(doc),
+    /image-conditioned video modes without feature input\.image/u,
+  );
+});
+
+test('video.generate models reject features outside input.image', () => {
+  const source = {
+    source_id: 'provider_documentation',
+    source_kind: 'provider_documentation',
+    url: 'https://provider.example/docs/models/private-model-route',
+    retrieved_at: '2026-08-09',
+    note: 'Provider documentation.',
+  };
+  const doc = staticTextProviderWithSource(source);
+  doc.models[0].capabilities = ['video.generate'];
+  doc.models[0].features = ['input.video'];
+
+  assert.throws(
+    () => generateProviderCatalog(doc),
+    /feature input\.video is not allowed by its capability contracts/u,
+  );
+});
+
+test('model features reject capabilities without a feature contract', () => {
+  const source = {
+    source_id: 'provider_documentation',
+    source_kind: 'provider_documentation',
+    url: 'https://provider.example/docs/models/private-model-route',
+    retrieved_at: '2026-08-09',
+    note: 'Provider documentation.',
+  };
+  const doc = staticTextProviderWithSource(source);
+  doc.models[0].capabilities = ['text.embed'];
+  doc.models[0].features = ['input.image'];
+  delete doc.models[0].context_window_tokens;
+
+  assert.throws(
+    () => generateProviderCatalog(doc),
+    /declares features without a feature-bearing capability contract/u,
+  );
+});
+
 test('authenticated provider inventory source remains explicit in the generated source_ref', () => {
   const source = {
     source_id: 'authenticated_inventory',

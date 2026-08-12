@@ -31,39 +31,39 @@ func TestSortedProviderIDsReturnsSortedCopy(t *testing.T) {
 
 func TestVoiceWorkflowProviderFamilyFlagsDoNotOverclaim(t *testing.T) {
 	cases := []struct {
-		provider          string
-		wantTTS           bool
-		wantVoiceClone    bool
-		wantVoiceDesign   bool
-		coverageInvariant string
+		provider                 string
+		wantTTS                  bool
+		wantVoiceReferenceAudio  bool
+		wantVoiceTextDescription bool
+		coverageInvariant        string
 	}{
 		{
-			provider:          "aws_polly",
-			wantTTS:           true,
-			wantVoiceClone:    false,
-			wantVoiceDesign:   false,
-			coverageInvariant: "plain TTS only provider must not advertise voice workflows",
+			provider:                 "aws_polly",
+			wantTTS:                  true,
+			wantVoiceReferenceAudio:  false,
+			wantVoiceTextDescription: false,
+			coverageInvariant:        "plain TTS only provider must not advertise voice workflows",
 		},
 		{
-			provider:          "fish_audio",
-			wantTTS:           true,
-			wantVoiceClone:    true,
-			wantVoiceDesign:   false,
-			coverageInvariant: "provider-extension registry admits voice clone but not voice design",
+			provider:                 "fish_audio",
+			wantTTS:                  true,
+			wantVoiceReferenceAudio:  true,
+			wantVoiceTextDescription: false,
+			coverageInvariant:        "Fish Audio model rows explicitly admit synthesis and reference-audio voice creation",
 		},
 		{
-			provider:          "dashscope",
-			wantTTS:           true,
-			wantVoiceClone:    true,
-			wantVoiceDesign:   true,
-			coverageInvariant: "provider-extension registry admits both workflow lanes",
+			provider:                 "dashscope",
+			wantTTS:                  true,
+			wantVoiceReferenceAudio:  true,
+			wantVoiceTextDescription: true,
+			coverageInvariant:        "provider-extension registry admits both voice creation sources",
 		},
 		{
-			provider:          "elevenlabs",
-			wantTTS:           true,
-			wantVoiceClone:    true,
-			wantVoiceDesign:   true,
-			coverageInvariant: "provider-extension registry rows admit both ElevenLabs workflow lanes",
+			provider:                 "elevenlabs",
+			wantTTS:                  true,
+			wantVoiceReferenceAudio:  true,
+			wantVoiceTextDescription: true,
+			coverageInvariant:        "provider-extension registry rows admit both ElevenLabs voice creation sources",
 		},
 	}
 
@@ -76,11 +76,11 @@ func TestVoiceWorkflowProviderFamilyFlagsDoNotOverclaim(t *testing.T) {
 			if record.SupportsTTS != c.wantTTS {
 				t.Fatalf("%s SupportsTTS=%v, want %v (%s)", c.provider, record.SupportsTTS, c.wantTTS, c.coverageInvariant)
 			}
-			if record.SupportsVoiceClone != c.wantVoiceClone {
-				t.Fatalf("%s SupportsVoiceClone=%v, want %v (%s)", c.provider, record.SupportsVoiceClone, c.wantVoiceClone, c.coverageInvariant)
+			if record.SupportsVoiceReferenceAudio != c.wantVoiceReferenceAudio {
+				t.Fatalf("%s SupportsVoiceReferenceAudio=%v, want %v (%s)", c.provider, record.SupportsVoiceReferenceAudio, c.wantVoiceReferenceAudio, c.coverageInvariant)
 			}
-			if record.SupportsVoiceDesign != c.wantVoiceDesign {
-				t.Fatalf("%s SupportsVoiceDesign=%v, want %v (%s)", c.provider, record.SupportsVoiceDesign, c.wantVoiceDesign, c.coverageInvariant)
+			if record.SupportsVoiceTextDescription != c.wantVoiceTextDescription {
+				t.Fatalf("%s SupportsVoiceTextDescription=%v, want %v (%s)", c.provider, record.SupportsVoiceTextDescription, c.wantVoiceTextDescription, c.coverageInvariant)
 			}
 		})
 	}

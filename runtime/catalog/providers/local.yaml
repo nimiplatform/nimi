@@ -153,9 +153,10 @@ models:
   - model_id: qwen3-tts-base-local
     provider: local
     model_type: tts
-    updated_at: 2026-04-17
+    updated_at: 2026-08-12
     capabilities:
       - audio.synthesize
+      - voice.create
     pricing:
       unit: request
       input: "0"
@@ -167,16 +168,65 @@ models:
       url: https://huggingface.co/Qwen/Qwen3-TTS-12Hz-0.6B-Base
       retrieved_at: 2026-04-17
       note: Default local voice clone checkpoint for first-wave local admission.
+    features:
+      - input.audio
     voice_set_id: local:local_qwen3_tts_base_dynamic_voice_set
     voice_discovery_mode: dynamic_user_scoped
     voice_ref_kinds: &a2
       - provider_voice_ref
+    install:
+      repo: Qwen/Qwen3-TTS-12Hz-0.6B-Base
+      revision: 5d83992436eae1d760afd27aff78a71d676296fc
+      install_kind: verified-hf-multi-file
+      entry: model.safetensors
+      artifact_roles:
+        - tts_model
+        - tts_voice_clone_model
+        - speech_tokenizer
+        - tokenizer
+      preferred_engine: speech
+    variants:
+      - variant_id: local.voice.qwen3-tts-base-0.6b.safetensors
+        quant: F16
+        entry: model.safetensors
+        files:
+          - model.safetensors
+          - config.json
+          - generation_config.json
+          - preprocessor_config.json
+          - tokenizer_config.json
+          - vocab.json
+          - merges.txt
+          - speech_tokenizer/model.safetensors
+          - speech_tokenizer/config.json
+          - speech_tokenizer/configuration.json
+          - speech_tokenizer/preprocessor_config.json
+        hashes:
+          model.safetensors: sha256:180b3b10eb1c9f1b4db7806d5475bae3071c0243c299d49926bab1da3b6946f6
+          config.json: sha256:2e714c787c8edb98b05432685cddb634add2de4d4e645f653d68251ef72ba011
+          generation_config.json: sha256:f1b90b4513f3b34c62851049e2492d7b4c5940daf1276f89c82b8ef04127f3aa
+          preprocessor_config.json: sha256:efdde1022ea9d76928bf7a9cd53139138f5ba2e466e837f08f6105ab1af1c119
+          tokenizer_config.json: sha256:dc3c31c3bdaedd5016382bb3cbe07323026775ad51f5a4fb564505992ae4a670
+          vocab.json: sha256:ca10d7e9fb3ed18575dd1e277a2579c16d108e32f27439684afa0e10b1440910
+          merges.txt: sha256:599bab54075088774b1733fde865d5bd747cbcc7a547c5bc12610e874e26f5e3
+          speech_tokenizer/model.safetensors: sha256:836b7b357f5ea43e889936a3709af68dfe3751881acefe4ecf0dbd30ba571258
+          speech_tokenizer/config.json: sha256:ee65bb901c876664ab8707c487157aa1a6ee57c65969b28fb5ec9dc211e68167
+          speech_tokenizer/configuration.json: sha256:6bc26d64eb5024b4d1dab5a52371958b429256d6c9d59787f1f5294a54e0cebd
+          speech_tokenizer/preprocessor_config.json: sha256:fcb3805e597e786d4067706e602f6688524640f8d3396790e2e09b5942fcbdfb
+        total_size_bytes: 2516100892
+        host_requirement:
+          accelerator: cpu
+          min_ram_bytes: 5368709120
+    fitness:
+      param_count: 600000000
+      context_length: 0
   - model_id: local/qwen3-tts-base
     provider: local
     model_type: tts
-    updated_at: 2026-04-17
+    updated_at: 2026-08-12
     capabilities:
       - audio.synthesize
+      - voice.create
     pricing:
       unit: request
       input: "0"
@@ -188,15 +238,18 @@ models:
       url: https://huggingface.co/Qwen/Qwen3-TTS-12Hz-0.6B-Base
       retrieved_at: 2026-04-17
       note: Default local voice clone checkpoint for first-wave local admission.
+    features:
+      - input.audio
     voice_set_id: local:local_qwen3_tts_base_dynamic_voice_set
     voice_discovery_mode: dynamic_user_scoped
     voice_ref_kinds: *a2
   - model_id: speech/qwen3tts-base
     provider: local
     model_type: tts
-    updated_at: 2026-04-17
+    updated_at: 2026-08-12
     capabilities:
       - audio.synthesize
+      - voice.create
     pricing:
       unit: request
       input: "0"
@@ -208,15 +261,18 @@ models:
       url: https://huggingface.co/Qwen/Qwen3-TTS-12Hz-0.6B-Base
       retrieved_at: 2026-04-17
       note: Default local voice clone checkpoint for first-wave local admission.
+    features:
+      - input.audio
     voice_set_id: local:local_qwen3_tts_base_dynamic_voice_set
     voice_discovery_mode: dynamic_user_scoped
     voice_ref_kinds: *a2
   - model_id: Qwen/Qwen3-TTS-12Hz-0.6B-Base
     provider: local
     model_type: tts
-    updated_at: 2026-04-17
+    updated_at: 2026-08-12
     capabilities:
       - audio.synthesize
+      - voice.create
     pricing:
       unit: request
       input: "0"
@@ -228,15 +284,18 @@ models:
       url: https://huggingface.co/Qwen/Qwen3-TTS-12Hz-0.6B-Base
       retrieved_at: 2026-04-17
       note: Default local voice clone checkpoint for first-wave local admission.
+    features:
+      - input.audio
     voice_set_id: local:local_qwen3_tts_base_dynamic_voice_set
     voice_discovery_mode: dynamic_user_scoped
     voice_ref_kinds: *a2
   - model_id: qwen3-tts-voicedesign-local
     provider: local
     model_type: tts
-    updated_at: 2026-04-17
+    updated_at: 2026-08-12
     capabilities:
       - audio.synthesize
+      - voice.create
     pricing:
       unit: request
       input: "0"
@@ -248,16 +307,65 @@ models:
       url: https://huggingface.co/Qwen/Qwen3-TTS-12Hz-1.7B-VoiceDesign
       retrieved_at: 2026-04-17
       note: Default local voice design checkpoint for first-wave local admission.
+    features:
+      - input.text
     voice_set_id: local:local_qwen3_tts_voicedesign_dynamic_voice_set
     voice_discovery_mode: dynamic_user_scoped
     voice_ref_kinds: &a3
       - provider_voice_ref
+    install:
+      repo: Qwen/Qwen3-TTS-12Hz-1.7B-VoiceDesign
+      revision: 5ecdb67327fd37bb2e042aab12ff7391903235d3
+      install_kind: verified-hf-multi-file
+      entry: model.safetensors
+      artifact_roles:
+        - tts_model
+        - tts_voice_design_model
+        - speech_tokenizer
+        - tokenizer
+      preferred_engine: speech
+    variants:
+      - variant_id: local.voice.qwen3-tts-voicedesign-1.7b.safetensors
+        quant: F16
+        entry: model.safetensors
+        files:
+          - model.safetensors
+          - config.json
+          - generation_config.json
+          - preprocessor_config.json
+          - tokenizer_config.json
+          - vocab.json
+          - merges.txt
+          - speech_tokenizer/model.safetensors
+          - speech_tokenizer/config.json
+          - speech_tokenizer/configuration.json
+          - speech_tokenizer/preprocessor_config.json
+        hashes:
+          model.safetensors: sha256:391e8db219f292c515297cdceeb43e4eae67cdde35fa57e79a6a8a532fca0522
+          config.json: sha256:aecd2cc4c1fe9edef1cb7ca7c401685a43879ad43f3f9e883f1c6760b61731e0
+          generation_config.json: sha256:f1b90b4513f3b34c62851049e2492d7b4c5940daf1276f89c82b8ef04127f3aa
+          preprocessor_config.json: sha256:efdde1022ea9d76928bf7a9cd53139138f5ba2e466e837f08f6105ab1af1c119
+          tokenizer_config.json: sha256:dc3c31c3bdaedd5016382bb3cbe07323026775ad51f5a4fb564505992ae4a670
+          vocab.json: sha256:ca10d7e9fb3ed18575dd1e277a2579c16d108e32f27439684afa0e10b1440910
+          merges.txt: sha256:599bab54075088774b1733fde865d5bd747cbcc7a547c5bc12610e874e26f5e3
+          speech_tokenizer/model.safetensors: sha256:836b7b357f5ea43e889936a3709af68dfe3751881acefe4ecf0dbd30ba571258
+          speech_tokenizer/config.json: sha256:ee65bb901c876664ab8707c487157aa1a6ee57c65969b28fb5ec9dc211e68167
+          speech_tokenizer/configuration.json: sha256:6bc26d64eb5024b4d1dab5a52371958b429256d6c9d59787f1f5294a54e0cebd
+          speech_tokenizer/preprocessor_config.json: sha256:fcb3805e597e786d4067706e602f6688524640f8d3396790e2e09b5942fcbdfb
+        total_size_bytes: 4520159099
+        host_requirement:
+          accelerator: cpu
+          min_ram_bytes: 9663676416
+    fitness:
+      param_count: 1700000000
+      context_length: 0
   - model_id: local/qwen3-tts-voicedesign
     provider: local
     model_type: tts
-    updated_at: 2026-04-17
+    updated_at: 2026-08-12
     capabilities:
       - audio.synthesize
+      - voice.create
     pricing:
       unit: request
       input: "0"
@@ -269,15 +377,18 @@ models:
       url: https://huggingface.co/Qwen/Qwen3-TTS-12Hz-1.7B-VoiceDesign
       retrieved_at: 2026-04-17
       note: Default local voice design checkpoint for first-wave local admission.
+    features:
+      - input.text
     voice_set_id: local:local_qwen3_tts_voicedesign_dynamic_voice_set
     voice_discovery_mode: dynamic_user_scoped
     voice_ref_kinds: *a3
   - model_id: speech/qwen3tts-design
     provider: local
     model_type: tts
-    updated_at: 2026-04-17
+    updated_at: 2026-08-12
     capabilities:
       - audio.synthesize
+      - voice.create
     pricing:
       unit: request
       input: "0"
@@ -289,15 +400,18 @@ models:
       url: https://huggingface.co/Qwen/Qwen3-TTS-12Hz-1.7B-VoiceDesign
       retrieved_at: 2026-04-17
       note: Default local voice design checkpoint for first-wave local admission.
+    features:
+      - input.text
     voice_set_id: local:local_qwen3_tts_voicedesign_dynamic_voice_set
     voice_discovery_mode: dynamic_user_scoped
     voice_ref_kinds: *a3
   - model_id: Qwen/Qwen3-TTS-12Hz-1.7B-VoiceDesign
     provider: local
     model_type: tts
-    updated_at: 2026-04-17
+    updated_at: 2026-08-12
     capabilities:
       - audio.synthesize
+      - voice.create
     pricing:
       unit: request
       input: "0"
@@ -309,6 +423,8 @@ models:
       url: https://huggingface.co/Qwen/Qwen3-TTS-12Hz-1.7B-VoiceDesign
       retrieved_at: 2026-04-17
       note: Default local voice design checkpoint for first-wave local admission.
+    features:
+      - input.text
     voice_set_id: local:local_qwen3_tts_voicedesign_dynamic_voice_set
     voice_discovery_mode: dynamic_user_scoped
     voice_ref_kinds: *a3
@@ -1223,6 +1339,9 @@ models:
       url: https://huggingface.co/docs/diffusers/api/pipelines/flux
       retrieved_at: 2026-03-15
       note: Official Diffusers FLUX pipeline documentation.
+    features:
+      - input.image
+      - input.mask
     image_request_options: &a9
       response_formats:
         - b64_json
@@ -1253,6 +1372,9 @@ models:
       url: https://huggingface.co/docs/diffusers/api/pipelines/flux
       retrieved_at: 2026-03-15
       note: Official Diffusers FLUX pipeline documentation.
+    features:
+      - input.image
+      - input.mask
     image_request_options: *a9
   - model_id: media/flux.1-schnell
     provider: local
@@ -1271,6 +1393,9 @@ models:
       url: https://huggingface.co/docs/diffusers/api/pipelines/flux
       retrieved_at: 2026-03-15
       note: Official Diffusers FLUX pipeline documentation.
+    features:
+      - input.image
+      - input.mask
     image_request_options: *a9
   - model_id: z-image-turbo-local
     provider: local
@@ -1289,6 +1414,9 @@ models:
       url: https://huggingface.co/leejet/Z-Image-Turbo-GGUF
       retrieved_at: 2026-05-21
       note: Curated recommended-preset local image checkpoint (Z-Image-Turbo, stable-diffusion.cpp GGUF quants).
+    features:
+      - input.image
+      - input.mask
     image_request_options: &a10
       response_formats:
         - b64_json
@@ -1618,6 +1746,9 @@ models:
       url: https://huggingface.co/leejet/Z-Image-Turbo-GGUF
       retrieved_at: 2026-05-21
       note: Curated recommended-preset local image checkpoint (Z-Image-Turbo, stable-diffusion.cpp GGUF quants).
+    features:
+      - input.image
+      - input.mask
     image_request_options: *a10
   - model_id: media/z-image-turbo
     provider: local
@@ -1636,6 +1767,9 @@ models:
       url: https://huggingface.co/leejet/Z-Image-Turbo-GGUF
       retrieved_at: 2026-05-21
       note: Curated recommended-preset local image checkpoint (Z-Image-Turbo, stable-diffusion.cpp GGUF quants).
+    features:
+      - input.image
+      - input.mask
     image_request_options: *a10
   - model_id: leejet/Z-Image-Turbo-GGUF
     provider: local
@@ -1654,6 +1788,9 @@ models:
       url: https://huggingface.co/leejet/Z-Image-Turbo-GGUF
       retrieved_at: 2026-05-21
       note: Curated recommended-preset local image checkpoint (Z-Image-Turbo, stable-diffusion.cpp GGUF quants).
+    features:
+      - input.image
+      - input.mask
     image_request_options: *a10
   - model_id: wan2.1-video-local
     provider: local
@@ -1672,6 +1809,8 @@ models:
       url: https://huggingface.co/docs/diffusers/api/pipelines/wan
       retrieved_at: 2026-03-15
       note: Official Diffusers Wan text-to-video and image-to-video pipeline documentation.
+    features:
+      - input.image
     video_generation: &a11
       modes:
         - t2v
@@ -1711,6 +1850,8 @@ models:
       url: https://huggingface.co/docs/diffusers/api/pipelines/wan
       retrieved_at: 2026-03-15
       note: Official Diffusers Wan text-to-video and image-to-video pipeline documentation.
+    features:
+      - input.image
     video_generation: *a11
   - model_id: media/wan2.1-video
     provider: local
@@ -1729,6 +1870,8 @@ models:
       url: https://huggingface.co/docs/diffusers/api/pipelines/wan
       retrieved_at: 2026-03-15
       note: Official Diffusers Wan text-to-video and image-to-video pipeline documentation.
+    features:
+      - input.image
     video_generation: *a11
   - model_id: ace-step-local
     provider: local
@@ -2164,7 +2307,7 @@ voices:
       note: VoxCPM2 model card covering local synthesize, voice design, and voice clone workflow semantics.
 voice_workflow_models:
   - workflow_model_id: qwen3-local-voice-clone
-    workflow_type: voice_clone
+    workflow_type: reference_audio
     workflow_family: qwen3_tts
     input_contract_ref: local_voice_clone_input_v1
     output_persistence: session_ephemeral
@@ -2202,7 +2345,7 @@ voice_workflow_models:
       - fr
       - ru
   - workflow_model_id: qwen3-local-voice-design
-    workflow_type: voice_design
+    workflow_type: text_description
     workflow_family: qwen3_tts
     input_contract_ref: local_voice_design_input_v1
     output_persistence: session_ephemeral
@@ -2236,47 +2379,47 @@ model_workflow_bindings:
     workflow_model_refs:
       - qwen3-local-voice-clone
     workflow_types:
-      - voice_clone
+      - reference_audio
   - model_id: local/qwen3-tts-base
     workflow_model_refs:
       - qwen3-local-voice-clone
     workflow_types:
-      - voice_clone
+      - reference_audio
   - model_id: speech/qwen3tts-base
     workflow_model_refs:
       - qwen3-local-voice-clone
     workflow_types:
-      - voice_clone
+      - reference_audio
   - model_id: Qwen/Qwen3-TTS-12Hz-0.6B-Base
     workflow_model_refs:
       - qwen3-local-voice-clone
     workflow_types:
-      - voice_clone
+      - reference_audio
   - model_id: qwen3-tts-voicedesign-local
     workflow_model_refs:
       - qwen3-local-voice-design
     workflow_types:
-      - voice_design
+      - text_description
   - model_id: local/qwen3-tts-voicedesign
     workflow_model_refs:
       - qwen3-local-voice-design
     workflow_types:
-      - voice_design
+      - text_description
   - model_id: speech/qwen3tts-design
     workflow_model_refs:
       - qwen3-local-voice-design
     workflow_types:
-      - voice_design
+      - text_description
   - model_id: Qwen/Qwen3-TTS-12Hz-1.7B-VoiceDesign
     workflow_model_refs:
       - qwen3-local-voice-design
     workflow_types:
-      - voice_design
+      - text_description
 voice_handle_policies:
   - policy_id: local_runtime_session_ephemeral_default
     applies_to_workflow_types:
-      - voice_clone
-      - voice_design
+      - reference_audio
+      - text_description
     persistence: session_ephemeral
     default_ttl: session
     scope: user_scoped

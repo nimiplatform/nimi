@@ -23,8 +23,6 @@ consumers:
     capability_refs:
       - text.generate
       - text.embed
-      - image.understand
-      - audio.understand
     accelerator_plane: cuda
     dependency_ids:
       - nvidia-cuda-user-space-runtime
@@ -62,8 +60,7 @@ consumers:
     backend_family: stablediffusion-ggml
     package_variant: sd-win-cuda12-x64-stablediffusion-ggml
     capability_refs:
-      - image.generate.t2i
-      - image.generate.i2i
+      - image.generate
     accelerator_plane: cuda
     dependency_ids:
       - nvidia-cuda-user-space-runtime
@@ -99,10 +96,8 @@ consumers:
     backend_family: diffusers
     package_variant: diffusers-windows-amd64-cuda
     capability_refs:
-      - image.generate.t2i
-      - image.generate.i2i
+      - image.generate
       - video.generate
-      - i2v
     accelerator_plane: cuda
     dependency_ids:
       - nvidia-cuda-user-space-runtime

@@ -20,6 +20,8 @@ models:
       url: https://docs.lumalabs.ai/docs/video-generation
       retrieved_at: 2026-04-18
       note: Luma video generation overview and model capability guide.
+    features:
+      - input.image
     video_generation:
       modes:
         - t2v
@@ -78,6 +80,8 @@ models:
       url: https://docs.lumalabs.ai/docs/video-generation
       retrieved_at: 2026-04-18
       note: Luma video generation overview and model capability guide.
+    features:
+      - input.image
     video_generation:
       modes:
         - t2v

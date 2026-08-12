@@ -99,7 +99,7 @@ models:
     model_type: chat
     updated_at: 2026-04-18
     capabilities:
-      - text.generate.vision
+      - text.generate
     pricing:
       unit: token
       input: unknown
@@ -111,12 +111,15 @@ models:
       url: https://docs.bigmodel.cn/cn/guide/start/model-overview
       retrieved_at: 2026-07-20
       note: Current BigModel model overview across text, vision, image, audio, and embedding families.
+    features:
+      - input.image
+    context_window_tokens: 8192
   - model_id: glm-4.6v
     provider: glm
     model_type: chat
     updated_at: 2026-04-18
     capabilities:
-      - text.generate.vision
+      - text.generate
     pricing:
       unit: token
       input: unknown
@@ -128,6 +131,9 @@ models:
       url: https://docs.bigmodel.cn/cn/guide/start/model-overview
       retrieved_at: 2026-07-20
       note: Current BigModel model overview across text, vision, image, audio, and embedding families.
+    features:
+      - input.image
+    context_window_tokens: 8192
   - model_id: embedding-3
     provider: glm
     model_type: embedding

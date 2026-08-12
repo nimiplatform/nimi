@@ -117,7 +117,7 @@ models:
     model_type: chat
     updated_at: 2026-04-18
     capabilities:
-      - text.generate.vision
+      - text.generate
     pricing:
       unit: token
       input: unknown
@@ -129,12 +129,15 @@ models:
       url: https://cloud.baidu.com/doc/qianfan/s/rmh4stp0j
       retrieved_at: 2026-07-20
       note: Official Qianfan model list covering current ERNIE text, reasoning, vision, and embedding rows.
+    features:
+      - input.image
+    context_window_tokens: 8192
   - model_id: ernie-4.5-turbo-vl-32k
     provider: qianfan
     model_type: chat
     updated_at: 2026-04-18
     capabilities:
-      - text.generate.vision
+      - text.generate
     pricing:
       unit: token
       input: "3.00"
@@ -146,6 +149,9 @@ models:
       url: https://cloud.baidu.com/doc/qianfan/s/rmh4stp0j
       retrieved_at: 2026-07-20
       note: Official Qianfan model list covering current ERNIE text, reasoning, vision, and embedding rows.
+    features:
+      - input.image
+    context_window_tokens: 8192
   - model_id: embedding-v1
     provider: qianfan
     model_type: embedding

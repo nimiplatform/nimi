@@ -10,7 +10,6 @@ models:
     updated_at: 2026-07-20
     capabilities:
       - text.generate
-      - text.generate.vision
     pricing:
       unit: token
       input: unknown
@@ -22,6 +21,8 @@ models:
       url: https://platform.minimaxi.com/docs/api-reference/api-overview
       retrieved_at: 2026-07-20
       note: MiniMax API overview with text, image, and video model tables.
+    features:
+      - input.image
     context_window_tokens: 8192
   - model_id: MiniMax-M2.7
     provider: minimax
@@ -58,28 +59,21 @@ models:
       url: https://platform.minimaxi.com/docs/api-reference/api-overview
       retrieved_at: 2026-07-20
       note: MiniMax API overview with text, image, and video model tables.
+    features:
+      - input.image
     video_generation:
       modes:
         - t2v
         - i2v_first_frame
-        - i2v_first_last
-        - i2v_reference
       input_roles:
         t2v:
           - prompt
         i2v_first_frame:
           - prompt
           - first_frame
-        i2v_first_last:
-          - prompt
-          - first_frame
-          - last_frame
-        i2v_reference:
-          - prompt
-          - reference_image
       limits:
         resolution:
-          - 720p
+          - 768p
           - 1080p
         duration_sec:
           - 6
@@ -87,7 +81,6 @@ models:
       options:
         supports:
           - resolution
-          - ratio
           - duration_sec
         constraints: {}
       outputs:

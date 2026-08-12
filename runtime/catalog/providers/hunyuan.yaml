@@ -112,6 +112,9 @@ models:
       url: https://cloud.tencent.com/document/product/1729/104753
       retrieved_at: 2026-04-18
       note: Tencent Hunyuan product overview with current model families, API call names, and version timestamps.
+    features:
+      - input.image
+      - input.mask
     image_request_options:
       response_formats:
         - b64_json

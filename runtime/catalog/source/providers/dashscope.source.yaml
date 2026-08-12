@@ -310,7 +310,8 @@ voice_sets:
 models:
   - model_id: cosyvoice-v3.5-plus
     updated_at: 2026-03-02
-    capabilities: [audio.synthesize]
+    capabilities: [audio.synthesize, voice.create]
+    features: [input.audio, input.text]
     source_ids: [dashscope_speech_synthesis_doc, dashscope_cosyvoice_http_doc, dashscope_cosyvoice_websocket_doc, dashscope_cosyvoice_clone_design_doc]
     voice:
       discovery_mode: dynamic_user_scoped
@@ -327,7 +328,8 @@ models:
 
   - model_id: cosyvoice-v3.5-flash
     updated_at: 2026-03-02
-    capabilities: [audio.synthesize]
+    capabilities: [audio.synthesize, voice.create]
+    features: [input.audio, input.text]
     source_ids: [dashscope_speech_synthesis_doc, dashscope_cosyvoice_http_doc, dashscope_cosyvoice_websocket_doc, dashscope_cosyvoice_clone_design_doc]
     voice:
       discovery_mode: dynamic_user_scoped
@@ -344,7 +346,8 @@ models:
 
   - model_id: cosyvoice-v3-plus
     updated_at: 2025-12-11
-    capabilities: [audio.synthesize]
+    capabilities: [audio.synthesize, voice.create]
+    features: [input.audio, input.text]
     source_ids: [dashscope_speech_synthesis_doc, dashscope_cosyvoice_http_doc, dashscope_cosyvoice_websocket_doc, dashscope_cosyvoice_voice_list_doc, dashscope_cosyvoice_clone_design_doc]
     voice:
       discovery_mode: static_catalog
@@ -362,7 +365,8 @@ models:
 
   - model_id: cosyvoice-v3-flash
     updated_at: 2025-12-11
-    capabilities: [audio.synthesize]
+    capabilities: [audio.synthesize, voice.create]
+    features: [input.audio, input.text]
     source_ids: [dashscope_speech_synthesis_doc, dashscope_cosyvoice_http_doc, dashscope_cosyvoice_websocket_doc, dashscope_cosyvoice_voice_list_doc, dashscope_cosyvoice_clone_design_doc]
     voice:
       discovery_mode: static_catalog
@@ -402,7 +406,8 @@ models:
   - model_id: qwen3-tts-vc
     api_model_id: qwen3-tts-vc-2026-01-22
     updated_at: 2026-01-22
-    capabilities: [audio.synthesize]
+    capabilities: [audio.synthesize, voice.create]
+    features: [input.audio]
     voice:
       discovery_mode: dynamic_user_scoped
       supports_voice_ref_kinds: [voice_asset_id, provider_voice_ref]
@@ -412,7 +417,8 @@ models:
   - model_id: qwen3-tts-vd
     api_model_id: qwen3-tts-vd-2026-01-26
     updated_at: 2026-01-26
-    capabilities: [audio.synthesize]
+    capabilities: [audio.synthesize, voice.create]
+    features: [input.text]
     voice:
       discovery_mode: dynamic_user_scoped
       supports_voice_ref_kinds: [voice_asset_id, provider_voice_ref]
@@ -452,7 +458,8 @@ models:
       - qwen3-tts-flash-realtime-2025-09-18
   - model_id: qwen3-tts-vc-realtime-2026-01-15
     updated_at: 2026-04-18
-    capabilities: [audio.synthesize]
+    capabilities: [audio.synthesize, voice.create]
+    features: [input.audio]
     source_ids: [dashscope_qwen_realtime_tts_doc, dashscope_voice_cloning_doc, dashscope_models_pricing_doc]
     voice:
       discovery_mode: dynamic_user_scoped
@@ -466,7 +473,8 @@ models:
       - qwen3-tts-vc-realtime-2025-11-27
   - model_id: qwen3-tts-vd-realtime-2026-01-15
     updated_at: 2026-04-18
-    capabilities: [audio.synthesize]
+    capabilities: [audio.synthesize, voice.create]
+    features: [input.text]
     source_ids: [dashscope_qwen_realtime_tts_doc, dashscope_voice_design_doc, dashscope_models_pricing_doc]
     voice:
       discovery_mode: dynamic_user_scoped
@@ -497,7 +505,8 @@ models:
   - model_id: qwen3.7-plus
     model_type: chat
     updated_at: 2026-06-01
-    capabilities: [text.generate, text.generate.vision]
+    capabilities: [text.generate]
+    features: [input.image]
     pricing:
       unit: token
       input: unknown
@@ -540,7 +549,8 @@ models:
   - model_id: qwen3.6-plus
     model_type: chat
     updated_at: 2026-04-18
-    capabilities: [text.generate, text.generate.vision]
+    capabilities: [text.generate]
+    features: [input.image]
     pricing:
       unit: token
       input: unknown
@@ -568,7 +578,8 @@ models:
   - model_id: qwen3.6-flash
     model_type: chat
     updated_at: 2026-04-18
-    capabilities: [text.generate, text.generate.vision]
+    capabilities: [text.generate]
+    features: [input.image]
     pricing:
       unit: token
       input: unknown
@@ -596,7 +607,8 @@ models:
   - model_id: qwen-vl-max-latest
     model_type: chat
     updated_at: 2026-03-05
-    capabilities: [text.generate, text.generate.vision]
+    capabilities: [text.generate]
+    features: [input.image]
     pricing:
       unit: token
       input: unknown
@@ -609,7 +621,8 @@ models:
   - model_id: qwen3-vl-plus
     model_type: chat
     updated_at: 2026-04-18
-    capabilities: [text.generate, text.generate.vision]
+    capabilities: [text.generate]
+    features: [input.image]
     pricing:
       unit: token
       input: unknown
@@ -622,7 +635,8 @@ models:
   - model_id: qwen3-vl-flash
     model_type: chat
     updated_at: 2026-04-18
-    capabilities: [text.generate, text.generate.vision]
+    capabilities: [text.generate]
+    features: [input.image]
     pricing:
       unit: token
       input: unknown
@@ -983,6 +997,7 @@ models:
     model_type: image
     updated_at: 2026-03-07
     capabilities: [image.generate]
+    features: [input.image, input.mask]
     image_request_options:
       response_formats: [b64_json, url]
       max_images_per_request: 1
@@ -1009,6 +1024,7 @@ models:
     model_type: image
     updated_at: 2026-03-07
     capabilities: [image.generate]
+    features: [input.image, input.mask]
     image_request_options:
       response_formats: [b64_json, url]
       max_images_per_request: 1
@@ -1035,6 +1051,7 @@ models:
     model_type: image
     updated_at: 2026-03-07
     capabilities: [image.generate]
+    features: [input.image, input.mask]
     image_request_options:
       response_formats: [b64_json, url]
       max_images_per_request: 1
@@ -1059,6 +1076,7 @@ models:
     model_type: image
     updated_at: 2026-04-18
     capabilities: [image.generate]
+    features: [input.image]
     image_request_options:
       response_formats: [b64_json]
       max_images_per_request: 1
@@ -1083,6 +1101,7 @@ models:
     model_type: image
     updated_at: 2026-04-18
     capabilities: [image.generate]
+    features: [input.image]
     image_request_options:
       response_formats: [b64_json]
       max_images_per_request: 1
@@ -1107,6 +1126,7 @@ models:
     model_type: image
     updated_at: 2026-03-07
     capabilities: [image.generate]
+    features: [input.image]
     image_request_options:
       response_formats: [b64_json]
       max_images_per_request: 1
@@ -1158,6 +1178,7 @@ models:
     model_type: video
     updated_at: 2026-04-18
     capabilities: [video.generate]
+    features: [input.image]
     pricing:
       unit: request
       input: unknown
@@ -1186,6 +1207,7 @@ models:
     model_type: video
     updated_at: 2026-04-18
     capabilities: [video.generate]
+    features: [input.image]
     pricing:
       unit: request
       input: unknown
@@ -1213,6 +1235,7 @@ models:
     model_type: video
     updated_at: 2026-04-18
     capabilities: [video.generate]
+    features: [input.image]
     pricing:
       unit: request
       input: unknown
@@ -1241,6 +1264,7 @@ models:
     model_type: image
     updated_at: 2026-03-07
     capabilities: [image.generate]
+    features: [input.image, input.mask]
     image_request_options:
       response_formats: [b64_json, url]
       max_images_per_request: 1
@@ -1265,6 +1289,7 @@ models:
     model_type: image
     updated_at: 2026-03-07
     capabilities: [image.generate]
+    features: [input.image, input.mask]
     image_request_options:
       response_formats: [b64_json, url]
       max_images_per_request: 1
@@ -1289,6 +1314,7 @@ models:
     model_type: image
     updated_at: 2026-03-07
     capabilities: [image.generate]
+    features: [input.image, input.mask]
     image_request_options:
       response_formats: [b64_json, url]
       max_images_per_request: 1
@@ -1311,7 +1337,7 @@ models:
 
 voice_workflow_models:
   - workflow_model_id: qwen-voice-enrollment
-    workflow_type: voice_clone
+    workflow_type: reference_audio
     workflow_family: dashscope
     input_contract_ref: dashscope_voice_clone_input_v1
     output_persistence: provider_persistent
@@ -1329,7 +1355,7 @@ voice_workflow_models:
     langs_ref: short_v1
     source_ids: [dashscope_voice_cloning_doc, dashscope_qwen_realtime_tts_doc]
   - workflow_model_id: qwen-voice-design
-    workflow_type: voice_design
+    workflow_type: text_description
     workflow_family: dashscope
     input_contract_ref: dashscope_voice_design_input_v1
     output_persistence: provider_persistent
@@ -1345,7 +1371,7 @@ voice_workflow_models:
     langs_ref: short_v1
     source_ids: [dashscope_voice_design_doc, dashscope_qwen_realtime_tts_doc]
   - workflow_model_id: voice-enrollment-clone
-    workflow_type: voice_clone
+    workflow_type: reference_audio
     workflow_family: cosyvoice
     input_contract_ref: dashscope_cosyvoice_voice_clone_input_v1
     output_persistence: provider_persistent
@@ -1357,7 +1383,7 @@ voice_workflow_models:
       reference_audio_bytes_input: false
       allowed_reference_audio_mime_types: [audio/wav, audio/mpeg, audio/ogg, audio/flac, audio/mp4, audio/m4a]
       provider_extensions:
-        namespace: nimi.scenario.voice_workflow.request
+        namespace: nimi.scenario.voice_create.request
         schema_version: dashscope-cosyvoice-voice-enrollment-v1
     target_model_refs:
       - cosyvoice-v3.5-plus
@@ -1367,7 +1393,7 @@ voice_workflow_models:
     langs_ref: cosyvoice_v3_multi
     source_ids: [dashscope_cosyvoice_clone_design_doc, dashscope_speech_synthesis_doc]
   - workflow_model_id: voice-enrollment-design
-    workflow_type: voice_design
+    workflow_type: text_description
     workflow_family: cosyvoice
     input_contract_ref: dashscope_cosyvoice_voice_design_input_v1
     output_persistence: provider_persistent
@@ -1377,7 +1403,7 @@ voice_workflow_models:
       supports_language: true
       supports_preferred_name: true
       provider_extensions:
-        namespace: nimi.scenario.voice_workflow.request
+        namespace: nimi.scenario.voice_create.request
         schema_version: dashscope-cosyvoice-voice-enrollment-v1
     target_model_refs:
       - cosyvoice-v3.5-plus
@@ -1390,38 +1416,38 @@ voice_workflow_models:
 model_workflow_bindings:
   - model_id: qwen3-tts-vc
     workflow_model_refs: [qwen-voice-enrollment]
-    workflow_types: [voice_clone]
+    workflow_types: [reference_audio]
   - model_id: qwen3-tts-vc-2026-01-22
     workflow_model_refs: [qwen-voice-enrollment]
-    workflow_types: [voice_clone]
+    workflow_types: [reference_audio]
   - model_id: qwen3-tts-vd
     workflow_model_refs: [qwen-voice-design]
-    workflow_types: [voice_design]
+    workflow_types: [text_description]
   - model_id: qwen3-tts-vd-2026-01-26
     workflow_model_refs: [qwen-voice-design]
-    workflow_types: [voice_design]
+    workflow_types: [text_description]
   - model_id: qwen3-tts-vc-realtime-2026-01-15
     workflow_model_refs: [qwen-voice-enrollment]
-    workflow_types: [voice_clone]
+    workflow_types: [reference_audio]
   - model_id: qwen3-tts-vd-realtime-2026-01-15
     workflow_model_refs: [qwen-voice-design]
-    workflow_types: [voice_design]
+    workflow_types: [text_description]
   - model_id: cosyvoice-v3.5-plus
     workflow_model_refs: [voice-enrollment-clone, voice-enrollment-design]
-    workflow_types: [voice_clone, voice_design]
+    workflow_types: [reference_audio, text_description]
   - model_id: cosyvoice-v3.5-flash
     workflow_model_refs: [voice-enrollment-clone, voice-enrollment-design]
-    workflow_types: [voice_clone, voice_design]
+    workflow_types: [reference_audio, text_description]
   - model_id: cosyvoice-v3-plus
     workflow_model_refs: [voice-enrollment-clone, voice-enrollment-design]
-    workflow_types: [voice_clone, voice_design]
+    workflow_types: [reference_audio, text_description]
   - model_id: cosyvoice-v3-flash
     workflow_model_refs: [voice-enrollment-clone, voice-enrollment-design]
-    workflow_types: [voice_clone, voice_design]
+    workflow_types: [reference_audio, text_description]
 
 voice_handle_policies:
   - policy_id: dashscope_provider_persistent_default
-    applies_to_workflow_types: [voice_clone, voice_design]
+    applies_to_workflow_types: [reference_audio, text_description]
     persistence: provider_persistent
     default_ttl: none
     scope: user_scoped

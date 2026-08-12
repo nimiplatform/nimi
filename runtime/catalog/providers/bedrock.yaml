@@ -10,7 +10,6 @@ models:
     updated_at: 2026-06-09
     capabilities:
       - text.generate
-      - text.generate.vision
     pricing:
       unit: token
       input: unknown
@@ -22,6 +21,8 @@ models:
       url: https://docs.aws.amazon.com/bedrock/latest/userguide/models.html
       retrieved_at: 2026-04-18
       note: Amazon Bedrock supported foundation models overview across providers and families.
+    features:
+      - input.image
     context_window_tokens: 8192
   - model_id: claude-fable-5
     provider: bedrock
@@ -29,7 +30,6 @@ models:
     updated_at: 2026-06-09
     capabilities:
       - text.generate
-      - text.generate.vision
     pricing:
       unit: token
       input: unknown
@@ -42,6 +42,8 @@ models:
       retrieved_at: 2026-04-18
       note: Amazon Bedrock supported foundation models overview across providers and families.
     api_model_id: anthropic.claude-fable-5
+    features:
+      - input.image
     context_window_tokens: 8192
   - model_id: anthropic.claude-sonnet-5
     provider: bedrock
@@ -49,7 +51,6 @@ models:
     updated_at: 2026-06-30
     capabilities:
       - text.generate
-      - text.generate.vision
     pricing:
       unit: token
       input: unknown
@@ -61,6 +62,8 @@ models:
       url: https://docs.aws.amazon.com/bedrock/latest/userguide/models.html
       retrieved_at: 2026-04-18
       note: Amazon Bedrock supported foundation models overview across providers and families.
+    features:
+      - input.image
     context_window_tokens: 8192
   - model_id: claude-sonnet-5
     provider: bedrock
@@ -68,7 +71,6 @@ models:
     updated_at: 2026-06-30
     capabilities:
       - text.generate
-      - text.generate.vision
     pricing:
       unit: token
       input: unknown
@@ -81,6 +83,8 @@ models:
       retrieved_at: 2026-04-18
       note: Amazon Bedrock supported foundation models overview across providers and families.
     api_model_id: anthropic.claude-sonnet-5
+    features:
+      - input.image
     context_window_tokens: 8192
   - model_id: anthropic.claude-opus-4-8
     provider: bedrock
@@ -88,7 +92,6 @@ models:
     updated_at: 2026-06-03
     capabilities:
       - text.generate
-      - text.generate.vision
     pricing:
       unit: token
       input: unknown
@@ -100,6 +103,8 @@ models:
       url: https://docs.aws.amazon.com/bedrock/latest/userguide/models.html
       retrieved_at: 2026-04-18
       note: Amazon Bedrock supported foundation models overview across providers and families.
+    features:
+      - input.image
     context_window_tokens: 8192
   - model_id: claude-opus-4-8
     provider: bedrock
@@ -107,7 +112,6 @@ models:
     updated_at: 2026-06-03
     capabilities:
       - text.generate
-      - text.generate.vision
     pricing:
       unit: token
       input: unknown
@@ -120,6 +124,8 @@ models:
       retrieved_at: 2026-04-18
       note: Amazon Bedrock supported foundation models overview across providers and families.
     api_model_id: anthropic.claude-opus-4-8
+    features:
+      - input.image
     context_window_tokens: 8192
   - model_id: anthropic.claude-opus-4-6-v1
     provider: bedrock
@@ -127,7 +133,6 @@ models:
     updated_at: 2026-04-18
     capabilities:
       - text.generate
-      - text.generate.vision
     pricing:
       unit: token
       input: unknown
@@ -139,6 +144,8 @@ models:
       url: https://docs.aws.amazon.com/bedrock/latest/userguide/models.html
       retrieved_at: 2026-04-18
       note: Amazon Bedrock supported foundation models overview across providers and families.
+    features:
+      - input.image
     context_window_tokens: 8192
   - model_id: claude-opus-4-6
     provider: bedrock
@@ -146,7 +153,6 @@ models:
     updated_at: 2026-04-18
     capabilities:
       - text.generate
-      - text.generate.vision
     pricing:
       unit: token
       input: unknown
@@ -159,6 +165,8 @@ models:
       retrieved_at: 2026-04-18
       note: Amazon Bedrock supported foundation models overview across providers and families.
     api_model_id: anthropic.claude-opus-4-6-v1
+    features:
+      - input.image
     context_window_tokens: 8192
   - model_id: anthropic.claude-sonnet-4-6
     provider: bedrock
@@ -166,7 +174,6 @@ models:
     updated_at: 2026-04-18
     capabilities:
       - text.generate
-      - text.generate.vision
     pricing:
       unit: token
       input: unknown
@@ -178,6 +185,8 @@ models:
       url: https://docs.aws.amazon.com/bedrock/latest/userguide/models.html
       retrieved_at: 2026-04-18
       note: Amazon Bedrock supported foundation models overview across providers and families.
+    features:
+      - input.image
     context_window_tokens: 8192
   - model_id: claude-sonnet-4-6
     provider: bedrock
@@ -185,7 +194,6 @@ models:
     updated_at: 2026-04-18
     capabilities:
       - text.generate
-      - text.generate.vision
     pricing:
       unit: token
       input: unknown
@@ -198,6 +206,8 @@ models:
       retrieved_at: 2026-04-18
       note: Amazon Bedrock supported foundation models overview across providers and families.
     api_model_id: anthropic.claude-sonnet-4-6
+    features:
+      - input.image
     context_window_tokens: 8192
   - model_id: anthropic.claude-opus-4-5-20251101-v1:0
     provider: bedrock
@@ -205,7 +215,6 @@ models:
     updated_at: 2026-04-18
     capabilities:
       - text.generate
-      - text.generate.vision
     pricing:
       unit: token
       input: unknown
@@ -217,6 +226,8 @@ models:
       url: https://docs.aws.amazon.com/bedrock/latest/userguide/models.html
       retrieved_at: 2026-04-18
       note: Amazon Bedrock supported foundation models overview across providers and families.
+    features:
+      - input.image
     context_window_tokens: 8192
   - model_id: claude-opus-4-5
     provider: bedrock
@@ -224,7 +235,6 @@ models:
     updated_at: 2026-04-18
     capabilities:
       - text.generate
-      - text.generate.vision
     pricing:
       unit: token
       input: unknown
@@ -237,6 +247,8 @@ models:
       retrieved_at: 2026-04-18
       note: Amazon Bedrock supported foundation models overview across providers and families.
     api_model_id: anthropic.claude-opus-4-5-20251101-v1:0
+    features:
+      - input.image
     context_window_tokens: 8192
   - model_id: anthropic.claude-sonnet-4-5-20250929-v1:0
     provider: bedrock
@@ -244,7 +256,6 @@ models:
     updated_at: 2026-04-18
     capabilities:
       - text.generate
-      - text.generate.vision
     pricing:
       unit: token
       input: unknown
@@ -256,6 +267,8 @@ models:
       url: https://docs.aws.amazon.com/bedrock/latest/userguide/models.html
       retrieved_at: 2026-04-18
       note: Amazon Bedrock supported foundation models overview across providers and families.
+    features:
+      - input.image
     context_window_tokens: 8192
   - model_id: claude-sonnet-4-5
     provider: bedrock
@@ -263,7 +276,6 @@ models:
     updated_at: 2026-04-18
     capabilities:
       - text.generate
-      - text.generate.vision
     pricing:
       unit: token
       input: unknown
@@ -276,6 +288,8 @@ models:
       retrieved_at: 2026-04-18
       note: Amazon Bedrock supported foundation models overview across providers and families.
     api_model_id: anthropic.claude-sonnet-4-5-20250929-v1:0
+    features:
+      - input.image
     context_window_tokens: 8192
   - model_id: anthropic.claude-haiku-4-5-20251001-v1:0
     provider: bedrock
@@ -283,7 +297,6 @@ models:
     updated_at: 2026-04-18
     capabilities:
       - text.generate
-      - text.generate.vision
     pricing:
       unit: token
       input: unknown
@@ -295,6 +308,8 @@ models:
       url: https://docs.aws.amazon.com/bedrock/latest/userguide/models.html
       retrieved_at: 2026-04-18
       note: Amazon Bedrock supported foundation models overview across providers and families.
+    features:
+      - input.image
     context_window_tokens: 8192
   - model_id: claude-haiku-4-5
     provider: bedrock
@@ -302,7 +317,6 @@ models:
     updated_at: 2026-04-18
     capabilities:
       - text.generate
-      - text.generate.vision
     pricing:
       unit: token
       input: unknown
@@ -315,6 +329,8 @@ models:
       retrieved_at: 2026-04-18
       note: Amazon Bedrock supported foundation models overview across providers and families.
     api_model_id: anthropic.claude-haiku-4-5-20251001-v1:0
+    features:
+      - input.image
     context_window_tokens: 8192
   - model_id: amazon.nova-premier-v1:0
     provider: bedrock
@@ -322,7 +338,6 @@ models:
     updated_at: 2026-04-18
     capabilities:
       - text.generate
-      - text.generate.vision
     pricing:
       unit: token
       input: unknown
@@ -334,6 +349,8 @@ models:
       url: https://docs.aws.amazon.com/bedrock/latest/userguide/models.html
       retrieved_at: 2026-04-18
       note: Amazon Bedrock supported foundation models overview across providers and families.
+    features:
+      - input.image
     context_window_tokens: 8192
   - model_id: nova-premier
     provider: bedrock
@@ -341,7 +358,6 @@ models:
     updated_at: 2026-04-18
     capabilities:
       - text.generate
-      - text.generate.vision
     pricing:
       unit: token
       input: unknown
@@ -354,6 +370,8 @@ models:
       retrieved_at: 2026-04-18
       note: Amazon Bedrock supported foundation models overview across providers and families.
     api_model_id: amazon.nova-premier-v1:0
+    features:
+      - input.image
     context_window_tokens: 8192
   - model_id: amazon.nova-pro-v1:0
     provider: bedrock
@@ -361,7 +379,6 @@ models:
     updated_at: 2026-04-18
     capabilities:
       - text.generate
-      - text.generate.vision
     pricing:
       unit: token
       input: unknown
@@ -373,6 +390,8 @@ models:
       url: https://docs.aws.amazon.com/bedrock/latest/userguide/models.html
       retrieved_at: 2026-04-18
       note: Amazon Bedrock supported foundation models overview across providers and families.
+    features:
+      - input.image
     context_window_tokens: 8192
   - model_id: nova-pro
     provider: bedrock
@@ -380,7 +399,6 @@ models:
     updated_at: 2026-04-18
     capabilities:
       - text.generate
-      - text.generate.vision
     pricing:
       unit: token
       input: unknown
@@ -393,6 +411,8 @@ models:
       retrieved_at: 2026-04-18
       note: Amazon Bedrock supported foundation models overview across providers and families.
     api_model_id: amazon.nova-pro-v1:0
+    features:
+      - input.image
     context_window_tokens: 8192
   - model_id: amazon.nova-lite-v1:0
     provider: bedrock
@@ -400,7 +420,6 @@ models:
     updated_at: 2026-04-18
     capabilities:
       - text.generate
-      - text.generate.vision
     pricing:
       unit: token
       input: unknown
@@ -412,6 +431,8 @@ models:
       url: https://docs.aws.amazon.com/bedrock/latest/userguide/models.html
       retrieved_at: 2026-04-18
       note: Amazon Bedrock supported foundation models overview across providers and families.
+    features:
+      - input.image
     context_window_tokens: 8192
   - model_id: nova-lite
     provider: bedrock
@@ -419,7 +440,6 @@ models:
     updated_at: 2026-04-18
     capabilities:
       - text.generate
-      - text.generate.vision
     pricing:
       unit: token
       input: unknown
@@ -432,6 +452,8 @@ models:
       retrieved_at: 2026-04-18
       note: Amazon Bedrock supported foundation models overview across providers and families.
     api_model_id: amazon.nova-lite-v1:0
+    features:
+      - input.image
     context_window_tokens: 8192
   - model_id: amazon.nova-micro-v1:0
     provider: bedrock

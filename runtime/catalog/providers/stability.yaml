@@ -167,7 +167,6 @@ models:
     updated_at: 2026-03-13
     capabilities:
       - music.generate
-      - music.generate.iteration
     pricing:
       unit: request
       input: unknown
@@ -179,13 +178,14 @@ models:
       url: https://platform.stability.ai/docs/getting-started
       retrieved_at: 2026-04-18
       note: Stability AI Platform API getting-started surface.
+    features:
+      - input.audio
   - model_id: stable-audio-2.0
     provider: stability
     model_type: music
     updated_at: 2026-03-13
     capabilities:
       - music.generate
-      - music.generate.iteration
     pricing:
       unit: request
       input: unknown
@@ -198,13 +198,14 @@ models:
       retrieved_at: 2026-04-18
       note: Stability AI Platform API getting-started surface.
     api_model_id: stable-audio-2
+    features:
+      - input.audio
   - model_id: stable-audio
     provider: stability
     model_type: music
     updated_at: 2026-03-13
     capabilities:
       - music.generate
-      - music.generate.iteration
     pricing:
       unit: request
       input: unknown
@@ -217,4 +218,6 @@ models:
       retrieved_at: 2026-04-18
       note: Stability AI Platform API getting-started surface.
     api_model_id: stable-audio-2
+    features:
+      - input.audio
 voices: []

@@ -146,7 +146,8 @@ models:
   - model_id: glm-5v-turbo
     model_type: chat
     updated_at: 2026-04-18
-    capabilities: [text.generate.vision]
+    capabilities: [text.generate]
+    features: [input.image]
     pricing:
       unit: token
       input: unknown
@@ -159,7 +160,8 @@ models:
   - model_id: glm-4.6v
     model_type: chat
     updated_at: 2026-04-18
-    capabilities: [text.generate.vision]
+    capabilities: [text.generate]
+    features: [input.image]
     pricing:
       unit: token
       input: unknown

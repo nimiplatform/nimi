@@ -44,6 +44,7 @@ models:
     model_type: video
     updated_at: 2026-04-18
     capabilities: [video.generate]
+    features: [input.image]
     pricing:
       unit: request
       input: unknown
@@ -76,6 +77,7 @@ models:
     model_type: video
     updated_at: 2026-04-18
     capabilities: [video.generate]
+    features: [input.image]
     pricing:
       unit: request
       input: unknown
@@ -107,6 +109,7 @@ models:
     model_type: video
     updated_at: 2026-04-18
     capabilities: [video.generate]
+    features: [input.image]
     pricing:
       unit: request
       input: unknown

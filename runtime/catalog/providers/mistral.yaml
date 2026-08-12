@@ -10,7 +10,6 @@ models:
     updated_at: 2025-12-02
     capabilities:
       - text.generate
-      - text.generate.vision
     pricing:
       unit: token
       input: "0.50"
@@ -22,6 +21,8 @@ models:
       url: https://docs.mistral.ai/models
       retrieved_at: 2026-04-18
       note: Mistral model catalog and lifecycle aliases.
+    features:
+      - input.image
     context_window_tokens: 8192
   - model_id: mistral-medium-latest
     provider: mistral
@@ -29,7 +30,6 @@ models:
     updated_at: 2025-08-12
     capabilities:
       - text.generate
-      - text.generate.vision
     pricing:
       unit: token
       input: "0.40"
@@ -41,6 +41,8 @@ models:
       url: https://docs.mistral.ai/models
       retrieved_at: 2026-04-18
       note: Mistral model catalog and lifecycle aliases.
+    features:
+      - input.image
     context_window_tokens: 8192
   - model_id: mistral-small-latest
     provider: mistral
@@ -48,7 +50,6 @@ models:
     updated_at: 2026-03-16
     capabilities:
       - text.generate
-      - text.generate.vision
     pricing:
       unit: token
       input: "0.15"
@@ -60,6 +61,8 @@ models:
       url: https://docs.mistral.ai/models
       retrieved_at: 2026-04-18
       note: Mistral model catalog and lifecycle aliases.
+    features:
+      - input.image
     context_window_tokens: 8192
   - model_id: codestral-latest
     provider: mistral

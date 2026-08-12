@@ -37,7 +37,7 @@ const supplementalProviders = [
     defaultTextModel: '',
     inventoryMode: 'static_source',
     dynamicInventory: null,
-    supports: { text: true, embed: true, image: true, video: true, tts: true, stt: true, music: false, musicIteration: false, voiceClone: false, voiceDesign: false },
+    supports: { text: true, embed: true, image: true, video: true, tts: true, stt: true, music: false, voiceReferenceAudio: false, voiceTextDescription: false },
   },
   {
     id: 'openai_compatible',
@@ -49,7 +49,7 @@ const supplementalProviders = [
     defaultTextModel: '',
     inventoryMode: 'static_source',
     dynamicInventory: null,
-    supports: { text: true, embed: true, image: true, video: true, tts: true, stt: true, music: false, musicIteration: false, voiceClone: false, voiceDesign: false },
+    supports: { text: true, embed: true, image: true, video: true, tts: true, stt: true, music: false, voiceReferenceAudio: false, voiceTextDescription: false },
   },
   {
     id: 'volcengine_openspeech',
@@ -61,13 +61,12 @@ const supplementalProviders = [
     defaultTextModel: '',
     inventoryMode: 'static_source',
     dynamicInventory: null,
-    supports: { text: false, embed: false, image: false, video: false, tts: true, stt: true, music: false, musicIteration: false, voiceClone: false, voiceDesign: false },
+    supports: { text: false, embed: false, image: false, video: false, tts: true, stt: true, music: false, voiceReferenceAudio: false, voiceTextDescription: false },
   },
 ];
 
 const canonicalModelCapabilities = new Set([
   'text.generate',
-  'text.generate.vision',
   'text.embed',
   'image.generate',
   'video.generate',
@@ -75,7 +74,7 @@ const canonicalModelCapabilities = new Set([
   'audio.synthesize',
   'audio.transcribe',
   'music.generate',
-  'music.generate.iteration',
+  'voice.create',
 ]);
 
 function normalizeProvider(value) {
@@ -171,7 +170,6 @@ function capabilityFlags(sourceDoc) {
   let tts = false;
   let stt = false;
   let music = false;
-  let musicIteration = false;
 
   for (const capability of dynamicCapabilities) {
     if (!canonicalModelCapabilities.has(capability)) {
@@ -184,7 +182,6 @@ function capabilityFlags(sourceDoc) {
     if (capability === 'audio.synthesize') tts = true;
     if (capability === 'audio.transcribe') stt = true;
     if (capability === 'music.generate') music = true;
-    if (capability === 'music.generate.iteration') musicIteration = true;
   }
 
   for (const model of models) {
@@ -215,13 +212,10 @@ function capabilityFlags(sourceDoc) {
       if (capability === 'music.generate') {
         music = true;
       }
-      if (capability === 'music.generate.iteration') {
-        musicIteration = true;
-      }
     }
   }
 
-  return { text, embed, image, video, tts, stt, music, musicIteration, voiceClone: false, voiceDesign: false };
+  return { text, embed, image, video, tts, stt, music, voiceReferenceAudio: false, voiceTextDescription: false };
 }
 
 function collectProviderCapabilities(sourceDoc) {
@@ -269,12 +263,13 @@ async function loadProviderExtensionCapabilities() {
       continue;
     }
     const scenarioType = String(entry?.scenario_type || '').trim().toUpperCase();
-    const current = out.get(providerID) || { voiceClone: false, voiceDesign: false };
-    if (scenarioType === 'VOICE_CLONE') {
-      current.voiceClone = true;
+    const feature = String(entry?.feature || '').trim().toLowerCase();
+    const current = out.get(providerID) || { voiceReferenceAudio: false, voiceTextDescription: false };
+    if (scenarioType === 'VOICE_CREATE' && feature === 'input.audio') {
+      current.voiceReferenceAudio = true;
     }
-    if (scenarioType === 'VOICE_DESIGN') {
-      current.voiceDesign = true;
+    if (scenarioType === 'VOICE_CREATE' && feature === 'input.text') {
+      current.voiceTextDescription = true;
     }
     out.set(providerID, current);
   }
@@ -309,22 +304,19 @@ async function loadTokenProbeProviders(recordsByID) {
 }
 
 function applyProviderExtensionCapabilities(record, extensionCapabilities) {
-  const extension = extensionCapabilities.get(record.id) || { voiceClone: false, voiceDesign: false };
+  const extension = extensionCapabilities.get(record.id) || { voiceReferenceAudio: false, voiceTextDescription: false };
   const capabilities = Array.isArray(record.capabilities)
-    ? record.capabilities.filter((capability) => !String(capability).startsWith('voice_workflow.'))
+    ? record.capabilities.slice()
     : [];
-  if (extension.voiceClone) {
-    capabilities.push('voice_workflow.voice_clone');
-  }
-  if (extension.voiceDesign) {
-    capabilities.push('voice_workflow.voice_design');
+  if (extension.voiceReferenceAudio || extension.voiceTextDescription) {
+    capabilities.push('voice.create');
   }
   return {
     ...record,
     supports: {
       ...record.supports,
-      voiceClone: Boolean(extension.voiceClone),
-      voiceDesign: Boolean(extension.voiceDesign),
+      voiceReferenceAudio: Boolean(extension.voiceReferenceAudio),
+      voiceTextDescription: Boolean(extension.voiceTextDescription),
     },
     capabilities: [...new Set(capabilities)].sort((left, right) => left.localeCompare(right)),
   };
@@ -445,9 +437,8 @@ function renderProviderRecord(record) {
     `\t\tSupportsTTS: ${boolLiteral(record.supports.tts)},\n` +
     `\t\tSupportsSTT: ${boolLiteral(record.supports.stt)},\n` +
     `\t\tSupportsMusic: ${boolLiteral(record.supports.music)},\n` +
-    `\t\tSupportsMusicIteration: ${boolLiteral(record.supports.musicIteration)},\n` +
-    `\t\tSupportsVoiceClone: ${boolLiteral(record.supports.voiceClone)},\n` +
-    `\t\tSupportsVoiceDesign: ${boolLiteral(record.supports.voiceDesign)},\n` +
+    `\t\tSupportsVoiceReferenceAudio: ${boolLiteral(record.supports.voiceReferenceAudio)},\n` +
+    `\t\tSupportsVoiceTextDescription: ${boolLiteral(record.supports.voiceTextDescription)},\n` +
     `\t},`;
 }
 
@@ -565,7 +556,7 @@ function renderGoFile(records, tokenProbeProviders) {
   const allProvidersLiteral = allProviders.map((id) => `\t${goString(id)},`).join('\n');
   const tokenProbeProvidersLiteral = tokenProbeProviders.map((id) => `\t${goString(id)},`).join('\n');
 
-  return `// Code generated by scripts/generate-runtime-provider-registry.mjs. DO NOT EDIT.\n\npackage providerregistry\n\n// ProviderRecord captures runtime routing and capability metadata for one provider.\ntype ProviderRecord struct {\n\tID string\n\tRuntimePlane string\n\tManagedConnectorSupported bool\n\tInlineSupported bool\n\tDefaultEndpoint string\n\tDefaultTextModel string\n\tRequiresExplicitEndpoint bool\n\tInventoryMode string\n\tDynamicDiscoveryTransport string\n\tDynamicCacheTTLSeconds int\n\tDynamicSelectionMode string\n\tDynamicFailurePolicy string\n\tDynamicAllowedCapabilities []string\n\tDynamicDenyModelPatterns []string\n\tDynamicAllowModelPatterns []string\n\tDynamicPreferredModelPatterns []string\n\tSupportsText bool\n\tSupportsEmbed bool\n\tSupportsImage bool\n\tSupportsVideo bool\n\tSupportsTTS bool\n\tSupportsSTT bool\n\tSupportsMusic bool\n\tSupportsMusicIteration bool\n\tSupportsVoiceClone bool\n\tSupportsVoiceDesign bool\n}\n\nvar AllProviders = []string{\n${allProvidersLiteral}\n}\n\nvar SourceProviders = []string{\n${sourceProvidersLiteral}\n}\n\nvar RemoteProviders = []string{\n${remoteProvidersLiteral}\n}\n\nvar TokenProbeProviders = []string{\n${tokenProbeProvidersLiteral}\n}\n\nvar Records = map[string]ProviderRecord{\n${providerRecords}\n}\n`;
+  return `// Code generated by scripts/generate-runtime-provider-registry.mjs. DO NOT EDIT.\n\npackage providerregistry\n\n// ProviderRecord captures runtime routing and capability metadata for one provider.\ntype ProviderRecord struct {\n\tID string\n\tRuntimePlane string\n\tManagedConnectorSupported bool\n\tInlineSupported bool\n\tDefaultEndpoint string\n\tDefaultTextModel string\n\tRequiresExplicitEndpoint bool\n\tInventoryMode string\n\tDynamicDiscoveryTransport string\n\tDynamicCacheTTLSeconds int\n\tDynamicSelectionMode string\n\tDynamicFailurePolicy string\n\tDynamicAllowedCapabilities []string\n\tDynamicDenyModelPatterns []string\n\tDynamicAllowModelPatterns []string\n\tDynamicPreferredModelPatterns []string\n\tSupportsText bool\n\tSupportsEmbed bool\n\tSupportsImage bool\n\tSupportsVideo bool\n\tSupportsTTS bool\n\tSupportsSTT bool\n\tSupportsMusic bool\n\tSupportsVoiceReferenceAudio bool\n\tSupportsVoiceTextDescription bool\n}\n\nvar AllProviders = []string{\n${allProvidersLiteral}\n}\n\nvar SourceProviders = []string{\n${sourceProvidersLiteral}\n}\n\nvar RemoteProviders = []string{\n${remoteProvidersLiteral}\n}\n\nvar TokenProbeProviders = []string{\n${tokenProbeProvidersLiteral}\n}\n\nvar Records = map[string]ProviderRecord{\n${providerRecords}\n}\n`;
 }
 
 async function main() {

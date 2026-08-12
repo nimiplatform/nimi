@@ -93,7 +93,8 @@ models:
   - model_id: claude-fable-5
     model_type: chat
     updated_at: 2026-06-30
-    capabilities: [text.generate, text.generate.vision]
+    capabilities: [text.generate]
+    features: [input.image]
     pricing:
       unit: token
       input: "10.00"
@@ -106,7 +107,8 @@ models:
   - model_id: claude-sonnet-5
     model_type: chat
     updated_at: 2026-06-30
-    capabilities: [text.generate, text.generate.vision]
+    capabilities: [text.generate]
+    features: [input.image]
     pricing:
       unit: token
       input: "2.00"
@@ -119,7 +121,8 @@ models:
   - model_id: claude-opus-4-8
     model_type: chat
     updated_at: 2026-06-03
-    capabilities: [text.generate, text.generate.vision]
+    capabilities: [text.generate]
+    features: [input.image]
     pricing:
       unit: token
       input: unknown
@@ -132,7 +135,8 @@ models:
   - model_id: claude-opus-4-7
     model_type: chat
     updated_at: 2026-04-18
-    capabilities: [text.generate, text.generate.vision]
+    capabilities: [text.generate]
+    features: [input.image]
     pricing:
       unit: token
       input: "5.00"
@@ -145,7 +149,8 @@ models:
   - model_id: claude-opus-4-6
     model_type: chat
     updated_at: 2026-02-05
-    capabilities: [text.generate, text.generate.vision]
+    capabilities: [text.generate]
+    features: [input.image]
     pricing:
       unit: token
       input: "5.00"
@@ -158,7 +163,8 @@ models:
   - model_id: claude-sonnet-4-6
     model_type: chat
     updated_at: 2026-02-17
-    capabilities: [text.generate, text.generate.vision]
+    capabilities: [text.generate]
+    features: [input.image]
     pricing:
       unit: token
       input: "3.00"
@@ -171,7 +177,8 @@ models:
   - model_id: claude-sonnet-4-5
     model_type: chat
     updated_at: 2025-09-29
-    capabilities: [text.generate, text.generate.vision]
+    capabilities: [text.generate]
+    features: [input.image]
     pricing:
       unit: token
       input: "3.00"
@@ -186,7 +193,8 @@ models:
   - model_id: claude-haiku-4-5
     model_type: chat
     updated_at: 2025-10-15
-    capabilities: [text.generate, text.generate.vision]
+    capabilities: [text.generate]
+    features: [input.image]
     pricing:
       unit: token
       input: "1.00"

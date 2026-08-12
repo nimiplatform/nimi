@@ -15,14 +15,6 @@ entries:
   - capabilities_7
   - capabilities_8
   - capabilities_9
-  - capabilities_10
-  - capabilities_11
-  - deferred_1
-  - deferred_2
-  - deferred_3
-  - deferred_4
-  - deferred_5
-  - deferred_6
 # Canonical capability catalog — spec-resident cross-layer identity authority.
 # See capability-catalog-contract.md (P-CAPCAT-001..004).
 # Codegen output: kit/core/src/runtime-capabilities/generated/canonical-capability-catalog.ts
@@ -37,24 +29,6 @@ capabilities:
       title: AIConfig.capability.textGenerate.title
       subtitle: AIConfig.capability.textGenerate.subtitle
       detail: AIConfig.capability.textGenerate.detail
-    runtimeEvidenceClass: turn
-    governance:
-      owner: runtime-route
-      dataMovement: local-or-cloud-by-selected-route
-      retention: zhiyu-retains-no-provider-payload
-      revocation: change-runtime-route-or-revoke-connector
-      auditSource: runtime-route-evidence
-    source_rule: P-CAPCAT-001
-  - capabilityId: text.generate.vision
-    section: chat
-    editorKind: text
-    sourceRef:
-      table: provider-capabilities
-      capability: text.generate.vision
-    i18nKeys:
-      title: AIConfig.capability.textGenerateVision.title
-      subtitle: AIConfig.capability.textGenerateVision.subtitle
-      detail: AIConfig.capability.textGenerateVision.detail
     runtimeEvidenceClass: turn
     governance:
       owner: runtime-route
@@ -123,38 +97,20 @@ capabilities:
       revocation: route-or-connector-owner
       auditSource: runtime-scenario-job-evidence
     source_rule: P-CAPCAT-001
-  - capabilityId: voice_workflow.voice_clone
+  - capabilityId: voice.create
     section: tts
-    editorKind: voice-workflow
+    editorKind: voice-create
     sourceRef:
       table: provider-capabilities
-      capability: voice_workflow.voice_clone
+      capability: voice.create
     i18nKeys:
-      title: AIConfig.capability.voiceWorkflowVoiceClone.title
-      subtitle: AIConfig.capability.voiceWorkflowVoiceClone.subtitle
-      detail: AIConfig.capability.voiceWorkflowVoiceClone.detail
-    runtimeEvidenceClass: workflow
+      title: AIConfig.capability.voiceCreate.title
+      subtitle: AIConfig.capability.voiceCreate.subtitle
+      detail: AIConfig.capability.voiceCreate.detail
+    runtimeEvidenceClass: job
     governance:
-      owner: runtime-voice-workflow
-      dataMovement: local-or-cloud-by-workflow-route
-      retention: runtime-voice-asset-policy
-      revocation: runtime-voice-asset-owner
-      auditSource: runtime-scenario-job-evidence
-    source_rule: P-CAPCAT-001
-  - capabilityId: voice_workflow.voice_design
-    section: tts
-    editorKind: voice-workflow
-    sourceRef:
-      table: provider-capabilities
-      capability: voice_workflow.voice_design
-    i18nKeys:
-      title: AIConfig.capability.voiceWorkflowVoiceDesign.title
-      subtitle: AIConfig.capability.voiceWorkflowVoiceDesign.subtitle
-      detail: AIConfig.capability.voiceWorkflowVoiceDesign.detail
-    runtimeEvidenceClass: workflow
-    governance:
-      owner: runtime-voice-workflow
-      dataMovement: local-or-cloud-by-workflow-route
+      owner: runtime-voice-creation
+      dataMovement: local-or-cloud-by-selected-route
       retention: runtime-voice-asset-policy
       revocation: runtime-voice-asset-owner
       auditSource: runtime-scenario-job-evidence
@@ -172,24 +128,6 @@ capabilities:
       title: AIConfig.capability.imageGenerate.title
       subtitle: AIConfig.capability.imageGenerate.subtitle
       detail: AIConfig.capability.imageGenerate.detail
-    runtimeEvidenceClass: job
-    governance:
-      owner: runtime-media-route
-      dataMovement: local-or-cloud-by-selected-route
-      retention: runtime-artifact-policy
-      revocation: route-or-artifact-owner
-      auditSource: runtime-scenario-job-evidence
-    source_rule: P-CAPCAT-001
-  - capabilityId: image.edit
-    section: image
-    editorKind: image
-    sourceRef:
-      table: local-adapter-routing
-      capability: image.edit
-    i18nKeys:
-      title: AIConfig.capability.imageEdit.title
-      subtitle: AIConfig.capability.imageEdit.subtitle
-      detail: AIConfig.capability.imageEdit.detail
     runtimeEvidenceClass: job
     governance:
       owner: runtime-media-route
@@ -237,50 +175,26 @@ capabilities:
       revocation: route-or-artifact-owner
       auditSource: runtime-scenario-job-evidence
     source_rule: P-CAPCAT-001
+  - capabilityId: music.generate
+    section: music
+    editorKind: null
+    sourceRef:
+      table: provider-capabilities
+      capability: music.generate
+    additionalRuntimeTables:
+      - table: local-adapter-routing
+        capability: music.generate
+    i18nKeys:
+      title: AIConfig.capability.musicGenerate.title
+      subtitle: AIConfig.capability.musicGenerate.subtitle
+      detail: AIConfig.capability.musicGenerate.detail
+    runtimeEvidenceClass: job
+    governance:
+      owner: runtime-music-route
+      dataMovement: local-or-cloud-by-selected-route
+      retention: runtime-artifact-policy
+      revocation: route-or-artifact-owner
+      auditSource: runtime-scenario-job-evidence
+    source_rule: P-CAPCAT-001
 
-# Runtime-admitted capability tokens that are intentionally not yet canonical.
-# Each deferred entry must carry a reason and a source_rule (P-CAPCAT-003).
-deferred:
-  - capability: i2v
-    table: local-adapter-routing
-    reason: >-
-      Image-to-video route token emitted by media_native_adapter; canonical
-      identity for cross-layer video generation is video.generate. Kept as a
-      runtime-only token pending adapter rename.
-    source_rule: P-CAPCAT-003
-  - capability: music.generate
-    table: provider-capabilities
-    reason: >-
-      Music generation token admitted by select providers but not yet admitted
-      as a cross-layer CanonicalCapabilityId. No consumer AIConfig currently
-      emits music.generate; deferred until a music section is admitted in the
-      canonical catalog.
-    source_rule: P-CAPCAT-003
-  - capability: music.generate.iteration
-    table: provider-capabilities
-    reason: >-
-      Iterative-music-generation token admitted by a single provider; deferred
-      for the same reason as music.generate. No cross-layer canonical identity
-      yet.
-    source_rule: P-CAPCAT-003
-  - capability: music.generate
-    table: local-adapter-routing
-    reason: >-
-      Local sidecar music route token emitted by sidecar_music_adapter;
-      canonical identity deferred alongside the provider-plane music.generate
-      admission.
-    source_rule: P-CAPCAT-003
-  - capability: music
-    table: local-adapter-routing
-    reason: >-
-      Coarse-grained music route token emitted by sidecar_music_adapter;
-      retained as a runtime-only token pending admission of a canonical music
-      section.
-    source_rule: P-CAPCAT-003
-  - capability: "*"
-    table: local-adapter-routing
-    reason: >-
-      Wildcard fallback route used by openai_compat_adapter for unlisted
-      capabilities. Not a canonical capability identity; it is the runtime
-      local-adapter fallback marker.
-    source_rule: P-CAPCAT-003
+deferred: []

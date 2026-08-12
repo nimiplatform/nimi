@@ -16,19 +16,16 @@ func TestNormalizeCatalogCapability(t *testing.T) {
 		ok    bool
 	}{
 		{TextGenerate, TextGenerate, true},
-		{TextGenerateVision, TextGenerateVision, true},
-		{TextGenerateAudio, TextGenerateAudio, true},
-		{TextGenerateVideo, TextGenerateVideo, true},
+		{"text.generate.vision", "", false},
+		{"text.generate.audio", "", false},
+		{"text.generate.video", "", false},
 		{TextEmbed, TextEmbed, true},
 		{ImageGenerate, ImageGenerate, true},
-		{ImageEdit, ImageEdit, true},
 		{VideoGenerate, VideoGenerate, true},
 		{AudioSynthesize, AudioSynthesize, true},
 		{AudioTranscribe, AudioTranscribe, true},
-		{VoiceWorkflowVoiceClone, VoiceWorkflowVoiceClone, true},
-		{VoiceWorkflowVoiceDesign, VoiceWorkflowVoiceDesign, true},
+		{VoiceCreate, VoiceCreate, true},
 		{MusicGenerate, MusicGenerate, true},
-		{MusicGenerateIteration, MusicGenerateIteration, true},
 		{"TEXT.GENERATE", TextGenerate, true},
 		{"  text.generate  ", TextGenerate, true},
 		{"unknown.cap", "", false},
@@ -73,7 +70,7 @@ func TestCanonicalCatalogMatchesPlatformCatalog(t *testing.T) {
 }
 
 func TestHasCatalogCapability(t *testing.T) {
-	caps := []string{"text.generate", "IMAGE.GENERATE", "music.generate.iteration"}
+	caps := []string{"text.generate", "IMAGE.GENERATE", "music.generate"}
 
 	if !HasCatalogCapability(caps, TextGenerate) {
 		t.Fatal("should find text.generate")
@@ -84,18 +81,15 @@ func TestHasCatalogCapability(t *testing.T) {
 	if HasCatalogCapability(caps, VideoGenerate) {
 		t.Fatal("should not find video.generate")
 	}
-	if !HasCatalogCapability(caps, MusicGenerateIteration) {
-		t.Fatal("should find music.generate.iteration")
+	if !HasCatalogCapability(caps, MusicGenerate) {
+		t.Fatal("should find music.generate")
 	}
 }
 
 func TestHasCatalogCapabilityCaseInsensitive(t *testing.T) {
-	caps := []string{"TEXT.GENERATE", "Text.Generate.Video"}
+	caps := []string{"TEXT.GENERATE"}
 	if !HasCatalogCapability(caps, "text.generate") {
 		t.Fatal("should match case-insensitively")
-	}
-	if !HasCatalogCapability(caps, TextGenerateVideo) {
-		t.Fatal("should match mixed-case capability entries")
 	}
 }
 

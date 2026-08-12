@@ -83,7 +83,8 @@ models:
   - model_id: mistral-large-latest
     model_type: chat
     updated_at: 2025-12-02
-    capabilities: [text.generate, text.generate.vision]
+    capabilities: [text.generate]
+    features: [input.image]
     pricing:
       unit: token
       input: "0.50"
@@ -96,7 +97,8 @@ models:
   - model_id: mistral-medium-latest
     model_type: chat
     updated_at: 2025-08-12
-    capabilities: [text.generate, text.generate.vision]
+    capabilities: [text.generate]
+    features: [input.image]
     pricing:
       unit: token
       input: "0.40"
@@ -109,7 +111,8 @@ models:
   - model_id: mistral-small-latest
     model_type: chat
     updated_at: 2026-03-16
-    capabilities: [text.generate, text.generate.vision]
+    capabilities: [text.generate]
+    features: [input.image]
     pricing:
       unit: token
       input: "0.15"

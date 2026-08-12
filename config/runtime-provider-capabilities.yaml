@@ -63,7 +63,6 @@ providers:
     inventory_mode: static_source
     capabilities:
       - text.generate
-      - text.generate.vision
     sources:
       - K-MCAT-027
       - K-CONN-008
@@ -92,7 +91,6 @@ providers:
       - image.generate
       - text.embed
       - text.generate
-      - text.generate.vision
     sources:
       - K-MCAT-027
       - K-CONN-008
@@ -119,7 +117,6 @@ providers:
     inventory_mode: static_source
     capabilities:
       - text.generate
-      - text.generate.vision
     sources:
       - K-MCAT-027
       - K-CONN-008
@@ -134,7 +131,6 @@ providers:
     capabilities:
       - text.embed
       - text.generate
-      - text.generate.vision
     sources:
       - K-MCAT-027
       - K-CONN-008
@@ -152,10 +148,8 @@ providers:
       - image.generate
       - text.embed
       - text.generate
-      - text.generate.vision
       - video.generate
-      - voice_workflow.voice_clone
-      - voice_workflow.voice_design
+      - voice.create
     sources:
       - K-MCAT-027
       - K-CONN-008
@@ -183,8 +177,7 @@ providers:
     capabilities:
       - audio.synthesize
       - audio.transcribe
-      - voice_workflow.voice_clone
-      - voice_workflow.voice_design
+      - voice.create
     sources:
       - K-MCAT-027
       - K-CONN-008
@@ -198,7 +191,6 @@ providers:
     inventory_mode: dynamic_endpoint
     capabilities:
       - text.generate
-      - text.generate.vision
     sources:
       - K-MCAT-027
       - K-CONN-008
@@ -212,7 +204,7 @@ providers:
     inventory_mode: static_source
     capabilities:
       - audio.synthesize
-      - voice_workflow.voice_clone
+      - voice.create
     sources:
       - K-MCAT-027
       - K-CONN-008
@@ -242,7 +234,6 @@ providers:
       - image.generate
       - text.embed
       - text.generate
-      - text.generate.vision
     sources:
       - K-MCAT-027
       - K-CONN-008
@@ -259,7 +250,6 @@ providers:
       - image.generate
       - text.embed
       - text.generate
-      - text.generate.vision
     sources:
       - K-MCAT-027
       - K-CONN-008
@@ -301,7 +291,6 @@ providers:
       - audio.synthesize
       - audio.transcribe
       - text.generate
-      - text.generate.vision
     sources:
       - K-MCAT-027
       - K-CONN-008
@@ -343,7 +332,6 @@ providers:
     inventory_mode: dynamic_endpoint
     capabilities:
       - text.generate
-      - text.generate.vision
     sources:
       - K-MCAT-027
       - K-CONN-008
@@ -377,8 +365,7 @@ providers:
       - text.embed
       - text.generate
       - video.generate
-      - voice_workflow.voice_clone
-      - voice_workflow.voice_design
+      - voice.create
     sources:
       - K-MCAT-027
       - K-LOCAL-001
@@ -420,9 +407,7 @@ providers:
       - audio.synthesize
       - audio.transcribe
       - text.generate
-      - text.generate.vision
-      - voice_workflow.voice_clone
-      - voice_workflow.voice_design
+      - voice.create
     sources:
       - K-MCAT-027
       - K-CONN-008
@@ -437,7 +422,6 @@ providers:
     capabilities:
       - image.generate
       - text.generate
-      - text.generate.vision
       - video.generate
     sources:
       - K-MCAT-027
@@ -453,7 +437,6 @@ providers:
     capabilities:
       - text.embed
       - text.generate
-      - text.generate.vision
     sources:
       - K-MCAT-027
       - K-CONN-008
@@ -496,7 +479,6 @@ providers:
       - image.generate
       - text.embed
       - text.generate
-      - text.generate.vision
       - video.generate
     sources:
       - K-MCAT-027
@@ -541,7 +523,6 @@ providers:
       - image.generate
       - text.embed
       - text.generate
-      - text.generate.vision
       - video.generate
     sources:
       - K-MCAT-027
@@ -556,7 +537,6 @@ providers:
     inventory_mode: dynamic_endpoint
     capabilities:
       - text.generate
-      - text.generate.vision
     sources:
       - K-MCAT-027
       - K-CONN-008
@@ -584,7 +564,6 @@ providers:
     capabilities:
       - text.embed
       - text.generate
-      - text.generate.vision
     sources:
       - K-MCAT-027
       - K-CONN-008
@@ -615,7 +594,6 @@ providers:
       - image.generate
       - text.embed
       - text.generate
-      - text.generate.vision
       - video.generate
     sources:
       - K-MCAT-027
@@ -670,7 +648,6 @@ providers:
     capabilities:
       - image.generate
       - music.generate
-      - music.generate.iteration
     sources:
       - K-MCAT-027
       - K-CONN-008
@@ -686,8 +663,7 @@ providers:
       - audio.synthesize
       - image.generate
       - text.generate
-      - text.generate.vision
-      - voice_workflow.voice_clone
+      - voice.create
     sources:
       - K-MCAT-027
       - K-CONN-008
@@ -705,7 +681,6 @@ providers:
       - image.generate
       - text.embed
       - text.generate
-      - text.generate.vision
       - video.generate
     sources:
       - K-MCAT-027
@@ -766,7 +741,6 @@ providers:
       - audio.transcribe
       - image.generate
       - text.generate
-      - text.generate.vision
       - video.generate
     sources:
       - K-MCAT-027

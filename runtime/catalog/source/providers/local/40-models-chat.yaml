@@ -1,7 +1,7 @@
 models:
   # Curated first-run local chat lane (K-MCAT-033 minimal preset). Gemma 4 E2B
   # is the small-footprint instruction model; GGUF quants span cpu-small ->
-  # gpu-high. mmproj / text.generate.vision is deferred to a later tier; the
+  # gpu-high. mmproj / input.image is deferred to a later tier; the
   # first-run chat slot only consumes text.generate.
   - model_id: gemma-4-e2b-it-local
     model_type: chat
@@ -71,7 +71,7 @@ models:
 
   # Curated first-run local chat lane (K-MCAT-033 recommended preset). Gemma 4
   # 26B-A4B is the mixture-of-experts instruction model; GGUF quants span a
-  # higher footprint band. mmproj / text.generate.vision is deferred.
+  # higher footprint band. mmproj / input.image is deferred.
   - model_id: gemma-4-26b-a4b-it-local
     model_type: chat
     updated_at: 2026-05-04

@@ -16,7 +16,6 @@ runtime:
     failure_policy: use_cache_then_fail_closed
     allowed_capabilities:
       - text.generate
-      - text.generate.vision
     allow_model_patterns:
       - accounts/fireworks/models/deepseek*
       - accounts/fireworks/models/kimi*

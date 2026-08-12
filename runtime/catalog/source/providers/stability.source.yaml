@@ -151,7 +151,8 @@ models:
   - model_id: stable-audio-2
     model_type: music
     updated_at: 2026-03-13
-    capabilities: [music.generate, music.generate.iteration]
+    capabilities: [music.generate]
+    features: [input.audio]
     pricing:
       unit: request
       input: unknown

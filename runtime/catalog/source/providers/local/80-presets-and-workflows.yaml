@@ -22,7 +22,7 @@ presets:
 # qwen3_tts -> explicit local Qwen3 target roles.
 voice_workflow_models:
   - workflow_model_id: qwen3-local-voice-clone
-    workflow_type: voice_clone
+    workflow_type: reference_audio
     workflow_family: qwen3_tts
     input_contract_ref: local_voice_clone_input_v1
     output_persistence: session_ephemeral
@@ -41,7 +41,7 @@ voice_workflow_models:
     langs_ref: short_v1
     source_ids: [qwen3_tts_base_modelcard]
   - workflow_model_id: qwen3-local-voice-design
-    workflow_type: voice_design
+    workflow_type: text_description
     workflow_family: qwen3_tts
     input_contract_ref: local_voice_design_input_v1
     output_persistence: session_ephemeral
@@ -61,32 +61,32 @@ voice_workflow_models:
 model_workflow_bindings:
   - model_id: qwen3-tts-base-local
     workflow_model_refs: [qwen3-local-voice-clone]
-    workflow_types: [voice_clone]
+    workflow_types: [reference_audio]
   - model_id: local/qwen3-tts-base
     workflow_model_refs: [qwen3-local-voice-clone]
-    workflow_types: [voice_clone]
+    workflow_types: [reference_audio]
   - model_id: speech/qwen3tts-base
     workflow_model_refs: [qwen3-local-voice-clone]
-    workflow_types: [voice_clone]
+    workflow_types: [reference_audio]
   - model_id: Qwen/Qwen3-TTS-12Hz-0.6B-Base
     workflow_model_refs: [qwen3-local-voice-clone]
-    workflow_types: [voice_clone]
+    workflow_types: [reference_audio]
   - model_id: qwen3-tts-voicedesign-local
     workflow_model_refs: [qwen3-local-voice-design]
-    workflow_types: [voice_design]
+    workflow_types: [text_description]
   - model_id: local/qwen3-tts-voicedesign
     workflow_model_refs: [qwen3-local-voice-design]
-    workflow_types: [voice_design]
+    workflow_types: [text_description]
   - model_id: speech/qwen3tts-design
     workflow_model_refs: [qwen3-local-voice-design]
-    workflow_types: [voice_design]
+    workflow_types: [text_description]
   - model_id: Qwen/Qwen3-TTS-12Hz-1.7B-VoiceDesign
     workflow_model_refs: [qwen3-local-voice-design]
-    workflow_types: [voice_design]
+    workflow_types: [text_description]
 
 voice_handle_policies:
   - policy_id: local_runtime_session_ephemeral_default
-    applies_to_workflow_types: [voice_clone, voice_design]
+    applies_to_workflow_types: [reference_audio, text_description]
     persistence: session_ephemeral
     default_ttl: session
     scope: user_scoped

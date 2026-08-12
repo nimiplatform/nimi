@@ -48,6 +48,14 @@ sources:
     url: https://platform.minimaxi.com/docs/guides/video-generation
     retrieved_at: 2026-07-20
     note: MiniMax video generation overview with the current Hailuo video model family.
+  - source_id: minimax_video_t2v_api
+    url: https://platform.minimaxi.com/docs/api-reference/video-generation-t2v
+    retrieved_at: 2026-08-12
+    note: Provider-native text-to-video request fields and the exact MiniMax-Hailuo-2.3 model admission.
+  - source_id: minimax_video_i2v_api
+    url: https://platform.minimaxi.com/docs/api-reference/video-generation-i2v
+    retrieved_at: 2026-08-12
+    note: Provider-native image-to-video request fields, including first_frame_image, for MiniMax-Hailuo-2.3.
   - source_id: minimax_pricing_paygo
     url: https://platform.minimaxi.com/docs/guides/pricing-paygo
     retrieved_at: 2026-07-20
@@ -65,7 +73,8 @@ models:
   - model_id: MiniMax-M3
     model_type: chat
     updated_at: 2026-07-20
-    capabilities: [text.generate, text.generate.vision]
+    capabilities: [text.generate]
+    features: [input.image]
     pricing:
       unit: token
       input: unknown
@@ -92,6 +101,7 @@ models:
     model_type: video
     updated_at: 2026-04-18
     capabilities: [video.generate]
+    features: [input.image]
     pricing:
       unit: request
       input: unknown
@@ -99,19 +109,17 @@ models:
       currency: USD
       as_of: 2026-04-18
       notes: Official pricing page exposes MiniMax-Hailuo-2.3-Fast prices clearly, but the non-fast MiniMax-Hailuo-2.3 row is not machine-readable enough to admit a precise stable price here.
-    source_ids: [minimax_api_overview, minimax_video_intro_doc, minimax_pricing_paygo]
+    source_ids: [minimax_api_overview, minimax_video_intro_doc, minimax_video_t2v_api, minimax_video_i2v_api, minimax_pricing_paygo]
     video_generation:
-      modes: [t2v, i2v_first_frame, i2v_first_last, i2v_reference]
+      modes: [t2v, i2v_first_frame]
       input_roles:
         t2v: [prompt]
         i2v_first_frame: [prompt, first_frame]
-        i2v_first_last: [prompt, first_frame, last_frame]
-        i2v_reference: [prompt, reference_image]
       limits:
-        resolution: [720p, 1080p]
+        resolution: [768p, 1080p]
         duration_sec: [6, 10]
       options:
-        supports: [resolution, ratio, duration_sec]
+        supports: [resolution, duration_sec]
         constraints: {}
       outputs:
         video_url: true

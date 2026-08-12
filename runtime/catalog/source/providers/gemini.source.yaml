@@ -109,7 +109,8 @@ models:
   - model_id: gemini-3.5-flash
     model_type: chat
     updated_at: 2026-05-19
-    capabilities: [text.generate, text.generate.vision]
+    capabilities: [text.generate]
+    features: [input.image]
     pricing:
       unit: token
       input: unknown
@@ -122,7 +123,8 @@ models:
   - model_id: gemini-3.1-flash-lite
     model_type: chat
     updated_at: 2026-05-07
-    capabilities: [text.generate, text.generate.vision]
+    capabilities: [text.generate]
+    features: [input.image]
     pricing:
       unit: token
       input: unknown
@@ -135,7 +137,8 @@ models:
   - model_id: gemini-2.5-pro
     model_type: chat
     updated_at: 2026-04-18
-    capabilities: [text.generate, text.generate.vision]
+    capabilities: [text.generate]
+    features: [input.image]
     pricing:
       unit: token
       input: "1.25"
@@ -148,7 +151,8 @@ models:
   - model_id: gemini-2.5-flash
     model_type: chat
     updated_at: 2026-04-18
-    capabilities: [text.generate, text.generate.vision, audio.transcribe]
+    capabilities: [text.generate, audio.transcribe]
+    features: [input.image]
     pricing:
       unit: token
       input: "0.30"
@@ -165,7 +169,8 @@ models:
   - model_id: gemini-2.5-flash-lite
     model_type: chat
     updated_at: 2026-04-18
-    capabilities: [text.generate, text.generate.vision]
+    capabilities: [text.generate]
+    features: [input.image]
     pricing:
       unit: token
       input: "0.10"
@@ -210,6 +215,7 @@ models:
     model_type: image
     updated_at: 2026-03-05
     capabilities: [image.generate]
+    features: [input.image]
     image_request_options:
       response_formats: [b64_json]
       max_images_per_request: 1
@@ -233,7 +239,8 @@ models:
   - model_id: gemini-3.1-pro-preview
     model_type: chat
     updated_at: 2026-04-18
-    capabilities: [text.generate, text.generate.vision]
+    capabilities: [text.generate]
+    features: [input.image]
     pricing:
       unit: token
       input: "2.00"
@@ -246,7 +253,8 @@ models:
   - model_id: gemini-3-flash-preview
     model_type: chat
     updated_at: 2026-04-18
-    capabilities: [text.generate, text.generate.vision]
+    capabilities: [text.generate]
+    features: [input.image]
     pricing:
       unit: token
       input: "0.50"
@@ -260,6 +268,7 @@ models:
     model_type: image
     updated_at: 2026-03-05
     capabilities: [image.generate]
+    features: [input.image]
     image_request_options:
       response_formats: [b64_json]
       max_images_per_request: 1

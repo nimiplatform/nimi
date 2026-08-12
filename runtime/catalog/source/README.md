@@ -71,20 +71,14 @@ Optional model-level capability blocks:
 Canonical capability tokens are:
 
 - `text.generate`
-- `text.generate.vision`
-- `text.generate.audio`
-- `text.generate.video`
 - `text.embed`
 - `image.generate`
-- `image.edit`
 - `video.generate`
 - `world.generate`
 - `audio.synthesize`
 - `audio.transcribe`
 - `music.generate`
-- `music.generate.iteration`
-- `voice_workflow.voice_clone`
-- `voice_workflow.voice_design`
+- `voice.create`
 
 Legacy capability synonyms such as `chat`, `embedding`, `image`, `tts`, `stt`, `video_generation`, `speech.synthesize`, `tts.synthesize`, `voice.clone`, `voice.design`, `llm.text.generate`, `llm.embed`, `llm.image.generate`, `llm.video.generate`, `llm.speech.synthesize`, and `llm.speech.transcribe` are not valid source declarations.
 
@@ -205,12 +199,12 @@ For `discovery_mode=dynamic_user_scoped`:
 - flattened snapshot should keep only minimal placeholder rows;
 - runtime `ListVoiceAssets` remains the authority for real-time user voice inventory.
 
-### 5.8 Voice Workflow Rule
+### 5.8 Voice Creation Rule
 
 If `voice_workflow_models` is provided, each entry should define:
 
 - `workflow_model_id`
-- `workflow_type` (`voice_clone|voice_design`)
+- `workflow_type` (`reference_audio|text_description`)
 - `input_contract_ref`
 - `output_persistence`
 - `request_options`
@@ -220,7 +214,7 @@ If `voice_workflow_models` is provided, each entry should define:
 `voice_workflow_models[].request_options` is the source-authored workflow metadata
 home for execution-time request validation and capability projection.
 
-For `voice_clone`, `request_options` must define:
+For `reference_audio`, `request_options` must define:
 
 - `text_prompt_mode` (`unsupported|optional|required`)
 - `supports_language_hints` (explicit boolean)
@@ -230,7 +224,7 @@ For `voice_clone`, `request_options` must define:
 - `allowed_reference_audio_mime_types`
 - `provider_extensions` (optional)
 
-For `voice_design`, `request_options` must define:
+For `text_description`, `request_options` must define:
 
 - `instruction_text_mode` (`unsupported|optional|required`)
 - `preview_text_mode` (`unsupported|optional|required`)
@@ -245,7 +239,7 @@ override keys such as endpoint/header/path allowlists.
 
 `model_workflow_bindings` should explicitly map synthesis model ids to compatible workflow model ids.
 
-Only providers with a real runtime voice-workflow adapter may declare workflow models and bindings.
+Only providers with a real Runtime `voice.create` Driver path may declare creation models and bindings.
 
 ### 5.9 Latest-Only + Alias Compatibility Rule
 

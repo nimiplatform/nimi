@@ -43,62 +43,72 @@ entries:
     strategy: best_effort
     source_rule: K-MMPROV-012
   - provider_id: dashscope
-    scenario_type: VOICE_CLONE
+    scenario_type: VOICE_CREATE
+    feature: input.audio
     direction: request
-    namespace: nimi.scenario.voice_clone.request
+    namespace: nimi.scenario.voice_create.request
     strategy: strict
     source_rule: K-MMPROV-020
   - provider_id: dashscope
-    scenario_type: VOICE_DESIGN
+    scenario_type: VOICE_CREATE
+    feature: input.text
     direction: request
-    namespace: nimi.scenario.voice_design.request
+    namespace: nimi.scenario.voice_create.request
     strategy: strict
     source_rule: K-MMPROV-020
   - provider_id: elevenlabs
-    scenario_type: VOICE_CLONE
+    scenario_type: VOICE_CREATE
+    feature: input.audio
     direction: request
-    namespace: nimi.scenario.voice_clone.request
+    namespace: nimi.scenario.voice_create.request
     strategy: strict
     source_rule: K-MMPROV-020
   - provider_id: elevenlabs
-    scenario_type: VOICE_DESIGN
+    scenario_type: VOICE_CREATE
+    feature: input.text
     direction: request
-    namespace: nimi.scenario.voice_design.request
+    namespace: nimi.scenario.voice_create.request
     strategy: strict
     source_rule: K-MMPROV-020
   - provider_id: fish_audio
-    scenario_type: VOICE_CLONE
+    scenario_type: VOICE_CREATE
+    feature: input.audio
     direction: request
-    namespace: nimi.scenario.voice_clone.request
+    namespace: nimi.scenario.voice_create.request
     strategy: strict
     source_rule: K-MMPROV-020
   - provider_id: local
-    scenario_type: VOICE_CLONE
+    scenario_type: VOICE_CREATE
+    feature: input.audio
     direction: request
-    namespace: nimi.scenario.voice_clone.request
+    namespace: nimi.scenario.voice_create.request
     strategy: strict
     source_rule: K-MMPROV-020
   - provider_id: local
-    scenario_type: VOICE_DESIGN
+    scenario_type: VOICE_CREATE
+    feature: input.text
     direction: request
-    namespace: nimi.scenario.voice_design.request
+    namespace: nimi.scenario.voice_create.request
     strategy: strict
     source_rule: K-MMPROV-020
   - provider_id: mimo
-    scenario_type: VOICE_CLONE
+    scenario_type: VOICE_CREATE
+    feature: input.audio
     direction: request
-    namespace: nimi.scenario.voice_clone.request
+    namespace: nimi.scenario.voice_create.request
     strategy: strict
     source_rule: K-MMPROV-020
   - provider_id: mimo
-    scenario_type: VOICE_DESIGN
+    scenario_type: VOICE_CREATE
+    feature: input.text
     direction: request
-    namespace: nimi.scenario.voice_design.request
+    namespace: nimi.scenario.voice_create.request
     strategy: strict
     source_rule: K-MMPROV-020
   - provider_id: stepfun
-    scenario_type: VOICE_CLONE
+    scenario_type: VOICE_CREATE
+    feature: input.audio
     direction: request
-    namespace: nimi.scenario.voice_clone.request
+    namespace: nimi.scenario.voice_create.request
     strategy: strict
     source_rule: K-MMPROV-020

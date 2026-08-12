@@ -77,8 +77,7 @@ entries:
     control_plane: runtime
     execution_plane: media
     supported_capabilities:
-      - image.generate.t2i
-      - image.generate.i2i
+      - image.generate
     topology_state: defined
     product_state: supported
 
@@ -146,8 +145,7 @@ entries:
     control_plane: runtime
     execution_plane: media
     supported_capabilities:
-      - image.generate.t2i
-      - image.generate.i2i
+      - image.generate
     topology_state: defined
     product_state: supported
 

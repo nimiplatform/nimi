@@ -21,6 +21,8 @@ models:
       url: https://www.volcengine.com/docs/82379/1366799?lang=zh
       retrieved_at: 2026-03-05
       note: Volcengine Seedance video generation overview (t2v and i2v).
+    features:
+      - input.image
     video_generation: &a1
       modes:
         - t2v
@@ -104,6 +106,8 @@ models:
       retrieved_at: 2026-03-05
       note: Volcengine Seedance video generation overview (t2v and i2v).
     api_model_id: seedance-1-5-pro
+    features:
+      - input.image
     video_generation: *a1
   - model_id: seedance_v1_5_pro
     provider: volcengine
@@ -123,6 +127,8 @@ models:
       retrieved_at: 2026-03-05
       note: Volcengine Seedance video generation overview (t2v and i2v).
     api_model_id: seedance-1-5-pro
+    features:
+      - input.image
     video_generation: *a1
   - model_id: doubao-seedance-2-0-260128
     provider: volcengine
@@ -141,6 +147,8 @@ models:
       url: https://www.volcengine.com/docs/82379/1366799?lang=zh
       retrieved_at: 2026-03-05
       note: Volcengine Seedance video generation overview (t2v and i2v).
+    features:
+      - input.image
     video_generation: &a2
       modes:
         - t2v
@@ -228,6 +236,8 @@ models:
       retrieved_at: 2026-03-05
       note: Volcengine Seedance video generation overview (t2v and i2v).
     api_model_id: doubao-seedance-2-0-260128
+    features:
+      - input.image
     video_generation: *a2
   - model_id: doubao-seed-2-1-pro-260628
     provider: volcengine
@@ -576,6 +586,9 @@ models:
       url: https://www.volcengine.com/docs/6492/2172373
       retrieved_at: 2026-04-18
       note: Volcengine Seedream image generation documentation.
+    features:
+      - input.image
+      - input.mask
     image_request_options: &a3
       response_formats:
         - b64_json
@@ -607,6 +620,9 @@ models:
       retrieved_at: 2026-04-18
       note: Volcengine Seedream image generation documentation.
     api_model_id: doubao-seedream-5-0-260128
+    features:
+      - input.image
+      - input.mask
     image_request_options: *a3
   - model_id: doubao-seedream-4-5-251128
     provider: volcengine
@@ -625,6 +641,9 @@ models:
       url: https://www.volcengine.com/docs/6492/2172373
       retrieved_at: 2026-04-18
       note: Volcengine Seedream image generation documentation.
+    features:
+      - input.image
+      - input.mask
     image_request_options:
       response_formats:
         - b64_json

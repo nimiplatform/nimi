@@ -224,6 +224,7 @@ type ModelEntry struct {
 	ModelType    string   `yaml:"model_type" json:"model_type"`
 	UpdatedAt    string   `yaml:"updated_at" json:"updated_at"`
 	Capabilities []string `yaml:"capabilities" json:"capabilities"`
+	Features     []string `yaml:"features,omitempty" json:"features,omitempty"`
 	// ContextWindowTokens is the provider/model catalog authority for remote
 	// text models. Local-plane rows continue to use Fitness.ContextLength; the
 	// resolver projects both through one fail-closed metadata surface.

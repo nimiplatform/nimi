@@ -11,7 +11,8 @@ export type CanonicalCapabilitySectionId =
   | 'video'
   | 'embed'
   | 'voice'
-  | 'world';
+  | 'world'
+  | 'music';
 
 export type CanonicalCapabilityEditorKind =
   | 'text'
@@ -19,7 +20,7 @@ export type CanonicalCapabilityEditorKind =
   | 'video'
   | 'audio-transcribe'
   | 'audio-synthesize'
-  | 'voice-workflow'
+  | 'voice-create'
   | null;
 
 export type CanonicalCapabilityRuntimeEvidenceClass =
@@ -126,29 +127,6 @@ export const CANONICAL_CAPABILITY_CATALOG: ReadonlyArray<CanonicalCapabilityDesc
     }),
   }),
   Object.freeze({
-    capabilityId: 'image.edit',
-    section: 'image',
-    editorKind: 'image',
-    sourceRef: Object.freeze({
-      table: 'local-adapter-routing',
-      capability: 'image.edit',
-    }),
-    additionalRuntimeTables: Object.freeze([]),
-    i18nKeys: Object.freeze({
-      title: 'AIConfig.capability.imageEdit.title',
-      subtitle: 'AIConfig.capability.imageEdit.subtitle',
-      detail: 'AIConfig.capability.imageEdit.detail',
-    }),
-    runtimeEvidenceClass: 'job',
-    governance: Object.freeze({
-      owner: 'runtime-media-route',
-      dataMovement: 'local-or-cloud-by-selected-route',
-      retention: 'runtime-artifact-policy',
-      revocation: 'route-or-artifact-owner',
-      auditSource: 'runtime-scenario-job-evidence',
-    }),
-  }),
-  Object.freeze({
     capabilityId: 'image.generate',
     section: 'image',
     editorKind: 'image',
@@ -170,6 +148,34 @@ export const CANONICAL_CAPABILITY_CATALOG: ReadonlyArray<CanonicalCapabilityDesc
     runtimeEvidenceClass: 'job',
     governance: Object.freeze({
       owner: 'runtime-media-route',
+      dataMovement: 'local-or-cloud-by-selected-route',
+      retention: 'runtime-artifact-policy',
+      revocation: 'route-or-artifact-owner',
+      auditSource: 'runtime-scenario-job-evidence',
+    }),
+  }),
+  Object.freeze({
+    capabilityId: 'music.generate',
+    section: 'music',
+    editorKind: null,
+    sourceRef: Object.freeze({
+      table: 'provider-capabilities',
+      capability: 'music.generate',
+    }),
+    additionalRuntimeTables: Object.freeze([
+      Object.freeze({
+        table: 'local-adapter-routing',
+        capability: 'music.generate',
+      }),
+    ]),
+    i18nKeys: Object.freeze({
+      title: 'AIConfig.capability.musicGenerate.title',
+      subtitle: 'AIConfig.capability.musicGenerate.subtitle',
+      detail: 'AIConfig.capability.musicGenerate.detail',
+    }),
+    runtimeEvidenceClass: 'job',
+    governance: Object.freeze({
+      owner: 'runtime-music-route',
       dataMovement: 'local-or-cloud-by-selected-route',
       retention: 'runtime-artifact-policy',
       revocation: 'route-or-artifact-owner',
@@ -223,29 +229,6 @@ export const CANONICAL_CAPABILITY_CATALOG: ReadonlyArray<CanonicalCapabilityDesc
     }),
   }),
   Object.freeze({
-    capabilityId: 'text.generate.vision',
-    section: 'chat',
-    editorKind: 'text',
-    sourceRef: Object.freeze({
-      table: 'provider-capabilities',
-      capability: 'text.generate.vision',
-    }),
-    additionalRuntimeTables: Object.freeze([]),
-    i18nKeys: Object.freeze({
-      title: 'AIConfig.capability.textGenerateVision.title',
-      subtitle: 'AIConfig.capability.textGenerateVision.subtitle',
-      detail: 'AIConfig.capability.textGenerateVision.detail',
-    }),
-    runtimeEvidenceClass: 'turn',
-    governance: Object.freeze({
-      owner: 'runtime-route',
-      dataMovement: 'local-or-cloud-by-selected-route',
-      retention: 'zhiyu-retains-no-provider-payload',
-      revocation: 'change-runtime-route-or-revoke-connector',
-      auditSource: 'runtime-route-evidence',
-    }),
-  }),
-  Object.freeze({
     capabilityId: 'video.generate',
     section: 'video',
     editorKind: 'video',
@@ -274,46 +257,23 @@ export const CANONICAL_CAPABILITY_CATALOG: ReadonlyArray<CanonicalCapabilityDesc
     }),
   }),
   Object.freeze({
-    capabilityId: 'voice_workflow.voice_clone',
+    capabilityId: 'voice.create',
     section: 'tts',
-    editorKind: 'voice-workflow',
+    editorKind: 'voice-create',
     sourceRef: Object.freeze({
       table: 'provider-capabilities',
-      capability: 'voice_workflow.voice_clone',
+      capability: 'voice.create',
     }),
     additionalRuntimeTables: Object.freeze([]),
     i18nKeys: Object.freeze({
-      title: 'AIConfig.capability.voiceWorkflowVoiceClone.title',
-      subtitle: 'AIConfig.capability.voiceWorkflowVoiceClone.subtitle',
-      detail: 'AIConfig.capability.voiceWorkflowVoiceClone.detail',
+      title: 'AIConfig.capability.voiceCreate.title',
+      subtitle: 'AIConfig.capability.voiceCreate.subtitle',
+      detail: 'AIConfig.capability.voiceCreate.detail',
     }),
-    runtimeEvidenceClass: 'workflow',
+    runtimeEvidenceClass: 'job',
     governance: Object.freeze({
-      owner: 'runtime-voice-workflow',
-      dataMovement: 'local-or-cloud-by-workflow-route',
-      retention: 'runtime-voice-asset-policy',
-      revocation: 'runtime-voice-asset-owner',
-      auditSource: 'runtime-scenario-job-evidence',
-    }),
-  }),
-  Object.freeze({
-    capabilityId: 'voice_workflow.voice_design',
-    section: 'tts',
-    editorKind: 'voice-workflow',
-    sourceRef: Object.freeze({
-      table: 'provider-capabilities',
-      capability: 'voice_workflow.voice_design',
-    }),
-    additionalRuntimeTables: Object.freeze([]),
-    i18nKeys: Object.freeze({
-      title: 'AIConfig.capability.voiceWorkflowVoiceDesign.title',
-      subtitle: 'AIConfig.capability.voiceWorkflowVoiceDesign.subtitle',
-      detail: 'AIConfig.capability.voiceWorkflowVoiceDesign.detail',
-    }),
-    runtimeEvidenceClass: 'workflow',
-    governance: Object.freeze({
-      owner: 'runtime-voice-workflow',
-      dataMovement: 'local-or-cloud-by-workflow-route',
+      owner: 'runtime-voice-creation',
+      dataMovement: 'local-or-cloud-by-selected-route',
       retention: 'runtime-voice-asset-policy',
       revocation: 'runtime-voice-asset-owner',
       auditSource: 'runtime-scenario-job-evidence',
@@ -356,40 +316,4 @@ export const CANONICAL_CAPABILITY_IDS: ReadonlyArray<string> = Object.freeze(
 );
 
 export const CANONICAL_CAPABILITY_DEFERRED: ReadonlyArray<CanonicalCapabilityDeferredEntry> = Object.freeze([
-  Object.freeze({
-    capability: '*',
-    table: 'local-adapter-routing',
-    reason: 'Wildcard fallback route used by openai_compat_adapter for unlisted capabilities. Not a canonical capability identity; it is the runtime local-adapter fallback marker.',
-    sourceRule: 'P-CAPCAT-003',
-  }),
-  Object.freeze({
-    capability: 'i2v',
-    table: 'local-adapter-routing',
-    reason: 'Image-to-video route token emitted by media_native_adapter; canonical identity for cross-layer video generation is video.generate. Kept as a runtime-only token pending adapter rename.',
-    sourceRule: 'P-CAPCAT-003',
-  }),
-  Object.freeze({
-    capability: 'music',
-    table: 'local-adapter-routing',
-    reason: 'Coarse-grained music route token emitted by sidecar_music_adapter; retained as a runtime-only token pending admission of a canonical music section.',
-    sourceRule: 'P-CAPCAT-003',
-  }),
-  Object.freeze({
-    capability: 'music.generate',
-    table: 'provider-capabilities',
-    reason: 'Music generation token admitted by select providers but not yet admitted as a cross-layer CanonicalCapabilityId. No consumer AIConfig currently emits music.generate; deferred until a music section is admitted in the canonical catalog.',
-    sourceRule: 'P-CAPCAT-003',
-  }),
-  Object.freeze({
-    capability: 'music.generate',
-    table: 'local-adapter-routing',
-    reason: 'Local sidecar music route token emitted by sidecar_music_adapter; canonical identity deferred alongside the provider-plane music.generate admission.',
-    sourceRule: 'P-CAPCAT-003',
-  }),
-  Object.freeze({
-    capability: 'music.generate.iteration',
-    table: 'provider-capabilities',
-    reason: 'Iterative-music-generation token admitted by a single provider; deferred for the same reason as music.generate. No cross-layer canonical identity yet.',
-    sourceRule: 'P-CAPCAT-003',
-  }),
 ]);

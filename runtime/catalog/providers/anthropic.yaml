@@ -10,7 +10,6 @@ models:
     updated_at: 2026-06-30
     capabilities:
       - text.generate
-      - text.generate.vision
     pricing:
       unit: token
       input: "10.00"
@@ -22,6 +21,8 @@ models:
       url: https://platform.claude.com/docs/en/about-claude/models/introducing-claude-fable-5-and-claude-mythos-5
       retrieved_at: 2026-07-20
       note: Claude Fable 5 model identifier, capabilities, pricing, refusal semantics, and availability.
+    features:
+      - input.image
     context_window_tokens: 8192
   - model_id: claude-sonnet-5
     provider: anthropic
@@ -29,7 +30,6 @@ models:
     updated_at: 2026-06-30
     capabilities:
       - text.generate
-      - text.generate.vision
     pricing:
       unit: token
       input: "2.00"
@@ -41,6 +41,8 @@ models:
       url: https://platform.claude.com/docs/en/about-claude/models/whats-new-sonnet-5
       retrieved_at: 2026-07-20
       note: Claude Sonnet 5 model identifier, launch behavior, current pricing, and availability.
+    features:
+      - input.image
     context_window_tokens: 8192
   - model_id: claude-opus-4-8
     provider: anthropic
@@ -48,7 +50,6 @@ models:
     updated_at: 2026-06-03
     capabilities:
       - text.generate
-      - text.generate.vision
     pricing:
       unit: token
       input: unknown
@@ -60,6 +61,8 @@ models:
       url: https://platform.claude.com/docs/en/about-claude/models/overview
       retrieved_at: 2026-06-03
       note: Claude Opus 4.8 current model identifier from the Claude model overview.
+    features:
+      - input.image
     context_window_tokens: 8192
   - model_id: claude-opus-4-7
     provider: anthropic
@@ -67,7 +70,6 @@ models:
     updated_at: 2026-04-18
     capabilities:
       - text.generate
-      - text.generate.vision
     pricing:
       unit: token
       input: "5.00"
@@ -79,6 +81,8 @@ models:
       url: https://platform.claude.com/docs/en/about-claude/models/whats-new-claude-4-7
       retrieved_at: 2026-04-18
       note: Claude Opus 4.7 release notes and model identifiers.
+    features:
+      - input.image
     context_window_tokens: 8192
   - model_id: claude-opus-4-6
     provider: anthropic
@@ -86,7 +90,6 @@ models:
     updated_at: 2026-02-05
     capabilities:
       - text.generate
-      - text.generate.vision
     pricing:
       unit: token
       input: "5.00"
@@ -98,6 +101,8 @@ models:
       url: https://platform.claude.com/docs/en/about-claude/models/whats-new-claude-4-6
       retrieved_at: 2026-04-18
       note: Claude 4.6 release notes and model identifiers.
+    features:
+      - input.image
     context_window_tokens: 8192
   - model_id: claude-sonnet-4-6
     provider: anthropic
@@ -105,7 +110,6 @@ models:
     updated_at: 2026-02-17
     capabilities:
       - text.generate
-      - text.generate.vision
     pricing:
       unit: token
       input: "3.00"
@@ -117,6 +121,8 @@ models:
       url: https://platform.claude.com/docs/en/about-claude/models/whats-new-claude-4-6
       retrieved_at: 2026-04-18
       note: Claude 4.6 release notes and model identifiers.
+    features:
+      - input.image
     context_window_tokens: 8192
   - model_id: claude-sonnet-4-5
     provider: anthropic
@@ -124,7 +130,6 @@ models:
     updated_at: 2025-09-29
     capabilities:
       - text.generate
-      - text.generate.vision
     pricing:
       unit: token
       input: "3.00"
@@ -136,6 +141,8 @@ models:
       url: https://www.anthropic.com/news/claude-sonnet-4-5
       retrieved_at: 2026-04-18
       note: Claude Sonnet 4.5 announcement and capabilities.
+    features:
+      - input.image
     context_window_tokens: 8192
   - model_id: claude-sonnet-4-5-20250929
     provider: anthropic
@@ -143,7 +150,6 @@ models:
     updated_at: 2025-09-29
     capabilities:
       - text.generate
-      - text.generate.vision
     pricing:
       unit: token
       input: "3.00"
@@ -156,6 +162,8 @@ models:
       retrieved_at: 2026-04-18
       note: Claude Sonnet 4.5 announcement and capabilities.
     api_model_id: claude-sonnet-4-5
+    features:
+      - input.image
     context_window_tokens: 8192
   - model_id: claude-haiku-4-5
     provider: anthropic
@@ -163,7 +171,6 @@ models:
     updated_at: 2025-10-15
     capabilities:
       - text.generate
-      - text.generate.vision
     pricing:
       unit: token
       input: "1.00"
@@ -175,6 +182,8 @@ models:
       url: https://platform.claude.com/docs/en/about-claude/models/overview
       retrieved_at: 2026-07-20
       note: Claude model overview with API model IDs and aliases.
+    features:
+      - input.image
     context_window_tokens: 8192
   - model_id: claude-haiku-4-5-20251001
     provider: anthropic
@@ -182,7 +191,6 @@ models:
     updated_at: 2025-10-15
     capabilities:
       - text.generate
-      - text.generate.vision
     pricing:
       unit: token
       input: "1.00"
@@ -195,6 +203,8 @@ models:
       retrieved_at: 2026-07-20
       note: Claude model overview with API model IDs and aliases.
     api_model_id: claude-haiku-4-5
+    features:
+      - input.image
     context_window_tokens: 8192
 voices: []
 selection_profiles:

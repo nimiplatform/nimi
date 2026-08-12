@@ -121,7 +121,8 @@ models:
   - model_id: mimo-v2.5
     model_type: chat
     updated_at: 2026-06-02
-    capabilities: [text.generate, text.generate.vision]
+    capabilities: [text.generate]
+    features: [input.image]
     pricing:
       unit: token
       input: unknown
@@ -173,7 +174,8 @@ models:
   - model_id: mimo-v2.5-tts-voicedesign
     model_type: tts
     updated_at: 2026-05-28
-    capabilities: [audio.synthesize]
+    capabilities: [audio.synthesize, voice.create]
+    features: [input.text]
     pricing:
       unit: char
       input: unknown
@@ -193,7 +195,8 @@ models:
   - model_id: mimo-v2.5-tts-voiceclone
     model_type: tts
     updated_at: 2026-05-28
-    capabilities: [audio.synthesize]
+    capabilities: [audio.synthesize, voice.create]
+    features: [input.audio]
     pricing:
       unit: char
       input: unknown
@@ -212,7 +215,7 @@ models:
 
 voice_workflow_models:
   - workflow_model_id: mimo-v2.5-tts-voiceclone
-    workflow_type: voice_clone
+    workflow_type: reference_audio
     workflow_family: mimo
     input_contract_ref: mimo_voice_clone_input_v1
     output_persistence: session_ephemeral
@@ -228,7 +231,7 @@ voice_workflow_models:
     langs_ref: short_v1
     source_ids: [mimo_tts_v25_guide_doc]
   - workflow_model_id: mimo-v2.5-tts-voicedesign
-    workflow_type: voice_design
+    workflow_type: text_description
     workflow_family: mimo
     input_contract_ref: mimo_voice_design_input_v1
     output_persistence: session_ephemeral
@@ -245,14 +248,14 @@ voice_workflow_models:
 model_workflow_bindings:
   - model_id: mimo-v2.5-tts-voiceclone
     workflow_model_refs: [mimo-v2.5-tts-voiceclone]
-    workflow_types: [voice_clone]
+    workflow_types: [reference_audio]
   - model_id: mimo-v2.5-tts-voicedesign
     workflow_model_refs: [mimo-v2.5-tts-voicedesign]
-    workflow_types: [voice_design]
+    workflow_types: [text_description]
 
 voice_handle_policies:
   - policy_id: mimo_runtime_session_ephemeral_default
-    applies_to_workflow_types: [voice_clone, voice_design]
+    applies_to_workflow_types: [reference_audio, text_description]
     persistence: session_ephemeral
     default_ttl: session
     scope: user_scoped

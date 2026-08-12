@@ -86,6 +86,8 @@ voice_sets:
 models:
   - model_id: s2-pro
     updated_at: 2026-04-18
+    capabilities: [audio.synthesize, voice.create]
+    features: [input.audio]
     pricing:
       unit: request
       input: unknown
@@ -106,6 +108,8 @@ models:
 
   - model_id: s1
     updated_at: 2026-04-18
+    capabilities: [audio.synthesize, voice.create]
+    features: [input.audio]
     pricing:
       unit: request
       input: unknown
@@ -126,7 +130,7 @@ models:
 
 voice_workflow_models:
   - workflow_model_id: fish-audio-create-model
-    workflow_type: voice_clone
+    workflow_type: reference_audio
     workflow_family: fish-audio
     input_contract_ref: fish_audio_voice_clone_input_v1
     output_persistence: provider_persistent
@@ -144,14 +148,14 @@ voice_workflow_models:
 model_workflow_bindings:
   - model_id: s1
     workflow_model_refs: [fish-audio-create-model]
-    workflow_types: [voice_clone]
+    workflow_types: [reference_audio]
   - model_id: s2-pro
     workflow_model_refs: [fish-audio-create-model]
-    workflow_types: [voice_clone]
+    workflow_types: [reference_audio]
 
 voice_handle_policies:
   - policy_id: fish_audio_provider_persistent_default
-    applies_to_workflow_types: [voice_clone]
+    applies_to_workflow_types: [reference_audio]
     persistence: provider_persistent
     default_ttl: none
     scope: user_scoped

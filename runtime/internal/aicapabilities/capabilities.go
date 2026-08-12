@@ -6,21 +6,20 @@ import (
 )
 
 const (
-	TextGenerate             = "text.generate"
-	TextGenerateVision       = "text.generate.vision"
-	TextGenerateAudio        = "text.generate.audio"
-	TextGenerateVideo        = "text.generate.video"
-	TextEmbed                = "text.embed"
-	ImageGenerate            = "image.generate"
-	ImageEdit                = "image.edit"
-	VideoGenerate            = "video.generate"
-	WorldGenerate            = "world.generate"
-	AudioSynthesize          = "audio.synthesize"
-	AudioTranscribe          = "audio.transcribe"
-	VoiceWorkflowVoiceClone  = "voice_workflow.voice_clone"
-	VoiceWorkflowVoiceDesign = "voice_workflow.voice_design"
-	MusicGenerate            = "music.generate"
-	MusicGenerateIteration   = "music.generate.iteration"
+	TextGenerate      = "text.generate"
+	FeatureInputImage = "input.image"
+	FeatureInputMask  = "input.mask"
+	FeatureInputAudio = "input.audio"
+	FeatureInputText  = "input.text"
+	FeatureInputVideo = "input.video"
+	TextEmbed         = "text.embed"
+	ImageGenerate     = "image.generate"
+	VideoGenerate     = "video.generate"
+	WorldGenerate     = "world.generate"
+	AudioSynthesize   = "audio.synthesize"
+	AudioTranscribe   = "audio.transcribe"
+	VoiceCreate       = "voice.create"
+	MusicGenerate     = "music.generate"
 )
 
 var ErrUnknownCatalogCapability = errors.New("unknown catalog capability")
@@ -30,20 +29,59 @@ var ErrUnknownCatalogCapability = errors.New("unknown catalog capability")
 // maintaining feature-local capability lists.
 var canonicalCatalog = []string{
 	TextGenerate,
-	TextGenerateVision,
 	TextEmbed,
 	AudioSynthesize,
 	AudioTranscribe,
-	VoiceWorkflowVoiceClone,
-	VoiceWorkflowVoiceDesign,
+	VoiceCreate,
 	ImageGenerate,
-	ImageEdit,
 	VideoGenerate,
 	WorldGenerate,
+	MusicGenerate,
+}
+
+var standardizedFeaturesByCapability = map[string]map[string]struct{}{
+	TextGenerate: {
+		FeatureInputImage: {},
+		FeatureInputAudio: {},
+		FeatureInputVideo: {},
+	},
+	ImageGenerate: {
+		FeatureInputImage: {},
+		FeatureInputMask:  {},
+	},
+	VideoGenerate: {
+		FeatureInputImage: {},
+	},
+	MusicGenerate: {
+		FeatureInputAudio: {},
+	},
+	VoiceCreate: {
+		FeatureInputText:  {},
+		FeatureInputAudio: {},
+	},
 }
 
 func CanonicalCatalog() []string {
 	return append([]string(nil), canonicalCatalog...)
+}
+
+// IsCanonicalCatalogCapability accepts only an exact current token. It is the
+// storage/admission boundary used by AIConfig, LCC, and selection owners; it
+// never normalizes legacy or case-variant identities.
+func IsCanonicalCatalogCapability(value string) bool {
+	canonical, err := NormalizeCatalogCapability(value)
+	return err == nil && value == canonical
+}
+
+// SupportsStandardizedFeature reports whether an exact feature belongs to the
+// exact current CapabilityContract. Provider- or Driver-private options do not
+// enter this public feature vocabulary.
+func SupportsStandardizedFeature(capability string, feature string) bool {
+	if !IsCanonicalCatalogCapability(capability) || strings.TrimSpace(feature) != feature {
+		return false
+	}
+	_, ok := standardizedFeaturesByCapability[capability][feature]
+	return ok
 }
 
 // NormalizeCatalogCapability returns the canonical catalog capability token.
@@ -52,18 +90,10 @@ func NormalizeCatalogCapability(value string) (string, error) {
 	switch strings.ToLower(strings.TrimSpace(value)) {
 	case TextGenerate:
 		return TextGenerate, nil
-	case TextGenerateVision:
-		return TextGenerateVision, nil
-	case TextGenerateAudio:
-		return TextGenerateAudio, nil
-	case TextGenerateVideo:
-		return TextGenerateVideo, nil
 	case TextEmbed:
 		return TextEmbed, nil
 	case ImageGenerate:
 		return ImageGenerate, nil
-	case ImageEdit:
-		return ImageEdit, nil
 	case VideoGenerate:
 		return VideoGenerate, nil
 	case WorldGenerate:
@@ -72,14 +102,10 @@ func NormalizeCatalogCapability(value string) (string, error) {
 		return AudioSynthesize, nil
 	case AudioTranscribe:
 		return AudioTranscribe, nil
-	case VoiceWorkflowVoiceClone:
-		return VoiceWorkflowVoiceClone, nil
-	case VoiceWorkflowVoiceDesign:
-		return VoiceWorkflowVoiceDesign, nil
+	case VoiceCreate:
+		return VoiceCreate, nil
 	case MusicGenerate:
 		return MusicGenerate, nil
-	case MusicGenerateIteration:
-		return MusicGenerateIteration, nil
 	default:
 		return "", ErrUnknownCatalogCapability
 	}

@@ -65,6 +65,29 @@ func TestDashScopeCosyVoiceCatalogAdmitsNativeStreamTTSOnlyForRealtimeCapableRou
 	}
 }
 
+func TestSupportsFeatureForSubjectUsesExactModelFeatures(t *testing.T) {
+	resolver, err := NewResolver(ResolverConfig{})
+	if err != nil {
+		t.Fatalf("NewResolver: %v", err)
+	}
+
+	supported, err := resolver.SupportsFeatureForSubject("", "openai", "gpt-4o-mini", " INPUT.IMAGE ")
+	if err != nil {
+		t.Fatalf("SupportsFeatureForSubject: %v", err)
+	}
+	if !supported {
+		t.Fatal("gpt-4o-mini should support input.image from its catalog row")
+	}
+
+	supported, err = resolver.SupportsFeatureForSubject("", "openai", "gpt-4o-mini", "vision")
+	if err != nil {
+		t.Fatalf("SupportsFeatureForSubject alias check: %v", err)
+	}
+	if supported {
+		t.Fatal("feature aliases must not be inferred")
+	}
+}
+
 func TestOpenAICodexPrivateRouteUsesAuthenticatedInventorySource(t *testing.T) {
 	resolver, err := NewResolver(ResolverConfig{})
 	if err != nil {
@@ -395,14 +418,14 @@ func TestResolveVoiceWorkflowDashScope(t *testing.T) {
 		t.Fatalf("NewResolver: %v", err)
 	}
 
-	resolved, err := resolver.ResolveVoiceWorkflow("dashscope", "qwen3-tts-vc", "voice_clone")
+	resolved, err := resolver.ResolveVoiceWorkflow("dashscope", "qwen3-tts-vc", "reference_audio")
 	if err != nil {
 		t.Fatalf("ResolveVoiceWorkflow: %v", err)
 	}
 	if resolved.Provider != "dashscope" {
 		t.Fatalf("provider mismatch: got=%s", resolved.Provider)
 	}
-	if resolved.WorkflowType != "voice_clone" {
+	if resolved.WorkflowType != "reference_audio" {
 		t.Fatalf("workflow type mismatch: got=%s", resolved.WorkflowType)
 	}
 	if strings.TrimSpace(resolved.WorkflowModelID) == "" {
@@ -431,14 +454,14 @@ func TestResolveVoiceWorkflowDashScopeDesign(t *testing.T) {
 		t.Fatalf("NewResolver: %v", err)
 	}
 
-	resolved, err := resolver.ResolveVoiceWorkflow("dashscope", "qwen3-tts-vd", "voice_design")
+	resolved, err := resolver.ResolveVoiceWorkflow("dashscope", "qwen3-tts-vd", "text_description")
 	if err != nil {
 		t.Fatalf("ResolveVoiceWorkflow: %v", err)
 	}
 	if resolved.Provider != "dashscope" {
 		t.Fatalf("provider mismatch: got=%s", resolved.Provider)
 	}
-	if resolved.WorkflowType != "voice_design" {
+	if resolved.WorkflowType != "text_description" {
 		t.Fatalf("workflow type mismatch: got=%s", resolved.WorkflowType)
 	}
 	if strings.TrimSpace(resolved.WorkflowModelID) == "" {
@@ -458,14 +481,14 @@ func TestResolveVoiceWorkflowElevenLabsClone(t *testing.T) {
 		t.Fatalf("NewResolver: %v", err)
 	}
 
-	resolved, err := resolver.ResolveVoiceWorkflow("elevenlabs", "eleven_multilingual_sts_v2", "voice_clone")
+	resolved, err := resolver.ResolveVoiceWorkflow("elevenlabs", "eleven_multilingual_sts_v2", "reference_audio")
 	if err != nil {
 		t.Fatalf("ResolveVoiceWorkflow: %v", err)
 	}
 	if resolved.Provider != "elevenlabs" {
 		t.Fatalf("provider mismatch: got=%s", resolved.Provider)
 	}
-	if resolved.WorkflowType != "voice_clone" {
+	if resolved.WorkflowType != "reference_audio" {
 		t.Fatalf("workflow type mismatch: got=%s", resolved.WorkflowType)
 	}
 	if resolved.WorkflowModelID != "elevenlabs-voice-clone" {
@@ -485,21 +508,21 @@ func TestResolveVoiceWorkflowElevenLabsDesignUsesDedicatedModels(t *testing.T) {
 		t.Fatalf("NewResolver: %v", err)
 	}
 
-	resolved, err := resolver.ResolveVoiceWorkflow("elevenlabs", "eleven_ttv_v3", "voice_design")
+	resolved, err := resolver.ResolveVoiceWorkflow("elevenlabs", "eleven_ttv_v3", "text_description")
 	if err != nil {
 		t.Fatalf("ResolveVoiceWorkflow: %v", err)
 	}
 	if resolved.Provider != "elevenlabs" {
 		t.Fatalf("provider mismatch: got=%s", resolved.Provider)
 	}
-	if resolved.WorkflowType != "voice_design" {
+	if resolved.WorkflowType != "text_description" {
 		t.Fatalf("workflow type mismatch: got=%s", resolved.WorkflowType)
 	}
 	if resolved.WorkflowModelID != "elevenlabs-voice-design" {
 		t.Fatalf("unexpected workflow model id: %s", resolved.WorkflowModelID)
 	}
 
-	_, err = resolver.ResolveVoiceWorkflow("elevenlabs", "eleven_multilingual_v2", "voice_design")
+	_, err = resolver.ResolveVoiceWorkflow("elevenlabs", "eleven_multilingual_v2", "text_description")
 	if err == nil {
 		t.Fatalf("expected ordinary ElevenLabs TTS model to reject voice_design")
 	}
@@ -514,7 +537,7 @@ func TestResolveVoiceWorkflowDesignOnlyModelRejectsClone(t *testing.T) {
 		t.Fatalf("NewResolver: %v", err)
 	}
 
-	_, err = resolver.ResolveVoiceWorkflow("elevenlabs", "eleven_ttv_v3", "voice_clone")
+	_, err = resolver.ResolveVoiceWorkflow("elevenlabs", "eleven_ttv_v3", "reference_audio")
 	if err == nil {
 		t.Fatalf("expected design-only model to reject voice_clone")
 	}
@@ -529,14 +552,14 @@ func TestResolveVoiceWorkflowFishAudioClone(t *testing.T) {
 		t.Fatalf("NewResolver: %v", err)
 	}
 
-	resolved, err := resolver.ResolveVoiceWorkflow("fish_audio", "s1", "voice_clone")
+	resolved, err := resolver.ResolveVoiceWorkflow("fish_audio", "s1", "reference_audio")
 	if err != nil {
 		t.Fatalf("ResolveVoiceWorkflow: %v", err)
 	}
 	if resolved.Provider != "fish_audio" {
 		t.Fatalf("provider mismatch: got=%s", resolved.Provider)
 	}
-	if resolved.WorkflowType != "voice_clone" {
+	if resolved.WorkflowType != "reference_audio" {
 		t.Fatalf("workflow type mismatch: got=%s", resolved.WorkflowType)
 	}
 	if resolved.WorkflowModelID != "fish-audio-create-model" {
@@ -550,7 +573,7 @@ func TestResolveVoiceWorkflowCloneOnlyModelRejectsDesign(t *testing.T) {
 		t.Fatalf("NewResolver: %v", err)
 	}
 
-	_, err = resolver.ResolveVoiceWorkflow("fish_audio", "s1", "voice_design")
+	_, err = resolver.ResolveVoiceWorkflow("fish_audio", "s1", "text_description")
 	if err == nil {
 		t.Fatalf("expected clone-only model to reject voice_design")
 	}
@@ -565,14 +588,14 @@ func TestResolveVoiceWorkflowStepFunClone(t *testing.T) {
 		t.Fatalf("NewResolver: %v", err)
 	}
 
-	resolved, err := resolver.ResolveVoiceWorkflow("stepfun", "step-tts-2", "voice_clone")
+	resolved, err := resolver.ResolveVoiceWorkflow("stepfun", "step-tts-2", "reference_audio")
 	if err != nil {
 		t.Fatalf("ResolveVoiceWorkflow: %v", err)
 	}
 	if resolved.Provider != "stepfun" {
 		t.Fatalf("provider mismatch: got=%s", resolved.Provider)
 	}
-	if resolved.WorkflowType != "voice_clone" {
+	if resolved.WorkflowType != "reference_audio" {
 		t.Fatalf("workflow type mismatch: got=%s", resolved.WorkflowType)
 	}
 	if resolved.WorkflowModelID != "stepfun-voice-clone" {
@@ -592,7 +615,7 @@ func TestResolveVoiceWorkflowLocalQwenClone(t *testing.T) {
 		t.Fatalf("NewResolver: %v", err)
 	}
 
-	resolved, err := resolver.ResolveVoiceWorkflow("local", "qwen3-tts-base-local", "voice_clone")
+	resolved, err := resolver.ResolveVoiceWorkflow("local", "qwen3-tts-base-local", "reference_audio")
 	if err != nil {
 		t.Fatalf("ResolveVoiceWorkflow: %v", err)
 	}
@@ -631,7 +654,7 @@ func TestResolveVoiceWorkflowLocalQwenDesign(t *testing.T) {
 		t.Fatalf("NewResolver: %v", err)
 	}
 
-	resolved, err := resolver.ResolveVoiceWorkflow("local", "speech/qwen3tts-design", "voice_design")
+	resolved, err := resolver.ResolveVoiceWorkflow("local", "speech/qwen3tts-design", "text_description")
 	if err != nil {
 		t.Fatalf("ResolveVoiceWorkflow: %v", err)
 	}
@@ -658,7 +681,7 @@ func TestResolveVoiceWorkflowUnsupportedReturnsError(t *testing.T) {
 		t.Fatalf("NewResolver: %v", err)
 	}
 
-	_, err = resolver.ResolveVoiceWorkflow("dashscope", "qwen3-tts-instruct-flash", "voice_clone")
+	_, err = resolver.ResolveVoiceWorkflow("dashscope", "qwen3-tts-instruct-flash", "reference_audio")
 	if err == nil {
 		t.Fatalf("expected voice workflow unsupported error")
 	}
@@ -673,7 +696,7 @@ func TestResolveVoiceWorkflowLocalUnsupportedReturnsError(t *testing.T) {
 		t.Fatalf("NewResolver: %v", err)
 	}
 
-	_, err = resolver.ResolveVoiceWorkflow("local", "kokoro-local", "voice_clone")
+	_, err = resolver.ResolveVoiceWorkflow("local", "kokoro-local", "reference_audio")
 	if err == nil {
 		t.Fatalf("expected local voice workflow unsupported error")
 	}
@@ -688,14 +711,14 @@ func TestResolveVoiceWorkflowLocalPlainSynthLaneUnsupported(t *testing.T) {
 		t.Fatalf("NewResolver: %v", err)
 	}
 
-	_, err = resolver.ResolveVoiceWorkflow("local", "speech/qwen3tts", "voice_clone")
+	_, err = resolver.ResolveVoiceWorkflow("local", "speech/qwen3tts", "reference_audio")
 	if err == nil {
 		t.Fatalf("expected plain synth qwen3 lane to be unsupported for voice clone")
 	}
 	if err != ErrVoiceWorkflowUnsupported {
 		t.Fatalf("expected ErrVoiceWorkflowUnsupported, got=%v", err)
 	}
-	_, err = resolver.ResolveVoiceWorkflow("local", "speech/qwen3tts", "voice_design")
+	_, err = resolver.ResolveVoiceWorkflow("local", "speech/qwen3tts", "text_description")
 	if err == nil {
 		t.Fatalf("expected plain synth qwen3 lane to be unsupported for voice design")
 	}
@@ -710,7 +733,7 @@ func TestResolveVoiceWorkflowLocalUnsupportedDesignReturnsError(t *testing.T) {
 		t.Fatalf("NewResolver: %v", err)
 	}
 
-	_, err = resolver.ResolveVoiceWorkflow("local", "kokoro-local", "voice_design")
+	_, err = resolver.ResolveVoiceWorkflow("local", "kokoro-local", "text_description")
 	if err == nil {
 		t.Fatalf("expected local voice design unsupported error")
 	}
@@ -725,7 +748,7 @@ func TestSupportsScenarioVoiceWorkflowUsesBindings(t *testing.T) {
 		t.Fatalf("NewResolver: %v", err)
 	}
 
-	supported, err := resolver.SupportsScenario("dashscope", "qwen3-tts-vd", runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_DESIGN)
+	supported, err := resolver.SupportsScenario("dashscope", "qwen3-tts-vd", runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CREATE)
 	if err != nil {
 		t.Fatalf("SupportsScenario voice design: %v", err)
 	}
@@ -733,12 +756,12 @@ func TestSupportsScenarioVoiceWorkflowUsesBindings(t *testing.T) {
 		t.Fatalf("expected voice design to be supported for dashscope/qwen3-tts-vd")
 	}
 
-	supported, err = resolver.SupportsScenario("dashscope", "qwen3-tts-vd", runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE)
+	supported, err = resolver.SupportsFeatureForSubject("", "dashscope", "qwen3-tts-vd", "input.audio")
 	if err != nil {
-		t.Fatalf("SupportsScenario voice clone: %v", err)
+		t.Fatalf("SupportsFeature input.audio: %v", err)
 	}
 	if supported {
-		t.Fatalf("expected voice clone to be unsupported for dashscope/qwen3-tts-vd")
+		t.Fatalf("expected reference-audio creation to be unsupported for dashscope/qwen3-tts-vd")
 	}
 }
 

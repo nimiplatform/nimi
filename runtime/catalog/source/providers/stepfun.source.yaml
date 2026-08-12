@@ -172,7 +172,8 @@ models:
   - model_id: step-3.7-flash
     model_type: chat
     updated_at: 2026-07-20
-    capabilities: [text.generate, text.generate.vision]
+    capabilities: [text.generate]
+    features: [input.image]
     pricing:
       unit: token
       input: unknown
@@ -211,7 +212,8 @@ models:
   - model_id: step-3
     model_type: chat
     updated_at: 2026-04-18
-    capabilities: [text.generate, text.generate.vision]
+    capabilities: [text.generate]
+    features: [input.image]
     pricing:
       unit: token
       input: unknown
@@ -224,7 +226,8 @@ models:
   - model_id: step-r1-v-mini
     model_type: chat
     updated_at: 2026-04-18
-    capabilities: [text.generate, text.generate.vision]
+    capabilities: [text.generate]
+    features: [input.image]
     pricing:
       unit: token
       input: unknown
@@ -306,7 +309,8 @@ models:
   - model_id: step-1o-turbo-vision
     model_type: chat
     updated_at: 2026-04-18
-    capabilities: [text.generate.vision]
+    capabilities: [text.generate]
+    features: [input.image]
     pricing:
       unit: token
       input: unknown
@@ -319,7 +323,8 @@ models:
   - model_id: step-1o-vision-32k
     model_type: chat
     updated_at: 2026-04-18
-    capabilities: [text.generate.vision]
+    capabilities: [text.generate]
+    features: [input.image]
     pricing:
       unit: token
       input: unknown
@@ -332,7 +337,8 @@ models:
   - model_id: step-1v-8k
     model_type: chat
     updated_at: 2026-04-18
-    capabilities: [text.generate.vision]
+    capabilities: [text.generate]
+    features: [input.image]
     pricing:
       unit: token
       input: unknown
@@ -345,7 +351,8 @@ models:
   - model_id: step-1v-32k
     model_type: chat
     updated_at: 2026-04-18
-    capabilities: [text.generate.vision]
+    capabilities: [text.generate]
+    features: [input.image]
     pricing:
       unit: token
       input: unknown
@@ -359,7 +366,8 @@ models:
   - model_id: step-tts-2
     model_type: tts
     updated_at: 2026-04-18
-    capabilities: [audio.synthesize]
+    capabilities: [audio.synthesize, voice.create]
+    features: [input.audio]
     voice:
       discovery_mode: static_catalog
       voice_set_ref: tts_2_voice_set
@@ -453,7 +461,7 @@ models:
 
 voice_workflow_models:
   - workflow_model_id: stepfun-voice-clone
-    workflow_type: voice_clone
+    workflow_type: reference_audio
     workflow_family: stepfun
     input_contract_ref: stepfun_voice_clone_input_v2
     output_persistence: provider_persistent
@@ -472,11 +480,11 @@ voice_workflow_models:
 model_workflow_bindings:
   - model_id: step-tts-2
     workflow_model_refs: [stepfun-voice-clone]
-    workflow_types: [voice_clone]
+    workflow_types: [reference_audio]
 
 voice_handle_policies:
   - policy_id: stepfun_provider_persistent_default
-    applies_to_workflow_types: [voice_clone]
+    applies_to_workflow_types: [reference_audio]
     persistence: provider_persistent
     default_ttl: none
     scope: user_scoped

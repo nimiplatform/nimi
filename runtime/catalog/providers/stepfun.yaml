@@ -10,7 +10,6 @@ models:
     updated_at: 2026-07-20
     capabilities:
       - text.generate
-      - text.generate.vision
     pricing:
       unit: token
       input: unknown
@@ -22,6 +21,8 @@ models:
       url: https://platform.stepfun.com/
       retrieved_at: 2026-07-20
       note: Official StepFun product page for Step 3.7 Flash and its production Agent, multimodal, search, and tool-orchestration capabilities.
+    features:
+      - input.image
     context_window_tokens: 8192
   - model_id: step-3.5-flash-2603
     provider: stepfun
@@ -65,7 +66,6 @@ models:
     updated_at: 2026-04-18
     capabilities:
       - text.generate
-      - text.generate.vision
     pricing:
       unit: token
       input: unknown
@@ -77,6 +77,8 @@ models:
       url: https://platform.stepfun.ai/docs/en/llm/modeloverview
       retrieved_at: 2026-04-18
       note: StepFun current public model capability overview across text, vision, image, and audio families.
+    features:
+      - input.image
     context_window_tokens: 8192
   - model_id: step-r1-v-mini
     provider: stepfun
@@ -84,7 +86,6 @@ models:
     updated_at: 2026-04-18
     capabilities:
       - text.generate
-      - text.generate.vision
     pricing:
       unit: token
       input: unknown
@@ -96,6 +97,8 @@ models:
       url: https://platform.stepfun.ai/docs/en/llm/modeloverview
       retrieved_at: 2026-04-18
       note: StepFun current public model capability overview across text, vision, image, and audio families.
+    features:
+      - input.image
     context_window_tokens: 8192
   - model_id: step-2-mini
     provider: stepfun
@@ -192,7 +195,7 @@ models:
     model_type: chat
     updated_at: 2026-04-18
     capabilities:
-      - text.generate.vision
+      - text.generate
     pricing:
       unit: token
       input: unknown
@@ -204,12 +207,15 @@ models:
       url: https://platform.stepfun.ai/docs/en/llm/vision
       retrieved_at: 2026-04-18
       note: StepFun current vision model guide.
+    features:
+      - input.image
+    context_window_tokens: 8192
   - model_id: step-1o-vision-32k
     provider: stepfun
     model_type: chat
     updated_at: 2026-04-18
     capabilities:
-      - text.generate.vision
+      - text.generate
     pricing:
       unit: token
       input: unknown
@@ -221,12 +227,15 @@ models:
       url: https://platform.stepfun.ai/docs/en/llm/vision
       retrieved_at: 2026-04-18
       note: StepFun current vision model guide.
+    features:
+      - input.image
+    context_window_tokens: 8192
   - model_id: step-1v-8k
     provider: stepfun
     model_type: chat
     updated_at: 2026-04-18
     capabilities:
-      - text.generate.vision
+      - text.generate
     pricing:
       unit: token
       input: unknown
@@ -238,12 +247,15 @@ models:
       url: https://platform.stepfun.ai/docs/en/llm/vision
       retrieved_at: 2026-04-18
       note: StepFun current vision model guide.
+    features:
+      - input.image
+    context_window_tokens: 8192
   - model_id: step-1v-32k
     provider: stepfun
     model_type: chat
     updated_at: 2026-04-18
     capabilities:
-      - text.generate.vision
+      - text.generate
     pricing:
       unit: token
       input: unknown
@@ -255,12 +267,16 @@ models:
       url: https://platform.stepfun.ai/docs/en/llm/vision
       retrieved_at: 2026-04-18
       note: StepFun current vision model guide.
+    features:
+      - input.image
+    context_window_tokens: 8192
   - model_id: step-tts-2
     provider: stepfun
     model_type: tts
     updated_at: 2026-04-18
     capabilities:
       - audio.synthesize
+      - voice.create
     pricing:
       unit: char
       input: "0"
@@ -272,6 +288,8 @@ models:
       url: https://platform.stepfun.ai/docs/en/guides/basic-concepts
       retrieved_at: 2026-04-18
       note: StepFun current basic concepts page summarizing reasoning and audio model families.
+    features:
+      - input.audio
     voice_set_id: stepfun:tts_2_voice_set
     voice_discovery_mode: static_catalog
     voice_request_options:
@@ -767,7 +785,7 @@ selection_profiles:
     rationale: StepFun's current flagship route for reasoning, long-running Agent workflows, and multimodal task execution.
 voice_workflow_models:
   - workflow_model_id: stepfun-voice-clone
-    workflow_type: voice_clone
+    workflow_type: reference_audio
     workflow_family: stepfun
     input_contract_ref: stepfun_voice_clone_input_v2
     output_persistence: provider_persistent
@@ -795,11 +813,11 @@ model_workflow_bindings:
     workflow_model_refs:
       - stepfun-voice-clone
     workflow_types:
-      - voice_clone
+      - reference_audio
 voice_handle_policies:
   - policy_id: stepfun_provider_persistent_default
     applies_to_workflow_types:
-      - voice_clone
+      - reference_audio
     persistence: provider_persistent
     default_ttl: none
     scope: user_scoped

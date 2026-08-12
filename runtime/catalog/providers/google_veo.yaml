@@ -20,6 +20,8 @@ models:
       url: https://ai.google.dev/gemini-api/docs/video
       retrieved_at: 2026-04-18
       note: Google Veo video generation via Gemini API.
+    features:
+      - input.image
     video_generation:
       modes:
         - t2v
@@ -81,6 +83,8 @@ models:
       url: https://ai.google.dev/gemini-api/docs/video
       retrieved_at: 2026-04-18
       note: Google Veo video generation via Gemini API.
+    features:
+      - input.image
     video_generation:
       modes:
         - t2v
@@ -142,6 +146,8 @@ models:
       url: https://ai.google.dev/gemini-api/docs/video
       retrieved_at: 2026-04-18
       note: Google Veo video generation via Gemini API.
+    features:
+      - input.image
     video_generation:
       modes:
         - t2v
@@ -191,6 +197,8 @@ models:
       url: https://ai.google.dev/gemini-api/docs/video
       retrieved_at: 2026-04-18
       note: Google Veo video generation via Gemini API.
+    features:
+      - input.image
     video_generation:
       modes:
         - t2v
@@ -240,6 +248,8 @@ models:
       url: https://ai.google.dev/gemini-api/docs/video
       retrieved_at: 2026-04-18
       note: Google Veo video generation via Gemini API.
+    features:
+      - input.image
     video_generation:
       modes:
         - t2v

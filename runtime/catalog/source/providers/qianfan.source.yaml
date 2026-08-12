@@ -158,7 +158,8 @@ models:
   - model_id: ernie-4.5-turbo-vl
     model_type: chat
     updated_at: 2026-04-18
-    capabilities: [text.generate.vision]
+    capabilities: [text.generate]
+    features: [input.image]
     pricing:
       unit: token
       input: unknown
@@ -171,7 +172,8 @@ models:
   - model_id: ernie-4.5-turbo-vl-32k
     model_type: chat
     updated_at: 2026-04-18
-    capabilities: [text.generate.vision]
+    capabilities: [text.generate]
+    features: [input.image]
     pricing:
       unit: token
       input: "3.00"

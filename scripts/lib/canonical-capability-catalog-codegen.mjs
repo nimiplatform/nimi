@@ -10,6 +10,7 @@ const ALLOWED_SECTIONS = new Set([
   'embed',
   'voice',
   'world',
+  'music',
 ]);
 const ALLOWED_EDITOR_KINDS = new Set([
   'text',
@@ -17,7 +18,7 @@ const ALLOWED_EDITOR_KINDS = new Set([
   'video',
   'audio-transcribe',
   'audio-synthesize',
-  'voice-workflow',
+  'voice-create',
   null,
 ]);
 const ALLOWED_EVIDENCE_CLASSES = new Set(['turn', 'job', 'workflow']);

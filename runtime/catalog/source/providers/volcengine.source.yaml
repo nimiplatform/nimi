@@ -75,6 +75,7 @@ models:
       - seedance-1.5-pro
       - seedance_v1_5_pro
     capabilities: [video.generate]
+    features: [input.image]
     source_ids: [volcengine_seedance_video_doc, volcengine_seedance_create_task_api, volcengine_seedance_query_task_api]
     video_generation:
       modes: [t2v, i2v_first_frame, i2v_first_last, i2v_reference]
@@ -124,6 +125,7 @@ models:
     model_type: video
     updated_at: 2026-04-03
     capabilities: [video.generate]
+    features: [input.image]
     source_ids: [volcengine_seedance_video_doc, volcengine_seedance_create_task_api, volcengine_seedance_query_task_api]
     video_generation:
       modes: [t2v, i2v_first_frame, i2v_first_last, i2v_reference]
@@ -319,6 +321,7 @@ models:
     model_type: image
     updated_at: 2026-04-18
     capabilities: [image.generate]
+    features: [input.image, input.mask]
     image_request_options:
       response_formats: [b64_json, url]
       max_images_per_request: 1
@@ -345,6 +348,7 @@ models:
     model_type: image
     updated_at: 2026-04-18
     capabilities: [image.generate]
+    features: [input.image, input.mask]
     image_request_options:
       response_formats: [b64_json, url]
       max_images_per_request: 1

@@ -11,4 +11,3 @@ dynamic_inventory:
   failure_policy: use_cache_then_fail_closed
   allowed_capabilities:
     - text.generate
-    - text.generate.vision

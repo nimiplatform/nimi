@@ -9,6 +9,7 @@ models:
     updated_at: 2026-04-18
     capabilities:
       - audio.synthesize
+      - voice.create
     pricing:
       unit: request
       input: unknown
@@ -20,6 +21,8 @@ models:
       url: https://docs.fish.audio/api-reference/endpoint/openapi-v1/text-to-speech
       retrieved_at: 2026-04-18
       note: Fish Audio TTS API reference.
+    features:
+      - input.audio
     voice_set_id: fish_audio:default-voices-v1
     voice_discovery_mode: static_catalog
     voice_request_options:
@@ -40,6 +43,7 @@ models:
     updated_at: 2026-04-18
     capabilities:
       - audio.synthesize
+      - voice.create
     pricing:
       unit: request
       input: unknown
@@ -51,6 +55,8 @@ models:
       url: https://docs.fish.audio/developer-guide/getting-started/quickstart
       retrieved_at: 2026-04-18
       note: Fish Audio quickstart and SDK usage.
+    features:
+      - input.audio
     voice_set_id: fish_audio:default-voices-v1
     voice_discovery_mode: static_catalog
     voice_request_options:
@@ -107,7 +113,7 @@ voices:
       note: Fish Audio TTS API reference.
 voice_workflow_models:
   - workflow_model_id: fish-audio-create-model
-    workflow_type: voice_clone
+    workflow_type: reference_audio
     workflow_family: fish-audio
     input_contract_ref: fish_audio_voice_clone_input_v1
     output_persistence: provider_persistent
@@ -147,16 +153,16 @@ model_workflow_bindings:
     workflow_model_refs:
       - fish-audio-create-model
     workflow_types:
-      - voice_clone
+      - reference_audio
   - model_id: s2-pro
     workflow_model_refs:
       - fish-audio-create-model
     workflow_types:
-      - voice_clone
+      - reference_audio
 voice_handle_policies:
   - policy_id: fish_audio_provider_persistent_default
     applies_to_workflow_types:
-      - voice_clone
+      - reference_audio
     persistence: provider_persistent
     default_ttl: none
     scope: user_scoped

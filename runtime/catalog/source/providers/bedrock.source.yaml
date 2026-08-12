@@ -105,7 +105,8 @@ models:
   - model_id: anthropic.claude-fable-5
     model_type: chat
     updated_at: 2026-06-09
-    capabilities: [text.generate, text.generate.vision]
+    capabilities: [text.generate]
+    features: [input.image]
     pricing:
       unit: token
       input: unknown
@@ -120,7 +121,8 @@ models:
   - model_id: anthropic.claude-sonnet-5
     model_type: chat
     updated_at: 2026-06-30
-    capabilities: [text.generate, text.generate.vision]
+    capabilities: [text.generate]
+    features: [input.image]
     pricing:
       unit: token
       input: unknown
@@ -135,7 +137,8 @@ models:
   - model_id: anthropic.claude-opus-4-8
     model_type: chat
     updated_at: 2026-06-03
-    capabilities: [text.generate, text.generate.vision]
+    capabilities: [text.generate]
+    features: [input.image]
     pricing:
       unit: token
       input: unknown
@@ -150,7 +153,8 @@ models:
   - model_id: anthropic.claude-opus-4-6-v1
     model_type: chat
     updated_at: 2026-04-18
-    capabilities: [text.generate, text.generate.vision]
+    capabilities: [text.generate]
+    features: [input.image]
     pricing:
       unit: token
       input: unknown
@@ -165,7 +169,8 @@ models:
   - model_id: anthropic.claude-sonnet-4-6
     model_type: chat
     updated_at: 2026-04-18
-    capabilities: [text.generate, text.generate.vision]
+    capabilities: [text.generate]
+    features: [input.image]
     pricing:
       unit: token
       input: unknown
@@ -180,7 +185,8 @@ models:
   - model_id: anthropic.claude-opus-4-5-20251101-v1:0
     model_type: chat
     updated_at: 2026-04-18
-    capabilities: [text.generate, text.generate.vision]
+    capabilities: [text.generate]
+    features: [input.image]
     pricing:
       unit: token
       input: unknown
@@ -195,7 +201,8 @@ models:
   - model_id: anthropic.claude-sonnet-4-5-20250929-v1:0
     model_type: chat
     updated_at: 2026-04-18
-    capabilities: [text.generate, text.generate.vision]
+    capabilities: [text.generate]
+    features: [input.image]
     pricing:
       unit: token
       input: unknown
@@ -210,7 +217,8 @@ models:
   - model_id: anthropic.claude-haiku-4-5-20251001-v1:0
     model_type: chat
     updated_at: 2026-04-18
-    capabilities: [text.generate, text.generate.vision]
+    capabilities: [text.generate]
+    features: [input.image]
     pricing:
       unit: token
       input: unknown
@@ -225,7 +233,8 @@ models:
   - model_id: amazon.nova-premier-v1:0
     model_type: chat
     updated_at: 2026-04-18
-    capabilities: [text.generate, text.generate.vision]
+    capabilities: [text.generate]
+    features: [input.image]
     pricing:
       unit: token
       input: unknown
@@ -240,7 +249,8 @@ models:
   - model_id: amazon.nova-pro-v1:0
     model_type: chat
     updated_at: 2026-04-18
-    capabilities: [text.generate, text.generate.vision]
+    capabilities: [text.generate]
+    features: [input.image]
     pricing:
       unit: token
       input: unknown
@@ -255,7 +265,8 @@ models:
   - model_id: amazon.nova-lite-v1:0
     model_type: chat
     updated_at: 2026-04-18
-    capabilities: [text.generate, text.generate.vision]
+    capabilities: [text.generate]
+    features: [input.image]
     pricing:
       unit: token
       input: unknown

@@ -25,13 +25,11 @@ import {
   normalizeTranscriptionOptions,
   normalizeVideoGeneration,
   normalizeVoiceRequestOptions,
-  normalizeVoiceWorkflowRequestOptions,
-  normalizeWorkflowType,
   normalizeEmbeddingCapability,
   normalizeLocalPlaneRow,
   normalizePresets,
+  normalizeProviderExtensions,
   parseVoiceDefinition,
-  resolveCapabilities,
   resolveLangs,
   resolvePricing,
   resolveSourceRef,
@@ -54,6 +52,26 @@ const sourceDir = path.join(
 const scopeLabel = 'active';
 const generateCommand = 'pnpm generate:runtime-catalog';
 
+const canonicalModelCapabilities = new Set([
+  'text.generate',
+  'text.embed',
+  'image.generate',
+  'video.generate',
+  'world.generate',
+  'audio.synthesize',
+  'audio.transcribe',
+  'music.generate',
+  'voice.create',
+]);
+
+const allowedFeaturesByCapability = new Map([
+  ['text.generate', new Set(['input.image', 'input.audio', 'input.video'])],
+  ['image.generate', new Set(['input.image', 'input.mask'])],
+  ['video.generate', new Set(['input.image'])],
+  ['music.generate', new Set(['input.audio'])],
+  ['voice.create', new Set(['input.text', 'input.audio'])],
+]);
+
 function ensureUnderRepoRoot(absPath) {
   const rel = path.relative(repoRoot, absPath);
   if (rel.startsWith('..') || path.isAbsolute(rel)) {
@@ -66,6 +84,78 @@ function requirePositiveSafeInteger(value, label) {
     throw new Error(`${label} must be a positive integer`);
   }
   return value;
+}
+
+function resolveCapabilities(defaultCaps, overrideCaps) {
+  const merged = normalizeStringArray([...(defaultCaps || []), ...(overrideCaps || [])]);
+  if (merged.length === 0) {
+    throw new Error('capabilities must not be empty');
+  }
+  for (const capability of merged) {
+    if (!canonicalModelCapabilities.has(capability.toLowerCase())) {
+      throw new Error(`capabilities must use canonical capability tokens only, got: ${capability}`);
+    }
+  }
+  return merged;
+}
+
+function normalizeVoiceCreationSource(value) {
+  const normalized = normalizeString(value).toLowerCase();
+  if (!normalized) {
+    return '';
+  }
+  if (normalized === 'reference_audio' || normalized === 'text_description') {
+    return normalized;
+  }
+  throw new Error(`voice creation source must be reference_audio or text_description, got: ${normalized}`);
+}
+
+function normalizeVoiceCreationRequestOptions(raw, provider, modelID, source) {
+  if (!raw || typeof raw !== 'object') {
+    throw new Error(`${provider} voice creation model ${modelID} missing request_options`);
+  }
+  const out = {};
+  const readExplicitBoolean = (field) => {
+    if (typeof raw[field] !== 'boolean') {
+      throw new Error(`${provider} voice creation model ${modelID} request_options.${field} must be explicit boolean`);
+    }
+    return raw[field];
+  };
+  const normalizeMode = (field) => {
+    const value = normalizeString(raw[field]).toLowerCase();
+    if (value !== 'unsupported' && value !== 'optional' && value !== 'required') {
+      throw new Error(`${provider} voice creation model ${modelID} request_options.${field} must be unsupported|optional|required`);
+    }
+    return value;
+  };
+
+  if (source === 'reference_audio') {
+    out.text_prompt_mode = normalizeMode('text_prompt_mode');
+    out.supports_language_hints = readExplicitBoolean('supports_language_hints');
+    out.supports_preferred_name = readExplicitBoolean('supports_preferred_name');
+    out.reference_audio_uri_input = readExplicitBoolean('reference_audio_uri_input');
+    out.reference_audio_bytes_input = readExplicitBoolean('reference_audio_bytes_input');
+    if (!out.reference_audio_uri_input && !out.reference_audio_bytes_input) {
+      throw new Error(`${provider} voice creation model ${modelID} must admit at least one reference audio input path`);
+    }
+    out.allowed_reference_audio_mime_types = normalizeStringArray(raw.allowed_reference_audio_mime_types).map((value) => value.toLowerCase());
+    if (out.allowed_reference_audio_mime_types.length === 0) {
+      throw new Error(`${provider} voice creation model ${modelID} request_options.allowed_reference_audio_mime_types must not be empty`);
+    }
+  } else if (source === 'text_description') {
+    out.instruction_text_mode = normalizeMode('instruction_text_mode');
+    out.preview_text_mode = normalizeMode('preview_text_mode');
+    out.supports_language = readExplicitBoolean('supports_language');
+    out.supports_preferred_name = readExplicitBoolean('supports_preferred_name');
+  } else {
+    throw new Error(`${provider} voice creation model ${modelID} uses unsupported source ${source}`);
+  }
+
+  const providerExtensions = normalizeProviderExtensions(raw.provider_extensions, provider, modelID, 'request_options');
+  if (providerExtensions) {
+    out.provider_extensions = providerExtensions;
+  }
+  return out;
 }
 
 export function generateProviderCatalog(doc) {
@@ -145,6 +235,23 @@ export function generateProviderCatalog(doc) {
     const modelType = normalizeString(model?.model_type) || defaultModelType;
     const capabilities = resolveCapabilities(defaultCapabilities, model?.capabilities);
     const normalizedCapabilities = capabilities.map((value) => normalizeString(value).toLowerCase());
+    const features = normalizeStringArray(model?.features).map((value) => value.toLowerCase());
+    if (features.length > 0) {
+      const allowedFeatures = new Set();
+      for (const capability of normalizedCapabilities) {
+        for (const feature of allowedFeaturesByCapability.get(capability) || []) {
+          allowedFeatures.add(feature);
+        }
+      }
+      if (allowedFeatures.size === 0) {
+        throw new Error(`${provider} model ${canonicalModelID} declares features without a feature-bearing capability contract`);
+      }
+      for (const feature of features) {
+        if (!allowedFeatures.has(feature)) {
+          throw new Error(`${provider} model ${canonicalModelID} feature ${feature} is not allowed by its capability contracts`);
+        }
+      }
+    }
     const textGenerateCapable = normalizedCapabilities.includes('text.generate');
     const declaresContextWindow = model?.context_window_tokens !== undefined;
     if (declaresContextWindow && !textGenerateCapable) {
@@ -166,6 +273,12 @@ export function generateProviderCatalog(doc) {
     const voiceRequestOptions = normalizeVoiceRequestOptions(voiceConfig.request_options, provider, canonicalModelID);
     const transcription = normalizeTranscriptionOptions(model?.transcription, provider, canonicalModelID);
     const imageRequestOptions = normalizeImageRequestOptions(model?.image_request_options, provider, canonicalModelID);
+	if (imageRequestOptions?.supports_reference_images && !features.includes('input.image')) {
+	  throw new Error(`${provider} model ${canonicalModelID} declares reference-image support without feature input.image`);
+	}
+	if (imageRequestOptions?.supports_mask && !features.includes('input.mask')) {
+	  throw new Error(`${provider} model ${canonicalModelID} declares mask support without feature input.mask`);
+	}
     const embedding = normalizeEmbeddingCapability(model?.embedding, provider, canonicalModelID);
     const allowedDiscoveryModes = new Set(['static_catalog', 'dynamic_user_scoped']);
     if (discoveryMode && !allowedDiscoveryModes.has(discoveryMode)) {
@@ -210,6 +323,12 @@ export function generateProviderCatalog(doc) {
     const modelSourceRef = resolveSourceRef(modelSourceIDs, sourceIndex, fallbackSourceRef);
 
     const videoGeneration = normalizeVideoGeneration(model?.video_generation);
+    if (
+      videoGeneration?.modes.some((mode) => mode !== 't2v')
+      && !features.includes('input.image')
+    ) {
+      throw new Error(`${provider} model ${canonicalModelID} declares image-conditioned video modes without feature input.image`);
+    }
     const localPlane = runtime.runtime_plane === 'local'
       ? normalizeLocalPlaneRow(model, canonicalModelID)
       : null;
@@ -249,6 +368,9 @@ export function generateProviderCatalog(doc) {
       const apiModelID = sourceApiModelID || (runtime.runtime_plane === 'local' || entryModelID === canonicalModelID ? '' : canonicalModelID);
       if (apiModelID) {
         modelEntry.api_model_id = apiModelID;
+      }
+      if (features.length > 0) {
+        modelEntry.features = [...features];
       }
       if (runtime.runtime_plane !== 'local' && textGenerateCapable) {
         modelEntry.context_window_tokens = contextWindowTokens;
@@ -441,7 +563,7 @@ export function generateProviderCatalog(doc) {
     if (!workflowModelID) {
       throw new Error(`${provider} voice_workflow_models entry missing workflow_model_id`);
     }
-    const workflowType = normalizeWorkflowType(workflowModel?.workflow_type);
+    const workflowType = normalizeVoiceCreationSource(workflowModel?.workflow_type);
     if (!workflowType) {
       throw new Error(`${provider} workflow model ${workflowModelID} missing workflow_type`);
     }
@@ -466,7 +588,7 @@ export function generateProviderCatalog(doc) {
     }
     const inputContractRef = normalizeString(workflowModel?.input_contract_ref);
     const outputPersistence = normalizeString(workflowModel?.output_persistence);
-    const requestOptions = normalizeVoiceWorkflowRequestOptions(
+    const requestOptions = normalizeVoiceCreationRequestOptions(
       workflowModel?.request_options,
       provider,
       workflowModelID,
@@ -516,7 +638,7 @@ export function generateProviderCatalog(doc) {
       inferredTypes.push(workflowType);
     }
 
-    const declaredWorkflowTypes = normalizeStringArray(binding?.workflow_types).map((value) => normalizeWorkflowType(value));
+    const declaredWorkflowTypes = normalizeStringArray(binding?.workflow_types).map((value) => normalizeVoiceCreationSource(value));
     const workflowTypes = declaredWorkflowTypes.length > 0
       ? normalizeStringArray(declaredWorkflowTypes)
       : normalizeStringArray(inferredTypes);
@@ -544,7 +666,7 @@ export function generateProviderCatalog(doc) {
     }
 
     const appliesToWorkflowTypes = normalizeStringArray(policy?.applies_to_workflow_types)
-      .map((value) => normalizeWorkflowType(value));
+      .map((value) => normalizeVoiceCreationSource(value));
     if (appliesToWorkflowTypes.length === 0) {
       throw new Error(`${provider} voice handle policy ${policyID} must include applies_to_workflow_types`);
     }

@@ -16,7 +16,6 @@ runtime:
     failure_policy: use_cache_then_fail_closed
     allowed_capabilities:
       - text.generate
-      - text.generate.vision
 defaults:
   provider: perplexity
   model_type: chat

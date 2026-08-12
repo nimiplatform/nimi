@@ -3,6 +3,7 @@ models:
     model_type: video
     updated_at: 2026-03-15
     capabilities: [video.generate]
+    features: [input.image]
     source_ids: [diffusers_wan_docs]
     video_generation:
       modes: [t2v, i2v_first_frame]
