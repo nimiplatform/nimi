@@ -193,10 +193,6 @@ func TestLocalAppSessionOwnerHandoffContainsOnlyRuntimeDerivedAdmission(t *testi
 			operation: accountservice.LocalAppOperationAppAIConfigRead,
 			class:     localappop.AuthorityClassBase, capability: "",
 		},
-		localappop.IngressAppAIConfigOverwrite: {
-			operation: accountservice.LocalAppOperationAppAIConfigOverwrite,
-			class:     localappop.AuthorityClassBase, capability: "",
-		},
 		localappop.IngressRealmWorldCoreList: {
 			operation: accountservice.LocalAppOperationRealmWorldCoreList,
 			class:     localappop.AuthorityClassAppAccess, capability: "realm.world-core.list",

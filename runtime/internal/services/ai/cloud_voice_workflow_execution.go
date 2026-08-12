@@ -30,7 +30,7 @@ type cloudVoiceWorkflowEffectiveInputs struct {
 	target         capabilitydriver.CloudMediaTarget
 	catalogTarget  *nimillm.RemoteTarget
 	voiceTarget    *runtimeidentity.Target
-	grant          connector.ConnectorGrantSnapshot
+	connector      connector.ConnectorRecord
 	defaults       *structpb.Struct
 	request        *runtimev1.SubmitScenarioJobRequest
 	mapped         *capabilitydriver.CloudVoiceWorkflowMappedRequest
@@ -50,7 +50,7 @@ func (input *cloudVoiceWorkflowEffectiveInputs) release() {
 	input.target = capabilitydriver.CloudMediaTarget{}
 	input.catalogTarget = nil
 	input.voiceTarget = nil
-	input.grant = connector.ConnectorGrantSnapshot{}
+	input.connector = connector.ConnectorRecord{}
 	input.defaults = nil
 	input.request = nil
 	input.mapped = nil
@@ -77,7 +77,7 @@ func (input *cloudVoiceWorkflowEffectiveInputs) dispatchAudit() remoteexecution.
 		ImplementationID:     input.implementation.GetImplementationId(),
 		DriverID:             input.implementation.GetDriverId(),
 		DriverDialect:        input.implementation.GetDriverDialect(),
-		ConnectorGrantID:     input.grant.Grant.GrantID,
+		ConnectorID:          input.connector.ConnectorID,
 		Provider:             input.target.Provider(),
 		ProviderModelID:      input.target.ProviderModelID(),
 		RemoteModelCatalogID: input.target.RemoteModelCatalogID(),
@@ -109,25 +109,10 @@ func (s *Service) captureCloudVoiceWorkflowEffectiveInputs(
 		return nil, cloudMediaDriverError(capabilityContract, err)
 	}
 	accountID := scenarioTargetSubjectUserID(ctx, req.GetHead())
-	grantID := intent.GrantID()
-	if accountID == "" || grantID == "" || s.connStore == nil {
-		return nil, connectorGrantExecutionError(connector.ErrConnectorGrantSelectionRequired)
-	}
-	grant, err := s.connStore.ValidateGrantBinding(accountID, grantID)
-	if err != nil {
-		return nil, connectorGrantExecutionError(err)
-	}
-	if grant.Connector.Provider != target.Provider() || target.RemoteModelCatalogID() == "" {
+	if target.RemoteModelCatalogID() == "" {
 		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONFIG_INVALID)
 	}
-	safeTarget := &nimillm.RemoteTarget{
-		ProviderType:         target.Provider(),
-		ProviderModelID:      target.ProviderModelID(),
-		RemoteModelCatalogID: target.RemoteModelCatalogID(),
-		ConnectorID:          grant.Connector.ConnectorID,
-	}
-	binding, err := connector.ResolveRemoteModelCatalogBinding(s.speechCatalog, accountID, grant.Connector, connector.RemoteModelCatalogRef{
-		ConnectorID:          grant.Connector.ConnectorID,
+	connectorRecord, binding, err := connector.ResolveCurrentAccountConnectorBinding(s.connStore, s.speechCatalog, accountID, connector.RemoteModelCatalogRef{
 		RemoteModelCatalogID: target.RemoteModelCatalogID(),
 		ProviderModelID:      target.ProviderModelID(),
 		Provider:             target.Provider(),
@@ -135,10 +120,18 @@ func (s *Service) captureCloudVoiceWorkflowEffectiveInputs(
 	if err != nil {
 		return nil, err
 	}
-	applyRemoteModelCatalogBinding(safeTarget, &binding)
+	safeTarget := &nimillm.RemoteTarget{
+		ProviderType:         target.Provider(),
+		ProviderModelID:      target.ProviderModelID(),
+		RemoteModelCatalogID: target.RemoteModelCatalogID(),
+		ConnectorID:          connectorRecord.ConnectorID,
+	}
+	if binding == nil {
+		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONFIG_INVALID)
+	}
+	applyRemoteModelCatalogBinding(safeTarget, binding)
 	voiceTarget := &runtimeidentity.Target{Cloud: &runtimeidentity.CloudTarget{
-		ConnectorID:          grant.Connector.ConnectorID,
-		ConnectorGrantID:     grant.Grant.GrantID,
+		ConnectorID:          connectorRecord.ConnectorID,
 		RemoteModelCatalogID: target.RemoteModelCatalogID(),
 		ProviderModelID:      target.ProviderModelID(),
 		Provider:             target.Provider(),
@@ -192,7 +185,7 @@ func (s *Service) captureCloudVoiceWorkflowEffectiveInputs(
 		target:         target,
 		catalogTarget:  safeTarget,
 		voiceTarget:    voiceTarget,
-		grant:          grant,
+		connector:      connectorRecord,
 		defaults:       defaults,
 		request:        effectiveRequest,
 		mapped:         mapped,
@@ -267,7 +260,7 @@ func (s *Service) executeCapturedCloudVoiceWorkflow(ctx context.Context, effecti
 	if s == nil || effective == nil || effective.driver == nil || s.remoteMediaHost == nil {
 		return capabilitydriver.CloudVoiceWorkflowResult{}, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 	}
-	response, err := s.remoteMediaHost.ExecuteVoiceWorkflow(ctx, effective.grant, effective.target, effective.mapped, effective.dispatchAudit())
+	response, err := s.remoteMediaHost.ExecuteVoiceWorkflow(ctx, effective.connector, effective.target, effective.mapped, effective.dispatchAudit())
 	if err != nil {
 		return capabilitydriver.CloudVoiceWorkflowResult{}, effective.driver.NormalizeReason(effective.target, err)
 	}
@@ -297,7 +290,7 @@ func (s *Service) auditCloudVoiceWorkflowCapture(effective *cloudVoiceWorkflowEf
 		"driver_id":             effective.implementation.GetDriverId(),
 		"driver_dialect":        effective.implementation.GetDriverDialect(),
 		"provider_model_target": effective.rawTarget.AsMap(),
-		"connector_grant_id":    effective.grant.Grant.GrantID,
+		"connector_id":          effective.connector.ConnectorID,
 		"request_sha256":        "sha256:" + hex.EncodeToString(digest[:]),
 		"request_size_bytes":    len(raw),
 		"creation_source":       effective.resolution.WorkflowType,

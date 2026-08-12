@@ -6,8 +6,25 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/runtimeidentity"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
+
+func testVoiceAssetCloudBinding(target *runtimeidentity.Target) *voiceAssetCloudBinding {
+	providerTarget, _ := structpb.NewStruct(map[string]any{
+		"provider": target.Cloud.Provider, "providerModelId": target.Cloud.ProviderModelID,
+		"remoteModelCatalogId": target.Cloud.RemoteModelCatalogID,
+	})
+	return &voiceAssetCloudBinding{
+		CapabilityContract: "voice.create",
+		Implementation: &runtimev1.CapabilityImplementationIdentity{
+			ImplementationId: "cloud.voice.test", DriverId: "driver.voice.test", DriverDialect: "test/voice/v1",
+		},
+		ProviderModelTarget: providerTarget,
+		ConnectorID:         target.Cloud.ConnectorID,
+	}
+}
 
 func TestVoiceAssetStoreCompleteAndTimeoutJob(t *testing.T) {
 	store := newVoiceAssetStore()
@@ -28,11 +45,22 @@ func TestVoiceAssetStoreCompleteAndTimeoutJob(t *testing.T) {
 				}},
 			}},
 		},
-		Provider:          "dashscope",
-		OutputPersistence: "provider_persistent",
+		Provider: "dashscope",
 	})
 	if job == nil || asset == nil {
 		t.Fatalf("submit should create voice job and asset")
+	}
+	if _, ok := store.getAsset(asset.GetVoiceAssetId()); ok {
+		t.Fatalf("submitted voice job must not publish an Asset before completion")
+	}
+	if !store.runJob(job.GetJobId()) {
+		t.Fatal("runJob should transition the Job")
+	}
+	if _, ok := store.getAsset(asset.GetVoiceAssetId()); ok {
+		t.Fatalf("running voice job must not publish an Asset before completion")
+	}
+	if assets := store.listAssets(&runtimev1.ListVoiceAssetsRequest{AppId: "app-1", SubjectUserId: "user-1"}); len(assets) != 0 {
+		t.Fatalf("running voice job draft appeared in list: %+v", assets)
 	}
 
 	if !store.completeJob(job.GetJobId(), "voice-ref-1", map[string]any{"quality": "high"}, &runtimev1.UsageStats{InputTokens: 1}) {
@@ -59,6 +87,21 @@ func TestVoiceAssetStoreCompleteAndTimeoutJob(t *testing.T) {
 	}
 	if completedAsset.GetMetadata() == nil || completedAsset.GetMetadata().Fields["quality"].GetStringValue() != "high" {
 		t.Fatalf("expected metadata to be persisted, got %#v", completedAsset.GetMetadata())
+	}
+	resultAsset, resultReference, ok := store.getCompletedJobResult(job.GetJobId())
+	if !ok || resultAsset.GetStatus() != runtimev1.VoiceAssetStatus_VOICE_ASSET_STATUS_ACTIVE ||
+		resultReference.GetVoiceAssetId() != resultAsset.GetVoiceAssetId() {
+		t.Fatalf("completed Job result snapshot is invalid: asset=%+v reference=%+v found=%v", resultAsset, resultReference, ok)
+	}
+	store.mu.Lock()
+	store.assets[asset.GetVoiceAssetId()].Status = runtimev1.VoiceAssetStatus_VOICE_ASSET_STATUS_EXPIRED
+	store.assets[asset.GetVoiceAssetId()].UpdatedAt = timestamppb.Now()
+	store.mu.Unlock()
+	resultAfterStatusMutation, referenceAfterStatusMutation, ok := store.getCompletedJobResult(job.GetJobId())
+	if !ok || resultAfterStatusMutation.GetStatus() != runtimev1.VoiceAssetStatus_VOICE_ASSET_STATUS_ACTIVE ||
+		!proto.Equal(resultAfterStatusMutation, resultAsset) || !proto.Equal(referenceAfterStatusMutation, resultReference) {
+		t.Fatalf("catalog Asset status mutation changed terminal Job result: before=%+v/%+v after=%+v/%+v found=%v",
+			resultAsset, resultReference, resultAfterStatusMutation, referenceAfterStatusMutation, ok)
 	}
 
 	timeoutJob, timeoutAsset := store.submit(&voiceWorkflowSubmitInput{
@@ -99,9 +142,82 @@ func TestVoiceAssetStoreCompleteAndTimeoutJob(t *testing.T) {
 		t.Fatalf("expected typed timeout failure metadata, got %q", got)
 	}
 
-	timedOutAsset, ok := store.getAsset(timeoutAsset.GetVoiceAssetId())
-	if !ok || timedOutAsset.GetStatus() != runtimev1.VoiceAssetStatus_VOICE_ASSET_STATUS_FAILED {
-		t.Fatalf("expected failed asset after timeout, got ok=%v asset=%#v", ok, timedOutAsset)
+	if timedOutAsset, ok := store.getAsset(timeoutAsset.GetVoiceAssetId()); ok {
+		t.Fatalf("timed-out voice job must not publish an Asset, got %#v", timedOutAsset)
+	}
+}
+
+func TestVoiceAssetStoreNonSuccessTerminalsNeverPublishVoiceResults(t *testing.T) {
+	t.Run("failed", func(t *testing.T) {
+		store := newVoiceAssetStore()
+		job, draft := newVoiceAssetStoreJobForTerminalTest(t, store)
+		if !store.failJob(job.GetJobId(), runtimev1.ReasonCode_AI_PROVIDER_INTERNAL, "failed", nil) {
+			t.Fatal("failJob should transition the Job")
+		}
+		assertVoiceAssetDraftNotPublished(t, store, draft.GetVoiceAssetId())
+	})
+
+	t.Run("timeout", func(t *testing.T) {
+		store := newVoiceAssetStore()
+		job, draft := newVoiceAssetStoreJobForTerminalTest(t, store)
+		if !store.timeoutJob(job.GetJobId(), runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT, "timeout", nil) {
+			t.Fatal("timeoutJob should transition the Job")
+		}
+		assertVoiceAssetDraftNotPublished(t, store, draft.GetVoiceAssetId())
+	})
+
+	t.Run("canceled", func(t *testing.T) {
+		store := newVoiceAssetStore()
+		job, draft := newVoiceAssetStoreJobForTerminalTest(t, store)
+		if _, ok := store.cancelJob(job.GetJobId(), "canceled"); !ok {
+			t.Fatal("cancelJob should transition the Job")
+		}
+		assertVoiceAssetDraftNotPublished(t, store, draft.GetVoiceAssetId())
+	})
+
+	t.Run("empty-provider-handle", func(t *testing.T) {
+		store := newVoiceAssetStore()
+		job, draft := newVoiceAssetStoreJobForTerminalTest(t, store)
+		if store.completeJob(job.GetJobId(), "", nil, nil) {
+			t.Fatal("completion without a provider handle must fail closed")
+		}
+		terminal, ok := store.getJob(job.GetJobId())
+		if !ok || terminal.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_FAILED ||
+			terminal.GetReasonCode() != runtimev1.ReasonCode_AI_OUTPUT_INVALID {
+			t.Fatalf("empty-handle terminal Job=%+v found=%v", terminal, ok)
+		}
+		assertVoiceAssetDraftNotPublished(t, store, draft.GetVoiceAssetId())
+	})
+
+}
+
+func newVoiceAssetStoreJobForTerminalTest(t *testing.T, store *voiceAssetStore) (*runtimev1.ScenarioJob, *runtimev1.VoiceAsset) {
+	t.Helper()
+	if store == nil {
+		store = newVoiceAssetStore()
+	}
+	job, draft := store.submit(&voiceWorkflowSubmitInput{
+		Head:            &runtimev1.ScenarioRequestHead{AppId: "app-terminal", SubjectUserId: "user-terminal"},
+		ScenarioType:    runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CREATE,
+		Spec:            &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_VoiceCreate{VoiceCreate: &runtimev1.VoiceCreateScenarioSpec{Source: &runtimev1.VoiceCreateScenarioSpec_TextDescription{TextDescription: &runtimev1.VoiceT2VInput{InstructionText: "calm voice"}}}}},
+		RouteDecision:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+		Provider:        "local",
+		ExecutionTarget: &runtimeidentity.Target{Local: &runtimeidentity.LocalTarget{ReadinessRef: "local-asset://voice-terminal"}},
+	})
+	if job == nil || draft == nil {
+		t.Fatal("submit should create a private voice result draft")
+	}
+	assertVoiceAssetDraftNotPublished(t, store, draft.GetVoiceAssetId())
+	return job, draft
+}
+
+func assertVoiceAssetDraftNotPublished(t *testing.T, store *voiceAssetStore, assetID string) {
+	t.Helper()
+	if asset, ok := store.getAsset(assetID); ok {
+		t.Fatalf("private voice result draft was published: %+v", asset)
+	}
+	if assets := store.listAssets(&runtimev1.ListVoiceAssetsRequest{AppId: "app-terminal", SubjectUserId: "user-terminal"}); len(assets) != 0 {
+		t.Fatalf("private voice result draft appeared in list: %+v", assets)
 	}
 }
 
@@ -167,9 +283,11 @@ func TestVoiceAssetStorePrunesExpiredTerminalJobsAndAssets(t *testing.T) {
 
 func TestVoiceAssetStoreKeepsProviderPersistentAssetsAfterTerminalJobPrune(t *testing.T) {
 	store := newVoiceAssetStore()
+	target := runtimeAgentVoiceAssetTestTarget("connector-test")
 	job, asset := store.submit(&voiceWorkflowSubmitInput{
 		RouteDecision:   runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
-		ExecutionTarget: runtimeAgentVoiceAssetTestTarget("connector-test"),
+		ExecutionTarget: target,
+		CloudBinding:    testVoiceAssetCloudBinding(target),
 		Head: &runtimev1.ScenarioRequestHead{
 			AppId:         "app-1",
 			SubjectUserId: "user-1",
@@ -235,7 +353,7 @@ func TestVoiceAssetStoreKeepsProviderPersistentAssetsAfterTerminalJobPrune(t *te
 func TestVoiceAssetStoreSubmitKeepsTargetRuntimePrivate(t *testing.T) {
 	store := newVoiceAssetStore()
 	targetRef := cloudScenarioTargetRef("connector-dashscope", "remote-catalog-dashscope-vc", "qwen3-tts-vc", "dashscope")
-	_, asset := store.submit(&voiceWorkflowSubmitInput{
+	job, asset := store.submit(&voiceWorkflowSubmitInput{
 		RouteDecision:   runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
 		ExecutionTarget: targetRef,
 		Head: &runtimev1.ScenarioRequestHead{
@@ -251,11 +369,16 @@ func TestVoiceAssetStoreSubmitKeepsTargetRuntimePrivate(t *testing.T) {
 				}},
 			}},
 		},
-		Provider:          "dashscope",
-		OutputPersistence: "provider_persistent",
+		Provider: "dashscope",
 	})
 	if asset == nil {
 		t.Fatalf("submit should create voice asset")
+	}
+	if _, _, ok := store.getAssetBinding(asset.GetVoiceAssetId()); ok {
+		t.Fatalf("submit must not publish the private target or VoiceAsset")
+	}
+	if !store.completeJob(job.GetJobId(), "provider-voice-ref", nil, nil) {
+		t.Fatalf("completeJob should publish the terminal result")
 	}
 	_, storedTarget, ok := store.getAssetBinding(asset.GetVoiceAssetId())
 	if !ok || !runtimeidentity.Equal(storedTarget, targetRef) {
@@ -270,7 +393,6 @@ func TestVoiceAssetStoreProviderPersistentAssetsSurviveStoreReopen(t *testing.T)
 		t.Fatalf("newVoiceAssetStoreForLocalStatePath: %v", err)
 	}
 	targetRef := cloudScenarioTargetRef("connector-dashscope", "remote-catalog-dashscope-vc", "qwen3-tts-vc", "dashscope")
-	targetRef.Cloud.ConnectorGrantID = "grant-dashscope"
 	providerTarget, _ := structpb.NewStruct(map[string]any{
 		"provider": "dashscope", "providerModelId": "qwen3-tts-vc", "remoteModelCatalogId": "remote-catalog-dashscope-vc",
 	})
@@ -282,7 +404,7 @@ func TestVoiceAssetStoreProviderPersistentAssetsSurviveStoreReopen(t *testing.T)
 			Implementation: &runtimev1.CapabilityImplementationIdentity{
 				ImplementationId: "cloud.voice.dashscope", DriverId: "driver.dashscope", DriverDialect: "dashscope/voice/v1",
 			},
-			ProviderModelTarget: providerTarget, ConnectorGrantID: targetRef.Cloud.ConnectorGrantID,
+			ProviderModelTarget: providerTarget, ConnectorID: targetRef.Cloud.ConnectorID,
 		},
 		Head: &runtimev1.ScenarioRequestHead{
 			AppId:         "app-1",
@@ -321,8 +443,11 @@ func TestVoiceAssetStoreProviderPersistentAssetsSurviveStoreReopen(t *testing.T)
 	if !runtimeidentity.Equal(storedTarget, targetRef) {
 		t.Fatalf("private target after reopen mismatch: got=%#v want=%#v", storedTarget, targetRef)
 	}
+	if _, ok := reopened.getJob(job.GetJobId()); ok {
+		t.Fatal("VoiceAsset durability must not extend the process-local Scenario Job retention boundary")
+	}
 	_, _, storedBinding, ok := reopened.getAssetCloudBinding(asset.GetVoiceAssetId())
-	if !ok || !storedBinding.Valid() || storedBinding.ConnectorGrantID != targetRef.Cloud.ConnectorGrantID || storedBinding.Implementation.GetDriverDialect() != "dashscope/voice/v1" {
+	if !ok || !storedBinding.Valid() || storedBinding.ConnectorID != targetRef.Cloud.ConnectorID || storedBinding.Implementation.GetDriverDialect() != "dashscope/voice/v1" {
 		t.Fatalf("private AIConfig binding after reopen=%+v", storedBinding)
 	}
 }
@@ -356,15 +481,8 @@ func TestVoiceAssetStoreCompleteFailsClosedWhenProviderPersistentSnapshotCannotP
 	if store.completeJob(job.GetJobId(), "dashscope-provider-voice-ref", nil, nil) {
 		t.Fatalf("provider-persistent completion must fail closed when durable snapshot cannot persist")
 	}
-	completedAsset, ok := store.getAsset(asset.GetVoiceAssetId())
-	if !ok {
-		t.Fatalf("asset should remain visible with failed status for diagnosis")
-	}
-	if completedAsset.GetProviderVoiceRef() != "" {
-		t.Fatalf("failed durable completion must not leave a usable provider voice ref, got %q", completedAsset.GetProviderVoiceRef())
-	}
-	if completedAsset.GetStatus() != runtimev1.VoiceAssetStatus_VOICE_ASSET_STATUS_FAILED {
-		t.Fatalf("failed durable completion status=%v, want FAILED", completedAsset.GetStatus())
+	if completedAsset, ok := store.getAsset(asset.GetVoiceAssetId()); ok {
+		t.Fatalf("failed durable completion must not publish a VoiceAsset, got %#v", completedAsset)
 	}
 	completedJob, ok := store.getJob(job.GetJobId())
 	if !ok {

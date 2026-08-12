@@ -52,7 +52,7 @@ func TestAIBackedPublicChatTurnExecutorPassesCloudIntentPrivately(t *testing.T) 
 	streamer := &targetRefCapturePublicChatScenarioStreamer{}
 	executor := NewAIBackedPublicChatTurnExecutor(streamer)
 	targetRef := &runtimeidentity.Target{Cloud: &runtimeidentity.CloudTarget{
-		ConnectorID: "connector-1", ConnectorGrantID: "grant-1", RemoteModelCatalogID: "catalog-1",
+		ConnectorID: "connector-1", RemoteModelCatalogID: "catalog-1",
 		ProviderModelID: "provider-model-1", Provider: "openai",
 	}}
 	rawTarget, _ := structpb.NewStruct(map[string]any{
@@ -72,7 +72,7 @@ func TestAIBackedPublicChatTurnExecutorPassesCloudIntentPrivately(t *testing.T) 
 			ExecutionIntent: executionintent.Intent{
 				CapabilityContract: "text.generate", Route: runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
 				CloudImplementation: &runtimev1.CapabilityImplementationIdentity{ImplementationId: "cloud.text.openai", DriverId: "driver.openai", DriverDialect: "openai/chat/v1"},
-				ProviderModelTarget: rawTarget, ConnectorGrantID: "grant-1",
+				ProviderModelTarget: rawTarget,
 			},
 			CapabilityContract: "text.generate",
 		},
@@ -81,7 +81,7 @@ func TestAIBackedPublicChatTurnExecutorPassesCloudIntentPrivately(t *testing.T) 
 		t.Fatalf("StreamChatTurn: %v", err)
 	}
 	intent, ok := executionintent.FromContext(streamer.ctx)
-	if !ok || !intent.IsAIConfigCloud() || intent.CloudTarget != nil || intent.ModelID() != "provider-model-1" || intent.GrantID() != "grant-1" {
+	if !ok || !intent.IsAIConfigCloud() || intent.CloudTarget != nil || intent.ModelID() != "provider-model-1" {
 		t.Fatalf("expected private Cloud intent, got %+v, ok=%v", intent, ok)
 	}
 }

@@ -28,7 +28,7 @@ type cloudEmbedEffectiveInputs struct {
 	rawTarget      *structpb.Struct
 	target         capabilitydriver.CloudEmbedTarget
 	catalogTarget  *nimillm.RemoteTarget
-	grant          connector.ConnectorGrantSnapshot
+	connector      connector.ConnectorRecord
 	defaults       *structpb.Struct
 	request        *runtimev1.TextEmbedScenarioSpec
 	mapped         *capabilitydriver.CloudEmbedMappedRequest
@@ -46,7 +46,7 @@ func (input *cloudEmbedEffectiveInputs) release() {
 	input.rawTarget = nil
 	input.target = capabilitydriver.CloudEmbedTarget{}
 	input.catalogTarget = nil
-	input.grant = connector.ConnectorGrantSnapshot{}
+	input.connector = connector.ConnectorRecord{}
 	input.defaults = nil
 	input.request = nil
 	input.mapped = nil
@@ -72,7 +72,7 @@ func (input *cloudEmbedEffectiveInputs) dispatchAudit() remoteexecution.EmbedDis
 		ImplementationID:     input.implementation.GetImplementationId(),
 		DriverID:             input.implementation.GetDriverId(),
 		DriverDialect:        input.implementation.GetDriverDialect(),
-		ConnectorGrantID:     input.grant.Grant.GrantID,
+		ConnectorID:          input.connector.ConnectorID,
 		Provider:             input.target.Provider(),
 		ProviderModelID:      input.target.ProviderModelID(),
 		RemoteModelCatalogID: input.target.RemoteModelCatalogID(),
@@ -107,17 +107,14 @@ func (s *Service) captureCloudEmbedEffectiveInputs(
 	if err != nil {
 		return nil, cloudEmbedDriverError(err)
 	}
-	grantID := intent.GrantID()
 	accountID := scenarioTargetSubjectUserID(ctx, head)
-	if grantID == "" || grantID != intent.ConnectorGrantID || accountID == "" || s.connStore == nil {
-		return nil, connectorGrantExecutionError(connector.ErrConnectorGrantSelectionRequired)
-	}
-	grant, err := s.connStore.ValidateGrantBinding(accountID, grantID)
+	connectorRecord, binding, err := connector.ResolveCurrentAccountConnectorBinding(s.connStore, s.speechCatalog, accountID, connector.RemoteModelCatalogRef{
+		RemoteModelCatalogID: target.RemoteModelCatalogID(),
+		ProviderModelID:      target.ProviderModelID(),
+		Provider:             target.Provider(),
+	})
 	if err != nil {
-		return nil, connectorGrantExecutionError(err)
-	}
-	if grant.Connector.Provider != target.Provider() {
-		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONFIG_INVALID)
+		return nil, err
 	}
 
 	// Catalog admission consumes only connector/config identities and performs
@@ -126,18 +123,12 @@ func (s *Service) captureCloudEmbedEffectiveInputs(
 		ProviderType:         target.Provider(),
 		ProviderModelID:      target.ProviderModelID(),
 		RemoteModelCatalogID: target.RemoteModelCatalogID(),
-		ConnectorID:          grant.Connector.ConnectorID,
+		ConnectorID:          connectorRecord.ConnectorID,
 	}
-	binding, err := connector.ResolveRemoteModelCatalogBinding(s.speechCatalog, accountID, grant.Connector, connector.RemoteModelCatalogRef{
-		ConnectorID:          grant.Connector.ConnectorID,
-		RemoteModelCatalogID: target.RemoteModelCatalogID(),
-		ProviderModelID:      target.ProviderModelID(),
-		Provider:             target.Provider(),
-	})
-	if err != nil {
-		return nil, err
+	if binding == nil {
+		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONFIG_INVALID)
 	}
-	applyRemoteModelCatalogBinding(safeTarget, &binding)
+	applyRemoteModelCatalogBinding(safeTarget, binding)
 	if err := s.validateScenarioCapability(ctx, request, target.ProviderModelID(), safeTarget, s.cloudTextProvider); err != nil {
 		return nil, err
 	}
@@ -155,7 +146,7 @@ func (s *Service) captureCloudEmbedEffectiveInputs(
 		rawTarget:      rawTarget,
 		target:         target,
 		catalogTarget:  safeTarget,
-		grant:          grant,
+		connector:      connectorRecord,
 		defaults:       defaults,
 		request:        effectiveRequest,
 		mapped:         mapped,
@@ -200,7 +191,7 @@ func (s *Service) executeCapturedCloudEmbed(ctx context.Context, effective *clou
 	if s == nil || effective == nil || effective.driver == nil || s.remoteEmbedHost == nil {
 		return capabilitydriver.CloudEmbedResult{}, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 	}
-	response, err := s.remoteEmbedHost.ExecuteEmbed(ctx, effective.grant, effective.target, effective.mapped, effective.dispatchAudit())
+	response, err := s.remoteEmbedHost.ExecuteEmbed(ctx, effective.connector, effective.target, effective.mapped, effective.dispatchAudit())
 	if err != nil {
 		return capabilitydriver.CloudEmbedResult{}, effective.driver.NormalizeReason(err)
 	}
@@ -235,7 +226,7 @@ func (s *Service) auditCloudEmbedCapture(effective *cloudEmbedEffectiveInputs) e
 		"driver_id":             effective.implementation.GetDriverId(),
 		"driver_dialect":        effective.implementation.GetDriverDialect(),
 		"provider_model_target": target,
-		"connector_grant_id":    effective.grant.Grant.GrantID,
+		"connector_id":          effective.connector.ConnectorID,
 		"defaults":              defaults,
 		"request_sha256":        "sha256:" + hex.EncodeToString(digest[:]),
 		"request_size_bytes":    len(raw),

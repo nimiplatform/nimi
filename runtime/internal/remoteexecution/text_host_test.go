@@ -70,14 +70,6 @@ func TestProviderTextHostOpensCredentialOnlyForDispatchAndAuditsSafely(t *testin
 	if err != nil {
 		t.Fatal(err)
 	}
-	grant, err := store.CreateGrant("account-a", record.ConnectorID)
-	if err != nil {
-		t.Fatal(err)
-	}
-	snapshot, err := store.ValidateGrantBinding("account-a", grant.GrantID)
-	if err != nil {
-		t.Fatal(err)
-	}
 	secrets.mu.Lock()
 	secrets.reads = 0
 	secrets.mu.Unlock()
@@ -86,10 +78,10 @@ func TestProviderTextHostOpensCredentialOnlyForDispatchAndAuditsSafely(t *testin
 	audit := auditlog.New(16, 16)
 	transport := nimillm.NewCloudProvider(nimillm.CloudConfig{HTTPTimeout: time.Second, AllowLoopbackEndpoint: true}, nil, nil)
 	host := NewProviderTextHost(store, transport, audit, true)
-	response, err := host.ExecuteText(context.Background(), snapshot, target, mapped, TextDispatchAudit{
+	response, err := host.ExecuteText(context.Background(), record, target, mapped, TextDispatchAudit{
 		AppID: "app", AccountID: "account-a", TraceID: "trace", CapabilityContract: "text.generate",
 		ImplementationID: "cloud.text.openai", DriverID: "driver.openai", DriverDialect: "openai/chat-completions/v1",
-		ConnectorGrantID: grant.GrantID, Provider: "openai", ProviderModelID: "gpt-4o-mini",
+		ConnectorID: record.ConnectorID, Provider: "openai", ProviderModelID: "gpt-4o-mini",
 	})
 	if err != nil {
 		t.Fatalf("ExecuteText: %v", err)

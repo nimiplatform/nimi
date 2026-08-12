@@ -202,9 +202,7 @@ func (s *Service) submitLocalVoiceWorkflowJob(
 		defer cancel()
 		s.executeCapturedLocalVoiceCreateJob(jobCtx, job.GetJobId(), asset.GetVoiceAssetId(), effective)
 	}()
-	return &runtimev1.SubmitScenarioJobResponse{
-		Job: job, Asset: asset, VoiceReference: voiceAssetReference(asset.GetVoiceAssetId()),
-	}, nil
+	return &runtimev1.SubmitScenarioJobResponse{Job: job}, nil
 }
 
 func (s *Service) executeCapturedLocalVoiceCreateJob(

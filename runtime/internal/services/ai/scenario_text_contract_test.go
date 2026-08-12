@@ -29,7 +29,7 @@ func TestExecuteScenarioTextGenerateUsesExactPrivateProviderModelID(t *testing.T
 	}))
 	defer func() { server.Close() }()
 
-	fixture := newManagedCloudScenarioTestFixture(t, "volcengine", "doubao-seed-2.0-pro", server.URL, Config{
+	fixture := newManagedCloudScenarioTestFixture(t, "volcengine", "doubao-seed-2-0-pro-260215", server.URL, Config{
 		CloudProviders:        map[string]nimillm.ProviderCredentials{"volcengine": {BaseURL: server.URL, APIKey: "unused"}},
 		AllowLoopbackEndpoint: true,
 	})

@@ -2,17 +2,23 @@ package ai
 
 import (
 	"context"
+	"net/http"
+	"net/http/httptest"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/aiconfig"
 	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
 	"github.com/nimiplatform/nimi/runtime/internal/executionintent"
 	"github.com/nimiplatform/nimi/runtime/internal/localappop"
+	"github.com/nimiplatform/nimi/runtime/internal/runtimeidentity"
 	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
+	"google.golang.org/protobuf/types/known/structpb"
 )
 
 func localAppScenarioJobContext(operation accountservice.LocalAppOperation, capability string) context.Context {
@@ -205,10 +211,98 @@ func TestSubmitLocalAppSpeechJobAcceptsMinimalTypedSpecAndBindsOwner(t *testing.
 	}
 }
 
-func TestSubmitLocalAppScenarioJobVoiceWorkflowDerivesTargetFromIntent(t *testing.T) {
+func TestGetLocalAppScenarioJobPublishesVoiceResultOnlyAfterCompletion(t *testing.T) {
+	svc := newTestService(nil)
+	owner := &localAppJobOwner{
+		AccountID: "account-1", RegisteredAppSubject: "protected-app-subject", ProducerAppID: "nimi.realm-persona-studio",
+	}
+	submitVoiceJob := func(t *testing.T) (*runtimev1.ScenarioJob, *runtimev1.VoiceAsset) {
+		t.Helper()
+		job, draft := svc.voiceAssets.submit(&voiceWorkflowSubmitInput{
+			Head:          &runtimev1.ScenarioRequestHead{AppId: owner.ProducerAppID, SubjectUserId: owner.AccountID},
+			LocalAppOwner: owner,
+			ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CREATE,
+			Spec: &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_VoiceCreate{VoiceCreate: &runtimev1.VoiceCreateScenarioSpec{
+				Source: &runtimev1.VoiceCreateScenarioSpec_TextDescription{TextDescription: &runtimev1.VoiceT2VInput{InstructionText: "calm voice"}},
+			}}},
+			RouteDecision:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+			Provider:        "local",
+			ExecutionTarget: &runtimeidentity.Target{Local: &runtimeidentity.LocalTarget{ReadinessRef: "local-asset://protected-voice-result"}},
+		})
+		if job == nil || draft == nil {
+			t.Fatal("submit should create a Job and private result draft")
+		}
+		return job, draft
+	}
+	getCtx := localAppScenarioJobContextForSubject(
+		accountservice.LocalAppOperationScenarioJobGet,
+		localappop.AppOperationIDScenarioJobGet,
+		owner.RegisteredAppSubject,
+	)
+
+	job, draft := submitVoiceJob(t)
+	if !svc.voiceAssets.runJob(job.GetJobId()) {
+		t.Fatal("runJob should transition the Job")
+	}
+	preTerminal, err := svc.GetLocalAppScenarioJob(getCtx, &runtimev1.GetLocalAppScenarioJobRequest{JobId: job.GetJobId()})
+	if err != nil {
+		t.Fatalf("GetLocalAppScenarioJob before completion: %v", err)
+	}
+	if preTerminal.GetAsset() != nil || preTerminal.GetVoiceReference() != nil {
+		t.Fatalf("pre-terminal Job leaked a voice result: %+v", preTerminal)
+	}
+	if _, ok := svc.voiceAssets.getAsset(draft.GetVoiceAssetId()); ok {
+		t.Fatal("pre-terminal result draft was publicly addressable")
+	}
+
+	if !svc.voiceAssets.completeJob(job.GetJobId(), "opaque-provider-voice-ref", nil, nil) {
+		t.Fatal("completeJob should publish the result")
+	}
+	terminal, err := svc.GetLocalAppScenarioJob(getCtx, &runtimev1.GetLocalAppScenarioJobRequest{JobId: job.GetJobId()})
+	if err != nil {
+		t.Fatalf("GetLocalAppScenarioJob after completion: %v", err)
+	}
+	if terminal.GetJob().GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED ||
+		terminal.GetAsset().GetStatus() != runtimev1.VoiceAssetStatus_VOICE_ASSET_STATUS_ACTIVE ||
+		terminal.GetAsset().GetVoiceAssetId() != draft.GetVoiceAssetId() ||
+		terminal.GetVoiceReference().GetKind() != runtimev1.VoiceReferenceKind_VOICE_REFERENCE_KIND_VOICE_ASSET ||
+		terminal.GetVoiceReference().GetVoiceAssetId() != draft.GetVoiceAssetId() {
+		t.Fatalf("terminal voice result is not exact: %+v", terminal)
+	}
+	if !svc.voiceAssets.deleteAsset(draft.GetVoiceAssetId()) {
+		t.Fatal("deleteAsset should mutate the published catalog Asset")
+	}
+	terminalAfterDelete, err := svc.GetLocalAppScenarioJob(getCtx, &runtimev1.GetLocalAppScenarioJobRequest{JobId: job.GetJobId()})
+	if err != nil {
+		t.Fatalf("GetLocalAppScenarioJob after VoiceAsset delete: %v", err)
+	}
+	if terminalAfterDelete.GetAsset().GetStatus() != runtimev1.VoiceAssetStatus_VOICE_ASSET_STATUS_ACTIVE ||
+		terminalAfterDelete.GetAsset().GetVoiceAssetId() != draft.GetVoiceAssetId() ||
+		terminalAfterDelete.GetVoiceReference().GetVoiceAssetId() != draft.GetVoiceAssetId() {
+		t.Fatalf("catalog Asset delete changed protected terminal Job result: %+v", terminalAfterDelete)
+	}
+
+	failedJob, failedDraft := submitVoiceJob(t)
+	if !svc.voiceAssets.failJob(failedJob.GetJobId(), runtimev1.ReasonCode_AI_PROVIDER_INTERNAL, "failed", nil) {
+		t.Fatal("failJob should transition the Job")
+	}
+	failed, err := svc.GetLocalAppScenarioJob(getCtx, &runtimev1.GetLocalAppScenarioJobRequest{JobId: failedJob.GetJobId()})
+	if err != nil {
+		t.Fatalf("GetLocalAppScenarioJob failed Job: %v", err)
+	}
+	if failed.GetAsset() != nil || failed.GetVoiceReference() != nil {
+		t.Fatalf("failed Job leaked a voice result: %+v", failed)
+	}
+	if _, ok := svc.voiceAssets.getAsset(failedDraft.GetVoiceAssetId()); ok {
+		t.Fatal("failed result draft was publicly addressable")
+	}
+}
+
+func TestSubmitLocalAppScenarioJobVoiceWorkflowWithoutCurrentAccountConnectorFailsClosed(t *testing.T) {
+	catalogFixture := newManagedCloudScenarioTestFixture(t, "dashscope", "qwen3-tts-vd-2026-01-26", "https://example.invalid", Config{})
 	svc := newTestService(nil)
 	if err := svc.aiConfigStore.Overwrite(context.Background(), "account-1",
-		appAIConfig("nimi.realm-persona-studio", grantlessCloudAIConfigIntent(t, "voice.create"))); err != nil {
+		appAIConfig("nimi.realm-persona-studio", cloudVoiceAIConfigIntent(t, catalogFixture.descriptor))); err != nil {
 		t.Fatalf("install Cloud App AIConfig: %v", err)
 	}
 	request := &runtimev1.SubmitLocalAppScenarioJobRequest{
@@ -218,13 +312,187 @@ func TestSubmitLocalAppScenarioJobVoiceWorkflowDerivesTargetFromIntent(t *testin
 			},
 		},
 	}
-	// The wrapper fills target_model_id from the committed AIConfig intent, so
-	// owner spec validation passes and the call fails closed later inside
-	// Cloud composition (no resolvable binding in this fixture) rather than
-	// with AI_VOICE_TARGET_MODEL_MISMATCH.
+	// The wrapper fills target_model_id from a complete Connector-scoped target,
+	// so owner spec validation passes and current-account Connector resolution is
+	// the first failing boundary. The protected App never supplies a Grant.
 	_, err := svc.SubmitLocalAppScenarioJob(
 		localAppScenarioJobContext(accountservice.LocalAppOperationScenarioJobSubmit, localappop.AppOperationIDScenarioJobSubmit), request)
-	assertLocalAppTextCandidateError(t, err, codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONFIG_INVALID)
+	assertLocalAppTextCandidateError(t, err, codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONNECTOR_NOT_FOUND)
+}
+
+func TestSubmitLocalAppScenarioJobVoiceWorkflowMapsProviderUnauthorizedThroughRemoteHost(t *testing.T) {
+	var providerCalls atomic.Int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		providerCalls.Add(1)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusUnauthorized)
+		_, _ = w.Write([]byte(`{"code":"InvalidApiKey","message":"invalid api key"}`))
+	}))
+	defer server.Close()
+
+	fixture := newManagedCloudScenarioTestFixture(t, "dashscope", "qwen3-tts-vd-2026-01-26", server.URL, Config{AllowLoopbackEndpoint: true})
+	if err := fixture.service.aiConfigStore.Overwrite(context.Background(), "user-001",
+		appAIConfig("nimi.realm-persona-studio", cloudVoiceAIConfigIntent(t, fixture.descriptor))); err != nil {
+		t.Fatalf("install Cloud App AIConfig: %v", err)
+	}
+	ctx := accountservice.ContextWithAuthorizedLocalAppDecision(context.Background(), accountservice.LocalAppCallerDecision{
+		AccountID:            "user-001",
+		AppID:                "nimi.realm-persona-studio",
+		RegisteredAppSubject: "protected-app-principal",
+		Operation:            accountservice.LocalAppOperationScenarioJobSubmit,
+		AuthorityClass:       localappop.AuthorityClassAppAccess,
+		OperationCapability:  localappop.AppOperationIDScenarioJobSubmit,
+	})
+	response, err := fixture.service.SubmitLocalAppScenarioJob(ctx, &runtimev1.SubmitLocalAppScenarioJobRequest{
+		Spec: &runtimev1.SubmitLocalAppScenarioJobRequest_VoiceCreate{
+			VoiceCreate: &runtimev1.LocalAppVoiceCreateJobSpec{
+				Source: &runtimev1.LocalAppVoiceCreateJobSpec_TextDescription{TextDescription: &runtimev1.VoiceT2VInput{
+					InstructionText: "warm narrator voice",
+					PreviewText:     "Hello from Nimi.",
+				}},
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("SubmitLocalAppScenarioJob: %v", err)
+	}
+	deadline := time.Now().Add(3 * time.Second)
+	var job *runtimev1.ScenarioJob
+	for time.Now().Before(deadline) {
+		job, _ = fixture.service.voiceAssets.getJob(response.GetJob().GetJobId())
+		if isTerminalScenarioJobStatus(job.GetStatus()) {
+			break
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+	if job.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_FAILED ||
+		job.GetReasonCode() != runtimev1.ReasonCode_AI_PROVIDER_AUTH_FAILED {
+		t.Fatalf("voice workflow status=%s reason=%s detail=%q", job.GetStatus(), job.GetReasonCode(), job.GetReasonDetail())
+	}
+	if providerCalls.Load() != 1 {
+		t.Fatalf("provider calls = %d, want exactly one and no fallback", providerCalls.Load())
+	}
+}
+
+type replaceAIConfigAfterFirstGetStore struct {
+	delegate    aiconfig.Store
+	replacement *runtimev1.AIConfig
+	getCount    atomic.Int32
+}
+
+func (s *replaceAIConfigAfterFirstGetStore) Get(
+	ctx context.Context,
+	accountNamespace string,
+	owner *runtimev1.AIConfigOwner,
+) (*runtimev1.AIConfig, bool, error) {
+	config, found, err := s.delegate.Get(ctx, accountNamespace, owner)
+	if err != nil || !found || s.getCount.Add(1) != 1 {
+		return config, found, err
+	}
+	if err := s.delegate.Overwrite(ctx, accountNamespace, s.replacement); err != nil {
+		return nil, false, err
+	}
+	return config, found, nil
+}
+
+func (s *replaceAIConfigAfterFirstGetStore) Overwrite(
+	ctx context.Context,
+	accountNamespace string,
+	config *runtimev1.AIConfig,
+) error {
+	return s.delegate.Overwrite(ctx, accountNamespace, config)
+}
+
+func TestSubmitLocalAppScenarioJobVoiceWorkflowUsesOneCapturedAIConfigSnapshot(t *testing.T) {
+	var providerCalls atomic.Int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		providerCalls.Add(1)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusUnauthorized)
+		_, _ = w.Write([]byte(`{"code":"InvalidApiKey","message":"invalid api key"}`))
+	}))
+	defer server.Close()
+
+	fixture := newManagedCloudScenarioTestFixture(t, "dashscope", "qwen3-tts-vd-2026-01-26", server.URL, Config{AllowLoopbackEndpoint: true})
+	baseStore := fixture.service.aiConfigStore
+	if err := baseStore.Overwrite(context.Background(), "user-001",
+		appAIConfig("nimi.realm-persona-studio", cloudVoiceAIConfigIntent(t, fixture.descriptor))); err != nil {
+		t.Fatalf("install initial Cloud App AIConfig: %v", err)
+	}
+	switchingStore := &replaceAIConfigAfterFirstGetStore{
+		delegate: baseStore,
+		replacement: appAIConfig("nimi.realm-persona-studio",
+			localAppAIConfigIntent(capabilitydriver.VoiceCreateContract)),
+	}
+	fixture.service.aiConfigStore = switchingStore
+
+	ctx := accountservice.ContextWithAuthorizedLocalAppDecision(context.Background(), accountservice.LocalAppCallerDecision{
+		AccountID:            "user-001",
+		AppID:                "nimi.realm-persona-studio",
+		RegisteredAppSubject: "protected-app-principal",
+		Operation:            accountservice.LocalAppOperationScenarioJobSubmit,
+		AuthorityClass:       localappop.AuthorityClassAppAccess,
+		OperationCapability:  localappop.AppOperationIDScenarioJobSubmit,
+	})
+	response, err := fixture.service.SubmitLocalAppScenarioJob(ctx, &runtimev1.SubmitLocalAppScenarioJobRequest{
+		Spec: &runtimev1.SubmitLocalAppScenarioJobRequest_VoiceCreate{
+			VoiceCreate: &runtimev1.LocalAppVoiceCreateJobSpec{
+				Source: &runtimev1.LocalAppVoiceCreateJobSpec_TextDescription{TextDescription: &runtimev1.VoiceT2VInput{
+					InstructionText: "warm narrator voice",
+					PreviewText:     "Hello from the captured Cloud route.",
+				}},
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("SubmitLocalAppScenarioJob: %v", err)
+	}
+	if response == nil || response.GetJob() == nil {
+		t.Fatalf("response = %+v, want accepted captured Cloud Job", response)
+	}
+	if switchingStore.getCount.Load() != 1 {
+		t.Fatalf("AIConfig reads = %d, want exactly one", switchingStore.getCount.Load())
+	}
+
+	deadline := time.Now().Add(3 * time.Second)
+	var job *runtimev1.ScenarioJob
+	for time.Now().Before(deadline) {
+		job, _ = fixture.service.voiceAssets.getJob(response.GetJob().GetJobId())
+		if isTerminalScenarioJobStatus(job.GetStatus()) {
+			break
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+	if job.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_FAILED ||
+		job.GetReasonCode() != runtimev1.ReasonCode_AI_PROVIDER_AUTH_FAILED {
+		t.Fatalf("captured Cloud workflow status=%s reason=%s detail=%q", job.GetStatus(), job.GetReasonCode(), job.GetReasonDetail())
+	}
+	if providerCalls.Load() != 1 {
+		t.Fatalf("provider calls = %d, want captured Cloud route to execute exactly once", providerCalls.Load())
+	}
+}
+
+func cloudVoiceAIConfigIntent(t *testing.T, descriptor *runtimev1.ConnectorModelDescriptor) *runtimev1.AIConfigCapabilityIntent {
+	t.Helper()
+	target, err := structpb.NewStruct(map[string]any{
+		"provider":             descriptor.GetProvider(),
+		"providerModelId":      descriptor.GetProviderModelId(),
+		"remoteModelCatalogId": descriptor.GetRemoteModelCatalogId(),
+	})
+	if err != nil {
+		t.Fatalf("build Cloud voice target: %v", err)
+	}
+	return &runtimev1.AIConfigCapabilityIntent{
+		CapabilityContract: "voice.create",
+		Route: &runtimev1.AIConfigCapabilityIntent_Cloud{Cloud: &runtimev1.AIConfigCloudIntent{
+			Implementation: &runtimev1.CapabilityImplementationIdentity{
+				ImplementationId: "cloud.voice.create.dashscope",
+				DriverId:         "nimi.runtime.driver.dashscope",
+				DriverDialect:    "provider/media-v1",
+			},
+			ProviderModelTarget: target,
+		}},
+	}
 }
 
 func TestSubmitLocalAppScenarioJobLocalVoiceWorkflowRequiresSelectedImplementation(t *testing.T) {

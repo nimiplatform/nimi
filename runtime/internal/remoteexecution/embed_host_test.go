@@ -36,14 +36,6 @@ func TestProviderEmbedHostConfinesCredentialToOneAuditedDispatch(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	grant, err := store.CreateGrant("account-a", record.ConnectorID)
-	if err != nil {
-		t.Fatal(err)
-	}
-	snapshot, err := store.ValidateGrantBinding("account-a", grant.GrantID)
-	if err != nil {
-		t.Fatal(err)
-	}
 	secrets.mu.Lock()
 	secrets.reads = 0
 	secrets.mu.Unlock()
@@ -68,10 +60,10 @@ func TestProviderEmbedHostConfinesCredentialToOneAuditedDispatch(t *testing.T) {
 		audit,
 		true,
 	)
-	response, err := host.ExecuteEmbed(context.Background(), snapshot, target, mapped, EmbedDispatchAudit{
+	response, err := host.ExecuteEmbed(context.Background(), record, target, mapped, EmbedDispatchAudit{
 		AppID: "app", AccountID: "account-a", TraceID: "trace", CapabilityContract: "text.embed",
 		ImplementationID: "cloud.text.embed.openai", DriverID: "driver.openai", DriverDialect: "openai/embeddings/v1",
-		ConnectorGrantID: grant.GrantID, Provider: "openai", ProviderModelID: "text-embedding-3-small", RemoteModelCatalogID: "catalog-1",
+		ConnectorID: record.ConnectorID, Provider: "openai", ProviderModelID: "text-embedding-3-small", RemoteModelCatalogID: "catalog-1",
 	})
 	if err != nil {
 		t.Fatalf("ExecuteEmbed: %v", err)

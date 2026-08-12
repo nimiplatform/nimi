@@ -53,7 +53,7 @@ func (s *voiceAssetStore) submit(input *voiceWorkflowSubmitInput) (*runtimev1.Sc
 		TargetModelId:    targetModelID,
 		ProviderVoiceRef: "",
 		Persistence:      persistence,
-		Status:           runtimev1.VoiceAssetStatus_VOICE_ASSET_STATUS_ACTIVE,
+		Status:           runtimev1.VoiceAssetStatus_VOICE_ASSET_STATUS_UNSPECIFIED,
 		CreatedAt:        now,
 		UpdatedAt:        now,
 	}
@@ -115,22 +115,20 @@ func (s *voiceAssetStore) submit(input *voiceWorkflowSubmitInput) (*runtimev1.Sc
 		IgnoredExtensions: cloneIgnoredScenarioExtensions(input.IgnoredExtensions),
 	}
 	record := &voiceScenarioJobRecord{
-		job:           cloneScenarioJob(job),
-		localAppOwner: cloneLocalAppJobOwner(input.LocalAppOwner),
-		assetID:       assetID,
-		events:        make([]*runtimev1.ScenarioJobEvent, 0, 4),
-		subscribers:   make(map[uint64]chan *runtimev1.ScenarioJobEvent),
-		createdAt:     now.AsTime(),
-		updatedAt:     now.AsTime(),
+		job:               cloneScenarioJob(job),
+		localAppOwner:     cloneLocalAppJobOwner(input.LocalAppOwner),
+		assetID:           assetID,
+		assetDraft:        cloneVoiceAsset(asset),
+		targetDraft:       input.ExecutionTarget.Clone(),
+		cloudBindingDraft: input.CloudBinding.Clone(),
+		events:            make([]*runtimev1.ScenarioJobEvent, 0, 4),
+		subscribers:       make(map[uint64]chan *runtimev1.ScenarioJobEvent),
+		createdAt:         now.AsTime(),
+		updatedAt:         now.AsTime(),
 	}
 	s.mu.Lock()
 	s.publishLocked(record, runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_SUBMITTED)
 	s.jobs[jobID] = record
-	s.assets[assetID] = cloneVoiceAsset(asset)
-	s.targets[assetID] = input.ExecutionTarget.Clone()
-	if input.CloudBinding != nil {
-		s.cloudBindings[assetID] = input.CloudBinding.Clone()
-	}
 	s.pruneLocked(now.AsTime())
 	s.mu.Unlock()
 	return cloneScenarioJob(job), cloneVoiceAsset(asset)
@@ -166,6 +164,50 @@ func (s *voiceAssetStore) getJob(jobID string) (*runtimev1.ScenarioJob, bool) {
 	job := cloneScenarioJob(record.job)
 	s.mu.RUnlock()
 	return job, true
+}
+
+func (s *voiceAssetStore) getCompletedJobResult(jobID string) (*runtimev1.VoiceAsset, *runtimev1.VoiceReference, bool) {
+	id := strings.TrimSpace(jobID)
+	if id == "" {
+		return nil, nil, false
+	}
+	s.mu.RLock()
+	record := s.jobs[id]
+	if record == nil || record.job == nil ||
+		record.job.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED {
+		s.mu.RUnlock()
+		return nil, nil, false
+	}
+	asset := record.terminalAssetSnapshot
+	reference := record.terminalVoiceReferenceSnapshot
+	valid := validTerminalVoiceJobSnapshot(record)
+	resultAsset := cloneVoiceAsset(asset)
+	resultReference := cloneVoiceReference(reference)
+	s.mu.RUnlock()
+	if !valid {
+		return nil, nil, false
+	}
+	return resultAsset, resultReference, true
+}
+
+func validTerminalVoiceJobSnapshot(record *voiceScenarioJobRecord) bool {
+	if record == nil || record.job == nil || record.job.GetHead() == nil ||
+		record.job.GetScenarioType() != runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CREATE ||
+		record.job.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED ||
+		strings.TrimSpace(record.job.GetJobId()) == "" {
+		return false
+	}
+	asset := record.terminalAssetSnapshot
+	reference := record.terminalVoiceReferenceSnapshot
+	return asset != nil &&
+		asset.GetStatus() == runtimev1.VoiceAssetStatus_VOICE_ASSET_STATUS_ACTIVE &&
+		strings.TrimSpace(asset.GetVoiceAssetId()) == strings.TrimSpace(record.assetID) &&
+		strings.TrimSpace(asset.GetProviderVoiceRef()) != "" &&
+		strings.TrimSpace(asset.GetAppId()) == strings.TrimSpace(record.job.GetHead().GetAppId()) &&
+		strings.TrimSpace(asset.GetSubjectUserId()) == strings.TrimSpace(record.job.GetHead().GetSubjectUserId()) &&
+		reference != nil &&
+		reference.GetKind() == runtimev1.VoiceReferenceKind_VOICE_REFERENCE_KIND_VOICE_ASSET &&
+		strings.TrimSpace(reference.GetVoiceAssetId()) == strings.TrimSpace(record.assetID)
 }
 
 func (s *voiceAssetStore) setJobCancel(jobID string, cancel context.CancelFunc) bool {
@@ -261,10 +303,6 @@ func (s *voiceAssetStore) finishJobExecution(jobID string) {
 		record.updatedAt = nowTime
 		record.terminalAt = nowTime
 		record.job.UpdatedAt = timestamppb.New(nowTime)
-		if asset := s.assets[record.assetID]; asset != nil {
-			asset.Status = runtimev1.VoiceAssetStatus_VOICE_ASSET_STATUS_FAILED
-			asset.UpdatedAt = timestamppb.New(nowTime)
-		}
 		s.publishLocked(record, runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_CANCELED)
 		s.pruneLocked(nowTime)
 	}
@@ -283,6 +321,11 @@ func (s *voiceAssetStore) runJob(jobID string) bool {
 }
 
 func (s *voiceAssetStore) completeJob(jobID string, providerVoiceRef string, metadata map[string]any, usage *runtimev1.UsageStats) bool {
+	providerVoiceRef = strings.TrimSpace(providerVoiceRef)
+	if providerVoiceRef == "" || !s.hasPublishableVoiceResultDraft(jobID) {
+		s.failJob(jobID, runtimev1.ReasonCode_AI_OUTPUT_INVALID, stableScenarioJobReasonDetail(runtimev1.ReasonCode_AI_OUTPUT_INVALID), nil)
+		return false
+	}
 	return s.transitionJob(jobID, runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED, runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_COMPLETED, func(record *voiceScenarioJobRecord) {
 		// Provider task identities never enter the public Runtime voice job.
 		record.job.ProviderJobId = ""
@@ -290,16 +333,39 @@ func (s *voiceAssetStore) completeJob(jobID string, providerVoiceRef string, met
 		record.job.ReasonDetail = ""
 		record.job.ReasonMetadata = nil
 		record.job.Usage = usage
-		asset := s.assets[record.assetID]
-		if asset != nil {
-			asset.ProviderVoiceRef = strings.TrimSpace(providerVoiceRef)
-			if len(metadata) > 0 {
-				asset.Metadata = structFromMap(metadata)
-			}
-			asset.Status = runtimev1.VoiceAssetStatus_VOICE_ASSET_STATUS_ACTIVE
-			asset.UpdatedAt = timestamppb.New(time.Now().UTC())
+		asset := cloneVoiceAsset(record.assetDraft)
+		asset.ProviderVoiceRef = providerVoiceRef
+		if len(metadata) > 0 {
+			asset.Metadata = structFromMap(metadata)
+		}
+		asset.Status = runtimev1.VoiceAssetStatus_VOICE_ASSET_STATUS_ACTIVE
+		asset.CreatedAt = timestamppb.New(record.job.GetUpdatedAt().AsTime())
+		asset.UpdatedAt = timestamppb.New(record.job.GetUpdatedAt().AsTime())
+		record.terminalAssetSnapshot = cloneVoiceAsset(asset)
+		record.terminalVoiceReferenceSnapshot = voiceAssetReference(asset.GetVoiceAssetId())
+		s.assets[record.assetID] = asset
+		s.targets[record.assetID] = record.targetDraft.Clone()
+		if record.cloudBindingDraft != nil {
+			s.cloudBindings[record.assetID] = record.cloudBindingDraft.Clone()
 		}
 	})
+}
+
+func (s *voiceAssetStore) hasPublishableVoiceResultDraft(jobID string) bool {
+	id := strings.TrimSpace(jobID)
+	if id == "" {
+		return false
+	}
+	s.mu.RLock()
+	record := s.jobs[id]
+	valid := record != nil && record.assetDraft != nil &&
+		strings.TrimSpace(record.assetDraft.GetVoiceAssetId()) == strings.TrimSpace(record.assetID) &&
+		record.targetDraft != nil && record.targetDraft.Valid()
+	if valid && record.assetDraft.GetPersistence() == runtimev1.VoiceAssetPersistence_VOICE_ASSET_PERSISTENCE_PROVIDER_PERSISTENT {
+		valid = record.cloudBindingDraft != nil && record.cloudBindingDraft.Valid()
+	}
+	s.mu.RUnlock()
+	return valid
 }
 
 func (s *voiceAssetStore) failJob(jobID string, reasonCode runtimev1.ReasonCode, detail string, reasonMetadata *structpb.Struct) bool {
@@ -307,11 +373,6 @@ func (s *voiceAssetStore) failJob(jobID string, reasonCode runtimev1.ReasonCode,
 		record.job.ReasonCode = reasonCode
 		record.job.ReasonDetail = strings.TrimSpace(detail)
 		record.job.ReasonMetadata = reasonMetadata
-		asset := s.assets[record.assetID]
-		if asset != nil {
-			asset.Status = runtimev1.VoiceAssetStatus_VOICE_ASSET_STATUS_FAILED
-			asset.UpdatedAt = timestamppb.New(time.Now().UTC())
-		}
 	})
 }
 
@@ -320,11 +381,6 @@ func (s *voiceAssetStore) timeoutJob(jobID string, reasonCode runtimev1.ReasonCo
 		record.job.ReasonCode = reasonCode
 		record.job.ReasonDetail = strings.TrimSpace(detail)
 		record.job.ReasonMetadata = reasonMetadata
-		asset := s.assets[record.assetID]
-		if asset != nil {
-			asset.Status = runtimev1.VoiceAssetStatus_VOICE_ASSET_STATUS_FAILED
-			asset.UpdatedAt = timestamppb.New(time.Now().UTC())
-		}
 	})
 }
 
@@ -380,9 +436,11 @@ func (s *voiceAssetStore) failProviderPersistentCompletionLocked(record *voiceSc
 	if asset == nil || asset.GetPersistence() != runtimev1.VoiceAssetPersistence_VOICE_ASSET_PERSISTENCE_PROVIDER_PERSISTENT {
 		return false
 	}
-	asset.ProviderVoiceRef = ""
-	asset.Status = runtimev1.VoiceAssetStatus_VOICE_ASSET_STATUS_FAILED
-	asset.UpdatedAt = timestamppb.New(nowTime)
+	delete(s.assets, record.assetID)
+	delete(s.targets, record.assetID)
+	delete(s.cloudBindings, record.assetID)
+	record.terminalAssetSnapshot = nil
+	record.terminalVoiceReferenceSnapshot = nil
 	record.job.Status = runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_FAILED
 	record.job.ReasonCode = runtimev1.ReasonCode_AI_PROVIDER_INTERNAL
 	if persistErr != nil {

@@ -82,7 +82,7 @@ type CloudEmbedDriver interface {
 }
 
 // CloudEmbedRegistry resolves an admitted provider embedding dialect. It never
-// sees a ConnectorGrant and cannot become an account or route selector.
+// sees Connector custody and cannot become an account or route selector.
 type CloudEmbedRegistry struct {
 	drivers map[string]CloudEmbedDriver
 }
@@ -128,7 +128,7 @@ func (d providerCloudEmbedDriver) ValidateTarget(identity Identity, raw *structp
 	}
 	for key := range raw.GetFields() {
 		switch key {
-		case "provider", "model", "providerModelId", "remoteModelCatalogId", "region":
+		case "provider", "providerModelId", "remoteModelCatalogId", "region":
 		default:
 			return CloudEmbedTarget{}, cloudInvocationError(CloudInvocationFailureTarget, fmt.Errorf("embedding target field %q is unsupported", key))
 		}
@@ -141,15 +141,8 @@ func (d providerCloudEmbedDriver) ValidateTarget(identity Identity, raw *structp
 	if !ok || record.RuntimePlane != "remote" || !record.SupportsEmbed {
 		return CloudEmbedTarget{}, cloudInvocationError(CloudInvocationFailureTarget, fmt.Errorf("provider %q does not implement %s", provider, TextEmbedCapabilityContract))
 	}
-	providerModelID, providerModelPresent := exactCloudTargetText(raw, "providerModelId")
-	model, modelPresent := exactCloudTargetText(raw, "model")
-	if providerModelPresent && modelPresent && providerModelID != model {
-		return CloudEmbedTarget{}, cloudInvocationError(CloudInvocationFailureTarget, fmt.Errorf("provider model identities conflict"))
-	}
-	if !providerModelPresent {
-		providerModelID = model
-	}
-	if providerModelID == "" {
+	providerModelID, ok := exactCloudTargetText(raw, "providerModelId")
+	if !ok {
 		return CloudEmbedTarget{}, cloudInvocationError(CloudInvocationFailureTarget, fmt.Errorf("provider embedding model identity is required"))
 	}
 	remoteModelCatalogID, ok := exactCloudTargetText(raw, "remoteModelCatalogId")
@@ -273,8 +266,6 @@ func (providerCloudEmbedDriver) NormalizeReason(err error) error {
 			runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE,
 			runtimev1.ReasonCode_AI_PROVIDER_ENDPOINT_FORBIDDEN,
 			runtimev1.ReasonCode_AI_CONNECTOR_CREDENTIAL_MISSING,
-			runtimev1.ReasonCode_AI_CONNECTOR_GRANT_REVOKED,
-			runtimev1.ReasonCode_AI_CONNECTOR_GRANT_SELECTION_REQUIRED,
 			runtimev1.ReasonCode_AI_MODEL_NOT_FOUND,
 			runtimev1.ReasonCode_AI_CONTENT_FILTER_BLOCKED,
 			runtimev1.ReasonCode_AI_INPUT_INVALID,

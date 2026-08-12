@@ -61,22 +61,21 @@ func TestGenerateLocalAppTextCandidateUsesAppIntentAndMachineSelection(t *testin
 	}
 }
 
-func TestGenerateLocalAppTextCandidateCloudWithoutBindingIsSelectionRequiredAndDoesNotMutateRoute(t *testing.T) {
+func TestGenerateLocalAppTextCandidateCloudWithoutCurrentAccountConnectorFailsClosedAndDoesNotMutateRoute(t *testing.T) {
 	svc := newTestService(nil)
-	intent := grantlessCloudAIConfigIntent(t, "text.generate")
+	intent := cloudAIConfigIntent(t, "text.generate")
 	config := appAIConfig("nimi.realm-persona-studio", intent)
 	if err := svc.aiConfigStore.Overwrite(context.Background(), "account-1", config); err != nil {
 		t.Fatalf("install Cloud App AIConfig: %v", err)
 	}
 	response, err := svc.GenerateLocalAppTextCandidate(localAppTextCandidateContext(), validLocalAppTextCandidateRequest())
 	if response != nil {
-		t.Fatalf("selection-required response = %+v, want nil", response)
+		t.Fatalf("configuration-required response = %+v, want nil", response)
 	}
-	assertLocalAppTextCandidateError(t, err, codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONNECTOR_GRANT_SELECTION_REQUIRED)
+	assertLocalAppTextCandidateError(t, err, codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONNECTOR_NOT_FOUND)
 	stored, found, readErr := svc.aiConfigStore.Get(context.Background(), "account-1", appAIConfigOwner("nimi.realm-persona-studio"))
-	if readErr != nil || !found || stored.GetCapabilities()[0].GetCloud() == nil ||
-		stored.GetCapabilities()[0].GetCloud().GetConnectorGrantId() != "" {
-		t.Fatalf("selection failure changed committed route = (%+v, %v, %v)", stored, found, readErr)
+	if readErr != nil || !found || stored.GetCapabilities()[0].GetCloud() == nil {
+		t.Fatalf("configuration failure changed committed route = (%+v, %v, %v)", stored, found, readErr)
 	}
 }
 

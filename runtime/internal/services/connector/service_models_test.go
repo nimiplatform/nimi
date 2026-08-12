@@ -57,7 +57,7 @@ func TestListConnectorModelsRemoteUsesCatalogWithoutOutbound(t *testing.T) {
 	}
 	foundGPTAudio := false
 	for _, model := range resp.GetModels() {
-		if model.GetModelId() == "gpt-audio" {
+		if model.GetProviderModelId() == "gpt-audio" {
 			foundGPTAudio = true
 			break
 		}
@@ -89,7 +89,7 @@ func TestListConnectorModelsProjectsRemoteCatalogIdentity(t *testing.T) {
 	}
 	var found *runtimev1.ConnectorModelDescriptor
 	for _, model := range resp.GetModels() {
-		if model.GetModelId() == "gpt-audio" {
+		if model.GetProviderModelId() == "gpt-audio" {
 			found = model
 			break
 		}
@@ -100,8 +100,8 @@ func TestListConnectorModelsProjectsRemoteCatalogIdentity(t *testing.T) {
 	if found.GetRemoteModelCatalogId() == "" {
 		t.Fatalf("remote_model_catalog_id missing: %#v", found)
 	}
-	if found.GetProviderModelId() != found.GetModelId() {
-		t.Fatalf("provider_model_id = %q want model_id %q", found.GetProviderModelId(), found.GetModelId())
+	if found.GetModelLabel() != "gpt-audio" {
+		t.Fatalf("model_label = %q want %q", found.GetModelLabel(), "gpt-audio")
 	}
 	if found.GetProvider() != "openai" {
 		t.Fatalf("provider = %q", found.GetProvider())
@@ -111,7 +111,7 @@ func TestListConnectorModelsProjectsRemoteCatalogIdentity(t *testing.T) {
 	}
 }
 
-func TestListConnectorModelsProjectsProviderAPIModelIDForCatalogAlias(t *testing.T) {
+func TestListConnectorModelsCanonicalizesAliasesByExecutableProviderModelID(t *testing.T) {
 	svc := newTestService(t)
 	ctx := userContext("user-1")
 	created, err := svc.CreateConnector(ctx, &runtimev1.CreateConnectorRequest{
@@ -121,15 +121,94 @@ func TestListConnectorModelsProjectsProviderAPIModelIDForCatalogAlias(t *testing
 	if err != nil {
 		t.Fatalf("CreateConnector: %v", err)
 	}
-	found := connectorModelDescriptorByID(t, svc, ctx, created.GetConnector().GetConnectorId(), "doubao-seed-2.0-pro")
-	if found.GetModelId() != "doubao-seed-2.0-pro" {
-		t.Fatalf("model_id = %q want catalog alias row", found.GetModelId())
+	resp, err := svc.ListConnectorModels(ctx, &runtimev1.ListConnectorModelsRequest{
+		ConnectorId: created.GetConnector().GetConnectorId(),
+		PageSize:    200,
+	})
+	if err != nil {
+		t.Fatalf("ListConnectorModels: %v", err)
 	}
-	if found.GetProviderModelId() != "doubao-seed-2-0-pro-260215" {
-		t.Fatalf("provider_model_id = %q want canonical API model id", found.GetProviderModelId())
+	const providerModelID = "doubao-seed-2-0-pro-260215"
+	var matches []*runtimev1.ConnectorModelDescriptor
+	for _, model := range resp.GetModels() {
+		if model.GetProviderModelId() == providerModelID {
+			matches = append(matches, model)
+		}
+	}
+	if len(matches) != 1 {
+		t.Fatalf("provider_model_id %q projected %d descriptors, want 1", providerModelID, len(matches))
+	}
+	found := matches[0]
+	if found.GetModelLabel() != providerModelID {
+		t.Fatalf("model_label = %q want canonical catalog model label %q", found.GetModelLabel(), providerModelID)
 	}
 	if found.GetRemoteModelCatalogId() == "" {
 		t.Fatalf("remote_model_catalog_id missing: %#v", found)
+	}
+}
+
+func TestListConnectorModelsDashScopeVoiceAliasHasOneExecutableTarget(t *testing.T) {
+	svc := newTestService(t)
+	ctx := userContext("user-1")
+	created, err := svc.CreateConnector(ctx, &runtimev1.CreateConnectorRequest{
+		Provider: "dashscope",
+		ApiKey:   "managed-key",
+	})
+	if err != nil {
+		t.Fatalf("CreateConnector: %v", err)
+	}
+	resp, err := svc.ListConnectorModels(ctx, &runtimev1.ListConnectorModelsRequest{
+		ConnectorId: created.GetConnector().GetConnectorId(),
+		PageSize:    200,
+	})
+	if err != nil {
+		t.Fatalf("ListConnectorModels: %v", err)
+	}
+	const providerModelID = "qwen3-tts-vc-2026-01-22"
+	var matches []*runtimev1.ConnectorModelDescriptor
+	for _, model := range resp.GetModels() {
+		if model.GetProviderModelId() == providerModelID {
+			matches = append(matches, model)
+		}
+	}
+	if len(matches) != 1 {
+		t.Fatalf("provider_model_id %q projected %d descriptors, want 1", providerModelID, len(matches))
+	}
+	found := matches[0]
+	if found.GetModelLabel() != "qwen3-tts-vc" {
+		t.Fatalf("model_label = %q want canonical catalog model label qwen3-tts-vc", found.GetModelLabel())
+	}
+	capabilities := map[string]bool{}
+	for _, capability := range found.GetCapabilities() {
+		capabilities[strings.TrimSpace(capability)] = true
+	}
+	if !capabilities["voice.create"] || !capabilities["audio.synthesize"] {
+		t.Fatalf("canonical descriptor capabilities = %v", found.GetCapabilities())
+	}
+
+	record, ok, err := svc.Store().Get(created.GetConnector().GetConnectorId())
+	if err != nil || !ok {
+		t.Fatalf("Get connector: ok=%v err=%v", ok, err)
+	}
+	modelCatalog := svc.modelCatalogResolver()
+	models, _, err := modelCatalog.ListModelsForProviderForSubject("user-1", "dashscope")
+	if err != nil {
+		t.Fatalf("ListModelsForProviderForSubject: %v", err)
+	}
+	providerRecord := catalogProviderRecordForSubject(modelCatalog, "user-1", "dashscope")
+	identities := map[string]remoteModelCatalogIdentity{}
+	for _, model := range models {
+		if model.Model.ModelID == "qwen3-tts-vc" || model.Model.ModelID == providerModelID {
+			identities[model.Model.ModelID] = remoteModelCatalogIdentityForConnector(record, providerRecord, model)
+		}
+	}
+	canonical, canonicalOK := identities["qwen3-tts-vc"]
+	alias, aliasOK := identities[providerModelID]
+	if !canonicalOK || !aliasOK {
+		t.Fatalf("voice catalog identities missing: %v", identities)
+	}
+	if canonical.remoteModelCatalogID != alias.remoteModelCatalogID {
+		t.Fatalf("same executable provider model produced different remote identities: canonical=%q alias=%q", canonical.remoteModelCatalogID, alias.remoteModelCatalogID)
 	}
 }
 
@@ -173,7 +252,7 @@ func TestListConnectorModelsEndpointChangeInvalidatesRemoteCatalogID(t *testing.
 	}
 }
 
-func connectorModelDescriptorByID(t *testing.T, svc *Service, ctx context.Context, connectorID string, modelID string) *runtimev1.ConnectorModelDescriptor {
+func connectorModelDescriptorByID(t *testing.T, svc *Service, ctx context.Context, connectorID string, providerModelID string) *runtimev1.ConnectorModelDescriptor {
 	t.Helper()
 	resp, err := svc.ListConnectorModels(ctx, &runtimev1.ListConnectorModelsRequest{
 		ConnectorId: connectorID,
@@ -183,11 +262,11 @@ func connectorModelDescriptorByID(t *testing.T, svc *Service, ctx context.Contex
 		t.Fatalf("ListConnectorModels: %v", err)
 	}
 	for _, model := range resp.GetModels() {
-		if model.GetModelId() == modelID {
+		if model.GetProviderModelId() == providerModelID {
 			return model
 		}
 	}
-	t.Fatalf("model %q not found", modelID)
+	t.Fatalf("provider model %q not found", providerModelID)
 	return nil
 }
 
@@ -220,7 +299,7 @@ func TestListConnectorModelsDashScopeIncludesRepresentativeImageModels(t *testin
 	foundVoiceWorkflowCapabilities := map[string]string{}
 	foundSpeechSynthesizeModels := map[string]bool{}
 	for _, model := range resp.GetModels() {
-		modelID := strings.TrimSpace(model.GetModelId())
+		modelID := strings.TrimSpace(model.GetModelLabel())
 		for _, capability := range model.GetCapabilities() {
 			switch strings.TrimSpace(capability) {
 			case "audio.synthesize":

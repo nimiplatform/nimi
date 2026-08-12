@@ -313,11 +313,11 @@ func TestServiceVoiceLipsyncScenarioExecutorRequiresExplicitModel(t *testing.T) 
 		SpeechModelID:         "speech/anchor",
 		SpeechRoutePolicy:     runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
 		SpeechTargetRef: &runtimeidentity.Target{Cloud: &runtimeidentity.CloudTarget{
-			ConnectorID: "connector-anchor", ConnectorGrantID: "grant-test", RemoteModelCatalogID: "catalog-anchor",
+			ConnectorID: "connector-anchor", RemoteModelCatalogID: "catalog-anchor",
 			ProviderModelID: "speech/anchor", Provider: "provider-anchor",
 		}},
 		SpeechExecutionIntent: testVoiceAssetExecutionIntent(&runtimeidentity.Target{Cloud: &runtimeidentity.CloudTarget{
-			ConnectorID: "connector-anchor", ConnectorGrantID: "grant-test", RemoteModelCatalogID: "catalog-anchor",
+			ConnectorID: "connector-anchor", RemoteModelCatalogID: "catalog-anchor",
 			ProviderModelID: "speech/anchor", Provider: "provider-anchor",
 		}}),
 	})

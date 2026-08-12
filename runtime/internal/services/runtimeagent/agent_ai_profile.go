@@ -70,9 +70,6 @@ func sharedLocalAgentAIConfigFromProfile(raw []byte) (*runtimev1.AIConfig, error
 			intent.Route = &runtimev1.AIConfigCapabilityIntent_Cloud{Cloud: &runtimev1.AIConfigCloudIntent{
 				Implementation:      capability.implementation,
 				ProviderModelTarget: capability.providerModelTarget,
-				// ConnectorGrant is account-local authorization and is absent
-				// from the portable profile format.
-				ConnectorGrantId: "",
 			}}
 		default:
 			return nil, errPortableAIProfileInvalid
@@ -215,6 +212,9 @@ func parsePortableAIProfile(raw []byte) (*portableAIProfile, error) {
 			if err != nil || len(capability.providerModelTarget.GetFields()) == 0 {
 				return nil, errPortableAIProfileInvalid
 			}
+			if err := validatePortableCloudTarget(capability.providerModelTarget); err != nil {
+				return nil, err
+			}
 			capability.implementation, err = parsePortableImplementation(record["implementation"], requiredFeatures)
 			if err != nil {
 				return nil, err
@@ -225,6 +225,22 @@ func parsePortableAIProfile(raw []byte) (*portableAIProfile, error) {
 		profile.capabilities[contract] = capability
 	}
 	return profile, nil
+}
+
+func validatePortableCloudTarget(target *structpb.Struct) error {
+	if target == nil {
+		return errPortableAIProfileInvalid
+	}
+	if _, exists := target.GetFields()["model"]; exists {
+		return errPortableAIProfileInvalid
+	}
+	for _, key := range []string{"provider", "providerModelId", "remoteModelCatalogId"} {
+		value := target.GetFields()[key].GetStringValue()
+		if value == "" || strings.TrimSpace(value) != value {
+			return errPortableAIProfileInvalid
+		}
+	}
+	return nil
 }
 
 func parsePortableImplementation(value any, requiredFeatures []string) (*runtimev1.CapabilityImplementationIdentity, error) {

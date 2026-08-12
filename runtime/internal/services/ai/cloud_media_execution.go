@@ -31,7 +31,7 @@ type cloudMediaEffectiveInputs struct {
 	target         capabilitydriver.CloudMediaTarget
 	catalogTarget  *nimillm.RemoteTarget
 	voiceTarget    *runtimeidentity.Target
-	grant          connector.ConnectorGrantSnapshot
+	connector      connector.ConnectorRecord
 	defaults       *structpb.Struct
 	request        *runtimev1.SubmitScenarioJobRequest
 	mapped         *capabilitydriver.CloudMediaMappedRequest
@@ -50,7 +50,7 @@ func (input *cloudMediaEffectiveInputs) release() {
 	input.target = capabilitydriver.CloudMediaTarget{}
 	input.catalogTarget = nil
 	input.voiceTarget = nil
-	input.grant = connector.ConnectorGrantSnapshot{}
+	input.connector = connector.ConnectorRecord{}
 	input.defaults = nil
 	input.request = nil
 	input.mapped = nil
@@ -83,7 +83,7 @@ func (input *cloudMediaEffectiveInputs) dispatchAudit() remoteexecution.MediaDis
 		ImplementationID:     input.implementation.GetImplementationId(),
 		DriverID:             input.implementation.GetDriverId(),
 		DriverDialect:        input.implementation.GetDriverDialect(),
-		ConnectorGrantID:     input.grant.Grant.GrantID,
+		ConnectorID:          input.connector.ConnectorID,
 		Provider:             input.target.Provider(),
 		ProviderModelID:      input.target.ProviderModelID(),
 		RemoteModelCatalogID: input.target.RemoteModelCatalogID(),
@@ -128,23 +128,17 @@ func (s *Service) captureCloudMediaEffectiveInputs(
 	if err != nil {
 		return nil, cloudMediaDriverError(capabilityContract, err)
 	}
-	grantID := intent.GrantID()
-	if grantID == "" || grantID != intent.ConnectorGrantID {
-		return nil, connectorGrantExecutionError(connector.ErrConnectorGrantSelectionRequired)
-	}
 	accountID := scenarioTargetSubjectUserID(ctx, head)
-	if accountID == "" || s.connStore == nil {
-		return nil, connectorGrantExecutionError(connector.ErrConnectorGrantSelectionRequired)
-	}
-	grant, err := s.connStore.ValidateGrantBinding(accountID, grantID)
-	if err != nil {
-		return nil, connectorGrantExecutionError(err)
-	}
-	if grant.Connector.Provider != target.Provider() {
-		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONFIG_INVALID)
-	}
 	if target.RemoteModelCatalogID() == "" {
 		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONFIG_INVALID)
+	}
+	connectorRecord, binding, err := connector.ResolveCurrentAccountConnectorBinding(s.connStore, s.speechCatalog, accountID, connector.RemoteModelCatalogRef{
+		RemoteModelCatalogID: target.RemoteModelCatalogID(),
+		ProviderModelID:      target.ProviderModelID(),
+		Provider:             target.Provider(),
+	})
+	if err != nil {
+		return nil, err
 	}
 
 	// Catalog validation consumes only safe connector/config identities. It
@@ -153,21 +147,14 @@ func (s *Service) captureCloudMediaEffectiveInputs(
 		ProviderType:         target.Provider(),
 		ProviderModelID:      target.ProviderModelID(),
 		RemoteModelCatalogID: target.RemoteModelCatalogID(),
-		ConnectorID:          grant.Connector.ConnectorID,
+		ConnectorID:          connectorRecord.ConnectorID,
 	}
-	binding, err := connector.ResolveRemoteModelCatalogBinding(s.speechCatalog, accountID, grant.Connector, connector.RemoteModelCatalogRef{
-		ConnectorID:          grant.Connector.ConnectorID,
-		RemoteModelCatalogID: target.RemoteModelCatalogID(),
-		ProviderModelID:      target.ProviderModelID(),
-		Provider:             target.Provider(),
-	})
-	if err != nil {
-		return nil, err
+	if binding == nil {
+		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONFIG_INVALID)
 	}
-	applyRemoteModelCatalogBinding(safeTarget, &binding)
+	applyRemoteModelCatalogBinding(safeTarget, binding)
 	voiceTarget := &runtimeidentity.Target{Cloud: &runtimeidentity.CloudTarget{
-		ConnectorID:          grant.Connector.ConnectorID,
-		ConnectorGrantID:     grant.Grant.GrantID,
+		ConnectorID:          connectorRecord.ConnectorID,
 		RemoteModelCatalogID: target.RemoteModelCatalogID(),
 		ProviderModelID:      target.ProviderModelID(),
 		Provider:             target.Provider(),
@@ -247,7 +234,7 @@ func (s *Service) captureCloudMediaEffectiveInputs(
 		target:         target,
 		catalogTarget:  safeTarget,
 		voiceTarget:    voiceTarget.Clone(),
-		grant:          grant,
+		connector:      connectorRecord,
 		defaults:       defaults,
 		request:        effectiveRequest,
 		mapped:         mapped,
@@ -336,7 +323,7 @@ func (s *Service) executeCapturedCloudMedia(ctx context.Context, effective *clou
 	if s == nil || effective == nil || effective.driver == nil || s.remoteMediaHost == nil {
 		return capabilitydriver.CloudMediaResult{}, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 	}
-	response, err := s.remoteMediaHost.ExecuteMedia(ctx, effective.grant, effective.target, effective.mapped, effective.dispatchAudit())
+	response, err := s.remoteMediaHost.ExecuteMedia(ctx, effective.connector, effective.target, effective.mapped, effective.dispatchAudit())
 	if err != nil {
 		return capabilitydriver.CloudMediaResult{}, effective.driver.NormalizeReason(effective.target, err)
 	}
@@ -355,7 +342,7 @@ func (s *Service) streamCapturedCloudSpeech(
 	if s == nil || effective == nil || effective.driver == nil || s.remoteMediaHost == nil || onChunk == nil {
 		return capabilitydriver.CloudMediaResult{}, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 	}
-	response, err := s.remoteMediaHost.StreamSpeech(ctx, effective.grant, effective.target, effective.mapped, func(raw capabilitydriver.CloudMediaStreamChunk) error {
+	response, err := s.remoteMediaHost.StreamSpeech(ctx, effective.connector, effective.target, effective.mapped, func(raw capabilitydriver.CloudMediaStreamChunk) error {
 		chunk, normalizeErr := effective.driver.NormalizeStreamChunk(raw)
 		if normalizeErr != nil {
 			if _, ok := grpcerr.ExtractReasonCode(normalizeErr); ok {
@@ -402,7 +389,7 @@ func (s *Service) auditCloudMediaCapture(effective *cloudMediaEffectiveInputs) e
 		"driver_id":             effective.implementation.GetDriverId(),
 		"driver_dialect":        effective.implementation.GetDriverDialect(),
 		"provider_model_target": target,
-		"connector_grant_id":    effective.grant.Grant.GrantID,
+		"connector_id":          effective.connector.ConnectorID,
 		"defaults":              defaults,
 		"request_sha256":        "sha256:" + hex.EncodeToString(requestDigest[:]),
 		"request_size_bytes":    len(requestRaw),

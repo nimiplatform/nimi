@@ -19,7 +19,6 @@ import (
 func runtimeAgentVoiceAssetTestTarget(connectorID string) *runtimeidentity.Target {
 	return &runtimeidentity.Target{Cloud: &runtimeidentity.CloudTarget{
 		ConnectorID:          connectorID,
-		ConnectorGrantID:     "grant-" + connectorID,
 		RemoteModelCatalogID: "dashscope/cosyvoice-v3-flash",
 		ProviderModelID:      "cosyvoice-v3-flash",
 		Provider:             "dashscope",
@@ -121,7 +120,7 @@ func TestResolveRuntimeAgentVoiceAssetIsSubjectBoundWithoutWideningPublicAppRead
 	svc.voiceAssets.cloudBindings[assetID] = &voiceAssetCloudBinding{
 		CapabilityContract:  "voice.create",
 		Implementation:      &runtimev1.CapabilityImplementationIdentity{ImplementationId: "cloud.voice.dashscope", DriverId: "driver.dashscope", DriverDialect: "dashscope/voice/v1"},
-		ProviderModelTarget: rawTarget, ConnectorGrantID: targetRef.Cloud.ConnectorGrantID,
+		ProviderModelTarget: rawTarget, ConnectorID: targetRef.Cloud.ConnectorID,
 	}
 
 	asset, target, err := svc.ResolveRuntimeAgentVoiceAsset(nil, assetID, "user-1")

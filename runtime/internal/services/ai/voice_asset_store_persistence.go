@@ -33,7 +33,7 @@ type voiceAssetDiskRecord struct {
 	CapabilityContract  string                                      `json:"capability_contract,omitempty"`
 	Implementation      *runtimev1.CapabilityImplementationIdentity `json:"implementation,omitempty"`
 	ProviderModelTarget map[string]any                              `json:"provider_model_target,omitempty"`
-	ConnectorGrantID    string                                      `json:"connector_grant_id,omitempty"`
+	ConnectorID         string                                      `json:"connector_id"`
 }
 
 func newVoiceAssetStoreForLocalStatePath(localStatePath string) (*voiceAssetStore, error) {
@@ -95,7 +95,7 @@ func (s *voiceAssetStore) loadDurableAssets() error {
 		}
 		binding := (&voiceAssetCloudBinding{
 			CapabilityContract: record.CapabilityContract, Implementation: record.Implementation,
-			ProviderModelTarget: providerTarget, ConnectorGrantID: record.ConnectorGrantID,
+			ProviderModelTarget: providerTarget, ConnectorID: record.ConnectorID,
 		}).Clone()
 		if !binding.Valid() {
 			continue
@@ -137,7 +137,7 @@ func (s *voiceAssetStore) persistDurableAssetsLocked() error {
 			record.CapabilityContract = binding.CapabilityContract
 			record.Implementation = binding.Clone().Implementation
 			record.ProviderModelTarget = binding.ProviderModelTarget.AsMap()
-			record.ConnectorGrantID = strings.TrimSpace(binding.ConnectorGrantID)
+			record.ConnectorID = strings.TrimSpace(binding.ConnectorID)
 		}
 		snapshot.Records = append(snapshot.Records, record)
 	}

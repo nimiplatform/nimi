@@ -14,13 +14,12 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
-	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/remoteexecution"
 	"github.com/nimiplatform/nimi/runtime/internal/services/connector"
 )
 
 type controlledRemoteMediaHost struct {
-	started         chan connector.ConnectorGrantSnapshot
+	started         chan connector.ConnectorRecord
 	release         chan struct{}
 	cancel          bool
 	cancelObserved  chan struct{}
@@ -32,7 +31,7 @@ type controlledRemoteMediaHost struct {
 
 func newControlledRemoteMediaHost(cancel bool) *controlledRemoteMediaHost {
 	return &controlledRemoteMediaHost{
-		started:         make(chan connector.ConnectorGrantSnapshot, 1),
+		started:         make(chan connector.ConnectorRecord, 1),
 		release:         make(chan struct{}),
 		cancel:          cancel,
 		cancelObserved:  make(chan struct{}),
@@ -42,12 +41,12 @@ func newControlledRemoteMediaHost(cancel bool) *controlledRemoteMediaHost {
 
 func (h *controlledRemoteMediaHost) ExecuteMedia(
 	ctx context.Context,
-	grant connector.ConnectorGrantSnapshot,
+	connectorRecord connector.ConnectorRecord,
 	_ capabilitydriver.CloudMediaTarget,
 	_ *capabilitydriver.CloudMediaMappedRequest,
 	_ remoteexecution.MediaDispatchAudit,
 ) (capabilitydriver.CloudMediaTransportResponse, error) {
-	h.once.Do(func() { h.started <- grant })
+	h.once.Do(func() { h.started <- connectorRecord })
 	if h.cancel {
 		<-ctx.Done()
 		closeOnce(h.cancelObserved)
@@ -74,19 +73,19 @@ func (h *controlledRemoteMediaHost) ExecuteMedia(
 	}
 }
 
-func (*controlledRemoteMediaHost) StreamSpeech(context.Context, connector.ConnectorGrantSnapshot, capabilitydriver.CloudMediaTarget, *capabilitydriver.CloudMediaMappedRequest, func(capabilitydriver.CloudMediaStreamChunk) error, remoteexecution.MediaDispatchAudit) (capabilitydriver.CloudMediaTransportResponse, error) {
+func (*controlledRemoteMediaHost) StreamSpeech(context.Context, connector.ConnectorRecord, capabilitydriver.CloudMediaTarget, *capabilitydriver.CloudMediaMappedRequest, func(capabilitydriver.CloudMediaStreamChunk) error, remoteexecution.MediaDispatchAudit) (capabilitydriver.CloudMediaTransportResponse, error) {
 	return capabilitydriver.CloudMediaTransportResponse{}, context.Canceled
 }
 
-func (*controlledRemoteMediaHost) ExecuteVoiceWorkflow(context.Context, connector.ConnectorGrantSnapshot, capabilitydriver.CloudMediaTarget, *capabilitydriver.CloudVoiceWorkflowMappedRequest, remoteexecution.MediaDispatchAudit) (capabilitydriver.CloudVoiceWorkflowTransportResponse, error) {
+func (*controlledRemoteMediaHost) ExecuteVoiceWorkflow(context.Context, connector.ConnectorRecord, capabilitydriver.CloudMediaTarget, *capabilitydriver.CloudVoiceWorkflowMappedRequest, remoteexecution.MediaDispatchAudit) (capabilitydriver.CloudVoiceWorkflowTransportResponse, error) {
 	return capabilitydriver.CloudVoiceWorkflowTransportResponse{}, context.Canceled
 }
 
-func (*controlledRemoteMediaHost) DeleteVoiceAsset(context.Context, connector.ConnectorGrantSnapshot, capabilitydriver.CloudMediaTarget, *capabilitydriver.CloudVoiceDeleteMappedRequest, remoteexecution.MediaDispatchAudit) error {
+func (*controlledRemoteMediaHost) DeleteVoiceAsset(context.Context, connector.ConnectorRecord, capabilitydriver.CloudMediaTarget, *capabilitydriver.CloudVoiceDeleteMappedRequest, remoteexecution.MediaDispatchAudit) error {
 	return context.Canceled
 }
 
-func TestCloudMediaJobCapturesGrantAndSurvivesLaterRevocation(t *testing.T) {
+func TestCloudMediaJobCapturesCurrentAccountConnector(t *testing.T) {
 	fixture := newManagedCloudScenarioTestFixture(t, "openai", "gpt-image-1.5", "https://api.openai.com/v1", Config{})
 	host := newControlledRemoteMediaHost(false)
 	fixture.service.SetRemoteMediaExecutionHost(host)
@@ -94,31 +93,24 @@ func TestCloudMediaJobCapturesGrantAndSurvivesLaterRevocation(t *testing.T) {
 	request := &runtimev1.SubmitScenarioJobRequest{
 		Head:         &runtimev1.ScenarioRequestHead{AppId: "nimi.desktop", SubjectUserId: "user-001"},
 		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE,
-		Spec:         &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_ImageGenerate{ImageGenerate: &runtimev1.ImageGenerateScenarioSpec{Prompt: "captured grant"}}},
+		Spec:         &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_ImageGenerate{ImageGenerate: &runtimev1.ImageGenerateScenarioSpec{Prompt: "captured connector"}}},
 	}
 	submitted, err := fixture.service.SubmitScenarioJob(ctx, request)
 	if err != nil {
 		t.Fatalf("SubmitScenarioJob: %v", err)
 	}
 	captured := <-host.started
-	if captured.Grant.GrantID != fixture.targetRef.Cloud.ConnectorGrantID || captured.Connector.ConnectorID != fixture.connectorID {
-		t.Fatalf("captured grant=%+v", captured)
+	if captured.ConnectorID != fixture.connectorID || captured.OwnerID != "user-001" {
+		t.Fatalf("captured Connector=%+v", captured)
 	}
 	snapshotJSON, _ := json.Marshal(captured)
 	if strings.Contains(strings.ToLower(string(snapshotJSON)), "test-key") {
-		t.Fatal("credential leaked into immutable grant snapshot")
-	}
-	if _, err := fixture.service.connStore.RevokeGrant("user-001", captured.Grant.GrantID); err != nil {
-		t.Fatalf("RevokeGrant: %v", err)
+		t.Fatal("credential leaked into immutable Connector snapshot")
 	}
 	close(host.release)
 	job := waitScenarioJobTerminal(t, fixture.service, submitted.GetJob().GetJobId(), 3*time.Second)
 	if job.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED || len(job.GetArtifacts()) != 1 {
 		t.Fatalf("captured job=%+v", job)
-	}
-	_, err = fixture.service.SubmitScenarioJob(ctx, request)
-	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_CONNECTOR_GRANT_REVOKED {
-		t.Fatalf("future job reason=%v present=%v err=%v", reason, ok, err)
 	}
 }
 

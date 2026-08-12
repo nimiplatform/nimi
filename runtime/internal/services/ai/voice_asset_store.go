@@ -23,27 +23,32 @@ const (
 )
 
 type voiceScenarioJobRecord struct {
-	job              *runtimev1.ScenarioJob
-	localAppOwner    *localAppJobOwner
-	assetID          string
-	events           []*runtimev1.ScenarioJobEvent
-	subscribers      map[uint64]chan *runtimev1.ScenarioJobEvent
-	nextSubID        uint64
-	nextSeq          uint64
-	createdAt        time.Time
-	updatedAt        time.Time
-	terminalAt       time.Time
-	cancel           context.CancelFunc
-	cancelRequested  bool
-	cancelReason     string
-	executionStarted bool
+	job                            *runtimev1.ScenarioJob
+	localAppOwner                  *localAppJobOwner
+	assetID                        string
+	assetDraft                     *runtimev1.VoiceAsset
+	targetDraft                    *runtimeidentity.Target
+	cloudBindingDraft              *voiceAssetCloudBinding
+	terminalAssetSnapshot          *runtimev1.VoiceAsset
+	terminalVoiceReferenceSnapshot *runtimev1.VoiceReference
+	events                         []*runtimev1.ScenarioJobEvent
+	subscribers                    map[uint64]chan *runtimev1.ScenarioJobEvent
+	nextSubID                      uint64
+	nextSeq                        uint64
+	createdAt                      time.Time
+	updatedAt                      time.Time
+	terminalAt                     time.Time
+	cancel                         context.CancelFunc
+	cancelRequested                bool
+	cancelReason                   string
+	executionStarted               bool
 }
 
 type voiceAssetCloudBinding struct {
 	CapabilityContract  string
 	Implementation      *runtimev1.CapabilityImplementationIdentity
 	ProviderModelTarget *structpb.Struct
-	ConnectorGrantID    string
+	ConnectorID         string
 }
 
 func (b *voiceAssetCloudBinding) Clone() *voiceAssetCloudBinding {
@@ -54,7 +59,7 @@ func (b *voiceAssetCloudBinding) Clone() *voiceAssetCloudBinding {
 	target, _ := proto.Clone(b.ProviderModelTarget).(*structpb.Struct)
 	return &voiceAssetCloudBinding{
 		CapabilityContract: strings.TrimSpace(b.CapabilityContract), Implementation: implementation,
-		ProviderModelTarget: target, ConnectorGrantID: strings.TrimSpace(b.ConnectorGrantID),
+		ProviderModelTarget: target, ConnectorID: strings.TrimSpace(b.ConnectorID),
 	}
 }
 
@@ -66,7 +71,7 @@ func (b *voiceAssetCloudBinding) Valid() bool {
 		strings.TrimSpace(b.Implementation.GetDriverId()) != "" &&
 		strings.TrimSpace(b.Implementation.GetDriverDialect()) != "" &&
 		b.ProviderModelTarget != nil && len(b.ProviderModelTarget.GetFields()) > 0 &&
-		strings.TrimSpace(b.ConnectorGrantID) != ""
+		strings.TrimSpace(b.ConnectorID) != ""
 }
 
 type voiceWorkflowSubmitInput struct {
@@ -220,6 +225,18 @@ func cloneVoiceAsset(input *runtimev1.VoiceAsset) *runtimev1.VoiceAsset {
 	}
 	cloned := proto.Clone(input)
 	out, ok := cloned.(*runtimev1.VoiceAsset)
+	if !ok {
+		return nil
+	}
+	return out
+}
+
+func cloneVoiceReference(input *runtimev1.VoiceReference) *runtimev1.VoiceReference {
+	if input == nil {
+		return nil
+	}
+	cloned := proto.Clone(input)
+	out, ok := cloned.(*runtimev1.VoiceReference)
 	if !ok {
 		return nil
 	}

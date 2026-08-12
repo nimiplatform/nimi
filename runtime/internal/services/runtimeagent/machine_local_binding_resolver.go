@@ -2,7 +2,6 @@ package runtimeagent
 
 import (
 	"context"
-	"errors"
 	"path/filepath"
 	"strings"
 
@@ -161,18 +160,6 @@ func (r *selectedLocalMachineExecutionBindingResolver) resolveCloudMachineExecut
 	if err != nil || !intent.IsAIConfigCloud() {
 		return publicChatExecutionBinding{}, machineExecutionProjectionError(runtimev1.ReasonCode_AI_CONFIG_INVALID, "Cloud AIConfig execution intent is invalid", nil)
 	}
-	grantID := intent.GrantID()
-	if grantID == "" || grantID != intent.ConnectorGrantID || r.owner.connectorStore == nil {
-		return publicChatExecutionBinding{}, machineExecutionProjectionError(runtimev1.ReasonCode_AI_CONNECTOR_GRANT_SELECTION_REQUIRED, "Cloud AIConfig connector grant is unavailable", nil)
-	}
-	grant, err := r.owner.connectorStore.ValidateGrantBinding(accountNamespace, grantID)
-	if err != nil {
-		reason := runtimev1.ReasonCode_AI_CONNECTOR_GRANT_SELECTION_REQUIRED
-		if errors.Is(err, connector.ErrConnectorGrantRevoked) {
-			reason = runtimev1.ReasonCode_AI_CONNECTOR_GRANT_REVOKED
-		}
-		return publicChatExecutionBinding{}, machineExecutionProjectionError(reason, "Cloud AIConfig connector grant is not executable", nil)
-	}
 	provider, providerOK := machineCloudTargetText(intent.ProviderModelTarget, "provider")
 	providerModelID, providerModelPresent := machineCloudTargetText(intent.ProviderModelTarget, "providerModelId")
 	legacyModelID, legacyModelPresent := machineCloudTargetText(intent.ProviderModelTarget, "model")
@@ -184,11 +171,26 @@ func (r *selectedLocalMachineExecutionBindingResolver) resolveCloudMachineExecut
 		providerModelID = legacyModelID
 	}
 	remoteCatalogID, catalogOK := machineCloudTargetText(intent.ProviderModelTarget, "remoteModelCatalogId")
-	if !providerOK || !modelOK || !catalogOK || strings.TrimSpace(grant.Connector.Provider) != provider {
-		return publicChatExecutionBinding{}, machineExecutionProjectionError(runtimev1.ReasonCode_AI_CONFIG_INVALID, "Cloud AIConfig target does not match its ConnectorGrant", nil)
+	if !providerOK || !modelOK || !catalogOK {
+		return publicChatExecutionBinding{}, machineExecutionProjectionError(runtimev1.ReasonCode_AI_CONFIG_INVALID, "Cloud AIConfig target is incomplete", nil)
+	}
+	connectorRecord, binding, err := connector.ResolveCurrentAccountConnectorBinding(r.owner.connectorStore, r.owner.modelCatalog, accountNamespace, connector.RemoteModelCatalogRef{
+		RemoteModelCatalogID: remoteCatalogID,
+		ProviderModelID:      providerModelID,
+		Provider:             provider,
+	})
+	if err != nil {
+		reason := runtimev1.ReasonCode_AI_PROVIDER_INTERNAL
+		if extracted, ok := grpcerr.ExtractReasonCode(err); ok {
+			reason = extracted
+		}
+		return publicChatExecutionBinding{}, machineExecutionProjectionError(reason, "Cloud AIConfig current-account Connector is not executable", nil)
+	}
+	if binding == nil {
+		return publicChatExecutionBinding{}, machineExecutionProjectionError(runtimev1.ReasonCode_AI_CONFIG_INVALID, "Cloud AIConfig catalog target is incomplete", nil)
 	}
 	target := &runtimeidentity.Target{Cloud: &runtimeidentity.CloudTarget{
-		ConnectorID: grant.Connector.ConnectorID, ConnectorGrantID: grantID, RemoteModelCatalogID: remoteCatalogID,
+		ConnectorID: connectorRecord.ConnectorID, RemoteModelCatalogID: binding.RemoteModelCatalogID,
 		ProviderModelID: providerModelID, Provider: provider,
 	}}
 	if !target.Valid() {
@@ -196,7 +198,7 @@ func (r *selectedLocalMachineExecutionBindingResolver) resolveCloudMachineExecut
 	}
 	return publicChatExecutionBinding{
 		BindingAlias: strings.TrimSpace(intent.CloudImplementation.GetImplementationId()), ModelID: providerModelID,
-		RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD, ConnectorID: grant.Connector.ConnectorID, TargetRef: target,
+		RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD, ConnectorID: connectorRecord.ConnectorID, TargetRef: target,
 		ExecutionIntent: executionintent.Clone(intent), SelectedParams: clonePublicChatSelectedParams(intent.Defaults),
 		CapabilityContract: intent.CapabilityContract, RequiredFeatures: append([]string(nil), intent.RequiredFeatures...),
 	}, nil

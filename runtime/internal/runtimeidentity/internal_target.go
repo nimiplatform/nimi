@@ -51,10 +51,10 @@ func (t *LocalTarget) Valid() bool {
 }
 
 // CloudTarget is the exact Runtime-private connector/model binding captured
-// from caller-owned AIConfig before execution.
+// from Nimi-owned AIConfig and current-account Connector resolution before
+// execution.
 type CloudTarget struct {
 	ConnectorID          string `json:"connectorId"`
-	ConnectorGrantID     string `json:"connectorGrantId,omitempty"`
 	RemoteModelCatalogID string `json:"remoteModelCatalogId"`
 	ProviderModelID      string `json:"providerModelId"`
 	Provider             string `json:"provider"`
@@ -72,13 +72,6 @@ func (t *CloudTarget) GetConnectorId() string {
 		return ""
 	}
 	return t.ConnectorID
-}
-
-func (t *CloudTarget) GetConnectorGrantId() string {
-	if t == nil {
-		return ""
-	}
-	return t.ConnectorGrantID
 }
 
 func (t *CloudTarget) GetRemoteModelCatalogId() string {
@@ -108,7 +101,6 @@ func (t *CloudTarget) Clone() *CloudTarget {
 	}
 	return &CloudTarget{
 		ConnectorID:          strings.TrimSpace(t.ConnectorID),
-		ConnectorGrantID:     strings.TrimSpace(t.ConnectorGrantID),
 		RemoteModelCatalogID: strings.TrimSpace(t.RemoteModelCatalogID),
 		ProviderModelID:      strings.TrimSpace(t.ProviderModelID),
 		Provider:             strings.TrimSpace(t.Provider),
@@ -118,7 +110,6 @@ func (t *CloudTarget) Clone() *CloudTarget {
 func (t *CloudTarget) Valid() bool {
 	return t != nil &&
 		t.ConnectorID == strings.TrimSpace(t.ConnectorID) && t.ConnectorID != "" &&
-		t.ConnectorGrantID == strings.TrimSpace(t.ConnectorGrantID) &&
 		t.RemoteModelCatalogID == strings.TrimSpace(t.RemoteModelCatalogID) && t.RemoteModelCatalogID != "" &&
 		t.ProviderModelID == strings.TrimSpace(t.ProviderModelID) && t.ProviderModelID != "" &&
 		t.Provider == strings.TrimSpace(t.Provider) && t.Provider != ""
@@ -186,7 +177,6 @@ func Equal(left, right *Target) bool {
 	}
 	return left.Cloud != nil && right.Cloud != nil &&
 		left.Cloud.ConnectorID == right.Cloud.ConnectorID &&
-		left.Cloud.ConnectorGrantID == right.Cloud.ConnectorGrantID &&
 		left.Cloud.RemoteModelCatalogID == right.Cloud.RemoteModelCatalogID &&
 		left.Cloud.ProviderModelID == right.Cloud.ProviderModelID &&
 		left.Cloud.Provider == right.Cloud.Provider

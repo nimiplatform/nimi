@@ -78,7 +78,17 @@ func (s *Service) GetScenarioJob(ctx context.Context, req *runtimev1.GetScenario
 	if err := s.authorizeScenarioJob(ctx, job); err != nil {
 		return nil, err
 	}
-	return &runtimev1.GetScenarioJobResponse{Job: job}, nil
+	response := &runtimev1.GetScenarioJobResponse{Job: job}
+	if job.GetScenarioType() == runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CREATE &&
+		job.GetStatus() == runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED {
+		asset, reference, ok := s.voiceAssets.getCompletedJobResult(jobID)
+		if !ok {
+			return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
+		}
+		response.Asset = asset
+		response.VoiceReference = reference
+	}
+	return response, nil
 }
 
 func (s *Service) CancelScenarioJob(ctx context.Context, req *runtimev1.CancelScenarioJobRequest) (*runtimev1.CancelScenarioJobResponse, error) {

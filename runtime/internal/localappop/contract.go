@@ -68,7 +68,6 @@ const (
 	IngressStorageAssetMove
 	IngressArtifactAdoptToStorage
 	IngressAppAIConfigGet
-	IngressAppAIConfigOverwrite
 	IngressRealmWorldCoreList
 	IngressRealmWorldCoreCreate
 	IngressTextCandidateGenerate
@@ -108,7 +107,6 @@ const (
 	OperationStorageAssetMove
 	OperationArtifactAdoptToStorage
 	OperationAppAIConfigGet
-	OperationAppAIConfigOverwrite
 	OperationRealmWorldCoreList
 	OperationRealmWorldCoreCreate
 	OperationTextCandidateGenerate
@@ -157,7 +155,6 @@ var canonicalAppOperationContract = [...]contractRow{
 	{IngressStorageAssetMove, OperationStorageAssetMove, AppOperationIDStorageAssetMove, AuthorityClassBase, ""},
 	{IngressArtifactAdoptToStorage, OperationArtifactAdoptToStorage, AppOperationIDArtifactAdopt, AuthorityClassAppAccess, "runtime.consume"},
 	{IngressAppAIConfigGet, OperationAppAIConfigGet, "runtime.ai.app-config.get", AuthorityClassBase, ""},
-	{IngressAppAIConfigOverwrite, OperationAppAIConfigOverwrite, "runtime.ai.app-config.overwrite", AuthorityClassBase, ""},
 	{IngressRealmWorldCoreList, OperationRealmWorldCoreList, "realm.world-core.list", AuthorityClassAppAccess, "realm.data"},
 	{IngressRealmWorldCoreCreate, OperationRealmWorldCoreCreate, "realm.world-core.create", AuthorityClassAppAccess, "realm.data"},
 	{IngressTextCandidateGenerate, OperationTextCandidateGenerate, AppOperationIDTextCandidateGenerate, AuthorityClassAppAccess, "runtime.consume"},

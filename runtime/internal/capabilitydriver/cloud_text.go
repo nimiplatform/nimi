@@ -50,7 +50,7 @@ func (e *CloudInvocationError) Unwrap() error {
 }
 
 // CloudTextTarget is an exact provider/model target interpreted by one Driver.
-// It contains no route, ConnectorGrant, credential, endpoint, or Host facts.
+// It contains no route, Connector, credential, endpoint, or Host facts.
 type CloudTextTarget struct {
 	provider             string
 	providerModelID      string
@@ -117,8 +117,8 @@ type CloudTextDriver interface {
 	NormalizeReason(error) error
 }
 
-// CloudTextRegistry resolves an existing provider dialect. It never sees a
-// ConnectorGrant and therefore cannot become an account or route selector.
+// CloudTextRegistry resolves an existing provider dialect. It never sees
+// Connector custody and therefore cannot become an account or route selector.
 type CloudTextRegistry struct {
 	drivers map[string]CloudTextDriver
 }
@@ -177,7 +177,7 @@ func (d providerCloudTextDriver) ValidateTarget(identity Identity, raw *structpb
 	}
 	for key := range raw.GetFields() {
 		switch key {
-		case "provider", "model", "providerModelId", "remoteModelCatalogId", "region":
+		case "provider", "providerModelId", "remoteModelCatalogId", "region":
 		default:
 			return CloudTextTarget{}, cloudInvocationError(CloudInvocationFailureTarget, fmt.Errorf("%s target field %q is unsupported", d.dialect, key))
 		}
@@ -186,24 +186,13 @@ func (d providerCloudTextDriver) ValidateTarget(identity Identity, raw *structpb
 	if !ok || provider != d.provider {
 		return CloudTextTarget{}, cloudInvocationError(CloudInvocationFailureTarget, fmt.Errorf("provider target does not match Driver"))
 	}
-	providerModelID, providerModelPresent := exactCloudTargetText(raw, "providerModelId")
-	model, modelPresent := exactCloudTargetText(raw, "model")
-	if providerModelPresent && modelPresent && providerModelID != model {
-		return CloudTextTarget{}, cloudInvocationError(CloudInvocationFailureTarget, fmt.Errorf("provider model identities conflict"))
-	}
-	if !providerModelPresent {
-		providerModelID = model
-	}
-	if providerModelID == "" {
+	providerModelID, ok := exactCloudTargetText(raw, "providerModelId")
+	if !ok {
 		return CloudTextTarget{}, cloudInvocationError(CloudInvocationFailureTarget, fmt.Errorf("provider model identity is required"))
 	}
-	remoteModelCatalogID := ""
-	if _, present := raw.GetFields()["remoteModelCatalogId"]; present {
-		var valid bool
-		remoteModelCatalogID, valid = exactCloudTargetText(raw, "remoteModelCatalogId")
-		if !valid {
-			return CloudTextTarget{}, cloudInvocationError(CloudInvocationFailureTarget, fmt.Errorf("remote model catalog identity is invalid"))
-		}
+	remoteModelCatalogID, ok := exactCloudTargetText(raw, "remoteModelCatalogId")
+	if !ok {
+		return CloudTextTarget{}, cloudInvocationError(CloudInvocationFailureTarget, fmt.Errorf("remote model catalog identity is required"))
 	}
 	region := ""
 	if _, present := raw.GetFields()["region"]; present {

@@ -83,22 +83,49 @@ func (s *Service) listCatalogConnectorModels(subjectUserID string, provider stri
 	providerRecord := catalogProviderRecordForSubject(modelCatalog, subjectUserID, provider)
 
 	descriptors := make([]*runtimev1.ConnectorModelDescriptor, 0, len(models))
+	descriptorByProviderModelID := make(map[string]int, len(models))
 	for _, model := range models {
+		providerModelID := catalogProviderModelID(model.Model)
 		identity := remoteModelCatalogIdentityForConnector(rec, providerRecord, model)
-		descriptors = append(descriptors, &runtimev1.ConnectorModelDescriptor{
-			ModelId:              model.Model.ModelID,
+		candidate := &runtimev1.ConnectorModelDescriptor{
 			ModelLabel:           model.Model.ModelID,
 			Available:            true,
 			Capabilities:         catalogConnectorModelCapabilities(modelCatalog, subjectUserID, provider, model.Model.ModelID, model.Model.Capabilities),
 			RemoteModelCatalogId: identity.remoteModelCatalogID,
-			ProviderModelId:      catalogProviderModelID(model.Model),
+			ProviderModelId:      providerModelID,
 			Provider:             provider,
 			ConnectorSnapshotId:  identity.connectorSnapshotID,
 			EndpointProfileId:    identity.endpointProfileID,
 			InventorySnapshotId:  identity.inventorySnapshotID,
-		})
+		}
+		if index, ok := descriptorByProviderModelID[providerModelID]; ok {
+			existing := descriptors[index]
+			existing.Capabilities = mergeConnectorModelCapabilities(existing.GetCapabilities(), candidate.GetCapabilities())
+			continue
+		}
+		descriptorByProviderModelID[providerModelID] = len(descriptors)
+		descriptors = append(descriptors, candidate)
 	}
 	return descriptors, nil
+}
+
+func mergeConnectorModelCapabilities(left, right []string) []string {
+	merged := make([]string, 0, len(left)+len(right))
+	seen := make(map[string]struct{}, len(left)+len(right))
+	for _, capabilities := range [][]string{left, right} {
+		for _, capability := range capabilities {
+			normalized := strings.TrimSpace(capability)
+			if normalized == "" {
+				continue
+			}
+			if _, ok := seen[normalized]; ok {
+				continue
+			}
+			seen[normalized] = struct{}{}
+			merged = append(merged, normalized)
+		}
+	}
+	return merged
 }
 
 type remoteModelCatalogIdentity struct {
@@ -123,6 +150,70 @@ type RemoteModelCatalogBinding struct {
 	EndpointProfileID    string
 	ConnectorSnapshotID  string
 	InventorySnapshotID  string
+}
+
+// ResolveCurrentAccountConnectorBinding derives one exact ordinary Cloud
+// execution Connector from Nimi-owned implementation-target configuration.
+// It never chooses among ambiguous current-account Connectors.
+func ResolveCurrentAccountConnectorBinding(
+	store *ConnectorStore,
+	modelCatalog *aicatalog.Resolver,
+	accountID string,
+	ref RemoteModelCatalogRef,
+) (ConnectorRecord, *RemoteModelCatalogBinding, error) {
+	accountID = strings.TrimSpace(accountID)
+	provider := strings.TrimSpace(ref.Provider)
+	if store == nil || accountID == "" || provider == "" {
+		return ConnectorRecord{}, nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONNECTOR_NOT_FOUND)
+	}
+	remoteModelCatalogID := strings.TrimSpace(ref.RemoteModelCatalogID)
+	if remoteModelCatalogID == "" {
+		return ConnectorRecord{}, nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONNECTOR_NOT_FOUND)
+	}
+	records, err := store.Load()
+	if err != nil {
+		return ConnectorRecord{}, nil, grpcerr.WrapWithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL, err, grpcerr.ReasonOptions{Message: "connector registry could not be read"})
+	}
+	owned := make([]ConnectorRecord, 0, 1)
+	for _, record := range records {
+		if record.Kind != runtimev1.ConnectorKind_CONNECTOR_KIND_REMOTE_MANAGED ||
+			record.OwnerType != runtimev1.ConnectorOwnerType_CONNECTOR_OWNER_TYPE_REALM_USER ||
+			record.OwnerID != accountID || strings.TrimSpace(record.Provider) != provider {
+			continue
+		}
+		owned = append(owned, record)
+	}
+
+	type match struct {
+		record  ConnectorRecord
+		binding RemoteModelCatalogBinding
+	}
+	matches := make([]match, 0, 1)
+	for _, record := range owned {
+		binding, bindingErr := ResolveRemoteModelCatalogBinding(modelCatalog, accountID, record, RemoteModelCatalogRef{
+			ConnectorID:          record.ConnectorID,
+			RemoteModelCatalogID: remoteModelCatalogID,
+			ProviderModelID:      ref.ProviderModelID,
+			Provider:             provider,
+		})
+		if bindingErr != nil {
+			if reason, ok := grpcerr.ExtractReasonCode(bindingErr); ok && reason == runtimev1.ReasonCode_AI_REMOTE_MODEL_CATALOG_STALE {
+				continue
+			}
+			return ConnectorRecord{}, nil, bindingErr
+		}
+		matches = append(matches, match{record: record, binding: binding})
+	}
+	if len(matches) != 1 {
+		return ConnectorRecord{}, nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONNECTOR_NOT_FOUND)
+	}
+	if matches[0].record.Status != runtimev1.ConnectorStatus_CONNECTOR_STATUS_ACTIVE {
+		return ConnectorRecord{}, nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONNECTOR_DISABLED)
+	}
+	if !matches[0].record.HasCredential {
+		return ConnectorRecord{}, nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONNECTOR_CREDENTIAL_MISSING)
+	}
+	return matches[0].record, &matches[0].binding, nil
 }
 
 func ResolveRemoteModelCatalogRef(modelCatalog *aicatalog.Resolver, subjectUserID string, rec ConnectorRecord, ref RemoteModelCatalogRef) (string, error) {
@@ -209,14 +300,15 @@ func catalogProviderRecordForSubject(modelCatalog *aicatalog.Resolver, subjectUs
 
 func remoteModelCatalogIdentityForConnector(rec ConnectorRecord, providerRecord aicatalog.CatalogProviderRecord, model aicatalog.CatalogModelRecord) remoteModelCatalogIdentity {
 	provider := strings.TrimSpace(rec.Provider)
-	providerModelID := strings.TrimSpace(model.Model.ModelID)
+	providerModelID := catalogProviderModelID(model.Model)
+	// Credential availability is live custody/admission state, not part of the
+	// durable implementation-target identity selected by Nimi configuration.
 	connectorSnapshotID := stableID("connector-snapshot",
 		strings.TrimSpace(rec.ConnectorID),
 		provider,
 		strings.TrimSpace(rec.Endpoint),
 		rec.AuthKind.String(),
 		strings.TrimSpace(rec.ProviderAuthProfile),
-		fmt.Sprintf("%t", rec.HasCredential),
 	)
 	endpointProfileID := stableID("endpoint-profile",
 		provider,

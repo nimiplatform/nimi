@@ -30,7 +30,7 @@ type MediaDispatchAudit struct {
 	ImplementationID     string
 	DriverID             string
 	DriverDialect        string
-	ConnectorGrantID     string
+	ConnectorID          string
 	Provider             string
 	ProviderModelID      string
 	RemoteModelCatalogID string
@@ -42,15 +42,15 @@ type MediaDispatchAudit struct {
 // one exact request, privately polls remote tasks, forwards streams, and makes
 // best-effort cancellation attempts.
 type MediaHost interface {
-	ExecuteMedia(context.Context, connector.ConnectorGrantSnapshot, capabilitydriver.CloudMediaTarget, *capabilitydriver.CloudMediaMappedRequest, MediaDispatchAudit) (capabilitydriver.CloudMediaTransportResponse, error)
-	StreamSpeech(context.Context, connector.ConnectorGrantSnapshot, capabilitydriver.CloudMediaTarget, *capabilitydriver.CloudMediaMappedRequest, func(capabilitydriver.CloudMediaStreamChunk) error, MediaDispatchAudit) (capabilitydriver.CloudMediaTransportResponse, error)
-	ExecuteVoiceWorkflow(context.Context, connector.ConnectorGrantSnapshot, capabilitydriver.CloudMediaTarget, *capabilitydriver.CloudVoiceWorkflowMappedRequest, MediaDispatchAudit) (capabilitydriver.CloudVoiceWorkflowTransportResponse, error)
-	DeleteVoiceAsset(context.Context, connector.ConnectorGrantSnapshot, capabilitydriver.CloudMediaTarget, *capabilitydriver.CloudVoiceDeleteMappedRequest, MediaDispatchAudit) error
+	ExecuteMedia(context.Context, connector.ConnectorRecord, capabilitydriver.CloudMediaTarget, *capabilitydriver.CloudMediaMappedRequest, MediaDispatchAudit) (capabilitydriver.CloudMediaTransportResponse, error)
+	StreamSpeech(context.Context, connector.ConnectorRecord, capabilitydriver.CloudMediaTarget, *capabilitydriver.CloudMediaMappedRequest, func(capabilitydriver.CloudMediaStreamChunk) error, MediaDispatchAudit) (capabilitydriver.CloudMediaTransportResponse, error)
+	ExecuteVoiceWorkflow(context.Context, connector.ConnectorRecord, capabilitydriver.CloudMediaTarget, *capabilitydriver.CloudVoiceWorkflowMappedRequest, MediaDispatchAudit) (capabilitydriver.CloudVoiceWorkflowTransportResponse, error)
+	DeleteVoiceAsset(context.Context, connector.ConnectorRecord, capabilitydriver.CloudMediaTarget, *capabilitydriver.CloudVoiceDeleteMappedRequest, MediaDispatchAudit) error
 }
 
 // ProviderMediaHost transports existing nimillm provider dialects. Its
 // transport is configured without provider credentials; each dispatch opens
-// exactly one ConnectorGrant-bound secret and clears it before return.
+// exactly one Runtime-resolved current-account Connector secret and clears it before return.
 type ProviderMediaHost struct {
 	connectors    *connector.ConnectorStore
 	transport     *nimillm.CloudProvider
@@ -64,7 +64,7 @@ func NewProviderMediaHost(connectors *connector.ConnectorStore, transport *nimil
 
 func (h *ProviderMediaHost) ExecuteMedia(
 	ctx context.Context,
-	grant connector.ConnectorGrantSnapshot,
+	connectorRecord connector.ConnectorRecord,
 	target capabilitydriver.CloudMediaTarget,
 	request *capabilitydriver.CloudMediaMappedRequest,
 	audit MediaDispatchAudit,
@@ -76,7 +76,7 @@ func (h *ProviderMediaHost) ExecuteMedia(
 		err := grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONFIG_INVALID)
 		return capabilitydriver.CloudMediaTransportResponse{}, h.auditedError(audit, "error", err)
 	}
-	remoteTarget, err := requestScopedProviderTarget(ctx, h.connectors, h.allowLoopback, grant, target)
+	remoteTarget, err := requestScopedProviderTarget(ctx, h.connectors, h.allowLoopback, audit.AccountID, connectorRecord, target)
 	if err != nil {
 		return capabilitydriver.CloudMediaTransportResponse{}, h.auditedError(audit, "error", err)
 	}
@@ -152,7 +152,7 @@ func closeNimiArtifactBodies(values map[string]*nimillm.MediaArtifactBody) {
 
 func (h *ProviderMediaHost) DeleteVoiceAsset(
 	ctx context.Context,
-	grant connector.ConnectorGrantSnapshot,
+	connectorRecord connector.ConnectorRecord,
 	target capabilitydriver.CloudMediaTarget,
 	request *capabilitydriver.CloudVoiceDeleteMappedRequest,
 	audit MediaDispatchAudit,
@@ -163,7 +163,7 @@ func (h *ProviderMediaHost) DeleteVoiceAsset(
 	if request == nil || request.Provider() != target.Provider() || request.ProviderVoiceRef() == "" {
 		return h.auditedError(audit, "error", grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONFIG_INVALID))
 	}
-	remoteTarget, err := requestScopedProviderTarget(ctx, h.connectors, h.allowLoopback, grant, target)
+	remoteTarget, err := requestScopedProviderTarget(ctx, h.connectors, h.allowLoopback, audit.AccountID, connectorRecord, target)
 	if err != nil {
 		return h.auditedError(audit, "error", err)
 	}
@@ -181,7 +181,7 @@ func (h *ProviderMediaHost) DeleteVoiceAsset(
 
 func (h *ProviderMediaHost) ExecuteVoiceWorkflow(
 	ctx context.Context,
-	grant connector.ConnectorGrantSnapshot,
+	connectorRecord connector.ConnectorRecord,
 	target capabilitydriver.CloudMediaTarget,
 	request *capabilitydriver.CloudVoiceWorkflowMappedRequest,
 	audit MediaDispatchAudit,
@@ -194,7 +194,7 @@ func (h *ProviderMediaHost) ExecuteVoiceWorkflow(
 		err := grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONFIG_INVALID)
 		return capabilitydriver.CloudVoiceWorkflowTransportResponse{}, h.auditedError(audit, "error", err)
 	}
-	remoteTarget, err := requestScopedProviderTarget(ctx, h.connectors, h.allowLoopback, grant, target)
+	remoteTarget, err := requestScopedProviderTarget(ctx, h.connectors, h.allowLoopback, audit.AccountID, connectorRecord, target)
 	if err != nil {
 		return capabilitydriver.CloudVoiceWorkflowTransportResponse{}, h.auditedError(audit, "error", err)
 	}
@@ -241,7 +241,7 @@ func cloneRemoteHeaders(input map[string]string) map[string]string {
 
 func (h *ProviderMediaHost) StreamSpeech(
 	ctx context.Context,
-	grant connector.ConnectorGrantSnapshot,
+	connectorRecord connector.ConnectorRecord,
 	target capabilitydriver.CloudMediaTarget,
 	request *capabilitydriver.CloudMediaMappedRequest,
 	onChunk func(capabilitydriver.CloudMediaStreamChunk) error,
@@ -255,7 +255,7 @@ func (h *ProviderMediaHost) StreamSpeech(
 		err := grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONFIG_INVALID)
 		return capabilitydriver.CloudMediaTransportResponse{}, h.auditedError(audit, "error", err)
 	}
-	remoteTarget, err := requestScopedProviderTarget(ctx, h.connectors, h.allowLoopback, grant, target)
+	remoteTarget, err := requestScopedProviderTarget(ctx, h.connectors, h.allowLoopback, audit.AccountID, connectorRecord, target)
 	if err != nil {
 		return capabilitydriver.CloudMediaTransportResponse{}, h.auditedError(audit, "error", err)
 	}
@@ -353,7 +353,7 @@ func (h *ProviderMediaHost) recordDispatch(audit MediaDispatchAudit, phase strin
 		"implementation_id":        strings.TrimSpace(audit.ImplementationID),
 		"driver_id":                strings.TrimSpace(audit.DriverID),
 		"driver_dialect":           strings.TrimSpace(audit.DriverDialect),
-		"connector_grant_id":       strings.TrimSpace(audit.ConnectorGrantID),
+		"connector_id":             strings.TrimSpace(audit.ConnectorID),
 		"provider":                 strings.TrimSpace(audit.Provider),
 		"provider_model_id":        strings.TrimSpace(audit.ProviderModelID),
 		"remote_model_catalog_id":  strings.TrimSpace(audit.RemoteModelCatalogID),

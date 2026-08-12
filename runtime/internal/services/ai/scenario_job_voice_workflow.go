@@ -69,7 +69,7 @@ func (s *Service) submitVoiceWorkflowJob(
 		ExecutionTarget:   effective.voiceTarget.Clone(),
 		CloudBinding: &voiceAssetCloudBinding{
 			CapabilityContract: effective.target.CapabilityContract(), Implementation: effective.implementation,
-			ProviderModelTarget: effective.rawTarget, ConnectorGrantID: effective.grant.Grant.GrantID,
+			ProviderModelTarget: effective.rawTarget, ConnectorID: effective.connector.ConnectorID,
 		},
 		IgnoredExtensions: ignored,
 	})
@@ -100,11 +100,7 @@ func (s *Service) submitVoiceWorkflowJob(
 		s.executeCapturedVoiceWorkflowJob(jobCtx, job.GetJobId(), asset.GetVoiceAssetId(), effective)
 	}()
 
-	return &runtimev1.SubmitScenarioJobResponse{
-		Job:            job,
-		Asset:          asset,
-		VoiceReference: voiceAssetReference(asset.GetVoiceAssetId()),
-	}, nil
+	return &runtimev1.SubmitScenarioJobResponse{Job: job}, nil
 }
 
 func voiceAssetReference(voiceAssetID string) *runtimev1.VoiceReference {

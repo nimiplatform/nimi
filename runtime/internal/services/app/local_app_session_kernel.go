@@ -250,7 +250,7 @@ func (s *Service) AuthorizeLocalAppIngress(ctx context.Context, ingress localapp
 		capability = appstorage.LocalAppPrivateStorageEntitlement
 	case localappop.OperationArtifactAdoptToStorage:
 		capability = "runtime.consume"
-	case localappop.OperationAppAIConfigGet, localappop.OperationAppAIConfigOverwrite:
+	case localappop.OperationAppAIConfigGet:
 		// The AIConfig owner validates the exact admitted operation directly;
 		// it has no separate capability string or caller-selected owner input.
 	case localappop.OperationRealmWorldCoreList:

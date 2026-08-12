@@ -55,7 +55,6 @@ func withCloudScenarioTestIntent(ctx context.Context, capabilityContract string,
 		Route:              runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
 	}
 	providerTarget := &structpb.Struct{}
-	grantID := ""
 	providerID := "missing"
 	if cloud != nil {
 		providerTarget, _ = structpb.NewStruct(map[string]any{
@@ -63,7 +62,6 @@ func withCloudScenarioTestIntent(ctx context.Context, capabilityContract string,
 			"providerModelId":      cloud.ProviderModelID,
 			"remoteModelCatalogId": cloud.RemoteModelCatalogID,
 		})
-		grantID = cloud.ConnectorGrantID
 		providerID = cloud.Provider
 	}
 	dialect := "provider/media-v1"
@@ -76,7 +74,6 @@ func withCloudScenarioTestIntent(ctx context.Context, capabilityContract string,
 		DriverDialect:    dialect,
 	}
 	intent.ProviderModelTarget = providerTarget
-	intent.ConnectorGrantID = grantID
 	return executionintent.WithIntent(ctx, intent)
 }
 
@@ -87,7 +84,7 @@ func withLocalScenarioTestIntent(ctx context.Context, capabilityContract string)
 	})
 }
 
-func newManagedCloudScenarioTestFixture(t *testing.T, providerID string, modelID string, endpoint string, cfg Config) managedCloudScenarioTestFixture {
+func newManagedCloudScenarioTestFixture(t *testing.T, providerID string, providerModelID string, endpoint string, cfg Config) managedCloudScenarioTestFixture {
 	t.Helper()
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 	store := connector.NewConnectorStoreWithMemorySecrets(t.TempDir())
@@ -120,17 +117,12 @@ func newManagedCloudScenarioTestFixture(t *testing.T, providerID string, modelID
 		metadata.NewIncomingContext(context.Background(), metadata.Pairs("x-nimi-key-source", "managed")),
 		&authn.Identity{SubjectUserID: "user-001"},
 	)
-	descriptor := connectorModelDescriptorForAITest(t, connectorSvc, ctx, created.ConnectorID, modelID)
+	descriptor := connectorModelDescriptorForAITest(t, connectorSvc, ctx, created.ConnectorID, providerModelID)
 	svc, err := newFromProviderConfig(logger, nil, nil, nil, store, cfg, 8, 2)
 	if err != nil {
 		t.Fatalf("new managed cloud ai service: %v", err)
 	}
-	grant, err := store.CreateGrant("user-001", created.ConnectorID)
-	if err != nil {
-		t.Fatalf("create managed connector grant: %v", err)
-	}
 	targetRef := cloudScenarioTargetRefForDescriptor(created.ConnectorID, descriptor)
-	targetRef.Cloud.ConnectorGrantID = grant.GrantID
 	return managedCloudScenarioTestFixture{
 		service:          svc,
 		connectorService: connectorSvc,
@@ -146,7 +138,7 @@ func connectorModelDescriptorForAITest(
 	svc *connector.Service,
 	ctx context.Context,
 	connectorID string,
-	modelID string,
+	providerModelID string,
 ) *runtimev1.ConnectorModelDescriptor {
 	t.Helper()
 	resp, err := svc.ListConnectorModels(ctx, &runtimev1.ListConnectorModelsRequest{
@@ -157,11 +149,11 @@ func connectorModelDescriptorForAITest(
 		t.Fatalf("ListConnectorModels: %v", err)
 	}
 	for _, model := range resp.GetModels() {
-		if model.GetModelId() == modelID {
+		if model.GetProviderModelId() == providerModelID {
 			return model
 		}
 	}
-	t.Fatalf("model %q not found", modelID)
+	t.Fatalf("provider model %q not found", providerModelID)
 	return nil
 }
 

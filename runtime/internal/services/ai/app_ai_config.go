@@ -11,7 +11,6 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/protectedprincipal"
 	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
-	"github.com/nimiplatform/nimi/runtime/internal/services/connector"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/protobuf/proto"
 )
@@ -19,6 +18,7 @@ import (
 type appAIConfigCaller struct {
 	accountNamespace string
 	appID            string
+	managesAppOwners bool
 }
 
 // GetAppAIConfig reads the complete current App-owned AIConfig. Protected Local
@@ -30,7 +30,7 @@ func (s *Service) GetAppAIConfig(ctx context.Context, req *runtimev1.GetAppAICon
 	if err != nil {
 		return nil, err
 	}
-	owner, err := appAIConfigOwnerForCaller(
+	owner, err := s.appAIConfigOwnerForCaller(
 		ctx,
 		caller,
 		req.GetOwner(),
@@ -55,11 +55,9 @@ func (s *Service) GetAppAIConfig(ctx context.Context, req *runtimev1.GetAppAICon
 	return &runtimev1.GetAppAIConfigResponse{Config: config}, nil
 }
 
-// OverwriteAppAIConfig atomically replaces the complete App-owned AIConfig.
-// Protected Local App payloads carry only capability intent; Runtime injects
-// the exact owner from the admitted operation decision before validation. It
-// deliberately exposes no revision, partial mutation, readiness, or
-// machine-local binding surface.
+// OverwriteAppAIConfig atomically replaces the complete App-owned AIConfig for
+// an authenticated Nimi owner surface. Protected Local Apps are read-only and
+// cannot reach this method through their closed operation contract.
 func (s *Service) OverwriteAppAIConfig(ctx context.Context, req *runtimev1.OverwriteAppAIConfigRequest) (*runtimev1.OverwriteAppAIConfigResponse, error) {
 	caller, err := authenticatedAppAIConfigCaller(ctx)
 	if err != nil {
@@ -68,11 +66,14 @@ func (s *Service) OverwriteAppAIConfig(ctx context.Context, req *runtimev1.Overw
 	if req == nil || req.GetConfig() == nil {
 		return nil, invalidAppAIConfigError()
 	}
-	owner, err := appAIConfigOwnerForCaller(
+	if _, localApp := accountservice.AuthorizedLocalAppDecisionFromContext(ctx); localApp {
+		return nil, unauthorizedAppAIConfigCallerError()
+	}
+	owner, err := s.appAIConfigOwnerForCaller(
 		ctx,
 		caller,
 		req.GetConfig().GetOwner(),
-		accountservice.LocalAppOperationAppAIConfigOverwrite,
+		accountservice.LocalAppOperationAppAIConfigRead,
 	)
 	if err != nil {
 		return nil, err
@@ -82,10 +83,6 @@ func (s *Service) OverwriteAppAIConfig(ctx context.Context, req *runtimev1.Overw
 		return nil, invalidAppAIConfigError()
 	}
 	input.Owner = owner
-	_, localApp := accountservice.AuthorizedLocalAppDecisionFromContext(ctx)
-	if localApp && appAIConfigCarriesConnectorGrant(input) {
-		return nil, invalidAppAIConfigError()
-	}
 	canonical, err := aiconfig.Canonicalize(input)
 	if err != nil {
 		return nil, invalidAppAIConfigError()
@@ -93,46 +90,18 @@ func (s *Service) OverwriteAppAIConfig(ctx context.Context, req *runtimev1.Overw
 	if s == nil || s.aiConfigStore == nil {
 		return nil, appAIConfigPersistenceError(fmt.Errorf("AIConfig store is unavailable"))
 	}
-	if !localApp {
-		if err := connector.ValidateAIConfigConnectorGrants(s.connStore, caller.accountNamespace, canonical); err != nil {
-			return nil, err
-		}
-	}
 	if err := s.aiConfigStore.Overwrite(ctx, caller.accountNamespace, canonical); err != nil {
 		return nil, appAIConfigPersistenceError(err)
-	}
-	if localApp {
-		canonical = portableLocalAppAIConfigProjection(canonical)
 	}
 	return &runtimev1.OverwriteAppAIConfigResponse{Config: canonical}, nil
 }
 
-func appAIConfigCarriesConnectorGrant(config *runtimev1.AIConfig) bool {
-	if config == nil {
-		return false
-	}
-	for _, capability := range config.GetCapabilities() {
-		if strings.TrimSpace(capability.GetCloud().GetConnectorGrantId()) != "" {
-			return true
-		}
-	}
-	return false
-}
-
 func portableLocalAppAIConfigProjection(config *runtimev1.AIConfig) *runtimev1.AIConfig {
 	projected, _ := proto.Clone(config).(*runtimev1.AIConfig)
-	if projected == nil {
-		return nil
-	}
-	for _, capability := range projected.GetCapabilities() {
-		if cloud := capability.GetCloud(); cloud != nil {
-			cloud.ConnectorGrantId = ""
-		}
-	}
 	return projected
 }
 
-func appAIConfigOwnerForCaller(
+func (s *Service) appAIConfigOwnerForCaller(
 	ctx context.Context,
 	caller appAIConfigCaller,
 	asserted *runtimev1.AIConfigOwner,
@@ -155,7 +124,14 @@ func appAIConfigOwnerForCaller(
 	if err != nil {
 		return nil, invalidAppAIConfigError()
 	}
-	if requestedAppID != caller.appID {
+	if requestedAppID == caller.appID {
+		return asserted, nil
+	}
+	if !caller.managesAppOwners || s == nil || s.appOwnerRegistry == nil {
+		return nil, unauthorizedAppAIConfigCallerError()
+	}
+	registration, err := s.appOwnerRegistry.GetActiveByAppID(ctx, requestedAppID)
+	if err != nil || registration.AppID != requestedAppID {
 		return nil, unauthorizedAppAIConfigCallerError()
 	}
 	return asserted, nil
@@ -183,6 +159,7 @@ func authenticatedAppAIConfigCaller(ctx context.Context) (appAIConfigCaller, err
 			return appAIConfigCaller{}, unauthorizedAppAIConfigCallerError()
 		}
 		caller = candidate
+		caller.managesAppOwners = principal.IsDesktopAccountProduct()
 		bound = true
 	}
 

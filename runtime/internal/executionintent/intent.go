@@ -15,8 +15,8 @@ import (
 )
 
 // Intent is one immutable capability-scoped AIConfig snapshot. Local carries
-// no execution identity. Cloud keeps implementation, Driver-owned target, and
-// ConnectorGrant as separate facts; grant is never recast as connector/target.
+// no execution identity. Cloud keeps only implementation and Driver-owned
+// target intent; Runtime resolves current-account Connector custody later.
 type Intent struct {
 	CapabilityContract  string
 	RequiredFeatures    []string
@@ -24,8 +24,6 @@ type Intent struct {
 	Route               runtimev1.RoutePolicy
 	CloudImplementation *runtimev1.CapabilityImplementationIdentity
 	ProviderModelTarget *structpb.Struct
-	ConnectorGrantID    string
-
 	// CloudTarget remains for Runtime-private non-AIConfig callers that already
 	// captured a connector/catalog binding. AIConfig conversion never writes it.
 	CloudTarget *runtimeidentity.CloudTarget
@@ -55,9 +53,6 @@ func (i Intent) ModelID() string {
 	if model, ok := exactTargetText(i.ProviderModelTarget, "providerModelId"); ok {
 		return model
 	}
-	if model, ok := exactTargetText(i.ProviderModelTarget, "model"); ok {
-		return model
-	}
 	if i.CloudTarget == nil {
 		return ""
 	}
@@ -71,16 +66,11 @@ func (i Intent) ConnectorID() string {
 	return strings.TrimSpace(i.CloudTarget.ConnectorID)
 }
 
-func (i Intent) GrantID() string {
-	return strings.TrimSpace(i.ConnectorGrantID)
-}
-
 func Clone(input Intent) Intent {
 	out := Intent{
 		CapabilityContract: strings.TrimSpace(input.CapabilityContract),
 		RequiredFeatures:   append([]string(nil), input.RequiredFeatures...),
 		Route:              input.Route,
-		ConnectorGrantID:   input.ConnectorGrantID,
 		CloudTarget:        input.CloudTarget.Clone(),
 	}
 	if input.Defaults != nil {
@@ -96,8 +86,7 @@ func Clone(input Intent) Intent {
 }
 
 // FromCapability converts canonical AIConfig intent into the closed private
-// execution carrier. Cloud execution requires all connector/catalog facts;
-// omission fails rather than deriving them from model text or provider order.
+// execution carrier. Connector and custody identity are intentionally absent.
 func FromCapability(capability *runtimev1.AIConfigCapabilityIntent) (Intent, error) {
 	if capability == nil || strings.TrimSpace(capability.GetCapabilityContract()) == "" {
 		return Intent{}, fmt.Errorf("AIConfig capability intent is required")
@@ -124,7 +113,6 @@ func FromCapability(capability *runtimev1.AIConfigCapabilityIntent) (Intent, err
 		out.Route = runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD
 		out.CloudImplementation, _ = proto.Clone(route.Cloud.GetImplementation()).(*runtimev1.CapabilityImplementationIdentity)
 		out.ProviderModelTarget, _ = proto.Clone(route.Cloud.GetProviderModelTarget()).(*structpb.Struct)
-		out.ConnectorGrantID = route.Cloud.GetConnectorGrantId()
 		return out, nil
 	default:
 		return Intent{}, fmt.Errorf("AIConfig capability route is required")

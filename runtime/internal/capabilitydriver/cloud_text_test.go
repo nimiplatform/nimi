@@ -52,7 +52,11 @@ func TestCloudTextDriverReasonNormalizationTable(t *testing.T) {
 }
 
 func TestCloudTextDriverNormalizesTransportHTTPMetadata(t *testing.T) {
-	target, _ := structpb.NewStruct(map[string]any{"provider": "openai", "model": "gpt-4o-mini"})
+	target, _ := structpb.NewStruct(map[string]any{
+		"provider":             "openai",
+		"providerModelId":      "gpt-4o-mini",
+		"remoteModelCatalogId": "remote-model-catalog-gpt-4o-mini",
+	})
 	driver, _, err := NewProductionCloudTextRegistry().Resolve(Identity{
 		ImplementationID: "cloud.text.openai", DriverID: "driver.openai", DriverDialect: "openai/chat-completions/v1",
 	}, target)

@@ -426,8 +426,7 @@ func (r publicChatRuntime) agentVoiceOutputPolicyForSession(ctx context.Context,
 		if strings.TrimSpace(audioBinding.ConnectorID) != strings.TrimSpace(cloud.GetConnectorId()) ||
 			!audioBinding.ExecutionIntent.IsAIConfigCloud() ||
 			audioBinding.ExecutionIntent.CapabilityContract != runtimeAgentAIConfigCapabilityAudioSynthesize ||
-			audioBinding.ExecutionIntent.ModelID() != strings.TrimSpace(cloud.GetProviderModelId()) ||
-			audioBinding.ExecutionIntent.GrantID() != strings.TrimSpace(cloud.GetConnectorGrantId()) {
+			audioBinding.ExecutionIntent.ModelID() != strings.TrimSpace(cloud.GetProviderModelId()) {
 			return agentVoiceOutputPolicy{}, false
 		}
 	}

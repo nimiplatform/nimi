@@ -130,10 +130,13 @@ func (s *Service) ListConnectorModels(ctx context.Context, req *runtimev1.ListCo
 	}
 
 	sort.Slice(models, func(i, j int) bool {
-		if models[i].GetModelId() == models[j].GetModelId() {
-			return models[i].GetModelLabel() < models[j].GetModelLabel()
+		if models[i].GetProviderModelId() == models[j].GetProviderModelId() {
+			if models[i].GetRemoteModelCatalogId() == models[j].GetRemoteModelCatalogId() {
+				return models[i].GetModelLabel() < models[j].GetModelLabel()
+			}
+			return models[i].GetRemoteModelCatalogId() < models[j].GetRemoteModelCatalogId()
 		}
-		return models[i].GetModelId() < models[j].GetModelId()
+		return models[i].GetProviderModelId() < models[j].GetProviderModelId()
 	})
 
 	startIdx := 0

@@ -29,7 +29,7 @@ type EmbedDispatchAudit struct {
 	ImplementationID     string
 	DriverID             string
 	DriverDialect        string
-	ConnectorGrantID     string
+	ConnectorID          string
 	Provider             string
 	ProviderModelID      string
 	RemoteModelCatalogID string
@@ -37,10 +37,10 @@ type EmbedDispatchAudit struct {
 }
 
 // EmbedHost opens request-scoped credentials and transports one already-mapped
-// embedding request. It never selects a route, grant, provider, model, Driver,
+// embedding request. It never selects a route, Connector, provider, model, Driver,
 // or fallback.
 type EmbedHost interface {
-	ExecuteEmbed(context.Context, connector.ConnectorGrantSnapshot, capabilitydriver.CloudEmbedTarget, *capabilitydriver.CloudEmbedMappedRequest, EmbedDispatchAudit) (capabilitydriver.CloudEmbedTransportResponse, error)
+	ExecuteEmbed(context.Context, connector.ConnectorRecord, capabilitydriver.CloudEmbedTarget, *capabilitydriver.CloudEmbedMappedRequest, EmbedDispatchAudit) (capabilitydriver.CloudEmbedTransportResponse, error)
 }
 
 // ProviderEmbedHost transports provider embedding dialects through nimillm.
@@ -58,7 +58,7 @@ func NewProviderEmbedHost(connectors *connector.ConnectorStore, transport *nimil
 
 func (h *ProviderEmbedHost) ExecuteEmbed(
 	ctx context.Context,
-	grant connector.ConnectorGrantSnapshot,
+	connectorRecord connector.ConnectorRecord,
 	target capabilitydriver.CloudEmbedTarget,
 	request *capabilitydriver.CloudEmbedMappedRequest,
 	audit EmbedDispatchAudit,
@@ -70,7 +70,7 @@ func (h *ProviderEmbedHost) ExecuteEmbed(
 		err := grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONFIG_INVALID)
 		return capabilitydriver.CloudEmbedTransportResponse{}, h.auditedEmbedError(audit, "error", err)
 	}
-	remoteTarget, err := requestScopedProviderTarget(ctx, h.connectors, h.allowLoopback, grant, target)
+	remoteTarget, err := requestScopedProviderTarget(ctx, h.connectors, h.allowLoopback, audit.AccountID, connectorRecord, target)
 	if err != nil {
 		return capabilitydriver.CloudEmbedTransportResponse{}, h.auditedEmbedError(audit, "error", err)
 	}
@@ -95,7 +95,7 @@ func (h *ProviderEmbedHost) recordEmbedDispatch(audit EmbedDispatchAudit, phase 
 		"implementation_id":        audit.ImplementationID,
 		"driver_id":                audit.DriverID,
 		"driver_dialect":           audit.DriverDialect,
-		"connector_grant_id":       audit.ConnectorGrantID,
+		"connector_id":             audit.ConnectorID,
 		"provider":                 audit.Provider,
 		"provider_model_id":        audit.ProviderModelID,
 		"remote_model_catalog_id":  audit.RemoteModelCatalogID,

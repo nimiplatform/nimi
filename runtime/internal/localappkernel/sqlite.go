@@ -123,6 +123,9 @@ func (kernel *Kernel) initialize(ctx context.Context) error {
 		`CREATE UNIQUE INDEX IF NOT EXISTS registered_app_active_source
 			ON registered_app_records(local_os_user_anchor, source_class, source_ref)
 			WHERE state = 'active'`,
+		`CREATE UNIQUE INDEX IF NOT EXISTS registered_app_active_app
+			ON registered_app_records(local_os_user_anchor, app_id)
+			WHERE state = 'active'`,
 		`CREATE TRIGGER IF NOT EXISTS registered_app_subject_immutable
 		BEFORE UPDATE ON registered_app_records
 		WHEN OLD.local_os_user_anchor <> NEW.local_os_user_anchor

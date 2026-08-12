@@ -19,6 +19,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
 	"github.com/nimiplatform/nimi/runtime/internal/config"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"github.com/nimiplatform/nimi/runtime/internal/localappkernel"
 	"github.com/nimiplatform/nimi/runtime/internal/localexecution"
 	"github.com/nimiplatform/nimi/runtime/internal/modelregistry"
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
@@ -89,6 +90,7 @@ type Service struct {
 	runtimeAccountProjection               runtimeAccountProjectionProvider
 	speechCatalog                          *catalog.Resolver
 	allowLoopback                          bool
+	appOwnerRegistry                       *localappkernel.RegistrationStore
 	streamFirstPacketTimeout               time.Duration
 	streamIdleTimeout                      time.Duration
 	voiceAssetDeleteReconciliationInterval time.Duration
@@ -191,7 +193,7 @@ func newFromProviderConfig(logger *slog.Logger, registry *modelregistry.Registry
 	cloudProvider := nimillm.NewCloudProvider(cfg.toCloudConfig(), registry, aiHealth)
 	remoteCloudConfig := cfg.toCloudConfig()
 	// Remote cloud execution may receive credentials only from request-scoped
-	// ConnectorGrant Host resolution; configured probe credentials are
+	// current-account Connector Host resolution; configured probe credentials are
 	// deliberately absent from the shared transport instance.
 	remoteCloudConfig.Providers = nil
 	remoteCloudTransport := nimillm.NewCloudProvider(remoteCloudConfig, registry, aiHealth)
@@ -326,6 +328,14 @@ func (s *Service) SetAIConfigStore(store aiconfig.Store) {
 		return
 	}
 	s.aiConfigStore = store
+}
+
+// SetAppOwnerRegistry binds the admitted App owner truth used only by the
+// authenticated Desktop account-product AIConfig management surface.
+func (s *Service) SetAppOwnerRegistry(store *localappkernel.RegistrationStore) {
+	if s != nil {
+		s.appOwnerRegistry = store
+	}
 }
 
 // SetRuntimeAccountProjectionProvider binds protected bundled consumers to

@@ -15,6 +15,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/remoteexecution"
 	"github.com/nimiplatform/nimi/runtime/internal/runtimeidentity"
+	"github.com/nimiplatform/nimi/runtime/internal/services/connector"
 	"github.com/oklog/ulid/v2"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -283,9 +284,8 @@ func (s *Service) deleteProviderPersistentVoiceAsset(ctx context.Context, asset 
 		Route:               runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
 		CloudImplementation: binding.Implementation,
 		ProviderModelTarget: binding.ProviderModelTarget,
-		ConnectorGrantID:    binding.ConnectorGrantID,
 	}
-	if !privateIntent.IsAIConfigCloud() || privateIntent.GrantID() != target.Cloud.ConnectorGrantID {
+	if !privateIntent.IsAIConfigCloud() || binding.ConnectorID != target.Cloud.ConnectorID {
 		return fail(fmt.Errorf("voice asset AIConfig execution binding is invalid"))
 	}
 	driver, driverTarget, err := s.cloudMediaDrivers.Resolve(
@@ -298,12 +298,15 @@ func (s *Service) deleteProviderPersistentVoiceAsset(ctx context.Context, asset 
 		driverTarget.RemoteModelCatalogID() != target.Cloud.RemoteModelCatalogID {
 		return fail(fmt.Errorf("voice asset Driver target does not match its captured execution target"))
 	}
-	grantID := privateIntent.GrantID()
-	grant, err := s.connStore.ValidateGrantBinding(strings.TrimSpace(asset.GetSubjectUserId()), grantID)
+	connectorRecord, found, err := s.connStore.Get(binding.ConnectorID)
 	if err != nil {
 		return fail(err)
 	}
-	if grant.Connector.ConnectorID != target.Cloud.ConnectorID || strings.TrimSpace(grant.Connector.Provider) != driverTarget.Provider() {
+	if !found || connectorRecord.Kind != runtimev1.ConnectorKind_CONNECTOR_KIND_REMOTE_MANAGED ||
+		connectorRecord.OwnerType != runtimev1.ConnectorOwnerType_CONNECTOR_OWNER_TYPE_REALM_USER ||
+		strings.TrimSpace(connectorRecord.OwnerID) != strings.TrimSpace(asset.GetSubjectUserId()) ||
+		connectorRecord.Status != runtimev1.ConnectorStatus_CONNECTOR_STATUS_ACTIVE ||
+		!connectorRecord.HasCredential || strings.TrimSpace(connectorRecord.Provider) != driverTarget.Provider() {
 		return fail(fmt.Errorf("voice asset connector provider no longer matches its private target"))
 	}
 	mapped, err := driver.MapVoiceDeleteRequest(driverTarget, providerVoiceRef)
@@ -316,13 +319,13 @@ func (s *Service) deleteProviderPersistentVoiceAsset(ctx context.Context, asset 
 		CapabilityContract: "voice_asset.delete",
 		ImplementationID:   privateIntent.CloudImplementation.GetImplementationId(),
 		DriverID:           privateIntent.CloudImplementation.GetDriverId(), DriverDialect: privateIntent.CloudImplementation.GetDriverDialect(),
-		ConnectorGrantID: grantID, Provider: driverTarget.Provider(), ProviderModelID: driverTarget.ProviderModelID(),
+		ConnectorID: connectorRecord.ConnectorID, Provider: driverTarget.Provider(), ProviderModelID: driverTarget.ProviderModelID(),
 		RemoteModelCatalogID: driverTarget.RemoteModelCatalogID(), Region: driverTarget.Region(),
 	}
-	if err := s.auditCloudVoiceDeleteCapture(asset, privateIntent, driverTarget, mapped, traceID); err != nil {
+	if err := s.auditCloudVoiceDeleteCapture(asset, privateIntent, connectorRecord, driverTarget, mapped, traceID); err != nil {
 		return fail(err)
 	}
-	if err := s.remoteMediaHost.DeleteVoiceAsset(ctx, grant, driverTarget, mapped, dispatchAudit); err != nil {
+	if err := s.remoteMediaHost.DeleteVoiceAsset(ctx, connectorRecord, driverTarget, mapped, dispatchAudit); err != nil {
 		normalized := driver.NormalizeVoiceDeleteReason(driverTarget, err)
 		result = fail(normalized)
 		if s.logger != nil {
@@ -358,6 +361,7 @@ func voiceAssetDeleteFailure(result voiceAssetDeleteResult, err error) voiceAsse
 func (s *Service) auditCloudVoiceDeleteCapture(
 	asset *runtimev1.VoiceAsset,
 	intent executionintent.Intent,
+	connectorRecord connector.ConnectorRecord,
 	target capabilitydriver.CloudMediaTarget,
 	mapped *capabilitydriver.CloudVoiceDeleteMappedRequest,
 	traceID string,
@@ -370,7 +374,7 @@ func (s *Service) auditCloudVoiceDeleteCapture(
 		"ai_config_source_capability_contract": intent.CapabilityContract,
 		"implementation_id":                    intent.CloudImplementation.GetImplementationId(), "driver_id": intent.CloudImplementation.GetDriverId(),
 		"driver_dialect": intent.CloudImplementation.GetDriverDialect(), "provider_model_target": intent.ProviderModelTarget.AsMap(),
-		"connector_grant_id": intent.GrantID(), "provider": target.Provider(), "provider_model_id": target.ProviderModelID(),
+		"connector_id": connectorRecord.ConnectorID, "provider": target.Provider(), "provider_model_id": target.ProviderModelID(),
 		"remote_model_catalog_id": target.RemoteModelCatalogID(), "provider_region": target.Region(), "transport_adapter": mapped.Adapter(),
 		"voice_asset_id": strings.TrimSpace(asset.GetVoiceAssetId()), "remote_execution_host": remoteexecution.ProviderHTTPMediaHostID,
 		"remote_dispatch_state": "captured", "provider_voice_ref": "private", "secret_material": "absent",

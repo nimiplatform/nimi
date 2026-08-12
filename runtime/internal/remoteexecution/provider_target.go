@@ -19,26 +19,29 @@ type providerTargetIdentity interface {
 }
 
 // requestScopedProviderTarget is the only remote credential opening point.
-// Grant and connector records are immutable snapshots; the sealed payload is
-// read only for one Host dispatch and never enters a Driver or service capture.
+// The exact current-account Connector is an immutable capture; the sealed
+// payload is read only for one Host dispatch and never enters a Driver or
+// service capture.
 func requestScopedProviderTarget(
 	ctx context.Context,
 	connectors *connector.ConnectorStore,
 	allowLoopback bool,
-	grant connector.ConnectorGrantSnapshot,
+	accountID string,
+	connectorRecord connector.ConnectorRecord,
 	target providerTargetIdentity,
 ) (*nimillm.RemoteTarget, error) {
 	if connectors == nil || target == nil {
 		return nil, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 	}
-	grantRecord := grant.Grant
-	connectorRecord := grant.Connector
-	ownerConsistent := connectorRecord.OwnerType == runtimev1.ConnectorOwnerType_CONNECTOR_OWNER_TYPE_REALM_USER && connectorRecord.OwnerID == grantRecord.AccountID
-	if grantRecord.GrantID == "" || grantRecord.AccountID == "" || grantRecord.ConnectorID == "" ||
-		grantRecord.ConnectorID != connectorRecord.ConnectorID || !ownerConsistent ||
+	accountID = strings.TrimSpace(accountID)
+	ownerConsistent := connectorRecord.OwnerType == runtimev1.ConnectorOwnerType_CONNECTOR_OWNER_TYPE_REALM_USER && connectorRecord.OwnerID == accountID
+	if accountID == "" || connectorRecord.ConnectorID == "" || !ownerConsistent ||
 		connectorRecord.Kind != runtimev1.ConnectorKind_CONNECTOR_KIND_REMOTE_MANAGED ||
 		connectorRecord.Provider != target.Provider() {
-		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONNECTOR_GRANT_SELECTION_REQUIRED)
+		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONNECTOR_NOT_FOUND)
+	}
+	if connectorRecord.Status != runtimev1.ConnectorStatus_CONNECTOR_STATUS_ACTIVE {
+		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONNECTOR_DISABLED)
 	}
 	secretPayload, err := connectors.LoadSecretPayload(connectorRecord.ConnectorID)
 	if err != nil {

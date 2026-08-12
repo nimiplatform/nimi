@@ -66,11 +66,6 @@ func TestExecuteScenarioTextGenerateCloudTargetRefStaleAfterEndpointChange(t *te
 		t.Fatalf("new service: %v", err)
 	}
 	target := cloudScenarioTargetRefForDescriptor(connectorID, descriptor)
-	grant, grantErr := store.CreateGrant("user-001", connectorID)
-	if grantErr != nil {
-		t.Fatalf("CreateGrant: %v", grantErr)
-	}
-	target.Cloud.ConnectorGrantID = grant.GrantID
 	execCtx := metadata.NewIncomingContext(ctx, metadata.Pairs("x-nimi-key-source", "managed"))
 	execCtx = withCloudScenarioTestIntent(execCtx, "text.generate", target)
 	_, err = svc.ExecuteScenario(execCtx, &runtimev1.ExecuteScenarioRequest{
@@ -90,7 +85,7 @@ func TestExecuteScenarioTextGenerateCloudTargetRefStaleAfterEndpointChange(t *te
 	if err == nil {
 		t.Fatal("expected stale remote model catalog id error")
 	}
-	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_REMOTE_MODEL_CATALOG_STALE {
-		t.Fatalf("reason mismatch: got=%v ok=%v want=%v", reason, ok, runtimev1.ReasonCode_AI_REMOTE_MODEL_CATALOG_STALE)
+	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_CONNECTOR_NOT_FOUND {
+		t.Fatalf("reason mismatch: got=%v ok=%v want=%v", reason, ok, runtimev1.ReasonCode_AI_CONNECTOR_NOT_FOUND)
 	}
 }

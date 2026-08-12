@@ -228,13 +228,13 @@ func TestExecuteLocalAppScenarioLocalEmbedFailsClosedWithoutMachineSelection(t *
 func TestExecuteLocalAppScenarioCloudEmbedFailsClosedWithoutBinding(t *testing.T) {
 	svc := newTestService(nil)
 	if err := svc.aiConfigStore.Overwrite(context.Background(), "account-1",
-		appAIConfig("nimi.realm-persona-studio", grantlessCloudAIConfigIntent(t, "text.embed"))); err != nil {
+		appAIConfig("nimi.realm-persona-studio", cloudAIConfigIntent(t, "text.embed"))); err != nil {
 		t.Fatalf("install Cloud App AIConfig: %v", err)
 	}
 	// The request passes admission and clamps and enters owner AIConfig
 	// composition; without a resolvable Cloud binding it fails closed.
 	_, err := svc.ExecuteLocalAppScenario(localAppScenarioExecuteContext(), validLocalAppEmbedExecuteRequest())
-	assertLocalAppTextCandidateError(t, err, codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONFIG_INVALID)
+	assertLocalAppTextCandidateError(t, err, codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONNECTOR_NOT_FOUND)
 }
 
 func TestProjectLocalAppScenarioArtifactTrimsOwnerFields(t *testing.T) {

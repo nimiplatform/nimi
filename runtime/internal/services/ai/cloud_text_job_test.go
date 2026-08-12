@@ -8,33 +8,29 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/auditlog"
-	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/scheduler"
 	"google.golang.org/protobuf/encoding/protojson"
 )
 
-func TestCloudImageJobCapturesGrantAndSurvivesLaterRevocation(t *testing.T) {
+func TestCloudImageJobCapturesCurrentAccountConnector(t *testing.T) {
 	fixture := newManagedCloudScenarioTestFixture(t, "openai", "gpt-image-1.5", "https://api.openai.com/v1", Config{})
 	audit := auditlog.New(64, 64)
 	fixture.service.audit = audit
 	host := newControlledRemoteMediaHost(false)
 	fixture.service.SetRemoteMediaExecutionHost(host)
 	ctx := withCloudScenarioTestIntent(scenarioJobUserContext("nimi.desktop", "user-001"), "image.generate", fixture.targetRef)
-	req := cloudImageJobRequest("job survives grant revocation")
+	req := cloudImageJobRequest("job captures connector")
 
 	submitted, err := fixture.service.SubmitScenarioJob(ctx, req)
 	if err != nil {
 		t.Fatalf("SubmitScenarioJob: %v", err)
 	}
 	captured := <-host.started
-	if captured.Grant.GrantID != fixture.targetRef.Cloud.ConnectorGrantID || captured.Connector.ConnectorID != fixture.connectorID {
-		t.Fatalf("captured grant snapshot = %+v", captured)
+	if captured.ConnectorID != fixture.connectorID || captured.OwnerID != "user-001" {
+		t.Fatalf("captured Connector snapshot = %+v", captured)
 	}
-	if strings.Contains(strings.ToLower(strings.Join([]string{captured.Grant.GrantID, captured.Grant.AccountID, captured.Connector.Provider}, " ")), "test-key") {
-		t.Fatal("credential leaked into grant snapshot")
-	}
-	if _, err := fixture.service.connStore.RevokeGrant("user-001", captured.Grant.GrantID); err != nil {
-		t.Fatalf("RevokeGrant after submit: %v", err)
+	if strings.Contains(strings.ToLower(strings.Join([]string{captured.ConnectorID, captured.OwnerID, captured.Provider}, " ")), "test-key") {
+		t.Fatal("credential leaked into Connector snapshot")
 	}
 	close(host.release)
 	job := waitScenarioJobTerminal(t, fixture.service, submitted.GetJob().GetJobId(), 3*time.Second)
@@ -43,16 +39,11 @@ func TestCloudImageJobCapturesGrantAndSurvivesLaterRevocation(t *testing.T) {
 	}
 	queryCtx := scenarioJobUserContext("nimi.desktop", "user-001")
 	if _, err := fixture.service.GetScenarioJob(queryCtx, &runtimev1.GetScenarioJobRequest{JobId: job.GetJobId()}); err != nil {
-		t.Fatalf("query captured job after revoke: %v", err)
+		t.Fatalf("query captured job: %v", err)
 	}
 	artifacts, err := fixture.service.GetScenarioArtifacts(queryCtx, &runtimev1.GetScenarioArtifactsRequest{JobId: job.GetJobId()})
 	if err != nil || len(artifacts.GetArtifacts()) != 1 {
-		t.Fatalf("captured artifacts after revoke = %+v, %v", artifacts, err)
-	}
-
-	_, err = fixture.service.SubmitScenarioJob(ctx, cloudImageJobRequest("future job must fail"))
-	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_CONNECTOR_GRANT_REVOKED {
-		t.Fatalf("future job reason = %v present=%v err=%v", reason, ok, err)
+		t.Fatalf("captured artifacts = %+v, %v", artifacts, err)
 	}
 	assertScenarioJobAndAuditContainNoSecret(t, job, audit, "test-key")
 }
@@ -67,8 +58,8 @@ func TestCloudImageJobCancelStopsLocalWaitWithHonestTerminal(t *testing.T) {
 		t.Fatalf("SubmitScenarioJob: %v", err)
 	}
 	captured := <-host.started
-	if _, err := fixture.service.connStore.RevokeGrant("user-001", captured.Grant.GrantID); err != nil {
-		t.Fatalf("RevokeGrant after submit: %v", err)
+	if captured.ConnectorID != fixture.connectorID {
+		t.Fatalf("captured Connector = %+v", captured)
 	}
 	canceled, err := fixture.service.CancelScenarioJob(scenarioJobUserContext("nimi.desktop", "user-001"), &runtimev1.CancelScenarioJobRequest{
 		JobId: submitted.GetJob().GetJobId(), Reason: "user requested cancellation",

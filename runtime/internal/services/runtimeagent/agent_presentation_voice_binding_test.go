@@ -46,7 +46,7 @@ func testVoiceAssetExecutionIntent(target *runtimeidentity.Target) executioninte
 		CloudImplementation: &runtimev1.CapabilityImplementationIdentity{
 			ImplementationId: "cloud.audio.test", DriverId: "driver." + cloud.Provider, DriverDialect: "provider/audio/v1",
 		},
-		ProviderModelTarget: rawTarget, ConnectorGrantID: firstNonEmpty(cloud.ConnectorGrantID, "grant-test"),
+		ProviderModelTarget: rawTarget,
 	}
 }
 
@@ -66,7 +66,6 @@ func (service testRuntimeAIVoiceAssetService) ResolveRuntimeAgentVoiceAsset(ctx 
 func durableVoiceAssetTargetRef() *runtimeidentity.Target {
 	return &runtimeidentity.Target{Cloud: &runtimeidentity.CloudTarget{
 		ConnectorID:          "connector-1",
-		ConnectorGrantID:     "grant-test",
 		RemoteModelCatalogID: "remote-catalog-1",
 		ProviderModelID:      "provider-model-1",
 		Provider:             "provider-1",

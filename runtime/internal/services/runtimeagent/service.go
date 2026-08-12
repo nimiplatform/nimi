@@ -10,6 +10,7 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	aicatalog "github.com/nimiplatform/nimi/runtime/internal/aicatalog"
 	"github.com/nimiplatform/nimi/runtime/internal/aiconfig"
 	"github.com/nimiplatform/nimi/runtime/internal/auditlog"
 	"github.com/nimiplatform/nimi/runtime/internal/runtimepersistence"
@@ -89,6 +90,7 @@ type Service struct {
 	machineExecutionBindingResolver          machineExecutionBindingResolver
 	aiConfigStore                            aiconfig.Store
 	connectorStore                           *connector.ConnectorStore
+	modelCatalog                             *aicatalog.Resolver
 	auditStore                               *auditlog.Store
 	delegatedMu                              sync.RWMutex
 	delegatedGateway                         delegatedCapabilityGateway

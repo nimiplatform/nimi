@@ -41,14 +41,6 @@ func TestProviderMediaHostOpensCredentialOnlyInsideDispatch(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	grant, err := store.CreateGrant("account-a", record.ConnectorID)
-	if err != nil {
-		t.Fatal(err)
-	}
-	snapshot, err := store.ValidateGrantBinding("account-a", grant.GrantID)
-	if err != nil {
-		t.Fatal(err)
-	}
 	secrets.mu.Lock()
 	secrets.reads = 0
 	secrets.mu.Unlock()
@@ -57,10 +49,10 @@ func TestProviderMediaHostOpensCredentialOnlyInsideDispatch(t *testing.T) {
 	audit := auditlog.New(16, 16)
 	transport := nimillm.NewCloudProvider(nimillm.CloudConfig{HTTPTimeout: time.Second, AllowLoopbackEndpoint: true}, nil, nil)
 	host := NewProviderMediaHost(store, transport, audit, true)
-	response, err := host.ExecuteMedia(context.Background(), snapshot, target, mapped, MediaDispatchAudit{
+	response, err := host.ExecuteMedia(context.Background(), record, target, mapped, MediaDispatchAudit{
 		AppID: "app", AccountID: "account-a", TraceID: "trace-media", CapabilityContract: "audio.synthesize",
 		ImplementationID: "cloud.audio.openai", DriverID: "driver.openai", DriverDialect: "provider/media-v1",
-		ConnectorGrantID: grant.GrantID, Provider: "openai", ProviderModelID: "tts-1", RemoteModelCatalogID: "catalog-tts-1",
+		ConnectorID: record.ConnectorID, Provider: "openai", ProviderModelID: "tts-1", RemoteModelCatalogID: "catalog-tts-1",
 	})
 	if err != nil {
 		t.Fatalf("ExecuteMedia: %v", err)

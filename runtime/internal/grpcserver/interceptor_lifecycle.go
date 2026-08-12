@@ -53,7 +53,6 @@ var readOnlyMethods = map[string]bool{
 	"/nimi.runtime.v1.RuntimeAppService/SubscribeAppMessages":                    true,
 	"/nimi.runtime.v1.RuntimeAppService/GetAppStorage":                           true,
 	"/nimi.runtime.v1.RuntimeConnectorService/ListConnectors":                    true,
-	"/nimi.runtime.v1.RuntimeConnectorService/ListConnectorGrants":               true,
 	"/nimi.runtime.v1.RuntimeConnectorService/GetConnector":                      true,
 	"/nimi.runtime.v1.RuntimeConnectorService/ListConnectorModels":               true,
 	"/nimi.runtime.v1.RuntimeConnectorService/ListProviderCatalog":               true,

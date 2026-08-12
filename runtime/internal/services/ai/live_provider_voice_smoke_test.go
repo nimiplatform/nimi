@@ -93,11 +93,21 @@ func runLiveSmokeVoiceWorkflowForProvider(t *testing.T, providerID string, recor
 		maybeSkipStepFunQuotaBlocked(t, providerID, err, nil)
 		t.Fatalf("submit voice workflow failed: %v", err)
 	}
-	if submitResp.GetAsset() == nil || strings.TrimSpace(submitResp.GetAsset().GetVoiceAssetId()) == "" {
-		t.Fatalf("voice workflow must return voice asset")
-	}
-	voiceAssetID := strings.TrimSpace(submitResp.GetAsset().GetVoiceAssetId())
 	ownerCtx := scenarioJobContext(liveSmokeMatrixAppID)
+	job := waitLiveSmokeScenarioJob(t, svc, submitResp.GetJob().GetJobId())
+	if job.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED {
+		maybeSkipFishAudioBalanceBlocked(t, providerID, nil, job)
+		maybeSkipStepFunQuotaBlocked(t, providerID, nil, job)
+		t.Fatalf("voice workflow job status not completed: %s reason=%s detail=%s", job.GetStatus().String(), job.GetReasonCode().String(), job.GetReasonDetail())
+	}
+	terminal, err := svc.GetScenarioJob(ownerCtx, &runtimev1.GetScenarioJobRequest{JobId: job.GetJobId()})
+	if err != nil {
+		t.Fatalf("GetScenarioJob(%s) terminal result: %v", job.GetJobId(), err)
+	}
+	voiceAssetID := strings.TrimSpace(terminal.GetAsset().GetVoiceAssetId())
+	if voiceAssetID == "" || terminal.GetVoiceReference().GetVoiceAssetId() != voiceAssetID {
+		t.Fatalf("voice workflow terminal result must contain an exact voice asset reference")
+	}
 	defer func() {
 		deleteResp, deleteErr := svc.DeleteVoiceAsset(ownerCtx, &runtimev1.DeleteVoiceAssetRequest{VoiceAssetId: voiceAssetID})
 		if deleteErr != nil {
@@ -108,12 +118,6 @@ func runLiveSmokeVoiceWorkflowForProvider(t *testing.T, providerID string, recor
 			t.Errorf("DeleteVoiceAsset(%s) ack must be ok", voiceAssetID)
 		}
 	}()
-	job := waitLiveSmokeScenarioJob(t, svc, submitResp.GetJob().GetJobId())
-	if job.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED {
-		maybeSkipFishAudioBalanceBlocked(t, providerID, nil, job)
-		maybeSkipStepFunQuotaBlocked(t, providerID, nil, job)
-		t.Fatalf("voice workflow job status not completed: %s reason=%s detail=%s", job.GetStatus().String(), job.GetReasonCode().String(), job.GetReasonDetail())
-	}
 	if strings.EqualFold(strings.TrimSpace(providerID), "mimo") {
 		runLiveSmokeSpeechSynthesizeWithVoiceAsset(t, harness, providerID, targetModelID, voiceAssetID)
 	}

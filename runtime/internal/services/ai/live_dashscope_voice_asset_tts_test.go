@@ -258,11 +258,19 @@ func runLiveSmokeDashScopeVoiceAssetBackedTTS(
 	if err != nil {
 		t.Fatalf("submit DashScope voice workflow failed: %v", err)
 	}
-	voiceAssetID := strings.TrimSpace(submitResp.GetAsset().GetVoiceAssetId())
-	if voiceAssetID == "" {
-		t.Fatalf("DashScope voice workflow must return voice asset")
-	}
 	ownerCtx := scenarioJobContext(liveSmokeMatrixAppID)
+	workflowJob := waitLiveSmokeScenarioJob(t, svc, submitResp.GetJob().GetJobId())
+	if workflowJob.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED {
+		t.Fatalf("DashScope voice workflow job status not completed: %s reason=%s detail=%s", workflowJob.GetStatus().String(), workflowJob.GetReasonCode().String(), workflowJob.GetReasonDetail())
+	}
+	terminal, err := svc.GetScenarioJob(ownerCtx, &runtimev1.GetScenarioJobRequest{JobId: workflowJob.GetJobId()})
+	if err != nil {
+		t.Fatalf("GetScenarioJob(%s) terminal result: %v", workflowJob.GetJobId(), err)
+	}
+	voiceAssetID := strings.TrimSpace(terminal.GetAsset().GetVoiceAssetId())
+	if voiceAssetID == "" || terminal.GetVoiceReference().GetVoiceAssetId() != voiceAssetID {
+		t.Fatalf("DashScope voice workflow terminal result must contain an exact voice asset reference")
+	}
 	defer func() {
 		deleteResp, deleteErr := svc.DeleteVoiceAsset(ownerCtx, &runtimev1.DeleteVoiceAssetRequest{VoiceAssetId: voiceAssetID})
 		if deleteErr != nil {
@@ -274,10 +282,6 @@ func runLiveSmokeDashScopeVoiceAssetBackedTTS(
 		}
 	}()
 
-	workflowJob := waitLiveSmokeScenarioJob(t, svc, submitResp.GetJob().GetJobId())
-	if workflowJob.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED {
-		t.Fatalf("DashScope voice workflow job status not completed: %s reason=%s detail=%s", workflowJob.GetStatus().String(), workflowJob.GetReasonCode().String(), workflowJob.GetReasonDetail())
-	}
 	assetResp, err := svc.GetVoiceAsset(ownerCtx, &runtimev1.GetVoiceAssetRequest{VoiceAssetId: voiceAssetID})
 	if err != nil {
 		t.Fatalf("GetVoiceAsset(%s): %v", voiceAssetID, err)
@@ -353,18 +357,18 @@ func createLiveDashScopeVoiceTextDescriptionAsset(t *testing.T, harness liveSmok
 	if err != nil {
 		t.Fatalf("submit DashScope text-description voice creation for native stream proof failed: %v", err)
 	}
-	voiceAssetID := strings.TrimSpace(submitResp.GetAsset().GetVoiceAssetId())
-	if voiceAssetID == "" {
-		t.Fatalf("DashScope text-description voice creation must return voice asset")
-	}
-	if reference := submitResp.GetVoiceReference(); reference.GetKind() != runtimev1.VoiceReferenceKind_VOICE_REFERENCE_KIND_VOICE_ASSET ||
-		strings.TrimSpace(reference.GetVoiceAssetId()) != voiceAssetID {
-		t.Fatalf("DashScope text-description voice creation returned mismatched voice reference")
-	}
-
 	workflowJob := waitLiveSmokeScenarioJob(t, harness.service, submitResp.GetJob().GetJobId())
 	if workflowJob.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED {
 		t.Fatalf("DashScope text-description voice creation job status not completed: %s reason=%s detail=%s", workflowJob.GetStatus().String(), workflowJob.GetReasonCode().String(), workflowJob.GetReasonDetail())
+	}
+	terminal, err := harness.service.GetScenarioJob(scenarioJobContext(liveSmokeMatrixAppID), &runtimev1.GetScenarioJobRequest{JobId: workflowJob.GetJobId()})
+	if err != nil {
+		t.Fatalf("GetScenarioJob(%s) terminal result: %v", workflowJob.GetJobId(), err)
+	}
+	voiceAssetID := strings.TrimSpace(terminal.GetAsset().GetVoiceAssetId())
+	if voiceAssetID == "" || terminal.GetVoiceReference().GetKind() != runtimev1.VoiceReferenceKind_VOICE_REFERENCE_KIND_VOICE_ASSET ||
+		strings.TrimSpace(terminal.GetVoiceReference().GetVoiceAssetId()) != voiceAssetID {
+		t.Fatalf("DashScope text-description voice creation returned mismatched terminal voice reference")
 	}
 	assetResp, err := harness.service.GetVoiceAsset(scenarioJobContext(liveSmokeMatrixAppID), &runtimev1.GetVoiceAssetRequest{VoiceAssetId: voiceAssetID})
 	if err != nil {

@@ -436,7 +436,7 @@ type CloudMediaDriver interface {
 }
 
 // CloudMediaRegistry resolves an admitted existing provider dialect. It never
-// sees a ConnectorGrant and cannot become an account or route selector.
+// sees Connector custody and cannot become an account or route selector.
 type CloudMediaRegistry struct {
 	drivers map[string]CloudMediaDriver
 }
@@ -458,7 +458,7 @@ func providerSupportsAnyCloudMedia(record providerregistry.ProviderRecord) bool 
 }
 
 // Resolve validates an exact target through one provider Driver. Provider is
-// Driver configuration, not a ConnectorGrant-derived routing choice.
+// Driver configuration, not a Connector-derived routing choice.
 func (r *CloudMediaRegistry) Resolve(identity Identity, rawTarget *structpb.Struct, capabilityContract string) (CloudMediaDriver, CloudMediaTarget, error) {
 	provider, ok := exactCloudTargetText(rawTarget, "provider")
 	if !ok || r == nil {
@@ -489,7 +489,7 @@ func (d providerCloudMediaDriver) ValidateTarget(identity Identity, raw *structp
 	}
 	for key := range raw.GetFields() {
 		switch key {
-		case "provider", "model", "providerModelId", "remoteModelCatalogId", "region":
+		case "provider", "providerModelId", "remoteModelCatalogId", "region":
 		default:
 			return CloudMediaTarget{}, cloudInvocationError(CloudInvocationFailureTarget, fmt.Errorf("media target field %q is unsupported", key))
 		}
@@ -502,24 +502,13 @@ func (d providerCloudMediaDriver) ValidateTarget(identity Identity, raw *structp
 	if !ok || !cloudMediaCapabilitySupported(record, capabilityContract) || cloudMediaAdapterFor(provider, capabilityContract) == "" {
 		return CloudMediaTarget{}, cloudInvocationError(CloudInvocationFailureTarget, fmt.Errorf("provider %q does not implement %s", provider, capabilityContract))
 	}
-	providerModelID, providerModelPresent := exactCloudTargetText(raw, "providerModelId")
-	model, modelPresent := exactCloudTargetText(raw, "model")
-	if providerModelPresent && modelPresent && providerModelID != model {
-		return CloudMediaTarget{}, cloudInvocationError(CloudInvocationFailureTarget, fmt.Errorf("provider model identities conflict"))
-	}
-	if !providerModelPresent {
-		providerModelID = model
-	}
-	if providerModelID == "" {
+	providerModelID, ok := exactCloudTargetText(raw, "providerModelId")
+	if !ok {
 		return CloudMediaTarget{}, cloudInvocationError(CloudInvocationFailureTarget, fmt.Errorf("provider model identity is required"))
 	}
-	remoteModelCatalogID := ""
-	if _, present := raw.GetFields()["remoteModelCatalogId"]; present {
-		var valid bool
-		remoteModelCatalogID, valid = exactCloudTargetText(raw, "remoteModelCatalogId")
-		if !valid {
-			return CloudMediaTarget{}, cloudInvocationError(CloudInvocationFailureTarget, fmt.Errorf("remote model catalog identity is invalid"))
-		}
+	remoteModelCatalogID, ok := exactCloudTargetText(raw, "remoteModelCatalogId")
+	if !ok {
+		return CloudMediaTarget{}, cloudInvocationError(CloudInvocationFailureTarget, fmt.Errorf("remote model catalog identity is required"))
 	}
 	region := ""
 	if _, present := raw.GetFields()["region"]; present {
@@ -1101,8 +1090,6 @@ func (providerCloudMediaDriver) NormalizeReason(target CloudMediaTarget, err err
 			runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE,
 			runtimev1.ReasonCode_AI_PROVIDER_ENDPOINT_FORBIDDEN,
 			runtimev1.ReasonCode_AI_CONNECTOR_CREDENTIAL_MISSING,
-			runtimev1.ReasonCode_AI_CONNECTOR_GRANT_REVOKED,
-			runtimev1.ReasonCode_AI_CONNECTOR_GRANT_SELECTION_REQUIRED,
 			runtimev1.ReasonCode_AI_MODEL_NOT_FOUND,
 			runtimev1.ReasonCode_AI_CONTENT_FILTER_BLOCKED,
 			runtimev1.ReasonCode_AI_INPUT_INVALID,

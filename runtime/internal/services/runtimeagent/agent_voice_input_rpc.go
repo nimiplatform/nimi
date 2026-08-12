@@ -248,8 +248,7 @@ func (s *Service) resolveAgentVoiceInputBinding(
 	case runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD:
 		cloud := binding.TargetRef.GetCloud()
 		if cloud == nil || !intent.IsAIConfigCloud() || intent.CapabilityContract != runtimeAgentAIConfigCapabilityAudioTranscribe ||
-			intent.ModelID() != strings.TrimSpace(cloud.GetProviderModelId()) ||
-			intent.GrantID() != strings.TrimSpace(cloud.GetConnectorGrantId()) {
+			intent.ModelID() != strings.TrimSpace(cloud.GetProviderModelId()) {
 			return publicChatExecutionBinding{}, unresolvedSharedAIConfigExecutionBindingError()
 		}
 	default:

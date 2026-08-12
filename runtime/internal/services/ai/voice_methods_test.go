@@ -19,6 +19,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/services/connector"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
@@ -51,7 +52,7 @@ func bindVoiceAssetDeleteTarget(t *testing.T, svc *Service, assetID string, prov
 		ownerID = strings.TrimSpace(asset.GetSubjectUserId())
 	}
 	connectorID := "voice-delete-" + assetID
-	_, err := svc.connStore.Create(connector.ConnectorRecord{
+	record, err := svc.connStore.Create(connector.ConnectorRecord{
 		ConnectorID: connectorID,
 		Kind:        runtimev1.ConnectorKind_CONNECTOR_KIND_REMOTE_MANAGED,
 		OwnerType:   runtimev1.ConnectorOwnerType_CONNECTOR_OWNER_TYPE_REALM_USER,
@@ -64,17 +65,13 @@ func bindVoiceAssetDeleteTarget(t *testing.T, svc *Service, assetID string, prov
 	if err != nil {
 		t.Fatalf("create voice delete connector: %v", err)
 	}
-	grant, err := svc.connStore.CreateGrant(ownerID, connectorID)
-	if err != nil {
-		t.Fatalf("create voice delete connector grant: %v", err)
-	}
 	transport := nimillm.NewCloudProvider(nimillm.CloudConfig{HTTPTimeout: time.Second, AllowLoopbackEndpoint: true}, nil, nil)
 	svc.remoteMediaHost = remoteexecution.NewProviderMediaHost(svc.connStore, transport, auditlog.New(32, 32), true)
 	svc.voiceAssets.mu.Lock()
 	remoteCatalogID := "voice-delete-catalog-" + assetID
 	providerModelID := "voice-delete-model-" + assetID
 	svc.voiceAssets.targets[assetID] = &runtimeidentity.Target{Cloud: &runtimeidentity.CloudTarget{
-		ConnectorID: connectorID, ConnectorGrantID: grant.GrantID, RemoteModelCatalogID: remoteCatalogID,
+		ConnectorID: record.ConnectorID, RemoteModelCatalogID: remoteCatalogID,
 		ProviderModelID: providerModelID, Provider: provider,
 	}}
 	rawTarget, _ := structpb.NewStruct(map[string]any{
@@ -85,13 +82,18 @@ func bindVoiceAssetDeleteTarget(t *testing.T, svc *Service, assetID string, prov
 		Implementation: &runtimev1.CapabilityImplementationIdentity{
 			ImplementationId: "cloud.voice.delete." + provider, DriverId: "nimi.runtime.driver." + provider, DriverDialect: "provider/voice-delete/v1",
 		},
-		ProviderModelTarget: rawTarget, ConnectorGrantID: grant.GrantID,
+		ProviderModelTarget: rawTarget, ConnectorID: record.ConnectorID,
 	}
 	svc.voiceAssets.mu.Unlock()
 }
 
 func TestVoiceAssetMethodsLifecycle(t *testing.T) {
-	fixture := newManagedCloudScenarioTestFixture(t, "dashscope", "qwen3-tts-vc", "https://example.com", Config{})
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = io.WriteString(w, `{"voice_id":"voice-methods-lifecycle","job_id":"job-methods-lifecycle"}`)
+	}))
+	defer server.Close()
+	fixture := newManagedCloudScenarioTestFixture(t, "dashscope", "qwen3-tts-vc-2026-01-22", server.URL, Config{AllowLoopbackEndpoint: true})
 	svc := fixture.service
 
 	ctx := withCloudScenarioTestIntent(scenarioJobUserContext("nimi.desktop", "user-001"), "voice.create", fixture.targetRef)
@@ -116,22 +118,36 @@ func TestVoiceAssetMethodsLifecycle(t *testing.T) {
 	if err != nil {
 		t.Fatalf("SubmitScenarioJob(voice clone): %v", err)
 	}
-	if submitResp.GetAsset() == nil {
-		t.Fatalf("voice clone submit must return asset")
+	job := waitScenarioJobTerminal(t, svc, submitResp.GetJob().GetJobId(), 3*time.Second)
+	if job.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED {
+		t.Fatalf("voice clone Job status=%s reason=%s detail=%q", job.GetStatus(), job.GetReasonCode(), job.GetReasonDetail())
 	}
-	assetID := submitResp.GetAsset().GetVoiceAssetId()
+	terminal, err := svc.GetScenarioJob(ctx, &runtimev1.GetScenarioJobRequest{JobId: job.GetJobId()})
+	if err != nil {
+		t.Fatalf("GetScenarioJob terminal result: %v", err)
+	}
+	assetID := terminal.GetAsset().GetVoiceAssetId()
 	if assetID == "" {
 		t.Fatalf("voice asset id must be set")
 	}
-	voiceReference := submitResp.GetVoiceReference()
+	voiceReference := terminal.GetVoiceReference()
 	if voiceReference == nil {
-		t.Fatalf("voice clone submit must return voice reference")
+		t.Fatalf("voice clone terminal Get must return voice reference")
 	}
 	if voiceReference.GetKind() != runtimev1.VoiceReferenceKind_VOICE_REFERENCE_KIND_VOICE_ASSET {
 		t.Fatalf("voice reference kind mismatch: got=%v", voiceReference.GetKind())
 	}
 	if voiceReference.GetVoiceAssetId() != assetID {
 		t.Fatalf("voice reference asset mismatch: got=%q want=%q", voiceReference.GetVoiceAssetId(), assetID)
+	}
+	terminalAssetSnapshot := cloneVoiceAsset(terminal.GetAsset())
+	terminalReferenceSnapshot := cloneVoiceReference(terminal.GetVoiceReference())
+	collector := &scenarioJobEventCollector{ctx: ctx}
+	if err := svc.SubscribeScenarioJobEvents(&runtimev1.SubscribeScenarioJobEventsRequest{JobId: job.GetJobId()}, collector); err != nil {
+		t.Fatalf("SubscribeScenarioJobEvents after completion: %v", err)
+	}
+	if len(collector.events) == 0 || collector.events[len(collector.events)-1].GetEventType() != runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_COMPLETED {
+		t.Fatalf("completed voice Job event backlog=%+v", collector.events)
 	}
 
 	getResp, err := svc.GetVoiceAsset(ctx, &runtimev1.GetVoiceAssetRequest{VoiceAssetId: assetID})
@@ -168,6 +184,15 @@ func TestVoiceAssetMethodsLifecycle(t *testing.T) {
 	}
 	if getAfterDelete.GetAsset().GetStatus() != runtimev1.VoiceAssetStatus_VOICE_ASSET_STATUS_DELETED {
 		t.Fatalf("asset status mismatch after delete: got=%v", getAfterDelete.GetAsset().GetStatus())
+	}
+	terminalAfterDelete, err := svc.GetScenarioJob(ctx, &runtimev1.GetScenarioJobRequest{JobId: job.GetJobId()})
+	if err != nil {
+		t.Fatalf("GetScenarioJob after VoiceAsset delete: %v", err)
+	}
+	if !proto.Equal(terminalAfterDelete.GetAsset(), terminalAssetSnapshot) ||
+		!proto.Equal(terminalAfterDelete.GetVoiceReference(), terminalReferenceSnapshot) {
+		t.Fatalf("VoiceAsset catalog delete mutated terminal Job result: before=%+v/%+v after=%+v/%+v",
+			terminalAssetSnapshot, terminalReferenceSnapshot, terminalAfterDelete.GetAsset(), terminalAfterDelete.GetVoiceReference())
 	}
 }
 

@@ -7,6 +7,7 @@ import (
 	"unicode"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	aicatalog "github.com/nimiplatform/nimi/runtime/internal/aicatalog"
 	"github.com/nimiplatform/nimi/runtime/internal/aiconfig"
 	"github.com/nimiplatform/nimi/runtime/internal/authn"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
@@ -27,12 +28,19 @@ func (s *Service) SetAIConfigStore(store aiconfig.Store) {
 	}
 }
 
-// SetConnectorStore wires deterministic ConnectorGrant validation for shared
-// LocalAgent AIConfig commits. The store is never used here for credentials or
-// provider probes.
+// SetConnectorStore wires Runtime-owned current-account Connector resolution.
 func (s *Service) SetConnectorStore(store *connector.ConnectorStore) {
 	if s != nil {
 		s.connectorStore = store
+	}
+}
+
+// SetModelCatalog wires the catalog needed to resolve an AIConfig target to
+// one exact current-account Connector without exposing Connector identity in
+// the AIConfig contract.
+func (s *Service) SetModelCatalog(modelCatalog *aicatalog.Resolver) {
+	if s != nil {
+		s.modelCatalog = modelCatalog
 	}
 }
 
@@ -123,9 +131,6 @@ func (s *Service) overwriteSharedLocalAgentAIConfig(
 	}
 	if s == nil || s.aiConfigStore == nil {
 		return nil, sharedLocalAgentAIConfigPersistenceError(fmt.Errorf("AIConfig store is unavailable"))
-	}
-	if err := connector.ValidateAIConfigConnectorGrants(s.connectorStore, accountNamespace, canonical); err != nil {
-		return nil, err
 	}
 	if err := s.aiConfigStore.Overwrite(ctx, accountNamespace, canonical); err != nil {
 		return nil, sharedLocalAgentAIConfigPersistenceError(err)

@@ -78,7 +78,7 @@ func TestSQLiteStorePersistsAndCompletelyOverwrites(t *testing.T) {
 		Owner: appOwner("app.persisted"),
 		Capabilities: []*runtimev1.AIConfigCapabilityIntent{
 			localIntent(t, "text.generate", nil, nil),
-			cloudIntent(t, "image.generate", ""),
+			cloudIntent(t, "image.generate"),
 		},
 	}
 	if err := store.Overwrite(ctx, "account-a", first); err != nil {

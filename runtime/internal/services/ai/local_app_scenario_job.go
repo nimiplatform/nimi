@@ -42,11 +42,13 @@ func (s *Service) SubmitLocalAppScenarioJob(ctx context.Context, req *runtimev1.
 		return nil, err
 	}
 	head := localAppScenarioHead(decision)
+	submitCtx := ctx
 	if scenarioType == runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CREATE {
-		_, intent, err := s.captureScenarioExecutionIntent(ctx, head, scenarioTargetCapability(scenarioType))
+		capturedCtx, intent, err := s.captureScenarioExecutionIntent(ctx, head, scenarioTargetCapability(scenarioType))
 		if err != nil {
 			return nil, err
 		}
+		submitCtx = capturedCtx
 		if creation := ownerSpec.GetVoiceCreate(); creation != nil {
 			if intent.IsLocal() {
 				creation.TargetModelId = ""
@@ -59,7 +61,7 @@ func (s *Service) SubmitLocalAppScenarioJob(ctx context.Context, req *runtimev1.
 			}
 		}
 	}
-	result, err := s.SubmitScenarioJob(localAppOwnerCallContext(ctx, decision), &runtimev1.SubmitScenarioJobRequest{
+	result, err := s.SubmitScenarioJob(localAppOwnerCallContext(submitCtx, decision), &runtimev1.SubmitScenarioJobRequest{
 		Head:          head,
 		ScenarioType:  scenarioType,
 		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB,
@@ -75,16 +77,7 @@ func (s *Service) SubmitLocalAppScenarioJob(ctx context.Context, req *runtimev1.
 	if err != nil {
 		return nil, err
 	}
-	response := &runtimev1.SubmitLocalAppScenarioJobResponse{Job: job}
-	if result.GetAsset() != nil {
-		asset, err := projectLocalAppVoiceAsset(result.GetAsset())
-		if err != nil {
-			return nil, err
-		}
-		response.Asset = asset
-		response.VoiceReference = voiceAssetReference(asset.GetVoiceAssetId())
-	}
-	return response, nil
+	return &runtimev1.SubmitLocalAppScenarioJobResponse{Job: job}, nil
 }
 
 // GetLocalAppScenarioJob returns the trimmed Job projection for a Job owned by
@@ -110,7 +103,18 @@ func (s *Service) GetLocalAppScenarioJob(ctx context.Context, req *runtimev1.Get
 	if err != nil {
 		return nil, err
 	}
-	return &runtimev1.GetLocalAppScenarioJobResponse{Job: job}, nil
+	response := &runtimev1.GetLocalAppScenarioJobResponse{Job: job}
+	if result.GetAsset() != nil || result.GetVoiceReference() != nil {
+		asset, err := projectLocalAppVoiceAsset(result.GetAsset())
+		if err != nil || asset.GetStatus() != runtimev1.VoiceAssetStatus_VOICE_ASSET_STATUS_ACTIVE ||
+			result.GetVoiceReference().GetKind() != runtimev1.VoiceReferenceKind_VOICE_REFERENCE_KIND_VOICE_ASSET ||
+			result.GetVoiceReference().GetVoiceAssetId() != asset.GetVoiceAssetId() {
+			return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
+		}
+		response.Asset = asset
+		response.VoiceReference = voiceAssetReference(asset.GetVoiceAssetId())
+	}
+	return response, nil
 }
 
 // CancelLocalAppScenarioJob requests cancellation of a Job owned by the

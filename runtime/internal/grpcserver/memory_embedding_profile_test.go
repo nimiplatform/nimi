@@ -121,7 +121,7 @@ func TestResolveCloudRuntimeMemoryEmbeddingProfileProjectsCloudBinding(t *testin
 	}
 	var descriptor *runtimev1.ConnectorModelDescriptor
 	for _, model := range models.GetModels() {
-		if model.GetModelId() == "text-embedding-3-small" {
+		if model.GetProviderModelId() == "text-embedding-3-small" {
 			descriptor = model
 			break
 		}

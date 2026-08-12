@@ -68,12 +68,16 @@ func TestLocalVoiceCreateTypedSourcesProduceReusableVoiceAssets(t *testing.T) {
 			if job.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED {
 				t.Fatalf("voice.create status=%s reason=%s detail=%q", job.GetStatus(), job.GetReasonCode(), job.GetReasonDetail())
 			}
-			asset, _, ok := svc.voiceAssets.getAssetBinding(response.GetAsset().GetVoiceAssetId())
+			result, err := svc.GetScenarioJob(ownerCtx, &runtimev1.GetScenarioJobRequest{JobId: job.GetJobId()})
+			if err != nil {
+				t.Fatalf("GetScenarioJob voice.create terminal result: %v", err)
+			}
+			asset, _, ok := svc.voiceAssets.getAssetBinding(result.GetAsset().GetVoiceAssetId())
 			if !ok || asset.GetCreationSource() != test.source || asset.GetProvider() != "local" || asset.GetProviderVoiceRef() != "opaque-"+test.name || asset.GetPersistence() != runtimev1.VoiceAssetPersistence_VOICE_ASSET_PERSISTENCE_SESSION_EPHEMERAL {
 				t.Fatalf("voice asset=%+v found=%v", asset, ok)
 			}
-			if response.GetVoiceReference().GetVoiceAssetId() != asset.GetVoiceAssetId() {
-				t.Fatalf("voice reference=%+v asset=%+v", response.GetVoiceReference(), asset)
+			if result.GetVoiceReference().GetVoiceAssetId() != asset.GetVoiceAssetId() {
+				t.Fatalf("voice reference=%+v asset=%+v", result.GetVoiceReference(), asset)
 			}
 
 			synthCtx := executionintent.WithIntent(ownerCtx, executionintent.Intent{CapabilityContract: capabilitydriver.AudioSynthesizeContract, Route: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL})

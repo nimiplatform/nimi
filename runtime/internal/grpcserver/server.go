@@ -646,6 +646,9 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 		return nil, fmt.Errorf("init AIConfig store: %w", err)
 	}
 	aiSvc.SetAIConfigStore(aiConfigStore)
+	if localAppKernel != nil {
+		aiSvc.SetAppOwnerRegistry(localAppKernel.Registrations())
+	}
 	memorySvc.SetRuntimeEmbeddingProfileResolver(func(ctx context.Context, snapshot *memoryservice.MemoryEmbeddingTextEmbedIntentSnapshot) memoryservice.MemoryEmbeddingResolvedProfile {
 		return resolveRuntimeMemoryEmbeddingProfile(ctx, snapshot, localSvc, connStore, aiSvc.SpeechCatalogResolver())
 	})
@@ -657,6 +660,7 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 	}
 	agentSvc.SetAIConfigStore(aiConfigStore)
 	agentSvc.SetConnectorStore(connStore)
+	agentSvc.SetModelCatalog(aiSvc.SpeechCatalogResolver())
 	if cfg.RuntimeID == "" {
 		logger.Warn("source materialization disabled; Runtime identity is not configured")
 	} else if err := agentSvc.SetSourceMaterializationRuntimeIdentity(cfg.RuntimeID); err != nil {

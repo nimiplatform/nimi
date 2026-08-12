@@ -41,7 +41,6 @@ const (
 	LocalAppOperationRealmWorldCoreList      = localappop.OperationRealmWorldCoreList
 	LocalAppOperationRealmWorldCoreCreate    = localappop.OperationRealmWorldCoreCreate
 	LocalAppOperationAppAIConfigRead         = localappop.OperationAppAIConfigGet
-	LocalAppOperationAppAIConfigOverwrite    = localappop.OperationAppAIConfigOverwrite
 	LocalAppOperationTextCandidateGenerate   = localappop.OperationTextCandidateGenerate
 	LocalAppOperationTextTurnStream          = localappop.OperationTextTurnStream
 	LocalAppOperationScenarioExecute         = localappop.OperationScenarioExecute

@@ -38,7 +38,7 @@ func portableAIProfileJSON() []byte {
 					"driverDialect":"v1",
 					"supportedFeatures":[]
 				},
-				"providerModelTarget":{"provider":"provider-a","model":"image-1"}
+				"providerModelTarget":{"provider":"provider-a","providerModelId":"image-1","remoteModelCatalogId":"remote-model-catalog-image-1"}
 			}
 		},
 		"provenance":{"publisher":"example"},
@@ -73,7 +73,8 @@ func TestSharedLocalAgentAIProfilePreviewDoesNotPersistAndApplyOverwrites(t *tes
 	}
 	cloud := after.GetCapabilities()[0].GetCloud()
 	if cloud == nil || cloud.GetImplementation().GetImplementationId() != "cloud.image" ||
-		cloud.GetProviderModelTarget().GetFields()["model"].GetStringValue() != "image-1" || cloud.GetConnectorGrantId() != "" {
+		cloud.GetProviderModelTarget().GetFields()["providerModelId"].GetStringValue() != "image-1" ||
+		cloud.GetProviderModelTarget().GetFields()["remoteModelCatalogId"].GetStringValue() != "remote-model-catalog-image-1" {
 		t.Fatalf("Cloud profile recommendation = %+v", cloud)
 	}
 
@@ -120,7 +121,6 @@ func TestSharedLocalAgentAIProfileRejectsSDKInvalidDocumentsFailClosed(t *testin
 		"unknown root field":      `{"profileId":"p","title":"t","capabilities":{"text.generate":{"route":"local"}},"extra":true}`,
 		"missing capabilities":    `{"profileId":"p","title":"t","capabilities":{}}`,
 		"trimmed identity":        `{"profileId":" p","title":"t","capabilities":{"text.generate":{"route":"local"}}}`,
-		"forbidden grant":         `{"profileId":"p","title":"t","capabilities":{"image.generate":{"route":"cloud","implementation":{"implementationId":"i","driverId":"d","driverDialect":"v1","supportedFeatures":[]},"providerModelTarget":{"provider":"p","model":"m"},"connectorGrantId":"grant"}}}`,
 		"portable path":           `{"profileId":"p","title":"t","capabilities":{"text.generate":{"route":"local","defaults":{"output":"/tmp/model"}}}}`,
 		"duplicate feature":       `{"profileId":"p","title":"t","capabilities":{"text.generate":{"route":"local","requiredFeatures":["vision","vision"]}}}`,
 		"unsupported requirement": `{"profileId":"p","title":"t","capabilities":{"text.generate":{"route":"local","requiredFeatures":["vision"],"implementation":{"implementationId":"i","driverId":"d","driverDialect":"v1","supportedFeatures":[]}}}}`,

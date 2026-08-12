@@ -167,9 +167,13 @@ func validateCloudIntent(cloud *runtimev1.AIConfigCloudIntent) error {
 	if err := validateStruct(target, "provider_model_target", cloudTargetKeyAllowed); err != nil {
 		return err
 	}
-	if grant := cloud.GetConnectorGrantId(); grant != "" {
-		if err := requireExactNonEmpty("connector_grant_id", grant); err != nil {
-			return err
+	if _, exists := target.GetFields()["model"]; exists {
+		return fmt.Errorf("provider_model_target.model is not permitted")
+	}
+	for _, key := range []string{"provider", "providerModelId", "remoteModelCatalogId"} {
+		value := target.GetFields()[key]
+		if value == nil || value.GetStringValue() == "" || strings.TrimSpace(value.GetStringValue()) != value.GetStringValue() {
+			return fmt.Errorf("provider_model_target.%s is required", key)
 		}
 	}
 	return nil

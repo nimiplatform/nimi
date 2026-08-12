@@ -87,7 +87,7 @@ func TestPublicChatVoiceAssetAutoplayPreservesVoiceDemoOwnerAndDashScopeTarget(t
 		connectorID    = "connector-dashscope-owner"
 	)
 	targetRef := &runtimeidentity.Target{Cloud: &runtimeidentity.CloudTarget{
-		ConnectorID: connectorID, ConnectorGrantID: "grant-dashscope-owner", RemoteModelCatalogID: "dashscope/cosyvoice-v3-flash",
+		ConnectorID: connectorID, RemoteModelCatalogID: "dashscope/cosyvoice-v3-flash",
 		ProviderModelID: "cosyvoice-v3-flash", Provider: "dashscope",
 	}}
 
@@ -239,7 +239,7 @@ func TestPublicChatVoiceAssetAutoplayPreservesVoiceDemoOwnerAndDashScopeTarget(t
 		t.Fatalf("voice execution owner = %q/%q, want %q/%q", head.GetAppId(), head.GetSubjectUserId(), voiceDemoAppID, ownerUserID)
 	}
 	intent, ok := executionintent.FromContext(voiceAI.streamContext)
-	if !ok || !intent.IsAIConfigCloud() || intent.CloudTarget != nil || intent.ModelID() != "cosyvoice-v3-flash" || intent.GrantID() != "grant-dashscope-owner" {
+	if !ok || !intent.IsAIConfigCloud() || intent.CloudTarget != nil || intent.ModelID() != "cosyvoice-v3-flash" {
 		t.Fatalf("voice execution lost private AIConfig intent: %+v, ok=%v", intent, ok)
 	}
 	voiceRef := voiceAI.streamReq.GetSpec().GetSpeechSynthesize().GetVoiceRef()

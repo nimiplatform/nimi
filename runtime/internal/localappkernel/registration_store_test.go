@@ -19,6 +19,8 @@ func TestDevelopmentRegistrationOwnsRandomNonReusableSubjectAndGenerations(t *te
 	entropy := append(bytes.Repeat([]byte{0x11}, 32), bytes.Repeat([]byte{0x22}, 32)...)
 	entropy = append(entropy, bytes.Repeat([]byte{0x33}, 32)...)
 	entropy = append(entropy, bytes.Repeat([]byte{0x44}, 32)...)
+	entropy = append(entropy, bytes.Repeat([]byte{0x55}, 32)...)
+	entropy = append(entropy, bytes.Repeat([]byte{0x66}, 32)...)
 	kernel, err := OpenSQLite(ctx, filepath.Join(t.TempDir(), "registered-app.db"), identity, Options{
 		Random: bytes.NewReader(entropy),
 		Now:    func() time.Time { return now },
@@ -47,6 +49,17 @@ func TestDevelopmentRegistrationOwnsRandomNonReusableSubjectAndGenerations(t *te
 	if len(first.RawDeclaration) != 2 || len(first.ActivatedDomains) != 1 || first.ActivatedDomains[0] != "realm.data" {
 		t.Fatalf("declaration resolution = raw:%v activated:%v", first.RawDeclaration, first.ActivatedDomains)
 	}
+	resolved, err := kernel.Registrations().GetActiveByAppID(ctx, base.AppID)
+	if err != nil || resolved.RegisteredAppSubject != first.RegisteredAppSubject {
+		t.Fatalf("active App owner = (%+v, %v)", resolved, err)
+	}
+	conflicting := base
+	conflicting.SourceRef = "project-file:two"
+	conflicting.ProjectRoot = "/projects/other"
+	conflicting.ManifestPath = "/projects/other/nimi.app.yaml"
+	if _, err := kernel.Registrations().RegisterDevelopment(ctx, conflicting); err == nil {
+		t.Fatal("duplicate active App owner was admitted")
+	}
 
 	same, err := kernel.Registrations().RegisterDevelopment(ctx, base)
 	if err != nil || same.RegisteredAppSubject != first.RegisteredAppSubject || same.SourceGeneration != 1 || same.DeclarationGeneration != 1 {
@@ -68,6 +81,9 @@ func TestDevelopmentRegistrationOwnsRandomNonReusableSubjectAndGenerations(t *te
 
 	if err := kernel.Registrations().Tombstone(ctx, first.RegistrationHandle); err != nil {
 		t.Fatal(err)
+	}
+	if _, err := kernel.Registrations().GetActiveByAppID(ctx, base.AppID); !errors.Is(err, ErrNotFound) {
+		t.Fatalf("tombstoned App owner lookup = %v", err)
 	}
 	replacement, err := kernel.Registrations().RegisterDevelopment(ctx, declarationChanged)
 	if err != nil {

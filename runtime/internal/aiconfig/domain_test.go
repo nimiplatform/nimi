@@ -61,10 +61,11 @@ func TestCanonicalizeAcceptsEmptyCapabilitiesAndRuntimeLocalAgentSubsystemSingle
 }
 
 func TestCanonicalizeEnforcesLocalCloudStructure(t *testing.T) {
-	validCloud := cloudIntent(t, "image.generate", "grant-1")
+	validCloud := cloudIntent(t, "image.generate")
 	validCloud.GetCloud().ProviderModelTarget = mustStruct(t, map[string]any{
-		"provider": "provider-a",
-		"model":    "/projects/p/locations/us/publishers/provider-a/models/image-1",
+		"provider":             "provider-a",
+		"providerModelId":      "/projects/p/locations/us/publishers/provider-a/models/image-1",
+		"remoteModelCatalogId": "remote-model-catalog-image-1",
 	})
 	if _, err := Canonicalize(&runtimev1.AIConfig{Owner: appOwner("app.cloud"), Capabilities: []*runtimev1.AIConfigCapabilityIntent{validCloud}}); err != nil {
 		t.Fatalf("valid Cloud intent: %v", err)
@@ -78,13 +79,21 @@ func TestCanonicalizeEnforcesLocalCloudStructure(t *testing.T) {
 	missingRoute.Route = nil
 	assertCanonicalizeFails(t, missingRoute, "route must be Local or Cloud")
 
-	cloudWithSecretTarget := cloudIntent(t, "image.generate", "")
+	cloudWithSecretTarget := cloudIntent(t, "image.generate")
 	cloudWithSecretTarget.GetCloud().ProviderModelTarget = mustStruct(t, map[string]any{"provider": "provider-a", "api_key": "secret"})
 	assertCanonicalizeFails(t, cloudWithSecretTarget, "not permitted")
 
-	cloudWithEndpoint := cloudIntent(t, "image.generate", "")
-	cloudWithEndpoint.GetCloud().ProviderModelTarget = mustStruct(t, map[string]any{"provider": "provider-a", "model": "image-1", "endpoint": "https://example.invalid"})
+	cloudWithEndpoint := cloudIntent(t, "image.generate")
+	cloudWithEndpoint.GetCloud().ProviderModelTarget = mustStruct(t, map[string]any{"provider": "provider-a", "providerModelId": "image-1", "remoteModelCatalogId": "remote-model-catalog-image-1", "endpoint": "https://example.invalid"})
 	assertCanonicalizeFails(t, cloudWithEndpoint, "not permitted")
+
+	cloudWithAlias := cloudIntent(t, "image.generate")
+	cloudWithAlias.GetCloud().ProviderModelTarget = mustStruct(t, map[string]any{"provider": "provider-a", "model": "image-1", "remoteModelCatalogId": "remote-model-catalog-image-1"})
+	assertCanonicalizeFails(t, cloudWithAlias, "model is not permitted")
+
+	cloudWithoutCatalogIdentity := cloudIntent(t, "image.generate")
+	cloudWithoutCatalogIdentity.GetCloud().ProviderModelTarget = mustStruct(t, map[string]any{"provider": "provider-a", "providerModelId": "image-1"})
+	assertCanonicalizeFails(t, cloudWithoutCatalogIdentity, "remoteModelCatalogId is required")
 }
 
 func TestCanonicalizeRejectsDuplicateAndForbiddenLocalTruth(t *testing.T) {
@@ -146,7 +155,7 @@ func localIntent(t *testing.T, contract string, features []string, defaults map[
 	}
 }
 
-func cloudIntent(t *testing.T, contract string, grantID string) *runtimev1.AIConfigCapabilityIntent {
+func cloudIntent(t *testing.T, contract string) *runtimev1.AIConfigCapabilityIntent {
 	t.Helper()
 	return &runtimev1.AIConfigCapabilityIntent{
 		CapabilityContract: contract,
@@ -156,8 +165,11 @@ func cloudIntent(t *testing.T, contract string, grantID string) *runtimev1.AICon
 				DriverId:         "cloud.provider-a",
 				DriverDialect:    "v1",
 			},
-			ProviderModelTarget: mustStruct(t, map[string]any{"provider": "provider-a", "model": "image-1"}),
-			ConnectorGrantId:    grantID,
+			ProviderModelTarget: mustStruct(t, map[string]any{
+				"provider":             "provider-a",
+				"providerModelId":      "image-1",
+				"remoteModelCatalogId": "remote-model-catalog-image-1",
+			}),
 		}},
 	}
 }

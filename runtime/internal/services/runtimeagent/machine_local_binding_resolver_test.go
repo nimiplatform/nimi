@@ -8,7 +8,9 @@ import (
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	aicatalog "github.com/nimiplatform/nimi/runtime/internal/aicatalog"
 	"github.com/nimiplatform/nimi/runtime/internal/aiconfig"
+	"github.com/nimiplatform/nimi/runtime/internal/authn"
 	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/localexecution"
@@ -170,12 +172,31 @@ func TestMachineBindingResolverCarriesCloudAIConfigIntentPrivately(t *testing.T)
 	if err != nil {
 		t.Fatal(err)
 	}
-	grant, err := connectorStore.CreateGrant(accountID, record.ConnectorID)
+	modelCatalog, err := aicatalog.NewResolver(aicatalog.ResolverConfig{})
 	if err != nil {
 		t.Fatal(err)
 	}
+	connectorService := connector.New(nil, connectorStore, nil)
+	connectorService.SetModelCatalogResolver(modelCatalog)
+	models, err := connectorService.ListConnectorModels(authn.WithIdentity(context.Background(), &authn.Identity{SubjectUserID: accountID}), &runtimev1.ListConnectorModelsRequest{
+		ConnectorId: record.ConnectorID,
+		PageSize:    200,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var descriptor *runtimev1.ConnectorModelDescriptor
+	for _, candidate := range models.GetModels() {
+		if candidate.GetProviderModelId() == "qwen3-tts-vc-2026-01-22" {
+			descriptor = candidate
+			break
+		}
+	}
+	if descriptor == nil {
+		t.Fatal("qwen3-tts-vc descriptor not found")
+	}
 	providerTarget, _ := structpb.NewStruct(map[string]any{
-		"provider": "dashscope", "providerModelId": "qwen3-tts-vc", "remoteModelCatalogId": "catalog-qwen3-tts-vc",
+		"provider": descriptor.GetProvider(), "providerModelId": descriptor.GetProviderModelId(), "remoteModelCatalogId": descriptor.GetRemoteModelCatalogId(),
 	})
 	store := aiconfig.NewMemoryStore()
 	if err := store.Overwrite(context.Background(), accountID, &runtimev1.AIConfig{
@@ -184,7 +205,7 @@ func TestMachineBindingResolverCarriesCloudAIConfigIntentPrivately(t *testing.T)
 			CapabilityContract: "audio.synthesize",
 			Route: &runtimev1.AIConfigCapabilityIntent_Cloud{Cloud: &runtimev1.AIConfigCloudIntent{
 				Implementation:      &runtimev1.CapabilityImplementationIdentity{ImplementationId: "cloud.audio.dashscope", DriverId: "driver.dashscope", DriverDialect: "dashscope/audio/v1"},
-				ProviderModelTarget: providerTarget, ConnectorGrantId: grant.GrantID,
+				ProviderModelTarget: providerTarget,
 			}},
 		}},
 	}); err != nil {
@@ -192,6 +213,7 @@ func TestMachineBindingResolverCarriesCloudAIConfigIntentPrivately(t *testing.T)
 	}
 	service.SetAIConfigStore(store)
 	service.SetConnectorStore(connectorStore)
+	service.SetModelCatalog(modelCatalog)
 	service.SetMachineLocalExecutionResolver(machineLocalExecutionResolverStub{})
 
 	bindings, err := service.machineExecutionBindings(context.Background(), accountID)
@@ -199,17 +221,9 @@ func TestMachineBindingResolverCarriesCloudAIConfigIntentPrivately(t *testing.T)
 		t.Fatalf("machineExecutionBindings: %v", err)
 	}
 	binding := bindings["audio.synthesize"]
-	if !binding.ExecutionIntent.IsAIConfigCloud() || binding.ExecutionIntent.GrantID() != grant.GrantID || binding.ModelID != "qwen3-tts-vc" ||
-		binding.TargetRef.GetCloud().GetConnectorId() != record.ConnectorID || binding.TargetRef.GetCloud().GetConnectorGrantId() != grant.GrantID {
+	if !binding.ExecutionIntent.IsAIConfigCloud() || binding.ModelID != descriptor.GetProviderModelId() ||
+		binding.TargetRef.GetCloud().GetConnectorId() != record.ConnectorID {
 		t.Fatalf("Cloud machine binding=%+v intent=%+v", binding, binding.ExecutionIntent)
-	}
-	if _, err := connectorStore.RevokeGrant(accountID, grant.GrantID); err != nil {
-		t.Fatal(err)
-	}
-	if _, err := service.machineExecutionBindings(context.Background(), accountID); err == nil {
-		t.Fatal("revoked Cloud grant remained executable")
-	} else if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_CONNECTOR_GRANT_REVOKED {
-		t.Fatalf("revoked Cloud binding reason=%v ok=%v err=%v", reason, ok, err)
 	}
 }
 

@@ -229,8 +229,7 @@ func (s *aiBackedVoiceLipsyncSynthesizer) synthesize(input voiceLipsyncSynthesis
 		intent = executionintent.Clone(input.SpeechExecutionIntent)
 		cloudTarget := input.SpeechTargetRef.GetCloud()
 		if !intent.IsAIConfigCloud() || intent.CapabilityContract != "audio.synthesize" || cloudTarget == nil ||
-			intent.ModelID() != strings.TrimSpace(cloudTarget.GetProviderModelId()) ||
-			intent.GrantID() != strings.TrimSpace(cloudTarget.GetConnectorGrantId()) {
+			intent.ModelID() != strings.TrimSpace(cloudTarget.GetProviderModelId()) {
 			return voiceLipsyncSynthesisOutput{}, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONFIG_INVALID)
 		}
 	}

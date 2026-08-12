@@ -28,7 +28,7 @@ type cloudTextEffectiveInputs struct {
 	rawTarget      *structpb.Struct
 	target         capabilitydriver.CloudTextTarget
 	catalogTarget  *nimillm.RemoteTarget
-	grant          connector.ConnectorGrantSnapshot
+	connector      connector.ConnectorRecord
 	defaults       *structpb.Struct
 	request        *runtimev1.TextGenerateScenarioSpec
 	mapped         *capabilitydriver.CloudTextMappedRequest
@@ -64,7 +64,7 @@ func (input *cloudTextEffectiveInputs) dispatchAudit() remoteexecution.TextDispa
 		ImplementationID:     input.implementation.GetImplementationId(),
 		DriverID:             input.implementation.GetDriverId(),
 		DriverDialect:        input.implementation.GetDriverDialect(),
-		ConnectorGrantID:     input.grant.Grant.GrantID,
+		ConnectorID:          input.connector.ConnectorID,
 		Provider:             input.target.Provider(),
 		ProviderModelID:      input.target.ProviderModelID(),
 		RemoteModelCatalogID: input.target.RemoteModelCatalogID(),
@@ -101,20 +101,14 @@ func (s *Service) captureCloudTextEffectiveInputs(
 	if err != nil {
 		return nil, cloudTextDriverError(err)
 	}
-	grantID := intent.GrantID()
-	if grantID == "" || grantID != intent.ConnectorGrantID {
-		return nil, connectorGrantExecutionError(connector.ErrConnectorGrantSelectionRequired)
-	}
 	accountID := scenarioTargetSubjectUserID(ctx, head)
-	if accountID == "" || s.connStore == nil {
-		return nil, connectorGrantExecutionError(connector.ErrConnectorGrantSelectionRequired)
-	}
-	grant, err := s.connStore.ValidateGrantBinding(accountID, grantID)
+	connectorRecord, binding, err := connector.ResolveCurrentAccountConnectorBinding(s.connStore, s.speechCatalog, accountID, connector.RemoteModelCatalogRef{
+		RemoteModelCatalogID: target.RemoteModelCatalogID(),
+		ProviderModelID:      target.ProviderModelID(),
+		Provider:             target.Provider(),
+	})
 	if err != nil {
-		return nil, connectorGrantExecutionError(err)
-	}
-	if grant.Connector.Provider != target.Provider() {
-		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONFIG_INVALID)
+		return nil, err
 	}
 
 	// Catalog identity, when the Driver target carries one, is validated only
@@ -123,19 +117,10 @@ func (s *Service) captureCloudTextEffectiveInputs(
 		ProviderType:         target.Provider(),
 		ProviderModelID:      target.ProviderModelID(),
 		RemoteModelCatalogID: target.RemoteModelCatalogID(),
-		ConnectorID:          grant.Connector.ConnectorID,
+		ConnectorID:          connectorRecord.ConnectorID,
 	}
-	if target.RemoteModelCatalogID() != "" {
-		binding, bindingErr := connector.ResolveRemoteModelCatalogBinding(s.speechCatalog, accountID, grant.Connector, connector.RemoteModelCatalogRef{
-			ConnectorID:          grant.Connector.ConnectorID,
-			RemoteModelCatalogID: target.RemoteModelCatalogID(),
-			ProviderModelID:      target.ProviderModelID(),
-			Provider:             target.Provider(),
-		})
-		if bindingErr != nil {
-			return nil, bindingErr
-		}
-		applyRemoteModelCatalogBinding(safeRemoteTarget, &binding)
+	if binding != nil {
+		applyRemoteModelCatalogBinding(safeRemoteTarget, binding)
 	}
 	selectedProvider := s.cloudTextProvider
 	if err := s.validateScenarioCapability(ctx, request, target.ProviderModelID(), safeRemoteTarget, selectedProvider); err != nil {
@@ -168,7 +153,7 @@ func (s *Service) captureCloudTextEffectiveInputs(
 		rawTarget:      rawTarget,
 		target:         target,
 		catalogTarget:  safeRemoteTarget,
-		grant:          grant,
+		connector:      connectorRecord,
 		defaults:       defaults,
 		request:        effectiveRequest,
 		mapped:         mapped,
@@ -192,17 +177,6 @@ func (s *Service) resolveCloudTextConsumerIntent(ctx context.Context, head *runt
 	return intent, err
 }
 
-func connectorGrantExecutionError(err error) error {
-	switch {
-	case errors.Is(err, connector.ErrConnectorGrantRevoked):
-		return grpcerr.WrapWithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONNECTOR_GRANT_REVOKED, err, grpcerr.ReasonOptions{Message: "the selected connector grant is revoked"})
-	case errors.Is(err, connector.ErrConnectorGrantSelectionRequired):
-		return grpcerr.WrapWithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONNECTOR_GRANT_SELECTION_REQUIRED, err, grpcerr.ReasonOptions{Message: "an active connector grant must be selected"})
-	default:
-		return grpcerr.WrapWithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL, err, grpcerr.ReasonOptions{Message: "connector grant registry could not be read"})
-	}
-}
-
 func cloudTextDriverError(err error) error {
 	var driverErr *capabilitydriver.CloudInvocationError
 	if !errors.As(err, &driverErr) {
@@ -224,7 +198,7 @@ func (s *Service) executeCapturedCloudText(ctx context.Context, effective *cloud
 	if s == nil || effective == nil || effective.driver == nil || s.remoteTextHost == nil {
 		return capabilitydriver.CloudTextResult{}, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 	}
-	transportResponse, err := s.remoteTextHost.ExecuteText(ctx, effective.grant, effective.target, effective.mapped, effective.dispatchAudit())
+	transportResponse, err := s.remoteTextHost.ExecuteText(ctx, effective.connector, effective.target, effective.mapped, effective.dispatchAudit())
 	if err != nil {
 		return capabilitydriver.CloudTextResult{}, effective.driver.NormalizeReason(err)
 	}
@@ -239,7 +213,7 @@ func (s *Service) streamCapturedCloudText(ctx context.Context, effective *cloudT
 	if s == nil || effective == nil || effective.driver == nil || s.remoteTextHost == nil || onDelta == nil {
 		return capabilitydriver.CloudTextResult{}, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 	}
-	transportResponse, err := s.remoteTextHost.StreamText(ctx, effective.grant, effective.target, effective.mapped, func(raw string) error {
+	transportResponse, err := s.remoteTextHost.StreamText(ctx, effective.connector, effective.target, effective.mapped, func(raw string) error {
 		delta, normalizeErr := effective.driver.NormalizeStreamDelta(raw)
 		if normalizeErr != nil {
 			return cloudTextDriverError(normalizeErr)
@@ -282,7 +256,7 @@ func (s *Service) auditCloudTextCapture(effective *cloudTextEffectiveInputs, str
 		"driver_id":             effective.implementation.GetDriverId(),
 		"driver_dialect":        effective.implementation.GetDriverDialect(),
 		"provider_model_target": target,
-		"connector_grant_id":    effective.grant.Grant.GrantID,
+		"connector_id":          effective.connector.ConnectorID,
 		"defaults":              defaults,
 		"request":               request,
 		"stream":                stream,

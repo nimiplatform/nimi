@@ -32,7 +32,7 @@ type TextDispatchAudit struct {
 	ImplementationID     string
 	DriverID             string
 	DriverDialect        string
-	ConnectorGrantID     string
+	ConnectorID          string
 	Provider             string
 	ProviderModelID      string
 	RemoteModelCatalogID string
@@ -43,8 +43,8 @@ type TextDispatchAudit struct {
 // map and normalize; the Host only resolves request-scoped credentials and
 // transports one exact request.
 type TextHost interface {
-	ExecuteText(context.Context, connector.ConnectorGrantSnapshot, capabilitydriver.CloudTextTarget, *capabilitydriver.CloudTextMappedRequest, TextDispatchAudit) (capabilitydriver.CloudTextTransportResponse, error)
-	StreamText(context.Context, connector.ConnectorGrantSnapshot, capabilitydriver.CloudTextTarget, *capabilitydriver.CloudTextMappedRequest, func(string) error, TextDispatchAudit) (capabilitydriver.CloudTextTransportResponse, error)
+	ExecuteText(context.Context, connector.ConnectorRecord, capabilitydriver.CloudTextTarget, *capabilitydriver.CloudTextMappedRequest, TextDispatchAudit) (capabilitydriver.CloudTextTransportResponse, error)
+	StreamText(context.Context, connector.ConnectorRecord, capabilitydriver.CloudTextTarget, *capabilitydriver.CloudTextMappedRequest, func(string) error, TextDispatchAudit) (capabilitydriver.CloudTextTransportResponse, error)
 }
 
 type auditSink interface {
@@ -66,7 +66,7 @@ func NewProviderTextHost(connectors *connector.ConnectorStore, transport *nimill
 
 func (h *ProviderTextHost) ExecuteText(
 	ctx context.Context,
-	grant connector.ConnectorGrantSnapshot,
+	connectorRecord connector.ConnectorRecord,
 	target capabilitydriver.CloudTextTarget,
 	request *capabilitydriver.CloudTextMappedRequest,
 	audit TextDispatchAudit,
@@ -74,7 +74,7 @@ func (h *ProviderTextHost) ExecuteText(
 	if err := h.recordDispatch(audit, "dispatch", runtimev1.ReasonCode_ACTION_EXECUTED, false); err != nil {
 		return capabilitydriver.CloudTextTransportResponse{}, err
 	}
-	remoteTarget, err := h.requestScopedTarget(ctx, grant, target)
+	remoteTarget, err := h.requestScopedTarget(ctx, audit.AccountID, connectorRecord, target)
 	if err != nil {
 		return capabilitydriver.CloudTextTransportResponse{}, h.auditedError(audit, "error", err)
 	}
@@ -105,7 +105,7 @@ func (h *ProviderTextHost) ExecuteText(
 
 func (h *ProviderTextHost) StreamText(
 	ctx context.Context,
-	grant connector.ConnectorGrantSnapshot,
+	connectorRecord connector.ConnectorRecord,
 	target capabilitydriver.CloudTextTarget,
 	request *capabilitydriver.CloudTextMappedRequest,
 	onDelta func(string) error,
@@ -114,7 +114,7 @@ func (h *ProviderTextHost) StreamText(
 	if err := h.recordDispatch(audit, "dispatch", runtimev1.ReasonCode_ACTION_EXECUTED, false); err != nil {
 		return capabilitydriver.CloudTextTransportResponse{}, err
 	}
-	remoteTarget, err := h.requestScopedTarget(ctx, grant, target)
+	remoteTarget, err := h.requestScopedTarget(ctx, audit.AccountID, connectorRecord, target)
 	if err != nil {
 		return capabilitydriver.CloudTextTransportResponse{}, h.auditedError(audit, "error", err)
 	}
@@ -139,14 +139,14 @@ func (h *ProviderTextHost) StreamText(
 	return capabilitydriver.CloudTextTransportResponse{Usage: usage, FinishReason: finish, Streamed: true}, nil
 }
 
-// requestScopedTarget is the only credential opening point. The grant and
-// connector records are immutable snapshots; only the sealed payload is read
-// at dispatch time, and it is never returned outside the transport carrier.
-func (h *ProviderTextHost) requestScopedTarget(ctx context.Context, grant connector.ConnectorGrantSnapshot, target capabilitydriver.CloudTextTarget) (*nimillm.RemoteTarget, error) {
+// requestScopedTarget is the only credential opening point. The Connector
+// record is an immutable current-account snapshot; only the sealed payload is
+// read at dispatch time and it never leaves the transport carrier.
+func (h *ProviderTextHost) requestScopedTarget(ctx context.Context, accountID string, connectorRecord connector.ConnectorRecord, target capabilitydriver.CloudTextTarget) (*nimillm.RemoteTarget, error) {
 	if h == nil {
 		return nil, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 	}
-	return requestScopedProviderTarget(ctx, h.connectors, h.allowLoopback, grant, target)
+	return requestScopedProviderTarget(ctx, h.connectors, h.allowLoopback, accountID, connectorRecord, target)
 }
 
 func (h *ProviderTextHost) recordDispatch(audit TextDispatchAudit, phase string, reason runtimev1.ReasonCode, providerStopGuaranteed bool) error {
@@ -159,7 +159,7 @@ func (h *ProviderTextHost) recordDispatch(audit TextDispatchAudit, phase string,
 		"implementation_id":        audit.ImplementationID,
 		"driver_id":                audit.DriverID,
 		"driver_dialect":           audit.DriverDialect,
-		"connector_grant_id":       audit.ConnectorGrantID,
+		"connector_id":             audit.ConnectorID,
 		"provider":                 audit.Provider,
 		"provider_model_id":        audit.ProviderModelID,
 		"remote_model_catalog_id":  audit.RemoteModelCatalogID,

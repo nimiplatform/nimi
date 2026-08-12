@@ -17,7 +17,7 @@ import (
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
-func TestCloudEmbedExecutionUsesCapturedAIConfigGrantWithoutFallback(t *testing.T) {
+func TestCloudEmbedExecutionUsesCapturedAIConfigConnectorWithoutFallback(t *testing.T) {
 	var calls atomic.Int32
 	var failAuth atomic.Bool
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -70,7 +70,6 @@ func TestCloudEmbedExecutionUsesCapturedAIConfigGrantWithoutFallback(t *testing.
 				DriverDialect:    "openai/embeddings/v1",
 			},
 			ProviderModelTarget: target,
-			ConnectorGrantId:    fixture.targetRef.Cloud.ConnectorGrantID,
 		}},
 	})
 	ctx := scenarioJobUserContext("app.embed", "user-001")
@@ -106,15 +105,8 @@ func TestCloudEmbedExecutionUsesCapturedAIConfigGrantWithoutFallback(t *testing.
 		t.Fatalf("embedding auth reason = %v present=%v err=%v", reason, ok, err)
 	}
 	failAuth.Store(false)
-	if _, err := fixture.service.connStore.RevokeGrant("user-001", fixture.targetRef.Cloud.ConnectorGrantID); err != nil {
-		t.Fatalf("revoke grant: %v", err)
-	}
-	_, err = fixture.service.ExecuteScenario(ctx, request)
-	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_CONNECTOR_GRANT_REVOKED {
-		t.Fatalf("revoked embedding grant reason = %v present=%v err=%v", reason, ok, err)
-	}
 	if calls.Load() != 2 {
-		t.Fatalf("provider calls = %d, want exactly two and no fallback/revoked dispatch", calls.Load())
+		t.Fatalf("provider calls = %d, want exactly two and no fallback dispatch", calls.Load())
 	}
 }
 

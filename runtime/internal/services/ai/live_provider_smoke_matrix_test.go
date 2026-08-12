@@ -44,7 +44,6 @@ type liveSmokeProviderHarness struct {
 	providerID   string
 	routePolicy  runtimev1.RoutePolicy
 	connectorID  string
-	grantID      string
 	modelCatalog map[string]*runtimev1.ConnectorModelDescriptor
 }
 
@@ -67,7 +66,6 @@ func (h liveSmokeProviderHarness) scenarioContext(t *testing.T, scenarioType run
 	if target == nil || target.Cloud == nil || !target.Cloud.Valid() {
 		t.Fatalf("live cloud smoke model %q for provider %s produced an incomplete private target", modelID, h.providerID)
 	}
-	target.Cloud.ConnectorGrantID = h.grantID
 	providerTarget, _ := structpb.NewStruct(map[string]any{
 		"provider":             target.Cloud.Provider,
 		"providerModelId":      target.Cloud.ProviderModelID,
@@ -90,7 +88,6 @@ func (h liveSmokeProviderHarness) scenarioContext(t *testing.T, scenarioType run
 			DriverDialect:    driverDialect,
 		},
 		ProviderModelTarget: providerTarget,
-		ConnectorGrantID:    h.grantID,
 	})
 }
 
@@ -105,7 +102,7 @@ func (h liveSmokeProviderHarness) connectorModelDescriptor(t *testing.T, modelID
 			return descriptor
 		}
 	}
-	t.Fatalf("live cloud smoke model %q for provider %s is not admitted by the connector model catalog; set NIMI_LIVE_%s_*_MODEL_ID to a ListConnectorModels model_id/provider_model_id", modelID, h.providerID, liveProviderEnvToken(h.providerID))
+	t.Fatalf("live cloud smoke model %q for provider %s is not admitted by the connector model catalog; set NIMI_LIVE_%s_*_MODEL_ID to a ListConnectorModels provider_model_id", modelID, h.providerID, liveProviderEnvToken(h.providerID))
 	return nil
 }
 
@@ -113,13 +110,12 @@ func TestLiveSmokeCloudScenarioContextUsesManagedCatalogTarget(t *testing.T) {
 	harness := liveSmokeProviderHarness{
 		providerID:   "openai",
 		connectorID:  liveSmokeCloudConnectorID("openai"),
-		grantID:      "grant-openai",
 		routePolicy:  runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
 		context:      context.Background(),
 		modelCatalog: map[string]*runtimev1.ConnectorModelDescriptor{},
 	}
 	harness.modelCatalog["gpt-4o-mini"] = &runtimev1.ConnectorModelDescriptor{
-		ModelId:              "gpt-4o-mini",
+		ModelLabel:           "gpt-4o-mini",
 		RemoteModelCatalogId: "remote-catalog-openai-gpt-4o-mini",
 		ProviderModelId:      "gpt-4o-mini",
 		Provider:             "openai",
@@ -131,8 +127,8 @@ func TestLiveSmokeCloudScenarioContextUsesManagedCatalogTarget(t *testing.T) {
 	if !ok || !intent.IsAIConfigCloud() || intent.CloudTarget != nil {
 		t.Fatalf("expected exact private AIConfig intent without legacy CloudTarget: %+v", intent)
 	}
-	if intent.GrantID() != "grant-openai" || intent.ModelID() != "gpt-4o-mini" {
-		t.Fatalf("private intent grant/model = %q/%q", intent.GrantID(), intent.ModelID())
+	if intent.ModelID() != "gpt-4o-mini" {
+		t.Fatalf("private intent model = %q", intent.ModelID())
 	}
 	fields := intent.ProviderModelTarget.GetFields()
 	if fields["remoteModelCatalogId"].GetStringValue() != "remote-catalog-openai-gpt-4o-mini" || fields["provider"].GetStringValue() != "openai" {
@@ -246,10 +242,6 @@ func newLiveSmokeCloudProviderHarness(t *testing.T, providerID string, baseURL s
 		t.Fatalf("create live smoke cloud connector: %v", err)
 	}
 
-	grant, err := store.CreateGrant(liveSmokeMatrixUserID, created.ConnectorID)
-	if err != nil {
-		t.Fatalf("create live smoke connector grant: %v", err)
-	}
 	connectorSvc := connector.New(logger, store, nil)
 	modelCatalog := liveSmokeConnectorModelCatalog(t, connectorSvc, context.Background(), created.ConnectorID)
 	svc, err := newFromProviderConfig(logger, nil, nil, nil, store, Config{
@@ -269,7 +261,6 @@ func newLiveSmokeCloudProviderHarness(t *testing.T, providerID string, baseURL s
 		providerID:   normalizedProviderID,
 		routePolicy:  runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
 		connectorID:  created.ConnectorID,
-		grantID:      grant.GrantID,
 		modelCatalog: modelCatalog,
 	}
 }
@@ -309,7 +300,6 @@ func liveSmokeConnectorModelCatalog(t *testing.T, svc *connector.Service, ctx co
 			t.Fatalf("ListConnectorModels for live smoke connector %s: %v", connectorID, err)
 		}
 		for _, model := range resp.GetModels() {
-			liveSmokeIndexConnectorModel(result, model.GetModelId(), model)
 			liveSmokeIndexConnectorModel(result, model.GetProviderModelId(), model)
 		}
 		pageToken = resp.GetNextPageToken()

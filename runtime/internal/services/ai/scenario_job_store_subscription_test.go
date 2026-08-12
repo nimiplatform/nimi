@@ -16,6 +16,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/authn"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
+	"github.com/nimiplatform/nimi/runtime/internal/runtimeidentity"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
@@ -153,7 +154,7 @@ func TestScenarioJobStoreDetachedVideoPollingHonorsJobDeadline(t *testing.T) {
 }
 
 func TestScenarioJobStoreVoiceLookupPaths(t *testing.T) {
-	fixture := newManagedCloudScenarioTestFixture(t, "dashscope", "qwen3-tts-vd", "https://example.com", Config{})
+	fixture := newManagedCloudScenarioTestFixture(t, "dashscope", "qwen3-tts-vd-2026-01-26", "https://example.com", Config{})
 	svc := fixture.service
 	ctx := withCloudScenarioTestIntent(scenarioJobUserContext("nimi.desktop", "user-001"), "voice.create", fixture.targetRef)
 
@@ -176,9 +177,6 @@ func TestScenarioJobStoreVoiceLookupPaths(t *testing.T) {
 	})
 	if err != nil {
 		t.Fatalf("submit voice design scenario job: %v", err)
-	}
-	if submitResp.GetAsset() == nil {
-		t.Fatalf("voice scenario should return asset")
 	}
 	jobID := submitResp.GetJob().GetJobId()
 
@@ -229,7 +227,7 @@ func TestSubmitScenarioJobDashScopeVoiceTextDescriptionUsesAPIModelTarget(t *tes
 	}))
 	defer func() { server.Close() }()
 
-	fixture := newManagedCloudScenarioTestFixture(t, "dashscope", "qwen3-tts-vd", server.URL+"/compatible-mode/v1", Config{AllowLoopbackEndpoint: true})
+	fixture := newManagedCloudScenarioTestFixture(t, "dashscope", "qwen3-tts-vd-2026-01-26", server.URL+"/compatible-mode/v1", Config{AllowLoopbackEndpoint: true})
 	svc := fixture.service
 	ctx := withCloudScenarioTestIntent(scenarioJobUserContext("nimi.desktop", "user-001"), "voice.create", fixture.targetRef)
 
@@ -304,6 +302,9 @@ func TestScenarioJobStoreVoiceCancelAndMissingArtifactsPaths(t *testing.T) {
 		RouteDecision: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
 		ModelResolved: "local/qwen3-tts",
 		Provider:      "local",
+		ExecutionTarget: &runtimeidentity.Target{Local: &runtimeidentity.LocalTarget{
+			ReadinessRef: "local-asset://qwen3-tts-cancel",
+		}},
 	})
 	if voiceJob == nil {
 		t.Fatalf("submit voice design scenario job")
@@ -355,6 +356,9 @@ func TestScenarioJobStoreVoiceCancelAndMissingArtifactsPaths(t *testing.T) {
 		RouteDecision: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
 		ModelResolved: "local/qwen3-tts",
 		Provider:      "local",
+		ExecutionTarget: &runtimeidentity.Target{Local: &runtimeidentity.LocalTarget{
+			ReadinessRef: "local-asset://qwen3-tts-complete",
+		}},
 	})
 	if completedJob == nil {
 		t.Fatalf("submit second voice design scenario job")

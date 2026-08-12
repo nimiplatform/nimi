@@ -110,7 +110,7 @@ func TestExecuteVoiceWorkflowJobPersistsWorkflowFamilyAndHandlePolicyMetadata(t 
 	}))
 	defer func() { server.Close() }()
 
-	fixture := newManagedCloudScenarioTestFixture(t, "dashscope", "qwen3-tts-vc", server.URL, Config{AllowLoopbackEndpoint: true})
+	fixture := newManagedCloudScenarioTestFixture(t, "dashscope", "qwen3-tts-vc-2026-01-22", server.URL, Config{AllowLoopbackEndpoint: true})
 	svc := fixture.service
 	req := voiceReferenceAudioRequest()
 	ctx := withCloudScenarioTestIntent(scenarioJobUserContext(req.GetHead().GetAppId(), "user-001"), "voice.create", fixture.targetRef)
@@ -130,7 +130,11 @@ func TestExecuteVoiceWorkflowJobPersistsWorkflowFamilyAndHandlePolicyMetadata(t 
 	if job.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED {
 		t.Fatalf("voice workflow status=%s reason=%s detail=%s", job.GetStatus(), job.GetReasonCode(), job.GetReasonDetail())
 	}
-	asset := submitted.GetAsset()
+	terminal, err := svc.GetScenarioJob(ctx, &runtimev1.GetScenarioJobRequest{JobId: job.GetJobId()})
+	if err != nil {
+		t.Fatalf("GetScenarioJob terminal result: %v", err)
+	}
+	asset := terminal.GetAsset()
 	stored, ok := svc.voiceAssets.getAsset(asset.GetVoiceAssetId())
 	if !ok {
 		t.Fatalf("expected stored asset")

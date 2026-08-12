@@ -144,6 +144,19 @@ func (store *RegistrationStore) GetBySubject(ctx context.Context, subject string
 		WHERE local_os_user_anchor = ? AND registered_app_subject = ?`, store.kernel.anchor, subject))
 }
 
+// GetActiveByAppID resolves one exact admitted App owner in the current
+// OS-user partition. App IDs cannot be reused by multiple active records.
+func (store *RegistrationStore) GetActiveByAppID(ctx context.Context, appID string) (Registration, error) {
+	if store == nil || store.kernel == nil {
+		return Registration{}, ErrInvalidArgument
+	}
+	if err := requireExactText("app_id", appID); err != nil {
+		return Registration{}, err
+	}
+	return scanRegistration(store.kernel.db.QueryRowContext(ctx, registrationSelect+`
+		WHERE local_os_user_anchor = ? AND app_id = ? AND state = 'active'`, store.kernel.anchor, appID))
+}
+
 func (store *RegistrationStore) ListDevelopment(ctx context.Context) ([]Registration, error) {
 	if store == nil || store.kernel == nil {
 		return nil, ErrInvalidArgument
