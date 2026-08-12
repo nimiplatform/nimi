@@ -31,10 +31,11 @@ enum ScenarioType {
   SCENARIO_TYPE_VIDEO_GENERATE = 4;
   SCENARIO_TYPE_SPEECH_SYNTHESIZE = 5;
   SCENARIO_TYPE_SPEECH_TRANSCRIBE = 6;
-  SCENARIO_TYPE_VOICE_CLONE = 7;
-  SCENARIO_TYPE_VOICE_DESIGN = 8;
+  reserved 7, 8;
+  reserved "SCENARIO_TYPE_VOICE_CLONE", "SCENARIO_TYPE_VOICE_DESIGN";
   SCENARIO_TYPE_MUSIC_GENERATE = 9;
   SCENARIO_TYPE_WORLD_GENERATE = 10;
+  SCENARIO_TYPE_VOICE_CREATE = 11;
 }
 
 enum ExecutionMode {
@@ -367,14 +368,12 @@ message SpeechTranscribeScenarioSpec {
   string response_format = 8;
 }
 
-message VoiceCloneScenarioSpec {
+message VoiceCreateScenarioSpec {
   string target_model_id = 1;
-  VoiceV2VInput input = 2;
-}
-
-message VoiceDesignScenarioSpec {
-  string target_model_id = 1;
-  VoiceT2VInput input = 2;
+  oneof source {
+    VoiceV2VInput reference_audio = 2;
+    VoiceT2VInput text_description = 3;
+  }
 }
 
 message MusicGenerateScenarioSpec {
@@ -431,11 +430,12 @@ message ScenarioSpec {
     VideoGenerateScenarioSpec video_generate = 4;
     SpeechSynthesizeScenarioSpec speech_synthesize = 5;
     SpeechTranscribeScenarioSpec speech_transcribe = 6;
-    VoiceCloneScenarioSpec voice_clone = 7;
-    VoiceDesignScenarioSpec voice_design = 8;
     MusicGenerateScenarioSpec music_generate = 9;
     WorldGenerateScenarioSpec world_generate = 10;
+    VoiceCreateScenarioSpec voice_create = 11;
   }
+  reserved 7, 8;
+  reserved "voice_clone", "voice_design";
 }
 
 message ExecuteScenarioRequest {
@@ -499,7 +499,8 @@ message WorldGenerateResult {
   string collider_mesh_url = 7;
   map<string, string> spz_urls = 8;
   WorldGenerateSemanticsMetadata semantics_metadata = 9;
-  string model = 10;
+  reserved 10;
+  reserved "model";
   repeated ScenarioArtifact artifacts = 11;
 }
 
@@ -669,14 +670,13 @@ message LocalAppSpeechTranscribeJobSpec {
   string response_format = 8;
 }
 
-// Voice workflow specs omit target_model_id: Runtime resolves the exact
+// Voice creation specs omit target_model_id: Runtime resolves the exact
 // execution target from the App owner's committed AIConfig intent.
-message LocalAppVoiceCloneJobSpec {
-  VoiceV2VInput input = 1;
-}
-
-message LocalAppVoiceDesignJobSpec {
-  VoiceT2VInput input = 1;
+message LocalAppVoiceCreateJobSpec {
+  oneof source {
+    VoiceV2VInput reference_audio = 1;
+    VoiceT2VInput text_description = 2;
+  }
 }
 
 message SubmitLocalAppScenarioJobRequest {
@@ -685,9 +685,10 @@ message SubmitLocalAppScenarioJobRequest {
     LocalAppVideoGenerateJobSpec video_generate = 2;
     LocalAppSpeechSynthesizeJobSpec speech_synthesize = 3;
     LocalAppSpeechTranscribeJobSpec speech_transcribe = 4;
-    LocalAppVoiceCloneJobSpec voice_clone = 5;
-    LocalAppVoiceDesignJobSpec voice_design = 6;
+    LocalAppVoiceCreateJobSpec voice_create = 7;
   }
+  reserved 5, 6;
+  reserved "voice_clone", "voice_design";
 }
 
 // Trimmed Job projection for Local App consumption: status, progress, typed
@@ -716,16 +717,22 @@ message LocalAppScenarioJob {
 // ref, and owner identity fields are never projected.
 message LocalAppVoiceAsset {
   string voice_asset_id = 1;
-  VoiceWorkflowType workflow_type = 2;
+  reserved 2;
+  reserved "workflow_type";
   VoiceAssetStatus status = 3;
   google.protobuf.Timestamp created_at = 4;
   google.protobuf.Timestamp updated_at = 5;
   google.protobuf.Timestamp expires_at = 6;
+  VoiceCreationSource creation_source = 7;
 }
 
 message SubmitLocalAppScenarioJobResponse {
   LocalAppScenarioJob job = 1;
   LocalAppVoiceAsset asset = 2;
+  // Canonical reusable result handle for voice.create. The protected Local
+  // App surface only returns a VoiceAsset-backed reference and never projects
+  // a provider-owned voice handle.
+  VoiceReference voice_reference = 3;
 }
 
 message GetLocalAppScenarioJobRequest {
@@ -991,6 +998,9 @@ message SubmitScenarioJobRequest {
 message SubmitScenarioJobResponse {
   ScenarioJob job = 1;
   VoiceAsset asset = 2;
+  // voice.create returns both the durable VoiceAsset and the typed public
+  // reference callers use for subsequent synthesis or agent binding.
+  VoiceReference voice_reference = 3;
 }
 
 message GetScenarioJobRequest {

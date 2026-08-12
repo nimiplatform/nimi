@@ -2226,10 +2226,9 @@ pub enum ScenarioType {
     SCENARIOTYPEVIDEOGENERATE,
     SCENARIOTYPESPEECHSYNTHESIZE,
     SCENARIOTYPESPEECHTRANSCRIBE,
-    SCENARIOTYPEVOICECLONE,
-    SCENARIOTYPEVOICEDESIGN,
     SCENARIOTYPEMUSICGENERATE,
     SCENARIOTYPEWORLDGENERATE,
+    SCENARIOTYPEVOICECREATE,
 }
 
 impl Default for ScenarioType {
@@ -2466,6 +2465,19 @@ impl Default for VoiceAssetStatus {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub enum VoiceCreationSource {
+    VOICECREATIONSOURCEUNSPECIFIED,
+    VOICECREATIONSOURCETEXTDESCRIPTION,
+    VOICECREATIONSOURCEREFERENCEAUDIO,
+}
+
+impl Default for VoiceCreationSource {
+    fn default() -> Self {
+        Self::VOICECREATIONSOURCEUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum VoiceOutputMode {
     VOICEOUTPUTMODEUNSPECIFIED,
     VOICEOUTPUTMODENATIVESTREAM,
@@ -2507,19 +2519,6 @@ pub enum VoiceReferenceKind {
 impl Default for VoiceReferenceKind {
     fn default() -> Self {
         Self::VOICEREFERENCEKINDUNSPECIFIED
-    }
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub enum VoiceWorkflowType {
-    VOICEWORKFLOWTYPEUNSPECIFIED,
-    VOICEWORKFLOWTYPEVOICECLONE,
-    VOICEWORKFLOWTYPEVOICEDESIGN,
-}
-
-impl Default for VoiceWorkflowType {
-    fn default() -> Self {
-        Self::VOICEWORKFLOWTYPEUNSPECIFIED
     }
 }
 
@@ -15897,11 +15896,11 @@ pub struct ListVoiceAssetsRequest {
     pub subject_user_id: Option<String>,
     pub model_id: Option<String>,
     pub target_model_id: Option<String>,
-    pub workflow_type: Option<VoiceWorkflowType>,
     pub status: Option<VoiceAssetStatus>,
     pub page_size: Option<i32>,
     pub page_token: Option<String>,
     pub connector_id: Option<String>,
+    pub creation_source: Option<VoiceCreationSource>,
 }
 
 impl ListVoiceAssetsRequest {
@@ -15911,18 +15910,18 @@ impl ListVoiceAssetsRequest {
         if let Some(value) = &self.subject_user_id { pairs.push(format!("subject_user_id={}", value)); }
         if let Some(value) = &self.model_id { pairs.push(format!("model_id={}", value)); }
         if let Some(value) = &self.target_model_id { pairs.push(format!("target_model_id={}", value)); }
-        if let Some(value) = &self.workflow_type { pairs.push(format!("workflow_type={:?}", value)); }
         if let Some(value) = &self.status { pairs.push(format!("status={:?}", value)); }
         if let Some(value) = &self.page_size { pairs.push(format!("page_size={}", value)); }
         if let Some(value) = &self.page_token { pairs.push(format!("page_token={}", value)); }
         if let Some(value) = &self.connector_id { pairs.push(format!("connector_id={}", value)); }
+        if let Some(value) = &self.creation_source { pairs.push(format!("creation_source={:?}", value)); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
         let mut out = Self::default();
-        for key in ["workflow_type", "status"] {
+        for key in ["status", "creation_source"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
             }
@@ -17381,29 +17380,29 @@ impl LocalAppVideoGenerationOptions {
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct LocalAppVoiceAsset {
     pub voice_asset_id: Option<String>,
-    pub workflow_type: Option<VoiceWorkflowType>,
     pub status: Option<VoiceAssetStatus>,
     pub created_at: Option<String>,
     pub updated_at: Option<String>,
     pub expires_at: Option<String>,
+    pub creation_source: Option<VoiceCreationSource>,
 }
 
 impl LocalAppVoiceAsset {
     pub fn to_transport(&self) -> Vec<u8> {
         let mut pairs: Vec<String> = Vec::new();
         if let Some(value) = &self.voice_asset_id { pairs.push(format!("voice_asset_id={}", value)); }
-        if let Some(value) = &self.workflow_type { pairs.push(format!("workflow_type={:?}", value)); }
         if let Some(value) = &self.status { pairs.push(format!("status={:?}", value)); }
         if let Some(value) = &self.created_at { pairs.push(format!("created_at={}", value)); }
         if let Some(value) = &self.updated_at { pairs.push(format!("updated_at={}", value)); }
         if let Some(value) = &self.expires_at { pairs.push(format!("expires_at={}", value)); }
+        if let Some(value) = &self.creation_source { pairs.push(format!("creation_source={:?}", value)); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
         let mut out = Self::default();
-        for key in ["workflow_type", "status"] {
+        for key in ["status", "creation_source"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
             }
@@ -17418,50 +17417,23 @@ impl LocalAppVoiceAsset {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct LocalAppVoiceCloneJobSpec {
-    pub input: Option<Box<VoiceV2VInput>>,
+pub struct LocalAppVoiceCreateJobSpec {
+    pub reference_audio: Option<Box<VoiceV2VInput>>,
+    pub text_description: Option<Box<VoiceT2VInput>>,
 }
 
-impl LocalAppVoiceCloneJobSpec {
+impl LocalAppVoiceCreateJobSpec {
     pub fn to_transport(&self) -> Vec<u8> {
         let pairs: Vec<String> = Vec::new();
-        if self.input.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode input"); }
+        if self.reference_audio.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode reference_audio"); }
+        if self.text_description.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode text_description"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
         let out = Self::default();
-        for key in ["input"] {
-            if pairs.contains_key(key) {
-                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
-            }
-        }
-        if !pairs.is_empty() {
-            panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client has no decoder for response fields");
-        }
-
-
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct LocalAppVoiceDesignJobSpec {
-    pub input: Option<Box<VoiceT2VInput>>,
-}
-
-impl LocalAppVoiceDesignJobSpec {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let pairs: Vec<String> = Vec::new();
-        if self.input.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode input"); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let out = Self::default();
-        for key in ["input"] {
+        for key in ["reference_audio", "text_description"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
             }
@@ -26607,10 +26579,9 @@ pub struct ScenarioSpec {
     pub video_generate: Option<Box<VideoGenerateScenarioSpec>>,
     pub speech_synthesize: Option<Box<SpeechSynthesizeScenarioSpec>>,
     pub speech_transcribe: Option<Box<SpeechTranscribeScenarioSpec>>,
-    pub voice_clone: Option<Box<VoiceCloneScenarioSpec>>,
-    pub voice_design: Option<Box<VoiceDesignScenarioSpec>>,
     pub music_generate: Option<Box<MusicGenerateScenarioSpec>>,
     pub world_generate: Option<Box<WorldGenerateScenarioSpec>>,
+    pub voice_create: Option<Box<VoiceCreateScenarioSpec>>,
 }
 
 impl ScenarioSpec {
@@ -26622,17 +26593,16 @@ impl ScenarioSpec {
         if self.video_generate.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode video_generate"); }
         if self.speech_synthesize.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode speech_synthesize"); }
         if self.speech_transcribe.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode speech_transcribe"); }
-        if self.voice_clone.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode voice_clone"); }
-        if self.voice_design.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode voice_design"); }
         if self.music_generate.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode music_generate"); }
         if self.world_generate.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode world_generate"); }
+        if self.voice_create.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode voice_create"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
         let out = Self::default();
-        for key in ["text_generate", "text_embed", "image_generate", "video_generate", "speech_synthesize", "speech_transcribe", "voice_clone", "voice_design", "music_generate", "world_generate"] {
+        for key in ["text_generate", "text_embed", "image_generate", "video_generate", "speech_synthesize", "speech_transcribe", "music_generate", "world_generate", "voice_create"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
             }
@@ -28540,8 +28510,7 @@ pub struct SubmitLocalAppScenarioJobRequest {
     pub video_generate: Option<Box<LocalAppVideoGenerateJobSpec>>,
     pub speech_synthesize: Option<Box<LocalAppSpeechSynthesizeJobSpec>>,
     pub speech_transcribe: Option<Box<LocalAppSpeechTranscribeJobSpec>>,
-    pub voice_clone: Option<Box<LocalAppVoiceCloneJobSpec>>,
-    pub voice_design: Option<Box<LocalAppVoiceDesignJobSpec>>,
+    pub voice_create: Option<Box<LocalAppVoiceCreateJobSpec>>,
 }
 
 impl SubmitLocalAppScenarioJobRequest {
@@ -28551,15 +28520,14 @@ impl SubmitLocalAppScenarioJobRequest {
         if self.video_generate.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode video_generate"); }
         if self.speech_synthesize.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode speech_synthesize"); }
         if self.speech_transcribe.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode speech_transcribe"); }
-        if self.voice_clone.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode voice_clone"); }
-        if self.voice_design.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode voice_design"); }
+        if self.voice_create.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode voice_create"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
         let out = Self::default();
-        for key in ["image_generate", "video_generate", "speech_synthesize", "speech_transcribe", "voice_clone", "voice_design"] {
+        for key in ["image_generate", "video_generate", "speech_synthesize", "speech_transcribe", "voice_create"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
             }
@@ -28577,6 +28545,7 @@ impl SubmitLocalAppScenarioJobRequest {
 pub struct SubmitLocalAppScenarioJobResponse {
     pub job: Option<Box<LocalAppScenarioJob>>,
     pub asset: Option<Box<LocalAppVoiceAsset>>,
+    pub voice_reference: Option<Box<VoiceReference>>,
 }
 
 impl SubmitLocalAppScenarioJobResponse {
@@ -28584,13 +28553,14 @@ impl SubmitLocalAppScenarioJobResponse {
         let pairs: Vec<String> = Vec::new();
         if self.job.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode job"); }
         if self.asset.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode asset"); }
+        if self.voice_reference.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode voice_reference"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
         let out = Self::default();
-        for key in ["job", "asset"] {
+        for key in ["job", "asset", "voice_reference"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
             }
@@ -28649,6 +28619,7 @@ impl SubmitScenarioJobRequest {
 pub struct SubmitScenarioJobResponse {
     pub job: Option<Box<ScenarioJob>>,
     pub asset: Option<Box<VoiceAsset>>,
+    pub voice_reference: Option<Box<VoiceReference>>,
 }
 
 impl SubmitScenarioJobResponse {
@@ -28656,13 +28627,14 @@ impl SubmitScenarioJobResponse {
         let pairs: Vec<String> = Vec::new();
         if self.job.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode job"); }
         if self.asset.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode asset"); }
+        if self.voice_reference.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode voice_reference"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
         let out = Self::default();
-        for key in ["job", "asset"] {
+        for key in ["job", "asset", "voice_reference"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
             }
@@ -30587,7 +30559,6 @@ pub struct VoiceAsset {
     pub voice_asset_id: Option<String>,
     pub app_id: Option<String>,
     pub subject_user_id: Option<String>,
-    pub workflow_type: Option<VoiceWorkflowType>,
     pub provider: Option<String>,
     pub model_id: Option<String>,
     pub target_model_id: Option<String>,
@@ -30598,6 +30569,7 @@ pub struct VoiceAsset {
     pub updated_at: Option<String>,
     pub expires_at: Option<String>,
     pub metadata: Option<BTreeMap<String, String>>,
+    pub creation_source: Option<VoiceCreationSource>,
 }
 
 impl VoiceAsset {
@@ -30606,7 +30578,6 @@ impl VoiceAsset {
         if let Some(value) = &self.voice_asset_id { pairs.push(format!("voice_asset_id={}", value)); }
         if let Some(value) = &self.app_id { pairs.push(format!("app_id={}", value)); }
         if let Some(value) = &self.subject_user_id { pairs.push(format!("subject_user_id={}", value)); }
-        if let Some(value) = &self.workflow_type { pairs.push(format!("workflow_type={:?}", value)); }
         if let Some(value) = &self.provider { pairs.push(format!("provider={}", value)); }
         if let Some(value) = &self.model_id { pairs.push(format!("model_id={}", value)); }
         if let Some(value) = &self.target_model_id { pairs.push(format!("target_model_id={}", value)); }
@@ -30617,13 +30588,14 @@ impl VoiceAsset {
         if let Some(value) = &self.updated_at { pairs.push(format!("updated_at={}", value)); }
         if let Some(value) = &self.expires_at { pairs.push(format!("expires_at={}", value)); }
         if self.metadata.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode metadata"); }
+        if let Some(value) = &self.creation_source { pairs.push(format!("creation_source={:?}", value)); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
         let mut out = Self::default();
-        for key in ["workflow_type", "persistence", "status", "metadata"] {
+        for key in ["persistence", "status", "metadata", "creation_source"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
             }
@@ -30644,51 +30616,25 @@ impl VoiceAsset {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct VoiceCloneScenarioSpec {
+pub struct VoiceCreateScenarioSpec {
     pub target_model_id: Option<String>,
-    pub input: Option<Box<VoiceV2VInput>>,
+    pub reference_audio: Option<Box<VoiceV2VInput>>,
+    pub text_description: Option<Box<VoiceT2VInput>>,
 }
 
-impl VoiceCloneScenarioSpec {
+impl VoiceCreateScenarioSpec {
     pub fn to_transport(&self) -> Vec<u8> {
         let mut pairs: Vec<String> = Vec::new();
         if let Some(value) = &self.target_model_id { pairs.push(format!("target_model_id={}", value)); }
-        if self.input.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode input"); }
+        if self.reference_audio.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode reference_audio"); }
+        if self.text_description.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode text_description"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
         let mut out = Self::default();
-        for key in ["input"] {
-            if pairs.contains_key(key) {
-                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
-            }
-        }
-
-        out.target_model_id = pairs.get("target_model_id").cloned();
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct VoiceDesignScenarioSpec {
-    pub target_model_id: Option<String>,
-    pub input: Option<Box<VoiceT2VInput>>,
-}
-
-impl VoiceDesignScenarioSpec {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.target_model_id { pairs.push(format!("target_model_id={}", value)); }
-        if self.input.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode input"); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-        for key in ["input"] {
+        for key in ["reference_audio", "text_description"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
             }
@@ -31240,7 +31186,6 @@ pub struct WorldGenerateResult {
     pub collider_mesh_url: Option<String>,
     pub spz_urls: BTreeMap<String, String>,
     pub semantics_metadata: Option<Box<WorldGenerateSemanticsMetadata>>,
-    pub model: Option<String>,
     pub artifacts: Vec<Box<ScenarioArtifact>>,
 }
 
@@ -31256,7 +31201,6 @@ impl WorldGenerateResult {
         if let Some(value) = &self.collider_mesh_url { pairs.push(format!("collider_mesh_url={}", value)); }
         if !self.spz_urls.is_empty() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode spz_urls"); }
         if self.semantics_metadata.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode semantics_metadata"); }
-        if let Some(value) = &self.model { pairs.push(format!("model={}", value)); }
         if !self.artifacts.is_empty() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode artifacts"); }
         pairs.join(";").into_bytes()
     }
@@ -31277,7 +31221,6 @@ impl WorldGenerateResult {
         out.thumbnail_url = pairs.get("thumbnail_url").cloned();
         out.pano_url = pairs.get("pano_url").cloned();
         out.collider_mesh_url = pairs.get("collider_mesh_url").cloned();
-        out.model = pairs.get("model").cloned();
         out
     }
 }
@@ -34333,13 +34276,7 @@ impl From<Vec<u8>> for LocalAppVoiceAsset {
     }
 }
 
-impl From<Vec<u8>> for LocalAppVoiceCloneJobSpec {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
-impl From<Vec<u8>> for LocalAppVoiceDesignJobSpec {
+impl From<Vec<u8>> for LocalAppVoiceCreateJobSpec {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
     }
@@ -36649,13 +36586,7 @@ impl From<Vec<u8>> for VoiceAsset {
     }
 }
 
-impl From<Vec<u8>> for VoiceCloneScenarioSpec {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
-impl From<Vec<u8>> for VoiceDesignScenarioSpec {
+impl From<Vec<u8>> for VoiceCreateScenarioSpec {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
     }

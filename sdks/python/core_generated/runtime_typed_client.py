@@ -219,7 +219,7 @@ RoutePolicy = Literal["ROUTE_POLICY_UNSPECIFIED", "ROUTE_POLICY_LOCAL", "ROUTE_P
 RuntimeHealthStatus = Literal["RUNTIME_HEALTH_STATUS_UNSPECIFIED", "RUNTIME_HEALTH_STATUS_STOPPED", "RUNTIME_HEALTH_STATUS_STARTING", "RUNTIME_HEALTH_STATUS_READY", "RUNTIME_HEALTH_STATUS_DEGRADED", "RUNTIME_HEALTH_STATUS_STOPPING"]
 ScenarioJobEventType = Literal["SCENARIO_JOB_EVENT_TYPE_UNSPECIFIED", "SCENARIO_JOB_EVENT_SUBMITTED", "SCENARIO_JOB_EVENT_QUEUED", "SCENARIO_JOB_EVENT_RUNNING", "SCENARIO_JOB_EVENT_COMPLETED", "SCENARIO_JOB_EVENT_FAILED", "SCENARIO_JOB_EVENT_CANCELED", "SCENARIO_JOB_EVENT_TIMEOUT"]
 ScenarioJobStatus = Literal["SCENARIO_JOB_STATUS_UNSPECIFIED", "SCENARIO_JOB_STATUS_SUBMITTED", "SCENARIO_JOB_STATUS_QUEUED", "SCENARIO_JOB_STATUS_RUNNING", "SCENARIO_JOB_STATUS_COMPLETED", "SCENARIO_JOB_STATUS_FAILED", "SCENARIO_JOB_STATUS_CANCELED", "SCENARIO_JOB_STATUS_TIMEOUT"]
-ScenarioType = Literal["SCENARIO_TYPE_UNSPECIFIED", "SCENARIO_TYPE_TEXT_GENERATE", "SCENARIO_TYPE_TEXT_EMBED", "SCENARIO_TYPE_IMAGE_GENERATE", "SCENARIO_TYPE_VIDEO_GENERATE", "SCENARIO_TYPE_SPEECH_SYNTHESIZE", "SCENARIO_TYPE_SPEECH_TRANSCRIBE", "SCENARIO_TYPE_VOICE_CLONE", "SCENARIO_TYPE_VOICE_DESIGN", "SCENARIO_TYPE_MUSIC_GENERATE", "SCENARIO_TYPE_WORLD_GENERATE"]
+ScenarioType = Literal["SCENARIO_TYPE_UNSPECIFIED", "SCENARIO_TYPE_TEXT_GENERATE", "SCENARIO_TYPE_TEXT_EMBED", "SCENARIO_TYPE_IMAGE_GENERATE", "SCENARIO_TYPE_VIDEO_GENERATE", "SCENARIO_TYPE_SPEECH_SYNTHESIZE", "SCENARIO_TYPE_SPEECH_TRANSCRIBE", "SCENARIO_TYPE_MUSIC_GENERATE", "SCENARIO_TYPE_WORLD_GENERATE", "SCENARIO_TYPE_VOICE_CREATE"]
 SchedulingState = Literal["SCHEDULING_STATE_UNSPECIFIED", "SCHEDULING_STATE_RUNNABLE", "SCHEDULING_STATE_QUEUE_REQUIRED", "SCHEDULING_STATE_PREEMPTION_RISK", "SCHEDULING_STATE_SLOWDOWN_RISK", "SCHEDULING_STATE_DENIED", "SCHEDULING_STATE_UNKNOWN"]
 SensitivityClass = Literal["SENSITIVITY_CLASS_UNSPECIFIED", "SENSITIVITY_CLASS_NONE", "SENSITIVITY_CLASS_USER_PRIVATE", "SENSITIVITY_CLASS_CREDENTIAL_LIKE", "SENSITIVITY_CLASS_ORG_PRIVATE", "SENSITIVITY_CLASS_REGULATED", "SENSITIVITY_CLASS_UNKNOWN_SENSITIVE"]
 SpeechAlignmentUnit = Literal["SPEECH_ALIGNMENT_UNIT_UNSPECIFIED", "SPEECH_ALIGNMENT_UNIT_WORD", "SPEECH_ALIGNMENT_UNIT_CHAR"]
@@ -235,10 +235,10 @@ VideoContentType = Literal["VIDEO_CONTENT_TYPE_UNSPECIFIED", "VIDEO_CONTENT_TYPE
 VideoMode = Literal["VIDEO_MODE_UNSPECIFIED", "VIDEO_MODE_T2V", "VIDEO_MODE_I2V_FIRST_FRAME", "VIDEO_MODE_I2V_FIRST_LAST", "VIDEO_MODE_I2V_REFERENCE"]
 VoiceAssetPersistence = Literal["VOICE_ASSET_PERSISTENCE_UNSPECIFIED", "VOICE_ASSET_PERSISTENCE_PROVIDER_PERSISTENT", "VOICE_ASSET_PERSISTENCE_SESSION_EPHEMERAL"]
 VoiceAssetStatus = Literal["VOICE_ASSET_STATUS_UNSPECIFIED", "VOICE_ASSET_STATUS_ACTIVE", "VOICE_ASSET_STATUS_EXPIRED", "VOICE_ASSET_STATUS_DELETED", "VOICE_ASSET_STATUS_FAILED"]
+VoiceCreationSource = Literal["VOICE_CREATION_SOURCE_UNSPECIFIED", "VOICE_CREATION_SOURCE_TEXT_DESCRIPTION", "VOICE_CREATION_SOURCE_REFERENCE_AUDIO"]
 VoiceOutputMode = Literal["VOICE_OUTPUT_MODE_UNSPECIFIED", "VOICE_OUTPUT_MODE_NATIVE_STREAM", "VOICE_OUTPUT_MODE_SIMULATED_STREAM", "VOICE_OUTPUT_MODE_BATCH_FINAL_ARTIFACT", "VOICE_OUTPUT_MODE_TEXT_ONLY"]
 VoicePlaybackState = Literal["VOICE_PLAYBACK_STATE_UNSPECIFIED", "VOICE_PLAYBACK_STATE_ACTIVE", "VOICE_PLAYBACK_STATE_COMPLETED", "VOICE_PLAYBACK_STATE_FAILED", "VOICE_PLAYBACK_STATE_INTERRUPTED", "VOICE_PLAYBACK_STATE_CANCELED"]
 VoiceReferenceKind = Literal["VOICE_REFERENCE_KIND_UNSPECIFIED", "VOICE_REFERENCE_KIND_PRESET", "VOICE_REFERENCE_KIND_VOICE_ASSET", "VOICE_REFERENCE_KIND_PROVIDER_VOICE_REF"]
-VoiceWorkflowType = Literal["VOICE_WORKFLOW_TYPE_UNSPECIFIED", "VOICE_WORKFLOW_TYPE_VOICE_CLONE", "VOICE_WORKFLOW_TYPE_VOICE_DESIGN"]
 WorkspaceBindingPurpose = Literal["WORKSPACE_BINDING_PURPOSE_UNSPECIFIED", "WORKSPACE_BINDING_PURPOSE_KNOWLEDGE_CONSUME"]
 WorkspaceBindingState = Literal["WORKSPACE_BINDING_STATE_UNSPECIFIED", "WORKSPACE_BINDING_STATE_ISSUED", "WORKSPACE_BINDING_STATE_ACTIVE", "WORKSPACE_BINDING_STATE_REVOKED", "WORKSPACE_BINDING_STATE_EXPIRED"]
 WorkspaceMembershipState = Literal["WORKSPACE_MEMBERSHIP_STATE_UNSPECIFIED", "WORKSPACE_MEMBERSHIP_STATE_ACTIVE", "WORKSPACE_MEMBERSHIP_STATE_SUSPENDED", "WORKSPACE_MEMBERSHIP_STATE_REVOKED", "WORKSPACE_MEMBERSHIP_STATE_UNKNOWN"]
@@ -3031,11 +3031,11 @@ class ListVoiceAssetsRequest:
     subject_user_id: str | None = None
     model_id: str | None = None
     target_model_id: str | None = None
-    workflow_type: VoiceWorkflowType | None = None
     status: VoiceAssetStatus | None = None
     page_size: int | None = None
     page_token: str | None = None
     connector_id: str | None = None
+    creation_source: VoiceCreationSource | None = None
 
 @dataclass(frozen=True)
 class ListVoiceAssetsResponse:
@@ -3356,19 +3356,16 @@ class LocalAppVideoGenerationOptions:
 @dataclass(frozen=True)
 class LocalAppVoiceAsset:
     voice_asset_id: str | None = None
-    workflow_type: VoiceWorkflowType | None = None
     status: VoiceAssetStatus | None = None
     created_at: str | None = None
     updated_at: str | None = None
     expires_at: str | None = None
+    creation_source: VoiceCreationSource | None = None
 
 @dataclass(frozen=True)
-class LocalAppVoiceCloneJobSpec:
-    input: VoiceV2VInput | None = None
-
-@dataclass(frozen=True)
-class LocalAppVoiceDesignJobSpec:
-    input: VoiceT2VInput | None = None
+class LocalAppVoiceCreateJobSpec:
+    reference_audio: VoiceV2VInput | None = None
+    text_description: VoiceT2VInput | None = None
 
 @dataclass(frozen=True)
 class LocalAssetExactBinding:
@@ -5407,10 +5404,9 @@ class ScenarioSpec:
     video_generate: VideoGenerateScenarioSpec | None = None
     speech_synthesize: SpeechSynthesizeScenarioSpec | None = None
     speech_transcribe: SpeechTranscribeScenarioSpec | None = None
-    voice_clone: VoiceCloneScenarioSpec | None = None
-    voice_design: VoiceDesignScenarioSpec | None = None
     music_generate: MusicGenerateScenarioSpec | None = None
     world_generate: WorldGenerateScenarioSpec | None = None
+    voice_create: VoiceCreateScenarioSpec | None = None
 
 @dataclass(frozen=True)
 class ScenarioStreamCompleted:
@@ -5797,13 +5793,13 @@ class SubmitLocalAppScenarioJobRequest:
     video_generate: LocalAppVideoGenerateJobSpec | None = None
     speech_synthesize: LocalAppSpeechSynthesizeJobSpec | None = None
     speech_transcribe: LocalAppSpeechTranscribeJobSpec | None = None
-    voice_clone: LocalAppVoiceCloneJobSpec | None = None
-    voice_design: LocalAppVoiceDesignJobSpec | None = None
+    voice_create: LocalAppVoiceCreateJobSpec | None = None
 
 @dataclass(frozen=True)
 class SubmitLocalAppScenarioJobResponse:
     job: LocalAppScenarioJob | None = None
     asset: LocalAppVoiceAsset | None = None
+    voice_reference: VoiceReference | None = None
 
 @dataclass(frozen=True)
 class SubmitScenarioJobRequest:
@@ -5820,6 +5816,7 @@ class SubmitScenarioJobRequest:
 class SubmitScenarioJobResponse:
     job: ScenarioJob | None = None
     asset: VoiceAsset | None = None
+    voice_reference: VoiceReference | None = None
 
 @dataclass(frozen=True)
 class SubscribeAIProviderHealthEventsRequest:
@@ -6227,7 +6224,6 @@ class VoiceAsset:
     voice_asset_id: str | None = None
     app_id: str | None = None
     subject_user_id: str | None = None
-    workflow_type: VoiceWorkflowType | None = None
     provider: str | None = None
     model_id: str | None = None
     target_model_id: str | None = None
@@ -6238,16 +6234,13 @@ class VoiceAsset:
     updated_at: str | None = None
     expires_at: str | None = None
     metadata: Mapping[str, object] | None = None
+    creation_source: VoiceCreationSource | None = None
 
 @dataclass(frozen=True)
-class VoiceCloneScenarioSpec:
+class VoiceCreateScenarioSpec:
     target_model_id: str | None = None
-    input: VoiceV2VInput | None = None
-
-@dataclass(frozen=True)
-class VoiceDesignScenarioSpec:
-    target_model_id: str | None = None
-    input: VoiceT2VInput | None = None
+    reference_audio: VoiceV2VInput | None = None
+    text_description: VoiceT2VInput | None = None
 
 @dataclass(frozen=True)
 class VoicePresetDescriptor:
@@ -6375,7 +6368,6 @@ class WorldGenerateResult:
     collider_mesh_url: str | None = None
     spz_urls: Mapping[str, str] = field(default_factory=dict)
     semantics_metadata: WorldGenerateSemanticsMetadata | None = None
-    model: str | None = None
     artifacts: tuple[ScenarioArtifact, ...] = field(default_factory=tuple)
 
 @dataclass(frozen=True)

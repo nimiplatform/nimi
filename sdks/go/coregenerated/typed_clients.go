@@ -1532,10 +1532,9 @@ const (
 	SCENARIOTYPEVIDEOGENERATE ScenarioType = "SCENARIO_TYPE_VIDEO_GENERATE"
 	SCENARIOTYPESPEECHSYNTHESIZE ScenarioType = "SCENARIO_TYPE_SPEECH_SYNTHESIZE"
 	SCENARIOTYPESPEECHTRANSCRIBE ScenarioType = "SCENARIO_TYPE_SPEECH_TRANSCRIBE"
-	SCENARIOTYPEVOICECLONE ScenarioType = "SCENARIO_TYPE_VOICE_CLONE"
-	SCENARIOTYPEVOICEDESIGN ScenarioType = "SCENARIO_TYPE_VOICE_DESIGN"
 	SCENARIOTYPEMUSICGENERATE ScenarioType = "SCENARIO_TYPE_MUSIC_GENERATE"
 	SCENARIOTYPEWORLDGENERATE ScenarioType = "SCENARIO_TYPE_WORLD_GENERATE"
+	SCENARIOTYPEVOICECREATE ScenarioType = "SCENARIO_TYPE_VOICE_CREATE"
 )
 
 type SchedulingState string
@@ -1690,6 +1689,14 @@ const (
 	VOICEASSETSTATUSFAILED VoiceAssetStatus = "VOICE_ASSET_STATUS_FAILED"
 )
 
+type VoiceCreationSource string
+
+const (
+	VOICECREATIONSOURCEUNSPECIFIED VoiceCreationSource = "VOICE_CREATION_SOURCE_UNSPECIFIED"
+	VOICECREATIONSOURCETEXTDESCRIPTION VoiceCreationSource = "VOICE_CREATION_SOURCE_TEXT_DESCRIPTION"
+	VOICECREATIONSOURCEREFERENCEAUDIO VoiceCreationSource = "VOICE_CREATION_SOURCE_REFERENCE_AUDIO"
+)
+
 type VoiceOutputMode string
 
 const (
@@ -1718,14 +1725,6 @@ const (
 	VOICEREFERENCEKINDPRESET VoiceReferenceKind = "VOICE_REFERENCE_KIND_PRESET"
 	VOICEREFERENCEKINDVOICEASSET VoiceReferenceKind = "VOICE_REFERENCE_KIND_VOICE_ASSET"
 	VOICEREFERENCEKINDPROVIDERVOICEREF VoiceReferenceKind = "VOICE_REFERENCE_KIND_PROVIDER_VOICE_REF"
-)
-
-type VoiceWorkflowType string
-
-const (
-	VOICEWORKFLOWTYPEUNSPECIFIED VoiceWorkflowType = "VOICE_WORKFLOW_TYPE_UNSPECIFIED"
-	VOICEWORKFLOWTYPEVOICECLONE VoiceWorkflowType = "VOICE_WORKFLOW_TYPE_VOICE_CLONE"
-	VOICEWORKFLOWTYPEVOICEDESIGN VoiceWorkflowType = "VOICE_WORKFLOW_TYPE_VOICE_DESIGN"
 )
 
 type WorkspaceBindingPurpose string
@@ -4556,11 +4555,11 @@ type ListVoiceAssetsRequest struct {
 	SubjectUserId string `json:"subject_user_id,omitempty"`
 	ModelId string `json:"model_id,omitempty"`
 	TargetModelId string `json:"target_model_id,omitempty"`
-	WorkflowType VoiceWorkflowType `json:"workflow_type,omitempty"`
 	Status VoiceAssetStatus `json:"status,omitempty"`
 	PageSize int32 `json:"page_size,omitempty"`
 	PageToken string `json:"page_token,omitempty"`
 	ConnectorId string `json:"connector_id,omitempty"`
+	CreationSource VoiceCreationSource `json:"creation_source,omitempty"`
 }
 
 type ListVoiceAssetsResponse struct {
@@ -4881,19 +4880,16 @@ type LocalAppVideoGenerationOptions struct {
 
 type LocalAppVoiceAsset struct {
 	VoiceAssetId string `json:"voice_asset_id,omitempty"`
-	WorkflowType VoiceWorkflowType `json:"workflow_type,omitempty"`
 	Status VoiceAssetStatus `json:"status,omitempty"`
 	CreatedAt string `json:"created_at,omitempty"`
 	UpdatedAt string `json:"updated_at,omitempty"`
 	ExpiresAt string `json:"expires_at,omitempty"`
+	CreationSource VoiceCreationSource `json:"creation_source,omitempty"`
 }
 
-type LocalAppVoiceCloneJobSpec struct {
-	Input *VoiceV2VInput `json:"input,omitempty"`
-}
-
-type LocalAppVoiceDesignJobSpec struct {
-	Input *VoiceT2VInput `json:"input,omitempty"`
+type LocalAppVoiceCreateJobSpec struct {
+	ReferenceAudio *VoiceV2VInput `json:"reference_audio,omitempty"`
+	TextDescription *VoiceT2VInput `json:"text_description,omitempty"`
 }
 
 type LocalAssetExactBinding struct {
@@ -6932,10 +6928,9 @@ type ScenarioSpec struct {
 	VideoGenerate *VideoGenerateScenarioSpec `json:"video_generate,omitempty"`
 	SpeechSynthesize *SpeechSynthesizeScenarioSpec `json:"speech_synthesize,omitempty"`
 	SpeechTranscribe *SpeechTranscribeScenarioSpec `json:"speech_transcribe,omitempty"`
-	VoiceClone *VoiceCloneScenarioSpec `json:"voice_clone,omitempty"`
-	VoiceDesign *VoiceDesignScenarioSpec `json:"voice_design,omitempty"`
 	MusicGenerate *MusicGenerateScenarioSpec `json:"music_generate,omitempty"`
 	WorldGenerate *WorldGenerateScenarioSpec `json:"world_generate,omitempty"`
+	VoiceCreate *VoiceCreateScenarioSpec `json:"voice_create,omitempty"`
 }
 
 type ScenarioStreamCompleted struct {
@@ -7322,13 +7317,13 @@ type SubmitLocalAppScenarioJobRequest struct {
 	VideoGenerate *LocalAppVideoGenerateJobSpec `json:"video_generate,omitempty"`
 	SpeechSynthesize *LocalAppSpeechSynthesizeJobSpec `json:"speech_synthesize,omitempty"`
 	SpeechTranscribe *LocalAppSpeechTranscribeJobSpec `json:"speech_transcribe,omitempty"`
-	VoiceClone *LocalAppVoiceCloneJobSpec `json:"voice_clone,omitempty"`
-	VoiceDesign *LocalAppVoiceDesignJobSpec `json:"voice_design,omitempty"`
+	VoiceCreate *LocalAppVoiceCreateJobSpec `json:"voice_create,omitempty"`
 }
 
 type SubmitLocalAppScenarioJobResponse struct {
 	Job *LocalAppScenarioJob `json:"job,omitempty"`
 	Asset *LocalAppVoiceAsset `json:"asset,omitempty"`
+	VoiceReference *VoiceReference `json:"voice_reference,omitempty"`
 }
 
 type SubmitScenarioJobRequest struct {
@@ -7345,6 +7340,7 @@ type SubmitScenarioJobRequest struct {
 type SubmitScenarioJobResponse struct {
 	Job *ScenarioJob `json:"job,omitempty"`
 	Asset *VoiceAsset `json:"asset,omitempty"`
+	VoiceReference *VoiceReference `json:"voice_reference,omitempty"`
 }
 
 type SubscribeAIProviderHealthEventsRequest struct {
@@ -7752,7 +7748,6 @@ type VoiceAsset struct {
 	VoiceAssetId string `json:"voice_asset_id,omitempty"`
 	AppId string `json:"app_id,omitempty"`
 	SubjectUserId string `json:"subject_user_id,omitempty"`
-	WorkflowType VoiceWorkflowType `json:"workflow_type,omitempty"`
 	Provider string `json:"provider,omitempty"`
 	ModelId string `json:"model_id,omitempty"`
 	TargetModelId string `json:"target_model_id,omitempty"`
@@ -7763,16 +7758,13 @@ type VoiceAsset struct {
 	UpdatedAt string `json:"updated_at,omitempty"`
 	ExpiresAt string `json:"expires_at,omitempty"`
 	Metadata map[string]any `json:"metadata,omitempty"`
+	CreationSource VoiceCreationSource `json:"creation_source,omitempty"`
 }
 
-type VoiceCloneScenarioSpec struct {
+type VoiceCreateScenarioSpec struct {
 	TargetModelId string `json:"target_model_id,omitempty"`
-	Input *VoiceV2VInput `json:"input,omitempty"`
-}
-
-type VoiceDesignScenarioSpec struct {
-	TargetModelId string `json:"target_model_id,omitempty"`
-	Input *VoiceT2VInput `json:"input,omitempty"`
+	ReferenceAudio *VoiceV2VInput `json:"reference_audio,omitempty"`
+	TextDescription *VoiceT2VInput `json:"text_description,omitempty"`
 }
 
 type VoicePresetDescriptor struct {
@@ -7900,7 +7892,6 @@ type WorldGenerateResult struct {
 	ColliderMeshUrl string `json:"collider_mesh_url,omitempty"`
 	SpzUrls map[string]string `json:"spz_urls,omitempty"`
 	SemanticsMetadata *WorldGenerateSemanticsMetadata `json:"semantics_metadata,omitempty"`
-	Model string `json:"model,omitempty"`
 	Artifacts []ScenarioArtifact `json:"artifacts,omitempty"`
 }
 

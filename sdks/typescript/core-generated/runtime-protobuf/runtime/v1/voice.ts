@@ -105,10 +105,6 @@ export interface VoiceAsset {
      */
     subjectUserId: string;
     /**
-     * @generated from protobuf field: nimi.runtime.v1.VoiceWorkflowType workflow_type = 4
-     */
-    workflowType: VoiceWorkflowType;
-    /**
      * @generated from protobuf field: string provider = 5
      */
     provider: string;
@@ -152,6 +148,10 @@ export interface VoiceAsset {
      * @generated from protobuf field: google.protobuf.Struct metadata = 14
      */
     metadata?: Struct;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.VoiceCreationSource creation_source = 17
+     */
+    creationSource: VoiceCreationSource;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.VoiceV2VInput
@@ -242,10 +242,6 @@ export interface ListVoiceAssetsRequest {
      */
     targetModelId: string;
     /**
-     * @generated from protobuf field: nimi.runtime.v1.VoiceWorkflowType workflow_type = 5
-     */
-    workflowType: VoiceWorkflowType;
-    /**
      * @generated from protobuf field: nimi.runtime.v1.VoiceAssetStatus status = 6
      */
     status: VoiceAssetStatus;
@@ -261,6 +257,10 @@ export interface ListVoiceAssetsRequest {
      * @generated from protobuf field: string connector_id = 9
      */
     connectorId: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.VoiceCreationSource creation_source = 10
+     */
+    creationSource: VoiceCreationSource;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.ListVoiceAssetsResponse
@@ -336,21 +336,21 @@ export interface ListPresetVoicesResponse {
     traceId: string;
 }
 /**
- * @generated from protobuf enum nimi.runtime.v1.VoiceWorkflowType
+ * @generated from protobuf enum nimi.runtime.v1.VoiceCreationSource
  */
-export enum VoiceWorkflowType {
+export enum VoiceCreationSource {
     /**
-     * @generated from protobuf enum value: VOICE_WORKFLOW_TYPE_UNSPECIFIED = 0;
+     * @generated from protobuf enum value: VOICE_CREATION_SOURCE_UNSPECIFIED = 0;
      */
     UNSPECIFIED = 0,
     /**
-     * @generated from protobuf enum value: VOICE_WORKFLOW_TYPE_VOICE_CLONE = 1;
+     * @generated from protobuf enum value: VOICE_CREATION_SOURCE_TEXT_DESCRIPTION = 1;
      */
-    VOICE_CLONE = 1,
+    TEXT_DESCRIPTION = 1,
     /**
-     * @generated from protobuf enum value: VOICE_WORKFLOW_TYPE_VOICE_DESIGN = 2;
+     * @generated from protobuf enum value: VOICE_CREATION_SOURCE_REFERENCE_AUDIO = 2;
      */
-    VOICE_DESIGN = 2
+    REFERENCE_AUDIO = 2
 }
 /**
  * VoiceOutputMode is the positive, authoritative selected output-truth axis for
@@ -679,7 +679,6 @@ class VoiceAsset$Type extends MessageType<VoiceAsset> {
             { no: 1, name: "voice_asset_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 2, name: "app_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 3, name: "subject_user_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 4, name: "workflow_type", kind: "enum", T: () => ["nimi.runtime.v1.VoiceWorkflowType", VoiceWorkflowType, "VOICE_WORKFLOW_TYPE_"] },
             { no: 5, name: "provider", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 6, name: "model_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 7, name: "target_model_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
@@ -689,7 +688,8 @@ class VoiceAsset$Type extends MessageType<VoiceAsset> {
             { no: 11, name: "created_at", kind: "message", T: () => Timestamp },
             { no: 12, name: "updated_at", kind: "message", T: () => Timestamp },
             { no: 13, name: "expires_at", kind: "message", T: () => Timestamp },
-            { no: 14, name: "metadata", kind: "message", T: () => Struct }
+            { no: 14, name: "metadata", kind: "message", T: () => Struct },
+            { no: 17, name: "creation_source", kind: "enum", T: () => ["nimi.runtime.v1.VoiceCreationSource", VoiceCreationSource, "VOICE_CREATION_SOURCE_"] }
         ]);
     }
     create(value?: PartialMessage<VoiceAsset>): VoiceAsset {
@@ -697,13 +697,13 @@ class VoiceAsset$Type extends MessageType<VoiceAsset> {
         message.voiceAssetId = "";
         message.appId = "";
         message.subjectUserId = "";
-        message.workflowType = 0;
         message.provider = "";
         message.modelId = "";
         message.targetModelId = "";
         message.providerVoiceRef = "";
         message.persistence = 0;
         message.status = 0;
+        message.creationSource = 0;
         if (value !== undefined)
             reflectionMergePartial<VoiceAsset>(this, message, value);
         return message;
@@ -721,9 +721,6 @@ class VoiceAsset$Type extends MessageType<VoiceAsset> {
                     break;
                 case /* string subject_user_id */ 3:
                     message.subjectUserId = reader.string();
-                    break;
-                case /* nimi.runtime.v1.VoiceWorkflowType workflow_type */ 4:
-                    message.workflowType = reader.int32();
                     break;
                 case /* string provider */ 5:
                     message.provider = reader.string();
@@ -755,6 +752,9 @@ class VoiceAsset$Type extends MessageType<VoiceAsset> {
                 case /* google.protobuf.Struct metadata */ 14:
                     message.metadata = Struct.internalBinaryRead(reader, reader.uint32(), options, message.metadata);
                     break;
+                case /* nimi.runtime.v1.VoiceCreationSource creation_source */ 17:
+                    message.creationSource = reader.int32();
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -776,9 +776,6 @@ class VoiceAsset$Type extends MessageType<VoiceAsset> {
         /* string subject_user_id = 3; */
         if (message.subjectUserId !== "")
             writer.tag(3, WireType.LengthDelimited).string(message.subjectUserId);
-        /* nimi.runtime.v1.VoiceWorkflowType workflow_type = 4; */
-        if (message.workflowType !== 0)
-            writer.tag(4, WireType.Varint).int32(message.workflowType);
         /* string provider = 5; */
         if (message.provider !== "")
             writer.tag(5, WireType.LengthDelimited).string(message.provider);
@@ -809,6 +806,9 @@ class VoiceAsset$Type extends MessageType<VoiceAsset> {
         /* google.protobuf.Struct metadata = 14; */
         if (message.metadata)
             Struct.internalBinaryWrite(message.metadata, writer.tag(14, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.VoiceCreationSource creation_source = 17; */
+        if (message.creationSource !== 0)
+            writer.tag(17, WireType.Varint).int32(message.creationSource);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -1078,11 +1078,11 @@ class ListVoiceAssetsRequest$Type extends MessageType<ListVoiceAssetsRequest> {
             { no: 2, name: "subject_user_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 3, name: "model_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 4, name: "target_model_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 5, name: "workflow_type", kind: "enum", T: () => ["nimi.runtime.v1.VoiceWorkflowType", VoiceWorkflowType, "VOICE_WORKFLOW_TYPE_"] },
             { no: 6, name: "status", kind: "enum", T: () => ["nimi.runtime.v1.VoiceAssetStatus", VoiceAssetStatus, "VOICE_ASSET_STATUS_"] },
             { no: 7, name: "page_size", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
             { no: 8, name: "page_token", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 9, name: "connector_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 9, name: "connector_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 10, name: "creation_source", kind: "enum", T: () => ["nimi.runtime.v1.VoiceCreationSource", VoiceCreationSource, "VOICE_CREATION_SOURCE_"] }
         ]);
     }
     create(value?: PartialMessage<ListVoiceAssetsRequest>): ListVoiceAssetsRequest {
@@ -1091,11 +1091,11 @@ class ListVoiceAssetsRequest$Type extends MessageType<ListVoiceAssetsRequest> {
         message.subjectUserId = "";
         message.modelId = "";
         message.targetModelId = "";
-        message.workflowType = 0;
         message.status = 0;
         message.pageSize = 0;
         message.pageToken = "";
         message.connectorId = "";
+        message.creationSource = 0;
         if (value !== undefined)
             reflectionMergePartial<ListVoiceAssetsRequest>(this, message, value);
         return message;
@@ -1117,9 +1117,6 @@ class ListVoiceAssetsRequest$Type extends MessageType<ListVoiceAssetsRequest> {
                 case /* string target_model_id */ 4:
                     message.targetModelId = reader.string();
                     break;
-                case /* nimi.runtime.v1.VoiceWorkflowType workflow_type */ 5:
-                    message.workflowType = reader.int32();
-                    break;
                 case /* nimi.runtime.v1.VoiceAssetStatus status */ 6:
                     message.status = reader.int32();
                     break;
@@ -1131,6 +1128,9 @@ class ListVoiceAssetsRequest$Type extends MessageType<ListVoiceAssetsRequest> {
                     break;
                 case /* string connector_id */ 9:
                     message.connectorId = reader.string();
+                    break;
+                case /* nimi.runtime.v1.VoiceCreationSource creation_source */ 10:
+                    message.creationSource = reader.int32();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -1156,9 +1156,6 @@ class ListVoiceAssetsRequest$Type extends MessageType<ListVoiceAssetsRequest> {
         /* string target_model_id = 4; */
         if (message.targetModelId !== "")
             writer.tag(4, WireType.LengthDelimited).string(message.targetModelId);
-        /* nimi.runtime.v1.VoiceWorkflowType workflow_type = 5; */
-        if (message.workflowType !== 0)
-            writer.tag(5, WireType.Varint).int32(message.workflowType);
         /* nimi.runtime.v1.VoiceAssetStatus status = 6; */
         if (message.status !== 0)
             writer.tag(6, WireType.Varint).int32(message.status);
@@ -1171,6 +1168,9 @@ class ListVoiceAssetsRequest$Type extends MessageType<ListVoiceAssetsRequest> {
         /* string connector_id = 9; */
         if (message.connectorId !== "")
             writer.tag(9, WireType.LengthDelimited).string(message.connectorId);
+        /* nimi.runtime.v1.VoiceCreationSource creation_source = 10; */
+        if (message.creationSource !== 0)
+            writer.tag(10, WireType.Varint).int32(message.creationSource);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

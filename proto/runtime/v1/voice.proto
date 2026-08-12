@@ -8,10 +8,10 @@ import "google/protobuf/struct.proto";
 import "google/protobuf/timestamp.proto";
 import "runtime/v1/common.proto";
 
-enum VoiceWorkflowType {
-  VOICE_WORKFLOW_TYPE_UNSPECIFIED = 0;
-  VOICE_WORKFLOW_TYPE_VOICE_CLONE = 1;
-  VOICE_WORKFLOW_TYPE_VOICE_DESIGN = 2;
+enum VoiceCreationSource {
+  VOICE_CREATION_SOURCE_UNSPECIFIED = 0;
+  VOICE_CREATION_SOURCE_TEXT_DESCRIPTION = 1;
+  VOICE_CREATION_SOURCE_REFERENCE_AUDIO = 2;
 }
 
 // VoiceOutputMode is the positive, authoritative selected output-truth axis for
@@ -92,7 +92,6 @@ message VoiceAsset {
   string voice_asset_id = 1;
   string app_id = 2;
   string subject_user_id = 3;
-  VoiceWorkflowType workflow_type = 4;
   string provider = 5;
   // model_id / target_model_id are post-resolve provider / catalog / audit /
   // voice asset compatibility facts only. Exact execution identity remains
@@ -106,8 +105,9 @@ message VoiceAsset {
   google.protobuf.Timestamp updated_at = 12;
   google.protobuf.Timestamp expires_at = 13;
   google.protobuf.Struct metadata = 14;
-  reserved 15, 16;
-  reserved "target_ref", "voice_asset_target_ref";
+  reserved 4, 15, 16;
+  reserved "workflow_type", "target_ref", "voice_asset_target_ref";
+  VoiceCreationSource creation_source = 17;
 }
 
 message VoiceV2VInput {
@@ -143,11 +143,13 @@ message ListVoiceAssetsRequest {
   string subject_user_id = 2;
   string model_id = 3;
   string target_model_id = 4;
-  VoiceWorkflowType workflow_type = 5;
   VoiceAssetStatus status = 6;
   int32 page_size = 7;
   string page_token = 8;
   string connector_id = 9;
+  reserved 5;
+  reserved "workflow_type";
+  VoiceCreationSource creation_source = 10;
 }
 
 message ListVoiceAssetsResponse {

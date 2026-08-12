@@ -4080,8 +4080,6 @@ pub struct VoiceAsset {
     pub app_id: ::prost::alloc::string::String,
     #[prost(string, tag = "3")]
     pub subject_user_id: ::prost::alloc::string::String,
-    #[prost(enumeration = "VoiceWorkflowType", tag = "4")]
-    pub workflow_type: i32,
     #[prost(string, tag = "5")]
     pub provider: ::prost::alloc::string::String,
     /// model_id / target_model_id are post-resolve provider / catalog / audit /
@@ -4105,6 +4103,8 @@ pub struct VoiceAsset {
     pub expires_at: ::core::option::Option<::prost_types::Timestamp>,
     #[prost(message, optional, tag = "14")]
     pub metadata: ::core::option::Option<::prost_types::Struct>,
+    #[prost(enumeration = "VoiceCreationSource", tag = "17")]
+    pub creation_source: i32,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct VoiceV2vInput {
@@ -4152,8 +4152,6 @@ pub struct ListVoiceAssetsRequest {
     pub model_id: ::prost::alloc::string::String,
     #[prost(string, tag = "4")]
     pub target_model_id: ::prost::alloc::string::String,
-    #[prost(enumeration = "VoiceWorkflowType", tag = "5")]
-    pub workflow_type: i32,
     #[prost(enumeration = "VoiceAssetStatus", tag = "6")]
     pub status: i32,
     #[prost(int32, tag = "7")]
@@ -4162,6 +4160,8 @@ pub struct ListVoiceAssetsRequest {
     pub page_token: ::prost::alloc::string::String,
     #[prost(string, tag = "9")]
     pub connector_id: ::prost::alloc::string::String,
+    #[prost(enumeration = "VoiceCreationSource", tag = "10")]
+    pub creation_source: i32,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ListVoiceAssetsResponse {
@@ -4204,29 +4204,29 @@ pub struct ListPresetVoicesResponse {
 }
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]
-pub enum VoiceWorkflowType {
+pub enum VoiceCreationSource {
     Unspecified = 0,
-    VoiceClone = 1,
-    VoiceDesign = 2,
+    TextDescription = 1,
+    ReferenceAudio = 2,
 }
-impl VoiceWorkflowType {
+impl VoiceCreationSource {
     /// String value of the enum field names used in the ProtoBuf definition.
     ///
     /// The values are not transformed in any way and thus are considered stable
     /// (if the ProtoBuf definition does not change) and safe for programmatic use.
     pub fn as_str_name(&self) -> &'static str {
         match self {
-            Self::Unspecified => "VOICE_WORKFLOW_TYPE_UNSPECIFIED",
-            Self::VoiceClone => "VOICE_WORKFLOW_TYPE_VOICE_CLONE",
-            Self::VoiceDesign => "VOICE_WORKFLOW_TYPE_VOICE_DESIGN",
+            Self::Unspecified => "VOICE_CREATION_SOURCE_UNSPECIFIED",
+            Self::TextDescription => "VOICE_CREATION_SOURCE_TEXT_DESCRIPTION",
+            Self::ReferenceAudio => "VOICE_CREATION_SOURCE_REFERENCE_AUDIO",
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
     pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
         match value {
-            "VOICE_WORKFLOW_TYPE_UNSPECIFIED" => Some(Self::Unspecified),
-            "VOICE_WORKFLOW_TYPE_VOICE_CLONE" => Some(Self::VoiceClone),
-            "VOICE_WORKFLOW_TYPE_VOICE_DESIGN" => Some(Self::VoiceDesign),
+            "VOICE_CREATION_SOURCE_UNSPECIFIED" => Some(Self::Unspecified),
+            "VOICE_CREATION_SOURCE_TEXT_DESCRIPTION" => Some(Self::TextDescription),
+            "VOICE_CREATION_SOURCE_REFERENCE_AUDIO" => Some(Self::ReferenceAudio),
             _ => None,
         }
     }
@@ -4736,18 +4736,21 @@ pub struct SpeechTranscribeScenarioSpec {
     pub response_format: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct VoiceCloneScenarioSpec {
+pub struct VoiceCreateScenarioSpec {
     #[prost(string, tag = "1")]
     pub target_model_id: ::prost::alloc::string::String,
-    #[prost(message, optional, tag = "2")]
-    pub input: ::core::option::Option<VoiceV2vInput>,
+    #[prost(oneof = "voice_create_scenario_spec::Source", tags = "2, 3")]
+    pub source: ::core::option::Option<voice_create_scenario_spec::Source>,
 }
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct VoiceDesignScenarioSpec {
-    #[prost(string, tag = "1")]
-    pub target_model_id: ::prost::alloc::string::String,
-    #[prost(message, optional, tag = "2")]
-    pub input: ::core::option::Option<VoiceT2vInput>,
+/// Nested message and enum types in `VoiceCreateScenarioSpec`.
+pub mod voice_create_scenario_spec {
+    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
+    pub enum Source {
+        #[prost(message, tag = "2")]
+        ReferenceAudio(super::VoiceV2vInput),
+        #[prost(message, tag = "3")]
+        TextDescription(super::VoiceT2vInput),
+    }
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct MusicGenerateScenarioSpec {
@@ -4830,7 +4833,7 @@ pub mod world_generate_scenario_spec {
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ScenarioSpec {
-    #[prost(oneof = "scenario_spec::Spec", tags = "1, 2, 3, 4, 5, 6, 7, 8, 9, 10")]
+    #[prost(oneof = "scenario_spec::Spec", tags = "1, 2, 3, 4, 5, 6, 9, 10, 11")]
     pub spec: ::core::option::Option<scenario_spec::Spec>,
 }
 /// Nested message and enum types in `ScenarioSpec`.
@@ -4849,14 +4852,12 @@ pub mod scenario_spec {
         SpeechSynthesize(super::SpeechSynthesizeScenarioSpec),
         #[prost(message, tag = "6")]
         SpeechTranscribe(super::SpeechTranscribeScenarioSpec),
-        #[prost(message, tag = "7")]
-        VoiceClone(super::VoiceCloneScenarioSpec),
-        #[prost(message, tag = "8")]
-        VoiceDesign(super::VoiceDesignScenarioSpec),
         #[prost(message, tag = "9")]
         MusicGenerate(super::MusicGenerateScenarioSpec),
         #[prost(message, tag = "10")]
         WorldGenerate(super::WorldGenerateScenarioSpec),
+        #[prost(message, tag = "11")]
+        VoiceCreate(super::VoiceCreateScenarioSpec),
     }
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -4954,8 +4955,6 @@ pub struct WorldGenerateResult {
     >,
     #[prost(message, optional, tag = "9")]
     pub semantics_metadata: ::core::option::Option<WorldGenerateSemanticsMetadata>,
-    #[prost(string, tag = "10")]
-    pub model: ::prost::alloc::string::String,
     #[prost(message, repeated, tag = "11")]
     pub artifacts: ::prost::alloc::vec::Vec<ScenarioArtifact>,
 }
@@ -5228,23 +5227,28 @@ pub struct LocalAppSpeechTranscribeJobSpec {
     #[prost(string, tag = "8")]
     pub response_format: ::prost::alloc::string::String,
 }
-/// Voice workflow specs omit target_model_id: Runtime resolves the exact
+/// Voice creation specs omit target_model_id: Runtime resolves the exact
 /// execution target from the App owner's committed AIConfig intent.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct LocalAppVoiceCloneJobSpec {
-    #[prost(message, optional, tag = "1")]
-    pub input: ::core::option::Option<VoiceV2vInput>,
+pub struct LocalAppVoiceCreateJobSpec {
+    #[prost(oneof = "local_app_voice_create_job_spec::Source", tags = "1, 2")]
+    pub source: ::core::option::Option<local_app_voice_create_job_spec::Source>,
 }
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct LocalAppVoiceDesignJobSpec {
-    #[prost(message, optional, tag = "1")]
-    pub input: ::core::option::Option<VoiceT2vInput>,
+/// Nested message and enum types in `LocalAppVoiceCreateJobSpec`.
+pub mod local_app_voice_create_job_spec {
+    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
+    pub enum Source {
+        #[prost(message, tag = "1")]
+        ReferenceAudio(super::VoiceV2vInput),
+        #[prost(message, tag = "2")]
+        TextDescription(super::VoiceT2vInput),
+    }
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct SubmitLocalAppScenarioJobRequest {
     #[prost(
         oneof = "submit_local_app_scenario_job_request::Spec",
-        tags = "1, 2, 3, 4, 5, 6"
+        tags = "1, 2, 3, 4, 7"
     )]
     pub spec: ::core::option::Option<submit_local_app_scenario_job_request::Spec>,
 }
@@ -5260,10 +5264,8 @@ pub mod submit_local_app_scenario_job_request {
         SpeechSynthesize(super::LocalAppSpeechSynthesizeJobSpec),
         #[prost(message, tag = "4")]
         SpeechTranscribe(super::LocalAppSpeechTranscribeJobSpec),
-        #[prost(message, tag = "5")]
-        VoiceClone(super::LocalAppVoiceCloneJobSpec),
-        #[prost(message, tag = "6")]
-        VoiceDesign(super::LocalAppVoiceDesignJobSpec),
+        #[prost(message, tag = "7")]
+        VoiceCreate(super::LocalAppVoiceCreateJobSpec),
     }
 }
 /// Trimmed Job projection for Local App consumption: status, progress, typed
@@ -5307,8 +5309,6 @@ pub struct LocalAppScenarioJob {
 pub struct LocalAppVoiceAsset {
     #[prost(string, tag = "1")]
     pub voice_asset_id: ::prost::alloc::string::String,
-    #[prost(enumeration = "VoiceWorkflowType", tag = "2")]
-    pub workflow_type: i32,
     #[prost(enumeration = "VoiceAssetStatus", tag = "3")]
     pub status: i32,
     #[prost(message, optional, tag = "4")]
@@ -5317,6 +5317,8 @@ pub struct LocalAppVoiceAsset {
     pub updated_at: ::core::option::Option<::prost_types::Timestamp>,
     #[prost(message, optional, tag = "6")]
     pub expires_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(enumeration = "VoiceCreationSource", tag = "7")]
+    pub creation_source: i32,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct SubmitLocalAppScenarioJobResponse {
@@ -6022,10 +6024,9 @@ pub enum ScenarioType {
     VideoGenerate = 4,
     SpeechSynthesize = 5,
     SpeechTranscribe = 6,
-    VoiceClone = 7,
-    VoiceDesign = 8,
     MusicGenerate = 9,
     WorldGenerate = 10,
+    VoiceCreate = 11,
 }
 impl ScenarioType {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -6041,10 +6042,9 @@ impl ScenarioType {
             Self::VideoGenerate => "SCENARIO_TYPE_VIDEO_GENERATE",
             Self::SpeechSynthesize => "SCENARIO_TYPE_SPEECH_SYNTHESIZE",
             Self::SpeechTranscribe => "SCENARIO_TYPE_SPEECH_TRANSCRIBE",
-            Self::VoiceClone => "SCENARIO_TYPE_VOICE_CLONE",
-            Self::VoiceDesign => "SCENARIO_TYPE_VOICE_DESIGN",
             Self::MusicGenerate => "SCENARIO_TYPE_MUSIC_GENERATE",
             Self::WorldGenerate => "SCENARIO_TYPE_WORLD_GENERATE",
+            Self::VoiceCreate => "SCENARIO_TYPE_VOICE_CREATE",
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
@@ -6057,10 +6057,9 @@ impl ScenarioType {
             "SCENARIO_TYPE_VIDEO_GENERATE" => Some(Self::VideoGenerate),
             "SCENARIO_TYPE_SPEECH_SYNTHESIZE" => Some(Self::SpeechSynthesize),
             "SCENARIO_TYPE_SPEECH_TRANSCRIBE" => Some(Self::SpeechTranscribe),
-            "SCENARIO_TYPE_VOICE_CLONE" => Some(Self::VoiceClone),
-            "SCENARIO_TYPE_VOICE_DESIGN" => Some(Self::VoiceDesign),
             "SCENARIO_TYPE_MUSIC_GENERATE" => Some(Self::MusicGenerate),
             "SCENARIO_TYPE_WORLD_GENERATE" => Some(Self::WorldGenerate),
+            "SCENARIO_TYPE_VOICE_CREATE" => Some(Self::VoiceCreate),
             _ => None,
         }
     }

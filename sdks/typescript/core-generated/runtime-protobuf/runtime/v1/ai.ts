@@ -27,8 +27,8 @@ import { reflectionMergePartial } from "@protobuf-ts/runtime";
 import { MessageType } from "@protobuf-ts/runtime";
 import { VoiceAsset } from "./voice";
 import { VoiceOutputMode } from "./voice";
+import { VoiceCreationSource } from "./voice";
 import { VoiceAssetStatus } from "./voice";
-import { VoiceWorkflowType } from "./voice";
 import { Timestamp } from "../../google/protobuf/timestamp";
 import { ReasonCode } from "./common";
 import { UsageStats } from "./common";
@@ -658,30 +658,31 @@ export interface SpeechTranscribeScenarioSpec {
     responseFormat: string;
 }
 /**
- * @generated from protobuf message nimi.runtime.v1.VoiceCloneScenarioSpec
+ * @generated from protobuf message nimi.runtime.v1.VoiceCreateScenarioSpec
  */
-export interface VoiceCloneScenarioSpec {
+export interface VoiceCreateScenarioSpec {
     /**
      * @generated from protobuf field: string target_model_id = 1
      */
     targetModelId: string;
     /**
-     * @generated from protobuf field: nimi.runtime.v1.VoiceV2VInput input = 2
+     * @generated from protobuf oneof: source
      */
-    input?: VoiceV2VInput;
-}
-/**
- * @generated from protobuf message nimi.runtime.v1.VoiceDesignScenarioSpec
- */
-export interface VoiceDesignScenarioSpec {
-    /**
-     * @generated from protobuf field: string target_model_id = 1
-     */
-    targetModelId: string;
-    /**
-     * @generated from protobuf field: nimi.runtime.v1.VoiceT2VInput input = 2
-     */
-    input?: VoiceT2VInput;
+    source: {
+        oneofKind: "referenceAudio";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.VoiceV2VInput reference_audio = 2
+         */
+        referenceAudio: VoiceV2VInput;
+    } | {
+        oneofKind: "textDescription";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.VoiceT2VInput text_description = 3
+         */
+        textDescription: VoiceT2VInput;
+    } | {
+        oneofKind: undefined;
+    };
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.MusicGenerateScenarioSpec
@@ -868,18 +869,6 @@ export interface ScenarioSpec {
          */
         speechTranscribe: SpeechTranscribeScenarioSpec;
     } | {
-        oneofKind: "voiceClone";
-        /**
-         * @generated from protobuf field: nimi.runtime.v1.VoiceCloneScenarioSpec voice_clone = 7
-         */
-        voiceClone: VoiceCloneScenarioSpec;
-    } | {
-        oneofKind: "voiceDesign";
-        /**
-         * @generated from protobuf field: nimi.runtime.v1.VoiceDesignScenarioSpec voice_design = 8
-         */
-        voiceDesign: VoiceDesignScenarioSpec;
-    } | {
         oneofKind: "musicGenerate";
         /**
          * @generated from protobuf field: nimi.runtime.v1.MusicGenerateScenarioSpec music_generate = 9
@@ -891,6 +880,12 @@ export interface ScenarioSpec {
          * @generated from protobuf field: nimi.runtime.v1.WorldGenerateScenarioSpec world_generate = 10
          */
         worldGenerate: WorldGenerateScenarioSpec;
+    } | {
+        oneofKind: "voiceCreate";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.VoiceCreateScenarioSpec voice_create = 11
+         */
+        voiceCreate: VoiceCreateScenarioSpec;
     } | {
         oneofKind: undefined;
     };
@@ -1071,10 +1066,6 @@ export interface WorldGenerateResult {
      * @generated from protobuf field: nimi.runtime.v1.WorldGenerateSemanticsMetadata semantics_metadata = 9
      */
     semanticsMetadata?: WorldGenerateSemanticsMetadata;
-    /**
-     * @generated from protobuf field: string model = 10
-     */
-    model: string;
     /**
      * @generated from protobuf field: repeated nimi.runtime.v1.ScenarioArtifact artifacts = 11
      */
@@ -1596,25 +1587,30 @@ export interface LocalAppSpeechTranscribeJobSpec {
     responseFormat: string;
 }
 /**
- * Voice workflow specs omit target_model_id: Runtime resolves the exact
+ * Voice creation specs omit target_model_id: Runtime resolves the exact
  * execution target from the App owner's committed AIConfig intent.
  *
- * @generated from protobuf message nimi.runtime.v1.LocalAppVoiceCloneJobSpec
+ * @generated from protobuf message nimi.runtime.v1.LocalAppVoiceCreateJobSpec
  */
-export interface LocalAppVoiceCloneJobSpec {
+export interface LocalAppVoiceCreateJobSpec {
     /**
-     * @generated from protobuf field: nimi.runtime.v1.VoiceV2VInput input = 1
+     * @generated from protobuf oneof: source
      */
-    input?: VoiceV2VInput;
-}
-/**
- * @generated from protobuf message nimi.runtime.v1.LocalAppVoiceDesignJobSpec
- */
-export interface LocalAppVoiceDesignJobSpec {
-    /**
-     * @generated from protobuf field: nimi.runtime.v1.VoiceT2VInput input = 1
-     */
-    input?: VoiceT2VInput;
+    source: {
+        oneofKind: "referenceAudio";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.VoiceV2VInput reference_audio = 1
+         */
+        referenceAudio: VoiceV2VInput;
+    } | {
+        oneofKind: "textDescription";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.VoiceT2VInput text_description = 2
+         */
+        textDescription: VoiceT2VInput;
+    } | {
+        oneofKind: undefined;
+    };
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.SubmitLocalAppScenarioJobRequest
@@ -1648,17 +1644,11 @@ export interface SubmitLocalAppScenarioJobRequest {
          */
         speechTranscribe: LocalAppSpeechTranscribeJobSpec;
     } | {
-        oneofKind: "voiceClone";
+        oneofKind: "voiceCreate";
         /**
-         * @generated from protobuf field: nimi.runtime.v1.LocalAppVoiceCloneJobSpec voice_clone = 5
+         * @generated from protobuf field: nimi.runtime.v1.LocalAppVoiceCreateJobSpec voice_create = 7
          */
-        voiceClone: LocalAppVoiceCloneJobSpec;
-    } | {
-        oneofKind: "voiceDesign";
-        /**
-         * @generated from protobuf field: nimi.runtime.v1.LocalAppVoiceDesignJobSpec voice_design = 6
-         */
-        voiceDesign: LocalAppVoiceDesignJobSpec;
+        voiceCreate: LocalAppVoiceCreateJobSpec;
     } | {
         oneofKind: undefined;
     };
@@ -1740,10 +1730,6 @@ export interface LocalAppVoiceAsset {
      */
     voiceAssetId: string;
     /**
-     * @generated from protobuf field: nimi.runtime.v1.VoiceWorkflowType workflow_type = 2
-     */
-    workflowType: VoiceWorkflowType;
-    /**
      * @generated from protobuf field: nimi.runtime.v1.VoiceAssetStatus status = 3
      */
     status: VoiceAssetStatus;
@@ -1759,6 +1745,10 @@ export interface LocalAppVoiceAsset {
      * @generated from protobuf field: google.protobuf.Timestamp expires_at = 6
      */
     expiresAt?: Timestamp;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.VoiceCreationSource creation_source = 7
+     */
+    creationSource: VoiceCreationSource;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.SubmitLocalAppScenarioJobResponse
@@ -1772,6 +1762,14 @@ export interface SubmitLocalAppScenarioJobResponse {
      * @generated from protobuf field: nimi.runtime.v1.LocalAppVoiceAsset asset = 2
      */
     asset?: LocalAppVoiceAsset;
+    /**
+     * Canonical reusable result handle for voice.create. The protected Local
+     * App surface only returns a VoiceAsset-backed reference and never projects
+     * a provider-owned voice handle.
+     *
+     * @generated from protobuf field: nimi.runtime.v1.VoiceReference voice_reference = 3
+     */
+    voiceReference?: VoiceReference;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.GetLocalAppScenarioJobRequest
@@ -2493,6 +2491,13 @@ export interface SubmitScenarioJobResponse {
      * @generated from protobuf field: nimi.runtime.v1.VoiceAsset asset = 2
      */
     asset?: VoiceAsset;
+    /**
+     * voice.create returns both the durable VoiceAsset and the typed public
+     * reference callers use for subsequent synthesis or agent binding.
+     *
+     * @generated from protobuf field: nimi.runtime.v1.VoiceReference voice_reference = 3
+     */
+    voiceReference?: VoiceReference;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.GetScenarioJobRequest
@@ -3037,21 +3042,17 @@ export enum ScenarioType {
      */
     SPEECH_TRANSCRIBE = 6,
     /**
-     * @generated from protobuf enum value: SCENARIO_TYPE_VOICE_CLONE = 7;
-     */
-    VOICE_CLONE = 7,
-    /**
-     * @generated from protobuf enum value: SCENARIO_TYPE_VOICE_DESIGN = 8;
-     */
-    VOICE_DESIGN = 8,
-    /**
      * @generated from protobuf enum value: SCENARIO_TYPE_MUSIC_GENERATE = 9;
      */
     MUSIC_GENERATE = 9,
     /**
      * @generated from protobuf enum value: SCENARIO_TYPE_WORLD_GENERATE = 10;
      */
-    WORLD_GENERATE = 10
+    WORLD_GENERATE = 10,
+    /**
+     * @generated from protobuf enum value: SCENARIO_TYPE_VOICE_CREATE = 11;
+     */
+    VOICE_CREATE = 11
 }
 /**
  * @generated from protobuf enum nimi.runtime.v1.ExecutionMode
@@ -5348,21 +5349,23 @@ class SpeechTranscribeScenarioSpec$Type extends MessageType<SpeechTranscribeScen
  */
 export const SpeechTranscribeScenarioSpec = new SpeechTranscribeScenarioSpec$Type();
 // @generated message type with reflection information, may provide speed optimized methods
-class VoiceCloneScenarioSpec$Type extends MessageType<VoiceCloneScenarioSpec> {
+class VoiceCreateScenarioSpec$Type extends MessageType<VoiceCreateScenarioSpec> {
     constructor() {
-        super("nimi.runtime.v1.VoiceCloneScenarioSpec", [
+        super("nimi.runtime.v1.VoiceCreateScenarioSpec", [
             { no: 1, name: "target_model_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "input", kind: "message", T: () => VoiceV2VInput }
+            { no: 2, name: "reference_audio", kind: "message", oneof: "source", T: () => VoiceV2VInput },
+            { no: 3, name: "text_description", kind: "message", oneof: "source", T: () => VoiceT2VInput }
         ]);
     }
-    create(value?: PartialMessage<VoiceCloneScenarioSpec>): VoiceCloneScenarioSpec {
+    create(value?: PartialMessage<VoiceCreateScenarioSpec>): VoiceCreateScenarioSpec {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.targetModelId = "";
+        message.source = { oneofKind: undefined };
         if (value !== undefined)
-            reflectionMergePartial<VoiceCloneScenarioSpec>(this, message, value);
+            reflectionMergePartial<VoiceCreateScenarioSpec>(this, message, value);
         return message;
     }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: VoiceCloneScenarioSpec): VoiceCloneScenarioSpec {
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: VoiceCreateScenarioSpec): VoiceCreateScenarioSpec {
         let message = target ?? this.create(), end = reader.pos + length;
         while (reader.pos < end) {
             let [fieldNo, wireType] = reader.tag();
@@ -5370,8 +5373,17 @@ class VoiceCloneScenarioSpec$Type extends MessageType<VoiceCloneScenarioSpec> {
                 case /* string target_model_id */ 1:
                     message.targetModelId = reader.string();
                     break;
-                case /* nimi.runtime.v1.VoiceV2VInput input */ 2:
-                    message.input = VoiceV2VInput.internalBinaryRead(reader, reader.uint32(), options, message.input);
+                case /* nimi.runtime.v1.VoiceV2VInput reference_audio */ 2:
+                    message.source = {
+                        oneofKind: "referenceAudio",
+                        referenceAudio: VoiceV2VInput.internalBinaryRead(reader, reader.uint32(), options, (message.source as any).referenceAudio)
+                    };
+                    break;
+                case /* nimi.runtime.v1.VoiceT2VInput text_description */ 3:
+                    message.source = {
+                        oneofKind: "textDescription",
+                        textDescription: VoiceT2VInput.internalBinaryRead(reader, reader.uint32(), options, (message.source as any).textDescription)
+                    };
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -5384,13 +5396,16 @@ class VoiceCloneScenarioSpec$Type extends MessageType<VoiceCloneScenarioSpec> {
         }
         return message;
     }
-    internalBinaryWrite(message: VoiceCloneScenarioSpec, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+    internalBinaryWrite(message: VoiceCreateScenarioSpec, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
         /* string target_model_id = 1; */
         if (message.targetModelId !== "")
             writer.tag(1, WireType.LengthDelimited).string(message.targetModelId);
-        /* nimi.runtime.v1.VoiceV2VInput input = 2; */
-        if (message.input)
-            VoiceV2VInput.internalBinaryWrite(message.input, writer.tag(2, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.VoiceV2VInput reference_audio = 2; */
+        if (message.source.oneofKind === "referenceAudio")
+            VoiceV2VInput.internalBinaryWrite(message.source.referenceAudio, writer.tag(2, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.VoiceT2VInput text_description = 3; */
+        if (message.source.oneofKind === "textDescription")
+            VoiceT2VInput.internalBinaryWrite(message.source.textDescription, writer.tag(3, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -5398,63 +5413,9 @@ class VoiceCloneScenarioSpec$Type extends MessageType<VoiceCloneScenarioSpec> {
     }
 }
 /**
- * @generated MessageType for protobuf message nimi.runtime.v1.VoiceCloneScenarioSpec
+ * @generated MessageType for protobuf message nimi.runtime.v1.VoiceCreateScenarioSpec
  */
-export const VoiceCloneScenarioSpec = new VoiceCloneScenarioSpec$Type();
-// @generated message type with reflection information, may provide speed optimized methods
-class VoiceDesignScenarioSpec$Type extends MessageType<VoiceDesignScenarioSpec> {
-    constructor() {
-        super("nimi.runtime.v1.VoiceDesignScenarioSpec", [
-            { no: 1, name: "target_model_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "input", kind: "message", T: () => VoiceT2VInput }
-        ]);
-    }
-    create(value?: PartialMessage<VoiceDesignScenarioSpec>): VoiceDesignScenarioSpec {
-        const message = globalThis.Object.create((this.messagePrototype!));
-        message.targetModelId = "";
-        if (value !== undefined)
-            reflectionMergePartial<VoiceDesignScenarioSpec>(this, message, value);
-        return message;
-    }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: VoiceDesignScenarioSpec): VoiceDesignScenarioSpec {
-        let message = target ?? this.create(), end = reader.pos + length;
-        while (reader.pos < end) {
-            let [fieldNo, wireType] = reader.tag();
-            switch (fieldNo) {
-                case /* string target_model_id */ 1:
-                    message.targetModelId = reader.string();
-                    break;
-                case /* nimi.runtime.v1.VoiceT2VInput input */ 2:
-                    message.input = VoiceT2VInput.internalBinaryRead(reader, reader.uint32(), options, message.input);
-                    break;
-                default:
-                    let u = options.readUnknownField;
-                    if (u === "throw")
-                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
-                    let d = reader.skip(wireType);
-                    if (u !== false)
-                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
-            }
-        }
-        return message;
-    }
-    internalBinaryWrite(message: VoiceDesignScenarioSpec, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* string target_model_id = 1; */
-        if (message.targetModelId !== "")
-            writer.tag(1, WireType.LengthDelimited).string(message.targetModelId);
-        /* nimi.runtime.v1.VoiceT2VInput input = 2; */
-        if (message.input)
-            VoiceT2VInput.internalBinaryWrite(message.input, writer.tag(2, WireType.LengthDelimited).fork(), options).join();
-        let u = options.writeUnknownFields;
-        if (u !== false)
-            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
-        return writer;
-    }
-}
-/**
- * @generated MessageType for protobuf message nimi.runtime.v1.VoiceDesignScenarioSpec
- */
-export const VoiceDesignScenarioSpec = new VoiceDesignScenarioSpec$Type();
+export const VoiceCreateScenarioSpec = new VoiceCreateScenarioSpec$Type();
 // @generated message type with reflection information, may provide speed optimized methods
 class MusicGenerateScenarioSpec$Type extends MessageType<MusicGenerateScenarioSpec> {
     constructor() {
@@ -5915,10 +5876,9 @@ class ScenarioSpec$Type extends MessageType<ScenarioSpec> {
             { no: 4, name: "video_generate", kind: "message", oneof: "spec", T: () => VideoGenerateScenarioSpec },
             { no: 5, name: "speech_synthesize", kind: "message", oneof: "spec", T: () => SpeechSynthesizeScenarioSpec },
             { no: 6, name: "speech_transcribe", kind: "message", oneof: "spec", T: () => SpeechTranscribeScenarioSpec },
-            { no: 7, name: "voice_clone", kind: "message", oneof: "spec", T: () => VoiceCloneScenarioSpec },
-            { no: 8, name: "voice_design", kind: "message", oneof: "spec", T: () => VoiceDesignScenarioSpec },
             { no: 9, name: "music_generate", kind: "message", oneof: "spec", T: () => MusicGenerateScenarioSpec },
-            { no: 10, name: "world_generate", kind: "message", oneof: "spec", T: () => WorldGenerateScenarioSpec }
+            { no: 10, name: "world_generate", kind: "message", oneof: "spec", T: () => WorldGenerateScenarioSpec },
+            { no: 11, name: "voice_create", kind: "message", oneof: "spec", T: () => VoiceCreateScenarioSpec }
         ]);
     }
     create(value?: PartialMessage<ScenarioSpec>): ScenarioSpec {
@@ -5969,18 +5929,6 @@ class ScenarioSpec$Type extends MessageType<ScenarioSpec> {
                         speechTranscribe: SpeechTranscribeScenarioSpec.internalBinaryRead(reader, reader.uint32(), options, (message.spec as any).speechTranscribe)
                     };
                     break;
-                case /* nimi.runtime.v1.VoiceCloneScenarioSpec voice_clone */ 7:
-                    message.spec = {
-                        oneofKind: "voiceClone",
-                        voiceClone: VoiceCloneScenarioSpec.internalBinaryRead(reader, reader.uint32(), options, (message.spec as any).voiceClone)
-                    };
-                    break;
-                case /* nimi.runtime.v1.VoiceDesignScenarioSpec voice_design */ 8:
-                    message.spec = {
-                        oneofKind: "voiceDesign",
-                        voiceDesign: VoiceDesignScenarioSpec.internalBinaryRead(reader, reader.uint32(), options, (message.spec as any).voiceDesign)
-                    };
-                    break;
                 case /* nimi.runtime.v1.MusicGenerateScenarioSpec music_generate */ 9:
                     message.spec = {
                         oneofKind: "musicGenerate",
@@ -5991,6 +5939,12 @@ class ScenarioSpec$Type extends MessageType<ScenarioSpec> {
                     message.spec = {
                         oneofKind: "worldGenerate",
                         worldGenerate: WorldGenerateScenarioSpec.internalBinaryRead(reader, reader.uint32(), options, (message.spec as any).worldGenerate)
+                    };
+                    break;
+                case /* nimi.runtime.v1.VoiceCreateScenarioSpec voice_create */ 11:
+                    message.spec = {
+                        oneofKind: "voiceCreate",
+                        voiceCreate: VoiceCreateScenarioSpec.internalBinaryRead(reader, reader.uint32(), options, (message.spec as any).voiceCreate)
                     };
                     break;
                 default:
@@ -6023,18 +5977,15 @@ class ScenarioSpec$Type extends MessageType<ScenarioSpec> {
         /* nimi.runtime.v1.SpeechTranscribeScenarioSpec speech_transcribe = 6; */
         if (message.spec.oneofKind === "speechTranscribe")
             SpeechTranscribeScenarioSpec.internalBinaryWrite(message.spec.speechTranscribe, writer.tag(6, WireType.LengthDelimited).fork(), options).join();
-        /* nimi.runtime.v1.VoiceCloneScenarioSpec voice_clone = 7; */
-        if (message.spec.oneofKind === "voiceClone")
-            VoiceCloneScenarioSpec.internalBinaryWrite(message.spec.voiceClone, writer.tag(7, WireType.LengthDelimited).fork(), options).join();
-        /* nimi.runtime.v1.VoiceDesignScenarioSpec voice_design = 8; */
-        if (message.spec.oneofKind === "voiceDesign")
-            VoiceDesignScenarioSpec.internalBinaryWrite(message.spec.voiceDesign, writer.tag(8, WireType.LengthDelimited).fork(), options).join();
         /* nimi.runtime.v1.MusicGenerateScenarioSpec music_generate = 9; */
         if (message.spec.oneofKind === "musicGenerate")
             MusicGenerateScenarioSpec.internalBinaryWrite(message.spec.musicGenerate, writer.tag(9, WireType.LengthDelimited).fork(), options).join();
         /* nimi.runtime.v1.WorldGenerateScenarioSpec world_generate = 10; */
         if (message.spec.oneofKind === "worldGenerate")
             WorldGenerateScenarioSpec.internalBinaryWrite(message.spec.worldGenerate, writer.tag(10, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.VoiceCreateScenarioSpec voice_create = 11; */
+        if (message.spec.oneofKind === "voiceCreate")
+            VoiceCreateScenarioSpec.internalBinaryWrite(message.spec.voiceCreate, writer.tag(11, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -6622,7 +6573,6 @@ class WorldGenerateResult$Type extends MessageType<WorldGenerateResult> {
             { no: 7, name: "collider_mesh_url", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 8, name: "spz_urls", kind: "map", K: 9 /*ScalarType.STRING*/, V: { kind: "scalar", T: 9 /*ScalarType.STRING*/ } },
             { no: 9, name: "semantics_metadata", kind: "message", T: () => WorldGenerateSemanticsMetadata },
-            { no: 10, name: "model", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 11, name: "artifacts", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => ScenarioArtifact }
         ]);
     }
@@ -6636,7 +6586,6 @@ class WorldGenerateResult$Type extends MessageType<WorldGenerateResult> {
         message.panoUrl = "";
         message.colliderMeshUrl = "";
         message.spzUrls = {};
-        message.model = "";
         message.artifacts = [];
         if (value !== undefined)
             reflectionMergePartial<WorldGenerateResult>(this, message, value);
@@ -6673,9 +6622,6 @@ class WorldGenerateResult$Type extends MessageType<WorldGenerateResult> {
                     break;
                 case /* nimi.runtime.v1.WorldGenerateSemanticsMetadata semantics_metadata */ 9:
                     message.semanticsMetadata = WorldGenerateSemanticsMetadata.internalBinaryRead(reader, reader.uint32(), options, message.semanticsMetadata);
-                    break;
-                case /* string model */ 10:
-                    message.model = reader.string();
                     break;
                 case /* repeated nimi.runtime.v1.ScenarioArtifact artifacts */ 11:
                     message.artifacts.push(ScenarioArtifact.internalBinaryRead(reader, reader.uint32(), options));
@@ -6735,9 +6681,6 @@ class WorldGenerateResult$Type extends MessageType<WorldGenerateResult> {
         /* nimi.runtime.v1.WorldGenerateSemanticsMetadata semantics_metadata = 9; */
         if (message.semanticsMetadata)
             WorldGenerateSemanticsMetadata.internalBinaryWrite(message.semanticsMetadata, writer.tag(9, WireType.LengthDelimited).fork(), options).join();
-        /* string model = 10; */
-        if (message.model !== "")
-            writer.tag(10, WireType.LengthDelimited).string(message.model);
         /* repeated nimi.runtime.v1.ScenarioArtifact artifacts = 11; */
         for (let i = 0; i < message.artifacts.length; i++)
             ScenarioArtifact.internalBinaryWrite(message.artifacts[i], writer.tag(11, WireType.LengthDelimited).fork(), options).join();
@@ -8116,25 +8059,36 @@ class LocalAppSpeechTranscribeJobSpec$Type extends MessageType<LocalAppSpeechTra
  */
 export const LocalAppSpeechTranscribeJobSpec = new LocalAppSpeechTranscribeJobSpec$Type();
 // @generated message type with reflection information, may provide speed optimized methods
-class LocalAppVoiceCloneJobSpec$Type extends MessageType<LocalAppVoiceCloneJobSpec> {
+class LocalAppVoiceCreateJobSpec$Type extends MessageType<LocalAppVoiceCreateJobSpec> {
     constructor() {
-        super("nimi.runtime.v1.LocalAppVoiceCloneJobSpec", [
-            { no: 1, name: "input", kind: "message", T: () => VoiceV2VInput }
+        super("nimi.runtime.v1.LocalAppVoiceCreateJobSpec", [
+            { no: 1, name: "reference_audio", kind: "message", oneof: "source", T: () => VoiceV2VInput },
+            { no: 2, name: "text_description", kind: "message", oneof: "source", T: () => VoiceT2VInput }
         ]);
     }
-    create(value?: PartialMessage<LocalAppVoiceCloneJobSpec>): LocalAppVoiceCloneJobSpec {
+    create(value?: PartialMessage<LocalAppVoiceCreateJobSpec>): LocalAppVoiceCreateJobSpec {
         const message = globalThis.Object.create((this.messagePrototype!));
+        message.source = { oneofKind: undefined };
         if (value !== undefined)
-            reflectionMergePartial<LocalAppVoiceCloneJobSpec>(this, message, value);
+            reflectionMergePartial<LocalAppVoiceCreateJobSpec>(this, message, value);
         return message;
     }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalAppVoiceCloneJobSpec): LocalAppVoiceCloneJobSpec {
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalAppVoiceCreateJobSpec): LocalAppVoiceCreateJobSpec {
         let message = target ?? this.create(), end = reader.pos + length;
         while (reader.pos < end) {
             let [fieldNo, wireType] = reader.tag();
             switch (fieldNo) {
-                case /* nimi.runtime.v1.VoiceV2VInput input */ 1:
-                    message.input = VoiceV2VInput.internalBinaryRead(reader, reader.uint32(), options, message.input);
+                case /* nimi.runtime.v1.VoiceV2VInput reference_audio */ 1:
+                    message.source = {
+                        oneofKind: "referenceAudio",
+                        referenceAudio: VoiceV2VInput.internalBinaryRead(reader, reader.uint32(), options, (message.source as any).referenceAudio)
+                    };
+                    break;
+                case /* nimi.runtime.v1.VoiceT2VInput text_description */ 2:
+                    message.source = {
+                        oneofKind: "textDescription",
+                        textDescription: VoiceT2VInput.internalBinaryRead(reader, reader.uint32(), options, (message.source as any).textDescription)
+                    };
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -8147,10 +8101,13 @@ class LocalAppVoiceCloneJobSpec$Type extends MessageType<LocalAppVoiceCloneJobSp
         }
         return message;
     }
-    internalBinaryWrite(message: LocalAppVoiceCloneJobSpec, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* nimi.runtime.v1.VoiceV2VInput input = 1; */
-        if (message.input)
-            VoiceV2VInput.internalBinaryWrite(message.input, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+    internalBinaryWrite(message: LocalAppVoiceCreateJobSpec, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.VoiceV2VInput reference_audio = 1; */
+        if (message.source.oneofKind === "referenceAudio")
+            VoiceV2VInput.internalBinaryWrite(message.source.referenceAudio, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.VoiceT2VInput text_description = 2; */
+        if (message.source.oneofKind === "textDescription")
+            VoiceT2VInput.internalBinaryWrite(message.source.textDescription, writer.tag(2, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -8158,55 +8115,9 @@ class LocalAppVoiceCloneJobSpec$Type extends MessageType<LocalAppVoiceCloneJobSp
     }
 }
 /**
- * @generated MessageType for protobuf message nimi.runtime.v1.LocalAppVoiceCloneJobSpec
+ * @generated MessageType for protobuf message nimi.runtime.v1.LocalAppVoiceCreateJobSpec
  */
-export const LocalAppVoiceCloneJobSpec = new LocalAppVoiceCloneJobSpec$Type();
-// @generated message type with reflection information, may provide speed optimized methods
-class LocalAppVoiceDesignJobSpec$Type extends MessageType<LocalAppVoiceDesignJobSpec> {
-    constructor() {
-        super("nimi.runtime.v1.LocalAppVoiceDesignJobSpec", [
-            { no: 1, name: "input", kind: "message", T: () => VoiceT2VInput }
-        ]);
-    }
-    create(value?: PartialMessage<LocalAppVoiceDesignJobSpec>): LocalAppVoiceDesignJobSpec {
-        const message = globalThis.Object.create((this.messagePrototype!));
-        if (value !== undefined)
-            reflectionMergePartial<LocalAppVoiceDesignJobSpec>(this, message, value);
-        return message;
-    }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalAppVoiceDesignJobSpec): LocalAppVoiceDesignJobSpec {
-        let message = target ?? this.create(), end = reader.pos + length;
-        while (reader.pos < end) {
-            let [fieldNo, wireType] = reader.tag();
-            switch (fieldNo) {
-                case /* nimi.runtime.v1.VoiceT2VInput input */ 1:
-                    message.input = VoiceT2VInput.internalBinaryRead(reader, reader.uint32(), options, message.input);
-                    break;
-                default:
-                    let u = options.readUnknownField;
-                    if (u === "throw")
-                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
-                    let d = reader.skip(wireType);
-                    if (u !== false)
-                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
-            }
-        }
-        return message;
-    }
-    internalBinaryWrite(message: LocalAppVoiceDesignJobSpec, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* nimi.runtime.v1.VoiceT2VInput input = 1; */
-        if (message.input)
-            VoiceT2VInput.internalBinaryWrite(message.input, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
-        let u = options.writeUnknownFields;
-        if (u !== false)
-            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
-        return writer;
-    }
-}
-/**
- * @generated MessageType for protobuf message nimi.runtime.v1.LocalAppVoiceDesignJobSpec
- */
-export const LocalAppVoiceDesignJobSpec = new LocalAppVoiceDesignJobSpec$Type();
+export const LocalAppVoiceCreateJobSpec = new LocalAppVoiceCreateJobSpec$Type();
 // @generated message type with reflection information, may provide speed optimized methods
 class SubmitLocalAppScenarioJobRequest$Type extends MessageType<SubmitLocalAppScenarioJobRequest> {
     constructor() {
@@ -8215,8 +8126,7 @@ class SubmitLocalAppScenarioJobRequest$Type extends MessageType<SubmitLocalAppSc
             { no: 2, name: "video_generate", kind: "message", oneof: "spec", T: () => LocalAppVideoGenerateJobSpec },
             { no: 3, name: "speech_synthesize", kind: "message", oneof: "spec", T: () => LocalAppSpeechSynthesizeJobSpec },
             { no: 4, name: "speech_transcribe", kind: "message", oneof: "spec", T: () => LocalAppSpeechTranscribeJobSpec },
-            { no: 5, name: "voice_clone", kind: "message", oneof: "spec", T: () => LocalAppVoiceCloneJobSpec },
-            { no: 6, name: "voice_design", kind: "message", oneof: "spec", T: () => LocalAppVoiceDesignJobSpec }
+            { no: 7, name: "voice_create", kind: "message", oneof: "spec", T: () => LocalAppVoiceCreateJobSpec }
         ]);
     }
     create(value?: PartialMessage<SubmitLocalAppScenarioJobRequest>): SubmitLocalAppScenarioJobRequest {
@@ -8255,16 +8165,10 @@ class SubmitLocalAppScenarioJobRequest$Type extends MessageType<SubmitLocalAppSc
                         speechTranscribe: LocalAppSpeechTranscribeJobSpec.internalBinaryRead(reader, reader.uint32(), options, (message.spec as any).speechTranscribe)
                     };
                     break;
-                case /* nimi.runtime.v1.LocalAppVoiceCloneJobSpec voice_clone */ 5:
+                case /* nimi.runtime.v1.LocalAppVoiceCreateJobSpec voice_create */ 7:
                     message.spec = {
-                        oneofKind: "voiceClone",
-                        voiceClone: LocalAppVoiceCloneJobSpec.internalBinaryRead(reader, reader.uint32(), options, (message.spec as any).voiceClone)
-                    };
-                    break;
-                case /* nimi.runtime.v1.LocalAppVoiceDesignJobSpec voice_design */ 6:
-                    message.spec = {
-                        oneofKind: "voiceDesign",
-                        voiceDesign: LocalAppVoiceDesignJobSpec.internalBinaryRead(reader, reader.uint32(), options, (message.spec as any).voiceDesign)
+                        oneofKind: "voiceCreate",
+                        voiceCreate: LocalAppVoiceCreateJobSpec.internalBinaryRead(reader, reader.uint32(), options, (message.spec as any).voiceCreate)
                     };
                     break;
                 default:
@@ -8291,12 +8195,9 @@ class SubmitLocalAppScenarioJobRequest$Type extends MessageType<SubmitLocalAppSc
         /* nimi.runtime.v1.LocalAppSpeechTranscribeJobSpec speech_transcribe = 4; */
         if (message.spec.oneofKind === "speechTranscribe")
             LocalAppSpeechTranscribeJobSpec.internalBinaryWrite(message.spec.speechTranscribe, writer.tag(4, WireType.LengthDelimited).fork(), options).join();
-        /* nimi.runtime.v1.LocalAppVoiceCloneJobSpec voice_clone = 5; */
-        if (message.spec.oneofKind === "voiceClone")
-            LocalAppVoiceCloneJobSpec.internalBinaryWrite(message.spec.voiceClone, writer.tag(5, WireType.LengthDelimited).fork(), options).join();
-        /* nimi.runtime.v1.LocalAppVoiceDesignJobSpec voice_design = 6; */
-        if (message.spec.oneofKind === "voiceDesign")
-            LocalAppVoiceDesignJobSpec.internalBinaryWrite(message.spec.voiceDesign, writer.tag(6, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.LocalAppVoiceCreateJobSpec voice_create = 7; */
+        if (message.spec.oneofKind === "voiceCreate")
+            LocalAppVoiceCreateJobSpec.internalBinaryWrite(message.spec.voiceCreate, writer.tag(7, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -8453,18 +8354,18 @@ class LocalAppVoiceAsset$Type extends MessageType<LocalAppVoiceAsset> {
     constructor() {
         super("nimi.runtime.v1.LocalAppVoiceAsset", [
             { no: 1, name: "voice_asset_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "workflow_type", kind: "enum", T: () => ["nimi.runtime.v1.VoiceWorkflowType", VoiceWorkflowType, "VOICE_WORKFLOW_TYPE_"] },
             { no: 3, name: "status", kind: "enum", T: () => ["nimi.runtime.v1.VoiceAssetStatus", VoiceAssetStatus, "VOICE_ASSET_STATUS_"] },
             { no: 4, name: "created_at", kind: "message", T: () => Timestamp },
             { no: 5, name: "updated_at", kind: "message", T: () => Timestamp },
-            { no: 6, name: "expires_at", kind: "message", T: () => Timestamp }
+            { no: 6, name: "expires_at", kind: "message", T: () => Timestamp },
+            { no: 7, name: "creation_source", kind: "enum", T: () => ["nimi.runtime.v1.VoiceCreationSource", VoiceCreationSource, "VOICE_CREATION_SOURCE_"] }
         ]);
     }
     create(value?: PartialMessage<LocalAppVoiceAsset>): LocalAppVoiceAsset {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.voiceAssetId = "";
-        message.workflowType = 0;
         message.status = 0;
+        message.creationSource = 0;
         if (value !== undefined)
             reflectionMergePartial<LocalAppVoiceAsset>(this, message, value);
         return message;
@@ -8477,9 +8378,6 @@ class LocalAppVoiceAsset$Type extends MessageType<LocalAppVoiceAsset> {
                 case /* string voice_asset_id */ 1:
                     message.voiceAssetId = reader.string();
                     break;
-                case /* nimi.runtime.v1.VoiceWorkflowType workflow_type */ 2:
-                    message.workflowType = reader.int32();
-                    break;
                 case /* nimi.runtime.v1.VoiceAssetStatus status */ 3:
                     message.status = reader.int32();
                     break;
@@ -8491,6 +8389,9 @@ class LocalAppVoiceAsset$Type extends MessageType<LocalAppVoiceAsset> {
                     break;
                 case /* google.protobuf.Timestamp expires_at */ 6:
                     message.expiresAt = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.expiresAt);
+                    break;
+                case /* nimi.runtime.v1.VoiceCreationSource creation_source */ 7:
+                    message.creationSource = reader.int32();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -8507,9 +8408,6 @@ class LocalAppVoiceAsset$Type extends MessageType<LocalAppVoiceAsset> {
         /* string voice_asset_id = 1; */
         if (message.voiceAssetId !== "")
             writer.tag(1, WireType.LengthDelimited).string(message.voiceAssetId);
-        /* nimi.runtime.v1.VoiceWorkflowType workflow_type = 2; */
-        if (message.workflowType !== 0)
-            writer.tag(2, WireType.Varint).int32(message.workflowType);
         /* nimi.runtime.v1.VoiceAssetStatus status = 3; */
         if (message.status !== 0)
             writer.tag(3, WireType.Varint).int32(message.status);
@@ -8522,6 +8420,9 @@ class LocalAppVoiceAsset$Type extends MessageType<LocalAppVoiceAsset> {
         /* google.protobuf.Timestamp expires_at = 6; */
         if (message.expiresAt)
             Timestamp.internalBinaryWrite(message.expiresAt, writer.tag(6, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.VoiceCreationSource creation_source = 7; */
+        if (message.creationSource !== 0)
+            writer.tag(7, WireType.Varint).int32(message.creationSource);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -8537,7 +8438,8 @@ class SubmitLocalAppScenarioJobResponse$Type extends MessageType<SubmitLocalAppS
     constructor() {
         super("nimi.runtime.v1.SubmitLocalAppScenarioJobResponse", [
             { no: 1, name: "job", kind: "message", T: () => LocalAppScenarioJob },
-            { no: 2, name: "asset", kind: "message", T: () => LocalAppVoiceAsset }
+            { no: 2, name: "asset", kind: "message", T: () => LocalAppVoiceAsset },
+            { no: 3, name: "voice_reference", kind: "message", T: () => VoiceReference }
         ]);
     }
     create(value?: PartialMessage<SubmitLocalAppScenarioJobResponse>): SubmitLocalAppScenarioJobResponse {
@@ -8557,6 +8459,9 @@ class SubmitLocalAppScenarioJobResponse$Type extends MessageType<SubmitLocalAppS
                 case /* nimi.runtime.v1.LocalAppVoiceAsset asset */ 2:
                     message.asset = LocalAppVoiceAsset.internalBinaryRead(reader, reader.uint32(), options, message.asset);
                     break;
+                case /* nimi.runtime.v1.VoiceReference voice_reference */ 3:
+                    message.voiceReference = VoiceReference.internalBinaryRead(reader, reader.uint32(), options, message.voiceReference);
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -8575,6 +8480,9 @@ class SubmitLocalAppScenarioJobResponse$Type extends MessageType<SubmitLocalAppS
         /* nimi.runtime.v1.LocalAppVoiceAsset asset = 2; */
         if (message.asset)
             LocalAppVoiceAsset.internalBinaryWrite(message.asset, writer.tag(2, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.VoiceReference voice_reference = 3; */
+        if (message.voiceReference)
+            VoiceReference.internalBinaryWrite(message.voiceReference, writer.tag(3, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -10715,7 +10623,8 @@ class SubmitScenarioJobResponse$Type extends MessageType<SubmitScenarioJobRespon
     constructor() {
         super("nimi.runtime.v1.SubmitScenarioJobResponse", [
             { no: 1, name: "job", kind: "message", T: () => ScenarioJob },
-            { no: 2, name: "asset", kind: "message", T: () => VoiceAsset }
+            { no: 2, name: "asset", kind: "message", T: () => VoiceAsset },
+            { no: 3, name: "voice_reference", kind: "message", T: () => VoiceReference }
         ]);
     }
     create(value?: PartialMessage<SubmitScenarioJobResponse>): SubmitScenarioJobResponse {
@@ -10735,6 +10644,9 @@ class SubmitScenarioJobResponse$Type extends MessageType<SubmitScenarioJobRespon
                 case /* nimi.runtime.v1.VoiceAsset asset */ 2:
                     message.asset = VoiceAsset.internalBinaryRead(reader, reader.uint32(), options, message.asset);
                     break;
+                case /* nimi.runtime.v1.VoiceReference voice_reference */ 3:
+                    message.voiceReference = VoiceReference.internalBinaryRead(reader, reader.uint32(), options, message.voiceReference);
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -10753,6 +10665,9 @@ class SubmitScenarioJobResponse$Type extends MessageType<SubmitScenarioJobRespon
         /* nimi.runtime.v1.VoiceAsset asset = 2; */
         if (message.asset)
             VoiceAsset.internalBinaryWrite(message.asset, writer.tag(2, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.VoiceReference voice_reference = 3; */
+        if (message.voiceReference)
+            VoiceReference.internalBinaryWrite(message.voiceReference, writer.tag(3, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

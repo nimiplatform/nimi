@@ -7587,8 +7587,7 @@
       "LocalAppVideoGenerateJobSpec",
       "LocalAppVideoGenerationOptions",
       "LocalAppVoiceAsset",
-      "LocalAppVoiceCloneJobSpec",
-      "LocalAppVoiceDesignJobSpec",
+      "LocalAppVoiceCreateJobSpec",
       "LocalAssetExactBinding",
       "LocalAssetExactBindingTarget",
       "LocalAssetRecord",
@@ -7973,8 +7972,7 @@
       "VideoGenerateScenarioSpec",
       "VideoGenerationOptions",
       "VoiceAsset",
-      "VoiceCloneScenarioSpec",
-      "VoiceDesignScenarioSpec",
+      "VoiceCreateScenarioSpec",
       "VoicePresetDescriptor",
       "VoiceReference",
       "VoiceRenderHints",
@@ -8152,10 +8150,10 @@
       "VideoMode",
       "VoiceAssetPersistence",
       "VoiceAssetStatus",
+      "VoiceCreationSource",
       "VoiceOutputMode",
       "VoicePlaybackState",
       "VoiceReferenceKind",
-      "VoiceWorkflowType",
       "WorkspaceBindingPurpose",
       "WorkspaceBindingState",
       "WorkspaceMembershipState",
@@ -21343,13 +21341,6 @@
             "number": 4
           },
           {
-            "name": "workflow_type",
-            "type": "VoiceWorkflowType",
-            "repeated": false,
-            "optional": false,
-            "number": 5
-          },
-          {
             "name": "status",
             "type": "VoiceAssetStatus",
             "repeated": false,
@@ -21376,6 +21367,13 @@
             "repeated": false,
             "optional": false,
             "number": 9
+          },
+          {
+            "name": "creation_source",
+            "type": "VoiceCreationSource",
+            "repeated": false,
+            "optional": false,
+            "number": 10
           }
         ],
         "source_file": "proto/runtime/v1/voice.proto"
@@ -22973,13 +22971,6 @@
             "number": 1
           },
           {
-            "name": "workflow_type",
-            "type": "VoiceWorkflowType",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
             "name": "status",
             "type": "VoiceAssetStatus",
             "repeated": false,
@@ -23006,32 +22997,33 @@
             "repeated": false,
             "optional": false,
             "number": 6
+          },
+          {
+            "name": "creation_source",
+            "type": "VoiceCreationSource",
+            "repeated": false,
+            "optional": false,
+            "number": 7
           }
         ],
         "source_file": "proto/runtime/v1/ai.proto"
       },
       {
-        "name": "LocalAppVoiceCloneJobSpec",
+        "name": "LocalAppVoiceCreateJobSpec",
         "fields": [
           {
-            "name": "input",
+            "name": "reference_audio",
             "type": "VoiceV2VInput",
             "repeated": false,
             "optional": false,
             "number": 1
-          }
-        ],
-        "source_file": "proto/runtime/v1/ai.proto"
-      },
-      {
-        "name": "LocalAppVoiceDesignJobSpec",
-        "fields": [
+          },
           {
-            "name": "input",
+            "name": "text_description",
             "type": "VoiceT2VInput",
             "repeated": false,
             "optional": false,
-            "number": 1
+            "number": 2
           }
         ],
         "source_file": "proto/runtime/v1/ai.proto"
@@ -33392,20 +33384,6 @@
             "number": 6
           },
           {
-            "name": "voice_clone",
-            "type": "VoiceCloneScenarioSpec",
-            "repeated": false,
-            "optional": false,
-            "number": 7
-          },
-          {
-            "name": "voice_design",
-            "type": "VoiceDesignScenarioSpec",
-            "repeated": false,
-            "optional": false,
-            "number": 8
-          },
-          {
             "name": "music_generate",
             "type": "MusicGenerateScenarioSpec",
             "repeated": false,
@@ -33418,6 +33396,13 @@
             "repeated": false,
             "optional": false,
             "number": 10
+          },
+          {
+            "name": "voice_create",
+            "type": "VoiceCreateScenarioSpec",
+            "repeated": false,
+            "optional": false,
+            "number": 11
           }
         ],
         "source_file": "proto/runtime/v1/ai.proto"
@@ -35192,18 +35177,11 @@
             "number": 4
           },
           {
-            "name": "voice_clone",
-            "type": "LocalAppVoiceCloneJobSpec",
+            "name": "voice_create",
+            "type": "LocalAppVoiceCreateJobSpec",
             "repeated": false,
             "optional": false,
-            "number": 5
-          },
-          {
-            "name": "voice_design",
-            "type": "LocalAppVoiceDesignJobSpec",
-            "repeated": false,
-            "optional": false,
-            "number": 6
+            "number": 7
           }
         ],
         "source_file": "proto/runtime/v1/ai.proto"
@@ -35224,6 +35202,13 @@
             "repeated": false,
             "optional": false,
             "number": 2
+          },
+          {
+            "name": "voice_reference",
+            "type": "VoiceReference",
+            "repeated": false,
+            "optional": false,
+            "number": 3
           }
         ],
         "source_file": "proto/runtime/v1/ai.proto"
@@ -35307,6 +35292,13 @@
             "repeated": false,
             "optional": false,
             "number": 2
+          },
+          {
+            "name": "voice_reference",
+            "type": "VoiceReference",
+            "repeated": false,
+            "optional": false,
+            "number": 3
           }
         ],
         "source_file": "proto/runtime/v1/ai.proto"
@@ -37227,13 +37219,6 @@
             "number": 3
           },
           {
-            "name": "workflow_type",
-            "type": "VoiceWorkflowType",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          },
-          {
             "name": "provider",
             "type": "string",
             "repeated": false,
@@ -37302,12 +37287,19 @@
             "repeated": false,
             "optional": false,
             "number": 14
+          },
+          {
+            "name": "creation_source",
+            "type": "VoiceCreationSource",
+            "repeated": false,
+            "optional": false,
+            "number": 17
           }
         ],
         "source_file": "proto/runtime/v1/voice.proto"
       },
       {
-        "name": "VoiceCloneScenarioSpec",
+        "name": "VoiceCreateScenarioSpec",
         "fields": [
           {
             "name": "target_model_id",
@@ -37317,31 +37309,18 @@
             "number": 1
           },
           {
-            "name": "input",
+            "name": "reference_audio",
             "type": "VoiceV2VInput",
             "repeated": false,
             "optional": false,
             "number": 2
-          }
-        ],
-        "source_file": "proto/runtime/v1/ai.proto"
-      },
-      {
-        "name": "VoiceDesignScenarioSpec",
-        "fields": [
-          {
-            "name": "target_model_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
           },
           {
-            "name": "input",
+            "name": "text_description",
             "type": "VoiceT2VInput",
             "repeated": false,
             "optional": false,
-            "number": 2
+            "number": 3
           }
         ],
         "source_file": "proto/runtime/v1/ai.proto"
@@ -37971,13 +37950,6 @@
             "repeated": false,
             "optional": false,
             "number": 9
-          },
-          {
-            "name": "model",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 10
           },
           {
             "name": "artifacts",
@@ -39905,10 +39877,9 @@
           "SCENARIO_TYPE_VIDEO_GENERATE",
           "SCENARIO_TYPE_SPEECH_SYNTHESIZE",
           "SCENARIO_TYPE_SPEECH_TRANSCRIBE",
-          "SCENARIO_TYPE_VOICE_CLONE",
-          "SCENARIO_TYPE_VOICE_DESIGN",
           "SCENARIO_TYPE_MUSIC_GENERATE",
-          "SCENARIO_TYPE_WORLD_GENERATE"
+          "SCENARIO_TYPE_WORLD_GENERATE",
+          "SCENARIO_TYPE_VOICE_CREATE"
         ],
         "source_file": "proto/runtime/v1/ai.proto"
       },
@@ -40080,6 +40051,15 @@
         "source_file": "proto/runtime/v1/voice.proto"
       },
       {
+        "name": "VoiceCreationSource",
+        "values": [
+          "VOICE_CREATION_SOURCE_UNSPECIFIED",
+          "VOICE_CREATION_SOURCE_TEXT_DESCRIPTION",
+          "VOICE_CREATION_SOURCE_REFERENCE_AUDIO"
+        ],
+        "source_file": "proto/runtime/v1/voice.proto"
+      },
+      {
         "name": "VoiceOutputMode",
         "values": [
           "VOICE_OUTPUT_MODE_UNSPECIFIED",
@@ -40109,15 +40089,6 @@
           "VOICE_REFERENCE_KIND_PRESET",
           "VOICE_REFERENCE_KIND_VOICE_ASSET",
           "VOICE_REFERENCE_KIND_PROVIDER_VOICE_REF"
-        ],
-        "source_file": "proto/runtime/v1/voice.proto"
-      },
-      {
-        "name": "VoiceWorkflowType",
-        "values": [
-          "VOICE_WORKFLOW_TYPE_UNSPECIFIED",
-          "VOICE_WORKFLOW_TYPE_VOICE_CLONE",
-          "VOICE_WORKFLOW_TYPE_VOICE_DESIGN"
         ],
         "source_file": "proto/runtime/v1/voice.proto"
       },
