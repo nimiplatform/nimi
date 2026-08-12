@@ -70,7 +70,7 @@ export type AIProfileAuthoringViewProps = {
 export function AIProfileAuthoringPage() {
   const sdk = useDesktopRendererSdk();
   const subjectUserId = useAppStore((state) => String(state.auth.user?.id ?? '').trim());
-  const appAIConfig = useMemo(() => sdk.accountProduct().aiConfig, [sdk]);
+  const appAIConfig = useMemo(() => sdk.accountProduct().appAIConfig(sdk.appId()), [sdk]);
   const machine = useMemo(() => sdk.machineProduct().local.aiConfiguration, [sdk]);
   const sharedAIConfig = useMemo(() => createRuntimeAgentAIConfigAdapter({
     runtime: {
@@ -778,7 +778,6 @@ function CloudRecommendationFields(props: {
       className="space-y-4 rounded-xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-subtle)] p-4"
       data-testid="ai-profile-authoring-cloud-section"
       data-authoring-account-fields="absent"
-      data-authoring-grant-fields="absent"
     >
       <div>
         <h5 className="text-sm font-semibold text-[var(--nimi-text-primary)]">
@@ -800,7 +799,7 @@ function CloudRecommendationFields(props: {
         value={cloud.providerModelTargetJson}
         field="cloud-provider-model-target"
         rows={6}
-        placeholder={'{\n  "provider": "example",\n  "providerModelId": "model-v1"\n}'}
+        placeholder={'{\n  "provider": "example",\n  "providerModelId": "model-v1",\n  "remoteModelCatalogId": "remote-model-catalog_..."\n}'}
         onChange={(providerModelTargetJson) => update({ providerModelTargetJson })}
       />
     </div>
@@ -975,7 +974,6 @@ function JourneySections(props: {
           <PreviewFact label={props.t('runtimeConfig.profiles.authoring.aiConfigWrite')} value={yesNo(writes.aiConfig, props.t)} />
           <PreviewFact label={props.t('runtimeConfig.profiles.authoring.localConfigurationWrite')} value={yesNo(writes.localCapabilityConfigurations, props.t)} />
           <PreviewFact label={props.t('runtimeConfig.profiles.authoring.machineSelectionWrite')} value={yesNo(writes.machineSelection, props.t)} />
-          <PreviewFact label={props.t('runtimeConfig.profiles.authoring.authorizationWrite')} value={yesNo(writes.connectorGrant, props.t)} />
         </dl>
       </PreviewSection>
 
@@ -1026,10 +1024,10 @@ function ApplyPreviewSection(props: {
         <PreviewFact label={props.t('runtimeConfig.profiles.authoring.removed')} value={listOrNone(intentDiff.removedCapabilityContracts.map((contract) => displayRuntimeConfigCapabilityLabel(contract, props.t)), props.t)} />
         <PreviewFact label={props.t('runtimeConfig.profiles.authoring.unchanged')} value={listOrNone(intentDiff.unchangedCapabilityContracts.map((contract) => displayRuntimeConfigCapabilityLabel(contract, props.t)), props.t)} />
       </dl>
-      {props.preview.cloudSelections.length > 0 ? (
+      {props.preview.cloudConfigurations.length > 0 ? (
         <div className="mt-2 text-[var(--nimi-status-info)]">
-          {props.t('runtimeConfig.profiles.authoring.cloudSelectionRequired', {
-            capabilities: props.preview.cloudSelections
+          {props.t('runtimeConfig.profiles.authoring.cloudConfigured', {
+            capabilities: props.preview.cloudConfigurations
               .map((selection) => displayRuntimeConfigCapabilityLabel(selection.capabilityContract, props.t))
               .join(', '),
           })}

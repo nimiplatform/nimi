@@ -2,6 +2,10 @@ import type { ReactElement } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button, OverlayShell } from '@nimiplatform/kit/ui';
 import type { AppCardActionId } from './apps-card-actions.js';
+import {
+  AppsAIConfigSection,
+  appsAIConfigCapabilityContracts,
+} from './apps-ai-config-section.js';
 import { deriveIconGlyph } from './apps-card-fields.js';
 import type { DesktopAppsEntry } from './apps-panel-projection.js';
 
@@ -16,11 +20,15 @@ export function AppsDetailView({ entry, onClose }: AppsDetailViewProps): ReactEl
   if (!entry) return null;
 
   const { registration } = entry;
+  const aiConfigCapabilityContracts = appsAIConfigCapabilityContracts(registration.appAccess);
   return (
     <OverlayShell
       open
       kind="dialog"
+      size="M"
       onClose={onClose}
+      panelClassName="flex max-h-[calc(100vh-32px)] flex-col"
+      contentClassName="min-h-0 flex-1 overflow-y-auto"
       title={
         <span data-testid="apps-detail-title" className="flex items-center gap-2">
           <span aria-hidden="true" className="flex h-7 w-7 items-center justify-center rounded-md bg-[color-mix(in_srgb,var(--nimi-surface-active)_70%,transparent)] text-xs font-semibold">
@@ -59,6 +67,15 @@ export function AppsDetailView({ entry, onClose }: AppsDetailViewProps): ReactEl
             </ul>
           )}
         </div>
+
+        {aiConfigCapabilityContracts.length > 0 ? (
+          <div className="border-t border-[var(--nimi-border-subtle)] pt-4">
+            <AppsAIConfigSection
+              appId={registration.appId}
+              appDisplayName={registration.displayName}
+            />
+          </div>
+        ) : null}
       </div>
     </OverlayShell>
   );

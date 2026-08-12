@@ -7,9 +7,19 @@ import {
 } from '@nimiplatform/sdk/ai';
 import { projectModelConfigLocalSelections } from '@nimiplatform/kit/features/model-config/headless';
 import {
+  desktopNimiAppAIConfigQueryKey,
   findDesktopNimiTextIntent,
   readDesktopNimiAppAIConfig,
 } from '../src/shell/renderer/features/chat/chat-nimi-app-ai-config.js';
+
+test('Desktop App AIConfig cache identity preserves one exact appId', () => {
+  assert.deepEqual(desktopNimiAppAIConfigQueryKey('tester.local-app'), [
+    'app-ai-config',
+    'tester.local-app',
+  ]);
+  assert.throws(() => desktopNimiAppAIConfigQueryKey(''));
+  assert.throws(() => desktopNimiAppAIConfigQueryKey(' tester.local-app '));
+});
 
 test('Nimi Chat locates canonical text intent without owning its construction', () => {
   const imageIntent = createNimiLocalAIConfigCapabilityIntent({
@@ -24,8 +34,11 @@ test('Nimi Chat locates canonical text intent without owning its construction', 
       driverId: 'nimillm',
       driverDialect: 'openai',
     },
-    providerModelTarget: { provider: 'openai', providerModelId: 'gpt-test' },
-    connectorGrantId: null,
+    providerModelTarget: {
+      provider: 'openai',
+      providerModelId: 'gpt-test',
+      remoteModelCatalogId: 'remote-model-catalog-gpt-test',
+    },
   });
 
   assert.equal(findDesktopNimiTextIntent({
@@ -86,4 +99,14 @@ test('Nimi Chat settings delegates configuration UX to the public Kit owner surf
   assert.match(source, /appId:\s*DESKTOP_NIMI_APP_ID/u);
   assert.match(source, /capabilityContracts=\{\['text\.generate'\]\}/u);
   assert.doesNotMatch(source, /createDesktopNimi(?:Local|Cloud)TextIntent/u);
+});
+
+test('Desktop App AIConfig hooks resolve the exact App through the first-party semantic client', async () => {
+  const source = await readFile(new URL(
+    '../src/shell/renderer/features/chat/chat-nimi-app-ai-config.ts',
+    import.meta.url,
+  ), 'utf8');
+
+  assert.match(source, /accountProduct\(\)\.appAIConfig\(appId\)/u);
+  assert.doesNotMatch(source, /accountProduct\(\)\.aiConfig/u);
 });

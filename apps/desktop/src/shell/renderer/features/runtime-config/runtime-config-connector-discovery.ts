@@ -161,11 +161,11 @@ export async function discoverConnectorModelsAndHealth(input: {
     input.connector.id,
     true,
   );
-  const discovered = descriptors.map((d) => d.modelId);
+  const discovered = descriptors.map((d) => d.providerModelId);
   const modelCapabilities: Record<string, string[]> = {};
   for (const d of descriptors) {
     if (d.capabilities.length > 0) {
-      modelCapabilities[d.modelId] = [...d.capabilities];
+      modelCapabilities[d.providerModelId] = [...d.capabilities];
     }
   }
   return {

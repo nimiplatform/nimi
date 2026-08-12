@@ -146,6 +146,53 @@
     "modalTitle": "Apply AI Profile to App",
     "modalHint": "Choose a profile and preview the app-scope AIConfig before applying it."
   },
+  "aiConfig": {
+    "title": "AI models",
+    "description": "Choose the Local or Cloud implementation Nimi uses when this app calls an AI capability.",
+    "configuredSummary": "Model settings complete",
+    "emptySummary": "No model selected",
+    "cloudImpactConfirmation": "I understand {{app}} requests may leave this machine, use account {{account}}, and incur provider cost.",
+    "loadFailed": "This app's AI configuration could not be loaded from Runtime.",
+    "saveFailed": "Runtime could not save this app's AI configuration.",
+    "capability": {
+      "audioSynthesize": {
+        "label": "Speech synthesis",
+        "description": "Choose how this app turns text into speech."
+      },
+      "audioTranscribe": {
+        "label": "Speech transcription",
+        "description": "Choose how this app turns speech into text."
+      },
+      "imageGenerate": {
+        "label": "Image generation",
+        "description": "Choose how this app generates images."
+      },
+      "musicGenerate": {
+        "label": "Music generation",
+        "description": "Choose how this app generates music."
+      },
+      "textEmbed": {
+        "label": "Text embedding",
+        "description": "Choose how this app creates text embeddings."
+      },
+      "textGenerate": {
+        "label": "Text generation",
+        "description": "Choose how this app generates text."
+      },
+      "videoGenerate": {
+        "label": "Video generation",
+        "description": "Choose how this app generates video."
+      },
+      "voiceCreate": {
+        "label": "Voice creation",
+        "description": "Choose how this app creates reusable voices."
+      },
+      "worldGenerate": {
+        "label": "World generation",
+        "description": "Choose how this app generates worlds."
+      }
+    }
+  },
   "version": {
     "installed": "Installed {{version}}",
     "available": "Update {{version}}",

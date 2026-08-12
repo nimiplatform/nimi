@@ -2,7 +2,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   formatNimiRuntimeErrorBanner as formatRuntimeConfigErrorBanner,
-  type NimiRuntimeConnectorGrant,
 } from '@nimiplatform/sdk/runtime';
 import { type ProviderCatalogEntry } from '@nimiplatform/sdk/runtime/wire-types';
 import type { RuntimeConfigStateV11 } from './runtime-config-state-types';
@@ -23,7 +22,6 @@ import {
 import { BoltIcon, Button, PlusIcon } from './runtime-config-page-cloud-primitives';
 import { CloudConnectorListPanel } from './runtime-config-page-cloud-connector-list';
 import { CloudConnectorDetailPanel } from './runtime-config-page-cloud-detail-panel';
-import { CloudConnectorGrantPanel } from './runtime-config-page-cloud-grants.js';
 import { SectionTitle } from './runtime-config-primitives';
 type CloudPageProps = { model: RuntimeConfigPanelControllerModel; state: RuntimeConfigStateV11 };
 const PROVIDER_CATALOG_ERROR_LABEL = 'Load provider catalog failed';
@@ -33,9 +31,6 @@ export function CloudPage({ model, state }: CloudPageProps) {
   const { t } = useTranslation();
   const bindings = useDesktopRendererBindings();
   const {
-    createConnectorGrant,
-    listConnectorGrants,
-    revokeConnectorGrant,
     sdkCreateConnector,
     sdkDeleteConnector,
     sdkListConnectors,
@@ -45,10 +40,6 @@ export function CloudPage({ model, state }: CloudPageProps) {
   const { selectedConnector, orderedConnectors, updateState } = model;
   const authStatus = useAppStore((s) => s.auth.status);
   const [providerCatalog, setProviderCatalog] = useState<ProviderCatalogEntry[]>([]);
-  const [connectorGrants, setConnectorGrants] = useState<readonly NimiRuntimeConnectorGrant[]>([]);
-  const [connectorGrantsLoading, setConnectorGrantsLoading] = useState(false);
-  const [creatingGrantConnectorId, setCreatingGrantConnectorId] = useState('');
-  const [revokingGrantId, setRevokingGrantId] = useState('');
   const [tokenDraft, setTokenDraft] = useState('');
   const [connectorLabelDraft, setConnectorLabelDraft] = useState('');
   const [savingToken, setSavingToken] = useState(false);
@@ -154,51 +145,6 @@ export function CloudPage({ model, state }: CloudPageProps) {
     const providers = await sdkListProviderCatalog();
     setProviderCatalog(Array.isArray(providers) ? providers : []);
   }, [sdkListProviderCatalog]);
-  const refreshConnectorGrants = useCallback(async () => {
-    if (authStatus !== 'authenticated') {
-      setConnectorGrants([]);
-      return;
-    }
-    setConnectorGrants([]);
-    setConnectorGrantsLoading(true);
-    try {
-      setConnectorGrants(await listConnectorGrants());
-    } catch (error) {
-      reportError(t('runtimeConfig.cloud.grants.loadFailed', {
-        defaultValue: 'Load account authorizations failed',
-      }), error);
-    } finally {
-      setConnectorGrantsLoading(false);
-    }
-  }, [authStatus, listConnectorGrants, reportError, t]);
-  const onCreateConnectorGrant = useCallback(async (connectorId: string) => {
-    if (!connectorId || creatingGrantConnectorId) return;
-    setCreatingGrantConnectorId(connectorId);
-    try {
-      await createConnectorGrant(connectorId);
-      await refreshConnectorGrants();
-    } catch (error) {
-      reportError(t('runtimeConfig.cloud.grants.createFailed', {
-        defaultValue: 'Create account authorization failed',
-      }), error);
-    } finally {
-      setCreatingGrantConnectorId('');
-    }
-  }, [createConnectorGrant, creatingGrantConnectorId, refreshConnectorGrants, reportError, t]);
-  const onRevokeConnectorGrant = useCallback(async (grantId: string) => {
-    if (!grantId || revokingGrantId) return;
-    setRevokingGrantId(grantId);
-    try {
-      await revokeConnectorGrant(grantId);
-      await refreshConnectorGrants();
-    } catch (error) {
-      reportError(t('runtimeConfig.cloud.grants.revokeFailed', {
-        defaultValue: 'Revoke account authorization failed',
-      }), error);
-    } finally {
-      setRevokingGrantId('');
-    }
-  }, [refreshConnectorGrants, reportError, revokeConnectorGrant, revokingGrantId, t]);
   const vendorOptions = useMemo(() => {
     const visibleVendors = new Set<ApiVendor>();
     for (const entry of managedProviderCatalog) {
@@ -264,9 +210,6 @@ export function CloudPage({ model, state }: CloudPageProps) {
       cancelled = true;
     };
   }, [loadProviderCatalog, reportError]);
-  useEffect(() => {
-    void refreshConnectorGrants();
-  }, [refreshConnectorGrants]);
   const onAddConnector = useCallback(async () => {
     const runtimeCatalog = await sdkListProviderCatalog();
     const providerEntry = runtimeCatalog.find((entry) => entry.managedSupported && entry.provider !== 'local');
@@ -690,18 +633,6 @@ export function CloudPage({ model, state }: CloudPageProps) {
           vendorOptions={vendorOptions}
         />
       </div>
-      <CloudConnectorGrantPanel
-        authenticated={authStatus === 'authenticated'}
-        busyConnectorId={creatingGrantConnectorId}
-        busyGrantId={revokingGrantId}
-        connectors={orderedConnectors}
-        grants={connectorGrants}
-        loading={connectorGrantsLoading}
-        onCreate={onCreateConnectorGrant}
-        onRevoke={onRevokeConnectorGrant}
-        selectedConnector={selectedConnector}
-        t={t}
-      />
     </RuntimePageShell>
   );
 }

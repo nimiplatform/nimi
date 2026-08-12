@@ -616,8 +616,10 @@ test('sdkListConnectorModelDescriptors coalesces concurrent model inventory read
         ) {
           return unaryResponseBytes(ListConnectorModelsResponse.toBinary(ListConnectorModelsResponse.create({
             models: [{
-              modelId: 'openrouter/auto',
               modelLabel: 'OpenRouter Auto',
+              provider: 'openrouter',
+              providerModelId: 'openrouter/auto',
+              remoteModelCatalogId: 'remote-model-catalog-openrouter-auto',
               available: true,
               capabilities: ['text', 'tools'],
             }],
@@ -634,13 +636,25 @@ test('sdkListConnectorModelDescriptors coalesces concurrent model inventory read
       sdkListConnectorModelDescriptors(' conn-1 '),
       sdkListConnectorModelDescriptors('conn-1'),
     ]);
-    assert.deepEqual(first, [{ modelId: 'openrouter/auto', capabilities: ['text', 'tools'] }]);
+    assert.deepEqual(first, [{
+      modelLabel: 'OpenRouter Auto',
+      provider: 'openrouter',
+      providerModelId: 'openrouter/auto',
+      remoteModelCatalogId: 'remote-model-catalog-openrouter-auto',
+      capabilities: ['text', 'tools'],
+    }]);
     assert.deepEqual(second, first);
 
     const firstCapabilities = first[0]?.capabilities as string[] | undefined;
     firstCapabilities?.push('mutated-by-test');
     const cached = await sdkListConnectorModelDescriptors('conn-1');
-    assert.deepEqual(cached, [{ modelId: 'openrouter/auto', capabilities: ['text', 'tools'] }]);
+    assert.deepEqual(cached, [{
+      modelLabel: 'OpenRouter Auto',
+      provider: 'openrouter',
+      providerModelId: 'openrouter/auto',
+      remoteModelCatalogId: 'remote-model-catalog-openrouter-auto',
+      capabilities: ['text', 'tools'],
+    }]);
 
     const modelCallsBeforeRefresh = calls.filter((call) => (
       call.command === 'nimi.shell.runtime.unary'

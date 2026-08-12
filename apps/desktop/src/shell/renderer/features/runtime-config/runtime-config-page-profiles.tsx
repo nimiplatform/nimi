@@ -51,7 +51,7 @@ function PortableProfileApplyPage() {
   const runtimeConfigNavigation = useDesktopRendererCommands().runtimeConfigNavigation;
   const setActiveTab = useAppStore((state) => state.setActiveTab);
   const profileClient = useMemo(
-    () => createNimiAppAIProfileClient(sdk.accountProduct().aiConfig),
+    () => createNimiAppAIProfileClient(sdk.accountProduct().appAIConfig(sdk.appId())),
     [sdk],
   );
   const [sourceText, setSourceText] = useState('');
@@ -252,13 +252,13 @@ function PortableProfileApplyPage() {
       {cloudGuidanceCount > 0 ? (
         <Surface tone="card" className="space-y-2 p-4" data-testid="runtime-portable-profile-cloud-guidance">
           <div className="text-sm font-semibold text-[var(--nimi-text-primary)]">
-            {t('runtimeConfig.profiles.cloudAuthorizationTitle', {
-              defaultValue: 'Cloud account authorization stays separate',
+            {t('runtimeConfig.profiles.cloudConfigurationTitle', {
+              defaultValue: 'Cloud execution stays Nimi-owned',
             })}
           </div>
           <p className="m-0 text-xs leading-relaxed text-[var(--nimi-text-secondary)]">
-            {t('runtimeConfig.profiles.cloudAuthorizationGuidance', {
-              defaultValue: 'Portable AIProfiles never carry connector, account, or ConnectorGrant identity. After Apply, review each Cloud intent and explicitly select an active account authorization. Until then, Runtime reports an informational selection-required state.',
+            {t('runtimeConfig.profiles.cloudConfigurationGuidance', {
+              defaultValue: 'Portable AIProfiles carry an exact implementation and provider-model catalog target, but never Connector, account, credential, or secret identity. Confirm Apply to write that target choice into the Nimi Desktop AIConfig. Runtime resolves only the current-account Connector bound by that exact catalog identity.',
             })}
           </p>
           <div>
@@ -270,8 +270,8 @@ function PortableProfileApplyPage() {
               size="sm"
               tone="secondary"
             >
-              {t('runtimeConfig.profiles.openAccountAuthorization', {
-                defaultValue: 'Open account authorizations',
+              {t('runtimeConfig.profiles.openCloudConnectors', {
+                defaultValue: 'Review Cloud Connectors',
               })}
             </Button>
           </div>

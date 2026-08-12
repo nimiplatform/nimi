@@ -253,8 +253,7 @@ export type DesktopRendererAccountProductClient = Omit<
 export function getDesktopAccountProductClient(): DesktopRendererAccountProductClient {
   const client = getDesktopRuntimeRealmSession().runtimeClients.accountProduct;
   return Object.freeze({
-    aiConfig: client.aiConfig,
-    connectorGrants: client.connectorGrants,
+    appAIConfig: client.appAIConfig,
     agents: client.agents,
     appMessages: client.appMessages,
     artifacts: client.artifacts,
@@ -284,9 +283,6 @@ export function getDesktopConnectorAdminClient() {
       return connectorClient.updateConnector(...args);
     },
     deleteConnector: clients.accountProduct.connectors.deleteConnector,
-    createConnectorGrant: clients.accountProduct.connectors.createConnectorGrant,
-    listConnectorGrants: clients.accountProduct.connectors.listConnectorGrants,
-    revokeConnectorGrant: clients.accountProduct.connectors.revokeConnectorGrant,
     testConnector: clients.accountProduct.connectors.testConnector,
     listConnectorModels: clients.accountProduct.connectors.listConnectorModels,
   };

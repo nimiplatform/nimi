@@ -1,6 +1,8 @@
-import { useCallback, useEffect, useMemo, type ReactNode } from 'react';
+import { useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { InlineAlert, Surface } from '@nimiplatform/kit/ui';
+import {
+  CANONICAL_CAPABILITY_IDS,
+} from '@nimiplatform/kit/core/runtime-capabilities';
 import {
   ModelConfigAIConfigSurface,
   type ModelConfigCopy,
@@ -11,57 +13,82 @@ import {
   useDesktopRendererCommands,
   useDesktopRendererSdk,
 } from '../../renderer/binding-context.js';
+import { createDesktopCloudAIConfigModule } from '../chat/chat-cloud-ai-config-module.js';
 import {
-  DESKTOP_NIMI_APP_ID,
   useDesktopNimiAppAIConfig,
   useDesktopNimiMachineLocalSelections,
   useOverwriteDesktopNimiAppAIConfig,
-} from './chat-nimi-app-ai-config.js';
-import { createDesktopCloudAIConfigModule } from './chat-cloud-ai-config-module.js';
-import { toChatUserFacingRuntimeError } from './chat-runtime-error-message.js';
+} from '../chat/chat-nimi-app-ai-config.js';
 
-export type ChatSettingsPanelProps = {
-  mode?: 'ai' | 'human';
-  headerSlot?: ReactNode;
-  diagnosticsContent?: ReactNode;
-  presenceContent?: ReactNode;
-  unavailableReason?: string;
-  onDiagnosticsVisibilityChange?: (visible: boolean) => void;
-  showPresenceContent?: boolean;
-  showDiagnosticsFooter?: boolean;
-};
+export const APPS_AI_CONFIG_APP_ACCESS_DOMAIN = 'runtime.consume';
 
-export function DisabledSettingsNote(props: { label: string }) {
-  return <InlineAlert tone="info">{props.label}</InlineAlert>;
+const CAPABILITY_COPY_KEYS: Readonly<Record<string, {
+  readonly label: string;
+  readonly description: string;
+}>> = Object.freeze({
+  'audio.synthesize': {
+    label: 'Apps.aiConfig.capability.audioSynthesize.label',
+    description: 'Apps.aiConfig.capability.audioSynthesize.description',
+  },
+  'audio.transcribe': {
+    label: 'Apps.aiConfig.capability.audioTranscribe.label',
+    description: 'Apps.aiConfig.capability.audioTranscribe.description',
+  },
+  'image.generate': {
+    label: 'Apps.aiConfig.capability.imageGenerate.label',
+    description: 'Apps.aiConfig.capability.imageGenerate.description',
+  },
+  'music.generate': {
+    label: 'Apps.aiConfig.capability.musicGenerate.label',
+    description: 'Apps.aiConfig.capability.musicGenerate.description',
+  },
+  'text.embed': {
+    label: 'Apps.aiConfig.capability.textEmbed.label',
+    description: 'Apps.aiConfig.capability.textEmbed.description',
+  },
+  'text.generate': {
+    label: 'Apps.aiConfig.capability.textGenerate.label',
+    description: 'Apps.aiConfig.capability.textGenerate.description',
+  },
+  'video.generate': {
+    label: 'Apps.aiConfig.capability.videoGenerate.label',
+    description: 'Apps.aiConfig.capability.videoGenerate.description',
+  },
+  'voice.create': {
+    label: 'Apps.aiConfig.capability.voiceCreate.label',
+    description: 'Apps.aiConfig.capability.voiceCreate.description',
+  },
+  'world.generate': {
+    label: 'Apps.aiConfig.capability.worldGenerate.label',
+    description: 'Apps.aiConfig.capability.worldGenerate.description',
+  },
+});
+
+export function appsAIConfigCapabilityContracts(
+  appAccess: readonly string[],
+): readonly string[] {
+  return appAccess.includes(APPS_AI_CONFIG_APP_ACCESS_DOMAIN)
+    ? CANONICAL_CAPABILITY_IDS
+    : [];
 }
 
-function HumanModeSettings(props: {
-  diagnosticsContent?: ReactNode;
-  unavailableReason: string;
-  onDiagnosticsVisibilityChange?: (visible: boolean) => void;
-}) {
-  const { t } = useTranslation();
-  useEffect(() => {
-    props.onDiagnosticsVisibilityChange?.(true);
-    return () => { props.onDiagnosticsVisibilityChange?.(false); };
-  }, [props.onDiagnosticsVisibilityChange]);
-
-  return (
-    <Surface tone="card" className="space-y-3 p-4">
-      <div className="text-sm font-semibold text-[var(--nimi-text-primary)]">
-        {t('Chat.diagnosticsTitle', { defaultValue: 'Diagnostics' })}
-      </div>
-      {props.diagnosticsContent || <DisabledSettingsNote label={props.unavailableReason} />}
-    </Surface>
-  );
+function unavailableLocalSelections(): readonly ModelConfigLocalSelectionProjection[] {
+  return CANONICAL_CAPABILITY_IDS.map((capabilityContract) => ({
+    capabilityContract,
+    state: 'unavailable',
+    configurationId: null,
+    displayName: null,
+    supportedFeatures: [],
+    reasons: [],
+  }));
 }
 
-function useNimiChatModelConfigCopy(): ModelConfigCopy {
+function useAppsModelConfigCopy(appDisplayName: string): ModelConfigCopy {
   const { t } = useTranslation();
   return useMemo(() => ({
-    title: t('Chat.settingsAIModelTitle', { defaultValue: 'AI Model' }),
-    description: t('Chat.settingsAppAIConfigOwnerHint', {
-      defaultValue: 'Nimi Desktop stores capability intent. Runtime validates the committed Local or Cloud choice when execution starts.',
+    title: t('Apps.aiConfig.title', { defaultValue: 'AI models' }),
+    description: t('Apps.aiConfig.description', {
+      defaultValue: 'Choose the Local or Cloud implementation Nimi uses when this app calls an AI capability.',
     }),
     backLabel: t('Chat.settingsModelConfigBack', { defaultValue: 'Back' }),
     detailTitle: (capabilityLabel: string) => t('Chat.settingsModelConfigTitle', {
@@ -78,6 +105,10 @@ function useNimiChatModelConfigCopy(): ModelConfigCopy {
     modelPickerEmptyLabel: t('Chat.settingsModelPickerEmpty', {
       defaultValue: 'No models are available for this capability.',
     }),
+    configuredSummary: t('Apps.aiConfig.configuredSummary', {
+      defaultValue: 'Model settings complete',
+    }),
+    emptySummary: t('Apps.aiConfig.emptySummary', { defaultValue: 'No model selected' }),
     routeLabel: t('Chat.settingsExecutionIntent', { defaultValue: 'Execution intent' }),
     localLabel: t('Chat.settingsIntentLocal', { defaultValue: 'Local' }),
     cloudLabel: t('Chat.settingsIntentCloud', { defaultValue: 'Cloud' }),
@@ -138,7 +169,9 @@ function useNimiChatModelConfigCopy(): ModelConfigCopy {
     cloudNoConnectorsLabel: t('Chat.settingsCloudNoConnectors', {
       defaultValue: 'No configured Cloud Connector is available.',
     }),
-    openCloudConnectorsLabel: t('Chat.settingsOpenCloudConnectors', { defaultValue: 'Configure Cloud Connectors' }),
+    openCloudConnectorsLabel: t('Chat.settingsOpenCloudConnectors', {
+      defaultValue: 'Configure Cloud Connectors',
+    }),
     cloudImplementationLabel: t('Chat.settingsCloudImplementation', { defaultValue: 'Cloud implementation' }),
     cloudImplementationPlaceholder: t('Chat.settingsCloudImplementationPlaceholder', {
       defaultValue: 'Choose an existing implementation',
@@ -165,19 +198,20 @@ function useNimiChatModelConfigCopy(): ModelConfigCopy {
       defaultValue: 'Account: {{account}}',
       account,
     }),
-    cloudImpactAppLabel: (account: string) => t('Chat.settingsCloudAppImpactConfirmation', {
-      defaultValue: 'I understand Nimi Chat requests may leave this machine, use account {{account}}, and incur provider cost.',
+    cloudImpactAppLabel: (account: string) => t('Apps.aiConfig.cloudImpactConfirmation', {
+      defaultValue: 'I understand {{app}} requests may leave this machine, use account {{account}}, and incur provider cost.',
+      app: appDisplayName,
       account,
     }),
     cloudLoadFailed: t('Chat.settingsCloudChoicesLoadFailed', {
       defaultValue: 'Cloud implementation, target, or Connector choices could not be loaded.',
     }),
     retryLabel: t('Common.retry', { defaultValue: 'Retry' }),
-    loadFailed: t('Chat.settingsAppAIConfigUnavailable', {
-      defaultValue: 'Nimi Desktop AI intent could not be loaded from Runtime.',
+    loadFailed: t('Apps.aiConfig.loadFailed', {
+      defaultValue: 'This app\'s AI configuration could not be loaded from Runtime.',
     }),
-    saveFailed: t('Chat.settingsAppAIConfigSaveFailed', {
-      defaultValue: 'Runtime could not save the Nimi Desktop AI intent.',
+    saveFailed: t('Apps.aiConfig.saveFailed', {
+      defaultValue: 'Runtime could not save this app\'s AI configuration.',
     }),
     technicalDetailsLabel: t('Chat.settingsTechnicalDetails', { defaultValue: 'Technical details' }),
     unsupportedCapabilityLabel: t('Chat.settingsModelUnsupportedCapability', {
@@ -190,46 +224,37 @@ function useNimiChatModelConfigCopy(): ModelConfigCopy {
     mismatchLabel: t('Chat.settingsModelFeatureMismatch', { defaultValue: 'Feature mismatch' }),
     cancelLabel: t('Chat.settingsModelPickerCancel', { defaultValue: 'Cancel' }),
     confirmSelectionLabel: t('Chat.settingsUseModelSelection', { defaultValue: 'Use selection' }),
-    capabilityLabel: () => t('Chat.settingsTextCapability', { defaultValue: 'Text generation' }),
-    capabilityDescription: () => t('Chat.settingsTextCapabilityDescription', {
-      defaultValue: 'Controls how Nimi Chat resolves text generation.',
-    }),
-  }), [t]);
+    capabilityLabel: (capabilityContract: string, fallback: string) => {
+      const key = CAPABILITY_COPY_KEYS[capabilityContract]?.label;
+      return key ? t(key, { defaultValue: fallback }) : fallback;
+    },
+    capabilityDescription: (capabilityContract: string, fallback: string) => {
+      const key = CAPABILITY_COPY_KEYS[capabilityContract]?.description;
+      return key ? t(key, { defaultValue: fallback }) : fallback;
+    },
+  }), [appDisplayName, t]);
 }
 
-function AiModeSettings(props: {
-  headerSlot?: ReactNode;
-  presenceContent?: ReactNode;
-  diagnosticsContent?: ReactNode;
-  unavailableReason: string;
-  onDiagnosticsVisibilityChange?: (visible: boolean) => void;
-  showPresenceContent?: boolean;
-  showDiagnosticsFooter?: boolean;
-}) {
+export interface AppsAIConfigSectionProps {
+  readonly appId: string;
+  readonly appDisplayName: string;
+}
+
+export function AppsAIConfigSection({
+  appId,
+  appDisplayName,
+}: AppsAIConfigSectionProps) {
   const runtimeConfigNavigation = useDesktopRendererCommands().runtimeConfigNavigation;
   const sdk = useDesktopRendererSdk();
   const cloudAIConfig = useMemo(() => createDesktopCloudAIConfigModule(sdk), [sdk]);
-  const { t } = useTranslation();
-  const copy = useNimiChatModelConfigCopy();
   const setActiveTab = useAppStore((state) => state.setActiveTab);
-  const appAIConfig = useDesktopNimiAppAIConfig(DESKTOP_NIMI_APP_ID);
+  const appAIConfig = useDesktopNimiAppAIConfig(appId);
   const machineSelections = useDesktopNimiMachineLocalSelections();
-  const overwriteAppAIConfig = useOverwriteDesktopNimiAppAIConfig(DESKTOP_NIMI_APP_ID);
-
-  useEffect(() => {
-    props.onDiagnosticsVisibilityChange?.(true);
-    return () => { props.onDiagnosticsVisibilityChange?.(false); };
-  }, [props.onDiagnosticsVisibilityChange]);
+  const overwriteAppAIConfig = useOverwriteDesktopNimiAppAIConfig(appId);
+  const copy = useAppsModelConfigCopy(appDisplayName);
 
   const localSelections = useMemo<readonly ModelConfigLocalSelectionProjection[]>(() => (
-    machineSelections.data ?? [{
-      capabilityContract: 'text.generate',
-      state: 'unavailable',
-      configurationId: null,
-      displayName: null,
-      supportedFeatures: [],
-      reasons: [],
-    }]
+    machineSelections.data ?? unavailableLocalSelections()
   ), [machineSelections.data]);
 
   const openMachineConfiguration = useCallback(() => {
@@ -250,95 +275,28 @@ function AiModeSettings(props: {
     });
   }, [runtimeConfigNavigation, setActiveTab]);
 
-  const footer = (
-    <div className="space-y-2 border-t border-[color-mix(in_srgb,var(--nimi-border-subtle)_70%,transparent)] pt-3">
-      {props.showDiagnosticsFooter !== false && props.diagnosticsContent ? (
-        <div data-chat-settings-module="diagnostics" className="space-y-2">
-          <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--nimi-text-muted)]">
-            {t('Chat.diagnosticsTitle', { defaultValue: 'Diagnostics' })}
-          </div>
-          {props.diagnosticsContent}
-        </div>
-      ) : props.showDiagnosticsFooter !== false ? (
-        <DisabledSettingsNote label={props.unavailableReason} />
-      ) : null}
-    </div>
-  );
-
   return (
-    <div className="space-y-5">
-      {props.headerSlot}
-      {props.showPresenceContent !== false && props.presenceContent ? (
-        <div data-chat-settings-module="avatar">{props.presenceContent}</div>
-      ) : null}
-      <div data-testid="nimi-app-ai-config">
-        <ModelConfigAIConfigSurface
-          context={{ owner: 'app-ai-config', consumer: 'nimi-first-party', appId: DESKTOP_NIMI_APP_ID }}
-          capabilityContracts={['text.generate']}
-          capabilities={appAIConfig.data?.capabilities ?? (appAIConfig.isPending ? undefined : null)}
-          localSelections={localSelections}
-          cloudAIConfig={cloudAIConfig}
-          loading={appAIConfig.isPending}
-          loadError={appAIConfig.isError ? copy.loadFailed : null}
-          onRetry={() => { void appAIConfig.refetch(); }}
-          onOverwrite={async (capabilities) => {
-            await overwriteAppAIConfig.mutateAsync(capabilities);
-          }}
-          onOpenMachineConfiguration={openMachineConfiguration}
-          onOpenCloudConnectorConfiguration={openCloudConnectorConfiguration}
-          formatError={(error) => {
-            const fallback = copy.saveFailed || 'Runtime could not save the Nimi Desktop AI intent.';
-            const userFacing = toChatUserFacingRuntimeError(error, fallback, t);
-            return {
-              message: userFacing.message,
-              technicalDetail: error instanceof Error ? error.message : String(error || ''),
-            };
-          }}
-          copy={copy}
-          footer={footer}
-        />
-      </div>
-    </div>
-  );
-}
-
-export function ChatSettingsPanel({
-  mode = 'ai',
-  headerSlot,
-  diagnosticsContent,
-  presenceContent,
-  unavailableReason,
-  onDiagnosticsVisibilityChange,
-  showPresenceContent,
-  showDiagnosticsFooter,
-}: ChatSettingsPanelProps) {
-  const { t } = useTranslation();
-  const resolvedUnavailableReason = unavailableReason || t('Chat.settingsUnavailableReason', {
-    defaultValue: 'This source does not expose runtime inspect yet.',
-  });
-
-  if (mode === 'ai') {
-    return (
-      <AiModeSettings
-        headerSlot={headerSlot}
-        presenceContent={presenceContent}
-        diagnosticsContent={diagnosticsContent}
-        unavailableReason={resolvedUnavailableReason}
-        onDiagnosticsVisibilityChange={onDiagnosticsVisibilityChange}
-        showPresenceContent={showPresenceContent}
-        showDiagnosticsFooter={showDiagnosticsFooter}
+    <section data-testid={`apps-ai-config-${appId}`}>
+      <ModelConfigAIConfigSurface
+        context={{ owner: 'app-ai-config', consumer: 'nimi-first-party', appId }}
+        capabilityContracts={CANONICAL_CAPABILITY_IDS}
+        capabilities={appAIConfig.data?.capabilities ?? (appAIConfig.isPending ? undefined : null)}
+        localSelections={localSelections}
+        cloudAIConfig={cloudAIConfig}
+        loading={appAIConfig.isPending}
+        loadError={appAIConfig.isError ? copy.loadFailed : null}
+        onRetry={() => { void appAIConfig.refetch(); }}
+        onOverwrite={async (capabilities) => {
+          await overwriteAppAIConfig.mutateAsync(capabilities);
+        }}
+        onOpenMachineConfiguration={openMachineConfiguration}
+        onOpenCloudConnectorConfiguration={openCloudConnectorConfiguration}
+        formatError={(error) => ({
+          message: copy.saveFailed || 'Runtime could not save this app\'s AI configuration.',
+          technicalDetail: error instanceof Error ? error.message : String(error || ''),
+        })}
+        copy={copy}
       />
-    );
-  }
-
-  return (
-    <div className="space-y-5">
-      {headerSlot}
-      <HumanModeSettings
-        diagnosticsContent={diagnosticsContent}
-        unavailableReason={resolvedUnavailableReason}
-        onDiagnosticsVisibilityChange={onDiagnosticsVisibilityChange}
-      />
-    </div>
+    </section>
   );
 }

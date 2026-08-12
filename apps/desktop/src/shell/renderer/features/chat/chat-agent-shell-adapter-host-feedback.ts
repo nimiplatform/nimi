@@ -1,7 +1,6 @@
 import { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { asNimiError } from '@nimiplatform/sdk/types';
-import { projectNimiCloudConnectorGrantError } from '@nimiplatform/sdk/runtime';
 import { logRendererEvent } from '@nimiplatform/kit/telemetry';
 import { type InlineFeedbackState } from '../../ui/feedback/inline-feedback';
 import { toErrorMessage } from './chat-agent-shell-core';
@@ -67,33 +66,12 @@ export function useAgentConversationHostFeedback() {
       message: 'action:host-error',
       details,
     });
-    const grantFailure = projectNimiCloudConnectorGrantError(error);
     setHostFeedback({
-      kind: grantFailure?.tone === 'info'
-        ? 'info'
-        : grantFailure?.tone === 'warning'
-          ? 'warning'
-          : 'error',
-      message: grantFailure
-        ? grantFailure.state === 'selection-required'
-          ? t('BridgeErrors.codes.AI_CONNECTOR_GRANT_SELECTION_REQUIRED', {
-            defaultValue: grantFailure.message,
-          })
-          : t('BridgeErrors.codes.AI_CONNECTOR_GRANT_REVOKED', {
-            defaultValue: grantFailure.message,
-          })
-        : contextCapacityFailure
-          ? chatContextCapacityFailureMessage(contextCapacityFailure, t)
-          : message,
-      ...(grantFailure ? {
-        actionLabel: t('Chat.settingsOpenCloudAuthorization', {
-          defaultValue: 'Open account authorization settings',
-        }),
-        onAction: () => {
-          setActiveTab('runtime');
-          runtimeConfigNavigation.openPage('cloud');
-        },
-      } : contextCapacityFailure ? {
+      kind: 'error',
+      message: contextCapacityFailure
+        ? chatContextCapacityFailureMessage(contextCapacityFailure, t)
+        : message,
+      ...(contextCapacityFailure ? {
         actionLabel: t('Chat.openLocalAIConfigurations', {
           defaultValue: 'Open Local AI Configurations',
         }),

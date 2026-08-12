@@ -434,7 +434,7 @@ export function MachineLocalAIConfigurationsPage() {
       configurationId: configuration.configurationId,
       machine: client,
       aiConfigs: [
-        sdk.accountProduct().aiConfig,
+        sdk.accountProduct().appAIConfig(sdk.appId()),
         {
           async get() {
             if (!subjectUserId) {

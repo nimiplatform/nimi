@@ -36,14 +36,7 @@ function provider() {
   };
 }
 
-test('Desktop Cloud choices preserve implementation, target, and ConnectorGrant boundaries', async () => {
-  const create = async (connectorId: string) => ({
-    grantId: 'grant-new',
-    connectorId,
-    status: 'active' as const,
-    createdAt: '2026-08-05T00:00:00.000Z',
-    revokedAt: null,
-  });
+test('Desktop Cloud choices preserve implementation, target, and current-account Connector boundaries', async () => {
   const connectorAdmin = {
     async listModelCatalogProviders() { return { providers: [provider()] }; },
     async listCatalogProviderModels() {
@@ -63,6 +56,23 @@ test('Desktop Cloud choices preserve implementation, target, and ConnectorGrant 
         }],
         nextPageToken: '',
         warnings: [],
+      };
+    },
+    async listConnectorModels(request: { connectorId: string }) {
+      assert.equal(request.connectorId, 'connector-1');
+      return {
+        models: [{
+          modelLabel: 'GPT Test',
+          available: true,
+          capabilities: ['text.generate'],
+          remoteModelCatalogId: 'rmc-openai-gpt-test',
+          providerModelId: 'gpt-test',
+          provider: 'openai',
+          connectorSnapshotId: 'connector-snapshot',
+          endpointProfileId: 'endpoint-profile',
+          inventorySnapshotId: 'inventory-snapshot',
+        }],
+        nextPageToken: '',
       };
     },
     async listProviderCatalog() {
@@ -115,34 +125,26 @@ test('Desktop Cloud choices preserve implementation, target, and ConnectorGrant 
   };
   const sdk = {
     connectorAdmin: () => connectorAdmin,
-    accountProduct: () => ({
-      connectorGrants: {
-        create,
-        async list() {
-          return [{
-            grantId: 'grant-1',
-            connectorId: 'connector-1',
-            status: 'active' as const,
-            createdAt: '2026-08-04T00:00:00.000Z',
-            revokedAt: null,
-          }];
-        },
-      },
-    }),
+    accountProduct: () => ({}),
   } as unknown as Pick<DesktopRendererSdkPort, 'connectorAdmin' | 'accountProduct'>;
   const module = createDesktopCloudAIConfigModule(sdk);
 
   const implementations = await module.listImplementations('text.generate');
-  const targets = await module.listTargets({ capabilityContract: 'text.generate', provider: 'openai' });
+  const targets = await module.listTargets({
+    capabilityContract: 'text.generate',
+    provider: 'openai',
+    connectorId: 'connector-1',
+  });
   const authorization = await module.listAuthorizationOptions();
-  const created = await module.createGrant('connector-1');
 
   assert.equal(implementations[0]?.provider, 'openai');
   assert.doesNotMatch(JSON.stringify(implementations), /connector|grant|providerModelTarget/i);
-  assert.deepEqual(targets[0]?.providerModelTarget, { provider: 'openai', providerModelId: 'gpt-test' });
+  assert.deepEqual(targets[0]?.providerModelTarget, {
+    provider: 'openai',
+    providerModelId: 'gpt-test',
+    remoteModelCatalogId: 'rmc-openai-gpt-test',
+  });
   assert.doesNotMatch(JSON.stringify(targets), /connector|grant|implementation/i);
-  assert.equal(authorization.grants[0]?.grantId, 'grant-1');
   assert.deepEqual(authorization.connectors.map((connector) => connector.connectorId), ['connector-1']);
   assert.doesNotMatch(JSON.stringify(authorization), /providerModelTarget|implementation/i);
-  assert.equal(created.grantId, 'grant-new');
 });

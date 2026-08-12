@@ -480,7 +480,7 @@ test('AIProfile authoring renders the stable-diffusion video section and round-t
   );
 });
 
-test('AIProfile Cloud recommendation form has implementation and target fields but no account or grant inputs', () => {
+test('AIProfile Cloud recommendation form has implementation and target fields but no account or credential inputs', () => {
   const draft = validTextDraft();
   const capability = draft.capabilities[0]!;
   const cloudDraft: RuntimeConfigAIProfileAuthoringDraft = {
@@ -493,7 +493,7 @@ test('AIProfile Cloud recommendation form has implementation and target fields b
         driverId: 'nimi.runtime.driver.example',
         driverDialect: 'example/text/v1',
         supportedFeaturesText: 'input.image',
-        providerModelTargetJson: '{"provider":"example","providerModelId":"vision-v1"}',
+        providerModelTargetJson: '{"provider":"example","providerModelId":"vision-v1","remoteModelCatalogId":"remote-model-catalog-vision-v1"}',
       },
     }],
   };
@@ -501,11 +501,11 @@ test('AIProfile Cloud recommendation form has implementation and target fields b
 
   assert.match(markup, /data-testid="ai-profile-authoring-cloud-section"/u);
   assert.match(markup, /data-authoring-account-fields="absent"/u);
-  assert.match(markup, /data-authoring-grant-fields="absent"/u);
   assert.match(markup, /data-authoring-field="cloud-implementation-id"/u);
   assert.match(markup, /data-authoring-field="cloud-provider-model-target"/u);
   assert.doesNotMatch(markup, /data-authoring-field="[^"]*(?:account|grant|credential|secret)/iu);
-  assert.match(markup, /selection-required/u);
+  assert.match(markup, /current-account Connector/u);
+  assert.doesNotMatch(markup, /selection-required|active account authorization|account authorization is selected/iu);
 });
 
 test('AIProfile import rejects forbidden identity and the authoring view presents a fail-closed information state', () => {

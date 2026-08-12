@@ -11,10 +11,6 @@ import {
 import { useDesktopRendererSdk } from '../../renderer/binding-context.js';
 
 export const DESKTOP_NIMI_APP_ID = 'nimi.desktop';
-export const DESKTOP_NIMI_APP_AI_CONFIG_QUERY_KEY = [
-  'app-ai-config',
-  DESKTOP_NIMI_APP_ID,
-] as const;
 export const DESKTOP_NIMI_MACHINE_LOCAL_SELECTIONS_QUERY_KEY = [
   'machine-local-ai-configuration',
   'model-config-projection',
@@ -41,27 +37,37 @@ export async function readDesktopNimiAppAIConfig(
   }
 }
 
+export function desktopNimiAppAIConfigQueryKey(appId: string) {
+  const exactAppId = appId.trim();
+  if (!exactAppId || exactAppId !== appId) {
+    throw new Error('Desktop App AIConfig requires one exact appId.');
+  }
+  return ['app-ai-config', exactAppId] as const;
+}
+
 /** Runtime-owned App AIConfig read-through; React Query is not persistence. */
-export function useDesktopNimiAppAIConfig() {
+export function useDesktopNimiAppAIConfig(appId: string) {
   const sdk = useDesktopRendererSdk();
+  const queryKey = desktopNimiAppAIConfigQueryKey(appId);
   return useQuery({
-    queryKey: DESKTOP_NIMI_APP_AI_CONFIG_QUERY_KEY,
-    queryFn: () => readDesktopNimiAppAIConfig(sdk.accountProduct().aiConfig),
+    queryKey,
+    queryFn: () => readDesktopNimiAppAIConfig(sdk.accountProduct().appAIConfig(appId)),
     retry: false,
     staleTime: 30_000,
   });
 }
 
 /** Whole-object mutation through the Desktop first-party semantic client. */
-export function useOverwriteDesktopNimiAppAIConfig() {
+export function useOverwriteDesktopNimiAppAIConfig(appId: string) {
   const sdk = useDesktopRendererSdk();
   const queryClient = useQueryClient();
+  const queryKey = desktopNimiAppAIConfigQueryKey(appId);
   return useMutation({
     mutationFn: (capabilities: readonly NimiCapabilityAIConfigIntent[]) => (
-      sdk.accountProduct().aiConfig.overwrite(capabilities)
+      sdk.accountProduct().appAIConfig(appId).overwrite(capabilities)
     ),
     onSuccess(config) {
-      queryClient.setQueryData(DESKTOP_NIMI_APP_AI_CONFIG_QUERY_KEY, config);
+      queryClient.setQueryData(queryKey, config);
     },
   });
 }

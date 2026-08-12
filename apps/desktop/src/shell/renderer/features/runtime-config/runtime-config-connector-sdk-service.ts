@@ -8,7 +8,6 @@ import {
   nimiRuntimeConnectorToProjection,
   runtimeConnectorProjectionToNimiRuntimeConfigConnector,
   nimiRuntimeConnectorVendorToProvider,
-  type NimiRuntimeConnectorGrant,
   type NimiRuntimeConnectorAuthProfileSpec,
   type NimiRuntimeConnectorAuthOption,
   type NimiRuntimeConnectorClient,
@@ -41,17 +40,8 @@ export type ApiConnectorAuthOption = {
 
 export type ConnectorModelInfo = NimiRuntimeConnectorModelInfo;
 
-export type RuntimeConfigConnectorGrantService = Readonly<{
-  create(connectorId: string): Promise<NimiRuntimeConnectorGrant>;
-  list(): Promise<readonly NimiRuntimeConnectorGrant[]>;
-  revoke(grantId: string): Promise<NimiRuntimeConnectorGrant>;
-}>;
-
 export type RuntimeConfigConnectorSdkService = Readonly<{
   clearCaches(): void;
-  createConnectorGrant(connectorId: string): Promise<NimiRuntimeConnectorGrant>;
-  listConnectorGrants(): Promise<readonly NimiRuntimeConnectorGrant[]>;
-  revokeConnectorGrant(grantId: string): Promise<NimiRuntimeConnectorGrant>;
   sdkListProviderCatalog(): Promise<ProviderCatalogEntry[]>;
   sdkListConnectors(): Promise<ApiConnector[]>;
   sdkCreateConnector(input: {
@@ -98,7 +88,6 @@ function runtimeConnectorAuthOptionToApiOption(
 
 export function createRuntimeConfigConnectorSdkService(
   getConnectors: () => ReturnType<DesktopRendererSdkPort['connectorAdmin']>,
-  getGrantService?: () => RuntimeConfigConnectorGrantService,
 ): RuntimeConfigConnectorSdkService {
   const runtimeConnectors: NimiRuntimeConnectorClient = Object.freeze({
     listProviderCatalog: (request, options) => getConnectors().listProviderCatalog(request, options),
@@ -116,18 +105,6 @@ export function createRuntimeConfigConnectorSdkService(
 
   return Object.freeze({
     clearCaches: () => inventory.clearCaches(),
-    async createConnectorGrant(connectorId) {
-      if (!getGrantService) throw new Error('DESKTOP_CONNECTOR_GRANT_SERVICE_UNAVAILABLE');
-      return getGrantService().create(connectorId);
-    },
-    async listConnectorGrants() {
-      if (!getGrantService) throw new Error('DESKTOP_CONNECTOR_GRANT_SERVICE_UNAVAILABLE');
-      return getGrantService().list();
-    },
-    async revokeConnectorGrant(grantId) {
-      if (!getGrantService) throw new Error('DESKTOP_CONNECTOR_GRANT_SERVICE_UNAVAILABLE');
-      return getGrantService().revoke(grantId);
-    },
     async sdkListProviderCatalog() {
       return [...await inventory.listProviderCatalog()];
     },

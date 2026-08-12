@@ -1,6 +1,5 @@
 import type {
   ModelConfigCloudAIConfigModule,
-  ModelConfigCloudGrantOption,
   ModelConfigCloudTargetOption,
 } from '@nimiplatform/kit/features/model-config/headless';
 import {
@@ -11,10 +10,7 @@ import {
 } from '@nimiplatform/sdk/runtime';
 import type { DesktopRendererSdkPort } from '../../renderer/sdk-port.js';
 
-const PAGE_SIZE = 500;
-const MAX_PAGES = 200;
-
-/** Runtime catalog and account-authorization composition for first-party Cloud configuration. */
+/** Runtime catalog and current-account Connector composition for Nimi-owned Cloud configuration. */
 export function createDesktopCloudAIConfigModule(
   sdk: Pick<DesktopRendererSdkPort, 'connectorAdmin' | 'accountProduct'>,
 ): ModelConfigCloudAIConfigModule {
@@ -39,7 +35,11 @@ export function createDesktopCloudAIConfigModule(
       );
     },
 
-    async listTargets(input: { readonly capabilityContract: string; readonly provider: string }) {
+    async listTargets(input: {
+      readonly capabilityContract: string;
+      readonly provider: string;
+      readonly connectorId: string;
+    }) {
       const provider = (await catalog.listProviders()).find((entry) => (
         entry.provider === input.provider
         && entry.runtimePlane === 'remote'
@@ -48,37 +48,26 @@ export function createDesktopCloudAIConfigModule(
       ));
       if (!provider) throw new Error('DESKTOP_CLOUD_IMPLEMENTATION_NOT_IN_RUNTIME_CATALOG');
 
+      const connector = (await inventory.listConnectors()).find((item) => (
+        item.id === input.connectorId
+        && item.scope === 'user'
+        && item.provider === provider.provider
+        && item.hasCredential
+      ));
+      if (!connector) throw new Error('DESKTOP_CLOUD_CONNECTOR_NOT_CURRENT_ACCOUNT');
       const targets = new Map<string, ModelConfigCloudTargetOption>();
-      const seenPageTokens = new Set<string>();
-      let pageToken = '';
-      for (let page = 0; page < MAX_PAGES; page += 1) {
-        const response = await catalog.listProviderModels(provider.provider, PAGE_SIZE, pageToken);
-        for (const model of response.models) {
-          if (model.capabilities.includes(input.capabilityContract)) {
-            addTarget(targets, provider.provider, model.modelId);
-          }
+      for (const model of await inventory.listConnectorModelDescriptors(connector.id)) {
+        if (model.provider === provider.provider && model.capabilities.includes(input.capabilityContract)) {
+          addTarget(targets, model);
         }
-        pageToken = response.nextPageToken;
-        if (!pageToken) break;
-        if (seenPageTokens.has(pageToken)) {
-          throw new Error('DESKTOP_CLOUD_TARGET_CATALOG_PAGE_TOKEN_REPEATED');
-        }
-        seenPageTokens.add(pageToken);
-      }
-      if (pageToken) throw new Error('DESKTOP_CLOUD_TARGET_CATALOG_PAGE_LIMIT_EXCEEDED');
-      if (input.capabilityContract === 'text.generate') {
-        addTarget(targets, provider.provider, provider.defaultTextModel);
       }
       return Object.freeze([...targets.values()].sort((left, right) => left.label.localeCompare(right.label)));
     },
 
     async listAuthorizationOptions() {
-      const [connectorSnapshot, grants] = await Promise.all([
-        inventory.listConnectors(),
-        sdk.accountProduct().connectorGrants.list(),
-      ]);
+      const connectorSnapshot = await inventory.listConnectors();
       const connectors = connectorSnapshot
-        .filter((item) => item.hasCredential)
+        .filter((item) => item.scope === 'user' && item.hasCredential)
         .map((item) => Object.freeze({
           connectorId: item.id,
           label: item.label || item.id,
@@ -87,12 +76,7 @@ export function createDesktopCloudAIConfigModule(
         .sort((left, right) => left.label.localeCompare(right.label));
       return Object.freeze({
         connectors: Object.freeze(connectors),
-        grants: Object.freeze(grants.map(toGrantOption)),
       });
-    },
-
-    async createGrant(connectorId: string) {
-      return toGrantOption(await sdk.accountProduct().connectorGrants.create(connectorId));
     },
   };
   return Object.freeze(module);
@@ -100,28 +84,23 @@ export function createDesktopCloudAIConfigModule(
 
 function addTarget(
   targets: Map<string, ModelConfigCloudTargetOption>,
-  provider: string,
-  modelId: string,
+  model: {
+    readonly modelLabel: string;
+    readonly provider: string;
+    readonly providerModelId: string;
+    readonly remoteModelCatalogId: string;
+  },
 ): void {
-  if (!modelId) return;
-  const targetId = JSON.stringify([provider, modelId]);
+  const targetId = model.remoteModelCatalogId;
   if (targets.has(targetId)) return;
   targets.set(targetId, Object.freeze({
     targetId,
-    label: modelId,
-    provider,
-    providerModelTarget: Object.freeze({ provider, providerModelId: modelId }),
+    label: model.modelLabel || model.providerModelId,
+    provider: model.provider,
+    providerModelTarget: Object.freeze({
+      provider: model.provider,
+      providerModelId: model.providerModelId,
+      remoteModelCatalogId: model.remoteModelCatalogId,
+    }),
   }));
-}
-
-function toGrantOption(
-  grant: Awaited<ReturnType<ReturnType<DesktopRendererSdkPort['accountProduct']>['connectorGrants']['create']>>,
-): ModelConfigCloudGrantOption {
-  return Object.freeze({
-    grantId: grant.grantId,
-    connectorId: grant.connectorId,
-    status: grant.status,
-    createdAt: grant.createdAt,
-    revokedAt: grant.revokedAt,
-  });
 }

@@ -58,7 +58,6 @@ export function createDesktopRendererResources(
   );
   const runtimeConnectorSdk = createRuntimeConfigConnectorSdkService(
     bindings.sdk.connectorAdmin,
-    () => bindings.sdk.accountProduct().connectorGrants,
   );
   const realmHumanChatData = createRealmHumanChatData(bindings.sdk);
   const worldFollowStore = createWorldFollowStore(bindings.app.commands.worldFollow);
