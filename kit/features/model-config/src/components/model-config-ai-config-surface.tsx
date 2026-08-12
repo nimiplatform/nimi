@@ -26,6 +26,8 @@ import { resolveModelConfigCopy } from '../copy.js';
 import {
   modelConfigCapabilityFallbackLabel,
   modelConfigCapabilityPosture,
+  modelConfigHasExactCloudTarget,
+  modelConfigJsonHasExactCloudTarget,
   modelConfigMissingRequiredFeatures,
 } from '../projection.js';
 import type {
@@ -45,7 +47,6 @@ import { ModelConfigOwnerBoundary } from './model-config-owner-boundary.js';
 
 const EMPTY_AUTHORIZATION: ModelConfigCloudAuthorizationOptions = Object.freeze({
   connectors: Object.freeze([]),
-  grants: Object.freeze([]),
 });
 
 type ResolvedCopy = ReturnType<typeof resolveModelConfigCopy>;
@@ -84,7 +85,9 @@ export type ModelConfigAIConfigSurfaceProps = {
   readonly disabled?: boolean;
   readonly loadError?: string | null;
   readonly onRetry?: () => void;
-  readonly onOverwrite: ModelConfigOverwrite;
+  readonly onOverwrite?: ModelConfigOverwrite;
+  /** Opens the Nimi-owned owner surface for read-only protected App mounts. */
+  readonly onOpenOwnerConfiguration?: () => void;
   readonly onOpenMachineConfiguration?: (capabilityContract: string) => void;
   readonly onOpenCloudConnectorConfiguration?: () => void;
   readonly formatError?: (error: unknown) => ModelConfigFormattedError;
@@ -113,7 +116,6 @@ function statusBadge(
     case 'local-configured':
     case 'cloud-configured':
       return { label: copy.configuredLabel, tone: 'success' };
-    case 'cloud-selection-required':
     case 'local-selection-missing':
       return { label: copy.selectionRequiredLabel, tone: 'warning' };
     case 'local-configuration-blocked':
@@ -149,10 +151,6 @@ function descriptorDescription(
 
 function targetText(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
-}
-
-function targetOptionId(provider: string, modelId: string): string {
-  return JSON.stringify([provider, modelId]);
 }
 
 function cloudChoiceId(implementationId: string, targetId: string): string {
@@ -215,10 +213,11 @@ function currentRouteChoice(
   const cloud = intent.route.cloud;
   const target = runtimeAIConfigStructToJson(cloud.providerModelTarget);
   const provider = targetText(target.provider);
-  const modelId = targetText(target.providerModelId) || targetText(target.model);
+  const modelId = targetText(target.providerModelId);
+  const remoteModelCatalogId = targetText(target.remoteModelCatalogId);
   const implementationId = cloud.implementation?.implementationId || '';
-  if (!provider || !modelId || !implementationId || !cloud.implementation) return null;
-  const targetId = targetOptionId(provider, modelId);
+  if (!modelConfigHasExactCloudTarget(intent) || !provider || !modelId || !remoteModelCatalogId || !implementationId || !cloud.implementation) return null;
+  const targetId = remoteModelCatalogId;
   return {
     id: cloudChoiceId(implementationId, targetId),
     route: 'cloud',
@@ -241,9 +240,9 @@ function currentRouteChoice(
 }
 
 function cloudModelLabel(intent: NimiCapabilityAIConfigIntent | null): string | null {
-  if (intent?.route.oneofKind !== 'cloud') return null;
+  if (!modelConfigHasExactCloudTarget(intent) || intent?.route.oneofKind !== 'cloud') return null;
   const target = runtimeAIConfigStructToJson(intent.route.cloud.providerModelTarget);
-  return targetText(target.providerModelId) || targetText(target.model) || targetText(target.provider) || null;
+  return targetText(target.providerModelId) || null;
 }
 
 function capabilitySummary(
@@ -256,7 +255,7 @@ function capabilitySummary(
   if (posture === 'local-configured') {
     return selection?.displayName || selection?.configurationId || copy.configuredLabel;
   }
-  if (posture === 'cloud-configured' || posture === 'cloud-selection-required') {
+  if (posture === 'cloud-configured') {
     return cloudModelLabel(intent) || statusBadge(posture, copy).label;
   }
   if (posture !== 'not-configured') return statusBadge(posture, copy).label;
@@ -369,6 +368,7 @@ export function ModelConfigAIConfigSurface(props: ModelConfigAIConfigSurfaceProp
             context={props.context}
             cloudAIConfig={props.cloudAIConfig}
             onOverwrite={props.onOverwrite}
+            onOpenOwnerConfiguration={props.onOpenOwnerConfiguration}
             onOpenMachineConfiguration={props.onOpenMachineConfiguration}
             onOpenCloudConnectorConfiguration={props.onOpenCloudConnectorConfiguration}
             formatError={props.formatError}
@@ -446,7 +446,8 @@ type CapabilityIntentEditorProps = {
   readonly selection: ModelConfigLocalSelectionProjection | null;
   readonly context: ModelConfigAIConfigOwnerContext;
   readonly cloudAIConfig?: ModelConfigCloudAIConfigModule;
-  readonly onOverwrite: ModelConfigOverwrite;
+  readonly onOverwrite?: ModelConfigOverwrite;
+  readonly onOpenOwnerConfiguration?: () => void;
   readonly onOpenMachineConfiguration?: (capabilityContract: string) => void;
   readonly onOpenCloudConnectorConfiguration?: () => void;
   readonly formatError?: (error: unknown) => ModelConfigFormattedError;
@@ -455,13 +456,45 @@ type CapabilityIntentEditorProps = {
 };
 
 function CapabilityIntentEditor(props: CapabilityIntentEditorProps) {
+  if (props.context.consumer === 'third-party-app') {
+    return <ThirdPartyCapabilityIntentView {...props} />;
+  }
+  return <FirstPartyCapabilityIntentEditor {...props} />;
+}
+
+function ThirdPartyCapabilityIntentView(props: CapabilityIntentEditorProps) {
+  const posture = modelConfigCapabilityPosture(props.currentIntent, props.selection);
+  const badge = statusBadge(posture, props.copy);
+  return (
+    <div className="min-w-0 space-y-4" data-nimi-model-config-capability={props.capabilityContract} data-nimi-model-config-read-only="true">
+      {!props.descriptor ? <InlineAlert tone="warning">{props.copy.unsupportedCapabilityLabel}</InlineAlert> : null}
+      <div className="rounded-[var(--nimi-radius-md)] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-3">
+        <div className="flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <div className="text-xs font-semibold text-[var(--nimi-text-primary)]">{props.copy.activeModelLabel}</div>
+            <p className="m-0 mt-1 truncate text-[11px] text-[var(--nimi-text-muted)]">
+              {capabilitySummary(props.currentIntent, props.selection, props.descriptor, props.copy)}
+            </p>
+          </div>
+          <StatusBadge tone={badge.tone}>{badge.label}</StatusBadge>
+        </div>
+      </div>
+      {props.onOpenOwnerConfiguration ? (
+        <div className="flex justify-end">
+          <Button tone="primary" onClick={props.onOpenOwnerConfiguration} data-nimi-model-config-owner-handoff="true">
+            {props.copy.openCloudConnectorsLabel}
+          </Button>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function FirstPartyCapabilityIntentEditor(props: CapabilityIntentEditorProps) {
   const currentChoice = useMemo(
     () => currentRouteChoice(props.currentIntent, props.selection, props.copy),
     [props.copy, props.currentIntent, props.selection],
   );
-  const currentCloudGrantId = props.currentIntent?.route.oneofKind === 'cloud'
-    ? props.currentIntent.route.cloud.connectorGrantId || ''
-    : '';
   const currentDefaults = useMemo(
     () => sanitizeCapabilityDefaults(
       props.capabilityContract,
@@ -471,14 +504,12 @@ function CapabilityIntentEditor(props: CapabilityIntentEditorProps) {
   );
   const syncKey = useMemo(() => JSON.stringify({
     choice: currentChoice?.id || null,
-    grantId: currentCloudGrantId,
     requiredFeatures: props.currentIntent?.requiredFeatures || [],
     defaults: currentDefaults,
-  }), [currentChoice?.id, currentCloudGrantId, currentDefaults, props.currentIntent?.requiredFeatures]);
+  }), [currentChoice?.id, currentDefaults, props.currentIntent?.requiredFeatures]);
   const lastSyncKey = useRef('');
   const [draftChoice, setDraftChoice] = useState<ModelConfigRouteChoice | null>(currentChoice);
   const [draftDefaults, setDraftDefaults] = useState(currentDefaults);
-  const [grantId, setGrantId] = useState(currentCloudGrantId);
   const [authorization, setAuthorization] = useState<ModelConfigCloudAuthorizationOptions>(EMPTY_AUTHORIZATION);
   const [connectorId, setConnectorId] = useState('');
   const [pickerConnectorId, setPickerConnectorId] = useState('');
@@ -496,14 +527,13 @@ function CapabilityIntentEditor(props: CapabilityIntentEditorProps) {
       && currentChoice.id === draftChoice.id;
     setDraftChoice(currentChoice);
     setDraftDefaults(currentDefaults);
-    setGrantId(currentCloudGrantId);
     if (!preserveConnector) {
       setConnectorId('');
       setPickerConnectorId('');
     }
     setImpactConfirmed(false);
     setSaveFailure(null);
-  }, [currentChoice, currentCloudGrantId, currentDefaults, draftChoice, syncKey]);
+  }, [currentChoice, currentDefaults, draftChoice, syncKey]);
 
   useEffect(() => {
     if (
@@ -515,17 +545,13 @@ function CapabilityIntentEditor(props: CapabilityIntentEditorProps) {
     void props.cloudAIConfig.listAuthorizationOptions().then((next) => {
       if (cancelled) return;
       setAuthorization(next);
-      const currentGrant = next.grants.find((entry) => entry.grantId === currentCloudGrantId);
-      const currentConnector = next.connectors.find((entry) => entry.connectorId === currentGrant?.connectorId);
-      if (currentConnector) {
-        setConnectorId(currentConnector.connectorId);
-        setPickerConnectorId(currentConnector.connectorId);
-      }
+      setConnectorId('');
+      setPickerConnectorId('');
     }).catch(() => {
       if (!cancelled) setCloudError(props.copy.cloudLoadFailed);
     });
     return () => { cancelled = true; };
-  }, [currentCloudGrantId, props.cloudAIConfig, props.context.consumer, props.copy.cloudLoadFailed, props.currentIntent?.route.oneofKind]);
+  }, [currentChoice, props.cloudAIConfig, props.context.consumer, props.copy.cloudLoadFailed, props.currentIntent?.route.oneofKind]);
 
   const listChoices = useCallback(async (): Promise<readonly ModelConfigRouteChoice[]> => {
     const local = localChoice(props.selection, props.copy);
@@ -549,18 +575,11 @@ function CapabilityIntentEditor(props: CapabilityIntentEditorProps) {
         const targets = await props.cloudAIConfig.listTargets({
           capabilityContract: props.capabilityContract,
           provider: connector.provider,
+          connectorId: connector.connectorId,
         });
         return routeChoices(local, implementations.map((implementation) => ({ implementation, targets })));
       }
-      const implementations = await props.cloudAIConfig.listImplementations(props.capabilityContract);
-      const targetGroups = await Promise.all(implementations.map(async (implementation) => ({
-        implementation,
-        targets: await props.cloudAIConfig?.listTargets({
-          capabilityContract: props.capabilityContract,
-          provider: implementation.provider,
-        }) || [],
-      })));
-      return routeChoices(local, targetGroups);
+      return [local];
     } catch {
       setCloudError(props.copy.cloudLoadFailed);
       return [local];
@@ -593,33 +612,15 @@ function CapabilityIntentEditor(props: CapabilityIntentEditorProps) {
         entry.connectorId === connectorId && entry.provider === draftChoice.provider
       )) || null
     : null;
-  const matchingGrants = selectedConnector
-    ? authorization.grants.filter((grant) => grant.connectorId === selectedConnector.connectorId)
-    : [];
-  const selectedGrant = matchingGrants.find((entry) => entry.grantId === grantId) || null;
-  const accountLabel = selectedConnector?.label || selectedGrant?.grantId || props.copy.cloudAuthorizationNone;
+  const accountLabel = selectedConnector?.label || props.copy.cloudAuthorizationNone;
+  const exactCloudSelection = draftChoice?.route === 'cloud'
+    && modelConfigJsonHasExactCloudTarget(draftChoice.target.providerModelTarget);
   const missingFeatures = draftChoice?.route === 'local'
     ? modelConfigMissingRequiredFeatures(props.currentIntent, props.selection)
     : [];
 
-  const createGrant = async () => {
-    if (!props.cloudAIConfig || !connectorId || saving) return;
-    setSaving(true);
-    setCloudError('');
-    try {
-      const grant = await props.cloudAIConfig.createGrant(connectorId);
-      setAuthorization(await props.cloudAIConfig.listAuthorizationOptions());
-      setGrantId(grant.grantId);
-      setImpactConfirmed(false);
-    } catch {
-      setCloudError(props.copy.cloudLoadFailed);
-    } finally {
-      setSaving(false);
-    }
-  };
-
   const commit = async () => {
-    if (saving || !props.descriptor || !draftChoice) return;
+    if (saving || !props.descriptor || !draftChoice || !props.onOverwrite) return;
     setSaveFailure(null);
     try {
       const requiredFeatures = [...(props.currentIntent?.requiredFeatures || [])];
@@ -632,15 +633,13 @@ function CapabilityIntentEditor(props: CapabilityIntentEditorProps) {
           ...(defaults ? { defaults } : {}),
         });
       } else {
-        if (!impactConfirmed) return;
-        if (grantId && selectedGrant?.status !== 'active') return;
+        if (!impactConfirmed || !selectedConnector || !exactCloudSelection) return;
         intent = createNimiCloudAIConfigCapabilityIntent({
           capabilityContract: props.capabilityContract,
           requiredFeatures,
           ...(defaults ? { defaults } : {}),
           implementation: draftChoice.implementation.implementation,
           providerModelTarget: draftChoice.target.providerModelTarget,
-          connectorGrantId: props.context.consumer === 'nimi-first-party' ? (grantId || null) : null,
         });
       }
       const next = props.allCapabilities
@@ -664,7 +663,7 @@ function CapabilityIntentEditor(props: CapabilityIntentEditorProps) {
         props.selection,
       )
     : draftChoice?.route === 'cloud'
-      ? (grantId ? 'cloud-configured' : 'cloud-selection-required')
+      ? exactCloudSelection && selectedConnector ? 'cloud-configured' : 'not-configured'
       : 'not-configured';
   const draftBadge = statusBadge(draftPosture, props.copy);
   const routeDisabled = Boolean(props.disabled) || saving || !props.descriptor;
@@ -810,15 +809,7 @@ function CapabilityIntentEditor(props: CapabilityIntentEditorProps) {
           ) : null}
           onClose={() => setPickerOpen(false)}
           onConfirm={(choice) => {
-            const currentGrantConnectorId = authorization.grants.find(
-              (entry) => entry.grantId === currentCloudGrantId,
-            )?.connectorId;
-            const preserveGrant = choice.route === 'cloud'
-              && currentChoice?.route === 'cloud'
-              && choice.id === currentChoice.id
-              && currentGrantConnectorId === pickerConnectorId;
             setDraftChoice(choice);
-            setGrantId(preserveGrant ? currentCloudGrantId : '');
             setConnectorId(choice.route === 'cloud' ? pickerConnectorId : '');
             setImpactConfirmed(false);
             setSaveFailure(null);
@@ -842,33 +833,6 @@ function CapabilityIntentEditor(props: CapabilityIntentEditorProps) {
             <p className="m-0 mt-1 text-[11px] leading-relaxed text-[var(--nimi-text-muted)]">{props.copy.cloudAuthorizationSeparation}</p>
           </div>
           {cloudError ? <InlineAlert tone="warning">{cloudError}</InlineAlert> : null}
-          {props.context.consumer === 'nimi-first-party' ? (
-            <div className="space-y-3">
-              <SelectField
-                aria-label={props.copy.cloudAuthorizationLabel}
-                value={grantId}
-                placeholder={props.copy.cloudAuthorizationNone}
-                disabled={saving}
-                options={matchingGrants.map((grant) => ({
-                  value: grant.grantId,
-                  label: `${authorization.connectors.find((entry) => entry.connectorId === grant.connectorId)?.label || grant.connectorId} · ${grant.status}`,
-                  disabled: grant.status !== 'active',
-                }))}
-                onValueChange={(value) => {
-                  setGrantId(value);
-                  setImpactConfirmed(false);
-                }}
-              />
-              {!grantId ? <InlineAlert tone="info">{props.copy.cloudAuthorizationNeeded}</InlineAlert> : null}
-              {grantId && selectedGrant?.status !== 'active' ? <InlineAlert tone="warning">{props.copy.cloudAuthorizationRevoked}</InlineAlert> : null}
-              <div className="flex items-center justify-between gap-3">
-                <span className="min-w-0 truncate text-xs text-[var(--nimi-text-secondary)]">
-                  {props.copy.cloudConnectorPickerLabel}: {selectedConnector?.label || props.copy.cloudConnectorPickerPlaceholder}
-                </span>
-                <Button size="sm" tone="secondary" disabled={!selectedConnector || saving} onClick={() => { void createGrant(); }}>{props.copy.cloudCreateGrantLabel}</Button>
-              </div>
-            </div>
-          ) : null}
           <InlineAlert tone="info">
             <div className="space-y-2">
               <div className="font-semibold">{props.copy.cloudAccountLabel(accountLabel)}</div>
@@ -921,9 +885,7 @@ function CapabilityIntentEditor(props: CapabilityIntentEditorProps) {
       <div className="flex justify-end">
         <Button
           tone="primary"
-          disabled={routeDisabled || !draftChoice || (draftChoice.route === 'cloud' && (
-            !impactConfirmed || (Boolean(grantId) && selectedGrant?.status !== 'active')
-          ))}
+          disabled={routeDisabled || !draftChoice || (draftChoice.route === 'cloud' && (!impactConfirmed || !selectedConnector || !exactCloudSelection))}
           onClick={() => { void commit(); }}
           data-testid={`model-config-save:${props.capabilityContract}`}
         >

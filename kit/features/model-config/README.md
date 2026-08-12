@@ -30,13 +30,15 @@ identity, bindings, LocalAssets, paths, or execution truth. It
 does not list or switch machine models. A Third-party App whose protected
 carrier cannot receive Connector inventory may still expose the Cloud source
 and hand off Connector configuration to the Nimi Desktop owner surface; it
-must not fabricate Connector or ConnectorGrant choices. In first-party Cloud
+must not fabricate Connector choices. In first-party Cloud
 flows, the host must first supply configured Connectors, the user chooses one, and only then
 does Model Config request that Connector provider's implementation/model
 targets. An empty or failed Connector projection exposes no Cloud models and
 may deep-link to the host's Connector configuration. Connector choice scopes
-discovery only; model confirmation and optional ConnectorGrant binding remain
-separate explicit actions.
+discovery only; model confirmation atomically commits the exact
+`providerModelId` and Connector-scoped `remoteModelCatalogId`. Reloaded intent
+with missing or inconsistent exact target identity remains not configured and
+is never repaired by provider-name inference.
 
 The retired `core/model-config` scoped configuration ontology is not restored.
 

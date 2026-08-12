@@ -47,7 +47,7 @@ describe('Agent Center canonical i18n catalogs', () => {
   it('covers every literal component key in English and ships matching Chinese keys', () => {
     const enKeys = Object.keys(agentCenterEnCatalog).sort();
     const zhKeys = Object.keys(agentCenterZhCatalog).sort();
-    expect(enKeys).toHaveLength(371);
+    expect(enKeys).toHaveLength(364);
     expect(zhKeys).toEqual(enKeys);
     expect(literalCatalogKeys().filter((key) => !(key in agentCenterEnCatalog))).toEqual([]);
 
@@ -85,5 +85,7 @@ describe('Agent Center canonical i18n catalogs', () => {
     expect(binding.t('AgentCenter.capability.audio.transcribe.label')).toBe('音频转写');
     expect(binding.t('AgentCenter.aiConfig.activeModelLabel')).toBe('当前模型');
     expect(binding.t('AgentCenter.aiConfig.modelPickerTitle')).toBe('选择模型');
+    expect(binding.t('AgentCenter.aiConfig.cloudAuthorizationLabel')).toBe('云端执行路径');
+    expect(binding.t('AgentCenter.aiConfig.cloudAuthorizationNone')).toBe('当前 Nimi 账户');
   });
 });

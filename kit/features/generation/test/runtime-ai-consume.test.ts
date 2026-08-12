@@ -83,7 +83,7 @@ describe('runtime AI consume contract', () => {
       stop: ['DONE'],
       seed: '42',
     });
-    expect(JSON.stringify(runtimeRequest)).not.toMatch(/connectorGrant|connectorId|implementation|providerModelTarget|targetRef|routePolicy/u);
+    expect(JSON.stringify(runtimeRequest)).not.toMatch(/connectorId|implementation|providerModelTarget|targetRef|routePolicy/u);
     expect(Object.keys(request)).not.toEqual(expect.arrayContaining(['config', 'binding', 'model', 'route', 'targetRef']));
   });
 
@@ -170,21 +170,6 @@ describe('runtime AI consume contract', () => {
     if (result.ok) throw new Error('expected unavailable result');
     expect(isNimiError(result.error)).toBe(true);
     expect(result.message).toMatch(/abort/i);
-  });
-
-  it('preserves ConnectorGrant typed failure for the first-party user projection', async () => {
-    const executeScenario = vi.fn(async () => {
-      throw Object.assign(new Error('an active connector grant must be selected'), {
-        reasonCode: 'AI_CONNECTOR_GRANT_SELECTION_REQUIRED',
-      });
-    });
-    const runtime = { ai: { executeScenario, streamScenario: vi.fn() } } as unknown as RuntimeAIConsumeRuntime;
-    const result = await runRuntimeAIConsumeCapability(input(runtime));
-    expect(result.ok).toBe(false);
-    if (result.ok) throw new Error('expected unavailable result');
-    expect(isNimiError(result.error)).toBe(true);
-    expect(result.error.reasonCode).toBe('AI_CONNECTOR_GRANT_SELECTION_REQUIRED');
-    expect(result.reason).toBe('runtime-call-failed');
   });
 
   it('executes text.embed with batch inputs and projects the embedding summary', async () => {

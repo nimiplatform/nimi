@@ -16,8 +16,8 @@ connector, target, readiness, ranking, or fallback authority.
 
 `text.generate` dispatches through the SDK owner-driven Runtime AI model with
 App identity and request content only. Runtime composes the canonical AIConfig,
-Cloud ConnectorGrant or machine selection, and exact implementation at request
-time. Kit does not infer a target, restore a retired binding layer, or fabricate
+current-account Connector or machine selection, and exact implementation at
+request time. Kit does not infer a target, restore a retired binding layer, or fabricate
 success data. Unsupported consume capabilities remain typed
 `AI_ROUTE_UNSUPPORTED` before dispatch; modality-specific job helpers retain
 their own typed contracts.

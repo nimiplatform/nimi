@@ -72,11 +72,10 @@ autonomy configuration.
 The AIConfig section mounts the public `model-config` owner surface in
 `shared-local-agent-ai-config` mode. The optional first-party `cloudAIConfig`
 seam supplies Runtime-catalog implementation/target choices and account-scoped
-ConnectorGrant lifecycle operations. `loadLocalSelections` supplies read-only
+Connector inventory. `loadLocalSelections` supplies read-only
 Machine owner context; Agent Center cannot mutate those selections. Cloud target
-confirmation, account authorization, off-machine data movement, provider cost,
-and the impact on every LocalAgent and proactive task remain explicit.
-ConnectorGrant never supplies target or routing truth.
+confirmation, off-machine data movement, provider cost, and the impact on every
+LocalAgent and proactive task remain explicit.
 
 Each mounted `AgentCenter` consumes exactly one `AgentCenterSession`. The
 session owns its retryable snapshot, refresh, model/autonomy/appearance

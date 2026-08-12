@@ -97,7 +97,7 @@ export type RuntimeAIConsumeInput = {
 /**
  * Executes owner-driven text.generate through the SDK Runtime AI model. The
  * request carries App/capability input only; AIConfig route, implementation,
- * target, ConnectorGrant, and machine selection remain Runtime-owned.
+ * target, Connector, and machine selection remain Runtime-owned.
  */
 export async function runRuntimeAIConsumeCapability(
   input: RuntimeAIConsumeInput,

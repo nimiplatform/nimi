@@ -383,30 +383,16 @@ describe('AgentCenter UI session contract', () => {
     expect(JSON.stringify(config)).not.toContain('targetRef');
   });
 
-  it('keeps target confirmation and shared account authorization as explicit Cloud steps', async () => {
-    let grants: Array<{
-      grantId: string;
-      connectorId: string;
-      status: 'active' | 'revoked';
-      createdAt: string;
-      revokedAt: string | null;
-    }> = [];
-    const createGrant = vi.fn(async (connectorId: string) => {
-      const grant = {
-        grantId: 'grant-1',
-        connectorId,
-        status: 'active' as const,
-        createdAt: '2026-08-05T00:00:00.000Z',
-        revokedAt: null,
-      };
-      grants = [grant];
-      return grant;
-    });
+  it('keeps target confirmation explicit while Runtime owns current-account Connector resolution', async () => {
     const listTargets = vi.fn(async () => [{
-      targetId: '["openai","gpt-test"]',
+      targetId: 'remote-model-catalog-gpt-test',
       label: 'gpt-test',
       provider: 'openai',
-      providerModelTarget: { provider: 'openai', providerModelId: 'gpt-test' },
+      providerModelTarget: {
+        provider: 'openai',
+        providerModelId: 'gpt-test',
+        remoteModelCatalogId: 'remote-model-catalog-gpt-test',
+      },
     }]);
     const session = await sessionFor({}, null, {
       async listImplementations() {
@@ -425,10 +411,8 @@ describe('AgentCenter UI session contract', () => {
       async listAuthorizationOptions() {
         return {
           connectors: [{ connectorId: 'connector-1', label: 'Work account', provider: 'openai' }],
-          grants,
         };
       },
-      createGrant,
     });
     const node = render(<AgentCenter activeSection="ai-config" session={session} />);
     await flush();
@@ -457,14 +441,14 @@ describe('AgentCenter UI session contract', () => {
       .find((button) => button.textContent?.trim() === 'Use this target') as HTMLButtonElement;
     await act(async () => { confirmTarget.click(); await Promise.resolve(); });
     await flush();
-    expect(node.textContent).toContain('Account authorization');
+    expect(node.textContent).toContain('Cloud execution route');
+    expect(node.textContent).toContain('Nimi resolves the current-account Connector');
     expect(node.textContent).toContain('applies to every LocalAgent and proactive task');
     const confirmations = Array.from(node.querySelectorAll('input[type="checkbox"]')) as HTMLInputElement[];
     expect(confirmations).toHaveLength(1);
     act(() => {
       for (const confirmation of confirmations) confirmation.click();
     });
-    expect(node.textContent).toContain('Account authorization still needs to be selected.');
     let save = node.querySelector('[data-testid="model-config-save:text.generate"]') as HTMLButtonElement;
     expect(save.disabled).toBe(false);
     await act(async () => { save.click(); await Promise.resolve(); });
@@ -472,38 +456,9 @@ describe('AgentCenter UI session contract', () => {
     let savedIntent = session.getSnapshot().state.sharedAIConfig?.aiConfig.capabilities[0];
     expect(savedIntent?.route.oneofKind).toBe('cloud');
     if (savedIntent?.route.oneofKind !== 'cloud') throw new Error('expected Cloud intent');
-    expect(savedIntent.route.cloud.connectorGrantId).toBe('');
-
-    const reopenedConfirmations = Array.from(
-      node.querySelectorAll('input[type="checkbox"]'),
-    ) as HTMLInputElement[];
-    expect(reopenedConfirmations.filter((confirmation) => !confirmation.checked)).toHaveLength(1);
-    act(() => {
-      for (const confirmation of reopenedConfirmations) confirmation.click();
-    });
-    const create = Array.from(node.querySelectorAll('button'))
-      .find((button) => button.textContent?.includes('Create account authorization')) as HTMLButtonElement;
-    await act(async () => { create.click(); await Promise.resolve(); });
-    await flush();
-    const postGrantConfirmations = Array.from(
-      node.querySelectorAll('input[type="checkbox"]'),
-    ) as HTMLInputElement[];
-    act(() => {
-      for (const confirmation of postGrantConfirmations) {
-        if (!confirmation.checked) confirmation.click();
-      }
-    });
-
-    save = node.querySelector('[data-testid="model-config-save:text.generate"]') as HTMLButtonElement;
-    expect(save.disabled).toBe(false);
-    await act(async () => { save.click(); await Promise.resolve(); });
-    await flush();
-
-    expect(createGrant).toHaveBeenCalledWith('connector-1');
     const intent = session.getSnapshot().state.sharedAIConfig?.aiConfig.capabilities[0];
     expect(intent?.route.oneofKind).toBe('cloud');
     if (intent?.route.oneofKind !== 'cloud') throw new Error('expected Cloud intent');
-    expect(intent.route.cloud.connectorGrantId).toBe('grant-1');
     expect(intent.route.cloud.implementation).toEqual({
       implementationId: 'openai',
       driverId: 'nimillm',
@@ -512,6 +467,7 @@ describe('AgentCenter UI session contract', () => {
     expect(runtimeAIConfigStructToJson(intent.route.cloud.providerModelTarget)).toEqual({
       provider: 'openai',
       providerModelId: 'gpt-test',
+      remoteModelCatalogId: 'remote-model-catalog-gpt-test',
     });
   });
 });

@@ -51,6 +51,7 @@ async function renderSurface(
     readonly consumer?: 'nimi-first-party' | 'third-party-app';
     readonly initialCapabilityContract?: string;
     readonly onOpenCloudConnectorConfiguration?: () => void;
+    readonly onOpenOwnerConfiguration?: () => void;
     readonly capabilityContracts?: readonly string[];
     readonly capabilities?: readonly NimiCapabilityAIConfigIntent[];
   } = {},
@@ -94,22 +95,19 @@ async function renderSurface(
             targetId: 'cloud-model',
             label: 'Cloud Model',
             provider: 'provider-test',
-            providerModelTarget: { provider: 'provider-test', providerModelId: 'cloud-model' },
+            providerModelTarget: {
+              provider: 'provider-test',
+              providerModelId: 'cloud-model',
+              remoteModelCatalogId: 'rmc-cloud-model',
+            },
           }],
           listAuthorizationOptions: async () => ({
             connectors: [{ connectorId: 'connector-test', label: 'Test account', provider: 'provider-test' }],
-            grants: [],
-          }),
-          createGrant: async () => ({
-            grantId: 'grant-test',
-            connectorId: 'connector-test',
-            status: 'active',
-            createdAt: '2026-08-07T00:00:00.000Z',
-            revokedAt: null,
           }),
         }}
         onOpenMachineConfiguration={onOpenMachineConfiguration}
         onOpenCloudConnectorConfiguration={options.onOpenCloudConnectorConfiguration}
+        onOpenOwnerConfiguration={options.onOpenOwnerConfiguration}
         onOverwrite={onOverwrite}
       />,
     );
@@ -215,6 +213,21 @@ describe('public Model Config contract', () => {
     expect(selections[1]?.effectiveDefaults).toBeNull();
   });
 
+  it('fails closed when a reloaded Cloud intent lacks exact catalog identity', () => {
+    const incomplete = createNimiCloudAIConfigCapabilityIntent({
+      capabilityContract: 'text.generate',
+      implementation: { implementationId: 'cloud-test', driverId: 'nimillm', driverDialect: 'openai' },
+      providerModelTarget: {
+        provider: 'provider-test',
+        providerModelId: 'cloud-model',
+        remoteModelCatalogId: 'rmc-cloud-model',
+      },
+    });
+    if (incomplete.route.oneofKind !== 'cloud') throw new Error('expected Cloud intent fixture');
+    delete incomplete.route.cloud.providerModelTarget!.fields.remoteModelCatalogId;
+    expect(modelConfigCapabilityPosture(incomplete, null)).toBe('not-configured');
+  });
+
   it('opens an explicitly requested capability detail on first mount', async () => {
     const node = await renderSurface(vi.fn(async () => undefined), vi.fn(), {
       initialCapabilityContract: 'text.generate',
@@ -224,34 +237,63 @@ describe('public Model Config contract', () => {
     expect(node.querySelector('[data-testid="model-config-model-trigger:text.generate"]')).toBeTruthy();
   });
 
-  it('offers a Cloud Connector handoff for a third-party App without exposing Connector inventory', async () => {
-    const onOpenCloudConnectorConfiguration = vi.fn();
-    const node = await renderSurface(vi.fn(async () => undefined), vi.fn(), {
+  it('keeps a third-party App read-only and hands configuration to the Nimi owner surface', async () => {
+    const onOpenOwnerConfiguration = vi.fn();
+    const onOverwrite = vi.fn<ModelConfigOverwrite>(async () => undefined);
+    const node = await renderSurface(onOverwrite, vi.fn(), {
       cloudAIConfig: undefined,
       consumer: 'third-party-app',
       initialCapabilityContract: 'text.generate',
-      onOpenCloudConnectorConfiguration,
+      onOpenOwnerConfiguration,
     });
 
-    act(() => {
-      (node.querySelector('[data-testid="model-config-model-trigger:text.generate"]') as HTMLButtonElement).click();
-    });
-    await flush();
-    const cloudTab = Array.from(document.body.querySelectorAll('[data-nimi-model-picker="true"] button'))
-      .find((button) => button.textContent?.trim() === 'Cloud') as HTMLButtonElement;
-    expect(cloudTab).toBeTruthy();
-    act(() => { cloudTab.click(); });
-    await flush();
-    const handoff = document.body.querySelector(
-      '[data-nimi-model-config-cloud-connector-handoff="true"]',
-    ) as HTMLElement;
-    expect(handoff.textContent).toContain('Configure Cloud Connectors');
-    const open = Array.from(handoff.querySelectorAll('button')).find((button) => (
-      button.textContent?.trim() === 'Configure Cloud Connectors'
-    )) as HTMLButtonElement;
-    act(() => { open.click(); });
+    expect(node.querySelector('[data-nimi-model-config-read-only="true"]')).toBeTruthy();
+    expect(node.querySelector('[data-testid="model-config-model-trigger:text.generate"]')).toBeNull();
+    expect(node.querySelector('[data-testid="model-config-save:text.generate"]')).toBeNull();
+    act(() => { (node.querySelector('[data-nimi-model-config-owner-handoff="true"]') as HTMLButtonElement).click(); });
+    expect(onOpenOwnerConfiguration).toHaveBeenCalledTimes(1);
+    expect(onOverwrite).not.toHaveBeenCalled();
+  });
 
-    expect(onOpenCloudConnectorConfiguration).toHaveBeenCalledTimes(1);
+  it('can switch consumer ownership without changing one component hook order', async () => {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    root = createRoot(container);
+    const capability = {
+      capabilityContract: 'text.generate',
+      requiredFeatures: [],
+      defaults: undefined,
+      route: { oneofKind: 'local' as const, local: {} },
+    };
+    const localSelections = [{
+      capabilityContract: 'text.generate',
+      state: 'selected' as const,
+      configurationId: 'machine-text',
+      displayName: 'Machine text model',
+      supportedFeatures: [],
+      reasons: [],
+      effectiveDefaults: null,
+    }];
+    const renderConsumer = async (consumer: 'nimi-first-party' | 'third-party-app') => {
+      await act(async () => {
+        root?.render(
+          <ModelConfigAIConfigSurface
+            context={{ owner: 'app-ai-config', consumer, appId: 'test.app' }}
+            capabilityContracts={['text.generate']}
+            initialCapabilityContract="text.generate"
+            capabilities={[capability]}
+            localSelections={localSelections}
+            onOverwrite={async () => undefined}
+          />,
+        );
+        await Promise.resolve();
+      });
+    };
+
+    await renderConsumer('third-party-app');
+    expect(container.querySelector('[data-nimi-model-config-read-only="true"]')).toBeTruthy();
+    await renderConsumer('nimi-first-party');
+    expect(container.querySelector('[data-testid="model-config-model-trigger:text.generate"]')).toBeTruthy();
   });
 
   it('commits canonical App AIConfig intent through the owner callback', async () => {
@@ -300,8 +342,11 @@ describe('public Model Config contract', () => {
       capabilities: [createNimiCloudAIConfigCapabilityIntent({
         capabilityContract: 'text.generate',
         implementation: { implementationId: 'cloud-test', driverId: 'nimillm', driverDialect: 'openai' },
-        providerModelTarget: { provider: 'provider-test', providerModelId: 'cloud-model' },
-        connectorGrantId: 'grant-test',
+        providerModelTarget: {
+          provider: 'provider-test',
+          providerModelId: 'cloud-model',
+          remoteModelCatalogId: 'rmc-cloud-model',
+        },
       })],
     });
     const cloudTemperature = cloud.querySelector('[data-nimi-default-parameter="temperature"] input') as HTMLInputElement;
@@ -408,7 +453,11 @@ describe('public Model Config contract', () => {
       targetId: 'cloud-model',
       label: 'Cloud Model',
       provider: 'provider-test',
-      providerModelTarget: { provider: 'provider-test', providerModelId: 'cloud-model' },
+      providerModelTarget: {
+        provider: 'provider-test',
+        providerModelId: 'cloud-model',
+        remoteModelCatalogId: 'rmc-cloud-model',
+      },
     }]);
     const node = await renderSurface(vi.fn(async () => undefined), vi.fn(), {
       cloudAIConfig: {
@@ -416,14 +465,6 @@ describe('public Model Config contract', () => {
         listTargets,
         listAuthorizationOptions: async () => ({
           connectors: [{ connectorId: 'connector-test', label: 'Work account', provider: 'provider-test' }],
-          grants: [],
-        }),
-        createGrant: async () => ({
-          grantId: 'grant-test',
-          connectorId: 'connector-test',
-          status: 'active',
-          createdAt: '2026-08-07T00:00:00.000Z',
-          revokedAt: null,
         }),
       },
     });
@@ -449,6 +490,7 @@ describe('public Model Config contract', () => {
     expect(listTargets).toHaveBeenCalledWith({
       capabilityContract: 'text.generate',
       provider: 'provider-test',
+      connectorId: 'connector-test',
     });
     expect(document.body.querySelector('[data-nimi-model-picker-source="cloud"]')?.textContent).toContain('Cloud Model');
   });
@@ -461,8 +503,7 @@ describe('public Model Config contract', () => {
       cloudAIConfig: {
         listImplementations: vi.fn(async () => []),
         listTargets,
-        listAuthorizationOptions: async () => ({ connectors: [], grants: [] }),
-        createGrant: vi.fn(),
+        listAuthorizationOptions: async () => ({ connectors: [] }),
       },
     });
 

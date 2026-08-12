@@ -4,7 +4,6 @@ export type {
   ModelConfigCloudAIConfigModule,
   ModelConfigCloudAuthorizationOptions,
   ModelConfigCloudConnectorOption,
-  ModelConfigCloudGrantOption,
   ModelConfigCloudImplementationOption,
   ModelConfigCloudTargetOption,
   ModelConfigCopy,

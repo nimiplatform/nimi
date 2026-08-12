@@ -1,9 +1,32 @@
 import type { NimiCapabilityAIConfigIntent } from '@nimiplatform/kit/core/sdk-contract';
+import { runtimeAIConfigStructToJson } from '@nimiplatform/kit/core/sdk-contract';
 import type {
   ModelConfigCapabilityPosture,
   ModelConfigLocalSelectionProjection,
   ModelConfigMachineAggregateInput,
 } from './types.js';
+
+function exactCloudTargetText(value: unknown): string {
+  return typeof value === 'string' && value.trim() === value && value.length > 0 ? value : '';
+}
+
+export function modelConfigHasExactCloudTarget(
+  intent: NimiCapabilityAIConfigIntent | null | undefined,
+): boolean {
+  if (intent?.route.oneofKind !== 'cloud') return false;
+  return modelConfigJsonHasExactCloudTarget(
+    runtimeAIConfigStructToJson(intent.route.cloud.providerModelTarget),
+  );
+}
+
+export function modelConfigJsonHasExactCloudTarget(
+  fields: Readonly<Record<string, unknown>>,
+): boolean {
+  return !Object.hasOwn(fields, 'model')
+    && Boolean(exactCloudTargetText(fields.provider))
+    && Boolean(exactCloudTargetText(fields.providerModelId))
+    && Boolean(exactCloudTargetText(fields.remoteModelCatalogId));
+}
 
 export function projectModelConfigLocalSelections(
   aggregate: ModelConfigMachineAggregateInput | null | undefined,
@@ -56,7 +79,7 @@ export function modelConfigCapabilityPosture(
 ): ModelConfigCapabilityPosture {
   if (!intent || !intent.route.oneofKind) return 'not-configured';
   if (intent.route.oneofKind === 'cloud') {
-    return intent.route.cloud.connectorGrantId ? 'cloud-configured' : 'cloud-selection-required';
+    return modelConfigHasExactCloudTarget(intent) ? 'cloud-configured' : 'not-configured';
   }
   if (!selection || selection.state === 'missing') return 'local-selection-missing';
   if (selection.state === 'unavailable' || selection.state === 'broken') return 'local-configuration-blocked';

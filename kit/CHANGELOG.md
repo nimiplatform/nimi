@@ -22,9 +22,10 @@ Discipline.
   runners can consume the protected carrier without a Runtime proxy.
 - Model Config can open an explicitly requested capability detail on first
   mount, allowing capability-specific host entry points to reuse the shared hub.
-  Third-party App hosts may also expose the Cloud source as an explicit handoff
-  to Nimi Desktop Connector configuration without receiving Connector inventory
-  or ConnectorGrant material. The protected Local App carrier now supplies the
+  Third-party App hosts expose only a read-only projection plus a handoff to the
+  exact Nimi-owned App configuration surface, without receiving Local/Cloud,
+  implementation, provider-model, or Connector authoring
+  controls. The protected Local App carrier now supplies the
   bounded current Local-selection display projection used by Model Config while
   withholding configuration identity, bindings, LocalAssets, paths, and
   execution truth.
@@ -52,14 +53,18 @@ Discipline.
   must remove Twitter login/link actions; no compatibility provider alias is
   retained.
 
+- **Breaking (0.x):** Protected third-party App Model Config is read-only and
+  `onOverwrite` is no longer required for that consumer mode. App hosts must
+  hand configuration to the Nimi-owned owner surface; the protected Local App
+  standard shell no longer exposes App AIConfig overwrite.
+
 - Model Config restores the established AI Model hub, capability-detail, Active
   Model trigger, and compact Local/Cloud picker UX. App and Agent Local choices
   now project the Machine-selected configuration and deep-link to Machine Local
   AI configuration instead of selecting a machine model. First-party Cloud
   choice is Connector-first and fail-closed: no models are exposed until the
-  user selects a host-projected configured Connector; target confirmation,
-  optional ConnectorGrant binding, and account-impact confirmation remain
-  separate owner-supplied actions.
+  user selects a host-projected current-account Connector; target and
+  account-impact confirmation remain Nimi-owned actions.
 
 - **Breaking (0.x):** `registerNimiElectronAppBridge` no longer accepts
   `onProtectedSessionFailure`. Consumers must keep App and Host lifecycle

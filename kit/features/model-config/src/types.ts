@@ -50,28 +50,19 @@ export interface ModelConfigCloudConnectorOption {
   readonly provider: string;
 }
 
-export interface ModelConfigCloudGrantOption {
-  readonly grantId: string;
-  readonly connectorId: string;
-  readonly status: 'active' | 'revoked';
-  readonly createdAt: string;
-  readonly revokedAt: string | null;
-}
-
 export interface ModelConfigCloudAuthorizationOptions {
   readonly connectors: readonly ModelConfigCloudConnectorOption[];
-  readonly grants: readonly ModelConfigCloudGrantOption[];
 }
 
-/** Host-supplied catalog and ConnectorGrant seam. It owns no AIConfig state. */
+/** Host-supplied Nimi-owned catalog/Connector seam. It owns no AIConfig state. */
 export interface ModelConfigCloudAIConfigModule {
   listImplementations(capabilityContract: string): Promise<readonly ModelConfigCloudImplementationOption[]>;
   listTargets(input: {
     readonly capabilityContract: string;
     readonly provider: string;
+    readonly connectorId: string;
   }): Promise<readonly ModelConfigCloudTargetOption[]>;
   listAuthorizationOptions(): Promise<ModelConfigCloudAuthorizationOptions>;
-  createGrant(connectorId: string): Promise<ModelConfigCloudGrantOption>;
 }
 
 export type ModelConfigLocalSelectionProjection = {
@@ -109,7 +100,6 @@ export type ModelConfigCapabilityPosture =
   | 'local-configuration-blocked'
   | 'local-feature-mismatch'
   | 'local-configured'
-  | 'cloud-selection-required'
   | 'cloud-configured';
 
 export type ModelConfigFormattedError = {
@@ -172,11 +162,8 @@ export type ModelConfigCopy = Partial<{
   readonly cloudTargetConfirmation: string;
   readonly cloudAuthorizationLabel: string;
   readonly cloudAuthorizationNone: string;
-  readonly cloudAuthorizationNeeded: string;
-  readonly cloudAuthorizationRevoked: string;
   readonly cloudConnectorLabel: string;
   readonly cloudConnectorPlaceholder: string;
-  readonly cloudCreateGrantLabel: string;
   readonly cloudAuthorizationSeparation: string;
   readonly cloudAccountLabel: (account: string) => string;
   readonly cloudImpactAppLabel: (account: string) => string;

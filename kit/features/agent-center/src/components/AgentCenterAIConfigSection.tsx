@@ -133,25 +133,16 @@ function aiConfigCopy(i18n: AgentCenterI18n | undefined): ModelConfigCopy {
       'AgentCenter.aiConfig.cloudTargetConfirmation',
       'I confirm this implementation and provider-model target.',
     ),
-    cloudAuthorizationLabel: t('AgentCenter.aiConfig.cloudAuthorizationLabel', 'Account authorization'),
-    cloudAuthorizationNone: t('AgentCenter.aiConfig.cloudAuthorizationNone', 'No authorization selected'),
-    cloudAuthorizationNeeded: t(
-      'AgentCenter.aiConfig.cloudAuthorizationNeeded',
-      'Account authorization still needs to be selected.',
-    ),
-    cloudAuthorizationRevoked: t(
-      'AgentCenter.aiConfig.cloudAuthorizationRevoked',
-      'The selected account authorization was revoked.',
-    ),
-    cloudConnectorLabel: t('AgentCenter.aiConfig.cloudConnectorLabel', 'Create authorization from connector'),
+    cloudAuthorizationLabel: t('AgentCenter.aiConfig.cloudAuthorizationLabel', 'Cloud execution route'),
+    cloudAuthorizationNone: t('AgentCenter.aiConfig.cloudAuthorizationNone', 'Current Nimi account'),
+    cloudConnectorLabel: t('AgentCenter.aiConfig.cloudConnectorLabel', 'Configured Connector'),
     cloudConnectorPlaceholder: t(
       'AgentCenter.aiConfig.cloudConnectorPlaceholder',
       'Choose a connector for this provider',
     ),
-    cloudCreateGrantLabel: t('AgentCenter.aiConfig.cloudCreateGrantAction', 'Create account authorization'),
     cloudAuthorizationSeparation: t(
       'AgentCenter.aiConfig.cloudAuthorizationSeparation',
-      'Authorization identifies the account only. It does not choose or change the implementation or target.',
+      'Nimi resolves the current-account Connector and credential at execution time.',
     ),
     cloudAccountLabel: (account: string) => translateAgentCenter(
       i18n,
