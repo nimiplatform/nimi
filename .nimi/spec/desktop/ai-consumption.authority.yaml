@@ -446,8 +446,8 @@ units:
     kind: rule
     title: Voice capabilities compose committed routes independently
     modality: must
-    statement: audio.synthesize, voice_workflow.voice_clone, and voice_workflow.voice_design each use their own committed AIConfig CapabilityContract route and Runtime deterministically composes its exact Local machine selection or Cloud implementation-target-grant inputs at Job submission; no workflow reuses another contract's route, feature, binding, or Job snapshot and none performs list-options, resolve, health-check, or fallback selection.
-    condition: Whenever Desktop invokes audio synthesis, voice clone, or voice design.
+    statement: audio.synthesize and voice.create each use their own committed AIConfig CapabilityContract route and Runtime deterministically composes its exact Local machine selection or Cloud implementation-target-grant inputs at Job submission; a voice.create typed source determines only its input.text or input.audio feature preflight and creates no independent route, mode, Local Capability Configuration, provider, or fallback selection; no contract reuses another contract's route, feature, binding, or Job snapshot and none performs list-options, resolve, health-check, or fallback selection.
+    condition: Whenever Desktop invokes audio synthesis or voice creation.
     failure: Fail closed with the exact typed admission reason instead of returning an empty voice list or substitute execution as success.
     relations:
       - type: applies_to

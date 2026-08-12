@@ -591,7 +591,7 @@ units:
     kind: rule
     title: Speech ExecutionHost protocol is private and fail closed
     modality: must
-    statement: The runtime-to-speech ExecutionHost protocol remains a private transport for exact transcription, synthesis, voice-clone, and voice-design Driver calls; placeholder responses, reachability, process state, private catalogs and handshakes never project capability readiness or select a route, and a missing or incompatible exact Host returns the typed admission or Job failure without masquerade or downgrade.
+    statement: The runtime-to-speech ExecutionHost protocol remains a private transport for exact transcription, synthesis, and voice-creation Driver calls; placeholder responses, reachability, process state, private catalogs and handshakes never project capability readiness or select a route, and a missing or incompatible exact Host returns the typed admission or Job failure without masquerade or downgrade.
     condition: Whenever Runtime dispatches to or projects the speech engine.
     failure: Reject OpenAI-compatible masquerade, public readiness, fabricated success, and silent downgrade.
     relations:
@@ -601,8 +601,8 @@ units:
     kind: rule
     title: Voice implementation support is exact and contract scoped
     modality: must
-    statement: Voice clone, voice design, synthesis and transcription succeed only through the exact committed CapabilityImplementation and Driver that declare support for that CapabilityContract and required standardized features; family, provider, catalog, Host health, or another capability's success never implies support, readiness, binding, or fallback, and unsupported exact composition fails closed.
-    condition: Whenever local voice workflow execution or readiness is projected.
+    statement: Voice creation, synthesis and transcription succeed only through the exact committed CapabilityImplementation and Driver that declare support for that CapabilityContract and required standardized features; family, provider, catalog, Host health, or another capability's success never implies support, readiness, binding, or fallback, and unsupported exact composition fails closed.
+    condition: Whenever local voice execution or readiness is projected.
     failure: Return family-scoped fail-close results instead of generic local speech success.
     relations:
       - type: applies_to
@@ -694,20 +694,20 @@ units:
         target: definition.nimi.runtime.ai-provider.multimodal-provider-plane
   - id: rule.nimi.runtime.ai-provider.r068
     kind: rule
-    title: Voice workflow inputs are canonical and truthful
+    title: Voice creation inputs are canonical and truthful
     modality: must
-    statement: Voice clone and voice design canonical inputs come from the multimodal canonical field registry, providers never substitute implicit parameters for required field constraints, an optional voice clone text is passed through explicitly when the provider requires a reference transcript and its absence fails closed, and Runtime never fabricates a transcript.
-    condition: Whenever voice workflow inputs are mapped to a provider.
+    statement: Voice creation canonical inputs come from the multimodal canonical field registry, providers never substitute implicit parameters for required field constraints, an optional reference transcript text is passed through explicitly when the provider requires it for reference-audio creation and its absence fails closed, and Runtime never fabricates a transcript.
+    condition: Whenever voice creation inputs are mapped to a provider.
     failure: Fail closed on missing required inputs instead of fabricating or defaulting them.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.ai-provider.multimodal-provider-plane
   - id: rule.nimi.runtime.ai-provider.r069
     kind: rule
-    title: Voice workflows never downgrade to default voices
+    title: Voice creation never downgrades to default voices
     modality: must
-    statement: Incomplete voice workflow input, unsupported workflows, mismatched target models, and illegal asset states fail closed without automatic downgrade to a provider default voice.
-    condition: Whenever voice workflow execution is validated.
+    statement: Incomplete voice creation input, unsupported typed sources, mismatched target models, and illegal asset states fail closed without automatic downgrade to a provider default voice.
+    condition: Whenever voice creation execution is validated.
     failure: Return the typed failure without default-voice downgrade.
     relations:
       - type: applies_to
@@ -716,7 +716,7 @@ units:
     kind: rule
     title: Media provider transport keys stay Runtime private
     modality: must_not
-    statement: A Driver provider extension cannot escape its admitted origin or canonical base path, and transport, credential-header, Driver target, voice clone, voice design, preview, and create-path details remain Runtime private rather than catalog, AIConfig, Profile, SDK, or App-facing routing truth.
+    statement: A Driver provider extension cannot escape its admitted origin or canonical base path, and transport, credential-header, Driver target, voice creation, preview, and create-path details remain Runtime private rather than catalog, AIConfig, Profile, SDK, or App-facing routing truth.
     condition: Whenever media provider extensions carry transport routing details.
     failure: Reject cross-origin or path-escaping overrides and keep transport keys runtime private.
     relations:
@@ -808,9 +808,9 @@ units:
     kind: rule
     title: TTS inclusion layered and custom voice deferred
     modality: must
-    statement: TTS provider inclusion treats synthesis as the required base capability with voice clone and voice design as optional increments, synthesize-only providers are not forced into workflow alignment, and cloud training-style custom voice remains a provider extension never force-mapped to standard voice clone or voice design success semantics before a cross-provider verifiable typed abstraction exists.
+    statement: TTS provider inclusion treats synthesis as the required base capability with voice creation as an optional increment, synthesize-only providers are not forced into voice-creation alignment, and cloud training-style custom voice remains a provider extension never force-mapped to standard voice creation success semantics before a cross-provider verifiable typed abstraction exists.
     condition: Whenever a TTS provider is included or a custom voice feature is surfaced.
-    failure: Reject forced workflow alignment and premature standard-success mapping.
+    failure: Reject forced voice-creation alignment and premature standard-success mapping.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.ai-provider.multimodal-provider-plane
@@ -838,9 +838,9 @@ units:
     kind: rule
     title: Realtime sessions have their own service
     modality: must
-    statement: Bidirectional low-latency text and audio sessions run only through RuntimeAiRealtimeService with OpenRealtimeSession, AppendRealtimeInput, ReadRealtimeEvents, and CloseRealtimeSession, v1 provider-backed realtime requires only llama text plus audio admitting text-part chat messages and realtime audio input with realtime text delta, audio chunk, completed, and failed outputs, one session admits one active reader with conflicting readers failing closed, and providers without realtime return explicit unsupported results instead of fabricated TEXT_GENERATE streams.
-    condition: Whenever realtime AI sessions are established or served.
-    failure: Reject realtime semantics smuggled into scenario RPCs or fabricated streaming fallbacks.
+    statement: Bidirectional low-latency text and audio sessions run only through RuntimeAiRealtimeService with OpenRealtimeSession, AppendRealtimeInput, ReadRealtimeEvents, and CloseRealtimeSession, no executable realtime composition is currently admitted and OpenRealtimeSession deterministically fails with AI_ROUTE_UNSUPPORTED after caller authorization without composing a text route or leaking provider or engine identity, one session admits one active reader with conflicting readers failing closed, and realtime semantics are never fabricated as TEXT_GENERATE streams.
+    condition: Whenever realtime AI sessions are requested or served.
+    failure: Reject realtime semantics smuggled into scenario RPCs, fabricated streaming fallbacks, or fabricated realtime success.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.ai-provider.multimodal-provider-plane
@@ -876,11 +876,11 @@ units:
         target: definition.nimi.runtime.ai-provider.multimodal-provider-plane
   - id: rule.nimi.runtime.ai-provider.r086
     kind: rule
-    title: Music iteration extension is closed and gated
+    title: Music prior-audio extension is closed and gated
     modality: must
-    statement: The music generate iteration extension admits only mode as extend, remix, or reference, source audio base64 required for iteration, and optional source MIME type and trim bounds, unknown extension keys are never forwarded to providers, iteration requires the model to declare the music.generate.iteration capability decided together with a runtime provider strategy rather than provider-name hardcoding, an illegal mode, missing or undecodable audio, negative trim, or non-increasing trim range returns AI_MEDIA_SPEC_INVALID, unsupported provider semantics or a declared capability without a runtime strategy returns AI_MEDIA_OPTION_UNSUPPORTED, and extension-free requests stay prompt-only.
-    condition: Whenever MUSIC_GENERATE carries or lacks the iteration extension.
-    failure: Return the exact typed failure and never forward undeclared iteration semantics.
+    statement: The music generate prior-audio extension admits only mode as extend, remix, or reference, source audio base64 required for the extension, and optional source MIME type and trim bounds, unknown extension keys are never forwarded to providers, the extension requires the effective implementation to declare the music.generate input.audio standardized feature decided together with a runtime provider strategy rather than provider-name hardcoding, an illegal mode, missing or undecodable audio, negative trim, or non-increasing trim range returns AI_MEDIA_SPEC_INVALID, unsupported provider semantics or declared feature support without a runtime strategy returns AI_MEDIA_OPTION_UNSUPPORTED, and extension-free requests stay prompt-only.
+    condition: Whenever MUSIC_GENERATE carries or lacks the prior-audio extension.
+    failure: Return the exact typed failure and never forward undeclared prior-audio semantics.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.ai-provider.multimodal-provider-plane
@@ -1108,5 +1108,25 @@ units:
         target: definition.nimi.platform.core-protocol.app-operation-contract
       - type: applies_to
         target: definition.nimi.platform.core-protocol.effective-app-access-snapshot
+      - type: applies_to
+        target: definition.nimi.runtime.ai-provider.multimodal-provider-plane
+  - id: rule.nimi.runtime.ai-provider.r110
+    kind: rule
+    title: Voice creation source preflight is deterministic and non-switching
+    modality: must
+    statement: For voice.create, a request declares exactly one typed source as text_description or reference_audio, a text_description source requires the effective implementation to declare input.text and a reference_audio source requires input.audio, the Local route dereferences only its one selected Local Capability Configuration and the Cloud route only its configured CapabilityImplementation, an undeclared or unsupported source fails closed without switching Local Capability Configuration, provider, implementation, or route, and the typed source is recorded only as non-routing provenance.
+    condition: Whenever VOICE_CREATE accepts or validates a typed source.
+    failure: Fail closed on undeclared or unsupported sources without fallback, switching, or route change.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.ai-provider.multimodal-provider-plane
+  - id: rule.nimi.runtime.ai-provider.r111
+    kind: rule
+    title: Execution model provenance is generic only
+    modality: must
+    statement: Provider and model execution provenance on stable AI scenario outputs appears only in the generic execution-owner model_resolved fields, a typed capability result message carries no capability-specific provider or model identity field, and WorldGenerateResult carries no model field.
+    condition: Whenever stable AI scenario output carries execution provenance.
+    failure: Reject a capability-specific provider or model provenance field on a typed result.
+    relations:
       - type: applies_to
         target: definition.nimi.runtime.ai-provider.multimodal-provider-plane

@@ -82,6 +82,10 @@ units:
     kind: definition
     title: P-GOV-024 active final authority boundary
     meaning: Active final authority under .nimi/spec/** contains current product rules and facts rather than repository-work task lifecycle, subordinate-process, historical-process, process-provenance, operational evidence, or task-state truth.
+  - id: definition.nimi.platform.governance-release.pre-release-transition
+    kind: definition
+    title: P-GOV-003 internal pre-release breaking transition
+    meaning: An internal pre-release breaking transition is a declared breaking product change made while Nimi is internal pre-release with no external users or external App developers; it hard-cuts losing vocabulary and semantics, removes losing local test state only through existing owner or test reset operations, explicitly rebuilds only canonical test configuration, and is not a compatibility, conversion, automatic migration, dual-path, or migration-framework guarantee.
   - id: rule.nimi.platform.governance-release.p-gov-001-002
     kind: rule
     title: P-GOV-001 and P-GOV-002 license matrix
@@ -96,12 +100,24 @@ units:
     kind: rule
     title: P-GOV-003 breaking changes and authority-first release discipline
     modality: must
-    statement: Every breaking release change has an explicit declaration and migration path, and active final authority is updated before its implementation changes.
-    condition: Whenever a breaking release change is introduced.
-    failure: Block the change until its declaration, migration path, and prior authority update exist.
+    statement: Every released breaking change has an explicit declaration and migration path, every internal pre-release breaking transition has an explicit declaration with local-test hard reset and explicit canonical rebuild instead of a migration path, and active final authority is updated before its implementation changes.
+    condition: Whenever a breaking release change or an internal pre-release breaking transition is introduced.
+    failure: Block the change until its declaration, its migration path or declared transition, and prior authority update exist.
     relations:
       - type: applies_to
         target: definition.nimi.platform.governance-release.final-authority
+      - type: applies_to
+        target: definition.nimi.platform.governance-release.pre-release-transition
+  - id: rule.nimi.platform.governance-release.p-gov-003a
+    kind: rule
+    title: P-GOV-003 internal pre-release transition state boundary
+    modality: must
+    statement: An internal pre-release breaking transition removes losing local test state only through existing owner or test reset operations, rebuilds only canonical test configuration, preserves each affected endpoint's existing confirmation, absence, and non-disclosure semantics, and stops when an actually populated state plane has no existing owner or test reset operation.
+    condition: Whenever an internal pre-release breaking transition removes or rebuilds local test state.
+    failure: Stop the transition at the affected state plane without adding a compatibility alias, conversion, automatic migration, dual path, cleanup tool, or reset-specific state.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.governance-release.pre-release-transition
   - id: rule.nimi.platform.governance-release.p-gov-024
     kind: rule
     title: P-GOV-024 spec contains active final authority only
@@ -126,9 +142,9 @@ units:
     kind: rule
     title: P-GOV-026 supported promise completeness
     modality: must
-    statement: Every supported release promise names its canonical owner, login requirement, and failure behavior.
+    statement: Every supported release promise names its canonical owner, login requirement, and failure behavior, and corresponds to a directly verified real vertical slice of its referenced owner domain.
     condition: Whenever a release promise has supported posture.
-    failure: Withhold the promise from publication until every required product field is explicit and resolves to owner authority.
+    failure: Withhold the promise from publication until every required product field is explicit, resolves to owner authority, and its real slice is verified.
     relations:
       - type: applies_to
         target: definition.nimi.platform.governance-release.promise-posture

@@ -96,7 +96,7 @@ units:
   - id: definition.nimi.platform.core-protocol.standardized-capability-feature
     kind: definition
     title: Contract-scoped standardized feature
-    meaning: A standardized feature identity is the pair of one CapabilityContract and one contract-local short name; the same short name under another contract has no shared meaning, and text.generate defines input.image, input.audio, and input.video as its initial standardized input features.
+    meaning: A standardized feature identity is the pair of one CapabilityContract and one contract-local short name; the same short name under another contract has no shared meaning, and the current standardized input features are input.image, input.audio, and input.video on text.generate, input.image and input.mask on image.generate, input.image on video.generate, input.audio on music.generate, and input.text and input.audio on voice.create.
   - id: definition.nimi.platform.core-protocol.capability-implementation
     kind: definition
     title: CapabilityImplementation
@@ -1042,7 +1042,7 @@ units:
   - id: definition.nimi.platform.core-protocol.factory-profile-cloud-first
     kind: definition
     title: cloud-first factory AIProfile row
-    meaning: The cloud-first row portably recommends Cloud AIConfig intent for text.generate with required input.image plus text.embed, audio.synthesize, audio.transcribe, image.generate, and image.edit, may recommend Cloud implementations and Driver-owned provider-model targets, carries no ConnectorGrant or account identity, and performs no Local installation or selection.
+    meaning: The cloud-first row portably recommends Cloud AIConfig intent for text.generate with required input.image plus text.embed, audio.synthesize, audio.transcribe, and image.generate, may recommend Cloud implementations and Driver-owned provider-model targets, carries no ConnectorGrant or account identity, and performs no Local installation or selection.
   - id: definition.nimi.platform.core-protocol.factory-profile-local-standard
     kind: definition
     title: local-standard factory AIProfile row
@@ -1062,11 +1062,11 @@ units:
   - id: definition.nimi.platform.core-protocol.factory-profile-local-gpu
     kind: definition
     title: local-gpu factory AIProfile row
-    meaning: The local-gpu row portably recommends Local AIConfig intent for text.generate with required input.image plus audio.transcribe, audio.synthesize, image.generate, and image.edit and may carry local implementation configuration intent with independent main and companion requirements, but it performs no host probe, installation, binding, or machine selection.
+    meaning: The local-gpu row portably recommends Local AIConfig intent for text.generate with required input.image plus audio.transcribe, audio.synthesize, and image.generate and may carry local implementation configuration intent with independent main and companion requirements, but it performs no host probe, installation, binding, or machine selection.
   - id: definition.nimi.platform.core-protocol.factory-profile-hybrid-recommended
     kind: definition
     title: hybrid-recommended factory AIProfile row
-    meaning: The hybrid-recommended row contains explicit per-CapabilityContract Local or Cloud recommendations for text.generate with required input.image, text.embed, audio.transcribe, audio.synthesize, image.generate, image.edit, and video.generate, and it never authorizes runtime hybrid fallback or a cross-owner Apply transaction.
+    meaning: The hybrid-recommended row contains explicit per-CapabilityContract Local or Cloud recommendations for text.generate with required input.image, text.embed, audio.transcribe, audio.synthesize, image.generate, and video.generate, and it never authorizes runtime hybrid fallback or a cross-owner Apply transaction.
   - id: definition.nimi.platform.core-protocol.ai-profile-selection
     kind: definition
     title: AIProfile recommendation result

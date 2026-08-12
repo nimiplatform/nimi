@@ -138,7 +138,7 @@ units:
     kind: rule
     title: Capability vocabulary is canonical and closed
     modality: must
-    statement: Source, snapshot, registry, recommendation, scenario guard, and implementation-support metadata use only the canonical CapabilityContract tokens text.generate, text.embed, image.generate, image.edit, video.generate, world.generate, audio.synthesize, audio.transcribe, music.generate, music.generate.iteration, voice_workflow.voice_clone, and voice_workflow.voice_design; text.generate image, audio, and video input support is expressed only by the contract-scoped standardized feature short names input.image, input.audio, and input.video, and retired, legacy, prefixed, or capability-subtype aliases are rejected rather than converted on a semantic surface.
+    statement: Source, snapshot, registry, recommendation, scenario guard, and implementation-support metadata use only the canonical CapabilityContract tokens text.generate, text.embed, image.generate, video.generate, world.generate, audio.synthesize, audio.transcribe, music.generate, and voice.create; text.generate image, audio, and video input support is expressed only by the contract-scoped standardized feature short names input.image, input.audio, and input.video, image.generate reference and mask conditioning support only by input.image and input.mask, video.generate image conditioning support only by input.image, music.generate prior-audio support only by input.audio, voice.create text-description and reference-audio source support only by input.text and input.audio, and retired, legacy, prefixed, or capability-subtype aliases are rejected rather than converted on a semantic surface.
     condition: Whenever a capability token is declared or consumed on a catalog semantic surface.
     failure: Reject undeclared or retired capability tokens at validation.
     relations:
@@ -228,7 +228,7 @@ units:
     kind: rule
     title: Voice generation pipelines are declared explicitly
     modality: must
-    statement: Voice clone and voice design generation pipelines declare typed input, output retention, supported targets, and language capability through Runtime catalog truth without exposing provider transport or creating a general Workflow product.
+    statement: Voice creation generation pipelines declare typed input, output retention, supported targets, and language capability through Runtime catalog truth without exposing provider transport or creating a general Workflow product.
     condition: Whenever a voice generation pipeline is declared in catalog source.
     failure: Reject incomplete capability declarations and transport-bearing public metadata.
     relations:
@@ -268,7 +268,7 @@ units:
     kind: rule
     title: ElevenLabs catalog profile minimum is fixed
     modality: must
-    statement: The ElevenLabs source uses schema v3 and declares synthesize-capable models whose provider-global preset voices enumerate through the static catalog channel with voice_set_ref, voice clone and voice design workflow models with typed capability and compatible synthesis-target metadata, an explicit workflow compatibility matrix, and voice handle policies defaulting to provider_persistent persistence with user_scoped scope; provider endpoints, preview or create sequences, transport paths, and request construction remain CapabilityImplementationDriver-private and never become catalog fields.
+    statement: The ElevenLabs source uses schema v3 and declares synthesize-capable models whose provider-global preset voices enumerate through the static catalog channel with voice_set_ref, voice creation models with typed capability and compatible synthesis-target metadata, an explicit voice-creation-to-synthesis compatibility matrix, and voice handle policies defaulting to provider_persistent persistence with user_scoped scope; provider endpoints, preview or create sequences, transport paths, and request construction remain CapabilityImplementationDriver-private and never become catalog fields.
     condition: Whenever the ElevenLabs source entry is authored or validated.
     failure: Reject ElevenLabs source entries missing the catalog capability or compatibility metadata or carrying provider endpoint, transport-path, invocation-flow, or request-construction truth.
     relations:
@@ -328,7 +328,7 @@ units:
     kind: rule
     title: Local speech offers preserve concrete subroles
     modality: must
-    statement: Local speech catalog offers distinguish the existing package-native Qwen3-ASR bundle for the qwen-asr-package Driver from exact Transformers-native Qwen3-ASR-0.6B-hf and Qwen3-ASR-1.7B-hf folder bundles with their separate Driver and managed package set, mark 0.6B-hf as the visible recommended Transformers-native option and 1.7B-hf as an explicit higher-resource option without selecting either, distinguish Qwen3-TTS-12Hz-0.6B-CustomVoice for plain synthesis, Qwen3-TTS-12Hz-0.6B-Base for clone workflow, and Qwen3-TTS-12Hz-1.7B-VoiceDesign for design workflow, preserve each source, role, format, compatibility, Driver identity, and split environment fact, and may feed a visible portable factory AIProfile recommendation; neither catalog nor speech policy owns a default model lane, binding, Local Capability Configuration, machine selection, AIConfig route, fallback, migration, or Cloud target.
+    statement: Local speech catalog offers distinguish the existing package-native Qwen3-ASR bundle for the qwen-asr-package Driver from exact Transformers-native Qwen3-ASR-0.6B-hf and Qwen3-ASR-1.7B-hf folder bundles with their separate Driver and managed package set, mark 0.6B-hf as the visible recommended Transformers-native option and 1.7B-hf as an explicit higher-resource option without selecting either, distinguish Qwen3-TTS-12Hz-0.6B-CustomVoice for plain synthesis, Qwen3-TTS-12Hz-0.6B-Base for reference-audio voice creation, and Qwen3-TTS-12Hz-1.7B-VoiceDesign for text-description voice creation, preserve each source, role, format, compatibility, Driver identity, and split environment fact, and may feed a visible portable factory AIProfile recommendation; neither catalog nor speech policy owns a default model lane, binding, Local Capability Configuration, machine selection, AIConfig route, fallback, migration, or Cloud target.
     condition: Whenever local speech catalog or install-offer truth is declared.
     failure: Reject fuzzy buckets, implicit family generalization, merged environment topology, a default lane, binding truth, or recommendation presented as live selection.
     relations:
@@ -418,7 +418,7 @@ units:
     kind: rule
     title: Voice creation runs on the scenario surface
     modality: must
-    statement: Voice clone and voice design execute only as scenario jobs on the runtime AI service whose public voice surface is exactly SubmitScenarioJob, GetScenarioJob, CancelScenarioJob, SubscribeScenarioJobEvents, GetVoiceAsset, ListVoiceAssets, DeleteVoiceAsset, and ListPresetVoices, and no separate public voice service exists.
+    statement: Voice creation executes only as scenario jobs on the runtime AI service whose public voice surface is exactly SubmitScenarioJob, GetScenarioJob, CancelScenarioJob, SubscribeScenarioJobEvents, GetVoiceAsset, ListVoiceAssets, DeleteVoiceAsset, and ListPresetVoices, and no separate public voice service exists.
     condition: Whenever the public voice surface is defined or consumed.
     failure: Reject undeclared public voice methods or a parallel voice service.
     relations:
@@ -448,7 +448,7 @@ units:
     kind: rule
     title: VoiceAsset shape and identity are fixed
     modality: must
-    statement: A VoiceAsset carries at least voice_asset_id, app_id, subject_user_id, workflow_type, provider, target_ref, voice_asset_target_ref, provider_voice_ref, persistence, and status with persistence and status values from the runtime voice enum registry, its durable identity is voice_asset_id plus voice_asset_target_ref, and residual model identifiers remain guarded non-identity facts.
+    statement: A public VoiceAsset carries at least voice_asset_id, app_id, subject_user_id, a non-routing creation source limited to text_description or reference_audio, provider, provider_voice_ref, persistence, and status with persistence and status values from the runtime voice enum registry, its public identity is voice_asset_id, residual model identifiers remain guarded non-identity facts, and the exact execution target binding stays Runtime-private rather than being projected as target_ref or voice_asset_target_ref.
     condition: Whenever a VoiceAsset is created, stored, or projected.
     failure: Reject assets missing required fields or deriving identity from model identifiers.
     relations:
@@ -458,7 +458,7 @@ units:
     kind: rule
     title: Profile binding requires durable persistence
     modality: must
-    statement: A VoiceAsset bound by an assistant profile through voice_asset_id holds a durable persistence class and survives pruning of its originating voice workflow job retention, and a session-ephemeral local-generated VoiceAsset is not a profile-bindable durable identity before a durable local substrate is separately admitted so binding it fails closed.
+    statement: A VoiceAsset bound by an assistant profile through voice_asset_id holds a durable persistence class and survives pruning of its originating voice creation job retention, and a session-ephemeral local-generated VoiceAsset is not a profile-bindable durable identity before a durable local substrate is separately admitted so binding it fails closed.
     condition: Whenever an assistant profile binds a voice asset.
     failure: Fail closed on non-durable bindings instead of masquerading them as durable.
     relations:
@@ -478,7 +478,7 @@ units:
     kind: rule
     title: Synthesis honors the bound target
     modality: must
-    statement: VoiceAsset creation binds voice_asset_target_ref, and a synthesis request whose target ref mismatches the bound voice_asset_target_ref returns AI_VOICE_TARGET_MODEL_MISMATCH.
+    statement: VoiceAsset creation captures an exact Runtime-private execution target binding, and synthesis through that VoiceAsset resolves and validates the captured binding before execution so an incompatible selected target returns AI_VOICE_TARGET_MODEL_MISMATCH without projecting target_ref or voice_asset_target_ref through the public VoiceAsset contract.
     condition: Whenever a voice asset is created or consumed for synthesis.
     failure: Return the exact mismatch code instead of executing on an incompatible target.
     relations:
@@ -508,7 +508,7 @@ units:
     kind: rule
     title: Voice errors use the typed family
     modality: must
-    statement: Voice input, workflow, asset state, permission, and job errors map to the AI_VOICE reason-code family and fail closed.
+    statement: Voice input, creation, asset state, permission, and job errors map to the AI_VOICE reason-code family and fail closed.
     condition: Whenever a voice operation fails.
     failure: Return the typed voice failure without generic or silent outcomes.
     relations:
@@ -516,11 +516,11 @@ units:
         target: definition.nimi.runtime.model-catalog.voice-plane
   - id: rule.nimi.runtime.model-catalog.r049
     kind: rule
-    title: Baseline workflow admission is family scoped
+    title: Local voice creation admission is implementation scoped
     modality: must
-    statement: The admitted baseline local workflow family stays qwen3_tts with admitted workflow types limited to voice_clone and voice_design, and baseline local generated workflow handles keep persistence session_ephemeral, delete_semantics runtime_authoritative_delete, and runtime_reconciliation_required false without promising a durable local voice asset substrate.
-    condition: Whenever baseline local voice workflow admission or handles are projected.
-    failure: Fail closed on unadmitted families and reject handles promoted to durable truth.
+    statement: Local voice.create uses one explicitly selected Local Capability Configuration whose CapabilityImplementation declares support for input.audio, input.text, or both, admits only reference_audio and text_description requests whose required input feature is supported by that selected implementation, never switches implementation, configuration, provider, or route because of the source, and keeps local generated voice handles persistence session_ephemeral, delete_semantics runtime_authoritative_delete, and runtime_reconciliation_required false unless a durable local voice asset substrate is separately admitted; qwen3_tts is one concrete CapabilityImplementation and never the CapabilityContract identity or generic local voice execution boundary.
+    condition: Whenever local voice creation admission, selection, execution, or handles are projected.
+    failure: Fail closed on an unsupported source feature, absent or incomplete selected configuration, implementation mismatch, route substitution, or a session-ephemeral handle promoted to durable truth.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.model-catalog.voice-plane
@@ -540,7 +540,7 @@ units:
     kind: rule
     title: Playable projections are policy gated and truthful
     modality: must
-    statement: Runtime emits a playable voice projection for an ordinary assistant message only when the exact admitted Job produces playable audio and playback policy admits it, and a typed derived-admission block, missing TTS asset, absent voice reference, provider or Driver Job failure, or unavailable voice workflow completes the agent turn as normal text-only output without fake playback success, synthetic audio bytes, route fallback, or reusable speech readiness unless another hard turn error exists.
+    statement: Runtime emits a playable voice projection for an ordinary assistant message only when the exact admitted Job produces playable audio and playback policy admits it, and a typed derived-admission block, missing TTS asset, absent voice reference, provider or Driver Job failure, or unavailable voice creation completes the agent turn as normal text-only output without fake playback success, synthetic audio bytes, route fallback, or reusable speech readiness unless another hard turn error exists.
     condition: Whenever an agent turn evaluates voice output.
     failure: Complete the turn text-only with the real reason instead of fabricated playback.
     relations:

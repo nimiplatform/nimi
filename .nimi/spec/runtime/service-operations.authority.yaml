@@ -473,7 +473,7 @@ units:
     kind: rule
     title: Scenario discriminators modalities and execution modes are closed
     modality: must
-    statement: The scenario registry is exactly TEXT_GENERATE as text with SYNC and STREAM, TEXT_EMBED as embedding with SYNC, IMAGE_GENERATE as image with ASYNC_JOB, VIDEO_GENERATE as video with ASYNC_JOB, SPEECH_SYNTHESIZE as tts with STREAM and ASYNC_JOB, SPEECH_TRANSCRIBE as stt with ASYNC_JOB, VOICE_CLONE and VOICE_DESIGN as voice with ASYNC_JOB, MUSIC_GENERATE as music with ASYNC_JOB, and WORLD_GENERATE as world with ASYNC_JOB.
+    statement: The scenario registry is exactly TEXT_GENERATE as text with SYNC and STREAM, TEXT_EMBED as embedding with SYNC, IMAGE_GENERATE as image with ASYNC_JOB, VIDEO_GENERATE as video with ASYNC_JOB, SPEECH_SYNTHESIZE as tts with STREAM and ASYNC_JOB, SPEECH_TRANSCRIBE as stt with ASYNC_JOB, VOICE_CREATE as voice with ASYNC_JOB, MUSIC_GENERATE as music with ASYNC_JOB, and WORLD_GENERATE as world with ASYNC_JOB.
     condition: Whenever Runtime declares, lists, validates, or dispatches a scenario type.
     failure: Reject an unknown discriminator, mismatched modality, or execution mode outside the exact scenario row.
     relations:

@@ -779,7 +779,7 @@ units:
     kind: rule
     title: Local Speech copy preserves bundle and capability distinctions
     modality: must
-    statement: Desktop distinguishes preflight_blocked, download_or_init_failed after explicit Download, capability_materialization_failed, and bundle_degraded and identifies Local Speech plus STT, TTS, voice clone, or voice design when the failing slice is known.
+    statement: Desktop distinguishes preflight_blocked, download_or_init_failed after explicit Download, capability_materialization_failed, and bundle_degraded and identifies Local Speech plus STT, TTS, or voice creation when the failing slice is known, distinguishing a text-description source from a reference-audio source only as source detail rather than separate capabilities or modes.
     condition: Whenever Desktop renders a Local Speech failure.
     failure: Show the most specific available bundle or capability failure and never imply Desktop or Tauri owns installation truth.
     relations:
