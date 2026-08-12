@@ -13,7 +13,6 @@ import {
 } from '../local-app-conversation-journey.js';
 import {
   appAccessHumanFailureKey,
-  type AppAccessCloudDraft,
   type AppAccessProbeId,
 } from './app-access-catalog.js';
 
@@ -32,7 +31,7 @@ export type AppAccessAgentReferencesRun = {
 // the panel and are intentionally not part of probe orchestration.
 export type AppAccessClientPort = Pick<
   NimiLocalAppClient,
-  'storage' | 'realm' | 'aiConfig' | 'ai' | 'agents'
+  'storage' | 'realm' | 'ai' | 'agents'
 > & {
   readonly conversation: TesterConversationPort;
 };
@@ -87,57 +86,6 @@ async function requireRejection(
     return reason;
   }
   throw Object.assign(new Error('unexpected-success'), { reasonCode: 'unexpected-success' });
-}
-
-function localTextCapability() {
-  return {
-    capabilityContract: 'text.generate',
-    requiredFeatures: [],
-    route: { oneofKind: 'local', local: {} },
-  } as const;
-}
-
-function exactDraftText(value: string): string {
-  if (!value || value.trim() !== value || value.length > 256) {
-    throw Object.assign(new Error('cloud-intent-field-invalid'), { reasonCode: 'cloud-intent-field-invalid' });
-  }
-  return value;
-}
-
-function cloudTextCapability(draft: AppAccessCloudDraft) {
-  const stringValue = (value: string) => ({
-    kind: { oneofKind: 'stringValue', stringValue: exactDraftText(value) },
-  } as const);
-  return {
-    capabilityContract: 'text.generate',
-    requiredFeatures: [],
-    route: {
-      oneofKind: 'cloud',
-      cloud: {
-        implementation: {
-          implementationId: exactDraftText(draft.implementationId),
-          driverId: exactDraftText(draft.driverId),
-          driverDialect: exactDraftText(draft.driverDialect),
-        },
-        providerModelTarget: {
-          fields: {
-            provider: stringValue(draft.provider),
-            providerModelId: stringValue(draft.providerModelId),
-          },
-        },
-      },
-    },
-  } as const;
-}
-
-function hasBindingKey(value: unknown): boolean {
-  if (Array.isArray(value)) return value.some(hasBindingKey);
-  if (!value || typeof value !== 'object') return false;
-  return Object.entries(value).some(([key, entry]) => {
-    const normalized = key.replace(/[^a-z0-9]/giu, '').toLowerCase();
-    return ['binding', 'bindingid', 'connectorgrant', 'connectorgrantid', 'custody', 'custodymaterial', 'grantid'].includes(normalized)
-      || hasBindingKey(entry);
-  });
 }
 
 function worldCoreInput(marker: string) {
@@ -243,62 +191,17 @@ export async function runWorldCreateProbe(client: AppAccessClientPort): Promise<
   }
 }
 
-export async function runPortableAiConfigProbe(client: AppAccessClientPort): Promise<AppAccessProbeOutcome> {
-  try {
-    const saved = await client.aiConfig.overwrite([localTextCapability()]);
-    const read = await client.aiConfig.get();
-    const route = read.capabilities[0]?.route;
-    if (saved.capabilities.length !== 1 || read.capabilities.length !== 1
-      || route?.oneofKind !== 'local' || hasBindingKey(read)) {
-      throw Object.assign(new Error('ai-config-readback-invalid'), { reasonCode: 'ai-config-readback-invalid' });
-    }
-    return pass('Portable AIConfig committed', [
-      'whole overwrite + get verified',
-      'Local route · no custody fields',
-    ]);
-  } catch (error) {
-    return fail(error);
-  }
-}
-
-export async function runLocalTextProbe(client: AppAccessClientPort): Promise<AppAccessProbeOutcome> {
+export async function runTextGenerationProbe(client: AppAccessClientPort): Promise<AppAccessProbeOutcome> {
   try {
     const result = await client.ai.text.generateCandidate({
-      messages: [{ role: 'user', text: 'Return one short sentence confirming the committed Local route.' }],
+      messages: [{ role: 'user', text: 'Return one short sentence confirming the current App AI configuration.' }],
       temperature: 0,
       topP: 1,
       maxTokens: 32,
     });
-    return pass('Local text generation completed', [
-      'committed Local route',
+    return pass('Configured text generation completed', [
+      'owner-managed App AI configuration',
       `finish ${result.finishReason} · trace ${truncateOpaque(result.traceId)}`,
-    ]);
-  } catch (error) {
-    return fail(error);
-  }
-}
-
-export async function runCloudPostureProbe(
-  client: AppAccessClientPort,
-  draft: AppAccessCloudDraft,
-): Promise<AppAccessProbeOutcome> {
-  try {
-    await client.aiConfig.overwrite([cloudTextCapability(draft)]);
-    const read = await client.aiConfig.get();
-    if (read.capabilities[0]?.route.oneofKind !== 'cloud' || hasBindingKey(read)) {
-      throw Object.assign(new Error('cloud-readback-invalid'), { reasonCode: 'cloud-readback-invalid' });
-    }
-    await requireRejection(
-      () => client.ai.text.generateCandidate({
-        messages: [{ role: 'user', text: 'This grantless Cloud route must require a Nimi-owned binding selection.' }],
-        temperature: 0,
-        topP: 1,
-        maxTokens: 8,
-      }),
-      'ai-connector-grant-selection-required',
-    );
-    return pass('Grantless Cloud intent persisted', [
-      'execution requires a Nimi-owned authorization selection',
     ]);
   } catch (error) {
     return fail(error);
@@ -363,33 +266,8 @@ export async function runAgentInterruptProbe(
   }
 }
 
-export async function runAuthorityInjectionProbe(client: AppAccessClientPort): Promise<AppAccessProbeOutcome> {
-  try {
-    const overwrite = client.aiConfig.overwrite;
-    const capability = localTextCapability();
-    await requireRejection(
-      () => overwrite([{ ...capability, owner: { accountId: 'forbidden' } }] as never),
-      'SDK_LOCAL_APP_AUTHORITY_FIELD_FORBIDDEN',
-    );
-    await requireRejection(
-      () => overwrite([{
-        ...capability,
-        route: { oneofKind: 'local', local: { connectorGrantId: 'forbidden' } },
-      }] as never),
-      'SDK_LOCAL_APP_AUTHORITY_FIELD_FORBIDDEN',
-    );
-    return pass('Authority injection rejected', [
-      'owner field rejected',
-      'custody field rejected',
-    ]);
-  } catch (error) {
-    return fail(error);
-  }
-}
-
 export type AppAccessProbeRunInput = {
   readonly client: AppAccessClientPort;
-  readonly cloudDraft: AppAccessCloudDraft;
   readonly agentReference: NimiLocalAppAgentReference | null;
 };
 
@@ -402,9 +280,7 @@ export async function runAppAccessProbe(
     case 'storage-boundary': return runStorageBoundaryProbe(input.client);
     case 'world-list': return runWorldListProbe(input.client);
     case 'world-create': return runWorldCreateProbe(input.client);
-    case 'portable-ai-config': return runPortableAiConfigProbe(input.client);
-    case 'local-text': return runLocalTextProbe(input.client);
-    case 'cloud-posture': return runCloudPostureProbe(input.client, input.cloudDraft);
+    case 'text-generation': return runTextGenerationProbe(input.client);
     case 'agent-references': {
       const run = await runAgentReferencesProbe(input.client);
       return run.outcome;
@@ -415,6 +291,5 @@ export async function runAppAccessProbe(
     case 'agent-interrupt':
       if (!input.agentReference) return fail(Object.assign(new Error('agent-reference-required'), { reasonCode: 'agent-reference-required' }));
       return runAgentInterruptProbe(input.client, input.agentReference);
-    case 'authority-injection': return runAuthorityInjectionProbe(input.client);
   }
 }

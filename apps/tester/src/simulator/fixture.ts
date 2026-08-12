@@ -123,10 +123,6 @@ export const simulatorConformanceFixture = {
           details: { kind: 'json' },
         },
       },
-      'tester.ai-config.update': {
-        kind: 'object',
-        properties: { config: { kind: 'json' } },
-      },
     },
     eventSchemas: {},
     moduleData: {

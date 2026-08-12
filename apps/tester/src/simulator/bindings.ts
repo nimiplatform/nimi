@@ -5,7 +5,6 @@ import {
 import type {
   NimiGenerateTextRequest,
   NimiPortableAppAIConfig,
-  NimiPortableAppAIConfigIntent,
 } from '@nimiplatform/sdk/ai';
 import type {
   NimiLocalAppAssetBody,
@@ -199,15 +198,6 @@ function aiConfig(value: JsonRecord): NimiPortableAppAIConfig {
 function createAIConfigPort(context: TesterSimulatorPrepareContext) {
   return Object.freeze({
     async get() {
-      return aiConfig(projection(context).aiConfig);
-    },
-    async overwrite(capabilities: readonly NimiPortableAppAIConfigIntent[]) {
-      await invoke(context, 'tester.ai-config.update', {
-        config: {
-          owner: { owner: { oneofKind: 'app', app: { appId } } },
-          capabilities,
-        },
-      });
       return aiConfig(projection(context).aiConfig);
     },
   });

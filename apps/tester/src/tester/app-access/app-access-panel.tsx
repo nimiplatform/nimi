@@ -1,18 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { RefreshCw } from 'lucide-react';
-import { Button, FieldShell, InlineAlert, SelectField, StatusBadge, TextField } from '@nimiplatform/kit/ui';
+import { Button, InlineAlert, SelectField, StatusBadge } from '@nimiplatform/kit/ui';
 import type { NimiLocalAppAgentReference } from '@nimiplatform/sdk/app';
 
 import { getTesterLocalAppClient } from '../../shell/local-app-runtime-platform.js';
 import { useTranslation } from '../../shell/i18n/index.js';
 import {
-  appAccessCloudFields,
   appAccessGroups,
   appAccessPageCopy,
   appAccessPageIds,
-  emptyAppAccessCloudDraft,
-  type AppAccessCloudDraft,
-  type AppAccessCloudFieldId,
   type AppAccessGroupId,
   type AppAccessProbeId,
 } from './app-access-catalog.js';
@@ -77,7 +73,6 @@ export function AppAccessPanel() {
   const [probeStates, setProbeStates] = useState<AppAccessProbeStates>(createInitialProbeStates);
   const [agentReferences, setAgentReferences] = useState<readonly NimiLocalAppAgentReference[]>([]);
   const [selectedAgentHandle, setSelectedAgentHandle] = useState('');
-  const [cloudDraft, setCloudDraft] = useState<AppAccessCloudDraft>(emptyAppAccessCloudDraft);
   const [runningGroup, setRunningGroup] = useState<AppAccessGroupId | 'all' | null>(null);
 
   // Refs mirror the latest committed values so sequential group/run-all loops
@@ -85,7 +80,6 @@ export function AppAccessPanel() {
   const runtimeLossLatched = useRef(false);
   const probeStatesRef = useRef(probeStates);
   const sessionBoundRef = useRef(sessionBound);
-  const cloudDraftRef = useRef(cloudDraft);
   const agentReferencesRef = useRef(agentReferences);
   const selectedAgentHandleRef = useRef(selectedAgentHandle);
 
@@ -194,7 +188,6 @@ export function AppAccessPanel() {
 
   const gateContext = useCallback((): AppAccessGateContext => ({
     sessionBound: sessionBoundRef.current,
-    cloudDraftComplete: appAccessCloudFields.every((field) => cloudDraftRef.current[field.id].trim().length > 0),
     agentReferenceSelected: agentReferencesRef.current.some(
       (reference) => reference.agentHandle === selectedAgentHandleRef.current,
     ),
@@ -223,7 +216,6 @@ export function AppAccessPanel() {
     ) ?? null;
     const outcome = await runAppAccessProbe(id, {
       client,
-      cloudDraft: cloudDraftRef.current,
       agentReference: reference,
     });
     updateProbeStates((current) => applyProbeOutcome(current, id, outcome));
@@ -265,12 +257,6 @@ export function AppAccessPanel() {
     }
   }, [gateContext, refreshSession, runProbe, runningGroup]);
 
-  const updateCloudDraft = (field: AppAccessCloudFieldId, value: string) => {
-    const next = { ...cloudDraftRef.current, [field]: value };
-    cloudDraftRef.current = next;
-    setCloudDraft(next);
-  };
-
   const selectAgent = (value: string) => {
     selectedAgentHandleRef.current = value;
     setSelectedAgentHandle(value);
@@ -278,27 +264,11 @@ export function AppAccessPanel() {
 
   const currentGateContext: AppAccessGateContext = {
     sessionBound,
-    cloudDraftComplete: appAccessCloudFields.every((field) => cloudDraft[field.id].trim().length > 0),
     agentReferenceSelected: agentReferences.some((reference) => reference.agentHandle === selectedAgentHandle),
   };
   const gateFor = (id: AppAccessProbeId) => resolveProbeGate(id, probeStates, currentGateContext);
 
   const renderExtras = (id: AppAccessProbeId) => {
-    if (id === 'cloud-posture') {
-      return (
-        <div className="app-access-cloud-form">
-          {appAccessCloudFields.map((field) => (
-            <FieldShell key={field.id} label={t(field.labelKey)} className="app-access-cloud-form__field">
-              <TextField
-                value={cloudDraft[field.id]}
-                data-testid={field.testId}
-                onChange={(event) => updateCloudDraft(field.id, event.currentTarget.value)}
-              />
-            </FieldShell>
-          ))}
-        </div>
-      );
-    }
     if (id === 'agent-references') {
       return (
         <div className="app-access-agent-picker">

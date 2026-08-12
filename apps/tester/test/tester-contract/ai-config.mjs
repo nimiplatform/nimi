@@ -32,69 +32,53 @@ test('tester treats AI_CONFIG_NOT_FOUND as one unconfigured App AIConfig project
   }));
 });
 
-test('tester delegates one complete portable AIConfig overwrite without app-local route construction', async () => {
-  const { overwriteTesterAIConfig } = await importBehaviorModule('tester/tester-ai-config-store.js');
-  const capabilities = [
-    localIntent('text.generate'),
-    {
-      capabilityContract: 'video.generate',
-      requiredFeatures: [],
-      route: {
-        oneofKind: 'cloud',
-        cloud: {
-          implementation: {
-            implementationId: 'cloud.video.from-host',
-            driverId: 'cloud.driver.from-host',
-            driverDialect: 'video/v1',
-          },
-          providerModelTarget: { provider: 'host-provider', providerModelId: 'host-video-model' },
-        },
+test('tester refreshes the read-only AIConfig projection when owner handoff returns focus', async () => {
+  const { subscribeTesterAIConfigOwnerRefresh } = await importBehaviorModule('tester/tester-ai-config-store.js');
+  const createTarget = () => {
+    const listeners = new Map();
+    return {
+      addEventListener(type, listener) {
+        const current = listeners.get(type) ?? new Set();
+        current.add(listener);
+        listeners.set(type, current);
       },
-    },
-  ];
-  const calls = [];
-  const next = await overwriteTesterAIConfig({
-    async overwrite(input) {
-      calls.push(input);
-      return config(...input);
-    },
-  }, capabilities);
+      removeEventListener(type, listener) {
+        listeners.get(type)?.delete(listener);
+      },
+      dispatch(type) {
+        for (const listener of listeners.get(type) ?? []) listener({ type });
+      },
+    };
+  };
+  const focusTarget = createTarget();
+  const visibilityTarget = createTarget();
+  visibilityTarget.visibilityState = 'hidden';
+  let refreshes = 0;
+  const unsubscribe = subscribeTesterAIConfigOwnerRefresh(
+    () => { refreshes += 1; },
+    focusTarget,
+    visibilityTarget,
+  );
 
-  assert.equal(calls.length, 1);
-  assert.equal(calls[0], capabilities);
-  assert.deepEqual(next.capabilities, capabilities);
-  assert.equal('connectorGrantId' in next.capabilities[1].route.cloud, false);
+  focusTarget.dispatch('focus');
+  visibilityTarget.dispatch('visibilitychange');
+  visibilityTarget.visibilityState = 'visible';
+  visibilityTarget.dispatch('visibilitychange');
+  assert.equal(refreshes, 2);
+
+  unsubscribe();
+  focusTarget.dispatch('focus');
+  visibilityTarget.dispatch('visibilitychange');
+  assert.equal(refreshes, 2);
 });
 
-test('tester Model Config adapter preserves portable video intent and rejects grant binding output', async () => {
-  const {
-    toTesterModelConfigCapabilities,
-    toTesterPortableAIConfigCapabilities,
-  } = await importBehaviorModule('tester/tester-ai-config-store.js');
-  const portable = [{
-    capabilityContract: 'video.generate',
-    requiredFeatures: [],
-    route: {
-      oneofKind: 'cloud',
-      cloud: {
-        implementation: {
-          implementationId: 'cloud.video.from-host',
-          driverId: 'cloud.driver.from-host',
-          driverDialect: 'video/v1',
-        },
-        providerModelTarget: { provider: 'host-provider', providerModelId: 'host-video-model' },
-      },
-    },
-  }];
-  const draft = toTesterModelConfigCapabilities(portable);
-  assert.equal(draft[0].route.cloud.connectorGrantId, '');
-  assert.deepEqual(toTesterPortableAIConfigCapabilities(draft), portable);
-
-  draft[0].route.cloud.connectorGrantId = 'forbidden-grant';
-  assert.throws(
-    () => toTesterPortableAIConfigCapabilities(draft),
-    /must not submit ConnectorGrant/u,
-  );
+test('tester clones the immutable AIConfig projection only for read-only Kit display', async () => {
+  const { projectTesterAIConfigCapabilities } = await importBehaviorModule('tester/tester-ai-config-store.js');
+  const intent = localIntent('text.generate');
+  const projected = projectTesterAIConfigCapabilities([intent]);
+  assert.deepEqual(projected, [intent]);
+  assert.notEqual(projected[0], intent);
+  assert.notEqual(projected[0].requiredFeatures, intent.requiredFeatures);
 });
 
 test('tester shared Model Config inventory includes video.generate and deduplicates studio aliases', async () => {
@@ -117,7 +101,7 @@ test('tester shared Model Config inventory includes video.generate and deduplica
   }
 });
 
-test('tester mounts the shared third-party App AIConfig surface instead of custom model fields', () => {
+test('tester mounts the shared third-party App AIConfig surface as read-only with an exact owner handoff', () => {
   const source = readFileSync(path.join(
     root,
     'src/tester/workbench/tester-ai-config-settings-panel.tsx',
@@ -126,10 +110,28 @@ test('tester mounts the shared third-party App AIConfig surface instead of custo
   assert.match(source, /consumer: 'third-party-app'/u);
   assert.match(source, /initialCapabilityContract=\{capabilityId\}/u);
   assert.match(source, /rendererHost\.sdk\.modelConfig\.localSelections\(\)/u);
-  assert.doesNotMatch(source, /machine-local-ai-configuration-not-exposed-to-local-app/u);
-  assert.match(source, /onOpenCloudConnectorConfiguration/u);
-  assert.match(source, /kind: 'open-runtime-config'[\s\S]*page: 'cloud'[\s\S]*action: 'add-connector'/u);
-  assert.doesNotMatch(source, /Implementation ID|Provider model ID|remoteModelCatalogId/u);
+  assert.match(source, /onOpenOwnerConfiguration/u);
+  assert.match(source, /kind: 'open-apps'[\s\S]*appId/u);
+  assert.match(
+    source,
+    /return subscribeTesterAIConfigOwnerRefresh\([\s\S]{0,240}?window,[\s\S]{0,80}?document/u,
+  );
+  assert.doesNotMatch(source, /onOverwrite|onOpenCloudConnectorConfiguration|open-runtime-config/u);
+  assert.doesNotMatch(source, /cloudAIConfig|ModelPicker|provider picker/iu);
+});
+
+test('tester renderer and Simulator expose App AIConfig projection without a write port', () => {
+  const sources = [
+    'src/renderer/contract.ts',
+    'src/renderer/production-bindings.ts',
+    'src/tester/tester-ai-config-store.ts',
+    'src/simulator/bindings.ts',
+    'src/simulator/behavior.ts',
+    'src/simulator/fixture.ts',
+    'nimi.simulator.yaml',
+  ].map((relative) => readFileSync(path.join(root, relative), 'utf8')).join('\n');
+  assert.doesNotMatch(sources, /tester\.ai-config\.update|overwriteTesterAIConfig|toTesterPortableAIConfigCapabilities/u);
+  assert.doesNotMatch(sources, /aiConfig\s*:\s*\{[\s\S]{0,240}?overwrite\s*\(/u);
 });
 
 test('tester rejects any AIConfig projection not owned by the exact nimi.tester App', async () => {
@@ -199,7 +201,7 @@ test('tester presents Local intent while leaving implementation selection to Run
   assert.equal(imageTarget.canDispatch, true);
 });
 
-test('tester keeps Cloud authorization owner-only while allowing typed selection-required execution', async () => {
+test('tester keeps current-account Connector resolution Runtime-owned while allowing Cloud execution', async () => {
   const { createTesterRunTargetSummary } = await importBehaviorModule('tester/tester-run-target.js');
   const capability = {
     id: 'image.generate', label: 'Image Generate', group: 'media', summary: '', surface: '', execution: 'runtime-sdk', capabilityContract: 'image.generate',
@@ -231,8 +233,19 @@ test('tester keeps Cloud authorization owner-only while allowing typed selection
   assert.equal(configured.status, 'configured');
   assert.equal(configured.source, 'cloud');
   assert.equal(configured.canDispatch, true);
-  assert.match(configured.detail, /Nimi owns authorization selection/u);
-  assert.doesNotMatch(JSON.stringify(cloudIntent), /connectorGrant|custody|binding/iu);
+  assert.match(configured.detail, /Nimi-owned App configuration/u);
+  assert.doesNotMatch(JSON.stringify(cloudIntent), /custody|binding/iu);
+
+  const missingExactTarget = structuredClone(cloudIntent);
+  delete missingExactTarget.route.cloud.providerModelTarget.fields.remoteModelCatalogId;
+  const blocked = createTesterRunTargetSummary({
+    capability,
+    runtime,
+    config: config(missingExactTarget),
+  });
+  assert.equal(blocked.status, 'blocked');
+  assert.equal(blocked.canDispatch, false);
+  assert.equal(blocked.intentLabel, 'Invalid configuration');
 });
 
 test('tester dispatches the standalone World Tour only from a Tauri shell', async () => {

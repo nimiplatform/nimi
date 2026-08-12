@@ -375,8 +375,6 @@
 .app-access-diag dd{ min-width: 0; margin: 0; color: var(--nimi-text-secondary); font-size: 12px; overflow-wrap: anywhere; word-break: break-word;}
 .app-access-diag code{ font-family: var(--nimi-font-mono); font-size: 11px; white-space: normal; overflow-wrap: anywhere; word-break: break-word;}
 .app-access-diag__note{ margin: 8px 0 0; color: var(--nimi-text-muted); font-size: 11px; overflow-wrap: anywhere;}
-.app-access-cloud-form{ display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 8px;}
-.app-access-cloud-form__field{ min-width: 0;}
 .app-access-agent-picker{ min-width: 0; max-width: 320px;}
 @keyframes nimi-ui-module-tester-studio-spin{ to{ transform: rotate(360deg);}}
 @keyframes nimi-ui-module-tester-studio-caret{ 50%{ opacity: 0;}}

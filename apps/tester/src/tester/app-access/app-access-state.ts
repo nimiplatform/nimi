@@ -1,7 +1,6 @@
 // App Access probe state model: pure reducers and gating. Honesty rules live
-// here — a probe that has not run under the current session/config never
-// implies state, and evidence invalidated by a later overwrite falls back to
-// not-run instead of going stale.
+// here — a probe that has not run under the current session never implies
+// state, and session loss clears evidence instead of leaving it stale.
 
 import {
   appAccessGroups,
@@ -47,10 +46,6 @@ function withProbe(
   return { ...states, [id]: next };
 }
 
-function resetProbe(states: AppAccessProbeStates, id: AppAccessProbeId): AppAccessProbeStates {
-  return states[id].status === 'not-run' ? states : withProbe(states, id, initialProbeState);
-}
-
 export function applyProbeStart(states: AppAccessProbeStates, id: AppAccessProbeId): AppAccessProbeStates {
   return withProbe(states, id, {
     status: 'running',
@@ -58,15 +53,6 @@ export function applyProbeStart(states: AppAccessProbeStates, id: AppAccessProbe
     facts: [],
   });
 }
-
-// Evidence invalidation: an AIConfig overwrite replaces the whole config, so
-// evidence that described the replaced config must not survive it.
-// - portable-ai-config passed  → cloud-posture evidence (grantless intent persisted) is stale
-// - cloud-posture passed       → portable-ai-config + local-text evidence (committed Local route) is stale
-const aiConfigInvalidation: Partial<Record<AppAccessProbeId, readonly AppAccessProbeId[]>> = {
-  'portable-ai-config': ['cloud-posture'],
-  'cloud-posture': ['portable-ai-config', 'local-text'],
-};
 
 export function applyProbeOutcome(
   states: AppAccessProbeStates,
@@ -85,11 +71,6 @@ export function applyProbeOutcome(
       detail: outcome.detail,
     });
   }
-  if (outcome.ok === true) {
-    for (const stale of aiConfigInvalidation[id] ?? []) {
-      next = resetProbe(next, stale);
-    }
-  }
   return next;
 }
 
@@ -101,7 +82,6 @@ export function applySessionLoss(states: AppAccessProbeStates): AppAccessProbeSt
 
 export type AppAccessGateContext = {
   readonly sessionBound: boolean;
-  readonly cloudDraftComplete: boolean;
   readonly agentReferenceSelected: boolean;
 };
 
@@ -111,7 +91,7 @@ export type AppAccessGate =
 
 export function resolveProbeGate(
   id: AppAccessProbeId,
-  states: AppAccessProbeStates,
+  _states: AppAccessProbeStates,
   context: AppAccessGateContext,
 ): AppAccessGate {
   if (!context.sessionBound) {
@@ -120,14 +100,6 @@ export function resolveProbeGate(
   const gate = appAccessProbeById[id].gate;
   if (!gate) return { runnable: true };
   switch (gate.kind) {
-    case 'probe-passed':
-      return gate.probe && states[gate.probe].status === 'passed'
-        ? { runnable: true }
-        : { runnable: false, guidanceKey: gate.guidanceKey };
-    case 'cloud-draft':
-      return context.cloudDraftComplete
-        ? { runnable: true }
-        : { runnable: false, guidanceKey: gate.guidanceKey };
     case 'agent-selection':
       return context.agentReferenceSelected
         ? { runnable: true }

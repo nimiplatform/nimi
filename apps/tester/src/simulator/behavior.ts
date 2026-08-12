@@ -132,46 +132,6 @@ function initialConfig(): JsonRecord {
   };
 }
 
-function canonicalAIConfig(value: TesterSimulatorJsonValue): JsonRecord {
-  const candidate = record(value, 'AI_CONFIG');
-  if (JSON.stringify(Object.keys(candidate).sort()) !== JSON.stringify(['capabilities', 'owner'])) {
-    throw new Error('TESTER_SIMULATOR_AI_CONFIG_INVALID');
-  }
-  const owner = record(candidate.owner, 'AI_CONFIG_OWNER');
-  const ownerVariant = record(owner.owner, 'AI_CONFIG_OWNER_VARIANT');
-  const app = record(ownerVariant.app, 'AI_CONFIG_APP_OWNER');
-  if (ownerVariant.oneofKind !== 'app'
-    || app.appId !== 'nimi.tester'
-    || !Array.isArray(candidate.capabilities)) {
-    throw new Error('TESTER_SIMULATOR_AI_CONFIG_INVALID');
-  }
-  for (const value of candidate.capabilities) {
-    const intent = record(value, 'AI_CONFIG_INTENT');
-    text(intent.capabilityContract, 'AI_CONFIG_CAPABILITY');
-    if (!Array.isArray(intent.requiredFeatures)) {
-      throw new Error('TESTER_SIMULATOR_AI_CONFIG_INVALID');
-    }
-    for (const feature of intent.requiredFeatures) text(feature, 'AI_CONFIG_FEATURE');
-    const route = record(intent.route, 'AI_CONFIG_ROUTE');
-    if (route.oneofKind === 'local') {
-      const local = record(route.local, 'AI_CONFIG_LOCAL_ROUTE');
-      if (Object.keys(local).length !== 0) throw new Error('TESTER_SIMULATOR_AI_CONFIG_INVALID');
-    } else if (route.oneofKind === 'cloud') {
-      const cloud = record(route.cloud, 'AI_CONFIG_CLOUD_ROUTE');
-      if (Object.keys(cloud).some((key) => /binding|connector.?grant|custody|grant.?id/iu.test(key))) {
-        throw new Error('TESTER_SIMULATOR_AI_CONFIG_INVALID');
-      }
-      const implementation = record(cloud.implementation, 'AI_CONFIG_IMPLEMENTATION');
-      text(implementation.implementationId, 'AI_CONFIG_IMPLEMENTATION_ID');
-      text(implementation.driverId, 'AI_CONFIG_DRIVER_ID');
-      text(implementation.driverDialect, 'AI_CONFIG_DRIVER_DIALECT');
-    } else {
-      throw new Error('TESTER_SIMULATOR_AI_CONFIG_INVALID');
-    }
-  }
-  return candidate;
-}
-
 function state(value: TesterSimulatorJsonValue): TesterSimulatorState {
   const candidate = record(value, 'STATE');
   if (candidate.protocolRevision !== 1) throw new Error('TESTER_SIMULATOR_STATE_REVISION_INVALID');
@@ -446,9 +406,6 @@ export const testerSimulatorBehavior = Object.freeze({
         state: { ...current, actionLog: appendBounded(current.actionLog, action, MAX_ACTION_LOG) },
         events: [],
       };
-    }
-    if (envelope.type === 'tester.ai-config.update') {
-      return { state: { ...current, aiConfig: canonicalAIConfig(payload.config) }, events: [] };
     }
     throw new Error(`TESTER_SIMULATOR_COMMAND_UNDECLARED:${envelope.type}`);
   },

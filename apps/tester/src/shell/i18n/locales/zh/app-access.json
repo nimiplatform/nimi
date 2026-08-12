@@ -62,7 +62,7 @@
       },
       "aiConsumption": {
         "title": "AI 消费",
-        "blurb": "便携式 AIConfig、本地文本生成与无授权 Cloud 姿态。"
+        "blurb": "通过 owner 托管的当前 App AI 配置执行文本生成。"
       },
       "agentConversation": {
         "title": "Agent 会话",
@@ -70,7 +70,7 @@
       },
       "boundary": {
         "title": "边界探针",
-        "blurb": "越权字段与存储越界必须被拒绝。"
+        "blurb": "App 私有存储越界必须被拒绝。"
       }
     },
     "probes": {
@@ -89,24 +89,10 @@
         "proves": "通过 App Realm owner 创建的 WorldCore 回读时身份与内容哈希一致。",
         "running": "正在创建 WorldCore 并验证回读…"
       },
-      "portableAiConfig": {
-        "title": "便携式 AIConfig",
-        "proves": "对便携式 App AIConfig 进行 Local 路由整体覆写后可持久化并回读，且不携带托管字段。",
-        "running": "正在整体覆写便携式 Local 路由…"
-      },
-      "localText": {
-        "title": "本地文本生成",
-        "proves": "已提交的 Local 路由通过真实 Runtime 路径提供一元文本生成。",
-        "running": "正在通过已提交的 Local 路由生成文本…",
-        "requires": "便携式 AIConfig",
-        "gateGuidance": "请先运行“便携式 AIConfig”，以提交一个 Local 路由。"
-      },
-      "cloudPosture": {
-        "title": "Cloud 授权姿态",
-        "proves": "无授权的 Cloud 意图可持久化，且其执行必须要求 Nimi 侧的授权选择。",
-        "running": "正在保存无授权 Cloud 意图并验证需要选择授权…",
-        "requires": "目录派生的 Cloud 参数",
-        "gateGuidance": "请为全部五个字段粘贴目录派生值 — 按设计 Tester 不提供 provider/model 默认值。可在 Runtime 模型目录中查找。"
+      "textGeneration": {
+        "title": "已配置的文本生成",
+        "proves": "owner 托管的当前 App AI 配置可通过真实 Runtime 路径完成一元文本生成。",
+        "running": "正在通过当前 App AI 配置生成文本…"
       },
       "agentReferences": {
         "title": "激活的 Agent 引用",
@@ -127,23 +113,11 @@
         "requires": "已选择的 Agent 引用",
         "gateGuidance": "请先选择一个激活的 Agent 引用。"
       },
-      "authorityInjection": {
-        "title": "拒绝注入越权字段",
-        "proves": "注入到便携式 AIConfig 的 owner 与托管字段在离开 App 前被拒绝。",
-        "running": "正在注入禁止的 owner 与托管字段…"
-      },
       "storageBoundary": {
         "title": "拒绝存储越界",
         "proves": "针对 App 私有存储的路径逃逸与超限写入被拒绝。",
         "running": "正在尝试路径逃逸与超限写入…"
       }
-    },
-    "cloudFields": {
-      "implementationId": "实现 ID",
-      "driverId": "驱动 ID",
-      "driverDialect": "驱动方言",
-      "provider": "Provider",
-      "providerModelId": "Provider 模型 ID"
     },
     "status": {
       "setupNeeded": "需要先完成设置",
@@ -165,9 +139,6 @@
       "storageRemoveFailed": "无法删除已存储的文档。",
       "unexpectedSuccess": "Runtime 接受了必须被拒绝的操作 — 边界已失效。",
       "unexpectedRejection": "操作被拒绝，但原因与预期不符。",
-      "aiConfigReadbackInvalid": "保存的 AI 配置回读时不是干净的便携式 Local 路由。",
-      "cloudReadbackInvalid": "保存的 Cloud 意图回读时不是无授权的便携式意图。",
-      "cloudIntentFieldInvalid": "某个 Cloud 意图字段为空、首尾含空白或超长。",
       "worldCoreListReadMismatch": "创建的 WorldCore 回读时身份或内容哈希不一致。",
       "operationFailed": "探针未能完成，请查看技术细节。"
     }

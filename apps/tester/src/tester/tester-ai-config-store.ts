@@ -3,14 +3,21 @@ import type {
   NimiPortableAppAIConfig,
   NimiPortableAppAIConfigIntent,
 } from '@nimiplatform/sdk/ai';
+import { runtimeAIConfigStructToJson } from '@nimiplatform/sdk/ai';
 
 import { appId } from '../shell/auth/app-identity.js';
 
 type TesterAIConfigClient = {
   get(): Promise<NimiPortableAppAIConfig | null>;
-  overwrite(
-    capabilities: readonly NimiPortableAppAIConfigIntent[],
-  ): Promise<NimiPortableAppAIConfig>;
+};
+
+type TesterAIConfigRefreshEventTarget = {
+  addEventListener(type: string, listener: EventListener): void;
+  removeEventListener(type: string, listener: EventListener): void;
+};
+
+type TesterAIConfigVisibilityTarget = TesterAIConfigRefreshEventTarget & {
+  readonly visibilityState: string;
 };
 
 export type TesterAIConfigProjection = NimiPortableAppAIConfig | null;
@@ -27,61 +34,39 @@ export async function loadTesterAIConfig(
   }
 }
 
-export async function overwriteTesterAIConfig(
-  client: Pick<TesterAIConfigClient, 'overwrite'>,
-  capabilities: readonly NimiPortableAppAIConfigIntent[],
-): Promise<NimiPortableAppAIConfig> {
-  return requireTesterAIConfigOwner(await client.overwrite(capabilities));
+/** Refreshes the read-only projection after the Nimi-owned Desktop surface returns control. */
+export function subscribeTesterAIConfigOwnerRefresh(
+  refresh: () => void,
+  focusTarget: TesterAIConfigRefreshEventTarget,
+  visibilityTarget: TesterAIConfigVisibilityTarget,
+): () => void {
+  const onFocus: EventListener = () => refresh();
+  const onVisibilityChange: EventListener = () => {
+    if (visibilityTarget.visibilityState === 'visible') refresh();
+  };
+  focusTarget.addEventListener('focus', onFocus);
+  visibilityTarget.addEventListener('visibilitychange', onVisibilityChange);
+  return () => {
+    focusTarget.removeEventListener('focus', onFocus);
+    visibilityTarget.removeEventListener('visibilitychange', onVisibilityChange);
+  };
 }
 
-/** Bridges the Local App readonly projection into Kit's controlled draft shape. */
-export function toTesterModelConfigCapabilities(
+/** Clones the immutable SDK projection into Kit's read-only display shape. */
+export function projectTesterAIConfigCapabilities(
   capabilities: readonly NimiPortableAppAIConfigIntent[],
 ): NimiCapabilityAIConfigIntent[] {
   return capabilities.map((intent) => ({
     capabilityContract: intent.capabilityContract,
     requiredFeatures: [...intent.requiredFeatures],
-    defaults: intent.defaults,
+    ...(intent.defaults ? { defaults: intent.defaults } : {}),
     route: intent.route.oneofKind === 'local'
       ? { oneofKind: 'local', local: {} }
       : {
           oneofKind: 'cloud',
-          cloud: { ...intent.route.cloud, connectorGrantId: '' },
+          cloud: { ...intent.route.cloud },
         },
   }));
-}
-
-/** Fails closed before a Kit draft crosses the portable Third-party App boundary. */
-export function toTesterPortableAIConfigCapabilities(
-  capabilities: readonly NimiCapabilityAIConfigIntent[],
-): NimiPortableAppAIConfigIntent[] {
-  return capabilities.map((intent) => {
-    const base = {
-      capabilityContract: intent.capabilityContract,
-      requiredFeatures: [...intent.requiredFeatures],
-      ...(intent.defaults ? { defaults: intent.defaults } : {}),
-    };
-    if (intent.route.oneofKind === 'local') {
-      return { ...base, route: { oneofKind: 'local', local: {} } };
-    }
-    if (intent.route.oneofKind !== 'cloud' || !('cloud' in intent.route)) {
-      throw new Error('Tester Model Config produced an incomplete route intent.');
-    }
-    const cloud = intent.route.cloud;
-    if (cloud.connectorGrantId) {
-      throw new Error('Tester Model Config must not submit ConnectorGrant binding material.');
-    }
-    return {
-      ...base,
-      route: {
-        oneofKind: 'cloud',
-        cloud: {
-          implementation: cloud.implementation,
-          providerModelTarget: cloud.providerModelTarget,
-        },
-      },
-    };
-  });
 }
 
 export function findTesterCapabilityIntent(
@@ -91,6 +76,20 @@ export function findTesterCapabilityIntent(
   return config?.capabilities.find(
     (intent) => intent.capabilityContract === capabilityContract,
   ) ?? null;
+}
+
+export function testerCloudIntentHasExactTarget(
+  intent: NimiPortableAppAIConfigIntent,
+): boolean {
+  if (intent.route.oneofKind !== 'cloud') return false;
+  const target = runtimeAIConfigStructToJson(intent.route.cloud.providerModelTarget);
+  const exactText = (value: unknown): boolean => (
+    typeof value === 'string' && value.length > 0 && value.trim() === value
+  );
+  return !Object.hasOwn(target, 'model')
+    && exactText(target.provider)
+    && exactText(target.providerModelId)
+    && exactText(target.remoteModelCatalogId);
 }
 
 export function requireTesterAIConfigOwner(

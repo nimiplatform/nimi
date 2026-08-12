@@ -41,7 +41,6 @@ function TextStudioShell({
   historySelectionRequest,
   onSelectHistoryRun,
   headerActions,
-  aiConfigRefreshKey,
 }: {
   capability: TesterCapability;
   runtime: TesterRuntimeInspection | null;
@@ -54,7 +53,6 @@ function TextStudioShell({
   historySelectionRequest: { requestId: number; record: TesterRunHistoryRecord } | null;
   onSelectHistoryRun: (record: TesterRunHistoryRecord) => void;
   headerActions?: ReactNode;
-  aiConfigRefreshKey: number;
 }) {
   const rendererHost = useTesterRendererHost();
   const { t } = useTranslation();
@@ -93,7 +91,7 @@ function TextStudioShell({
     ? activeRun.result ?? (activeRun.record ? restoreTesterCapabilityRunResult(activeRun.record) : null)
     : lastResult?.capabilityId === capability.id ? lastResult : null;
   const headerResult = hasActiveRun ? currentResult : null;
-  const runTarget = useTesterRunTargetSummary(capability, runtime, aiConfigRefreshKey);
+  const runTarget = useTesterRunTargetSummary(capability, runtime);
   const admission = statusForCapability(capability, runTarget, headerResult);
   const isWorldTour = capability.execution === 'standalone-tauri';
   const requiresPrompt = profile.inputKind !== 'none';
@@ -427,7 +425,6 @@ export function SectionAITesting({
   const runtime = summary?.runtime ?? null;
   const { t } = useTranslation();
   const [configOpen, setConfigOpen] = useState(false);
-  const [aiConfigRefreshKey, setAIConfigRefreshKey] = useState(0);
 
   return (
     <div
@@ -448,7 +445,6 @@ export function SectionAITesting({
           historySelectionRequest={historySelectionRequest}
           onSelectHistoryRun={onSelectHistoryRun}
           headerActions={headerActions}
-          aiConfigRefreshKey={aiConfigRefreshKey}
         />
       </div>
 
@@ -467,8 +463,6 @@ export function SectionAITesting({
             <TesterAiConfigSettingsPanel
               runtime={runtime}
               capabilityId={capability.capabilityContract ?? capability.id}
-              onConfigChanged={() => setAIConfigRefreshKey((value) => value + 1)}
-              onClose={() => setConfigOpen(false)}
             />
           </Suspense>
         </DrawerErrorBoundary>

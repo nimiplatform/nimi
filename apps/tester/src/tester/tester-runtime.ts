@@ -395,15 +395,8 @@ export async function runTesterCapability(
               language: parameters?.language?.trim() ?? '',
               preferredName: parameters?.preferredName?.trim() ?? '',
             });
-        if (!submitted.job || !submitted.asset || !submitted.voiceReference) {
-          throw new Error('Runtime voice.create submission must return a Scenario Job, VoiceAsset, and VoiceReference.');
-        }
-        if (submitted.asset.creationSource !== creationSource) {
-          throw new Error(`Runtime VoiceAsset source ${submitted.asset.creationSource} did not match ${creationSource}.`);
-        }
-        if (submitted.voiceReference.kind !== 'voice_asset_id'
-          || submitted.voiceReference.voiceAssetId !== submitted.asset.voiceAssetId) {
-          throw new Error('Runtime voice.create VoiceReference did not identify the returned VoiceAsset.');
+        if (!submitted.job) {
+          throw new Error('Runtime voice.create submission must return a Scenario Job.');
         }
         let terminalJob = submitted.job;
         if (!isLocalAppJobTerminal(terminalJob.status)) {
@@ -417,18 +410,26 @@ export async function runTesterCapability(
             await subscription.cancel().catch(() => undefined);
           }
         }
-        if (!isLocalAppJobTerminal(terminalJob.status)) {
-          terminalJob = (await client.ai.scenarioJobs.get(terminalJob.jobId)).job;
-        }
+        const terminalResult = await client.ai.scenarioJobs.get(terminalJob.jobId);
+        terminalJob = terminalResult.job;
         if (terminalJob.status !== 'completed') {
           throw Object.assign(new Error(terminalJob.reasonDetail || `voice.create ended in ${terminalJob.status}.`), {
             reasonCode: terminalJob.reasonCode,
           });
         }
+        const resultAsset = terminalResult.asset;
+        const voiceReference = terminalResult.voiceReference;
+        if (!resultAsset || resultAsset.status !== 'active' || resultAsset.creationSource !== creationSource) {
+          throw new Error('Completed voice.create did not return an ACTIVE VoiceAsset with the requested source.');
+        }
+        if (!voiceReference || voiceReference.kind !== 'voice_asset_id'
+          || voiceReference.voiceAssetId !== resultAsset.voiceAssetId) {
+          throw new Error('Completed voice.create did not return an exact VoiceAsset reference.');
+        }
         const listed = await client.ai.voiceAssets.list({ pageSize: 100 });
-        const listedAsset = listed.assets.find((asset) => asset.voiceAssetId === submitted.asset!.voiceAssetId);
-        if (!listedAsset || listedAsset.creationSource !== creationSource) {
-          throw new Error('Completed voice.create did not project its VoiceAsset through the protected owner catalog.');
+        const listedAsset = listed.assets.find((asset) => asset.voiceAssetId === resultAsset.voiceAssetId);
+        if (!listedAsset || listedAsset.status !== 'active' || listedAsset.creationSource !== creationSource) {
+          throw new Error('Completed voice.create did not project its ACTIVE VoiceAsset through the protected owner catalog.');
         }
         return {
           ok: true,
@@ -442,7 +443,7 @@ export async function runTesterCapability(
             voiceAssetId: listedAsset.voiceAssetId,
             creationSource: listedAsset.creationSource,
             assetStatus: listedAsset.status,
-            voiceReference: submitted.voiceReference,
+            voiceReference,
           },
           ...(terminalJob.traceId ? { trace: { traceId: terminalJob.traceId } } : {}),
         };

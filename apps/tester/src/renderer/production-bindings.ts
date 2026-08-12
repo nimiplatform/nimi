@@ -1,5 +1,4 @@
 import { createNimiClientId } from '@nimiplatform/sdk';
-import type { NimiPortableAppAIConfigIntent } from '@nimiplatform/sdk/ai';
 import { requestWithRetry } from '@nimiplatform/sdk/types';
 import type { Realm } from '@nimiplatform/sdk/realm';
 import {
@@ -23,7 +22,7 @@ import {
 
 import { getRuntimePlatformProjection } from '../shell/auth/runtime-platform.js';
 import { getTesterLocalAppClient } from '../shell/local-app-runtime-platform.js';
-import { loadTesterAIConfig, requireTesterAIConfigOwner } from '../tester/tester-ai-config-store.js';
+import { loadTesterAIConfig } from '../tester/tester-ai-config-store.js';
 import { loadTesterAIConfigSummary } from '../tester/tester-ai-config.js';
 import { runTesterConversationJourney } from '../tester/local-app-conversation-journey.js';
 import { saveTesterExport } from '../tester/tester-export.js';
@@ -135,11 +134,6 @@ export function createTesterProductionBindings(
       uploadLocalAppArtifact: (input: Parameters<TesterRendererSdkPort['uploadLocalAppArtifact']>[0]) => testerLocalAppClient.ai.artifacts.upload(input),
       aiConfig: Object.freeze({
         get: () => loadTesterAIConfig(testerLocalAppClient.aiConfig),
-        async overwrite(capabilities: readonly NimiPortableAppAIConfigIntent[]) {
-          return requireTesterAIConfigOwner(
-            await testerLocalAppClient.aiConfig.overwrite(capabilities),
-          );
-        },
       }),
       modelConfig: Object.freeze({
         localSelections: () => testerLocalAppClient.modelConfig.localSelections(),

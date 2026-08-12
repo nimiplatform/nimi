@@ -62,7 +62,7 @@
       },
       "aiConsumption": {
         "title": "AI Consumption",
-        "blurb": "Portable AIConfig, Local text generation, and grantless Cloud posture."
+        "blurb": "Text generation through the current owner-managed App AI configuration."
       },
       "agentConversation": {
         "title": "Agent Conversation",
@@ -70,7 +70,7 @@
       },
       "boundary": {
         "title": "Boundary Probes",
-        "blurb": "Forbidden authority fields and storage escapes must be rejected."
+        "blurb": "App-private storage escapes must be rejected."
       }
     },
     "probes": {
@@ -89,24 +89,10 @@
         "proves": "A WorldCore created through the App Realm owner reads back with matching identity and content hash.",
         "running": "Creating a WorldCore and verifying the read-back…"
       },
-      "portableAiConfig": {
-        "title": "Portable AIConfig",
-        "proves": "A portable App AIConfig whole-overwrite with a Local route persists and reads back without custody fields.",
-        "running": "Whole-overwriting a portable Local route…"
-      },
-      "localText": {
-        "title": "Local text generation",
-        "proves": "The committed Local route serves a unary text generation through the real Runtime path.",
-        "running": "Generating text through the committed Local route…",
-        "requires": "Portable AIConfig",
-        "gateGuidance": "Run Portable AIConfig first so a Local route is committed."
-      },
-      "cloudPosture": {
-        "title": "Cloud authorization posture",
-        "proves": "A grantless Cloud intent persists, and its execution must demand a Nimi-owned authorization selection.",
-        "running": "Saving a grantless Cloud intent and proving selection-required…",
-        "requires": "Catalog-derived Cloud values",
-        "gateGuidance": "Paste catalog-derived values for all five fields — Tester has no provider/model defaults by design. Find them in the Runtime model catalog."
+      "textGeneration": {
+        "title": "Configured text generation",
+        "proves": "The current owner-managed App AI configuration serves unary text generation through the real Runtime path.",
+        "running": "Generating text through the current App AI configuration…"
       },
       "agentReferences": {
         "title": "Active Agent references",
@@ -127,23 +113,11 @@
         "requires": "Selected Agent reference",
         "gateGuidance": "Select an active Agent reference first."
       },
-      "authorityInjection": {
-        "title": "Authority injection rejected",
-        "proves": "Owner and custody fields injected into a portable AIConfig are rejected before leaving the App.",
-        "running": "Injecting forbidden owner and custody fields…"
-      },
       "storageBoundary": {
         "title": "Storage boundary rejected",
         "proves": "Path escapes and oversized writes against App-private storage are rejected.",
         "running": "Attempting a path escape and an oversized write…"
       }
-    },
-    "cloudFields": {
-      "implementationId": "Implementation ID",
-      "driverId": "Driver ID",
-      "driverDialect": "Driver dialect",
-      "provider": "Provider",
-      "providerModelId": "Provider model ID"
     },
     "status": {
       "setupNeeded": "Setup needed",
@@ -165,9 +139,6 @@
       "storageRemoveFailed": "The stored document could not be removed.",
       "unexpectedSuccess": "The Runtime accepted an operation that must be rejected — the boundary is broken.",
       "unexpectedRejection": "The operation was rejected for a different reason than expected.",
-      "aiConfigReadbackInvalid": "The saved AI configuration did not read back as a clean portable Local route.",
-      "cloudReadbackInvalid": "The saved Cloud intent did not read back as a grantless portable intent.",
-      "cloudIntentFieldInvalid": "A Cloud intent field is empty, has surrounding whitespace, or is too long.",
       "worldCoreListReadMismatch": "The created WorldCore did not read back with matching identity and content hash.",
       "operationFailed": "The probe could not be completed. See technical details."
     }

@@ -20,7 +20,6 @@ requires:
     - nimi.ai.generateText
   simulator_commands:
     - tester.action.record
-    - tester.ai-config.update
     - tester.asset.adopt
     - tester.asset.move
     - tester.asset.remove

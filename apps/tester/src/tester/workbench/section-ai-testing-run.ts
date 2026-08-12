@@ -5,7 +5,10 @@ import { t } from '../../shell/i18n/index.js';
 import type { TesterCapability } from '../tester-capabilities.js';
 import { getTesterRunIntentLabel, type TesterRunConfigSnapshot, type TesterRunHistoryRecord } from '../tester-history.js';
 import { useTesterRendererHost } from '../../renderer/context.js';
-import { loadTesterAIConfig } from '../tester-ai-config-store.js';
+import {
+  loadTesterAIConfig,
+  subscribeTesterAIConfigOwnerRefresh,
+} from '../tester-ai-config-store.js';
 import { createTesterRunTargetSummary, type TesterRunTargetSummary } from '../tester-run-target.js';
 import type { TesterCapabilityRunResult, TesterRuntimeInspection } from '../tester-runtime.js';
 import { composeStudioDirective, DEFAULT_LENGTH_VALUE, DEFAULT_TONE_VALUE, getCapabilityStudioProfile, LENGTH_OPTIONS, TONE_OPTIONS } from './capability-studio-profiles.js';
@@ -53,7 +56,6 @@ export function canConfigureRunTarget(runTarget: TesterRunTargetSummary): boolea
 export function useTesterRunTargetSummary(
   capability: TesterCapability,
   runtime: TesterRuntimeInspection | null,
-  refreshKey = 0,
 ): TesterRunTargetSummary {
   const rendererHost = useTesterRendererHost();
   const [configProjection, setConfigProjection] = useState<{
@@ -64,24 +66,34 @@ export function useTesterRunTargetSummary(
 
   useEffect(() => {
     let cancelled = false;
-    setConfigProjection({ state: 'loading', config: null, error: null });
-    void loadTesterAIConfig(rendererHost.sdk.aiConfig)
-      .then((next) => {
-        if (!cancelled) setConfigProjection({ state: 'loaded', config: next, error: null });
-      })
-      .catch((cause) => {
-        if (!cancelled) {
-          setConfigProjection({
-            state: 'failed',
-            config: null,
-            error: cause instanceof Error ? cause.message : String(cause || t('Studio.run.aiConfigLoadFailed')),
-          });
-        }
-      });
+    let requestGeneration = 0;
+    const refresh = () => {
+      const generation = ++requestGeneration;
+      setConfigProjection({ state: 'loading', config: null, error: null });
+      void loadTesterAIConfig(rendererHost.sdk.aiConfig)
+        .then((next) => {
+          if (!cancelled && generation === requestGeneration) {
+            setConfigProjection({ state: 'loaded', config: next, error: null });
+          }
+        })
+        .catch((cause) => {
+          if (!cancelled && generation === requestGeneration) {
+            setConfigProjection({
+              state: 'failed',
+              config: null,
+              error: cause instanceof Error ? cause.message : String(cause || t('Studio.run.aiConfigLoadFailed')),
+            });
+          }
+        });
+    };
+    refresh();
+    const unsubscribe = subscribeTesterAIConfigOwnerRefresh(refresh, window, document);
     return () => {
       cancelled = true;
+      requestGeneration += 1;
+      unsubscribe();
     };
-  }, [rendererHost, refreshKey]);
+  }, [rendererHost]);
 
   const standaloneTauriAvailable = hasTauriRuntime();
   const target = useMemo(

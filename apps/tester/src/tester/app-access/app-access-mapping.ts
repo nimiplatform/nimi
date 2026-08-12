@@ -17,13 +17,13 @@ export const appAccessTestIdMapping: readonly AppAccessTestIdMappingEntry[] = [
   { legacy: 'imp4-current-user', current: 'app-access-fact-current-user' },
   {
     legacy: 'imp4-ai-config',
-    current: 'app-access-probe-portable-ai-config',
-    note: 'outcome region: app-access-run-portable-ai-config-result',
+    current: '(folded)',
+    note: 'App AIConfig is a read-only settings projection with configuration handed off to Nimi Desktop',
   },
   {
     legacy: 'imp4-local-text',
-    current: 'app-access-probe-local-text',
-    note: 'outcome region: app-access-run-local-text-result',
+    current: 'app-access-probe-text-generation',
+    note: 'outcome region: app-access-run-text-generation-result',
   },
   {
     legacy: 'imp4-world-create',
@@ -37,8 +37,8 @@ export const appAccessTestIdMapping: readonly AppAccessTestIdMappingEntry[] = [
   },
   {
     legacy: 'imp4-cloud-selection',
-    current: 'app-access-probe-cloud-posture',
-    note: 'outcome region: app-access-run-cloud-posture-result',
+    current: '(folded)',
+    note: 'provider and model authoring moved to the Nimi-owned App configuration surface',
   },
   {
     legacy: 'imp4-run-storage',
@@ -53,22 +53,22 @@ export const appAccessTestIdMapping: readonly AppAccessTestIdMappingEntry[] = [
   { legacy: 'imp4-run-realm-list', current: 'app-access-run-world-list' },
   {
     legacy: 'imp4-run-local-ai',
-    current: 'app-access-run-portable-ai-config',
-    note: 'split: run Portable AIConfig first, then app-access-run-local-text (or the AI Consumption group run)',
+    current: 'app-access-run-text-generation',
+    note: 'runs against the current owner-managed App AIConfig without mutating it',
   },
-  { legacy: 'imp4-run-authority-rejection', current: 'app-access-run-authority-injection' },
+  { legacy: 'imp4-run-authority-rejection', current: '(folded)', note: 'the protected Tester surface carries no AIConfig write operation' },
   { legacy: 'imp4-run-world-create', current: 'app-access-run-world-create' },
-  { legacy: 'imp4-run-cloud-selection', current: 'app-access-run-cloud-posture' },
+  { legacy: 'imp4-run-cloud-selection', current: '(folded)', note: 'cloud route authoring moved to Nimi Desktop' },
   { legacy: 'imp5-agent-catalog', current: 'app-access-run-agent-references-result' },
   { legacy: 'imp5-agent-select', current: 'app-access-agent-select' },
   { legacy: 'imp5-run-agent-list', current: 'app-access-run-agent-references' },
   { legacy: 'imp5-run-conversation', current: 'app-access-run-agent-conversation' },
   { legacy: 'imp5-run-agent-interrupt', current: 'app-access-run-agent-interrupt' },
-  { legacy: 'imp4-cloud-implementationId', current: 'app-access-cloud-implementation-id' },
-  { legacy: 'imp4-cloud-driverId', current: 'app-access-cloud-driver-id' },
-  { legacy: 'imp4-cloud-driverDialect', current: 'app-access-cloud-driver-dialect' },
-  { legacy: 'imp4-cloud-provider', current: 'app-access-cloud-provider' },
-  { legacy: 'imp4-cloud-providerModelId', current: 'app-access-cloud-provider-model-id' },
+  { legacy: 'imp4-cloud-implementationId', current: '(folded)' },
+  { legacy: 'imp4-cloud-driverId', current: '(folded)' },
+  { legacy: 'imp4-cloud-driverDialect', current: '(folded)' },
+  { legacy: 'imp4-cloud-provider', current: '(folded)' },
+  { legacy: 'imp4-cloud-providerModelId', current: '(folded)' },
 ];
 
 export type AppAccessLabelMappingEntry = {
@@ -87,13 +87,13 @@ export const appAccessLabelMapping: readonly AppAccessLabelMappingEntry[] = [
   { legacy: 'List local WorldCores', current: 'WorldCore listing → Run' },
   {
     legacy: 'Overwrite Local + generate',
-    current: 'Portable AIConfig → Run, then Local text generation → Run',
-    note: 'or use Run group on AI Consumption to run both in order',
+    current: 'Configured text generation → Run',
+    note: 'reads the owner-managed App AIConfig and does not mutate it',
   },
-  { legacy: 'Prove owner/custody rejection', current: 'Authority injection rejected → Run' },
+  { legacy: 'Prove owner/custody rejection', current: 'Removed with the protected AIConfig write carrier' },
   { legacy: 'Create + verify WorldCore', current: 'WorldCore create & read-back → Run' },
   { legacy: 'List active Agent references', current: 'Active Agent references → Run' },
   { legacy: 'Run typed Agent conversation', current: 'Agent conversation → Run' },
   { legacy: 'Run typed Agent interrupt', current: 'Agent turn interrupt → Run' },
-  { legacy: 'Save Cloud + prove selection-required', current: 'Cloud authorization posture → Run' },
+  { legacy: 'Save Cloud + prove selection-required', current: 'Configure this App in Nimi Desktop' },
 ];

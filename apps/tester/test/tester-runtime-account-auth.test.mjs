@@ -45,10 +45,6 @@ async function importTesterRuntime() {
   return import(pathToFileURL(path.join(buildModule(), 'tester/tester-runtime.js')).href);
 }
 
-async function importTesterAIConfigStore() {
-  return import(pathToFileURL(path.join(buildModule(), 'tester/tester-ai-config-store.js')).href);
-}
-
 function ownerUnavailable(command) {
   return Object.assign(new Error('Admitted App operation owner is unavailable'), {
     code: 'runtime-permission-denied',
@@ -223,25 +219,6 @@ test('Tester app-private storage reaches typed ingress and preserves owner-unava
     if (previousElectronTest === undefined) delete globalThis.__NIMI_ELECTRON_TEST__;
     else globalThis.__NIMI_ELECTRON_TEST__ = previousElectronTest;
   }
-});
-
-test('Tester preserves Model Config defaults as the portable Runtime Struct carrier', async () => {
-  const {
-    toTesterModelConfigCapabilities,
-    toTesterPortableAIConfigCapabilities,
-  } = await importTesterAIConfigStore();
-  const portable = [{
-    capabilityContract: 'text.generate',
-    requiredFeatures: [],
-    defaults: {
-      fields: { temperature: { kind: { oneofKind: 'numberValue', numberValue: 0.3 } } },
-    },
-    route: { oneofKind: 'local', local: {} },
-  }];
-
-  const modelConfig = toTesterModelConfigCapabilities(portable);
-  assert.deepEqual(modelConfig[0]?.defaults, portable[0].defaults);
-  assert.deepEqual(toTesterPortableAIConfigCapabilities(modelConfig), portable);
 });
 
 test('Tester reports typed owner unavailability after protected ingress', async () => {
@@ -834,15 +811,19 @@ test('Tester voice.create submits reference audio, waits for the Job, and verifi
   const client = fakeLocalAppClient({
     async submitScenarioJob(spec) {
       calls.push(['submit', spec]);
-      return {
-        job: submitted,
-        asset,
-        voiceReference: { kind: 'voice_asset_id', voiceAssetId: asset.voiceAssetId },
-      };
+      return { job: submitted };
     },
     async subscribeScenarioJob(jobId) {
       calls.push(['subscribe', jobId]);
       return localScenarioJobSubscription([{ eventType: 'completed', sequence: '1', traceId: completed.traceId, timestamp: null, job: completed }]);
+    },
+    async getScenarioJob(jobId) {
+      calls.push(['get', jobId]);
+      return {
+        job: completed,
+        asset,
+        voiceReference: { kind: 'voice_asset_id', voiceAssetId: asset.voiceAssetId },
+      };
     },
     async listVoiceAssets(input) {
       calls.push(['list', input]);
@@ -870,7 +851,7 @@ test('Tester voice.create submits reference audio, waits for the Job, and verifi
     preferredName: 'Nimi reference voice',
     text: '你好，欢迎来到 Nimi。',
   }]);
-  assert.deepEqual(calls.slice(1), [['subscribe', submitted.jobId], ['list', { pageSize: 100 }]]);
+  assert.deepEqual(calls.slice(1), [['subscribe', submitted.jobId], ['get', submitted.jobId], ['list', { pageSize: 100 }]]);
   assert.deepEqual(result.output, {
     kind: 'voice-asset', jobId: completed.jobId, jobState: 'completed', voiceAssetId: asset.voiceAssetId,
     creationSource: source, assetStatus: 'active', voiceReference: { kind: 'voice_asset_id', voiceAssetId: asset.voiceAssetId },
@@ -887,6 +868,10 @@ test('Tester voice.create submits a text description through the same canonical 
   const client = fakeLocalAppClient({
     async submitScenarioJob(spec) {
       calls.push(['submit', spec]);
+      return { job: completed };
+    },
+    async getScenarioJob(jobId) {
+      calls.push(['get', jobId]);
       return {
         job: completed,
         asset,
@@ -918,6 +903,7 @@ test('Tester voice.create submits a text description through the same canonical 
       language: 'zh',
       preferredName: 'Nimi designed voice',
     }],
+    ['get', completed.jobId],
     ['list', { pageSize: 100 }],
   ]);
   assert.equal(result.output.kind, 'voice-asset');

@@ -5,10 +5,7 @@ import type {
   NimiRealmNotificationUnreadView,
   NimiRealmRequestDataExportOutput,
 } from '@nimiplatform/sdk/realm';
-import type {
-  NimiPortableAppAIConfig,
-  NimiPortableAppAIConfigIntent,
-} from '@nimiplatform/sdk/ai';
+import type { NimiPortableAppAIConfig } from '@nimiplatform/sdk/ai';
 import type {
   NimiLocalAppAgentHandle,
   NimiLocalAppArtifactImageMime,
@@ -105,9 +102,6 @@ export interface TesterRendererSdkPort {
   }): Promise<{ readonly artifactId: string; readonly sizeBytes: number; readonly mimeType: NimiLocalAppArtifactImageMime }>;
   aiConfig: {
     get(): Promise<NimiPortableAppAIConfig | null>;
-    overwrite(
-      capabilities: readonly NimiPortableAppAIConfigIntent[],
-    ): Promise<NimiPortableAppAIConfig>;
   };
   modelConfig: {
     localSelections(): Promise<readonly {

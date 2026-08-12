@@ -47,21 +47,12 @@ function clientPort(overrides = {}) {
   return {
     storage: storagePort(),
     realm: { worldCore: { async list() { return []; }, async create() { throw rejected('not-configured'); } } },
-    aiConfig: { async get() { throw rejected('not-configured'); }, async overwrite() { throw rejected('not-configured'); } },
     ai: { text: { async generateCandidate() { throw rejected('not-configured'); } } },
     agents: { async listReferences() { return []; } },
     conversation: {},
     ...overrides,
   };
 }
-
-const localRouteConfig = () => ({
-  capabilities: [{
-    capabilityContract: 'text.generate',
-    requiredFeatures: [],
-    route: { oneofKind: 'local', local: {} },
-  }],
-});
 
 // ---------------------------------------------------------------- catalog --
 
@@ -73,12 +64,11 @@ test('app-access catalog is complete, consistent, and campaign-free', async () =
     appAccessPageCopy,
     appAccessPageIds,
     appAccessSessionFacts,
-    appAccessCloudFields,
   } = await catalogModule();
 
   const probeIds = appAccessProbes.map((probe) => probe.id);
   assert.equal(new Set(probeIds).size, probeIds.length, 'probe ids must be unique');
-  assert.equal(probeIds.length, 11);
+  assert.equal(probeIds.length, 8);
   assert.deepEqual(Object.keys(appAccessProbeById).sort(), [...probeIds].sort());
 
   const grouped = appAccessGroups.flatMap((group) => group.probes);
@@ -88,10 +78,6 @@ test('app-access catalog is complete, consistent, and campaign-free', async () =
       assert.equal(appAccessProbeById[id].group, group.id, `${id} group back-reference`);
     }
   }
-  for (const probe of appAccessProbes) {
-    if (probe.gate?.probe) assert.ok(appAccessProbeById[probe.gate.probe], `${probe.id} gate probe exists`);
-  }
-
   const campaignPattern = /imp[45]/iu;
   const allText = JSON.stringify({
     appAccessGroups,
@@ -99,14 +85,12 @@ test('app-access catalog is complete, consistent, and campaign-free', async () =
     appAccessPageCopy,
     appAccessPageIds,
     appAccessSessionFacts,
-    appAccessCloudFields,
   });
   assert.doesNotMatch(allText, campaignPattern, 'catalog must not carry campaign codenames');
 
   const allTestIds = [
     ...Object.values(appAccessPageIds),
     ...Object.values(appAccessSessionFacts).map((fact) => fact.testId),
-    ...appAccessCloudFields.map((field) => field.testId),
     ...appAccessGroups.flatMap((group) => [group.testId, group.runTestId]),
     ...appAccessProbes.flatMap((probe) => [probe.testId, probe.runTestId, probe.resultTestId]),
   ];
@@ -179,71 +163,27 @@ test('app-access state model starts neutral and transitions honestly', async () 
   }
 });
 
-test('app-access AIConfig overwrites invalidate replaced-config evidence only', async () => {
-  const { createInitialProbeStates, applyProbeOutcome } = await stateModule();
-  const passFor = (headline) => ({ ok: true, headline, facts: [] });
-
-  let states = createInitialProbeStates();
-  states = applyProbeOutcome(states, 'portable-ai-config', passFor('Portable AIConfig committed'));
-  states = applyProbeOutcome(states, 'local-text', passFor('Local text generation completed'));
-  states = applyProbeOutcome(states, 'storage-isolation', passFor('roundtrip'));
-
-  states = applyProbeOutcome(states, 'cloud-posture', passFor('Grantless Cloud intent persisted'));
-  assert.equal(states['portable-ai-config'].status, 'not-run', 'Cloud overwrite clears portable evidence');
-  assert.equal(states['local-text'].status, 'not-run', 'Cloud overwrite clears committed-Local evidence');
-  assert.equal(states['storage-isolation'].status, 'passed', 'unrelated evidence untouched');
-
-  states = applyProbeOutcome(states, 'portable-ai-config', passFor('Portable AIConfig committed'));
-  assert.equal(states['cloud-posture'].status, 'not-run', 'Local overwrite clears grantless Cloud evidence');
-
-  states = applyProbeOutcome(states, 'local-text', passFor('Local text generation completed'));
-  states = applyProbeOutcome(states, 'portable-ai-config', passFor('Portable AIConfig committed'));
-  assert.equal(states['local-text'].status, 'passed', 'Local overwrite keeps Local-route evidence');
-
-  states = applyProbeOutcome(states, 'cloud-posture', {
-    ok: false,
-    headlineKey: 'AppAccess.failures.operationFailed',
-    reasonCode: 'operation-failed',
-  });
-  assert.equal(states['portable-ai-config'].status, 'passed', 'failed overwrite invalidates nothing');
-  assert.equal(states['local-text'].status, 'passed', 'failed overwrite invalidates nothing');
-});
-
 test('app-access gates guide instead of erroring', async () => {
-  const { createInitialProbeStates, applyProbeOutcome, resolveProbeGate } = await stateModule();
+  const { createInitialProbeStates, resolveProbeGate } = await stateModule();
   const { appAccessPageCopy } = await catalogModule();
 
   const states = createInitialProbeStates();
-  const signedOut = { sessionBound: false, cloudDraftComplete: true, agentReferenceSelected: true };
+  const signedOut = { sessionBound: false, agentReferenceSelected: true };
   for (const id of Object.keys(states)) {
     const gate = resolveProbeGate(id, states, signedOut);
     assert.equal(gate.runnable, false);
     assert.equal(gate.guidanceKey, appAccessPageCopy.signedOut);
   }
 
-  const bound = { sessionBound: true, cloudDraftComplete: false, agentReferenceSelected: false };
+  const bound = { sessionBound: true, agentReferenceSelected: false };
   assert.equal(resolveProbeGate('storage-isolation', states, bound).runnable, true);
-  assert.equal(resolveProbeGate('authority-injection', states, bound).runnable, true);
+  assert.equal(resolveProbeGate('text-generation', states, bound).runnable, true);
   assert.equal(resolveProbeGate('agent-references', states, bound).runnable, true);
-
-  const localText = resolveProbeGate('local-text', states, bound);
-  assert.equal(localText.runnable, false);
-  assert.equal(localText.guidanceKey, 'AppAccess.probes.localText.gateGuidance');
-
-  const cloud = resolveProbeGate('cloud-posture', states, bound);
-  assert.equal(cloud.runnable, false);
-  assert.equal(cloud.guidanceKey, 'AppAccess.probes.cloudPosture.gateGuidance');
 
   const conversation = resolveProbeGate('agent-conversation', states, bound);
   assert.equal(conversation.runnable, false);
   assert.equal(conversation.guidanceKey, 'AppAccess.probes.agentConversation.gateGuidance');
 
-  const ready = applyProbeOutcome(states, 'portable-ai-config', { ok: true, headline: 'ok', facts: [] });
-  assert.equal(resolveProbeGate('local-text', ready, bound).runnable, true);
-  assert.equal(
-    resolveProbeGate('cloud-posture', states, { ...bound, cloudDraftComplete: true }).runnable,
-    true,
-  );
   assert.equal(
     resolveProbeGate('agent-conversation', states, { ...bound, agentReferenceSelected: true }).runnable,
     true,
@@ -252,12 +192,11 @@ test('app-access gates guide instead of erroring', async () => {
 
 test('app-access run plans follow dependency order', async () => {
   const { planGroupRun, planRunAll } = await stateModule();
-  assert.deepEqual(planGroupRun('ai-consumption'), ['portable-ai-config', 'local-text', 'cloud-posture']);
+  assert.deepEqual(planGroupRun('ai-consumption'), ['text-generation']);
   assert.deepEqual(planGroupRun('agent-conversation'), ['agent-references', 'agent-conversation', 'agent-interrupt']);
   const all = planRunAll();
-  assert.equal(all.length, 11);
-  assert.equal(new Set(all).size, 11);
-  assert.ok(all.indexOf('portable-ai-config') < all.indexOf('local-text'));
+  assert.equal(all.length, 8);
+  assert.equal(new Set(all).size, 8);
   assert.ok(all.indexOf('agent-references') < all.indexOf('agent-conversation'));
   assert.ok(all.indexOf('agent-conversation') < all.indexOf('agent-interrupt'));
 });
@@ -312,71 +251,8 @@ test('storage boundary probe fails closed when an escape write succeeds', async 
   assert.equal(outcome.headlineKey, 'AppAccess.failures.unexpectedSuccess');
 });
 
-test('authority injection probe sends forbidden fields and expects typed rejection', async () => {
-  const { runAuthorityInjectionProbe } = await probesModule();
-  const submissions = [];
-  const aiConfig = {
-    async overwrite(capabilities) {
-      submissions.push(capabilities[0]);
-      const candidate = capabilities[0];
-      if (candidate.owner || candidate.route?.local?.connectorGrantId) {
-        throw rejected('SDK_LOCAL_APP_AUTHORITY_FIELD_FORBIDDEN');
-      }
-      return { capabilities };
-    },
-    async get() { return localRouteConfig(); },
-  };
-  const outcome = await runAuthorityInjectionProbe(clientPort({ aiConfig }));
-  assert.equal(outcome.ok, true);
-  assert.equal(submissions.length, 2, 'owner and custody injections both attempted');
-  assert.equal(submissions[0].owner.accountId, 'forbidden', 'real forbidden owner field sent');
-  assert.equal(submissions[1].route.local.connectorGrantId, 'forbidden', 'real forbidden custody field sent');
-});
-
-test('authority injection probe fails when the boundary accepts or misrejects', async () => {
-  const { runAuthorityInjectionProbe } = await probesModule();
-  const accepting = {
-    async overwrite(capabilities) { return { capabilities }; },
-    async get() { return localRouteConfig(); },
-  };
-  const accepted = await runAuthorityInjectionProbe(clientPort({ aiConfig: accepting }));
-  assert.equal(accepted.ok, false);
-  assert.equal(accepted.reasonCode, 'unexpected-success');
-
-  const misrejecting = {
-    async overwrite() { throw rejected('SDK_LOCAL_APP_STORAGE_PATH_INVALID'); },
-    async get() { return localRouteConfig(); },
-  };
-  const wrong = await runAuthorityInjectionProbe(clientPort({ aiConfig: misrejecting }));
-  assert.equal(wrong.ok, false);
-  assert.equal(wrong.reasonCode, 'SDK_LOCAL_APP_STORAGE_PATH_INVALID', 'actual reason surfaces verbatim');
-});
-
-test('portable AIConfig probe verifies whole-overwrite read-back without custody fields', async () => {
-  const { runPortableAiConfigProbe } = await probesModule();
-  const aiConfig = {
-    async overwrite(capabilities) { return { capabilities }; },
-    async get() { return localRouteConfig(); },
-  };
-  const outcome = await runPortableAiConfigProbe(clientPort({ aiConfig }));
-  assert.equal(outcome.ok, true);
-  assert.match(outcome.facts.join(' '), /Local route/u);
-
-  const dirty = {
-    async overwrite(capabilities) { return { capabilities }; },
-    async get() {
-      const config = localRouteConfig();
-      config.capabilities[0].route.local = { connectorGrantId: 'leaked' };
-      return config;
-    },
-  };
-  const leaked = await runPortableAiConfigProbe(clientPort({ aiConfig: dirty }));
-  assert.equal(leaked.ok, false);
-  assert.equal(leaked.reasonCode, 'ai-config-readback-invalid');
-});
-
-test('local text probe reports finish and truncated trace facts', async () => {
-  const { runLocalTextProbe } = await probesModule();
+test('configured text probe reports finish and truncated trace facts without mutating AIConfig', async () => {
+  const { runTextGenerationProbe } = await probesModule();
   const ai = {
     text: {
       async generateCandidate(input) {
@@ -386,65 +262,12 @@ test('local text probe reports finish and truncated trace facts', async () => {
       },
     },
   };
-  const outcome = await runLocalTextProbe(clientPort({ ai }));
+  const outcome = await runTextGenerationProbe(clientPort({ ai }));
   assert.equal(outcome.ok, true);
   const facts = outcome.facts.join(' ');
   assert.match(facts, /finish stop/u);
   assert.ok(facts.includes('trace-abcdef…'), 'trace id truncated');
   assert.ok(!facts.includes('trace-abcdef0123456789'), 'full trace id never shown');
-});
-
-test('cloud posture probe persists grantless intent and proves selection-required', async () => {
-  const { runCloudPostureProbe } = await probesModule();
-  const draft = {
-    implementationId: 'cloud.text.impl',
-    driverId: 'cloud.driver',
-    driverDialect: 'v1',
-    provider: 'provider-from-catalog',
-    providerModelId: 'model-from-catalog',
-  };
-  const calls = [];
-  const aiConfig = {
-    async overwrite(capabilities) {
-      calls.push(['overwrite', capabilities]);
-      return { capabilities };
-    },
-    async get() {
-      return {
-        capabilities: [{
-          capabilityContract: 'text.generate',
-          requiredFeatures: [],
-          route: { oneofKind: 'cloud', cloud: { implementation: {} } },
-        }],
-      };
-    },
-  };
-  const ai = {
-    text: {
-      async generateCandidate() {
-        calls.push(['generate']);
-        throw rejected('ai-connector-grant-selection-required');
-      },
-    },
-  };
-  const outcome = await runCloudPostureProbe(clientPort({ aiConfig, ai }), draft);
-  assert.equal(outcome.ok, true);
-  const submitted = calls[0][1][0];
-  assert.equal(submitted.route.oneofKind, 'cloud');
-  assert.equal(
-    submitted.route.cloud.providerModelTarget.fields.provider.kind.stringValue,
-    'provider-from-catalog',
-  );
-  assert.equal('connectorGrantId' in submitted.route.cloud, false, 'grantless by construction');
-
-  const succeeding = { text: { async generateCandidate() { return { text: 'x', finishReason: 'stop', traceId: 't' }; } } };
-  const unexpected = await runCloudPostureProbe(clientPort({ aiConfig, ai: succeeding }), draft);
-  assert.equal(unexpected.ok, false);
-  assert.equal(unexpected.reasonCode, 'unexpected-success', 'grantless execution must not succeed');
-
-  const invalid = await runCloudPostureProbe(clientPort({ aiConfig, ai }), { ...draft, provider: '  padded ' });
-  assert.equal(invalid.ok, false);
-  assert.equal(invalid.reasonCode, 'cloud-intent-field-invalid');
 });
 
 test('world create probe verifies list read-back and truncates opaque ids', async () => {
@@ -516,7 +339,6 @@ test('agent conversation probe requires a reference and reports bounded facts', 
 
   const missing = await runAppAccessProbe('agent-conversation', {
     client: clientPort(),
-    cloudDraft: {},
     agentReference: null,
   });
   assert.equal(missing.ok, false);
@@ -546,7 +368,6 @@ test('agent conversation probe requires a reference and reports bounded facts', 
   };
   const outcome = await runAppAccessProbe('agent-conversation', {
     client: clientPort({ conversation }),
-    cloudDraft: {},
     agentReference: reference,
   });
   assert.equal(outcome.ok, true);

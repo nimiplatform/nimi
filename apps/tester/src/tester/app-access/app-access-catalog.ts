@@ -17,16 +17,13 @@ export type AppAccessProbeId =
   | 'storage-isolation'
   | 'world-list'
   | 'world-create'
-  | 'portable-ai-config'
-  | 'local-text'
-  | 'cloud-posture'
+  | 'text-generation'
   | 'agent-references'
   | 'agent-conversation'
   | 'agent-interrupt'
-  | 'authority-injection'
   | 'storage-boundary';
 
-export type AppAccessProbeGateKind = 'probe-passed' | 'cloud-draft' | 'agent-selection';
+export type AppAccessProbeGateKind = 'agent-selection';
 
 export type AppAccessProbeDefinition = {
   readonly id: AppAccessProbeId;
@@ -37,7 +34,6 @@ export type AppAccessProbeDefinition = {
   readonly runningKey: string;
   readonly gate?: {
     readonly kind: AppAccessProbeGateKind;
-    readonly probe?: AppAccessProbeId;
     readonly guidanceKey: string;
   };
   readonly testId: string;
@@ -79,22 +75,7 @@ export const appAccessProbes: readonly AppAccessProbeDefinition[] = [
   probe('storage-isolation', 'storage', 'storageIsolation'),
   probe('world-list', 'realm', 'worldList'),
   probe('world-create', 'realm', 'worldCreate'),
-  probe('portable-ai-config', 'ai-consumption', 'portableAiConfig'),
-  probe('local-text', 'ai-consumption', 'localText', {
-    requiresKey: 'AppAccess.probes.localText.requires',
-    gate: {
-      kind: 'probe-passed',
-      probe: 'portable-ai-config',
-      guidanceKey: 'AppAccess.probes.localText.gateGuidance',
-    },
-  }),
-  probe('cloud-posture', 'ai-consumption', 'cloudPosture', {
-    requiresKey: 'AppAccess.probes.cloudPosture.requires',
-    gate: {
-      kind: 'cloud-draft',
-      guidanceKey: 'AppAccess.probes.cloudPosture.gateGuidance',
-    },
-  }),
+  probe('text-generation', 'ai-consumption', 'textGeneration'),
   probe('agent-references', 'agent-conversation', 'agentReferences'),
   probe('agent-conversation', 'agent-conversation', 'agentConversation', {
     requiresKey: 'AppAccess.probes.agentConversation.requires',
@@ -110,7 +91,6 @@ export const appAccessProbes: readonly AppAccessProbeDefinition[] = [
       guidanceKey: 'AppAccess.probes.agentInterrupt.gateGuidance',
     },
   }),
-  probe('authority-injection', 'boundary', 'authorityInjection'),
   probe('storage-boundary', 'boundary', 'storageBoundary'),
 ];
 
@@ -141,7 +121,7 @@ export const appAccessGroups: readonly AppAccessGroupDefinition[] = [
     id: 'ai-consumption',
     titleKey: 'AppAccess.groups.aiConsumption.title',
     blurbKey: 'AppAccess.groups.aiConsumption.blurb',
-    probes: ['portable-ai-config', 'local-text', 'cloud-posture'],
+    probes: ['text-generation'],
     testId: 'app-access-group-ai-consumption',
     runTestId: 'app-access-run-group-ai-consumption',
   },
@@ -157,7 +137,7 @@ export const appAccessGroups: readonly AppAccessGroupDefinition[] = [
     id: 'boundary',
     titleKey: 'AppAccess.groups.boundary.title',
     blurbKey: 'AppAccess.groups.boundary.blurb',
-    probes: ['authority-injection', 'storage-boundary'],
+    probes: ['storage-boundary'],
     testId: 'app-access-group-boundary',
     runTestId: 'app-access-run-group-boundary',
   },
@@ -177,26 +157,6 @@ export const appAccessSessionFacts: Readonly<Record<AppAccessSessionFactId, { re
   session: { labelKey: 'AppAccess.sessionFacts.session', testId: 'app-access-fact-session' },
   tooling: { labelKey: 'AppAccess.sessionFacts.tooling', testId: 'app-access-fact-tooling' },
   'current-user': { labelKey: 'AppAccess.sessionFacts.currentUser', testId: 'app-access-fact-current-user' },
-};
-
-export const appAccessCloudFields = [
-  { id: 'implementationId', labelKey: 'AppAccess.cloudFields.implementationId', testId: 'app-access-cloud-implementation-id' },
-  { id: 'driverId', labelKey: 'AppAccess.cloudFields.driverId', testId: 'app-access-cloud-driver-id' },
-  { id: 'driverDialect', labelKey: 'AppAccess.cloudFields.driverDialect', testId: 'app-access-cloud-driver-dialect' },
-  { id: 'provider', labelKey: 'AppAccess.cloudFields.provider', testId: 'app-access-cloud-provider' },
-  { id: 'providerModelId', labelKey: 'AppAccess.cloudFields.providerModelId', testId: 'app-access-cloud-provider-model-id' },
-] as const;
-
-export type AppAccessCloudFieldId = (typeof appAccessCloudFields)[number]['id'];
-
-export type AppAccessCloudDraft = Readonly<Record<AppAccessCloudFieldId, string>>;
-
-export const emptyAppAccessCloudDraft: AppAccessCloudDraft = {
-  implementationId: '',
-  driverId: '',
-  driverDialect: '',
-  provider: '',
-  providerModelId: '',
 };
 
 // Page-level copy as i18n keys. Renderers resolve each value through t().
@@ -223,9 +183,6 @@ export const appAccessFailureCopy: Readonly<Record<string, string>> = {
   'storage-remove-failed': 'AppAccess.failures.storageRemoveFailed',
   'unexpected-success': 'AppAccess.failures.unexpectedSuccess',
   'unexpected-rejection': 'AppAccess.failures.unexpectedRejection',
-  'ai-config-readback-invalid': 'AppAccess.failures.aiConfigReadbackInvalid',
-  'cloud-readback-invalid': 'AppAccess.failures.cloudReadbackInvalid',
-  'cloud-intent-field-invalid': 'AppAccess.failures.cloudIntentFieldInvalid',
   'world-core-list-read-mismatch': 'AppAccess.failures.worldCoreListReadMismatch',
   'operation-failed': 'AppAccess.failures.operationFailed',
 };

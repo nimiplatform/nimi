@@ -6,7 +6,10 @@ import type {
 } from './tester-capabilities.js';
 import { getTesterCapabilityContract } from './tester-capabilities.js';
 import { CAPABILITY_TO_SECTION } from './tester-capability-sections.js';
-import { findTesterCapabilityIntent } from './tester-ai-config-store.js';
+import {
+  findTesterCapabilityIntent,
+  testerCloudIntentHasExactTarget,
+} from './tester-ai-config-store.js';
 import type { TesterRuntimeInspection } from './tester-runtime.js';
 
 export type TesterRunTargetStatus =
@@ -126,7 +129,7 @@ export function createTesterRunTargetSummary(input: {
       status: 'blocked',
       source: 'unknown',
       intentLabel: 'Not configured',
-      detail: 'This App AIConfig has no intent for the capability. Save a Local or Cloud intent to configure it.',
+      detail: 'This App AIConfig has no intent for the capability. Configure this App in Nimi Desktop.',
       canDispatch: false,
     };
   }
@@ -137,17 +140,18 @@ export function createTesterRunTargetSummary(input: {
       status: 'configured',
       source: 'local',
       intentLabel: 'Local',
-      detail: 'The App selected Local intent. Runtime chooses and validates the implementation when execution begins.',
+      detail: 'The App owner selected Local intent. Runtime chooses and validates the implementation when execution begins.',
       canDispatch: true,
     };
   }
-  if (intentSelection.oneofKind === 'cloud' && 'cloud' in intentSelection) {
+  if (intentSelection.oneofKind === 'cloud' && 'cloud' in intentSelection
+    && testerCloudIntentHasExactTarget(intent)) {
     return {
       ...base,
       status: 'configured',
       source: 'cloud',
       intentLabel: 'Cloud',
-      detail: 'The App selected an exact portable Cloud intent. Nimi owns authorization selection and Runtime returns a typed selection-required result when no binding exists.',
+      detail: 'Nimi-owned App configuration selects the Cloud intent, and Runtime resolves the current-account execution route.',
       canDispatch: true,
     };
   }
