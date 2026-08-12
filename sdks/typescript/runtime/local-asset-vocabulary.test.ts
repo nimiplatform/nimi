@@ -109,6 +109,8 @@ describe('Nimi Runtime local asset vocabulary', () => {
     assert.deepEqual(nimiRuntimeLocalCapabilitiesForAssetKind('embedding'), ['text.embed']);
     assert.deepEqual(nimiRuntimeLocalCapabilitiesForAssetKind('vae'), []);
     assert.equal(nimiRuntimeLocalRunnableAssetKindForCapabilities(['image.generate']), 'image');
-    assert.equal(nimiRuntimeLocalRunnableAssetKindForCapabilities(['unknown'], 'chat'), 'chat');
+    assert.equal(nimiRuntimeLocalRunnableAssetKindForCapabilities(['unknown']), undefined);
+    assert.equal(nimiRuntimeLocalRunnableAssetKindForCapabilities(['text.generate', 'text.embed']), undefined);
+    assert.equal(nimiRuntimeLocalRunnableAssetKindForCapabilities(['vision']), undefined);
   });
 });

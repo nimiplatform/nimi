@@ -145,35 +145,25 @@ export const NIMI_RUNTIME_LOCAL_ASSET_KIND_LABELS = Object.freeze({
   auxiliary: 'Auxiliary',
 } satisfies Record<NimiRuntimeLocalAssetKindId, string>);
 
-const MANIFEST_TOKEN_TO_CANONICAL_CAPABILITY = {
+const CANONICAL_CAPABILITY_TO_ASSET_KIND = {
+  'text.generate': 'chat',
+  'text.embed': 'embedding',
+  'image.generate': 'image',
+  'video.generate': 'video',
+  'audio.synthesize': 'tts',
+  'audio.transcribe': 'stt',
+  'voice.create': 'tts',
+  'music.generate': 'auxiliary',
+} as const satisfies Partial<Record<string, NimiRuntimeLocalAssetKindId>>;
+
+const ASSET_KIND_TO_DEFAULT_CANONICAL_CAPABILITY = {
   chat: 'text.generate',
-  vision: 'text.generate.vision',
-  audio_chat: 'text.generate.audio',
-  video_chat: 'text.generate.video',
   embedding: 'text.embed',
   image: 'image.generate',
   video: 'video.generate',
   tts: 'audio.synthesize',
   stt: 'audio.transcribe',
-  music: 'music.generate',
-} as const satisfies Record<string, string>;
-const MANIFEST_TOKEN_TO_CANONICAL_CAPABILITY_BY_TOKEN =
-  MANIFEST_TOKEN_TO_CANONICAL_CAPABILITY as Record<string, string | undefined>;
-
-const CANONICAL_CAPABILITY_TO_ASSET_KIND = {
-  'text.generate': 'chat',
-  'text.generate.vision': 'chat',
-  'text.generate.audio': 'chat',
-  'text.generate.video': 'chat',
-  'text.embed': 'embedding',
-  'image.generate': 'image',
-  'image.edit': 'image',
-  'video.generate': 'video',
-  'audio.synthesize': 'tts',
-  'audio.transcribe': 'stt',
-  'voice_workflow.voice_clone': 'tts',
-  'voice_workflow.voice_design': 'tts',
-} as const satisfies Partial<Record<string, NimiRuntimeLocalRunnableAssetKindId>>;
+} as const satisfies Partial<Record<NimiRuntimeLocalAssetKindId, string>>;
 
 export function parseNimiRuntimeLocalAssetKindId(value: unknown): NimiRuntimeLocalAssetKindId | undefined {
   const raw = normalizeLocalVocabularyText(value);
@@ -446,42 +436,28 @@ export function canImportNimiRuntimeLocalAssetDeclaration(
   return true;
 }
 
-export function nimiRuntimeCanonicalCapabilityForLocalManifestToken(
-  value: unknown,
-): string | null {
-  const normalized = normalizeLocalVocabularyText(value).toLowerCase();
-  return normalized ? (MANIFEST_TOKEN_TO_CANONICAL_CAPABILITY_BY_TOKEN[normalized] || normalized) : null;
-}
-
 export function nimiRuntimeLocalCapabilitiesForAssetKind(kind: NimiRuntimeLocalAssetKindId): string[] {
   const parsed = parseNimiRuntimeLocalAssetKindId(kind);
   if (!parsed || !isNimiRuntimeLocalRunnableAssetKindId(parsed)) {
     return [];
   }
-  const canonical = nimiRuntimeCanonicalCapabilityForLocalManifestToken(parsed);
+  const canonical = ASSET_KIND_TO_DEFAULT_CANONICAL_CAPABILITY[parsed];
   return canonical ? [canonical] : [];
 }
 
 export function nimiRuntimeLocalRunnableAssetKindForCapabilities(
   capabilities: readonly unknown[] | undefined,
-  fallback: NimiRuntimeLocalRunnableAssetKindId = 'chat',
-): NimiRuntimeLocalRunnableAssetKindId {
-  const normalized = new Set(
-    (Array.isArray(capabilities) ? capabilities : [])
-      .map((item) => normalizeLocalVocabularyText(item).toLowerCase())
-      .filter(Boolean),
-  );
-  for (const kind of NIMI_RUNTIME_LOCAL_RUNNABLE_ASSET_KIND_IDS) {
-    if (normalized.has(kind)) {
-      return kind;
+): NimiRuntimeLocalAssetKindId | undefined {
+  let resolved: NimiRuntimeLocalAssetKindId | undefined;
+  for (const item of Array.isArray(capabilities) ? capabilities : []) {
+    const capability = normalizeLocalVocabularyText(item);
+    const kind = CANONICAL_CAPABILITY_TO_ASSET_KIND[capability as keyof typeof CANONICAL_CAPABILITY_TO_ASSET_KIND];
+    if (!kind || (resolved && resolved !== kind)) {
+      return undefined;
     }
+    resolved = kind;
   }
-  for (const [capability, kind] of Object.entries(CANONICAL_CAPABILITY_TO_ASSET_KIND)) {
-    if (normalized.has(capability) && isNimiRuntimeLocalRunnableAssetKindId(kind)) {
-      return kind;
-    }
-  }
-  return fallback;
+  return resolved;
 }
 
 function normalizeLocalVocabularyText(value: unknown): string {

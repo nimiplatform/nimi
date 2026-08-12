@@ -24,12 +24,10 @@ export const NIMI_PLATFORM_AI_PROFILE_FACTORY_ROWS = [
     computePosture: 'cloud-only',
     capabilitySet: [
       'text.generate',
-      'text.generate.vision',
       'text.embed',
       'audio.synthesize',
       'audio.transcribe',
       'image.generate',
-      'image.edit',
     ],
     routingPolicy: 'cloud-first',
     hostCapabilityProfileRefs: [
@@ -93,11 +91,9 @@ export const NIMI_PLATFORM_AI_PROFILE_FACTORY_ROWS = [
     computePosture: 'cuda-capable',
     capabilitySet: [
       'text.generate',
-      'text.generate.vision',
       'audio.transcribe',
       'audio.synthesize',
       'image.generate',
-      'image.edit',
     ],
     routingPolicy: 'local-first',
     hostCapabilityProfileRefs: ['windows-amd64-nvidia-cuda', 'darwin-arm64-metal'],
@@ -130,12 +126,10 @@ export const NIMI_PLATFORM_AI_PROFILE_FACTORY_ROWS = [
     computePosture: 'cuda-capable',
     capabilitySet: [
       'text.generate',
-      'text.generate.vision',
       'text.embed',
       'audio.transcribe',
       'audio.synthesize',
       'image.generate',
-      'image.edit',
       'video.generate',
     ],
     routingPolicy: 'hybrid-explicit',

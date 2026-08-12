@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   ReasonCode,
   VoiceAssetStatus,
-  VoiceWorkflowType,
+  VoiceCreationSource,
   createNimiError,
   isNimiError,
 } from '@nimiplatform/kit/core/sdk-contract';
@@ -18,7 +18,7 @@ describe('Runtime voice reference catalog', () => {
         voiceAssetId: 'voice-asset-1',
         appId: 'app.test',
         subjectUserId: 'user.test',
-        workflowType: VoiceWorkflowType.VOICE_CLONE,
+        creationSource: VoiceCreationSource.REFERENCE_AUDIO,
         status: VoiceAssetStatus.ACTIVE,
       }],
       nextPageToken: 'next',
@@ -29,7 +29,7 @@ describe('Runtime voice reference catalog', () => {
       runtime,
       appId: 'app.test',
       subjectUserId: 'user.test',
-      workflowType: VoiceWorkflowType.VOICE_CLONE,
+      creationSource: VoiceCreationSource.REFERENCE_AUDIO,
       status: VoiceAssetStatus.ACTIVE,
       pageSize: 25,
     });
@@ -43,6 +43,7 @@ describe('Runtime voice reference catalog', () => {
         voiceReferences: [{
           kind: 'voice_asset_id',
           voiceAssetId: 'voice-asset-1',
+          creationSource: VoiceCreationSource.REFERENCE_AUDIO,
         }],
         nextPageToken: 'next',
       },
@@ -50,7 +51,7 @@ describe('Runtime voice reference catalog', () => {
     expect(listVoiceAssets).toHaveBeenCalledWith({
       appId: 'app.test',
       subjectUserId: 'user.test',
-      workflowType: VoiceWorkflowType.VOICE_CLONE,
+      creationSource: VoiceCreationSource.REFERENCE_AUDIO,
       status: VoiceAssetStatus.ACTIVE,
       pageSize: 25,
       pageToken: '',

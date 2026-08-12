@@ -179,14 +179,15 @@ export type NimiLocalAppScenarioJobSpec =
         | { readonly type: 'uri'; readonly uri: string };
     }
   | {
-      readonly type: 'voice-clone';
+      readonly type: 'voice-create'; readonly creationSource: 'reference-audio';
       readonly referenceAudio: { readonly type: 'bytes'; readonly bytes: readonly number[] }
         | { readonly type: 'uri'; readonly uri: string };
       readonly referenceAudioMime: string; readonly languageHints: readonly string[];
       readonly preferredName: string; readonly text: string;
     }
   | {
-      readonly type: 'voice-design'; readonly instructionText: string; readonly previewText: string;
+      readonly type: 'voice-create'; readonly creationSource: 'text-description';
+      readonly instructionText: string; readonly previewText: string;
       readonly language: string; readonly preferredName: string;
     };
 
@@ -198,7 +199,7 @@ export type NimiLocalAppScenarioArtifact = {
 };
 export type NimiLocalAppScenarioJob = {
   readonly jobId: string;
-  readonly scenarioType: 'image-generate' | 'video-generate' | 'speech-synthesize' | 'speech-transcribe' | 'voice-clone' | 'voice-design';
+  readonly scenarioType: 'image-generate' | 'video-generate' | 'speech-synthesize' | 'speech-transcribe' | 'voice-create';
   readonly status: 'submitted' | 'queued' | 'running' | 'completed' | 'failed' | 'canceled' | 'timeout';
   readonly progressPercent: number; readonly progressCurrentStep: number; readonly progressTotalSteps: number;
   readonly reasonCode: string; readonly reasonDetail: string;
@@ -207,7 +208,7 @@ export type NimiLocalAppScenarioJob = {
   readonly transcriptionText: string;
 };
 export type NimiLocalAppVoiceAsset = {
-  readonly voiceAssetId: string; readonly workflowType: 'voice-clone' | 'voice-design';
+  readonly voiceAssetId: string; readonly creationSource: 'reference-audio' | 'text-description';
   readonly status: 'active' | 'expired' | 'deleted' | 'failed';
   readonly createdAt: NimiLocalAppScenarioTimestamp | null; readonly updatedAt: NimiLocalAppScenarioTimestamp | null;
   readonly expiresAt: NimiLocalAppScenarioTimestamp | null;
@@ -215,7 +216,11 @@ export type NimiLocalAppVoiceAsset = {
 export type NimiLocalAppScenarioExecuteResult =
   | { readonly output: { readonly type: 'text-embed'; readonly vectors: readonly (readonly number[])[] }; readonly traceId: string }
   | { readonly output: { readonly type: 'image-generate'; readonly artifacts: readonly NimiLocalAppScenarioArtifact[] }; readonly traceId: string };
-export type NimiLocalAppScenarioJobSubmitResult = { readonly job: NimiLocalAppScenarioJob | null; readonly asset: NimiLocalAppVoiceAsset | null };
+export type NimiLocalAppScenarioJobSubmitResult = {
+  readonly job: NimiLocalAppScenarioJob | null;
+  readonly asset: NimiLocalAppVoiceAsset | null;
+  readonly voiceReference: { readonly kind: 'voice_asset_id'; readonly voiceAssetId: string } | null;
+};
 export type NimiLocalAppArtifactUploadResult = {
   readonly artifactId: string;
   readonly sizeBytes: number;
@@ -1206,11 +1211,19 @@ function parseScenarioExecute(value: unknown, command: string): NimiLocalAppScen
 
 function parseScenarioJobSubmit(value: unknown, command: string): NimiLocalAppScenarioJobSubmitResult {
   const record = assertRecord(value, `${command}: submit result is invalid`);
-  assertProjectionKeys(record, ['job', 'asset'], command, 'scenario Job submit');
-  if (record.job === null && record.asset === null) throw new Error(`${command}: submit result is empty`);
+  assertProjectionKeys(record, ['job', 'asset', 'voiceReference'], command, 'scenario Job submit');
+  if (record.job === null && record.asset === null && record.voiceReference === null) throw new Error(`${command}: submit result is empty`);
+  const job = record.job === null ? null : parseScenarioJob(record.job, command);
+  const asset = record.asset === null ? null : parseVoiceAsset(record.asset, command);
+  const voiceReference = record.voiceReference === null ? null : parseVoiceAssetReference(record.voiceReference, command);
+  if ((asset === null) !== (voiceReference === null)
+    || (asset && voiceReference && asset.voiceAssetId !== voiceReference.voiceAssetId)) {
+    throw new Error(`${command}: scenario Job voice result is invalid`);
+  }
   return Object.freeze({
-    job: record.job === null ? null : parseScenarioJob(record.job, command),
-    asset: record.asset === null ? null : parseVoiceAsset(record.asset, command),
+    job,
+    asset,
+    voiceReference,
   }) as unknown as NimiLocalAppScenarioJobSubmitResult;
 }
 
@@ -1227,7 +1240,7 @@ function parseScenarioJob(value: unknown, command: string): NimiLocalAppScenario
     'progressTotalSteps', 'reasonCode', 'reasonDetail', 'artifacts', 'traceId',
     'createdAt', 'updatedAt', 'transcriptionText',
   ], command, 'scenario Job');
-  if (!['image-generate', 'video-generate', 'speech-synthesize', 'speech-transcribe', 'voice-clone', 'voice-design'].includes(String(record.scenarioType))
+  if (!['image-generate', 'video-generate', 'speech-synthesize', 'speech-transcribe', 'voice-create'].includes(String(record.scenarioType))
     || !['submitted', 'queued', 'running', 'completed', 'failed', 'canceled', 'timeout'].includes(String(record.status))) {
     throw new Error(`${command}: Job enum is invalid`);
   }
@@ -1305,16 +1318,29 @@ function parseArtifactRead(value: unknown, command: string): { readonly bytes: r
 
 function parseVoiceAsset(value: unknown, command: string): NimiLocalAppVoiceAsset {
   const record = assertRecord(value, `${command}: voice asset is invalid`);
-  assertProjectionKeys(record, ['voiceAssetId', 'workflowType', 'status', 'createdAt', 'updatedAt', 'expiresAt'], command, 'voice asset');
-  if (!['voice-clone', 'voice-design'].includes(String(record.workflowType))
+  assertProjectionKeys(record, ['voiceAssetId', 'creationSource', 'status', 'createdAt', 'updatedAt', 'expiresAt'], command, 'voice asset');
+  if (!['reference-audio', 'text-description'].includes(String(record.creationSource))
     || !['active', 'expired', 'deleted', 'failed'].includes(String(record.status))) throw new Error(`${command}: voice asset enum is invalid`);
   return Object.freeze({
     voiceAssetId: requiredText(record.voiceAssetId, 'voiceAssetId', command, 128),
-    workflowType: record.workflowType, status: record.status,
+    creationSource: record.creationSource, status: record.status,
     createdAt: parseScenarioTimestamp(record.createdAt, command),
     updatedAt: parseScenarioTimestamp(record.updatedAt, command),
     expiresAt: parseScenarioTimestamp(record.expiresAt, command),
   }) as unknown as NimiLocalAppVoiceAsset;
+}
+
+function parseVoiceAssetReference(
+  value: unknown,
+  command: string,
+): { readonly kind: 'voice_asset_id'; readonly voiceAssetId: string } {
+  const record = assertRecord(value, `${command}: voice asset reference is invalid`);
+  assertProjectionKeys(record, ['kind', 'voiceAssetId'], command, 'voice asset reference');
+  if (record.kind !== 'voice_asset_id') throw new Error(`${command}: voice asset reference kind is invalid`);
+  return Object.freeze({
+    kind: 'voice_asset_id',
+    voiceAssetId: requiredText(record.voiceAssetId, 'voiceAssetId', command, 128),
+  });
 }
 
 function parseVoiceAssetsList(value: unknown, command: string): { readonly assets: readonly NimiLocalAppVoiceAsset[]; readonly nextPageToken: string } {

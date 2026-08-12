@@ -121,7 +121,8 @@ export type NimiLocalAppScenarioJobSpec =
         | { readonly type: 'uri'; readonly uri: string };
     }
   | {
-      readonly type: 'voice-clone';
+      readonly type: 'voice-create';
+      readonly creationSource: 'reference-audio';
       readonly referenceAudio:
         | { readonly type: 'bytes'; readonly bytes: readonly number[] }
         | { readonly type: 'uri'; readonly uri: string };
@@ -131,7 +132,8 @@ export type NimiLocalAppScenarioJobSpec =
       readonly text: string;
     }
   | {
-      readonly type: 'voice-design';
+      readonly type: 'voice-create';
+      readonly creationSource: 'text-description';
       readonly instructionText: string;
       readonly previewText: string;
       readonly language: string;
@@ -158,7 +160,7 @@ export type NimiLocalAppScenarioArtifact = {
 
 export type NimiLocalAppScenarioJob = {
   readonly jobId: string;
-  readonly scenarioType: 'image-generate' | 'video-generate' | 'speech-synthesize' | 'speech-transcribe' | 'voice-clone' | 'voice-design';
+  readonly scenarioType: 'image-generate' | 'video-generate' | 'speech-synthesize' | 'speech-transcribe' | 'voice-create';
   readonly status: 'submitted' | 'queued' | 'running' | 'completed' | 'failed' | 'canceled' | 'timeout';
   readonly progressPercent: number;
   readonly progressCurrentStep: number;
@@ -174,7 +176,7 @@ export type NimiLocalAppScenarioJob = {
 
 export type NimiLocalAppVoiceAsset = {
   readonly voiceAssetId: string;
-  readonly workflowType: 'voice-clone' | 'voice-design';
+  readonly creationSource: 'reference-audio' | 'text-description';
   readonly status: 'active' | 'expired' | 'deleted' | 'failed';
   readonly createdAt: NimiLocalAppScenarioTimestamp | null;
   readonly updatedAt: NimiLocalAppScenarioTimestamp | null;
@@ -188,6 +190,7 @@ export type NimiLocalAppScenarioExecuteResult =
 export type NimiLocalAppScenarioJobSubmitResult = {
   readonly job: NimiLocalAppScenarioJob | null;
   readonly asset: NimiLocalAppVoiceAsset | null;
+  readonly voiceReference: { readonly kind: 'voice_asset_id'; readonly voiceAssetId: string } | null;
 };
 
 export type NimiLocalAppArtifactImageMime = 'image/png' | 'image/jpeg' | 'image/webp' | 'image/gif';
@@ -357,6 +360,13 @@ export function createNimiLocalAppRuntimeScenarioJobClient(
       return {
         job: result.job ? runtimeJobFromLocal(result.job) : undefined,
         asset: undefined,
+        voiceReference: result.voiceReference ? {
+          kind: VoiceReferenceKind.VOICE_ASSET,
+          reference: {
+            oneofKind: 'voiceAssetId',
+            voiceAssetId: result.voiceReference.voiceAssetId,
+          },
+        } : undefined,
       };
     },
     async getScenarioJob(request) {
@@ -484,17 +494,9 @@ function validateScenarioSpec<T extends NimiLocalAppScenarioExecuteSpec | NimiLo
       if (execute) invalidAIInput('speech-transcribe is not a synchronous spec');
       validateSpeechTranscribeSpec(record);
       break;
-    case 'voice-clone':
-      if (execute) invalidAIInput('voice-clone is not a synchronous spec');
-      validateVoiceCloneSpec(record);
-      break;
-    case 'voice-design':
-      if (execute) invalidAIInput('voice-design is not a synchronous spec');
-      assertExactKeys(record, ['type', 'instructionText', 'previewText', 'language', 'preferredName'], 'voice design spec');
-      boundedContent(record.instructionText, 'voice instructionText', 8 * 1024);
-      optionalBoundedText(record.previewText, 'voice previewText', 8 * 1024);
-      boundedToken(record.language, 'voice language', 64);
-      boundedToken(record.preferredName, 'voice preferredName', 256);
+    case 'voice-create':
+      if (execute) invalidAIInput('voice-create is not a synchronous spec');
+      validateVoiceCreateSpec(record);
       break;
     default:
       invalidAIInput('scenario type is invalid');
@@ -575,14 +577,30 @@ function validateSpeechTranscribeSpec(record: Record<string, unknown>): void {
   validateAudioSource(record.audioSource, MAX_ARTIFACT_BYTES, 'transcription audioSource');
 }
 
-function validateVoiceCloneSpec(record: Record<string, unknown>): void {
-  assertExactKeys(record, ['type', 'referenceAudio', 'referenceAudioMime', 'languageHints', 'preferredName', 'text'], 'voice clone spec');
-  validateAudioSource(record.referenceAudio, 20 * 1024 * 1024, 'voice referenceAudio');
-  boundedToken(record.referenceAudioMime, 'voice referenceAudioMime', 128);
-  if (!Array.isArray(record.languageHints) || record.languageHints.length > 8) invalidAIInput('voice languageHints are invalid');
-  record.languageHints.forEach((hint, index) => boundedToken(hint, `voice languageHint ${index}`, 64));
-  boundedToken(record.preferredName, 'voice preferredName', 256);
-  optionalBoundedText(record.text, 'voice text', 32 * 1024);
+function validateVoiceCreateSpec(record: Record<string, unknown>): void {
+  if (record.creationSource === 'reference-audio') {
+    assertExactKeys(record, ['type', 'creationSource', 'referenceAudio', 'referenceAudioMime', 'languageHints', 'preferredName', 'text'], 'voice create reference-audio spec');
+    const referenceAudio = asRecord(record.referenceAudio);
+    validateAudioSource(record.referenceAudio, 20 * 1024 * 1024, 'voice referenceAudio');
+    const referenceAudioMime = boundedToken(record.referenceAudioMime, 'voice referenceAudioMime', 128);
+    if (referenceAudio?.type === 'bytes' && !referenceAudioMime) invalidAIInput('voice referenceAudioMime is required for bytes');
+    if (!Array.isArray(record.languageHints) || record.languageHints.length > 8) invalidAIInput('voice languageHints are invalid');
+    record.languageHints.forEach((hint, index) => {
+      if (!boundedToken(hint, `voice languageHint ${index}`, 64)) invalidAIInput(`voice languageHint ${index} is empty`);
+    });
+    boundedToken(record.preferredName, 'voice preferredName', 256);
+    optionalBoundedText(record.text, 'voice text', 32 * 1024);
+    return;
+  }
+  if (record.creationSource === 'text-description') {
+    assertExactKeys(record, ['type', 'creationSource', 'instructionText', 'previewText', 'language', 'preferredName'], 'voice create text-description spec');
+    boundedContent(record.instructionText, 'voice instructionText', 8 * 1024);
+    optionalBoundedText(record.previewText, 'voice previewText', 8 * 1024);
+    boundedToken(record.language, 'voice language', 64);
+    boundedToken(record.preferredName, 'voice preferredName', 256);
+    return;
+  }
+  invalidAIInput('voice creationSource is invalid');
 }
 
 function validateAudioSource(value: unknown, maxBytes: number, field: string): void {
@@ -661,11 +679,19 @@ function projectScenarioExecute(value: unknown): NimiLocalAppScenarioExecuteResu
 
 function projectScenarioJobSubmit(value: unknown): NimiLocalAppScenarioJobSubmitResult {
   const record = asRecord(value);
-  assertExactProjectionKeys(record, ['job', 'asset'], 'scenario Job submit');
-  if (record.job === null && record.asset === null) localAppProjectionError('scenario Job submit');
+  assertExactProjectionKeys(record, ['job', 'asset', 'voiceReference'], 'scenario Job submit');
+  if (record.job === null && record.asset === null && record.voiceReference === null) localAppProjectionError('scenario Job submit');
+  const job = record.job === null ? null : projectScenarioJob(record.job);
+  const asset = record.asset === null ? null : projectVoiceAsset(record.asset);
+  const voiceReference = record.voiceReference === null ? null : projectVoiceAssetReference(record.voiceReference);
+  if ((asset === null) !== (voiceReference === null)
+    || (asset && voiceReference && asset.voiceAssetId !== voiceReference.voiceAssetId)) {
+    localAppProjectionError('scenario Job voice result');
+  }
   return Object.freeze({
-    job: record.job === null ? null : projectScenarioJob(record.job),
-    asset: record.asset === null ? null : projectVoiceAsset(record.asset),
+    job,
+    asset,
+    voiceReference,
   });
 }
 
@@ -769,17 +795,27 @@ function projectScenarioJobEvent(value: unknown): NimiLocalAppScenarioJobEvent {
 
 function projectVoiceAsset(value: unknown): NimiLocalAppVoiceAsset {
   const record = asRecord(value);
-  assertExactProjectionKeys(record, ['voiceAssetId', 'workflowType', 'status', 'createdAt', 'updatedAt', 'expiresAt'], 'voice asset');
-  if (!['voice-clone', 'voice-design'].includes(String(record.workflowType))
+  assertExactProjectionKeys(record, ['voiceAssetId', 'creationSource', 'status', 'createdAt', 'updatedAt', 'expiresAt'], 'voice asset');
+  if (!['reference-audio', 'text-description'].includes(String(record.creationSource))
     || !['active', 'expired', 'deleted', 'failed'].includes(String(record.status))) localAppProjectionError('voice asset enum');
   return Object.freeze({
     voiceAssetId: boundedProjectionText(record.voiceAssetId, 'voice asset id', MAX_IDENTIFIER_BYTES),
-    workflowType: record.workflowType,
+    creationSource: record.creationSource,
     status: record.status,
     createdAt: projectTimestamp(record.createdAt, 'voice asset createdAt'),
     updatedAt: projectTimestamp(record.updatedAt, 'voice asset updatedAt'),
     expiresAt: projectTimestamp(record.expiresAt, 'voice asset expiresAt'),
   }) as NimiLocalAppVoiceAsset;
+}
+
+function projectVoiceAssetReference(value: unknown): { readonly kind: 'voice_asset_id'; readonly voiceAssetId: string } {
+  const record = asRecord(value);
+  assertExactProjectionKeys(record, ['kind', 'voiceAssetId'], 'voice asset reference');
+  if (record.kind !== 'voice_asset_id') localAppProjectionError('voice asset reference kind');
+  return Object.freeze({
+    kind: 'voice_asset_id',
+    voiceAssetId: boundedProjectionText(record.voiceAssetId, 'voice asset reference id', MAX_IDENTIFIER_BYTES),
+  });
 }
 
 function projectVoiceAssetsList(value: unknown): { readonly assets: readonly NimiLocalAppVoiceAsset[]; readonly nextPageToken: string } {
@@ -790,7 +826,7 @@ function projectVoiceAssetsList(value: unknown): { readonly assets: readonly Nim
   return Object.freeze({ assets: Object.freeze(record.assets.map(projectVoiceAsset)), nextPageToken: record.nextPageToken });
 }
 
-const LOCAL_SCENARIO_TYPES = ['image-generate', 'video-generate', 'speech-synthesize', 'speech-transcribe', 'voice-clone', 'voice-design'] as const;
+const LOCAL_SCENARIO_TYPES = ['image-generate', 'video-generate', 'speech-synthesize', 'speech-transcribe', 'voice-create'] as const;
 const LOCAL_JOB_STATUSES = ['submitted', 'queued', 'running', 'completed', 'failed', 'canceled', 'timeout'] as const;
 
 function localJobSpecFromRuntimeRequest(request: SubmitScenarioJobRequest): NimiLocalAppScenarioJobSpec {
@@ -824,16 +860,32 @@ function localJobSpecFromRuntimeRequest(request: SubmitScenarioJobRequest): Nimi
     case 'speechTranscribe':
       requireScenarioType(request, ScenarioType.SPEECH_TRANSCRIBE);
       return validateScenarioSpec(runtimeSpeechTranscribeSpec(spec.speechTranscribe), false);
-    case 'voiceClone':
-      requireScenarioType(request, ScenarioType.VOICE_CLONE);
-      if (spec.voiceClone.targetModelId) adapterInputError('voice target model is Runtime-derived');
-      if (!spec.voiceClone.input) adapterInputError('voice clone input is missing');
-      return validateScenarioSpec({ type: 'voice-clone', referenceAudio: runtimeVoiceAudio(spec.voiceClone.input.referenceAudioBytes, spec.voiceClone.input.referenceAudioUri), referenceAudioMime: spec.voiceClone.input.referenceAudioMime, languageHints: spec.voiceClone.input.languageHints, preferredName: spec.voiceClone.input.preferredName, text: spec.voiceClone.input.text }, false);
-    case 'voiceDesign':
-      requireScenarioType(request, ScenarioType.VOICE_DESIGN);
-      if (spec.voiceDesign.targetModelId) adapterInputError('voice target model is Runtime-derived');
-      if (!spec.voiceDesign.input) adapterInputError('voice design input is missing');
-      return validateScenarioSpec({ type: 'voice-design', instructionText: spec.voiceDesign.input.instructionText, previewText: spec.voiceDesign.input.previewText, language: spec.voiceDesign.input.language, preferredName: spec.voiceDesign.input.preferredName }, false);
+    case 'voiceCreate': {
+      requireScenarioType(request, ScenarioType.VOICE_CREATE);
+      if (spec.voiceCreate.targetModelId) adapterInputError('voice target model is Runtime-derived');
+      const source = spec.voiceCreate.source;
+      if (!source || source.oneofKind === undefined) return adapterInputError('voice create source is missing');
+      if (source.oneofKind === 'referenceAudio') {
+        return validateScenarioSpec({
+          type: 'voice-create', creationSource: 'reference-audio',
+          referenceAudio: runtimeVoiceAudio(source.referenceAudio.referenceAudioBytes, source.referenceAudio.referenceAudioUri),
+          referenceAudioMime: source.referenceAudio.referenceAudioMime,
+          languageHints: source.referenceAudio.languageHints,
+          preferredName: source.referenceAudio.preferredName,
+          text: source.referenceAudio.text,
+        }, false);
+      }
+      if (source.oneofKind === 'textDescription') {
+        return validateScenarioSpec({
+          type: 'voice-create', creationSource: 'text-description',
+          instructionText: source.textDescription.instructionText,
+          previewText: source.textDescription.previewText,
+          language: source.textDescription.language,
+          preferredName: source.textDescription.preferredName,
+        }, false);
+      }
+      return adapterInputError('voice create source is invalid');
+    }
     default:
       return adapterInputError(`Scenario type ${spec.oneofKind} is unavailable to Local Apps`);
   }
@@ -901,7 +953,7 @@ function runtimeSpeechTranscribeSpec(spec: Extract<ScenarioSpec['spec'], { oneof
   };
 }
 
-function runtimeVoiceAudio(bytes: Uint8Array, uri: string): Extract<NimiLocalAppScenarioJobSpec, { type: 'voice-clone' }>['referenceAudio'] {
+function runtimeVoiceAudio(bytes: Uint8Array, uri: string): Extract<NimiLocalAppScenarioJobSpec, { creationSource: 'reference-audio' }>['referenceAudio'] {
   if (bytes.length > 0 === Boolean(uri)) adapterInputError('voice reference audio must select exactly one source');
   return bytes.length > 0 ? { type: 'bytes', bytes: [...bytes] } : { type: 'uri', uri };
 }
@@ -946,7 +998,7 @@ function runtimeOutput(type: NimiLocalAppScenarioJob['scenarioType'], artifacts:
 }
 
 function runtimeScenarioType(type: NimiLocalAppScenarioJob['scenarioType']): ScenarioType {
-  return ({ 'image-generate': ScenarioType.IMAGE_GENERATE, 'video-generate': ScenarioType.VIDEO_GENERATE, 'speech-synthesize': ScenarioType.SPEECH_SYNTHESIZE, 'speech-transcribe': ScenarioType.SPEECH_TRANSCRIBE, 'voice-clone': ScenarioType.VOICE_CLONE, 'voice-design': ScenarioType.VOICE_DESIGN })[type];
+  return ({ 'image-generate': ScenarioType.IMAGE_GENERATE, 'video-generate': ScenarioType.VIDEO_GENERATE, 'speech-synthesize': ScenarioType.SPEECH_SYNTHESIZE, 'speech-transcribe': ScenarioType.SPEECH_TRANSCRIBE, 'voice-create': ScenarioType.VOICE_CREATE })[type];
 }
 
 function runtimeJobStatus(status: NimiLocalAppScenarioJob['status']): ScenarioJobStatus {

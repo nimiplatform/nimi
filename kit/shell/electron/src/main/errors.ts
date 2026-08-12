@@ -368,25 +368,57 @@ export function toElectronRuntimeBridgeError(error: unknown): Record<string, unk
   };
 }
 
-export function toSerializedElectronShellError(error: unknown): Record<string, unknown> {
+const SOURCE_LOCAL_DEVELOPMENT_RUNTIME_TRANSPORT_REASONS = new Set([
+  'process-replaced',
+  'runtime-restarted',
+  'runtime-service-error-unclassified',
+  'runtime-service-repair-required',
+  'runtime-service-unavailable',
+  'runtime-service-untrusted',
+]);
+
+export function toSerializedElectronShellError(
+  error: unknown,
+  runtimeDeploymentProfile?: 'production' | 'local-development',
+): Record<string, unknown> {
   const streamError = toElectronRuntimeBridgeError(error);
-  const details = error && typeof error === 'object'
+  const reasonCode = normalizeErrorText(streamError.reasonCode) || 'runtime-stream-failed';
+  const originalDetails = error && typeof error === 'object'
     ? asOptionalRecord((error as Record<string, unknown>).details)
     : undefined;
+  const sourceLocalDevelopmentFailure = runtimeDeploymentProfile === 'local-development'
+    && SOURCE_LOCAL_DEVELOPMENT_RUNTIME_TRANSPORT_REASONS.has(reasonCode);
+  const message = sourceLocalDevelopmentFailure
+    ? `Source-local-development Runtime transport failed (${reasonCode}); do not request privilege elevation or install, update, start, or repair the fixed Runtime service for this topology.`
+    : streamError.message;
+  const actionHint = sourceLocalDevelopmentFailure
+    ? streamError.retryable === true
+      ? 'retry_source_local_development_runtime_operation'
+      : 'restart_source_local_development_desktop_session'
+    : streamError.actionHint;
+  const details = sourceLocalDevelopmentFailure
+    ? {
+        ...originalDetails,
+        runtimeTopology: 'source-local-development',
+        fixedRuntimeServiceInUse: false,
+        privilegeElevationRequired: false,
+        originalActionHint: streamError.actionHint,
+      }
+    : originalDetails;
   return {
     name: error instanceof Error ? error.name : 'NimiElectronShellHostError',
-    message: streamError.message,
+    message,
     code: streamError.code,
-    reasonCode: streamError.reasonCode,
-    actionHint: streamError.actionHint,
+    reasonCode,
+    actionHint,
     source: streamError.source,
     traceId: streamError.traceId,
     retryable: streamError.retryable,
     details,
     envelope: {
       code: streamError.code,
-      reasonCode: streamError.reasonCode,
-      actionHint: streamError.actionHint,
+      reasonCode,
+      actionHint,
       source: streamError.source,
       details,
     },

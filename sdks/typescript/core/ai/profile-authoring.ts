@@ -20,6 +20,8 @@ import {
 } from './config-profile.js';
 
 export const NIMI_AI_PROFILE_INPUT_IMAGE_FEATURE = 'input.image';
+export const NIMI_AI_PROFILE_INPUT_AUDIO_FEATURE = 'input.audio';
+export const NIMI_AI_PROFILE_INPUT_TEXT_FEATURE = 'input.text';
 
 export const NIMI_AI_PROFILE_LLAMA_CPP_IMPLEMENTATION = Object.freeze({
   implementationId: 'local.text.generate.llama-cpp',
@@ -37,6 +39,12 @@ export const NIMI_AI_PROFILE_QWEN3_TTS_IMPLEMENTATION = Object.freeze({
   implementationId: 'local.audio.synthesize.qwen3-tts',
   driverId: 'nimi.runtime.driver.qwen3-tts',
   driverDialect: 'qwen3-tts/audio-synthesize/v1',
+}) satisfies Readonly<CapabilityImplementationIdentity>;
+
+export const NIMI_AI_PROFILE_QWEN3_VOICE_CREATE_IMPLEMENTATION = Object.freeze({
+  implementationId: 'local.voice.create.qwen3-tts',
+  driverId: 'nimi.runtime.driver.qwen3-tts',
+  driverDialect: 'qwen3-tts/voice-create/v1',
 }) satisfies Readonly<CapabilityImplementationIdentity>;
 
 export const NIMI_AI_PROFILE_QWEN3_ASR_IMPLEMENTATION = Object.freeze({
@@ -276,6 +284,10 @@ export type NimiAIProfileDriverAuthoringSection =
   }
   | {
     readonly kind: 'qwen3-tts';
+    readonly portableConfig?: NimiJsonObject;
+  }
+  | {
+    readonly kind: 'qwen3-voice-create';
     readonly portableConfig?: NimiJsonObject;
   }
   | {
@@ -631,6 +643,22 @@ export function createNimiAIProfileQwen3TTSLocalImplementation(input: {
     implementation: Object.freeze({ ...NIMI_AI_PROFILE_QWEN3_TTS_IMPLEMENTATION }),
     supportedFeatures,
     driverSection: Object.freeze({ kind: 'qwen3-tts' as const, portableConfig }),
+  });
+}
+
+export function createNimiAIProfileQwen3VoiceCreateLocalImplementation(input: {
+  readonly supportedFeatures: readonly string[];
+}): NimiAIProfileLocalImplementationAuthoringInput {
+  assertExactRecord(input, new Set(['supportedFeatures']), 'Qwen3 voice.create implementation input');
+  const supportedFeatures = normalizeFeatureSet(
+    input.supportedFeatures,
+    'Qwen3 voice.create supportedFeatures',
+  );
+  validateQwen3VoiceCreateFeatures(supportedFeatures);
+  return Object.freeze({
+    implementation: Object.freeze({ ...NIMI_AI_PROFILE_QWEN3_VOICE_CREATE_IMPLEMENTATION }),
+    supportedFeatures,
+    driverSection: Object.freeze({ kind: 'qwen3-voice-create' as const, portableConfig: Object.freeze({}) }),
   });
 }
 
@@ -1416,6 +1444,26 @@ function normalizeLocalImplementationInput(
       ),
     });
   }
+  if (section.kind === 'qwen3-voice-create') {
+    assertExactImplementation(
+      implementation,
+      NIMI_AI_PROFILE_QWEN3_VOICE_CREATE_IMPLEMENTATION,
+      'Qwen3 voice.create',
+    );
+    if (capabilityContract !== 'voice.create') {
+      return authoringError('Qwen3 voice.create Driver section requires voice.create');
+    }
+    validateQwen3VoiceCreateFeatures(supportedFeatures);
+    return Object.freeze({
+      implementation,
+      supportedFeatures,
+      portableConfig: createNimiAIProfileQwen3SpeechPortableConfig(
+        (section.portableConfig ?? {}) as NimiJsonObject,
+        [],
+        'Qwen3 voice.create',
+      ),
+    });
+  }
   if (section.kind === 'qwen3-asr') {
     assertExactImplementation(
       implementation,
@@ -1583,6 +1631,14 @@ function validateKnownLocalConfiguration(
     validateQwen3SpeechPortableConfig(config, features, 'Qwen3-TTS');
     return;
   }
+  if (sameImplementation(identity, NIMI_AI_PROFILE_QWEN3_VOICE_CREATE_IMPLEMENTATION)) {
+    if (capabilityContract !== 'voice.create') {
+      return authoringError('Qwen3 voice.create implementation requires voice.create');
+    }
+    validateQwen3VoiceCreateFeatures(features);
+    validateQwen3SpeechPortableConfig(config, [], 'Qwen3 voice.create');
+    return;
+  }
   if (sameImplementation(identity, NIMI_AI_PROFILE_QWEN3_ASR_IMPLEMENTATION)) {
     if (capabilityContract !== 'audio.transcribe') {
       return authoringError('Qwen3-ASR implementation requires audio.transcribe');
@@ -1684,6 +1740,16 @@ function validateQwen3SpeechPortableConfig(
   assertExactJsonKeys(config, new Set<string>(), `${label} portableConfig`);
   if (supportedFeatures.length !== 0) {
     return authoringError(`${label} supportedFeatures must be empty`);
+  }
+}
+
+function validateQwen3VoiceCreateFeatures(features: readonly string[]): void {
+  if (features.length !== 1) {
+    return authoringError('Qwen3 voice.create supports exactly one selected source feature');
+  }
+  const feature = features[0];
+  if (feature !== NIMI_AI_PROFILE_INPUT_AUDIO_FEATURE && feature !== NIMI_AI_PROFILE_INPUT_TEXT_FEATURE) {
+    return authoringError(`Qwen3 voice.create contains unsupported feature ${feature}`);
   }
 }
 
@@ -1886,6 +1952,24 @@ function projectKnownDriverRequirements(
           'main',
           0,
           'TTS model',
+          'tts',
+          'substitutable',
+          undefined,
+        ),
+      ]),
+    });
+  }
+
+  if (sameImplementation(implementation, NIMI_AI_PROFILE_QWEN3_VOICE_CREATE_IMPLEMENTATION)) {
+    return Object.freeze({
+      source: 'authoring-preview' as const,
+      commitTruth: 'runtime-reproject' as const,
+      requirements: Object.freeze([
+        requirementPreview(
+          'voice.model',
+          'main',
+          0,
+          'Voice creation model',
           'tts',
           'substitutable',
           undefined,

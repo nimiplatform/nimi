@@ -1058,11 +1058,20 @@ async function invokeScenarioJobSubmit(
   call: () => Promise<NativeLocalAppOutcome>,
 ): Promise<NimiElectronLocalAppRecord> {
   const value = await invoke(call);
-  if (!isPlainRecord(value) || !hasExactKeys(value, ['job', 'asset'])
+  if (!isPlainRecord(value) || !hasExactKeys(value, ['job', 'asset', 'voiceReference'])
     || (value.job === null && value.asset === null)) throw untrustedRuntimeError();
+  const asset = value.asset === null ? null : validateVoiceAsset(value.asset);
+  const voiceReference = value.voiceReference === null
+    ? null
+    : validateVoiceAssetReference(value.voiceReference);
+  if ((asset === null) !== (voiceReference === null)
+    || (asset !== null && voiceReference?.voiceAssetId !== asset.voiceAssetId)) {
+    throw untrustedRuntimeError();
+  }
   return Object.freeze({
     job: value.job === null ? null : validateScenarioJob(value.job),
-    asset: value.asset === null ? null : validateVoiceAsset(value.asset),
+    asset,
+    voiceReference,
   });
 }
 
@@ -1138,7 +1147,7 @@ function validateScenarioJob(value: unknown): NimiElectronLocalAppRecord {
     'progressTotalSteps', 'reasonCode', 'reasonDetail', 'artifacts', 'traceId',
     'createdAt', 'updatedAt', 'transcriptionText',
   ])) throw untrustedRuntimeError();
-  const scenarioTypes = ['image-generate', 'video-generate', 'speech-synthesize', 'speech-transcribe', 'voice-clone', 'voice-design'];
+  const scenarioTypes = ['image-generate', 'video-generate', 'speech-synthesize', 'speech-transcribe', 'voice-create'];
   const statuses = ['submitted', 'queued', 'running', 'completed', 'failed', 'canceled', 'timeout'];
   if (!scenarioTypes.includes(String(value.scenarioType)) || !statuses.includes(String(value.status))) {
     throw untrustedRuntimeError();
@@ -1191,19 +1200,30 @@ function validateScenarioArtifacts(value: unknown): readonly NimiElectronLocalAp
 
 function validateVoiceAsset(value: unknown): NimiElectronLocalAppRecord {
   if (!isPlainRecord(value) || !hasExactKeys(value, [
-    'voiceAssetId', 'workflowType', 'status', 'createdAt', 'updatedAt', 'expiresAt',
-  ]) || (value.workflowType !== 'voice-clone' && value.workflowType !== 'voice-design')
+    'voiceAssetId', 'creationSource', 'status', 'createdAt', 'updatedAt', 'expiresAt',
+  ]) || (value.creationSource !== 'reference-audio' && value.creationSource !== 'text-description')
     || !['active', 'expired', 'deleted', 'failed'].includes(String(value.status))) {
     throw untrustedRuntimeError();
   }
   return Object.freeze({
     voiceAssetId: boundedExactText(value.voiceAssetId, 128, false),
-    workflowType: value.workflowType,
+    creationSource: value.creationSource,
     status: value.status,
     createdAt: validateTimestamp(value.createdAt),
     updatedAt: validateTimestamp(value.updatedAt),
     expiresAt: validateTimestamp(value.expiresAt),
   }) as NimiElectronLocalAppRecord;
+}
+
+function validateVoiceAssetReference(value: unknown): NimiElectronLocalAppRecord {
+  if (!isPlainRecord(value) || !hasExactKeys(value, ['kind', 'voiceAssetId'])
+    || value.kind !== 'voice_asset_id') {
+    throw untrustedRuntimeError();
+  }
+  return Object.freeze({
+    kind: 'voice_asset_id',
+    voiceAssetId: boundedExactText(value.voiceAssetId, 128, false),
+  });
 }
 
 function validateScenarioJobEvent(value: unknown): NimiElectronLocalAppRecord {

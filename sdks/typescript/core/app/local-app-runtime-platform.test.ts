@@ -7,6 +7,11 @@ import {
   RenewLocalAppSessionRequest,
 } from '../../core-generated/runtime-protobuf/runtime/v1/auth.js';
 import {
+  ExecutionMode,
+  ScenarioType,
+  type SubmitScenarioJobRequest,
+} from '../../core-generated/runtime-typed-client.js';
+import {
   buildNimiRuntimeGenerationSubmitRequest,
   createNimiVideoGenerationScenario,
 } from '../../features/generation/index.js';
@@ -757,7 +762,7 @@ test('local-app video jobs admit only the canonical seed range', async () => {
           ...base.ai.scenarioJobs,
           async submit(spec) {
             calls.push(spec);
-            return { job, asset: null };
+            return { job, asset: null, voiceReference: null };
           },
         },
       },
@@ -772,7 +777,7 @@ test('local-app video jobs admit only the canonical seed range', async () => {
     options: { resolution: '720p', ratio: '16:9', seed: -1 },
   };
 
-  await assert.deepEqual(await client.ai.scenarioJobs.submit(spec), { job, asset: null });
+  await assert.deepEqual(await client.ai.scenarioJobs.submit(spec), { job, asset: null, voiceReference: null });
   assert.deepEqual(calls, [spec]);
   const adapter = createNimiLocalAppRuntimeScenarioJobClient(client.ai);
   await adapter.submitScenarioJob(buildNimiRuntimeGenerationSubmitRequest(
@@ -796,6 +801,126 @@ test('local-app video jobs admit only the canonical seed range', async () => {
   );
 });
 
+test('local-app voice creation uses one canonical contract with typed source provenance', async () => {
+  const calls: unknown[] = [];
+  const base = standardShell([]);
+  const job = {
+    jobId: 'job-voice-1', scenarioType: 'voice-create' as const, status: 'submitted' as const,
+    progressPercent: 0, progressCurrentStep: 0, progressTotalSteps: 0,
+    reasonCode: '', reasonDetail: '', artifacts: [], traceId: 'trace-voice-1',
+    createdAt: null, updatedAt: null, transcriptionText: '',
+  };
+  const asset = {
+    voiceAssetId: 'voice-asset-1', creationSource: 'reference-audio' as const, status: 'active' as const,
+    createdAt: null, updatedAt: null, expiresAt: null,
+  };
+  const voiceReference = { kind: 'voice_asset_id' as const, voiceAssetId: asset.voiceAssetId };
+  const client = createNimiLocalAppClient({
+    standardShell: {
+      ...base,
+      ai: {
+        ...base.ai,
+        scenarioJobs: {
+          ...base.ai.scenarioJobs,
+          async submit(spec) {
+            calls.push(spec);
+            return { job, asset, voiceReference };
+          },
+        },
+      },
+    },
+  });
+
+  const referenceAudioSpec = {
+    type: 'voice-create' as const,
+    creationSource: 'reference-audio' as const,
+    referenceAudio: { type: 'bytes' as const, bytes: [1, 2, 3] },
+    referenceAudioMime: 'audio/wav', languageHints: ['en'], preferredName: 'Nimi', text: 'Hello',
+  };
+  assert.deepEqual(await client.ai.scenarioJobs.submit(referenceAudioSpec), { job, asset, voiceReference });
+
+  const adapter = createNimiLocalAppRuntimeScenarioJobClient(client.ai);
+  const request = (source: SubmitScenarioJobRequest['spec']): SubmitScenarioJobRequest => ({
+    head: undefined, scenarioType: ScenarioType.VOICE_CREATE, executionMode: ExecutionMode.ASYNC_JOB,
+    spec: source, requestId: 'request-voice', idempotencyKey: 'idempotency-voice', labels: {}, extensions: [],
+  });
+  await adapter.submitScenarioJob(request({
+    spec: {
+      oneofKind: 'voiceCreate',
+      voiceCreate: {
+        targetModelId: '',
+        source: {
+          oneofKind: 'referenceAudio',
+          referenceAudio: {
+            referenceAudioBytes: Uint8Array.from([4, 5]), referenceAudioUri: '', referenceAudioMime: 'audio/wav',
+            languageHints: ['zh'], preferredName: 'Reference', text: 'Preview',
+          },
+        },
+      },
+    },
+  }));
+  await adapter.submitScenarioJob(request({
+    spec: {
+      oneofKind: 'voiceCreate',
+      voiceCreate: {
+        targetModelId: '',
+        source: {
+          oneofKind: 'textDescription',
+          textDescription: { instructionText: 'Warm and calm', previewText: 'Hello', language: 'en', preferredName: 'Designed' },
+        },
+      },
+    },
+  }));
+
+  assert.deepEqual(calls, [
+    referenceAudioSpec,
+    {
+      type: 'voice-create', creationSource: 'reference-audio',
+      referenceAudio: { type: 'bytes', bytes: [4, 5] }, referenceAudioMime: 'audio/wav',
+      languageHints: ['zh'], preferredName: 'Reference', text: 'Preview',
+    },
+    {
+      type: 'voice-create', creationSource: 'text-description',
+      instructionText: 'Warm and calm', previewText: 'Hello', language: 'en', preferredName: 'Designed',
+    },
+  ]);
+
+  for (const invalid of [
+    { ...referenceAudioSpec, referenceAudioMime: '' },
+    { ...referenceAudioSpec, languageHints: [''] },
+  ]) {
+    await assert.rejects(
+      () => client.ai.scenarioJobs.submit(invalid),
+      (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_LOCAL_APP_INPUT_INVALID',
+    );
+  }
+  await assert.rejects(
+    () => adapter.submitScenarioJob(request({
+      spec: {
+        oneofKind: 'voiceCreate',
+        voiceCreate: { targetModelId: '', source: undefined as never },
+      },
+    })),
+    (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_LOCAL_APP_INPUT_INVALID',
+  );
+  await assert.rejects(
+    () => adapter.submitScenarioJob(request({
+      spec: {
+        oneofKind: 'voiceCreate',
+        voiceCreate: {
+          targetModelId: 'caller-selected-model',
+          source: {
+            oneofKind: 'textDescription',
+            textDescription: { instructionText: 'Warm', previewText: '', language: '', preferredName: '' },
+          },
+        },
+      },
+    })),
+    (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_LOCAL_APP_INPUT_INVALID',
+  );
+  assert.equal(calls.length, 3);
+});
+
 test('local-app Scenario Job adapter runs the unchanged SDK image runner without reading artifact bytes', async () => {
   const calls: unknown[] = [];
   const base = standardShell([]);
@@ -814,7 +939,7 @@ test('local-app Scenario Job adapter runs the unchanged SDK image runner without
     ai: {
       ...base.ai,
       scenarioJobs: {
-        async submit(spec) { calls.push(['submit', spec]); return { job, asset: null }; },
+        async submit(spec) { calls.push(['submit', spec]); return { job, asset: null, voiceReference: null }; },
         async get(jobId) { calls.push(['get', jobId]); return { job }; },
         async subscribe(jobId) {
           calls.push(['subscribe', jobId]);

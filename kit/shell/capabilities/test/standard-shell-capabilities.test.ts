@@ -98,6 +98,15 @@ function readAiProfileAliases(content: string): string[] {
   return [...content.matchAll(/^  - alias: ([a-zA-Z0-9-]+)$/gm)].map((match) => match[1]);
 }
 
+function readAiProfileCapabilitySets(content: string): Record<string, string[]> {
+  return Object.fromEntries([...content.matchAll(
+    /^  - alias: ([a-zA-Z0-9-]+)[\s\S]*?^    capability_set:\n((?:      - [a-zA-Z0-9.-]+\n)+)/gm,
+  )].map((match) => [
+    match[1],
+    [...match[2].matchAll(/^      - ([a-zA-Z0-9.-]+)$/gm)].map((item) => item[1]),
+  ]));
+}
+
 describe('standard shell capabilities', () => {
   it('keeps the package contract aligned with the machine catalog', () => {
     const catalog = readFileSync(catalogPath, 'utf8');
@@ -280,6 +289,8 @@ describe('standard shell capabilities', () => {
   it('exports the Platform factory AI Profile catalog projection for shell hosts', () => {
     const catalog = readFileSync(aiProfileCatalogPath, 'utf8');
     expect(NIMI_PLATFORM_AI_PROFILE_FACTORY_ROWS.map((row) => row.alias)).toEqual(readAiProfileAliases(catalog));
+    expect(Object.fromEntries(NIMI_PLATFORM_AI_PROFILE_FACTORY_ROWS.map((row) => [row.alias, [...row.capabilitySet]])))
+      .toEqual(readAiProfileCapabilitySets(catalog));
 
     const gpu = resolveNimiFactoryAiProfileAlias(' local-gpu ');
     expect(gpu).toMatchObject({

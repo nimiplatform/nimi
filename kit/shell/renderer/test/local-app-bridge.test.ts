@@ -151,6 +151,48 @@ describe('renderer local-app standard-shell surface', () => {
     }]);
   });
 
+  it('projects canonical voice-create requests, Jobs, and VoiceAsset creation sources', async () => {
+    const invocations: Array<{ command: string; payload: unknown }> = [];
+    const asset = {
+      voiceAssetId: 'voice-asset-1', creationSource: 'text-description', status: 'active',
+      createdAt: null, updatedAt: null, expiresAt: null,
+    } as const;
+    const voiceReference = { kind: 'voice_asset_id', voiceAssetId: asset.voiceAssetId } as const;
+    const job = {
+      jobId: 'job-voice-1', scenarioType: 'voice-create', status: 'submitted',
+      progressPercent: 0, progressCurrentStep: 0, progressTotalSteps: 1,
+      reasonCode: '', reasonDetail: '', artifacts: [], traceId: 'trace-voice-1',
+      createdAt: null, updatedAt: null, transcriptionText: '',
+    } as const;
+    (globalThis as { __NIMI_ELECTRON_TEST__?: unknown }).__NIMI_ELECTRON_TEST__ = {
+      invoke: async (command: string, payload: unknown) => {
+        invocations.push({ command, payload });
+        if (command === NIMI_STANDARD_SHELL_COMMANDS['local-app.scenarioJobSubmit']) return { job, asset, voiceReference };
+        if (command === NIMI_STANDARD_SHELL_COMMANDS['local-app.voiceAssetsList']) return { assets: [asset], nextPageToken: '' };
+        throw new Error(`unexpected command ${command}`);
+      },
+      listen: () => () => {},
+    };
+    const surface = createNimiLocalAppStandardShellSurface().ai;
+    const spec = {
+      type: 'voice-create', creationSource: 'text-description',
+      instructionText: 'A clear, calm voice.', previewText: 'Hello.',
+      language: 'en', preferredName: 'Calm Voice',
+    } as const;
+    await expect(surface.scenarioJobs.submit(spec)).resolves.toEqual({ job, asset, voiceReference });
+    await expect(surface.voiceAssets.list()).resolves.toEqual({ assets: [asset], nextPageToken: '' });
+    expect(invocations).toEqual([
+      {
+        command: NIMI_STANDARD_SHELL_COMMANDS['local-app.scenarioJobSubmit'],
+        payload: { payload: { spec } },
+      },
+      {
+        command: NIMI_STANDARD_SHELL_COMMANDS['local-app.voiceAssetsList'],
+        payload: { payload: { pageSize: 0, pageToken: '' } },
+      },
+    ]);
+  });
+
   it('is consumed directly by the SDK without an app-local adapter', async () => {
     (globalThis as { __NIMI_ELECTRON_TEST__?: unknown }).__NIMI_ELECTRON_TEST__ = {
       invoke: async (command: string) => {

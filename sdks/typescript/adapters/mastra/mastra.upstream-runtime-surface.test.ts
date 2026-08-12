@@ -258,6 +258,7 @@ test('upstream: Nimi voice can be passed directly to Agent.voice', async () => {
     progressPercent: 0,
     progressCurrentStep: 0,
     progressTotalSteps: 0,
+    transcriptionText: '',
   };
   const ai = {
     async submitScenarioJob(request: SubmitScenarioJobRequest) {

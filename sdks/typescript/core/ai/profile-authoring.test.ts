@@ -11,6 +11,7 @@ import {
   NIMI_AI_PROFILE_QWEN3_ASR_IMPLEMENTATION,
   NIMI_AI_PROFILE_QWEN3_ASR_TRANSFORMERS_IMPLEMENTATION,
   NIMI_AI_PROFILE_QWEN3_TTS_IMPLEMENTATION,
+  NIMI_AI_PROFILE_QWEN3_VOICE_CREATE_IMPLEMENTATION,
   NIMI_AI_PROFILE_STABLE_DIFFUSION_EXECUTION_OPTION_FIELDS,
   NIMI_AI_PROFILE_STABLE_DIFFUSION_MODEL_FAMILIES,
   NIMI_AI_PROFILE_STABLE_DIFFUSION_PORTABLE_CONFIG_FIELDS,
@@ -23,6 +24,7 @@ import {
   createNimiAIProfileQwen3ASRLocalImplementation,
   createNimiAIProfileQwen3ASRTransformersLocalImplementation,
   createNimiAIProfileQwen3TTSLocalImplementation,
+  createNimiAIProfileQwen3VoiceCreateLocalImplementation,
   createNimiAIProfileStableDiffusionLocalImplementation,
   createNimiAIProfileStableDiffusionVideoLocalImplementation,
   createNimiAIProfileStableDiffusionVideoPortableConfig,
@@ -653,6 +655,45 @@ test('Transformers-native Qwen3 ASR authoring remains a separate explicit implem
   assert.notDeepEqual(
     profile.capabilities['audio.transcribe']?.implementation,
     { ...NIMI_AI_PROFILE_QWEN3_ASR_IMPLEMENTATION, supportedFeatures: [] },
+  );
+});
+
+test('Qwen3 voice.create authoring keeps source support on one selected LCC', () => {
+  const profile = createNimiAIProfileAuthoringBuilder({
+    profileId: 'profile.authoring.voice-create',
+    title: 'Portable local voice creation',
+    provenance: { publisher: 'example.test' },
+    license: 'Apache-2.0',
+  }).setLocalCapability({
+    capabilityContract: 'voice.create',
+    requiredFeatures: ['input.audio'],
+    localConfiguration: createNimiAIProfileQwen3VoiceCreateLocalImplementation({
+      supportedFeatures: ['input.audio'],
+    }),
+  }).build();
+
+  assert.deepEqual(profile.capabilities['voice.create']?.implementation, {
+    ...NIMI_AI_PROFILE_QWEN3_VOICE_CREATE_IMPLEMENTATION,
+    supportedFeatures: ['input.audio'],
+  });
+  assert.deepEqual(
+    deriveNimiAIProfileRequirementProjection(profile, 'voice.create').requirements,
+    [{
+      requirementId: 'voice.model',
+      role: 'main',
+      occurrenceOrdinal: 0,
+      displayLabel: 'Voice creation model',
+      resourceKind: 'tts',
+      policy: 'substitutable',
+    }],
+  );
+  assert.throws(
+    () => createNimiAIProfileQwen3VoiceCreateLocalImplementation({ supportedFeatures: [] }),
+    /exactly one selected source feature/u,
+  );
+  assert.throws(
+    () => createNimiAIProfileQwen3VoiceCreateLocalImplementation({ supportedFeatures: ['input.image'] }),
+    /unsupported feature/u,
   );
 });
 

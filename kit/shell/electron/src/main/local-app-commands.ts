@@ -490,7 +490,7 @@ function validateScenarioSpec(value: unknown, command: string, execute: boolean)
   }
   assertNoForbiddenAuthorityValue(value, command);
   const acceptsInlineAudio = !execute
-    && (value.type === 'speech-transcribe' || value.type === 'voice-clone');
+    && (value.type === 'speech-transcribe' || value.type === 'voice-create');
   validateJsonValue(value, command, 40 * 1024 * 1024, acceptsInlineAudio);
   if (value.type === 'text-embed' && execute) {
     assertExactKeys(value, ['type', 'inputs'], command);
@@ -514,8 +514,7 @@ function validateScenarioSpec(value: unknown, command: string, execute: boolean)
     case 'video-generate': validateVideoSpec(value, command); return;
     case 'speech-synthesize': validateSpeechSynthesizeSpec(value, command); return;
     case 'speech-transcribe': validateSpeechTranscribeSpec(value, command); return;
-    case 'voice-clone': validateVoiceCloneSpec(value, command); return;
-    case 'voice-design': validateVoiceDesignSpec(value, command); return;
+    case 'voice-create': validateVoiceCreateSpec(value, command); return;
     default: throw invalidPayload(command, 'job scenario type is invalid');
   }
 }
@@ -639,31 +638,35 @@ function validateSpeechTranscribeSpec(value: Record<string, unknown>, command: s
   } else throw invalidPayload(command, 'audioSource type is invalid');
 }
 
-function validateVoiceCloneSpec(value: Record<string, unknown>, command: string): void {
-  assertExactKeys(value, ['type', 'referenceAudio', 'referenceAudioMime', 'languageHints', 'preferredName', 'text'], command);
-  optionalExactText(value.referenceAudioMime, 'referenceAudioMime', command, 128);
-  optionalExactText(value.preferredName, 'preferredName', command, 256);
-  optionalExactText(value.text, 'text', command, 32 * 1024);
-  if (!Array.isArray(value.languageHints) || value.languageHints.length > 8 || !isPlainRecord(value.referenceAudio)) {
-    throw invalidPayload(command, 'voice clone input is invalid');
+function validateVoiceCreateSpec(value: Record<string, unknown>, command: string): void {
+  if (value.creationSource === 'reference-audio') {
+    assertExactKeys(value, ['type', 'creationSource', 'referenceAudio', 'referenceAudioMime', 'languageHints', 'preferredName', 'text'], command);
+    optionalExactText(value.referenceAudioMime, 'referenceAudioMime', command, 128);
+    optionalExactText(value.preferredName, 'preferredName', command, 256);
+    optionalExactText(value.text, 'text', command, 32 * 1024);
+    if (!Array.isArray(value.languageHints) || value.languageHints.length > 8 || !isPlainRecord(value.referenceAudio)) {
+      throw invalidPayload(command, 'voice reference-audio input is invalid');
+    }
+    for (const hint of value.languageHints) requiredText(hint, 'languageHint', command, 64);
+    if (value.referenceAudio.type === 'bytes') {
+      assertExactKeys(value.referenceAudio, ['type', 'bytes'], command);
+      validateInputBytes(value.referenceAudio.bytes, 20 * 1024 * 1024, command);
+      if (value.referenceAudioMime === '') throw invalidPayload(command, 'referenceAudioMime is required');
+    } else if (value.referenceAudio.type === 'uri') {
+      assertExactKeys(value.referenceAudio, ['type', 'uri'], command);
+      requiredHttpsUrl(value.referenceAudio.uri, 'referenceAudio.uri', command);
+    } else throw invalidPayload(command, 'referenceAudio type is invalid');
+    return;
   }
-  for (const hint of value.languageHints) requiredText(hint, 'languageHint', command, 64);
-  if (value.referenceAudio.type === 'bytes') {
-    assertExactKeys(value.referenceAudio, ['type', 'bytes'], command);
-    validateInputBytes(value.referenceAudio.bytes, 20 * 1024 * 1024, command);
-    if (value.referenceAudioMime === '') throw invalidPayload(command, 'referenceAudioMime is required');
-  } else if (value.referenceAudio.type === 'uri') {
-    assertExactKeys(value.referenceAudio, ['type', 'uri'], command);
-    requiredHttpsUrl(value.referenceAudio.uri, 'referenceAudio.uri', command);
-  } else throw invalidPayload(command, 'referenceAudio type is invalid');
-}
-
-function validateVoiceDesignSpec(value: Record<string, unknown>, command: string): void {
-  assertExactKeys(value, ['type', 'instructionText', 'previewText', 'language', 'preferredName'], command);
-  requiredUtf8Text(value.instructionText, 'instructionText', command, 8 * 1024);
-  optionalExactText(value.previewText, 'previewText', command, 8 * 1024);
-  optionalExactText(value.language, 'language', command, 64);
-  optionalExactText(value.preferredName, 'preferredName', command, 256);
+  if (value.creationSource === 'text-description') {
+    assertExactKeys(value, ['type', 'creationSource', 'instructionText', 'previewText', 'language', 'preferredName'], command);
+    requiredUtf8Text(value.instructionText, 'instructionText', command, 8 * 1024);
+    optionalExactText(value.previewText, 'previewText', command, 8 * 1024);
+    optionalExactText(value.language, 'language', command, 64);
+    optionalExactText(value.preferredName, 'preferredName', command, 256);
+    return;
+  }
+  throw invalidPayload(command, 'voice creationSource is invalid');
 }
 
 function optionalExactText(value: unknown, field: string, command: string, maxBytes: number): string {

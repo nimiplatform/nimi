@@ -4,6 +4,7 @@ use tonic::{transport::Channel, Request};
 
 use crate::generated::execute_local_app_scenario_request::Spec as ExecuteSpec;
 use crate::generated::execute_local_app_scenario_response::Output as ExecuteOutput;
+use crate::generated::local_app_voice_create_job_spec::Source as VoiceCreateSource;
 use crate::generated::speech_transcription_audio_source::Source as AudioSource;
 use crate::generated::stream_local_app_text_turn_event::Payload as TextTurnPayload;
 use crate::generated::submit_local_app_scenario_job_request::Spec as JobSpec;
@@ -17,16 +18,16 @@ use crate::generated::{
     LocalAppImageGenerateScenarioSpec, LocalAppScenarioArtifact, LocalAppScenarioJob,
     LocalAppScenarioJobEvent, LocalAppSpeechSynthesizeJobSpec, LocalAppSpeechTranscribeJobSpec,
     LocalAppTextEmbedScenarioSpec, LocalAppTextTurnFailed, LocalAppVideoGenerateJobSpec,
-    LocalAppVideoGenerationOptions, LocalAppVoiceAsset, LocalAppVoiceCloneJobSpec,
-    LocalAppVoiceDesignJobSpec, ReadLocalAppArtifactRequest as ProtoReadArtifactRequest,
-    ScenarioJobEventType, ScenarioJobStatus, ScenarioType, SpeechTimingMode,
-    SpeechTranscriptionAudioSource, StreamLocalAppTextTurnRequest as ProtoTextTurnRequest,
+    LocalAppVideoGenerationOptions, LocalAppVoiceAsset, LocalAppVoiceCreateJobSpec,
+    ReadLocalAppArtifactRequest as ProtoReadArtifactRequest, ScenarioJobEventType,
+    ScenarioJobStatus, ScenarioType, SpeechTimingMode, SpeechTranscriptionAudioSource,
+    StreamLocalAppTextTurnRequest as ProtoTextTurnRequest,
     SubmitLocalAppScenarioJobRequest as ProtoSubmitJobRequest,
     SubscribeLocalAppScenarioJobEventsRequest,
     UploadLocalAppArtifactRequest as ProtoUploadArtifactRequest, VideoContentArtifactRef,
     VideoContentAudioUrl, VideoContentImageUrl, VideoContentItem, VideoContentRole,
-    VideoContentType, VideoContentVideoUrl, VideoMode, VoiceAssetStatus, VoiceReference,
-    VoiceReferenceKind, VoiceRenderHints, VoiceT2vInput, VoiceV2vInput, VoiceWorkflowType,
+    VideoContentType, VideoContentVideoUrl, VideoMode, VoiceAssetStatus, VoiceCreationSource,
+    VoiceReference, VoiceReferenceKind, VoiceRenderHints, VoiceT2vInput, VoiceV2vInput,
 };
 use crate::grpc_status::local_app_error_from_status;
 use crate::{
@@ -107,12 +108,17 @@ pub(super) async fn submit_job(
         .await
         .map_err(local_app_error_from_status)?
         .into_inner();
-    if response.job.is_none() && response.asset.is_none() {
+    if response.job.is_none() && response.asset.is_none() && response.voice_reference.is_none() {
         return Err(untrusted());
     }
+    validate_voice_asset_reference_pair(
+        response.asset.as_ref(),
+        response.voice_reference.as_ref(),
+    )?;
     Ok(json!({
         "job": response.job.map(project_job).transpose()?,
         "asset": response.asset.map(project_voice_asset).transpose()?,
+        "voiceReference": response.voice_reference.map(project_voice_asset_reference).transpose()?,
     }))
 }
 
@@ -362,8 +368,7 @@ fn parse_job_spec(value: JsonValue) -> Result<JobSpec, LocalAppOperationError> {
         "speech-transcribe" => Ok(JobSpec::SpeechTranscribe(parse_speech_transcribe_spec(
             &object,
         )?)),
-        "voice-clone" => Ok(JobSpec::VoiceClone(parse_voice_clone_spec(&object)?)),
-        "voice-design" => Ok(JobSpec::VoiceDesign(parse_voice_design_spec(&object)?)),
+        "voice-create" => Ok(JobSpec::VoiceCreate(parse_voice_create_spec(&object)?)),
         _ => Err(invalid_payload()),
     }
 }
@@ -752,13 +757,31 @@ fn parse_speech_transcribe_spec(
     })
 }
 
-fn parse_voice_clone_spec(
+fn parse_voice_create_spec(
     object: &Map<String, JsonValue>,
-) -> Result<LocalAppVoiceCloneJobSpec, LocalAppOperationError> {
+) -> Result<LocalAppVoiceCreateJobSpec, LocalAppOperationError> {
+    let source = match string_field(object, "creationSource")? {
+        "reference-audio" => {
+            VoiceCreateSource::ReferenceAudio(parse_voice_reference_audio_source(object)?)
+        }
+        "text-description" => {
+            VoiceCreateSource::TextDescription(parse_voice_text_description_source(object)?)
+        }
+        _ => return Err(invalid_payload()),
+    };
+    Ok(LocalAppVoiceCreateJobSpec {
+        source: Some(source),
+    })
+}
+
+fn parse_voice_reference_audio_source(
+    object: &Map<String, JsonValue>,
+) -> Result<VoiceV2vInput, LocalAppOperationError> {
     exact_keys(
         object,
         &[
             "type",
+            "creationSource",
             "referenceAudio",
             "referenceAudioMime",
             "languageHints",
@@ -787,38 +810,35 @@ fn parse_voice_clone_spec(
     if !reference_audio_bytes.is_empty() && reference_audio_mime.is_empty() {
         return Err(invalid_payload());
     }
-    Ok(LocalAppVoiceCloneJobSpec {
-        input: Some(VoiceV2vInput {
-            reference_audio_bytes,
-            reference_audio_uri,
-            reference_audio_mime,
-            language_hints: string_array(field(object, "languageHints")?, 8, 64, false)?,
-            preferred_name: bounded_token_field(object, "preferredName", 256)?,
-            text: optional_text_field(object, "text", MAX_PROMPT_BYTES)?,
-        }),
+    Ok(VoiceV2vInput {
+        reference_audio_bytes,
+        reference_audio_uri,
+        reference_audio_mime,
+        language_hints: string_array(field(object, "languageHints")?, 8, 64, false)?,
+        preferred_name: bounded_token_field(object, "preferredName", 256)?,
+        text: optional_text_field(object, "text", MAX_PROMPT_BYTES)?,
     })
 }
 
-fn parse_voice_design_spec(
+fn parse_voice_text_description_source(
     object: &Map<String, JsonValue>,
-) -> Result<LocalAppVoiceDesignJobSpec, LocalAppOperationError> {
+) -> Result<VoiceT2vInput, LocalAppOperationError> {
     exact_keys(
         object,
         &[
             "type",
+            "creationSource",
             "instructionText",
             "previewText",
             "language",
             "preferredName",
         ],
     )?;
-    Ok(LocalAppVoiceDesignJobSpec {
-        input: Some(VoiceT2vInput {
-            instruction_text: required_text_field(object, "instructionText", 8 * 1024)?,
-            preview_text: optional_text_field(object, "previewText", 8 * 1024)?,
-            language: bounded_token_field(object, "language", 64)?,
-            preferred_name: bounded_token_field(object, "preferredName", 256)?,
-        }),
+    Ok(VoiceT2vInput {
+        instruction_text: required_text_field(object, "instructionText", 8 * 1024)?,
+        preview_text: optional_text_field(object, "previewText", 8 * 1024)?,
+        language: bounded_token_field(object, "language", 64)?,
+        preferred_name: bounded_token_field(object, "preferredName", 256)?,
     })
 }
 
@@ -829,8 +849,7 @@ fn project_job(job: LocalAppScenarioJob) -> Result<JsonValue, LocalAppOperationE
         ScenarioType::VideoGenerate => "video-generate",
         ScenarioType::SpeechSynthesize => "speech-synthesize",
         ScenarioType::SpeechTranscribe => "speech-transcribe",
-        ScenarioType::VoiceClone => "voice-clone",
-        ScenarioType::VoiceDesign => "voice-design",
+        ScenarioType::VoiceCreate => "voice-create",
         _ => return Err(untrusted()),
     };
     let status = match ScenarioJobStatus::try_from(job.status).map_err(|_| untrusted())? {
@@ -921,11 +940,11 @@ fn project_artifacts(
 
 fn project_voice_asset(asset: LocalAppVoiceAsset) -> Result<JsonValue, LocalAppOperationError> {
     require_runtime_identifier(&asset.voice_asset_id)?;
-    let workflow_type =
-        match VoiceWorkflowType::try_from(asset.workflow_type).map_err(|_| untrusted())? {
-            VoiceWorkflowType::VoiceClone => "voice-clone",
-            VoiceWorkflowType::VoiceDesign => "voice-design",
-            VoiceWorkflowType::Unspecified => return Err(untrusted()),
+    let creation_source =
+        match VoiceCreationSource::try_from(asset.creation_source).map_err(|_| untrusted())? {
+            VoiceCreationSource::ReferenceAudio => "reference-audio",
+            VoiceCreationSource::TextDescription => "text-description",
+            VoiceCreationSource::Unspecified => return Err(untrusted()),
         };
     let status = match VoiceAssetStatus::try_from(asset.status).map_err(|_| untrusted())? {
         VoiceAssetStatus::Active => "active",
@@ -936,12 +955,53 @@ fn project_voice_asset(asset: LocalAppVoiceAsset) -> Result<JsonValue, LocalAppO
     };
     Ok(json!({
         "voiceAssetId": asset.voice_asset_id,
-        "workflowType": workflow_type,
+        "creationSource": creation_source,
         "status": status,
         "createdAt": project_timestamp(asset.created_at)?,
         "updatedAt": project_timestamp(asset.updated_at)?,
         "expiresAt": project_timestamp(asset.expires_at)?,
     }))
+}
+
+fn project_voice_asset_reference(
+    reference: VoiceReference,
+) -> Result<JsonValue, LocalAppOperationError> {
+    if VoiceReferenceKind::try_from(reference.kind).map_err(|_| untrusted())?
+        != VoiceReferenceKind::VoiceAsset
+    {
+        return Err(untrusted());
+    }
+    let voice_asset_id = match reference.reference.ok_or_else(untrusted)? {
+        VoiceReferenceValue::VoiceAssetId(value) => value,
+        _ => return Err(untrusted()),
+    };
+    require_runtime_identifier(&voice_asset_id)?;
+    Ok(json!({
+        "kind": "voice_asset_id",
+        "voiceAssetId": voice_asset_id,
+    }))
+}
+
+fn validate_voice_asset_reference_pair(
+    asset: Option<&LocalAppVoiceAsset>,
+    reference: Option<&VoiceReference>,
+) -> Result<(), LocalAppOperationError> {
+    match (asset, reference) {
+        (None, None) => Ok(()),
+        (Some(asset), Some(reference)) => {
+            if VoiceReferenceKind::try_from(reference.kind).map_err(|_| untrusted())?
+                != VoiceReferenceKind::VoiceAsset
+            {
+                return Err(untrusted());
+            }
+            match reference.reference.as_ref() {
+                Some(VoiceReferenceValue::VoiceAssetId(value))
+                    if value == &asset.voice_asset_id => Ok(()),
+                _ => Err(untrusted()),
+            }
+        }
+        _ => Err(untrusted()),
+    }
 }
 
 fn project_job_event(event: LocalAppScenarioJobEvent) -> Result<JsonValue, LocalAppOperationError> {
@@ -1407,5 +1467,42 @@ mod tests {
         assert!(project_job(job.clone()).is_ok());
         job.scenario_type = ScenarioType::MusicGenerate as i32;
         assert!(project_job(job).is_err());
+    }
+
+    #[test]
+    fn voice_create_submit_projection_accepts_the_canonical_owner_shape() {
+        let timestamp = prost_types::Timestamp {
+            seconds: 1_800_000_000,
+            nanos: 0,
+        };
+        let job = LocalAppScenarioJob {
+            job_id: "job-voice-create".to_string(),
+            scenario_type: ScenarioType::VoiceCreate as i32,
+            status: ScenarioJobStatus::Submitted as i32,
+            reason_code: crate::generated::ReasonCode::ActionExecuted as i32,
+            trace_id: "trace-voice-create".to_string(),
+            created_at: Some(timestamp.clone()),
+            updated_at: Some(timestamp.clone()),
+            ..Default::default()
+        };
+        let asset = LocalAppVoiceAsset {
+            voice_asset_id: "voice-asset-1".to_string(),
+            creation_source: VoiceCreationSource::ReferenceAudio as i32,
+            status: VoiceAssetStatus::Active as i32,
+            created_at: Some(timestamp.clone()),
+            updated_at: Some(timestamp),
+            expires_at: None,
+        };
+        let reference = VoiceReference {
+            kind: VoiceReferenceKind::VoiceAsset as i32,
+            reference: Some(VoiceReferenceValue::VoiceAssetId(
+                "voice-asset-1".to_string(),
+            )),
+        };
+
+        assert!(project_job(job).is_ok());
+        assert!(project_voice_asset(asset.clone()).is_ok());
+        assert!(project_voice_asset_reference(reference.clone()).is_ok());
+        assert!(validate_voice_asset_reference_pair(Some(&asset), Some(&reference)).is_ok());
     }
 }

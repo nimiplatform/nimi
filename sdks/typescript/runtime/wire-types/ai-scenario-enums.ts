@@ -143,10 +143,9 @@ export enum ScenarioType {
   VIDEO_GENERATE = 4,
   SPEECH_SYNTHESIZE = 5,
   SPEECH_TRANSCRIBE = 6,
-  VOICE_CLONE = 7,
-  VOICE_DESIGN = 8,
   MUSIC_GENERATE = 9,
   WORLD_GENERATE = 10,
+  VOICE_CREATE = 11,
 }
 
 export enum SchedulingState {
@@ -271,6 +270,12 @@ export enum VoiceAssetStatus {
   FAILED = 4,
 }
 
+export enum VoiceCreationSource {
+  UNSPECIFIED = 0,
+  TEXT_DESCRIPTION = 1,
+  REFERENCE_AUDIO = 2,
+}
+
 export enum VoiceOutputMode {
   UNSPECIFIED = 0,
   NATIVE_STREAM = 1,
@@ -293,12 +298,6 @@ export enum VoiceReferenceKind {
   PRESET = 1,
   VOICE_ASSET = 2,
   PROVIDER_VOICE_REF = 3,
-}
-
-export enum VoiceWorkflowType {
-  UNSPECIFIED = 0,
-  VOICE_CLONE = 1,
-  VOICE_DESIGN = 2,
 }
 
 export enum WorldEntityRefKindV3 {

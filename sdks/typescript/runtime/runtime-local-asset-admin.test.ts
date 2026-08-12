@@ -128,7 +128,7 @@ test('Runtime local model center client pages, dedupes, and projects generated l
     {
       localAssetId: 'local-1',
       assetId: 'local/chat-model',
-      kind: 'embedding',
+      kind: 'chat',
       status: 'active',
     },
     {
@@ -243,7 +243,7 @@ test('Runtime local recommendation projection normalizes generated numeric enum 
       revision: 'main',
       title: 'Model',
       description: 'Image model',
-      capabilities: ['image'],
+      capabilities: ['image.generate'],
       tags: ['recommended'],
       formats: [LocalRecommendationFormat.GGUF],
       downloads: '10',
@@ -287,7 +287,7 @@ test('Runtime local recommendation projection normalizes generated numeric enum 
         kind: LocalAssetKind.IMAGE,
         repo: 'owner/model',
         revision: 'main',
-        capabilities: ['image'],
+        capabilities: ['image.generate'],
         engine: 'media',
         entry: 'model.gguf',
         files: ['model.gguf'],
@@ -580,7 +580,7 @@ test('Runtime local model center client maps catalog, writes, transfers, profile
     assetId: 'media/image-model',
     kind: LocalAssetKind.IMAGE,
     status: LocalAssetStatus.ACTIVE,
-    capabilities: ['image'],
+    capabilities: ['image.generate'],
     engine: 'media',
   });
   const transfer = generatedTransferSummary();
@@ -600,7 +600,7 @@ test('Runtime local model center client maps catalog, writes, transfers, profile
           logicalModelId: 'image-model',
           repo: 'owner/image',
           revision: '',
-          capabilities: ['image'],
+          capabilities: ['image.generate'],
           engine: 'media',
           entry: 'model.gguf',
           files: ['model.gguf'],
@@ -609,7 +609,7 @@ test('Runtime local model center client maps catalog, writes, transfers, profile
           endpoint: 'http://127.0.0.1:7860',
           fileCount: 0,
           totalSizeBytes: '1024',
-          tags: ['image'],
+          tags: ['image.generate'],
         }],
         nextPageToken: '',
       };
@@ -771,7 +771,7 @@ test('Runtime local model center client maps catalog, writes, transfers, profile
   assert.equal((await client.listVerifiedAssets({ kind: 'image', engine: 'media' }))[0]?.kind, 'image');
   assert.equal((await client.searchCatalog({ query: 'image', capability: 'image' }))[0]?.engineRuntimeMode, 'supervised');
   assert.equal((await client.listCatalogVariants('owner/image'))[0]?.filename, 'model.Q4_K_M.gguf');
-  const plan = await client.resolveInstallPlan({ itemId: 'item-1', capabilities: ['image'] });
+  const plan = await client.resolveInstallPlan({ itemId: 'item-1', capabilities: ['image.generate'] });
   assert.equal(plan.engineRuntimeMode, 'supervised');
   assert.equal((await client.install(plan, writeOptions)).localAssetId, 'local-image');
   assert.equal((await client.installVerifiedAsset({ templateId: 'verified.image' }, writeOptions)).kind, 'image');
@@ -951,7 +951,7 @@ function catalogItem() {
     repo: 'owner/image',
     revision: '',
     templateId: 'verified.image',
-    capabilities: ['image'],
+    capabilities: ['image.generate'],
     engine: 'media',
     engineRuntimeMode: LocalEngineRuntimeMode.SUPERVISED,
     installKind: 'download',
@@ -961,7 +961,7 @@ function catalogItem() {
     files: ['model.gguf'],
     license: 'apache-2.0',
     hashes: { sha256: 'abc' },
-    tags: ['image'],
+    tags: ['image.generate'],
     downloads: '10',
     likes: '2',
     lastModified: '2026-06-05T00:00:00.000Z',
@@ -978,7 +978,7 @@ function generatedInstallPlan() {
     modelId: 'local/image-model',
     repo: 'owner/image',
     revision: '',
-    capabilities: ['image'],
+    capabilities: ['image.generate'],
     engine: 'media',
     engineRuntimeMode: LocalEngineRuntimeMode.SUPERVISED,
     installKind: 'download',
@@ -1047,7 +1047,7 @@ function localProfile(): NimiRuntimeLocalProfileDescriptor {
     id: 'profile-image',
     title: 'Image profile',
     recommended: true,
-    consumeCapabilities: ['image'],
+    consumeCapabilities: ['image.generate'],
     entries: [{
       entryId: 'image-model',
       kind: 'asset',
@@ -1068,7 +1068,7 @@ function generatedProfileResolutionPlan() {
     title: 'Image profile',
     description: 'Image profile',
     recommended: true,
-    consumeCapabilities: ['image'],
+    consumeCapabilities: ['image.generate'],
     warnings: [],
     reasonCode: '',
   };
@@ -1164,8 +1164,8 @@ function recommendationFeedItem(input: {
     revision: 'main',
     title: input.title,
     description: '',
-    capabilities: ['image'],
-    tags: ['image'],
+    capabilities: ['image.generate'],
+    tags: ['image.generate'],
     formats: ['gguf'],
     downloads: input.downloads,
     likes: input.likes,
@@ -1204,7 +1204,7 @@ function recommendationFeedItem(input: {
       kind: 'image',
       repo: input.repo,
       revision: 'main',
-      capabilities: ['image'],
+      capabilities: ['image.generate'],
       engine: 'media',
       entry: input.entry,
       files: [input.entry],

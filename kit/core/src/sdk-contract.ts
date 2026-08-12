@@ -236,8 +236,8 @@ export {
   ReasonCode as RuntimeReasonCode,
   RoutePolicy,
   VoiceAssetStatus,
+  VoiceCreationSource,
   VoiceReferenceKind,
-  VoiceWorkflowType,
 } from '@nimiplatform/sdk/runtime/generated';
 export {
   NIMI_CONVERSATION_SESSION_COMPLETION_RESERVE,

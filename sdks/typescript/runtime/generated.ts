@@ -129,7 +129,7 @@ export {
   SpeechTimingMode,
   UsageWindow,
   VoiceAssetStatus,
+  VoiceCreationSource,
   VoiceReferenceKind,
-  VoiceWorkflowType,
   WorldRelation,
 } from '../core-generated/runtime-typed-client';

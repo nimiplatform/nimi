@@ -10,7 +10,8 @@ import {
   ScenarioJobStatus,
   ScenarioType,
   VoiceAssetStatus,
-  VoiceWorkflowType,
+  VoiceCreationSource,
+  type ListVoiceAssetsRequest,
   type RuntimeTypedCallOptions,
   type SubmitScenarioJobRequest,
 } from '@nimiplatform/sdk/runtime/generated';
@@ -168,6 +169,7 @@ test('Nimi Mastra voice rejects provider-native references and speaker kinds', a
 test('Nimi Mastra voice speak and listen use Runtime speech scenarios', async () => {
   const submitRequests: SubmitScenarioJobRequest[] = [];
   const submitCallOptions: Array<RuntimeTypedCallOptions | undefined> = [];
+  const listVoiceAssetRequests: ListVoiceAssetsRequest[] = [];
   const artifactReads: string[] = [];
   const runtimeJobBase = {
     jobId: 'job-voice-1',
@@ -186,6 +188,7 @@ test('Nimi Mastra voice speak and listen use Runtime speech scenarios', async ()
     progressPercent: 0,
     progressCurrentStep: 0,
     progressTotalSteps: 0,
+    transcriptionText: '',
   };
   const ai = {
     async submitScenarioJob(request: SubmitScenarioJobRequest, options?: RuntimeTypedCallOptions) {
@@ -266,13 +269,14 @@ test('Nimi Mastra voice speak and listen use Runtime speech scenarios', async ()
         traceId: 'trace-voices',
       };
     },
-    async listVoiceAssets() {
+    async listVoiceAssets(request: ListVoiceAssetsRequest) {
+      listVoiceAssetRequests.push(request);
       return {
         assets: [{
           voiceAssetId: 'asset-1',
           appId: 'app-1',
           subjectUserId: 'user-1',
-          workflowType: VoiceWorkflowType.VOICE_CLONE,
+          creationSource: VoiceCreationSource.REFERENCE_AUDIO,
           provider: 'runtime',
           modelId: 'voice-model',
           targetModelId: '',
@@ -305,6 +309,7 @@ test('Nimi Mastra voice speak and listen use Runtime speech scenarios', async ()
     },
     head: { appId: 'app-1', subjectUserId: 'user-1' },
     transcriptionMimeType: 'audio/webm',
+    catalog: { creationSource: VoiceCreationSource.REFERENCE_AUDIO },
     idempotencyKeyFactory: (operation) => `idem-${operation}`,
   });
 
@@ -330,6 +335,7 @@ test('Nimi Mastra voice speak and listen use Runtime speech scenarios', async ()
 
   const speakers = await voice.getSpeakers();
   assert.deepEqual(speakers.map((speaker) => speaker.voiceId), ['preset-1', 'asset-1']);
+  assert.equal(listVoiceAssetRequests[0]?.creationSource, VoiceCreationSource.REFERENCE_AUDIO);
   assert.equal('provider' in speakers[1]!, false);
   assert.equal('modelId' in speakers[1]!, false);
 

@@ -145,9 +145,7 @@ export function projectNimiRuntimeLocalAssetRecord(
   if (!parsedKind) {
     throw invalidLocalProjection(`Runtime local asset ${localAssetId} has unsupported kind ${String(value.kind)}`);
   }
-  const kind = (parsedKind === 'chat' || parsedKind === 'embedding')
-    ? nimiRuntimeLocalRunnableAssetKindForCapabilities(capabilities, parsedKind)
-    : parsedKind;
+  const kind = parsedKind;
   const status = parseNimiRuntimeLocalAssetStatusId(value.status);
   if (!status) {
     throw invalidLocalProjection(`Runtime local asset ${localAssetId} has unsupported status ${String(value.status)}`);
@@ -227,6 +225,9 @@ export function projectNimiRuntimeLocalCatalogItemDescriptor(
   value: GeneratedLocalCatalogModelDescriptor,
 ): NimiRuntimeLocalCatalogItemDescriptor {
   const kind = nimiRuntimeLocalRunnableAssetKindForCapabilities(value.capabilities);
+  if (!kind) {
+    throw invalidLocalProjection(`Runtime local catalog item ${value.itemId} has unknown or ambiguous capabilities`);
+  }
   return {
     itemId: normalizeText(value.itemId),
     source: normalizeText(value.source) || 'huggingface',

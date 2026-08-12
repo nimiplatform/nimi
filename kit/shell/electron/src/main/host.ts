@@ -519,7 +519,10 @@ export function registerNimiElectronRuntimeBridge(
     try {
       return { ok: true, value: await handleInvoke(event, message) };
     } catch (error) {
-      return { ok: false, error: toSerializedElectronShellError(error) };
+      return {
+        ok: false,
+        error: toSerializedElectronShellError(error, input.runtimeDeploymentProfile),
+      };
     }
   });
 

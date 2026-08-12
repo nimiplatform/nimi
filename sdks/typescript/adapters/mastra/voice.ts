@@ -23,7 +23,7 @@ import type {
 } from '@nimiplatform/sdk/runtime/generated';
 import {
   VoiceAssetStatus,
-  VoiceWorkflowType,
+  VoiceCreationSource,
 } from '@nimiplatform/sdk/runtime/generated';
 
 export const NIMI_MASTRA_VOICE_UNSUPPORTED_FEATURE_CODE = 'SDK_ADAPTER_FEATURE_UNSUPPORTED' as const;
@@ -93,7 +93,7 @@ export interface NimiMastraVoiceCatalogOptions {
   readonly includePresetVoices?: boolean;
   readonly includeVoiceAssets?: boolean;
   readonly pageSize?: number;
-  readonly workflowType?: VoiceWorkflowType;
+  readonly creationSource?: VoiceCreationSource;
   readonly assetStatus?: VoiceAssetStatus;
 }
 
@@ -333,7 +333,7 @@ function buildListVoiceAssetsRequest(
   return {
     appId: options.head.appId,
     subjectUserId: normalizeText(options.head.subjectUserId),
-    workflowType: catalog.workflowType ?? VoiceWorkflowType.UNSPECIFIED,
+    creationSource: catalog.creationSource ?? VoiceCreationSource.UNSPECIFIED,
     status: catalog.assetStatus ?? VoiceAssetStatus.UNSPECIFIED,
     pageSize: Number(catalog.pageSize ?? 100),
     pageToken: '',

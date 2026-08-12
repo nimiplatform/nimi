@@ -26,17 +26,20 @@ import {
   NIMI_MACHINE_LOCAL_QWEN3_ASR_IMPLEMENTATION,
   NIMI_MACHINE_LOCAL_QWEN3_ASR_TRANSFORMERS_IMPLEMENTATION,
   NIMI_MACHINE_LOCAL_QWEN3_TTS_IMPLEMENTATION,
+  NIMI_MACHINE_LOCAL_QWEN3_VOICE_CREATE_IMPLEMENTATION,
   NIMI_MACHINE_LOCAL_STABLE_DIFFUSION_IMAGE_IMPLEMENTATION,
   NIMI_MACHINE_LOCAL_STABLE_DIFFUSION_VIDEO_IMPLEMENTATION,
   NIMI_MACHINE_LOCAL_TEXT_GENERATE_CAPABILITY_CONTRACT,
   NIMI_MACHINE_LOCAL_TEXT_EMBED_CAPABILITY_CONTRACT,
   NIMI_MACHINE_LOCAL_VIDEO_GENERATE_CAPABILITY_CONTRACT,
+  NIMI_MACHINE_LOCAL_VOICE_CREATE_CAPABILITY_CONTRACT,
   createNimiMachineLocalAIConfigurationClient,
   createNimiMachineLocalLlamaCppEmbedConfigurationInput,
   createNimiMachineLocalLlamaCppTextConfigurationInput,
   createNimiMachineLocalQwen3ASRConfigurationInput,
   createNimiMachineLocalQwen3ASRTransformersConfigurationInput,
   createNimiMachineLocalQwen3TTSConfigurationInput,
+  createNimiMachineLocalQwen3VoiceCreateConfigurationInput,
   createNimiMachineLocalStableDiffusionImageConfigurationInput,
   createNimiMachineLocalStableDiffusionVideoConfigurationInput,
   deriveNimiMachineLocalAIConfigurationImpact,
@@ -245,6 +248,26 @@ test('Machine Local AI Configuration typed client maps every admitted RPC throug
   assert.deepEqual(ttsInput.implementation, NIMI_MACHINE_LOCAL_QWEN3_TTS_IMPLEMENTATION);
   assert.deepEqual(ttsInput.portableConfig, {});
   assert.deepEqual(ttsInput.supportedFeatures, []);
+  const referenceVoiceInput = createNimiMachineLocalQwen3VoiceCreateConfigurationInput({
+    displayName: 'Local reference voice',
+    source: 'reference-audio',
+  });
+  assert.equal(referenceVoiceInput.capabilityContract, NIMI_MACHINE_LOCAL_VOICE_CREATE_CAPABILITY_CONTRACT);
+  assert.deepEqual(referenceVoiceInput.implementation, NIMI_MACHINE_LOCAL_QWEN3_VOICE_CREATE_IMPLEMENTATION);
+  assert.deepEqual(referenceVoiceInput.portableConfig, {});
+  assert.deepEqual(referenceVoiceInput.supportedFeatures, ['input.audio']);
+  const describedVoiceInput = createNimiMachineLocalQwen3VoiceCreateConfigurationInput({
+    displayName: 'Local described voice',
+    source: 'text-description',
+  });
+  assert.deepEqual(describedVoiceInput.supportedFeatures, ['input.text']);
+  assert.throws(
+    () => createNimiMachineLocalQwen3VoiceCreateConfigurationInput({
+      displayName: 'Invalid voice',
+      source: 'clone' as 'reference-audio',
+    }),
+    /source must be reference-audio or text-description/u,
+  );
   const asrInput = createNimiMachineLocalQwen3ASRConfigurationInput({
     displayName: 'Local speech transcription',
   });

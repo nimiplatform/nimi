@@ -309,6 +309,51 @@ describe('Electron protected local-app host', () => {
       .rejects.toMatchObject({ reasonCode: 'runtime-service-untrusted', retryable: false });
   });
 
+  it('projects canonical voice-create Jobs and VoiceAsset creation sources only', async () => {
+    const asset = {
+      voiceAssetId: 'voice-asset-1', creationSource: 'reference-audio', status: 'active',
+      createdAt: null, updatedAt: null, expiresAt: null,
+    };
+    const candidate = {
+      ...binding([]),
+      localAppScenarioJobSubmit: async () => ({
+        status: 'ok' as const,
+        value: {
+          job: scenarioJobProjection({ scenarioType: 'voice-create' }),
+          asset,
+          voiceReference: { kind: 'voice_asset_id', voiceAssetId: asset.voiceAssetId },
+        },
+      }),
+      localAppVoiceAssetsList: async () => ({
+        status: 'ok' as const,
+        value: { assets: [asset, { ...asset, voiceAssetId: 'voice-asset-2', creationSource: 'text-description' }], nextPageToken: '' },
+      }),
+    };
+    const host = createNimiElectronLocalAppHostForBinding(candidate);
+    await expect(host.scenarioJobSubmit({ spec: { type: 'voice-create' } })).resolves.toEqual({
+      job: scenarioJobProjection({ scenarioType: 'voice-create' }),
+      asset,
+      voiceReference: { kind: 'voice_asset_id', voiceAssetId: asset.voiceAssetId },
+    });
+    await expect(host.voiceAssetsList({ pageSize: 0, pageToken: '' })).resolves.toEqual({
+      assets: [asset, { ...asset, voiceAssetId: 'voice-asset-2', creationSource: 'text-description' }],
+      nextPageToken: '',
+    });
+
+    const legacy = {
+      ...binding([]),
+      localAppScenarioJobSubmit: async () => ({
+        status: 'ok' as const,
+        value: {
+          job: scenarioJobProjection({ scenarioType: 'voice-clone' }),
+          asset: { voiceAssetId: 'voice-asset-old', workflowType: 'voice-clone', status: 'active', createdAt: null, updatedAt: null, expiresAt: null },
+        },
+      }),
+    };
+    await expect(createNimiElectronLocalAppHostForBinding(legacy).scenarioJobSubmit({ spec: {} }))
+      .rejects.toMatchObject({ reasonCode: 'runtime-service-untrusted', retryable: false });
+  });
+
   it('accepts every legal Rust carrier Job stream projection', async () => {
     const baseJob = scenarioJobProjection({
       scenarioType: 'video-generate', status: 'submitted', progressPercent: 0,

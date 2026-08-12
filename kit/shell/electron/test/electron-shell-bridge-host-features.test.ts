@@ -10,6 +10,8 @@ import {
   type ElectronRuntimeBridgeUnaryRequest,
   type RuntimeGrpcBridgeClient,
 } from '../src/main/index.js';
+import { toSerializedElectronShellError } from '../src/main/errors.js';
+import { NimiElectronShellHostError } from '../src/main/types.js';
 import { installNimiElectronRuntimeBridge } from '../src/preload/index.js';
 import {
   NIMI_LOCAL_APP_STANDARD_SHELL_CAPABILITY_SET_ID,
@@ -32,6 +34,46 @@ import {
 } from './electron-shell-test-utils.js';
 
 describe('registerNimiElectronRuntimeBridge', () => {
+  it('disambiguates source-local Runtime transport failures from the fixed service', () => {
+    const error = new NimiElectronShellHostError({
+      code: 'runtime-service-untrusted',
+      message: 'runtime-service-untrusted',
+      reasonCode: 'runtime-service-untrusted',
+      actionHint: 'repair_fixed_runtime_service',
+      source: 'runtime',
+      details: { command: 'runtime_account_session_status', retryable: false },
+    });
+
+    expect(toSerializedElectronShellError(error, 'local-development')).toMatchObject({
+      message: expect.stringContaining('do not request privilege elevation'),
+      reasonCode: 'runtime-service-untrusted',
+      actionHint: 'restart_source_local_development_desktop_session',
+      details: {
+        runtimeTopology: 'source-local-development',
+        fixedRuntimeServiceInUse: false,
+        privilegeElevationRequired: false,
+        originalActionHint: 'repair_fixed_runtime_service',
+      },
+      envelope: {
+        actionHint: 'restart_source_local_development_desktop_session',
+        details: {
+          runtimeTopology: 'source-local-development',
+          fixedRuntimeServiceInUse: false,
+          privilegeElevationRequired: false,
+        },
+      },
+    });
+
+    expect(toSerializedElectronShellError(error, 'production')).toMatchObject({
+      message: 'runtime-service-untrusted',
+      actionHint: 'repair_fixed_runtime_service',
+      details: {
+        command: 'runtime_account_session_status',
+        retryable: false,
+      },
+    });
+  });
+
   it('does not project environment Realm authority or access tokens through Electron runtime defaults', async () => {
     await withEnvVars({
       NIMI_REALM_URL: 'http://localhost',

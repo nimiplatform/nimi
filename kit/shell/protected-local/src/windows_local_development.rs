@@ -8,12 +8,17 @@ use url::Url;
 
 use crate::generated::runtime_app_service_client::RuntimeAppServiceClient;
 use crate::generated::runtime_development_service_client::RuntimeDevelopmentServiceClient;
+#[cfg(any(
+    all(target_os = "macos", feature = "macos-source-local-development"),
+    all(target_os = "windows", feature = "windows-source-local-development")
+))]
+use crate::generated::RebindLocalAppProcessRequest;
 use crate::generated::{
     BindLocalAppProcessRequest, EndLocalDevelopmentRunRequest, GetDeveloperModeStatusRequest,
     ListLocalDevelopmentRegistrationsRequest, LocalDevelopmentProjectProjection,
     LocalDevelopmentRegistrationProjection, PrepareLocalAppLaunchRequest,
-    RebindLocalAppProcessRequest, RegisterLocalDevelopmentProjectRequest,
-    RemoveLocalDevelopmentRegistrationRequest, SetDeveloperModeRequest,
+    RegisterLocalDevelopmentProjectRequest, RemoveLocalDevelopmentRegistrationRequest,
+    SetDeveloperModeRequest,
 };
 use crate::grpc_status::host_error_from_status;
 #[cfg(target_os = "macos")]

@@ -180,6 +180,42 @@ describe('Electron local-app standard-shell operations', () => {
     })).rejects.toMatchObject({ reasonCode: 'invalid-payload' });
   });
 
+  it('admits only canonical voice-create sources and rejects legacy voice identities', async () => {
+    const calls: unknown[] = [];
+    const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.scenarioJobSubmit'];
+    const referenceAudio = {
+      type: 'voice-create', creationSource: 'reference-audio',
+      referenceAudio: { type: 'bytes', bytes: [1, 2] }, referenceAudioMime: 'audio/wav',
+      languageHints: ['en'], preferredName: 'Reference Voice', text: '',
+    };
+    const textDescription = {
+      type: 'voice-create', creationSource: 'text-description',
+      instructionText: 'A calm, warm voice.', previewText: 'Hello.',
+      language: 'en', preferredName: 'Designed Voice',
+    };
+
+    for (const spec of [referenceAudio, textDescription]) {
+      await expect(dispatchElectronLocalAppCommand({
+        host: localAppHost(calls), command, payload: { spec },
+      })).resolves.toEqual({ job: null, asset: null });
+    }
+    expect(calls).toEqual([
+      ['scenarioJobSubmit', { spec: referenceAudio }],
+      ['scenarioJobSubmit', { spec: textDescription }],
+    ]);
+
+    for (const spec of [
+      { ...referenceAudio, type: 'voice-clone' },
+      { ...textDescription, type: 'voice-design' },
+      { ...referenceAudio, creationSource: 'text-description' },
+    ]) {
+      await expect(dispatchElectronLocalAppCommand({
+        host: localAppHost(calls), command, payload: { spec },
+      })).rejects.toMatchObject({ reasonCode: 'invalid-payload' });
+    }
+    expect(calls).toHaveLength(2);
+  });
+
   it('admits the exact typed inline transcription audio cap before generic JSON bounds', async () => {
     const calls: unknown[] = [];
     const maximum = 32 * 1024 * 1024;

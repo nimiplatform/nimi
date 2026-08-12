@@ -40,7 +40,10 @@ export const NIMI_MACHINE_LOCAL_AUDIO_TRANSCRIBE_CAPABILITY_CONTRACT = 'audio.tr
 export const NIMI_MACHINE_LOCAL_IMAGE_GENERATE_CAPABILITY_CONTRACT = 'image.generate';
 /** Mirrors runtime/internal/capabilitydriver/stablediffusion_video.go:22. */
 export const NIMI_MACHINE_LOCAL_VIDEO_GENERATE_CAPABILITY_CONTRACT = 'video.generate';
+export const NIMI_MACHINE_LOCAL_VOICE_CREATE_CAPABILITY_CONTRACT = 'voice.create';
 export const NIMI_MACHINE_LOCAL_INPUT_IMAGE_FEATURE = 'input.image';
+export const NIMI_MACHINE_LOCAL_INPUT_AUDIO_FEATURE = 'input.audio';
+export const NIMI_MACHINE_LOCAL_INPUT_TEXT_FEATURE = 'input.text';
 
 export const NIMI_MACHINE_LOCAL_LLAMA_CPP_TEXT_IMPLEMENTATION = Object.freeze({
   implementationId: 'local.text.generate.llama-cpp',
@@ -59,6 +62,14 @@ export const NIMI_MACHINE_LOCAL_QWEN3_TTS_IMPLEMENTATION = Object.freeze({
   driverId: 'nimi.runtime.driver.qwen3-tts',
   driverDialect: 'qwen3-tts/audio-synthesize/v1',
 }) satisfies Readonly<CapabilityImplementationIdentity>;
+
+export const NIMI_MACHINE_LOCAL_QWEN3_VOICE_CREATE_IMPLEMENTATION = Object.freeze({
+  implementationId: 'local.voice.create.qwen3-tts',
+  driverId: 'nimi.runtime.driver.qwen3-tts',
+  driverDialect: 'qwen3-tts/voice-create/v1',
+}) satisfies Readonly<CapabilityImplementationIdentity>;
+
+export type NimiMachineLocalVoiceCreateSource = 'reference-audio' | 'text-description';
 
 export const NIMI_MACHINE_LOCAL_QWEN3_ASR_IMPLEMENTATION = Object.freeze({
   implementationId: 'local.audio.transcribe.qwen3-asr',
@@ -450,6 +461,31 @@ export function createNimiMachineLocalQwen3TTSConfigurationInput(input: {
     implementation: { ...NIMI_MACHINE_LOCAL_QWEN3_TTS_IMPLEMENTATION },
     portableConfig: {},
     supportedFeatures: [],
+    displayName: requireInputText(input.displayName, 'displayName'),
+  };
+}
+
+/**
+ * Builds one concrete Qwen3-TTS implementation of the implementation-neutral
+ * voice.create contract. A configuration admits exactly one typed source;
+ * selection remains capability-wide and never falls back by feature.
+ */
+export function createNimiMachineLocalQwen3VoiceCreateConfigurationInput(input: {
+  readonly displayName: string;
+  readonly source: NimiMachineLocalVoiceCreateSource;
+}): NimiMachineLocalAIConfigurationAddInput {
+  assertExactRecord(input, new Set(['displayName', 'source']), 'Qwen3-TTS voice.create configuration input');
+  const source = input.source;
+  if (source !== 'reference-audio' && source !== 'text-description') {
+    return inputError('source must be reference-audio or text-description');
+  }
+  return {
+    capabilityContract: NIMI_MACHINE_LOCAL_VOICE_CREATE_CAPABILITY_CONTRACT,
+    implementation: { ...NIMI_MACHINE_LOCAL_QWEN3_VOICE_CREATE_IMPLEMENTATION },
+    portableConfig: {},
+    supportedFeatures: [source === 'reference-audio'
+      ? NIMI_MACHINE_LOCAL_INPUT_AUDIO_FEATURE
+      : NIMI_MACHINE_LOCAL_INPUT_TEXT_FEATURE],
     displayName: requireInputText(input.displayName, 'displayName'),
   };
 }

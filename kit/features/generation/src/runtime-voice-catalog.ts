@@ -1,7 +1,7 @@
 import {
   ReasonCode,
   VoiceAssetStatus,
-  VoiceWorkflowType,
+  VoiceCreationSource,
   asNimiError,
   createNimiError,
   type ListVoiceAssetsRequest,
@@ -23,7 +23,7 @@ export type RuntimeVoiceCatalogUnavailableReason =
 export type RuntimeVoiceCatalogReference = {
   readonly kind: 'voice_asset_id';
   readonly voiceAssetId: string;
-  readonly workflowType: VoiceWorkflowType;
+  readonly creationSource: VoiceCreationSource;
   readonly status: VoiceAssetStatus;
 };
 
@@ -64,7 +64,7 @@ export type RuntimeVoiceCatalogInput = {
   readonly runtime: RuntimeVoiceCatalogRuntime;
   readonly appId: string;
   readonly subjectUserId: string;
-  readonly workflowType?: VoiceWorkflowType;
+  readonly creationSource?: VoiceCreationSource;
   readonly status?: VoiceAssetStatus;
   readonly pageSize?: number;
   readonly pageToken?: string;
@@ -117,7 +117,7 @@ export async function runRuntimeVoiceCatalog(
     const response = await listVoiceAssets.call(input.runtime.ai, {
       appId,
       subjectUserId,
-      workflowType: input.workflowType ?? VoiceWorkflowType.UNSPECIFIED,
+      creationSource: input.creationSource ?? VoiceCreationSource.UNSPECIFIED,
       status: input.status ?? VoiceAssetStatus.UNSPECIFIED,
       pageSize,
       pageToken: input.pageToken ?? '',
@@ -140,7 +140,7 @@ export async function runRuntimeVoiceCatalog(
       return {
         kind: 'voice_asset_id',
         voiceAssetId,
-        workflowType: asset.workflowType,
+        creationSource: asset.creationSource,
         status: asset.status,
       };
     });
