@@ -1008,7 +1008,7 @@ func TestResolveLocalImageNativePlanInfersConsumerForExplicitInstalledAsset(t *t
 	profile := localEnvironmentNvidiaProfile()
 	model := mustInstallSupervisedLocalModel(t, svc, installLocalAssetParams{
 		assetID:      "local/local-import/z_image_turbo-Q4_K",
-		capabilities: []string{"image"},
+		capabilities: []string{"image.generate"},
 		engine:       "media",
 		entry:        "z_image_turbo-Q4_K.gguf",
 	})
@@ -1053,7 +1053,7 @@ func TestResolveLocalImageNativePlanAcceptsAssetIDLocalAssetIdentity(t *testing.
 	profile := localEnvironmentNvidiaProfile()
 	model := mustInstallSupervisedLocalModel(t, svc, installLocalAssetParams{
 		assetID:      "local/local-import/z_image_turbo-Q4_K",
-		capabilities: []string{"image"},
+		capabilities: []string{"image.generate"},
 		engine:       "media",
 		entry:        "z_image_turbo-Q4_K.gguf",
 	})

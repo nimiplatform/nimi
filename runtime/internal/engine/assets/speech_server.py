@@ -21,15 +21,16 @@ from speech_server_runtime import (
     HostState,
     QWEN3_ASR_DRIVER_ENV,
     QWEN3_ASR_TRANSFORMERS_DRIVER_ENV,
-    QWEN3_TTS_PREFLIGHT_CACHE,
     QWEN3_TTS_DRIVER_ENV,
+    QWEN3_TTS_PREFLIGHT_CACHE,
     DriverAudioArtifact,
     SpeechModelState,
     build_host_state,
+    create_voice_with_driver,
     driver_command_state,
     driver_work_root,
     find_ready_model as runtime_find_ready_model,
-    find_ready_workflow_model as runtime_find_ready_workflow_model,
+    find_ready_voice_creation_model as runtime_find_ready_voice_creation_model,
     local_workflow_not_admitted_response,
     plain_speech_unavailable_response,
     public_model_payload,
@@ -155,10 +156,10 @@ def find_ready_model(model_id: str, capability: str) -> SpeechModelState:
     return runtime_find_ready_model(model_id, capability)
 
 
-def find_ready_workflow_model(model_id: str, capability: str, workflow_model_id: str) -> SpeechModelState:
-    model = find_ready_model(model_id, capability)
-    if workflow_model_id.strip() not in model.workflow_model_bindings.get(capability, []):
-        return runtime_find_ready_workflow_model(model_id, capability, workflow_model_id)
+def find_ready_voice_creation_model(model_id: str, creation_source: str, workflow_model_id: str) -> SpeechModelState:
+    model = find_ready_model(model_id, "voice.create")
+    if creation_source not in model.voice_creation_sources:
+        return runtime_find_ready_voice_creation_model(model_id, creation_source, workflow_model_id)
     return model
 
 
@@ -377,20 +378,21 @@ def create_app() -> FastAPI:
             )
         return {"text": text}
 
-    @app.post("/v1/voice/clone")
-    def clone_voice(payload: dict[str, Any]):
+    @app.post("/v1/voice/create")
+    def create_voice(payload: dict[str, Any]):
         workflow_model_id = str(payload.get("workflow_model_id") or "").strip()
         target_model_id = str(payload.get("target_model_id") or "").strip()
-        if not workflow_model_id or not target_model_id:
-            return local_workflow_not_admitted_response("voice clone", "")
+        creation_source = str(payload.get("creation_source") or "").strip()
+        if not workflow_model_id or not target_model_id or creation_source not in {"reference_audio", "text_description"}:
+            return local_workflow_not_admitted_response("voice.create", "")
         try:
-            model = find_ready_workflow_model(target_model_id, "voice_workflow.voice_clone", workflow_model_id)
-            response = run_driver_command(
-                driver_command_state(QWEN3_TTS_DRIVER_ENV, "qwen3_tts")[0],
+            model = find_ready_voice_creation_model(target_model_id, creation_source, workflow_model_id)
+            response = create_voice_with_driver(
+                model,
                 {
-                    "driver": "qwen3_tts",
-                    "operation": "voice_workflow.voice_clone",
-                    "workflow_type": "voice_clone",
+                    "driver": model.capability_drivers.get("voice.create", ""),
+                    "operation": "voice.create",
+                    "creation_source": creation_source,
                     "workflow_model_id": workflow_model_id,
                     "target_model_id": model.model_id,
                     "manifest_path": model.manifest_path,
@@ -406,42 +408,8 @@ def create_app() -> FastAPI:
             raise
         except Exception as error:
             return workflow_execution_unavailable_response(
-                "voice clone",
-                f"local qwen3_tts workflow execution failed: {error}",
-                "speech_workflow_execution_failed",
-            )
-
-    @app.post("/v1/voice/design")
-    def design_voice(payload: dict[str, Any]):
-        workflow_model_id = str(payload.get("workflow_model_id") or "").strip()
-        target_model_id = str(payload.get("target_model_id") or "").strip()
-        if not workflow_model_id or not target_model_id:
-            return local_workflow_not_admitted_response("voice design", "")
-        try:
-            model = find_ready_workflow_model(target_model_id, "voice_workflow.voice_design", workflow_model_id)
-            response = run_driver_command(
-                driver_command_state(QWEN3_TTS_DRIVER_ENV, "qwen3_tts")[0],
-                {
-                    "driver": "qwen3_tts",
-                    "operation": "voice_workflow.voice_design",
-                    "workflow_type": "voice_design",
-                    "workflow_model_id": workflow_model_id,
-                    "target_model_id": model.model_id,
-                    "manifest_path": model.manifest_path,
-                    "bundle_dir": model.bundle_dir,
-                    "entry_path": model.entry_path,
-                    "declared_files": model.declared_files,
-                    "input": payload.get("input") if isinstance(payload.get("input"), dict) else {},
-                    "extensions": payload.get("extensions") if isinstance(payload.get("extensions"), dict) else {},
-                },
-            )
-            return voice_workflow_result_from_driver(response)
-        except HTTPException:
-            raise
-        except Exception as error:
-            return workflow_execution_unavailable_response(
-                "voice design",
-                f"local qwen3_tts workflow execution failed: {error}",
+                "voice.create",
+                f"local voice.create execution failed: {error}",
                 "speech_workflow_execution_failed",
             )
 

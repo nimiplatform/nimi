@@ -11,7 +11,7 @@ import (
 func TestDeriveCanonicalImageFactsGGUFImportSource(t *testing.T) {
 	facts := canonicalImageResolverFactsForImport(
 		"media",
-		[]string{"image"},
+		[]string{"image.generate"},
 		runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_IMAGE,
 		"z_image_turbo-q4.gguf",
 		[]string{"z_image_turbo-q4.gguf"},
@@ -36,7 +36,7 @@ func TestDeriveCanonicalImageFactsGGUFImportSource(t *testing.T) {
 func TestDeriveCanonicalImageFactsWorkflowBundle(t *testing.T) {
 	facts := canonicalImageResolverFactsForImport(
 		"media",
-		[]string{"image"},
+		[]string{"image.generate"},
 		runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_IMAGE,
 		"model_index.json",
 		[]string{"model_index.json", "transformer/model.safetensors"},
@@ -66,7 +66,7 @@ func TestCanonicalSupervisedImageSelectionMatchesWindowsNvidiaGGUFHostProfile(t 
 		collectDeviceProfile(),
 		canonicalImageResolverFactsForImport(
 			"media",
-			[]string{"image"},
+			[]string{"image.generate"},
 			runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_IMAGE,
 			"z_image_turbo-Q4_K.gguf",
 			[]string{"z_image_turbo-Q4_K.gguf"},
@@ -89,7 +89,7 @@ func TestCanonicalSupervisedImageSelectionMatchesAppleSiliconGGUFHostProfile(t *
 		collectDeviceProfile(),
 		canonicalImageResolverFactsForImport(
 			"media",
-			[]string{"image"},
+			[]string{"image.generate"},
 			runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_IMAGE,
 			"z_image_turbo-Q4_K.gguf",
 			[]string{"z_image_turbo-Q4_K.gguf"},
@@ -107,7 +107,7 @@ func TestCanonicalSupervisedImageSelectionMatchesAppleSiliconGGUFHostProfile(t *
 func TestDeriveCanonicalImageFactsSingleFileSafetensors(t *testing.T) {
 	facts := canonicalImageResolverFactsForImport(
 		"media",
-		[]string{"image"},
+		[]string{"image.generate"},
 		runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_IMAGE,
 		"model.safetensors",
 		[]string{"model.safetensors"},
@@ -133,7 +133,7 @@ func TestDeriveCanonicalImageFactsSafetensorsWithRolesButNoModelIndex(t *testing
 	// artifact_roles present but no model_index.json -> must NOT upgrade to workflow
 	facts := canonicalImageResolverFactsForImport(
 		"media",
-		[]string{"image"},
+		[]string{"image.generate"},
 		runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_IMAGE,
 		"model.safetensors",
 		[]string{"model.safetensors"},
@@ -159,7 +159,7 @@ func TestDeriveCanonicalImageFactsSlotOnlySafetensorsNotWorkflow(t *testing.T) {
 	// Slot components are safetensors but main model has no workflow bundle markers
 	facts := canonicalImageResolverFactsForImport(
 		"media",
-		[]string{"image"},
+		[]string{"image.generate"},
 		runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_IMAGE,
 		"main_model.safetensors",
 		[]string{"main_model.safetensors"},
@@ -181,7 +181,7 @@ func TestDeriveCanonicalImageFactsSlotOnlySafetensorsNotWorkflow(t *testing.T) {
 func TestDeriveCanonicalImageFactsFailsCloseWithoutBundleMarkers(t *testing.T) {
 	facts := canonicalImageResolverFactsForImport(
 		"media",
-		[]string{"image"},
+		[]string{"image.generate"},
 		runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_IMAGE,
 		"",
 		nil,
@@ -224,7 +224,7 @@ func TestManagedSupervisedImageBootstrapSelectionPrefersActiveSupportedSelection
 		LocalAssetId: "asset_gguf",
 		AssetId:      "local/gguf-image",
 		Kind:         runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_IMAGE,
-		Capabilities: []string{"image"},
+		Capabilities: []string{"image.generate"},
 		Engine:       "media",
 		Entry:        "z_image_turbo-q4.gguf",
 		Status:       runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE,
@@ -233,7 +233,7 @@ func TestManagedSupervisedImageBootstrapSelectionPrefersActiveSupportedSelection
 		LocalAssetId:  "asset_workflow",
 		AssetId:       "local/workflow-image",
 		Kind:          runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_IMAGE,
-		Capabilities:  []string{"image"},
+		Capabilities:  []string{"image.generate"},
 		Engine:        "media",
 		Entry:         "model_index.json",
 		Files:         []string{"model_index.json", "transformer/model.safetensors"},
@@ -271,7 +271,7 @@ func TestManagedSupervisedImageBootstrapSelectionIgnoresSafetensorsNativeInstall
 		LocalAssetId: "asset_gguf",
 		AssetId:      "local/gguf-image",
 		Kind:         runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_IMAGE,
-		Capabilities: []string{"image"},
+		Capabilities: []string{"image.generate"},
 		Engine:       "media",
 		Entry:        "z_image_turbo-q4.gguf",
 		Status:       runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE,
@@ -280,7 +280,7 @@ func TestManagedSupervisedImageBootstrapSelectionIgnoresSafetensorsNativeInstall
 		LocalAssetId: "asset_st_native",
 		AssetId:      "local/safetensors-image",
 		Kind:         runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_IMAGE,
-		Capabilities: []string{"image"},
+		Capabilities: []string{"image.generate"},
 		Engine:       "media",
 		Entry:        "model.safetensors",
 		Files:        []string{"model.safetensors"},
@@ -316,7 +316,7 @@ func TestManagedSupervisedImageBootstrapSelectionPrefersSupportedInstalledWindow
 		LocalAssetId: "asset_gguf",
 		AssetId:      "local/gguf-image",
 		Kind:         runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_IMAGE,
-		Capabilities: []string{"image"},
+		Capabilities: []string{"image.generate"},
 		Engine:       "media",
 		Entry:        "z_image_turbo-q4.gguf",
 		Status:       runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED,
@@ -325,7 +325,7 @@ func TestManagedSupervisedImageBootstrapSelectionPrefersSupportedInstalledWindow
 		LocalAssetId:  "asset_workflow",
 		AssetId:       "local/workflow-image",
 		Kind:          runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_IMAGE,
-		Capabilities:  []string{"image"},
+		Capabilities:  []string{"image.generate"},
 		Engine:        "media",
 		Entry:         "model_index.json",
 		Files:         []string{"model_index.json", "transformer/model.safetensors"},
@@ -363,7 +363,7 @@ func TestManagedSupervisedImageBootstrapSelectionDoesNotAutoSelectUnsupportedSaf
 		LocalAssetId: "asset_st_native",
 		AssetId:      "local/safetensors-image",
 		Kind:         runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_IMAGE,
-		Capabilities: []string{"image"},
+		Capabilities: []string{"image.generate"},
 		Engine:       "media",
 		Entry:        "model.safetensors",
 		Files:        []string{"model.safetensors"},

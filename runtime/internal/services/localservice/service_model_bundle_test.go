@@ -27,7 +27,7 @@ func writeManagedGGUFBundleForTest(t *testing.T, modelsRoot string, logicalModel
 		"logical_model_id": logicalModelID,
 		"engine":           "llama",
 		"entry":            entry,
-		"capabilities":     []string{"chat"},
+		"capabilities":     []string{"text.generate"},
 		"integrity_mode":   "local_unverified",
 	})
 	if err != nil {
@@ -54,7 +54,7 @@ func writeManagedRuntimeLocalStateForTest(t *testing.T, statePath string, localM
 			LocalAssetID:   localModelID,
 			AssetID:        modelID,
 			Kind:           0,
-			Capabilities:   []string{"chat"},
+			Capabilities:   []string{"text.generate"},
 			Engine:         "llama",
 			Entry:          entry,
 			SourceRepo:     "file://" + filepath.ToSlash(manifestPath),

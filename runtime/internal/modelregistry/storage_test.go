@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
-	"sort"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -213,7 +213,7 @@ func TestInferNativeProjectionForVoiceWorkflowModel(t *testing.T) {
 	withIsolatedResolvedBundles(t)
 	projection, err := InferNativeProjection(
 		"speech/qwen3tts",
-		[]string{"voice_workflow.voice_clone"},
+		[]string{"voice.create"},
 		[]string{"model.safetensors"},
 		runtimev1.ModelStatus_MODEL_STATUS_INSTALLED,
 	)
@@ -461,77 +461,33 @@ func writeResolvedManifest(t *testing.T, path string, manifest resolvedBundleMan
 	}
 }
 
-func TestInferCapabilitiesVision(t *testing.T) {
-	tests := []struct {
-		name      string
-		modelID   string
-		wantCap   string
-		wantFound bool
-	}{
-		{
-			name:      "vision keyword produces text.generate.vision",
-			modelID:   "openai/gpt-4-vision-preview",
-			wantCap:   "text.generate.vision",
-			wantFound: true,
-		},
-		{
-			name:      "vl keyword produces text.generate.vision",
-			modelID:   "dashscope/qwen-vl-max",
-			wantCap:   "text.generate.vision",
-			wantFound: true,
-		},
-		{
-			name:      "plain text model has no vision capability",
-			modelID:   "openai/gpt-4o-mini",
-			wantCap:   "text.generate.vision",
-			wantFound: false,
-		},
-		{
-			name:      "all models get text.generate",
-			modelID:   "openai/gpt-4o-mini",
-			wantCap:   "text.generate",
-			wantFound: true,
-		},
-		{
-			name:      "tts model has no vision",
-			modelID:   "openai/tts-1",
-			wantCap:   "text.generate.vision",
-			wantFound: false,
-		},
-		{
-			name:      "tts model has audio.synthesize",
-			modelID:   "openai/tts-1",
-			wantCap:   "audio.synthesize",
-			wantFound: true,
-		},
-		{
-			name:      "cosyvoice model has audio.synthesize",
-			modelID:   "dashscope/cosyvoice-v3-flash",
-			wantCap:   "audio.synthesize",
-			wantFound: true,
-		},
-		{
-			name:      "embed model gets text.embed",
-			modelID:   "openai/text-embedding-ada-002",
-			wantCap:   "text.embed",
-			wantFound: true,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			caps := InferCapabilities(tt.modelID)
-			sorted := append([]string(nil), caps...)
-			sort.Strings(sorted)
-			found := false
-			for _, c := range sorted {
-				if c == tt.wantCap {
-					found = true
-					break
-				}
+func TestInferCapabilitiesDoesNotInferTextGenerateFeatures(t *testing.T) {
+	for _, modelID := range []string{
+		"openai/gpt-4-vision-preview",
+		"dashscope/qwen-vl-max",
+		"openai/gpt-4o-omni",
+		"google/gemma-4-12b-it-gguf",
+	} {
+		t.Run(modelID, func(t *testing.T) {
+			caps := InferCapabilities(modelID)
+			if len(caps) != 1 || caps[0] != "text.generate" {
+				t.Fatalf("InferCapabilities(%q) inferred media support: %v", modelID, caps)
 			}
-			if found != tt.wantFound {
-				t.Fatalf("InferCapabilities(%q) capability %q: found=%v want=%v (all caps=%v)", tt.modelID, tt.wantCap, found, tt.wantFound, caps)
+		})
+	}
+}
+
+func TestInferCapabilitiesCanonicalMediaAndEmbedding(t *testing.T) {
+	tests := map[string]string{
+		"openai/tts-1":                  "audio.synthesize",
+		"dashscope/cosyvoice-v3-flash":  "audio.synthesize",
+		"openai/text-embedding-ada-002": "text.embed",
+	}
+	for modelID, expected := range tests {
+		t.Run(modelID, func(t *testing.T) {
+			caps := InferCapabilities(modelID)
+			if !slices.Contains(caps, expected) {
+				t.Fatalf("InferCapabilities(%q) missing %q: %v", modelID, expected, caps)
 			}
 		})
 	}
@@ -555,40 +511,5 @@ func TestInferModelFamilyGemma(t *testing.T) {
 				t.Fatalf("inferModelFamily(%q) = %q, want %q", tt.modelID, got, tt.want)
 			}
 		})
-	}
-}
-
-func TestInferCapabilitiesGemma4(t *testing.T) {
-	hasCap := func(caps []string, target string) bool {
-		for _, c := range caps {
-			if c == target {
-				return true
-			}
-		}
-		return false
-	}
-
-	// Gemma 4 should get text.generate.vision
-	caps := InferCapabilities("google/gemma-4-12b-it-gguf")
-	if !hasCap(caps, "text.generate.vision") {
-		t.Fatalf("gemma-4 should have text.generate.vision, got %v", caps)
-	}
-
-	// gemma4 variant also works
-	caps = InferCapabilities("gemma4-26b-a4b-it")
-	if !hasCap(caps, "text.generate.vision") {
-		t.Fatalf("gemma4 should have text.generate.vision, got %v", caps)
-	}
-
-	// Gemma 4 e2b should NOT get audio (gated by version gate)
-	caps = InferCapabilities("google/gemma-4-e2b-it-gguf")
-	if hasCap(caps, "text.generate.audio") {
-		t.Fatalf("gemma-4-e2b should NOT have text.generate.audio (gated), got %v", caps)
-	}
-
-	// Gemma 2 should NOT get vision
-	caps = InferCapabilities("google/gemma-2-9b-it")
-	if hasCap(caps, "text.generate.vision") {
-		t.Fatalf("gemma-2 should NOT have text.generate.vision, got %v", caps)
 	}
 }

@@ -63,7 +63,7 @@ func (s *Service) SubmitScenarioJob(ctx context.Context, req *runtimev1.SubmitSc
 		}
 		return s.submitCloudTextScenarioJob(ctx, req, mode, ignored)
 
-	case runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE, runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_DESIGN:
+	case runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CREATE:
 		return s.submitVoiceWorkflowJob(ctx, req, ignored)
 
 	case runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE:

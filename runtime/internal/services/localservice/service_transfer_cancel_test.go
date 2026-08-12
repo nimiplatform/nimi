@@ -142,7 +142,7 @@ func TestImportLocalModelFileAbortsOnCancelledContext(t *testing.T) {
 	cancel()
 	_, err := svc.ImportLocalAssetFile(ctx, &runtimev1.ImportLocalAssetFileRequest{
 		FilePath:     sourcePath,
-		Capabilities: []string{"chat"},
+		Capabilities: []string{"text.generate"},
 		Engine:       "llama",
 	})
 	if err == nil {

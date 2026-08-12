@@ -71,6 +71,8 @@ func categorizeCapability(capabilityID string, isCloudRoute bool) SpendCategory 
 		return SpendCategoryCloudVideo
 	case startsWith(capabilityID, "audio."):
 		return SpendCategoryCloudAudio
+	case capabilityID == "voice.create":
+		return SpendCategoryCloudAudio
 	case startsWith(capabilityID, "music."):
 		return SpendCategoryCloudMusic
 	case startsWith(capabilityID, "world."):

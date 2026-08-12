@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/aicapabilities"
 	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
 	"github.com/oklog/ulid/v2"
 	"google.golang.org/grpc/codes"
@@ -425,6 +426,9 @@ func validateAddLocalCapabilityConfigurationRequest(request *runtimev1.AddLocalC
 	if request == nil || strings.TrimSpace(request.GetCapabilityContract()) == "" {
 		return fmt.Errorf("capability_contract is required")
 	}
+	if !aicapabilities.IsCanonicalCatalogCapability(request.GetCapabilityContract()) {
+		return fmt.Errorf("capability_contract must be an exact canonical token")
+	}
 	identity := request.GetImplementation()
 	if identity == nil || strings.TrimSpace(identity.GetImplementationId()) == "" || strings.TrimSpace(identity.GetDriverId()) == "" || strings.TrimSpace(identity.GetDriverDialect()) == "" {
 		return fmt.Errorf("complete implementation identity is required")
@@ -452,6 +456,9 @@ func validateStoredLocalCapabilityConfiguration(stored *storedLocalCapabilityCon
 	configuration := stored.Configuration
 	if strings.TrimSpace(configuration.GetConfigurationId()) == "" || strings.TrimSpace(configuration.GetCapabilityContract()) == "" {
 		return fmt.Errorf("configuration identity is required")
+	}
+	if !aicapabilities.IsCanonicalCatalogCapability(configuration.GetCapabilityContract()) {
+		return fmt.Errorf("configuration capability_contract must be an exact canonical token")
 	}
 	identity := configuration.GetImplementation()
 	if identity == nil || strings.TrimSpace(identity.GetImplementationId()) == "" || strings.TrimSpace(identity.GetDriverId()) == "" || strings.TrimSpace(identity.GetDriverDialect()) == "" {
@@ -577,6 +584,9 @@ func validateStoredLocalCapabilitySelection(selection *runtimev1.LocalCapability
 	}
 	if selection.GetCapabilityContract() != strings.TrimSpace(selection.GetCapabilityContract()) || selection.GetConfigurationId() != strings.TrimSpace(selection.GetConfigurationId()) {
 		return fmt.Errorf("local capability selection identity must be canonical")
+	}
+	if !aicapabilities.IsCanonicalCatalogCapability(selection.GetCapabilityContract()) {
+		return fmt.Errorf("local capability selection must use an exact canonical capability token")
 	}
 	if configurations[selection.GetConfigurationId()] == nil {
 		return fmt.Errorf("selection references unknown configuration %q", selection.GetConfigurationId())

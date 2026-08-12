@@ -36,9 +36,9 @@ func isMimoModelID(modelID string) bool {
 func mimoTTSModelKind(modelID string) string {
 	switch strings.TrimSpace(modelID) {
 	case "mimo-v2.5-tts-voiceclone":
-		return "voice_clone"
+		return "reference_audio"
 	case "mimo-v2.5-tts-voicedesign":
-		return "voice_design"
+		return "text_description"
 	default:
 		return "preset"
 	}
@@ -51,7 +51,7 @@ func encodeMimoProviderVoiceRef(workflow string, payload string) string {
 		return ""
 	}
 	switch normalizedWorkflow {
-	case "voice_design":
+	case "text_description":
 		return mimoVoiceRefPrefix + normalizedWorkflow + ":" + base64.RawURLEncoding.EncodeToString([]byte(normalizedPayload))
 	default:
 		return mimoVoiceRefPrefix + normalizedWorkflow + ":" + normalizedPayload
@@ -73,7 +73,7 @@ func decodeMimoProviderVoiceRef(raw string) (workflow string, payload string, ok
 	if workflow == "" || payload == "" {
 		return "", "", false
 	}
-	if workflow == "voice_design" {
+	if workflow == "text_description" {
 		decoded, err := base64.RawURLEncoding.DecodeString(payload)
 		if err != nil || len(decoded) == 0 {
 			return "", "", false
@@ -211,13 +211,13 @@ func (b *Backend) synthesizeMimoChat(
 		"format": audioFormat,
 	}
 	switch modelKind {
-	case "voice_clone":
+	case "reference_audio":
 		voice, err := resolveMimoVoiceCloneAudioRef(spec)
 		if err != nil {
 			return nil, nil, err
 		}
 		audio["voice"] = voice
-	case "voice_design":
+	case "text_description":
 		designPrompt, err := resolveMimoVoiceDesignPrompt(spec, scenarioExtensions)
 		if err != nil {
 			return nil, nil, err
@@ -271,7 +271,7 @@ func resolveMimoVoiceCloneAudioRef(spec *runtimev1.SpeechSynthesizeScenarioSpec)
 		return "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_VOICE_INPUT_INVALID)
 	}
 	if workflow, payload, ok := decodeMimoProviderVoiceRef(voiceRef); ok {
-		if workflow != "voice_clone" {
+		if workflow != "reference_audio" {
 			return "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_VOICE_TARGET_MODEL_MISMATCH)
 		}
 		voiceRef = payload
@@ -295,7 +295,7 @@ func resolveMimoVoiceDesignPrompt(spec *runtimev1.SpeechSynthesizeScenarioSpec, 
 	voiceRef := strings.TrimSpace(scenarioVoiceRef(spec))
 	if voiceRef != "" {
 		if workflow, payload, ok := decodeMimoProviderVoiceRef(voiceRef); ok {
-			if workflow != "voice_design" {
+			if workflow != "text_description" {
 				return "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_VOICE_TARGET_MODEL_MISMATCH)
 			}
 			return payload, nil

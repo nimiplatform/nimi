@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/aicapabilities"
 	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
 	"github.com/nimiplatform/nimi/runtime/internal/executionintent"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
@@ -113,9 +114,10 @@ func (s *Service) captureLocalImageEffectiveInputs(
 	portable, _ := proto.Clone(selected.PortableConfig).(*structpb.Struct)
 	capturedRequest, _ := proto.Clone(request).(*runtimev1.ImageGenerateScenarioSpec)
 	plan, err := imageDriver.PlanImageInvocation(capabilitydriver.ImageInvocationInput{
-		PortableConfig: portable,
-		ExactBindings:  append([]capabilitydriver.InvocationExactBinding(nil), exactBindings...),
-		Request:        capturedRequest,
+		PortableConfig:    portable,
+		SupportedFeatures: append([]string(nil), selected.SupportedFeatures...),
+		ExactBindings:     append([]capabilitydriver.InvocationExactBinding(nil), exactBindings...),
+		Request:           capturedRequest,
 	})
 	if err != nil {
 		return nil, localImageInvocationError(err)
@@ -168,9 +170,12 @@ func requireSelectedImageRequestFeatures(spec *runtimev1.ImageGenerateScenarioSp
 	if spec == nil {
 		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 	}
-	required := make([]string, 0, 1)
-	if len(spec.GetReferenceImages()) > 0 || strings.TrimSpace(spec.GetMask()) != "" {
-		required = append(required, "input.image")
+	required := make([]string, 0, 2)
+	if len(spec.GetReferenceImages()) > 0 {
+		required = append(required, aicapabilities.FeatureInputImage)
+	}
+	if strings.TrimSpace(spec.GetMask()) != "" {
+		required = append(required, aicapabilities.FeatureInputMask)
 	}
 	if err := requireSelectedFeatures(required, supported); err != nil {
 		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MODALITY_NOT_SUPPORTED)

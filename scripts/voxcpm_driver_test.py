@@ -23,9 +23,10 @@ VOXCPM_DRIVER = load_module()
 
 class VoxCPMDriverTests(unittest.TestCase):
     def test_voice_design_handle_roundtrip(self) -> None:
-        response = VOXCPM_DRIVER.build_design_handle(
+        response = VOXCPM_DRIVER.build_text_description_handle(
             {
-                "operation": "voice_workflow.voice_design",
+                "operation": "voice.create",
+                "creation_source": "text_description",
                 "target_model_id": "speech/voxcpm2",
                 "input": {
                     "instruction_text": "Warm, calm narrator",
@@ -37,14 +38,15 @@ class VoxCPMDriverTests(unittest.TestCase):
         )
         voice_id = response["voice_id"]
         kind, payload = VOXCPM_DRIVER.decode_voice_handle(voice_id)
-        self.assertEqual(kind, "design")
+        self.assertEqual(kind, "text_description")
         self.assertEqual(payload["instruction_text"], "Warm, calm narrator")
         self.assertEqual(payload["target_model_id"], "speech/voxcpm2")
 
     def test_voice_clone_handle_roundtrip(self) -> None:
-        response = VOXCPM_DRIVER.build_clone_handle(
+        response = VOXCPM_DRIVER.build_reference_audio_handle(
             {
-                "operation": "voice_workflow.voice_clone",
+                "operation": "voice.create",
+                "creation_source": "reference_audio",
                 "target_model_id": "speech/voxcpm2",
                 "input": {
                     "reference_audio_base64": "AQI=",
@@ -57,18 +59,19 @@ class VoxCPMDriverTests(unittest.TestCase):
         )
         voice_id = response["voice_id"]
         kind, payload = VOXCPM_DRIVER.decode_voice_handle(voice_id)
-        self.assertEqual(kind, "clone")
+        self.assertEqual(kind, "reference_audio")
         self.assertEqual(payload["reference_audio_base64"], "AQI=")
         self.assertEqual(payload["text"], "reference transcript")
 
-    def test_main_voice_design_writes_response_file(self) -> None:
+    def test_main_voice_text_description_writes_response_file(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             request_path = pathlib.Path(temp_dir) / "request.json"
             response_path = pathlib.Path(temp_dir) / "response.json"
             request_path.write_text(
                 json.dumps(
                     {
-                        "operation": "voice_workflow.voice_design",
+                        "operation": "voice.create",
+                        "creation_source": "text_description",
                         "target_model_id": "speech/voxcpm2",
                         "input": {"instruction_text": "Soft voice"},
                     }
@@ -89,7 +92,7 @@ class VoxCPMDriverTests(unittest.TestCase):
                 sys.argv = previous_argv
             self.assertEqual(code, 0)
             payload = json.loads(response_path.read_text(encoding="utf-8"))
-            self.assertTrue(payload["voice_id"].startswith("voxcpm:design:"))
+            self.assertTrue(payload["voice_id"].startswith("voxcpm:text-description:"))
 
 
 if __name__ == "__main__":

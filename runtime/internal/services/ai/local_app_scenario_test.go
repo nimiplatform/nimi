@@ -124,57 +124,54 @@ func TestLocalAppImageOptionsUseResolvedLocalDriverClassificationBeforeWork(t *t
 		{name: "seed below local carrier", n: testInt32(1), size: "64x64", seed: testInt64(math.MinInt32 - 1)},
 		{name: "seed above local carrier", n: testInt32(1), size: "64x64", seed: testInt64(math.MaxInt32 + 1)},
 	}
-	for _, async := range []bool{false, true} {
-		mode := "sync"
-		if async {
-			mode = "async"
-		}
-		for _, option := range options {
-			t.Run(mode+"/"+option.name, func(t *testing.T) {
-				svc := newTestService(nil)
-				if err := svc.aiConfigStore.Overwrite(context.Background(), "account-1",
-					appAIConfig("nimi.realm-persona-studio", localAppAIConfigIntent("image.generate"))); err != nil {
-					t.Fatalf("install Local App AIConfig: %v", err)
-				}
-				host := &localImageHostStub{}
-				svc.SetLocalExecutionResolver(&mutableLocalExecutionResolver{projection: selectedImageExecutionForTest(t, "local-app-image-option-"+mode+"-"+option.name)})
-				svc.SetLocalImageExecutionHost(host)
-				spec := &runtimev1.LocalAppImageGenerateScenarioSpec{Prompt: "image", N: option.n, Size: option.size, Seed: option.seed}
+	for _, option := range options {
+		t.Run(option.name, func(t *testing.T) {
+			svc := newTestService(nil)
+			if err := svc.aiConfigStore.Overwrite(context.Background(), "account-1",
+				appAIConfig("nimi.realm-persona-studio", localAppAIConfigIntent("image.generate"))); err != nil {
+				t.Fatalf("install Local App AIConfig: %v", err)
+			}
+			host := &localImageHostStub{}
+			svc.SetLocalExecutionResolver(&mutableLocalExecutionResolver{projection: selectedImageExecutionForTest(t, "local-app-image-option-"+option.name)})
+			svc.SetLocalImageExecutionHost(host)
+			spec := &runtimev1.LocalAppImageGenerateScenarioSpec{Prompt: "image", N: option.n, Size: option.size, Seed: option.seed}
 
-				var err error
-				if async {
-					response, callErr := svc.SubmitLocalAppScenarioJob(
-						localAppScenarioDecisionContext(accountservice.LocalAppOperationScenarioJobSubmit, localappop.AppOperationIDScenarioJobSubmit),
-						&runtimev1.SubmitLocalAppScenarioJobRequest{Spec: &runtimev1.SubmitLocalAppScenarioJobRequest_ImageGenerate{ImageGenerate: spec}},
-					)
-					if response != nil {
-						t.Fatalf("unsupported option returned Local App Job: %+v", response)
-					}
-					err = callErr
-				} else {
-					response, callErr := svc.ExecuteLocalAppScenario(
-						localAppScenarioExecuteContext(),
-						&runtimev1.ExecuteLocalAppScenarioRequest{Spec: &runtimev1.ExecuteLocalAppScenarioRequest_ImageGenerate{ImageGenerate: spec}},
-					)
-					if response != nil {
-						t.Fatalf("unsupported option returned Local App response: %+v", response)
-					}
-					err = callErr
-				}
-				if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED || statusCode(err) != codes.InvalidArgument {
-					t.Fatalf("option error=%v code=%v reason=%v present=%v", err, statusCode(err), reason, ok)
-				}
-				host.mu.Lock()
-				planCount := len(host.plans)
-				host.mu.Unlock()
-				svc.scenarioJobs.mu.RLock()
-				jobCount := len(svc.scenarioJobs.jobs)
-				svc.scenarioJobs.mu.RUnlock()
-				if planCount != 0 || jobCount != 0 {
-					t.Fatalf("unsupported Local App option created work: host_plans=%d jobs=%d", planCount, jobCount)
-				}
-			})
-		}
+			response, err := svc.SubmitLocalAppScenarioJob(
+				localAppScenarioDecisionContext(accountservice.LocalAppOperationScenarioJobSubmit, localappop.AppOperationIDScenarioJobSubmit),
+				&runtimev1.SubmitLocalAppScenarioJobRequest{Spec: &runtimev1.SubmitLocalAppScenarioJobRequest_ImageGenerate{ImageGenerate: spec}},
+			)
+			if response != nil {
+				t.Fatalf("unsupported option returned Local App Job: %+v", response)
+			}
+			if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED || statusCode(err) != codes.InvalidArgument {
+				t.Fatalf("option error=%v code=%v reason=%v present=%v", err, statusCode(err), reason, ok)
+			}
+			host.mu.Lock()
+			planCount := len(host.plans)
+			host.mu.Unlock()
+			svc.scenarioJobs.mu.RLock()
+			jobCount := len(svc.scenarioJobs.jobs)
+			svc.scenarioJobs.mu.RUnlock()
+			if planCount != 0 || jobCount != 0 {
+				t.Fatalf("unsupported Local App option created work: host_plans=%d jobs=%d", planCount, jobCount)
+			}
+		})
+	}
+}
+
+func TestExecuteLocalAppImageGenerateFailsClosedAsAsyncJobOnly(t *testing.T) {
+	svc := newTestService(nil)
+	response, err := svc.ExecuteLocalAppScenario(
+		localAppScenarioExecuteContext(),
+		&runtimev1.ExecuteLocalAppScenarioRequest{Spec: &runtimev1.ExecuteLocalAppScenarioRequest_ImageGenerate{
+			ImageGenerate: &runtimev1.LocalAppImageGenerateScenarioSpec{Prompt: "image"},
+		}},
+	)
+	if response != nil {
+		t.Fatalf("sync Local App image returned response: %+v", response)
+	}
+	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED {
+		t.Fatalf("sync Local App image rejection=%v reason=%v present=%v", err, reason, ok)
 	}
 }
 

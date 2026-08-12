@@ -112,7 +112,7 @@ func TestResolveManagedMediaImageProfileInjectsDynamicSlots(t *testing.T) {
 	}
 	modelResp := mustInstallSupervisedLocalModel(t, svc, installLocalAssetParams{
 		assetID:      "z_image_turbo",
-		capabilities: []string{"image"},
+		capabilities: []string{"image.generate"},
 		engine:       "media",
 		entry:        "z_image_turbo-Q4_K_M.gguf",
 		engineConfig: engineConfig,
@@ -321,7 +321,7 @@ func TestResolveManagedMediaImageProfileAcceptsLocalAssetIDRequestIdentity(t *te
 
 	modelResp := mustInstallSupervisedLocalModel(t, svc, installLocalAssetParams{
 		assetID:      "local-import/z-image-turbo-Q4_K_M",
-		capabilities: []string{"image"},
+		capabilities: []string{"image.generate"},
 		engine:       "media",
 		entry:        "z-image-turbo-Q4_K_M.gguf",
 	})
@@ -362,7 +362,7 @@ func TestResolveManagedMediaImageProfileDoesNotRequireEngineConfigDefaults(t *te
 
 	modelResp := mustInstallSupervisedLocalModel(t, svc, installLocalAssetParams{
 		assetID:      "z_image_turbo",
-		capabilities: []string{"image"},
+		capabilities: []string{"image.generate"},
 		engine:       "media",
 		entry:        "z_image_turbo-Q4_K_M.gguf",
 	})
@@ -441,7 +441,7 @@ func TestResolveManagedMediaImageProfileEnablesDiffusionFAOnAppleSilicon(t *test
 	}
 	modelResp := mustInstallSupervisedLocalModel(t, svc, installLocalAssetParams{
 		assetID:      "z_image_turbo",
-		capabilities: []string{"image"},
+		capabilities: []string{"image.generate"},
 		engine:       "media",
 		entry:        "z_image_turbo-Q4_K_M.gguf",
 		engineConfig: engineConfig,
@@ -488,7 +488,7 @@ func TestResolveManagedMediaImageProfilePreservesExplicitCFGScale(t *testing.T) 
 	}
 	modelResp := mustInstallSupervisedLocalModel(t, svc, installLocalAssetParams{
 		assetID:      "z_image_turbo",
-		capabilities: []string{"image"},
+		capabilities: []string{"image.generate"},
 		engine:       "media",
 		entry:        "z_image_turbo-Q4_K_M.gguf",
 		engineConfig: engineConfig,
@@ -534,7 +534,7 @@ func TestResolveManagedMediaImageProfileRetainsDiffusionModelWhenOverridesReplac
 
 	modelResp := mustInstallSupervisedLocalModel(t, svc, installLocalAssetParams{
 		assetID:      "z_image_turbo",
-		capabilities: []string{"image"},
+		capabilities: []string{"image.generate"},
 		engine:       "media",
 		entry:        "z_image_turbo-Q4_K_M.gguf",
 	})
@@ -582,7 +582,7 @@ func TestResolveManagedMediaImageProfileAppliesEntryOverrides(t *testing.T) {
 	}
 	modelResp := mustInstallSupervisedLocalModel(t, svc, installLocalAssetParams{
 		assetID:      "z_image_turbo",
-		capabilities: []string{"image"},
+		capabilities: []string{"image.generate"},
 		engine:       "media",
 		entry:        "z_image_turbo-Q4_K_M.gguf",
 		engineConfig: engineConfig,
@@ -630,7 +630,7 @@ func TestResolveManagedMediaImageProfileAppliesEntryOverrides(t *testing.T) {
 			{
 				EntryId:    "llm-slot",
 				Kind:       runtimev1.LocalProfileEntryKind_LOCAL_PROFILE_ENTRY_KIND_ASSET,
-				Capability: "image",
+				Capability: "image.generate",
 				AssetId:    "qwen3_4b_companion",
 				AssetKind:  runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_CHAT,
 				Engine:     "llama",
@@ -669,7 +669,7 @@ func TestResolveManagedMediaImageProfileAllowsSelectedUnhealthyMainOverride(t *t
 	}
 	modelResp := mustInstallSupervisedLocalModel(t, svc, installLocalAssetParams{
 		assetID:      "z_image_turbo",
-		capabilities: []string{"image"},
+		capabilities: []string{"image.generate"},
 		engine:       "media",
 		entry:        "z_image_turbo-Q4_K_M.gguf",
 		engineConfig: engineConfig,
@@ -704,7 +704,7 @@ func TestResolveManagedMediaImageProfileAllowsSelectedUnhealthyMainOverride(t *t
 			{
 				EntryId:    "llm-slot",
 				Kind:       runtimev1.LocalProfileEntryKind_LOCAL_PROFILE_ENTRY_KIND_ASSET,
-				Capability: "image",
+				Capability: "image.generate",
 				AssetId:    "qwen3_4b_companion",
 				AssetKind:  runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_CHAT,
 				Engine:     "llama",

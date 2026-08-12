@@ -233,7 +233,7 @@ func TestListConnectorModelsDashScopeIncludesRepresentativeImageModels(t *testin
 					continue
 				}
 				foundImageModels[modelID] = true
-			case "voice_workflow.voice_clone", "voice_workflow.voice_design":
+			case "voice.create":
 				foundVoiceWorkflowCapabilities[modelID] = strings.TrimSpace(capability)
 			}
 		}
@@ -244,11 +244,11 @@ func TestListConnectorModelsDashScopeIncludesRepresentativeImageModels(t *testin
 	if !foundSpeechSynthesizeModels["cosyvoice-v3.5-flash"] || !foundSpeechSynthesizeModels["qwen3-tts-flash"] {
 		t.Fatalf("expected representative dashscope audio.synthesize models, found %v", foundSpeechSynthesizeModels)
 	}
-	if foundVoiceWorkflowCapabilities["qwen3-tts-vc"] != "voice_workflow.voice_clone" {
-		t.Fatalf("expected qwen3-tts-vc voice_workflow.voice_clone, found %q", foundVoiceWorkflowCapabilities["qwen3-tts-vc"])
+	if foundVoiceWorkflowCapabilities["qwen3-tts-vc"] != "voice.create" {
+		t.Fatalf("expected qwen3-tts-vc voice.create, found %q", foundVoiceWorkflowCapabilities["qwen3-tts-vc"])
 	}
-	if foundVoiceWorkflowCapabilities["qwen3-tts-vd"] != "voice_workflow.voice_design" {
-		t.Fatalf("expected qwen3-tts-vd voice_workflow.voice_design, found %q", foundVoiceWorkflowCapabilities["qwen3-tts-vd"])
+	if foundVoiceWorkflowCapabilities["qwen3-tts-vd"] != "voice.create" {
+		t.Fatalf("expected qwen3-tts-vd voice.create, found %q", foundVoiceWorkflowCapabilities["qwen3-tts-vd"])
 	}
 }
 func TestListConnectorModelsForceRefreshIsNoOpAndDoesNotOutbound(t *testing.T) {

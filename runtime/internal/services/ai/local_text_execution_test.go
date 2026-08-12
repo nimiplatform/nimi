@@ -2,7 +2,6 @@ package ai
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"path/filepath"
@@ -25,13 +24,17 @@ import (
 )
 
 type mutableLocalExecutionResolver struct {
-	mu         sync.Mutex
-	projection *localexecution.SelectedLocalExecution
-	err        error
-	calls      int
+	mu                 sync.Mutex
+	projection         *localexecution.SelectedLocalExecution
+	capabilityContract string
+	err                error
+	calls              int
 }
 
 func (r *mutableLocalExecutionResolver) SelectedLocalCapabilityContracts() []string {
+	if strings.TrimSpace(r.capabilityContract) != "" {
+		return []string{r.capabilityContract}
+	}
 	return []string{capabilitydriver.LlamaCapabilityContract}
 }
 
@@ -200,97 +203,104 @@ func TestNormalizeLocalTextRequestExplicitZeroOverridesDefaults(t *testing.T) {
 	}
 }
 
-func TestSubmitLocalTextCapturesSelectionBeforeRunningJob(t *testing.T) {
+func TestSubmitLocalImageCapturesSelectionBeforeRunningJob(t *testing.T) {
 	svc := newTestService(nil)
-	resolver := &mutableLocalExecutionResolver{projection: selectedTextExecutionForTest(t, "config-first", "first.gguf")}
-	host := &localTextHostStub{started: make(chan struct{}), release: make(chan struct{})}
+	first := selectedImageExecutionForTest(t, "config-first")
+	second := selectedImageExecutionForTest(t, "config-second")
+	resolver := &mutableLocalExecutionResolver{
+		projection: first, capabilityContract: capabilitydriver.StableDiffusionCapabilityContract,
+	}
+	host := &localImageHostStub{entered: make(chan struct{}), allowStart: make(chan struct{})}
 	svc.SetLocalExecutionResolver(resolver)
-	svc.SetLocalTextExecutionHost(host)
-	defaults, err := structpb.NewStruct(map[string]any{"temperature": 0.2})
+	svc.SetLocalImageExecutionHost(host)
+	defaults, err := structpb.NewStruct(map[string]any{"size": "64x64"})
 	if err != nil {
 		t.Fatal(err)
 	}
-	ctx := localTextIntentContext(context.Background(), defaults)
+	request := localImageJobRequestForTest(1)
+	request.GetSpec().GetImageGenerate().Size = ""
 
-	response, err := svc.SubmitScenarioJob(ctx, localTextJobRequestForTest())
+	response, err := svc.SubmitScenarioJob(localImageIntentContext(context.Background(), defaults), request)
 	if err != nil {
 		t.Fatalf("SubmitScenarioJob: %v", err)
 	}
 	select {
-	case <-host.started:
+	case <-host.entered:
 	case <-time.After(2 * time.Second):
-		t.Fatal("captured job did not start")
+		t.Fatal("captured image job did not enter Host")
 	}
-	resolver.set(selectedTextExecutionForTest(t, "config-second", "second.gguf"))
-	defaults.Fields["temperature"] = structpb.NewNumberValue(0.9)
-	close(host.release)
+	resolver.set(second)
+	defaults.Fields["size"] = structpb.NewStringValue("128x128")
+	close(host.allowStart)
 	job := waitForScenarioJobTerminalForLocalTextTest(t, svc, response.GetJob().GetJobId())
 	if job.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED {
 		t.Fatalf("job = %+v", job)
 	}
 	host.mu.Lock()
-	args := strings.Join(host.capturedArgs, " ")
-	body := append([]byte(nil), host.capturedBody...)
+	plan := host.plans[0]
 	host.mu.Unlock()
-	if !strings.Contains(args, "first.gguf") || strings.Contains(args, "second.gguf") {
-		t.Fatalf("running job did not retain captured selection: %s", args)
-	}
-	var requestBody map[string]any
-	if err := json.Unmarshal(body, &requestBody); err != nil || requestBody["temperature"] != 0.2 {
-		t.Fatalf("running job did not retain captured AIConfig defaults: body=%s err=%v", body, err)
+	width, height := plan.Size()
+	if plan.MainModelPath() != first.ExactBindings[0].AbsolutePath || plan.MainModelPath() == second.ExactBindings[0].AbsolutePath || width != 64 || height != 64 {
+		t.Fatalf("running image job did not retain captured selection/defaults: path=%q size=%dx%d", plan.MainModelPath(), width, height)
 	}
 	if job.GetModelResolved() != "config-first" {
 		t.Fatalf("model_resolved = %q", job.GetModelResolved())
 	}
 }
 
-func TestLocalTextJobSchedulerQueuedDeadlinePublishesTimeout(t *testing.T) {
+func TestLocalVideoJobSchedulerQueuedDeadlinePublishesTimeout(t *testing.T) {
 	svc := newTestService(nil)
 	svc.scheduler = scheduler.New(scheduler.Config{GlobalConcurrency: 1, PerAppConcurrency: 1})
-	svc.SetLocalExecutionResolver(&mutableLocalExecutionResolver{projection: selectedTextExecutionForTest(t, "config-timeout", "timeout.gguf")})
-	host := &localTextHostStub{started: make(chan struct{}), release: make(chan struct{})}
-	svc.SetLocalTextExecutionHost(host)
-	ctx := localTextIntentContext(context.Background(), nil)
+	svc.SetLocalExecutionResolver(&countingLocalExecutionResolver{projection: selectedVideoExecutionForTest(t, "video-queued-timeout")})
+	host := &localVideoHostStub{entered: make(chan struct{}), started: make(chan struct{})}
+	svc.SetLocalVideoExecutionHost(host)
+	svc.SetLocalVideoMediaPipeline(&videoMediaPipelineStub{})
 
-	first, err := svc.SubmitScenarioJob(ctx, localTextJobRequestForTest())
+	blockerRelease, _, err := svc.scheduler.Acquire(context.Background(), "app.scheduler.blocker")
 	if err != nil {
-		t.Fatalf("SubmitScenarioJob(first): %v", err)
+		t.Fatalf("acquire scheduler blocker: %v", err)
+	}
+	released := false
+	t.Cleanup(func() {
+		if !released {
+			blockerRelease()
+		}
+	})
+
+	request := localVideoJobRequestForTest(64, 64, 5)
+	request.Head.AppId = "app.video.queued-timeout"
+	request.Head.TimeoutMs = 100
+	response, err := svc.SubmitScenarioJob(localVideoIntentContext(context.Background()), request)
+	if err != nil {
+		t.Fatalf("SubmitScenarioJob: %v", err)
+	}
+	select {
+	case <-host.entered:
+	case <-time.After(2 * time.Second):
+		t.Fatal("video job did not reach factual Host admission")
+	}
+	terminal := waitForScenarioJobTerminalForLocalTextTest(t, svc, response.GetJob().GetJobId())
+	if terminal.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_TIMEOUT || terminal.GetReasonCode() != runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT {
+		t.Fatalf("queued local video timeout = %+v", terminal)
 	}
 	select {
 	case <-host.started:
-	case <-time.After(2 * time.Second):
-		t.Fatal("first local text job did not enter Host")
+		t.Fatal("scheduler-queued timed-out video job began backend work")
+	default:
 	}
 
-	secondRequest := localTextJobRequestForTest()
-	secondRequest.Head.TimeoutMs = 100
-	second, err := svc.SubmitScenarioJob(ctx, secondRequest)
-	if err != nil {
-		t.Fatalf("SubmitScenarioJob(second): %v", err)
-	}
-	terminal := waitForScenarioJobTerminalForLocalTextTest(t, svc, second.GetJob().GetJobId())
-	if terminal.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_TIMEOUT || terminal.GetReasonCode() != runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT {
-		t.Fatalf("queued local text timeout = %+v", terminal)
-	}
-	host.mu.Lock()
-	executeCalls := host.executeCalls
-	host.mu.Unlock()
-	if executeCalls != 1 {
-		t.Fatalf("scheduler-queued timed-out job entered Host: execute_calls=%d", executeCalls)
-	}
-
-	close(host.release)
-	if terminal := waitForScenarioJobTerminalForLocalTextTest(t, svc, first.GetJob().GetJobId()); terminal.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED {
-		t.Fatalf("first local text job terminal = %+v", terminal)
-	}
+	blockerRelease()
+	released = true
 }
 
-func TestSubmitAppLocalTextCapturesAIConfigBeforeRunningJob(t *testing.T) {
+func TestSubmitAppLocalImageCapturesAIConfigBeforeRunningJob(t *testing.T) {
 	svc := newTestService(nil)
-	svc.SetLocalExecutionResolver(&mutableLocalExecutionResolver{projection: selectedTextExecutionForTest(t, "config-app-job", "app-job.gguf")})
-	host := &localTextHostStub{started: make(chan struct{}), release: make(chan struct{})}
-	svc.SetLocalTextExecutionHost(host)
-	defaults, err := structpb.NewStruct(map[string]any{"temperature": 0.3})
+	svc.SetLocalExecutionResolver(&mutableLocalExecutionResolver{
+		projection: selectedImageExecutionForTest(t, "config-app-job"), capabilityContract: capabilitydriver.StableDiffusionCapabilityContract,
+	})
+	host := &localImageHostStub{entered: make(chan struct{}), allowStart: make(chan struct{})}
+	svc.SetLocalImageExecutionHost(host)
+	defaults, err := structpb.NewStruct(map[string]any{"size": "64x64", "n": 2.0})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -299,7 +309,7 @@ func TestSubmitAppLocalTextCapturesAIConfigBeforeRunningJob(t *testing.T) {
 		if err := svc.aiConfigStore.Overwrite(context.Background(), "account-a", &runtimev1.AIConfig{
 			Owner: derivedAppAIConfigOwner("app.local"),
 			Capabilities: []*runtimev1.AIConfigCapabilityIntent{{
-				CapabilityContract: capabilitydriver.LlamaCapabilityContract,
+				CapabilityContract: capabilitydriver.StableDiffusionCapabilityContract,
 				Defaults:           value,
 				Route:              &runtimev1.AIConfigCapabilityIntent_Local{Local: &runtimev1.AIConfigLocalIntent{}},
 			}},
@@ -313,29 +323,31 @@ func TestSubmitAppLocalTextCapturesAIConfigBeforeRunningJob(t *testing.T) {
 		&runtimev1.AccountProjection{AccountId: "account-a", RealmEnvironmentId: "realm-a"},
 		1, [32]byte{1}, make(chan struct{}),
 	)
-	request := localTextJobRequestForTest()
+	request := localImageJobRequestForTest(0)
+	request.GetSpec().GetImageGenerate().N = nil
+	request.GetSpec().GetImageGenerate().Size = ""
 	response, err := svc.SubmitScenarioJob(protectedprincipal.With(context.Background(), principal), request)
 	if err != nil {
 		t.Fatalf("SubmitScenarioJob: %v", err)
 	}
 	select {
-	case <-host.started:
+	case <-host.entered:
 	case <-time.After(2 * time.Second):
-		t.Fatal("App job did not start")
+		t.Fatal("App image job did not enter Host")
 	}
-	replacement, _ := structpb.NewStruct(map[string]any{"temperature": 0.8})
+	replacement, _ := structpb.NewStruct(map[string]any{"size": "128x128", "n": 1.0})
 	writeConfig(replacement)
-	close(host.release)
+	close(host.allowStart)
 	job := waitForScenarioJobTerminalForLocalTextTest(t, svc, response.GetJob().GetJobId())
 	if job.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED {
 		t.Fatalf("job = %+v", job)
 	}
 	host.mu.Lock()
-	body := append([]byte(nil), host.capturedBody...)
+	plan := host.plans[0]
 	host.mu.Unlock()
-	var requestBody map[string]any
-	if err := json.Unmarshal(body, &requestBody); err != nil || requestBody["temperature"] != 0.3 {
-		t.Fatalf("App job did not retain captured AIConfig: body=%s err=%v", body, err)
+	width, height := plan.Size()
+	if plan.ImageCount() != 2 || width != 64 || height != 64 {
+		t.Fatalf("App image job did not retain captured AIConfig: count=%d size=%dx%d", plan.ImageCount(), width, height)
 	}
 }
 

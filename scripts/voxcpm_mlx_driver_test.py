@@ -33,15 +33,16 @@ class VoxCPMMLXDriverTests(unittest.TestCase):
         sys.modules.update(self._old_modules)
 
     def test_voice_design_handle_roundtrip(self) -> None:
-        response = VOXCPM_MLX_DRIVER.build_design_handle(
+        response = VOXCPM_MLX_DRIVER.build_text_description_handle(
             {
-                "operation": "voice_workflow.voice_design",
+                "operation": "voice.create",
+                "creation_source": "text_description",
                 "target_model_id": "speech/voxcpm2",
                 "input": {"instruction_text": "Bright and cheerful", "preferred_name": "mlx-design"},
             }
         )
         kind, payload = VOXCPM_MLX_DRIVER.decode_voice_handle(response["voice_id"])
-        self.assertEqual(kind, "design")
+        self.assertEqual(kind, "text_description")
         self.assertEqual(payload["backend"], "mlx")
         self.assertEqual(payload["instruction_text"], "Bright and cheerful")
 
@@ -51,7 +52,7 @@ class VoxCPMMLXDriverTests(unittest.TestCase):
             "mlx-community/VoxCPM2-4bit",
             "hello world",
             VOXCPM_MLX_DRIVER.encode_voice_handle(
-                VOXCPM_MLX_DRIVER.VOICE_CLONE_PREFIX,
+                VOXCPM_MLX_DRIVER.VOICE_REFERENCE_AUDIO_PREFIX,
                 {
                     "reference_audio_base64": "AQI=",
                     "text": "reference transcript",
@@ -78,8 +79,7 @@ class VoxCPMMLXDriverTests(unittest.TestCase):
         self.assertEqual(response["driver_backend"], "mlx")
         self.assertEqual(response["model_ref"], "mlx-community/VoxCPM2-4bit")
         self.assertIn("audio.synthesize", response["supports"])
-        self.assertIn("voice_workflow.voice_design", response["supports"])
-        self.assertIn("voice_workflow.voice_clone", response["supports"])
+        self.assertIn("voice.create", response["supports"])
 
     def test_main_synthesize_writes_response_file(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

@@ -54,26 +54,26 @@ func adapterForProviderCapability(provider string, capability string) string {
 		case "music.generate":
 			return "sidecar_music_adapter"
 		default:
-			return "openai_compat_adapter"
+			return ""
 		}
 	case "media":
 		switch normalizedCapability {
-		case "image.generate", "image.edit", "video.generate", "i2v":
+		case "image.generate", "video.generate":
 			return "media_native_adapter"
 		default:
-			return "openai_compat_adapter"
+			return ""
 		}
 	case "speech":
 		switch normalizedCapability {
-		case "audio.transcribe", "audio.synthesize", "voice_workflow.voice_clone", "voice_workflow.voice_design":
+		case "audio.transcribe", "audio.synthesize", "voice.create":
 			return "speech_native_adapter"
 		default:
-			return "openai_compat_adapter"
+			return ""
 		}
 	case "llama":
 		return ""
 	default:
-		return "openai_compat_adapter"
+		return ""
 	}
 }
 
@@ -102,10 +102,8 @@ func apiPathForProviderCapability(provider string, capability string) string {
 		return "/v1/audio/speech"
 	case "audio.transcribe":
 		return "/v1/audio/transcriptions"
-	case "voice_workflow.voice_clone":
-		return "/v1/voice/clone"
-	case "voice_workflow.voice_design":
-		return "/v1/voice/design"
+	case "voice.create":
+		return "/v1/voice/create"
 	default:
 		return "/v1/chat/completions"
 	}

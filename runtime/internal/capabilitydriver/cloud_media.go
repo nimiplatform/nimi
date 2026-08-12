@@ -454,7 +454,7 @@ func NewProductionCloudMediaRegistry() *CloudMediaRegistry {
 
 func providerSupportsAnyCloudMedia(record providerregistry.ProviderRecord) bool {
 	return record.SupportsImage || record.SupportsVideo || record.SupportsTTS || record.SupportsSTT ||
-		record.SupportsMusic || record.SupportsVoiceClone || record.SupportsVoiceDesign || record.ID == "worldlabs"
+		record.SupportsMusic || record.SupportsVoiceReferenceAudio || record.SupportsVoiceTextDescription || record.ID == "worldlabs"
 }
 
 // Resolve validates an exact target through one provider Driver. Provider is
@@ -552,10 +552,8 @@ func cloudMediaCapabilitySupported(record providerregistry.ProviderRecord, capab
 		return record.SupportsMusic
 	case "world.generate":
 		return record.ID == "worldlabs"
-	case "voice_workflow.voice_clone":
-		return record.SupportsVoiceClone
-	case "voice_workflow.voice_design":
-		return record.SupportsVoiceDesign
+	case "voice.create":
+		return record.SupportsVoiceReferenceAudio || record.SupportsVoiceTextDescription
 	case "voice_asset.delete":
 		return cloudVoiceDeleteAdapter(record.ID) != ""
 	default:
@@ -609,7 +607,7 @@ func (d providerCloudMediaDriver) MapVoiceWorkflowRequest(
 	config CloudVoiceWorkflowConfig,
 ) (*CloudVoiceWorkflowMappedRequest, error) {
 	if target.provider != d.provider || target.providerModelID == "" || request == nil || request.GetSpec() == nil ||
-		(target.capabilityContract != "voice_workflow.voice_clone" && target.capabilityContract != "voice_workflow.voice_design") ||
+		target.capabilityContract != "voice.create" ||
 		scenarioCapabilityContract(request.GetScenarioType()) != target.capabilityContract {
 		return nil, cloudInvocationError(CloudInvocationFailureRequest, fmt.Errorf("cloud voice workflow request mapping input is incomplete"))
 	}
@@ -627,17 +625,20 @@ func (d providerCloudMediaDriver) MapVoiceWorkflowRequest(
 	}
 	payload := map[string]any{
 		"workflow_model_id": workflowModelID,
-		"workflow_type":     workflowType,
+		"creation_source":   workflowType,
 	}
 	var extensions *structpb.Struct
 	if config.Extensions != nil && len(config.Extensions.GetFields()) > 0 {
 		extensions, _ = proto.Clone(config.Extensions).(*structpb.Struct)
 		payload["extensions"] = extensions.AsMap()
 	}
-	switch request.GetScenarioType() {
-	case runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE:
-		spec := request.GetSpec().GetVoiceClone()
-		input := spec.GetInput()
+	spec := request.GetSpec().GetVoiceCreate()
+	if spec == nil {
+		return nil, cloudInvocationError(CloudInvocationFailureRequest, fmt.Errorf("cloud voice creation spec is missing"))
+	}
+	switch source := spec.GetSource().(type) {
+	case *runtimev1.VoiceCreateScenarioSpec_ReferenceAudio:
+		input := source.ReferenceAudio
 		preferredName := strings.TrimSpace(input.GetPreferredName())
 		if preferredName == "" {
 			preferredName = "nimi-voice-" + strings.ToLower(ulid.Make().String())
@@ -658,9 +659,8 @@ func (d providerCloudMediaDriver) MapVoiceWorkflowRequest(
 		}
 		payload["target_model_id"] = strings.TrimSpace(spec.GetTargetModelId())
 		payload["input"] = inputPayload
-	case runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_DESIGN:
-		spec := request.GetSpec().GetVoiceDesign()
-		input := spec.GetInput()
+	case *runtimev1.VoiceCreateScenarioSpec_TextDescription:
+		input := source.TextDescription
 		preferredName := strings.TrimSpace(input.GetPreferredName())
 		if preferredName == "" {
 			preferredName = "nimi-voice-" + strings.ToLower(ulid.Make().String())
@@ -707,7 +707,7 @@ func (d providerCloudMediaDriver) MapVoiceDeleteRequest(target CloudMediaTarget,
 }
 
 func cloudVoiceDeleteSourceCapability(capability string) bool {
-	return capability == "voice_asset.delete" || capability == "voice_workflow.voice_clone" || capability == "voice_workflow.voice_design"
+	return capability == "voice_asset.delete" || capability == "voice.create"
 }
 
 func scenarioCapabilityContract(scenarioType runtimev1.ScenarioType) string {
@@ -724,10 +724,8 @@ func scenarioCapabilityContract(scenarioType runtimev1.ScenarioType) string {
 		return "music.generate"
 	case runtimev1.ScenarioType_SCENARIO_TYPE_WORLD_GENERATE:
 		return "world.generate"
-	case runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE:
-		return "voice_workflow.voice_clone"
-	case runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_DESIGN:
-		return "voice_workflow.voice_design"
+	case runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CREATE:
+		return "voice.create"
 	default:
 		return ""
 	}
@@ -748,7 +746,7 @@ func cloudMediaAdapterFor(provider string, capability string) string {
 	if capability == "voice_asset.delete" {
 		return cloudVoiceDeleteAdapter(provider)
 	}
-	if capability == "voice_workflow.voice_clone" || capability == "voice_workflow.voice_design" {
+	if capability == "voice.create" {
 		switch provider {
 		case "dashscope":
 			return CloudMediaAdapterDashScopeVoiceWorkflow
@@ -1207,7 +1205,7 @@ func CloudMediaReasonForHTTPStatus(capability string, statusCode int) runtimev1.
 		return runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED
 	case statusCode == http.StatusBadRequest || statusCode == http.StatusConflict ||
 		statusCode == http.StatusRequestEntityTooLarge || statusCode == http.StatusUnprocessableEntity:
-		if strings.HasPrefix(strings.TrimSpace(capability), "voice_workflow.") {
+		if strings.TrimSpace(capability) == "voice.create" {
 			return runtimev1.ReasonCode_AI_VOICE_INPUT_INVALID
 		}
 		if strings.TrimSpace(capability) == "audio.synthesize" {
@@ -1388,15 +1386,10 @@ func validateCloudMediaMappedRequest(request *runtimev1.SubmitScenarioJobRequest
 		if request.GetSpec().GetWorldGenerate() == nil {
 			return cloudInvocationError(CloudInvocationFailureRequest, fmt.Errorf("world.generate request is invalid"))
 		}
-	case runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE:
-		spec := request.GetSpec().GetVoiceClone()
-		if spec == nil || spec.GetInput() == nil || strings.TrimSpace(spec.GetTargetModelId()) == "" {
-			return cloudInvocationError(CloudInvocationFailureRequest, fmt.Errorf("voice clone request is invalid"))
-		}
-	case runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_DESIGN:
-		spec := request.GetSpec().GetVoiceDesign()
-		if spec == nil || spec.GetInput() == nil || strings.TrimSpace(spec.GetTargetModelId()) == "" {
-			return cloudInvocationError(CloudInvocationFailureRequest, fmt.Errorf("voice design request is invalid"))
+	case runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CREATE:
+		spec := request.GetSpec().GetVoiceCreate()
+		if spec == nil || spec.GetSource() == nil || strings.TrimSpace(spec.GetTargetModelId()) == "" {
+			return cloudInvocationError(CloudInvocationFailureRequest, fmt.Errorf("voice creation request is invalid"))
 		}
 	default:
 		return cloudInvocationError(CloudInvocationFailureRequest, fmt.Errorf("cloud media scenario is unsupported"))

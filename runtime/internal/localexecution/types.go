@@ -10,6 +10,7 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
+	"github.com/nimiplatform/nimi/runtime/internal/runtimeidentity"
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
@@ -44,7 +45,12 @@ type SelectedLocalExecution struct {
 	Requirements             []*runtimev1.LocalCapabilityRequirement
 	ExactBindings            []ExactBinding
 	SupportedFeatures        []string
-	Configured               bool
+	// ExecutionTarget is the exact Runtime-private local target captured from
+	// the selected verified asset occurrence. It is used for cross-capability
+	// compatibility checks such as voice.create -> audio.synthesize and is
+	// never projected through public protobufs.
+	ExecutionTarget *runtimeidentity.Target
+	Configured      bool
 }
 
 // Resolver is the private machine-configuration seam consumed by Runtime job
@@ -220,16 +226,23 @@ type SpeechTranscriptionResult struct {
 	Usage *runtimev1.UsageStats
 }
 
+type VoiceCreateResult struct {
+	ProviderVoiceRef string
+	Metadata         map[string]any
+	Usage            *runtimev1.UsageStats
+}
+
 // SpeechExecutionStartFunc is invoked only after the exact speech request has
 // acquired the private serial Host lease and is about to begin Host work.
 type SpeechExecutionStartFunc func() error
 
-// SpeechExecutionHost dispatches only immutable exact Qwen3 speech plans to
-// the Runtime-supervised loopback Host. It never discovers assets or decides
+// SpeechExecutionHost dispatches only immutable exact speech and voice-create
+// plans to the Runtime-supervised loopback Host. It never discovers assets or decides
 // route, machine selection, implementation identity, or fallback.
 type SpeechExecutionHost interface {
 	ExecuteSpeechSynthesis(context.Context, *capabilitydriver.SpeechSynthesizeInvocationPlan, SpeechExecutionStartFunc) (SpeechSynthesisResult, error)
 	ExecuteSpeechTranscription(context.Context, *capabilitydriver.SpeechTranscribeInvocationPlan, SpeechExecutionStartFunc) (SpeechTranscriptionResult, error)
+	ExecuteVoiceCreate(context.Context, *capabilitydriver.VoiceCreateInvocationPlan, SpeechExecutionStartFunc) (VoiceCreateResult, error)
 }
 
 type FailureKind string

@@ -38,7 +38,7 @@ func TestListLocalAppVoiceAssetsProjectsTrimmedCatalog(t *testing.T) {
 		VoiceAssetId:     "va-owned",
 		AppId:            "nimi.realm-persona-studio",
 		SubjectUserId:    "account-1",
-		WorkflowType:     runtimev1.VoiceWorkflowType_VOICE_WORKFLOW_TYPE_VOICE_CLONE,
+		CreationSource:   runtimev1.VoiceCreationSource_VOICE_CREATION_SOURCE_REFERENCE_AUDIO,
 		Status:           runtimev1.VoiceAssetStatus_VOICE_ASSET_STATUS_ACTIVE,
 		Provider:         "provider-private",
 		ModelId:          "model-private",
@@ -47,11 +47,11 @@ func TestListLocalAppVoiceAssetsProjectsTrimmedCatalog(t *testing.T) {
 		UpdatedAt:        now,
 	}
 	svc.voiceAssets.assets["va-cross-owner"] = &runtimev1.VoiceAsset{
-		VoiceAssetId:  "va-cross-owner",
-		AppId:         "other-app",
-		SubjectUserId: "account-1",
-		WorkflowType:  runtimev1.VoiceWorkflowType_VOICE_WORKFLOW_TYPE_VOICE_DESIGN,
-		Status:        runtimev1.VoiceAssetStatus_VOICE_ASSET_STATUS_ACTIVE,
+		VoiceAssetId:   "va-cross-owner",
+		AppId:          "other-app",
+		SubjectUserId:  "account-1",
+		CreationSource: runtimev1.VoiceCreationSource_VOICE_CREATION_SOURCE_TEXT_DESCRIPTION,
+		Status:         runtimev1.VoiceAssetStatus_VOICE_ASSET_STATUS_ACTIVE,
 	}
 	svc.voiceAssets.mu.Unlock()
 
@@ -64,7 +64,7 @@ func TestListLocalAppVoiceAssetsProjectsTrimmedCatalog(t *testing.T) {
 	}
 	asset := response.GetAssets()[0]
 	if asset.GetVoiceAssetId() != "va-owned" ||
-		asset.GetWorkflowType() != runtimev1.VoiceWorkflowType_VOICE_WORKFLOW_TYPE_VOICE_CLONE ||
+		asset.GetCreationSource() != runtimev1.VoiceCreationSource_VOICE_CREATION_SOURCE_REFERENCE_AUDIO ||
 		asset.GetStatus() != runtimev1.VoiceAssetStatus_VOICE_ASSET_STATUS_ACTIVE ||
 		asset.GetCreatedAt() == nil {
 		t.Fatalf("catalog projection = %+v", asset)

@@ -18,7 +18,7 @@ func TestCanonicalizeLocalIntentOrdersCapabilitiesAndFeatures(t *testing.T) {
 				"ghostMode":     false,
 				"modelingStyle": "concise",
 			}),
-			localIntent(t, "audio.transcribe", []string{"timestamps", "language"}, nil),
+			localIntent(t, "image.generate", []string{"input.mask", "input.image"}, nil),
 		},
 	}
 
@@ -26,11 +26,11 @@ func TestCanonicalizeLocalIntentOrdersCapabilitiesAndFeatures(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Canonicalize: %v", err)
 	}
-	if got := canonical.GetCapabilities()[0].GetCapabilityContract(); got != "audio.transcribe" {
-		t.Fatalf("first capability = %q, want audio.transcribe", got)
+	if got := canonical.GetCapabilities()[0].GetCapabilityContract(); got != "image.generate" {
+		t.Fatalf("first capability = %q, want image.generate", got)
 	}
 	features := canonical.GetCapabilities()[0].GetRequiredFeatures()
-	if len(features) != 2 || features[0] != "language" || features[1] != "timestamps" {
+	if len(features) != 2 || features[0] != "input.image" || features[1] != "input.mask" {
 		t.Fatalf("features not canonical: %v", features)
 	}
 	if config.GetCapabilities()[0].GetCapabilityContract() != "text.generate" {
@@ -88,10 +88,16 @@ func TestCanonicalizeEnforcesLocalCloudStructure(t *testing.T) {
 }
 
 func TestCanonicalizeRejectsDuplicateAndForbiddenLocalTruth(t *testing.T) {
+	assertCanonicalizeFails(t, localIntent(t, "text.generate.vision", nil, nil), "canonical capability catalog")
+	assertCanonicalizeFails(t, localIntent(t, "TEXT.GENERATE", nil, nil), "canonical capability catalog")
 	duplicateFeature := localIntent(t, "text.generate", []string{"input.image", "input.image"}, nil)
 	assertCanonicalizeFails(t, duplicateFeature, "duplicate required_feature")
 	qualifiedFeature := localIntent(t, "text.generate", []string{"text.generate.input.image"}, nil)
 	assertCanonicalizeFails(t, qualifiedFeature, "must be contract-local")
+	mismatchedFeature := localIntent(t, "video.generate", []string{"input.mask"}, nil)
+	assertCanonicalizeFails(t, mismatchedFeature, "standardized feature vocabulary")
+	unknownFeature := localIntent(t, "text.generate", []string{"provider.magic"}, nil)
+	assertCanonicalizeFails(t, unknownFeature, "standardized feature vocabulary")
 
 	for name, testCase := range map[string]struct {
 		defaults map[string]any

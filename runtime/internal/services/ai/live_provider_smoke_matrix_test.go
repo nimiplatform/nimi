@@ -24,13 +24,14 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/services/connector"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
 const liveSmokeMatrixAppID = "nimi.live-smoke.matrix"
 const liveSmokeMatrixUserID = "smoke-user"
-const liveSmokeVoiceDesignInstruction = "Warm, calm, natural narrator voice with steady pacing, clear diction, low background noise, gentle emotional range, and a polished studio delivery for long-form spoken content."
-const liveSmokeVoiceCloneText = "Hello from Nimi live voice clone."
+const liveSmokeVoiceTextDescriptionInstruction = "Warm, calm, natural narrator voice with steady pacing, clear diction, low background noise, gentle emotional range, and a polished studio delivery for long-form spoken content."
+const liveSmokeVoiceReferenceAudioText = "Hello from Nimi live reference-audio voice creation."
 const liveSmokeVolcengineSeedancePrompt = "Keep the framing grounded in the supplied references. Show a short first-person fruit tea product ad with clean motion, clear cup detail, and natural lighting."
 const liveSmokeVolcengineReferenceImage1 = "https://ark-project.tos-cn-beijing.volces.com/doc_image/r2v_tea_pic1.jpg"
 const liveSmokeVolcengineReferenceImage2 = "https://ark-project.tos-cn-beijing.volces.com/doc_image/r2v_tea_pic2.jpg"
@@ -178,14 +179,14 @@ func TestLiveSmokeProviderCapabilityMatrix(t *testing.T) {
 					runLiveSmokeMediaForProvider(t, providerID, record, runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_GENERATE)
 				})
 			}
-			if record.SupportsVoiceClone && providerID != "local" && capabilitydriver.ResolveCloudMediaAdapter(providerID, "voice_workflow.voice_clone") != "" {
-				t.Run("voice_clone", func(t *testing.T) {
-					runLiveSmokeVoiceWorkflowForProvider(t, providerID, record, runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE)
+			if record.SupportsVoiceReferenceAudio && providerID != "local" && capabilitydriver.ResolveCloudMediaAdapter(providerID, "voice.create") != "" {
+				t.Run("reference_audio", func(t *testing.T) {
+					runLiveSmokeVoiceWorkflowForProvider(t, providerID, record, runtimev1.VoiceCreationSource_VOICE_CREATION_SOURCE_REFERENCE_AUDIO)
 				})
 			}
-			if record.SupportsVoiceDesign && providerID != "local" && capabilitydriver.ResolveCloudMediaAdapter(providerID, "voice_workflow.voice_design") != "" {
-				t.Run("voice_design", func(t *testing.T) {
-					runLiveSmokeVoiceWorkflowForProvider(t, providerID, record, runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_DESIGN)
+			if record.SupportsVoiceTextDescription && providerID != "local" && capabilitydriver.ResolveCloudMediaAdapter(providerID, "voice.create") != "" {
+				t.Run("text_description", func(t *testing.T) {
+					runLiveSmokeVoiceWorkflowForProvider(t, providerID, record, runtimev1.VoiceCreationSource_VOICE_CREATION_SOURCE_TEXT_DESCRIPTION)
 				})
 			}
 		})
@@ -456,9 +457,9 @@ func resolveLiveTranscriptionAudioSource(t *testing.T) (*runtimev1.SpeechTranscr
 	}, resolveLiveAudioMIME(audioURI)
 }
 
-func resolveLiveVoiceCloneInput(t *testing.T, providerToken string) *runtimev1.VoiceV2VInput {
+func resolveLiveVoiceReferenceAudioInput(t *testing.T, providerToken string) *runtimev1.VoiceV2VInput {
 	t.Helper()
-	liveText := resolveLiveVoiceCloneText(providerToken)
+	liveText := resolveLiveVoiceReferenceAudioText(providerToken)
 	if strings.EqualFold(strings.TrimSpace(providerToken), "DASHSCOPE") {
 		if audioURI := liveEnvFirst(
 			"NIMI_LIVE_"+providerToken+"_VOICE_REFERENCE_AUDIO_URI",
@@ -504,16 +505,16 @@ func resolveLiveVoiceCloneInput(t *testing.T, providerToken string) *runtimev1.V
 	}
 }
 
-func resolveLiveVoiceCloneText(providerToken string) string {
+func resolveLiveVoiceReferenceAudioText(providerToken string) string {
 	text := liveEnvFirst(
-		"NIMI_LIVE_"+providerToken+"_VOICE_CLONE_TEXT",
-		"NIMI_LIVE_VOICE_CLONE_TEXT",
+		"NIMI_LIVE_"+providerToken+"_VOICE_REFERENCE_AUDIO_TEXT",
+		"NIMI_LIVE_VOICE_REFERENCE_AUDIO_TEXT",
 	)
 	if text != "" {
 		return text
 	}
 	if strings.EqualFold(strings.TrimSpace(providerToken), "STEPFUN") {
-		return liveSmokeVoiceCloneText
+		return liveSmokeVoiceReferenceAudioText
 	}
 	return ""
 }
@@ -783,12 +784,12 @@ func liveSmokeVideoGenerateSpec(providerID string, modelID string) *runtimev1.Vi
 				},
 			},
 			Options: &runtimev1.VideoGenerationOptions{
-				DurationSec:     11,
+				DurationSec:     proto.Int32(11),
 				Ratio:           "16:9",
 				Resolution:      "480p",
-				GenerateAudio:   true,
-				ReturnLastFrame: true,
-				Watermark:       false,
+				GenerateAudio:   proto.Bool(true),
+				ReturnLastFrame: proto.Bool(true),
+				Watermark:       proto.Bool(false),
 			},
 		}
 	}
@@ -796,6 +797,6 @@ func liveSmokeVideoGenerateSpec(providerID string, modelID string) *runtimev1.Vi
 	return &runtimev1.VideoGenerateScenarioSpec{
 		Mode:    runtimev1.VideoMode_VIDEO_MODE_T2V,
 		Content: []*runtimev1.VideoContentItem{{Type: runtimev1.VideoContentType_VIDEO_CONTENT_TYPE_TEXT, Role: runtimev1.VideoContentRole_VIDEO_CONTENT_ROLE_PROMPT, Text: "A short cinematic scene of sunrise."}},
-		Options: &runtimev1.VideoGenerationOptions{DurationSec: 4},
+		Options: &runtimev1.VideoGenerationOptions{DurationSec: proto.Int32(4)},
 	}
 }

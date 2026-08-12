@@ -42,7 +42,7 @@ func TestProfileRuntimeSelectedSourceSatisfiesPortableHFBindingExactly(t *testin
 		LocalAssetId:   "artifact_main",
 		AssetId:        "z_image_turbo",
 		Kind:           runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_IMAGE,
-		Capabilities:   []string{"image"},
+		Capabilities:   []string{"image.generate"},
 		Entry:          "z_image_turbo-Q4_K.gguf",
 		LogicalModelId: "nimi/z_image_turbo",
 		Source: &runtimev1.LocalAssetSource{

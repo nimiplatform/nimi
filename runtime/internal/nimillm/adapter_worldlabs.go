@@ -277,7 +277,7 @@ func fetchWorldLabsWorld(ctx context.Context, baseURL string, headers map[string
 	return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 }
 
-func buildWorldLabsManifest(world map[string]any, operationID string) ([]byte, map[string]any, error) {
+func buildWorldLabsManifest(world map[string]any, _ string) ([]byte, map[string]any, error) {
 	if len(world) == 0 {
 		return nil, nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 	}
@@ -286,8 +286,6 @@ func buildWorldLabsManifest(world map[string]any, operationID string) ([]byte, m
 	imagery := MapField(assets, "imagery")
 	mesh := MapField(assets, "mesh")
 	manifest := map[string]any{
-		"provider":           "worldlabs",
-		"provider_operation": strings.TrimSpace(operationID),
 		"world_id":           strings.TrimSpace(FirstNonEmpty(ValueAsString(world["world_id"]), ValueAsString(world["id"]))),
 		"display_name":       strings.TrimSpace(ValueAsString(world["display_name"])),
 		"world_marble_url":   strings.TrimSpace(ValueAsString(world["world_marble_url"])),
@@ -296,7 +294,6 @@ func buildWorldLabsManifest(world map[string]any, operationID string) ([]byte, m
 		"pano_url":           strings.TrimSpace(ValueAsString(MapField(imagery, "pano_url"))),
 		"collider_mesh_url":  strings.TrimSpace(ValueAsString(MapField(mesh, "collider_mesh_url"))),
 		"spz_urls":           normalizeStringMap(MapField(splats, "spz_urls")),
-		"model":              strings.TrimSpace(ValueAsString(world["model"])),
 		"semantics_metadata": normalizeWorldSemanticsMetadata(MapField(splats, "semantics_metadata")),
 	}
 	raw, err := json.Marshal(manifest)
@@ -304,15 +301,13 @@ func buildWorldLabsManifest(world map[string]any, operationID string) ([]byte, m
 		return nil, nil, MapProviderRequestError(err)
 	}
 	meta := map[string]any{
-		"adapter":            AdapterWorldLabsNative,
-		"world_id":           manifest["world_id"],
-		"world_marble_url":   manifest["world_marble_url"],
-		"thumbnail_url":      manifest["thumbnail_url"],
-		"pano_url":           manifest["pano_url"],
-		"collider_mesh_url":  manifest["collider_mesh_url"],
-		"spz_urls":           manifest["spz_urls"],
-		"model":              manifest["model"],
-		"provider_operation": strings.TrimSpace(operationID),
+		"adapter":           AdapterWorldLabsNative,
+		"world_id":          manifest["world_id"],
+		"world_marble_url":  manifest["world_marble_url"],
+		"thumbnail_url":     manifest["thumbnail_url"],
+		"pano_url":          manifest["pano_url"],
+		"collider_mesh_url": manifest["collider_mesh_url"],
+		"spz_urls":          manifest["spz_urls"],
 	}
 	return raw, meta, nil
 }

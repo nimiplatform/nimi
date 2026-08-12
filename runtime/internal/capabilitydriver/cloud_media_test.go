@@ -61,7 +61,7 @@ func TestCloudMediaDriverReasonNormalizationTables(t *testing.T) {
 		{"audio.synthesize", http.StatusUnsupportedMediaType, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED},
 		{"audio.transcribe", http.StatusBadRequest, runtimev1.ReasonCode_AI_INPUT_INVALID},
 		{"image.generate", http.StatusUnprocessableEntity, runtimev1.ReasonCode_AI_INPUT_INVALID},
-		{"voice_workflow.voice_clone", http.StatusBadRequest, runtimev1.ReasonCode_AI_VOICE_INPUT_INVALID},
+		{"voice.create", http.StatusBadRequest, runtimev1.ReasonCode_AI_VOICE_INPUT_INVALID},
 	}
 	for _, tc := range cases {
 		if got := CloudMediaReasonForHTTPStatus(tc.capability, tc.status); got != tc.want {
@@ -125,23 +125,23 @@ func TestCloudMediaDriverMapsDefaultsAndKeepsCaptureImmutable(t *testing.T) {
 }
 
 func TestCloudVoiceWorkflowDriverMapsRequestAndNormalizesResponse(t *testing.T) {
-	driver, target := cloudMediaDriverTarget(t, "dashscope", "qwen3-tts-vc", "voice_workflow.voice_clone")
+	driver, target := cloudMediaDriverTarget(t, "dashscope", "qwen3-tts-vc", "voice.create")
 	request := &runtimev1.SubmitScenarioJobRequest{
-		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE,
-		Spec: &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_VoiceClone{VoiceClone: &runtimev1.VoiceCloneScenarioSpec{
+		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CREATE,
+		Spec: &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_VoiceCreate{VoiceCreate: &runtimev1.VoiceCreateScenarioSpec{
 			TargetModelId: "qwen3-tts-vc",
-			Input: &runtimev1.VoiceV2VInput{
+			Source: &runtimev1.VoiceCreateScenarioSpec_ReferenceAudio{ReferenceAudio: &runtimev1.VoiceV2VInput{
 				ReferenceAudioBytes: []byte("voice"), ReferenceAudioMime: "audio/wav", LanguageHints: []string{"zh"},
-			},
+			}},
 		}}},
 	}
 	mapped, err := driver.MapVoiceWorkflowRequest(target, request, nil, CloudVoiceWorkflowConfig{
-		WorkflowType: "voice_clone", WorkflowModelID: "qwen-voice-enrollment", CatalogModelID: "qwen3-tts-vc",
+		WorkflowType: "reference_audio", WorkflowModelID: "qwen-voice-enrollment", CatalogModelID: "qwen3-tts-vc",
 	})
 	if err != nil {
 		t.Fatalf("MapVoiceWorkflowRequest: %v", err)
 	}
-	if mapped.Provider() != "dashscope" || mapped.Adapter() != CloudMediaAdapterDashScopeVoiceWorkflow || mapped.WorkflowType() != "voice_clone" || mapped.Payload()["target_model_id"] != "qwen3-tts-vc" {
+	if mapped.Provider() != "dashscope" || mapped.Adapter() != CloudMediaAdapterDashScopeVoiceWorkflow || mapped.WorkflowType() != "reference_audio" || mapped.Payload()["target_model_id"] != "qwen3-tts-vc" {
 		t.Fatalf("mapped voice workflow=%+v", mapped.Payload())
 	}
 	metadata, _ := structpb.NewStruct(map[string]any{"provider": "dashscope"})
@@ -156,7 +156,7 @@ func TestCloudVoiceWorkflowDriverMapsRequestAndNormalizesResponse(t *testing.T) 
 func TestCloudVoiceDeleteDriverMapsExactDialect(t *testing.T) {
 	// Lifecycle deletion reuses the exact voice-workflow AIConfig intent that
 	// created the durable provider handle; it never fabricates a delete intent.
-	driver, target := cloudMediaDriverTarget(t, "elevenlabs", "eleven_turbo_v2_5", "voice_workflow.voice_clone")
+	driver, target := cloudMediaDriverTarget(t, "elevenlabs", "eleven_turbo_v2_5", "voice.create")
 	mapped, err := driver.MapVoiceDeleteRequest(target, "voice-private")
 	if err != nil {
 		t.Fatalf("MapVoiceDeleteRequest: %v", err)

@@ -149,7 +149,7 @@ func (s *Service) captureCloudVoiceWorkflowEffectiveInputs(
 	if err := s.validateScenarioCapability(ctx, req, target.ProviderModelID(), safeTarget, s.cloudTextProvider); err != nil {
 		return nil, err
 	}
-	workflowType := workflowTypeFromScenarioType(req.GetScenarioType())
+	workflowType := workflowTypeFromScenarioSpec(req.GetSpec())
 	resolution, err := s.resolveVoiceWorkflow(ctx, target.Provider(), target.ProviderModelID(), workflowType)
 	if err != nil {
 		return nil, voiceWorkflowResolutionError(err)
@@ -233,34 +233,21 @@ func (s *Service) normalizeVoiceWorkflowRequestTargetModelID(
 		}
 		return resolved
 	}
-	switch req.GetScenarioType() {
-	case runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE:
-		current := strings.TrimSpace(req.GetSpec().GetVoiceClone().GetTargetModelId())
-		normalized := normalize(current)
-		if normalized == "" || normalized == current {
-			return req
-		}
-		cloned := cloneSubmitScenarioJobRequest(req)
-		if cloned == nil || cloned.GetSpec().GetVoiceClone() == nil {
-			return req
-		}
-		cloned.GetSpec().GetVoiceClone().TargetModelId = normalized
-		return cloned
-	case runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_DESIGN:
-		current := strings.TrimSpace(req.GetSpec().GetVoiceDesign().GetTargetModelId())
-		normalized := normalize(current)
-		if normalized == "" || normalized == current {
-			return req
-		}
-		cloned := cloneSubmitScenarioJobRequest(req)
-		if cloned == nil || cloned.GetSpec().GetVoiceDesign() == nil {
-			return req
-		}
-		cloned.GetSpec().GetVoiceDesign().TargetModelId = normalized
-		return cloned
-	default:
+	creation := req.GetSpec().GetVoiceCreate()
+	if creation == nil {
 		return req
 	}
+	current := strings.TrimSpace(creation.GetTargetModelId())
+	normalized := normalize(current)
+	if normalized == "" || normalized == current {
+		return req
+	}
+	cloned := cloneSubmitScenarioJobRequest(req)
+	if cloned == nil || cloned.GetSpec().GetVoiceCreate() == nil {
+		return req
+	}
+	cloned.GetSpec().GetVoiceCreate().TargetModelId = normalized
+	return cloned
 }
 
 func voiceWorkflowResolutionError(err error) error {
@@ -313,7 +300,7 @@ func (s *Service) auditCloudVoiceWorkflowCapture(effective *cloudVoiceWorkflowEf
 		"connector_grant_id":    effective.grant.Grant.GrantID,
 		"request_sha256":        "sha256:" + hex.EncodeToString(digest[:]),
 		"request_size_bytes":    len(raw),
-		"workflow_type":         effective.resolution.WorkflowType,
+		"creation_source":       effective.resolution.WorkflowType,
 		"workflow_model_id":     effective.resolution.WorkflowModelID,
 		"remote_execution_host": remoteexecution.ProviderHTTPMediaHostID,
 		"remote_dispatch_state": "captured",

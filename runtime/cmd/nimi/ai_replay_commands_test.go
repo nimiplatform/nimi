@@ -10,7 +10,7 @@ func TestResolveProviderRawVoiceWorkflowUsesCatalogWorkflowModel(t *testing.T) {
 		Provider:      "dashscope",
 		ModelID:       "qwen3-tts-vd",
 		TargetModelID: "qwen3-tts-vd-2026-01-26",
-	}, "voice_design")
+	}, "text_description")
 	if err != nil {
 		t.Fatalf("resolveProviderRawVoiceWorkflow: %v", err)
 	}

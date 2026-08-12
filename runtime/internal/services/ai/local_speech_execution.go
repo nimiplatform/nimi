@@ -106,6 +106,12 @@ func (s *Service) captureLocalSpeechEffectiveInputs(ctx context.Context, head *r
 		if err != nil {
 			return nil, err
 		}
+		if spec.GetVoiceRef().GetKind() == runtimev1.VoiceReferenceKind_VOICE_REFERENCE_KIND_VOICE_ASSET {
+			spec, err = s.resolveSynthesizeSpeechSpecVoiceRefForTarget(ctx, head, selected.ExecutionTarget, spec)
+			if err != nil {
+				return nil, err
+			}
+		}
 		plan, err := speechDriver.PlanSpeechSynthesizeInvocation(capabilitydriver.SpeechSynthesizeInvocationInput{
 			PortableConfig: portable,
 			ExactBindings:  append([]capabilitydriver.InvocationExactBinding(nil), exactBindings...),

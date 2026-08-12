@@ -36,7 +36,7 @@ func TestRecommendationFeedFetchesRemoteAndBuildsInstallPayload(t *testing.T) {
 	t.Setenv(modelIndexBaseURLEnv, server.URL)
 
 	resp, err := svc.GetRecommendationFeed(context.Background(), &runtimev1.GetRecommendationFeedRequest{
-		Capability: "chat",
+		Capability: "text.generate",
 		PageSize:   48,
 	})
 	if err != nil {
@@ -136,7 +136,7 @@ func TestRecommendationFeedProjectsInstalledState(t *testing.T) {
 	defer server.Close()
 	t.Setenv(modelIndexBaseURLEnv, server.URL)
 
-	resp, err := svc.GetRecommendationFeed(context.Background(), &runtimev1.GetRecommendationFeedRequest{Capability: "chat"})
+	resp, err := svc.GetRecommendationFeed(context.Background(), &runtimev1.GetRecommendationFeedRequest{Capability: "text.generate"})
 	if err != nil {
 		t.Fatalf("get recommendation feed: %v", err)
 	}
@@ -175,7 +175,7 @@ func recommendationChatItem(repo string, title string, entry string, size int64)
 		Repo:         repo,
 		Revision:     "main",
 		Title:        title,
-		Capabilities: []string{"chat"},
+		Capabilities: []string{"text.generate"},
 		Tags:         []string{"gguf"},
 		Formats:      []string{"gguf"},
 		Entries: []remoteInstallEntry{{
@@ -193,7 +193,7 @@ func recommendationImageItem(repo string, title string, entry string, size int64
 		Repo:         repo,
 		Revision:     "main",
 		Title:        title,
-		Capabilities: []string{"image"},
+		Capabilities: []string{"image.generate"},
 		Tags:         []string{"safetensors"},
 		Formats:      []string{"safetensors"},
 		Entries: []remoteInstallEntry{{

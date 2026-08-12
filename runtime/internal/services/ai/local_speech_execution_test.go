@@ -28,6 +28,7 @@ type localSpeechHostStub struct {
 	mu                 sync.Mutex
 	synthesizePlan     *capabilitydriver.SpeechSynthesizeInvocationPlan
 	transcribePlan     *capabilitydriver.SpeechTranscribeInvocationPlan
+	voiceCreatePlan    *capabilitydriver.VoiceCreateInvocationPlan
 	entered            chan struct{}
 	release            chan struct{}
 	beforeStartEntered chan struct{}
@@ -35,7 +36,26 @@ type localSpeechHostStub struct {
 	cancelRelease      chan struct{}
 	calls              chan string
 	synthesisResult    *localexecution.SpeechSynthesisResult
+	voiceCreateResult  *localexecution.VoiceCreateResult
 	preStartErr        error
+}
+
+func (host *localSpeechHostStub) ExecuteVoiceCreate(ctx context.Context, plan *capabilitydriver.VoiceCreateInvocationPlan, onStart localexecution.SpeechExecutionStartFunc) (localexecution.VoiceCreateResult, error) {
+	if host.preStartErr != nil {
+		return localexecution.VoiceCreateResult{}, host.preStartErr
+	}
+	if onStart != nil {
+		if err := onStart(); err != nil {
+			return localexecution.VoiceCreateResult{}, err
+		}
+	}
+	host.mu.Lock()
+	host.voiceCreatePlan = plan
+	host.mu.Unlock()
+	if host.voiceCreateResult != nil {
+		return *host.voiceCreateResult, nil
+	}
+	return localexecution.VoiceCreateResult{ProviderVoiceRef: "local-voice-handle"}, nil
 }
 
 func (host *localSpeechHostStub) ExecuteSpeechSynthesis(ctx context.Context, plan *capabilitydriver.SpeechSynthesizeInvocationPlan, onStart localexecution.SpeechExecutionStartFunc) (localexecution.SpeechSynthesisResult, error) {

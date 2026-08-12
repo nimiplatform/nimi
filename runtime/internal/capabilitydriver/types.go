@@ -166,9 +166,10 @@ type EmbedInvocationInput struct {
 // ImageInvocationInput is the complete Driver-owned image invocation input.
 // Host selection, endpoints, binaries, routes, and fallback never enter it.
 type ImageInvocationInput struct {
-	PortableConfig *structpb.Struct
-	ExactBindings  []InvocationExactBinding
-	Request        *runtimev1.ImageGenerateScenarioSpec
+	PortableConfig    *structpb.Struct
+	SupportedFeatures []string
+	ExactBindings     []InvocationExactBinding
+	Request           *runtimev1.ImageGenerateScenarioSpec
 }
 
 // VideoInputRole classifies already-resolved media handles. The Driver never
@@ -878,6 +879,7 @@ func NewProductionRegistry() *Registry {
 		{CapabilityContract: StableDiffusionCapabilityContract, Identity: Identity{ImplementationID: StableDiffusionImplementationID, DriverID: StableDiffusionDriverID, DriverDialect: StableDiffusionDriverDialect}}:                     StableDiffusionImageDriver{},
 		{CapabilityContract: StableDiffusionVideoCapabilityContract, Identity: Identity{ImplementationID: StableDiffusionVideoImplementationID, DriverID: StableDiffusionVideoDriverID, DriverDialect: StableDiffusionVideoDriverDialect}}: StableDiffusionVideoDriver{},
 		{CapabilityContract: AudioSynthesizeContract, Identity: Identity{ImplementationID: Qwen3TTSImplementationID, DriverID: Qwen3TTSDriverID, DriverDialect: Qwen3TTSDriverDialect}}:                                                    Qwen3TTSDriver{},
+		{CapabilityContract: VoiceCreateContract, Identity: Identity{ImplementationID: Qwen3VoiceCreateImplementationID, DriverID: Qwen3TTSDriverID, DriverDialect: Qwen3VoiceCreateDriverDialect}}:                                        Qwen3VoiceCreateDriver{},
 		{CapabilityContract: AudioTranscribeContract, Identity: Identity{ImplementationID: Qwen3ASRImplementationID, DriverID: Qwen3ASRDriverID, DriverDialect: Qwen3ASRDriverDialect}}:                                                    Qwen3ASRDriver{},
 		{CapabilityContract: AudioTranscribeContract, Identity: Identity{ImplementationID: Qwen3ASRTransformersImplementationID, DriverID: Qwen3ASRTransformersDriverID, DriverDialect: Qwen3ASRTransformersDriverDialect}}:                Qwen3ASRTransformersDriver{},
 	})

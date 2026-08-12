@@ -16,6 +16,12 @@ const (
 	Qwen3TTSDriverDialect                = "qwen3-tts/audio-synthesize/v1"
 	AudioSynthesizeContract              = "audio.synthesize"
 	Qwen3TTSModelRequirementID           = "tts.model"
+	Qwen3VoiceCreateImplementationID     = "local.voice.create.qwen3-tts"
+	Qwen3VoiceCreateDriverDialect        = "qwen3-tts/voice-create/v1"
+	VoiceCreateContract                  = "voice.create"
+	Qwen3VoiceCreateModelRequirementID   = "voice.model"
+	Qwen3VoiceCloneArtifactRole          = "tts_voice_clone_model"
+	Qwen3VoiceDesignArtifactRole         = "tts_voice_design_model"
 	Qwen3ASRImplementationID             = "local.audio.transcribe.qwen3-asr"
 	Qwen3ASRDriverID                     = "nimi.runtime.driver.qwen3-asr"
 	Qwen3ASRDriverDialect                = "qwen3-asr/audio-transcribe/v1"
@@ -43,6 +49,17 @@ type SpeechTranscribeInvocationInput struct {
 	Request        *runtimev1.SpeechTranscribeScenarioSpec
 	AudioBytes     []byte
 	MIMEType       string
+}
+
+// VoiceCreateInvocationInput is the implementation-neutral Driver input for
+// one selected local voice.create configuration. SupportedFeatures is the
+// immutable feature set captured from that configuration; the request never
+// selects a different model, Driver, configuration, provider, or route.
+type VoiceCreateInvocationInput struct {
+	PortableConfig    *structpb.Struct
+	ExactBindings     []InvocationExactBinding
+	SupportedFeatures []string
+	Request           *runtimev1.VoiceCreateScenarioSpec
 }
 
 type SpeechSynthesizeInvocationPlan struct {
@@ -88,6 +105,58 @@ type SpeechTranscribeInvocationPlan struct {
 	request      *runtimev1.SpeechTranscribeScenarioSpec
 	audioBytes   []byte
 	mimeType     string
+}
+
+type VoiceCreateInvocationPlan struct {
+	driverID        string
+	modelAssetID    string
+	modelFiles      []InvocationExactBinding
+	request         *runtimev1.VoiceCreateScenarioSpec
+	sourceFeature   string
+	workflowModelID string
+}
+
+func (p *VoiceCreateInvocationPlan) DriverID() string {
+	if p == nil {
+		return ""
+	}
+	return p.driverID
+}
+
+func (p *VoiceCreateInvocationPlan) ModelAssetID() string {
+	if p == nil {
+		return ""
+	}
+	return p.modelAssetID
+}
+
+func (p *VoiceCreateInvocationPlan) ModelFiles() []InvocationExactBinding {
+	if p == nil {
+		return nil
+	}
+	return append([]InvocationExactBinding(nil), p.modelFiles...)
+}
+
+func (p *VoiceCreateInvocationPlan) Request() *runtimev1.VoiceCreateScenarioSpec {
+	if p == nil {
+		return nil
+	}
+	cloned, _ := proto.Clone(p.request).(*runtimev1.VoiceCreateScenarioSpec)
+	return cloned
+}
+
+func (p *VoiceCreateInvocationPlan) SourceFeature() string {
+	if p == nil {
+		return ""
+	}
+	return p.sourceFeature
+}
+
+func (p *VoiceCreateInvocationPlan) WorkflowModelID() string {
+	if p == nil {
+		return ""
+	}
+	return p.workflowModelID
 }
 
 func (p *SpeechTranscribeInvocationPlan) DriverID() string {
@@ -144,6 +213,11 @@ type SpeechTranscribeInvocationDriver interface {
 	PlanSpeechTranscribeInvocation(SpeechTranscribeInvocationInput) (*SpeechTranscribeInvocationPlan, error)
 }
 
+type VoiceCreateInvocationDriver interface {
+	Driver
+	PlanVoiceCreateInvocation(VoiceCreateInvocationInput) (*VoiceCreateInvocationPlan, error)
+}
+
 type SpeechStreamMode string
 
 const (
@@ -188,6 +262,81 @@ func (Qwen3TTSDriver) PlanSpeechSynthesizeInvocation(input SpeechSynthesizeInvoc
 		modelAssetID: binding.AssetID,
 		modelFiles:   []InvocationExactBinding{binding},
 		request:      request,
+	}, nil
+}
+
+// Qwen3VoiceCreateDriver is one concrete implementation of the generic local
+// voice.create Driver contract. Its identity does not become the capability
+// identity, and its selected feature set never chooses another configuration.
+type Qwen3VoiceCreateDriver struct{}
+
+func (Qwen3VoiceCreateDriver) EffectiveRequestDefaults(*structpb.Struct) map[string]string {
+	return nil
+}
+
+func (Qwen3VoiceCreateDriver) Interpret(input InterpretInput) ([]*runtimev1.LocalCapabilityRequirement, runtimev1.LocalCapabilityReason) {
+	feature, role, ok := qwen3VoiceCreateFeatureRole(input.SupportedFeatures)
+	if !ok {
+		return nil, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_FEATURE_UNSUPPORTED
+	}
+	if !emptySpeechPortableConfig(input.PortableConfig) {
+		return nil, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_PORTABLE_CONFIG_INVALID
+	}
+	constraints, _ := structpb.NewStruct(map[string]any{
+		"engine": "speech", "artifact_role": role, "source_feature": feature,
+	})
+	return []*runtimev1.LocalCapabilityRequirement{{
+		RequirementId:            Qwen3VoiceCreateModelRequirementID,
+		Role:                     runtimev1.LocalCapabilityRequirementRole_LOCAL_CAPABILITY_REQUIREMENT_ROLE_MAIN,
+		ResourceKind:             "tts",
+		Policy:                   runtimev1.LocalCapabilityRequirementPolicy_LOCAL_CAPABILITY_REQUIREMENT_POLICY_SUBSTITUTABLE,
+		CompatibilityConstraints: constraints,
+		DisplayLabel:             "Voice creation model",
+	}}, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED
+}
+
+func (Qwen3VoiceCreateDriver) ValidateBinding(requirement *runtimev1.LocalCapabilityRequirement, binding *runtimev1.LocalAssetExactBinding, asset AssetDescriptor) runtimev1.LocalCapabilityReason {
+	if requirement == nil || requirement.GetRequirementId() != Qwen3VoiceCreateModelRequirementID || requirement.GetCompatibilityConstraints() == nil {
+		return runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_BINDING_AMBIGUOUS
+	}
+	role := strings.TrimSpace(requirement.GetCompatibilityConstraints().GetFields()["artifact_role"].GetStringValue())
+	if role != Qwen3VoiceCloneArtifactRole && role != Qwen3VoiceDesignArtifactRole {
+		return runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_FEATURE_UNSUPPORTED
+	}
+	return validateQwen3SpeechBinding(requirement, binding, asset, Qwen3VoiceCreateModelRequirementID, runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_TTS, role)
+}
+
+func (driver Qwen3VoiceCreateDriver) ValidateCombination(requirements []*runtimev1.LocalCapabilityRequirement, bindings []*runtimev1.LocalAssetExactBinding, assets []AssetDescriptor) runtimev1.LocalCapabilityReason {
+	return validateQwen3SpeechCombination(requirements, bindings, assets, driver.ValidateBinding)
+}
+
+func (Qwen3VoiceCreateDriver) PlanVoiceCreateInvocation(input VoiceCreateInvocationInput) (*VoiceCreateInvocationPlan, error) {
+	if !emptySpeechPortableConfig(input.PortableConfig) {
+		return nil, invocationError(InvocationFailureInvalidConfig, fmt.Errorf("qwen3-tts voice.create portable config must be empty"))
+	}
+	feature, _, ok := qwen3VoiceCreateFeatureRole(input.SupportedFeatures)
+	if !ok {
+		return nil, invocationError(InvocationFailureUnsupported, fmt.Errorf("qwen3-tts voice.create requires exactly one supported source feature"))
+	}
+	binding, err := exactQwen3SpeechBinding(input.ExactBindings, Qwen3VoiceCreateModelRequirementID)
+	if err != nil {
+		return nil, invocationError(InvocationFailureInvalidBinding, err)
+	}
+	request, requestFeature, err := validateQwen3VoiceCreateRequest(input.Request)
+	if err != nil {
+		return nil, err
+	}
+	if requestFeature != feature {
+		return nil, invocationError(InvocationFailureUnsupported, fmt.Errorf("qwen3-tts voice.create source is unsupported by the selected implementation"))
+	}
+	workflowModelID := "qwen3-local-voice-design"
+	if feature == "input.audio" {
+		workflowModelID = "qwen3-local-voice-clone"
+	}
+	return &VoiceCreateInvocationPlan{
+		driverID: Qwen3TTSDriverID, modelAssetID: binding.AssetID,
+		modelFiles: []InvocationExactBinding{binding}, request: request,
+		sourceFeature: feature, workflowModelID: workflowModelID,
 	}, nil
 }
 
@@ -362,6 +511,44 @@ func validateQwen3TTSRequest(value *runtimev1.SpeechSynthesizeScenarioSpec) (*ru
 		}
 	}
 	return request, nil
+}
+
+func qwen3VoiceCreateFeatureRole(features []string) (string, string, bool) {
+	if len(features) != 1 {
+		return "", "", false
+	}
+	switch strings.TrimSpace(features[0]) {
+	case "input.audio":
+		return "input.audio", Qwen3VoiceCloneArtifactRole, true
+	case "input.text":
+		return "input.text", Qwen3VoiceDesignArtifactRole, true
+	default:
+		return "", "", false
+	}
+}
+
+func validateQwen3VoiceCreateRequest(value *runtimev1.VoiceCreateScenarioSpec) (*runtimev1.VoiceCreateScenarioSpec, string, error) {
+	request, _ := proto.Clone(value).(*runtimev1.VoiceCreateScenarioSpec)
+	if request == nil || strings.TrimSpace(request.GetTargetModelId()) != "" {
+		return nil, "", invocationError(InvocationFailureInvalidRequest, fmt.Errorf("local qwen3-tts voice.create does not accept request target selection"))
+	}
+	switch source := request.GetSource().(type) {
+	case *runtimev1.VoiceCreateScenarioSpec_ReferenceAudio:
+		input := source.ReferenceAudio
+		if input == nil || len(input.GetReferenceAudioBytes()) == 0 || strings.TrimSpace(input.GetReferenceAudioUri()) != "" ||
+			strings.TrimSpace(input.GetReferenceAudioMime()) == "" {
+			return nil, "", invocationError(InvocationFailureInvalidRequest, fmt.Errorf("local qwen3-tts reference audio must be captured as typed bytes"))
+		}
+		return request, "input.audio", nil
+	case *runtimev1.VoiceCreateScenarioSpec_TextDescription:
+		input := source.TextDescription
+		if input == nil || strings.TrimSpace(input.GetInstructionText()) == "" {
+			return nil, "", invocationError(InvocationFailureInvalidRequest, fmt.Errorf("local qwen3-tts voice design instruction is required"))
+		}
+		return request, "input.text", nil
+	default:
+		return nil, "", invocationError(InvocationFailureInvalidRequest, fmt.Errorf("local qwen3-tts voice.create source is required"))
+	}
 }
 
 func validateQwen3ASRRequest(value *runtimev1.SpeechTranscribeScenarioSpec) (*runtimev1.SpeechTranscribeScenarioSpec, error) {

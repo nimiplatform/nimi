@@ -26,7 +26,6 @@ func scenarioAllowedModes(scenarioType runtimev1.ScenarioType) []runtimev1.Execu
 		return []runtimev1.ExecutionMode{
 			runtimev1.ExecutionMode_EXECUTION_MODE_SYNC,
 			runtimev1.ExecutionMode_EXECUTION_MODE_STREAM,
-			runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB,
 		}
 	case runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_EMBED:
 		return []runtimev1.ExecutionMode{
@@ -34,13 +33,11 @@ func scenarioAllowedModes(scenarioType runtimev1.ScenarioType) []runtimev1.Execu
 		}
 	case runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE:
 		return []runtimev1.ExecutionMode{
-			runtimev1.ExecutionMode_EXECUTION_MODE_SYNC,
 			runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB,
 		}
 	case runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_GENERATE,
 		runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_TRANSCRIBE,
-		runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE,
-		runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_DESIGN,
+		runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CREATE,
 		runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_GENERATE,
 		runtimev1.ScenarioType_SCENARIO_TYPE_WORLD_GENERATE:
 		return []runtimev1.ExecutionMode{
@@ -73,10 +70,8 @@ func scenarioRequiredCapabilities(scenarioType runtimev1.ScenarioType) []string 
 		return []string{aicapabilities.AudioSynthesize}
 	case runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_TRANSCRIBE:
 		return []string{aicapabilities.AudioTranscribe}
-	case runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE:
-		return []string{aicapabilities.VoiceWorkflowVoiceClone}
-	case runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_DESIGN:
-		return []string{aicapabilities.VoiceWorkflowVoiceDesign}
+	case runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CREATE:
+		return []string{aicapabilities.VoiceCreate}
 	case runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_GENERATE:
 		return []string{aicapabilities.MusicGenerate}
 	case runtimev1.ScenarioType_SCENARIO_TYPE_WORLD_GENERATE:

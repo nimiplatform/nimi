@@ -560,7 +560,7 @@ func TestBootstrapSelectionAwareManagedMediaEngineSkipsRestartWhenMediaAlreadyOw
 		LocalAssetId: "image-local-id",
 		AssetId:      "local-import/z_image_turbo-Q4_K",
 		Engine:       "media",
-		Capabilities: []string{"image"},
+		Capabilities: []string{"image.generate"},
 	}
 	selection := engine.ImageSupervisedMatrixSelection{
 		Matched:        true,
@@ -597,7 +597,7 @@ func TestBootstrapSelectionAwareManagedMediaEngineSkipsNativeBinaryDirectBackend
 		LocalAssetId: "image-local-id",
 		AssetId:      "local-import/z_image_turbo-Q4_K",
 		Engine:       "media",
-		Capabilities: []string{"image"},
+		Capabilities: []string{"image.generate"},
 	}
 	selection := engine.ImageSupervisedMatrixSelection{
 		Matched:        true,

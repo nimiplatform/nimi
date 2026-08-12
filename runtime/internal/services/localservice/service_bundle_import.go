@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"google.golang.org/grpc/codes"
 )
@@ -266,7 +267,7 @@ func (s *Service) speechAssetMatchesVerifiedBundle(asset *runtimev1.LocalAssetRe
 	return false
 }
 
-func validatePlainSynthesisTTSBundleConfig(sourceDir string) error {
+func validateAdmittedQwen3TTSBundleConfig(sourceDir string, artifactRoles []string) error {
 	raw, err := os.ReadFile(filepath.Join(sourceDir, "config.json"))
 	if err != nil {
 		return fmt.Errorf("read TTS bundle config: %w", err)
@@ -281,8 +282,21 @@ func validatePlainSynthesisTTSBundleConfig(sourceDir string) error {
 	if !strings.EqualFold(strings.TrimSpace(config.ModelType), "qwen3_tts") {
 		return fmt.Errorf("TTS bundle model_type %q is not admitted by the qwen3_tts Driver", config.ModelType)
 	}
-	if !strings.EqualFold(strings.TrimSpace(config.TTSModelType), "custom_voice") {
-		return fmt.Errorf("plain synthesis requires tts_model_type custom_voice, got %q", config.TTSModelType)
+	switch strings.ToLower(strings.TrimSpace(config.TTSModelType)) {
+	case "custom_voice":
+		if !stringSliceContains(artifactRoles, "tts_model") {
+			return fmt.Errorf("custom voice TTS bundle is missing tts_model role")
+		}
+	case "base":
+		if !stringSliceContains(artifactRoles, capabilitydriver.Qwen3VoiceCloneArtifactRole) {
+			return fmt.Errorf("base TTS bundle is missing %s role", capabilitydriver.Qwen3VoiceCloneArtifactRole)
+		}
+	case "voice_design":
+		if !stringSliceContains(artifactRoles, capabilitydriver.Qwen3VoiceDesignArtifactRole) {
+			return fmt.Errorf("voice design TTS bundle is missing %s role", capabilitydriver.Qwen3VoiceDesignArtifactRole)
+		}
+	default:
+		return fmt.Errorf("qwen3_tts bundle tts_model_type %q is unsupported", config.TTSModelType)
 	}
 	return nil
 }
@@ -337,7 +351,7 @@ func bundleManifestRepo(manifestPath string) string {
 func kindFromBundleCapabilities(capabilities []string) runtimev1.LocalAssetKind {
 	normalized := normalizeAssetCapabilities(capabilities)
 	if len(normalized) == 0 {
-		return runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_CHAT
+		return runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_UNSPECIFIED
 	}
 	return inferAssetKindFromCapabilities(normalized)
 }
@@ -370,9 +384,12 @@ func normalizeExistingBundleManifest(sourceManifestPath string, managedManifestP
 func (s *Service) scaffoldBundleManifest(manifestPath string, modelName string, capabilities []string, engine string, sourceDir string, scan bundleDirectoryScan) (map[string]any, bundleDirectoryScan, error) {
 	normalizedCapabilities := normalizeAssetCapabilities(capabilities)
 	if len(normalizedCapabilities) == 0 {
-		normalizedCapabilities = []string{"chat"}
+		return nil, bundleDirectoryScan{}, fmt.Errorf("bundle import requires an exact canonical capability")
 	}
 	kind := kindFromBundleCapabilities(normalizedCapabilities)
+	if kind == runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_UNSPECIFIED {
+		return nil, bundleDirectoryScan{}, fmt.Errorf("bundle capabilities do not map to one exact asset kind")
+	}
 	kindToken, err := localAssetKindToken(kind)
 	if err != nil {
 		return nil, bundleDirectoryScan{}, err
@@ -389,7 +406,7 @@ func (s *Service) scaffoldBundleManifest(manifestPath string, modelName string, 
 			return nil, bundleDirectoryScan{}, resolveErr
 		}
 		if kind == runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_TTS {
-			if configErr := validatePlainSynthesisTTSBundleConfig(sourceDir); configErr != nil {
+			if configErr := validateAdmittedQwen3TTSBundleConfig(sourceDir, descriptor.GetArtifactRoles()); configErr != nil {
 				return nil, bundleDirectoryScan{}, configErr
 			}
 		}

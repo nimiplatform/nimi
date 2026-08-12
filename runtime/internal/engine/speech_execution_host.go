@@ -2,11 +2,13 @@ package engine
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
 	"strings"
 	"sync"
 	"time"
 
+	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
 	"github.com/nimiplatform/nimi/runtime/internal/localexecution"
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
@@ -131,6 +133,90 @@ func (host *SpeechExecutionHost) ExecuteSpeechTranscription(ctx context.Context,
 	return localexecution.SpeechTranscriptionResult{Text: text, Usage: usage}, nil
 }
 
+func (host *SpeechExecutionHost) ExecuteVoiceCreate(ctx context.Context, plan *capabilitydriver.VoiceCreateInvocationPlan, onStart localexecution.SpeechExecutionStartFunc) (localexecution.VoiceCreateResult, error) {
+	if host == nil || host.materializer == nil || plan == nil || strings.TrimSpace(plan.ModelAssetID()) == "" || len(plan.ModelFiles()) != 1 {
+		return localexecution.VoiceCreateResult{}, speechHostError(localexecution.FailureLoad, fmt.Errorf("local voice.create host is unavailable"))
+	}
+	release, err := host.lease.acquire(ctx)
+	if err != nil {
+		return localexecution.VoiceCreateResult{}, speechHostError(localexecution.FailureCanceled, err)
+	}
+	defer release()
+	if host.poisoned != nil {
+		return localexecution.VoiceCreateResult{}, speechHostError(localexecution.FailureProcessCrash, host.poisoned)
+	}
+	backend, err := host.materializeBackend(ctx, capabilitydriver.VoiceCreateContract, plan.DriverID())
+	if err != nil {
+		if ctx != nil && ctx.Err() != nil {
+			return localexecution.VoiceCreateResult{}, host.stopCanceledExecution(ctx.Err(), err)
+		}
+		return localexecution.VoiceCreateResult{}, err
+	}
+	if err := beginSpeechExecution(ctx, onStart); err != nil {
+		cancelErr := err
+		if ctx != nil && ctx.Err() != nil {
+			cancelErr = ctx.Err()
+		}
+		return localexecution.VoiceCreateResult{}, host.stopCanceledExecution(cancelErr, err)
+	}
+	payload, err := localVoiceCreatePayload(plan)
+	if err != nil {
+		return localexecution.VoiceCreateResult{}, speechHostError(localexecution.FailureLoad, err)
+	}
+	result, err := backend.CreateLocalVoice(ctx, payload)
+	if err != nil {
+		return localexecution.VoiceCreateResult{}, host.speechHostBackendError(ctx, err)
+	}
+	if strings.TrimSpace(result.ProviderVoiceRef) == "" {
+		return localexecution.VoiceCreateResult{}, speechHostError(localexecution.FailureInference, fmt.Errorf("local voice.create returned an empty handle"))
+	}
+	return localexecution.VoiceCreateResult{
+		ProviderVoiceRef: strings.TrimSpace(result.ProviderVoiceRef),
+		Metadata:         result.Metadata,
+	}, nil
+}
+
+func localVoiceCreatePayload(plan *capabilitydriver.VoiceCreateInvocationPlan) (map[string]any, error) {
+	request := plan.Request()
+	if request == nil {
+		return nil, fmt.Errorf("local voice.create request is unavailable")
+	}
+	payload := map[string]any{
+		"workflow_model_id": plan.WorkflowModelID(),
+		"target_model_id":   plan.ModelAssetID(),
+	}
+	switch source := request.GetSource().(type) {
+	case *runtimev1.VoiceCreateScenarioSpec_ReferenceAudio:
+		input := source.ReferenceAudio
+		if input == nil || len(input.GetReferenceAudioBytes()) == 0 {
+			return nil, fmt.Errorf("local voice.create reference audio is unavailable")
+		}
+		payload["creation_source"] = "reference_audio"
+		payload["input"] = map[string]any{
+			"reference_audio_base64": base64.StdEncoding.EncodeToString(input.GetReferenceAudioBytes()),
+			"reference_audio_mime":   strings.TrimSpace(input.GetReferenceAudioMime()),
+			"language_hints":         append([]string(nil), input.GetLanguageHints()...),
+			"preferred_name":         strings.TrimSpace(input.GetPreferredName()),
+			"text":                   strings.TrimSpace(input.GetText()),
+		}
+	case *runtimev1.VoiceCreateScenarioSpec_TextDescription:
+		input := source.TextDescription
+		if input == nil {
+			return nil, fmt.Errorf("local voice.create text description is unavailable")
+		}
+		payload["creation_source"] = "text_description"
+		payload["input"] = map[string]any{
+			"instruction_text": strings.TrimSpace(input.GetInstructionText()),
+			"preview_text":     strings.TrimSpace(input.GetPreviewText()),
+			"language":         strings.TrimSpace(input.GetLanguage()),
+			"preferred_name":   strings.TrimSpace(input.GetPreferredName()),
+		}
+	default:
+		return nil, fmt.Errorf("local voice.create source is unavailable")
+	}
+	return payload, nil
+}
+
 func (lease *speechExecutionLease) acquire(ctx context.Context) (func(), error) {
 	if ctx == nil {
 		ctx = context.Background()
@@ -223,7 +309,7 @@ func (host *SpeechExecutionHost) materializeBackend(ctx context.Context, capabil
 	if endpoint == "" {
 		return nil, speechHostError(localexecution.FailureLoad, fmt.Errorf("local speech ExecutionHost endpoint is unavailable"))
 	}
-	backend := nimillm.NewBackend("local-qwen3-speech", endpoint, "", host.timeout)
+	backend := nimillm.NewBackend("local-speech-execution-host", endpoint, "", host.timeout)
 	if backend == nil {
 		return nil, speechHostError(localexecution.FailureLoad, fmt.Errorf("local speech ExecutionHost endpoint is unavailable"))
 	}

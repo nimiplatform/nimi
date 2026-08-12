@@ -222,6 +222,55 @@ func TestM1LocalProductPostconditionMatrix(t *testing.T) {
 	})
 }
 
+func TestWatchLocalTransfersBoundsInitialReplay(t *testing.T) {
+	svc := newTestService(t)
+	for index := 0; index < localTransferStreamBudget+8; index++ {
+		svc.newLocalTransfer(localTransferKindDownload, localTransferMutation{
+			ModelID:    "model-replay",
+			Phase:      "download",
+			State:      localTransferStateCompleted,
+			BytesTotal: int64(index + 1),
+		})
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	stream := &m1LocalTransferTestStream{
+		ctx:  ctx,
+		sent: make(chan *runtimev1.LocalTransferProgressEvent, localTransferStreamBudget+1),
+	}
+	done := make(chan error, 1)
+	go func() {
+		done <- svc.WatchLocalTransfers(&runtimev1.WatchLocalTransfersRequest{}, stream)
+	}()
+
+	for index := 0; index < localTransferStreamBudget; index++ {
+		select {
+		case <-stream.sent:
+		case err := <-done:
+			t.Fatalf("watch stopped during bounded replay: %v", err)
+		case <-time.After(2 * time.Second):
+			t.Fatalf("bounded replay stopped after %d events", index)
+		}
+	}
+	select {
+	case event := <-stream.sent:
+		t.Fatalf("replay exceeded stream budget: %+v", event)
+	case err := <-done:
+		t.Fatalf("watch stopped after bounded replay: %v", err)
+	case <-time.After(25 * time.Millisecond):
+	}
+
+	cancel()
+	select {
+	case err := <-done:
+		if err != nil && status.Code(err) != codes.Canceled {
+			t.Fatalf("watch cancellation error=%v", err)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("watch did not stop after cancellation")
+	}
+}
+
 func TestNewUsesConfiguredLocalModelsPathForUnregisteredScan(t *testing.T) {
 	t.Helper()
 	modelsDir := t.TempDir()
@@ -374,7 +423,7 @@ func mustImportManagedImageAssetForTest(t *testing.T, svc *Service, logicalModel
 		"kind":             "image",
 		"logical_model_id": logicalModelID,
 		"engine":           "media",
-		"capabilities":     []string{"image"},
+		"capabilities":     []string{"image.generate"},
 		"entry":            "z_image_turbo-Q4_K.gguf",
 		"files":            []string{"z_image_turbo-Q4_K.gguf"},
 		"hashes":           map[string]string{"z_image_turbo-Q4_K.gguf": "sha256:" + entryHash},
@@ -403,7 +452,7 @@ func mustInstallUnsupportedSafetensorsNativeImageForTest(t *testing.T, svc *Serv
 	record, err := svc.installLocalAssetRecord(
 		assetID,
 		runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_IMAGE,
-		[]string{"image"},
+		[]string{"image.generate"},
 		"media",
 		"model.safetensors",
 		"unknown",
@@ -721,7 +770,7 @@ func TestResolveModelInstallPlanSidecarEndpointRequired(t *testing.T) {
 	resp, err := svc.ResolveModelInstallPlan(context.Background(), &runtimev1.ResolveModelInstallPlanRequest{
 		ModelId:      "local/stable-audio-open-sidecar",
 		Engine:       "sidecar",
-		Capabilities: []string{"music"},
+		Capabilities: []string{"music.generate"},
 	})
 	if err != nil {
 		t.Fatalf("resolve model install plan: %v", err)
@@ -745,7 +794,7 @@ func TestInstallModelFromPlanRegistersAssetWithoutHostProjection(t *testing.T) {
 			ModelId:          "local/test-attached",
 			Repo:             "test/repo",
 			Revision:         "main",
-			Capabilities:     []string{"chat"},
+			Capabilities:     []string{"text.generate"},
 			Engine:           "llama",
 			InstallAvailable: true,
 			Endpoint:         "http://127.0.0.1:1234/v1",
@@ -771,7 +820,7 @@ func TestInstallModelFromPlanRejectsUnavailablePlan(t *testing.T) {
 		Plan: &runtimev1.LocalInstallPlanDescriptor{
 			ModelId:      "local/unavailable",
 			ReasonCode:   runtimev1.ReasonCode_AI_LOCAL_ENDPOINT_REQUIRED.String(),
-			Capabilities: []string{"music"},
+			Capabilities: []string{"music.generate"},
 			Engine:       "sidecar",
 		},
 	})
@@ -786,7 +835,7 @@ func TestInstallLocalModelSidecarRequiresEndpoint(t *testing.T) {
 	_, err := svc.installLocalAsset(context.Background(), installLocalAssetParams{
 		assetID:      "local/stable-audio-open-sidecar",
 		engine:       "sidecar",
-		capabilities: []string{"music"},
+		capabilities: []string{"music.generate"},
 	})
 	reason, ok := grpcerr.ExtractReasonCode(err)
 	if !ok || reason != runtimev1.ReasonCode_AI_LOCAL_ENDPOINT_REQUIRED {
@@ -799,7 +848,7 @@ func TestLocalNodeCatalogSidecarMusicAdapter(t *testing.T) {
 
 	modelResp, err := svc.installLocalAsset(context.Background(), installLocalAssetParams{
 		assetID:      "local/stable-audio-open-sidecar",
-		capabilities: []string{"music"},
+		capabilities: []string{"music.generate"},
 		engine:       "sidecar",
 		endpoint:     "http://127.0.0.1:19191",
 	})
@@ -810,7 +859,7 @@ func TestLocalNodeCatalogSidecarMusicAdapter(t *testing.T) {
 		ServiceId:    "svc-sidecar-music",
 		Title:        "Sidecar Music Service",
 		Engine:       "sidecar",
-		Capabilities: []string{"music"},
+		Capabilities: []string{"music.generate"},
 		LocalModelId: modelResp.GetLocalAssetId(),
 		Endpoint:     "http://127.0.0.1:19191",
 	}); err != nil {
@@ -824,7 +873,7 @@ func TestLocalNodeCatalogSidecarMusicAdapter(t *testing.T) {
 
 	nodesResp, err := svc.ListNodeCatalog(context.Background(), &runtimev1.ListNodeCatalogRequest{
 		Provider:   "sidecar",
-		Capability: "music",
+		Capability: "music.generate",
 	})
 	if err != nil {
 		t.Fatalf("list node catalog: %v", err)
@@ -861,7 +910,7 @@ func TestResolveModelInstallPlanCatalogSupervisedRequiresEngineManager(t *testin
 		Engine:            "llama",
 		EngineRuntimeMode: runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED,
 		InstallKind:       "download",
-		Capabilities:      []string{"chat"},
+		Capabilities:      []string{"text.generate"},
 	})
 	svc.mu.Unlock()
 
@@ -892,7 +941,7 @@ func TestResolveModelInstallPlanCatalogSupervisedWithManagerAvailable(t *testing
 		Engine:            "llama",
 		EngineRuntimeMode: runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED,
 		InstallKind:       "download",
-		Capabilities:      []string{"chat"},
+		Capabilities:      []string{"text.generate"},
 	})
 	svc.mu.Unlock()
 

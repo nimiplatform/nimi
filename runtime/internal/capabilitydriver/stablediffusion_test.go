@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/aicapabilities"
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
@@ -51,7 +52,11 @@ func TestStableDiffusionInterpretInputImageSupportMustMatchPortableDeclaration(t
 		"modelFamily":      "z-image-turbo",
 		"enableInputImage": true,
 	})
-	requirements, reason := driver.Interpret(InterpretInput{PortableConfig: portable, SupportedFeatures: []string{inputImageFeature, inputImageFeature}})
+	requirements, reason := driver.Interpret(InterpretInput{PortableConfig: portable, SupportedFeatures: []string{
+		aicapabilities.FeatureInputImage,
+		aicapabilities.FeatureInputMask,
+		aicapabilities.FeatureInputImage,
+	}})
 	if reason != success || len(requirements) != 3 {
 		t.Fatalf("img2img interpretation = %v %#v", reason, requirements)
 	}
@@ -390,9 +395,47 @@ func TestStableDiffusionPlanInputImageRequiresDeclaredFeature(t *testing.T) {
 		t.Fatalf("undeclared input.image error = %v", err)
 	}
 	withFeature := stableDiffusionPortableForTest(t, map[string]any{"modelFamily": "z-image", "enableInputImage": true})
-	plan, err := (StableDiffusionImageDriver{}).PlanImageInvocation(ImageInvocationInput{PortableConfig: withFeature, ExactBindings: bindings, Request: request})
+	plan, err := (StableDiffusionImageDriver{}).PlanImageInvocation(ImageInvocationInput{
+		PortableConfig: withFeature, SupportedFeatures: []string{aicapabilities.FeatureInputImage}, ExactBindings: bindings, Request: request,
+	})
 	if err != nil || plan.InputImage() != "input.png" {
 		t.Fatalf("declared input.image plan = %#v err=%v", plan, err)
+	}
+}
+
+func TestStableDiffusionPlanMaskRequiresIndependentDeclaredFeatureAndInputImage(t *testing.T) {
+	root := t.TempDir()
+	bindings := []InvocationExactBinding{
+		stableDiffusionInvocationBindingForTest(StableDiffusionMainRequirementID, "main", filepath.Join(root, "main.gguf"), 'a'),
+		stableDiffusionInvocationBindingForTest(StableDiffusionTextEncoderRequirementID, "text", filepath.Join(root, "text.gguf"), 'b'),
+		stableDiffusionInvocationBindingForTest(StableDiffusionVAERequirementID, "vae", filepath.Join(root, "vae.safetensors"), 'c'),
+	}
+	portable := stableDiffusionPortableForTest(t, map[string]any{"modelFamily": "z-image", "enableInputImage": true})
+	request := &runtimev1.ImageGenerateScenarioSpec{Prompt: "inpaint", ReferenceImages: []string{"input.png"}, Mask: "mask.png"}
+	driver := StableDiffusionImageDriver{}
+
+	_, err := driver.PlanImageInvocation(ImageInvocationInput{
+		PortableConfig: portable, SupportedFeatures: []string{aicapabilities.FeatureInputImage}, ExactBindings: bindings, Request: request,
+	})
+	var invocationErr *InvocationError
+	if !errors.As(err, &invocationErr) || invocationErr.Kind != InvocationFailureUnsupported || !strings.Contains(err.Error(), aicapabilities.FeatureInputMask) {
+		t.Fatalf("undeclared input.mask error = %v", err)
+	}
+
+	features := []string{aicapabilities.FeatureInputImage, aicapabilities.FeatureInputMask}
+	plan, err := driver.PlanImageInvocation(ImageInvocationInput{
+		PortableConfig: portable, SupportedFeatures: features, ExactBindings: bindings, Request: request,
+	})
+	if err != nil || plan.InputImage() != "input.png" || plan.Mask() != "mask.png" {
+		t.Fatalf("declared mask plan = %#v err=%v", plan, err)
+	}
+
+	_, err = driver.PlanImageInvocation(ImageInvocationInput{
+		PortableConfig: portable, SupportedFeatures: features, ExactBindings: bindings,
+		Request: &runtimev1.ImageGenerateScenarioSpec{Prompt: "inpaint", Mask: "mask.png"},
+	})
+	if !errors.As(err, &invocationErr) || invocationErr.Kind != InvocationFailureInvalidRequest || !strings.Contains(err.Error(), "mask requires an input image") {
+		t.Fatalf("mask without input image error = %v", err)
 	}
 }
 

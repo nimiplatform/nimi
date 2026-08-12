@@ -101,7 +101,7 @@ func TestPublicChatVoiceAssetAutoplayPreservesVoiceDemoOwnerAndDashScopeTarget(t
 			VoiceAssetId:     requestedID,
 			AppId:            voiceDemoAppID,
 			SubjectUserId:    ownerUserID,
-			WorkflowType:     runtimev1.VoiceWorkflowType_VOICE_WORKFLOW_TYPE_VOICE_CLONE,
+			CreationSource:   runtimev1.VoiceCreationSource_VOICE_CREATION_SOURCE_REFERENCE_AUDIO,
 			Provider:         "dashscope",
 			TargetModelId:    "dashscope/cosyvoice-v3-flash",
 			ProviderVoiceRef: "cosyvoice-song-lian",

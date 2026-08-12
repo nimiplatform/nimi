@@ -13,7 +13,7 @@ import (
 // VoiceWorkflowRequest captures the unified input for a voice workflow adapter.
 type VoiceWorkflowRequest struct {
 	Provider        string
-	WorkflowType    string // "voice_clone" or "voice_design"
+	WorkflowType    string // "reference_audio" or "text_description"
 	WorkflowModelID string
 	ModelID         string
 	Payload         map[string]any
@@ -97,7 +97,7 @@ func voiceWorkflowPost(
 	}
 	metadata := map[string]any{
 		"provider":          provider,
-		"workflow_type":     strings.TrimSpace(workflowType),
+		"creation_source":   strings.TrimSpace(workflowType),
 		"workflow_model_id": strings.TrimSpace(workflowModelID),
 		"adapter":           "nimillm_voice_adapter_" + provider,
 		"endpoint":          strings.TrimSpace(path),
@@ -231,7 +231,7 @@ func extractPreviewIDFromVoiceWorkflowResponse(payload map[string]any) string {
 
 func resolveVoiceEndpointPath(workflowType string, defaults []string) string {
 	workflow := strings.ToLower(strings.TrimSpace(workflowType))
-	if workflow != "voice_clone" && workflow != "voice_design" {
+	if workflow != "reference_audio" && workflow != "text_description" {
 		return ""
 	}
 	for _, candidate := range defaults {

@@ -9,11 +9,8 @@ import (
 )
 
 func TestVoiceWorkflowExtensionNamespace(t *testing.T) {
-	if got := voiceWorkflowExtensionNamespace(runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE); got != "nimi.scenario.voice_clone.request" {
-		t.Fatalf("unexpected clone namespace: %q", got)
-	}
-	if got := voiceWorkflowExtensionNamespace(runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_DESIGN); got != "nimi.scenario.voice_design.request" {
-		t.Fatalf("unexpected design namespace: %q", got)
+	if got := voiceWorkflowExtensionNamespace(runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CREATE); got != "nimi.scenario.voice_create.request" {
+		t.Fatalf("unexpected voice creation namespace: %q", got)
 	}
 	if got := voiceWorkflowExtensionNamespace(runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE); got != "" {
 		t.Fatalf("unexpected namespace for non-voice scenario: %q", got)
@@ -36,7 +33,7 @@ func TestValidateVoiceWorkflowExtensionPayloadRejectsExecutionSelectors(t *testi
 		t.Run(key, func(t *testing.T) {
 			_, err := validateVoiceWorkflowExtensionPayload(
 				"elevenlabs",
-				runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_DESIGN,
+				runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CREATE,
 				map[string]any{key: "forbidden"},
 			)
 			reason, ok := grpcerr.ExtractReasonCode(err)
@@ -53,9 +50,9 @@ func TestResolveVoiceWorkflowExtensionPayloadRejectsOwnedSelectorNamespace(t *te
 		t.Fatalf("NewStruct: %v", err)
 	}
 	req := &runtimev1.SubmitScenarioJobRequest{
-		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE,
+		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CREATE,
 		Extensions: []*runtimev1.ScenarioExtension{{
-			Namespace: "nimi.scenario.voice_clone.request",
+			Namespace: "nimi.scenario.voice_create.request",
 			Payload:   payload,
 		}},
 	}
@@ -71,7 +68,7 @@ func TestResolveVoiceWorkflowExtensionPayloadIgnoresForeignNamespace(t *testing.
 		t.Fatalf("NewStruct: %v", err)
 	}
 	req := &runtimev1.SubmitScenarioJobRequest{
-		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE,
+		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CREATE,
 		Extensions: []*runtimev1.ScenarioExtension{{
 			Namespace: "nimi.scenario.image.request",
 			Payload:   payload,
@@ -86,7 +83,7 @@ func TestResolveVoiceWorkflowExtensionPayloadIgnoresForeignNamespace(t *testing.
 func TestValidateVoiceWorkflowExtensionPayloadAcceptsEmpty(t *testing.T) {
 	normalized, err := validateVoiceWorkflowExtensionPayload(
 		"stepfun",
-		runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE,
+		runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CREATE,
 		nil,
 	)
 	if err != nil || normalized != nil {

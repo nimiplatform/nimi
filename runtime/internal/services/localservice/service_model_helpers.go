@@ -379,8 +379,6 @@ func localModelSortCategory(model *runtimev1.LocalAssetRecord) string {
 	switch {
 	case has("custom"):
 		return "custom"
-	case has("vision", "vl", "multimodal", "image.understand", "audio_chat", "video_chat", "text.generate.vision", "text.generate.audio", "text.generate.video"):
-		return "vision"
 	case has("image", "image.generate"):
 		return "image"
 	case has("tts", "audio.synthesize"):

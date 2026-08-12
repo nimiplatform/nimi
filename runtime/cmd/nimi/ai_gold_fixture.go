@@ -45,6 +45,7 @@ type aiGoldFixtureRequest struct {
 	AudioURI        string   `yaml:"audio_uri,omitempty"`
 	AudioPath       string   `yaml:"audio_path,omitempty"`
 	MimeType        string   `yaml:"mime_type,omitempty"`
+	CreationSource  string   `yaml:"creation_source,omitempty"`
 	InstructionText string   `yaml:"instruction_text,omitempty"`
 	PreviewText     string   `yaml:"preview_text,omitempty"`
 }
@@ -126,19 +127,21 @@ func (f *aiGoldFixture) validate() error {
 		if err := f.validateAudioRequest("audio.transcribe"); err != nil {
 			return err
 		}
-	case "voice_workflow.voice_clone":
+	case "voice.create":
 		if strings.TrimSpace(f.TargetModelID) == "" {
-			return fmt.Errorf("voice_workflow.voice_clone requires target_model_id")
+			return fmt.Errorf("voice.create requires target_model_id")
 		}
-		if err := f.validateAudioRequest("voice_workflow.voice_clone"); err != nil {
-			return err
-		}
-	case "voice_workflow.voice_design":
-		if strings.TrimSpace(f.TargetModelID) == "" {
-			return fmt.Errorf("voice_workflow.voice_design requires target_model_id")
-		}
-		if strings.TrimSpace(f.Request.InstructionText) == "" {
-			return fmt.Errorf("voice_workflow.voice_design requires request.instruction_text")
+		switch strings.TrimSpace(strings.ToLower(f.Request.CreationSource)) {
+		case "reference_audio":
+			if err := f.validateAudioRequest("voice.create reference_audio"); err != nil {
+				return err
+			}
+		case "text_description":
+			if strings.TrimSpace(f.Request.InstructionText) == "" {
+				return fmt.Errorf("voice.create text_description requires request.instruction_text")
+			}
+		default:
+			return fmt.Errorf("voice.create requires request.creation_source reference_audio or text_description")
 		}
 	case "video.generate":
 		return nil
@@ -376,41 +379,32 @@ func (f *aiGoldFixture) buildSubmitScenarioJobRequest(appID string, subjectUserI
 				AudioBytes: audioBytes,
 			}
 		}
-	case "voice_workflow.voice_clone":
-		audioURI, audioBytes, audioMime, err := f.resolveAudioInput()
-		if err != nil {
-			return nil, err
+	case "voice.create":
+		request.ScenarioType = runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CREATE
+		creation := &runtimev1.VoiceCreateScenarioSpec{TargetModelId: strings.TrimSpace(f.TargetModelID)}
+		switch strings.TrimSpace(strings.ToLower(f.Request.CreationSource)) {
+		case "reference_audio":
+			audioURI, audioBytes, audioMime, err := f.resolveAudioInput()
+			if err != nil {
+				return nil, err
+			}
+			input := &runtimev1.VoiceV2VInput{
+				ReferenceAudioUri:   strings.TrimSpace(audioURI),
+				ReferenceAudioBytes: audioBytes,
+				ReferenceAudioMime:  strings.TrimSpace(audioMime),
+				Text:                strings.TrimSpace(f.Request.Text),
+			}
+			if len(audioBytes) > 0 {
+				input.ReferenceAudioUri = ""
+			}
+			creation.Source = &runtimev1.VoiceCreateScenarioSpec_ReferenceAudio{ReferenceAudio: input}
+		case "text_description":
+			creation.Source = &runtimev1.VoiceCreateScenarioSpec_TextDescription{TextDescription: &runtimev1.VoiceT2VInput{
+				InstructionText: strings.TrimSpace(f.Request.InstructionText),
+				PreviewText:     strings.TrimSpace(firstNonEmptyString(f.Request.PreviewText, f.Request.Text, f.Request.InstructionText)),
+			}}
 		}
-		request.ScenarioType = runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE
-		request.Spec = &runtimev1.ScenarioSpec{
-			Spec: &runtimev1.ScenarioSpec_VoiceClone{
-				VoiceClone: &runtimev1.VoiceCloneScenarioSpec{
-					TargetModelId: strings.TrimSpace(f.TargetModelID),
-					Input: &runtimev1.VoiceV2VInput{
-						ReferenceAudioUri:  strings.TrimSpace(audioURI),
-						ReferenceAudioMime: strings.TrimSpace(audioMime),
-						Text:               strings.TrimSpace(f.Request.Text),
-					},
-				},
-			},
-		}
-		if len(audioBytes) > 0 {
-			request.GetSpec().GetVoiceClone().GetInput().ReferenceAudioBytes = audioBytes
-			request.GetSpec().GetVoiceClone().GetInput().ReferenceAudioUri = ""
-		}
-	case "voice_workflow.voice_design":
-		request.ScenarioType = runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_DESIGN
-		request.Spec = &runtimev1.ScenarioSpec{
-			Spec: &runtimev1.ScenarioSpec_VoiceDesign{
-				VoiceDesign: &runtimev1.VoiceDesignScenarioSpec{
-					TargetModelId: strings.TrimSpace(f.TargetModelID),
-					Input: &runtimev1.VoiceT2VInput{
-						InstructionText: strings.TrimSpace(f.Request.InstructionText),
-						PreviewText:     strings.TrimSpace(firstNonEmptyString(f.Request.PreviewText, f.Request.Text, f.Request.InstructionText)),
-					},
-				},
-			},
-		}
+		request.Spec = &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_VoiceCreate{VoiceCreate: creation}}
 	case "video.generate":
 		request.ScenarioType = runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_GENERATE
 		request.Spec = &runtimev1.ScenarioSpec{

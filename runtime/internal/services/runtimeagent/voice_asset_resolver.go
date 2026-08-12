@@ -156,7 +156,7 @@ func validateAgentPresentationVoiceAssetBinding(
 	}
 	if asset.GetStatus() != runtimev1.VoiceAssetStatus_VOICE_ASSET_STATUS_ACTIVE ||
 		asset.GetPersistence() != runtimev1.VoiceAssetPersistence_VOICE_ASSET_PERSISTENCE_PROVIDER_PERSISTENT ||
-		!validProfileVoiceAssetWorkflowType(asset.GetWorkflowType()) ||
+		!validProfileVoiceAssetCreationSource(asset.GetCreationSource()) ||
 		strings.TrimSpace(asset.GetProvider()) == "" ||
 		strings.TrimSpace(asset.GetProviderVoiceRef()) == "" ||
 		voiceAssetExpiryElapsed(asset, time.Now().UTC()) ||
@@ -175,10 +175,10 @@ func voiceAssetProviderMatchesDurableTarget(provider string, targetRef *runtimei
 	return cloud == nil || provider == cloud.Provider
 }
 
-func validProfileVoiceAssetWorkflowType(workflowType runtimev1.VoiceWorkflowType) bool {
-	switch workflowType {
-	case runtimev1.VoiceWorkflowType_VOICE_WORKFLOW_TYPE_VOICE_CLONE,
-		runtimev1.VoiceWorkflowType_VOICE_WORKFLOW_TYPE_VOICE_DESIGN:
+func validProfileVoiceAssetCreationSource(source runtimev1.VoiceCreationSource) bool {
+	switch source {
+	case runtimev1.VoiceCreationSource_VOICE_CREATION_SOURCE_REFERENCE_AUDIO,
+		runtimev1.VoiceCreationSource_VOICE_CREATION_SOURCE_TEXT_DESCRIPTION:
 		return true
 	default:
 		return false
@@ -253,7 +253,7 @@ func resolveRuntimeAgentBoundVoiceAsset(
 	}
 	if asset.GetStatus() != runtimev1.VoiceAssetStatus_VOICE_ASSET_STATUS_ACTIVE ||
 		asset.GetPersistence() != runtimev1.VoiceAssetPersistence_VOICE_ASSET_PERSISTENCE_PROVIDER_PERSISTENT ||
-		!validProfileVoiceAssetWorkflowType(asset.GetWorkflowType()) ||
+		!validProfileVoiceAssetCreationSource(asset.GetCreationSource()) ||
 		strings.TrimSpace(asset.GetProvider()) == "" ||
 		strings.TrimSpace(asset.GetProviderVoiceRef()) == "" ||
 		voiceAssetExpiryElapsed(asset, time.Now().UTC()) ||

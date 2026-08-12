@@ -534,7 +534,7 @@ func (s *Service) resolveManagedMediaImageProfileForModel(
 			}
 		}
 	} else if len(profileEntries) > 0 {
-		resolved, resolveErr := s.resolveProfileSlots(profileEntries, "image", entryOverrides, model.GetLocalAssetId())
+		resolved, resolveErr := s.resolveProfileSlots(profileEntries, "image.generate", entryOverrides, model.GetLocalAssetId())
 		if resolveErr != nil {
 			return "", nil, nil, resolveErr
 		}
@@ -757,7 +757,7 @@ func (s *Service) resolveManagedMediaImageModel(requestedModelID string) *runtim
 			model.GetStatus() != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNSPECIFIED {
 			continue
 		}
-		if !hasCapability(model.GetCapabilities(), "image") {
+		if !hasCapability(model.GetCapabilities(), "image.generate") {
 			continue
 		}
 		candidates = append(candidates, cloneLocalAsset(model))

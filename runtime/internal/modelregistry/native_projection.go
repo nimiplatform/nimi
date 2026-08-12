@@ -447,9 +447,9 @@ func inferArtifactRoles(modelID string, capabilities []string, files []string) [
 
 	for _, capability := range capabilities {
 		switch strings.ToLower(strings.TrimSpace(capability)) {
-		case "chat", "text.generate", "text.embed", "text.generate.vision", "text.generate.audio", "text.generate.video":
+		case "chat", "text.generate", "text.embed":
 			add("llm")
-		case "image.generate", "image.edit", "video.generate", "i2v":
+		case "image.generate", "video.generate":
 			add("diffusion_transformer")
 			add("text_encoder")
 			add("vae")
@@ -497,9 +497,9 @@ func inferIdeogram4UncondArtifact(modelID string, files []string) bool {
 func inferPreferredEngine(capabilities []string) string {
 	for _, capability := range capabilities {
 		switch strings.ToLower(strings.TrimSpace(capability)) {
-		case "image.generate", "image.edit", "video.generate", "i2v":
+		case "image.generate", "video.generate":
 			return "media"
-		case "audio.transcribe", "audio.synthesize", "voice_workflow.voice_clone", "voice_workflow.voice_design":
+		case "audio.transcribe", "audio.synthesize", "voice.create":
 			return "speech"
 		}
 	}
@@ -551,7 +551,7 @@ func inferHostRequirements(capabilities []string) *runtimev1.LocalHostRequiremen
 	}
 	for _, capability := range capabilities {
 		switch strings.ToLower(strings.TrimSpace(capability)) {
-		case "image.generate", "image.edit", "video.generate", "i2v":
+		case "image.generate", "video.generate":
 			requirements.GpuRequired = true
 			requirements.PythonRuntimeRequired = true
 			addBackends("stable-diffusion.cpp", "diffusers")
@@ -561,7 +561,7 @@ func inferHostRequirements(capabilities []string) *runtimev1.LocalHostRequiremen
 		case "audio.synthesize":
 			requirements.PythonRuntimeRequired = true
 			addBackends("qwen3_tts")
-		case "voice_workflow.voice_clone", "voice_workflow.voice_design":
+		case "voice.create":
 			requirements.GpuRequired = true
 			requirements.PythonRuntimeRequired = true
 			addBackends("qwen3_tts")

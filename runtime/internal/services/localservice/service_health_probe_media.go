@@ -310,7 +310,7 @@ func managedMediaProfileConsumerBaseForModel(model *runtimev1.LocalAssetRecord) 
 		return "", fmt.Errorf("managed media dependency profile consumer is unavailable")
 	}
 	if model.GetKind() == runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_VIDEO ||
-		localAssetHasCapability(model.GetCapabilities(), "video", "video.generate", "i2v") {
+		localAssetHasCapability(model.GetCapabilities(), "video.generate") {
 		return managedMediaVideoProfileConsumerBase, nil
 	}
 	if isCanonicalSupervisedImageAsset(model.GetEngine(), model.GetCapabilities(), model.GetKind()) {

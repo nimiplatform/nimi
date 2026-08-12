@@ -284,17 +284,17 @@ func inferCapabilitiesFromHF(pipelineTag string, tags []string) []string {
 	appendCap := func(pipeline string) {
 		switch strings.ToLower(strings.TrimSpace(pipeline)) {
 		case "text-generation", "text2text-generation":
-			caps = append(caps, "chat")
+			caps = append(caps, "text.generate")
 		case "text-to-image":
-			caps = append(caps, "image")
+			caps = append(caps, "image.generate")
 		case "text-to-video":
-			caps = append(caps, "video")
+			caps = append(caps, "video.generate")
 		case "text-to-speech", "text-to-audio":
-			caps = append(caps, "tts")
+			caps = append(caps, "audio.synthesize")
 		case "automatic-speech-recognition":
-			caps = append(caps, "stt")
+			caps = append(caps, "audio.transcribe")
 		case "feature-extraction", "sentence-similarity":
-			caps = append(caps, "embedding")
+			caps = append(caps, "text.embed")
 		}
 	}
 
@@ -322,6 +322,9 @@ func mapHFRowToCatalogItem(row hfModelSearchEntry, engineFilter string) (*runtim
 	engine := strings.ToLower(defaultLocalEngine(strings.TrimSpace(engineFilter), capabilities))
 	deviceProfile := collectDeviceProfile()
 	kind := inferAssetKindFromCapabilities(capabilities)
+	if kind == runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_UNSPECIFIED {
+		return nil, false
+	}
 	binding := autoRecommendedRuntimeBinding(engine, capabilities, kind, deviceProfile)
 	tags := normalizeStringSlice(append(append([]string(nil), row.Tags...), capabilities...))
 	license := ""

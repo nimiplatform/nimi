@@ -12,14 +12,20 @@ func TestInferAssetKindFromCapabilitiesEmbedding(t *testing.T) {
 	if got := inferAssetKindFromCapabilities([]string{"text.embed"}); got != runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_EMBEDDING {
 		t.Fatalf("infer embed kind mismatch: got=%s want=%s", got, runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_EMBEDDING)
 	}
-	if got := inferAssetKindFromCapabilities([]string{"text.generate", "text.embed"}); got != runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_CHAT {
-		t.Fatalf("infer mixed kind mismatch: got=%s want=%s", got, runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_CHAT)
+	if got := inferAssetKindFromCapabilities([]string{"text.generate", "text.embed"}); got != runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_UNSPECIFIED {
+		t.Fatalf("infer mixed kind must fail closed: got=%s", got)
+	}
+	if got := inferAssetKindFromCapabilities([]string{"vision"}); got != runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_UNSPECIFIED {
+		t.Fatalf("infer legacy alias must fail closed: got=%s", got)
+	}
+	if got := inferAssetKindFromCapabilities([]string{"music.generate"}); got != runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_AUXILIARY {
+		t.Fatalf("infer music kind mismatch: got=%s", got)
 	}
 }
 
 func TestAssetKindMatchesCapabilityEmbedding(t *testing.T) {
-	if !assetKindMatchesCapability(runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_EMBEDDING, "embedding") {
-		t.Fatal("expected embedding kind to match embedding token")
+	if assetKindMatchesCapability(runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_EMBEDDING, "embedding") {
+		t.Fatal("embedding kind must reject non-contract aliases")
 	}
 	if !assetKindMatchesCapability(runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_EMBEDDING, "text.embed") {
 		t.Fatal("expected embedding kind to match text.embed")
@@ -105,7 +111,7 @@ func TestInstallLocalAssetRecordDefaultsDisplayName(t *testing.T) {
 	record, err := svc.installLocalAssetRecord(
 		"verified/qwen3-4b-instruct",
 		runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_CHAT,
-		[]string{"chat"},
+		[]string{"text.generate"},
 		"llama",
 		"model.gguf",
 		"unknown",
@@ -132,7 +138,7 @@ func TestRestoreStateHealsMissingAssetDisplayName(t *testing.T) {
 	record, err := svc.installLocalAssetRecord(
 		"local/local-import/legacy-model/01KZFPYNCX823S5KY9X57XN8JZ", // pragma: allowlist secret
 		runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_CHAT,
-		[]string{"chat"},
+		[]string{"text.generate"},
 		"llama",
 		"model.gguf",
 		"unknown",

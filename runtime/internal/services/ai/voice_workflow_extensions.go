@@ -25,14 +25,10 @@ func resolveVoiceWorkflowExtensionPayload(req *runtimev1.SubmitScenarioJobReques
 }
 
 func voiceWorkflowExtensionNamespace(scenarioType runtimev1.ScenarioType) string {
-	switch scenarioType {
-	case runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE:
-		return "nimi.scenario.voice_clone.request"
-	case runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_DESIGN:
-		return "nimi.scenario.voice_design.request"
-	default:
-		return ""
+	if scenarioType == runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CREATE {
+		return "nimi.scenario.voice_create.request"
 	}
+	return ""
 }
 
 // Voice workflow extensions cannot carry endpoint, credential, header, model,

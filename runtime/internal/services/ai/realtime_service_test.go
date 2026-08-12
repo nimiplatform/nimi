@@ -1,18 +1,17 @@
 package ai
 
 import (
+	"bytes"
 	"context"
-	"errors"
 	"io"
 	"log/slog"
 	"strings"
-	"sync"
 	"testing"
-	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/executionintent"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"github.com/nimiplatform/nimi/runtime/internal/protectedprincipal"
 	runtimeartifact "github.com/nimiplatform/nimi/runtime/internal/services/runtimeartifact"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
@@ -201,51 +200,111 @@ func TestUploadArtifactRejectsOversizedChunk(t *testing.T) {
 	}
 }
 
-func TestOpenRealtimeSessionFailsClosedWithoutDriverContract(t *testing.T) {
+func TestOpenRealtimeSessionAuthorizedCallerAlwaysFailsRouteUnsupported(t *testing.T) {
+	for _, route := range []runtimev1.RoutePolicy{
+		runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+		runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
+	} {
+		t.Run(route.String(), func(t *testing.T) {
+			var logs bytes.Buffer
+			svc := newTestService(slog.New(slog.NewTextHandler(&logs, nil)))
+			ctx := executionintent.WithIntent(realtimeAuthorizedContext("account-a", "app.a"), executionintent.Intent{
+				CapabilityContract: "text.generate",
+				Route:              route,
+			})
+			response, err := svc.OpenRealtimeSession(ctx, &runtimev1.OpenRealtimeSessionRequest{
+				Head: &runtimev1.ScenarioRequestHead{AppId: "app.a", SubjectUserId: "account-a"},
+			})
+			if response != nil {
+				t.Fatalf("response = %+v", response)
+			}
+			assertRealtimeFailure(t, err, codes.FailedPrecondition, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
+			for _, publicText := range []string{status.Convert(err).Message(), logs.String()} {
+				normalized := strings.ToLower(publicText)
+				if strings.Contains(normalized, "provider") || strings.Contains(normalized, "engine") {
+					t.Fatalf("public failure leaked execution identity: %q", publicText)
+				}
+			}
+		})
+	}
+}
+
+func TestOpenRealtimeSessionDoesNotRequireAIConfig(t *testing.T) {
 	svc := newTestService(nil)
+	response, err := svc.OpenRealtimeSession(
+		realtimeAuthorizedContext("account-a", "app.a"),
+		&runtimev1.OpenRealtimeSessionRequest{
+			Head: &runtimev1.ScenarioRequestHead{AppId: "app.a", SubjectUserId: "account-a"},
+		},
+	)
+	if response != nil {
+		t.Fatalf("response = %+v", response)
+	}
+	assertRealtimeFailure(t, err, codes.FailedPrecondition, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
+}
+
+func TestOpenRealtimeSessionPreservesProtocolAndAuthorizationFailures(t *testing.T) {
+	svc := newTestService(nil)
+	for _, req := range []*runtimev1.OpenRealtimeSessionRequest{nil, {}} {
+		response, err := svc.OpenRealtimeSession(realtimeAuthorizedContext("account-a", "app.a"), req)
+		if response != nil {
+			t.Fatalf("response = %+v", response)
+		}
+		assertRealtimeFailure(t, err, codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+	}
+
 	ctx := executionintent.WithIntent(context.Background(), executionintent.Intent{
 		CapabilityContract: "text.generate",
 		Route:              runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
 	})
 	response, err := svc.OpenRealtimeSession(ctx, &runtimev1.OpenRealtimeSessionRequest{
-		Head: &runtimev1.ScenarioRequestHead{AppId: "app", SubjectUserId: "user"},
+		Head: &runtimev1.ScenarioRequestHead{AppId: "app.a", SubjectUserId: "account-a"},
 	})
 	if response != nil {
 		t.Fatalf("response = %+v", response)
 	}
-	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED {
-		t.Fatalf("error = %v, reason=%v ok=%v", err, reason, ok)
-	}
+	assertRealtimeFailure(t, err, codes.PermissionDenied, runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED)
 }
 
-func TestSendRealtimeEnvelopePreservesCauseWithoutExposingIt(t *testing.T) {
-	cause := &realtimeSendTestError{detail: "dial tcp 127.0.0.1:58001: private upstream detail"}
-	record := &realtimeSessionRecord{
-		conn: &fakeRealtimeConn{sendErr: cause},
-	}
+func TestRealtimeSessionRPCsReturnNotFoundWithoutOpenSession(t *testing.T) {
+	svc := newTestService(nil)
 
-	err := sendRealtimeEnvelope(record, map[string]any{"type": "response.create"})
-	if !errors.Is(err, cause) {
-		t.Fatalf("expected wrapped cause, got %v", err)
+	appendResponse, err := svc.AppendRealtimeInput(context.Background(), &runtimev1.AppendRealtimeInputRequest{SessionId: "missing"})
+	if appendResponse != nil {
+		t.Fatalf("append response = %+v", appendResponse)
 	}
-	var typedCause *realtimeSendTestError
-	if !errors.As(err, &typedCause) || typedCause != cause {
-		t.Fatalf("expected typed wrapped cause, got %T: %v", err, err)
+	assertRealtimeFailure(t, err, codes.NotFound, runtimev1.ReasonCode_AI_REALTIME_SESSION_NOT_FOUND)
+
+	err = svc.ReadRealtimeEvents(
+		&runtimev1.ReadRealtimeEventsRequest{SessionId: "missing"},
+		&mockRealtimeEventStream{ctx: context.Background()},
+	)
+	assertRealtimeFailure(t, err, codes.NotFound, runtimev1.ReasonCode_AI_REALTIME_SESSION_NOT_FOUND)
+
+	closeResponse, err := svc.CloseRealtimeSession(context.Background(), &runtimev1.CloseRealtimeSessionRequest{SessionId: "missing"})
+	if closeResponse != nil {
+		t.Fatalf("close response = %+v", closeResponse)
 	}
-	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE {
-		t.Fatalf("unexpected reason: got=%v ok=%v want=%v", reason, ok, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
-	}
-	if wireMessage := status.Convert(err).Message(); strings.Contains(wireMessage, cause.Error()) {
-		t.Fatalf("wire message leaked private cause: %q", wireMessage)
-	}
+	assertRealtimeFailure(t, err, codes.NotFound, runtimev1.ReasonCode_AI_REALTIME_SESSION_NOT_FOUND)
 }
 
-type realtimeSendTestError struct {
-	detail string
+func realtimeAuthorizedContext(accountID string, appID string) context.Context {
+	principal := protectedprincipal.New(
+		appID, "test-realtime.v1", "test-realtime.v1",
+		&runtimev1.AccountProjection{AccountId: accountID, RealmEnvironmentId: "realm-test"},
+		1, [32]byte{1}, make(chan struct{}),
+	)
+	return protectedprincipal.With(context.Background(), principal)
 }
 
-func (e *realtimeSendTestError) Error() string {
-	return e.detail
+func assertRealtimeFailure(t *testing.T, err error, wantCode codes.Code, wantReason runtimev1.ReasonCode) {
+	t.Helper()
+	if status.Code(err) != wantCode {
+		t.Fatalf("status code mismatch: got=%s want=%s err=%v", status.Code(err), wantCode, err)
+	}
+	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != wantReason {
+		t.Fatalf("reason mismatch: got=%v present=%v want=%v err=%v", reason, ok, wantReason, err)
+	}
 }
 
 func TestReadRealtimeEventsRejectsSecondReader(t *testing.T) {
@@ -326,95 +385,3 @@ func (m *mockRealtimeEventStream) SetHeader(_ metadata.MD) error  { return nil }
 func (m *mockRealtimeEventStream) SetTrailer(_ metadata.MD)       {}
 func (m *mockRealtimeEventStream) SendMsg(any) error              { return nil }
 func (m *mockRealtimeEventStream) RecvMsg(any) error              { return nil }
-
-type fakeRealtimeConn struct {
-	mu      sync.Mutex
-	sent    []map[string]any
-	recv    chan map[string]any
-	closed  bool
-	sendErr error
-}
-
-func newFakeRealtimeConn() *fakeRealtimeConn {
-	return &fakeRealtimeConn{
-		recv: make(chan map[string]any, 16),
-		sent: make([]map[string]any, 0, 8),
-	}
-}
-
-func (f *fakeRealtimeConn) Send(v any) error {
-	if f.sendErr != nil {
-		return f.sendErr
-	}
-	payload, _ := v.(map[string]any)
-	f.mu.Lock()
-	f.sent = append(f.sent, payload)
-	f.mu.Unlock()
-	return nil
-}
-
-func (f *fakeRealtimeConn) Receive(v any) error {
-	payload, ok := <-f.recv
-	if !ok {
-		return io.EOF
-	}
-	target, ok := v.(*map[string]any)
-	if !ok {
-		return io.ErrUnexpectedEOF
-	}
-	*target = payload
-	return nil
-}
-
-func (f *fakeRealtimeConn) Close() error {
-	f.mu.Lock()
-	if !f.closed {
-		f.closed = true
-		close(f.recv)
-	}
-	f.mu.Unlock()
-	return nil
-}
-
-func (f *fakeRealtimeConn) pushReceive(payload map[string]any) {
-	f.recv <- payload
-}
-
-func (f *fakeRealtimeConn) sentTypes() []string {
-	f.mu.Lock()
-	defer f.mu.Unlock()
-	out := make([]string, 0, len(f.sent))
-	for _, payload := range f.sent {
-		if payload == nil {
-			out = append(out, "")
-			continue
-		}
-		value, _ := payload["type"].(string)
-		out = append(out, value)
-	}
-	return out
-}
-
-func (f *fakeRealtimeConn) isClosed() bool {
-	f.mu.Lock()
-	defer f.mu.Unlock()
-	return f.closed
-}
-
-func waitForRealtimeEvents(t *testing.T, svc *Service, sessionID string, minCount int) {
-	t.Helper()
-	deadline := time.Now().Add(2 * time.Second)
-	for time.Now().Before(deadline) {
-		record, ok := svc.realtimeSessions.get(sessionID)
-		if ok {
-			record.mu.Lock()
-			count := len(record.events)
-			record.mu.Unlock()
-			if count >= minCount {
-				return
-			}
-		}
-		time.Sleep(10 * time.Millisecond)
-	}
-	t.Fatalf("timed out waiting for %d realtime events", minCount)
-}

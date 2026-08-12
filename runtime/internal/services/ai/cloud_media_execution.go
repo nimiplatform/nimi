@@ -319,7 +319,7 @@ func cloudMediaDriverError(capabilityContract string, err error) error {
 	case capabilitydriver.CloudInvocationFailureRequest:
 		reason := runtimev1.ReasonCode_AI_INPUT_INVALID
 		switch {
-		case strings.HasPrefix(capabilityContract, "voice_workflow."):
+		case capabilityContract == "voice.create":
 			reason = runtimev1.ReasonCode_AI_VOICE_INPUT_INVALID
 		case capabilityContract == "audio.synthesize":
 			reason = runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED

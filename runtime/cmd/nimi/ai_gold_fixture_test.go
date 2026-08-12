@@ -96,20 +96,20 @@ func TestAIGoldFixtureBuildSubmitScenarioJobRequestUsesAudioPathBytes(t *testing
 		}
 	})
 
-	t.Run("voice clone", func(t *testing.T) {
+	t.Run("voice reference audio", func(t *testing.T) {
 		fixture := &aiGoldFixture{
 			Path:          filepath.Join(t.TempDir(), "fixture.yaml"),
-			Capability:    "voice_workflow.voice_clone",
+			Capability:    "voice.create",
 			Provider:      "dashscope",
 			ModelID:       "qwen3-tts-vc",
 			TargetModelID: "qwen3-tts-vc-2026-01-22",
-			Request:       aiGoldFixtureRequest{AudioPath: audioPath, Text: "Hello from the source clip."},
+			Request:       aiGoldFixtureRequest{CreationSource: "reference_audio", AudioPath: audioPath, Text: "Hello from the source clip."},
 		}
 		req, err := fixture.buildSubmitScenarioJobRequest("app.test", "user.test")
 		if err != nil {
 			t.Fatalf("buildSubmitScenarioJobRequest: %v", err)
 		}
-		input := req.GetSpec().GetVoiceClone().GetInput()
+		input := req.GetSpec().GetVoiceCreate().GetReferenceAudio()
 		if got := string(input.GetReferenceAudioBytes()); got != "wav-bytes" {
 			t.Fatalf("reference audio bytes mismatch: %q", got)
 		}

@@ -155,21 +155,21 @@ func TestScenarioJobStoreDetachedVideoPollingHonorsJobDeadline(t *testing.T) {
 func TestScenarioJobStoreVoiceLookupPaths(t *testing.T) {
 	fixture := newManagedCloudScenarioTestFixture(t, "dashscope", "qwen3-tts-vd", "https://example.com", Config{})
 	svc := fixture.service
-	ctx := withCloudScenarioTestIntent(scenarioJobUserContext("nimi.desktop", "user-001"), "voice_workflow.voice_design", fixture.targetRef)
+	ctx := withCloudScenarioTestIntent(scenarioJobUserContext("nimi.desktop", "user-001"), "voice.create", fixture.targetRef)
 
 	submitResp, err := svc.SubmitScenarioJob(ctx, &runtimev1.SubmitScenarioJobRequest{
 		Head: &runtimev1.ScenarioRequestHead{
 			AppId:         "nimi.desktop",
 			SubjectUserId: "user-001",
 		},
-		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_DESIGN,
+		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CREATE,
 		Spec: &runtimev1.ScenarioSpec{
-			Spec: &runtimev1.ScenarioSpec_VoiceDesign{
-				VoiceDesign: &runtimev1.VoiceDesignScenarioSpec{
+			Spec: &runtimev1.ScenarioSpec_VoiceCreate{
+				VoiceCreate: &runtimev1.VoiceCreateScenarioSpec{
 					TargetModelId: "qwen3-tts-vd",
-					Input: &runtimev1.VoiceT2VInput{
+					Source: &runtimev1.VoiceCreateScenarioSpec_TextDescription{TextDescription: &runtimev1.VoiceT2VInput{
 						InstructionText: "calm female voice",
-					},
+					}},
 				},
 			},
 		},
@@ -186,7 +186,7 @@ func TestScenarioJobStoreVoiceLookupPaths(t *testing.T) {
 	if err != nil {
 		t.Fatalf("get scenario job for voice path: %v", err)
 	}
-	if getResp.GetJob().GetScenarioType() != runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_DESIGN {
+	if getResp.GetJob().GetScenarioType() != runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CREATE {
 		t.Fatalf("unexpected voice job scenario type: %v", getResp.GetJob().GetScenarioType())
 	}
 
@@ -210,7 +210,7 @@ func TestScenarioJobStoreVoiceLookupPaths(t *testing.T) {
 	}
 }
 
-func TestSubmitScenarioJobDashScopeVoiceDesignUsesAPIModelTarget(t *testing.T) {
+func TestSubmitScenarioJobDashScopeVoiceTextDescriptionUsesAPIModelTarget(t *testing.T) {
 	var capturedPayload map[string]any
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost || r.URL.Path != "/api/v1/services/audio/tts/customization" {
@@ -231,7 +231,7 @@ func TestSubmitScenarioJobDashScopeVoiceDesignUsesAPIModelTarget(t *testing.T) {
 
 	fixture := newManagedCloudScenarioTestFixture(t, "dashscope", "qwen3-tts-vd", server.URL+"/compatible-mode/v1", Config{AllowLoopbackEndpoint: true})
 	svc := fixture.service
-	ctx := withCloudScenarioTestIntent(scenarioJobUserContext("nimi.desktop", "user-001"), "voice_workflow.voice_design", fixture.targetRef)
+	ctx := withCloudScenarioTestIntent(scenarioJobUserContext("nimi.desktop", "user-001"), "voice.create", fixture.targetRef)
 
 	submitResp, err := svc.SubmitScenarioJob(ctx, &runtimev1.SubmitScenarioJobRequest{
 		Head: &runtimev1.ScenarioRequestHead{
@@ -239,17 +239,17 @@ func TestSubmitScenarioJobDashScopeVoiceDesignUsesAPIModelTarget(t *testing.T) {
 			SubjectUserId: "user-001",
 			TimeoutMs:     10_000,
 		},
-		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_DESIGN,
+		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CREATE,
 		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB,
 		Spec: &runtimev1.ScenarioSpec{
-			Spec: &runtimev1.ScenarioSpec_VoiceDesign{
-				VoiceDesign: &runtimev1.VoiceDesignScenarioSpec{
+			Spec: &runtimev1.ScenarioSpec_VoiceCreate{
+				VoiceCreate: &runtimev1.VoiceCreateScenarioSpec{
 					TargetModelId: "qwen3-tts-vd",
-					Input: &runtimev1.VoiceT2VInput{
+					Source: &runtimev1.VoiceCreateScenarioSpec_TextDescription{TextDescription: &runtimev1.VoiceT2VInput{
 						InstructionText: "Warm, clear Mandarin speaking voice with steady pacing.",
 						PreviewText:     "Hello from the desktop voice design workflow.",
 						PreferredName:   "design-sample",
-					},
+					}},
 				},
 			},
 		},
@@ -289,14 +289,14 @@ func TestScenarioJobStoreVoiceCancelAndMissingArtifactsPaths(t *testing.T) {
 			AppId:         "nimi.desktop",
 			SubjectUserId: "user-001",
 		},
-		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_DESIGN,
+		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CREATE,
 		Spec: &runtimev1.ScenarioSpec{
-			Spec: &runtimev1.ScenarioSpec_VoiceDesign{
-				VoiceDesign: &runtimev1.VoiceDesignScenarioSpec{
+			Spec: &runtimev1.ScenarioSpec_VoiceCreate{
+				VoiceCreate: &runtimev1.VoiceCreateScenarioSpec{
 					TargetModelId: "local/qwen3-tts",
-					Input: &runtimev1.VoiceT2VInput{
+					Source: &runtimev1.VoiceCreateScenarioSpec_TextDescription{TextDescription: &runtimev1.VoiceT2VInput{
 						InstructionText: "steady narration voice",
-					},
+					}},
 				},
 			},
 		},
@@ -340,14 +340,14 @@ func TestScenarioJobStoreVoiceCancelAndMissingArtifactsPaths(t *testing.T) {
 			AppId:         "nimi.desktop",
 			SubjectUserId: "user-001",
 		},
-		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_DESIGN,
+		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CREATE,
 		Spec: &runtimev1.ScenarioSpec{
-			Spec: &runtimev1.ScenarioSpec_VoiceDesign{
-				VoiceDesign: &runtimev1.VoiceDesignScenarioSpec{
+			Spec: &runtimev1.ScenarioSpec_VoiceCreate{
+				VoiceCreate: &runtimev1.VoiceCreateScenarioSpec{
 					TargetModelId: "local/qwen3-tts",
-					Input: &runtimev1.VoiceT2VInput{
+					Source: &runtimev1.VoiceCreateScenarioSpec_TextDescription{TextDescription: &runtimev1.VoiceT2VInput{
 						InstructionText: "already completed voice",
-					},
+					}},
 				},
 			},
 		},
@@ -402,13 +402,16 @@ func TestScenarioJobStoreSubmitModeAndUnsupportedType(t *testing.T) {
 			AppId:         "nimi.desktop",
 			SubjectUserId: "user-1",
 		},
-		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE,
+		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE,
+		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB,
 		Spec: &runtimev1.ScenarioSpec{
-			Spec: &runtimev1.ScenarioSpec_TextGenerate{TextGenerate: &runtimev1.TextGenerateScenarioSpec{}},
+			Spec: &runtimev1.ScenarioSpec_TextGenerate{TextGenerate: &runtimev1.TextGenerateScenarioSpec{
+				Input: []*runtimev1.ChatMessage{{Role: "user", Content: "unsupported async text"}},
+			}},
 		},
 	})
-	if reason, _ := grpcerr.ExtractReasonCode(err); reason != runtimev1.ReasonCode_AI_INPUT_INVALID {
-		t.Fatalf("expected input validation before cloud text job submission, got=%v", reason)
+	if reason, _ := grpcerr.ExtractReasonCode(err); reason != runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED {
+		t.Fatalf("expected route unsupported for async text submission, got=%v", reason)
 	}
 }
 

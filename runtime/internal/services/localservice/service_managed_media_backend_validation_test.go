@@ -59,7 +59,7 @@ func TestResolveManagedMediaImageProfileRejectsPathOverrides(t *testing.T) {
 	}
 	modelResp := mustInstallSupervisedLocalModel(t, svc, installLocalAssetParams{
 		assetID:      "z_image_turbo",
-		capabilities: []string{"image"},
+		capabilities: []string{"image.generate"},
 		engine:       "media",
 		entry:        "z_image_turbo-Q4_K_M.gguf",
 		engineConfig: engineConfig,
@@ -162,7 +162,7 @@ func TestResolveManagedMediaImageProfileFailsCloseWithoutProfileEntriesOrRuntime
 	}
 	modelResp := mustInstallSupervisedLocalModel(t, svc, installLocalAssetParams{
 		assetID:      "z_image_turbo",
-		capabilities: []string{"image"},
+		capabilities: []string{"image.generate"},
 		engine:       "media",
 		entry:        "z_image_turbo-Q4_K_M.gguf",
 		engineConfig: engineConfig,
@@ -197,7 +197,7 @@ func TestResolveManagedMediaImageProfileRejectsMissingRequiredSlotAsset(t *testi
 	}
 	modelResp := mustInstallSupervisedLocalModel(t, svc, installLocalAssetParams{
 		assetID:      "z_image_turbo",
-		capabilities: []string{"image"},
+		capabilities: []string{"image.generate"},
 		engine:       "media",
 		entry:        "z_image_turbo-Q4_K_M.gguf",
 		engineConfig: engineConfig,
@@ -213,7 +213,7 @@ func TestResolveManagedMediaImageProfileRejectsMissingRequiredSlotAsset(t *testi
 			{
 				EntryId:    "vae-slot",
 				Kind:       runtimev1.LocalProfileEntryKind_LOCAL_PROFILE_ENTRY_KIND_ASSET,
-				Capability: "image",
+				Capability: "image.generate",
 				AssetId:    "nonexistent_vae",
 				AssetKind:  runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_VAE,
 				Engine:     "media",
@@ -249,7 +249,7 @@ func TestResolveManagedMediaImageProfileRejectsOptionalMissingSlotAsset(t *testi
 	}
 	modelResp := mustInstallSupervisedLocalModel(t, svc, installLocalAssetParams{
 		assetID:      "z_image_turbo",
-		capabilities: []string{"image"},
+		capabilities: []string{"image.generate"},
 		engine:       "media",
 		entry:        "z_image_turbo-Q4_K_M.gguf",
 		engineConfig: engineConfig,
@@ -265,7 +265,7 @@ func TestResolveManagedMediaImageProfileRejectsOptionalMissingSlotAsset(t *testi
 			{
 				EntryId:    "main-image",
 				Kind:       runtimev1.LocalProfileEntryKind_LOCAL_PROFILE_ENTRY_KIND_ASSET,
-				Capability: "image",
+				Capability: "image.generate",
 				AssetId:    "z_image_turbo",
 				AssetKind:  runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_IMAGE,
 				Engine:     "media",
@@ -273,7 +273,7 @@ func TestResolveManagedMediaImageProfileRejectsOptionalMissingSlotAsset(t *testi
 			{
 				EntryId:    "missing-optional-vae",
 				Kind:       runtimev1.LocalProfileEntryKind_LOCAL_PROFILE_ENTRY_KIND_ASSET,
-				Capability: "image",
+				Capability: "image.generate",
 				AssetId:    "nonexistent_vae",
 				AssetKind:  runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_VAE,
 				Engine:     "media",
@@ -308,12 +308,12 @@ func TestResolveProfileSlotsPreservesMissingSlotPathCauseWithoutLeakingPath(t *t
 	_, err := svc.resolveProfileSlots([]*runtimev1.LocalProfileEntryDescriptor{{
 		EntryId:    "missing-vae-slot",
 		Kind:       runtimev1.LocalProfileEntryKind_LOCAL_PROFILE_ENTRY_KIND_ASSET,
-		Capability: "image",
+		Capability: "image.generate",
 		AssetId:    slotAsset.GetAssetId(),
 		AssetKind:  slotAsset.GetKind(),
 		Engine:     slotAsset.GetEngine(),
 		EngineSlot: "vae_path",
-	}}, "image", nil, "")
+	}}, "image.generate", nil, "")
 	if err == nil {
 		t.Fatal("expected missing slot path error")
 	}
@@ -346,7 +346,7 @@ func TestResolveManagedMediaImageProfileRejectsLocalImportSlotSourceRepo(t *test
 	}
 	modelResp := mustInstallSupervisedLocalModel(t, svc, installLocalAssetParams{
 		assetID:      "z_image_turbo",
-		capabilities: []string{"image"},
+		capabilities: []string{"image.generate"},
 		engine:       "media",
 		entry:        "z_image_turbo-Q4_K_M.gguf",
 		engineConfig: engineConfig,
@@ -387,7 +387,7 @@ func TestResolveManagedMediaImageProfileRejectsLocalImportSlotSourceRepo(t *test
 			{
 				EntryId:    "legacy-vae-slot",
 				Kind:       runtimev1.LocalProfileEntryKind_LOCAL_PROFILE_ENTRY_KIND_ASSET,
-				Capability: "image",
+				Capability: "image.generate",
 				AssetId:    "local-import/ae",
 				AssetKind:  runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_VAE,
 				Engine:     "media",
@@ -416,7 +416,7 @@ func TestResolveManagedMediaImageProfileRejectsRunnableEngineSlotBinding(t *test
 	}
 	modelResp := mustInstallSupervisedLocalModel(t, svc, installLocalAssetParams{
 		assetID:      "z_image_turbo",
-		capabilities: []string{"image"},
+		capabilities: []string{"image.generate"},
 		engine:       "media",
 		entry:        "z_image_turbo-Q4_K_M.gguf",
 		engineConfig: engineConfig,
@@ -431,7 +431,7 @@ func TestResolveManagedMediaImageProfileRejectsRunnableEngineSlotBinding(t *test
 			{
 				EntryId:    "main-image",
 				Kind:       runtimev1.LocalProfileEntryKind_LOCAL_PROFILE_ENTRY_KIND_ASSET,
-				Capability: "image",
+				Capability: "image.generate",
 				AssetId:    "z_image_turbo",
 				AssetKind:  runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_IMAGE,
 				Engine:     "media",
@@ -457,7 +457,7 @@ func TestResolveManagedMediaImageProfileRejectsDuplicateEngineSlotBindings(t *te
 	}
 	modelResp := mustInstallSupervisedLocalModel(t, svc, installLocalAssetParams{
 		assetID:      "z_image_turbo",
-		capabilities: []string{"image"},
+		capabilities: []string{"image.generate"},
 		engine:       "media",
 		entry:        "z_image_turbo-Q4_K_M.gguf",
 		engineConfig: engineConfig,
@@ -497,7 +497,7 @@ func TestResolveManagedMediaImageProfileRejectsDuplicateEngineSlotBindings(t *te
 			{
 				EntryId:    "main-image",
 				Kind:       runtimev1.LocalProfileEntryKind_LOCAL_PROFILE_ENTRY_KIND_ASSET,
-				Capability: "image",
+				Capability: "image.generate",
 				AssetId:    "z_image_turbo",
 				AssetKind:  runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_IMAGE,
 				Engine:     "media",
@@ -505,7 +505,7 @@ func TestResolveManagedMediaImageProfileRejectsDuplicateEngineSlotBindings(t *te
 			{
 				EntryId:    "vae-slot-a",
 				Kind:       runtimev1.LocalProfileEntryKind_LOCAL_PROFILE_ENTRY_KIND_ASSET,
-				Capability: "image",
+				Capability: "image.generate",
 				AssetId:    "z_image_vae_a",
 				AssetKind:  runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_VAE,
 				Engine:     "media",
@@ -514,7 +514,7 @@ func TestResolveManagedMediaImageProfileRejectsDuplicateEngineSlotBindings(t *te
 			{
 				EntryId:    "vae-slot-b",
 				Kind:       runtimev1.LocalProfileEntryKind_LOCAL_PROFILE_ENTRY_KIND_ASSET,
-				Capability: "image",
+				Capability: "image.generate",
 				AssetId:    "z_image_vae_b",
 				AssetKind:  runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_VAE,
 				Engine:     "media",
@@ -540,7 +540,7 @@ func TestResolveManagedMediaImageProfileRejectsFlux2VAEForZImage(t *testing.T) {
 	}
 	modelResp := mustInstallSupervisedLocalModel(t, svc, installLocalAssetParams{
 		assetID:      "z_image_turbo",
-		capabilities: []string{"image"},
+		capabilities: []string{"image.generate"},
 		engine:       "media",
 		entry:        "z_image_turbo-Q4_K_M.gguf",
 		engineConfig: engineConfig,

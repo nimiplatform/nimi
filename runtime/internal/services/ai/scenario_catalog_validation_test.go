@@ -11,6 +11,27 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 )
 
+func TestValidateImageGenerateAgainstCatalogUsesSelectedModelFeatures(t *testing.T) {
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
+	withFeatures := &runtimev1.ImageGenerateScenarioSpec{
+		Prompt:          "Edit the reference image.",
+		ReferenceImages: []string{"https://example.com/reference.png"},
+		Mask:            "https://example.com/mask.png",
+	}
+	if err := svc.validateImageGenerateAgainstCatalog(context.Background(), "openai", "gpt-image-1.5", withFeatures); err != nil {
+		t.Fatalf("declared image features were rejected: %v", err)
+	}
+
+	err := svc.validateImageGenerateAgainstCatalog(context.Background(), "flux", "flux-2-klein-4b", &runtimev1.ImageGenerateScenarioSpec{
+		Prompt:          "Edit the reference image.",
+		ReferenceImages: []string{"https://example.com/reference.png"},
+	})
+	reason, ok := grpcerr.ExtractReasonCode(err)
+	if !ok || reason != runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED {
+		t.Fatalf("unsupported selected image implementation = reason %v ok=%v err=%v", reason, ok, err)
+	}
+}
+
 func TestValidateVideoGenerateAgainstCatalogAllowsDeclaredOptions(t *testing.T) {
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
 

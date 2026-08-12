@@ -324,7 +324,7 @@ func TestResolveImageSupervisedMatrixConflictFailsClose(t *testing.T) {
 		BackendFamily:         ImageBackendFamilyStableDiffusionGGML,
 		ControlPlane:          ImageControlPlaneRuntime,
 		ExecutionPlane:        EngineMedia,
-		SupportedCapabilities: []string{"image.generate.t2i", "image.generate.i2i"},
+		SupportedCapabilities: []string{"image.generate"},
 		TopologyState:         ImageTopologyStateDefined,
 		ProductState:          ImageProductStateSupported,
 	})

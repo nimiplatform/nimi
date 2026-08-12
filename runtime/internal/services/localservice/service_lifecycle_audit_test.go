@@ -27,14 +27,14 @@ func TestLocalStateRestoresAfterRestart(t *testing.T) {
 	}
 	installedModel := mustInstallAttachedLocalModel(t, svc, installLocalAssetParams{
 		assetID:      "local/persisted-model",
-		capabilities: []string{"chat"},
+		capabilities: []string{"text.generate"},
 		engine:       "llama",
 		endpoint:     "http://127.0.0.1:1234/v1",
 	})
 	if _, err := svc.InstallLocalService(context.Background(), &runtimev1.InstallLocalServiceRequest{
 		ServiceId:    "svc-persisted",
 		Title:        "svc-persisted",
-		Capabilities: []string{"chat"},
+		Capabilities: []string{"text.generate"},
 		LocalModelId: installedModel.GetLocalAssetId(),
 	}); err != nil {
 		t.Fatalf("install service: %v", err)
@@ -48,7 +48,7 @@ func TestLocalStateRestoresAfterRestart(t *testing.T) {
 		"kind":                    "chat",
 		"logical_model_id":        "nimi/persisted-import",
 		"engine":                  "llama",
-		"capabilities":            []string{"chat"},
+		"capabilities":            []string{"text.generate"},
 		"local_invoke_profile_id": "profile-persisted",
 	})
 	if err := os.MkdirAll(filepath.Dir(manifestPath), 0o755); err != nil {

@@ -16,7 +16,7 @@ import (
 
 func executeStepFunVoiceWorkflow(ctx context.Context, req VoiceWorkflowRequest, cfg MediaAdapterConfig) (VoiceWorkflowResult, error) {
 	ctx = mediaAdapterEndpointPolicyContext(ctx, cfg)
-	if strings.ToLower(strings.TrimSpace(req.WorkflowType)) != "voice_clone" {
+	if strings.ToLower(strings.TrimSpace(req.WorkflowType)) != "reference_audio" {
 		return VoiceWorkflowResult{}, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_VOICE_WORKFLOW_UNSUPPORTED)
 	}
 
@@ -81,7 +81,7 @@ func executeStepFunVoiceWorkflow(ctx context.Context, req VoiceWorkflowRequest, 
 		ProviderVoiceRef: providerVoiceRef,
 		Metadata: map[string]any{
 			"provider":          "stepfun",
-			"workflow_type":     strings.TrimSpace(req.WorkflowType),
+			"creation_source":   strings.TrimSpace(req.WorkflowType),
 			"workflow_model_id": strings.TrimSpace(req.WorkflowModelID),
 			"adapter":           "nimillm_voice_adapter_stepfun",
 			"endpoint":          "/audio/voices",

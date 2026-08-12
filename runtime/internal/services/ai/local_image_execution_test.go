@@ -9,7 +9,6 @@ import (
 	"math"
 	"os"
 	"path/filepath"
-	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -251,9 +250,9 @@ func TestLocalImageRejectsNonDefaultResponseFormatBeforeHostDispatch(t *testing.
 	host := &localImageHostStub{}
 	svc.SetLocalExecutionResolver(&mutableLocalExecutionResolver{projection: selectedImageExecutionForTest(t, "image-format")})
 	svc.SetLocalImageExecutionHost(host)
-	request := localImageExecuteRequestForTest(1)
+	request := localImageJobRequestForTest(1)
 	request.Spec.GetImageGenerate().ResponseFormat = "url"
-	_, err := svc.ExecuteScenario(localImageIntentContext(context.Background(), nil), request)
+	_, err := svc.SubmitScenarioJob(localImageIntentContext(context.Background(), nil), request)
 	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED {
 		t.Fatalf("response_format error=%v reason=%v present=%v", err, reason, ok)
 	}
@@ -281,11 +280,11 @@ func TestLocalImageRejectsUnsupportedCountAndSizeBeforeHostDispatch(t *testing.T
 			host := &localImageHostStub{}
 			svc.SetLocalExecutionResolver(&mutableLocalExecutionResolver{projection: selectedImageExecutionForTest(t, "image-option-"+test.name)})
 			svc.SetLocalImageExecutionHost(host)
-			request := localImageExecuteRequestForTest(1)
+			request := localImageJobRequestForTest(1)
 			request.Spec.GetImageGenerate().N = test.n
 			request.Spec.GetImageGenerate().Size = test.size
 
-			response, err := svc.ExecuteScenario(localImageIntentContext(context.Background(), nil), request)
+			response, err := svc.SubmitScenarioJob(localImageIntentContext(context.Background(), nil), request)
 			if response != nil {
 				t.Fatalf("unsupported image option returned response: %+v", response)
 			}
@@ -426,36 +425,28 @@ func TestLocalImageWithoutSelectionFailsClosed(t *testing.T) {
 	svc.SetLocalExecutionResolver(&mutableLocalExecutionResolver{err: grpcerr.WithReasonCode(
 		codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_SELECTION_NOT_FOUND,
 	)})
-	_, err := svc.ExecuteScenario(localImageIntentContext(context.Background(), nil), localImageExecuteRequestForTest(1))
+	_, err := svc.SubmitScenarioJob(localImageIntentContext(context.Background(), nil), localImageJobRequestForTest(1))
 	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_LOCAL_SELECTION_NOT_FOUND {
 		t.Fatalf("missing image selection = %v reason=%v ok=%v", err, reason, ok)
 	}
 }
 
-func TestLocalImageSyncExecutesCapturedDriverPlan(t *testing.T) {
+func TestLocalImageSyncFailsClosedBeforeHostDispatch(t *testing.T) {
 	svc := newTestService(nil)
-	selected := selectedImageExecutionForTest(t, "image-sync")
 	host := &localImageHostStub{}
-	svc.SetLocalExecutionResolver(&mutableLocalExecutionResolver{projection: selected})
+	svc.SetLocalExecutionResolver(&mutableLocalExecutionResolver{projection: selectedImageExecutionForTest(t, "image-sync-rejected")})
 	svc.SetLocalImageExecutionHost(host)
 	response, err := svc.ExecuteScenario(localImageIntentContext(context.Background(), nil), localImageExecuteRequestForTest(1))
-	if err != nil {
-		t.Fatalf("ExecuteScenario: %v", err)
+	if response != nil {
+		t.Fatalf("sync image request returned response: %+v", response)
 	}
-	artifacts := response.GetOutput().GetImageGenerate().GetArtifacts()
-	if response.GetRouteDecision() != runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL || response.GetModelResolved() != "image-sync" ||
-		len(artifacts) != 1 || !strings.HasPrefix(artifacts[0].GetMimeType(), "image/png") || len(artifacts[0].GetBytes()) != 0 || artifacts[0].GetSizeBytes() != int64(len(serviceTestPNGBytes())) {
-		t.Fatalf("local image response = %+v", response)
-	}
-	record, ok := svc.runtimeArtifacts.Get(artifacts[0].GetArtifactId())
-	if !ok || record.ProducerJobID != "" || record.Owner == nil || record.Owner.SubjectUserID != "anonymous" || record.Owner.AppID != "app.local" {
-		t.Fatalf("sync local image artifact custody = %+v present=%v", record, ok)
+	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED {
+		t.Fatalf("sync image rejection = %v reason=%v ok=%v", err, reason, ok)
 	}
 	host.mu.Lock()
-	plans := append([]*capabilitydriver.ImageInvocationPlan(nil), host.plans...)
-	host.mu.Unlock()
-	if len(plans) != 1 || plans[0].MainModelPath() != selected.ExactBindings[0].AbsolutePath {
-		t.Fatalf("captured host plans = %+v", plans)
+	defer host.mu.Unlock()
+	if len(host.plans) != 0 {
+		t.Fatalf("sync image rejection dispatched %d plans", len(host.plans))
 	}
 }
 
@@ -728,69 +719,6 @@ func TestLocalImageHostWaitDoesNotBlockLocalVideoSchedulerAdmission(t *testing.T
 	}
 }
 
-func TestLocalImageHostQueueWaitDoesNotConsumeSchedulerSlotNeededByVideo(t *testing.T) {
-	svc := newTestService(nil)
-	svc.scheduler = scheduler.New(scheduler.Config{GlobalConcurrency: 2, PerAppConcurrency: 2})
-	svc.SetLocalExecutionResolver(&capabilityLocalExecutionResolver{selections: map[string]*localexecution.SelectedLocalExecution{
-		capabilitydriver.StableDiffusionCapabilityContract:      selectedImageExecutionForTest(t, "image-sync-host-occupant"),
-		capabilitydriver.StableDiffusionVideoCapabilityContract: selectedVideoExecutionForTest(t, "video-after-image-host-wait"),
-	}})
-	imageHost := newSerialBlockingLocalImageHostStub()
-	videoHost := &localVideoHostStub{entered: make(chan struct{})}
-	svc.SetLocalImageExecutionHost(imageHost)
-	svc.SetLocalVideoExecutionHost(videoHost)
-	svc.SetLocalVideoMediaPipeline(&videoMediaPipelineStub{})
-	t.Cleanup(func() { closeOnce(imageHost.releaseFirst) })
-
-	syncResult := make(chan error, 1)
-	go func() {
-		_, err := svc.ExecuteScenario(
-			localImageIntentContext(context.Background(), nil),
-			localImageExecuteRequestForTest(1),
-		)
-		syncResult <- err
-	}()
-	select {
-	case <-imageHost.firstEntered:
-	case <-time.After(2 * time.Second):
-		t.Fatal("synchronous image request did not occupy the serial Host")
-	}
-
-	imageJob, err := svc.SubmitScenarioJob(
-		localImageIntentContext(context.Background(), nil),
-		localImageJobRequestForTest(1),
-	)
-	if err != nil {
-		t.Fatalf("SubmitScenarioJob(image waiter): %v", err)
-	}
-	waitForImageJobStatus(t, svc, imageJob.GetJob().GetJobId(), runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_QUEUED)
-	// Let an incorrect scheduler-before-Host path acquire the second global
-	// slot while this Job waits behind the synchronous Host occupant.
-	time.Sleep(50 * time.Millisecond)
-
-	videoRequest := localVideoJobRequestForTest(64, 64, 5)
-	videoRequest.Head.AppId = "app.video.after-image-host-wait"
-	videoJob, err := svc.SubmitScenarioJob(localVideoIntentContext(context.Background()), videoRequest)
-	if err != nil {
-		t.Fatalf("SubmitScenarioJob(video): %v", err)
-	}
-	select {
-	case <-videoHost.entered:
-	case <-time.After(200 * time.Millisecond):
-		t.Fatal("image Job waiting for its Host consumed the scheduler slot needed by local video")
-	}
-
-	closeOnce(imageHost.releaseFirst)
-	if err := <-syncResult; err != nil {
-		t.Fatalf("synchronous image request: %v", err)
-	}
-	for _, response := range []*runtimev1.SubmitScenarioJobResponse{imageJob, videoJob} {
-		if terminal := waitForScenarioJobTerminalForLocalTextTest(t, svc, response.GetJob().GetJobId()); terminal.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED {
-			t.Fatalf("cross-media job terminal = %+v", terminal)
-		}
-	}
-}
-
 func TestLocalImageJobSchedulerQueuedCancellationSkipsHost(t *testing.T) {
 	svc := newTestService(nil)
 	svc.scheduler = scheduler.New(scheduler.Config{GlobalConcurrency: 1, PerAppConcurrency: 1})
@@ -865,38 +793,6 @@ func TestLocalImageArtifactAttachFailureDeletesExactCandidate(t *testing.T) {
 	}
 	if existing, ok := svc.runtimeArtifacts.Get(existingID); !ok || string(existing.Bytes) != "existing" {
 		t.Fatalf("candidate compensation touched pre-existing artifact: %+v present=%v", existing, ok)
-	}
-}
-
-func TestLocalImageSyncMapsTypedHostFailuresWithoutFallback(t *testing.T) {
-	tests := []struct {
-		name   string
-		kind   localexecution.FailureKind
-		reason runtimev1.ReasonCode
-	}{
-		{name: "load", kind: localexecution.FailureLoad, reason: runtimev1.ReasonCode_AI_LOCAL_EXECUTION_LOAD_FAILED},
-		{name: "inference", kind: localexecution.FailureInference, reason: runtimev1.ReasonCode_AI_LOCAL_EXECUTION_INFERENCE_FAILED},
-		{name: "content", kind: localexecution.FailureContentMismatch, reason: runtimev1.ReasonCode_AI_LOCAL_EXECUTION_CONTENT_MISMATCH},
-		{name: "process", kind: localexecution.FailureProcessCrash, reason: runtimev1.ReasonCode_AI_LOCAL_EXECUTION_PROCESS_CRASHED},
-		{name: "canceled", kind: localexecution.FailureCanceled, reason: runtimev1.ReasonCode_AI_LOCAL_EXECUTION_CANCELED},
-	}
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			svc := newTestService(nil)
-			selected := selectedImageExecutionForTest(t, "image-"+test.name)
-			resolver := &mutableLocalExecutionResolver{projection: selected}
-			host := &localImageHostStub{failBeforeIndex: 1, failureKind: test.kind, failure: errors.New(test.name)}
-			svc.SetLocalExecutionResolver(resolver)
-			svc.SetLocalImageExecutionHost(host)
-			_, err := svc.ExecuteScenario(localImageIntentContext(context.Background(), nil), localImageExecuteRequestForTest(1))
-			if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != test.reason {
-				t.Fatalf("Host error = %v reason=%v ok=%v", err, reason, ok)
-			}
-			current, resolveErr := resolver.ResolveSelectedLocalExecution(capabilitydriver.StableDiffusionCapabilityContract)
-			if resolveErr != nil || current.ConfigurationID != selected.ConfigurationID {
-				t.Fatalf("failure mutated Local selection: %+v error=%v", current, resolveErr)
-			}
-		})
 	}
 }
 
@@ -1006,9 +902,9 @@ func TestLocalImageRequestFeatureMismatchFailsBeforeHost(t *testing.T) {
 	host := &localImageHostStub{}
 	svc.SetLocalExecutionResolver(&mutableLocalExecutionResolver{projection: selected})
 	svc.SetLocalImageExecutionHost(host)
-	request := localImageExecuteRequestForTest(1)
+	request := localImageJobRequestForTest(1)
 	request.Spec.GetImageGenerate().ReferenceImages = []string{"artifact-input"}
-	_, err := svc.ExecuteScenario(localImageIntentContext(context.Background(), nil), request)
+	_, err := svc.SubmitScenarioJob(localImageIntentContext(context.Background(), nil), request)
 	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_MODALITY_NOT_SUPPORTED {
 		t.Fatalf("feature mismatch = %v reason=%v ok=%v", err, reason, ok)
 	}

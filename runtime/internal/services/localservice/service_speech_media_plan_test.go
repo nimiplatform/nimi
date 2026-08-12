@@ -107,7 +107,7 @@ func TestResolveModelInstallPlanMediaVideoSupervisedUnsupportedHost(t *testing.T
 		Engine:            "media",
 		EngineRuntimeMode: runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED,
 		InstallKind:       "download",
-		Capabilities:      []string{"video"},
+		Capabilities:      []string{"video.generate"},
 	})
 	svc.mu.Unlock()
 
@@ -137,7 +137,7 @@ func TestResolveModelInstallPlanImageSupervisedSupportedOnAppleSilicon(t *testin
 	resp, err := svc.ResolveModelInstallPlan(context.Background(), &runtimev1.ResolveModelInstallPlanRequest{
 		ModelId:      "local/z-image-turbo",
 		Engine:       "media",
-		Capabilities: []string{"image"},
+		Capabilities: []string{"image.generate"},
 		Entry:        "z_image_turbo-Q4_K.gguf",
 		Files:        []string{"z_image_turbo-Q4_K.gguf"},
 	})
@@ -164,7 +164,7 @@ func TestResolveModelInstallPlanMediaAttachedEndpointAllowedOnUnsupportedHost(t 
 	resp, err := svc.ResolveModelInstallPlan(context.Background(), &runtimev1.ResolveModelInstallPlanRequest{
 		ModelId:      "local/wan-video",
 		Engine:       "media",
-		Capabilities: []string{"video"},
+		Capabilities: []string{"video.generate"},
 		Endpoint:     "http://127.0.0.1:9321/v1",
 	})
 	if err != nil {
@@ -187,7 +187,7 @@ func TestInstallLocalModelMediaVideoRequiresExplicitEndpointOnUnsupportedHost(t 
 	_, err := svc.installLocalAsset(context.Background(), installLocalAssetParams{
 		assetID:      "local/flux-test",
 		engine:       "media",
-		capabilities: []string{"video"},
+		capabilities: []string{"video.generate"},
 	})
 	if err == nil {
 		t.Fatal("expected explicit endpoint requirement for unsupported media video host")

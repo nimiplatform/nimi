@@ -79,7 +79,7 @@ func bindableVoiceAsset(voiceAssetID string) *runtimev1.VoiceAsset {
 		VoiceAssetId:     voiceAssetID,
 		AppId:            "runtime-agent-boundary-test",
 		SubjectUserId:    "user-1",
-		WorkflowType:     runtimev1.VoiceWorkflowType_VOICE_WORKFLOW_TYPE_VOICE_CLONE,
+		CreationSource:   runtimev1.VoiceCreationSource_VOICE_CREATION_SOURCE_REFERENCE_AUDIO,
 		Provider:         "provider-1",
 		ProviderVoiceRef: "provider-voice-1",
 		Persistence:      runtimev1.VoiceAssetPersistence_VOICE_ASSET_PERSISTENCE_PROVIDER_PERSISTENT,
@@ -245,7 +245,7 @@ func TestSetAgentPresentationProfileValidatesResolvedVoiceAsset(t *testing.T) {
 			name: "missing workflow type",
 			resolve: func(_ context.Context, id string) (*runtimev1.VoiceAsset, error) {
 				asset := bindableVoiceAsset(id)
-				asset.WorkflowType = runtimev1.VoiceWorkflowType_VOICE_WORKFLOW_TYPE_UNSPECIFIED
+				asset.CreationSource = runtimev1.VoiceCreationSource_VOICE_CREATION_SOURCE_UNSPECIFIED
 				return asset, nil
 			},
 			wantCode:   codes.FailedPrecondition,
@@ -255,7 +255,7 @@ func TestSetAgentPresentationProfileValidatesResolvedVoiceAsset(t *testing.T) {
 			name: "unknown workflow type",
 			resolve: func(_ context.Context, id string) (*runtimev1.VoiceAsset, error) {
 				asset := bindableVoiceAsset(id)
-				asset.WorkflowType = runtimev1.VoiceWorkflowType(99)
+				asset.CreationSource = runtimev1.VoiceCreationSource(99)
 				return asset, nil
 			},
 			wantCode:   codes.FailedPrecondition,

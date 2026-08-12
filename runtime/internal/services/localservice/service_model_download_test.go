@@ -56,6 +56,9 @@ func TestInstallManagedDownloadedModelInfersEmbeddingKindWhenUnspecified(t *test
 	if got := record.GetCapabilities(); len(got) != 1 || got[0] != "text.embed" {
 		t.Fatalf("record capabilities mismatch: %#v", got)
 	}
+	if got := record.GetFiles(); len(got) != 1 || got[0] != "Qwen3-Embedding-8B-Q4_K_M.gguf" {
+		t.Fatalf("record files mismatch: %#v", got)
+	}
 
 	manifestPath := runtimeManagedAssetManifestPath(
 		resolveLocalModelsPath(svc.localModelsPath),

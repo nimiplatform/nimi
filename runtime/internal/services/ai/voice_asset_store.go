@@ -60,7 +60,7 @@ func (b *voiceAssetCloudBinding) Clone() *voiceAssetCloudBinding {
 
 func (b *voiceAssetCloudBinding) Valid() bool {
 	return b != nil &&
-		(b.CapabilityContract == "voice_workflow.voice_clone" || b.CapabilityContract == "voice_workflow.voice_design") &&
+		b.CapabilityContract == "voice.create" &&
 		b.Implementation != nil &&
 		strings.TrimSpace(b.Implementation.GetImplementationId()) != "" &&
 		strings.TrimSpace(b.Implementation.GetDriverId()) != "" &&

@@ -78,31 +78,8 @@ func classifyManagedEngineSupportForAsset(
 
 func normalizeLocalCapabilityToken(value string) string {
 	normalized := strings.ToLower(strings.TrimSpace(value))
-	switch normalized {
-	case "chat":
-		normalized = aicapabilities.TextGenerate
-	case "embedding", "embed":
-		normalized = aicapabilities.TextEmbed
-	case "image":
-		normalized = aicapabilities.ImageGenerate
-	case "video":
-		normalized = aicapabilities.VideoGenerate
-	case "music":
-		normalized = aicapabilities.MusicGenerate
-	case "tts", "speech":
-		normalized = aicapabilities.AudioSynthesize
-	case "stt", "transcription":
-		normalized = aicapabilities.AudioTranscribe
-	}
 	if catalogCapability, err := aicapabilities.NormalizeCatalogCapability(normalized); err == nil {
-		switch catalogCapability {
-		case aicapabilities.TextGenerateVision, aicapabilities.TextGenerateAudio, aicapabilities.TextGenerateVideo:
-			return aicapabilities.TextGenerate
-		case aicapabilities.MusicGenerateIteration:
-			return aicapabilities.MusicGenerate
-		default:
-			return catalogCapability
-		}
+		return catalogCapability
 	}
 	return normalized
 }
@@ -140,7 +117,7 @@ func isCanonicalSupervisedImageAsset(
 	if kind == runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_IMAGE {
 		return true
 	}
-	return localAssetHasCapability(capabilities, "image", "image.generate", "image.edit")
+	return localAssetHasCapability(capabilities, "image.generate")
 }
 
 func managedRuntimeEngineForAsset(

@@ -81,31 +81,33 @@ func run(args []string, stdout io.Writer, stderr io.Writer) int {
 	}
 	if jsonOutput {
 		payload := struct {
-			SchemaVersion       int    `json:"schemaVersion"`
-			Status              string `json:"status"`
-			SkipReason          string `json:"skipReason,omitempty"`
-			DuplicateGroups     int    `json:"duplicateGroups"`
-			ReactivatedAnchors  int    `json:"reactivatedAnchors"`
-			OriginalVersion     uint64 `json:"originalVersion"`
-			RepairedVersion     uint64 `json:"repairedVersion"`
-			RewrittenAnchorRefs int    `json:"rewrittenAnchorRefs"`
-			RewrittenTargetRefs int    `json:"rewrittenTargetRefs"`
-			RewrittenFollowUps  int    `json:"rewrittenFollowUpRefs"`
-			RewrittenAvatarRefs int    `json:"rewrittenAvatarRefs"`
-			BackupPath          string `json:"backupPath,omitempty"`
+			SchemaVersion               int    `json:"schemaVersion"`
+			Status                      string `json:"status"`
+			SkipReason                  string `json:"skipReason,omitempty"`
+			DuplicateGroups             int    `json:"duplicateGroups"`
+			ReactivatedAnchors          int    `json:"reactivatedAnchors"`
+			OriginalVersion             uint64 `json:"originalVersion"`
+			RepairedVersion             uint64 `json:"repairedVersion"`
+			RewrittenAnchorRefs         int    `json:"rewrittenAnchorRefs"`
+			RewrittenTargetRefs         int    `json:"rewrittenTargetRefs"`
+			RemovedLegacyIdentityFields int    `json:"removedLegacyIdentityFields"`
+			RewrittenFollowUps          int    `json:"rewrittenFollowUpRefs"`
+			RewrittenAvatarRefs         int    `json:"rewrittenAvatarRefs"`
+			BackupPath                  string `json:"backupPath,omitempty"`
 		}{
-			SchemaVersion:       1,
-			Status:              mode,
-			SkipReason:          result.SkipReason,
-			DuplicateGroups:     len(result.DuplicateGroups),
-			ReactivatedAnchors:  len(result.ReactivatedAnchorIDs),
-			OriginalVersion:     result.OriginalVersion,
-			RepairedVersion:     result.RepairedVersion,
-			RewrittenAnchorRefs: result.RewrittenAnchorRefs,
-			RewrittenTargetRefs: result.RewrittenTargetRefs,
-			RewrittenFollowUps:  result.RewrittenFollowUpRefs,
-			RewrittenAvatarRefs: result.RewrittenAvatarRefs,
-			BackupPath:          result.BackupPath,
+			SchemaVersion:               1,
+			Status:                      mode,
+			SkipReason:                  result.SkipReason,
+			DuplicateGroups:             len(result.DuplicateGroups),
+			ReactivatedAnchors:          len(result.ReactivatedAnchorIDs),
+			OriginalVersion:             result.OriginalVersion,
+			RepairedVersion:             result.RepairedVersion,
+			RewrittenAnchorRefs:         result.RewrittenAnchorRefs,
+			RewrittenTargetRefs:         result.RewrittenTargetRefs,
+			RemovedLegacyIdentityFields: result.RemovedLegacyIdentityFields,
+			RewrittenFollowUps:          result.RewrittenFollowUpRefs,
+			RewrittenAvatarRefs:         result.RewrittenAvatarRefs,
+			BackupPath:                  result.BackupPath,
 		}
 		raw, marshalErr := json.Marshal(payload)
 		if marshalErr != nil {
@@ -121,12 +123,13 @@ func run(args []string, stdout io.Writer, stderr io.Writer) int {
 	}
 	_, _ = fmt.Fprintf(
 		stdout,
-		"%s: duplicate_groups=%d reactivated_anchors=%d anchor_refs=%d target_refs=%d version=%d->%d followup_refs=%d avatar_refs=%d\n",
+		"%s: duplicate_groups=%d reactivated_anchors=%d anchor_refs=%d target_refs=%d legacy_identity_fields=%d version=%d->%d followup_refs=%d avatar_refs=%d\n",
 		mode,
 		len(result.DuplicateGroups),
 		len(result.ReactivatedAnchorIDs),
 		result.RewrittenAnchorRefs,
 		result.RewrittenTargetRefs,
+		result.RemovedLegacyIdentityFields,
 		result.OriginalVersion,
 		result.RepairedVersion,
 		result.RewrittenFollowUpRefs,

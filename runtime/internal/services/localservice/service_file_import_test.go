@@ -69,7 +69,7 @@ func TestImportLocalModelFileRegistersManagedSupervisedLlama(t *testing.T) {
 
 	resp, err := svc.ImportLocalAssetFile(context.Background(), &runtimev1.ImportLocalAssetFileRequest{
 		FilePath:     sourcePath,
-		Capabilities: []string{"chat"},
+		Capabilities: []string{"text.generate"},
 		Engine:       "llama",
 	})
 	if err != nil {
@@ -121,6 +121,34 @@ func TestImportLocalModelFileRegistersManagedSupervisedLlama(t *testing.T) {
 	}
 	if got := model.GetSource().GetRepo(); !strings.HasPrefix(got, "file://") || !strings.HasSuffix(got, "/asset.manifest.json") {
 		t.Fatalf("source repo = %q", got)
+	}
+}
+
+func TestImportLocalEmbeddingFileProjectsEmbeddingRole(t *testing.T) {
+	svc := newTestService(t)
+	sourcePath := filepath.Join(t.TempDir(), "Qwen3-Embedding-0.6B-Q8_0.gguf")
+	if err := os.WriteFile(sourcePath, validTestGGUF(), 0o644); err != nil {
+		t.Fatalf("write source embedding model: %v", err)
+	}
+
+	resp, err := svc.ImportLocalAssetFile(context.Background(), &runtimev1.ImportLocalAssetFileRequest{
+		FilePath:     sourcePath,
+		Kind:         runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_EMBEDDING,
+		Capabilities: []string{"text.embed"},
+		Engine:       "llama",
+	})
+	if err != nil {
+		t.Fatalf("ImportLocalAssetFile(embedding): %v", err)
+	}
+	asset := resp.GetAsset()
+	if asset == nil {
+		t.Fatal("expected imported embedding asset")
+	}
+	if !stringSliceContains(asset.GetArtifactRoles(), "embedding") {
+		t.Fatalf("artifact roles = %#v, want embedding", asset.GetArtifactRoles())
+	}
+	if !stringSliceContains(asset.GetCapabilities(), "text.embed") {
+		t.Fatalf("capabilities = %#v, want text.embed", asset.GetCapabilities())
 	}
 }
 
@@ -181,7 +209,7 @@ func TestImportLocalModelFileDuplicateNameCreatesDistinctInstances(t *testing.T)
 		}
 		resp, err := svc.ImportLocalAssetFile(context.Background(), &runtimev1.ImportLocalAssetFileRequest{
 			FilePath:     sourcePath,
-			Capabilities: []string{"chat"},
+			Capabilities: []string{"text.generate"},
 			Engine:       "llama",
 		})
 		if err != nil {
@@ -221,7 +249,7 @@ func TestImportedAssetPublicIdentitySurvivesRuntimeRestart(t *testing.T) {
 	}
 	resp, err := svc.ImportLocalAssetFile(context.Background(), &runtimev1.ImportLocalAssetFileRequest{
 		FilePath:     sourcePath,
-		Capabilities: []string{"chat"},
+		Capabilities: []string{"text.generate"},
 		Engine:       "llama",
 	})
 	if err != nil {
@@ -448,7 +476,7 @@ func TestImportLocalImageModelFileRegistersManagedSupervisedMediaWithoutEndpoint
 
 	resp, err := svc.ImportLocalAssetFile(context.Background(), &runtimev1.ImportLocalAssetFileRequest{
 		FilePath:     sourcePath,
-		Capabilities: []string{"image"},
+		Capabilities: []string{"image.generate"},
 		Engine:       "media",
 	})
 	if err != nil {
@@ -480,7 +508,7 @@ func TestImportLocalImageModelFileAcceptsZImageTensorSignatureWithoutSDVersionMe
 
 	_, err := svc.ImportLocalAssetFile(context.Background(), &runtimev1.ImportLocalAssetFileRequest{
 		FilePath:     sourcePath,
-		Capabilities: []string{"image"},
+		Capabilities: []string{"image.generate"},
 		Engine:       "media",
 	})
 	if err != nil {
@@ -739,7 +767,7 @@ func TestImportLocalImageModelFileRejectsMissingRuntimeSupportedDiffusionIdentit
 
 	_, err := svc.ImportLocalAssetFile(context.Background(), &runtimev1.ImportLocalAssetFileRequest{
 		FilePath:     sourcePath,
-		Capabilities: []string{"image"},
+		Capabilities: []string{"image.generate"},
 		Engine:       "media",
 	})
 	if err == nil {
@@ -942,7 +970,7 @@ func TestScaffoldOrphanModelDuplicateCreatesDistinctAssetWithoutQuarantine(t *te
 	setLocalModelsPathForTest(t, svc, modelsRoot)
 	existing := mustInstallAttachedLocalModel(t, svc, installLocalAssetParams{
 		assetID:      "local-import/orphan",
-		capabilities: []string{"chat"},
+		capabilities: []string{"text.generate"},
 		engine:       "llama",
 		endpoint:     "http://127.0.0.1:11434/v1",
 	})
@@ -955,7 +983,7 @@ func TestScaffoldOrphanModelDuplicateCreatesDistinctAssetWithoutQuarantine(t *te
 
 	resp, err := svc.ScaffoldOrphanAsset(context.Background(), &runtimev1.ScaffoldOrphanAssetRequest{
 		Path:         sourcePath,
-		Capabilities: []string{"chat"},
+		Capabilities: []string{"text.generate"},
 		Engine:       "llama",
 	})
 	if err != nil {
@@ -998,7 +1026,7 @@ func TestScaffoldOrphanModelMovesSourceIntoRuntimeManagedStorage(t *testing.T) {
 
 	resp, err := svc.ScaffoldOrphanAsset(context.Background(), &runtimev1.ScaffoldOrphanAssetRequest{
 		Path:         sourcePath,
-		Capabilities: []string{"chat"},
+		Capabilities: []string{"text.generate"},
 		Engine:       "llama",
 	})
 	if err != nil {

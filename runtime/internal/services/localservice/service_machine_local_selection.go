@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/aicapabilities"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"google.golang.org/grpc/codes"
 )
@@ -20,6 +21,14 @@ func (s *Service) SelectLocalCapabilityConfiguration(
 			codes.InvalidArgument,
 			runtimev1.ReasonCode_AI_LOCAL_SELECTION_INVALID,
 			"capability_contract and configuration_id are required",
+			map[string]string{"capability_contract": capabilityContract, "configuration_id": configurationID},
+		)
+	}
+	if !aicapabilities.IsCanonicalCatalogCapability(request.GetCapabilityContract()) {
+		return nil, machineLocalSelectionError(
+			codes.InvalidArgument,
+			runtimev1.ReasonCode_AI_LOCAL_SELECTION_INVALID,
+			"capability_contract must be an exact canonical token",
 			map[string]string{"capability_contract": capabilityContract, "configuration_id": configurationID},
 		)
 	}
@@ -76,6 +85,14 @@ func (s *Service) ClearLocalCapabilitySelection(
 			runtimev1.ReasonCode_AI_LOCAL_SELECTION_INVALID,
 			"capability_contract is required",
 			nil,
+		)
+	}
+	if !aicapabilities.IsCanonicalCatalogCapability(request.GetCapabilityContract()) {
+		return nil, machineLocalSelectionError(
+			codes.InvalidArgument,
+			runtimev1.ReasonCode_AI_LOCAL_SELECTION_INVALID,
+			"capability_contract must be an exact canonical token",
+			map[string]string{"capability_contract": capabilityContract},
 		)
 	}
 

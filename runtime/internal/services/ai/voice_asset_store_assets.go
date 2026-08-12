@@ -81,7 +81,7 @@ func (s *voiceAssetStore) listAssets(req *runtimev1.ListVoiceAssetsRequest) []*r
 		if strings.TrimSpace(req.GetTargetModelId()) != "" && asset.GetTargetModelId() != req.GetTargetModelId() {
 			continue
 		}
-		if req.GetWorkflowType() != runtimev1.VoiceWorkflowType_VOICE_WORKFLOW_TYPE_UNSPECIFIED && asset.GetWorkflowType() != req.GetWorkflowType() {
+		if req.GetCreationSource() != runtimev1.VoiceCreationSource_VOICE_CREATION_SOURCE_UNSPECIFIED && asset.GetCreationSource() != req.GetCreationSource() {
 			continue
 		}
 		if req.GetStatus() != runtimev1.VoiceAssetStatus_VOICE_ASSET_STATUS_UNSPECIFIED && asset.GetStatus() != req.GetStatus() {

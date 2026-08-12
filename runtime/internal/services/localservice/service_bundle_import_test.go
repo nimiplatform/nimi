@@ -459,7 +459,7 @@ func TestImportLocalAssetBundleScaffoldsManagedManifest(t *testing.T) {
 	asset, err := svc.importLocalAssetBundleSync(context.Background(), "", &runtimev1.ImportLocalAssetBundleRequest{
 		DirectoryPath: sourceDir,
 		ModelName:     "Qwen3 Bundle",
-		Capabilities:  []string{"chat"},
+		Capabilities:  []string{"text.generate"},
 		Engine:        "llama",
 	})
 	if err != nil {
@@ -579,7 +579,7 @@ func TestImportLocalAssetBundleAdmitsCompleteCatalogTTSBundle(t *testing.T) {
 	}
 }
 
-func TestImportLocalAssetBundleCanonicalizesUniqueTTSDescriptorAcrossFolderNames(t *testing.T) {
+func TestImportLocalAssetBundleRejectsAmbiguousTTSDescriptorAcrossFolderNames(t *testing.T) {
 	svc := newTestService(t)
 	sourceDir := writeCatalogTTSBundleFixture(t, "custom_voice")
 	renamedSourceDir := filepath.Join(filepath.Dir(sourceDir), "downloaded-voice-model")
@@ -591,28 +591,10 @@ func TestImportLocalAssetBundleCanonicalizesUniqueTTSDescriptorAcrossFolderNames
 		DirectoryPath: renamedSourceDir,
 		Capabilities:  []string{"audio.synthesize"},
 	})
-	if err != nil {
-		t.Fatalf("import TTS bundle from arbitrary folder name: %v", err)
+	if asset != nil || err == nil {
+		t.Fatalf("ambiguous TTS import asset=%+v error=%v", asset, err)
 	}
-	if got := asset.GetAssetId(); got != "local-import/Qwen3-TTS-12Hz-0.6B-CustomVoice" {
-		t.Fatalf("asset id = %q, want canonical verified bundle import identity", got)
-	}
-	if got := asset.GetLogicalModelId(); got != defaultLogicalModelID("local-import/downloaded-voice-model") {
-		t.Fatalf("logical model id = %q, want renamed-folder provenance", got)
-	}
-
-	contentID := "sha256:" + exactDeclaredContentSHA256(asset)
-	descriptor, reason, candidate := svc.verifyLocalCapabilityAssetContent(
-		asset,
-		resolveLocalModelsPath(svc.localModelsPath),
-		contentID,
-	)
-	if !candidate || reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED {
-		t.Fatalf("renamed TTS bundle verification candidate=%t reason=%s", candidate, reason)
-	}
-	if !stringSliceContains(descriptor.ArtifactRoles, "tts_model") {
-		t.Fatalf("verified descriptor roles = %#v, want tts_model", descriptor.ArtifactRoles)
-	}
+	assertGRPCReasonCode(t, err, "ambiguous TTS import", runtimev1.ReasonCode_AI_LOCAL_MANIFEST_INVALID)
 }
 
 func TestImportLocalAssetBundleRejectsIncompleteCatalogTTSBundle(t *testing.T) {
@@ -639,7 +621,7 @@ func TestImportLocalAssetBundleRejectsIncompleteCatalogTTSBundle(t *testing.T) {
 	}
 }
 
-func TestImportLocalAssetBundleRejectsCloneModelForPlainSynthesis(t *testing.T) {
+func TestImportLocalAssetBundleAdmitsCloneModelForVoiceCreateAndSynthesis(t *testing.T) {
 	svc := newTestService(t)
 	sourceDir := writeCatalogTTSBundleFixture(t, "base")
 
@@ -647,16 +629,20 @@ func TestImportLocalAssetBundleRejectsCloneModelForPlainSynthesis(t *testing.T) 
 	if err != nil {
 		t.Fatalf("scan clone TTS bundle: %v", err)
 	}
-	_, _, err = svc.scaffoldBundleManifest(
+	manifest, _, err := svc.scaffoldBundleManifest(
 		filepath.Join(t.TempDir(), localAssetManifestFileName),
-		"Qwen3-TTS-12Hz-0.6B-CustomVoice",
-		[]string{"audio.synthesize"},
+		"Qwen3-TTS-12Hz-0.6B-Base",
+		[]string{"audio.synthesize", "voice.create"},
 		"",
 		sourceDir,
 		scan,
 	)
-	if err == nil || !strings.Contains(err.Error(), "plain synthesis requires tts_model_type custom_voice") {
-		t.Fatalf("clone TTS bundle error = %v, want plain-synthesis rejection", err)
+	if err != nil {
+		t.Fatalf("clone TTS bundle scaffold: %v", err)
+	}
+	roles := valueAsStringSlice(manifest["artifact_roles"])
+	if !stringSliceContains(roles, "tts_model") || !stringSliceContains(roles, capabilitydriver.Qwen3VoiceCloneArtifactRole) {
+		t.Fatalf("clone TTS bundle roles=%v", roles)
 	}
 }
 
@@ -841,7 +827,7 @@ func TestImportLocalAssetBundleFormsCanonicalOrderedDigestAndRejectsEntryDrift(t
 	asset, err := svc.importLocalAssetBundleSync(context.Background(), "", &runtimev1.ImportLocalAssetBundleRequest{
 		DirectoryPath:        sourceDir,
 		ModelName:            "Qwen3 Sharded",
-		Capabilities:         []string{"chat"},
+		Capabilities:         []string{"text.generate"},
 		Engine:               "llama",
 		OrderedBundleEntries: []string{mainName, shardName},
 	})
@@ -906,7 +892,7 @@ func TestRescanLocalAssetBundleRefreshesManagedManifestFiles(t *testing.T) {
 	asset, err := svc.importLocalAssetBundleSync(context.Background(), "", &runtimev1.ImportLocalAssetBundleRequest{
 		DirectoryPath: sourceDir,
 		ModelName:     "Qwen3 Rescan",
-		Capabilities:  []string{"chat"},
+		Capabilities:  []string{"text.generate"},
 		Engine:        "llama",
 	})
 	if err != nil {

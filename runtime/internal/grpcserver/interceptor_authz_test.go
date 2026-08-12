@@ -371,12 +371,12 @@ func TestProtectedCapabilityForUnaryRetiredRouteDescribeRequestsRequireSpendMete
 		},
 		{
 			name:         "voice clone",
-			scenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE,
+			scenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CREATE,
 			namespace:    "nimi.scenario.voice_clone.route_describe",
 		},
 		{
 			name:         "voice design",
-			scenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_DESIGN,
+			scenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CREATE,
 			namespace:    "nimi.scenario.voice_design.route_describe",
 		},
 	}

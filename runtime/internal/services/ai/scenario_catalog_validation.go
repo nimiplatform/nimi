@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/aicapabilities"
 	catalog "github.com/nimiplatform/nimi/runtime/internal/aicatalog"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"google.golang.org/grpc/codes"
@@ -24,11 +25,53 @@ func (s *Service) validateCatalogAwareScenarioSupport(
 		return nil
 	}
 	switch scenarioType {
+	case runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE:
+		return s.validateImageGenerateAgainstCatalog(ctx, providerType, modelResolved, spec.GetImageGenerate())
 	case runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_GENERATE:
 		return s.validateVideoGenerateAgainstCatalog(ctx, providerType, modelResolved, spec.GetVideoGenerate())
 	default:
 		return nil
 	}
+}
+
+func (s *Service) validateImageGenerateAgainstCatalog(
+	ctx context.Context,
+	providerType string,
+	modelResolved string,
+	spec *runtimev1.ImageGenerateScenarioSpec,
+) error {
+	if spec == nil {
+		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_SPEC_INVALID)
+	}
+	required := make([]string, 0, 2)
+	if len(spec.GetReferenceImages()) > 0 {
+		required = append(required, aicapabilities.FeatureInputImage)
+	}
+	if strings.TrimSpace(spec.GetMask()) != "" {
+		required = append(required, aicapabilities.FeatureInputMask)
+	}
+	for _, feature := range required {
+		supported, err := s.speechCatalog.SupportsFeatureForSubject(
+			catalogSubjectUserIDFromContext(ctx),
+			providerType,
+			modelResolved,
+			feature,
+		)
+		if err != nil {
+			if errors.Is(err, catalog.ErrModelNotFound) {
+				return grpcerr.WrapWithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_MODEL_NOT_FOUND, err, grpcerr.ReasonOptions{
+					Message: "model was not found in the AI catalog",
+				})
+			}
+			return grpcerr.WrapWithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL, err, grpcerr.ReasonOptions{
+				Message: "failed to read image generation feature support",
+			})
+		}
+		if !supported {
+			return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
+		}
+	}
+	return nil
 }
 
 func (s *Service) validateVideoGenerateAgainstCatalog(

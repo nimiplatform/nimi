@@ -45,7 +45,7 @@ func validateMusicGenerateIterationSupport(
 	if s == nil || s.speechCatalog == nil {
 		return grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL)
 	}
-	supported, err := s.speechCatalog.SupportsCapabilityForSubject(catalogSubjectUserIDFromContext(ctx), providerType, modelResolved, aicapabilities.MusicGenerateIteration)
+	supported, err := s.speechCatalog.SupportsFeatureForSubject(catalogSubjectUserIDFromContext(ctx), providerType, modelResolved, aicapabilities.FeatureInputAudio)
 	if err != nil {
 		if errors.Is(err, catalog.ErrModelNotFound) {
 			return grpcerr.WrapWithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_MODEL_NOT_FOUND, err, grpcerr.ReasonOptions{
@@ -53,7 +53,7 @@ func validateMusicGenerateIterationSupport(
 			})
 		}
 		return grpcerr.WrapWithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL, err, grpcerr.ReasonOptions{
-			Message: "failed to read AI catalog model capabilities",
+			Message: "failed to read AI catalog model features",
 		})
 	}
 	if !supported {

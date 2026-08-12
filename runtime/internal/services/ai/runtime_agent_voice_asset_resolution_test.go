@@ -51,7 +51,7 @@ func TestResolveSynthesizeSpeechVoiceAssetKeepsAppSubjectAndPrivateTargetScope(t
 		VoiceAssetId:     assetID,
 		AppId:            appID,
 		SubjectUserId:    ownerUserID,
-		WorkflowType:     runtimev1.VoiceWorkflowType_VOICE_WORKFLOW_TYPE_VOICE_CLONE,
+		CreationSource:   runtimev1.VoiceCreationSource_VOICE_CREATION_SOURCE_REFERENCE_AUDIO,
 		Provider:         "dashscope",
 		TargetModelId:    "dashscope/cosyvoice-v3-flash",
 		ProviderVoiceRef: "cosyvoice-song-lian",
@@ -119,7 +119,7 @@ func TestResolveRuntimeAgentVoiceAssetIsSubjectBoundWithoutWideningPublicAppRead
 		"provider": "dashscope", "providerModelId": "cosyvoice-v3-flash", "remoteModelCatalogId": "dashscope/cosyvoice-v3-flash",
 	})
 	svc.voiceAssets.cloudBindings[assetID] = &voiceAssetCloudBinding{
-		CapabilityContract:  "voice_workflow.voice_clone",
+		CapabilityContract:  "voice.create",
 		Implementation:      &runtimev1.CapabilityImplementationIdentity{ImplementationId: "cloud.voice.dashscope", DriverId: "driver.dashscope", DriverDialect: "dashscope/voice/v1"},
 		ProviderModelTarget: rawTarget, ConnectorGrantID: targetRef.Cloud.ConnectorGrantID,
 	}

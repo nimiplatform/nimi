@@ -26,7 +26,7 @@ func TestLegacyAttachedLlamaStartFailsWithoutBootstrappingOrProbing(t *testing.T
 
 	installed := mustInstallAttachedLocalModel(t, svc, installLocalAssetParams{
 		assetID:      "local/non-loopback-model",
-		capabilities: []string{"chat"},
+		capabilities: []string{"text.generate"},
 		engine:       "llama",
 		endpoint:     "https://example.com/v1",
 	})
@@ -56,14 +56,14 @@ func TestLocalCheckLegacyLlamaServiceHealthDoesNotProbeAttachedEndpoint(t *testi
 
 	modelResp := mustInstallAttachedLocalModel(t, svc, installLocalAssetParams{
 		assetID:      "local/attached-service-sanitize-model",
-		capabilities: []string{"chat"},
+		capabilities: []string{"text.generate"},
 		engine:       "llama",
 		endpoint:     "https://speech.example.com/v1",
 	})
 	if _, err := svc.InstallLocalService(context.Background(), &runtimev1.InstallLocalServiceRequest{
 		ServiceId:    "svc-attached-sanitize",
 		Engine:       "llama",
-		Capabilities: []string{"chat"},
+		Capabilities: []string{"text.generate"},
 		LocalModelId: modelResp.GetLocalAssetId(),
 	}); err != nil {
 		t.Fatalf("install local service: %v", err)

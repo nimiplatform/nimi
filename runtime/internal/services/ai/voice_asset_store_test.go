@@ -19,13 +19,13 @@ func TestVoiceAssetStoreCompleteAndTimeoutJob(t *testing.T) {
 			AppId:         "app-1",
 			SubjectUserId: "user-1",
 		},
-		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE,
+		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CREATE,
 		Spec: &runtimev1.ScenarioSpec{
-			Spec: &runtimev1.ScenarioSpec_VoiceClone{VoiceClone: &runtimev1.VoiceCloneScenarioSpec{
-				Input: &runtimev1.VoiceV2VInput{
+			Spec: &runtimev1.ScenarioSpec_VoiceCreate{VoiceCreate: &runtimev1.VoiceCreateScenarioSpec{
+				Source: &runtimev1.VoiceCreateScenarioSpec_ReferenceAudio{ReferenceAudio: &runtimev1.VoiceV2VInput{
 					ReferenceAudioUri:  "https://example.com/reference.wav",
 					ReferenceAudioMime: "audio/wav",
-				},
+				}},
 			}},
 		},
 		Provider:          "dashscope",
@@ -68,13 +68,13 @@ func TestVoiceAssetStoreCompleteAndTimeoutJob(t *testing.T) {
 			AppId:         "app-1",
 			SubjectUserId: "user-1",
 		},
-		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE,
+		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CREATE,
 		Spec: &runtimev1.ScenarioSpec{
-			Spec: &runtimev1.ScenarioSpec_VoiceClone{VoiceClone: &runtimev1.VoiceCloneScenarioSpec{
-				Input: &runtimev1.VoiceV2VInput{
+			Spec: &runtimev1.ScenarioSpec_VoiceCreate{VoiceCreate: &runtimev1.VoiceCreateScenarioSpec{
+				Source: &runtimev1.VoiceCreateScenarioSpec_ReferenceAudio{ReferenceAudio: &runtimev1.VoiceV2VInput{
 					ReferenceAudioUri:  "https://example.com/reference.wav",
 					ReferenceAudioMime: "audio/wav",
-				},
+				}},
 			}},
 		},
 		Provider: "stepfun",
@@ -114,13 +114,13 @@ func TestVoiceAssetStorePrunesExpiredTerminalJobsAndAssets(t *testing.T) {
 			AppId:         "app-1",
 			SubjectUserId: "user-1",
 		},
-		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE,
+		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CREATE,
 		Spec: &runtimev1.ScenarioSpec{
-			Spec: &runtimev1.ScenarioSpec_VoiceClone{VoiceClone: &runtimev1.VoiceCloneScenarioSpec{
-				Input: &runtimev1.VoiceV2VInput{
+			Spec: &runtimev1.ScenarioSpec_VoiceCreate{VoiceCreate: &runtimev1.VoiceCreateScenarioSpec{
+				Source: &runtimev1.VoiceCreateScenarioSpec_ReferenceAudio{ReferenceAudio: &runtimev1.VoiceV2VInput{
 					ReferenceAudioUri:  "https://example.com/reference.wav",
 					ReferenceAudioMime: "audio/wav",
-				},
+				}},
 			}},
 		},
 		Provider: "dashscope",
@@ -143,13 +143,13 @@ func TestVoiceAssetStorePrunesExpiredTerminalJobsAndAssets(t *testing.T) {
 			AppId:         "app-1",
 			SubjectUserId: "user-1",
 		},
-		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE,
+		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CREATE,
 		Spec: &runtimev1.ScenarioSpec{
-			Spec: &runtimev1.ScenarioSpec_VoiceClone{VoiceClone: &runtimev1.VoiceCloneScenarioSpec{
-				Input: &runtimev1.VoiceV2VInput{
+			Spec: &runtimev1.ScenarioSpec_VoiceCreate{VoiceCreate: &runtimev1.VoiceCreateScenarioSpec{
+				Source: &runtimev1.VoiceCreateScenarioSpec_ReferenceAudio{ReferenceAudio: &runtimev1.VoiceV2VInput{
 					ReferenceAudioUri:  "https://example.com/reference.wav",
 					ReferenceAudioMime: "audio/wav",
-				},
+				}},
 			}},
 		},
 		Provider: "dashscope",
@@ -174,13 +174,13 @@ func TestVoiceAssetStoreKeepsProviderPersistentAssetsAfterTerminalJobPrune(t *te
 			AppId:         "app-1",
 			SubjectUserId: "user-1",
 		},
-		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE,
+		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CREATE,
 		Spec: &runtimev1.ScenarioSpec{
-			Spec: &runtimev1.ScenarioSpec_VoiceClone{VoiceClone: &runtimev1.VoiceCloneScenarioSpec{
-				Input: &runtimev1.VoiceV2VInput{
+			Spec: &runtimev1.ScenarioSpec_VoiceCreate{VoiceCreate: &runtimev1.VoiceCreateScenarioSpec{
+				Source: &runtimev1.VoiceCreateScenarioSpec_ReferenceAudio{ReferenceAudio: &runtimev1.VoiceV2VInput{
 					ReferenceAudioUri:  "https://example.com/reference.wav",
 					ReferenceAudioMime: "audio/wav",
-				},
+				}},
 			}},
 		},
 		Provider:          "dashscope",
@@ -204,12 +204,12 @@ func TestVoiceAssetStoreKeepsProviderPersistentAssetsAfterTerminalJobPrune(t *te
 			AppId:         "app-1",
 			SubjectUserId: "user-1",
 		},
-		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_DESIGN,
+		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CREATE,
 		Spec: &runtimev1.ScenarioSpec{
-			Spec: &runtimev1.ScenarioSpec_VoiceDesign{VoiceDesign: &runtimev1.VoiceDesignScenarioSpec{
-				Input: &runtimev1.VoiceT2VInput{
+			Spec: &runtimev1.ScenarioSpec_VoiceCreate{VoiceCreate: &runtimev1.VoiceCreateScenarioSpec{
+				Source: &runtimev1.VoiceCreateScenarioSpec_TextDescription{TextDescription: &runtimev1.VoiceT2VInput{
 					InstructionText: "warm cinematic narrator",
-				},
+				}},
 			}},
 		},
 		Provider: "dashscope",
@@ -242,13 +242,13 @@ func TestVoiceAssetStoreSubmitKeepsTargetRuntimePrivate(t *testing.T) {
 			AppId:         "app-1",
 			SubjectUserId: "user-1",
 		},
-		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE,
+		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CREATE,
 		Spec: &runtimev1.ScenarioSpec{
-			Spec: &runtimev1.ScenarioSpec_VoiceClone{VoiceClone: &runtimev1.VoiceCloneScenarioSpec{
-				Input: &runtimev1.VoiceV2VInput{
+			Spec: &runtimev1.ScenarioSpec_VoiceCreate{VoiceCreate: &runtimev1.VoiceCreateScenarioSpec{
+				Source: &runtimev1.VoiceCreateScenarioSpec_ReferenceAudio{ReferenceAudio: &runtimev1.VoiceV2VInput{
 					ReferenceAudioUri:  "https://example.com/reference.wav",
 					ReferenceAudioMime: "audio/wav",
-				},
+				}},
 			}},
 		},
 		Provider:          "dashscope",
@@ -278,7 +278,7 @@ func TestVoiceAssetStoreProviderPersistentAssetsSurviveStoreReopen(t *testing.T)
 		RouteDecision:   runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
 		ExecutionTarget: targetRef,
 		CloudBinding: &voiceAssetCloudBinding{
-			CapabilityContract: "voice_workflow.voice_clone",
+			CapabilityContract: "voice.create",
 			Implementation: &runtimev1.CapabilityImplementationIdentity{
 				ImplementationId: "cloud.voice.dashscope", DriverId: "driver.dashscope", DriverDialect: "dashscope/voice/v1",
 			},
@@ -288,13 +288,13 @@ func TestVoiceAssetStoreProviderPersistentAssetsSurviveStoreReopen(t *testing.T)
 			AppId:         "app-1",
 			SubjectUserId: "user-1",
 		},
-		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE,
+		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CREATE,
 		Spec: &runtimev1.ScenarioSpec{
-			Spec: &runtimev1.ScenarioSpec_VoiceClone{VoiceClone: &runtimev1.VoiceCloneScenarioSpec{
-				Input: &runtimev1.VoiceV2VInput{
+			Spec: &runtimev1.ScenarioSpec_VoiceCreate{VoiceCreate: &runtimev1.VoiceCreateScenarioSpec{
+				Source: &runtimev1.VoiceCreateScenarioSpec_ReferenceAudio{ReferenceAudio: &runtimev1.VoiceV2VInput{
 					ReferenceAudioUri:  "https://example.com/reference.wav",
 					ReferenceAudioMime: "audio/wav",
-				},
+				}},
 			}},
 		},
 		Provider:          "dashscope",
@@ -337,13 +337,13 @@ func TestVoiceAssetStoreCompleteFailsClosedWhenProviderPersistentSnapshotCannotP
 			AppId:         "app-1",
 			SubjectUserId: "user-1",
 		},
-		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE,
+		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CREATE,
 		Spec: &runtimev1.ScenarioSpec{
-			Spec: &runtimev1.ScenarioSpec_VoiceClone{VoiceClone: &runtimev1.VoiceCloneScenarioSpec{
-				Input: &runtimev1.VoiceV2VInput{
+			Spec: &runtimev1.ScenarioSpec_VoiceCreate{VoiceCreate: &runtimev1.VoiceCreateScenarioSpec{
+				Source: &runtimev1.VoiceCreateScenarioSpec_ReferenceAudio{ReferenceAudio: &runtimev1.VoiceV2VInput{
 					ReferenceAudioUri:  "https://example.com/reference.wav",
 					ReferenceAudioMime: "audio/wav",
-				},
+				}},
 			}},
 		},
 		Provider:          "dashscope",
@@ -409,12 +409,12 @@ func TestVoiceAssetStoreSubmitPersistsExplicitWorkflowFamilyMetadata(t *testing.
 					AppId:         "app-1",
 					SubjectUserId: "user-1",
 				},
-				ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_DESIGN,
+				ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CREATE,
 				Spec: &runtimev1.ScenarioSpec{
-					Spec: &runtimev1.ScenarioSpec_VoiceDesign{VoiceDesign: &runtimev1.VoiceDesignScenarioSpec{
-						Input: &runtimev1.VoiceT2VInput{
+					Spec: &runtimev1.ScenarioSpec_VoiceCreate{VoiceCreate: &runtimev1.VoiceCreateScenarioSpec{
+						Source: &runtimev1.VoiceCreateScenarioSpec_TextDescription{TextDescription: &runtimev1.VoiceT2VInput{
 							InstructionText: "warm cinematic narrator",
-						},
+						}},
 					}},
 				},
 				ModelResolved:   tc.modelID,

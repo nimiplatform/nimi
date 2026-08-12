@@ -5,7 +5,6 @@ import (
 	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
-	"github.com/nimiplatform/nimi/runtime/internal/executionintent"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"google.golang.org/grpc/codes"
 )
@@ -41,12 +40,8 @@ func (s *Service) ExecuteScenario(ctx context.Context, req *runtimev1.ExecuteSce
 	case runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_EMBED:
 		return executeTextEmbedScenario(ctx, s, req, ignored)
 	case runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE:
-		if intent, ok := executionintent.FromContext(ctx); ok && intent.IsLocal() {
-			return executeLocalImageGenerateScenario(ctx, s, req, ignored)
-		}
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
-	case runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE,
-		runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_DESIGN:
+	case runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CREATE:
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
 	case runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE,
 		runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_TRANSCRIBE:
@@ -67,8 +62,7 @@ func (s *Service) ListScenarioProfiles(_ context.Context, _ *runtimev1.ListScena
 		{runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_GENERATE, "Video generation"},
 		{runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE, "Speech synthesis"},
 		{runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_TRANSCRIBE, "Speech transcription"},
-		{runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE, "Voice clone"},
-		{runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_DESIGN, "Voice design"},
+		{runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CREATE, "Voice creation"},
 		{runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_GENERATE, "Music generation"},
 		{runtimev1.ScenarioType_SCENARIO_TYPE_WORLD_GENERATE, "World generation"},
 	}
@@ -108,11 +102,8 @@ var scenarioExtensionRegistry = map[runtimev1.ScenarioType]map[string]scenarioEx
 	runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_TRANSCRIBE: {
 		"nimi.scenario.speech_transcribe.request": scenarioExtensionStrategyBestEffort,
 	},
-	runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE: {
-		"nimi.scenario.voice_clone.request": scenarioExtensionStrategyStrict,
-	},
-	runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_DESIGN: {
-		"nimi.scenario.voice_design.request": scenarioExtensionStrategyStrict,
+	runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CREATE: {
+		"nimi.scenario.voice_create.request": scenarioExtensionStrategyStrict,
 	},
 	runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_GENERATE: {
 		"nimi.scenario.music_generate.request": scenarioExtensionStrategyBestEffort,
@@ -156,7 +147,7 @@ func hasInternalFirstRunScenarioExtensionKey(item *runtimev1.ScenarioExtension) 
 
 func unsupportedScenarioExtensionError(scenarioType runtimev1.ScenarioType) error {
 	switch scenarioType {
-	case runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE, runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_DESIGN:
+	case runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CREATE:
 		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_VOICE_WORKFLOW_UNSUPPORTED)
 	default:
 		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)

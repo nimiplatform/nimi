@@ -41,60 +41,48 @@ func voiceWorkflowFailureMetadata(err error, reasonCode runtimev1.ReasonCode, co
 
 const maxVoiceWorkflowReferenceAudioBytes = 20 * 1024 * 1024
 
-func workflowTypeFromScenarioType(scenarioType runtimev1.ScenarioType) string {
-	switch scenarioType {
-	case runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE:
-		return "voice_clone"
-	case runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_DESIGN:
-		return "voice_design"
+func workflowTypeFromScenarioSpec(spec *runtimev1.ScenarioSpec) string {
+	if spec == nil || spec.GetVoiceCreate() == nil {
+		return ""
+	}
+	switch spec.GetVoiceCreate().GetSource().(type) {
+	case *runtimev1.VoiceCreateScenarioSpec_ReferenceAudio:
+		return "reference_audio"
+	case *runtimev1.VoiceCreateScenarioSpec_TextDescription:
+		return "text_description"
 	default:
 		return ""
 	}
 }
 
 func validateVoiceWorkflowSpec(scenarioType runtimev1.ScenarioType, spec *runtimev1.ScenarioSpec) error {
-	if spec == nil {
-		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_VOICE_INPUT_INVALID)
+	if scenarioType != runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CREATE || spec == nil || spec.GetVoiceCreate() == nil {
+		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_VOICE_WORKFLOW_UNSUPPORTED)
 	}
-	switch scenarioType {
-	case runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE:
-		clone := spec.GetVoiceClone()
-		if clone == nil || clone.GetInput() == nil {
+	creation := spec.GetVoiceCreate()
+	switch source := creation.GetSource().(type) {
+	case *runtimev1.VoiceCreateScenarioSpec_ReferenceAudio:
+		input := source.ReferenceAudio
+		if input == nil {
 			return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_VOICE_INPUT_INVALID)
 		}
-		input := clone.GetInput()
 		hasBytes := len(input.GetReferenceAudioBytes()) > 0
 		hasURI := strings.TrimSpace(input.GetReferenceAudioUri()) != ""
 		if hasBytes == hasURI {
 			return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_VOICE_INPUT_INVALID)
 		}
-		if hasBytes {
-			if len(input.GetReferenceAudioBytes()) > maxVoiceWorkflowReferenceAudioBytes {
-				return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_VOICE_INPUT_INVALID)
-			}
-			if strings.TrimSpace(input.GetReferenceAudioMime()) == "" {
-				return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_VOICE_INPUT_INVALID)
-			}
-		}
-		if strings.TrimSpace(clone.GetTargetModelId()) == "" {
-			return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_VOICE_TARGET_MODEL_MISMATCH)
+		if hasBytes && (len(input.GetReferenceAudioBytes()) > maxVoiceWorkflowReferenceAudioBytes || strings.TrimSpace(input.GetReferenceAudioMime()) == "") {
+			return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_VOICE_INPUT_INVALID)
 		}
 		return nil
-	case runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_DESIGN:
-		design := spec.GetVoiceDesign()
-		if design == nil || design.GetInput() == nil {
+	case *runtimev1.VoiceCreateScenarioSpec_TextDescription:
+		input := source.TextDescription
+		if input == nil || (strings.TrimSpace(input.GetInstructionText()) == "" && strings.TrimSpace(input.GetPreviewText()) == "") {
 			return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_VOICE_INPUT_INVALID)
-		}
-		input := design.GetInput()
-		if strings.TrimSpace(input.GetInstructionText()) == "" && strings.TrimSpace(input.GetPreviewText()) == "" {
-			return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_VOICE_INPUT_INVALID)
-		}
-		if strings.TrimSpace(design.GetTargetModelId()) == "" {
-			return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_VOICE_TARGET_MODEL_MISMATCH)
 		}
 		return nil
 	default:
-		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_VOICE_WORKFLOW_UNSUPPORTED)
+		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_VOICE_INPUT_INVALID)
 	}
 }
 
@@ -163,7 +151,7 @@ func (s *Service) executeCapturedVoiceWorkflowJob(
 	}
 	result.Metadata["voice_asset_id"] = voiceAssetID
 	result.Metadata["workflow_model_id"] = resolution.WorkflowModelID
-	result.Metadata["workflow_type"] = resolution.WorkflowType
+	result.Metadata["creation_source"] = resolution.WorkflowType
 	if strings.TrimSpace(resolution.WorkflowFamily) != "" {
 		result.Metadata["workflow_family"] = strings.TrimSpace(resolution.WorkflowFamily)
 	}
@@ -198,46 +186,40 @@ func buildVoiceWorkflowPayload(
 ) map[string]any {
 	payload := map[string]any{
 		"workflow_model_id": strings.TrimSpace(resolution.WorkflowModelID),
-		"workflow_type":     strings.TrimSpace(resolution.WorkflowType),
+		"creation_source":   strings.TrimSpace(resolution.WorkflowType),
 	}
 	if len(extPayload) > 0 {
 		payload["extensions"] = extPayload
 	}
-	switch req.GetScenarioType() {
-	case runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE:
-		clone := req.GetSpec().GetVoiceClone()
-		input := clone.GetInput()
-		targetModelID := normalizeVoiceWorkflowTargetModelID(clone.GetTargetModelId(), resolution)
-		resolvedPreferredName := resolveVoiceWorkflowPreferredName(req)
-		payload["target_model_id"] = targetModelID
-
+	creation := req.GetSpec().GetVoiceCreate()
+	if creation == nil {
+		return payload
+	}
+	payload["target_model_id"] = normalizeVoiceWorkflowTargetModelID(creation.GetTargetModelId(), resolution)
+	switch source := creation.GetSource().(type) {
+	case *runtimev1.VoiceCreateScenarioSpec_ReferenceAudio:
+		input := source.ReferenceAudio
 		inputPayload := map[string]any{
 			"reference_audio_uri":  strings.TrimSpace(input.GetReferenceAudioUri()),
 			"reference_audio_mime": strings.TrimSpace(input.GetReferenceAudioMime()),
 			"language_hints":       append([]string(nil), input.GetLanguageHints()...),
-			"preferred_name":       resolvedPreferredName,
+			"preferred_name":       resolveVoiceWorkflowPreferredName(req),
 			"text":                 strings.TrimSpace(input.GetText()),
 		}
 		if len(input.GetReferenceAudioBytes()) > 0 {
 			inputPayload["reference_audio_base64"] = base64.StdEncoding.EncodeToString(input.GetReferenceAudioBytes())
 		}
 		payload["input"] = inputPayload
-	case runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_DESIGN:
-		design := req.GetSpec().GetVoiceDesign()
-		input := design.GetInput()
-		targetModelID := normalizeVoiceWorkflowTargetModelID(design.GetTargetModelId(), resolution)
-		instruction := strings.TrimSpace(input.GetInstructionText())
-		previewText := strings.TrimSpace(input.GetPreviewText())
-		language := strings.TrimSpace(input.GetLanguage())
+	case *runtimev1.VoiceCreateScenarioSpec_TextDescription:
+		input := source.TextDescription
 		preferredName := strings.TrimSpace(input.GetPreferredName())
 		if preferredName == "" {
 			preferredName = resolveVoiceWorkflowPreferredName(req)
 		}
-		payload["target_model_id"] = targetModelID
 		payload["input"] = map[string]any{
-			"instruction_text": instruction,
-			"preview_text":     previewText,
-			"language":         language,
+			"instruction_text": strings.TrimSpace(input.GetInstructionText()),
+			"preview_text":     strings.TrimSpace(input.GetPreviewText()),
+			"language":         strings.TrimSpace(input.GetLanguage()),
 			"preferred_name":   preferredName,
 		}
 	}
@@ -268,13 +250,16 @@ func validateVoiceWorkflowRequestAgainstMetadata(
 	if options == nil {
 		return nil
 	}
-	switch req.GetScenarioType() {
-	case runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE:
-		clone := req.GetSpec().GetVoiceClone()
-		if clone == nil || clone.GetInput() == nil {
+	creation := req.GetSpec().GetVoiceCreate()
+	if creation == nil {
+		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_VOICE_INPUT_INVALID)
+	}
+	switch source := creation.GetSource().(type) {
+	case *runtimev1.VoiceCreateScenarioSpec_ReferenceAudio:
+		input := source.ReferenceAudio
+		if input == nil {
 			return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_VOICE_INPUT_INVALID)
 		}
-		input := clone.GetInput()
 		if len(input.GetReferenceAudioBytes()) > 0 {
 			if options.ReferenceAudioBytesInput == nil || !*options.ReferenceAudioBytesInput {
 				return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
@@ -289,12 +274,11 @@ func validateVoiceWorkflowRequestAgainstMetadata(
 		if voiceWorkflowFieldModeRequired(options.TextPromptMode) && strings.TrimSpace(input.GetText()) == "" {
 			return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_VOICE_INPUT_INVALID)
 		}
-	case runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_DESIGN:
-		design := req.GetSpec().GetVoiceDesign()
-		if design == nil || design.GetInput() == nil {
+	case *runtimev1.VoiceCreateScenarioSpec_TextDescription:
+		input := source.TextDescription
+		if input == nil {
 			return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_VOICE_INPUT_INVALID)
 		}
-		input := design.GetInput()
 		if voiceWorkflowFieldModeRequired(options.InstructionTextMode) && strings.TrimSpace(input.GetInstructionText()) == "" {
 			return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_VOICE_INPUT_INVALID)
 		}
@@ -327,11 +311,14 @@ func estimateVoiceWorkflowUsage(req *runtimev1.SubmitScenarioJobRequest) *runtim
 		return nil
 	}
 	inputTokens := int64(0)
-	switch req.GetScenarioType() {
-	case runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE:
-		clone := req.GetSpec().GetVoiceClone()
-		if clone != nil && clone.GetInput() != nil {
-			input := clone.GetInput()
+	creation := req.GetSpec().GetVoiceCreate()
+	if creation == nil {
+		return nil
+	}
+	switch source := creation.GetSource().(type) {
+	case *runtimev1.VoiceCreateScenarioSpec_ReferenceAudio:
+		if source.ReferenceAudio != nil {
+			input := source.ReferenceAudio
 			inputTokens += nimillm.EstimateTokens(strings.TrimSpace(input.GetReferenceAudioUri()))
 			inputTokens += int64(len(input.GetReferenceAudioBytes()) / 256)
 			inputTokens += nimillm.EstimateTokens(strings.TrimSpace(input.GetText()))
@@ -339,10 +326,9 @@ func estimateVoiceWorkflowUsage(req *runtimev1.SubmitScenarioJobRequest) *runtim
 				inputTokens += nimillm.EstimateTokens(strings.TrimSpace(hint))
 			}
 		}
-	case runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_DESIGN:
-		design := req.GetSpec().GetVoiceDesign()
-		if design != nil && design.GetInput() != nil {
-			input := design.GetInput()
+	case *runtimev1.VoiceCreateScenarioSpec_TextDescription:
+		if source.TextDescription != nil {
+			input := source.TextDescription
 			inputTokens += nimillm.EstimateTokens(strings.TrimSpace(input.GetInstructionText()))
 			inputTokens += nimillm.EstimateTokens(strings.TrimSpace(input.GetPreviewText()))
 			inputTokens += nimillm.EstimateTokens(strings.TrimSpace(input.GetLanguage()))
@@ -368,29 +354,31 @@ func voiceWorkflowInputSummary(req *runtimev1.SubmitScenarioJobRequest) string {
 	if req == nil || req.GetSpec() == nil {
 		return ""
 	}
-	switch req.GetScenarioType() {
-	case runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE:
-		clone := req.GetSpec().GetVoiceClone()
-		if clone == nil || clone.GetInput() == nil {
+	creation := req.GetSpec().GetVoiceCreate()
+	if creation == nil {
+		return ""
+	}
+	switch source := creation.GetSource().(type) {
+	case *runtimev1.VoiceCreateScenarioSpec_ReferenceAudio:
+		input := source.ReferenceAudio
+		if input == nil {
 			return ""
 		}
-		input := clone.GetInput()
 		return strings.Join([]string{
-			strings.TrimSpace(clone.GetTargetModelId()),
+			strings.TrimSpace(creation.GetTargetModelId()),
 			strings.TrimSpace(input.GetReferenceAudioUri()),
 			fmt.Sprintf("%d", len(input.GetReferenceAudioBytes())),
 			strings.TrimSpace(input.GetText()),
 			strings.Join(input.GetLanguageHints(), ","),
 			strings.TrimSpace(input.GetPreferredName()),
 		}, "|")
-	case runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_DESIGN:
-		design := req.GetSpec().GetVoiceDesign()
-		if design == nil || design.GetInput() == nil {
+	case *runtimev1.VoiceCreateScenarioSpec_TextDescription:
+		input := source.TextDescription
+		if input == nil {
 			return ""
 		}
-		input := design.GetInput()
 		return strings.Join([]string{
-			strings.TrimSpace(design.GetTargetModelId()),
+			strings.TrimSpace(creation.GetTargetModelId()),
 			strings.TrimSpace(input.GetInstructionText()),
 			strings.TrimSpace(input.GetPreviewText()),
 			strings.TrimSpace(input.GetLanguage()),
@@ -405,17 +393,20 @@ func resolveVoiceWorkflowPreferredName(req *runtimev1.SubmitScenarioJobRequest) 
 	if req == nil || req.GetSpec() == nil {
 		return "nimi-voice-" + strings.ToLower(ulid.Make().String())
 	}
-	switch req.GetScenarioType() {
-	case runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE:
-		if clone := req.GetSpec().GetVoiceClone(); clone != nil && clone.GetInput() != nil {
-			if name := strings.TrimSpace(clone.GetInput().GetPreferredName()); name != "" {
-				return name
+	creation := req.GetSpec().GetVoiceCreate()
+	if creation != nil {
+		switch source := creation.GetSource().(type) {
+		case *runtimev1.VoiceCreateScenarioSpec_ReferenceAudio:
+			if source.ReferenceAudio != nil {
+				if name := strings.TrimSpace(source.ReferenceAudio.GetPreferredName()); name != "" {
+					return name
+				}
 			}
-		}
-	case runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_DESIGN:
-		if design := req.GetSpec().GetVoiceDesign(); design != nil && design.GetInput() != nil {
-			if name := strings.TrimSpace(design.GetInput().GetPreferredName()); name != "" {
-				return name
+		case *runtimev1.VoiceCreateScenarioSpec_TextDescription:
+			if source.TextDescription != nil {
+				if name := strings.TrimSpace(source.TextDescription.GetPreferredName()); name != "" {
+					return name
+				}
 			}
 		}
 	}

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -25,6 +26,8 @@ type controlledRemoteMediaHost struct {
 	cancelObserved  chan struct{}
 	allowCancelExit chan struct{}
 	once            sync.Once
+	mu              sync.Mutex
+	executions      int
 }
 
 func newControlledRemoteMediaHost(cancel bool) *controlledRemoteMediaHost {
@@ -59,9 +62,13 @@ func (h *controlledRemoteMediaHost) ExecuteMedia(
 		if err != nil {
 			return capabilitydriver.CloudMediaTransportResponse{}, err
 		}
+		h.mu.Lock()
+		h.executions++
+		artifactID := fmt.Sprintf("captured-media-%d", h.executions)
+		h.mu.Unlock()
 		return capabilitydriver.CloudMediaTransportResponse{
-			Artifacts:      []*runtimev1.ScenarioArtifact{{ArtifactId: "captured-media", MimeType: "image/png", SizeBytes: int64(len("captured"))}},
-			ArtifactBodies: map[string]*capabilitydriver.ArtifactBody{"captured-media": body},
+			Artifacts:      []*runtimev1.ScenarioArtifact{{ArtifactId: artifactID, MimeType: "image/png", SizeBytes: int64(len("captured"))}},
+			ArtifactBodies: map[string]*capabilitydriver.ArtifactBody{artifactID: body},
 			FinishReason:   runtimev1.FinishReason_FINISH_REASON_STOP,
 		}, nil
 	}

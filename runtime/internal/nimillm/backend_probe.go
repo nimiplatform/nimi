@@ -311,11 +311,7 @@ func inferFireworksProbeCapabilities(item fireworksModelRecord) []string {
 	if strings.Contains(modelType, "embedding") || strings.Contains(modelType, "rerank") {
 		return nil
 	}
-	capabilities := []string{"text.generate"}
-	if item.SupportsImageInput {
-		capabilities = append(capabilities, "text.generate.vision")
-	}
-	return capabilities
+	return []string{"text.generate"}
 }
 
 func inferOpenAICompatibleProbeCapabilities(item openAIModelRecord) []string {
@@ -362,9 +358,6 @@ func inferOpenAICompatibleProbeCapabilities(item openAIModelRecord) []string {
 			capabilities["audio.transcribe"] = struct{}{}
 		} else {
 			capabilities["text.generate"] = struct{}{}
-			if hasInput("image") || hasInput("video") {
-				capabilities["text.generate.vision"] = struct{}{}
-			}
 		}
 	}
 

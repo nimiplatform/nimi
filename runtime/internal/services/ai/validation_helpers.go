@@ -53,10 +53,8 @@ func scenarioTargetCapability(scenarioType runtimev1.ScenarioType) string {
 		return "video.generate"
 	case runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE:
 		return "audio.synthesize"
-	case runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE:
-		return "voice_workflow.voice_clone"
-	case runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_DESIGN:
-		return "voice_workflow.voice_design"
+	case runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CREATE:
+		return "voice.create"
 	case runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_TRANSCRIBE:
 		return "audio.transcribe"
 	case runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_GENERATE:

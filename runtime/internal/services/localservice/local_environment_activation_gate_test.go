@@ -332,7 +332,7 @@ func importWindowsNativeImageForActivationGateTest(t *testing.T, svc *Service) *
 		"kind":             "image",
 		"logical_model_id": "nimi/image-model-cuda-gate",
 		"engine":           "media",
-		"capabilities":     []string{"image"},
+		"capabilities":     []string{"image.generate"},
 		"entry":            "z_image_turbo-Q4_K.gguf",
 		"files":            []string{"z_image_turbo-Q4_K.gguf"},
 		"hashes":           map[string]string{"z_image_turbo-Q4_K.gguf": "sha256:" + validImageTestGGUFHash()},

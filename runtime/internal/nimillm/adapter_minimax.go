@@ -247,25 +247,13 @@ func ExecuteMiniMaxTask(
 		submitPayload["response_format"] = imageSpec.GetResponseFormat()
 	}
 	if videoSpec := scenarioVideoSpec(req); videoSpec != nil {
-		submitPayload["mode"] = strings.ToLower(strings.TrimPrefix(videoSpec.GetMode().String(), "VIDEO_MODE_"))
-		submitPayload["negative_prompt"] = VideoNegativePrompt(videoSpec)
-		submitPayload["content"] = VideoContentPayload(videoSpec)
-		submitPayload["duration_sec"] = VideoDurationSec(videoSpec)
-		submitPayload["frames"] = VideoFrames(videoSpec)
-		submitPayload["fps"] = VideoFPS(videoSpec)
-		submitPayload["resolution"] = VideoResolution(videoSpec)
-		submitPayload["aspect_ratio"] = VideoRatio(videoSpec)
-		submitPayload["seed"] = VideoSeed(videoSpec)
-		submitPayload["first_frame_uri"] = VideoFirstFrameURI(videoSpec)
-		submitPayload["last_frame_uri"] = VideoLastFrameURI(videoSpec)
-		submitPayload["reference_images"] = VideoReferenceImageURIs(videoSpec)
-		submitPayload["camera_fixed"] = VideoCameraFixed(videoSpec)
-		submitPayload["watermark"] = VideoWatermark(videoSpec)
-		submitPayload["generate_audio"] = VideoGenerateAudio(videoSpec)
-		submitPayload["draft"] = VideoDraft(videoSpec)
-		submitPayload["service_tier"] = VideoServiceTier(videoSpec)
-		submitPayload["execution_expires_after_sec"] = VideoExecutionExpiresAfterSec(videoSpec)
-		submitPayload["return_last_frame"] = VideoReturnLastFrame(videoSpec)
+		videoPayload, err := miniMaxVideoSubmitPayload(modelResolved, videoSpec)
+		if err != nil {
+			return nil, nil, "", err
+		}
+		for key, value := range videoPayload {
+			submitPayload[key] = value
+		}
 	}
 	if opts := StructToMap(extractScenarioExtensions(req)); len(opts) > 0 {
 		submitPayload["extensions"] = opts
@@ -376,6 +364,58 @@ func ExecuteMiniMaxTask(
 		updater.UpdatePollState(jobID, providerJobID, retryCount, nil, "")
 		return []*runtimev1.ScenarioArtifact{artifact}, ArtifactUsage(prompt, artifactBytes, computeMs), providerJobID, nil
 	}
+}
+
+func miniMaxVideoSubmitPayload(modelResolved string, spec *runtimev1.VideoGenerateScenarioSpec) (map[string]any, error) {
+	if spec == nil || strings.TrimSpace(VideoPrompt(spec)) == "" {
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
+	}
+	if !strings.EqualFold(strings.TrimSpace(modelResolved), "MiniMax-Hailuo-2.3") {
+		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
+	}
+	if VideoNegativePrompt(spec) != "" || VideoRatio(spec) != "" || VideoFrames(spec) > 0 || VideoFPS(spec) > 0 ||
+		VideoSeed(spec) != 0 || VideoCameraFixed(spec) || VideoGenerateAudio(spec) || VideoDraft(spec) ||
+		VideoServiceTier(spec) != "" || VideoExecutionExpiresAfterSec(spec) > 0 || VideoReturnLastFrame(spec) ||
+		len(VideoReferenceVideoURIs(spec)) > 0 || len(VideoReferenceAudioURIs(spec)) > 0 {
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
+	}
+
+	firstFrame := strings.TrimSpace(VideoFirstFrameURI(spec))
+	lastFrame := strings.TrimSpace(VideoLastFrameURI(spec))
+	referenceImages := VideoReferenceImageURIs(spec)
+	switch VideoModeValue(spec) {
+	case runtimev1.VideoMode_VIDEO_MODE_T2V:
+		if firstFrame != "" || lastFrame != "" || len(referenceImages) > 0 {
+			return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
+		}
+	case runtimev1.VideoMode_VIDEO_MODE_I2V_FIRST_FRAME:
+		if firstFrame == "" {
+			return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
+		}
+		if lastFrame != "" || len(referenceImages) > 0 {
+			return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
+		}
+	default:
+		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
+	}
+
+	payload := map[string]any{
+		"model":  strings.TrimSpace(modelResolved),
+		"prompt": VideoPrompt(spec),
+	}
+	if firstFrame != "" {
+		payload["first_frame_image"] = firstFrame
+	}
+	if duration := VideoDurationSec(spec); duration > 0 {
+		payload["duration"] = duration
+	}
+	if resolution := strings.ToUpper(VideoResolution(spec)); resolution != "" {
+		payload["resolution"] = resolution
+	}
+	if spec.GetOptions() != nil && spec.GetOptions().Watermark != nil {
+		payload["aigc_watermark"] = spec.GetOptions().GetWatermark()
+	}
+	return payload, nil
 }
 
 // ExecuteMiniMaxTranscribe uses the single adapter-owned MiniMax endpoint and

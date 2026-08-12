@@ -27,14 +27,14 @@ func TestProfileApplyRejectsLegacyLlamaExecutionBeforeInstallingAnything(t *test
 				{
 					EntryId:    "dep.chat.model",
 					Kind:       runtimev1.LocalExecutionEntryKind_LOCAL_EXECUTION_ENTRY_KIND_MODEL,
-					Capability: "chat",
+					Capability: "text.generate",
 					ModelId:    "local/chat-default",
 					Engine:     "llama",
 				},
 				{
 					EntryId:    "dep.chat.service",
 					Kind:       runtimev1.LocalExecutionEntryKind_LOCAL_EXECUTION_ENTRY_KIND_SERVICE,
-					Capability: "chat",
+					Capability: "text.generate",
 					ModelId:    "local/chat-default",
 					ServiceId:  "svc-chat",
 					Engine:     "llama",
@@ -56,7 +56,7 @@ func TestProfileApplyRejectsLegacyLlamaExecutionBeforeInstallingAnything(t *test
 	if len(result.GetInstalledAssets()) != 0 || len(result.GetServices()) != 0 {
 		t.Fatalf("Profile Apply materialized legacy llama execution state: assets=%d services=%d", len(result.GetInstalledAssets()), len(result.GetServices()))
 	}
-	if len(result.GetCapabilities()) != 1 || result.GetCapabilities()[0] != "chat" {
+	if len(result.GetCapabilities()) != 1 || result.GetCapabilities()[0] != "text.generate" {
 		t.Fatalf("applied capabilities mismatch: %#v", result.GetCapabilities())
 	}
 	if len(result.GetStageResults()) != 1 || result.GetStageResults()[0].GetStage() != applyStagePreflight ||
@@ -79,12 +79,12 @@ func TestLocalResolveProfileSeparatesDependencyAndArtifactEntries(t *testing.T) 
 			Id:                  "quality-best",
 			Title:               "Quality Best",
 			Recommended:         true,
-			ConsumeCapabilities: []string{"image"},
+			ConsumeCapabilities: []string{"image.generate"},
 			Entries: []*runtimev1.LocalProfileEntryDescriptor{
 				{
 					EntryId:    "profile.image.model",
 					Kind:       runtimev1.LocalProfileEntryKind_LOCAL_PROFILE_ENTRY_KIND_ASSET,
-					Capability: "image",
+					Capability: "image.generate",
 					Required:   &required,
 					AssetId:    "local/image-best",
 					Engine:     "llama",
@@ -92,7 +92,7 @@ func TestLocalResolveProfileSeparatesDependencyAndArtifactEntries(t *testing.T) 
 				{
 					EntryId:    "profile.image.vae",
 					Kind:       runtimev1.LocalProfileEntryKind_LOCAL_PROFILE_ENTRY_KIND_ASSET,
-					Capability: "image",
+					Capability: "image.generate",
 					Required:   &required,
 					TemplateId: "verified.asset.z_image.vae",
 					AssetId:    "local/z_image_ae",
@@ -102,14 +102,14 @@ func TestLocalResolveProfileSeparatesDependencyAndArtifactEntries(t *testing.T) 
 				{
 					EntryId:    "profile.image.helper",
 					Kind:       runtimev1.LocalProfileEntryKind_LOCAL_PROFILE_ENTRY_KIND_ASSET,
-					Capability: "chat",
+					Capability: "text.generate",
 					Required:   &optional,
 					AssetId:    "local/helper-chat",
 					Engine:     "llama",
 				},
 			},
 		},
-		Capability: "image",
+		Capability: "image.generate",
 	})
 	if err != nil {
 		t.Fatalf("resolve profile: %v", err)
@@ -189,12 +189,12 @@ func TestLocalApplyProfileInstallsPassiveAssets(t *testing.T) {
 			Id:                  "quality-best",
 			Title:               "Quality Best",
 			Recommended:         true,
-			ConsumeCapabilities: []string{"image"},
+			ConsumeCapabilities: []string{"image.generate"},
 			Entries: []*runtimev1.LocalProfileEntryDescriptor{
 				{
 					EntryId:    "profile.image.model",
 					Kind:       runtimev1.LocalProfileEntryKind_LOCAL_PROFILE_ENTRY_KIND_ASSET,
-					Capability: "image",
+					Capability: "image.generate",
 					Required:   &required,
 					AssetId:    "local/image-best",
 					Engine:     "media",
@@ -202,7 +202,7 @@ func TestLocalApplyProfileInstallsPassiveAssets(t *testing.T) {
 				{
 					EntryId:    "profile.image.vae",
 					Kind:       runtimev1.LocalProfileEntryKind_LOCAL_PROFILE_ENTRY_KIND_ASSET,
-					Capability: "image",
+					Capability: "image.generate",
 					Required:   &required,
 					TemplateId: "verified.asset.z_image.vae",
 					AssetId:    "local/z_image_ae",
@@ -212,7 +212,7 @@ func TestLocalApplyProfileInstallsPassiveAssets(t *testing.T) {
 				},
 			},
 		},
-		Capability: "image",
+		Capability: "image.generate",
 		DeviceProfile: &runtimev1.LocalDeviceProfile{
 			Os:   "windows",
 			Arch: "amd64",
@@ -351,31 +351,31 @@ func TestLocalNodeCatalogFiltersByCapabilityAndProvider(t *testing.T) {
 	svc := newTestService(t)
 
 	modelResp := mustInstallAttachedLocalModel(t, svc, installLocalAssetParams{
-		assetID:      "local/vision-chat-model",
-		capabilities: []string{"image.understand", "chat"},
+		assetID:      "local/chat-model",
+		capabilities: []string{"text.generate"},
 		engine:       "llama",
 	})
 
 	installed, err := svc.InstallLocalService(context.Background(), &runtimev1.InstallLocalServiceRequest{
-		ServiceId:    "svc-vision",
-		Title:        "Vision Service",
+		ServiceId:    "svc-chat",
+		Title:        "Chat Service",
 		Engine:       "llama",
-		Capabilities: []string{"image.understand", "chat"},
+		Capabilities: []string{"text.generate"},
 		LocalModelId: modelResp.GetLocalAssetId(),
 		Endpoint:     managedDefaultEndpointForEngine("llama"),
 	})
 	if err != nil {
 		t.Fatalf("install local service: %v", err)
 	}
-	if installed.GetService().GetServiceId() != "svc-vision" {
+	if installed.GetService().GetServiceId() != "svc-chat" {
 		t.Fatalf("service id mismatch: %s", installed.GetService().GetServiceId())
 	}
-	if _, err := svc.updateServiceStatus("svc-vision", runtimev1.LocalServiceStatus_LOCAL_SERVICE_STATUS_ACTIVE, "legacy fixture"); err != nil {
+	if _, err := svc.updateServiceStatus("svc-chat", runtimev1.LocalServiceStatus_LOCAL_SERVICE_STATUS_ACTIVE, "legacy fixture"); err != nil {
 		t.Fatalf("activate legacy catalog fixture: %v", err)
 	}
 
 	nodesResp, err := svc.ListNodeCatalog(context.Background(), &runtimev1.ListNodeCatalogRequest{
-		Capability: "image.understand",
+		Capability: "text.generate",
 		Provider:   "llama",
 	})
 	if err != nil {
@@ -385,43 +385,17 @@ func TestLocalNodeCatalogFiltersByCapabilityAndProvider(t *testing.T) {
 		t.Fatalf("node count mismatch: got=%d want=1", len(nodesResp.GetNodes()))
 	}
 	node := nodesResp.GetNodes()[0]
-	if node.GetServiceId() != "svc-vision" {
-		t.Fatalf("node service id mismatch: %s", node.GetServiceId())
+	if node.GetServiceId() != "svc-chat" || !strings.HasPrefix(node.GetNodeId(), "svc-chat:") {
+		t.Fatalf("unexpected node identity: %+v", node)
 	}
-	if !strings.HasPrefix(node.GetNodeId(), "svc-vision:") {
-		t.Fatalf("node id should use <service_id>:<capability>, got: %s", node.GetNodeId())
-	}
-	if node.GetAdapter() != "" || node.GetAvailable() || node.GetProviderHints() != nil {
+	if node.GetAdapter() != "" || node.GetAvailable() || node.GetProviderHints() != nil || node.GetApiPath() != "" {
 		t.Fatalf("legacy llama node exposed ambient execution metadata: %+v", node)
 	}
-	if node.GetReasonCode() != runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED.String() || node.GetApiPath() != "" {
-		t.Fatalf("legacy llama node did not fail closed: %+v", node)
-	}
 
-	chatNodesResp, err := svc.ListNodeCatalog(context.Background(), &runtimev1.ListNodeCatalogRequest{
-		Capability: "chat",
-		Provider:   "llama",
-	})
-	if err != nil {
-		t.Fatalf("list chat node catalog: %v", err)
-	}
-	if len(chatNodesResp.GetNodes()) != 1 {
-		t.Fatalf("chat node count mismatch: got=%d want=1", len(chatNodesResp.GetNodes()))
-	}
-	chatNode := chatNodesResp.GetNodes()[0]
-	if chatNode.GetAdapter() != "" || chatNode.GetAvailable() || chatNode.GetProviderHints() != nil || chatNode.GetApiPath() != "" {
-		t.Fatalf("legacy llama chat node exposed ambient execution metadata: %+v", chatNode)
-	}
-
-	if _, err := svc.RemoveLocalService(context.Background(), &runtimev1.RemoveLocalServiceRequest{
-		ServiceId: "svc-vision",
-	}); err != nil {
+	if _, err := svc.RemoveLocalService(context.Background(), &runtimev1.RemoveLocalServiceRequest{ServiceId: "svc-chat"}); err != nil {
 		t.Fatalf("remove local service: %v", err)
 	}
-
-	nodesAfterRemove, err := svc.ListNodeCatalog(context.Background(), &runtimev1.ListNodeCatalogRequest{
-		ServiceId: "svc-vision",
-	})
+	nodesAfterRemove, err := svc.ListNodeCatalog(context.Background(), &runtimev1.ListNodeCatalogRequest{ServiceId: "svc-chat"})
 	if err != nil {
 		t.Fatalf("list node catalog after remove: %v", err)
 	}
@@ -435,14 +409,14 @@ func TestLocalNodeCatalogSortsByNodeIDWithinSameAdapter(t *testing.T) {
 
 	modelResp := mustInstallAttachedLocalModel(t, svc, installLocalAssetParams{
 		assetID:      "local/sort-catalog-model",
-		capabilities: []string{"chat", "image.understand"},
+		capabilities: []string{"chat", "text.generate"},
 		engine:       "llama",
 	})
 	if _, err := svc.InstallLocalService(context.Background(), &runtimev1.InstallLocalServiceRequest{
 		ServiceId:    "svc-sort",
 		Title:        "Sort Service",
 		Engine:       "llama",
-		Capabilities: []string{"chat", "image.understand"},
+		Capabilities: []string{"chat", "text.generate"},
 		LocalModelId: modelResp.GetLocalAssetId(),
 		Endpoint:     managedDefaultEndpointForEngine("llama"),
 	}); err != nil {
@@ -470,8 +444,8 @@ func TestLocalNodeCatalogSortsByNodeIDWithinSameAdapter(t *testing.T) {
 	if len(first.GetCapabilities()) == 0 || first.GetCapabilities()[0] != "chat" {
 		t.Fatalf("expected chat node first when adapter names match, got capabilities: %#v", first.GetCapabilities())
 	}
-	if len(second.GetCapabilities()) == 0 || second.GetCapabilities()[0] != "image.understand" {
-		t.Fatalf("expected image node second when adapter names match, got capabilities: %#v", second.GetCapabilities())
+	if len(second.GetCapabilities()) == 0 || second.GetCapabilities()[0] != "text.generate" {
+		t.Fatalf("expected text.generate node second when adapter names match, got capabilities: %#v", second.GetCapabilities())
 	}
 }
 
@@ -544,7 +518,7 @@ func TestLocalResolveExecutionPlanFailsOnInvalidRequired(t *testing.T) {
 				{
 					EntryId:    "dep.invalid.service",
 					Kind:       runtimev1.LocalExecutionEntryKind_LOCAL_EXECUTION_ENTRY_KIND_SERVICE,
-					Capability: "chat",
+					Capability: "text.generate",
 					Engine:     "media",
 				},
 			},
@@ -586,7 +560,7 @@ func TestLocalResolveExecutionPlanRejectsWorkflowKind(t *testing.T) {
 				{
 					EntryId:    "dep.invalid.workflow",
 					Kind:       runtimev1.LocalExecutionEntryKind(4),
-					Capability: "chat",
+					Capability: "text.generate",
 				},
 			},
 		},
@@ -618,7 +592,7 @@ func TestLocalApplyExecutionPlanShortCircuitsOnPreflight(t *testing.T) {
 				Selected:   true,
 				Required:   true,
 				ModelId:    "local/python-model",
-				Capability: "chat",
+				Capability: "text.generate",
 				Engine:     "python-runtime",
 			},
 		},
@@ -649,7 +623,7 @@ func TestLocalApplyExecutionPlanFailsWhenNodeUnresolved(t *testing.T) {
 				Kind:       runtimev1.LocalExecutionEntryKind_LOCAL_EXECUTION_ENTRY_KIND_NODE,
 				Selected:   true,
 				Required:   true,
-				Capability: "chat",
+				Capability: "text.generate",
 				NodeId:     "node_missing_chat",
 			},
 		},

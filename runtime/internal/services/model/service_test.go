@@ -207,7 +207,7 @@ func TestCheckModelHealthLocalSpeechWorkflowSucceedsWhenCatalogAdvertisesAdmitte
 		ModelID:      "speech/qwen3tts",
 		Version:      "latest",
 		Status:       runtimev1.ModelStatus_MODEL_STATUS_INSTALLED,
-		Capabilities: []string{"audio.synthesize", "voice_workflow.voice_clone"},
+		Capabilities: []string{"audio.synthesize", "voice.create"},
 		Source:       "local",
 	})
 	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), registry)
@@ -217,7 +217,7 @@ func TestCheckModelHealthLocalSpeechWorkflowSucceedsWhenCatalogAdvertisesAdmitte
 		case "/healthz":
 			_, _ = w.Write([]byte(`{"status":"ok","ready":true}`))
 		case "/v1/catalog":
-			_, _ = w.Write([]byte(`{"ready":true,"models":[{"id":"speech/qwen3tts","ready":true,"capabilities":["audio.synthesize","voice_workflow.voice_clone"]}]}`))
+			_, _ = w.Write([]byte("{\"ready\":true,\"models\":[{\"id\":\"speech/qwen3tts\",\"ready\":true,\"capabilities\":[\"audio.synthesize\",\"voice.create\"]}]}"))
 		default:
 			http.NotFound(w, r)
 		}

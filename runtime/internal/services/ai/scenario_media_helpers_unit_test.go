@@ -33,8 +33,7 @@ func TestScenarioModalFromType(t *testing.T) {
 		runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_GENERATE:    runtimev1.Modal_MODAL_VIDEO,
 		runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE: runtimev1.Modal_MODAL_TTS,
 		runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_TRANSCRIBE: runtimev1.Modal_MODAL_STT,
-		runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE:       runtimev1.Modal_MODAL_TTS,
-		runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_DESIGN:      runtimev1.Modal_MODAL_TTS,
+		runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CREATE:      runtimev1.Modal_MODAL_TTS,
 		runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE:     runtimev1.Modal_MODAL_UNSPECIFIED,
 	}
 	for in, expect := range cases {

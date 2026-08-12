@@ -50,7 +50,7 @@ func TestValidateScenarioCapabilityFailCloseReasonCodes(t *testing.T) {
 		},
 		{
 			name:       "voice clone unsupported",
-			scenario:   runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE,
+			scenario:   runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CREATE,
 			model:      "openai/tts-1",
 			expectedRC: runtimev1.ReasonCode_AI_VOICE_WORKFLOW_UNSUPPORTED,
 		},
@@ -98,19 +98,19 @@ func TestValidateScenarioCapabilityCatalogUnavailableFailsClosedForCloudProvider
 	}
 }
 
-func TestRequiredTextGenerateCapabilitiesEmpty(t *testing.T) {
-	if caps := requiredTextGenerateCapabilities(nil); len(caps) != 0 {
-		t.Fatalf("expected no required capabilities, got %#v", caps)
+func TestRequiredTextGenerateFeaturesEmpty(t *testing.T) {
+	if features := requiredTextGenerateFeatures(nil); len(features) != 0 {
+		t.Fatalf("expected no required features, got %#v", features)
 	}
-	if caps := requiredTextGenerateCapabilities([]*runtimev1.ChatMessage{}); len(caps) != 0 {
-		t.Fatalf("expected no required capabilities, got %#v", caps)
+	if features := requiredTextGenerateFeatures([]*runtimev1.ChatMessage{}); len(features) != 0 {
+		t.Fatalf("expected no required features, got %#v", features)
 	}
-	if caps := requiredTextGenerateCapabilities([]*runtimev1.ChatMessage{{Role: "user", Content: "hello"}}); len(caps) != 0 {
-		t.Fatalf("expected no required capabilities, got %#v", caps)
+	if features := requiredTextGenerateFeatures([]*runtimev1.ChatMessage{{Role: "user", Content: "hello"}}); len(features) != 0 {
+		t.Fatalf("expected no required features, got %#v", features)
 	}
 }
 
-func TestRequiredTextGenerateCapabilitiesTextOnly(t *testing.T) {
+func TestRequiredTextGenerateFeaturesTextOnly(t *testing.T) {
 	input := []*runtimev1.ChatMessage{
 		{
 			Role: "user",
@@ -119,12 +119,12 @@ func TestRequiredTextGenerateCapabilitiesTextOnly(t *testing.T) {
 			},
 		},
 	}
-	if caps := requiredTextGenerateCapabilities(input); len(caps) != 0 {
-		t.Fatalf("expected no required capabilities, got %#v", caps)
+	if features := requiredTextGenerateFeatures(input); len(features) != 0 {
+		t.Fatalf("expected no required features, got %#v", features)
 	}
 }
 
-func TestRequiredTextGenerateCapabilitiesWithImage(t *testing.T) {
+func TestRequiredTextGenerateFeaturesWithImage(t *testing.T) {
 	input := []*runtimev1.ChatMessage{
 		{
 			Role: "user",
@@ -134,9 +134,9 @@ func TestRequiredTextGenerateCapabilitiesWithImage(t *testing.T) {
 			},
 		},
 	}
-	caps := requiredTextGenerateCapabilities(input)
-	if len(caps) != 1 || caps[0] != "text.generate.vision" {
-		t.Fatalf("unexpected capabilities: %#v", caps)
+	features := requiredTextGenerateFeatures(input)
+	if len(features) != 1 || features[0] != "input.image" {
+		t.Fatalf("unexpected features: %#v", features)
 	}
 }
 
@@ -289,7 +289,7 @@ func TestValidateTextGenerateInputPartsRejectsVideoForNonVideoModel(t *testing.T
 	}
 }
 
-func TestValidateTextGenerateInputPartsDelegatesImageVisionCheck(t *testing.T) {
+func TestValidateTextGenerateInputPartsDelegatesImageFeatureCheck(t *testing.T) {
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
 
 	input := []*runtimev1.ChatMessage{

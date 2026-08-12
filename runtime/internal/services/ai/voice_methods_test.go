@@ -81,7 +81,7 @@ func bindVoiceAssetDeleteTarget(t *testing.T, svc *Service, assetID string, prov
 		"provider": provider, "providerModelId": providerModelID, "remoteModelCatalogId": remoteCatalogID,
 	})
 	svc.voiceAssets.cloudBindings[assetID] = &voiceAssetCloudBinding{
-		CapabilityContract: "voice_workflow.voice_clone",
+		CapabilityContract: "voice.create",
 		Implementation: &runtimev1.CapabilityImplementationIdentity{
 			ImplementationId: "cloud.voice.delete." + provider, DriverId: "nimi.runtime.driver." + provider, DriverDialect: "provider/voice-delete/v1",
 		},
@@ -94,21 +94,21 @@ func TestVoiceAssetMethodsLifecycle(t *testing.T) {
 	fixture := newManagedCloudScenarioTestFixture(t, "dashscope", "qwen3-tts-vc", "https://example.com", Config{})
 	svc := fixture.service
 
-	ctx := withCloudScenarioTestIntent(scenarioJobUserContext("nimi.desktop", "user-001"), "voice_workflow.voice_clone", fixture.targetRef)
+	ctx := withCloudScenarioTestIntent(scenarioJobUserContext("nimi.desktop", "user-001"), "voice.create", fixture.targetRef)
 	submitResp, err := svc.SubmitScenarioJob(ctx, &runtimev1.SubmitScenarioJobRequest{
 		Head: &runtimev1.ScenarioRequestHead{
 			AppId:         "nimi.desktop",
 			SubjectUserId: "user-001",
 		},
-		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE,
+		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CREATE,
 		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB,
 		Spec: &runtimev1.ScenarioSpec{
-			Spec: &runtimev1.ScenarioSpec_VoiceClone{
-				VoiceClone: &runtimev1.VoiceCloneScenarioSpec{
+			Spec: &runtimev1.ScenarioSpec_VoiceCreate{
+				VoiceCreate: &runtimev1.VoiceCreateScenarioSpec{
 					TargetModelId: "dashscope/qwen3-tts-vc",
-					Input: &runtimev1.VoiceV2VInput{
+					Source: &runtimev1.VoiceCreateScenarioSpec_ReferenceAudio{ReferenceAudio: &runtimev1.VoiceV2VInput{
 						ReferenceAudioUri: "file://sample.wav",
-					},
+					}},
 				},
 			},
 		},
@@ -122,6 +122,16 @@ func TestVoiceAssetMethodsLifecycle(t *testing.T) {
 	assetID := submitResp.GetAsset().GetVoiceAssetId()
 	if assetID == "" {
 		t.Fatalf("voice asset id must be set")
+	}
+	voiceReference := submitResp.GetVoiceReference()
+	if voiceReference == nil {
+		t.Fatalf("voice clone submit must return voice reference")
+	}
+	if voiceReference.GetKind() != runtimev1.VoiceReferenceKind_VOICE_REFERENCE_KIND_VOICE_ASSET {
+		t.Fatalf("voice reference kind mismatch: got=%v", voiceReference.GetKind())
+	}
+	if voiceReference.GetVoiceAssetId() != assetID {
+		t.Fatalf("voice reference asset mismatch: got=%q want=%q", voiceReference.GetVoiceAssetId(), assetID)
 	}
 
 	getResp, err := svc.GetVoiceAsset(ctx, &runtimev1.GetVoiceAssetRequest{VoiceAssetId: assetID})
@@ -336,7 +346,8 @@ func TestDeleteVoiceAssetDeletesFishAudioProviderModelWhenSupported(t *testing.T
 
 	deleteResp, err := svc.DeleteVoiceAsset(ctx, &runtimev1.DeleteVoiceAssetRequest{VoiceAssetId: assetID})
 	if err != nil {
-		t.Fatalf("DeleteVoiceAsset: %v", err)
+		failedAsset, _ := svc.voiceAssets.getAsset(assetID)
+		t.Fatalf("DeleteVoiceAsset: %v (method=%q path=%q provider_error=%q)", err, gotMethod, gotPath, failedAsset.GetMetadata().GetFields()["provider_delete_last_error"].GetStringValue())
 	}
 	if deleteResp.GetAck() == nil || !deleteResp.GetAck().GetOk() {
 		t.Fatalf("delete voice asset ack must be ok")

@@ -449,15 +449,26 @@ func (s *Service) importLocalModelFile(
 		)
 	}
 	kind := req.GetKind()
-	if kind == runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_UNSPECIFIED {
-		kind = normalizeAssetKindForPath(sourcePath)
-	}
 	capabilities := normalizeAssetCapabilities(req.GetCapabilities())
+	if kind == runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_UNSPECIFIED {
+		kind = inferAssetKindFromCapabilities(capabilities)
+		if kind == runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_UNSPECIFIED {
+			return nil, grpcerr.WithReasonCodeOptions(
+				codes.InvalidArgument,
+				runtimev1.ReasonCode_AI_LOCAL_MANIFEST_INVALID,
+				grpcerr.ReasonOptions{Message: "local model file import requires an explicit asset kind or one exact canonical capability mapping"},
+			)
+		}
+	}
 	if len(capabilities) == 0 {
 		capabilities = defaultCapabilitiesForAssetKind(kind)
 	}
-	if len(capabilities) == 0 {
-		capabilities = []string{"chat"}
+	if len(capabilities) > 0 && inferAssetKindFromCapabilities(capabilities) != kind {
+		return nil, grpcerr.WithReasonCodeOptions(
+			codes.InvalidArgument,
+			runtimev1.ReasonCode_AI_LOCAL_MANIFEST_INVALID,
+			grpcerr.ReasonOptions{Message: "local model capabilities do not map exactly to the declared asset kind"},
+		)
 	}
 	engine := strings.TrimSpace(req.GetEngine())
 	if engine == "" {

@@ -41,7 +41,7 @@ func TestLiveSmokeVideoGenerateSpecVolcengineUsesBuiltInFallbacks(t *testing.T) 
 	}
 }
 
-func runLiveSmokeVoiceWorkflowForProvider(t *testing.T, providerID string, record providerregistry.ProviderRecord, scenarioType runtimev1.ScenarioType) {
+func runLiveSmokeVoiceWorkflowForProvider(t *testing.T, providerID string, record providerregistry.ProviderRecord, creationSource runtimev1.VoiceCreationSource) {
 	t.Helper()
 	harness := newLiveSmokeProviderHarnessForProvider(t, providerID, record)
 	svc := harness.service
@@ -49,12 +49,15 @@ func runLiveSmokeVoiceWorkflowForProvider(t *testing.T, providerID string, recor
 
 	var modelKey string
 	var fallbackModelKey string
-	if scenarioType == runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE {
-		modelKey = "VOICE_CLONE_MODEL_ID"
+	switch creationSource {
+	case runtimev1.VoiceCreationSource_VOICE_CREATION_SOURCE_REFERENCE_AUDIO:
+		modelKey = "VOICE_REFERENCE_AUDIO_MODEL_ID"
 		fallbackModelKey = "TTS_MODEL_ID"
-	} else {
-		modelKey = "VOICE_DESIGN_MODEL_ID"
+	case runtimev1.VoiceCreationSource_VOICE_CREATION_SOURCE_TEXT_DESCRIPTION:
+		modelKey = "VOICE_TEXT_DESCRIPTION_MODEL_ID"
 		fallbackModelKey = "TTS_MODEL_ID"
+	default:
+		t.Fatalf("unsupported voice creation source: %s", creationSource)
 	}
 	modelID := envModelIDForProvider(t, providerID, modelKey, fallbackModelKey)
 	targetModelID := strings.TrimSpace(os.Getenv("NIMI_LIVE_" + token + "_" + modelKey + "_TARGET_MODEL_ID"))
@@ -63,20 +66,22 @@ func runLiveSmokeVoiceWorkflowForProvider(t *testing.T, providerID string, recor
 	}
 
 	spec := &runtimev1.ScenarioSpec{}
-	if scenarioType == runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE {
-		spec.Spec = &runtimev1.ScenarioSpec_VoiceClone{VoiceClone: &runtimev1.VoiceCloneScenarioSpec{
+	switch creationSource {
+	case runtimev1.VoiceCreationSource_VOICE_CREATION_SOURCE_REFERENCE_AUDIO:
+		spec.Spec = &runtimev1.ScenarioSpec_VoiceCreate{VoiceCreate: &runtimev1.VoiceCreateScenarioSpec{
 			TargetModelId: targetModelID,
-			Input:         resolveLiveVoiceCloneInput(t, token),
+			Source:        &runtimev1.VoiceCreateScenarioSpec_ReferenceAudio{ReferenceAudio: resolveLiveVoiceReferenceAudioInput(t, token)},
 		}}
-	} else {
-		previewText := liveEnvFirstOrDefault("Hello from Nimi DashScope CosyVoice design.", "NIMI_LIVE_"+token+"_VOICE_DESIGN_PREVIEW_TEXT", "NIMI_LIVE_VOICE_DESIGN_PREVIEW_TEXT")
-		spec.Spec = &runtimev1.ScenarioSpec_VoiceDesign{VoiceDesign: &runtimev1.VoiceDesignScenarioSpec{
+	case runtimev1.VoiceCreationSource_VOICE_CREATION_SOURCE_TEXT_DESCRIPTION:
+		previewText := liveEnvFirstOrDefault("Hello from Nimi DashScope CosyVoice text-description creation.", "NIMI_LIVE_"+token+"_VOICE_TEXT_DESCRIPTION_PREVIEW_TEXT", "NIMI_LIVE_VOICE_TEXT_DESCRIPTION_PREVIEW_TEXT")
+		spec.Spec = &runtimev1.ScenarioSpec_VoiceCreate{VoiceCreate: &runtimev1.VoiceCreateScenarioSpec{
 			TargetModelId: targetModelID,
-			Input:         &runtimev1.VoiceT2VInput{InstructionText: liveSmokeVoiceDesignInstruction, PreviewText: previewText},
+			Source:        &runtimev1.VoiceCreateScenarioSpec_TextDescription{TextDescription: &runtimev1.VoiceT2VInput{InstructionText: liveSmokeVoiceTextDescriptionInstruction, PreviewText: previewText}},
 		}}
 	}
 	maybeSkipFishAudioBalancePreflight(t, svc, providerID, modelID)
 
+	const scenarioType = runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CREATE
 	submitResp, err := svc.SubmitScenarioJob(harness.scenarioContext(t, scenarioType, modelID), &runtimev1.SubmitScenarioJobRequest{
 		Head:          harness.scenarioHead(t, liveSmokeMatrixAppID, liveSmokeMatrixUserID, modelID, 120_000),
 		ScenarioType:  scenarioType,

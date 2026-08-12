@@ -25,15 +25,17 @@ func (s *voiceAssetStore) submit(input *voiceWorkflowSubmitInput) (*runtimev1.Sc
 	now := timestamppb.New(time.Now().UTC())
 	jobID := ulid.Make().String()
 	assetID := ulid.Make().String()
-	workflowType := runtimev1.VoiceWorkflowType_VOICE_WORKFLOW_TYPE_UNSPECIFIED
+	creationSource := runtimev1.VoiceCreationSource_VOICE_CREATION_SOURCE_UNSPECIFIED
 	targetModelID := ""
-	switch scenarioType {
-	case runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE:
-		workflowType = runtimev1.VoiceWorkflowType_VOICE_WORKFLOW_TYPE_VOICE_CLONE
-		targetModelID = strings.TrimSpace(spec.GetVoiceClone().GetTargetModelId())
-	case runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_DESIGN:
-		workflowType = runtimev1.VoiceWorkflowType_VOICE_WORKFLOW_TYPE_VOICE_DESIGN
-		targetModelID = strings.TrimSpace(spec.GetVoiceDesign().GetTargetModelId())
+	if scenarioType == runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CREATE && spec.GetVoiceCreate() != nil {
+		creation := spec.GetVoiceCreate()
+		targetModelID = strings.TrimSpace(creation.GetTargetModelId())
+		switch creation.GetSource().(type) {
+		case *runtimev1.VoiceCreateScenarioSpec_ReferenceAudio:
+			creationSource = runtimev1.VoiceCreationSource_VOICE_CREATION_SOURCE_REFERENCE_AUDIO
+		case *runtimev1.VoiceCreateScenarioSpec_TextDescription:
+			creationSource = runtimev1.VoiceCreationSource_VOICE_CREATION_SOURCE_TEXT_DESCRIPTION
+		}
 	}
 	provider := strings.TrimSpace(input.Provider)
 	persistence := runtimev1.VoiceAssetPersistence_VOICE_ASSET_PERSISTENCE_SESSION_EPHEMERAL
@@ -45,7 +47,7 @@ func (s *voiceAssetStore) submit(input *voiceWorkflowSubmitInput) (*runtimev1.Sc
 		VoiceAssetId:     assetID,
 		AppId:            head.GetAppId(),
 		SubjectUserId:    head.GetSubjectUserId(),
-		WorkflowType:     workflowType,
+		CreationSource:   creationSource,
 		Provider:         provider,
 		ModelId:          strings.TrimSpace(input.ModelResolved),
 		TargetModelId:    targetModelID,

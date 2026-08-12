@@ -100,6 +100,12 @@ func TestValidateMusicGenerateIterationSupport(t *testing.T) {
 	if !ok || reason != runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED {
 		t.Fatalf("expected AI_MEDIA_OPTION_UNSUPPORTED, got reason=%v ok=%v err=%v", reason, ok, err)
 	}
+
+	err = validateMusicGenerateIterationSupport(context.Background(), svc, "ace-step-local", &nimillm.RemoteTarget{ProviderType: "local"}, nil, parsed)
+	reason, ok = grpcerr.ExtractReasonCode(err)
+	if !ok || reason != runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED {
+		t.Fatalf("expected local prior-audio request to fail closed with AI_MEDIA_OPTION_UNSUPPORTED, got reason=%v ok=%v err=%v", reason, ok, err)
+	}
 }
 
 func mustStructPayloadForMusicExtensionTest(t *testing.T, input map[string]any) *structpb.Struct {

@@ -30,7 +30,7 @@ const (
 // contract while delegating route composition, scheduling, Driver mapping,
 // metering, and execution to the Scenario Job owner. The App supplies a
 // closed-set Job spec only: no route, implementation, target, grant, model,
-// tool, stream, idempotency, or label field. Voice workflow target model
+// tool, stream, idempotency, or label field. Voice creation target model
 // identity is derived from the committed AIConfig intent, never from the App.
 func (s *Service) SubmitLocalAppScenarioJob(ctx context.Context, req *runtimev1.SubmitLocalAppScenarioJobRequest) (*runtimev1.SubmitLocalAppScenarioJobResponse, error) {
 	decision, err := localAppScenarioDecision(ctx, accountservice.LocalAppOperationScenarioJobSubmit, localappop.AppOperationIDScenarioJobSubmit)
@@ -42,24 +42,21 @@ func (s *Service) SubmitLocalAppScenarioJob(ctx context.Context, req *runtimev1.
 		return nil, err
 	}
 	head := localAppScenarioHead(decision)
-	if scenarioType == runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE ||
-		scenarioType == runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_DESIGN {
+	if scenarioType == runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CREATE {
 		_, intent, err := s.captureScenarioExecutionIntent(ctx, head, scenarioTargetCapability(scenarioType))
 		if err != nil {
 			return nil, err
 		}
-		if intent.IsLocal() {
-			return nil, localExactMediaUnsupportedError(scenarioType)
-		}
-		modelID := intent.ModelID()
-		if modelID == "" {
-			return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONFIG_INVALID)
-		}
-		switch spec := ownerSpec.GetSpec().(type) {
-		case *runtimev1.ScenarioSpec_VoiceClone:
-			spec.VoiceClone.TargetModelId = modelID
-		case *runtimev1.ScenarioSpec_VoiceDesign:
-			spec.VoiceDesign.TargetModelId = modelID
+		if creation := ownerSpec.GetVoiceCreate(); creation != nil {
+			if intent.IsLocal() {
+				creation.TargetModelId = ""
+			} else {
+				modelID := intent.ModelID()
+				if modelID == "" {
+					return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONFIG_INVALID)
+				}
+				creation.TargetModelId = modelID
+			}
 		}
 	}
 	result, err := s.SubmitScenarioJob(localAppOwnerCallContext(ctx, decision), &runtimev1.SubmitScenarioJobRequest{
@@ -85,6 +82,7 @@ func (s *Service) SubmitLocalAppScenarioJob(ctx context.Context, req *runtimev1.
 			return nil, err
 		}
 		response.Asset = asset
+		response.VoiceReference = voiceAssetReference(asset.GetVoiceAssetId())
 	}
 	return response, nil
 }
@@ -203,8 +201,7 @@ func projectLocalAppScenarioJob(job *runtimev1.ScenarioJob) (*runtimev1.LocalApp
 		runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_GENERATE,
 		runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE,
 		runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_TRANSCRIBE,
-		runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE,
-		runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_DESIGN:
+		runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CREATE:
 	default:
 		return invalid()
 	}
@@ -281,9 +278,9 @@ func projectLocalAppVoiceAsset(asset *runtimev1.VoiceAsset) (*runtimev1.LocalApp
 	if asset == nil || !localAppBoundedIdentifier(asset.GetVoiceAssetId()) {
 		return invalid()
 	}
-	switch asset.GetWorkflowType() {
-	case runtimev1.VoiceWorkflowType_VOICE_WORKFLOW_TYPE_VOICE_CLONE,
-		runtimev1.VoiceWorkflowType_VOICE_WORKFLOW_TYPE_VOICE_DESIGN:
+	switch asset.GetCreationSource() {
+	case runtimev1.VoiceCreationSource_VOICE_CREATION_SOURCE_REFERENCE_AUDIO,
+		runtimev1.VoiceCreationSource_VOICE_CREATION_SOURCE_TEXT_DESCRIPTION:
 	default:
 		return invalid()
 	}
@@ -291,12 +288,12 @@ func projectLocalAppVoiceAsset(asset *runtimev1.VoiceAsset) (*runtimev1.LocalApp
 		return invalid()
 	}
 	return &runtimev1.LocalAppVoiceAsset{
-		VoiceAssetId: asset.GetVoiceAssetId(),
-		WorkflowType: asset.GetWorkflowType(),
-		Status:       asset.GetStatus(),
-		CreatedAt:    asset.GetCreatedAt(),
-		UpdatedAt:    asset.GetUpdatedAt(),
-		ExpiresAt:    asset.GetExpiresAt(),
+		VoiceAssetId:   asset.GetVoiceAssetId(),
+		CreationSource: asset.GetCreationSource(),
+		Status:         asset.GetStatus(),
+		CreatedAt:      asset.GetCreatedAt(),
+		UpdatedAt:      asset.GetUpdatedAt(),
+		ExpiresAt:      asset.GetExpiresAt(),
 	}, nil
 }
 
@@ -337,22 +334,14 @@ func validateLocalAppScenarioJobRequest(req *runtimev1.SubmitLocalAppScenarioJob
 		return &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_SpeechTranscribe{
 			SpeechTranscribe: transcribe,
 		}}, runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_TRANSCRIBE, nil
-	case *runtimev1.SubmitLocalAppScenarioJobRequest_VoiceClone:
-		input, err := validateLocalAppVoiceCloneJobSpec(spec.VoiceClone)
+	case *runtimev1.SubmitLocalAppScenarioJobRequest_VoiceCreate:
+		creation, err := validateLocalAppVoiceCreateJobSpec(spec.VoiceCreate)
 		if err != nil {
 			return nil, runtimev1.ScenarioType_SCENARIO_TYPE_UNSPECIFIED, err
 		}
-		return &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_VoiceClone{
-			VoiceClone: &runtimev1.VoiceCloneScenarioSpec{Input: input},
-		}}, runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE, nil
-	case *runtimev1.SubmitLocalAppScenarioJobRequest_VoiceDesign:
-		input, err := validateLocalAppVoiceDesignJobSpec(spec.VoiceDesign)
-		if err != nil {
-			return nil, runtimev1.ScenarioType_SCENARIO_TYPE_UNSPECIFIED, err
-		}
-		return &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_VoiceDesign{
-			VoiceDesign: &runtimev1.VoiceDesignScenarioSpec{Input: input},
-		}}, runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_DESIGN, nil
+		return &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_VoiceCreate{
+			VoiceCreate: creation,
+		}}, runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CREATE, nil
 	default:
 		return nil, runtimev1.ScenarioType_SCENARIO_TYPE_UNSPECIFIED, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}
@@ -563,57 +552,52 @@ func validateLocalAppSpeechTranscribeJobSpec(spec *runtimev1.LocalAppSpeechTrans
 	}, nil
 }
 
-func validateLocalAppVoiceCloneJobSpec(spec *runtimev1.LocalAppVoiceCloneJobSpec) (*runtimev1.VoiceV2VInput, error) {
-	invalid := func() (*runtimev1.VoiceV2VInput, error) {
+func validateLocalAppVoiceCreateJobSpec(spec *runtimev1.LocalAppVoiceCreateJobSpec) (*runtimev1.VoiceCreateScenarioSpec, error) {
+	invalid := func() (*runtimev1.VoiceCreateScenarioSpec, error) {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 	}
-	if spec == nil || spec.GetInput() == nil {
+	if spec == nil {
 		return invalid()
 	}
-	input := spec.GetInput()
-	hasBytes := len(input.GetReferenceAudioBytes()) > 0
-	hasURI := strings.TrimSpace(input.GetReferenceAudioUri()) != ""
-	if hasBytes == hasURI {
-		return invalid()
-	}
-	if hasBytes {
-		if len(input.GetReferenceAudioBytes()) > maxVoiceWorkflowReferenceAudioBytes ||
-			!localAppExactText(input.GetReferenceAudioMime(), maxLocalAppScenarioOptionTextBytes) {
+	switch source := spec.GetSource().(type) {
+	case *runtimev1.LocalAppVoiceCreateJobSpec_ReferenceAudio:
+		input := source.ReferenceAudio
+		if input == nil {
 			return invalid()
 		}
-	}
-	if hasURI && (!localAppExactText(input.GetReferenceAudioUri(), maxLocalAppScenarioReferenceURIBytes) ||
-		!strings.HasPrefix(input.GetReferenceAudioUri(), "https://")) {
-		return invalid()
-	}
-	if len(input.GetLanguageHints()) > maxLocalAppScenarioVoiceHintCount {
-		return invalid()
-	}
-	for _, hint := range input.GetLanguageHints() {
-		if !localAppExactText(hint, maxLocalAppScenarioVoiceHintBytes) {
+		hasBytes := len(input.GetReferenceAudioBytes()) > 0
+		hasURI := strings.TrimSpace(input.GetReferenceAudioUri()) != ""
+		if hasBytes == hasURI {
 			return invalid()
 		}
-	}
-	if !localAppOptionalExactText(input.GetPreferredName(), maxLocalAppScenarioVoiceNameBytes) ||
-		!localAppOptionalExactText(input.GetText(), maxLocalAppScenarioPromptBytes) {
+		if hasBytes && (len(input.GetReferenceAudioBytes()) > maxVoiceWorkflowReferenceAudioBytes || !localAppExactText(input.GetReferenceAudioMime(), maxLocalAppScenarioOptionTextBytes)) {
+			return invalid()
+		}
+		if hasURI && (!localAppExactText(input.GetReferenceAudioUri(), maxLocalAppScenarioReferenceURIBytes) || !strings.HasPrefix(input.GetReferenceAudioUri(), "https://")) {
+			return invalid()
+		}
+		if len(input.GetLanguageHints()) > maxLocalAppScenarioVoiceHintCount {
+			return invalid()
+		}
+		for _, hint := range input.GetLanguageHints() {
+			if !localAppExactText(hint, maxLocalAppScenarioVoiceHintBytes) {
+				return invalid()
+			}
+		}
+		if !localAppOptionalExactText(input.GetPreferredName(), maxLocalAppScenarioVoiceNameBytes) || !localAppOptionalExactText(input.GetText(), maxLocalAppScenarioPromptBytes) {
+			return invalid()
+		}
+		return &runtimev1.VoiceCreateScenarioSpec{Source: &runtimev1.VoiceCreateScenarioSpec_ReferenceAudio{ReferenceAudio: input}}, nil
+	case *runtimev1.LocalAppVoiceCreateJobSpec_TextDescription:
+		input := source.TextDescription
+		if input == nil || !localAppExactText(input.GetInstructionText(), maxLocalAppScenarioVideoContentText) ||
+			!localAppOptionalExactText(input.GetPreviewText(), maxLocalAppScenarioVideoContentText) ||
+			!localAppOptionalExactText(input.GetLanguage(), maxLocalAppScenarioVoiceHintBytes) ||
+			!localAppOptionalExactText(input.GetPreferredName(), maxLocalAppScenarioVoiceNameBytes) {
+			return invalid()
+		}
+		return &runtimev1.VoiceCreateScenarioSpec{Source: &runtimev1.VoiceCreateScenarioSpec_TextDescription{TextDescription: input}}, nil
+	default:
 		return invalid()
 	}
-	return input, nil
-}
-
-func validateLocalAppVoiceDesignJobSpec(spec *runtimev1.LocalAppVoiceDesignJobSpec) (*runtimev1.VoiceT2VInput, error) {
-	invalid := func() (*runtimev1.VoiceT2VInput, error) {
-		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
-	}
-	if spec == nil || spec.GetInput() == nil {
-		return invalid()
-	}
-	input := spec.GetInput()
-	if !localAppExactText(input.GetInstructionText(), maxLocalAppScenarioVideoContentText) ||
-		!localAppOptionalExactText(input.GetPreviewText(), maxLocalAppScenarioVideoContentText) ||
-		!localAppOptionalExactText(input.GetLanguage(), maxLocalAppScenarioVoiceHintBytes) ||
-		!localAppOptionalExactText(input.GetPreferredName(), maxLocalAppScenarioVoiceNameBytes) {
-		return invalid()
-	}
-	return input, nil
 }

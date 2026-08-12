@@ -30,8 +30,7 @@ func unsupportedCapabilityReasonCode(scenarioType runtimev1.ScenarioType) runtim
 		runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_GENERATE,
 		runtimev1.ScenarioType_SCENARIO_TYPE_WORLD_GENERATE:
 		return runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED
-	case runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE,
-		runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_DESIGN:
+	case runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CREATE:
 		return runtimev1.ReasonCode_AI_VOICE_WORKFLOW_UNSUPPORTED
 	default:
 		return runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED
@@ -56,6 +55,8 @@ func localScenarioCapability(scenarioType runtimev1.ScenarioType) (string, bool)
 		return "music.generate", true
 	case runtimev1.ScenarioType_SCENARIO_TYPE_WORLD_GENERATE:
 		return "world.generate", true
+	case runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CREATE:
+		return "voice.create", true
 	default:
 		return "", false
 	}
@@ -112,18 +113,42 @@ func (s *Service) validateScenarioCapability(
 		})
 	}
 	if supported {
+		if scenarioType == runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CREATE {
+			feature := requiredVoiceCreationFeature(req.GetSpec())
+			if feature == "" {
+				return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_VOICE_INPUT_INVALID)
+			}
+			featureSupported, featureErr := s.speechCatalog.SupportsFeatureForSubject(catalogSubjectUserIDFromContext(ctx), catalogProviderType, modelResolved, feature)
+			if featureErr != nil {
+				if errors.Is(featureErr, aicatalog.ErrModelNotFound) {
+					return grpcerr.WrapWithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_MODEL_NOT_FOUND, featureErr, grpcerr.ReasonOptions{Message: "model was not found in the AI catalog"})
+				}
+				return grpcerr.WrapWithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL, featureErr, grpcerr.ReasonOptions{Message: "failed to read voice creation source support"})
+			}
+			if !featureSupported {
+				return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_VOICE_WORKFLOW_UNSUPPORTED)
+			}
+		}
 		return s.validateCatalogAwareScenarioSupport(ctx, scenarioType, providerType, modelResolved, req.GetSpec())
 	}
 	return grpcerr.WithReasonCode(codes.InvalidArgument, unsupportedCapabilityReasonCode(scenarioType))
 }
 
 func isVoiceWorkflowScenario(scenarioType runtimev1.ScenarioType) bool {
-	switch scenarioType {
-	case runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE,
-		runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_DESIGN:
-		return true
+	return scenarioType == runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CREATE
+}
+
+func requiredVoiceCreationFeature(spec *runtimev1.ScenarioSpec) string {
+	if spec == nil || spec.GetVoiceCreate() == nil {
+		return ""
+	}
+	switch spec.GetVoiceCreate().GetSource().(type) {
+	case *runtimev1.VoiceCreateScenarioSpec_ReferenceAudio:
+		return aicapabilities.FeatureInputAudio
+	case *runtimev1.VoiceCreateScenarioSpec_TextDescription:
+		return aicapabilities.FeatureInputText
 	default:
-		return false
+		return ""
 	}
 }
 
@@ -141,69 +166,29 @@ func scenarioCapabilityCatalogProviderType(providerType string, scenarioType run
 	return ""
 }
 
-func requiredTextGenerateCapabilities(input []*runtimev1.ChatMessage) []string {
-	required := map[string]struct{}{}
+func requiredTextGenerateFeatures(input []*runtimev1.ChatMessage) []string {
+	seen := map[string]struct{}{}
+	var required []string
+	add := func(feature string) {
+		if _, ok := seen[feature]; ok {
+			return
+		}
+		seen[feature] = struct{}{}
+		required = append(required, feature)
+	}
 	for _, msg := range input {
 		for _, part := range msg.GetParts() {
 			switch part.GetType() {
 			case runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_IMAGE_URL:
-				required[aicapabilities.TextGenerateVision] = struct{}{}
+				add(aicapabilities.FeatureInputImage)
 			case runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_AUDIO_URL:
-				required[aicapabilities.TextGenerateAudio] = struct{}{}
+				add(aicapabilities.FeatureInputAudio)
 			case runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_VIDEO_URL:
-				required[aicapabilities.TextGenerateVideo] = struct{}{}
+				add(aicapabilities.FeatureInputVideo)
 			}
 		}
 	}
-	if len(required) == 0 {
-		return nil
-	}
-	out := make([]string, 0, len(required))
-	for capability := range required {
-		out = append(out, capability)
-	}
-	return out
-}
-
-func localTextGenerateCapabilityAliases(capability string) []string {
-	switch capability {
-	case aicapabilities.TextGenerateVision:
-		return []string{"vision", "vl", "multimodal"}
-	case aicapabilities.TextGenerateAudio:
-		return []string{"audio_chat", "multimodal"}
-	case aicapabilities.TextGenerateVideo:
-		return []string{"video_chat", "multimodal"}
-	default:
-		return nil
-	}
-}
-
-func localModelSupportsTextGenerateCapability(model *runtimev1.LocalAssetRecord, capability string) bool {
-	if model == nil {
-		return false
-	}
-	for _, value := range model.GetCapabilities() {
-		normalized := strings.ToLower(strings.TrimSpace(value))
-		if normalized == "" {
-			continue
-		}
-		normalizedCapability, err := aicapabilities.NormalizeCatalogCapability(normalized)
-		if err == nil && normalizedCapability == capability {
-			return true
-		}
-		for _, alias := range localTextGenerateCapabilityAliases(capability) {
-			if normalized == alias {
-				return true
-			}
-		}
-	}
-	modelID := strings.ToLower(strings.TrimSpace(model.GetAssetId()))
-	if strings.Contains(modelID, "omni") {
-		return capability == aicapabilities.TextGenerateVision ||
-			capability == aicapabilities.TextGenerateAudio ||
-			capability == aicapabilities.TextGenerateVideo
-	}
-	return false
+	return required
 }
 
 func (s *Service) validateLocalTextGenerateInputCapabilities(
@@ -225,7 +210,7 @@ func (s *Service) validateRemoteTextGenerateInputCapabilities(
 	selected provider,
 	input []*runtimev1.ChatMessage,
 ) error {
-	required := requiredTextGenerateCapabilities(input)
+	required := requiredTextGenerateFeatures(input)
 	if len(required) == 0 {
 		return nil
 	}
@@ -239,8 +224,8 @@ func (s *Service) validateRemoteTextGenerateInputCapabilities(
 	if s == nil || s.speechCatalog == nil {
 		return grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL)
 	}
-	for _, capability := range required {
-		supported, err := s.speechCatalog.SupportsCapabilityForSubject(catalogSubjectUserIDFromContext(ctx), providerType, modelResolved, capability)
+	for _, feature := range required {
+		supported, err := s.speechCatalog.SupportsFeatureForSubject(catalogSubjectUserIDFromContext(ctx), providerType, modelResolved, feature)
 		if err != nil {
 			if errors.Is(err, aicatalog.ErrModelNotFound) {
 				return grpcerr.WrapWithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_MODEL_NOT_FOUND, err, grpcerr.ReasonOptions{
@@ -248,7 +233,7 @@ func (s *Service) validateRemoteTextGenerateInputCapabilities(
 				})
 			}
 			return grpcerr.WrapWithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL, err, grpcerr.ReasonOptions{
-				Message: "failed to read AI catalog model capabilities",
+				Message: "failed to read AI catalog model features",
 			})
 		}
 		if !supported {

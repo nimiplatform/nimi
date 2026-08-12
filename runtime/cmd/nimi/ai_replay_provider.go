@@ -108,14 +108,16 @@ func executeProviderRawReplay(timeout time.Duration, fixture *aiGoldFixture) (*a
 		payload.ArtifactSummary["inputTokens"] = safeUsageInputTokens(usage)
 		payload.ArtifactSummary["outputTokens"] = safeUsageOutputTokens(usage)
 		payload.ArtifactSummary["computeMs"] = safeUsageComputeMs(usage)
-	case "voice_workflow.voice_clone", "voice_workflow.voice_design":
-		workflowType := "voice_clone"
+	case "voice.create":
+		workflowType := ""
 		providerPayload := map[string]any{}
-		if strings.EqualFold(strings.TrimSpace(fixture.Capability), "voice_workflow.voice_design") {
-			workflowType = "voice_design"
+		switch strings.TrimSpace(strings.ToLower(fixture.Request.CreationSource)) {
+		case "text_description":
+			workflowType = "text_description"
 			providerPayload["text"] = strings.TrimSpace(fixture.Request.InstructionText)
 			providerPayload["instruction_text"] = strings.TrimSpace(fixture.Request.InstructionText)
-		} else {
+		case "reference_audio":
+			workflowType = "reference_audio"
 			audioURI, audioBytes, audioMime, audioErr := fixture.resolveAudioInput()
 			if audioErr != nil {
 				return withReplayFailure(payload, audioErr), nil

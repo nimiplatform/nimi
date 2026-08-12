@@ -57,15 +57,16 @@ class Qwen3TTSDriverTests(unittest.TestCase):
         QWEN3_TTS_DRIVER._MODEL_PATH_CACHE.clear()
 
     def test_voice_design_handle_roundtrip(self) -> None:
-        response = QWEN3_TTS_DRIVER.build_design_handle(
+        response = QWEN3_TTS_DRIVER.build_text_description_handle(
             {
-                "operation": "voice_workflow.voice_design",
+                "operation": "voice.create",
+                "creation_source": "text_description",
                 "target_model_id": "speech/qwen3tts-design",
                 "input": {"instruction_text": "Bright and cheerful", "preferred_name": "qwen-design"},
             }
         )
         kind, payload = QWEN3_TTS_DRIVER.decode_voice_handle(response["voice_id"])
-        self.assertEqual(kind, "design")
+        self.assertEqual(kind, "text_description")
         self.assertEqual(payload["backend"], "qwen_tts")
         self.assertEqual(payload["instruction_text"], "Bright and cheerful")
 
@@ -79,8 +80,7 @@ class Qwen3TTSDriverTests(unittest.TestCase):
         self.assertEqual(response["driver_backend"], "qwen_tts")
         self.assertEqual(response["model_ref"], "Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice")
         self.assertIn("audio.synthesize", response["supports"])
-        self.assertIn("voice_workflow.voice_design", response["supports"])
-        self.assertIn("voice_workflow.voice_clone", response["supports"])
+        self.assertIn("voice.create", response["supports"])
 
     def test_audio_synthesize_uses_custom_voice_path(self) -> None:
         model = FakeTTSModel()

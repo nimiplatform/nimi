@@ -834,7 +834,7 @@ func TestLocalVideoMediaAndCustodyFailuresNeverPublishCandidate(t *testing.T) {
 
 func TestLocalVideoCancelWaitsForHostExitAndPublishesNoArtifact(t *testing.T) {
 	svc := newTestService(nil)
-	host := &localVideoHostStub{entered: make(chan struct{}), release: make(chan struct{}), cancelObserved: make(chan struct{}), allowCancelExit: make(chan struct{})}
+	host := &localVideoHostStub{entered: make(chan struct{}), started: make(chan struct{}), release: make(chan struct{}), cancelObserved: make(chan struct{}), allowCancelExit: make(chan struct{})}
 	pipeline := &videoMediaPipelineStub{}
 	svc.SetLocalExecutionResolver(&countingLocalExecutionResolver{projection: selectedVideoExecutionForTest(t, "video-cancel")})
 	svc.SetLocalVideoExecutionHost(host)
@@ -843,7 +843,7 @@ func TestLocalVideoCancelWaitsForHostExitAndPublishesNoArtifact(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	<-host.entered
+	<-host.started
 	cancelCtx := metadata.NewIncomingContext(context.Background(), metadata.Pairs("x-nimi-app-id", "app.local"))
 	canceled, err := svc.CancelScenarioJob(cancelCtx, &runtimev1.CancelScenarioJobRequest{JobId: response.GetJob().GetJobId(), Reason: "stop video"})
 	if err != nil {

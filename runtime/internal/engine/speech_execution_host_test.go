@@ -85,6 +85,15 @@ func TestSpeechExecutionHostUsesExactPlanAssetIdentity(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	voiceHostModelID := "local-import/Qwen3-TTS-12Hz-0.6B-Base"
+	voicePlan, err := (capabilitydriver.Qwen3VoiceCreateDriver{}).PlanVoiceCreateInvocation(capabilitydriver.VoiceCreateInvocationInput{
+		ExactBindings:     []capabilitydriver.InvocationExactBinding{{RequirementID: capabilitydriver.Qwen3VoiceCreateModelRequirementID, AssetID: voiceHostModelID, LocalAssetID: "voice-exact-asset", AbsolutePath: filepath.Join(root, "voice.safetensors"), VerifiedContentID: "sha256:" + digest, EntrySHA256: digest}},
+		SupportedFeatures: []string{"input.audio"},
+		Request:           &runtimev1.VoiceCreateScenarioSpec{Source: &runtimev1.VoiceCreateScenarioSpec_ReferenceAudio{ReferenceAudio: &runtimev1.VoiceV2VInput{ReferenceAudioBytes: []byte("RIFF-reference"), ReferenceAudioMime: "audio/wav", Text: "hello"}}},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
 		switch request.URL.Path {
@@ -111,6 +120,18 @@ func TestSpeechExecutionHostUsesExactPlanAssetIdentity(t *testing.T) {
 			}
 			writer.Header().Set("Content-Type", "application/json")
 			_, _ = writer.Write([]byte(`{"text":"host transcript"}`))
+		case "/v1/voice/create":
+			var payload map[string]any
+			if err := json.NewDecoder(request.Body).Decode(&payload); err != nil {
+				t.Errorf("decode voice.create payload: %v", err)
+				writer.WriteHeader(http.StatusBadRequest)
+				return
+			}
+			if payload["target_model_id"] != voiceHostModelID || payload["creation_source"] != "reference_audio" {
+				t.Errorf("voice.create payload=%+v", payload)
+			}
+			writer.Header().Set("Content-Type", "application/json")
+			_, _ = writer.Write([]byte(`{"voice_id":"opaque-local-voice","metadata":{"driver":"qwen3_tts"}}`))
 		default:
 			writer.WriteHeader(http.StatusNotFound)
 		}
@@ -132,7 +153,11 @@ func TestSpeechExecutionHostUsesExactPlanAssetIdentity(t *testing.T) {
 	if err != nil || asrResult.Text != "host transcript" {
 		t.Fatalf("ASR result=%+v error=%v", asrResult, err)
 	}
-	if got, want := strings.Join(materializer.capabilities, ","), "audio.synthesize,audio.transcribe"; got != want {
+	voiceResult, err := host.ExecuteVoiceCreate(context.Background(), voicePlan, nil)
+	if err != nil || voiceResult.ProviderVoiceRef != "opaque-local-voice" || voiceResult.Metadata["driver"] != "qwen3_tts" {
+		t.Fatalf("voice.create result=%+v error=%v", voiceResult, err)
+	}
+	if got, want := strings.Join(materializer.capabilities, ","), "audio.synthesize,audio.transcribe,voice.create"; got != want {
 		t.Fatalf("materialized capabilities = %q, want %q", got, want)
 	}
 }

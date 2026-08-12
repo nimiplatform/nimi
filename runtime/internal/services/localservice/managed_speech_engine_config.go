@@ -23,6 +23,13 @@ func (s *Service) configuredManagedSpeechEngineConfigForCapability(capabilityCon
 		consumer = "speech.qwen3-tts.python"
 		envKey = "NIMI_RUNTIME_SPEECH_QWEN3_TTS_CMD"
 		driverPath = engine.SpeechQwen3TTSDriverPath
+	case capabilitydriver.VoiceCreateContract:
+		if strings.TrimSpace(driverID) != capabilitydriver.Qwen3TTSDriverID {
+			return engine.EngineConfig{}, fmt.Errorf("voice.create Driver is not admitted: %s", strings.TrimSpace(driverID))
+		}
+		consumer = "speech.qwen3-tts.python"
+		envKey = "NIMI_RUNTIME_SPEECH_QWEN3_TTS_CMD"
+		driverPath = engine.SpeechQwen3TTSDriverPath
 	case capabilitydriver.AudioTranscribeContract:
 		switch strings.TrimSpace(driverID) {
 		case capabilitydriver.Qwen3ASRDriverID:

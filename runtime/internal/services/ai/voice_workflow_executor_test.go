@@ -42,11 +42,11 @@ func TestVoiceWorkflowViaNimillmCloneSuccess(t *testing.T) {
 			result, err := executeVoiceWorkflowViaNimillm(
 				context.Background(),
 				provider,
-				voiceCloneRequest(),
+				voiceReferenceAudioRequest(),
 				catalog.ResolveVoiceWorkflowResult{
 					Provider:        provider,
 					ModelID:         provider + "/model-a",
-					WorkflowType:    "voice_clone",
+					WorkflowType:    "reference_audio",
 					WorkflowModelID: provider + "-wf-clone",
 				},
 				nimillm.MediaAdapterConfig{BaseURL: server.URL, AllowLoopbackEndpoint: true, APIKey: "test-key"},
@@ -70,7 +70,7 @@ func TestVoiceWorkflowViaNimillmCloneSuccess(t *testing.T) {
 	}
 }
 
-func TestStepFunVoiceCloneWorkflowSuccess(t *testing.T) {
+func TestStepFunVoiceReferenceAudioWorkflowSuccess(t *testing.T) {
 	requestPaths := make([]string, 0, 2)
 	requestBodies := make([]map[string]any, 0, 2)
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -127,12 +127,12 @@ func TestStepFunVoiceCloneWorkflowSuccess(t *testing.T) {
 	}))
 	defer func() { server.Close() }()
 
-	req := voiceCloneRequest()
-	req.Spec.GetVoiceClone().TargetModelId = "step-tts-2"
-	req.Spec.GetVoiceClone().Input.ReferenceAudioBytes = []byte("voice-audio")
-	req.Spec.GetVoiceClone().Input.ReferenceAudioMime = "audio/wav"
-	req.Spec.GetVoiceClone().Input.ReferenceAudioUri = ""
-	req.Spec.GetVoiceClone().Input.Text = "Hello from the source clip."
+	req := voiceReferenceAudioRequest()
+	req.Spec.GetVoiceCreate().TargetModelId = "step-tts-2"
+	req.Spec.GetVoiceCreate().GetReferenceAudio().ReferenceAudioBytes = []byte("voice-audio")
+	req.Spec.GetVoiceCreate().GetReferenceAudio().ReferenceAudioMime = "audio/wav"
+	req.Spec.GetVoiceCreate().GetReferenceAudio().ReferenceAudioUri = ""
+	req.Spec.GetVoiceCreate().GetReferenceAudio().Text = "Hello from the source clip."
 
 	result, err := executeVoiceWorkflowViaNimillm(
 		context.Background(),
@@ -141,7 +141,7 @@ func TestStepFunVoiceCloneWorkflowSuccess(t *testing.T) {
 		catalog.ResolveVoiceWorkflowResult{
 			Provider:        "stepfun",
 			ModelID:         "step-tts-2",
-			WorkflowType:    "voice_clone",
+			WorkflowType:    "reference_audio",
 			WorkflowModelID: "stepfun-voice-clone",
 		},
 		nimillm.MediaAdapterConfig{BaseURL: server.URL, AllowLoopbackEndpoint: true, APIKey: "test-key"},
@@ -170,7 +170,7 @@ func TestStepFunVoiceCloneWorkflowSuccess(t *testing.T) {
 }
 
 func TestEstimateVoiceWorkflowUsageIsDeterministic(t *testing.T) {
-	req := voiceCloneRequest()
+	req := voiceReferenceAudioRequest()
 	first := estimateVoiceWorkflowUsage(req)
 	second := estimateVoiceWorkflowUsage(req)
 	if first == nil || second == nil {
@@ -181,10 +181,10 @@ func TestEstimateVoiceWorkflowUsageIsDeterministic(t *testing.T) {
 	}
 }
 
-func TestStepFunVoiceCloneWorkflowRequiresText(t *testing.T) {
-	req := voiceCloneRequest()
-	req.Spec.GetVoiceClone().TargetModelId = "step-tts-2"
-	req.Spec.GetVoiceClone().Input.Text = ""
+func TestStepFunVoiceReferenceAudioWorkflowRequiresText(t *testing.T) {
+	req := voiceReferenceAudioRequest()
+	req.Spec.GetVoiceCreate().TargetModelId = "step-tts-2"
+	req.Spec.GetVoiceCreate().GetReferenceAudio().Text = ""
 
 	_, err := executeVoiceWorkflowViaNimillm(
 		context.Background(),
@@ -193,7 +193,7 @@ func TestStepFunVoiceCloneWorkflowRequiresText(t *testing.T) {
 		catalog.ResolveVoiceWorkflowResult{
 			Provider:        "stepfun",
 			ModelID:         "step-tts-2",
-			WorkflowType:    "voice_clone",
+			WorkflowType:    "reference_audio",
 			WorkflowModelID: "stepfun-voice-clone",
 		},
 		nimillm.MediaAdapterConfig{BaseURL: "https://example.invalid", APIKey: "test-key"},
@@ -208,12 +208,12 @@ func TestStepFunVoiceCloneWorkflowRequiresText(t *testing.T) {
 }
 
 func TestVoiceWorkflowMetadataValidationRejectsUnsupportedReferenceAudioMIME(t *testing.T) {
-	req := voiceCloneRequest()
-	req.Spec.GetVoiceClone().TargetModelId = "step-tts-2"
-	req.Spec.GetVoiceClone().Input.ReferenceAudioBytes = []byte("voice-audio")
-	req.Spec.GetVoiceClone().Input.ReferenceAudioMime = "audio/ogg"
-	req.Spec.GetVoiceClone().Input.ReferenceAudioUri = ""
-	req.Spec.GetVoiceClone().Input.Text = "Hello from the source clip."
+	req := voiceReferenceAudioRequest()
+	req.Spec.GetVoiceCreate().TargetModelId = "step-tts-2"
+	req.Spec.GetVoiceCreate().GetReferenceAudio().ReferenceAudioBytes = []byte("voice-audio")
+	req.Spec.GetVoiceCreate().GetReferenceAudio().ReferenceAudioMime = "audio/ogg"
+	req.Spec.GetVoiceCreate().GetReferenceAudio().ReferenceAudioUri = ""
+	req.Spec.GetVoiceCreate().GetReferenceAudio().Text = "Hello from the source clip."
 
 	_, err := executeVoiceWorkflowViaNimillm(
 		context.Background(),
@@ -222,7 +222,7 @@ func TestVoiceWorkflowMetadataValidationRejectsUnsupportedReferenceAudioMIME(t *
 		catalog.ResolveVoiceWorkflowResult{
 			Provider:        "stepfun",
 			ModelID:         "step-tts-2",
-			WorkflowType:    "voice_clone",
+			WorkflowType:    "reference_audio",
 			WorkflowModelID: "stepfun-voice-clone",
 			RequestOptions: &catalog.VoiceWorkflowRequestOptions{
 				TextPromptMode:                 "required",
@@ -245,10 +245,10 @@ func TestVoiceWorkflowMetadataValidationRejectsUnsupportedReferenceAudioMIME(t *
 }
 
 func TestVoiceWorkflowMetadataValidationRejectsMissingRequiredInstruction(t *testing.T) {
-	req := voiceDesignRequest()
-	req.Spec.GetVoiceDesign().TargetModelId = "qwen3-tts-vd"
-	req.Spec.GetVoiceDesign().Input.InstructionText = ""
-	req.Spec.GetVoiceDesign().Input.PreviewText = "preview only"
+	req := voiceTextDescriptionRequest()
+	req.Spec.GetVoiceCreate().TargetModelId = "qwen3-tts-vd"
+	req.Spec.GetVoiceCreate().GetTextDescription().InstructionText = ""
+	req.Spec.GetVoiceCreate().GetTextDescription().PreviewText = "preview only"
 
 	_, err := executeVoiceWorkflowViaNimillm(
 		context.Background(),
@@ -257,7 +257,7 @@ func TestVoiceWorkflowMetadataValidationRejectsMissingRequiredInstruction(t *tes
 		catalog.ResolveVoiceWorkflowResult{
 			Provider:        "dashscope",
 			ModelID:         "dashscope/qwen3-tts-vd",
-			WorkflowType:    "voice_design",
+			WorkflowType:    "text_description",
 			WorkflowModelID: "qwen-voice-design",
 			RequestOptions: &catalog.VoiceWorkflowRequestOptions{
 				InstructionTextMode:   "required",
@@ -277,7 +277,7 @@ func TestVoiceWorkflowMetadataValidationRejectsMissingRequiredInstruction(t *tes
 	}
 }
 
-func TestFishAudioVoiceCloneWorkflowSuccess(t *testing.T) {
+func TestFishAudioVoiceReferenceAudioWorkflowSuccess(t *testing.T) {
 	var requestPath string
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		requestPath = r.URL.Path
@@ -313,11 +313,11 @@ func TestFishAudioVoiceCloneWorkflowSuccess(t *testing.T) {
 	}))
 	defer func() { server.Close() }()
 
-	req := voiceCloneRequest()
-	req.Spec.GetVoiceClone().TargetModelId = "fish_audio/s1"
-	req.Spec.GetVoiceClone().Input.ReferenceAudioBytes = []byte("voice-audio")
-	req.Spec.GetVoiceClone().Input.ReferenceAudioMime = "audio/wav"
-	req.Spec.GetVoiceClone().Input.ReferenceAudioUri = ""
+	req := voiceReferenceAudioRequest()
+	req.Spec.GetVoiceCreate().TargetModelId = "fish_audio/s1"
+	req.Spec.GetVoiceCreate().GetReferenceAudio().ReferenceAudioBytes = []byte("voice-audio")
+	req.Spec.GetVoiceCreate().GetReferenceAudio().ReferenceAudioMime = "audio/wav"
+	req.Spec.GetVoiceCreate().GetReferenceAudio().ReferenceAudioUri = ""
 
 	result, err := executeVoiceWorkflowViaNimillm(
 		context.Background(),
@@ -326,7 +326,7 @@ func TestFishAudioVoiceCloneWorkflowSuccess(t *testing.T) {
 		catalog.ResolveVoiceWorkflowResult{
 			Provider:        "fish_audio",
 			ModelID:         "fish_audio/s1",
-			WorkflowType:    "voice_clone",
+			WorkflowType:    "reference_audio",
 			WorkflowModelID: "fish-audio-create-model",
 		},
 		nimillm.MediaAdapterConfig{BaseURL: server.URL, AllowLoopbackEndpoint: true, APIKey: "test-key"},
@@ -342,7 +342,7 @@ func TestFishAudioVoiceCloneWorkflowSuccess(t *testing.T) {
 	}
 }
 
-func TestElevenLabsVoiceCloneWorkflowSuccess(t *testing.T) {
+func TestElevenLabsVoiceReferenceAudioWorkflowSuccess(t *testing.T) {
 	var requestPath string
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		requestPath = r.URL.Path
@@ -384,11 +384,11 @@ func TestElevenLabsVoiceCloneWorkflowSuccess(t *testing.T) {
 	}))
 	defer func() { server.Close() }()
 
-	req := voiceCloneRequest()
-	req.Spec.GetVoiceClone().TargetModelId = "elevenlabs/eleven_multilingual_sts_v2"
-	req.Spec.GetVoiceClone().Input.ReferenceAudioBytes = []byte("voice-audio")
-	req.Spec.GetVoiceClone().Input.ReferenceAudioMime = "audio/wav"
-	req.Spec.GetVoiceClone().Input.ReferenceAudioUri = ""
+	req := voiceReferenceAudioRequest()
+	req.Spec.GetVoiceCreate().TargetModelId = "elevenlabs/eleven_multilingual_sts_v2"
+	req.Spec.GetVoiceCreate().GetReferenceAudio().ReferenceAudioBytes = []byte("voice-audio")
+	req.Spec.GetVoiceCreate().GetReferenceAudio().ReferenceAudioMime = "audio/wav"
+	req.Spec.GetVoiceCreate().GetReferenceAudio().ReferenceAudioUri = ""
 
 	result, err := executeVoiceWorkflowViaNimillm(
 		context.Background(),
@@ -397,7 +397,7 @@ func TestElevenLabsVoiceCloneWorkflowSuccess(t *testing.T) {
 		catalog.ResolveVoiceWorkflowResult{
 			Provider:        "elevenlabs",
 			ModelID:         "elevenlabs/eleven_multilingual_sts_v2",
-			WorkflowType:    "voice_clone",
+			WorkflowType:    "reference_audio",
 			WorkflowModelID: "elevenlabs-voice-clone",
 		},
 		nimillm.MediaAdapterConfig{BaseURL: server.URL, AllowLoopbackEndpoint: true, APIKey: "test-key"},
@@ -413,7 +413,7 @@ func TestElevenLabsVoiceCloneWorkflowSuccess(t *testing.T) {
 	}
 }
 
-func TestElevenLabsVoiceDesignWorkflowSuccess(t *testing.T) {
+func TestElevenLabsVoiceTextDescriptionWorkflowSuccess(t *testing.T) {
 	requestPaths := make([]string, 0, 4)
 	requestBodies := make([]map[string]any, 0, 2)
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -448,11 +448,11 @@ func TestElevenLabsVoiceDesignWorkflowSuccess(t *testing.T) {
 	result, err := executeVoiceWorkflowViaNimillm(
 		context.Background(),
 		"elevenlabs",
-		voiceDesignRequest(),
+		voiceTextDescriptionRequest(),
 		catalog.ResolveVoiceWorkflowResult{
 			Provider:        "elevenlabs",
 			ModelID:         "elevenlabs/eleven_ttv_v3",
-			WorkflowType:    "voice_design",
+			WorkflowType:    "text_description",
 			WorkflowModelID: "elevenlabs-voice-design",
 		},
 		nimillm.MediaAdapterConfig{BaseURL: server.URL, AllowLoopbackEndpoint: true, APIKey: "test-key"},
@@ -487,12 +487,12 @@ func TestElevenLabsVoiceDesignWorkflowSuccess(t *testing.T) {
 }
 
 func TestBuildVoiceWorkflowPayloadCloneUsesCanonicalInputShape(t *testing.T) {
-	req := voiceCloneRequest()
+	req := voiceReferenceAudioRequest()
 	payload := buildVoiceWorkflowPayload(req, catalog.ResolveVoiceWorkflowResult{
 		Provider:        "dashscope",
 		ModelID:         "qwen3-tts-vc",
 		APIModelID:      "qwen3-tts-vc-2026-01-22",
-		WorkflowType:    "voice_clone",
+		WorkflowType:    "reference_audio",
 		WorkflowModelID: "qwen-voice-enrollment",
 	}, nil)
 
@@ -514,11 +514,11 @@ func TestBuildVoiceWorkflowPayloadCloneUsesCanonicalInputShape(t *testing.T) {
 }
 
 func TestBuildVoiceWorkflowPayloadDesignUsesCanonicalInputShape(t *testing.T) {
-	req := voiceDesignRequest()
+	req := voiceTextDescriptionRequest()
 	payload := buildVoiceWorkflowPayload(req, catalog.ResolveVoiceWorkflowResult{
 		Provider:        "elevenlabs",
 		ModelID:         "eleven_ttv_v3",
-		WorkflowType:    "voice_design",
+		WorkflowType:    "text_description",
 		WorkflowModelID: "elevenlabs-voice-design",
 	}, nil)
 
@@ -540,13 +540,13 @@ func TestBuildVoiceWorkflowPayloadDesignUsesCanonicalInputShape(t *testing.T) {
 }
 
 func TestBuildVoiceWorkflowPayloadDesignUsesAPIModelIDForProviderTarget(t *testing.T) {
-	req := voiceDesignRequest()
-	req.Spec.GetVoiceDesign().TargetModelId = "qwen3-tts-vd"
+	req := voiceTextDescriptionRequest()
+	req.Spec.GetVoiceCreate().TargetModelId = "qwen3-tts-vd"
 	payload := buildVoiceWorkflowPayload(req, catalog.ResolveVoiceWorkflowResult{
 		Provider:        "dashscope",
 		ModelID:         "qwen3-tts-vd",
 		APIModelID:      "qwen3-tts-vd-2026-01-26",
-		WorkflowType:    "voice_design",
+		WorkflowType:    "text_description",
 		WorkflowModelID: "qwen-voice-design",
 	}, nil)
 

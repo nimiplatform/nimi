@@ -273,6 +273,7 @@ func (s *Service) installManagedDownloadedModel(
 		s.failTransfer(transferID, err.Error(), false)
 		return nil, err
 	}
+	record = applyLocalAssetBundleManifest(s, record, files, nil)
 	if commitErr := activation.Commit(); commitErr != nil {
 		s.logger.Warn("cleanup managed bundle backup failed after download install", "logical_model_id", logicalModelID, "error", commitErr)
 	}

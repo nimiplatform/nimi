@@ -82,3 +82,10 @@ func TestReportScenarioSpendDisclosureProjectsLocalZeroCost(t *testing.T) {
 		t.Fatalf("local route should disclose available zero-cost path: %+v", gotDisclosure)
 	}
 }
+
+func TestLocalScenarioCapabilityIncludesVoiceCreate(t *testing.T) {
+	capability, ok := localScenarioCapability(runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CREATE)
+	if !ok || capability != "voice.create" {
+		t.Fatalf("voice.create capability mapping mismatch: capability=%q ok=%v", capability, ok)
+	}
+}

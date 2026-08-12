@@ -503,18 +503,18 @@ func TestVoiceWorkflowHelperFunctions(t *testing.T) {
 	t.Parallel()
 
 	cloneSummary := voiceWorkflowInputSummary(&runtimev1.SubmitScenarioJobRequest{
-		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE,
+		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CREATE,
 		Spec: &runtimev1.ScenarioSpec{
-			Spec: &runtimev1.ScenarioSpec_VoiceClone{
-				VoiceClone: &runtimev1.VoiceCloneScenarioSpec{
+			Spec: &runtimev1.ScenarioSpec_VoiceCreate{
+				VoiceCreate: &runtimev1.VoiceCreateScenarioSpec{
 					TargetModelId: "speech/qwen3tts",
-					Input: &runtimev1.VoiceV2VInput{
+					Source: &runtimev1.VoiceCreateScenarioSpec_ReferenceAudio{ReferenceAudio: &runtimev1.VoiceV2VInput{
 						ReferenceAudioUri:   "file:///tmp/reference.wav",
 						ReferenceAudioBytes: []byte("voice"),
 						Text:                "hello",
 						LanguageHints:       []string{"en", "zh"},
 						PreferredName:       "clone-name",
-					},
+					}},
 				},
 			},
 		},
@@ -524,17 +524,17 @@ func TestVoiceWorkflowHelperFunctions(t *testing.T) {
 	}
 
 	designSummary := voiceWorkflowInputSummary(&runtimev1.SubmitScenarioJobRequest{
-		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_DESIGN,
+		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CREATE,
 		Spec: &runtimev1.ScenarioSpec{
-			Spec: &runtimev1.ScenarioSpec_VoiceDesign{
-				VoiceDesign: &runtimev1.VoiceDesignScenarioSpec{
+			Spec: &runtimev1.ScenarioSpec_VoiceCreate{
+				VoiceCreate: &runtimev1.VoiceCreateScenarioSpec{
 					TargetModelId: "speech/qwen3tts",
-					Input: &runtimev1.VoiceT2VInput{
+					Source: &runtimev1.VoiceCreateScenarioSpec_TextDescription{TextDescription: &runtimev1.VoiceT2VInput{
 						InstructionText: "warm narrator",
 						PreviewText:     "preview line",
 						Language:        "en",
 						PreferredName:   "design-name",
-					},
+					}},
 				},
 			},
 		},
@@ -554,13 +554,13 @@ func TestVoiceWorkflowHelperFunctions(t *testing.T) {
 	}
 
 	clonePreferred := resolveVoiceWorkflowPreferredName(&runtimev1.SubmitScenarioJobRequest{
-		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE,
+		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CREATE,
 		Spec: &runtimev1.ScenarioSpec{
-			Spec: &runtimev1.ScenarioSpec_VoiceClone{
-				VoiceClone: &runtimev1.VoiceCloneScenarioSpec{
-					Input: &runtimev1.VoiceV2VInput{
+			Spec: &runtimev1.ScenarioSpec_VoiceCreate{
+				VoiceCreate: &runtimev1.VoiceCreateScenarioSpec{
+					Source: &runtimev1.VoiceCreateScenarioSpec_ReferenceAudio{ReferenceAudio: &runtimev1.VoiceV2VInput{
 						PreferredName: "preferred-clone",
-					},
+					}},
 				},
 			},
 		},
@@ -570,13 +570,13 @@ func TestVoiceWorkflowHelperFunctions(t *testing.T) {
 	}
 
 	designPreferred := resolveVoiceWorkflowPreferredName(&runtimev1.SubmitScenarioJobRequest{
-		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_DESIGN,
+		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CREATE,
 		Spec: &runtimev1.ScenarioSpec{
-			Spec: &runtimev1.ScenarioSpec_VoiceDesign{
-				VoiceDesign: &runtimev1.VoiceDesignScenarioSpec{
-					Input: &runtimev1.VoiceT2VInput{
+			Spec: &runtimev1.ScenarioSpec_VoiceCreate{
+				VoiceCreate: &runtimev1.VoiceCreateScenarioSpec{
+					Source: &runtimev1.VoiceCreateScenarioSpec_TextDescription{TextDescription: &runtimev1.VoiceT2VInput{
 						PreferredName: "preferred-design",
-					},
+					}},
 				},
 			},
 		},

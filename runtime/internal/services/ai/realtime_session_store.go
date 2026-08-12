@@ -12,20 +12,15 @@ import (
 
 type realtimeSessionRecord struct {
 	mu            sync.Mutex
-	sendMu        sync.Mutex
 	sessionID     string
 	appID         string
 	subjectUserID string
-	modelResolved string
 	traceID       string
-	routeDecision runtimev1.RoutePolicy
-	conn          realtimeConn
 	closed        bool
 	readerActive  bool
 	reader        chan *runtimev1.RealtimeEvent
 	nextSeq       uint64
 	events        []*runtimev1.RealtimeEvent
-	cleanup       func()
 }
 
 const maxRealtimeEventBacklog = 256
@@ -160,26 +155,14 @@ func (s *realtimeSessionStore) close(sessionID string) {
 	if record == nil {
 		return
 	}
-	record.sendMu.Lock()
 	record.mu.Lock()
 	record.closed = true
 	reader := record.reader
-	conn := record.conn
-	cleanup := record.cleanup
-	record.conn = nil
 	record.reader = nil
 	record.readerActive = false
-	record.cleanup = nil
 	record.mu.Unlock()
-	record.sendMu.Unlock()
 	if reader != nil {
 		close(reader)
-	}
-	if conn != nil {
-		_ = conn.Close()
-	}
-	if cleanup != nil {
-		cleanup()
 	}
 }
 

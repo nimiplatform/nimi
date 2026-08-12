@@ -70,7 +70,7 @@ func TestListLocalModelsDedupesCanonicalAliasHistory(t *testing.T) {
 		"legacy-local": {
 			LocalAssetId: "legacy-local",
 			AssetId:      "local/z_image_turbo",
-			Capabilities: []string{"image"},
+			Capabilities: []string{"image.generate"},
 			Engine:       "llama",
 			Entry:        "z_image_turbo-Q4_K_M.gguf",
 			Status:       runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_REMOVED,
@@ -80,7 +80,7 @@ func TestListLocalModelsDedupesCanonicalAliasHistory(t *testing.T) {
 		"current-bare": {
 			LocalAssetId: "current-bare",
 			AssetId:      "z_image_turbo",
-			Capabilities: []string{"image"},
+			Capabilities: []string{"image.generate"},
 			Engine:       "llama",
 			Entry:        "z_image_turbo-Q4_K_M.gguf",
 			Status:       runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE,
@@ -110,7 +110,7 @@ func TestLocalInstallLocalModelRequiresEndpointForSidecar(t *testing.T) {
 	_, err := svc.installLocalAsset(context.Background(), installLocalAssetParams{
 		assetID:      "local/sidecar-model",
 		engine:       "sidecar",
-		capabilities: []string{"music"},
+		capabilities: []string{"music.generate"},
 	})
 	if err == nil {
 		t.Fatalf("expected sidecar endpoint required error")
@@ -166,12 +166,12 @@ func TestLocalInstallLocalServiceEnforcesModelServiceOneToOne(t *testing.T) {
 
 	model1 := mustInstallAttachedLocalModel(t, svc, installLocalAssetParams{
 		assetID:      "local/service-bind-1",
-		capabilities: []string{"chat"},
+		capabilities: []string{"text.generate"},
 		engine:       "llama",
 	})
 	model2 := mustInstallAttachedLocalModel(t, svc, installLocalAssetParams{
 		assetID:      "local/service-bind-2",
-		capabilities: []string{"chat"},
+		capabilities: []string{"text.generate"},
 		engine:       "llama",
 	})
 	first, err := svc.InstallLocalService(context.Background(), &runtimev1.InstallLocalServiceRequest{
@@ -228,7 +228,7 @@ func TestLocalListLocalModelsSortByCategoryThenModelID(t *testing.T) {
 
 	_, err := svc.installLocalAsset(context.Background(), installLocalAssetParams{
 		assetID:      "z-chat",
-		capabilities: []string{"chat"},
+		capabilities: []string{"text.generate"},
 		engine:       "llama",
 		endpoint:     managedDefaultEndpointForEngine("llama"),
 	})
@@ -246,7 +246,7 @@ func TestLocalListLocalModelsSortByCategoryThenModelID(t *testing.T) {
 	}
 	_, err = svc.installLocalAsset(context.Background(), installLocalAssetParams{
 		assetID:      "a-chat",
-		capabilities: []string{"chat"},
+		capabilities: []string{"text.generate"},
 		engine:       "llama",
 		endpoint:     managedDefaultEndpointForEngine("llama"),
 	})
@@ -275,12 +275,12 @@ func TestLocalListLocalServicesSortByServiceID(t *testing.T) {
 
 	modelA := mustInstallAttachedLocalModel(t, svc, installLocalAssetParams{
 		assetID:      "local/service-sort-a",
-		capabilities: []string{"chat"},
+		capabilities: []string{"text.generate"},
 		engine:       "llama",
 	})
 	modelB := mustInstallAttachedLocalModel(t, svc, installLocalAssetParams{
 		assetID:      "local/service-sort-b",
-		capabilities: []string{"chat"},
+		capabilities: []string{"text.generate"},
 		engine:       "llama",
 	})
 	if _, err := svc.InstallLocalService(context.Background(), &runtimev1.InstallLocalServiceRequest{
@@ -316,7 +316,7 @@ func TestLocalRemoveModelRejectedWhenServiceBound(t *testing.T) {
 
 	model := mustInstallAttachedLocalModel(t, svc, installLocalAssetParams{
 		assetID:      "local/remove-guard",
-		capabilities: []string{"chat"},
+		capabilities: []string{"text.generate"},
 		engine:       "llama",
 	})
 	if _, err := svc.InstallLocalService(context.Background(), &runtimev1.InstallLocalServiceRequest{
@@ -355,7 +355,7 @@ func TestLocalResolveExecutionPlanRejectsServiceWithoutModelID(t *testing.T) {
 					EntryId:    "dep.chat.service",
 					Kind:       runtimev1.LocalExecutionEntryKind_LOCAL_EXECUTION_ENTRY_KIND_SERVICE,
 					ServiceId:  "svc-chat",
-					Capability: "chat",
+					Capability: "text.generate",
 					Engine:     "llama",
 				},
 			},

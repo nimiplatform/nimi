@@ -165,7 +165,7 @@ func verifiedAssetTags(capabilities []string, quant string) []string {
 	tags := []string{"verified"}
 	for _, capability := range capabilities {
 		switch strings.ToLower(strings.TrimSpace(capability)) {
-		case "text.generate", "text.generate.vision":
+		case "text.generate":
 			tags = append(tags, "chat")
 		case "audio.transcribe":
 			tags = append(tags, "stt")

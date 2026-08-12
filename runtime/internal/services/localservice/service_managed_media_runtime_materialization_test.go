@@ -26,7 +26,7 @@ func TestResolveManagedMediaImageProfilePreservesRepeatedOccurrenceBindingsToBac
 		Kind:           runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_IMAGE,
 		Engine:         "media",
 		Entry:          "main.gguf",
-		Capabilities:   []string{"image"},
+		Capabilities:   []string{"image.generate"},
 		Status:         runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE,
 		Source:         &runtimev1.LocalAssetSource{Repo: "nimiplatform/main"},
 	}
@@ -156,7 +156,7 @@ func testResolveManagedMediaImageProfileDescriptorAcrossRestart(t *testing.T) {
 		assetID:      "z_image_turbo",
 		repo:         "nimiplatform/z-image",
 		revision:     "main",
-		capabilities: []string{"image"},
+		capabilities: []string{"image.generate"},
 		engine:       "media",
 		entry:        "z_image_turbo-Q4_K.gguf",
 		engineConfig: engineConfig,

@@ -201,7 +201,7 @@ func healthDetailForEngine(engineLabel string, plane string, detail string) stri
 
 func isVoiceWorkflowHealthCapability(value string) bool {
 	normalized := strings.ToLower(strings.TrimSpace(value))
-	return normalized == "voice_workflow.voice_clone" || normalized == "voice_workflow.voice_design"
+	return normalized == "voice.create"
 }
 
 func admittedHealthCapabilities(engineLabel string, capability string) []string {

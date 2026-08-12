@@ -13,8 +13,8 @@ import tempfile
 from typing import Any
 
 
-VOICE_DESIGN_PREFIX = "voxcpm:design:"
-VOICE_CLONE_PREFIX = "voxcpm:clone:"
+VOICE_TEXT_DESCRIPTION_PREFIX = "voxcpm:text-description:"
+VOICE_REFERENCE_AUDIO_PREFIX = "voxcpm:reference-audio:"
 AUDIO_SUFFIXES = {".wav", ".mp3", ".m4a", ".flac", ".ogg"}
 
 
@@ -52,10 +52,10 @@ def decode_handle_payload(token: str) -> dict[str, Any]:
 
 
 def decode_voice_handle(value: str) -> tuple[str, dict[str, Any] | None]:
-    if value.startswith(VOICE_DESIGN_PREFIX):
-        return "design", decode_handle_payload(value[len(VOICE_DESIGN_PREFIX) :])
-    if value.startswith(VOICE_CLONE_PREFIX):
-        return "clone", decode_handle_payload(value[len(VOICE_CLONE_PREFIX) :])
+    if value.startswith(VOICE_TEXT_DESCRIPTION_PREFIX):
+        return "text_description", decode_handle_payload(value[len(VOICE_TEXT_DESCRIPTION_PREFIX) :])
+    if value.startswith(VOICE_REFERENCE_AUDIO_PREFIX):
+        return "reference_audio", decode_handle_payload(value[len(VOICE_REFERENCE_AUDIO_PREFIX) :])
     return "", None
 
 
@@ -99,7 +99,7 @@ def handle_preflight(model_ref: str) -> dict[str, Any]:
         "driver_family": "voxcpm",
         "driver_backend": "mlx",
         "model_ref": model_ref,
-        "supports": ["audio.synthesize", "voice_workflow.voice_design", "voice_workflow.voice_clone"],
+        "supports": ["audio.synthesize", "voice.create"],
     }
     if version:
         response["mlx_audio_version"] = version
@@ -126,12 +126,12 @@ def build_mlx_generate_command(
     ]
     temp_dirs: list[tempfile.TemporaryDirectory[str]] = []
     handle_kind, handle_payload = decode_voice_handle(voice.strip()) if voice.strip() else ("", None)
-    if handle_kind == "design" and handle_payload is not None:
+    if handle_kind == "text_description" and handle_payload is not None:
         instruction = optional_string(handle_payload, "instruction_text")
         if instruction:
             command.extend(["--instruct", instruction])
         return command, temp_dirs
-    if handle_kind == "clone" and handle_payload is not None:
+    if handle_kind == "reference_audio" and handle_payload is not None:
         audio_b64 = optional_string(handle_payload, "reference_audio_base64")
         if not audio_b64:
             fail("clone voice handle missing reference_audio_base64")
@@ -190,14 +190,14 @@ def handle_synthesize(request: dict[str, Any], model_ref: str) -> dict[str, Any]
         }
 
 
-def build_design_handle(request: dict[str, Any]) -> dict[str, Any]:
+def build_text_description_handle(request: dict[str, Any]) -> dict[str, Any]:
     input_payload = request.get("input")
     if not isinstance(input_payload, dict):
-        fail("voice_workflow.voice_design requires input object")
+        fail("voice.create text_description requires input object")
     instruction_text = require_string(input_payload, "instruction_text")
     preferred_name = optional_string(input_payload, "preferred_name")
     handle = encode_voice_handle(
-        VOICE_DESIGN_PREFIX,
+        VOICE_TEXT_DESCRIPTION_PREFIX,
         {
             "instruction_text": instruction_text,
             "preferred_name": preferred_name,
@@ -212,19 +212,19 @@ def build_design_handle(request: dict[str, Any]) -> dict[str, Any]:
         "metadata": {
             "driver_family": "voxcpm",
             "driver_backend": "mlx",
-            "handle_kind": "design",
+            "creation_source": "text_description",
             "preferred_name": preferred_name,
         },
     }
 
 
-def build_clone_handle(request: dict[str, Any]) -> dict[str, Any]:
+def build_reference_audio_handle(request: dict[str, Any]) -> dict[str, Any]:
     input_payload = request.get("input")
     if not isinstance(input_payload, dict):
-        fail("voice_workflow.voice_clone requires input object")
+        fail("voice.create reference_audio requires input object")
     reference_audio_base64 = require_string(input_payload, "reference_audio_base64")
     handle = encode_voice_handle(
-        VOICE_CLONE_PREFIX,
+        VOICE_REFERENCE_AUDIO_PREFIX,
         {
             "reference_audio_base64": reference_audio_base64,
             "reference_audio_mime": optional_string(input_payload, "reference_audio_mime"),
@@ -240,7 +240,7 @@ def build_clone_handle(request: dict[str, Any]) -> dict[str, Any]:
         "metadata": {
             "driver_family": "voxcpm",
             "driver_backend": "mlx",
-            "handle_kind": "clone",
+            "creation_source": "reference_audio",
             "preferred_name": optional_string(input_payload, "preferred_name"),
         },
     }
@@ -252,10 +252,13 @@ def handle_request(request: dict[str, Any], model_ref: str) -> dict[str, Any]:
         return handle_preflight(model_ref)
     if operation == "audio.synthesize":
         return handle_synthesize(request, model_ref)
-    if operation == "voice_workflow.voice_design":
-        return build_design_handle(request)
-    if operation == "voice_workflow.voice_clone":
-        return build_clone_handle(request)
+    if operation == "voice.create":
+        creation_source = require_string(request, "creation_source")
+        if creation_source == "text_description":
+            return build_text_description_handle(request)
+        if creation_source == "reference_audio":
+            return build_reference_audio_handle(request)
+        fail(f"unsupported voice.create source: {creation_source}")
     fail(f"unsupported voxcpm mlx operation: {operation}")
 
 

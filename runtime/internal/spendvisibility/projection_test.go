@@ -64,6 +64,7 @@ func TestProject_CloudVideoAndAudio(t *testing.T) {
 	for capability, want := range map[string]SpendCategory{
 		"video.generate":   SpendCategoryCloudVideo,
 		"audio.synthesize": SpendCategoryCloudAudio,
+		"voice.create":     SpendCategoryCloudAudio,
 		"music.generate":   SpendCategoryCloudMusic,
 		"world.generate":   SpendCategoryCloudWorld,
 	} {
@@ -121,7 +122,7 @@ func TestSpendCategory_Valid(t *testing.T) {
 func TestProject_NoUnsolicitedFabrication(t *testing.T) {
 	// Sweep: cloud route without hint should NEVER set EstimateAvailable=true,
 	// must never fabricate a number.
-	for _, capability := range []string{"text.generate", "image.generate", "video.generate", "audio.synthesize", "music.generate", "world.generate"} {
+	for _, capability := range []string{"text.generate", "image.generate", "video.generate", "audio.synthesize", "voice.create", "music.generate", "world.generate"} {
 		d, err := Project(ExecutionInput{
 			CapabilityID: capability,
 			IsCloudRoute: true,

@@ -2,6 +2,7 @@ package ai
 
 import (
 	"context"
+	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/authn"
@@ -25,7 +26,10 @@ func (s *Service) submitVoiceWorkflowJob(
 		return nil, err
 	}
 	if intent.IsLocal() {
-		return nil, localExactMediaUnsupportedError(req.GetScenarioType())
+		return s.submitLocalVoiceWorkflowJob(ctx, req, intent, ignored)
+	}
+	if strings.TrimSpace(req.GetSpec().GetVoiceCreate().GetTargetModelId()) == "" {
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_VOICE_TARGET_MODEL_MISMATCH)
 	}
 	effective, err := s.captureCloudVoiceWorkflowEffectiveInputs(ctx, req)
 	if err != nil {
@@ -96,5 +100,18 @@ func (s *Service) submitVoiceWorkflowJob(
 		s.executeCapturedVoiceWorkflowJob(jobCtx, job.GetJobId(), asset.GetVoiceAssetId(), effective)
 	}()
 
-	return &runtimev1.SubmitScenarioJobResponse{Job: job, Asset: asset}, nil
+	return &runtimev1.SubmitScenarioJobResponse{
+		Job:            job,
+		Asset:          asset,
+		VoiceReference: voiceAssetReference(asset.GetVoiceAssetId()),
+	}, nil
+}
+
+func voiceAssetReference(voiceAssetID string) *runtimev1.VoiceReference {
+	return &runtimev1.VoiceReference{
+		Kind: runtimev1.VoiceReferenceKind_VOICE_REFERENCE_KIND_VOICE_ASSET,
+		Reference: &runtimev1.VoiceReference_VoiceAssetId{
+			VoiceAssetId: voiceAssetID,
+		},
+	}
 }

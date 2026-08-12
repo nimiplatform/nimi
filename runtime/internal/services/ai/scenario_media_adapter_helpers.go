@@ -35,10 +35,9 @@ func scenarioModalFromType(scenarioType runtimev1.ScenarioType) runtimev1.Modal 
 		return runtimev1.Modal_MODAL_TTS
 	case runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_TRANSCRIBE:
 		return runtimev1.Modal_MODAL_STT
-	case runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE,
-		runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_DESIGN:
-		// Voice workflow targets a synthesis model even when the workflow
-		// capability itself remains a separate authority surface.
+	case runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CREATE:
+		// Voice creation targets a synthesis model while remaining separate
+		// from the audio.synthesize contract.
 		return runtimev1.Modal_MODAL_TTS
 	case runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_GENERATE:
 		return runtimev1.Modal_MODAL_MUSIC

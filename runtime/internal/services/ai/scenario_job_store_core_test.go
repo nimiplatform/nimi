@@ -40,10 +40,10 @@ func TestVoiceScenarioJobCancelPublishesOnlyAfterExecutionStops(t *testing.T) {
 	ctx := scenarioJobUserContext("app", "user")
 	job, _ := svc.voiceAssets.submit(&voiceWorkflowSubmitInput{
 		Head:         &runtimev1.ScenarioRequestHead{AppId: "app", SubjectUserId: "user"},
-		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_DESIGN,
-		Spec: &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_VoiceDesign{VoiceDesign: &runtimev1.VoiceDesignScenarioSpec{
+		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CREATE,
+		Spec: &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_VoiceCreate{VoiceCreate: &runtimev1.VoiceCreateScenarioSpec{
 			TargetModelId: "voice-model",
-			Input:         &runtimev1.VoiceT2VInput{InstructionText: "steady"},
+			Source:        &runtimev1.VoiceCreateScenarioSpec_TextDescription{TextDescription: &runtimev1.VoiceT2VInput{InstructionText: "steady"}},
 		}}},
 	})
 	if job == nil {

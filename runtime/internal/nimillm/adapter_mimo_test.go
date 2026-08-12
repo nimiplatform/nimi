@@ -214,7 +214,7 @@ func TestMimoVoiceCloneWorkflowProducesSessionProviderRef(t *testing.T) {
 	referenceBytes := []byte("RIFF....WAVEfmt reference")
 	result, err := executeMimoVoiceWorkflow(context.Background(), VoiceWorkflowRequest{
 		Provider:        "mimo",
-		WorkflowType:    "voice_clone",
+		WorkflowType:    "reference_audio",
 		WorkflowModelID: "mimo-v2.5-tts-voiceclone",
 		Payload: map[string]any{
 			"reference_audio_base64": base64.StdEncoding.EncodeToString(referenceBytes),
@@ -228,7 +228,7 @@ func TestMimoVoiceCloneWorkflowProducesSessionProviderRef(t *testing.T) {
 	if !ok {
 		t.Fatalf("provider voice ref must be decodable, got %q", result.ProviderVoiceRef)
 	}
-	if workflow != "voice_clone" {
+	if workflow != "reference_audio" {
 		t.Fatalf("workflow=%q, want voice_clone", workflow)
 	}
 	if !strings.HasPrefix(payload, "data:audio/wav;base64,") {
@@ -271,7 +271,7 @@ func TestMimoSynthesizeVoiceCloneUsesReferenceAudioDataURI(t *testing.T) {
 			VoiceRef: &runtimev1.VoiceReference{
 				Kind: runtimev1.VoiceReferenceKind_VOICE_REFERENCE_KIND_PROVIDER_VOICE_REF,
 				Reference: &runtimev1.VoiceReference_ProviderVoiceRef{
-					ProviderVoiceRef: encodeMimoProviderVoiceRef("voice_clone", referenceDataURI),
+					ProviderVoiceRef: encodeMimoProviderVoiceRef("reference_audio", referenceDataURI),
 				},
 			},
 		},
@@ -329,7 +329,7 @@ func TestMimoSynthesizeVoiceDesignUsesPromptWithoutPresetVoice(t *testing.T) {
 			VoiceRef: &runtimev1.VoiceReference{
 				Kind: runtimev1.VoiceReferenceKind_VOICE_REFERENCE_KIND_PROVIDER_VOICE_REF,
 				Reference: &runtimev1.VoiceReference_ProviderVoiceRef{
-					ProviderVoiceRef: encodeMimoProviderVoiceRef("voice_design", designPrompt),
+					ProviderVoiceRef: encodeMimoProviderVoiceRef("text_description", designPrompt),
 				},
 			},
 		},

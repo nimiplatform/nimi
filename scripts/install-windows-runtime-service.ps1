@@ -701,6 +701,7 @@ function Invoke-LocalAgentChatOfflineRepair {
     'originalVersion',
     'reactivatedAnchors',
     'repairedVersion',
+	'removedLegacyIdentityFields',
     'rewrittenAnchorRefs',
     'rewrittenAvatarRefs',
     'rewrittenFollowUpRefs',
@@ -721,12 +722,13 @@ function Invoke-LocalAgentChatOfflineRepair {
   $reactivatedAnchors = [int] $repair.reactivatedAnchors
   $rewrittenAnchorRefs = [int] $repair.rewrittenAnchorRefs
   $rewrittenTargetRefs = [int] $repair.rewrittenTargetRefs
+	$removedLegacyIdentityFields = [int] $repair.removedLegacyIdentityFields
   $originalVersion = [uint64] $repair.originalVersion
   $repairedVersion = [uint64] $repair.repairedVersion
-  if ($duplicateGroups -lt 0 -or $reactivatedAnchors -lt 0 -or $rewrittenAnchorRefs -lt 0 -or $rewrittenTargetRefs -lt 0) {
+  if ($duplicateGroups -lt 0 -or $reactivatedAnchors -lt 0 -or $rewrittenAnchorRefs -lt 0 -or $rewrittenTargetRefs -lt 0 -or $removedLegacyIdentityFields -lt 0) {
     throw 'LocalAgent chat offline repair returned negative change counts.'
   }
-  $changeCount = $duplicateGroups + $reactivatedAnchors + $rewrittenAnchorRefs + $rewrittenTargetRefs
+  $changeCount = $duplicateGroups + $reactivatedAnchors + $rewrittenAnchorRefs + $rewrittenTargetRefs + $removedLegacyIdentityFields
   $backupProperty = $repair.PSObject.Properties['backupPath']
   $skipProperty = $repair.PSObject.Properties['skipReason']
   $backupPath = if ($null -eq $backupProperty -or $null -eq $backupProperty.Value) { '' } else { [string] $backupProperty.Value }
@@ -781,6 +783,7 @@ function Invoke-LocalAgentChatOfflineRepair {
     reactivatedAnchors = $reactivatedAnchors
     rewrittenAnchorRefs = $rewrittenAnchorRefs
     rewrittenTargetRefs = $rewrittenTargetRefs
+	removedLegacyIdentityFields = $removedLegacyIdentityFields
     originalVersion = $originalVersion
     repairedVersion = $repairedVersion
     backupPath = if ([string]::IsNullOrWhiteSpace($backupPath)) { $null } else { $backupPath }
@@ -945,6 +948,7 @@ function Install-Service {
     reactivatedAnchors = 0
     rewrittenAnchorRefs = 0
     rewrittenTargetRefs = 0
+    removedLegacyIdentityFields = 0
     originalVersion = 0
     repairedVersion = 0
     backupPath = $null

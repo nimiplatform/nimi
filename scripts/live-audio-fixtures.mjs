@@ -15,10 +15,10 @@ const DEFAULT_PORT = 18456;
 const DASHSCOPE_PUBLIC_VOICE_REFERENCE_AUDIO_URI = 'https://dashscope.oss-cn-beijing.aliyuncs.com/samples/audio/cosyvoice/cosyvoice-zeroshot-sample.wav';
 
 const STT_TEXT = 'Hello from Nimi gold path. DashScope speech transcription should hear this sentence clearly.';
-const VOICE_CLONE_TEXT = [
-  'Hello from Nimi voice clone gold path.',
+const VOICE_REFERENCE_AUDIO_TEXT = [
+  'Hello from Nimi reference-audio voice creation gold path.',
   'This reference sample is deterministic and generated on the local machine.',
-  'DashScope should be able to create a reusable cloned voice asset from this recording.',
+  'DashScope should be able to create a reusable voice asset from this recording.',
 ].join(' ');
 
 const FIXTURES = [
@@ -34,7 +34,7 @@ const FIXTURES = [
     fileName: 'dashscope-voice-reference.wav',
     voice: 'Albert',
     rate: '170',
-    text: VOICE_CLONE_TEXT,
+    text: VOICE_REFERENCE_AUDIO_TEXT,
   },
 ];
 
@@ -192,28 +192,28 @@ function startServer(host, port, fixtureFiles) {
 function buildFixtureExportPayload(host, port, fixtureFiles) {
   const baseURL = `http://${host}:${port}`;
   const sttPath = fixtureFiles.get(FIXTURES[0].pathName) || '';
-  const voiceClonePath = fixtureFiles.get(FIXTURES[1].pathName) || '';
+  const voiceReferenceAudioPath = fixtureFiles.get(FIXTURES[1].pathName) || '';
   const sttURI = `${baseURL}${FIXTURES[0].pathName}`;
-  const voiceCloneURI = `${baseURL}${FIXTURES[1].pathName}`;
-  const dashscopeVoiceCloneURI = String(process.env.NIMI_LIVE_DASHSCOPE_VOICE_REFERENCE_AUDIO_URI || '').trim()
+  const voiceReferenceAudioURI = `${baseURL}${FIXTURES[1].pathName}`;
+  const dashscopeVoiceReferenceAudioURI = String(process.env.NIMI_LIVE_DASHSCOPE_VOICE_REFERENCE_AUDIO_URI || '').trim()
     || DASHSCOPE_PUBLIC_VOICE_REFERENCE_AUDIO_URI;
   return {
     baseURL,
     sttPath,
-    voiceClonePath,
+    voiceReferenceAudioPath,
     sttURI,
-    voiceCloneURI,
-    dashscopeVoiceCloneURI,
+    voiceReferenceAudioURI,
+    dashscopeVoiceReferenceAudioURI,
     env: {
       NIMI_LIVE_STT_AUDIO_PATH: sttPath,
-      NIMI_LIVE_VOICE_REFERENCE_AUDIO_PATH: voiceClonePath,
-      NIMI_LIVE_DASHSCOPE_VOICE_REFERENCE_AUDIO_PATH: voiceClonePath,
+      NIMI_LIVE_VOICE_REFERENCE_AUDIO_PATH: voiceReferenceAudioPath,
+      NIMI_LIVE_DASHSCOPE_VOICE_REFERENCE_AUDIO_PATH: voiceReferenceAudioPath,
       NIMI_LIVE_STT_AUDIO_URI: sttURI,
-      NIMI_LIVE_VOICE_REFERENCE_AUDIO_URI: voiceCloneURI,
-      NIMI_LIVE_DASHSCOPE_VOICE_REFERENCE_AUDIO_URI: dashscopeVoiceCloneURI,
+      NIMI_LIVE_VOICE_REFERENCE_AUDIO_URI: voiceReferenceAudioURI,
+      NIMI_LIVE_DASHSCOPE_VOICE_REFERENCE_AUDIO_URI: dashscopeVoiceReferenceAudioURI,
       NIMI_LIVE_DASHSCOPE_STT_MODEL_ID: 'qwen3-asr-flash-2026-02-10',
-      NIMI_LIVE_DASHSCOPE_VOICE_CLONE_MODEL_ID: 'cosyvoice-v3-flash',
-      NIMI_LIVE_DASHSCOPE_VOICE_CLONE_MODEL_ID_TARGET_MODEL_ID: 'cosyvoice-v3-flash',
+      NIMI_LIVE_DASHSCOPE_VOICE_REFERENCE_AUDIO_MODEL_ID: 'cosyvoice-v3-flash',
+      NIMI_LIVE_DASHSCOPE_VOICE_REFERENCE_AUDIO_MODEL_ID_TARGET_MODEL_ID: 'cosyvoice-v3-flash',
     },
   };
 }
@@ -228,8 +228,8 @@ function printFixtureExports(payload) {
     `export NIMI_LIVE_VOICE_REFERENCE_AUDIO_URI=${payload.env.NIMI_LIVE_VOICE_REFERENCE_AUDIO_URI}`,
     `export NIMI_LIVE_DASHSCOPE_VOICE_REFERENCE_AUDIO_URI=${payload.env.NIMI_LIVE_DASHSCOPE_VOICE_REFERENCE_AUDIO_URI}`,
     `export NIMI_LIVE_DASHSCOPE_STT_MODEL_ID=${payload.env.NIMI_LIVE_DASHSCOPE_STT_MODEL_ID}`,
-    `export NIMI_LIVE_DASHSCOPE_VOICE_CLONE_MODEL_ID=${payload.env.NIMI_LIVE_DASHSCOPE_VOICE_CLONE_MODEL_ID}`,
-    `export NIMI_LIVE_DASHSCOPE_VOICE_CLONE_MODEL_ID_TARGET_MODEL_ID=${payload.env.NIMI_LIVE_DASHSCOPE_VOICE_CLONE_MODEL_ID_TARGET_MODEL_ID}`,
+    `export NIMI_LIVE_DASHSCOPE_VOICE_REFERENCE_AUDIO_MODEL_ID=${payload.env.NIMI_LIVE_DASHSCOPE_VOICE_REFERENCE_AUDIO_MODEL_ID}`,
+    `export NIMI_LIVE_DASHSCOPE_VOICE_REFERENCE_AUDIO_MODEL_ID_TARGET_MODEL_ID=${payload.env.NIMI_LIVE_DASHSCOPE_VOICE_REFERENCE_AUDIO_MODEL_ID_TARGET_MODEL_ID}`,
     '',
   ].join('\n'));
 }

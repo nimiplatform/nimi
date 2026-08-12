@@ -25,7 +25,7 @@ func TestLiveSmokeDashScopeVoiceAssetBackedTTS(t *testing.T) {
 		t.Skip("set NIMI_LIVE_DASHSCOPE_API_KEY to run DashScope voice asset-backed TTS live smoke")
 	}
 	record, ok := providerregistry.Lookup("dashscope")
-	if !ok || !record.SupportsVoiceDesign || !record.SupportsVoiceClone || !record.SupportsTTS {
+	if !ok || !record.SupportsVoiceTextDescription || !record.SupportsVoiceReferenceAudio || !record.SupportsTTS {
 		t.Skip("dashscope provider does not advertise required voice workflow and TTS capabilities")
 	}
 
@@ -36,28 +36,28 @@ func TestLiveSmokeDashScopeVoiceAssetBackedTTS(t *testing.T) {
 		buildSpec    func(targetModelID string) *runtimev1.ScenarioSpec
 	}{
 		{
-			name:         "voice_design",
-			scenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_DESIGN,
-			modelKey:     "VOICE_DESIGN_MODEL_ID",
+			name:         "text_description",
+			scenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CREATE,
+			modelKey:     "VOICE_TEXT_DESCRIPTION_MODEL_ID",
 			buildSpec: func(targetModelID string) *runtimev1.ScenarioSpec {
-				return &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_VoiceDesign{VoiceDesign: &runtimev1.VoiceDesignScenarioSpec{
+				return &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_VoiceCreate{VoiceCreate: &runtimev1.VoiceCreateScenarioSpec{
 					TargetModelId: targetModelID,
-					Input: &runtimev1.VoiceT2VInput{
-						InstructionText: liveSmokeVoiceDesignInstruction,
-						PreviewText:     "Hello from Nimi live DashScope voice design asset-backed TTS smoke.",
+					Source: &runtimev1.VoiceCreateScenarioSpec_TextDescription{TextDescription: &runtimev1.VoiceT2VInput{
+						InstructionText: liveSmokeVoiceTextDescriptionInstruction,
+						PreviewText:     "Hello from Nimi live DashScope text-description voice asset-backed TTS smoke.",
 						PreferredName:   "nimi-live-design",
-					},
+					}},
 				}}}
 			},
 		},
 		{
-			name:         "voice_clone",
-			scenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE,
-			modelKey:     "VOICE_CLONE_MODEL_ID",
+			name:         "reference_audio",
+			scenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CREATE,
+			modelKey:     "VOICE_REFERENCE_AUDIO_MODEL_ID",
 			buildSpec: func(targetModelID string) *runtimev1.ScenarioSpec {
-				return &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_VoiceClone{VoiceClone: &runtimev1.VoiceCloneScenarioSpec{
+				return &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_VoiceCreate{VoiceCreate: &runtimev1.VoiceCreateScenarioSpec{
 					TargetModelId: targetModelID,
-					Input:         resolveLiveVoiceCloneInput(t, "DASHSCOPE"),
+					Source:        &runtimev1.VoiceCreateScenarioSpec_ReferenceAudio{ReferenceAudio: resolveLiveVoiceReferenceAudioInput(t, "DASHSCOPE")},
 				}}}
 			},
 		},
@@ -73,7 +73,7 @@ func TestLiveSmokeDashScopeVoiceAssetNativeStream(t *testing.T) {
 		t.Skip("set NIMI_LIVE_DASHSCOPE_API_KEY to run DashScope voice asset native stream live smoke")
 	}
 	record, ok := providerregistry.Lookup("dashscope")
-	if !ok || !record.SupportsVoiceDesign || !record.SupportsTTS {
+	if !ok || !record.SupportsVoiceTextDescription || !record.SupportsTTS {
 		t.Skip("dashscope provider does not advertise required voice design and TTS capabilities")
 	}
 
@@ -84,7 +84,7 @@ func TestLiveSmokeDashScopeVoiceAssetNativeStream(t *testing.T) {
 
 func TestLiveSmokeDashScopeConnectorBoundVoiceAssetNativeStream(t *testing.T) {
 	record, ok := providerregistry.Lookup("dashscope")
-	if !ok || !record.SupportsVoiceDesign || !record.SupportsTTS {
+	if !ok || !record.SupportsVoiceTextDescription || !record.SupportsTTS {
 		t.Skip("dashscope provider does not advertise required voice design and TTS capabilities")
 	}
 	connectorID := strings.TrimSpace(os.Getenv("NIMI_LIVE_DASHSCOPE_CONNECTOR_ID"))
@@ -100,7 +100,7 @@ func TestLiveSmokeDashScopeConnectorBoundVoiceAssetNativeStream(t *testing.T) {
 
 func runLiveSmokeDashScopeVoiceAssetNativeStream(t *testing.T, harness liveSmokeProviderHarness) {
 	t.Helper()
-	voiceAssetID, targetModelID := createLiveDashScopeVoiceDesignAsset(t, harness)
+	voiceAssetID, targetModelID := createLiveDashScopeVoiceTextDescriptionAsset(t, harness)
 	ownerCtx := scenarioJobContext(liveSmokeMatrixAppID)
 	defer deleteLiveDashScopeVoiceAsset(t, harness.service, ownerCtx, voiceAssetID)
 
@@ -327,40 +327,44 @@ func runLiveSmokeDashScopeVoiceAssetBackedTTS(
 	}
 }
 
-func createLiveDashScopeVoiceDesignAsset(t *testing.T, harness liveSmokeProviderHarness) (string, string) {
+func createLiveDashScopeVoiceTextDescriptionAsset(t *testing.T, harness liveSmokeProviderHarness) (string, string) {
 	t.Helper()
 	const providerID = "dashscope"
 	const token = "DASHSCOPE"
-	workflowModelID := envModelIDForProvider(t, providerID, "VOICE_DESIGN_MODEL_ID", "TTS_MODEL_ID")
-	targetModelID := strings.TrimSpace(os.Getenv("NIMI_LIVE_" + token + "_VOICE_DESIGN_MODEL_ID_TARGET_MODEL_ID"))
+	workflowModelID := envModelIDForProvider(t, providerID, "VOICE_TEXT_DESCRIPTION_MODEL_ID", "TTS_MODEL_ID")
+	targetModelID := strings.TrimSpace(os.Getenv("NIMI_LIVE_" + token + "_VOICE_TEXT_DESCRIPTION_MODEL_ID_TARGET_MODEL_ID"))
 	if targetModelID == "" {
 		targetModelID = workflowModelID
 	}
 
-	submitResp, err := harness.service.SubmitScenarioJob(harness.scenarioContext(t, runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_DESIGN, workflowModelID), &runtimev1.SubmitScenarioJobRequest{
+	submitResp, err := harness.service.SubmitScenarioJob(harness.scenarioContext(t, runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CREATE, workflowModelID), &runtimev1.SubmitScenarioJobRequest{
 		Head:          harness.scenarioHead(t, liveSmokeMatrixAppID, liveSmokeMatrixUserID, workflowModelID, 120_000),
-		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_DESIGN,
+		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CREATE,
 		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB,
-		Spec: &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_VoiceDesign{VoiceDesign: &runtimev1.VoiceDesignScenarioSpec{
+		Spec: &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_VoiceCreate{VoiceCreate: &runtimev1.VoiceCreateScenarioSpec{
 			TargetModelId: targetModelID,
-			Input: &runtimev1.VoiceT2VInput{
-				InstructionText: liveSmokeVoiceDesignInstruction,
+			Source: &runtimev1.VoiceCreateScenarioSpec_TextDescription{TextDescription: &runtimev1.VoiceT2VInput{
+				InstructionText: liveSmokeVoiceTextDescriptionInstruction,
 				PreviewText:     "Hello from Nimi live DashScope native stream proof.",
 				PreferredName:   "nimi-live-native-stream-proof",
-			},
+			}},
 		}}},
 	})
 	if err != nil {
-		t.Fatalf("submit DashScope voice design for native stream proof failed: %v", err)
+		t.Fatalf("submit DashScope text-description voice creation for native stream proof failed: %v", err)
 	}
 	voiceAssetID := strings.TrimSpace(submitResp.GetAsset().GetVoiceAssetId())
 	if voiceAssetID == "" {
-		t.Fatalf("DashScope voice design must return voice asset")
+		t.Fatalf("DashScope text-description voice creation must return voice asset")
+	}
+	if reference := submitResp.GetVoiceReference(); reference.GetKind() != runtimev1.VoiceReferenceKind_VOICE_REFERENCE_KIND_VOICE_ASSET ||
+		strings.TrimSpace(reference.GetVoiceAssetId()) != voiceAssetID {
+		t.Fatalf("DashScope text-description voice creation returned mismatched voice reference")
 	}
 
 	workflowJob := waitLiveSmokeScenarioJob(t, harness.service, submitResp.GetJob().GetJobId())
 	if workflowJob.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED {
-		t.Fatalf("DashScope voice design job status not completed: %s reason=%s detail=%s", workflowJob.GetStatus().String(), workflowJob.GetReasonCode().String(), workflowJob.GetReasonDetail())
+		t.Fatalf("DashScope text-description voice creation job status not completed: %s reason=%s detail=%s", workflowJob.GetStatus().String(), workflowJob.GetReasonCode().String(), workflowJob.GetReasonDetail())
 	}
 	assetResp, err := harness.service.GetVoiceAsset(scenarioJobContext(liveSmokeMatrixAppID), &runtimev1.GetVoiceAssetRequest{VoiceAssetId: voiceAssetID})
 	if err != nil {

@@ -322,7 +322,7 @@ func (s *Service) installLocalAssetRecord(
 		record.Capabilities = defaultCapabilitiesForAssetKind(kind)
 	}
 	if isRunnableKind(kind) && len(record.GetCapabilities()) == 0 {
-		record.Capabilities = []string{"chat"}
+		record.Capabilities = []string{"text.generate"}
 	}
 
 	exactRebindID := ""

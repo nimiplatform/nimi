@@ -13,8 +13,8 @@ import tempfile
 from typing import Any
 
 
-VOICE_DESIGN_PREFIX = "qwen3_tts:design:"
-VOICE_CLONE_PREFIX = "qwen3_tts:clone:"
+VOICE_TEXT_DESCRIPTION_PREFIX = "qwen3_tts:text-description:"
+VOICE_REFERENCE_AUDIO_PREFIX = "qwen3_tts:reference-audio:"
 DEFAULT_TTS_MODEL = "Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice"
 DEFAULT_MAX_NEW_TOKENS = 256
 
@@ -56,10 +56,10 @@ def decode_handle_payload(token: str) -> dict[str, Any]:
 
 
 def decode_voice_handle(value: str) -> tuple[str, dict[str, Any] | None]:
-    if value.startswith(VOICE_DESIGN_PREFIX):
-        return "design", decode_handle_payload(value[len(VOICE_DESIGN_PREFIX) :])
-    if value.startswith(VOICE_CLONE_PREFIX):
-        return "clone", decode_handle_payload(value[len(VOICE_CLONE_PREFIX) :])
+    if value.startswith(VOICE_TEXT_DESCRIPTION_PREFIX):
+        return "text_description", decode_handle_payload(value[len(VOICE_TEXT_DESCRIPTION_PREFIX) :])
+    if value.startswith(VOICE_REFERENCE_AUDIO_PREFIX):
+        return "reference_audio", decode_handle_payload(value[len(VOICE_REFERENCE_AUDIO_PREFIX) :])
     return "", None
 
 
@@ -253,7 +253,7 @@ def handle_preflight(model_ref: str) -> dict[str, Any]:
         "driver_family": "qwen3_tts",
         "driver_backend": qwen_tts_backend_name(),
         "model_ref": model_ref,
-        "supports": ["audio.synthesize", "voice_workflow.voice_design", "voice_workflow.voice_clone"],
+        "supports": ["audio.synthesize", "voice.create"],
     }
     if version:
         response["qwen_tts_version"] = version
@@ -294,14 +294,14 @@ def write_audio_artifact(wav: Any, sample_rate: int) -> tuple[str, str]:
     return str(output_path), mimetypes.guess_type(str(output_path))[0] or "audio/wav"
 
 
-def build_design_handle(request: dict[str, Any]) -> dict[str, Any]:
+def build_text_description_handle(request: dict[str, Any]) -> dict[str, Any]:
     input_payload = request.get("input")
     if not isinstance(input_payload, dict):
-        fail("voice_workflow.voice_design requires input object")
+        fail("voice.create text_description requires input object")
     instruction_text = require_string(input_payload, "instruction_text")
     preferred_name = optional_string(input_payload, "preferred_name")
     handle = encode_voice_handle(
-        VOICE_DESIGN_PREFIX,
+        VOICE_TEXT_DESCRIPTION_PREFIX,
         {
             "instruction_text": instruction_text,
             "preferred_name": preferred_name,
@@ -316,19 +316,19 @@ def build_design_handle(request: dict[str, Any]) -> dict[str, Any]:
         "metadata": {
             "driver_family": "qwen3_tts",
             "driver_backend": qwen_tts_backend_name(),
-            "handle_kind": "design",
+            "creation_source": "text_description",
             "preferred_name": preferred_name,
         },
     }
 
 
-def build_clone_handle(request: dict[str, Any]) -> dict[str, Any]:
+def build_reference_audio_handle(request: dict[str, Any]) -> dict[str, Any]:
     input_payload = request.get("input")
     if not isinstance(input_payload, dict):
-        fail("voice_workflow.voice_clone requires input object")
+        fail("voice.create reference_audio requires input object")
     reference_audio_base64 = require_string(input_payload, "reference_audio_base64")
     handle = encode_voice_handle(
-        VOICE_CLONE_PREFIX,
+        VOICE_REFERENCE_AUDIO_PREFIX,
         {
             "reference_audio_base64": reference_audio_base64,
             "reference_audio_mime": optional_string(input_payload, "reference_audio_mime"),
@@ -344,7 +344,7 @@ def build_clone_handle(request: dict[str, Any]) -> dict[str, Any]:
         "metadata": {
             "driver_family": "qwen3_tts",
             "driver_backend": qwen_tts_backend_name(),
-            "handle_kind": "clone",
+            "creation_source": "reference_audio",
             "preferred_name": optional_string(input_payload, "preferred_name"),
         },
     }
@@ -447,10 +447,10 @@ def handle_synthesize(request: dict[str, Any], cli_default_model: str) -> dict[s
     model = load_qwen_tts_model(model_ref)
     voice = optional_string(request, "voice")
     handle_kind, handle_payload = decode_voice_handle(voice) if voice else ("", None)
-    if handle_kind == "design" and handle_payload is not None:
+    if handle_kind == "text_description" and handle_payload is not None:
         audio_path, content_type = synthesize_with_design_handle(model, request, handle_payload)
         return {"audio_path": audio_path, "content_type": content_type}
-    if handle_kind == "clone" and handle_payload is not None:
+    if handle_kind == "reference_audio" and handle_payload is not None:
         audio_path, content_type = synthesize_with_clone_handle(model, request, handle_payload)
         return {"audio_path": audio_path, "content_type": content_type}
 
@@ -468,10 +468,13 @@ def handle_request(request: dict[str, Any], cli_default_model: str) -> dict[str,
         return handle_preflight(model_ref)
     if operation == "audio.synthesize":
         return handle_synthesize(request, cli_default_model)
-    if operation == "voice_workflow.voice_design":
-        return build_design_handle(request)
-    if operation == "voice_workflow.voice_clone":
-        return build_clone_handle(request)
+    if operation == "voice.create":
+        creation_source = require_string(request, "creation_source")
+        if creation_source == "text_description":
+            return build_text_description_handle(request)
+        if creation_source == "reference_audio":
+            return build_reference_audio_handle(request)
+        fail(f"unsupported voice.create source: {creation_source}")
     fail(f"unsupported qwen3_tts operation: {operation}")
 
 

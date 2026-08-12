@@ -117,6 +117,9 @@ func TestBuildScenarioOutputFromArtifactsForWorld(t *testing.T) {
 	if !ok {
 		t.Fatalf("expected world_generate output, got %#v", output.GetOutput())
 	}
+	if field := value.WorldGenerate.ProtoReflect().Descriptor().Fields().ByName("model"); field != nil {
+		t.Fatalf("provider manifest model must not be projected: %v", field)
+	}
 	if value.WorldGenerate.GetWorldId() != "world-123" {
 		t.Fatalf("unexpected world id: %q", value.WorldGenerate.GetWorldId())
 	}
@@ -138,8 +141,8 @@ func TestBuildScenarioOutputFromArtifactsReturnsNilForUnsupportedScenarioTypes(t
 			scenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_UNSPECIFIED,
 		},
 		{
-			name:         "voice_clone",
-			scenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE,
+			name:         "reference_audio",
+			scenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CREATE,
 		},
 	}
 

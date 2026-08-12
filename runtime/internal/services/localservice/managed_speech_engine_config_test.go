@@ -81,6 +81,20 @@ func TestMaterializeSpeechExecutionHostUsesOnlyExactCapabilityPackageSet(t *test
 	}
 }
 
+func TestVoiceCreateExecutionHostUsesSelectedQwenImplementationPackageSet(t *testing.T) {
+	svc := newLocalEnvironmentTestService(t)
+	defer func() { svc.Close() }()
+	root := currentSpeechDependencyProfileRootForTest(t, svc, "speech.qwen3-tts.python")
+	upsertVerifiedSpeechPackageSetForTest(t, svc, "speech.qwen3-tts.python", root, "NIMI_RUNTIME_SPEECH_QWEN3_TTS_CMD", engine.SpeechQwen3TTSDriverPath)
+	cfg, err := svc.configuredManagedSpeechEngineConfigForCapability(capabilitydriver.VoiceCreateContract, capabilitydriver.Qwen3TTSDriverID, 18332)
+	if err != nil {
+		t.Fatalf("configure voice.create Host: %v", err)
+	}
+	if cfg.SpeechHostPackageSetRoot != root || cfg.SpeechQwen3TTSPackageSetRoot != root || cfg.SpeechQwen3ASRPackageSetRoot != "" || cfg.Port != 18332 {
+		t.Fatalf("voice.create Host config=%+v, want exact Qwen implementation package set %q", cfg, root)
+	}
+}
+
 func TestStopSpeechExecutionHostStopsExactManagedEngine(t *testing.T) {
 	svc := newLocalEnvironmentTestService(t)
 	defer func() { svc.Close() }()

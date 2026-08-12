@@ -125,9 +125,9 @@ func TestSubmitLocalAppScenarioJobRejectsOutOfClosedSetInput(t *testing.T) {
 				Source: &runtimev1.SpeechTranscriptionAudioSource_AudioChunks{AudioChunks: &runtimev1.AudioChunks{Chunks: [][]byte{[]byte("chunk")}}},
 			},
 		}}},
-		{Spec: &runtimev1.SubmitLocalAppScenarioJobRequest_VoiceClone{VoiceClone: &runtimev1.LocalAppVoiceCloneJobSpec{}}},
-		{Spec: &runtimev1.SubmitLocalAppScenarioJobRequest_VoiceDesign{VoiceDesign: &runtimev1.LocalAppVoiceDesignJobSpec{
-			Input: &runtimev1.VoiceT2VInput{InstructionText: strings.Repeat("x", maxLocalAppScenarioVideoContentText+1)},
+		{Spec: &runtimev1.SubmitLocalAppScenarioJobRequest_VoiceCreate{VoiceCreate: &runtimev1.LocalAppVoiceCreateJobSpec{}}},
+		{Spec: &runtimev1.SubmitLocalAppScenarioJobRequest_VoiceCreate{VoiceCreate: &runtimev1.LocalAppVoiceCreateJobSpec{
+			Source: &runtimev1.LocalAppVoiceCreateJobSpec_TextDescription{TextDescription: &runtimev1.VoiceT2VInput{InstructionText: strings.Repeat("x", maxLocalAppScenarioVideoContentText+1)}},
 		}}},
 	}
 	for index, request := range invalid {
@@ -208,13 +208,13 @@ func TestSubmitLocalAppSpeechJobAcceptsMinimalTypedSpecAndBindsOwner(t *testing.
 func TestSubmitLocalAppScenarioJobVoiceWorkflowDerivesTargetFromIntent(t *testing.T) {
 	svc := newTestService(nil)
 	if err := svc.aiConfigStore.Overwrite(context.Background(), "account-1",
-		appAIConfig("nimi.realm-persona-studio", grantlessCloudAIConfigIntent(t, "voice_workflow.voice_design"))); err != nil {
+		appAIConfig("nimi.realm-persona-studio", grantlessCloudAIConfigIntent(t, "voice.create"))); err != nil {
 		t.Fatalf("install Cloud App AIConfig: %v", err)
 	}
 	request := &runtimev1.SubmitLocalAppScenarioJobRequest{
-		Spec: &runtimev1.SubmitLocalAppScenarioJobRequest_VoiceDesign{
-			VoiceDesign: &runtimev1.LocalAppVoiceDesignJobSpec{
-				Input: &runtimev1.VoiceT2VInput{InstructionText: "warm narrator voice"},
+		Spec: &runtimev1.SubmitLocalAppScenarioJobRequest_VoiceCreate{
+			VoiceCreate: &runtimev1.LocalAppVoiceCreateJobSpec{
+				Source: &runtimev1.LocalAppVoiceCreateJobSpec_TextDescription{TextDescription: &runtimev1.VoiceT2VInput{InstructionText: "warm narrator voice"}},
 			},
 		},
 	}
@@ -227,24 +227,24 @@ func TestSubmitLocalAppScenarioJobVoiceWorkflowDerivesTargetFromIntent(t *testin
 	assertLocalAppTextCandidateError(t, err, codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONFIG_INVALID)
 }
 
-func TestSubmitLocalAppScenarioJobLocalVoiceWorkflowFailsClosed(t *testing.T) {
+func TestSubmitLocalAppScenarioJobLocalVoiceWorkflowRequiresSelectedImplementation(t *testing.T) {
 	svc := newTestService(nil)
 	if err := svc.aiConfigStore.Overwrite(context.Background(), "account-1", &runtimev1.AIConfig{
 		Owner:        derivedAppAIConfigOwner("nimi.realm-persona-studio"),
-		Capabilities: []*runtimev1.AIConfigCapabilityIntent{localAppAIConfigIntent("voice_workflow.voice_design")},
+		Capabilities: []*runtimev1.AIConfigCapabilityIntent{localAppAIConfigIntent("voice.create")},
 	}); err != nil {
 		t.Fatalf("install App AIConfig: %v", err)
 	}
 	request := &runtimev1.SubmitLocalAppScenarioJobRequest{
-		Spec: &runtimev1.SubmitLocalAppScenarioJobRequest_VoiceDesign{
-			VoiceDesign: &runtimev1.LocalAppVoiceDesignJobSpec{
-				Input: &runtimev1.VoiceT2VInput{InstructionText: "warm narrator voice"},
+		Spec: &runtimev1.SubmitLocalAppScenarioJobRequest_VoiceCreate{
+			VoiceCreate: &runtimev1.LocalAppVoiceCreateJobSpec{
+				Source: &runtimev1.LocalAppVoiceCreateJobSpec_TextDescription{TextDescription: &runtimev1.VoiceT2VInput{InstructionText: "warm narrator voice"}},
 			},
 		},
 	}
 	_, err := svc.SubmitLocalAppScenarioJob(
 		localAppScenarioJobContext(accountservice.LocalAppOperationScenarioJobSubmit, localappop.AppOperationIDScenarioJobSubmit), request)
-	assertLocalAppTextCandidateError(t, err, codes.FailedPrecondition, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
+	assertLocalAppTextCandidateError(t, err, codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_SELECTION_NOT_FOUND)
 }
 
 func createLocalAppScenarioJobForTest(

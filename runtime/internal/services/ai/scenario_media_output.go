@@ -100,7 +100,6 @@ func buildWorldGenerateResult(artifacts []*runtimev1.ScenarioArtifact) *runtimev
 			PanoURL           string            `json:"pano_url"`
 			ColliderMeshURL   string            `json:"collider_mesh_url"`
 			SPZURLs           map[string]string `json:"spz_urls"`
-			Model             string            `json:"model"`
 			SemanticsMetadata struct {
 				GroundPlaneOffset float64 `json:"ground_plane_offset"`
 				MetricScaleFactor float64 `json:"metric_scale_factor"`
@@ -116,7 +115,6 @@ func buildWorldGenerateResult(artifacts []*runtimev1.ScenarioArtifact) *runtimev
 		result.ThumbnailUrl = strings.TrimSpace(payload.ThumbnailURL)
 		result.PanoUrl = strings.TrimSpace(payload.PanoURL)
 		result.ColliderMeshUrl = strings.TrimSpace(payload.ColliderMeshURL)
-		result.Model = strings.TrimSpace(payload.Model)
 		if len(payload.SPZURLs) > 0 {
 			result.SpzUrls = payload.SPZURLs
 		}

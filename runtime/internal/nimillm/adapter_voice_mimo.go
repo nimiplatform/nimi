@@ -15,22 +15,22 @@ func executeMimoVoiceWorkflow(ctx context.Context, req VoiceWorkflowRequest, cfg
 	ctx = mediaAdapterEndpointPolicyContext(ctx, cfg)
 	workflow := strings.ToLower(strings.TrimSpace(req.WorkflowType))
 	switch workflow {
-	case "voice_clone":
+	case "reference_audio":
 		dataURI, err := resolveMimoWorkflowReferenceAudioDataURI(ctx, req.Payload)
 		if err != nil {
 			return VoiceWorkflowResult{}, err
 		}
 		return VoiceWorkflowResult{
-			ProviderVoiceRef: encodeMimoProviderVoiceRef("voice_clone", dataURI),
+			ProviderVoiceRef: encodeMimoProviderVoiceRef("reference_audio", dataURI),
 			Metadata: map[string]any{
 				"provider":          "mimo",
-				"workflow_type":     "voice_clone",
+				"creation_source":   "reference_audio",
 				"workflow_model_id": strings.TrimSpace(req.WorkflowModelID),
 				"adapter":           "nimillm_voice_adapter_mimo",
 				"persistence":       "session_ephemeral",
 			},
 		}, nil
-	case "voice_design":
+	case "text_description":
 		prompt := strings.TrimSpace(FirstNonEmpty(
 			ValueAsString(req.Payload["instruction_text"]),
 			ValueAsString(req.Payload["description"]),
@@ -41,10 +41,10 @@ func executeMimoVoiceWorkflow(ctx context.Context, req VoiceWorkflowRequest, cfg
 			return VoiceWorkflowResult{}, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_VOICE_INPUT_INVALID)
 		}
 		return VoiceWorkflowResult{
-			ProviderVoiceRef: encodeMimoProviderVoiceRef("voice_design", prompt),
+			ProviderVoiceRef: encodeMimoProviderVoiceRef("text_description", prompt),
 			Metadata: map[string]any{
 				"provider":          "mimo",
-				"workflow_type":     "voice_design",
+				"creation_source":   "text_description",
 				"workflow_model_id": strings.TrimSpace(req.WorkflowModelID),
 				"adapter":           "nimillm_voice_adapter_mimo",
 				"persistence":       "session_ephemeral",

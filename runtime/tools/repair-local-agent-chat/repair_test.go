@@ -317,6 +317,62 @@ func TestBuildRepairPlanRewritesLegacyExecutionTargetRefs(t *testing.T) {
 	}
 }
 
+func TestBuildRepairPlanRemovesRetiredLocalAppIdentityFields(t *testing.T) {
+	now := time.Date(2026, 8, 12, 4, 0, 0, 0, time.UTC)
+	anchor := testAnchor(
+		"anchor-only",
+		"2026-08-01T09:00:00Z",
+		"2026-08-01T10:00:00Z",
+		"desktop.app",
+		nil,
+		nil,
+	)
+	anchor["localAppPrincipalId"] = "retired-principal"
+	anchor["binding"] = map[string]any{
+		"ModelID":          "text.generate",
+		"localAppRecordId": "retired-record",
+		"futureField":      "preserved",
+	}
+	raw := marshalTestState(t, map[string]any{
+		"version":             20,
+		"anchors":             []any{anchor},
+		"followUps":           []any{},
+		"avatarLiveInstances": []any{},
+	})
+
+	plan, err := buildRepairPlan(raw, 20, now)
+	if err != nil {
+		t.Fatalf("buildRepairPlan: %v", err)
+	}
+	if plan.removedLegacyIdentityFields != 2 || !plan.hasChanges() {
+		t.Fatalf("retired identity fields were not planned: %+v", plan)
+	}
+	if plan.originalVersion != 20 || plan.repairedVersion != 21 {
+		t.Fatalf("versions: %d -> %d", plan.originalVersion, plan.repairedVersion)
+	}
+	root, err := decodeJSONObject(plan.raw, "repaired state")
+	if err != nil {
+		t.Fatalf("decode repaired state: %v", err)
+	}
+	anchors, err := decodeObjectArray(root["anchors"], "anchors")
+	if err != nil || len(anchors) != 1 {
+		t.Fatalf("decode repaired anchors: count=%d err=%v", len(anchors), err)
+	}
+	if _, exists := anchors[0]["localAppPrincipalId"]; exists {
+		t.Fatal("retired localAppPrincipalId was preserved")
+	}
+	binding, err := decodeJSONObject(anchors[0]["binding"], "binding")
+	if err != nil {
+		t.Fatalf("decode binding: %v", err)
+	}
+	if _, exists := binding["localAppRecordId"]; exists {
+		t.Fatal("retired localAppRecordId was preserved")
+	}
+	if value, err := requiredString(binding, "futureField"); err != nil || value != "preserved" {
+		t.Fatalf("future field=%q err=%v", value, err)
+	}
+}
+
 func TestBuildRepairPlanRejectsUnsupportedLegacyExecutionTargetRef(t *testing.T) {
 	anchor := testAnchor(
 		"anchor-only",

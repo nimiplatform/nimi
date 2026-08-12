@@ -66,7 +66,7 @@ func profileEntryUsesCanonicalImageResolution(entry *runtimev1.LocalProfileEntry
 }
 
 func assetKindMatchesCapability(kind runtimev1.LocalAssetKind, capability string) bool {
-	cap := normalizeLocalCapabilityToken(capability)
+	cap := strings.TrimSpace(capability)
 	if cap == "" {
 		return isRunnableKind(kind)
 	}
@@ -80,9 +80,11 @@ func assetKindMatchesCapability(kind runtimev1.LocalAssetKind, capability string
 	case runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_VIDEO:
 		return cap == "video.generate"
 	case runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_TTS:
-		return cap == "audio.synthesize"
+		return cap == "audio.synthesize" || cap == "voice.create"
 	case runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_STT:
 		return cap == "audio.transcribe"
+	case runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_AUXILIARY:
+		return cap == "music.generate"
 	default:
 		return false
 	}

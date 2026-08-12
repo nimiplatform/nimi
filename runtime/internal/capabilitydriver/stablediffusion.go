@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/aicapabilities"
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
@@ -113,7 +114,7 @@ func (StableDiffusionImageDriver) Interpret(input InterpretInput) ([]*runtimev1.
 	if reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED {
 		return nil, reason
 	}
-	if portable.enableInputImage != contains(features, inputImageFeature) {
+	if portable.enableInputImage != contains(features, aicapabilities.FeatureInputImage) {
 		return nil, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_FEATURE_UNSUPPORTED
 	}
 
@@ -456,11 +457,16 @@ func (StableDiffusionImageDriver) PlanImageInvocation(input ImageInvocationInput
 	if reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED {
 		return nil, invocationError(InvocationFailureInvalidConfig, fmt.Errorf("stable-diffusion portable config: %s", reason.String()))
 	}
+	features, reason := normalizedStableDiffusionFeatures(input.SupportedFeatures)
+	if reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED ||
+		portable.enableInputImage != contains(features, aicapabilities.FeatureInputImage) {
+		return nil, invocationError(InvocationFailureInvalidConfig, fmt.Errorf("stable-diffusion supported features do not match the portable configuration"))
+	}
 	bindings, orderedIDs, err := exactStableDiffusionInvocationBindings(portable, input.ExactBindings)
 	if err != nil {
 		return nil, invocationError(InvocationFailureInvalidBinding, err)
 	}
-	request, err := normalizeStableDiffusionImageRequest(input.Request, portable)
+	request, err := normalizeStableDiffusionImageRequest(input.Request, portable, features)
 	if err != nil {
 		return nil, err
 	}
@@ -578,6 +584,7 @@ type normalizedStableDiffusionImageRequest struct {
 func normalizeStableDiffusionImageRequest(
 	spec *runtimev1.ImageGenerateScenarioSpec,
 	portable stableDiffusionPortableConfig,
+	features []string,
 ) (normalizedStableDiffusionImageRequest, error) {
 	if spec == nil {
 		return normalizedStableDiffusionImageRequest{}, invocationError(InvocationFailureInvalidRequest, fmt.Errorf("image.generate request is required"))
@@ -620,8 +627,11 @@ func normalizeStableDiffusionImageRequest(
 		}
 	}
 	mask := strings.TrimSpace(spec.GetMask())
-	if (inputImage != "" || mask != "") && !portable.enableInputImage {
+	if inputImage != "" && !contains(features, aicapabilities.FeatureInputImage) {
 		return normalizedStableDiffusionImageRequest{}, invocationError(InvocationFailureUnsupported, fmt.Errorf("image.generate input.image is not declared by this configuration"))
+	}
+	if mask != "" && !contains(features, aicapabilities.FeatureInputMask) {
+		return normalizedStableDiffusionImageRequest{}, invocationError(InvocationFailureUnsupported, fmt.Errorf("image.generate input.mask is not declared by this configuration"))
 	}
 	if mask != "" && inputImage == "" {
 		return normalizedStableDiffusionImageRequest{}, invocationError(InvocationFailureInvalidRequest, fmt.Errorf("image.generate mask requires an input image"))
@@ -867,7 +877,7 @@ func normalizedStableDiffusionFeatures(features []string) ([]string, runtimev1.L
 	set := make(map[string]struct{}, len(features))
 	for _, feature := range features {
 		feature = strings.TrimSpace(feature)
-		if feature != inputImageFeature {
+		if feature != aicapabilities.FeatureInputImage && feature != aicapabilities.FeatureInputMask {
 			return nil, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_FEATURE_UNSUPPORTED
 		}
 		set[feature] = struct{}{}

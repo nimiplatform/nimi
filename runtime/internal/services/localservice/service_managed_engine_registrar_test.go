@@ -249,10 +249,10 @@ func TestManagedImageBackendPlatformSupport(t *testing.T) {
 	svc.SetManagedImageBackendHealth(true, "daemon-managed image backend active")
 
 	modelID := "local/image-model"
-	writeManagedGGUFManifestForRegistrarTest(t, modelsPath, modelID, "./weights/image-model.gguf", []string{"image"})
+	writeManagedGGUFManifestForRegistrarTest(t, modelsPath, modelID, "./weights/image-model.gguf", []string{"image.generate"})
 	installed := mustInstallSupervisedLocalModel(t, svc, installLocalAssetParams{
 		assetID:      modelID,
-		capabilities: []string{"image"},
+		capabilities: []string{"image.generate"},
 		engine:       "media",
 		entry:        "./weights/image-model.gguf",
 		repo:         "file://" + filepath.ToSlash(filepath.Join(modelsPath, "resolved", "nimi", slugifyLocalModelID(modelID), "asset.manifest.json")),

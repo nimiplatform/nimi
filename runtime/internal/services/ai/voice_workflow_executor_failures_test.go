@@ -27,11 +27,11 @@ func TestVoiceWorkflowFailCloseOnInvalidProviderResponse(t *testing.T) {
 	_, err := executeVoiceWorkflowViaNimillm(
 		context.Background(),
 		"dashscope",
-		voiceCloneRequest(),
+		voiceReferenceAudioRequest(),
 		catalog.ResolveVoiceWorkflowResult{
 			Provider:        "dashscope",
 			ModelID:         "dashscope/qwen3-tts-vc",
-			WorkflowType:    "voice_clone",
+			WorkflowType:    "reference_audio",
 			WorkflowModelID: "qwen-voice-enrollment",
 		},
 		nimillm.MediaAdapterConfig{BaseURL: server.URL, AllowLoopbackEndpoint: true, APIKey: "test-key"},
@@ -55,11 +55,11 @@ func TestVoiceWorkflowRejectsJobOnlyProviderResponse(t *testing.T) {
 	_, err := executeVoiceWorkflowViaNimillm(
 		context.Background(),
 		"dashscope",
-		voiceCloneRequest(),
+		voiceReferenceAudioRequest(),
 		catalog.ResolveVoiceWorkflowResult{
 			Provider:        "dashscope",
 			ModelID:         "dashscope/qwen3-tts-vc",
-			WorkflowType:    "voice_clone",
+			WorkflowType:    "reference_audio",
 			WorkflowModelID: "qwen-voice-enrollment",
 		},
 		nimillm.MediaAdapterConfig{BaseURL: server.URL, AllowLoopbackEndpoint: true, APIKey: "test-key"},
@@ -83,11 +83,11 @@ func TestVoiceWorkflowDoesNotSynthesizeProviderJobID(t *testing.T) {
 	result, err := executeVoiceWorkflowViaNimillm(
 		context.Background(),
 		"dashscope",
-		voiceCloneRequest(),
+		voiceReferenceAudioRequest(),
 		catalog.ResolveVoiceWorkflowResult{
 			Provider:        "dashscope",
 			ModelID:         "dashscope/qwen3-tts-vc",
-			WorkflowType:    "voice_clone",
+			WorkflowType:    "reference_audio",
 			WorkflowModelID: "qwen-voice-enrollment",
 		},
 		nimillm.MediaAdapterConfig{BaseURL: server.URL, AllowLoopbackEndpoint: true, APIKey: "test-key"},
@@ -112,8 +112,8 @@ func TestExecuteVoiceWorkflowJobPersistsWorkflowFamilyAndHandlePolicyMetadata(t 
 
 	fixture := newManagedCloudScenarioTestFixture(t, "dashscope", "qwen3-tts-vc", server.URL, Config{AllowLoopbackEndpoint: true})
 	svc := fixture.service
-	req := voiceCloneRequest()
-	ctx := withCloudScenarioTestIntent(scenarioJobUserContext(req.GetHead().GetAppId(), "user-001"), "voice_workflow.voice_clone", fixture.targetRef)
+	req := voiceReferenceAudioRequest()
+	ctx := withCloudScenarioTestIntent(scenarioJobUserContext(req.GetHead().GetAppId(), "user-001"), "voice.create", fixture.targetRef)
 	submitted, err := svc.SubmitScenarioJob(ctx, req)
 	if err != nil {
 		t.Fatalf("SubmitScenarioJob: %v", err)
@@ -152,10 +152,10 @@ func TestVoiceWorkflowRejectsUndeclaredStrictExtensionField(t *testing.T) {
 		t.Fatalf("build extension payload: %v", err)
 	}
 
-	req := voiceCloneRequest()
+	req := voiceReferenceAudioRequest()
 	req.Extensions = []*runtimev1.ScenarioExtension{
 		{
-			Namespace: "nimi.scenario.voice_clone.request",
+			Namespace: "nimi.scenario.voice_create.request",
 			Payload:   payload,
 		},
 	}
@@ -167,7 +167,7 @@ func TestVoiceWorkflowRejectsUndeclaredStrictExtensionField(t *testing.T) {
 		catalog.ResolveVoiceWorkflowResult{
 			Provider:        "dashscope",
 			ModelID:         "dashscope/qwen3-tts-vc",
-			WorkflowType:    "voice_clone",
+			WorkflowType:    "reference_audio",
 			WorkflowModelID: "qwen-voice-enrollment",
 		},
 		nimillm.MediaAdapterConfig{BaseURL: "https://example.invalid", APIKey: "test-key"},
@@ -187,10 +187,10 @@ func TestVoiceWorkflowRejectsLegacyExtensionKeys(t *testing.T) {
 		t.Fatalf("build extension payload: %v", err)
 	}
 
-	req := voiceCloneRequest()
+	req := voiceReferenceAudioRequest()
 	req.Extensions = []*runtimev1.ScenarioExtension{
 		{
-			Namespace: "nimi.scenario.voice_clone.request",
+			Namespace: "nimi.scenario.voice_create.request",
 			Payload:   payload,
 		},
 	}
@@ -202,7 +202,7 @@ func TestVoiceWorkflowRejectsLegacyExtensionKeys(t *testing.T) {
 		catalog.ResolveVoiceWorkflowResult{
 			Provider:        "dashscope",
 			ModelID:         "dashscope/qwen3-tts-vc",
-			WorkflowType:    "voice_clone",
+			WorkflowType:    "reference_audio",
 			WorkflowModelID: "qwen-voice-enrollment",
 		},
 		nimillm.MediaAdapterConfig{BaseURL: "https://example.invalid", APIKey: "test-key"},
@@ -217,10 +217,10 @@ func TestVoiceWorkflowRejectsLegacyExtensionKeys(t *testing.T) {
 }
 
 func TestVoiceWorkflowRejectsOversizedReferenceAudio(t *testing.T) {
-	req := voiceCloneRequest()
-	req.Spec.GetVoiceClone().Input.ReferenceAudioBytes = make([]byte, maxVoiceWorkflowReferenceAudioBytes+1)
-	req.Spec.GetVoiceClone().Input.ReferenceAudioMime = "audio/wav"
-	req.Spec.GetVoiceClone().Input.ReferenceAudioUri = ""
+	req := voiceReferenceAudioRequest()
+	req.Spec.GetVoiceCreate().GetReferenceAudio().ReferenceAudioBytes = make([]byte, maxVoiceWorkflowReferenceAudioBytes+1)
+	req.Spec.GetVoiceCreate().GetReferenceAudio().ReferenceAudioMime = "audio/wav"
+	req.Spec.GetVoiceCreate().GetReferenceAudio().ReferenceAudioUri = ""
 
 	_, err := executeVoiceWorkflowViaNimillm(
 		context.Background(),
@@ -229,7 +229,7 @@ func TestVoiceWorkflowRejectsOversizedReferenceAudio(t *testing.T) {
 		catalog.ResolveVoiceWorkflowResult{
 			Provider:        "dashscope",
 			ModelID:         "dashscope/qwen3-tts-vc",
-			WorkflowType:    "voice_clone",
+			WorkflowType:    "reference_audio",
 			WorkflowModelID: "qwen-voice-enrollment",
 		},
 		nimillm.MediaAdapterConfig{BaseURL: "https://example.invalid", APIKey: "test-key"},
@@ -245,18 +245,18 @@ func TestVoiceWorkflowRejectsOversizedReferenceAudio(t *testing.T) {
 
 func TestLocalVoiceWorkflowFailClose(t *testing.T) {
 	// local voice workflow must fail-close since there is no real local engine.
-	if capabilitydriver.ResolveCloudMediaAdapter("local", "voice_workflow.voice_clone") != "" {
+	if capabilitydriver.ResolveCloudMediaAdapter("local", "voice.create") != "" {
 		t.Fatalf("local should NOT have a voice workflow adapter; local must fail-close")
 	}
 
 	_, err := executeVoiceWorkflowViaNimillm(
 		context.Background(),
 		"local",
-		voiceCloneRequest(),
+		voiceReferenceAudioRequest(),
 		catalog.ResolveVoiceWorkflowResult{
 			Provider:        "local",
 			ModelID:         "local/qwen3-tts-local",
-			WorkflowType:    "voice_clone",
+			WorkflowType:    "reference_audio",
 			WorkflowModelID: "qwen3-local-voice-clone-prompt",
 		},
 		nimillm.MediaAdapterConfig{},
@@ -270,46 +270,46 @@ func TestLocalVoiceWorkflowFailClose(t *testing.T) {
 	}
 }
 
-func voiceCloneRequest() *runtimev1.SubmitScenarioJobRequest {
+func voiceReferenceAudioRequest() *runtimev1.SubmitScenarioJobRequest {
 	return &runtimev1.SubmitScenarioJobRequest{
 		Head: &runtimev1.ScenarioRequestHead{
 			AppId:         "app-1",
 			SubjectUserId: "user-1",
 		},
-		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE,
+		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CREATE,
 		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB,
 		Spec: &runtimev1.ScenarioSpec{
-			Spec: &runtimev1.ScenarioSpec_VoiceClone{VoiceClone: &runtimev1.VoiceCloneScenarioSpec{
+			Spec: &runtimev1.ScenarioSpec_VoiceCreate{VoiceCreate: &runtimev1.VoiceCreateScenarioSpec{
 				TargetModelId: "qwen3-tts-vc",
-				Input: &runtimev1.VoiceV2VInput{
+				Source: &runtimev1.VoiceCreateScenarioSpec_ReferenceAudio{ReferenceAudio: &runtimev1.VoiceV2VInput{
 					ReferenceAudioUri:  "https://example.com/reference.wav",
 					ReferenceAudioMime: "audio/wav",
 					LanguageHints:      []string{"en", "zh"},
 					PreferredName:      "test-clone-voice",
 					Text:               "",
-				},
+				}},
 			}},
 		},
 	}
 }
 
-func voiceDesignRequest() *runtimev1.SubmitScenarioJobRequest {
+func voiceTextDescriptionRequest() *runtimev1.SubmitScenarioJobRequest {
 	return &runtimev1.SubmitScenarioJobRequest{
 		Head: &runtimev1.ScenarioRequestHead{
 			AppId:         "app-1",
 			SubjectUserId: "user-1",
 		},
-		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_DESIGN,
+		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CREATE,
 		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB,
 		Spec: &runtimev1.ScenarioSpec{
-			Spec: &runtimev1.ScenarioSpec_VoiceDesign{VoiceDesign: &runtimev1.VoiceDesignScenarioSpec{
+			Spec: &runtimev1.ScenarioSpec_VoiceCreate{VoiceCreate: &runtimev1.VoiceCreateScenarioSpec{
 				TargetModelId: "eleven_ttv_v3",
-				Input: &runtimev1.VoiceT2VInput{
+				Source: &runtimev1.VoiceCreateScenarioSpec_TextDescription{TextDescription: &runtimev1.VoiceT2VInput{
 					InstructionText: "A warm, calm and natural female narrator voice.",
 					PreviewText:     "Hello from Nimi voice design.",
 					Language:        "en",
 					PreferredName:   "narrator-test",
-				},
+				}},
 			}},
 		},
 	}

@@ -3,80 +3,24 @@ package ai
 import (
 	"context"
 	"strings"
-	"sync"
 	"testing"
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/auditlog"
-	"github.com/nimiplatform/nimi/runtime/internal/authn"
-	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
-	"github.com/nimiplatform/nimi/runtime/internal/remoteexecution"
-	"github.com/nimiplatform/nimi/runtime/internal/runtimeidentity"
 	"github.com/nimiplatform/nimi/runtime/internal/scheduler"
-	"github.com/nimiplatform/nimi/runtime/internal/services/connector"
-	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/encoding/protojson"
 )
 
-type controlledRemoteTextHost struct {
-	started chan connector.ConnectorGrantSnapshot
-	release chan struct{}
-	cancel  bool
-	once    sync.Once
-}
-
-func newControlledRemoteTextHost(cancel bool) *controlledRemoteTextHost {
-	return &controlledRemoteTextHost{
-		started: make(chan connector.ConnectorGrantSnapshot, 1),
-		release: make(chan struct{}),
-		cancel:  cancel,
-	}
-}
-
-func (h *controlledRemoteTextHost) ExecuteText(
-	ctx context.Context,
-	grant connector.ConnectorGrantSnapshot,
-	_ capabilitydriver.CloudTextTarget,
-	_ *capabilitydriver.CloudTextMappedRequest,
-	_ remoteexecution.TextDispatchAudit,
-) (capabilitydriver.CloudTextTransportResponse, error) {
-	h.once.Do(func() { h.started <- grant })
-	if h.cancel {
-		<-ctx.Done()
-		return capabilitydriver.CloudTextTransportResponse{}, ctx.Err()
-	}
-	select {
-	case <-ctx.Done():
-		return capabilitydriver.CloudTextTransportResponse{}, ctx.Err()
-	case <-h.release:
-		return capabilitydriver.CloudTextTransportResponse{
-			Text:         "captured job completed",
-			FinishReason: runtimev1.FinishReason_FINISH_REASON_STOP,
-		}, nil
-	}
-}
-
-func (h *controlledRemoteTextHost) StreamText(
-	context.Context,
-	connector.ConnectorGrantSnapshot,
-	capabilitydriver.CloudTextTarget,
-	*capabilitydriver.CloudTextMappedRequest,
-	func(string) error,
-	remoteexecution.TextDispatchAudit,
-) (capabilitydriver.CloudTextTransportResponse, error) {
-	return capabilitydriver.CloudTextTransportResponse{}, context.Canceled
-}
-
-func TestCloudTextJobCapturesGrantAndSurvivesLaterRevocation(t *testing.T) {
-	fixture := newManagedCloudScenarioTestFixture(t, "openai", "gpt-4o-mini", "https://api.openai.com/v1", Config{})
+func TestCloudImageJobCapturesGrantAndSurvivesLaterRevocation(t *testing.T) {
+	fixture := newManagedCloudScenarioTestFixture(t, "openai", "gpt-image-1.5", "https://api.openai.com/v1", Config{})
 	audit := auditlog.New(64, 64)
 	fixture.service.audit = audit
-	host := newControlledRemoteTextHost(false)
-	fixture.service.SetRemoteTextExecutionHost(host)
-	ctx := cloudTextJobContext(fixture.targetRef)
-	req := cloudTextJobRequest("job survives grant revocation")
+	host := newControlledRemoteMediaHost(false)
+	fixture.service.SetRemoteMediaExecutionHost(host)
+	ctx := withCloudScenarioTestIntent(scenarioJobUserContext("nimi.desktop", "user-001"), "image.generate", fixture.targetRef)
+	req := cloudImageJobRequest("job survives grant revocation")
 
 	submitted, err := fixture.service.SubmitScenarioJob(ctx, req)
 	if err != nil {
@@ -93,7 +37,7 @@ func TestCloudTextJobCapturesGrantAndSurvivesLaterRevocation(t *testing.T) {
 		t.Fatalf("RevokeGrant after submit: %v", err)
 	}
 	close(host.release)
-	job := waitCloudTextJob(t, fixture.service, submitted.GetJob().GetJobId())
+	job := waitScenarioJobTerminal(t, fixture.service, submitted.GetJob().GetJobId(), 3*time.Second)
 	if job.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED {
 		t.Fatalf("captured job status = %s reason=%s", job.GetStatus(), job.GetReasonCode())
 	}
@@ -102,23 +46,23 @@ func TestCloudTextJobCapturesGrantAndSurvivesLaterRevocation(t *testing.T) {
 		t.Fatalf("query captured job after revoke: %v", err)
 	}
 	artifacts, err := fixture.service.GetScenarioArtifacts(queryCtx, &runtimev1.GetScenarioArtifactsRequest{JobId: job.GetJobId()})
-	if err != nil || len(artifacts.GetArtifacts()) != 1 || outputText(artifacts.GetOutput()) != "captured job completed" {
+	if err != nil || len(artifacts.GetArtifacts()) != 1 {
 		t.Fatalf("captured artifacts after revoke = %+v, %v", artifacts, err)
 	}
 
-	_, err = fixture.service.SubmitScenarioJob(ctx, cloudTextJobRequest("future job must fail"))
+	_, err = fixture.service.SubmitScenarioJob(ctx, cloudImageJobRequest("future job must fail"))
 	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_CONNECTOR_GRANT_REVOKED {
 		t.Fatalf("future job reason = %v present=%v err=%v", reason, ok, err)
 	}
-	assertCloudJobAndAuditContainNoSecret(t, job, audit, "test-key")
+	assertScenarioJobAndAuditContainNoSecret(t, job, audit, "test-key")
 }
 
-func TestCloudTextJobCancelStopsLocalWaitWithHonestTerminal(t *testing.T) {
-	fixture := newManagedCloudScenarioTestFixture(t, "openai", "gpt-4o-mini", "https://api.openai.com/v1", Config{})
-	host := newControlledRemoteTextHost(true)
-	fixture.service.SetRemoteTextExecutionHost(host)
-	ctx := cloudTextJobContext(fixture.targetRef)
-	submitted, err := fixture.service.SubmitScenarioJob(ctx, cloudTextJobRequest("cancel remote wait"))
+func TestCloudImageJobCancelStopsLocalWaitWithHonestTerminal(t *testing.T) {
+	fixture := newManagedCloudScenarioTestFixture(t, "openai", "gpt-image-1.5", "https://api.openai.com/v1", Config{})
+	host := newControlledRemoteMediaHost(true)
+	fixture.service.SetRemoteMediaExecutionHost(host)
+	ctx := withCloudScenarioTestIntent(scenarioJobUserContext("nimi.desktop", "user-001"), "image.generate", fixture.targetRef)
+	submitted, err := fixture.service.SubmitScenarioJob(ctx, cloudImageJobRequest("cancel remote wait"))
 	if err != nil {
 		t.Fatalf("SubmitScenarioJob: %v", err)
 	}
@@ -126,7 +70,7 @@ func TestCloudTextJobCancelStopsLocalWaitWithHonestTerminal(t *testing.T) {
 	if _, err := fixture.service.connStore.RevokeGrant("user-001", captured.Grant.GrantID); err != nil {
 		t.Fatalf("RevokeGrant after submit: %v", err)
 	}
-	canceled, err := fixture.service.CancelScenarioJob(ctx, &runtimev1.CancelScenarioJobRequest{
+	canceled, err := fixture.service.CancelScenarioJob(scenarioJobUserContext("nimi.desktop", "user-001"), &runtimev1.CancelScenarioJobRequest{
 		JobId: submitted.GetJob().GetJobId(), Reason: "user requested cancellation",
 	})
 	if err != nil {
@@ -135,32 +79,38 @@ func TestCloudTextJobCancelStopsLocalWaitWithHonestTerminal(t *testing.T) {
 	if canceled.GetJob().GetReasonDetail() != "user requested cancellation" {
 		t.Fatalf("cancel intent response = %+v", canceled.GetJob())
 	}
-	job := waitCloudTextJob(t, fixture.service, submitted.GetJob().GetJobId())
+	select {
+	case <-host.cancelObserved:
+	case <-time.After(2 * time.Second):
+		t.Fatal("cloud image cancellation was not forwarded")
+	}
+	close(host.allowCancelExit)
+	job := waitScenarioJobTerminal(t, fixture.service, submitted.GetJob().GetJobId(), 3*time.Second)
 	if job.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_CANCELED {
 		t.Fatalf("terminal status after transport cancellation = %s", job.GetStatus())
 	}
 }
 
-func TestCloudTextJobSchedulerLeaseCoversRemoteHostLifetime(t *testing.T) {
-	fixture := newManagedCloudScenarioTestFixture(t, "openai", "gpt-4o-mini", "https://api.openai.com/v1", Config{})
+func TestCloudImageJobSchedulerLeaseCoversRemoteHostLifetime(t *testing.T) {
+	fixture := newManagedCloudScenarioTestFixture(t, "openai", "gpt-image-1.5", "https://api.openai.com/v1", Config{})
 	fixture.service.scheduler = scheduler.New(scheduler.Config{GlobalConcurrency: 1, PerAppConcurrency: 1})
-	host := newControlledRemoteTextHost(false)
-	fixture.service.SetRemoteTextExecutionHost(host)
-	ctx := cloudTextJobContext(fixture.targetRef)
-	first, err := fixture.service.SubmitScenarioJob(ctx, cloudTextJobRequest("first scheduler-owned job"))
+	host := newControlledRemoteMediaHost(false)
+	fixture.service.SetRemoteMediaExecutionHost(host)
+	ctx := withCloudScenarioTestIntent(scenarioJobUserContext("nimi.desktop", "user-001"), "image.generate", fixture.targetRef)
+	first, err := fixture.service.SubmitScenarioJob(ctx, cloudImageJobRequest("first scheduler-owned job"))
 	if err != nil {
 		t.Fatalf("SubmitScenarioJob(first): %v", err)
 	}
 	select {
 	case <-host.started:
 	case <-time.After(2 * time.Second):
-		t.Fatal("first cloud text job did not enter Remote Host")
+		t.Fatal("first cloud image job did not enter Remote Host")
 	}
-	second, err := fixture.service.SubmitScenarioJob(ctx, cloudTextJobRequest("second scheduler-owned job"))
+	second, err := fixture.service.SubmitScenarioJob(ctx, cloudImageJobRequest("second scheduler-owned job"))
 	if err != nil {
 		t.Fatalf("SubmitScenarioJob(second): %v", err)
 	}
-	waitCloudTextJobStatus(t, fixture.service, second.GetJob().GetJobId(), runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_QUEUED)
+	waitForImageJobStatus(t, fixture.service, second.GetJob().GetJobId(), runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_QUEUED)
 	probeCtx, probeCancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
 	defer probeCancel()
 	probeRelease, _, probeErr := fixture.service.scheduler.Acquire(probeCtx, "other.app")
@@ -169,62 +119,26 @@ func TestCloudTextJobSchedulerLeaseCoversRemoteHostLifetime(t *testing.T) {
 		t.Fatal("scheduler lease was released before the active Remote Host execution completed")
 	}
 	close(host.release)
-	if job := waitCloudTextJob(t, fixture.service, first.GetJob().GetJobId()); job.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED {
-		t.Fatalf("first cloud text terminal = %+v", job)
+	if job := waitScenarioJobTerminal(t, fixture.service, first.GetJob().GetJobId(), 3*time.Second); job.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED {
+		t.Fatalf("first cloud image terminal = %+v", job)
 	}
-	if job := waitCloudTextJob(t, fixture.service, second.GetJob().GetJobId()); job.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED {
-		t.Fatalf("second cloud text terminal = %+v", job)
+	if job := waitScenarioJobTerminal(t, fixture.service, second.GetJob().GetJobId(), 3*time.Second); job.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED {
+		t.Fatalf("second cloud image terminal = %+v", job)
 	}
 }
 
-func cloudTextJobContext(target *runtimeidentity.Target) context.Context {
-	ctx := metadata.NewIncomingContext(context.Background(), metadata.Pairs("x-nimi-app-id", "nimi.desktop"))
-	ctx = authn.WithIdentity(ctx, &authn.Identity{SubjectUserID: "user-001"})
-	return withCloudScenarioTestIntent(ctx, "text.generate", &runtimeidentity.Target{Cloud: target.GetCloud().Clone()})
-}
-
-func cloudTextJobRequest(prompt string) *runtimev1.SubmitScenarioJobRequest {
+func cloudImageJobRequest(prompt string) *runtimev1.SubmitScenarioJobRequest {
 	return &runtimev1.SubmitScenarioJobRequest{
-		Head:          &runtimev1.ScenarioRequestHead{AppId: "nimi.desktop", SubjectUserId: "ignored", TimeoutMs: 30_000},
-		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE,
+		Head:          &runtimev1.ScenarioRequestHead{AppId: "nimi.desktop", SubjectUserId: "user-001", TimeoutMs: 30_000},
+		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE,
 		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB,
-		Spec: &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_TextGenerate{TextGenerate: &runtimev1.TextGenerateScenarioSpec{
-			Input: []*runtimev1.ChatMessage{{Role: "user", Content: prompt}},
+		Spec: &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_ImageGenerate{ImageGenerate: &runtimev1.ImageGenerateScenarioSpec{
+			Prompt: prompt,
 		}}},
 	}
 }
 
-func waitCloudTextJob(t *testing.T, svc *Service, jobID string) *runtimev1.ScenarioJob {
-	t.Helper()
-	deadline := time.Now().Add(3 * time.Second)
-	for time.Now().Before(deadline) {
-		job, ok := svc.scenarioJobs.get(jobID)
-		if ok && isTerminalScenarioJobStatus(job.GetStatus()) {
-			return job
-		}
-		time.Sleep(5 * time.Millisecond)
-	}
-	job, _ := svc.scenarioJobs.get(jobID)
-	t.Fatalf("cloud text job did not terminate: %+v", job)
-	return nil
-}
-
-func waitCloudTextJobStatus(t *testing.T, svc *Service, jobID string, want runtimev1.ScenarioJobStatus) *runtimev1.ScenarioJob {
-	t.Helper()
-	deadline := time.Now().Add(3 * time.Second)
-	for time.Now().Before(deadline) {
-		job, ok := svc.scenarioJobs.get(jobID)
-		if ok && job.GetStatus() == want {
-			return job
-		}
-		time.Sleep(5 * time.Millisecond)
-	}
-	job, _ := svc.scenarioJobs.get(jobID)
-	t.Fatalf("cloud text job did not reach %s: %+v", want, job)
-	return nil
-}
-
-func assertCloudJobAndAuditContainNoSecret(t *testing.T, job *runtimev1.ScenarioJob, audit *auditlog.Store, secret string) {
+func assertScenarioJobAndAuditContainNoSecret(t *testing.T, job *runtimev1.ScenarioJob, audit *auditlog.Store, secret string) {
 	t.Helper()
 	jobJSON, err := protojson.Marshal(job)
 	if err != nil {

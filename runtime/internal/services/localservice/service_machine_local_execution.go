@@ -9,6 +9,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
 	"github.com/nimiplatform/nimi/runtime/internal/ggufmeta"
 	"github.com/nimiplatform/nimi/runtime/internal/localexecution"
+	"github.com/nimiplatform/nimi/runtime/internal/runtimeidentity"
 	"google.golang.org/grpc/codes"
 )
 
@@ -167,6 +168,12 @@ func (s *Service) ResolveSelectedLocalExecution(capabilityContract string) (*loc
 		)
 	}
 
+	var executionTarget *runtimeidentity.Target
+	if len(resolvedBindings) == 1 && strings.TrimSpace(resolvedBindings[0].LocalAssetID) != "" {
+		executionTarget = &runtimeidentity.Target{Local: &runtimeidentity.LocalTarget{
+			ReadinessRef: durableLocalAssetReadinessRef(resolvedBindings[0].LocalAssetID),
+		}}
+	}
 	return &localexecution.SelectedLocalExecution{
 		ConfigurationID:          configurationID,
 		CapabilityContract:       capabilityContract,
@@ -177,6 +184,7 @@ func (s *Service) ResolveSelectedLocalExecution(capabilityContract string) (*loc
 		Requirements:             cloneLocalCapabilityRequirements(configuration.GetProjectedRequirements()),
 		ExactBindings:            resolvedBindings,
 		SupportedFeatures:        append([]string(nil), configuration.GetSupportedFeatures()...),
+		ExecutionTarget:          executionTarget,
 		Configured:               true,
 	}, nil
 }

@@ -23,7 +23,7 @@ func TestSearchCatalogModelsMergesVerifiedAndHuggingFaceSorted(t *testing.T) {
 				Title:        "Zeta Model",
 				ModelId:      "org/zeta-model",
 				Repo:         "org/zeta-model",
-				Capabilities: []string{"chat"},
+				Capabilities: []string{"text.generate"},
 				Engine:       "llama",
 				Verified:     false,
 			},
@@ -33,7 +33,7 @@ func TestSearchCatalogModelsMergesVerifiedAndHuggingFaceSorted(t *testing.T) {
 				Title:        "Alpha Community",
 				ModelId:      "org/alpha-community",
 				Repo:         "org/alpha-community",
-				Capabilities: []string{"chat"},
+				Capabilities: []string{"text.generate"},
 				Engine:       "llama",
 				Verified:     false,
 			},
@@ -86,7 +86,7 @@ func TestSearchCatalogModelsDedupesByModelAndEngine(t *testing.T) {
 				Title:        "Community Llama Dup",
 				ModelId:      "local/llama3.1",
 				Repo:         "nimiplatform/llama3.1-8b-instruct",
-				Capabilities: []string{"chat"},
+				Capabilities: []string{"text.generate"},
 				Engine:       "llama",
 				Verified:     false,
 			},
@@ -331,6 +331,39 @@ func TestHFCatalogUnknownPipelineFailsClosed(t *testing.T) {
 	}, "")
 	if ok || item != nil {
 		t.Fatalf("unknown pipeline row must be blocked, got ok=%v item=%v", ok, item)
+	}
+}
+
+func TestHFCatalogProjectsExternalPipelineCategoriesToCanonicalCapabilities(t *testing.T) {
+	tests := []struct {
+		pipeline string
+		want     string
+	}{
+		{pipeline: "text-generation", want: "text.generate"},
+		{pipeline: "feature-extraction", want: "text.embed"},
+		{pipeline: "text-to-image", want: "image.generate"},
+		{pipeline: "text-to-video", want: "video.generate"},
+		{pipeline: "text-to-speech", want: "audio.synthesize"},
+		{pipeline: "automatic-speech-recognition", want: "audio.transcribe"},
+	}
+	for _, test := range tests {
+		t.Run(test.pipeline, func(t *testing.T) {
+			capabilities := inferCapabilitiesFromHF(test.pipeline, nil)
+			if len(capabilities) != 1 || capabilities[0] != test.want {
+				t.Fatalf("capabilities=%v, want [%s]", capabilities, test.want)
+			}
+		})
+	}
+}
+
+func TestHFCatalogAmbiguousCrossKindRowFailsClosed(t *testing.T) {
+	item, ok := mapHFRowToCatalogItem(hfModelSearchEntry{
+		ID:          "org/ambiguous-model",
+		PipelineTag: "text-to-speech",
+		Tags:        []string{"text-generation"},
+	}, "")
+	if ok || item != nil {
+		t.Fatalf("cross-kind inferred row must be blocked, got ok=%v item=%v", ok, item)
 	}
 }
 

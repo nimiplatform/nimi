@@ -190,7 +190,7 @@ func (h *ProviderMediaHost) ExecuteVoiceWorkflow(
 		return capabilitydriver.CloudVoiceWorkflowTransportResponse{}, err
 	}
 	if request == nil || request.Adapter() == "" || request.Provider() != target.Provider() ||
-		(target.CapabilityContract() != "voice_workflow.voice_clone" && target.CapabilityContract() != "voice_workflow.voice_design") {
+		target.CapabilityContract() != "voice.create" {
 		err := grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONFIG_INVALID)
 		return capabilitydriver.CloudVoiceWorkflowTransportResponse{}, h.auditedError(audit, "error", err)
 	}

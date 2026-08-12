@@ -10,6 +10,7 @@ import (
 	"unicode"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/aicapabilities"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
 )
@@ -80,6 +81,9 @@ func canonicalizeCapability(capability *runtimev1.AIConfigCapabilityIntent) erro
 	if err := requireExactNonEmpty("capability_contract", contract); err != nil {
 		return err
 	}
+	if !aicapabilities.IsCanonicalCatalogCapability(contract) {
+		return fmt.Errorf("capability_contract %q is not in the canonical capability catalog", contract)
+	}
 
 	seenFeatures := make(map[string]struct{}, len(capability.GetRequiredFeatures()))
 	for _, feature := range capability.GetRequiredFeatures() {
@@ -88,6 +92,9 @@ func canonicalizeCapability(capability *runtimev1.AIConfigCapabilityIntent) erro
 		}
 		if strings.HasPrefix(feature, contract+".") {
 			return fmt.Errorf("capability %q: required_feature %q must be contract-local", contract, feature)
+		}
+		if !aicapabilities.SupportsStandardizedFeature(contract, feature) {
+			return fmt.Errorf("capability %q: required_feature %q is not in the standardized feature vocabulary", contract, feature)
 		}
 		if _, exists := seenFeatures[feature]; exists {
 			return fmt.Errorf("capability %q: duplicate required_feature %q", contract, feature)

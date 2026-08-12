@@ -76,7 +76,7 @@ func defaultCapabilitiesForAssetKind(kind runtimev1.LocalAssetKind) []string {
 	case runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_EMBEDDING:
 		return []string{"text.embed"}
 	case runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_CHAT:
-		return []string{"chat"}
+		return []string{"text.generate"}
 	default:
 		return nil
 	}
@@ -84,6 +84,8 @@ func defaultCapabilitiesForAssetKind(kind runtimev1.LocalAssetKind) []string {
 
 func defaultArtifactRolesForAssetKind(kind runtimev1.LocalAssetKind) []string {
 	switch kind {
+	case runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_EMBEDDING:
+		return []string{"embedding"}
 	case runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_TTS:
 		return []string{"tts_model"}
 	case runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_STT:
@@ -103,11 +105,7 @@ func normalizeAssetCapabilities(capabilities []string) []string {
 		if trimmed == "" {
 			continue
 		}
-		if strings.EqualFold(trimmed, "chat") {
-			normalized = append(normalized, "chat")
-			continue
-		}
-		switch normalizeLocalCapabilityToken(trimmed) {
+		switch trimmed {
 		case "text.generate":
 			normalized = append(normalized, "text.generate")
 		case "text.embed":
@@ -120,6 +118,10 @@ func normalizeAssetCapabilities(capabilities []string) []string {
 			normalized = append(normalized, "audio.synthesize")
 		case "audio.transcribe":
 			normalized = append(normalized, "audio.transcribe")
+		case "voice.create":
+			normalized = append(normalized, "voice.create")
+		case "music.generate":
+			normalized = append(normalized, "music.generate")
 		default:
 			normalized = append(normalized, trimmed)
 		}
@@ -127,47 +129,45 @@ func normalizeAssetCapabilities(capabilities []string) []string {
 	return normalizeStringSlice(normalized)
 }
 
-// inferAssetKindFromCapabilities derives the asset kind from the first
-// matching capability token. Returns CHAT as the default for runnable assets
-// when no capability maps to a known kind.
+// inferAssetKindFromCapabilities accepts only an exact, order-independent
+// CapabilityContract-to-kind mapping. Unknown or cross-kind capability sets
+// fail closed as UNSPECIFIED; callers must not guess a default kind.
 func inferAssetKindFromCapabilities(capabilities []string) runtimev1.LocalAssetKind {
 	normalizedCapabilities := normalizeAssetCapabilities(capabilities)
-	if localAssetHasCapability(normalizedCapabilities, "chat", "text.generate") {
-		return runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_CHAT
+	resolved := runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_UNSPECIFIED
+	for _, capability := range normalizedCapabilities {
+		kind := runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_UNSPECIFIED
+		switch capability {
+		case "text.generate":
+			kind = runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_CHAT
+		case "text.embed":
+			kind = runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_EMBEDDING
+		case "image.generate":
+			kind = runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_IMAGE
+		case "video.generate":
+			kind = runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_VIDEO
+		case "audio.synthesize", "voice.create":
+			kind = runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_TTS
+		case "audio.transcribe":
+			kind = runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_STT
+		case "music.generate":
+			kind = runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_AUXILIARY
+		default:
+			return runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_UNSPECIFIED
+		}
+		if resolved != runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_UNSPECIFIED && resolved != kind {
+			return runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_UNSPECIFIED
+		}
+		resolved = kind
 	}
-	if localAssetHasCapability(normalizedCapabilities, "embedding", "embed", "text.embed") {
-		return runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_EMBEDDING
-	}
-	if localAssetHasCapability(normalizedCapabilities, "image", "image.generate") {
-		return runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_IMAGE
-	}
-	if localAssetHasCapability(normalizedCapabilities, "video", "video.generate") {
-		return runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_VIDEO
-	}
-	if localAssetHasCapability(normalizedCapabilities, "tts", "audio.synthesize", "voice_workflow.voice_clone", "voice_workflow.voice_design") {
-		return runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_TTS
-	}
-	if localAssetHasCapability(normalizedCapabilities, "stt", "audio.transcribe") {
-		return runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_STT
-	}
-	return runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_CHAT
+	return resolved
 }
 
 func effectiveAssetKind(kind runtimev1.LocalAssetKind, capabilities []string) runtimev1.LocalAssetKind {
-	normalizedCapabilities := normalizeAssetCapabilities(capabilities)
-	hasTextGenerate := localAssetHasCapability(normalizedCapabilities, "chat", "text.generate")
-	hasTextEmbed := localAssetHasCapability(normalizedCapabilities, "embedding", "embed", "text.embed")
-	switch kind {
-	case runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_CHAT:
-		if !hasTextGenerate && hasTextEmbed {
-			return runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_EMBEDDING
-		}
-	case runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_EMBEDDING:
-		if hasTextGenerate {
-			return runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_CHAT
-		}
+	if kind != runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_UNSPECIFIED {
+		return kind
 	}
-	return kind
+	return inferAssetKindFromCapabilities(capabilities)
 }
 
 func slugifyLocalAssetID(assetID string) string {

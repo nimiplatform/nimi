@@ -937,7 +937,7 @@ func TestStartModelAssetDependencyJobPromotesVerifiedSelectedSource(t *testing.T
 	svc := newTestService(t)
 	model := mustInstallSupervisedLocalModel(t, svc, installLocalAssetParams{
 		assetID:      "image/test-model-asset",
-		capabilities: []string{"image"},
+		capabilities: []string{"image.generate"},
 		engine:       "media",
 		entry:        "model.safetensors",
 		hashes:       map[string]string{"model.safetensors": "sha256:b899bf805912441a8767d3e01859281ab3a1cd7b18edea93f5e54c18b648b54c"},
@@ -983,7 +983,7 @@ func TestStartModelAssetDependencyJobPromotesInstalledImportedAssetID(t *testing
 	}
 	imported, err := svc.ImportLocalAssetFile(context.Background(), &runtimev1.ImportLocalAssetFileRequest{
 		FilePath:     sourcePath,
-		Capabilities: []string{"image"},
+		Capabilities: []string{"image.generate"},
 		Engine:       "media",
 	})
 	if err != nil {
@@ -1027,7 +1027,7 @@ func TestStartModelCompanionDependencyJobRequiresParentModelAssetRecord(t *testi
 	svc.SetLocalEnvironmentPrerequisiteWaitTimeout(100 * time.Millisecond)
 	companion := mustInstallSupervisedLocalModel(t, svc, installLocalAssetParams{
 		assetID:      "image/test-companion",
-		capabilities: []string{"image"},
+		capabilities: []string{"image.generate"},
 		engine:       "media",
 		entry:        "vae.safetensors",
 	})
@@ -1053,13 +1053,13 @@ func TestStartModelCompanionDependencyJobPromotesVerifiedSelectedSource(t *testi
 	svc := newTestService(t)
 	parent := mustInstallSupervisedLocalModel(t, svc, installLocalAssetParams{
 		assetID:      "image/test-parent",
-		capabilities: []string{"image"},
+		capabilities: []string{"image.generate"},
 		engine:       "media",
 		entry:        "model.safetensors",
 	})
 	companion := mustInstallSupervisedLocalModel(t, svc, installLocalAssetParams{
 		assetID:      "image/test-vae",
-		capabilities: []string{"image"},
+		capabilities: []string{"image.generate"},
 		engine:       "media",
 		entry:        "vae.safetensors",
 	})

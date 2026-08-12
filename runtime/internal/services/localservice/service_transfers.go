@@ -24,6 +24,7 @@ const (
 	localTransferStateFailed    = "failed"
 	localTransferStateCompleted = "completed"
 	localTransferStateCancelled = "cancelled"
+	localTransferStreamBudget   = 32
 
 	localTransferKindDownload = "download"
 	localTransferKindImport   = "import"
@@ -360,7 +361,7 @@ func (s *Service) publishTransferEventLocked(event *runtimev1.LocalTransferProgr
 func (s *Service) addTransferSubscriberLocked() (uint64, chan *runtimev1.LocalTransferProgressEvent) {
 	s.transferSubscriberSeq++
 	id := s.transferSubscriberSeq
-	ch := make(chan *runtimev1.LocalTransferProgressEvent, 32)
+	ch := make(chan *runtimev1.LocalTransferProgressEvent, localTransferStreamBudget)
 	s.transferSubscribers[id] = ch
 	return id, ch
 }
@@ -468,7 +469,7 @@ func (s *Service) CancelLocalTransfer(_ context.Context, req *runtimev1.CancelLo
 
 func (s *Service) WatchLocalTransfers(_ *runtimev1.WatchLocalTransfersRequest, stream grpc.ServerStreamingServer[runtimev1.LocalTransferProgressEvent]) error {
 	relay := streamutil.NewRelay(streamutil.RelayOptions[*runtimev1.LocalTransferProgressEvent]{
-		Budget:              32,
+		Budget:              localTransferStreamBudget,
 		MaxConsecutiveDrops: 3,
 		CloseErr:            status.Error(codes.ResourceExhausted, "slow consumer"),
 		IsTerminal: func(event *runtimev1.LocalTransferProgressEvent) bool {
@@ -490,6 +491,9 @@ func (s *Service) WatchLocalTransfers(_ *runtimev1.WatchLocalTransfersRequest, s
 	s.mu.Lock()
 	subscriberID, updates := s.addTransferSubscriberLocked()
 	existing := s.listLocalTransferSummariesLocked()
+	if len(existing) > localTransferStreamBudget {
+		existing = existing[:localTransferStreamBudget]
+	}
 	s.mu.Unlock()
 	defer s.removeTransferSubscriber(subscriberID)
 

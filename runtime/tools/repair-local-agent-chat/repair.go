@@ -62,19 +62,20 @@ type repairOptions struct {
 }
 
 type repairResult struct {
-	Applicable               bool
-	SkipReason               string
-	Applied                  bool
-	BackupPath               string
-	OriginalVersion          uint64
-	RepairedVersion          uint64
-	DuplicateGroups          []duplicateGroupResult
-	ReactivatedAnchorIDs     []string
-	RewrittenAnchorRefs      int
-	RewrittenTargetRefs      int
-	RewrittenFollowUpRefs    int
-	RewrittenAvatarRefs      int
-	RemovedAnchorMetadataKey []string
+	Applicable                  bool
+	SkipReason                  string
+	Applied                     bool
+	BackupPath                  string
+	OriginalVersion             uint64
+	RepairedVersion             uint64
+	DuplicateGroups             []duplicateGroupResult
+	ReactivatedAnchorIDs        []string
+	RewrittenAnchorRefs         int
+	RewrittenTargetRefs         int
+	RemovedLegacyIdentityFields int
+	RewrittenFollowUpRefs       int
+	RewrittenAvatarRefs         int
+	RemovedAnchorMetadataKey    []string
 }
 
 type duplicateGroupResult struct {
@@ -86,16 +87,17 @@ type duplicateGroupResult struct {
 }
 
 type repairPlan struct {
-	raw                      []byte
-	originalVersion          uint64
-	repairedVersion          uint64
-	groups                   []duplicateGroupResult
-	reactivatedAnchorIDs     []string
-	rewrittenAnchorRefs      int
-	rewrittenTargetRefs      int
-	rewrittenFollowUpRefs    int
-	rewrittenAvatarRefs      int
-	removedAnchorMetadataKey []string
+	raw                         []byte
+	originalVersion             uint64
+	repairedVersion             uint64
+	groups                      []duplicateGroupResult
+	reactivatedAnchorIDs        []string
+	rewrittenAnchorRefs         int
+	rewrittenTargetRefs         int
+	removedLegacyIdentityFields int
+	rewrittenFollowUpRefs       int
+	rewrittenAvatarRefs         int
+	removedAnchorMetadataKey    []string
 }
 
 type anchorDocument struct {
@@ -180,22 +182,24 @@ func repairDatabase(ctx context.Context, options repairOptions) (repairResult, e
 
 func resultFromPlan(plan repairPlan) repairResult {
 	return repairResult{
-		Applicable:               true,
-		OriginalVersion:          plan.originalVersion,
-		RepairedVersion:          plan.repairedVersion,
-		DuplicateGroups:          append([]duplicateGroupResult(nil), plan.groups...),
-		ReactivatedAnchorIDs:     append([]string(nil), plan.reactivatedAnchorIDs...),
-		RewrittenAnchorRefs:      plan.rewrittenAnchorRefs,
-		RewrittenTargetRefs:      plan.rewrittenTargetRefs,
-		RewrittenFollowUpRefs:    plan.rewrittenFollowUpRefs,
-		RewrittenAvatarRefs:      plan.rewrittenAvatarRefs,
-		RemovedAnchorMetadataKey: append([]string(nil), plan.removedAnchorMetadataKey...),
+		Applicable:                  true,
+		OriginalVersion:             plan.originalVersion,
+		RepairedVersion:             plan.repairedVersion,
+		DuplicateGroups:             append([]duplicateGroupResult(nil), plan.groups...),
+		ReactivatedAnchorIDs:        append([]string(nil), plan.reactivatedAnchorIDs...),
+		RewrittenAnchorRefs:         plan.rewrittenAnchorRefs,
+		RewrittenTargetRefs:         plan.rewrittenTargetRefs,
+		RemovedLegacyIdentityFields: plan.removedLegacyIdentityFields,
+		RewrittenFollowUpRefs:       plan.rewrittenFollowUpRefs,
+		RewrittenAvatarRefs:         plan.rewrittenAvatarRefs,
+		RemovedAnchorMetadataKey:    append([]string(nil), plan.removedAnchorMetadataKey...),
 	}
 }
 
 func (p repairPlan) hasChanges() bool {
 	return len(p.groups) != 0 || len(p.reactivatedAnchorIDs) != 0 ||
-		p.rewrittenAnchorRefs != 0 || p.rewrittenTargetRefs != 0
+		p.rewrittenAnchorRefs != 0 || p.rewrittenTargetRefs != 0 ||
+		p.removedLegacyIdentityFields != 0
 }
 
 func validateDatabasePath(input string) (string, error) {
@@ -412,6 +416,10 @@ func buildRepairPlan(raw []byte, persistedVersion uint64, now time.Time) (repair
 	if err != nil {
 		return repairPlan{}, err
 	}
+	removedLegacyIdentityFields, err := removeRetiredLocalAppIdentityFields(root)
+	if err != nil {
+		return repairPlan{}, err
+	}
 	rewrittenTargetRefs, err := rewriteLegacyExecutionTargetRefs(root)
 	if err != nil {
 		return repairPlan{}, err
@@ -500,7 +508,9 @@ func buildRepairPlan(raw []byte, persistedVersion uint64, now time.Time) (repair
 	}
 	sort.Strings(reactivatedAnchorIDs)
 	if len(groupKeys) == 0 && len(reactivatedAnchorIDs) == 0 && rewrittenAnchorRefs == 0 && rewrittenTargetRefs == 0 {
-		return repairPlan{raw: append([]byte(nil), raw...), originalVersion: originalVersion, repairedVersion: originalVersion}, nil
+		if removedLegacyIdentityFields == 0 {
+			return repairPlan{raw: append([]byte(nil), raw...), originalVersion: originalVersion, repairedVersion: originalVersion}, nil
+		}
 	}
 	root["anchors"], err = json.Marshal(repairedAnchors)
 	if err != nil {
@@ -549,17 +559,75 @@ func buildRepairPlan(raw []byte, persistedVersion uint64, now time.Time) (repair
 	}
 	sort.Strings(metadataKeys)
 	return repairPlan{
-		raw:                      repairedRaw,
-		originalVersion:          originalVersion,
-		repairedVersion:          repairedVersion,
-		groups:                   groupResults,
-		reactivatedAnchorIDs:     reactivatedAnchorIDs,
-		rewrittenAnchorRefs:      rewrittenAnchorRefs,
-		rewrittenTargetRefs:      rewrittenTargetRefs,
-		rewrittenFollowUpRefs:    rewrittenFollowUpRefs,
-		rewrittenAvatarRefs:      rewrittenAvatarRefs,
-		removedAnchorMetadataKey: metadataKeys,
+		raw:                         repairedRaw,
+		originalVersion:             originalVersion,
+		repairedVersion:             repairedVersion,
+		groups:                      groupResults,
+		reactivatedAnchorIDs:        reactivatedAnchorIDs,
+		rewrittenAnchorRefs:         rewrittenAnchorRefs,
+		rewrittenTargetRefs:         rewrittenTargetRefs,
+		removedLegacyIdentityFields: removedLegacyIdentityFields,
+		rewrittenFollowUpRefs:       rewrittenFollowUpRefs,
+		rewrittenAvatarRefs:         rewrittenAvatarRefs,
+		removedAnchorMetadataKey:    metadataKeys,
 	}, nil
+}
+
+func removeRetiredLocalAppIdentityFields(root map[string]json.RawMessage) (int, error) {
+	count := 0
+	for key, value := range root {
+		switch key {
+		case "localAppPrincipalId", "localAppRecordId":
+			delete(root, key)
+			count++
+			continue
+		}
+		rewritten, removed, err := removeRetiredLocalAppIdentityFieldsJSON(value)
+		if err != nil {
+			return 0, fmt.Errorf("remove retired Local App identity fields in %s: %w", key, err)
+		}
+		root[key] = rewritten
+		count += removed
+	}
+	return count, nil
+}
+
+func removeRetiredLocalAppIdentityFieldsJSON(raw json.RawMessage) (json.RawMessage, int, error) {
+	trimmed := bytes.TrimSpace(raw)
+	if len(trimmed) == 0 {
+		return append(json.RawMessage(nil), raw...), 0, nil
+	}
+	switch trimmed[0] {
+	case '{':
+		fields, err := decodeJSONObject(trimmed, "retired Local App identity container")
+		if err != nil {
+			return nil, 0, err
+		}
+		count, err := removeRetiredLocalAppIdentityFields(fields)
+		if err != nil {
+			return nil, 0, err
+		}
+		out, err := json.Marshal(fields)
+		return out, count, err
+	case '[':
+		var items []json.RawMessage
+		if err := decodeJSON(trimmed, &items, "retired Local App identity container array"); err != nil {
+			return nil, 0, err
+		}
+		count := 0
+		for index, item := range items {
+			rewritten, removed, err := removeRetiredLocalAppIdentityFieldsJSON(item)
+			if err != nil {
+				return nil, 0, err
+			}
+			items[index] = rewritten
+			count += removed
+		}
+		out, err := json.Marshal(items)
+		return out, count, err
+	default:
+		return append(json.RawMessage(nil), raw...), 0, nil
+	}
 }
 
 func rewriteLegacyExecutionTargetRefs(root map[string]json.RawMessage) (int, error) {

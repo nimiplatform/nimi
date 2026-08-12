@@ -18,9 +18,9 @@ func executeElevenLabsVoiceWorkflow(ctx context.Context, req VoiceWorkflowReques
 	ctx = mediaAdapterEndpointPolicyContext(ctx, cfg)
 	workflow := strings.ToLower(strings.TrimSpace(req.WorkflowType))
 	switch workflow {
-	case "voice_clone":
+	case "reference_audio":
 		return executeElevenLabsInstantVoiceClone(ctx, req, cfg)
-	case "voice_design":
+	case "text_description":
 		return executeElevenLabsTwoPhaseDesign(ctx, req, cfg)
 	default:
 		return VoiceWorkflowResult{}, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_VOICE_WORKFLOW_UNSUPPORTED)
@@ -77,7 +77,7 @@ func executeElevenLabsTwoPhaseDesign(ctx context.Context, req VoiceWorkflowReque
 				ProviderVoiceRef: voiceRef,
 				Metadata: map[string]any{
 					"provider":          "elevenlabs",
-					"workflow_type":     strings.TrimSpace(req.WorkflowType),
+					"creation_source":   strings.TrimSpace(req.WorkflowType),
 					"workflow_model_id": strings.TrimSpace(req.WorkflowModelID),
 					"adapter":           "nimillm_voice_adapter_elevenlabs",
 					"endpoint":          "/v1/text-to-voice/design",
@@ -111,7 +111,7 @@ func executeElevenLabsTwoPhaseDesign(ctx context.Context, req VoiceWorkflowReque
 		ProviderVoiceRef: providerVoiceRef,
 		Metadata: map[string]any{
 			"provider":           "elevenlabs",
-			"workflow_type":      strings.TrimSpace(req.WorkflowType),
+			"creation_source":    strings.TrimSpace(req.WorkflowType),
 			"workflow_model_id":  strings.TrimSpace(req.WorkflowModelID),
 			"adapter":            "nimillm_voice_adapter_elevenlabs",
 			"endpoint":           createPath,
@@ -173,7 +173,7 @@ func executeElevenLabsInstantVoiceClone(ctx context.Context, req VoiceWorkflowRe
 		ProviderVoiceRef: providerVoiceRef,
 		Metadata: map[string]any{
 			"provider":          "elevenlabs",
-			"workflow_type":     strings.TrimSpace(req.WorkflowType),
+			"creation_source":   strings.TrimSpace(req.WorkflowType),
 			"workflow_model_id": strings.TrimSpace(req.WorkflowModelID),
 			"adapter":           "nimillm_voice_adapter_elevenlabs",
 			"endpoint":          path,

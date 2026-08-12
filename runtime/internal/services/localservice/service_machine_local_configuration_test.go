@@ -24,6 +24,20 @@ const (
 	testMMProjContent = "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
 )
 
+func TestMachineLocalConfigurationRejectsLosingCapabilityIdentityAtWriteBoundary(t *testing.T) {
+	service := newMachineLocalConfigurationTestService(t, t.TempDir())
+	for _, capabilityContract := range []string{"text.generate.vision", "image.edit", "TEXT.GENERATE"} {
+		response, err := service.AddLocalCapabilityConfiguration(context.Background(), &runtimev1.AddLocalCapabilityConfigurationRequest{
+			CapabilityContract: capabilityContract,
+			Implementation:     llamaIdentityForTest(),
+			DisplayName:        "Rejected legacy configuration",
+		})
+		if response != nil || status.Code(err) != codes.InvalidArgument {
+			t.Fatalf("AddLocalCapabilityConfiguration(%q) = %#v, %v", capabilityContract, response, err)
+		}
+	}
+}
+
 func TestMachineLocalConfigurationAddProjectsTextAndImageIntent(t *testing.T) {
 	service := newMachineLocalConfigurationTestService(t, t.TempDir())
 

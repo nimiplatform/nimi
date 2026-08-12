@@ -18,8 +18,11 @@ func TestQwen3SpeechProductionRegistryProjectsExactAssetKinds(t *testing.T) {
 		resourceKind string
 		assetKind    runtimev1.LocalAssetKind
 		artifactRole string
+		features     []string
 	}{
 		{name: "tts", contract: AudioSynthesizeContract, identity: Identity{ImplementationID: Qwen3TTSImplementationID, DriverID: Qwen3TTSDriverID, DriverDialect: Qwen3TTSDriverDialect}, requirement: Qwen3TTSModelRequirementID, resourceKind: "tts", assetKind: runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_TTS, artifactRole: "tts_model"},
+		{name: "voice-reference", contract: VoiceCreateContract, identity: Identity{ImplementationID: Qwen3VoiceCreateImplementationID, DriverID: Qwen3TTSDriverID, DriverDialect: Qwen3VoiceCreateDriverDialect}, requirement: Qwen3VoiceCreateModelRequirementID, resourceKind: "tts", assetKind: runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_TTS, artifactRole: Qwen3VoiceCloneArtifactRole, features: []string{"input.audio"}},
+		{name: "voice-description", contract: VoiceCreateContract, identity: Identity{ImplementationID: Qwen3VoiceCreateImplementationID, DriverID: Qwen3TTSDriverID, DriverDialect: Qwen3VoiceCreateDriverDialect}, requirement: Qwen3VoiceCreateModelRequirementID, resourceKind: "tts", assetKind: runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_TTS, artifactRole: Qwen3VoiceDesignArtifactRole, features: []string{"input.text"}},
 		{name: "asr", contract: AudioTranscribeContract, identity: Identity{ImplementationID: Qwen3ASRImplementationID, DriverID: Qwen3ASRDriverID, DriverDialect: Qwen3ASRDriverDialect}, requirement: Qwen3ASRModelRequirementID, resourceKind: "stt", assetKind: runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_STT, artifactRole: "stt_model"},
 		{name: "asr-transformers", contract: AudioTranscribeContract, identity: Identity{ImplementationID: Qwen3ASRTransformersImplementationID, DriverID: Qwen3ASRTransformersDriverID, DriverDialect: Qwen3ASRTransformersDriverDialect}, requirement: Qwen3ASRModelRequirementID, resourceKind: "stt", assetKind: runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_STT, artifactRole: "stt_transformers_model"},
 	}
@@ -29,7 +32,7 @@ func TestQwen3SpeechProductionRegistryProjectsExactAssetKinds(t *testing.T) {
 			if reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED || driver == nil {
 				t.Fatalf("Resolve reason=%v driver=%T", reason, driver)
 			}
-			requirements, reason := driver.Interpret(InterpretInput{})
+			requirements, reason := driver.Interpret(InterpretInput{SupportedFeatures: test.features})
 			if reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED || len(requirements) != 1 || requirements[0].GetRequirementId() != test.requirement || requirements[0].GetResourceKind() != test.resourceKind {
 				t.Fatalf("Interpret reason=%v requirements=%+v", reason, requirements)
 			}
@@ -39,6 +42,39 @@ func TestQwen3SpeechProductionRegistryProjectsExactAssetKinds(t *testing.T) {
 				t.Fatalf("ValidateBinding reason=%v", reason)
 			}
 		})
+	}
+}
+
+func TestQwen3VoiceCreatePlansTypedSourceWithoutChangingSelection(t *testing.T) {
+	digest := strings.Repeat("e", 64)
+	binding := InvocationExactBinding{
+		RequirementID:     Qwen3VoiceCreateModelRequirementID,
+		AssetID:           "catalog/qwen3-voice",
+		LocalAssetID:      "local-qwen3-voice",
+		AbsolutePath:      filepath.Join(t.TempDir(), "model.safetensors"),
+		VerifiedContentID: "sha256:" + digest,
+		EntrySHA256:       digest,
+	}
+	tests := []struct {
+		name            string
+		feature         string
+		request         *runtimev1.VoiceCreateScenarioSpec
+		workflowModelID string
+	}{
+		{name: "reference-audio", feature: "input.audio", workflowModelID: "qwen3-local-voice-clone", request: &runtimev1.VoiceCreateScenarioSpec{Source: &runtimev1.VoiceCreateScenarioSpec_ReferenceAudio{ReferenceAudio: &runtimev1.VoiceV2VInput{ReferenceAudioBytes: []byte("audio"), ReferenceAudioMime: "audio/wav", Text: "hello"}}}},
+		{name: "text-description", feature: "input.text", workflowModelID: "qwen3-local-voice-design", request: &runtimev1.VoiceCreateScenarioSpec{Source: &runtimev1.VoiceCreateScenarioSpec_TextDescription{TextDescription: &runtimev1.VoiceT2VInput{InstructionText: "warm narrator", PreviewText: "hello"}}}},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			plan, err := (Qwen3VoiceCreateDriver{}).PlanVoiceCreateInvocation(VoiceCreateInvocationInput{ExactBindings: []InvocationExactBinding{binding}, SupportedFeatures: []string{test.feature}, Request: test.request})
+			if err != nil || plan == nil || plan.ModelAssetID() != binding.AssetID || plan.DriverID() != Qwen3TTSDriverID || plan.SourceFeature() != test.feature || plan.WorkflowModelID() != test.workflowModelID {
+				t.Fatalf("plan=%+v error=%v", plan, err)
+			}
+		})
+	}
+	_, err := (Qwen3VoiceCreateDriver{}).PlanVoiceCreateInvocation(VoiceCreateInvocationInput{ExactBindings: []InvocationExactBinding{binding}, SupportedFeatures: []string{"input.text"}, Request: tests[0].request})
+	if invocation, ok := err.(*InvocationError); !ok || invocation.Kind != InvocationFailureUnsupported {
+		t.Fatalf("mismatched selected feature error=%T %v", err, err)
 	}
 }
 

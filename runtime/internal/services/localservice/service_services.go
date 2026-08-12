@@ -94,7 +94,7 @@ func (s *Service) InstallLocalService(_ context.Context, req *runtimev1.InstallL
 		capabilities = normalizeStringSlice(model.GetCapabilities())
 	}
 	if len(capabilities) == 0 {
-		capabilities = []string{"chat"}
+		capabilities = []string{"text.generate"}
 	}
 	binding := resolveInstallRuntimeBinding(
 		engine,
@@ -398,7 +398,7 @@ func (s *Service) managedImageBackendServiceLocked() *runtimev1.LocalServiceDesc
 		Engine:       "media",
 		ArtifactType: "binary",
 		Endpoint:     endpoint,
-		Capabilities: []string{"image"},
+		Capabilities: []string{"image.generate"},
 		Status:       status,
 		Detail:       strings.TrimSpace(s.managedMediaBackendDetail),
 		InstalledAt:  installedAt,
@@ -538,7 +538,7 @@ func unsupportedProviderCapabilityPolicyGate(provider string, capability string)
 		return normalizedProvider + ".video.unsupported"
 	case "text.embed":
 		return normalizedProvider + ".embed.unsupported"
-	case "audio.synthesize", "audio.understand":
+	case "audio.synthesize":
 		return normalizedProvider + ".audio.unsupported"
 	case "music.generate":
 		return normalizedProvider + ".music.unsupported"
@@ -549,8 +549,8 @@ func unsupportedProviderCapabilityPolicyGate(provider string, capability string)
 
 func isKnownLocalCapability(capability string) bool {
 	switch normalizeLocalCapabilityToken(capability) {
-	case "text.generate", "text.embed", "image.generate", "image.edit", "video.generate", "i2v", "image.understand", "audio.understand", "music.generate",
-		"audio.synthesize", "audio.transcribe", "voice_workflow.voice_clone", "voice_workflow.voice_design":
+	case "text.generate", "text.embed", "image.generate", "video.generate", "music.generate",
+		"audio.synthesize", "audio.transcribe", "voice.create":
 		return true
 	default:
 		return false
@@ -570,7 +570,7 @@ func capabilityRequiresNodeProbe(provider string, capability string) bool {
 	switch strings.ToLower(strings.TrimSpace(provider)) {
 	case "media":
 		switch strings.ToLower(strings.TrimSpace(capability)) {
-		case "image", "image.generate", "image.edit", "video", "video.generate", "i2v":
+		case "image", "image.generate", "video", "video.generate":
 			return true
 		default:
 			return false

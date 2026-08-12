@@ -359,6 +359,11 @@ test('models endpoint projects Runtime-supported OpenAI capability targets', asy
           supported: true,
           capabilities: ['text.generate'],
         },
+        {
+          id: 'legacy-image-edit-only',
+          supported: true,
+          capabilities: ['image.edit'],
+        },
       ],
     },
   });

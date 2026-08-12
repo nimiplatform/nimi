@@ -24,15 +24,15 @@ DRIVER_WORK_ROOT_ENV = "NIMI_RUNTIME_SPEECH_DRIVER_WORK_ROOT"
 DRIVER_OUTPUT_PATH_ENV = "NIMI_RUNTIME_SPEECH_DRIVER_OUTPUT_PATH"
 DEFAULT_DRIVER_TIMEOUT_MS = 30 * 60_000
 MAX_DRIVER_TIMEOUT_MS = 30 * 60_000
-DEFAULT_MODELS_ROOT = ""
-WORKFLOW_CAPABILITIES = [
-    "voice_workflow.voice_clone",
-    "voice_workflow.voice_design",
-]
-WORKFLOW_CAPABILITY_TYPES = {
-    "voice_workflow.voice_clone": "voice_clone",
-    "voice_workflow.voice_design": "voice_design",
+SPEECH_DRIVER_ENV_BY_KIND = {
+    "qwen3_tts": QWEN3_TTS_DRIVER_ENV,
+    "qwen3_asr": QWEN3_ASR_DRIVER_ENV,
+    "qwen3_asr_transformers": QWEN3_ASR_TRANSFORMERS_DRIVER_ENV,
 }
+DEFAULT_MODELS_ROOT = ""
+VOICE_CREATE_CAPABILITY = "voice.create"
+VOICE_CREATION_SOURCES = {"reference_audio", "text_description"}
+WORKFLOW_CAPABILITIES = [VOICE_CREATE_CAPABILITY]
 PLAIN_SPEECH_CAPABILITIES = [
     "audio.synthesize",
     "audio.transcribe",
@@ -53,6 +53,7 @@ class SpeechModelState:
     bundle_dir: str
     entry_path: str
     declared_files: list[str]
+    voice_creation_sources: list[str] = dataclasses.field(default_factory=list)
     workflow_model_bindings: dict[str, list[str]] = dataclasses.field(default_factory=dict)
 
 
@@ -127,6 +128,25 @@ def driver_command_state(env_name: str, driver_kind: str) -> tuple[list[str], bo
     normalized_command = command.copy()
     normalized_command[0] = resolved
     return normalized_command, True, f"{driver_kind} driver ready"
+
+
+def driver_command_for_kind(driver_kind: str) -> list[str]:
+    normalized = str(driver_kind or "").strip()
+    env_name = SPEECH_DRIVER_ENV_BY_KIND.get(normalized, "")
+    if not env_name:
+        raise RuntimeError(f"speech runtime-native driver unavailable: {normalized or 'unset'}")
+    command, ready, detail = driver_command_state(env_name, normalized)
+    if not ready:
+        raise RuntimeError(detail)
+    return command
+
+
+def create_voice_with_driver(model: SpeechModelState, request_payload: dict[str, Any]) -> dict[str, Any]:
+    driver_kind = model.capability_drivers.get("voice.create", "").strip()
+    response = run_driver_command(driver_command_for_kind(driver_kind), request_payload)
+    if not isinstance(response, dict):
+        raise RuntimeError("voice.create driver returned an invalid result")
+    return response
 
 
 def driver_timeout_seconds() -> float:
@@ -224,7 +244,7 @@ def infer_runtime_native_driver(
     normalized_model = model_id.strip().lower()
     normalized_entry = pathlib.Path(entry_path).name.strip().lower()
     normalized_files = [item.strip().lower() for item in declared_files]
-    if capability == "audio.synthesize":
+    if capability in {"audio.synthesize", "voice.create"}:
         if "qwen3-tts" in normalized_model or "qwen3tts" in normalized_model:
             return "qwen3_tts"
         if "qwen3-tts" in normalized_entry or "qwen3tts" in normalized_entry:
@@ -512,10 +532,7 @@ def manifest_workflow_model_bindings(payload: dict[str, Any], model_id: str) -> 
             continue
         workflow_model_id = str(row.get("workflow_model_id") or "").strip()
         workflow_type = str(row.get("workflow_type") or "").strip()
-        if not workflow_model_id or workflow_type not in WORKFLOW_CAPABILITY_TYPES.values():
-            continue
-        workflow_family = str(row.get("workflow_family") or "").strip()
-        if workflow_family and workflow_family != "qwen3_tts":
+        if not workflow_model_id or workflow_type not in VOICE_CREATION_SOURCES:
             continue
         target_refs = binding_target_refs(row)
         if not any(target_model_ref_matches(ref, model_id) for ref in target_refs):
@@ -530,27 +547,33 @@ def manifest_workflow_model_bindings(payload: dict[str, Any], model_id: str) -> 
         workflow_row = workflow_model_rows.get(workflow_model_id)
         if workflow_row is None:
             continue
-        workflow_family = str(row.get("workflow_family") or workflow_row.get("workflow_family") or "").strip()
-        if workflow_family != "qwen3_tts":
-            continue
         target_refs = binding_target_refs(row)
         if not any(target_model_ref_matches(ref, model_id) for ref in target_refs):
             continue
         workflow_type = str(workflow_row.get("workflow_type") or "").strip()
-        capability = next(
-            (
-                candidate_capability
-                for candidate_capability, candidate_type in WORKFLOW_CAPABILITY_TYPES.items()
-                if candidate_type == workflow_type
-            ),
-            "",
-        )
-        if not capability:
-            continue
-        bindings_by_capability.setdefault(capability, [])
-        if workflow_model_id not in bindings_by_capability[capability]:
-            bindings_by_capability[capability].append(workflow_model_id)
+        bindings_by_capability.setdefault(workflow_type, [])
+        if workflow_model_id not in bindings_by_capability[workflow_type]:
+            bindings_by_capability[workflow_type].append(workflow_model_id)
     return bindings_by_capability
+
+
+def manifest_voice_creation_sources(payload: dict[str, Any], model_id: str) -> list[str]:
+    sources: set[str] = set()
+    roles = {
+        item.strip().lower()
+        for item in normalized_capabilities(payload.get("artifact_roles") or payload.get("artifactRoles"))
+    }
+    if "tts_voice_clone_model" in roles:
+        sources.add("reference_audio")
+    if "tts_voice_design_model" in roles:
+        sources.add("text_description")
+
+    # Explicit catalog workflow rows remain useful diagnostic metadata for
+    # externally materialized bundles, but execution admission is owned by the
+    # exact LocalAsset role rather than by a second copy of provider workflow
+    # identities in asset.manifest.json.
+    sources.update(manifest_workflow_model_bindings(payload, model_id).keys())
+    return sorted(source for source in sources if source in VOICE_CREATION_SOURCES)
 
 
 def manifest_speech_model_state(
@@ -603,14 +626,21 @@ def manifest_speech_model_state(
     ready_capabilities: list[str] = []
     capability_drivers: dict[str, str] = {}
     workflow_bindings = manifest_workflow_model_bindings(payload, model_id)
+    voice_creation_sources = manifest_voice_creation_sources(payload, model_id)
     for capability in declared_capabilities:
-        if capability in WORKFLOW_CAPABILITIES:
-            if capability not in workflow_bindings:
-                problems.append(f"{capability} requires explicit qwen3_tts workflow binding")
+        if capability == VOICE_CREATE_CAPABILITY:
+            if not voice_creation_sources:
+                problems.append("voice.create requires an explicit creation-source asset role")
                 continue
-            capability_drivers[capability] = "qwen3_tts"
-            if not qwen3_tts_driver_state[1]:
-                problems.append(qwen3_tts_driver_state[2])
+            driver_kind = infer_runtime_native_driver(model_id, capability, resolved_entry, declared_files, artifact_roles)
+            if not driver_kind:
+                problems.append("voice.create runtime-native driver unresolved")
+                continue
+            capability_drivers[capability] = driver_kind
+            try:
+                driver_command_for_kind(driver_kind)
+            except RuntimeError as error:
+                problems.append(str(error))
                 continue
             ready_capabilities.append(capability)
             continue
@@ -662,6 +692,7 @@ def manifest_speech_model_state(
         bundle_dir=str(bundle_dir),
         entry_path=resolved_entry,
         declared_files=declared_files,
+        voice_creation_sources=voice_creation_sources,
         workflow_model_bindings=workflow_bindings,
     )
 
@@ -783,16 +814,20 @@ def find_ready_model(model_id: str, capability: str) -> SpeechModelState:
     )
 
 
-def find_ready_workflow_model(model_id: str, capability: str, workflow_model_id: str) -> SpeechModelState:
-    model = find_ready_model(model_id, capability)
-    if workflow_model_id.strip() not in model.workflow_model_bindings.get(capability, []):
+def find_ready_voice_creation_model(model_id: str, creation_source: str, workflow_model_id: str) -> SpeechModelState:
+    source = creation_source.strip()
+    if source not in VOICE_CREATION_SOURCES:
+        raise HTTPException(status_code=400, detail={"message": "voice.create source is invalid", "reason": "speech_request_invalid"})
+    model = find_ready_model(model_id, VOICE_CREATE_CAPABILITY)
+    if source not in model.voice_creation_sources:
         raise HTTPException(
             status_code=503,
             detail={
-                "message": f'local speech model "{model_id.strip()}" has no admitted binding for workflow model "{workflow_model_id.strip()}"',
+                "message": f'local speech model "{model_id.strip()}" does not support voice.create source "{source}"',
                 "reason": "speech_workflow_binding_not_ready",
                 "model": model_id.strip(),
-                "capability": capability,
+                "capability": VOICE_CREATE_CAPABILITY,
+                "creation_source": source,
                 "workflow_model_id": workflow_model_id.strip(),
             },
         )
