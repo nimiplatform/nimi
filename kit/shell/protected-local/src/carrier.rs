@@ -42,7 +42,6 @@ pub enum LocalAppReasonCode {
     AiProviderUnavailable,
     AiRouteUnsupported,
     AiRouteFallbackDenied,
-    AiConnectorGrantSelectionRequired,
     AiInputInvalid,
     AiOutputInvalid,
     AiContentFilterBlocked,
@@ -60,6 +59,14 @@ pub enum LocalAppReasonCode {
     AiProviderTimeout,
     AiMediaSpecInvalid,
     AiMediaOptionUnsupported,
+    AiVoiceInputInvalid,
+    AiVoiceWorkflowUnsupported,
+    AiVoiceAssetNotFound,
+    AiVoiceAssetExpired,
+    AiVoiceAssetScopeForbidden,
+    AiVoiceTargetModelMismatch,
+    AiVoiceJobNotFound,
+    AiVoiceJobNotCancellable,
     AiConfigInvalid,
     AiConfigNotFound,
     AiConfigPersistenceUnavailable,
@@ -104,7 +111,6 @@ impl LocalAppReasonCode {
             Self::AiProviderUnavailable => "ai-provider-unavailable",
             Self::AiRouteUnsupported => "ai-route-unsupported",
             Self::AiRouteFallbackDenied => "ai-route-fallback-denied",
-            Self::AiConnectorGrantSelectionRequired => "ai-connector-grant-selection-required",
             Self::AiInputInvalid => "ai-input-invalid",
             Self::AiOutputInvalid => "ai-output-invalid",
             Self::AiContentFilterBlocked => "ai-content-filter-blocked",
@@ -122,6 +128,14 @@ impl LocalAppReasonCode {
             Self::AiProviderTimeout => "ai-provider-timeout",
             Self::AiMediaSpecInvalid => "ai-media-spec-invalid",
             Self::AiMediaOptionUnsupported => "ai-media-option-unsupported",
+            Self::AiVoiceInputInvalid => "ai-voice-input-invalid",
+            Self::AiVoiceWorkflowUnsupported => "ai-voice-workflow-unsupported",
+            Self::AiVoiceAssetNotFound => "ai-voice-asset-not-found",
+            Self::AiVoiceAssetExpired => "ai-voice-asset-expired",
+            Self::AiVoiceAssetScopeForbidden => "ai-voice-asset-scope-forbidden",
+            Self::AiVoiceTargetModelMismatch => "ai-voice-target-model-mismatch",
+            Self::AiVoiceJobNotFound => "ai-voice-job-not-found",
+            Self::AiVoiceJobNotCancellable => "ai-voice-job-not-cancellable",
             Self::AiConfigInvalid => "ai-config-invalid",
             Self::AiConfigNotFound => "ai-config-not-found",
             Self::AiConfigPersistenceUnavailable => "ai-config-persistence-unavailable",
@@ -294,11 +308,6 @@ pub struct LocalAppScenarioListVoiceAssetsRequest {
 
 pub type LocalAppScenarioStreamReceiver =
     tokio::sync::mpsc::Receiver<Result<JsonValue, LocalAppOperationError>>;
-
-#[derive(Clone, Debug, PartialEq)]
-pub struct LocalAppAIConfigOverwriteRequest {
-    pub capabilities: JsonValue,
-}
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct LocalAppStorageReadRequest {
@@ -865,11 +874,6 @@ pub trait NimiLocalAppSession: Send + Sync {
         &self,
     ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
 
-    fn app_ai_config_overwrite(
-        &self,
-        request: LocalAppAIConfigOverwriteRequest,
-    ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
-
     fn model_config_local_selections_get(
         &self,
     ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
@@ -920,38 +924,64 @@ pub trait NimiLocalAppSession: Send + Sync {
     fn storage_asset_stat(
         &self,
         request: LocalAppAssetStatRequest,
-    ) -> Pin<Box<dyn Future<Output = Result<LocalAppAssetRecord, LocalAppOperationError>> + Send + '_>>;
+    ) -> Pin<
+        Box<dyn Future<Output = Result<LocalAppAssetRecord, LocalAppOperationError>> + Send + '_>,
+    >;
 
     fn storage_asset_list(
         &self,
         request: LocalAppAssetListRequest,
-    ) -> Pin<Box<dyn Future<Output = Result<LocalAppAssetListResult, LocalAppOperationError>> + Send + '_>>;
+    ) -> Pin<
+        Box<
+            dyn Future<Output = Result<LocalAppAssetListResult, LocalAppOperationError>>
+                + Send
+                + '_,
+        >,
+    >;
 
     fn storage_asset_write(
         &self,
         request: LocalAppAssetWriteRequest,
         body: LocalAppAssetWriteReceiver,
-    ) -> Pin<Box<dyn Future<Output = Result<LocalAppAssetRecord, LocalAppOperationError>> + Send + '_>>;
+    ) -> Pin<
+        Box<dyn Future<Output = Result<LocalAppAssetRecord, LocalAppOperationError>> + Send + '_>,
+    >;
 
     fn storage_asset_read(
         &self,
         request: LocalAppAssetReadRequest,
-    ) -> Pin<Box<dyn Future<Output = Result<LocalAppAssetReadResult, LocalAppOperationError>> + Send + '_>>;
+    ) -> Pin<
+        Box<
+            dyn Future<Output = Result<LocalAppAssetReadResult, LocalAppOperationError>>
+                + Send
+                + '_,
+        >,
+    >;
 
     fn storage_asset_remove(
         &self,
         request: LocalAppAssetRemoveRequest,
-    ) -> Pin<Box<dyn Future<Output = Result<LocalAppAssetRemoveResult, LocalAppOperationError>> + Send + '_>>;
+    ) -> Pin<
+        Box<
+            dyn Future<Output = Result<LocalAppAssetRemoveResult, LocalAppOperationError>>
+                + Send
+                + '_,
+        >,
+    >;
 
     fn storage_asset_move(
         &self,
         request: LocalAppAssetMoveRequest,
-    ) -> Pin<Box<dyn Future<Output = Result<LocalAppAssetRecord, LocalAppOperationError>> + Send + '_>>;
+    ) -> Pin<
+        Box<dyn Future<Output = Result<LocalAppAssetRecord, LocalAppOperationError>> + Send + '_>,
+    >;
 
     fn storage_asset_adopt(
         &self,
         request: LocalAppAssetAdoptRequest,
-    ) -> Pin<Box<dyn Future<Output = Result<LocalAppAssetRecord, LocalAppOperationError>> + Send + '_>>;
+    ) -> Pin<
+        Box<dyn Future<Output = Result<LocalAppAssetRecord, LocalAppOperationError>> + Send + '_>,
+    >;
 
     fn agent_reference_list(
         &self,

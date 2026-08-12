@@ -7,7 +7,6 @@ const LOCAL_APP_BINDING_METHODS = [
   'localAppSessionStatus',
   'localAppSessionRenew',
   'localAppAIConfigGet',
-  'localAppAIConfigOverwrite',
   'localAppModelConfigLocalSelectionsGet',
   'localAppTextGenerateCandidate',
   'localAppTextTurnSubscribe',
@@ -75,7 +74,6 @@ const ADMITTED_REASON_CODES: ReadonlySet<string> = new Set([
   'ai-provider-unavailable',
   'ai-route-unsupported',
   'ai-route-fallback-denied',
-  'ai-connector-grant-selection-required',
   'ai-input-invalid',
   'ai-output-invalid',
   'ai-content-filter-blocked',
@@ -93,6 +91,14 @@ const ADMITTED_REASON_CODES: ReadonlySet<string> = new Set([
   'ai-provider-timeout',
   'ai-media-spec-invalid',
   'ai-media-option-unsupported',
+  'ai-voice-input-invalid',
+  'ai-voice-workflow-unsupported',
+  'ai-voice-asset-not-found',
+  'ai-voice-asset-expired',
+  'ai-voice-asset-scope-forbidden',
+  'ai-voice-target-model-mismatch',
+  'ai-voice-job-not-found',
+  'ai-voice-job-not-cancellable',
   'local-app-operation-unavailable',
   'local-app-snapshot-unavailable',
   'local-app-access-denied',
@@ -195,7 +201,6 @@ export type NimiElectronProtectedLocalBinding = {
   readonly localAppSessionStatus: () => Promise<NativeLocalAppOutcome>;
   readonly localAppSessionRenew: () => Promise<NativeLocalAppOutcome>;
   readonly localAppAIConfigGet: () => Promise<NativeLocalAppOutcome>;
-  readonly localAppAIConfigOverwrite: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppModelConfigLocalSelectionsGet: () => Promise<NativeLocalAppOutcome>;
   readonly localAppTextGenerateCandidate: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppTextTurnSubscribe: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
@@ -248,7 +253,6 @@ export type NimiElectronLocalAppHost = {
   readonly sessionStatus: () => Promise<NimiElectronLocalAppRecord>;
   readonly renewTechnicalSession: () => Promise<NimiElectronLocalAppRecord>;
   readonly aiConfigGet: () => Promise<NimiElectronLocalAppRecord>;
-  readonly aiConfigOverwrite: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly modelConfigLocalSelectionsGet: () => Promise<readonly NimiElectronLocalAppRecord[]>;
   readonly textGenerateCandidate: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly textTurnSubscribe: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
@@ -443,10 +447,6 @@ class ElectronLocalAppHost implements NimiElectronLocalAppHost {
     return invokePortableAppAIConfig(() => this.binding.localAppAIConfigGet());
   }
 
-  aiConfigOverwrite(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
-    return invokePortableAppAIConfig(() => this.binding.localAppAIConfigOverwrite(input));
-  }
-
   modelConfigLocalSelectionsGet(): Promise<readonly NimiElectronLocalAppRecord[]> {
     return invokeModelConfigLocalSelections(
       () => this.binding.localAppModelConfigLocalSelectionsGet(),
@@ -504,7 +504,7 @@ class ElectronLocalAppHost implements NimiElectronLocalAppHost {
   }
 
   scenarioJobGet(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
-    return invokeScenarioJobEnvelope(() => this.binding.localAppScenarioJobGet(input));
+    return invokeScenarioJobGet(() => this.binding.localAppScenarioJobGet(input));
   }
 
   scenarioJobSubscribe(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
@@ -694,10 +694,6 @@ class LazyElectronLocalAppHost implements NimiElectronLocalAppHost {
 
   aiConfigGet(): Promise<NimiElectronLocalAppRecord> {
     return this.resolve().aiConfigGet();
-  }
-
-  aiConfigOverwrite(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
-    return this.resolve().aiConfigOverwrite(input);
   }
 
   modelConfigLocalSelectionsGet(): Promise<readonly NimiElectronLocalAppRecord[]> {
@@ -1058,18 +1054,29 @@ async function invokeScenarioJobSubmit(
   call: () => Promise<NativeLocalAppOutcome>,
 ): Promise<NimiElectronLocalAppRecord> {
   const value = await invoke(call);
-  if (!isPlainRecord(value) || !hasExactKeys(value, ['job', 'asset', 'voiceReference'])
-    || (value.job === null && value.asset === null)) throw untrustedRuntimeError();
+  if (!isPlainRecord(value) || !hasExactKeys(value, ['job'])) throw untrustedRuntimeError();
+  return Object.freeze({ job: validateScenarioJob(value.job) });
+}
+
+async function invokeScenarioJobGet(
+  call: () => Promise<NativeLocalAppOutcome>,
+): Promise<NimiElectronLocalAppRecord> {
+  const value = await invoke(call);
+  if (!isPlainRecord(value) || !hasExactKeys(value, ['job', 'asset', 'voiceReference'])) {
+    throw untrustedRuntimeError();
+  }
+  const job = validateScenarioJob(value.job);
   const asset = value.asset === null ? null : validateVoiceAsset(value.asset);
   const voiceReference = value.voiceReference === null
     ? null
     : validateVoiceAssetReference(value.voiceReference);
   if ((asset === null) !== (voiceReference === null)
-    || (asset !== null && voiceReference?.voiceAssetId !== asset.voiceAssetId)) {
+    || (asset !== null && (asset.status !== 'active' || voiceReference?.voiceAssetId !== asset.voiceAssetId))
+    || ((job.scenarioType === 'voice-create' && job.status === 'completed') !== (asset !== null))) {
     throw untrustedRuntimeError();
   }
   return Object.freeze({
-    job: value.job === null ? null : validateScenarioJob(value.job),
+    job,
     asset,
     voiceReference,
   });

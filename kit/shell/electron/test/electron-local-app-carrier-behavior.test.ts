@@ -28,7 +28,6 @@ const ASSET_MEDIA_PLATFORM = {
 const FINAL_LOCAL_APP_COMMANDS = [
   'nimi.shell.localApp.sessionStatus',
   'nimi.shell.localApp.aiConfigGet',
-  'nimi.shell.localApp.aiConfigOverwrite',
   'nimi.shell.localApp.modelConfigLocalSelectionsGet',
   'nimi.shell.localApp.textGenerateCandidate',
   'nimi.shell.localApp.textTurnStream',

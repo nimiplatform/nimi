@@ -13,10 +13,9 @@ use crate::generated::{
     AiConfigCloudIntent, AiConfigLocalIntent, CapabilityImplementationIdentity,
     GetAppAiConfigRequest, GetMachineLocalAiConfigurationRequest, LocalCapabilityInterpretability,
     LocalCapabilityReason, LocalCapabilityRequirementResolution, MachineLocalAiConfiguration,
-    OverwriteAppAiConfigRequest,
 };
 use crate::grpc_status::local_app_error_from_status;
-use crate::{LocalAppAIConfigOverwriteRequest, LocalAppOperationError, LocalAppReasonCode};
+use crate::{LocalAppOperationError, LocalAppReasonCode};
 
 const MAX_JSON_DEPTH: usize = 32;
 const MAX_JSON_NODES: usize = 100_000;
@@ -139,24 +138,6 @@ fn project_effective_defaults(value: ProtoStruct) -> Result<JsonValue, LocalAppO
     Ok(JsonValue::Object(fields))
 }
 
-pub async fn overwrite(
-    channel: Channel,
-    request: LocalAppAIConfigOverwriteRequest,
-) -> Result<JsonValue, LocalAppOperationError> {
-    let capabilities = parse_capabilities(request.capabilities)?;
-    let response = RuntimeAiServiceClient::new(channel)
-        .overwrite_app_ai_config(OverwriteAppAiConfigRequest {
-            config: Some(AiConfig {
-                owner: None,
-                capabilities,
-            }),
-        })
-        .await
-        .map_err(local_app_error_from_status)?
-        .into_inner();
-    project_config(response.config.ok_or_else(untrusted)?)
-}
-
 pub(super) fn parse_capabilities(
     value: JsonValue,
 ) -> Result<Vec<AiConfigCapabilityIntent>, LocalAppOperationError> {
@@ -237,7 +218,6 @@ fn parse_route(
                 AiConfigCloudIntent {
                     implementation: Some(implementation),
                     provider_model_target,
-                    connector_grant_id: String::new(),
                 },
             ))
         }
@@ -597,12 +577,7 @@ mod tests {
                 }
             }
         ]);
-        let mut capabilities = parse_capabilities(source.clone()).unwrap();
-        if let Some(ai_config_capability_intent::Route::Cloud(cloud)) =
-            capabilities[1].route.as_mut()
-        {
-            cloud.connector_grant_id = "grant-private-binding".to_string();
-        }
+        let capabilities = parse_capabilities(source.clone()).unwrap();
         let projected = project_config(AiConfig {
             owner: Some(AiConfigOwner {
                 owner: Some(ai_config_owner::Owner::App(AiConfigAppOwner {
@@ -651,33 +626,7 @@ mod tests {
     }
 
     #[test]
-    fn capability_input_rejects_connector_grant_and_owner_injection() {
-        let grant_error = parse_capabilities(json!([{
-            "capabilityContract": "text.generate",
-            "requiredFeatures": [],
-            "route": {
-                "oneofKind": "cloud",
-                "cloud": {
-                    "implementation": {
-                        "implementationId": "cloud.text.example",
-                        "driverId": "cloud.example",
-                        "driverDialect": "v1"
-                    },
-                    "providerModelTarget": {
-                        "fields": {
-                            "model": { "kind": { "oneofKind": "stringValue", "stringValue": "model-a" } }
-                        }
-                    },
-                    "connectorGrantId": "grant-app-supplied"
-                }
-            }
-        }]))
-        .unwrap_err();
-        assert_eq!(
-            grant_error.reason_code(),
-            LocalAppReasonCode::InvalidPayload
-        );
-
+    fn capability_input_rejects_owner_injection() {
         let error = parse_capabilities(json!([{
             "capabilityContract": "text.generate",
             "requiredFeatures": [],

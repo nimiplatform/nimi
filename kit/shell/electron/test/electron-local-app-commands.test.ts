@@ -180,6 +180,40 @@ describe('Electron local-app standard-shell operations', () => {
     })).rejects.toMatchObject({ reasonCode: 'invalid-payload' });
   });
 
+  it('keeps the exact Runtime voice reason through the standard-shell envelope', async () => {
+    const ipcMain = new FakeIpcMain();
+    const calls: unknown[] = [];
+    registerNimiElectronRuntimeBridge({
+      appId: 'nimi.thirdparty.fixture',
+      runtimeEndpoint: 'local-app-protected-carrier-only',
+      allowedOrigins: ['http://localhost:1430'],
+      ipcMain,
+      createGrpcClient: () => { throw new Error('ordinary gRPC must not be constructed'); },
+      standardShellHost: {
+        capabilitySetRef: NIMI_LOCAL_APP_STANDARD_SHELL_CAPABILITY_SET_ID,
+        localAppHost: {
+          ...localAppHost(calls),
+          scenarioJobSubmit: async () => {
+            throw new NimiElectronLocalAppHostError('ai-voice-target-model-mismatch', false);
+          },
+        },
+      },
+    });
+
+    await expect(invokeBridge(ipcMain, createInvokeEvent().event, {
+      command: NIMI_STANDARD_SHELL_COMMANDS['local-app.scenarioJobSubmit'],
+      payload: { payload: { spec: {
+        type: 'speech-synthesize', text: 'hello', language: '', audioFormat: '', emotion: '',
+        voiceRef: { type: 'voice-asset', id: 'voice-asset-1' },
+        timingMode: 'none', voiceRenderHints: null,
+      } } },
+    })).rejects.toMatchObject({
+      code: 'invalid-payload',
+      reasonCode: 'ai-voice-target-model-mismatch',
+      details: { retryable: false },
+    });
+  });
+
   it('admits only canonical voice-create sources and rejects legacy voice identities', async () => {
     const calls: unknown[] = [];
     const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.scenarioJobSubmit'];
@@ -275,7 +309,7 @@ describe('Electron local-app standard-shell operations', () => {
     expect(calls).toEqual([['scenarioExecute', { spec: { type: 'text-embed', inputs: ['hello'] } }]]);
   });
 
-  it('routes App AIConfig without accepting renderer owner identity', async () => {
+  it('routes read-only App AIConfig without accepting renderer input', async () => {
     const ipcMain = new FakeIpcMain();
     const calls: unknown[] = [];
     registerBridge(ipcMain, calls);
@@ -283,40 +317,7 @@ describe('Electron local-app standard-shell operations', () => {
       command: NIMI_STANDARD_SHELL_COMMANDS['local-app.aiConfigGet'],
       payload: { payload: {} },
     })).resolves.toMatchObject({ capabilities: [] });
-    await expect(invokeBridge(ipcMain, createInvokeEvent().event, {
-      command: NIMI_STANDARD_SHELL_COMMANDS['local-app.aiConfigOverwrite'],
-      payload: { payload: { capabilities: [{
-        capabilityContract: 'text.generate', requiredFeatures: [],
-        route: { oneofKind: 'local', local: {} },
-      }] } },
-    })).resolves.toMatchObject({ capabilities: [] });
-    expect(calls).toEqual([
-      ['aiConfigGet'],
-      ['aiConfigOverwrite', { capabilities: [{
-        capabilityContract: 'text.generate', requiredFeatures: [],
-        route: { oneofKind: 'local', local: {} },
-      }] }],
-    ]);
-    await expect(invokeBridge(ipcMain, createInvokeEvent().event, {
-      command: NIMI_STANDARD_SHELL_COMMANDS['local-app.aiConfigOverwrite'],
-      payload: { payload: { capabilities: [{ owner: { appId: 'forged' } }] } },
-    })).rejects.toMatchObject({ code: 'invalid-payload' });
-    await expect(invokeBridge(ipcMain, createInvokeEvent().event, {
-      command: NIMI_STANDARD_SHELL_COMMANDS['local-app.aiConfigOverwrite'],
-      payload: { payload: { capabilities: [{
-        capabilityContract: 'text.generate', requiredFeatures: [],
-        route: {
-          oneofKind: 'cloud',
-          cloud: {
-            implementation: {
-              implementationId: 'cloud.text.example', driverId: 'cloud.example', driverDialect: 'v1',
-            },
-            connectorGrantId: 'grant-forged',
-          },
-        },
-      }] } },
-    })).rejects.toMatchObject({ code: 'invalid-payload' });
-    expect(calls).toHaveLength(2);
+    expect(calls).toEqual([['aiConfigGet']]);
   });
 
   it('routes only the two exact WorldCore operations without a renderer method selector', async () => {
@@ -626,10 +627,6 @@ function localAppHost(calls: unknown[]) {
     sessionStatus: async () => ({ state: 'ready', reasonCode: 'action-executed', retryable: false }),
     aiConfigGet: async () => {
       calls.push(['aiConfigGet']);
-      return { owner: { owner: { oneofKind: 'app', app: { appId: 'app.example' } } }, capabilities: [] };
-    },
-    aiConfigOverwrite: async (input: unknown) => {
-      calls.push(['aiConfigOverwrite', input]);
       return { owner: { owner: { oneofKind: 'app', app: { appId: 'app.example' } } }, capabilities: [] };
     },
     modelConfigLocalSelectionsGet: async () => {

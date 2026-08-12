@@ -78,7 +78,6 @@ export const TAURI_STANDARD_COMMAND_ALIASES: Readonly<Record<string, string>> = 
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.sessionStatus']]: 'local_app_session_status',
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.aiConfigGet']]: 'local_app_ai_config_get',
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.modelConfigLocalSelectionsGet']]: 'local_app_model_config_local_selections_get',
-  [NIMI_STANDARD_SHELL_COMMANDS['local-app.aiConfigOverwrite']]: 'local_app_ai_config_overwrite',
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.textGenerateCandidate']]: 'local_app_text_generate_candidate',
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.artifactUpload']]: 'local_app_artifact_upload',
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.sharedAgentAIConfigGet']]: 'local_app_shared_agent_ai_config_get',

@@ -42,7 +42,7 @@ describe('renderer local-app standard-shell surface', () => {
     }
   });
 
-  it('maps owner-free App AIConfig operations to exact host commands', async () => {
+  it('maps read-only App AIConfig to the exact host command', async () => {
     const invocations: Array<{ command: string; payload: unknown }> = [];
     const generatedIntent = createNimiLocalAIConfigCapabilityIntent({
       capabilityContract: 'text.generate',
@@ -62,13 +62,8 @@ describe('renderer local-app standard-shell surface', () => {
     };
     const aiConfig = createNimiLocalAppStandardShellSurface().aiConfig;
     await expect(aiConfig.get()).resolves.toEqual(config);
-    await expect(aiConfig.overwrite([generatedIntent])).resolves.toEqual(config);
     expect(invocations).toEqual([
       { command: 'nimi.shell.localApp.aiConfigGet', payload: {} },
-      {
-        command: 'nimi.shell.localApp.aiConfigOverwrite',
-        payload: { payload: { capabilities: config.capabilities } },
-      },
     ]);
     expect(JSON.stringify(invocations)).not.toContain('app.example');
   });
@@ -167,7 +162,12 @@ describe('renderer local-app standard-shell surface', () => {
     (globalThis as { __NIMI_ELECTRON_TEST__?: unknown }).__NIMI_ELECTRON_TEST__ = {
       invoke: async (command: string, payload: unknown) => {
         invocations.push({ command, payload });
-        if (command === NIMI_STANDARD_SHELL_COMMANDS['local-app.scenarioJobSubmit']) return { job, asset, voiceReference };
+        if (command === NIMI_STANDARD_SHELL_COMMANDS['local-app.scenarioJobSubmit']) return { job };
+        if (command === NIMI_STANDARD_SHELL_COMMANDS['local-app.scenarioJobGet']) return {
+          job: { ...job, status: 'completed', progressPercent: 100, progressCurrentStep: 1 },
+          asset,
+          voiceReference,
+        };
         if (command === NIMI_STANDARD_SHELL_COMMANDS['local-app.voiceAssetsList']) return { assets: [asset], nextPageToken: '' };
         throw new Error(`unexpected command ${command}`);
       },
@@ -179,12 +179,21 @@ describe('renderer local-app standard-shell surface', () => {
       instructionText: 'A clear, calm voice.', previewText: 'Hello.',
       language: 'en', preferredName: 'Calm Voice',
     } as const;
-    await expect(surface.scenarioJobs.submit(spec)).resolves.toEqual({ job, asset, voiceReference });
+    await expect(surface.scenarioJobs.submit(spec)).resolves.toEqual({ job });
+    await expect(surface.scenarioJobs.get(job.jobId)).resolves.toEqual({
+      job: { ...job, status: 'completed', progressPercent: 100, progressCurrentStep: 1 },
+      asset,
+      voiceReference,
+    });
     await expect(surface.voiceAssets.list()).resolves.toEqual({ assets: [asset], nextPageToken: '' });
     expect(invocations).toEqual([
       {
         command: NIMI_STANDARD_SHELL_COMMANDS['local-app.scenarioJobSubmit'],
         payload: { payload: { spec } },
+      },
+      {
+        command: NIMI_STANDARD_SHELL_COMMANDS['local-app.scenarioJobGet'],
+        payload: { payload: { jobId: job.jobId } },
       },
       {
         command: NIMI_STANDARD_SHELL_COMMANDS['local-app.voiceAssetsList'],

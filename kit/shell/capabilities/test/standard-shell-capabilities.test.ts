@@ -185,7 +185,6 @@ describe('standard shell capabilities', () => {
     expect(localAppSet?.allowedOperations).toEqual([
       'local-app.sessionStatus',
       'local-app.aiConfigGet',
-      'local-app.aiConfigOverwrite',
       'local-app.modelConfigLocalSelectionsGet',
       'local-app.textGenerateCandidate',
       'local-app.textTurnStream',
@@ -273,6 +272,19 @@ describe('standard shell capabilities', () => {
       'text', 'finishReason', 'traceId',
     ]);
     expect(readInlineYamlList('typed_failures', family)).toEqual(operation?.negativeStates);
+  });
+
+  it('publishes VoiceAsset terminal results through Scenario Job Get only', () => {
+    const catalog = readFileSync(catalogPath, 'utf8');
+    const submit = readLocalAppOperationFamily(catalog, 'scenarioJobSubmit');
+    const get = readLocalAppOperationFamily(catalog, 'scenarioJobGet');
+    const subscribe = readLocalAppOperationFamily(catalog, 'scenarioJobSubscribe');
+
+    expect(readInlineYamlList('response_fields', submit)).toEqual(['job']);
+    expect(readInlineYamlList('response_fields', get)).toEqual(['job', 'asset', 'voiceReference']);
+    expect(readInlineYamlList('event_fields', subscribe)).toEqual([
+      'eventType', 'sequence', 'traceId', 'timestamp', 'job',
+    ]);
   });
 
   it('exports fail-closed error envelopes and catalog-sourced command lookup', () => {

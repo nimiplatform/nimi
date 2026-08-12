@@ -168,7 +168,6 @@ export const NIMI_STANDARD_SHELL_CAPABILITIES = [
     operations: [
       { id: 'sessionStatus', command: 'nimi.shell.localApp.sessionStatus', negativeStates: ['protected-carrier-required', 'runtime-service-unavailable', 'runtime-service-untrusted', 'runtime-service-error-unclassified', 'runtime-unauthenticated', 'process-replaced', 'account-changed', 'runtime-restarted', 'revoked'] },
       { id: 'aiConfigGet', command: 'nimi.shell.localApp.aiConfigGet', negativeStates: ['protected-carrier-required', 'runtime-service-unavailable', 'runtime-service-untrusted', 'runtime-service-error-unclassified', 'runtime-unauthenticated', 'runtime-permission-denied', 'process-replaced', 'account-changed', 'runtime-restarted', 'not-found', 'host-internal-error'] },
-      { id: 'aiConfigOverwrite', command: 'nimi.shell.localApp.aiConfigOverwrite', negativeStates: ['protected-carrier-required', 'runtime-service-unavailable', 'runtime-service-untrusted', 'runtime-service-error-unclassified', 'runtime-unauthenticated', 'runtime-permission-denied', 'process-replaced', 'account-changed', 'runtime-restarted', 'invalid-payload', 'host-internal-error'] },
       { id: 'modelConfigLocalSelectionsGet', command: 'nimi.shell.localApp.modelConfigLocalSelectionsGet', negativeStates: ['protected-carrier-required', 'runtime-service-unavailable', 'runtime-service-untrusted', 'runtime-service-error-unclassified', 'runtime-unauthenticated', 'runtime-permission-denied', 'process-replaced', 'account-changed', 'runtime-restarted', 'host-internal-error'] },
       { id: 'textGenerateCandidate', command: 'nimi.shell.localApp.textGenerateCandidate', negativeStates: ['protected-carrier-required', 'runtime-service-unavailable', 'runtime-service-untrusted', 'runtime-service-error-unclassified', 'runtime-unauthenticated', 'runtime-permission-denied', 'process-replaced', 'account-changed', 'runtime-restarted', 'invalid-payload', 'resource-exhausted', 'host-internal-error'] },
       { id: 'textTurnStream', command: 'nimi.shell.localApp.textTurnStream', negativeStates: ['protected-carrier-required', 'runtime-service-unavailable', 'runtime-service-untrusted', 'runtime-service-error-unclassified', 'runtime-unauthenticated', 'runtime-permission-denied', 'process-replaced', 'account-changed', 'runtime-restarted', 'invalid-payload', 'resource-exhausted', 'host-internal-error'] },
@@ -289,7 +288,6 @@ const LOCAL_APP_PLANNED_OPERATIONS = [
 const LOCAL_APP_ALLOWED_OPERATIONS = [
   'local-app.sessionStatus',
   'local-app.aiConfigGet',
-  'local-app.aiConfigOverwrite',
   'local-app.modelConfigLocalSelectionsGet',
   'local-app.textGenerateCandidate',
   'local-app.textTurnStream',

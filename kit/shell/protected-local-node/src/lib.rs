@@ -13,8 +13,7 @@ use nimi_shell_protected_local::{
     DesktopAccountProductUnaryRequest, DesktopAccountProjection, DesktopAccountRealmUnaryRequest,
     DesktopAccountRealmUnaryResponse, DesktopAccountSessionEvent,
     DesktopAccountSessionStatusRequest, DesktopMachineProductUnaryMethod,
-    DesktopMachineProductUnaryRequest,
-    LocalAppAIConfigOverwriteRequest, LocalAppAgentCommitPresentationRequest,
+    DesktopMachineProductUnaryRequest, LocalAppAgentCommitPresentationRequest,
     LocalAppAgentHandleRequest, LocalAppAgentReference, LocalAppAgentUpdateAutonomyRequest,
     LocalAppAssetAdoptRequest, LocalAppAssetListRequest, LocalAppAssetMoveRequest,
     LocalAppAssetReadReceiver, LocalAppAssetReadRequest, LocalAppAssetRecord,
@@ -694,44 +693,44 @@ pub async fn fixed_runtime_service_restart() -> NativeJsonOutcome {
         feature = "windows-source-local-development"
     )))]
     {
-    // Runtime admits one mutually verified Desktop pipe connection at a time.
-    // Keep the owner slot locked across the restart so a concurrent renderer
-    // status/product-control call cannot observe the old transport failure,
-    // clear the slot, and win the replacement pipe before the restart verifier.
-    let mut current = DESKTOP_CONTROL.lock().await;
-    let control = match current.as_ref() {
-        Some(control) => control.clone(),
-        None => {
-            let opened = match PlatformDesktopCarrier::default()
-                .open_desktop_control()
-                .await
-            {
-                Ok(opened) => opened,
-                Err(error) => return NativeJsonOutcome::host_error(NimiHostError::from(error)),
-            };
-            let control = Arc::<dyn NimiDesktopControl>::from(opened);
-            *current = Some(control.clone());
-            control
+        // Runtime admits one mutually verified Desktop pipe connection at a time.
+        // Keep the owner slot locked across the restart so a concurrent renderer
+        // status/product-control call cannot observe the old transport failure,
+        // clear the slot, and win the replacement pipe before the restart verifier.
+        let mut current = DESKTOP_CONTROL.lock().await;
+        let control = match current.as_ref() {
+            Some(control) => control.clone(),
+            None => {
+                let opened = match PlatformDesktopCarrier::default()
+                    .open_desktop_control()
+                    .await
+                {
+                    Ok(opened) => opened,
+                    Err(error) => return NativeJsonOutcome::host_error(NimiHostError::from(error)),
+                };
+                let control = Arc::<dyn NimiDesktopControl>::from(opened);
+                *current = Some(control.clone());
+                control
+            }
+        };
+        let result = control.request_runtime_service_restart().await;
+        if current
+            .as_ref()
+            .is_some_and(|candidate| Arc::ptr_eq(candidate, &control))
+        {
+            *current = None;
         }
-    };
-    let result = control.request_runtime_service_restart().await;
-    if current
-        .as_ref()
-        .is_some_and(|candidate| Arc::ptr_eq(candidate, &control))
-    {
-        *current = None;
-    }
-    drop(current);
-    cancel_active_and_clear_completed_first_party_unaries().await;
-    account_events::close_all_account_event_streams().await;
-    bundled_avatar_streams::close_all_bundled_avatar_streams().await;
-    first_party_streams::close_all_first_party_product_streams().await;
-    #[cfg(target_os = "windows")]
-    nimi_shell_protected_local::invalidate_verified_desktop_runtime_channel().await;
-    match result {
-        Ok(outcome) => NativeJsonOutcome::success(project_runtime_service_action(outcome)),
-        Err(error) => NativeJsonOutcome::protected_error(error),
-    }
+        drop(current);
+        cancel_active_and_clear_completed_first_party_unaries().await;
+        account_events::close_all_account_event_streams().await;
+        bundled_avatar_streams::close_all_bundled_avatar_streams().await;
+        first_party_streams::close_all_first_party_product_streams().await;
+        #[cfg(target_os = "windows")]
+        nimi_shell_protected_local::invalidate_verified_desktop_runtime_channel().await;
+        match result {
+            Ok(outcome) => NativeJsonOutcome::success(project_runtime_service_action(outcome)),
+            Err(error) => NativeJsonOutcome::protected_error(error),
+        }
     }
 }
 

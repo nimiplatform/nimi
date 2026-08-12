@@ -93,7 +93,6 @@ describe('Electron standard shell capability catalog', () => {
     expect(localAppSet?.allowedOperations).toEqual([
       'local-app.sessionStatus',
       'local-app.aiConfigGet',
-      'local-app.aiConfigOverwrite',
       'local-app.modelConfigLocalSelectionsGet',
       'local-app.textGenerateCandidate',
       'local-app.textTurnStream',
@@ -141,7 +140,6 @@ describe('Electron standard shell capability catalog', () => {
     expect(localAppSet?.allowedCommands).toEqual([
       'nimi.shell.localApp.sessionStatus',
       'nimi.shell.localApp.aiConfigGet',
-      'nimi.shell.localApp.aiConfigOverwrite',
       'nimi.shell.localApp.modelConfigLocalSelectionsGet',
       'nimi.shell.localApp.textGenerateCandidate',
       'nimi.shell.localApp.textTurnStream',

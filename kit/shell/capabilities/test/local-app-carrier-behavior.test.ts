@@ -8,7 +8,6 @@ import {
 const FINAL_LOCAL_APP_OPERATIONS = [
   'local-app.sessionStatus',
   'local-app.aiConfigGet',
-  'local-app.aiConfigOverwrite',
   'local-app.modelConfigLocalSelectionsGet',
   'local-app.textGenerateCandidate',
   'local-app.textTurnStream',

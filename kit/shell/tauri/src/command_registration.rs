@@ -38,11 +38,6 @@ pub const LOCAL_APP_COMMANDS: &[ShellCommandDescriptor] = &[
         boundary: ShellCommandBoundary::LocalApp,
     },
     ShellCommandDescriptor {
-        command_name: "local_app_ai_config_overwrite",
-        rust_path: "nimi_shell_tauri::capabilities::local_app::local_app_ai_config_overwrite",
-        boundary: ShellCommandBoundary::LocalApp,
-    },
-    ShellCommandDescriptor {
         command_name: "local_app_shared_agent_ai_config_get",
         rust_path:
             "nimi_shell_tauri::capabilities::local_app::local_app_shared_agent_ai_config_get",
@@ -515,7 +510,6 @@ macro_rules! nimi_shell_tauri_local_app_standard_shell_handler {
             $crate::capabilities::local_app::local_app_session_status,
             $crate::capabilities::local_app::local_app_ai_config_get,
             $crate::capabilities::local_app::local_app_model_config_local_selections_get,
-            $crate::capabilities::local_app::local_app_ai_config_overwrite,
             $crate::capabilities::local_app::local_app_shared_agent_ai_config_get,
             $crate::capabilities::local_app::local_app_shared_agent_ai_config_overwrite,
             $crate::capabilities::local_app::local_app_agent_autonomy_snapshot,

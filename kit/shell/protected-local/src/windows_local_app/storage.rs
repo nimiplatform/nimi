@@ -8,10 +8,9 @@ use crate::generated::{
     read_local_app_asset_response, write_local_app_asset_request, AdoptLocalAppArtifactRequest,
     ListLocalAppAssetsRequest, LocalAppAssetRange as ProtoAssetRange,
     LocalAppAssetRecord as ProtoAssetRecord, MoveLocalAppAssetRequest, ReadLocalAppAssetRequest,
-    ReadLocalAppStorageJsonRequest, RemoveLocalAppAssetRequest,
-    RemoveLocalAppStorageJsonRequest, RemoveLocalAppStorageJsonResponse,
-    StatLocalAppAssetRequest, WriteLocalAppAssetMetadata, WriteLocalAppAssetRequest,
-    WriteLocalAppStorageJsonRequest,
+    ReadLocalAppStorageJsonRequest, RemoveLocalAppAssetRequest, RemoveLocalAppStorageJsonRequest,
+    RemoveLocalAppStorageJsonResponse, StatLocalAppAssetRequest, WriteLocalAppAssetMetadata,
+    WriteLocalAppAssetRequest, WriteLocalAppStorageJsonRequest,
 };
 use crate::grpc_status::local_app_error_from_status;
 use crate::{
@@ -141,7 +140,9 @@ pub(super) async fn list_local_app_assets(
         .map(|asset| validate_asset_record(Some(asset)))
         .collect::<Result<Vec<_>, _>>()?;
     if assets.len() > 500
-        || assets.windows(2).any(|values| values[0].relative_path >= values[1].relative_path)
+        || assets
+            .windows(2)
+            .any(|values| values[0].relative_path >= values[1].relative_path)
     {
         return Err(untrusted());
     }
@@ -191,7 +192,10 @@ pub(super) async fn read_local_app_asset(
     if request.offset.is_some_and(|value| value < 0)
         || request.length.is_some_and(|value| value <= 0)
     {
-        return Err(LocalAppOperationError::new(LocalAppReasonCode::InvalidRange, false));
+        return Err(LocalAppOperationError::new(
+            LocalAppReasonCode::InvalidRange,
+            false,
+        ));
     }
     let mut source = RuntimeAppServiceClient::new(channel)
         .read_local_app_asset(ReadLocalAppAssetRequest {
@@ -274,7 +278,9 @@ pub(super) async fn remove_local_app_asset(
     if response.reason_code != ACTION_EXECUTED {
         return Err(untrusted());
     }
-    Ok(LocalAppAssetRemoveResult { removed: response.removed })
+    Ok(LocalAppAssetRemoveResult {
+        removed: response.removed,
+    })
 }
 
 pub(super) async fn move_local_app_asset(
@@ -321,7 +327,9 @@ pub(super) async fn adopt_local_app_artifact(
     validate_asset_record(response.asset)
 }
 
-fn validate_asset_record(value: Option<ProtoAssetRecord>) -> Result<LocalAppAssetRecord, LocalAppOperationError> {
+fn validate_asset_record(
+    value: Option<ProtoAssetRecord>,
+) -> Result<LocalAppAssetRecord, LocalAppOperationError> {
     let value = value.ok_or_else(untrusted)?;
     validate_asset_path(&value.relative_path).map_err(|_| untrusted())?;
     validate_media_type(&value.media_type).map_err(|_| untrusted())?;
@@ -338,17 +346,29 @@ fn validate_asset_record(value: Option<ProtoAssetRecord>) -> Result<LocalAppAsse
     })
 }
 
-fn validate_asset_range(value: Option<ProtoAssetRange>, total_size: i64) -> Result<LocalAppAssetRange, LocalAppOperationError> {
+fn validate_asset_range(
+    value: Option<ProtoAssetRange>,
+    total_size: i64,
+) -> Result<LocalAppAssetRange, LocalAppOperationError> {
     let value = value.ok_or_else(untrusted)?;
-    if value.offset < 0 || value.length < 0 || value.total_size != total_size
-        || value.offset > value.total_size || value.length > value.total_size - value.offset
+    if value.offset < 0
+        || value.length < 0
+        || value.total_size != total_size
+        || value.offset > value.total_size
+        || value.length > value.total_size - value.offset
     {
         return Err(untrusted());
     }
-    Ok(LocalAppAssetRange { offset: value.offset, length: value.length, total_size: value.total_size })
+    Ok(LocalAppAssetRange {
+        offset: value.offset,
+        length: value.length,
+        total_size: value.total_size,
+    })
 }
 
-fn format_timestamp(value: Option<prost_types::Timestamp>) -> Result<String, LocalAppOperationError> {
+fn format_timestamp(
+    value: Option<prost_types::Timestamp>,
+) -> Result<String, LocalAppOperationError> {
     let value = value.ok_or_else(untrusted)?;
     if !(0..1_000_000_000).contains(&value.nanos) {
         return Err(untrusted());
@@ -363,7 +383,9 @@ fn format_timestamp(value: Option<prost_types::Timestamp>) -> Result<String, Loc
 fn valid_sha256(value: &str) -> bool {
     value.len() == 71
         && value.starts_with("sha256:")
-        && value[7..].bytes().all(|byte| byte.is_ascii_digit() || matches!(byte, b'a'..=b'f'))
+        && value[7..]
+            .bytes()
+            .all(|byte| byte.is_ascii_digit() || matches!(byte, b'a'..=b'f'))
 }
 
 fn validate_media_type(value: &str) -> Result<(), LocalAppOperationError> {
@@ -372,7 +394,9 @@ fn validate_media_type(value: &str) -> Result<(), LocalAppOperationError> {
             && (value.trim() != value
                 || !value.is_ascii()
                 || value.matches('/').count() != 1
-                || value.bytes().any(|byte| byte.is_ascii_control() || byte == b' ')))
+                || value
+                    .bytes()
+                    .any(|byte| byte.is_ascii_control() || byte == b' ')))
     {
         return Err(invalid_payload());
     }
@@ -388,15 +412,33 @@ fn validate_asset_prefix(value: &str) -> Result<(), LocalAppOperationError> {
 
 fn validate_asset_path(value: &str) -> Result<(), LocalAppOperationError> {
     let components = value.split('/').collect::<Vec<_>>();
-    if value.is_empty() || value.trim() != value || value.len() > MAX_ASSET_RELATIVE_PATH_BYTES
-        || value.nfc().ne(value.chars()) || value.starts_with('/') || value.ends_with('/')
-        || value.chars().any(|character| matches!(character, '\\' | '\0' | '<' | '>' | ':' | '"' | '|' | '?' | '*'))
+    if value.is_empty()
+        || value.trim() != value
+        || value.len() > MAX_ASSET_RELATIVE_PATH_BYTES
+        || value.nfc().ne(value.chars())
+        || value.starts_with('/')
+        || value.ends_with('/')
+        || value.chars().any(|character| {
+            matches!(
+                character,
+                '\\' | '\0' | '<' | '>' | ':' | '"' | '|' | '?' | '*'
+            )
+        })
         || components.len() > MAX_ASSET_PATH_COMPONENTS
     {
-        return Err(LocalAppOperationError::new(LocalAppReasonCode::InvalidPath, false));
+        return Err(LocalAppOperationError::new(
+            LocalAppReasonCode::InvalidPath,
+            false,
+        ));
     }
-    if components.into_iter().any(|component| !valid_asset_component(component)) {
-        return Err(LocalAppOperationError::new(LocalAppReasonCode::InvalidPath, false));
+    if components
+        .into_iter()
+        .any(|component| !valid_asset_component(component))
+    {
+        return Err(LocalAppOperationError::new(
+            LocalAppReasonCode::InvalidPath,
+            false,
+        ));
     }
     Ok(())
 }
@@ -477,7 +519,9 @@ fn valid_asset_component(component: &str) -> bool {
         && !component.ends_with('.')
         && !component.ends_with(' ')
         && !windows_device_segment(component)
-        && !component.chars().any(|character| character < '\u{20}' || character == '\u{7f}')
+        && !component
+            .chars()
+            .any(|character| character < '\u{20}' || character == '\u{7f}')
 }
 
 fn windows_device_segment(segment: &str) -> bool {

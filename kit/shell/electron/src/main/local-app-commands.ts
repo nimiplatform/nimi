@@ -52,7 +52,6 @@ const ACTIVE_SCENARIO_STREAMS = new WeakMap<NimiElectronLocalAppHost, Set<string
 const COMMAND_METHODS = new Map<string, RendererLocalAppHostMethod>([
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.sessionStatus'], 'sessionStatus'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.aiConfigGet'], 'aiConfigGet'],
-  [NIMI_STANDARD_SHELL_COMMANDS['local-app.aiConfigOverwrite'], 'aiConfigOverwrite'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.modelConfigLocalSelectionsGet'], 'modelConfigLocalSelectionsGet'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.textGenerateCandidate'], 'textGenerateCandidate'],
   [AIC_COMMANDS.textTurnStream, 'textTurnSubscribe'],
@@ -202,14 +201,6 @@ function validatePayload(
     case 'sharedAgentAIConfigGet':
       assertExactKeys(payload, [], command);
       return {};
-    case 'aiConfigOverwrite':
-      assertExactKeys(payload, ['capabilities'], command);
-      if (!Array.isArray(payload.capabilities)) {
-        throw invalidPayload(command, 'capabilities is invalid');
-      }
-      assertNoPortableAppAIConfigFields(payload.capabilities, command);
-      validateJsonValue(payload.capabilities, command, 4 * 1024 * 1024);
-      return { capabilities: payload.capabilities as NimiElectronLocalAppRecord[string] };
     case 'sharedAgentAIConfigOverwrite':
       assertExactKeys(payload, ['capabilities'], command);
       if (!Array.isArray(payload.capabilities)) {
@@ -1134,10 +1125,17 @@ function standardCode(reasonCode: string) {
     case 'runtime-service-repair-required': return 'runtime-service-repair-required' as const;
     case 'runtime-unauthenticated': return 'runtime-unauthenticated' as const;
     case 'invalid-payload':
-    case 'ai-config-invalid': return 'invalid-payload' as const;
+    case 'ai-config-invalid':
+    case 'ai-voice-input-invalid':
+    case 'ai-voice-workflow-unsupported':
+    case 'ai-voice-asset-expired':
+    case 'ai-voice-target-model-mismatch':
+    case 'ai-voice-job-not-cancellable': return 'invalid-payload' as const;
     case 'invalid-path': return 'invalid-path' as const;
     case 'not-found':
-    case 'ai-config-not-found': return 'not-found' as const;
+    case 'ai-config-not-found':
+    case 'ai-voice-asset-not-found':
+    case 'ai-voice-job-not-found': return 'not-found' as const;
     case 'ai-config-persistence-unavailable': return 'runtime-service-unavailable' as const;
     case 'resource-exhausted': return 'resource-exhausted' as const;
     default: return 'runtime-permission-denied' as const;

@@ -180,22 +180,6 @@ describe('Electron protected local-app host', () => {
     })).rejects.toMatchObject({ reasonCode: 'local-app-operation-unavailable', retryable: false });
   });
 
-  it('preserves typed ConnectorGrant selection-required posture', async () => {
-    const candidate = {
-      ...binding([]),
-      localAppTextGenerateCandidate: async () => ({
-        status: 'error' as const,
-        reasonCode: 'ai-connector-grant-selection-required',
-        retryable: false,
-      }),
-    };
-    await expect(createNimiElectronLocalAppHostForBinding(candidate).textGenerateCandidate({
-      messages: [{ role: 'user', text: 'hello' }], temperature: 0, topP: 1, maxTokens: 1,
-    })).rejects.toMatchObject({
-      reasonCode: 'ai-connector-grant-selection-required', retryable: false,
-    });
-  });
-
   it('preserves exact Local owner composition failures', async () => {
     const candidate = {
       ...binding([]),
@@ -244,31 +228,29 @@ describe('Electron protected local-app host', () => {
     }
   });
 
-  it('rejects ConnectorGrant binding material returned by the App AIConfig carrier', async () => {
-    const candidate = {
-      ...binding([]),
-      localAppAIConfigGet: async () => ({
-        status: 'ok' as const,
-        value: {
-          owner: { owner: { oneofKind: 'app', app: { appId: 'app.example' } } },
-          capabilities: [{
-            capabilityContract: 'text.generate', requiredFeatures: [],
-            route: {
-              oneofKind: 'cloud',
-              cloud: {
-                implementation: {
-                  implementationId: 'cloud.text.example', driverId: 'cloud.example', driverDialect: 'v1',
-                },
-                connectorGrantId: 'grant-private',
-              },
-            },
-          }],
-        },
-      }),
-    };
-    await expect(createNimiElectronLocalAppHostForBinding(candidate).aiConfigGet()).rejects.toMatchObject({
-      reasonCode: 'runtime-service-untrusted', retryable: false,
-    });
+  it('preserves exact typed voice failures', async () => {
+    for (const reasonCode of [
+      'ai-voice-input-invalid',
+      'ai-voice-workflow-unsupported',
+      'ai-voice-asset-not-found',
+      'ai-voice-asset-expired',
+      'ai-voice-asset-scope-forbidden',
+      'ai-voice-target-model-mismatch',
+      'ai-voice-job-not-found',
+      'ai-voice-job-not-cancellable',
+    ]) {
+      const candidate = {
+        ...binding([]),
+        localAppScenarioJobSubmit: async () => ({
+          status: 'error' as const,
+          reasonCode,
+          retryable: false,
+        }),
+      };
+      await expect(createNimiElectronLocalAppHostForBinding(candidate).scenarioJobSubmit({
+        spec: { type: 'voice-create' },
+      })).rejects.toMatchObject({ reasonCode, retryable: false });
+    }
   });
 
   it('rejects protected carrier material returned by the native binding', async () => {
@@ -287,7 +269,9 @@ describe('Electron protected local-app host', () => {
   it('strictly validates scenario Job and artifact projections', async () => {
     const calls: Array<{ method: string; input?: unknown }> = [];
     const host = createNimiElectronLocalAppHostForBinding(binding(calls));
-    await expect(host.scenarioJobGet({ jobId: 'job-1' })).resolves.toEqual({ job: scenarioJobProjection() });
+    await expect(host.scenarioJobGet({ jobId: 'job-1' })).resolves.toEqual({
+      job: scenarioJobProjection(), asset: null, voiceReference: null,
+    });
     await expect(host.artifactRead({ artifactId: 'artifact-1' })).resolves.toEqual({
       bytes: [1, 2], mimeType: 'image/png', sizeBytes: 2,
     });
@@ -318,8 +302,12 @@ describe('Electron protected local-app host', () => {
       ...binding([]),
       localAppScenarioJobSubmit: async () => ({
         status: 'ok' as const,
+        value: { job: scenarioJobProjection({ scenarioType: 'voice-create', status: 'submitted' }) },
+      }),
+      localAppScenarioJobGet: async () => ({
+        status: 'ok' as const,
         value: {
-          job: scenarioJobProjection({ scenarioType: 'voice-create' }),
+          job: scenarioJobProjection({ scenarioType: 'voice-create', status: 'completed' }),
           asset,
           voiceReference: { kind: 'voice_asset_id', voiceAssetId: asset.voiceAssetId },
         },
@@ -331,7 +319,10 @@ describe('Electron protected local-app host', () => {
     };
     const host = createNimiElectronLocalAppHostForBinding(candidate);
     await expect(host.scenarioJobSubmit({ spec: { type: 'voice-create' } })).resolves.toEqual({
-      job: scenarioJobProjection({ scenarioType: 'voice-create' }),
+      job: scenarioJobProjection({ scenarioType: 'voice-create', status: 'submitted' }),
+    });
+    await expect(host.scenarioJobGet({ jobId: 'job-1' })).resolves.toEqual({
+      job: scenarioJobProjection({ scenarioType: 'voice-create', status: 'completed' }),
       asset,
       voiceReference: { kind: 'voice_asset_id', voiceAssetId: asset.voiceAssetId },
     });
@@ -438,7 +429,6 @@ function binding(calls: Array<{ method: string; input?: unknown }>) {
     localAppSessionStatus: record('localAppSessionStatus', statusProjection()),
     localAppSessionRenew: record('localAppSessionRenew', statusProjection()),
     localAppAIConfigGet: record('localAppAIConfigGet', { owner: { owner: { oneofKind: 'app', app: { appId: 'app.example' } } }, capabilities: [] }),
-    localAppAIConfigOverwrite: record('localAppAIConfigOverwrite', { owner: { owner: { oneofKind: 'app', app: { appId: 'app.example' } } }, capabilities: [] }),
     localAppModelConfigLocalSelectionsGet: record('localAppModelConfigLocalSelectionsGet', [{
       capabilityContract: 'text.generate', state: 'selected', configurationId: null,
       displayName: 'gemma4-26b', supportedFeatures: [], reasons: [],
@@ -451,8 +441,8 @@ function binding(calls: Array<{ method: string; input?: unknown }>) {
     localAppScenarioExecute: record('localAppScenarioExecute', {
       output: { type: 'text-embed', vectors: [[0.1, 0.2]] }, traceId: 'trace-1',
     }),
-    localAppScenarioJobSubmit: record('localAppScenarioJobSubmit', { job: scenarioJobProjection(), asset: null }),
-    localAppScenarioJobGet: record('localAppScenarioJobGet', { job: scenarioJobProjection() }),
+    localAppScenarioJobSubmit: record('localAppScenarioJobSubmit', { job: scenarioJobProjection() }),
+    localAppScenarioJobGet: record('localAppScenarioJobGet', { job: scenarioJobProjection(), asset: null, voiceReference: null }),
     localAppScenarioJobSubscribe: record('localAppScenarioJobSubscribe', { streamId: 'scenario-job-1' }),
     localAppScenarioJobStreamNext: record('localAppScenarioJobStreamNext', { completed: true }),
     localAppScenarioJobStreamClose: record('localAppScenarioJobStreamClose', { closed: true }),

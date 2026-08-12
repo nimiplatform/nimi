@@ -108,18 +108,7 @@ pub(super) async fn submit_job(
         .await
         .map_err(local_app_error_from_status)?
         .into_inner();
-    if response.job.is_none() && response.asset.is_none() && response.voice_reference.is_none() {
-        return Err(untrusted());
-    }
-    validate_voice_asset_reference_pair(
-        response.asset.as_ref(),
-        response.voice_reference.as_ref(),
-    )?;
-    Ok(json!({
-        "job": response.job.map(project_job).transpose()?,
-        "asset": response.asset.map(project_voice_asset).transpose()?,
-        "voiceReference": response.voice_reference.map(project_voice_asset_reference).transpose()?,
-    }))
+    Ok(json!({"job": project_job(response.job.ok_or_else(untrusted)?)?}))
 }
 
 pub(super) async fn get_job(
@@ -136,7 +125,17 @@ pub(super) async fn get_job(
         .await
         .map_err(local_app_error_from_status)?
         .into_inner();
-    Ok(json!({"job": project_job(response.job.ok_or_else(untrusted)?)?}))
+    let job = response.job.ok_or_else(untrusted)?;
+    validate_voice_job_result(
+        &job,
+        response.asset.as_ref(),
+        response.voice_reference.as_ref(),
+    )?;
+    Ok(json!({
+        "job": project_job(job)?,
+        "asset": response.asset.map(project_voice_asset).transpose()?,
+        "voiceReference": response.voice_reference.map(project_voice_asset_reference).transpose()?,
+    }))
 }
 
 pub(super) async fn cancel_job(
@@ -996,12 +995,32 @@ fn validate_voice_asset_reference_pair(
             }
             match reference.reference.as_ref() {
                 Some(VoiceReferenceValue::VoiceAssetId(value))
-                    if value == &asset.voice_asset_id => Ok(()),
+                    if value == &asset.voice_asset_id =>
+                {
+                    Ok(())
+                }
                 _ => Err(untrusted()),
             }
         }
         _ => Err(untrusted()),
     }
+}
+
+fn validate_voice_job_result(
+    job: &LocalAppScenarioJob,
+    asset: Option<&LocalAppVoiceAsset>,
+    reference: Option<&VoiceReference>,
+) -> Result<(), LocalAppOperationError> {
+    validate_voice_asset_reference_pair(asset, reference)?;
+    if asset.is_some_and(|value| value.status != VoiceAssetStatus::Active as i32) {
+        return Err(untrusted());
+    }
+    let completed_voice = job.scenario_type == ScenarioType::VoiceCreate as i32
+        && job.status == ScenarioJobStatus::Completed as i32;
+    if completed_voice != asset.is_some() {
+        return Err(untrusted());
+    }
+    Ok(())
 }
 
 fn project_job_event(event: LocalAppScenarioJobEvent) -> Result<JsonValue, LocalAppOperationError> {
@@ -1470,7 +1489,7 @@ mod tests {
     }
 
     #[test]
-    fn voice_create_submit_projection_accepts_the_canonical_owner_shape() {
+    fn voice_create_result_is_published_only_for_terminal_success() {
         let timestamp = prost_types::Timestamp {
             seconds: 1_800_000_000,
             nanos: 0,
@@ -1500,6 +1519,18 @@ mod tests {
             )),
         };
 
+        assert!(validate_voice_job_result(&job, None, None).is_ok());
+        assert!(validate_voice_job_result(&job, Some(&asset), Some(&reference)).is_err());
+        let mut completed = job.clone();
+        completed.status = ScenarioJobStatus::Completed as i32;
+        assert!(validate_voice_job_result(&completed, None, None).is_err());
+        assert!(validate_voice_job_result(&completed, Some(&asset), Some(&reference)).is_ok());
+        let mut inactive = asset.clone();
+        inactive.status = VoiceAssetStatus::Failed as i32;
+        assert!(validate_voice_job_result(&completed, Some(&inactive), Some(&reference)).is_err());
+        let mut failed = job.clone();
+        failed.status = ScenarioJobStatus::Failed as i32;
+        assert!(validate_voice_job_result(&failed, None, None).is_ok());
         assert!(project_job(job).is_ok());
         assert!(project_voice_asset(asset.clone()).is_ok());
         assert!(project_voice_asset_reference(reference.clone()).is_ok());

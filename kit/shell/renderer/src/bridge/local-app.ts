@@ -6,7 +6,6 @@ import type {
   NimiCapabilityAIConfig,
   NimiCapabilityAIConfigIntent,
   NimiPortableAppAIConfig,
-  NimiPortableAppAIConfigIntent,
 } from '@nimiplatform/kit/core/sdk-contract';
 import { BridgeError, invoke, invokeChecked } from './invoke.js';
 import { listenShell } from './tauri-api.js';
@@ -217,7 +216,10 @@ export type NimiLocalAppScenarioExecuteResult =
   | { readonly output: { readonly type: 'text-embed'; readonly vectors: readonly (readonly number[])[] }; readonly traceId: string }
   | { readonly output: { readonly type: 'image-generate'; readonly artifacts: readonly NimiLocalAppScenarioArtifact[] }; readonly traceId: string };
 export type NimiLocalAppScenarioJobSubmitResult = {
-  readonly job: NimiLocalAppScenarioJob | null;
+  readonly job: NimiLocalAppScenarioJob;
+};
+export type NimiLocalAppScenarioJobGetResult = {
+  readonly job: NimiLocalAppScenarioJob;
   readonly asset: NimiLocalAppVoiceAsset | null;
   readonly voiceReference: { readonly kind: 'voice_asset_id'; readonly voiceAssetId: string } | null;
 };
@@ -346,7 +348,7 @@ export type NimiLocalAppStandardShellSurface = {
     };
     readonly scenarioJobs: {
       readonly submit: (spec: NimiLocalAppScenarioJobSpec) => Promise<NimiLocalAppScenarioJobSubmitResult>;
-      readonly get: (jobId: string) => Promise<{ readonly job: NimiLocalAppScenarioJob }>;
+      readonly get: (jobId: string) => Promise<NimiLocalAppScenarioJobGetResult>;
       readonly subscribe: (jobId: string) => Promise<NimiLocalAppStream<NimiLocalAppScenarioJobEvent>>;
       readonly cancel: (jobId: string, reason?: string) => Promise<{ readonly job: NimiLocalAppScenarioJob }>;
     };
@@ -360,9 +362,6 @@ export type NimiLocalAppStandardShellSurface = {
   };
   readonly aiConfig: {
     readonly get: () => Promise<NimiPortableAppAIConfig>;
-    readonly overwrite: (
-      capabilities: readonly NimiPortableAppAIConfigIntent[],
-    ) => Promise<NimiPortableAppAIConfig>;
   };
   readonly modelConfig: {
     readonly localSelections: () => Promise<readonly NimiLocalAppModelConfigLocalSelection[]>;
@@ -424,7 +423,6 @@ export function createNimiLocalAppStandardShellSurface(): NimiLocalAppStandardSh
     },
     aiConfig: {
       get: getNimiLocalAppAIConfig,
-      overwrite: overwriteNimiLocalAppAIConfig,
     },
     modelConfig: {
       localSelections: getNimiLocalAppModelConfigLocalSelections,
@@ -476,19 +474,6 @@ export function getNimiLocalAppAIConfig(): Promise<NimiPortableAppAIConfig> {
 export function getNimiLocalAppModelConfigLocalSelections(): Promise<readonly NimiLocalAppModelConfigLocalSelection[]> {
   const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.modelConfigLocalSelectionsGet'];
   return invokeChecked(command, {}, (value) => parseModelConfigLocalSelections(value, command));
-}
-
-export function overwriteNimiLocalAppAIConfig(
-  capabilities: readonly NimiPortableAppAIConfigIntent[],
-): Promise<NimiPortableAppAIConfig> {
-  const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.aiConfigOverwrite'];
-  rejectPortableAppAIConfigFields(capabilities, command, true);
-  const payload = canonicalAIConfigCapabilities(capabilities, command);
-  return invokeChecked(
-    command,
-    { payload: { capabilities: payload } },
-    (value) => parseAppAIConfig(value, command),
-  );
 }
 
 export function getNimiLocalAppSessionStatus(): Promise<NimiLocalAppSessionStatus> {
@@ -603,10 +588,10 @@ export function submitNimiLocalAppScenarioJob(
     (value) => parseScenarioJobSubmit(value, command));
 }
 
-export function getNimiLocalAppScenarioJob(jobId: string): Promise<{ readonly job: NimiLocalAppScenarioJob }> {
+export function getNimiLocalAppScenarioJob(jobId: string): Promise<NimiLocalAppScenarioJobGetResult> {
   const command = AIC_COMMANDS.scenarioJobGet;
   return invokeChecked(command, { payload: { jobId: requiredText(jobId, 'jobId', command, 128) } },
-    (value) => parseScenarioJobEnvelope(value, command));
+    (value) => parseScenarioJobGet(value, command));
 }
 
 export async function subscribeNimiLocalAppScenarioJob(
@@ -1211,20 +1196,26 @@ function parseScenarioExecute(value: unknown, command: string): NimiLocalAppScen
 
 function parseScenarioJobSubmit(value: unknown, command: string): NimiLocalAppScenarioJobSubmitResult {
   const record = assertRecord(value, `${command}: submit result is invalid`);
-  assertProjectionKeys(record, ['job', 'asset', 'voiceReference'], command, 'scenario Job submit');
-  if (record.job === null && record.asset === null && record.voiceReference === null) throw new Error(`${command}: submit result is empty`);
-  const job = record.job === null ? null : parseScenarioJob(record.job, command);
+  assertProjectionKeys(record, ['job'], command, 'scenario Job submit');
+  return Object.freeze({ job: parseScenarioJob(record.job, command) });
+}
+
+function parseScenarioJobGet(value: unknown, command: string): NimiLocalAppScenarioJobGetResult {
+  const record = assertRecord(value, `${command}: Job result is invalid`);
+  assertProjectionKeys(record, ['job', 'asset', 'voiceReference'], command, 'scenario Job result');
+  const job = parseScenarioJob(record.job, command);
   const asset = record.asset === null ? null : parseVoiceAsset(record.asset, command);
   const voiceReference = record.voiceReference === null ? null : parseVoiceAssetReference(record.voiceReference, command);
   if ((asset === null) !== (voiceReference === null)
-    || (asset && voiceReference && asset.voiceAssetId !== voiceReference.voiceAssetId)) {
+    || (asset && (asset.status !== 'active' || voiceReference?.voiceAssetId !== asset.voiceAssetId))
+    || ((job.scenarioType === 'voice-create' && job.status === 'completed') !== (asset !== null))) {
     throw new Error(`${command}: scenario Job voice result is invalid`);
   }
   return Object.freeze({
     job,
     asset,
     voiceReference,
-  }) as unknown as NimiLocalAppScenarioJobSubmitResult;
+  }) as NimiLocalAppScenarioJobGetResult;
 }
 
 function parseScenarioJobEnvelope(value: unknown, command: string): { readonly job: NimiLocalAppScenarioJob } {
@@ -2017,7 +2008,7 @@ function parseEffectiveDefaults(
 
 function parseAppAIConfig(value: unknown, command: string): NimiPortableAppAIConfig {
   const config = parseSafeProjection(value, command);
-  rejectPortableAppAIConfigFields(config, command, false);
+  rejectPortableAppAIConfigFields(config, command);
   assertProjectionKeys(config, ['owner', 'capabilities'], command, 'App AIConfig');
   const owner = assertRecord(config.owner, `${command}: App AIConfig owner is invalid`);
   assertProjectionKeys(owner, ['owner'], command, 'App AIConfig owner');
@@ -2190,18 +2181,17 @@ function rejectAIConfigAuthorityFields(value: unknown, command: string): void {
   }
 }
 
-function rejectPortableAppAIConfigFields(value: unknown, command: string, input: boolean): void {
+function rejectPortableAppAIConfigFields(value: unknown, command: string): void {
   if (!value || typeof value !== 'object') return;
   if (Array.isArray(value)) {
-    for (const entry of value) rejectPortableAppAIConfigFields(entry, command, input);
+    for (const entry of value) rejectPortableAppAIConfigFields(entry, command);
     return;
   }
   for (const [key, entry] of Object.entries(value as Record<string, unknown>)) {
     if (FORBIDDEN_PORTABLE_APP_AI_CONFIG_KEYS.has(normalizeFieldName(key))) {
-      if (input) throw invalidInput(command, `portable App AIConfig field ${key} is forbidden`);
       throw new Error(`${command}: portable App AIConfig field ${key} is forbidden`);
     }
-    rejectPortableAppAIConfigFields(entry, command, input);
+    rejectPortableAppAIConfigFields(entry, command);
   }
 }
 

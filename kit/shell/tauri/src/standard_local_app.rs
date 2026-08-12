@@ -1,9 +1,9 @@
 use nimi_shell_protected_local::{
-    LocalAppAIConfigOverwriteRequest, LocalAppAgentCommitPresentationRequest,
-    LocalAppAgentHandleRequest, LocalAppAgentUpdateAutonomyRequest, LocalAppAssetAdoptRequest,
-    LocalAppAssetListRequest, LocalAppAssetMoveRequest, LocalAppAssetReadRequest,
-    LocalAppAssetRecord, LocalAppAssetRemoveRequest, LocalAppAssetStatRequest,
-    LocalAppAssetWriteRequest, LocalAppOperationError, LocalAppScenarioUploadArtifactRequest,
+    LocalAppAgentCommitPresentationRequest, LocalAppAgentHandleRequest,
+    LocalAppAgentUpdateAutonomyRequest, LocalAppAssetAdoptRequest, LocalAppAssetListRequest,
+    LocalAppAssetMoveRequest, LocalAppAssetReadRequest, LocalAppAssetRecord,
+    LocalAppAssetRemoveRequest, LocalAppAssetStatRequest, LocalAppAssetWriteRequest,
+    LocalAppOperationError, LocalAppScenarioUploadArtifactRequest,
     LocalAppSharedAgentAIConfigOverwriteRequest, LocalAppStorageReadRequest,
     LocalAppStorageRemoveRequest, LocalAppStorageWriteRequest, LocalAppTextCandidateMessage,
     LocalAppTextCandidateRequest,
@@ -43,7 +43,7 @@ pub struct LocalAppTextCandidatePayload {
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct LocalAppAIConfigOverwritePayload {
+pub struct LocalAppSharedAgentAIConfigOverwritePayload {
     capabilities: Value,
 }
 
@@ -269,22 +269,6 @@ pub async fn model_config_local_selections_get_for_host(
         .map_err(map_local_app_error)
 }
 
-pub async fn ai_config_overwrite_for_host(
-    host: &RuntimeBridgeLocalAppHost,
-    payload: Value,
-) -> Result<Value, String> {
-    let payload: LocalAppAIConfigOverwritePayload =
-        parse_payload(payload, "local_app_ai_config_overwrite")?;
-    if !payload.capabilities.is_array() {
-        return Err(invalid_payload("local_app_ai_config_overwrite"));
-    }
-    host.app_ai_config_overwrite(LocalAppAIConfigOverwriteRequest {
-        capabilities: payload.capabilities,
-    })
-    .await
-    .map_err(map_local_app_error)
-}
-
 pub async fn shared_agent_ai_config_get_for_host(
     host: &RuntimeBridgeLocalAppHost,
 ) -> Result<Value, String> {
@@ -297,7 +281,7 @@ pub async fn shared_agent_ai_config_overwrite_for_host(
     host: &RuntimeBridgeLocalAppHost,
     payload: Value,
 ) -> Result<Value, String> {
-    let payload: LocalAppAIConfigOverwritePayload =
+    let payload: LocalAppSharedAgentAIConfigOverwritePayload =
         parse_payload(payload, "local_app_shared_agent_ai_config_overwrite")?;
     if !payload.capabilities.is_array() {
         return Err(invalid_payload(
@@ -694,8 +678,17 @@ fn standard_code(reason: &str) -> &'static str {
         "runtime-service-error-unclassified" => "runtime-service-error-unclassified",
         "runtime-service-repair-required" => "runtime-service-repair-required",
         "runtime-unauthenticated" => "runtime-unauthenticated",
-        "invalid-payload" | "ai-config-invalid" => "invalid-payload",
-        "not-found" | "ai-config-not-found" => "not-found",
+        "invalid-payload"
+        | "ai-config-invalid"
+        | "ai-voice-input-invalid"
+        | "ai-voice-workflow-unsupported"
+        | "ai-voice-asset-expired"
+        | "ai-voice-target-model-mismatch"
+        | "ai-voice-job-not-cancellable" => "invalid-payload",
+        "not-found"
+        | "ai-config-not-found"
+        | "ai-voice-asset-not-found"
+        | "ai-voice-job-not-found" => "not-found",
         "resource-exhausted" => "resource-exhausted",
         _ => "runtime-permission-denied",
     }
@@ -714,6 +707,7 @@ fn action_hint(reason: &str) -> &'static str {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use nimi_shell_protected_local::LocalAppReasonCode;
 
     #[test]
     fn payloads_reject_extra_authority_fields() {
@@ -765,5 +759,30 @@ mod tests {
             decimal_revision("0", true, "presentation_commit").expect("fresh presentation"),
             0,
         );
+    }
+
+    #[test]
+    fn voice_failures_keep_exact_reason_in_standard_shell_envelopes() {
+        for (reason, expected_code) in [
+            (LocalAppReasonCode::AiVoiceInputInvalid, "invalid-payload"),
+            (
+                LocalAppReasonCode::AiVoiceTargetModelMismatch,
+                "invalid-payload",
+            ),
+            (LocalAppReasonCode::AiVoiceAssetNotFound, "not-found"),
+            (LocalAppReasonCode::AiVoiceAssetExpired, "invalid-payload"),
+            (
+                LocalAppReasonCode::AiVoiceAssetScopeForbidden,
+                "runtime-permission-denied",
+            ),
+        ] {
+            let envelope: Value = serde_json::from_str(&map_local_app_error(
+                LocalAppOperationError::new(reason, false),
+            ))
+            .expect("standard shell error JSON");
+            assert_eq!(envelope["code"], expected_code);
+            assert_eq!(envelope["reasonCode"], reason.as_str());
+            assert_eq!(envelope["source"], "runtime");
+        }
     }
 }

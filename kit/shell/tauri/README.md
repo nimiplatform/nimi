@@ -52,7 +52,7 @@ Available macros:
 - `nimi_shell_tauri_runtime_bridge_handler!`
 - `nimi_shell_tauri_oauth_runtime_bridge_handler!`
 - `nimi_shell_tauri_local_app_standard_shell_handler!` (the isolated catalogued
-  Local App carrier only, including owner-free App AIConfig get/overwrite,
+  Local App carrier only, including read-only owner-derived App AIConfig,
   shared LocalAgent AIConfig get/overwrite, Agent autonomy snapshot/update,
   Agent presentation snapshot/commit, and Runtime-selected foreground text
   candidates)

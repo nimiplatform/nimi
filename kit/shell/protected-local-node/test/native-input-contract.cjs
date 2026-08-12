@@ -23,7 +23,6 @@ const addon = nativeModule.exports;
 const agentHandle = 'lah_contract_nonexistent';
 
 const calls = [
-  ['localAppAIConfigOverwrite', { capabilities: [] }],
   ['localAppRealmWorldCoreList', { take: 1, visibility: 'private' }],
   ['localAppRealmWorldCoreCreate', {
     body: { core: {}, origin: { kind: 'manual' }, visibility: 'private' },
@@ -61,6 +60,7 @@ async function main() {
   assert.equal(invalidUnaryRelease?.reasonCode, 'runtime-service-untrusted');
 
   for (const retired of [
+    'localAppAIConfigOverwrite',
     'localAppAgentConfigurationSnapshot',
     'localAppAgentUpdateConfiguration',
     'localAppAgentReadinessSnapshot',

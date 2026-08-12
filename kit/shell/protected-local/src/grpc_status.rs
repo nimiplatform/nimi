@@ -91,9 +91,7 @@ pub(crate) fn local_app_error_from_status(status: Status) -> LocalAppOperationEr
         Code::NotFound => LocalAppReasonCode::NotFound,
         Code::ResourceExhausted => LocalAppReasonCode::ResourceExhausted,
         Code::Cancelled => LocalAppReasonCode::Canceled,
-        Code::Unavailable | Code::DeadlineExceeded => {
-            LocalAppReasonCode::RuntimeServiceUnavailable
-        }
+        Code::Unavailable | Code::DeadlineExceeded => LocalAppReasonCode::RuntimeServiceUnavailable,
         _ => LocalAppReasonCode::RuntimeServiceErrorUnclassified,
     };
     let unclassified =
@@ -124,7 +122,6 @@ pub(crate) fn local_app_reason_from_proto(value: i32) -> Option<LocalAppReasonCo
         204 => LocalAppReasonCode::AiRouteUnsupported,
         205 => LocalAppReasonCode::AiRouteFallbackDenied,
         206 => LocalAppReasonCode::AiInputInvalid,
-        318 => LocalAppReasonCode::AiConnectorGrantSelectionRequired,
         207 => LocalAppReasonCode::AiOutputInvalid,
         209 => LocalAppReasonCode::AiContentFilterBlocked,
         352 => LocalAppReasonCode::AiLocalModelUnavailable,
@@ -141,6 +138,14 @@ pub(crate) fn local_app_reason_from_proto(value: i32) -> Option<LocalAppReasonCo
         394 => LocalAppReasonCode::AiProviderTimeout,
         410 => LocalAppReasonCode::AiMediaSpecInvalid,
         411 => LocalAppReasonCode::AiMediaOptionUnsupported,
+        420 => LocalAppReasonCode::AiVoiceInputInvalid,
+        421 => LocalAppReasonCode::AiVoiceWorkflowUnsupported,
+        422 => LocalAppReasonCode::AiVoiceAssetNotFound,
+        423 => LocalAppReasonCode::AiVoiceAssetExpired,
+        424 => LocalAppReasonCode::AiVoiceAssetScopeForbidden,
+        425 => LocalAppReasonCode::AiVoiceTargetModelMismatch,
+        426 => LocalAppReasonCode::AiVoiceJobNotFound,
+        427 => LocalAppReasonCode::AiVoiceJobNotCancellable,
         694 => LocalAppReasonCode::AiConfigInvalid,
         695 => LocalAppReasonCode::AiConfigNotFound,
         696 => LocalAppReasonCode::AiConfigPersistenceUnavailable,
@@ -191,9 +196,6 @@ fn local_app_reason_from_runtime_reason(value: &str) -> Option<LocalAppReasonCod
         "AI_PROVIDER_UNAVAILABLE" => LocalAppReasonCode::AiProviderUnavailable,
         "AI_ROUTE_UNSUPPORTED" => LocalAppReasonCode::AiRouteUnsupported,
         "AI_ROUTE_FALLBACK_DENIED" => LocalAppReasonCode::AiRouteFallbackDenied,
-        "AI_CONNECTOR_GRANT_SELECTION_REQUIRED" => {
-            LocalAppReasonCode::AiConnectorGrantSelectionRequired
-        }
         "AI_INPUT_INVALID" => LocalAppReasonCode::AiInputInvalid,
         "AI_OUTPUT_INVALID" => LocalAppReasonCode::AiOutputInvalid,
         "AI_CONTENT_FILTER_BLOCKED" => LocalAppReasonCode::AiContentFilterBlocked,
@@ -213,6 +215,14 @@ fn local_app_reason_from_runtime_reason(value: &str) -> Option<LocalAppReasonCod
         "AI_PROVIDER_TIMEOUT" => LocalAppReasonCode::AiProviderTimeout,
         "AI_MEDIA_SPEC_INVALID" => LocalAppReasonCode::AiMediaSpecInvalid,
         "AI_MEDIA_OPTION_UNSUPPORTED" => LocalAppReasonCode::AiMediaOptionUnsupported,
+        "AI_VOICE_INPUT_INVALID" => LocalAppReasonCode::AiVoiceInputInvalid,
+        "AI_VOICE_WORKFLOW_UNSUPPORTED" => LocalAppReasonCode::AiVoiceWorkflowUnsupported,
+        "AI_VOICE_ASSET_NOT_FOUND" => LocalAppReasonCode::AiVoiceAssetNotFound,
+        "AI_VOICE_ASSET_EXPIRED" => LocalAppReasonCode::AiVoiceAssetExpired,
+        "AI_VOICE_ASSET_SCOPE_FORBIDDEN" => LocalAppReasonCode::AiVoiceAssetScopeForbidden,
+        "AI_VOICE_TARGET_MODEL_MISMATCH" => LocalAppReasonCode::AiVoiceTargetModelMismatch,
+        "AI_VOICE_JOB_NOT_FOUND" => LocalAppReasonCode::AiVoiceJobNotFound,
+        "AI_VOICE_JOB_NOT_CANCELLABLE" => LocalAppReasonCode::AiVoiceJobNotCancellable,
         "AI_CONFIG_INVALID" => LocalAppReasonCode::AiConfigInvalid,
         "AI_CONFIG_NOT_FOUND" => LocalAppReasonCode::AiConfigNotFound,
         "AI_CONFIG_PERSISTENCE_UNAVAILABLE" => LocalAppReasonCode::AiConfigPersistenceUnavailable,
@@ -349,14 +359,6 @@ mod tests {
             local_app_reason_from_runtime_reason("LOCAL_APP_ACCESS_DENIED"),
             local_app_reason_from_runtime_reason("LOCAL_APP_OWNER_UNAVAILABLE")
         );
-        assert_eq!(
-            local_app_reason_from_runtime_reason("AI_CONNECTOR_GRANT_SELECTION_REQUIRED"),
-            Some(LocalAppReasonCode::AiConnectorGrantSelectionRequired)
-        );
-        assert_eq!(
-            local_app_reason_from_proto(318),
-            Some(LocalAppReasonCode::AiConnectorGrantSelectionRequired)
-        );
         for (runtime_reason, proto_reason, expected) in [
             (
                 "AI_LOCAL_DRIVER_UNAVAILABLE",
@@ -412,6 +414,78 @@ mod tests {
                 Some(expected)
             );
         }
+    }
+
+    #[test]
+    fn voice_failures_stay_typed_for_local_apps() {
+        for (runtime_reason, proto_reason, expected) in [
+            ("AI_VOICE_INPUT_INVALID", 420, "ai-voice-input-invalid"),
+            (
+                "AI_VOICE_WORKFLOW_UNSUPPORTED",
+                421,
+                "ai-voice-workflow-unsupported",
+            ),
+            ("AI_VOICE_ASSET_NOT_FOUND", 422, "ai-voice-asset-not-found"),
+            ("AI_VOICE_ASSET_EXPIRED", 423, "ai-voice-asset-expired"),
+            (
+                "AI_VOICE_ASSET_SCOPE_FORBIDDEN",
+                424,
+                "ai-voice-asset-scope-forbidden",
+            ),
+            (
+                "AI_VOICE_TARGET_MODEL_MISMATCH",
+                425,
+                "ai-voice-target-model-mismatch",
+            ),
+            ("AI_VOICE_JOB_NOT_FOUND", 426, "ai-voice-job-not-found"),
+            (
+                "AI_VOICE_JOB_NOT_CANCELLABLE",
+                427,
+                "ai-voice-job-not-cancellable",
+            ),
+        ] {
+            assert_eq!(
+                local_app_reason_from_runtime_reason(runtime_reason)
+                    .map(LocalAppReasonCode::as_str),
+                Some(expected)
+            );
+            assert_eq!(
+                local_app_reason_from_proto(proto_reason).map(LocalAppReasonCode::as_str),
+                Some(expected)
+            );
+        }
+    }
+
+    #[test]
+    fn invalid_argument_voice_status_keeps_exact_reason_without_private_detail() {
+        let info = GoogleRpcErrorInfo {
+            reason: "AI_VOICE_TARGET_MODEL_MISMATCH".to_string(),
+            domain: ERROR_INFO_DOMAIN.to_string(),
+            metadata: HashMap::from([(
+                "provider_message".to_string(),
+                "private-provider-detail".to_string(),
+            )]),
+        };
+        let details = GoogleRpcStatus {
+            code: Code::InvalidArgument as i32,
+            message: "private-provider-message".to_string(),
+            details: vec![prost_types::Any {
+                type_url: ERROR_INFO_TYPE_URL.to_string(),
+                value: info.encode_to_vec(),
+            }],
+        };
+        let error = local_app_error_from_status(Status::with_details(
+            Code::InvalidArgument,
+            "private-provider-message",
+            details.encode_to_vec().into(),
+        ));
+
+        assert_eq!(
+            error.reason_code(),
+            LocalAppReasonCode::AiVoiceTargetModelMismatch
+        );
+        assert!(error.reason_metadata().is_empty());
+        assert!(!error.to_string().contains("private-provider"));
     }
 
     #[test]

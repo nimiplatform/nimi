@@ -95,20 +95,6 @@ pub async fn local_app_ai_config_get() -> NativeJsonOutcome {
     invoke_agent(|session| async move { session.app_ai_config_get().await }).await
 }
 
-#[napi(js_name = "localAppAIConfigOverwrite")]
-pub async fn local_app_ai_config_overwrite(
-    input: NativeAIConfigOverwriteInput,
-) -> NativeJsonOutcome {
-    invoke_agent(|session| async move {
-        session
-            .app_ai_config_overwrite(LocalAppAIConfigOverwriteRequest {
-                capabilities: input.capabilities,
-            })
-            .await
-    })
-    .await
-}
-
 #[napi(js_name = "localAppModelConfigLocalSelectionsGet")]
 pub async fn local_app_model_config_local_selections_get() -> NativeJsonOutcome {
     invoke_agent(|session| async move { session.model_config_local_selections_get().await }).await
@@ -229,8 +215,13 @@ pub async fn local_app_voice_assets_list(
 #[napi(js_name = "localAppAssetStat")]
 pub async fn local_app_asset_stat(input: NativeStorageReadInput) -> NativeJsonOutcome {
     invoke_asset_record(|session| async move {
-        session.storage_asset_stat(LocalAppAssetStatRequest { relative_path: input.relative_path }).await
-    }).await
+        session
+            .storage_asset_stat(LocalAppAssetStatRequest {
+                relative_path: input.relative_path,
+            })
+            .await
+    })
+    .await
 }
 
 #[napi(js_name = "localAppAssetList")]
@@ -239,9 +230,14 @@ pub async fn local_app_asset_list(input: NativeAssetListInput) -> NativeJsonOutc
         Ok(session) => session,
         Err(error) => return NativeJsonOutcome::error(error),
     };
-    match session.storage_asset_list(LocalAppAssetListRequest {
-        prefix: input.prefix, cursor: input.cursor, page_size: input.page_size,
-    }).await {
+    match session
+        .storage_asset_list(LocalAppAssetListRequest {
+            prefix: input.prefix,
+            cursor: input.cursor,
+            page_size: input.page_size,
+        })
+        .await
+    {
         Ok(result) => NativeJsonOutcome::success(json!({
             "assets": result.assets.into_iter().map(project_asset_record).collect::<Vec<_>>(),
             "nextCursor": result.next_cursor,
@@ -261,9 +257,15 @@ pub async fn local_app_asset_write_open(input: NativeAssetWriteOpenInput) -> Nat
     };
     let mut streams = asset_write_streams().lock().await;
     if streams.len() >= MAX_ASSET_STREAMS {
-        return NativeJsonOutcome::error(LocalAppOperationError::new(LocalAppReasonCode::ResourceExhausted, false));
+        return NativeJsonOutcome::error(LocalAppOperationError::new(
+            LocalAppReasonCode::ResourceExhausted,
+            false,
+        ));
     }
-    let stream_id = format!("asset-write-{}", ASSET_STREAM_COUNTER.fetch_add(1, Ordering::Relaxed));
+    let stream_id = format!(
+        "asset-write-{}",
+        ASSET_STREAM_COUNTER.fetch_add(1, Ordering::Relaxed)
+    );
     let (sender, body) = tokio::sync::mpsc::channel(2);
     let request = LocalAppAssetWriteRequest {
         relative_path: input.relative_path,
@@ -278,35 +280,60 @@ pub async fn local_app_asset_write_open(input: NativeAssetWriteOpenInput) -> Nat
 #[napi(js_name = "localAppAssetWriteChunk")]
 pub async fn local_app_asset_write_chunk(input: NativeAssetWriteChunkInput) -> NativeJsonOutcome {
     if input.body_chunk.is_empty() || input.body_chunk.len() > MAX_ASSET_CHUNK_BYTES {
-        return NativeJsonOutcome::error(LocalAppOperationError::new(LocalAppReasonCode::InvalidPayload, false));
+        return NativeJsonOutcome::error(LocalAppOperationError::new(
+            LocalAppReasonCode::InvalidPayload,
+            false,
+        ));
     }
-    let sender = asset_write_streams().lock().await.get(input.stream_id.as_str()).map(|stream| stream.sender.clone());
+    let sender = asset_write_streams()
+        .lock()
+        .await
+        .get(input.stream_id.as_str())
+        .map(|stream| stream.sender.clone());
     let Some(sender) = sender else {
-        return NativeJsonOutcome::error(LocalAppOperationError::new(LocalAppReasonCode::NotFound, false));
+        return NativeJsonOutcome::error(LocalAppOperationError::new(
+            LocalAppReasonCode::NotFound,
+            false,
+        ));
     };
     match sender.send(input.body_chunk.to_vec()).await {
         Ok(()) => NativeJsonOutcome::success(json!({ "accepted": true })),
-        Err(_) => NativeJsonOutcome::error(LocalAppOperationError::new(LocalAppReasonCode::Canceled, false)),
+        Err(_) => NativeJsonOutcome::error(LocalAppOperationError::new(
+            LocalAppReasonCode::Canceled,
+            false,
+        )),
     }
 }
 
 #[napi(js_name = "localAppAssetWriteCommit")]
 pub async fn local_app_asset_write_commit(input: NativeScenarioStreamInput) -> NativeJsonOutcome {
-    let stream = asset_write_streams().lock().await.remove(input.stream_id.as_str());
+    let stream = asset_write_streams()
+        .lock()
+        .await
+        .remove(input.stream_id.as_str());
     let Some(stream) = stream else {
-        return NativeJsonOutcome::error(LocalAppOperationError::new(LocalAppReasonCode::NotFound, false));
+        return NativeJsonOutcome::error(LocalAppOperationError::new(
+            LocalAppReasonCode::NotFound,
+            false,
+        ));
     };
     drop(stream.sender);
     match stream.task.await {
         Ok(Ok(asset)) => NativeJsonOutcome::success(project_asset_record(asset)),
         Ok(Err(error)) => NativeJsonOutcome::error(error),
-        Err(_) => NativeJsonOutcome::error(LocalAppOperationError::new(LocalAppReasonCode::Canceled, false)),
+        Err(_) => NativeJsonOutcome::error(LocalAppOperationError::new(
+            LocalAppReasonCode::Canceled,
+            false,
+        )),
     }
 }
 
 #[napi(js_name = "localAppAssetWriteAbort")]
 pub async fn local_app_asset_write_abort(input: NativeScenarioStreamInput) -> NativeJsonOutcome {
-    let stream = asset_write_streams().lock().await.remove(input.stream_id.as_str());
+    let stream = asset_write_streams()
+        .lock()
+        .await
+        .remove(input.stream_id.as_str());
     if let Some(stream) = stream {
         stream.task.abort();
         drop(stream.sender);
@@ -331,12 +358,28 @@ pub async fn local_app_asset_read_open(input: NativeAssetReadInput) -> NativeJso
         Err(error) => return NativeJsonOutcome::error(error),
     };
     if asset_read_streams().lock().await.len() >= MAX_ASSET_STREAMS {
-        return NativeJsonOutcome::error(LocalAppOperationError::new(LocalAppReasonCode::ResourceExhausted, false));
+        return NativeJsonOutcome::error(LocalAppOperationError::new(
+            LocalAppReasonCode::ResourceExhausted,
+            false,
+        ));
     }
-    match session.storage_asset_read(LocalAppAssetReadRequest { relative_path: input.relative_path, offset, length }).await {
+    match session
+        .storage_asset_read(LocalAppAssetReadRequest {
+            relative_path: input.relative_path,
+            offset,
+            length,
+        })
+        .await
+    {
         Ok(result) => {
-            let stream_id = format!("asset-read-{}", ASSET_STREAM_COUNTER.fetch_add(1, Ordering::Relaxed));
-            asset_read_streams().lock().await.insert(stream_id.clone(), Arc::new(Mutex::new(result.body)));
+            let stream_id = format!(
+                "asset-read-{}",
+                ASSET_STREAM_COUNTER.fetch_add(1, Ordering::Relaxed)
+            );
+            asset_read_streams()
+                .lock()
+                .await
+                .insert(stream_id.clone(), Arc::new(Mutex::new(result.body)));
             NativeJsonOutcome::success(json!({
                 "streamId": stream_id,
                 "asset": project_asset_record(result.asset),
@@ -351,27 +394,76 @@ pub async fn local_app_asset_read_open(input: NativeAssetReadInput) -> NativeJso
 }
 
 #[napi(js_name = "localAppAssetReadNext")]
-pub async fn local_app_asset_read_next(input: NativeScenarioStreamInput) -> NativeAssetReadNextOutcome {
-    let receiver = asset_read_streams().lock().await.get(input.stream_id.as_str()).cloned();
-    let Some(receiver) = receiver else { return asset_read_error(LocalAppOperationError::new(LocalAppReasonCode::NotFound, false)); };
+pub async fn local_app_asset_read_next(
+    input: NativeScenarioStreamInput,
+) -> NativeAssetReadNextOutcome {
+    let receiver = asset_read_streams()
+        .lock()
+        .await
+        .get(input.stream_id.as_str())
+        .cloned();
+    let Some(receiver) = receiver else {
+        return asset_read_error(LocalAppOperationError::new(
+            LocalAppReasonCode::NotFound,
+            false,
+        ));
+    };
     let next = receiver.lock().await.recv().await;
     match next {
-        Some(Ok(chunk)) => NativeAssetReadNextOutcome { status: "ok".into(), value: Some(chunk.into()), completed: Some(false), reason_code: None, retryable: None, reason_metadata: None },
-        Some(Err(error)) => { asset_read_streams().lock().await.remove(input.stream_id.as_str()); asset_read_error(error) }
-        None => { asset_read_streams().lock().await.remove(input.stream_id.as_str()); NativeAssetReadNextOutcome { status: "ok".into(), value: None, completed: Some(true), reason_code: None, retryable: None, reason_metadata: None } }
+        Some(Ok(chunk)) => NativeAssetReadNextOutcome {
+            status: "ok".into(),
+            value: Some(chunk.into()),
+            completed: Some(false),
+            reason_code: None,
+            retryable: None,
+            reason_metadata: None,
+        },
+        Some(Err(error)) => {
+            asset_read_streams()
+                .lock()
+                .await
+                .remove(input.stream_id.as_str());
+            asset_read_error(error)
+        }
+        None => {
+            asset_read_streams()
+                .lock()
+                .await
+                .remove(input.stream_id.as_str());
+            NativeAssetReadNextOutcome {
+                status: "ok".into(),
+                value: None,
+                completed: Some(true),
+                reason_code: None,
+                retryable: None,
+                reason_metadata: None,
+            }
+        }
     }
 }
 
 #[napi(js_name = "localAppAssetReadClose")]
 pub async fn local_app_asset_read_close(input: NativeScenarioStreamInput) -> NativeJsonOutcome {
-    let closed = asset_read_streams().lock().await.remove(input.stream_id.as_str()).is_some();
+    let closed = asset_read_streams()
+        .lock()
+        .await
+        .remove(input.stream_id.as_str())
+        .is_some();
     NativeJsonOutcome::success(json!({ "closed": closed }))
 }
 
 #[napi(js_name = "localAppAssetRemove")]
 pub async fn local_app_asset_remove(input: NativeStorageRemoveInput) -> NativeJsonOutcome {
-    let session = match current_or_open_session().await { Ok(value) => value, Err(error) => return NativeJsonOutcome::error(error) };
-    match session.storage_asset_remove(LocalAppAssetRemoveRequest { relative_path: input.relative_path }).await {
+    let session = match current_or_open_session().await {
+        Ok(value) => value,
+        Err(error) => return NativeJsonOutcome::error(error),
+    };
+    match session
+        .storage_asset_remove(LocalAppAssetRemoveRequest {
+            relative_path: input.relative_path,
+        })
+        .await
+    {
         Ok(result) => NativeJsonOutcome::success(json!({ "removed": result.removed })),
         Err(error) => NativeJsonOutcome::error(error),
     }
@@ -379,16 +471,30 @@ pub async fn local_app_asset_remove(input: NativeStorageRemoveInput) -> NativeJs
 
 #[napi(js_name = "localAppAssetMove")]
 pub async fn local_app_asset_move(input: NativeAssetMoveInput) -> NativeJsonOutcome {
-    invoke_asset_record(|session| async move { session.storage_asset_move(LocalAppAssetMoveRequest {
-        from_relative_path: input.from_relative_path, to_relative_path: input.to_relative_path, overwrite: input.overwrite,
-    }).await }).await
+    invoke_asset_record(|session| async move {
+        session
+            .storage_asset_move(LocalAppAssetMoveRequest {
+                from_relative_path: input.from_relative_path,
+                to_relative_path: input.to_relative_path,
+                overwrite: input.overwrite,
+            })
+            .await
+    })
+    .await
 }
 
 #[napi(js_name = "localAppAssetAdopt")]
 pub async fn local_app_asset_adopt(input: NativeAssetAdoptInput) -> NativeJsonOutcome {
-    invoke_asset_record(|session| async move { session.storage_asset_adopt(LocalAppAssetAdoptRequest {
-        artifact_id: input.artifact_id, relative_path: input.relative_path, overwrite: input.overwrite,
-    }).await }).await
+    invoke_asset_record(|session| async move {
+        session
+            .storage_asset_adopt(LocalAppAssetAdoptRequest {
+                artifact_id: input.artifact_id,
+                relative_path: input.relative_path,
+                overwrite: input.overwrite,
+            })
+            .await
+    })
+    .await
 }
 
 fn project_asset_record(asset: LocalAppAssetRecord) -> JsonValue {
@@ -397,28 +503,59 @@ fn project_asset_record(asset: LocalAppAssetRecord) -> JsonValue {
 }
 
 async fn invoke_asset_record<F, Fut>(operation: F) -> NativeJsonOutcome
-where F: FnOnce(Arc<dyn NimiLocalAppSession>) -> Fut,
-      Fut: std::future::Future<Output = Result<LocalAppAssetRecord, LocalAppOperationError>> {
-    let session = match current_or_open_session().await { Ok(value) => value, Err(error) => return NativeJsonOutcome::error(error) };
+where
+    F: FnOnce(Arc<dyn NimiLocalAppSession>) -> Fut,
+    Fut: std::future::Future<Output = Result<LocalAppAssetRecord, LocalAppOperationError>>,
+{
+    let session = match current_or_open_session().await {
+        Ok(value) => value,
+        Err(error) => return NativeJsonOutcome::error(error),
+    };
     match operation(session.clone()).await {
         Ok(asset) => NativeJsonOutcome::success(project_asset_record(asset)),
-        Err(error) => { clear_session_on_transport_failure(&session, &error).await; NativeJsonOutcome::error(error) }
+        Err(error) => {
+            clear_session_on_transport_failure(&session, &error).await;
+            NativeJsonOutcome::error(error)
+        }
     }
 }
 
-fn optional_nonnegative_safe_i64(value: Option<f64>, positive: bool) -> Result<Option<i64>, LocalAppOperationError> {
+fn optional_nonnegative_safe_i64(
+    value: Option<f64>,
+    positive: bool,
+) -> Result<Option<i64>, LocalAppOperationError> {
     const MAX: f64 = 9_007_199_254_740_991.0;
-    value.map(|value| {
-        if !value.is_finite() || value.fract() != 0.0 || value < if positive { 1.0 } else { 0.0 } || value > MAX {
-            Err(LocalAppOperationError::new(LocalAppReasonCode::InvalidRange, false))
-        } else { Ok(value as i64) }
-    }).transpose()
+    value
+        .map(|value| {
+            if !value.is_finite()
+                || value.fract() != 0.0
+                || value < if positive { 1.0 } else { 0.0 }
+                || value > MAX
+            {
+                Err(LocalAppOperationError::new(
+                    LocalAppReasonCode::InvalidRange,
+                    false,
+                ))
+            } else {
+                Ok(value as i64)
+            }
+        })
+        .transpose()
 }
 
 fn asset_read_error(error: LocalAppOperationError) -> NativeAssetReadNextOutcome {
-    NativeAssetReadNextOutcome { status: "error".into(), value: None, completed: None,
-        reason_code: Some(error.reason_code().as_str().into()), retryable: Some(error.retryable()),
-        reason_metadata: if error.reason_metadata().is_empty() { None } else { Some(json!(error.reason_metadata())) } }
+    NativeAssetReadNextOutcome {
+        status: "error".into(),
+        value: None,
+        completed: None,
+        reason_code: Some(error.reason_code().as_str().into()),
+        retryable: Some(error.retryable()),
+        reason_metadata: if error.reason_metadata().is_empty() {
+            None
+        } else {
+            Some(json!(error.reason_metadata()))
+        },
+    }
 }
 
 #[napi(js_name = "localAppTextTurnSubscribe")]
