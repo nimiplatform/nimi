@@ -8,30 +8,24 @@ function projection(overrides: Record<string, unknown> = {}): Record<string, unk
     state: 'disabled',
     enabled: false,
     revision: 1,
-    accountGeneration: 0,
     reasonCode: 'action-executed',
     retryable: false,
     ...overrides,
   };
 }
 
-test('Developer Mode accepts the initial disabled projection without an account generation', () => {
+test('Developer Mode accepts the Runtime projection without an account generation', () => {
   assert.deepEqual(parseDeveloperModeProjection(projection()), projection());
 });
 
-test('Developer Mode requires account binding only when enabled', () => {
-  assert.throws(
-    () => parseDeveloperModeProjection(projection({ state: 'enabled', enabled: true })),
-    /developer-mode-projection-invalid/u,
-  );
+test('Developer Mode accepts enabled state with a monotonic revision', () => {
   assert.deepEqual(
     parseDeveloperModeProjection(projection({
       state: 'enabled',
       enabled: true,
       revision: 2,
-      accountGeneration: 1,
     })),
-    projection({ state: 'enabled', enabled: true, revision: 2, accountGeneration: 1 }),
+    projection({ state: 'enabled', enabled: true, revision: 2 }),
   );
 });
 

@@ -17,7 +17,7 @@ import {
   assertRuntimeOfflineRepair,
   parseDevRuntimeArguments,
   runDevRuntimeService,
-} from './dev-runtime-service.mjs';
+} from './accept-runtime-fixed-service.mjs';
 
 const healthyStatus = {
   status: 'present',
@@ -70,7 +70,7 @@ test('missing fixed service fails before any build or install mutation', async (
   assert.deepEqual(calls, []);
 });
 
-test('dev:runtime accepts no Windows update overrides', () => {
+test('accept:runtime:fixed-service accepts no Windows update overrides', () => {
   assert.deepEqual(parseDevRuntimeArguments([]), {});
   for (const args of [
     ['--binary-only'],
@@ -80,7 +80,7 @@ test('dev:runtime accepts no Windows update overrides', () => {
     assert.throws(
       () => parseDevRuntimeArguments(args),
       (error) => error.reasonCode === 'dev-runtime-argument-invalid'
-        && error.actionHint === 'run_pnpm_dev_runtime_without_overrides',
+        && error.actionHint === 'run_pnpm_accept_runtime_fixed_service_without_overrides',
     );
   }
 });
@@ -186,7 +186,7 @@ test('macOS install stops on candidate build failure before privileged mutation'
   assert.deepEqual(calls, ['build-candidate']);
 });
 
-test('macOS dev:runtime accepts only the fixed current modes', () => {
+test('macOS fixed-service acceptance accepts only the fixed current modes', () => {
   assert.deepEqual(parseMacOSDevRuntimeArguments([]), { mode: 'update' });
   assert.deepEqual(parseMacOSDevRuntimeArguments(['--status']), { mode: 'status' });
   assert.deepEqual(parseMacOSDevRuntimeArguments(['--', '--desktop']), { mode: 'desktop' });
@@ -256,12 +256,12 @@ test('macOS default update refuses absent or partial namespaces before mutation'
     [
       { status: 'absent', state: 'stopped' },
       'dev-runtime-service-not-installed',
-      'run_pnpm_dev_runtime_install',
+      'run_pnpm_accept_runtime_fixed_service_install',
     ],
     [
       { status: 'partial', state: 'stopped' },
       'runtime-service-repair-required',
-      'run_pnpm_dev_runtime_uninstall_before_update',
+      'run_pnpm_accept_runtime_fixed_service_uninstall_before_update',
     ],
   ]) {
     const calls = [];

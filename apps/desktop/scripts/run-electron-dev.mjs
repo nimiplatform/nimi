@@ -82,7 +82,6 @@ async function runWindowsDesktopDev() {
   try {
     process.env.NIMI_WINDOWS_SOURCE_LOCAL_DEVELOPMENT = '1';
     const workspaceSurfaceWatcher = spawnWorkspaceSurfaceWatcher();
-    buildWindowsSourceLocalDevelopmentRuntime();
     await waitForWorkspaceSurfaces(workspaceSurfaceWatcher, 180_000);
     await buildElectronHostForDesktopDev(workspaceSurfaceWatcher);
     const electronBin = resolveWorkspaceElectronDevCarrier({
@@ -157,7 +156,6 @@ async function runMacOSDesktopDev() {
   try {
     process.env.NIMI_MACOS_SOURCE_LOCAL_DEVELOPMENT = '1';
     const workspaceSurfaceWatcher = spawnWorkspaceSurfaceWatcher();
-    buildMacOSSourceLocalDevelopmentRuntime();
     await waitForWorkspaceSurfaces(workspaceSurfaceWatcher, 180_000);
     await buildElectronHostForDesktopDev(workspaceSurfaceWatcher);
     const electronBin = resolveWorkspaceElectronDevCarrier({
@@ -261,46 +259,6 @@ function resolveSourceLocalDevelopmentRealmUrl(root) {
     });
   }
   return fallback;
-}
-
-function buildWindowsSourceLocalDevelopmentRuntime() {
-  const runtimeRoot = path.join(workspaceRoot, 'runtime');
-  mkdirSync(path.dirname(windowsSourceLocalDevelopmentRuntime), { recursive: true });
-  const build = spawnSync('go', [
-    'build',
-    '-tags',
-    'nimi_windows_source_local_development',
-    '-o',
-    windowsSourceLocalDevelopmentRuntime,
-    './cmd/nimi',
-  ], {
-    cwd: runtimeRoot,
-    env: { ...process.env, CGO_ENABLED: '0' },
-    stdio: 'inherit',
-  });
-  if (build.status !== 0) {
-    throw new Error(`source local development Runtime build failed with status ${build.status ?? 'unknown'}`);
-  }
-}
-
-function buildMacOSSourceLocalDevelopmentRuntime() {
-  const runtimeRoot = path.join(workspaceRoot, 'runtime');
-  mkdirSync(path.dirname(macOSSourceLocalDevelopmentRuntime), { recursive: true, mode: 0o700 });
-  const build = spawnSync('go', [
-    'build',
-    '-tags',
-    'nimi_macos_source_local_development',
-    '-o',
-    macOSSourceLocalDevelopmentRuntime,
-    './cmd/nimi',
-  ], {
-    cwd: runtimeRoot,
-    env: { ...process.env, CGO_ENABLED: '1' },
-    stdio: 'inherit',
-  });
-  if (build.status !== 0) {
-    throw new Error(`source local development Runtime build failed with status ${build.status ?? 'unknown'}`);
-  }
 }
 
 function quoteCmdArg(value) {

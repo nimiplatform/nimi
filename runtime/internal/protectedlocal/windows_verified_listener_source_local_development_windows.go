@@ -22,7 +22,7 @@ type windowsSourcePipeHandle interface {
 
 func OpenWindowsVerifiedDesktopListener(ctx context.Context, state *WindowsRuntimeSecurityState, _ WindowsExecutableTrustVerifier) (net.Listener, error) {
 	if ctx == nil || state == nil || !state.sourceLocalDevelopment || state.ownerProcess == nil ||
-		state.desktopSessions == nil || !state.desktopSessions.Direct() || state.ownerIdentity.pid == 0 {
+		state.desktopSessions == nil || !state.desktopSessions.Direct() || state.ownerIdentity.pid == 0 || state.expectedDesktopPath == "" {
 		return nil, verifiedWindowsSourceListenerFailure("open current-user Desktop listener", fmt.Errorf("complete source Runtime authority is required"))
 	}
 	raw, err := openWindowsSourcePipe(state.principal.tokenUserSID, windowsSourceDesktopPipeRole)
@@ -125,24 +125,20 @@ func (listener *windowsSourceDesktopListener) Accept() (net.Conn, error) {
 			continue
 		}
 		clientPID, err := verifyWindowsSourcePipePeer(raw, listener.state.principal.tokenUserSID)
-		if err != nil || clientPID != listener.state.ownerIdentity.pid {
-			_ = raw.Close()
-			continue
-		}
-		observed, liveness, err := inspectWindowsSourceProcess(listener.ctx, clientPID, listener.state.desktopIdentity, listener.state.ownerIdentity.executablePath)
 		if err != nil {
 			_ = raw.Close()
 			continue
 		}
-		_ = liveness.Close()
-		if observed != listener.state.ownerIdentity {
+		observed, liveness, err := inspectWindowsSourceProcess(listener.ctx, clientPID, listener.state.desktopIdentity, listener.state.expectedDesktopPath)
+		if err != nil {
 			_ = raw.Close()
 			continue
 		}
 		connection, err := newDirectDesktopConnection(DesktopPeerIdentity{
 			OS: OSWindows, PID: observed.pid, UID: observed.sessionID, AuditSession: observed.sessionID,
-		})
+		}, liveness)
 		if err != nil {
+			_ = liveness.Close()
 			_ = raw.Close()
 			continue
 		}

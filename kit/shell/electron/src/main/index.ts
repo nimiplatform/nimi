@@ -25,8 +25,15 @@ export {
 } from './oauth.js';
 export {
   createNimiElectronFixedRuntimeLifecycleHost,
+  createNimiElectronRuntimeLifecycleHost,
   type NimiElectronFixedRuntimeLifecycleHost,
+  type NimiElectronRuntimeLifecycleHost,
 } from './runtime-lifecycle-host.js';
+export {
+  createNimiElectronDeveloperModeStatusProbe,
+  type NimiElectronDeveloperModeStatus,
+  type NimiElectronDeveloperModeStatusProbe,
+} from './developer-mode-host.js';
 export {
   createNimiElectronLocalDevelopmentControl,
   type NimiElectronLocalDevelopmentControl,

@@ -14,13 +14,14 @@ import (
 )
 
 type MacOSRuntimeSecurityState struct {
-	serviceUID       uint32
-	serviceGID       uint32
-	stateRoot        string
-	stateLock        *macOSRuntimeStateLock
-	secrets          macOSRuntimeBinarySecretStore
-	desktopSessions  *DesktopSessionManager
-	localAppLaunches *DirectLocalAppLaunches
+	serviceUID                uint32
+	serviceGID                uint32
+	stateRoot                 string
+	stateLock                 *macOSRuntimeStateLock
+	secrets                   macOSRuntimeBinarySecretStore
+	desktopSessions           *DesktopSessionManager
+	localAppLaunches          *DirectLocalAppLaunches
+	expectedDesktopExecutable string
 
 	identityMu         sync.RWMutex
 	interactiveEUID    uint32
@@ -138,7 +139,7 @@ func OpenMacOSRuntimeSecurityState(ctx context.Context) (*MacOSRuntimeSecuritySt
 	localAppLaunches := NewDirectLocalAppLaunches()
 	state := &MacOSRuntimeSecurityState{
 		serviceUID: principal.uid, serviceGID: principal.gid, stateRoot: stateRoot, stateLock: stateLock,
-		secrets:         secrets,
+		secrets: secrets, expectedDesktopExecutable: MacOSDesktopExecutablePath,
 		desktopSessions: desktopSessions, localAppLaunches: localAppLaunches,
 	}
 	keepSecrets = true

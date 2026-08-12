@@ -86,7 +86,10 @@ func verifyMacOSRuntimeProcess() error {
 	return err
 }
 
-func verifyConnectedMacOSDesktop(audit macOSAuditIdentity) (DesktopPeerIdentity, error) {
+func verifyConnectedMacOSDesktop(audit macOSAuditIdentity, expectedDesktopPath string) (DesktopPeerIdentity, error) {
+	if expectedDesktopPath != MacOSDesktopExecutablePath {
+		return DesktopPeerIdentity{}, fmt.Errorf("macOS Desktop executable path is not installer-fixed")
+	}
 	snapshot, err := inspectMacOSProcess(audit.pid)
 	if err != nil {
 		return DesktopPeerIdentity{}, err
@@ -95,7 +98,7 @@ func verifyConnectedMacOSDesktop(audit macOSAuditIdentity) (DesktopPeerIdentity,
 	if err != nil {
 		return DesktopPeerIdentity{}, err
 	}
-	if _, err := verifyMacOSProcessIdentity(snapshot, &audit, desktopPolicy, MacOSDesktopExecutablePath, 0, false); err != nil {
+	if _, err := verifyMacOSProcessIdentity(snapshot, &audit, desktopPolicy, expectedDesktopPath, 0, false); err != nil {
 		return DesktopPeerIdentity{}, err
 	}
 	return DesktopPeerIdentity{OS: OSMacOS, PID: audit.pid, UID: audit.euid, AuditSession: audit.auditSession}, nil

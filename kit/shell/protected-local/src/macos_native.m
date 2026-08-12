@@ -646,8 +646,10 @@ int nimi_macos_verify_runtime_peer(int socket_fd, const char *expected_path,
     return 0;
 }
 
-int nimi_macos_verify_per_user_runtime_peer(int socket_fd, const char *expected_path) {
-    if (socket_fd < 0 || expected_path == NULL) return EINVAL;
+int nimi_macos_verify_per_user_runtime_peer(int socket_fd, const char *expected_path,
+                                            const char *expected_executable) {
+    if (socket_fd < 0 || expected_path == NULL || expected_executable == NULL ||
+        expected_executable[0] != '/') return EINVAL;
     uid_t uid = geteuid();
     gid_t gid = getegid();
     if (uid == 0 || gid == 0 || getuid() != uid || getgid() != gid) return EACCES;
@@ -696,20 +698,22 @@ int nimi_macos_verify_per_user_runtime_peer(int socket_fd, const char *expected_
     struct proc_bsdinfo before;
     char process_path[PROC_PIDPATHINFO_MAXSIZE];
     int result = nimi_process_snapshot(peer_pid, &before, process_path, sizeof(process_path));
-    if (result != 0 || before.pbi_ppid <= 1 || before.pbi_uid != uid || before.pbi_ruid != uid) {
+    if (result != 0 || before.pbi_ppid <= 1 || before.pbi_uid != uid || before.pbi_ruid != uid ||
+        strcmp(process_path, expected_executable) != 0) {
         return EACCES;
     }
     char canonical[PATH_MAX];
     struct stat executable;
-    if (realpath(process_path, canonical) == NULL || strcmp(canonical, process_path) != 0 ||
-        lstat(process_path, &executable) != 0 || !S_ISREG(executable.st_mode) || S_ISLNK(executable.st_mode) ||
+    if (realpath(expected_executable, canonical) == NULL || strcmp(canonical, expected_executable) != 0 ||
+        lstat(expected_executable, &executable) != 0 || !S_ISREG(executable.st_mode) || S_ISLNK(executable.st_mode) ||
         executable.st_uid != uid || (executable.st_mode & 0022) != 0) {
         return EACCES;
     }
     struct proc_bsdinfo after;
     char after_path[PROC_PIDPATHINFO_MAXSIZE];
     result = nimi_process_snapshot(peer_pid, &after, after_path, sizeof(after_path));
-    if (result != 0 || !nimi_same_process(&before, &after) || strcmp(process_path, after_path) != 0) {
+    if (result != 0 || !nimi_same_process(&before, &after) ||
+        strcmp(process_path, after_path) != 0 || strcmp(after_path, expected_executable) != 0) {
         return EACCES;
     }
     return 0;

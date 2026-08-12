@@ -1,6 +1,11 @@
 #![deny(unsafe_code)]
 
 use napi_derive::napi;
+#[cfg(not(any(
+    feature = "macos-source-local-development",
+    feature = "windows-source-local-development"
+)))]
+use nimi_shell_protected_local::FixedRuntimeServiceControl;
 use nimi_shell_protected_local::{
     BundledAvatarRuntimeRequest, DesktopAccountActionRequest, DesktopAccountBeginLoginRequest,
     DesktopAccountBeginLoginResponse, DesktopAccountCompleteLoginRequest,
@@ -8,7 +13,7 @@ use nimi_shell_protected_local::{
     DesktopAccountProductUnaryRequest, DesktopAccountProjection, DesktopAccountRealmUnaryRequest,
     DesktopAccountRealmUnaryResponse, DesktopAccountSessionEvent,
     DesktopAccountSessionStatusRequest, DesktopMachineProductUnaryMethod,
-    DesktopMachineProductUnaryRequest, FixedRuntimeServiceControl,
+    DesktopMachineProductUnaryRequest,
     LocalAppAIConfigOverwriteRequest, LocalAppAgentCommitPresentationRequest,
     LocalAppAgentHandleRequest, LocalAppAgentReference, LocalAppAgentUpdateAutonomyRequest,
     LocalAppAssetAdoptRequest, LocalAppAssetListRequest, LocalAppAssetMoveRequest,
@@ -651,9 +656,24 @@ pub async fn fixed_runtime_service_status() -> NativeJsonOutcome {
 
 #[napi(js_name = "fixedRuntimeServiceStart")]
 pub async fn fixed_runtime_service_start() -> NativeJsonOutcome {
+    #[cfg(any(
+        feature = "macos-source-local-development",
+        feature = "windows-source-local-development"
+    ))]
+    {
+        return NativeJsonOutcome::host_reason("runtime-service-unavailable", false);
+    }
+    #[cfg(not(any(
+        feature = "macos-source-local-development",
+        feature = "windows-source-local-development"
+    )))]
     if current_or_open_desktop_control().await.is_ok() {
         return NativeJsonOutcome::success(project_verified_runtime_service_running());
     }
+    #[cfg(not(any(
+        feature = "macos-source-local-development",
+        feature = "windows-source-local-development"
+    )))]
     match PlatformDesktopCarrier::default().request_runtime_service_start() {
         Ok(outcome) => NativeJsonOutcome::success(project_runtime_service_action(outcome)),
         Err(error) => NativeJsonOutcome::protected_error(error),
@@ -662,6 +682,18 @@ pub async fn fixed_runtime_service_start() -> NativeJsonOutcome {
 
 #[napi(js_name = "fixedRuntimeServiceRestart")]
 pub async fn fixed_runtime_service_restart() -> NativeJsonOutcome {
+    #[cfg(any(
+        feature = "macos-source-local-development",
+        feature = "windows-source-local-development"
+    ))]
+    {
+        return NativeJsonOutcome::host_reason("runtime-service-unavailable", false);
+    }
+    #[cfg(not(any(
+        feature = "macos-source-local-development",
+        feature = "windows-source-local-development"
+    )))]
+    {
     // Runtime admits one mutually verified Desktop pipe connection at a time.
     // Keep the owner slot locked across the restart so a concurrent renderer
     // status/product-control call cannot observe the old transport failure,
@@ -699,6 +731,7 @@ pub async fn fixed_runtime_service_restart() -> NativeJsonOutcome {
     match result {
         Ok(outcome) => NativeJsonOutcome::success(project_runtime_service_action(outcome)),
         Err(error) => NativeJsonOutcome::protected_error(error),
+    }
     }
 }
 
@@ -915,7 +948,32 @@ where
 }
 
 async fn current_or_open_desktop_control() -> Result<Arc<dyn NimiDesktopControl>, NimiHostError> {
+    #[cfg(any(
+        feature = "macos-source-local-development",
+        feature = "windows-source-local-development"
+    ))]
+    let cached = {
+        let current = DESKTOP_CONTROL.lock().await;
+        current.as_ref().cloned()
+    };
+    #[cfg(any(
+        feature = "macos-source-local-development",
+        feature = "windows-source-local-development"
+    ))]
+    if let Some(control) = cached {
+        match control.get_developer_mode_status().await {
+            Ok(_) => return Ok(control),
+            Err(error) => {
+                clear_desktop_control_on_host_failure(&control, &error).await;
+                return Err(error);
+            }
+        }
+    }
     let mut current = DESKTOP_CONTROL.lock().await;
+    #[cfg(not(any(
+        feature = "macos-source-local-development",
+        feature = "windows-source-local-development"
+    )))]
     if let Some(control) = current.as_ref() {
         return Ok(control.clone());
     }

@@ -379,22 +379,27 @@ const SOURCE_LOCAL_DEVELOPMENT_RUNTIME_TRANSPORT_REASONS = new Set([
 
 export function toSerializedElectronShellError(
   error: unknown,
-  runtimeDeploymentProfile?: 'production' | 'local-development',
+  runtimeLifecycleProfile?: 'fixed' | 'source',
 ): Record<string, unknown> {
   const streamError = toElectronRuntimeBridgeError(error);
   const reasonCode = normalizeErrorText(streamError.reasonCode) || 'runtime-stream-failed';
   const originalDetails = error && typeof error === 'object'
     ? asOptionalRecord((error as Record<string, unknown>).details)
     : undefined;
-  const sourceLocalDevelopmentFailure = runtimeDeploymentProfile === 'local-development'
+  const retryable = typeof streamError.retryable === 'boolean'
+    ? streamError.retryable
+    : typeof originalDetails?.retryable === 'boolean'
+      ? originalDetails.retryable
+      : undefined;
+  const sourceLocalDevelopmentFailure = runtimeLifecycleProfile === 'source'
     && SOURCE_LOCAL_DEVELOPMENT_RUNTIME_TRANSPORT_REASONS.has(reasonCode);
   const message = sourceLocalDevelopmentFailure
     ? `Source-local-development Runtime transport failed (${reasonCode}); do not request privilege elevation or install, update, start, or repair the fixed Runtime service for this topology.`
     : streamError.message;
   const actionHint = sourceLocalDevelopmentFailure
-    ? streamError.retryable === true
+    ? retryable === true
       ? 'retry_source_local_development_runtime_operation'
-      : 'restart_source_local_development_desktop_session'
+      : 'restart_source_runtime_from_owner_terminal'
     : streamError.actionHint;
   const details = sourceLocalDevelopmentFailure
     ? {
@@ -413,7 +418,7 @@ export function toSerializedElectronShellError(
     actionHint,
     source: streamError.source,
     traceId: streamError.traceId,
-    retryable: streamError.retryable,
+    retryable,
     details,
     envelope: {
       code: streamError.code,

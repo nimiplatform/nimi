@@ -78,7 +78,7 @@ import {
   resolveElectronRuntimeDefaults,
 } from './runtime.js';
 import { isElectronExternallyManagedRuntimeCommand } from './runtime-lifecycle.js';
-import { createNimiElectronFixedRuntimeLifecycleHost } from './runtime-lifecycle-host.js';
+import { createNimiElectronRuntimeLifecycleHost } from './runtime-lifecycle-host.js';
 import { NimiElectronShellHostError } from './types.js';
 import type {
   NimiElectronHostCommandKind,
@@ -194,8 +194,11 @@ export function registerNimiElectronRuntimeBridge(
   const desktopAccountHost = appId === 'nimi.desktop'
     ? createNimiElectronDesktopAccountHost()
     : undefined;
-  const fixedRuntimeLifecycleHost = appId === 'nimi.desktop'
-    ? createNimiElectronFixedRuntimeLifecycleHost(runtimeEndpoint)
+  const runtimeLifecycleHost = appId === 'nimi.desktop'
+    ? createNimiElectronRuntimeLifecycleHost(
+        runtimeEndpoint,
+        input.runtimeLifecycleProfile ?? 'fixed',
+      )
     : undefined;
   const developerModeHost = appId === 'nimi.desktop'
     ? createNimiElectronDeveloperModeHost()
@@ -379,8 +382,8 @@ export function registerNimiElectronRuntimeBridge(
       return closeElectronRuntimeStream(electronRuntimeCommandPayload(payload, command), rendererProfile.streams);
     }
     if (command === commandNames.status) {
-      if (fixedRuntimeLifecycleHost) {
-        return fixedRuntimeLifecycleHost.invoke(command, commandNames);
+      if (runtimeLifecycleHost) {
+        return runtimeLifecycleHost.invoke(command, commandNames);
       }
       try {
         return await probeElectronRuntimeStatus({ client: await ensureClient(), appId: effectiveAppId, runtimeEndpoint, command });
@@ -396,8 +399,8 @@ export function registerNimiElectronRuntimeBridge(
     }
     if (command === NIMI_STANDARD_SHELL_COMMANDS['diagnostics.rendererEntryProbe']) return resolveElectronDiagnosticsRendererEntryProbe({ event, payload, appId: effectiveAppId });
     if (isElectronExternallyManagedRuntimeCommand(command, commandNames)) {
-      if (fixedRuntimeLifecycleHost) {
-        return fixedRuntimeLifecycleHost.invoke(command, commandNames);
+      if (runtimeLifecycleHost) {
+        return runtimeLifecycleHost.invoke(command, commandNames);
       }
       throw createElectronExternalDaemonRequiredError(command);
     }
@@ -521,7 +524,7 @@ export function registerNimiElectronRuntimeBridge(
     } catch (error) {
       return {
         ok: false,
-        error: toSerializedElectronShellError(error, input.runtimeDeploymentProfile),
+        error: toSerializedElectronShellError(error, input.runtimeLifecycleProfile),
       };
     }
   });

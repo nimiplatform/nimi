@@ -63,7 +63,7 @@ export function parseDeveloperModeProjection(value: unknown): DeveloperModeProje
     throw new Error('developer-mode-projection-invalid');
   }
   const record = value as Record<string, unknown>;
-  const exact = ['accountGeneration', 'enabled', 'reasonCode', 'retryable', 'revision', 'state'];
+  const exact = ['enabled', 'reasonCode', 'retryable', 'revision', 'state'];
   if (Object.keys(record).sort().join('|') !== exact.sort().join('|')) {
     throw new Error('developer-mode-projection-invalid');
   }
@@ -74,19 +74,15 @@ export function parseDeveloperModeProjection(value: unknown): DeveloperModeProje
     throw new Error('developer-mode-projection-invalid');
   }
   const revision = Number(record.revision);
-  const accountGeneration = Number(record.accountGeneration);
   if (!Number.isSafeInteger(revision) || revision < 0
-    || !Number.isSafeInteger(accountGeneration) || accountGeneration < 0
     || (record.state === 'enabled') !== record.enabled
-    || (record.state !== 'unavailable' && revision === 0)
-    || (record.state === 'enabled' && accountGeneration === 0)) {
+    || (record.state !== 'unavailable' && revision === 0)) {
     throw new Error('developer-mode-projection-invalid');
   }
   return {
     state: record.state as DeveloperModeProjection['state'],
     enabled: record.enabled,
     revision,
-    accountGeneration,
     reasonCode: record.reasonCode,
     retryable: record.retryable,
   };
@@ -97,7 +93,6 @@ function unavailable(reasonCode: string, retryable: boolean): DeveloperModeProje
     state: 'unavailable',
     enabled: false,
     revision: 0,
-    accountGeneration: 0,
     reasonCode,
     retryable,
   };

@@ -1,7 +1,14 @@
 import { resolveNimiElectronProtectedLocalBindingPackage } from './local-app-host.js';
 import { loadNimiElectronProtectedLocalPackage } from './protected-local-binding-loader.js';
+import {
+  createNimiElectronDeveloperModeStatusProbe,
+  type NimiElectronDeveloperModeStatusProbe,
+} from './developer-mode-host.js';
 import { NimiElectronShellHostError } from './types.js';
-import type { ElectronRuntimeBridgeCommandNames } from './types.js';
+import type {
+  ElectronRuntimeBridgeCommandNames,
+  NimiElectronRuntimeLifecycleProfile,
+} from './types.js';
 
 type NativeJsonOutcome =
   | { readonly status: 'ok'; readonly value: unknown }
@@ -16,6 +23,8 @@ export type NimiElectronFixedRuntimeBinding = {
 export type NimiElectronFixedRuntimeLifecycleHost = {
   readonly invoke: (command: string, commandNames: ElectronRuntimeBridgeCommandNames) => Promise<unknown>;
 };
+
+export type NimiElectronRuntimeLifecycleHost = NimiElectronFixedRuntimeLifecycleHost;
 
 class ElectronFixedRuntimeLifecycleHost implements NimiElectronFixedRuntimeLifecycleHost {
   constructor(
@@ -93,12 +102,55 @@ export function createNimiElectronFixedRuntimeLifecycleHost(
   return new LazyElectronFixedRuntimeLifecycleHost(runtimeEndpoint);
 }
 
+class ElectronSourceRuntimeLifecycleHost implements NimiElectronRuntimeLifecycleHost {
+  constructor(
+    private readonly statusProbe: NimiElectronDeveloperModeStatusProbe,
+    private readonly runtimeEndpoint: string,
+  ) {}
+
+  async invoke(command: string, commandNames: ElectronRuntimeBridgeCommandNames): Promise<unknown> {
+    if (command === commandNames.start || command === commandNames.restart) {
+      throw sourceLifecycleUnavailable(command);
+    }
+    if (command !== commandNames.status) {
+      throw lifecycleError('runtime-service-untrusted', false, command);
+    }
+    await this.statusProbe.probe();
+    return {
+      running: true,
+      managed: false,
+      launchMode: 'SOURCE',
+      grpcAddr: this.runtimeEndpoint,
+    };
+  }
+}
+
+export function createNimiElectronRuntimeLifecycleHost(
+  runtimeEndpoint: string,
+  runtimeLifecycleProfile: NimiElectronRuntimeLifecycleProfile = 'fixed',
+): NimiElectronRuntimeLifecycleHost {
+  return runtimeLifecycleProfile === 'source'
+    ? new ElectronSourceRuntimeLifecycleHost(
+        createNimiElectronDeveloperModeStatusProbe(),
+        runtimeEndpoint,
+      )
+    : createNimiElectronFixedRuntimeLifecycleHost(runtimeEndpoint);
+}
+
 /** @internal Focused contract-test seam; not re-exported from the public main entrypoint. */
 export function createNimiElectronFixedRuntimeLifecycleHostForBinding(
   binding: NimiElectronFixedRuntimeBinding,
   runtimeEndpoint: string,
 ): NimiElectronFixedRuntimeLifecycleHost {
   return new ElectronFixedRuntimeLifecycleHost(validateBinding(binding), runtimeEndpoint);
+}
+
+/** @internal Focused contract-test seam; not re-exported from the public main entrypoint. */
+export function createNimiElectronSourceRuntimeLifecycleHostForProbe(
+  statusProbe: NimiElectronDeveloperModeStatusProbe,
+  runtimeEndpoint: string,
+): NimiElectronRuntimeLifecycleHost {
+  return new ElectronSourceRuntimeLifecycleHost(statusProbe, runtimeEndpoint);
 }
 
 function loadPlatformBinding(): NimiElectronFixedRuntimeBinding {
@@ -138,6 +190,22 @@ function lifecycleError(reasonCode: string, retryable: boolean, command: string)
     actionHint: retryable ? 'retry_fixed_runtime_service_operation' : 'repair_fixed_runtime_service',
     source: reasonCode === 'protected-carrier-required' ? 'electron' : 'runtime',
     details: { command, retryable },
+  });
+}
+
+function sourceLifecycleUnavailable(command: string): NimiElectronShellHostError {
+  return new NimiElectronShellHostError({
+    code: 'runtime-service-unavailable',
+    message: `Source Runtime lifecycle command is owned by the pnpm dev:runtime terminal: ${command}`,
+    reasonCode: 'runtime-service-unavailable',
+    actionHint: 'restart_source_runtime_from_owner_terminal',
+    source: 'electron',
+    details: {
+      command,
+      runtimeTopology: 'source-local-development',
+      managedExternally: true,
+      retryable: false,
+    },
   });
 }
 

@@ -8,9 +8,13 @@ import {
 } from '../src/main/desktop-account-host.js';
 import {
   createNimiElectronDeveloperModeHostForBinding,
+  createNimiElectronDeveloperModeStatusProbeForBinding,
   isElectronDeveloperModeCommand,
 } from '../src/main/developer-mode-host.js';
-import { createNimiElectronFixedRuntimeLifecycleHostForBinding } from '../src/main/runtime-lifecycle-host.js';
+import {
+  createNimiElectronFixedRuntimeLifecycleHostForBinding,
+  createNimiElectronSourceRuntimeLifecycleHostForProbe,
+} from '../src/main/runtime-lifecycle-host.js';
 import { createElectronRuntimeBridgeCommandNames } from '../src/main/runtime.js';
 import {
   createNimiElectronLocalDevelopmentControlForBinding,
@@ -288,6 +292,64 @@ describe('Electron fixed Runtime lifecycle host', () => {
   });
 });
 
+describe('Electron source Runtime lifecycle host', () => {
+  it('reports Running only after a live protected owner read and rejects process control', async () => {
+    const probe = vi.fn(async () => ({
+      state: 'disabled' as const,
+      enabled: false,
+      revision: 1,
+      reasonCode: 'action-executed',
+      retryable: false,
+    }));
+    const host = createNimiElectronSourceRuntimeLifecycleHostForProbe(
+      { probe },
+      'protected-desktop-control',
+    );
+    const commands = createElectronRuntimeBridgeCommandNames();
+
+    await expect(host.invoke(commands.status, commands)).resolves.toEqual({
+      running: true,
+      managed: false,
+      launchMode: 'SOURCE',
+      grpcAddr: 'protected-desktop-control',
+    });
+    expect(probe).toHaveBeenCalledOnce();
+    for (const command of [commands.start, commands.restart]) {
+      await expect(host.invoke(command, commands)).rejects.toMatchObject({
+        code: 'runtime-service-unavailable',
+        reasonCode: 'runtime-service-unavailable',
+        actionHint: 'restart_source_runtime_from_owner_terminal',
+        details: {
+          command,
+          runtimeTopology: 'source-local-development',
+          managedExternally: true,
+          retryable: false,
+        },
+      });
+    }
+    expect(probe).toHaveBeenCalledOnce();
+  });
+
+  it('does not report a stale or unreachable source endpoint as Running', async () => {
+    const commands = createElectronRuntimeBridgeCommandNames();
+    const host = createNimiElectronSourceRuntimeLifecycleHostForProbe(
+      createNimiElectronDeveloperModeStatusProbeForBinding({
+        desktopDeveloperModeStatus: async () => ({
+          status: 'error' as const,
+          reasonCode: 'runtime-service-unavailable',
+          retryable: true,
+        }),
+        desktopDeveloperModeSet: async () => ({ status: 'ok' as const, value: {} }),
+      }),
+      'protected-desktop-control',
+    );
+    await expect(host.invoke(commands.status, commands)).rejects.toMatchObject({
+      code: 'runtime-service-unavailable',
+      reasonCode: 'runtime-service-unavailable',
+    });
+  });
+});
+
 describe('Electron Developer Mode host', () => {
   it('uses only the protected native status/set pair', async () => {
     const set = vi.fn(async ({ enabled }: { readonly enabled: boolean }) => ({
@@ -310,6 +372,34 @@ describe('Electron Developer Mode host', () => {
     expect(isElectronDeveloperModeCommand('developer_mode_status')).toBe(true);
     expect(isElectronDeveloperModeCommand('developer_mode_set')).toBe(true);
     expect(isElectronDeveloperModeCommand('local_development_decide')).toBe(false);
+  });
+
+  it('exposes a typed protected status probe and rejects malformed native projections', async () => {
+    const probe = createNimiElectronDeveloperModeStatusProbeForBinding({
+      desktopDeveloperModeStatus: async () => ({
+        status: 'ok' as const,
+        value: {
+          state: 'enabled', enabled: true, revision: 2,
+          reasonCode: 'action-executed', retryable: false,
+        },
+      }),
+      desktopDeveloperModeSet: async () => ({ status: 'ok' as const, value: {} }),
+    });
+    await expect(probe.probe()).resolves.toEqual({
+      state: 'enabled', enabled: true, revision: 2,
+      reasonCode: 'action-executed', retryable: false,
+    });
+
+    const malformed = createNimiElectronDeveloperModeStatusProbeForBinding({
+      desktopDeveloperModeStatus: async () => ({
+        status: 'ok' as const,
+        value: { state: 'enabled', enabled: false, revision: 2, reasonCode: 'ok', retryable: false },
+      }),
+      desktopDeveloperModeSet: async () => ({ status: 'ok' as const, value: {} }),
+    });
+    await expect(malformed.probe()).rejects.toMatchObject({
+      reasonCode: 'runtime-service-untrusted',
+    });
   });
 });
 

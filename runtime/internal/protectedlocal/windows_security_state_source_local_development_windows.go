@@ -14,8 +14,9 @@ import (
 )
 
 const (
-	windowsSourceRuntimeExecutableEnvironment = "NIMI_WINDOWS_SOURCE_LOCAL_DEVELOPMENT_RUNTIME_EXECUTABLE"
-	windowsSourceDesktopExecutableEnvironment = "NIMI_WINDOWS_SOURCE_LOCAL_DEVELOPMENT_DESKTOP_EXECUTABLE"
+	windowsSourceRuntimeExecutableEnvironment    = "NIMI_WINDOWS_SOURCE_LOCAL_DEVELOPMENT_RUNTIME_EXECUTABLE"
+	windowsSourceSupervisorExecutableEnvironment = "NIMI_WINDOWS_SOURCE_LOCAL_DEVELOPMENT_SUPERVISOR_EXECUTABLE"
+	windowsSourceDesktopExecutableEnvironment    = "NIMI_WINDOWS_SOURCE_LOCAL_DEVELOPMENT_DESKTOP_EXECUTABLE"
 )
 
 func OpenWindowsSourceLocalDevelopmentRuntimeSecurityState(ctx context.Context) (*WindowsRuntimeSecurityState, error) {
@@ -39,19 +40,23 @@ func OpenWindowsSourceLocalDevelopmentRuntimeSecurityState(ctx context.Context) 
 	}
 	_ = runtimeLiveness.Close()
 
-	desktopPID := uint32(os.Getppid())
 	desktopPath, err := windowsSourceExpectedExecutable(windowsSourceDesktopExecutableEnvironment)
-	if err != nil || desktopPID <= 1 || runtimeIdentity.parentPID != desktopPID {
-		return nil, fail(ReasonDesktopProcessVerificationUnavailable, false, "restart_desktop", fmt.Errorf("exact parent Desktop launch is unavailable"))
-	}
-	desktopIdentity, desktopLiveness, err := inspectWindowsSourceProcess(ctx, desktopPID, identity, desktopPath)
 	if err != nil {
-		return nil, fail(ReasonDesktopProcessVerificationUnavailable, false, "restart_desktop", err)
+		return nil, fail(ReasonDesktopProcessVerificationUnavailable, false, "restart_runtime", fmt.Errorf("expected source Desktop executable is unavailable: %w", err))
 	}
-	keepDesktopLiveness := false
+	supervisorPID := uint32(os.Getppid())
+	supervisorPath, err := windowsSourceExpectedExecutable(windowsSourceSupervisorExecutableEnvironment)
+	if err != nil || supervisorPID <= 1 || runtimeIdentity.parentPID != supervisorPID {
+		return nil, fail(ReasonProtectedLocalRuntimePrincipalRequired, false, "restart_runtime", fmt.Errorf("exact parent source Runtime supervisor launch is unavailable"))
+	}
+	supervisorIdentity, supervisorLiveness, err := inspectWindowsSourceProcess(ctx, supervisorPID, identity, supervisorPath)
+	if err != nil {
+		return nil, fail(ReasonProtectedLocalRuntimePrincipalRequired, false, "restart_runtime", fmt.Errorf("verify source Runtime supervisor: %w", err))
+	}
+	keepSupervisorLiveness := false
 	defer func() {
-		if !keepDesktopLiveness {
-			_ = desktopLiveness.Close()
+		if !keepSupervisorLiveness {
+			_ = supervisorLiveness.Close()
 		}
 	}()
 
@@ -98,9 +103,9 @@ func OpenWindowsSourceLocalDevelopmentRuntimeSecurityState(ctx context.Context) 
 		root: root, principal: principal, secrets: secrets, ledger: ledger, bootEpoch: bootEpoch,
 		desktopSessions: desktopSessions, directLocalAppLaunches: NewDirectLocalAppLaunches(),
 		desktopIdentity: identity, sourceLocalDevelopment: true,
-		ownerProcess: desktopLiveness, ownerIdentity: desktopIdentity,
+		ownerProcess: supervisorLiveness, ownerIdentity: supervisorIdentity, expectedDesktopPath: desktopPath,
 	}
-	keepDesktopLiveness = true
+	keepSupervisorLiveness = true
 	keepLedger = true
 	return state, nil
 }

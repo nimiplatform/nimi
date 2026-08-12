@@ -10,7 +10,9 @@ use tokio::net::UnixStream;
 use tonic::transport::{Channel, Endpoint};
 use tower::service_fn;
 
+#[cfg(not(feature = "macos-source-local-development"))]
 use crate::generated::runtime_service_control_service_client::RuntimeServiceControlServiceClient;
+#[cfg(not(feature = "macos-source-local-development"))]
 use crate::generated::RequestRuntimeRestartRequest;
 use crate::macos_peer_trust::{
     local_app_runtime_socket_path, runtime_socket_path, verify_runtime_peer_once,
@@ -177,7 +179,14 @@ impl NimiDesktopControl for MacOSDesktopControl {
                 + '_,
         >,
     > {
-        Box::pin(async move { request_runtime_restart_on_channel(self.channel.clone()).await })
+        #[cfg(feature = "macos-source-local-development")]
+        {
+            Box::pin(async { Err(unavailable()) })
+        }
+        #[cfg(not(feature = "macos-source-local-development"))]
+        {
+            Box::pin(async move { request_runtime_restart_on_channel(self.channel.clone()).await })
+        }
     }
 
     fn get_account_session_status(
@@ -560,12 +569,9 @@ impl FixedRuntimeServiceControl for MacOsUnixSocketCarrier {
     fn runtime_service_status(&self) -> Result<RuntimeServiceStatus, ProtectedCarrierError> {
         #[cfg(feature = "macos-source-local-development")]
         {
-            let state = if runtime_socket_is_absent()? {
-                RuntimeServiceState::Stopped
-            } else {
-                RuntimeServiceState::Running
-            };
-            return Ok(service_status(state, None, true));
+            // Socket presence is not liveness. The source lifecycle host uses
+            // the asynchronous protected Desktop status roundtrip instead.
+            return Err(unavailable());
         }
         #[cfg(not(feature = "macos-source-local-development"))]
         match macos_service_status()? {
@@ -636,13 +642,21 @@ impl FixedRuntimeServiceControl for MacOsUnixSocketCarrier {
                 + '_,
         >,
     > {
-        Box::pin(async {
-            let channel = open_verified_runtime_channel().await?;
-            request_runtime_restart_on_channel(channel).await
-        })
+        #[cfg(feature = "macos-source-local-development")]
+        {
+            Box::pin(async { Err(unavailable()) })
+        }
+        #[cfg(not(feature = "macos-source-local-development"))]
+        {
+            Box::pin(async {
+                let channel = open_verified_runtime_channel().await?;
+                request_runtime_restart_on_channel(channel).await
+            })
+        }
     }
 }
 
+#[cfg(not(feature = "macos-source-local-development"))]
 fn runtime_socket_is_absent() -> Result<bool, ProtectedCarrierError> {
     match std::fs::symlink_metadata(runtime_socket_path()?) {
         Ok(_) => Ok(false),
@@ -705,6 +719,7 @@ async fn channel_from_verified_socket(
         .map_err(|_| connect_failure())
 }
 
+#[cfg(not(feature = "macos-source-local-development"))]
 async fn request_runtime_restart_on_channel(
     channel: Channel,
 ) -> Result<RuntimeServiceActionOutcome, ProtectedCarrierError> {
@@ -745,6 +760,7 @@ fn macos_service_status() -> Result<i32, ProtectedCarrierError> {
     }
 }
 
+#[cfg(not(feature = "macos-source-local-development"))]
 fn service_status(
     state: RuntimeServiceState,
     reason_code: Option<ProtectedCarrierReasonCode>,

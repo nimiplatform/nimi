@@ -69,10 +69,8 @@ func verifyMacOSRuntimeProcess() error {
 	return err
 }
 
-func verifyConnectedMacOSDesktop(audit macOSAuditIdentity) (DesktopPeerIdentity, error) {
-	expectedDesktopPID := uint32(os.Getppid())
-	expectedDesktopPath := filepath.Clean(strings.TrimSpace(os.Getenv("NIMI_MACOS_SOURCE_LOCAL_DEVELOPMENT_HOST_EXECUTABLE")))
-	if expectedDesktopPID <= 1 || audit.pid != expectedDesktopPID || !filepath.IsAbs(expectedDesktopPath) {
+func verifyConnectedMacOSDesktop(audit macOSAuditIdentity, expectedDesktopPath string) (DesktopPeerIdentity, error) {
+	if !filepath.IsAbs(expectedDesktopPath) {
 		return DesktopPeerIdentity{}, fmt.Errorf("source local development Desktop process identity is unavailable")
 	}
 	snapshot, err := inspectMacOSProcess(audit.pid)

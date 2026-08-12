@@ -24,7 +24,7 @@ const WINDOWS_DEV_RUNTIME_REALM_ORIGIN = 'http://127.0.0.1:3002';
 export function assertRuntimeServiceInstalled(status) {
   if (status?.status !== 'present') {
     throw workflowError(
-      'NimiRuntime fixed service is not installed; dev:runtime will not perform a silent first installation.',
+      'NimiRuntime fixed service is not installed; accept:runtime:fixed-service will not perform a silent first installation.',
       'dev-runtime-service-not-installed',
       'run_the_windows_runtime_service_installer_from_an_elevated_terminal',
     );
@@ -116,9 +116,9 @@ export function parseDevRuntimeArguments(args) {
     return {};
   }
   throw workflowError(
-    `Unsupported dev:runtime argument: ${args[0]}`,
+    `Unsupported accept:runtime:fixed-service argument: ${args[0]}`,
     'dev-runtime-argument-invalid',
-    'run_pnpm_dev_runtime_without_overrides',
+    'run_pnpm_accept_runtime_fixed_service_without_overrides',
   );
 }
 
@@ -129,7 +129,7 @@ export async function runDevRuntimeService(input = {}) {
   }
   if (platform !== 'win32') {
     throw workflowError(
-      `dev:runtime fixed-service update is available only on Windows, received ${platform}.`,
+      `accept:runtime:fixed-service is available only on Windows, received ${platform}.`,
       'dev-runtime-platform-unsupported',
       'use_windows_fixed_runtime_service_host',
     );

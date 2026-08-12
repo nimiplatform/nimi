@@ -44,10 +44,10 @@ describe('registerNimiElectronRuntimeBridge', () => {
       details: { command: 'runtime_account_session_status', retryable: false },
     });
 
-    expect(toSerializedElectronShellError(error, 'local-development')).toMatchObject({
+    expect(toSerializedElectronShellError(error, 'source')).toMatchObject({
       message: expect.stringContaining('do not request privilege elevation'),
       reasonCode: 'runtime-service-untrusted',
-      actionHint: 'restart_source_local_development_desktop_session',
+      actionHint: 'restart_source_runtime_from_owner_terminal',
       details: {
         runtimeTopology: 'source-local-development',
         fixedRuntimeServiceInUse: false,
@@ -55,7 +55,7 @@ describe('registerNimiElectronRuntimeBridge', () => {
         originalActionHint: 'repair_fixed_runtime_service',
       },
       envelope: {
-        actionHint: 'restart_source_local_development_desktop_session',
+        actionHint: 'restart_source_runtime_from_owner_terminal',
         details: {
           runtimeTopology: 'source-local-development',
           fixedRuntimeServiceInUse: false,
@@ -64,7 +64,7 @@ describe('registerNimiElectronRuntimeBridge', () => {
       },
     });
 
-    expect(toSerializedElectronShellError(error, 'production')).toMatchObject({
+    expect(toSerializedElectronShellError(error, 'fixed')).toMatchObject({
       message: 'runtime-service-untrusted',
       actionHint: 'repair_fixed_runtime_service',
       details: {

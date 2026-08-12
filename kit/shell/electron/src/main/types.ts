@@ -180,6 +180,10 @@ export type NimiElectronRuntimeDeploymentProfile =
   | 'production'
   | 'local-development';
 
+export type NimiElectronRuntimeLifecycleProfile =
+  | 'fixed'
+  | 'source';
+
 export type NimiElectronRuntimeTrustedCallerInput = {
   readonly mode: NimiElectronRuntimeTrustedCallerMode;
   readonly appInstanceId?: string;
@@ -369,6 +373,8 @@ export type RegisterNimiElectronRuntimeBridgeInput = {
   readonly runtimeEndpoint: string;
   /** Host-build-owned Realm authority projection; renderer and environment cannot select it. */
   readonly runtimeDeploymentProfile?: NimiElectronRuntimeDeploymentProfile;
+  /** Host-owned Runtime lifecycle topology; source and installed development must stay distinct. */
+  readonly runtimeLifecycleProfile?: NimiElectronRuntimeLifecycleProfile;
   readonly allowedOrigins: readonly string[];
   readonly allowedRendererUrls?: readonly string[];
   readonly ipcMain: NimiElectronIpcMain;

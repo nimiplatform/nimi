@@ -26,6 +26,7 @@ type WindowsRuntimeSecurityState struct {
 	sourceLocalDevelopment bool
 	ownerProcess           DesktopProcessLiveness
 	ownerIdentity          windowsSourceProcessIdentity
+	expectedDesktopPath    string
 
 	transportMu       sync.Mutex
 	desktopTransport  interface{ Close() error }

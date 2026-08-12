@@ -193,17 +193,34 @@ type Connection struct {
 	desktopSession   *desktopSessionAuthority
 }
 
-func newDirectDesktopConnection(peer DesktopPeerIdentity) (*Connection, error) {
+func newDirectDesktopConnection(peer DesktopPeerIdentity, liveness DesktopProcessLiveness) (*Connection, error) {
 	if (peer.OS != OSMacOS && peer.OS != OSWindows) || peer.PID == 0 || peer.UID == 0 || peer.AuditSession == 0 {
 		return nil, fail(ReasonDesktopProcessVerificationUnavailable, false, "restart_desktop", fmt.Errorf("verified direct Desktop peer is incomplete"))
 	}
+	var livenessSignal <-chan struct{}
+	if liveness != nil {
+		livenessSignal = liveness.Revoked()
+		if livenessSignal == nil {
+			return nil, fail(ReasonDesktopProcessVerificationUnavailable, false, "restart_desktop", fmt.Errorf("verified direct Desktop liveness witness is incomplete"))
+		}
+		select {
+		case <-livenessSignal:
+			return nil, fail(ReasonDesktopProcessVerificationUnavailable, true, "restart_desktop", fmt.Errorf("verified direct Desktop process already exited"))
+		default:
+		}
+	}
 	connection := &Connection{
-		origin:      OriginContext{TransportClass: TransportDesktopControl},
-		directPeer:  peer,
-		done:        make(chan struct{}),
-		revokedDone: make(chan struct{}),
+		origin:         OriginContext{TransportClass: TransportDesktopControl},
+		directPeer:     peer,
+		done:           make(chan struct{}),
+		revokedDone:    make(chan struct{}),
+		clientLiveness: liveness,
+		livenessSignal: livenessSignal,
 	}
 	connection.live.Store(true)
+	if livenessSignal != nil {
+		go connection.watchClientLiveness()
+	}
 	return connection, nil
 }
 

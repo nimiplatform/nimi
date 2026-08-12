@@ -35,7 +35,7 @@ export type MenuBarHeaderState =
   | 'stopped'
   | 'unavailable';
 
-export type MenuBarFixedRuntimeStatus = {
+export type MenuBarRuntimeStatus = {
   readonly running: boolean;
   readonly managed: boolean;
   readonly launchMode: string;
@@ -53,7 +53,7 @@ export type DesktopElectronMenuBarHost = {
   }>;
   initialize(): Promise<void>;
   dispose(): void;
-  refreshStatus(): Promise<MenuBarFixedRuntimeStatus>;
+  refreshStatus(): Promise<MenuBarRuntimeStatus>;
   activate(itemId: string): Promise<void>;
   setWindowVisible(visible: boolean): void;
   hideMainWindowOnClose(): boolean;
@@ -79,11 +79,7 @@ type ElectronMenuBarRuntime = {
   readonly Tray: new (image: NativeImage | string) => Tray;
 };
 
-type MenuBarFixedRuntimeLifecycle = {
-  /**
-   * These operations must be the protected fixed-service lifecycle. They must
-   * reject before returning when native carrier or signing verification fails.
-   */
+type MenuBarRuntimeLifecycle = {
   readonly status: () => Promise<unknown>;
   readonly start: () => Promise<unknown>;
   readonly restart: () => Promise<unknown>;
@@ -92,7 +88,8 @@ type MenuBarFixedRuntimeLifecycle = {
 export type CreateDesktopElectronMenuBarHostInput = {
   readonly electron: ElectronMenuBarRuntime;
   readonly icon: NativeImage | string;
-  readonly lifecycle: MenuBarFixedRuntimeLifecycle;
+  readonly lifecycle: MenuBarRuntimeLifecycle;
+  readonly runtimeLifecycleProfile?: 'source' | 'fixed';
   readonly focusMainWindow: () => Promise<void> | void;
   readonly hideMainWindow: () => void;
   readonly emitRendererEvent: (
@@ -108,7 +105,7 @@ export type CreateDesktopElectronMenuBarHostInput = {
 type MenuBarInternalState = {
   windowVisible: boolean;
   lifecycleChecked: boolean;
-  lifecycleStatus: MenuBarFixedRuntimeStatus | null;
+  lifecycleStatus: MenuBarRuntimeStatus | null;
   runtimeHealthStatus: string | null;
   runtimeHealthReason: string | null;
   providerSummary: MenuBarProviderSummary | null;
@@ -123,6 +120,7 @@ export function createDesktopElectronMenuBarHost(
   input: CreateDesktopElectronMenuBarHostInput,
 ): DesktopElectronMenuBarHost {
   const enabled = (input.platform ?? process.platform) === 'darwin';
+  const sourceRuntime = input.runtimeLifecycleProfile === 'source';
   const now = input.now ?? Date.now;
   const state: MenuBarInternalState = {
     windowVisible: true,
@@ -142,7 +140,7 @@ export function createDesktopElectronMenuBarHost(
 
   const applyMenu = (): void => {
     if (!tray) return;
-    const projection = projectMenuBarSnapshot(state, now());
+    const projection = projectMenuBarSnapshot(state, now(), sourceRuntime);
     tray.setContextMenu(input.electron.Menu.buildFromTemplate(buildMenuTemplate(
       projection,
       (itemId) => {
@@ -153,15 +151,15 @@ export function createDesktopElectronMenuBarHost(
     )));
   };
 
-  const acceptStatus = (value: unknown): MenuBarFixedRuntimeStatus => {
-    const status = parseFixedRuntimeStatus(value);
+  const acceptStatus = (value: unknown): MenuBarRuntimeStatus => {
+    const status = parseRuntimeStatus(value);
     state.lifecycleChecked = true;
     state.lifecycleStatus = status;
     state.lastError = status.lastError ?? null;
     return status;
   };
 
-  const refreshStatus = async (): Promise<MenuBarFixedRuntimeStatus> => {
+  const refreshStatus = async (): Promise<MenuBarRuntimeStatus> => {
     requireEnabled(enabled);
     try {
       const status = acceptStatus(await input.lifecycle.status());
@@ -184,6 +182,9 @@ export function createDesktopElectronMenuBarHost(
   };
 
   const runRuntimeAction = async (action: 'start' | 'restart'): Promise<void> => {
+    if (sourceRuntime) {
+      throw new Error(`menu-bar-source-runtime-${action}-unavailable`);
+    }
     if (state.actionInFlight !== null) {
       throw new Error('menu-bar-runtime-action-in-flight');
     }
@@ -329,7 +330,7 @@ export function createDesktopElectronMenuBarHost(
       return true;
     },
     snapshot(): DesktopElectronMenuBarSnapshot {
-      return projectMenuBarSnapshot(state, now());
+      return projectMenuBarSnapshot(state, now(), sourceRuntime);
     },
   });
 }
@@ -409,11 +410,12 @@ function buildMenuTemplate(
 function projectMenuBarSnapshot(
   state: MenuBarInternalState,
   nowMs: number,
+  sourceRuntime: boolean,
 ): DesktopElectronMenuBarSnapshot {
   const rendererFresh = state.rendererSyncedAtMs !== null
     && nowMs - state.rendererSyncedAtMs <= MENU_BAR_RENDERER_FRESHNESS_MS;
   const status = state.lifecycleStatus;
-  const verified = fixedServiceVerified(status);
+  const verified = runtimeStatusVerified(status);
   const running = verified && status?.running === true;
   const headerState: MenuBarHeaderState = state.actionInFlight
     ? 'starting'
@@ -437,8 +439,10 @@ function projectMenuBarSnapshot(
     ? providerSummaryLine(state.providerSummary)
     : null;
   const statusLine = verified
-    ? releaseStatusLine(status)
-    : 'Status: signed service repair required';
+    ? runtimeStatusLine(status)
+    : sourceRuntime
+      ? 'Status: source Runtime unavailable (run pnpm dev:runtime)'
+      : 'Status: signed service repair required';
   const lastCheckLine = rendererFresh
     ? `Last check: ${state.rendererUpdatedAt ?? '-'}`
     : null;
@@ -452,8 +456,8 @@ function projectMenuBarSnapshot(
     providerLine,
     statusLine,
     lastCheckLine,
-    startEnabled: !busy && verified && !running,
-    restartEnabled: !busy && verified && running,
+    startEnabled: !sourceRuntime && !busy && fixedServiceVerified(status) && !running,
+    restartEnabled: !sourceRuntime && !busy && fixedServiceVerified(status) && running,
     refreshEnabled: !busy,
   });
 }
@@ -475,7 +479,10 @@ function providerSummaryLine(summary: MenuBarProviderSummary | null): string {
   return `Providers: ${summary.healthy} healthy / ${summary.unhealthy} unhealthy / ${summary.unknown} unknown`;
 }
 
-function releaseStatusLine(status: MenuBarFixedRuntimeStatus): string {
+function runtimeStatusLine(status: MenuBarRuntimeStatus): string {
+  if (status.launchMode.trim().toUpperCase() === 'SOURCE') {
+    return 'Status: source Runtime (owned by pnpm dev:runtime)';
+  }
   const version = boundedVersion(status.version);
   if (status.launchMode.trim().toUpperCase() === 'RELEASE') {
     return version ? `Status: verified release ${version}` : 'Status: verified release';
@@ -484,14 +491,24 @@ function releaseStatusLine(status: MenuBarFixedRuntimeStatus): string {
 }
 
 function fixedServiceVerified(
-  status: MenuBarFixedRuntimeStatus | null,
-): status is MenuBarFixedRuntimeStatus {
+  status: MenuBarRuntimeStatus | null,
+): status is MenuBarRuntimeStatus {
   if (!status || status.managed !== true) return false;
   const mode = status.launchMode.trim().toUpperCase();
   return mode === 'RELEASE' || mode === 'RUNTIME';
 }
 
-function parseFixedRuntimeStatus(value: unknown): MenuBarFixedRuntimeStatus {
+function runtimeStatusVerified(
+  status: MenuBarRuntimeStatus | null,
+): status is MenuBarRuntimeStatus {
+  if (!status) return false;
+  const mode = status.launchMode.trim().toUpperCase();
+  return mode === 'SOURCE'
+    ? status.managed === false
+    : fixedServiceVerified(status);
+}
+
+function parseRuntimeStatus(value: unknown): MenuBarRuntimeStatus {
   if (!value || typeof value !== 'object') {
     throw new Error('menu-bar-runtime-status-invalid');
   }
@@ -500,7 +517,10 @@ function parseFixedRuntimeStatus(value: unknown): MenuBarFixedRuntimeStatus {
     throw new Error('menu-bar-runtime-status-invalid');
   }
   const launchMode = String(record.launchMode ?? '').trim().toUpperCase();
-  if (launchMode !== 'RELEASE' && launchMode !== 'RUNTIME') {
+  if (!['RELEASE', 'RUNTIME', 'SOURCE'].includes(launchMode)) {
+    throw new Error('menu-bar-runtime-status-invalid');
+  }
+  if (launchMode === 'SOURCE' && record.managed !== false) {
     throw new Error('menu-bar-runtime-status-invalid');
   }
   const version = boundedVersion(record.version);

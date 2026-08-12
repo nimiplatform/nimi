@@ -7,7 +7,7 @@ import {
   MENU_BAR_ITEM_IDS,
   MENU_BAR_RENDERER_FRESHNESS_MS,
   type CreateDesktopElectronMenuBarHostInput,
-  type MenuBarFixedRuntimeStatus,
+  type MenuBarRuntimeStatus,
 } from '../src-electron/menu-bar-host.js';
 import {
   MENU_BAR_OPEN_TAB_EVENT,
@@ -74,9 +74,9 @@ function createInput(overrides: Partial<CreateDesktopElectronMenuBarHostInput> =
     errors: string[];
     events: Array<{ eventName: string; payload: unknown }>;
   };
-  setStatus: (status: MenuBarFixedRuntimeStatus) => void;
+  setStatus: (status: MenuBarRuntimeStatus) => void;
 } {
-  let status: MenuBarFixedRuntimeStatus = {
+  let status: MenuBarRuntimeStatus = {
     running: true,
     managed: true,
     launchMode: 'RUNTIME',
@@ -206,6 +206,45 @@ test('Electron menu bar calls only injected fixed lifecycle operations and refre
     host.activate(MENU_BAR_ITEM_IDS.startRuntime),
     /menu-bar-runtime-start-unavailable/u,
   );
+});
+
+test('Electron source menu bar projects live status without exposing Runtime process control', async () => {
+  const fixture = createInput({
+    runtimeLifecycleProfile: 'source',
+    lifecycle: {
+      status: async () => ({
+        running: true,
+        managed: false,
+        launchMode: 'SOURCE',
+      }),
+      start: async () => {
+        fixture.calls.start += 1;
+        throw new Error('source Runtime start must remain unavailable');
+      },
+      restart: async () => {
+        fixture.calls.restart += 1;
+        throw new Error('source Runtime restart must remain unavailable');
+      },
+    },
+  });
+  const host = createDesktopElectronMenuBarHost(fixture.input);
+  await host.initialize();
+
+  assert.equal(host.snapshot().headerState, 'running');
+  assert.equal(host.snapshot().startEnabled, false);
+  assert.equal(host.snapshot().restartEnabled, false);
+  assert.match(host.snapshot().statusLine, /owned by pnpm dev:runtime/u);
+  assert.doesNotMatch(host.snapshot().statusLine, /repair|service/iu);
+  await assert.rejects(
+    host.activate(MENU_BAR_ITEM_IDS.startRuntime),
+    /menu-bar-source-runtime-start-unavailable/u,
+  );
+  await assert.rejects(
+    host.activate(MENU_BAR_ITEM_IDS.restartRuntime),
+    /menu-bar-source-runtime-restart-unavailable/u,
+  );
+  assert.equal(fixture.calls.start, 0);
+  assert.equal(fixture.calls.restart, 0);
 });
 
 test('Electron menu bar exposes starting only while a fixed lifecycle action is in flight', async () => {

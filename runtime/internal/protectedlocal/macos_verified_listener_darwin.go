@@ -116,7 +116,7 @@ func (listener *MacOSVerifiedDesktopListener) acceptVerified(ctx context.Context
 			_ = raw.Close()
 			continue
 		}
-		client, err := verifyConnectedMacOSDesktop(audit)
+		client, err := verifyConnectedMacOSDesktop(audit, listener.state.expectedDesktopExecutable)
 		if err != nil {
 			reportMacOSDesktopPeerRejection("desktop-process", err)
 			_ = raw.Close()
@@ -128,7 +128,7 @@ func (listener *MacOSVerifiedDesktopListener) acceptVerified(ctx context.Context
 			_ = listener.Close()
 			return nil, err
 		}
-		desktopConnection, err := newDirectDesktopConnection(client)
+		desktopConnection, err := newDirectDesktopConnection(client, nil)
 		if err != nil {
 			reportMacOSDesktopPeerRejection("desktop-connection", err)
 			_ = raw.Close()

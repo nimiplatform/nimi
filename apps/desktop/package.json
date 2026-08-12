@@ -14,7 +14,7 @@
     "dev": "pnpm run dev:electron",
     "dev:renderer": "node scripts/ensure-dev-renderer-port.mjs -- vite --host 127.0.0.1 --port 1420 --strictPort",
     "dev:electron": "node scripts/run-electron-dev.mjs",
-    "dev:macos:installed": "node ../../scripts/dev-runtime-service.mjs -- --desktop",
+    "dev:macos:installed": "node ../../scripts/accept-runtime-fixed-service.mjs -- --desktop",
     "prepare:electron-native": "node scripts/prepare-electron-native.mjs",
     "build:renderer": "vite build",
     "build:electron:prepared": "pnpm run prepare:electron-native && tsc -p tsconfig.electron.json && node scripts/bundle-electron-main.mjs && node scripts/bundle-electron-preload.mjs",

@@ -40,9 +40,10 @@ use crate::{
     LocalDevelopmentEndRunRequest, LocalDevelopmentLaunchOutcome, LocalDevelopmentLaunchRequest,
     LocalDevelopmentRegistration, LocalDevelopmentRegistrationRequest, NimiDesktopControl,
     NimiHostError, NimiHostErrorReasonCode, NimiProtectedLocalHostCarrier, ProtectedCarrierError,
-    ProtectedCarrierReasonCode, RuntimeServiceActionOutcome, RuntimeServiceState,
-    RuntimeServiceStatus,
+    ProtectedCarrierReasonCode, RuntimeServiceActionOutcome,
 };
+#[cfg(not(feature = "windows-source-local-development"))]
+use crate::{RuntimeServiceState, RuntimeServiceStatus};
 
 #[cfg(not(feature = "windows-source-local-development"))]
 #[path = "windows_service_projection.rs"]
@@ -65,6 +66,7 @@ mod lifecycle;
 #[cfg(feature = "windows-source-local-development")]
 #[path = "windows_service_lifecycle_source_local_development.rs"]
 mod lifecycle;
+#[cfg(not(feature = "windows-source-local-development"))]
 use lifecycle::request_verified_runtime_restart_on_channel;
 
 #[derive(Clone, Copy, Debug, Default)]
@@ -244,10 +246,7 @@ impl NimiDesktopControl for WindowsDesktopControl {
         }
         #[cfg(feature = "windows-source-local-development")]
         {
-            Box::pin(request_verified_runtime_restart_on_channel(
-                self.channel(),
-                self.session._runtime_peer.creation_marker(),
-            ))
+            Box::pin(async { Err(unavailable()) })
         }
     }
 
@@ -349,6 +348,10 @@ impl NimiDesktopControl for WindowsDesktopControl {
     fn get_developer_mode_status(
         &self,
     ) -> Pin<Box<dyn Future<Output = Result<DeveloperModeStatus, NimiHostError>> + Send + '_>> {
+        #[cfg(feature = "windows-source-local-development")]
+        if !self.session._runtime_peer.running() {
+            return Box::pin(async { Err(NimiHostError::from(unavailable())) });
+        }
         Box::pin(crate::windows_local_development::get_developer_mode_status(
             self.channel(),
         ))
@@ -681,22 +684,21 @@ pub(crate) async fn open_verified_runtime_channel(
 
 #[cfg(feature = "windows-source-local-development")]
 async fn open_source_runtime_pipe(name: &str) -> Result<NamedPipeClient, ProtectedCarrierError> {
-    let deadline = tokio::time::Instant::now() + std::time::Duration::from_secs(20);
-    loop {
-        match ClientOptions::new().open(name) {
-            Ok(pipe) => return Ok(pipe),
-            Err(_) if tokio::time::Instant::now() < deadline => {
-                tokio::time::sleep(std::time::Duration::from_millis(25)).await;
-            }
-            Err(_) => return Err(unavailable()),
-        }
-    }
+    ClientOptions::new().open(name).map_err(|_| unavailable())
 }
 
 async fn shared_verified_desktop_runtime_session(
 ) -> Result<Arc<VerifiedDesktopRuntimeSession>, ProtectedCarrierError> {
     let mut slot = desktop_runtime_session_cache().lock().await;
     if let Some(session) = slot.as_ref() {
+        #[cfg(feature = "windows-source-local-development")]
+        if !session._runtime_peer.running() {
+            diagnose_desktop_session("cached-runtime-peer-exited");
+            slot.take();
+        } else {
+            return Ok(session.clone());
+        }
+        #[cfg(not(feature = "windows-source-local-development"))]
         return Ok(session.clone());
     }
 
@@ -829,6 +831,7 @@ fn untrusted() -> ProtectedCarrierError {
     ProtectedCarrierError::new(ProtectedCarrierReasonCode::RuntimeServiceUntrusted, false)
 }
 
+#[cfg(not(feature = "windows-source-local-development"))]
 fn repair_required() -> ProtectedCarrierError {
     ProtectedCarrierError::new(
         ProtectedCarrierReasonCode::RuntimeServiceRepairRequired,

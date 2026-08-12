@@ -18,7 +18,8 @@ import {
   createElectronRuntimeBridgeCommandNames,
   createElectronShellFileProtocolHost,
   createNimiElectronDesktopControlHost,
-  createNimiElectronFixedRuntimeLifecycleHost,
+  createNimiElectronDeveloperModeStatusProbe,
+  createNimiElectronRuntimeLifecycleHost,
   exchangeElectronOauthTokenInHost,
   isAllowedElectronRendererUrl,
   registerNimiElectronRuntimeBridge,
@@ -37,9 +38,9 @@ import {
 } from './local-development-host.js';
 import { createDesktopElectronProductControlHost } from './product-control-host.js';
 import {
-  startDesktopLocalDevelopmentRuntime,
-  type DesktopLocalDevelopmentRuntimeCoordinator,
-} from './local-development-runtime.js';
+  requireDesktopSourceRuntime,
+  sourceRuntimeBootstrapFailureMessage,
+} from './source-runtime-bootstrap.js';
 import {
   createDesktopElectronOpenIntentHost,
   DESKTOP_OPEN_INTENT_EVENT,
@@ -72,7 +73,7 @@ import { createDesktopElectronRendererLogHost } from './renderer-log-host.js';
 import {
   createDesktopElectronMenuBarHost,
   type DesktopElectronMenuBarHost,
-  type MenuBarFixedRuntimeStatus,
+  type MenuBarRuntimeStatus,
 } from './menu-bar-host.js';
 import {
   createDesktopAppOriginProtocol,
@@ -152,7 +153,6 @@ let chatAiStoreHost: DesktopElectronChatAiStoreHost | undefined;
 let menuBarHost: DesktopElectronMenuBarHost | undefined;
 let connectorAuthAcquisitionHost: DesktopElectronConnectorAuthAcquisitionHost | undefined;
 let registeredRuntimeBridge: RegisteredNimiElectronRuntimeBridge | undefined;
-let localDevelopmentRuntime: DesktopLocalDevelopmentRuntimeCoordinator | undefined;
 let quitCleanup: Promise<void> | undefined;
 let quitCleanupComplete = false;
 
@@ -190,10 +190,7 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
   try {
     await app.whenReady();
     if (SOURCE_PER_USER_RUNTIME_D2) {
-      localDevelopmentRuntime = await startDesktopLocalDevelopmentRuntime({
-        homeDirectory: app.getPath('home'),
-        hostExecutable: process.execPath,
-      });
+      await requireDesktopSourceRuntime(createNimiElectronDeveloperModeStatusProbe());
     }
     localAssetProtocolHost.registerProtocolHandler();
     appOriginProtocol.register();
@@ -228,6 +225,7 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
       electronDevelopmentBuild: ELECTRON_DEVELOPMENT_BUILD,
       macOSLocalDevelopmentBuild: MACOS_LOCAL_DEVELOPMENT_BUILD,
     });
+    const runtimeLifecycleProfile = SOURCE_PER_USER_RUNTIME_D2 ? 'source' : 'fixed';
     const httpRequestHost = createDesktopElectronHttpHost({
       realmBaseUrl: resolveDesktopRealmBaseUrl(runtimeDeploymentProfile),
     });
@@ -254,22 +252,24 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
       },
     });
     const rendererLogHost = createDesktopElectronRendererLogHost();
-    const fixedRuntimeLifecycleHost = createNimiElectronFixedRuntimeLifecycleHost(
+    const runtimeLifecycleHost = createNimiElectronRuntimeLifecycleHost(
       PROTECTED_DESKTOP_RUNTIME_TRANSPORT_REF,
+      runtimeLifecycleProfile,
     );
-    const fixedRuntimeCommandNames = createElectronRuntimeBridgeCommandNames();
-    const invokeFixedRuntimeLifecycle = async (
+    const runtimeCommandNames = createElectronRuntimeBridgeCommandNames();
+    const invokeRuntimeLifecycle = async (
       command: string,
-    ): Promise<MenuBarFixedRuntimeStatus> => (
-      await fixedRuntimeLifecycleHost.invoke(command, fixedRuntimeCommandNames)
-    ) as MenuBarFixedRuntimeStatus;
+    ): Promise<MenuBarRuntimeStatus> => (
+      await runtimeLifecycleHost.invoke(command, runtimeCommandNames)
+    ) as MenuBarRuntimeStatus;
     menuBarHost = createDesktopElectronMenuBarHost({
       electron: { Menu, Tray },
       icon: process.platform === 'darwin' ? createDesktopMenuBarIcon() : '',
+      runtimeLifecycleProfile,
       lifecycle: {
-        status: () => invokeFixedRuntimeLifecycle(fixedRuntimeCommandNames.status),
-        start: () => invokeFixedRuntimeLifecycle(fixedRuntimeCommandNames.start),
-        restart: () => invokeFixedRuntimeLifecycle(fixedRuntimeCommandNames.restart),
+        status: () => invokeRuntimeLifecycle(runtimeCommandNames.status),
+        start: () => invokeRuntimeLifecycle(runtimeCommandNames.start),
+        restart: () => invokeRuntimeLifecycle(runtimeCommandNames.restart),
       },
       focusMainWindow: focusDesktopMainWindow,
       hideMainWindow: hideDesktopMainWindow,
@@ -301,6 +301,7 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
       appId: APP_ID,
       runtimeEndpoint: PROTECTED_DESKTOP_RUNTIME_TRANSPORT_REF,
       runtimeDeploymentProfile,
+      runtimeLifecycleProfile,
       allowedOrigins: allowedRendererOrigins(),
       allowedRendererUrls: allowedRendererUrls(),
       ipcMain,
@@ -372,7 +373,7 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
     dialog.showErrorBox(
       'Nimi could not start safely',
       SOURCE_PER_USER_RUNTIME_D2
-        ? `Source local development bootstrap failed (${failureCode}). Inspect the guarded pnpm dev terminal output.`
+        ? sourceRuntimeBootstrapFailureMessage(failureCode)
         : MACOS_LOCAL_DEVELOPMENT_BUILD
           ? `Nimi Dev bootstrap failed (${failureCode}). Start it with "pnpm dev:runtime -- --desktop" and inspect the terminal output.`
           : 'The verified Desktop carrier could not be initialized. Repair the Nimi installation and try again.',
@@ -427,14 +428,12 @@ async function shutdownBeforeQuit(): Promise<void> {
   const currentMenuBarHost = menuBarHost;
   const connectorAuthHost = connectorAuthAcquisitionHost;
   const runtimeBridge = registeredRuntimeBridge;
-  const runtimeD2 = localDevelopmentRuntime;
   await localHost?.shutdown();
   const cleanupResults = await Promise.allSettled([
     openIntentHost?.shutdown(),
     avatarHost?.shutdown(),
     chatStoreHost?.close(),
     connectorAuthHost?.shutdown(),
-    runtimeD2?.stop(),
   ]);
   try {
     runtimeBridge?.unregister();
@@ -453,7 +452,6 @@ async function shutdownBeforeQuit(): Promise<void> {
   if (menuBarHost === currentMenuBarHost) menuBarHost = undefined;
   if (connectorAuthAcquisitionHost === connectorAuthHost) connectorAuthAcquisitionHost = undefined;
   if (registeredRuntimeBridge === runtimeBridge) registeredRuntimeBridge = undefined;
-  if (localDevelopmentRuntime === runtimeD2) localDevelopmentRuntime = undefined;
   for (const result of cleanupResults) {
     if (result.status === 'rejected') {
       process.stderr.write(

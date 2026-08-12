@@ -5,20 +5,18 @@ use std::os::windows::io::{AsRawHandle, FromRawHandle, OwnedHandle};
 use std::path::{Path, PathBuf};
 
 use windows_sys::Win32::Foundation::{
-    CloseHandle, GetLastError, LocalFree, ERROR_INSUFFICIENT_BUFFER, FILETIME, HANDLE,
-    INVALID_HANDLE_VALUE, WAIT_TIMEOUT,
+    GetLastError, LocalFree, ERROR_INSUFFICIENT_BUFFER, FILETIME, HANDLE, WAIT_TIMEOUT,
 };
 use windows_sys::Win32::Security::Authorization::ConvertSidToStringSidW;
 use windows_sys::Win32::Security::{
-    GetTokenInformation, TokenElevation, TokenUser, TOKEN_ELEVATION, TOKEN_QUERY, TOKEN_USER,
+    GetTokenInformation, TokenElevation, TokenSessionId, TokenUser, TOKEN_ELEVATION, TOKEN_QUERY,
+    TOKEN_USER,
 };
 use windows_sys::Win32::Storage::FileSystem::SYNCHRONIZE;
-use windows_sys::Win32::System::Diagnostics::ToolHelp::{
-    CreateToolhelp32Snapshot, Process32FirstW, Process32NextW, PROCESSENTRY32W, TH32CS_SNAPPROCESS,
-};
+use windows_sys::Win32::System::RemoteDesktop::WTSGetActiveConsoleSessionId;
 use windows_sys::Win32::System::Threading::{
-    GetCurrentProcess, GetCurrentProcessId, GetProcessTimes, OpenProcess, OpenProcessToken,
-    QueryFullProcessImageNameW, WaitForSingleObject, PROCESS_QUERY_LIMITED_INFORMATION,
+    GetCurrentProcess, GetProcessTimes, OpenProcess, OpenProcessToken, QueryFullProcessImageNameW,
+    WaitForSingleObject, PROCESS_QUERY_LIMITED_INFORMATION,
 };
 
 use crate::{ProtectedCarrierError, ProtectedCarrierReasonCode};
@@ -35,10 +33,6 @@ pub(super) struct VerifiedRuntimePeer {
 }
 
 impl VerifiedRuntimePeer {
-    pub(super) fn creation_marker(&self) -> u64 {
-        self._creation_marker
-    }
-
     pub(super) fn running(&self) -> bool {
         unsafe { WaitForSingleObject(self._process.as_raw_handle().cast(), 0) == WAIT_TIMEOUT }
     }
@@ -56,15 +50,13 @@ pub(super) fn verify_runtime_peer(
     if !same_canonical_path(&server_path, &expected)? {
         return Err(untrusted());
     }
-    let current_sid = current_process_user_sid()?;
-    let (server_sid, elevated) = process_user(&process)?;
-    if server_sid != current_sid || elevated {
+    let (current_sid, current_elevated, current_session) = current_process_user()?;
+    let (server_sid, elevated, server_session) = process_user(&process)?;
+    if server_sid != current_sid || current_elevated || elevated {
         return Err(untrusted());
     }
-    let server_parent = process_parent_id(process_id)?;
-    let current_pid = unsafe { GetCurrentProcessId() };
-    let current_parent = process_parent_id(current_pid)?;
-    if server_parent == 0 || (server_parent != current_pid && server_parent != current_parent) {
+    let active_session = unsafe { WTSGetActiveConsoleSessionId() };
+    if !source_sessions_match(current_session, server_session, active_session) {
         return Err(untrusted());
     }
     let creation_marker = process_creation_marker(&process)?;
@@ -75,7 +67,11 @@ pub(super) fn verify_runtime_peer(
         .map_err(|_| untrusted())?;
     let after_path = process_path(&process)?;
     let after_creation = process_creation_marker(&process)?;
-    if after_creation != creation_marker || !same_canonical_path(&after_path, &server_path)? {
+    let after_active_session = unsafe { WTSGetActiveConsoleSessionId() };
+    if after_creation != creation_marker
+        || !same_canonical_path(&after_path, &server_path)?
+        || after_active_session != active_session
+    {
         return Err(untrusted());
     }
     Ok(VerifiedRuntimePeer {
@@ -163,16 +159,20 @@ pub(super) fn current_user_sid() -> Result<String, ProtectedCarrierError> {
 }
 
 fn current_process_user_sid() -> Result<String, ProtectedCarrierError> {
+    current_process_user().map(|(sid, _, _)| sid)
+}
+
+fn current_process_user() -> Result<(String, bool, u32), ProtectedCarrierError> {
     let mut raw: HANDLE = std::ptr::null_mut();
     if unsafe { OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &mut raw) } == 0 || raw.is_null()
     {
         return Err(untrusted());
     }
     let token = unsafe { OwnedHandle::from_raw_handle(raw.cast()) };
-    token_user_and_elevation(&token).map(|(sid, _)| sid)
+    token_user_and_elevation(&token)
 }
 
-fn process_user(process: &OwnedHandle) -> Result<(String, bool), ProtectedCarrierError> {
+fn process_user(process: &OwnedHandle) -> Result<(String, bool, u32), ProtectedCarrierError> {
     let mut raw: HANDLE = std::ptr::null_mut();
     if unsafe { OpenProcessToken(process.as_raw_handle().cast(), TOKEN_QUERY, &mut raw) } == 0
         || raw.is_null()
@@ -183,7 +183,9 @@ fn process_user(process: &OwnedHandle) -> Result<(String, bool), ProtectedCarrie
     token_user_and_elevation(&token)
 }
 
-fn token_user_and_elevation(token: &OwnedHandle) -> Result<(String, bool), ProtectedCarrierError> {
+fn token_user_and_elevation(
+    token: &OwnedHandle,
+) -> Result<(String, bool, u32), ProtectedCarrierError> {
     let handle = token.as_raw_handle().cast();
     let mut required = 0u32;
     let first =
@@ -228,7 +230,23 @@ fn token_user_and_elevation(token: &OwnedHandle) -> Result<(String, bool), Prote
     {
         return Err(untrusted());
     }
-    Ok((sid, elevation.TokenIsElevated != 0))
+    let mut session_id = 0u32;
+    let mut session_size = 0u32;
+    if unsafe {
+        GetTokenInformation(
+            handle,
+            TokenSessionId,
+            (&mut session_id as *mut u32).cast::<c_void>(),
+            std::mem::size_of::<u32>() as u32,
+            &mut session_size,
+        )
+    } == 0
+        || session_size != std::mem::size_of::<u32>() as u32
+        || session_id == 0
+    {
+        return Err(untrusted());
+    }
+    Ok((sid, elevation.TokenIsElevated != 0, session_id))
 }
 
 fn sid_string(sid: *mut c_void) -> Result<String, ProtectedCarrierError> {
@@ -253,37 +271,11 @@ fn sid_string(sid: *mut c_void) -> Result<String, ProtectedCarrierError> {
     result
 }
 
-fn process_parent_id(process_id: u32) -> Result<u32, ProtectedCarrierError> {
-    if process_id == 0 {
-        return Err(untrusted());
-    }
-    let snapshot = unsafe { CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0) };
-    if snapshot == INVALID_HANDLE_VALUE || snapshot.is_null() {
-        return Err(untrusted());
-    }
-    let result = (|| {
-        let mut entry = PROCESSENTRY32W {
-            dwSize: std::mem::size_of::<PROCESSENTRY32W>() as u32,
-            ..Default::default()
-        };
-        if unsafe { Process32FirstW(snapshot, &mut entry) } == 0 {
-            return Err(untrusted());
-        }
-        loop {
-            if entry.th32ProcessID == process_id {
-                return (entry.th32ParentProcessID != 0)
-                    .then_some(entry.th32ParentProcessID)
-                    .ok_or_else(untrusted);
-            }
-            if unsafe { Process32NextW(snapshot, &mut entry) } == 0 {
-                return Err(untrusted());
-            }
-        }
-    })();
-    unsafe {
-        CloseHandle(snapshot);
-    }
-    result
+fn source_sessions_match(current_session: u32, runtime_session: u32, active_session: u32) -> bool {
+    active_session != u32::MAX
+        && active_session != 0
+        && current_session == active_session
+        && runtime_session == active_session
 }
 
 fn same_canonical_path(left: &Path, right: &Path) -> Result<bool, ProtectedCarrierError> {
@@ -306,4 +298,18 @@ fn normalize_path(path: &Path) -> String {
 
 fn untrusted() -> ProtectedCarrierError {
     ProtectedCarrierError::new(ProtectedCarrierReasonCode::RuntimeServiceUntrusted, false)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::source_sessions_match;
+
+    #[test]
+    fn source_runtime_and_client_must_share_the_active_interactive_session() {
+        assert!(source_sessions_match(7, 7, 7));
+        assert!(!source_sessions_match(7, 8, 7));
+        assert!(!source_sessions_match(8, 7, 7));
+        assert!(!source_sessions_match(0, 0, 0));
+        assert!(!source_sessions_match(7, 7, u32::MAX));
+    }
 }

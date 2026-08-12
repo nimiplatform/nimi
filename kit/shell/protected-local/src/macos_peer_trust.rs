@@ -31,8 +31,13 @@ unsafe extern "C" {
     fn nimi_macos_verify_per_user_runtime_peer(
         socket_fd: i32,
         expected_path: *const libc::c_char,
+        expected_executable: *const libc::c_char,
     ) -> i32;
 }
+
+#[cfg(feature = "macos-source-local-development")]
+const SOURCE_RUNTIME_EXECUTABLE_ENVIRONMENT: &str =
+    "NIMI_MACOS_SOURCE_LOCAL_DEVELOPMENT_RUNTIME_EXECUTABLE";
 
 #[cfg(not(feature = "macos-source-local-development"))]
 pub(crate) fn runtime_socket_path() -> Result<PathBuf, ProtectedCarrierError> {
@@ -148,9 +153,30 @@ pub(crate) fn verify_runtime_peer_once(
     use std::os::unix::ffi::OsStrExt;
     let socket_path =
         CString::new(std::ffi::OsStr::new(socket_path).as_bytes()).map_err(|_| untrusted())?;
-    let status =
-        unsafe { nimi_macos_verify_per_user_runtime_peer(socket_fd, socket_path.as_ptr()) };
+    let expected_executable = expected_source_runtime_executable()?;
+    let expected_executable =
+        CString::new(expected_executable.as_os_str().as_bytes()).map_err(|_| untrusted())?;
+    let status = unsafe {
+        nimi_macos_verify_per_user_runtime_peer(
+            socket_fd,
+            socket_path.as_ptr(),
+            expected_executable.as_ptr(),
+        )
+    };
     peer_verification_result(status)
+}
+
+#[cfg(feature = "macos-source-local-development")]
+fn expected_source_runtime_executable() -> Result<PathBuf, ProtectedCarrierError> {
+    let path = std::env::var_os(SOURCE_RUNTIME_EXECUTABLE_ENVIRONMENT)
+        .map(PathBuf::from)
+        .filter(|path| path.is_absolute() && path.is_file())
+        .ok_or_else(untrusted)?;
+    let canonical = std::fs::canonicalize(&path).map_err(|_| untrusted())?;
+    if canonical != path {
+        return Err(untrusted());
+    }
+    Ok(path)
 }
 
 #[cfg(feature = "macos-source-local-development")]

@@ -15,14 +15,15 @@ import (
 )
 
 type MacOSRuntimeSecurityState struct {
-	serviceUID       uint32
-	serviceGID       uint32
-	stateRoot        string
-	stateLock        *macOSRuntimeStateLock
-	secrets          macOSRuntimeBinarySecretStore
-	desktopSessions  *DesktopSessionManager
-	localAppLaunches *DirectLocalAppLaunches
-	ownerProcess     macOSProcessSnapshot
+	serviceUID                uint32
+	serviceGID                uint32
+	stateRoot                 string
+	stateLock                 *macOSRuntimeStateLock
+	secrets                   macOSRuntimeBinarySecretStore
+	desktopSessions           *DesktopSessionManager
+	localAppLaunches          *DirectLocalAppLaunches
+	ownerProcess              macOSProcessSnapshot
+	expectedDesktopExecutable string
 
 	identityMu         sync.RWMutex
 	interactiveEUID    uint32
@@ -129,13 +130,22 @@ func OpenMacOSRuntimeSecurityState(ctx context.Context) (*MacOSRuntimeSecuritySt
 	if err := verifyMacOSRuntimeProcess(); err != nil {
 		return nil, fail(ReasonRuntimeExecutableTrustInvalid, false, "restart_runtime", err)
 	}
-	ownerProcess, err := inspectMacOSProcess(uint32(os.Getppid()))
-	if err != nil {
-		return nil, fail(ReasonDesktopProcessVerificationUnavailable, false, "restart_desktop", err)
-	}
 	expectedDesktopPath := filepath.Clean(strings.TrimSpace(os.Getenv("NIMI_MACOS_SOURCE_LOCAL_DEVELOPMENT_HOST_EXECUTABLE")))
-	if _, err := verifyMacOSProcessIdentity(ownerProcess, nil, macOSCodePolicy{}, expectedDesktopPath, 0, false); err != nil {
-		return nil, fail(ReasonDesktopProcessVerificationUnavailable, false, "restart_desktop", err)
+	if _, err := validateMacOSExecutablePath(expectedDesktopPath, expectedDesktopPath); err != nil {
+		return nil, fail(ReasonDesktopProcessVerificationUnavailable, false, "restart_runtime", fmt.Errorf("expected source Desktop executable is unavailable: %w", err))
+	}
+	runtimeProcess, err := inspectMacOSProcess(uint32(os.Getpid()))
+	if err != nil {
+		return nil, fail(ReasonProtectedLocalRuntimePrincipalRequired, false, "restart_runtime", fmt.Errorf("inspect source Runtime process: %w", err))
+	}
+	supervisorPID := runtimeProcess.parentPID
+	ownerProcess, err := inspectMacOSProcess(supervisorPID)
+	if err != nil || supervisorPID <= 1 || uint32(os.Getppid()) != supervisorPID {
+		return nil, fail(ReasonProtectedLocalRuntimePrincipalRequired, false, "restart_runtime", fmt.Errorf("exact parent source Runtime supervisor launch is unavailable"))
+	}
+	expectedSupervisorPath := filepath.Clean(strings.TrimSpace(os.Getenv("NIMI_MACOS_SOURCE_LOCAL_DEVELOPMENT_SUPERVISOR_EXECUTABLE")))
+	if _, err := verifyMacOSProcessIdentity(ownerProcess, nil, macOSCodePolicy{}, expectedSupervisorPath, 0, false); err != nil {
+		return nil, fail(ReasonProtectedLocalRuntimePrincipalRequired, false, "restart_runtime", fmt.Errorf("verify source Runtime supervisor: %w", err))
 	}
 	stateRoot, err := prepareMacOSSourceLocalDevelopmentStateRoot(MacOSRuntimeStateRoot, principal)
 	if err != nil {
@@ -168,7 +178,7 @@ func OpenMacOSRuntimeSecurityState(ctx context.Context) (*MacOSRuntimeSecuritySt
 	state := &MacOSRuntimeSecurityState{
 		serviceUID: principal.uid, serviceGID: principal.gid, stateRoot: stateRoot, stateLock: stateLock,
 		secrets: secrets, desktopSessions: desktopSessions, localAppLaunches: NewDirectLocalAppLaunches(),
-		ownerProcess: ownerProcess,
+		ownerProcess: ownerProcess, expectedDesktopExecutable: expectedDesktopPath,
 	}
 	keepSecrets = true
 	keepStateLock = true

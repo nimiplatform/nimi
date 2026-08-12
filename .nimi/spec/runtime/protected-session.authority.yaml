@@ -284,9 +284,9 @@ units:
     kind: rule
     title: D2 per-user Runtime lifecycle uses thin platform adapters
     modality: must
-    statement: Desktop coordinates the D2 local-development per-user Runtime process through bounded platform-native launch, process observation, local IPC, and peer-identity adapters, while App access semantics, registration, declaration, session, and owner execution remain common and no adapter becomes long-lived authorization lineage or redefines the separate production service topology.
+    statement: An independent current-user source-development supervisor owns D2 local-development per-user Runtime launch and process observation through bounded platform-native lifecycle adapters; Desktop remains a protected local IPC consumer and owns Desktop-supervised Host and App launch admission, Runtime and Desktop continue to use bounded local IPC and peer-identity adapters, and the supervisor owns no App access, registration, declaration, session, owner execution, or authorization state and does not redefine the separate production service topology.
     condition: Whenever Windows or macOS implements the D2 local-development Runtime lifecycle or protected local IPC.
-    failure: Reject a platform-specific D2 security architecture, production-service prerequisite, or adapter-owned App authorization state.
+    failure: Reject Desktop-owned D2 Runtime lifecycle, a platform-specific D2 security architecture, production-service prerequisite, supervisor-owned App, session, or owner-operation authority, or adapter-owned App authorization state.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.protected-session.config-plane

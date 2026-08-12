@@ -46,7 +46,7 @@ export function parseMacOSDevRuntimeArguments(args) {
   if (normalized.length === 0) return Object.freeze({ mode: 'update' });
   if (normalized.length !== 1 || !modes.has(normalized[0])) {
     throw workflowError(
-      'macOS dev:runtime updates by default and otherwise accepts exactly one of --install, --status, --logs, --desktop, --restart, or --uninstall.',
+      'macOS fixed-service acceptance updates by default and otherwise accepts exactly one of --install, --status, --logs, --desktop, --restart, or --uninstall.',
       'dev-runtime-argument-invalid',
       'use_one_documented_macos_dev_runtime_mode',
     );
@@ -83,7 +83,7 @@ export async function runMacOSDevRuntimeService(input = {}) {
       throw workflowError(
         'macOS development Runtime install requires an absent product namespace.',
         'runtime-service-repair-required',
-        'run_pnpm_dev_runtime_uninstall_before_install',
+        'run_pnpm_accept_runtime_fixed_service_uninstall_before_install',
         { status: initial },
       );
     }
@@ -138,14 +138,14 @@ function assertUpdateReadyStatus(status) {
     throw workflowError(
       'The macOS development Runtime service is not installed.',
       'dev-runtime-service-not-installed',
-      'run_pnpm_dev_runtime_install',
+      'run_pnpm_accept_runtime_fixed_service_install',
       { status },
     );
   }
   throw workflowError(
     'The macOS development Runtime installation is incomplete.',
     'runtime-service-repair-required',
-    'run_pnpm_dev_runtime_uninstall_before_update',
+    'run_pnpm_accept_runtime_fixed_service_uninstall_before_update',
     { status },
   );
 }
@@ -161,7 +161,7 @@ export function assertInstalledRunningStatus(status) {
     throw workflowError(
       'The macOS development Runtime service is not installed.',
       'dev-runtime-service-not-installed',
-      'run_pnpm_dev_runtime_install',
+      'run_pnpm_accept_runtime_fixed_service_install',
       { status },
     );
   }

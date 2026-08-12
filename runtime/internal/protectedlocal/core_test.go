@@ -315,6 +315,35 @@ func TestDesktopConnectionRequiresCanonicalPrincipalAndRetainedLiveness(t *testi
 	}
 }
 
+func TestDirectDesktopConnectionRetainsProcessLivenessUntilRevocation(t *testing.T) {
+	t.Parallel()
+
+	liveness := newManualDesktopLiveness()
+	connection, err := newDirectDesktopConnection(DesktopPeerIdentity{
+		OS: OSWindows, PID: 4101, UID: 9, AuditSession: 9,
+	}, liveness)
+	if err != nil {
+		t.Fatalf("establish direct Desktop connection: %v", err)
+	}
+	transportClosed := make(chan struct{})
+	connection.onRevoke(func() { close(transportClosed) })
+
+	liveness.revoke()
+	select {
+	case <-connection.Done():
+	case <-time.After(time.Second):
+		t.Fatal("Desktop process exit did not revoke the direct connection")
+	}
+	select {
+	case <-transportClosed:
+	case <-time.After(time.Second):
+		t.Fatal("Desktop process exit did not revoke the direct transport")
+	}
+	if connection.VerifiedDesktopTransport() {
+		t.Fatal("revoked direct Desktop connection retained authority")
+	}
+}
+
 func desktopPeers(boot Identifier) VerifiedDesktopPeers {
 	return VerifiedDesktopPeers{
 		Client: ProcessTuple{
