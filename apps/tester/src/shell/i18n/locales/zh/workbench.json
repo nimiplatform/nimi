@@ -32,6 +32,10 @@
       "label": "语音转写",
       "summary": "音频 URL → audio.transcribe 场景任务 → 类型化转写结果。"
     },
+    "voiceCreate": {
+      "label": "创建语音",
+      "summary": "参考音频或文本描述 → voice.create 场景任务 → 可复用 VoiceAsset。"
+    },
     "speechBundle": {
       "label": "语音包",
       "summary": "通过受保护的 Runtime 语音目录查看所有者范围内的语音引用。"

@@ -15,6 +15,7 @@ const t = ((_: string, options?: { defaultValue?: string; count?: number; timest
 test('Connectors page lists active and revoked account authorization lifecycle separately from routing', () => {
   const markup = renderToStaticMarkup(React.createElement(DesktopMotionProvider, null, React.createElement(CloudConnectorGrantPanel, {
     authenticated: true,
+    busyConnectorId: '',
     busyGrantId: '',
     connectors: [{
       id: 'connector-1',
@@ -45,7 +46,9 @@ test('Connectors page lists active and revoked account authorization lifecycle s
       revokedAt: '2026-08-02T00:00:00.000Z',
     }],
     loading: false,
+    onCreate: async () => {},
     onRevoke: async () => {},
+    selectedConnector: null,
     t,
   })));
 
@@ -55,4 +58,37 @@ test('Connectors page lists active and revoked account authorization lifecycle s
   assert.match(markup, /grant-revoked/);
   assert.match(markup, />Revoke</);
   assert.equal((markup.match(/>Revoke</g) || []).length, 1);
+});
+
+test('Connectors page offers explicit account authorization for the selected ungranted connector', () => {
+  const connector = {
+    id: 'connector-dashscope',
+    label: 'Dashscope',
+    vendor: 'dashscope' as const,
+    provider: 'dashscope',
+    authMode: 'api_key' as const,
+    endpoint: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
+    scope: 'user' as const,
+    hasCredential: true,
+    isSystemOwned: false,
+    models: ['cosyvoice-v3.5-plus'],
+    status: 'healthy' as const,
+    lastCheckedAt: null,
+    lastDetail: '',
+  };
+  const markup = renderToStaticMarkup(React.createElement(DesktopMotionProvider, null, React.createElement(CloudConnectorGrantPanel, {
+    authenticated: true,
+    busyConnectorId: '',
+    busyGrantId: '',
+    connectors: [connector],
+    grants: [],
+    loading: false,
+    onCreate: async () => {},
+    onRevoke: async () => {},
+    selectedConnector: connector,
+    t,
+  })));
+
+  assert.match(markup, /Authorize connector/);
+  assert.match(markup, /Model and route selection remain separate/);
 });

@@ -102,6 +102,20 @@ test('Local transcription admits its supported inputs and drops unsupported opti
   });
 });
 
+test('Local voice creation exposes both typed source request shapes', () => {
+  const local = states('voice.create', 'local');
+  for (const field of [
+    'creationSource',
+    'referenceAudioFile',
+    'languageHints',
+    'preferredName',
+    'previewText',
+    'language',
+  ]) {
+    assert.equal(local.get(field)?.state, 'enabled', `voice.create.${field}`);
+  }
+});
+
 test('Cloud enables carrier fields but not private Local App scheduling fields', () => {
   for (const capabilityId of [
     'text.generate',
@@ -111,6 +125,7 @@ test('Cloud enables carrier fields but not private Local App scheduling fields',
     'video.generate',
     'audio.synthesize',
     'audio.transcribe',
+    'voice.create',
   ]) {
     for (const [field, item] of states(capabilityId, 'cloud')) {
       if (capabilityId === 'video.generate' && ['serviceTier', 'executionExpiresAfterSec'].includes(field)) {

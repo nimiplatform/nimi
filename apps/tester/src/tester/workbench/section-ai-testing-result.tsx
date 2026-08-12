@@ -290,12 +290,22 @@ function TextStudioHistorySnapshotBody({ snapshot }: { snapshot: Extract<TesterR
       </div>
     );
   }
+  if (snapshot.kind === 'voice-asset') {
+    return (
+      <ul className="studio-voice-list">
+        <li>
+          <strong>{snapshot.voiceAssetId}</strong>
+          <span>{snapshot.creationSource} / {snapshot.assetStatus}</span>
+        </li>
+      </ul>
+    );
+  }
   return (
     <ul className="studio-voice-list">
       {snapshot.sample.map((voice) => (
         <li key={voice.voiceId}>
           <strong>{voice.voiceId}</strong>
-          <span>{voice.workflowType} / {voice.status}</span>
+          <span>{voice.creationSource} / {voice.status}</span>
         </li>
       ))}
       {snapshot.sample.length === 0 ? <li><span>{t('StudioShell.noVoices')}</span></li> : null}

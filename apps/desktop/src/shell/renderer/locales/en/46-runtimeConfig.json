@@ -45,7 +45,7 @@
   },
   "machineLocalAIConfigurations": {
     "title": "On-device models",
-    "description": "Set up on-device models for text, image, and video. Link the required model files, then choose which setup each capability uses. Linked files do not mean the model has been test-run.",
+    "description": "Set up on-device models for text, speech, voice creation, image, and video. Link the required model files, then choose which setup each capability uses. Linked files do not mean the model has been test-run.",
     "refresh": "Refresh",
     "add": "Add configuration",
     "loadFailed": "On-device model settings could not be loaded. Try again.",
@@ -164,6 +164,10 @@
     "unnamedConfiguration": "Unnamed configuration",
     "otherEngine": "Other local engine",
     "qwen3TTSEngine": "Qwen3-TTS",
+    "voiceCreateSource": "Accepted source",
+    "voiceCreateReferenceAudio": "Reference audio",
+    "voiceCreateTextDescription": "Text description",
+    "voiceCreateSourceBody": "Each configuration supports exactly one source. Selecting it never switches model or route for another source.",
     "qwen3ASREngine": "Qwen3-ASR",
     "qwen3ASRTransformersEngine": "Qwen3-ASR (Transformers 5.13+)",
     "boundLocalFile": "Connected local file",
@@ -482,9 +486,14 @@
       "title": "Account authorizations",
       "description": "A ConnectorGrant authorizes an account. It never selects a provider-model target or controls routing.",
       "activeCount": "{{count}} active",
-      "signInRequired": "Sign in to list and revoke account authorizations.",
+      "signInRequired": "Sign in to create, list, and revoke account authorizations.",
       "loading": "Loading account authorizations…",
       "loadFailed": "Load account authorizations failed",
+      "create": "Authorize connector",
+      "createDescription": "Authorize the signed-in account to use this connector. Model and route selection remain separate.",
+      "confirmCreate": "Confirm authorization",
+      "creating": "Authorizing…",
+      "createFailed": "Create account authorization failed",
       "revokeFailed": "Revoke account authorization failed",
       "empty": "No account authorizations have been created.",
       "active": "Active",
@@ -1055,7 +1064,8 @@
     "audioSynthesize": "Speech synthesis",
     "audioTranscribe": "Speech transcription",
     "imageGenerate": "Image generation",
-    "videoGenerate": "Video generation"
+    "videoGenerate": "Video generation",
+    "voiceCreate": "Voice creation"
   },
   "common": {
     "noModelsDiscovered": "No models discovered yet.",
@@ -1400,8 +1410,7 @@
       "videoGenerate": "Video Generation",
       "tts": "Speech Synthesis",
       "stt": "Speech Recognition",
-      "voiceClone": "Voice Cloning",
-      "voiceDesign": "Voice Design"
+      "voiceCreate": "Voice Creation"
     },
     "sourceLocalImport": "Local import",
     "sourceCatalogInstall": "Catalog install",

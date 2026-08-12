@@ -333,7 +333,13 @@ export class ElectronLocalDevelopmentHost {
     void this.resolveRegistration(run).catch((error) => {
       if (run.stopped) return;
       const code = reason(error);
-      setRunState(run, resolveLocalDevelopmentRegistrationFailureState(code), code, code, true);
+      setRunState(
+        run,
+        resolveLocalDevelopmentRegistrationFailureState(code),
+        localDevelopmentFailureMessage(code),
+        code,
+        true,
+      );
       this.ensureHealthTimer(run);
     });
     return run.status;
@@ -351,7 +357,13 @@ export class ElectronLocalDevelopmentHost {
       });
     } catch (error) {
       const code = reason(error);
-      setRunState(run, resolveLocalDevelopmentRegistrationFailureState(code), code, code, true);
+      setRunState(
+        run,
+        resolveLocalDevelopmentRegistrationFailureState(code),
+        localDevelopmentFailureMessage(code),
+        code,
+        true,
+      );
       this.ensureHealthTimer(run);
       return;
     }
@@ -567,7 +579,7 @@ export class ElectronLocalDevelopmentHost {
       const code = reason(error);
       if (isLocalDevelopmentRuntimeTransportFailure(code)) {
         run.recoveringRuntimeTransport = true;
-        setRunState(run, 'runtime-unavailable', code, code, true);
+        setRunState(run, 'runtime-unavailable', localDevelopmentFailureMessage(code), code, true);
         return;
       }
       await this.failClosedRun(run, {
@@ -881,8 +893,15 @@ export function isLocalDevelopmentRuntimeTransportFailure(reasonCode: string): b
   return [
     'process-replaced',
     'runtime-restarted',
+    'runtime-service-error-unclassified',
     'runtime-service-repair-required',
     'runtime-service-unavailable',
     'runtime-service-untrusted',
   ].includes(reasonCode);
+}
+
+export function localDevelopmentFailureMessage(reasonCode: string): string {
+  return isLocalDevelopmentRuntimeTransportFailure(reasonCode)
+    ? `Source-local-development Runtime transport failed (${reasonCode}); do not request privilege elevation or install, update, start, or repair the fixed Runtime service for this development topology.`
+    : reasonCode;
 }

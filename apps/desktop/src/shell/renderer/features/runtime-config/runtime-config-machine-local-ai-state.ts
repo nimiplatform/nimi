@@ -41,7 +41,8 @@ export type RuntimeConfigMachineLocalAICapabilityContract =
   | 'audio.synthesize'
   | 'audio.transcribe'
   | 'image.generate'
-  | 'video.generate';
+  | 'video.generate'
+  | 'voice.create';
 
 export type RuntimeConfigMachineLocalAIASRDriverKind =
   | 'qwen3-asr'
@@ -92,6 +93,7 @@ export type RuntimeConfigMachineLocalAIAddDraft = {
   readonly capabilityContract: RuntimeConfigMachineLocalAICapabilityContract;
   readonly displayName: string;
   readonly asrDriverKind: RuntimeConfigMachineLocalAIASRDriverKind;
+  readonly voiceCreateSource: 'reference-audio' | 'text-description';
   readonly acceptsImageInput: boolean;
   readonly modelFamily: NimiMachineLocalStableDiffusionModelFamily;
   readonly enableInputImage: boolean;
@@ -171,6 +173,7 @@ export function createRuntimeConfigMachineLocalAIAddDraft(): RuntimeConfigMachin
     capabilityContract: 'text.generate',
     displayName: '',
     asrDriverKind: 'qwen3-asr',
+    voiceCreateSource: 'reference-audio',
     acceptsImageInput: false,
     modelFamily: 'z-image',
     enableInputImage: false,

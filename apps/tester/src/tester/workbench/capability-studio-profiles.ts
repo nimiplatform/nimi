@@ -6,7 +6,7 @@ import type { TesterCapabilityId } from '../tester-capabilities.js';
 
 export type StudioControlId = 'tone' | 'length';
 export type StudioInputKind = 'prompt' | 'url' | 'none';
-export type StudioResultKind = 'text' | 'transcript' | 'embedding' | 'artifacts' | 'voice-catalog';
+export type StudioResultKind = 'text' | 'transcript' | 'embedding' | 'artifacts' | 'voice-asset' | 'voice-catalog';
 
 export type CapabilityStudioProfile = {
   /** Short header chip label rendered as "Capability: <tag>". */
@@ -173,6 +173,21 @@ const STUDIO_PROFILES: Record<TesterCapabilityId, CapabilityStudioProfile> = {
     resultKind: 'transcript',
     footnoteKey: 'Studio.profiles.audioTranscribe.footnote',
   },
+  'voice.create': {
+    studioTag: 'Voice',
+    inputTitleKey: 'Studio.profiles.voiceCreate.inputTitle',
+    inputPlaceholderKey: 'Studio.profiles.voiceCreate.inputPlaceholder',
+    inputKind: 'prompt',
+    supportsAttachments: false,
+    controls: [],
+    primaryLabelKey: 'Studio.profiles.voiceCreate.primaryLabel',
+    primaryRunningLabelKey: 'Studio.profiles.voiceCreate.primaryRunningLabel',
+    resultTitle: 'Created voice',
+    emptyTitleKey: 'Studio.profiles.voiceCreate.emptyTitle',
+    emptyHintKey: 'Studio.profiles.voiceCreate.emptyHint',
+    resultKind: 'voice-asset',
+    footnoteKey: 'Studio.profiles.voiceCreate.footnote',
+  },
   'speech.bundle': {
     studioTag: 'Voices',
     inputTitleKey: 'Studio.profiles.speechBundle.inputTitle',
@@ -219,6 +234,7 @@ const RUNTIME_METHODS: Record<TesterCapabilityId, string> = {
   'video.generate': 'kit.generation.runRuntimeVideoGenerate',
   'audio.synthesize': 'runtime.ai.submitScenarioJob:speech_synthesize',
   'audio.transcribe': 'kit.generation.runRuntimeSpeechTranscribe',
+  'voice.create': 'sdk.localApp.ai.scenarioJobs.submit:voice-create',
   'speech.bundle': 'kit.generation.runRuntimeVoiceCatalog',
   'world.generate': 'tauri.open_world_tour_window',
 };

@@ -64,6 +64,15 @@
         "emptyHint": "任务返回后，转写文本会显示在这里。",
         "footnote": "提供 HTTPS URL 或不超过 32 MiB 的本地音频文件；Runtime 返回转写文本。"
       },
+      "voiceCreate": {
+        "inputTitle": "创建可复用语音",
+        "inputPlaceholder": "描述目标语音，或填写参考音频中说出的文本…",
+        "primaryLabel": "创建语音",
+        "primaryRunningLabel": "创建中…",
+        "emptyTitle": "等待创建语音",
+        "emptyHint": "任务完成后，Runtime VoiceAsset 会显示在这里。",
+        "footnote": "选择参考音频或文本描述；Runtime 使用已配置的 voice.create 实现。"
+      },
       "speechBundle": {
         "inputTitle": "测试语音目录",
         "inputPlaceholder": "",
@@ -133,6 +142,10 @@
       "chooseAudioFile": "选择音频文件",
       "removeFile": "移除",
       "audioFileTooLarge": "音频文件不得超过 32 MiB。",
+      "voiceReferenceFileTooLarge": "参考音频必须非空且不得超过 20 MiB。",
+      "voiceReferenceMimeUnsupported": "请选择具有音频 MIME 类型的文件。",
+      "voiceSourceReferenceAudio": "参考音频",
+      "voiceSourceTextDescription": "文本描述",
       "fields": {
         "inputs": "嵌入输入",
         "temperature": "Temperature",
@@ -184,6 +197,11 @@
         "speakerCount": "说话人数",
         "transcriptionPrompt": "转写提示词",
         "responseFormat": "响应格式"
+        ,"creationSource": "创建来源"
+        ,"referenceAudioFile": "参考音频"
+        ,"languageHints": "语言提示"
+        ,"preferredName": "语音名称"
+        ,"previewText": "预览文本"
       }
     },
     "run": {

@@ -109,6 +109,7 @@ test('tester shared Model Config inventory includes video.generate and deduplica
     'video.generate',
     'audio.synthesize',
     'audio.transcribe',
+    'voice.create',
   ]);
   for (const capability of testerCapabilities.filter((entry) => entry.execution === 'runtime-sdk')) {
     assert.doesNotMatch(capability.summary, /currently unavailable/iu);

@@ -96,7 +96,7 @@ export interface TesterRendererSdkPort {
   runCapability(input: TesterCapabilityRunInput): Promise<TesterCapabilityRunResult>;
   listLocalAppVoiceAssets(): Promise<readonly {
     readonly voiceAssetId: string;
-    readonly workflowType: string;
+    readonly creationSource: string;
     readonly status: string;
   }[]>;
   uploadLocalAppArtifact(input: {

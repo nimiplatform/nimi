@@ -82,10 +82,22 @@ export type TesterRunHistoryResultSnapshot =
     }
   | {
       ok: true;
+      kind: 'voice-asset';
+      summary: string;
+      jobId: string;
+      jobState: string;
+      voiceAssetId: string;
+      creationSource: 'reference-audio' | 'text-description';
+      assetStatus: string;
+      traceId?: string;
+      simulated?: boolean;
+    }
+  | {
+      ok: true;
       kind: 'voice-catalog';
       summary: string;
       voiceCount: number;
-      sample: Array<{ voiceId: string; workflowType: string; status: string }>;
+      sample: Array<{ voiceId: string; creationSource: string; status: string }>;
       traceId?: string;
       simulated?: boolean;
     }
@@ -311,6 +323,19 @@ export function createTesterRunHistoryResultSnapshot(result: TesterCapabilityRun
       ...trace,
     };
   }
+  if (output.kind === 'voice-asset') {
+    return {
+      ok: true,
+      kind: 'voice-asset',
+      summary: `${output.creationSource} / ${output.assetStatus} / ${output.voiceAssetId}`,
+      jobId: output.jobId,
+      jobState: output.jobState,
+      voiceAssetId: output.voiceAssetId,
+      creationSource: output.creationSource,
+      assetStatus: output.assetStatus,
+      ...trace,
+    };
+  }
   return {
     ok: true,
     kind: 'voice-catalog',
@@ -402,6 +427,20 @@ export function restoreTesterCapabilityRunResult(record: TesterRunHistoryRecord)
         jobId: snapshot.jobId,
         jobState: snapshot.jobState,
         artifactCount: snapshot.artifactCount,
+      },
+    };
+  }
+  if (snapshot.kind === 'voice-asset') {
+    return {
+      ...common,
+      output: {
+        kind: 'voice-asset',
+        jobId: snapshot.jobId,
+        jobState: snapshot.jobState,
+        voiceAssetId: snapshot.voiceAssetId,
+        creationSource: snapshot.creationSource,
+        assetStatus: snapshot.assetStatus,
+        voiceReference: { kind: 'voice_asset_id', voiceAssetId: snapshot.voiceAssetId },
       },
     };
   }
@@ -571,6 +610,7 @@ export function getTesterRunMetricSummary(record: TesterRunHistoryRecord): strin
   }
   if (result.kind === 'artifacts') return `${result.jobState || 'unknown'} / ${result.artifactCount} artifact${result.artifactCount === 1 ? '' : 's'}`;
   if (result.kind === 'transcript') return `${result.jobState || 'unknown'} / ${result.charCount} chars / ${result.artifactCount} artifact${result.artifactCount === 1 ? '' : 's'}`;
+  if (result.kind === 'voice-asset') return `${result.jobState || 'unknown'} / ${result.creationSource} / ${result.assetStatus}`;
   return `${result.voiceCount} voice${result.voiceCount === 1 ? '' : 's'}`;
 }
 
@@ -588,5 +628,6 @@ export function getTesterRunResultTags(record: TesterRunHistoryRecord): string[]
   if (result.kind === 'embedding') return ['Embedding ready'];
   if (result.kind === 'artifacts') return ['Ready'];
   if (result.kind === 'transcript') return ['Ready'];
+  if (result.kind === 'voice-asset') return ['VoiceAsset ready', result.creationSource];
   return [`${result.voiceCount} voices`];
 }

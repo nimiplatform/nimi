@@ -20,6 +20,7 @@ export const capabilityIcons: Record<TesterCapabilityId, LucideIcon> = {
   'video.generate': Video,
   'audio.synthesize': Speech,
   'audio.transcribe': Captions,
+  'voice.create': AudioWaveform,
   'speech.bundle': AudioWaveform,
   'world.generate': Compass,
 };

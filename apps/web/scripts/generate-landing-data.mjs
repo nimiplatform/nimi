@@ -49,15 +49,17 @@ const ADMITTED_CAPABILITIES_ALLOWLIST = new Set([
   'audio.transcribe',
   'image.generate',
   'music.generate',
-  'music.generate.iteration',
   'text.embed',
   'text.generate',
-  'text.generate.vision',
   'video.generate',
-  'voice_workflow.voice_clone',
-  'voice_workflow.voice_design',
+  'voice.create',
   'world.generate',
 ]);
+
+// Canonical vocabulary may precede a verified public product slice. Keep the
+// contract type admitted while withholding provider-level supported claims
+// that the current release posture explicitly defers.
+const DEFERRED_PUBLIC_CAPABILITIES = new Set(['world.generate']);
 
 function failClose(message) {
   process.stderr.write(`generate-landing-data: ${message}\n`);
@@ -213,8 +215,8 @@ function generateProviderCapabilities(capYaml, catalogHash, capHash) {
       failClose(`provider "${name}" missing string "execution_module"`);
     }
 
-    const capabilities = Array.isArray(row.capabilities) ? row.capabilities : [];
-    for (const cap of capabilities) {
+    const sourceCapabilities = Array.isArray(row.capabilities) ? row.capabilities : [];
+    for (const cap of sourceCapabilities) {
       if (typeof cap !== 'string' || !cap) {
         failClose(`provider "${name}" has non-string capability: ${JSON.stringify(cap)}`);
       }
@@ -230,6 +232,7 @@ function generateProviderCapabilities(capYaml, catalogHash, capHash) {
       }
       distinctCapabilities.add(cap);
     }
+    const capabilities = sourceCapabilities.filter((cap) => !DEFERRED_PUBLIC_CAPABILITIES.has(cap));
 
     const sources = Array.isArray(row.sources) ? row.sources : [];
 

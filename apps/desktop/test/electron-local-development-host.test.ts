@@ -7,6 +7,7 @@ import type {
 import {
   ElectronLocalDevelopmentHost,
   isLocalDevelopmentRuntimeTransportFailure,
+  localDevelopmentFailureMessage,
   resolveLocalDevelopmentRegistrationFailureState,
   sameLocalDevelopmentProject,
 } from '../src-electron/local-development-host.js';
@@ -112,7 +113,16 @@ describe('Desktop Electron local-development registration host', () => {
     assert.equal(resolveLocalDevelopmentRegistrationFailureState('runtime-service-unavailable'), 'runtime-unavailable');
     assert.equal(resolveLocalDevelopmentRegistrationFailureState('local-app-developer-mode-disabled'), 'registration-unavailable');
     assert.equal(isLocalDevelopmentRuntimeTransportFailure('runtime-service-untrusted'), true);
+    assert.equal(isLocalDevelopmentRuntimeTransportFailure('runtime-service-error-unclassified'), true);
     assert.equal(isLocalDevelopmentRuntimeTransportFailure('local-development-project-changed'), false);
+    assert.match(
+      localDevelopmentFailureMessage('runtime-service-untrusted'),
+      /source-local-development.*do not request privilege elevation/iu,
+    );
+    assert.equal(
+      localDevelopmentFailureMessage('local-development-project-changed'),
+      'local-development-project-changed',
+    );
   });
 
   it('preserves the same Host across Runtime transport loss and restores running after rebind', async () => {
@@ -165,6 +175,7 @@ describe('Desktop Electron local-development registration host', () => {
 
     await healthHost.refreshRegistration(run);
     assert.equal(run.status.state, 'runtime-unavailable');
+    assert.match(run.status.message, /source-local-development.*do not request privilege elevation/iu);
     assert.equal(run.recoveringRuntimeTransport, true);
     assert.equal(run.registrationHandle, HANDLE);
     assert.equal(terminateCalls, 0);

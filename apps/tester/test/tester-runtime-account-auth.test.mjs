@@ -313,7 +313,12 @@ function fakeLocalAppClient(overrides = {}) {
       scenario: {
         execute: overrides.executeScenario ?? unavailable('scenario.execute'),
       },
-      scenarioJobs: {},
+      scenarioJobs: {
+        submit: overrides.submitScenarioJob ?? unavailable('scenarioJobs.submit'),
+        get: overrides.getScenarioJob ?? unavailable('scenarioJobs.get'),
+        subscribe: overrides.subscribeScenarioJob ?? unavailable('scenarioJobs.subscribe'),
+        cancel: overrides.cancelScenarioJob ?? unavailable('scenarioJobs.cancel'),
+      },
       artifacts: {
         read: overrides.readArtifact ?? unavailable('artifacts.read'),
       },
@@ -336,6 +341,45 @@ function localTextSubscription(events) {
       for (const event of events) yield event;
     },
     async cancel() {},
+  };
+}
+
+function localScenarioJobSubscription(events) {
+  return {
+    async *[Symbol.asyncIterator]() {
+      for (const event of events) yield event;
+    },
+    async cancel() {},
+  };
+}
+
+function localVoiceJob(status, source, overrides = {}) {
+  return {
+    jobId: `job-${source}`,
+    scenarioType: 'voice-create',
+    status,
+    progressPercent: status === 'completed' ? 100 : 0,
+    progressCurrentStep: status === 'completed' ? 1 : 0,
+    progressTotalSteps: 1,
+    reasonCode: '',
+    reasonDetail: '',
+    artifacts: [],
+    traceId: `trace-${source}`,
+    createdAt: null,
+    updatedAt: null,
+    transcriptionText: '',
+    ...overrides,
+  };
+}
+
+function localVoiceAsset(source) {
+  return {
+    voiceAssetId: `voice-${source}`,
+    creationSource: source,
+    status: 'active',
+    createdAt: null,
+    updatedAt: null,
+    expiresAt: null,
   };
 }
 
@@ -780,6 +824,107 @@ test('Tester audio.transcribe forwards local bytes and the complete transcriptio
   assert.equal(calls[0].responseFormat, 'verbose_json');
 });
 
+test('Tester voice.create submits reference audio, waits for the Job, and verifies the VoiceAsset catalog projection', async () => {
+  const { runTesterCapability } = await importTesterRuntime();
+  const source = 'reference-audio';
+  const asset = localVoiceAsset(source);
+  const submitted = localVoiceJob('submitted', source);
+  const completed = localVoiceJob('completed', source);
+  const calls = [];
+  const client = fakeLocalAppClient({
+    async submitScenarioJob(spec) {
+      calls.push(['submit', spec]);
+      return {
+        job: submitted,
+        asset,
+        voiceReference: { kind: 'voice_asset_id', voiceAssetId: asset.voiceAssetId },
+      };
+    },
+    async subscribeScenarioJob(jobId) {
+      calls.push(['subscribe', jobId]);
+      return localScenarioJobSubscription([{ eventType: 'completed', sequence: '1', traceId: completed.traceId, timestamp: null, job: completed }]);
+    },
+    async listVoiceAssets(input) {
+      calls.push(['list', input]);
+      return { assets: [asset], nextPageToken: '' };
+    },
+  });
+  const bytes = new Uint8Array([1, 2, 3]);
+  const result = await runTesterCapability({
+    capabilityId: 'voice.create',
+    prompt: '你好，欢迎来到 Nimi。',
+    parameters: {
+      creationSource: source,
+      referenceAudioFile: { name: 'reference.wav', mimeType: 'audio/wav', sizeBytes: bytes.byteLength, bytes },
+      languageHints: 'zh, en',
+      preferredName: 'Nimi reference voice',
+    },
+  }, readyRuntimeDependencies(client));
+  assert.equal(result.ok, true);
+  assert.deepEqual(calls[0], ['submit', {
+    type: 'voice-create',
+    creationSource: source,
+    referenceAudio: { type: 'bytes', bytes: [1, 2, 3] },
+    referenceAudioMime: 'audio/wav',
+    languageHints: ['zh', 'en'],
+    preferredName: 'Nimi reference voice',
+    text: '你好，欢迎来到 Nimi。',
+  }]);
+  assert.deepEqual(calls.slice(1), [['subscribe', submitted.jobId], ['list', { pageSize: 100 }]]);
+  assert.deepEqual(result.output, {
+    kind: 'voice-asset', jobId: completed.jobId, jobState: 'completed', voiceAssetId: asset.voiceAssetId,
+    creationSource: source, assetStatus: 'active', voiceReference: { kind: 'voice_asset_id', voiceAssetId: asset.voiceAssetId },
+  });
+  assert.equal(result.trace.traceId, completed.traceId);
+});
+
+test('Tester voice.create submits a text description through the same canonical contract', async () => {
+  const { runTesterCapability } = await importTesterRuntime();
+  const source = 'text-description';
+  const asset = localVoiceAsset(source);
+  const completed = localVoiceJob('completed', source);
+  const calls = [];
+  const client = fakeLocalAppClient({
+    async submitScenarioJob(spec) {
+      calls.push(['submit', spec]);
+      return {
+        job: completed,
+        asset,
+        voiceReference: { kind: 'voice_asset_id', voiceAssetId: asset.voiceAssetId },
+      };
+    },
+    async listVoiceAssets(input) {
+      calls.push(['list', input]);
+      return { assets: [asset], nextPageToken: '' };
+    },
+  });
+  const result = await runTesterCapability({
+    capabilityId: 'voice.create',
+    prompt: 'Warm, clear Mandarin female voice with a calm and friendly delivery.',
+    parameters: {
+      creationSource: source,
+      previewText: '你好，我是 Nimi。',
+      language: 'zh',
+      preferredName: 'Nimi designed voice',
+    },
+  }, readyRuntimeDependencies(client));
+  assert.equal(result.ok, true);
+  assert.deepEqual(calls, [
+    ['submit', {
+      type: 'voice-create',
+      creationSource: source,
+      instructionText: 'Warm, clear Mandarin female voice with a calm and friendly delivery.',
+      previewText: '你好，我是 Nimi。',
+      language: 'zh',
+      preferredName: 'Nimi designed voice',
+    }],
+    ['list', { pageSize: 100 }],
+  ]);
+  assert.equal(result.output.kind, 'voice-asset');
+  assert.equal(result.output.voiceAssetId, asset.voiceAssetId);
+  assert.equal(result.output.creationSource, source);
+});
+
 test('Tester speech.bundle runs the Kit voice catalog over the Local App list client', async () => {
   const { runTesterCapability } = await importTesterRuntime();
   const calls = [];
@@ -787,7 +932,7 @@ test('Tester speech.bundle runs the Kit voice catalog over the Local App list cl
     async listVoiceAssets(input) {
       calls.push(input);
       return {
-        assets: [{ voiceAssetId: 'voice-1', workflowType: 'voice-clone', status: 'active', createdAt: null, updatedAt: null, expiresAt: null }],
+        assets: [{ voiceAssetId: 'voice-1', creationSource: 'reference-audio', status: 'active', createdAt: null, updatedAt: null, expiresAt: null }],
         nextPageToken: '',
       };
     },
@@ -798,7 +943,7 @@ test('Tester speech.bundle runs the Kit voice catalog over the Local App list cl
   assert.deepEqual(result.output, {
     kind: 'voice-catalog',
     voiceCount: 1,
-    sample: [{ voiceId: 'voice-1', workflowType: 'VOICE_CLONE', status: 'ACTIVE' }],
+    sample: [{ voiceId: 'voice-1', creationSource: 'REFERENCE_AUDIO', status: 'ACTIVE' }],
   });
 });
 
@@ -834,6 +979,15 @@ const TYPED_FAILURE_CASES = [
   { capabilityId: 'audio.synthesize', prompt: 'speech', expectedReason: 'principal-unauthorized', runnerName: 'speechSynthesize' },
   { capabilityId: 'audio.transcribe', prompt: 'https://example.test/audio.wav', expectedReason: 'runtime-call-failed', runnerName: 'speechTranscribe' },
   {
+    capabilityId: 'voice.create',
+    prompt: 'voice description',
+    parameters: { creationSource: 'text-description' },
+    expectedReason: 'runtime-call-failed',
+    client: () => fakeLocalAppClient({
+      async submitScenarioJob() { throw Object.assign(new Error('voice create failed'), { reasonCode: 'VOICE_CREATE_FAILED' }); },
+    }),
+  },
+  {
     capabilityId: 'speech.bundle',
     prompt: '',
     expectedReason: 'runtime-call-failed',
@@ -858,7 +1012,7 @@ for (const failureCase of TYPED_FAILURE_CASES) {
       createScenarioJobClient() { return {}; },
       runners: { [failureCase.runnerName]: runner },
     } : {});
-    const result = await runTesterCapability({ capabilityId: failureCase.capabilityId, prompt: failureCase.prompt }, dependencies);
+    const result = await runTesterCapability({ capabilityId: failureCase.capabilityId, prompt: failureCase.prompt, parameters: failureCase.parameters }, dependencies);
     assert.equal(result.ok, false);
     assert.equal(result.reason, failureCase.expectedReason);
     assert.match(result.message, /failed|failure|retry/iu);

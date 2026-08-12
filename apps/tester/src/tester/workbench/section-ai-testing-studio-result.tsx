@@ -40,12 +40,22 @@ function ReadyBody({ result }: { result: TesterCapabilityRunResult & { ok: true 
       </div>
     );
   }
+  if (output.kind === 'voice-asset') {
+    return (
+      <ul className="studio-voice-list">
+        <li>
+          <strong>{output.voiceAssetId}</strong>
+          <span>{output.creationSource} / {output.assetStatus}</span>
+        </li>
+      </ul>
+    );
+  }
   return (
     <ul className="studio-voice-list">
       {output.sample.map((voice) => (
         <li key={voice.voiceId}>
           <strong>{voice.voiceId}</strong>
-          <span>{voice.workflowType} / {voice.status}</span>
+          <span>{voice.creationSource} / {voice.status}</span>
         </li>
       ))}
       {output.sample.length === 0 ? <li><span>{t('StudioShell.noVoices')}</span></li> : null}
@@ -241,6 +251,12 @@ export function StudioResult({
         { label: t('Studio.result.statState'), value: output.jobState || t('Studio.result.stateUnknown') },
       ];
     }
+    if (output.kind === 'voice-asset') {
+      return [
+        { label: t('Studio.result.statState'), value: output.assetStatus },
+        { label: t('Studio.result.statResult'), value: output.creationSource },
+      ];
+    }
     return [
       { label: t('Studio.result.statVoices'), value: String(output.voiceCount) },
       { label: t('Studio.result.statResult'), value: fallbackMetric },
@@ -253,6 +269,7 @@ export function StudioResult({
     if (output.kind === 'text' || output.kind === 'transcript') metric = t('Studio.result.metricWords', { count: countStudioWords(output.text) });
     else if (output.kind === 'artifacts') metric = t('Studio.result.metricArtifacts', { count: output.artifactCount });
     else if (output.kind === 'embedding') metric = t('Studio.result.metricCreated');
+    else if (output.kind === 'voice-asset') metric = output.creationSource;
     else metric = t('Studio.result.metricVoices', { count: output.voiceCount });
   }
   const stats = studioResultStats(metric);

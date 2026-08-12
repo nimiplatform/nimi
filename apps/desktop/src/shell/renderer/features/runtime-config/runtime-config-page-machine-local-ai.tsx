@@ -13,11 +13,13 @@ import {
   NIMI_MACHINE_LOCAL_TEXT_EMBED_CAPABILITY_CONTRACT,
   NIMI_MACHINE_LOCAL_TEXT_GENERATE_CAPABILITY_CONTRACT,
   NIMI_MACHINE_LOCAL_VIDEO_GENERATE_CAPABILITY_CONTRACT,
+  NIMI_MACHINE_LOCAL_VOICE_CREATE_CAPABILITY_CONTRACT,
   createNimiMachineLocalLlamaCppEmbedConfigurationInput,
   createNimiMachineLocalLlamaCppTextConfigurationInput,
   createNimiMachineLocalQwen3ASRConfigurationInput,
   createNimiMachineLocalQwen3ASRTransformersConfigurationInput,
   createNimiMachineLocalQwen3TTSConfigurationInput,
+  createNimiMachineLocalQwen3VoiceCreateConfigurationInput,
   loadNimiMachineLocalAIConfigurationImpact,
   type NimiMachineLocalAIConfiguration,
   type NimiMachineLocalAssetExactBinding,
@@ -216,7 +218,12 @@ export function MachineLocalAIConfigurationsPage() {
           ? createNimiMachineLocalLlamaCppEmbedConfigurationInput({ displayName })
           : addDraft.capabilityContract === NIMI_MACHINE_LOCAL_AUDIO_SYNTHESIZE_CAPABILITY_CONTRACT
             ? createNimiMachineLocalQwen3TTSConfigurationInput({ displayName })
-            : addDraft.capabilityContract === NIMI_MACHINE_LOCAL_AUDIO_TRANSCRIBE_CAPABILITY_CONTRACT
+            : addDraft.capabilityContract === NIMI_MACHINE_LOCAL_VOICE_CREATE_CAPABILITY_CONTRACT
+              ? createNimiMachineLocalQwen3VoiceCreateConfigurationInput({
+                displayName,
+                source: addDraft.voiceCreateSource,
+              })
+              : addDraft.capabilityContract === NIMI_MACHINE_LOCAL_AUDIO_TRANSCRIBE_CAPABILITY_CONTRACT
               ? addDraft.asrDriverKind === 'qwen3-asr-transformers'
                 ? createNimiMachineLocalQwen3ASRTransformersConfigurationInput({ displayName })
                 : createNimiMachineLocalQwen3ASRConfigurationInput({ displayName })

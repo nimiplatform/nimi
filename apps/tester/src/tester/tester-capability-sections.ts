@@ -10,6 +10,7 @@ export const CAPABILITY_TO_SECTION: Record<TesterCapabilityId, CanonicalCapabili
   'video.generate': 'video',
   'audio.synthesize': 'tts',
   'audio.transcribe': 'stt',
+  'voice.create': 'voice',
   'speech.bundle': 'voice',
   'world.generate': 'world',
 };

@@ -2,7 +2,7 @@
  * @generated
  * Sources:
  *   config/runtime-provider-capabilities.yaml
- *     sha256: 37f02c3dd572ea861ea1a502662f2743c6b8e752c4c571912578674856ba5485
+ *     sha256: fca063966629f97edf8aa8d9b300a8a1087c3c79c51e8c8bc0080b36a9f1312a
  *   config/runtime-provider-catalog.yaml
  *     sha256: a8eeb769a28f8b9b0fa9a141280dd81940363714467ede4f664bee88ebb937b8
  * Generator: apps/web/scripts/generate-landing-data.mjs
@@ -29,13 +29,10 @@ export type AdmittedCapability =
   | "audio.transcribe"
   | "image.generate"
   | "music.generate"
-  | "music.generate.iteration"
   | "text.embed"
   | "text.generate"
-  | "text.generate.vision"
   | "video.generate"
-  | "voice_workflow.voice_clone"
-  | "voice_workflow.voice_design"
+  | "voice.create"
   | "world.generate";
 
 // r5 also exported as readonly tuple for runtime iteration (e.g., to drive
@@ -45,13 +42,10 @@ export const ADMITTED_CAPABILITIES = [
   "audio.transcribe",
   "image.generate",
   "music.generate",
-  "music.generate.iteration",
   "text.embed",
   "text.generate",
-  "text.generate.vision",
   "video.generate",
-  "voice_workflow.voice_clone",
-  "voice_workflow.voice_design",
+  "voice.create",
   "world.generate",
 ] as const satisfies readonly AdmittedCapability[];
 
@@ -76,7 +70,7 @@ export const PROVIDER_CAPABILITIES: readonly ProviderCapability[] = [
     inlineSupported: true,
     endpointRequirement: "default_or_explicit",
     inventoryMode: "static_source",
-    capabilities: ["text.generate", "text.generate.vision"],
+    capabilities: ["text.generate"],
     sources: ["K-CONN-008", "K-KEYSRC-001", "K-MCAT-027"],
   },
   {
@@ -98,7 +92,7 @@ export const PROVIDER_CAPABILITIES: readonly ProviderCapability[] = [
     inlineSupported: true,
     endpointRequirement: "explicit_required",
     inventoryMode: "static_source",
-    capabilities: ["image.generate", "text.embed", "text.generate", "text.generate.vision"],
+    capabilities: ["image.generate", "text.embed", "text.generate"],
     sources: ["K-CONN-008", "K-KEYSRC-001", "K-MCAT-027"],
   },
   {
@@ -120,7 +114,7 @@ export const PROVIDER_CAPABILITIES: readonly ProviderCapability[] = [
     inlineSupported: true,
     endpointRequirement: "explicit_required",
     inventoryMode: "static_source",
-    capabilities: ["text.generate", "text.generate.vision"],
+    capabilities: ["text.generate"],
     sources: ["K-CONN-008", "K-KEYSRC-001", "K-MCAT-027"],
   },
   {
@@ -131,7 +125,7 @@ export const PROVIDER_CAPABILITIES: readonly ProviderCapability[] = [
     inlineSupported: true,
     endpointRequirement: "explicit_required",
     inventoryMode: "static_source",
-    capabilities: ["text.embed", "text.generate", "text.generate.vision"],
+    capabilities: ["text.embed", "text.generate"],
     sources: ["K-CONN-008", "K-KEYSRC-001", "K-MCAT-027"],
   },
   {
@@ -142,7 +136,7 @@ export const PROVIDER_CAPABILITIES: readonly ProviderCapability[] = [
     inlineSupported: true,
     endpointRequirement: "default_or_explicit",
     inventoryMode: "static_source",
-    capabilities: ["audio.synthesize", "audio.transcribe", "image.generate", "text.embed", "text.generate", "text.generate.vision", "video.generate", "voice_workflow.voice_clone", "voice_workflow.voice_design"],
+    capabilities: ["audio.synthesize", "audio.transcribe", "image.generate", "text.embed", "text.generate", "video.generate", "voice.create"],
     sources: ["K-CONN-008", "K-KEYSRC-001", "K-MCAT-027"],
   },
   {
@@ -164,7 +158,7 @@ export const PROVIDER_CAPABILITIES: readonly ProviderCapability[] = [
     inlineSupported: true,
     endpointRequirement: "default_or_explicit",
     inventoryMode: "static_source",
-    capabilities: ["audio.synthesize", "audio.transcribe", "voice_workflow.voice_clone", "voice_workflow.voice_design"],
+    capabilities: ["audio.synthesize", "audio.transcribe", "voice.create"],
     sources: ["K-CONN-008", "K-KEYSRC-001", "K-MCAT-027"],
   },
   {
@@ -175,7 +169,7 @@ export const PROVIDER_CAPABILITIES: readonly ProviderCapability[] = [
     inlineSupported: true,
     endpointRequirement: "explicit_required",
     inventoryMode: "dynamic_endpoint",
-    capabilities: ["text.generate", "text.generate.vision"],
+    capabilities: ["text.generate"],
     sources: ["K-CONN-008", "K-KEYSRC-001", "K-MCAT-027"],
   },
   {
@@ -186,7 +180,7 @@ export const PROVIDER_CAPABILITIES: readonly ProviderCapability[] = [
     inlineSupported: true,
     endpointRequirement: "default_or_explicit",
     inventoryMode: "static_source",
-    capabilities: ["audio.synthesize", "voice_workflow.voice_clone"],
+    capabilities: ["audio.synthesize", "voice.create"],
     sources: ["K-CONN-008", "K-KEYSRC-001", "K-MCAT-027"],
   },
   {
@@ -208,7 +202,7 @@ export const PROVIDER_CAPABILITIES: readonly ProviderCapability[] = [
     inlineSupported: true,
     endpointRequirement: "default_or_explicit",
     inventoryMode: "static_source",
-    capabilities: ["audio.transcribe", "image.generate", "text.embed", "text.generate", "text.generate.vision"],
+    capabilities: ["audio.transcribe", "image.generate", "text.embed", "text.generate"],
     sources: ["K-CONN-008", "K-KEYSRC-001", "K-MCAT-027"],
   },
   {
@@ -219,7 +213,7 @@ export const PROVIDER_CAPABILITIES: readonly ProviderCapability[] = [
     inlineSupported: true,
     endpointRequirement: "default_or_explicit",
     inventoryMode: "static_source",
-    capabilities: ["audio.transcribe", "image.generate", "text.embed", "text.generate", "text.generate.vision"],
+    capabilities: ["audio.transcribe", "image.generate", "text.embed", "text.generate"],
     sources: ["K-CONN-008", "K-KEYSRC-001", "K-MCAT-027"],
   },
   {
@@ -252,7 +246,7 @@ export const PROVIDER_CAPABILITIES: readonly ProviderCapability[] = [
     inlineSupported: true,
     endpointRequirement: "default_or_explicit",
     inventoryMode: "dynamic_endpoint",
-    capabilities: ["audio.synthesize", "audio.transcribe", "text.generate", "text.generate.vision"],
+    capabilities: ["audio.synthesize", "audio.transcribe", "text.generate"],
     sources: ["K-CONN-008", "K-KEYSRC-001", "K-MCAT-027"],
   },
   {
@@ -285,7 +279,7 @@ export const PROVIDER_CAPABILITIES: readonly ProviderCapability[] = [
     inlineSupported: true,
     endpointRequirement: "default_or_explicit",
     inventoryMode: "dynamic_endpoint",
-    capabilities: ["text.generate", "text.generate.vision"],
+    capabilities: ["text.generate"],
     sources: ["K-CONN-008", "K-KEYSRC-001", "K-MCAT-027"],
   },
   {
@@ -307,7 +301,7 @@ export const PROVIDER_CAPABILITIES: readonly ProviderCapability[] = [
     inlineSupported: false,
     endpointRequirement: "empty_string_only",
     inventoryMode: "static_source",
-    capabilities: ["audio.synthesize", "audio.transcribe", "image.generate", "music.generate", "text.embed", "text.generate", "video.generate", "voice_workflow.voice_clone", "voice_workflow.voice_design"],
+    capabilities: ["audio.synthesize", "audio.transcribe", "image.generate", "music.generate", "text.embed", "text.generate", "video.generate", "voice.create"],
     sources: ["K-LOCAL-001", "K-LOCAL-002", "K-MCAT-027"],
   },
   {
@@ -340,7 +334,7 @@ export const PROVIDER_CAPABILITIES: readonly ProviderCapability[] = [
     inlineSupported: true,
     endpointRequirement: "default_or_explicit",
     inventoryMode: "static_source",
-    capabilities: ["audio.synthesize", "audio.transcribe", "text.generate", "text.generate.vision", "voice_workflow.voice_clone", "voice_workflow.voice_design"],
+    capabilities: ["audio.synthesize", "audio.transcribe", "text.generate", "voice.create"],
     sources: ["K-CONN-008", "K-KEYSRC-001", "K-MCAT-027"],
   },
   {
@@ -351,7 +345,7 @@ export const PROVIDER_CAPABILITIES: readonly ProviderCapability[] = [
     inlineSupported: true,
     endpointRequirement: "default_or_explicit",
     inventoryMode: "static_source",
-    capabilities: ["image.generate", "text.generate", "text.generate.vision", "video.generate"],
+    capabilities: ["image.generate", "text.generate", "video.generate"],
     sources: ["K-CONN-008", "K-KEYSRC-001", "K-MCAT-027"],
   },
   {
@@ -362,7 +356,7 @@ export const PROVIDER_CAPABILITIES: readonly ProviderCapability[] = [
     inlineSupported: true,
     endpointRequirement: "default_or_explicit",
     inventoryMode: "static_source",
-    capabilities: ["text.embed", "text.generate", "text.generate.vision"],
+    capabilities: ["text.embed", "text.generate"],
     sources: ["K-CONN-008", "K-KEYSRC-001", "K-MCAT-027"],
   },
   {
@@ -395,7 +389,7 @@ export const PROVIDER_CAPABILITIES: readonly ProviderCapability[] = [
     inlineSupported: true,
     endpointRequirement: "default_or_explicit",
     inventoryMode: "static_source",
-    capabilities: ["audio.synthesize", "audio.transcribe", "image.generate", "text.embed", "text.generate", "text.generate.vision", "video.generate"],
+    capabilities: ["audio.synthesize", "audio.transcribe", "image.generate", "text.embed", "text.generate", "video.generate"],
     sources: ["K-CONN-008", "K-KEYSRC-001", "K-MCAT-027"],
   },
   {
@@ -428,7 +422,7 @@ export const PROVIDER_CAPABILITIES: readonly ProviderCapability[] = [
     inlineSupported: true,
     endpointRequirement: "default_or_explicit",
     inventoryMode: "dynamic_endpoint",
-    capabilities: ["audio.synthesize", "audio.transcribe", "image.generate", "text.embed", "text.generate", "text.generate.vision", "video.generate"],
+    capabilities: ["audio.synthesize", "audio.transcribe", "image.generate", "text.embed", "text.generate", "video.generate"],
     sources: ["K-CONN-008", "K-KEYSRC-001", "K-MCAT-027"],
   },
   {
@@ -439,7 +433,7 @@ export const PROVIDER_CAPABILITIES: readonly ProviderCapability[] = [
     inlineSupported: true,
     endpointRequirement: "explicit_required",
     inventoryMode: "dynamic_endpoint",
-    capabilities: ["text.generate", "text.generate.vision"],
+    capabilities: ["text.generate"],
     sources: ["K-CONN-008", "K-KEYSRC-001", "K-MCAT-027"],
   },
   {
@@ -461,7 +455,7 @@ export const PROVIDER_CAPABILITIES: readonly ProviderCapability[] = [
     inlineSupported: true,
     endpointRequirement: "default_or_explicit",
     inventoryMode: "static_source",
-    capabilities: ["text.embed", "text.generate", "text.generate.vision"],
+    capabilities: ["text.embed", "text.generate"],
     sources: ["K-CONN-008", "K-KEYSRC-001", "K-MCAT-027"],
   },
   {
@@ -483,7 +477,7 @@ export const PROVIDER_CAPABILITIES: readonly ProviderCapability[] = [
     inlineSupported: true,
     endpointRequirement: "explicit_required",
     inventoryMode: "dynamic_endpoint",
-    capabilities: ["audio.synthesize", "audio.transcribe", "image.generate", "text.embed", "text.generate", "text.generate.vision", "video.generate"],
+    capabilities: ["audio.synthesize", "audio.transcribe", "image.generate", "text.embed", "text.generate", "video.generate"],
     sources: ["K-CONN-008", "K-KEYSRC-001", "K-MCAT-027"],
   },
   {
@@ -527,7 +521,7 @@ export const PROVIDER_CAPABILITIES: readonly ProviderCapability[] = [
     inlineSupported: true,
     endpointRequirement: "default_or_explicit",
     inventoryMode: "static_source",
-    capabilities: ["image.generate", "music.generate", "music.generate.iteration"],
+    capabilities: ["image.generate", "music.generate"],
     sources: ["K-CONN-008", "K-KEYSRC-001", "K-MCAT-027"],
   },
   {
@@ -538,7 +532,7 @@ export const PROVIDER_CAPABILITIES: readonly ProviderCapability[] = [
     inlineSupported: true,
     endpointRequirement: "default_or_explicit",
     inventoryMode: "static_source",
-    capabilities: ["audio.synthesize", "image.generate", "text.generate", "text.generate.vision", "voice_workflow.voice_clone"],
+    capabilities: ["audio.synthesize", "image.generate", "text.generate", "voice.create"],
     sources: ["K-CONN-008", "K-KEYSRC-001", "K-MCAT-027"],
   },
   {
@@ -549,7 +543,7 @@ export const PROVIDER_CAPABILITIES: readonly ProviderCapability[] = [
     inlineSupported: true,
     endpointRequirement: "explicit_required",
     inventoryMode: "dynamic_endpoint",
-    capabilities: ["audio.synthesize", "audio.transcribe", "image.generate", "text.embed", "text.generate", "text.generate.vision", "video.generate"],
+    capabilities: ["audio.synthesize", "audio.transcribe", "image.generate", "text.embed", "text.generate", "video.generate"],
     sources: ["K-CONN-008", "K-KEYSRC-001", "K-MCAT-027"],
   },
   {
@@ -582,7 +576,7 @@ export const PROVIDER_CAPABILITIES: readonly ProviderCapability[] = [
     inlineSupported: true,
     endpointRequirement: "default_or_explicit",
     inventoryMode: "static_source",
-    capabilities: ["world.generate"],
+    capabilities: [],
     sources: ["K-CONN-008", "K-KEYSRC-001", "K-MCAT-027"],
   },
   {
@@ -593,7 +587,7 @@ export const PROVIDER_CAPABILITIES: readonly ProviderCapability[] = [
     inlineSupported: true,
     endpointRequirement: "default_or_explicit",
     inventoryMode: "dynamic_endpoint",
-    capabilities: ["audio.synthesize", "audio.transcribe", "image.generate", "text.generate", "text.generate.vision", "video.generate"],
+    capabilities: ["audio.synthesize", "audio.transcribe", "image.generate", "text.generate", "video.generate"],
     sources: ["K-CONN-008", "K-KEYSRC-001", "K-MCAT-027"],
   },
 ];

@@ -48,6 +48,16 @@ export function formatTypedOutput(result: TesterCapabilityRunResult & { ok: true
   if (output.kind === 'transcript') {
     return output.text || i18nT('StudioShell.emptyTranscript');
   }
+  if (output.kind === 'voice-asset') {
+    return JSON.stringify({
+      jobId: output.jobId,
+      jobState: output.jobState,
+      voiceAssetId: output.voiceAssetId,
+      creationSource: output.creationSource,
+      assetStatus: output.assetStatus,
+      voiceReference: output.voiceReference,
+    }, null, 2);
+  }
   return JSON.stringify({
     voiceCount: output.voiceCount,
     sample: output.sample,

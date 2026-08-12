@@ -78,6 +78,15 @@ export type TesterSpeechTranscribeParameters = {
   responseFormat?: string;
 };
 
+export type TesterVoiceCreateParameters = {
+  creationSource?: 'reference-audio' | 'text-description';
+  referenceAudioFile?: TesterAudioFile;
+  languageHints?: string;
+  preferredName?: string;
+  previewText?: string;
+  language?: string;
+};
+
 export type TesterCapabilityParameterState = {
   'text.generate': TesterTextGenerationParameters;
   'chat.stream': TesterTextGenerationParameters;
@@ -86,6 +95,7 @@ export type TesterCapabilityParameterState = {
   'video.generate': TesterVideoGenerationParameters;
   'audio.synthesize': TesterSpeechSynthesizeParameters;
   'audio.transcribe': TesterSpeechTranscribeParameters;
+  'voice.create': TesterVoiceCreateParameters;
   'speech.bundle': Record<string, never>;
   'world.generate': Record<string, never>;
 };
@@ -94,6 +104,7 @@ export type TesterCapabilityParameters = TesterCapabilityParameterState[TesterCa
 
 export const MAX_TESTER_ARTIFACT_UPLOAD_BYTES = 32 * 1024 * 1024;
 export const MAX_TESTER_AUDIO_UPLOAD_BYTES = MAX_TESTER_ARTIFACT_UPLOAD_BYTES;
+export const MAX_TESTER_VOICE_REFERENCE_AUDIO_BYTES = 20 * 1024 * 1024;
 
 export function createTesterCapabilityParameterState(): TesterCapabilityParameterState {
   return {
@@ -104,6 +115,7 @@ export function createTesterCapabilityParameterState(): TesterCapabilityParamete
     'video.generate': { mode: 't2v', generateAudio: true },
     'audio.synthesize': {},
     'audio.transcribe': {},
+    'voice.create': { creationSource: 'reference-audio' },
     'speech.bundle': {},
     'world.generate': {},
   };
@@ -119,6 +131,15 @@ export function summarizeTesterCapabilityParameters(
       ...transcribe,
       ...(transcribe.audioFile ? {
         audioFile: `${transcribe.audioFile.name} (${transcribe.audioFile.sizeBytes} bytes)`,
+      } : {}),
+    };
+  }
+  if (capabilityId === 'voice.create') {
+    const voiceCreate = parameters as TesterVoiceCreateParameters;
+    return {
+      ...voiceCreate,
+      ...(voiceCreate.referenceAudioFile ? {
+        referenceAudioFile: `${voiceCreate.referenceAudioFile.name} (${voiceCreate.referenceAudioFile.sizeBytes} bytes)`,
       } : {}),
     };
   }

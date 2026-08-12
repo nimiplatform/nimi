@@ -90,8 +90,7 @@ const ASSET_CAPABILITY_LABEL_KEYS: Record<string, string> = {
   'audio.synthesize': 'tts',
   stt: 'stt',
   'audio.transcribe': 'stt',
-  'voice_workflow.voice_clone': 'voiceClone',
-  'voice_workflow.voice_design': 'voiceDesign',
+  'voice.create': 'voiceCreate',
 };
 
 export function localizedAssetCapabilityLabels(

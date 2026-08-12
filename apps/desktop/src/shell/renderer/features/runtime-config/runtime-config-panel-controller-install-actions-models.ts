@@ -195,6 +195,9 @@ export function useRuntimeConfigModelManagementActions(
         return;
       }
       const kind = nimiRuntimeLocalRunnableAssetKindForCapabilities(capabilities);
+      if (!kind) {
+        throw new Error('Local model file import requires one explicit canonical asset kind.');
+      }
       const asset = await runtimeConfigLocalAssetAdminClient.importFile({
         filePath,
         kind,

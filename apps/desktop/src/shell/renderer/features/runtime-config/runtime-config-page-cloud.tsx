@@ -33,6 +33,7 @@ export function CloudPage({ model, state }: CloudPageProps) {
   const { t } = useTranslation();
   const bindings = useDesktopRendererBindings();
   const {
+    createConnectorGrant,
     listConnectorGrants,
     revokeConnectorGrant,
     sdkCreateConnector,
@@ -46,6 +47,7 @@ export function CloudPage({ model, state }: CloudPageProps) {
   const [providerCatalog, setProviderCatalog] = useState<ProviderCatalogEntry[]>([]);
   const [connectorGrants, setConnectorGrants] = useState<readonly NimiRuntimeConnectorGrant[]>([]);
   const [connectorGrantsLoading, setConnectorGrantsLoading] = useState(false);
+  const [creatingGrantConnectorId, setCreatingGrantConnectorId] = useState('');
   const [revokingGrantId, setRevokingGrantId] = useState('');
   const [tokenDraft, setTokenDraft] = useState('');
   const [connectorLabelDraft, setConnectorLabelDraft] = useState('');
@@ -169,6 +171,20 @@ export function CloudPage({ model, state }: CloudPageProps) {
       setConnectorGrantsLoading(false);
     }
   }, [authStatus, listConnectorGrants, reportError, t]);
+  const onCreateConnectorGrant = useCallback(async (connectorId: string) => {
+    if (!connectorId || creatingGrantConnectorId) return;
+    setCreatingGrantConnectorId(connectorId);
+    try {
+      await createConnectorGrant(connectorId);
+      await refreshConnectorGrants();
+    } catch (error) {
+      reportError(t('runtimeConfig.cloud.grants.createFailed', {
+        defaultValue: 'Create account authorization failed',
+      }), error);
+    } finally {
+      setCreatingGrantConnectorId('');
+    }
+  }, [createConnectorGrant, creatingGrantConnectorId, refreshConnectorGrants, reportError, t]);
   const onRevokeConnectorGrant = useCallback(async (grantId: string) => {
     if (!grantId || revokingGrantId) return;
     setRevokingGrantId(grantId);
@@ -676,11 +692,14 @@ export function CloudPage({ model, state }: CloudPageProps) {
       </div>
       <CloudConnectorGrantPanel
         authenticated={authStatus === 'authenticated'}
+        busyConnectorId={creatingGrantConnectorId}
         busyGrantId={revokingGrantId}
         connectors={orderedConnectors}
         grants={connectorGrants}
         loading={connectorGrantsLoading}
+        onCreate={onCreateConnectorGrant}
         onRevoke={onRevokeConnectorGrant}
+        selectedConnector={selectedConnector}
         t={t}
       />
     </RuntimePageShell>

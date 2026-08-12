@@ -121,6 +121,14 @@ export const TESTER_CAPABILITY_PARAM_ROUTE_MATRIX = {
     prompt: CLOUD_ONLY,
     responseFormat: LOCAL_TEXT_CLOUD_CONFIGURABLE,
   },
+  'voice.create': {
+    creationSource: LOCAL_AND_CLOUD,
+    referenceAudioFile: LOCAL_AND_CLOUD,
+    languageHints: LOCAL_AND_CLOUD,
+    preferredName: LOCAL_AND_CLOUD,
+    previewText: LOCAL_AND_CLOUD,
+    language: LOCAL_AND_CLOUD,
+  },
   'speech.bundle': {},
   'world.generate': {},
 } as const satisfies Record<TesterCapabilityId, CapabilityParamRouteMatrix>;

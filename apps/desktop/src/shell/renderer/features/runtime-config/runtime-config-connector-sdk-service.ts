@@ -42,12 +42,14 @@ export type ApiConnectorAuthOption = {
 export type ConnectorModelInfo = NimiRuntimeConnectorModelInfo;
 
 export type RuntimeConfigConnectorGrantService = Readonly<{
+  create(connectorId: string): Promise<NimiRuntimeConnectorGrant>;
   list(): Promise<readonly NimiRuntimeConnectorGrant[]>;
   revoke(grantId: string): Promise<NimiRuntimeConnectorGrant>;
 }>;
 
 export type RuntimeConfigConnectorSdkService = Readonly<{
   clearCaches(): void;
+  createConnectorGrant(connectorId: string): Promise<NimiRuntimeConnectorGrant>;
   listConnectorGrants(): Promise<readonly NimiRuntimeConnectorGrant[]>;
   revokeConnectorGrant(grantId: string): Promise<NimiRuntimeConnectorGrant>;
   sdkListProviderCatalog(): Promise<ProviderCatalogEntry[]>;
@@ -114,6 +116,10 @@ export function createRuntimeConfigConnectorSdkService(
 
   return Object.freeze({
     clearCaches: () => inventory.clearCaches(),
+    async createConnectorGrant(connectorId) {
+      if (!getGrantService) throw new Error('DESKTOP_CONNECTOR_GRANT_SERVICE_UNAVAILABLE');
+      return getGrantService().create(connectorId);
+    },
     async listConnectorGrants() {
       if (!getGrantService) throw new Error('DESKTOP_CONNECTOR_GRANT_SERVICE_UNAVAILABLE');
       return getGrantService().list();

@@ -6,6 +6,7 @@ import {
   NIMI_MACHINE_LOCAL_TEXT_EMBED_CAPABILITY_CONTRACT,
   NIMI_MACHINE_LOCAL_TEXT_GENERATE_CAPABILITY_CONTRACT,
   NIMI_MACHINE_LOCAL_VIDEO_GENERATE_CAPABILITY_CONTRACT,
+  NIMI_MACHINE_LOCAL_VOICE_CREATE_CAPABILITY_CONTRACT,
 } from '@nimiplatform/sdk/runtime';
 
 export function displayRuntimeConfigCapabilityLabel(
@@ -29,6 +30,9 @@ export function displayRuntimeConfigCapabilityLabel(
   }
   if (capabilityContract === NIMI_MACHINE_LOCAL_VIDEO_GENERATE_CAPABILITY_CONTRACT) {
     return t('runtimeConfig.capabilityLabels.videoGenerate');
+  }
+  if (capabilityContract === NIMI_MACHINE_LOCAL_VOICE_CREATE_CAPABILITY_CONTRACT) {
+    return t('runtimeConfig.capabilityLabels.voiceCreate');
   }
   return capabilityContract;
 }

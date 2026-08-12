@@ -578,6 +578,39 @@ test('Local AI Configurations renders the video form and builds the video add in
   );
 });
 
+test('Local AI Configurations exposes one typed voice.create source per configuration', () => {
+  const initial = createRuntimeConfigMachineLocalAIAddDraft();
+  const referenceDraft = {
+    ...initial,
+    capabilityContract: 'voice.create' as const,
+    displayName: 'Reference voice',
+    voiceCreateSource: 'reference-audio' as const,
+  };
+  const referenceMarkup = renderToStaticMarkup(
+    <MachineLocalAIAddFormFields
+      draft={referenceDraft}
+      assets={[]}
+      busy={false}
+      onChange={noop}
+    />,
+  );
+  assert.match(referenceMarkup, />Voice creation</u);
+  assert.match(referenceMarkup, /data-testid="machine-local-ai-voice-create-fields"/u);
+  assert.match(referenceMarkup, /Reference audio/u);
+  assert.match(referenceMarkup, /supports exactly one source/u);
+  assert.doesNotMatch(referenceMarkup, /voice clone|voice design/iu);
+
+  const descriptionMarkup = renderToStaticMarkup(
+    <MachineLocalAIAddFormFields
+      draft={{ ...referenceDraft, voiceCreateSource: 'text-description' }}
+      assets={[]}
+      busy={false}
+      onChange={noop}
+    />,
+  );
+  assert.match(descriptionMarkup, /Text description/u);
+});
+
 test('Local AI Configurations keeps video configuration management available when execution is unavailable', () => {
   const videoConfiguration: NimiMachineLocalCapabilityConfiguration = {
     ...configuration('unresolved'),

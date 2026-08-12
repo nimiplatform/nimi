@@ -6,18 +6,35 @@ import { Button } from './runtime-config-page-cloud-primitives.js';
 
 type CloudConnectorGrantPanelProps = {
   readonly authenticated: boolean;
+  readonly busyConnectorId: string;
   readonly busyGrantId: string;
   readonly connectors: readonly ApiConnector[];
   readonly grants: readonly NimiRuntimeConnectorGrant[];
   readonly loading: boolean;
+  readonly onCreate: (connectorId: string) => Promise<void>;
   readonly onRevoke: (grantId: string) => Promise<void>;
+  readonly selectedConnector: ApiConnector | null;
   readonly t: TFunction;
 };
 
 /** Account authorization lifecycle; this panel never projects routing or target choices. */
 export function CloudConnectorGrantPanel(props: CloudConnectorGrantPanelProps) {
+  const [confirmConnectorId, setConfirmConnectorId] = useState('');
   const [confirmGrantId, setConfirmGrantId] = useState('');
   const activeCount = props.grants.filter((grant) => grant.status === 'active').length;
+  const selectedConnector = props.selectedConnector;
+  const selectedConnectorHasActiveGrant = Boolean(selectedConnector && props.grants.some(
+    (grant) => grant.connectorId === selectedConnector.id && grant.status === 'active',
+  ));
+  const canCreate = Boolean(
+    props.authenticated
+    && selectedConnector
+    && !selectedConnector.isDraft
+    && selectedConnector.hasCredential
+    && !selectedConnectorHasActiveGrant,
+  );
+  const confirmingCreate = Boolean(selectedConnector && confirmConnectorId === selectedConnector.id);
+  const creating = Boolean(selectedConnector && props.busyConnectorId === selectedConnector.id);
 
   return (
     <section className="rounded-2xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-4" data-runtime-connector-grants="true">
@@ -40,10 +57,47 @@ export function CloudConnectorGrantPanel(props: CloudConnectorGrantPanelProps) {
         </span>
       </div>
 
+      {canCreate && selectedConnector ? (
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--nimi-border-subtle)] p-3">
+          <div className="min-w-0">
+            <div className="truncate text-sm font-medium text-[var(--nimi-text-primary)]">{selectedConnector.label}</div>
+            <div className="mt-0.5 text-xs text-[var(--nimi-text-muted)]">
+              {props.t('runtimeConfig.cloud.grants.createDescription', {
+                defaultValue: 'Authorize the signed-in account to use this connector. Model and route selection remain separate.',
+              })}
+            </div>
+          </div>
+          <div className="flex shrink-0 gap-2">
+            {confirmingCreate ? (
+              <>
+                <Button
+                  disabled={creating}
+                  onClick={() => {
+                    void props.onCreate(selectedConnector.id).then(() => setConfirmConnectorId(''));
+                  }}
+                  size="sm"
+                >
+                  {creating
+                    ? props.t('runtimeConfig.cloud.grants.creating', { defaultValue: 'Authorizing…' })
+                    : props.t('runtimeConfig.cloud.grants.confirmCreate', { defaultValue: 'Confirm authorization' })}
+                </Button>
+                <Button disabled={creating} onClick={() => setConfirmConnectorId('')} size="sm" variant="ghost">
+                  {props.t('runtimeConfig.cloud.grants.cancel', { defaultValue: 'Cancel' })}
+                </Button>
+              </>
+            ) : (
+              <Button onClick={() => setConfirmConnectorId(selectedConnector.id)} size="sm">
+                {props.t('runtimeConfig.cloud.grants.create', { defaultValue: 'Authorize connector' })}
+              </Button>
+            )}
+          </div>
+        </div>
+      ) : null}
+
       {!props.authenticated ? (
         <div className="mt-3 rounded-xl bg-[var(--nimi-status-info-soft-bg)] p-3 text-xs text-[var(--nimi-status-info-soft-text)]">
           {props.t('runtimeConfig.cloud.grants.signInRequired', {
-            defaultValue: 'Sign in to list and revoke account authorizations.',
+            defaultValue: 'Sign in to create, list, and revoke account authorizations.',
           })}
         </div>
       ) : props.loading ? (

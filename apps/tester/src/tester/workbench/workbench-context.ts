@@ -25,7 +25,7 @@ export type WorkbenchNavGroup = {
 export const workbenchNavGroups: WorkbenchNavGroup[] = [
   { label: 'Create', capabilityIds: ['text.generate', 'chat.stream', 'text.embed'] },
   { label: 'Media', capabilityIds: ['image.generate', 'video.generate'] },
-  { label: 'Voice', capabilityIds: ['audio.synthesize', 'audio.transcribe', 'speech.bundle'] },
+  { label: 'Voice', capabilityIds: ['audio.synthesize', 'audio.transcribe', 'voice.create', 'speech.bundle'] },
 ];
 
 // World Tour is a standalone Tauri viewer rather than a runtime capability lane,

@@ -5,6 +5,7 @@ export type TesterCapabilityId =
   | 'image.generate'
   | 'audio.synthesize'
   | 'audio.transcribe'
+  | 'voice.create'
   | 'video.generate'
   | 'speech.bundle'
   | 'world.generate';
@@ -103,6 +104,17 @@ export const testerCapabilities: TesterCapability[] = [
     surface: 'kit.runRuntimeSpeechTranscribe → sdk.localApp.ai.scenarioJobs + artifacts',
     execution: 'runtime-sdk',
     capabilityContract: 'audio.transcribe',
+  },
+  {
+    id: 'voice.create',
+    label: 'Voice Create',
+    labelKey: 'Capabilities.voiceCreate.label',
+    group: 'audio',
+    summary: 'Typed reference audio or text description → voice.create Scenario Job → VoiceAsset.',
+    summaryKey: 'Capabilities.voiceCreate.summary',
+    surface: 'sdk.localApp.ai.scenarioJobs.submit:voice-create',
+    execution: 'runtime-sdk',
+    capabilityContract: 'voice.create',
   },
   {
     id: 'speech.bundle',

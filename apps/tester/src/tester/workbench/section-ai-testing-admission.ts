@@ -68,6 +68,13 @@ const scenarioPresets: Partial<Record<TesterCapabilityId, ScenarioPreset[]>> = {
       prompt: 'https://example.test/sample.wav',
     },
   ],
+  'voice.create': [
+    {
+      id: 'voice-create',
+      label: 'Voice create',
+      prompt: 'Create a warm, clear Mandarin voice for a friendly Nimi assistant.',
+    },
+  ],
   'speech.bundle': [
     {
       id: 'voice-catalog',

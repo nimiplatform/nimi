@@ -128,7 +128,7 @@ export function createTesterProductionBindings(
         const result = await testerLocalAppClient.ai.voiceAssets.list({ pageSize: 100, pageToken: '' });
         return result.assets.map((asset) => ({
           voiceAssetId: asset.voiceAssetId,
-          workflowType: asset.workflowType,
+          creationSource: asset.creationSource,
           status: asset.status,
         }));
       },

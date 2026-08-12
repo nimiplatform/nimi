@@ -64,6 +64,15 @@
         "emptyHint": "The transcript text will appear here once the job returns.",
         "footnote": "Provide an HTTPS URL or a local audio file up to 32 MiB; the runtime returns the transcript."
       },
+      "voiceCreate": {
+        "inputTitle": "Create a reusable voice",
+        "inputPlaceholder": "Describe the voice, or provide the transcript spoken in the reference audio…",
+        "primaryLabel": "Create voice",
+        "primaryRunningLabel": "Creating…",
+        "emptyTitle": "Waiting for voice creation",
+        "emptyHint": "The Runtime VoiceAsset will appear here once the job completes.",
+        "footnote": "Choose reference audio or text description; Runtime selects the configured voice.create implementation."
+      },
       "speechBundle": {
         "inputTitle": "Test voice catalog",
         "inputPlaceholder": "",
@@ -133,6 +142,10 @@
       "chooseAudioFile": "Choose audio file",
       "removeFile": "Remove",
       "audioFileTooLarge": "Audio files must not exceed 32 MiB.",
+      "voiceReferenceFileTooLarge": "Reference audio must be non-empty and not exceed 20 MiB.",
+      "voiceReferenceMimeUnsupported": "Choose a file with an audio MIME type.",
+      "voiceSourceReferenceAudio": "Reference audio",
+      "voiceSourceTextDescription": "Text description",
       "fields": {
         "inputs": "Embedding inputs",
         "temperature": "Temperature",
@@ -184,6 +197,11 @@
         "speakerCount": "Speaker count",
         "transcriptionPrompt": "Transcription prompt",
         "responseFormat": "Response format"
+        ,"creationSource": "Creation source"
+        ,"referenceAudioFile": "Reference audio"
+        ,"languageHints": "Language hints"
+        ,"preferredName": "Preferred name"
+        ,"previewText": "Preview text"
       }
     },
     "run": {

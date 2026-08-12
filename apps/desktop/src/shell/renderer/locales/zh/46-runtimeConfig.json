@@ -45,7 +45,7 @@
   },
   "machineLocalAIConfigurations": {
     "title": "本机模型设置",
-    "description": "为文本、图像和视频生成设置本机模型。添加配置、关联所需模型文件，再选择每项能力要使用的配置。文件齐全不代表模型已经过运行验证。",
+    "description": "为文本、语音、声音创建、图像和视频设置本机模型。添加配置、关联所需模型文件，再选择每项能力要使用的配置。文件齐全不代表模型已经过运行验证。",
     "refresh": "刷新",
     "add": "添加配置",
     "loadFailed": "无法加载本机模型设置，请重试。",
@@ -164,6 +164,10 @@
     "unnamedConfiguration": "未命名配置",
     "otherEngine": "其他本地引擎",
     "qwen3TTSEngine": "Qwen3-TTS",
+    "voiceCreateSource": "接受的来源",
+    "voiceCreateReferenceAudio": "参考音频",
+    "voiceCreateTextDescription": "文本描述",
+    "voiceCreateSourceBody": "每份配置只支持一种来源；选择后不会因另一种来源而切换模型或路由。",
     "qwen3ASREngine": "Qwen3-ASR",
     "qwen3ASRTransformersEngine": "Qwen3-ASR（Transformers 5.13+）",
     "boundLocalFile": "已连接的本地文件",
@@ -482,9 +486,14 @@
       "title": "账户授权",
       "description": "ConnectorGrant 只授权账户，绝不会选择提供商模型目标或控制路由。",
       "activeCount": "{{count}} 个有效授权",
-      "signInRequired": "请登录后查看和吊销账户授权。",
+      "signInRequired": "请登录后创建、查看和吊销账户授权。",
       "loading": "正在加载账户授权…",
       "loadFailed": "加载账户授权失败",
+      "create": "授权连接器",
+      "createDescription": "授权当前登录账户使用此连接器；模型与路由选择仍保持分离。",
+      "confirmCreate": "确认授权",
+      "creating": "正在授权…",
+      "createFailed": "创建账户授权失败",
       "revokeFailed": "吊销账户授权失败",
       "empty": "尚未创建账户授权。",
       "active": "有效",
@@ -1055,7 +1064,8 @@
     "audioSynthesize": "语音合成",
     "audioTranscribe": "语音转写",
     "imageGenerate": "图像生成",
-    "videoGenerate": "视频生成"
+    "videoGenerate": "视频生成",
+    "voiceCreate": "声音创建"
   },
   "common": {
     "noModelsDiscovered": "尚未发现任何模型。",
@@ -1400,8 +1410,7 @@
       "videoGenerate": "视频生成",
       "tts": "语音合成",
       "stt": "语音识别",
-      "voiceClone": "声音克隆",
-      "voiceDesign": "声音设计"
+      "voiceCreate": "创建语音"
     },
     "sourceLocalImport": "本地导入",
     "sourceCatalogInstall": "目录安装",

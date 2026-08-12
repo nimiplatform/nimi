@@ -7,6 +7,7 @@ import type { TesterCapabilityId } from '../tester-capabilities.js';
 import {
   MAX_TESTER_ARTIFACT_UPLOAD_BYTES,
   MAX_TESTER_AUDIO_UPLOAD_BYTES,
+  MAX_TESTER_VOICE_REFERENCE_AUDIO_BYTES,
   type TesterCapabilityParameterState,
   type TesterEmbeddingParameters,
   type TesterImageGenerationParameters,
@@ -14,6 +15,7 @@ import {
   type TesterSpeechTranscribeParameters,
   type TesterTextGenerationParameters,
   type TesterVideoGenerationParameters,
+  type TesterVoiceCreateParameters,
 } from '../tester-capability-parameters.js';
 import { getTesterCapabilityParamPresentation, projectTesterCapabilityParamsForRoute } from '../tester-capability-params.js';
 import type { TesterRunTargetSource } from '../tester-run-target.js';
@@ -469,7 +471,7 @@ function SpeechSynthesizeFields(props: ParameterPanelProps<'audio.synthesize'>) 
     props.source,
     parameters,
   ).voiceKind;
-  const [voices, setVoices] = useState<readonly { voiceAssetId: string; workflowType: string; status: string }[]>([]);
+  const [voices, setVoices] = useState<readonly { voiceAssetId: string; creationSource: string; status: string }[]>([]);
   const [voiceError, setVoiceError] = useState('');
   useEffect(() => {
     let cancelled = false;
@@ -520,7 +522,7 @@ function SpeechSynthesizeFields(props: ParameterPanelProps<'audio.synthesize'>) 
             value={parameters.voiceAssetId}
             placeholder={voices.length ? t('Studio.parameters.selectVoiceAsset') : t('Studio.parameters.noVoiceAssets')}
             disabled={props.disabled || routeDisabled || voices.length === 0}
-            options={voices.map((voice) => ({ value: voice.voiceAssetId, label: `${voice.voiceAssetId} · ${voice.workflowType} · ${voice.status}` }))}
+            options={voices.map((voice) => ({ value: voice.voiceAssetId, label: `${voice.voiceAssetId} · ${voice.creationSource} · ${voice.status}` }))}
             onValueChange={(voiceAssetId) => update({ ...parameters, voiceAssetId })}
           />
           {voiceError ? <small>{voiceError}</small> : null}
@@ -616,6 +618,89 @@ function SpeechTranscribeFields(props: ParameterPanelProps<'audio.transcribe'>) 
   return <RouteAwareParameterFields capabilityId={props.capabilityId} source={props.source} fields={fields} />;
 }
 
+function VoiceCreateFields(props: ParameterPanelProps<'voice.create'>) {
+  const { t } = useTranslation();
+  const parameters = props.parameters as TesterVoiceCreateParameters;
+  const update = props.onChange as (next: TesterVoiceCreateParameters) => void;
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [fileError, setFileError] = useState('');
+  const creationSource = parameters.creationSource ?? 'reference-audio';
+  async function selectFile(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.currentTarget.files?.[0];
+    event.currentTarget.value = '';
+    if (!file) return;
+    if (file.size === 0 || file.size > MAX_TESTER_VOICE_REFERENCE_AUDIO_BYTES) {
+      setFileError(t('Studio.parameters.voiceReferenceFileTooLarge'));
+      return;
+    }
+    const mimeType = file.type || 'application/octet-stream';
+    if (!mimeType.startsWith('audio/')) {
+      setFileError(t('Studio.parameters.voiceReferenceMimeUnsupported'));
+      return;
+    }
+    setFileError('');
+    update({
+      ...parameters,
+      referenceAudioFile: {
+        name: file.name,
+        mimeType,
+        sizeBytes: file.size,
+        bytes: new Uint8Array(await file.arrayBuffer()),
+      },
+    });
+  }
+  const textField = (field: keyof TesterVoiceCreateParameters, label: string, placeholder?: string): RouteAwareParameterField => ({
+    field,
+    label,
+    render: (routeDisabled) => <TextParameter current={parameters} field={field} label={label} placeholder={placeholder} onChange={update} disabled={props.disabled || routeDisabled} />,
+  });
+  const sourceLabel = t('Studio.parameters.fields.creationSource');
+  const fields: RouteAwareParameterField[] = [
+    {
+      field: 'creationSource',
+      label: sourceLabel,
+      render: (routeDisabled) => (
+        <ParameterField label={sourceLabel}>
+          <SelectField
+            value={creationSource}
+            disabled={props.disabled || routeDisabled}
+            options={[
+              { value: 'reference-audio', label: t('Studio.parameters.voiceSourceReferenceAudio') },
+              { value: 'text-description', label: t('Studio.parameters.voiceSourceTextDescription') },
+            ]}
+            onValueChange={(value) => update({ ...parameters, creationSource: value as TesterVoiceCreateParameters['creationSource'] })}
+          />
+        </ParameterField>
+      ),
+    },
+    ...(creationSource === 'reference-audio' ? [
+      {
+        field: 'referenceAudioFile',
+        label: t('Studio.parameters.fields.referenceAudioFile'),
+        render: (routeDisabled: boolean) => (
+          <ParameterField label={t('Studio.parameters.fields.referenceAudioFile')}>
+            <input ref={inputRef} className="studio-parameters__file-input" type="file" accept="audio/*,.wav,.mp3,.m4a,.ogg,.webm,.flac" disabled={props.disabled || routeDisabled} onChange={(event) => void selectFile(event)} />
+            <div className="studio-parameters__file-row">
+              <Button type="button" tone="ghost" size="sm" disabled={props.disabled || routeDisabled} leadingIcon={<Upload size={14} aria-hidden="true" />} onClick={() => inputRef.current?.click()}>
+                {t('Studio.parameters.chooseAudioFile')}
+              </Button>
+              {parameters.referenceAudioFile ? <span>{parameters.referenceAudioFile.name}</span> : null}
+              {parameters.referenceAudioFile ? <Button type="button" tone="ghost" size="sm" disabled={props.disabled || routeDisabled} onClick={() => { const next = { ...parameters }; delete next.referenceAudioFile; update(next); }}>{t('Studio.parameters.removeFile')}</Button> : null}
+            </div>
+            {fileError ? <small>{fileError}</small> : null}
+          </ParameterField>
+        ),
+      },
+      textField('languageHints', t('Studio.parameters.fields.languageHints'), 'zh, en'),
+    ] : [
+      textField('previewText', t('Studio.parameters.fields.previewText')),
+      textField('language', t('Studio.parameters.fields.language'), 'zh'),
+    ]),
+    textField('preferredName', t('Studio.parameters.fields.preferredName')),
+  ];
+  return <RouteAwareParameterFields capabilityId={props.capabilityId} source={props.source} fields={fields} />;
+}
+
 export function CapabilityParameterPanel(props: ParameterPanelProps) {
   const { t } = useTranslation();
   let fields: ReactNode = null;
@@ -625,12 +710,13 @@ export function CapabilityParameterPanel(props: ParameterPanelProps) {
   else if (props.capabilityId === 'video.generate') fields = <VideoFields {...props as ParameterPanelProps<'video.generate'>} />;
   else if (props.capabilityId === 'audio.synthesize') fields = <SpeechSynthesizeFields {...props as ParameterPanelProps<'audio.synthesize'>} />;
   else if (props.capabilityId === 'audio.transcribe') fields = <SpeechTranscribeFields {...props as ParameterPanelProps<'audio.transcribe'>} />;
+  else if (props.capabilityId === 'voice.create') fields = <VoiceCreateFields {...props as ParameterPanelProps<'voice.create'>} />;
   if (!fields) return null;
   return (
     <section className="studio-parameters" aria-label={t('Studio.parameters.title')}>
       <div className="studio-parameters__head">
         <span>{t('Studio.parameters.presenceHint')}</span>
-        <Button type="button" tone="ghost" size="sm" disabled={props.disabled} onClick={() => props.onChange((props.capabilityId === 'video.generate' ? { mode: 't2v', generateAudio: true } : {}) as never)}>
+        <Button type="button" tone="ghost" size="sm" disabled={props.disabled} onClick={() => props.onChange((props.capabilityId === 'video.generate' ? { mode: 't2v', generateAudio: true } : props.capabilityId === 'voice.create' ? { creationSource: 'reference-audio' } : {}) as never)}>
           {t('Studio.parameters.reset')}
         </Button>
       </div>

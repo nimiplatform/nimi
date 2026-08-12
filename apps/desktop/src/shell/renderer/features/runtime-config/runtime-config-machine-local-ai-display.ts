@@ -13,6 +13,8 @@ import {
   NIMI_MACHINE_LOCAL_TEXT_EMBED_CAPABILITY_CONTRACT,
   NIMI_MACHINE_LOCAL_TEXT_GENERATE_CAPABILITY_CONTRACT,
   NIMI_MACHINE_LOCAL_VIDEO_GENERATE_CAPABILITY_CONTRACT,
+  NIMI_MACHINE_LOCAL_VOICE_CREATE_CAPABILITY_CONTRACT,
+  NIMI_MACHINE_LOCAL_QWEN3_VOICE_CREATE_IMPLEMENTATION,
   type NimiMachineLocalCapabilityConfiguration,
   type NimiMachineLocalCapabilityRequirement,
   type NimiRuntimeLocalAssetEntry,
@@ -31,6 +33,7 @@ export const MACHINE_LOCAL_AI_CAPABILITY_PRODUCT_ORDER = Object.freeze([
   NIMI_MACHINE_LOCAL_AUDIO_TRANSCRIBE_CAPABILITY_CONTRACT,
   NIMI_MACHINE_LOCAL_IMAGE_GENERATE_CAPABILITY_CONTRACT,
   NIMI_MACHINE_LOCAL_VIDEO_GENERATE_CAPABILITY_CONTRACT,
+  NIMI_MACHINE_LOCAL_VOICE_CREATE_CAPABILITY_CONTRACT,
 ] as const);
 
 export function orderMachineLocalCapabilityContracts(
@@ -117,6 +120,13 @@ export function machineLocalEngineDisplayName(
     NIMI_MACHINE_LOCAL_QWEN3_ASR_TRANSFORMERS_IMPLEMENTATION,
   )) {
     return t('runtimeConfig.machineLocalAIConfigurations.qwen3ASRTransformersEngine');
+  }
+  if (exactMachineLocalImplementation(
+    configuration,
+    NIMI_MACHINE_LOCAL_VOICE_CREATE_CAPABILITY_CONTRACT,
+    NIMI_MACHINE_LOCAL_QWEN3_VOICE_CREATE_IMPLEMENTATION,
+  )) {
+    return t('runtimeConfig.machineLocalAIConfigurations.qwen3TTSEngine');
   }
   if (
     implementation.implementationId

@@ -20,7 +20,7 @@ import {
   FinishReason,
   ScenarioType,
   VoiceAssetStatus,
-  VoiceWorkflowType,
+  VoiceCreationSource,
 } from '@nimiplatform/sdk/runtime/generated';
 import { appId } from '../shell/auth/app-identity.js';
 import { getRuntimePlatformProjection } from '../shell/auth/runtime-platform.js';
@@ -28,6 +28,7 @@ import { getTesterLocalAppClient } from '../shell/local-app-runtime-platform.js'
 import { getTesterCapability, type TesterCapability, type TesterCapabilityId } from './tester-capabilities.js';
 import {
   MAX_TESTER_AUDIO_UPLOAD_BYTES,
+  MAX_TESTER_VOICE_REFERENCE_AUDIO_BYTES,
   nonEmptyEmbeddingInputs,
   type TesterCapabilityParameters,
   type TesterEmbeddingParameters,
@@ -36,6 +37,7 @@ import {
   type TesterSpeechTranscribeParameters,
   type TesterTextGenerationParameters,
   type TesterVideoGenerationParameters,
+  type TesterVoiceCreateParameters,
 } from './tester-capability-parameters.js';
 import { capabilityUnavailable, type TesterUnavailable, type TesterUnavailableReason } from './tester-unavailable.js';
 
@@ -49,7 +51,8 @@ export type TesterTypedOutput =
   | { kind: 'embedding'; vectorCount: number; dimensions: number; sample: number[]; totalTokens?: number }
   | { kind: 'artifacts'; jobId: string; jobState: string; artifactCount: number; artifacts: TesterManagedArtifact[]; firstArtifact?: TesterManagedArtifact }
   | { kind: 'transcript'; text: string; jobId: string; jobState: string; artifactCount: number }
-  | { kind: 'voice-catalog'; voiceCount: number; sample: Array<{ voiceId: string; workflowType: string; status: string }> };
+  | { kind: 'voice-asset'; jobId: string; jobState: string; voiceAssetId: string; creationSource: 'reference-audio' | 'text-description'; assetStatus: string; voiceReference: { kind: 'voice_asset_id'; voiceAssetId: string } }
+  | { kind: 'voice-catalog'; voiceCount: number; sample: Array<{ voiceId: string; creationSource: string; status: string }> };
 
 export type TesterManagedArtifact = {
   relativePath: string;
@@ -166,7 +169,12 @@ export async function runTesterCapability(
   const transcribeParameters = capability.id === 'audio.transcribe'
     ? input.parameters as TesterSpeechTranscribeParameters | undefined
     : undefined;
-  const hasAlternativeInput = embeddingInputs.length > 0 || Boolean(transcribeParameters?.audioFile);
+  const voiceCreateParameters = capability.id === 'voice.create'
+    ? input.parameters as TesterVoiceCreateParameters | undefined
+    : undefined;
+  const hasAlternativeInput = embeddingInputs.length > 0
+    || Boolean(transcribeParameters?.audioFile)
+    || Boolean(voiceCreateParameters?.referenceAudioFile);
   if (capability.id !== 'speech.bundle' && !prompt && !hasAlternativeInput) {
     return capabilityUnavailable(capability, 'input-invalid', `${capability.label} requires non-empty input.`);
   }
@@ -356,6 +364,89 @@ export async function runTesterCapability(
           ...(result.trace?.traceId ? { trace: { traceId: result.trace.traceId } } : {}),
         };
       }
+      case 'voice.create': {
+        const parameters = voiceCreateParameters;
+        const creationSource = parameters?.creationSource ?? 'reference-audio';
+        if (creationSource === 'reference-audio') {
+          const audio = parameters?.referenceAudioFile;
+          if (!audio || audio.sizeBytes === 0 || audio.sizeBytes > MAX_TESTER_VOICE_REFERENCE_AUDIO_BYTES || !audio.mimeType.startsWith('audio/')) {
+            return capabilityUnavailable(
+              capability,
+              'input-invalid',
+              'Reference-audio voice creation requires a non-empty audio file up to 20 MiB with an audio MIME type.',
+            );
+          }
+        }
+        const submitted = await client.ai.scenarioJobs.submit(creationSource === 'reference-audio'
+          ? {
+              type: 'voice-create',
+              creationSource,
+              referenceAudio: { type: 'bytes', bytes: [...parameters!.referenceAudioFile!.bytes] },
+              referenceAudioMime: parameters!.referenceAudioFile!.mimeType,
+              languageHints: commaSeparatedTokens(parameters?.languageHints),
+              preferredName: parameters?.preferredName?.trim() ?? '',
+              text: prompt,
+            }
+          : {
+              type: 'voice-create',
+              creationSource,
+              instructionText: prompt,
+              previewText: parameters?.previewText?.trim() ?? '',
+              language: parameters?.language?.trim() ?? '',
+              preferredName: parameters?.preferredName?.trim() ?? '',
+            });
+        if (!submitted.job || !submitted.asset || !submitted.voiceReference) {
+          throw new Error('Runtime voice.create submission must return a Scenario Job, VoiceAsset, and VoiceReference.');
+        }
+        if (submitted.asset.creationSource !== creationSource) {
+          throw new Error(`Runtime VoiceAsset source ${submitted.asset.creationSource} did not match ${creationSource}.`);
+        }
+        if (submitted.voiceReference.kind !== 'voice_asset_id'
+          || submitted.voiceReference.voiceAssetId !== submitted.asset.voiceAssetId) {
+          throw new Error('Runtime voice.create VoiceReference did not identify the returned VoiceAsset.');
+        }
+        let terminalJob = submitted.job;
+        if (!isLocalAppJobTerminal(terminalJob.status)) {
+          const subscription = await client.ai.scenarioJobs.subscribe(terminalJob.jobId);
+          try {
+            for await (const event of subscription) {
+              terminalJob = event.job;
+              if (isLocalAppJobTerminal(terminalJob.status)) break;
+            }
+          } finally {
+            await subscription.cancel().catch(() => undefined);
+          }
+        }
+        if (!isLocalAppJobTerminal(terminalJob.status)) {
+          terminalJob = (await client.ai.scenarioJobs.get(terminalJob.jobId)).job;
+        }
+        if (terminalJob.status !== 'completed') {
+          throw Object.assign(new Error(terminalJob.reasonDetail || `voice.create ended in ${terminalJob.status}.`), {
+            reasonCode: terminalJob.reasonCode,
+          });
+        }
+        const listed = await client.ai.voiceAssets.list({ pageSize: 100 });
+        const listedAsset = listed.assets.find((asset) => asset.voiceAssetId === submitted.asset!.voiceAssetId);
+        if (!listedAsset || listedAsset.creationSource !== creationSource) {
+          throw new Error('Completed voice.create did not project its VoiceAsset through the protected owner catalog.');
+        }
+        return {
+          ok: true,
+          capabilityId: capability.id,
+          capabilityLabel: capability.label,
+          message: `Runtime completed voice.create (${creationSource}) and returned a reusable VoiceAsset.`,
+          output: {
+            kind: 'voice-asset',
+            jobId: terminalJob.jobId,
+            jobState: terminalJob.status,
+            voiceAssetId: listedAsset.voiceAssetId,
+            creationSource: listedAsset.creationSource,
+            assetStatus: listedAsset.status,
+            voiceReference: submitted.voiceReference,
+          },
+          ...(terminalJob.traceId ? { trace: { traceId: terminalJob.traceId } } : {}),
+        };
+      }
       case 'speech.bundle': {
         const result = await runners.voiceCatalog({
           runtime: createLocalAppVoiceCatalogRuntime(client),
@@ -373,7 +464,7 @@ export async function runTesterCapability(
             voiceCount: result.output.voiceCount,
             sample: result.output.voiceReferences.slice(0, 20).map((voice) => ({
               voiceId: voice.voiceAssetId,
-              workflowType: VoiceWorkflowType[voice.workflowType] || String(voice.workflowType),
+              creationSource: VoiceCreationSource[voice.creationSource] || String(voice.creationSource),
               status: VoiceAssetStatus[voice.status] || String(voice.status),
             })),
           },
@@ -545,9 +636,9 @@ function createLocalAppVoiceCatalogRuntime(client: NimiLocalAppClient): RuntimeV
             voiceAssetId: asset.voiceAssetId,
             appId: request.appId,
             subjectUserId: request.subjectUserId,
-            workflowType: asset.workflowType === 'voice-design'
-              ? VoiceWorkflowType.VOICE_DESIGN
-              : VoiceWorkflowType.VOICE_CLONE,
+            creationSource: asset.creationSource === 'text-description'
+              ? VoiceCreationSource.TEXT_DESCRIPTION
+              : VoiceCreationSource.REFERENCE_AUDIO,
             provider: '',
             modelId: '',
             targetModelId: '',
@@ -725,6 +816,14 @@ function audioMimeTypeFromUrl(value: string): string | null {
   } catch {
     return null;
   }
+}
+
+function commaSeparatedTokens(value: string | undefined): string[] {
+  return (value ?? '').split(',').map((token) => token.trim()).filter(Boolean);
+}
+
+function isLocalAppJobTerminal(status: string): boolean {
+  return status === 'completed' || status === 'failed' || status === 'canceled' || status === 'timeout';
 }
 
 function abortError(): Error {

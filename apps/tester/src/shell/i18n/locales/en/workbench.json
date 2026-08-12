@@ -32,6 +32,10 @@
       "label": "Speech Transcribe",
       "summary": "Audio URL → audio.transcribe Scenario Job → typed transcript result."
     },
+    "voiceCreate": {
+      "label": "Voice Create",
+      "summary": "Reference audio or text description → voice.create Scenario Job → reusable VoiceAsset."
+    },
     "speechBundle": {
       "label": "Speech Bundle",
       "summary": "Inspect owner-scoped voice references through the protected Runtime voice catalog."

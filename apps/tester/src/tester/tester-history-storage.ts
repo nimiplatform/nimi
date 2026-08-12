@@ -120,13 +120,23 @@ function validateHistoryResult(value: unknown, path: string): void {
     nonNegativeNumber(value.artifactCount, `${path}.artifactCount`);
     return;
   }
+  if (value.kind === 'voice-asset') {
+    requiredString(value.jobId, `${path}.jobId`);
+    requiredString(value.jobState, `${path}.jobState`);
+    requiredString(value.voiceAssetId, `${path}.voiceAssetId`);
+    if (value.creationSource !== 'reference-audio' && value.creationSource !== 'text-description') {
+      historyPayloadError(`${path}.creationSource`, 'requires a canonical voice creation source');
+    }
+    requiredString(value.assetStatus, `${path}.assetStatus`);
+    return;
+  }
   if (value.kind === 'voice-catalog') {
     nonNegativeNumber(value.voiceCount, `${path}.voiceCount`);
     if (!Array.isArray(value.sample)) historyPayloadError(`${path}.sample`, 'requires an array');
     value.sample.forEach((entry, index) => {
       if (!isJsonObject(entry)) historyPayloadError(`${path}.sample[${index}]`, 'requires an object');
       requiredString(entry.voiceId, `${path}.sample[${index}].voiceId`);
-      requiredString(entry.workflowType, `${path}.sample[${index}].workflowType`);
+      requiredString(entry.creationSource, `${path}.sample[${index}].creationSource`);
       requiredString(entry.status, `${path}.sample[${index}].status`);
     });
     return;

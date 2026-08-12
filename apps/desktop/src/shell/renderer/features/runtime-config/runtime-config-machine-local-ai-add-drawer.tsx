@@ -8,6 +8,7 @@ import {
   NIMI_MACHINE_LOCAL_TEXT_EMBED_CAPABILITY_CONTRACT,
   NIMI_MACHINE_LOCAL_TEXT_GENERATE_CAPABILITY_CONTRACT,
   NIMI_MACHINE_LOCAL_VIDEO_GENERATE_CAPABILITY_CONTRACT,
+  NIMI_MACHINE_LOCAL_VOICE_CREATE_CAPABILITY_CONTRACT,
   createNimiMachineLocalStableDiffusionImageConfigurationInput,
   createNimiMachineLocalStableDiffusionVideoConfigurationInput,
   type NimiMachineLocalCapabilityRequirement,
@@ -42,6 +43,7 @@ const MACHINE_LOCAL_ADD_CAPABILITY_OPTIONS = [
   NIMI_MACHINE_LOCAL_AUDIO_TRANSCRIBE_CAPABILITY_CONTRACT,
   NIMI_MACHINE_LOCAL_IMAGE_GENERATE_CAPABILITY_CONTRACT,
   NIMI_MACHINE_LOCAL_VIDEO_GENERATE_CAPABILITY_CONTRACT,
+  NIMI_MACHINE_LOCAL_VOICE_CREATE_CAPABILITY_CONTRACT,
 ] as const;
 
 export function MachineLocalAIAddDrawer(props: {
@@ -181,6 +183,43 @@ export function MachineLocalAIAddFormFields(props: {
           <span>{t('runtimeConfig.machineLocalAIConfigurations.engine')}</span>
           <div className={machineLocalReadOnlyFieldClassName}>
             {t('runtimeConfig.machineLocalAIConfigurations.qwen3TTSEngine')}
+          </div>
+        </div>
+      ) : draft.capabilityContract === NIMI_MACHINE_LOCAL_VOICE_CREATE_CAPABILITY_CONTRACT ? (
+        <div
+          className="space-y-3"
+          data-testid="machine-local-ai-voice-create-fields"
+        >
+          <div className="space-y-1.5 text-sm font-medium text-[var(--nimi-text-secondary)]">
+            <span>{t('runtimeConfig.machineLocalAIConfigurations.engine')}</span>
+            <div className={machineLocalReadOnlyFieldClassName}>
+              {t('runtimeConfig.machineLocalAIConfigurations.qwen3TTSEngine')}
+            </div>
+          </div>
+          <div className="space-y-1.5 text-sm font-medium text-[var(--nimi-text-secondary)]">
+            <span>{t('runtimeConfig.machineLocalAIConfigurations.voiceCreateSource')}</span>
+            <SelectField
+              value={draft.voiceCreateSource}
+              disabled={props.busy}
+              options={[
+                {
+                  value: 'reference-audio',
+                  label: t('runtimeConfig.machineLocalAIConfigurations.voiceCreateReferenceAudio'),
+                },
+                {
+                  value: 'text-description',
+                  label: t('runtimeConfig.machineLocalAIConfigurations.voiceCreateTextDescription'),
+                },
+              ]}
+              onValueChange={(value) => update({
+                voiceCreateSource: value as RuntimeConfigMachineLocalAIAddDraft['voiceCreateSource'],
+              })}
+              contentLayer="dialog"
+              data-testid="machine-local-ai-voice-create-source"
+            />
+            <p className="text-xs text-[var(--nimi-text-muted)]">
+              {t('runtimeConfig.machineLocalAIConfigurations.voiceCreateSourceBody')}
+            </p>
           </div>
         </div>
       ) : draft.capabilityContract === NIMI_MACHINE_LOCAL_AUDIO_TRANSCRIBE_CAPABILITY_CONTRACT ? (

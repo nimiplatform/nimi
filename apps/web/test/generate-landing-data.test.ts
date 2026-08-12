@@ -41,4 +41,19 @@ test('landing data generator treats local as an admitted capabilities-only provi
     /\*   config\/runtime-provider-capabilities\.yaml/,
   );
   assert.doesNotMatch(providerCapabilities, /[A-Za-z]:\\/);
+
+  const worldLabsRow = providerCapabilities.match(
+    /provider: "worldlabs"[\s\S]*?\n  },/,
+  )?.[0];
+  assert.ok(worldLabsRow, 'generated provider projection must retain the WorldLabs inventory row');
+  assert.doesNotMatch(
+    worldLabsRow,
+    /world\.generate/,
+    'deferred world.generate must not be projected as an active public provider claim',
+  );
+  assert.match(
+    providerCapabilities,
+    /\| "world\.generate"/,
+    'withdrawing the public claim must not delete the canonical contract vocabulary',
+  );
 });

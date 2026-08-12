@@ -5,7 +5,7 @@ import { createBrowserDataUrlAttachmentAdapter, useChatComposer, type BrowserDat
 import { useTranslation } from '../../shell/i18n/index.js';
 import { useTesterRendererHost } from '../../renderer/context.js';
 import { type TesterCapability } from '../tester-capabilities.js';
-import { nonEmptyEmbeddingInputs, summarizeTesterCapabilityParameters, type TesterEmbeddingParameters, type TesterSpeechTranscribeParameters } from '../tester-capability-parameters.js';
+import { nonEmptyEmbeddingInputs, summarizeTesterCapabilityParameters, type TesterEmbeddingParameters, type TesterSpeechTranscribeParameters, type TesterVoiceCreateParameters } from '../tester-capability-parameters.js';
 import { projectTesterCapabilityParamsForRoute } from '../tester-capability-params.js';
 import { getTesterRunIntentLabel, restoreTesterCapabilityRunResult, type TesterRunConfigSnapshot, type TesterRunHistory, type TesterRunHistoryRecord } from '../tester-history.js';
 import type { TesterCapabilityRunResult, TesterRuntimeInspection } from '../tester-runtime.js';
@@ -109,6 +109,8 @@ function TextStudioShell({
     ? nonEmptyEmbeddingInputs(capabilityParameters as TesterEmbeddingParameters).length > 0
     : capability.id === 'audio.transcribe'
       ? Boolean((capabilityParameters as TesterSpeechTranscribeParameters).audioFile)
+      : capability.id === 'voice.create'
+        ? Boolean((capabilityParameters as TesterVoiceCreateParameters).referenceAudioFile)
       : false;
 
   useEffect(() => {
