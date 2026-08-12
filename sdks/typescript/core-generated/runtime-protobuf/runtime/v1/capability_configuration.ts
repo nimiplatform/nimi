@@ -233,9 +233,9 @@ export interface AIConfigOwner {
 export interface AIConfigLocalIntent {
 }
 /**
- * AIConfigCloudIntent carries the exact Cloud implementation and its
- * Driver-owned provider-model target. ConnectorGrant is an optional explicit
- * account authorization reference; no credential material belongs here.
+ * AIConfigCloudIntent carries only the exact Cloud implementation and its
+ * Driver-owned provider-model target selected through Nimi-owned configuration.
+ * Connector, account authorization, and credential material never belong here.
  *
  * @generated from protobuf message nimi.runtime.v1.AIConfigCloudIntent
  */
@@ -248,10 +248,6 @@ export interface AIConfigCloudIntent {
      * @generated from protobuf field: google.protobuf.Struct provider_model_target = 2
      */
     providerModelTarget?: Struct;
-    /**
-     * @generated from protobuf field: string connector_grant_id = 3
-     */
-    connectorGrantId: string;
 }
 /**
  * AIConfigCapabilityIntent is consumer intent only. Local execution identity,
@@ -1425,13 +1421,11 @@ class AIConfigCloudIntent$Type extends MessageType<AIConfigCloudIntent> {
     constructor() {
         super("nimi.runtime.v1.AIConfigCloudIntent", [
             { no: 1, name: "implementation", kind: "message", T: () => CapabilityImplementationIdentity },
-            { no: 2, name: "provider_model_target", kind: "message", T: () => Struct },
-            { no: 3, name: "connector_grant_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 2, name: "provider_model_target", kind: "message", T: () => Struct }
         ]);
     }
     create(value?: PartialMessage<AIConfigCloudIntent>): AIConfigCloudIntent {
         const message = globalThis.Object.create((this.messagePrototype!));
-        message.connectorGrantId = "";
         if (value !== undefined)
             reflectionMergePartial<AIConfigCloudIntent>(this, message, value);
         return message;
@@ -1446,9 +1440,6 @@ class AIConfigCloudIntent$Type extends MessageType<AIConfigCloudIntent> {
                     break;
                 case /* google.protobuf.Struct provider_model_target */ 2:
                     message.providerModelTarget = Struct.internalBinaryRead(reader, reader.uint32(), options, message.providerModelTarget);
-                    break;
-                case /* string connector_grant_id */ 3:
-                    message.connectorGrantId = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -1468,9 +1459,6 @@ class AIConfigCloudIntent$Type extends MessageType<AIConfigCloudIntent> {
         /* google.protobuf.Struct provider_model_target = 2; */
         if (message.providerModelTarget)
             Struct.internalBinaryWrite(message.providerModelTarget, writer.tag(2, WireType.LengthDelimited).fork(), options).join();
-        /* string connector_grant_id = 3; */
-        if (message.connectorGrantId !== "")
-            writer.tag(3, WireType.LengthDelimited).string(message.connectorGrantId);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

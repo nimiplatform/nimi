@@ -354,14 +354,6 @@ export enum ReasonCode {
      */
     AI_LOCAL_CONNECTOR_RETIRED = 317,
     /**
-     * @generated from protobuf enum value: AI_CONNECTOR_GRANT_SELECTION_REQUIRED = 318;
-     */
-    AI_CONNECTOR_GRANT_SELECTION_REQUIRED = 318,
-    /**
-     * @generated from protobuf enum value: AI_CONNECTOR_GRANT_REVOKED = 319;
-     */
-    AI_CONNECTOR_GRANT_REVOKED = 319,
-    /**
      * REQUEST_CREDENTIAL family (330)
      *
      * @generated from protobuf enum value: AI_REQUEST_CREDENTIAL_CONFLICT = 330;

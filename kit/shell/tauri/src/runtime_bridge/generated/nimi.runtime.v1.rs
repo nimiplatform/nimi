@@ -128,8 +128,6 @@ pub enum ReasonCode {
     AiConnectorLimitExceeded = 315,
     AiConnectorIdRequired = 316,
     AiLocalConnectorRetired = 317,
-    AiConnectorGrantSelectionRequired = 318,
-    AiConnectorGrantRevoked = 319,
     /// REQUEST_CREDENTIAL family (330)
     AiRequestCredentialConflict = 330,
     /// APP family (340+)
@@ -452,10 +450,6 @@ impl ReasonCode {
             Self::AiConnectorLimitExceeded => "AI_CONNECTOR_LIMIT_EXCEEDED",
             Self::AiConnectorIdRequired => "AI_CONNECTOR_ID_REQUIRED",
             Self::AiLocalConnectorRetired => "AI_LOCAL_CONNECTOR_RETIRED",
-            Self::AiConnectorGrantSelectionRequired => {
-                "AI_CONNECTOR_GRANT_SELECTION_REQUIRED"
-            }
-            Self::AiConnectorGrantRevoked => "AI_CONNECTOR_GRANT_REVOKED",
             Self::AiRequestCredentialConflict => "AI_REQUEST_CREDENTIAL_CONFLICT",
             Self::AiAppIdRequired => "AI_APP_ID_REQUIRED",
             Self::AiAppIdConflict => "AI_APP_ID_CONFLICT",
@@ -797,10 +791,6 @@ impl ReasonCode {
             "AI_CONNECTOR_LIMIT_EXCEEDED" => Some(Self::AiConnectorLimitExceeded),
             "AI_CONNECTOR_ID_REQUIRED" => Some(Self::AiConnectorIdRequired),
             "AI_LOCAL_CONNECTOR_RETIRED" => Some(Self::AiLocalConnectorRetired),
-            "AI_CONNECTOR_GRANT_SELECTION_REQUIRED" => {
-                Some(Self::AiConnectorGrantSelectionRequired)
-            }
-            "AI_CONNECTOR_GRANT_REVOKED" => Some(Self::AiConnectorGrantRevoked),
             "AI_REQUEST_CREDENTIAL_CONFLICT" => Some(Self::AiRequestCredentialConflict),
             "AI_APP_ID_REQUIRED" => Some(Self::AiAppIdRequired),
             "AI_APP_ID_CONFLICT" => Some(Self::AiAppIdConflict),
@@ -3598,17 +3588,15 @@ pub mod ai_config_owner {
 /// machine selection, resources, and bindings belong to machine configuration.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct AiConfigLocalIntent {}
-/// AIConfigCloudIntent carries the exact Cloud implementation and its
-/// Driver-owned provider-model target. ConnectorGrant is an optional explicit
-/// account authorization reference; no credential material belongs here.
+/// AIConfigCloudIntent carries only the exact Cloud implementation and its
+/// Driver-owned provider-model target selected through Nimi-owned configuration.
+/// Connector, account authorization, and credential material never belong here.
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct AiConfigCloudIntent {
     #[prost(message, optional, tag = "1")]
     pub implementation: ::core::option::Option<CapabilityImplementationIdentity>,
     #[prost(message, optional, tag = "2")]
     pub provider_model_target: ::core::option::Option<::prost_types::Struct>,
-    #[prost(string, tag = "3")]
-    pub connector_grant_id: ::prost::alloc::string::String,
 }
 /// AIConfigCapabilityIntent is consumer intent only. Local execution identity,
 /// machine selection, assets, bindings, Driver state, and readiness never enter
@@ -5324,8 +5312,6 @@ pub struct LocalAppVoiceAsset {
 pub struct SubmitLocalAppScenarioJobResponse {
     #[prost(message, optional, tag = "1")]
     pub job: ::core::option::Option<LocalAppScenarioJob>,
-    #[prost(message, optional, tag = "2")]
-    pub asset: ::core::option::Option<LocalAppVoiceAsset>,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct GetLocalAppScenarioJobRequest {
@@ -5336,6 +5322,12 @@ pub struct GetLocalAppScenarioJobRequest {
 pub struct GetLocalAppScenarioJobResponse {
     #[prost(message, optional, tag = "1")]
     pub job: ::core::option::Option<LocalAppScenarioJob>,
+    /// voice.create publishes its reusable result only after the Job completes.
+    /// The protected Local App surface never projects a provider-owned handle.
+    #[prost(message, optional, tag = "2")]
+    pub asset: ::core::option::Option<LocalAppVoiceAsset>,
+    #[prost(message, optional, tag = "3")]
+    pub voice_reference: ::core::option::Option<VoiceReference>,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct CancelLocalAppScenarioJobRequest {
@@ -5711,8 +5703,6 @@ pub struct SubmitScenarioJobRequest {
 pub struct SubmitScenarioJobResponse {
     #[prost(message, optional, tag = "1")]
     pub job: ::core::option::Option<ScenarioJob>,
-    #[prost(message, optional, tag = "2")]
-    pub asset: ::core::option::Option<VoiceAsset>,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct GetScenarioJobRequest {
@@ -5723,6 +5713,12 @@ pub struct GetScenarioJobRequest {
 pub struct GetScenarioJobResponse {
     #[prost(message, optional, tag = "1")]
     pub job: ::core::option::Option<ScenarioJob>,
+    /// voice.create terminal success result. Both fields remain absent before
+    /// completion and for every failed, canceled, timed-out, or non-voice Job.
+    #[prost(message, optional, tag = "2")]
+    pub asset: ::core::option::Option<VoiceAsset>,
+    #[prost(message, optional, tag = "3")]
+    pub voice_reference: ::core::option::Option<VoiceReference>,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct CancelScenarioJobRequest {

@@ -97,7 +97,6 @@ ready_admission:
     - ai_config
     - local_capability_configuration
     - machine_selection
-    - connector_grant
     - local_asset
     - ai_job_outcome
     - runtime_config_alone

@@ -126,13 +126,14 @@ message AIConfigOwner {
 message AIConfigLocalIntent {
 }
 
-// AIConfigCloudIntent carries the exact Cloud implementation and its
-// Driver-owned provider-model target. ConnectorGrant is an optional explicit
-// account authorization reference; no credential material belongs here.
+// AIConfigCloudIntent carries only the exact Cloud implementation and its
+// Driver-owned provider-model target selected through Nimi-owned configuration.
+// Connector, account authorization, and credential material never belong here.
 message AIConfigCloudIntent {
   CapabilityImplementationIdentity implementation = 1;
   google.protobuf.Struct provider_model_target = 2;
-  string connector_grant_id = 3;
+  reserved 3;
+  reserved "connector_grant_id";
 }
 
 // AIConfigCapabilityIntent is consumer intent only. Local execution identity,

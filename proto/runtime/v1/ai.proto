@@ -728,11 +728,8 @@ message LocalAppVoiceAsset {
 
 message SubmitLocalAppScenarioJobResponse {
   LocalAppScenarioJob job = 1;
-  LocalAppVoiceAsset asset = 2;
-  // Canonical reusable result handle for voice.create. The protected Local
-  // App surface only returns a VoiceAsset-backed reference and never projects
-  // a provider-owned voice handle.
-  VoiceReference voice_reference = 3;
+  reserved 2, 3;
+  reserved "asset", "voice_reference";
 }
 
 message GetLocalAppScenarioJobRequest {
@@ -741,6 +738,10 @@ message GetLocalAppScenarioJobRequest {
 
 message GetLocalAppScenarioJobResponse {
   LocalAppScenarioJob job = 1;
+  // voice.create publishes its reusable result only after the Job completes.
+  // The protected Local App surface never projects a provider-owned handle.
+  LocalAppVoiceAsset asset = 2;
+  VoiceReference voice_reference = 3;
 }
 
 message CancelLocalAppScenarioJobRequest {
@@ -997,10 +998,8 @@ message SubmitScenarioJobRequest {
 
 message SubmitScenarioJobResponse {
   ScenarioJob job = 1;
-  VoiceAsset asset = 2;
-  // voice.create returns both the durable VoiceAsset and the typed public
-  // reference callers use for subsequent synthesis or agent binding.
-  VoiceReference voice_reference = 3;
+  reserved 2, 3;
+  reserved "asset", "voice_reference";
 }
 
 message GetScenarioJobRequest {
@@ -1009,6 +1008,10 @@ message GetScenarioJobRequest {
 
 message GetScenarioJobResponse {
   ScenarioJob job = 1;
+  // voice.create terminal success result. Both fields remain absent before
+  // completion and for every failed, canceled, timed-out, or non-voice Job.
+  VoiceAsset asset = 2;
+  VoiceReference voice_reference = 3;
 }
 
 message CancelScenarioJobRequest {

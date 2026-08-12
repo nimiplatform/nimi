@@ -6367,15 +6367,10 @@ func (x *LocalAppVoiceAsset) GetCreationSource() VoiceCreationSource {
 }
 
 type SubmitLocalAppScenarioJobResponse struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	Job   *LocalAppScenarioJob   `protobuf:"bytes,1,opt,name=job,proto3" json:"job,omitempty"`
-	Asset *LocalAppVoiceAsset    `protobuf:"bytes,2,opt,name=asset,proto3" json:"asset,omitempty"`
-	// Canonical reusable result handle for voice.create. The protected Local
-	// App surface only returns a VoiceAsset-backed reference and never projects
-	// a provider-owned voice handle.
-	VoiceReference *VoiceReference `protobuf:"bytes,3,opt,name=voice_reference,json=voiceReference,proto3" json:"voice_reference,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Job           *LocalAppScenarioJob   `protobuf:"bytes,1,opt,name=job,proto3" json:"job,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *SubmitLocalAppScenarioJobResponse) Reset() {
@@ -6411,20 +6406,6 @@ func (*SubmitLocalAppScenarioJobResponse) Descriptor() ([]byte, []int) {
 func (x *SubmitLocalAppScenarioJobResponse) GetJob() *LocalAppScenarioJob {
 	if x != nil {
 		return x.Job
-	}
-	return nil
-}
-
-func (x *SubmitLocalAppScenarioJobResponse) GetAsset() *LocalAppVoiceAsset {
-	if x != nil {
-		return x.Asset
-	}
-	return nil
-}
-
-func (x *SubmitLocalAppScenarioJobResponse) GetVoiceReference() *VoiceReference {
-	if x != nil {
-		return x.VoiceReference
 	}
 	return nil
 }
@@ -6474,10 +6455,14 @@ func (x *GetLocalAppScenarioJobRequest) GetJobId() string {
 }
 
 type GetLocalAppScenarioJobResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Job           *LocalAppScenarioJob   `protobuf:"bytes,1,opt,name=job,proto3" json:"job,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state protoimpl.MessageState `protogen:"open.v1"`
+	Job   *LocalAppScenarioJob   `protobuf:"bytes,1,opt,name=job,proto3" json:"job,omitempty"`
+	// voice.create publishes its reusable result only after the Job completes.
+	// The protected Local App surface never projects a provider-owned handle.
+	Asset          *LocalAppVoiceAsset `protobuf:"bytes,2,opt,name=asset,proto3" json:"asset,omitempty"`
+	VoiceReference *VoiceReference     `protobuf:"bytes,3,opt,name=voice_reference,json=voiceReference,proto3" json:"voice_reference,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *GetLocalAppScenarioJobResponse) Reset() {
@@ -6513,6 +6498,20 @@ func (*GetLocalAppScenarioJobResponse) Descriptor() ([]byte, []int) {
 func (x *GetLocalAppScenarioJobResponse) GetJob() *LocalAppScenarioJob {
 	if x != nil {
 		return x.Job
+	}
+	return nil
+}
+
+func (x *GetLocalAppScenarioJobResponse) GetAsset() *LocalAppVoiceAsset {
+	if x != nil {
+		return x.Asset
+	}
+	return nil
+}
+
+func (x *GetLocalAppScenarioJobResponse) GetVoiceReference() *VoiceReference {
+	if x != nil {
+		return x.VoiceReference
 	}
 	return nil
 }
@@ -8633,14 +8632,10 @@ func (x *SubmitScenarioJobRequest) GetExtensions() []*ScenarioExtension {
 }
 
 type SubmitScenarioJobResponse struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	Job   *ScenarioJob           `protobuf:"bytes,1,opt,name=job,proto3" json:"job,omitempty"`
-	Asset *VoiceAsset            `protobuf:"bytes,2,opt,name=asset,proto3" json:"asset,omitempty"`
-	// voice.create returns both the durable VoiceAsset and the typed public
-	// reference callers use for subsequent synthesis or agent binding.
-	VoiceReference *VoiceReference `protobuf:"bytes,3,opt,name=voice_reference,json=voiceReference,proto3" json:"voice_reference,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Job           *ScenarioJob           `protobuf:"bytes,1,opt,name=job,proto3" json:"job,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *SubmitScenarioJobResponse) Reset() {
@@ -8676,20 +8671,6 @@ func (*SubmitScenarioJobResponse) Descriptor() ([]byte, []int) {
 func (x *SubmitScenarioJobResponse) GetJob() *ScenarioJob {
 	if x != nil {
 		return x.Job
-	}
-	return nil
-}
-
-func (x *SubmitScenarioJobResponse) GetAsset() *VoiceAsset {
-	if x != nil {
-		return x.Asset
-	}
-	return nil
-}
-
-func (x *SubmitScenarioJobResponse) GetVoiceReference() *VoiceReference {
-	if x != nil {
-		return x.VoiceReference
 	}
 	return nil
 }
@@ -8739,10 +8720,14 @@ func (x *GetScenarioJobRequest) GetJobId() string {
 }
 
 type GetScenarioJobResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Job           *ScenarioJob           `protobuf:"bytes,1,opt,name=job,proto3" json:"job,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state protoimpl.MessageState `protogen:"open.v1"`
+	Job   *ScenarioJob           `protobuf:"bytes,1,opt,name=job,proto3" json:"job,omitempty"`
+	// voice.create terminal success result. Both fields remain absent before
+	// completion and for every failed, canceled, timed-out, or non-voice Job.
+	Asset          *VoiceAsset     `protobuf:"bytes,2,opt,name=asset,proto3" json:"asset,omitempty"`
+	VoiceReference *VoiceReference `protobuf:"bytes,3,opt,name=voice_reference,json=voiceReference,proto3" json:"voice_reference,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *GetScenarioJobResponse) Reset() {
@@ -8778,6 +8763,20 @@ func (*GetScenarioJobResponse) Descriptor() ([]byte, []int) {
 func (x *GetScenarioJobResponse) GetJob() *ScenarioJob {
 	if x != nil {
 		return x.Job
+	}
+	return nil
+}
+
+func (x *GetScenarioJobResponse) GetAsset() *VoiceAsset {
+	if x != nil {
+		return x.Asset
+	}
+	return nil
+}
+
+func (x *GetScenarioJobResponse) GetVoiceReference() *VoiceReference {
+	if x != nil {
+		return x.VoiceReference
 	}
 	return nil
 }
@@ -10839,15 +10838,15 @@ const file_runtime_v1_ai_proto_rawDesc = "" +
 	"updated_at\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\x129\n" +
 	"\n" +
 	"expires_at\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\texpiresAt\x12M\n" +
-	"\x0fcreation_source\x18\a \x01(\x0e2$.nimi.runtime.v1.VoiceCreationSourceR\x0ecreationSourceJ\x04\b\x02\x10\x03R\rworkflow_type\"\xe0\x01\n" +
+	"\x0fcreation_source\x18\a \x01(\x0e2$.nimi.runtime.v1.VoiceCreationSourceR\x0ecreationSourceJ\x04\b\x02\x10\x03R\rworkflow_type\"\x7f\n" +
 	"!SubmitLocalAppScenarioJobResponse\x126\n" +
+	"\x03job\x18\x01 \x01(\v2$.nimi.runtime.v1.LocalAppScenarioJobR\x03jobJ\x04\b\x02\x10\x03J\x04\b\x03\x10\x04R\x05assetR\x0fvoice_reference\"6\n" +
+	"\x1dGetLocalAppScenarioJobRequest\x12\x15\n" +
+	"\x06job_id\x18\x01 \x01(\tR\x05jobId\"\xdd\x01\n" +
+	"\x1eGetLocalAppScenarioJobResponse\x126\n" +
 	"\x03job\x18\x01 \x01(\v2$.nimi.runtime.v1.LocalAppScenarioJobR\x03job\x129\n" +
 	"\x05asset\x18\x02 \x01(\v2#.nimi.runtime.v1.LocalAppVoiceAssetR\x05asset\x12H\n" +
-	"\x0fvoice_reference\x18\x03 \x01(\v2\x1f.nimi.runtime.v1.VoiceReferenceR\x0evoiceReference\"6\n" +
-	"\x1dGetLocalAppScenarioJobRequest\x12\x15\n" +
-	"\x06job_id\x18\x01 \x01(\tR\x05jobId\"X\n" +
-	"\x1eGetLocalAppScenarioJobResponse\x126\n" +
-	"\x03job\x18\x01 \x01(\v2$.nimi.runtime.v1.LocalAppScenarioJobR\x03job\"Q\n" +
+	"\x0fvoice_reference\x18\x03 \x01(\v2\x1f.nimi.runtime.v1.VoiceReferenceR\x0evoiceReference\"Q\n" +
 	" CancelLocalAppScenarioJobRequest\x12\x15\n" +
 	"\x06job_id\x18\x01 \x01(\tR\x05jobId\x12\x16\n" +
 	"\x06reason\x18\x02 \x01(\tR\x06reason\"[\n" +
@@ -11035,15 +11034,15 @@ const file_runtime_v1_ai_proto_rawDesc = "" +
 	"extensions\x1a9\n" +
 	"\vLabelsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xc8\x01\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"o\n" +
 	"\x19SubmitScenarioJobResponse\x12.\n" +
+	"\x03job\x18\x01 \x01(\v2\x1c.nimi.runtime.v1.ScenarioJobR\x03jobJ\x04\b\x02\x10\x03J\x04\b\x03\x10\x04R\x05assetR\x0fvoice_reference\".\n" +
+	"\x15GetScenarioJobRequest\x12\x15\n" +
+	"\x06job_id\x18\x01 \x01(\tR\x05jobId\"\xc5\x01\n" +
+	"\x16GetScenarioJobResponse\x12.\n" +
 	"\x03job\x18\x01 \x01(\v2\x1c.nimi.runtime.v1.ScenarioJobR\x03job\x121\n" +
 	"\x05asset\x18\x02 \x01(\v2\x1b.nimi.runtime.v1.VoiceAssetR\x05asset\x12H\n" +
-	"\x0fvoice_reference\x18\x03 \x01(\v2\x1f.nimi.runtime.v1.VoiceReferenceR\x0evoiceReference\".\n" +
-	"\x15GetScenarioJobRequest\x12\x15\n" +
-	"\x06job_id\x18\x01 \x01(\tR\x05jobId\"H\n" +
-	"\x16GetScenarioJobResponse\x12.\n" +
-	"\x03job\x18\x01 \x01(\v2\x1c.nimi.runtime.v1.ScenarioJobR\x03job\"I\n" +
+	"\x0fvoice_reference\x18\x03 \x01(\v2\x1f.nimi.runtime.v1.VoiceReferenceR\x0evoiceReference\"I\n" +
 	"\x18CancelScenarioJobRequest\x12\x15\n" +
 	"\x06job_id\x18\x01 \x01(\tR\x05jobId\x12\x16\n" +
 	"\x06reason\x18\x02 \x01(\tR\x06reason\"K\n" +
@@ -11636,9 +11635,9 @@ var file_runtime_v1_ai_proto_depIdxs = []int32{
 	150, // 117: nimi.runtime.v1.LocalAppVoiceAsset.expires_at:type_name -> google.protobuf.Timestamp
 	152, // 118: nimi.runtime.v1.LocalAppVoiceAsset.creation_source:type_name -> nimi.runtime.v1.VoiceCreationSource
 	81,  // 119: nimi.runtime.v1.SubmitLocalAppScenarioJobResponse.job:type_name -> nimi.runtime.v1.LocalAppScenarioJob
-	82,  // 120: nimi.runtime.v1.SubmitLocalAppScenarioJobResponse.asset:type_name -> nimi.runtime.v1.LocalAppVoiceAsset
-	145, // 121: nimi.runtime.v1.SubmitLocalAppScenarioJobResponse.voice_reference:type_name -> nimi.runtime.v1.VoiceReference
-	81,  // 122: nimi.runtime.v1.GetLocalAppScenarioJobResponse.job:type_name -> nimi.runtime.v1.LocalAppScenarioJob
+	81,  // 120: nimi.runtime.v1.GetLocalAppScenarioJobResponse.job:type_name -> nimi.runtime.v1.LocalAppScenarioJob
+	82,  // 121: nimi.runtime.v1.GetLocalAppScenarioJobResponse.asset:type_name -> nimi.runtime.v1.LocalAppVoiceAsset
+	145, // 122: nimi.runtime.v1.GetLocalAppScenarioJobResponse.voice_reference:type_name -> nimi.runtime.v1.VoiceReference
 	81,  // 123: nimi.runtime.v1.CancelLocalAppScenarioJobResponse.job:type_name -> nimi.runtime.v1.LocalAppScenarioJob
 	20,  // 124: nimi.runtime.v1.LocalAppScenarioJobEvent.event_type:type_name -> nimi.runtime.v1.ScenarioJobEventType
 	150, // 125: nimi.runtime.v1.LocalAppScenarioJobEvent.timestamp:type_name -> google.protobuf.Timestamp
@@ -11697,9 +11696,9 @@ var file_runtime_v1_ai_proto_depIdxs = []int32{
 	142, // 178: nimi.runtime.v1.SubmitScenarioJobRequest.labels:type_name -> nimi.runtime.v1.SubmitScenarioJobRequest.LabelsEntry
 	34,  // 179: nimi.runtime.v1.SubmitScenarioJobRequest.extensions:type_name -> nimi.runtime.v1.ScenarioExtension
 	111, // 180: nimi.runtime.v1.SubmitScenarioJobResponse.job:type_name -> nimi.runtime.v1.ScenarioJob
-	154, // 181: nimi.runtime.v1.SubmitScenarioJobResponse.asset:type_name -> nimi.runtime.v1.VoiceAsset
-	145, // 182: nimi.runtime.v1.SubmitScenarioJobResponse.voice_reference:type_name -> nimi.runtime.v1.VoiceReference
-	111, // 183: nimi.runtime.v1.GetScenarioJobResponse.job:type_name -> nimi.runtime.v1.ScenarioJob
+	111, // 181: nimi.runtime.v1.GetScenarioJobResponse.job:type_name -> nimi.runtime.v1.ScenarioJob
+	154, // 182: nimi.runtime.v1.GetScenarioJobResponse.asset:type_name -> nimi.runtime.v1.VoiceAsset
+	145, // 183: nimi.runtime.v1.GetScenarioJobResponse.voice_reference:type_name -> nimi.runtime.v1.VoiceReference
 	111, // 184: nimi.runtime.v1.CancelScenarioJobResponse.job:type_name -> nimi.runtime.v1.ScenarioJob
 	20,  // 185: nimi.runtime.v1.ScenarioJobEvent.event_type:type_name -> nimi.runtime.v1.ScenarioJobEventType
 	150, // 186: nimi.runtime.v1.ScenarioJobEvent.timestamp:type_name -> google.protobuf.Timestamp

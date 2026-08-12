@@ -539,14 +539,6 @@ const (
 	CONNECTORAUTHKINDOAUTHMANAGED ConnectorAuthKind = "CONNECTOR_AUTH_KIND_OAUTH_MANAGED"
 )
 
-type ConnectorGrantStatus string
-
-const (
-	CONNECTORGRANTSTATUSUNSPECIFIED ConnectorGrantStatus = "CONNECTOR_GRANT_STATUS_UNSPECIFIED"
-	CONNECTORGRANTSTATUSACTIVE ConnectorGrantStatus = "CONNECTOR_GRANT_STATUS_ACTIVE"
-	CONNECTORGRANTSTATUSREVOKED ConnectorGrantStatus = "CONNECTOR_GRANT_STATUS_REVOKED"
-)
-
 type ConnectorKind string
 
 const (
@@ -1240,8 +1232,6 @@ const (
 	AICONNECTORLIMITEXCEEDED ReasonCode = "AI_CONNECTOR_LIMIT_EXCEEDED"
 	AICONNECTORIDREQUIRED ReasonCode = "AI_CONNECTOR_ID_REQUIRED"
 	AILOCALCONNECTORRETIRED ReasonCode = "AI_LOCAL_CONNECTOR_RETIRED"
-	AICONNECTORGRANTSELECTIONREQUIRED ReasonCode = "AI_CONNECTOR_GRANT_SELECTION_REQUIRED"
-	AICONNECTORGRANTREVOKED ReasonCode = "AI_CONNECTOR_GRANT_REVOKED"
 	AIREQUESTCREDENTIALCONFLICT ReasonCode = "AI_REQUEST_CREDENTIAL_CONFLICT"
 	AIAPPIDREQUIRED ReasonCode = "AI_APP_ID_REQUIRED"
 	AIAPPIDCONFLICT ReasonCode = "AI_APP_ID_CONFLICT"
@@ -1790,7 +1780,6 @@ type AIConfigCapabilityIntent struct {
 type AIConfigCloudIntent struct {
 	Implementation *CapabilityImplementationIdentity `json:"implementation,omitempty"`
 	ProviderModelTarget map[string]any `json:"provider_model_target,omitempty"`
-	ConnectorGrantId string `json:"connector_grant_id,omitempty"`
 }
 
 type AIConfigLocalIntent struct {
@@ -2919,17 +2908,7 @@ type Connector struct {
 	ProviderAuthProfile string `json:"provider_auth_profile,omitempty"`
 }
 
-type ConnectorGrant struct {
-	GrantId string `json:"grant_id,omitempty"`
-	ConnectorId string `json:"connector_id,omitempty"`
-	AccountId string `json:"account_id,omitempty"`
-	Status ConnectorGrantStatus `json:"status,omitempty"`
-	CreatedAt string `json:"created_at,omitempty"`
-	RevokedAt string `json:"revoked_at,omitempty"`
-}
-
 type ConnectorModelDescriptor struct {
-	ModelId string `json:"model_id,omitempty"`
 	ModelLabel string `json:"model_label,omitempty"`
 	Available bool `json:"available,omitempty"`
 	Capabilities []string `json:"capabilities,omitempty"`
@@ -2980,14 +2959,6 @@ type CreateBankRequest struct {
 
 type CreateBankResponse struct {
 	Bank *MemoryBank `json:"bank,omitempty"`
-}
-
-type CreateConnectorGrantRequest struct {
-	ConnectorId string `json:"connector_id,omitempty"`
-}
-
-type CreateConnectorGrantResponse struct {
-	Grant *ConnectorGrant `json:"grant,omitempty"`
 }
 
 type CreateConnectorRequest struct {
@@ -3646,6 +3617,8 @@ type GetLocalAppScenarioJobRequest struct {
 
 type GetLocalAppScenarioJobResponse struct {
 	Job *LocalAppScenarioJob `json:"job,omitempty"`
+	Asset *LocalAppVoiceAsset `json:"asset,omitempty"`
+	VoiceReference *VoiceReference `json:"voice_reference,omitempty"`
 }
 
 type GetLocalAppSharedLocalAgentAIConfigRequest struct {
@@ -3744,6 +3717,8 @@ type GetScenarioJobRequest struct {
 
 type GetScenarioJobResponse struct {
 	Job *ScenarioJob `json:"job,omitempty"`
+	Asset *VoiceAsset `json:"asset,omitempty"`
+	VoiceReference *VoiceReference `json:"voice_reference,omitempty"`
 }
 
 type GetSharedLocalAgentAIConfigRequest struct {
@@ -4202,16 +4177,6 @@ type ListCatalogVariantsRequest struct {
 
 type ListCatalogVariantsResponse struct {
 	Variants []LocalCatalogVariantDescriptor `json:"variants,omitempty"`
-}
-
-type ListConnectorGrantsRequest struct {
-	PageSize int32 `json:"page_size,omitempty"`
-	PageToken string `json:"page_token,omitempty"`
-}
-
-type ListConnectorGrantsResponse struct {
-	Grants []ConnectorGrant `json:"grants,omitempty"`
-	NextPageToken string `json:"next_page_token,omitempty"`
 }
 
 type ListConnectorModelsRequest struct {
@@ -6781,14 +6746,6 @@ type RetryLocalEnvironmentDependencyJobResponse struct {
 	Job *LocalEnvironmentDependencyJob `json:"job,omitempty"`
 }
 
-type RevokeConnectorGrantRequest struct {
-	GrantId string `json:"grant_id,omitempty"`
-}
-
-type RevokeConnectorGrantResponse struct {
-	Grant *ConnectorGrant `json:"grant,omitempty"`
-}
-
 type RevokeExternalPrincipalSessionRequest struct {
 	ExternalSessionId string `json:"external_session_id,omitempty"`
 }
@@ -7322,8 +7279,6 @@ type SubmitLocalAppScenarioJobRequest struct {
 
 type SubmitLocalAppScenarioJobResponse struct {
 	Job *LocalAppScenarioJob `json:"job,omitempty"`
-	Asset *LocalAppVoiceAsset `json:"asset,omitempty"`
-	VoiceReference *VoiceReference `json:"voice_reference,omitempty"`
 }
 
 type SubmitScenarioJobRequest struct {
@@ -7339,8 +7294,6 @@ type SubmitScenarioJobRequest struct {
 
 type SubmitScenarioJobResponse struct {
 	Job *ScenarioJob `json:"job,omitempty"`
-	Asset *VoiceAsset `json:"asset,omitempty"`
-	VoiceReference *VoiceReference `json:"voice_reference,omitempty"`
 }
 
 type SubscribeAIProviderHealthEventsRequest struct {
@@ -9384,14 +9337,6 @@ func (c RuntimeTypedClient) CreateConnector(ctx context.Context, request CreateC
 	return decodeRuntimeTypedResponse[CreateConnectorResponse](raw, "CreateConnectorResponse")
 }
 
-func (c RuntimeTypedClient) CreateConnectorGrant(ctx context.Context, request CreateConnectorGrantRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (CreateConnectorGrantResponse, error) {
-	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeConnectorService/CreateConnectorGrant", request, metadata, timeoutMS)
-	if err != nil {
-		return CreateConnectorGrantResponse{}, err
-	}
-	return decodeRuntimeTypedResponse[CreateConnectorGrantResponse](raw, "CreateConnectorGrantResponse")
-}
-
 func (c RuntimeTypedClient) DeleteCatalogModelOverlay(ctx context.Context, request DeleteCatalogModelOverlayRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (DeleteCatalogModelOverlayResponse, error) {
 	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeConnectorService/DeleteCatalogModelOverlay", request, metadata, timeoutMS)
 	if err != nil {
@@ -9440,14 +9385,6 @@ func (c RuntimeTypedClient) ListCatalogProviderModels(ctx context.Context, reque
 	return decodeRuntimeTypedResponse[ListCatalogProviderModelsResponse](raw, "ListCatalogProviderModelsResponse")
 }
 
-func (c RuntimeTypedClient) ListConnectorGrants(ctx context.Context, request ListConnectorGrantsRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ListConnectorGrantsResponse, error) {
-	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeConnectorService/ListConnectorGrants", request, metadata, timeoutMS)
-	if err != nil {
-		return ListConnectorGrantsResponse{}, err
-	}
-	return decodeRuntimeTypedResponse[ListConnectorGrantsResponse](raw, "ListConnectorGrantsResponse")
-}
-
 func (c RuntimeTypedClient) ListConnectorModels(ctx context.Context, request ListConnectorModelsRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ListConnectorModelsResponse, error) {
 	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeConnectorService/ListConnectorModels", request, metadata, timeoutMS)
 	if err != nil {
@@ -9478,14 +9415,6 @@ func (c RuntimeTypedClient) ListProviderCatalog(ctx context.Context, request Lis
 		return ListProviderCatalogResponse{}, err
 	}
 	return decodeRuntimeTypedResponse[ListProviderCatalogResponse](raw, "ListProviderCatalogResponse")
-}
-
-func (c RuntimeTypedClient) RevokeConnectorGrant(ctx context.Context, request RevokeConnectorGrantRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (RevokeConnectorGrantResponse, error) {
-	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeConnectorService/RevokeConnectorGrant", request, metadata, timeoutMS)
-	if err != nil {
-		return RevokeConnectorGrantResponse{}, err
-	}
-	return decodeRuntimeTypedResponse[RevokeConnectorGrantResponse](raw, "RevokeConnectorGrantResponse")
 }
 
 func (c RuntimeTypedClient) TestConnector(ctx context.Context, request TestConnectorRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (TestConnectorResponse, error) {

@@ -52,49 +52,6 @@ message Connector {
   string provider_auth_profile = 14;
 }
 
-enum ConnectorGrantStatus {
-  CONNECTOR_GRANT_STATUS_UNSPECIFIED = 0;
-  CONNECTOR_GRANT_STATUS_ACTIVE = 1;
-  CONNECTOR_GRANT_STATUS_REVOKED = 2;
-}
-
-// ConnectorGrant is an account authorization binding to Runtime-owned
-// connector credential custody. It never carries provider/model target data.
-message ConnectorGrant {
-  string grant_id = 1;
-  string connector_id = 2;
-  string account_id = 3;
-  ConnectorGrantStatus status = 4;
-  google.protobuf.Timestamp created_at = 5;
-  google.protobuf.Timestamp revoked_at = 6;
-}
-
-message CreateConnectorGrantRequest {
-  string connector_id = 1;
-}
-
-message CreateConnectorGrantResponse {
-  ConnectorGrant grant = 1;
-}
-
-message ListConnectorGrantsRequest {
-  int32 page_size = 1;
-  string page_token = 2;
-}
-
-message ListConnectorGrantsResponse {
-  repeated ConnectorGrant grants = 1;
-  string next_page_token = 2;
-}
-
-message RevokeConnectorGrantRequest {
-  string grant_id = 1;
-}
-
-message RevokeConnectorGrantResponse {
-  ConnectorGrant grant = 1;
-}
-
 message CreateConnectorRequest {
   string provider = 1;
   string endpoint = 2;
@@ -175,9 +132,8 @@ message TestConnectorResponse {
 }
 
 message ConnectorModelDescriptor {
-  // Deprecated compatibility display/provider id. Must not be used as durable
-  // target identity; use remote_model_catalog_id + provider_model_id instead.
-  string model_id = 1 [deprecated = true];
+  reserved 1;
+  reserved "model_id";
   string model_label = 2;
   bool available = 3;
   repeated string capabilities = 4;
@@ -454,9 +410,6 @@ service RuntimeConnectorService {
   rpc ListConnectors(ListConnectorsRequest) returns (ListConnectorsResponse);
   rpc UpdateConnector(UpdateConnectorRequest) returns (UpdateConnectorResponse);
   rpc DeleteConnector(DeleteConnectorRequest) returns (DeleteConnectorResponse);
-  rpc CreateConnectorGrant(CreateConnectorGrantRequest) returns (CreateConnectorGrantResponse);
-  rpc ListConnectorGrants(ListConnectorGrantsRequest) returns (ListConnectorGrantsResponse);
-  rpc RevokeConnectorGrant(RevokeConnectorGrantRequest) returns (RevokeConnectorGrantResponse);
   rpc TestConnector(TestConnectorRequest) returns (TestConnectorResponse);
   rpc ListConnectorModels(ListConnectorModelsRequest) returns (ListConnectorModelsResponse);
   rpc ListProviderCatalog(ListProviderCatalogRequest) returns (ListProviderCatalogResponse);

@@ -233,7 +233,6 @@ capability_sets:
     allowed_operations:
       - local-app.sessionStatus
       - local-app.aiConfigGet
-      - local-app.aiConfigOverwrite
       - local-app.modelConfigLocalSelectionsGet
       - local-app.textGenerateCandidate
       - local-app.textTurnStream
@@ -418,15 +417,6 @@ local_app_operation_contract:
       effect_boundary: read
       typed_failures: [protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, runtime-permission-denied, process-replaced, account-changed, runtime-restarted, not-found, host-internal-error]
       owner: runtime_ai_service
-    aiConfigOverwrite:
-      command: local-app.aiConfigOverwrite
-      operation_id: runtime.ai.app_config.overwrite
-      request_fields: [capabilities]
-      response_fields: [owner, capabilities]
-      transport_boundary: unary
-      effect_boundary: write
-      typed_failures: [protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, runtime-permission-denied, process-replaced, account-changed, runtime-restarted, invalid-payload, host-internal-error]
-      owner: runtime_ai_service
     modelConfigLocalSelectionsGet:
       command: local-app.modelConfigLocalSelectionsGet
       operation_id: runtime.ai.app_config.read
@@ -465,7 +455,7 @@ local_app_operation_contract:
       command: local-app.scenarioJobSubmit
       operation_id: runtime.ai.scenario-job.submit
       request_fields: [closedScenarioJobSpec]
-      response_fields: [job, asset]
+      response_fields: [job]
       transport_boundary: unary
       effect_boundary: background_compute
       owner: runtime_ai_service
@@ -473,7 +463,7 @@ local_app_operation_contract:
       command: local-app.scenarioJobGet
       operation_id: runtime.ai.scenario-job.get
       request_fields: [jobId]
-      response_fields: [job]
+      response_fields: [job, asset, voiceReference]
       transport_boundary: unary
       effect_boundary: read
       owner: runtime_ai_service
@@ -840,9 +830,6 @@ capabilities:
       - id: aiConfigGet
         command: nimi.shell.localApp.aiConfigGet
         negative_states: [protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, runtime-permission-denied, process-replaced, account-changed, runtime-restarted, not-found, host-internal-error]
-      - id: aiConfigOverwrite
-        command: nimi.shell.localApp.aiConfigOverwrite
-        negative_states: [protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, runtime-permission-denied, process-replaced, account-changed, runtime-restarted, invalid-payload, host-internal-error]
       - id: modelConfigLocalSelectionsGet
         command: nimi.shell.localApp.modelConfigLocalSelectionsGet
         negative_states: [protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, runtime-permission-denied, process-replaced, account-changed, runtime-restarted, host-internal-error]

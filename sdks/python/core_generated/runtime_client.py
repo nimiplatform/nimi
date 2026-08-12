@@ -1336,14 +1336,6 @@ RUNTIME_METHODS = [
     "response_type": "CreateConnectorResponse"
   },
   {
-    "method_id": "/nimi.runtime.v1.RuntimeConnectorService/CreateConnectorGrant",
-    "service": "RuntimeConnectorService",
-    "method": "CreateConnectorGrant",
-    "kind": "unary",
-    "request_type": "CreateConnectorGrantRequest",
-    "response_type": "CreateConnectorGrantResponse"
-  },
-  {
     "method_id": "/nimi.runtime.v1.RuntimeConnectorService/DeleteCatalogModelOverlay",
     "service": "RuntimeConnectorService",
     "method": "DeleteCatalogModelOverlay",
@@ -1392,14 +1384,6 @@ RUNTIME_METHODS = [
     "response_type": "ListCatalogProviderModelsResponse"
   },
   {
-    "method_id": "/nimi.runtime.v1.RuntimeConnectorService/ListConnectorGrants",
-    "service": "RuntimeConnectorService",
-    "method": "ListConnectorGrants",
-    "kind": "unary",
-    "request_type": "ListConnectorGrantsRequest",
-    "response_type": "ListConnectorGrantsResponse"
-  },
-  {
     "method_id": "/nimi.runtime.v1.RuntimeConnectorService/ListConnectorModels",
     "service": "RuntimeConnectorService",
     "method": "ListConnectorModels",
@@ -1430,14 +1414,6 @@ RUNTIME_METHODS = [
     "kind": "unary",
     "request_type": "ListProviderCatalogRequest",
     "response_type": "ListProviderCatalogResponse"
-  },
-  {
-    "method_id": "/nimi.runtime.v1.RuntimeConnectorService/RevokeConnectorGrant",
-    "service": "RuntimeConnectorService",
-    "method": "RevokeConnectorGrant",
-    "kind": "unary",
-    "request_type": "RevokeConnectorGrantRequest",
-    "response_type": "RevokeConnectorGrantResponse"
   },
   {
     "method_id": "/nimi.runtime.v1.RuntimeConnectorService/TestConnector",

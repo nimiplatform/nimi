@@ -1758,18 +1758,6 @@ export interface SubmitLocalAppScenarioJobResponse {
      * @generated from protobuf field: nimi.runtime.v1.LocalAppScenarioJob job = 1
      */
     job?: LocalAppScenarioJob;
-    /**
-     * @generated from protobuf field: nimi.runtime.v1.LocalAppVoiceAsset asset = 2
-     */
-    asset?: LocalAppVoiceAsset;
-    /**
-     * Canonical reusable result handle for voice.create. The protected Local
-     * App surface only returns a VoiceAsset-backed reference and never projects
-     * a provider-owned voice handle.
-     *
-     * @generated from protobuf field: nimi.runtime.v1.VoiceReference voice_reference = 3
-     */
-    voiceReference?: VoiceReference;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.GetLocalAppScenarioJobRequest
@@ -1788,6 +1776,17 @@ export interface GetLocalAppScenarioJobResponse {
      * @generated from protobuf field: nimi.runtime.v1.LocalAppScenarioJob job = 1
      */
     job?: LocalAppScenarioJob;
+    /**
+     * voice.create publishes its reusable result only after the Job completes.
+     * The protected Local App surface never projects a provider-owned handle.
+     *
+     * @generated from protobuf field: nimi.runtime.v1.LocalAppVoiceAsset asset = 2
+     */
+    asset?: LocalAppVoiceAsset;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.VoiceReference voice_reference = 3
+     */
+    voiceReference?: VoiceReference;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.CancelLocalAppScenarioJobRequest
@@ -2487,17 +2486,6 @@ export interface SubmitScenarioJobResponse {
      * @generated from protobuf field: nimi.runtime.v1.ScenarioJob job = 1
      */
     job?: ScenarioJob;
-    /**
-     * @generated from protobuf field: nimi.runtime.v1.VoiceAsset asset = 2
-     */
-    asset?: VoiceAsset;
-    /**
-     * voice.create returns both the durable VoiceAsset and the typed public
-     * reference callers use for subsequent synthesis or agent binding.
-     *
-     * @generated from protobuf field: nimi.runtime.v1.VoiceReference voice_reference = 3
-     */
-    voiceReference?: VoiceReference;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.GetScenarioJobRequest
@@ -2516,6 +2504,17 @@ export interface GetScenarioJobResponse {
      * @generated from protobuf field: nimi.runtime.v1.ScenarioJob job = 1
      */
     job?: ScenarioJob;
+    /**
+     * voice.create terminal success result. Both fields remain absent before
+     * completion and for every failed, canceled, timed-out, or non-voice Job.
+     *
+     * @generated from protobuf field: nimi.runtime.v1.VoiceAsset asset = 2
+     */
+    asset?: VoiceAsset;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.VoiceReference voice_reference = 3
+     */
+    voiceReference?: VoiceReference;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.CancelScenarioJobRequest
@@ -8437,9 +8436,7 @@ export const LocalAppVoiceAsset = new LocalAppVoiceAsset$Type();
 class SubmitLocalAppScenarioJobResponse$Type extends MessageType<SubmitLocalAppScenarioJobResponse> {
     constructor() {
         super("nimi.runtime.v1.SubmitLocalAppScenarioJobResponse", [
-            { no: 1, name: "job", kind: "message", T: () => LocalAppScenarioJob },
-            { no: 2, name: "asset", kind: "message", T: () => LocalAppVoiceAsset },
-            { no: 3, name: "voice_reference", kind: "message", T: () => VoiceReference }
+            { no: 1, name: "job", kind: "message", T: () => LocalAppScenarioJob }
         ]);
     }
     create(value?: PartialMessage<SubmitLocalAppScenarioJobResponse>): SubmitLocalAppScenarioJobResponse {
@@ -8456,12 +8453,6 @@ class SubmitLocalAppScenarioJobResponse$Type extends MessageType<SubmitLocalAppS
                 case /* nimi.runtime.v1.LocalAppScenarioJob job */ 1:
                     message.job = LocalAppScenarioJob.internalBinaryRead(reader, reader.uint32(), options, message.job);
                     break;
-                case /* nimi.runtime.v1.LocalAppVoiceAsset asset */ 2:
-                    message.asset = LocalAppVoiceAsset.internalBinaryRead(reader, reader.uint32(), options, message.asset);
-                    break;
-                case /* nimi.runtime.v1.VoiceReference voice_reference */ 3:
-                    message.voiceReference = VoiceReference.internalBinaryRead(reader, reader.uint32(), options, message.voiceReference);
-                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -8477,12 +8468,6 @@ class SubmitLocalAppScenarioJobResponse$Type extends MessageType<SubmitLocalAppS
         /* nimi.runtime.v1.LocalAppScenarioJob job = 1; */
         if (message.job)
             LocalAppScenarioJob.internalBinaryWrite(message.job, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
-        /* nimi.runtime.v1.LocalAppVoiceAsset asset = 2; */
-        if (message.asset)
-            LocalAppVoiceAsset.internalBinaryWrite(message.asset, writer.tag(2, WireType.LengthDelimited).fork(), options).join();
-        /* nimi.runtime.v1.VoiceReference voice_reference = 3; */
-        if (message.voiceReference)
-            VoiceReference.internalBinaryWrite(message.voiceReference, writer.tag(3, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -8544,7 +8529,9 @@ export const GetLocalAppScenarioJobRequest = new GetLocalAppScenarioJobRequest$T
 class GetLocalAppScenarioJobResponse$Type extends MessageType<GetLocalAppScenarioJobResponse> {
     constructor() {
         super("nimi.runtime.v1.GetLocalAppScenarioJobResponse", [
-            { no: 1, name: "job", kind: "message", T: () => LocalAppScenarioJob }
+            { no: 1, name: "job", kind: "message", T: () => LocalAppScenarioJob },
+            { no: 2, name: "asset", kind: "message", T: () => LocalAppVoiceAsset },
+            { no: 3, name: "voice_reference", kind: "message", T: () => VoiceReference }
         ]);
     }
     create(value?: PartialMessage<GetLocalAppScenarioJobResponse>): GetLocalAppScenarioJobResponse {
@@ -8561,6 +8548,12 @@ class GetLocalAppScenarioJobResponse$Type extends MessageType<GetLocalAppScenari
                 case /* nimi.runtime.v1.LocalAppScenarioJob job */ 1:
                     message.job = LocalAppScenarioJob.internalBinaryRead(reader, reader.uint32(), options, message.job);
                     break;
+                case /* nimi.runtime.v1.LocalAppVoiceAsset asset */ 2:
+                    message.asset = LocalAppVoiceAsset.internalBinaryRead(reader, reader.uint32(), options, message.asset);
+                    break;
+                case /* nimi.runtime.v1.VoiceReference voice_reference */ 3:
+                    message.voiceReference = VoiceReference.internalBinaryRead(reader, reader.uint32(), options, message.voiceReference);
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -8576,6 +8569,12 @@ class GetLocalAppScenarioJobResponse$Type extends MessageType<GetLocalAppScenari
         /* nimi.runtime.v1.LocalAppScenarioJob job = 1; */
         if (message.job)
             LocalAppScenarioJob.internalBinaryWrite(message.job, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.LocalAppVoiceAsset asset = 2; */
+        if (message.asset)
+            LocalAppVoiceAsset.internalBinaryWrite(message.asset, writer.tag(2, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.VoiceReference voice_reference = 3; */
+        if (message.voiceReference)
+            VoiceReference.internalBinaryWrite(message.voiceReference, writer.tag(3, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -10622,9 +10621,7 @@ export const SubmitScenarioJobRequest = new SubmitScenarioJobRequest$Type();
 class SubmitScenarioJobResponse$Type extends MessageType<SubmitScenarioJobResponse> {
     constructor() {
         super("nimi.runtime.v1.SubmitScenarioJobResponse", [
-            { no: 1, name: "job", kind: "message", T: () => ScenarioJob },
-            { no: 2, name: "asset", kind: "message", T: () => VoiceAsset },
-            { no: 3, name: "voice_reference", kind: "message", T: () => VoiceReference }
+            { no: 1, name: "job", kind: "message", T: () => ScenarioJob }
         ]);
     }
     create(value?: PartialMessage<SubmitScenarioJobResponse>): SubmitScenarioJobResponse {
@@ -10641,12 +10638,6 @@ class SubmitScenarioJobResponse$Type extends MessageType<SubmitScenarioJobRespon
                 case /* nimi.runtime.v1.ScenarioJob job */ 1:
                     message.job = ScenarioJob.internalBinaryRead(reader, reader.uint32(), options, message.job);
                     break;
-                case /* nimi.runtime.v1.VoiceAsset asset */ 2:
-                    message.asset = VoiceAsset.internalBinaryRead(reader, reader.uint32(), options, message.asset);
-                    break;
-                case /* nimi.runtime.v1.VoiceReference voice_reference */ 3:
-                    message.voiceReference = VoiceReference.internalBinaryRead(reader, reader.uint32(), options, message.voiceReference);
-                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -10662,12 +10653,6 @@ class SubmitScenarioJobResponse$Type extends MessageType<SubmitScenarioJobRespon
         /* nimi.runtime.v1.ScenarioJob job = 1; */
         if (message.job)
             ScenarioJob.internalBinaryWrite(message.job, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
-        /* nimi.runtime.v1.VoiceAsset asset = 2; */
-        if (message.asset)
-            VoiceAsset.internalBinaryWrite(message.asset, writer.tag(2, WireType.LengthDelimited).fork(), options).join();
-        /* nimi.runtime.v1.VoiceReference voice_reference = 3; */
-        if (message.voiceReference)
-            VoiceReference.internalBinaryWrite(message.voiceReference, writer.tag(3, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -10729,7 +10714,9 @@ export const GetScenarioJobRequest = new GetScenarioJobRequest$Type();
 class GetScenarioJobResponse$Type extends MessageType<GetScenarioJobResponse> {
     constructor() {
         super("nimi.runtime.v1.GetScenarioJobResponse", [
-            { no: 1, name: "job", kind: "message", T: () => ScenarioJob }
+            { no: 1, name: "job", kind: "message", T: () => ScenarioJob },
+            { no: 2, name: "asset", kind: "message", T: () => VoiceAsset },
+            { no: 3, name: "voice_reference", kind: "message", T: () => VoiceReference }
         ]);
     }
     create(value?: PartialMessage<GetScenarioJobResponse>): GetScenarioJobResponse {
@@ -10746,6 +10733,12 @@ class GetScenarioJobResponse$Type extends MessageType<GetScenarioJobResponse> {
                 case /* nimi.runtime.v1.ScenarioJob job */ 1:
                     message.job = ScenarioJob.internalBinaryRead(reader, reader.uint32(), options, message.job);
                     break;
+                case /* nimi.runtime.v1.VoiceAsset asset */ 2:
+                    message.asset = VoiceAsset.internalBinaryRead(reader, reader.uint32(), options, message.asset);
+                    break;
+                case /* nimi.runtime.v1.VoiceReference voice_reference */ 3:
+                    message.voiceReference = VoiceReference.internalBinaryRead(reader, reader.uint32(), options, message.voiceReference);
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -10761,6 +10754,12 @@ class GetScenarioJobResponse$Type extends MessageType<GetScenarioJobResponse> {
         /* nimi.runtime.v1.ScenarioJob job = 1; */
         if (message.job)
             ScenarioJob.internalBinaryWrite(message.job, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.VoiceAsset asset = 2; */
+        if (message.asset)
+            VoiceAsset.internalBinaryWrite(message.asset, writer.tag(2, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.VoiceReference voice_reference = 3; */
+        if (message.voiceReference)
+            VoiceReference.internalBinaryWrite(message.voiceReference, writer.tag(3, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

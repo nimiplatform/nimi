@@ -1632,33 +1632,6 @@
           "response_stream": false
         },
         {
-          "name": "CreateConnectorGrant",
-          "method_id": "/nimi.runtime.v1.RuntimeConnectorService/CreateConnectorGrant",
-          "kind": "unary",
-          "request_type": "CreateConnectorGrantRequest",
-          "response_type": "CreateConnectorGrantResponse",
-          "request_stream": false,
-          "response_stream": false
-        },
-        {
-          "name": "ListConnectorGrants",
-          "method_id": "/nimi.runtime.v1.RuntimeConnectorService/ListConnectorGrants",
-          "kind": "unary",
-          "request_type": "ListConnectorGrantsRequest",
-          "response_type": "ListConnectorGrantsResponse",
-          "request_stream": false,
-          "response_stream": false
-        },
-        {
-          "name": "RevokeConnectorGrant",
-          "method_id": "/nimi.runtime.v1.RuntimeConnectorService/RevokeConnectorGrant",
-          "kind": "unary",
-          "request_type": "RevokeConnectorGrantRequest",
-          "response_type": "RevokeConnectorGrantResponse",
-          "request_stream": false,
-          "response_stream": false
-        },
-        {
           "name": "TestConnector",
           "method_id": "/nimi.runtime.v1.RuntimeConnectorService/TestConnector",
           "kind": "unary",
@@ -2722,19 +2695,16 @@
     "/nimi.runtime.v1.RuntimeCognitionService/SubscribeMemoryEvents",
     "/nimi.runtime.v1.RuntimeCognitionService/TraverseGraph",
     "/nimi.runtime.v1.RuntimeConnectorService/CreateConnector",
-    "/nimi.runtime.v1.RuntimeConnectorService/CreateConnectorGrant",
     "/nimi.runtime.v1.RuntimeConnectorService/DeleteCatalogModelOverlay",
     "/nimi.runtime.v1.RuntimeConnectorService/DeleteConnector",
     "/nimi.runtime.v1.RuntimeConnectorService/DeleteModelCatalogProvider",
     "/nimi.runtime.v1.RuntimeConnectorService/GetCatalogModelDetail",
     "/nimi.runtime.v1.RuntimeConnectorService/GetConnector",
     "/nimi.runtime.v1.RuntimeConnectorService/ListCatalogProviderModels",
-    "/nimi.runtime.v1.RuntimeConnectorService/ListConnectorGrants",
     "/nimi.runtime.v1.RuntimeConnectorService/ListConnectorModels",
     "/nimi.runtime.v1.RuntimeConnectorService/ListConnectors",
     "/nimi.runtime.v1.RuntimeConnectorService/ListModelCatalogProviders",
     "/nimi.runtime.v1.RuntimeConnectorService/ListProviderCatalog",
-    "/nimi.runtime.v1.RuntimeConnectorService/RevokeConnectorGrant",
     "/nimi.runtime.v1.RuntimeConnectorService/TestConnector",
     "/nimi.runtime.v1.RuntimeConnectorService/UpdateConnector",
     "/nimi.runtime.v1.RuntimeConnectorService/UpsertCatalogModelOverlay",
@@ -4156,14 +4126,6 @@
       "response_type": "CreateConnectorResponse"
     },
     {
-      "method_id": "/nimi.runtime.v1.RuntimeConnectorService/CreateConnectorGrant",
-      "service": "RuntimeConnectorService",
-      "method": "CreateConnectorGrant",
-      "kind": "unary",
-      "request_type": "CreateConnectorGrantRequest",
-      "response_type": "CreateConnectorGrantResponse"
-    },
-    {
       "method_id": "/nimi.runtime.v1.RuntimeConnectorService/DeleteCatalogModelOverlay",
       "service": "RuntimeConnectorService",
       "method": "DeleteCatalogModelOverlay",
@@ -4212,14 +4174,6 @@
       "response_type": "ListCatalogProviderModelsResponse"
     },
     {
-      "method_id": "/nimi.runtime.v1.RuntimeConnectorService/ListConnectorGrants",
-      "service": "RuntimeConnectorService",
-      "method": "ListConnectorGrants",
-      "kind": "unary",
-      "request_type": "ListConnectorGrantsRequest",
-      "response_type": "ListConnectorGrantsResponse"
-    },
-    {
       "method_id": "/nimi.runtime.v1.RuntimeConnectorService/ListConnectorModels",
       "service": "RuntimeConnectorService",
       "method": "ListConnectorModels",
@@ -4250,14 +4204,6 @@
       "kind": "unary",
       "request_type": "ListProviderCatalogRequest",
       "response_type": "ListProviderCatalogResponse"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeConnectorService/RevokeConnectorGrant",
-      "service": "RuntimeConnectorService",
-      "method": "RevokeConnectorGrant",
-      "kind": "unary",
-      "request_type": "RevokeConnectorGrantRequest",
-      "response_type": "RevokeConnectorGrantResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeConnectorService/TestConnector",
@@ -6310,14 +6256,6 @@
       "response_type": "CreateConnectorResponse"
     },
     {
-      "method_id": "/nimi.runtime.v1.RuntimeConnectorService/CreateConnectorGrant",
-      "service": "RuntimeConnectorService",
-      "method": "CreateConnectorGrant",
-      "kind": "unary",
-      "request_type": "CreateConnectorGrantRequest",
-      "response_type": "CreateConnectorGrantResponse"
-    },
-    {
       "method_id": "/nimi.runtime.v1.RuntimeConnectorService/DeleteCatalogModelOverlay",
       "service": "RuntimeConnectorService",
       "method": "DeleteCatalogModelOverlay",
@@ -6366,14 +6304,6 @@
       "response_type": "ListCatalogProviderModelsResponse"
     },
     {
-      "method_id": "/nimi.runtime.v1.RuntimeConnectorService/ListConnectorGrants",
-      "service": "RuntimeConnectorService",
-      "method": "ListConnectorGrants",
-      "kind": "unary",
-      "request_type": "ListConnectorGrantsRequest",
-      "response_type": "ListConnectorGrantsResponse"
-    },
-    {
       "method_id": "/nimi.runtime.v1.RuntimeConnectorService/ListConnectorModels",
       "service": "RuntimeConnectorService",
       "method": "ListConnectorModels",
@@ -6404,14 +6334,6 @@
       "kind": "unary",
       "request_type": "ListProviderCatalogRequest",
       "response_type": "ListProviderCatalogResponse"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeConnectorService/RevokeConnectorGrant",
-      "service": "RuntimeConnectorService",
-      "method": "RevokeConnectorGrant",
-      "kind": "unary",
-      "request_type": "RevokeConnectorGrantRequest",
-      "response_type": "RevokeConnectorGrantResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeConnectorService/TestConnector",
@@ -7276,15 +7198,12 @@
       "CompleteLoginResponse",
       "CompleteProductControlFirstRunDeviceEnvironmentScanRequest",
       "Connector",
-      "ConnectorGrant",
       "ConnectorModelDescriptor",
       "ConsentRef",
       "ConversationAnchor",
       "ConversationAnchorSnapshot",
       "CreateBankRequest",
       "CreateBankResponse",
-      "CreateConnectorGrantRequest",
-      "CreateConnectorGrantResponse",
       "CreateConnectorRequest",
       "CreateConnectorResponse",
       "CreateKnowledgeBankRequest",
@@ -7483,8 +7402,6 @@
       "ListCatalogProviderModelsResponse",
       "ListCatalogVariantsRequest",
       "ListCatalogVariantsResponse",
-      "ListConnectorGrantsRequest",
-      "ListConnectorGrantsResponse",
       "ListConnectorModelsRequest",
       "ListConnectorModelsResponse",
       "ListConnectorsRequest",
@@ -7827,8 +7744,6 @@
       "RetainResponse",
       "RetryLocalEnvironmentDependencyJobRequest",
       "RetryLocalEnvironmentDependencyJobResponse",
-      "RevokeConnectorGrantRequest",
-      "RevokeConnectorGrantResponse",
       "RevokeExternalPrincipalSessionRequest",
       "RevokeSessionRequest",
       "RevokeWorkspaceBindingRequest",
@@ -8058,7 +7973,6 @@
       "CompanionParticipationSurfaceKind",
       "CompanionParticipationTriggerSource",
       "ConnectorAuthKind",
-      "ConnectorGrantStatus",
       "ConnectorKind",
       "ConnectorOwnerType",
       "ConnectorStatus",
@@ -10748,13 +10662,6 @@
             "repeated": false,
             "optional": false,
             "number": 2
-          },
-          {
-            "name": "connector_grant_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 3
           }
         ],
         "source_file": "proto/runtime/v1/capability_configuration.proto"
@@ -14042,63 +13949,8 @@
         "source_file": "proto/runtime/v1/connector.proto"
       },
       {
-        "name": "ConnectorGrant",
-        "fields": [
-          {
-            "name": "grant_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "connector_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "account_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "status",
-            "type": "ConnectorGrantStatus",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          },
-          {
-            "name": "created_at",
-            "type": "google.protobuf.Timestamp",
-            "repeated": false,
-            "optional": false,
-            "number": 5
-          },
-          {
-            "name": "revoked_at",
-            "type": "google.protobuf.Timestamp",
-            "repeated": false,
-            "optional": false,
-            "number": 6
-          }
-        ],
-        "source_file": "proto/runtime/v1/connector.proto"
-      },
-      {
         "name": "ConnectorModelDescriptor",
         "fields": [
-          {
-            "name": "model_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
           {
             "name": "model_label",
             "type": "string",
@@ -14376,32 +14228,6 @@
           }
         ],
         "source_file": "proto/runtime/v1/memory.proto"
-      },
-      {
-        "name": "CreateConnectorGrantRequest",
-        "fields": [
-          {
-            "name": "connector_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          }
-        ],
-        "source_file": "proto/runtime/v1/connector.proto"
-      },
-      {
-        "name": "CreateConnectorGrantResponse",
-        "fields": [
-          {
-            "name": "grant",
-            "type": "ConnectorGrant",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          }
-        ],
-        "source_file": "proto/runtime/v1/connector.proto"
       },
       {
         "name": "CreateConnectorRequest",
@@ -17338,6 +17164,20 @@
             "repeated": false,
             "optional": false,
             "number": 1
+          },
+          {
+            "name": "asset",
+            "type": "LocalAppVoiceAsset",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "voice_reference",
+            "type": "VoiceReference",
+            "repeated": false,
+            "optional": false,
+            "number": 3
           }
         ],
         "source_file": "proto/runtime/v1/ai.proto"
@@ -17684,6 +17524,20 @@
             "repeated": false,
             "optional": false,
             "number": 1
+          },
+          {
+            "name": "asset",
+            "type": "VoiceAsset",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "voice_reference",
+            "type": "VoiceReference",
+            "repeated": false,
+            "optional": false,
+            "number": 3
           }
         ],
         "source_file": "proto/runtime/v1/ai.proto"
@@ -19842,46 +19696,6 @@
           }
         ],
         "source_file": "proto/runtime/v1/local_runtime.proto"
-      },
-      {
-        "name": "ListConnectorGrantsRequest",
-        "fields": [
-          {
-            "name": "page_size",
-            "type": "int32",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "page_token",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          }
-        ],
-        "source_file": "proto/runtime/v1/connector.proto"
-      },
-      {
-        "name": "ListConnectorGrantsResponse",
-        "fields": [
-          {
-            "name": "grants",
-            "type": "ConnectorGrant",
-            "repeated": true,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "next_page_token",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          }
-        ],
-        "source_file": "proto/runtime/v1/connector.proto"
       },
       {
         "name": "ListConnectorModelsRequest",
@@ -32637,32 +32451,6 @@
         "source_file": "proto/runtime/v1/local_runtime.proto"
       },
       {
-        "name": "RevokeConnectorGrantRequest",
-        "fields": [
-          {
-            "name": "grant_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          }
-        ],
-        "source_file": "proto/runtime/v1/connector.proto"
-      },
-      {
-        "name": "RevokeConnectorGrantResponse",
-        "fields": [
-          {
-            "name": "grant",
-            "type": "ConnectorGrant",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          }
-        ],
-        "source_file": "proto/runtime/v1/connector.proto"
-      },
-      {
         "name": "RevokeExternalPrincipalSessionRequest",
         "fields": [
           {
@@ -35195,20 +34983,6 @@
             "repeated": false,
             "optional": false,
             "number": 1
-          },
-          {
-            "name": "asset",
-            "type": "LocalAppVoiceAsset",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "voice_reference",
-            "type": "VoiceReference",
-            "repeated": false,
-            "optional": false,
-            "number": 3
           }
         ],
         "source_file": "proto/runtime/v1/ai.proto"
@@ -35285,20 +35059,6 @@
             "repeated": false,
             "optional": false,
             "number": 1
-          },
-          {
-            "name": "asset",
-            "type": "VoiceAsset",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "voice_reference",
-            "type": "VoiceReference",
-            "repeated": false,
-            "optional": false,
-            "number": 3
           }
         ],
         "source_file": "proto/runtime/v1/ai.proto"
@@ -38809,15 +38569,6 @@
         "source_file": "proto/runtime/v1/connector.proto"
       },
       {
-        "name": "ConnectorGrantStatus",
-        "values": [
-          "CONNECTOR_GRANT_STATUS_UNSPECIFIED",
-          "CONNECTOR_GRANT_STATUS_ACTIVE",
-          "CONNECTOR_GRANT_STATUS_REVOKED"
-        ],
-        "source_file": "proto/runtime/v1/connector.proto"
-      },
-      {
         "name": "ConnectorKind",
         "values": [
           "CONNECTOR_KIND_UNSPECIFIED",
@@ -39577,8 +39328,6 @@
           "AI_CONNECTOR_LIMIT_EXCEEDED",
           "AI_CONNECTOR_ID_REQUIRED",
           "AI_LOCAL_CONNECTOR_RETIRED",
-          "AI_CONNECTOR_GRANT_SELECTION_REQUIRED",
-          "AI_CONNECTOR_GRANT_REVOKED",
           "AI_REQUEST_CREDENTIAL_CONFLICT",
           "AI_APP_ID_REQUIRED",
           "AI_APP_ID_CONFLICT",

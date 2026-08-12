@@ -84,12 +84,6 @@ services:
         type: unary
       - name: DeleteConnector
         type: unary
-      - name: CreateConnectorGrant
-        type: unary
-      - name: ListConnectorGrants
-        type: unary
-      - name: RevokeConnectorGrant
-        type: unary
       - name: TestConnector
         type: unary
       - name: ListConnectorModels

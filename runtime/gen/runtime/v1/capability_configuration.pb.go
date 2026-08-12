@@ -978,14 +978,13 @@ func (*AIConfigLocalIntent) Descriptor() ([]byte, []int) {
 	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{9}
 }
 
-// AIConfigCloudIntent carries the exact Cloud implementation and its
-// Driver-owned provider-model target. ConnectorGrant is an optional explicit
-// account authorization reference; no credential material belongs here.
+// AIConfigCloudIntent carries only the exact Cloud implementation and its
+// Driver-owned provider-model target selected through Nimi-owned configuration.
+// Connector, account authorization, and credential material never belong here.
 type AIConfigCloudIntent struct {
 	state               protoimpl.MessageState            `protogen:"open.v1"`
 	Implementation      *CapabilityImplementationIdentity `protobuf:"bytes,1,opt,name=implementation,proto3" json:"implementation,omitempty"`
 	ProviderModelTarget *structpb.Struct                  `protobuf:"bytes,2,opt,name=provider_model_target,json=providerModelTarget,proto3" json:"provider_model_target,omitempty"`
-	ConnectorGrantId    string                            `protobuf:"bytes,3,opt,name=connector_grant_id,json=connectorGrantId,proto3" json:"connector_grant_id,omitempty"`
 	unknownFields       protoimpl.UnknownFields
 	sizeCache           protoimpl.SizeCache
 }
@@ -1032,13 +1031,6 @@ func (x *AIConfigCloudIntent) GetProviderModelTarget() *structpb.Struct {
 		return x.ProviderModelTarget
 	}
 	return nil
-}
-
-func (x *AIConfigCloudIntent) GetConnectorGrantId() string {
-	if x != nil {
-		return x.ConnectorGrantId
-	}
-	return ""
 }
 
 // AIConfigCapabilityIntent is consumer intent only. Local execution identity,
@@ -2576,11 +2568,10 @@ const file_runtime_v1_capability_configuration_proto_rawDesc = "" +
 	"\x03app\x18\x01 \x01(\v2!.nimi.runtime.v1.AIConfigAppOwnerH\x00R\x03app\x12}\n" +
 	"\x1druntime_local_agent_subsystem\x18\x02 \x01(\v28.nimi.runtime.v1.AIConfigRuntimeLocalAgentSubsystemOwnerH\x00R\x1aruntimeLocalAgentSubsystemB\a\n" +
 	"\x05owner\"\x15\n" +
-	"\x13AIConfigLocalIntent\"\xeb\x01\n" +
+	"\x13AIConfigLocalIntent\"\xd7\x01\n" +
 	"\x13AIConfigCloudIntent\x12Y\n" +
 	"\x0eimplementation\x18\x01 \x01(\v21.nimi.runtime.v1.CapabilityImplementationIdentityR\x0eimplementation\x12K\n" +
-	"\x15provider_model_target\x18\x02 \x01(\v2\x17.google.protobuf.StructR\x13providerModelTarget\x12,\n" +
-	"\x12connector_grant_id\x18\x03 \x01(\tR\x10connectorGrantId\"\xb2\x02\n" +
+	"\x15provider_model_target\x18\x02 \x01(\v2\x17.google.protobuf.StructR\x13providerModelTargetJ\x04\b\x03\x10\x04R\x12connector_grant_id\"\xb2\x02\n" +
 	"\x18AIConfigCapabilityIntent\x12/\n" +
 	"\x13capability_contract\x18\x01 \x01(\tR\x12capabilityContract\x12+\n" +
 	"\x11required_features\x18\x02 \x03(\tR\x10requiredFeatures\x123\n" +

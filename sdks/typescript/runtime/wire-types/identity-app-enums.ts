@@ -146,12 +146,6 @@ export enum ConnectorAuthKind {
   OAUTH_MANAGED = 2,
 }
 
-export enum ConnectorGrantStatus {
-  UNSPECIFIED = 0,
-  ACTIVE = 1,
-  REVOKED = 2,
-}
-
 export enum ConnectorKind {
   UNSPECIFIED = 0,
   REMOTE_MANAGED = 2,
