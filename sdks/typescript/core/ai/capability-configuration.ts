@@ -22,7 +22,7 @@ export type NimiPortableAppAIConfigIntent = Omit<AIConfigCapabilityIntent, 'requ
     | { readonly oneofKind: 'local'; readonly local: AIConfigLocalIntent }
     | {
         readonly oneofKind: 'cloud';
-        readonly cloud: Omit<AIConfigCloudIntent, 'connectorGrantId'>;
+        readonly cloud: AIConfigCloudIntent;
       };
 };
 

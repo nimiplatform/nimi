@@ -23,7 +23,6 @@ Each capability entry contains:
 | `requiredFeatures` | Features the selected Runtime implementation must support |
 | `defaults` | Portable scenario defaults, not machine or provider configuration |
 | Local or Cloud intent | The consumer's intended execution plane |
-| `connectorGrantId` when admitted | An authorization reference, never provider credentials |
 
 Local intent contains no implementation identity, machine selection, asset, binding, Driver state, readiness, or health. Apps also omit optional generated wire fields that would attempt to select a Cloud implementation or provider-model target.
 

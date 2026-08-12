@@ -23,7 +23,6 @@ AIConfig 是一个 owner 当前配置的完整值。更新操作会替换整个 
 | `requiredFeatures` | Runtime 选择的实现必须支持的功能 |
 | `defaults` | 可跨机器使用的场景默认值，不是机器或 provider 配置 |
 | Local 或 Cloud intent | consumer 期望使用的执行平面 |
-| 获准使用时的 `connectorGrantId` | 授权引用，不包含 provider credential |
 
 Local intent 不包含 implementation identity、machine selection、asset、binding、Driver state、readiness 或 health。App 也应省略 generated wire 中可能尝试指定 Cloud implementation 或 provider-model target 的可选字段。
 

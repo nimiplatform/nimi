@@ -560,7 +560,6 @@ function impactAIConfig(input: {
           cloud: {
             implementation: { implementationId: 'cloud.image', driverId: 'cloud.driver', driverDialect: 'v1' },
             providerModelTarget: toNimiRuntimeProtoStruct({ provider: 'cloud', model: 'image' }),
-            connectorGrantId: 'grant-image',
           },
         },
     }],

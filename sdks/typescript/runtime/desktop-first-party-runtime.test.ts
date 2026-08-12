@@ -37,42 +37,7 @@ test('Desktop machine product carries the typed Machine Local AI Configuration m
   assert.equal(calls[0]?.metadata?.appId, undefined, 'protected host owns caller identity');
 });
 
-test('Desktop account product exposes the profile-admitted typed ConnectorGrant client', async () => {
-  const calls: CoreUnaryRequest[] = [];
-  const transport: CoreTransport = {
-    async unary<Response>(request: CoreUnaryRequest): Promise<Response> {
-      calls.push(request);
-      if (request.methodId === '/nimi.runtime.v1.RuntimeConnectorService/CreateConnectorGrant') {
-        return {
-          grant: {
-            grantId: 'grant-1',
-            connectorId: 'connector-1',
-            accountId: 'account-1',
-            status: 1,
-            createdAt: { seconds: '1785888000', nanos: 0 },
-          },
-        } as Response;
-      }
-      throw new Error(`unexpected Runtime method: ${request.methodId}`);
-    },
-    async *serverStream<Response>(_request: CoreStreamRequest): AsyncIterable<Response> {
-      throw new Error('unexpected Runtime stream');
-    },
-  };
-  const clients = createNimiDesktopFirstPartyRuntimeClients({
-    appId: 'nimi.desktop',
-    transport,
-  });
-
-  const grant = await clients.accountProduct.connectorGrants.create('connector-1');
-
-  assert.equal(grant.grantId, 'grant-1');
-  assert.equal(grant.status, 'active');
-  assert.equal(calls[0]?.methodId, '/nimi.runtime.v1.RuntimeConnectorService/CreateConnectorGrant');
-  assert.equal(calls[0]?.metadata?.appId, undefined, 'protected host owns caller identity');
-});
-
-test('Desktop account product binds App AIConfig to its exact product owner', async () => {
+test('Desktop account product binds AIConfig to one explicit admitted App owner', async () => {
   const calls: CoreUnaryRequest[] = [];
   const transport: CoreTransport = {
     async unary<Response>(request: CoreUnaryRequest): Promise<Response> {
@@ -96,10 +61,11 @@ test('Desktop account product binds App AIConfig to its exact product owner', as
     transport,
   });
 
-  const existing = await clients.accountProduct.aiConfig.get();
+  const managed = clients.accountProduct.appAIConfig('nimi.tester');
+  const existing = await managed.get();
   assert.equal(existing.owner?.owner.oneofKind, 'app');
   if (existing.owner?.owner.oneofKind === 'app') {
-    assert.equal(existing.owner.owner.app.appId, 'nimi.desktop');
+    assert.equal(existing.owner.owner.app.appId, 'nimi.tester');
   }
 
   const localIntent: AIConfigCapabilityIntent = {
@@ -107,11 +73,11 @@ test('Desktop account product binds App AIConfig to its exact product owner', as
     requiredFeatures: [],
     route: { oneofKind: 'local', local: {} },
   };
-  const overwritten = await clients.accountProduct.aiConfig.overwrite([localIntent]);
+  const overwritten = await managed.overwrite([localIntent]);
   assert.equal(overwritten.capabilities[0]?.capabilityContract, 'text.generate');
   assert.equal(overwritten.owner?.owner.oneofKind, 'app');
   if (overwritten.owner?.owner.oneofKind === 'app') {
-    assert.equal(overwritten.owner.owner.app.appId, 'nimi.desktop');
+    assert.equal(overwritten.owner.owner.app.appId, 'nimi.tester');
   }
 
   assert.deepEqual(calls.map((call) => call.methodId), [

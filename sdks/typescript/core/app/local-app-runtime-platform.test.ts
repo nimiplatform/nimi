@@ -8,7 +8,12 @@ import {
 } from '../../core-generated/runtime-protobuf/runtime/v1/auth.js';
 import {
   ExecutionMode,
+  ScenarioJobStatus,
   ScenarioType,
+  VoiceAssetPersistence,
+  VoiceAssetStatus,
+  VoiceCreationSource,
+  VoiceReferenceKind,
   type SubmitScenarioJobRequest,
 } from '../../core-generated/runtime-typed-client.js';
 import {
@@ -16,7 +21,7 @@ import {
   createNimiVideoGenerationScenario,
 } from '../../features/generation/index.js';
 import { runNimiRuntimeImageGeneration } from '../../features/generation/runtime-image-generation.js';
-import { createNimiLocalAIConfigCapabilityIntent } from '../ai/config-profile.js';
+import { runNimiRuntimeScenarioJob } from '../../runtime/scenario-jobs.js';
 import {
   createNimiLocalAppClient,
   createNimiLocalAppRuntimeScenarioJobClient,
@@ -62,7 +67,7 @@ function standardShell(operationCalls: string[]): NimiLocalAppStandardShell {
       },
       voiceAssets: { list: touched('ai.voiceAssets.list') },
     },
-    aiConfig: { get: touched('aiConfig.get'), overwrite: touched('aiConfig.overwrite') },
+    aiConfig: { get: touched('aiConfig.get') },
     modelConfig: { localSelections: touched('modelConfig.localSelections') },
     storage: {
       readJson: touched('storage.readJson'),
@@ -477,8 +482,7 @@ test('Local App text stream preserves whitespace-bearing deltas as content', asy
   ]);
 });
 
-test('App AIConfig accepts only portable intent and rejects binding material in input or projection', async () => {
-  const calls: unknown[] = [];
+test('App AIConfig is read-only and rejects binding material in its projection', async () => {
   const portableConfig = {
     owner: { owner: { oneofKind: 'app', app: { appId: 'app.example' } } },
     capabilities: [{
@@ -505,59 +509,12 @@ test('App AIConfig accepts only portable intent and rejects binding material in 
     ...base,
     aiConfig: {
       get: async () => portableConfig,
-      overwrite: async (capabilities) => {
-        calls.push(capabilities);
-        return { ...portableConfig, capabilities: structuredClone(capabilities) };
-      },
     },
   };
   const client = createNimiLocalAppClient({ standardShell: shell });
   assert.deepEqual(await client.aiConfig.get(), portableConfig);
-  assert.deepEqual(await client.aiConfig.overwrite(portableConfig.capabilities), portableConfig);
-  const generatedIntent = createNimiLocalAIConfigCapabilityIntent({
-    capabilityContract: 'text.generate',
-    defaults: { temperature: 0.3 },
-  });
-  assert.notEqual(Object.getPrototypeOf(generatedIntent.defaults), Object.prototype);
-  assert.deepEqual(
-    await client.aiConfig.overwrite([generatedIntent]),
-    { ...portableConfig, capabilities: structuredClone([generatedIntent]) },
-  );
-  assert.deepEqual(calls, [portableConfig.capabilities, [generatedIntent]]);
-  assert.equal(JSON.stringify(calls).includes('connectorGrant'), false);
+  assert.deepEqual(Object.keys(client.aiConfig), ['get']);
 
-  await assert.rejects(
-    () => client.aiConfig.overwrite([{
-      ...portableConfig.capabilities[0],
-      route: {
-        oneofKind: 'cloud',
-        cloud: { ...portableConfig.capabilities[0].route.cloud, connectorGrantId: 'grant-forged' },
-      },
-    }] as never),
-    (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_LOCAL_APP_AUTHORITY_FIELD_FORBIDDEN',
-  );
-  assert.equal(calls.length, 2);
-
-  const bindingProjection: NimiLocalAppStandardShell = {
-    ...base,
-    aiConfig: {
-      ...base.aiConfig,
-      get: async () => ({
-        ...portableConfig,
-        capabilities: [{
-          ...portableConfig.capabilities[0],
-          route: {
-            oneofKind: 'cloud',
-            cloud: { ...portableConfig.capabilities[0].route.cloud, connectorGrantId: 'grant-private' },
-          },
-        }],
-      }),
-    },
-  };
-  await assert.rejects(
-    () => createNimiLocalAppClient({ standardShell: bindingProjection }).aiConfig.get(),
-    (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_LOCAL_APP_PROJECTION_INVALID',
-  );
 });
 
 test('WorldCore list accepts the exact owner DTO and rejects raw or credential-adjacent projections', async () => {
@@ -620,7 +577,6 @@ test('canonical protected operations reach typed ingress and preserve owner-unav
     () => client.ai.artifacts.upload({ bytes: new Uint8Array([1, 2]), mimeType: 'image/png' }),
     () => client.ai.voiceAssets.list(),
     () => client.aiConfig.get(),
-    () => client.aiConfig.overwrite([]),
     () => client.storage.readJson('settings.json'),
     () => client.storage.writeJson('settings.json', {}),
     () => client.storage.removeJson('settings.json'),
@@ -672,7 +628,6 @@ test('canonical protected operations reach typed ingress and preserve owner-unav
     'ai.artifacts.upload',
     'ai.voiceAssets.list',
     'aiConfig.get',
-    'aiConfig.overwrite',
     'storage.readJson',
     'storage.writeJson',
     'storage.removeJson',
@@ -762,7 +717,7 @@ test('local-app video jobs admit only the canonical seed range', async () => {
           ...base.ai.scenarioJobs,
           async submit(spec) {
             calls.push(spec);
-            return { job, asset: null, voiceReference: null };
+            return { job };
           },
         },
       },
@@ -777,7 +732,7 @@ test('local-app video jobs admit only the canonical seed range', async () => {
     options: { resolution: '720p', ratio: '16:9', seed: -1 },
   };
 
-  await assert.deepEqual(await client.ai.scenarioJobs.submit(spec), { job, asset: null, voiceReference: null });
+  await assert.deepEqual(await client.ai.scenarioJobs.submit(spec), { job });
   assert.deepEqual(calls, [spec]);
   const adapter = createNimiLocalAppRuntimeScenarioJobClient(client.ai);
   await adapter.submitScenarioJob(buildNimiRuntimeGenerationSubmitRequest(
@@ -824,7 +779,14 @@ test('local-app voice creation uses one canonical contract with typed source pro
           ...base.ai.scenarioJobs,
           async submit(spec) {
             calls.push(spec);
-            return { job, asset, voiceReference };
+            return { job };
+          },
+          async get() {
+            return {
+              job: { ...job, status: 'completed' as const, progressPercent: 100, progressCurrentStep: 1, progressTotalSteps: 1 },
+              asset,
+              voiceReference,
+            };
           },
         },
       },
@@ -837,7 +799,12 @@ test('local-app voice creation uses one canonical contract with typed source pro
     referenceAudio: { type: 'bytes' as const, bytes: [1, 2, 3] },
     referenceAudioMime: 'audio/wav', languageHints: ['en'], preferredName: 'Nimi', text: 'Hello',
   };
-  assert.deepEqual(await client.ai.scenarioJobs.submit(referenceAudioSpec), { job, asset, voiceReference });
+  assert.deepEqual(await client.ai.scenarioJobs.submit(referenceAudioSpec), { job });
+  assert.deepEqual(await client.ai.scenarioJobs.get(job.jobId), {
+    job: { ...job, status: 'completed', progressPercent: 100, progressCurrentStep: 1, progressTotalSteps: 1 },
+    asset,
+    voiceReference,
+  });
 
   const adapter = createNimiLocalAppRuntimeScenarioJobClient(client.ai);
   const request = (source: SubmitScenarioJobRequest['spec']): SubmitScenarioJobRequest => ({
@@ -921,6 +888,113 @@ test('local-app voice creation uses one canonical contract with typed source pro
   assert.equal(calls.length, 3);
 });
 
+test('local-app voice runner preserves the trimmed terminal result and consumes one carrier Get', async () => {
+  const base = standardShell([]);
+  let localGets = 0;
+  const submittedJob = {
+    jobId: 'job-voice-terminal', scenarioType: 'voice-create' as const, status: 'submitted' as const,
+    progressPercent: 0, progressCurrentStep: 0, progressTotalSteps: 1,
+    reasonCode: '', reasonDetail: '', artifacts: [], traceId: 'trace-voice-terminal',
+    createdAt: { seconds: '10', nanos: 1 }, updatedAt: { seconds: '10', nanos: 1 }, transcriptionText: '',
+  };
+  const completedJob = {
+    ...submittedJob,
+    status: 'completed' as const,
+    progressPercent: 100,
+    progressCurrentStep: 1,
+    updatedAt: { seconds: '20', nanos: 2 },
+  };
+  const asset = {
+    voiceAssetId: 'voice-asset-terminal', creationSource: 'text-description' as const, status: 'active' as const,
+    createdAt: { seconds: '20', nanos: 2 }, updatedAt: { seconds: '20', nanos: 2 }, expiresAt: null,
+  };
+  const voiceReference = { kind: 'voice_asset_id' as const, voiceAssetId: asset.voiceAssetId };
+  const shell: NimiLocalAppStandardShell = {
+    ...base,
+    ai: {
+      ...base.ai,
+      scenarioJobs: {
+        ...base.ai.scenarioJobs,
+        async submit() { return { job: submittedJob }; },
+        async get() {
+          localGets += 1;
+          return { job: completedJob, asset, voiceReference };
+        },
+        async subscribe() {
+          return {
+            events: (async function* () {
+              yield {
+                eventType: 'completed' as const,
+                sequence: '1',
+                traceId: completedJob.traceId,
+                timestamp: completedJob.updatedAt,
+                job: completedJob,
+              };
+            })(),
+            async cancel() {},
+          };
+        },
+      },
+    },
+  };
+  const local = createNimiLocalAppClient({ standardShell: shell });
+  const adapter = createNimiLocalAppRuntimeScenarioJobClient(local.ai);
+  const result = await runNimiRuntimeScenarioJob({
+    ai: adapter,
+    request: {
+      head: undefined,
+      scenarioType: ScenarioType.VOICE_CREATE,
+      executionMode: ExecutionMode.ASYNC_JOB,
+      spec: {
+        spec: {
+          oneofKind: 'voiceCreate',
+          voiceCreate: {
+            targetModelId: '',
+            source: {
+              oneofKind: 'textDescription',
+              textDescription: {
+                instructionText: 'Warm and calm',
+                previewText: 'Hello',
+                language: 'en',
+                preferredName: 'Designed',
+              },
+            },
+          },
+        },
+      },
+      requestId: 'request-voice-terminal',
+      idempotencyKey: 'idempotency-voice-terminal',
+      labels: {},
+      extensions: [],
+    },
+  });
+
+  assert.equal(result.job.status, ScenarioJobStatus.COMPLETED);
+  assert.deepEqual(result.asset, {
+    voiceAssetId: asset.voiceAssetId,
+    appId: '',
+    subjectUserId: '',
+    provider: '',
+    modelId: '',
+    targetModelId: '',
+    providerVoiceRef: '',
+    persistence: VoiceAssetPersistence.UNSPECIFIED,
+    status: VoiceAssetStatus.ACTIVE,
+    createdAt: asset.createdAt,
+    updatedAt: asset.updatedAt,
+    expiresAt: undefined,
+    metadata: undefined,
+    creationSource: VoiceCreationSource.TEXT_DESCRIPTION,
+  });
+  assert.deepEqual(result.voiceReference, {
+    kind: VoiceReferenceKind.VOICE_ASSET,
+    reference: { oneofKind: 'voiceAssetId', voiceAssetId: asset.voiceAssetId },
+  });
+  assert.deepEqual(result.artifacts, []);
+  assert.equal(localGets, 1);
+
+});
+
 test('local-app Scenario Job adapter runs the unchanged SDK image runner without reading artifact bytes', async () => {
   const calls: unknown[] = [];
   const base = standardShell([]);
@@ -939,8 +1013,8 @@ test('local-app Scenario Job adapter runs the unchanged SDK image runner without
     ai: {
       ...base.ai,
       scenarioJobs: {
-        async submit(spec) { calls.push(['submit', spec]); return { job, asset: null, voiceReference: null }; },
-        async get(jobId) { calls.push(['get', jobId]); return { job }; },
+        async submit(spec) { calls.push(['submit', spec]); return { job }; },
+        async get(jobId) { calls.push(['get', jobId]); return { job, asset: null, voiceReference: null }; },
         async subscribe(jobId) {
           calls.push(['subscribe', jobId]);
           return {
@@ -982,6 +1056,7 @@ test('local-app Scenario Job adapter runs the unchanged SDK image runner without
   }]);
   assert.deepEqual(calls.slice(1), [
     ['subscribe', 'job-1'],
+    ['get', 'job-1'],
     ['get', 'job-1'],
   ]);
   assert.equal(JSON.stringify(calls).includes('app.test'), false);

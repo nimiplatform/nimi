@@ -28,12 +28,16 @@ const CLOUD_PROFILE = {
         driverDialect: 'example/text/v1',
         supportedFeatures: [],
       },
-      providerModelTarget: { provider: 'example', providerModelId: 'model-1' },
+      providerModelTarget: {
+        provider: 'example',
+        providerModelId: 'model-1',
+        remoteModelCatalogId: 'remote-model-catalog-model-1',
+      },
     },
   },
 } as const;
 
-test('Cloud AIConfig constructor normalizes implementation, target, and nullable explicit grant selection', () => {
+test('Cloud AIConfig constructor contains only implementation and provider-model target', () => {
   const intent = createNimiCloudAIConfigCapabilityIntent({
     capabilityContract: 'text.generate',
     requiredFeatures: ['input.image'],
@@ -43,13 +47,15 @@ test('Cloud AIConfig constructor normalizes implementation, target, and nullable
       driverId: 'nimillm',
       driverDialect: 'openai',
     },
-    providerModelTarget: { provider: 'openai', providerModelId: 'gpt-test' },
-    connectorGrantId: null,
+    providerModelTarget: {
+      provider: 'openai',
+      providerModelId: 'gpt-test',
+      remoteModelCatalogId: 'remote-model-catalog-gpt-test',
+    },
   });
 
   assert.equal(intent.route.oneofKind, 'cloud');
   if (intent.route.oneofKind !== 'cloud') assert.fail('expected Cloud intent');
-  assert.equal(intent.route.cloud.connectorGrantId, '');
   assert.deepEqual(intent.route.cloud.implementation, {
     implementationId: 'openai',
     driverId: 'nimillm',
@@ -58,32 +64,29 @@ test('Cloud AIConfig constructor normalizes implementation, target, and nullable
   assert.deepEqual(runtimeAIConfigStructToJson(intent.route.cloud.providerModelTarget), {
     provider: 'openai',
     providerModelId: 'gpt-test',
+    remoteModelCatalogId: 'remote-model-catalog-gpt-test',
   });
-  assert.throws(() => createNimiCloudAIConfigCapabilityIntent({
-    capabilityContract: 'text.generate',
-    implementation: {
-      implementationId: 'openai',
-      driverId: 'nimillm',
-      driverDialect: 'openai',
-    },
-    providerModelTarget: { provider: 'openai', providerModelId: 'gpt-test' },
-    connectorGrantId: ' grant-1 ',
-  }), /connectorGrantId must be exact/u);
 });
 
-test('portable AIProfile rejects account and machine-private authority', () => {
-  assert.throws(
-    () => parseNimiPortableAIProfile({
-      ...CLOUD_PROFILE,
-      capabilities: {
-        'text.generate': {
-          ...CLOUD_PROFILE.capabilities['text.generate'],
-          connectorGrantId: 'grant-must-not-travel-in-profile',
-        },
-      },
-    }),
-    /connectorGrantId/u,
-  );
+test('Cloud AIConfig constructor rejects alias or incomplete durable target identity', () => {
+  const implementation = {
+    implementationId: 'openai',
+    driverId: 'nimillm',
+    driverDialect: 'openai',
+  };
+  assert.throws(() => createNimiCloudAIConfigCapabilityIntent({
+    capabilityContract: 'text.generate',
+    implementation,
+    providerModelTarget: { provider: 'openai', model: 'gpt-test', remoteModelCatalogId: 'catalog-1' },
+  }), /model is not supported/u);
+  assert.throws(() => createNimiCloudAIConfigCapabilityIntent({
+    capabilityContract: 'text.generate',
+    implementation,
+    providerModelTarget: { provider: 'openai', providerModelId: 'gpt-test' },
+  }), /remoteModelCatalogId is required/u);
+});
+
+test('portable AIProfile rejects machine-private authority', () => {
   assert.throws(
     () => parseNimiPortableAIProfile({
       profileId: 'profile.path-alias',
@@ -105,7 +108,7 @@ test('portable AIProfile rejects account and machine-private authority', () => {
   );
 });
 
-test('App AIProfile Preview is non-committing and direct Apply writes grantless owner intent', async () => {
+test('App AIProfile Preview is non-committing and direct Apply writes connector-free owner intent', async () => {
   const owner = createNimiAppAIConfigOwner('app.profile.test');
   let current: Awaited<ReturnType<NimiAppAIConfigClient['get']>> | null = null;
   let writes = 0;
@@ -137,13 +140,11 @@ test('App AIProfile Preview is non-committing and direct Apply writes grantless 
   if (preview.after.capabilities[0]?.route.oneofKind !== 'cloud') {
     assert.fail('expected Cloud capability intent');
   }
-  assert.equal(preview.after.capabilities[0].route.cloud.connectorGrantId, '');
   assert.deepEqual(
     runtimeAIConfigStructToJson(preview.after.capabilities[0].route.cloud.providerModelTarget),
-    { provider: 'example', providerModelId: 'model-1' },
+    { provider: 'example', providerModelId: 'model-1', remoteModelCatalogId: 'remote-model-catalog-model-1' },
   );
 
-  preview.after.capabilities[0].route.cloud.connectorGrantId = 'grant-injected-after-preview';
   const applied = await profiles.apply(CLOUD_PROFILE);
   assert.equal(writes, 1);
   assert.equal(applied.owner?.owner.oneofKind, 'app');
@@ -151,7 +152,6 @@ test('App AIProfile Preview is non-committing and direct Apply writes grantless 
   if (applied.capabilities[0]?.route.oneofKind !== 'cloud') {
     assert.fail('expected Cloud capability intent');
   }
-  assert.equal(applied.capabilities[0].route.cloud.connectorGrantId, '');
 });
 
 test('Profile Apply keeps Local machine implementation intent outside AIConfig', async () => {
@@ -223,7 +223,11 @@ test('portable AIProfile round trip preserves authored Local and Cloud intent', 
           driverDialect: 'example/audio/v1',
           supportedFeatures: ['voice.reference'],
         },
-        providerModelTarget: { provider: 'example', providerModelId: 'voice-v1' },
+        providerModelTarget: {
+          provider: 'example',
+          providerModelId: 'voice-v1',
+          remoteModelCatalogId: 'remote-model-catalog-voice-v1',
+        },
       },
     },
   } as const;

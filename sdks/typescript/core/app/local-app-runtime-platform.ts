@@ -335,7 +335,7 @@ export function createNimiLocalAppClient(
   assertExactMethodNamespace(ai.scenarioJobs, ['submit', 'get', 'subscribe', 'cancel'], 'ai.scenarioJobs');
   assertExactMethodNamespace(ai.artifacts, ['read', 'upload'], 'ai.artifacts');
   assertExactMethodNamespace(ai.voiceAssets, ['list'], 'ai.voiceAssets');
-  assertExactMethodNamespace(standardShell.aiConfig, ['get', 'overwrite'], 'aiConfig');
+  assertExactMethodNamespace(standardShell.aiConfig, ['get'], 'aiConfig');
   assertExactMethodNamespace(standardShell.modelConfig, ['localSelections'], 'modelConfig');
   const storage = asRecord(standardShell.storage);
   if (!storage || Object.keys(storage).sort().join('|') !== ['assets', 'readJson', 'removeJson', 'writeJson'].sort().join('|')) {

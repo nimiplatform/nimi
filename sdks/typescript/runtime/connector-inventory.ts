@@ -43,7 +43,10 @@ export interface NimiRuntimeConnectorAuthOption {
 }
 
 export interface NimiRuntimeConnectorModelInfo {
-  readonly modelId: string;
+  readonly modelLabel: string;
+  readonly provider: string;
+  readonly providerModelId: string;
+  readonly remoteModelCatalogId: string;
   readonly capabilities: readonly string[];
 }
 
@@ -131,7 +134,10 @@ function cloneConnectors(
 
 function cloneConnectorModelInfo(model: NimiRuntimeConnectorModelInfo): NimiRuntimeConnectorModelInfo {
   return {
-    modelId: model.modelId,
+    modelLabel: model.modelLabel,
+    provider: model.provider,
+    providerModelId: model.providerModelId,
+    remoteModelCatalogId: model.remoteModelCatalogId,
     capabilities: [...model.capabilities],
   };
 }
@@ -502,7 +508,7 @@ export function createNimiRuntimeConnectorInventoryClient(
     const cacheGeneration = connectorInventoryCacheGeneration;
     const pending = (async () => {
       const descriptors: NimiRuntimeConnectorModelInfo[] = [];
-      const seenModelIds = new Set<string>();
+      const seenCatalogIds = new Set<string>();
       let pageToken = '';
       for (let pageIndex = 0; pageIndex < maxModelPages; pageIndex += 1) {
         const response = await connectors().listConnectorModels({
@@ -514,15 +520,20 @@ export function createNimiRuntimeConnectorInventoryClient(
         const pageItems = (response.models ?? [])
           .filter((item: ConnectorModelDescriptor) => Boolean(item.available))
           .map((item) => ({
-            modelId: normalizeText(item.modelId),
+            modelLabel: normalizeText(item.modelLabel) || normalizeText(item.providerModelId),
+            provider: normalizeLower(item.provider),
+            providerModelId: normalizeText(item.providerModelId),
+            remoteModelCatalogId: normalizeText(item.remoteModelCatalogId),
             capabilities: (item.capabilities ?? []).map(normalizeText).filter(Boolean),
           }))
-          .filter((item) => item.modelId.length > 0);
+          .filter((item) => item.provider.length > 0
+            && item.providerModelId.length > 0
+            && item.remoteModelCatalogId.length > 0);
         for (const item of pageItems) {
-          if (seenModelIds.has(item.modelId)) {
+          if (seenCatalogIds.has(item.remoteModelCatalogId)) {
             continue;
           }
-          seenModelIds.add(item.modelId);
+          seenCatalogIds.add(item.remoteModelCatalogId);
           descriptors.push(item);
         }
         pageToken = normalizeText(response.nextPageToken);
@@ -555,7 +566,7 @@ export function createNimiRuntimeConnectorInventoryClient(
     forceRefresh = false,
   ): Promise<string[]> {
     const descriptors = await listConnectorModelDescriptors(connectorId, forceRefresh);
-    return descriptors.map((item) => item.modelId);
+    return descriptors.map((item) => item.providerModelId);
   }
 
   return {

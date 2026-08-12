@@ -387,7 +387,6 @@ export interface NimiAIProfileImportPreview {
     readonly aiConfig: false;
     readonly localCapabilityConfigurations: false;
     readonly machineSelection: false;
-    readonly connectorGrant: false;
   };
 }
 
@@ -410,9 +409,9 @@ export interface NimiAIProfileApplyPreview {
   readonly after: AIConfig;
   readonly identical: boolean;
   readonly intentDiff: NimiAIProfileAIConfigIntentDiff;
-  readonly cloudSelections: readonly {
+  readonly cloudConfigurations: readonly {
     readonly capabilityContract: string;
-    readonly state: 'selection-required';
+    readonly state: 'configured';
   }[];
   readonly previewOnly: true;
   readonly writesOnly: 'target-ai-config';
@@ -520,7 +519,6 @@ export interface NimiAIProfileSelectionMismatchPreview {
       readonly implementation: CapabilityImplementationIdentity | null;
       readonly providerModelTarget: NimiJsonObject | null;
       readonly featureSubset: NimiAIProfileFeatureSubsetResult;
-      readonly connectorGrantSelection: 'selection-required' | 'unavailable';
       readonly prerequisite: 'apply-cloud-intent' | 'cloud-recommendation-unavailable';
     },
   ];
@@ -1058,7 +1056,6 @@ export function deriveNimiAIProfileImportPreview(input: {
       aiConfig: false as const,
       localCapabilityConfigurations: false as const,
       machineSelection: false as const,
-      connectorGrant: false as const,
     }),
   });
 }
@@ -1092,16 +1089,15 @@ export function deriveNimiAIProfileApplyPreview(input: {
         defaults: capability.defaults,
         implementation: implementationContent(capability.implementation),
         providerModelTarget: capability.providerModelTarget,
-        connectorGrantId: null,
       })
   ));
   const after: AIConfig = { owner, capabilities };
   const intentDiff = deriveAIConfigIntentDiff(before, after);
-  const cloudSelections = Object.freeze(after.capabilities
+  const cloudConfigurations = Object.freeze(after.capabilities
     .filter((intent) => intent.route.oneofKind === 'cloud')
     .map((intent) => Object.freeze({
       capabilityContract: intent.capabilityContract,
-      state: 'selection-required' as const,
+      state: 'configured' as const,
     })));
   return Object.freeze({
     action: 'apply-to-ai-config' as const,
@@ -1111,7 +1107,7 @@ export function deriveNimiAIProfileApplyPreview(input: {
     after,
     identical: before !== null && canonicalAIConfig(before) === canonicalAIConfig(after),
     intentDiff,
-    cloudSelections,
+    cloudConfigurations,
     previewOnly: true as const,
     writesOnly: 'target-ai-config' as const,
   });
@@ -1320,9 +1316,6 @@ export function deriveNimiAIProfileSelectionMismatchPreview(input: {
           : null,
         providerModelTarget: cloud?.providerModelTarget ?? null,
         featureSubset: cloudFeatureSubset,
-        connectorGrantSelection: cloud
-          ? 'selection-required' as const
-          : 'unavailable' as const,
         prerequisite: cloud
           ? 'apply-cloud-intent' as const
           : 'cloud-recommendation-unavailable' as const,
@@ -1557,9 +1550,7 @@ function normalizeCloudRecommendation(
     input.providerModelTarget,
     'Cloud providerModelTarget',
   );
-  if (Object.keys(providerModelTarget).length === 0) {
-    return authoringError('Cloud providerModelTarget cannot be empty');
-  }
+  assertExactCloudRecommendationTarget(providerModelTarget, 'Cloud providerModelTarget');
   return Object.freeze({
     implementation: normalizeImplementation(input.implementation, 'Cloud implementation'),
     supportedFeatures: normalizeFeatureSet(
@@ -1582,9 +1573,10 @@ function normalizeSelectionCloudAlternative(
     input.providerModelTarget,
     'Cloud selection providerModelTarget',
   );
-  if (Object.keys(providerModelTarget).length === 0) {
-    return authoringError('Cloud selection providerModelTarget cannot be empty');
-  }
+  assertExactCloudRecommendationTarget(
+    providerModelTarget,
+    'Cloud selection providerModelTarget',
+  );
   return Object.freeze({
     implementation: normalizeImplementation(input.implementation, 'Cloud selection implementation'),
     supportedFeatures: normalizeFeatureSet(
@@ -1593,6 +1585,21 @@ function normalizeSelectionCloudAlternative(
     ),
     providerModelTarget,
   });
+}
+
+function assertExactCloudRecommendationTarget(
+  target: NimiJsonObject,
+  label: string,
+): void {
+  if (Object.hasOwn(target, 'model')) {
+    return authoringError(`${label}.model is not supported`);
+  }
+  for (const key of ['provider', 'providerModelId', 'remoteModelCatalogId'] as const) {
+    const value = target[key];
+    if (typeof value !== 'string' || value.length === 0 || value.trim() !== value) {
+      return authoringError(`${label}.${key} is required`);
+    }
+  }
 }
 
 function validateKnownLocalConfiguration(
@@ -2547,7 +2554,6 @@ function canonicalAIConfigIntentValue(intent: AIConfigCapabilityIntent): {
         providerModelTarget: runtimeAIConfigStructToJson(
           intent.route.cloud.providerModelTarget,
         ),
-        connectorGrantId: intent.route.cloud.connectorGrantId,
       },
     };
   }

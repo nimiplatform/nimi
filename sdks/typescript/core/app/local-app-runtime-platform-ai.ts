@@ -9,6 +9,9 @@ import {
   VideoContentRole,
   VideoContentType,
   VideoMode,
+  VoiceAssetPersistence,
+  VoiceAssetStatus,
+  VoiceCreationSource,
   VoiceReferenceKind,
   type GetScenarioArtifactsResponse,
   type ScenarioArtifact,
@@ -17,6 +20,7 @@ import {
   type ScenarioOutput,
   type ScenarioSpec,
   type SubmitScenarioJobRequest,
+  type VoiceAsset,
 } from '../../core-generated/runtime-typed-client.js';
 import type { Timestamp } from '../../core-generated/runtime-protobuf/google/protobuf/timestamp.js';
 import type { NimiRuntimeScenarioJobClient } from '../../runtime/scenario-jobs.js';
@@ -188,7 +192,11 @@ export type NimiLocalAppScenarioExecuteResult =
   | { readonly output: { readonly type: 'image-generate'; readonly artifacts: readonly NimiLocalAppScenarioArtifact[] }; readonly traceId: string };
 
 export type NimiLocalAppScenarioJobSubmitResult = {
-  readonly job: NimiLocalAppScenarioJob | null;
+  readonly job: NimiLocalAppScenarioJob;
+};
+
+export type NimiLocalAppScenarioJobGetResult = {
+  readonly job: NimiLocalAppScenarioJob;
   readonly asset: NimiLocalAppVoiceAsset | null;
   readonly voiceReference: { readonly kind: 'voice_asset_id'; readonly voiceAssetId: string } | null;
 };
@@ -253,7 +261,7 @@ export type NimiLocalAppAIConsumptionClient = {
   };
   readonly scenarioJobs: {
     readonly submit: (spec: NimiLocalAppScenarioJobSpec) => Promise<NimiLocalAppScenarioJobSubmitResult>;
-    readonly get: (jobId: string) => Promise<{ readonly job: NimiLocalAppScenarioJob }>;
+    readonly get: (jobId: string) => Promise<NimiLocalAppScenarioJobGetResult>;
     readonly subscribe: (jobId: string) => Promise<NimiLocalAppSubscription<NimiLocalAppScenarioJobEvent>>;
     readonly cancel: (jobId: string, reason?: string) => Promise<{ readonly job: NimiLocalAppScenarioJob }>;
   };
@@ -299,7 +307,7 @@ export function createNimiLocalAppAIConsumptionClient(
       submit: async (spec) => projectScenarioJobSubmit(
         await shell.scenarioJobs.submit(validateScenarioSpec(spec, false)),
       ),
-      get: async (jobId) => projectScenarioJobEnvelope(
+      get: async (jobId) => projectScenarioJobGet(
         await shell.scenarioJobs.get(boundedIdentifier(jobId, 'jobId')),
       ),
       subscribe: async (jobId) => projectSubscription(
@@ -358,8 +366,15 @@ export function createNimiLocalAppRuntimeScenarioJobClient(
       const spec = localJobSpecFromRuntimeRequest(request);
       const result = await ai.scenarioJobs.submit(spec);
       return {
-        job: result.job ? runtimeJobFromLocal(result.job) : undefined,
-        asset: undefined,
+        job: runtimeJobFromLocal(result.job),
+      };
+    },
+    async getScenarioJob(request) {
+      assertExactKeys(request, ['jobId'], 'local-app Scenario Job get request');
+      const result = await ai.scenarioJobs.get(request.jobId);
+      return {
+        job: runtimeJobFromLocal(result.job),
+        asset: result.asset ? runtimeVoiceAssetFromLocal(result.asset) : undefined,
         voiceReference: result.voiceReference ? {
           kind: VoiceReferenceKind.VOICE_ASSET,
           reference: {
@@ -368,11 +383,6 @@ export function createNimiLocalAppRuntimeScenarioJobClient(
           },
         } : undefined,
       };
-    },
-    async getScenarioJob(request) {
-      assertExactKeys(request, ['jobId'], 'local-app Scenario Job get request');
-      const result = await ai.scenarioJobs.get(request.jobId);
-      return { job: runtimeJobFromLocal(result.job) };
     },
     async cancelScenarioJob(request) {
       assertExactKeys(request, ['jobId', 'reason'], 'local-app Scenario Job cancel request');
@@ -679,13 +689,19 @@ function projectScenarioExecute(value: unknown): NimiLocalAppScenarioExecuteResu
 
 function projectScenarioJobSubmit(value: unknown): NimiLocalAppScenarioJobSubmitResult {
   const record = asRecord(value);
-  assertExactProjectionKeys(record, ['job', 'asset', 'voiceReference'], 'scenario Job submit');
-  if (record.job === null && record.asset === null && record.voiceReference === null) localAppProjectionError('scenario Job submit');
-  const job = record.job === null ? null : projectScenarioJob(record.job);
+  assertExactProjectionKeys(record, ['job'], 'scenario Job submit');
+  return Object.freeze({ job: projectScenarioJob(record.job) });
+}
+
+function projectScenarioJobGet(value: unknown): NimiLocalAppScenarioJobGetResult {
+  const record = asRecord(value);
+  assertExactProjectionKeys(record, ['job', 'asset', 'voiceReference'], 'scenario Job result');
+  const job = projectScenarioJob(record.job);
   const asset = record.asset === null ? null : projectVoiceAsset(record.asset);
   const voiceReference = record.voiceReference === null ? null : projectVoiceAssetReference(record.voiceReference);
   if ((asset === null) !== (voiceReference === null)
-    || (asset && voiceReference && asset.voiceAssetId !== voiceReference.voiceAssetId)) {
+    || (asset && (asset.status !== 'active' || voiceReference?.voiceAssetId !== asset.voiceAssetId))
+    || ((job.scenarioType === 'voice-create' && job.status === 'completed') !== (asset !== null))) {
     localAppProjectionError('scenario Job voice result');
   }
   return Object.freeze({
@@ -971,6 +987,25 @@ function runtimeJobFromLocal(job: NimiLocalAppScenarioJob): ScenarioJob {
   };
 }
 
+function runtimeVoiceAssetFromLocal(asset: NimiLocalAppVoiceAsset): VoiceAsset {
+  return {
+    voiceAssetId: asset.voiceAssetId,
+    appId: '',
+    subjectUserId: '',
+    provider: '',
+    modelId: '',
+    targetModelId: '',
+    providerVoiceRef: '',
+    persistence: VoiceAssetPersistence.UNSPECIFIED,
+    status: runtimeVoiceAssetStatus(asset.status),
+    createdAt: runtimeTimestamp(asset.createdAt),
+    updatedAt: runtimeTimestamp(asset.updatedAt),
+    expiresAt: runtimeTimestamp(asset.expiresAt),
+    metadata: undefined,
+    creationSource: runtimeVoiceCreationSource(asset.creationSource),
+  };
+}
+
 function runtimeArtifactFromLocal(artifact: NimiLocalAppScenarioArtifact, bytes: Uint8Array = Uint8Array.from(artifact.bytes), mimeType = artifact.mimeType, sizeBytes = artifact.sizeBytes): ScenarioArtifact {
   return { artifactId: artifact.artifactId, mimeType, bytes, uri: '', sha256: artifact.sha256, sizeBytes: String(sizeBytes), durationMs: String(artifact.durationMs), fps: 0, width: artifact.width, height: artifact.height, sampleRateHz: artifact.sampleRateHz, channels: artifact.channels, speechAlignment: undefined, metadata: undefined };
 }
@@ -1003,6 +1038,21 @@ function runtimeScenarioType(type: NimiLocalAppScenarioJob['scenarioType']): Sce
 
 function runtimeJobStatus(status: NimiLocalAppScenarioJob['status']): ScenarioJobStatus {
   return ({ submitted: ScenarioJobStatus.SUBMITTED, queued: ScenarioJobStatus.QUEUED, running: ScenarioJobStatus.RUNNING, completed: ScenarioJobStatus.COMPLETED, failed: ScenarioJobStatus.FAILED, canceled: ScenarioJobStatus.CANCELED, timeout: ScenarioJobStatus.TIMEOUT })[status];
+}
+
+function runtimeVoiceAssetStatus(status: NimiLocalAppVoiceAsset['status']): VoiceAssetStatus {
+  return ({
+    active: VoiceAssetStatus.ACTIVE,
+    expired: VoiceAssetStatus.EXPIRED,
+    deleted: VoiceAssetStatus.DELETED,
+    failed: VoiceAssetStatus.FAILED,
+  })[status];
+}
+
+function runtimeVoiceCreationSource(source: NimiLocalAppVoiceAsset['creationSource']): VoiceCreationSource {
+  return source === 'reference-audio'
+    ? VoiceCreationSource.REFERENCE_AUDIO
+    : VoiceCreationSource.TEXT_DESCRIPTION;
 }
 
 function runtimeJobEventType(type: NimiLocalAppScenarioJobEvent['eventType']): ScenarioJobEventType {

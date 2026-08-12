@@ -13,7 +13,8 @@ export interface NimiRuntimeCloudImplementationOption {
  * Projects the current Runtime model-catalog provider rows into the Cloud
  * implementation choices shown by first-party configuration surfaces.
  * Connector inventory is deliberately absent: provider API/dialect belongs to
- * Driver configuration and account authorization is selected separately.
+ * Driver configuration. Runtime resolves the current account's eligible
+ * Connector from the selected target.
  */
 export function projectNimiRuntimeCloudImplementationOptions(
   providers: readonly NimiRuntimeModelCatalogProvider[],
@@ -40,8 +41,7 @@ export function projectNimiRuntimeCloudImplementationOptions(
       capabilityContract: capability,
       provider,
       implementation: Object.freeze({
-        // Runtime's current admitted implementation set is provider-catalog
-        // keyed. These values remain independent of ConnectorGrant identity.
+        // Runtime's current admitted implementation set is provider-catalog keyed.
         implementationId: provider,
         driverId: executionModule,
         driverDialect: provider,

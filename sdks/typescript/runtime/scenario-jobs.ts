@@ -1,6 +1,7 @@
 import {
   ReasonCode as RuntimeGeneratedReasonCode,
   ScenarioJobStatus,
+  ScenarioType,
   type CancelScenarioJobRequest,
   type GetScenarioArtifactsRequest,
   type GetScenarioArtifactsResponse,
@@ -13,6 +14,8 @@ import {
   type SubmitScenarioJobRequest,
   type SubmitScenarioJobResponse,
   type RuntimeTypedCallOptions,
+  type VoiceAsset,
+  type VoiceReference,
 } from '../core-generated/runtime-typed-client';
 import { createNimiError, ReasonCode } from '../types';
 
@@ -49,6 +52,8 @@ export interface NimiRuntimeScenarioJobResult {
   readonly artifacts: readonly NimiRuntimeScenarioArtifact[];
   readonly traceId?: string;
   readonly output?: NimiRuntimeScenarioOutput;
+  readonly asset?: VoiceAsset;
+  readonly voiceReference?: VoiceReference;
 }
 
 export interface NimiRuntimeScenarioJobRunnerInput {
@@ -139,22 +144,28 @@ export async function runNimiRuntimeScenarioJob(
 
   throwIfAborted(input.signal);
 
-  if (!terminalJob || !isNimiRuntimeScenarioJobTerminalStatus(terminalJob.status)) {
-    const response = await input.ai.getScenarioJob({ jobId }, input.callOptions);
-    terminalJob = response.job;
-    if (terminalJob) {
-      input.onJobUpdate?.(terminalJob);
-    }
+  if (terminalJob && isNimiRuntimeScenarioJobTerminalStatus(terminalJob.status)) {
+    ensureCompletedNimiRuntimeScenarioJob(terminalJob);
+  }
+  const eventStatus = terminalJob?.status;
+  const terminalResponse = await input.ai.getScenarioJob({ jobId }, input.callOptions);
+  terminalJob = terminalResponse.job;
+  if (terminalJob && terminalJob.status !== eventStatus) {
+    input.onJobUpdate?.(terminalJob);
   }
 
   ensureCompletedNimiRuntimeScenarioJob(terminalJob);
 
-  const artifacts = await input.ai.getScenarioArtifacts({ jobId }, input.callOptions);
+  const artifacts = terminalJob.scenarioType === ScenarioType.VOICE_CREATE
+    ? { artifacts: terminalJob.artifacts, traceId: terminalJob.traceId, output: undefined }
+    : await input.ai.getScenarioArtifacts({ jobId }, input.callOptions);
   return {
     job: terminalJob,
     artifacts: artifacts.artifacts,
     traceId: normalizeText(artifacts.traceId) || undefined,
     output: artifacts.output,
+    ...(terminalResponse.asset ? { asset: terminalResponse.asset } : {}),
+    ...(terminalResponse.voiceReference ? { voiceReference: terminalResponse.voiceReference } : {}),
   };
 }
 

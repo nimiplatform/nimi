@@ -103,30 +103,6 @@ test('sharedAIConfig get/overwrite round-trips the subsystem-owned projection', 
   ]);
 });
 
-test('sharedAIConfig overwrite rejects grant binding material before the carrier', async () => {
-  const calls: unknown[] = [];
-  const client = createNimiLocalAppAgentConfigureClient(shell(calls));
-  await assert.rejects(
-    () => client.sharedAIConfig.overwrite([{
-      capabilityContract: 'text.generate',
-      requiredFeatures: [],
-      route: {
-        oneofKind: 'cloud',
-        cloud: {
-          implementation: {
-            implementationId: 'cloud.text.example',
-            driverId: 'cloud.example',
-            driverDialect: 'v1',
-          },
-          connectorGrantId: 'grant-forged',
-        },
-      },
-    }] as never),
-    (error: unknown) => reasonCode(error) === 'SDK_LOCAL_APP_AUTHORITY_FIELD_FORBIDDEN',
-  );
-  assert.deepEqual(calls, []);
-});
-
 test('sharedAIConfig rejects a non-subsystem owner projection', async () => {
   const base = shell([]);
   const client = createNimiLocalAppAgentConfigureClient({

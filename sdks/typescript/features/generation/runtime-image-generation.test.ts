@@ -12,6 +12,7 @@ import { runNimiRuntimeImageGeneration, runNimiRuntimeVideoGeneration } from './
 
 test('runNimiRuntimeImageGeneration submits an image scenario job and returns image artifacts', async () => {
   const submitted: any[] = [];
+  let terminalGets = 0;
   const artifact = {
     artifactId: 'artifact-image-1',
     mimeType: 'image/png',
@@ -30,7 +31,13 @@ test('runNimiRuntimeImageGeneration submits an image scenario job and returns im
       };
     },
     async getScenarioJob() {
-      throw new Error('terminal event should avoid polling');
+      terminalGets += 1;
+      return {
+        job: {
+          jobId: 'job-image-1', status: ScenarioJobStatus.COMPLETED,
+          scenarioType: ScenarioType.IMAGE_GENERATE, artifacts: [artifact], traceId: 'trace-image-1',
+        },
+      };
     },
     async cancelScenarioJob() {
       throw new Error('cancel should not be called');
@@ -85,6 +92,7 @@ test('runNimiRuntimeImageGeneration submits an image scenario job and returns im
   assert.equal(result.traceId, 'trace-artifacts-1');
   assert.deepEqual(result.artifacts, [artifact]);
   assert.equal(submitted.length, 1);
+  assert.equal(terminalGets, 1);
   assert.equal(submitted[0].request.scenarioType, ScenarioType.IMAGE_GENERATE);
   assert.equal(submitted[0].request.executionMode, ExecutionMode.ASYNC_JOB);
   assert.deepEqual(submitted[0].request.head, {
@@ -105,6 +113,7 @@ test('runNimiRuntimeImageGeneration submits an image scenario job and returns im
 
 test('runNimiRuntimeVideoGeneration submits a video scenario job and returns video artifacts', async () => {
   const submitted: any[] = [];
+  let terminalGets = 0;
   const artifact = {
     artifactId: 'artifact-video-1',
     mimeType: 'video/mp4',
@@ -124,7 +133,13 @@ test('runNimiRuntimeVideoGeneration submits a video scenario job and returns vid
       };
     },
     async getScenarioJob() {
-      throw new Error('terminal event should avoid polling');
+      terminalGets += 1;
+      return {
+        job: {
+          jobId: 'job-video-1', status: ScenarioJobStatus.COMPLETED,
+          scenarioType: ScenarioType.VIDEO_GENERATE, artifacts: [artifact], traceId: 'trace-video-1',
+        },
+      };
     },
     async cancelScenarioJob() {
       throw new Error('cancel should not be called');
@@ -191,6 +206,7 @@ test('runNimiRuntimeVideoGeneration submits a video scenario job and returns vid
   assert.equal(result.traceId, 'trace-artifacts-video-1');
   assert.deepEqual(result.artifacts, [artifact]);
   assert.equal(submitted.length, 1);
+  assert.equal(terminalGets, 1);
   assert.equal(submitted[0].request.scenarioType, ScenarioType.VIDEO_GENERATE);
   assert.equal(submitted[0].request.executionMode, ExecutionMode.ASYNC_JOB);
   assert.deepEqual(submitted[0].request.head, {

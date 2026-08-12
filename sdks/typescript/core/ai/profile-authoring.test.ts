@@ -124,6 +124,7 @@ test('AIProfile authoring builder round-trips and imported artifacts remain edit
       providerModelTarget: {
         provider: 'example',
         providerModelId: 'voice-v1',
+        remoteModelCatalogId: 'remote-model-catalog-voice-v1',
         region: 'global',
       },
     },
@@ -231,7 +232,7 @@ test('Import and Apply previews stay owner-specific and non-committing', () => {
         driverDialect: 'example/text/v1',
       },
       supportedFeatures: ['input.image'],
-      providerModelTarget: { provider: 'example', providerModelId: 'text-v1' },
+      providerModelTarget: { provider: 'example', providerModelId: 'text-v1', remoteModelCatalogId: 'remote-model-catalog-text-v1' },
     },
   }).build();
 
@@ -242,7 +243,6 @@ test('Import and Apply previews stay owner-specific and non-committing', () => {
     aiConfig: false,
     localCapabilityConfigurations: false,
     machineSelection: false,
-    connectorGrant: false,
   });
 
   const appPreview = deriveNimiAIProfileApplyPreview({
@@ -251,14 +251,13 @@ test('Import and Apply previews stay owner-specific and non-committing', () => {
   });
   assert.equal(appPreview.after.owner?.owner.oneofKind, 'app');
   assert.deepEqual(appPreview.intentDiff.addedCapabilityContracts, ['text.generate']);
-  assert.deepEqual(appPreview.cloudSelections, [{
+  assert.deepEqual(appPreview.cloudConfigurations, [{
     capabilityContract: 'text.generate',
-    state: 'selection-required',
+    state: 'configured',
   }]);
   const cloudIntent = appPreview.after.capabilities[0];
   assert.equal(cloudIntent?.route.oneofKind, 'cloud');
   if (cloudIntent?.route.oneofKind !== 'cloud') assert.fail('expected Cloud intent');
-  assert.equal(cloudIntent.route.cloud.connectorGrantId, '');
 
   const sharedPreview = deriveNimiAIProfileApplyPreview({
     profile: cloudProfile,
@@ -404,7 +403,7 @@ test('selection mismatch preview derives current, recommended Local, and Cloud f
         driverDialect: 'example/text/v1',
       },
       supportedFeatures: ['input.image'],
-      providerModelTarget: { provider: 'example', providerModelId: 'vision-text' },
+      providerModelTarget: { provider: 'example', providerModelId: 'vision-text', remoteModelCatalogId: 'remote-model-catalog-vision-text' },
     },
   });
 
@@ -419,7 +418,6 @@ test('selection mismatch preview derives current, recommended Local, and Cloud f
   assert.equal(preview.branches[1].featureSubset.status, 'compatible');
   assert.equal(preview.branches[1].prerequisite, 'add-or-update-local-configuration');
   assert.equal(preview.branches[2].featureSubset.status, 'compatible');
-  assert.equal(preview.branches[2].connectorGrantSelection, 'selection-required');
   assert.equal(preview.mismatchFailsClosed, true);
   assert.equal(preview.commits, false);
 
@@ -434,7 +432,7 @@ test('selection mismatch preview derives current, recommended Local, and Cloud f
         driverDialect: 'example/text/v1',
       },
       supportedFeatures: [],
-      providerModelTarget: { provider: 'example', providerModelId: 'text-only' },
+      providerModelTarget: { provider: 'example', providerModelId: 'text-only', remoteModelCatalogId: 'remote-model-catalog-text-only' },
     },
   });
   assert.equal(cloudMismatch.branches[2].featureSubset.status, 'feature-mismatch');

@@ -63,8 +63,6 @@ export interface NimiCloudAIConfigCapabilityInput {
   readonly defaults?: NimiJsonObject;
   readonly implementation: CapabilityImplementationIdentity;
   readonly providerModelTarget: NimiJsonObject;
-  /** Null or omission preserves the explicit selection-required state. */
-  readonly connectorGrantId?: string | null;
 }
 
 export interface NimiAppAIProfilePreview {
@@ -83,8 +81,8 @@ export interface NimiAppAIProfileClient {
   apply(profile: NimiPortableAIProfileInput): Promise<AIConfig>;
 }
 
-/** Parse one closed portable AIProfile document. ConnectorGrant is intentionally
- * absent: account authorization is selected independently on the owner AIConfig.
+/** Parse one closed portable AIProfile document. Connector identity is
+ * intentionally absent and remains Runtime-resolved from owner configuration.
  */
 export function parseNimiPortableAIProfile(
   input: NimiPortableAIProfileInput,
@@ -216,7 +214,7 @@ export function createNimiCloudAIConfigCapabilityIntent(
 ): AIConfigCapabilityIntent {
   const capabilityContract = requireText(input.capabilityContract, 'Cloud CapabilityContract is required');
   const target = normalizeJsonObject(input.providerModelTarget, 'Cloud providerModelTarget');
-  if (Object.keys(target).length === 0) profileError('Cloud providerModelTarget cannot be empty');
+  assertExactCloudProviderModelTarget(target);
   return {
     capabilityContract,
     requiredFeatures: [...parseRequiredFeatures(input.requiredFeatures, capabilityContract)],
@@ -226,10 +224,21 @@ export function createNimiCloudAIConfigCapabilityIntent(
       cloud: {
         implementation: parseAIConfigImplementation(input.implementation, 'Cloud implementation'),
         providerModelTarget: toRuntimeStruct(target),
-        connectorGrantId: normalizeOptionalConnectorGrantId(input.connectorGrantId),
       },
     },
   };
+}
+
+function assertExactCloudProviderModelTarget(target: NimiJsonObject): void {
+  if (Object.hasOwn(target, 'model')) {
+    profileError('Cloud providerModelTarget.model is not supported');
+  }
+  for (const key of ['provider', 'providerModelId', 'remoteModelCatalogId'] as const) {
+    const value = target[key];
+    if (typeof value !== 'string' || value.length === 0 || value.trim() !== value) {
+      profileError(`Cloud providerModelTarget.${key} is required`);
+    }
+  }
 }
 
 export function createNimiLocalAIConfigCapabilityIntent(input: {
@@ -272,8 +281,6 @@ function projectPortableProfileToAIConfig(
           driverDialect: capability.implementation.driverDialect,
         },
         providerModelTarget: capability.providerModelTarget,
-        // ConnectorGrant is non-portable and remains explicitly unset.
-        connectorGrantId: '',
       })
   ));
   return Object.freeze({
@@ -476,11 +483,6 @@ function requireExactText(value: unknown, message: string): string {
   return value;
 }
 
-function normalizeOptionalConnectorGrantId(value: unknown): string {
-  if (value === undefined || value === null || value === '') return '';
-  return requireText(value, 'Cloud connectorGrantId must be exact non-empty text');
-}
-
 function toRuntimeStruct(value: NimiJsonObject): Struct {
   return RuntimeStruct.fromJson(value as ProtoJsonValue);
 }
@@ -498,7 +500,6 @@ function canonicalConfig(config: AIConfig): string {
             oneofKind: 'cloud' as const,
             implementation: intent.route.cloud.implementation,
             providerModelTarget: runtimeAIConfigStructToJson(intent.route.cloud.providerModelTarget),
-            connectorGrantId: intent.route.cloud.connectorGrantId,
           }
           : { oneofKind: undefined },
     }))

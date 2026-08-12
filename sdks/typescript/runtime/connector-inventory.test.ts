@@ -104,10 +104,12 @@ test('Nimi Runtime connector inventory caches connectors and model descriptors a
       calls.push(`models:${request.connectorId}:${request.forceRefresh}`);
       return {
         models: [{
-          modelId: 'openrouter/auto',
           modelLabel: 'OpenRouter Auto',
           available: true,
           capabilities: ['text.generate'],
+          remoteModelCatalogId: 'rmc_openrouter_auto',
+          providerModelId: 'openrouter/auto',
+          provider: 'openrouter',
         }],
         nextPageToken: '',
       };
@@ -134,7 +136,13 @@ test('Nimi Runtime connector inventory caches connectors and model descriptors a
   assert.deepEqual(calls, ['catalog', 'connectors']);
 
   const models = await client.listConnectorModelDescriptors('conn-1');
-  assert.deepEqual(models, [{ modelId: 'openrouter/auto', capabilities: ['text.generate'] }]);
+  assert.deepEqual(models, [{
+    modelLabel: 'OpenRouter Auto',
+    provider: 'openrouter',
+    providerModelId: 'openrouter/auto',
+    remoteModelCatalogId: 'rmc_openrouter_auto',
+    capabilities: ['text.generate'],
+  }]);
   assert.deepEqual(calls, ['catalog', 'connectors', 'models:conn-1:false']);
 });
 

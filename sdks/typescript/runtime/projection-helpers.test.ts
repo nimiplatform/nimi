@@ -7,7 +7,6 @@ import {
   getNimiRuntimeReasonCodeMessage,
   getNimiRuntimeReasonCodeDefaultMessage,
   normalizeNimiRuntimeReasonCode,
-  projectNimiCloudConnectorGrantError,
   projectNimiRuntimeAuditCallerKindName,
   projectNimiRuntimeUsageWindowName,
   runNimiRuntimeScenarioJob,
@@ -23,6 +22,9 @@ import {
   ScenarioJobStatus,
   ScenarioType,
   UsageWindow,
+  VoiceAssetPersistence,
+  VoiceAssetStatus,
+  VoiceCreationSource,
   VoiceReferenceKind,
 } from '../core-generated/runtime-typed-client';
 import { ReasonCode } from '../types';
@@ -43,38 +45,6 @@ test('Runtime reason message projection normalizes generated enum values and SDK
     getNimiRuntimeReasonCodeMessage(RuntimeGeneratedReasonCode.AI_STREAM_BROKEN)?.defaultMessage,
     'AI streaming response was interrupted.',
   );
-  assert.deepEqual(
-    projectNimiCloudConnectorGrantError({
-      reasonCode: RuntimeGeneratedReasonCode.AI_CONNECTOR_GRANT_SELECTION_REQUIRED,
-    }),
-    {
-      state: 'selection-required',
-      tone: 'info',
-      message: 'Choose an account authorization before running this Cloud capability.',
-      action: 'configure-account-authorization',
-    },
-  );
-  assert.deepEqual(
-    projectNimiCloudConnectorGrantError({ reasonCode: 'AI_CONNECTOR_GRANT_REVOKED' }),
-    {
-      state: 'revoked',
-      tone: 'warning',
-      message: 'The selected account authorization was revoked. Choose another authorization.',
-      action: 'configure-account-authorization',
-    },
-  );
-  assert.deepEqual(
-    projectNimiCloudConnectorGrantError(new Error('outer failure', {
-      cause: { reasonCode: 'AI_CONNECTOR_GRANT_REVOKED' },
-    })),
-    {
-      state: 'revoked',
-      tone: 'warning',
-      message: 'The selected account authorization was revoked. Choose another authorization.',
-      action: 'configure-account-authorization',
-    },
-  );
-  assert.equal(projectNimiCloudConnectorGrantError(new Error('AI_CONNECTOR_GRANT_REVOKED')), null);
   assert.equal(
     getNimiRuntimeReasonCodeMessage(RuntimeGeneratedReasonCode.AI_MEDIA_IDEMPOTENCY_CONFLICT)?.defaultMessage,
     'Media task idempotency conflict occurred.',
@@ -184,6 +154,50 @@ test('Runtime scenario job runner follows submit, event stream, artifact lookup,
   assert.equal(result.job.jobId, 'job-1');
   assert.equal(result.traceId, 'trace-1');
   assert.deepEqual(result.artifacts, [{ artifactId: 'artifact-1' }]);
+});
+
+test('Runtime voice job runner uses one terminal Get as the result and artifact snapshot', async () => {
+  let artifactLookups = 0;
+  const terminalJob = {
+    ...createScenarioJob('job-voice-1', ScenarioJobStatus.COMPLETED),
+    scenarioType: ScenarioType.VOICE_CREATE,
+  };
+  const asset = {
+    voiceAssetId: 'voice-asset-1', appId: '', subjectUserId: '', provider: '', modelId: '', targetModelId: '',
+    providerVoiceRef: '', persistence: VoiceAssetPersistence.UNSPECIFIED, status: VoiceAssetStatus.ACTIVE,
+    metadata: undefined, creationSource: VoiceCreationSource.TEXT_DESCRIPTION,
+  };
+  const voiceReference = {
+    kind: VoiceReferenceKind.VOICE_ASSET,
+    reference: { oneofKind: 'voiceAssetId' as const, voiceAssetId: asset.voiceAssetId },
+  };
+  const client: NimiRuntimeScenarioJobClient = {
+    async submitScenarioJob() {
+      return { job: { ...terminalJob, status: ScenarioJobStatus.SUBMITTED } };
+    },
+    async getScenarioJob() {
+      return { job: terminalJob, asset, voiceReference };
+    },
+    async cancelScenarioJob() { return {}; },
+    async *subscribeScenarioJobEvents() {
+      yield { eventType: 0, sequence: '1', traceId: terminalJob.traceId, job: terminalJob };
+    },
+    async getScenarioArtifacts() {
+      artifactLookups += 1;
+      throw new Error('voice terminal result must not require a second artifacts lookup');
+    },
+  };
+
+  const result = await runNimiRuntimeScenarioJob({
+    ai: client,
+    request: { ...createScenarioJobRequest(), scenarioType: ScenarioType.VOICE_CREATE },
+  });
+
+  assert.equal(artifactLookups, 0);
+  assert.deepEqual(result.artifacts, terminalJob.artifacts);
+  assert.equal(result.traceId, terminalJob.traceId);
+  assert.deepEqual(result.asset, asset);
+  assert.deepEqual(result.voiceReference, voiceReference);
 });
 
 test('Runtime scenario job runner fails closed on non-completed terminal job', async () => {

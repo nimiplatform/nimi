@@ -13,8 +13,6 @@ export const NIMI_RUNTIME_REASON_CODES = Object.freeze({
   AI_PROVIDER_INTERNAL: 'AI_PROVIDER_INTERNAL',
   AI_STREAM_BROKEN: 'AI_STREAM_BROKEN',
   AI_CONNECTOR_CREDENTIAL_MISSING: 'AI_CONNECTOR_CREDENTIAL_MISSING',
-  AI_CONNECTOR_GRANT_SELECTION_REQUIRED: 'AI_CONNECTOR_GRANT_SELECTION_REQUIRED',
-  AI_CONNECTOR_GRANT_REVOKED: 'AI_CONNECTOR_GRANT_REVOKED',
   AI_CONNECTOR_DISABLED: 'AI_CONNECTOR_DISABLED',
   AI_CONNECTOR_NOT_FOUND: 'AI_CONNECTOR_NOT_FOUND',
   AI_MODEL_NOT_FOUND: 'AI_MODEL_NOT_FOUND',
@@ -45,8 +43,6 @@ const RUNTIME_REASON_CODE_MESSAGE_ENTRIES = [
   [NIMI_RUNTIME_REASON_CODES.AI_PROVIDER_INTERNAL, 'AI provider returned an internal error.'],
   [NIMI_RUNTIME_REASON_CODES.AI_STREAM_BROKEN, 'AI streaming response was interrupted.'],
   [NIMI_RUNTIME_REASON_CODES.AI_CONNECTOR_CREDENTIAL_MISSING, 'Runtime cloud credentials are missing.'],
-  [NIMI_RUNTIME_REASON_CODES.AI_CONNECTOR_GRANT_SELECTION_REQUIRED, 'Choose an account authorization before running this Cloud capability.'],
-  [NIMI_RUNTIME_REASON_CODES.AI_CONNECTOR_GRANT_REVOKED, 'The selected account authorization was revoked. Choose another authorization.'],
   [NIMI_RUNTIME_REASON_CODES.AI_CONNECTOR_DISABLED, 'Runtime cloud configuration is disabled.'],
   [NIMI_RUNTIME_REASON_CODES.AI_CONNECTOR_NOT_FOUND, 'Runtime cloud configuration was not found.'],
   [NIMI_RUNTIME_REASON_CODES.AI_MODEL_NOT_FOUND, 'Runtime found no admitted implementation for this capability.'],
@@ -163,47 +159,6 @@ export function extractNimiRuntimeReasonCodeFromError(error: unknown): string | 
     if (mapped) {
       return mapped;
     }
-  }
-  return null;
-}
-
-export type NimiCloudConnectorGrantUserState = 'selection-required' | 'revoked';
-
-export interface NimiCloudConnectorGrantUserProjection {
-  readonly state: NimiCloudConnectorGrantUserState;
-  readonly tone: 'info' | 'warning';
-  readonly message: string;
-  readonly action: 'configure-account-authorization';
-}
-
-/** Projects only structured ConnectorGrant failures that require a user choice. */
-export function projectNimiCloudConnectorGrantError(
-  error: unknown,
-): NimiCloudConnectorGrantUserProjection | null {
-  const directReasonCode = normalizeNimiRuntimeReasonCode(readRuntimeReasonField(
-    asRuntimeReasonRecord(error),
-    ['reasonCode', 'reason_code', 'reason', 'code'],
-  ));
-  const cause = error instanceof Error ? error.cause : undefined;
-  const reasonCode = directReasonCode || normalizeNimiRuntimeReasonCode(readRuntimeReasonField(
-    asRuntimeReasonRecord(cause),
-    ['reasonCode', 'reason_code', 'reason', 'code'],
-  ));
-  if (reasonCode === NIMI_RUNTIME_REASON_CODES.AI_CONNECTOR_GRANT_SELECTION_REQUIRED) {
-    return Object.freeze({
-      state: 'selection-required',
-      tone: 'info',
-      message: 'Choose an account authorization before running this Cloud capability.',
-      action: 'configure-account-authorization',
-    });
-  }
-  if (reasonCode === NIMI_RUNTIME_REASON_CODES.AI_CONNECTOR_GRANT_REVOKED) {
-    return Object.freeze({
-      state: 'revoked',
-      tone: 'warning',
-      message: 'The selected account authorization was revoked. Choose another authorization.',
-      action: 'configure-account-authorization',
-    });
   }
   return null;
 }
