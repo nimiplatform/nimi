@@ -11,6 +11,9 @@ use crate::{NimiHostError, NimiHostErrorReasonCode};
 pub(crate) const MACOS_LOCAL_APP_HOST_PATH: &str = LOCAL_APP_HOST_PATH;
 const MAX_HOST_ARGUMENTS: usize = 64;
 const MAX_HOST_ARGUMENT_BYTES: usize = 64 * 1024;
+#[cfg(feature = "macos-source-local-development")]
+const SOURCE_RUNTIME_EXECUTABLE_ENVIRONMENT: &str =
+    "NIMI_MACOS_SOURCE_LOCAL_DEVELOPMENT_RUNTIME_EXECUTABLE";
 
 unsafe extern "C" {
     fn nimi_macos_spawn_suspended(
@@ -181,6 +184,28 @@ fn path_cstring(path: &Path) -> Result<CString, NimiHostError> {
 }
 
 fn sanitized_environment() -> Result<Vec<CString>, NimiHostError> {
+    #[cfg(feature = "macos-source-local-development")]
+    {
+        let source_native_entry =
+            std::env::var_os("NIMI_MACOS_SOURCE_LOCAL_DEVELOPMENT_NATIVE_ENTRY")
+                .map(PathBuf::from)
+                .ok_or_else(untrusted)?;
+        let source_runtime_executable = std::env::var_os(SOURCE_RUNTIME_EXECUTABLE_ENVIRONMENT)
+            .map(PathBuf::from)
+            .ok_or_else(untrusted)?;
+        return sanitized_environment_with_source_paths(
+            Some(&source_native_entry),
+            Some(&source_runtime_executable),
+        );
+    }
+    #[cfg(not(feature = "macos-source-local-development"))]
+    sanitized_environment_with_source_paths(None, None)
+}
+
+fn sanitized_environment_with_source_paths(
+    source_native_entry: Option<&Path>,
+    source_runtime_executable: Option<&Path>,
+) -> Result<Vec<CString>, NimiHostError> {
     let home = std::env::var_os("HOME")
         .map(PathBuf::from)
         .filter(|path| path.is_absolute() && path.is_dir())
@@ -196,8 +221,7 @@ fn sanitized_environment() -> Result<Vec<CString>, NimiHostError> {
     #[cfg(feature = "macos-source-local-development")]
     {
         use std::os::unix::fs::{MetadataExt, PermissionsExt};
-        let entry = std::env::var_os("NIMI_MACOS_SOURCE_LOCAL_DEVELOPMENT_NATIVE_ENTRY")
-            .map(PathBuf::from)
+        let entry = source_native_entry
             .filter(|value| value.is_absolute())
             .and_then(|value| std::fs::canonicalize(value).ok())
             .ok_or_else(untrusted)?;
@@ -219,6 +243,29 @@ fn sanitized_environment() -> Result<Vec<CString>, NimiHostError> {
             "NIMI_MACOS_SOURCE_LOCAL_DEVELOPMENT_NATIVE_ENTRY={}",
             path_text(&entry)?
         ));
+        let runtime = source_runtime_executable
+            .filter(|value| value.is_absolute())
+            .ok_or_else(untrusted)?;
+        let canonical_runtime = std::fs::canonicalize(runtime).map_err(|_| untrusted())?;
+        if canonical_runtime != runtime {
+            return Err(untrusted());
+        }
+        let runtime_metadata = canonical_runtime.metadata().map_err(|_| untrusted())?;
+        if !runtime_metadata.is_file()
+            || runtime_metadata.uid() != unsafe { libc::geteuid() }
+            || runtime_metadata.permissions().mode() & 0o022 != 0
+            || runtime_metadata.permissions().mode() & 0o111 == 0
+        {
+            return Err(untrusted());
+        }
+        values.push(format!(
+            "{SOURCE_RUNTIME_EXECUTABLE_ENVIRONMENT}={}",
+            path_text(&canonical_runtime)?
+        ));
+    }
+    #[cfg(not(feature = "macos-source-local-development"))]
+    if source_native_entry.is_some() || source_runtime_executable.is_some() {
+        return Err(untrusted());
     }
     values.sort();
     values
@@ -248,7 +295,26 @@ mod tests {
 
     #[test]
     fn child_environment_has_no_runtime_or_session_material() {
-        let keys = sanitized_environment()
+        #[cfg(feature = "macos-source-local-development")]
+        let source_native_entry = Path::new(env!("CARGO_MANIFEST_DIR"))
+            .parent()
+            .expect("protected-local parent")
+            .join("protected-local-node")
+            .join("npm")
+            .join("darwin-arm64")
+            .join("index.cjs");
+        #[cfg(feature = "macos-source-local-development")]
+        let source_runtime_executable = std::env::current_exe()
+            .and_then(std::fs::canonicalize)
+            .expect("current test executable");
+        #[cfg(feature = "macos-source-local-development")]
+        let environment = sanitized_environment_with_source_paths(
+            Some(&source_native_entry),
+            Some(&source_runtime_executable),
+        );
+        #[cfg(not(feature = "macos-source-local-development"))]
+        let environment = sanitized_environment_with_source_paths(None, None);
+        let keys = environment
             .expect("sanitized environment")
             .into_iter()
             .map(|value| value.to_string_lossy().into_owned())
@@ -262,6 +328,7 @@ mod tests {
             .all(|value| {
                 value == "NIMI_MACOS_SOURCE_LOCAL_DEVELOPMENT=1"
                     || value.starts_with("NIMI_MACOS_SOURCE_LOCAL_DEVELOPMENT_NATIVE_ENTRY=")
+                    || value.starts_with("NIMI_MACOS_SOURCE_LOCAL_DEVELOPMENT_RUNTIME_EXECUTABLE=")
             }));
         assert!(keys
             .iter()
