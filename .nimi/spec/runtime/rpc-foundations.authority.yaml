@@ -22,7 +22,7 @@ units:
   - id: definition.nimi.runtime.rpc-foundations.capability-composition-plane
     kind: definition
     title: Runtime capability composition plane
-    meaning: The Runtime capability composition plane deterministically dereferences a committed AIConfig route through the current Machine Local AI Configuration selection or the committed Cloud CapabilityImplementation target and ConnectorGrant, checks standardized features and derived admission, and captures exact Job inputs without searching, ranking, probing, warming, or choosing a substitute.
+    meaning: The Runtime capability composition plane deterministically dereferences a committed AIConfig route through the current Machine Local AI Configuration selection or the committed Cloud CapabilityImplementation target plus the internally resolved current-account Connector, checks standardized features, ownership, credentials, App Capability access, policy, and derived admission, and captures exact Job inputs without App-supplied Connector identity, searching, ranking, probing, warming, or choosing a substitute.
     relations:
       - type: supersedes
         target: definition.nimi.runtime.rpc-foundations.route-description-plane
@@ -33,7 +33,7 @@ units:
   - id: definition.nimi.runtime.rpc-foundations.target-identity-plane
     kind: definition
     title: Runtime target identity plane
-    meaning: The Runtime target identity plane separates durable AIConfig route and Cloud target intent, explicit ConnectorGrant authorization binding, Machine Local AI Configuration selection, Local Capability Configuration identity and binding, derived admission, and exact immutable Job execution inputs.
+    meaning: The Runtime target identity plane separates durable AIConfig route and Cloud target intent, Runtime-private current-account Connector custody resolution, Machine Local AI Configuration selection, Local Capability Configuration identity and binding, derived admission, and exact immutable Job execution inputs.
   - id: rule.nimi.runtime.rpc-foundations.r001
     kind: rule
     title: Audit follows owner actions
@@ -118,7 +118,7 @@ units:
     kind: rule
     title: Capability composition descriptions are bounded
     modality: must
-    statement: Runtime may describe the committed AIConfig route intent, the exact selected Local Capability Configuration or Cloud CapabilityImplementation target and ConnectorGrant reference, supported and required standardized features, and the current derived admission reason without Provider Credentials, raw provider payloads, public readiness, probe, warm, resident, health, ranking, or fallback facts.
+    statement: Runtime may describe the committed AIConfig route intent, the exact selected Local Capability Configuration or Cloud CapabilityImplementation target, supported and required standardized features, and the current derived admission reason without exposing current-account Connector identity, Provider Credentials, raw provider payloads, public readiness, probe, warm, resident, health, ranking, or fallback facts to an ordinary App.
     condition: Whenever an authorized consumer inspects effective capability composition.
     failure: Return the typed derived admission reason when the committed composition cannot execute and never search for another target.
     relations:
@@ -178,7 +178,7 @@ units:
     kind: rule
     title: Durable route and target intent is secret free
     modality: must
-    statement: AIConfig stores Local or Cloud route intent and, for Cloud, the intended CapabilityImplementation and provider-model target plus an explicit ConnectorGrant reference, while the grant contains only authorization binding and custody reference; neither carries secret material, bearer or session proof, Local Capability Configuration identity, LocalAsset binding, machine selection, process state, public readiness, or a mutable Job binding.
+    statement: AIConfig stores Local or Cloud route intent and, for Cloud, only the intended CapabilityImplementation and provider-model target selected through Nimi-owned configuration; Runtime resolution supplies the exact current-account Connector custody reference, while none carries secret material, bearer or session proof, Local Capability Configuration identity, LocalAsset binding, machine selection, process state, public readiness, or a mutable Job binding in ordinary configuration.
     condition: Whenever Runtime stores or transports durable AI route or Cloud target intent.
     failure: Reject secret or Local execution material and keep each fact with its canonical owner.
     relations:
@@ -188,7 +188,7 @@ units:
     kind: rule
     title: Job submission captures deterministic composition
     modality: must
-    statement: At Job submission Runtime reads the committed AIConfig route and exact current machine selection for Local or committed Cloud CapabilityImplementation target and ConnectorGrant for Cloud, checks exact Driver configuration, bindings, standardized features, authorization, Quota, Budget, and Rate Limit, and captures those effective inputs with the request so later configuration or selection changes cannot rewrite the running Job.
+    statement: At Job submission Runtime reads the committed AIConfig route and exact current machine selection for Local or committed Cloud CapabilityImplementation target plus the internally resolved current-account Connector for Cloud, checks exact Driver configuration, ownership, credential configuration, App Capability access, policy, bindings, standardized features, authorization, Quota, Budget, and Rate Limit, and captures those effective inputs with the request so later configuration or selection changes cannot rewrite the running Job.
     condition: Whenever Runtime turns committed capability intent into a Job.
     failure: Fail closed with the typed admission reason when any exact required fact is missing or invalid and never probe, re-resolve ambient inventory, switch provider, or fall back.
     relations:

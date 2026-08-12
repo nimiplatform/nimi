@@ -729,7 +729,7 @@ units:
     kind: rule
     title: P-NAPP-003 AIProfile recommendation is portable and non-binding
     modality: must
-    statement: An optional ai_profile_recommendation_ref resolves to an admitted factory AIProfile alias or profileId and remains a visible portable recommendation that writes configuration only if the user later invokes explicit Apply Profile to AIConfig; a registry row contains no embedded provider, connector, engine, or model identifier constant and the recommendation never selects an AIConfig route, Local Capability Configuration, machine relation, binding, or ConnectorGrant.
+    statement: An optional ai_profile_recommendation_ref resolves to an admitted factory AIProfile alias or profileId and remains a visible portable recommendation that writes configuration only if the user later invokes explicit Apply Profile to AIConfig; a registry row contains no embedded provider, connector, engine, or model identifier constant and the recommendation never selects an AIConfig route, Local Capability Configuration, machine relation, binding, or Connector.
     condition: Whenever AIProfile recommendation metadata is admitted or presented.
     failure: Reject an unresolved reference, embedded vendor identifier, automatic Apply, or recommendation presented as live selection or binding.
     relations:
@@ -1458,7 +1458,7 @@ units:
     kind: rule
     title: P-SCAF-016 protected launch and session custody
     modality: must
-    statement: A Scaffolded Third-party Local App is launched as the exact Host by Desktop and uses the standard SDK only to carry typed requests and results, while Runtime privately derives and interprets the current account, registered subject, protected session, Effective App Access Snapshot, and exact operation admission; the App and SDK receive no snapshot content or identifier, Realm or refresh token, Provider Credential, ConnectorGrant custody material, native peer proof, or internal authorization material.
+    statement: A Scaffolded Third-party Local App is launched as the exact Host by Desktop and uses the standard SDK only to carry typed requests and results, while Runtime privately derives and interprets the current account, registered subject, protected session, Effective App Access Snapshot, and exact operation admission; the App and SDK receive no snapshot content or identifier, Realm or refresh token, Provider Credential, connector credential material, native peer proof, or internal authorization material.
     condition: Whenever a scaffolded third-party app opens a protected local session.
     failure: Deny protected session creation or the exact operation when identity, context, snapshot, peer material, or credentials are App-supplied or exposed without requiring Host termination for ordinary access unavailability.
     relations:
@@ -1554,7 +1554,7 @@ units:
     kind: rule
     title: P-ECO-005 future world and game app boundary
     modality: must
-    statement: A future world or game App remains only a registry candidate, and any cross-world or cross-game flow requires a separate owner-complete authority cut and typed projection while retaining source App, target App, and canonical App owner references on the Realm audit surface; it cannot widen the current four AppAccess domains or thirty-six operations through registry, review, trust inheritance, or raw sharing.
+    statement: A future world or game App remains only a registry candidate, and any cross-world or cross-game flow requires a separate owner-complete authority cut and typed projection while retaining source App, target App, and canonical App owner references on the Realm audit surface; it cannot widen the current four AppAccess domains or thirty-five operations through registry, review, trust inheritance, or raw sharing.
     condition: Whenever a world or game app class or cross-app flow is proposed.
     failure: Deny admission or data flow without the separate owner authority, projection, audit reference, and trust-tier boundary.
     relations:

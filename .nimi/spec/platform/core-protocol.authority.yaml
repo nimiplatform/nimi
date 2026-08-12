@@ -26,7 +26,7 @@ units:
   - id: definition.nimi.platform.core-protocol.app-operation-contract
     kind: definition
     title: Canonical App operation contract
-    meaning: The closed App operation contract contains exactly thirty-six mappings—runtime.app-storage.json.read as Base, runtime.app-storage.json.write as Base, runtime.app-storage.json.remove as Base, runtime.app-storage.asset.stat as Base, runtime.app-storage.asset.list as Base, runtime.app-storage.asset.write as Base, runtime.app-storage.asset.read as Base, runtime.app-storage.asset.remove as Base, runtime.app-storage.asset.move as Base, runtime.ai.app-config.get as Base, runtime.ai.app-config.overwrite as Base, realm.world-core.list as AppAccess realm.data, realm.world-core.create as AppAccess realm.data, runtime.ai.text-candidate.generate as AppAccess runtime.consume, runtime.ai.text-turn.stream as AppAccess runtime.consume, runtime.ai.scenario.execute as AppAccess runtime.consume, runtime.ai.scenario-job.submit as AppAccess runtime.consume, runtime.ai.scenario-job.get as AppAccess runtime.consume, runtime.ai.scenario-job.subscribe as AppAccess runtime.consume, runtime.ai.scenario-job.cancel as AppAccess runtime.consume, runtime.ai.artifact.read as AppAccess runtime.consume, runtime.ai.artifact.upload as AppAccess runtime.consume, runtime.ai.artifact.adopt-to-app-storage as AppAccess runtime.consume, runtime.ai.voice-assets.list as AppAccess runtime.consume, runtime.agent.reference.list as AppAccess agent.local, runtime.agent.conversation.open as AppAccess agent.local, runtime.agent.conversation.turn.send as AppAccess agent.local, runtime.agent.conversation.turn.interrupt as AppAccess agent.local, runtime.agent.conversation.events.subscribe as AppAccess agent.local, runtime.agent.conversation.snapshot.get as AppAccess agent.local, runtime.agent.ai-config.get as AppAccess agent.configure, runtime.agent.ai-config.overwrite as AppAccess agent.configure, runtime.agent.autonomy.snapshot.get as AppAccess agent.configure, runtime.agent.autonomy.update as AppAccess agent.configure, runtime.agent.presentation.snapshot.get as AppAccess agent.configure, and runtime.agent.presentation.commit as AppAccess agent.configure; each AppOperationId is a stable callable identity derived by Runtime from the typed protected ingress rather than caller-supplied classification, authority, exact handler identity, implementation detail, or an extensible public catalog.
+    meaning: The closed App operation contract contains exactly thirty-five mappings—runtime.app-storage.json.read as Base, runtime.app-storage.json.write as Base, runtime.app-storage.json.remove as Base, runtime.app-storage.asset.stat as Base, runtime.app-storage.asset.list as Base, runtime.app-storage.asset.write as Base, runtime.app-storage.asset.read as Base, runtime.app-storage.asset.remove as Base, runtime.app-storage.asset.move as Base, runtime.ai.app-config.get as Base, realm.world-core.list as AppAccess realm.data, realm.world-core.create as AppAccess realm.data, runtime.ai.text-candidate.generate as AppAccess runtime.consume, runtime.ai.text-turn.stream as AppAccess runtime.consume, runtime.ai.scenario.execute as AppAccess runtime.consume, runtime.ai.scenario-job.submit as AppAccess runtime.consume, runtime.ai.scenario-job.get as AppAccess runtime.consume, runtime.ai.scenario-job.subscribe as AppAccess runtime.consume, runtime.ai.scenario-job.cancel as AppAccess runtime.consume, runtime.ai.artifact.read as AppAccess runtime.consume, runtime.ai.artifact.upload as AppAccess runtime.consume, runtime.ai.artifact.adopt-to-app-storage as AppAccess runtime.consume, runtime.ai.voice-assets.list as AppAccess runtime.consume, runtime.agent.reference.list as AppAccess agent.local, runtime.agent.conversation.open as AppAccess agent.local, runtime.agent.conversation.turn.send as AppAccess agent.local, runtime.agent.conversation.turn.interrupt as AppAccess agent.local, runtime.agent.conversation.events.subscribe as AppAccess agent.local, runtime.agent.conversation.snapshot.get as AppAccess agent.local, runtime.agent.ai-config.get as AppAccess agent.configure, runtime.agent.ai-config.overwrite as AppAccess agent.configure, runtime.agent.autonomy.snapshot.get as AppAccess agent.configure, runtime.agent.autonomy.update as AppAccess agent.configure, runtime.agent.presentation.snapshot.get as AppAccess agent.configure, and runtime.agent.presentation.commit as AppAccess agent.configure; each AppOperationId is a stable callable identity derived by Runtime from the typed protected ingress rather than caller-supplied classification, authority, exact handler identity, implementation detail, or an extensible public catalog.
     relations:
       - type: supersedes
         target: definition.nimi.platform.core-protocol.protected-app-authorization
@@ -126,7 +126,7 @@ units:
   - id: definition.nimi.platform.core-protocol.ai-config
     kind: definition
     title: AIConfig
-    meaning: An AIConfig is the directly editable current capability intent for exactly one canonical AIConfig owner and stores per CapabilityContract a Local or Cloud route intent, required standardized features, defaults, and, only for Cloud, the CapabilityImplementation, Driver-owned provider-model target intent, and an optional ConnectorGrant binding written only by a Nimi-owned explicit-user-selection flow rather than portable or Third-party App input.
+    meaning: An AIConfig is the current capability intent for exactly one canonical AIConfig owner and stores per CapabilityContract a Local or Cloud route intent, required standardized features, defaults, and, only for Cloud, the CapabilityImplementation and Driver-owned provider-model target intent chosen through authorized Nimi-owned configuration; a protected App may read and consume its owner record but cannot author or overwrite it, and ordinary same-account App input carries no route, implementation, provider-model target, connector identity, account identity, or credential material.
     relations:
       - type: supersedes
         target: definition.nimi.platform.core-protocol.materialized-ai-config
@@ -151,12 +151,13 @@ units:
     meaning: A Local Capability Configuration is a machine-local saved record with a Runtime-generated identity that remains stable for the record's lifetime and contains one CapabilityContract, one CapabilityImplementation, its CapabilityImplementationDriver and dialect identity, Driver-owned portable configuration, deterministically projected normalized local requirements, exact bindings or unresolved slots, declared standardized-feature support, and provenance and display metadata; the stable identity is neither revision nor history, and provenance is non-authorizing metadata rather than identity, binding, or selection truth.
   - id: definition.nimi.platform.core-protocol.connector-grant
     kind: definition
-    title: ConnectorGrant
-    meaning: A ConnectorGrant is the independent current-account credential-custody and authorization reference selected by a Nimi-owned explicit-user flow for one AIConfig Cloud route; it is not an App PermissionGrant, CapabilityImplementation, provider-model target, route selector, capability router, portable profile field, or Third-party App input or output.
+    lifecycle: removed
+    title: Retired ConnectorGrant definition
+    reason: Removed because the current product provides no per-Connector delegated authorization mechanism; any future cross-account, cross-Realm, shared-credential, service-account, enterprise-managed, or time-bounded delegation requires new authority and a new subject model without compatibility with this retired identity.
   - id: definition.nimi.platform.core-protocol.capability-job-effective-inputs
     kind: definition
     title: Capability job effective inputs
-    meaning: Capability job effective inputs are the immutable exact request-time composition captured at submission from authorization, the owner AIConfig, and either the selected Local Capability Configuration with implementation, Driver configuration, and exact bindings or the Cloud implementation, target, ConnectorGrant, defaults, and request.
+    meaning: Capability job effective inputs are the immutable exact request-time composition captured at submission from authorization, the owner AIConfig, and either the selected Local Capability Configuration with implementation, Driver configuration, and exact bindings or the Cloud implementation, target, Runtime-resolved current-account Connector custody reference, defaults, and request.
   - id: definition.nimi.platform.core-protocol.derived-capability-admission
     kind: definition
     title: Derived capability admission
@@ -273,9 +274,9 @@ units:
         target: definition.nimi.platform.core-protocol.effective-app-access-snapshot
   - id: rule.nimi.platform.core-protocol.p-proto-021
     kind: rule
-    title: P-PROTO-021 canonical thirty-six-operation mapping
+    title: P-PROTO-021 canonical thirty-five-operation mapping
     modality: must_not
-    statement: An App, declaration, SDK, Host, manifest, catalog, endpoint string, free-form scope, or owner-local allowlist adds, aliases, reclassifies, or widens an AppOperationId or changes its one Base or AppAccess domain mapping outside the canonical thirty-six-row contract.
+    statement: An App, declaration, SDK, Host, manifest, catalog, endpoint string, free-form scope, or owner-local allowlist adds, aliases, reclassifies, or widens an AppOperationId or changes its one Base or AppAccess domain mapping outside the canonical thirty-five-row contract.
     condition: Whenever an App operation is declared, admitted, mapped, or described.
     failure: Reject the unknown, aliased, duplicated, or mismapped operation and use only the stable callable identity selected by the typed protected ingress and its canonical mapping.
     relations:
@@ -317,7 +318,7 @@ units:
     kind: rule
     title: P-PROTO-041 Effective App Access Snapshot lifecycle
     modality: must
-    statement: Runtime creates a fresh Effective App Access Snapshot only after the exact Desktop-launched Host binds a protected session, includes only currently supported declared AppAccess domains for the exact source and declaration generations, and invalidates the session and snapshot on account or context change, source or declaration generation change, Runtime restart, or session end while allowing the same exact running Host to bind a new session; all eleven Base rows remain outside the snapshot and are evaluated from their canonical operation classification and Base invariants on each call.
+    statement: Runtime creates a fresh Effective App Access Snapshot only after the exact Desktop-launched Host binds a protected session, includes only currently supported declared AppAccess domains for the exact source and declaration generations, and invalidates the session and snapshot on account or context change, source or declaration generation change, Runtime restart, or session end while allowing the same exact running Host to bind a new session; all ten Base rows remain outside the snapshot and are evaluated from their canonical operation classification and Base invariants on each call.
     condition: Whenever an App session or its declaration, account, Runtime, or Host context changes.
     failure: Deny further protected operations under the stale session or snapshot without deleting registration or rotating the registered subject; require Host restart or replacement only when a security-relevant exact Host executable, entrypoint, or launch input changes, the exact process identity or start marker no longer matches, the supervised process lifetime ends, or the process exits, and do not require it for ordinary source, asset, or HMR changes alone.
     relations:
@@ -329,7 +330,7 @@ units:
     kind: rule
     title: P-PROTO-042 owner execution and positive App projection
     modality: must
-    statement: After exact Runtime admission, an internal owner executor may enforce its canonical resource and business rules and returns only the operation-specific typed positive projection; supported App API, SDK, Host, environment, argv, renderer, generic forwarding, and raw Realm response surfaces expose no Realm token, refresh token, Provider Credential, ConnectorGrant custody material, equivalent portable authority, raw owner response, or caller-selectable generic protected executor.
+    statement: After exact Runtime admission, an internal owner executor may enforce its canonical resource and business rules and returns only the operation-specific typed positive projection; supported App API, SDK, Host, environment, argv, renderer, generic forwarding, and raw Realm response surfaces expose no Realm token, refresh token, Provider Credential, connector credential material, equivalent portable authority, raw owner response, or caller-selectable generic protected executor.
     condition: Whenever an admitted App operation executes or returns data to the App.
     failure: Deny or sanitize the exact result before the App boundary when owner execution fails, projection is absent, or forbidden authority material would cross the supported surface, without treating an optional scanner as the admission proof.
     relations:
@@ -365,7 +366,7 @@ units:
     modality: must
     statement: runtime.ai.text-candidate.generate is one synchronous foreground runtime.consume operation that consumes the calling App owner's committed AIConfig without caller-selected route, provider, model, target, connector, credential, tool, media, stream, Job, background authority, or fallback and returns only the typed candidate result and trace correlation.
     condition: Whenever runtime.ai.text-candidate.generate is invoked.
-    failure: Deny the exact operation on missing runtime.consume coverage, invalid bounded input, owner AIConfig composition failure, metering failure, missing Cloud ConnectorGrant, or execution failure, returning selection-required for a Cloud route without a binding and never changing the committed route.
+    failure: Deny the exact operation on missing runtime.consume coverage, invalid bounded input, owner AIConfig composition failure, metering failure, missing or foreign current-account Connector, unusable credential, policy denial, or execution failure, returning the existing owner or configuration-required reason without requesting App-side Connector selection and never changing the committed route.
     relations:
       - type: applies_to
         target: definition.nimi.platform.core-protocol.ai-config
@@ -375,9 +376,9 @@ units:
     kind: rule
     title: P-PROTO-046 Base App operations remain bounded
     modality: must
-    statement: The three Base JSON operations and six Base asset operations address only the Runtime-derived current-account-plus-Registered-App-Subject private partition; JSON documents and binary assets occupy collision-proof namespaces with independent committed-usage quotas, asset stat, bounded list, streamed write, immutable-source ranged read, idempotent remove, and same-partition move expose no physical layout or authority selector, and owner-configured path, chunk, page, concurrency, object, partition, and minimum-free-space bounds must support ordinary assets larger than the 32-MiB inline artifact ceiling; runtime.ai.app-config.get returns the calling App owner's portable AIConfig intent and may additionally return a bounded read-only Model Config projection containing only each currently selected Local CapabilityContract's state, display name, supported features, and safe reason codes without configuration identity, implementation, binding, LocalAsset, path, or execution truth, and runtime.ai.app-config.overwrite atomically writes one complete portable intent without merge or ConnectorGrant input and applies the canonical binding-clearing behavior; no Base operation exposes internal identity, account, session, snapshot, credential, owner inventory beyond that bounded current-selection projection, or generic Runtime access.
-    condition: Whenever one of the eleven Base App operations is invoked.
-    failure: Deny the exact operation on missing session, owner, partition, path, quota, schema, or positive projection and never manufacture AppAccess coverage or preserve a Cloud binding through App overwrite.
+    statement: The three Base JSON operations and six Base asset operations address only the Runtime-derived current-account-plus-Registered-App-Subject private partition; JSON documents and binary assets occupy collision-proof namespaces with independent committed-usage quotas, asset stat, bounded list, streamed write, immutable-source ranged read, idempotent remove, and same-partition move expose no physical layout or authority selector, and owner-configured path, chunk, page, concurrency, object, partition, and minimum-free-space bounds must support ordinary assets larger than the 32-MiB inline artifact ceiling; runtime.ai.app-config.get returns the calling App owner's portable AIConfig intent and may additionally return a bounded read-only Model Config projection containing only each currently selected Local CapabilityContract's state, display name, supported features, and safe reason codes without configuration identity, implementation, binding, LocalAsset, path, or execution truth; no Base operation mutates AIConfig or exposes internal identity, account, session, snapshot, credential, owner inventory beyond that bounded current-selection projection, or generic Runtime access.
+    condition: Whenever one of the ten Base App operations is invoked.
+    failure: Deny the exact operation on missing session, owner, partition, path, quota, schema, or positive projection and never manufacture AppAccess coverage or accept an App-supplied Connector binding.
     relations:
       - type: applies_to
         target: definition.nimi.platform.core-protocol.ai-config
@@ -698,7 +699,7 @@ units:
     kind: rule
     title: P-AISC-007 explicit Nimi App AIConfig owner
     modality: must
-    statement: Nimi App Open resolves the admitted App identity to its one canonical App AIConfig owner and never creates a launch-, surface-, feature-, or renderer-specific configuration owner.
+    statement: Nimi App Open resolves the admitted App identity to its one canonical App AIConfig owner and never creates a launch-, surface-, feature-, or renderer-specific configuration owner; only an authorized Nimi-owned account-product configuration interaction may create or edit intent for that exact admitted App owner, while the protected App may read and consume the record but never mutate route, implementation, provider-model target, or Connector selection.
     condition: Whenever an admitted Nimi App is launched through Open flow or consumes AIConfig.
     failure: Reject an absent, inferred, unadmitted, transient, fragmented, or caller-fabricated App owner.
     relations:
@@ -976,9 +977,9 @@ units:
     kind: rule
     title: compliance-test-matrix L1 App access compatibility
     modality: must
-    statement: Local App access compatibility preserves Desktop-verified exact Host launch, a fresh process-bound session and snapshot derived without caller-supplied protected context, exactly eleven Base rows plus twenty-five AppAccess rows across four declared domains, and typed SDK and Host projections without credential, generic Runtime forwarder, permission, grant, or project-consent surfaces.
+    statement: Local App access compatibility preserves Desktop-verified exact Host launch, a fresh process-bound session and snapshot derived without caller-supplied protected context, exactly ten Base rows plus twenty-five AppAccess rows across four declared domains, and typed SDK and Host projections without credential, generic Runtime forwarder, permission, grant, or project-consent surfaces.
     condition: Whenever the local App session, operation contract, or consumer projection changes.
-    failure: Reject the change when session opening gains caller-supplied access truth, the thirty-six-row mapping diverges, or a consumer gains credential, owner, generic-forwarding, or durable access state.
+    failure: Reject the change when session opening gains caller-supplied access truth, the thirty-five-row mapping diverges, or a consumer gains credential, owner, generic-forwarding, or durable access state.
     relations:
       - type: applies_to
         target: definition.nimi.platform.core-protocol.app-operation-contract
@@ -1042,7 +1043,7 @@ units:
   - id: definition.nimi.platform.core-protocol.factory-profile-cloud-first
     kind: definition
     title: cloud-first factory AIProfile row
-    meaning: The cloud-first row portably recommends Cloud AIConfig intent for text.generate with required input.image plus text.embed, audio.synthesize, audio.transcribe, and image.generate, may recommend Cloud implementations and Driver-owned provider-model targets, carries no ConnectorGrant or account identity, and performs no Local installation or selection.
+    meaning: The cloud-first row portably recommends Cloud AIConfig intent for text.generate with required input.image plus text.embed, audio.synthesize, audio.transcribe, and image.generate, may recommend Cloud implementations and Driver-owned provider-model targets, carries no Connector or account identity, and performs no Local installation or selection.
   - id: definition.nimi.platform.core-protocol.factory-profile-local-standard
     kind: definition
     title: local-standard factory AIProfile row
@@ -1087,7 +1088,7 @@ units:
   - id: definition.nimi.platform.core-protocol.capability-governance
     kind: definition
     title: Canonical capability governance metadata
-    meaning: Canonical capability governance metadata maps each CapabilityContract, including the single text.generate contract whose input.image, input.audio, and input.video features are contract-scoped rather than subtype capabilities, to non-empty owner, dataMovement, retention, revocation, and auditSource facts without moving AIConfig route, machine selection, implementation, ConnectorGrant, permission, or job authority into the catalog.
+    meaning: Canonical capability governance metadata maps each CapabilityContract, including the single text.generate contract whose input.image, input.audio, and input.video features are contract-scoped rather than subtype capabilities, to non-empty owner, dataMovement, retention, revocation, and auditSource facts without moving AIConfig route, machine selection, implementation, permission, or job authority into the catalog.
   - id: rule.nimi.platform.core-protocol.p-aips-001a
     kind: rule
     title: P-AIPS-001 canonical capability configuration owners
@@ -1124,7 +1125,7 @@ units:
     kind: rule
     title: P-AIPS-001 portable catalog boundary
     modality: must
-    statement: Factory rows contain only portable AIProfile intent and non-binding recommendation semantics and exclude Local Capability Configuration identity, machine selection, LocalAsset id or path, ConnectorGrant, connector or account identity, secret, process identity, installation, health, and other host state.
+    statement: Factory rows contain only portable AIProfile intent and non-binding recommendation semantics and exclude Local Capability Configuration identity, machine selection, LocalAsset id or path, connector or account identity, secret, process identity, installation, health, and other host state.
     condition: Whenever a factory row is admitted, imported, recommended, or consumed.
     failure: Reject the non-portable field or any direct mutation of AIConfig or Machine Local AI Configuration by catalog consumption.
     relations:
@@ -1148,7 +1149,7 @@ units:
     kind: rule
     title: P-AIPS-002 matrix and field separation
     modality: must
-    statement: A readable alias neither owns schema nor binds a ConnectorGrant, LocalAsset, machine identity, machine selection, account, process, provider credential, or exact local target, and portable AIConfig intent remains distinct from portable local implementation configuration intent.
+    statement: A readable alias neither owns schema nor binds a Connector, LocalAsset, machine identity, machine selection, account, process, provider credential, or exact local target, and portable AIConfig intent remains distinct from portable local implementation configuration intent.
     condition: Whenever a factory row is represented, imported, recommended, or applied.
     failure: Reject schema authority in an alias, a machine or account binding, or conflation of the two intent families.
     relations:
@@ -1194,7 +1195,7 @@ units:
     kind: rule
     title: P-AIPS-003 Apply writes portable AIConfig intent without readiness
     modality: must
-    statement: Apply Profile to AIConfig validates portable schema and owner eligibility, then atomically creates or overwrites route intent, required features, defaults, and Cloud implementation or target recommendation even when a Local configuration, LocalAsset, ConnectorGrant, Driver, process, or provider connection is absent.
+    statement: Apply Profile to AIConfig validates portable schema and owner eligibility, then atomically creates or overwrites route intent, required features, defaults, and Cloud implementation or target recommendation even when a Local configuration, LocalAsset, Connector, Driver, process, or provider connection is absent.
     condition: Whenever Apply Profile to AIConfig validates or commits.
     failure: Reject invalid portable intent or an ineligible owner, but never require inventory resolution, installation, binding, selection, probe, warm, process start, or execution readiness to commit valid intent.
     relations:
@@ -1228,7 +1229,7 @@ units:
     kind: rule
     title: P-AIPS-004 recommendation has no write authority
     modality: must
-    statement: A recommendation returns only a typed Profile reference and typed reason and changes no AIProfile, AIConfig, Local Capability Configuration, machine selection, ConnectorGrant, installation, or job.
+    statement: A recommendation returns only a typed Profile reference and typed reason and changes no AIProfile, AIConfig, Local Capability Configuration, machine selection, Connector, installation, or job.
     condition: Whenever recommendation output is returned or displayed.
     failure: Reject a recommendation that commits state, implies readiness, or bypasses one of the four formal product actions.
     relations:
@@ -1254,7 +1255,7 @@ units:
     kind: rule
     title: P-AIPS-005 no hidden vendor default
     modality: must_not
-    statement: An alias, catalog row, UI, SDK, App, first-party hint, or policy text silently hardcodes a provider, ConnectorGrant, engine, model, or Local Capability Configuration as committed default-experience truth rather than expressing a visible portable recommendation.
+    statement: An alias, catalog row, UI, SDK, App, first-party hint, or policy text silently hardcodes a provider, Connector, engine, model, or Local Capability Configuration as committed default-experience truth rather than expressing a visible portable recommendation.
     condition: Whenever a factory experience is declared, projected, or consumed.
     failure: Reject the hidden default and require an explicit portable recommendation followed by the applicable formal user action.
     relations:
@@ -1334,7 +1335,7 @@ units:
     kind: rule
     title: P-AIPS-009 hint has no authority or parallel truth
     modality: must_not
-    statement: A first-party hint creates account, data, Agent, AI consumption, Memory, Cognition, permission, Local Capability Configuration, machine selection, ConnectorGrant, installation, or execution authority, or maintains a parallel default track or second AIConfig truth for the same owner.
+    statement: A first-party hint creates account, data, Agent, AI consumption, Memory, Cognition, permission, Local Capability Configuration, machine selection, Connector, installation, or execution authority, or maintains a parallel default track or second AIConfig truth for the same owner.
     condition: Whenever a first-party hint is declared or consumed.
     failure: Deny the unauthorized effect or bypass and remove the parallel truth.
     relations:
@@ -1356,7 +1357,7 @@ units:
     kind: rule
     title: P-AIPS-010 action failure is owner-local
     modality: must
-    statement: A failed formal action leaves every other canonical owner unchanged, never reports aggregate success, and never selects another Local configuration, route, ConnectorGrant, provider, implementation, or fallback; valid AIConfig intent and unresolved Local configuration records remain persistable independently.
+    statement: A failed formal action leaves every other canonical owner unchanged, never reports aggregate success, and never selects another Local configuration, route, Connector, provider, implementation, or fallback; valid AIConfig intent and unresolved Local configuration records remain persistable independently.
     condition: Whenever one formal action fails.
     failure: Preserve all unaffected owners and return the exact typed action failure without fallback or fabricated rollback success.
     relations:
@@ -1370,19 +1371,17 @@ units:
     kind: rule
     title: P-AIPS-011 Cloud Profile intent carries no account binding
     modality: must
-    statement: A Profile's Cloud intent may recommend a CapabilityImplementation and Driver-owned provider-model target but carries no connectorId, ConnectorGrant, account identity, secret, credential, connection-test result, or local-environment request.
+    statement: A Profile's Cloud intent may recommend a CapabilityImplementation and Driver-owned provider-model target but carries no connectorId, account identity, secret, credential, connection-test result, or local-environment request.
     condition: Whenever Cloud Profile intent is authored, imported, exported, recommended, or applied.
     failure: Reject the account or machine binding while preserving portable Cloud intent.
     relations:
-      - type: applies_to
-        target: definition.nimi.platform.core-protocol.connector-grant
       - type: applies_to
         target: definition.nimi.platform.core-protocol.factory-ai-profile-row
   - id: rule.nimi.platform.core-protocol.p-aips-012a
     kind: rule
     title: P-AIPS-012 Profile action target closure
     modality: must
-    statement: Profile import targets the Profile library, Apply targets exactly one canonical AIConfig owner, local configuration intent may be consumed only by a separate Add or Update Local Capability Configuration action, and no Profile action directly targets machine selection, LocalAsset binding, ConnectorGrant selection, process state, or Job.
+    statement: Profile import targets the Profile library, Apply targets exactly one canonical AIConfig owner, local configuration intent may be consumed only by a separate Add or Update Local Capability Configuration action, and no Profile action directly targets machine selection, LocalAsset binding, Connector selection, process state, or Job.
     condition: Whenever Profile applicability or a Profile-derived action target is declared or interpreted.
     failure: Reject an unknown target, AIConfig owner outside the closed set, or a cross-owner Profile action.
     relations:
@@ -1396,7 +1395,7 @@ units:
     kind: rule
     title: P-AIPS-012 first-run Profile recommendation is non-blocking
     modality: must_not
-    statement: A first-run Profile recommendation, Local capability pack, LocalAsset, Local Capability Configuration, machine selection, ConnectorGrant, or AI capability admission becomes a prerequisite for Product Control ready_for_use.
+    statement: A first-run Profile recommendation, Local capability pack, LocalAsset, Local Capability Configuration, machine selection, Connector, or AI capability admission becomes a prerequisite for Product Control ready_for_use.
     condition: Whenever first-run Profile recommendation or product readiness is evaluated.
     failure: Keep AI capability setup orthogonal and allow Product Control completion without claiming the affected capability can execute.
     relations:
@@ -1408,7 +1407,7 @@ units:
     kind: rule
     title: P-AIPS-013 durable Account Default Profile association
     modality: must
-    statement: An Account Default Profile, when configured, is one durable account-owned library record whose ownership metadata remains outside its portable AIProfile content and whose content contains no account, machine, Local Capability Configuration, machine selection, LocalAsset, ConnectorGrant, secret, or process identity.
+    statement: An Account Default Profile, when configured, is one durable account-owned library record whose ownership metadata remains outside its portable AIProfile content and whose content contains no account, machine, Local Capability Configuration, machine selection, LocalAsset, Connector, secret, or process identity.
     condition: Whenever Account Default Profile is created, read, edited, or used as a recommendation source.
     failure: Reject the profile operation on a missing field, unresolved record, account mismatch, or data-root mismatch without changing Product Control readiness.
     relations:
@@ -1430,7 +1429,7 @@ units:
     kind: rule
     title: P-AIPS-013 forbidden profile inputs and independent scopes
     modality: must_not
-    statement: Realm OAuth tokens or profile projections, decoded claims, subject_user_id, renderer state, SDK cache, or App cache supplies Account Default Profile content, a caller-provided string is treated as a complete Profile, or editing the default Profile mutates an existing AIConfig, Local Capability Configuration, machine selection, or ConnectorGrant.
+    statement: Realm OAuth tokens or profile projections, decoded claims, subject_user_id, renderer state, SDK cache, or App cache supplies Account Default Profile content, a caller-provided string is treated as a complete Profile, or editing the default Profile mutates an existing AIConfig, Local Capability Configuration, machine selection, or Connector.
     condition: Whenever Account Default Profile content or edits are evaluated.
     failure: Fail closed, keep ownership metadata outside portable content, and require the separate explicit formal action before any canonical owner changes.
     relations:
@@ -1442,7 +1441,7 @@ units:
     kind: rule
     title: P-CAIEX-001 Capability execution chain is closed
     modality: must
-    statement: An App or LocalAgent request enters one CapabilityContract and its owner AIConfig; Local composition dereferences Machine Local AI Configuration to its selected Local Capability Configuration and then its CapabilityImplementation, CapabilityImplementationDriver, and local ExecutionHost, while Cloud composition uses the AIConfig-owned Cloud CapabilityImplementation and Driver target plus ConnectorGrant and Remote ExecutionHost.
+    statement: An App or LocalAgent request enters one CapabilityContract and its owner AIConfig; Local composition dereferences Machine Local AI Configuration to its selected Local Capability Configuration and then its CapabilityImplementation, CapabilityImplementationDriver, and local ExecutionHost, while ordinary same-account Cloud composition uses the AIConfig-owned Cloud CapabilityImplementation and Driver target, Runtime resolves the exact current-account Connector and credential custody internally, and Remote ExecutionHost performs transport.
     condition: Whenever a capability request is admitted, composed, or executed.
     failure: Reject a bypass, alternate owner, missing committed link, engine or provider inference, Core option union, or Core Workflow DAG intermediate representation.
     relations:
@@ -1536,7 +1535,7 @@ units:
     kind: rule
     title: P-CAIEX-008 standardized features use deterministic subset admission
     modality: must
-    statement: AIConfig declares a required feature set per CapabilityContract, the effective Local or Cloud implementation route declares a supported set validated by its Driver, and Core admits the feature check only when required is a subset of supported; declared support is semantic capability support rather than proof of exact bindings, authorization, current ExecutionHost feasibility, readiness, or Job success, mismatch fails closed without changing AIConfig route, Machine Local AI Configuration selection, provider, implementation, or ConnectorGrant, and streaming remains CapabilityContract and Job semantics rather than a feature.
+    statement: AIConfig declares a required feature set per CapabilityContract, the effective Local or Cloud implementation route declares a supported set validated by its Driver, and Core admits the feature check only when required is a subset of supported; declared support is semantic capability support rather than proof of exact bindings, authorization, current ExecutionHost feasibility, readiness, or Job success, mismatch fails closed without changing AIConfig route, Machine Local AI Configuration selection, provider, implementation, or Runtime-resolved Connector, and streaming remains CapabilityContract and Job semantics rather than a feature.
     condition: Whenever feature compatibility is authored, projected, or checked for a request.
     failure: Return typed feature mismatch and reject subtype capability tokens, a global short-name ontology, inferred support, optional-feature lifecycle, automatic switching, or streaming-as-feature.
     relations:
@@ -1548,11 +1547,11 @@ units:
         target: definition.nimi.platform.core-protocol.standardized-capability-feature
   - id: rule.nimi.platform.core-protocol.p-caiex-009
     kind: rule
-    title: P-CAIEX-009 Cloud intent and account authorization remain separate
+    title: P-CAIEX-009 ordinary Cloud execution resolves current-account Connector internally
     modality: must
-    statement: Cloud AIConfig intent owns one CapabilityImplementation and Driver-owned provider-model target and may be saved without a ConnectorGrant; only a Nimi-owned explicit-user-selection flow writes the current-account ConnectorGrant binding, while runtime.ai.app-config.overwrite accepts one complete portable App AIConfig intent without a binding field and atomically removes any existing binding from the overwritten App AIConfig so its Cloud route derives selection-required until that Nimi-owned flow selects a new binding; account change never permits App-supplied rebinding, and provider API or capability-semantic change replaces the implementation while target or region change within one implementation remains Driver configuration.
-    condition: Whenever Cloud intent, App AIConfig whole-object overwrite, target, ConnectorGrant binding, or execution admission is committed or evaluated.
-    failure: Reject a connector as router, App or Profile account binding, implicit or preserved binding after App overwrite, connection-test prerequisite, route inference from a grant, or Cloud configuration list, and return selection-required when the committed Cloud route lacks a binding.
+    statement: Cloud AIConfig intent owns one CapabilityImplementation and Driver-owned provider-model target selected and atomically committed for the exact App owner only through authorized Nimi-owned configuration; the protected App request, App-owned configuration carrier, and protected App consumer accept no route, implementation, provider-model target, connector, account, credential, or AIConfig mutation input. Runtime derives the exact Connector from that committed implementation-target selection, validates current-account ownership, credential and configuration validity, App Capability access, and existing data-movement, security, and management policy, and requires no second per-App or per-Connector authorization; provider API or capability-semantic change replaces the implementation while target or region change within one implementation remains Driver configuration.
+    condition: Whenever Cloud intent, Nimi-owned App AIConfig configuration, target, Connector resolution, or execution admission is committed or evaluated.
+    failure: Reject a protected App AIConfig mutation or App or Profile connector, account, or credential input, a connector used as CapabilityContract router, connection-test prerequisite, missing or foreign current-account Connector, unusable credential, App access denial, or policy denial; return the existing owner, configuration-required, credential, access-denied, or policy reason without requesting App-side Connector selection.
     relations:
       - type: applies_to
         target: definition.nimi.platform.core-protocol.ai-config
@@ -1560,8 +1559,6 @@ units:
         target: definition.nimi.platform.core-protocol.app-operation-contract
       - type: applies_to
         target: definition.nimi.platform.core-protocol.capability-implementation-driver
-      - type: applies_to
-        target: definition.nimi.platform.core-protocol.connector-grant
   - id: rule.nimi.platform.core-protocol.p-caiex-010
     kind: rule
     lifecycle: removed
@@ -1585,7 +1582,7 @@ units:
     kind: rule
     title: P-CAIEX-011 Jobs capture exact immutable composition
     modality: must
-    statement: Local job submission atomically captures authorization, AIConfig Local route, required features, defaults, current selected Local Capability Configuration identity, exact CapabilityImplementation, Driver configuration, exact bindings, and request; Cloud job submission captures authorization, exact Cloud implementation, provider-model target, ConnectorGrant, defaults, and request; later configuration, selection, grant, or process changes never rewrite either running Job.
+    statement: Local job submission atomically captures authorization, AIConfig Local route, required features, defaults, current selected Local Capability Configuration identity, exact CapabilityImplementation, Driver configuration, exact bindings, and request; Cloud job submission captures authorization, exact Cloud implementation, provider-model target, Runtime-resolved current-account Connector custody reference, defaults, and request; later configuration, Connector, selection, or process changes never rewrite either running Job.
     condition: Whenever a Local or Cloud capability Job is submitted or resumed.
     failure: Reject a missing exact input, live reread as execution truth, Job write-back into configuration, or substitution from catalog, inventory, filename, path, prefix, resident process, or unselected record.
     relations:
@@ -1594,14 +1591,12 @@ units:
       - type: applies_to
         target: definition.nimi.platform.core-protocol.capability-job-effective-inputs
       - type: applies_to
-        target: definition.nimi.platform.core-protocol.connector-grant
-      - type: applies_to
         target: definition.nimi.platform.core-protocol.local-capability-configuration
   - id: rule.nimi.platform.core-protocol.p-caiex-012
     kind: rule
     title: P-CAIEX-012 execution failure does not mutate configuration
     modality: must
-    statement: Ordinary load, generate, stream, transport, or provider failure ends only the affected Job and clears no exact binding, selection, route, grant, or configuration; only a CapabilityImplementationDriver classification of a persistent hard blocker may change derived admission reason, and no Local, Cloud, provider, implementation, or configuration fallback is attempted.
+    statement: Ordinary load, generate, stream, transport, or provider failure ends only the affected Job and clears no exact binding, selection, route, or configuration; only a CapabilityImplementationDriver classification of a persistent hard blocker may change derived admission reason, and no Local, Cloud, provider, implementation, or configuration fallback is attempted.
     condition: Whenever capability execution fails.
     failure: Preserve canonical configuration and return the typed Job failure without fallback, readiness mutation, ambient re-resolution, or automatic re-selection.
     relations:
@@ -1615,7 +1610,7 @@ units:
     kind: rule
     title: canonical-capability-catalog P-CAPCAT-004 governance metadata
     modality: must
-    statement: Every active CapabilityContract row carries non-empty governance owner, dataMovement, retention, revocation, and auditSource metadata; contract-scoped standardized features inherit that contract boundary without becoming subtype capability rows, and governance metadata grants no catalog-owned route, implementation, machine selection, ConnectorGrant, or permission authority.
+    statement: Every active CapabilityContract row carries non-empty governance owner, dataMovement, retention, revocation, and auditSource metadata; contract-scoped standardized features inherit that contract boundary without becoming subtype capability rows, and governance metadata grants no catalog-owned route, implementation, machine selection, or permission authority.
     condition: Whenever an active canonical capability row is admitted or consumed for governance projection.
     failure: Reject missing, unresolved, contradictory, or authority-expanding governance metadata.
     relations:
@@ -1737,7 +1732,7 @@ units:
     kind: rule
     title: P-ARCH-010 current AI execution owner boundary
     modality: must
-    statement: Each canonical AIConfig owner commits explicit Local or Cloud intent, Runtime deterministically composes that intent with the current machine selection or exact Cloud implementation, target, and ConnectorGrant and owns execution truth and credential custody without reselecting, searching, probing, or falling back, while Core defines no cross-engine option union or general Workflow DAG intermediate representation.
+    statement: Each canonical AIConfig owner commits explicit Local or Cloud intent, Runtime deterministically composes that intent with the current machine selection or the exact Cloud implementation and target plus the internally resolved current-account Connector and owns execution truth and credential custody without accepting caller selection, searching for a substitute, probing, or falling back, while Core defines no cross-engine option union or general Workflow DAG intermediate representation.
     condition: Whenever the current AI execution stack is implemented or described.
     failure: Reject Runtime route choice, hidden fallback, caller credential injection, App-owned execution truth, a Core engine-option union, or Workflow treated as a core prerequisite.
     relations:
@@ -1749,14 +1744,12 @@ units:
     kind: rule
     title: P-ARCH-011 isolated production credential plane
     modality: must_not
-    statement: Production accepts apiKeyEnv, inline request credentials, Desktop, SDK, Host, renderer, or App credential injection, App-owned secret providers, user-session vault credentials, or synthetic probe credentials in place of Runtime resolution of the canonical current-account ConnectorGrant inside its independently admitted isolated production credential-custody service principal; production service topology, signed deployment, installer privilege, update, and custody authority remain independent from and never substitute for the per-user non-elevated App ingress boundary.
+    statement: Production accepts apiKeyEnv, inline request credentials, Desktop, SDK, Host, renderer, or App credential injection, App-owned secret providers, user-session vault credentials, or synthetic probe credentials in place of Runtime resolution of the exact current-account Connector and its credential custody inside the independently admitted isolated production service principal; production service topology, signed deployment, installer privilege, update, and custody authority remain independent from and never substitute for the per-user non-elevated App ingress boundary.
     condition: Whenever a production credential is resolved or product behavior is claimed from a probe.
     failure: Deny the operation, preserve the independent production Runtime custody boundary, and expose no credential or portable authority through the supported App surface.
     relations:
       - type: applies_to
         target: definition.nimi.platform.core-protocol.app-operation-contract
-      - type: applies_to
-        target: definition.nimi.platform.core-protocol.connector-grant
   - id: rule.nimi.platform.core-protocol.p-arch-020
     kind: rule
     title: P-ARCH-020 sole SDK developer entry
@@ -1972,4 +1965,4 @@ units:
     failure: Reject an unsigned or product credential and withhold the probe from product evidence.
     relations:
       - type: applies_to
-        target: definition.nimi.platform.core-protocol.connector-grant
+        target: definition.nimi.platform.core-protocol.app-operation-contract

@@ -9,11 +9,11 @@ units:
   - id: definition.nimi.runtime.security-core.ownership-authorization-plane
     kind: definition
     title: Runtime ownership authorization plane
-    meaning: The Runtime ownership authorization plane validates canonical App or shared LocalAgent AIConfig ownership, machine-owned Local Capability Configuration and LocalAsset access, selected ConnectorGrant owner and status, and Job ownership only after authentication, preserves information hiding and fixed evaluation order, and never selects a route or target.
+    meaning: The Runtime ownership authorization plane validates canonical App or shared LocalAgent AIConfig ownership, machine-owned Local Capability Configuration and LocalAsset access, Runtime-resolved current-account Connector ownership and status, App Capability access, applicable policy, and Job ownership only after authentication, preserves information hiding and fixed evaluation order, and never selects a route or target.
   - id: definition.nimi.runtime.security-core.endpoint-security-plane
     kind: definition
     title: Runtime endpoint security plane
-    meaning: The Runtime endpoint security plane validates every remote endpoint materialized from exact Runtime-private ExecutionHost configuration at execution time, consumes the selected ConnectorGrant only for authorization and request-scoped credential custody, rejects unsafe address classes after DNS resolution, and pins validated dial targets without accepting Driver, Grant, caller, AIConfig, Catalog, or environment endpoint authority or changing TLS or HTTP authority.
+    meaning: The Runtime endpoint security plane validates every remote endpoint materialized from exact Runtime-private ExecutionHost configuration at execution time, consumes the internally resolved current-account Connector only for ownership and request-scoped credential custody, rejects unsafe address classes after DNS resolution, and pins validated dial targets without accepting Driver, Connector, caller, AIConfig, Catalog, or environment endpoint authority or changing TLS or HTTP authority.
   - id: definition.nimi.runtime.security-core.grant-service-plane
     kind: definition
     lifecycle: removed
@@ -26,11 +26,9 @@ units:
     reason: Removed because security and connector custody do not select Local, Cloud, provider, model, or capability routes and inline, configured, anonymous, and connector-driven routing paths are retired.
   - id: definition.nimi.runtime.security-core.connector-grant-plane
     kind: definition
-    title: Runtime ConnectorGrant authorization and custody plane
-    meaning: The Runtime ConnectorGrant authorization and custody plane validates an explicitly selected non-portable account authorization binding, resolves its referenced sealed credential custody into minimum request-scoped material, and audits use without owning CapabilityContract, CapabilityImplementation, Driver target, AIConfig route, machine selection, or secret persistence in ordinary configuration.
-    relations:
-      - type: supersedes
-        target: definition.nimi.runtime.security-core.key-routing-plane
+    lifecycle: removed
+    title: Retired Runtime ConnectorGrant plane
+    reason: Removed because Runtime admits only current-account Connector ownership, credential validity, App Capability access, and applicable policy for Cloud execution; any future delegated credential authority requires new authority and a new subject model without compatibility with this retired plane.
   - id: rule.nimi.runtime.security-core.r001
     kind: rule
     title: Authorization metadata has one bearer shape
@@ -217,19 +215,19 @@ units:
         target: definition.nimi.runtime.security-core.token-validation-plane
   - id: rule.nimi.runtime.security-core.r019
     kind: rule
-    title: Local configurations and assets are not ConnectorGrant targets
+    title: Local configurations and assets do not use Connector custody ownership
     modality: must_not
-    statement: A Local Capability Configuration, Machine Local AI Configuration selection, LocalAsset, Driver configuration, or Local Job is treated as a ConnectorGrant kind or ownership path instead of using the canonical machine, configuration, asset, and Job owner policy.
+    statement: A Local Capability Configuration, Machine Local AI Configuration selection, LocalAsset, Driver configuration, or Local Job is treated as a Connector custody kind or ownership path instead of using the canonical machine, configuration, asset, and Job owner policy.
     condition: Whenever Runtime authorizes Local capability configuration or execution.
-    failure: Reject grant-derived Local ownership and validate the exact machine-owned configuration, bindings, and request.
+    failure: Reject Connector-derived Local ownership and validate the exact machine-owned configuration, bindings, and request.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.security-core.ownership-authorization-plane
   - id: rule.nimi.runtime.security-core.r020
     kind: rule
-    title: Cloud grant and Local machine authorization stay distinct
+    title: Cloud Connector and Local machine authorization stay distinct
     modality: must
-    statement: Cloud execution validates the selected ConnectorGrant owner, status, and referenced custody under the authenticated subject, while Local execution validates the canonical machine owner and exact selected Local Capability Configuration and LocalAsset access; an absent or invalid identity never enables inline Cloud execution or changes the committed AIConfig route, and any denied path fails without fallback.
+    statement: Cloud execution validates the Runtime-resolved current-account Connector owner, status, credential configuration, App Capability access, and applicable policy under the authenticated subject, while Local execution validates the canonical machine owner and exact selected Local Capability Configuration and LocalAsset access; an absent or invalid identity never enables inline Cloud execution or changes the committed AIConfig route, and any denied path fails without fallback.
     condition: Whenever Runtime authorizes Local or Cloud execution inputs.
     failure: Return the typed authentication or authorization failure and deny targets outside the exact owner partition without switching routes.
     relations:
@@ -241,7 +239,7 @@ units:
     kind: rule
     title: Anonymous machine connectors are API key system records
     modality: must
-    statement: A machine-global system custody record may use API_KEY with owner type SYSTEM and owner_id machine, but its existence never creates or selects a ConnectorGrant, AIConfig binding, Cloud route, provider, model, or capability and anonymous callers receive no implicit execution authority from it.
+    statement: A machine-global system custody record may use API_KEY with owner type SYSTEM and owner_id machine, but its existence never creates or selects an AIConfig binding, Cloud route, provider, model, or capability and anonymous callers receive no implicit execution authority from it.
     condition: Whenever an anonymous caller creates or uses a machine-global connector.
     failure: Deny every anonymous machine connector with another auth kind or owner mapping.
     relations:
@@ -261,7 +259,7 @@ units:
     kind: rule
     title: Connector owner mapping is fixed
     modality: must
-    statement: Authenticated remote custody records map to REALM_USER, machine-global API_KEY custody records map to SYSTEM with owner_id machine, OAUTH_MANAGED custody records map to REALM_USER, and a ConnectorGrant separately binds one authorized account to one custody record; Local Capability Configurations and LocalAssets remain under their machine and RuntimeLocalService owners and Profile carries neither grant nor custody identity.
+    statement: Authenticated remote custody records map to REALM_USER, machine-global API_KEY custody records map to SYSTEM with owner_id machine, OAUTH_MANAGED custody records map to REALM_USER, and Cloud execution relies on exact REALM_USER ownership without a second authorization; Local Capability Configurations and LocalAssets remain under their machine and RuntimeLocalService owners and Profile carries no custody identity.
     condition: Whenever Runtime assigns or validates connector and target ownership.
     failure: Return NOT_FOUND or deny creation for every incompatible owner, auth-kind, or target-owner mapping.
     relations:
@@ -291,7 +289,7 @@ units:
     kind: rule
     title: Connector reads expose only caller-visible records
     modality: must
-    statement: Get and List expose only caller-visible custody records, ListConnectorModels returns a bounded provider inventory snapshot without binding or routing, and Test Connector runs only as an explicit user-requested bounded diagnostic; user-owned records remain hidden from anonymous callers, every non-user-owned OAUTH_MANAGED record is NOT_FOUND, and no read or diagnostic creates a ConnectorGrant, readiness state, selection, or execution prerequisite.
+    statement: Get and List expose only caller-visible custody records, ListConnectorModels returns a bounded provider inventory snapshot without binding or routing, and Test Connector runs only as an explicit user-requested bounded diagnostic; user-owned records remain hidden from anonymous callers, every non-user-owned OAUTH_MANAGED record is NOT_FOUND, and no read or diagnostic creates readiness state, selection, or execution prerequisite.
     condition: Whenever ConnectorService reads, tests, or lists connectors or connector models.
     failure: Return NOT_FOUND for an invalid ownership and auth-kind combination without exposing the record.
     relations:
@@ -299,14 +297,12 @@ units:
         target: definition.nimi.runtime.security-core.ownership-authorization-plane
   - id: rule.nimi.runtime.security-core.r027
     kind: rule
-    title: ConnectorGrant authorization order is fixed
+    title: Connector custody authorization order is fixed
     modality: must
-    statement: After authentication and committed AIConfig Cloud-route validation, Runtime evaluates the selected ConnectorGrant owner, then grant status, then referenced custody owner and status, then minimum request-scoped credential material, then Driver-owned target and endpoint security, Remote ExecutionHost dispatch, and audit in that order; the grant never chooses the route or target.
-    condition: Whenever Cloud execution uses a ConnectorGrant.
-    failure: Stop at the first failed check, preserve information hiding, and do not reorder evaluation or switch route, target, provider, or grant.
+    statement: After authentication and committed AIConfig Cloud-route validation, Runtime resolves the exact current-account Connector, evaluates Connector owner and status, App Capability access and applicable policy, then minimum request-scoped credential material, Driver-owned target and endpoint security, Remote ExecutionHost dispatch, and audit in that order; the Connector never chooses the route or target.
+    condition: Whenever Cloud execution resolves Connector custody.
+    failure: Stop at the first failed check, preserve information hiding, and do not reorder evaluation or switch route, target, provider, or Connector.
     relations:
-      - type: applies_to
-        target: definition.nimi.runtime.security-core.connector-grant-plane
       - type: applies_to
         target: definition.nimi.runtime.security-core.ownership-authorization-plane
   - id: rule.nimi.runtime.security-core.r028
@@ -345,7 +341,7 @@ units:
     kind: rule
     title: Runtime-private Host endpoints require validation
     modality: must
-    statement: Runtime applies endpoint security validation to the exact remote endpoint materialized from Runtime-private Remote ExecutionHost configuration for the committed Driver, the selected ConnectorGrant contributes only authorization and request-scoped credential custody, and product execution accepts no Driver-, Grant-, caller-, AIConfig-, Catalog-, or environment-supplied endpoint or secret path.
+    statement: Runtime applies endpoint security validation to the exact remote endpoint materialized from Runtime-private Remote ExecutionHost configuration for the committed Driver, the resolved current-account Connector contributes only ownership and request-scoped credential custody, and product execution accepts no Driver-, Connector-, caller-, AIConfig-, Catalog-, or environment-supplied endpoint or secret path.
     condition: Whenever Runtime prepares a remote ExecutionHost request.
     failure: Reject the request before network dispatch when the exact Host-materialized endpoint is unsafe or unvalidated or when any other source supplies the endpoint.
     relations:
@@ -405,7 +401,7 @@ units:
     kind: rule
     title: Public portable grant credentials stay removed
     modality: must_not
-    statement: Runtime protocol, generated clients, SDK exports, service registration, persistence, or a renamed surface recreates a portable generic credential-grant family, portable tokens, bearers, scope lists, resource fingerprints, delegation chains, App-selected endpoints, or reusable App authority; an Effective App Access Snapshot is instead Runtime-derived and session-bound, while ConnectorGrant remains a distinct non-portable account authorization and credential-custody reference.
+    statement: Runtime protocol, generated clients, SDK exports, service registration, persistence, or a renamed surface recreates a portable generic credential-grant family, portable tokens, bearers, scope lists, resource fingerprints, delegation chains, App-selected endpoints, or reusable App authority; an Effective App Access Snapshot is instead Runtime-derived and session-bound, and Connector custody remains Runtime-private.
     condition: Whenever Third-party App access or a public grant surface is defined or shipped.
     failure: Remove the portable authority surface and reject every operation that depends on it.
     relations:
@@ -468,41 +464,39 @@ units:
     reason: Removed because current App access has no durable grant, explicit user decision evidence, revision, revoke, or permission audit lifecycle.
   - id: rule.nimi.runtime.security-core.r048
     kind: rule
-    title: Cloud target grant and Local selection identities are separate
+    title: Cloud target and Local selection identities are separate
     modality: must
-    statement: AIConfig Cloud intent names one CapabilityImplementation and Driver-owned provider-model target plus an explicitly selected ConnectorGrant, while the grant references account authorization and credential custody only; AIConfig Local intent names no target and Runtime dereferences the machine-selected Local Capability Configuration at Job submission. Connector, raw provider-model, legacy compact target, path, selected-source, and LocalAsset identities never substitute for these owners.
+    statement: AIConfig Cloud intent names one CapabilityImplementation and Driver-owned provider-model target selected through Nimi-owned configuration without Connector, account, or credential fields; Runtime resolves the exact current-account Connector and credential custody at Job submission, while AIConfig Local intent names no target and Runtime dereferences the machine-selected Local Capability Configuration. Connector, raw provider-model, legacy compact target, path, selected-source, and LocalAsset identities never substitute for these owners or enter ordinary App requests.
     condition: Whenever Runtime composes an AI execution target.
     failure: Reject every retired or cross-owner target shape rather than converting, inferring, or falling back.
     relations:
       - type: applies_to
-        target: definition.nimi.runtime.security-core.connector-grant-plane
+        target: definition.nimi.runtime.security-core.ownership-authorization-plane
   - id: rule.nimi.runtime.security-core.r049
     kind: rule
     title: Committed AIConfig is the only route source
     modality: must
-    statement: AI execution uses only the Local or Cloud route committed in the canonical owner AIConfig; no managed connector, inline metadata, configured default, anonymous-local path, inventory, process health, or missing-field heuristic selects or changes that route, and Cloud execution requires the committed implementation target plus selected ConnectorGrant while Local execution requires the committed machine selection.
+    statement: AI execution uses only the Local or Cloud route committed in the canonical owner AIConfig; no managed connector, inline metadata, configured default, anonymous-local path, inventory, process health, or missing-field heuristic selects or changes that route, ordinary same-account Cloud execution requires the committed implementation target plus one exact Runtime-resolved current-account Connector with usable credentials and allowed policy, and Local execution requires the committed machine selection.
     condition: Whenever Runtime composes route and authorization inputs.
     failure: Reject missing or inconsistent committed inputs and never invent credentials, route intent, or a substitute path.
     relations:
       - type: applies_to
-        target: definition.nimi.runtime.security-core.connector-grant-plane
+        target: definition.nimi.runtime.security-core.ownership-authorization-plane
   - id: rule.nimi.runtime.security-core.r050
     kind: rule
-    title: ConnectorGrant authentication stays in custody
+    title: Managed Connector authentication stays in custody
     modality: must
-    statement: ConnectorGrant stores no secret and references one admitted API_KEY or OAUTH_MANAGED custody record, callers submit only the committed grant identity for execution, OAuth payloads remain provider-defined sealed secrets constrained by the admitted provider_auth_profile set, and every OAUTH_MANAGED custody record is user-owned; replacing an account normally replaces only the grant without changing the CapabilityImplementation or Driver target.
+    statement: Ordinary App callers never submit a Connector identity or credential material, OAuth payloads remain provider-defined sealed secrets constrained by the admitted provider_auth_profile set, every OAUTH_MANAGED custody record is user-owned, and changing current-account Connector custody never changes the CapabilityImplementation or Driver target.
     condition: Whenever Runtime loads or validates a managed connector credential.
     failure: Return NOT_FOUND for machine-owned or system-owned OAUTH_MANAGED records and deny undeclared auth profiles.
     relations:
-      - type: applies_to
-        target: definition.nimi.runtime.security-core.connector-grant-plane
       - type: applies_to
         target: definition.nimi.runtime.security-core.ownership-authorization-plane
   - id: rule.nimi.runtime.security-core.r051
     kind: rule
     lifecycle: removed
     title: Retired inline credential execution path
-    reason: Removed because all Cloud product execution requires an explicitly selected ConnectorGrant and no caller-inline secret or temporary product bypass is admitted.
+    reason: Removed because Cloud execution resolves one exact current-account Connector from committed AIConfig intent and no caller-inline secret or temporary product bypass is admitted.
   - id: rule.nimi.runtime.security-core.r052
     kind: rule
     lifecycle: removed
@@ -512,17 +506,15 @@ units:
     kind: rule
     lifecycle: removed
     title: Retired key-source metadata execution path
-    reason: Removed because Cloud execution context derives from the canonical AIConfig owner, exact implementation target, selected ConnectorGrant and Driver, never raw key-source, provider, endpoint, or API-key headers.
+    reason: Removed because Cloud execution context derives from the canonical AIConfig owner, exact implementation target, Runtime-resolved current-account Connector and Driver, never raw key-source, provider, endpoint, or API-key headers.
   - id: rule.nimi.runtime.security-core.r054
     kind: rule
     title: AI consume evaluation sequence is closed
     modality: must
-    statement: Runtime evaluates request normalization, authentication, canonical AIConfig owner and committed CapabilityContract route, then for Local the machine selection, exact Local Capability Configuration, Driver configuration, bindings and authorization, or for Cloud the exact CapabilityImplementation target, ConnectorGrant owner and status, referenced custody and minimum credential, endpoint security, then the CapabilityImplementationDriver, Local or Remote ExecutionHost dispatch, Job snapshot and audit in that order.
+    statement: Runtime evaluates request normalization, authentication, canonical AIConfig owner, App Capability access, committed CapabilityContract route, and applicable policy, then for Local the machine selection, exact Local Capability Configuration, Driver configuration, bindings and authorization, or for Cloud the exact CapabilityImplementation target, Runtime-resolved current-account Connector owner and status, custody and minimum credential, then endpoint security, CapabilityImplementationDriver, Local or Remote ExecutionHost dispatch, Job snapshot, and audit in that order.
     condition: Whenever Runtime handles AI consume.
     failure: Stop at the first failed stage and do not bypass, reorder, or defer a security check beyond execution.
     relations:
-      - type: applies_to
-        target: definition.nimi.runtime.security-core.connector-grant-plane
       - type: applies_to
         target: definition.nimi.runtime.security-core.endpoint-security-plane
       - type: applies_to
@@ -531,44 +523,44 @@ units:
     kind: rule
     title: Managed OAuth consume never mutates custody
     modality: must_not
-    statement: AI execution implicitly refreshes, replaces, or rewrites an OAUTH_MANAGED custody payload or selected ConnectorGrant; grant resolution returns more than the minimum request-scoped token or headers, stores that material in Profile, AIConfig, Driver configuration, ordinary workflow, or Job, or hides provider authentication rejection behind fallback or success.
+    statement: AI execution implicitly refreshes, replaces, or rewrites an OAUTH_MANAGED custody payload or resolved current-account Connector; custody resolution returns more than the minimum request-scoped token or headers, stores that material in Profile, AIConfig, Driver configuration, ordinary workflow, or Job, or hides provider authentication rejection behind fallback or success.
     condition: Whenever AI consume resolves or uses an OAUTH_MANAGED credential.
     failure: Return the applicable typed failure without mutating the sealed payload.
     relations:
       - type: applies_to
-        target: definition.nimi.runtime.security-core.connector-grant-plane
+        target: definition.nimi.runtime.security-core.ownership-authorization-plane
   - id: rule.nimi.runtime.security-core.r056
     kind: rule
-    title: Cloud grant and Local machine execution require exact subjects
+    title: Cloud Connector and Local machine execution require exact subjects
     modality: must
-    statement: Cloud execution requires an authenticated subject authorized for the selected ConnectorGrant and custody record, while Local execution requires the canonical machine and request owner authorized for the selected Local Capability Configuration and exact LocalAssets; neither branch admits inline metadata, and an invalid bearer never downgrades to anonymous Local execution or changes the committed route.
+    statement: Cloud execution requires an authenticated subject owning the Runtime-resolved current-account Connector and allowed by App Capability access and applicable policy, with usable custody configuration, while Local execution requires the canonical machine and request owner authorized for the selected Local Capability Configuration and exact LocalAssets; neither branch admits inline metadata, and an invalid bearer never downgrades to anonymous Local execution or changes the committed route.
     condition: Whenever Runtime validates AI consume caller identity.
     failure: Reject a missing remote subject and return UNAUTHENTICATED with AUTH_TOKEN_INVALID for an invalid bearer instead of anonymous-local fallback.
     relations:
       - type: applies_to
-        target: definition.nimi.runtime.security-core.connector-grant-plane
+        target: definition.nimi.runtime.security-core.ownership-authorization-plane
       - type: applies_to
         target: definition.nimi.runtime.security-core.token-validation-plane
   - id: rule.nimi.runtime.security-core.r057
     kind: rule
-    title: Cloud intent and ConnectorGrant binding are independently valid
+    title: Cloud intent and current-account Connector resolution are independently valid
     modality: must
-    statement: AIConfig may save valid portable Cloud CapabilityImplementation and Driver-owned provider-model target intent without a ConnectorGrant, while a Third-party App whole-object overwrite accepts no ConnectorGrant or custody field and atomically clears any prior ConnectorGrant binding on that App AIConfig; only a separate Nimi-owned explicit-user-selection flow may attach a new current-account ConnectorGrant, and execution without one returns selection-required without changing the saved intent or route.
-    condition: Whenever Runtime validates, overwrites, binds, or executes a Cloud App AIConfig.
-    failure: Reject App-supplied binding material, clear the prior binding on an admitted App overwrite, and return selection-required at execution until the Nimi-owned flow attaches a valid grant.
+    statement: AIConfig may save valid portable Cloud CapabilityImplementation and Driver-owned provider-model target intent without Connector, account, credential, or custody fields only when an authenticated Nimi account-product configuration operation addresses the exact admitted App owner; a protected Third-party App may read and consume its owner record but cannot overwrite it or submit route, implementation, provider-model target, or Connector choice. Cloud execution resolves the exact current-account Connector inside Runtime from the Nimi-owned implementation-target selection and validates ownership, credential configuration, App Capability access, and applicable policy without a second authorization.
+    condition: Whenever Runtime authenticates, validates, overwrites, resolves, or executes a Cloud App AIConfig.
+    failure: Reject protected App AIConfig mutation, an inferred or unauthorized target App owner, or App-supplied route, implementation, provider-model target, Connector, account, credential, or binding material; preserve only portable intent on admitted Nimi-owned configuration and return the existing owner or configuration-required, credential, access-denied, or policy reason when Runtime cannot establish the exact allowed current-account execution path.
     relations:
       - type: applies_to
-        target: definition.nimi.runtime.security-core.connector-grant-plane
+        target: definition.nimi.runtime.security-core.ownership-authorization-plane
   - id: rule.nimi.runtime.security-core.r058
     kind: rule
-    title: Missing ConnectorGrant fails execution as selection required
+    title: Missing Cloud configuration fails without App-side Connector selection
     modality: must
-    statement: A Cloud AIConfig without a selected ConnectorGrant remains valid saved intent, and an execution attempt returns the typed selection-required admission reason before credential or transport work; no missing connector or inline-credential error is used to force a different route or make configuration invalid.
-    condition: Whenever Cloud Job submission lacks a selected ConnectorGrant.
-    failure: Return selection-required without selecting another grant, provider, model, Local route, or fallback.
+    statement: Cloud AIConfig remains valid saved intent when the selected implementation-target cannot resolve an exact current-account Connector or usable credential, and an execution attempt returns the existing owner or configuration-required, credential, access-denied, or policy reason before transport work without asking the App for Connector selection; no failure forces a different route or makes portable intent invalid.
+    condition: Whenever Cloud Job submission lacks an exact allowed current-account Connector execution path.
+    failure: Return the exact existing typed reason without selecting another Connector, provider, model, Local route, or fallback.
     relations:
       - type: applies_to
-        target: definition.nimi.runtime.security-core.connector-grant-plane
+        target: definition.nimi.runtime.security-core.ownership-authorization-plane
   - id: rule.nimi.runtime.security-core.r059
     kind: rule
     lifecycle: removed
@@ -576,49 +568,47 @@ units:
     reason: Removed because provider endpoints are CapabilityImplementationDriver configuration validated at execution and never caller-inline destination authority.
   - id: rule.nimi.runtime.security-core.r060
     kind: rule
-    title: ConnectorGrant authorizes but never routes capability
+    title: Connector ownership never routes capability
     modality: must
-    statement: A selected ConnectorGrant authorizes use of one account and custody record only; the committed Cloud CapabilityImplementation owns capability semantics, its Driver owns provider protocol and target configuration, and the Remote ExecutionHost owns transport and remote Job lifecycle, so a grant, connector, provider row, or account never selects or reroutes the capability.
-    condition: Whenever a ConnectorGrant authorizes Cloud execution.
-    failure: Reject unknown or unauthorized grant use and never derive implementation or target from custody.
+    statement: A Runtime-resolved current-account Connector supplies ownership and custody only; the committed Cloud CapabilityImplementation owns capability semantics, its Driver owns provider protocol and target configuration, and the Remote ExecutionHost owns transport and remote Job lifecycle, so a Connector, provider row, or account never selects or reroutes the capability.
+    condition: Whenever Connector ownership authorizes Cloud execution.
+    failure: Reject unknown or unauthorized Connector use and never derive implementation or target from custody.
     relations:
       - type: applies_to
-        target: definition.nimi.runtime.security-core.connector-grant-plane
+        target: definition.nimi.runtime.security-core.ownership-authorization-plane
   - id: rule.nimi.runtime.security-core.r061
     kind: rule
     lifecycle: removed
     title: Retired inline provider routing
-    reason: Removed because Cloud execution requires committed AIConfig implementation-target intent and an explicit ConnectorGrant.
+    reason: Removed because Cloud execution requires committed AIConfig implementation-target intent and one exact Runtime-resolved current-account Connector.
   - id: rule.nimi.runtime.security-core.r062
     kind: rule
     title: Selected execution routes never fall back
     modality: must_not
-    statement: Runtime automatically switches Local to Cloud, Cloud to Local, one Local Capability Configuration to another, one CapabilityImplementation or provider-model target to another, or one ConnectorGrant to another after admission or execution failure.
+    statement: Runtime automatically switches Local to Cloud, Cloud to Local, one Local Capability Configuration to another, one CapabilityImplementation or provider-model target to another, or one Connector to another after admission or execution failure.
     condition: Whenever a selected route fails.
-    failure: Return the exact selected composition failure without trying another route, configuration, implementation, provider, target, grant, credential, or ExecutionHost.
+    failure: Return the exact selected composition failure without trying another route, configuration, implementation, provider, target, Connector, credential, or ExecutionHost.
     relations:
       - type: applies_to
-        target: definition.nimi.runtime.security-core.connector-grant-plane
+        target: definition.nimi.runtime.security-core.ownership-authorization-plane
   - id: rule.nimi.runtime.security-core.r063
     kind: rule
     title: Local and Cloud Job inputs are closed
     modality: must
-    statement: A Local Job captures the committed AIConfig Local route, features and defaults, current selected Local Capability Configuration, exact CapabilityImplementation, Driver configuration, exact bindings and request, while a Cloud Job captures the exact CapabilityImplementation, Driver-owned provider-model target, selected ConnectorGrant, defaults and request; neither uses a legacy unified target tuple, current-state pointer, raw LocalAsset, connector identity, path, or provider label as the Job target.
+    statement: A Local Job captures the committed AIConfig Local route, features and defaults, current selected Local Capability Configuration, exact CapabilityImplementation, Driver configuration, exact bindings and request, while a Cloud Job captures the exact CapabilityImplementation, Driver-owned provider-model target, Runtime-resolved current-account Connector custody reference, defaults and request; neither uses a legacy unified target tuple, current-state pointer, raw LocalAsset, caller-supplied connector identity, path, or provider label as the Job target.
     condition: Whenever Runtime validates or captures execution identity.
     failure: Reject missing, stale, incompatible, unknown, or retired inputs without minting identity from inventory, custody, or provider facts.
     relations:
       - type: applies_to
-        target: definition.nimi.runtime.security-core.connector-grant-plane
+        target: definition.nimi.runtime.security-core.ownership-authorization-plane
   - id: rule.nimi.runtime.security-core.r064
     kind: rule
-    title: Memory embedding reuses canonical route and grant security
+    title: Memory embedding reuses canonical route and Connector security
     modality: must
-    statement: Memory embedding uses its canonical AIConfig route, for Local the machine-selected exact Local Capability Configuration and bindings, or for Cloud the exact CapabilityImplementation target and explicitly selected ConnectorGrant, and persists no inline credentials or endpoints; its separate bank owner retains bank binding, rebuild, migration, and cutover truth without a special connector router or readiness lifecycle.
+    statement: Memory embedding uses its canonical AIConfig route, for Local the machine-selected exact Local Capability Configuration and bindings, or for Cloud the exact CapabilityImplementation target and Runtime-resolved current-account Connector custody reference, and persists no inline credentials or endpoints; its separate bank owner retains bank binding, rebuild, migration, and cutover truth without a special connector router, per-consumer Connector picker, or readiness lifecycle.
     condition: Whenever Runtime resolves Desktop-host-owned cloud memory embedding configuration.
     failure: Reject local, invalid, owner-mismatched, status-invalid, credential-invalid, endpoint-invalid, or shortcut connector bindings.
     relations:
-      - type: applies_to
-        target: definition.nimi.runtime.security-core.connector-grant-plane
       - type: applies_to
         target: definition.nimi.runtime.security-core.endpoint-security-plane
       - type: applies_to
@@ -627,22 +617,22 @@ units:
     kind: rule
     title: AIProfile carries no account authorization binding
     modality: must
-    statement: AIProfile may carry only a Cloud CapabilityImplementation and Driver-owned provider-model target recommendation with features, defaults and portable provenance; it carries no connectorId, ConnectorGrant, account identity, custody reference, endpoint authority, secret, or live binding, while AIConfig gains a ConnectorGrant only through a separate explicit user selection.
+    statement: AIProfile and AIConfig may carry only Cloud CapabilityImplementation and Driver-owned provider-model target intent with features, defaults and portable provenance; neither carries connectorId, account identity, custody reference, endpoint authority, secret, or live binding, while Runtime resolves current-account Connector custody internally.
     condition: Whenever AIProfile expresses Cloud intent or AIConfig selects Cloud authorization.
     failure: Reject account-bound, secret-bearing, custody-bound, or implicitly selected Profile content.
     relations:
       - type: applies_to
-        target: definition.nimi.runtime.security-core.connector-grant-plane
+        target: definition.nimi.runtime.security-core.ownership-authorization-plane
   - id: rule.nimi.runtime.security-core.r066
     kind: rule
     title: Retired target identities cannot carry new semantics
     modality: must_not
-    statement: Raw model_id, target_model_id, localModelId, goRuntimeLocalModelId, targetId or profileId, compact local target, connector_id plus model_id, deprecated field, or renamed compatibility object is admitted as durable identity for AIConfig, Local Capability Configuration, machine selection, ConnectorGrant, or Job, while provider-model values remain Driver target configuration and custody identity remains distinct from the grant.
+    statement: Raw model_id, target_model_id, localModelId, goRuntimeLocalModelId, targetId or profileId, compact local target, connector_id plus model_id, deprecated field, or renamed compatibility object is admitted as durable identity for AIConfig, Local Capability Configuration, machine selection, or Job, while provider-model values remain Driver target configuration and custody identity remains distinct from the target.
     condition: Whenever a caller, profile, or persisted record supplies a durable Runtime target.
     failure: Reject the retired identity without conversion and require the exact canonical owner object.
     relations:
       - type: applies_to
-        target: definition.nimi.runtime.security-core.connector-grant-plane
+        target: definition.nimi.runtime.security-core.ownership-authorization-plane
   - id: rule.nimi.runtime.security-core.r082
     kind: rule
     lifecycle: removed
@@ -660,24 +650,22 @@ units:
         target: definition.nimi.platform.core-protocol.effective-app-access-snapshot
   - id: rule.nimi.runtime.security-core.r084
     kind: rule
-    title: Route implementation grant and custody identities stay distinct
+    title: Route implementation and custody identities stay distinct
     modality: must
-    statement: AIConfig route intent, CapabilityImplementation semantics, CapabilityImplementationDriver protocol and target configuration, ConnectorGrant account authorization, credential custody, and Local or Remote ExecutionHost transport are distinct identities; no inline credential escape hatch, local connector probe facade, provider runtime-plane label, or custody preference is interpreted as Local or Cloud route, target, selection, admission, or fallback.
-    condition: Whenever Runtime or a consumer classifies route, implementation, Driver, grant, custody, or Host.
+    statement: AIConfig route intent, CapabilityImplementation semantics, CapabilityImplementationDriver protocol and target configuration, current-account Connector ownership, credential custody, and Local or Remote ExecutionHost transport are distinct identities; no inline credential escape hatch, local connector probe facade, provider runtime-plane label, or custody preference is interpreted as Local or Cloud route, target, selection, admission, or fallback.
+    condition: Whenever Runtime or a consumer classifies route, implementation, Driver, Connector ownership, custody, or Host.
     failure: Reject execution that conflates any identity or derives route or target from custody or provider taxonomy.
     relations:
       - type: applies_to
-        target: definition.nimi.runtime.security-core.connector-grant-plane
+        target: definition.nimi.runtime.security-core.ownership-authorization-plane
   - id: rule.nimi.runtime.security-core.r085
     kind: rule
-    title: Grant credentials enter only request execution context
+    title: Connector credentials enter only request execution context
     modality: must
-    statement: Runtime resolves a selected ConnectorGrant to its custody reference only after grant owner and status validation, obtains the minimum protocol authentication material only for the request-scoped execution context, lets the exact CapabilityImplementationDriver consume it while the Remote ExecutionHost transports the request, never persists it in Profile, AIConfig, Driver configuration, ordinary workflow, or Job, and prevents downstream modules from reading credential storage directly.
+    statement: Runtime resolves the exact current-account Connector to its custody reference only after ownership, status, credential configuration, App Capability access, and applicable policy validation, obtains the minimum protocol authentication material only for the request-scoped execution context, lets the exact CapabilityImplementationDriver consume it while the Remote ExecutionHost transports the request, never persists secret material in Profile, AIConfig, Driver configuration, ordinary workflow, or Job, and prevents downstream modules from reading credential storage directly.
     condition: Whenever Runtime prepares Cloud execution.
-    failure: Stop execution when exact grant material cannot be injected through the request context or any downstream module attempts direct storage access.
+    failure: Stop execution when exact credential material cannot be injected through the request context or any downstream module attempts direct storage access.
     relations:
-      - type: applies_to
-        target: definition.nimi.runtime.security-core.connector-grant-plane
       - type: applies_to
         target: definition.nimi.runtime.security-core.ownership-authorization-plane
   - id: rule.nimi.runtime.security-core.r086
@@ -738,7 +726,7 @@ units:
     kind: rule
     title: App operation results expose no portable authority material
     modality: must_not
-    statement: A supported App operation result, error, event, SDK projection, Host projection, environment, argv, renderer payload, log, generic forwarding response, or raw Realm response exposes Realm tokens, refresh tokens, Provider Credentials, connector credentials, ConnectorGrant custody material, session proof, or equivalent portable authority material.
+    statement: A supported App operation result, error, event, SDK projection, Host projection, environment, argv, renderer payload, log, generic forwarding response, or raw Realm response exposes Realm tokens, refresh tokens, Provider Credentials, connector credentials, session proof, or equivalent portable authority material.
     condition: Whenever Runtime returns or projects a Third-party App operation outcome.
     failure: Stop the projection and return the operation's typed failure without treating a credential scanner as the admission or correctness owner.
     relations:

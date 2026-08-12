@@ -48,14 +48,9 @@ units:
         target: definition.nimi.runtime.delegation.capability-gateway-plane
   - id: rule.nimi.runtime.delegation.r003
     kind: rule
-    title: Delegated Cloud intent keeps grant and custody separate
-    modality: must
-    statement: A delegated portable provider profile is not ConnectorGrant or credential custody and carries at most CapabilityImplementation and Driver-owned target recommendation; an authorized delegated Cloud Job uses a separately and explicitly selected ConnectorGrant whose custody reference remains Runtime-owned, and no profile duplicates account identity, secret, endpoint authority, connector lifecycle, provider health, route, or grant selection.
-    condition: Whenever delegated provider intent composes Cloud authorization.
-    failure: Reject duplicated custody, account identity, lifecycle, health, route, or implicit grant facts inside provider profiles.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.delegation.capability-gateway-plane
+    lifecycle: removed
+    title: Retired delegated Cloud credential selection rule
+    reason: Removed because the current product has no delegated Cloud credential-authorization or selection mechanism; any future cross-account, cross-Realm, shared-credential, service-account, enterprise-managed, or time-bounded delegation requires new authority and a new subject model.
   - id: rule.nimi.runtime.delegation.r004
     kind: rule
     title: Trust tier is closed and fails closed
@@ -400,7 +395,7 @@ units:
     kind: rule
     title: Action admission requires re-authorization
     modality: must
-    statement: Accepted tool suggestions become actions only after Runtime re-authorizes the action through existing auth, grant, and Runtime agent decision rules.
+    statement: Accepted tool suggestions become actions only after Runtime re-authorizes the action through existing authentication, operation authorization, and Runtime agent decision rules.
     condition: Whenever an accepted suggestion becomes an action.
     failure: Reject actions without Runtime re-authorization.
     relations:
@@ -650,7 +645,7 @@ units:
     kind: rule
     title: A2A credentials stay in Runtime custody
     modality: must
-    statement: A2A credentials, authorization headers, bearer tokens, refresh tokens, API keys, and OAuth artifacts remain under Runtime connector, grant, authn, and authz custody, and future A2A adapter code never passes raw credentials through SDK, Desktop, Avatar, or app surfaces.
+    statement: A2A credentials, authorization headers, bearer tokens, refresh tokens, API keys, and OAuth artifacts remain under Runtime connector, authentication, and authorization custody, and future A2A adapter code never passes raw credentials through SDK, Desktop, Avatar, or app surfaces.
     condition: Whenever A2A credential material is handled.
     failure: Reject raw A2A credential passthrough.
     relations:

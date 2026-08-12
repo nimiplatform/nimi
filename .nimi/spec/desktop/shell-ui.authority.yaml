@@ -568,7 +568,7 @@ units:
     kind: rule
     title: First run does not gate Product Control on AI setup
     modality: must_not
-    statement: Nimi Home first run treats an AIProfile, AIConfig, Local Capability Configuration, LocalAsset installation, machine selection, ConnectorGrant, capability admission, probe, health, or successful AI execution as a prerequisite or substitute for Product Control ready_for_use, or automatically applies a Profile or starts local dependency work; AI setup is an explicit independent action whose unavailable state affects only the requested capability.
+    statement: Nimi Home first run treats an AIProfile, AIConfig, Local Capability Configuration, LocalAsset installation, machine selection, capability admission, probe, health, or successful AI execution as a prerequisite or substitute for Product Control ready_for_use, or automatically applies a Profile or starts local dependency work; AI setup is an explicit independent action whose unavailable state affects only the requested capability.
     condition: Whenever first-run state is presented or advanced.
     failure: Preserve the canonical Product Control state and present independent explicit AI configuration or setup actions without fabricating capability success.
     relations:
@@ -831,7 +831,7 @@ units:
     kind: rule
     title: Provider guidance uses the exact current outcome
     modality: must
-    statement: Desktop maps credential guidance only from an exact ConnectorGrant authorization failure, maps provider availability guidance only from the current real Job failure or the result of the same user-explicit bounded Test Connector diagnostic, and otherwise presents generic typed unavailable guidance; no diagnostic result becomes reusable provider health, readiness, binding, or an execution prerequisite.
+    statement: Desktop maps credential guidance only from the exact current-account Connector or credential failure, maps provider availability guidance only from the current real Job failure or the result of the same user-explicit bounded Test Connector diagnostic, and otherwise presents generic typed unavailable guidance; no diagnostic result becomes reusable provider health, readiness, binding, or an execution prerequisite.
     condition: Whenever AI_PROVIDER_UNAVAILABLE is presented.
     failure: Do not infer credential, network, provider-health, or readiness truth from a periodic, stale, absent, or unrelated projection.
     relations:

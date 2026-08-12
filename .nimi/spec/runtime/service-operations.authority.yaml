@@ -13,7 +13,7 @@ units:
   - id: definition.nimi.runtime.service-operations.scenario-job-plane
     kind: definition
     title: Runtime scenario job operations plane
-    meaning: The Runtime scenario job operations plane owns asynchronous Job creation, immutable effective-input snapshots, execution state, progress, events, cancellation, artifacts, and terminal failure projection; it persists grant and custody references but never raw credentials, and current configuration changes never rewrite a Job.
+    meaning: The Runtime scenario job operations plane owns asynchronous Job creation, immutable effective-input snapshots, execution state, progress, Job-only events, cancellation, artifacts, terminal failure projection, and operation-specific terminal success results; it persists private Connector custody references but never raw credentials, and current configuration changes never rewrite a Job.
   - id: definition.nimi.runtime.service-operations.scenario-registry
     kind: definition
     title: Runtime scenario registry
@@ -379,9 +379,9 @@ units:
     kind: rule
     title: Scenario job methods and metadata path are fixed
     modality: must
-    statement: SubmitScenarioJob creates a Job with exact effective inputs, GetScenarioJob queries stored metadata, CancelScenarioJob controls it, SubscribeScenarioJobEvents observes it, and GetScenarioArtifacts returns its results; every query and control operation uses the immutable Job record rather than current AIConfig, Machine Local AI Configuration, Local Capability Configuration, ConnectorGrant, custody, inventory, or process state.
+    statement: SubmitScenarioJob creates and returns only a Job with exact effective inputs, GetScenarioJob queries stored metadata and is the only carrier of an operation-specific terminal success result, CancelScenarioJob controls the Job, SubscribeScenarioJobEvents observes Job snapshots only, and GetScenarioArtifacts returns artifact metadata; for voice.create, GetScenarioJob returns a VoiceAsset and VoiceReference only after their successful atomic publication with COMPLETED, and every query and control operation uses the immutable Job record rather than current AIConfig, Machine Local AI Configuration, Local Capability Configuration, current Connector custody, inventory, or process state.
     condition: Whenever a ScenarioJob is submitted, queried, canceled, subscribed, or read for artifacts.
-    failure: Reject an undeclared method role or a query or control path that depends on current connector state.
+    failure: Reject an undeclared method role, a Submit or event response carrying a voice result, a non-terminal or failed Get response carrying a voice result, or a query or control path that depends on current connector state.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.service-operations.scenario-job-plane
@@ -413,7 +413,7 @@ units:
     kind: rule
     title: Scenario jobs capture exact secret-free effective inputs
     modality: must
-    statement: SubmitScenarioJob captures for Local the AIConfig Local route, required features and defaults, current selected Local Capability Configuration, exact CapabilityImplementation, Driver configuration, exact bindings and request, or for Cloud the exact CapabilityImplementation, Driver-owned provider-model target, ConnectorGrant identity, defaults and request; raw credentials and bearer material are never persisted, minimum secret material is obtained from custody only in ephemeral execution context and zeroed after use, and later configuration changes never rewrite the snapshot.
+    statement: SubmitScenarioJob captures for Local the AIConfig Local route, required features and defaults, current selected Local Capability Configuration, exact CapabilityImplementation, Driver configuration, exact bindings and request, or for Cloud the exact CapabilityImplementation, Driver-owned provider-model target, internally resolved current-account Connector custody reference, defaults and request; raw credentials and bearer material are never persisted, minimum secret material is obtained from custody only in ephemeral execution context and zeroed after use, and later configuration changes never rewrite the snapshot.
     condition: Whenever a ScenarioJob is created, accessed, or reaches terminal state.
     failure: Reject creation without complete effective inputs and reject persisted raw secret material or current-state reconstruction.
     relations:
@@ -421,10 +421,10 @@ units:
         target: definition.nimi.runtime.service-operations.scenario-job-plane
   - id: rule.nimi.runtime.service-operations.r041
     kind: rule
-    title: Grant or custody deletion cannot orphan submitted jobs
+    title: Connector or custody deletion cannot orphan submitted jobs
     modality: must
-    statement: Deleting or revoking a ConnectorGrant or its custody record affects future submissions but never erases or rewrites submitted-Job metadata, observability, cancellation, completed results, or artifacts; a running remote Job fails only when the actual execution is rejected for authorization, and artifact access follows its own recorded audience rather than a current connector or grant lookup.
-    condition: Whenever a ConnectorGrant or custody record changes while a Job remains observable or executing.
+    statement: Deleting or disabling a current-account Connector or changing its custody record affects future submissions but never erases or rewrites submitted-Job metadata, observability, cancellation, completed results, or artifacts; a running remote Job fails only when the actual execution is rejected for authorization, and artifact access follows its own recorded audience rather than a current Connector lookup.
+    condition: Whenever a Connector or custody record changes while a Job remains observable or executing.
     failure: Preserve metadata-based Job control and return an actual typed authorization failure rather than reconstructing state from current custody.
     relations:
       - type: applies_to
@@ -807,9 +807,9 @@ units:
     kind: rule
     title: Connector CLI operations never select execution
     modality: must
-    statement: The provider namespace may list Connector custody records, invoke already admitted explicit custody create or remove operations, and run a user-explicit bounded Test Connector diagnostic, but it never creates or selects an AIConfig route, provider-model target, ConnectorGrant binding, default provider or model, Machine Local AI Configuration relation, or generation request; custody and diagnostic outcomes remain with their canonical Runtime owners and never continue into execution.
+    statement: The provider namespace may list Connector custody records, invoke already admitted explicit custody create or remove operations, and run a user-explicit bounded Test Connector diagnostic, but it never creates or selects an AIConfig route, provider-model target, default provider or model, Machine Local AI Configuration relation, or generation request; custody and diagnostic outcomes remain with their canonical Runtime owners and never continue into execution.
     condition: Whenever a user invokes a retained provider or Connector operation.
-    failure: Reject one-shot provider routing, a machine default, implicit account or grant selection, secret escape from Runtime custody, diagnostic-as-readiness, or any continuation into generation.
+    failure: Reject one-shot provider routing, a machine default, implicit account or Connector selection, secret escape from Runtime custody, diagnostic-as-readiness, or any continuation into generation.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.service-operations.cli-plane

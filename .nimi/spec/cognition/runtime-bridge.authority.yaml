@@ -86,7 +86,7 @@ units:
     kind: rule
     title: Cognition consumes canonical capability composition
     modality: must
-    statement: The canonical App or shared LocalAgent AIConfig owner commits each CapabilityContract route, the machine owner commits Local Capability Configuration selection, ConnectorGrant supplies explicit Cloud account authorization, and Runtime deterministically composes exact Driver, binding, Quota, Budget and Rate Limit inputs into a Job; Cognition consumes only that admitted Job context and cannot select, resolve, probe, override, or substitute standalone defaults.
+    statement: The canonical App or shared LocalAgent AIConfig owner commits each CapabilityContract route, the machine owner commits Local Capability Configuration selection, Runtime resolves ordinary same-account Cloud Connector custody internally from Nimi-owned configuration and validates ownership, credential, App access, and policy, and Runtime deterministically composes exact Driver, binding, Quota, Budget and Rate Limit inputs into a Job; Cognition consumes only that admitted Job context and cannot select, resolve, probe, override, or substitute standalone defaults.
     condition: Whenever a Cognition adapter requires AI or embedding resources for Runtime work.
     failure: Fail closed with the typed derived admission or Job failure when exact committed inputs are unavailable.
     relations:

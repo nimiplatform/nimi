@@ -21,7 +21,7 @@ units:
   - id: definition.nimi.runtime.model-catalog.provider-metadata-plane
     kind: definition
     title: Runtime provider metadata plane
-    meaning: The Runtime provider metadata plane owns the merged source-provider schema and its one-way catalog inventory, capability, pricing, voice, and request-option projections into registries and tables, together with the boundary between source providers and runtime infrastructure providers; it never owns a ConnectorGrant, Cloud provider-model target, committed default, execution route, execution selection, or ExecutionHost endpoint.
+    meaning: The Runtime provider metadata plane owns the merged source-provider schema and its one-way catalog inventory, capability, pricing, voice, and request-option projections into registries and tables, together with the boundary between source providers and runtime infrastructure providers; it never owns a Connector, Cloud provider-model target, committed default, execution route, execution selection, or ExecutionHost endpoint.
   - id: definition.nimi.runtime.model-catalog.voice-workflow-catalog-plane
     kind: definition
     title: Runtime voice-workflow catalog plane
@@ -178,7 +178,7 @@ units:
     kind: rule
     title: Catalog metadata projects one way from source
     modality: must
-    statement: Provider catalog inventory, capability, pricing, voice, and request-option metadata lives in the merged source-provider entry and projects one way into generated catalog registries and tables; dynamic inventory metadata describes catalog discovery only, and neither source metadata nor a projection carries or supplies an ExecutionHost endpoint, ConnectorGrant, Cloud provider-model target, committed default, execution route, or execution selection.
+    statement: Provider catalog inventory, capability, pricing, voice, and request-option metadata lives in the merged source-provider entry and projects one way into generated catalog registries and tables; dynamic inventory metadata describes catalog discovery only, and neither source metadata nor a projection carries or supplies an ExecutionHost endpoint, Connector, Cloud provider-model target, committed default, execution route, or execution selection.
     condition: Whenever provider catalog metadata is declared, generated, or consumed.
     failure: Reject a projection that bypasses catalog source metadata or any source or projection that claims Runtime-private endpoint or execution-composition truth.
     relations:
@@ -418,9 +418,9 @@ units:
     kind: rule
     title: Voice creation runs on the scenario surface
     modality: must
-    statement: Voice creation executes only as scenario jobs on the runtime AI service whose public voice surface is exactly SubmitScenarioJob, GetScenarioJob, CancelScenarioJob, SubscribeScenarioJobEvents, GetVoiceAsset, ListVoiceAssets, DeleteVoiceAsset, and ListPresetVoices, and no separate public voice service exists.
+    statement: Voice creation executes only as scenario jobs on the runtime AI service whose public voice surface is exactly SubmitScenarioJob, GetScenarioJob, CancelScenarioJob, SubscribeScenarioJobEvents, GetVoiceAsset, ListVoiceAssets, DeleteVoiceAsset, and ListPresetVoices; SubmitScenarioJob returns only the Job, SubscribeScenarioJobEvents projects only Job snapshots, and after a terminal success the consumer calls GetScenarioJob to obtain the VoiceAsset and VoiceReference result, with no separate public voice service.
     condition: Whenever the public voice surface is defined or consumed.
-    failure: Reject undeclared public voice methods or a parallel voice service.
+    failure: Reject undeclared public voice methods, a parallel voice service, a Submit or event carrier containing a voice result, or a terminal voice result read outside GetScenarioJob.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.model-catalog.voice-plane
@@ -428,9 +428,9 @@ units:
     kind: rule
     title: Provider steps and private parameters stay encapsulated
     modality: must
-    statement: A provider-native multi-step voice creation flow is encapsulated in one scenario job lifecycle exposing only the unified state machine, event stream, and a VoiceAsset plus VoiceReference result without leaking internal provider steps as public RPCs, and provider-private parameters travel only through namespaced scenario extensions constrained by the extension registry rather than free passthrough.
+    statement: A provider-native multi-step voice creation flow is encapsulated in the one ScenarioJob lifecycle without a second VoiceAsset creation state machine; Runtime may preallocate a private asset identity, but no VoiceAsset or VoiceReference is stored, listed, or returned before the provider succeeds and the non-empty provider handle, Runtime-private exact target binding, persistence record, ACTIVE VoiceAsset, VoiceReference, and COMPLETED Job are committed as one terminal success publication. FAILED, CANCELED, and TIMEOUT publish no VoiceAsset or VoiceReference, and provider-private parameters travel only through namespaced scenario extensions constrained by the extension registry rather than free passthrough.
     condition: Whenever a voice creation workflow executes against a provider.
-    failure: Reject leaked provider steps and unregistered extension passthrough.
+    failure: Reject leaked provider steps, unregistered extension passthrough, a public pre-terminal voice result, a terminal success missing any required committed result fact, or any public voice result from a non-success terminal state.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.model-catalog.voice-plane
@@ -438,7 +438,7 @@ units:
     kind: rule
     title: Voice references use closed kinds
     modality: must
-    statement: A VoiceReference admits exactly the reference kinds preset_voice_id, voice_asset_id, and provider_voice_ref drawn from the runtime voice enum registry, an ordinary profile or SDK surface receiving a bare provider handle or an undiscriminated free-string voice reference fails closed instead of upgrading it to a public binding, provider-returned native handles converge into the VoiceAsset plus VoiceReference public contract, and embedding a VoiceReference in the runtime agent presentation profile transfers no voice workflow, discovery, or asset ownership.
+    statement: A VoiceReference admits exactly the reference kinds preset_voice_id, voice_asset_id, and provider_voice_ref drawn from the runtime voice enum registry, an ordinary profile or SDK surface receiving a bare provider handle or an undiscriminated free-string voice reference fails closed instead of upgrading it to a public binding, a provider-returned native handle converges into the VoiceAsset plus VoiceReference public contract only through the successful atomic terminal publication, and embedding a VoiceReference in the runtime agent presentation profile transfers no voice workflow, discovery, or asset ownership.
     condition: Whenever a voice reference is created, bound, or consumed.
     failure: Fail closed on undiscriminated references and reject provider handles as public identity.
     relations:
@@ -448,9 +448,9 @@ units:
     kind: rule
     title: VoiceAsset shape and identity are fixed
     modality: must
-    statement: A public VoiceAsset carries at least voice_asset_id, app_id, subject_user_id, a non-routing creation source limited to text_description or reference_audio, provider, provider_voice_ref, persistence, and status with persistence and status values from the runtime voice enum registry, its public identity is voice_asset_id, residual model identifiers remain guarded non-identity facts, and the exact execution target binding stays Runtime-private rather than being projected as target_ref or voice_asset_target_ref.
+    statement: A public VoiceAsset exists only as a successful voice.create result, has status ACTIVE and a non-empty provider_voice_ref, and carries at least voice_asset_id, app_id, subject_user_id, a non-routing creation source limited to text_description or reference_audio, provider, persistence, and status with persistence and status values from the runtime voice enum registry; its public identity is voice_asset_id, residual model identifiers remain guarded non-identity facts, and the exact committed execution target binding stays Runtime-private rather than being projected as target_ref or voice_asset_target_ref.
     condition: Whenever a VoiceAsset is created, stored, or projected.
-    failure: Reject assets missing required fields or deriving identity from model identifiers.
+    failure: Reject assets missing required fields, ACTIVE assets with an empty provider_voice_ref, pre-terminal public assets, or identity derived from model identifiers.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.model-catalog.voice-plane
@@ -478,7 +478,7 @@ units:
     kind: rule
     title: Synthesis honors the bound target
     modality: must
-    statement: VoiceAsset creation captures an exact Runtime-private execution target binding, and synthesis through that VoiceAsset resolves and validates the captured binding before execution so an incompatible selected target returns AI_VOICE_TARGET_MODEL_MISMATCH without projecting target_ref or voice_asset_target_ref through the public VoiceAsset contract.
+    statement: VoiceAsset creation commits an exact Runtime-private execution target binding before the VoiceAsset is atomically published with terminal success, and synthesis through that VoiceAsset resolves and validates the captured binding before execution so an incompatible selected target returns AI_VOICE_TARGET_MODEL_MISMATCH without projecting target_ref or voice_asset_target_ref through the public VoiceAsset contract.
     condition: Whenever a voice asset is created or consumed for synthesis.
     failure: Return the exact mismatch code instead of executing on an incompatible target.
     relations:
@@ -530,7 +530,7 @@ units:
     kind: rule
     title: LocalAgent voice policy is Runtime owned
     modality: must
-    statement: LocalAgent voice output policy lives on Runtime, including synthesis intent, voice identity, user-visible playback posture, and durable voice artifact retention, while the one shared LocalAgent AIConfig exclusively owns the audio.synthesize Local-or-Cloud route and Runtime composes its selected Local Capability Configuration or Cloud implementation, Driver target, and ConnectorGrant at Job submission; Desktop, Zhiyu, Avatar, the voice plane, and the catalog consume projections without deciding route, model binding, machine selection, or whether a committed assistant message has voice semantics, and voice identity follows the LocalAgent presentation profile rather than Avatar assets, Avatar instances, or conversation surfaces.
+    statement: LocalAgent voice output policy lives on Runtime, including synthesis intent, voice identity, user-visible playback posture, and durable voice artifact retention, while the one shared LocalAgent AIConfig exclusively owns the audio.synthesize Local-or-Cloud route and Runtime composes its selected Local Capability Configuration or Cloud implementation and Driver target plus the internally resolved current-account Connector custody at Job submission without a second per-Agent authorization; Desktop, Zhiyu, Avatar, the voice plane, and the catalog consume projections without deciding route, model binding, machine selection, or whether a committed assistant message has voice semantics, and voice identity follows the LocalAgent presentation profile rather than Avatar assets, Avatar instances, or conversation surfaces.
     condition: Whenever agent voice policy is stored, mutated, or consumed.
     failure: Reject consumer-owned policy state and route or identity decisions outside Runtime.
     relations:

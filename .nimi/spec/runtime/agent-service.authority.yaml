@@ -157,7 +157,7 @@ units:
     kind: rule
     title: Core capability unavailability is explicit
     modality: must
-    statement: A missing or invalid selected Local Capability Configuration, unresolved required binding, uninterpretable Driver configuration, standardized-feature mismatch, missing Cloud ConnectorGrant, failed authorization, Character Source, Memory, Knowledge, Conversation, or required service dependency produces a typed admission, unavailable, or failed outcome and never public readiness, mock success, route mutation, automatic re-selection, or App-local fallback execution.
+    statement: A missing or invalid selected Local Capability Configuration, unresolved required binding, uninterpretable Driver configuration, standardized-feature mismatch, missing or foreign current-account Cloud Connector, unusable credential, App access or policy denial, Character Source, Memory, Knowledge, Conversation, or required service dependency produces the existing typed owner, configuration-required, access-denied, admission, unavailable, or failed outcome without requesting App-side Connector selection and never public readiness, mock success, route mutation, automatic re-selection, or App-local fallback execution.
     condition: Whenever a LocalAgent core operation cannot run.
     failure: Fail closed with the owning Runtime reason and no fabricated result.
     relations:

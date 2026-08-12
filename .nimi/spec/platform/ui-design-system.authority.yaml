@@ -41,7 +41,7 @@ units:
   - id: definition.nimi.platform.ui-design-system.agent-center-surface
     kind: definition
     title: LocalAgent Center surface
-    meaning: Agent Center is the reusable Nimi-owned first-party Kit surface for presenting and editing admitted Runtime LocalAgent personality, appearance, behavior, Memory, Conversation-presentation, and shared LocalAgent AIConfig projections without owning execution, lifecycle, Machine Local AI Configuration, Local Capability Configuration, machine selection, ConnectorGrant, configuration persistence, or semantic presentation truth; it is not a third-party App access surface.
+    meaning: Agent Center is the reusable Nimi-owned first-party Kit surface for presenting and editing admitted Runtime LocalAgent personality, appearance, behavior, Memory, Conversation-presentation, and shared LocalAgent AIConfig projections without owning execution, lifecycle, Machine Local AI Configuration, Local Capability Configuration, machine selection, configuration persistence, or semantic presentation truth; it is not a third-party App access surface.
   - id: definition.nimi.platform.ui-design-system.runtime-projection
     kind: definition
     title: Runtime-owned UI projection
@@ -474,7 +474,7 @@ units:
     kind: rule
     title: P-AGENT-CENTER-001 Runtime and resource ownership boundary
     modality: must_not
-    statement: AgentCenter owns LocalAgent execution, lifecycle, Conversation, Memory or Knowledge content, events, Machine Local AI Configuration, Local Capability Configuration, machine selection, ConnectorGrant, AI resources, configuration persistence, authorization, semantic presentation selection, Avatar lifecycle, render truth, backend readiness, calibration, or launch truth.
+    statement: AgentCenter owns LocalAgent execution, lifecycle, Conversation, Memory or Knowledge content, events, Machine Local AI Configuration, Local Capability Configuration, machine selection, AI resources, configuration persistence, authorization, semantic presentation selection, Avatar lifecycle, render truth, backend readiness, calibration, or launch truth.
     condition: Whenever AgentCenter consumes or edits LocalAgent state.
     failure: Keep the truth with Runtime, SDK custody, Avatar, or Kit Shell as applicable and expose only a typed bounded projection.
     relations:
@@ -499,7 +499,7 @@ units:
     kind: rule
     title: P-AGENT-CENTER-002 complete semantic areas and identity chrome
     modality: must
-    statement: A complete AgentCenter provides Overview, Appearance, Behavior, shared LocalAgent AIConfig, Cognition, and Diagnostics or Advanced as required semantic areas and supplies canonical Agent identity chrome; before a user commits a shared LocalAgent AIConfig Cloud route or ConnectorGrant binding, the AI area explicitly communicates that the chosen account, usage or cost, and data-egress consequences apply to every affected LocalAgent including deferred or proactive Jobs; concrete tabs, ordering, layout, and responsive collapse remain presentational and host-configurable without allowing an App to hand-copy the identity chrome, present machine-owned Local Capability Configurations as per-Agent models, or offer a per-Agent route override.
+    statement: A complete AgentCenter provides Overview, Appearance, Behavior, shared LocalAgent AIConfig, Cognition, and Diagnostics or Advanced as required semantic areas and supplies canonical Agent identity chrome; before a user commits a shared LocalAgent AIConfig Cloud implementation-target selection, the AI area explicitly communicates that the Nimi-owned current-account Connector route, usage or cost, and data-egress consequences apply to every affected LocalAgent including deferred or proactive Jobs without a second per-Agent authorization; concrete tabs, ordering, layout, and responsive collapse remain presentational and host-configurable without allowing an App to hand-copy the identity chrome, present machine-owned Local Capability Configurations as per-Agent models, or offer a per-Agent route override.
     condition: Whenever the complete AgentCenter surface is presented.
     failure: Reject a missing semantic area, hidden shared Cloud consequence, per-Agent route implication, app-owned identity-chrome copy, or hardcoded tab structure presented as semantic authority.
     relations:
@@ -741,7 +741,7 @@ units:
   - id: definition.nimi.platform.ui-design-system.model-config-surface
     kind: definition
     title: Public Kit model-config surface
-    meaning: Model-config is the public Kit feature module for typed composition of canonical AIConfig editing and separately authorized Machine Local AI Configuration editing without app-owned, feature-local, or per-Agent model truth; every mount declares one owner and consumer context, and public reuse never gives a third-party App access to Nimi-owned ConnectorGrant binding or machine-owner actions.
+    meaning: Model-config is the public Kit feature module for typed composition of Nimi-owned canonical AIConfig editing and separately authorized Machine Local AI Configuration editing without app-authored, feature-local, or per-Agent model truth; every mount declares one owner and consumer context, a protected third-party App mount is read-only and hands configuration to the Nimi-owned owner surface, public reuse never gives a third-party App access to route, implementation, provider-model target, current-account Connector identity, credential custody, or machine-owner actions, and no context presents a per-App Connector picker.
   - id: definition.nimi.platform.ui-design-system.model-picker-surface
     kind: definition
     title: Public Kit model-picker surface
@@ -754,9 +754,9 @@ units:
     kind: rule
     title: P-MODEL-CONFIG-001 public shared configuration surface
     modality: must
-    statement: Model-config follows the Kit public-module, dependency, and portable-feature rules, consumes the canonical CapabilityContract and standardized-feature catalog, and mounts in exactly one declared owner and consumer mode; a third-party App context may edit only portable intent for its own App AIConfig through the admitted protected overwrite operation, carries no ConnectorGrant selector or binding, atomically removes any prior binding on whole-object overwrite, and presents Cloud as selection-required, while only a Nimi-owned explicit-user App AIConfig surface may attach a current-account ConnectorGrant and shared LocalAgent AIConfig and Machine Local AI Configuration modes remain first-party owner surfaces; no mode renders public readiness, probe, warm, install-as-apply, fallback, stub, or unsupported parameter.
+    statement: Model-config follows the Kit public-module, dependency, and portable-feature rules, consumes the canonical CapabilityContract and standardized-feature catalog, and mounts in exactly one declared owner and consumer mode; a third-party App context may read only its own portable AIConfig projection and hands every Local or Cloud choice to the Nimi-owned owner surface, while an authorized first-party Nimi account-product context may edit the exact admitted App owner, select the implementation-target and current-account Connector posture without storing Connector identity, and Runtime resolves current-account custody internally without a second per-App authorization; shared LocalAgent AIConfig and Machine Local AI Configuration modes remain first-party owner surfaces, and no mode renders public readiness, probe, warm, install-as-apply, fallback, stub, or unsupported parameter.
     condition: Whenever model-config is published, integrated, or rendered.
-    failure: Reject a private or parallel model-config surface, per-Agent model truth, mixed owner or consumer mode, third-party binding control, preserved stale binding after App overwrite, catalog shadow, fabricated config, unsupported control, or Profile apply that mutates machine-owned truth.
+    failure: Reject a private or parallel model-config surface, per-Agent model truth, mixed owner or consumer mode, any third-party route, implementation, target, Connector posture, or AIConfig mutation control, an inferred or unauthorized App owner, catalog shadow, fabricated config, unsupported control, or Profile apply that mutates machine-owned truth.
     relations:
       - type: applies_to
         target: definition.nimi.platform.ui-design-system.kit-module-family
