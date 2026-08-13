@@ -1,45 +1,62 @@
-version: 4
+version: 6
 id: nimicoding.authority-authoring
-purpose: Author explicit .nimi/spec authority without inference.
+purpose: Author explicit authority and navigate current implementation without inference.
 authority_boundary:
   canonical_root: .nimi/spec
   sources: ["*.authority.yaml", "*.authority.md"]
-  rule: The project owns product meaning; nimicoding formats, validates, and derives read-only results.
-  AI_inputs: [this_guide, task_authority, bounded_discovery, exact_query_or_bounded_context, diagnostics]
+  rule: The project owns meaning; nimicoding formats, validates, and derives read-only results.
+  AI_inputs: [this_guide, task_authority, bounded_authority_or_code_query, diagnostics]
   do_not_read: [complete_authority_corpus, contracts, package_internal_specs]
 
+cli_execution:
+  cwd: repository_root
+  command_prefix: pnpm exec nimicoding
+  rule: Resolve the pinned local package; never probe global PATH. Failure blocks only the requested CLI product.
+
 daily_workflow:
-  - If no exact ID is known, run nimicoding authority discover <path> <query> --max-candidates 10 --max-snippet-terms 24 --max-bytes 131072 --json. Filters are exact; pass --preview-direction, --relations, and --max-edges together. It neither selects nor proves absence.
-  - Select an ID only from task or product authority. Use nimicoding authority query <path> <id> --max-bytes <positive-integer> --json for one unit, or context <path> <id> --max-units <positive-integer> --max-bytes <positive-integer> --json for its declared outgoing applies_to/supersedes closure. Context is not complete task context.
-  - Modify only project-owned canonical authority. Choose every product value before writing; never infer an ID, owner, scope, condition, failure, or relation.
-  - Run nimicoding authority fmt <changed-file> for each changed file.
-  - Run nimicoding authority check <complete-path> [--scope-bindings <file>] --json; then compile. For repository anchors run nimicoding authority anchors <repository-path> --spec <corpus-path> [--scope-bindings <file>] --max-units <positive-safe-integer> --max-anchors <positive-safe-integer> --max-bytes <positive-safe-integer> --json.
-  - For semantic changes, run diff and impact with explicit budgets and complete inputs. Treat returned obligations only as host-owned follow-up targets; run the project's real code, type, test, and gate workflow separately.
-  - Never continue from compiler diagnostics, unknown IDs, budget failures, or partial/guessed results.
+  - Without an exact ID, run pnpm exec nimicoding authority discover <path> <query> --max-candidates 10 --max-snippet-terms 24 --max-bytes 131072 --json. It returns candidates, never selection or absence proof.
+  - Select IDs only from task/product authority. pnpm exec nimicoding authority query <path> <id> --max-bytes <n> --json returns one unit; pnpm exec nimicoding authority context <path> <id> --max-units <n> --max-bytes <n> --json returns its outgoing applies_to/supersedes closure, not task context.
+  - Modify only project authority; never infer product values or relations.
+  - Run pnpm exec nimicoding authority fmt <changed-file> for each changed file.
+  - Run pnpm exec nimicoding authority check <complete-path> [--scope-bindings <file>] --json, then pnpm exec nimicoding authority compile <complete-path> --json. For anchors run pnpm exec nimicoding authority anchors <repo> --spec <corpus> [--scope-bindings <file>] --max-units <n> --max-anchors <n> --max-bytes <n> --json.
+  - For semantic changes, run complete-input diff and impact with budgets; obligations are host follow-up targets, not results.
+  - Never continue from diagnostics, unknown IDs, budget failures, or guessed/partial results.
+
+implementation_navigation:
+  authority_to_code: pnpm exec nimicoding code authority --repo <root> --authority <exact-id> --max-files <n> --max-bytes <n>
+  code_to_authority: pnpm exec nimicoding code authority --repo <root> --source <tracked-path> --max-files <n> --max-bytes <n>
+  context: pnpm exec nimicoding code context <ts-or-tsx-path> --repo <root> --symbol <top-level-identifier> --tsconfig <path> --max-bytes <n>
+  markers:
+    authority: "// nimi-authority: <exact-id>"
+    deprecated: "// nimi-deprecated: <same-exact-id>"
+  rule: Put optional markers near key semantic owners; add deprecated only from direct authority/product failure, then remove with the hard cut.
+  boundary: Markers return authored locations/lifecycle; TypeScript context is root-direct static outbound only. Neither evaluates unannotated code, conformance, inbound impact, runtime dispatch, or completion.
+
+managed_surfaces:
+  check: pnpm exec nimicoding sync --check
+  restore: pnpm exec nimicoding sync --apply
+  doctor: pnpm exec nimicoding doctor
+  boundary: Sync diagnoses exact package-owned projection/block drift and apply restores it; doctor diagnoses package/managed compatibility. Neither validates authority, code, or task readiness.
 
 source_profiles:
   yaml:
-    shape: "Closed mapping: format nimicoding.authority/v2; owner?; scope string?; units. Units/IDs/order unchanged."
-    defaults: owner/rule scope inherit; unit overrides; definitions lack scope.
-    omissions: lifecycle active and relations [] may be omitted; removed/reason stay explicit; missing owner/rule scope at both levels fails.
+    shape: "Closed nimicoding.authority/v2 mapping with optional owner/scope defaults and units."
+    defaults: owner/rule scope inherit; unit values override; definitions have no scope.
+    omissions: active lifecycle and empty relations may be omitted; removed reason stays explicit.
     format: nimicoding.authority/v2_only_without_legacy_migration_or_history_input
   markdown:
-    shape: One unit per file. Front matter carries format, id, kind, owner, lifecycle, rule modality/scope, and relations.
+    shape: One unit per file; front matter carries fields and relations.
     title: One plain H1.
     sections:
       active_definition: [Meaning]
       active_rule: [Statement, Condition, Failure]
       removed_unit: [Removal reason]
-    boundary: Each section is one plain-text line; no free prose or unknown structures.
-  shared_text_rule: Text fields are non-empty trimmed single-line Unicode.
+    boundary: One plain-text line per section; no free prose or unknown structures.
+  shared_text_rule: Text is non-empty trimmed single-line Unicode.
 
 common_fields:
-  id: Stable dot-separated lower-case identity; never reuse a removed ID.
-  kind: rule or definition.
-  owner: Accountable dotted lower-case unit or container value.
-  lifecycle: active or explicit removed.
-  title: Required display label.
-  relations: Type/target pairs; omitted means [].
+  id: Stable lower-case dot identity; never reuse a removed ID.
+  owner: Accountable lower-case dotted identity.
 
 unit_shapes:
   active_definition:
@@ -50,38 +67,37 @@ unit_shapes:
     required: [id, kind, title, modality, statement, condition, failure]
     fixed: {kind: rule, lifecycle: active}
     modality: must or must_not.
-    scope: Non-empty unique unit list or one inherited container value.
-    condition: Write the actual condition; use Always. only when unconditional.
-    failure: State observable failure; never pseudo-success or silent fallback.
+    scope: Unique non-empty unit list or inherited container value.
+    condition: Actual condition; use Always. only when unconditional.
+    failure: Observable failure, never pseudo-success or fallback.
     forbidden: [meaning, reason]
   removed_tombstone:
     required: [id, kind, lifecycle, title, reason]
     fixed: {lifecycle: removed}
-    boundary: Preserve the stable identity and kind. reason is lifecycle rationale, not normative replacement content.
+    boundary: Preserve identity/kind; reason is rationale, not replacement content.
     forbidden: [meaning, modality, scope, statement, condition, failure]
 
 relation_rules:
-  applies_to: Required one or more times from each active rule to active definitions only.
-  supersedes: Optional from active or removed to one removed unit of the same kind; at most one incoming/outgoing edge, acyclic linear lineage.
-  resolution: Targets resolve by exact ID in the complete input; invalid, dangling, mismatched, cyclic, duplicate, or inferred edges fail.
+  applies_to: Each active rule targets one or more active definitions only.
+  supersedes: Optional edge to one removed unit of the same kind; one incoming/outgoing maximum, acyclic.
+  resolution: Exact IDs in complete input; invalid, dangling, mismatched, cyclic, duplicate, or inferred edges fail.
 
 formatter_and_diagnostics:
-  - fmt canonicalizes; v2 strips redundant unit defaults but keeps container choices.
-  - Any source format other than nimicoding.authority/v2 fails fmt, check, compile, diff, impact, and review admission.
-  - check/compile use the complete path and fail closed; no public or partial AuthorityIR is emitted.
-  - Diagnostics give locations, reasons, conflicts, and repair categories, never product values.
-  - Fix values only from task or product authority. Do not invent container defaults, fallback data, historical inference, internal contracts, or wildcard corpus reading.
+  - fmt canonicalizes v2 and strips redundant unit defaults.
+  - Non-v2 input fails fmt/check/compile/diff/impact/review.
+  - check/compile use complete paths and emit no public/partial AuthorityIR.
+  - Diagnostics give locations and repair categories, never product values.
 
 change_workflow:
-  diff: nimicoding authority diff <before-path> <after-path> --max-bytes <positive-integer> --json
-  candidates: nimicoding authority change-candidates <before-path> <after-path> --channels <comma-separated-closed-set> --max-candidates <positive-safe-integer> --max-reasons <positive-safe-integer> --max-bytes <positive-safe-integer> --json
-  impact: nimicoding authority impact <before-path> <after-path> --max-bytes <positive-integer> --json
+  diff: pnpm exec nimicoding authority diff <before-path> <after-path> --max-bytes <positive-integer> --json
+  candidates: pnpm exec nimicoding authority change-candidates <before-path> <after-path> --channels <comma-separated-closed-set> --max-candidates <positive-safe-integer> --max-reasons <positive-safe-integer> --max-bytes <positive-safe-integer> --json
+  impact: pnpm exec nimicoding authority impact <before-path> <after-path> --max-bytes <positive-integer> --json
   boundaries:
     - Diff compares complete canonical inputs; formatting, profile, file, and order-only changes are semantic zero.
-    - Change candidates are the complete union only for caller-requested exact owner, scope, changed-term, direct-relation, Definition-identity, and Definition-title channels. They are recall inputs for AI or human judgment, never conflict, retirement, authority, absence, or conformance findings.
-    - Impact follows declared reverse applies_to/supersedes only and reports every before/after scope consumer plus one test follow-up target for each impacted active rule.
-    - Diff/impact budgets cover complete compact payloads; budget failure returns no partial result.
-    - Impact accepts no disposition, receipt, external result, test outcome, or completion state. The host owns execution and workflow state.
+    - Candidates cover only requested exact channels, never semantic judgment.
+    - Impact reports declared reverse-relation consumers and one test target per impacted active rule.
+    - Diff/impact budget failure returns no partial result.
+    - Impact accepts no disposition, receipt, external result, test outcome, or completion state; workflow stays host-owned.
 
 canonical_examples:
   complete_yaml_lifecycle: |
@@ -92,13 +108,13 @@ canonical_examples:
         kind: definition
         owner: team.identity
         lifecycle: removed
-        title: Legacy session
-        reason: Replaced by the current session definition.
+        title: Old session
+        reason: Replaced by definition.session.
       - id: definition.session
         kind: definition
         owner: team.identity
         title: Session
-        meaning: A server-issued identity context presented with a protected request.
+        meaning: A server-issued request identity.
         relations:
           - type: supersedes
             target: definition.session-v0
@@ -106,16 +122,16 @@ canonical_examples:
         kind: rule
         owner: team.checkout
         lifecycle: removed
-        title: Legacy anonymous checkout prohibition
-        reason: Replaced by the current checkout prohibition.
+        title: Old checkout rule
+        reason: Replaced by rule.checkout-no-anonymous.
       - id: rule.checkout-no-anonymous
         kind: rule
         owner: team.checkout
-        title: Anonymous checkout is prohibited
+        title: Require checkout session
         modality: must_not
-        statement: Checkout creates an order without a valid session.
+        statement: Checkout creates an order without a session.
         condition: Always.
-        failure: Reject the request before creating an order.
+        failure: Reject before creating the order.
         relations:
           - type: applies_to
             target: definition.session
@@ -123,5 +139,4 @@ canonical_examples:
             target: rule.checkout-no-anonymous-v0
 
 final_boundaries:
-  - Authority is only project-authored *.authority.yaml or *.authority.md under .nimi/spec; derived/local output is not authority.
-  - Derived reads are bounded and read-only; none selects authority, supplies complete task context, or proves completion.
+  - Only project-authored sources under .nimi/spec are authority; derived/local output is not.

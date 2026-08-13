@@ -115,15 +115,14 @@ app, not the platform itself.
 
 ## What's Installable Today
 
-The current public installable surface is the governance and app-authoring
-tooling. Nimi Coding is the AI-native development methodology, distributed as the
-host-agnostic npm package
+The current public installable surface includes authority and app-authoring
+tooling. Nimi Coding is distributed as the host-agnostic npm package
 [`@nimiplatform/nimi-coding`](https://www.npmjs.com/package/@nimiplatform/nimi-coding).
-It governs how authority, semantics, consumers, and drift-prevention
-are checked across AI-assisted work — failure modes that compile,
-pass tests, and survive code review can still violate any of those four
-closures, and the methodology is built around catching them. Adoption
-guidance lives in
+It provides deterministic canonical-authority products. Version 0.6.0 also adds
+request-local, bounded TypeScript/TSX context reads and optional exact
+authority links in TypeScript, TSX, and Go source. These code reads do not
+intercept host tasks, evaluate unannotated code, or prove implementation
+conformance. Adoption guidance lives in
 [docs/nimicoding/installation.md](docs/nimicoding/installation.md).
 
 `@nimiplatform/app-tools` is the app-authoring CLI for generated Nimi App

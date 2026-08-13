@@ -20,8 +20,9 @@ A minimal first-run path:
 
 1. Install the Nimi workspace dependencies.
 2. Run `pnpm nimicoding:sync` and `pnpm nimicoding:doctor`.
-3. Use the [CLI Reference](/nimicoding/cli-reference) for bounded
-   authority context, formatting, and validation.
+3. Use the [CLI Reference](/nimicoding/cli-reference) for bounded authority
+   context, formatting, validation, and the code-reading commands available in
+   the installed version.
 
 The package remains host-agnostic; the Nimi repository applies its own
 explicit admission boundary around it.

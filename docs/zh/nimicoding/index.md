@@ -4,8 +4,8 @@ Nimi Coding 为 AI 宿主和仓库工具提供确定性的 project-owned canonic
 authority 访问能力。它负责格式化、检查、查询、关系导航与变更审查；它不是
 AI Agent、规划器、代码生成器、审批流程或产品规范生成器。
 
-本页是 workspace 精确固定的 `@nimiplatform/nimi-coding@0.5.0` 的说明性
-投影。命令行为以软件包 CLI 和软件包内 README 为操作参考。
+本页说明 workspace 精确固定的 `@nimiplatform/nimi-coding@0.6.0`。命令行为
+以软件包 CLI 和软件包内 README 为操作参考。
 
 ## Truth 边界
 
@@ -17,8 +17,19 @@ AI Agent、规划器、代码生成器、审批流程或产品规范生成器。
 | `.nimi/local/**` | 被忽略的本地校验与派生输出，永远不是 authority |
 | `config/**` | 产品、生成器和宿主实现输入，不是 Nimi Coding host configuration |
 
-Nimi Coding 不会把文档、fixture、生成物、审计结果或 `config/**` 投影变成
+Nimi Coding 不会把文档、fixture、生成物、审计结果或 `config/**` 派生内容变成
 产品 authority。
+
+## 有界代码读取
+
+`code context` 从指定的 TypeScript 或 TSX 文件、顶层 symbol 与 tsconfig
+即时读取有界的 outbound context。`code authority` 定位 Git 已跟踪的当前
+TypeScript、TSX 和 Go 源码中的可选 `nimi-authority`、`nimi-deprecated`
+精确标记，也可以从单个源码文件反查这些关联。
+
+两个命令都只处理当前请求，而且只读。是否调用由 AI 宿主决定。它们不会加入
+任务前置检查，不会改变宿主任务状态，也不会评价未标注代码或证明实现符合
+authority。
 
 ## 当前流程
 
@@ -34,7 +45,8 @@ union，不判断 relevance、conflict、retirement 或 conformance。`authority
 对齐已经通过。
 
 仓库的 `AGENTS.md` 与 `.nimi/methodology/authority-authoring.yaml` 定义
-具体 authoring 流程。Nimi Coding 不拥有宿主任务生命周期。
+具体 authoring 规则。受管文本只为 AI 宿主提供说明，不会拦截 prompt，也不
+拥有宿主任务生命周期。
 
 ## 继续阅读
 

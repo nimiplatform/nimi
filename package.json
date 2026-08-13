@@ -171,9 +171,9 @@
     "test:workspace:full": "node scripts/with-workspace-surfaces.mjs -- pnpm run test:full:prepared",
     "test": "node scripts/with-workspace-surfaces.mjs -- pnpm run test:workspace:prepared",
     "test:full": "pnpm test:workspace:full && pnpm test:runtime:go && pnpm test:runtime:python",
-    "spec:authority:consumers": "nimicoding authority consumers . --spec .nimi/spec --max-files 20000 --max-refs 50000 --max-bytes 268435456",
-    "spec:authority:terms": "nimicoding authority terms . --spec .nimi/spec --max-units 5000 --max-terms 20000 --max-bytes 33554432",
-    "spec:authority:closed-sets": "nimicoding authority closed-sets . --spec .nimi/spec --max-units 5000 --max-sets 5000 --max-bytes 268435456",
+    "spec:authority:consumers": "pnpm exec nimicoding authority consumers . --spec .nimi/spec --max-files 20000 --max-refs 50000 --max-bytes 268435456",
+    "spec:authority:terms": "pnpm exec nimicoding authority terms . --spec .nimi/spec --max-units 5000 --max-terms 20000 --max-bytes 33554432",
+    "spec:authority:closed-sets": "pnpm exec nimicoding authority closed-sets . --spec .nimi/spec --max-units 5000 --max-sets 5000 --max-bytes 268435456",
     "spec:authority:check": "pnpm exec nimicoding authority check .nimi/spec --scope-bindings .nimi/config/authority-scope-bindings.yaml",
     "spec:authority:compile": "pnpm exec nimicoding authority compile .nimi/spec",
     "spec:authority:audit": "pnpm exec nimicoding authority audit .nimi/spec --bindings .nimi/config/authority-verifiers.yaml --max-units 5000 --max-edges 50000 --max-bytes 33554432",
@@ -186,7 +186,7 @@
     "yaml": "^2.9.0"
   },
   "devDependencies": {
-    "@nimiplatform/nimi-coding": "0.5.0",
+    "@nimiplatform/nimi-coding": "0.6.0",
     "@protobuf-ts/plugin": "2.11.1"
   }
 }

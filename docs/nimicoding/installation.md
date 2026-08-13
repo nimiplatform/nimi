@@ -1,11 +1,15 @@
 # Nimi Coding Host Integration
 
-The Nimi workspace pins `@nimiplatform/nimi-coding@0.5.0` as an exact
+The Nimi workspace pins `@nimiplatform/nimi-coding@0.6.0` as an exact
 development dependency. A normal workspace install provides the CLI:
 
 ```bash
 pnpm install
 ```
+
+Run direct CLI calls from the repository root as `pnpm exec nimicoding ...` so
+they resolve this pinned project-local package. Do not probe or depend on a
+global `nimicoding` binary in `PATH`.
 
 ## Verify Managed Integration
 
@@ -15,7 +19,27 @@ pnpm nimicoding:doctor
 ```
 
 In this repository, `nimicoding:sync` runs `sync --check`; it verifies managed
-files without rewriting product authority or host task state.
+files and marked instruction blocks without rewriting product authority or
+host task state. `nimicoding:doctor` checks package and managed-surface
+compatibility. Neither command validates the authority corpus, implementation
+conformance, or task readiness.
+
+`nimicoding start` is the initial host bootstrap for a new repository. It
+creates only the documented authoring guide, managed instruction blocks, and
+ignored `.nimi/local/` root. It does not create product authority, register a
+task hook, or install a mandatory preflight. This Nimi checkout is already
+initialized, so normal work uses the guarded `sync` and `doctor` scripts above.
+
+The managed `AGENTS.md` and `CLAUDE.md` blocks tell an AI host which bounded
+commands are available and where their claims stop. They are instructions, not
+an execution wrapper. `start` and `sync` own only their exact managed paths and
+marked blocks.
+
+## Code Reads
+
+The current 0.6.0 pin provides `code context` for a bounded outbound
+TypeScript/TSX context and `code authority` for optional exact source markers.
+These commands do not evaluate unannotated implementation or prove conformance.
 
 ## Verify Product Authority
 

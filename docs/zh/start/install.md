@@ -14,7 +14,7 @@ Nimi workspace 安装与 host compatibility 检查见 [Nimi Coding → Host 集�
 
 1. 安装 Nimi workspace dependencies。
 2. 运行 `pnpm nimicoding:sync` 和 `pnpm nimicoding:doctor`。
-3. 通过 [CLI 参考](/zh/nimicoding/cli-reference)执行收窄的 authority context、格式化与验证。
+3. 通过 [CLI 参考](/zh/nimicoding/cli-reference) 执行收窄的 authority context、格式化与验证，并查看当前安装版本支持的代码读取命令。
 
 软件包仍然保持宿主无关；Nimi 仓库在它外围应用自己的明确准入边界。
 
