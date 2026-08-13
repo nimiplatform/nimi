@@ -74,12 +74,17 @@ func TestHealManagedImagePassiveProjectionAlignsStaleLoRAFamily(t *testing.T) {
 			Repo: "file://" + filepath.ToSlash(filepath.Join(assetDir, "asset.manifest.json")),
 		},
 	}
+	legacy := *record
+	legacy.Family = "z-image-turbo"
+	if healManagedImagePassiveProjection(modelsRoot, &legacy, nil) || legacy.GetFamily() != "z-image-turbo" {
+		t.Fatalf("legacy model identifier family must not be migrated: %+v", legacy)
+	}
 
 	if !healManagedImagePassiveProjection(modelsRoot, record, nil) {
 		t.Fatal("expected LoRA projection to self-heal")
 	}
-	if got := record.GetFamily(); got != "z-image-turbo" {
-		t.Fatalf("healed LoRA family = %q, want z-image-turbo", got)
+	if got := record.GetFamily(); got != "z-image" {
+		t.Fatalf("healed LoRA family = %q, want z-image", got)
 	}
 	if !stringSliceContains(record.GetArtifactRoles(), "lora") {
 		t.Fatalf("healed LoRA artifact roles = %#v, want lora", record.GetArtifactRoles())
@@ -107,14 +112,17 @@ func TestHealManagedImagePassiveProjectionAlignsStaleLoRAFamily(t *testing.T) {
 }
 
 func TestManagedImageVAEFamilyCompatibilityKeepsZImageNarrow(t *testing.T) {
-	for _, imageFamily := range []string{"z-image", "z-image-turbo"} {
-		if !managedImageVAEFamilyCompatibleWithImageFamily(imageFamily, "flux1-vae") {
-			t.Fatalf("%s must admit the catalog Z-Image VAE family", imageFamily)
+	if !managedImageVAEFamilyCompatibleWithImageFamily("z-image", "flux1-vae") {
+		t.Fatal("z-image must admit the catalog Z-Image VAE family")
+	}
+	for _, incompatibleFamily := range []string{"flux2-vae", "sdxl-vae", "generic"} {
+		if managedImageVAEFamilyCompatibleWithImageFamily("z-image", incompatibleFamily) {
+			t.Fatalf("z-image must reject unrelated VAE family %q", incompatibleFamily)
 		}
-		for _, incompatibleFamily := range []string{"flux2-vae", "sdxl-vae", "generic"} {
-			if managedImageVAEFamilyCompatibleWithImageFamily(imageFamily, incompatibleFamily) {
-				t.Fatalf("%s must reject unrelated VAE family %q", imageFamily, incompatibleFamily)
-			}
+	}
+	for _, modelIdentifier := range []string{"z-image-turbo", "z-image-base"} {
+		if managedImageVAEFamilyCompatibleWithImageFamily(modelIdentifier, "flux1-vae") {
+			t.Fatalf("model identifier %q must not be accepted as an image family", modelIdentifier)
 		}
 	}
 

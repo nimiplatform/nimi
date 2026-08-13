@@ -212,7 +212,6 @@ export interface NimiAIProfileLlamaEmbedPortableConfigInput {
 
 export const NIMI_AI_PROFILE_STABLE_DIFFUSION_MODEL_FAMILIES = Object.freeze([
   'z-image',
-  'z-image-turbo',
   'ideogram4',
 ] as const);
 

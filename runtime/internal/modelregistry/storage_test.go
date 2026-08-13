@@ -502,6 +502,8 @@ func TestInferModelFamilyGemma(t *testing.T) {
 		{"google/gemma-2-9b-it", "gemma"},
 		{"google/gemma4-26b-a4b-it-gguf", "gemma"},
 		{"meta/llama-3.3-70b", "llama"},
+		{"z-image-turbo", "z-image"},
+		{"z-image-base", "z-image"},
 		{"generic-model-v1", "generic"},
 	}
 	for _, tt := range tests {

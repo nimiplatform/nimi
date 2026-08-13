@@ -399,11 +399,9 @@ func inferModelFamily(modelID string) string {
 	switch {
 	case strings.Contains(normalized, "ideogram4") || strings.Contains(normalized, "ideogram-4"):
 		return "ideogram4"
-	case strings.Contains(normalized, "z-image-turbo"):
-		return "z-image-turbo"
-	case strings.Contains(normalized, "z-image-base"):
-		return "z-image"
-	case strings.Contains(normalized, "z-image"):
+	case strings.Contains(normalized, "z-image-turbo"),
+		strings.Contains(normalized, "z-image-base"),
+		strings.Contains(normalized, "z-image"):
 		return "z-image"
 	case strings.Contains(lower, "wan"):
 		return "wan"

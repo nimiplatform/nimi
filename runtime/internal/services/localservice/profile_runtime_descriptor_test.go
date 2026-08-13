@@ -230,7 +230,7 @@ func testProfileRuntimeReadyFacts(descriptor profileRuntimeDescriptor) profileRu
 }
 
 func testProfileRuntimeNativeBackendSupportedModelFamilies() []string {
-	return []string{"flux", "ideogram4", "sdxl", "z-image", "z-image-turbo"}
+	return []string{"flux", "ideogram4", "sdxl", "z-image"}
 }
 
 func seedProfileRuntimeReadyFactsForService(t *testing.T, svc *Service, descriptor profileRuntimeDescriptor) {

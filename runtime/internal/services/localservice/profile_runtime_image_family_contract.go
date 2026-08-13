@@ -12,10 +12,19 @@ type profileRuntimeImageCompanionSlotContract struct {
 func normalizeProfileRuntimeImageModelFamily(value string) string {
 	normalized := strings.ToLower(strings.TrimSpace(value))
 	normalized = strings.ReplaceAll(normalized, "_", "-")
-	if normalized == "z-image-base" {
-		return "z-image"
+	switch normalized {
+	case "z-image":
+		if value != "z-image" {
+			return ""
+		}
+	case "z-image-turbo", "z-image-base":
+		return ""
 	}
 	return normalized
+}
+
+func invalidProfileRuntimeImageModelFamily(value string) bool {
+	return strings.TrimSpace(value) != "" && normalizeProfileRuntimeImageModelFamily(value) == ""
 }
 
 func profileRuntimeRequiredImageCompanionSlots(family string) []profileRuntimeImageCompanionSlotContract {
@@ -26,7 +35,7 @@ func profileRuntimeRequiredImageCompanionSlots(family string) []profileRuntimeIm
 			{Role: "text_encoder", EngineSlot: "llm_path", ComponentKind: "chat", Required: true},
 			{Role: "vae", EngineSlot: "vae_path", ComponentKind: "vae", Required: true},
 		}
-	case "z-image", "z-image-turbo":
+	case "z-image":
 		return []profileRuntimeImageCompanionSlotContract{
 			{Role: "text_encoder", EngineSlot: "llm_path", ComponentKind: "chat", Required: true},
 			{Role: "vae", EngineSlot: "vae_path", ComponentKind: "vae", Required: true},

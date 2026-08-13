@@ -281,22 +281,14 @@ func TestProfileRuntimePrepareRequiresIdeogram4CapableNativePackageEvidence(t *t
 	}
 }
 
-func TestProfileRuntimePrepareNormalizesZImageFamilyAliasesForNativePackageSupport(t *testing.T) {
-	descriptor := testProfileRuntimeImageCompanionDescriptor()
-	descriptor.CapabilitySlices[0].Model.Family = "z_image_turbo"
-	facts := testProfileRuntimeReadyFacts(descriptor)
-	facts.NativeBackendPackages[0].SupportedModelFamilies = []string{"z-image-turbo"}
-
-	validated := validateProfileRuntimeDescriptorForInternalTest(t, descriptor)
-	results, err := prepareProfileRuntimeDescriptorWithFacts(validated, facts)
-	if err != nil {
-		t.Fatalf("prepare z-image alias descriptor: %v", err)
-	}
-	if len(results) != 1 || results[0].Outcome != profileRuntimePrepareReady {
-		t.Fatalf("z-image alias should match native package support, got %+v", results)
-	}
-	if profileRuntimeStringSliceContains(results[0].ReasonCodes, "native_backend_package_model_family_unsupported") {
-		t.Fatalf("z-image alias must not report unsupported package family: %+v", results[0])
+func TestProfileRuntimeDescriptorRejectsZImageModelIdentifiersAndAliasesAsFamily(t *testing.T) {
+	for _, family := range []string{"z-image-turbo", "z-image-base", "z_image", "Z-IMAGE"} {
+		descriptor := testProfileRuntimeImageCompanionDescriptor()
+		descriptor.CapabilitySlices[0].Model.Family = family
+		_, err := validateProfileRuntimeDescriptor(marshalProfileRuntimeDescriptor(t, descriptor))
+		if err == nil || !strings.Contains(err.Error(), "profile_model_family_mismatch") {
+			t.Fatalf("family %q must fail closed without alias conversion, got %v", family, err)
+		}
 	}
 }
 
@@ -802,10 +794,6 @@ func TestProfileRuntimeMaterializationIdentityInvalidatesOnAllWorkflowInputs(t *
 		},
 		"slice id": func(next profileRuntimeDescriptor) profileRuntimeDescriptor {
 			next.CapabilitySlices[0].SliceID = "slice:image:other"
-			return next
-		},
-		"model family": func(next profileRuntimeDescriptor) profileRuntimeDescriptor {
-			next.CapabilitySlices[0].Model.Family = "z-image-turbo"
 			return next
 		},
 		"params digest": func(next profileRuntimeDescriptor) profileRuntimeDescriptor {

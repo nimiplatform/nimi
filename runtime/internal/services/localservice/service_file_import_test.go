@@ -619,11 +619,37 @@ func TestImportLocalPassiveLoRAFileProjectsFamilyFromFileName(t *testing.T) {
 	if err != nil {
 		t.Fatalf("expected lora import to succeed, got %v", err)
 	}
-	if got := resp.GetAsset().GetFamily(); got != "z-image-turbo" {
-		t.Fatalf("family mismatch: got=%q want=z-image-turbo", got)
+	if got := resp.GetAsset().GetFamily(); got != "z-image" {
+		t.Fatalf("family mismatch: got=%q want=z-image", got)
 	}
 	if got := resp.GetAsset().GetArtifactRoles(); !stringSliceContains(got, "lora") {
 		t.Fatalf("expected lora artifact role, got %#v", got)
+	}
+}
+
+func TestHealManagedImageNativeProjectionDoesNotMigrateModelIdentifierFamily(t *testing.T) {
+	modelsRoot := t.TempDir()
+	logicalModelID := "nimi/z-image-turbo"
+	entry := "z_image_turbo-Q4_K.gguf"
+	modelDir := runtimeManagedResolvedModelDir(modelsRoot, logicalModelID)
+	if err := os.MkdirAll(modelDir, 0o755); err != nil {
+		t.Fatalf("mkdir model dir: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(modelDir, entry), validImageTestGGUF(), 0o644); err != nil {
+		t.Fatalf("write Z-Image model fixture: %v", err)
+	}
+	record := &runtimev1.LocalAssetRecord{
+		LocalAssetId:   "local-z-image-turbo",
+		AssetId:        "z-image-turbo",
+		LogicalModelId: logicalModelID,
+		Kind:           runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_IMAGE,
+		Engine:         "media",
+		Entry:          entry,
+		Family:         "z-image-turbo",
+		Capabilities:   []string{"image.generate"},
+	}
+	if healManagedImageNativeProjection(modelsRoot, record, nil) || record.GetFamily() != "z-image-turbo" {
+		t.Fatalf("legacy model identifier family must not be migrated: %+v", record)
 	}
 }
 

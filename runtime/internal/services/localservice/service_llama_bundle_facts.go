@@ -90,11 +90,9 @@ func normalizeManagedImageProjectionFamily(value string) string {
 	switch {
 	case strings.Contains(lower, "ideogram4") || strings.Contains(lower, "ideogram-4"):
 		return "ideogram4"
-	case strings.Contains(lower, "z-image-turbo"):
-		return "z-image-turbo"
-	case strings.Contains(lower, "z-image-base"):
-		return "z-image"
-	case strings.Contains(lower, "z-image"):
+	case strings.Contains(lower, "z-image-turbo"),
+		strings.Contains(lower, "z-image-base"),
+		strings.Contains(lower, "z-image"):
 		return "z-image"
 	case strings.Contains(lower, "qwen-image"):
 		return "qwen-image"
@@ -225,7 +223,7 @@ func cloneNativeProjectionOverride(input *modelregistry.NativeProjection) *model
 }
 
 func healManagedImageNativeProjection(modelsRoot string, record *runtimev1.LocalAssetRecord, logger *slog.Logger) bool {
-	if record == nil {
+	if record == nil || invalidProfileRuntimeImageModelFamily(record.GetFamily()) {
 		return false
 	}
 	if !isCanonicalSupervisedImageAsset(record.GetEngine(), record.GetCapabilities(), record.GetKind()) {

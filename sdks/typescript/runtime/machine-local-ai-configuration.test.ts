@@ -444,6 +444,28 @@ test('stable-diffusion image configuration constructor emits only supported Driv
   );
 });
 
+test('stable-diffusion image configuration rejects Z-Image model identifiers as family', () => {
+  const canonical = createNimiMachineLocalStableDiffusionImageConfigurationInput({
+    displayName: 'Canonical Z-Image family',
+    modelFamily: 'z-image',
+  });
+  assert.equal(canonical.portableConfig.modelFamily, 'z-image');
+
+  for (const modelFamily of ['z-image-turbo', 'z-image-base'] as const) {
+    assert.throws(
+      () => createNimiMachineLocalStableDiffusionImageConfigurationInput({
+        displayName: `Invalid family ${modelFamily}`,
+        modelFamily,
+      } as never),
+      (error: unknown) => {
+        assert.equal((error as { reasonCode?: string }).reasonCode, ReasonCode.SDK_AI_INPUT_INVALID);
+        return true;
+      },
+      modelFamily,
+    );
+  }
+});
+
 test('stable-diffusion image configuration constrains seed to the managed signed-int32 carrier', () => {
   for (const seed of [-2147483648, 2147483647]) {
     const input = createNimiMachineLocalStableDiffusionImageConfigurationInput({

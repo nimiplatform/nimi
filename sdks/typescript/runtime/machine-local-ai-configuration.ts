@@ -227,10 +227,12 @@ export interface NimiMachineLocalStableDiffusionExecutionOptionsInput {
   readonly offloadParamsToCPU?: boolean;
 }
 
+export type NimiMachineLocalStableDiffusionModelFamily = 'z-image' | 'ideogram4';
+
 export interface NimiMachineLocalStableDiffusionImageConfigurationInput {
   readonly displayName: string;
-  /** Opaque canonical family copied from a Runtime-projected LocalAsset. */
-  readonly modelFamily: string;
+  /** Exact Driver family; Z-Image models use z-image rather than a model identifier. */
+  readonly modelFamily: NimiMachineLocalStableDiffusionModelFamily;
   readonly enableInputImage?: boolean;
   readonly executionOptions?: NimiMachineLocalStableDiffusionExecutionOptionsInput;
 }
@@ -475,6 +477,9 @@ export function createNimiMachineLocalStableDiffusionImageConfigurationInput(
   ]), 'stable-diffusion configuration input');
   const displayName = requireInputText(input.displayName, 'displayName');
   const modelFamily = requireInputText(input.modelFamily, 'modelFamily');
+  if (modelFamily !== 'z-image' && modelFamily !== 'ideogram4') {
+    return inputError('modelFamily must be an exact stable-diffusion Driver family');
+  }
   if (input.enableInputImage !== undefined && typeof input.enableInputImage !== 'boolean') {
     return inputError('enableInputImage must be a boolean when provided');
   }

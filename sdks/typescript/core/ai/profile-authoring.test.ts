@@ -526,6 +526,26 @@ test('stable-diffusion authoring projects only supported Driver slots and reject
   }
 });
 
+test('Z-Image profile authoring admits only the family and rejects model identifiers as family', () => {
+  const implementation = createNimiAIProfileStableDiffusionLocalImplementation({
+    portableConfig: { modelFamily: 'z-image' },
+  });
+  assert.equal(implementation.driverSection.portableConfig?.modelFamily, 'z-image');
+
+  for (const modelFamily of ['z-image-turbo', 'z-image-base'] as const) {
+    assert.throws(
+      () => createNimiAIProfileStableDiffusionLocalImplementation({
+        portableConfig: { modelFamily },
+      } as never),
+      (error: unknown) => {
+        assert.equal((error as { reasonCode?: string }).reasonCode, 'AI_PROFILE_AUTHORING_INVALID');
+        return true;
+      },
+      modelFamily,
+    );
+  }
+});
+
 test('stable-diffusion profile authoring constrains seed to the managed signed-int32 carrier', () => {
   for (const seed of [-2147483648, 2147483647]) {
     const implementation = createNimiAIProfileStableDiffusionLocalImplementation({
@@ -817,7 +837,6 @@ test('authoring Driver field inventories stay exact with Runtime parsers', () =>
   ]);
   assert.deepEqual(NIMI_AI_PROFILE_STABLE_DIFFUSION_MODEL_FAMILIES, [
     'z-image',
-    'z-image-turbo',
     'ideogram4',
   ]);
   // runtime/internal/capabilitydriver/llama.go:464-465

@@ -145,14 +145,14 @@ func validateProfileRuntimeDescriptorSlice(slice *profileRuntimeDescriptorCapabi
 
 func validateProfileRuntimeWorkflowContract(slice *profileRuntimeDescriptorCapability) error {
 	backend := strings.TrimSpace(slice.Execution.Backend)
-	family := strings.TrimSpace(slice.Model.Family)
+	family := slice.Model.Family
 	capability := strings.TrimSpace(slice.Capability)
 	switch backend {
 	case "stablediffusion-ggml":
 		if capability != "image.generate" {
 			return profileRuntimeDescriptorError("descriptor.capability_backend_mismatch", capability)
 		}
-		if !profileRuntimeWorkflowFamilyAllowed(family, "flux", "ideogram4", "sdxl", "z-image", "z-image-turbo") {
+		if !profileRuntimeWorkflowFamilyAllowed(family, "flux", "ideogram4", "sdxl", "z-image") {
 			return profileRuntimeDescriptorError("profile_model_family_mismatch", family)
 		}
 		if strings.TrimSpace(slice.RuntimeConsumerID) == "" {

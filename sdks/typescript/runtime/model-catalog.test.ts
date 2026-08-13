@@ -9,6 +9,7 @@ import {
   nimiRuntimeJsonToProtoStruct,
   nimiRuntimeProtoStructToJson,
   normalizeNimiRuntimeCatalogModelDetail,
+  normalizeNimiRuntimeCatalogModelSummary,
   normalizeNimiRuntimeCatalogWarnings,
   normalizeNimiRuntimeModelCatalogProvider,
   type NimiRuntimeCatalogModelDetail,
@@ -228,6 +229,25 @@ test('Runtime model catalog client projects generated catalog data to SDK DX sha
     request: { provider: 'acme', pageSize: 25, pageToken: 'cursor-1' },
     options: { metadata: { 'x-test': 'catalog' }, timeoutMs: 100 },
   });
+});
+
+test('Z-Image turbo and base remain exact catalog model identifiers', () => {
+  for (const modelId of ['z-image-turbo', 'z-image-base'] as const) {
+    const model = normalizeNimiRuntimeCatalogModelSummary({
+      provider: 'local',
+      modelId,
+      modelType: 'image',
+      updatedAt: '2026-06-05',
+      capabilities: ['image.generate'],
+      source: CatalogModelSource.BUILTIN,
+      userScoped: false,
+      sourceNote: 'fixture',
+      hasVoiceCatalog: false,
+      hasVideoGeneration: false,
+    });
+    assert.equal(model.modelId, modelId);
+    assert.equal('modelFamily' in model, false);
+  }
 });
 
 test('Runtime model catalog projection normalizes sources, warnings, voices, workflows, and JSON structs', () => {

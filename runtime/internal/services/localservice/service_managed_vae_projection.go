@@ -137,7 +137,7 @@ func readSafetensorsTensorHeaders(path string) (map[string]safetensorsTensorHead
 }
 
 func healManagedImagePassiveProjection(modelsRoot string, record *runtimev1.LocalAssetRecord, logger *slog.Logger) bool {
-	if record == nil {
+	if record == nil || invalidProfileRuntimeImageModelFamily(record.GetFamily()) {
 		return false
 	}
 	switch effectiveAssetKind(record.GetKind(), record.GetCapabilities()) {
@@ -187,8 +187,11 @@ func normalizeManagedImageVAEFamily(value string) string {
 func managedImageVAEFamilyCompatibleWithImageFamily(imageFamily string, vaeFamily string) bool {
 	normalizedImageFamily := normalizeProfileRuntimeImageModelFamily(imageFamily)
 	normalizedVAEFamily := normalizeManagedImageVAEFamily(vaeFamily)
+	if normalizedImageFamily == "" {
+		return false
+	}
 	switch normalizedImageFamily {
-	case "z-image", "z-image-turbo":
+	case "z-image":
 		// The admitted Comfy-Org/z_image_turbo ae.safetensors is the FLUX.1
 		// VAE: its 16-channel latent shape projects above as flux1-vae, which
 		// is the shape consumed by the stable-diffusion.cpp Z-Image backend.

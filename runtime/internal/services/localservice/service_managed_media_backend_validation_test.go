@@ -547,7 +547,7 @@ func TestResolveManagedMediaImageProfileRejectsFlux2VAEForZImage(t *testing.T) {
 	})
 	svc.mu.Lock()
 	svc.assets[modelResp.GetLocalAssetId()].Status = runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE
-	svc.assets[modelResp.GetLocalAssetId()].Family = "z-image-turbo"
+	svc.assets[modelResp.GetLocalAssetId()].Family = "z-image"
 	svc.mu.Unlock()
 	writeManagedAssetEntryFixture(t, svc, modelsRoot, modelResp, "main-model")
 
@@ -610,7 +610,7 @@ func TestResolveManagedMediaImageProfileRejectsFlux2VAEForZImage(t *testing.T) {
 		t.Fatal("expected incompatible z-image vae family to fail closed")
 	}
 	assertGRPCReasonCode(t, err, "incompatible vae family", runtimev1.ReasonCode_AI_LOCAL_COMPONENT_INCOMPATIBLE)
-	if !strings.Contains(err.Error(), "flux2-vae") || !strings.Contains(err.Error(), "z-image-turbo") {
+	if !strings.Contains(err.Error(), "flux2-vae") || !strings.Contains(err.Error(), "z-image") {
 		t.Fatalf("expected incompatible family detail, got %v", err)
 	}
 }

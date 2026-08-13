@@ -153,7 +153,7 @@ func testResolveManagedMediaImageProfileDescriptorAcrossRestart(t *testing.T) {
 		engineConfig: engineConfig,
 	})
 	svc.mu.Lock()
-	svc.assets[main.GetLocalAssetId()].Family = "z-image-turbo"
+	svc.assets[main.GetLocalAssetId()].Family = "z-image"
 	svc.mu.Unlock()
 	mainPath := writeManagedAssetEntryFixture(t, svc, modelsRoot, main, "main-model")
 

@@ -122,6 +122,7 @@ func TestStableDiffusionInterpretRejectsUnknownAndProtectedPortableFields(t *tes
 	for _, fields := range []map[string]any{
 		{"modelFamily": "unknown"},
 		{"modelFamily": "z-image-turbo"},
+		{"modelFamily": "z-image-base"},
 		{"modelFamily": "z-image", "modelPath": "/models/main.gguf"},
 		{"modelFamily": "z-image", "mainRequirementPolicy": "strict"},
 		{"modelFamily": "z-image", "mainVerifiedContentId": "sha256:" + strings.Repeat("a", 64)},

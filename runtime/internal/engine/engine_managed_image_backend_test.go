@@ -345,7 +345,7 @@ func TestManagedImageBackendDependencyStatusUsesResolvedWrapperExecutableOnly(t 
 		LaunchMode:             managedImageBackendLaunchModeRuntimeWrapper,
 		WrapperDriver:          "stable-diffusion.cpp",
 		ExecutableCandidates:   []string{"sd.exe", "sd-cli.exe"},
-		SupportedModelFamilies: []string{"flux", "ideogram4", "sdxl", "z-image", "z-image-turbo"},
+		SupportedModelFamilies: []string{"flux", "ideogram4", "sdxl", "z-image"},
 		Supported:              true,
 	})
 
@@ -363,8 +363,9 @@ func TestManagedImageBackendDependencyStatusUsesResolvedWrapperExecutableOnly(t 
 	if !managedImageBackendStringSliceContains(status.SupportedModelFamilies, "ideogram4") {
 		t.Fatalf("dependency status must carry supported model families, got %v", status.SupportedModelFamilies)
 	}
-	if !managedImageBackendStringSliceContains(status.SupportedModelFamilies, "z-image-turbo") {
-		t.Fatalf("dependency status must carry z-image series support, got %v", status.SupportedModelFamilies)
+	if !managedImageBackendStringSliceContains(status.SupportedModelFamilies, "z-image") ||
+		managedImageBackendStringSliceContains(status.SupportedModelFamilies, "z-image-turbo") {
+		t.Fatalf("dependency status must carry only the canonical z-image family, got %v", status.SupportedModelFamilies)
 	}
 }
 
@@ -630,8 +631,8 @@ func TestResolveManagedImageBackendPackageSpecForHostWindowsNvidiaCUDA(t *testin
 		t.Fatalf("expected Windows managed image backend package to declare ideogram4 support, got %v", spec.SupportedModelFamilies)
 	}
 	if !managedImageBackendStringSliceContains(spec.SupportedModelFamilies, "z-image") ||
-		!managedImageBackendStringSliceContains(spec.SupportedModelFamilies, "z-image-turbo") {
-		t.Fatalf("expected Windows managed image backend package to declare z-image series support, got %v", spec.SupportedModelFamilies)
+		managedImageBackendStringSliceContains(spec.SupportedModelFamilies, "z-image-turbo") {
+		t.Fatalf("expected Windows managed image backend package to declare only the canonical z-image family, got %v", spec.SupportedModelFamilies)
 	}
 	if !strings.Contains(spec.InstallDirName, "bfbef5b") {
 		t.Fatalf("expected release-qualified Windows install dir, got %q", spec.InstallDirName)
