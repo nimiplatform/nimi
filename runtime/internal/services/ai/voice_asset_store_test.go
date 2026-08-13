@@ -1,11 +1,17 @@
 package ai
 
 import (
+	"bytes"
+	"encoding/json"
+	"os"
+	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/runtimeidentity"
+	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -428,6 +434,23 @@ func TestVoiceAssetStoreProviderPersistentAssetsSurviveStoreReopen(t *testing.T)
 	if !store.completeJob(job.GetJobId(), "dashscope-provider-voice-ref", nil, nil) {
 		t.Fatalf("completeJob should succeed")
 	}
+	raw, err := os.ReadFile(store.durablePath)
+	if err != nil {
+		t.Fatalf("read durable voice asset snapshot: %v", err)
+	}
+	var snapshot voiceAssetDiskSnapshot
+	if err := json.Unmarshal(raw, &snapshot); err != nil {
+		t.Fatalf("decode durable voice asset snapshot: %v", err)
+	}
+	if snapshot.Version != voiceAssetDiskStoreVersion || len(snapshot.Records) != 1 {
+		t.Fatalf("durable voice asset snapshot version/records = %d/%d", snapshot.Version, len(snapshot.Records))
+	}
+	if snapshot.Records[0].ConnectorID != targetRef.Cloud.ConnectorID || snapshot.Records[0].Target.Cloud.ConnectorID != targetRef.Cloud.ConnectorID {
+		t.Fatalf("durable voice asset snapshot did not preserve one exact Connector identity")
+	}
+	if bytes.Contains(raw, []byte("connectorGrantId")) || bytes.Contains(raw, []byte("connector_grant_id")) {
+		t.Fatal("durable voice asset snapshot retained removed grant identity")
+	}
 
 	reopened, err := newVoiceAssetStoreForLocalStatePath(localStatePath)
 	if err != nil {
@@ -449,6 +472,92 @@ func TestVoiceAssetStoreProviderPersistentAssetsSurviveStoreReopen(t *testing.T)
 	_, _, storedBinding, ok := reopened.getAssetCloudBinding(asset.GetVoiceAssetId())
 	if !ok || !storedBinding.Valid() || storedBinding.ConnectorID != targetRef.Cloud.ConnectorID || storedBinding.Implementation.GetDriverDialect() != "dashscope/voice/v1" {
 		t.Fatalf("private AIConfig binding after reopen=%+v", storedBinding)
+	}
+}
+
+func TestVoiceAssetStoreRejectsStaleDurableVersion(t *testing.T) {
+	localStatePath := filepath.Join(t.TempDir(), "local-state.json")
+	writeVoiceAssetDiskTestFile(t, localStatePath, []byte(`{"version":1,"records":[]}`))
+
+	_, err := newVoiceAssetStoreForLocalStatePath(localStatePath)
+	if err == nil || !strings.Contains(err.Error(), "unsupported voice asset store version 1") {
+		t.Fatalf("stale durable version error = %v", err)
+	}
+}
+
+func TestVoiceAssetStoreRejectsRemovedGrantField(t *testing.T) {
+	localStatePath := filepath.Join(t.TempDir(), "local-state.json")
+	writeVoiceAssetDiskTestFile(t, localStatePath, []byte(`{
+		"version":2,
+		"records":[{
+			"asset":{},
+			"target":{"cloud":{
+				"connectorId":"connector-1",
+				"connectorGrantId":"removed-grant",
+				"remoteModelCatalogId":"catalog-1",
+				"providerModelId":"model-1",
+				"provider":"provider-1"
+			}},
+			"connector_id":"connector-1"
+		}]
+	}`))
+
+	_, err := newVoiceAssetStoreForLocalStatePath(localStatePath)
+	if err == nil || !strings.Contains(err.Error(), `unknown field "connectorGrantId"`) {
+		t.Fatalf("removed grant field error = %v", err)
+	}
+}
+
+func TestVoiceAssetStoreRejectsMissingOrConflictingConnectorIdentity(t *testing.T) {
+	assetRaw, err := (protojson.MarshalOptions{UseProtoNames: true}).Marshal(&runtimev1.VoiceAsset{
+		VoiceAssetId:     "voice-asset-1",
+		Persistence:      runtimev1.VoiceAssetPersistence_VOICE_ASSET_PERSISTENCE_PROVIDER_PERSISTENT,
+		ProviderVoiceRef: "provider-voice-ref",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	providerTarget := map[string]any{
+		"provider": "provider-1", "providerModelId": "model-1", "remoteModelCatalogId": "catalog-1",
+	}
+	for name, connectorID := range map[string]string{"missing": "", "conflicting": "connector-2"} {
+		t.Run(name, func(t *testing.T) {
+			localStatePath := filepath.Join(t.TempDir(), "local-state.json")
+			raw, marshalErr := json.Marshal(voiceAssetDiskSnapshot{
+				Version: voiceAssetDiskStoreVersion,
+				Records: []voiceAssetDiskRecord{{
+					Asset: assetRaw,
+					Target: &runtimeidentity.Target{Cloud: &runtimeidentity.CloudTarget{
+						ConnectorID: "connector-1", RemoteModelCatalogID: "catalog-1", ProviderModelID: "model-1", Provider: "provider-1",
+					}},
+					CapabilityContract: "voice.create",
+					Implementation: &runtimev1.CapabilityImplementationIdentity{
+						ImplementationId: "cloud.voice.provider-1", DriverId: "driver.provider-1", DriverDialect: "provider-1/voice/v1",
+					},
+					ProviderModelTarget: providerTarget,
+					ConnectorID:         connectorID,
+				}},
+			})
+			if marshalErr != nil {
+				t.Fatal(marshalErr)
+			}
+			writeVoiceAssetDiskTestFile(t, localStatePath, raw)
+			_, loadErr := newVoiceAssetStoreForLocalStatePath(localStatePath)
+			if loadErr == nil || !strings.Contains(loadErr.Error(), "has no exact Connector identity") {
+				t.Fatalf("connector identity error = %v", loadErr)
+			}
+		})
+	}
+}
+
+func writeVoiceAssetDiskTestFile(t *testing.T, localStatePath string, raw []byte) {
+	t.Helper()
+	path := voiceAssetStorePathForLocalStatePath(localStatePath)
+	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(path, raw, 0o600); err != nil {
+		t.Fatal(err)
 	}
 }
 

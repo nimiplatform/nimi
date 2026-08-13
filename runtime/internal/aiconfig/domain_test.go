@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"google.golang.org/protobuf/encoding/protowire"
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
@@ -94,6 +95,15 @@ func TestCanonicalizeEnforcesLocalCloudStructure(t *testing.T) {
 	cloudWithoutCatalogIdentity := cloudIntent(t, "image.generate")
 	cloudWithoutCatalogIdentity.GetCloud().ProviderModelTarget = mustStruct(t, map[string]any{"provider": "provider-a", "providerModelId": "image-1"})
 	assertCanonicalizeFails(t, cloudWithoutCatalogIdentity, "remoteModelCatalogId is required")
+}
+
+func TestCanonicalizeRejectsRemovedConnectorGrantWireField(t *testing.T) {
+	capability := cloudIntent(t, "image.generate")
+	unknown := protowire.AppendTag(nil, 3, protowire.BytesType)
+	unknown = protowire.AppendString(unknown, "removed-grant")
+	capability.GetCloud().ProtoReflect().SetUnknown(unknown)
+
+	assertCanonicalizeFails(t, capability, "unknown wire fields")
 }
 
 func TestCanonicalizeRejectsDuplicateAndForbiddenLocalTruth(t *testing.T) {

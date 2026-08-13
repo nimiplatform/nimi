@@ -19,7 +19,7 @@ import (
 const (
 	voiceAssetDiskStoreDirName  = "runtime-voice-assets"
 	voiceAssetDiskStoreFileName = "voice-assets.json"
-	voiceAssetDiskStoreVersion  = 1
+	voiceAssetDiskStoreVersion  = 2
 )
 
 type voiceAssetDiskSnapshot struct {
@@ -78,16 +78,20 @@ func (s *voiceAssetStore) loadDurableAssets() error {
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	for _, record := range snapshot.Records {
+	for index, record := range snapshot.Records {
 		var asset runtimev1.VoiceAsset
 		if err := (protojson.UnmarshalOptions{DiscardUnknown: false}).Unmarshal(record.Asset, &asset); err != nil {
 			return err
 		}
 		if !isPersistableVoiceAsset(&asset, record.Target) {
-			continue
+			return fmt.Errorf("voice asset store record %d is not a valid provider-persistent asset", index)
 		}
 		if len(record.ProviderModelTarget) == 0 {
-			continue
+			return fmt.Errorf("voice asset store record %d has no provider-model target", index)
+		}
+		connectorID := record.ConnectorID
+		if record.Target.Cloud == nil || connectorID == "" || connectorID != strings.TrimSpace(connectorID) || connectorID != record.Target.Cloud.ConnectorID {
+			return fmt.Errorf("voice asset store record %d has no exact Connector identity", index)
 		}
 		providerTarget, buildErr := structpb.NewStruct(record.ProviderModelTarget)
 		if buildErr != nil {
@@ -95,10 +99,10 @@ func (s *voiceAssetStore) loadDurableAssets() error {
 		}
 		binding := (&voiceAssetCloudBinding{
 			CapabilityContract: record.CapabilityContract, Implementation: record.Implementation,
-			ProviderModelTarget: providerTarget, ConnectorID: record.ConnectorID,
+			ProviderModelTarget: providerTarget, ConnectorID: connectorID,
 		}).Clone()
 		if !binding.Valid() {
-			continue
+			return fmt.Errorf("voice asset store record %d has no exact AIConfig execution binding", index)
 		}
 		id := strings.TrimSpace(asset.GetVoiceAssetId())
 		s.assets[id] = cloneVoiceAsset(&asset)
@@ -117,8 +121,13 @@ func (s *voiceAssetStore) persistDurableAssetsLocked() error {
 		if !isPersistableVoiceAsset(asset, s.targets[id]) {
 			continue
 		}
-		if binding := s.cloudBindings[id]; binding == nil || !binding.Valid() {
+		binding := s.cloudBindings[id]
+		if binding == nil || !binding.Valid() {
 			return fmt.Errorf("provider-persistent voice asset %s has no exact AIConfig execution binding", id)
+		}
+		target := s.targets[id]
+		if target.Cloud == nil || target.Cloud.ConnectorID != strings.TrimSpace(binding.ConnectorID) {
+			return fmt.Errorf("provider-persistent voice asset %s has no exact Connector identity", id)
 		}
 		ids = append(ids, id)
 	}
