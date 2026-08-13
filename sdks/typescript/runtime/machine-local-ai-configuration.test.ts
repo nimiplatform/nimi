@@ -366,16 +366,10 @@ test('Machine Local AI Configuration typed client maps every admitted RPC throug
 });
 
 test('stable-diffusion image configuration constructor emits only supported Driver portable fields', () => {
-  const strictContentId = `sha256:${'c'.repeat(64)}`;
   const input = createNimiMachineLocalStableDiffusionImageConfigurationInput({
     displayName: 'Local image studio',
     modelFamily: 'ideogram4',
     enableInputImage: true,
-    mainRequirementPolicy: 'strict',
-    mainVerifiedContentId: strictContentId,
-    textEncoderRequirementPolicy: 'substitutable',
-    vaeRequirementPolicy: 'substitutable',
-    uncondDiffusionRequirementPolicy: 'substitutable',
     executionOptions: {
       steps: 30,
       cfgScale: 6.5,
@@ -396,11 +390,6 @@ test('stable-diffusion image configuration constructor emits only supported Driv
   assert.deepEqual(input.portableConfig, {
     modelFamily: 'ideogram4',
     enableInputImage: true,
-    mainRequirementPolicy: 'strict',
-    mainVerifiedContentId: strictContentId,
-    textEncoderRequirementPolicy: 'substitutable',
-    vaeRequirementPolicy: 'substitutable',
-    uncondDiffusionRequirementPolicy: 'substitutable',
     executionOptions: {
       steps: 30,
       cfgScale: 6.5,
@@ -428,10 +417,10 @@ test('stable-diffusion image configuration constructor emits only supported Driv
   );
   assert.throws(
     () => createNimiMachineLocalStableDiffusionImageConfigurationInput({
-      displayName: 'Invalid strict slot',
+      displayName: 'Retired preferred-content intent',
       modelFamily: 'z-image',
       mainRequirementPolicy: 'strict',
-    }),
+    } as never),
     (error: unknown) => {
       assert.equal((error as { reasonCode?: string }).reasonCode, ReasonCode.SDK_AI_INPUT_INVALID);
       return true;

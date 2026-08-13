@@ -172,14 +172,7 @@ export function machineLocalAssetDisplayName(
 export function machineLocalModelFamilyDisplayName(
   family: RuntimeConfigMachineLocalAIAddDraft['modelFamily'],
 ): string {
-  switch (family) {
-    case 'z-image':
-      return 'Z-Image';
-    case 'z-image-turbo':
-      return 'Z-Image Turbo';
-    case 'ideogram4':
-      return 'Ideogram 4';
-  }
+  return family.trim() || '—';
 }
 
 export function machineLocalRequirementGroupDisplay(

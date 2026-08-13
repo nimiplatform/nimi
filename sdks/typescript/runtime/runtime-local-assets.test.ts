@@ -176,7 +176,6 @@ test('Runtime local asset projection preserves model family and metadata', () =>
     engine: 'llama',
     status: 'active',
     family: 'ideogram4',
-    modelFamily: 'ideogram4',
     metadata: {
       modelFamily: 'ideogram4',
       source: 'selected-source',

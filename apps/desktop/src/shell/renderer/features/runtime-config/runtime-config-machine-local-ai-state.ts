@@ -6,8 +6,6 @@ import type {
   NimiMachineLocalCapabilityRequirement,
   NimiMachineLocalCapabilityRequirementPolicy,
   NimiMachineLocalCapabilitySelection,
-  NimiMachineLocalStableDiffusionModelFamily,
-  NimiMachineLocalStableDiffusionSlotId,
   NimiRuntimeLocalAssetEntry,
 } from '@nimiplatform/sdk/runtime';
 
@@ -95,12 +93,9 @@ export type RuntimeConfigMachineLocalAIAddDraft = {
   readonly asrDriverKind: RuntimeConfigMachineLocalAIASRDriverKind;
   readonly voiceCreateSource: 'reference-audio' | 'text-description';
   readonly acceptsImageInput: boolean;
-  readonly modelFamily: NimiMachineLocalStableDiffusionModelFamily;
+  readonly modelFamily: string;
+  readonly mainLocalAssetId: string;
   readonly enableInputImage: boolean;
-  readonly slots: Readonly<Record<
-    NimiMachineLocalStableDiffusionSlotId,
-    RuntimeConfigMachineLocalAIImageSlotDraft
-  >>;
   readonly videoSlots: Readonly<Record<
     RuntimeConfigMachineLocalAIVideoSlotId,
     RuntimeConfigMachineLocalAIImageSlotDraft
@@ -175,14 +170,9 @@ export function createRuntimeConfigMachineLocalAIAddDraft(): RuntimeConfigMachin
     asrDriverKind: 'qwen3-asr',
     voiceCreateSource: 'reference-audio',
     acceptsImageInput: false,
-    modelFamily: 'z-image',
+    modelFamily: '',
+    mainLocalAssetId: '',
     enableInputImage: false,
-    slots: {
-      main: slot(),
-      textEncoder: slot(),
-      vae: slot(),
-      uncondDiffusion: slot(),
-    },
     videoSlots: {
       fl2va: slot(),
       ref2va: slot(),
@@ -430,26 +420,47 @@ export function compatibleMachineLocalAssets(
   assets: readonly NimiRuntimeLocalAssetEntry[],
 ): readonly NimiRuntimeLocalAssetEntry[] {
   const constraints = requirement.compatibilityConstraints ?? {};
-  const requiredEngine = textValue(constraints.engine).toLowerCase();
-  const requiredArtifactRole = textValue(constraints.artifact_role).toLowerCase();
-  const requiredAssetKind = textValue(constraints.asset_kind).toLowerCase();
-  const requiredModelFamily = normalizeModelFamily(constraints.model_family);
-  const compatibleFamilies = textList(constraints.compatible_families).map(normalizeModelFamily);
+  const allowedKeys = new Set([
+    'engine',
+    'artifact_role',
+    'asset_kind',
+    'model_family',
+    'compatible_families',
+    'format',
+    'source_feature',
+  ]);
+  if (Object.keys(constraints).some((key) => !allowedKeys.has(key))) return [];
+  const requiredEngine = exactConstraintText(constraints, 'engine');
+  const requiredArtifactRole = exactConstraintText(constraints, 'artifact_role');
+  const requiredAssetKind = exactConstraintText(constraints, 'asset_kind');
+  const requiredModelFamily = exactConstraintText(constraints, 'model_family');
+  const compatibleFamilies = exactConstraintTextList(constraints, 'compatible_families');
+  const projectedOnlyConstraints = [
+    exactConstraintText(constraints, 'format'),
+    exactConstraintText(constraints, 'source_feature'),
+  ];
+  if (
+    requiredEngine === null
+    || requiredArtifactRole === null
+    || requiredAssetKind === null
+    || requiredModelFamily === null
+    || compatibleFamilies === null
+    || projectedOnlyConstraints.some((value) => value === null)
+  ) return [];
   return assets.filter((asset) => {
     if (!asset.expectedVerifiedContentId || asset.status === 'removed') return false;
-    if (requiredEngine && asset.engine.toLowerCase() !== requiredEngine) return false;
-    if (requiredAssetKind && asset.kind.toLowerCase() !== requiredAssetKind) return false;
-    if (requiredModelFamily && normalizeModelFamily(asset.modelFamily ?? asset.family) !== requiredModelFamily) {
+    if (requiredEngine && asset.engine !== requiredEngine) return false;
+    if (requiredAssetKind && asset.kind !== requiredAssetKind) return false;
+    if (requiredModelFamily && asset.family !== requiredModelFamily) {
       return false;
     }
     if (
       compatibleFamilies.length > 0
-      && !compatibleFamilies.includes(normalizeModelFamily(asset.modelFamily ?? asset.family))
+      && !compatibleFamilies.includes(asset.family ?? '')
     ) {
       return false;
     }
-    if (requiredArtifactRole && !(asset.artifactRoles ?? [])
-      .some((role) => role.toLowerCase() === requiredArtifactRole)) {
+    if (requiredArtifactRole && !(asset.artifactRoles ?? []).includes(requiredArtifactRole)) {
       return false;
     }
     if (
@@ -520,30 +531,28 @@ function deleteMachineLocalConfiguration(
   };
 }
 
-function textValue(value: unknown): string {
-  return typeof value === 'string' ? value.trim() : '';
+function exactConstraintText(
+  constraints: Readonly<Record<string, unknown>>,
+  key: string,
+): string | null {
+  if (!Object.hasOwn(constraints, key)) return '';
+  const value = constraints[key];
+  return typeof value === 'string' && value !== '' && value === value.trim()
+    ? value
+    : null;
 }
 
-function textList(value: unknown): string[] {
-  return Array.isArray(value)
-    ? value.map(textValue).filter(Boolean)
-    : [];
-}
-
-function normalizeModelFamily(value: unknown): string {
-  const normalized = textValue(value).toLowerCase().replaceAll('_', '-');
-  switch (normalized) {
-    case 'z-image-base':
-    case 'z-image-turbo':
-      return 'z-image';
-    case 'flux':
-    case 'flux2':
-    case 'flux-2':
-    case 'flux-2-vae':
-    case 'ideogram4-vae':
-    case 'ideogram-4-vae':
-      return 'flux2-vae';
-    default:
-      return normalized;
-  }
+function exactConstraintTextList(
+  constraints: Readonly<Record<string, unknown>>,
+  key: string,
+): readonly string[] | null {
+  if (!Object.hasOwn(constraints, key)) return [];
+  const value = constraints[key];
+  if (!Array.isArray(value) || value.length === 0) return null;
+  const items = value.filter((item): item is string => (
+    typeof item === 'string' && item !== '' && item === item.trim()
+  ));
+  return items.length === value.length && new Set(items).size === items.length
+    ? items
+    : null;
 }

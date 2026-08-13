@@ -3,8 +3,6 @@ import {
   NIMI_MACHINE_LOCAL_AUDIO_SYNTHESIZE_CAPABILITY_CONTRACT,
   NIMI_MACHINE_LOCAL_AUDIO_TRANSCRIBE_CAPABILITY_CONTRACT,
   NIMI_MACHINE_LOCAL_IMAGE_GENERATE_CAPABILITY_CONTRACT,
-  NIMI_MACHINE_LOCAL_STABLE_DIFFUSION_MODEL_FAMILIES,
-  NIMI_MACHINE_LOCAL_STABLE_DIFFUSION_SLOT_DESCRIPTORS,
   NIMI_MACHINE_LOCAL_TEXT_EMBED_CAPABILITY_CONTRACT,
   NIMI_MACHINE_LOCAL_TEXT_GENERATE_CAPABILITY_CONTRACT,
   NIMI_MACHINE_LOCAL_VIDEO_GENERATE_CAPABILITY_CONTRACT,
@@ -12,8 +10,6 @@ import {
   createNimiMachineLocalStableDiffusionImageConfigurationInput,
   createNimiMachineLocalStableDiffusionVideoConfigurationInput,
   type NimiMachineLocalCapabilityRequirement,
-  type NimiMachineLocalStableDiffusionSlotDescriptor,
-  type NimiMachineLocalStableDiffusionSlotId,
   type NimiRuntimeLocalAssetEntry,
 } from '@nimiplatform/sdk/runtime';
 import {
@@ -275,43 +271,36 @@ function MachineLocalAIImageAddFields(props: {
 }) {
   const { t } = useTranslation();
   const { draft } = props;
-  const verifiedAssets = props.assets.filter((asset) => (
-    asset.status !== 'removed' && Boolean(asset.expectedVerifiedContentId)
+  const verifiedImageAssets = props.assets.filter((asset) => (
+    asset.kind === 'image'
+    && (asset.status === 'installed' || asset.status === 'active')
+    && Boolean(asset.family)
+    && Boolean(asset.exactContent?.verifiedContentId)
   ));
-  const slotDescriptors: readonly NimiMachineLocalStableDiffusionSlotDescriptor[] =
-    NIMI_MACHINE_LOCAL_STABLE_DIFFUSION_SLOT_DESCRIPTORS;
-  const slots = slotDescriptors.filter((slot) => (
-    !slot.requiredModelFamilies || slot.requiredModelFamilies.includes(draft.modelFamily)
-  ));
-  const updateSlot = (
-    slotId: NimiMachineLocalStableDiffusionSlotId,
-    patch: Partial<RuntimeConfigMachineLocalAIAddDraft['slots'][NimiMachineLocalStableDiffusionSlotId]>,
-  ) => props.onChange({
-    ...draft,
-    slots: {
-      ...draft.slots,
-      [slotId]: { ...draft.slots[slotId], ...patch },
-    },
-  });
   return (
     <div className="grid gap-4" data-testid="machine-local-ai-image-fields">
       <div className="grid gap-4 md:grid-cols-2">
         <div className="space-y-1.5 text-sm font-medium text-[var(--nimi-text-secondary)]">
-          <span>{t('runtimeConfig.machineLocalAIConfigurations.modelFamily')}</span>
-          <SelectField
-            value={draft.modelFamily}
-            disabled={props.busy}
-            options={NIMI_MACHINE_LOCAL_STABLE_DIFFUSION_MODEL_FAMILIES.map((family) => ({
-              value: family,
-              label: machineLocalModelFamilyDisplayName(family),
-            }))}
-            onValueChange={(value) => props.onChange({
-              ...draft,
-              modelFamily: value as RuntimeConfigMachineLocalAIAddDraft['modelFamily'],
-            })}
-            contentLayer="dialog"
-            data-testid="machine-local-ai-image-family"
+          <ExactAssetSelect
+            value={draft.mainLocalAssetId}
+            assets={verifiedImageAssets}
+            busy={props.busy}
+            label={t('runtimeConfig.machineLocalAIConfigurations.preferredFile')}
+            onChange={(localAssetId) => {
+              const asset = verifiedImageAssets.find((candidate) => candidate.localAssetId === localAssetId);
+              props.onChange({
+                ...draft,
+                mainLocalAssetId: localAssetId,
+                modelFamily: asset?.family ?? '',
+              });
+            }}
           />
+        </div>
+        <div className="space-y-1.5 text-sm font-medium text-[var(--nimi-text-secondary)]">
+          <span>{t('runtimeConfig.machineLocalAIConfigurations.modelFamily')}</span>
+          <div className={machineLocalReadOnlyFieldClassName} data-testid="machine-local-ai-image-family">
+            {draft.modelFamily ? machineLocalModelFamilyDisplayName(draft.modelFamily) : '—'}
+          </div>
         </div>
         <div className="space-y-1.5 text-sm font-medium text-[var(--nimi-text-secondary)]">
           <span>{t('runtimeConfig.machineLocalAIConfigurations.engine')}</span>
@@ -339,60 +328,6 @@ function MachineLocalAIImageAddFields(props: {
           </span>
         </span>
       </div>
-
-      <fieldset className="grid gap-3">
-        <legend className="text-sm font-semibold text-[var(--nimi-text-primary)]">
-          {t('runtimeConfig.machineLocalAIConfigurations.imageSlotsTitle')}
-        </legend>
-        {slots.map((slot) => {
-          const slotDraft = draft.slots[slot.slotId];
-          return (
-            <div
-              key={slot.slotId}
-              className="grid gap-3 rounded-xl border border-[var(--nimi-border-subtle)] p-3"
-              data-testid={`machine-local-ai-image-slot:${slot.slotId}`}
-            >
-              <div>
-                <div className="text-xs font-semibold text-[var(--nimi-text-muted)]">
-                  {machineLocalRequirementGroupDisplay(slot.role, slot.occurrenceOrdinal, t)}
-                </div>
-                <div className="mt-1 text-sm font-medium text-[var(--nimi-text-primary)]">
-                  {slot.displayLabel}
-                </div>
-              </div>
-              <div className="space-y-1 text-xs font-medium text-[var(--nimi-text-secondary)]">
-                <span>{t('runtimeConfig.machineLocalAIConfigurations.requirementPolicy')}</span>
-                <SelectField
-                  value={slotDraft.requirementPolicy}
-                  disabled={props.busy}
-                  options={[
-                    { value: 'substitutable', label: t('runtimeConfig.machineLocalAIConfigurations.policySubstitutable') },
-                    { value: 'strict', label: t('runtimeConfig.machineLocalAIConfigurations.policyStrict') },
-                  ]}
-                  onValueChange={(value) => updateSlot(slot.slotId, {
-                    requirementPolicy: value as typeof slotDraft.requirementPolicy,
-                    localAssetId: value === 'strict' ? slotDraft.localAssetId : '',
-                  })}
-                  contentLayer="dialog"
-                />
-              </div>
-              {slotDraft.requirementPolicy === 'strict' ? (
-                <ExactAssetSelect
-                  value={slotDraft.localAssetId}
-                  assets={verifiedAssets}
-                  busy={props.busy}
-                  label={t('runtimeConfig.machineLocalAIConfigurations.preferredFile')}
-                  onChange={(localAssetId) => updateSlot(slot.slotId, { localAssetId })}
-                />
-              ) : (
-                <p className="text-xs text-[var(--nimi-text-muted)]">
-                  {t('runtimeConfig.machineLocalAIConfigurations.policySubstitutableBody')}
-                </p>
-              )}
-            </div>
-          );
-        })}
-      </fieldset>
 
       <fieldset className="grid gap-3 md:grid-cols-5" data-testid="machine-local-ai-image-execution-options">
         <legend className="mb-1 text-sm font-semibold text-[var(--nimi-text-primary)] md:col-span-5">
@@ -658,34 +593,23 @@ export function createMachineLocalImageConfigurationInput(
   assets: readonly NimiRuntimeLocalAssetEntry[],
   displayName: string,
 ) {
-  const preferredContentId = (slotId: NimiMachineLocalStableDiffusionSlotId): string | undefined => {
-    const slot = draft.slots[slotId];
-    if (slot.requirementPolicy !== 'strict') return undefined;
-    const contentId = assets.find((asset) => asset.localAssetId === slot.localAssetId)
-      ?.expectedVerifiedContentId;
-    if (!contentId) throw new Error(`A preferred local file is required for ${slotId}.`);
-    return contentId;
-  };
-  const mainVerifiedContentId = preferredContentId('main');
-  const textEncoderVerifiedContentId = preferredContentId('textEncoder');
-  const vaeVerifiedContentId = preferredContentId('vae');
-  const uncondDiffusionVerifiedContentId = draft.modelFamily === 'ideogram4'
-    ? preferredContentId('uncondDiffusion')
-    : undefined;
+  const mainAsset = assets.find((asset) => asset.localAssetId === draft.mainLocalAssetId);
+  if (
+    !mainAsset
+    || mainAsset.kind !== 'image'
+    || (mainAsset.status !== 'installed' && mainAsset.status !== 'active')
+    || !mainAsset.family
+    || !mainAsset.exactContent?.verifiedContentId
+  ) {
+    throw new Error('A verified Runtime-projected main image asset is required.');
+  }
+  if (draft.modelFamily !== mainAsset.family) {
+    throw new Error('The selected main asset family changed before Add.');
+  }
   return createNimiMachineLocalStableDiffusionImageConfigurationInput({
     displayName,
-    modelFamily: draft.modelFamily,
+    modelFamily: mainAsset.family,
     enableInputImage: draft.enableInputImage,
-    mainRequirementPolicy: draft.slots.main.requirementPolicy,
-    ...(mainVerifiedContentId ? { mainVerifiedContentId } : {}),
-    textEncoderRequirementPolicy: draft.slots.textEncoder.requirementPolicy,
-    ...(textEncoderVerifiedContentId ? { textEncoderVerifiedContentId } : {}),
-    vaeRequirementPolicy: draft.slots.vae.requirementPolicy,
-    ...(vaeVerifiedContentId ? { vaeVerifiedContentId } : {}),
-    ...(draft.modelFamily === 'ideogram4' ? {
-      uncondDiffusionRequirementPolicy: draft.slots.uncondDiffusion.requirementPolicy,
-      ...(uncondDiffusionVerifiedContentId ? { uncondDiffusionVerifiedContentId } : {}),
-    } : {}),
     executionOptions: {
       steps: parseDraftNumber(draft.executionOptions.steps, 'steps'),
       cfgScale: parseDraftNumber(draft.executionOptions.cfgScale, 'cfgScale'),

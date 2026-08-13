@@ -42,7 +42,6 @@ export interface NimiRuntimeLocalAssetEntry {
   readonly engine: string;
   readonly status: NimiRuntimeLocalAssetStatusId;
   readonly family?: string;
-  readonly modelFamily?: string;
   readonly artifactRoles?: readonly string[];
   /** Canonical content identity for import and catalog integrity checks. */
   readonly expectedVerifiedContentId?: string;
@@ -110,7 +109,7 @@ export function projectNimiRuntimeLocalAssetEntry(
     kind,
     engine: normalizeText(input.engine),
     status,
-    ...(family ? { family, modelFamily: family } : {}),
+    ...(family ? { family } : {}),
     ...(artifactRoles ? { artifactRoles } : {}),
     ...(exactContent ? {
       expectedVerifiedContentId: exactContent.verifiedContentId,

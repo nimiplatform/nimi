@@ -100,58 +100,6 @@ export const NIMI_MACHINE_LOCAL_STABLE_DIFFUSION_VIDEO_IMPLEMENTATION = Object.f
   driverDialect: 'stable-diffusion.cpp/minimax-h3-video-generate/v1',
 }) satisfies Readonly<CapabilityImplementationIdentity>;
 
-export const NIMI_MACHINE_LOCAL_STABLE_DIFFUSION_MODEL_FAMILIES = Object.freeze([
-  'z-image',
-  'z-image-turbo',
-  'ideogram4',
-] as const);
-
-export type NimiMachineLocalStableDiffusionModelFamily =
-  typeof NIMI_MACHINE_LOCAL_STABLE_DIFFUSION_MODEL_FAMILIES[number];
-
-export type NimiMachineLocalStableDiffusionSlotId =
-  | 'main'
-  | 'textEncoder'
-  | 'vae'
-  | 'uncondDiffusion';
-
-export interface NimiMachineLocalStableDiffusionSlotDescriptor {
-  readonly slotId: NimiMachineLocalStableDiffusionSlotId;
-  readonly role: NimiMachineLocalCapabilityRequirementRole;
-  readonly occurrenceOrdinal: number;
-  readonly displayLabel: string;
-  readonly requiredModelFamilies?: readonly NimiMachineLocalStableDiffusionModelFamily[];
-}
-
-/** Driver-projected singleton slot labels; Desktop renders these without interpreting them. */
-export const NIMI_MACHINE_LOCAL_STABLE_DIFFUSION_SLOT_DESCRIPTORS = Object.freeze([
-  Object.freeze({
-    slotId: 'main',
-    role: 'main',
-    occurrenceOrdinal: 0,
-    displayLabel: 'Diffusion model',
-  }),
-  Object.freeze({
-    slotId: 'textEncoder',
-    role: 'companion',
-    occurrenceOrdinal: 0,
-    displayLabel: 'Text encoder',
-  }),
-  Object.freeze({
-    slotId: 'vae',
-    role: 'companion',
-    occurrenceOrdinal: 0,
-    displayLabel: 'VAE',
-  }),
-  Object.freeze({
-    slotId: 'uncondDiffusion',
-    role: 'companion',
-    occurrenceOrdinal: 0,
-    displayLabel: 'Unconditional diffusion model',
-    requiredModelFamilies: Object.freeze(['ideogram4'] as const),
-  }),
-] as const satisfies readonly NimiMachineLocalStableDiffusionSlotDescriptor[]);
-
 export type NimiMachineLocalCapabilityInterpretability =
   | 'interpretable'
   | 'unavailable';
@@ -281,16 +229,9 @@ export interface NimiMachineLocalStableDiffusionExecutionOptionsInput {
 
 export interface NimiMachineLocalStableDiffusionImageConfigurationInput {
   readonly displayName: string;
-  readonly modelFamily: NimiMachineLocalStableDiffusionModelFamily;
+  /** Opaque canonical family copied from a Runtime-projected LocalAsset. */
+  readonly modelFamily: string;
   readonly enableInputImage?: boolean;
-  readonly mainRequirementPolicy?: NimiMachineLocalCapabilityRequirementPolicy;
-  readonly mainVerifiedContentId?: string;
-  readonly textEncoderRequirementPolicy?: NimiMachineLocalCapabilityRequirementPolicy;
-  readonly textEncoderVerifiedContentId?: string;
-  readonly vaeRequirementPolicy?: NimiMachineLocalCapabilityRequirementPolicy;
-  readonly vaeVerifiedContentId?: string;
-  readonly uncondDiffusionRequirementPolicy?: NimiMachineLocalCapabilityRequirementPolicy;
-  readonly uncondDiffusionVerifiedContentId?: string;
   readonly executionOptions?: NimiMachineLocalStableDiffusionExecutionOptionsInput;
 }
 
@@ -528,18 +469,10 @@ export function createNimiMachineLocalStableDiffusionImageConfigurationInput(
     'displayName',
     'modelFamily',
     'enableInputImage',
-    'mainRequirementPolicy',
-    'mainVerifiedContentId',
-    'textEncoderRequirementPolicy',
-    'textEncoderVerifiedContentId',
-    'vaeRequirementPolicy',
-    'vaeVerifiedContentId',
-    'uncondDiffusionRequirementPolicy',
-    'uncondDiffusionVerifiedContentId',
     'executionOptions',
   ]), 'stable-diffusion configuration input');
   const displayName = requireInputText(input.displayName, 'displayName');
-  const modelFamily = requireStableDiffusionModelFamily(input.modelFamily);
+  const modelFamily = requireInputText(input.modelFamily, 'modelFamily');
   if (input.enableInputImage !== undefined && typeof input.enableInputImage !== 'boolean') {
     return inputError('enableInputImage must be a boolean when provided');
   }
@@ -548,42 +481,6 @@ export function createNimiMachineLocalStableDiffusionImageConfigurationInput(
     modelFamily,
     enableInputImage: input.enableInputImage === true,
   };
-  appendStableDiffusionRequirementIntent(
-    portableConfig,
-    'mainRequirementPolicy',
-    'mainVerifiedContentId',
-    input.mainRequirementPolicy,
-    input.mainVerifiedContentId,
-  );
-  appendStableDiffusionRequirementIntent(
-    portableConfig,
-    'textEncoderRequirementPolicy',
-    'textEncoderVerifiedContentId',
-    input.textEncoderRequirementPolicy,
-    input.textEncoderVerifiedContentId,
-  );
-  appendStableDiffusionRequirementIntent(
-    portableConfig,
-    'vaeRequirementPolicy',
-    'vaeVerifiedContentId',
-    input.vaeRequirementPolicy,
-    input.vaeVerifiedContentId,
-  );
-  if (modelFamily === 'ideogram4') {
-    appendStableDiffusionRequirementIntent(
-      portableConfig,
-      'uncondDiffusionRequirementPolicy',
-      'uncondDiffusionVerifiedContentId',
-      input.uncondDiffusionRequirementPolicy,
-      input.uncondDiffusionVerifiedContentId,
-    );
-  } else if (
-    input.uncondDiffusionRequirementPolicy !== undefined
-    || input.uncondDiffusionVerifiedContentId !== undefined
-  ) {
-    return inputError('uncondDiffusion fields are supported only for the ideogram4 model family');
-  }
-
   if (input.executionOptions !== undefined) {
     portableConfig.executionOptions = buildStableDiffusionExecutionOptions(input.executionOptions);
   }
@@ -1153,17 +1050,6 @@ function buildStableDiffusionExecutionOptions(
     output[key] = fieldValue;
   }
   return output;
-}
-
-function requireStableDiffusionModelFamily(
-  value: unknown,
-): NimiMachineLocalStableDiffusionModelFamily {
-  if (!NIMI_MACHINE_LOCAL_STABLE_DIFFUSION_MODEL_FAMILIES.includes(
-    value as NimiMachineLocalStableDiffusionModelFamily,
-  )) {
-    return inputError('modelFamily is not supported by the stable-diffusion Driver');
-  }
-  return value as NimiMachineLocalStableDiffusionModelFamily;
 }
 
 function requireStableDiffusionRequirementPolicy(

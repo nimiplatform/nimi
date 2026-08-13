@@ -166,7 +166,7 @@ func TestMachineLocalConfigurationAutoBindsExactMainAndMMProj(t *testing.T) {
 	}
 }
 
-func TestMachineLocalConfigurationAutoBindsCanonicalBundleDigestAndRejectsDrift(t *testing.T) {
+func TestStableDiffusionAddProjectsRequirementsWithoutInventoryBinding(t *testing.T) {
 	service := newMachineLocalConfigurationTestService(t, t.TempDir())
 	logicalModelID := "test/sd-bundle-main"
 	mainEntry := "main.gguf"
@@ -217,8 +217,7 @@ func TestMachineLocalConfigurationAutoBindsCanonicalBundleDigestAndRejectsDrift(
 	}
 	service.mu.Unlock()
 	portable := mustStructForTest(t, map[string]any{
-		"modelFamily":           "z-image",
-		"mainVerifiedContentId": "sha256:" + bundleDigest,
+		"modelFamily": "z-image",
 	})
 	response, err := service.AddLocalCapabilityConfiguration(context.Background(), &runtimev1.AddLocalCapabilityConfigurationRequest{
 		CapabilityContract: capabilitydriver.StableDiffusionCapabilityContract,
@@ -229,9 +228,25 @@ func TestMachineLocalConfigurationAutoBindsCanonicalBundleDigestAndRejectsDrift(
 		t.Fatalf("AddLocalCapabilityConfiguration: %v", err)
 	}
 	configuration := response.GetConfiguration()
+	if len(configuration.GetExactBindings()) != 0 || len(configuration.GetProjectedRequirements()) != 3 {
+		t.Fatalf("image Add must project requirements without bindings: %#v", configuration)
+	}
+	for _, requirement := range configuration.GetProjectedRequirements() {
+		if requirement.GetPreferredVerifiedContentId() != "" || requirement.GetPolicy() != runtimev1.LocalCapabilityRequirementPolicy_LOCAL_CAPABILITY_REQUIREMENT_POLICY_SUBSTITUTABLE {
+			t.Fatalf("image Add projected asset-selection intent: %#v", requirement)
+		}
+	}
+	configuration = bindMachineLocalRequirementForTest(
+		t,
+		service,
+		configuration.GetConfigurationId(),
+		capabilitydriver.StableDiffusionMainRequirementID,
+		"sd-bundle-main",
+		bundleDigest,
+	)
 	if len(configuration.GetExactBindings()) != 1 || configuration.GetExactBindings()[0].GetVerifiedContentId() != "sha256:"+bundleDigest ||
 		configuration.GetExactBindings()[0].GetEntrySha256() != bundleDigest {
-		t.Fatalf("canonical bundle exact binding = %#v", configuration.GetExactBindings())
+		t.Fatalf("explicit canonical bundle binding = %#v", configuration.GetExactBindings())
 	}
 	if err := os.WriteFile(filepath.Join(bundleDir, shardEntry), []byte("drifted"), 0o600); err != nil {
 		t.Fatalf("drift bundle shard: %v", err)
@@ -243,7 +258,7 @@ func TestMachineLocalConfigurationAutoBindsCanonicalBundleDigestAndRejectsDrift(
 	if len(reprojected.GetConfiguration().GetExactBindings()) != 0 {
 		t.Fatalf("drifted bundle retained binding: %#v", reprojected.GetConfiguration().GetExactBindings())
 	}
-	assertLocalCapabilityReason(t, reprojected.GetConfiguration(), runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_LOCAL_ASSET_CONTENT_MISMATCH)
+	assertLocalCapabilityReason(t, reprojected.GetConfiguration(), runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_REQUIRED_BINDING_MISSING)
 }
 
 func TestMachineLocalConfigurationKeepsDriverMismatchReason(t *testing.T) {

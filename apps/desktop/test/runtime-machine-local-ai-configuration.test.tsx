@@ -230,6 +230,7 @@ test('Local AI Configurations renders the image form without LoRA authoring and 
     kind: 'image',
     engine: 'stable-diffusion',
     status: 'installed',
+    family: 'z-image',
     expectedVerifiedContentId: `sha256:${'c'.repeat(64)}`,
     exactContent: {
       kind: 'sharded-bundle',
@@ -243,10 +244,8 @@ test('Local AI Configurations renders the image form without LoRA authoring and 
     ...initial,
     capabilityContract: 'image.generate' as const,
     displayName: 'Image studio',
-    slots: {
-      ...initial.slots,
-      main: { requirementPolicy: 'strict' as const, localAssetId: bundle.localAssetId },
-    },
+    mainLocalAssetId: bundle.localAssetId,
+    modelFamily: 'z-image',
   };
   const markup = renderToStaticMarkup(
     <MachineLocalAIAddFormFields draft={draft} assets={[bundle]} busy={false} onChange={noop} />,
@@ -254,14 +253,20 @@ test('Local AI Configurations renders the image form without LoRA authoring and 
 
   assert.match(markup, /data-testid="machine-local-ai-configuration-add-form"/u);
   assert.match(markup, /data-testid="machine-local-ai-image-fields"/u);
-  assert.match(markup, /Diffusion model/u);
-  assert.match(markup, /Text encoder/u);
+  assert.match(markup, /Preferred local file/u);
+  assert.match(markup, /z-image/u);
+  assert.doesNotMatch(markup, /Text encoder/u);
   assert.doesNotMatch(markup, /machine-local-ai-lora|Add LoRA/u);
   assert.equal((markup.match(/Image model bundle · File bundle/gu) ?? []).length, 1);
   assert.doesNotMatch(markup, /shard-1\.gguf|shard-2\.gguf/u);
 
   const input = createMachineLocalImageConfigurationInput(draft, [bundle], draft.displayName);
   assert.equal(Object.hasOwn(input.portableConfig ?? {}, 'loras'), false);
+  assert.deepEqual(input.portableConfig, {
+    modelFamily: 'z-image',
+    enableInputImage: false,
+    executionOptions: { steps: 20, cfgScale: 7, width: 1024, height: 1024, seed: 42 },
+  });
 });
 
 test('Local AI Configurations authors and manages the exact llama embedding implementation', () => {
@@ -693,6 +698,22 @@ test('Local AI Configurations derives compatible exact-binding choices from proj
     compatibleMachineLocalAssets(requirement, assets).map((asset) => asset.localAssetId),
     ['main'],
   );
+  assert.deepEqual(compatibleMachineLocalAssets({
+    ...requirement,
+    compatibilityConstraints: { ...requirement.compatibilityConstraints, unknown_option: true },
+  }, assets), []);
+  assert.deepEqual(compatibleMachineLocalAssets({
+    ...requirement,
+    compatibilityConstraints: { ...requirement.compatibilityConstraints, engine: ['llama'] },
+  }, assets), []);
+  assert.deepEqual(compatibleMachineLocalAssets({
+    ...requirement,
+    compatibilityConstraints: {
+      ...requirement.compatibilityConstraints,
+      format: 'gguf',
+      source_feature: 'reference-audio',
+    },
+  }, assets).map((asset) => asset.localAssetId), ['main']);
 });
 
 test('Local AI Configurations binds a compatible file directly from the slot select (bind-on-select)', () => {
