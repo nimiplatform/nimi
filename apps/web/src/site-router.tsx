@@ -4,7 +4,7 @@ import { WebAccountPage } from './auth/web-account-page.js';
 import { AccountRecoveryPage } from './auth/account-recovery-page.js';
 import { AccountManagementPage } from './auth/account-management-page.js';
 import { ProviderLinkCallbackPage } from './auth/provider-link-callback-page.js';
-import { StaticPage } from './site/static-page.js';
+import { StaticPage } from './pages/static-page.js';
 
 // @nimi-authority: rule.nimi.platform.product-lifecycle.p-web-005a
 export function SiteRouter() {
