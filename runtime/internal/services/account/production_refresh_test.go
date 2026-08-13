@@ -27,6 +27,15 @@ func TestRealmAccountEndpointsRejectAmbientURLAuthority(t *testing.T) {
 	if got := normalizeRealmOperationEndpoint("https://user:secret@realm.test/api/auth/oauth/token", realmv1.OauthTokenOperation); got != "" {
 		t.Fatalf("OAuth token endpoint accepted userinfo authority: %q", got)
 	}
+	if got := normalizeOAuthAuthorizeEndpoint("http://realm.test/api/auth/oauth/authorize"); got != "" {
+		t.Fatalf("OAuth authorize endpoint accepted insecure remote authority: %q", got)
+	}
+	if got := normalizeRealmOperationEndpoint("http://realm.test/api/auth/oauth/token", realmv1.OauthTokenOperation); got != "" {
+		t.Fatalf("OAuth token endpoint accepted insecure remote authority: %q", got)
+	}
+	if got := normalizeOAuthAuthorizeEndpoint("http://127.0.0.1:3002/api/auth/oauth/authorize"); got == "" {
+		t.Fatal("OAuth authorize endpoint rejected loopback development authority")
+	}
 }
 
 func TestRealmOAuthExchangeRejectsRedirectWithoutForwardingLoginProof(t *testing.T) {

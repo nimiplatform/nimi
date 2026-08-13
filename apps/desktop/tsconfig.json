@@ -1,7 +1,6 @@
 {
   "compilerOptions": {
     "paths": {
-      "@desktop-public/*": ["./src/public-web/*"],
       "@runtime/*": ["./src/runtime/*"],
       "@renderer/*": ["./src/shell/renderer/*"],
       "@nimiplatform/kit/ui": ["../../kit/ui/src/index.ts"],

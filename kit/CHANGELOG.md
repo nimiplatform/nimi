@@ -36,6 +36,15 @@ Discipline.
 
 ### Changed
 
+- **Breaking (0.x):** The mixed `ShellAuthPage` / `DesktopShellAuthPage` and
+  `AuthPlatformAdapter` exports are replaced by separate `WebAccountAuthPage`
+  with `WebAccountAuthAdapter` from `@nimiplatform/kit/auth`, and
+  `DesktopBrowserAuthGate` with
+  `DesktopBrowserAuthRuntimeBroker`. Desktop consumers must remove credential
+  and token-persistence adapter methods; Web consumers must use the
+  Realm-owned browser-session completion projection. No compatibility exports
+  are retained.
+
 - **Breaking (0.x):** Renderer-facing OAuth token exchange is removed from the
   standard shell, Kit OAuth bridge, and public token-bearing types. OAuth code
   listeners remain available; exchange and custody must stay in an authorized
@@ -297,10 +306,6 @@ Discipline.
   ownership into Kit.
 - Exported `emitRendererLog` from `@nimiplatform/kit/telemetry` so renderer
   bridge code can use the shared telemetry normalizer directly.
-- Added `createRuntimeAccountDesktopBrowserAuth` to `@nimiplatform/kit/auth`
-  so Electron/Tauri app shells can consume RuntimeAccountService browser login
-  without app-owned token custody.
-
 ### Fixed
 
 - Electron Runtime account metadata now pre-registers local first-party and

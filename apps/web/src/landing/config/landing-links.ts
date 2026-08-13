@@ -14,7 +14,7 @@ export type LandingLinks = {
 // en/root URLs.
 const DEFAULT_LINKS: LandingLinks = {
   appUrl: 'https://docs.nimi.ai/start/',
-  webAppUrl: '/#/',
+  webAppUrl: '/home',
   discordUrl: 'https://discord.gg/BQwHJvPn',
   docsUrl: 'https://docs.nimi.ai/',
   githubUrl: 'https://github.com/nimiplatform/nimi',
@@ -63,10 +63,14 @@ export function resolveLocalizedLinks(links: LandingLinks, locale: 'en' | 'zh'):
 function normalizeUrl(raw: unknown, fallback: string): string {
   const value = typeof raw === 'string' ? raw.trim() : '';
   if (!value) return fallback;
-  if (value.startsWith('/')) return value;
   try {
-    const parsed = new URL(value);
-    return parsed.protocol === 'http:' || parsed.protocol === 'https:'
+    const relativeBase = 'https://web.nimi.invalid';
+    const parsed = new URL(value, relativeBase);
+    if (parsed.hash) return fallback;
+    if (value.startsWith('/') && !value.startsWith('//') && parsed.origin === relativeBase) {
+      return `${parsed.pathname}${parsed.search}`;
+    }
+    return (parsed.protocol === 'http:' || parsed.protocol === 'https:') && parsed.origin !== relativeBase
       ? parsed.toString()
       : fallback;
   } catch {

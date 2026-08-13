@@ -13,10 +13,9 @@ const repoRoot = path.resolve(scriptDir, '..');
 const TARGET_GLOBS = [
   'apps/desktop/src/shell/renderer',
   'apps/desktop/src-electron',
-  'apps/web/src/desktop-adapter',
   'apps/web/src/landing',
-  'apps/web/src/shell',
-  'apps/web/src/public',
+  'apps/web/src/auth',
+  'apps/web/src/site',
 ];
 
 const SOURCE_EXTENSIONS = new Set(['.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs', '.html', '.json']);

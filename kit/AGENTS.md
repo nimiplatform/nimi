@@ -14,6 +14,7 @@
 - `kit/features/*` must not import `apps/**`, `runtime/internal/**`, app aliases, `dataSync`, app stores, or navigation directly.
 - `kit/features/avatar` is the admitted reusable avatar surface. Backend-specific renderer seams such as VRM and Live2D own reusable renderer semantics only; launched Avatar product authority stays in `.nimi/spec/avatar/embodiment-surface.authority.yaml`, and app-specific placement/orchestration stays app-owned.
 - SDK typed services may only bind from explicit `runtime` or `realm` feature surfaces; runtime integrations must not bind realm clients, realm integrations must not bind runtime clients, and apps consume toolkit functionality through `@nimiplatform/kit/*` once it exists.
+- `kit/auth` keeps Web Account Auth and Desktop Browser Auth Gate as separate public contracts: the Web adapter may expose Realm credential interactions through the Realm-owned browser session, while the Desktop gate accepts only the OAuth code bridge and Runtime account browser broker and must not require credential methods or token persistence.
 ## Retrieval Defaults
 - Start in `kit/ui`, `kit/auth`, `kit/core`, `kit/telemetry`, `kit/shell/renderer`, `kit/shell/electron`, `kit/features`, `.nimi/spec/platform/ui-design-system.authority.yaml`, and `scripts/check-nimi-kit.mjs`; skip generated output except token/theme drift and generated platform docs.
 ## Verification Commands

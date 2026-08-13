@@ -1,0 +1,86 @@
+import { useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { WebAccountAuthPage } from '@nimiplatform/kit/auth';
+import {
+  clearWebBrowserSessionForFreshAccountSelection,
+  createWebAccountAuthAdapter,
+} from './web-account-adapter.js';
+import {
+  continueOauthNext,
+  isFreshAccountSelection,
+  isFreshOauthContinuation,
+  readValidatedOauthNext,
+} from './oauth-continuation.js';
+
+export function WebAccountPage() {
+  const adapter = useMemo(() => createWebAccountAuthAdapter(), []);
+  const [currentUser, setCurrentUser] = useState<Record<string, unknown> | null>(null);
+  const [checking, setChecking] = useState(true);
+  const [sessionError, setSessionError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    void adapter.loadCurrentUser().then((user) => {
+      if (!active) return;
+      const oauthNext = readValidatedOauthNext(window.location.search);
+      const freshOauthContinuation = isFreshOauthContinuation(window.location.search);
+      const freshAccountSelection = isFreshAccountSelection(window.location.search);
+      if (user && oauthNext && !freshOauthContinuation) {
+        void adapter.completeBrowserSessionLogin();
+        return;
+      }
+      if (user && freshAccountSelection) {
+        void clearWebBrowserSessionForFreshAccountSelection()
+          .then(() => {
+            if (!active) return;
+            if (!continueOauthNext(window.location.search)) {
+              throw new Error('账号切换授权 continuation 已失效。');
+            }
+          })
+          .catch((error) => {
+            if (!active) return;
+            setSessionError(error instanceof Error ? error.message : '无法准备账号切换。');
+            setChecking(false);
+          });
+        return;
+      }
+      setCurrentUser(freshOauthContinuation ? null : user);
+      setChecking(false);
+    });
+    return () => { active = false; };
+  }, [adapter]);
+
+  if (checking) {
+    return <main className="web-account-status" role="status">正在确认安全会话…</main>;
+  }
+
+  if (sessionError) {
+    return <main className="web-account-status" role="alert">{sessionError}</main>;
+  }
+
+  if (currentUser) {
+    return (
+      <main className="web-account-status">
+        <img src="/logo.svg" alt="Nimi" className="web-account-logo" />
+        <h1>已登录 Nimi</h1>
+        <p>{String(currentUser.displayName || currentUser.email || currentUser.id || '当前账号')}</p>
+        <nav><Link to="/account">管理账号</Link><Link to="/">返回首页</Link></nav>
+      </main>
+    );
+  }
+
+  return (
+    <WebAccountAuthPage
+      adapter={adapter}
+      session={{
+        mode: 'embedded',
+        setAuthSession: (user) => setCurrentUser(user),
+      }}
+      branding={{ networkLabel: 'Nimi', logo: '/logo.svg', logoAltText: 'Nimi' }}
+      appearance={{
+        theme: 'custom',
+        footerPlacement: 'inside-content',
+      }}
+    />
+  );
+}

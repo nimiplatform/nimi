@@ -1,20 +1,15 @@
-export { ShellAuthPage } from '../components/shell-auth-page.js';
+export { DesktopBrowserAuthGate } from '../components/desktop-browser-auth-gate.js';
+export type { DesktopBrowserAuthGateProps } from '../components/desktop-browser-auth-gate.js';
 export type {
-  ShellAuthAppearance,
-  ShellAuthBackgroundState,
-  ShellAuthBranding,
-  ShellAuthCopy,
-  ShellAuthDesktopBrowserAuth,
-  ShellAuthDesktopBrowserAuthRuntimeBroker,
-  ShellAuthPageProps,
-  ShellAuthSession,
-  ShellAuthTestIds,
-  ShellAuthWindow,
-  WebAuthMenuMode,
+  DesktopBrowserAuthRuntimeBroker,
 } from '../types/auth-types.js';
-export type {
-  AuthPlatformAdapter,
-  WalletChallengeInput,
-  WalletChallengeResult,
-  WalletLoginInput,
-} from '../platform/auth-platform-adapter.js';
+export {
+  performDesktopBrowserAuth,
+  validateRuntimeOAuthAuthorizationUrl,
+  type DesktopBrowserAuthResult,
+} from '../logic/desktop-browser-auth.js';
+export {
+  createRuntimeAccountBrowserBroker,
+  type CreateRuntimeAccountBrowserBrokerInput,
+  type RuntimeAccountBrowserBrokerClient,
+} from '../logic/runtime-account-browser-broker.js';

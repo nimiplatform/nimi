@@ -1,5 +1,4 @@
-import { createRuntimeAccountBrowserBroker } from '@nimiplatform/kit/auth';
-import type { AuthPlatformAdapter } from '@nimiplatform/kit/auth/shell';
+import { createRuntimeAccountBrowserBroker } from '@nimiplatform/kit/auth/shell';
 import type { ShellOAuthCodeBridge } from '@nimiplatform/kit/core/oauth';
 import {
   createNimiTestingHarness,
@@ -24,7 +23,7 @@ import type {
 /**
  * Deterministic State Engine-backed simulated RuntimeAccount projection.
  *
- * Shape mirrors the production desktop port (`desktop-auth-adapter.ts`): the
+ * Shape mirrors the production Desktop browser-auth port: the
  * only admitted login path is the RuntimeAccount browser broker flow, token
  * custody stays Runtime-owned (the kit broker completes with the sealed /
  * empty-token loopback-code-only shape), and every runtime-owned adapter
@@ -532,39 +531,7 @@ export function createDesktopSimulatorAuthSessionPort(
     focusMainWindow: async () => {},
   });
 
-  const adapter: AuthPlatformAdapter = {
-    supportsPasswordLogin: false,
-    checkEmail: async () => runtimeAccountOwned('checkEmail'),
-    passwordLogin: async () => runtimeAccountOwned('passwordLogin'),
-    requestEmailOtp: async () => runtimeAccountOwned('requestEmailOtp'),
-    verifyEmailOtp: async () => runtimeAccountOwned('verifyEmailOtp'),
-    verifyTwoFactor: async () => runtimeAccountOwned('verifyTwoFactor'),
-    walletChallenge: async () => runtimeAccountOwned('walletChallenge'),
-    walletLogin: async () => runtimeAccountOwned('walletLogin'),
-    oauthLogin: async () => runtimeAccountOwned('oauthLogin'),
-    updatePassword: async () => runtimeAccountOwned('updatePassword'),
-    loadCurrentUser: loadSimulatorUser,
-    applyToken: async () => runtimeAccountOwned('applyToken'),
-    restoreSession: async () => runtimeAccountOwned('restoreSession'),
-    persistSession: async () => runtimeAccountOwned('persistSession'),
-    clearPersistedSession: async () => {
-      if (readAuthProjection().status === 'authenticated') {
-        // The engine-owned logout commits the session transition; its declared
-        // desktop.auth.session.anonymous event clears the renderer auth slice.
-        await accountClient.runtime.account.logout({
-          caller,
-          reason: 'simulator-clear-persisted-session',
-        });
-        return;
-      }
-      lifecycle?.clearAuthSession();
-    },
-    oauthBridge,
-    syncAfterLogin: async () => {},
-  };
-
   const authPort: DesktopRendererAuthPort = Object.freeze({
-    adapter,
     oauthBridge,
     runtimeAccountBroker: Object.freeze({
       begin: broker.begin,

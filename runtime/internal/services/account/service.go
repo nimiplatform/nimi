@@ -144,6 +144,9 @@ func (s *Service) BeginLogin(ctx context.Context, req *runtimev1.BeginLoginReque
 		CallbackOrigin: requestCallbackOrigin,
 		ExpiresAt:      now.Add(ttl),
 	}
+	s.mu.RLock()
+	attempt.PromptLogin = s.freshAccountSelection
+	s.mu.RUnlock()
 	attempt.PKCEChallenge = pkceChallenge(attempt.PKCEVerifier)
 	authorizationURL, ok := s.authorizationURLForAttempt(attempt)
 	if !ok {
@@ -161,6 +164,9 @@ func (s *Service) BeginLogin(ctx context.Context, req *runtimev1.BeginLoginReque
 		}
 	}
 	s.loginAttempts[attempt.LoginAttemptID] = loginAttemptRecord{attempt: attempt}
+	if attempt.PromptLogin {
+		s.freshAccountSelection = false
+	}
 	s.state = runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_LOGIN_PENDING
 	s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_LOGIN_STARTED, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED, "")
 	s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED, "")
@@ -350,6 +356,7 @@ func (s *Service) SwitchAccount(ctx context.Context, req *runtimev1.SwitchAccoun
 		return &runtimev1.SwitchAccountResponse{Accepted: false, State: runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_UNAVAILABLE, ReasonCode: commonReason(failureReason), AccountReasonCode: failureReason}, nil
 	}
 	s.state = runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_ANONYMOUS
+	s.freshAccountSelection = true
 	s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_SWITCH_COMPLETED, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED, "")
 	s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED, "")
 	s.mu.Unlock()

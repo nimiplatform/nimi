@@ -290,3 +290,43 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.runtime.protected-session.config-plane
+  - id: rule.nimi.runtime.protected-session.r028
+    kind: rule
+    title: Runtime owns each Desktop account authorization attempt
+    modality: must
+    statement: RuntimeAccountService creates and owns each Desktop account authorization attempt, including the canonical Realm authorize URL, PKCE verifier and S256 challenge, state, nonce, exact loopback callback URI, creation and expiry bounds, and one-time consumption state; Desktop receives only the authorize URL and opaque attempt projection and never constructs or repairs an authorize URL.
+    condition: Whenever Desktop begins a Nimi account login, reauthentication, or switch-account journey.
+    failure: Reject an attempt not created by RuntimeAccountService, a caller-supplied verifier, state, nonce, callback URI, or authorize URL, and any fallback to a direct Web login route.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.protected-session.account-session-plane
+  - id: rule.nimi.runtime.protected-session.r029
+    kind: rule
+    title: Runtime exclusively completes Desktop account authorization
+    modality: must
+    statement: RuntimeAccountService alone validates the exact pending attempt, callback URI, state, nonce, expiry, and unused status, consumes the attempt once, exchanges the authorization code with Realm, validates the resulting account identity, and places access and refresh material in local Runtime custody before publishing a minimal account projection.
+    condition: Whenever the Desktop loopback callback carries an authorization result.
+    failure: Fail closed on missing, expired, replayed, consumed, state-mismatched, nonce-mismatched, callback-mismatched, token-bearing, or otherwise owner-invalid completion without changing the authenticated projection.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.protected-session.account-session-plane
+  - id: rule.nimi.runtime.protected-session.r030
+    kind: rule
+    title: Account truth and browser carriage remain separated
+    modality: must
+    statement: Realm remains the independent owner of user identity and the authorization decision, Web owns only the user-facing credential interaction, Desktop owns only typed browser launch and loopback callback carriage plus account projection intent, and RuntimeAccountService owns the local authorization transaction, code exchange, refresh, restart recovery, and token custody without transferring bearer material to Web or Desktop.
+    condition: Whenever a Nimi account browser authorization crosses Realm, Web, Desktop, and Runtime.
+    failure: Reject Web-owned or Desktop-owned account truth, Web or Desktop code exchange, renderer token access, or a second SDK session truth.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.protected-session.account-session-plane
+  - id: rule.nimi.runtime.protected-session.r031
+    kind: rule
+    title: Account transition invalidation is fail closed
+    modality: must
+    statement: Logout, account switch, unrecoverable refresh failure, expired authorization, or invalid callback atomically invalidates the affected Runtime account custody and dependent local account projection before any replacement is admitted, restart recovery validates owner-held custody before republishing it, and switch-account causes the next Runtime-owned authorization attempt to require fresh account selection.
+    condition: Whenever Runtime restores, expires, logs out, switches, or replaces a local account session.
+    failure: Keep the account unauthenticated or unavailable and reject stale projection reuse, replay, silent recovery, or switch without a fresh owner-issued attempt.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.protected-session.account-session-plane

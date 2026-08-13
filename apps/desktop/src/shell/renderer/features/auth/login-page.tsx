@@ -1,13 +1,15 @@
 import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useLocation } from 'react-router-dom';
 import { NimiToaster } from '@nimiplatform/kit/ui';
 import { useAppStore } from '../../app-shell/providers/app-store';
 import { useDesktopRendererBindings } from '../../renderer/binding-context';
 
-import { WebAuthMenu } from './web-auth-menu.js';
+import { DesktopBrowserAuthGateSurface } from './desktop-browser-auth-gate.js';
 
 export function LoginPage() {
   const bindings = useDesktopRendererBindings();
+  const location = useLocation();
   const { t } = useTranslation();
   const authStatus = useAppStore((state) => state.auth.status);
   const clearAuthSession = useAppStore((state) => state.clearAuthSession);
@@ -29,7 +31,6 @@ export function LoginPage() {
     return null;
   }
 
-  const authMode = bindings.app.projection.loginMode();
   const accountNotice = authStatus === 'expired' || authStatus === 'reauth-required'
     ? t('Auth.reauthenticationRequired', {
         defaultValue: 'Your Runtime account session can no longer be refreshed. Sign in again to continue.',
@@ -42,16 +43,10 @@ export function LoginPage() {
 
   return (
     <div className="relative min-h-screen">
-      {accountNotice ? (
-        <div
-          role="status"
-          data-testid="desktop-account-state-notice"
-          className="absolute inset-x-4 top-10 z-30 mx-auto max-w-xl rounded-xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] px-4 py-3 text-center text-sm leading-6 text-[var(--nimi-text-secondary)] shadow-[var(--nimi-elevation-raised)]"
-        >
-          {accountNotice}
-        </div>
-      ) : null}
-      <WebAuthMenu mode={authMode} />
+      <DesktopBrowserAuthGateSurface
+        notice={accountNotice}
+        autoStart={Boolean((location.state as { accountSwitch?: boolean } | null)?.accountSwitch)}
+      />
       <NimiToaster />
     </div>
   );

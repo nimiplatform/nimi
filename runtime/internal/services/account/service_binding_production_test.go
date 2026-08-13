@@ -53,9 +53,8 @@ func TestProductionActivationCodeStateExchangeCustodyAndPrivateCredential(t *tes
 		if err := r.ParseForm(); err != nil {
 			t.Fatalf("parse form: %v", err)
 		}
-		// R-OAUTH-002 / R-OAUTH-005 / R-OAUTH-012: token exchange must send
-		// authorization_code grant, the raw code, the matching redirect_uri,
-		// and the code_verifier.
+		// Token exchange must send the authorization_code grant, raw code,
+		// matching redirect_uri, and PKCE verifier.
 		if r.Form.Get("grant_type") != "authorization_code" {
 			t.Fatalf("token exchange grant_type = %q, want authorization_code", r.Form.Get("grant_type"))
 		}
@@ -66,7 +65,7 @@ func TestProductionActivationCodeStateExchangeCustodyAndPrivateCredential(t *tes
 			t.Fatalf("token exchange code_verifier missing")
 		}
 		if r.Form.Get("redirect_uri") != "http://localhost:46373/oauth/callback" {
-			t.Fatalf("token exchange redirect_uri = %q, want http://localhost:46373/oauth/callback (R-OAUTH-005)", r.Form.Get("redirect_uri"))
+			t.Fatalf("token exchange redirect_uri = %q, want http://localhost:46373/oauth/callback", r.Form.Get("redirect_uri"))
 		}
 		if r.Form.Get("client_id") != "desktop-test" {
 			t.Fatalf("token exchange client_id = %q, want desktop-test", r.Form.Get("client_id"))
@@ -98,8 +97,7 @@ func TestProductionActivationCodeStateExchangeCustodyAndPrivateCredential(t *tes
 	if err != nil {
 		t.Fatalf("parse authorize URL %q: %v", authorizeURL, err)
 	}
-	// R-OAUTH-002 / R-OAUTH-003 / R-OAUTH-005 / R-OAUTH-011: authorize URL
-	// is shaped per OAuth 2.0 + PKCE S256, not the legacy web-relay fragment.
+	// Authorize URL is shaped per OAuth 2.0 + PKCE S256.
 	authQuery := parsed.Query()
 	if got, want := authQuery.Get("response_type"), "code"; got != want {
 		t.Fatalf("authorize response_type = %q, want %q", got, want)
@@ -481,6 +479,25 @@ func TestProductionAuthorizationURLEmitsPKCEOauthShape(t *testing.T) {
 			if parsed.Path != "/api/auth/oauth/authorize" {
 				t.Fatalf("authorize URL must use the generated operation path, got %q", raw)
 			}
+
+			freshAttempt := attempt
+			freshAttempt.PromptLogin = true
+			freshRaw := exchanger.AuthorizationURL(freshAttempt)
+			freshURL, err := url.Parse(freshRaw)
+			if err != nil {
+				t.Fatalf("parse fresh-account authorize URL %q: %v", freshRaw, err)
+			}
+			freshQuery := freshURL.Query()
+			freshWants := map[string]string{
+				"prompt":           "login",
+				"presence_purpose": freshAccountSelectionPresencePurpose,
+				"presence_nonce":   attempt.Nonce,
+			}
+			for key, want := range freshWants {
+				if got := freshQuery.Get(key); got != want {
+					t.Fatalf("fresh-account authorize query %q = %q, want %q (full URL %q)", key, got, want, freshRaw)
+				}
+			}
 		})
 	}
 }
@@ -525,8 +542,7 @@ func TestProductionAuthorizationURLIgnoresSentinelEnvOverride(t *testing.T) {
 // TestProductionAuthorizationURLDefaultsToRealmAuthorizeEndpoint asserts that
 // when ProductionConfig sets only RealmBaseURL (no AuthorizationURL override),
 // the runtime resolves the authorize endpoint to
-// `${RealmBaseURL}/api/auth/oauth/authorize` rather than the legacy NIMI_WEB_URL
-// web-relay default (R-OAUTH-002).
+// `${RealmBaseURL}/api/auth/oauth/authorize` and ignores NIMI_WEB_URL.
 func TestProductionAuthorizationURLDefaultsToRealmAuthorizeEndpoint(t *testing.T) {
 	t.Setenv("NIMI_WEB_URL", "https://web.nimi.test")
 	t.Setenv("NIMI_RUNTIME_ACCOUNT_AUTHORIZATION_URL", "")

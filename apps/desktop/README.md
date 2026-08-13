@@ -45,7 +45,7 @@ Environment variables:
 
 - `NIMI_REALM_URL` (default: `http://localhost:3002`)
 - `NIMI_CONTROL_PLANE_URL` (default: `http://localhost`, runtime control-plane base URL)
-- `NIMI_WEB_URL` (default: `http://localhost`, used for desktop browser-auth launch URL)
+- `NIMI_WEB_URL` (optional controlled public Web base used only for account-management and other admitted Web handoffs; Desktop login always opens the RuntimeAccountService-issued authorize URL)
 - `NIMI_ACCESS_TOKEN` (required)
 - `NIMI_USER_CONFIRMED_UPLOAD` (`1` to allow LOCAL turn upload in play demo)
 - `NIMI_TARGET_TYPE` (`AGENT` default, also supports `CONTACT` / `FRIEND`)

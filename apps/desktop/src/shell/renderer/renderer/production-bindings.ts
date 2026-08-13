@@ -26,11 +26,6 @@ import {
   localDevelopmentBridgeAvailable,
 } from '../features/local-development/local-development-bridge.js';
 import {
-  continueOauthNextIfPresent,
-  freshOauthLoginGateStorageKey,
-  readFreshOauthLoginState,
-} from '../features/auth/oauth-next-continuation.js';
-import {
   createDesktopRuntimeAgentDiscoverySurface,
   getDesktopAccountRuntime,
   getDesktopAccountProductClient,
@@ -61,7 +56,7 @@ import {
 import { connectProductionChatRealtimeSync } from '../infra/realtime/production-chat-realtime-sync.js';
 import { createDesktopProductionFirstRunPort } from './production-first-run-port.js';
 import { createDesktopProductionSettingsPort } from '../features/settings/settings-storage.js';
-import { createDesktopProductionAuthPort } from '@renderer/features/auth/desktop-auth-adapter.js';
+import { createDesktopProductionAuthPort } from '@renderer/features/auth/desktop-browser-auth.js';
 import { createDesktopRendererRuntimeConfigNavigationPort } from './runtime-config-navigation-port.js';
 import { callRealmApi, emitRealmDataError } from '../infra/realm/realm-api.js';
 import { getOfflineCoordinator } from '../infra/offline/coordinator.js';
@@ -84,6 +79,7 @@ import {
 import { listDesktopAvatarLiveInstances } from '../bridge/runtime-bridge/chat-agent-avatar-instance-registry.js';
 import { requestDesktopAvatarPreviewProjection } from '../bridge/runtime-bridge/chat-agent-avatar-preview-projection.js';
 import { createDesktopBrowserRoutePort } from './browser-route-port.js';
+import { resolveAccountManagementUrl } from '../features/settings/account-management-url.js';
 
 export function createDesktopProductionBindings(
   kit: NimiRendererHostFacadeV1<NimiRendererHostMethodMap>,
@@ -149,7 +145,6 @@ export function createDesktopProductionBindings(
         }),
         attention: attention.getSnapshot,
         localDevelopmentAvailable: localDevelopmentBridgeAvailable,
-        loginMode: () => getShellFeatureFlags().mode === 'web' ? 'embedded' : 'desktop-browser',
         developerModeEnabled: isDeveloperModeEnabled,
         viewportWidth: () => window.innerWidth || document.documentElement.clientWidth,
         viewportHeight: () => window.innerHeight || document.documentElement.clientHeight,
@@ -221,6 +216,13 @@ export function createDesktopProductionBindings(
           document.documentElement.lang = lang;
           document.title = title;
         },
+        async openAccountManagement() {
+          const configured = String(
+            (import.meta as { env?: { NIMI_WEB_URL?: string } }).env?.NIMI_WEB_URL || '',
+          );
+          const result = await desktopBridge.openExternalUrl(resolveAccountManagementUrl(configured));
+          if (!result.opened) throw new Error('Nimi Web account management could not be opened.');
+        },
         openWalletCheckout: (url: string) => desktopBridge.openExternalUrl(url),
         async writeClipboardText(value: string) {
           if (!navigator.clipboard?.writeText) {
@@ -246,27 +248,7 @@ export function createDesktopProductionBindings(
         async reconcileLoginState({ authStatus }: Parameters<
           DesktopCanonicalRendererBindings['app']['commands']['reconcileLoginState']
         >[0]) {
-          if (getShellFeatureFlags().mode !== 'web') {
-            return Object.freeze({ clearAuthSession: false });
-          }
-          const freshOauthState = readFreshOauthLoginState(window.location.search);
-          if (freshOauthState && authStatus === 'anonymous') {
-            const key = freshOauthLoginGateStorageKey(freshOauthState);
-            if (!window.sessionStorage.getItem(key)) {
-              window.sessionStorage.setItem(key, 'started');
-            }
-          }
-          if (authStatus === 'authenticated') {
-            if (freshOauthState) {
-              const key = freshOauthLoginGateStorageKey(freshOauthState);
-              const marker = window.sessionStorage.getItem(key);
-              if (!marker) {
-                window.sessionStorage.setItem(key, 'cleared');
-                return Object.freeze({ clearAuthSession: true });
-              }
-            }
-            continueOauthNextIfPresent(window.location.search);
-          }
+          void authStatus;
           return Object.freeze({ clearAuthSession: false });
         },
         reloadApplication() {

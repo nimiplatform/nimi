@@ -1,10 +1,8 @@
 import { useRealmSocialData } from '../social/data/realm-social-data-context.js';
 import { useEffect, useRef, useState } from 'react';
 import {
-  NIMI_REALM_OAUTH_PROVIDER,
   loadNimiRealmCreatorEligibility,
   uploadNimiRealmResourceFile,
-  type NimiRealmOAuthProvider,
 } from '@nimiplatform/sdk/realm';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
@@ -32,8 +30,6 @@ import {
 } from './settings-layout-components.js';
 import { AwardIcon } from './settings-preferences-panel-parts.js';
 import type { InlineFeedbackState } from '../../ui/feedback/inline-feedback';
-import { ProfileConnectedAccountsSection } from './settings-account-oauth-section.js';
-import { profileOauthPlatform } from './profile-oauth-platform.js';
 import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
 
 const ACCEPTED_AVATAR_TYPES = ['image/png', 'image/jpeg', 'image/webp', 'image/gif'];
@@ -92,8 +88,6 @@ export function ProfilePage() {
       : 'info';
   const isEligible = eligibilityState === 'eligible';
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
-  const [linkingProvider, setLinkingProvider] = useState<NimiRealmOAuthProvider | null>(null);
-  const [unlinkingProvider, setUnlinkingProvider] = useState<NimiRealmOAuthProvider | null>(null);
   const [feedback, setFeedback] = useState<InlineFeedbackState | null>(null);
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const profileAutosaveTimerRef = useRef<(() => void) | null>(null);
@@ -102,13 +96,6 @@ export function ProfilePage() {
   // happened since the snapshot — newer local edits always win.
   const editVersionRef = useRef(0);
   const appliedEditVersionRef = useRef(0);
-  const connectedProviders = Array.isArray(user?.oauthProviders)
-    ? user.oauthProviders.filter((item): item is NimiRealmOAuthProvider => (
-      item === NIMI_REALM_OAUTH_PROVIDER.GOOGLE
-      || item === NIMI_REALM_OAUTH_PROVIDER.TIKTOK
-    ))
-    : [];
-  const connectedProviderSet = new Set<NimiRealmOAuthProvider>(connectedProviders);
   const profileDraft = {
     displayName: name.trim() || displayName,
     avatarUrl,
@@ -153,44 +140,6 @@ export function ProfilePage() {
   useEffect(() => () => {
     profileAutosaveTimerRef.current?.();
   }, []);
-
-  const handleLinkProvider = async (provider: NimiRealmOAuthProvider) => {
-    if (linkingProvider || unlinkingProvider) {
-      return;
-    }
-    setLinkingProvider(provider);
-    try {
-      await profileOauthPlatform.linkProvider(provider);
-      await refreshCurrentUser();
-      setFeedback(null);
-    } catch (error) {
-      setFeedback({
-        kind: 'error',
-        message: error instanceof Error ? t(error.message) : t('Profile.oauthLinkFailed', { provider }),
-      });
-    } finally {
-      setLinkingProvider(null);
-    }
-  };
-
-  const handleUnlinkProvider = async (provider: NimiRealmOAuthProvider) => {
-    if (linkingProvider || unlinkingProvider) {
-      return;
-    }
-    setUnlinkingProvider(provider);
-    try {
-      await profileOauthPlatform.unlinkProvider(provider);
-      await refreshCurrentUser();
-      setFeedback(null);
-    } catch (error) {
-      setFeedback({
-        kind: 'error',
-        message: error instanceof Error ? t(error.message) : t('Profile.oauthUnlinkFailed', { provider }),
-      });
-    } finally {
-      setUnlinkingProvider(null);
-    }
-  };
 
   const hasPendingProfileChanges = (
     profileDraft.displayName !== persistedProfile.displayName
@@ -455,14 +404,6 @@ export function ProfilePage() {
         </Card>
       </Section>
 
-      <ProfileConnectedAccountsSection
-        connectedProviderSet={connectedProviderSet}
-        email={email}
-        linkingProvider={linkingProvider}
-        onLinkProvider={(provider) => void handleLinkProvider(provider)}
-        onUnlinkProvider={(provider) => void handleUnlinkProvider(provider)}
-        unlinkingProvider={unlinkingProvider}
-      />
     </PageShell>
   );
 }

@@ -129,7 +129,7 @@ function NimiGalaxy({ count = 60000, isExploring }: { count?: number; isExplorin
     if (!pointsRef.current) return;
     
     const positions = pointsRef.current.geometry.attributes.position;
-    if (!positions || !positions.array) return;
+    if (!(positions instanceof THREE.BufferAttribute)) return;
     
     const posArray = positions.array as Float32Array;
     const time = state.clock.elapsedTime;

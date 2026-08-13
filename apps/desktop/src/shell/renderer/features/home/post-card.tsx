@@ -49,7 +49,6 @@ export type PostCardActionAdapter = {
     visibility: 'PUBLIC' | 'FRIENDS' | 'PRIVATE',
   ): Promise<unknown>;
   deletePost(postId: string): Promise<void>;
-  copyText(value: string): Promise<void>;
   requestOrAcceptFriend(authorId: string, message?: string): Promise<unknown>;
   openChat(input: { authorId: string; authStatus: string }): Promise<void>;
   invalidateContacts?: () => Promise<unknown>;
@@ -319,22 +318,6 @@ export function PostCard(input: PostCardProps) {
     setEditModalOpen(true);
   }, [canEditPostAttachment, ui]);
 
-  const handleCopyLink = useCallback(async () => {
-    ui.togglePostMenu();
-    const webBaseUrl =
-      import.meta.env.VITE_WEB_BASE_URL || 'https://nimi.ai';
-    const postLink = `${webBaseUrl}/posts/${post.id}`;
-    try {
-      await actionAdapter.copyText(postLink);
-      setFeedback(null);
-    } catch {
-      setFeedback({
-        kind: 'error',
-        message: i18n.t('Home.copyLinkFailed', { defaultValue: 'Failed to copy post link' }),
-      });
-    }
-  }, [actionAdapter, post.id, ui]);
-
   const handleAddFriend = useCallback(
     async (message?: string) => {
       if (!humanActionAuthorId) {
@@ -418,9 +401,6 @@ export function PostCard(input: PostCardProps) {
         onOpenDeleteConfirm={ui.openDeleteConfirm}
         onOpenBlockConfirm={ui.openBlockConfirm}
         onOpenReportModal={ui.openReportModal}
-        onCopyLink={() => {
-          void handleCopyLink();
-        }}
         onToggleLike={() => {
           void handleToggleLike();
         }}

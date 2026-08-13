@@ -36,9 +36,9 @@ const ALLOWLIST = new Set([
   // Desktop's single SDK session entry. Production callers must consume the
   // exported accessors instead of constructing Runtime/Realm elsewhere.
   'apps/desktop/src/shell/renderer/infra/sdk/desktop-nimi-client-session.ts',
-  // Public permalink page is a Realm read-only web entry, not an authenticated
-  // first-party app session.
-  'apps/web/src/post-permalink-page.tsx',
+  // The Web account surface uses a cookie-bearing first-party Realm client;
+  // it does not create a Runtime client or retain bearer material.
+  'apps/web/src/auth/web-account-adapter.ts',
 ]);
 
 const FIRST_PARTY_RUNTIME_CALLER_MODES = new Set([

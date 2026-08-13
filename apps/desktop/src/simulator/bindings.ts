@@ -249,7 +249,6 @@ export function createDesktopSimulatorBindings(
         }),
         attention: createIdleAppAttentionState,
         localDevelopmentAvailable: () => false,
-        loginMode: () => 'desktop-browser',
         developerModeEnabled: () => false,
         viewportWidth: () => 1_280,
         viewportHeight: () => 800,
@@ -342,6 +341,9 @@ export function createDesktopSimulatorBindings(
         },
         async openWalletCheckout() {
           throw new Error('DESKTOP_SIMULATOR_WALLET_CHECKOUT_UNADMITTED');
+        },
+        async openAccountManagement() {
+          throw new Error('DESKTOP_SIMULATOR_ACCOUNT_MANAGEMENT_UNAVAILABLE');
         },
         async writeClipboardText() {
           throw new Error('DESKTOP_SIMULATOR_CLIPBOARD_WRITE_UNADMITTED');

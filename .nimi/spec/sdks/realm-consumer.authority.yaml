@@ -6,6 +6,10 @@ units:
     kind: definition
     title: Realm external authority consumption plane
     meaning: Realm is the independent external authority for Account, Auth, Profile, World, PersonaCharacter, WorldCharacter, Character Source, World Source, their access control, and cloud audit, while this Nimi plane owns only consumer semantics for SDK, Runtime, Nimi Home, and authorized Apps.
+  - id: definition.nimi.sdks.realm-consumer.first-party-browser-account-plane
+    kind: definition
+    title: First-party browser account consumer plane
+    meaning: The first-party browser account consumer plane is the public typed SDK boundary through which the standalone Nimi Web account surface submits credential interactions to Realm and consumes the Realm-owned ordinary browser session without owning account truth, token custody, or Desktop authorization completion.
   - id: definition.nimi.sdks.realm-consumer.generated-core-plane
     kind: definition
     title: Realm generated core plane
@@ -270,3 +274,25 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.sdks.realm-consumer.character-profile-projection
+  - id: rule.nimi.sdks.realm-consumer.r046
+    kind: rule
+    title: First-party Web auth uses the Realm browser session contract
+    modality: must
+    statement: The Nimi Web account surface uses generated public Realm auth and account operations with credentialed requests and the fixed browser-session response mode so Realm owns the secure HttpOnly SameSite browser session cookie and current-account confirmation; Web and the SDK keep no raw access or refresh bearer in a URL, localStorage, durable metadata, or parallel session store.
+    condition: Whenever first-party Web performs account login, registration, recovery, two-factor, provider, wallet, password, or current-account interaction.
+    failure: Reject a token-mode response, handwritten REST bypass, Web-owned session truth, insecure cookie posture, or durable bearer persistence.
+    relations:
+      - type: applies_to
+        target: definition.nimi.sdks.realm-consumer.first-party-browser-account-plane
+      - type: applies_to
+        target: definition.nimi.sdks.realm-consumer.generated-core-plane
+  - id: rule.nimi.sdks.realm-consumer.r047
+    kind: rule
+    title: Browser auth never completes Desktop authorization
+    modality: must_not
+    statement: Web or the public Realm SDK consumes, exchanges, persists, or transfers a Desktop authorization code, PKCE verifier, Runtime refresh token, or Desktop account bearer; an origin-admitted OAuth continuation may navigate the browser to the unchanged Realm authorize transaction only after the Realm-owned browser session is confirmed.
+    condition: Whenever Web account authentication continues a Desktop authorization attempt.
+    failure: Fail closed on an unadmitted origin or modified transaction and leave code exchange exclusively to RuntimeAccountService.
+    relations:
+      - type: applies_to
+        target: definition.nimi.sdks.realm-consumer.first-party-browser-account-plane

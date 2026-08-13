@@ -1,4 +1,4 @@
-import type { ShellAuthWindow } from '../types/auth-types.js';
+import type { WebAccountAuthWindow } from '../types/auth-types.js';
 import { readEnv } from './oauth-helpers.js';
 import { AUTH_COPY } from './auth-copy.js';
 
@@ -17,7 +17,7 @@ export function loadGoogleScript(): Promise<void> {
       return;
     }
 
-    const win = window as ShellAuthWindow;
+    const win = window as WebAccountAuthWindow;
     if (win.google?.accounts?.id?.initialize && win.google.accounts.id.prompt) {
       resolve();
       return;
@@ -55,7 +55,7 @@ export async function requestGoogleIdToken(clientId: string): Promise<string> {
     throw new Error(AUTH_COPY.googleClientIdMissing);
   }
   await loadGoogleScript();
-  const win = window as ShellAuthWindow;
+  const win = window as WebAccountAuthWindow;
   const googleIdentity = win.google?.accounts?.id;
   if (!googleIdentity?.initialize || !googleIdentity.prompt) {
     throw new Error(AUTH_COPY.googleOAuthInitFailed);

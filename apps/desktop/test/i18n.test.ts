@@ -217,34 +217,6 @@ test('createDesktopI18n owns locale, diagnostics, and clock per renderer instanc
   assert.deepEqual(secondIssues, []);
 });
 
-test('auth runtime locale keys exist in both desktop locales', async () => {
-  const localeEntries = [
-    ['en', readDesktopLocale('en')],
-    ['zh', readDesktopLocale('zh')],
-  ] as const;
-  const requiredKeys = [
-    'passwordLoginFailed',
-    'requestEmailOtpFailed',
-    'verifyEmailOtpFailed',
-    'verifyTwoFactorFailed',
-    'walletChallengeFailed',
-    'walletLoginFailed',
-    'oauthLoginFailed',
-  ];
-
-  for (const [locale, localeData] of localeEntries) {
-    const auth = (localeData as { Auth?: Record<string, unknown> }).Auth || {};
-    for (const key of requiredKeys) {
-      assert.equal(
-        typeof auth[key],
-        'string',
-        `${locale} locale is missing Auth.${key}`,
-      );
-      assert.match(String(auth[key] || ''), /\S/, `${locale} locale has empty Auth.${key}`);
-    }
-  }
-});
-
 test('renderer translation key usages resolve in en locale', async () => {
   const en = readDesktopLocale('en');
   const enKeys = new Set(flattenLocaleKeys(en));
@@ -280,7 +252,6 @@ test('known dynamic desktop locale keys exist in both locales', async () => {
     ['zh', readDesktopLocale('zh')],
   ] as const;
   const requiredKeys = [
-    'SecuritySettings.copySecretSuccess',
     'Menu.profile',
     'Menu.settings',
     'Menu.termsOfService',

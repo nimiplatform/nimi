@@ -49,7 +49,6 @@ export interface DesktopRendererProjectionPort {
   initialState(): DesktopRendererInitialState;
   attention(): AppAttentionState;
   localDevelopmentAvailable(): boolean;
-  loginMode(): 'desktop-browser' | 'embedded';
   developerModeEnabled(): boolean;
   viewportWidth(): number;
   viewportHeight(): number;
@@ -89,6 +88,7 @@ export interface DesktopRendererCommandPort {
     readonly title: string;
   }): Promise<void> | void;
   writeClipboardText(value: string): Promise<void>;
+  openAccountManagement(): Promise<void>;
   openWalletCheckout(url: string): Promise<{ readonly opened: boolean; readonly reason?: string }>;
   exportRuntimeAuditJson(input: {
     readonly filename: string;

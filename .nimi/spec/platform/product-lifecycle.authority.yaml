@@ -767,8 +767,16 @@ units:
     meaning: A Nimi update channel is the Platform-owned stable or beta release identity together with its configured updater endpoint, verification public-key policy, compatibility gates, and rollback policy.
   - id: definition.nimi.platform.product-lifecycle.web-release-surface
     kind: definition
+    lifecycle: removed
     title: Web release surface
-    meaning: The Web release surface consists of the first-party Nimi site and web-shell adapters under apps/web and the release-distribution gateway under apps/install-gateway, while the independently owned Simulator remains a separate product and artifact.
+    reason: Removed because the pre-release Web Shell and its Desktop renderer adapters are retired; the replacement public and account Web surface has a distinct canonical identity.
+  - id: definition.nimi.platform.product-lifecycle.public-account-web-surface
+    kind: definition
+    title: Public and account Web surface
+    meaning: The Web release surface consists of the first-party public Nimi site, Realm-backed account authentication and account-security interaction pages, Nimi Home and App informational pages, static legal and navigation pages, Cloudflare function adapters, and the release-distribution gateway under apps/install-gateway, while Desktop remains the current Nimi Home host and the independently owned Simulator remains a separate product and artifact.
+    relations:
+      - type: supersedes
+        target: definition.nimi.platform.product-lifecycle.web-release-surface
   - id: definition.nimi.platform.product-lifecycle.first-party-app-registration
     kind: definition
     lifecycle: removed
@@ -880,7 +888,7 @@ units:
     failure: Reject the path as unsupported and return a fail-closed state.
     relations:
       - type: applies_to
-        target: definition.nimi.platform.product-lifecycle.web-release-surface
+        target: definition.nimi.platform.product-lifecycle.public-account-web-surface
   - id: rule.nimi.platform.product-lifecycle.p-pkgrel-001
     kind: rule
     title: P-PKGREL-001 Nimi is the only installable product name
@@ -930,9 +938,9 @@ units:
     failure: Reject the out-of-scope mutation and keep installation unstarted or failed.
     relations:
       - type: applies_to
-        target: definition.nimi.platform.product-lifecycle.release-bundle
+        target: definition.nimi.platform.product-lifecycle.public-account-web-surface
       - type: applies_to
-        target: definition.nimi.platform.product-lifecycle.web-release-surface
+        target: definition.nimi.platform.product-lifecycle.release-bundle
   - id: rule.nimi.platform.product-lifecycle.p-pkgrel-006
     kind: rule
     title: P-PKGREL-006 release failures expose reason classes
@@ -966,19 +974,14 @@ units:
     failure: Reject the split or new identity until canonical admission exists.
     relations:
       - type: applies_to
-        target: definition.nimi.platform.product-lifecycle.release-bundle
+        target: definition.nimi.platform.product-lifecycle.public-account-web-surface
       - type: applies_to
-        target: definition.nimi.platform.product-lifecycle.web-release-surface
+        target: definition.nimi.platform.product-lifecycle.release-bundle
   - id: rule.nimi.platform.product-lifecycle.p-web-001a
     kind: rule
+    lifecycle: removed
     title: P-WEB-001 Web surface ownership
-    modality: must
-    statement: The first-party Web site, static legal pages, Cloudflare function adapters, and web-shell adapters remain Platform-owned release surfaces rather than app-local subordinate specification truth.
-    condition: Whenever Web release ownership is assigned.
-    failure: Reject the app-local owner and retain Platform ownership.
-    relations:
-      - type: applies_to
-        target: definition.nimi.platform.product-lifecycle.web-release-surface
+    reason: Removed because it includes the retired web-shell adapters; the replacement rule preserves Platform ownership without retaining Web Shell semantics.
   - id: rule.nimi.platform.product-lifecycle.p-web-001b
     kind: rule
     title: P-WEB-001 Simulator remains independent
@@ -988,47 +991,105 @@ units:
     failure: Reject the ownership merge and preserve separate products and artifacts.
     relations:
       - type: applies_to
-        target: definition.nimi.platform.product-lifecycle.web-release-surface
+        target: definition.nimi.platform.product-lifecycle.public-account-web-surface
   - id: rule.nimi.platform.product-lifecycle.p-web-002a
     kind: rule
+    lifecycle: removed
     title: P-WEB-002 public Web adapter boundary
-    modality: must_not
-    statement: Web shell mode imports Tauri APIs, Desktop-private renderer aliases, Runtime internals, local-filesystem behavior, Desktop CORS bypass, or private IPC instead of public-for-Web surfaces, Web adapters, and native browser fetch.
-    condition: Whenever Web shell mode consumes a Desktop-shaped capability.
-    failure: Reject the private capability and return unsupported when no public adapter exists.
-    relations:
-      - type: applies_to
-        target: definition.nimi.platform.product-lifecycle.web-release-surface
+    reason: Removed with Web Shell because a standalone Web surface no longer consumes Desktop-shaped capabilities or public-for-Web adapters.
   - id: rule.nimi.platform.product-lifecycle.p-web-002b
     kind: rule
+    lifecycle: removed
     title: P-WEB-002 unsupported Desktop release behavior fails closed
-    modality: must
-    statement: Unsupported Desktop-only release and self-update operations return an explicit unsupported state rather than pseudo-success in Web shell mode.
-    condition: When Web shell mode encounters a Desktop-only release operation.
-    failure: Reject the operation and preserve the unsupported state.
-    relations:
-      - type: applies_to
-        target: definition.nimi.platform.product-lifecycle.web-release-surface
+    reason: Removed with Web Shell because standalone Web has no Desktop release operation surface to adapt.
   - id: rule.nimi.platform.product-lifecycle.p-web-002c
     kind: rule
+    lifecycle: removed
     title: P-WEB-002 client-only browser boundary
-    modality: must
-    statement: Web shell bootstrap is client-only without server-side rendering or service-worker cache, uses same-origin deployment unless an admitted adapter supplies another origin, replaces native deep links with browser OAuth redirect, and keeps raw bearer tokens memory-only while persisting only non-sensitive session metadata.
-    condition: Whenever Web shell mode bootstraps or authenticates.
-    failure: Reject the unsupported bootstrap, unadmitted origin, native deep link, or persistent raw token.
-    relations:
-      - type: applies_to
-        target: definition.nimi.platform.product-lifecycle.web-release-surface
+    reason: Removed because its client-only and memory-bearer Web Shell model is replaced by a Realm-owned secure browser session contract.
   - id: rule.nimi.platform.product-lifecycle.p-web-002d
     kind: rule
+    lifecycle: removed
     title: P-WEB-002 Simulator is not a shell mode
-    modality: must_not
-    statement: Web adds Simulator to the Desktop-or-Web shell-mode identity, imports selected Simulator app source, or merges Web and Simulator into one module graph.
-    condition: Whenever shell modes or Web build inputs are defined.
-    failure: Reject the mode or import and preserve separate artifacts.
+    reason: Removed with the Desktop-or-Web shell-mode identity; Simulator separation continues under active standalone Web rules.
+  - id: rule.nimi.platform.product-lifecycle.p-web-005a
+    kind: rule
+    title: P-WEB-005 standalone public and account surface
+    modality: must
+    statement: Platform owns the standalone first-party Web site, account authentication and account-security interaction pages, landing, Nimi Home and App informational pages, static legal and navigation pages, Cloudflare function adapters, install gateway, and typed Simulator navigation link without hosting Nimi Home or a Desktop renderer.
+    condition: Whenever the Web release surface is built, routed, or described.
+    failure: Reject a Web Shell, browser-hosted Nimi Home, Desktop renderer, or app-local parallel release owner.
     relations:
       - type: applies_to
-        target: definition.nimi.platform.product-lifecycle.web-release-surface
+        target: definition.nimi.platform.product-lifecycle.public-account-web-surface
+      - type: supersedes
+        target: rule.nimi.platform.product-lifecycle.p-web-001a
+  - id: rule.nimi.platform.product-lifecycle.p-web-005b
+    kind: rule
+    title: P-WEB-005 public dependency boundary
+    modality: must_not
+    statement: Web imports Desktop source or package surfaces, Desktop renderer aliases, Runtime private modules, local-file behavior, native IPC, Tauri APIs, or Desktop CORS bypass instead of Kit and public typed SDK or Realm surfaces.
+    condition: Whenever Web composes product or account behavior.
+    failure: Reject the private dependency and keep the affected Web capability unavailable until a public typed surface exists.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.product-lifecycle.public-account-web-surface
+      - type: supersedes
+        target: rule.nimi.platform.product-lifecycle.p-web-002a
+  - id: rule.nimi.platform.product-lifecycle.p-web-005c
+    kind: rule
+    title: P-WEB-005 Realm-owned browser account session
+    modality: must
+    statement: Web is the user-facing account credential interaction surface while Realm owns identity, authorization decisions, and the ordinary browser session through an HttpOnly Secure SameSite cookie or an equally protected owner contract; Web never persists raw bearer material in a URL, localStorage, or other durable browser metadata and never transfers bearer material or a Desktop authorization code to Desktop.
+    condition: Whenever Web authenticates an account or renders authenticated account state.
+    failure: Reject token persistence, Web-owned account truth, Desktop token transfer, or an authenticated projection without Realm session confirmation.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.product-lifecycle.public-account-web-surface
+      - type: supersedes
+        target: rule.nimi.platform.product-lifecycle.p-web-002c
+  - id: rule.nimi.platform.product-lifecycle.p-web-005d
+    kind: rule
+    title: P-WEB-005 OAuth continuation is origin bound
+    modality: must
+    statement: A Web OAuth continuation accepts only an absolute HTTP or HTTPS authorize URL whose origin matches the admitted Realm or API origin, preserves the owner-issued transaction unchanged, consumes no Desktop authorization code, and fails closed on missing or mismatched origin or transaction state.
+    condition: Whenever Realm redirects an unauthenticated authorization transaction to Web account UI.
+    failure: Reject the continuation without navigation, token exchange, session promotion, or fallback login path.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.product-lifecycle.public-account-web-surface
+  - id: rule.nimi.platform.product-lifecycle.p-web-005e
+    kind: rule
+    title: P-WEB-005 informational App pages stay non-distributional
+    modality: must_not
+    statement: A Web App page installs an App, creates a public catalog or distribution authority, or promises ordinary-user App availability before the separately owned lifecycle is activated.
+    condition: Whenever Web presents Nimi App information.
+    failure: Keep the page static and informational and remove the installation, catalog, distribution, or release promise.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.product-lifecycle.public-account-web-surface
+  - id: rule.nimi.platform.product-lifecycle.p-web-005f
+    kind: rule
+    title: P-WEB-005 no Web social product surface
+    modality: must_not
+    statement: Web exposes a post permalink, feed, profile-social, conversation, or other social product surface.
+    condition: Whenever a public Web route or entry is admitted.
+    failure: Remove the route and keep social product capability in its current non-Web owner surface.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.product-lifecycle.public-account-web-surface
+  - id: rule.nimi.platform.product-lifecycle.p-web-005g
+    kind: rule
+    title: P-WEB-005 shell identity is retired
+    modality: must_not
+    statement: Web or Simulator is added to a Desktop shell-mode identity, imports Desktop or Simulator product source into one module graph, or restores hash-shell routing, Web Shell bootstrap, adapter stubs, forwarding facades, or compatibility redirects.
+    condition: Whenever Web build inputs, routes, or shell modes are defined.
+    failure: Reject the merged identity or compatibility path and preserve standalone Web, Desktop, and Simulator artifacts.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.product-lifecycle.public-account-web-surface
+      - type: supersedes
+        target: rule.nimi.platform.product-lifecycle.p-web-002d
   - id: rule.nimi.platform.product-lifecycle.p-web-003
     kind: rule
     title: P-WEB-003 install gateway ownership
@@ -1038,7 +1099,7 @@ units:
     failure: Reject unadmitted, unchecked, or generated-copy truth and fail distribution closed.
     relations:
       - type: applies_to
-        target: definition.nimi.platform.product-lifecycle.web-release-surface
+        target: definition.nimi.platform.product-lifecycle.public-account-web-surface
   - id: rule.nimi.platform.product-lifecycle.p-web-004a
     kind: rule
     title: P-WEB-004 Cloudflare adapters do not invent truth
@@ -1048,7 +1109,7 @@ units:
     failure: Reject the projection and return an explicit unavailable or upstream-failure state.
     relations:
       - type: applies_to
-        target: definition.nimi.platform.product-lifecycle.web-release-surface
+        target: definition.nimi.platform.product-lifecycle.public-account-web-surface
   - id: rule.nimi.platform.product-lifecycle.p-web-004b
     kind: rule
     title: P-WEB-004 Simulator deployment separation
@@ -1058,7 +1119,7 @@ units:
     failure: Reject the hidden backend or merged deployment authority and preserve independent artifacts.
     relations:
       - type: applies_to
-        target: definition.nimi.platform.product-lifecycle.web-release-surface
+        target: definition.nimi.platform.product-lifecycle.public-account-web-surface
   - id: rule.nimi.platform.product-lifecycle.p-fpi-001
     kind: rule
     lifecycle: removed

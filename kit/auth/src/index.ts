@@ -1,33 +1,31 @@
-// @nimiplatform/kit/auth — Shared authentication UI for Desktop and Relay
+// @nimiplatform/kit/auth — Web Account Auth over Realm browser sessions
 
 // Platform adapter
 export type {
-  AuthPlatformAdapter,
+  WebAccountAuthAdapter,
   WalletChallengeInput,
   WalletChallengeResult,
   WalletLoginInput,
-} from './platform/auth-platform-adapter.js';
+} from './platform/web-account-auth-adapter.js';
 
 // Types
 export type {
   AuthView,
   EmbeddedAuthStage,
-  WebAuthMenuMode,
+  WebAccountAuthMode,
   WalletType,
   WalletProvider,
-  ShellAuthWindow,
+  WebAccountAuthWindow,
   RememberedLogin,
-  AuthMenuProps,
-  ShellAuthTheme,
-  ShellAuthSession,
-  ShellAuthBranding,
-  ShellAuthAppearance,
-  ShellAuthDesktopBrowserAuth,
-  ShellAuthDesktopBrowserAuthRuntimeBroker,
-  ShellAuthCopy,
-  ShellAuthTestIds,
-  ShellAuthBackgroundState,
-  ShellAuthPageProps,
+  WebAccountAuthMenuProps,
+  WebAccountAuthTheme,
+  WebAccountAuthSession,
+  WebAccountAuthBranding,
+  WebAccountAuthAppearance,
+  WebAccountAuthCopy,
+  WebAccountAuthTestIds,
+  WebAccountAuthBackgroundState,
+  WebAccountAuthPageProps,
 } from './types/auth-types.js';
 
 // Style constants
@@ -42,21 +40,8 @@ export {
 // Logic
 export {
   resolveEmailEntryRoute,
-  shouldPromptPasswordSetupAfterEmailOtp,
   type EmailEntryRoute,
 } from './logic/auth-email-flow.js';
-
-export {
-  loadPersistedAuthSession,
-  persistAuthSession,
-  persistAuthSessionMetadata,
-  persistAccessToken,
-  loadPersistedAccessToken,
-  clearPersistedAccessToken,
-  resolveSessionExpiry,
-  WEB_AUTH_SESSION_KEY,
-  type PersistedWebAuthSession,
-} from './logic/auth-session-storage.js';
 
 export {
   useAuthFormState,
@@ -117,31 +102,10 @@ export {
 export type { OAuthLoginInput } from './logic/oauth-login-handler.js';
 export { handleSocialLogin as handleSocialOAuthLogin } from './logic/oauth-login-handler.js';
 
-export {
-  performDesktopWebAuth,
-  validateRuntimeOAuthAuthorizationUrl,
-  type DesktopWebAuthResult,
-} from './logic/desktop-web-auth.js';
-
-export {
-  createRuntimeAccountBrowserBroker,
-  type CreateRuntimeAccountBrowserBrokerInput,
-  type RuntimeAccountBrowserBrokerClient,
-} from './logic/runtime-account-browser-broker.js';
-export {
-  createRuntimeAccountDesktopBrowserAuth,
-  type RuntimeAccountDesktopBrowserAuth,
-  type RuntimeAccountDesktopBrowserAuthCaller,
-  type RuntimeAccountDesktopBrowserAuthClient,
-  type RuntimeAccountDesktopBrowserAuthInput,
-  type RuntimeAccountDesktopBrowserAuthProjection,
-  type RuntimeAccountDesktopBrowserAuthUser,
-} from './logic/runtime-account-desktop-auth.js';
-
 // Handlers
 export type { AuthMenuSetters } from './logic/auth-menu-handlers.js';
 export {
-  applyTokens,
+  completeBrowserSession,
   handleLoginResult,
   handleGoogleLogin,
   handleSocialLogin,
@@ -173,6 +137,4 @@ export { CircleIconButton } from './components/auth-menu-header.js';
 export { OtpInput } from './components/auth-otp-input.js';
 export { MetaMaskIcon, BinanceIcon, OKXIcon } from './components/auth-wallet-icons.js';
 export { AnimateIn, LoadingSpinner } from './components/primitives.js';
-export { ShellAuthPage } from './components/shell-auth-page.js';
-export type { DesktopShellAuthPageProps } from './components/desktop-shell-auth-page.js';
-export { DesktopShellAuthPage } from './components/desktop-shell-auth-page.js';
+export { WebAccountAuthPage } from './components/web-account-auth-page.js';

@@ -1,129 +1,23 @@
 # Nimi Web
 
-`nimi-web` is the primary web site target for Nimi.
+`@nimiplatform/web` is the standalone first-party public and account surface.
 
-It serves a landing homepage at `/`, keeps static legal pages in the same build, and reuses the `apps/desktop` renderer for hash-routed web-shell flows such as `/#/login`.
+It owns normal-path routes for the landing page, `/login`, `/register`, account recovery and two-factor continuation, `/account`, Nimi Home and App information, legal pages, download, and navigation. Nimi Home itself remains Desktop-hosted; App pages are informational and do not provide public installation, catalog, or distribution authority.
 
-## Goals
+Account credential interaction uses `WebAccountAuthPage` with the public Realm SDK in `browser-session` response mode. Realm owns the HttpOnly browser cookie and current-account truth. Web never stores access or refresh tokens in URLs, localStorage, or other durable browser metadata. An `oauth_next` continuation must match the admitted Realm origin and unchanged authorize transaction; Web only navigates back and never consumes the Desktop authorization code.
 
-- Reuse `desktop` web-admitted UI with minimal drift.
-- Keep one renderer development source of truth (`desktop`).
-- Deploy landing, legal pages, and web-shell from a standard Vite web app without Tauri runtime dependency.
+Web does not import Desktop renderer/package surfaces, Runtime internals, native IPC, local-file behavior, or Simulator product source. There is no Web Shell, hash-shell route, Desktop adapter directory, or post/social permalink entry.
 
-## How It Works
-
-- Entry is split by URL hash:
-  - `/` renders landing content from `src/landing/**`
-  - `/#/...` lazy-loads the desktop App component
-- Static pages are emitted from the same build:
-  - `/terms.html`
-  - `/privacy.html`
-  - `/blueyard.html`
-
-### Desktop public-for-web boundary
-
-Web source files consume desktop through an admitted public boundary at
-`apps/desktop/src/public-web/`. This boundary exposes only the surfaces web
-is allowed to use:
-
-- `@desktop-public/app` — App component
-- `@desktop-public/i18n` — i18n initialization
-- `@desktop-public/bridge` — bridge types and functions
-- `@desktop-public/infra` — proxy-fetch, telemetry
-- `@desktop-public/app-store` — semantic web bootstrap store facade
-- `@desktop-public/realm` — Realm platform session and admitted Realm API helpers
-
-Wide `@renderer/*` and `@runtime/*` aliases remain in Vite config for
-App.tsx transitive resolution only. Web source files must not add new
-direct `@renderer/*` or `@runtime/*` imports — use `@desktop-public/*`.
-
-### Web-only adapters
-
-These modules replace desktop-specific entry points with web stubs:
-
-- `@renderer/infra/bootstrap/runtime-bootstrap`
-- `@renderer/bridge`
-- `@renderer/features/runtime-config/runtime-config-panel-view`
-
-These adapters live in `src/desktop-adapter/`.
-
-Landing-specific code lives in `src/landing/`.
-
-## Environment
-
-Required:
-
-- `VITE_NIMI_SHELL_MODE=web`
-
-Optional:
-
-- `VITE_NIMI_GOOGLE_CLIENT_ID=...` (for Google OAuth in web auth menu)
-
-Bearer tokens, passwords, secrets, API keys, and credentials must never be supplied through
-Web build environment variables. The Web client receives only the exact public allowlist in
-`public-env.ts`.
-
-Runtime wallet login is available in web mode when wallet providers are injected into `window`
-(MetaMask / OKX / Binance Wallet).
-
-API base URL policy in web mode:
-
-- `@nimiplatform/web` always uses same-origin API routing from current page origin.
-- `NIMI_REALM_URL` is not read by runtime request code in web-shell mode (to avoid client-side host lock-in).
-- In local dev (`pnpm --filter @nimiplatform/web dev`), Vite proxies `/api`, `/healthz`, `/readyz`, and `/health` to `NIMI_REALM_URL` when it is set.
-- In local dev, Vite proxies `/socket.io` to `NIMI_REALTIME_URL` when it is set; otherwise it derives the realtime target from `NIMI_REALM_URL` (`localhost:3002` -> `localhost:3003`).
-- Monorepo root `.env` is auto-loaded for web dev, so `NIMI_REALM_URL` can be configured once at repo root.
-
-Desktop browser authorization note:
-
-- `desktop` uses `NIMI_WEB_URL` as browser-auth launch base.
-- Example: `NIMI_WEB_URL=http://localhost` (login hash path is auto-appended as `#/login`).
-- `localhost` and `localhost:3000` are different localStorage scopes.
-
-## Commands
+Development uses the same-origin Vite proxy when `NIMI_REALM_URL` is configured:
 
 ```bash
 pnpm --filter @nimiplatform/web dev
+```
+
+Verification:
+
+```bash
+pnpm --filter @nimiplatform/web test
 pnpm --filter @nimiplatform/web typecheck
 pnpm --filter @nimiplatform/web build
 ```
-
-## Cloudflare Pages
-
-Production is intended to run as a Cloudflare Pages site on the primary web
-origin, with same-origin proxying for backend traffic.
-
-- Custom domain: your primary web origin (for example `app.example.com`)
-- Static assets: served by Pages from `dist/`
-- Backend proxy:
-  [`functions/api/[[path]].js`](./functions/api/[[path]].js)
-  and
-  [`functions/socket.io/[[path]].js`](./functions/socket.io/[[path]].js)
-  forward `/api/*` and `/socket.io/*` to `API_ORIGIN`
-- Example `API_ORIGIN`: `https://api.example.com`
-
-Suggested Pages project settings:
-
-- Root directory: `apps/web`
-- Build command: `pnpm install --frozen-lockfile && pnpm run build`
-- Build output directory: `dist`
-
-Suggested Pages environment variables:
-
-- `VITE_NIMI_SHELL_MODE=web`
-- `API_ORIGIN=https://api.example.com`
-
-Notes:
-
-- In production web mode, runtime request code uses same-origin API routing.
-- `NIMI_REALM_URL` is server-only build/dev proxy configuration. Vite validates its HTTP(S)
-  origin and derives the public `VITE_NIMI_REALM_BASE_URL` value used by OAuth continuation.
-
-## Sync Rule
-
-When desktop renderer evolves:
-
-1. Keep feature UI changes in desktop renderer.
-2. If the change adds a new surface that web needs, expose it through `apps/desktop/src/public-web/` first.
-3. If the change touches desktop-only runtime or bridge surfaces, update corresponding files in `src/desktop-adapter/`.
-4. Rebuild `@nimiplatform/web` and verify output does not contain desktop-only bootstrap symbols.

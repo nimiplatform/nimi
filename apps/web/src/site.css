@@ -1,0 +1,31 @@
+.web-account-status,
+.web-static-page {
+  min-height: 100vh;
+  background: #f4fbfb;
+  color: #102b2c;
+}
+
+.web-account-status,
+.web-static-page {
+  display: grid;
+  place-content: center;
+  gap: 1rem;
+  padding: 2rem;
+  text-align: center;
+}
+
+.web-account-logo { width: 5rem; margin: 0 auto; }
+.web-account-status nav,
+.web-static-page nav { display: flex; flex-wrap: wrap; justify-content: center; gap: 1rem; }
+.web-account-status a,
+.web-static-page a { color: #087b87; font-weight: 600; }
+.web-static-page section { max-width: 42rem; }
+.web-static-page h1 { font-size: clamp(2rem, 6vw, 4.5rem); font-weight: 700; }
+.web-static-page p { margin: 1.5rem 0; color: #496667; line-height: 1.8; }
+.web-wordmark { font-size: 1.25rem; letter-spacing: .16em; text-transform: uppercase; }
+.web-account-form { width: min(100%, 36rem); }
+.web-account-form form,
+.web-account-actions { display: grid; gap: .75rem; margin: 1rem 0; }
+.web-account-form input { border: 1px solid #b7d5d5; border-radius: .75rem; padding: .8rem 1rem; background: white; }
+.web-account-form button { border-radius: 999px; padding: .8rem 1rem; background: #087b87; color: white; font-weight: 600; }
+.web-account-secret { overflow-wrap: anywhere; border-radius: .75rem; background: #e8f5f5; padding: 1rem; font-family: monospace; }

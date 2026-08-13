@@ -1,16 +1,14 @@
 import type {
   CSSProperties,
-  MouseEvent as ReactMouseEvent,
   ReactNode,
 } from 'react';
-import type { ShellOAuthCodeBridge } from '@nimiplatform/kit/core/oauth';
-import type { AuthPlatformAdapter } from '../platform/auth-platform-adapter.js';
+import type { WebAccountAuthAdapter } from '../platform/web-account-auth-adapter.js';
 
 // ---------------------------------------------------------------------------
 // Auth view and stage types
 // ---------------------------------------------------------------------------
 
-export type WebAuthMenuMode = 'embedded' | 'desktop-browser';
+export type WebAccountAuthMode = 'embedded';
 export type EmbeddedAuthStage = 'logo' | 'email' | 'credential';
 
 export type AuthView =
@@ -48,7 +46,7 @@ export type WalletProvider = {
 // Google window extension
 // ---------------------------------------------------------------------------
 
-export type ShellAuthWindow = Window & {
+export type WebAccountAuthWindow = Window & {
   google?: {
     accounts?: {
       id?: {
@@ -82,8 +80,8 @@ export type RememberedLogin = {
 // Component props
 // ---------------------------------------------------------------------------
 
-export type AuthMenuProps = {
-  mode: WebAuthMenuMode;
+export type WebAccountAuthMenuProps = {
+  mode: WebAccountAuthMode;
   onLogoHoverChange?: (hovered: boolean) => void;
   onLogoClick?: () => void;
   logoHintText?: string;
@@ -92,26 +90,25 @@ export type AuthMenuProps = {
   logoLoading?: boolean;
 };
 
-export type ShellAuthTheme = 'desktop' | 'custom';
+export type WebAccountAuthTheme = 'default' | 'custom';
 
-export type ShellAuthSession = {
-  mode: WebAuthMenuMode;
+export type WebAccountAuthSession = {
+  mode: WebAccountAuthMode;
   authStatus?: string;
   authError?: string | null;
-  authToken?: string | null;
   authUser?: Record<string, unknown> | null;
-  setAuthSession?: (user: Record<string, unknown> | null, token: string) => void;
+  setAuthSession?: (user: Record<string, unknown> | null) => void;
   setStatusBanner?: (banner: { kind: string; message: string } | null) => void;
 };
 
-export type ShellAuthBranding = {
+export type WebAccountAuthBranding = {
   networkLabel: string;
   logo: ReactNode | string;
   logoAltText?: string;
 };
 
-export type ShellAuthAppearance = {
-  theme: ShellAuthTheme;
+export type WebAccountAuthAppearance = {
+  theme: WebAccountAuthTheme;
   rootClassName?: string;
   rootStyle?: CSSProperties;
   shellClassName?: string;
@@ -121,16 +118,15 @@ export type ShellAuthAppearance = {
 
 /**
  * Type-level admission of `RuntimeAccountService` as the only desktop-browser
- * login authority (R-OAUTH-* / spec K-ACCSVC-008). `runtimeAccountBroker` is
+ * login authority (rule.nimi.runtime.protected-session.r028). `runtimeAccountBroker` is
  * required — there is no admitted fallback. Apps without a broker cannot
  * type-check; if you are adding a new app, mirror desktop / web and route
  * through `createLocalFirstPartyRuntimePlatformClient` +
  * `runtime.account.{beginLogin, completeLogin}`.
  */
-export type ShellAuthDesktopBrowserAuthRuntimeBroker = {
+export type DesktopBrowserAuthRuntimeBroker = {
   begin: (input: {
     callbackUrl: string;
-    baseUrl?: string;
     timeoutMs: number;
   }) => Promise<{
     loginAttemptId: string;
@@ -149,15 +145,7 @@ export type ShellAuthDesktopBrowserAuthRuntimeBroker = {
   }>;
 };
 
-export type ShellAuthDesktopBrowserAuth = {
-  bridge: ShellOAuthCodeBridge;
-  baseUrl?: string;
-  onRootPointerDown?: (event: ReactMouseEvent<HTMLElement>) => void;
-  hintVisibility?: 'always' | 'hover-or-status';
-  runtimeAccountBroker: ShellAuthDesktopBrowserAuthRuntimeBroker;
-};
-
-export type ShellAuthCopy = {
+export type WebAccountAuthCopy = {
   title?: ReactNode;
   subtitle?: ReactNode;
   desktopLogoIdleHintText?: string;
@@ -170,7 +158,7 @@ export type ShellAuthSemanticIds = {
   entryAction?: string;
 };
 
-export type ShellAuthTestIds = {
+export type WebAccountAuthTestIds = {
   screen?: string;
   logoTrigger?: string;
   emailInput?: string;
@@ -181,24 +169,23 @@ export type ShellAuthTestIds = {
   otpButton?: string;
 };
 
-export type ShellAuthBackgroundState = {
+export type WebAccountAuthBackgroundState = {
   isLogoHovered: boolean;
-  mode: WebAuthMenuMode;
+  mode: WebAccountAuthMode;
 };
 
-export type ShellAuthPageProps = {
-  adapter: AuthPlatformAdapter;
-  session: ShellAuthSession;
-  branding: ShellAuthBranding;
-  appearance: ShellAuthAppearance;
-  background?: ReactNode | ((state: ShellAuthBackgroundState) => ReactNode);
+export type WebAccountAuthPageProps = {
+  adapter: WebAccountAuthAdapter;
+  session: WebAccountAuthSession;
+  branding: WebAccountAuthBranding;
+  appearance: WebAccountAuthAppearance;
+  background?: ReactNode | ((state: WebAccountAuthBackgroundState) => ReactNode);
   footer?: ReactNode;
-  desktopBrowserAuth?: ShellAuthDesktopBrowserAuth;
   onActionableReady?: () => void;
   onEntryAction?: () => void;
-  copy?: ShellAuthCopy;
+  copy?: WebAccountAuthCopy;
   semanticIds?: ShellAuthSemanticIds;
-  testIds?: ShellAuthTestIds;
+  testIds?: WebAccountAuthTestIds;
 };
 
 // ---------------------------------------------------------------------------

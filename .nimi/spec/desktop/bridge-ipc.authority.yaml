@@ -256,3 +256,15 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.desktop.bridge-ipc.command-registration-plane
+  - id: rule.nimi.desktop.bridge-ipc.r021
+    kind: rule
+    title: Desktop host carries browser authorization only
+    modality: must
+    statement: Electron main or preload opens only the RuntimeAccountService-issued authorize URL, owns the bounded system-browser and exact loopback listener capabilities, returns only the authorization code, state, and typed callback error to the renderer handshake, and never performs Realm credential UI or exposes token material.
+    condition: Whenever Desktop carries a Nimi account browser authorization attempt.
+    failure: Reject a renderer-opened hardcoded login route, arbitrary callback listener, token-bearing callback, or browser fallback when Runtime account service is unavailable.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.bridge-ipc.protected-account-carrier
+      - type: applies_to
+        target: definition.nimi.desktop.bridge-ipc.shell-native-helper-plane

@@ -88,6 +88,7 @@ type LoginAttempt struct {
 	PKCEChallenge  string
 	RedirectURI    string
 	CallbackOrigin string
+	PromptLogin    bool
 	ExpiresAt      time.Time
 }
 
@@ -220,11 +221,13 @@ type Service struct {
 	accountGenerationInvalidated chan struct{}
 	authenticatedRuntimeIdentity bool
 	loginAttempts                map[string]loginAttemptRecord
-	workspaceBindings            map[string]workspaceBindingRecord
-	nextSequence                 uint64
-	events                       []*runtimev1.AccountSessionEvent
-	nextSubscriberID             uint64
-	subscribers                  map[uint64]subscriber
-	refreshTimer                 *time.Timer
-	refreshRetryAttempt          uint8
+	// @nimi-authority: rule.nimi.runtime.protected-session.r031
+	freshAccountSelection bool
+	workspaceBindings     map[string]workspaceBindingRecord
+	nextSequence          uint64
+	events                []*runtimev1.AccountSessionEvent
+	nextSubscriberID      uint64
+	subscribers           map[uint64]subscriber
+	refreshTimer          *time.Timer
+	refreshRetryAttempt   uint8
 }

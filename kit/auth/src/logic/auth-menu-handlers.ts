@@ -1,18 +1,12 @@
 import type { FormEvent } from 'react';
 import {
   NIMI_REALM_OAUTH_LOGIN_STATE,
-  readNimiRealmOAuthLoginTokens,
   toNimiRealmAuthUserRecord,
-  type NimiRealmAuthTokens,
   type NimiRealmOAuthLoginResult,
 } from '@nimiplatform/kit/core/sdk-contract';
-import {
-  startSocialOauth,
-  type SocialOauthProvider,
-} from './social-oauth.js';
+import type { SocialOauthProvider } from './social-oauth.js';
 import type { AuthView } from '../types/auth-types.js';
-import type { AuthPlatformAdapter } from '../platform/auth-platform-adapter.js';
-import { persistAuthSession } from './auth-session-storage.js';
+import type { WebAccountAuthAdapter } from '../platform/web-account-auth-adapter.js';
 import {
   AUTH_COPY,
   formatProviderLoginFailureMessage,
@@ -22,7 +16,6 @@ import {
 import { saveRememberedLogin, clearRememberedLogin } from './remember-login.js';
 import { getGoogleClientId, requestGoogleIdToken } from './google-helpers.js';
 
-type AuthTokensDto = NimiRealmAuthTokens;
 type OAuthLoginResultDto = NimiRealmOAuthLoginResult;
 
 // ---------------------------------------------------------------------------
@@ -33,47 +26,28 @@ export type AuthMenuSetters = {
   setView: (view: AuthView) => void;
   setPending: (pending: boolean) => void;
   setLoginError: (error: string | null) => void;
-  setPendingTokens: (tokens: AuthTokensDto | null) => void;
+  setPendingPasswordSetup: (pending: boolean) => void;
   setOtpCode: (code: string) => void;
   setOtpResendCountdown: (countdown: number) => void;
   setTempToken: (token: string) => void;
   setTwoFactorCode: (code: string) => void;
   setTwoFactorReturnView: (view: AuthView) => void;
   setStatusBanner: (banner: { kind: string; message: string } | null) => void;
-  setAuthSession: (user: Record<string, unknown> | null, token: string) => void;
+  setAuthSession: (user: Record<string, unknown> | null) => void;
 };
 
 // ---------------------------------------------------------------------------
-// applyTokens — finalize login by persisting tokens + syncing data
+// Browser-session completion never receives or persists bearer material.
 // ---------------------------------------------------------------------------
 
-export async function applyTokens(
-  tokens: AuthTokensDto,
+export async function completeBrowserSession(
   successMessage: string,
   setters: AuthMenuSetters,
-  adapter: AuthPlatformAdapter,
+  adapter: WebAccountAuthAdapter,
 ): Promise<void> {
-  const accessToken = String(tokens.accessToken || '').trim();
-  if (!accessToken) {
-    throw new Error(AUTH_COPY.loginMissingAccessToken);
-  }
-
-  const refreshToken =
-    typeof tokens.refreshToken === 'string' ? tokens.refreshToken.trim() : '';
-  const user = toNimiRealmAuthUserRecord(tokens.user);
-
-  await adapter.applyToken(accessToken, refreshToken || undefined);
-  setters.setAuthSession(user, accessToken);
-  await adapter.persistSession?.({
-    accessToken,
-    refreshToken,
-    user,
-  });
-  persistAuthSession({
-    accessToken,
-    refreshToken,
-    user,
-  });
+  const user = toNimiRealmAuthUserRecord(await adapter.completeBrowserSessionLogin());
+  if (!user) throw new Error(AUTH_COPY.loginMissingTokenPayload);
+  setters.setAuthSession(user);
 
   if (adapter.syncAfterLogin) {
     await adapter.syncAfterLogin();
@@ -95,7 +69,7 @@ export async function handleLoginResult(
   result: OAuthLoginResultDto,
   successMessage: string,
   setters: AuthMenuSetters,
-  adapter: AuthPlatformAdapter,
+  adapter: WebAccountAuthAdapter,
   twoFactorReturnView: AuthView = 'main',
 ): Promise<void> {
   if (result.loginState === NIMI_REALM_OAUTH_LOGIN_STATE.BLOCKED) {
@@ -111,15 +85,10 @@ export async function handleLoginResult(
     return;
   }
 
-  const tokens = readNimiRealmOAuthLoginTokens(result);
-  if (!tokens) {
-    if (await adapter.completeBrowserSessionLogin?.()) {
-      return;
-    }
-    throw new Error(AUTH_COPY.loginMissingTokenPayload);
+  if (result.tokens != null) {
+    throw new Error('Realm browser-session authentication returned forbidden bearer material.');
   }
-
-  await applyTokens(tokens, successMessage, setters, adapter);
+  await completeBrowserSession(successMessage, setters, adapter);
 
   if (result.loginState === NIMI_REALM_OAUTH_LOGIN_STATE.NEEDS_ONBOARDING) {
     setters.setStatusBanner({
@@ -135,7 +104,7 @@ export async function handleLoginResult(
 
 export async function handleGoogleLogin(
   setters: AuthMenuSetters,
-  adapter: AuthPlatformAdapter,
+  adapter: WebAccountAuthAdapter,
 ): Promise<void> {
   const googleClientId = getGoogleClientId();
   setters.setLoginError(null);
@@ -168,16 +137,17 @@ export async function handleGoogleLogin(
 export async function handleSocialLogin(
   provider: SocialOauthProvider,
   setters: AuthMenuSetters,
-  adapter: AuthPlatformAdapter,
+  adapter: WebAccountAuthAdapter,
 ): Promise<void> {
   const providerLabel = 'TikTok';
   setters.setLoginError(null);
   setters.setPending(true);
   try {
-    if (!adapter.oauthBridge) {
+    if (!adapter.beginSocialOAuth) {
       throw new Error(AUTH_COPY.socialOauthBridgeMissing);
     }
-    const oauthResult = await startSocialOauth(provider, adapter.oauthBridge);
+    const oauthResult = await adapter.beginSocialOAuth(provider);
+    if (!oauthResult) return;
     const result = await adapter.oauthLogin(oauthResult);
     await handleLoginResult(
       result,
@@ -204,7 +174,7 @@ export async function handleEmailLogin(
   password: string,
   rememberMe: boolean,
   setters: AuthMenuSetters,
-  adapter: AuthPlatformAdapter,
+  adapter: WebAccountAuthAdapter,
 ): Promise<void> {
   event.preventDefault();
   const identifier = email.trim();
@@ -243,9 +213,8 @@ export async function handleSetPasswordAfterOtp(
   event: FormEvent,
   password: string,
   confirmPassword: string,
-  pendingTokens: AuthTokensDto,
   setters: AuthMenuSetters,
-  adapter: AuthPlatformAdapter,
+  adapter: WebAccountAuthAdapter,
 ): Promise<void> {
   event.preventDefault();
   if (password.length < 8) {
@@ -258,48 +227,12 @@ export async function handleSetPasswordAfterOtp(
     return;
   }
 
-  const finalizePendingTokens = async (): Promise<void> => {
-    let latestUserRecord: Record<string, unknown> | null = null;
-    try {
-      const latestUser = await adapter.loadCurrentUser();
-      latestUserRecord = toNimiRealmAuthUserRecord(latestUser);
-    } catch {
-      latestUserRecord = null;
-    }
-
-    const pendingUserRecord = toNimiRealmAuthUserRecord(pendingTokens.user);
-    const finalizedUser = pendingUserRecord || latestUserRecord
-      ? {
-          ...(pendingUserRecord || {}),
-          ...(latestUserRecord || {}),
-          hasPassword: true,
-        }
-      : null;
-
-    const finalizedTokens: AuthTokensDto = finalizedUser
-      ? {
-          ...pendingTokens,
-          user: finalizedUser,
-        }
-      : pendingTokens;
-
-    setters.setPendingTokens(null);
-    try {
-      await applyTokens(finalizedTokens, AUTH_COPY.setPasswordSuccess, setters, adapter);
-    } catch (error) {
-      await adapter.applyToken('');
-      setters.setView('main');
-      setters.setLoginError(
-        toAuthUiErrorMessage(error, AUTH_COPY.setPasswordFinalizeFailed),
-      );
-    }
-  };
-
   setters.setPending(true);
   setters.setLoginError(null);
   try {
     await adapter.updatePassword(password);
-    await finalizePendingTokens();
+    setters.setPendingPasswordSetup(false);
+    await completeBrowserSession(AUTH_COPY.setPasswordSuccess, setters, adapter);
   } catch (error) {
     setters.setLoginError(toAuthUiErrorMessage(error, AUTH_COPY.setPasswordFailed));
   } finally {

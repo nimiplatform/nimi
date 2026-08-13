@@ -230,3 +230,43 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.desktop.shell-runtime.bootstrap-phase-plane
+  - id: rule.nimi.desktop.shell-runtime.r021
+    kind: rule
+    title: Unauthenticated Desktop is a browser sign-in gate
+    modality: must
+    statement: The Product Control not_logged_in Desktop surface exposes only a typed continue-in-browser sign-in intent, pending, retry, unavailable, expired, and reauthentication projection while RuntimeAccountService owns the login attempt and returns the canonical authorize URL.
+    condition: Whenever Desktop renders an unauthenticated or reauthentication account gate.
+    failure: Reject an embedded credential flow, hardcoded Web login URL, ordinary browser-login fallback, or authenticated projection without Runtime confirmation.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.shell-runtime.account-session-plane
+  - id: rule.nimi.desktop.shell-runtime.r022
+    kind: rule
+    title: Desktop collects no Nimi account credentials
+    modality: must_not
+    statement: Desktop renders or processes Nimi account email, password, registration, recovery, OTP, two-factor, wallet, social sign-in, email verification, or login-provider binding and unbinding controls.
+    condition: Whenever Desktop presents sign-in, Settings, Profile, or account recovery behavior.
+    failure: Remove the credential interaction and route account management to the admitted Web account surface.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.shell-runtime.account-session-plane
+  - id: rule.nimi.desktop.shell-runtime.r023
+    kind: rule
+    title: Desktop account projection and intent stay bounded
+    modality: must
+    statement: Desktop may render the current account's minimal projection and non-credential Profile fields and may send typed logout, switch, reauthenticate, and manage-account intent; account credential management opens the admitted Web account surface, and account switch starts a fresh Runtime-owned browser authorization that requires account selection.
+    condition: Whenever authenticated Desktop account UX is presented.
+    failure: Reject renderer-owned account mutation, stale projection reuse, local credential management, or account switching without a fresh Runtime attempt.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.shell-runtime.account-session-plane
+  - id: rule.nimi.desktop.shell-runtime.r024
+    kind: rule
+    title: Renderer never receives account bearer material
+    modality: must_not
+    statement: Desktop renderer receives an account access token, refresh token, token response, code verifier, or credential response while carrying browser authorization, callback completion, account projection, logout, switch, or reauthentication intent.
+    condition: Whenever Desktop composes Runtime account behavior.
+    failure: Keep the material in RuntimeAccountService custody and expose only typed attempt or account projection fields.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.shell-runtime.security-boundary

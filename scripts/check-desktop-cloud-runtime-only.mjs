@@ -9,7 +9,6 @@ const repoRoot = path.resolve(scriptDir, '..');
 
 const SOURCE_ROOTS = [
   'apps/desktop/src/shell/renderer',
-  'apps/desktop/src/public-web',
 ];
 
 const SOURCE_EXTENSIONS = new Set(['.ts', '.tsx']);

@@ -21,19 +21,19 @@ test('landing links reject invalid URL protocols', () => {
   assert.equal(links.protocolUrl, landingLinkDefaults.protocolUrl);
 });
 
-test('landing links accept same-origin app-relative paths', () => {
+test('landing links accept normal same-origin paths and reject retired hash-shell paths', () => {
   const links = resolveLandingLinks({
     VITE_LANDING_APP_URL: '/#/login',
-    VITE_LANDING_WEB_APP_URL: '/#/',
+    VITE_LANDING_WEB_APP_URL: '/apps?from=landing',
   });
 
-  assert.equal(links.appUrl, '/#/login');
-  assert.equal(links.webAppUrl, '/#/');
+  assert.equal(links.appUrl, landingLinkDefaults.appUrl);
+  assert.equal(links.webAppUrl, '/apps?from=landing');
 });
 
 test('landing links include desktopDownloadUrl default', () => {
   const links = resolveLandingLinks({});
   assert.equal(links.appUrl, 'https://docs.nimi.ai/start/');
-  assert.equal(links.webAppUrl, '/#/');
+  assert.equal(links.webAppUrl, '/home');
   assert.equal(links.desktopDownloadUrl, 'https://docs.nimi.ai/desktop/');
 });

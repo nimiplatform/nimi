@@ -10,6 +10,7 @@ import (
 	"log/slog"
 	"math"
 	"mime"
+	"net"
 	"net/http"
 	"net/http/httptrace"
 	"net/url"
@@ -23,6 +24,8 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/jsonstrict"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
+
+const freshAccountSelectionPresencePurpose = "nimi.account.switch"
 
 type ProductionConfig struct {
 	RealmBaseURL        string
@@ -114,11 +117,8 @@ func newProductionPresenceVerifier(cfg ProductionConfig) PresenceVerifier {
 
 func resolveProductionConfig(cfg ProductionConfig) ProductionConfig {
 	realmBaseURL := trimURL(cfg.RealmBaseURL)
-	// Authorization URL must point at the realm OAuth authorize endpoint
-	// (R-OAUTH-002 / R-OAUTH-011). Web-relay shapes (NIMI_WEB_URL with
-	// #/login?desktop_callback=...) are no longer admitted; the runtime
-	// hands the user agent directly to the realm authorize endpoint and
-	// the realm 302-redirects to the loopback redirect_uri.
+	// Runtime resolves the canonical Realm authorize endpoint and hands it to
+	// the browser host without constructing a Web login or relay URL.
 	authorizationURL := firstNonEmpty(
 		cfg.AuthorizationURL,
 		realmv1.OauthAuthorizeOperation.ResolveBaseURL(realmBaseURL),
@@ -405,12 +405,11 @@ func workspaceMembershipSnapshotsFromProjections(in []*runtimev1.WorkspaceMember
 
 // AuthorizationURL constructs the realm OAuth 2.0 authorize URL the user
 // agent must visit. The shape is normative against the externally owned
-// realm:spec/realm/oauth.authority.yaml (rule.realm.oauth.r002 /
-// rule.realm.oauth.r003 / rule.realm.oauth.r005 /
-// rule.realm.oauth.r011): response_type=code,
+// rule.nimi.runtime.protected-session.r028: response_type=code,
 // client_id, redirect_uri, code_challenge, code_challenge_method=S256,
-// state. No desktop_callback / desktop_state web-relay fragment is
-// admitted.
+// state. No Web relay fragment is admitted.
+// @nimi-authority: rule.nimi.runtime.protected-session.r028
+// @nimi-authority: rule.nimi.runtime.protected-session.r031
 func (r realmOAuthExchanger) AuthorizationURL(attempt LoginAttempt) string {
 	if strings.TrimSpace(r.authorizationURL) == "" {
 		return ""
@@ -429,6 +428,13 @@ func (r realmOAuthExchanger) AuthorizationURL(attempt LoginAttempt) string {
 		State:               attempt.State,
 	}
 	u.RawQuery = query.Values().Encode()
+	if attempt.PromptLogin {
+		values := u.Query()
+		values.Set("prompt", "login")
+		values.Set("presence_purpose", freshAccountSelectionPresencePurpose)
+		values.Set("presence_nonce", attempt.Nonce)
+		u.RawQuery = values.Encode()
+	}
 	u.Fragment = ""
 	return u.String()
 }
@@ -447,7 +453,7 @@ func normalizeOAuthAuthorizeEndpoint(raw string) string {
 	if err != nil {
 		return ""
 	}
-	if u.Scheme != "https" && u.Scheme != "http" {
+	if !isSecureOrLoopbackEndpoint(u) {
 		return ""
 	}
 	if strings.TrimSpace(u.Hostname()) == "" || u.User != nil || u.Opaque != "" {
@@ -475,13 +481,31 @@ func normalizeRealmOperationEndpoint(raw string, operation realmv1.OperationDesc
 		return ""
 	}
 	u, err := url.Parse(value)
-	if err != nil || (u.Scheme != "https" && u.Scheme != "http") || strings.TrimSpace(u.Hostname()) == "" || u.User != nil || u.Opaque != "" || u.Fragment != "" || u.RawQuery != "" {
+	if err != nil || !isSecureOrLoopbackEndpoint(u) || strings.TrimSpace(u.Hostname()) == "" || u.User != nil || u.Opaque != "" || u.Fragment != "" || u.RawQuery != "" {
 		return ""
 	}
 	if strings.TrimRight(u.EscapedPath(), "/") != operation.Path() {
 		return ""
 	}
 	return u.String()
+}
+
+func isSecureOrLoopbackEndpoint(endpoint *url.URL) bool {
+	if endpoint == nil {
+		return false
+	}
+	if endpoint.Scheme == "https" {
+		return true
+	}
+	if endpoint.Scheme != "http" {
+		return false
+	}
+	hostname := strings.TrimSpace(endpoint.Hostname())
+	if strings.EqualFold(hostname, "localhost") {
+		return true
+	}
+	address := net.ParseIP(hostname)
+	return address != nil && address.IsLoopback()
 }
 
 func trimURL(value string) string {

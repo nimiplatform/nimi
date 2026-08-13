@@ -1,7 +1,7 @@
 # Kit Auth
 
 ## What It Is
-Cross-app authentication feature module for sign-in UI, flows, adapters, storage, and callback helpers.
+Two explicit authentication boundaries: Web Account Auth for Realm-owned browser sessions, and Desktop Browser Auth Gate for Runtime-owned OAuth attempts and loopback carriage.
 
 ## Public Surfaces
 - `@nimiplatform/kit/auth`
@@ -15,17 +15,18 @@ Cross-app authentication feature module for sign-in UI, flows, adapters, storage
   - `realm`: none
 
 ## When To Use It
-- Reuse shared email, OTP, wallet, and OAuth auth flows.
-- Keep platform-specific auth glue behind `AuthPlatformAdapter`.
+- Use `WebAccountAuthPage` with `WebAccountAuthAdapter` for Web email, OTP, password, two-factor, wallet, and provider interaction. The adapter must request Realm's browser-session response and expose no token persistence.
+- Use `DesktopBrowserAuthGate` with `ShellOAuthCodeBridge` and `DesktopBrowserAuthRuntimeBroker` for Desktop. It has no credential methods and no bearer projection.
 
 ## What Stays Outside
+- Realm identity, cookie, and authorization truth; Runtime login-attempt, code-exchange, refresh, and local token custody.
 - App-local auth store wiring.
 - Direct Electron/Tauri auth imports.
 - Independent token systems outside `ui`.
 
 ## Current Consumers
-- `desktop`
-- `web`
+- `web` consumes Web Account Auth.
+- `desktop` consumes Desktop Browser Auth Gate.
 
 ## Verification
 - `pnpm --filter @nimiplatform/kit build`

@@ -328,8 +328,8 @@ function DesktopOrdinaryShellGate() {
         onRetry={retryAdmission}
         onSignOut={() => {
           // logoutAndClearSession is the canonical desktop sign-out path: it
-          // calls runtime.account.logout (so runtime-side session is revoked),
-          // clears the persisted access token, kills in-flight streams, and
+          // calls runtime.account.logout (so Runtime revokes its session and
+          // token custody), kills in-flight streams, and
           // clears the React Query cache — in addition to clearAuthSession.
           // A bare clearAuthSession() would leave the runtime session intact,
           // so the admission-failed surface looks unresponsive.
@@ -426,11 +426,9 @@ function DesktopAccountUnavailableScreen() {
 
 export function AppRoutes() {
   const bindings = useDesktopRendererBindings();
-  const embeddedLogin = bindings.app.projection.loginMode() === 'embedded';
   const bootstrapReady = useAppStore((state) => state.bootstrapReady);
   const bootstrapError = useAppStore((state) => state.bootstrapError);
   const authStatus = useAppStore((state) => state.auth.status);
-  const isDesktopShell = !embeddedLogin;
 
   // Single post-login handoff: the user-agent leaves /login exactly once when
   // the renderer-store flips to authenticated. Doing this here (instead of
@@ -446,7 +444,7 @@ export function AppRoutes() {
     }
   }, [authStatus, location.pathname, navigate]);
 
-  if (!embeddedLogin && !bootstrapReady && !bootstrapError) {
+  if (!bootstrapReady && !bootstrapError) {
     return <RuntimeLoadingScreen />;
   }
 
@@ -454,58 +452,22 @@ export function AppRoutes() {
     return <BootstrapErrorScreen message={bootstrapError} />;
   }
 
-  if (isDesktopShell && authStatus === 'unavailable') {
+  if (authStatus === 'unavailable') {
     return <DesktopAccountUnavailableScreen />;
   }
 
   return (
     <Routes>
-      {isDesktopShell ? (
-        <>
-          <Route path="/" element={<DesktopOrdinaryShellGate />} />
-          <Route
-            path="/login"
-            element={(
-              <Suspense fallback={<RuntimeLoadingScreen />}>
-                <LoginPage />
-              </Suspense>
-            )}
-          />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </>
-      ) : authStatus === 'authenticated' ? (
-        <>
-          <Route path="/" element={(
-            <Suspense fallback={<RuntimeLoadingScreen />}>
-              <MainLayout />
-            </Suspense>
-          )}
-          />
-          {embeddedLogin ? (
-            <Route
-              path="/login"
-              element={(
-                <Suspense fallback={<RuntimeLoadingScreen />}>
-                  <LoginPage />
-                </Suspense>
-              )}
-            />
-          ) : null}
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </>
-      ) : (
-        <>
-          <Route
-            path="/login"
-            element={(
-              <Suspense fallback={<RuntimeLoadingScreen />}>
-                <LoginPage />
-              </Suspense>
-            )}
-          />
-          <Route path="*" element={<Navigate to="/login" replace />} />
-        </>
-      )}
+      <Route path="/" element={<DesktopOrdinaryShellGate />} />
+      <Route
+        path="/login"
+        element={(
+          <Suspense fallback={<RuntimeLoadingScreen />}>
+            <LoginPage />
+          </Suspense>
+        )}
+      />
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 }

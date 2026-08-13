@@ -135,10 +135,16 @@ projected from `config/platform-nimi-ui-themes.yaml`.
 ### Auth
 
 ```ts
-import { useAuthFlow, AuthEmailFlow } from '@nimiplatform/kit/auth';
-import { ShellAuthPage } from '@nimiplatform/kit/auth/shell';
+import {
+  WebAccountAuthPage,
+} from '@nimiplatform/kit/auth';
+import { DesktopBrowserAuthGate } from '@nimiplatform/kit/auth/shell';
 import '@nimiplatform/kit/auth/styles.css';
 ```
+
+`WebAccountAuthPage` accepts the Realm browser-session adapter. The separate
+`auth/shell` subpath exposes `DesktopBrowserAuthGate` with only the Runtime
+account broker and OAuth code bridge; it exports no Web credential adapter.
 
 ### Core
 

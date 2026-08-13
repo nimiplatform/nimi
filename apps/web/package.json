@@ -20,16 +20,13 @@
     "@react-three/drei": "^10.7.7",
     "@react-three/fiber": "^9.6.1",
     "@react-three/postprocessing": "^3.0.4",
-    "@tanstack/react-query": "^5.100.11",
     "postprocessing": "^6.39.1",
+    "i18next": "25.8.18",
     "react": "19.2.6",
     "react-dom": "19.2.6",
+    "react-i18next": "16.5.8",
     "react-router-dom": "^7.15.1",
-    "scheduler": "^0.27.0",
-    "three": "^0.184.0",
-    "use-sync-external-store": "^1.6.0",
-    "zod": "4.4.3",
-    "zustand": "^5.0.13"
+    "three": "^0.184.0"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.3.0",

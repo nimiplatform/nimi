@@ -41,7 +41,6 @@ export function usePostCardActionAdapter(): PostCardActionAdapter {
     unlikePost: (postId) => realmSocialData.unlikePost(postId),
     updatePostVisibility: (postId, visibility) => realmSocialData.updatePostVisibility(postId, visibility),
     deletePost: (postId) => realmSocialData.deletePost(postId),
-    copyText: bindings.app.commands.writeClipboardText,
     requestOrAcceptFriend: (authorId, message) => realmSocialData.requestOrAcceptFriend(authorId, message),
     invalidateContacts: () => queryClient.invalidateQueries({ queryKey: ['contacts'] }),
     openChat: async ({ authorId }) => {

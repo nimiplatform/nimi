@@ -1,9 +1,7 @@
 import type { FormEvent } from 'react';
-import { readNimiRealmOAuthLoginTokens } from '@nimiplatform/kit/core/sdk-contract';
+import { NIMI_REALM_OAUTH_LOGIN_STATE } from '@nimiplatform/kit/core/sdk-contract';
 import type { WalletType } from '../types/auth-types.js';
-import type { AuthPlatformAdapter } from '../platform/auth-platform-adapter.js';
-import { shouldPromptPasswordSetupAfterEmailOtp } from './auth-email-flow.js';
-import { persistAuthSession } from './auth-session-storage.js';
+import type { WebAccountAuthAdapter } from '../platform/web-account-auth-adapter.js';
 import {
   AUTH_COPY,
   toAuthUiErrorMessage,
@@ -11,7 +9,7 @@ import {
 } from './auth-copy.js';
 import { parseChainId, resolveWalletProvider } from './wallet-helpers.js';
 import type { AuthMenuSetters } from './auth-menu-handlers.js';
-import { applyTokens, handleLoginResult } from './auth-menu-handlers.js';
+import { completeBrowserSession, handleLoginResult } from './auth-menu-handlers.js';
 
 const WALLET_LOGIN_TIMEOUT_MS = 30000;
 const WALLET_LOGIN_TIMEOUT_MESSAGE = AUTH_COPY.walletLoginTimeout;
@@ -56,7 +54,7 @@ export async function handleRequestEmailOtp(
   event: FormEvent,
   email: string,
   setters: AuthMenuSetters,
-  adapter: AuthPlatformAdapter,
+  adapter: WebAccountAuthAdapter,
 ): Promise<void> {
   event.preventDefault();
   const normalizedEmail = email.trim();
@@ -91,7 +89,7 @@ export async function handleVerifyEmailOtp(
   email: string,
   otpCode: string,
   setters: AuthMenuSetters,
-  adapter: AuthPlatformAdapter,
+  adapter: WebAccountAuthAdapter,
 ): Promise<void> {
   event.preventDefault();
   const normalizedEmail = email.trim();
@@ -104,12 +102,11 @@ export async function handleVerifyEmailOtp(
   setters.setLoginError(null);
   try {
     const result = await adapter.verifyEmailOtp(normalizedEmail, otpCode);
-    const tokens = readNimiRealmOAuthLoginTokens(result);
-    if (tokens && shouldPromptPasswordSetupAfterEmailOtp(result)) {
-      const accessToken = String(tokens.accessToken || '').trim();
-      const refreshToken = String(tokens.refreshToken || '').trim();
-      await adapter.applyToken(accessToken, refreshToken);
-      setters.setPendingTokens(tokens);
+    if (result.tokens != null) {
+      throw new Error('Realm browser-session authentication returned forbidden bearer material.');
+    }
+    if (result.loginState === NIMI_REALM_OAUTH_LOGIN_STATE.NEEDS_ONBOARDING) {
+      setters.setPendingPasswordSetup(true);
       setters.setOtpCode('');
       setters.setView('email_set_password');
       return;
@@ -136,7 +133,7 @@ export async function handleResendOtp(
   email: string,
   otpResendCountdown: number,
   setters: AuthMenuSetters,
-  adapter: AuthPlatformAdapter,
+  adapter: WebAccountAuthAdapter,
 ): Promise<void> {
   if (otpResendCountdown > 0) {
     return;
@@ -173,7 +170,7 @@ export async function handleVerify2Fa(
   tempToken: string,
   twoFactorCode: string,
   setters: AuthMenuSetters,
-  adapter: AuthPlatformAdapter,
+  adapter: WebAccountAuthAdapter,
 ): Promise<void> {
   event.preventDefault();
   if (!tempToken || twoFactorCode.length !== 6) {
@@ -184,14 +181,8 @@ export async function handleVerify2Fa(
   setters.setPending(true);
   setters.setLoginError(null);
   try {
-    const tokens = await adapter.verifyTwoFactor(tempToken, twoFactorCode);
-    if (!tokens) {
-      if (await adapter.completeBrowserSessionLogin?.()) {
-        return;
-      }
-      throw new Error(AUTH_COPY.loginMissingTokenPayload);
-    }
-    await applyTokens(tokens, AUTH_COPY.twoFactorSuccess, setters, adapter);
+    await adapter.verifyTwoFactor(tempToken, twoFactorCode);
+    await completeBrowserSession(AUTH_COPY.twoFactorSuccess, setters, adapter);
   } catch (error) {
     setters.setLoginError(toAuthUiErrorMessage(error, AUTH_COPY.twoFactorFailed));
   } finally {
@@ -200,24 +191,13 @@ export async function handleVerify2Fa(
 }
 
 // ---------------------------------------------------------------------------
-// handleConfirmDesktopAuthorization (deleted)
-//
-// The legacy "Authorize Desktop with my web session" flow is not admitted
-// under the direct-to-loopback model (Wave A1). The realm OAuth authorize
-// endpoint reads the web session cookie and 302-redirects directly to the
-// desktop loopback redirect_uri with a fresh OAuth `code`; no kit-side bearer
-// relay is permitted. Any UI surface still rendering this flow is dead and
-// will be removed in the kit non-runtime branch hard-cut (Wave C).
-// ---------------------------------------------------------------------------
-
-// ---------------------------------------------------------------------------
 // handleWalletLogin
 // ---------------------------------------------------------------------------
 
 export async function handleWalletLogin(
   walletType: WalletType,
   setters: AuthMenuSetters,
-  adapter: AuthPlatformAdapter,
+  adapter: WebAccountAuthAdapter,
 ): Promise<void> {
   setters.setPending(true);
   setters.setLoginError(null);

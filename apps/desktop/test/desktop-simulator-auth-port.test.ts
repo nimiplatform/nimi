@@ -313,13 +313,8 @@ test('Desktop Simulator projection boots authenticated and drives logout plus Ru
   assert.notEqual(first.bindings.sdk.accountCaller().appInstanceId, second.bindings.sdk.accountCaller().appInstanceId);
   assert.notEqual(first.bindings.sdk.accountCaller().deviceId, second.bindings.sdk.accountCaller().deviceId);
 
-  // Runtime-owned adapter routes keep throwing; only the broker flow is admitted.
-  const adapter = first.bindings.app.commands.auth.adapter;
-  await assert.rejects(() => adapter.checkEmail('linche@nimi.example'), /owned by RuntimeAccountService/);
-  const passwordLogin = adapter.passwordLogin;
-  assert.ok(passwordLogin);
-  await assert.rejects(() => passwordLogin('linche', 'secret'), /owned by RuntimeAccountService/);
-  await assert.rejects(() => adapter.applyToken('token'), /owned by RuntimeAccountService/);
+  // Desktop exposes no credential adapter; only the Runtime-owned broker is admitted.
+  assert.equal('adapter' in first.bindings.app.commands.auth, false);
   assert.equal(
     'oauthTokenExchange' in first.bindings.app.commands.auth.oauthBridge,
     false,
@@ -393,8 +388,10 @@ test('Desktop Simulator projection boots authenticated and drives logout plus Ru
   });
 
   // Session status reads flow through the admitted SDK testing facade.
-  const loaded = await adapter.loadCurrentUser();
-  assert.equal((loaded as Record<string, unknown> | null)?.id, 'sim-user-linche');
+  const loaded = await first.bindings.sdk.accountRuntime().account.getAccountSessionStatus({
+    caller: first.bindings.sdk.accountCaller(),
+  });
+  assert.equal(loaded.snapshot?.accountProjection?.accountId, 'sim-account-linche');
 
   // reconcileLoginState reconciles the renderer against engine truth.
   assert.deepEqual(await first.bindings.app.commands.reconcileLoginState({ authStatus: 'anonymous' }), {
@@ -405,9 +402,10 @@ test('Desktop Simulator projection boots authenticated and drives logout plus Ru
   });
 
   // Logout returns the session to anonymous through the declared command/event.
-  const clearPersistedSession = adapter.clearPersistedSession;
-  assert.ok(clearPersistedSession);
-  await clearPersistedSession();
+  await first.bindings.sdk.accountRuntime().account.logout({
+    caller: first.bindings.sdk.accountCaller(),
+    reason: 'desktop_logout',
+  });
   assert.equal(((engine.project('1:instance:1') as JsonRecord).auth as JsonRecord).status, 'anonymous');
   assert.equal(first.lifecycle.clearedCount(), 2);
 

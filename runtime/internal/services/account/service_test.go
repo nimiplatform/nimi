@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"net/url"
 	"testing"
 	"time"
 
@@ -125,6 +126,9 @@ func (s staticExchanger) AuthorizationURL(attempt LoginAttempt) string {
 	u += "&code_challenge=" + attempt.PKCEChallenge
 	u += "&code_challenge_method=S256"
 	u += "&state=" + attempt.State
+	if attempt.PromptLogin {
+		u += "&prompt=login"
+	}
 	return u
 }
 
@@ -373,6 +377,76 @@ func TestPendingLoginReuseRequiresSameLoopbackCallback(t *testing.T) {
 	}
 }
 
+func TestCompleteLoginFailsClosedForStateNonceReplayAndExpiry(t *testing.T) {
+	svc := newHarnessService(t, nil)
+	begin, err := svc.BeginLogin(context.Background(), &runtimev1.BeginLoginRequest{
+		Caller:     desktopAccountControlCaller(),
+		TtlSeconds: 60,
+	})
+	if err != nil || !begin.GetAccepted() {
+		t.Fatalf("BeginLogin: response=%+v error=%v", begin, err)
+	}
+
+	for _, proof := range []struct {
+		name  string
+		state string
+		nonce string
+	}{
+		{name: "state mismatch", state: "wrong-state", nonce: begin.GetNonce()},
+		{name: "nonce mismatch", state: begin.GetState(), nonce: "wrong-nonce"},
+	} {
+		t.Run(proof.name, func(t *testing.T) {
+			response, completeErr := svc.CompleteLogin(context.Background(), &runtimev1.CompleteLoginRequest{
+				Caller:         desktopAccountControlCaller(),
+				LoginAttemptId: begin.GetLoginAttemptId(),
+				Code:           "auth-code",
+				State:          proof.state,
+				Nonce:          proof.nonce,
+			})
+			if completeErr != nil || response.GetAccepted() || response.GetAccountReasonCode() != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_PROOF_MISMATCHED {
+				t.Fatalf("mismatched proof response=%+v error=%v", response, completeErr)
+			}
+		})
+	}
+
+	request := &runtimev1.CompleteLoginRequest{
+		Caller:         desktopAccountControlCaller(),
+		LoginAttemptId: begin.GetLoginAttemptId(),
+		Code:           "auth-code",
+		State:          begin.GetState(),
+		Nonce:          begin.GetNonce(),
+	}
+	completed, err := svc.CompleteLogin(context.Background(), request)
+	if err != nil || !completed.GetAccepted() {
+		t.Fatalf("valid CompleteLogin response=%+v error=%v", completed, err)
+	}
+	replayed, err := svc.CompleteLogin(context.Background(), request)
+	if err != nil || replayed.GetAccepted() || replayed.GetAccountReasonCode() != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_PROOF_CONSUMED {
+		t.Fatalf("replayed proof response=%+v error=%v", replayed, err)
+	}
+
+	now := time.Date(2026, time.August, 14, 0, 0, 0, 0, time.UTC)
+	expiring := newHarnessService(t, nil, WithClock(func() time.Time { return now }))
+	expiringBegin, err := expiring.BeginLogin(context.Background(), &runtimev1.BeginLoginRequest{
+		Caller:     desktopAccountControlCaller(),
+		TtlSeconds: 10,
+	})
+	if err != nil || !expiringBegin.GetAccepted() {
+		t.Fatalf("expiring BeginLogin: response=%+v error=%v", expiringBegin, err)
+	}
+	now = now.Add(11 * time.Second)
+	expired, err := expiring.CompleteLogin(context.Background(), &runtimev1.CompleteLoginRequest{
+		Caller:         desktopAccountControlCaller(),
+		LoginAttemptId: expiringBegin.GetLoginAttemptId(),
+		Code:           "expired-code",
+		State:          expiringBegin.GetState(),
+		Nonce:          expiringBegin.GetNonce(),
+	})
+	if err != nil || expired.GetAccepted() || expired.GetAccountReasonCode() != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_PROOF_EXPIRED {
+		t.Fatalf("expired proof response=%+v error=%v", expired, err)
+	}
+}
+
 func TestRegisteredLocalFirstPartyAppReadsSingleActiveAccountProjection(t *testing.T) {
 	custody := &memoryCustody{}
 	svc := newHarnessService(t, custody, WithAppRegistry(testAppRegistry(t, firstPartyCaller(), testerCaller())))
@@ -549,6 +623,14 @@ func TestSwitchAccountClearsActiveProjection(t *testing.T) {
 	}
 	if !resp.GetAccepted() || resp.GetState() != runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_ANONYMOUS {
 		t.Fatalf("switch must clear old active account in wave-2 substrate: %+v", resp)
+	}
+	begin, err := svc.BeginLogin(context.Background(), &runtimev1.BeginLoginRequest{Caller: desktopAccountControlCaller()})
+	if err != nil || !begin.GetAccepted() {
+		t.Fatalf("BeginLogin after switch: response=%+v err=%v", begin, err)
+	}
+	authorizeURL, err := url.Parse(begin.GetOauthAuthorizationUrl())
+	if err != nil || authorizeURL.Query().Get("prompt") != "login" {
+		t.Fatalf("switch authorize URL must require fresh account selection: %q", begin.GetOauthAuthorizationUrl())
 	}
 }
 

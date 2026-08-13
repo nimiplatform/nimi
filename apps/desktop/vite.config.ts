@@ -93,6 +93,7 @@ export default defineConfig(({ mode }) => {
       'globalThis.__NIMI_IMPORT_META_ENV__': 'import.meta.env',
       'import.meta.env.VITE_NIMI_DESKTOP_VERSION': JSON.stringify(desktopPackageVersion()),
       'import.meta.env.VITE_NIMI_SHELL_MODE': JSON.stringify('desktop'),
+      'import.meta.env.NIMI_WEB_URL': JSON.stringify(String(env.NIMI_WEB_URL || process.env.NIMI_WEB_URL || '').trim()),
     },
     publicDir: path.resolve(__dirname, 'src/shell/renderer/public'),
     optimizeDeps: {

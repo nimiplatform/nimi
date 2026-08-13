@@ -1,38 +1,20 @@
-import {
-  isWebShellHashRoute,
-  isWebShellPathRoute,
-  shouldReloadForWebShellHashTransition,
-} from './site-entry-hash.js';
+import React from 'react';
+import { createRoot } from 'react-dom/client';
+import { SiteRouter } from './site-router.js';
+import { initializeWebAccountI18n } from './auth/i18n.js';
+import '@nimiplatform/kit/ui/styles.css';
+import '@nimiplatform/kit/ui/themes/light.css';
+import '@nimiplatform/kit/auth/styles.css';
+import './landing/styles.css';
+import './site.css';
 
-function isPostPermalinkPath(pathname: string): boolean {
-  return /^\/posts\/[^/]+$/.test(pathname);
-}
+const rootElement = document.getElementById('root');
+if (!rootElement) throw new Error('Missing #root mount node');
 
-// @nimi-authority: definition.nimi.platform.product-lifecycle.web-release-surface
-// @nimi-authority: rule.nimi.platform.product-lifecycle.p-web-001a
-async function bootstrapSiteEntry(): Promise<void> {
-  if (isPostPermalinkPath(window.location.pathname)) {
-    await import('./post-permalink-main.js');
-    return;
-  }
-
-  if (isWebShellPathRoute(window.location.pathname) || isWebShellHashRoute(window.location.hash)) {
-    await import('./web-shell-main.js');
-    return;
-  }
-
-  let previousHash = window.location.hash;
-  const handleHashChange = () => {
-    const nextHash = window.location.hash;
-    if (shouldReloadForWebShellHashTransition(previousHash, nextHash)) {
-      window.removeEventListener('hashchange', handleHashChange);
-      window.location.reload();
-      return;
-    }
-    previousHash = nextHash;
-  };
-  window.addEventListener('hashchange', handleHashChange);
-  await import('./landing-main.js');
-}
-
-void bootstrapSiteEntry();
+void initializeWebAccountI18n().then(() => {
+  createRoot(rootElement).render(
+    <React.StrictMode>
+      <SiteRouter />
+    </React.StrictMode>,
+  );
+});

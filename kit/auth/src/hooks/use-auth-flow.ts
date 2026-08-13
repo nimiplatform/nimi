@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
-import type { NimiRealmAuthTokens } from '@nimiplatform/kit/core/sdk-contract';
 import { toErrorMessage } from '../logic/oauth-helpers.js';
-import type { AuthPlatformAdapter } from '../platform/auth-platform-adapter.js';
+import type { WebAccountAuthAdapter } from '../platform/web-account-auth-adapter.js';
 import type { AuthView, EmbeddedAuthStage } from '../types/auth-types.js';
 import type { AuthMenuSetters } from '../logic/auth-menu-handlers.js';
 import {
@@ -20,23 +19,21 @@ import {
 import { resolveEmailEntryRoute } from '../logic/auth-email-flow.js';
 import { AUTH_COPY } from '../logic/auth-copy.js';
 
-type AuthTokensDto = NimiRealmAuthTokens;
-
 const EMAIL_SHAPE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 function isLikelyEmailAddress(value: string): boolean {
   return EMAIL_SHAPE.test(value);
 }
 
 export type UseAuthFlowConfig = {
-  adapter: AuthPlatformAdapter;
-  mode: 'embedded' | 'desktop-browser';
+  adapter: WebAccountAuthAdapter;
+  mode: 'embedded';
   initialView?: AuthView;
   /** Auth status from app store */
   authStatus?: string;
   /** Auth user from app store */
   authUser?: Record<string, unknown> | null;
   /** Set auth session in app store */
-  setAuthSession?: (user: Record<string, unknown> | null, token: string) => void;
+  setAuthSession?: (user: Record<string, unknown> | null) => void;
   /** Set status banner in app store */
   setStatusBanner?: (banner: { kind: string; message: string } | null) => void;
 };
@@ -57,7 +54,7 @@ export type UseAuthFlowReturn = {
   loginError: string | null;
   showAlternatives: boolean;
   showRegisterConfirm: boolean;
-  pendingTokens: AuthTokensDto | null;
+  pendingPasswordSetup: boolean;
   supportsPasswordLogin: boolean;
 
   // Setters
@@ -124,7 +121,7 @@ export function useAuthFlow(config: UseAuthFlowConfig): UseAuthFlowReturn {
 
   const [otpCode, setOtpCode] = useState('');
   const [otpResendCountdown, setOtpResendCountdown] = useState(0);
-  const [pendingTokens, setPendingTokens] = useState<AuthTokensDto | null>(null);
+  const [pendingPasswordSetup, setPendingPasswordSetup] = useState(false);
   const [tempToken, setTempToken] = useState('');
   const [twoFactorCode, setTwoFactorCode] = useState('');
   const [twoFactorReturnView, setTwoFactorReturnView] = useState<AuthView>('main');
@@ -143,14 +140,14 @@ export function useAuthFlow(config: UseAuthFlowConfig): UseAuthFlowReturn {
     setView,
     setPending,
     setLoginError,
-    setPendingTokens,
+    setPendingPasswordSetup,
     setOtpCode,
     setOtpResendCountdown,
     setTempToken,
     setTwoFactorCode,
     setTwoFactorReturnView,
     setStatusBanner: (banner) => statusBannerSetterRef.current(banner),
-    setAuthSession: (user, token) => authSessionSetterRef.current(user, token),
+    setAuthSession: (user) => authSessionSetterRef.current(user),
   }), []);
 
   // OTP countdown timer
@@ -162,14 +159,6 @@ export function useAuthFlow(config: UseAuthFlowConfig): UseAuthFlowReturn {
     return () => { window.clearTimeout(timer); };
   }, [otpResendCountdown]);
 
-  // Cleanup pending tokens on unmount
-  useEffect(() => {
-    return () => {
-      if (!pendingTokens) return;
-      void adapter.applyToken('');
-    };
-  }, [pendingTokens, adapter]);
-
   // Reset password fields when entering set_password view
   useEffect(() => {
     if (view !== 'email_set_password') return;
@@ -179,13 +168,13 @@ export function useAuthFlow(config: UseAuthFlowConfig): UseAuthFlowReturn {
     setShowConfirmPassword(false);
   }, [view]);
 
-  // If pending tokens cleared while in set_password, go back
+  // If the browser-session onboarding marker clears, return to credential entry.
   useEffect(() => {
-    if (view === 'email_set_password' && !pendingTokens) {
+    if (view === 'email_set_password' && !pendingPasswordSetup) {
       setView('main');
       setEmbeddedStage('credential');
     }
-  }, [pendingTokens, view]);
+  }, [pendingPasswordSetup, view]);
 
   // --- Actions ---
 
@@ -288,9 +277,8 @@ export function useAuthFlow(config: UseAuthFlowConfig): UseAuthFlowReturn {
   };
 
   const clearPendingOnboardingState = () => {
-    if (!pendingTokens) return;
-    void adapter.applyToken('');
-    setPendingTokens(null);
+    if (!pendingPasswordSetup) return;
+    setPendingPasswordSetup(false);
     setPassword('');
     setConfirmPassword('');
     setShowPassword(false);
@@ -353,7 +341,7 @@ export function useAuthFlow(config: UseAuthFlowConfig): UseAuthFlowReturn {
     loginError,
     showAlternatives,
     showRegisterConfirm,
-    pendingTokens,
+    pendingPasswordSetup,
     supportsPasswordLogin,
 
     // Setters
@@ -377,8 +365,8 @@ export function useAuthFlow(config: UseAuthFlowConfig): UseAuthFlowReturn {
       void doEmailLogin(event, email, password, false, setters, adapter);
     },
     handleSetPasswordAfterOtp: (event: FormEvent) => {
-      if (pendingTokens) {
-        void doSetPasswordAfterOtp(event, password, confirmPassword, pendingTokens, setters, adapter);
+      if (pendingPasswordSetup) {
+        void doSetPasswordAfterOtp(event, password, confirmPassword, setters, adapter);
       }
     },
     handleOtpVerify: (event: FormEvent) => {

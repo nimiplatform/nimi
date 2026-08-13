@@ -1,10 +1,9 @@
 /**
- * Regression lock for Wave A2/C: the kit/desktop must not exchange OAuth
+ * The Kit/Desktop boundary must not exchange OAuth
  * provider tokens or persist a session in the desktop login path. The realm
- * OAuth authority owns the code → token exchange (R-OAUTH-009) and the
- * refresh-token custody (R-OAUTH-008 / spec K-ACCSVC-008); the kit only
+ * RuntimeAccountService owns the code → token exchange and refresh-token custody; Kit only
  * delivers the user agent to the realm authorize URL and waits for the realm
- * to 302-redirect directly to the desktop loopback (Wave A1 direct-to-loopback).
+ * to redirect directly to the desktop loopback.
  *
  * Any future refactor that re-introduces a web bearer relay, applyToken on
  * desktop_callback, persistSession of refresh tokens, or a fallback authorize
@@ -13,18 +12,18 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import {
-  performDesktopWebAuth,
+  performDesktopBrowserAuth,
   validateRuntimeOAuthAuthorizationUrl,
-} from '../auth/src/logic/desktop-web-auth.js';
+} from '../auth/src/logic/desktop-browser-auth.js';
 
 // ---------------------------------------------------------------------------
-// performDesktopWebAuth direct-flow behavior — the kit must use the realm
+// Desktop browser auth must use the Realm
 // OAuth authorize URL constructed by runtime BeginLogin verbatim, must NOT
 // fall back to a kit-built `desktop_callback`/`#/login` URL, and the runtime
 // broker.complete proof envelope must be code-only.
 // ---------------------------------------------------------------------------
 
-describe('performDesktopWebAuth direct-to-loopback flow', () => {
+describe('performDesktopBrowserAuth direct-to-loopback flow', () => {
   function buildBridge(callbackResponse: { code?: string; state?: string; error?: string }) {
     const opens: string[] = [];
     return {
@@ -59,7 +58,7 @@ describe('performDesktopWebAuth direct-to-loopback flow', () => {
     const { bridge, opens } = buildBridge({ code: 'oauth-code-001', state: 'runtime-state-001' });
     const completeSpy = vi.fn(async () => ({ user: { id: 'acct-1', displayName: 'Acct 1' } }));
 
-    const result = await performDesktopWebAuth(bridge, {
+    const result = await performDesktopBrowserAuth(bridge, {
       runtimeAccountBroker: {
         begin: async () => ({
           loginAttemptId: 'attempt-1',
@@ -97,10 +96,15 @@ describe('performDesktopWebAuth direct-to-loopback flow', () => {
     expect(validateRuntimeOAuthAuthorizationUrl(
       'https://realm.nimi.test/api/auth/oauth/authorize?response_type=code&client_id=nimi-desktop',
     )).toBe('https://realm.nimi.test/api/auth/oauth/authorize?response_type=code&client_id=nimi-desktop');
+    expect(validateRuntimeOAuthAuthorizationUrl(
+      'http://127.0.0.1:3002/api/auth/oauth/authorize?response_type=code&client_id=nimi-desktop',
+    )).toBe('http://127.0.0.1:3002/api/auth/oauth/authorize?response_type=code&client_id=nimi-desktop');
     for (const value of [
       '',
       'not a url',
       'file:///tmp/login',
+      'http://realm.nimi.test/api/auth/oauth/authorize?state=s',
+      'https://realm.nimi.test/relay/oauth/authorize?state=s',
       'https://auth.nimi.invalid/oauth/authorize?state=s&challenge=c',
       'https://realm.nimi.test/api/auth/oauth/token',
       'https://realm.nimi.test/api/auth/oauth/authorize#/login',
@@ -114,7 +118,7 @@ describe('performDesktopWebAuth direct-to-loopback flow', () => {
   it('fails-close when runtime broker omits the authorization URL (no fallback)', async () => {
     const { bridge } = buildBridge({});
     await expect(
-      performDesktopWebAuth(bridge, {
+      performDesktopBrowserAuth(bridge, {
         runtimeAccountBroker: {
           begin: async () => ({
             loginAttemptId: 'attempt-2',
@@ -131,7 +135,7 @@ describe('performDesktopWebAuth direct-to-loopback flow', () => {
   it('rejects state mismatch from loopback callback', async () => {
     const { bridge } = buildBridge({ code: 'c', state: 'WRONG-STATE' });
     await expect(
-      performDesktopWebAuth(bridge, {
+      performDesktopBrowserAuth(bridge, {
         runtimeAccountBroker: {
           begin: async () => ({
             loginAttemptId: 'attempt-3',
@@ -148,7 +152,7 @@ describe('performDesktopWebAuth direct-to-loopback flow', () => {
   it('rejects empty code from loopback callback', async () => {
     const { bridge } = buildBridge({ code: '', state: 's' });
     await expect(
-      performDesktopWebAuth(bridge, {
+      performDesktopBrowserAuth(bridge, {
         runtimeAccountBroker: {
           begin: async () => ({
             loginAttemptId: 'attempt-4',

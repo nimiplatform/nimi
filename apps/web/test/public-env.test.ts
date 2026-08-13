@@ -21,7 +21,6 @@ test('Web public env resolver admits only exact non-secret client keys', () => {
     mode: 'development',
   });
 
-  assert.equal(resolved.VITE_NIMI_SHELL_MODE, 'web');
   assert.equal(resolved.VITE_NIMI_REALM_BASE_URL, 'http://localhost:3002');
   assert.equal(resolved.VITE_NIMI_GOOGLE_CLIENT_ID, allowedCanary);
   assert.deepEqual(
@@ -30,18 +29,4 @@ test('Web public env resolver admits only exact non-secret client keys', () => {
   );
   assert.doesNotMatch(JSON.stringify(resolved), new RegExp(forbiddenCanary));
   assert.doesNotMatch(JSON.stringify(createWebPublicEnvDefines(resolved)), new RegExp(forbiddenCanary));
-});
-
-test('Web public env resolver excludes local diagnostics from production', () => {
-  const resolved = resolveWebPublicEnv({
-    source: {
-      VITE_NIMI_DEBUG_BOOT: '1',
-      VITE_NIMI_VERBOSE_RENDERER_LOGS: '1',
-    },
-    realmProxyTarget: null,
-    mode: 'production',
-  });
-
-  assert.equal(resolved.VITE_NIMI_DEBUG_BOOT, undefined);
-  assert.equal(resolved.VITE_NIMI_VERBOSE_RENDERER_LOGS, undefined);
 });

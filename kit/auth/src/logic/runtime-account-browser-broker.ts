@@ -1,5 +1,5 @@
-import type { ShellAuthDesktopBrowserAuthRuntimeBroker } from '../types/auth-types.js';
-import { validateRuntimeOAuthAuthorizationUrl } from './desktop-web-auth.js';
+import type { DesktopBrowserAuthRuntimeBroker } from '../types/auth-types.js';
+import { validateRuntimeOAuthAuthorizationUrl } from './desktop-browser-auth.js';
 
 type RuntimeAccountCaller = {
   appId: string;
@@ -97,7 +97,7 @@ function defaultProjectUser(projection: RuntimeAccountProjection): Record<string
  */
 export function createRuntimeAccountBrowserBroker(
   input: CreateRuntimeAccountBrowserBrokerInput,
-): ShellAuthDesktopBrowserAuthRuntimeBroker {
+): DesktopBrowserAuthRuntimeBroker {
   const projectUser = input.projectUser || defaultProjectUser;
   const requestedScopes = [...new Set((input.requestedScopes || []).map((scope) => String(scope).trim()).filter(Boolean))];
 

@@ -40,7 +40,8 @@
   color: var(--nimi-text-primary);
 }
 
-.nimi-shell-auth-root[data-shell-auth-theme='desktop'] {
+.nimi-shell-auth-root[data-shell-auth-theme='desktop'],
+.nimi-shell-auth-root.nimi-shell-auth-brand-surface {
   /*
    * Match the in-app glassmorphism surface used by AmbientBackground
    * variant="mesh" (kit/ui ambient-background.tsx). We reference the

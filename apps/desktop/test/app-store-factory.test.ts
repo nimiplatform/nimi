@@ -330,6 +330,7 @@ function createCanonicalBindings(input: {
         async reportAuthEntryAction() { return { ok: false as const, disposition: 'unsupported' as const }; },
         applyLocale() {},
         async openWalletCheckout() { return { opened: false }; },
+        async openAccountManagement() { throw new Error('unavailable'); },
         async writeClipboardText() {},
         exportRuntimeAuditJson() {},
         confirmRuntimeProfileInstall() { return false; },
