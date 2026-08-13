@@ -132,6 +132,7 @@ async function bootstrapAuthSession(input: {
   });
 }
 
+// @nimi-authority: rule.nimi.platform.product-lifecycle.p-web-002c
 export function bootstrapRuntime(lifecycle?: DesktopRendererLifecyclePort): Promise<void> {
   if (bootstrapPromise) {
     return bootstrapPromise;

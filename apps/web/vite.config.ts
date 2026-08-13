@@ -161,6 +161,7 @@ export default defineConfig(({ mode }) => {
           find: '@desktop-public',
           replacement: path.resolve(__dirname, '../desktop/src/public-web'),
         },
+        // @nimi-deprecated: rule.nimi.platform.product-lifecycle.p-web-002a
         // Wide aliases kept for App.tsx transitive resolution only.
         // Web source files must not add new direct @renderer/* or @runtime/*
         // imports — use @desktop-public/* instead.

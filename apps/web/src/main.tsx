@@ -8,6 +8,8 @@ function isPostPermalinkPath(pathname: string): boolean {
   return /^\/posts\/[^/]+$/.test(pathname);
 }
 
+// @nimi-authority: definition.nimi.platform.product-lifecycle.web-release-surface
+// @nimi-authority: rule.nimi.platform.product-lifecycle.p-web-001a
 async function bootstrapSiteEntry(): Promise<void> {
   if (isPostPermalinkPath(window.location.pathname)) {
     await import('./post-permalink-main.js');

@@ -49,25 +49,7 @@ function useShouldMountHeroScene(): boolean {
 }
 
 export function HeroSection(props: HeroSectionProps) {
-  const [copied, setCopied] = useState(false);
-  const [activeTab, setActiveTab] = useState(0);
   const sceneEnabled = useShouldMountHeroScene();
-
-  const currentTab = props.content.tabs[activeTab] || props.content.tabs[0]!;
-
-  async function handleCopyCommand() {
-    if (typeof navigator === 'undefined' || !navigator.clipboard || !currentTab?.command) {
-      return;
-    }
-
-    try {
-      await navigator.clipboard.writeText(currentTab.command);
-      setCopied(true);
-      window.setTimeout(() => setCopied(false), 1600);
-    } catch {
-      setCopied(false);
-    }
-  }
 
   return (
     <section
@@ -119,118 +101,31 @@ export function HeroSection(props: HeroSectionProps) {
             {props.content.subtitle}
           </p>
 
-          {/* Get Started 2-Column Card */}
-          <div className="mx-auto mt-16 max-w-[1200px] text-left">
-            <div className="card-surface shadow-[0_30px_80px_-15px_rgba(0,0,0,0.08),_0_0_40px_rgba(0,0,0,0.03)] grid overflow-hidden md:grid-cols-5 p-0 rounded-2xl bg-white border border-slate-200/60">
-              {/* Left Column: Choose your path */}
-              <div className="p-8 md:p-10 flex flex-col justify-between md:col-span-2">
-                <div>
-                  <h2 className="text-3xl font-bold text-slate-900 tracking-tight">{props.content.getStartedTitle}</h2>
-                  <p className="mt-2 text-slate-500 font-medium">{props.content.getStartedSubtitle}</p>
-
-                  <div className="mt-8 flex flex-wrap gap-2">
-                    {props.content.tabs.map((tab, idx) => {
-                      const isActive = activeTab === idx;
-                      return (
-                        <button
-                          key={tab.id}
-                          type="button"
-                          onClick={() => {
-                            setActiveTab(idx);
-                            setCopied(false);
-                          }}
-                          className={`rounded-full px-4 py-2 text-sm font-semibold transition hover:-translate-y-0.5 ${
-                            isActive
-                              ? 'bg-teal-100 text-teal-800'
-                              : 'bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-900'
-                          }`}
-                        >
-                          {tab.label}
-                        </button>
-                      );
-                    })}
-                  </div>
-
-                  <div className="mt-8 h-14">
-                    {currentTab.command ? (
-                      <div className="flex h-full items-center justify-between rounded-xl bg-slate-900 px-4 text-sm text-slate-300">
-                        <code className="font-mono">{currentTab.command}</code>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            void handleCopyCommand();
-                          }}
-                          className="ml-4 rounded hover:text-white focus:outline-none transition group"
-                          title={props.content.copyTooltipLabel}
-                        >
-                          {copied ? (
-                            <svg className="h-5 w-5 text-[#38d6a3]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                            </svg>
-                          ) : (
-                            <svg className="h-5 w-5 opacity-70 group-hover:opacity-100 transition" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                            </svg>
-                          )}
-                        </button>
-                      </div>
-                    ) : null}
-                  </div>
-                </div>
-
-                <div className="mt-8">
-                  <a
-                    href={props.links.docsUrl + currentTab.id + '/'}
-                    className="inline-flex w-full items-center justify-center rounded-xl bg-[#38d6a3] px-6 py-4 text-center font-bold text-white transition hover:-translate-y-0.5 hover:bg-[#2ba980]"
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    {currentTab.ctaText}
-                  </a>
-
-                  <div className="mt-6 text-center text-sm font-medium text-slate-400">
-                    {props.content.helperPrefix}{' '}
-                    <a href={props.links.docsUrl} className="ml-[0.75rem] hover:text-slate-600 underline decoration-slate-300 underline-offset-4 mr-[0.625rem] transition" target="_blank" rel="noreferrer">{props.content.helperDocsCta}</a>
-                    <a href={props.links.githubUrl} className="hover:text-slate-600 underline decoration-slate-300 underline-offset-4 transition" target="_blank" rel="noreferrer">{props.content.helperGithubCta}</a>
-                  </div>
-                </div>
-              </div>
-
-              {/* Right Column: Live command preview */}
-              <div className="relative flex min-h-[320px] items-center justify-center overflow-hidden border-t border-slate-200 bg-white p-2 md:col-span-3 md:border-t-0 md:p-3 lg:p-4">
-                <div
-                  className="relative flex aspect-video w-full max-w-[780px] flex-col overflow-hidden rounded-[1.1rem] bg-slate-950 text-left shadow-[0_24px_60px_-30px_rgba(15,23,42,0.9)]"
-                  aria-label={props.content.previewAlt}
-                >
-                  <div className="flex h-10 items-center gap-2 border-b border-white/10 bg-slate-900 px-4">
-                    <span className="h-3 w-3 rounded-full bg-[#ff5f57]" aria-hidden="true" />
-                    <span className="h-3 w-3 rounded-full bg-[#ffbd2e]" aria-hidden="true" />
-                    <span className="h-3 w-3 rounded-full bg-[#28c840]" aria-hidden="true" />
-                    <span className="ml-2 truncate text-xs font-medium text-slate-400">Nimi Terminal</span>
-                  </div>
-                  <div className="flex flex-1 flex-col justify-center gap-5 p-5 sm:p-8">
-                    <div>
-                      <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#38d6a3]">
-                        {currentTab.label}
-                      </p>
-                      <div className="mt-3 overflow-hidden rounded-xl border border-white/10 bg-black/35 p-4">
-                        <code className="block break-all font-mono text-sm leading-7 text-slate-100 sm:text-base">
-                          <span className="select-none text-[#38d6a3]">$ </span>
-                          {currentTab.command}
-                        </code>
-                      </div>
-                    </div>
-                    <div className="grid gap-3 text-sm leading-6 text-slate-300 md:grid-cols-[1fr_auto] md:items-center">
-                      <span>{currentTab.ctaText}</span>
-                      <span className="inline-flex justify-self-start rounded-full border border-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-slate-400 md:justify-self-end">
-                        docs.nimi.ai
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
+          <div className="mt-12 flex flex-col items-center justify-center gap-4 sm:flex-row">
+            <a
+              href={props.links.desktopDownloadUrl}
+              className="inline-flex min-w-44 items-center justify-center rounded-full bg-gradient-to-r from-[#38d6a3] to-[#0ea5e9] px-7 py-3.5 text-base font-bold text-white shadow-[0_16px_34px_-14px_rgba(14,165,233,0.7)] transition hover:-translate-y-0.5 hover:shadow-[0_20px_40px_-14px_rgba(14,165,233,0.8)]"
+              target="_blank"
+              rel="noreferrer"
+            >
+              {props.content.primaryCta}
+            </a>
+            <a
+              href="#architecture"
+              className="inline-flex min-w-44 items-center justify-center rounded-full border border-slate-300 bg-white/75 px-7 py-3.5 text-base font-bold text-slate-700 shadow-sm transition hover:-translate-y-0.5 hover:border-emerald-300 hover:bg-white"
+            >
+              {props.content.secondaryCta}
+            </a>
           </div>
+
+          <ul className="mt-8 flex flex-wrap items-center justify-center gap-x-6 gap-y-3 text-sm font-semibold text-slate-600">
+            {props.content.proofPoints.map((point) => (
+              <li key={point} className="inline-flex items-center gap-2">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" aria-hidden="true" />
+                {point}
+              </li>
+            ))}
+          </ul>
         </div>
       </div>
     </section>

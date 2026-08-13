@@ -4,6 +4,18 @@ const ZH_SPEC_NOTE = `权威路径：.nimi/spec/**
 文档入口：/docs/reference/spec-map
 边界：公开展示面，不是独立真相`;
 
+export const landingPositioningZh = {
+  hero: {
+    title: '让 AI 真正',
+    titleAccent: '属于你。',
+    subtitle: '在 Nimi 中对话、创作和探索，让你的对话、角色、作品与世界，在同一个地方自然延续。',
+  },
+  desktop: {
+    title: 'Nimi，离你更近。',
+    description: '把你的对话、创作、角色与世界带到同一个流畅的桌面体验中。',
+  },
+} as const;
+
 export const landingContentZh: LandingContent = {
   skipToContent: '跳转到主要内容',
   nav: {
@@ -19,53 +31,27 @@ export const landingContentZh: LandingContent = {
     faq: '常见问题',
   },
   hero: {
-    eyebrow: '开源、本地优先的 AI 运行时',
-    title: '让智能体在世界里生活，',
-    titleAccent: '不只是聊天框里。',
-    subtitle: '开源运行时、强类型 SDK、多 provider AI 与有形的智能体 —— 全部基于可阅读的契约。',
-    helperPrefix: '或',
-    helperDocsCta: '阅读文档',
-    helperGithubCta: '查看源码',
-    copyTooltipLabel: '复制链接',
-    copiedCommandLabel: '已复制',
-    previewAlt: 'Nimi runtime 快速上手预览',
-    getStartedTitle: '快速上手',
-    getStartedSubtitle: '选择接入入口',
-    tabs: [
-      {
-        id: 'start',
-        label: '源码',
-        command: 'pnpm install && pnpm build:runtime',
-        ctaText: '阅读上手文档',
-      },
-      {
-        id: 'runtime',
-        label: 'CLI',
-        command: './dist/nimi doctor',
-        ctaText: '阅读 Runtime 文档',
-      },
-      {
-        id: 'platform',
-        label: 'Platform',
-        command: 'docs.nimi.ai/zh/platform',
-        ctaText: '阅读平台文档',
-      },
-      { id: 'sdk', label: 'SDK', command: 'docs.nimi.ai/zh/sdk', ctaText: '阅读 SDK 文档' },
-    ],
+    eyebrow: '',
+    title: landingPositioningZh.hero.title,
+    titleAccent: landingPositioningZh.hero.titleAccent,
+    subtitle: landingPositioningZh.hero.subtitle,
+    primaryCta: '获取 Nimi',
+    secondaryCta: '看看 Nimi 能做什么',
+    proofPoints: ['开源', '本地优先', '自由选择 AI'],
   },
   architecture: {
-    title: '一个平台，多个世界。',
-    subtitle: '架构',
+    title: '一个 Nimi，无限可能。',
+    subtitle: 'Nimi 如何连接在一起',
     description:
-      'Nimi 提供强类型 SDK，用于构建跨越持续世界、自主智能体、共享记忆、身份、社交与经济的 AI 体验。Runtime 在 Local 或 Cloud 环境执行能力。',
+      'Nimi 把不同的个人 AI 体验带进同一个产品。Realm 让生态身份保持一致，Runtime 则在本地或云端运行 AI 能力。',
     devTitle: '面向构建者',
     devText:
       '通过强类型 SDK 组合源自 Character 的智能体、能力、对话和记忆；Local 或 Cloud 实现都由 Runtime 选择。',
-    userTitle: '面向产品用户',
+    userTitle: '为你而生',
     userText:
-      'Nimi 是 AI 开放世界平台 —— 智能体跨会话持续存在、跨世界共享状态，并通过边界清楚的 runtime 能力行动。不是聊天框封装，不是单一用途的应用。',
-    conclusion: '概念驱动、契约优先、跨平台运行时。',
-    slogan: '代码、契约与世界归创建者。',
+      '在一个地方对话、创作、遇见角色并探索世界，不必把每一种体验都当成独立产品。Nimi 让它们在同一个入口自然相连。',
+    conclusion: '一个产品，开放构建，承载不同的 AI 体验。',
+    slogan: '你的 AI，你的选择，你的 Nimi。',
     diagram: {
       appLabel: 'AI 应用',
       realm: 'REALM',
@@ -285,9 +271,8 @@ export const landingContentZh: LandingContent = {
     },
   },
   desktop: {
-    title: '原生 Desktop，真实的 Web 边界。',
-    subtitle:
-      'Desktop 是包含 Runtime、本地 AI 和原生外壳的完整应用。Web mode 使用同一套外壳和明确的 web-only adapter；两者都是正式产品表面。',
+    title: landingPositioningZh.desktop.title,
+    subtitle: landingPositioningZh.desktop.description,
     chromeLabels: {
       appName: 'Nimi',
       runtime: 'Runtime',
@@ -357,7 +342,7 @@ export const landingContentZh: LandingContent = {
       {
         question: 'Nimi 是什么？',
         answer:
-          '一个面向持续世界与有形智能体的开源 AI 运行时。通过统一的强类型 SDK 组合能力、对话与共享记忆。',
+          'Nimi 是一个开源、本地优先的个人 AI 产品——你可以在同一个地方对话、创作、遇见角色并探索世界，也可以自由选择使用本地或云端 AI。',
       },
       {
         question: '如何开始接入？',
@@ -376,8 +361,7 @@ export const landingContentZh: LandingContent = {
       },
       {
         question: 'Desktop 与 Web mode 有什么区别？',
-        answer:
-          'Desktop 是完整应用 —— 内嵌 runtime、本地 AI、原生外壳。Web mode 用同一套外壳加上 web-only adapter 支持纯浏览器会话。',
+        answer: landingPositioningZh.desktop.description,
       },
       {
         question: '可以开发自己的 Nimi App 吗？',
@@ -446,7 +430,7 @@ export const landingContentZh: LandingContent = {
     ],
   },
   footer: {
-    line1: '面向应用的开源 AI 运行时：一个 CLI、一个 SDK，本地与云端 AI。',
+    line1: `${landingPositioningZh.hero.title} ${landingPositioningZh.hero.titleAccent}`,
     line2: '阅读文档了解当前可用功能与路线图。',
     termsLabel: '服务条款',
     privacyLabel: '隐私政策',

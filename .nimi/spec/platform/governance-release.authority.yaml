@@ -16,11 +16,11 @@ units:
     meaning: Degraded mode is the explicit Realm-unavailable posture in which reachable local Runtime AI and current-renderer local-agent interaction may continue without converting local state or pending intent into Realm, social, economy, synchronization, or account truth.
   - id: rule.nimi.platform.governance-release.p-gov-026-positioning
     kind: rule
-    title: P-GOV-026 positioning statement from release-promise-freeze
+    title: Nimi public product positioning
     modality: must
-    statement: Public release positioning states that Nimi is an open-source, local-first, multi-provider personal AI runtime with Realm-owned ecosystem identity.
+    statement: Public release positioning identifies Nimi as the installable, open-source, local-first personal AI product, Nimi Home as its entry, Realm as the owner of ecosystem identity, and the multi-provider Runtime as the executor of local and cloud AI capabilities; characters, conversations, creations, stories, and worlds are experiences within Nimi rather than the canonical product category, while Nimi App remains the current local-development, registration, declaration, and Runtime access unit and public App distribution or ordinary-user App installation remains deferred until lifecycle authority activates it.
     condition: Whenever public Nimi positioning is published for the release.
-    failure: Correct conflicting public copy before release publication.
+    failure: Correct copy that collapses Nimi into Runtime, equates Nimi Home with Desktop, promotes one experience to the product category, or promises deferred App distribution before release publication.
     relations:
       - type: applies_to
         target: definition.nimi.platform.governance-release.release-promise

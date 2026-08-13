@@ -20,20 +20,9 @@ export type LandingContent = {
     title: string;
     titleAccent: string;
     subtitle: string;
-    helperPrefix: string;
-    helperDocsCta: string;
-    helperGithubCta: string;
-    copyTooltipLabel: string;
-    copiedCommandLabel: string;
-    previewAlt: string;
-    getStartedTitle: string;
-    getStartedSubtitle: string;
-    tabs: Array<{
-      id: string;
-      label: string;
-      command: string;
-      ctaText: string;
-    }>;
+    primaryCta: string;
+    secondaryCta: string;
+    proofPoints: ReadonlyArray<string>;
   };
   architecture: {
     title: string;

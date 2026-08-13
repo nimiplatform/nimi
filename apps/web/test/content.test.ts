@@ -2,26 +2,32 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { loadLandingContent } from '../src/landing/content/landing-content.js';
 
-test('content includes hero source-start paths and SDK tabs in both locales', async () => {
+test('content keeps the consumer hero and SDK paths complete in both locales', async () => {
   for (const locale of ['en', 'zh'] as const) {
     const content = await loadLandingContent(locale);
-    assert.ok(content.hero.tabs.length >= 3);
-    assert.equal(
-      content.hero.tabs.find((tab) => tab.id === 'start')?.command,
-      'pnpm install && pnpm build:runtime',
-    );
-    assert.equal(
-      content.hero.tabs.find((tab) => tab.id === 'runtime')?.command,
-      './dist/nimi doctor',
-    );
-    assert.ok(
-      content.hero.tabs
-        .filter((tab) => ['platform', 'sdk'].includes(tab.id))
-        .every((tab) => tab.command.startsWith(locale === 'zh' ? 'docs.nimi.ai/zh/' : 'docs.nimi.ai/')),
-    );
-    assert.ok(content.hero.tabs.every((tab) => !tab.command.includes('install.nimi.ai')));
-    assert.ok(content.hero.tabs.every((tab) => !tab.command.includes('@nimiplatform/nimi')));
-    assert.ok(content.hero.tabs.every((tab) => !tab.command.includes('nimi serve')));
+    const expectedHero = locale === 'zh'
+      ? {
+          title: '让 AI 真正',
+          titleAccent: '属于你。',
+          primaryCta: '获取 Nimi',
+          secondaryCta: '看看 Nimi 能做什么',
+          proofPoints: ['开源', '本地优先', '自由选择 AI'],
+        }
+      : {
+          title: 'Make AI',
+          titleAccent: 'truly yours.',
+          primaryCta: 'Get Nimi',
+          secondaryCta: 'See what Nimi can do',
+          proofPoints: ['Open source', 'Local-first', 'Choose your AI'],
+        };
+    assert.equal(content.hero.title, expectedHero.title);
+    assert.equal(content.hero.titleAccent, expectedHero.titleAccent);
+    assert.equal(content.hero.primaryCta, expectedHero.primaryCta);
+    assert.equal(content.hero.secondaryCta, expectedHero.secondaryCta);
+    assert.deepEqual(content.hero.proofPoints, expectedHero.proofPoints);
+    assert.ok(content.hero.subtitle.length > 0);
+    assert.ok(!JSON.stringify(content.hero).includes('pnpm install'));
+    assert.ok(!JSON.stringify(content.hero).includes('nimi doctor'));
     assert.ok(content.sdk.tabs.length >= 3);
     assert.ok(content.sdk.tabs.every((tab) => tab.label.length > 0));
     assert.ok(content.sdk.tabs.every((tab) => tab.description.length > 0));

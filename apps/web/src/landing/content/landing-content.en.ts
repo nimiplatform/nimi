@@ -4,6 +4,20 @@ const EN_SPEC_NOTE = `Authority: .nimi/spec/**
 Docs: /docs/reference/spec-map
 Boundary: public projection, not independent truth`;
 
+export const landingPositioningEn = {
+  hero: {
+    title: 'Make AI',
+    titleAccent: 'truly yours.',
+    subtitle:
+      'Talk, create, and explore in Nimi—where your conversations, characters, creations, and worlds come together in one personal space.',
+  },
+  desktop: {
+    title: 'Nimi, closer to you.',
+    description:
+      'Bring your conversations, creations, characters, and worlds together in one seamless desktop experience.',
+  },
+} as const;
+
 export const landingContentEn: LandingContent = {
   skipToContent: 'Skip to main content',
   nav: {
@@ -19,54 +33,27 @@ export const landingContentEn: LandingContent = {
     faq: 'FAQ',
   },
   hero: {
-    eyebrow: 'Open-source, local-first AI runtime',
-    title: 'Build agents that live in worlds,',
-    titleAccent: 'not chats.',
-    subtitle:
-      'Open-source runtime, typed SDK, multi-provider AI, and embodied agents — built on contracts you can read.',
-    helperPrefix: 'Or',
-    helperDocsCta: 'Read Docs',
-    helperGithubCta: 'View Source',
-    copyTooltipLabel: 'Copy link',
-    copiedCommandLabel: 'Copied',
-    previewAlt: 'Nimi runtime quickstart preview',
-    getStartedTitle: 'Quickstart',
-    getStartedSubtitle: 'Pick your integration entry',
-    tabs: [
-      {
-        id: 'start',
-        label: 'Source',
-        command: 'pnpm install && pnpm build:runtime',
-        ctaText: 'Read Setup Docs',
-      },
-      {
-        id: 'runtime',
-        label: 'CLI',
-        command: './dist/nimi doctor',
-        ctaText: 'Read Runtime Docs',
-      },
-      {
-        id: 'platform',
-        label: 'Platform',
-        command: 'docs.nimi.ai/platform',
-        ctaText: 'Read Platform Docs',
-      },
-      { id: 'sdk', label: 'SDK', command: 'docs.nimi.ai/sdk', ctaText: 'Read SDK Docs' },
-    ],
+    eyebrow: '',
+    title: landingPositioningEn.hero.title,
+    titleAccent: landingPositioningEn.hero.titleAccent,
+    subtitle: landingPositioningEn.hero.subtitle,
+    primaryCta: 'Get Nimi',
+    secondaryCta: 'See what Nimi can do',
+    proofPoints: ['Open source', 'Local-first', 'Choose your AI'],
   },
   architecture: {
-    title: 'One platform, many worlds.',
-    subtitle: 'Architecture',
+    title: 'One Nimi, many possibilities.',
+    subtitle: 'How Nimi comes together',
     description:
-      'Nimi provides a typed SDK for AI experiences across persistent worlds, autonomous agents, shared memory, identity, social systems, and economy. Runtime executes capabilities locally or in the cloud.',
+      'Nimi brings personal AI experiences into one product. Realm keeps ecosystem identity consistent, while Runtime runs AI capabilities locally or in the cloud.',
     devTitle: 'For builders',
     devText:
       'Integrate through the typed SDK. Compose character-backed agents, capabilities, conversations, and memory while Runtime owns Local or Cloud implementation selection.',
-    userTitle: 'For product readers',
+    userTitle: 'For you',
     userText:
-      'Nimi is an AI open world platform — agents persist across sessions, share state across worlds, and act through runtime capabilities with clear limits. Not a chat wrapper, not a single-purpose app.',
-    conclusion: 'Concept-led, contracts-first, runtime-anywhere.',
-    slogan: 'Your code, your contracts, your worlds.',
+      'Talk, create, meet characters, and explore worlds without treating each experience as a separate product. Nimi brings them together through one home.',
+    conclusion: 'One product, open by design, ready for many experiences.',
+    slogan: 'Your AI. Your choices. Your Nimi.',
     diagram: {
       appLabel: 'YOUR AI APP',
       realm: 'REALM',
@@ -303,9 +290,8 @@ export const landingContentEn: LandingContent = {
     },
   },
   desktop: {
-    title: 'Native desktop. Real web boundary.',
-    subtitle:
-      'Desktop is the full app — embedded runtime, local AI, your machine. Web mode runs the same shell with explicit web-only adapters. Both ship as real surfaces.',
+    title: landingPositioningEn.desktop.title,
+    subtitle: landingPositioningEn.desktop.description,
     chromeLabels: {
       appName: 'Nimi',
       runtime: 'Runtime',
@@ -388,7 +374,7 @@ export const landingContentEn: LandingContent = {
       {
         question: 'What is Nimi?',
         answer:
-          'An open-source AI runtime built around persistent worlds and embodied agents. Compose capabilities, conversations, and shared memory through one typed SDK.',
+          'Nimi is an open-source, local-first personal AI product—a single place to talk, create, meet characters, and explore worlds, with the freedom to use local or cloud AI.',
       },
       {
         question: 'How do I start integrating?',
@@ -407,8 +393,7 @@ export const landingContentEn: LandingContent = {
       },
       {
         question: 'Desktop vs Web mode?',
-        answer:
-          'Desktop is the full app — embedded runtime, local AI, native shell. Web mode runs the same shell with web-only adapters for browser-only sessions.',
+        answer: landingPositioningEn.desktop.description,
       },
       {
         question: 'Can I build my own Nimi App?',
@@ -481,7 +466,7 @@ export const landingContentEn: LandingContent = {
     ],
   },
   footer: {
-    line1: 'Open-source AI runtime for apps. One CLI, one SDK, local and cloud AI.',
+    line1: `${landingPositioningEn.hero.title} ${landingPositioningEn.hero.titleAccent}`,
     line2: 'Read the docs to see what ships today and what is on the roadmap.',
     termsLabel: 'Terms',
     privacyLabel: 'Privacy',
