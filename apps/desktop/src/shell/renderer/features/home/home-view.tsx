@@ -73,6 +73,8 @@ function useHomeFeedColumns(): HomeFeedColumns {
   return columns;
 }
 
+// @nimi-authority: definition.nimi.desktop.product-surfaces.home-feed
+// @nimi-authority: rule.nimi.desktop.product-surfaces.r015
 export function HomeView(props: HomeViewProps) {
   const realmSocialData = useRealmSocialData();
   const { t } = useTranslation();

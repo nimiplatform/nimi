@@ -53,6 +53,7 @@ type scenarioIdempotencyBinding struct {
 	boundAt time.Time
 }
 
+// @nimi-authority: definition.nimi.runtime.service-operations.scenario-job-plane
 type scenarioJobStore struct {
 	mu           sync.RWMutex
 	jobs         map[string]*scenarioJobRecord

@@ -106,6 +106,9 @@ function uniformLocations(
   );
 }
 
+// @nimi-authority: rule.nimi.platform.simulator.p-sim-025
+// @nimi-authority: rule.nimi.platform.simulator.p-sim-025a
+// @nimi-authority: rule.nimi.platform.simulator.p-sim-025b
 export function SkyCanvas({
   sceneTime,
   autoTime,

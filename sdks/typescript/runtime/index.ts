@@ -386,6 +386,7 @@ export class NimiRuntimeUnavailableError extends Error {
   }
 }
 
+// @nimi-authority: definition.nimi.sdks.client-core.runtime-client-plane
 export class Runtime {
   readonly #core: CoreClient;
   readonly #appId: string;

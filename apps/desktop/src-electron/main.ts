@@ -297,6 +297,10 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
         ? normalizeText(process.env.NIMI_DESKTOP_ELECTRON_BUNDLED_AVATAR_DEV_ROOT)
         : undefined,
     });
+    // @nimi-authority: definition.nimi.desktop.bridge-ipc.command-registration-plane
+    // @nimi-authority: definition.nimi.desktop.command-execution.registered-surface
+    // @nimi-authority: rule.nimi.desktop.command-execution.r005
+    // @nimi-authority: rule.nimi.desktop.command-execution.r006
     registeredRuntimeBridge = registerNimiElectronRuntimeBridge({
       appId: APP_ID,
       runtimeEndpoint: PROTECTED_DESKTOP_RUNTIME_TRANSPORT_REF,

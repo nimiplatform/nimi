@@ -9,7 +9,6 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/services/connector"
-	"google.golang.org/grpc/metadata"
 )
 
 func TestExecuteScenarioTextGenerateRejectsIncompletePrivateCloudIntent(t *testing.T) {
@@ -42,7 +41,7 @@ func TestExecuteScenarioTextGenerateCloudTargetRefStaleAfterEndpointChange(t *te
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 	store := connector.NewConnectorStoreWithMemorySecrets(t.TempDir())
 	connectorSvc := connector.New(logger, store, nil)
-	ctx := userCtx("user-001")
+	ctx := scenarioJobUserContext("nimi.desktop", "user-001")
 	created, err := connectorSvc.CreateConnector(ctx, &runtimev1.CreateConnectorRequest{
 		Provider: "openai",
 		Endpoint: "https://first.example.test/v1",
@@ -66,8 +65,7 @@ func TestExecuteScenarioTextGenerateCloudTargetRefStaleAfterEndpointChange(t *te
 		t.Fatalf("new service: %v", err)
 	}
 	target := cloudScenarioTargetRefForDescriptor(connectorID, descriptor)
-	execCtx := metadata.NewIncomingContext(ctx, metadata.Pairs("x-nimi-key-source", "managed"))
-	execCtx = withCloudScenarioTestIntent(execCtx, "text.generate", target)
+	execCtx := withCloudScenarioTestIntent(ctx, "text.generate", target)
 	_, err = svc.ExecuteScenario(execCtx, &runtimev1.ExecuteScenarioRequest{
 		Head: &runtimev1.ScenarioRequestHead{
 			AppId:         "nimi.desktop",

@@ -141,6 +141,7 @@ const ICON_DEVELOPER_TOOLS = (
   </svg>
 );
 
+// @nimi-authority: rule.nimi.desktop.shell-ui.r008
 export function renderShellNavIcon(icon: string): ReactNode {
   const normalized = String(icon || '').trim().toLowerCase();
   if (normalized === 'home') return ICON_HOME;
@@ -162,6 +163,8 @@ export function renderShellNavIcon(icon: string): ReactNode {
   return ICON_PUZZLE;
 }
 
+// @nimi-authority: definition.nimi.desktop.shell-ui.shell-plane
+// @nimi-authority: rule.nimi.desktop.shell-ui.r001
 const BASE_CORE_NAV_ITEMS: NavItem[] = [
   { id: 'home', label: 'Home', icon: renderShellNavIcon('home') },
   { id: 'chat', label: 'Chat', icon: renderShellNavIcon('chat') },

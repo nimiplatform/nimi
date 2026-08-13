@@ -784,6 +784,7 @@ pub trait NimiDesktopControl: Send + Sync {
     ) -> Pin<Box<dyn Future<Output = Result<(), NimiHostError>> + Send + '_>>;
 }
 
+// @nimi-authority: rule.nimi.platform.ui-design-system.p-kit-044
 /// Connection-bound third-party Local App session. These exact typed methods
 /// are the complete public carrier surface for the 0K checkpoint.
 pub trait NimiLocalAppSession: Send + Sync {
@@ -1100,6 +1101,7 @@ pub type DesktopControlFuture<'a> = Pin<
     >,
 >;
 
+// @nimi-authority: rule.nimi.platform.ui-design-system.p-kit-041
 pub trait NimiProtectedLocalHostCarrier: FixedRuntimeServiceControl {
     /// Opens a mutually verified native connection and performs the empty
     /// OpenDesktopSession bootstrap internally. Session and boot-epoch bytes

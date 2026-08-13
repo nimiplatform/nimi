@@ -20870,27 +20870,6 @@
             "repeated": false,
             "optional": false,
             "number": 2
-          },
-          {
-            "name": "model_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "target_model_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          },
-          {
-            "name": "connector_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 5
           }
         ],
         "source_file": "proto/runtime/v1/voice.proto"

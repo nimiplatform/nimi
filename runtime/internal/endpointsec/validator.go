@@ -17,6 +17,9 @@ import (
 
 type dialContextFunc func(ctx context.Context, network, addr string) (net.Conn, error)
 
+// @nimi-authority: definition.nimi.runtime.security-core.endpoint-security-plane
+// @nimi-authority: rule.nimi.runtime.security-core.r033
+// @nimi-authority: rule.nimi.runtime.security-core.r035
 // ValidateEndpoint checks that rawURL is a safe outbound endpoint.
 //
 // Rules (K-SEC-001, K-SEC-002):
@@ -29,6 +32,7 @@ func ValidateEndpoint(ctx context.Context, rawURL string, allowLoopback bool) er
 	return err
 }
 
+// @nimi-authority: rule.nimi.runtime.security-core.r034
 // NewPinnedTransport creates an *http.Transport that pins the DNS resolution
 // of rawURL to a specific IP at creation time, preventing TOCTOU attacks
 // (K-SEC-003). The original hostname is preserved for TLS SNI and HTTP Host.

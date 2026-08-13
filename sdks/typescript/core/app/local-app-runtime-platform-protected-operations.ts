@@ -31,6 +31,7 @@ export type NimiAppRuntimeStorageClient = {
   readonly removeJson: (relativePath: string) => Promise<NimiAppRuntimeStorageRemoveResult>;
 };
 
+// @nimi-authority: rule.nimi.sdks.feature-clients.r035
 export function createNimiAppRuntimeStorageClient(
   standardShell: StorageShell,
 ): NimiAppRuntimeStorageClient {

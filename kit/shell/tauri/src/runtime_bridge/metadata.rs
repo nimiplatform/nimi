@@ -25,9 +25,6 @@ const RESERVED_METADATA_KEYS: &[&str] = &[
     "x-nimi-app-id",
     "x-nimi-trace-id",
     "x-nimi-surface-id",
-    "x-nimi-key-source",
-    "x-nimi-provider-endpoint",
-    "x-nimi-provider-api-key",
     "x-nimi-access-token-id",
     "x-nimi-access-token-secret",
     "x-nimi-session-id",
@@ -35,7 +32,7 @@ const RESERVED_METADATA_KEYS: &[&str] = &[
 ];
 
 #[derive(Clone, Default, Deserialize, Serialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct RuntimeBridgeMetadata {
     pub protocol_version: Option<String>,
     pub participant_protocol_version: Option<String>,
@@ -47,9 +44,6 @@ pub struct RuntimeBridgeMetadata {
     pub caller_kind: Option<String>,
     pub caller_id: Option<String>,
     pub surface_id: Option<String>,
-    pub key_source: Option<String>,
-    pub provider_endpoint: Option<String>,
-    pub provider_api_key: Option<String>,
     pub extra: Option<HashMap<String, String>>,
 }
 
@@ -78,29 +72,8 @@ impl fmt::Debug for RuntimeBridgeMetadata {
             .field("caller_kind", &self.caller_kind)
             .field("caller_id", &self.caller_id)
             .field("surface_id", &self.surface_id)
-            .field("key_source", &self.key_source)
-            .field("provider_endpoint", &self.provider_endpoint)
-            .field(
-                "provider_api_key",
-                &self
-                    .provider_api_key
-                    .as_ref()
-                    .map(|value| redact_secret(value.as_str())),
-            );
-
-        let redacted_extra = self.extra.as_ref().map(|extra| {
-            extra
-                .iter()
-                .map(|(key, value)| {
-                    if key.trim().eq_ignore_ascii_case("x-nimi-provider-api-key") {
-                        (key.clone(), redact_secret(value.as_str()))
-                    } else {
-                        (key.clone(), value.clone())
-                    }
-                })
-                .collect::<HashMap<String, String>>()
-        });
-        debug.field("extra", &redacted_extra).finish()
+            .field("extra", &self.extra)
+            .finish()
     }
 }
 
@@ -193,6 +166,19 @@ fn normalized_metadata_key(value: &str) -> String {
         .filter(|ch| *ch != '-' && *ch != '_')
         .collect::<String>()
         .to_ascii_lowercase()
+}
+
+fn is_retired_caller_ai_input_metadata_key(key: &str) -> bool {
+    const RETIRED_KEYS: &[&str] = &[
+        "keysource",
+        "providertype",
+        "providerendpoint",
+        "providerapikey",
+    ];
+    let normalized = key.trim().to_ascii_lowercase();
+    let suffix = normalized.strip_prefix("x-nimi-").unwrap_or(&normalized);
+    let compact = normalized_metadata_key(suffix);
+    RETIRED_KEYS.contains(&compact.as_str())
 }
 
 fn renderer_forbidden_metadata_kind(key: &str) -> Option<&'static str> {
@@ -300,14 +286,14 @@ fn assert_renderer_metadata_allowed_with_trusted_provider(
         normalize(metadata.caller_id.as_deref()).is_some(),
         "identity",
     )?;
-    reject_renderer_host_owned_field(
-        "providerApiKey",
-        normalize(metadata.provider_api_key.as_deref()).is_some(),
-        "auth",
-    )?;
-
     if let Some(extra) = metadata.extra.as_ref() {
         for key in extra.keys() {
+            if is_retired_caller_ai_input_metadata_key(key) {
+                return Err(bridge_error(
+                    "RUNTIME_BRIDGE_CALLER_AI_INPUT_METADATA_RETIRED",
+                    key,
+                ));
+            }
             if let Some(kind) = renderer_forbidden_metadata_kind(key) {
                 return Err(renderer_host_owned_metadata_error(kind, key));
             }
@@ -368,11 +354,6 @@ pub(crate) fn resolve_trusted_runtime_bridge_metadata(
         caller_kind: trusted_metadata.caller_kind,
         caller_id: trusted_metadata.caller_id,
         surface_id: trusted_metadata.surface_id.or(renderer_metadata.surface_id),
-        key_source: renderer_metadata.key_source.or(trusted_metadata.key_source),
-        provider_endpoint: renderer_metadata
-            .provider_endpoint
-            .or(trusted_metadata.provider_endpoint),
-        provider_api_key: trusted_metadata.provider_api_key,
         extra: merge_metadata_extra(renderer_metadata.extra, trusted_metadata.extra),
     };
     if normalize(metadata.app_id.as_deref()).is_none() {
@@ -453,21 +434,6 @@ pub fn apply_metadata(
         "x-nimi-surface-id",
         normalize(value.surface_id.as_deref()),
     )?;
-    insert_metadata_value(
-        request,
-        "x-nimi-key-source",
-        normalize(value.key_source.as_deref()),
-    )?;
-    insert_metadata_value(
-        request,
-        "x-nimi-provider-endpoint",
-        normalize(value.provider_endpoint.as_deref()),
-    )?;
-    insert_metadata_value(
-        request,
-        "x-nimi-provider-api-key",
-        normalize(value.provider_api_key.as_deref()),
-    )?;
     insert_metadata_value(request, "authorization", normalize(authorization))?;
     insert_metadata_value(
         request,
@@ -498,6 +464,12 @@ pub fn apply_metadata(
             }
             if !normalized_key.starts_with("x-nimi-") {
                 continue;
+            }
+            if is_retired_caller_ai_input_metadata_key(&normalized_key) {
+                return Err(bridge_error(
+                    "RUNTIME_BRIDGE_CALLER_AI_INPUT_METADATA_RETIRED",
+                    normalized_key.as_str(),
+                ));
             }
             if RESERVED_METADATA_KEYS.contains(&normalized_key.as_str()) {
                 return Err(bridge_error(

@@ -50,6 +50,7 @@ type runtimeAccountProjectionProvider interface {
 	AuthenticatedRuntimeProjection(context.Context) (*runtimev1.AccountProjection, bool)
 }
 
+// @nimi-authority: definition.nimi.runtime.agent-service.agent-service-plane
 type Service struct {
 	runtimev1.UnimplementedRuntimeAgentServiceServer
 

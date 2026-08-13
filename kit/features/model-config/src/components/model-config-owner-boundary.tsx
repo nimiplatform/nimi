@@ -8,6 +8,8 @@ export type ModelConfigOwnerBoundaryProps = {
   readonly className?: string;
 };
 
+// @nimi-authority: definition.nimi.platform.ui-design-system.model-config-surface
+// @nimi-authority: rule.nimi.platform.ui-design-system.p-model-config-001
 function assertOwnerContext(context: ModelConfigOwnerContext): void {
   if (context.owner === 'app-ai-config' && !context.appId.trim()) {
     throw new Error('Model Config App AIConfig mode requires an appId.');

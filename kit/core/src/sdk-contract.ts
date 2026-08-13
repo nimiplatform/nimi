@@ -1,3 +1,4 @@
+// @nimi-authority: rule.nimi.platform.ui-design-system.p-kit-030
 /**
  * `@nimiplatform/kit/core/sdk-contract`
  *

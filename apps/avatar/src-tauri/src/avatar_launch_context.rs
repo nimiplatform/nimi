@@ -119,6 +119,8 @@ fn forbidden_launch_query_parameter(key: &str) -> bool {
     )
 }
 
+// @nimi-authority: rule.nimi.avatar.embodiment.r023
+// @nimi-authority: rule.nimi.avatar.embodiment.r024
 pub fn parse_avatar_launch_context(raw_url: &str) -> Result<AvatarLaunchContext, String> {
     let parsed = Url::parse(raw_url).map_err(|error| error.to_string())?;
     if parsed.scheme() != AVATAR_LAUNCH_SCHEME {

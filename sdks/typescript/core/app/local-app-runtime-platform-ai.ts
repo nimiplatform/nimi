@@ -279,6 +279,8 @@ const MAX_RESULT_BYTES = 256 * 1024;
 const MAX_ARTIFACT_BYTES = 32 * 1024 * 1024;
 const MAX_IDENTIFIER_BYTES = 128;
 
+// @nimi-authority: rule.nimi.sdks.feature-clients.r101
+// @nimi-authority: rule.nimi.sdks.feature-clients.r102
 export function createNimiLocalAppAIConsumptionClient(
   shell: NimiLocalAppAIConsumptionShell,
 ): NimiLocalAppAIConsumptionClient {

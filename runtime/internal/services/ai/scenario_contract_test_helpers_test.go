@@ -114,7 +114,7 @@ func newManagedCloudScenarioTestFixture(t *testing.T, providerID string, provide
 	}
 	connectorSvc := connector.New(logger, store, nil)
 	ctx := authn.WithIdentity(
-		metadata.NewIncomingContext(context.Background(), metadata.Pairs("x-nimi-key-source", "managed")),
+		metadata.NewIncomingContext(context.Background(), metadata.Pairs("x-nimi-app-id", "nimi.desktop")),
 		&authn.Identity{SubjectUserID: "user-001"},
 	)
 	descriptor := connectorModelDescriptorForAITest(t, connectorSvc, ctx, created.ConnectorID, providerModelID)

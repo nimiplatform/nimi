@@ -18,6 +18,7 @@ type Transport interface {
 
 type AuthMetadataProvider func(context.Context) (sdkstypes.CoreMetadata, error)
 
+// @nimi-authority: rule.nimi.sdks.client-core.r008
 type Client struct {
 	transport Transport
 	auth      AuthMetadataProvider

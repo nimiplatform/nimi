@@ -31,6 +31,8 @@ const SEARCH_ICON = (
   </svg>
 );
 
+// @nimi-authority: rule.nimi.platform.ui-design-system.p-design-015a
+// @nimi-authority: rule.nimi.platform.ui-design-system.p-design-015b
 export const TextField = forwardRef<HTMLInputElement, TextFieldProps>(function TextField(
   {
     tone = 'default',

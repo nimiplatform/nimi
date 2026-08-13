@@ -1199,9 +1199,6 @@ type ListPresetVoicesRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	AppId         string                 `protobuf:"bytes,1,opt,name=app_id,json=appId,proto3" json:"app_id,omitempty"`
 	SubjectUserId string                 `protobuf:"bytes,2,opt,name=subject_user_id,json=subjectUserId,proto3" json:"subject_user_id,omitempty"`
-	ModelId       string                 `protobuf:"bytes,3,opt,name=model_id,json=modelId,proto3" json:"model_id,omitempty"`
-	TargetModelId string                 `protobuf:"bytes,4,opt,name=target_model_id,json=targetModelId,proto3" json:"target_model_id,omitempty"`
-	ConnectorId   string                 `protobuf:"bytes,5,opt,name=connector_id,json=connectorId,proto3" json:"connector_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1246,27 +1243,6 @@ func (x *ListPresetVoicesRequest) GetAppId() string {
 func (x *ListPresetVoicesRequest) GetSubjectUserId() string {
 	if x != nil {
 		return x.SubjectUserId
-	}
-	return ""
-}
-
-func (x *ListPresetVoicesRequest) GetModelId() string {
-	if x != nil {
-		return x.ModelId
-	}
-	return ""
-}
-
-func (x *ListPresetVoicesRequest) GetTargetModelId() string {
-	if x != nil {
-		return x.TargetModelId
-	}
-	return ""
-}
-
-func (x *ListPresetVoicesRequest) GetConnectorId() string {
-	if x != nil {
-		return x.ConnectorId
 	}
 	return ""
 }
@@ -1408,13 +1384,10 @@ const file_runtime_v1_voice_proto_rawDesc = "" +
 	"\x17DeleteVoiceAssetRequest\x12$\n" +
 	"\x0evoice_asset_id\x18\x01 \x01(\tR\fvoiceAssetId\"B\n" +
 	"\x18DeleteVoiceAssetResponse\x12&\n" +
-	"\x03ack\x18\x01 \x01(\v2\x14.nimi.runtime.v1.AckR\x03ack\"\xbe\x01\n" +
+	"\x03ack\x18\x01 \x01(\v2\x14.nimi.runtime.v1.AckR\x03ack\"j\n" +
 	"\x17ListPresetVoicesRequest\x12\x15\n" +
 	"\x06app_id\x18\x01 \x01(\tR\x05appId\x12&\n" +
-	"\x0fsubject_user_id\x18\x02 \x01(\tR\rsubjectUserId\x12\x19\n" +
-	"\bmodel_id\x18\x03 \x01(\tR\amodelId\x12&\n" +
-	"\x0ftarget_model_id\x18\x04 \x01(\tR\rtargetModelId\x12!\n" +
-	"\fconnector_id\x18\x05 \x01(\tR\vconnectorId\"\x9c\x01\n" +
+	"\x0fsubject_user_id\x18\x02 \x01(\tR\rsubjectUserIdJ\x04\b\x03\x10\x04J\x04\b\x04\x10\x05J\x04\b\x05\x10\x06\"\x9c\x01\n" +
 	"\x18ListPresetVoicesResponse\x12>\n" +
 	"\x06voices\x18\x01 \x03(\v2&.nimi.runtime.v1.VoicePresetDescriptorR\x06voices\x12%\n" +
 	"\x0emodel_resolved\x18\x02 \x01(\tR\rmodelResolved\x12\x19\n" +

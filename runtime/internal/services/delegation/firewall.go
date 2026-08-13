@@ -26,6 +26,8 @@ type ThreatRule struct {
 	Pattern *regexp.Regexp
 }
 
+// @nimi-authority: definition.nimi.runtime.delegation.output-firewall-plane
+// @nimi-authority: rule.nimi.runtime.delegation.r029
 type Firewall struct {
 	policy FirewallPolicy
 	now    func() time.Time

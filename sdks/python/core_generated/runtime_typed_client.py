@@ -2942,9 +2942,6 @@ class ListPendingHooksResponse:
 class ListPresetVoicesRequest:
     app_id: str | None = None
     subject_user_id: str | None = None
-    model_id: str | None = None
-    target_model_id: str | None = None
-    connector_id: str | None = None
 
 @dataclass(frozen=True)
 class ListPresetVoicesResponse:

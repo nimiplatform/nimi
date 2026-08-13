@@ -126,13 +126,48 @@ describe('registerNimiElectronRuntimeBridge runtime hardening', () => {
       { ...basePayload, metadata: { callerId: 'evil.caller' } },
       { ...basePayload, metadata: { participantId: 'evil.participant' } },
       { ...basePayload, metadata: { extra: { 'x-nimi-authorization': 'Bearer renderer' } } },
-      { ...basePayload, metadata: { extra: { 'x-nimi-provider-api-key': 'secret' } } },
       { ...basePayload, metadata: { extra: { 'x-nimi-session-token': 'session-token' } } },
     ]) {
       await expect(invokeBridge(ipcMain, createInvokeEvent().event, {
         command: STANDARD_COMMANDS.unary,
         payload,
       })).rejects.toMatchObject({ code: 'forbidden-renderer-access' });
+    }
+  });
+
+  it('rejects retired caller AI input metadata instead of forwarding it', async () => {
+    const ipcMain = new FakeIpcMain();
+    registerNimiElectronRuntimeBridge({
+      appId: 'nimi.tester',
+      runtimeEndpoint: '127.0.0.1:46371',
+      allowedOrigins: ['http://localhost:1430'],
+      ipcMain,
+      createGrpcClient: async () => ({
+        unary: async () => ({ responseBytes: new Uint8Array() }),
+        serverStream: () => {
+          throw new Error('not used');
+        },
+        close: () => undefined,
+      }),
+    });
+
+    for (const key of [
+      'x-nimi-key-source',
+      'x-nimi-provider-type',
+      'x-nimi-provider-endpoint',
+      'x-nimi-provider-api-key',
+    ]) {
+      await expect(invokeBridge(ipcMain, createInvokeEvent().event, {
+        command: STANDARD_COMMANDS.unary,
+        payload: {
+          methodId: '/nimi.runtime.v1.RuntimeModelService/ListModels',
+          requestBytesBase64: '',
+          metadata: { extra: { [key]: 'retired' } },
+        },
+      })).rejects.toMatchObject({
+        code: 'invalid-payload',
+        reasonCode: 'electron-runtime-caller-ai-input-metadata-retired',
+      });
     }
   });
 

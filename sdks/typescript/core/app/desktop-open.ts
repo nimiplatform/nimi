@@ -143,6 +143,7 @@ export class NimiDesktopOpenIntentParseError extends Error {
   }
 }
 
+// @nimi-authority: rule.nimi.sdks.feature-clients.r041
 export function parseNimiDesktopOpenIntentEnvelope(value: unknown): NimiDesktopOpenIntentEnvelope {
   const record = asRecord(value, 'DesktopOpenIntent envelope');
   assertAllowedFields(record, ['schemaVersion', 'sourceApp', 'sourceHost', 'requestId', 'intent'], 'DesktopOpenIntent envelope');

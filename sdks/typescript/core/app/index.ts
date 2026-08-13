@@ -143,6 +143,7 @@ export type { NimiAppAIProfileFactoryRow } from './ai-profile-factory.generated.
 export * from './inventory-types.js';
 export type { NimiAppScopeKind, NimiAppScopeRef } from './app-scope.js';
 
+// @nimi-authority: rule.nimi.sdks.feature-clients.r020
 export class NimiAppClient {
   constructor(private readonly transport: NimiAppTransport) {
     if (!transport || typeof transport.list !== 'function' || typeof transport.get !== 'function' || typeof transport.status !== 'function') {

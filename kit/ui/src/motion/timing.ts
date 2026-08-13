@@ -8,6 +8,8 @@
  * must never diverge from them (divergence is design drift).
  */
 
+// @nimi-authority: definition.nimi.platform.ui-design-system.motion-system
+// @nimi-authority: rule.nimi.platform.ui-design-system.p-design-027a
 export const NIMI_MOTION_DURATIONS_MS = {
   instant: 0,
   fast: 120,

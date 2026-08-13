@@ -445,6 +445,8 @@ function routeRefs(input: AvatarDebugSessionInput): AvatarDebugEvidence['refs'] 
   };
 }
 
+// @nimi-authority: definition.nimi.avatar.embodiment.debug-backend-result
+// @nimi-authority: rule.nimi.avatar.embodiment.r029
 export function createAvatarDebugSession(input: AvatarDebugSessionInput): AvatarDebugSession {
   assertNoForbiddenFields(input);
   const debugSessionId = requiredString(input.debugSessionId, 'debug_session_id');

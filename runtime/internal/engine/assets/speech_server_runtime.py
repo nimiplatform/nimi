@@ -1,4 +1,6 @@
 from __future__ import annotations
+# @nimi-authority: definition.nimi.runtime.local-compute.speech-engine-plane
+# @nimi-authority: rule.nimi.runtime.local-compute.r074
 # @nimi-authority: rule.nimi.runtime.ai-provider.r112
 
 import dataclasses

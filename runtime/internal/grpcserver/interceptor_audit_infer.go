@@ -103,7 +103,6 @@ func inferModelResolved(resp any) (string, bool) {
 // originate from the interceptor context (envelope metadata and gRPC result)
 // rather than the request body.
 type aiExecutionAuditContext struct {
-	Provider      string // K-AUDIT-018 provider identity (x-nimi-provider-type), distinct from provider_endpoint
 	RequestSource string // K-AUDIT-018 request_source: the caller-kind origin category
 	ClientID      string // K-AUDIT-018 client_id == app_instance_id (x-nimi-app-instance-id)
 	GRPCCode      string // K-AUDIT-018 grpc_code, populated on failure only
@@ -137,10 +136,6 @@ func addAIExecutionAuditPayload(payload map[string]any, req any, traceID string,
 	}
 	payload["scenario_type"] = details.ScenarioType
 	payload["execution_mode"] = details.ExecutionMode
-	// K-AUDIT-018 fields sourced from interceptor context. provider is the
-	// provider identity (provider_endpoint is the separate network endpoint and
-	// is already recorded elsewhere in the payload).
-	payload["provider"] = strings.TrimSpace(execCtx.Provider)
 	payload["request_source"] = strings.TrimSpace(execCtx.RequestSource)
 	payload["client_id"] = strings.TrimSpace(execCtx.ClientID)
 	if grpcCode := strings.TrimSpace(execCtx.GRPCCode); grpcCode != "" {

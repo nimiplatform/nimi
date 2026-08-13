@@ -455,6 +455,8 @@ function AgentCenterChromeHeader(props: {
   );
 }
 
+// @nimi-authority: definition.nimi.platform.ui-design-system.agent-center-surface
+// @nimi-authority: rule.nimi.platform.ui-design-system.p-agent-center-001a
 export function AgentCenter(props: AgentCenterProps) {
   const chromeCopy = useMemo(
     () => translateCopyRecord(props.i18n, 'AgentCenter.chrome', resolveChromeCopy()),

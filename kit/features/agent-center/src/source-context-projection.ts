@@ -290,6 +290,8 @@ function turnSummary(
   };
 }
 
+// @nimi-authority: definition.nimi.platform.ui-design-system.runtime-projection
+// @nimi-authority: rule.nimi.platform.ui-design-system.p-agent-center-002b
 /**
  * Maps SDK-validated Runtime truth into a bounded, read-only Kit projection.
  * Invalid or contradictory input is collapsed to a closed failure state; no

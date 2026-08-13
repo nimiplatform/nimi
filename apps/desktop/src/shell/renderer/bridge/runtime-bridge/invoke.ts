@@ -19,33 +19,11 @@ export function toBridgeUserMessage(error: unknown): string {
   return translateBridgeMessage(projection.key, projection.defaultValue);
 }
 
+// @nimi-authority: definition.nimi.desktop.shell-ui.error-boundary
+// @nimi-authority: rule.nimi.desktop.bridge-ipc.r016
+// @nimi-authority: rule.nimi.desktop.shell-ui.r073
 export function toBridgeNimiError(error: unknown): NimiError {
-  return scrubBridgeNimiError(toShellBridgeNimiError(error, { translate: translateBridgeMessage }));
-}
-
-const PROVIDER_API_KEY_REDACTION = '[REDACTED_PROVIDER_API_KEY]';
-
-function scrubProviderApiKey(value: string): string {
-  return value
-    .replace(/(x-nimi-provider-api-key\s*[:=]\s*)([^\s,;}"']+)/giu, `$1${PROVIDER_API_KEY_REDACTION}`)
-    .replace(/(provider_api_key\s*[:=]\s*)([^\s,;}"']+)/giu, `$1${PROVIDER_API_KEY_REDACTION}`)
-    .replace(/("providerApiKey"\s*:\s*")([^"]*)(")/gu, `$1${PROVIDER_API_KEY_REDACTION}$3`)
-    .replace(/(providerApiKey\s*[:=]\s*)([^\s,;}"']+)/gu, `$1${PROVIDER_API_KEY_REDACTION}`);
-}
-
-function scrubBridgeNimiError(error: NimiError): NimiError {
-  error.message = scrubProviderApiKey(error.message);
-  if (error.details) {
-    const details = { ...error.details };
-    if (typeof details.rawMessage === 'string') {
-      details.rawMessage = scrubProviderApiKey(details.rawMessage);
-    }
-    if (typeof details.userMessage === 'string') {
-      details.userMessage = scrubProviderApiKey(details.userMessage);
-    }
-    error.details = details;
-  }
-  return error;
+  return toShellBridgeNimiError(error, { translate: translateBridgeMessage });
 }
 
 function summarizeInvokePayload(command: string, payload: unknown): JsonObject {
@@ -89,6 +67,9 @@ function createSecureInvokeId(command: string): string {
   return `${command}-${suffix}`;
 }
 
+// @nimi-authority: definition.nimi.desktop.bridge-ipc.invoke-infrastructure
+// @nimi-authority: definition.nimi.desktop.shell-ui.telemetry
+// @nimi-authority: rule.nimi.desktop.shell-ui.r094
 export async function invoke(command: string, payload: unknown = {}): Promise<unknown> {
   const startedAt = performance.now();
   if (!hasElectronInvoke()) {
@@ -131,9 +112,7 @@ export async function invoke(command: string, payload: unknown = {}): Promise<un
   } catch (error) {
     const bridgeError = toBridgeNimiError(error);
     const costMs = Number((performance.now() - startedAt).toFixed(2));
-    const rawMessage = scrubProviderApiKey(
-      String(bridgeError.details?.rawMessage || bridgeError.message || '').trim(),
-    );
+    const rawMessage = String(bridgeError.details?.rawMessage || bridgeError.message || '').trim();
     void emitRendererLog({
       level: 'error',
       area: 'bridge',

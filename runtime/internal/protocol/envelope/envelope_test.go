@@ -23,10 +23,6 @@ func validMD() metadata.MD {
 		"x-nimi-caller-id", "caller-1",
 		"x-nimi-surface-id", "surface-1",
 		"x-nimi-app-id", "app-1",
-		"x-nimi-key-source", "INLINE",
-		"x-nimi-provider-type", "openai",
-		"x-nimi-provider-endpoint", "https://api.openai.com",
-		"x-nimi-provider-api-key", "test-api-key",
 	)
 }
 
@@ -44,9 +40,6 @@ func TestValidateSuccess(t *testing.T) {
 	}
 	if meta.Domain != "test.domain" {
 		t.Fatalf("domain: got=%q", meta.Domain)
-	}
-	if meta.CredentialSource != "inline" {
-		t.Fatalf("credential source should be lowercased: got=%q", meta.CredentialSource)
 	}
 }
 
@@ -112,39 +105,22 @@ func TestValidateIdempotencyRequiresCallerFields(t *testing.T) {
 	}
 }
 
-func TestValidateRejectsUnknownCredentialSource(t *testing.T) {
-	ctx := metadata.NewIncomingContext(context.Background(), metadata.Pairs(
-		"x-nimi-protocol-version", PlatformProtocolVersion,
-		"x-nimi-participant-protocol-version", PlatformProtocolVersion,
-		"x-nimi-participant-id", "part-1",
-		"x-nimi-domain", "test",
-		"x-nimi-key-source", "local",
-	))
-	_, err := Validate(ctx, nil, false)
-	if err == nil {
-		t.Fatal("should fail on unsupported credential source")
-	}
-	st, ok := status.FromError(err)
-	if !ok || st.Message() != "credential source must be inline or managed" {
-		t.Fatalf("unexpected error: %v", err)
-	}
-}
-
-func TestValidateRejectsOversizedHeaderValues(t *testing.T) {
-	ctx := metadata.NewIncomingContext(context.Background(), metadata.Pairs(
-		"x-nimi-protocol-version", PlatformProtocolVersion,
-		"x-nimi-participant-protocol-version", PlatformProtocolVersion,
-		"x-nimi-participant-id", "part-1",
-		"x-nimi-domain", "test",
-		"x-nimi-provider-api-key", strings.Repeat("a", maxEnvelopeHeaderValueBytes+1),
-	))
-	_, err := Validate(ctx, nil, false)
-	if err == nil {
-		t.Fatal("should fail on oversized envelope header")
-	}
-	st, ok := status.FromError(err)
-	if !ok || st.Message() != "x-nimi-provider-api-key exceeds 4096-byte limit" {
-		t.Fatalf("unexpected error: %v", err)
+func TestValidateRejectsRetiredCallerAIInputMetadata(t *testing.T) {
+	for _, header := range []string{
+		"x-nimi-key-source",
+		"x-nimi-provider-type",
+		"x-nimi-provider-endpoint",
+		"x-nimi-provider-api-key",
+	} {
+		t.Run(header, func(t *testing.T) {
+			md := validMD()
+			md.Set(header, strings.Repeat("x", 16))
+			_, err := Validate(metadata.NewIncomingContext(context.Background(), md), nil, false)
+			st, ok := status.FromError(err)
+			if !ok || st.Message() != "retired caller AI input metadata is not accepted" {
+				t.Fatalf("retired metadata %q was not rejected: %v", header, err)
+			}
+		})
 	}
 }
 
@@ -248,10 +224,6 @@ func TestHeaderPairs(t *testing.T) {
 		CallerID:                   "caller-1",
 		AppID:                      "app-1",
 		TraceID:                    "trace-1",
-		CredentialSource:           "inline",
-		ProviderType:               "openai",
-		ProviderEndpoint:           "https://api.example.com",
-		ProviderAPIKey:             "key-123",
 	}
 	pairs := HeaderPairs(meta)
 	if len(pairs)%2 != 0 {
@@ -264,8 +236,8 @@ func TestHeaderPairs(t *testing.T) {
 	if found["x-nimi-app-id"] != "app-1" {
 		t.Fatalf("app-id header: got=%q", found["x-nimi-app-id"])
 	}
-	if found["x-nimi-provider-api-key"] != "key-123" {
-		t.Fatalf("provider-api-key header: got=%q", found["x-nimi-provider-api-key"])
+	if found["x-nimi-trace-id"] != "trace-1" {
+		t.Fatalf("trace-id header: got=%q", found["x-nimi-trace-id"])
 	}
 }
 
@@ -371,51 +343,5 @@ func TestParseSessionFromContextRejectsEmptyValues(t *testing.T) {
 	}
 	if !errors.Is(err, ErrEnvelopeMetadataMissing) {
 		t.Fatalf("expected wrapped metadata missing error, got=%v", err)
-	}
-}
-
-func TestParseCredentialMetadataFromContext(t *testing.T) {
-	md := metadata.Pairs(
-		"x-nimi-key-source", "INLINE",
-		"x-nimi-provider-type", "openai",
-		"x-nimi-provider-endpoint", "https://api.openai.com",
-		"x-nimi-provider-api-key", "test-api-key",
-	)
-	ctx := metadata.NewIncomingContext(context.Background(), md)
-	credentialMeta, err := ParseCredentialMetadataFromContext(ctx)
-	if err != nil {
-		t.Fatalf("error: %v", err)
-	}
-	if credentialMeta.Source != "inline" {
-		t.Fatalf("source should be lowercased: got=%q", credentialMeta.Source)
-	}
-	if credentialMeta.ProviderType != "openai" || credentialMeta.Endpoint != "https://api.openai.com" || credentialMeta.APIKey != "test-api-key" {
-		t.Fatalf("credential metadata: type=%q endpoint=%q key=%q", credentialMeta.ProviderType, credentialMeta.Endpoint, credentialMeta.APIKey)
-	}
-}
-
-func TestScrubIncomingCredentialMetadataRemovesRawAPIKeyFromMetadata(t *testing.T) {
-	ctx := metadata.NewIncomingContext(context.Background(), metadata.Pairs(
-		"x-nimi-key-source", "INLINE",
-		"x-nimi-provider-type", "openai",
-		"x-nimi-provider-endpoint", "https://api.openai.com",
-		"x-nimi-provider-api-key", "test-api-key",
-	))
-
-	scrubbed := ScrubIncomingCredentialMetadata(ctx)
-	md, ok := metadata.FromIncomingContext(scrubbed)
-	if !ok {
-		t.Fatal("expected scrubbed incoming metadata")
-	}
-	if got := first(md, "x-nimi-provider-api-key"); got != "" {
-		t.Fatalf("provider api key should be removed from raw metadata, got %q", got)
-	}
-
-	credentialMeta, err := ParseCredentialMetadataFromContext(scrubbed)
-	if err != nil {
-		t.Fatalf("parse scrubbed credential metadata: %v", err)
-	}
-	if credentialMeta.APIKey != "test-api-key" {
-		t.Fatalf("expected scrubbed credential context to preserve api key, got %q", credentialMeta.APIKey)
 	}
 }

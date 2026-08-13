@@ -18,6 +18,8 @@ type providerTargetIdentity interface {
 	RemoteModelCatalogID() string
 }
 
+// @nimi-authority: definition.nimi.runtime.security-core.ownership-authorization-plane
+// @nimi-authority: rule.nimi.runtime.security-core.r085
 // requestScopedProviderTarget is the only remote credential opening point.
 // The exact current-account Connector is an immutable capture; the sealed
 // payload is read only for one Host dispatch and never enters a Driver or

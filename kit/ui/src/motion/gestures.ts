@@ -1,3 +1,4 @@
+// @nimi-authority: rule.nimi.platform.ui-design-system.p-design-027c
 /**
  * Gesture motion helpers (P-DESIGN-027 / nimi-ui-motion-contract.md §4).
  *

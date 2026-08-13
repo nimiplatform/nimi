@@ -44,6 +44,10 @@ type localAppRuntimeSession struct {
 	expiresAt             time.Time
 }
 
+// @nimi-authority: definition.nimi.runtime.app-surface.auth-service-plane
+// @nimi-authority: rule.nimi.runtime.app-surface.r089
+// @nimi-authority: definition.nimi.runtime.protected-session.protected-local-session-plane
+// @nimi-authority: rule.nimi.runtime.protected-session.r001
 func (s *Service) OpenLocalAppSessionProjection(ctx context.Context) (authservice.LocalAppSessionProjection, error) {
 	connection, ok := protectedlocal.LocalAppConnectionFromContext(ctx)
 	if !ok || connection == nil || !connection.BootstrapAllowed() {
@@ -228,6 +232,7 @@ func (s *Service) AdmitLocalAppIngress(ctx context.Context, ingress localappop.I
 	return err
 }
 
+// @nimi-authority: rule.nimi.runtime.protected-session.r018
 // AuthorizeLocalAppIngress performs the common admission once and attaches only
 // the Runtime-derived owner handoff. Caller-supplied owner, account, subject,
 // generation, or capability facts never enter this context.

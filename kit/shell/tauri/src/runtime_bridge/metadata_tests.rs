@@ -132,8 +132,6 @@ fn trusted_metadata_merges_host_identity_and_auth_with_renderer_call_metadata() 
         trace_id: Some("trace-renderer".to_string()),
         idempotency_key: Some("idem-renderer".to_string()),
         surface_id: Some("renderer.surface".to_string()),
-        key_source: Some("renderer-key-source".to_string()),
-        provider_endpoint: Some("https://runtime.example.test".to_string()),
         extra: Some(renderer_extra),
         ..RuntimeBridgeMetadata::default()
     };
@@ -289,9 +287,6 @@ fn apply_metadata_respects_explicit_fields_and_extra_whitelist() {
         caller_kind: Some("desktop-core".to_string()),
         caller_id: Some("renderer".to_string()),
         surface_id: Some("settings".to_string()),
-        key_source: Some("inline".to_string()),
-        provider_endpoint: Some("https://api.example.com/v1".to_string()),
-        provider_api_key: Some("secret-token".to_string()),
         extra: Some(extra),
     };
 
@@ -345,18 +340,6 @@ fn apply_metadata_respects_explicit_fields_and_extra_whitelist() {
     assert_eq!(
         read_metadata(&request, "x-nimi-surface-id").as_deref(),
         Some("settings")
-    );
-    assert_eq!(
-        read_metadata(&request, "x-nimi-key-source").as_deref(),
-        Some("inline")
-    );
-    assert_eq!(
-        read_metadata(&request, "x-nimi-provider-endpoint").as_deref(),
-        Some("https://api.example.com/v1")
-    );
-    assert_eq!(
-        read_metadata(&request, "x-nimi-provider-api-key").as_deref(),
-        Some("secret-token")
     );
     assert_eq!(
         read_metadata(&request, "x-nimi-extra").as_deref(),
@@ -438,22 +421,30 @@ fn apply_metadata_rejects_reserved_extra_key_override() {
 }
 
 #[test]
-fn runtime_bridge_metadata_debug_redacts_provider_api_key() {
-    let mut extra = HashMap::new();
-    extra.insert(
-        "x-nimi-provider-api-key".to_string(),
-        "top-secret-value".to_string(),
-    );
+fn apply_metadata_rejects_retired_caller_ai_input_metadata() {
+    for key in [
+        "x-nimi-key-source",
+        "x-nimi-provider-type",
+        "x-nimi-provider-endpoint",
+        "x-nimi-provider-api-key",
+    ] {
+        let metadata = RuntimeBridgeMetadata {
+            extra: Some(HashMap::from([(key.to_string(), "retired".to_string())])),
+            ..app_metadata("app.example")
+        };
+        let mut request = Request::new(Vec::<u8>::new());
+        let error = apply_metadata(
+            &mut request,
+            Some(&metadata),
+            None,
+            None,
+            None,
+            "//nimi.runtime.v1.RuntimeAiService/ExecuteScenario",
+        )
+        .expect_err("retired caller AI input metadata should fail closed");
 
-    let metadata = RuntimeBridgeMetadata {
-        provider_api_key: Some("top-secret-value".to_string()),
-        extra: Some(extra),
-        ..RuntimeBridgeMetadata::default()
-    };
-
-    let debug = format!("{:?}", metadata);
-    assert!(!debug.contains("top-secret-value"));
-    assert!(debug.contains("***REDACTED***"));
+        assert!(error.contains("RUNTIME_BRIDGE_CALLER_AI_INPUT_METADATA_RETIRED"));
+    }
 }
 
 #[test]

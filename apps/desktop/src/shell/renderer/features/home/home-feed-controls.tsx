@@ -2,6 +2,7 @@ import { NIMI_REALM_FEED_SCOPES, type NimiRealmFeedScope } from '@nimiplatform/s
 import { Tooltip } from '@nimiplatform/kit/ui';
 import { useTranslation } from 'react-i18next';
 
+// @nimi-authority: rule.nimi.desktop.product-surfaces.r018
 /**
  * Canonical Realm feed scopes presented on the Home feed surface.
  * Authority: `.nimi/spec/desktop/product-surfaces.authority.yaml`

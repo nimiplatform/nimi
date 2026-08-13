@@ -43,6 +43,7 @@ import {
   type EngineContext,
 } from './engine-context.ts';
 
+// @nimi-authority: rule.nimi.platform.simulator.p-sim-009
 export function beginResetLinearization(context: EngineContext, operation: QueuedOperation): void {
   const oldEpoch = context.epoch;
   if (context.epoch >= Number.MAX_SAFE_INTEGER) {

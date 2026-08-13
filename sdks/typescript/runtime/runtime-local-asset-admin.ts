@@ -122,6 +122,9 @@ function toGeneratedNimiRuntimeLocalEnvironmentPlanResolution(
   };
 }
 
+// @nimi-authority: definition.nimi.sdks.feature-clients.local-environment-plane
+// @nimi-authority: rule.nimi.sdks.feature-clients.r063
+// @nimi-authority: rule.nimi.sdks.feature-clients.r064
 export function createNimiRuntimeLocalAssetAdminClient(
   options: NimiRuntimeLocalAssetAdminClientOptions,
 ): NimiRuntimeLocalAssetAdminClient {

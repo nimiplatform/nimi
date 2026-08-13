@@ -81,6 +81,8 @@ export interface NimiAppAIProfileClient {
   apply(profile: NimiPortableAIProfileInput): Promise<AIConfig>;
 }
 
+// @nimi-authority: definition.nimi.sdks.feature-clients.ai-config-plane
+// @nimi-authority: rule.nimi.sdks.feature-clients.r013
 /** Parse one closed portable AIProfile document. Connector identity is
  * intentionally absent and remains Runtime-resolved from owner configuration.
  */

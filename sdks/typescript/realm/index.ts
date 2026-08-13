@@ -198,6 +198,9 @@ export type RealmTransitModule = RealmMethodModule<typeof REALM_TRANSIT_METHODS>
 
 export interface RealmOptions extends CoreClientOptions {}
 
+// @nimi-authority: definition.nimi.sdks.realm-consumer.facade-plane
+// @nimi-authority: rule.nimi.sdks.realm-consumer.r009
+// @nimi-authority: rule.nimi.sdks.realm-consumer.r012
 export class Realm {
   readonly #core: CoreClient;
   readonly generated: RealmPublicGeneratedClient;

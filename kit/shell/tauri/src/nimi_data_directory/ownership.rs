@@ -1,3 +1,5 @@
+// @nimi-authority: definition.nimi.platform.product-lifecycle.nimi-data-ownership
+// @nimi-authority: rule.nimi.platform.product-lifecycle.p-mig-006-directory-declarations
 //! `nimi_data` directory ownership matrix — `P-MIG-006`.
 //!
 //! Spec authority:

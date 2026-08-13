@@ -17,6 +17,7 @@ export interface NimiCapabilityClaim {
   readonly gaps?: readonly string[];
 }
 
+// @nimi-authority: rule.nimi.sdks.feature-clients.r006
 export interface NimiCapabilityManifest {
   readonly adapterId: string;
   readonly targetLibrary: string;

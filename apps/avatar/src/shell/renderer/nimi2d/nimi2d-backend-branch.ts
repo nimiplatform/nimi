@@ -7,6 +7,7 @@ import { createNimi2DCarrierSurface } from './nimi2d-carrier-surface.js';
 import { probeNimi2DCarrierVisualFrame } from './nimi2d-carrier-visual-proof.js';
 import { loadNimi2DPackage, optionalCapabilityProfileRef } from './nimi2d-package.js';
 
+// @nimi-authority: rule.nimi.avatar.embodiment.r063
 export async function createNimi2DBackendBranch(
   manifest: Nimi2DAvatarModelManifest,
 ): Promise<BackendBranchHandle> {

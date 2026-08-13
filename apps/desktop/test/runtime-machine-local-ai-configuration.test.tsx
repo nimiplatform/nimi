@@ -267,6 +267,14 @@ test('Local AI Configurations renders the image form without LoRA authoring and 
     enableInputImage: false,
     executionOptions: { steps: 20, cfgScale: 7, width: 1024, height: 1024, seed: 42 },
   });
+  assert.throws(
+    () => createMachineLocalImageConfigurationInput(
+      draft,
+      [{ ...bundle, family: 'z-image-turbo' }],
+      draft.displayName,
+    ),
+    /exact stable-diffusion Driver family/u,
+  );
 });
 
 test('Local AI Configurations authors and manages the exact llama embedding implementation', () => {

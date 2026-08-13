@@ -32,6 +32,8 @@ const PRESENTATION_BACKENDS = new Set(['vrm', 'live2d', 'sprite2d', 'canvas2d', 
 const AUTONOMY_MODES = new Set(['off', 'low', 'medium', 'high']);
 const MAX_DATE_MILLIS = 8_640_000_000_000_000n;
 
+// @nimi-authority: rule.nimi.zhiyu.local-partner-surface.r008
+// @nimi-authority: rule.nimi.zhiyu.local-partner-surface.r009
 export function createZhiyuProductionAgentCenterSession(
   agentHandle: AgentCenterOpaqueHandle | null,
   identityInput: ZhiyuAuthorizedAgentCenterIdentity | null,

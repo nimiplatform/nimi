@@ -9,6 +9,9 @@ export interface NimiRuntimeCloudImplementationOption {
   readonly implementation: CapabilityImplementationIdentity;
 }
 
+// @nimi-authority: definition.nimi.sdks.feature-clients.capability-composition-plane
+// @nimi-authority: rule.nimi.sdks.feature-clients.r065
+// @nimi-authority: rule.nimi.sdks.feature-clients.r068
 /**
  * Projects the current Runtime model-catalog provider rows into the Cloud
  * implementation choices shown by first-party configuration surfaces.

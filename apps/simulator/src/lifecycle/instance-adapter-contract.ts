@@ -1,3 +1,5 @@
+// @nimi-authority: definition.nimi.platform.simulator.adapter
+// @nimi-authority: rule.nimi.platform.simulator.p-sim-005
 /** Runtime shape checks for App-owned Adapter modules and instances. */
 
 import type {

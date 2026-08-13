@@ -107,7 +107,7 @@ export const NIMI_AI_PROFILE_LLAMA_EMBED_PORTABLE_CONFIG_FIELDS = Object.freeze(
 ] as const);
 
 /** Mirrors parseStableDiffusionPortableConfig in Runtime's exact image Driver. */
-// nimi-authority: rule.nimi.runtime.ai-provider.r064
+// @nimi-authority: rule.nimi.runtime.ai-provider.r064
 export const NIMI_AI_PROFILE_STABLE_DIFFUSION_PORTABLE_CONFIG_FIELDS = Object.freeze([
   'modelFamily',
   'enableInputImage',

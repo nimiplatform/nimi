@@ -41,6 +41,7 @@ type NimiTextProps<T extends ElementType = 'p'> = {
   className?: string;
 } & Omit<ComponentPropsWithoutRef<T>, 'as' | 'children' | 'className'>;
 
+// @nimi-authority: rule.nimi.platform.ui-design-system.p-design-016
 export function NimiText<T extends ElementType = 'p'>({
   as,
   role = 'body',

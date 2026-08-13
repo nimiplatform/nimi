@@ -100,18 +100,6 @@ func withNimiOutgoingMetadata(ctx context.Context, appID string, metadataOverrid
 	if metadataValue.TraceID != "" {
 		pairs = append(pairs, "x-nimi-trace-id", metadataValue.TraceID)
 	}
-	if source := strings.ToLower(strings.TrimSpace(metadataValue.CredentialSource)); source != "" {
-		pairs = append(pairs, "x-nimi-key-source", source)
-	}
-	if providerType := strings.TrimSpace(metadataValue.ProviderType); providerType != "" {
-		pairs = append(pairs, "x-nimi-provider-type", providerType)
-	}
-	if endpoint := strings.TrimSpace(metadataValue.ProviderEndpoint); endpoint != "" {
-		pairs = append(pairs, "x-nimi-provider-endpoint", endpoint)
-	}
-	if apiKey := strings.TrimSpace(metadataValue.ProviderAPIKey); apiKey != "" {
-		pairs = append(pairs, "x-nimi-provider-api-key", apiKey)
-	}
 	if appID != "" {
 		pairs = append(pairs, "x-nimi-app-id", appID)
 	}
@@ -143,10 +131,6 @@ func applyClientMetadataOverrides(dst *ClientMetadata, override *ClientMetadata)
 		{value: strings.TrimSpace(override.CallerID), set: func(value string) { dst.CallerID = value }},
 		{value: strings.TrimSpace(override.SurfaceID), set: func(value string) { dst.SurfaceID = value }},
 		{value: strings.TrimSpace(override.TraceID), set: func(value string) { dst.TraceID = value }},
-		{value: strings.ToLower(strings.TrimSpace(override.CredentialSource)), set: func(value string) { dst.CredentialSource = value }},
-		{value: strings.TrimSpace(override.ProviderType), set: func(value string) { dst.ProviderType = value }},
-		{value: strings.TrimSpace(override.ProviderEndpoint), set: func(value string) { dst.ProviderEndpoint = value }},
-		{value: strings.TrimSpace(override.ProviderAPIKey), set: func(value string) { dst.ProviderAPIKey = value }},
 		{value: strings.TrimSpace(override.SessionID), set: func(value string) { dst.SessionID = value }},
 		{value: strings.TrimSpace(override.SessionToken), set: func(value string) { dst.SessionToken = value }},
 	}
@@ -186,8 +170,7 @@ func metadataOverrideCarriesInsecureTransportSecret(metadataOverride *ClientMeta
 	if metadataOverride == nil {
 		return false
 	}
-	return strings.TrimSpace(metadataOverride.ProviderAPIKey) != "" ||
-		strings.TrimSpace(metadataOverride.SessionToken) != ""
+	return strings.TrimSpace(metadataOverride.SessionToken) != ""
 }
 
 func insecureGRPCTargetIsLocal(grpcAddr string) bool {
@@ -255,8 +238,6 @@ func defaultClientMetadata() ClientMetadata {
 		CallerID:                   cliCallerID,
 		SurfaceID:                  cliSurfaceID,
 		TraceID:                    "",
-		CredentialSource:           "",
-		ProviderType:               "",
 	}
 }
 

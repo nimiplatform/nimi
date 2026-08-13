@@ -44,6 +44,9 @@ func (s *Service) SetModelCatalog(modelCatalog *aicatalog.Resolver) {
 	}
 }
 
+// @nimi-authority: definition.nimi.runtime.agent-participation.ai-config-plane
+// @nimi-authority: rule.nimi.runtime.agent-participation.r082
+// @nimi-authority: rule.nimi.runtime.agent-participation.r169
 // authorizeSharedLocalAgentAIConfig binds the singular subsystem owner to the
 // authenticated account. Request context is only an exact caller assertion;
 // Runtime source and individual LocalAgent selectors are forbidden.

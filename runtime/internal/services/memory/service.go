@@ -83,6 +83,8 @@ type MemoryEmbeddingProfileResolver func(context.Context, *MemoryEmbeddingTextEm
 type MemoryEmbeddingVectorExecutor func(context.Context, *runtimev1.MemoryEmbeddingProfile, []string) ([][]float64, error)
 type MemoryEmbeddingTargetAuthorizer func(context.Context, *runtimev1.MemoryRequestContext, *runtimev1.MemoryBankLocator) error
 
+// @nimi-authority: definition.nimi.runtime.memory-world.canonical-memory-plane
+// @nimi-authority: rule.nimi.runtime.memory-world.r001
 type Service struct {
 	logger    *slog.Logger
 	statePath string

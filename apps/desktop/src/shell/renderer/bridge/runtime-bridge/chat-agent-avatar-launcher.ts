@@ -219,6 +219,9 @@ export function parseDesktopAvatarCloseHandoffResult(value: unknown): DesktopAva
   };
 }
 
+// @nimi-authority: definition.nimi.desktop.agent-projection.avatar-surface
+// @nimi-authority: rule.nimi.desktop.agent-projection.r016
+// @nimi-authority: rule.nimi.desktop.agent-projection.r199
 export function buildDesktopAvatarLaunchHandoffPayload(
   input: DesktopAvatarLaunchHandoffInput,
 ): DesktopAvatarLaunchHandoffPayload {

@@ -39,6 +39,7 @@ export function isAgentVoiceInputCancellationError(error: unknown): boolean {
   return isNimiRuntimeAgentCanceledError(error);
 }
 
+// @nimi-authority: rule.nimi.desktop.agent-projection.r011
 export async function transcribeAndSubmitCapturedAgentVoiceInput(input: {
   runtime: AgentVoiceInputRuntimePort;
   target: AgentLocalTargetSnapshot;

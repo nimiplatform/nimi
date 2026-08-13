@@ -42,7 +42,6 @@ func newUnaryAuditInterceptor(store *auditlog.Store) grpc.UnaryServerInterceptor
 			subjectUserID = identity.SubjectUserID
 		}
 		callerKind, callerID, surfaceID, traceID := readCallerMetadata(handlerCtx)
-		credentialSource, providerEndpoint, providerAPIKeyFingerprint := providerCredentialMetadata(handlerCtx)
 		tokenID := accessTokenIDFromMetadata(handlerCtx)
 
 		reasonCode := reasonCodeFromError(err)
@@ -59,19 +58,12 @@ func newUnaryAuditInterceptor(store *auditlog.Store) grpc.UnaryServerInterceptor
 		usage, _ := inferUsage(resp)
 
 		payload := map[string]any{
-			"grpc_method":                  info.FullMethod,
-			"model_id":                     modelID,
-			"success":                      success,
-			"kind":                         "unary",
-			"credential_source":            credentialSource,
-			"provider_endpoint":            providerEndpoint,
-			"provider_api_key_fingerprint": providerAPIKeyFingerprint,
+			"grpc_method": info.FullMethod, "model_id": modelID, "success": success, "kind": "unary",
 		}
 		// request_id is set on the top-level AuditEventRecord.request_id field
 		// (K-AUDIT-003 baseline request_id == trace_id) and mirrored into the AI
 		// execution payload (K-AUDIT-018) for fan-out separation.
 		requestID := addAIExecutionAuditPayload(payload, req, traceID, aiExecutionAuditContext{
-			Provider:      providerIdentityFromMetadata(handlerCtx),
 			RequestSource: requestSourceFromCallerKind(callerKind),
 			ClientID:      appInstanceIDFromMetadata(handlerCtx),
 			GRPCCode:      grpcCodeOnFailure(err, success),
@@ -137,7 +129,6 @@ func newStreamAuditInterceptor(store *auditlog.Store) grpc.StreamServerIntercept
 			modelID = modelResolved
 		}
 		callerKind, callerID, surfaceID, metadataTraceID := readCallerMetadata(ss.Context())
-		credentialSource, providerEndpoint, providerAPIKeyFingerprint := providerCredentialMetadata(ss.Context())
 		tokenID := accessTokenIDFromMetadata(ss.Context())
 		if traceID == "" {
 			traceID = metadataTraceID
@@ -147,19 +138,12 @@ func newStreamAuditInterceptor(store *auditlog.Store) grpc.StreamServerIntercept
 		success := reasonCode == runtimev1.ReasonCode_ACTION_EXECUTED
 
 		payload := map[string]any{
-			"grpc_method":                  info.FullMethod,
-			"model_id":                     modelID,
-			"success":                      success,
-			"kind":                         "stream",
-			"credential_source":            credentialSource,
-			"provider_endpoint":            providerEndpoint,
-			"provider_api_key_fingerprint": providerAPIKeyFingerprint,
+			"grpc_method": info.FullMethod, "model_id": modelID, "success": success, "kind": "stream",
 		}
 		// request_id is set on the top-level AuditEventRecord.request_id field
 		// (K-AUDIT-003 baseline request_id == trace_id) and mirrored into the AI
 		// execution payload (K-AUDIT-018) for fan-out separation.
 		requestID := addAIExecutionAuditPayload(payload, request, traceID, aiExecutionAuditContext{
-			Provider:      providerIdentityFromMetadata(ss.Context()),
 			RequestSource: requestSourceFromCallerKind(callerKind),
 			ClientID:      appInstanceIDFromMetadata(ss.Context()),
 			GRPCCode:      grpcCodeOnFailure(err, success),

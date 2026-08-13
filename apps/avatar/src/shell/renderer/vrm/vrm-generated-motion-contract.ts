@@ -46,6 +46,7 @@ export type VrmGeneratedMotionProviderResult<TClip = unknown> =
       evidence: GeneratedMotionEvidence;
     };
 
+// @nimi-authority: definition.nimi.avatar.embodiment.generated-motion-provider
 export interface VrmGeneratedMotionProvider<TVrm = unknown, TClip = unknown> {
   generate(input: VrmGeneratedMotionProviderInput<TVrm>): VrmGeneratedMotionProviderResult<TClip>;
 }

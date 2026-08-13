@@ -15438,9 +15438,6 @@ impl ListPendingHooksResponse {
 pub struct ListPresetVoicesRequest {
     pub app_id: Option<String>,
     pub subject_user_id: Option<String>,
-    pub model_id: Option<String>,
-    pub target_model_id: Option<String>,
-    pub connector_id: Option<String>,
 }
 
 impl ListPresetVoicesRequest {
@@ -15448,9 +15445,6 @@ impl ListPresetVoicesRequest {
         let mut pairs: Vec<String> = Vec::new();
         if let Some(value) = &self.app_id { pairs.push(format!("app_id={}", value)); }
         if let Some(value) = &self.subject_user_id { pairs.push(format!("subject_user_id={}", value)); }
-        if let Some(value) = &self.model_id { pairs.push(format!("model_id={}", value)); }
-        if let Some(value) = &self.target_model_id { pairs.push(format!("target_model_id={}", value)); }
-        if let Some(value) = &self.connector_id { pairs.push(format!("connector_id={}", value)); }
         pairs.join(";").into_bytes()
     }
 
@@ -15460,9 +15454,6 @@ impl ListPresetVoicesRequest {
 
         out.app_id = pairs.get("app_id").cloned();
         out.subject_user_id = pairs.get("subject_user_id").cloned();
-        out.model_id = pairs.get("model_id").cloned();
-        out.target_model_id = pairs.get("target_model_id").cloned();
-        out.connector_id = pairs.get("connector_id").cloned();
         out
     }
 }

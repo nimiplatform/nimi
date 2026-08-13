@@ -74,6 +74,10 @@ export type ZhiyuRuntimeAgentChatTurnInput = {
   ) => void;
 };
 
+// @nimi-authority: rule.nimi.zhiyu.local-partner-surface.r001
+// @nimi-authority: rule.nimi.zhiyu.local-partner-surface.r002
+// @nimi-authority: rule.nimi.zhiyu.local-partner-surface.r003
+// @nimi-authority: rule.nimi.zhiyu.local-partner-surface.r007
 export async function runZhiyuAgentChatTurn(
   input: ZhiyuRuntimeAgentChatTurnInput,
 ): Promise<ZhiyuRuntimeAgentChatTurnResult> {

@@ -41,6 +41,7 @@ import { GrantReceiptDialog } from './chrome/grant-receipt.tsx';
 import { LedgerDrawer } from './chrome/ledger-drawer.tsx';
 import { AgentLayer } from './chrome/agent-layer.tsx';
 
+// @nimi-authority: rule.nimi.platform.simulator.p-sim-001b
 export const SIMULATOR_STATUS_TEXT = 'Nimi Ecosystem Simulator — simulated data and effects';
 
 export interface SimulatorShellViewProps {

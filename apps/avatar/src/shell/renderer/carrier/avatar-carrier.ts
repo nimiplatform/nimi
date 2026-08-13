@@ -218,6 +218,9 @@ function activityIntensity(value: string | null | undefined): number | null {
   return null;
 }
 
+// @nimi-authority: definition.nimi.avatar.embodiment.nas-projection-api
+// @nimi-authority: definition.nimi.avatar.embodiment.projection-output
+// @nimi-authority: rule.nimi.avatar.embodiment.r010
 function createBackendCueProjection(branch: BackendBranch): EmbodimentProjectionApi {
   const signalState = new Map<string, number>();
   const setSignalValue = (signalId: string, value: number): void => {
@@ -295,6 +298,7 @@ export async function startAvatarRuntimeCarrier(input: {
   return carrier;
 }
 
+// @nimi-authority: definition.nimi.avatar.embodiment.product-boundary
 export async function startAvatarVisualCarrier(input: {
   modelManifest: AvatarModelManifest;
   committedPresentationSelection?: AvatarCommittedPresentationSelection | null;

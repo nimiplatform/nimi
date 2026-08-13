@@ -4174,12 +4174,6 @@ pub struct ListPresetVoicesRequest {
     pub app_id: ::prost::alloc::string::String,
     #[prost(string, tag = "2")]
     pub subject_user_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "3")]
-    pub model_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "4")]
-    pub target_model_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "5")]
-    pub connector_id: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ListPresetVoicesResponse {

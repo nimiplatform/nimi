@@ -19,9 +19,9 @@ const (
 )
 
 var ErrEnvelopeMetadataMissing = errors.New("envelope metadata missing")
-var allowedCredentialSources = map[string]struct{}{
-	"inline":  {},
-	"managed": {},
+
+var retiredCallerAIInputMetadataSuffixes = map[string]struct{}{
+	"key-source": {}, "provider-type": {}, "provider-endpoint": {}, "provider-api-key": {},
 }
 
 type Metadata struct {
@@ -36,16 +36,15 @@ type Metadata struct {
 	CallerKind                 string
 	CallerID                   string
 	SurfaceID                  string
-	CredentialSource           string
-	ProviderType               string
-	ProviderEndpoint           string
-	ProviderAPIKey             string
 }
 
 func Validate(ctx context.Context, req any, requireIdempotency bool) (Metadata, error) {
 	md, ok := metadata.FromIncomingContext(ctx)
 	if !ok {
 		return Metadata{}, protocolError(runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID, "missing protocol envelope metadata")
+	}
+	if retiredCallerAIInputMetadataPresent(md) {
+		return Metadata{}, protocolError(runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID, "retired caller AI input metadata is not accepted")
 	}
 
 	meta := Metadata{
@@ -60,10 +59,6 @@ func Validate(ctx context.Context, req any, requireIdempotency bool) (Metadata, 
 		CallerKind:                 first(md, "x-nimi-caller-kind"),
 		CallerID:                   first(md, "x-nimi-caller-id"),
 		SurfaceID:                  first(md, "x-nimi-surface-id"),
-		CredentialSource:           strings.ToLower(first(md, "x-nimi-key-source")),
-		ProviderType:               first(md, "x-nimi-provider-type"),
-		ProviderEndpoint:           first(md, "x-nimi-provider-endpoint"),
-		ProviderAPIKey:             first(md, "x-nimi-provider-api-key"),
 	}
 
 	if meta.ProtocolVersion == "" || meta.ParticipantProtocolVersion == "" || meta.ParticipantID == "" || meta.Domain == "" {
@@ -77,9 +72,6 @@ func Validate(ctx context.Context, req any, requireIdempotency bool) (Metadata, 
 	}
 	if requireIdempotency && (meta.CallerKind == "" || meta.CallerID == "") {
 		return Metadata{}, protocolError(runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID, "caller kind and caller id are required with idempotency")
-	}
-	if meta.CredentialSource != "" && !isAllowedCredentialSource(meta.CredentialSource) {
-		return Metadata{}, protocolError(runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID, "credential source must be inline or managed")
 	}
 	if err := validateMetadataValueLengths(meta); err != nil {
 		return Metadata{}, err
@@ -131,9 +123,17 @@ func first(md metadata.MD, key string) string {
 	return strings.TrimSpace(values[0])
 }
 
-func isAllowedCredentialSource(value string) bool {
-	_, ok := allowedCredentialSources[strings.ToLower(strings.TrimSpace(value))]
-	return ok
+func retiredCallerAIInputMetadataPresent(md metadata.MD) bool {
+	for key := range md {
+		normalized := strings.ToLower(strings.TrimSpace(key))
+		if !strings.HasPrefix(normalized, "x-nimi-") {
+			continue
+		}
+		if _, retired := retiredCallerAIInputMetadataSuffixes[strings.TrimPrefix(normalized, "x-nimi-")]; retired {
+			return true
+		}
+	}
+	return false
 }
 
 func validateMetadataValueLengths(meta Metadata) error {
@@ -149,10 +149,6 @@ func validateMetadataValueLengths(meta Metadata) error {
 		"x-nimi-caller-kind":                  meta.CallerKind,
 		"x-nimi-caller-id":                    meta.CallerID,
 		"x-nimi-surface-id":                   meta.SurfaceID,
-		"x-nimi-key-source":                   meta.CredentialSource,
-		"x-nimi-provider-type":                meta.ProviderType,
-		"x-nimi-provider-endpoint":            meta.ProviderEndpoint,
-		"x-nimi-provider-api-key":             meta.ProviderAPIKey,
 	}
 	for key, value := range fields {
 		if len(value) > maxEnvelopeHeaderValueBytes {
@@ -239,18 +235,6 @@ func HeaderPairs(meta Metadata) []string {
 	if traceID := strings.TrimSpace(meta.TraceID); traceID != "" {
 		pairs = append(pairs, "x-nimi-trace-id", traceID)
 	}
-	if source := strings.TrimSpace(meta.CredentialSource); source != "" {
-		pairs = append(pairs, "x-nimi-key-source", source)
-	}
-	if providerType := strings.TrimSpace(meta.ProviderType); providerType != "" {
-		pairs = append(pairs, "x-nimi-provider-type", providerType)
-	}
-	if endpoint := strings.TrimSpace(meta.ProviderEndpoint); endpoint != "" {
-		pairs = append(pairs, "x-nimi-provider-endpoint", endpoint)
-	}
-	if apiKey := strings.TrimSpace(meta.ProviderAPIKey); apiKey != "" {
-		pairs = append(pairs, "x-nimi-provider-api-key", apiKey)
-	}
 	return pairs
 }
 
@@ -302,50 +286,4 @@ func ParseSessionFromContext(ctx context.Context) (string, string, error) {
 		return "", "", fmt.Errorf("parse session from context: %w", ErrEnvelopeMetadataMissing)
 	}
 	return sessionID, sessionToken, nil
-}
-
-type CredentialMetadata struct {
-	Source       string
-	ProviderType string
-	Endpoint     string
-	APIKey       string
-}
-
-type credentialMetadataContextKey struct{}
-
-func ParseCredentialMetadataFromContext(ctx context.Context) (CredentialMetadata, error) {
-	if override, ok := ctx.Value(credentialMetadataContextKey{}).(CredentialMetadata); ok {
-		return override, nil
-	}
-	md, ok := metadata.FromIncomingContext(ctx)
-	if !ok {
-		return CredentialMetadata{}, fmt.Errorf("parse credential metadata from context: %w", ErrEnvelopeMetadataMissing)
-	}
-	return CredentialMetadata{
-		Source:       strings.ToLower(first(md, "x-nimi-key-source")),
-		ProviderType: first(md, "x-nimi-provider-type"),
-		Endpoint:     first(md, "x-nimi-provider-endpoint"),
-		APIKey:       first(md, "x-nimi-provider-api-key"),
-	}, nil
-}
-
-func ScrubIncomingCredentialMetadata(ctx context.Context) context.Context {
-	md, ok := metadata.FromIncomingContext(ctx)
-	if !ok {
-		return ctx
-	}
-
-	credentialMeta := CredentialMetadata{
-		Source:       strings.ToLower(first(md, "x-nimi-key-source")),
-		ProviderType: first(md, "x-nimi-provider-type"),
-		Endpoint:     first(md, "x-nimi-provider-endpoint"),
-		APIKey:       first(md, "x-nimi-provider-api-key"),
-	}
-	if strings.TrimSpace(credentialMeta.APIKey) == "" {
-		return ctx
-	}
-
-	scrubbed := md.Copy()
-	delete(scrubbed, "x-nimi-provider-api-key")
-	return metadata.NewIncomingContext(context.WithValue(ctx, credentialMetadataContextKey{}, credentialMeta), scrubbed)
 }

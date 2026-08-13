@@ -486,6 +486,9 @@ function projectPresentationCommitError(error: unknown): Exclude<NimiRuntimeAgen
   }) });
 }
 
+// @nimi-authority: definition.nimi.sdks.feature-clients.avatar-projection-plane
+// @nimi-authority: rule.nimi.sdks.feature-clients.r076
+// @nimi-authority: rule.nimi.sdks.feature-clients.r077
 export function createNimiHostRuntimeAgentPresentationProfileSurface(
   options: NimiHostRuntimeAgentPresentationProfileSurfaceOptions,
 ): NimiRuntimeAgentPresentationProfileSurface {

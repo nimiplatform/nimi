@@ -133,6 +133,9 @@ function deriveModelDiagnostics(model: AvatarAppState['model']): CompositionMode
   };
 }
 
+// @nimi-authority: definition.nimi.avatar.embodiment.shell-lifecycle
+// @nimi-authority: rule.nimi.avatar.embodiment.r021
+// @nimi-authority: rule.nimi.avatar.embodiment.r022
 export function deriveCompositionState(input: CompositionInput): CompositionDerivation {
   const modelDiagnostics = deriveModelDiagnostics(input.model);
   if (input.relaunchPending) {

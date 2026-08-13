@@ -102,6 +102,7 @@ const SIDECAR_FIELDS = new Set([
 ]);
 const TARGET_FIELDS = new Set(['target_kind', 'name', 'role']);
 
+// @nimi-authority: rule.nimi.avatar.embodiment.r072
 export function parseAvatarMappingSidecarDocument(text: string): AvatarMappingSidecar {
   return normalizeAvatarMappingSidecar(parseYaml(text));
 }

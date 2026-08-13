@@ -33,6 +33,8 @@ type machineLocalConfigurationStore interface {
 	Save([]*storedLocalCapabilityConfiguration, []*runtimev1.LocalCapabilitySelection) error
 }
 
+// @nimi-authority: definition.nimi.runtime.local-compute.machine-local-configuration-plane
+// @nimi-authority: rule.nimi.runtime.local-compute.r096
 type diskMachineLocalConfigurationStore struct {
 	path string
 }

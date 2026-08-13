@@ -41,6 +41,67 @@ type cloudMediaEffectiveInputs struct {
 	accountID      string
 }
 
+type cloudMediaRouteComposition struct {
+	intent    executionintent.Intent
+	driver    capabilitydriver.CloudMediaDriver
+	target    capabilitydriver.CloudMediaTarget
+	connector connector.ConnectorRecord
+	binding   *connector.RemoteModelCatalogBinding
+	appID     string
+	accountID string
+}
+
+// @nimi-authority: rule.nimi.runtime.ai-provider.r091
+func (s *Service) resolveCloudMediaRouteComposition(
+	ctx context.Context,
+	head *runtimev1.ScenarioRequestHead,
+	capabilityContract string,
+) (*cloudMediaRouteComposition, error) {
+	if s == nil || head == nil || strings.TrimSpace(capabilityContract) == "" {
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+	}
+	intent, err := s.resolveCloudMediaConsumerIntent(ctx, head, capabilityContract)
+	if err != nil {
+		return nil, err
+	}
+	if !intent.IsAIConfigCloud() || intent.CapabilityContract != capabilityContract || s.cloudMediaDrivers == nil {
+		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONFIG_INVALID)
+	}
+	driver, target, err := s.cloudMediaDrivers.Resolve(
+		capabilitydriver.IdentityFromProto(intent.CloudImplementation),
+		intent.ProviderModelTarget,
+		capabilityContract,
+	)
+	if err != nil {
+		return nil, cloudMediaDriverError(capabilityContract, err)
+	}
+	if target.RemoteModelCatalogID() == "" {
+		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONFIG_INVALID)
+	}
+	accountID := scenarioTargetSubjectUserID(ctx, head)
+	connectorRecord, binding, err := connector.ResolveCurrentAccountConnectorBinding(
+		s.connStore,
+		s.speechCatalog,
+		accountID,
+		connector.RemoteModelCatalogRef{
+			RemoteModelCatalogID: target.RemoteModelCatalogID(),
+			ProviderModelID:      target.ProviderModelID(),
+			Provider:             target.Provider(),
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+	if binding == nil {
+		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONFIG_INVALID)
+	}
+	return &cloudMediaRouteComposition{
+		intent: intent, driver: driver, target: target,
+		connector: connectorRecord, binding: binding,
+		appID: strings.TrimSpace(head.GetAppId()), accountID: accountID,
+	}, nil
+}
+
 func (input *cloudMediaEffectiveInputs) release() {
 	if input == nil {
 		return
@@ -110,36 +171,16 @@ func (s *Service) captureCloudMediaEffectiveInputs(
 		})
 	}
 	capabilityContract := scenarioTargetCapability(request.GetScenarioType())
-	intent, err := s.resolveCloudMediaConsumerIntent(ctx, head, capabilityContract)
+	composition, err := s.resolveCloudMediaRouteComposition(ctx, head, capabilityContract)
 	if err != nil {
 		return nil, err
 	}
-	if !intent.IsAIConfigCloud() || intent.CapabilityContract != capabilityContract {
-		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONFIG_INVALID)
-	}
-	if s.cloudMediaDrivers == nil {
-		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONFIG_INVALID)
-	}
-	driver, target, err := s.cloudMediaDrivers.Resolve(
-		capabilitydriver.IdentityFromProto(intent.CloudImplementation),
-		intent.ProviderModelTarget,
-		capabilityContract,
-	)
-	if err != nil {
-		return nil, cloudMediaDriverError(capabilityContract, err)
-	}
-	accountID := scenarioTargetSubjectUserID(ctx, head)
-	if target.RemoteModelCatalogID() == "" {
-		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONFIG_INVALID)
-	}
-	connectorRecord, binding, err := connector.ResolveCurrentAccountConnectorBinding(s.connStore, s.speechCatalog, accountID, connector.RemoteModelCatalogRef{
-		RemoteModelCatalogID: target.RemoteModelCatalogID(),
-		ProviderModelID:      target.ProviderModelID(),
-		Provider:             target.Provider(),
-	})
-	if err != nil {
-		return nil, err
-	}
+	intent := composition.intent
+	driver := composition.driver
+	target := composition.target
+	accountID := composition.accountID
+	connectorRecord := composition.connector
+	binding := composition.binding
 
 	// Catalog validation consumes only safe connector/config identities. It
 	// performs no provider probe and carries no endpoint or credential.
@@ -148,9 +189,6 @@ func (s *Service) captureCloudMediaEffectiveInputs(
 		ProviderModelID:      target.ProviderModelID(),
 		RemoteModelCatalogID: target.RemoteModelCatalogID(),
 		ConnectorID:          connectorRecord.ConnectorID,
-	}
-	if binding == nil {
-		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONFIG_INVALID)
 	}
 	applyRemoteModelCatalogBinding(safeTarget, binding)
 	voiceTarget := &runtimeidentity.Target{Cloud: &runtimeidentity.CloudTarget{
@@ -240,7 +278,7 @@ func (s *Service) captureCloudMediaEffectiveInputs(
 		mapped:         mapped,
 		driver:         driver,
 		traceID:        ulid.Make().String(),
-		appID:          strings.TrimSpace(head.GetAppId()),
+		appID:          composition.appID,
 		accountID:      accountID,
 	}
 	if err := s.auditCloudMediaCapture(effective); err != nil {

@@ -69,9 +69,6 @@ test('Desktop voice catalog uses Runtime-owned preset and owner-scoped asset ide
   assert.deepEqual(ai.calls.preset[0]?.request, {
     appId: 'nimi.desktop',
     subjectUserId: 'user-1',
-    modelId: '',
-    targetModelId: '',
-    connectorId: '',
   });
   assert.equal(ai.calls.preset[0]?.options.signal instanceof AbortSignal, true);
 });

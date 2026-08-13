@@ -306,6 +306,10 @@ export type NimiLocalAppClient = {
   };
 };
 
+// @nimi-authority: definition.nimi.sdks.feature-clients.app-client-plane
+// @nimi-authority: rule.nimi.sdks.feature-clients.r019
+// @nimi-authority: rule.nimi.sdks.feature-clients.r034
+// @nimi-authority: rule.nimi.sdks.feature-clients.r040
 export function createNimiLocalAppClient(
   input: NimiLocalAppClientInput,
 ): NimiLocalAppClient {

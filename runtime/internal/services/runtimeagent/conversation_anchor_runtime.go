@@ -18,6 +18,9 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
+// @nimi-authority: definition.nimi.runtime.agent-participation.conversation-anchor-plane
+// @nimi-authority: rule.nimi.runtime.agent-participation.r001
+// @nimi-authority: rule.nimi.runtime.agent-participation.r005
 // OpenConversationAnchor resolves the one Runtime-owned ConversationAnchor
 // for an explicitly selected LocalAgent. The first authorized open creates the
 // anchor; every later authorized surface receives that same committed anchor.

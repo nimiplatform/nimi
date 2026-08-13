@@ -1,3 +1,6 @@
+// @nimi-authority: definition.nimi.platform.simulator.effect-boundary
+// @nimi-authority: rule.nimi.platform.simulator.p-sim-002
+// @nimi-authority: rule.nimi.platform.simulator.p-sim-003
 /**
  * Simulator browser-effect guards: catalog-driven supplemental runtime denial
  * for interceptable browser surfaces, installed before any Shell or

@@ -146,6 +146,8 @@ function isCanonicalAIConfigAbsence(error: unknown): boolean {
   return asNimiError(error).reasonCode === 'AI_CONFIG_NOT_FOUND';
 }
 
+// @nimi-authority: rule.nimi.platform.ui-design-system.p-agent-center-006c
+// @nimi-authority: rule.nimi.platform.ui-design-system.p-agent-center-007
 class ManagerSession {
   readonly appearance: AgentCenterSession['appearance'];
   readonly cloudAIConfig?: ModelConfigCloudAIConfigModule;

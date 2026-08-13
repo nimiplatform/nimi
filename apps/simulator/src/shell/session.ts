@@ -129,6 +129,10 @@ export interface SimulatorSession {
   readonly epoch: number;
 }
 
+// @nimi-authority: definition.nimi.platform.simulator.session-projection
+// @nimi-authority: rule.nimi.platform.simulator.p-sim-010
+// @nimi-authority: rule.nimi.platform.simulator.p-sim-010a
+// @nimi-authority: rule.nimi.platform.simulator.p-sim-011
 export function createSimulatorSession(options: SimulatorSessionOptions): SimulatorSession {
   const listeners = new Set<() => void>();
   const diagnostics = createDiagnosticsStore();

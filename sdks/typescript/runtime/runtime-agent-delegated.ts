@@ -120,6 +120,8 @@ function requireText(value: unknown, field: string): string {
   return normalized;
 }
 
+// @nimi-authority: definition.nimi.sdks.feature-clients.delegation-plane
+// @nimi-authority: rule.nimi.sdks.feature-clients.r070
 export function createNimiHostRuntimeAgentDelegatedControlSurface(
   options: NimiHostRuntimeAgentDelegatedControlSurfaceOptions,
 ): NimiRuntimeAgentDelegatedControlSurface {

@@ -102,6 +102,7 @@ export interface NimiMastraModelOptions {
   readonly model: NimiAiModel;
 }
 
+// @nimi-authority: rule.nimi.sdks.feature-clients.r005
 /**
  * Wrap a `NimiAiModel` as a Mastra-compatible model. Pass the result straight to a
  * Mastra Agent: `new Agent({ name, instructions, model: createNimiMastraModel({ model }) })`.

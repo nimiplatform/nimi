@@ -29,6 +29,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/videomedia"
 )
 
+// @nimi-authority: definition.nimi.runtime.service-operations.daemon-plane
 // Daemon wires runtime servers and health state lifecycle.
 type Daemon struct {
 	cfg                       config.Config

@@ -14,6 +14,8 @@ import (
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
+// @nimi-authority: definition.nimi.runtime.rpc-foundations.target-identity-plane
+// @nimi-authority: rule.nimi.runtime.rpc-foundations.r015
 // Intent is one immutable capability-scoped AIConfig snapshot. Local carries
 // no execution identity. Cloud keeps only implementation and Driver-owned
 // target intent; Runtime resolves current-account Connector custody later.

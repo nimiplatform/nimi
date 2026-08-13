@@ -126,6 +126,7 @@ export type CanonicalConversationShellProps = {
   sceneBackground?: ReactNode;
 };
 
+// @nimi-authority: rule.nimi.platform.ui-design-system.p-kit-061
 export function CanonicalConversationShell(props: CanonicalConversationShellProps) {
   const [internalSettingsOpen, setInternalSettingsOpen] = useState(false);
   const [internalProfileOpen, setInternalProfileOpen] = useState(false);

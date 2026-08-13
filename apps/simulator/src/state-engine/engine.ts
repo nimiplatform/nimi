@@ -74,6 +74,8 @@ export {
   type SimulatorStateEngine,
   type SimulatorStateEngineOptions,
 };
+// @nimi-authority: definition.nimi.platform.simulator.state-engine
+// @nimi-authority: rule.nimi.platform.simulator.p-sim-current-008
 export function createSimulatorStateEngine(options: SimulatorStateEngineOptions): SimulatorStateEngine {
   const interactions = createInteractionRuntime(options.interactions, enqueueInternal);
   const context: EngineContext = createEngineContext(options, {

@@ -34,6 +34,8 @@ type catalogState struct {
 	source    CatalogSource
 }
 
+// @nimi-authority: definition.nimi.runtime.model-catalog.catalog-plane
+// @nimi-authority: rule.nimi.runtime.model-catalog.r006
 type Resolver struct {
 	mu sync.RWMutex
 

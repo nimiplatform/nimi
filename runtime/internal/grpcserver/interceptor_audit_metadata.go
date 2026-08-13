@@ -2,8 +2,6 @@ package grpcserver
 
 import (
 	"context"
-	"crypto/sha256"
-	"encoding/hex"
 	"strings"
 	"unicode"
 
@@ -113,25 +111,6 @@ func accessTokenIDFromMetadata(ctx context.Context) string {
 	return firstMetadata(md, "x-nimi-access-token-id")
 }
 
-func providerCredentialMetadata(ctx context.Context) (string, string, string) {
-	credentialMeta, err := envelope.ParseCredentialMetadataFromContext(ctx)
-	if err != nil {
-		return "", "", ""
-	}
-	return credentialMeta.Source, credentialMeta.Endpoint, secretFingerprint(credentialMeta.APIKey)
-}
-
-// providerIdentityFromMetadata returns the provider identity (provider type)
-// carried in the request envelope. This is the K-AUDIT-018 `provider` field and
-// is distinct from the provider network endpoint.
-func providerIdentityFromMetadata(ctx context.Context) string {
-	credentialMeta, err := envelope.ParseCredentialMetadataFromContext(ctx)
-	if err != nil {
-		return ""
-	}
-	return strings.TrimSpace(credentialMeta.ProviderType)
-}
-
 // appInstanceIDFromMetadata returns the app instance id carried in the request
 // envelope. This is the K-AUDIT-018 `client_id` (== app_instance_id) and is
 // empty when the app did not declare an instance identifier.
@@ -159,15 +138,6 @@ func grpcCodeOnFailure(err error, success bool) string {
 		return ""
 	}
 	return status.Code(err).String()
-}
-
-func secretFingerprint(value string) string {
-	normalized := strings.TrimSpace(value)
-	if normalized == "" {
-		return ""
-	}
-	sum := sha256.Sum256([]byte(normalized))
-	return hex.EncodeToString(sum[:8])
 }
 
 func appIDFromRequest(req any) string {

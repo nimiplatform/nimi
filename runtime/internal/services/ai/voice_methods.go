@@ -440,43 +440,46 @@ func (s *Service) ListPresetVoices(ctx context.Context, req *runtimev1.ListPrese
 	if req == nil {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}
+	if len(req.ProtoReflect().GetUnknown()) != 0 {
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+	}
 	appID := strings.TrimSpace(req.GetAppId())
 	subjectUserID := strings.TrimSpace(req.GetSubjectUserId())
-	modelID := strings.TrimSpace(req.GetModelId())
-	targetModelID := strings.TrimSpace(req.GetTargetModelId())
 	if appID == "" || subjectUserID == "" {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}
-	if modelID == "" && targetModelID == "" {
-		if strings.TrimSpace(req.GetConnectorId()) != "" {
-			return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
-		}
-		return s.listSelectedLocalPresetVoices(ctx, appID, subjectUserID)
-	}
-	effectiveModelID := modelID
-	if targetModelID != "" {
-		effectiveModelID = targetModelID
-	}
-
-	parsed := parseKeySource(ctx, req.GetConnectorId())
-	if err := validateKeySource(parsed, appID); err != nil {
-		return nil, err
-	}
-	// Catalog projection needs provider identity only; do not retain inline
-	// credential material in the projection composition.
-	parsed.APIKey = ""
-	providerType, remoteCatalog, err := resolveKeySourceToCatalogProvider(ctx, parsed, s.connStore)
+	head := &runtimev1.ScenarioRequestHead{AppId: appID, SubjectUserId: subjectUserID}
+	caller, err := scenarioAppAIConfigCaller(ctx, head)
 	if err != nil {
 		return nil, err
 	}
-	if !remoteCatalog {
-		return nil, grpcerr.WithReasonCodeOptions(
-			codes.FailedPrecondition,
-			runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED,
-			grpcerr.ReasonOptions{Message: "ambient local voice model routing is retired"},
-		)
+	if caller.accountNamespace != subjectUserID {
+		return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_AI_VOICE_ASSET_SCOPE_FORBIDDEN)
 	}
-	modelResolved := effectiveModelID
+	capturedCtx, intent, err := s.captureScenarioExecutionIntent(ctx, head, capabilitydriver.AudioSynthesizeContract)
+	if err != nil {
+		return nil, err
+	}
+	if intent.IsLocal() {
+		return s.listSelectedLocalPresetVoices(ctx, appID, subjectUserID)
+	}
+	if !intent.IsAIConfigCloud() {
+		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONFIG_INVALID)
+	}
+	return s.listCommittedCloudPresetVoices(capturedCtx, head)
+}
+
+// @nimi-authority: rule.nimi.runtime.model-catalog.r046
+func (s *Service) listCommittedCloudPresetVoices(
+	ctx context.Context,
+	head *runtimev1.ScenarioRequestHead,
+) (*runtimev1.ListPresetVoicesResponse, error) {
+	composition, err := s.resolveCloudMediaRouteComposition(ctx, head, capabilitydriver.AudioSynthesizeContract)
+	if err != nil {
+		return nil, err
+	}
+	modelResolved := composition.target.ProviderModelID()
+	providerType := composition.target.Provider()
 	voices, source, catalogVersion, err := resolveCatalogVoicesForSubject(ctx, modelResolved, providerType, s.speechCatalog)
 	if err != nil {
 		return nil, err
@@ -499,7 +502,7 @@ func (s *Service) ListPresetVoices(ctx context.Context, req *runtimev1.ListPrese
 			"voice_count", len(voices),
 			"model_resolved", strings.TrimSpace(modelResolved),
 			"provider_type", providerType,
-			"connector_id", strings.TrimSpace(req.GetConnectorId()),
+			"connector_id", composition.connector.ConnectorID,
 		)
 	}
 

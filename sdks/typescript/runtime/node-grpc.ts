@@ -25,10 +25,7 @@ import {
   type GrpcMetadataLike,
   type GrpcStatusLike,
 } from './node-grpc-errors';
-import {
-  normalizeRuntimeNodeGrpcEndpoint,
-  runtimeNodeGrpcTransportAllowsSensitiveCredentials,
-} from './node-grpc-security';
+import { normalizeRuntimeNodeGrpcEndpoint } from './node-grpc-security';
 
 export { RuntimeNodeGrpcTransportError } from './node-grpc-errors';
 
@@ -92,11 +89,10 @@ function toChannelOptions(options: RuntimeNodeGrpcTransportOptions): ChannelOpti
 
 function toGrpcMetadata(
   grpc: GrpcModule,
-  options: RuntimeNodeGrpcTransportOptions,
   metadata: CoreMetadata | undefined,
 ): Metadata {
   const result = new grpc.Metadata();
-  for (const [key, value] of runtimeMetadataEntries(metadata, options)) {
+  for (const [key, value] of runtimeMetadataEntries(metadata)) {
     result.set(key, value);
   }
   return result;
@@ -114,16 +110,24 @@ const RUNTIME_METADATA_HEADERS: Record<string, string> = {
   callerkind: 'x-nimi-caller-kind',
   callerid: 'x-nimi-caller-id',
   surfaceid: 'x-nimi-surface-id',
-  keysource: 'x-nimi-key-source',
-  providertype: 'x-nimi-provider-type',
   clientid: 'x-nimi-client-id',
-  providerendpoint: 'x-nimi-provider-endpoint',
-  providerapikey: 'x-nimi-provider-api-key',
 };
+
+const RETIRED_CALLER_AI_INPUT_METADATA_KEYS = new Set([
+  'keysource',
+  'providertype',
+  'providerendpoint',
+  'providerapikey',
+]);
+
+function isRetiredCallerAIInputMetadataKey(key: string): boolean {
+  const normalized = key.trim().toLowerCase();
+  const suffix = normalized.startsWith('x-nimi-') ? normalized.slice('x-nimi-'.length) : normalized;
+  return RETIRED_CALLER_AI_INPUT_METADATA_KEYS.has(suffix.replaceAll('-', ''));
+}
 
 function runtimeMetadataEntries(
   metadata: CoreMetadata | undefined,
-  options: RuntimeNodeGrpcTransportOptions,
 ): Array<readonly [string, string]> {
   const entries: Array<readonly [string, string]> = [];
   for (const [key, value] of Object.entries(metadata ?? {})) {
@@ -133,17 +137,6 @@ function runtimeMetadataEntries(
     }
     const normalizedKey = key.trim().toLowerCase();
     const compactKey = normalizedKey.replaceAll('-', '');
-    if (compactKey === 'providerapikey' && !runtimeNodeGrpcTransportAllowsSensitiveCredentials(options)) {
-      throw toTransportError(
-        'SDK_TRANSPORT_INVALID',
-        'providerApiKey requires TLS or a loopback-only node-grpc endpoint',
-        undefined,
-        {
-          actionHint: 'enable_tls_or_use_loopback_for_provider_api_key',
-          retryable: false,
-        },
-      );
-    }
     const header = RUNTIME_METADATA_HEADERS[compactKey]
       ?? (normalizedKey.startsWith('x-nimi-') ? normalizedKey : '');
     if (header) {
@@ -155,14 +148,24 @@ function runtimeMetadataEntries(
 
 function validateRuntimeMetadataSecurity(
   metadata: CoreMetadata | undefined,
-  options: RuntimeNodeGrpcTransportOptions,
 ): void {
   for (const [key, value] of Object.entries(metadata ?? {})) {
+    const normalizedKey = key.trim().toLowerCase();
+    if (isRetiredCallerAIInputMetadataKey(normalizedKey)) {
+      throw toTransportError(
+        'SDK_TRANSPORT_INVALID',
+        `Runtime metadata field ${key} is retired and not accepted`,
+        { metadataKey: key },
+        {
+          actionHint: 'remove_caller_selected_ai_execution_metadata',
+          retryable: false,
+        },
+      );
+    }
     const normalizedValue = String(value || '').trim();
     if (!normalizedValue) {
       continue;
     }
-    const normalizedKey = key.trim().toLowerCase();
     if (normalizedKey === 'authorization') {
       throw toTransportError(
         'SDK_TRANSPORT_INVALID',
@@ -170,17 +173,6 @@ function validateRuntimeMetadataSecurity(
         { metadataKey: key },
         {
           actionHint: 'move_runtime_authorization_to_transport_auth',
-          retryable: false,
-        },
-      );
-    }
-    if (normalizedKey.replaceAll('-', '') === 'providerapikey' && !runtimeNodeGrpcTransportAllowsSensitiveCredentials(options)) {
-      throw toTransportError(
-        'SDK_TRANSPORT_INVALID',
-        'providerApiKey requires TLS or a loopback-only node-grpc endpoint',
-        undefined,
-        {
-          actionHint: 'enable_tls_or_use_loopback_for_provider_api_key',
           retryable: false,
         },
       );
@@ -228,7 +220,7 @@ export function createRuntimeNodeGrpcTransport(
   };
 
   const invokeUnaryBytes = async (request: RuntimeNodeGrpcBridgeRequest): Promise<Uint8Array> => {
-    validateRuntimeMetadataSecurity(request.metadata, options);
+    validateRuntimeMetadataSecurity(request.metadata);
     if (options.bridge) {
       return options.bridge.unary(request);
     }
@@ -262,7 +254,7 @@ export function createRuntimeNodeGrpcTransport(
         (value) => Buffer.from(value),
         (value) => Uint8Array.from(value),
         request.body,
-        toGrpcMetadata(runtime.grpc, options, request.metadata),
+        toGrpcMetadata(runtime.grpc, request.metadata),
         toCallOptions(request.timeoutMs),
         (error: ServiceError | null, response?: Uint8Array) => {
           if (error) {
@@ -314,7 +306,7 @@ export function createRuntimeNodeGrpcTransport(
   };
 
   const openStreamBytes = async (request: RuntimeNodeGrpcBridgeRequest): Promise<AsyncIterable<Uint8Array>> => {
-    validateRuntimeMetadataSecurity(request.metadata, options);
+    validateRuntimeMetadataSecurity(request.metadata);
     if (options.bridge) {
       return options.bridge.serverStream(request);
     }
@@ -324,7 +316,7 @@ export function createRuntimeNodeGrpcTransport(
       (value) => Buffer.from(value),
       (value) => Uint8Array.from(value),
       request.body,
-      toGrpcMetadata(runtime.grpc, options, request.metadata),
+      toGrpcMetadata(runtime.grpc, request.metadata),
       toCallOptions(request.timeoutMs),
     );
     return nodeGrpcReadableStream(

@@ -38,6 +38,10 @@ interface NimiThemeAttributeSnapshot {
   readonly accentClasses: Readonly<Record<string, boolean>>;
 }
 
+// @nimi-authority: definition.nimi.platform.ui-design-system.density-system
+// @nimi-authority: rule.nimi.platform.ui-design-system.p-design-002a
+// @nimi-authority: rule.nimi.platform.ui-design-system.p-design-004
+// @nimi-authority: rule.nimi.platform.ui-design-system.p-design-028a
 /** Apply Kit theme attributes to one explicit target and restore it exactly. */
 export function applyNimiThemeAttributesToTarget(
   target: HTMLElement,

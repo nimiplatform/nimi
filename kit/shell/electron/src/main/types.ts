@@ -15,10 +15,7 @@ export type ElectronRuntimeBridgeMetadata = {
   readonly traceId?: string;
   readonly idempotencyKey?: string;
   readonly surfaceId?: string;
-  readonly keySource?: string;
-  readonly providerType?: string;
   readonly clientId?: string;
-  readonly providerEndpoint?: string;
   readonly extra?: Readonly<Record<string, string>>;
 };
 

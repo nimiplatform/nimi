@@ -141,6 +141,7 @@ export type CreateVrmBackendBranchOptions = {
   renderTargetOverride?: VrmRenderTarget;
 };
 
+// @nimi-authority: rule.nimi.avatar.embodiment.r056
 export async function createVrmBackendBranch(
   manifest: VrmAvatarModelManifest,
   options: CreateVrmBackendBranchOptions = {},

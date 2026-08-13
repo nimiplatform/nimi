@@ -168,9 +168,7 @@ message DeleteVoiceAssetResponse {
 message ListPresetVoicesRequest {
   string app_id = 1;
   string subject_user_id = 2;
-  string model_id = 3;
-  string target_model_id = 4;
-  string connector_id = 5;
+  reserved 3, 4, 5;
 }
 
 message ListPresetVoicesResponse {

@@ -14,6 +14,7 @@ export const NIMI_MASTRA_ADAPTER_ID = 'mastra' as const;
 // Mastra surfaces that imply durable agent state, memory, knowledge, or workflow
 // ownership are not promoted to supported by a text-model adapter: they remain
 // `partial` compatibility until wired to Nimi Runtime/Cognition owner surfaces.
+// @nimi-authority: rule.nimi.sdks.feature-clients.r007
 export const NIMI_MASTRA_ADAPTER_MANIFEST = {
   adapterId: NIMI_MASTRA_ADAPTER_ID,
   targetLibrary: 'Mastra',

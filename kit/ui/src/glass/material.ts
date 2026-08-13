@@ -1,3 +1,6 @@
+// @nimi-authority: definition.nimi.platform.ui-design-system.ui-material
+// @nimi-authority: rule.nimi.platform.ui-design-system.p-design-022a
+// @nimi-authority: rule.nimi.platform.ui-design-system.p-design-022c
 /**
  * Glass material taxonomy primitive (5-tier admitted, 2026-04-18).
  *

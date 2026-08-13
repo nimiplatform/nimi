@@ -15,14 +15,12 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
-	"github.com/nimiplatform/nimi/runtime/internal/authn"
 	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
 	"github.com/nimiplatform/nimi/runtime/internal/executionintent"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
 	"github.com/nimiplatform/nimi/runtime/internal/providerregistry"
 	"github.com/nimiplatform/nimi/runtime/internal/services/connector"
-	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
@@ -253,11 +251,8 @@ func newLiveSmokeCloudProviderHarness(t *testing.T, providerID string, baseURL s
 		t.Fatalf("new live smoke cloud ai service: %v", err)
 	}
 	return liveSmokeProviderHarness{
-		service: svc,
-		context: authn.WithIdentity(
-			metadata.NewIncomingContext(context.Background(), metadata.Pairs(metadataKeySourceKey, keySourceManaged)),
-			&authn.Identity{SubjectUserID: liveSmokeMatrixUserID},
-		),
+		service:      svc,
+		context:      scenarioJobUserContext(liveSmokeMatrixAppID, liveSmokeMatrixUserID),
 		providerID:   normalizedProviderID,
 		routePolicy:  runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
 		connectorID:  created.ConnectorID,

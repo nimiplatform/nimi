@@ -24,6 +24,7 @@ type SidebarShellProps = {
   style?: CSSProperties;
 } & Omit<ComponentPropsWithoutRef<'aside'>, 'children' | 'className' | 'style'>;
 
+// @nimi-authority: rule.nimi.platform.ui-design-system.p-design-014
 export function SidebarShell({
   as,
   width,

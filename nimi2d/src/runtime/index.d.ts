@@ -18,6 +18,7 @@ export type Nimi2DPackageAsset = {
   premultiplied_alpha: false;
 };
 
+// @nimi-authority: definition.nimi.nimi2d.asset-package.package-manifest
 export type Nimi2DPackageManifest = {
   manifest_kind: 'nimi.nimi2d.package';
   schema_version: 1;

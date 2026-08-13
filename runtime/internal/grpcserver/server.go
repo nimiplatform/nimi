@@ -557,7 +557,6 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 			newUnaryProtocolInterceptor(idempotencyStore),
 			authn.NewUnaryInterceptor(authnValidator),
 			newUnaryAuthzInterceptor(capabilityAuthorizer),
-			newUnaryCredentialScrubInterceptor(),
 			newUnaryAuditInterceptor(auditStore),
 		),
 		grpc.ChainStreamInterceptor(
@@ -568,7 +567,6 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 			newStreamProtocolInterceptor(),
 			authn.NewStreamInterceptor(authnValidator),
 			newStreamAuthzInterceptor(capabilityAuthorizer),
-			newStreamCredentialScrubInterceptor(),
 			newStreamAuditInterceptor(auditStore),
 		),
 	)

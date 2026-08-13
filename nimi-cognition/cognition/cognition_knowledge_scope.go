@@ -68,6 +68,7 @@ type KnowledgeScopeFilter struct {
 	PageToken  string
 }
 
+// @nimi-authority: definition.nimi.cognition.runtime-bridge.knowledge-scope-registry
 // KnowledgeScopeRegistry is the typed Go API for the
 // cognition_scope_registry. Production paths must consume this surface
 // rather than constructing scope ids by ad-hoc string concatenation.

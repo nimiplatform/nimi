@@ -20,6 +20,8 @@ import {
   toDebugMetadata,
 } from './chat-agent-runtime-agent-utils';
 
+// @nimi-authority: definition.nimi.desktop.agent-projection.agent-chat
+// @nimi-authority: rule.nimi.desktop.agent-projection.r001
 export async function streamChatAgentRuntimeAgentTurn(
   request: AgentRuntimeChatTurnRequest,
   sdk: DesktopRendererSdkPort,

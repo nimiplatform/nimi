@@ -5,6 +5,8 @@ import { downgradeSurfaceMaterial } from '../glass/material.js';
 
 type SurfacePadding = 'none' | 'sm' | 'md' | 'lg';
 
+// @nimi-authority: definition.nimi.platform.ui-design-system.shared-primitive
+// @nimi-authority: rule.nimi.platform.ui-design-system.p-design-011
 export const surfaceVariants = cva(
   'nimi-surface rounded-[var(--nimi-radius-md)] border border-[var(--nimi-border-subtle)] transition-[background-color,border-color,color,box-shadow,transform] duration-[var(--nimi-motion-fast)] ease-[var(--nimi-motion-ease-standard)]',
   {

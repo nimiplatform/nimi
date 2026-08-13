@@ -61,7 +61,13 @@ func TestListPresetVoicesUsesSelectedLocalSpeechConfigurationWithoutTargetRef(t 
 			Configured: true,
 		},
 	}
-	response, err := service.ListPresetVoices(context.Background(), &runtimev1.ListPresetVoicesRequest{
+	if err := service.aiConfigStore.Overwrite(context.Background(), "user-1", appAIConfig(
+		"nimi.desktop",
+		localAppAIConfigIntent(capabilitydriver.AudioSynthesizeContract),
+	)); err != nil {
+		t.Fatalf("commit Local audio.synthesize AIConfig: %v", err)
+	}
+	response, err := service.ListPresetVoices(scenarioJobUserContext("nimi.desktop", "user-1"), &runtimev1.ListPresetVoicesRequest{
 		AppId: "nimi.desktop", SubjectUserId: "user-1",
 	})
 	if err != nil {

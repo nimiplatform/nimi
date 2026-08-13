@@ -172,6 +172,8 @@ function extractErrorFields(error: unknown): ExtractedNimiErrorFields {
   return result;
 }
 
+// @nimi-authority: definition.nimi.sdks.client-core.error-projection-plane
+// @nimi-authority: rule.nimi.sdks.client-core.r021
 export function createNimiError(input: CreateNimiErrorInput): NimiError {
   const reasonCode = normalizeText(input.reasonCode) || 'RUNTIME_CALL_FAILED';
   const error = new Error(normalizeText(input.message) || reasonCode) as NimiError;

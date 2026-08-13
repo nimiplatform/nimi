@@ -53,11 +53,11 @@ type imageExecutionOutcome struct {
 	err    error
 }
 
+// @nimi-authority: definition.nimi.platform.core-protocol.execution-host
 // ImageExecutionHost owns one FIFO worker and therefore one serial execution
 // lease for its image engine instance. Queue state is intentionally private;
 // callers observe queued jobs through their scenario Job state until the
 // factual Host start callback.
-// nimi-authority: definition.nimi.platform.core-protocol.execution-host
 type ImageExecutionHost struct {
 	logger    *slog.Logger
 	substrate imageInvocationSubstrate

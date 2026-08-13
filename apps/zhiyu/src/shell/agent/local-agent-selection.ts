@@ -6,6 +6,7 @@ export type ZhiyuRuntimeLocalAgentSelectionInput = {
   readonly selectedAgentHandle?: string | null;
 };
 
+// @nimi-authority: rule.nimi.zhiyu.local-partner-surface.r005
 export function resolveZhiyuRuntimeLocalAgentSelection(
   input: ZhiyuRuntimeLocalAgentSelectionInput,
 ): ZhiyuLocalAgentStatus {

@@ -235,6 +235,12 @@ export interface NimiMachineLocalStableDiffusionExecutionOptionsInput {
 
 export type NimiMachineLocalStableDiffusionModelFamily = 'z-image' | 'ideogram4';
 
+export function isNimiMachineLocalStableDiffusionModelFamily(
+  value: unknown,
+): value is NimiMachineLocalStableDiffusionModelFamily {
+  return value === 'z-image' || value === 'ideogram4';
+}
+
 export interface NimiMachineLocalStableDiffusionImageConfigurationInput {
   readonly displayName: string;
   /** Exact Driver family; Z-Image models use z-image rather than a model identifier. */
@@ -484,8 +490,8 @@ export function createNimiMachineLocalQwen3ASRTransformersConfigurationInput(inp
  * Every emitted portable key is accepted by parseStableDiffusionPortableConfig;
  * unknown constructor fields and out-of-range Driver values fail before transport.
  */
-// nimi-authority: rule.nimi.runtime.ai-provider.r064
-// nimi-authority: rule.nimi.runtime.local-compute.r102
+// @nimi-authority: rule.nimi.runtime.ai-provider.r064
+// @nimi-authority: rule.nimi.runtime.local-compute.r102
 export function createNimiMachineLocalStableDiffusionImageConfigurationInput(
   input: NimiMachineLocalStableDiffusionImageConfigurationInput,
 ): NimiMachineLocalAIConfigurationAddInput {
@@ -497,7 +503,7 @@ export function createNimiMachineLocalStableDiffusionImageConfigurationInput(
   ]), 'stable-diffusion configuration input');
   const displayName = requireInputText(input.displayName, 'displayName');
   const modelFamily = requireInputText(input.modelFamily, 'modelFamily');
-  if (modelFamily !== 'z-image' && modelFamily !== 'ideogram4') {
+  if (!isNimiMachineLocalStableDiffusionModelFamily(modelFamily)) {
     return inputError('modelFamily must be an exact stable-diffusion Driver family');
   }
   if (input.enableInputImage !== undefined && typeof input.enableInputImage !== 'boolean') {

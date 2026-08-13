@@ -15,7 +15,6 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
 	"github.com/nimiplatform/nimi/runtime/internal/providerregistry"
 	"github.com/nimiplatform/nimi/runtime/internal/services/connector"
-	"google.golang.org/grpc/metadata"
 )
 
 const liveDashScopeDefaultConnectorBoundID = "01KV24QPDKXD35WCV3AY9KG9NG"
@@ -218,16 +217,12 @@ func newLiveSmokePersistedConnectorHarness(t *testing.T, providerID string, conn
 	}
 	return liveSmokeProviderHarness{
 		service:      svc,
-		context:      metadataManagedContext(),
+		context:      scenarioJobUserContext(liveSmokeMatrixAppID, liveSmokeMatrixUserID),
 		providerID:   normalizedProviderID,
 		routePolicy:  runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
 		connectorID:  normalizedConnectorID,
 		modelCatalog: modelCatalog,
 	}
-}
-
-func metadataManagedContext() context.Context {
-	return metadata.NewIncomingContext(context.Background(), metadata.Pairs(metadataKeySourceKey, keySourceManaged))
 }
 
 func runLiveSmokeDashScopeVoiceAssetBackedTTS(

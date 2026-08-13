@@ -10,7 +10,9 @@ import (
 
 func TestClientMetadataHardcutsPortableAccessTokens(t *testing.T) {
 	metadataType := reflect.TypeOf(ClientMetadata{})
-	for _, fieldName := range []string{"AccessTokenID", "AccessTokenSecret"} {
+	for _, fieldName := range []string{
+		"AccessTokenID", "AccessTokenSecret", "CredentialSource", "ProviderType", "ProviderEndpoint", "ProviderAPIKey",
+	} {
 		if _, exists := metadataType.FieldByName(fieldName); exists {
 			t.Fatalf("ClientMetadata must not expose portable access-token field %s", fieldName)
 		}
@@ -52,18 +54,14 @@ func TestWithNimiOutgoingMetadataDefault(t *testing.T) {
 	if got := firstMDValue(md, "x-nimi-trace-id"); got != "" {
 		t.Fatalf("trace id should be empty by default, got=%q", got)
 	}
-	if got := firstMDValue(md, "x-nimi-key-source"); got != "" {
-		t.Fatalf("key source should be omitted by default, got=%q", got)
-	}
 }
 
 func TestWithNimiOutgoingMetadataOverride(t *testing.T) {
 	ctx := withNimiOutgoingMetadata(context.Background(), "nimi.desktop", &ClientMetadata{
-		CallerKind:   "third-party-app",
-		CallerID:     "app:novelizer",
-		SurfaceID:    "chat-export",
-		TraceID:      "trace-123",
-		ProviderType: "gemini",
+		CallerKind: "third-party-app",
+		CallerID:   "app:novelizer",
+		SurfaceID:  "chat-export",
+		TraceID:    "trace-123",
 	})
 	md, ok := metadata.FromOutgoingContext(ctx)
 	if !ok {
@@ -81,9 +79,6 @@ func TestWithNimiOutgoingMetadataOverride(t *testing.T) {
 	if got := firstMDValue(md, "x-nimi-trace-id"); got != "trace-123" {
 		t.Fatalf("trace id mismatch: %q", got)
 	}
-	if got := firstMDValue(md, "x-nimi-provider-type"); got != "gemini" {
-		t.Fatalf("provider type mismatch: %q", got)
-	}
 }
 
 func TestWithNimiOutgoingMetadataOverrideAllSupportedFields(t *testing.T) {
@@ -97,10 +92,6 @@ func TestWithNimiOutgoingMetadataOverrideAllSupportedFields(t *testing.T) {
 		CallerID:                   "app:novelizer",
 		SurfaceID:                  "chat-export",
 		TraceID:                    "trace-123",
-		CredentialSource:           "  INLINE  ",
-		ProviderType:               "gemini",
-		ProviderEndpoint:           "https://example.invalid/v1",
-		ProviderAPIKey:             "sk-test",
 		SessionID:                  "session-1",
 		SessionToken:               "session-token-1",
 	})
@@ -122,15 +113,6 @@ func TestWithNimiOutgoingMetadataOverrideAllSupportedFields(t *testing.T) {
 	}
 	if got := firstMDValue(md, "x-nimi-idempotency-key"); got != "idem-123" {
 		t.Fatalf("idempotency key mismatch: %q", got)
-	}
-	if got := firstMDValue(md, "x-nimi-key-source"); got != "inline" {
-		t.Fatalf("credential source mismatch: %q", got)
-	}
-	if got := firstMDValue(md, "x-nimi-provider-endpoint"); got != "https://example.invalid/v1" {
-		t.Fatalf("provider endpoint mismatch: %q", got)
-	}
-	if got := firstMDValue(md, "x-nimi-provider-api-key"); got != "sk-test" {
-		t.Fatalf("provider api key mismatch: %q", got)
 	}
 	if got := firstMDValue(md, "x-nimi-session-id"); got != "session-1" {
 		t.Fatalf("session id mismatch: %q", got)
@@ -171,27 +153,18 @@ func TestInsecureGRPCTargetIsLocal(t *testing.T) {
 }
 
 func TestPrepareInsecureOutgoingContextRejectsCredentialSecretsOnNonLoopback(t *testing.T) {
-	tests := []struct {
-		name     string
-		override *ClientMetadata
-	}{
-		{name: "provider api key", override: &ClientMetadata{ProviderAPIKey: "sk-test"}},
-		{name: "session token", override: &ClientMetadata{SessionToken: "session-secret"}},
+	_, err := prepareInsecureOutgoingContext(context.Background(), "grpc.example.com:50051", "nimi.desktop", &ClientMetadata{SessionToken: "session-secret"})
+	if err == nil {
+		t.Fatal("expected non-loopback insecure target to be rejected")
 	}
-	for _, tt := range tests {
-		_, err := prepareInsecureOutgoingContext(context.Background(), "grpc.example.com:50051", "nimi.desktop", tt.override)
-		if err == nil {
-			t.Fatalf("%s: expected non-loopback insecure target to be rejected", tt.name)
-		}
-		if err.Error() != "runtime credential metadata requires loopback or unix gRPC target when using insecure transport" {
-			t.Fatalf("%s: unexpected error: %v", tt.name, err)
-		}
+	if err.Error() != "runtime credential metadata requires loopback or unix gRPC target when using insecure transport" {
+		t.Fatalf("unexpected error: %v", err)
 	}
 }
 
-func TestPrepareInsecureOutgoingContextAllowsProviderKeyOnLoopback(t *testing.T) {
+func TestPrepareInsecureOutgoingContextAllowsSessionOnLoopback(t *testing.T) {
 	ctx, err := prepareInsecureOutgoingContext(context.Background(), "127.0.0.1:50051", "nimi.desktop", &ClientMetadata{
-		ProviderAPIKey: "sk-test",
+		SessionID: "session-1", SessionToken: "session-secret",
 	})
 	if err != nil {
 		t.Fatalf("prepareInsecureOutgoingContext: %v", err)
@@ -200,8 +173,8 @@ func TestPrepareInsecureOutgoingContextAllowsProviderKeyOnLoopback(t *testing.T)
 	if !ok {
 		t.Fatalf("outgoing metadata missing")
 	}
-	if got := firstMDValue(md, "x-nimi-provider-api-key"); got != "sk-test" {
-		t.Fatalf("provider api key mismatch: %q", got)
+	if got := firstMDValue(md, "x-nimi-session-token"); got != "session-secret" {
+		t.Fatalf("session token mismatch: %q", got)
 	}
 }
 

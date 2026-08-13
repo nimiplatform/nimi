@@ -20,6 +20,7 @@ export type BackendBranchHandle = {
   shutdown(): void;
 };
 
+// @nimi-authority: rule.nimi.avatar.embodiment.r002
 export async function createBackendBranch(
   manifest: AvatarModelManifest,
 ): Promise<BackendBranchHandle> {

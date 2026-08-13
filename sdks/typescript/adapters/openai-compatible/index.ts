@@ -21,6 +21,7 @@ import { createNimiError } from '../../types';
 export const NIMI_OPENAI_COMPATIBLE_ADAPTER_ID = 'openai-compatible' as const;
 export const NIMI_OPENAI_COMPATIBLE_UNSUPPORTED_FEATURE_CODE = 'SDK_ADAPTER_FEATURE_UNSUPPORTED' as const;
 
+// @nimi-authority: rule.nimi.sdks.feature-clients.r099
 export const NIMI_OPENAI_COMPATIBLE_ADAPTER_MANIFEST = {
   adapterId: NIMI_OPENAI_COMPATIBLE_ADAPTER_ID,
   targetLibrary: 'OpenAI-compatible Chat Completions',

@@ -13,6 +13,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/appaccess"
 )
 
+// @nimi-authority: definition.nimi.runtime.app-surface.registered-app-subject-record-plane
 type RegistrationStore struct{ kernel *Kernel }
 
 func (store *RegistrationStore) RegisterDevelopment(ctx context.Context, input RegisterDevelopmentInput) (Registration, error) {

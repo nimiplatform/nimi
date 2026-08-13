@@ -305,18 +305,6 @@ export interface ListPresetVoicesRequest {
      * @generated from protobuf field: string subject_user_id = 2
      */
     subjectUserId: string;
-    /**
-     * @generated from protobuf field: string model_id = 3
-     */
-    modelId: string;
-    /**
-     * @generated from protobuf field: string target_model_id = 4
-     */
-    targetModelId: string;
-    /**
-     * @generated from protobuf field: string connector_id = 5
-     */
-    connectorId: string;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.ListPresetVoicesResponse
@@ -1334,19 +1322,13 @@ class ListPresetVoicesRequest$Type extends MessageType<ListPresetVoicesRequest> 
     constructor() {
         super("nimi.runtime.v1.ListPresetVoicesRequest", [
             { no: 1, name: "app_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "subject_user_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 3, name: "model_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 4, name: "target_model_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 5, name: "connector_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 2, name: "subject_user_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<ListPresetVoicesRequest>): ListPresetVoicesRequest {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.appId = "";
         message.subjectUserId = "";
-        message.modelId = "";
-        message.targetModelId = "";
-        message.connectorId = "";
         if (value !== undefined)
             reflectionMergePartial<ListPresetVoicesRequest>(this, message, value);
         return message;
@@ -1361,15 +1343,6 @@ class ListPresetVoicesRequest$Type extends MessageType<ListPresetVoicesRequest> 
                     break;
                 case /* string subject_user_id */ 2:
                     message.subjectUserId = reader.string();
-                    break;
-                case /* string model_id */ 3:
-                    message.modelId = reader.string();
-                    break;
-                case /* string target_model_id */ 4:
-                    message.targetModelId = reader.string();
-                    break;
-                case /* string connector_id */ 5:
-                    message.connectorId = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -1389,15 +1362,6 @@ class ListPresetVoicesRequest$Type extends MessageType<ListPresetVoicesRequest> 
         /* string subject_user_id = 2; */
         if (message.subjectUserId !== "")
             writer.tag(2, WireType.LengthDelimited).string(message.subjectUserId);
-        /* string model_id = 3; */
-        if (message.modelId !== "")
-            writer.tag(3, WireType.LengthDelimited).string(message.modelId);
-        /* string target_model_id = 4; */
-        if (message.targetModelId !== "")
-            writer.tag(4, WireType.LengthDelimited).string(message.targetModelId);
-        /* string connector_id = 5; */
-        if (message.connectorId !== "")
-            writer.tag(5, WireType.LengthDelimited).string(message.connectorId);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

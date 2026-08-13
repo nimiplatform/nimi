@@ -43,6 +43,7 @@ export type Live2DBackendExtension = {
 
 export type BackendMetadata = Record<string, unknown>;
 
+// @nimi-deprecated: rule.nimi.avatar.embodiment.r007
 export type BackendSurfaceProps = {
   width: number;
   height: number;
@@ -63,6 +64,7 @@ export type BackendBranchBase = {
   shutdown(): void;
 };
 
+// @nimi-authority: definition.nimi.avatar.embodiment.backend-branch
 export type BackendBranch =
   | (BackendBranchBase & { kind: 'live2d'; live2dExtension: Live2DBackendExtension })
   | (BackendBranchBase & { kind: 'vrm' })

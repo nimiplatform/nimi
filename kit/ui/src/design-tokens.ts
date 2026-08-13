@@ -12,6 +12,9 @@ export { cn } from './lib/utils.js';
 // the same public surface (single source of truth, no duplication).
 export type { SurfaceMaterial, SurfaceMaterialTransparency } from './glass/material.js';
 
+// @nimi-authority: definition.nimi.platform.ui-design-system.theme-system
+// @nimi-authority: rule.nimi.platform.ui-design-system.p-design-003
+// @nimi-authority: rule.nimi.platform.ui-design-system.p-design-024a
 export type NimiDesignPackId = (typeof DESIGN_PACK_IDS)[number];
 export type NimiThemeSchemeId = (typeof FOUNDATION_SCHEME_IDS)[number];
 export type NimiAccentPackId = (typeof ACCENT_PACK_IDS)[number];

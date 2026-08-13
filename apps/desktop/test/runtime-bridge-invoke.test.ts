@@ -205,18 +205,3 @@ test('toBridgeNimiError maps Local Speech diagnostic aliases without Qwen user c
     'Local Speech environment setup failed. Please check Python, dependencies, and network access.',
   );
 });
-
-test('toBridgeNimiError scrubs provider API keys from user-visible error fields', () => {
-  const error = toBridgeNimiError(JSON.stringify({
-    reasonCode: 'AI_PROVIDER_REQUEST_FAILED',
-    message: 'x-nimi-provider-api-key=header-secret',
-    details: {
-      rawMessage: 'provider_api_key:raw-secret',
-      userMessage: 'providerApiKey=user-secret',
-    },
-  }));
-  const serialized = JSON.stringify(error);
-
-  assert.doesNotMatch(serialized, /header-secret|raw-secret|user-secret/);
-  assert.match(serialized, /\[REDACTED_PROVIDER_API_KEY\]/);
-});

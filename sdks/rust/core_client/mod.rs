@@ -8,6 +8,7 @@ pub trait CoreTransport {
     fn server_stream(&self, request: CoreStreamRequest) -> Result<Self::Stream, Self::Error>;
 }
 
+// @nimi-authority: rule.nimi.sdks.client-core.r008
 pub struct CoreClient<T, A>
 where
     T: CoreTransport,

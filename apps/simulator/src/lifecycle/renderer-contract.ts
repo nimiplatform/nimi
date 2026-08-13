@@ -1,3 +1,5 @@
+// @nimi-authority: definition.nimi.platform.simulator.renderer-factory
+// @nimi-authority: rule.nimi.platform.simulator.p-sim-004
 /**
  * Runtime edge for the App-owned canonical renderer module. The shared host
  * envelope is validated by Kit; Simulator validates only module/factory and

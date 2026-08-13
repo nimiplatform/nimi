@@ -12,6 +12,8 @@ export type SupportSectionId =
   | 'logs'
   | 'recovery';
 
+// @nimi-authority: definition.nimi.desktop.product-surfaces.support
+// @nimi-authority: rule.nimi.desktop.product-surfaces.r023
 /** The canonical, contract-fixed `rule.nimi.desktop.product-surfaces.r023` sub-area set, in render order. */
 export const SUPPORT_SECTION_IDS: readonly SupportSectionId[] = [
   'repair',

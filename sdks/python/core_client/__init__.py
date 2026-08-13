@@ -13,6 +13,7 @@ class CoreTransport(Protocol):
     def server_stream(self, request: CoreStreamRequest) -> AsyncIterator[Any]: ...
 
 
+# @nimi-authority: rule.nimi.sdks.client-core.r008
 class CoreClient:
     def __init__(
         self,

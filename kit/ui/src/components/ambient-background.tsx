@@ -81,6 +81,8 @@ const VARIANT_CLASS: Record<AmbientVariant, string> = {
   none: 'nimi-ambient-variant-none',
 };
 
+// @nimi-authority: definition.nimi.platform.ui-design-system.ambient-system
+// @nimi-authority: rule.nimi.platform.ui-design-system.p-design-023
 export function AmbientBackground<T extends ElementType = 'div'>(
   props: AmbientBackgroundProps<T>,
 ) {

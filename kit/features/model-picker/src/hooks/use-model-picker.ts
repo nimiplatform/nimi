@@ -36,6 +36,8 @@ function normalized(value: string | undefined): string {
   return String(value || '').trim().toLowerCase();
 }
 
+// @nimi-authority: definition.nimi.platform.ui-design-system.model-picker-surface
+// @nimi-authority: rule.nimi.platform.ui-design-system.p-model-picker-001
 export function useModelPicker<TCandidate>({
   adapter,
   selectedId,

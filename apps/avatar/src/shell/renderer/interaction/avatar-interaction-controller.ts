@@ -46,6 +46,7 @@ const LONG_PRESS_THRESHOLD_MS = 1000;
 const DOUBLE_CLICK_MS = 350;
 const DOUBLE_CLICK_DISTANCE_PX = 8;
 
+// @nimi-authority: rule.nimi.avatar.embodiment.r075
 export class AvatarInteractionController {
   private pending: PendingDrag | null = null;
   private pointerInside = false;

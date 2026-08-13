@@ -19,6 +19,7 @@ import (
 // Default: "0.0.0-dev" for development builds.
 var Version = "0.0.0-dev"
 
+// @nimi-authority: definition.nimi.runtime.service-operations.cli-plane
 func main() {
 	args := normalizeRootArgs(os.Args)
 

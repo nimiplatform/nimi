@@ -274,7 +274,7 @@ test('node-grpc Runtime transport preserves structured upstream errors', async (
   );
 });
 
-test('node-grpc Runtime transport rejects providerApiKey over non-loopback plaintext endpoints', async () => {
+test('node-grpc Runtime transport rejects retired caller AI input metadata on every endpoint', async () => {
   const bridge: RuntimeNodeGrpcBridge = {
     async unary() {
       throw new Error('provider key validation should run before bridge unary');
@@ -284,7 +284,7 @@ test('node-grpc Runtime transport rejects providerApiKey over non-loopback plain
     },
   };
   const runtime = new Runtime({
-    transport: { type: 'node-grpc', endpoint: 'runtime.example.com:46371', bridge },
+    transport: { type: 'node-grpc', endpoint: '127.0.0.1:46371', bridge },
     metadata: { providerApiKey: 'secret-provider-key' },
   });
 
@@ -294,7 +294,7 @@ test('node-grpc Runtime transport rejects providerApiKey over non-loopback plain
       const shaped = error as { code?: string; reasonCode?: string; actionHint?: string };
       assert.equal(shaped.code, 'SDK_TRANSPORT_INVALID');
       assert.equal(shaped.reasonCode, 'SDK_TRANSPORT_INVALID');
-      assert.equal(shaped.actionHint, 'enable_tls_or_use_loopback_for_provider_api_key');
+      assert.equal(shaped.actionHint, 'remove_caller_selected_ai_execution_metadata');
       return true;
     },
   );

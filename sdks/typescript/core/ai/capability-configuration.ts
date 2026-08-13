@@ -60,6 +60,7 @@ export function createNimiAppAIConfigOwner(appId: string): AIConfigOwner {
   };
 }
 
+// @nimi-authority: rule.nimi.sdks.feature-clients.r009
 /**
  * Creates the typed whole-object App AIConfig client. The explicit owner is a
  * consistency assertion only; Runtime still derives account and App identity

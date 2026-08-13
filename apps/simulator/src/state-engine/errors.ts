@@ -59,6 +59,8 @@ export interface SimulatorErrorContext {
   readonly operationId?: string | null;
 }
 
+// @nimi-authority: definition.nimi.platform.simulator.failure-model
+// @nimi-authority: rule.nimi.platform.simulator.p-sim-015
 export function simulatorError(code: SimulatorErrorCode, context: SimulatorErrorContext = {}): SimulatorError {
   return Object.freeze({
     code,

@@ -80,7 +80,7 @@ func (s *Service) embedMemoryTextsRemote(ctx context.Context, profile *runtimev1
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEMORY_EMBEDDING_TARGET_REF_INVALID)
 	}
 	connectorID := strings.TrimSpace(cloudBinding.GetConnectorId())
-	target, err := resolveManagedTarget(ctx, connectorID, s.connStore, s.allowLoopback)
+	target, err := resolveStoredConnectorTarget(ctx, connectorID, s.connStore, s.allowLoopback)
 	if err != nil {
 		return nil, err
 	}

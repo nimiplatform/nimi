@@ -78,6 +78,7 @@ const NIMI_VERCEL_SUPPORTED_URLS: Record<string, RegExp[]> = {
   'video/*': [/^https?:\/\//i],
 };
 
+// @nimi-authority: rule.nimi.sdks.feature-clients.r005
 export function createNimiVercelLanguageModel(options: NimiVercelLanguageModelOptions): NimiVercelLanguageModel {
   return {
     specificationVersion: 'v3',

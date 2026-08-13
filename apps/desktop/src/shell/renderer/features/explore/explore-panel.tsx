@@ -52,6 +52,8 @@ type ExplorePanelProps = {
   onSearchTextChange: (value: string) => void;
 };
 
+// @nimi-authority: definition.nimi.desktop.product-surfaces.explore
+// @nimi-authority: rule.nimi.desktop.product-surfaces.r001
 export function ExplorePanel(props: ExplorePanelProps) {
   const bindings = useDesktopRendererBindings();
   const realmExploreData = useMemo(

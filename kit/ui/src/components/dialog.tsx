@@ -156,6 +156,8 @@ type OverlayShellProps = {
   dataTestId?: string;
 };
 
+// @nimi-authority: rule.nimi.platform.ui-design-system.p-design-013a
+// @nimi-authority: rule.nimi.platform.ui-design-system.p-design-013b
 export function OverlayShell({
   open,
   kind = 'dialog',

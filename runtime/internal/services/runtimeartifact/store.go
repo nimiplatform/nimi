@@ -72,6 +72,7 @@ type GeneratedVoiceArtifactMetadata struct {
 	RetentionScope       string
 }
 
+// @nimi-authority: definition.nimi.runtime.service-operations.artifact-plane
 // Store provides by-id artifact bytes retrieval. Implementations must be
 // safe for concurrent reads + writes.
 type Store interface {

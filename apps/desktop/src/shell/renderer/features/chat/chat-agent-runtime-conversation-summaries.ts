@@ -85,6 +85,7 @@ function sortRuntimeConversationSummaries(
   });
 }
 
+// @nimi-authority: rule.nimi.desktop.agent-projection.r028
 export async function listRuntimeAgentConversationSummaries(
   targets: readonly AgentLocalTargetSnapshot[],
   sdk: DesktopRendererSdkPort,

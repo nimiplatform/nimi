@@ -19,6 +19,8 @@ const (
 
 var errRuntimeAuthorizationDenied = errors.New("runtime bridge authorization denied")
 
+// @nimi-authority: rule.nimi.cognition.runtime-bridge.r005
+// @nimi-authority: rule.nimi.cognition.runtime-bridge.r006
 // RuntimeAuthorization is a call-scoped decision already evaluated by
 // Runtime. Cognition validates that the decision is complete and bound to the
 // exact adapter operation; it does not infer account, App, workspace, or
@@ -32,6 +34,10 @@ type RuntimeAuthorization struct {
 	Owner     KnowledgeScopeOwner
 }
 
+// @nimi-authority: definition.nimi.cognition.runtime-bridge.domain
+// @nimi-authority: rule.nimi.cognition.runtime-bridge.r002
+// @nimi-authority: rule.nimi.cognition.runtime-bridge.r003
+// @nimi-authority: rule.nimi.cognition.runtime-bridge.r009
 // RuntimeBridge is the typed adapter surface used by Runtime-owned Knowledge.
 // It deliberately exposes no App permission, Realm grant, Skill, or LocalAgent
 // product surface.

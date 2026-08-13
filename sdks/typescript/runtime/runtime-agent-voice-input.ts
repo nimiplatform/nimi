@@ -9,6 +9,7 @@ export const NIMI_RUNTIME_AGENT_VOICE_INPUT_MAX_DURATION_MS = 5 * 60 * 1000;
 
 const AI_LOCAL_EXECUTION_CANCELED = 'AI_LOCAL_EXECUTION_CANCELED';
 
+// @nimi-authority: rule.nimi.sdks.feature-clients.r103
 export function createNimiRuntimeAgentVoiceInputTooLargeError(): NimiError {
   return createNimiError({
     message: 'Recorded audio exceeds the 5-minute or 6 MiB voice-input limit.',

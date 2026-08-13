@@ -1,3 +1,5 @@
+// @nimi-authority: rule.nimi.platform.ui-design-system.p-design-027c
+// @nimi-authority: rule.nimi.platform.ui-design-system.p-design-027e
 /**
  * Overlay motion grammar (P-DESIGN-027 / nimi-ui-motion-contract.md §5).
  *

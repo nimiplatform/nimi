@@ -73,6 +73,9 @@ export function buildNimiRuntimeAgentConsumeContext(input: NimiRuntimeAgentConsu
   };
 }
 
+// @nimi-authority: rule.nimi.sdks.feature-clients.r083
+// @nimi-authority: rule.nimi.sdks.feature-clients.r078
+// @nimi-authority: rule.nimi.sdks.feature-clients.r081
 export function createNimiRuntimeAgentConsumeClient(
   options: NimiRuntimeAgentConsumeClientOptions,
 ): NimiRuntimeAgentConsumeClient {

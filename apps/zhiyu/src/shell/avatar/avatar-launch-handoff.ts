@@ -59,6 +59,8 @@ declare global {
   }
 }
 
+// @nimi-authority: rule.nimi.zhiyu.local-partner-surface.r011
+// @nimi-authority: rule.nimi.zhiyu.local-partner-surface.r012
 export function buildZhiyuAvatarLaunchHandoff(input: {
   readonly evidence: ZhiyuEvidence;
   readonly action: ZhiyuAvatarLaunchAction;

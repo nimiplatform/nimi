@@ -382,6 +382,8 @@ export function shouldRefreshAgentRuntimeSessionSnapshotForEvent(
     || event.eventName === 'runtime.agent.turn.interrupted';
 }
 
+// @nimi-authority: rule.nimi.desktop.agent-projection.r002
+// @nimi-authority: rule.nimi.desktop.agent-projection.r029
 export function hydrateAgentThreadBundleFromRuntimeSessionSnapshot(input: {
   thread: AgentLocalThreadSummary | AgentLocalThreadRecord;
   bundle: AgentLocalThreadBundle | null | undefined;

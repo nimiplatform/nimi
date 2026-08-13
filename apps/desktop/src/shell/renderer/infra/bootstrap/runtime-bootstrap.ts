@@ -106,6 +106,7 @@ function resolveDesktopRuntimeTransport(): DesktopRuntimeTransport {
   throw new Error('Desktop Runtime transport requires a standard shell host invoke.');
 }
 
+// @nimi-authority: rule.nimi.desktop.shell-runtime.r011
 export function rebootstrapRuntime(lifecycle: DesktopRendererLifecyclePort): Promise<void> {
   pendingRebootstrap = true;
   if (rebootstrapPromise) {
@@ -149,6 +150,8 @@ export async function disposeRuntimeBootstrap(): Promise<void> {
   bootstrapPromise = null;
 }
 
+// @nimi-authority: definition.nimi.desktop.shell-runtime.bootstrap-phase-plane
+// @nimi-authority: rule.nimi.desktop.shell-runtime.r002
 export function bootstrapRuntime(lifecycle: DesktopRendererLifecyclePort): Promise<void> {
   bindOfflineCoordinator(lifecycle);
   if (rebootstrapPromise) {

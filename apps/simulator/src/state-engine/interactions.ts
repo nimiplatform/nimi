@@ -181,6 +181,8 @@ export function registerInteractionCommand(context: EngineContext): void {
   });
 }
 
+// @nimi-authority: definition.nimi.platform.simulator.interaction-protocol
+// @nimi-authority: rule.nimi.platform.simulator.p-sim-012
 export function createInteractionRuntime(
   declared: readonly SimulatorInteractionDeclaration[] | undefined,
   enqueueDerived: EnqueueDerivedInteraction,

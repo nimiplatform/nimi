@@ -138,6 +138,10 @@ export interface NimiClientFeatureSurface {
   };
 }
 
+// @nimi-authority: definition.nimi.sdks.client-core.public-surface-plane
+// @nimi-authority: rule.nimi.sdks.client-core.r002
+// @nimi-authority: rule.nimi.sdks.client-core.r003
+// @nimi-authority: rule.nimi.sdks.client-core.r006
 export class NimiClient {
   readonly appId?: string;
   readonly runtime: Runtime;

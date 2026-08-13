@@ -5,6 +5,7 @@ export type Nimi2DAudioAttachResult = import('../runtime/index.mjs').Nimi2DAudio
 export type Nimi2DAudioSourceLike = import('../runtime/index.mjs').Nimi2DAudioSourceLike;
 export type Nimi2DAudioContextLike = import('../runtime/index.mjs').Nimi2DAudioContextLike;
 
+// @nimi-authority: definition.nimi.nimi2d.asset-package.reference-player
 export type Nimi2DReferenceActionEvent =
   | { type: 'activity'; name: string; intensity?: number | null }
   | { type: 'emotion'; current: string; previous?: string | null }

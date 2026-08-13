@@ -34,18 +34,7 @@ fn normalize_reason_code(value: &str) -> String {
 }
 
 fn sanitize_error_message(message: &str) -> String {
-    let trimmed = message.trim();
-    if trimmed.is_empty() {
-        return String::new();
-    }
-    let lowered = trimmed.to_ascii_lowercase();
-    if lowered.contains("x-nimi-provider-api-key")
-        || lowered.contains("provider_api_key")
-        || lowered.contains("\"providerapikey\"")
-    {
-        return "[REDACTED_PROVIDER_API_KEY]".to_string();
-    }
-    trimmed.to_string()
+    message.trim().to_string()
 }
 
 #[derive(Debug, Clone, Default)]
@@ -619,18 +608,6 @@ mod tests {
         assert_eq!(
             payload.get("reasonCode").and_then(Value::as_str),
             Some("RUNTIME_GRPC_UNAVAILABLE")
-        );
-    }
-
-    #[test]
-    fn bridge_status_error_redacts_provider_api_key_in_message() {
-        let payload = parse_json(bridge_status_error(Status::new(
-            Code::InvalidArgument,
-            "{\"reasonCode\":\"AI_INPUT_INVALID\",\"message\":\"x-nimi-provider-api-key=sk-test-secret\"}",
-        )));
-        assert_eq!(
-            payload.get("message").and_then(Value::as_str),
-            Some("[REDACTED_PROVIDER_API_KEY]")
         );
     }
 

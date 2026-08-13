@@ -322,6 +322,7 @@ export interface NimiRuntimeAgentCompanionParticipationReplayInput
   readonly projectionId: unknown;
 }
 
+// @nimi-authority: rule.nimi.sdks.feature-clients.r080
 export interface NimiRuntimeAgentAvatarDebugBaseInput extends NimiRuntimeAgentConsumeIdentityInput {
   readonly conversationAnchorId: unknown;
 }

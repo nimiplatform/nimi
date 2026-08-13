@@ -22,9 +22,6 @@ export async function loadAgentRuntimeVoiceCatalog(input: {
       input.ai.listPresetVoices({
         appId: input.appId,
         subjectUserId: input.subjectUserId,
-        modelId: '',
-        targetModelId: '',
-        connectorId: '',
       }, { signal: controller.signal }).then((response) => ({
         sourceLabel: response.modelResolved,
         options: response.voices.map((voice): AgentCenterVoiceCatalogOption => {

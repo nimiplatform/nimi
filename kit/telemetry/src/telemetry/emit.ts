@@ -63,6 +63,7 @@ export function toRendererLogMessage(message: unknown): RendererLogMessage {
   return `action:${normalized}` as RendererLogMessage;
 }
 
+// @nimi-authority: rule.nimi.platform.ui-design-system.p-kit-040
 export async function emitRendererLog(payload: RendererLogPayload): Promise<void> {
   const sessionTraceId = resolveRendererSessionTraceId();
   const normalizedTraceId =

@@ -26,6 +26,7 @@ export class NimiCoreTransportRequiredError extends Error {
   }
 }
 
+// @nimi-authority: definition.nimi.sdks.client-core.transport-plane
 export class CoreClient {
   readonly #transport: CoreTransport;
   readonly #authMetadata?: () => CoreMetadataInput | Promise<CoreMetadataInput>;

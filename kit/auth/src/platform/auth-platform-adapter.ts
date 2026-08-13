@@ -14,6 +14,7 @@ type CheckEmailResponseDto = RealmModel<'CheckEmailResponseDto'>;
 // AuthPlatformAdapter — injection point for all platform-specific operations
 // ---------------------------------------------------------------------------
 
+// @nimi-authority: rule.nimi.platform.ui-design-system.p-kit-020
 export type AuthPlatformAdapter = {
   // API calls
   checkEmail: (email: string) => Promise<CheckEmailResponseDto>;

@@ -154,6 +154,8 @@ function resetAndRelaunch(session: SimulatorSession): Promise<void> {
   return resetInFlight;
 }
 
+// @nimi-authority: definition.nimi.platform.simulator.product
+// @nimi-authority: rule.nimi.platform.simulator.p-sim-001a
 export async function mountSimulatorShell(guard: SimulatorGuardHandle): Promise<void> {
   const rootElement = document.getElementById('root');
   if (!rootElement) {

@@ -108,6 +108,7 @@ export function characterSourceMaterializationFailureMessage(
   return message || characterSourceMaterializationMessage(t);
 }
 
+// @nimi-authority: rule.nimi.desktop.product-surfaces.r006
 export async function materializeCharacterSourceLocalAgent(
   input: unknown,
   t: TFunction,

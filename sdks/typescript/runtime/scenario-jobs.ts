@@ -118,6 +118,7 @@ export function isNimiRuntimeScenarioJobTerminalStatus(status: ScenarioJobStatus
     || status === ScenarioJobStatus.TIMEOUT;
 }
 
+// @nimi-authority: rule.nimi.sdks.feature-clients.r069
 export async function runNimiRuntimeScenarioJob(
   input: NimiRuntimeScenarioJobRunnerInput,
 ): Promise<NimiRuntimeScenarioJobResult> {

@@ -101,10 +101,7 @@ export function buildElectronRuntimeGrpcMetadata(
   addMetadata(metadata, 'x-nimi-caller-kind', trusted?.metadata?.callerKind || 'third-party-app');
   addMetadata(metadata, 'x-nimi-caller-id', trusted?.metadata?.callerId || fallbackAppId);
   addMetadata(metadata, 'x-nimi-surface-id', trusted?.metadata?.surfaceId || request.metadata?.surfaceId);
-  addMetadata(metadata, 'x-nimi-key-source', request.metadata?.keySource);
-  addMetadata(metadata, 'x-nimi-provider-type', request.metadata?.providerType);
   addMetadata(metadata, 'x-nimi-client-id', request.metadata?.clientId);
-  addMetadata(metadata, 'x-nimi-provider-endpoint', request.metadata?.providerEndpoint);
   addMetadata(metadata, 'x-nimi-session-id', trusted?.appSession?.sessionId);
   addMetadata(metadata, 'x-nimi-session-token', trusted?.appSession?.sessionToken);
   for (const [key, value] of Object.entries(trusted?.metadata?.extra ?? {})) {
@@ -115,6 +112,15 @@ export function buildElectronRuntimeGrpcMetadata(
         message: `Electron trusted Runtime metadata key is not allowed: ${key}`,
         reasonCode: 'electron-trusted-runtime-metadata-key-not-allowed',
         actionHint: 'use_x_nimi_host_metadata_key',
+        details: { key },
+      });
+    }
+    if (isRetiredCallerAIInputMetadataKey(normalizedKey)) {
+      throw new NimiElectronShellHostError({
+        code: 'invalid-payload',
+        message: `Electron trusted Runtime metadata key is retired: ${key}`,
+        reasonCode: 'electron-runtime-caller-ai-input-metadata-retired',
+        actionHint: 'remove_caller_selected_ai_execution_metadata',
         details: { key },
       });
     }
@@ -293,10 +299,7 @@ function parseRuntimeBridgeMetadata(value: unknown): ElectronRuntimeBridgeMetada
     traceId: normalizeText(record.traceId) || undefined,
     idempotencyKey: normalizeText(record.idempotencyKey) || undefined,
     surfaceId: normalizeText(record.surfaceId) || undefined,
-    keySource: normalizeText(record.keySource) || undefined,
-    providerType: normalizeText(record.providerType) || undefined,
     clientId: normalizeText(record.clientId) || undefined,
-    providerEndpoint: normalizeText(record.providerEndpoint) || undefined,
     extra: extraRecord ? normalizeMetadataExtra(extraRecord) : undefined,
   };
 }
@@ -337,6 +340,15 @@ function assertNoRendererSensitiveMetadataExtra(record: Readonly<Record<string, 
 }
 
 function assertRendererMetadataKeyAllowed(key: string): void {
+  if (isRetiredCallerAIInputMetadataKey(key)) {
+    throw new NimiElectronShellHostError({
+      code: 'invalid-payload',
+      message: `Electron Runtime bridge caller AI input metadata is retired: ${key}`,
+      reasonCode: 'electron-runtime-caller-ai-input-metadata-retired',
+      actionHint: 'remove_caller_selected_ai_execution_metadata',
+      details: { field: key },
+    });
+  }
   const normalized = key.toLowerCase().replace(/[-_]/gu, '');
   const forbiddenKind = rendererForbiddenMetadataKind(normalized);
   if (!forbiddenKind) {
@@ -351,6 +363,19 @@ function assertRendererMetadataKeyAllowed(key: string): void {
       : 'provide_sensitive_runtime_metadata_from_electron_host',
     details: { field: key },
   });
+}
+
+const RETIRED_CALLER_AI_INPUT_METADATA_KEYS = new Set([
+  'keysource',
+  'providertype',
+  'providerendpoint',
+  'providerapikey',
+]);
+
+function isRetiredCallerAIInputMetadataKey(key: string): boolean {
+  const normalized = key.trim().toLowerCase();
+  const suffix = normalized.startsWith('x-nimi-') ? normalized.slice('x-nimi-'.length) : normalized;
+  return RETIRED_CALLER_AI_INPUT_METADATA_KEYS.has(suffix.replace(/[-_]/gu, ''));
 }
 
 function rendererForbiddenMetadataKind(key: string): 'auth' | 'identity' | undefined {
@@ -382,11 +407,7 @@ const RESERVED_METADATA_KEYS = new Set([
   'x-nimi-caller-kind',
   'x-nimi-caller-id',
   'x-nimi-surface-id',
-  'x-nimi-key-source',
-  'x-nimi-provider-type',
   'x-nimi-client-id',
-  'x-nimi-provider-endpoint',
-  'x-nimi-provider-api-key',
   'x-nimi-access-token-id',
   'x-nimi-access-token-secret',
   'x-nimi-session-id',
@@ -402,7 +423,6 @@ const RESERVED_METADATA_KEYS = new Set([
 const TRUSTED_RUNTIME_PORTABLE_CREDENTIAL_METADATA_KEYS = new Set([
   'x-nimi-access-token-id',
   'x-nimi-access-token-secret',
-  'x-nimi-provider-api-key',
 ]);
 const GENERIC_BRIDGE_BLOCKED_RPC_POSTURES = new Set([
   'protected_origin_required',

@@ -4457,9 +4457,6 @@ type ListPendingHooksResponse struct {
 type ListPresetVoicesRequest struct {
 	AppId string `json:"app_id,omitempty"`
 	SubjectUserId string `json:"subject_user_id,omitempty"`
-	ModelId string `json:"model_id,omitempty"`
-	TargetModelId string `json:"target_model_id,omitempty"`
-	ConnectorId string `json:"connector_id,omitempty"`
 }
 
 type ListPresetVoicesResponse struct {

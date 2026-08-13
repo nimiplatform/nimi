@@ -74,6 +74,8 @@ const RUNTIME_TEXT_GENERATION_MODEL: NimiTextGenerationCapabilityRef = Object.fr
   modelId: 'text.generate',
 });
 
+// @nimi-authority: definition.nimi.sdks.feature-clients.ai-adapter-plane
+// @nimi-authority: rule.nimi.sdks.feature-clients.r001
 export function createNimiRuntimeAIModel(options: NimiRuntimeAIModelOptions): NimiAiModel {
   const scenarioClient = getScenarioClient(options.runtime);
   const model = RUNTIME_TEXT_GENERATION_MODEL;

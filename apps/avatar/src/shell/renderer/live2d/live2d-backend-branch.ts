@@ -234,6 +234,9 @@ export type Live2DBackendBranchHandle = {
   shutdown(): void;
 };
 
+// @nimi-authority: definition.nimi.avatar.embodiment.live2d-adapter
+// @nimi-authority: rule.nimi.avatar.embodiment.r034
+// @nimi-authority: rule.nimi.avatar.embodiment.r053
 export async function createLive2DBackendBranch(
   manifest: Live2DAvatarModelManifest,
 ): Promise<Live2DBackendBranchHandle> {

@@ -35,10 +35,7 @@ type RuntimeBridgeMetadata = {
   traceId?: string;
   idempotencyKey?: string;
   surfaceId?: string;
-  keySource?: string;
-  providerType?: string;
   clientId?: string;
-  providerEndpoint?: string;
   extra?: Record<string, string>;
 };
 
@@ -98,15 +95,22 @@ const BRIDGE_METADATA_FIELDS: Record<string, RuntimeBridgeMetadataScalarField> =
   'x-nimi-idempotency-key': 'idempotencyKey',
   surfaceid: 'surfaceId',
   'x-nimi-surface-id': 'surfaceId',
-  keysource: 'keySource',
-  'x-nimi-key-source': 'keySource',
-  providertype: 'providerType',
-  'x-nimi-provider-type': 'providerType',
   clientid: 'clientId',
   'x-nimi-client-id': 'clientId',
-  providerendpoint: 'providerEndpoint',
-  'x-nimi-provider-endpoint': 'providerEndpoint',
 };
+
+const RETIRED_CALLER_AI_INPUT_METADATA_KEYS = new Set([
+  'keysource',
+  'providertype',
+  'providerendpoint',
+  'providerapikey',
+]);
+
+function isRetiredCallerAIInputMetadataKey(key: string): boolean {
+  const normalized = key.trim().toLowerCase();
+  const suffix = normalized.startsWith('x-nimi-') ? normalized.slice('x-nimi-'.length) : normalized;
+  return RETIRED_CALLER_AI_INPUT_METADATA_KEYS.has(suffix.replaceAll('-', ''));
+}
 
 const RESERVED_EXTRA_KEYS = new Set(Object.keys(BRIDGE_METADATA_FIELDS).filter((key) => key.startsWith('x-nimi-')));
 const ELECTRON_RENDERER_FORBIDDEN_AUTH_METADATA_KEYS = new Set([
@@ -324,12 +328,18 @@ function splitRuntimeMetadata(metadata: CoreMetadata | undefined): {
   const extra: Record<string, string> = {};
 
   for (const [rawKey, rawValue] of Object.entries(metadata ?? {})) {
+    const key = rawKey.trim();
+    const lookup = key.toLowerCase();
+    if (isRetiredCallerAIInputMetadataKey(lookup)) {
+      throwInvalidRendererMetadata(
+        rawKey,
+        `Runtime metadata field ${rawKey} is retired and not accepted`,
+      );
+    }
     const value = normalizeText(rawValue);
     if (!value) {
       continue;
     }
-    const key = rawKey.trim();
-    const lookup = key.toLowerCase();
     const compactLookup = lookup.replaceAll('-', '');
     const forbiddenKind = electronRendererForbiddenMetadataKind(compactLookup);
     if (forbiddenKind) {

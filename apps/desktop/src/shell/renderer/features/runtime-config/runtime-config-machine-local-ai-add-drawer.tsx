@@ -9,6 +9,7 @@ import {
   NIMI_MACHINE_LOCAL_VOICE_CREATE_CAPABILITY_CONTRACT,
   createNimiMachineLocalStableDiffusionImageConfigurationInput,
   createNimiMachineLocalStableDiffusionVideoConfigurationInput,
+  isNimiMachineLocalStableDiffusionModelFamily,
   type NimiMachineLocalCapabilityRequirement,
   type NimiRuntimeLocalAssetEntry,
 } from '@nimiplatform/sdk/runtime';
@@ -604,8 +605,8 @@ function ExactAssetSelect(props: {
   );
 }
 
-// nimi-authority: rule.nimi.desktop.ai-consumption.r023
-// nimi-authority: rule.nimi.runtime.ai-provider.r064
+// @nimi-authority: rule.nimi.desktop.ai-consumption.r023
+// @nimi-authority: rule.nimi.runtime.ai-provider.r064
 export function createMachineLocalImageConfigurationInput(
   draft: RuntimeConfigMachineLocalAIAddDraft,
   assets: readonly NimiRuntimeLocalAssetEntry[],
@@ -616,17 +617,20 @@ export function createMachineLocalImageConfigurationInput(
     !mainAsset
     || mainAsset.kind !== 'image'
     || (mainAsset.status !== 'installed' && mainAsset.status !== 'active')
-    || !mainAsset.family
     || !mainAsset.exactContent?.verifiedContentId
   ) {
     throw new Error('A verified Runtime-projected main image asset is required.');
   }
-  if (draft.modelFamily !== mainAsset.family) {
+  const modelFamily = mainAsset.family;
+  if (!isNimiMachineLocalStableDiffusionModelFamily(modelFamily)) {
+    throw new Error('An exact stable-diffusion Driver family is required.');
+  }
+  if (draft.modelFamily !== modelFamily) {
     throw new Error('The selected main asset family changed before Add.');
   }
   return createNimiMachineLocalStableDiffusionImageConfigurationInput({
     displayName,
-    modelFamily: mainAsset.family,
+    modelFamily,
     enableInputImage: draft.enableInputImage,
     executionOptions: {
       steps: parseDraftNumber(draft.executionOptions.steps, 'steps'),

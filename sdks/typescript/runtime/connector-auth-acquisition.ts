@@ -368,6 +368,9 @@ function withoutAcquisitionCancellation(
   };
 }
 
+// @nimi-authority: definition.nimi.sdks.feature-clients.connector-auth-plane
+// @nimi-authority: rule.nimi.sdks.feature-clients.r060
+// @nimi-authority: rule.nimi.sdks.feature-clients.r061
 export async function acquireNimiManagedConnectorCredentialInHost(
   options: NimiAcquireManagedConnectorCredentialInHostOptions,
 ): Promise<NimiManagedConnectorCredentialAcquisitionResult> {

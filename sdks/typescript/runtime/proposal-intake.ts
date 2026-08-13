@@ -303,6 +303,10 @@ export function buildNimiCapabilityProposalDraft(
   });
 }
 
+// @nimi-authority: definition.nimi.sdks.feature-clients.proposal-plane
+// @nimi-authority: rule.nimi.sdks.feature-clients.r053
+// @nimi-authority: rule.nimi.sdks.feature-clients.r054
+// @nimi-authority: rule.nimi.sdks.feature-clients.r056
 export function createNimiProposalIntakeClient(
   options: NimiProposalIntakeClientOptions,
 ): NimiProposalIntakeClient {

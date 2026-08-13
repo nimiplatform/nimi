@@ -31,6 +31,7 @@ const KIT_FACADE_KEYS = [
   'theme',
 ] as const;
 
+// @nimi-authority: rule.nimi.platform.ui-design-system.p-kit-042
 export function createNimiCanonicalRendererHostBindings<
   TProjectionPort extends object,
   TCommandPort extends object,

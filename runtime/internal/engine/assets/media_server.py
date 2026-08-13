@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# @nimi-authority: rule.nimi.runtime.local-compute.r060
 
 import argparse
 import base64

@@ -234,10 +234,6 @@ type ClientMetadata struct {
 	CallerID                   string
 	SurfaceID                  string
 	TraceID                    string
-	CredentialSource           string
-	ProviderType               string
-	ProviderEndpoint           string
-	ProviderAPIKey             string
 	SessionID                  string
 	SessionToken               string
 }

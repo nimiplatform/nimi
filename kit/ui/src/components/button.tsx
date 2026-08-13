@@ -4,6 +4,9 @@ import { cva, type VariantProps } from 'class-variance-authority';
 import { cn, type ActionSize, type ActionTone } from '../design-tokens.js';
 import { FOCUS_RING_CLASS_NAME } from '../a11y/focus.js';
 
+// @nimi-authority: rule.nimi.platform.ui-design-system.p-design-012a
+// @nimi-authority: rule.nimi.platform.ui-design-system.p-design-012b
+// @nimi-authority: rule.nimi.platform.ui-design-system.p-design-027b
 export const buttonVariants = cva(
   // P-DESIGN-012/027: token-driven color transitions only, instant pressed
   // feedback on pointer-down; no hover elevation lifts, no transition-all.
