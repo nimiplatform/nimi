@@ -1,11 +1,7 @@
-// Multi-backend BackendBranch carrier abstraction.
-//
-// Spec authority: .nimi/spec/avatar/embodiment-surface.authority.yaml
-// Drift rule: type definitions here MUST stay in sync with that contract.
+// Shared structural carriers used by Avatar helpers. Avatar owns concrete
+// backend composition and presentation behavior.
 
-import type { ComponentType } from 'react';
-
-export type BackendKind = 'live2d' | 'vrm' | 'nimi2d';
+export type BackendKind = 'live2d' | 'vrm';
 
 export type BackendNominalBounds = {
   width: number;
@@ -54,48 +50,3 @@ export interface BackendAudioConsumer {
    *  when no source is attached or after detach (lipsync driver decays). */
   snapshot(): WLipSyncSnapshot | null;
 }
-
-export type BackendProjection = {
-  /** Ontology-level activity (no Live2D parameter id). intensity ∈ [0,1] | null. */
-  applyActivity(input: { name: string; intensity: number | null }): void;
-  applyEmotion(input: { current: string; previous: string | null }): void;
-  applyMotion(input: { routeId: string; fade?: number; loop?: boolean }): void;
-  applyExpression(input: { name: string; weight?: number; fade?: number }): void;
-  reset(): void;
-};
-
-/** Live2D-only escape hatch. NAS handlers wishing to setParameter MUST
- *  declare requires: ['live2d-extension'] in the handler manifest; the
- *  registry rejects mismatched handlers when the loaded model is VRM. */
-export type Live2DBackendExtension = {
-  setParameter(id: string, value: number, durationSec?: number): void;
-};
-
-export type BackendMetadata = Record<string, unknown>;
-
-export type BackendSurfaceProps = {
-  width: number;
-  height: number;
-  embodied: boolean;
-  onHitRegionChange?: (region: BackendHitRegion) => void;
-  onAudioConsumerReady?: (consumer: BackendAudioConsumer) => void;
-  onLifecycleEvidence?: (kind: string, detail: Record<string, unknown>) => void;
-};
-
-export type BackendSurface = {
-  Component: ComponentType<BackendSurfaceProps>;
-};
-
-export type BackendBranchBase = {
-  nominalBounds: BackendNominalBounds;
-  projection: BackendProjection;
-  surface: BackendSurface;
-  metadata(): BackendMetadata;
-  shutdown(): void;
-};
-
-/** Discriminated union — kind narrowing exposes Live2D-only escape hatch. */
-export type BackendBranch =
-  | (BackendBranchBase & { kind: 'live2d'; live2dExtension: Live2DBackendExtension })
-  | (BackendBranchBase & { kind: 'vrm' })
-  | (BackendBranchBase & { kind: 'nimi2d' });

@@ -1,6 +1,6 @@
 // Avatar shell root component.
-// Per rule.nimi.avatar.embodiment.r022 the shell mounts exactly
-// one of: embodiment-stage OR degraded-surface.
+// App-local prerequisite composition mounts exactly one of
+// embodiment-stage or degraded-surface.
 // The retired mixed `recovery panel` + `trigger toggle` paths are
 // hard-cut; text/settings controls now move to transient overlays.
 
@@ -8,7 +8,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { cn } from '@nimiplatform/kit/ui';
 import { bootstrapAvatar, type BootstrapHandle } from './app-shell/app-bootstrap.js';
 import { useAvatarStore } from './app-shell/app-store.js';
-import { setAlwaysOnTop } from './app-shell/tauri-commands.js';
+import { setAlwaysOnTop } from './app-shell/avatar-window-commands.js';
 import { useWindowBoundsSync } from './app-shell/use-window-bounds-sync.js';
 import { isTauriRuntime, onLaunchContextUpdated } from './app-shell/tauri-lifecycle.js';
 import { deriveCompositionState, type CompositionDerivation } from './app-shell/composition-state.js';

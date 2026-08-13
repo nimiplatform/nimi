@@ -15,7 +15,7 @@
 // Test seams (`ipcOverride` / `nowMsFn`) keep the throttle deterministic
 // under jsdom + vi.useFakeTimers without monkeypatching Date.now.
 
-import { setIgnoreCursorEvents } from './tauri-commands.js';
+import { setIgnoreCursorEvents } from './avatar-window-commands.js';
 
 /** 1000 / 60 ≈ 16.67ms. Frozen here as a named contract constant (no
  *  scattered float literals in throttle

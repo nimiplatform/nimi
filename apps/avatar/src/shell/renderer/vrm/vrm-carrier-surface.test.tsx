@@ -10,10 +10,8 @@ import type { VRM } from '@pixiv/three-vrm';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ReactNode } from 'react';
 import type { VrmAvatarModelManifest } from './vrm-model-manifest.js';
-import type {
-  BackendAudioConsumer,
-  BackendProjection,
-} from '../carrier/backend-branch.js';
+import type { BackendAudioConsumer } from '@nimiplatform/kit/features/avatar/headless';
+import type { BackendProjection } from '../carrier/backend-branch.js';
 import type { VrmEmoteState } from './vrm-emote-state.js';
 import type { VrmGeneratedMotionRuntime } from './vrm-generated-motion-contract.js';
 import type { VrmLipsyncDriver } from './vrm-lipsync-driver.js';
@@ -36,7 +34,7 @@ vi.mock('@react-three/fiber', () => ({
   useFrame: () => {},
   // Wave 4 chunk 4-C: VrmRenderTargetCaptureLoop calls useThree to read
   // gl/scene/camera. Stubs are fine — the alpha-mask capture is wrapped
-  // in try/catch and the surface tests cover lifecycle, not the probe.
+  // in try/catch and the surface tests cover render recovery, not the probe.
   useThree: () => ({ gl: {}, scene: {}, camera: {} }),
 }));
 
@@ -344,7 +342,7 @@ describe('createVrmCarrierSurface', () => {
     expect(onAudio).toHaveBeenCalledTimes(1);
   });
 
-  it('renders null when the runtime ends in failed_closed', async () => {
+  it('renders the local unavailable surface when the runtime ends in failed_closed', async () => {
     const { createVrmCarrierSurface } = await import('./vrm-carrier-surface.js');
     const handle = createVrmCarrierSurface({
       manifest: manifest(),
@@ -369,7 +367,8 @@ describe('createVrmCarrierSurface', () => {
       await Promise.resolve();
     });
 
-    expect(result!.container.firstChild).toBeNull();
+    expect(result!.getByTestId('avatar-presentation-unavailable')).toBeTruthy();
+    expect(result!.getByText('load_failed')).toBeTruthy();
   });
 
   it('shutdown() can be called from the handle without error', async () => {

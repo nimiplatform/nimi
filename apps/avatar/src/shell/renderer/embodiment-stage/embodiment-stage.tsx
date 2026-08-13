@@ -1,13 +1,16 @@
 // Embodiment Stage surface.
 // Renders the active backend carrier and owns hit-region, drag-region, and
-// pointer interaction wiring. Rules rule.nimi.avatar.embodiment.r021 and r022
-// permit this surface only in the `ready` lifecycle state.
+// pointer interaction wiring. App-local prerequisite composition permits this
+// surface only in its `ready` branch.
 
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { cn } from '@nimiplatform/kit/ui';
 import {
   createAvatarHitRegionSnapshot,
+  getSharedAudioPipelineController,
   rectFromElement,
+  type BackendAudioConsumer,
+  type BackendHitRegion,
 } from '@nimiplatform/kit/features/avatar/headless';
 import { AvatarInteractionController } from '../interaction/avatar-interaction-controller.js';
 import {
@@ -17,17 +20,12 @@ import {
   moveManualDragWindow,
   setIgnoreCursorEvents,
   type AvatarManualDragWindowOrigin,
-} from '../app-shell/tauri-commands.js';
+} from '../app-shell/avatar-window-commands.js';
 import { isTauriRuntime } from '../app-shell/tauri-lifecycle.js';
 import { hasAvatarHostRuntime } from '../app-shell/avatar-host-bridge.js';
 import { isInteractiveTarget } from '../avatar-shell-utils.js';
 import type { AppOriginEvent } from '../driver/types.js';
-import type {
-  BackendAudioConsumer,
-  BackendBranch,
-  BackendHitRegion,
-} from '../carrier/backend-branch.js';
-import { getSharedAudioPipelineController } from '@nimiplatform/kit/features/avatar/headless';
+import type { BackendBranch } from '../carrier/backend-branch.js';
 import { createThrottledCursorEvents } from '../app-shell/throttled-cursor-events.js';
 import { createThrottledEmit } from '../app-shell/throttled-emit.js';
 
@@ -83,9 +81,9 @@ export function EmbodimentStage(props: EmbodimentStageProps) {
     onFocusVisibleChange,
   } = props;
 
-  // ── BackendSurface lifecycle wiring ──
+  // ── BackendSurface carrier wiring ──
   // The active BackendBranch exposes a Component that publishes three
-  // lifecycle channels: audio-consumer and hit-region. Each one bridges into
+  // carrier channels: audio-consumer and hit-region. Each one bridges into
   // an existing app-shell concern:
   //   * onAudioConsumerReady → register sink with the shared audio
   //     pipeline (lipsync), unregister on backend swap / unmount.

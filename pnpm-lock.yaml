@@ -49,9 +49,6 @@ importers:
       '@nimiplatform/kit':
         specifier: workspace:*
         version: link:../../kit
-      '@nimiplatform/nimi2d':
-        specifier: workspace:*
-        version: link:../../nimi2d
       '@nimiplatform/sdk':
         specifier: workspace:*
         version: link:../../sdks/typescript
@@ -82,9 +79,6 @@ importers:
       lucide-react:
         specifier: ^0.577.0
         version: 0.577.0(react@19.2.6)
-      pixi.js:
-        specifier: ^8.19.0
-        version: 8.19.0
       react:
         specifier: 19.2.6
         version: 19.2.6

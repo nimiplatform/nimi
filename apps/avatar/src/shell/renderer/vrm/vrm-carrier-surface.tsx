@@ -4,19 +4,18 @@
 // lipsync driver, and projection adapter are all wired through the
 // surface useFrame loop.
 //
-// Wiring follows the r057 resource lifecycle and r062 audio/hit-region rules:
+// Wiring follows the r057 resource ownership and r062 audio/hit-region rules:
 //
 //   * webglcontextlost  → runtime.notifyContextLost()    (preventDefault
 //                          to allow Three.js to re-acquire the context)
 //   * webglcontextrestored → runtime.notifyContextRestored()
-//   * onAudioConsumerReady fires EXACTLY ONCE per surface lifecycle;
+//   * onAudioConsumerReady fires exactly once per surface mount;
 //     guarded by a useRef to prevent double-registration of the sink
 //   * onHitRegionChange fires once with the full-viewport bbox; alpha-mask
 //     hit-test is not available until the model-specific opacity probe is
 //     attached (isOpaqueAtClientPoint = null)
-//   * fail-close (load_failed / context_lost_recovery_failed /
-//     context_lost_twice / no_webgl) renders null; embodiment-stage
-//     surfaces its degraded layer above
+//   * terminal failure after backend-local recovery renders the Avatar-owned
+//     unavailable surface with restart and close actions
 //
 // Adapter construction + generated motion runtime attachment happen in a
 // one-shot effect keyed on the loaded VRM identity. Physical .vrma preset
@@ -35,8 +34,8 @@ import { Component as ReactComponent } from 'react';
 import type { ComponentType, ReactNode } from 'react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { VRM } from '@pixiv/three-vrm';
+import type { BackendAudioConsumer } from '@nimiplatform/kit/features/avatar/headless';
 import type {
-  BackendAudioConsumer,
   BackendProjection,
   BackendSurfaceProps,
 } from '../carrier/backend-branch.js';
@@ -48,7 +47,7 @@ import {
 import { applyVrmFraming } from './vrm-framing.js';
 import {
   createVrmRuntime,
-  type VrmLifecycleState,
+  type VrmRenderState,
   type VrmRuntime,
   type VrmRuntimeOptions,
 } from './vrm-runtime.js';
@@ -67,6 +66,7 @@ import {
   type VrmCapabilityProfile,
 } from './vrm-capability-profile.js';
 import { getCachedDeviceTier } from '../app-shell/device-tier-detector.js';
+import { PresentationUnavailableSurface } from '../presentation-unavailable/presentation-unavailable-surface.js';
 
 export type VrmCarrierSurfaceInput = {
   manifest: VrmAvatarModelManifest;
@@ -161,7 +161,7 @@ export function createVrmCarrierSurface(
     const regionAnnouncedRef = useRef(false);
     const adapterAnnouncedRef = useRef<VRM | null>(null);
     const canvasContainerRef = useRef<HTMLDivElement | null>(null);
-    const [state, setState] = useState<VrmLifecycleState>({ kind: 'idle' });
+    const [state, setState] = useState<VrmRenderState>({ kind: 'idle' });
     const [canvasError, setCanvasError] = useState(false);
     const [visualStats, setVisualStats] = useState<VrmVisualAcceptanceStats | null>(null);
 
@@ -311,7 +311,11 @@ export function createVrmCarrierSurface(
     }, [vrm, props.width, props.height]);
 
     if (state.kind === 'failed_closed' || canvasError) {
-      return null;
+      return (
+        <PresentationUnavailableSurface
+          reason={state.kind === 'failed_closed' ? state.reason : 'webgl_canvas_unavailable'}
+        />
+      );
     }
 
     return (
@@ -509,7 +513,7 @@ function readRendererViewport(gl: unknown): { left: number; top: number; width: 
 
 // React error boundary — function components cannot trap render-phase
 // errors thrown by <Canvas> when the host has no WebGL (jsdom / SSR).
-// On error we render null and notify the parent to emit failed_closed.
+// On error we notify the owning surface, which renders the local unavailable UI.
 type SafeCanvasCameraProps = {
   fov: number;
   position: [number, number, number];

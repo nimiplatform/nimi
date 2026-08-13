@@ -5,11 +5,11 @@ units:
   - id: definition.nimi.avatar.embodiment.product-boundary
     kind: definition
     title: Avatar embodiment product boundary
-    meaning: Avatar is the LocalAgent shape, state, and voice projection product that renders Live2D, VRM, Nimi2D, motion, expression, pose, look-at, voice playback, and lipsync from Runtime-owned LocalAgent execution, Conversation, activity, emotion, voice, and presentation output without becoming their owner or a Third-party App driver.
+    meaning: Avatar is the LocalAgent shape, state, and voice projection product that renders Live2D, VRM, motion, expression, pose, look-at, voice playback, and lipsync from Runtime-owned LocalAgent execution, Conversation, activity, emotion, voice, and presentation output without becoming their owner or a Third-party App driver.
   - id: definition.nimi.avatar.embodiment.backend-branch
     kind: definition
     title: BackendBranch carrier protocol
-    meaning: A BackendBranch is the closed discriminated Avatar-local carrier protocol for one validated live2d, vrm, or nimi2d backend, including nominal bounds, hit regions, audio consumption, ontology-level projection, a render surface, opaque metadata, lifecycle reporting, and shutdown.
+    meaning: A BackendBranch is the closed discriminated Avatar-local carrier protocol for one validated live2d or vrm backend, including nominal bounds, hit regions, audio consumption, ontology-level projection, a render surface, opaque metadata, and shutdown; temporary faults and recovery remain internal to the concrete backend.
   - id: definition.nimi.avatar.embodiment.projection-output
     kind: definition
     title: Embodiment projection output
@@ -24,8 +24,9 @@ units:
     meaning: The NAS EmbodimentProjectionApi is the closed creator-facing capability surface that lets isolated Avatar handlers issue backend-neutral motion, signal, expression, pose, wait, surface-bounds, and optional default-activity operations without receiving renderer, backend, host, credential, filesystem, or Runtime client objects.
   - id: definition.nimi.avatar.embodiment.shell-lifecycle
     kind: definition
+    lifecycle: removed
     title: Avatar shell lifecycle protocol
-    meaning: The Avatar shell lifecycle protocol is the fail-closed loading, ready, degraded, fatal, and relaunch state machine for a Runtime-admitted local first-party Avatar whose ready product surface is embodiment-first and whose non-ready product surface exposes only bounded recovery.
+    reason: Removed because Avatar presentation has no public renderer or shell lifecycle state machine; shell prerequisite composition remains an implementation detail and terminal presentation failure is handled locally in the Avatar window.
   - id: definition.nimi.avatar.embodiment.generated-motion-provider
     kind: definition
     title: Generated-motion provider
@@ -46,7 +47,7 @@ units:
     kind: rule
     title: Ownership guardrail for Avatar embodiment
     modality: must_not
-    statement: Avatar redefines Runtime participation, provenance, input ontology, voice timeline, or continuity truth, Realm truth, Desktop host mechanics, or Nimi2D package-internal semantics while validating or rendering an embodiment.
+    statement: Avatar redefines Runtime participation, provenance, input ontology, voice timeline, or continuity truth, Realm truth, or Desktop host mechanics while validating or rendering an embodiment.
     condition: Whenever Avatar consumes or projects another owner surface.
     failure: Reject the ownership transfer and retain only the typed downstream projection or opaque reference.
     relations:
@@ -56,7 +57,7 @@ units:
     kind: rule
     title: Backend Branch Contract 2.1 closed backend kinds
     modality: must
-    statement: BackendKind contains exactly live2d, vrm, and nimi2d, and one Avatar-owned branch factory validates the model and exhaustively selects one matching BackendBranch.
+    statement: BackendKind contains exactly live2d and vrm, and one Avatar-owned branch factory validates the selected model and exhaustively selects one matching BackendBranch.
     condition: Whenever a backend model is admitted or a branch is created.
     failure: Reject an unknown, unvalidated, ambiguous, or non-exhaustively handled backend kind without a placeholder branch.
     relations:
@@ -106,21 +107,16 @@ units:
         target: definition.nimi.avatar.embodiment.projection-output
   - id: rule.nimi.avatar.embodiment.r007
     kind: rule
+    lifecycle: removed
     title: Backend Branch Contract 2.7 through 2.9 branch shape
-    modality: must
-    statement: Every BackendBranch exposes kind, nominalBounds, projection, surface, metadata, and shutdown; its surface accepts width, height, embodied state, optional hit-region and audio-consumer readiness callbacks, and typed lifecycle reporting, while metadata remains opaque to the carrier.
-    condition: Whenever a branch is validated, mounted, observed, or shut down.
-    failure: Reject an incomplete or extra branch surface and do not interpret backend metadata as cross-backend truth.
-    relations:
-      - type: applies_to
-        target: definition.nimi.avatar.embodiment.backend-branch
+    reason: Removed because the exact aggregate TypeScript-like surface shape and typed lifecycle reporting had no product consumer; active resource, projection, interaction, and shutdown rules own the surviving semantics.
   - id: rule.nimi.avatar.embodiment.r008
     kind: rule
     title: Backend Branch Contract 2.6 branch-local extension
     modality: must
     statement: Only a live2d BackendBranch exposes the branch-local setParameter extension, and only Avatar-owned projection translation may invoke it after kind narrowing.
     condition: Whenever fine-grained parameter_delta output reaches backend execution.
-    failure: Reject extension access from NAS creator source or a vrm or nimi2d branch and fail the unsupported cue without cross-branch fallback.
+    failure: Reject extension access from NAS creator source or a vrm branch and fail the unsupported cue without cross-branch fallback.
     relations:
       - type: applies_to
         target: definition.nimi.avatar.embodiment.backend-branch
@@ -128,11 +124,11 @@ units:
         target: definition.nimi.avatar.embodiment.projection-output
   - id: rule.nimi.avatar.embodiment.r009
     kind: rule
-    title: Backend Branch Contract 3 carrier lifecycle
+    title: Backend Branch Contract 3 resource ownership
     modality: must
     statement: Carrier attachment and detachment preserve one validated BackendBranch, and shutdown cancels Avatar-local work and releases all branch render, audio, and projection resources without exposing backend-specific state through the carrier.
     condition: Whenever a Runtime driver attaches, detaches, a model changes, or the carrier shuts down.
-    failure: Fail the lifecycle transition and keep the carrier non-ready while resources, handlers, sinks, or backend-specific fields escape their branch.
+    failure: Fail the affected operation and retain no presentation success while resources, handlers, sinks, or backend-specific fields escape their branch.
     relations:
       - type: applies_to
         target: definition.nimi.avatar.embodiment.backend-branch
@@ -234,24 +230,14 @@ units:
         target: definition.nimi.avatar.embodiment.product-boundary
   - id: rule.nimi.avatar.embodiment.r021
     kind: rule
+    lifecycle: removed
     title: K-NAV-SHELL-COMPOSITION-001 closed shell lifecycle
-    modality: must
-    statement: The shell occupies exactly one of loading, ready, degraded reauth-required, degraded cloud-offline, degraded runtime-unavailable, degraded launch-context-invalid, error bootstrap-fatal, or relaunch-pending, and only complete bootstrap, validated Runtime binding, and visual carrier readiness permit ready.
-    condition: Whenever Avatar starts or a launch, account, Runtime, binding, or carrier prerequisite changes.
-    failure: Enter the matching typed non-ready state and withhold ready instead of inferring, retrying, or using fixture state.
-    relations:
-      - type: applies_to
-        target: definition.nimi.avatar.embodiment.shell-lifecycle
+    reason: Removed because loading, ready, degraded, fatal, and relaunch are not a canonical Avatar presentation state machine; bootstrap and host prerequisite composition remains App-local implementation.
   - id: rule.nimi.avatar.embodiment.r022
     kind: rule
+    lifecycle: removed
     title: K-NAV-SHELL-COMPOSITION-002 ready and degraded exclusion
-    modality: must
-    statement: Ready renders the embodiment stage with only explicitly opened transient overlays and no degraded surface, while every non-ready state unmounts embodiment and transient overlays and renders only the bounded degraded or loading surface.
-    condition: Whenever composition state is rendered or transitions.
-    failure: Reject partial ready, mixed ready and degraded presentation, retained stale carrier output, or hidden source posture.
-    relations:
-      - type: applies_to
-        target: definition.nimi.avatar.embodiment.shell-lifecycle
+    reason: Removed with the shell lifecycle state machine; Avatar presentation inability is governed directly by the local failure rule rather than ready and degraded phase exclusion.
   - id: rule.nimi.avatar.embodiment.r023
     kind: rule
     title: K-NAV-SHELL-FIRST-PARTY-RUNTIME-003 minimal launch intent
@@ -261,7 +247,7 @@ units:
     failure: Reject missing or invalid LocalAgent selection, a mismatched materialization result, raw-root disclosure, renderer or NAS path authority, and any launch-carried account, user, Realm, credential, calibration, model, render, or performance truth.
     relations:
       - type: applies_to
-        target: definition.nimi.avatar.embodiment.shell-lifecycle
+        target: definition.nimi.avatar.embodiment.product-boundary
   - id: rule.nimi.avatar.embodiment.r024
     kind: rule
     title: K-NAV-SHELL-FIRST-PARTY-RUNTIME-001 credential custody prohibition
@@ -271,7 +257,7 @@ units:
     failure: Deny the operation, discard the sensitive value, and remain in a typed non-ready or unauthorized state.
     relations:
       - type: applies_to
-        target: definition.nimi.avatar.embodiment.shell-lifecycle
+        target: definition.nimi.avatar.embodiment.product-boundary
   - id: rule.nimi.avatar.embodiment.r025
     kind: rule
     title: K-NAV-SHELL-OUTPUT-002 local presentation ownership
@@ -282,8 +268,6 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.avatar.embodiment.product-boundary
-      - type: applies_to
-        target: definition.nimi.avatar.embodiment.shell-lifecycle
   - id: rule.nimi.avatar.embodiment.r026
     kind: rule
     title: Generated Motion Provider Contract 3 typed input
@@ -386,9 +370,9 @@ units:
     kind: rule
     title: K-NAV-L2D-002 fail-closed package loading
     modality: must
-    statement: Live2D loading resolves exactly one model3 document, validates its MOC3 and every required texture, registers declared model-local motions and expressions, and attaches each present valid physics, pose, or metadata resource before reporting the branch ready.
+    statement: Live2D loading resolves exactly one model3 document, validates its MOC3 and every required texture, registers declared model-local motions and expressions, and attaches each present valid physics, pose, or metadata resource before attempting presentation.
     condition: Whenever a Cubism package is selected for a Live2D branch.
-    failure: Keep the branch non-ready and emit the matching typed failure when the package root, unique model document, required binary, required texture, declared resource, or parse result is missing or invalid; never load a placeholder or fallback material as success.
+    failure: Treat the current presentation as unable to render when the package root, unique model document, required binary, required texture, declared resource, or parse result is missing or invalid; never load a placeholder or fallback material as success.
     relations:
       - type: applies_to
         target: definition.nimi.avatar.embodiment.backend-branch
@@ -396,11 +380,11 @@ units:
         target: definition.nimi.avatar.embodiment.live2d-adapter
   - id: rule.nimi.avatar.embodiment.r035
     kind: rule
-    title: K-NAV-L2D-004 model lifecycle
+    title: K-NAV-L2D-004 model and resource replacement
     modality: must
     statement: A Live2D load, model switch, unload, shutdown, or render-context replacement preserves one active validated model and releases the prior Cubism instance, textures, graphics resources, motion state, expression state, handlers, and adapter-local work before replacement completes.
     condition: Whenever the Live2D model or rendering context changes or terminates.
-    failure: Keep the branch non-ready, report the failed lifecycle transition, and retain no success claim while stale resources or model state remain active.
+    failure: Treat the current presentation as unable to render when replacement cannot complete, and retain no success claim while stale resources or model state remain active.
     relations:
       - type: applies_to
         target: definition.nimi.avatar.embodiment.backend-branch
@@ -580,9 +564,9 @@ units:
     kind: rule
     title: Live2D Compatibility Tiers render_only claim
     modality: must
-    statement: The render_only tier proves one resolvable model document, an accepted MOC3, all declared textures, and non-placeholder visible Avatar carrier output while claiming no activity, expression, pose, lipsync, physics, hit-region, or NAS semantic support beyond each explicitly validated feature disposition.
+    statement: The render_only tier proves one resolvable model document, an accepted MOC3, and all declared textures while claiming no activity, expression, pose, lipsync, physics, hit-region, or NAS semantic support beyond each explicitly validated feature disposition.
     condition: Whenever Avatar returns or displays render_only.
-    failure: Lower the result to unsupported when required loading or visible output is absent and reject any undeclared semantic-support claim.
+    failure: Lower the result to unsupported when required package resources are absent or invalid and reject any undeclared semantic-support claim.
     relations:
       - type: applies_to
         target: definition.nimi.avatar.embodiment.live2d-adapter
@@ -616,16 +600,9 @@ units:
         target: definition.nimi.avatar.embodiment.live2d-compatibility-tier
   - id: rule.nimi.avatar.embodiment.r053
     kind: rule
+    lifecycle: removed
     title: Live2D Asset Compatibility Contract 7 product-observable validation
-    modality: must
-    statement: A compatibility claim requiring carrier output observes the active Avatar Live2D branch produce non-placeholder visible pixels, and a semantic tier observes each required mapped behavior change validated model-local command state or carrier output under the selected package.
-    condition: Whenever render_only, semantic_basic, or companion_complete is established.
-    failure: Withhold the tier when only loader completion, Desktop rendering, a static image, a fixture assertion, or another non-product proxy is available.
-    relations:
-      - type: applies_to
-        target: definition.nimi.avatar.embodiment.live2d-adapter
-      - type: applies_to
-        target: definition.nimi.avatar.embodiment.live2d-compatibility-tier
+    reason: Removed because canonical authority does not define first-frame, pixel, timing, quality, or backend-specific visual acceptance criteria; actual visible presentation remains a real product acceptance target.
   - id: rule.nimi.avatar.embodiment.r054
     kind: rule
     title: Live2D Adapter Diagnostics v1 closed code meanings
@@ -650,26 +627,24 @@ units:
         target: definition.nimi.avatar.embodiment.product-boundary
   - id: rule.nimi.avatar.embodiment.r056
     kind: rule
-    title: K-NAV-VRM-001 validated model load lifecycle
+    title: K-NAV-VRM-001 validated model loading
     modality: must
-    statement: A VRM branch resolves one readable VRM asset, obtains a complete humanoid model through a VRM-aware loader, establishes a neutral first frame and valid nominal bounds, initializes its validated capability profile, and reports model load only after the branch is renderable.
+    statement: A VRM branch resolves one readable VRM asset, obtains a complete humanoid model through a VRM-aware loader, establishes valid nominal bounds, and initializes its validated capability profile before attempting presentation.
     condition: Whenever Avatar loads a model for a vrm BackendBranch.
-    failure: Keep the branch non-ready, report a typed load failure, and enter the degraded surface when any required asset, parse result, humanoid capability, bounds result, profile, or initialization step is absent or invalid; never substitute an empty model or placeholder.
+    failure: Treat the current presentation as unable to render when any required asset, parse result, humanoid capability, bounds result, profile, or initialization step is absent or invalid; never substitute an empty model or placeholder.
     relations:
       - type: applies_to
         target: definition.nimi.avatar.embodiment.backend-branch
   - id: rule.nimi.avatar.embodiment.r057
     kind: rule
-    title: K-NAV-VRM-002 context recovery and resource lifecycle
+    title: K-NAV-VRM-002 context recovery and resource ownership
     modality: must
-    statement: A VRM branch reports context loss, performs only the bounded recovery attempt declared by Avatar configuration, reloads scene resources before reporting restoration, and on unload or shutdown stops animation and disposes branch-owned scene, renderer, audio, surface, handler, and scheduled resources.
+    statement: A VRM branch keeps context loss and bounded automatic recovery internal, reloads scene resources before resuming presentation, and on unload or shutdown stops animation and disposes branch-owned scene, renderer, audio, surface, handler, and scheduled resources.
     condition: Whenever the VRM context is lost, the model changes, or the branch unloads or shuts down.
-    failure: Keep the carrier non-ready and report failed_closed when restoration, reload, or disposal fails, without unbounded retry, stale-resource success, or retained local work.
+    failure: Treat the current presentation as unable to render when bounded restoration or reload cannot recover it, and retain no presentation success on failed disposal, stale resources, or retained local work.
     relations:
       - type: applies_to
         target: definition.nimi.avatar.embodiment.backend-branch
-      - type: applies_to
-        target: definition.nimi.avatar.embodiment.shell-lifecycle
   - id: rule.nimi.avatar.embodiment.r058
     kind: rule
     title: K-NAV-VRM-003 and K-NAV-VRM-004 generated execution and VRMA interchange split
@@ -730,69 +705,34 @@ units:
         target: definition.nimi.avatar.embodiment.projection-output
   - id: rule.nimi.avatar.embodiment.r063
     kind: rule
+    lifecycle: removed
     title: Nimi2D Backend Contract 2 and 3 Avatar adapter intake
-    modality: must
-    statement: Avatar creates a nimi2d BackendBranch only from one validated Avatar model manifest carrying an opaque Nimi2D package-manifest reference and matching content digest plus one validated Avatar capability profile, and treats package identity, tier, topology, admission, validator, atlas, layer, and Generation Bench meaning as outbound Nimi2D-owned truth.
-    condition: Whenever Avatar recognizes, loads, or switches to a Nimi2D package.
-    failure: Keep the branch non-ready and fail closed on a missing, unreadable, digest-mismatched, unadmitted, invalid, or overclaiming package or profile without selecting another backend, poster, placeholder, or naked base body.
-    relations:
-      - type: applies_to
-        target: definition.nimi.avatar.embodiment.backend-branch
-      - type: applies_to
-        target: definition.nimi.avatar.embodiment.product-boundary
+    reason: Removed because Nimi2D is blocked and is not an admitted current Avatar backend; no current carrier or reporting contract is reserved for it.
   - id: rule.nimi.avatar.embodiment.r064
     kind: rule
+    lifecycle: removed
     title: Nimi2D Backend Contract 2 render-plan consumption
-    modality: must
-    statement: The Avatar Nimi2D adapter consumes admitted package canvas, draw order, visible and texture bounds, placement, alpha-mask references, and selected-outfit refs through the Nimi2D package contract and applies only profile-declared Avatar-local lane and route bindings without recovering package truth from layer-input manifests or renderer-local tables.
-    condition: Whenever the Nimi2D branch composes or renders package layers.
-    failure: Fail the affected render or lane without success when required geometry, assets, outfit state, mask, or binding is absent or invalid, and reject hardcoded route identifiers or renderer-invented package topology.
-    relations:
-      - type: applies_to
-        target: definition.nimi.avatar.embodiment.backend-branch
-      - type: applies_to
-        target: definition.nimi.avatar.embodiment.product-boundary
+    reason: Removed because Nimi2D is blocked and no current Avatar render-plan consumer is admitted.
   - id: rule.nimi.avatar.embodiment.r065
     kind: rule
+    lifecycle: removed
     title: Nimi2D Backend Contract 4 through 6 projection lanes and scheduler
-    modality: must
-    statement: The Nimi2D branch consumes only BackendProjection and BackendAudioConsumer operations, selects distinct static_layer, idle_life, expression, speech_mouth, gesture_motion, true_viseme, and semantic_full_body lanes from proven package capability and the matching profile, permits amplitude-only mouth at tier 1, requires tier 2 for true viseme and tier 3 for semantic full body, and advances only bounded local fade, queue, interruption, recovery, and idle clocks with profile-declared transforms.
-    condition: Whenever Avatar routes, schedules, applies audio to, or resets a Nimi2D live-action cue.
-    failure: Return unsupported or fail_closed for an unproven non-idle lane without successful idle substitution, keep unsupported idle life static without success and unsupported mouth silent, and reject raw APML, Runtime internals, LLM numeric frame control, Generation Bench control input, or partial outfit reset.
-    relations:
-      - type: applies_to
-        target: definition.nimi.avatar.embodiment.backend-branch
-      - type: applies_to
-        target: definition.nimi.avatar.embodiment.projection-output
+    reason: Removed because Nimi2D is blocked and no current Avatar live-action lane or scheduler contract is admitted.
   - id: rule.nimi.avatar.embodiment.r066
     kind: rule
+    lifecycle: removed
     title: Nimi2D Backend Contract 7 outfit-visible bounds and hit region
-    modality: must
-    statement: Nimi2D body, drag, alpha, and nominal bounds derive from selected-outfit-visible admitted render-layer geometry mapped into package canvas coordinates, non-renderable base-body anchors may inform framing only, and alpha queries return null until valid probe data is ready.
-    condition: Whenever Avatar computes Nimi2D interaction regions or nominal bounds.
-    failure: Emit typed degradation and use only a conservative bounded rectangle when visible geometry is unavailable, and reject hidden-base-body geometry, absent-outfit alpha, or unbounded full-window success.
-    relations:
-      - type: applies_to
-        target: definition.nimi.avatar.embodiment.backend-branch
+    reason: Removed because Nimi2D is blocked and no current Nimi2D interaction or bounds contract is admitted.
   - id: rule.nimi.avatar.embodiment.r067
     kind: rule
+    lifecycle: removed
     title: Nimi2D Backend Contract 8 mounted visual truth
-    modality: must
-    statement: Nimi2D renderer readiness requires the active Avatar carrier to mount the validated package in package draw order with a selected default outfit, no base-body-only intermediate frame, and readable non-placeholder visible pixels, while alpha-probe readiness remains a separate local observation and neither playback nor visual success closes Generation Bench or release admission.
-    condition: Whenever the Nimi2D branch reports ready, visual success, or mounted capture success.
-    failure: Report a typed visual error and withhold ready or capture success on blank, unreadable, placeholder, offscreen-only, wrong-surface, base-body-only, or stale pixels.
-    relations:
-      - type: applies_to
-        target: definition.nimi.avatar.embodiment.backend-branch
-      - type: applies_to
-        target: definition.nimi.avatar.embodiment.product-boundary
-      - type: applies_to
-        target: definition.nimi.avatar.embodiment.shell-lifecycle
+    reason: Removed because Nimi2D is blocked and canonical authority does not define Nimi2D renderer readiness or visual thresholds.
   - id: rule.nimi.avatar.embodiment.r068
     kind: rule
     title: Backend Capability Profile Schema v1 closure
     modality: must
-    statement: "An Avatar backend capability profile is closed to profile_id, backend_kind, model_fingerprint, generated_motion with disjoint supported_routes, unsupported_routes, and safety_limits, plus exactly the kind-specific section: VRM humanoid bones, expression presets, look-at, and pose limits; Live2D motion groups, expression ids, and parameter ids; or the Avatar Nimi2D carrier section."
+    statement: "An Avatar backend capability profile is closed to profile_id, backend_kind, model_fingerprint, generated_motion with disjoint supported_routes, unsupported_routes, and safety_limits, plus exactly the kind-specific section: VRM humanoid bones, expression presets, look-at, and pose limits; or Live2D motion groups, expression ids, and parameter ids."
     condition: Whenever Avatar validates a capability profile or uses one for a generated route.
     failure: Reject an unknown kind, missing or extra section, duplicate disposition, malformed identity or fingerprint, unsafe limit, unsupported target, or open extension, and fail an absent route capability closed without idle fallback or ontology promotion.
     relations:
@@ -802,26 +742,14 @@ units:
         target: definition.nimi.avatar.embodiment.product-boundary
   - id: rule.nimi.avatar.embodiment.r069
     kind: rule
+    lifecycle: removed
     title: Nimi2D Backend Capability Profile Schema v1 carrier closure
-    modality: must
-    statement: An Avatar Nimi2D capability profile is closed to profile_id, literal nimi2d backend_kind, package carrier, renderability, renderer, and live_action_lanes; it carries opaque manifest and outfit refs, package identity and kind, lowercase SHA-256 digest, proven and requested tiers, positive canvas dimensions, non-renderable base body, unreachable base-body-only presentation, atomic outfit switching, every lane disposition and minimum tier, and optional bounded layer and transform bindings.
-    condition: Whenever Avatar parses or validates a Nimi2D capability profile.
-    failure: Reject a missing, unknown, malformed, nonmatching, open, or out-of-range field, tier overclaim, empty binding, unknown route binding, renderable base body, missing outfit, partial outfit transition, or malformed transform range and keep the branch non-ready.
-    relations:
-      - type: applies_to
-        target: definition.nimi.avatar.embodiment.backend-branch
+    reason: Removed because Nimi2D is blocked and its capability profile is not part of the current Avatar schema.
   - id: rule.nimi.avatar.embodiment.r070
     kind: rule
+    lifecycle: removed
     title: Nimi2D Live Action Routes v1 mapping invariants
-    modality: must
-    statement: Each Avatar-local Nimi2D route maps one typed downstream projection event to one admitted lane, minimum proven tier, observable local success condition, and explicit unsupported behavior, while route ids remain backend-local and concrete route rows remain runtime configuration rather than public APML, Runtime ontology, or Nimi2D package truth.
-    condition: Whenever Avatar selects or executes a Nimi2D live-action route.
-    failure: Fail closed on an unknown route, unproven tier, missing profile support, malformed mapping, LLM frame input, or absent declared effect and never use route success as Generation Bench closure.
-    relations:
-      - type: applies_to
-        target: definition.nimi.avatar.embodiment.product-boundary
-      - type: applies_to
-        target: definition.nimi.avatar.embodiment.projection-output
+    reason: Removed because Nimi2D is blocked and no current Avatar Nimi2D route mapping is admitted.
   - id: rule.nimi.avatar.embodiment.r071
     kind: rule
     title: Generated Motion Routes v1 and Activity Mapping v2 invariants
@@ -856,8 +784,6 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.avatar.embodiment.backend-branch
-      - type: applies_to
-        target: definition.nimi.avatar.embodiment.shell-lifecycle
   - id: rule.nimi.avatar.embodiment.r074
     kind: rule
     title: Window Bounds Policy v1 visible-area and monitor recovery
@@ -867,7 +793,7 @@ units:
     failure: Constrain or reposition the window using current monitor bounds and withhold valid-placement success while the embodiment remains unrecoverably off-screen or the selected monitor is unavailable.
     relations:
       - type: applies_to
-        target: definition.nimi.avatar.embodiment.shell-lifecycle
+        target: definition.nimi.avatar.embodiment.product-boundary
   - id: rule.nimi.avatar.embodiment.r075
     kind: rule
     title: Window Bounds Policy v1 drag ownership
@@ -878,5 +804,15 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.avatar.embodiment.backend-branch
+  - id: rule.nimi.avatar.embodiment.r076
+    kind: rule
+    title: Avatar local presentation unavailability
+    modality: must
+    statement: The Avatar window attempts presentation with the selected Live2D or VRM backend and asset, shows the concrete surface without a public success phase when presentation succeeds, and shows a local unable-to-render surface with restart and close actions when the initial attempt cannot present or a presented surface is permanently lost after backend-local recovery is exhausted.
+    condition: Whenever the selected backend begins presentation, encounters a temporary fault, exhausts local recovery, or is replaced or shut down.
+    failure: Keep temporary faults and recovery internal to the active backend, never return renderer operational state to Desktop or Runtime, and prevent a replaced or disposed attempt from changing the current presentation.
+    relations:
       - type: applies_to
-        target: definition.nimi.avatar.embodiment.shell-lifecycle
+        target: definition.nimi.avatar.embodiment.backend-branch
+      - type: applies_to
+        target: definition.nimi.avatar.embodiment.product-boundary

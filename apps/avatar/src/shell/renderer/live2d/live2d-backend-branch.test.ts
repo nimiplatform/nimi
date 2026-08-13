@@ -1,14 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Live2DAvatarModelManifest } from '@nimiplatform/kit/features/avatar/headless';
 import { createLive2DExpressionInventory } from './live2d-expression-stack.js';
-import { LIVE2D_PARAMETER_LANE_ORDER } from './live2d-parameter-lane-scheduler.js';
 
 const mocks = vi.hoisted(() => ({
   waitForCubismCore: vi.fn(),
   loadOfficialCubismFrameworkRuntime: vi.fn(),
   createLive2DBackendSession: vi.fn(),
   createLive2DCarrierSurface: vi.fn(),
-  createLive2DCarrierVisualHost: vi.fn(),
   backendApplyCommand: vi.fn(),
   backendUnload: vi.fn(),
 }));
@@ -28,14 +26,6 @@ vi.mock('./backend-session.js', () => ({
 vi.mock('./live2d-carrier-surface.js', () => ({
   createLive2DCarrierSurface: (...args: unknown[]) => mocks.createLive2DCarrierSurface(...args),
 }));
-
-vi.mock('./carrier-visual-host.js', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('./carrier-visual-host.js')>();
-  return {
-    ...actual,
-    createLive2DCarrierVisualHost: (...args: unknown[]) => mocks.createLive2DCarrierVisualHost(...args),
-  };
-});
 
 function live2dManifest(): Live2DAvatarModelManifest {
   return {
@@ -132,45 +122,11 @@ describe('createLive2DBackendBranch', () => {
     mocks.loadOfficialCubismFrameworkRuntime.mockReset();
     mocks.createLive2DBackendSession.mockReset();
     mocks.createLive2DCarrierSurface.mockReset();
-    mocks.createLive2DCarrierVisualHost.mockReset();
     mocks.backendApplyCommand.mockReset();
     mocks.backendUnload.mockReset();
     mocks.waitForCubismCore.mockResolvedValue({ Version: { csmGetVersion: () => 1 } });
     mocks.loadOfficialCubismFrameworkRuntime.mockResolvedValue({ CubismFramework: {} });
     mocks.createLive2DCarrierSurface.mockReturnValue({ Component: () => null });
-    mocks.createLive2DCarrierVisualHost.mockResolvedValue({
-      canvas: {
-        toDataURL: vi.fn(() => 'data:image/png;base64,preview'),
-      },
-      probeVisibleFrame: vi.fn(() => ({
-        width: 360,
-        height: 480,
-        drawableCount: 1,
-        visibleDrawableCount: 1,
-        nonZeroOpacityDrawableCount: 1,
-        textureBindingCount: 1,
-        activeMotionGroup: null,
-        motionFrameApplied: false,
-        activeExpressionId: null,
-        expressionFrameApplied: false,
-        parameterLaneOrder: LIVE2D_PARAMETER_LANE_ORDER,
-        parameterLaneApplied: [],
-        parameterLaneElapsedMs: 0.5,
-        parameterLaneUnsupportedParameterIds: [],
-        parameterLaneSpeechLipsyncParameterCount: 0,
-        parameterLaneDirectParameterCount: 0,
-        lookAtIdleSupported: true,
-        lookAtIdleBlinkSupported: true,
-        lookAtIdleReasonCode: 'ready',
-        lookAtIdleParameterIds: ['ParamEyeBallX', 'ParamEyeBallY', 'ParamEyeLOpen', 'ParamEyeROpen'],
-        sampledPixels: 576,
-        visiblePixels: 32,
-        sampledPixelChecksum: 12345,
-      })),
-      drawFrame: vi.fn(),
-      resize: vi.fn(),
-      unload: vi.fn(),
-    });
   });
 
   it('passes compatibility-projected ParamMouthForm support into the surface and metadata', async () => {
@@ -240,27 +196,4 @@ describe('createLive2DBackendBranch', () => {
     });
   });
 
-  it('updates in-memory visual readiness metadata from the official SDK preview', async () => {
-    mocks.createLive2DBackendSession.mockResolvedValue(baseBackendSession());
-
-    const { createLive2DBackendBranch } = await import('./live2d-backend-branch.js');
-    const handle = await createLive2DBackendBranch(live2dManifest());
-
-    expect(handle.branch.metadata()).toEqual(expect.objectContaining({
-      carrier_visual_readiness_status: 'pending',
-    }));
-
-    await handle.verifyBootstrapVisualOutput();
-
-    expect(handle.branch.metadata()).toEqual(expect.objectContaining({
-      carrier_visual_readiness_status: 'ready',
-      carrier_visual_visible_pixels: 32,
-      carrier_visual_texture_binding_count: 1,
-      carrier_visual_look_at_idle_supported: true,
-      carrier_visual_look_at_idle_blink_supported: true,
-      carrier_visual_look_at_idle_reason_code: 'ready',
-      expression_stack_supported: true,
-      expression_inventory_parameter_count: 1,
-    }));
-  });
 });

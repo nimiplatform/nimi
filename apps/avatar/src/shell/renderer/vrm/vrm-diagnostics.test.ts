@@ -5,7 +5,7 @@
 // stays null), and detach removes the global.
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import type { VrmRuntime, VrmLifecycleState } from './vrm-runtime.js';
+import type { VrmRuntime, VrmRenderState } from './vrm-runtime.js';
 import {
   attachVrmDiagnostics,
   getVrmDiagnosticsSnapshot,
@@ -23,12 +23,12 @@ function getDebugGlobal(): DebugGlobal | undefined {
     ?.vrm?.debug;
 }
 
-function makeMockRuntime(initial: VrmLifecycleState = { kind: 'idle' }): {
+function makeMockRuntime(initial: VrmRenderState = { kind: 'idle' }): {
   runtime: VrmRuntime;
-  setState(state: VrmLifecycleState): void;
+  setState(state: VrmRenderState): void;
 } {
-  let state: VrmLifecycleState = initial;
-  const listeners = new Set<(s: VrmLifecycleState) => void>();
+  let state: VrmRenderState = initial;
+  const listeners = new Set<(s: VrmRenderState) => void>();
   const runtime: VrmRuntime = {
     async start() {},
     shutdown() {},
@@ -43,7 +43,7 @@ function makeMockRuntime(initial: VrmLifecycleState = { kind: 'idle' }): {
       return () => listeners.delete(listener);
     },
   };
-  function setState(next: VrmLifecycleState): void {
+  function setState(next: VrmRenderState): void {
     state = next;
     for (const l of listeners) l(state);
   }

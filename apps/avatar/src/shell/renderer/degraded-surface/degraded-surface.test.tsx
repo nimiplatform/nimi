@@ -1,5 +1,5 @@
-// Per-surface owner behavior tests for the closed non-ready lifecycle states.
-// Covers all admitted state postures (loading / degraded:* / error / relaunch /
+// Per-surface owner behavior tests for App-local prerequisite composition.
+// Covers all current postures (loading / degraded:* / error / relaunch /
 // unknown), reason interpolation, reload-button affordance, and i18n coverage.
 
 import { render, screen, fireEvent } from '@testing-library/react';
@@ -8,9 +8,14 @@ import { DegradedSurface } from './degraded-surface.js';
 import type { CompositionDerivation, CompositionState } from '../app-shell/composition-state.js';
 
 const reloadAvatarShellMock = vi.fn();
+const closeAvatarWindowMock = vi.fn();
 
 vi.mock('../shell-reload.js', () => ({
   reloadAvatarShell: () => reloadAvatarShellMock(),
+}));
+
+vi.mock('../app-shell/avatar-window-commands.js', () => ({
+  closeAvatarWindow: () => closeAvatarWindowMock(),
 }));
 
 function makeComposition(state: CompositionState, overrides: Partial<CompositionDerivation> = {}): CompositionDerivation {
@@ -37,6 +42,7 @@ function makeComposition(state: CompositionState, overrides: Partial<Composition
 
 beforeEach(() => {
   reloadAvatarShellMock.mockReset();
+  closeAvatarWindowMock.mockReset();
 });
 
 afterEach(() => {
@@ -128,10 +134,12 @@ describe('DegradedSurface — reason interpolation', () => {
 });
 
 describe('DegradedSurface — reload affordance', () => {
-  it('renders reload button and triggers reloadAvatarShell on click', () => {
+  it('renders restart and close actions', () => {
     render(<DegradedSurface composition={makeComposition('degraded_runtime_unavailable')} />);
-    const button = screen.getByRole('button', { name: 'Reload avatar' });
+    const button = screen.getByRole('button', { name: 'Restart avatar' });
     fireEvent.click(button);
+    fireEvent.click(screen.getByRole('button', { name: 'Close this avatar' }));
     expect(reloadAvatarShellMock).toHaveBeenCalledTimes(1);
+    expect(closeAvatarWindowMock).toHaveBeenCalledTimes(1);
   });
 });

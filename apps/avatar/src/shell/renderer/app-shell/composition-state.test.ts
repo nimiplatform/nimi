@@ -44,10 +44,10 @@ function input(overrides: Partial<CompositionInput> = {}): CompositionInput {
 }
 
 describe('deriveCompositionState', () => {
-  it('keeps mock driver selection inside the standard ready lifecycle', () => {
+  it('keeps mock driver selection inside the ready shell composition', () => {
     const state = deriveCompositionState(input({
       model: {
-        modelPath: 'fixture://vrm-lifecycle',
+        modelPath: 'fixture://vrm-render-recovery',
         modelId: 'vrm1-constraint-twist',
         loadState: 'loaded',
         error: null,
@@ -55,12 +55,12 @@ describe('deriveCompositionState', () => {
       consume: {
         mode: 'mock',
         authority: 'fixture',
-        fixtureId: 'vrm-lifecycle',
+        fixtureId: 'vrm-render-recovery',
         fixturePlaying: true,
-        avatarInstanceId: 'fixture-avatar-vrm-lifecycle',
-        conversationAnchorId: 'fixture-anchor-vrm-lifecycle',
-        agentId: 'fixture-agent-vrm-lifecycle',
-        worldId: 'world-mock-vrm-lifecycle',
+        avatarInstanceId: 'fixture-avatar-vrm-render-recovery',
+        conversationAnchorId: 'fixture-anchor-vrm-render-recovery',
+        agentId: 'fixture-agent-vrm-render-recovery',
+        worldId: 'world-mock-vrm-render-recovery',
       },
     }));
 

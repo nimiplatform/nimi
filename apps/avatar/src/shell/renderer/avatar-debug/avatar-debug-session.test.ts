@@ -19,7 +19,7 @@ const LIVE2D_EVIDENCE_PACK = {
 } as const;
 
 function backend(
-  kind: 'vrm' | 'live2d' | 'nimi2d',
+  kind: 'vrm' | 'live2d',
   metadataOverrides: Record<string, unknown> = {},
 ): BackendBranch {
   const base = {
@@ -45,19 +45,6 @@ function backend(
         model_kind: 'vrm',
         generated_motion_provider: 'deterministic_vrm',
         lipsync_profile_present: true,
-          ...metadataOverrides,
-        };
-      }
-      if (kind === 'nimi2d') {
-        return {
-          model_kind: 'nimi2d',
-          capability_profile_ref: 'backend-profile-ref-1',
-          proven_tier: 'tier-1_agent_basic',
-          live_action_lanes: {
-            expression: 'supported',
-            speech_mouth: 'supported',
-            gesture_motion: 'supported',
-          },
           ...metadataOverrides,
         };
       }
@@ -260,54 +247,6 @@ describe('createAvatarDebugSession', () => {
 
     expect(session.evidence.status).toBe('unsupported');
     expect(session.evidence.reasonCode).toBe('generated_motion_not_supported_by_backend');
-  });
-
-  it('admits Nimi2D capability and live-action lanes from the active branch', () => {
-    for (const probeKind of [
-      AvatarDebugProbeKind.CAPABILITY_PROFILE,
-      AvatarDebugProbeKind.GENERATED_MOTION,
-      AvatarDebugProbeKind.EMOTION_EXPRESSION,
-      AvatarDebugProbeKind.SPEECH_LIPSYNC,
-    ]) {
-      const session = createAvatarDebugSession({
-        ...input(probeKind),
-        backendKind: 'nimi2d',
-        backend: backend('nimi2d'),
-        vrmCapabilityProfile: null,
-      });
-
-      expect(session.evidence.status).toBe('passed');
-      expect(session.evidence.reasonCode).toBeNull();
-      expect(session.evidence.source).toBe('avatar.backend.nimi2d');
-    }
-  });
-
-  it('fails closed when a Nimi2D capability profile or action lane is absent', () => {
-    const profileMismatch = createAvatarDebugSession({
-      ...input(AvatarDebugProbeKind.CAPABILITY_PROFILE),
-      backendKind: 'nimi2d',
-      backend: backend('nimi2d', {
-        capability_profile_ref: 'another-profile',
-      }),
-      vrmCapabilityProfile: null,
-    });
-    expect(profileMismatch.evidence.status).toBe('failed');
-    expect(profileMismatch.evidence.reasonCode).toBe('nimi2d_capability_profile_missing');
-
-    const missingMotion = createAvatarDebugSession({
-      ...input(AvatarDebugProbeKind.GENERATED_MOTION),
-      backendKind: 'nimi2d',
-      backend: backend('nimi2d', {
-        live_action_lanes: {
-          expression: 'supported',
-          speech_mouth: 'supported',
-          gesture_motion: 'unsupported',
-        },
-      }),
-      vrmCapabilityProfile: null,
-    });
-    expect(missingMotion.evidence.status).toBe('unsupported');
-    expect(missingMotion.evidence.reasonCode).toBe('generated_motion_route_support_missing');
   });
 
   it('requires parsed Live2D expression inventory before emotion expression success', () => {

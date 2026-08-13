@@ -12,17 +12,17 @@
 // jsdom global, server prerender), `attachVrmDiagnostics` is a no-op
 // returning a no-op detach fn — no global pollution and no errors.
 //
-// The diagnostics scope covers lifecycle state, retry flag, VRM loaded flag, instance
+// The diagnostics scope covers internal render state, retry flag, VRM loaded flag, instance
 // cache stats, and `framedHeight`/`framedWidth` from the most recent
 // surface frame (or null pre-ready). `frameStats.visibleDrawableCount`
 // stays null because this diagnostics surface does not own visual-pixel
 // measurement. DO NOT fake a number; tests assert it stays null.
 
 import { vrmCacheStats } from './vrm-instance-cache.js';
-import type { VrmRuntime, VrmLifecycleState } from './vrm-runtime.js';
+import type { VrmRuntime, VrmRenderState } from './vrm-runtime.js';
 
 export type VrmDiagnosticsSnapshot = {
-  state: VrmLifecycleState['kind'];
+  state: VrmRenderState['kind'];
   retryAttempted: boolean;
   vrmLoaded: boolean;
   cacheStats: { size: number; urls: string[] };

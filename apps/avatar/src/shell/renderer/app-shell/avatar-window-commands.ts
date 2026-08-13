@@ -18,27 +18,14 @@ export type AvatarCursorClientPosition = {
   scaleFactor: number;
 };
 
-// Window control is delegated to the kit standard floating-window bridge
-// (`@nimiplatform/kit/shell/renderer/bridge`). It routes to the invoking
-// window on both hosts: Tauri → `floating_window_*` commands; Electron →
-// `standardShellHost.floatingWindow.*` hooks. The avatar-local export names
-// and signatures are preserved so the drag / click-through / bounds-sync
-// consumers stay stable; only the underlying primitive changed. The retired
-// system-level `start_dragging` path is gone — drag is unified to manual.
-
-// Manual drag origin. The renderer captures the native window origin once at
-// drag start, then sends absolute targets derived from total pointer delta so
-// the host does not read the current window position per frame.
+// Avatar window control uses the shared floating-window bridge on every
+// supported host. Cursor hit testing remains Avatar-owned because it is
+// coupled to the renderer's alpha-mask click-through decision.
 export type AvatarManualDragWindowOrigin = {
   x: number;
   y: number;
 };
 
-// Unified manual drag start (kit standard). Returns the current window origin
-// when the host reports `mode: 'manual'` (always true today for the
-// transparent always-on-top avatar window); returns null otherwise so the
-// renderer drag path can no-op. The avatar window never relies on a
-// system-level drag session.
 export async function beginManualDragWindow(): Promise<AvatarManualDragWindowOrigin | null> {
   const origin = await floatingWindowBeginManualDrag();
   if (origin.mode !== 'manual') return null;
@@ -66,9 +53,6 @@ export async function setIgnoreCursorEvents(ignore: boolean): Promise<void> {
   await floatingWindowSetIgnoreCursorEvents(ignore);
 }
 
-// Cursor hit-testing stays avatar app-local (tightly coupled to the
-// alpha-mask click-through decision; not a kit floating-window primitive).
-// It routes through the avatar product host bridge on both hosts.
 export async function getCursorClientPosition(): Promise<AvatarCursorClientPosition> {
   return invokeAvatarHostCommand<AvatarCursorClientPosition>('nimi_avatar_get_cursor_client_position');
 }

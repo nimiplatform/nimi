@@ -50,7 +50,7 @@ vi.mock('./app-shell/app-bootstrap.js', () => ({
   bootstrapAvatar: () => bootstrapAvatarMock(),
 }));
 
-vi.mock('./app-shell/tauri-commands.js', () => ({
+vi.mock('./app-shell/avatar-window-commands.js', () => ({
   setIgnoreCursorEvents: (...args: unknown[]) => setIgnoreCursorEventsMock(...args),
   constrainWindowToVisibleArea: (...args: unknown[]) => constrainWindowToVisibleAreaMock(...args),
   setAlwaysOnTop: (...args: unknown[]) => setAlwaysOnTopMock(...args),

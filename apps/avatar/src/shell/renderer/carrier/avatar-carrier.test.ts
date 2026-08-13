@@ -14,7 +14,6 @@ const stopNasHandlerHotReloadMock = vi.fn();
 const waitForCubismCoreMock = vi.fn();
 const loadOfficialCubismFrameworkRuntimeMock = vi.fn();
 const createLive2DBackendSessionMock = vi.fn();
-const createLive2DCarrierVisualHostMock = vi.fn();
 const backendApplyCommandMock = vi.fn();
 const backendUnloadMock = vi.fn();
 
@@ -107,15 +106,6 @@ vi.mock('../live2d/cubism-framework-runtime.js', () => ({
 vi.mock('../live2d/backend-session.js', () => ({
   createLive2DBackendSession: (...args: unknown[]) => createLive2DBackendSessionMock(...args),
 }));
-
-vi.mock('../live2d/carrier-visual-host.js', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('../live2d/carrier-visual-host.js')>();
-  return {
-    ...actual,
-    createLive2DCarrierVisualHost: (...args: unknown[]) =>
-      createLive2DCarrierVisualHostMock(...args),
-  };
-});
 
 vi.mock('../nas/handler-registry.js', async () => {
   const actual = await vi.importActual<typeof import('../nas/handler-registry.js')>('../nas/handler-registry.js');
@@ -229,7 +219,6 @@ describe('avatar runtime carrier', () => {
     waitForCubismCoreMock.mockReset();
     loadOfficialCubismFrameworkRuntimeMock.mockReset();
     createLive2DBackendSessionMock.mockReset();
-    createLive2DCarrierVisualHostMock.mockReset();
     backendApplyCommandMock.mockReset();
     backendUnloadMock.mockReset();
     scanNasHandlersMock.mockResolvedValue({
@@ -243,39 +232,6 @@ describe('avatar runtime carrier', () => {
     startNasHandlerHotReloadMock.mockResolvedValue(stopNasHandlerHotReloadMock);
     waitForCubismCoreMock.mockResolvedValue({ Version: { csmGetVersion: () => 1, csmGetLatestMocVersion: () => 1 } });
     loadOfficialCubismFrameworkRuntimeMock.mockResolvedValue({ CubismFramework: {} });
-    createLive2DCarrierVisualHostMock.mockResolvedValue({
-      canvas: {
-        toDataURL: vi.fn(() => 'data:image/png;base64,carrier-preview'),
-      },
-      probeVisibleFrame: vi.fn(() => ({
-        width: 360,
-        height: 480,
-        drawableCount: 1,
-        visibleDrawableCount: 1,
-        nonZeroOpacityDrawableCount: 1,
-        textureBindingCount: 1,
-        activeMotionGroup: null,
-        motionFrameApplied: false,
-        activeExpressionId: null,
-        expressionFrameApplied: false,
-        parameterLaneOrder: ['speech_lipsync', 'live2d_extension_direct'],
-        parameterLaneApplied: [],
-        parameterLaneElapsedMs: 0.2,
-        parameterLaneUnsupportedParameterIds: [],
-        parameterLaneSpeechLipsyncParameterCount: 0,
-        parameterLaneDirectParameterCount: 0,
-        lookAtIdleSupported: true,
-        lookAtIdleBlinkSupported: true,
-        lookAtIdleReasonCode: 'ready',
-        lookAtIdleParameterIds: [],
-        sampledPixels: 16,
-        visiblePixels: 8,
-        sampledPixelChecksum: 123,
-      })),
-      drawFrame: vi.fn(),
-      resize: vi.fn(),
-      unload: vi.fn(),
-    });
     createLive2DBackendSessionMock.mockResolvedValue(live2dBackendSession({
       compatibility: {
         tier: 'render_only',

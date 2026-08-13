@@ -1,6 +1,6 @@
 // Live2D BackendAudioConsumer wrapper.
 //
-// Backend-neutral wLipSync/WebAudio lifecycle lives in kit. Live2D keeps only
+// Backend-neutral wLipSync/WebAudio resource ownership lives in Kit. Live2D keeps only
 // app/backend diagnostics and Cubism mouth mapping in live2d-lipsync-driver.
 
 import {
@@ -8,7 +8,7 @@ import {
   type WLipSyncAudioConsumerFactory,
 } from '@nimiplatform/kit/features/avatar/headless';
 import type { Profile } from 'wlipsync';
-import type { BackendAudioConsumer } from '../carrier/backend-branch.js';
+import type { BackendAudioConsumer } from '@nimiplatform/kit/features/avatar/headless';
 
 export type Live2DAudioConsumerDeps = {
   /** wLipSync MFCC profile. When `null`, the consumer logs once and silents

@@ -1,40 +1,34 @@
-// Lifecycle tests for .nimi/spec/avatar/embodiment-surface.authority.yaml.
+// Presentation and backend-local recovery tests for Avatar VRM.
 //
-// End-to-end VRM lifecycle test that drives the full chain:
+// End-to-end VRM render/recovery test that drives the full chain:
 //
 //     manifest -> createVrmBackendBranch -> vrm-carrier-surface ->
 //     vrm-runtime -> loader (override seam)
 //
-// The mock fixture `vrm-lifecycle.mock.json` is the canonical scenario;
+// The mock fixture `vrm-render-recovery.mock.json` supplies the scenario;
 // this test reads its manifest block and feeds it to the backend factory.
 // The cached `.vrm` binary is gitignored and may not exist in CI, so we
 // short-circuit the actual disk read via the runtime's `loaderOverride`.
 //
-// Covered cases from the canonical lifecycle contract:
+// Covered product cases:
 //
-//   1. Initial load -> ready: stub loader resolves; surface reaches
-//      `ready`; onAudioConsumerReady fires once; backend metadata exposes
+//   1. Initial load succeeds: stub loader resolves; the concrete surface is
+//      present; onAudioConsumerReady fires once; backend metadata exposes
 //      model_kind='vrm' + vrm_file (so the avatar.model.load event
 //      emitted at the higher avatar-carrier layer carries vrm semantics).
-//   2. Initial load failure -> failed_closed: stub loader rejects;
-//      `load_failed` + `failed_closed` evidence emitted; surface renders
-//      null.
+//   2. Initial load failure: stub loader rejects and the Avatar window shows
+//      the local unavailable surface.
 //   3. Asset switch: mount manifest A, unmount, mount manifest B; loader
 //      called once per mount (two distinct backend instances).
-//   4. Context-lost recovery via webglcontextlost: surface drives runtime
-//      through context_lost -> 1500ms retry -> ready; `context_restored`
-//      evidence carries restoreDurationMs near 1500.
-//   5. Second context loss before retry fires -> failed_closed
-//      (`context_lost_twice`).
-//   6. avatar.carrier.visual visible-pixel evidence is owned by the carrier
-//      visual acceptance path. This lifecycle test emits admitted lifecycle
-//      hooks only.
+//   4. Context loss is retried entirely inside the backend.
+//   5. A second context loss before recovery shows the local unavailable
+//      surface with reason `context_lost_twice`.
 
 import { act, render } from '@testing-library/react';
 import type { VRM } from '@pixiv/three-vrm';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ReactNode } from 'react';
-import scenarioJson from '../mock/scenarios/vrm-lifecycle.mock.json';
+import scenarioJson from '../mock/scenarios/vrm-render-recovery.mock.json';
 import type { VrmAvatarModelManifest } from './vrm-model-manifest.js';
 
 vi.mock('@react-three/fiber', () => ({
@@ -47,16 +41,16 @@ vi.mock('@react-three/fiber', () => ({
     </div>
   ),
   // No-op useFrame in jsdom (chunk 3-D mounts a per-frame tick chain
-  // inside <Canvas>; lifecycle assertions don't depend on RAF).
+  // inside <Canvas>; render/recovery assertions don't depend on RAF).
   useFrame: () => {},
   // Wave 4 chunk 4-C: VrmRenderTargetCaptureLoop calls useThree to read
-  // gl/scene/camera. Stubs are fine — the lifecycle assertions don't
+  // gl/scene/camera. Stubs are fine — the render/recovery assertions don't
   // depend on the alpha-mask probe.
   useThree: () => ({ gl: {}, scene: {}, camera: {} }),
 }));
 
-type ScenarioVrmLifecycle = {
-  vrm_lifecycle: {
+type ScenarioVrmRenderRecovery = {
+  vrm_render_recovery: {
     model_manifest: VrmAvatarModelManifest;
     expected_evidence: string[];
     fixture_steps: Array<{ atMs: number; kind: string }>;
@@ -65,9 +59,9 @@ type ScenarioVrmLifecycle = {
 };
 
 function manifestFromScenario(): VrmAvatarModelManifest {
-  const data = scenarioJson as unknown as ScenarioVrmLifecycle;
+  const data = scenarioJson as unknown as ScenarioVrmRenderRecovery;
   // Defensive copy so a test cannot mutate the imported JSON module.
-  return JSON.parse(JSON.stringify(data.vrm_lifecycle.model_manifest));
+  return JSON.parse(JSON.stringify(data.vrm_render_recovery.model_manifest));
 }
 
 function alternateManifest(): VrmAvatarModelManifest {
@@ -99,8 +93,8 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-describe('VRM lifecycle end-to-end (chunk 2-D)', () => {
-  it('initial load reaches ready, announces audio consumer, and exposes backend metadata with model_kind=vrm', async () => {
+describe('VRM render and recovery end-to-end (chunk 2-D)', () => {
+  it('initial load renders the carrier, announces audio consumer, and exposes backend metadata with model_kind=vrm', async () => {
     const { createVrmBackendBranch } = await import('./vrm-backend.js');
     const manifest = manifestFromScenario();
 
@@ -139,7 +133,7 @@ describe('VRM lifecycle end-to-end (chunk 2-D)', () => {
     handle.shutdown();
   });
 
-  it('initial load failure transitions to failed_closed', async () => {
+  it('initial load failure shows the local unavailable surface', async () => {
     const { createVrmBackendBranch } = await import('./vrm-backend.js');
     const manifest = manifestFromScenario();
 
@@ -166,7 +160,7 @@ describe('VRM lifecycle end-to-end (chunk 2-D)', () => {
       await Promise.resolve();
     });
 
-    expect(result!.container.firstChild).toBeNull();
+    expect(result!.getByTestId('avatar-presentation-unavailable').textContent).toContain('load_failed');
 
     handle.shutdown();
   });
@@ -344,19 +338,17 @@ describe('VRM lifecycle end-to-end (chunk 2-D)', () => {
       await Promise.resolve();
     });
 
-    // Surface renders null on failed_closed; no avatar-vrm-carrier element.
-    expect(result!.container.firstChild).toBeNull();
+    expect(result!.getByTestId('avatar-presentation-unavailable').textContent).toContain('context_lost_twice');
 
     handle.shutdown();
   });
 
   it('mock fixture exposes the manifest the test consumes (catalog wiring sanity)', () => {
-    const data = scenarioJson as unknown as ScenarioVrmLifecycle;
-    expect(data.vrm_lifecycle.model_manifest.kind).toBe('vrm');
-    expect(data.vrm_lifecycle.model_manifest.modelId).toBe('vrm1-constraint-twist');
+    const data = scenarioJson as unknown as ScenarioVrmRenderRecovery;
+    expect(data.vrm_render_recovery.model_manifest.kind).toBe('vrm');
+    expect(data.vrm_render_recovery.model_manifest.modelId).toBe('vrm1-constraint-twist');
   });
 });
 
-// avatar.carrier.visual visible_pixels evidence is owned by the carrier visual
-// acceptance path. This lifecycle test covers admitted carrier-surface lifecycle
-// wiring (context_lost / context_restored / failed_closed).
+// Temporary context-loss and retry state stays backend-local. The user-visible
+// contract begins only when recovery is exhausted and the unavailable view is shown.

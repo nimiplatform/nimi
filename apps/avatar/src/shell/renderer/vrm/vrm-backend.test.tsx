@@ -2,7 +2,7 @@
 //
 // Verifies the VRM backend branch factory:
 //   * default mode flips metadata.mode to `real_render` and the surface
-//     mounts the real BackendBranch surface (Canvas + lifecycle wiring),
+//     mounts the real BackendBranch surface (Canvas + render/recovery wiring),
 //     with no dev-preview placeholder;
 //   * VITE_AVATAR_DEV_VRM_PREVIEW is ignored by the product backend and
 //     cannot select a placeholder success branch.
@@ -26,7 +26,7 @@ vi.mock('@react-three/fiber', () => ({
     </div>
   ),
   // No-op useFrame in jsdom — chunk 3-D wires a per-frame tick chain
-  // inside <Canvas>, but the unit tests rely on the runtime lifecycle
+  // inside <Canvas>, but the unit tests rely on the backend-local render state
   // state, not on RAF.
   useFrame: () => {},
   // Wave 4 chunk 4-C: VrmRenderTargetCaptureLoop reads gl/scene/camera

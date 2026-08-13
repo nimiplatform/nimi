@@ -1,6 +1,6 @@
 // Authority: .nimi/spec/avatar/embodiment-surface.authority.yaml.
 //
-// Pure (non-React) VRM lifecycle state machine. Owning the state machine
+// Pure (non-React) VRM render and recovery state. Owning this internal state
 // here (instead of inside the React component) keeps the
 // context-lost retry timing testable without R3F / WebGL and keeps the
 // bounded 1500ms single recovery attempt testable without R3F / WebGL
@@ -30,7 +30,7 @@ import { loadVrmFromManifest } from './vrm-loader.js';
 /** Avatar-local WebGL context-lost recovery window in milliseconds. */
 export const VRM_CONTEXT_LOST_RETRY_MS = 1500;
 
-export type VrmLifecycleState =
+export type VrmRenderState =
   | { kind: 'idle' }
   | { kind: 'loading'; manifest: VrmAvatarModelManifest }
   | { kind: 'ready'; manifest: VrmAvatarModelManifest; vrm: VRM }
@@ -58,7 +58,7 @@ export type VrmRuntimeOptions = {
 export type VrmRuntime = {
   start(): Promise<void>;
   shutdown(): void;
-  getState(): VrmLifecycleState;
+  getState(): VrmRenderState;
   /** Surface callback when canvas fires `webglcontextlost`. Triggers the
    *  1500ms single-retry timer; a second loss before the timer fires
    *  promotes to fail-close (context_lost_twice). */
@@ -67,7 +67,7 @@ export type VrmRuntime = {
    *  auto-recovery does not prove the admitted reload path, so this must not
    *  cancel the 1500ms retry or promote the stale VRM back to ready. */
   notifyContextRestored(): void;
-  subscribe(listener: (state: VrmLifecycleState) => void): () => void;
+  subscribe(listener: (state: VrmRenderState) => void): () => void;
 };
 
 export function createVrmRuntime(opts: VrmRuntimeOptions): VrmRuntime {
@@ -84,12 +84,12 @@ export function createVrmRuntime(opts: VrmRuntimeOptions): VrmRuntime {
     });
   const now = opts.nowFn ?? (() => Date.now());
 
-  let state: VrmLifecycleState = { kind: 'idle' };
+  let state: VrmRenderState = { kind: 'idle' };
   let retryHandle: unknown = null;
   let shutdownRequested = false;
-  const listeners = new Set<(s: VrmLifecycleState) => void>();
+  const listeners = new Set<(s: VrmRenderState) => void>();
 
-  function setState(next: VrmLifecycleState): void {
+  function setState(next: VrmRenderState): void {
     state = next;
     for (const l of listeners) l(state);
   }
@@ -142,7 +142,7 @@ export function createVrmRuntime(opts: VrmRuntimeOptions): VrmRuntime {
       clearRetry();
       listeners.clear();
     },
-    getState(): VrmLifecycleState {
+    getState(): VrmRenderState {
       return state;
     },
     notifyContextLost(): void {
@@ -183,10 +183,10 @@ export function createVrmRuntime(opts: VrmRuntimeOptions): VrmRuntime {
     },
     notifyContextRestored(): void {
       // A browser-level restored event can arrive before the runtime reloads
-      // scene/textures/animations, so it cannot change lifecycle state.
+      // scene/textures/animations, so it cannot change render state.
       return;
     },
-    subscribe(listener: (s: VrmLifecycleState) => void): () => void {
+    subscribe(listener: (s: VrmRenderState) => void): () => void {
       listeners.add(listener);
       // Push current state on subscribe so consumers don't race the first transition.
       listener(state);

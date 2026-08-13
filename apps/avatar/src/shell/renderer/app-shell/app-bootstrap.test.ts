@@ -47,7 +47,7 @@ vi.mock('./tauri-lifecycle.js', () => ({
   onShellReady: vi.fn(),
 }));
 
-vi.mock('./tauri-commands.js', () => ({
+vi.mock('./avatar-window-commands.js', () => ({
   setAlwaysOnTop: vi.fn(),
 }));
 

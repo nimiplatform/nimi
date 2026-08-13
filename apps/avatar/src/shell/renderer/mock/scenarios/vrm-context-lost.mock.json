@@ -1,7 +1,7 @@
 {
   "scenario_id": "vrm-context-lost",
   "version": "1",
-  "description": "Isolates the VRM lifecycle context-loss proof from the broader lifecycle scenario: first webglcontextlost must recover through the admitted 1500ms retry window; second loss before recovery must fail closed with context_lost_twice.",
+  "description": "Isolates VRM backend-local context-loss recovery: first webglcontextlost must recover through the admitted 1500ms retry window; second loss before recovery must fail closed with context_lost_twice.",
   "duration_ms": 7000,
   "loop": false,
 
@@ -25,7 +25,7 @@
   ],
 
   "vrm_mock_scenario": {
-    "category": "vrm_lifecycle",
+    "category": "vrm_render_recovery",
     "model_manifest": {
       "kind": "vrm",
       "modelId": "vrm-mock-context-lost",
@@ -43,9 +43,9 @@
       { "atMs": 4100, "kind": "inject_second_webglcontextlost" }
     ],
     "expected": [
-      { "kind": "lifecycle_evidence", "where": "vrm-runtime", "details": { "kind": "context_lost" } },
-      { "kind": "lifecycle_evidence", "where": "vrm-runtime", "details": { "kind": "context_restored" } },
-      { "kind": "lifecycle_evidence", "where": "vrm-runtime", "details": { "kind": "failed_closed", "reason": "context_lost_twice" } }
+      { "kind": "render_recovery_evidence", "where": "vrm-runtime", "details": { "kind": "context_lost" } },
+      { "kind": "render_recovery_evidence", "where": "vrm-runtime", "details": { "kind": "context_restored" } },
+      { "kind": "render_recovery_evidence", "where": "vrm-runtime", "details": { "kind": "failed_closed", "reason": "context_lost_twice" } }
     ],
     "human_acceptance_checks": [
       "first context loss recovers without permanent fallback",

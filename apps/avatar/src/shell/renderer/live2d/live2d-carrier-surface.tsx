@@ -3,7 +3,7 @@
 // Live2D BackendSurface adapter — wraps `Live2DCarrierVisualSurface` so
 // the embodiment-stage can mount `backend.surface.Component` directly
 // without reaching into Live2D internals or the cue-level command bus.
-// The wrapper bridges the BackendSurfaceProps lifecycle channels:
+// The wrapper bridges BackendSurfaceProps resource channels:
 //
 //   * `onAudioConsumerReady` — fires once per mount with the
 //     branch-supplied BackendAudioConsumer so the audio pipeline
@@ -13,11 +13,11 @@
 //     mounted cubism canvas to read pixels from). On tier C, fires the
 //     bbox-only fallback exactly once.
 //
-// Authority: rule.nimi.avatar.embodiment.r004, r007, and r041.
+// Authority: rule.nimi.avatar.embodiment.r004 and r041.
 
 import { useEffect, useRef } from 'react';
+import type { BackendAudioConsumer } from '@nimiplatform/kit/features/avatar/headless';
 import type {
-  BackendAudioConsumer,
   BackendSurface,
   BackendSurfaceProps,
 } from '../carrier/backend-branch.js';

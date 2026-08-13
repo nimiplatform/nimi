@@ -7,7 +7,7 @@
 //     persistent wheel scale)
 //   - the avatar store's model.loadState / model.modelId (source of
 //     model_load + model_switch triggers)
-//   - the Tauri set_size invoker (`tauri-commands.ts.setWindowSize`)
+//   - the shared host window bridge (`avatar-window-commands.ts.setWindowSize`)
 //
 // IMPORTANT - feedback-loop avoidance:
 // We deliberately do NOT measure DOM bounding rects of embodiment-stage or
@@ -15,7 +15,7 @@
 
 import { useEffect, useMemo, useRef } from 'react';
 import { useAvatarStore } from './app-store.js';
-import { setIgnoreCursorEvents, setWindowSize } from './tauri-commands.js';
+import { setIgnoreCursorEvents, setWindowSize } from './avatar-window-commands.js';
 import { isTauriRuntime } from './tauri-lifecycle.js';
 import {
   WINDOW_BOUNDS_DEFAULT_AVATAR_SCALE,

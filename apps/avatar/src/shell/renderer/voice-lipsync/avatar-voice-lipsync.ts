@@ -36,7 +36,8 @@ import {
   parseNimiRuntimeAgentTimeline,
   type NimiRuntimeAgentTimelineEnvelope,
 } from '@nimiplatform/sdk/runtime';
-import type { BackendAudioConsumer, BackendBranch } from '../carrier/backend-branch.js';
+import type { BackendAudioConsumer } from '@nimiplatform/kit/features/avatar/headless';
+import type { BackendBranch } from '../carrier/backend-branch.js';
 import {
   AudioPipelineController,
   getSharedAudioPipelineController,
@@ -521,8 +522,8 @@ function readBytes(value: unknown): Uint8Array | ArrayBuffer | null {
 }
 
 function getBackendAudioConsumer(backend: BackendBranch) {
-  // BackendBranch exposes BackendAudioConsumer through the mounted surface
-  // lifecycle. This helper reads the consumer
+  // BackendBranch exposes BackendAudioConsumer through the mounted surface.
+  // This helper reads the consumer
   // off the backend if the field is present, else throws — never returns
   // a stub: silent stubs hide wiring drift.
   const consumer = (backend as unknown as { audioConsumer?: unknown }).audioConsumer;

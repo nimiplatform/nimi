@@ -7,7 +7,7 @@ import type {
   CompanionActiveTurnCue,
   CompanionAnchorBinding,
 } from './companion-state.js';
-import { closeAvatarWindow, hideAvatarWindow } from './app-shell/tauri-commands.js';
+import { closeAvatarWindow, hideAvatarWindow } from './app-shell/avatar-window-commands.js';
 import { isTauriRuntime } from './app-shell/tauri-lifecycle.js';
 import { AVATAR_SCALE_DEFAULT } from './avatar-scale-state.js';
 import { normalizeText, toErrorMessage } from './avatar-shell-utils.js';

@@ -1,8 +1,3 @@
-// Degraded Surface
-// Rules rule.nimi.avatar.embodiment.r021 and r022 make this the sole renderer
-// for every non-ready lifecycle state. It is mutually exclusive with
-// embodiment-stage and transient overlays.
-//
 // Wave 2: every label / summary / recovery / diagnostics row is i18n-driven
 // via `Avatar.degraded.<state>.{badge,title,summary[,_with_reason],recovery}`
 // keys declared in the app-owned i18n key catalog.
@@ -10,6 +5,7 @@
 import { useTranslation } from '../i18n/index.js';
 import { Button, StatusBadge, Surface, cn } from '@nimiplatform/kit/ui';
 import { reloadAvatarShell } from '../shell-reload.js';
+import { closeAvatarWindow } from '../app-shell/avatar-window-commands.js';
 import type { CompositionDerivation } from '../app-shell/composition-state.js';
 
 export type DegradedSurfaceProps = {
@@ -90,13 +86,22 @@ export function DegradedSurface(props: DegradedSurfaceProps) {
       <div className="avatar-degraded-surface__actions">
         <Button
           type="button"
-          className="avatar-degraded-surface__reload"
+          className="avatar-degraded-surface__primary-action"
           tone="primary"
           size="md"
           onClick={() => reloadAvatarShell()}
           data-testid="avatar-degraded-reload"
         >
           {t('Avatar.degraded.reload')}
+        </Button>
+        <Button
+          type="button"
+          tone="ghost"
+          size="md"
+          onClick={() => void closeAvatarWindow()}
+          data-testid="avatar-degraded-close"
+        >
+          {t('Avatar.context_menu.close')}
         </Button>
       </div>
       {diagnosticsVisible ? (

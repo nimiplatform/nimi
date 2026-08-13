@@ -43,7 +43,7 @@
     },
     "degraded": {
       "surface_aria": "伙伴形象不可用",
-      "reload": "重新加载伙伴形象",
+      "reload": "重新启动伙伴形象",
       "diagnostics": {
         "summary": "诊断信息",
         "composition_state": "界面状态",
@@ -230,6 +230,15 @@
         "speech_lipsync": "语音嘴型同步",
         "window_hit_region": "窗口命中区域"
       }
+    },
+    "presentation_unavailable": {
+      "surface_aria": "伙伴形象无法呈现",
+      "badge": "无法呈现",
+      "title": "伙伴形象无法呈现",
+      "summary": "当前伙伴形象已无法在窗口中继续呈现。",
+      "recovery": "请重新启动伙伴形象后重试，或关闭此窗口。",
+      "restart": "重新启动伙伴形象",
+      "close": "关闭伙伴形象"
     },
     "context_menu": {
       "aria": "伙伴形象工具",

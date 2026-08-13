@@ -15,7 +15,7 @@
 //   3. emoteState.tick({vrm, deltaSec})
 //   4. generatedMotionRuntime.tick(deltaSec)
 //
-// useFrame is mocked no-op (vrm-lifecycle-e2e.test.tsx pattern); we drive
+// useFrame is mocked no-op (vrm-render-recovery-e2e.test.tsx pattern); we drive
 // the per-frame chain manually so the test stays deterministic in jsdom.
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -33,11 +33,9 @@ import {
   AudioPipelineController,
   SYNTHETIC_AUDIO_MIME_TYPE,
   type AudioPlaybackSnapshot,
+  type BackendAudioConsumer,
+  type WLipSyncSnapshot,
 } from '@nimiplatform/kit/features/avatar/headless';
-import type {
-  BackendAudioConsumer,
-  WLipSyncSnapshot,
-} from '../carrier/backend-branch.js';
 import { createVrmAudioConsumer } from './vrm-audio-consumer.js';
 import { createVrmEmoteState, type VrmEmoteTable } from './vrm-emote-state.js';
 import { createVrmLipsyncDriver } from './vrm-lipsync-driver.js';
@@ -482,15 +480,15 @@ describe('scenario vrm-context-lost (chunk 3-E)', () => {
     expect(expected).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
-          kind: 'lifecycle_evidence',
+          kind: 'render_recovery_evidence',
           details: expect.objectContaining({ kind: 'context_lost' }),
         }),
         expect.objectContaining({
-          kind: 'lifecycle_evidence',
+          kind: 'render_recovery_evidence',
           details: expect.objectContaining({ kind: 'context_restored' }),
         }),
         expect.objectContaining({
-          kind: 'lifecycle_evidence',
+          kind: 'render_recovery_evidence',
           details: expect.objectContaining({
             kind: 'failed_closed',
             reason: 'context_lost_twice',

@@ -14,8 +14,10 @@ import { useEffect } from 'react';
 import { EmbodimentStage } from './embodiment-stage.js';
 import type {
   BackendAudioConsumer,
-  BackendBranch,
   BackendHitRegion,
+} from '@nimiplatform/kit/features/avatar/headless';
+import type {
+  BackendBranch,
   BackendSurfaceProps,
 } from '../carrier/backend-branch.js';
 
@@ -29,7 +31,7 @@ const runtimeFlags = vi.hoisted(() => ({
   tauriRuntime: false,
 }));
 
-vi.mock('../app-shell/tauri-commands.js', () => ({
+vi.mock('../app-shell/avatar-window-commands.js', () => ({
   beginManualDragWindow: (...args: unknown[]) => beginManualDragWindowMock(...args),
   moveManualDragWindow: (...args: unknown[]) => moveManualDragWindowMock(...args),
   setIgnoreCursorEvents: (...args: unknown[]) => setIgnoreCursorEventsMock(...args),

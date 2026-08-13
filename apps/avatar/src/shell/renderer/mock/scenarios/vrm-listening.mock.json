@@ -25,7 +25,7 @@
   ],
 
   "vrm_mock_scenario": {
-    "category": "vrm_lifecycle",
+    "category": "vrm_render_recovery",
     "model_manifest": {
       "kind": "vrm",
       "modelId": "vrm-mock-listening",
@@ -41,14 +41,13 @@
       { "atMs": 0, "kind": "applyActivity", "input": { "name": "listening", "intensity": null } }
     ],
     "expected": [
-      { "kind": "lifecycle_state", "where": "carrier-surface", "details": { "kind": "ready" } },
       { "kind": "motion_play_result", "where": "generatedMotionRuntime.play({routeId: 'listen_lean'})", "details": { "played": false, "reason": "missing_profile" } },
       { "kind": "surface_visible", "where": "avatar-vrm-carrier", "details": { "data_avatar_vrm_state": "ready" } }
     ],
     "human_acceptance_checks": [
       "missing provider path fails closed without .vrma fallback",
       "carrier surface 仍可见且未 fail_close（fail-closed projection 正确）",
-      ".vrma remains interchange-only metadata, not lifecycle evidence"
+      ".vrma remains interchange-only metadata, not presentation-success evidence"
     ]
   }
 }

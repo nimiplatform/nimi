@@ -1,6 +1,6 @@
 import { act, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { BackendAudioConsumer } from '../carrier/backend-branch.js';
+import type { BackendAudioConsumer } from '@nimiplatform/kit/features/avatar/headless';
 import type { Live2DBackendSession } from './backend-session.js';
 import { createEmptyLive2DExpressionInventory } from './live2d-expression-stack.js';
 import type {
@@ -196,5 +196,84 @@ describe('Live2DCarrierVisualSurface', () => {
 
     expect(visualHost.probeVisibleFrame).toHaveBeenCalledTimes(1);
     expect(visualHost.drawFrame).toHaveBeenCalledTimes(3);
+  });
+
+  it('renders the local unavailable surface when visual host initialization fails', async () => {
+    const { Live2DCarrierVisualSurface } = await import('./Live2DCarrierVisualSurface.js');
+    createLive2DCarrierVisualHostMock.mockRejectedValue(new Error('cubism_context_unavailable'));
+
+    render(
+      <Live2DCarrierVisualSurface
+        session={createSession()}
+        audioConsumer={createAudioConsumer()}
+        paramMouthFormSupported={false}
+      />,
+    );
+
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(screen.getByTestId('avatar-presentation-unavailable')).toBeTruthy();
+    expect(screen.getByText('cubism_context_unavailable')).toBeTruthy();
+  });
+
+  it('replaces a presented surface after an unrecoverable frame failure', async () => {
+    const { Live2DCarrierVisualSurface } = await import('./Live2DCarrierVisualSurface.js');
+    const visualHost = createVisualHost();
+    createLive2DCarrierVisualHostMock.mockResolvedValue(visualHost);
+
+    render(
+      <Live2DCarrierVisualSurface
+        session={createSession()}
+        audioConsumer={createAudioConsumer()}
+        paramMouthFormSupported={false}
+      />,
+    );
+
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    expect(screen.queryByTestId('avatar-presentation-unavailable')).toBeNull();
+
+    vi.mocked(visualHost.drawFrame).mockImplementation(() => {
+      throw new Error('render_context_permanently_lost');
+    });
+    const callback = rafCallbacks.shift();
+    act(() => {
+      callback?.(performance.now());
+    });
+
+    expect(screen.getByTestId('avatar-presentation-unavailable')).toBeTruthy();
+    expect(screen.getByText('render_context_permanently_lost')).toBeTruthy();
+    expect(visualHost.unload).toHaveBeenCalledTimes(1);
+  });
+
+  it('disposes a visual host that resolves after the surface was replaced', async () => {
+    const { Live2DCarrierVisualSurface } = await import('./Live2DCarrierVisualSurface.js');
+    const visualHost = createVisualHost();
+    let resolveVisualHost: ((host: Live2DCarrierVisualHost) => void) | null = null;
+    createLive2DCarrierVisualHostMock.mockReturnValue(new Promise((resolve) => {
+      resolveVisualHost = resolve;
+    }));
+
+    const result = render(
+      <Live2DCarrierVisualSurface
+        session={createSession()}
+        audioConsumer={createAudioConsumer()}
+        paramMouthFormSupported={false}
+      />,
+    );
+    result.unmount();
+
+    await act(async () => {
+      resolveVisualHost?.(visualHost);
+      await Promise.resolve();
+    });
+
+    expect(visualHost.unload).toHaveBeenCalledTimes(1);
+    expect(screen.queryByTestId('avatar-presentation-unavailable')).toBeNull();
   });
 });

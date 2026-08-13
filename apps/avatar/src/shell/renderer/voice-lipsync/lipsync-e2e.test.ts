@@ -31,12 +31,10 @@ import {
   AudioPipelineController,
   SYNTHETIC_AUDIO_MIME_TYPE,
   VoiceLipsyncStateBus,
+  type BackendAudioConsumer,
   type VoiceLipsyncStateBusEvent,
 } from '@nimiplatform/kit/features/avatar/headless';
-import type {
-  BackendAudioConsumer,
-  BackendBranch,
-} from '../carrier/backend-branch.js';
+import type { BackendBranch } from '../carrier/backend-branch.js';
 
 const FIXTURE_TURN_ID = 'turn-e2e';
 const FIXTURE_STREAM_ID = 'stream-e2e';
@@ -222,7 +220,7 @@ describe('Lipsync e2e — voice_playback_requested → audio-pipeline → backen
     expect(audioPipeline.getSnapshot().state).toBe('completed');
   });
 
-  it('runs the same fixture against a VRM mock backend with equivalent sink lifecycle', async () => {
+  it('runs the same fixture against a VRM mock backend with equivalent sink ownership', async () => {
     const driver = createDriver();
     const stateBus = new VoiceLipsyncStateBus();
     const fake = createFakeAudioContext();

@@ -6,8 +6,9 @@ import {
   type Live2DCarrierVisualFrameStats,
   type Live2DCarrierVisualHost,
 } from './carrier-visual-host.js';
-import type { BackendAudioConsumer } from '../carrier/backend-branch.js';
+import type { BackendAudioConsumer } from '@nimiplatform/kit/features/avatar/headless';
 import { createLive2DLipsyncDriver } from './live2d-lipsync-driver.js';
+import { PresentationUnavailableSurface } from '../presentation-unavailable/presentation-unavailable-surface.js';
 
 type Live2DCarrierVisualSurfaceProps = {
   session: Live2DBackendSession | null;
@@ -136,6 +137,9 @@ export function Live2DCarrierVisualSurface({
         setSurfaceStatus('error');
         setError(message);
         console.warn(`[avatar:live2d] visual frame failed: ${message}`);
+        visualHost.unload();
+        visualHost = null;
+        host.replaceChildren();
         return;
       }
       animationFrame = requestAnimationFrame(renderLoop);
@@ -198,15 +202,18 @@ export function Live2DCarrierVisualSurface({
   }, [audioConsumer, paramMouthFormSupported, session]);
 
   return (
-    <div
-      ref={hostRef}
-      className="avatar-live2d-carrier"
-      data-testid="avatar-live2d-carrier-visual"
-      data-avatar-owned-live2d-status={status}
-      data-avatar-live2d-carrier-status={status}
-      data-avatar-live2d-carrier-visible-pixels={proofStats?.visiblePixels ?? 0}
-      data-avatar-live2d-carrier-drawables={proofStats?.visibleDrawableCount ?? 0}
-      data-avatar-live2d-carrier-error={error ?? undefined}
-    />
+    <>
+      <div
+        ref={hostRef}
+        className="avatar-live2d-carrier"
+        data-testid="avatar-live2d-carrier-visual"
+        data-avatar-owned-live2d-status={status}
+        data-avatar-live2d-carrier-status={status}
+        data-avatar-live2d-carrier-visible-pixels={proofStats?.visiblePixels ?? 0}
+        data-avatar-live2d-carrier-drawables={proofStats?.visibleDrawableCount ?? 0}
+        data-avatar-live2d-carrier-error={error ?? undefined}
+      />
+      {status === 'error' ? <PresentationUnavailableSurface reason={error} /> : null}
+    </>
   );
 }

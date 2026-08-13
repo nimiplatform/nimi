@@ -1,5 +1,5 @@
-// Surface composition state derivation for rules
-// rule.nimi.avatar.embodiment.r021 and r022.
+// App-local prerequisite composition. These branches decide which shell view
+// is mounted; they are not a public Avatar presentation state machine.
 // The Avatar shell renders exactly one product surface at any time:
 //   - ready:            embodiment-stage
 //   - loading:          pre-bootstrap-complete; degraded-surface variant=loading
@@ -133,9 +133,6 @@ function deriveModelDiagnostics(model: AvatarAppState['model']): CompositionMode
   };
 }
 
-// @nimi-authority: definition.nimi.avatar.embodiment.shell-lifecycle
-// @nimi-authority: rule.nimi.avatar.embodiment.r021
-// @nimi-authority: rule.nimi.avatar.embodiment.r022
 export function deriveCompositionState(input: CompositionInput): CompositionDerivation {
   const modelDiagnostics = deriveModelDiagnostics(input.model);
   if (input.relaunchPending) {

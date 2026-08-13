@@ -17,13 +17,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { useWindowBoundsSync } from './use-window-bounds-sync.js';
 import { useAvatarStore } from './app-store.js';
 import { WINDOW_BOUNDS_PADDING_PX } from './window-bounds.js';
-import type { BackendNominalBounds } from '../carrier/backend-branch.js';
+import type { BackendNominalBounds } from '@nimiplatform/kit/features/avatar/headless';
 
 const setWindowSizeMock = vi.fn<(...args: unknown[]) => Promise<void>>();
 const setIgnoreCursorEventsMock = vi.fn<(...args: unknown[]) => Promise<void>>();
 let tauriRuntime = true;
 
-vi.mock('./tauri-commands.js', () => ({
+vi.mock('./avatar-window-commands.js', () => ({
   setWindowSize: (...args: unknown[]) => setWindowSizeMock(...args),
   beginManualDragWindow: vi.fn(),
   moveManualDragWindow: vi.fn(),

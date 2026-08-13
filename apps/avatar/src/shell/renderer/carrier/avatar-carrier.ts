@@ -379,10 +379,6 @@ export async function startAvatarVisualCarrier(input: {
     name: 'avatar.model.load',
     detail: modelLoadDetail,
   };
-  void backendHandle.verifyBootstrapVisualOutput?.().catch((error: unknown) => {
-    console.warn('[avatar:carrier] bootstrap visual output probe failed', error);
-  });
-
   return {
     model,
     committedPresentationSelection: input.committedPresentationSelection ?? null,

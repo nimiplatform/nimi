@@ -43,7 +43,7 @@
     },
     "degraded": {
       "surface_aria": "Avatar unavailable",
-      "reload": "Reload avatar",
+      "reload": "Restart avatar",
       "diagnostics": {
         "summary": "Diagnostics",
         "composition_state": "Composition state",
@@ -230,6 +230,15 @@
         "speech_lipsync": "Speech lip sync",
         "window_hit_region": "Window hit region"
       }
+    },
+    "presentation_unavailable": {
+      "surface_aria": "Avatar cannot be displayed",
+      "badge": "Unavailable",
+      "title": "The avatar can't be displayed",
+      "summary": "This avatar stopped presenting in its window.",
+      "recovery": "Restart the avatar to try again, or close this window.",
+      "restart": "Restart avatar",
+      "close": "Close avatar"
     },
     "context_menu": {
       "aria": "Avatar tools",

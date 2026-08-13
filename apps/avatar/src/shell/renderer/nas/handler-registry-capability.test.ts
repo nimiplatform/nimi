@@ -39,7 +39,7 @@ function createManifest(stem: string, kind: 'activity' | 'event' | 'continuous')
   };
 }
 
-async function populateWithSource(stem: string, kind: 'activity' | 'event' | 'continuous', source: string, backendKind: 'vrm' | 'live2d' | 'nimi2d') {
+async function populateWithSource(stem: string, kind: 'activity' | 'event' | 'continuous', source: string, backendKind: 'vrm' | 'live2d') {
   const { createHandlerRegistry, populateRegistry } = await import('./handler-registry.js');
   const registry = createHandlerRegistry();
   invokeMock.mockImplementation(async (_cmd: string, _args: { path?: string }) => source);
@@ -79,14 +79,6 @@ describe('NAS handler-registry retired capability gating', () => {
     const { registry, result } = await populateWithSource('gaze', 'continuous', requiresLive2DSource, 'vrm');
     expect(result.validationErrors.join('\n')).toContain('NAS handler capability declarations are retired for creator code');
     expect(registry.continuous.has('gaze')).toBe(false);
-    errorSpy.mockRestore();
-  });
-
-  it('rejects a handler that declares retired live2d-extension on a Nimi2D backend', async () => {
-    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
-    const { registry, result } = await populateWithSource('happy', 'activity', requiresLive2DSource, 'nimi2d');
-    expect(result.validationErrors.join('\n')).toContain('NAS handler capability declarations are retired for creator code');
-    expect(registry.activity.has('happy')).toBe(false);
     errorSpy.mockRestore();
   });
 

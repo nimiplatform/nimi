@@ -1,6 +1,6 @@
 // Contract tests for .nimi/spec/avatar/embodiment-surface.authority.yaml.
 //
-// Verifies the VRM lifecycle state machine in isolation. Uses
+// Verifies the VRM internal render/recovery state in isolation. Uses
 // `loaderOverride` + `setTimeoutFn` + `clearTimeoutFn` + `nowFn` test
 // seams to drive the machine without R3F / WebGL / real timers.
 
@@ -10,7 +10,7 @@ import type { VrmAvatarModelManifest } from './vrm-model-manifest.js';
 import {
   createVrmRuntime,
   VRM_CONTEXT_LOST_RETRY_MS,
-  type VrmLifecycleState,
+  type VrmRenderState,
 } from './vrm-runtime.js';
 
 function manifest(): VrmAvatarModelManifest {
@@ -70,7 +70,7 @@ describe('createVrmRuntime', () => {
       manifest: manifest(),
       loaderOverride: async () => vrm,
     });
-    const states: VrmLifecycleState[] = [];
+    const states: VrmRenderState[] = [];
     runtime.subscribe((s) => states.push(s));
     expect(runtime.getState().kind).toBe('idle');
     await runtime.start();
@@ -208,12 +208,31 @@ describe('createVrmRuntime', () => {
     expect(timer.pending()).toBe(false);
   });
 
+  it('ignores an initial load that resolves after shutdown', async () => {
+    let resolveLoad!: (vrm: VRM) => void;
+    const runtime = createVrmRuntime({
+      manifest: manifest(),
+      loaderOverride: () => new Promise((resolve) => {
+        resolveLoad = resolve;
+      }),
+    });
+    const states: VrmRenderState[] = [];
+    runtime.subscribe((state) => states.push(state));
+
+    const start = runtime.start();
+    runtime.shutdown();
+    resolveLoad(stubVrm());
+    await start;
+
+    expect(states.map((state) => state.kind)).toEqual(['idle', 'loading']);
+  });
+
   it('subscribe() pushes the current state immediately', () => {
     const runtime = createVrmRuntime({
       manifest: manifest(),
       loaderOverride: async () => stubVrm(),
     });
-    const seen: VrmLifecycleState[] = [];
+    const seen: VrmRenderState[] = [];
     const off = runtime.subscribe((s) => seen.push(s));
     expect(seen).toHaveLength(1);
     expect(seen[0]?.kind).toBe('idle');

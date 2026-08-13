@@ -1,6 +1,6 @@
 // Companion Surface: stage-first presence capsule + optional cue/tray.
 // The surface is mounted alongside embodiment-stage only for the closed
-// `ready` lifecycle state.
+// `ready` shell composition.
 
 import {
   useCallback,

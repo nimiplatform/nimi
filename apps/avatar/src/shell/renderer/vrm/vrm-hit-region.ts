@@ -1,4 +1,4 @@
-import type { BackendHitRegion } from '../carrier/backend-branch.js';
+import type { BackendHitRegion } from '@nimiplatform/kit/features/avatar/headless';
 
 export const VRM_ALPHA_MASK_THRESHOLD = 10 / 255;
 export const VRM_ALPHA_MASK_THRESHOLD_BYTE = 10;

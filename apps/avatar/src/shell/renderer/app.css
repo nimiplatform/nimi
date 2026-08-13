@@ -1318,7 +1318,7 @@ button {
   justify-content: center;
 }
 
-.avatar-degraded-surface__reload {
+.avatar-degraded-surface__primary-action {
   padding: var(--nimi-space-2) var(--nimi-space-4);
   border: none;
   border-radius: var(--nimi-radius-sm);
@@ -1331,7 +1331,7 @@ button {
     transform var(--nimi-motion-fast) cubic-bezier(0.2, 0, 0, 1);
 }
 
-.avatar-degraded-surface__reload:hover {
+.avatar-degraded-surface__primary-action:hover {
   background: var(--nimi-action-primary-bg-hover);
   transform: translateY(-1px);
 }

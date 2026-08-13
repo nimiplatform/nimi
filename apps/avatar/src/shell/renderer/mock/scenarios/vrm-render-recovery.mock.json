@@ -1,13 +1,13 @@
 {
-  "scenario_id": "vrm-lifecycle",
+  "scenario_id": "vrm-render-recovery",
   "version": "1",
-  "description": "Drives the VRM BackendBranch lifecycle (manifest -> carrier-surface -> runtime -> loader) end-to-end with a representative MIT-licensed VRM sample. The fixture's vrm_lifecycle block is consumed by vrm-lifecycle-e2e.test.tsx; the events/agent_bootstrap blocks remain catalog-conformant and are exercised by the mock driver itself.",
+  "description": "Drives VRM presentation and backend-local recovery (manifest -> carrier-surface -> runtime -> loader) end-to-end with a representative MIT-licensed VRM sample. The fixture's vrm_render_recovery block is consumed by vrm-render-recovery-e2e.test.tsx; the events/agent_bootstrap blocks remain catalog-conformant and are exercised by the mock driver itself.",
   "duration_ms": 8000,
   "loop": false,
 
   "agent_bootstrap": {
-    "active_world_id": "world-mock-vrm-lifecycle",
-    "active_user_id": "user-mock-vrm-lifecycle",
+    "active_world_id": "world-mock-vrm-render-recovery",
+    "active_user_id": "user-mock-vrm-render-recovery",
     "locale": "zh-CN",
     "initial_posture": {
       "posture_class": "baseline_observer",
@@ -16,7 +16,7 @@
       "transition_reason": "scenario_start",
       "truth_basis_ids": []
     },
-    "initial_status_text": "vrm lifecycle fixture",
+    "initial_status_text": "vrm render recovery fixture",
     "initial_execution_state": "IDLE"
   },
 
@@ -25,7 +25,7 @@
     { "kind": "time", "at_ms": 4000, "type": "avatar.fixture.presentation.activity_requested", "detail": { "activity_name": "happy",   "category": "emotion", "intensity": "moderate", "source": "mock" } }
   ],
 
-  "vrm_lifecycle": {
+  "vrm_render_recovery": {
     "model_manifest": {
       "kind": "vrm",
       "modelId": "vrm1-constraint-twist",

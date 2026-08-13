@@ -95,12 +95,15 @@ export type {
   Live2DAvatarModelManifest,
   Live2DLocalModelManifest,
   LocalAvatarAssetReference,
-  Nimi2DAvatarModelManifest,
   TauriAvatarModelManifest,
   VrmAvatarModelManifest,
 } from './avatar-model-manifest.js';
 export type {
+  BackendAudioConsumer,
+  BackendHitRegion,
   BackendKind,
+  BackendNominalBounds,
+  WLipSyncSnapshot,
 } from './backend-branch.js';
 export {
   fromLive2DLocalModelManifest,

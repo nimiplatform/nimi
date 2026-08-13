@@ -42,7 +42,6 @@
   },
   "dependencies": {
     "@nimiplatform/kit": "workspace:*",
-    "@nimiplatform/nimi2d": "workspace:*",
     "@nimiplatform/sdk": "workspace:*",
     "@pixiv/three-vrm": "^3.5.3",
     "@pixiv/three-vrm-animation": "^3.5.3",
@@ -53,7 +52,6 @@
     "@tauri-apps/plugin-fs": "^2.5.1",
     "i18next": "^25.8.18",
     "lucide-react": "^0.577.0",
-    "pixi.js": "^8.19.0",
     "react": "19.2.6",
     "react-dom": "19.2.6",
     "react-i18next": "^16.5.8",

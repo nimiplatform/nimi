@@ -7,7 +7,7 @@
 // deterministic generation fails closed rather than falling back.
 //
 // Product mode always mounts the real BackendBranch surface: VrmRuntime
-// lifecycle, <Canvas> + <VrmScene>, and the useFrame tick chain
+// render recovery, <Canvas> + <VrmScene>, and the useFrame tick chain
 // (lipsync driver → emote state → motion mixer → vrm.update). Environment
 // selected placeholder branches are not admitted VRM success evidence.
 //
@@ -18,12 +18,12 @@
 //   `ready`) registers the real adapter. Pre-ready calls are replayed
 //   on first `setAdapter`. If the runtime never reaches ready (failed_
 //   closed), queued calls remain queued indefinitely — matches the
-//   fail-close lifecycle (no projection delivery is correct).
+//   fail-close handling (no projection delivery is correct).
 
 import type { Profile } from 'wlipsync';
 import type { VrmAvatarModelManifest } from './vrm-model-manifest.js';
+import type { BackendAudioConsumer } from '@nimiplatform/kit/features/avatar/headless';
 import type {
-  BackendAudioConsumer,
   BackendBranch,
   BackendProjection,
   BackendSurface,

@@ -25,7 +25,7 @@
   ],
 
   "vrm_mock_scenario": {
-    "category": "vrm_lifecycle",
+    "category": "vrm_render_recovery",
     "model_manifest": {
       "kind": "vrm",
       "modelId": "vrm-mock-thinking",
@@ -41,7 +41,6 @@
       { "atMs": 0, "kind": "applyActivity", "input": { "name": "thinking", "intensity": null } }
     ],
     "expected": [
-      { "kind": "lifecycle_state", "where": "carrier-surface", "details": { "kind": "ready" } },
       { "kind": "motion_play_result", "where": "generatedMotionRuntime.play({routeId: 'idle_subtle'})", "details": { "played": false, "reason": "missing_profile" } },
       { "kind": "generated_motion_snapshot", "where": "generatedMotionRuntime.snapshot()", "details": { "activeRouteId": null } }
     ],

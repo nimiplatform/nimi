@@ -6,7 +6,7 @@ import {
 } from '../vrm/vrm-generated-motion-contract.js';
 import type { VrmCapabilityProfile } from '../vrm/vrm-capability-profile.js';
 
-export type AvatarDebugBackendKind = 'live2d' | 'vrm' | 'nimi2d';
+export type AvatarDebugBackendKind = 'live2d' | 'vrm';
 
 export type AvatarDebugEvidenceKind =
   | 'package_descriptor_resolved'
@@ -212,21 +212,6 @@ function metadataStringList(meta: Record<string, unknown>, key: string): string[
   return value.filter((item): item is string => typeof item === 'string' && item.trim().length > 0);
 }
 
-function metadataRecord(meta: Record<string, unknown>, key: string): Record<string, unknown> {
-  const value = meta[key];
-  return value && typeof value === 'object' && !Array.isArray(value)
-    ? value as Record<string, unknown>
-    : {};
-}
-
-function nimi2dLaneSupported(
-  input: AvatarDebugSessionInput,
-  lane: 'expression' | 'speech_mouth' | 'gesture_motion',
-): boolean {
-  return metadataString(metadataRecord(backendMetadata(input), 'live_action_lanes'), lane)
-    === 'supported';
-}
-
 function isAdmittedCapabilityProfileId(value: string | null | undefined): value is string {
   const normalized = optionalString(value);
   if (!normalized) return false;
@@ -347,14 +332,6 @@ function evaluateStatus(input: AvatarDebugSessionInput): {
           ? { status: 'passed', reasonCode: null }
           : { status: 'failed', reasonCode: 'vrm_capability_profile_missing' };
       }
-      if (input.backendKind === 'nimi2d') {
-        return hasBackend
-          && hasProfileRef
-          && metadataString(meta, 'capability_profile_ref')
-            === optionalString(input.backendCapabilityProfileRef)
-          ? { status: 'passed', reasonCode: null }
-          : { status: 'failed', reasonCode: 'nimi2d_capability_profile_missing' };
-      }
       return hasBackend
         && hasProfileRef
         && metadataString(meta, 'compatibility_tier')
@@ -368,11 +345,6 @@ function evaluateStatus(input: AvatarDebugSessionInput): {
           ? { status: 'passed', reasonCode: null }
           : { status: 'unsupported', reasonCode: 'generated_motion_route_support_missing' };
       }
-      if (input.backendKind === 'nimi2d') {
-        return hasBackend && nimi2dLaneSupported(input, 'gesture_motion')
-        ? { status: 'passed', reasonCode: null }
-        : { status: 'unsupported', reasonCode: 'generated_motion_route_support_missing' };
-      }
       return { status: 'unsupported', reasonCode: 'generated_motion_not_supported_by_backend' };
     case AvatarDebugProbeKind.EMOTION_EXPRESSION:
       if (input.backendKind === 'vrm') {
@@ -380,11 +352,6 @@ function evaluateStatus(input: AvatarDebugSessionInput): {
           || metadataBoolean(meta, 'expression_manager_present')
           ? { status: 'passed', reasonCode: null }
           : { status: 'unsupported', reasonCode: 'expression_manager_missing' };
-      }
-      if (input.backendKind === 'nimi2d') {
-        return hasBackend && nimi2dLaneSupported(input, 'expression')
-          ? { status: 'passed', reasonCode: null }
-          : { status: 'unsupported', reasonCode: 'expression_lane_missing' };
       }
       return hasBackend
         && metadataString(meta, 'adapter_id')
@@ -399,11 +366,6 @@ function evaluateStatus(input: AvatarDebugSessionInput): {
           && live2dLipsyncEvidenceRef(input)
           ? { status: 'passed', reasonCode: null }
           : { status: 'unsupported', reasonCode: 'live2d_lipsync_evidence_missing' };
-      }
-      if (input.backendKind === 'nimi2d') {
-        return hasBackend && nimi2dLaneSupported(input, 'speech_mouth')
-          ? { status: 'passed', reasonCode: null }
-          : { status: 'unsupported', reasonCode: 'lipsync_profile_missing' };
       }
       return hasBackend && metadataBoolean(meta, 'lipsync_profile_present')
         ? { status: 'passed', reasonCode: null }

@@ -1,33 +1,9 @@
 import type { ComponentType } from 'react';
-
-export type BackendKind = 'live2d' | 'vrm' | 'nimi2d';
-
-export type BackendNominalBounds = {
-  width: number;
-  height: number;
-  bodyCenterX: number;
-  bodyCenterY: number;
-};
-
-export type BackendHitRegion = {
-  body: { left: number; top: number; right: number; bottom: number };
-  drag: { left: number; top: number; right: number; bottom: number };
-  isOpaqueAtClientPoint:
-    | ((clientX: number, clientY: number, threshold?: number) => boolean | null)
-    | null;
-};
-
-export interface WLipSyncSnapshot {
-  weights: Record<'A' | 'E' | 'I' | 'O' | 'U' | 'S', number>;
-  volume: number;
-}
-
-export interface BackendAudioConsumer {
-  attachAudioSource(source: AudioBufferSourceNode, audioContext: AudioContext): Promise<void>;
-  detachAudioSource(): void;
-  silent(): void;
-  snapshot(): WLipSyncSnapshot | null;
-}
+import type {
+  BackendAudioConsumer,
+  BackendHitRegion,
+  BackendNominalBounds,
+} from '@nimiplatform/kit/features/avatar/headless';
 
 export type BackendProjection = {
   applyActivity(input: { name: string; intensity: number | null }): void;
@@ -43,7 +19,6 @@ export type Live2DBackendExtension = {
 
 export type BackendMetadata = Record<string, unknown>;
 
-// @nimi-deprecated: rule.nimi.avatar.embodiment.r007
 export type BackendSurfaceProps = {
   width: number;
   height: number;
@@ -67,5 +42,4 @@ export type BackendBranchBase = {
 // @nimi-authority: definition.nimi.avatar.embodiment.backend-branch
 export type BackendBranch =
   | (BackendBranchBase & { kind: 'live2d'; live2dExtension: Live2DBackendExtension })
-  | (BackendBranchBase & { kind: 'vrm' })
-  | (BackendBranchBase & { kind: 'nimi2d' });
+  | (BackendBranchBase & { kind: 'vrm' });

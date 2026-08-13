@@ -63,7 +63,7 @@ export type MockScenarioId =
   | 'continuous-eye-tracking'
   | 'sequence-greet'
   | 'posture-sync'
-  | 'vrm-lifecycle'
+  | 'vrm-render-recovery'
   | 'vrm-context-lost'
   | 'vrm-listening'
   | 'vrm-thinking'
@@ -87,7 +87,7 @@ const MOCK_SCENARIO_LOADERS = {
   'continuous-eye-tracking': () => import('../mock/scenarios/continuous-eye-tracking.mock.json?raw'),
   'sequence-greet': () => import('../mock/scenarios/sequence-greet.mock.json?raw'),
   'posture-sync': () => import('../mock/scenarios/posture-sync.mock.json?raw'),
-  'vrm-lifecycle': () => import('../mock/scenarios/vrm-lifecycle.mock.json?raw'),
+  'vrm-render-recovery': () => import('../mock/scenarios/vrm-render-recovery.mock.json?raw'),
   'vrm-context-lost': () => import('../mock/scenarios/vrm-context-lost.mock.json?raw'),
   'vrm-listening': () => import('../mock/scenarios/vrm-listening.mock.json?raw'),
   'vrm-thinking': () => import('../mock/scenarios/vrm-thinking.mock.json?raw'),
@@ -184,10 +184,10 @@ function extractVrmManifest(raw: Record<string, unknown>): AvatarModelManifest {
 }
 
 function extractMockScenarioModelManifest(raw: Record<string, unknown>): AvatarModelManifest | null {
-  const vrmLifecycle = raw['vrm_lifecycle'];
+  const vrmRenderRecovery = raw['vrm_render_recovery'];
   const vrmMockScenario = raw['vrm_mock_scenario'];
   const manifestRaw =
-    optionalRecord(vrmLifecycle)?.['model_manifest']
+    optionalRecord(vrmRenderRecovery)?.['model_manifest']
     ?? optionalRecord(vrmMockScenario)?.['model_manifest'];
   if (manifestRaw === undefined || manifestRaw === null) return null;
   const manifest = requiredObject(manifestRaw, 'model_manifest');

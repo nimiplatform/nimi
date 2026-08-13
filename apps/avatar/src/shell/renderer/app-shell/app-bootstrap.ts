@@ -31,7 +31,7 @@ import {
 import type { BootstrapHandle } from './app-bootstrap-types.js';
 import { useAvatarStore } from './app-store.js';
 import { isTauriRuntime, onShellReady } from './tauri-lifecycle.js';
-import { setAlwaysOnTop } from './tauri-commands.js';
+import { setAlwaysOnTop } from './avatar-window-commands.js';
 import {
   errorMessage,
   installAvatarRuntimeBridge,

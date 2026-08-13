@@ -1,6 +1,6 @@
 // Authority: .nimi/spec/avatar/embodiment-surface.authority.yaml.
 //
-// Derives `BackendNominalBounds` (carrier/backend-branch.ts) from a loaded
+// Derives the shared `BackendNominalBounds` carrier shape from a loaded
 // VRM scene + framing intent. Replaces the static placeholder previously
 // hard-coded in `vrm-backend.tsx`. The default (vrm == null / pre-load)
 // matches the policy admitted in
@@ -17,7 +17,7 @@
 // default, while loaded VRMs return derived bounds through this function.
 
 import type { VRM } from '@pixiv/three-vrm';
-import type { BackendNominalBounds } from '../carrier/backend-branch.js';
+import type { BackendNominalBounds } from '@nimiplatform/kit/features/avatar/headless';
 import type { VrmFramingIntent } from './vrm-framing.js';
 import { applyVrmFraming } from './vrm-framing.js';
 

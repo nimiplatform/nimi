@@ -1,5 +1,5 @@
 // App.tsx shell composition integration tests.
-// Per rules rule.nimi.avatar.embodiment.r021 and r022, the shell renders one of:
+// The app-local prerequisite composition renders one of:
 // embodiment-stage under ready, or degraded-surface
 // under loading / degraded:* / error:* / relaunch-pending.
 
@@ -56,7 +56,7 @@ vi.mock('./app-shell/app-bootstrap.js', () => ({
 }));
 
 
-vi.mock('./app-shell/tauri-commands.js', () => ({
+vi.mock('./app-shell/avatar-window-commands.js', () => ({
   setIgnoreCursorEvents: (...args: unknown[]) => setIgnoreCursorEventsMock(...args),
   constrainWindowToVisibleArea: (...args: unknown[]) => constrainWindowToVisibleAreaMock(...args),
   setAlwaysOnTop: (...args: unknown[]) => setAlwaysOnTopMock(...args),
@@ -438,7 +438,7 @@ describe('App composition state machine', () => {
     expect(screen.getByTestId('avatar-root').getAttribute('data-composition')).toBe('ready');
   });
 
-  it('keeps mock driver selection inside the standard ready lifecycle', async () => {
+  it('keeps mock driver selection inside the ready shell composition', async () => {
     bootstrapAvatarMock.mockResolvedValue(createBootstrapHandle());
 
     render(<App />);

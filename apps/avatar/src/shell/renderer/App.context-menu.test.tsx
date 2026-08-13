@@ -50,7 +50,7 @@ vi.mock('./app-shell/app-bootstrap.js', () => ({
   bootstrapAvatar: () => bootstrapAvatarMock(),
 }));
 
-vi.mock('./app-shell/tauri-commands.js', () => ({
+vi.mock('./app-shell/avatar-window-commands.js', () => ({
   setIgnoreCursorEvents: (...args: unknown[]) => setIgnoreCursorEventsMock(...args),
   constrainWindowToVisibleArea: (...args: unknown[]) => constrainWindowToVisibleAreaMock(...args),
   setAlwaysOnTop: (...args: unknown[]) => setAlwaysOnTopMock(...args),
@@ -532,7 +532,7 @@ describe('App context menu overlay', () => {
     });
   });
 
-  it('keeps shell lifecycle menu actions disabled outside Tauri shell runtime', async () => {
+  it('keeps native window menu actions disabled outside Tauri shell runtime', async () => {
     bootstrapAvatarMock.mockResolvedValue(createBootstrapHandle());
 
     render(<App />);
@@ -558,7 +558,7 @@ describe('App context menu overlay', () => {
     expect(closeAvatarWindowMock).not.toHaveBeenCalled();
   });
 
-  it('hides the current avatar window through the Tauri shell lifecycle command', async () => {
+  it('hides the current avatar window through the native window command', async () => {
     setTauriRuntime(true);
     bootstrapAvatarMock.mockResolvedValue(createBootstrapHandle());
 
@@ -589,7 +589,7 @@ describe('App context menu overlay', () => {
     });
   });
 
-  it('closes the current avatar window through the Tauri shell lifecycle command', async () => {
+  it('closes the current avatar window through the native window command', async () => {
     setTauriRuntime(true);
     bootstrapAvatarMock.mockResolvedValue(createBootstrapHandle());
 

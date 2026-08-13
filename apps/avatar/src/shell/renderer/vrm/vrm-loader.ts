@@ -6,7 +6,7 @@
 // instance (both plugins register on it; plugin order is matched against
 // the asset's GLTF extensions list).
 //
-// The validated load lifecycle follows rule.nimi.avatar.embodiment.r056:
+// Validated loading follows rule.nimi.avatar.embodiment.r056:
 //
 //     1. suspendCreateImageBitmapForTauriVrmLoad()    // Tauri WKWebView quirk
 //     2. load VRM GLTF via loader.loadAsync(url) or Tauri binary read + parse()

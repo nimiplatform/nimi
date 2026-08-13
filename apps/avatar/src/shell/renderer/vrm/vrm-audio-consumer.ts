@@ -1,6 +1,6 @@
 // VRM BackendAudioConsumer wrapper.
 //
-// Backend-neutral wLipSync/WebAudio lifecycle lives in kit. VRM keeps only
+// Backend-neutral wLipSync/WebAudio resource ownership lives in Kit. VRM keeps only
 // app/backend diagnostics and expression-preset mouth mapping in
 // vrm-lipsync-driver.
 
@@ -9,7 +9,7 @@ import {
   type WLipSyncAudioConsumerFactory,
 } from '@nimiplatform/kit/features/avatar/headless';
 import type { Profile } from 'wlipsync';
-import type { BackendAudioConsumer } from '../carrier/backend-branch.js';
+import type { BackendAudioConsumer } from '@nimiplatform/kit/features/avatar/headless';
 
 export type VrmAudioConsumerDeps = {
   /** wLipSync MFCC profile. When `null`, the consumer logs once and silents
