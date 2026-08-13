@@ -81,10 +81,6 @@ export type RuntimeConfigAIProfileStableDiffusionExecutionDraft = {
 export type RuntimeConfigAIProfileStableDiffusionDraft = {
   readonly modelFamily: NimiAIProfileStableDiffusionModelFamily;
   readonly enableInputImage: RuntimeConfigAIProfileOptionalBoolean;
-  readonly main: RuntimeConfigAIProfileRequirementDraft;
-  readonly textEncoder: RuntimeConfigAIProfileRequirementDraft;
-  readonly vae: RuntimeConfigAIProfileRequirementDraft;
-  readonly uncondDiffusion: RuntimeConfigAIProfileRequirementDraft;
   readonly execution: RuntimeConfigAIProfileStableDiffusionExecutionDraft;
 };
 
@@ -508,10 +504,6 @@ function createCapabilityDraft(
       stableDiffusion: {
         modelFamily: 'z-image',
         enableInputImage: '',
-        main: requirementDraft(),
-        textEncoder: requirementDraft(),
-        vae: requirementDraft(),
-        uncondDiffusion: requirementDraft(),
         execution: {
           steps: '',
           cfgScale: '',
@@ -689,10 +681,6 @@ function localImplementationFromDraft(capability: RuntimeConfigAIProfileCapabili
     portableConfig: {
       modelFamily: stable.modelFamily,
       ...optionalBooleanInput('enableInputImage', stable.enableInputImage),
-      ...requirementInput('main', stable.main),
-      ...requirementInput('textEncoder', stable.textEncoder),
-      ...requirementInput('vae', stable.vae),
-      ...requirementInput('uncondDiffusion', stable.uncondDiffusion),
       ...(Object.keys(executionOptions).length > 0 ? { executionOptions } : {}),
     },
   });
@@ -702,9 +690,6 @@ function requirementInput(
   prefix:
     | 'main'
     | 'mmproj'
-    | 'textEncoder'
-    | 'vae'
-    | 'uncondDiffusion'
     | 'fl2va'
     | 'ref2va'
     | 'encoder'
@@ -889,10 +874,6 @@ function stableDiffusionDraftFromConfig(
   return {
     modelFamily: modelFamily(config.modelFamily),
     enableInputImage: optionalBooleanText(config.enableInputImage),
-    main: requirementDraftFromConfig(config, 'main'),
-    textEncoder: requirementDraftFromConfig(config, 'textEncoder'),
-    vae: requirementDraftFromConfig(config, 'vae'),
-    uncondDiffusion: requirementDraftFromConfig(config, 'uncondDiffusion'),
     execution: {
       steps: numberText(execution.steps),
       cfgScale: numberText(execution.cfgScale),
@@ -925,9 +906,6 @@ function requirementDraftFromConfig(
   prefix:
     | 'main'
     | 'mmproj'
-    | 'textEncoder'
-    | 'vae'
-    | 'uncondDiffusion'
     | 'fl2va'
     | 'ref2va'
     | 'encoder'

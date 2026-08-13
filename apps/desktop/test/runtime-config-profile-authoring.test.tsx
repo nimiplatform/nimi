@@ -249,11 +249,16 @@ test('AIProfile authoring renders stable-diffusion fields without LoRA controls 
 
   assert.match(markup, /data-testid="ai-profile-authoring-stable-diffusion-fields"/u);
   assert.doesNotMatch(markup, /ai-profile-authoring-lora|Add LoRA/u);
-  assert.match(markup, /Unconditional diffusion model/u);
+  assert.doesNotMatch(markup, /data-authoring-field="requirement-policy"/u);
+  assert.doesNotMatch(markup, /data-authoring-field="verified-content-id"/u);
   assert.match(markup, /data-testid="ai-profile-authoring-sd-execution-options"/u);
 
   const exported = exportRuntimeConfigAIProfileAuthoring(draft);
   assert.doesNotMatch(exported.artifactJson, /"loras"/u);
+  assert.doesNotMatch(
+    exported.artifactJson,
+    /(?:main|textEncoder|vae|uncondDiffusion)(?:RequirementPolicy|VerifiedContentId)/u,
+  );
 });
 
 test('AIProfile authoring round-trips the exact portable llama embedding section', () => {

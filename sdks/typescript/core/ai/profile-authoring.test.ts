@@ -452,10 +452,6 @@ test('stable-diffusion authoring projects only supported Driver slots and reject
       portableConfig: {
         modelFamily: 'ideogram4',
         enableInputImage: true,
-        mainRequirementPolicy: 'substitutable',
-        textEncoderRequirementPolicy: 'substitutable',
-        vaeRequirementPolicy: 'substitutable',
-        uncondDiffusionRequirementPolicy: 'substitutable',
         executionOptions: {
           steps: 30,
           cfgScale: 6.5,
@@ -504,6 +500,30 @@ test('stable-diffusion authoring projects only supported Driver slots and reject
       return true;
     },
   );
+  for (const field of [
+    'mainRequirementPolicy',
+    'mainVerifiedContentId',
+    'textEncoderRequirementPolicy',
+    'textEncoderVerifiedContentId',
+    'vaeRequirementPolicy',
+    'vaeVerifiedContentId',
+    'uncondDiffusionRequirementPolicy',
+    'uncondDiffusionVerifiedContentId',
+  ] as const) {
+    assert.throws(
+      () => createNimiAIProfileStableDiffusionLocalImplementation({
+        portableConfig: {
+          modelFamily: 'z-image',
+          [field]: 'legacy-value',
+        },
+      } as never),
+      (error: unknown) => {
+        assert.equal((error as { reasonCode?: string }).reasonCode, 'AI_PROFILE_AUTHORING_INVALID');
+        return true;
+      },
+      field,
+    );
+  }
 });
 
 test('stable-diffusion profile authoring constrains seed to the managed signed-int32 carrier', () => {
@@ -821,18 +841,10 @@ test('authoring Driver field inventories stay exact with Runtime parsers', () =>
     'flashAttention',
     'gpuLayers',
   ]);
-  // runtime/internal/capabilitydriver/stablediffusion.go:715-720
+  // parseStableDiffusionPortableConfig in Runtime's exact image Driver.
   assert.deepEqual(NIMI_AI_PROFILE_STABLE_DIFFUSION_PORTABLE_CONFIG_FIELDS, [
     'modelFamily',
     'enableInputImage',
-    'mainRequirementPolicy',
-    'mainVerifiedContentId',
-    'textEncoderRequirementPolicy',
-    'textEncoderVerifiedContentId',
-    'vaeRequirementPolicy',
-    'vaeVerifiedContentId',
-    'uncondDiffusionRequirementPolicy',
-    'uncondDiffusionVerifiedContentId',
     'executionOptions',
   ]);
   // runtime/internal/capabilitydriver/stablediffusion.go:862

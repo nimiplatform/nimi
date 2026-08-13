@@ -709,15 +709,6 @@ function StableDiffusionAuthoringFields(props: {
           t={props.t}
         />
       </div>
-      <div className="grid gap-3 lg:grid-cols-2">
-        <RequirementAuthoringFields title={props.t('runtimeConfig.profiles.authoring.sdMain')} value={stable.main} onChange={(main) => update({ main })} t={props.t} />
-        <RequirementAuthoringFields title={props.t('runtimeConfig.profiles.authoring.sdTextEncoder')} value={stable.textEncoder} onChange={(textEncoder) => update({ textEncoder })} t={props.t} />
-        <RequirementAuthoringFields title={props.t('runtimeConfig.profiles.authoring.sdVae')} value={stable.vae} onChange={(vae) => update({ vae })} t={props.t} />
-        {stable.modelFamily === 'ideogram4' ? (
-          <RequirementAuthoringFields title={props.t('runtimeConfig.profiles.authoring.sdUncond')} value={stable.uncondDiffusion} onChange={(uncondDiffusion) => update({ uncondDiffusion })} t={props.t} />
-        ) : null}
-      </div>
-
       <div className="space-y-3" data-testid="ai-profile-authoring-sd-execution-options">
         <h6 className="text-xs font-semibold uppercase tracking-[var(--nimi-type-overline-letter-spacing)] text-[var(--nimi-text-secondary)]">
           {props.t('runtimeConfig.profiles.authoring.executionOptions')}

@@ -100,18 +100,11 @@ export const NIMI_AI_PROFILE_LLAMA_EMBED_PORTABLE_CONFIG_FIELDS = Object.freeze(
   'gpuLayers',
 ] as const);
 
-/** Mirrors runtime/internal/capabilitydriver/stablediffusion.go:715-720. */
+/** Mirrors parseStableDiffusionPortableConfig in Runtime's exact image Driver. */
+// nimi-authority: rule.nimi.runtime.ai-provider.r064
 export const NIMI_AI_PROFILE_STABLE_DIFFUSION_PORTABLE_CONFIG_FIELDS = Object.freeze([
   'modelFamily',
   'enableInputImage',
-  'mainRequirementPolicy',
-  'mainVerifiedContentId',
-  'textEncoderRequirementPolicy',
-  'textEncoderVerifiedContentId',
-  'vaeRequirementPolicy',
-  'vaeVerifiedContentId',
-  'uncondDiffusionRequirementPolicy',
-  'uncondDiffusionVerifiedContentId',
   'executionOptions',
 ] as const);
 
@@ -242,14 +235,6 @@ export interface NimiAIProfileStableDiffusionExecutionOptionsInput {
 export interface NimiAIProfileStableDiffusionPortableConfigInput {
   readonly modelFamily: NimiAIProfileStableDiffusionModelFamily;
   readonly enableInputImage?: boolean;
-  readonly mainRequirementPolicy?: NimiAIProfileRequirementPolicy;
-  readonly mainVerifiedContentId?: string;
-  readonly textEncoderRequirementPolicy?: NimiAIProfileRequirementPolicy;
-  readonly textEncoderVerifiedContentId?: string;
-  readonly vaeRequirementPolicy?: NimiAIProfileRequirementPolicy;
-  readonly vaeVerifiedContentId?: string;
-  readonly uncondDiffusionRequirementPolicy?: NimiAIProfileRequirementPolicy;
-  readonly uncondDiffusionVerifiedContentId?: string;
   readonly executionOptions?: NimiAIProfileStableDiffusionExecutionOptionsInput;
 }
 
@@ -1780,24 +1765,6 @@ function validateStableDiffusionPortableConfig(
   if ((config.enableInputImage === true) !== supportsImage) {
     return authoringError('stable-diffusion enableInputImage must match input.image support');
   }
-  validateRequirementIntent(config, 'mainRequirementPolicy', 'mainVerifiedContentId');
-  validateRequirementIntent(
-    config,
-    'textEncoderRequirementPolicy',
-    'textEncoderVerifiedContentId',
-  );
-  validateRequirementIntent(config, 'vaeRequirementPolicy', 'vaeVerifiedContentId');
-  validateRequirementIntent(
-    config,
-    'uncondDiffusionRequirementPolicy',
-    'uncondDiffusionVerifiedContentId',
-  );
-  if (modelFamily !== 'ideogram4' && (
-    hasOwn(config, 'uncondDiffusionRequirementPolicy')
-    || hasOwn(config, 'uncondDiffusionVerifiedContentId')
-  )) {
-    return authoringError('stable-diffusion uncondDiffusion fields require ideogram4');
-  }
   if (hasOwn(config, 'executionOptions')) {
     validateStableDiffusionExecutionOptions(config.executionOptions);
   }
@@ -2068,8 +2035,8 @@ function projectKnownDriverRequirements(
       0,
       'Diffusion model',
       'image',
-      optionalPolicy(config, 'mainRequirementPolicy') ?? 'substitutable',
-      optionalVerifiedContentId(config, 'mainVerifiedContentId'),
+      'substitutable',
+      undefined,
     ),
     requirementPreview(
       'companion.text-encoder',
@@ -2077,8 +2044,8 @@ function projectKnownDriverRequirements(
       0,
       'Text encoder',
       'chat',
-      optionalPolicy(config, 'textEncoderRequirementPolicy') ?? 'substitutable',
-      optionalVerifiedContentId(config, 'textEncoderVerifiedContentId'),
+      'substitutable',
+      undefined,
     ),
     requirementPreview(
       'companion.vae',
@@ -2086,8 +2053,8 @@ function projectKnownDriverRequirements(
       0,
       'VAE',
       'vae',
-      optionalPolicy(config, 'vaeRequirementPolicy') ?? 'substitutable',
-      optionalVerifiedContentId(config, 'vaeVerifiedContentId'),
+      'substitutable',
+      undefined,
     ),
   ];
   if (modelFamily === 'ideogram4') {
@@ -2097,8 +2064,8 @@ function projectKnownDriverRequirements(
       0,
       'Unconditional diffusion model',
       'image',
-      optionalPolicy(config, 'uncondDiffusionRequirementPolicy') ?? 'substitutable',
-      optionalVerifiedContentId(config, 'uncondDiffusionVerifiedContentId'),
+      'substitutable',
+      undefined,
     ));
   }
   return Object.freeze({
