@@ -20,7 +20,7 @@ import (
 )
 
 var managedImageBackendGOOS = runtime.GOOS
-var stableDiffusionProgressPattern = regexp.MustCompile(`^\s*(\d+)\s*/\s*(\d+)\b.*s/it`)
+var stableDiffusionProgressPattern = regexp.MustCompile(`^\s*(?:\|[=<># -]{1,160}\|\s*)?(\d+)\s*/\s*(\d+)\b.*s/it`)
 
 var stableDiffusionCPPCUDARequiredArtifacts = []string{
 	"cudart64_12.dll",

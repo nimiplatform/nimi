@@ -176,6 +176,25 @@ func TestServerLoadGenerateAndFree(t *testing.T) {
 	}
 }
 
+func TestParseManagedImageProgressLineAcceptsCurrentStableDiffusionCPPOutput(t *testing.T) {
+	for _, line := range []string{
+		"13/20 - 1.34s/it",
+		"|================================>          | 13/20 - 1.34s/it",
+	} {
+		progress, ok := parseManagedImageProgressLine(line)
+		if !ok {
+			t.Fatalf("expected current stable-diffusion.cpp progress line to parse: %q", line)
+		}
+		if progress.CurrentStep != 13 || progress.TotalSteps != 20 || progress.ProgressPercent != 65 {
+			t.Fatalf("unexpected progress for %q: %+v", line, progress)
+		}
+	}
+
+	if _, ok := parseManagedImageProgressLine("stable-diffusion.cpp 13/20 - 1.34s/it"); ok {
+		t.Fatal("expected unrelated prefixed output to fail closed")
+	}
+}
+
 func TestParseManagedImageOptionsRejectsUnsupportedKeys(t *testing.T) {
 	message := dynamicpb.NewMessage(modelOptionsMessageDescriptor)
 	setStringField(message, "ModelPath", t.TempDir())
