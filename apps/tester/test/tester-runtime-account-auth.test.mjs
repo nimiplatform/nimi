@@ -943,6 +943,46 @@ test('Tester voice.create fails closed when the Job stream ends before a termina
   assert.match(result.message, /without a terminal event/i);
 });
 
+for (const status of ['failed', 'canceled', 'timeout']) {
+  test(`Tester voice.create preserves the ${status} terminal reason without Get`, async () => {
+    const { runTesterCapability } = await importTesterRuntime();
+    const source = 'text-description';
+    const submitted = localVoiceJob('submitted', source);
+    const reasonCode = `VOICE_CREATE_${status.toUpperCase()}`;
+    const terminal = localVoiceJob(status, source, {
+      reasonCode,
+      reasonDetail: `voice terminal ${status}`,
+    });
+    let gets = 0;
+    const client = fakeLocalAppClient({
+      async submitScenarioJob() { return { job: submitted }; },
+      async subscribeScenarioJob() {
+        return localScenarioJobSubscription([{
+          eventType: status,
+          sequence: '1',
+          traceId: terminal.traceId,
+          timestamp: null,
+          job: terminal,
+        }]);
+      },
+      async getScenarioJob() {
+        gets += 1;
+        throw new Error('terminal Get must run only after a COMPLETED event');
+      },
+    });
+    const result = await runTesterCapability({
+      capabilityId: 'voice.create',
+      prompt: 'Warm, clear Mandarin voice.',
+      parameters: { creationSource: source, previewText: '你好', language: 'zh', preferredName: 'Nimi voice' },
+    }, readyRuntimeDependencies(client));
+    assert.equal(result.ok, false);
+    assert.equal(result.reason, 'runtime-call-failed');
+    assert.equal(gets, 0);
+    assert.match(result.message, new RegExp(`voice terminal ${status}`, 'u'));
+    assert.match(result.message, new RegExp(reasonCode, 'u'));
+  });
+}
+
 test('Tester speech.bundle runs the Kit voice catalog over the Local App list client', async () => {
   const { runTesterCapability } = await importTesterRuntime();
   const calls = [];

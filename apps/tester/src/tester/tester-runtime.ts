@@ -418,15 +418,18 @@ export async function runTesterCapability(
         if (!observedTerminalEvent) {
           throw new Error('Runtime voice.create Job event stream ended without a terminal event.');
         }
+        if (terminalJob.status !== 'completed') {
+          throw Object.assign(new Error(terminalJob.reasonDetail || `voice.create ended in ${terminalJob.status}.`), {
+            reasonCode: terminalJob.reasonCode,
+          });
+        }
         const terminalResult = await client.ai.scenarioJobs.get(terminalJob.jobId);
         terminalJob = terminalResult.job;
         if (terminalJob.jobId !== submitted.job.jobId) {
           throw new Error('Runtime voice.create terminal result did not match the submitted Job.');
         }
         if (terminalJob.status !== 'completed') {
-          throw Object.assign(new Error(terminalJob.reasonDetail || `voice.create ended in ${terminalJob.status}.`), {
-            reasonCode: terminalJob.reasonCode,
-          });
+          throw new Error('Runtime voice.create terminal result regressed after a COMPLETED event.');
         }
         const resultAsset = terminalResult.asset;
         const voiceReference = terminalResult.voiceReference;
