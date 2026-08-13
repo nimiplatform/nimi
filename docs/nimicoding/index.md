@@ -6,7 +6,7 @@ reviews authority units; it is not an AI agent, planner, code generator,
 approval workflow, or product-spec generator.
 
 This page is an explanatory projection of the exact
-`@nimiplatform/nimi-coding@0.6.0` package pinned by this workspace. The package
+`@nimiplatform/nimi-coding@0.6.1` package pinned by this workspace. The package
 CLI and its bundled README are the operational reference for command behavior.
 
 ## Truth Boundaries
@@ -26,8 +26,10 @@ results, or `config/**` projections into product authority.
 
 `code context` derives a bounded, outbound TypeScript or TSX context from one
 explicit source file, top-level symbol, and tsconfig. `code authority` locates
-optional exact `nimi-authority` and `nimi-deprecated` markers in tracked current
-TypeScript, TSX, and Go source, or reads those links back from one source file.
+optional exact `@nimi-authority` and `@nimi-deprecated` markers in tracked current
+TypeScript, TSX, Go, Python, and Rust source, or reads those links back from one
+source file. These reserved standalone physical lines are located without
+proving their language comment context.
 
 Both operations are request-local and read-only. The AI host decides when to
 call them. They do not add a task preflight, change host task state, evaluate

@@ -118,9 +118,9 @@ app, not the platform itself.
 The current public installable surface includes authority and app-authoring
 tooling. Nimi Coding is distributed as the host-agnostic npm package
 [`@nimiplatform/nimi-coding`](https://www.npmjs.com/package/@nimiplatform/nimi-coding).
-It provides deterministic canonical-authority products. Version 0.6.0 also adds
+It provides deterministic canonical-authority products. Version 0.6.1 provides
 request-local, bounded TypeScript/TSX context reads and optional exact
-authority links in TypeScript, TSX, and Go source. These code reads do not
+authority links in TypeScript, TSX, Go, Python, and Rust source. These code reads do not
 intercept host tasks, evaluate unannotated code, or prove implementation
 conformance. Adoption guidance lives in
 [docs/nimicoding/installation.md](docs/nimicoding/installation.md).

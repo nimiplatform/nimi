@@ -4,7 +4,7 @@ Nimi Coding 为 AI 宿主和仓库工具提供确定性的 project-owned canonic
 authority 访问能力。它负责格式化、检查、查询、关系导航与变更审查；它不是
 AI Agent、规划器、代码生成器、审批流程或产品规范生成器。
 
-本页说明 workspace 精确固定的 `@nimiplatform/nimi-coding@0.6.0`。命令行为
+本页说明 workspace 精确固定的 `@nimiplatform/nimi-coding@0.6.1`。命令行为
 以软件包 CLI 和软件包内 README 为操作参考。
 
 ## Truth 边界
@@ -24,8 +24,9 @@ Nimi Coding 不会把文档、fixture、生成物、审计结果或 `config/**` 
 
 `code context` 从指定的 TypeScript 或 TSX 文件、顶层 symbol 与 tsconfig
 即时读取有界的 outbound context。`code authority` 定位 Git 已跟踪的当前
-TypeScript、TSX 和 Go 源码中的可选 `nimi-authority`、`nimi-deprecated`
-精确标记，也可以从单个源码文件反查这些关联。
+TypeScript、TSX、Go、Python 和 Rust 源码中的可选 `@nimi-authority`、
+`@nimi-deprecated` 精确标记，也可以从单个源码文件反查这些关联。这些是
+保留的独立物理行；定位不会证明它们处于语言注释语境。
 
 两个命令都只处理当前请求，而且只读。是否调用由 AI 宿主决定。它们不会加入
 任务前置检查，不会改变宿主任务状态，也不会评价未标注代码或证明实现符合

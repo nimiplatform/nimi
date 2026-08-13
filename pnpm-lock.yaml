@@ -23,8 +23,8 @@ importers:
         version: 2.9.0
     devDependencies:
       '@nimiplatform/nimi-coding':
-        specifier: 0.6.0
-        version: 0.6.0
+        specifier: 0.6.1
+        version: 0.6.1
       '@protobuf-ts/plugin':
         specifier: 2.11.1
         version: 2.11.1
@@ -446,8 +446,8 @@ importers:
         specifier: workspace:*
         version: link:../../app-tools
       '@nimiplatform/nimi-coding':
-        specifier: 0.6.0
-        version: 0.6.0
+        specifier: 0.6.1
+        version: 0.6.1
       '@tailwindcss/vite':
         specifier: ^4.3.0
         version: 4.3.0(vite@7.3.1(@types/node@24.12.4)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.22.4)(yaml@2.9.0))
@@ -1985,8 +1985,8 @@ packages:
     peerDependencies:
       three: '>= 0.159.0'
 
-  '@nimiplatform/nimi-coding@0.6.0':
-    resolution: {integrity: sha512-wIPatFinD07R/fagBLLIOwgft0nd8/d7tyqUwnhOi/SSPPmFOlkq/Rd/ksA3MCTeVE2knISGaz9sYy7cvyL+2w==}
+  '@nimiplatform/nimi-coding@0.6.1':
+    resolution: {integrity: sha512-EouOXkPsnmLCxE7xTbXtZoAk00yv9/jXhrb/N617mcRWyaeoQYhh0RQKYzXJBI6utJsUIPOvYs0jJ3TlZF3Zsg==}
     engines: {node: '>=24.0.0', pnpm: '>=10.0.0'}
     hasBin: true
 
@@ -6603,7 +6603,7 @@ snapshots:
       promise-worker-transferable: 1.0.4
       three: 0.184.0
 
-  '@nimiplatform/nimi-coding@0.6.0':
+  '@nimiplatform/nimi-coding@0.6.1':
     dependencies:
       typescript: 5.9.3
       yaml: 2.9.0

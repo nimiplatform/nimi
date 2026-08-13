@@ -16,7 +16,7 @@ availability check. Command names in the table omit this prefix for brevity.
 | Navigate relations | `authority refs`, `authority path`, `authority subgraph` |
 | Analyze and review change | `authority diff`, `authority change-candidates`, `authority impact`, `authority audit`, `authority review` |
 | Read bounded implementation context (0.6+) | `code context` |
-| Follow explicit code-authority links (0.6+) | `code authority` |
+| Follow explicit code-authority links (0.6.1+) | `code authority` |
 | Repository integration | `start`, `sync`, `doctor`, `clear` |
 
 Bounded commands require explicit positive limits such as `--max-units`,
@@ -33,12 +33,18 @@ conformance explicitly `not_evaluated`.
 tsconfig, and byte budget. It returns root-direct outbound static context, not
 inbound impact, runtime dispatch, or complete task context.
 
-`code authority` scans optional standalone source markers:
+`code authority` scans optional reserved standalone physical lines. TypeScript,
+TSX, Go, and Rust use:
 
 ```text
-// nimi-authority: <exact-authority-id>
-// nimi-deprecated: <exact-authority-id>
+// @nimi-authority: <exact-authority-id>
+// @nimi-deprecated: <exact-authority-id>
 ```
+
+Python uses the corresponding `# @nimi-authority: ...` and
+`# @nimi-deprecated: ...` lines. The scanner intentionally does not prove
+language comment context: an exact reserved physical line is recognized even
+inside a multiline literal. The old spelling without `@` is not recognized.
 
 Use authority markers only near the small number of semantic owners that need
 direct recall. A deprecated marker records a developer judgment already
@@ -46,8 +52,8 @@ supported by direct authority evidence or a real product failure; remove it
 with the hard cut. Marker lookup does not evaluate unannotated code or prove
 declaration ownership, conformance, or hard-cut completion.
 
-Both code commands require Nimi Coding 0.6.0 or newer; this workspace pins
-0.6.0 exactly.
+`code context` requires Nimi Coding 0.6.0 or newer. The reserved marker contract
+requires 0.6.1; this workspace pins 0.6.1 exactly.
 
 `start` bootstraps only documented managed surfaces. `sync` checks or updates
 those exact projections, while `doctor` inspects package and projection

@@ -1,4 +1,4 @@
-version: 6
+version: 7
 id: nimicoding.authority-authoring
 purpose: Author explicit authority and navigate current implementation without inference.
 authority_boundary:
@@ -26,11 +26,14 @@ implementation_navigation:
   authority_to_code: pnpm exec nimicoding code authority --repo <root> --authority <exact-id> --max-files <n> --max-bytes <n>
   code_to_authority: pnpm exec nimicoding code authority --repo <root> --source <tracked-path> --max-files <n> --max-bytes <n>
   context: pnpm exec nimicoding code context <ts-or-tsx-path> --repo <root> --symbol <top-level-identifier> --tsconfig <path> --max-bytes <n>
+  languages: {slash: [TypeScript, TSX, Go, Rust], hash: [Python], context: [TypeScript, TSX]}
   markers:
-    authority: "// nimi-authority: <exact-id>"
-    deprecated: "// nimi-deprecated: <same-exact-id>"
-  rule: Put optional markers near key semantic owners; add deprecated only from direct authority/product failure, then remove with the hard cut.
-  boundary: Markers return authored locations/lifecycle; TypeScript context is root-direct static outbound only. Neither evaluates unannotated code, conformance, inbound impact, runtime dispatch, or completion.
+    authority_slash: "// @nimi-authority: <exact-id>"
+    deprecated_slash: "// @nimi-deprecated: <same-exact-id>"
+    authority_python: "# @nimi-authority: <exact-id>"
+    deprecated_python: "# @nimi-deprecated: <same-exact-id>"
+  rule: Optional markers are reserved standalone physical lines near key semantic owners; comment context is not proved. Deprecated requires direct authority/product failure and is removed with hard cut.
+  boundary: Marker lines return locations/lifecycle; TypeScript context is root-direct static outbound only. Neither evaluates unannotated code, conformance, inbound impact, runtime dispatch, or completion.
 
 managed_surfaces:
   check: pnpm exec nimicoding sync --check

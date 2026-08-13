@@ -33,7 +33,7 @@
   },
   "devDependencies": {
     "@nimiplatform/app-tools": "workspace:*",
-    "@nimiplatform/nimi-coding": "0.6.0",
+    "@nimiplatform/nimi-coding": "0.6.1",
     "@tailwindcss/vite": "^4.3.0",
     "@tauri-apps/cli": "^2.11.2",
     "@types/node": "^24.10.1",

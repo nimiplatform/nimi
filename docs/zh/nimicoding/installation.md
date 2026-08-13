@@ -1,6 +1,6 @@
 # Nimi Coding Host 集成
 
-Nimi workspace 将 `@nimiplatform/nimi-coding@0.6.0` 固定为精确的
+Nimi workspace 将 `@nimiplatform/nimi-coding@0.6.1` 固定为精确的
 development dependency。正常安装 workspace 后即可使用 CLI：
 
 ```bash
@@ -34,9 +34,10 @@ guide、受管 instruction block 和被忽略的 `.nimi/local/` 根目录，不�
 
 ## 代码读取
 
-当前 0.6.0 依赖提供 `code context`，用于读取有界的 TypeScript/TSX outbound
-context；`code authority` 用于查询源码中的可选精确标记。两个命令都不会评价
-未标注实现，也不证明实现符合 authority。
+当前 0.6.1 依赖提供 `code context`，用于读取有界的 TypeScript/TSX outbound
+context；`code authority` 用于查询 TypeScript、TSX、Go、Python 和 Rust 源码中
+可选的精确物理行标记。标记查询不证明语言注释语境；两个命令都不会评价未标注
+实现，也不证明实现符合 authority。
 
 ## 验证产品 Authority
 

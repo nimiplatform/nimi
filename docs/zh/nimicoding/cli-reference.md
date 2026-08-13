@@ -15,7 +15,7 @@ JSON product；空结果不表示其显式声明范围之外也完整或 clean�
 | 关系导航 | `authority refs`、`authority path`、`authority subgraph` |
 | 分析与审查变更 | `authority diff`、`authority change-candidates`、`authority impact`、`authority audit`、`authority review` |
 | 读取有界实现 context（0.6+） | `code context` |
-| 查询显式代码与 authority 关联（0.6+） | `code authority` |
+| 查询显式代码与 authority 关联（0.6.1+） | `code authority` |
 | 仓库集成 | `start`、`sync`、`doctor`、`clear` |
 
 有界命令需要显式正数限制，例如 `--max-units`、`--max-edges` 和
@@ -30,20 +30,24 @@ JSON product；空结果不表示其显式声明范围之外也完整或 clean�
 和 byte budget。它返回 root-direct outbound 静态 context，不包含 inbound
 impact、runtime dispatch 或完整任务 context。
 
-`code authority` 扫描可选的独立源码标记：
+`code authority` 扫描可选的保留独立物理行。TypeScript、TSX、Go 和 Rust 使用：
 
 ```text
-// nimi-authority: <exact-authority-id>
-// nimi-deprecated: <exact-authority-id>
+// @nimi-authority: <exact-authority-id>
+// @nimi-deprecated: <exact-authority-id>
 ```
+
+Python 使用对应的 `# @nimi-authority: ...` 与 `# @nimi-deprecated: ...`。
+Scanner 有意不证明语言注释语境：多行字符串中的精确保留物理行也会被识别。
+不含 `@` 的旧格式不会被识别。
 
 Authority 标记只应放在少量关键语义 owner 附近，不应覆盖机械 helper 或测试。
 Deprecated 标记记录开发者已经通过直接 authority 证据或真实产品失败确认的
 判断；完成 hard cut 时直接删除。标记查询不会评价未标注代码，也不证明
 declaration ownership、实现一致性或 hard cut 已全部完成。
 
-两个 code 命令都需要 Nimi Coding 0.6.0 或更高版本；本 workspace 精确固定
-0.6.0。
+`code context` 需要 Nimi Coding 0.6.0 或更高版本；保留 marker 合同需要
+0.6.1，本 workspace 精确固定 0.6.1。
 
 `start` 只初始化文档列出的受管内容。`sync` 检查或更新这些精确内容，`doctor`
 检查软件包与受管内容是否兼容。这些命令不会拦截 AI 任务、安装强制前置检查、
