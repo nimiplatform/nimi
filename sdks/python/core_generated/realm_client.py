@@ -26,6 +26,12 @@ REALM_OPERATIONS = [
     "path": "/api/human/group-chats/{chatId}/source-participants"
   },
   {
+    "operation_id": "archiveAsset",
+    "service": "Assets",
+    "method": "POST",
+    "path": "/api/assets/{assetId}/archive"
+  },
+  {
     "operation_id": "archiveBundle",
     "service": "Bundles",
     "method": "POST",
@@ -698,6 +704,12 @@ REALM_OPERATIONS = [
     "path": "/api/bundles/{bundleId}/publish"
   },
   {
+    "operation_id": "publishReadyAsset",
+    "service": "Assets",
+    "method": "POST",
+    "path": "/api/assets/{assetId}/publish-ready"
+  },
+  {
     "operation_id": "recallGroupMessage",
     "service": "Group Chats",
     "method": "POST",
@@ -714,30 +726,6 @@ REALM_OPERATIONS = [
     "service": "Auth",
     "method": "POST",
     "path": "/api/auth/refresh"
-  },
-  {
-    "operation_id": "RelationshipController_createRelationship",
-    "service": "Relationships (Meta-Graph)",
-    "method": "POST",
-    "path": "/api/human/relationships"
-  },
-  {
-    "operation_id": "RelationshipController_deleteRelationship",
-    "service": "Relationships (Meta-Graph)",
-    "method": "DELETE",
-    "path": "/api/human/relationships/{id}"
-  },
-  {
-    "operation_id": "RelationshipController_getMyRelationships",
-    "service": "Relationships (Meta-Graph)",
-    "method": "GET",
-    "path": "/api/human/relationships/me"
-  },
-  {
-    "operation_id": "RelationshipController_updateRelationship",
-    "service": "Relationships (Meta-Graph)",
-    "method": "PATCH",
-    "path": "/api/human/relationships/{id}"
   },
   {
     "operation_id": "removeFriend",
@@ -876,6 +864,12 @@ REALM_OPERATIONS = [
     "service": "Transits",
     "method": "GET",
     "path": "/api/world/transit"
+  },
+  {
+    "operation_id": "TransitController_start",
+    "service": "Transits",
+    "method": "POST",
+    "path": "/api/world/transit/{id}/start"
   },
   {
     "operation_id": "translateText",

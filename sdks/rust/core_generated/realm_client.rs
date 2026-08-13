@@ -32,6 +32,12 @@ pub static REALM_OPERATIONS: &[RealmOperationDescriptor] = &[
         path: Some("/api/human/group-chats/{chatId}/source-participants"),
     },
     RealmOperationDescriptor {
+        operation_id: "archiveAsset",
+        service: "Assets",
+        method: "POST",
+        path: Some("/api/assets/{assetId}/archive"),
+    },
+    RealmOperationDescriptor {
         operation_id: "archiveBundle",
         service: "Bundles",
         method: "POST",
@@ -704,6 +710,12 @@ pub static REALM_OPERATIONS: &[RealmOperationDescriptor] = &[
         path: Some("/api/bundles/{bundleId}/publish"),
     },
     RealmOperationDescriptor {
+        operation_id: "publishReadyAsset",
+        service: "Assets",
+        method: "POST",
+        path: Some("/api/assets/{assetId}/publish-ready"),
+    },
+    RealmOperationDescriptor {
         operation_id: "recallGroupMessage",
         service: "Group Chats",
         method: "POST",
@@ -720,30 +732,6 @@ pub static REALM_OPERATIONS: &[RealmOperationDescriptor] = &[
         service: "Auth",
         method: "POST",
         path: Some("/api/auth/refresh"),
-    },
-    RealmOperationDescriptor {
-        operation_id: "RelationshipController_createRelationship",
-        service: "Relationships (Meta-Graph)",
-        method: "POST",
-        path: Some("/api/human/relationships"),
-    },
-    RealmOperationDescriptor {
-        operation_id: "RelationshipController_deleteRelationship",
-        service: "Relationships (Meta-Graph)",
-        method: "DELETE",
-        path: Some("/api/human/relationships/{id}"),
-    },
-    RealmOperationDescriptor {
-        operation_id: "RelationshipController_getMyRelationships",
-        service: "Relationships (Meta-Graph)",
-        method: "GET",
-        path: Some("/api/human/relationships/me"),
-    },
-    RealmOperationDescriptor {
-        operation_id: "RelationshipController_updateRelationship",
-        service: "Relationships (Meta-Graph)",
-        method: "PATCH",
-        path: Some("/api/human/relationships/{id}"),
     },
     RealmOperationDescriptor {
         operation_id: "removeFriend",
@@ -882,6 +870,12 @@ pub static REALM_OPERATIONS: &[RealmOperationDescriptor] = &[
         service: "Transits",
         method: "GET",
         path: Some("/api/world/transit"),
+    },
+    RealmOperationDescriptor {
+        operation_id: "TransitController_start",
+        service: "Transits",
+        method: "POST",
+        path: Some("/api/world/transit/{id}/start"),
     },
     RealmOperationDescriptor {
         operation_id: "translateText",

@@ -31,6 +31,12 @@ export const REALM_OPERATIONS: readonly RealmOperationDescriptor[] = [
     "path": "/api/human/group-chats/{chatId}/source-participants"
   },
   {
+    "operationId": "archiveAsset",
+    "service": "Assets",
+    "method": "POST",
+    "path": "/api/assets/{assetId}/archive"
+  },
+  {
     "operationId": "archiveBundle",
     "service": "Bundles",
     "method": "POST",
@@ -703,6 +709,12 @@ export const REALM_OPERATIONS: readonly RealmOperationDescriptor[] = [
     "path": "/api/bundles/{bundleId}/publish"
   },
   {
+    "operationId": "publishReadyAsset",
+    "service": "Assets",
+    "method": "POST",
+    "path": "/api/assets/{assetId}/publish-ready"
+  },
+  {
     "operationId": "recallGroupMessage",
     "service": "Group Chats",
     "method": "POST",
@@ -719,30 +731,6 @@ export const REALM_OPERATIONS: readonly RealmOperationDescriptor[] = [
     "service": "Auth",
     "method": "POST",
     "path": "/api/auth/refresh"
-  },
-  {
-    "operationId": "RelationshipController_createRelationship",
-    "service": "Relationships (Meta-Graph)",
-    "method": "POST",
-    "path": "/api/human/relationships"
-  },
-  {
-    "operationId": "RelationshipController_deleteRelationship",
-    "service": "Relationships (Meta-Graph)",
-    "method": "DELETE",
-    "path": "/api/human/relationships/{id}"
-  },
-  {
-    "operationId": "RelationshipController_getMyRelationships",
-    "service": "Relationships (Meta-Graph)",
-    "method": "GET",
-    "path": "/api/human/relationships/me"
-  },
-  {
-    "operationId": "RelationshipController_updateRelationship",
-    "service": "Relationships (Meta-Graph)",
-    "method": "PATCH",
-    "path": "/api/human/relationships/{id}"
   },
   {
     "operationId": "removeFriend",
@@ -881,6 +869,12 @@ export const REALM_OPERATIONS: readonly RealmOperationDescriptor[] = [
     "service": "Transits",
     "method": "GET",
     "path": "/api/world/transit"
+  },
+  {
+    "operationId": "TransitController_start",
+    "service": "Transits",
+    "method": "POST",
+    "path": "/api/world/transit/{id}/start"
   },
   {
     "operationId": "translateText",

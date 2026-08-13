@@ -211,6 +211,73 @@
       ]
     },
     {
+      "operation_id": "archiveAsset",
+      "method": "POST",
+      "path": "/api/assets/{assetId}/archive",
+      "service": "Assets",
+      "tags": [
+        "Assets"
+      ],
+      "parameters": [
+        {
+          "name": "assetId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        }
+      ],
+      "path_parameters": [
+        {
+          "name": "assetId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        }
+      ],
+      "query_parameters": [],
+      "header_parameters": [],
+      "request_schema": {
+        "kind": "unknown"
+      },
+      "request_schema_ref": null,
+      "request_content_type": null,
+      "response_schemas": [
+        {
+          "status": "200",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/AssetDetailDto",
+            "ref_name": "AssetDetailDto"
+          },
+          "schema_ref": "#/components/schemas/AssetDetailDto"
+        }
+      ],
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/AssetDetailDto"
+        }
+      ]
+    },
+    {
       "operation_id": "archiveBundle",
       "method": "POST",
       "path": "/api/bundles/{bundleId}/archive",
@@ -9185,6 +9252,73 @@
       ]
     },
     {
+      "operation_id": "publishReadyAsset",
+      "method": "POST",
+      "path": "/api/assets/{assetId}/publish-ready",
+      "service": "Assets",
+      "tags": [
+        "Assets"
+      ],
+      "parameters": [
+        {
+          "name": "assetId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        }
+      ],
+      "path_parameters": [
+        {
+          "name": "assetId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        }
+      ],
+      "query_parameters": [],
+      "header_parameters": [],
+      "request_schema": {
+        "kind": "unknown"
+      },
+      "request_schema_ref": null,
+      "request_content_type": null,
+      "response_schemas": [
+        {
+          "status": "200",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/AssetDetailDto",
+            "ref_name": "AssetDetailDto"
+          },
+          "schema_ref": "#/components/schemas/AssetDetailDto"
+        }
+      ],
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/AssetDetailDto"
+        }
+      ]
+    },
+    {
       "operation_id": "recallGroupMessage",
       "method": "POST",
       "path": "/api/human/group-chats/{chatId}/messages/{messageId}/recall",
@@ -9434,242 +9568,6 @@
         {
           "status": "503",
           "schema_ref": "#/components/schemas/AuthErrorDto"
-        }
-      ]
-    },
-    {
-      "operation_id": "RelationshipController_createRelationship",
-      "method": "POST",
-      "path": "/api/human/relationships",
-      "service": "Relationships (Meta-Graph)",
-      "tags": [
-        "Relationships (Meta-Graph)"
-      ],
-      "parameters": [],
-      "path_parameters": [],
-      "query_parameters": [],
-      "header_parameters": [],
-      "request_schema": {
-        "kind": "ref",
-        "ref": "#/components/schemas/CreateRelationshipDto",
-        "ref_name": "CreateRelationshipDto"
-      },
-      "request_schema_ref": "#/components/schemas/CreateRelationshipDto",
-      "request_content_type": "application/json",
-      "response_schemas": [
-        {
-          "status": "201",
-          "schema": {
-            "kind": "ref",
-            "ref": "#/components/schemas/RelationshipResponseDto",
-            "ref_name": "RelationshipResponseDto"
-          },
-          "schema_ref": "#/components/schemas/RelationshipResponseDto"
-        }
-      ],
-      "response_schema_refs": [
-        {
-          "status": "201",
-          "schema_ref": "#/components/schemas/RelationshipResponseDto"
-        }
-      ]
-    },
-    {
-      "operation_id": "RelationshipController_deleteRelationship",
-      "method": "DELETE",
-      "path": "/api/human/relationships/{id}",
-      "service": "Relationships (Meta-Graph)",
-      "tags": [
-        "Relationships (Meta-Graph)"
-      ],
-      "parameters": [
-        {
-          "name": "id",
-          "in": "path",
-          "required": true,
-          "schema": {
-            "kind": "scalar",
-            "type": "string",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        }
-      ],
-      "path_parameters": [
-        {
-          "name": "id",
-          "in": "path",
-          "required": true,
-          "schema": {
-            "kind": "scalar",
-            "type": "string",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        }
-      ],
-      "query_parameters": [],
-      "header_parameters": [],
-      "request_schema": {
-        "kind": "unknown"
-      },
-      "request_schema_ref": null,
-      "request_content_type": null,
-      "response_schemas": [
-        {
-          "status": "200",
-          "schema": {
-            "kind": "ref",
-            "ref": "#/components/schemas/DeleteRelationshipResponseDto",
-            "ref_name": "DeleteRelationshipResponseDto"
-          },
-          "schema_ref": "#/components/schemas/DeleteRelationshipResponseDto"
-        }
-      ],
-      "response_schema_refs": [
-        {
-          "status": "200",
-          "schema_ref": "#/components/schemas/DeleteRelationshipResponseDto"
-        }
-      ]
-    },
-    {
-      "operation_id": "RelationshipController_getMyRelationships",
-      "method": "GET",
-      "path": "/api/human/relationships/me",
-      "service": "Relationships (Meta-Graph)",
-      "tags": [
-        "Relationships (Meta-Graph)"
-      ],
-      "parameters": [
-        {
-          "name": "direction",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "kind": "enum",
-            "values": [
-              "outgoing",
-              "incoming"
-            ],
-            "type": "string"
-          }
-        }
-      ],
-      "path_parameters": [],
-      "query_parameters": [
-        {
-          "name": "direction",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "kind": "enum",
-            "values": [
-              "outgoing",
-              "incoming"
-            ],
-            "type": "string"
-          }
-        }
-      ],
-      "header_parameters": [],
-      "request_schema": {
-        "kind": "unknown"
-      },
-      "request_schema_ref": null,
-      "request_content_type": null,
-      "response_schemas": [
-        {
-          "status": "200",
-          "schema": {
-            "kind": "array",
-            "items": {
-              "kind": "ref",
-              "ref": "#/components/schemas/RelationshipResponseDto",
-              "ref_name": "RelationshipResponseDto"
-            },
-            "min_items": null,
-            "max_items": null
-          },
-          "schema_ref": null
-        }
-      ],
-      "response_schema_refs": []
-    },
-    {
-      "operation_id": "RelationshipController_updateRelationship",
-      "method": "PATCH",
-      "path": "/api/human/relationships/{id}",
-      "service": "Relationships (Meta-Graph)",
-      "tags": [
-        "Relationships (Meta-Graph)"
-      ],
-      "parameters": [
-        {
-          "name": "id",
-          "in": "path",
-          "required": true,
-          "schema": {
-            "kind": "scalar",
-            "type": "string",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        }
-      ],
-      "path_parameters": [
-        {
-          "name": "id",
-          "in": "path",
-          "required": true,
-          "schema": {
-            "kind": "scalar",
-            "type": "string",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        }
-      ],
-      "query_parameters": [],
-      "header_parameters": [],
-      "request_schema": {
-        "kind": "ref",
-        "ref": "#/components/schemas/UpdateRelationshipDto",
-        "ref_name": "UpdateRelationshipDto"
-      },
-      "request_schema_ref": "#/components/schemas/UpdateRelationshipDto",
-      "request_content_type": "application/json",
-      "response_schemas": [
-        {
-          "status": "200",
-          "schema": {
-            "kind": "ref",
-            "ref": "#/components/schemas/RelationshipResponseDto",
-            "ref_name": "RelationshipResponseDto"
-          },
-          "schema_ref": "#/components/schemas/RelationshipResponseDto"
-        }
-      ],
-      "response_schema_refs": [
-        {
-          "status": "200",
-          "schema_ref": "#/components/schemas/RelationshipResponseDto"
         }
       ]
     },
@@ -12302,6 +12200,73 @@
         }
       ],
       "response_schema_refs": []
+    },
+    {
+      "operation_id": "TransitController_start",
+      "method": "POST",
+      "path": "/api/world/transit/{id}/start",
+      "service": "Transits",
+      "tags": [
+        "Transits"
+      ],
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        }
+      ],
+      "path_parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        }
+      ],
+      "query_parameters": [],
+      "header_parameters": [],
+      "request_schema": {
+        "kind": "unknown"
+      },
+      "request_schema_ref": null,
+      "request_content_type": null,
+      "response_schemas": [
+        {
+          "status": "200",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/TransitDetailDto",
+            "ref_name": "TransitDetailDto"
+          },
+          "schema_ref": "#/components/schemas/TransitDetailDto"
+        }
+      ],
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/TransitDetailDto"
+        }
+      ]
     },
     {
       "operation_id": "translateText",
@@ -16741,6 +16706,12 @@
       "path": "/api/human/group-chats/{chatId}/source-participants"
     },
     {
+      "operation_id": "archiveAsset",
+      "service": "Assets",
+      "method": "POST",
+      "path": "/api/assets/{assetId}/archive"
+    },
+    {
       "operation_id": "archiveBundle",
       "service": "Bundles",
       "method": "POST",
@@ -17419,6 +17390,12 @@
       "path": "/api/bundles/{bundleId}/publish"
     },
     {
+      "operation_id": "publishReadyAsset",
+      "service": "Assets",
+      "method": "POST",
+      "path": "/api/assets/{assetId}/publish-ready"
+    },
+    {
       "operation_id": "recallGroupMessage",
       "service": "Group Chats",
       "method": "POST",
@@ -17435,30 +17412,6 @@
       "service": "Auth",
       "method": "POST",
       "path": "/api/auth/refresh"
-    },
-    {
-      "operation_id": "RelationshipController_createRelationship",
-      "service": "Relationships (Meta-Graph)",
-      "method": "POST",
-      "path": "/api/human/relationships"
-    },
-    {
-      "operation_id": "RelationshipController_deleteRelationship",
-      "service": "Relationships (Meta-Graph)",
-      "method": "DELETE",
-      "path": "/api/human/relationships/{id}"
-    },
-    {
-      "operation_id": "RelationshipController_getMyRelationships",
-      "service": "Relationships (Meta-Graph)",
-      "method": "GET",
-      "path": "/api/human/relationships/me"
-    },
-    {
-      "operation_id": "RelationshipController_updateRelationship",
-      "service": "Relationships (Meta-Graph)",
-      "method": "PATCH",
-      "path": "/api/human/relationships/{id}"
     },
     {
       "operation_id": "removeFriend",
@@ -17597,6 +17550,12 @@
       "service": "Transits",
       "method": "GET",
       "path": "/api/world/transit"
+    },
+    {
+      "operation_id": "TransitController_start",
+      "service": "Transits",
+      "method": "POST",
+      "path": "/api/world/transit/{id}/start"
     },
     {
       "operation_id": "translateText",
@@ -17957,10 +17916,12 @@
     {
       "name": "Assets",
       "operation_ids": [
+        "archiveAsset",
         "cloneAsset",
         "createAsset",
         "getAsset",
         "listAssets",
+        "publishReadyAsset",
         "updateAsset"
       ]
     },
@@ -18192,15 +18153,6 @@
       ]
     },
     {
-      "name": "Relationships (Meta-Graph)",
-      "operation_ids": [
-        "RelationshipController_createRelationship",
-        "RelationshipController_deleteRelationship",
-        "RelationshipController_getMyRelationships",
-        "RelationshipController_updateRelationship"
-      ]
-    },
-    {
       "name": "Resources",
       "operation_ids": [
         "createAudioDirectUpload",
@@ -18243,7 +18195,8 @@
         "TransitController_createTransit",
         "TransitController_getActiveTransit",
         "TransitController_getTransit",
-        "TransitController_listTransits"
+        "TransitController_listTransits",
+        "TransitController_start"
       ]
     },
     {
@@ -18296,9 +18249,6 @@
     }
   ],
   "model_maps": [
-    {
-      "name": "AccountRelationType"
-    },
     {
       "name": "AccountStatus"
     },
@@ -18522,9 +18472,6 @@
       "name": "CreatePostDto"
     },
     {
-      "name": "CreateRelationshipDto"
-    },
-    {
       "name": "CreateReportDto"
     },
     {
@@ -18574,9 +18521,6 @@
     },
     {
       "name": "CursorPageMetaDto"
-    },
-    {
-      "name": "DeleteRelationshipResponseDto"
     },
     {
       "name": "EditMessageInputDto"
@@ -18876,9 +18820,6 @@
       "name": "RejectGiftDto"
     },
     {
-      "name": "RelationshipResponseDto"
-    },
-    {
       "name": "ReplacePersonaCharacterCoreDto"
     },
     {
@@ -19036,9 +18977,6 @@
     },
     {
       "name": "UpdatePPSlotConfigDto"
-    },
-    {
-      "name": "UpdateRelationshipDto"
     },
     {
       "name": "UpdateResourceDto"
@@ -19345,18 +19283,6 @@
     }
   ],
   "model_schemas": [
-    {
-      "name": "AccountRelationType",
-      "schema": {
-        "kind": "enum",
-        "values": [
-          "ALLY",
-          "RIVAL",
-          "ENEMY"
-        ],
-        "type": "string"
-      }
-    },
     {
       "name": "AccountStatus",
       "schema": {
@@ -24607,20 +24533,6 @@
             }
           },
           {
-            "name": "status",
-            "required": false,
-            "schema": {
-              "kind": "enum",
-              "values": [
-                "DRAFT",
-                "READY",
-                "ARCHIVED",
-                "DELETED"
-              ],
-              "type": "string"
-            }
-          },
-          {
             "name": "transferPolicy",
             "required": false,
             "schema": {
@@ -25174,20 +25086,6 @@
             }
           },
           {
-            "name": "status",
-            "required": false,
-            "schema": {
-              "kind": "enum",
-              "values": [
-                "DRAFT",
-                "READY",
-                "ARCHIVED",
-                "DELETED"
-              ],
-              "type": "string"
-            }
-          },
-          {
             "name": "structuredPayload",
             "required": false,
             "schema": {
@@ -25632,19 +25530,6 @@
               },
               "min_items": null,
               "max_items": null
-            }
-          },
-          {
-            "name": "status",
-            "required": false,
-            "schema": {
-              "kind": "enum",
-              "values": [
-                "DRAFT",
-                "PUBLISHED",
-                "ARCHIVED"
-              ],
-              "type": "string"
             }
           },
           {
@@ -26115,71 +26000,6 @@
         ],
         "required_properties": [
           "attachments"
-        ],
-        "closed": false,
-        "additional_properties": null
-      }
-    },
-    {
-      "name": "CreateRelationshipDto",
-      "schema": {
-        "kind": "object",
-        "properties": [
-          {
-            "name": "context",
-            "required": false,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null,
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null
-            }
-          },
-          {
-            "name": "strength",
-            "required": false,
-            "schema": {
-              "kind": "scalar",
-              "type": "number",
-              "format": null,
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null
-            }
-          },
-          {
-            "name": "targetId",
-            "required": true,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null,
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null
-            }
-          },
-          {
-            "name": "type",
-            "required": true,
-            "schema": {
-              "kind": "ref",
-              "ref": "#/components/schemas/AccountRelationType",
-              "ref_name": "AccountRelationType"
-            }
-          }
-        ],
-        "required_properties": [
-          "targetId",
-          "type"
         ],
         "closed": false,
         "additional_properties": null
@@ -30200,33 +30020,6 @@
           }
         ],
         "required_properties": [],
-        "closed": false,
-        "additional_properties": null
-      }
-    },
-    {
-      "name": "DeleteRelationshipResponseDto",
-      "schema": {
-        "kind": "object",
-        "properties": [
-          {
-            "name": "deleted",
-            "required": true,
-            "schema": {
-              "kind": "scalar",
-              "type": "boolean",
-              "format": null,
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null
-            }
-          }
-        ],
-        "required_properties": [
-          "deleted"
-        ],
         "closed": false,
         "additional_properties": null
       }
@@ -38673,118 +38466,6 @@
       }
     },
     {
-      "name": "RelationshipResponseDto",
-      "schema": {
-        "kind": "object",
-        "properties": [
-          {
-            "name": "context",
-            "required": false,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null,
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null,
-              "nullable": true
-            }
-          },
-          {
-            "name": "createdAt",
-            "required": true,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": "date-time",
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null
-            }
-          },
-          {
-            "name": "id",
-            "required": true,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null,
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null
-            }
-          },
-          {
-            "name": "sourceId",
-            "required": true,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null,
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null
-            }
-          },
-          {
-            "name": "strength",
-            "required": true,
-            "schema": {
-              "kind": "scalar",
-              "type": "number",
-              "format": null,
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null
-            }
-          },
-          {
-            "name": "targetId",
-            "required": true,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null,
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null
-            }
-          },
-          {
-            "name": "type",
-            "required": true,
-            "schema": {
-              "kind": "ref",
-              "ref": "#/components/schemas/AccountRelationType",
-              "ref_name": "AccountRelationType"
-            }
-          }
-        ],
-        "required_properties": [
-          "id",
-          "sourceId",
-          "targetId",
-          "type",
-          "strength",
-          "createdAt"
-        ],
-        "closed": false,
-        "additional_properties": null
-      }
-    },
-    {
       "name": "ReplacePersonaCharacterCoreDto",
       "schema": {
         "kind": "object",
@@ -45134,7 +44815,7 @@
           },
           {
             "name": "departedAt",
-            "required": true,
+            "required": false,
             "schema": {
               "kind": "scalar",
               "type": "string",
@@ -45143,7 +44824,8 @@
               "maximum": null,
               "min_length": null,
               "max_length": null,
-              "pattern": null
+              "pattern": null,
+              "nullable": true
             }
           },
           {
@@ -45204,6 +44886,7 @@
             "schema": {
               "kind": "enum",
               "values": [
+                "PENDING",
                 "ACTIVE",
                 "COMPLETED",
                 "ABANDONED"
@@ -45260,7 +44943,6 @@
           "toWorldId",
           "transitType",
           "status",
-          "departedAt",
           "createdAt"
         ],
         "closed": false,
@@ -45476,20 +45158,6 @@
               },
               "min_items": null,
               "max_items": null
-            }
-          },
-          {
-            "name": "status",
-            "required": false,
-            "schema": {
-              "kind": "enum",
-              "values": [
-                "DRAFT",
-                "READY",
-                "ARCHIVED",
-                "DELETED"
-              ],
-              "type": "string"
             }
           },
           {
@@ -45824,45 +45492,6 @@
         "required_properties": [
           "ppSlotConfig"
         ],
-        "closed": false,
-        "additional_properties": null
-      }
-    },
-    {
-      "name": "UpdateRelationshipDto",
-      "schema": {
-        "kind": "object",
-        "properties": [
-          {
-            "name": "context",
-            "required": false,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null,
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null
-            }
-          },
-          {
-            "name": "strength",
-            "required": false,
-            "schema": {
-              "kind": "scalar",
-              "type": "number",
-              "format": null,
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null
-            }
-          }
-        ],
-        "required_properties": [],
         "closed": false,
         "additional_properties": null
       }

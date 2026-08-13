@@ -10137,8 +10137,6 @@ func (c RuntimeTypedClient) RequestRuntimeRestart(ctx context.Context, request R
 	return decodeRuntimeTypedResponse[RequestRuntimeRestartResponse](raw, "RequestRuntimeRestartResponse")
 }
 
-type AccountRelationType string
-
 type AccountStatus string
 
 type AddFriendBodyDto struct {
@@ -10602,7 +10600,6 @@ type CheckEmailResponseDto struct {
 type CloneAssetDto struct {
 	ClonePolicy string `json:"clonePolicy,omitempty"`
 	OwnerId string `json:"ownerId,omitempty"`
-	Status string `json:"status,omitempty"`
 	TransferPolicy string `json:"transferPolicy,omitempty"`
 	UsePolicy *UsePolicyDto `json:"usePolicy,omitempty"`
 }
@@ -10652,7 +10649,6 @@ type CreateAssetDto struct {
 	ResourceRefs []string `json:"resourceRefs,omitempty"`
 	RootAssetId string `json:"rootAssetId,omitempty"`
 	SourceAssetId string `json:"sourceAssetId,omitempty"`
-	Status string `json:"status,omitempty"`
 	StructuredPayload map[string]any `json:"structuredPayload,omitempty"`
 	TransferPolicy string `json:"transferPolicy,omitempty"`
 	UsePolicy *UsePolicyDto `json:"usePolicy,omitempty"`
@@ -10689,7 +10685,6 @@ type CreateBundleDto struct {
 	Description string `json:"description,omitempty"`
 	ImportPolicy *ImportPolicyDto `json:"importPolicy,omitempty"`
 	MemberAssetIds []string `json:"memberAssetIds,omitempty"`
-	Status string `json:"status,omitempty"`
 	Tags []string `json:"tags,omitempty"`
 	Title string `json:"title,omitempty"`
 	Version string `json:"version,omitempty"`
@@ -10737,13 +10732,6 @@ type CreatePostDto struct {
 	Caption string `json:"caption,omitempty"`
 	SourceRef *PostSourceRefDto `json:"sourceRef,omitempty"`
 	Tags []string `json:"tags,omitempty"`
-}
-
-type CreateRelationshipDto struct {
-	Context string `json:"context,omitempty"`
-	Strength float64 `json:"strength,omitempty"`
-	TargetId string `json:"targetId,omitempty"`
-	Type *AccountRelationType `json:"type,omitempty"`
 }
 
 type CreateReportDto struct {
@@ -10884,10 +10872,6 @@ type CursorPageMetaDto struct {
 	Cursor string `json:"cursor,omitempty"`
 	Limit float64 `json:"limit,omitempty"`
 	NextCursor string `json:"nextCursor,omitempty"`
-}
-
-type DeleteRelationshipResponseDto struct {
-	Deleted bool `json:"deleted,omitempty"`
 }
 
 type EditMessageInputDto struct {
@@ -11720,16 +11704,6 @@ type RejectGiftDto struct {
 	Reason string `json:"reason,omitempty"`
 }
 
-type RelationshipResponseDto struct {
-	Context string `json:"context,omitempty"`
-	CreatedAt string `json:"createdAt,omitempty"`
-	Id string `json:"id,omitempty"`
-	SourceId string `json:"sourceId,omitempty"`
-	Strength float64 `json:"strength,omitempty"`
-	TargetId string `json:"targetId,omitempty"`
-	Type *AccountRelationType `json:"type,omitempty"`
-}
-
 type ReplacePersonaCharacterCoreDto struct {
 	BaseContentHash string `json:"baseContentHash,omitempty"`
 	Id string `json:"id,omitempty"`
@@ -12148,7 +12122,6 @@ type UpdateAssetDto struct {
 	ClonePolicy string `json:"clonePolicy,omitempty"`
 	PreviewResourceId string `json:"previewResourceId,omitempty"`
 	ResourceRefs []string `json:"resourceRefs,omitempty"`
-	Status string `json:"status,omitempty"`
 	StructuredPayload map[string]any `json:"structuredPayload,omitempty"`
 	TransferPolicy string `json:"transferPolicy,omitempty"`
 	UsePolicy *UsePolicyDto `json:"usePolicy,omitempty"`
@@ -12188,11 +12161,6 @@ type UpdatePostDto struct {
 
 type UpdatePPSlotConfigDto struct {
 	PpSlotConfig *PPSlotConfigDto `json:"ppSlotConfig,omitempty"`
-}
-
-type UpdateRelationshipDto struct {
-	Context string `json:"context,omitempty"`
-	Strength float64 `json:"strength,omitempty"`
 }
 
 type UpdateResourceDto struct {
@@ -13170,6 +13138,25 @@ type RealmAddGroupSourceParticipantOperationRequest struct {
 	Query   RealmAddGroupSourceParticipantOperationQuery `json:"query,omitempty"`
 	Headers RealmAddGroupSourceParticipantOperationHeaders `json:"headers,omitempty"`
 	Body    AddGroupSourceParticipantInputDto `json:"body,omitempty"`
+}
+
+type RealmArchiveAssetOperationPath struct {
+	AssetId string `json:"assetId,omitempty"`
+}
+
+type RealmArchiveAssetOperationQuery struct {
+
+}
+
+type RealmArchiveAssetOperationHeaders struct {
+
+}
+
+type RealmArchiveAssetOperationRequest struct {
+	Path    RealmArchiveAssetOperationPath `json:"path,omitempty"`
+	Query   RealmArchiveAssetOperationQuery `json:"query,omitempty"`
+	Headers RealmArchiveAssetOperationHeaders `json:"headers,omitempty"`
+	Body    struct{} `json:"body,omitempty"`
 }
 
 type RealmArchiveBundleOperationPath struct {
@@ -15350,6 +15337,25 @@ type RealmPublishBundleOperationRequest struct {
 	Body    struct{} `json:"body,omitempty"`
 }
 
+type RealmPublishReadyAssetOperationPath struct {
+	AssetId string `json:"assetId,omitempty"`
+}
+
+type RealmPublishReadyAssetOperationQuery struct {
+
+}
+
+type RealmPublishReadyAssetOperationHeaders struct {
+
+}
+
+type RealmPublishReadyAssetOperationRequest struct {
+	Path    RealmPublishReadyAssetOperationPath `json:"path,omitempty"`
+	Query   RealmPublishReadyAssetOperationQuery `json:"query,omitempty"`
+	Headers RealmPublishReadyAssetOperationHeaders `json:"headers,omitempty"`
+	Body    struct{} `json:"body,omitempty"`
+}
+
 type RealmRecallGroupMessageOperationPath struct {
 	MessageId string `json:"messageId,omitempty"`
 	ChatId string `json:"chatId,omitempty"`
@@ -15407,82 +15413,6 @@ type RealmRefreshTokenOperationRequest struct {
 	Query   RealmRefreshTokenOperationQuery `json:"query,omitempty"`
 	Headers RealmRefreshTokenOperationHeaders `json:"headers,omitempty"`
 	Body    RefreshTokenDto `json:"body,omitempty"`
-}
-
-type RealmRelationshipControllerCreateRelationshipOperationPath struct {
-
-}
-
-type RealmRelationshipControllerCreateRelationshipOperationQuery struct {
-
-}
-
-type RealmRelationshipControllerCreateRelationshipOperationHeaders struct {
-
-}
-
-type RealmRelationshipControllerCreateRelationshipOperationRequest struct {
-	Path    RealmRelationshipControllerCreateRelationshipOperationPath `json:"path,omitempty"`
-	Query   RealmRelationshipControllerCreateRelationshipOperationQuery `json:"query,omitempty"`
-	Headers RealmRelationshipControllerCreateRelationshipOperationHeaders `json:"headers,omitempty"`
-	Body    CreateRelationshipDto `json:"body,omitempty"`
-}
-
-type RealmRelationshipControllerDeleteRelationshipOperationPath struct {
-	Id string `json:"id,omitempty"`
-}
-
-type RealmRelationshipControllerDeleteRelationshipOperationQuery struct {
-
-}
-
-type RealmRelationshipControllerDeleteRelationshipOperationHeaders struct {
-
-}
-
-type RealmRelationshipControllerDeleteRelationshipOperationRequest struct {
-	Path    RealmRelationshipControllerDeleteRelationshipOperationPath `json:"path,omitempty"`
-	Query   RealmRelationshipControllerDeleteRelationshipOperationQuery `json:"query,omitempty"`
-	Headers RealmRelationshipControllerDeleteRelationshipOperationHeaders `json:"headers,omitempty"`
-	Body    struct{} `json:"body,omitempty"`
-}
-
-type RealmRelationshipControllerGetMyRelationshipsOperationPath struct {
-
-}
-
-type RealmRelationshipControllerGetMyRelationshipsOperationQuery struct {
-	Direction string `json:"direction,omitempty"`
-}
-
-type RealmRelationshipControllerGetMyRelationshipsOperationHeaders struct {
-
-}
-
-type RealmRelationshipControllerGetMyRelationshipsOperationRequest struct {
-	Path    RealmRelationshipControllerGetMyRelationshipsOperationPath `json:"path,omitempty"`
-	Query   RealmRelationshipControllerGetMyRelationshipsOperationQuery `json:"query,omitempty"`
-	Headers RealmRelationshipControllerGetMyRelationshipsOperationHeaders `json:"headers,omitempty"`
-	Body    struct{} `json:"body,omitempty"`
-}
-
-type RealmRelationshipControllerUpdateRelationshipOperationPath struct {
-	Id string `json:"id,omitempty"`
-}
-
-type RealmRelationshipControllerUpdateRelationshipOperationQuery struct {
-
-}
-
-type RealmRelationshipControllerUpdateRelationshipOperationHeaders struct {
-
-}
-
-type RealmRelationshipControllerUpdateRelationshipOperationRequest struct {
-	Path    RealmRelationshipControllerUpdateRelationshipOperationPath `json:"path,omitempty"`
-	Query   RealmRelationshipControllerUpdateRelationshipOperationQuery `json:"query,omitempty"`
-	Headers RealmRelationshipControllerUpdateRelationshipOperationHeaders `json:"headers,omitempty"`
-	Body    UpdateRelationshipDto `json:"body,omitempty"`
 }
 
 type RealmRemoveFriendOperationPath struct {
@@ -15959,6 +15889,25 @@ type RealmTransitControllerListTransitsOperationRequest struct {
 	Path    RealmTransitControllerListTransitsOperationPath `json:"path,omitempty"`
 	Query   RealmTransitControllerListTransitsOperationQuery `json:"query,omitempty"`
 	Headers RealmTransitControllerListTransitsOperationHeaders `json:"headers,omitempty"`
+	Body    struct{} `json:"body,omitempty"`
+}
+
+type RealmTransitControllerStartOperationPath struct {
+	Id string `json:"id,omitempty"`
+}
+
+type RealmTransitControllerStartOperationQuery struct {
+
+}
+
+type RealmTransitControllerStartOperationHeaders struct {
+
+}
+
+type RealmTransitControllerStartOperationRequest struct {
+	Path    RealmTransitControllerStartOperationPath `json:"path,omitempty"`
+	Query   RealmTransitControllerStartOperationQuery `json:"query,omitempty"`
+	Headers RealmTransitControllerStartOperationHeaders `json:"headers,omitempty"`
 	Body    struct{} `json:"body,omitempty"`
 }
 
@@ -17125,6 +17074,14 @@ func (c RealmTypedClient) AddGroupSourceParticipant(ctx context.Context, request
 	return decodeTypedResponse[GroupParticipantDto](raw)
 }
 
+func (c RealmTypedClient) ArchiveAsset(ctx context.Context, request RealmArchiveAssetOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (AssetDetailDto, error) {
+	raw, err := c.operationTyped(ctx, "archiveAsset", request, metadata, timeoutMS)
+	if err != nil {
+		return AssetDetailDto{}, err
+	}
+	return decodeTypedResponse[AssetDetailDto](raw)
+}
+
 func (c RealmTypedClient) ArchiveBundle(ctx context.Context, request RealmArchiveBundleOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (BundleDetailDto, error) {
 	raw, err := c.operationTyped(ctx, "archiveBundle", request, metadata, timeoutMS)
 	if err != nil {
@@ -18021,6 +17978,14 @@ func (c RealmTypedClient) PublishBundle(ctx context.Context, request RealmPublis
 	return decodeTypedResponse[BundleDetailDto](raw)
 }
 
+func (c RealmTypedClient) PublishReadyAsset(ctx context.Context, request RealmPublishReadyAssetOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (AssetDetailDto, error) {
+	raw, err := c.operationTyped(ctx, "publishReadyAsset", request, metadata, timeoutMS)
+	if err != nil {
+		return AssetDetailDto{}, err
+	}
+	return decodeTypedResponse[AssetDetailDto](raw)
+}
+
 func (c RealmTypedClient) RecallGroupMessage(ctx context.Context, request RealmRecallGroupMessageOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (struct{}, error) {
 	raw, err := c.operationTyped(ctx, "recallGroupMessage", request, metadata, timeoutMS)
 	if err != nil {
@@ -18043,38 +18008,6 @@ func (c RealmTypedClient) RefreshToken(ctx context.Context, request RealmRefresh
 		return AuthTokensDto{}, err
 	}
 	return decodeTypedResponse[AuthTokensDto](raw)
-}
-
-func (c RealmTypedClient) RelationshipControllerCreateRelationship(ctx context.Context, request RealmRelationshipControllerCreateRelationshipOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (RelationshipResponseDto, error) {
-	raw, err := c.operationTyped(ctx, "RelationshipController_createRelationship", request, metadata, timeoutMS)
-	if err != nil {
-		return RelationshipResponseDto{}, err
-	}
-	return decodeTypedResponse[RelationshipResponseDto](raw)
-}
-
-func (c RealmTypedClient) RelationshipControllerDeleteRelationship(ctx context.Context, request RealmRelationshipControllerDeleteRelationshipOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (DeleteRelationshipResponseDto, error) {
-	raw, err := c.operationTyped(ctx, "RelationshipController_deleteRelationship", request, metadata, timeoutMS)
-	if err != nil {
-		return DeleteRelationshipResponseDto{}, err
-	}
-	return decodeTypedResponse[DeleteRelationshipResponseDto](raw)
-}
-
-func (c RealmTypedClient) RelationshipControllerGetMyRelationships(ctx context.Context, request RealmRelationshipControllerGetMyRelationshipsOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) ([]RelationshipResponseDto, error) {
-	raw, err := c.operationTyped(ctx, "RelationshipController_getMyRelationships", request, metadata, timeoutMS)
-	if err != nil {
-		return []RelationshipResponseDto{}, err
-	}
-	return decodeTypedResponse[[]RelationshipResponseDto](raw)
-}
-
-func (c RealmTypedClient) RelationshipControllerUpdateRelationship(ctx context.Context, request RealmRelationshipControllerUpdateRelationshipOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (RelationshipResponseDto, error) {
-	raw, err := c.operationTyped(ctx, "RelationshipController_updateRelationship", request, metadata, timeoutMS)
-	if err != nil {
-		return RelationshipResponseDto{}, err
-	}
-	return decodeTypedResponse[RelationshipResponseDto](raw)
 }
 
 func (c RealmTypedClient) RemoveFriend(ctx context.Context, request RealmRemoveFriendOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (struct{}, error) {
@@ -18259,6 +18192,14 @@ func (c RealmTypedClient) TransitControllerListTransits(ctx context.Context, req
 		return []TransitDetailDto{}, err
 	}
 	return decodeTypedResponse[[]TransitDetailDto](raw)
+}
+
+func (c RealmTypedClient) TransitControllerStart(ctx context.Context, request RealmTransitControllerStartOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (TransitDetailDto, error) {
+	raw, err := c.operationTyped(ctx, "TransitController_start", request, metadata, timeoutMS)
+	if err != nil {
+		return TransitDetailDto{}, err
+	}
+	return decodeTypedResponse[TransitDetailDto](raw)
 }
 
 func (c RealmTypedClient) TranslateText(ctx context.Context, request RealmTranslateTextOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (TranslateResponseDto, error) {

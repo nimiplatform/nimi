@@ -39223,8 +39223,6 @@ where
     }
 }
 
-pub type AccountRelationType = String;
-
 pub type AccountStatus = String;
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -39719,7 +39717,6 @@ pub struct CheckEmailResponseDto {
 pub struct CloneAssetDto {
     pub clone_policy: String,
     pub owner_id: String,
-    pub status: String,
     pub transfer_policy: String,
     pub use_policy: Box<UsePolicyDto>,
 }
@@ -39773,7 +39770,6 @@ pub struct CreateAssetDto {
     pub resource_refs: Vec<String>,
     pub root_asset_id: String,
     pub source_asset_id: String,
-    pub status: String,
     pub structured_payload: BTreeMap<String, String>,
     pub transfer_policy: String,
     pub use_policy: Box<UsePolicyDto>,
@@ -39812,7 +39808,6 @@ pub struct CreateBundleDto {
     pub description: String,
     pub import_policy: Box<ImportPolicyDto>,
     pub member_asset_ids: Vec<String>,
-    pub status: String,
     pub tags: Vec<String>,
     pub title: String,
     pub version: String,
@@ -39867,14 +39862,6 @@ pub struct CreatePostDto {
     pub caption: String,
     pub source_ref: Box<PostSourceRefDto>,
     pub tags: Vec<String>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct CreateRelationshipDto {
-    pub context: String,
-    pub strength: f64,
-    pub target_id: String,
-    pub r#type: Box<AccountRelationType>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -40032,11 +40019,6 @@ pub struct CursorPageMetaDto {
     pub cursor: String,
     pub limit: f64,
     pub next_cursor: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct DeleteRelationshipResponseDto {
-    pub deleted: bool,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -40936,17 +40918,6 @@ pub struct RejectGiftDto {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct RelationshipResponseDto {
-    pub context: String,
-    pub created_at: String,
-    pub id: String,
-    pub source_id: String,
-    pub strength: f64,
-    pub target_id: String,
-    pub r#type: Box<AccountRelationType>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
 pub struct ReplacePersonaCharacterCoreDto {
     pub base_content_hash: String,
     pub id: String,
@@ -41380,7 +41351,6 @@ pub struct UpdateAssetDto {
     pub clone_policy: String,
     pub preview_resource_id: String,
     pub resource_refs: Vec<String>,
-    pub status: String,
     pub structured_payload: BTreeMap<String, String>,
     pub transfer_policy: String,
     pub use_policy: Box<UsePolicyDto>,
@@ -41427,12 +41397,6 @@ pub struct UpdatePostDto {
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct UpdatePPSlotConfigDto {
     pub pp_slot_config: Box<PPSlotConfigDto>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct UpdateRelationshipDto {
-    pub context: String,
-    pub strength: f64,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -42521,6 +42485,29 @@ pub struct RealmAddGroupSourceParticipantOperationRequest {
     pub query: RealmAddGroupSourceParticipantOperationQuery,
     pub headers: RealmAddGroupSourceParticipantOperationHeaders,
     pub body: AddGroupSourceParticipantInputDto,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmArchiveAssetOperationPath {
+    pub asset_id: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmArchiveAssetOperationQuery {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmArchiveAssetOperationHeaders {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmArchiveAssetOperationRequest {
+    pub path: RealmArchiveAssetOperationPath,
+    pub query: RealmArchiveAssetOperationQuery,
+    pub headers: RealmArchiveAssetOperationHeaders,
+    pub body: (),
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -45150,6 +45137,29 @@ pub struct RealmPublishBundleOperationRequest {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmPublishReadyAssetOperationPath {
+    pub asset_id: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmPublishReadyAssetOperationQuery {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmPublishReadyAssetOperationHeaders {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmPublishReadyAssetOperationRequest {
+    pub path: RealmPublishReadyAssetOperationPath,
+    pub query: RealmPublishReadyAssetOperationQuery,
+    pub headers: RealmPublishReadyAssetOperationHeaders,
+    pub body: (),
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct RealmRecallGroupMessageOperationPath {
     pub message_id: String,
     pub chat_id: String,
@@ -45218,98 +45228,6 @@ pub struct RealmRefreshTokenOperationRequest {
     pub query: RealmRefreshTokenOperationQuery,
     pub headers: RealmRefreshTokenOperationHeaders,
     pub body: RefreshTokenDto,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmRelationshipControllerCreateRelationshipOperationPath {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmRelationshipControllerCreateRelationshipOperationQuery {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmRelationshipControllerCreateRelationshipOperationHeaders {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmRelationshipControllerCreateRelationshipOperationRequest {
-    pub path: RealmRelationshipControllerCreateRelationshipOperationPath,
-    pub query: RealmRelationshipControllerCreateRelationshipOperationQuery,
-    pub headers: RealmRelationshipControllerCreateRelationshipOperationHeaders,
-    pub body: CreateRelationshipDto,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmRelationshipControllerDeleteRelationshipOperationPath {
-    pub id: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmRelationshipControllerDeleteRelationshipOperationQuery {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmRelationshipControllerDeleteRelationshipOperationHeaders {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmRelationshipControllerDeleteRelationshipOperationRequest {
-    pub path: RealmRelationshipControllerDeleteRelationshipOperationPath,
-    pub query: RealmRelationshipControllerDeleteRelationshipOperationQuery,
-    pub headers: RealmRelationshipControllerDeleteRelationshipOperationHeaders,
-    pub body: (),
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmRelationshipControllerGetMyRelationshipsOperationPath {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmRelationshipControllerGetMyRelationshipsOperationQuery {
-    pub direction: Option<String>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmRelationshipControllerGetMyRelationshipsOperationHeaders {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmRelationshipControllerGetMyRelationshipsOperationRequest {
-    pub path: RealmRelationshipControllerGetMyRelationshipsOperationPath,
-    pub query: RealmRelationshipControllerGetMyRelationshipsOperationQuery,
-    pub headers: RealmRelationshipControllerGetMyRelationshipsOperationHeaders,
-    pub body: (),
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmRelationshipControllerUpdateRelationshipOperationPath {
-    pub id: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmRelationshipControllerUpdateRelationshipOperationQuery {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmRelationshipControllerUpdateRelationshipOperationHeaders {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmRelationshipControllerUpdateRelationshipOperationRequest {
-    pub path: RealmRelationshipControllerUpdateRelationshipOperationPath,
-    pub query: RealmRelationshipControllerUpdateRelationshipOperationQuery,
-    pub headers: RealmRelationshipControllerUpdateRelationshipOperationHeaders,
-    pub body: UpdateRelationshipDto,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -45878,6 +45796,29 @@ pub struct RealmTransitControllerListTransitsOperationRequest {
     pub path: RealmTransitControllerListTransitsOperationPath,
     pub query: RealmTransitControllerListTransitsOperationQuery,
     pub headers: RealmTransitControllerListTransitsOperationHeaders,
+    pub body: (),
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmTransitControllerStartOperationPath {
+    pub id: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmTransitControllerStartOperationQuery {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmTransitControllerStartOperationHeaders {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmTransitControllerStartOperationRequest {
+    pub path: RealmTransitControllerStartOperationPath,
+    pub query: RealmTransitControllerStartOperationQuery,
+    pub headers: RealmTransitControllerStartOperationHeaders,
     pub body: (),
 }
 
@@ -47265,6 +47206,10 @@ where
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for addGroupSourceParticipant");
     }
 
+    pub fn archive_asset(&self, _request: RealmArchiveAssetOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<AssetDetailDto, T::Error> {
+        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for archiveAsset");
+    }
+
     pub fn archive_bundle(&self, _request: RealmArchiveBundleOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<BundleDetailDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for archiveBundle");
     }
@@ -47839,6 +47784,10 @@ where
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for publishBundle");
     }
 
+    pub fn publish_ready_asset(&self, _request: RealmPublishReadyAssetOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<AssetDetailDto, T::Error> {
+        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for publishReadyAsset");
+    }
+
     pub fn recall_group_message(&self, _request: RealmRecallGroupMessageOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<(), T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for recallGroupMessage");
     }
@@ -47849,33 +47798,6 @@ where
 
     pub fn refresh_token(&self, _request: RealmRefreshTokenOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<AuthTokensDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for refreshToken");
-    }
-
-    pub fn relationship_controller_create_relationship(&self, _request: RealmRelationshipControllerCreateRelationshipOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<RelationshipResponseDto, T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for RelationshipController_createRelationship");
-    }
-
-    pub fn relationship_controller_delete_relationship(&self, request: RealmRelationshipControllerDeleteRelationshipOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<DeleteRelationshipResponseDto, T::Error> {
-        let mut pairs: Vec<String> = Vec::new();
-        pairs.push(format!("path.id={}", request.path.id));
-        let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "RelationshipController_deleteRelationship".to_string(),
-            metadata,
-            body: pairs.join(";").into_bytes(),
-            timeout,
-        })?;
-        let pairs = parse_pairs(&raw);
-        Ok(DeleteRelationshipResponseDto {
-            deleted: pairs.get("deleted").and_then(|value| value.parse().ok()).unwrap_or_else(|| panic!("SDK_REALM_RESPONSE_DECODE_FAILED: RelationshipController_deleteRelationship requires deleted")),
-        })
-    }
-
-    pub fn relationship_controller_get_my_relationships(&self, _request: RealmRelationshipControllerGetMyRelationshipsOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<Vec<RelationshipResponseDto>, T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for RelationshipController_getMyRelationships");
-    }
-
-    pub fn relationship_controller_update_relationship(&self, _request: RealmRelationshipControllerUpdateRelationshipOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<RelationshipResponseDto, T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for RelationshipController_updateRelationship");
     }
 
     pub fn remove_friend(&self, _request: RealmRemoveFriendOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<(), T::Error> {
@@ -47968,6 +47890,10 @@ where
 
     pub fn transit_controller_list_transits(&self, _request: RealmTransitControllerListTransitsOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<Vec<TransitDetailDto>, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for TransitController_listTransits");
+    }
+
+    pub fn transit_controller_start(&self, _request: RealmTransitControllerStartOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<TransitDetailDto, T::Error> {
+        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for TransitController_start");
     }
 
     pub fn translate_text(&self, _request: RealmTranslateTextOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<TranslateResponseDto, T::Error> {

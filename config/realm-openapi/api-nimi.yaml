@@ -1,11 +1,5 @@
 components:
   schemas:
-    AccountRelationType:
-      enum:
-        - ALLY
-        - RIVAL
-        - ENEMY
-      type: string
     AccountStatus:
       enum:
         - ONBOARDING
@@ -1396,13 +1390,6 @@ components:
           type: string
         ownerId:
           type: string
-        status:
-          enum:
-            - DRAFT
-            - READY
-            - ARCHIVED
-            - DELETED
-          type: string
         transferPolicy:
           enum:
             - ALLOW
@@ -1544,13 +1531,6 @@ components:
           type: string
         sourceAssetId:
           type: string
-        status:
-          enum:
-            - DRAFT
-            - READY
-            - ARCHIVED
-            - DELETED
-          type: string
         structuredPayload:
           additionalProperties: true
           type: object
@@ -1647,12 +1627,6 @@ components:
           items:
             type: string
           type: array
-        status:
-          enum:
-            - DRAFT
-            - PUBLISHED
-            - ARCHIVED
-          type: string
         tags:
           items:
             type: string
@@ -1791,24 +1765,6 @@ components:
           type: array
       required:
         - attachments
-      type: object
-    CreateRelationshipDto:
-      properties:
-        context:
-          description: Context note
-          type: string
-        strength:
-          description: Strength of relationship (0-100)
-          type: number
-        targetId:
-          description: Target Account ID to relate to
-          type: string
-        type:
-          allOf:
-            - $ref: '#/components/schemas/AccountRelationType'
-      required:
-        - targetId
-        - type
       type: object
     CreateReportDto:
       properties:
@@ -2912,13 +2868,6 @@ components:
         nextCursor:
           nullable: true
           type: string
-      type: object
-    DeleteRelationshipResponseDto:
-      properties:
-        deleted:
-          type: boolean
-      required:
-        - deleted
       type: object
     EditMessageInputDto:
       properties:
@@ -5306,33 +5255,6 @@ components:
           maxLength: 500
           type: string
       type: object
-    RelationshipResponseDto:
-      properties:
-        context:
-          nullable: true
-          type: string
-        createdAt:
-          format: date-time
-          type: string
-        id:
-          type: string
-        sourceId:
-          type: string
-        strength:
-          type: number
-        targetId:
-          type: string
-        type:
-          allOf:
-            - $ref: '#/components/schemas/AccountRelationType'
-      required:
-        - id
-        - sourceId
-        - targetId
-        - type
-        - strength
-        - createdAt
-      type: object
     ReplacePersonaCharacterCoreDto:
       additionalProperties: false
       properties:
@@ -7113,6 +7035,7 @@ components:
           type: string
         departedAt:
           format: date-time
+          nullable: true
           type: string
         fromWorldId:
           nullable: true
@@ -7125,6 +7048,7 @@ components:
           $ref: '#/components/schemas/CharacterSourceRefV3Dto'
         status:
           enum:
+            - PENDING
             - ACTIVE
             - COMPLETED
             - ABANDONED
@@ -7146,7 +7070,6 @@ components:
         - toWorldId
         - transitType
         - status
-        - departedAt
         - createdAt
       type: object
     TranslateRequestDto:
@@ -7211,13 +7134,6 @@ components:
           items:
             type: string
           type: array
-        status:
-          enum:
-            - DRAFT
-            - READY
-            - ARCHIVED
-            - DELETED
-          type: string
         structuredPayload:
           additionalProperties: true
           type: object
@@ -7305,13 +7221,6 @@ components:
         visibility:
           allOf:
             - $ref: '#/components/schemas/Visibility'
-      type: object
-    UpdateRelationshipDto:
-      properties:
-        context:
-          type: string
-        strength:
-          type: number
       type: object
     UpdateResourceDto:
       properties:
@@ -10055,6 +9964,27 @@ paths:
       summary: Update ownable asset
       tags:
         - Assets
+  /api/assets/{assetId}/archive:
+    post:
+      operationId: archiveAsset
+      parameters:
+        - in: path
+          name: assetId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AssetDetailDto'
+          description: ''
+      security:
+        - bearer: []
+      summary: Archive ready ownable asset
+      tags:
+        - Assets
   /api/assets/{assetId}/clone:
     post:
       operationId: cloneAsset
@@ -10080,6 +10010,27 @@ paths:
       security:
         - bearer: []
       summary: Clone ownable asset
+      tags:
+        - Assets
+  /api/assets/{assetId}/publish-ready:
+    post:
+      operationId: publishReadyAsset
+      parameters:
+        - in: path
+          name: assetId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AssetDetailDto'
+          description: ''
+      security:
+        - bearer: []
+      summary: Publish ownable asset as ready
       tags:
         - Assets
   /api/auth/2fa/verify:
@@ -13733,103 +13684,6 @@ paths:
       summary: List online user ids
       tags:
         - User
-  /api/human/relationships:
-    post:
-      operationId: RelationshipController_createRelationship
-      parameters: []
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CreateRelationshipDto'
-        required: true
-      responses:
-        '201':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/RelationshipResponseDto'
-          description: ''
-      security:
-        - bearer: []
-      summary: Create a relationship with another account
-      tags:
-        - Relationships (Meta-Graph)
-  /api/human/relationships/me:
-    get:
-      operationId: RelationshipController_getMyRelationships
-      parameters:
-        - in: query
-          name: direction
-          required: false
-          schema:
-            enum:
-              - outgoing
-              - incoming
-            type: string
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                items:
-                  $ref: '#/components/schemas/RelationshipResponseDto'
-                type: array
-          description: ''
-      security:
-        - bearer: []
-      summary: Get my relationships
-      tags:
-        - Relationships (Meta-Graph)
-  /api/human/relationships/{id}:
-    delete:
-      operationId: RelationshipController_deleteRelationship
-      parameters:
-        - description: Relationship ID
-          in: path
-          name: id
-          required: true
-          schema:
-            type: string
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/DeleteRelationshipResponseDto'
-          description: ''
-      security:
-        - bearer: []
-      summary: Remove a relationship
-      tags:
-        - Relationships (Meta-Graph)
-    patch:
-      operationId: RelationshipController_updateRelationship
-      parameters:
-        - description: Relationship ID
-          in: path
-          name: id
-          required: true
-          schema:
-            type: string
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/UpdateRelationshipDto'
-        required: true
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/RelationshipResponseDto'
-          description: ''
-      security:
-        - bearer: []
-      summary: Update relationship (strength/context)
-      tags:
-        - Relationships (Meta-Graph)
   /api/human/search:
     get:
       description: Search users by keyword with pagination and filtering options.
@@ -15884,6 +15738,28 @@ paths:
       security:
         - bearer: []
       summary: Complete a transit session
+      tags:
+        - Transits
+  /api/world/transit/{id}/start:
+    post:
+      operationId: TransitController_start
+      parameters:
+        - description: Transit ID
+          in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransitDetailDto'
+          description: ''
+      security:
+        - bearer: []
+      summary: Start a pending transit session
       tags:
         - Transits
 servers: []

@@ -33,8 +33,6 @@ def _decode_model(model_type, value: object):
     return model_type(**{key: val for key, val in source.items() if key in names})
 
 
-AccountRelationType = Literal["ALLY", "RIVAL", "ENEMY"]
-
 AccountStatus = Literal["ONBOARDING", "ACTIVE", "SUSPENDED", "BANNED"]
 
 @dataclass(frozen=True)
@@ -452,7 +450,6 @@ class CheckEmailResponseDto:
 class CloneAssetDto:
     clonePolicy: Literal["ALLOW", "DENY", "INHERIT"] | None = None
     ownerId: str | None = None
-    status: Literal["DRAFT", "READY", "ARCHIVED", "DELETED"] | None = None
     transferPolicy: Literal["ALLOW", "DENY", "INHERIT"] | None = None
     usePolicy: UsePolicyDto | None = None
 
@@ -502,7 +499,6 @@ class CreateAssetDto:
     resourceRefs: tuple[str, ...] = field(default_factory=tuple)
     rootAssetId: str | None = None
     sourceAssetId: str | None = None
-    status: Literal["DRAFT", "READY", "ARCHIVED", "DELETED"] | None = None
     structuredPayload: Mapping[str, object] = field(default_factory=dict)
     transferPolicy: Literal["ALLOW", "DENY", "INHERIT"] | None = None
     usePolicy: UsePolicyDto | None = None
@@ -539,7 +535,6 @@ class CreateBundleDto:
     description: str | None = None
     importPolicy: ImportPolicyDto | None = None
     memberAssetIds: tuple[str, ...] = field(default_factory=tuple)
-    status: Literal["DRAFT", "PUBLISHED", "ARCHIVED"] | None = None
     tags: tuple[str, ...] = field(default_factory=tuple)
     title: str | None = None
     version: str | None = None
@@ -587,13 +582,6 @@ class CreatePostDto:
     caption: str | None = None
     sourceRef: PostSourceRefDto | None = None
     tags: tuple[str, ...] = field(default_factory=tuple)
-
-@dataclass(frozen=True)
-class CreateRelationshipDto:
-    context: str | None = None
-    strength: float | None = None
-    targetId: str | None = None
-    type: AccountRelationType | None = None
 
 @dataclass(frozen=True)
 class CreateReportDto:
@@ -734,10 +722,6 @@ class CursorPageMetaDto:
     cursor: str | None = None
     limit: float | None = None
     nextCursor: str | None = None
-
-@dataclass(frozen=True)
-class DeleteRelationshipResponseDto:
-    deleted: bool | None = None
 
 @dataclass(frozen=True)
 class EditMessageInputDto:
@@ -1523,16 +1507,6 @@ class RejectGiftDto:
     reason: str | None = None
 
 @dataclass(frozen=True)
-class RelationshipResponseDto:
-    context: str | None = None
-    createdAt: str | None = None
-    id: str | None = None
-    sourceId: str | None = None
-    strength: float | None = None
-    targetId: str | None = None
-    type: AccountRelationType | None = None
-
-@dataclass(frozen=True)
 class ReplacePersonaCharacterCoreDto:
     baseContentHash: str | None = None
     id: str | None = None
@@ -1877,7 +1851,7 @@ class TransitDetailDto:
     id: str | None = None
     runtimeSourceRef: str | None = None
     sourceRef: CharacterSourceRefV3Dto | None = None
-    status: Literal["ACTIVE", "COMPLETED", "ABANDONED"] | None = None
+    status: Literal["PENDING", "ACTIVE", "COMPLETED", "ABANDONED"] | None = None
     toWorldId: str | None = None
     transitType: Literal["INBOUND", "OUTBOUND"] | None = None
     userId: str | None = None
@@ -1904,7 +1878,6 @@ class UpdateAssetDto:
     clonePolicy: Literal["ALLOW", "DENY", "INHERIT"] | None = None
     previewResourceId: str | None = None
     resourceRefs: tuple[str, ...] = field(default_factory=tuple)
-    status: Literal["DRAFT", "READY", "ARCHIVED", "DELETED"] | None = None
     structuredPayload: Mapping[str, object] = field(default_factory=dict)
     transferPolicy: Literal["ALLOW", "DENY", "INHERIT"] | None = None
     usePolicy: UsePolicyDto | None = None
@@ -1944,11 +1917,6 @@ class UpdatePostDto:
 @dataclass(frozen=True)
 class UpdatePPSlotConfigDto:
     ppSlotConfig: PPSlotConfigDto | None = None
-
-@dataclass(frozen=True)
-class UpdateRelationshipDto:
-    context: str | None = None
-    strength: float | None = None
 
 @dataclass(frozen=True)
 class UpdateResourceDto:
@@ -2941,6 +2909,28 @@ class RealmAddGroupSourceParticipantOperationRequest:
     query: RealmAddGroupSourceParticipantOperationQuery | None = None
     headers: RealmAddGroupSourceParticipantOperationHeaders | None = None
     body: AddGroupSourceParticipantInputDto | None = None
+
+@dataclass(frozen=True)
+class RealmArchiveAssetOperationPath:
+    assetId: str
+
+
+@dataclass(frozen=True)
+class RealmArchiveAssetOperationQuery:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmArchiveAssetOperationHeaders:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmArchiveAssetOperationRequest:
+    path: RealmArchiveAssetOperationPath
+    query: RealmArchiveAssetOperationQuery | None = None
+    headers: RealmArchiveAssetOperationHeaders | None = None
+    body: None | None = None
 
 @dataclass(frozen=True)
 class RealmArchiveBundleOperationPath:
@@ -5457,6 +5447,28 @@ class RealmPublishBundleOperationRequest:
     body: None | None = None
 
 @dataclass(frozen=True)
+class RealmPublishReadyAssetOperationPath:
+    assetId: str
+
+
+@dataclass(frozen=True)
+class RealmPublishReadyAssetOperationQuery:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmPublishReadyAssetOperationHeaders:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmPublishReadyAssetOperationRequest:
+    path: RealmPublishReadyAssetOperationPath
+    query: RealmPublishReadyAssetOperationQuery | None = None
+    headers: RealmPublishReadyAssetOperationHeaders | None = None
+    body: None | None = None
+
+@dataclass(frozen=True)
 class RealmRecallGroupMessageOperationPath:
     messageId: str
     chatId: str
@@ -5523,94 +5535,6 @@ class RealmRefreshTokenOperationRequest:
     query: RealmRefreshTokenOperationQuery | None = None
     headers: RealmRefreshTokenOperationHeaders | None = None
     body: RefreshTokenDto | None = None
-
-@dataclass(frozen=True)
-class RealmRelationshipControllerCreateRelationshipOperationPath:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmRelationshipControllerCreateRelationshipOperationQuery:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmRelationshipControllerCreateRelationshipOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmRelationshipControllerCreateRelationshipOperationRequest:
-    path: RealmRelationshipControllerCreateRelationshipOperationPath
-    query: RealmRelationshipControllerCreateRelationshipOperationQuery | None = None
-    headers: RealmRelationshipControllerCreateRelationshipOperationHeaders | None = None
-    body: CreateRelationshipDto | None = None
-
-@dataclass(frozen=True)
-class RealmRelationshipControllerDeleteRelationshipOperationPath:
-    id: str
-
-
-@dataclass(frozen=True)
-class RealmRelationshipControllerDeleteRelationshipOperationQuery:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmRelationshipControllerDeleteRelationshipOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmRelationshipControllerDeleteRelationshipOperationRequest:
-    path: RealmRelationshipControllerDeleteRelationshipOperationPath
-    query: RealmRelationshipControllerDeleteRelationshipOperationQuery | None = None
-    headers: RealmRelationshipControllerDeleteRelationshipOperationHeaders | None = None
-    body: None | None = None
-
-@dataclass(frozen=True)
-class RealmRelationshipControllerGetMyRelationshipsOperationPath:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmRelationshipControllerGetMyRelationshipsOperationQuery:
-    direction: Literal["outgoing", "incoming"] | None = None
-
-
-@dataclass(frozen=True)
-class RealmRelationshipControllerGetMyRelationshipsOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmRelationshipControllerGetMyRelationshipsOperationRequest:
-    path: RealmRelationshipControllerGetMyRelationshipsOperationPath
-    query: RealmRelationshipControllerGetMyRelationshipsOperationQuery | None = None
-    headers: RealmRelationshipControllerGetMyRelationshipsOperationHeaders | None = None
-    body: None | None = None
-
-@dataclass(frozen=True)
-class RealmRelationshipControllerUpdateRelationshipOperationPath:
-    id: str
-
-
-@dataclass(frozen=True)
-class RealmRelationshipControllerUpdateRelationshipOperationQuery:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmRelationshipControllerUpdateRelationshipOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmRelationshipControllerUpdateRelationshipOperationRequest:
-    path: RealmRelationshipControllerUpdateRelationshipOperationPath
-    query: RealmRelationshipControllerUpdateRelationshipOperationQuery | None = None
-    headers: RealmRelationshipControllerUpdateRelationshipOperationHeaders | None = None
-    body: UpdateRelationshipDto | None = None
 
 @dataclass(frozen=True)
 class RealmRemoveFriendOperationPath:
@@ -6156,6 +6080,28 @@ class RealmTransitControllerListTransitsOperationRequest:
     path: RealmTransitControllerListTransitsOperationPath
     query: RealmTransitControllerListTransitsOperationQuery | None = None
     headers: RealmTransitControllerListTransitsOperationHeaders | None = None
+    body: None | None = None
+
+@dataclass(frozen=True)
+class RealmTransitControllerStartOperationPath:
+    id: str
+
+
+@dataclass(frozen=True)
+class RealmTransitControllerStartOperationQuery:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmTransitControllerStartOperationHeaders:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmTransitControllerStartOperationRequest:
+    path: RealmTransitControllerStartOperationPath
+    query: RealmTransitControllerStartOperationQuery | None = None
+    headers: RealmTransitControllerStartOperationHeaders | None = None
     body: None | None = None
 
 @dataclass(frozen=True)
@@ -7490,6 +7436,16 @@ class RealmTypedClient:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="addGroupSourceParticipant", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(GroupParticipantDto, raw)
 
+    async def archive_asset(self, request: RealmArchiveAssetOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmArchiveAssetOperationResponse:
+        envelope: dict[str, object] = {
+            "path": _model_body(request.path),
+            "query": _model_body(request.query),
+            "headers": _model_body(request.headers),
+            "body": _model_body(request.body),
+        }
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="archiveAsset", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(AssetDetailDto, raw)
+
     async def archive_bundle(self, request: RealmArchiveBundleOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmArchiveBundleOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
@@ -8610,6 +8566,16 @@ class RealmTypedClient:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="publishBundle", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(BundleDetailDto, raw)
 
+    async def publish_ready_asset(self, request: RealmPublishReadyAssetOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmPublishReadyAssetOperationResponse:
+        envelope: dict[str, object] = {
+            "path": _model_body(request.path),
+            "query": _model_body(request.query),
+            "headers": _model_body(request.headers),
+            "body": _model_body(request.body),
+        }
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="publishReadyAsset", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(AssetDetailDto, raw)
+
     async def recall_group_message(self, request: RealmRecallGroupMessageOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmRecallGroupMessageOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
@@ -8639,46 +8605,6 @@ class RealmTypedClient:
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="refreshToken", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(AuthTokensDto, raw)
-
-    async def relationship_controller_create_relationship(self, request: RealmRelationshipControllerCreateRelationshipOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmRelationshipControllerCreateRelationshipOperationResponse:
-        envelope: dict[str, object] = {
-            "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
-        }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="RelationshipController_createRelationship", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(RelationshipResponseDto, raw)
-
-    async def relationship_controller_delete_relationship(self, request: RealmRelationshipControllerDeleteRelationshipOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmRelationshipControllerDeleteRelationshipOperationResponse:
-        envelope: dict[str, object] = {
-            "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
-        }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="RelationshipController_deleteRelationship", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(DeleteRelationshipResponseDto, raw)
-
-    async def relationship_controller_get_my_relationships(self, request: RealmRelationshipControllerGetMyRelationshipsOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmRelationshipControllerGetMyRelationshipsOperationResponse:
-        envelope: dict[str, object] = {
-            "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
-        }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="RelationshipController_getMyRelationships", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(tuple[RelationshipResponseDto, ...], raw)
-
-    async def relationship_controller_update_relationship(self, request: RealmRelationshipControllerUpdateRelationshipOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmRelationshipControllerUpdateRelationshipOperationResponse:
-        envelope: dict[str, object] = {
-            "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
-        }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="RelationshipController_updateRelationship", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(RelationshipResponseDto, raw)
 
     async def remove_friend(self, request: RealmRemoveFriendOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmRemoveFriendOperationResponse:
         envelope: dict[str, object] = {
@@ -8909,6 +8835,16 @@ class RealmTypedClient:
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="TransitController_listTransits", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(tuple[TransitDetailDto, ...], raw)
+
+    async def transit_controller_start(self, request: RealmTransitControllerStartOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmTransitControllerStartOperationResponse:
+        envelope: dict[str, object] = {
+            "path": _model_body(request.path),
+            "query": _model_body(request.query),
+            "headers": _model_body(request.headers),
+            "body": _model_body(request.body),
+        }
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="TransitController_start", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(TransitDetailDto, raw)
 
     async def translate_text(self, request: RealmTranslateTextOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmTranslateTextOperationResponse:
         envelope: dict[str, object] = {

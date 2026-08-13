@@ -10,7 +10,6 @@ export interface RealmTypedCallOptions {
   readonly responseMetadataObserver?: CoreResponseMetadataObserver;
 }
 
-export type AccountRelationType = "ALLY" | "RIVAL" | "ENEMY";
 export type AccountStatus = "ONBOARDING" | "ACTIVE" | "SUSPENDED" | "BANNED";
 export interface AddFriendBodyDto {
   readonly requestMessage?: string;
@@ -370,7 +369,6 @@ export interface CheckEmailResponseDto {
 export interface CloneAssetDto {
   readonly clonePolicy?: "ALLOW" | "DENY" | "INHERIT";
   readonly ownerId?: string;
-  readonly status?: "DRAFT" | "READY" | "ARCHIVED" | "DELETED";
   readonly transferPolicy?: "ALLOW" | "DENY" | "INHERIT";
   readonly usePolicy?: UsePolicyDto | null;
 }
@@ -415,7 +413,6 @@ export interface CreateAssetDto {
   readonly resourceRefs?: readonly (string)[];
   readonly rootAssetId?: string;
   readonly sourceAssetId?: string;
-  readonly status?: "DRAFT" | "READY" | "ARCHIVED" | "DELETED";
   readonly structuredPayload?: Record<string, unknown>;
   readonly transferPolicy: "ALLOW" | "DENY" | "INHERIT";
   readonly usePolicy?: UsePolicyDto | null;
@@ -450,7 +447,6 @@ export interface CreateBundleDto {
   readonly description: string;
   readonly importPolicy?: ImportPolicyDto | null;
   readonly memberAssetIds: readonly (string)[];
-  readonly status?: "DRAFT" | "PUBLISHED" | "ARCHIVED";
   readonly tags?: readonly (string)[];
   readonly title: string;
   readonly version: string;
@@ -491,12 +487,6 @@ export interface CreatePostDto {
   readonly caption?: string;
   readonly sourceRef?: PostSourceRefDto;
   readonly tags?: readonly (string)[];
-}
-export interface CreateRelationshipDto {
-  readonly context?: string;
-  readonly strength?: number;
-  readonly targetId: string;
-  readonly type: AccountRelationType;
 }
 export interface CreateReportDto {
   readonly description?: string;
@@ -620,9 +610,6 @@ export interface CursorPageMetaDto {
   readonly cursor?: string | null;
   readonly limit?: number;
   readonly nextCursor?: string | null;
-}
-export interface DeleteRelationshipResponseDto {
-  readonly deleted: boolean;
 }
 export interface EditMessageInputDto {
   readonly payload?: ChatTextPayloadDto | Record<string, unknown> | ChatPostRefPayloadDto | ChatUserRefPayloadDto | ChatLinkRefPayloadDto | ChatGiftPayloadDto | ChatFriendRequestPayloadDto;
@@ -1310,15 +1297,6 @@ export interface RefreshTokenDto {
 export interface RejectGiftDto {
   readonly reason?: string;
 }
-export interface RelationshipResponseDto {
-  readonly context?: string | null;
-  readonly createdAt: string;
-  readonly id: string;
-  readonly sourceId: string;
-  readonly strength: number;
-  readonly targetId: string;
-  readonly type: AccountRelationType;
-}
 export interface ReplacePersonaCharacterCoreDto {
   readonly baseContentHash: string;
   readonly id?: string;
@@ -1619,12 +1597,12 @@ export interface TransitDetailDto {
   readonly arrivedAt?: string | null;
   readonly context?: TransitContextDto | null;
   readonly createdAt: string;
-  readonly departedAt: string;
+  readonly departedAt?: string | null;
   readonly fromWorldId?: string | null;
   readonly id: string;
   readonly runtimeSourceRef: string;
   readonly sourceRef: CharacterSourceRefV3Dto;
-  readonly status: "ACTIVE" | "COMPLETED" | "ABANDONED";
+  readonly status: "PENDING" | "ACTIVE" | "COMPLETED" | "ABANDONED";
   readonly toWorldId: string;
   readonly transitType: "INBOUND" | "OUTBOUND";
   readonly userId: string;
@@ -1647,7 +1625,6 @@ export interface UpdateAssetDto {
   readonly clonePolicy?: "ALLOW" | "DENY" | "INHERIT";
   readonly previewResourceId?: string | null;
   readonly resourceRefs?: readonly (string)[];
-  readonly status?: "DRAFT" | "READY" | "ARCHIVED" | "DELETED";
   readonly structuredPayload?: Record<string, unknown>;
   readonly transferPolicy?: "ALLOW" | "DENY" | "INHERIT";
   readonly usePolicy?: UsePolicyDto | null;
@@ -1680,10 +1657,6 @@ export interface UpdatePostDto {
 }
 export interface UpdatePPSlotConfigDto {
   readonly ppSlotConfig: PPSlotConfigDto;
-}
-export interface UpdateRelationshipDto {
-  readonly context?: string;
-  readonly strength?: number;
 }
 export interface UpdateResourceDto {
   readonly controllerId?: string;
@@ -2505,18 +2478,6 @@ export interface WorldRelationshipCoreDtoCorePresentation {
   readonly summary?: string;
 }
 
-export const AccountRelationTypeValues = [
-  "ALLY",
-  "RIVAL",
-  "ENEMY",
-] as const satisfies readonly AccountRelationType[];
-
-export const AccountRelationTypeValue = {
-  ALLY: "ALLY",
-  RIVAL: "RIVAL",
-  ENEMY: "ENEMY",
-} as const satisfies Record<string, AccountRelationType>;
-
 export const AccountStatusValues = [
   "ONBOARDING",
   "ACTIVE",
@@ -2762,7 +2723,6 @@ export const WithdrawalStatusValue = {
 } as const satisfies Record<string, WithdrawalStatus>;
 
 export interface RealmTypedModelMap {
-  readonly "AccountRelationType": AccountRelationType;
   readonly "AccountStatus": AccountStatus;
   readonly "AddFriendBodyDto": AddFriendBodyDto;
   readonly "AddGroupParticipantInputDto": AddGroupParticipantInputDto;
@@ -2837,7 +2797,6 @@ export interface RealmTypedModelMap {
   readonly "CreatePortalSessionDto": CreatePortalSessionDto;
   readonly "CreatePostAttachmentDto": CreatePostAttachmentDto;
   readonly "CreatePostDto": CreatePostDto;
-  readonly "CreateRelationshipDto": CreateRelationshipDto;
   readonly "CreateReportDto": CreateReportDto;
   readonly "CreateReviewDto": CreateReviewDto;
   readonly "CreateSourceMaterializationPacketV3Dto": CreateSourceMaterializationPacketV3Dto;
@@ -2855,7 +2814,6 @@ export interface RealmTypedModelMap {
   readonly "CurrencyTransactionDto": CurrencyTransactionDto;
   readonly "CurrencyTransactionHistoryDto": CurrencyTransactionHistoryDto;
   readonly "CursorPageMetaDto": CursorPageMetaDto;
-  readonly "DeleteRelationshipResponseDto": DeleteRelationshipResponseDto;
   readonly "EditMessageInputDto": EditMessageInputDto;
   readonly "EmailOtpRequestDto": EmailOtpRequestDto;
   readonly "EmailOtpResponseDto": EmailOtpResponseDto;
@@ -2955,7 +2913,6 @@ export interface RealmTypedModelMap {
   readonly "ReceivedGiftsResponseDto": ReceivedGiftsResponseDto;
   readonly "RefreshTokenDto": RefreshTokenDto;
   readonly "RejectGiftDto": RejectGiftDto;
-  readonly "RelationshipResponseDto": RelationshipResponseDto;
   readonly "ReplacePersonaCharacterCoreDto": ReplacePersonaCharacterCoreDto;
   readonly "ReplaceWorldCharacterCoreDto": ReplaceWorldCharacterCoreDto;
   readonly "ReplaceWorldCoreDto": ReplaceWorldCoreDto;
@@ -3009,7 +2966,6 @@ export interface RealmTypedModelMap {
   readonly "UpdatePasswordRequestDto": UpdatePasswordRequestDto;
   readonly "UpdatePostDto": UpdatePostDto;
   readonly "UpdatePPSlotConfigDto": UpdatePPSlotConfigDto;
-  readonly "UpdateRelationshipDto": UpdateRelationshipDto;
   readonly "UpdateResourceDto": UpdateResourceDto;
   readonly "UpdateUserDto": UpdateUserDto;
   readonly "UpdateUserNotificationSettingsDto": UpdateUserNotificationSettingsDto;
@@ -3155,6 +3111,19 @@ export interface RealmAddGroupSourceParticipantOperationRequest {
   readonly body: AddGroupSourceParticipantInputDto;
 }
 export type RealmAddGroupSourceParticipantOperationResponse = GroupParticipantDto;
+export interface RealmArchiveAssetOperationRequest {
+  readonly path: {
+    readonly assetId: string;
+  };
+  readonly query?: {
+
+  };
+  readonly headers?: {
+
+  };
+  readonly body?: Record<string, never>;
+}
+export type RealmArchiveAssetOperationResponse = AssetDetailDto;
 export interface RealmArchiveBundleOperationRequest {
   readonly path: {
     readonly bundleId: string;
@@ -4661,6 +4630,19 @@ export interface RealmPublishBundleOperationRequest {
   readonly body?: Record<string, never>;
 }
 export type RealmPublishBundleOperationResponse = BundleDetailDto;
+export interface RealmPublishReadyAssetOperationRequest {
+  readonly path: {
+    readonly assetId: string;
+  };
+  readonly query?: {
+
+  };
+  readonly headers?: {
+
+  };
+  readonly body?: Record<string, never>;
+}
+export type RealmPublishReadyAssetOperationResponse = AssetDetailDto;
 export interface RealmRecallGroupMessageOperationRequest {
   readonly path: {
     readonly messageId: string;
@@ -4702,58 +4684,6 @@ export interface RealmRefreshTokenOperationRequest {
   readonly body: RefreshTokenDto;
 }
 export type RealmRefreshTokenOperationResponse = AuthTokensDto;
-export interface RealmRelationshipControllerCreateRelationshipOperationRequest {
-  readonly path: {
-
-  };
-  readonly query?: {
-
-  };
-  readonly headers?: {
-
-  };
-  readonly body: CreateRelationshipDto;
-}
-export type RealmRelationshipControllerCreateRelationshipOperationResponse = RelationshipResponseDto;
-export interface RealmRelationshipControllerDeleteRelationshipOperationRequest {
-  readonly path: {
-    readonly id: string;
-  };
-  readonly query?: {
-
-  };
-  readonly headers?: {
-
-  };
-  readonly body?: Record<string, never>;
-}
-export type RealmRelationshipControllerDeleteRelationshipOperationResponse = DeleteRelationshipResponseDto;
-export interface RealmRelationshipControllerGetMyRelationshipsOperationRequest {
-  readonly path: {
-
-  };
-  readonly query?: {
-    readonly direction?: "outgoing" | "incoming";
-  };
-  readonly headers?: {
-
-  };
-  readonly body?: Record<string, never>;
-}
-export type RealmRelationshipControllerGetMyRelationshipsOperationResponse = readonly (RelationshipResponseDto)[];
-export interface RealmRelationshipControllerUpdateRelationshipOperationRequest {
-  readonly path: {
-    readonly id: string;
-  };
-  readonly query?: {
-
-  };
-  readonly headers?: {
-
-  };
-  readonly body: UpdateRelationshipDto;
-}
-export type RealmRelationshipControllerUpdateRelationshipOperationResponse = RelationshipResponseDto;
 export interface RealmRemoveFriendOperationRequest {
   readonly path: {
     readonly id: string;
@@ -5093,6 +5023,19 @@ export interface RealmTransitControllerListTransitsOperationRequest {
   readonly body?: Record<string, never>;
 }
 export type RealmTransitControllerListTransitsOperationResponse = readonly (TransitDetailDto)[];
+export interface RealmTransitControllerStartOperationRequest {
+  readonly path: {
+    readonly id: string;
+  };
+  readonly query?: {
+
+  };
+  readonly headers?: {
+
+  };
+  readonly body?: Record<string, never>;
+}
+export type RealmTransitControllerStartOperationResponse = TransitDetailDto;
 export interface RealmTranslateTextOperationRequest {
   readonly path: {
 
@@ -5897,6 +5840,17 @@ export class RealmTypedClient {
   async addGroupSourceParticipant(request: RealmAddGroupSourceParticipantOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmAddGroupSourceParticipantOperationResponse> {
     return this.core.unary<RealmAddGroupSourceParticipantOperationResponse, RealmAddGroupSourceParticipantOperationRequest>({
       methodId: "addGroupSourceParticipant",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
+    });
+  }
+
+  async archiveAsset(request: RealmArchiveAssetOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmArchiveAssetOperationResponse> {
+    return this.core.unary<RealmArchiveAssetOperationResponse, RealmArchiveAssetOperationRequest>({
+      methodId: "archiveAsset",
       body: request,
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
@@ -7137,6 +7091,17 @@ export class RealmTypedClient {
     });
   }
 
+  async publishReadyAsset(request: RealmPublishReadyAssetOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmPublishReadyAssetOperationResponse> {
+    return this.core.unary<RealmPublishReadyAssetOperationResponse, RealmPublishReadyAssetOperationRequest>({
+      methodId: "publishReadyAsset",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
+    });
+  }
+
   async recallGroupMessage(request: RealmRecallGroupMessageOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmRecallGroupMessageOperationResponse> {
     return this.core.unary<RealmRecallGroupMessageOperationResponse, RealmRecallGroupMessageOperationRequest>({
       methodId: "recallGroupMessage",
@@ -7162,50 +7127,6 @@ export class RealmTypedClient {
   async refreshToken(request: RealmRefreshTokenOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmRefreshTokenOperationResponse> {
     return this.core.unary<RealmRefreshTokenOperationResponse, RealmRefreshTokenOperationRequest>({
       methodId: "refreshToken",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
-  }
-
-  async relationshipControllerCreateRelationship(request: RealmRelationshipControllerCreateRelationshipOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmRelationshipControllerCreateRelationshipOperationResponse> {
-    return this.core.unary<RealmRelationshipControllerCreateRelationshipOperationResponse, RealmRelationshipControllerCreateRelationshipOperationRequest>({
-      methodId: "RelationshipController_createRelationship",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
-  }
-
-  async relationshipControllerDeleteRelationship(request: RealmRelationshipControllerDeleteRelationshipOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmRelationshipControllerDeleteRelationshipOperationResponse> {
-    return this.core.unary<RealmRelationshipControllerDeleteRelationshipOperationResponse, RealmRelationshipControllerDeleteRelationshipOperationRequest>({
-      methodId: "RelationshipController_deleteRelationship",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
-  }
-
-  async relationshipControllerGetMyRelationships(request: RealmRelationshipControllerGetMyRelationshipsOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmRelationshipControllerGetMyRelationshipsOperationResponse> {
-    return this.core.unary<RealmRelationshipControllerGetMyRelationshipsOperationResponse, RealmRelationshipControllerGetMyRelationshipsOperationRequest>({
-      methodId: "RelationshipController_getMyRelationships",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
-  }
-
-  async relationshipControllerUpdateRelationship(request: RealmRelationshipControllerUpdateRelationshipOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmRelationshipControllerUpdateRelationshipOperationResponse> {
-    return this.core.unary<RealmRelationshipControllerUpdateRelationshipOperationResponse, RealmRelationshipControllerUpdateRelationshipOperationRequest>({
-      methodId: "RelationshipController_updateRelationship",
       body: request,
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
@@ -7459,6 +7380,17 @@ export class RealmTypedClient {
   async transitControllerListTransits(request: RealmTransitControllerListTransitsOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmTransitControllerListTransitsOperationResponse> {
     return this.core.unary<RealmTransitControllerListTransitsOperationResponse, RealmTransitControllerListTransitsOperationRequest>({
       methodId: "TransitController_listTransits",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
+    });
+  }
+
+  async transitControllerStart(request: RealmTransitControllerStartOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmTransitControllerStartOperationResponse> {
+    return this.core.unary<RealmTransitControllerStartOperationResponse, RealmTransitControllerStartOperationRequest>({
+      methodId: "TransitController_start",
       body: request,
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
