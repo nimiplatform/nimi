@@ -110,6 +110,7 @@ export type WindowBoundsRecomputer = {
   dispose(): void;
 };
 
+// @nimi-authority: rule.nimi.avatar.embodiment.r073
 export function createWindowBoundsRecomputer(deps: WindowBoundsRecomputerDeps): WindowBoundsRecomputer {
   let disposed = false;
 

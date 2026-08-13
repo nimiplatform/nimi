@@ -10,7 +10,7 @@ export function createBundledAvatarWindowOptions(
     minHeight: 520,
     transparent: true,
     frame: false,
-    resizable: true,
+    resizable: false,
     alwaysOnTop: true,
     skipTaskbar: true,
     title: 'Nimi Avatar',

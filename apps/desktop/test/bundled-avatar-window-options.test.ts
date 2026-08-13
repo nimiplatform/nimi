@@ -13,3 +13,9 @@ test('bundled Avatar windows keep renderer privileges isolated', () => {
     sandbox: true,
   });
 });
+
+test('bundled Avatar windows reject native user resizing', () => {
+  const options = createBundledAvatarWindowOptions('C:\\Nimi\\avatar-preload.cjs');
+
+  assert.equal(options.resizable, false);
+});

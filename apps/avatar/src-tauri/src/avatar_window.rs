@@ -147,7 +147,7 @@ pub(crate) fn build_avatar_window(
         .decorations(false)
         .transparent(true)
         .shadow(false)
-        .resizable(true)
+        .resizable(false)
         .build()
         .map_err(|error| format!("failed to build avatar window: {error}"))?;
     let _ = window.set_always_on_top(true);
