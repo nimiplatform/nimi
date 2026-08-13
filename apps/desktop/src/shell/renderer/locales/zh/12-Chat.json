@@ -569,6 +569,8 @@
   "parityOlderUserMessage": "昨天打过招呼。",
   "parityHistoryIntro": "你之前的会话还在。下一条回复会从这里继续。",
   "parityGeneratingImage": "正在生成图片...",
+  "imageGenerationFailed": "图片生成失败。",
+  "retryImageGeneration": "重试生成图片",
   "parityGeneratingVideo": "正在生成视频...",
   "parityImagePrompt": "黄昏时分的茶室",
   "parityVideoPrompt": "庭院上空的风",

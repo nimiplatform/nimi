@@ -291,7 +291,10 @@ export function useAgentConversationModeHost(
             imageLabel={t('ChatTimeline.imageMessage', 'Image')}
             showCaptionLabel={t('ChatTimeline.showImagePrompt', 'Show prompt')}
             hideCaptionLabel={t('ChatTimeline.hideImagePrompt', 'Hide prompt')}
-            failureMessage={reasonCode ? chatRuntimeReasonCodeMessage(reasonCode, t) : null}
+            failureMessage={
+              (reasonCode ? chatRuntimeReasonCodeMessage(reasonCode, t) : null)
+              || t('Chat.imageGenerationFailed', { defaultValue: 'Image generation failed.' })
+            }
             retryLabel={t('Chat.retryImageGeneration', { defaultValue: 'Retry image generation' })}
             onRetry={retryPrompt && activeTarget?.localAgentRef ? () => {
               setPendingImageRetry({

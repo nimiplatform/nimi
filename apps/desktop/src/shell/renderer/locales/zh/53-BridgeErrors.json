@@ -65,6 +65,7 @@
     "AI_MEDIA_OPTION_UNSUPPORTED": "当前不支持该媒体选项。",
     "AI_MEDIA_JOB_NOT_CANCELLABLE": "媒体任务不可取消。",
     "AI_LOCAL_MODEL_UNAVAILABLE": "Runtime 本地执行不可用。",
+    "AI_LOCAL_EXECUTION_CANCELED": "本地 AI 执行已取消。",
     "AI_LOCAL_MODEL_PROFILE_MISSING": "Runtime 本地配置缺失。",
     "AI_LOCAL_ASSET_ALREADY_INSTALLED": "本地 AI 资产已安装。",
     "AI_LOCAL_ENDPOINT_REQUIRED": "本地 AI endpoint 配置缺失。",

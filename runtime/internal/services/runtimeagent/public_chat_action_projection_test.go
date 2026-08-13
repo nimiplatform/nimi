@@ -30,6 +30,12 @@ type capturePublicChatImageScenarioExecutor struct {
 	submitContext context.Context
 }
 
+type cancelObservedPublicChatImageScenarioExecutor struct {
+	submitted     chan struct{}
+	cancelRequest *runtimev1.CancelScenarioJobRequest
+	cancelContext context.Context
+}
+
 func (f *capturePublicChatImageScenarioExecutor) SubmitScenarioJob(ctx context.Context, req *runtimev1.SubmitScenarioJobRequest) (*runtimev1.SubmitScenarioJobResponse, error) {
 	f.submitRequest = proto.Clone(req).(*runtimev1.SubmitScenarioJobRequest)
 	f.submitContext = ctx
@@ -60,6 +66,41 @@ func (f *capturePublicChatImageScenarioExecutor) GetScenarioArtifacts(_ context.
 			MimeType:   "image/png",
 		}},
 	}, nil
+}
+
+func (f *capturePublicChatImageScenarioExecutor) CancelScenarioJob(_ context.Context, req *runtimev1.CancelScenarioJobRequest) (*runtimev1.CancelScenarioJobResponse, error) {
+	return &runtimev1.CancelScenarioJobResponse{Job: &runtimev1.ScenarioJob{
+		JobId:  req.GetJobId(),
+		Status: runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_CANCELED,
+	}}, nil
+}
+
+func (f *cancelObservedPublicChatImageScenarioExecutor) SubmitScenarioJob(_ context.Context, _ *runtimev1.SubmitScenarioJobRequest) (*runtimev1.SubmitScenarioJobResponse, error) {
+	close(f.submitted)
+	return &runtimev1.SubmitScenarioJobResponse{Job: &runtimev1.ScenarioJob{
+		JobId:  "job-image-context-canceled",
+		Status: runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_SUBMITTED,
+	}}, nil
+}
+
+func (f *cancelObservedPublicChatImageScenarioExecutor) GetScenarioJob(_ context.Context, req *runtimev1.GetScenarioJobRequest) (*runtimev1.GetScenarioJobResponse, error) {
+	return &runtimev1.GetScenarioJobResponse{Job: &runtimev1.ScenarioJob{
+		JobId:  req.GetJobId(),
+		Status: runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_RUNNING,
+	}}, nil
+}
+
+func (f *cancelObservedPublicChatImageScenarioExecutor) GetScenarioArtifacts(_ context.Context, _ *runtimev1.GetScenarioArtifactsRequest) (*runtimev1.GetScenarioArtifactsResponse, error) {
+	return nil, fmt.Errorf("artifacts must not be read after action cancellation")
+}
+
+func (f *cancelObservedPublicChatImageScenarioExecutor) CancelScenarioJob(ctx context.Context, req *runtimev1.CancelScenarioJobRequest) (*runtimev1.CancelScenarioJobResponse, error) {
+	f.cancelContext = ctx
+	f.cancelRequest = proto.Clone(req).(*runtimev1.CancelScenarioJobRequest)
+	return &runtimev1.CancelScenarioJobResponse{Job: &runtimev1.ScenarioJob{
+		JobId:  req.GetJobId(),
+		Status: runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_CANCELED,
+	}}, nil
 }
 
 func (s *stubPublicChatActionExecutor) ExecuteImageAction(_ context.Context, req PublicChatActionExecutionRequest) (PublicChatActionExecutionResult, error) {
@@ -238,6 +279,76 @@ func TestPublicChatImageActionUsesCommittedAIConfigSelectedParams(t *testing.T) 
 		if _, exists := payload[reservedKey]; exists {
 			t.Fatalf("AIConfig parameters must not carry private profile composition key %q: %#v", reservedKey, payload)
 		}
+	}
+}
+
+func TestPublicChatImageActionContextCancellationCancelsOwnedScenarioJob(t *testing.T) {
+	t.Parallel()
+
+	scenario := &cancelObservedPublicChatImageScenarioExecutor{submitted: make(chan struct{})}
+	executor := NewAIBackedPublicChatActionExecutor(scenario).(*aiBackedPublicChatActionExecutor)
+	executor.pollInterval = time.Millisecond
+	ctx, cancel := context.WithCancel(context.Background())
+	done := make(chan error, 1)
+	go func() {
+		_, err := executor.ExecuteImageAction(ctx, PublicChatActionExecutionRequest{
+			Session: publicChatAnchorState{
+				CallerAppID: "desktop.app",
+				OwnerUserID: "user-1",
+				Bindings: publicChatExecutionBindings{
+					runtimeAgentAIConfigCapabilityImageGenerate: {
+						ModelID:     "z-image-turbo",
+						RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+						TargetRef:   publicChatTestLocalRuntimeTargetRef("profile_workflow:z-image-turbo"),
+					},
+				},
+			},
+			Turn: publicChatTurnState{TurnID: "turn-image-context-canceled"},
+			Action: publicChatStructuredAction{
+				ActionID:  "action-image-context-canceled",
+				Modality:  "image",
+				Operation: "image.generate",
+				PromptPayload: publicChatStructuredPromptPayload{
+					Kind:       "image-prompt",
+					PromptText: "a quiet library",
+				},
+			},
+		})
+		done <- err
+	}()
+
+	select {
+	case <-scenario.submitted:
+	case <-time.After(time.Second):
+		t.Fatal("image action was not submitted")
+	}
+	cancel()
+
+	select {
+	case err := <-done:
+		if got, ok := grpcerr.ExtractReasonCode(err); !ok || got != runtimev1.ReasonCode_AI_LOCAL_EXECUTION_CANCELED {
+			t.Fatalf("reason = %s, ok=%v, want %s; err=%v", got, ok, runtimev1.ReasonCode_AI_LOCAL_EXECUTION_CANCELED, err)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("image action did not return after context cancellation")
+	}
+
+	if scenario.cancelRequest == nil {
+		t.Fatal("expected the submitted Scenario job to be canceled")
+	}
+	if got := scenario.cancelRequest.GetJobId(); got != "job-image-context-canceled" {
+		t.Fatalf("canceled job = %q, want job-image-context-canceled", got)
+	}
+	if strings.TrimSpace(scenario.cancelRequest.GetReason()) == "" {
+		t.Fatal("expected a cancellation reason")
+	}
+	incoming, _ := metadata.FromIncomingContext(scenario.cancelContext)
+	if got := strings.TrimSpace(firstString(incoming.Get("x-nimi-app-id"))); got != "desktop.app" {
+		t.Fatalf("cancel app = %q, want desktop.app", got)
+	}
+	identity := authn.IdentityFromContext(scenario.cancelContext)
+	if identity == nil || strings.TrimSpace(identity.SubjectUserID) != "user-1" {
+		t.Fatalf("cancel subject = %+v, want user-1", identity)
 	}
 }
 

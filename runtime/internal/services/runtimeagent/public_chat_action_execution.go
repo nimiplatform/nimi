@@ -27,6 +27,7 @@ type publicChatActionScenarioExecutor interface {
 	SubmitScenarioJob(context.Context, *runtimev1.SubmitScenarioJobRequest) (*runtimev1.SubmitScenarioJobResponse, error)
 	GetScenarioJob(context.Context, *runtimev1.GetScenarioJobRequest) (*runtimev1.GetScenarioJobResponse, error)
 	GetScenarioArtifacts(context.Context, *runtimev1.GetScenarioArtifactsRequest) (*runtimev1.GetScenarioArtifactsResponse, error)
+	CancelScenarioJob(context.Context, *runtimev1.CancelScenarioJobRequest) (*runtimev1.CancelScenarioJobResponse, error)
 }
 
 type PublicChatActionExecutionRequest struct {
@@ -129,6 +130,9 @@ func (e *aiBackedPublicChatActionExecutor) ExecuteImageAction(ctx context.Contex
 	}
 	job, err := e.waitImageActionJob(actionCtx, jobID)
 	if err != nil {
+		if actionCtx.Err() != nil {
+			e.cancelImageActionJob(ownerAppID, ownerUserID, jobID)
+		}
 		return PublicChatActionExecutionResult{}, err
 	}
 	artifactsResp, err := e.ai.GetScenarioArtifacts(actionCtx, &runtimev1.GetScenarioArtifactsRequest{JobId: jobID})
@@ -152,6 +156,22 @@ func (e *aiBackedPublicChatActionExecutor) ExecuteImageAction(ctx context.Contex
 		JobID:               jobID,
 		ModelResolved:       strings.TrimSpace(job.GetModelResolved()),
 	}, nil
+}
+
+func (e *aiBackedPublicChatActionExecutor) cancelImageActionJob(ownerAppID string, ownerUserID string, jobID string) {
+	if e == nil || e.ai == nil || strings.TrimSpace(jobID) == "" {
+		return
+	}
+	// Scenario jobs intentionally outlive the Submit RPC, so the public chat
+	// action must cancel the owned job explicitly when its turn context ends.
+	// A detached owner context is required because the action context is
+	// already canceled and cannot carry the cleanup RPC.
+	ctx, cancel := context.WithTimeout(runtimeAgentImageActionContext(context.Background(), ownerAppID, ownerUserID), 5*time.Second)
+	defer cancel()
+	_, _ = e.ai.CancelScenarioJob(ctx, &runtimev1.CancelScenarioJobRequest{
+		JobId:  strings.TrimSpace(jobID),
+		Reason: "runtime agent image action ended",
+	})
 }
 
 func defaultImageActionWait(route runtimev1.RoutePolicy) time.Duration {

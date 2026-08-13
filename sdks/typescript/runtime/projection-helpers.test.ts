@@ -51,6 +51,14 @@ test('Runtime reason message projection normalizes generated enum values and SDK
     'Media task idempotency conflict occurred.',
   );
   assert.equal(
+    getNimiRuntimeReasonCodeMessage(RuntimeGeneratedReasonCode.AI_MEDIA_OPTION_UNSUPPORTED)?.defaultMessage,
+    'Media option is not supported.',
+  );
+  assert.equal(
+    getNimiRuntimeReasonCodeMessage(RuntimeGeneratedReasonCode.AI_LOCAL_EXECUTION_CANCELED)?.defaultMessage,
+    'Local AI execution was canceled.',
+  );
+  assert.equal(
     getNimiRuntimeReasonCodeMessage(RuntimeGeneratedReasonCode.AI_LOCAL_MODEL_UNAVAILABLE)?.defaultMessage,
     'Runtime local execution is unavailable.',
   );

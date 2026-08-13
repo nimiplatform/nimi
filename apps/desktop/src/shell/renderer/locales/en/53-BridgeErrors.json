@@ -65,6 +65,7 @@
     "AI_MEDIA_OPTION_UNSUPPORTED": "Media option is not supported.",
     "AI_MEDIA_JOB_NOT_CANCELLABLE": "Media task cannot be canceled.",
     "AI_LOCAL_MODEL_UNAVAILABLE": "Runtime local execution is unavailable.",
+    "AI_LOCAL_EXECUTION_CANCELED": "Local AI execution was canceled.",
     "AI_LOCAL_MODEL_PROFILE_MISSING": "Runtime local configuration is missing.",
     "AI_LOCAL_ASSET_ALREADY_INSTALLED": "Local AI asset is already installed.",
     "AI_LOCAL_ENDPOINT_REQUIRED": "Local AI endpoint configuration is missing.",
