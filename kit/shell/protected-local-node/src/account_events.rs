@@ -74,6 +74,12 @@ pub async fn desktop_account_session_events_open(
         Some(value) => value,
         None => return NativeJsonOutcome::host_reason("runtime-service-untrusted", false),
     };
+    // Stale-control cleanup drains every old stream slot, so a fresh open must
+    // be verified before this attempt reserves its own placeholder.
+    let control = match current_or_open_desktop_control().await {
+        Ok(control) => control,
+        Err(error) => return NativeJsonOutcome::host_error(error),
+    };
     let stream_id = format!(
         "account-session-{}",
         ACCOUNT_EVENT_STREAM_COUNTER.fetch_add(1, Ordering::Relaxed)
@@ -83,16 +89,6 @@ pub async fn desktop_account_session_events_open(
         return NativeJsonOutcome::host_reason("runtime-service-untrusted", false);
     }
     drop(registry);
-    let control = match current_or_open_desktop_control().await {
-        Ok(control) => control,
-        Err(error) => {
-            account_event_streams()
-                .lock()
-                .await
-                .remove(stream_id.as_str());
-            return NativeJsonOutcome::host_error(error);
-        }
-    };
     let receiver = match control
         .open_account_session_events(DesktopAccountSessionEventsRequest { after_sequence })
         .await

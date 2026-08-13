@@ -66,6 +66,12 @@ const DESKTOP_CONTROL_OPEN_TIMEOUT: Duration = Duration::from_secs(5);
 static FIRST_PARTY_UNARY_CANCELLATIONS: LazyLock<Mutex<FirstPartyUnaryCancellationRegistry>> =
     LazyLock::new(|| Mutex::new(FirstPartyUnaryCancellationRegistry::default()));
 
+tokio::task_local! {
+    // Transport invalidation cancels stale peer operations, but the operation
+    // that detected the stale control must survive its bounded fresh bind.
+    static CURRENT_FIRST_PARTY_UNARY_CANCELLATION: Arc<Notify>;
+}
+
 #[derive(Default)]
 struct FirstPartyUnaryCancellationRegistry {
     entries: HashMap<String, FirstPartyUnaryCancellation>,
@@ -261,12 +267,17 @@ where
             FirstPartyUnaryCancellation::Active(Arc::clone(&cancellation)),
         );
     }
-    tokio::pin!(operation);
-    let outcome = tokio::select! {
-        biased;
-        outcome = &mut operation => outcome,
-        () = cancellation.notified() => NativeBytesOutcome::error("runtime-request-canceled", false),
-    };
+    let cancellation_signal = Arc::clone(&cancellation);
+    let outcome = CURRENT_FIRST_PARTY_UNARY_CANCELLATION
+        .scope(Arc::clone(&cancellation), async move {
+            tokio::pin!(operation);
+            tokio::select! {
+                biased;
+                outcome = &mut operation => outcome,
+                () = cancellation_signal.notified() => NativeBytesOutcome::error("runtime-request-canceled", false),
+            }
+        })
+        .await;
     let mut registry = FIRST_PARTY_UNARY_CANCELLATIONS.lock().await;
     if matches!(
         registry.entries.get(&request_id),
@@ -280,11 +291,21 @@ where
 }
 
 async fn cancel_active_and_clear_completed_first_party_unaries() {
+    let current = CURRENT_FIRST_PARTY_UNARY_CANCELLATION
+        .try_with(Arc::clone)
+        .ok();
     let active_cancellations = {
         let mut registry = FIRST_PARTY_UNARY_CANCELLATIONS.lock().await;
         let mut active = Vec::new();
         registry.entries.retain(|_, entry| match entry {
             FirstPartyUnaryCancellation::Pending => true,
+            FirstPartyUnaryCancellation::Active(cancellation)
+                if current
+                    .as_ref()
+                    .is_some_and(|current| Arc::ptr_eq(current, cancellation)) =>
+            {
+                true
+            }
             FirstPartyUnaryCancellation::Active(cancellation) => {
                 active.push(Arc::clone(cancellation));
                 false
@@ -434,6 +455,50 @@ mod first_party_unary_cancellation_tests {
             .await
             .entries
             .contains_key("runtime-client-unary-native-test"));
+    }
+
+    #[tokio::test]
+    async fn transport_cleanup_cancels_stale_peers_without_canceling_the_triggering_unary() {
+        let _guard = CANCELLATION_TEST_LOCK.lock().await;
+        let peer_started = Arc::new(Notify::new());
+        let peer_started_signal = Arc::clone(&peer_started);
+        let peer = tokio::spawn(run_first_party_unary(
+            "desktop-protected-peer-before-reconnect".to_owned(),
+            async move {
+                peer_started_signal.notify_one();
+                std::future::pending::<NativeBytesOutcome>().await
+            },
+        ));
+        peer_started.notified().await;
+
+        let trigger_request_id = "desktop-protected-triggering-reconnect";
+        let trigger = run_first_party_unary(trigger_request_id.to_owned(), async {
+            cancel_active_and_clear_completed_first_party_unaries().await;
+            NativeBytesOutcome::success(vec![1])
+        })
+        .await;
+        assert_eq!(trigger.status, "ok");
+        assert_eq!(trigger.value.as_deref(), Some(&[1][..]));
+
+        let peer = peer.await.expect("stale peer task must join");
+        assert_eq!(
+            peer.reason_code.as_deref(),
+            Some("runtime-request-canceled")
+        );
+        assert!(matches!(
+            FIRST_PARTY_UNARY_CANCELLATIONS
+                .lock()
+                .await
+                .entries
+                .get(trigger_request_id),
+            Some(FirstPartyUnaryCancellation::Completed)
+        ));
+        let release =
+            desktop_first_party_product_unary_release(NativeFirstPartyProductUnaryCancelInput {
+                request_id: trigger_request_id.to_owned(),
+            })
+            .await;
+        assert_eq!(release.value, Some(json!({ "released": true })));
     }
 
     #[tokio::test]

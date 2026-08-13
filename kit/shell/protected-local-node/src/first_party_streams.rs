@@ -106,6 +106,19 @@ where
         >,
     >,
 {
+    let timeout = input
+        .timeout_ms
+        .map(u64::from)
+        .map(std::time::Duration::from_millis);
+    if timeout.is_some_and(|value| value.is_zero() || value > std::time::Duration::from_secs(300)) {
+        return NativeJsonOutcome::host_reason("runtime-service-untrusted", false);
+    }
+    // Stale-control cleanup drains every old stream slot, so a fresh open must
+    // be verified before this attempt reserves its own placeholder.
+    let control = match current_or_open_desktop_control().await {
+        Ok(control) => control,
+        Err(error) => return NativeJsonOutcome::host_error(error),
+    };
     let stream_id = format!(
         "first-party-product-{}",
         COUNTER.fetch_add(1, Ordering::Relaxed)
@@ -116,21 +129,6 @@ where
     }
     registry.insert(stream_id.clone(), None);
     drop(registry);
-    let control = match current_or_open_desktop_control().await {
-        Ok(control) => control,
-        Err(error) => {
-            streams().lock().await.remove(stream_id.as_str());
-            return NativeJsonOutcome::host_error(error);
-        }
-    };
-    let timeout = input
-        .timeout_ms
-        .map(u64::from)
-        .map(std::time::Duration::from_millis);
-    if timeout.is_some_and(|value| value.is_zero() || value > std::time::Duration::from_secs(300)) {
-        streams().lock().await.remove(stream_id.as_str());
-        return NativeJsonOutcome::host_reason("runtime-service-untrusted", false);
-    }
     let receiver = match open(control.clone(), input.request_bytes.to_vec(), timeout).await {
         Ok(receiver) => receiver,
         Err(error) => {

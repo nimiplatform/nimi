@@ -61,6 +61,16 @@ pub(super) async fn close_all_bundled_avatar_streams() -> usize {
 pub async fn desktop_bundled_avatar_stream_open(
     input: NativeBundledAvatarRuntimeInput,
 ) -> NativeJsonOutcome {
+    let timeout = input
+        .timeout_ms
+        .map(u64::from)
+        .map(std::time::Duration::from_millis);
+    // Stale-control cleanup drains every old stream slot, so a fresh open must
+    // be verified before this attempt reserves its own placeholder.
+    let control = match current_or_open_desktop_control().await {
+        Ok(control) => control,
+        Err(error) => return NativeJsonOutcome::host_error(error),
+    };
     let stream_id = format!("bundled-avatar-{}", COUNTER.fetch_add(1, Ordering::Relaxed));
     let mut registry = streams().lock().await;
     if registry.len() >= MAX_BUNDLED_AVATAR_STREAMS {
@@ -68,17 +78,6 @@ pub async fn desktop_bundled_avatar_stream_open(
     }
     registry.insert(stream_id.clone(), None);
     drop(registry);
-    let control = match current_or_open_desktop_control().await {
-        Ok(control) => control,
-        Err(error) => {
-            streams().lock().await.remove(stream_id.as_str());
-            return NativeJsonOutcome::host_error(error);
-        }
-    };
-    let timeout = input
-        .timeout_ms
-        .map(u64::from)
-        .map(std::time::Duration::from_millis);
     let receiver = match control
         .open_bundled_avatar_stream(BundledAvatarRuntimeRequest {
             method_id: input.method_id,
