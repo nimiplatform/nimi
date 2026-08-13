@@ -57,6 +57,7 @@ type imageExecutionOutcome struct {
 // lease for its image engine instance. Queue state is intentionally private;
 // callers observe queued jobs through their scenario Job state until the
 // factual Host start callback.
+// nimi-authority: definition.nimi.platform.core-protocol.execution-host
 type ImageExecutionHost struct {
 	logger    *slog.Logger
 	substrate imageInvocationSubstrate

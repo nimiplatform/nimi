@@ -35,6 +35,9 @@ const (
 )
 
 // StableDiffusionImageDriver owns the stable-diffusion.cpp portable dialect.
+// nimi-authority: definition.nimi.platform.core-protocol.capability-implementation-driver
+// nimi-authority: rule.nimi.runtime.ai-provider.r063
+// nimi-authority: rule.nimi.runtime.ai-provider.r064
 type StableDiffusionImageDriver struct{}
 
 func (StableDiffusionImageDriver) EffectiveRequestDefaults(value *structpb.Struct) map[string]string {

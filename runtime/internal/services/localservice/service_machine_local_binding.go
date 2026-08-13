@@ -1,3 +1,5 @@
+// nimi-authority: rule.nimi.runtime.local-compute.r107
+
 package localservice
 
 import (

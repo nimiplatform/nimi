@@ -462,6 +462,8 @@ export function createNimiMachineLocalQwen3ASRTransformersConfigurationInput(inp
  * Every emitted portable key is accepted by parseStableDiffusionPortableConfig;
  * unknown constructor fields and out-of-range Driver values fail before transport.
  */
+// nimi-authority: rule.nimi.runtime.ai-provider.r064
+// nimi-authority: rule.nimi.runtime.local-compute.r102
 export function createNimiMachineLocalStableDiffusionImageConfigurationInput(
   input: NimiMachineLocalStableDiffusionImageConfigurationInput,
 ): NimiMachineLocalAIConfigurationAddInput {

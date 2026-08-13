@@ -588,6 +588,8 @@ function ExactAssetSelect(props: {
   );
 }
 
+// nimi-authority: rule.nimi.desktop.ai-consumption.r023
+// nimi-authority: rule.nimi.runtime.ai-provider.r064
 export function createMachineLocalImageConfigurationInput(
   draft: RuntimeConfigMachineLocalAIAddDraft,
   assets: readonly NimiRuntimeLocalAssetEntry[],
