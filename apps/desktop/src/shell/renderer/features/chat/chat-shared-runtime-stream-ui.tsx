@@ -386,6 +386,7 @@ export function RuntimeStreamFooter(props: {
   interruptedLabel: string;
   reasoningLabel: ReactNode;
   waitingLabel?: string;
+  waitingWarningLabel: string;
   showStreamingText?: boolean;
 }) {
   const streamController = useStreamController();
@@ -402,14 +403,13 @@ export function RuntimeStreamFooter(props: {
 
   if (props.streamState && (props.streamState.phase === 'waiting' || props.streamState.phase === 'streaming')) {
     const showStreamingText = props.showStreamingText !== false;
-    const visiblePartialText = showStreamingText
+    const visiblePartialText = props.streamState.phase === 'waiting'
       ? (
-        props.streamState.partialText
-        || (props.streamState.phase === 'waiting'
-          ? (props.waitingLabel || '...')
-          : '')
+        props.streamState.firstContentWarning
+          ? props.waitingWarningLabel
+          : (props.waitingLabel || '...')
       )
-      : (props.waitingLabel || '...');
+      : (showStreamingText ? props.streamState.partialText : (props.waitingLabel || '...'));
     const stopIcon = (
       <button
         type="button"

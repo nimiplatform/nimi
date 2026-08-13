@@ -332,6 +332,10 @@ export function useAiConversationModeHost(
         waitingLabel={t('Chat.nimiSending', {
           defaultValue: 'Generating response...',
         })}
+        waitingWarningLabel={t(
+          'ChatTimeline.firstContentWaitingWarning',
+          'The response is taking longer than usual. Still waiting...',
+        )}
       />
     );
   }, [activeThreadId, aiCharacterData.avatarUrl, aiCharacterData.name, reasoningLabel, streamState, submittingThreadId, t]);

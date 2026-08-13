@@ -27,6 +27,7 @@
   "showImagePrompt": "Show prompt",
   "hideImagePrompt": "Hide prompt",
   "streamInterrupted": "Response interrupted",
+  "firstContentWaitingWarning": "The response is taking longer than usual. Still waiting...",
   "agent": "partner",
   "source": "Source",
   "human": "Human",

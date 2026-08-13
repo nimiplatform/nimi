@@ -27,6 +27,7 @@
   "showImagePrompt": "显示提示词",
   "hideImagePrompt": "隐藏提示词",
   "streamInterrupted": "回复已中断",
+  "firstContentWaitingWarning": "响应时间比平时更长，仍在等待……",
   "agent": "伙伴",
   "source": "Source",
   "human": "真人",

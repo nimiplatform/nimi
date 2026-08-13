@@ -180,6 +180,10 @@ export function useAgentConversationPresentation(
           waitingLabel={input.t('Chat.agentSending', {
             defaultValue: 'The agent is replying...',
           })}
+          waitingWarningLabel={input.t(
+            'ChatTimeline.firstContentWaitingWarning',
+            'The response is taking longer than usual. Still waiting...',
+          )}
           showStreamingText={false}
         />
       )

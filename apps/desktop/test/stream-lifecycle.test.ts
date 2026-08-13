@@ -93,7 +93,8 @@ function installFakeTimers(): {
 }
 
 import {
-    STREAM_FIRST_PACKET_TIMEOUT_MS,
+    STREAM_FIRST_CONTENT_WARNING_DELAY_MS,
+    STREAM_IDLE_TIMEOUT_MS,
     createStreamController,
     startStream,
     feedStreamEvent,
@@ -122,6 +123,8 @@ test('D-STRM-001: startStream sets phase to waiting', () => {
   const state = getStreamState(TEST_CHAT);
   assert.equal(state.phase, 'waiting');
   assert.equal(state.partialText, '');
+  assert.equal(state.firstContentWarning, false);
+  assert.equal(state.firstContentChunkAt, null);
   cancelStream(TEST_CHAT);
 });
 
@@ -226,58 +229,139 @@ test('D-STRM: events after done are ignored', () => {
   assert.equal(state.partialText, '');
 });
 
-test('D-STRM: late terminal completion recovers a first-packet timeout', () => {
+test('D-STRM: first-content delay warns at 10s without terminating the stream', () => {
   const fakeTimers = installFakeTimers();
   try {
-    startStream(TEST_CHAT);
-    const [firstPacketTimerId] = fakeTimers.getTimerIds();
-    assert.ok(firstPacketTimerId, 'expected first-packet timer to be registered');
-
-    fakeTimers.runTimer(firstPacketTimerId);
+    const updates: boolean[] = [];
+    const unsubscribe = subscribeStream(TEST_CHAT, (state) => {
+      updates.push(state.firstContentWarning);
+    });
+    const abortController = startStream(TEST_CHAT);
+    const [warningTimerId] = fakeTimers.getTimerIds();
+    assert.ok(warningTimerId, 'expected first-content warning timer to be registered');
+    assert.equal(STREAM_FIRST_CONTENT_WARNING_DELAY_MS, 10_000);
 
     let state = getStreamState(TEST_CHAT);
-    assert.equal(state.phase, 'error');
-    assert.equal(state.cancelSource, 'timeout');
-    assert.equal(state.errorMessage, `No response within ${STREAM_FIRST_PACKET_TIMEOUT_MS / 1000}s`);
+    assert.equal(state.phase, 'waiting');
+    assert.equal(state.firstContentWarning, false);
+    assert.deepEqual(updates, [false]);
 
-    feedStreamEvent(TEST_CHAT, {
-      type: 'done',
-      finalText: 'late final answer',
-      finalReasoningText: 'late reasoning',
-    });
+    fakeTimers.runTimer(warningTimerId);
 
     state = getStreamState(TEST_CHAT);
-    assert.equal(state.phase, 'done');
-    assert.equal(state.partialText, 'late final answer');
-    assert.equal(state.partialReasoningText, 'late reasoning');
+    assert.equal(state.phase, 'waiting');
+    assert.equal(state.firstContentWarning, true);
     assert.equal(state.errorMessage, null);
-    assert.equal(state.cancelSource, null);
     assert.equal(state.interrupted, false);
+    assert.equal(state.cancelSource, null);
+    assert.equal(state.firstContentChunkAt, null);
+    assert.equal(abortController.signal.aborted, false);
+    assert.deepEqual(updates, [false, true]);
+    unsubscribe();
+
+    const replacementAbortController = startStream(TEST_CHAT);
+    state = getStreamState(TEST_CHAT);
+    assert.equal(state.phase, 'waiting');
+    assert.equal(state.firstContentWarning, false);
+    assert.equal(state.firstContentChunkAt, null);
+    assert.equal(abortController.signal.aborted, true);
+    assert.equal(replacementAbortController.signal.aborted, false);
+    cancelStream(TEST_CHAT);
   } finally {
     fakeTimers.restore();
   }
 });
 
-test('D-STRM: keepalive clears first-packet timeout while preserving waiting phase', () => {
+test('D-STRM: delayed text and reasoning deltas are consumed and clear the warning', () => {
   const fakeTimers = installFakeTimers();
   try {
-    startStream(TEST_CHAT);
-    const [firstPacketTimerId] = fakeTimers.getTimerIds();
-    assert.ok(firstPacketTimerId, 'expected first-packet timer to be registered');
+    for (const event of [
+      { type: 'text_delta' as const, textDelta: 'late text' },
+      { type: 'reasoning_delta' as const, textDelta: 'late reasoning' },
+    ]) {
+      const abortController = startStream(TEST_CHAT);
+      const [warningTimerId] = fakeTimers.getTimerIds();
+      assert.ok(warningTimerId, 'expected first-content warning timer to be registered');
+      fakeTimers.runTimer(warningTimerId);
+
+      feedStreamEvent(TEST_CHAT, event);
+
+      const state = getStreamState(TEST_CHAT);
+      assert.equal(state.phase, 'streaming');
+      assert.equal(state.firstContentWarning, false);
+      assert.equal(state.firstContentChunkAt !== null, true);
+      assert.equal(state.partialText, event.type === 'text_delta' ? event.textDelta : '');
+      assert.equal(
+        state.partialReasoningText,
+        event.type === 'reasoning_delta' ? event.textDelta : '',
+      );
+      assert.equal(abortController.signal.aborted, false);
+      feedStreamEvent(TEST_CHAT, { type: 'done' });
+    }
+  } finally {
+    fakeTimers.restore();
+  }
+});
+
+test('D-STRM: keepalive is activity but cannot suppress the first-content warning', () => {
+  const fakeTimers = installFakeTimers();
+  try {
+    const abortController = startStream(TEST_CHAT);
+    const [warningTimerId] = fakeTimers.getTimerIds();
+    assert.ok(warningTimerId, 'expected first-content warning timer to be registered');
 
     feedStreamEvent(TEST_CHAT, { type: 'keepalive' });
-    fakeTimers.runTimer(firstPacketTimerId);
+    assert.deepEqual(fakeTimers.getTimerIds(), [warningTimerId]);
+    fakeTimers.runTimer(warningTimerId);
 
     const state = getStreamState(TEST_CHAT);
     assert.equal(state.phase, 'waiting');
+    assert.equal(state.firstContentWarning, true);
     assert.equal(state.errorMessage, null);
-    assert.equal(state.firstPacketAt !== null, true);
+    assert.equal(state.firstContentChunkAt, null);
+    assert.equal(state.lastActivityAt !== null, true);
+    assert.equal(state.idleDeadlineAt, null);
+    assert.equal(abortController.signal.aborted, false);
   } finally {
     fakeTimers.restore();
   }
 });
 
-test('D-STRM: Runtime request ack rearms the total timeout budget', () => {
+test('D-STRM: Runtime done and error terminate normally after the waiting warning', () => {
+  const fakeTimers = installFakeTimers();
+  try {
+    const doneAbortController = startStream(TEST_CHAT);
+    const [doneWarningTimerId] = fakeTimers.getTimerIds();
+    assert.ok(doneWarningTimerId);
+    fakeTimers.runTimer(doneWarningTimerId);
+    feedStreamEvent(TEST_CHAT, { type: 'done' });
+
+    let state = getStreamState(TEST_CHAT);
+    assert.equal(state.phase, 'done');
+    assert.equal(state.firstContentWarning, false);
+    assert.equal(state.firstContentChunkAt, null);
+    assert.equal(doneAbortController.signal.aborted, false);
+
+    clearStream(TEST_CHAT);
+    const errorAbortController = startStream(TEST_CHAT);
+    const [errorWarningTimerId] = fakeTimers.getTimerIds();
+    assert.ok(errorWarningTimerId);
+    fakeTimers.runTimer(errorWarningTimerId);
+    feedStreamEvent(TEST_CHAT, { type: 'error', message: 'provider unavailable' });
+
+    state = getStreamState(TEST_CHAT);
+    assert.equal(state.phase, 'error');
+    assert.equal(state.errorMessage, 'provider unavailable');
+    assert.equal(state.firstContentWarning, false);
+    assert.equal(state.firstContentChunkAt, null);
+    assert.equal(state.cancelSource, null);
+    assert.equal(errorAbortController.signal.aborted, false);
+  } finally {
+    fakeTimers.restore();
+  }
+});
+
+test('D-STRM: waiting is not locally terminated by initial, rearmed, idle, or keepalive timers', () => {
   type ScheduledTimer = {
     active: boolean;
     delayMs: number;
@@ -300,19 +384,32 @@ test('D-STRM: Runtime request ack rearms the total timeout budget', () => {
   });
 
   const abortController = controller.startStream('runtime-ack-rearm', 120_000);
-  const originalTotalTimer = timers.find((timer) => timer.delayMs === 120_000);
-  assert.ok(originalTotalTimer);
+  const warningTimer = timers.find((timer) => (
+    timer.delayMs === STREAM_FIRST_CONTENT_WARNING_DELAY_MS && timer.active
+  ));
+  assert.ok(warningTimer);
+  assert.equal(timers.some((timer) => timer.delayMs === 120_000), false);
 
   now += 42_251;
-  assert.equal(controller.rearmTotalTimeout('runtime-ack-rearm', 120_000), true);
-  const activeTotalTimers = timers.filter((timer) => timer.delayMs === 120_000 && timer.active);
-  assert.equal(originalTotalTimer.active, false);
-  assert.equal(activeTotalTimers.length, 1);
-  assert.equal(controller.getStreamState('runtime-ack-rearm').phase, 'waiting');
+  assert.equal(controller.rearmTotalTimeout('runtime-ack-rearm', 45_000), true);
+  controller.feedStreamEvent('runtime-ack-rearm', { type: 'keepalive' });
+  assert.equal(timers.some((timer) => timer.delayMs === 120_000), false);
+  assert.equal(timers.some((timer) => timer.delayMs === 45_000), false);
+  assert.equal(timers.some((timer) => timer.delayMs === 30_000), false);
+
+  warningTimer.listener({ ok: true });
+  let state = controller.getStreamState('runtime-ack-rearm');
+  assert.equal(state.phase, 'waiting');
+  assert.equal(state.firstContentWarning, true);
+  assert.equal(state.errorMessage, null);
+  assert.equal(state.cancelSource, null);
   assert.equal(abortController.signal.aborted, false);
 
-  activeTotalTimers[0]?.listener({ ok: true });
-  assert.equal(controller.getStreamState('runtime-ack-rearm').phase, 'error');
+  controller.cancelStream('runtime-ack-rearm');
+  state = controller.getStreamState('runtime-ack-rearm');
+  assert.equal(state.phase, 'cancelled');
+  assert.equal(state.cancelSource, 'user');
+  assert.equal(state.firstContentWarning, false);
   assert.equal(abortController.signal.aborted, true);
   controller.dispose();
 });
@@ -339,21 +436,27 @@ test('D-STRM: first real content starts a fresh completion budget', () => {
   });
 
   const abortController = controller.startStream('first-content-rearm', 120_000);
-  const originalTotalTimer = timers.find((timer) => timer.delayMs === 120_000);
-  assert.ok(originalTotalTimer);
+  assert.equal(timers.some((timer) => timer.delayMs === 120_000), false);
 
   controller.feedStreamEvent('first-content-rearm', { type: 'keepalive' });
-  assert.equal(originalTotalTimer.active, true);
+  assert.equal(timers.some((timer) => timer.delayMs === STREAM_IDLE_TIMEOUT_MS), false);
   controller.feedStreamEvent('first-content-rearm', { type: 'text_delta', textDelta: 'ready' });
 
   const activeTotalTimers = timers.filter((timer) => timer.delayMs === 120_000 && timer.active);
-  assert.equal(originalTotalTimer.active, false);
   assert.equal(activeTotalTimers.length, 1);
-  assert.equal(controller.getStreamState('first-content-rearm').phase, 'streaming');
+  const activeIdleTimers = timers.filter((timer) => (
+    timer.delayMs === STREAM_IDLE_TIMEOUT_MS && timer.active
+  ));
+  assert.equal(activeIdleTimers.length, 1);
+  const streamingState = controller.getStreamState('first-content-rearm');
+  assert.equal(streamingState.phase, 'streaming');
+  assert.equal(streamingState.firstContentWarning, false);
+  assert.equal(streamingState.firstContentChunkAt !== null, true);
   assert.equal(abortController.signal.aborted, false);
 
   controller.feedStreamEvent('first-content-rearm', { type: 'done', finalText: 'ready' });
   assert.equal(activeTotalTimers[0]?.active, false);
+  assert.equal(activeIdleTimers[0]?.active, false);
   assert.equal(controller.getStreamState('first-content-rearm').phase, 'done');
   controller.dispose();
 });

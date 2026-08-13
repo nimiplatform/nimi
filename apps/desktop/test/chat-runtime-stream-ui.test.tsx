@@ -108,7 +108,7 @@ test('runtime image message content falls back to mediaUrl when attachment metad
   assert.match(markup, /src="https:\/\/cdn\.nimi\.test\/legacy\/fallback\.png"/u);
 });
 
-test('runtime stream footer keeps a visible waiting label after first packet when streaming text is hidden', async () => {
+test('runtime stream footer keeps a visible waiting label after first content when streaming text is hidden', async () => {
   const RuntimeStreamFooter = await loadRuntimeStreamFooter();
   const markup = renderToStaticMarkup(
     <StreamControllerProvider controller={createTestStreamController()}>
@@ -124,8 +124,9 @@ test('runtime stream footer keeps a visible waiting label after first packet whe
           partialReasoningText: '',
           errorMessage: null,
           interrupted: false,
+          firstContentWarning: false,
           startedAt: 0,
-          firstPacketAt: 1,
+          firstContentChunkAt: 1,
           lastActivityAt: 1,
           idleDeadlineAt: 2,
           reasonCode: null,
@@ -136,6 +137,7 @@ test('runtime stream footer keeps a visible waiting label after first packet whe
         interruptedLabel="Interrupted"
         reasoningLabel="Reasoning"
         waitingLabel="The agent is replying..."
+        waitingWarningLabel="The response is taking longer than usual. Still waiting..."
         showStreamingText={false}
       />
     </StreamControllerProvider>,
@@ -143,6 +145,45 @@ test('runtime stream footer keeps a visible waiting label after first packet whe
 
   assert.match(markup, /The agent is replying\.\.\./u);
   assert.match(markup, /Stop generating/u);
+});
+
+test('runtime stream footer shows the non-terminal waiting warning with Stop available', async () => {
+  const RuntimeStreamFooter = await loadRuntimeStreamFooter();
+  const markup = renderToStaticMarkup(
+    <StreamControllerProvider controller={createTestStreamController()}>
+      <RuntimeStreamFooter
+        chatId="thread-delayed"
+        assistantName="Companion"
+        assistantAvatarUrl={null}
+        assistantKind="agent"
+        streamState={{
+          chatId: 'thread-delayed',
+          phase: 'waiting',
+          partialText: '',
+          partialReasoningText: '',
+          errorMessage: null,
+          interrupted: false,
+          firstContentWarning: true,
+          startedAt: 0,
+          firstContentChunkAt: null,
+          lastActivityAt: null,
+          idleDeadlineAt: null,
+          reasonCode: null,
+          traceId: null,
+          cancelSource: null,
+        }}
+        stopLabel="Stop generating"
+        interruptedLabel="Interrupted"
+        reasoningLabel="Reasoning"
+        waitingLabel="The agent is replying..."
+        waitingWarningLabel="The response is taking longer than usual. Still waiting..."
+      />
+    </StreamControllerProvider>,
+  );
+
+  assert.match(markup, /The response is taking longer than usual\. Still waiting\.\.\./u);
+  assert.match(markup, /aria-label="Stop generating"/u);
+  assert.doesNotMatch(markup, /Interrupted/u);
 });
 
 test('runtime agent debug accessory renders runtime.agent.turns anchor evidence', async () => {
