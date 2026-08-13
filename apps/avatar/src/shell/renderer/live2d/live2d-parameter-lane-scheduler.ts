@@ -1,4 +1,5 @@
 import type { Live2DVisualModelShape } from './carrier-visual-runtime.js';
+import { readLive2DKnownParameterIds } from './live2d-parameter-ids.js';
 
 export const LIVE2D_PARAMETER_LANE_ORDER = [
   'motion',
@@ -36,12 +37,6 @@ export type Live2DParameterLaneScheduler = {
   }): Live2DParameterLaneFrameStats;
 };
 
-type ParameterIdContainer = {
-  getSize?: () => number;
-  get?: (index: number) => unknown;
-  at?: (index: number) => unknown;
-};
-
 function nowMs(): number {
   return typeof performance !== 'undefined' ? performance.now() : Date.now();
 }
@@ -49,42 +44,6 @@ function nowMs(): number {
 function boundedMs(value: number): number {
   if (!Number.isFinite(value) || value < 0) return 0;
   return Math.round(Math.min(value, 1000) * 1000) / 1000;
-}
-
-function stringIdsFromContainer(container: unknown): string[] | null {
-  if (Array.isArray(container)) {
-    return container.map((id) => String(id));
-  }
-  if (!container || typeof container !== 'object') {
-    return null;
-  }
-  const vector = container as ParameterIdContainer;
-  if (typeof vector.getSize !== 'function') {
-    return null;
-  }
-  const ids: string[] = [];
-  const size = Math.max(0, vector.getSize());
-  for (let index = 0; index < size; index += 1) {
-    const value =
-      typeof vector.at === 'function'
-        ? vector.at(index)
-        : typeof vector.get === 'function'
-          ? vector.get(index)
-          : undefined;
-    if (value !== undefined && value !== null) {
-      ids.push(String(value));
-    }
-  }
-  return ids;
-}
-
-function readKnownParameterIds(model: Live2DVisualModelShape): Set<string> | null {
-  const directIds = stringIdsFromContainer(model.parameters?.ids);
-  if (directIds) {
-    return new Set(directIds);
-  }
-  const internalIds = stringIdsFromContainer((model as unknown as { _parameterIds?: unknown })._parameterIds);
-  return internalIds ? new Set(internalIds) : null;
 }
 
 function hasParameter(model: Live2DVisualModelShape, knownIds: Set<string> | null, parameterId: string): boolean {
@@ -137,7 +96,7 @@ export function createLive2DParameterLaneScheduler(input: {
   return {
     run({ model, lanes, parameters }) {
       const frameStart = now();
-      const knownIds = readKnownParameterIds(model);
+      const knownIds = readLive2DKnownParameterIds(model);
       const unsupportedParameterIds = new Set<string>();
       const appliedLanes: Live2DParameterLaneId[] = [];
       const laneElapsedMs = Object.fromEntries(

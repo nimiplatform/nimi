@@ -9,6 +9,7 @@ import type {
   AgentCenterPermissionedPresentationIntent,
   AgentCenterPresentationAssetMaterial,
   AgentCenterRuntimePresentationProfileMutationResult,
+  AgentCenterRuntimePresentationProfilePatch,
   AgentCenterRuntimePresentationProfileSurface,
   AgentCenterRuntimeSnapshot,
 } from './types.js';
@@ -128,7 +129,7 @@ export function createAgentCenterShellAppearanceAdapter(
           if (material.backendKind !== kind) {
             throw new Error('Shell returned appearance material for the wrong backend.');
           }
-          const result = await input.runtimePresentation.setPresentationProfile(
+          const result = await input.runtimePresentation.patchPresentationProfile(
             input.identity,
             {
               backendKind: kind,
@@ -155,7 +156,7 @@ export function createAgentCenterShellAppearanceAdapter(
         const restored = previousProfile;
         const result = await input.runtimePresentation.setPresentationProfile(
           input.identity,
-          restored,
+          presentationProfileCommitInput(restored),
           committedRevision,
         );
         const restoredMaterialRef = previousMaterialRef;
@@ -177,6 +178,21 @@ export function createAgentCenterShellAppearanceAdapter(
         return project();
       });
     },
+  };
+}
+
+function presentationProfileCommitInput(
+  profile: NimiRuntimeAgentPresentationProfileProjection,
+): AgentCenterRuntimePresentationProfilePatch {
+  return {
+    ...(profile.backendKind ? { backendKind: profile.backendKind } : {}),
+    ...(profile.avatarAssetRef ? { avatarAssetRef: profile.avatarAssetRef } : {}),
+    ...(profile.expressionProfileRef ? { expressionProfileRef: profile.expressionProfileRef } : {}),
+    ...(profile.idlePreset ? { idlePreset: profile.idlePreset } : {}),
+    ...(profile.interactionPolicyRef ? { interactionPolicyRef: profile.interactionPolicyRef } : {}),
+    ...(profile.defaultVoiceReference ? { defaultVoiceReference: profile.defaultVoiceReference } : {}),
+    avatarAutoplay: profile.avatarAutoplay,
+    ...(profile.backgroundAssetRef ? { backgroundAssetRef: profile.backgroundAssetRef } : {}),
   };
 }
 

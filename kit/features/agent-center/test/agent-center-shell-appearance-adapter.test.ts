@@ -36,8 +36,14 @@ function committed(input: {
 }
 
 describe('Agent Center appearance auto-save adapter', () => {
-  it('forwards picked bytes into the one Runtime commit and renders only its committed ref', async () => {
-    const setPresentationProfile = vi.fn(async (
+  it('atomically patches the avatar asset while preserving the committed profile fields', async () => {
+    const currentProfile = {
+      ...emptyProfile,
+      defaultVoiceReference: 'preset_voice_id:serena',
+      avatarAutoplay: true,
+      backgroundAssetRef: 'background:current',
+    } as const;
+    const patchPresentationProfile = vi.fn(async (
       _identity: RuntimeLocalAgentIdentityInput,
       profile: AgentCenterRuntimePresentationProfilePatch | null,
       expectedRevision: string,
@@ -46,21 +52,23 @@ describe('Agent Center appearance auto-save adapter', () => {
       expect(expectedRevision).toBe('0');
       expect(profile).toEqual({ backendKind: 'vrm' });
       expect(importedAssets).toEqual([{ role: 'avatar', fileName: 'avatar.vrm', mediaType: 'model/gltf-binary', content: material.content, sha256: material.sha256 }]);
-      return committed({ ref: 'vrm_runtime_official', revision: '1' });
+      return {
+        profile: { ...currentProfile, backendKind: 'vrm' as const, avatarAssetRef: 'vrm_runtime_official' },
+        previousProfile: currentProfile,
+        committedRevision: '1',
+      };
     });
     const adapter = createAgentCenterShellAppearanceAdapter({
       identity,
       accountId: 'account',
       snapshot: { inspect: {
-        presentationProfile: {
-          ...emptyProfile,
-          defaultVoiceReference: 'provider_voice_ref:legacy-source-default',
-          avatarAutoplay: true,
-          backgroundAssetRef: 'background:legacy-source-default',
-        },
+        presentationProfile: currentProfile,
         presentationProfileRevision: '0',
       } as never },
-      runtimePresentation: { setPresentationProfile, async patchPresentationProfile() { throw new Error('two-step patch must not run'); } },
+      runtimePresentation: {
+        async setPresentationProfile() { throw new Error('full presentation replacement must not run'); },
+        patchPresentationProfile,
+      },
       shell: { async pickAvatarAssetMaterial() { return material; } },
       avatarPreview: {
         async resolvePreview(input) {
@@ -78,8 +86,10 @@ describe('Agent Center appearance auto-save adapter', () => {
     expect(projection).toMatchObject({
       status: 'ready', presentationRevision: '1', avatarAssetRef: 'vrm_runtime_official',
       renderState: 'ready', renderImageRef: '/committed/avatar.png',
+      defaultVoiceReference: 'preset_voice_id:serena', avatarAutoplay: true,
+      backgroundRef: 'background:current',
     });
-    expect(setPresentationProfile).toHaveBeenCalledTimes(1);
+    expect(patchPresentationProfile).toHaveBeenCalledTimes(1);
   });
 
   it('leaves the committed appearance unchanged when Runtime validation fails', async () => {
@@ -94,8 +104,8 @@ describe('Agent Center appearance auto-save adapter', () => {
         presentationProfileRevision: '7',
       } as never },
       runtimePresentation: {
-        async setPresentationProfile() { throw failure; },
-        async patchPresentationProfile() { throw new Error('must not patch'); },
+        async setPresentationProfile() { throw new Error('must not replace the presentation'); },
+        async patchPresentationProfile() { throw failure; },
       },
       shell: { async pickAvatarAssetMaterial() { return material; } },
     });
@@ -144,8 +154,13 @@ describe('Agent Center appearance auto-save adapter', () => {
   });
 
   it('projects post-save render failure separately and restores previous as a new commit', async () => {
-    const previous = { ...emptyProfile, backendKind: 'vrm' as const, avatarAssetRef: 'vrm_previous' };
-    let call = 0;
+    const previous = {
+      ...emptyProfile,
+      backendKind: 'vrm' as const,
+      avatarAssetRef: 'vrm_previous',
+      defaultVoiceReference: 'preset_voice_id:serena',
+      avatarAutoplay: true,
+    };
     const adapter = createAgentCenterShellAppearanceAdapter({
       identity,
       accountId: 'account',
@@ -154,16 +169,24 @@ describe('Agent Center appearance auto-save adapter', () => {
       } as never },
       runtimePresentation: {
         async setPresentationProfile(_identity, profile, expectedRevision) {
-          call += 1;
-          if (call === 1) return committed({ ref: 'vrm_new', revision: '2', previous });
           expect(expectedRevision).toBe('2');
-          expect(profile?.avatarAssetRef).toBe('vrm_previous');
-          return committed({
-            ref: 'vrm_previous', revision: '3',
-            previous: { ...emptyProfile, backendKind: 'vrm', avatarAssetRef: 'vrm_new' },
+          expect(profile).toEqual({
+            backendKind: 'vrm',
+            avatarAssetRef: 'vrm_previous',
+            defaultVoiceReference: 'preset_voice_id:serena',
+            avatarAutoplay: true,
           });
+          return {
+            profile: previous,
+            previousProfile: { ...emptyProfile, backendKind: 'vrm', avatarAssetRef: 'vrm_new' },
+            committedRevision: '3',
+          };
         },
-        async patchPresentationProfile() { throw new Error('must not patch'); },
+        async patchPresentationProfile(_identity, profile, expectedRevision) {
+          expect(expectedRevision).toBe('1');
+          expect(profile).toEqual({ backendKind: 'vrm' });
+          return committed({ ref: 'vrm_new', revision: '2', previous });
+        },
       },
       shell: { async pickAvatarAssetMaterial() { return material; } },
       avatarPreview: {
@@ -183,6 +206,7 @@ describe('Agent Center appearance auto-save adapter', () => {
     });
     expect(await adapter.restorePreviousAppearance?.()).toMatchObject({
       avatarAssetRef: 'vrm_previous', presentationRevision: '3',
+      defaultVoiceReference: 'preset_voice_id:serena', avatarAutoplay: true,
     });
   });
 });

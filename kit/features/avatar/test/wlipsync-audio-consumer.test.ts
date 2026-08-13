@@ -65,7 +65,7 @@ describe('createWLipSyncAudioConsumer', () => {
     expect(createNode).toHaveBeenCalledTimes(2);
   });
 
-  it('detaches sources, preserves node snapshot, and reports attachment state', async () => {
+  it('detaches sources, hides stale weights, and reports attachment state', async () => {
     const node = fakeNode();
     const source = fakeSource();
     const consumer = createWLipSyncAudioConsumer({
@@ -80,7 +80,7 @@ describe('createWLipSyncAudioConsumer', () => {
 
     expect(consumer.isAttached()).toBe(false);
     expect(source.disconnect).toHaveBeenCalledWith(node);
-    expect(consumer.snapshot()).not.toBeNull();
+    expect(consumer.snapshot()).toBeNull();
   });
 
   it('fails closed for missing profile and node creation errors', async () => {

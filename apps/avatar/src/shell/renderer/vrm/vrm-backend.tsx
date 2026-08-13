@@ -44,6 +44,7 @@ import {
   type VrmRenderTarget,
 } from './vrm-render-target.js';
 import type { VrmCapabilityProfile } from './vrm-capability-profile.js';
+import { loadEmbeddedWLipSyncProfile } from '../lip-sync-profile.js';
 
 // Wave 2 chunk 2-E: nominalBounds is the BOOT placeholder used by
 // embodiment-stage for the very first window-resize tick (before VRM
@@ -118,28 +119,6 @@ export function createQueuedProjection(): QueuedProjectionHandle {
   };
 }
 
-/**
- * Synchronously load the wlipsync profile JSON shipped under
- * `apps/avatar/assets/lip-sync/`. Mirrors the live2d branch loader
- * (live2d-backend-branch.ts) — async dynamic import + `with: { type:
- * 'json' }` ensures Vite emits a JSON module rather than re-parsing
- * text at runtime.
- */
-async function loadLipsyncProfile(): Promise<Profile | null> {
-  try {
-    const mod = await import('../../../../assets/lip-sync/lip-sync-profile.json', {
-      with: { type: 'json' },
-    });
-    return (mod as { default?: Profile }).default ?? (mod as unknown as Profile);
-  } catch (err) {
-    console.warn(
-      '[avatar:vrm:lipsync] failed to load wlipsync profile JSON; lipsync silent',
-      err,
-    );
-    return null;
-  }
-}
-
 export type VrmBackendBranchHandle = {
   branch: BackendBranch & { kind: 'vrm' };
   audioConsumer: BackendAudioConsumer;
@@ -152,8 +131,8 @@ export type CreateVrmBackendBranchOptions = {
     VrmRuntimeOptions,
     'loaderOverride' | 'setTimeoutFn' | 'clearTimeoutFn' | 'nowFn'
   >;
-  /** Test seam: override the wlipsync profile loader (default: real
-   *  JSON dynamic import). Returning null keeps the audio consumer in
+  /** Test seam: override the wlipsync profile loader (default: embedded
+   *  renderer module). Returning null keeps the audio consumer in
    *  the silent path (matches the live2d profile-missing fallback). */
   loadProfileOverride?: () => Promise<Profile | null>;
   /** Test seam: provide a pre-built render target (e.g. stub mode for
@@ -173,11 +152,11 @@ export async function createVrmBackendBranch(
   // the runtime product path.
   const emoteTable = loadVrmEmoteTable();
 
-  // wlipsync profile is async (dynamic JSON import); profile === null
-  // is an admitted degraded path (consumer warns once + silents on
-  // attach).
-  const profileLoader = options.loadProfileOverride ?? loadLipsyncProfile;
-  const profile = await profileLoader();
+  // The product path is a build-time renderer module. profile === null is
+  // retained only for the explicit failure test seam below.
+  const profile = options.loadProfileOverride
+    ? await options.loadProfileOverride()
+    : loadEmbeddedWLipSyncProfile();
   if (profile === null) {
     console.warn('[avatar:vrm] wLipSync profile is unavailable; lipsync will remain silent');
   }

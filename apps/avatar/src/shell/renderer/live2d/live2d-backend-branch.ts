@@ -17,7 +17,6 @@ import type {
   BackendHitRegion,
   Live2DBackendExtension,
 } from '../carrier/backend-branch.js';
-import type { Profile } from 'wlipsync';
 import type { Live2DAdapterManifestV1 } from '@nimiplatform/kit/features/avatar/headless';
 import { parseLive2DAdapterManifest } from '@nimiplatform/kit/features/avatar/headless';
 import { waitForCubismCore } from './cubism-bootstrap.js';
@@ -47,6 +46,7 @@ import { computeLive2DHitRegion } from '@nimiplatform/kit/features/avatar/headle
 import { createLive2DAudioConsumer } from './live2d-audio-consumer.js';
 import { createLive2DProjectionAdapter } from './live2d-projection-adapter.js';
 import { createLive2DCarrierSurface } from './live2d-carrier-surface.js';
+import { loadEmbeddedWLipSyncProfile } from '../lip-sync-profile.js';
 
 function timeoutAfter<T>(ms: number, message: string): Promise<T> {
   return new Promise((_, reject) => {
@@ -211,21 +211,6 @@ async function loadEmbeddedAdapterManifest(
   return parseLive2DAdapterManifest(raw);
 }
 
-async function loadLipsyncProfile(): Promise<Profile | null> {
-  try {
-    const mod = await import('../../../../assets/lip-sync/lip-sync-profile.json', {
-      with: { type: 'json' },
-    });
-    return (mod as { default?: Profile }).default ?? (mod as unknown as Profile);
-  } catch (err) {
-    console.warn(
-      '[avatar:live2d:lipsync] failed to load wlipsync profile JSON; lipsync silent',
-      err,
-    );
-    return null;
-  }
-}
-
 function createLive2DExtension(
   commandBus: Live2DCommandBus,
 ): Live2DBackendExtension {
@@ -281,7 +266,7 @@ export async function createLive2DBackendBranch(
     compatibility: backendSession.compatibility,
   });
 
-  const profile = await loadLipsyncProfile();
+  const profile = loadEmbeddedWLipSyncProfile();
   const audioConsumer = createLive2DAudioConsumer({ profile });
 
   const projection = createLive2DProjectionAdapter({

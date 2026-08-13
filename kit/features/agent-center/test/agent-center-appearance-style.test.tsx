@@ -33,6 +33,28 @@ describe('AgentCenter committed appearance surface', () => {
     expect(markup).toMatch(/disabled=""/u);
   });
 
+  it('keeps the previous committed appearance recoverable when the current renderer is unavailable', async () => {
+    const appearance = {
+      status: 'invalid' as const,
+      presentationRevision: 'p4',
+      backendKind: 'live2d' as const,
+      avatarAssetRef: 'avatar:current',
+      avatarAssetValid: true,
+      renderState: 'unavailable' as const,
+      renderFailureReason: 'committed material unavailable',
+      previousSelection: {
+        backendKind: 'vrm',
+        avatarAssetReference: 'avatar:previous',
+      },
+    };
+    const session = await sessionFor({ appearance }, {
+      async load() { return appearance; },
+      async restorePreviousAppearance() { return appearance; },
+    });
+    const markup = renderToStaticMarkup(<AgentCenter activeSection="appearance" session={session} />);
+    expect(markup).toContain('Restore previous appearance');
+  });
+
   it('renders the Runtime-bound default voice and avatar autoplay state', async () => {
     const session = await sessionFor({
       appearance: {

@@ -1,4 +1,5 @@
 import type { Live2DVisualModelShape } from './carrier-visual-runtime.js';
+import { readLive2DKnownParameterIds } from './live2d-parameter-ids.js';
 
 const PARAM_EYE_BALL_X = 'ParamEyeBallX';
 const PARAM_EYE_BALL_Y = 'ParamEyeBallY';
@@ -32,48 +33,6 @@ export type Live2DLookAtIdleController = {
   }): Live2DLookAtIdleFrame;
   snapshot(): Omit<Live2DLookAtIdleFrame, 'applied'>;
 };
-
-type ParameterIdContainer = {
-  getSize?: () => number;
-  get?: (index: number) => unknown;
-  at?: (index: number) => unknown;
-};
-
-function stringIdsFromContainer(container: unknown): string[] | null {
-  if (Array.isArray(container)) {
-    return container.map((id) => String(id));
-  }
-  if (!container || typeof container !== 'object') {
-    return null;
-  }
-  const vector = container as ParameterIdContainer;
-  if (typeof vector.getSize !== 'function') {
-    return null;
-  }
-  const ids: string[] = [];
-  const size = Math.max(0, vector.getSize());
-  for (let index = 0; index < size; index += 1) {
-    const value =
-      typeof vector.at === 'function'
-        ? vector.at(index)
-        : typeof vector.get === 'function'
-          ? vector.get(index)
-          : undefined;
-    if (value !== undefined && value !== null) {
-      ids.push(String(value));
-    }
-  }
-  return ids;
-}
-
-function readKnownParameterIds(model: Live2DVisualModelShape): Set<string> | null {
-  const directIds = stringIdsFromContainer(model.parameters?.ids);
-  if (directIds) {
-    return new Set(directIds);
-  }
-  const internalIds = stringIdsFromContainer((model as unknown as { _parameterIds?: unknown })._parameterIds);
-  return internalIds ? new Set(internalIds) : null;
-}
 
 function hasParameter(model: Live2DVisualModelShape, knownIds: Set<string> | null, parameterId: string): boolean {
   if (knownIds) {
@@ -110,7 +69,7 @@ function blinkOpenAmount(seconds: number): number {
 }
 
 function resolveSupport(model: Live2DVisualModelShape): Omit<Live2DLookAtIdleFrame, 'applied'> {
-  const knownIds = readKnownParameterIds(model);
+  const knownIds = readLive2DKnownParameterIds(model);
   const gazeIds = GAZE_PARAMETER_IDS.filter((id) => hasParameter(model, knownIds, id));
   const blinkIds = BLINK_PARAMETER_IDS.filter((id) => hasParameter(model, knownIds, id));
   const gazeSupported = gazeIds.length === GAZE_PARAMETER_IDS.length;

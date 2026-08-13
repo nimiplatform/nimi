@@ -99,19 +99,23 @@ describe('createVrmAudioConsumer', () => {
     expect(create).toHaveBeenCalledTimes(2);
   });
 
-  it('detachAudioSource disconnects source but preserves node for reuse', async () => {
+  it('detachAudioSource disconnects source, hides stale weights, and preserves the node for reuse', async () => {
     const node = fakeNode();
     const consumer = createVrmAudioConsumer({
       profile: TEST_PROFILE,
       createNode: vi.fn(async () => node),
     });
+    const context = fakeAudioContext();
     const source = fakeSource();
-    await consumer.attachAudioSource(source, fakeAudioContext());
+    await consumer.attachAudioSource(source, context);
     expect(consumer.isAttached()).toBe(true);
     consumer.detachAudioSource();
     expect(consumer.isAttached()).toBe(false);
     expect(source.disconnect).toHaveBeenCalledWith(node);
-    // Node is still queryable via snapshot (weights live on the node).
+    expect(consumer.snapshot()).toBeNull();
+
+    const nextSource = fakeSource();
+    await consumer.attachAudioSource(nextSource, context);
     expect(consumer.snapshot()).not.toBeNull();
   });
 
@@ -126,6 +130,30 @@ describe('createVrmAudioConsumer', () => {
     consumer.silent();
     expect(onSilent).toHaveBeenCalled();
     expect(consumer.isAttached()).toBe(false);
+  });
+
+  it('does not reconnect a source when silence interrupts pending node creation', async () => {
+    const node = fakeNode();
+    let resolveNode!: (value: ReturnType<typeof fakeNode>) => void;
+    const consumer = createVrmAudioConsumer({
+      profile: TEST_PROFILE,
+      createNode: vi.fn(
+        () => new Promise<ReturnType<typeof fakeNode>>((resolve) => {
+          resolveNode = resolve;
+        }),
+      ),
+    });
+    const source = fakeSource();
+
+    const attaching = consumer.attachAudioSource(source, fakeAudioContext());
+    consumer.silent();
+    expect(resolveNode).toBeTypeOf('function');
+    resolveNode(node);
+    await attaching;
+
+    expect(source.connect).not.toHaveBeenCalled();
+    expect(consumer.isAttached()).toBe(false);
+    expect(consumer.snapshot()).toBeNull();
   });
 
   it('null profile path warns once and silents on attach without creating a node', async () => {

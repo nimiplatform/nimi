@@ -189,7 +189,10 @@ export function AgentCenterAppearanceSection({ session, snapshot, i18n }: AgentC
               <AgentButton disabled={!canReplace || operation.state === 'saving'} onClick={() => choose('vrm')}>
                 <Box className="h-4 w-4" /> {copy.replaceVrm}
               </AgentButton>
-              {(operation.state === 'render-failed' || (appearance.avatarAssetRef && appearance.renderState === 'failed')) && canRestore ? (
+              {(operation.state === 'render-failed'
+                || (appearance.avatarAssetRef
+                  && (appearance.renderState === 'failed' || appearance.renderState === 'unavailable')))
+                && canRestore ? (
                 <AgentButton onClick={() => void restore()}>
                   <RotateCcw className="h-4 w-4" /> {copy.restore}
                 </AgentButton>

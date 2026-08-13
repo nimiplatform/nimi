@@ -39,6 +39,7 @@ type ConsumerState = {
   node: WLipSyncAudioNode | null;
   pendingNodePromise: Promise<unknown> | null;
   warnedNoProfile: boolean;
+  attachRevision: number;
 };
 
 function emptySnapshot(): WLipSyncSnapshot {
@@ -66,6 +67,7 @@ export function createWLipSyncAudioConsumer(
     node: null,
     pendingNodePromise: null,
     warnedNoProfile: false,
+    attachRevision: 0,
   };
 
   const factory: WLipSyncAudioConsumerFactory =
@@ -76,6 +78,7 @@ export function createWLipSyncAudioConsumer(
     });
 
   function detach(): void {
+    state.attachRevision += 1;
     if (state.source && state.node) {
       try {
         state.source.disconnect(state.node);
@@ -98,6 +101,7 @@ export function createWLipSyncAudioConsumer(
       }
 
       detach();
+      const attachRevision = state.attachRevision;
 
       if (!state.node || state.audioContext !== audioContext) {
         state.audioContext = audioContext;
@@ -124,6 +128,9 @@ export function createWLipSyncAudioConsumer(
         await pending;
       }
 
+      if (attachRevision !== state.attachRevision) {
+        return;
+      }
       if (!state.node) {
         deps.onSilent?.();
         return;
@@ -151,7 +158,7 @@ export function createWLipSyncAudioConsumer(
     },
 
     snapshot() {
-      if (!state.node) return null;
+      if (!state.node || !state.source) return null;
       const weights = state.node.weights;
       const volume = state.node.volume;
       if (!weights || typeof volume !== 'number') {
