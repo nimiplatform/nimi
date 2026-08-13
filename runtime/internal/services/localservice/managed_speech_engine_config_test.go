@@ -81,6 +81,32 @@ func TestMaterializeSpeechExecutionHostUsesOnlyExactCapabilityPackageSet(t *test
 	}
 }
 
+func TestVoxCPMExecutionHostUsesHostDerivedBackendPackageSet(t *testing.T) {
+	svc := newLocalEnvironmentTestService(t)
+	defer func() { svc.Close() }()
+	host := localEnvironmentHostProfileFromDeviceProfile(hostProfileOrCollected(nil))
+	backend, err := engine.SpeechVoxCPMBackendForPlatform(localEnvironmentPlatformTuple(host))
+	if err != nil {
+		t.Skipf("current host has no admitted VoxCPM backend: %v", err)
+	}
+	root := currentSpeechDependencyProfileRootForTest(t, svc, "speech.voxcpm.python")
+	driverPath := func(root string) string {
+		path, pathErr := engine.SpeechVoxCPMDriverPathForBackend(root, backend)
+		if pathErr != nil {
+			t.Fatalf("resolve VoxCPM Driver path: %v", pathErr)
+		}
+		return path
+	}
+	upsertVerifiedSpeechPackageSetForTest(t, svc, "speech.voxcpm.python", root, "NIMI_RUNTIME_SPEECH_VOXCPM_CMD", driverPath)
+	cfg, err := svc.configuredManagedSpeechEngineConfigForCapability(capabilitydriver.AudioSynthesizeContract, capabilitydriver.VoxCPMDriverID, 18333)
+	if err != nil {
+		t.Fatalf("configure VoxCPM Host: %v", err)
+	}
+	if cfg.SpeechHostPackageSetRoot != root || cfg.SpeechVoxCPMPackageSetRoot != root || cfg.SpeechVoxCPMBackend != backend || cfg.SpeechQwen3TTSPackageSetRoot != "" {
+		t.Fatalf("VoxCPM Host config=%+v, want exact root %q and backend %q", cfg, root, backend)
+	}
+}
+
 func TestVoiceCreateExecutionHostUsesSelectedQwenImplementationPackageSet(t *testing.T) {
 	svc := newLocalEnvironmentTestService(t)
 	defer func() { svc.Close() }()

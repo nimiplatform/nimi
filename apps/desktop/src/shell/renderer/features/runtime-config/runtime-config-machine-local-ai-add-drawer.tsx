@@ -177,9 +177,25 @@ export function MachineLocalAIAddFormFields(props: {
           data-testid="machine-local-ai-tts-fields"
         >
           <span>{t('runtimeConfig.machineLocalAIConfigurations.engine')}</span>
-          <div className={machineLocalReadOnlyFieldClassName}>
-            {t('runtimeConfig.machineLocalAIConfigurations.qwen3TTSEngine')}
-          </div>
+          <SelectField
+            value={draft.ttsDriverKind}
+            disabled={props.busy}
+            options={[
+              {
+                value: 'qwen3-tts',
+                label: t('runtimeConfig.machineLocalAIConfigurations.qwen3TTSEngine'),
+              },
+              {
+                value: 'voxcpm',
+                label: t('runtimeConfig.machineLocalAIConfigurations.voxcpmEngine'),
+              },
+            ]}
+            onValueChange={(value) => update({
+              ttsDriverKind: value as RuntimeConfigMachineLocalAIAddDraft['ttsDriverKind'],
+            })}
+            contentLayer="dialog"
+            data-testid="machine-local-ai-tts-driver"
+          />
         </div>
       ) : draft.capabilityContract === NIMI_MACHINE_LOCAL_VOICE_CREATE_CAPABILITY_CONTRACT ? (
         <div

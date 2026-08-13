@@ -26,6 +26,10 @@ units:
     kind: definition
     title: Runtime multimodal provider plane
     meaning: The Runtime multimodal provider plane defines canonical CapabilityContract request and artifact semantics, CapabilityImplementationDriver obligations, Runtime-private Local ExecutionHost protocols, realtime session boundaries, standardized-feature support, and typed stable Job outputs without conflating Driver and ExecutionHost or selecting routes.
+  - id: definition.nimi.runtime.ai-provider.voxcpm-family
+    kind: definition
+    title: Canonical VoxCPM capability family
+    meaning: The canonical machine-readable VoxCPM family is voxcpm, one Runtime product family for the audio.synthesize CapabilityContract whose standard Python and MLX execution backends are Runtime-private implementation details rather than separate public families, capabilities, implementations, Drivers, providers, or routes; the first release includes no voice.create, voice cloning, or voice-design capability.
   - id: definition.nimi.runtime.ai-provider.nimillm-plane
     kind: definition
     title: Runtime nimillm plane
@@ -1130,3 +1134,15 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.runtime.ai-provider.multimodal-provider-plane
+  - id: rule.nimi.runtime.ai-provider.r112
+    kind: rule
+    title: VoxCPM public contract is synthesis only
+    modality: must
+    statement: Runtime exposes VoxCPM only as family voxcpm through one exact audio.synthesize CapabilityImplementation and Driver identity; the request requires non-empty text, admits only WAV output and the explicitly declared default synthesis voice posture, and returns one non-empty audio artifact, while unsupported options or voice references, missing configuration or exact binding, an unavailable backend, model-load failure, inference failure, empty audio, and cancellation fail with the existing typed speech Job semantics without fabricated output, family switching, route switching, fallback, or backend substitution. The standard Python and MLX backends never appear as separate public family or capability values, and no VoxCPM voice.create, voice clone, voice-design, reusable voice handle, or voice asset success is admitted in the first release.
+    condition: Whenever VoxCPM metadata, configuration, request admission, execution, output, or failure is projected.
+    failure: Reject every non-voxcpm family projection, backend-shaped public identity, undeclared voice-creation surface, unsupported input, or pseudo-success result.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.ai-provider.multimodal-provider-plane
+      - type: applies_to
+        target: definition.nimi.runtime.ai-provider.voxcpm-family

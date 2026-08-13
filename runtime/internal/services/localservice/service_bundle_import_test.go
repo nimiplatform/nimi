@@ -570,12 +570,70 @@ func TestImportLocalAssetBundleAdmitsCompleteCatalogTTSBundle(t *testing.T) {
 	if !bundleStringSliceContains(asset.GetFiles(), "speech_tokenizer/model.safetensors") {
 		t.Fatalf("bundle files = %#v, missing nested speech tokenizer", asset.GetFiles())
 	}
+	if len(asset.GetBundleEntries()) != len(asset.GetFiles()) {
+		t.Fatalf("bundle entries = %d, want one exact entry per TTS file (%d)", len(asset.GetBundleEntries()), len(asset.GetFiles()))
+	}
 	if bundleStringSliceContains(asset.GetFiles(), ".git/lfs/incomplete/partial-model") {
 		t.Fatalf("bundle files = %#v, source-control metadata must not be imported", asset.GetFiles())
 	}
 	managedDir := filepath.Dir(runtimeManagedAssetManifestPath(resolveLocalModelsPath(svc.localModelsPath), asset.GetLogicalModelId()))
 	if _, err := os.Stat(filepath.Join(managedDir, ".git")); !os.IsNotExist(err) {
 		t.Fatalf("managed TTS bundle .git state = %v, want not present", err)
+	}
+}
+
+func TestImportLocalAssetBundleAdmitsCompleteCatalogVoxCPMBundle(t *testing.T) {
+	svc := newTestService(t)
+	sourceDir := filepath.Join(t.TempDir(), "VoxCPM2")
+	requiredFiles := []string{
+		"audiovae.pth",
+		"config.json",
+		"model.safetensors",
+		"special_tokens_map.json",
+		"tokenization_voxcpm2.py",
+		"tokenizer.json",
+		"tokenizer_config.json",
+	}
+	for _, relativePath := range requiredFiles {
+		content := []byte(relativePath)
+		if relativePath == "config.json" {
+			content = []byte(`{"architecture":"voxcpm2"}`)
+		}
+		if err := os.MkdirAll(filepath.Dir(filepath.Join(sourceDir, relativePath)), 0o755); err != nil {
+			t.Fatalf("create VoxCPM fixture directory: %v", err)
+		}
+		if err := os.WriteFile(filepath.Join(sourceDir, relativePath), content, 0o644); err != nil {
+			t.Fatalf("write VoxCPM fixture %s: %v", relativePath, err)
+		}
+	}
+
+	asset, err := svc.importLocalAssetBundleSync(context.Background(), "", &runtimev1.ImportLocalAssetBundleRequest{
+		DirectoryPath: sourceDir,
+		ModelName:     "VoxCPM2",
+		Capabilities:  []string{"audio.synthesize"},
+		Engine:        "speech",
+	})
+	if err != nil {
+		t.Fatalf("import complete VoxCPM bundle: %v", err)
+	}
+	if asset.GetKind() != runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_TTS || asset.GetEngine() != "speech" {
+		t.Fatalf("VoxCPM asset kind/engine = %s/%q", asset.GetKind(), asset.GetEngine())
+	}
+	if asset.GetEntry() != "model.safetensors" || asset.GetFamily() != capabilitydriver.VoxCPMFamily {
+		t.Fatalf("VoxCPM asset entry/family = %q/%q", asset.GetEntry(), asset.GetFamily())
+	}
+	if !stringSlicesEqual(asset.GetFiles(), requiredFiles) || !stringSlicesEqual(asset.GetArtifactRoles(), []string{capabilitydriver.VoxCPMModelArtifactRole}) {
+		t.Fatalf("VoxCPM asset files/roles = %v/%v", asset.GetFiles(), asset.GetArtifactRoles())
+	}
+	if len(asset.GetBundleEntries()) != len(requiredFiles) {
+		t.Fatalf("VoxCPM bundle entries = %d, want %d", len(asset.GetBundleEntries()), len(requiredFiles))
+	}
+	if localAssetHasCapability(asset.GetCapabilities(), capabilitydriver.VoiceCreateContract) {
+		t.Fatalf("VoxCPM import exposed voice.create: %v", asset.GetCapabilities())
+	}
+	config := asset.GetEngineConfig().GetFields()
+	if config["driver_family"].GetStringValue() != capabilitydriver.VoxCPMFamily || config["driver_backend"].GetStringValue() != "standard" {
+		t.Fatalf("VoxCPM engine config = %+v", asset.GetEngineConfig())
 	}
 }
 

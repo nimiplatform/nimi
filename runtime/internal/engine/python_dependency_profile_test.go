@@ -55,6 +55,78 @@ func TestResolvePythonDependencyProfileIdentityUsesCompleteInputs(t *testing.T) 
 	}
 }
 
+func TestResolvePythonDependencyProfileIdentitySelectsPrivateVoxCPMBackendByHost(t *testing.T) {
+	windowsCPU, err := ResolvePythonDependencyProfileIdentity("speech.voxcpm.python", "windows/amd64", "cpu")
+	if err != nil {
+		t.Fatalf("resolve Windows VoxCPM CPU profile: %v", err)
+	}
+	windowsCUDA, err := ResolvePythonDependencyProfileIdentity("speech.voxcpm.python", "windows/amd64", "cuda")
+	if err != nil {
+		t.Fatalf("resolve Windows VoxCPM CUDA profile: %v", err)
+	}
+	macOS, err := ResolvePythonDependencyProfileIdentity("speech.voxcpm.python", "darwin/arm64", "cpu")
+	if err != nil {
+		t.Fatalf("resolve Apple Silicon VoxCPM profile: %v", err)
+	}
+	if windowsCPU.SourceLabel != "speech-voxcpm-standard-cpu" || windowsCUDA.SourceLabel != "speech-voxcpm-standard-cu128" || macOS.SourceLabel != "speech-voxcpm-mlx-cpu" {
+		t.Fatalf("VoxCPM private backend profile labels = cpu %q cuda %q mlx %q", windowsCPU.SourceLabel, windowsCUDA.SourceLabel, macOS.SourceLabel)
+	}
+	if windowsCPU.DependencyID == windowsCUDA.DependencyID || windowsCPU.DependencyID == macOS.DependencyID || windowsCUDA.DependencyID == macOS.DependencyID {
+		t.Fatalf("VoxCPM backend profiles collided: cpu=%q cuda=%q mlx=%q", windowsCPU.DependencyID, windowsCUDA.DependencyID, macOS.DependencyID)
+	}
+	for _, platform := range []struct {
+		tuple string
+		plane string
+	}{{"linux/amd64", "cpu"}, {"darwin/arm64", "cuda"}} {
+		if _, err := ResolvePythonDependencyProfileIdentity("speech.voxcpm.python", platform.tuple, platform.plane); err == nil {
+			t.Fatalf("unsupported VoxCPM profile admitted for %s/%s", platform.tuple, platform.plane)
+		}
+	}
+}
+
+func TestVoxCPMDependencyProfileImportProbesMatchPrivateBackend(t *testing.T) {
+	for _, test := range []struct {
+		name     string
+		platform string
+		plane    string
+		want     []string
+	}{
+		{name: "standard", platform: "windows/amd64", plane: "cpu", want: []string{"voxcpm"}},
+		{name: "mlx", platform: "darwin/arm64", plane: "cpu", want: []string{"mlx", "mlx_audio"}},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			identity, err := ResolvePythonDependencyProfileIdentity("speech.voxcpm.python", test.platform, test.plane)
+			if err != nil {
+				t.Fatalf("resolve profile: %v", err)
+			}
+			probes, err := pythonDependencyProfileImportProbes("speech.voxcpm.python", identity)
+			if err != nil {
+				t.Fatalf("resolve probes: %v", err)
+			}
+			for _, want := range test.want {
+				if !containsStringValue(probes, want) {
+					t.Fatalf("VoxCPM %s probes=%v, missing %q", test.name, probes, want)
+				}
+			}
+			for _, forbidden := range []string{"voxcpm", "mlx", "mlx_audio"} {
+				if containsStringValue(test.want, forbidden) || !containsStringValue(probes, forbidden) {
+					continue
+				}
+				t.Fatalf("VoxCPM %s probes exposed sibling backend module %q: %v", test.name, forbidden, probes)
+			}
+		})
+	}
+}
+
+func containsStringValue(values []string, target string) bool {
+	for _, value := range values {
+		if value == target {
+			return true
+		}
+	}
+	return false
+}
+
 func TestResolvePythonDependencyProfileIdentityReusesCompleteMediaFingerprintAcrossConsumers(t *testing.T) {
 	image, err := ResolvePythonDependencyProfileIdentity("media.diffusers.cuda", "windows/amd64", "cuda")
 	if err != nil {

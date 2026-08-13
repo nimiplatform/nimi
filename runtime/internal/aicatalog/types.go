@@ -186,6 +186,9 @@ type LocalPlaneVariant struct {
 	Hashes          map[string]string         `yaml:"hashes" json:"hashes"`
 	TotalSizeBytes  int64                     `yaml:"total_size_bytes" json:"total_size_bytes"`
 	HostRequirement LocalPlaneHostRequirement `yaml:"host_requirement" json:"host_requirement"`
+	Repo            string                    `yaml:"repo,omitempty" json:"repo,omitempty"`
+	Revision        string                    `yaml:"revision,omitempty" json:"revision,omitempty"`
+	DriverBackend   string                    `yaml:"driver_backend,omitempty" json:"driver_backend,omitempty"`
 }
 
 // LocalPlaneInstall is the K-MCAT-032 installable-fact block shared by every
@@ -222,6 +225,7 @@ type ModelEntry struct {
 	ModelID      string   `yaml:"model_id" json:"model_id"`
 	ApiModelID   string   `yaml:"api_model_id,omitempty" json:"api_model_id,omitempty"`
 	ModelType    string   `yaml:"model_type" json:"model_type"`
+	Family       string   `yaml:"family,omitempty" json:"family,omitempty"`
 	UpdatedAt    string   `yaml:"updated_at" json:"updated_at"`
 	Capabilities []string `yaml:"capabilities" json:"capabilities"`
 	Features     []string `yaml:"features,omitempty" json:"features,omitempty"`

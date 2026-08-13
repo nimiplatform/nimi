@@ -96,6 +96,15 @@ func validateLocalPlaneVariants(scope string, variants []LocalPlaneVariant, seen
 		if variant.TotalSizeBytes <= 0 {
 			return fmt.Errorf("local variant %q total_size_bytes must be positive", variantID)
 		}
+		repo := strings.TrimSpace(variant.Repo)
+		revision := strings.TrimSpace(variant.Revision)
+		if (repo == "") != (revision == "") || strings.EqualFold(revision, "main") {
+			return fmt.Errorf("local variant %q source override requires repo and pinned revision together", variantID)
+		}
+		backend := strings.ToLower(strings.TrimSpace(variant.DriverBackend))
+		if backend != "" && backend != "standard" && backend != "mlx" {
+			return fmt.Errorf("local variant %q driver_backend must be standard or mlx", variantID)
+		}
 		accelerator := strings.ToLower(strings.TrimSpace(variant.HostRequirement.Accelerator))
 		if accelerator != "cpu" && accelerator != "metal" && accelerator != "cuda" {
 			return fmt.Errorf("local variant %q host_requirement.accelerator must be cpu|metal|cuda", variantID)

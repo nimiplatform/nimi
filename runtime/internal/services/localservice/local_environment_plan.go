@@ -735,6 +735,8 @@ func localSpeechPlanConsumers(consumerScope string) []string {
 		return []string{"speech.qwen3-asr-transformers.python"}
 	case "speech.qwen3-tts.python":
 		return []string{"speech.qwen3-tts.python"}
+	case "speech.voxcpm.python":
+		return []string{"speech.voxcpm.python"}
 	default:
 		return []string{"speech.qwen3-asr.python", "speech.qwen3-tts.python"}
 	}

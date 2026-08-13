@@ -400,6 +400,15 @@ func (s *Service) validateLocalEnvironmentModelAssetBundle(model *runtimev1.Loca
 	return modelsRoot, entryPath, nil
 }
 
+func (s *Service) localEnvironmentInstalledModelAssetReady(dependencyID string) bool {
+	model, err := s.localEnvironmentAssetByDependencyID(dependencyID)
+	if err != nil || model == nil || model.GetStatus() == runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_REMOVED {
+		return false
+	}
+	_, _, err = s.validateLocalEnvironmentModelAssetBundle(model)
+	return err == nil
+}
+
 func (s *Service) localEnvironmentAssetByDependencyID(dependencyID string) (*runtimev1.LocalAssetRecord, error) {
 	assetID := localEnvironmentModelAssetIDFromDependencyID(dependencyID)
 	if assetID == "" || localEnvironmentModelAssetDependencyIDIsPlaceholder(dependencyID) {
@@ -476,6 +485,7 @@ func modelAssetSelectedConsumers(job localEnvironmentDependencyJobState) []strin
 		"speech.qwen3-asr.python",
 		"speech.qwen3-asr-transformers.python",
 		"speech.qwen3-tts.python",
+		"speech.voxcpm.python",
 	} {
 		if strings.Contains(environmentKey, "|"+consumer) {
 			return []string{consumer}

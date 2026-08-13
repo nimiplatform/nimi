@@ -1,6 +1,7 @@
 language_profiles:
   region_v1: [zh-cn, en-us, fr-fr, de-de, ru-ru, it-it, es-es, pt-pt, ja-jp, ko-kr]
   short_v1: [zh, en, de, it, pt, es, ja, ko, fr, ru]
+  voxcpm2_v1: [ar, my, zh, da, nl, en, fi, fr, de, el, he, hi, id, it, ja, km, ko, lo, ms, no, pl, pt, ru, es, sw, sv, tl, th, tr, vi]
 
 voice_sets:
   - voice_set_id: piper-defaults-v1
@@ -32,3 +33,10 @@ voice_sets:
       - voice_id: bm_george
         name: George
         langs: [en-GB]
+  - voice_set_id: voxcpm2-default-v1
+    langs_ref: voxcpm2_v1
+    source_ids: [voxcpm2_modelcard]
+    voices:
+      - voice_id: default
+        name: Default
+        langs_ref: voxcpm2_v1

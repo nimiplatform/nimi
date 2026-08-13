@@ -463,7 +463,7 @@ func verifyPythonDependencyProfile(
 		return PythonDependencyProfileStatus{}, err
 	}
 
-	importProbes, err := pythonDependencyProfileImportProbes(consumer, identity.AcceleratorPlane)
+	importProbes, err := pythonDependencyProfileImportProbes(consumer, identity)
 	if err != nil {
 		return PythonDependencyProfileStatus{}, err
 	}
@@ -649,12 +649,22 @@ func verifyPythonDependencyProfileInputs(projectRoot string, identity PythonDepe
 	return nil
 }
 
-func pythonDependencyProfileImportProbes(consumer string, acceleratorPlane string) ([]string, error) {
+func pythonDependencyProfileImportProbes(consumer string, identity PythonDependencyProfileIdentity) ([]string, error) {
 	packageManifest, err := resolvePythonPackageSetManifest(consumer)
 	if err != nil {
 		return nil, err
 	}
-	torchManifest, err := resolvePythonTorchWheelManifest(strings.TrimSpace(consumer) + "." + strings.TrimSpace(acceleratorPlane))
+	if strings.TrimSpace(consumer) == "speech.voxcpm.python" {
+		switch {
+		case strings.HasPrefix(identity.SourceLabel, "speech-voxcpm-standard-"):
+			packageManifest.ImportProbes = append(packageManifest.ImportProbes, "voxcpm")
+		case identity.SourceLabel == "speech-voxcpm-mlx-cpu":
+			packageManifest.ImportProbes = append(packageManifest.ImportProbes, "mlx", "mlx_audio")
+		default:
+			return nil, fmt.Errorf("VoxCPM dependency profile backend is not admitted for source %s", identity.SourceLabel)
+		}
+	}
+	torchManifest, err := resolvePythonTorchWheelManifest(strings.TrimSpace(consumer) + "." + strings.TrimSpace(identity.AcceleratorPlane))
 	if err != nil {
 		return nil, err
 	}

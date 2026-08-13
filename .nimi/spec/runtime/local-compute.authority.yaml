@@ -1119,3 +1119,15 @@ units:
         target: definition.nimi.runtime.local-compute.local-engine-plane
       - type: applies_to
         target: definition.nimi.runtime.service-operations.scenario-job-plane
+  - id: rule.nimi.runtime.local-compute.r110
+    kind: rule
+    title: VoxCPM managed backend selection is Runtime private
+    modality: must
+    statement: The voxcpm audio.synthesize implementation is owned by the Runtime-managed CapabilityImplementationDriver, speech Host assets, and one speech.voxcpm.python dependency consumer line; Runtime selects the standard Python backend only for admitted windows/amd64 CPU or CUDA profiles and the MLX backend only for the admitted darwin/arm64 profile, materializes the matching immutable exact-lock package set and embedded backend Driver, verifies that the selected LocalAsset carries family voxcpm and the matching host-qualified backend material, and dispatches through the existing private speech ExecutionHost. Unsupported platforms, missing or stale profiles, backend and asset mismatch, absent embedded Driver, failed import or preflight, and unavailable accelerator execution fail closed without probing, fallback, backend substitution, Qwen substitution, root-script execution, or a second product path.
+    condition: Whenever a selected VoxCPM Local Capability Configuration plans dependencies or materializes and executes its private speech Host.
+    failure: Reject public backend selection, a backend-shaped family, mismatched or unverified profile and asset material, unsupported host composition, ambient Python, repo-root Driver execution, and every silent backend or family switch.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.ai-provider.voxcpm-family
+      - type: applies_to
+        target: definition.nimi.runtime.local-compute.speech-engine-plane

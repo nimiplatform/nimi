@@ -23,6 +23,8 @@ from speech_server_runtime import (
     QWEN3_ASR_TRANSFORMERS_DRIVER_ENV,
     QWEN3_TTS_DRIVER_ENV,
     QWEN3_TTS_PREFLIGHT_CACHE,
+    VOXCPM_BACKEND_ENV,
+    VOXCPM_DRIVER_ENV,
     DriverAudioArtifact,
     SpeechModelState,
     build_host_state,
@@ -243,6 +245,9 @@ def create_app() -> FastAPI:
                 "qwen3_asr_transformers_driver": state.qwen3_asr_transformers_configured,
                 "qwen3_asr_transformers_driver_ready": state.qwen3_asr_transformers_ready,
                 "qwen3_asr_transformers_driver_detail": state.qwen3_asr_transformers_detail,
+                "voxcpm_driver": state.voxcpm_configured,
+                "voxcpm_driver_ready": state.voxcpm_ready,
+                "voxcpm_driver_detail": state.voxcpm_detail,
                 "models_ready": len([model for model in state.models if model.ready]),
             },
         }

@@ -37,16 +37,15 @@
 #       context_length: <int>
 #
 # CURATED PRESETS SCHEMA (K-MCAT-033 — authoring contract, populated in
-# wave-1/wave-2). A top-level `presets:` section binds factory AIProfile
-# install levels to concrete model slots. install-level keys are fixed to
-# `minimal` and `recommended` (aligns with ai-profile-factory-catalog.yaml
-# first_run_install_levels). `text.embed` is deliberately NOT a preset slot in
-# either level — embedding is a post-initialization / cloud-default capability,
-# not a first-run local baseline slot:
+# wave-1/wave-2). A top-level `presets:` section associates portable factory
+# AIProfile recommendations with concrete model slots for a later explicit
+# Local AI action. The preset tier keys are `minimal` and `recommended`.
+# Neither the preset nor the Profile installs, binds, selects, probes, or
+# establishes readiness. `text.embed` is deliberately not a preset slot:
 #
 #   presets:
 #     minimal:
-#       factory_aiprofile_alias: local-speech-ready
+#       factory_aiprofile_alias: local-speech
 #       slots:
 #         - { slot: chat,  capability: text.generate,    model_ref: <model_id>, required: true }
 #         - { slot: stt,   capability: audio.transcribe, model_ref: <model_id>, required: true }
@@ -63,7 +62,7 @@
 # capabilities include slot.capability. Each preset's declared capability set
 # must be a subset of the bound factory AIProfile's capability_set. The
 # deterministic resolver (K-MCAT-034..037) resolves
-# (install_level, host_posture) over this catalog into variant-level asset ids.
+# (preset_tier, host_posture) over this catalog into variant-level asset ids.
 # Catalog rows are populated in wave-1 (text/speech) and wave-2 (image/gpu).
 models:
   - model_id: qwen3-tts-local
@@ -285,15 +284,92 @@ models:
       langs_ref: short_v1
 
   - model_id: voxcpm2-local
-    updated_at: 2026-04-14
+    family: voxcpm
+    updated_at: 2026-08-12
     capabilities: [audio.synthesize]
-    source_ids: [voxcpm2_modelcard]
+    source_ids: [voxcpm2_modelcard, voxcpm2_mlx_modelcard]
     voice:
-      discovery_mode: dynamic_user_scoped
-      dynamic_voice_set_ref: local_voxcpm2_dynamic_voice_set
-      supports_voice_ref_kinds: [provider_voice_ref]
+      discovery_mode: static_catalog
+      voice_set_ref: voxcpm2-default-v1
+      supports_voice_ref_kinds: [preset_voice_id]
       langs_ref: short_v1
-    aliases:
-      - local/voxcpm2
-      - speech/voxcpm2
-      - openbmb/VoxCPM2
+    install:
+      repo: openbmb/VoxCPM2
+      revision: bffb3df5a29440629464e5e839f4d214c8714c3d
+      install_kind: verified-hf-multi-file
+      entry: model.safetensors
+      artifact_roles: [tts_model]
+      preferred_engine: speech
+    variants:
+      - variant_id: local.tts.voxcpm2.standard.cpu
+        quant: BF16
+        driver_backend: standard
+        files:
+          - audiovae.pth
+          - config.json
+          - model.safetensors
+          - special_tokens_map.json
+          - tokenization_voxcpm2.py
+          - tokenizer.json
+          - tokenizer_config.json
+        hashes:
+          audiovae.pth: "sha256:94b5d51e107e0507d4acc976cfdadb64edd6fd06d1f751dadbf2fd1594274bf1"
+          config.json: "sha256:405f0dcd92f7feba6011ed4eac5c8d4f74cba9712f07fd5cfa3063bbdd95402c"
+          model.safetensors: "sha256:f7f964cfa9da23653baec6e6f7750719977ad944ed9f95fe52fe3a620506891d"
+          special_tokens_map.json: "sha256:068594063e37662c02b21acf42ebb334ef6a74fb810e68a2368f88f08351de76"
+          tokenization_voxcpm2.py: "sha256:84489ea32b6ee0cae22ed5480cacb6df85c46624c3119be9a2021c3649a12729"
+          tokenizer.json: "sha256:f8984687e4a92a3503d521396d454b7d68e9fdaab2a0288eb3536c7c1aa4bc20"
+          tokenizer_config.json: "sha256:e78a3ebb48a0b9437efd1823b6b726c823da89e49dd8bcc90c02419d9baa772b"
+        total_size_bytes: 4960722408
+        host_requirement:
+          accelerator: cpu
+          min_ram_bytes: 12884901888
+      - variant_id: local.tts.voxcpm2.standard.cuda
+        quant: BF16
+        driver_backend: standard
+        files:
+          - audiovae.pth
+          - config.json
+          - model.safetensors
+          - special_tokens_map.json
+          - tokenization_voxcpm2.py
+          - tokenizer.json
+          - tokenizer_config.json
+        hashes:
+          audiovae.pth: "sha256:94b5d51e107e0507d4acc976cfdadb64edd6fd06d1f751dadbf2fd1594274bf1"
+          config.json: "sha256:405f0dcd92f7feba6011ed4eac5c8d4f74cba9712f07fd5cfa3063bbdd95402c"
+          model.safetensors: "sha256:f7f964cfa9da23653baec6e6f7750719977ad944ed9f95fe52fe3a620506891d"
+          special_tokens_map.json: "sha256:068594063e37662c02b21acf42ebb334ef6a74fb810e68a2368f88f08351de76"
+          tokenization_voxcpm2.py: "sha256:84489ea32b6ee0cae22ed5480cacb6df85c46624c3119be9a2021c3649a12729"
+          tokenizer.json: "sha256:f8984687e4a92a3503d521396d454b7d68e9fdaab2a0288eb3536c7c1aa4bc20"
+          tokenizer_config.json: "sha256:e78a3ebb48a0b9437efd1823b6b726c823da89e49dd8bcc90c02419d9baa772b"
+        total_size_bytes: 4960722408
+        host_requirement:
+          accelerator: cuda
+          min_ram_bytes: 8589934592
+          min_vram_bytes: 8589934592
+      - variant_id: local.tts.voxcpm2.mlx.metal
+        quant: Q4_0
+        repo: mlx-community/VoxCPM2-4bit
+        revision: dc9e5c187858da5f4a13dc4c247e297339216381
+        driver_backend: mlx
+        files:
+          - config.json
+          - model.safetensors
+          - special_tokens_map.json
+          - tokenizer.json
+          - tokenizer_config.json
+        hashes:
+          config.json: "sha256:91bff6db1be27bc0f4f2a287cca7a8fbb8b1d7a0b026a5dc4a71bc5f2f1ddcfb"
+          model.safetensors: "sha256:25bddc99a7cc6d28214f12dd676ed0afa9b0a805d6477f85c275bb113cb8acee"
+          special_tokens_map.json: "sha256:068594063e37662c02b21acf42ebb334ef6a74fb810e68a2368f88f08351de76"
+          tokenizer.json: "sha256:f8984687e4a92a3503d521396d454b7d68e9fdaab2a0288eb3536c7c1aa4bc20"
+          tokenizer_config.json: "sha256:466575c55f0cf49530666c2e46ed14f26237dbd227ba7f4bb3bbec93df90edfc"
+        total_size_bytes: 2300904017
+        host_requirement:
+          accelerator: metal
+          min_ram_bytes: 8589934592
+          min_vram_bytes: 6442450944
+    fitness:
+      param_count: 2000000000
+      context_length: 8192

@@ -1,4 +1,5 @@
 from __future__ import annotations
+# @nimi-authority: rule.nimi.runtime.ai-provider.r112
 
 import dataclasses
 import json
@@ -19,6 +20,8 @@ MODELS_ROOT_ENV = "NIMI_RUNTIME_LOCAL_MODELS_PATH"
 QWEN3_TTS_DRIVER_ENV = "NIMI_RUNTIME_SPEECH_QWEN3_TTS_CMD"
 QWEN3_ASR_DRIVER_ENV = "NIMI_RUNTIME_SPEECH_QWEN3_ASR_CMD"
 QWEN3_ASR_TRANSFORMERS_DRIVER_ENV = "NIMI_RUNTIME_SPEECH_QWEN3_ASR_TRANSFORMERS_CMD"
+VOXCPM_DRIVER_ENV = "NIMI_RUNTIME_SPEECH_VOXCPM_CMD"
+VOXCPM_BACKEND_ENV = "NIMI_RUNTIME_SPEECH_VOXCPM_BACKEND"
 DRIVER_TIMEOUT_MS_ENV = "NIMI_RUNTIME_SPEECH_DRIVER_TIMEOUT_MS"
 DRIVER_WORK_ROOT_ENV = "NIMI_RUNTIME_SPEECH_DRIVER_WORK_ROOT"
 DRIVER_OUTPUT_PATH_ENV = "NIMI_RUNTIME_SPEECH_DRIVER_OUTPUT_PATH"
@@ -28,6 +31,7 @@ SPEECH_DRIVER_ENV_BY_KIND = {
     "qwen3_tts": QWEN3_TTS_DRIVER_ENV,
     "qwen3_asr": QWEN3_ASR_DRIVER_ENV,
     "qwen3_asr_transformers": QWEN3_ASR_TRANSFORMERS_DRIVER_ENV,
+    "voxcpm": VOXCPM_DRIVER_ENV,
 }
 DEFAULT_MODELS_ROOT = ""
 VOICE_CREATE_CAPABILITY = "voice.create"
@@ -39,6 +43,7 @@ PLAIN_SPEECH_CAPABILITIES = [
 ]
 ADMITTED_SPEECH_CAPABILITIES = PLAIN_SPEECH_CAPABILITIES + WORKFLOW_CAPABILITIES
 QWEN3_TTS_PREFLIGHT_CACHE: dict[tuple[str, str], tuple[bool, str]] = {}
+VOXCPM_PREFLIGHT_CACHE: dict[tuple[str, str, str], tuple[bool, str]] = {}
 
 
 @dataclasses.dataclass
@@ -82,6 +87,9 @@ class HostState:
     qwen3_asr_transformers_configured: bool
     qwen3_asr_transformers_ready: bool
     qwen3_asr_transformers_detail: str
+    voxcpm_configured: bool = False
+    voxcpm_ready: bool = False
+    voxcpm_detail: str = "voxcpm driver not configured"
 
 
 def default_models_root() -> str:
@@ -240,10 +248,14 @@ def infer_runtime_native_driver(
     entry_path: str,
     declared_files: list[str],
     artifact_roles: list[str],
+    family: str,
 ) -> str:
     normalized_model = model_id.strip().lower()
     normalized_entry = pathlib.Path(entry_path).name.strip().lower()
     normalized_files = [item.strip().lower() for item in declared_files]
+    normalized_family = family.strip().lower()
+    if capability == "audio.synthesize" and normalized_family == "voxcpm":
+        return "voxcpm"
     if capability in {"audio.synthesize", "voice.create"}:
         if "qwen3-tts" in normalized_model or "qwen3tts" in normalized_model:
             return "qwen3_tts"
@@ -471,6 +483,41 @@ def qwen3_tts_driver_preflight(command: list[str], model_id: str, entry_path: st
     return result
 
 
+def voxcpm_driver_preflight(command: list[str], model_id: str, backend: str) -> tuple[bool, str]:
+    normalized_backend = backend.strip().lower()
+    cache_key = (" ".join(command), model_id.strip(), normalized_backend)
+    cached = VOXCPM_PREFLIGHT_CACHE.get(cache_key)
+    if cached is not None:
+        return cached
+    if normalized_backend not in {"standard", "mlx"}:
+        result = (False, f"voxcpm backend is not admitted: {normalized_backend or 'unset'}")
+        VOXCPM_PREFLIGHT_CACHE[cache_key] = result
+        return result
+    try:
+        response = run_driver_command(
+            command,
+            {
+                "driver": "voxcpm",
+                "operation": "driver.preflight",
+                "model": model_id,
+            },
+        )
+    except Exception as error:
+        result = (False, f"voxcpm driver preflight failed: {error}")
+        VOXCPM_PREFLIGHT_CACHE[cache_key] = result
+        return result
+    family = str(response.get("driver_family") or "").strip()
+    observed_backend = str(response.get("driver_backend") or "").strip()
+    supports = normalized_capabilities(response.get("supports"))
+    if family != "voxcpm" or observed_backend != normalized_backend or supports != ["audio.synthesize"]:
+        result = (False, "voxcpm driver preflight identity mismatch")
+        VOXCPM_PREFLIGHT_CACHE[cache_key] = result
+        return result
+    result = (True, "voxcpm driver ready")
+    VOXCPM_PREFLIGHT_CACHE[cache_key] = result
+    return result
+
+
 def normalized_string_list(value: Any) -> list[str]:
     if isinstance(value, str):
         values: list[Any] = [value]
@@ -581,6 +628,8 @@ def manifest_speech_model_state(
     qwen3_tts_driver_state: tuple[list[str], bool, str],
     qwen3_asr_driver_state: tuple[list[str], bool, str],
     qwen3_asr_transformers_driver_state: tuple[list[str], bool, str],
+    voxcpm_driver_state: tuple[list[str], bool, str],
+    voxcpm_backend: str,
 ) -> SpeechModelState | None:
     try:
         payload = json.loads(manifest_path.read_text(encoding="utf-8"))
@@ -607,6 +656,9 @@ def manifest_speech_model_state(
     entry_path = bundle_dir / entry_value if entry_value else None
     declared_files = normalized_capabilities(payload.get("files"))
     artifact_roles = normalized_capabilities(payload.get("artifact_roles") or payload.get("artifactRoles"))
+    family = str(payload.get("family") or "").strip().lower()
+    engine_config = payload.get("engine_config") if isinstance(payload.get("engine_config"), dict) else {}
+    asset_backend = str(engine_config.get("driver_backend") or "").strip().lower()
     problems: list[str] = []
     if entry_path is None:
         problems.append("entry missing")
@@ -632,7 +684,7 @@ def manifest_speech_model_state(
             if not voice_creation_sources:
                 problems.append("voice.create requires an explicit creation-source asset role")
                 continue
-            driver_kind = infer_runtime_native_driver(model_id, capability, resolved_entry, declared_files, artifact_roles)
+            driver_kind = infer_runtime_native_driver(model_id, capability, resolved_entry, declared_files, artifact_roles, family)
             if not driver_kind:
                 problems.append("voice.create runtime-native driver unresolved")
                 continue
@@ -644,27 +696,44 @@ def manifest_speech_model_state(
                 continue
             ready_capabilities.append(capability)
             continue
-        driver_kind = infer_runtime_native_driver(model_id, capability, resolved_entry, declared_files, artifact_roles)
+        driver_kind = infer_runtime_native_driver(model_id, capability, resolved_entry, declared_files, artifact_roles, family)
         if not driver_kind:
             problems.append(f"{capability} runtime-native driver unresolved")
             continue
         capability_drivers[capability] = driver_kind
         if capability == "audio.synthesize":
-            if driver_kind != "qwen3_tts":
-                problems.append(f"audio.synthesize requires unsupported driver {driver_kind}")
+            if driver_kind == "qwen3_tts":
+                if not qwen3_tts_driver_state[1]:
+                    problems.append(qwen3_tts_driver_state[2])
+                    continue
+                qwen3_tts_ready, qwen3_tts_detail = qwen3_tts_driver_preflight(
+                    qwen3_tts_driver_state[0],
+                    model_id,
+                    resolved_entry,
+                )
+                if not qwen3_tts_ready:
+                    problems.append(qwen3_tts_detail)
+                    continue
+                ready_capabilities.append(capability)
                 continue
-            if not qwen3_tts_driver_state[1]:
-                problems.append(qwen3_tts_driver_state[2])
+            if driver_kind == "voxcpm":
+                if family != "voxcpm" or asset_backend != voxcpm_backend:
+                    problems.append("voxcpm family or backend material does not match the configured Host")
+                    continue
+                if not voxcpm_driver_state[1]:
+                    problems.append(voxcpm_driver_state[2])
+                    continue
+                voxcpm_ready, voxcpm_detail = voxcpm_driver_preflight(
+                    voxcpm_driver_state[0],
+                    model_id,
+                    voxcpm_backend,
+                )
+                if not voxcpm_ready:
+                    problems.append(voxcpm_detail)
+                    continue
+                ready_capabilities.append(capability)
                 continue
-            qwen3_tts_ready, qwen3_tts_detail = qwen3_tts_driver_preflight(
-                qwen3_tts_driver_state[0],
-                model_id,
-                resolved_entry,
-            )
-            if not qwen3_tts_ready:
-                problems.append(qwen3_tts_detail)
-                continue
-            ready_capabilities.append(capability)
+            problems.append(f"audio.synthesize requires unsupported driver {driver_kind}")
             continue
         if capability == "audio.transcribe":
             if driver_kind not in {"qwen3_asr", "qwen3_asr_transformers"}:
@@ -702,6 +771,8 @@ def discover_speech_models(
     qwen3_tts_driver_state: tuple[list[str], bool, str],
     qwen3_asr_driver_state: tuple[list[str], bool, str],
     qwen3_asr_transformers_driver_state: tuple[list[str], bool, str],
+    voxcpm_driver_state: tuple[list[str], bool, str],
+    voxcpm_backend: str,
 ) -> list[SpeechModelState]:
     resolved_root = pathlib.Path(models_root) / "resolved"
     if not resolved_root.exists():
@@ -710,7 +781,14 @@ def discover_speech_models(
     for manifest_path in sorted(resolved_root.glob("**/asset.manifest.json")):
         if not manifest_path.is_file():
             continue
-        state = manifest_speech_model_state(manifest_path, qwen3_tts_driver_state, qwen3_asr_driver_state, qwen3_asr_transformers_driver_state)
+        state = manifest_speech_model_state(
+            manifest_path,
+            qwen3_tts_driver_state,
+            qwen3_asr_driver_state,
+            qwen3_asr_transformers_driver_state,
+            voxcpm_driver_state,
+            voxcpm_backend,
+        )
         if state is not None:
             models.append(state)
     return models
@@ -720,13 +798,24 @@ def build_host_state() -> HostState:
     qwen3_tts_driver_state = driver_command_state(QWEN3_TTS_DRIVER_ENV, "qwen3_tts")
     qwen3_asr_driver_state = driver_command_state(QWEN3_ASR_DRIVER_ENV, "qwen3_asr")
     qwen3_asr_transformers_driver_state = driver_command_state(QWEN3_ASR_TRANSFORMERS_DRIVER_ENV, "qwen3_asr_transformers")
-    models = discover_speech_models(default_models_root(), qwen3_tts_driver_state, qwen3_asr_driver_state, qwen3_asr_transformers_driver_state)
+    voxcpm_driver_state = driver_command_state(VOXCPM_DRIVER_ENV, "voxcpm")
+    voxcpm_backend = os.environ.get(VOXCPM_BACKEND_ENV, "").strip().lower()
+    if voxcpm_driver_state[0] and voxcpm_backend not in {"standard", "mlx"}:
+        voxcpm_driver_state = (voxcpm_driver_state[0], False, "voxcpm backend is not configured")
+    models = discover_speech_models(
+        default_models_root(),
+        qwen3_tts_driver_state,
+        qwen3_asr_driver_state,
+        qwen3_asr_transformers_driver_state,
+        voxcpm_driver_state,
+        voxcpm_backend,
+    )
     ready_models = [model for model in models if model.ready]
     if ready_models:
         detail = f"{len(ready_models)} ready local speech model(s) discovered"
         status = "ok"
         ready = True
-    elif not qwen3_tts_driver_state[0] and not qwen3_asr_driver_state[0] and not qwen3_asr_transformers_driver_state[0]:
+    elif not qwen3_tts_driver_state[0] and not qwen3_asr_driver_state[0] and not qwen3_asr_transformers_driver_state[0] and not voxcpm_driver_state[0]:
         detail = "no runtime-native speech drivers configured"
         status = "not_ready"
         ready = False
@@ -753,6 +842,21 @@ def build_host_state() -> HostState:
         else:
             qwen3_tts_ready = False
             qwen3_tts_detail = qwen3_tts_models[0].detail
+    voxcpm_ready = voxcpm_driver_state[1]
+    voxcpm_detail = voxcpm_driver_state[2]
+    voxcpm_models = [
+        model for model in models if model.capability_drivers.get("audio.synthesize", "").strip() == "voxcpm"
+    ]
+    if voxcpm_models:
+        ready_voxcpm_models = [
+            model for model in voxcpm_models if model.ready and "audio.synthesize" in model.ready_capabilities
+        ]
+        if ready_voxcpm_models:
+            voxcpm_ready = True
+            voxcpm_detail = "voxcpm driver ready"
+        else:
+            voxcpm_ready = False
+            voxcpm_detail = voxcpm_models[0].detail
     return HostState(
         ready=ready,
         status=status,
@@ -767,6 +871,9 @@ def build_host_state() -> HostState:
         qwen3_asr_transformers_configured=bool(qwen3_asr_transformers_driver_state[0]),
         qwen3_asr_transformers_ready=qwen3_asr_transformers_driver_state[1],
         qwen3_asr_transformers_detail=qwen3_asr_transformers_driver_state[2],
+        voxcpm_configured=bool(voxcpm_driver_state[0]),
+        voxcpm_ready=voxcpm_ready,
+        voxcpm_detail=voxcpm_detail,
     )
 
 
@@ -842,6 +949,10 @@ def synthesize_with_driver(
     driver_kind = model.capability_drivers.get("audio.synthesize", "").strip()
     if driver_kind == "qwen3_tts":
         command, ready, detail = driver_command_state(QWEN3_TTS_DRIVER_ENV, "qwen3_tts")
+        if not ready:
+            raise RuntimeError(detail)
+    elif driver_kind == "voxcpm":
+        command, ready, detail = driver_command_state(VOXCPM_DRIVER_ENV, "voxcpm")
         if not ready:
             raise RuntimeError(detail)
     else:

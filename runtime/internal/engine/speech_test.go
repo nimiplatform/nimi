@@ -567,11 +567,12 @@ func TestSpeechCommandEnvDoesNotFallbackToDefaultModelsRoot(t *testing.T) {
 
 func TestSpeechApplyDefaultEnvPreservesCapabilityScopedDriverRoots(t *testing.T) {
 	tests := []struct {
-		name      string
-		config    EngineConfig
-		wantKey   string
-		wantRoot  string
-		absentKey string
+		name        string
+		config      EngineConfig
+		wantKey     string
+		wantRoot    string
+		wantBackend string
+		absentKey   string
 	}{
 		{
 			name: "transcription Host",
@@ -595,12 +596,28 @@ func TestSpeechApplyDefaultEnvPreservesCapabilityScopedDriverRoots(t *testing.T)
 			wantRoot:  "tts-exact",
 			absentKey: "NIMI_RUNTIME_SPEECH_QWEN3_ASR_CMD",
 		},
+		{
+			name: "VoxCPM synthesis Host",
+			config: EngineConfig{
+				SpeechHostPackageSetRoot:   "voxcpm-exact",
+				SpeechHostAcceleratorPlane: "cpu",
+				SpeechVoxCPMPackageSetRoot: "voxcpm-exact",
+				SpeechVoxCPMBackend:        "standard",
+			},
+			wantKey:     "NIMI_RUNTIME_SPEECH_VOXCPM_CMD",
+			wantRoot:    "voxcpm-exact",
+			wantBackend: "standard",
+			absentKey:   "NIMI_RUNTIME_SPEECH_QWEN3_TTS_CMD",
+		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			env := speechApplyDefaultEnv(test.config, test.config.SpeechHostPackageSetRoot)
 			if got := env[test.wantKey]; got == "" || !strings.Contains(got, test.wantRoot) {
 				t.Fatalf("%s = %q, want exact root %q", test.wantKey, got, test.wantRoot)
+			}
+			if test.wantBackend != "" && env["NIMI_RUNTIME_SPEECH_VOXCPM_BACKEND"] != test.wantBackend {
+				t.Fatalf("VoxCPM backend = %q, want %q", env["NIMI_RUNTIME_SPEECH_VOXCPM_BACKEND"], test.wantBackend)
 			}
 			if got, ok := env[test.absentKey]; ok {
 				t.Fatalf("capability-scoped Host projected unrelated %s = %q", test.absentKey, got)

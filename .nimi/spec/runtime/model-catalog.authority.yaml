@@ -606,3 +606,17 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.runtime.model-catalog.workflow-plane
+  - id: rule.nimi.runtime.model-catalog.r058
+    kind: rule
+    title: VoxCPM catalog exposes one synthesis family
+    modality: must
+    statement: The local catalog exposes VoxCPM through the canonical voxcpm2-local model row with family voxcpm and audio.synthesize only, no voice.create feature, workflow, reusable voice handle, or voice-cloning claim, and one default synthesis voice posture; its reviewed LocalAsset offers remain variants under that one logical row, may carry exact per-variant repo and revision plus Runtime-private standard or MLX backend material when host-specific formats require different immutable sources, and preserve complete hashes, host requirements, family, artifact role, and backend compatibility without turning a backend or variant into a second public family, default selection, binding, route, or readiness truth.
+    condition: Whenever VoxCPM model, voice, LocalAsset offer, family, or install metadata is authored or projected.
+    failure: Reject a missing or non-voxcpm family, voice-creation claim, backend-shaped family or capability, incomplete integrity material, backend and host mismatch, or recommendation presented as live selection.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.ai-provider.voxcpm-family
+      - type: applies_to
+        target: definition.nimi.runtime.model-catalog.local-install-recommendation-plane
+      - type: applies_to
+        target: definition.nimi.runtime.model-catalog.voice-workflow-catalog-plane

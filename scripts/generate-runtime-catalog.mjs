@@ -233,6 +233,7 @@ export function generateProviderCatalog(doc) {
     const expandedModelIDs = normalizeStringArray([canonicalModelID, ...aliases]);
 
     const modelType = normalizeString(model?.model_type) || defaultModelType;
+    const family = normalizeString(model?.family).toLowerCase();
     const capabilities = resolveCapabilities(defaultCapabilities, model?.capabilities);
     const normalizedCapabilities = capabilities.map((value) => normalizeString(value).toLowerCase());
     const features = normalizeStringArray(model?.features).map((value) => value.toLowerCase());
@@ -371,6 +372,9 @@ export function generateProviderCatalog(doc) {
       }
       if (features.length > 0) {
         modelEntry.features = [...features];
+      }
+      if (family) {
+        modelEntry.family = family;
       }
       if (runtime.runtime_plane !== 'local' && textGenerateCapable) {
         modelEntry.context_window_tokens = contextWindowTokens;

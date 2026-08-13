@@ -8,6 +8,7 @@ import (
 	catalog "github.com/nimiplatform/nimi/runtime/internal/aicatalog"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"google.golang.org/protobuf/types/known/structpb"
 )
 
 // verifiedAssetsFromLocalCatalog projects the K-MCAT `local` provider catalog
@@ -103,6 +104,7 @@ func localAssetSHA256Fingerprint(hashes map[string]string) string {
 // catalog row + selected variant. Missing integrity material fails closed
 // (K-LOCAL-010): a verified projection must never produce a placeholder
 // descriptor.
+// @nimi-authority: rule.nimi.runtime.model-catalog.r058
 func projectVerifiedAssetDescriptor(
 	row catalog.ModelEntry,
 	variant catalog.LocalPlaneVariant,
@@ -136,6 +138,23 @@ func projectVerifiedAssetDescriptor(
 	if variant.Quant != "" {
 		title = fmt.Sprintf("%s (%s)", title, variant.Quant)
 	}
+	repo := strings.TrimSpace(variant.Repo)
+	revision := strings.TrimSpace(variant.Revision)
+	if repo == "" {
+		repo = strings.TrimSpace(install.Repo)
+		revision = strings.TrimSpace(install.Revision)
+	}
+	var metadata *structpb.Struct
+	var engineConfig *structpb.Struct
+	family := strings.TrimSpace(row.Family)
+	backend := strings.TrimSpace(variant.DriverBackend)
+	if family != "" {
+		metadata, _ = structpb.NewStruct(map[string]any{"family": family})
+		engineConfig, _ = structpb.NewStruct(map[string]any{
+			"driver_family":  family,
+			"driver_backend": backend,
+		})
+	}
 	return &runtimev1.LocalVerifiedAssetDescriptor{
 		TemplateId:       variantID,
 		Title:            title,
@@ -145,8 +164,8 @@ func projectVerifiedAssetDescriptor(
 		Engine:           engine,
 		Entry:            strings.TrimSpace(variant.Entry),
 		Files:            append([]string(nil), variant.Files...),
-		Repo:             strings.TrimSpace(install.Repo),
-		Revision:         strings.TrimSpace(install.Revision),
+		Repo:             repo,
+		Revision:         revision,
 		Hashes:           hashes,
 		FileCount:        int32(len(variant.Files)),
 		TotalSizeBytes:   variant.TotalSizeBytes,
@@ -156,6 +175,8 @@ func projectVerifiedAssetDescriptor(
 		Capabilities:     capabilities,
 		ArtifactRoles:    append([]string(nil), install.ArtifactRoles...),
 		PreferredEngine:  engine,
+		Metadata:         metadata,
+		EngineConfig:     engineConfig,
 		HostRequirements: projectHostRequirements(variant.HostRequirement, engine),
 	}, nil
 }

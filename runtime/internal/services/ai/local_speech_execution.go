@@ -78,7 +78,9 @@ func (s *Service) captureLocalSpeechEffectiveInputs(ctx context.Context, head *r
 	identity := capabilitydriver.IdentityFromProto(selected.DriverIdentity)
 	driver, reason := s.capabilityDrivers.Resolve(contract, identity)
 	if reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED || driver == nil {
-		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_DRIVER_UNAVAILABLE)
+		return nil, grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_DRIVER_UNAVAILABLE, grpcerr.ReasonOptions{
+			Metadata: map[string]string{"local_speech_driver_stage": "registry_resolve", "local_reason": reason.String()},
+		})
 	}
 	exactBindings, contentIDs := captureLocalSpeechBindings(selected.ExactBindings)
 	portable, _ := proto.Clone(selected.PortableConfig).(*structpb.Struct)
@@ -100,7 +102,9 @@ func (s *Service) captureLocalSpeechEffectiveInputs(ctx context.Context, head *r
 	case capabilitydriver.AudioSynthesizeContract:
 		speechDriver, ok := driver.(capabilitydriver.SpeechSynthesizeInvocationDriver)
 		if !ok {
-			return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_DRIVER_UNAVAILABLE)
+			return nil, grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_DRIVER_UNAVAILABLE, grpcerr.ReasonOptions{
+				Metadata: map[string]string{"local_speech_driver_stage": "synthesize_interface"},
+			})
 		}
 		spec, err := normalizeLocalSpeechSynthesizeRequest(request.GetSpec().GetSpeechSynthesize(), intent.Defaults)
 		if err != nil {
@@ -121,7 +125,9 @@ func (s *Service) captureLocalSpeechEffectiveInputs(ctx context.Context, head *r
 			return nil, localSpeechInvocationError(err)
 		}
 		if plan == nil || strings.TrimSpace(plan.ModelAssetID()) == "" {
-			return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_DRIVER_UNAVAILABLE)
+			return nil, grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_DRIVER_UNAVAILABLE, grpcerr.ReasonOptions{
+				Metadata: map[string]string{"local_speech_driver_stage": "synthesize_plan"},
+			})
 		}
 		effective.synthesizePlan = plan
 		effective.streamMode = speechDriver.SpeechStreamMode()

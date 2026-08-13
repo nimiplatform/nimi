@@ -20,6 +20,7 @@ import {
   createNimiMachineLocalQwen3ASRTransformersConfigurationInput,
   createNimiMachineLocalQwen3TTSConfigurationInput,
   createNimiMachineLocalQwen3VoiceCreateConfigurationInput,
+  createNimiMachineLocalVoxCPMConfigurationInput,
   loadNimiMachineLocalAIConfigurationImpact,
   type NimiMachineLocalAIConfiguration,
   type NimiMachineLocalAssetExactBinding,
@@ -217,7 +218,9 @@ export function MachineLocalAIConfigurationsPage() {
         : addDraft.capabilityContract === NIMI_MACHINE_LOCAL_TEXT_EMBED_CAPABILITY_CONTRACT
           ? createNimiMachineLocalLlamaCppEmbedConfigurationInput({ displayName })
           : addDraft.capabilityContract === NIMI_MACHINE_LOCAL_AUDIO_SYNTHESIZE_CAPABILITY_CONTRACT
-            ? createNimiMachineLocalQwen3TTSConfigurationInput({ displayName })
+            ? addDraft.ttsDriverKind === 'voxcpm'
+              ? createNimiMachineLocalVoxCPMConfigurationInput({ displayName })
+              : createNimiMachineLocalQwen3TTSConfigurationInput({ displayName })
             : addDraft.capabilityContract === NIMI_MACHINE_LOCAL_VOICE_CREATE_CAPABILITY_CONTRACT
               ? createNimiMachineLocalQwen3VoiceCreateConfigurationInput({
                 displayName,

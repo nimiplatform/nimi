@@ -219,6 +219,12 @@ type EngineConfig struct {
 	// separate from the package-native qwen_asr root.
 	SpeechQwen3ASRTransformersPackageSetRoot string
 
+	// SpeechVoxCPMPackageSetRoot is the Runtime-verified VoxCPM package-set
+	// root. SpeechVoxCPMBackend is the host-derived private backend fixed by
+	// that profile and never accepted from a product request.
+	SpeechVoxCPMPackageSetRoot string
+	SpeechVoxCPMBackend        string
+
 	// SpeechDriverWorkRoot is a Runtime-owned state-plane directory used only
 	// for bounded request/response exchange with supervised speech drivers.
 	// It must never be derived from process TEMP/HOME or the model payload root.

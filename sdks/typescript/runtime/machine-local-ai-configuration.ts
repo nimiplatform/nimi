@@ -63,6 +63,12 @@ export const NIMI_MACHINE_LOCAL_QWEN3_TTS_IMPLEMENTATION = Object.freeze({
   driverDialect: 'qwen3-tts/audio-synthesize/v1',
 }) satisfies Readonly<CapabilityImplementationIdentity>;
 
+export const NIMI_MACHINE_LOCAL_VOXCPM_IMPLEMENTATION = Object.freeze({
+  implementationId: 'local.audio.synthesize.voxcpm',
+  driverId: 'nimi.runtime.driver.voxcpm',
+  driverDialect: 'voxcpm/audio-synthesize/v1',
+}) satisfies Readonly<CapabilityImplementationIdentity>;
+
 export const NIMI_MACHINE_LOCAL_QWEN3_VOICE_CREATE_IMPLEMENTATION = Object.freeze({
   implementationId: 'local.voice.create.qwen3-tts',
   driverId: 'nimi.runtime.driver.qwen3-tts',
@@ -402,6 +408,20 @@ export function createNimiMachineLocalQwen3TTSConfigurationInput(input: {
   return {
     capabilityContract: NIMI_MACHINE_LOCAL_AUDIO_SYNTHESIZE_CAPABILITY_CONTRACT,
     implementation: { ...NIMI_MACHINE_LOCAL_QWEN3_TTS_IMPLEMENTATION },
+    portableConfig: {},
+    supportedFeatures: [],
+    displayName: requireInputText(input.displayName, 'displayName'),
+  };
+}
+
+// @nimi-authority: rule.nimi.runtime.ai-provider.r112
+export function createNimiMachineLocalVoxCPMConfigurationInput(input: {
+  readonly displayName: string;
+}): NimiMachineLocalAIConfigurationAddInput {
+  assertExactRecord(input, new Set(['displayName']), 'VoxCPM configuration input');
+  return {
+    capabilityContract: NIMI_MACHINE_LOCAL_AUDIO_SYNTHESIZE_CAPABILITY_CONTRACT,
+    implementation: { ...NIMI_MACHINE_LOCAL_VOXCPM_IMPLEMENTATION },
     portableConfig: {},
     supportedFeatures: [],
     displayName: requireInputText(input.displayName, 'displayName'),

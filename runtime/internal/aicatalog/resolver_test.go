@@ -336,6 +336,27 @@ func TestResolveVoicesLocalModel(t *testing.T) {
 	}
 }
 
+func TestResolveVoxCPMExposesOneSynthesisFamilyAndDefaultVoice(t *testing.T) {
+	resolver, err := NewResolver(ResolverConfig{})
+	if err != nil {
+		t.Fatalf("NewResolver: %v", err)
+	}
+	model, err := resolver.ResolveModelEntry("local", "voxcpm2-local")
+	if err != nil {
+		t.Fatalf("ResolveModelEntry: %v", err)
+	}
+	if model.Family != "voxcpm" || !slices.Equal(model.Capabilities, []string{"audio.synthesize"}) || !slices.Equal(model.VoiceRefKinds, []string{"preset_voice_id"}) {
+		t.Fatalf("VoxCPM catalog identity=%+v", model)
+	}
+	voices, err := resolver.ResolveVoices("local", "voxcpm2-local")
+	if err != nil {
+		t.Fatalf("ResolveVoices: %v", err)
+	}
+	if len(voices.Voices) != 1 || voices.Voices[0].VoiceID != "default" {
+		t.Fatalf("VoxCPM voices=%+v", voices.Voices)
+	}
+}
+
 func TestLocalModelsDoNotAdvertiseUnresolvedVoiceAssets(t *testing.T) {
 	resolver, err := NewResolver(ResolverConfig{})
 	if err != nil {

@@ -551,6 +551,20 @@ export interface NimiRuntimeLocalQwen3TTSEnvironmentPlanRuntime {
   ) => Promise<NimiRuntimeLocalEnvironmentPlan>;
 }
 
+export type NimiRuntimeLocalVoxCPMEnvironmentPlanInput = Omit<
+  NimiRuntimeLocalEnvironmentPlanInput,
+  'packId' | 'consumerScope'
+> & {
+  readonly packId: 'local-speech';
+  readonly consumerScope: 'speech.voxcpm.python';
+};
+
+export interface NimiRuntimeLocalVoxCPMEnvironmentPlanRuntime {
+  readonly resolveEnvironmentPlan: (
+    input: NimiRuntimeLocalEnvironmentPlanInput,
+  ) => Promise<NimiRuntimeLocalEnvironmentPlan>;
+}
+
 export interface NimiRuntimeLocalWriteOptions {
   readonly caller?: 'core' | 'builtin' | 'injected' | 'sideload' | string;
   readonly callOptions?: RuntimeTypedCallOptions;

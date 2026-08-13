@@ -684,6 +684,7 @@ func (s *Service) installVerifiedAssetByTemplateIDWithExistingPolicy(
 			existingPolicy: existingPolicy,
 			projectionOverride: &modelregistry.NativeProjection{
 				LogicalModelID:  strings.TrimSpace(matched.GetLogicalModelId()),
+				Family:          strings.TrimSpace(matched.GetMetadata().GetFields()["family"].GetStringValue()),
 				ArtifactRoles:   append([]string(nil), matched.GetArtifactRoles()...),
 				PreferredEngine: strings.TrimSpace(matched.GetPreferredEngine()),
 				FallbackEngines: normalizePublicFallbackEngines(matched.GetFallbackEngines()),
@@ -708,6 +709,7 @@ func (s *Service) installVerifiedAssetByTemplateIDWithExistingPolicy(
 		matched.GetEngineConfig(),
 		&modelregistry.NativeProjection{
 			LogicalModelID:  strings.TrimSpace(matched.GetLogicalModelId()),
+			Family:          strings.TrimSpace(matched.GetMetadata().GetFields()["family"].GetStringValue()),
 			ArtifactRoles:   append([]string(nil), matched.GetArtifactRoles()...),
 			PreferredEngine: strings.TrimSpace(matched.GetPreferredEngine()),
 			FallbackEngines: normalizePublicFallbackEngines(matched.GetFallbackEngines()),

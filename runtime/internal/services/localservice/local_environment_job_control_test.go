@@ -291,6 +291,50 @@ func TestPrepareLocalEnvironmentPlanApplyRejectsCurrentNonRetryableFailureBefore
 	}
 }
 
+func TestPrepareLocalEnvironmentPlanApplyRestartsFailedModelAssetAfterExactImport(t *testing.T) {
+	svc := newTestService(t)
+	model := mustInstallSupervisedLocalModel(t, svc, installLocalAssetParams{
+		assetID:      "local-import/recovered-model",
+		capabilities: []string{"image.generate"},
+		engine:       "media",
+		entry:        "model.safetensors",
+		hashes:       map[string]string{"model.safetensors": "sha256:b899bf805912441a8767d3e01859281ab3a1cd7b18edea93f5e54c18b648b54c"},
+	})
+	writeLocalEnvironmentAssetEntryForTest(t, svc, model, "verified-model-asset")
+
+	dependency := localEnvironmentPlanDependency{
+		EnvironmentKey:   "model.asset|local-import/recovered-model|host|windows/amd64|root|speech.voxcpm.python",
+		DependencyFamily: localEnvironmentFamilyModelAsset,
+		DependencyID:     model.GetAssetId(),
+		ConsumerScope:    "speech.voxcpm.python",
+		Required:         true,
+		State:            localEnvironmentStateFailed,
+		SourceKind:       localEnvironmentSourceManaged,
+	}
+	svc.mu.Lock()
+	svc.localEnvironmentDependencyJobs["failed-before-import"] = localEnvironmentDependencyJobState{
+		JobID:               "failed-before-import",
+		EnvironmentKey:      dependency.EnvironmentKey,
+		DependencyFamily:    dependency.DependencyFamily,
+		DependencyID:        dependency.DependencyID,
+		ConsumerScope:       dependency.ConsumerScope,
+		State:               localEnvironmentStateFailed,
+		SourceKind:          localEnvironmentSourceManaged,
+		Retryable:           false,
+		RecoveryDisposition: localEnvironmentJobRecoveryNotRetryable,
+		UpdatedAt:           "2026-08-13T00:00:00Z",
+	}
+	svc.mu.Unlock()
+
+	actions, err := svc.prepareLocalEnvironmentPlanApplyActions(localEnvironmentPlan{Dependencies: []localEnvironmentPlanDependency{dependency}})
+	if err != nil {
+		t.Fatalf("prepareLocalEnvironmentPlanApplyActions: %v", err)
+	}
+	if len(actions) != 1 || actions[0].Kind != localEnvironmentPlanApplyStart {
+		t.Fatalf("recovered model asset actions = %+v, want one fresh start admission", actions)
+	}
+}
+
 func TestStartLocalEnvironmentDependencyProfileJobRequiresRememberedPlanContract(t *testing.T) {
 	svc := newTestService(t)
 

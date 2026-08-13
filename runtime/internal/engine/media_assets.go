@@ -19,3 +19,9 @@ var speechQwen3ASRDriverScript string
 
 //go:embed assets/qwen3_asr_transformers_driver.py
 var speechQwen3ASRTransformersDriverScript string
+
+//go:embed assets/voxcpm_driver.py
+var speechVoxCPMDriverScript string
+
+//go:embed assets/voxcpm_mlx_driver.py
+var speechVoxCPMMLXDriverScript string

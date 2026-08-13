@@ -85,8 +85,12 @@ sources:
     note: Kokoro repository.
   - source_id: voxcpm2_modelcard
     url: https://huggingface.co/openbmb/VoxCPM2
-    retrieved_at: 2026-04-14
-    note: VoxCPM2 model card covering local synthesize, voice design, and voice clone workflow semantics.
+    retrieved_at: 2026-08-12
+    note: VoxCPM2 model card and pinned standard-backend model bundle for the admitted local synthesis slice.
+  - source_id: voxcpm2_mlx_modelcard
+    url: https://huggingface.co/mlx-community/VoxCPM2-4bit
+    retrieved_at: 2026-08-12
+    note: Pinned MLX-converted VoxCPM2 bundle for the internal Apple Silicon synthesis backend.
   - source_id: audiocraft_musicgen_docs
     url: https://facebookresearch.github.io/audiocraft/docs/MUSICGEN.html
     retrieved_at: 2026-03-13

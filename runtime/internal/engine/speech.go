@@ -71,10 +71,12 @@ func speechApplyDefaultEnv(cfg EngineConfig, root string) map[string]string {
 	ttsRoot := strings.TrimSpace(cfg.SpeechQwen3TTSPackageSetRoot)
 	asrRoot := strings.TrimSpace(cfg.SpeechQwen3ASRPackageSetRoot)
 	asrTransformersRoot := strings.TrimSpace(cfg.SpeechQwen3ASRTransformersPackageSetRoot)
+	voxcpmRoot := strings.TrimSpace(cfg.SpeechVoxCPMPackageSetRoot)
 	if !exactCapabilityHost {
 		ttsRoot = firstNonEmptyString(ttsRoot, root)
 		asrRoot = firstNonEmptyString(asrRoot, root)
 		asrTransformersRoot = firstNonEmptyString(asrTransformersRoot, root)
+		voxcpmRoot = firstNonEmptyString(voxcpmRoot, root)
 	}
 	if strings.TrimSpace(env["NIMI_RUNTIME_SPEECH_QWEN3_TTS_CMD"]) == "" {
 		if command := speechDriverCommand(ttsRoot, SpeechQwen3TTSDriverPath); command != "" {
@@ -89,6 +91,14 @@ func speechApplyDefaultEnv(cfg EngineConfig, root string) map[string]string {
 	if strings.TrimSpace(env["NIMI_RUNTIME_SPEECH_QWEN3_ASR_TRANSFORMERS_CMD"]) == "" {
 		if command := speechDriverCommand(asrTransformersRoot, SpeechQwen3ASRTransformersDriverPath); command != "" {
 			env["NIMI_RUNTIME_SPEECH_QWEN3_ASR_TRANSFORMERS_CMD"] = command
+		}
+	}
+	if voxcpmRoot != "" {
+		backend := strings.ToLower(strings.TrimSpace(cfg.SpeechVoxCPMBackend))
+		driverPath, err := SpeechVoxCPMDriverPathForBackend(voxcpmRoot, backend)
+		if err == nil {
+			env["NIMI_RUNTIME_SPEECH_VOXCPM_CMD"] = shellQuote(managedPythonLaunchPath(voxcpmRoot)) + " " + shellQuote(driverPath)
+			env["NIMI_RUNTIME_SPEECH_VOXCPM_BACKEND"] = backend
 		}
 	}
 	return env
@@ -138,14 +148,15 @@ func ensureSpeech(_ context.Context, _ string, cfg EngineConfig) (EngineConfig, 
 	ttsRoot := strings.TrimSpace(cfg.SpeechQwen3TTSPackageSetRoot)
 	asrRoot := strings.TrimSpace(cfg.SpeechQwen3ASRPackageSetRoot)
 	asrTransformersRoot := strings.TrimSpace(cfg.SpeechQwen3ASRTransformersPackageSetRoot)
+	voxcpmRoot := strings.TrimSpace(cfg.SpeechVoxCPMPackageSetRoot)
 	hostRoot := strings.TrimSpace(cfg.SpeechHostPackageSetRoot)
 	if hostRoot == "" {
 		hostRoot = ttsRoot
 	}
-	if hostRoot == "" || (ttsRoot == "" && asrRoot == "" && asrTransformersRoot == "") {
+	if hostRoot == "" || (ttsRoot == "" && asrRoot == "" && asrTransformersRoot == "" && voxcpmRoot == "") {
 		return cfg, fmt.Errorf("speech exact capability package-set selected source is required")
 	}
-	if hostRoot != ttsRoot && hostRoot != asrRoot && hostRoot != asrTransformersRoot {
+	if hostRoot != ttsRoot && hostRoot != asrRoot && hostRoot != asrTransformersRoot && hostRoot != voxcpmRoot {
 		return cfg, fmt.Errorf("speech Host package-set root must own an exact configured speech Driver")
 	}
 	acceleratorPlane := strings.ToLower(strings.TrimSpace(cfg.SpeechHostAcceleratorPlane))
@@ -190,6 +201,15 @@ func ensureSpeech(_ context.Context, _ string, cfg EngineConfig) (EngineConfig, 
 			return cfg, fmt.Errorf("verify promoted speech qwen3_asr_transformers runtime scripts: %w", err)
 		}
 	}
+	if voxcpmRoot != "" {
+		backend := strings.ToLower(strings.TrimSpace(cfg.SpeechVoxCPMBackend))
+		if _, err := SpeechVoxCPMDriverPathForBackend(voxcpmRoot, backend); err != nil {
+			return cfg, err
+		}
+		if err := verifySpeechPipelineScripts(voxcpmRoot, "speech.voxcpm.python"); err != nil {
+			return cfg, fmt.Errorf("verify promoted speech voxcpm runtime scripts: %w", err)
+		}
+	}
 	for _, driverRoot := range []struct {
 		name string
 		root string
@@ -197,6 +217,7 @@ func ensureSpeech(_ context.Context, _ string, cfg EngineConfig) (EngineConfig, 
 		{name: "qwen3_tts", root: ttsRoot},
 		{name: "qwen3_asr", root: asrRoot},
 		{name: "qwen3_asr_transformers", root: asrTransformersRoot},
+		{name: "voxcpm", root: voxcpmRoot},
 	} {
 		trimmedRoot := strings.TrimSpace(driverRoot.root)
 		if trimmedRoot == "" {

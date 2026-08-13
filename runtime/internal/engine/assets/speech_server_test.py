@@ -147,6 +147,19 @@ def load_qwen3_asr_transformers_driver_module():
 QWEN3_ASR_TRANSFORMERS_DRIVER = load_qwen3_asr_transformers_driver_module()
 
 
+def load_voxcpm_driver_module():
+    module_path = pathlib.Path(__file__).with_name("voxcpm_driver.py")
+    spec = importlib.util.spec_from_file_location("voxcpm_driver_under_test", module_path)
+    module = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+VOXCPM_DRIVER = load_voxcpm_driver_module()
+
+
 class FakeSequenceTensor:
     def __init__(self, rows) -> None:
         self.rows = rows
@@ -409,6 +422,63 @@ class SpeechServerTests(unittest.TestCase):
                 speech_server_runtime.driver_work_root()
         finally:
             os.environ[speech_server_runtime.DRIVER_WORK_ROOT_ENV] = old
+
+    def test_voxcpm_standard_driver_accepts_only_managed_default_synthesis(self) -> None:
+        test_case = self
+
+        class FakeSoundFile:
+            @staticmethod
+            def write(path, _wav, sample_rate):
+                test_case.assertEqual(sample_rate, 24000)
+                pathlib.Path(path).write_bytes(b"RIFFvoxcpm")
+
+        class FakeModel:
+            class TTSModel:
+                sample_rate = 24000
+
+            tts_model = TTSModel()
+
+            def generate(self, **kwargs):
+                test_case.assertEqual(kwargs, {"text": "hello", "cfg_value": 2.0, "inference_timesteps": 10})
+                return [0.0, 0.1]
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = pathlib.Path(temp_dir)
+            bundle = root / "bundle"
+            work = root / "work"
+            bundle.mkdir()
+            work.mkdir()
+            (bundle / "model.safetensors").write_bytes(b"weights")
+            output = work / "speech.wav"
+            request = {
+                "driver": "voxcpm",
+                "input": "hello",
+                "voice": "default",
+                "audio_format": "wav",
+                "bundle_dir": str(bundle),
+                "declared_files": ["model.safetensors"],
+            }
+            old_work = os.environ.get(VOXCPM_DRIVER.DRIVER_WORK_ROOT_ENV)
+            old_output = os.environ.get(VOXCPM_DRIVER.DRIVER_OUTPUT_PATH_ENV)
+            try:
+                os.environ[VOXCPM_DRIVER.DRIVER_WORK_ROOT_ENV] = str(work)
+                os.environ[VOXCPM_DRIVER.DRIVER_OUTPUT_PATH_ENV] = str(output)
+                with mock.patch.object(VOXCPM_DRIVER, "load_model", return_value=FakeModel()), mock.patch.object(
+                    VOXCPM_DRIVER, "ensure_dependencies_importable", return_value=(object(), FakeSoundFile)
+                ):
+                    result = VOXCPM_DRIVER.handle_synthesize(request)
+            finally:
+                restore_env(VOXCPM_DRIVER.DRIVER_WORK_ROOT_ENV, old_work)
+                restore_env(VOXCPM_DRIVER.DRIVER_OUTPUT_PATH_ENV, old_output)
+            self.assertEqual(result["audio_path"], str(output))
+            self.assertEqual(result["content_type"], "audio/wav")
+            self.assertEqual(output.read_bytes(), b"RIFFvoxcpm")
+
+            for key, value in (("voice", "clone"), ("audio_format", "mp3"), ("language", "en"), ("extensions", {"style": "clone"})):
+                rejected = dict(request)
+                rejected[key] = value
+                with self.assertRaises(RuntimeError):
+                    VOXCPM_DRIVER.validate_synthesis_request(rejected)
 
     def test_configured_driver_command_preserves_windows_paths(self) -> None:
         speech_server_runtime = sys.modules["speech_server_runtime"]
@@ -805,6 +875,99 @@ class SpeechServerTests(unittest.TestCase):
             drivers = {model.model_id: model.capability_drivers for model in state.models}
             self.assertEqual(drivers["speech/qwen3tts"]["audio.synthesize"], "qwen3_tts")
             self.assertEqual(drivers["speech/qwen3asr"]["audio.transcribe"], "qwen3_asr")
+
+    def test_build_host_state_admits_matching_voxcpm_backend(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = pathlib.Path(temp_dir)
+            write_manifest(
+                root,
+                "voxcpm2-local",
+                "voxcpm2-local",
+                ["audio.synthesize"],
+                ["model.safetensors"],
+                {"model.safetensors": b"fake-voxcpm"},
+                "model.safetensors",
+                {"family": "voxcpm", "engine_config": {"driver_family": "voxcpm", "driver_backend": "standard"}},
+            )
+            driver = write_driver_script(
+                root / "voxcpm_driver.py",
+                textwrap.dedent(
+                    """\
+                    import argparse, json, pathlib
+                    parser = argparse.ArgumentParser()
+                    parser.add_argument("--request", required=True)
+                    parser.add_argument("--response", required=True)
+                    args = parser.parse_args()
+                    request = json.loads(pathlib.Path(args.request).read_text())
+                    if request["operation"] == "driver.preflight":
+                        response = {"driver_family": "voxcpm", "driver_backend": "standard", "supports": ["audio.synthesize"]}
+                    else:
+                        output = pathlib.Path(args.response).with_name("speech.wav")
+                        output.write_bytes(b"RIFFdemo")
+                        response = {"audio_path": str(output), "content_type": "audio/wav"}
+                    pathlib.Path(args.response).write_text(json.dumps(response))
+                    """
+                ),
+            )
+            old_models_root = os.environ.get(SPEECH_SERVER.MODELS_ROOT_ENV)
+            old_driver = os.environ.get(SPEECH_SERVER.VOXCPM_DRIVER_ENV)
+            old_backend = os.environ.get(SPEECH_SERVER.VOXCPM_BACKEND_ENV)
+            try:
+                os.environ[SPEECH_SERVER.MODELS_ROOT_ENV] = str(root)
+                os.environ[SPEECH_SERVER.VOXCPM_DRIVER_ENV] = driver
+                os.environ[SPEECH_SERVER.VOXCPM_BACKEND_ENV] = "standard"
+                state = SPEECH_SERVER.build_host_state()
+            finally:
+                restore_env(SPEECH_SERVER.MODELS_ROOT_ENV, old_models_root)
+                restore_env(SPEECH_SERVER.VOXCPM_DRIVER_ENV, old_driver)
+                restore_env(SPEECH_SERVER.VOXCPM_BACKEND_ENV, old_backend)
+
+            self.assertTrue(state.ready)
+            self.assertTrue(state.voxcpm_ready)
+            self.assertEqual(state.models[0].capability_drivers["audio.synthesize"], "voxcpm")
+
+    def test_build_host_state_rejects_voxcpm_asset_backend_mismatch(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = pathlib.Path(temp_dir)
+            write_manifest(
+                root,
+                "voxcpm2-local",
+                "voxcpm2-local",
+                ["audio.synthesize"],
+                ["model.safetensors"],
+                {"model.safetensors": b"fake-voxcpm"},
+                "model.safetensors",
+                {"family": "voxcpm", "engine_config": {"driver_family": "voxcpm", "driver_backend": "mlx"}},
+            )
+            driver = write_driver_script(
+                root / "voxcpm_driver.py",
+                textwrap.dedent(
+                    """\
+                    import argparse, json, pathlib
+                    parser = argparse.ArgumentParser()
+                    parser.add_argument("--request", required=True)
+                    parser.add_argument("--response", required=True)
+                    args = parser.parse_args()
+                    pathlib.Path(args.response).write_text(json.dumps({"driver_family": "voxcpm", "driver_backend": "standard", "supports": ["audio.synthesize"]}))
+                    """
+                ),
+            )
+            old_models_root = os.environ.get(SPEECH_SERVER.MODELS_ROOT_ENV)
+            old_driver = os.environ.get(SPEECH_SERVER.VOXCPM_DRIVER_ENV)
+            old_backend = os.environ.get(SPEECH_SERVER.VOXCPM_BACKEND_ENV)
+            try:
+                os.environ[SPEECH_SERVER.MODELS_ROOT_ENV] = str(root)
+                os.environ[SPEECH_SERVER.VOXCPM_DRIVER_ENV] = driver
+                os.environ[SPEECH_SERVER.VOXCPM_BACKEND_ENV] = "standard"
+                state = SPEECH_SERVER.build_host_state()
+            finally:
+                restore_env(SPEECH_SERVER.MODELS_ROOT_ENV, old_models_root)
+                restore_env(SPEECH_SERVER.VOXCPM_DRIVER_ENV, old_driver)
+                restore_env(SPEECH_SERVER.VOXCPM_BACKEND_ENV, old_backend)
+
+            self.assertFalse(state.ready)
+            self.assertFalse(state.voxcpm_ready)
+            self.assertIn("backend material does not match", state.models[0].detail)
 
     def test_build_host_state_rejects_incomplete_qwen3_asr_bundle(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

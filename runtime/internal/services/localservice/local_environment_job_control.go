@@ -234,6 +234,16 @@ func (s *Service) prepareLocalEnvironmentPlanApplyActions(plan localEnvironmentP
 		case localEnvironmentStateFailed, localEnvironmentStateCancelled:
 			if hasJob &&
 				strings.TrimSpace(job.State) == localEnvironmentStateFailed &&
+				dep.DependencyFamily == localEnvironmentFamilyModelAsset &&
+				s.localEnvironmentInstalledModelAssetReady(dep.DependencyID) {
+				if err := s.validateLocalEnvironmentPlanStartDependency(dep); err != nil {
+					return nil, err
+				}
+				actions = append(actions, localEnvironmentPlanApplyAction{Kind: localEnvironmentPlanApplyStart, Dependency: dep})
+				continue
+			}
+			if hasJob &&
+				strings.TrimSpace(job.State) == localEnvironmentStateFailed &&
 				strings.TrimSpace(job.ReasonCode) == localEnvironmentDependencyPrerequisiteFailedReason &&
 				strings.TrimSpace(job.RecoveryDisposition) == localEnvironmentJobRecoveryNotRetryable &&
 				strings.TrimSpace(job.SelectedSourceRecordID) == "" {

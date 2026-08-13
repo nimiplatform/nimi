@@ -538,7 +538,7 @@ models:
   - model_id: voxcpm2-local
     provider: local
     model_type: tts
-    updated_at: 2026-04-14
+    updated_at: 2026-08-12
     capabilities:
       - audio.synthesize
     pricing:
@@ -550,72 +550,97 @@ models:
       notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
     source_ref:
       url: https://huggingface.co/openbmb/VoxCPM2
-      retrieved_at: 2026-04-14
-      note: VoxCPM2 model card covering local synthesize, voice design, and voice clone workflow semantics.
-    voice_set_id: local:local_voxcpm2_dynamic_voice_set
-    voice_discovery_mode: dynamic_user_scoped
-    voice_ref_kinds: &a4
-      - provider_voice_ref
-  - model_id: local/voxcpm2
-    provider: local
-    model_type: tts
-    updated_at: 2026-04-14
-    capabilities:
-      - audio.synthesize
-    pricing:
-      unit: request
-      input: "0"
-      output: "0"
-      currency: none
-      as_of: 2026-03-18
-      notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
-    source_ref:
-      url: https://huggingface.co/openbmb/VoxCPM2
-      retrieved_at: 2026-04-14
-      note: VoxCPM2 model card covering local synthesize, voice design, and voice clone workflow semantics.
-    voice_set_id: local:local_voxcpm2_dynamic_voice_set
-    voice_discovery_mode: dynamic_user_scoped
-    voice_ref_kinds: *a4
-  - model_id: speech/voxcpm2
-    provider: local
-    model_type: tts
-    updated_at: 2026-04-14
-    capabilities:
-      - audio.synthesize
-    pricing:
-      unit: request
-      input: "0"
-      output: "0"
-      currency: none
-      as_of: 2026-03-18
-      notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
-    source_ref:
-      url: https://huggingface.co/openbmb/VoxCPM2
-      retrieved_at: 2026-04-14
-      note: VoxCPM2 model card covering local synthesize, voice design, and voice clone workflow semantics.
-    voice_set_id: local:local_voxcpm2_dynamic_voice_set
-    voice_discovery_mode: dynamic_user_scoped
-    voice_ref_kinds: *a4
-  - model_id: openbmb/VoxCPM2
-    provider: local
-    model_type: tts
-    updated_at: 2026-04-14
-    capabilities:
-      - audio.synthesize
-    pricing:
-      unit: request
-      input: "0"
-      output: "0"
-      currency: none
-      as_of: 2026-03-18
-      notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
-    source_ref:
-      url: https://huggingface.co/openbmb/VoxCPM2
-      retrieved_at: 2026-04-14
-      note: VoxCPM2 model card covering local synthesize, voice design, and voice clone workflow semantics.
-    voice_set_id: local:local_voxcpm2_dynamic_voice_set
-    voice_discovery_mode: dynamic_user_scoped
-    voice_ref_kinds: *a4
+      retrieved_at: 2026-08-12
+      note: VoxCPM2 model card and pinned standard-backend model bundle for the admitted local synthesis slice.
+    family: voxcpm
+    voice_set_id: local:voxcpm2-default-v1
+    voice_discovery_mode: static_catalog
+    voice_ref_kinds:
+      - preset_voice_id
+    install:
+      repo: openbmb/VoxCPM2
+      revision: bffb3df5a29440629464e5e839f4d214c8714c3d
+      install_kind: verified-hf-multi-file
+      entry: model.safetensors
+      artifact_roles:
+        - tts_model
+      preferred_engine: speech
+    variants:
+      - variant_id: local.tts.voxcpm2.standard.cpu
+        quant: BF16
+        entry: model.safetensors
+        files:
+          - audiovae.pth
+          - config.json
+          - model.safetensors
+          - special_tokens_map.json
+          - tokenization_voxcpm2.py
+          - tokenizer.json
+          - tokenizer_config.json
+        hashes:
+          audiovae.pth: sha256:94b5d51e107e0507d4acc976cfdadb64edd6fd06d1f751dadbf2fd1594274bf1
+          config.json: sha256:405f0dcd92f7feba6011ed4eac5c8d4f74cba9712f07fd5cfa3063bbdd95402c
+          model.safetensors: sha256:f7f964cfa9da23653baec6e6f7750719977ad944ed9f95fe52fe3a620506891d
+          special_tokens_map.json: sha256:068594063e37662c02b21acf42ebb334ef6a74fb810e68a2368f88f08351de76
+          tokenization_voxcpm2.py: sha256:84489ea32b6ee0cae22ed5480cacb6df85c46624c3119be9a2021c3649a12729
+          tokenizer.json: sha256:f8984687e4a92a3503d521396d454b7d68e9fdaab2a0288eb3536c7c1aa4bc20
+          tokenizer_config.json: sha256:e78a3ebb48a0b9437efd1823b6b726c823da89e49dd8bcc90c02419d9baa772b
+        total_size_bytes: 4960722408
+        host_requirement:
+          accelerator: cpu
+          min_ram_bytes: 12884901888
+        driver_backend: standard
+      - variant_id: local.tts.voxcpm2.standard.cuda
+        quant: BF16
+        entry: model.safetensors
+        files:
+          - audiovae.pth
+          - config.json
+          - model.safetensors
+          - special_tokens_map.json
+          - tokenization_voxcpm2.py
+          - tokenizer.json
+          - tokenizer_config.json
+        hashes:
+          audiovae.pth: sha256:94b5d51e107e0507d4acc976cfdadb64edd6fd06d1f751dadbf2fd1594274bf1
+          config.json: sha256:405f0dcd92f7feba6011ed4eac5c8d4f74cba9712f07fd5cfa3063bbdd95402c
+          model.safetensors: sha256:f7f964cfa9da23653baec6e6f7750719977ad944ed9f95fe52fe3a620506891d
+          special_tokens_map.json: sha256:068594063e37662c02b21acf42ebb334ef6a74fb810e68a2368f88f08351de76
+          tokenization_voxcpm2.py: sha256:84489ea32b6ee0cae22ed5480cacb6df85c46624c3119be9a2021c3649a12729
+          tokenizer.json: sha256:f8984687e4a92a3503d521396d454b7d68e9fdaab2a0288eb3536c7c1aa4bc20
+          tokenizer_config.json: sha256:e78a3ebb48a0b9437efd1823b6b726c823da89e49dd8bcc90c02419d9baa772b
+        total_size_bytes: 4960722408
+        host_requirement:
+          accelerator: cuda
+          min_ram_bytes: 8589934592
+          min_vram_bytes: 8589934592
+        driver_backend: standard
+      - variant_id: local.tts.voxcpm2.mlx.metal
+        quant: Q4_0
+        entry: model.safetensors
+        files:
+          - config.json
+          - model.safetensors
+          - special_tokens_map.json
+          - tokenizer.json
+          - tokenizer_config.json
+        hashes:
+          config.json: sha256:91bff6db1be27bc0f4f2a287cca7a8fbb8b1d7a0b026a5dc4a71bc5f2f1ddcfb
+          model.safetensors: sha256:25bddc99a7cc6d28214f12dd676ed0afa9b0a805d6477f85c275bb113cb8acee
+          special_tokens_map.json: sha256:068594063e37662c02b21acf42ebb334ef6a74fb810e68a2368f88f08351de76
+          tokenizer.json: sha256:f8984687e4a92a3503d521396d454b7d68e9fdaab2a0288eb3536c7c1aa4bc20
+          tokenizer_config.json: sha256:466575c55f0cf49530666c2e46ed14f26237dbd227ba7f4bb3bbec93df90edfc
+        total_size_bytes: 2300904017
+        host_requirement:
+          accelerator: metal
+          min_ram_bytes: 8589934592
+          min_vram_bytes: 6442450944
+        repo: mlx-community/VoxCPM2-4bit
+        revision: dc9e5c187858da5f4a13dc4c247e297339216381
+        driver_backend: mlx
+    fitness:
+      param_count: 2000000000
+      context_length: 8192
   - model_id: gemma-4-e2b-it-local
     provider: local
     model_type: chat
@@ -892,7 +917,7 @@ models:
       url: https://huggingface.co/nomic-ai/nomic-embed-text-v1.5
       retrieved_at: 2026-06-08
       note: Nomic Embed Text v1.5 model card declaring 8192 context and 768 native embedding dimension.
-    embedding: &a5
+    embedding: &a4
       dimension: 768
   - model_id: local/nomic-embed-text
     provider: local
@@ -911,7 +936,7 @@ models:
       url: https://huggingface.co/nomic-ai/nomic-embed-text-v1.5
       retrieved_at: 2026-06-08
       note: Nomic Embed Text v1.5 model card declaring 8192 context and 768 native embedding dimension.
-    embedding: *a5
+    embedding: *a4
   - model_id: llama/nomic-embed-text
     provider: local
     model_type: embedding
@@ -929,7 +954,7 @@ models:
       url: https://huggingface.co/nomic-ai/nomic-embed-text-v1.5
       retrieved_at: 2026-06-08
       note: Nomic Embed Text v1.5 model card declaring 8192 context and 768 native embedding dimension.
-    embedding: *a5
+    embedding: *a4
   - model_id: whisper-large-v3-local
     provider: local
     model_type: stt
@@ -998,7 +1023,7 @@ models:
       url: https://huggingface.co/Qwen/Qwen3-ASR-0.6B
       retrieved_at: 2026-04-17
       note: Default local STT checkpoint for first-wave local admission.
-    transcription: &a6
+    transcription: &a5
       tiers:
         - core_transcript
       response_formats:
@@ -1059,7 +1084,7 @@ models:
       url: https://huggingface.co/Qwen/Qwen3-ASR-0.6B
       retrieved_at: 2026-04-17
       note: Default local STT checkpoint for first-wave local admission.
-    transcription: *a6
+    transcription: *a5
   - model_id: speech/qwen3asr
     provider: local
     model_type: stt
@@ -1077,7 +1102,7 @@ models:
       url: https://huggingface.co/Qwen/Qwen3-ASR-0.6B
       retrieved_at: 2026-04-17
       note: Default local STT checkpoint for first-wave local admission.
-    transcription: *a6
+    transcription: *a5
   - model_id: Qwen/Qwen3-ASR-0.6B
     provider: local
     model_type: stt
@@ -1095,7 +1120,7 @@ models:
       url: https://huggingface.co/Qwen/Qwen3-ASR-0.6B
       retrieved_at: 2026-04-17
       note: Default local STT checkpoint for first-wave local admission.
-    transcription: *a6
+    transcription: *a5
   - model_id: qwen3-asr-transformers-0.6b-local
     provider: local
     model_type: stt
@@ -1113,7 +1138,7 @@ models:
       url: https://huggingface.co/Qwen/Qwen3-ASR-0.6B-hf
       retrieved_at: 2026-08-09
       note: Transformers-native Qwen3-ASR 0.6B checkpoint and recommended lower-resource option.
-    transcription: &a7
+    transcription: &a6
       tiers:
         - core_transcript
       response_formats:
@@ -1172,7 +1197,7 @@ models:
       url: https://huggingface.co/Qwen/Qwen3-ASR-0.6B-hf
       retrieved_at: 2026-08-09
       note: Transformers-native Qwen3-ASR 0.6B checkpoint and recommended lower-resource option.
-    transcription: *a7
+    transcription: *a6
   - model_id: speech/qwen3asr-transformers-0.6b
     provider: local
     model_type: stt
@@ -1190,7 +1215,7 @@ models:
       url: https://huggingface.co/Qwen/Qwen3-ASR-0.6B-hf
       retrieved_at: 2026-08-09
       note: Transformers-native Qwen3-ASR 0.6B checkpoint and recommended lower-resource option.
-    transcription: *a7
+    transcription: *a6
   - model_id: Qwen/Qwen3-ASR-0.6B-hf
     provider: local
     model_type: stt
@@ -1208,7 +1233,7 @@ models:
       url: https://huggingface.co/Qwen/Qwen3-ASR-0.6B-hf
       retrieved_at: 2026-08-09
       note: Transformers-native Qwen3-ASR 0.6B checkpoint and recommended lower-resource option.
-    transcription: *a7
+    transcription: *a6
   - model_id: qwen3-asr-transformers-1.7b-local
     provider: local
     model_type: stt
@@ -1226,7 +1251,7 @@ models:
       url: https://huggingface.co/Qwen/Qwen3-ASR-1.7B-hf
       retrieved_at: 2026-08-09
       note: Transformers-native Qwen3-ASR 1.7B checkpoint and explicit higher-resource option.
-    transcription: &a8
+    transcription: &a7
       tiers:
         - core_transcript
       response_formats:
@@ -1285,7 +1310,7 @@ models:
       url: https://huggingface.co/Qwen/Qwen3-ASR-1.7B-hf
       retrieved_at: 2026-08-09
       note: Transformers-native Qwen3-ASR 1.7B checkpoint and explicit higher-resource option.
-    transcription: *a8
+    transcription: *a7
   - model_id: speech/qwen3asr-transformers-1.7b
     provider: local
     model_type: stt
@@ -1303,7 +1328,7 @@ models:
       url: https://huggingface.co/Qwen/Qwen3-ASR-1.7B-hf
       retrieved_at: 2026-08-09
       note: Transformers-native Qwen3-ASR 1.7B checkpoint and explicit higher-resource option.
-    transcription: *a8
+    transcription: *a7
   - model_id: Qwen/Qwen3-ASR-1.7B-hf
     provider: local
     model_type: stt
@@ -1321,7 +1346,7 @@ models:
       url: https://huggingface.co/Qwen/Qwen3-ASR-1.7B-hf
       retrieved_at: 2026-08-09
       note: Transformers-native Qwen3-ASR 1.7B checkpoint and explicit higher-resource option.
-    transcription: *a8
+    transcription: *a7
   - model_id: flux.1-schnell-local
     provider: local
     model_type: image
@@ -1342,7 +1367,7 @@ models:
     features:
       - input.image
       - input.mask
-    image_request_options: &a9
+    image_request_options: &a8
       response_formats:
         - b64_json
         - url
@@ -1375,7 +1400,7 @@ models:
     features:
       - input.image
       - input.mask
-    image_request_options: *a9
+    image_request_options: *a8
   - model_id: media/flux.1-schnell
     provider: local
     model_type: image
@@ -1396,7 +1421,7 @@ models:
     features:
       - input.image
       - input.mask
-    image_request_options: *a9
+    image_request_options: *a8
   - model_id: z-image-turbo-local
     provider: local
     model_type: image
@@ -1417,7 +1442,7 @@ models:
     features:
       - input.image
       - input.mask
-    image_request_options: &a10
+    image_request_options: &a9
       response_formats:
         - b64_json
         - url
@@ -1749,7 +1774,7 @@ models:
     features:
       - input.image
       - input.mask
-    image_request_options: *a10
+    image_request_options: *a9
   - model_id: media/z-image-turbo
     provider: local
     model_type: image
@@ -1770,7 +1795,7 @@ models:
     features:
       - input.image
       - input.mask
-    image_request_options: *a10
+    image_request_options: *a9
   - model_id: leejet/Z-Image-Turbo-GGUF
     provider: local
     model_type: image
@@ -1791,7 +1816,7 @@ models:
     features:
       - input.image
       - input.mask
-    image_request_options: *a10
+    image_request_options: *a9
   - model_id: wan2.1-video-local
     provider: local
     model_type: video
@@ -1811,7 +1836,7 @@ models:
       note: Official Diffusers Wan text-to-video and image-to-video pipeline documentation.
     features:
       - input.image
-    video_generation: &a11
+    video_generation: &a10
       modes:
         - t2v
         - i2v_first_frame
@@ -1852,7 +1877,7 @@ models:
       note: Official Diffusers Wan text-to-video and image-to-video pipeline documentation.
     features:
       - input.image
-    video_generation: *a11
+    video_generation: *a10
   - model_id: media/wan2.1-video
     provider: local
     model_type: video
@@ -1872,7 +1897,7 @@ models:
       note: Official Diffusers Wan text-to-video and image-to-video pipeline documentation.
     features:
       - input.image
-    video_generation: *a11
+    video_generation: *a10
   - model_id: ace-step-local
     provider: local
     model_type: music
@@ -2145,6 +2170,47 @@ voices:
       url: https://github.com/hexgrad/kokoro
       retrieved_at: 2026-03-05
       note: Kokoro repository.
+  - voice_id: default
+    voice_set_id: local:voxcpm2-default-v1
+    provider: local
+    name: Default
+    langs:
+      - ar
+      - my
+      - zh
+      - da
+      - nl
+      - en
+      - fi
+      - fr
+      - de
+      - el
+      - he
+      - hi
+      - id
+      - it
+      - ja
+      - km
+      - ko
+      - lo
+      - ms
+      - no
+      - pl
+      - pt
+      - ru
+      - es
+      - sw
+      - sv
+      - tl
+      - th
+      - tr
+      - vi
+    model_ids:
+      - voxcpm2-local
+    source_ref:
+      url: https://huggingface.co/openbmb/VoxCPM2
+      retrieved_at: 2026-08-12
+      note: VoxCPM2 model card and pinned standard-backend model bundle for the admitted local synthesis slice.
   - voice_id: user-custom
     voice_set_id: local:local_qwen3_tts_customvoice_dynamic_voice_set
     provider: local
@@ -2281,30 +2347,6 @@ voices:
       url: https://github.com/SWivid/F5-TTS
       retrieved_at: 2026-03-05
       note: F5-TTS repository.
-  - voice_id: user-custom
-    voice_set_id: local:local_voxcpm2_dynamic_voice_set
-    provider: local
-    name: User Custom Voice
-    langs:
-      - zh
-      - en
-      - de
-      - it
-      - pt
-      - es
-      - ja
-      - ko
-      - fr
-      - ru
-    model_ids:
-      - voxcpm2-local
-      - local/voxcpm2
-      - speech/voxcpm2
-      - openbmb/VoxCPM2
-    source_ref:
-      url: https://huggingface.co/openbmb/VoxCPM2
-      retrieved_at: 2026-04-14
-      note: VoxCPM2 model card covering local synthesize, voice design, and voice clone workflow semantics.
 voice_workflow_models:
   - workflow_model_id: qwen3-local-voice-clone
     workflow_type: reference_audio
@@ -2431,7 +2473,7 @@ voice_handle_policies:
       note: Default local voice clone checkpoint for first-wave local admission.
 presets:
   minimal:
-    factory_aiprofile_alias: local-speech-ready
+    factory_aiprofile_alias: local-speech
     slots:
       - slot: chat
         capability: text.generate

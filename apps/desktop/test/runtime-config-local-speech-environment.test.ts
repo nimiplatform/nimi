@@ -286,6 +286,61 @@ test('local speech environment resolves the selected exact TTS binding through R
   }]);
 });
 
+test('local speech environment resolves the selected exact VoxCPM binding through its package set', async () => {
+  const requests: unknown[] = [];
+  const expectedPlan = { planId: 'plan-voxcpm' };
+
+  const result = await resolveRuntimeConfigLocalTTSEnvironmentPlan({
+    machineConfiguration: {
+      async get() {
+        return {
+          selections: [{
+            capabilityContract: 'audio.synthesize',
+            configurationId: 'voxcpm-config',
+            effectiveDefaults: null,
+          }],
+          configurations: [{
+            configurationId: 'voxcpm-config',
+            capabilityContract: 'audio.synthesize',
+            implementation: {
+              implementationId: 'local.audio.synthesize.voxcpm',
+              driverId: 'nimi.runtime.driver.voxcpm',
+              driverDialect: 'voxcpm/audio-synthesize/v1',
+            },
+            projectedRequirements: [],
+            exactBindings: [{
+              requirementId: 'tts.model',
+              localAssetId: 'local-voxcpm-1',
+              verifiedContentId: 'sha256:voxcpm',
+              entrySha256: 'voxcpm-sha',
+            }],
+            supportedFeatures: [],
+            interpretability: 'interpretable',
+            requirementResolution: 'configured',
+            reasons: [],
+            displayName: 'VoxCPM 2',
+          }],
+        };
+      },
+    },
+    localEnvironment: {
+      async resolveEnvironmentPlan(request) {
+        requests.push(request);
+        return expectedPlan as never;
+      },
+    },
+  });
+
+  assert.equal(result.plan, expectedPlan);
+  assert.deepEqual(result.resolution, {
+    packId: 'local-speech',
+    consumerScope: 'speech.voxcpm.python',
+    localAssetId: 'local-voxcpm-1',
+    assetId: undefined,
+  });
+  assert.deepEqual(requests, [result.resolution]);
+});
+
 test('local speech capability setup leaves mixed repair, retry, and start admission to Runtime', () => {
   const runtime = environmentDependency({ dependencyFamily: 'python-runtime', state: 'repair_required' });
   const profile = environmentDependency({ dependencyFamily: 'python-profile', state: 'failed' });

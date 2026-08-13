@@ -27,6 +27,7 @@ import {
   NIMI_MACHINE_LOCAL_QWEN3_ASR_TRANSFORMERS_IMPLEMENTATION,
   NIMI_MACHINE_LOCAL_QWEN3_TTS_IMPLEMENTATION,
   NIMI_MACHINE_LOCAL_QWEN3_VOICE_CREATE_IMPLEMENTATION,
+  NIMI_MACHINE_LOCAL_VOXCPM_IMPLEMENTATION,
   NIMI_MACHINE_LOCAL_STABLE_DIFFUSION_IMAGE_IMPLEMENTATION,
   NIMI_MACHINE_LOCAL_STABLE_DIFFUSION_VIDEO_IMPLEMENTATION,
   NIMI_MACHINE_LOCAL_TEXT_GENERATE_CAPABILITY_CONTRACT,
@@ -41,6 +42,7 @@ import {
   createNimiMachineLocalQwen3TTSConfigurationInput,
   createNimiMachineLocalQwen3VoiceCreateConfigurationInput,
   createNimiMachineLocalStableDiffusionImageConfigurationInput,
+  createNimiMachineLocalVoxCPMConfigurationInput,
   createNimiMachineLocalStableDiffusionVideoConfigurationInput,
   deriveNimiMachineLocalAIConfigurationImpact,
   fromNimiRuntimeProtoStruct,
@@ -248,6 +250,13 @@ test('Machine Local AI Configuration typed client maps every admitted RPC throug
   assert.deepEqual(ttsInput.implementation, NIMI_MACHINE_LOCAL_QWEN3_TTS_IMPLEMENTATION);
   assert.deepEqual(ttsInput.portableConfig, {});
   assert.deepEqual(ttsInput.supportedFeatures, []);
+  const voxcpmInput = createNimiMachineLocalVoxCPMConfigurationInput({
+    displayName: 'Local VoxCPM synthesis',
+  });
+  assert.equal(voxcpmInput.capabilityContract, NIMI_MACHINE_LOCAL_AUDIO_SYNTHESIZE_CAPABILITY_CONTRACT);
+  assert.deepEqual(voxcpmInput.implementation, NIMI_MACHINE_LOCAL_VOXCPM_IMPLEMENTATION);
+  assert.deepEqual(voxcpmInput.portableConfig, {});
+  assert.deepEqual(voxcpmInput.supportedFeatures, []);
   const referenceVoiceInput = createNimiMachineLocalQwen3VoiceCreateConfigurationInput({
     displayName: 'Local reference voice',
     source: 'reference-audio',

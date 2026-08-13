@@ -41,6 +41,12 @@ export const NIMI_AI_PROFILE_QWEN3_TTS_IMPLEMENTATION = Object.freeze({
   driverDialect: 'qwen3-tts/audio-synthesize/v1',
 }) satisfies Readonly<CapabilityImplementationIdentity>;
 
+export const NIMI_AI_PROFILE_VOXCPM_IMPLEMENTATION = Object.freeze({
+  implementationId: 'local.audio.synthesize.voxcpm',
+  driverId: 'nimi.runtime.driver.voxcpm',
+  driverDialect: 'voxcpm/audio-synthesize/v1',
+}) satisfies Readonly<CapabilityImplementationIdentity>;
+
 export const NIMI_AI_PROFILE_QWEN3_VOICE_CREATE_IMPLEMENTATION = Object.freeze({
   implementationId: 'local.voice.create.qwen3-tts',
   driverId: 'nimi.runtime.driver.qwen3-tts',
@@ -268,6 +274,10 @@ export type NimiAIProfileDriverAuthoringSection =
   }
   | {
     readonly kind: 'qwen3-tts';
+    readonly portableConfig?: NimiJsonObject;
+  }
+  | {
+    readonly kind: 'voxcpm';
     readonly portableConfig?: NimiJsonObject;
   }
   | {
@@ -625,6 +635,27 @@ export function createNimiAIProfileQwen3TTSLocalImplementation(input: {
     implementation: Object.freeze({ ...NIMI_AI_PROFILE_QWEN3_TTS_IMPLEMENTATION }),
     supportedFeatures,
     driverSection: Object.freeze({ kind: 'qwen3-tts' as const, portableConfig }),
+  });
+}
+
+// @nimi-authority: rule.nimi.runtime.ai-provider.r112
+export function createNimiAIProfileVoxCPMLocalImplementation(input: {
+  readonly supportedFeatures?: readonly string[];
+} = {}): NimiAIProfileLocalImplementationAuthoringInput {
+  assertExactRecord(input, new Set(['supportedFeatures']), 'VoxCPM implementation input');
+  const supportedFeatures = normalizeFeatureSet(
+    input.supportedFeatures ?? [],
+    'VoxCPM supportedFeatures',
+  );
+  const portableConfig = createNimiAIProfileQwen3SpeechPortableConfig(
+    {},
+    supportedFeatures,
+    'VoxCPM',
+  );
+  return Object.freeze({
+    implementation: Object.freeze({ ...NIMI_AI_PROFILE_VOXCPM_IMPLEMENTATION }),
+    supportedFeatures,
+    driverSection: Object.freeze({ kind: 'voxcpm' as const, portableConfig }),
   });
 }
 
@@ -1421,6 +1452,25 @@ function normalizeLocalImplementationInput(
       ),
     });
   }
+  if (section.kind === 'voxcpm') {
+    assertExactImplementation(
+      implementation,
+      NIMI_AI_PROFILE_VOXCPM_IMPLEMENTATION,
+      'VoxCPM',
+    );
+    if (capabilityContract !== 'audio.synthesize') {
+      return authoringError('VoxCPM Driver section requires audio.synthesize');
+    }
+    return Object.freeze({
+      implementation,
+      supportedFeatures,
+      portableConfig: createNimiAIProfileQwen3SpeechPortableConfig(
+        (section.portableConfig ?? {}) as NimiJsonObject,
+        supportedFeatures,
+        'VoxCPM',
+      ),
+    });
+  }
   if (section.kind === 'qwen3-voice-create') {
     assertExactImplementation(
       implementation,
@@ -1620,6 +1670,13 @@ function validateKnownLocalConfiguration(
       return authoringError('Qwen3-TTS implementation requires audio.synthesize');
     }
     validateQwen3SpeechPortableConfig(config, features, 'Qwen3-TTS');
+    return;
+  }
+  if (sameImplementation(identity, NIMI_AI_PROFILE_VOXCPM_IMPLEMENTATION)) {
+    if (capabilityContract !== 'audio.synthesize') {
+      return authoringError('VoxCPM implementation requires audio.synthesize');
+    }
+    validateQwen3SpeechPortableConfig(config, features, 'VoxCPM');
     return;
   }
   if (sameImplementation(identity, NIMI_AI_PROFILE_QWEN3_VOICE_CREATE_IMPLEMENTATION)) {
@@ -1925,6 +1982,24 @@ function projectKnownDriverRequirements(
           'main',
           0,
           'TTS model',
+          'tts',
+          'substitutable',
+          undefined,
+        ),
+      ]),
+    });
+  }
+
+  if (sameImplementation(implementation, NIMI_AI_PROFILE_VOXCPM_IMPLEMENTATION)) {
+    return Object.freeze({
+      source: 'authoring-preview' as const,
+      commitTruth: 'runtime-reproject' as const,
+      requirements: Object.freeze([
+        requirementPreview(
+          'tts.model',
+          'main',
+          0,
+          'VoxCPM synthesis model',
           'tts',
           'substitutable',
           undefined,

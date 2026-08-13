@@ -11,18 +11,35 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/engine"
 )
 
+// @nimi-authority: rule.nimi.runtime.local-compute.r110
 func (s *Service) configuredManagedSpeechEngineConfigForCapability(capabilityContract string, driverID string, port int) (engine.EngineConfig, error) {
 	consumer := ""
 	envKey := ""
+	voxcpmBackend := ""
 	var driverPath func(string) string
 	switch strings.TrimSpace(capabilityContract) {
 	case capabilitydriver.AudioSynthesizeContract:
-		if strings.TrimSpace(driverID) != capabilitydriver.Qwen3TTSDriverID {
+		switch strings.TrimSpace(driverID) {
+		case capabilitydriver.Qwen3TTSDriverID:
+			consumer = "speech.qwen3-tts.python"
+			envKey = "NIMI_RUNTIME_SPEECH_QWEN3_TTS_CMD"
+			driverPath = engine.SpeechQwen3TTSDriverPath
+		case capabilitydriver.VoxCPMDriverID:
+			consumer = "speech.voxcpm.python"
+			envKey = "NIMI_RUNTIME_SPEECH_VOXCPM_CMD"
+			hostState := localEnvironmentHostProfileFromDeviceProfile(hostProfileOrCollected(nil))
+			backend, err := engine.SpeechVoxCPMBackendForPlatform(localEnvironmentPlatformTuple(hostState))
+			if err != nil {
+				return engine.EngineConfig{}, err
+			}
+			voxcpmBackend = backend
+			driverPath = func(root string) string {
+				path, _ := engine.SpeechVoxCPMDriverPathForBackend(root, backend)
+				return path
+			}
+		default:
 			return engine.EngineConfig{}, fmt.Errorf("speech synthesis Driver is not admitted: %s", strings.TrimSpace(driverID))
 		}
-		consumer = "speech.qwen3-tts.python"
-		envKey = "NIMI_RUNTIME_SPEECH_QWEN3_TTS_CMD"
-		driverPath = engine.SpeechQwen3TTSDriverPath
 	case capabilitydriver.VoiceCreateContract:
 		if strings.TrimSpace(driverID) != capabilitydriver.Qwen3TTSDriverID {
 			return engine.EngineConfig{}, fmt.Errorf("voice.create Driver is not admitted: %s", strings.TrimSpace(driverID))
@@ -62,8 +79,11 @@ func (s *Service) configuredManagedSpeechEngineConfigForCapability(capabilityCon
 		cfg.SpeechQwen3TTSPackageSetRoot = root
 	} else if consumer == "speech.qwen3-asr.python" {
 		cfg.SpeechQwen3ASRPackageSetRoot = root
-	} else {
+	} else if consumer == "speech.qwen3-asr-transformers.python" {
 		cfg.SpeechQwen3ASRTransformersPackageSetRoot = root
+	} else {
+		cfg.SpeechVoxCPMPackageSetRoot = root
+		cfg.SpeechVoxCPMBackend = voxcpmBackend
 	}
 	cfg.ExecutionHostIdentity = speechExecutionHostIdentity(capabilityContract, driverID, cfg)
 	if cfg.ExecutionHostIdentity == "" {

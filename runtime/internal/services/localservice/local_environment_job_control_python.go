@@ -479,6 +479,7 @@ func pythonSelectedConsumersForDependency(dependencyID string) []string {
 			"speech.qwen3-asr.python",
 			"speech.qwen3-asr-transformers.python",
 			"speech.qwen3-tts.python",
+			"speech.voxcpm.python",
 		}
 	default:
 		return []string{"python.pipeline"}

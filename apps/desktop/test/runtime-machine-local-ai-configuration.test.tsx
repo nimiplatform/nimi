@@ -398,6 +398,38 @@ test('Local AI Configurations authors and displays exact Qwen3 speech implementa
   }
 });
 
+test('Local AI Configurations exposes and displays the exact VoxCPM synthesis Driver', () => {
+  const draft = {
+    ...createRuntimeConfigMachineLocalAIAddDraft(),
+    capabilityContract: 'audio.synthesize' as const,
+    displayName: 'Local VoxCPM synthesis',
+    ttsDriverKind: 'voxcpm' as const,
+  };
+  const addMarkup = renderToStaticMarkup(
+    <MachineLocalAIAddFormFields draft={draft} assets={[]} busy={false} onChange={noop} />,
+  );
+
+  assert.match(addMarkup, /data-testid="machine-local-ai-tts-driver"/u);
+  assert.match(addMarkup, /VoxCPM/u);
+
+  const speechConfiguration: NimiMachineLocalCapabilityConfiguration = {
+    ...configuration('unresolved'),
+    configurationId: 'lcc_voxcpm',
+    capabilityContract: 'audio.synthesize',
+    implementation: {
+      implementationId: 'local.audio.synthesize.voxcpm',
+      driverId: 'nimi.runtime.driver.voxcpm',
+      driverDialect: 'voxcpm/audio-synthesize/v1',
+    },
+    displayName: 'Local VoxCPM synthesis',
+  };
+  const cardMarkup = renderView(baseProps({
+    configurations: [speechConfiguration],
+    selections: [],
+  }));
+  assert.match(cardMarkup, /VoxCPM/u);
+});
+
 test('Local AI Configurations exposes the separate Transformers-native ASR Driver explicitly', () => {
   const draft = {
     ...createRuntimeConfigMachineLocalAIAddDraft(),
@@ -714,6 +746,25 @@ test('Local AI Configurations derives compatible exact-binding choices from proj
       source_feature: 'reference-audio',
     },
   }, assets).map((asset) => asset.localAssetId), ['main']);
+  const voxcpmAsset: NimiRuntimeLocalAssetEntry = {
+    localAssetId: 'voxcpm',
+    assetId: 'voxcpm',
+    displayName: 'VoxCPM2',
+    kind: 'tts',
+    engine: 'speech',
+    status: 'installed',
+    family: 'voxcpm',
+    artifactRoles: ['tts_model'],
+    expectedVerifiedContentId: `sha256:${'c'.repeat(64)}`,
+  };
+  assert.deepEqual(compatibleMachineLocalAssets({
+    ...requirement,
+    compatibilityConstraints: {
+      engine: 'speech',
+      family: 'voxcpm',
+      artifact_role: 'tts_model',
+    },
+  }, [voxcpmAsset]).map((asset) => asset.localAssetId), ['voxcpm']);
 });
 
 test('Local AI Configurations binds a compatible file directly from the slot select (bind-on-select)', () => {

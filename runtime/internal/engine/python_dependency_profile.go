@@ -113,7 +113,7 @@ func ResolvePythonDependencyProfileIdentity(consumer string, platformTuple strin
 		return PythonDependencyProfileIdentity{}, err
 	}
 
-	sourceLabel, err := pythonDependencyProfileSourceLabel(trimmedConsumer, trimmedPlane)
+	sourceLabel, err := pythonDependencyProfileSourceLabel(trimmedConsumer, trimmedPlatform, trimmedPlane)
 	if err != nil {
 		return PythonDependencyProfileIdentity{}, err
 	}
@@ -190,7 +190,7 @@ func admitPythonDependencyProfilePlatform(platformTuple string, acceleratorPlane
 	return fmt.Errorf("python dependency profile is not admitted for platform %s and accelerator %s", platformTuple, acceleratorPlane)
 }
 
-func pythonDependencyProfileSourceLabel(consumer string, acceleratorPlane string) (string, error) {
+func pythonDependencyProfileSourceLabel(consumer string, platformTuple string, acceleratorPlane string) (string, error) {
 	line := ""
 	switch strings.TrimSpace(consumer) {
 	case "speech.qwen3-tts.python":
@@ -199,6 +199,18 @@ func pythonDependencyProfileSourceLabel(consumer string, acceleratorPlane string
 		line = "speech-asr-package"
 	case "speech.qwen3-asr-transformers.python":
 		line = "speech-asr-transformers"
+	case "speech.voxcpm.python":
+		switch strings.ToLower(strings.TrimSpace(platformTuple)) {
+		case "windows/amd64":
+			line = "speech-voxcpm-standard"
+		case "darwin/arm64":
+			if acceleratorPlane != "cpu" {
+				return "", fmt.Errorf("VoxCPM MLX dependency profile requires the darwin/arm64 CPU admission plane")
+			}
+			return "speech-voxcpm-mlx-cpu", nil
+		default:
+			return "", fmt.Errorf("VoxCPM dependency profile is not admitted for platform %s", platformTuple)
+		}
 	case "media.diffusers.cpu", "media.diffusers.cuda",
 		"media.video-python.cpu", "media.video-python.cuda":
 		line = "media-pipeline"

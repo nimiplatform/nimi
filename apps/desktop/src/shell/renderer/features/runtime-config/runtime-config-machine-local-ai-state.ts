@@ -46,6 +46,10 @@ export type RuntimeConfigMachineLocalAIASRDriverKind =
   | 'qwen3-asr'
   | 'qwen3-asr-transformers';
 
+export type RuntimeConfigMachineLocalAITTSDriverKind =
+  | 'qwen3-tts'
+  | 'voxcpm';
+
 /**
  * MiniMax-H3 video.generate Add-form slots. The five ids are the portable-key
  * prefixes admitted by the SDK video configuration constructor; projected
@@ -90,6 +94,7 @@ export type RuntimeConfigMachineLocalAIVideoExecutionOptions = {
 export type RuntimeConfigMachineLocalAIAddDraft = {
   readonly capabilityContract: RuntimeConfigMachineLocalAICapabilityContract;
   readonly displayName: string;
+  readonly ttsDriverKind: RuntimeConfigMachineLocalAITTSDriverKind;
   readonly asrDriverKind: RuntimeConfigMachineLocalAIASRDriverKind;
   readonly voiceCreateSource: 'reference-audio' | 'text-description';
   readonly acceptsImageInput: boolean;
@@ -167,6 +172,7 @@ export function createRuntimeConfigMachineLocalAIAddDraft(): RuntimeConfigMachin
   return {
     capabilityContract: 'text.generate',
     displayName: '',
+    ttsDriverKind: 'qwen3-tts',
     asrDriverKind: 'qwen3-asr',
     voiceCreateSource: 'reference-audio',
     acceptsImageInput: false,
@@ -424,6 +430,7 @@ export function compatibleMachineLocalAssets(
     'engine',
     'artifact_role',
     'asset_kind',
+    'family',
     'model_family',
     'compatible_families',
     'format',
@@ -433,6 +440,7 @@ export function compatibleMachineLocalAssets(
   const requiredEngine = exactConstraintText(constraints, 'engine');
   const requiredArtifactRole = exactConstraintText(constraints, 'artifact_role');
   const requiredAssetKind = exactConstraintText(constraints, 'asset_kind');
+  const requiredFamily = exactConstraintText(constraints, 'family');
   const requiredModelFamily = exactConstraintText(constraints, 'model_family');
   const compatibleFamilies = exactConstraintTextList(constraints, 'compatible_families');
   const projectedOnlyConstraints = [
@@ -443,6 +451,7 @@ export function compatibleMachineLocalAssets(
     requiredEngine === null
     || requiredArtifactRole === null
     || requiredAssetKind === null
+    || requiredFamily === null
     || requiredModelFamily === null
     || compatibleFamilies === null
     || projectedOnlyConstraints.some((value) => value === null)
@@ -451,6 +460,7 @@ export function compatibleMachineLocalAssets(
     if (!asset.expectedVerifiedContentId || asset.status === 'removed') return false;
     if (requiredEngine && asset.engine !== requiredEngine) return false;
     if (requiredAssetKind && asset.kind !== requiredAssetKind) return false;
+    if (requiredFamily && asset.family !== requiredFamily) return false;
     if (requiredModelFamily && asset.family !== requiredModelFamily) {
       return false;
     }

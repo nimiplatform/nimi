@@ -58,6 +58,8 @@ import type {
   NimiRuntimeLocalQwen3ASRTransformersEnvironmentPlanRuntime,
   NimiRuntimeLocalQwen3TTSEnvironmentPlanInput,
   NimiRuntimeLocalQwen3TTSEnvironmentPlanRuntime,
+  NimiRuntimeLocalVoxCPMEnvironmentPlanInput,
+  NimiRuntimeLocalVoxCPMEnvironmentPlanRuntime,
   NimiRuntimeLocalTransferAccepted,
   NimiRuntimeLocalTransferProgressEvent,
   NimiRuntimeLocalTransferSessionSummary,
@@ -90,6 +92,7 @@ const NIMI_RUNTIME_LOCAL_SPEECH_PACK_ID = 'local-speech';
 const NIMI_RUNTIME_LOCAL_QWEN3_ASR_CONSUMER_SCOPE = 'speech.qwen3-asr.python';
 const NIMI_RUNTIME_LOCAL_QWEN3_ASR_TRANSFORMERS_CONSUMER_SCOPE = 'speech.qwen3-asr-transformers.python';
 const NIMI_RUNTIME_LOCAL_QWEN3_TTS_CONSUMER_SCOPE = 'speech.qwen3-tts.python';
+const NIMI_RUNTIME_LOCAL_VOXCPM_CONSUMER_SCOPE = 'speech.voxcpm.python';
 const NIMI_RUNTIME_LOCAL_ENVIRONMENT_DEPENDENCY_READY_STATES: ReadonlySet<string> = new Set([
   'ready_system',
   'ready_managed',
@@ -590,6 +593,33 @@ export async function resolveNimiRuntimeLocalQwen3TTSEnvironmentPlan(input: {
 }): Promise<NimiRuntimeLocalEnvironmentPlan> {
   return input.runtime.resolveEnvironmentPlan(
     buildNimiRuntimeLocalQwen3TTSEnvironmentPlanInput(input.asset),
+  );
+}
+
+// @nimi-authority: rule.nimi.runtime.local-compute.r110
+export function buildNimiRuntimeLocalVoxCPMEnvironmentPlanInput(
+  asset: {
+    readonly assetId?: string;
+    readonly localAssetId?: string;
+  },
+): NimiRuntimeLocalVoxCPMEnvironmentPlanInput {
+  return {
+    packId: NIMI_RUNTIME_LOCAL_SPEECH_PACK_ID,
+    consumerScope: NIMI_RUNTIME_LOCAL_VOXCPM_CONSUMER_SCOPE,
+    localAssetId: normalizeText(asset.localAssetId) || undefined,
+    assetId: normalizeText(asset.assetId) || undefined,
+  };
+}
+
+export async function resolveNimiRuntimeLocalVoxCPMEnvironmentPlan(input: {
+  readonly runtime: NimiRuntimeLocalVoxCPMEnvironmentPlanRuntime;
+  readonly asset: {
+    readonly assetId?: string;
+    readonly localAssetId?: string;
+  };
+}): Promise<NimiRuntimeLocalEnvironmentPlan> {
+  return input.runtime.resolveEnvironmentPlan(
+    buildNimiRuntimeLocalVoxCPMEnvironmentPlanInput(input.asset),
   );
 }
 

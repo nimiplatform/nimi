@@ -20,6 +20,7 @@ import {
   buildNimiRuntimeLocalQwen3ASREnvironmentPlanInput,
   buildNimiRuntimeLocalQwen3ASRTransformersEnvironmentPlanInput,
   buildNimiRuntimeLocalQwen3TTSEnvironmentPlanInput,
+  buildNimiRuntimeLocalVoxCPMEnvironmentPlanInput,
   collectNimiRuntimeLocalRecommendationFeedLicenses,
   collectNimiRuntimeLocalRecommendationFeedProviders,
   createNimiRuntimeLocalAssetAdminClient,
@@ -477,6 +478,17 @@ test('Qwen3 TTS environment helper preserves exact speech plan identity', () => 
     packId: 'local-speech',
     consumerScope: 'speech.qwen3-tts.python',
     localAssetId: 'local-tts-1',
+    assetId: undefined,
+  });
+});
+
+test('VoxCPM environment helper preserves its exact speech package-set identity', () => {
+  assert.deepEqual(buildNimiRuntimeLocalVoxCPMEnvironmentPlanInput({
+    localAssetId: 'local-voxcpm-1',
+  }), {
+    packId: 'local-speech',
+    consumerScope: 'speech.voxcpm.python',
+    localAssetId: 'local-voxcpm-1',
     assetId: undefined,
   });
 });

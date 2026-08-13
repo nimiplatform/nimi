@@ -176,6 +176,17 @@ func pythonDependencyProfileStatusForTest(identity engine.PythonDependencyProfil
 		driver := engine.SpeechQwen3ASRTransformersDriverPath(profileRoot)
 		driverCommands["NIMI_RUNTIME_SPEECH_QWEN3_ASR_TRANSFORMERS_CMD"] = "python " + driver
 		driverScripts = append(driverScripts, driver)
+	case "speech.voxcpm.python":
+		backend, err := engine.SpeechVoxCPMBackendForPlatform(identity.PlatformTuple)
+		if err != nil {
+			panic(err)
+		}
+		driver, err := engine.SpeechVoxCPMDriverPathForBackend(profileRoot, backend)
+		if err != nil {
+			panic(err)
+		}
+		driverCommands["NIMI_RUNTIME_SPEECH_VOXCPM_CMD"] = "python " + driver
+		driverScripts = append(driverScripts, driver)
 	}
 	return engine.PythonDependencyProfileStatus{
 		Identity:               identity,

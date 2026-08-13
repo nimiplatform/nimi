@@ -784,7 +784,16 @@ function normalizeLocalVariant(raw, modelID, installEntry) {
   if (totalSizeBytes === undefined || totalSizeBytes <= 0) {
     throw new Error(`${label} total_size_bytes must be a positive integer`);
   }
-  return {
+  const repo = normalizeString(raw?.repo);
+  const revision = normalizeString(raw?.revision);
+  if (Boolean(repo) !== Boolean(revision) || revision.toLowerCase() === 'main') {
+    throw new Error(`${label} source override requires repo and a pinned revision together`);
+  }
+  const driverBackend = normalizeString(raw?.driver_backend).toLowerCase();
+  if (driverBackend && driverBackend !== 'standard' && driverBackend !== 'mlx') {
+    throw new Error(`${label} driver_backend must be standard|mlx, got: ${driverBackend}`);
+  }
+  const variant = {
     variant_id: variantID,
     quant,
     entry,
@@ -793,6 +802,14 @@ function normalizeLocalVariant(raw, modelID, installEntry) {
     total_size_bytes: totalSizeBytes,
     host_requirement: normalizeLocalHostRequirement(raw?.host_requirement, label),
   };
+  if (repo) {
+    variant.repo = repo;
+    variant.revision = revision;
+  }
+  if (driverBackend) {
+    variant.driver_backend = driverBackend;
+  }
+  return variant;
 }
 
 const localCompanionKinds = new Set(['vae', 'clip', 'lora', 'controlnet', 'auxiliary']);

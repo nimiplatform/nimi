@@ -13,6 +13,7 @@ import {
   NIMI_AI_PROFILE_QWEN3_TTS_IMPLEMENTATION,
   NIMI_AI_PROFILE_QWEN3_VOICE_CREATE_IMPLEMENTATION,
   NIMI_AI_PROFILE_STABLE_DIFFUSION_EXECUTION_OPTION_FIELDS,
+  NIMI_AI_PROFILE_VOXCPM_IMPLEMENTATION,
   NIMI_AI_PROFILE_STABLE_DIFFUSION_MODEL_FAMILIES,
   NIMI_AI_PROFILE_STABLE_DIFFUSION_PORTABLE_CONFIG_FIELDS,
   NIMI_AI_PROFILE_STABLE_DIFFUSION_VIDEO_PORTABLE_CONFIG_FIELDS,
@@ -28,6 +29,7 @@ import {
   createNimiAIProfileStableDiffusionLocalImplementation,
   createNimiAIProfileStableDiffusionVideoLocalImplementation,
   createNimiAIProfileStableDiffusionVideoPortableConfig,
+  createNimiAIProfileVoxCPMLocalImplementation,
   deriveNimiAIProfileApplyPreview,
   deriveNimiAIProfileImportPreview,
   deriveNimiAIProfileLocalConfigurationEquivalenceDigest,
@@ -671,6 +673,38 @@ test('Qwen3 speech authoring preserves exact portable identities and slots', () 
     () => createNimiAIProfileQwen3TTSLocalImplementation({
       supportedFeatures: ['input.audio'],
     }),
+    /must be empty/u,
+  );
+});
+
+test('VoxCPM authoring exposes one synthesis implementation without features', () => {
+  const profile = createNimiAIProfileAuthoringBuilder({
+    profileId: 'profile.authoring.voxcpm',
+    title: 'Portable VoxCPM synthesis',
+    provenance: { publisher: 'example.test' },
+    license: 'Apache-2.0',
+  }).setLocalCapability({
+    capabilityContract: 'audio.synthesize',
+    localConfiguration: createNimiAIProfileVoxCPMLocalImplementation(),
+  }).build();
+
+  assert.deepEqual(profile.capabilities['audio.synthesize']?.implementation, {
+    ...NIMI_AI_PROFILE_VOXCPM_IMPLEMENTATION,
+    supportedFeatures: [],
+  });
+  assert.deepEqual(
+    deriveNimiAIProfileRequirementProjection(profile, 'audio.synthesize').requirements,
+    [{
+      requirementId: 'tts.model',
+      role: 'main',
+      occurrenceOrdinal: 0,
+      displayLabel: 'VoxCPM synthesis model',
+      resourceKind: 'tts',
+      policy: 'substitutable',
+    }],
+  );
+  assert.throws(
+    () => createNimiAIProfileVoxCPMLocalImplementation({ supportedFeatures: ['input.audio'] }),
     /must be empty/u,
   );
 });

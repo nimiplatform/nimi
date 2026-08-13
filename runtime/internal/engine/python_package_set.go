@@ -41,6 +41,11 @@ func resolvePythonPackageSetManifest(consumer string) (pythonPackageSetManifest,
 			ID:           "speech-qwen3-asr-transformers-python-core",
 			ImportProbes: []string{"fastapi", "uvicorn", "multipart", "torch", "transformers", "accelerate", "librosa", "soundfile"},
 		}, nil
+	case trimmed == "speech.voxcpm.python":
+		return pythonPackageSetManifest{
+			ID:           "speech-voxcpm-python-core",
+			ImportProbes: []string{"fastapi", "uvicorn", "multipart", "soundfile"},
+		}, nil
 	default:
 		return pythonPackageSetManifest{}, fmt.Errorf("python package set dependency is not admitted for consumer %s", consumer)
 	}
@@ -95,6 +100,14 @@ var speechQwen3ASRTransformersDriverScriptFile = struct {
 	Script *string
 }{Name: "qwen3_asr_transformers_driver.py", Script: &speechQwen3ASRTransformersDriverScript}
 
+var speechVoxCPMDriverScriptFiles = []struct {
+	Name   string
+	Script *string
+}{
+	{Name: "voxcpm_driver.py", Script: &speechVoxCPMDriverScript},
+	{Name: "voxcpm_mlx_driver.py", Script: &speechVoxCPMMLXDriverScript},
+}
+
 func speechPipelineFilesForConsumer(consumer string) []struct {
 	Name   string
 	Script *string
@@ -121,6 +134,13 @@ func speechPipelineFilesForConsumer(consumer string) []struct {
 		}{}, speechServerScriptFiles...)
 		files = append(files, speechQwen3ASRTransformersDriverScriptFile)
 		return files
+	case "speech.voxcpm.python":
+		files := append([]struct {
+			Name   string
+			Script *string
+		}{}, speechServerScriptFiles...)
+		files = append(files, speechVoxCPMDriverScriptFiles...)
+		return files
 	default:
 		return nil
 	}
@@ -136,6 +156,36 @@ func SpeechQwen3ASRDriverPath(root string) string {
 
 func SpeechQwen3ASRTransformersDriverPath(root string) string {
 	return filepath.Join(strings.TrimSpace(root), "qwen3_asr_transformers_driver.py")
+}
+
+func SpeechVoxCPMDriverPath(root string) string {
+	return filepath.Join(strings.TrimSpace(root), "voxcpm_driver.py")
+}
+
+func SpeechVoxCPMMLXDriverPath(root string) string {
+	return filepath.Join(strings.TrimSpace(root), "voxcpm_mlx_driver.py")
+}
+
+func SpeechVoxCPMBackendForPlatform(platformTuple string) (string, error) {
+	switch strings.ToLower(strings.TrimSpace(platformTuple)) {
+	case "windows/amd64":
+		return "standard", nil
+	case "darwin/arm64":
+		return "mlx", nil
+	default:
+		return "", fmt.Errorf("VoxCPM backend is not admitted for platform %s", platformTuple)
+	}
+}
+
+func SpeechVoxCPMDriverPathForBackend(root string, backend string) (string, error) {
+	switch strings.ToLower(strings.TrimSpace(backend)) {
+	case "standard":
+		return SpeechVoxCPMDriverPath(root), nil
+	case "mlx":
+		return SpeechVoxCPMMLXDriverPath(root), nil
+	default:
+		return "", fmt.Errorf("VoxCPM backend is not admitted: %s", backend)
+	}
 }
 
 func speechDriverCommandsForConsumer(root string, consumer string) map[string]string {
@@ -173,6 +223,8 @@ func speechDriverScriptsForConsumer(root string, consumer string) []string {
 		return []string{SpeechQwen3ASRDriverPath(trimmedRoot)}
 	case "speech.qwen3-asr-transformers.python":
 		return []string{SpeechQwen3ASRTransformersDriverPath(trimmedRoot)}
+	case "speech.voxcpm.python":
+		return []string{SpeechVoxCPMDriverPath(trimmedRoot), SpeechVoxCPMMLXDriverPath(trimmedRoot)}
 	default:
 		return nil
 	}

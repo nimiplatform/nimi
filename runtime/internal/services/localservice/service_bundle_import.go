@@ -186,6 +186,37 @@ func verifiedSpeechBundleKindLabel(kind runtimev1.LocalAssetKind) string {
 	}
 }
 
+func verifiedSpeechBundleIdentityField(descriptor *runtimev1.LocalVerifiedAssetDescriptor, key string) string {
+	if descriptor == nil {
+		return ""
+	}
+	if metadata := descriptor.GetMetadata(); metadata != nil {
+		if value := strings.TrimSpace(metadata.GetFields()[key].GetStringValue()); value != "" {
+			return value
+		}
+	}
+	if config := descriptor.GetEngineConfig(); config != nil {
+		return strings.TrimSpace(config.GetFields()[key].GetStringValue())
+	}
+	return ""
+}
+
+func verifiedSpeechBundleLayoutsEqual(left *runtimev1.LocalVerifiedAssetDescriptor, right *runtimev1.LocalVerifiedAssetDescriptor) bool {
+	if left == nil || right == nil {
+		return false
+	}
+	return left.GetKind() == right.GetKind() &&
+		strings.EqualFold(strings.TrimSpace(left.GetRepo()), strings.TrimSpace(right.GetRepo())) &&
+		strings.EqualFold(strings.TrimSpace(left.GetEngine()), strings.TrimSpace(right.GetEngine())) &&
+		filepath.ToSlash(strings.TrimSpace(left.GetEntry())) == filepath.ToSlash(strings.TrimSpace(right.GetEntry())) &&
+		stringSlicesEqual(left.GetFiles(), right.GetFiles()) &&
+		stringSlicesEqual(left.GetCapabilities(), right.GetCapabilities()) &&
+		stringSlicesEqual(left.GetArtifactRoles(), right.GetArtifactRoles()) &&
+		strings.EqualFold(verifiedSpeechBundleIdentityField(left, "family"), verifiedSpeechBundleIdentityField(right, "family")) &&
+		strings.EqualFold(verifiedSpeechBundleIdentityField(left, "driver_family"), verifiedSpeechBundleIdentityField(right, "driver_family")) &&
+		strings.EqualFold(verifiedSpeechBundleIdentityField(left, "driver_backend"), verifiedSpeechBundleIdentityField(right, "driver_backend"))
+}
+
 func (s *Service) resolveVerifiedSpeechBundleScaffold(
 	kind runtimev1.LocalAssetKind,
 	modelName string,
@@ -211,13 +242,19 @@ func (s *Service) resolveVerifiedSpeechBundleScaffold(
 	}
 	s.mu.RUnlock()
 
-	var selected *runtimev1.LocalVerifiedAssetDescriptor
+	matches := make([]*runtimev1.LocalVerifiedAssetDescriptor, 0)
 	for _, descriptor := range eligible {
 		if strings.EqualFold(strings.TrimSpace(modelName), verifiedBundleRepoName(descriptor)) {
-			if selected != nil {
+			matches = append(matches, descriptor)
+		}
+	}
+	var selected *runtimev1.LocalVerifiedAssetDescriptor
+	if len(matches) > 0 {
+		selected = matches[0]
+		for _, candidate := range matches[1:] {
+			if !verifiedSpeechBundleLayoutsEqual(selected, candidate) {
 				return nil, fmt.Errorf("multiple verified %s bundle layouts match model name %q", kindLabel, modelName)
 			}
-			selected = descriptor
 		}
 	}
 	if selected == nil && kind == runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_TTS {
@@ -297,6 +334,23 @@ func validateAdmittedQwen3TTSBundleConfig(sourceDir string, artifactRoles []stri
 		}
 	default:
 		return fmt.Errorf("qwen3_tts bundle tts_model_type %q is unsupported", config.TTSModelType)
+	}
+	return nil
+}
+
+func validateAdmittedVoxCPMBundleConfig(sourceDir string) error {
+	raw, err := os.ReadFile(filepath.Join(sourceDir, "config.json"))
+	if err != nil {
+		return fmt.Errorf("read VoxCPM bundle config: %w", err)
+	}
+	var config struct {
+		Architecture string `json:"architecture"`
+	}
+	if err := json.Unmarshal(raw, &config); err != nil {
+		return fmt.Errorf("parse VoxCPM bundle config: %w", err)
+	}
+	if !strings.EqualFold(strings.TrimSpace(config.Architecture), "voxcpm2") {
+		return fmt.Errorf("VoxCPM bundle architecture %q is not admitted by the voxcpm Driver", config.Architecture)
 	}
 	return nil
 }
@@ -397,6 +451,8 @@ func (s *Service) scaffoldBundleManifest(manifestPath string, modelName string, 
 	entry := ""
 	normalizedEngine := strings.TrimSpace(engine)
 	artifactRoles := []string(nil)
+	family := ""
+	var engineConfig map[string]any
 	admittedScan := scan
 	requestedImportAssetID := "local-import/" + strings.TrimSpace(modelName)
 	assetID := requestedImportAssetID
@@ -406,12 +462,20 @@ func (s *Service) scaffoldBundleManifest(manifestPath string, modelName string, 
 			return nil, bundleDirectoryScan{}, resolveErr
 		}
 		if kind == runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_TTS {
-			if configErr := validateAdmittedQwen3TTSBundleConfig(sourceDir, descriptor.GetArtifactRoles()); configErr != nil {
+			family = verifiedSpeechBundleIdentityField(descriptor, "family")
+			var configErr error
+			if strings.EqualFold(family, capabilitydriver.VoxCPMFamily) {
+				configErr = validateAdmittedVoxCPMBundleConfig(sourceDir)
+			} else {
+				configErr = validateAdmittedQwen3TTSBundleConfig(sourceDir, descriptor.GetArtifactRoles())
+			}
+			if configErr != nil {
 				return nil, bundleDirectoryScan{}, configErr
 			}
 		}
 		entry = filepath.ToSlash(strings.TrimSpace(descriptor.GetEntry()))
 		artifactRoles = normalizeStringSlice(descriptor.GetArtifactRoles())
+		engineConfig = structToMap(descriptor.GetEngineConfig())
 		admittedScan = bundleScanForDeclaredFiles(descriptor.GetFiles())
 		assetID = "local-import/" + verifiedBundleRepoName(descriptor)
 		if normalizedEngine == "" {
@@ -449,6 +513,17 @@ func (s *Service) scaffoldBundleManifest(manifestPath string, modelName string, 
 	}
 	if len(artifactRoles) > 0 {
 		manifest["artifact_roles"] = artifactRoles
+	}
+	if family != "" {
+		manifest["family"] = family
+	}
+	if len(engineConfig) > 0 {
+		manifest["engine_config"] = engineConfig
+	}
+	if (kind == runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_TTS || kind == runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_STT) && len(admittedScan.files) > 1 {
+		if err := applyOrderedBundleEntriesToManifest(manifest, admittedScan.files); err != nil {
+			return nil, bundleDirectoryScan{}, err
+		}
 	}
 	return manifest, admittedScan, nil
 }
