@@ -264,8 +264,13 @@ func publicChatMessageEnvelopePayloads(input []*runtimev1.ChatMessage, anchorID 
 			payload["artifact_id"] = item.artifactID
 			payload["media_mime_type"] = item.mediaMime
 		}
-		if item.role == "assistant" && index > 0 && messages[index-1].role == "user" {
-			payload["parent_message_id"] = publicChatTranscriptMessageID(anchorID, index-1)
+		if item.role == "assistant" {
+			for parentIndex := index - 1; parentIndex >= 0; parentIndex-- {
+				if messages[parentIndex].role == "user" {
+					payload["parent_message_id"] = publicChatTranscriptMessageID(anchorID, parentIndex)
+					break
+				}
+			}
 		}
 		out = append(out, payload)
 	}

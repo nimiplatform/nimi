@@ -723,9 +723,13 @@ func normalizeStableDiffusionImageRequest(
 	if strings.TrimSpace(spec.GetAspectRatio()) != "" || strings.TrimSpace(spec.GetQuality()) != "" || strings.TrimSpace(spec.GetStyle()) != "" {
 		return normalizedStableDiffusionImageRequest{}, invocationError(InvocationFailureUnsupported, fmt.Errorf("stable-diffusion invocation does not support aspect_ratio, quality, or style"))
 	}
-	responseFormat := strings.TrimSpace(spec.GetResponseFormat())
-	if responseFormat != "" && responseFormat != "b64_json" && responseFormat != "url" {
-		return normalizedStableDiffusionImageRequest{}, invocationError(InvocationFailureUnsupported, fmt.Errorf("stable-diffusion invocation does not support response format %q", responseFormat))
+	responseFormat := strings.ToLower(strings.TrimSpace(spec.GetResponseFormat()))
+	switch responseFormat {
+	case "", "b64_json", "url":
+	case "base64":
+		responseFormat = "b64_json"
+	default:
+		return normalizedStableDiffusionImageRequest{}, invocationError(InvocationFailureInvalidOption, fmt.Errorf("stable-diffusion invocation does not support response format %q", responseFormat))
 	}
 	if len(spec.GetReferenceImages()) > 1 {
 		return normalizedStableDiffusionImageRequest{}, invocationError(InvocationFailureUnsupported, fmt.Errorf("stable-diffusion invocation supports at most one input image"))

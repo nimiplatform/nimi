@@ -8,9 +8,12 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/authn"
 	"github.com/nimiplatform/nimi/runtime/internal/executionintent"
+	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/runtimeidentity"
 	runtimeartifact "github.com/nimiplatform/nimi/runtime/internal/services/runtimeartifact"
+	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
 )
@@ -116,7 +119,7 @@ func emitPublicChatImageActionStream(traceID string, rawAPML string) func(contex
 	}
 }
 
-func TestPublicChatImageActionSubmitRequestOmitsRuntimeTargetIdentity(t *testing.T) {
+func TestPublicChatImageActionSubmitRequestUsesAdmittedArtifactOwner(t *testing.T) {
 	t.Parallel()
 	targetRef := &runtimeidentity.Target{Cloud: &runtimeidentity.CloudTarget{
 		ConnectorID: "connector-image", RemoteModelCatalogID: "remote-catalog-image",
@@ -131,14 +134,14 @@ func TestPublicChatImageActionSubmitRequestOmitsRuntimeTargetIdentity(t *testing
 	}, map[string]any{
 		"size":           "1024x1024",
 		"responseFormat": "b64_json",
-	}, "studio portrait of the current local agent", "runtime-agent-image-action:test", time.Second)
+	}, "studio portrait of the current local agent", "runtime-agent-image-action:test", time.Second, "desktop.app", "user-1")
 
 	head := req.GetHead()
 	if head == nil {
 		t.Fatal("expected image action submit request head")
 	}
-	if head.GetAppId() != runtimeAgentImageActionAppID {
-		t.Fatalf("unexpected image action app id %q", head.GetAppId())
+	if head.GetAppId() != "desktop.app" || head.GetSubjectUserId() != "user-1" {
+		t.Fatalf("unexpected image artifact owner %q/%q", head.GetAppId(), head.GetSubjectUserId())
 	}
 }
 
@@ -148,7 +151,7 @@ func TestPublicChatImageActionUsesCommittedAIConfigSelectedParams(t *testing.T) 
 		"size":              "768x768",
 		"responseFormat":    "base64",
 		"seed":              "42",
-		"timeoutMs":         "120000",
+		"timeoutMs":         "1200000",
 		"steps":             "7",
 		"cfgScale":          "1.5",
 		"sampler":           "euler_a",
@@ -171,6 +174,8 @@ func TestPublicChatImageActionUsesCommittedAIConfigSelectedParams(t *testing.T) 
 	executor := NewAIBackedPublicChatActionExecutor(scenario)
 	_, err = executor.ExecuteImageAction(context.Background(), PublicChatActionExecutionRequest{
 		Session: publicChatAnchorState{
+			CallerAppID: "desktop.app",
+			OwnerUserID: "user-1",
 			Bindings: publicChatExecutionBindings{
 				runtimeAgentAIConfigCapabilityImageGenerate: binding,
 			},
@@ -197,11 +202,22 @@ func TestPublicChatImageActionUsesCommittedAIConfigSelectedParams(t *testing.T) 
 	if !ok || !intent.IsLocal() {
 		t.Fatalf("private Local intent missing: %+v, ok=%v", intent, ok)
 	}
-	if got := req.GetHead().GetTimeoutMs(); got != 120000 {
-		t.Fatalf("timeout_ms = %d, want 120000", got)
+	incoming, _ := metadata.FromIncomingContext(scenario.submitContext)
+	if got := strings.TrimSpace(firstString(incoming.Get("x-nimi-app-id"))); got != "desktop.app" {
+		t.Fatalf("image execution app = %q, want desktop.app", got)
+	}
+	identity := authn.IdentityFromContext(scenario.submitContext)
+	if identity == nil || strings.TrimSpace(identity.SubjectUserID) != "user-1" {
+		t.Fatalf("image execution subject = %+v, want user-1", identity)
+	}
+	if head := req.GetHead(); head.GetAppId() != "desktop.app" || head.GetSubjectUserId() != "user-1" {
+		t.Fatalf("image artifact owner = %q/%q, want desktop.app/user-1", head.GetAppId(), head.GetSubjectUserId())
+	}
+	if got := req.GetHead().GetTimeoutMs(); got != 1200000 {
+		t.Fatalf("timeout_ms = %d, want 1200000", got)
 	}
 	spec := req.GetSpec().GetImageGenerate()
-	if spec.GetSize() != "768x768" || spec.GetResponseFormat() != "base64" || spec.GetSeed() != 42 {
+	if spec.GetSize() != "768x768" || spec.GetResponseFormat() != "b64_json" || spec.GetSeed() != 42 {
 		t.Fatalf("image spec did not use committed selected params: %+v", spec)
 	}
 	if len(req.GetExtensions()) != 1 {
@@ -225,12 +241,138 @@ func TestPublicChatImageActionUsesCommittedAIConfigSelectedParams(t *testing.T) 
 	}
 }
 
+func TestPublicChatImageActionUsesRouteAppropriateDefaultTimeout(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name        string
+		binding     publicChatExecutionBinding
+		wantTimeout time.Duration
+	}{
+		{
+			name: "local",
+			binding: publicChatExecutionBinding{
+				ModelID:     "z-image-turbo",
+				RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+				TargetRef:   publicChatTestLocalRuntimeTargetRef("profile_workflow:z-image-turbo"),
+			},
+			wantTimeout: defaultLocalImageActionWait,
+		},
+		{
+			name: "cloud",
+			binding: publicChatExecutionBinding{
+				ModelID:     "gpt-image-1.5",
+				RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
+				ConnectorID: "connector-image",
+				TargetRef: &runtimeidentity.Target{Cloud: &runtimeidentity.CloudTarget{
+					ConnectorID:          "connector-image",
+					RemoteModelCatalogID: "remote-catalog-image",
+					ProviderModelID:      "gpt-image-1.5",
+					Provider:             "openai",
+				}},
+			},
+			wantTimeout: defaultCloudImageActionWait,
+		},
+	}
+
+	for _, test := range tests {
+		test := test
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+			scenario := &capturePublicChatImageScenarioExecutor{}
+			executor := NewAIBackedPublicChatActionExecutor(scenario)
+			_, err := executor.ExecuteImageAction(context.Background(), PublicChatActionExecutionRequest{
+				Session: publicChatAnchorState{
+					CallerAppID: "desktop.app",
+					OwnerUserID: "user-1",
+					Bindings: publicChatExecutionBindings{
+						runtimeAgentAIConfigCapabilityImageGenerate: test.binding,
+					},
+				},
+				Turn: publicChatTurnState{TurnID: "turn-image-default-timeout-" + test.name},
+				Action: publicChatStructuredAction{
+					ActionID:  "action-image-default-timeout-" + test.name,
+					Modality:  "image",
+					Operation: "image.generate",
+					PromptPayload: publicChatStructuredPromptPayload{
+						Kind:       "image-prompt",
+						PromptText: "a quiet library",
+					},
+				},
+			})
+			if err != nil {
+				t.Fatalf("ExecuteImageAction: %v", err)
+			}
+			if got := time.Duration(scenario.submitRequest.GetHead().GetTimeoutMs()) * time.Millisecond; got != test.wantTimeout {
+				t.Fatalf("timeout = %s, want %s", got, test.wantTimeout)
+			}
+		})
+	}
+}
+
+func TestImageActionJobTerminalErrorPreservesReasonAndRetryContract(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name          string
+		status        runtimev1.ScenarioJobStatus
+		reason        runtimev1.ReasonCode
+		wantReason    runtimev1.ReasonCode
+		wantRetryable string
+	}{
+		{
+			name:          "unsupported option",
+			status:        runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_FAILED,
+			reason:        runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED,
+			wantReason:    runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED,
+			wantRetryable: "false",
+		},
+		{
+			name:          "canceled",
+			status:        runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_CANCELED,
+			wantReason:    runtimev1.ReasonCode_AI_LOCAL_EXECUTION_CANCELED,
+			wantRetryable: "true",
+		},
+		{
+			name:          "timeout",
+			status:        runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_TIMEOUT,
+			wantReason:    runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT,
+			wantRetryable: "true",
+		},
+	}
+
+	for _, test := range tests {
+		test := test
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+			err := imageActionJobTerminalError(&runtimev1.ScenarioJob{
+				JobId:      "job-terminal-" + test.name,
+				Status:     test.status,
+				ReasonCode: test.reason,
+			})
+			if got, ok := grpcerr.ExtractReasonCode(err); !ok || got != test.wantReason {
+				t.Fatalf("reason = %s, ok=%v, want %s", got, ok, test.wantReason)
+			}
+			metadata, ok := grpcerr.ExtractReasonMetadata(err)
+			if !ok {
+				t.Fatal("expected terminal error metadata")
+			}
+			if got := metadata["retryable"]; got != test.wantRetryable {
+				t.Fatalf("retryable = %q, want %q", got, test.wantRetryable)
+			}
+			if got := metadata["job_status"]; got != test.status.String() {
+				t.Fatalf("job_status = %q, want %q", got, test.status.String())
+			}
+		})
+	}
+}
+
 func TestPublicChatImageActionLeavesExecutionMaterializationRuntimePrivate(t *testing.T) {
 	t.Parallel()
 	req := buildPublicChatImageActionSubmitRequest(publicChatExecutionBinding{
 		ModelID:     "local-z-image",
 		RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
-	}, nil, "studio portrait of the current local agent", "runtime-agent-image-action:local", time.Second)
+	}, nil, "studio portrait of the current local agent", "runtime-agent-image-action:local", time.Second, "desktop.app", "user-1")
 
 	if len(req.GetExtensions()) != 0 {
 		t.Fatalf("Agent Chat must not fabricate private profile_entries: %+v", req.GetExtensions())
@@ -318,7 +460,7 @@ func TestPublicChatImageActionExecutesAndEmitsArtifactLifecycle(t *testing.T) {
 			ActionID:            "action-image-1",
 			ProjectionMessageID: "agent-turn:image:1",
 			ArtifactID:          "artifact-image-1",
-			MimeType:            "image/png",
+			MimeType:            "image/jpeg",
 			JobID:               "job-image-1",
 			ModelResolved:       "local/image",
 		},
@@ -355,7 +497,28 @@ func TestPublicChatImageActionExecutesAndEmitsArtifactLifecycle(t *testing.T) {
 		t.Fatalf("expected artifact_ready artifact id, got=%v", artifactDetail)
 	}
 	if got := artifactDetail["mime_type"]; got != "image/png" {
-		t.Fatalf("expected artifact_ready mime image/png, got=%v", artifactDetail)
+		t.Fatalf("expected artifact_ready store-trusted mime image/png, got=%v", artifactDetail)
+	}
+	waitForPublicChatAgentIdle(t, svc, "agent-alpha")
+	snapshot := requestPublicChatSessionSnapshot(t, svc, capture, anchorID, "snapshot-action-success")
+	detail := publicChatSessionSnapshotDetail(t, snapshot)
+	if got := detail["transcript_message_count"]; got != float64(3) {
+		t.Fatalf("successful image action must persist a replayable assistant image, got=%v", detail)
+	}
+	transcript, ok := detail["transcript"].([]any)
+	if !ok || len(transcript) != 3 {
+		t.Fatalf("successful image action transcript malformed: %T %v", detail["transcript"], detail["transcript"])
+	}
+	image, ok := transcript[2].(map[string]any)
+	if !ok {
+		t.Fatalf("assistant image replay envelope malformed: %T %v", transcript[2], transcript[2])
+	}
+	if image["role"] != "assistant" || image["kind"] != "image" ||
+		image["artifact_id"] != "artifact-image-1" || image["media_mime_type"] != "image/png" {
+		t.Fatalf("assistant image replay envelope lost canonical artifact reference: %v", image)
+	}
+	if image["parent_message_id"] != publicChatTranscriptMessageID(anchorID, 0) {
+		t.Fatalf("assistant image must remain parented to the originating user message: %v", image)
 	}
 }
 

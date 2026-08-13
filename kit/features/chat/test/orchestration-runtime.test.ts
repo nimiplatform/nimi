@@ -87,6 +87,7 @@ describe('chat orchestration primitives', () => {
       'beat-planned': () => 'planned',
       'beat-delivery-started': () => 'delivery-started',
       'beat-delivered': () => 'delivered',
+      'beat-delivery-failed': () => 'delivery-failed',
       'artifact-ready': () => 'artifact',
       'projection-rebuilt': () => 'projection',
       'turn-completed': (nextEvent) => nextEvent.outputText,

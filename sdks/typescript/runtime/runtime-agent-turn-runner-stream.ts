@@ -400,6 +400,20 @@ export function createNimiRuntimeAgentTurnStream(
             mimeType: detailText(event, 'mimeType') || undefined,
           };
           break;
+        case 'runtime.agent.turn.action_failed':
+          if (!eventMatchesCurrentTurn(event)) break;
+          yield {
+            type: 'beat-delivery-failed',
+            turnId: event.turnId || '',
+            beatId: detailText(event, 'actionId'),
+            operation: detailText(event, 'operation'),
+            modality: detailText(event, 'modality'),
+            reasonCode: detailText(event, 'reasonCode'),
+            reason: detailText(event, 'reason'),
+            message: detailText(event, 'message'),
+            projectionMessageId: detailText(event, 'projectionMessageId') || undefined,
+          };
+          break;
         default:
           break;
       }
@@ -638,6 +652,20 @@ export function createNimiRuntimeAgentTurnStream(
               projectionMessageId: detailText(event, 'projectionMessageId') || undefined,
               artifactId: detailText(event, 'artifactId') || undefined,
               mimeType: detailText(event, 'mimeType') || undefined,
+            };
+            break;
+          case 'runtime.agent.turn.action_failed':
+            if (!currentTurnAccepted || event.turnId !== input.runtimeTurnRef.turnId) break;
+            yield {
+              type: 'beat-delivery-failed',
+              turnId: event.turnId || '',
+              beatId: detailText(event, 'actionId'),
+              operation: detailText(event, 'operation'),
+              modality: detailText(event, 'modality'),
+              reasonCode: detailText(event, 'reasonCode'),
+              reason: detailText(event, 'reason'),
+              message: detailText(event, 'message'),
+              projectionMessageId: detailText(event, 'projectionMessageId') || undefined,
             };
             break;
           case 'runtime.agent.turn.completed':

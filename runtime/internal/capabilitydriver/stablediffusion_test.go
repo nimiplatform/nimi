@@ -357,6 +357,44 @@ func TestStableDiffusionPlanClassifiesImageCountAndSizeAsInvalidOptions(t *testi
 	}
 }
 
+func TestStableDiffusionPlanOwnsResponseFormatAdmission(t *testing.T) {
+	t.Parallel()
+	portable := stableDiffusionPortableForTest(t, map[string]any{"modelFamily": "z-image"})
+	root := t.TempDir()
+	bindings := []InvocationExactBinding{
+		stableDiffusionInvocationBindingForTest(StableDiffusionVAERequirementID, "vae", filepath.Join(root, "vae.safetensors"), 'c'),
+		stableDiffusionInvocationBindingForTest(StableDiffusionMainRequirementID, "main", filepath.Join(root, "main.gguf"), 'a'),
+		stableDiffusionInvocationBindingForTest(StableDiffusionTextEncoderRequirementID, "text", filepath.Join(root, "text.gguf"), 'b'),
+	}
+	driver := StableDiffusionImageDriver{}
+
+	for _, responseFormat := range []string{"", "b64_json", "base64", "url", "B64_JSON"} {
+		if _, err := driver.PlanImageInvocation(ImageInvocationInput{
+			PortableConfig: portable,
+			ExactBindings:  bindings,
+			Request: &runtimev1.ImageGenerateScenarioSpec{
+				Prompt:         "image",
+				ResponseFormat: responseFormat,
+			},
+		}); err != nil {
+			t.Fatalf("supported response format %q: %v", responseFormat, err)
+		}
+	}
+
+	_, err := driver.PlanImageInvocation(ImageInvocationInput{
+		PortableConfig: portable,
+		ExactBindings:  bindings,
+		Request: &runtimev1.ImageGenerateScenarioSpec{
+			Prompt:         "image",
+			ResponseFormat: "binary",
+		},
+	})
+	var invocationErr *InvocationError
+	if !errors.As(err, &invocationErr) || invocationErr.Kind != InvocationFailureInvalidOption {
+		t.Fatalf("unsupported response format error=%v kind=%v", err, invocationErr)
+	}
+}
+
 func TestStableDiffusionSeedAdmissionMatchesManagedInt32Carrier(t *testing.T) {
 	driver := StableDiffusionImageDriver{}
 	for _, seed := range []int64{math.MinInt32, math.MaxInt32} {

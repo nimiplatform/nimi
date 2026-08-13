@@ -63,6 +63,17 @@ export type RuntimeAgentTurnRunnerPartLike =
     readonly mimeType?: unknown;
   }
   | {
+    readonly type: 'beat-delivery-failed';
+    readonly beatId?: unknown;
+    readonly turnId?: unknown;
+    readonly operation?: unknown;
+    readonly modality?: unknown;
+    readonly reasonCode?: unknown;
+    readonly reason?: unknown;
+    readonly message?: unknown;
+    readonly projectionMessageId?: unknown;
+  }
+  | {
     readonly type: 'turn-completed';
     readonly outputText?: unknown;
     readonly finishReason?: unknown;
@@ -286,6 +297,11 @@ export function reduceRuntimeAgentConversationProjectionEvent(
         ...state,
         events,
       }, event, now);
+    case 'beat-delivery-failed':
+      return appendImageFailureMessage({
+        ...state,
+        events,
+      }, event, now);
     case 'turn-completed':
       return updateAssistantMessage({
         ...state,
@@ -474,6 +490,25 @@ export async function* streamRuntimeAgentTurnRunnerPartsAsConversationEvents(
         };
         break;
       }
+      case 'beat-delivery-failed': {
+        const runtimeTurnId = normalizeText(part.turnId) || input.turnId;
+        const actionId = normalizeText(part.beatId) || 'image.generate';
+        const beatIndex = beatIndexFromRuntimeActionId(actionId);
+        const projectionMessageId = normalizeText(part.projectionMessageId) || undefined;
+        yield {
+          type: 'beat-delivery-failed',
+          turnId: input.turnId,
+          beatId: uiBeatId(input.turnId, beatIndex),
+          operationId: `${runtimeTurnId}:${actionId}`,
+          operation: normalizeText(part.operation) || 'image.generate',
+          modality: 'image',
+          reasonCode: normalizeText(part.reasonCode) || 'AI_PROVIDER_INTERNAL',
+          reason: normalizeText(part.reason) || 'image_execution_failed',
+          message: normalizeText(part.message) || 'Image generation failed.',
+          ...(projectionMessageId ? { projectionMessageId } : {}),
+        };
+        break;
+      }
       case 'turn-completed':
         outputDiagnostics = mergeRecord(outputDiagnostics, part.diagnostics);
         outputText = normalizeText(part.outputText) || outputText;
@@ -643,6 +678,53 @@ function reduceArtifactReadyEvent(
   }
 
   return appendImageArtifactMessage(withArtifactMetadata, event, updatedAt);
+}
+
+function appendImageFailureMessage(
+  state: RuntimeAgentConversationProjectionState,
+  event: Extract<ConversationTurnEvent, { type: 'beat-delivery-failed' }>,
+  updatedAt: string,
+): RuntimeAgentConversationProjectionState {
+  if (event.modality !== 'image') {
+    return state;
+  }
+  const primaryAssistantIndex = primaryAssistantMessageIndex(state.messages, state.turnId);
+  const primaryAssistant = state.messages[primaryAssistantIndex];
+  const preferredId = normalizeText(event.projectionMessageId);
+  const messageId = preferredId || `${event.turnId}:action-error:${normalizeText(event.beatId) || 'image'}`;
+  const errorMessage = normalizeText(event.message) || 'Image generation failed.';
+  const failureMessage: ConversationCanonicalMessage = {
+    id: messageId,
+    sessionId: state.sessionId,
+    targetId: state.targetId,
+    source: 'agent',
+    role: 'agent',
+    text: errorMessage,
+    createdAt: state.messages.find((message) => message.id === messageId)?.createdAt || updatedAt,
+    updatedAt,
+    status: 'error',
+    error: errorMessage,
+    kind: 'image',
+    senderName: primaryAssistant?.senderName ?? 'Agent',
+    senderKind: 'agent',
+    metadata: mergeMessageMetadata(runtimeAgentMessageMetadata(state), {
+      beatId: event.beatId,
+      projectionMessageId: event.projectionMessageId ?? null,
+      operationId: event.operationId,
+      operation: event.operation,
+      modality: event.modality,
+      reasonCode: event.reasonCode,
+      reason: event.reason,
+      imageTerminalState: 'failed',
+    }),
+  };
+  const existingIndex = state.messages.findIndex((message) => message.id === messageId);
+  return {
+    ...state,
+    messages: existingIndex >= 0
+      ? state.messages.map((message, index) => (index === existingIndex ? failureMessage : message))
+      : [...state.messages, failureMessage],
+  };
 }
 
 function isRenderableImageArtifact(

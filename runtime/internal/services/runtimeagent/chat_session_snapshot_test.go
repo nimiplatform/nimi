@@ -58,6 +58,27 @@ func TestPublicChatMessageEnvelopePayloadsOwnReplayIdentityAndParentBinding(t *t
 	}
 }
 
+func TestPublicChatTranscriptProjectionIncludesAssistantOutputArtifact(t *testing.T) {
+	transcript := testPublicChatCommittedTranscript([2]string{"draw a fox", "I created it."})
+	transcript[0].OutputArtifacts = []publicChatCommittedTranscriptAttachment{{
+		ArtifactID: "artifact-output-1",
+		MimeType:   "image/png",
+	}}
+
+	messages, err := publicChatTranscriptProjection(transcript)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(messages) != 3 {
+		t.Fatalf("expected user, assistant text, and assistant image messages; got=%d", len(messages))
+	}
+	artifact := messages[2].GetParts()[0].GetArtifactRef()
+	if messages[2].GetRole() != "assistant" || messages[2].GetContent() != "" ||
+		artifact.GetLocalArtifactId() != "artifact-output-1" || artifact.GetMimeType() != "image/png" {
+		t.Fatalf("assistant output artifact projection mismatch: %#v", messages[2])
+	}
+}
+
 func TestPublicChatSessionSnapshotKeepsTurnActiveUntilReservationRelease(t *testing.T) {
 	t.Parallel()
 	svc := newRuntimeAgentServiceForPublicChatTest(t)

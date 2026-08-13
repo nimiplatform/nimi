@@ -8,17 +8,19 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/authn"
+	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
 const (
-	runtimeAgentImageActionAppID     = "runtime.agent.image_action"
-	runtimeAgentImageActionSubjectID = "anonymous"
-	defaultImageActionWait           = 10 * time.Minute
-	defaultImageActionPoll           = 100 * time.Millisecond
-	imageActionExtensionNamespace    = "nimi.scenario.image.request"
+	defaultLocalImageActionWait   = 20 * time.Minute
+	defaultCloudImageActionWait   = 5 * time.Minute
+	defaultImageActionPoll        = 100 * time.Millisecond
+	imageActionExtensionNamespace = "nimi.scenario.image.request"
 )
 
 type publicChatActionScenarioExecutor interface {
@@ -64,7 +66,6 @@ func NewAIBackedPublicChatActionExecutor(ai publicChatActionScenarioExecutor) Pu
 	}
 	return &aiBackedPublicChatActionExecutor{
 		ai:           ai,
-		waitTimeout:  defaultImageActionWait,
 		pollInterval: defaultImageActionPoll,
 	}
 }
@@ -95,6 +96,11 @@ func (e *aiBackedPublicChatActionExecutor) ExecuteImageAction(ctx context.Contex
 	if !ok || strings.TrimSpace(binding.ModelID) == "" || binding.RoutePolicy == runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED {
 		return PublicChatActionExecutionResult{}, fmt.Errorf("runtime public chat image action %s has no committed image.generate Runtime Agent AI Config binding", actionID)
 	}
+	ownerAppID := firstNonEmpty(strings.TrimSpace(req.Session.CallerAppID), strings.TrimSpace(req.Turn.CallerAppID))
+	ownerUserID := firstNonEmpty(strings.TrimSpace(req.Session.OwnerUserID), strings.TrimSpace(req.Session.SubjectUserID), strings.TrimSpace(req.Turn.SubjectUserID))
+	if ownerAppID == "" || ownerUserID == "" {
+		return PublicChatActionExecutionResult{}, fmt.Errorf("runtime public chat image action %s has no admitted artifact owner", actionID)
+	}
 	// Caller-carried execution_params remain rejected at ingress. Concrete
 	// generation parameters come only from the committed Runtime Agent
 	// AIConfig fixed at turn admission.
@@ -103,17 +109,17 @@ func (e *aiBackedPublicChatActionExecutor) ExecuteImageAction(ctx context.Contex
 		params = binding.SelectedParams.AsMap()
 	}
 	waitTimeout := e.waitTimeout
+	if waitTimeout <= 0 {
+		waitTimeout = defaultImageActionWait(binding.RoutePolicy)
+	}
 	if timeoutMs := publicChatPositiveIntParam(params, "timeoutMs", "timeout_ms"); timeoutMs > 0 {
 		waitTimeout = time.Duration(timeoutMs) * time.Millisecond
 	}
-	if waitTimeout <= 0 {
-		waitTimeout = defaultImageActionWait
-	}
-	actionCtx, cancel := context.WithTimeout(runtimeAgentImageActionContext(ctx), waitTimeout)
+	actionCtx, cancel := context.WithTimeout(runtimeAgentImageActionContext(ctx, ownerAppID, ownerUserID), waitTimeout)
 	defer cancel()
 	actionCtx = withPublicChatExecutionIntent(actionCtx, binding, "image.generate")
 	idempotencyKey := "runtime-agent-image-action:" + strings.TrimSpace(req.Turn.TurnID) + ":" + actionID
-	submitResp, err := e.ai.SubmitScenarioJob(actionCtx, buildPublicChatImageActionSubmitRequest(binding, params, prompt, idempotencyKey, waitTimeout))
+	submitResp, err := e.ai.SubmitScenarioJob(actionCtx, buildPublicChatImageActionSubmitRequest(binding, params, prompt, idempotencyKey, waitTimeout, ownerAppID, ownerUserID))
 	if err != nil {
 		return PublicChatActionExecutionResult{}, err
 	}
@@ -148,7 +154,14 @@ func (e *aiBackedPublicChatActionExecutor) ExecuteImageAction(ctx context.Contex
 	}, nil
 }
 
-func buildPublicChatImageActionSubmitRequest(binding publicChatExecutionBinding, params map[string]any, prompt string, idempotencyKey string, waitTimeout time.Duration) *runtimev1.SubmitScenarioJobRequest {
+func defaultImageActionWait(route runtimev1.RoutePolicy) time.Duration {
+	if route == runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL {
+		return defaultLocalImageActionWait
+	}
+	return defaultCloudImageActionWait
+}
+
+func buildPublicChatImageActionSubmitRequest(binding publicChatExecutionBinding, params map[string]any, prompt string, idempotencyKey string, waitTimeout time.Duration, ownerAppID string, ownerUserID string) *runtimev1.SubmitScenarioJobRequest {
 	spec := &runtimev1.ImageGenerateScenarioSpec{
 		Prompt:         strings.TrimSpace(prompt),
 		N:              proto.Int32(1),
@@ -160,8 +173,8 @@ func buildPublicChatImageActionSubmitRequest(binding publicChatExecutionBinding,
 	}
 	return &runtimev1.SubmitScenarioJobRequest{
 		Head: &runtimev1.ScenarioRequestHead{
-			AppId:         runtimeAgentImageActionAppID,
-			SubjectUserId: runtimeAgentImageActionSubjectID,
+			AppId:         strings.TrimSpace(ownerAppID),
+			SubjectUserId: strings.TrimSpace(ownerUserID),
 			TimeoutMs:     int32(waitTimeout.Milliseconds()),
 		},
 		ScenarioType:   runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE,
@@ -186,7 +199,20 @@ func (e *aiBackedPublicChatActionExecutor) waitImageActionJob(ctx context.Contex
 	for {
 		select {
 		case <-ctx.Done():
-			return nil, ctx.Err()
+			reason := runtimev1.ReasonCode_AI_LOCAL_EXECUTION_CANCELED
+			code := codes.Canceled
+			message := "Image generation was canceled."
+			if ctx.Err() == context.DeadlineExceeded {
+				reason = runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT
+				code = codes.DeadlineExceeded
+				message = "Image generation timed out."
+			}
+			retryable := true
+			return nil, grpcerr.WrapWithReasonCode(code, reason, ctx.Err(), grpcerr.ReasonOptions{
+				Message:   message,
+				Retryable: &retryable,
+				Metadata:  map[string]string{"job_id": jobID},
+			})
 		case <-timer.C:
 			resp, err := e.ai.GetScenarioJob(ctx, &runtimev1.GetScenarioJobRequest{JobId: jobID})
 			if err != nil {
@@ -199,12 +225,62 @@ func (e *aiBackedPublicChatActionExecutor) waitImageActionJob(ctx context.Contex
 			case runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_FAILED,
 				runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_CANCELED,
 				runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_TIMEOUT:
-				return nil, fmt.Errorf("image action job %s ended with %s: %s", jobID, job.GetStatus().String(), strings.TrimSpace(job.GetReasonDetail()))
+				return nil, imageActionJobTerminalError(job)
 			default:
 				timer.Reset(pollInterval)
 			}
 		}
 	}
+}
+
+func imageActionJobTerminalError(job *runtimev1.ScenarioJob) error {
+	if job == nil {
+		return grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL)
+	}
+	reason := job.GetReasonCode()
+	code := codes.FailedPrecondition
+	retryable := true
+	message := strings.TrimSpace(job.GetReasonDetail())
+	switch job.GetStatus() {
+	case runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_CANCELED:
+		code = codes.Canceled
+		if reason == runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED {
+			reason = runtimev1.ReasonCode_AI_LOCAL_EXECUTION_CANCELED
+		}
+		if message == "" {
+			message = "Image generation was canceled."
+		}
+	case runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_TIMEOUT:
+		code = codes.DeadlineExceeded
+		if reason == runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED {
+			reason = runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT
+		}
+		if message == "" {
+			message = "Image generation timed out."
+		}
+	default:
+		if reason == runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED {
+			reason = runtimev1.ReasonCode_AI_PROVIDER_INTERNAL
+		}
+		switch reason {
+		case runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED,
+			runtimev1.ReasonCode_AI_INPUT_INVALID,
+			runtimev1.ReasonCode_AI_MODALITY_NOT_SUPPORTED:
+			code = codes.InvalidArgument
+			retryable = false
+		}
+		if message == "" {
+			message = "Image generation failed."
+		}
+	}
+	return grpcerr.WithReasonCodeOptions(code, reason, grpcerr.ReasonOptions{
+		Message:   message,
+		Retryable: &retryable,
+		Metadata: map[string]string{
+			"job_id":     strings.TrimSpace(job.GetJobId()),
+			"job_status": job.GetStatus().String(),
+		},
+	})
 }
 
 func firstImageActionArtifact(artifacts []*runtimev1.ScenarioArtifact) *runtimev1.ScenarioArtifact {
@@ -311,12 +387,14 @@ func normalizePublicChatImageResponseFormat(value string) string {
 	switch strings.ToLower(strings.TrimSpace(value)) {
 	case "", "auto":
 		return ""
+	case "base64":
+		return "b64_json"
 	default:
-		return strings.TrimSpace(value)
+		return strings.ToLower(strings.TrimSpace(value))
 	}
 }
 
-func runtimeAgentImageActionContext(parent context.Context) context.Context {
+func runtimeAgentImageActionContext(parent context.Context, ownerAppID string, ownerUserID string) context.Context {
 	if parent == nil {
 		parent = context.Background()
 	}
@@ -325,6 +403,10 @@ func runtimeAgentImageActionContext(parent context.Context) context.Context {
 	if next == nil {
 		next = metadata.MD{}
 	}
-	next.Set("x-nimi-app-id", runtimeAgentImageActionAppID)
-	return metadata.NewIncomingContext(parent, next)
+	next.Set("x-nimi-app-id", strings.TrimSpace(ownerAppID))
+	ctx := metadata.NewIncomingContext(parent, next)
+	if ownerUserID = strings.TrimSpace(ownerUserID); ownerUserID != "" {
+		ctx = authn.WithIdentity(ctx, &authn.Identity{SubjectUserID: ownerUserID})
+	}
+	return ctx
 }

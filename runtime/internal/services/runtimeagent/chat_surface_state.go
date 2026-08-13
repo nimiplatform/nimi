@@ -206,7 +206,7 @@ func (s *Service) capturePublicChatSurfaceSnapshotLocked() (persistedPublicChatS
 			LastTurnSnapshot:       toPersistedPublicChatTurnSnapshot(session.LastTurnSnapshot),
 			CompletedTurnSnapshots: toPersistedPublicChatTurnSnapshotMap(session.CompletedTurnSnapshots),
 			PendingFollowUpID:      session.PendingFollowUpID,
-			CommittedTranscript:    append([]publicChatCommittedTranscriptTurn{}, session.CommittedTranscript...),
+			CommittedTranscript:    clonePublicChatCommittedTranscript(session.CommittedTranscript),
 			Status:                 int32(session.Status),
 			LastTurnID:             session.LastTurnID,
 			LastMessageID:          session.LastMessageID,

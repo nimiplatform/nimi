@@ -205,6 +205,35 @@ describe('Runtime Agent chat turn projection', () => {
     });
   });
 
+  it('projects typed image action failure without failing the committed text turn', async () => {
+    const events = await collectEvents(streamRuntimeAgentTurnRunnerPartsAsConversationEvents({
+      modeId: 'runtime-agent-chat-v1', threadId: 'thread-1', turnId: 'turn-ui-1',
+      parts: parts([
+        { type: 'message-sealed', envelope: { message: { messageId: 'runtime-message-1', text: 'I tried to generate an image.' } } },
+        {
+          type: 'beat-delivery-failed', turnId: 'runtime-turn-1', beatId: 'action-0',
+          operation: 'image.generate', modality: 'image', reasonCode: 'AI_PROVIDER_TIMEOUT',
+          reason: 'image_execution_failed', message: 'Image generation timed out.',
+          projectionMessageId: 'runtime-image-message-1',
+        },
+        { type: 'turn-completed', outputText: 'I tried to generate an image.' },
+      ]),
+    }));
+    expect(events[2]).toEqual(expect.objectContaining({
+      type: 'beat-delivery-failed',
+      operationId: 'runtime-turn-1:action-0',
+      reasonCode: 'AI_PROVIDER_TIMEOUT',
+    }));
+    const state = reduceAll(events);
+    expect(state.status).toBe('completed');
+    expect(state.messages.at(-1)).toEqual(expect.objectContaining({
+      id: 'runtime-image-message-1', kind: 'image', status: 'error', error: 'Image generation timed out.',
+    }));
+    expect(state.messages.at(-1)?.metadata).toEqual(expect.objectContaining({
+      operationId: 'runtime-turn-1:action-0', reasonCode: 'AI_PROVIDER_TIMEOUT', imageTerminalState: 'failed',
+    }));
+  });
+
   it('projects resolved image artifacts as canonical image messages without taking artifact truth', async () => {
     const events = await collectEvents(streamRuntimeAgentTurnRunnerPartsAsConversationEvents({
       modeId: 'runtime-agent-chat-v1',

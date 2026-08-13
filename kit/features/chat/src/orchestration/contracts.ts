@@ -196,6 +196,18 @@ export type ConversationTurnEvent =
     projectionMessageId?: string;
   }
   | {
+    type: 'beat-delivery-failed';
+    turnId: string;
+    beatId: string;
+    operationId: string;
+    operation: string;
+    modality: ConversationBeatModality;
+    reasonCode: string;
+    reason: string;
+    message: string;
+    projectionMessageId?: string;
+  }
+  | {
     type: 'artifact-ready';
     turnId: string;
     beatId: string;
@@ -270,6 +282,8 @@ export function matchConversationTurnEvent<TResult>(
       return handlers['beat-delivery-started'](event);
     case 'beat-delivered':
       return handlers['beat-delivered'](event);
+    case 'beat-delivery-failed':
+      return handlers['beat-delivery-failed'](event);
     case 'artifact-ready':
       return handlers['artifact-ready'](event);
     case 'projection-rebuilt':

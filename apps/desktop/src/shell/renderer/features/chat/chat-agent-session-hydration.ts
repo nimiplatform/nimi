@@ -2,6 +2,7 @@ import type {
   NimiRuntimeAgentConsumeEvent,
   NimiRuntimeAgentMessage,
   NimiRuntimeAgentSessionSnapshot,
+  NimiRuntimeAgentSessionTurnSnapshot,
   NimiRuntimeAgentTranscriptMessage,
 } from '@nimiplatform/sdk/runtime';
 import type {
@@ -57,6 +58,7 @@ function isCommittedTextProjectionMessage(message: AgentLocalMessageRecord): boo
 
 function locallyRetainedProjectionMessages(
   bundle: AgentLocalThreadBundle | null | undefined,
+  dropPendingImages = false,
 ): AgentLocalMessageRecord[] {
   if (!bundle) {
     return [];
@@ -64,7 +66,10 @@ function locallyRetainedProjectionMessages(
   const messageById = new Map(bundle.messages.map((message) => [message.id, message]));
   const retainedIds = new Set(
     bundle.messages
-      .filter((message) => message.status !== 'complete' || Boolean(message.error))
+      .filter((message) => (
+        (message.status !== 'complete' || Boolean(message.error))
+        && !(dropPendingImages && message.kind === 'image' && message.status === 'pending')
+      ))
       .map((message) => message.id),
   );
   const pendingParentIds = [...retainedIds];
@@ -78,6 +83,89 @@ function locallyRetainedProjectionMessages(
     pendingParentIds.push(parentMessageId);
   }
   return bundle.messages.filter((message) => retainedIds.has(message.id));
+}
+
+function asRecord(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : null;
+}
+
+function recordText(record: Record<string, unknown> | null, ...keys: string[]): string {
+  for (const key of keys) {
+    const value = normalizeText(record?.[key]);
+    if (value) return value;
+  }
+  return '';
+}
+
+function terminalImageFailureFromSnapshot(input: {
+  threadId: string;
+  transcript: readonly NimiRuntimeAgentTranscriptMessage[];
+  lastTurn?: NimiRuntimeAgentSessionTurnSnapshot;
+  nowMs: number;
+}): AgentLocalMessageRecord | null {
+  const lastTurn = input.lastTurn;
+  const runtimeTurnId = normalizeText(lastTurn?.turnId);
+  const reasonCode = normalizeText(lastTurn?.reasonCode);
+  const structured = asRecord(lastTurn?.structured);
+  const actions = Array.isArray(structured?.actions) ? structured.actions : [];
+  const actionIndex = actions.findIndex((value) => {
+    const action = asRecord(value);
+    return recordText(action, 'operation') === 'image.generate'
+      && recordText(action, 'modality') === 'image';
+  });
+  if (!runtimeTurnId || !reasonCode || reasonCode === 'ACTION_EXECUTED' || actionIndex < 0) {
+    return null;
+  }
+  const action = asRecord(actions[actionIndex]);
+  const actionId = recordText(action, 'actionId', 'action_id') || `action-${actionIndex}`;
+  const updatedAtMs = parseIsoTimestampMs(lastTurn?.updatedAt) ?? input.nowMs;
+  const assistantParent = [...input.transcript]
+    .reverse()
+    .find((message) => message.role === 'assistant' && normalizeText(message.kind) === 'text');
+  const retryPrompt = [...input.transcript]
+    .reverse()
+    .find((message) => message.role === 'user' && normalizeText(message.kind) === 'text')?.content || '';
+  const message = normalizeText(lastTurn?.message) || 'Image generation failed.';
+  return {
+    id: `${runtimeTurnId}:message:${actionIndex + 1}`,
+    threadId: input.threadId,
+    role: 'assistant',
+    status: 'error',
+    kind: 'image',
+    contentText: 'Image generation failed.',
+    reasoningText: null,
+    error: { code: reasonCode, message },
+    traceId: null,
+    parentMessageId: normalizeText(assistantParent?.id) || null,
+    mediaUrl: null,
+    mediaMimeType: null,
+    artifactId: null,
+    metadataJson: {
+      imageTerminalState: 'failed',
+      imageFailureReasonCode: reasonCode,
+      imageFailureReason: 'image_execution_failed',
+      imageOperation: 'image.generate',
+      imageOperationId: `${runtimeTurnId}:${actionId}`,
+      imageProjectionMessageId: `${runtimeTurnId}:message:${actionIndex + 1}`,
+      retryPrompt: normalizeText(retryPrompt),
+    },
+    createdAtMs: updatedAtMs,
+    updatedAtMs,
+  };
+}
+
+function bundleHasTerminalImageFailure(
+  bundle: AgentLocalThreadBundle | null | undefined,
+  failure: AgentLocalMessageRecord,
+): boolean {
+  const operationId = normalizeText(failure.metadataJson?.imageOperationId);
+  return Boolean(bundle?.messages.some((message) => (
+    message.kind === 'image'
+    && message.status === 'error'
+    && normalizeText(message.metadataJson?.imageOperationId) === operationId
+  )));
 }
 
 function parseIsoTimestampMs(value: unknown): number | null {
@@ -309,17 +397,28 @@ export function hydrateAgentThreadBundleFromRuntimeSessionSnapshot(input: {
   if (!transcriptHasRuntimeReplayEnvelope(transcript)) {
     return null;
   }
+  const replayTranscript = transcript as readonly NimiRuntimeAgentTranscriptMessage[];
+  const terminalImageFailure = terminalImageFailureFromSnapshot({
+    threadId: input.thread.id,
+    transcript: replayTranscript,
+    lastTurn: input.snapshot.lastTurn,
+    nowMs: input.nowMs,
+  });
   if (transcriptWouldDropCommittedAssistantText(transcript, input.bundle)) {
     return null;
   }
-  if (transcriptMatchesBundle(transcript, input.bundle)) {
+  if (
+    transcriptMatchesBundle(transcript, input.bundle)
+    && (!terminalImageFailure || bundleHasTerminalImageFailure(input.bundle, terminalImageFailure))
+    && !input.bundle?.messages.some((message) => message.kind === 'image' && message.status === 'pending')
+  ) {
     return null;
   }
 
   const hydratedMessages = buildHydratedMessages({
     threadId: input.thread.id,
     conversationAnchorId,
-    transcript,
+    transcript: replayTranscript,
     nowMs: input.nowMs,
   });
   if (hydratedMessages.length === 0) {
@@ -327,9 +426,11 @@ export function hydrateAgentThreadBundleFromRuntimeSessionSnapshot(input: {
   }
 
   const messages = mergeHydratedTextAndLocalProjectionMessages({
-    hydratedMessages,
+    hydratedMessages: terminalImageFailure
+      ? [...hydratedMessages, terminalImageFailure]
+      : hydratedMessages,
     committedMediaMessages: committedMediaProjectionMessages(input.bundle),
-    locallyRetainedMessages: locallyRetainedProjectionMessages(input.bundle),
+    locallyRetainedMessages: locallyRetainedProjectionMessages(input.bundle, Boolean(terminalImageFailure)),
   });
   const lastMessage = messages[messages.length - 1] || null;
   const createdAtMs = 'createdAtMs' in input.thread && typeof input.thread.createdAtMs === 'number'

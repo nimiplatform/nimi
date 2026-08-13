@@ -226,6 +226,22 @@ async function* runRuntimeOwnedAgentTurn(input: {
           };
           break;
         }
+        case 'beat-delivery-failed': {
+          const beatIndex = beatIndexFromRuntimeActionId(part.beatId);
+          yield {
+            type: 'beat-delivery-failed',
+            turnId: input.baseInput.turnId,
+            beatId: uiBeatId(input.baseInput.turnId, beatIndex),
+            operationId: `${normalizeText(part.turnId) || input.baseInput.turnId}:${normalizeText(part.beatId) || 'image.generate'}`,
+            operation: normalizeText(part.operation) || 'image.generate',
+            modality: 'image',
+            reasonCode: normalizeText(part.reasonCode) || 'AI_PROVIDER_INTERNAL',
+            reason: normalizeText(part.reason) || 'image_execution_failed',
+            message: normalizeText(part.message) || 'Image generation failed.',
+            projectionMessageId: part.projectionMessageId,
+          };
+          break;
+        }
         case 'turn-completed': {
           outputText = part.outputText || outputText;
           outputDiagnostics = {

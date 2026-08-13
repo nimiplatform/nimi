@@ -115,6 +115,10 @@ type publicChatCommittedTranscriptTurn struct {
 	// InputAttachment carries the Runtime-validated user attachment of this
 	// turn (artifact reference + store-trusted mime). Nil for text-only turns.
 	InputAttachment *publicChatCommittedTranscriptAttachment `json:"inputAttachment,omitempty"`
+	// OutputArtifacts carries Runtime-produced assistant media references after
+	// the action result has been validated against the Runtime artifact store.
+	// Artifact bytes remain owned exclusively by that store.
+	OutputArtifacts []publicChatCommittedTranscriptAttachment `json:"outputArtifacts,omitempty"`
 }
 
 // publicChatCommittedTranscriptAttachment is the durable user-attachment

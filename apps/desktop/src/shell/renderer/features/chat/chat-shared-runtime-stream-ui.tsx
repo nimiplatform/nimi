@@ -96,12 +96,41 @@ export function RuntimeImageMessageContent(props: {
   imageLabel: string;
   showCaptionLabel: string;
   hideCaptionLabel: string;
+  failureMessage?: string | null;
+  retryLabel?: string;
+  onRetry?: (() => void) | null;
 }) {
   const imageUrls = resolveImageUrls(props.message);
   const caption = normalizeText(props.message.text);
+  const metadata = (props.message.metadata as Record<string, unknown> | undefined) || {};
+  const failureReasonCode = normalizeText(metadata.imageFailureReasonCode);
+  const operationId = normalizeText(metadata.imageOperationId);
   const [captionVisible, setCaptionVisible] = useState(false);
   const toggleCaption = useCallback(() => setCaptionVisible((prev) => !prev), []);
   if (imageUrls.length === 0) {
+    if (props.message.status === 'error' || failureReasonCode) {
+      return (
+        <div role="alert" className="space-y-2 rounded-2xl border border-[var(--nimi-status-danger)]/30 bg-[var(--nimi-surface-card)] p-3">
+          <p className="whitespace-pre-wrap text-sm text-[var(--nimi-text-primary)]">
+            {normalizeText(props.failureMessage) || caption || 'Image generation failed.'}
+          </p>
+          {failureReasonCode || operationId ? (
+            <p className="break-all font-mono text-[10px] text-[var(--nimi-text-muted)]">
+              {[failureReasonCode, operationId].filter(Boolean).join(' · ')}
+            </p>
+          ) : null}
+          {props.onRetry ? (
+            <button
+              type="button"
+              onClick={props.onRetry}
+              className="inline-flex min-h-9 items-center rounded-xl border border-[var(--nimi-border-subtle)] px-3 text-xs font-medium text-[var(--nimi-text-primary)] transition hover:bg-[var(--nimi-surface-active)]"
+            >
+              {props.retryLabel || 'Retry'}
+            </button>
+          ) : null}
+        </div>
+      );
+    }
     return caption ? <p className="whitespace-pre-wrap">{caption}</p> : null;
   }
   return (

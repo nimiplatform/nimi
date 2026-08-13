@@ -81,9 +81,6 @@ func (s *Service) captureLocalImageEffectiveInputs(
 	if err != nil {
 		return nil, err
 	}
-	if format := strings.TrimSpace(request.GetResponseFormat()); format != "" && format != "b64_json" {
-		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
-	}
 	if err := requireSelectedImageRequestFeatures(request, selected.SupportedFeatures); err != nil {
 		return nil, err
 	}

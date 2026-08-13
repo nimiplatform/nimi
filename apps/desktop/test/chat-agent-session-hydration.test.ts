@@ -187,3 +187,42 @@ test('agent session hydration is a no-op when bundle already matches transcript 
 
   assert.equal(hydrated, null);
 });
+
+test('agent session hydration replaces stale pending image with Runtime terminal action failure', () => {
+  const bundle = {
+    thread: sampleThread(),
+    messages: [
+      createAgentTextMessage({ id: 'rt-user', threadId: 'thread-1', role: 'user', status: 'complete', contentText: 'draw fox', createdAtMs: 100, updatedAtMs: 100 }),
+      createAgentTextMessage({ id: 'rt-assistant', threadId: 'thread-1', role: 'assistant', status: 'complete', contentText: 'creating', createdAtMs: 101, updatedAtMs: 101 }),
+      createAgentImageMessage({ id: 'ui-turn:message:1', threadId: 'thread-1', role: 'assistant', status: 'pending', contentText: 'Generating image...', parentMessageId: 'rt-assistant', createdAtMs: 102, updatedAtMs: 102 }),
+    ],
+  };
+  const hydrated = hydrateAgentThreadBundleFromRuntimeSessionSnapshot({
+    thread: sampleThread(),
+    bundle,
+    conversationAnchorId: 'anchor-1',
+    snapshot: {
+      transcript: [
+        transcriptText('rt-user', 'user', 'draw fox', '2026-07-31T00:00:00.000Z'),
+        transcriptText('rt-assistant', 'assistant', 'creating', '2026-07-31T00:00:01.000Z'),
+      ],
+      lastTurn: {
+        turnId: 'runtime-turn',
+        status: 'completed',
+        updatedAt: '2026-07-31T00:00:02.000Z',
+        reasonCode: 'AI_PROVIDER_TIMEOUT',
+        message: 'Image generation timed out.',
+        structured: {
+          actions: [{ action_id: 'action-0', modality: 'image', operation: 'image.generate' }],
+        },
+      },
+    },
+    nowMs: 500,
+  });
+  assert.ok(hydrated);
+  assert.equal(hydrated.messages.some((message) => message.status === 'pending' && message.kind === 'image'), false);
+  const failure = hydrated.messages.find((message) => message.status === 'error' && message.kind === 'image');
+  assert.equal(failure?.error?.code, 'AI_PROVIDER_TIMEOUT');
+  assert.equal(failure?.metadataJson?.imageOperationId, 'runtime-turn:action-0');
+  assert.equal(failure?.metadataJson?.retryPrompt, 'draw fox');
+});

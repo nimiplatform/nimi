@@ -3,6 +3,7 @@ import type {
   NimiRuntimeAgentSessionTurnSnapshot,
 } from './runtime-agent-consume-types';
 import type { JsonObject } from '../types';
+import { parseNimiRuntimeAgentStructuredMessageActionEnvelope } from './runtime-agent-message-action';
 import type {
   NimiRuntimeAgentProjectionSummary,
   NimiRuntimeAgentSnapshotRecoveryLogEvent,
@@ -206,6 +207,36 @@ export function buildNimiRuntimeAgentSnapshotRecoveryEvents(options: {
     const terminalReason = normalizeText(options.turn.finishReason);
     if (!terminalReason) {
       return [];
+    }
+    const reasonCode = normalizeText(options.turn.reasonCode);
+    if (reasonCode && structured) {
+      try {
+        const envelope = parseNimiRuntimeAgentStructuredMessageActionEnvelope(structured);
+        const failedAction = envelope.actions.find((action) => (
+          action.modality === 'image' && action.operation === 'image.generate'
+        ));
+        if (failedAction) {
+          events.push({
+            eventName: 'runtime.agent.turn.action_failed',
+            localAgentRef: normalizeText(options.localAgentRef),
+            conversationAnchorId: options.conversationAnchorId,
+            turnId: runtimeTurnId,
+            streamId,
+            detail: {
+              actionId: failedAction.actionId,
+              modality: failedAction.modality,
+              operation: failedAction.operation,
+              projectionMessageId: `${runtimeTurnId}:message:${failedAction.actionIndex + 1}`,
+              reasonCode,
+              reason: 'image_execution_failed',
+              message: normalizeText(options.turn.message) || 'Image generation failed.',
+            },
+          } as NimiRuntimeAgentConsumeEvent);
+        }
+      } catch {
+        // A malformed structured snapshot cannot safely identify the failed
+        // action. Preserve the terminal turn projection without guessing.
+      }
     }
     events.push({
       eventName: 'runtime.agent.turn.completed',

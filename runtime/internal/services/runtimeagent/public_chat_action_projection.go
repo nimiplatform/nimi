@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 )
 
 func (r publicChatRuntime) executeCommittedActions(
@@ -51,15 +52,20 @@ func (r publicChatRuntime) executeCommittedActions(
 			_ = r.emitTurnActionFailed(session, turn, action, projectionMessageID, publicChatActionFailedReasonImageExecutionFailed, err)
 			return err
 		}
-		if err := r.validateRuntimeActionArtifact(result.ArtifactID); err != nil {
+		artifact, err := r.validateRuntimeActionArtifact(result.ArtifactID)
+		if err != nil {
+			_ = r.emitTurnActionFailed(session, turn, action, projectionMessageID, publicChatActionFailedReasonImageExecutionFailed, err)
+			return err
+		}
+		if err := r.svc.commitPublicChatTurnOutputArtifact(session.ConversationAnchorID, turn.TurnID, *artifact); err != nil {
 			_ = r.emitTurnActionFailed(session, turn, action, projectionMessageID, publicChatActionFailedReasonImageExecutionFailed, err)
 			return err
 		}
 		if err := r.emitTurnEvent(session, turn.TurnID, publicChatTurnArtifactReadyType, map[string]any{
 			"action_id":             result.ActionID,
 			"projection_message_id": result.ProjectionMessageID,
-			"artifact_id":           result.ArtifactID,
-			"mime_type":             result.MimeType,
+			"artifact_id":           artifact.ArtifactID,
+			"mime_type":             artifact.MimeType,
 		}); err != nil {
 			return fmt.Errorf("emit public chat artifact_ready failed: %w", err)
 		}
@@ -68,8 +74,8 @@ func (r publicChatRuntime) executeCommittedActions(
 			"modality":              action.Modality,
 			"operation":             action.Operation,
 			"projection_message_id": result.ProjectionMessageID,
-			"artifact_id":           result.ArtifactID,
-			"mime_type":             result.MimeType,
+			"artifact_id":           artifact.ArtifactID,
+			"mime_type":             artifact.MimeType,
 			"job_id":                result.JobID,
 		}); err != nil {
 			return fmt.Errorf("emit public chat action_completed failed: %w", err)
@@ -107,22 +113,26 @@ func validateImageActionExecutionBinding(session publicChatAnchorState, turn pub
 	return "", nil
 }
 
-func (r publicChatRuntime) validateRuntimeActionArtifact(artifactID string) error {
+func (r publicChatRuntime) validateRuntimeActionArtifact(artifactID string) (*publicChatCommittedTranscriptAttachment, error) {
 	trimmed := strings.TrimSpace(artifactID)
 	if trimmed == "" {
-		return fmt.Errorf("runtime public chat image action artifact id is required")
+		return nil, fmt.Errorf("runtime public chat image action artifact id is required")
 	}
 	if r.svc == nil || r.svc.runtimeArtifacts == nil {
-		return fmt.Errorf("runtime artifact store is required for public chat image action")
+		return nil, fmt.Errorf("runtime artifact store is required for public chat image action")
 	}
 	record, ok := r.svc.runtimeArtifacts.Get(trimmed)
 	if !ok {
-		return fmt.Errorf("runtime public chat image action artifact %s was not stored", trimmed)
+		return nil, fmt.Errorf("runtime public chat image action artifact %s was not stored", trimmed)
 	}
-	if len(record.Bytes) == 0 || strings.TrimSpace(record.MimeType) == "" {
-		return fmt.Errorf("runtime public chat image action artifact %s has no readable bytes", trimmed)
+	attachment := normalizePublicChatCommittedTranscriptAttachment(&publicChatCommittedTranscriptAttachment{
+		ArtifactID: trimmed,
+		MimeType:   strings.ToLower(strings.TrimSpace(record.MimeType)),
+	})
+	if len(record.Bytes) == 0 || attachment == nil {
+		return nil, fmt.Errorf("runtime public chat image action artifact %s has no readable image bytes", trimmed)
 	}
-	return nil
+	return attachment, nil
 }
 
 func (r publicChatRuntime) emitTurnActionFailed(
@@ -133,6 +143,10 @@ func (r publicChatRuntime) emitTurnActionFailed(
 	reason string,
 	err error,
 ) error {
+	message := strings.TrimSpace(err.Error())
+	if publicMessage, ok := grpcerr.ExtractPublicMessage(err); ok {
+		message = publicMessage
+	}
 	return r.emitTurnEvent(session, turn.TurnID, publicChatTurnActionFailedType, map[string]any{
 		"action_id":             action.ActionID,
 		"modality":              action.Modality,
@@ -143,7 +157,7 @@ func (r publicChatRuntime) emitTurnActionFailed(
 		// generic runtime ReasonCode label.
 		"reason":      reason,
 		"reason_code": publicChatReasonCodeLabel(reasonCodeFromError(err)),
-		"message":     strings.TrimSpace(err.Error()),
+		"message":     message,
 	})
 }
 

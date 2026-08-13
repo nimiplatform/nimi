@@ -576,6 +576,53 @@ test('Runtime Agent turn runner projects Runtime action artifact events', async 
   assert.equal(artifact?.projectionMessageId, 'projection-message-1');
 });
 
+test('Runtime Agent turn runner projects typed action failure before committed turn terminal', async () => {
+  const requestIds: string[] = [];
+  const turns: NimiRuntimeAgentTurnRunnerModule = {
+    async subscribe() {
+      return (async function* stream(): AsyncIterable<NimiRuntimeAgentConsumeEvent> {
+        while (!requestIds[0]) await Promise.resolve();
+        const base = {
+          localAgentRef: 'local-agent:owner:agent', conversationAnchorId: 'anchor',
+          turnId: 'runtime-turn', streamId: 'stream',
+        };
+        yield { eventName: 'runtime.agent.turn.accepted', ...base, detail: { requestId: requestIds[0] } } as NimiRuntimeAgentConsumeEvent;
+        yield { eventName: 'runtime.agent.turn.structured', ...base, detail: { payload: structuredPayload('assistant-message', 'creating image') } } as NimiRuntimeAgentConsumeEvent;
+        yield { eventName: 'runtime.agent.turn.message_committed', ...base, detail: { messageId: 'assistant-message', text: 'creating image' } } as NimiRuntimeAgentConsumeEvent;
+        yield { eventName: 'runtime.agent.turn.action_planned', ...base, detail: { actionId: 'action-0', projectionMessageId: 'runtime-turn:message:1' } } as NimiRuntimeAgentConsumeEvent;
+        yield { eventName: 'runtime.agent.turn.action_failed', ...base, detail: {
+          actionId: 'action-0', modality: 'image', operation: 'image.generate',
+          projectionMessageId: 'runtime-turn:message:1', reason: 'image_execution_failed',
+          reasonCode: 'AI_PROVIDER_TIMEOUT', message: 'Image generation timed out.',
+        } } as NimiRuntimeAgentConsumeEvent;
+        yield { eventName: 'runtime.agent.turn.completed', ...base, detail: { terminalReason: 'stop' } } as NimiRuntimeAgentConsumeEvent;
+      })();
+    },
+    async request(request) {
+      requestIds.push(request.requestId || '');
+      return { messageId: 'request-message', accepted: true, reasonCode: 0 as never };
+    },
+    async interrupt() { return { messageId: 'interrupt-message', accepted: true, reasonCode: 0 as never }; },
+    async getSessionSnapshot() { return {}; },
+  };
+  const result = await runNimiRuntimeAgentTurn({
+    turns,
+    request: {
+      ownerUserId: 'owner', runtimeSourceRef: 'agent', localAgentRef: 'local-agent:owner:agent',
+      conversationAnchorId: 'anchor', requestId: 'request', messages: [{ role: 'user', content: 'make an image' }],
+    },
+  });
+  const parts = [];
+  for await (const part of result.stream) parts.push(part);
+  assert.deepEqual(parts.map((part) => part.type), [
+    'message-sealed', 'beat-planned', 'beat-delivery-failed', 'turn-completed',
+  ]);
+  const failure = parts.find((part) => part.type === 'beat-delivery-failed');
+  assert.equal(failure?.reasonCode, 'AI_PROVIDER_TIMEOUT');
+  assert.equal(failure?.operation, 'image.generate');
+  assert.equal(failure?.projectionMessageId, 'runtime-turn:message:1');
+});
+
 test('Runtime Agent turn runner preserves voice terminal projection diagnostics', async () => {
   const requestIds: string[] = [];
   const turns: NimiRuntimeAgentTurnRunnerModule = {

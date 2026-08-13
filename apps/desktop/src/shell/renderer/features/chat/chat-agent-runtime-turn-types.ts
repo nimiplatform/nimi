@@ -81,6 +81,17 @@ export type AgentRuntimeChatTurnStreamPart =
     projectionMessageId?: string;
   }
   | {
+    type: 'beat-delivery-failed';
+    beatId: string;
+    turnId: string;
+    operation: string;
+    modality: string;
+    reasonCode: string;
+    reason: string;
+    message: string;
+    projectionMessageId?: string;
+  }
+  | {
     type: 'turn-completed';
     outputText: string;
     finishReason?: string;

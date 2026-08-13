@@ -245,13 +245,35 @@ func TestNormalizeLocalImageRequestRejectsInvalidAIConfigImageOptions(t *testing
 	}
 }
 
-func TestLocalImageRejectsNonDefaultResponseFormatBeforeHostDispatch(t *testing.T) {
+func TestLocalImageLetsDriverOwnSupportedResponseFormats(t *testing.T) {
 	svc := newTestService(nil)
-	host := &localImageHostStub{}
+	host := &localImageHostStub{entered: make(chan struct{})}
 	svc.SetLocalExecutionResolver(&mutableLocalExecutionResolver{projection: selectedImageExecutionForTest(t, "image-format")})
 	svc.SetLocalImageExecutionHost(host)
 	request := localImageJobRequestForTest(1)
 	request.Spec.GetImageGenerate().ResponseFormat = "url"
+	if _, err := svc.SubmitScenarioJob(localImageIntentContext(context.Background(), nil), request); err != nil {
+		t.Fatalf("supported response_format url: %v", err)
+	}
+	select {
+	case <-host.entered:
+	case <-time.After(time.Second):
+		t.Fatal("supported response_format did not reach selected image driver")
+	}
+	host.mu.Lock()
+	defer host.mu.Unlock()
+	if len(host.plans) != 1 {
+		t.Fatalf("supported response_format dispatched %d plans", len(host.plans))
+	}
+}
+
+func TestLocalImageReportsUnsupportedDriverResponseFormat(t *testing.T) {
+	svc := newTestService(nil)
+	host := &localImageHostStub{}
+	svc.SetLocalExecutionResolver(&mutableLocalExecutionResolver{projection: selectedImageExecutionForTest(t, "image-format-invalid")})
+	svc.SetLocalImageExecutionHost(host)
+	request := localImageJobRequestForTest(1)
+	request.Spec.GetImageGenerate().ResponseFormat = "binary"
 	_, err := svc.SubmitScenarioJob(localImageIntentContext(context.Background(), nil), request)
 	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED {
 		t.Fatalf("response_format error=%v reason=%v present=%v", err, reason, ok)

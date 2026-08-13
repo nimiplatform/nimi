@@ -210,6 +210,37 @@ test('agent submit session shows a pending image card when an image beat is plan
   assert.equal(imageMessage?.contentText, 'Generating image...');
 });
 
+test('agent submit session replaces pending image with typed retriable terminal failure', () => {
+  let session = reduceAgentSubmitSessionEvent(createSession(), {
+    event: {
+      type: 'beat-planned', turnId: 'turn-1', beatId: 'turn-1:beat:1', beatIndex: 1, modality: 'image',
+    },
+    updatedAtMs: 135,
+  }).state;
+  const step = reduceAgentSubmitSessionEvent(session, {
+    event: {
+      type: 'beat-delivery-failed',
+      turnId: 'turn-1',
+      beatId: 'turn-1:beat:1',
+      operationId: 'runtime-turn:action-0',
+      operation: 'image.generate',
+      modality: 'image',
+      reasonCode: 'AI_PROVIDER_TIMEOUT',
+      reason: 'image_execution_failed',
+      message: 'Image generation timed out.',
+      projectionMessageId: 'runtime-turn:message:1',
+    },
+    updatedAtMs: 150,
+  });
+  session = step.state;
+  const image = session.workingBundle?.messages.at(-1);
+  assert.equal(image?.status, 'error');
+  assert.deepEqual(image?.error, { code: 'AI_PROVIDER_TIMEOUT', message: 'Image generation timed out.' });
+  assert.equal(image?.metadataJson?.imageOperationId, 'runtime-turn:action-0');
+  assert.equal(image?.metadataJson?.retryPrompt, 'retry this');
+  assert.equal(step.persistedBundle, session.workingBundle);
+});
+
 test('agent submit session completes a pending image card when the artifact is ready', () => {
   let session = createSession();
 

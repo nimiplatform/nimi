@@ -328,7 +328,86 @@ func validatePublicChatCommittedTranscript(transcript []publicChatCommittedTrans
 		if _, duplicate := seen[turn.TurnID]; duplicate {
 			return fmt.Errorf("Runtime committed transcript contains duplicate turn id")
 		}
+		seenOutputs := make(map[string]struct{}, len(turn.OutputArtifacts))
+		for outputIndex := range turn.OutputArtifacts {
+			output := turn.OutputArtifacts[outputIndex]
+			normalized := normalizePublicChatCommittedTranscriptAttachment(&output)
+			if normalized == nil || normalized.ArtifactID != output.ArtifactID || normalized.MimeType != output.MimeType {
+				return fmt.Errorf("Runtime committed transcript output artifact is invalid")
+			}
+			if _, duplicate := seenOutputs[normalized.ArtifactID]; duplicate {
+				return fmt.Errorf("Runtime committed transcript contains duplicate output artifact id")
+			}
+			seenOutputs[normalized.ArtifactID] = struct{}{}
+		}
 		seen[turn.TurnID] = struct{}{}
+	}
+	return nil
+}
+
+// commitPublicChatTurnOutputArtifact adds a store-validated assistant media
+// reference to the already committed turn. This is a second irreversible
+// boundary because action execution occurs after the text commit; event
+// delivery is projected only after this durable reference succeeds.
+func (s *Service) commitPublicChatTurnOutputArtifact(anchorID string, turnID string, artifact publicChatCommittedTranscriptAttachment) error {
+	if s == nil {
+		return status.Error(codes.FailedPrecondition, "public chat service unavailable")
+	}
+	trimmedAnchorID := strings.TrimSpace(anchorID)
+	trimmedTurnID := strings.TrimSpace(turnID)
+	normalized := normalizePublicChatCommittedTranscriptAttachment(&artifact)
+	if trimmedAnchorID == "" || trimmedTurnID == "" || normalized == nil {
+		return status.Error(codes.InvalidArgument, "committed transcript output artifact is invalid")
+	}
+
+	s.chatSurfaceMu.Lock()
+	defer s.chatSurfaceMu.Unlock()
+
+	session := s.chatAnchors[trimmedAnchorID]
+	if session == nil {
+		return status.Error(codes.NotFound, "conversation anchor not found")
+	}
+	if err := validatePublicChatCommittedTranscript(session.CommittedTranscript); err != nil {
+		return status.Error(codes.DataLoss, err.Error())
+	}
+	turnIndex := -1
+	for index := range session.CommittedTranscript {
+		if session.CommittedTranscript[index].TurnID == trimmedTurnID {
+			turnIndex = index
+			break
+		}
+	}
+	if turnIndex < 0 {
+		return status.Error(codes.FailedPrecondition, "committed transcript turn is unavailable for output artifact")
+	}
+	for _, existing := range session.CommittedTranscript[turnIndex].OutputArtifacts {
+		if existing.ArtifactID != normalized.ArtifactID {
+			continue
+		}
+		if existing.MimeType == normalized.MimeType {
+			return nil
+		}
+		return status.Error(codes.DataLoss, "committed transcript output artifact mime conflicts with existing reference")
+	}
+
+	transcriptBefore := clonePublicChatCommittedTranscript(session.CommittedTranscript)
+	updatedAtBefore := session.UpdatedAt
+	versionBefore := s.chatSurfaceVersion
+	session.CommittedTranscript[turnIndex].OutputArtifacts = append(
+		session.CommittedTranscript[turnIndex].OutputArtifacts,
+		*normalized,
+	)
+	session.UpdatedAt = time.Now().UTC()
+	if err := s.persistPublicChatSurfaceStateLocked(); err != nil {
+		session.CommittedTranscript = transcriptBefore
+		session.UpdatedAt = updatedAtBefore
+		s.chatSurfaceVersion = versionBefore
+		return grpcerr.WrapWithReasonCode(
+			codes.Internal,
+			runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED,
+			err,
+			grpcerr.ReasonOptions{Message: "committed Runtime output artifact could not be persisted"},
+		)
 	}
 	return nil
 }
@@ -395,7 +474,15 @@ func clonePublicChatCommittedTranscript(input []publicChatCommittedTranscriptTur
 	if len(input) == 0 {
 		return nil
 	}
-	return append([]publicChatCommittedTranscriptTurn(nil), input...)
+	out := append([]publicChatCommittedTranscriptTurn(nil), input...)
+	for index := range out {
+		if input[index].InputAttachment != nil {
+			attachment := *input[index].InputAttachment
+			out[index].InputAttachment = &attachment
+		}
+		out[index].OutputArtifacts = append([]publicChatCommittedTranscriptAttachment(nil), input[index].OutputArtifacts...)
+	}
+	return out
 }
 
 // publicChatTranscriptProjection derives the app-facing message
@@ -406,7 +493,7 @@ func publicChatTranscriptProjection(transcript []publicChatCommittedTranscriptTu
 	if err := validatePublicChatCommittedTranscript(transcript); err != nil {
 		return nil, err
 	}
-	messages := make([]*runtimev1.ChatMessage, 0, len(transcript)*2)
+	messages := make([]*runtimev1.ChatMessage, 0, len(transcript)*3)
 	for _, turn := range transcript {
 		if turn.Origin != publicChatTurnOriginUser {
 			continue
@@ -425,6 +512,23 @@ func publicChatTranscriptProjection(transcript []publicChatCommittedTranscriptTu
 			userMessage,
 			&runtimev1.ChatMessage{Role: "assistant", Content: turn.AssistantText},
 		)
+		for outputIndex := range turn.OutputArtifacts {
+			output := turn.OutputArtifacts[outputIndex]
+			attachment := normalizePublicChatCommittedTranscriptAttachment(&output)
+			if attachment == nil {
+				return nil, fmt.Errorf("Runtime committed transcript output artifact is invalid")
+			}
+			messages = append(messages, &runtimev1.ChatMessage{
+				Role: "assistant",
+				Parts: []*runtimev1.ChatContentPart{{
+					Type: runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_ARTIFACT_REF,
+					Content: &runtimev1.ChatContentPart_ArtifactRef{ArtifactRef: &runtimev1.ChatContentArtifactRef{
+						LocalArtifactId: attachment.ArtifactID,
+						MimeType:        attachment.MimeType,
+					}},
+				}},
+			})
+		}
 	}
 	return messages, nil
 }

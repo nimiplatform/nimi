@@ -56,6 +56,7 @@ import { useAgentConversationPendingAttachments } from './chat-agent-shell-adapt
 import { useStreamController } from '../turns/stream-controller-context.js';
 import { useAgentConversationAnchorBindings } from '../../app-shell/providers/agent-conversation-anchor-binding-context.js';
 import { useAgentConversationVoiceInput } from './chat-agent-voice-input.js';
+import { chatRuntimeReasonCodeMessage } from './chat-runtime-error-message';
 
 type UseAgentConversationModeHostInput = {
   authStatus: AuthStatus;
@@ -100,6 +101,10 @@ export function useAgentConversationModeHost(
   >({});
   const currentComposerTextRef = useRef('');
   const [composerPrefillRequestId, setComposerPrefillRequestId] = useState<number | null>(null);
+  const [pendingImageRetry, setPendingImageRetry] = useState<{
+    localAgentRef: string;
+    prompt: string;
+  } | null>(null);
   const registry = useMemo(() => {
     const nextRegistry = new ConversationOrchestrationRegistry();
     nextRegistry.register(createRuntimeAgentChatConversationProvider({
@@ -277,12 +282,23 @@ export function useAgentConversationModeHost(
       context: Parameters<NonNullable<typeof renderReasoningMessageContent>>[1],
     ) => {
       if (message.kind === 'image' || message.kind === 'image-pending') {
+        const metadata = (message.metadata as Record<string, unknown> | undefined) || {};
+        const retryPrompt = normalizeText(metadata.retryPrompt);
+        const reasonCode = normalizeText(metadata.imageFailureReasonCode);
         return (
           <RuntimeImageMessageContent
             message={message}
             imageLabel={t('ChatTimeline.imageMessage', 'Image')}
             showCaptionLabel={t('ChatTimeline.showImagePrompt', 'Show prompt')}
             hideCaptionLabel={t('ChatTimeline.hideImagePrompt', 'Hide prompt')}
+            failureMessage={reasonCode ? chatRuntimeReasonCodeMessage(reasonCode, t) : null}
+            retryLabel={t('Chat.retryImageGeneration', { defaultValue: 'Retry image generation' })}
+            onRetry={retryPrompt && activeTarget?.localAgentRef ? () => {
+              setPendingImageRetry({
+                localAgentRef: activeTarget.localAgentRef,
+                prompt: retryPrompt,
+              });
+            } : null}
           />
         );
       }
@@ -300,7 +316,7 @@ export function useAgentConversationModeHost(
       }
       return renderReasoningMessageContent(message, context);
     }
-  ), [renderReasoningMessageContent, t]);
+  ), [activeTarget?.localAgentRef, renderReasoningMessageContent, t]);
   const renderMessageAccessory = useMemo<CanonicalMessageAccessorySlot>(() => (
     (message) => {
       if ((message.kind || 'text') !== 'text' || (message.role !== 'assistant' && message.role !== 'agent')) {
@@ -376,6 +392,25 @@ export function useAgentConversationModeHost(
     textModelContextTokens: null,
     textMaxOutputTokensRequested,
   });
+  useEffect(() => {
+    if (!pendingImageRetry || !activeTarget?.localAgentRef || submittingThreadId) {
+      return;
+    }
+    if (pendingImageRetry.localAgentRef !== activeTarget.localAgentRef) {
+      setPendingImageRetry(null);
+      return;
+    }
+    const retry = pendingImageRetry;
+    setPendingImageRetry(null);
+    currentComposerTextRef.current = '';
+    void handleSubmit({ text: retry.prompt, attachments: [] }).catch(reportHostError);
+  }, [
+    activeTarget?.localAgentRef,
+    handleSubmit,
+    pendingImageRetry,
+    reportHostError,
+    submittingThreadId,
+  ]);
   const voiceInput = useAgentConversationVoiceInput({
     enabled: composerReady && Boolean(activeTarget) && !submittingThreadId,
     target: activeTarget,

@@ -183,6 +183,52 @@ function overlayReadyImageArtifact(input: {
   };
 }
 
+function overlayFailedImageBeat(input: {
+  state: AgentSubmitSessionState;
+  event: Extract<ConversationTurnEvent, { type: 'beat-delivery-failed' }>;
+  updatedAtMs: number;
+}): AgentLocalThreadBundle {
+  const base = input.state.workingBundle || createEmptyAgentThreadBundle(input.state.fallbackThread);
+  const messageId = imageMessageIdForBeat({
+    assistantMessageId: input.state.assistantMessageId,
+    beatId: input.event.beatId,
+  });
+  const current = base.messages.find((message) => message.id === messageId);
+  return {
+    ...base,
+    messages: replaceAgentBundleMessage(base.messages, {
+      id: messageId,
+      threadId: base.thread.id,
+      role: 'assistant',
+      status: 'error',
+      kind: 'image',
+      contentText: 'Image generation failed.',
+      reasoningText: null,
+      error: {
+        code: input.event.reasonCode,
+        message: input.event.message || 'Image generation failed.',
+      },
+      traceId: input.state.runtimeTraceId || input.state.promptTraceId || null,
+      parentMessageId: current?.parentMessageId || input.state.assistantMessageId,
+      mediaUrl: null,
+      mediaMimeType: null,
+      artifactId: null,
+      metadataJson: {
+        ...(current?.metadataJson || {}),
+        imageTerminalState: 'failed',
+        imageFailureReasonCode: input.event.reasonCode,
+        imageFailureReason: input.event.reason,
+        imageOperation: input.event.operation,
+        imageOperationId: input.event.operationId,
+        imageProjectionMessageId: input.event.projectionMessageId || '',
+        retryPrompt: input.state.submittedText,
+      },
+      createdAtMs: current?.createdAtMs || input.updatedAtMs,
+      updatedAtMs: input.updatedAtMs,
+    }),
+  };
+}
+
 function resolveTraceId(
   state: AgentSubmitSessionState,
   streamSnapshot: StreamState,
@@ -229,6 +275,22 @@ export function reduceAgentSubmitSessionEvent(
     case 'beat-delivery-started':
     case 'beat-delivered':
       return { state };
+    case 'beat-delivery-failed': {
+      const imageBundle = overlayFailedImageBeat({
+        state,
+        event: input.event,
+        updatedAtMs: input.updatedAtMs,
+      });
+      return {
+        state: {
+          ...state,
+          workingBundle: imageBundle,
+        },
+        visibleBundle: imageBundle,
+        projectionBundle: imageBundle,
+        persistedBundle: imageBundle,
+      };
+    }
     case 'artifact-ready': {
       if (!input.event.uri) {
         return { state };

@@ -115,6 +115,13 @@ export async function runActiveAgentSubmit(input: {
       },
       'beat-delivery-started': () => undefined,
       'beat-delivered': () => undefined,
+      'beat-delivery-failed': (nextEvent) => {
+        submitSession = input.input.applyDriverEffects(input.threadId, reduceAgentSubmitDriverEvent({
+          state: submitSession,
+          event: nextEvent,
+          updatedAtMs: input.input.now(),
+        }));
+      },
       'artifact-ready': (nextEvent) => {
         submitSession = input.input.applyDriverEffects(input.threadId, reduceAgentSubmitDriverEvent({
           state: submitSession,

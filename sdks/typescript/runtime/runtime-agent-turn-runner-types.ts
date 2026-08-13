@@ -289,6 +289,17 @@ export type NimiRuntimeAgentTurnRunnerPart =
     readonly mimeType?: string;
   }
   | {
+    readonly type: 'beat-delivery-failed';
+    readonly beatId: string;
+    readonly turnId: string;
+    readonly operation: string;
+    readonly modality: string;
+    readonly reasonCode: string;
+    readonly reason: string;
+    readonly message: string;
+    readonly projectionMessageId?: string;
+  }
+  | {
     readonly type: 'turn-completed';
     readonly outputText: string;
     readonly finishReason?: string;

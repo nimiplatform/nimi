@@ -1097,6 +1097,49 @@ test('Runtime Agent consumer helpers summarize projection scope and recover term
     'runtime.agent.turn.completed',
   ]);
 
+  const actionFailureRecoveryEvents = buildNimiRuntimeAgentSnapshotRecoveryEvents({
+    turn: {
+      ...completedTurn,
+      reasonCode: 'AI_LOCAL_EXECUTION_PROCESS_CRASHED',
+      message: 'Image generation failed.',
+      structured: {
+        schema_id: 'nimi.agent.chat.message-action.v1',
+        message: { message_id: 'message-structured', text: 'Recovered text' },
+        actions: [{
+          action_id: 'action-0',
+          action_index: 0,
+          action_count: 1,
+          modality: 'image',
+          operation: 'image.generate',
+          prompt_payload: { kind: 'image-prompt', prompt_text: 'draw a fox' },
+          source_message_id: 'message-structured',
+          delivery_coupling: 'after-message',
+        }],
+      },
+    },
+    localAgentRef: 'local-agent:owner-1:agent-1',
+    conversationAnchorId: 'anchor-1',
+    requestId: 'request-1',
+    currentTurnAccepted: true,
+    currentRuntimeTurnId: 'turn-1',
+    currentRuntimeStreamId: 'stream-1',
+    hasStructuredEnvelope: true,
+    hasCommittedMessage: true,
+  });
+  assert.deepEqual(actionFailureRecoveryEvents.map((event) => event.eventName), [
+    'runtime.agent.turn.action_failed',
+    'runtime.agent.turn.completed',
+  ]);
+  assert.deepEqual(actionFailureRecoveryEvents[0]?.detail, {
+    actionId: 'action-0',
+    modality: 'image',
+    operation: 'image.generate',
+    projectionMessageId: 'turn-1:message:1',
+    reasonCode: 'AI_LOCAL_EXECUTION_PROCESS_CRASHED',
+    reason: 'image_execution_failed',
+    message: 'Image generation failed.',
+  });
+
   const enqueued: NimiRuntimeAgentConsumeEvent[] = [];
   const logs: unknown[] = [];
   assert.equal(await recoverNimiRuntimeAgentTerminalSnapshot({
