@@ -112,7 +112,6 @@
   "settingsCloudTargetDialogDescription": "确认服务商和模型信息后继续。",
   "settingsCloudTargetDialogTitle": "选择云端模型",
   "settingsCloudTargetPlaceholder": "选择云端模型",
-  "settingsCloudTargetStep": "1. 确认云端服务和模型",
   "settingsSaveIntent": "保存设置",
   "settingsSavingIntent": "保存中…",
   "settingsExecutionIntent": "运行方式",

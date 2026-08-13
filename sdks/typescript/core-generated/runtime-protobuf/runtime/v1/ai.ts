@@ -1239,10 +1239,10 @@ export interface GenerateLocalAppTextCandidateResponse {
     traceId: string;
 }
 // Exact third-party Local App scenario-consumption contracts. Runtime derives
-// account, App identity, permission and managed route composition from the
+// account, App identity, App Access and managed route composition from the
 // protected session and the calling App owner's committed AIConfig; callers
-// cannot supply generic Scenario head, route, provider, model, target, grant,
-// or tool fields.
+// cannot supply generic Scenario head, route, provider, model, target, or tool
+// fields.
 
 /**
  * Trimmed artifact projection for Local App scenario outputs. Runtime-private

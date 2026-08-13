@@ -112,7 +112,6 @@
   "settingsCloudTargetDialogDescription": "Review the provider and model, then confirm your choice.",
   "settingsCloudTargetDialogTitle": "Choose a cloud model",
   "settingsCloudTargetPlaceholder": "Choose a cloud model",
-  "settingsCloudTargetStep": "1. Confirm cloud service and model",
   "settingsSaveIntent": "Save settings",
   "settingsSavingIntent": "Saving…",
   "settingsExecutionIntent": "Run mode",

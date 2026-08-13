@@ -26,7 +26,7 @@ type MediaArtifactBody struct {
 }
 
 // ExecuteMediaAdapter invokes one Driver-selected existing provider dialect.
-// It performs no provider, model, route, grant, or fallback selection.
+// It performs no provider, model, route, or fallback selection.
 func (p *CloudProvider) ExecuteMediaAdapter(
 	ctx context.Context,
 	adapter string,
