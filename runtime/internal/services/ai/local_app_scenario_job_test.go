@@ -314,7 +314,7 @@ func TestSubmitLocalAppScenarioJobVoiceWorkflowWithoutCurrentAccountConnectorFai
 	}
 	// The wrapper fills target_model_id from a complete Connector-scoped target,
 	// so owner spec validation passes and current-account Connector resolution is
-	// the first failing boundary. The protected App never supplies a Grant.
+	// the first failing boundary. The protected App supplies no execution-route input.
 	_, err := svc.SubmitLocalAppScenarioJob(
 		localAppScenarioJobContext(accountservice.LocalAppOperationScenarioJobSubmit, localappop.AppOperationIDScenarioJobSubmit), request)
 	assertLocalAppTextCandidateError(t, err, codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONNECTOR_NOT_FOUND)

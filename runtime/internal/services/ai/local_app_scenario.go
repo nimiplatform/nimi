@@ -154,7 +154,7 @@ func localAppValidTraceID(traceID string) bool {
 // ExecuteLocalAppScenario preserves the third-party Local App synchronous
 // scenario contract while delegating route composition, scheduling, Driver
 // mapping, metering, and execution to the Scenario owner. The App supplies a
-// closed-set SYNC spec only: no route, implementation, target, grant, model,
+// closed-set SYNC spec only: no route, implementation, target, model,
 // tool, stream, or job field.
 func (s *Service) ExecuteLocalAppScenario(ctx context.Context, req *runtimev1.ExecuteLocalAppScenarioRequest) (*runtimev1.ExecuteLocalAppScenarioResponse, error) {
 	decision, err := localAppScenarioDecision(ctx, accountservice.LocalAppOperationScenarioExecute, localappop.AppOperationIDScenarioExecute)

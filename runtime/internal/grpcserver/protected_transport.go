@@ -28,6 +28,8 @@ const protectedDesktopAuditProjectionMethod = "/nimi.runtime.v1.RuntimeAuditServ
 const protectedBundledProfileMetadata = "x-nimi-protected-bundled-profile"
 const protectedFirstPartyProfileMetadata = "x-nimi-protected-first-party-profile"
 
+type protectedAppOwnerAdmission func(context.Context, string) bool
+
 func protectedDesktopUnaryMethodAllowed(method string) bool {
 	_, allowed := protectedDesktopMethodRole(method)
 	return allowed
@@ -203,6 +205,7 @@ func newProtectedDesktopRPCServer(
 	artifactService runtimev1.RuntimeArtifactServiceServer,
 	desktopSessions *protectedlocal.DesktopSessionManager,
 	accountPrincipalProvider protectedAccountPrincipalProvider,
+	appOwnerAdmission protectedAppOwnerAdmission,
 ) *grpc.Server {
 	server := grpc.NewServer(
 		grpc.Creds(newProtectedDesktopTransportCredentials()),
@@ -211,7 +214,7 @@ func newProtectedDesktopRPCServer(
 		grpc.MaxConcurrentStreams(maxGRPCConcurrentStreams),
 		grpc.ReadBufferSize(grpcIOBufferBytes),
 		grpc.WriteBufferSize(grpcIOBufferBytes),
-		grpc.UnaryInterceptor(newUnaryProtectedDesktopTransportInterceptor(desktopSessions, accountPrincipalProvider)),
+		grpc.UnaryInterceptor(newUnaryProtectedDesktopTransportInterceptor(desktopSessions, accountPrincipalProvider, appOwnerAdmission)),
 		grpc.StreamInterceptor(newStreamProtectedDesktopTransportInterceptor(desktopSessions, accountPrincipalProvider)),
 	)
 	runtimev1.RegisterRuntimeServiceControlServiceServer(server, runtimeControlService)
@@ -229,7 +232,7 @@ func newProtectedDesktopRPCServer(
 	return server
 }
 
-func newUnaryProtectedDesktopTransportInterceptor(desktopSessions *protectedlocal.DesktopSessionManager, accountPrincipalProvider protectedAccountPrincipalProvider) grpc.UnaryServerInterceptor {
+func newUnaryProtectedDesktopTransportInterceptor(desktopSessions *protectedlocal.DesktopSessionManager, accountPrincipalProvider protectedAccountPrincipalProvider, appOwnerAdmission protectedAppOwnerAdmission) grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
 		if info == nil {
 			return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH)
@@ -284,6 +287,10 @@ func newUnaryProtectedDesktopTransportInterceptor(desktopSessions *protectedloca
 			protectedContext, cancel = context.WithCancel(protectedContext)
 			protectedContext = bindProtectedPrincipalContext(protectedContext, principal, cancel)
 			protectedContext = withDesktopAccountProductAuthorizationDecision(protectedContext, info.FullMethod)
+			protectedContext, err = withAuthorizedAppOwnerDecision(protectedContext, info.FullMethod, req, appOwnerAdmission)
+			if err != nil {
+				return nil, err
+			}
 		} else {
 			if firstParty && authn.IdentityFromContext(protectedContext) != nil {
 				return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED)
@@ -295,6 +302,45 @@ func newUnaryProtectedDesktopTransportInterceptor(desktopSessions *protectedloca
 		}
 		return handler(protectedContext, req)
 	}
+}
+
+func withAuthorizedAppOwnerDecision(ctx context.Context, method string, request any, admission protectedAppOwnerAdmission) (context.Context, error) {
+	var owner *runtimev1.AIConfigOwner
+	switch method {
+	case "/nimi.runtime.v1.RuntimeAiService/GetAppAIConfig":
+		req, ok := request.(*runtimev1.GetAppAIConfigRequest)
+		if !ok || req == nil {
+			return ctx, nil
+		}
+		owner = req.GetOwner()
+	case "/nimi.runtime.v1.RuntimeAiService/OverwriteAppAIConfig":
+		req, ok := request.(*runtimev1.OverwriteAppAIConfigRequest)
+		if !ok || req == nil || req.GetConfig() == nil {
+			return ctx, nil
+		}
+		owner = req.GetConfig().GetOwner()
+	default:
+		return ctx, nil
+	}
+	appOwner, ok := owner.GetOwner().(*runtimev1.AIConfigOwner_App)
+	if !ok || appOwner.App == nil {
+		return ctx, nil
+	}
+	appID := appOwner.App.GetAppId()
+	if appID == "" || strings.TrimSpace(appID) != appID {
+		return ctx, nil
+	}
+	principal, ok := protectedprincipal.FromContext(ctx)
+	if !ok || !principal.IsDesktopAccountProduct() {
+		return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED)
+	}
+	if appID == principal.AppID {
+		return ctx, nil
+	}
+	if admission == nil || !admission(ctx, appID) {
+		return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED)
+	}
+	return protectedprincipal.ContextWithAuthorizedAppOwnerDecision(ctx, appID), nil
 }
 
 func withDesktopAccountProductAuthorizationDecision(ctx context.Context, method string) context.Context {

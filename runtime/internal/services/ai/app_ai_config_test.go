@@ -1,16 +1,13 @@
 package ai
 
 import (
-	"bytes"
 	"context"
 	"io"
 	"log/slog"
-	"path/filepath"
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
-	"github.com/nimiplatform/nimi/runtime/internal/localappkernel"
 	"github.com/nimiplatform/nimi/runtime/internal/protectedprincipal"
 	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
 	"google.golang.org/grpc/codes"
@@ -85,9 +82,7 @@ func TestAppAIConfigCloudIntentPersistsWithoutConnectorSelection(t *testing.T) {
 
 func TestDesktopAccountProductManagesExactAdmittedAppAIConfig(t *testing.T) {
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
-	kernel := testAppAIConfigOwnerRegistry(t, "nimi.tester")
-	svc.SetAppOwnerRegistry(kernel.Registrations())
-	ctx := desktopAccountProductAIConfigContext("account-a")
+	ctx := desktopManagedAppAIConfigContext("account-a", "nimi.tester")
 	input := appAIConfig("nimi.tester", cloudAIConfigIntent(t, "voice.create"))
 
 	written, err := svc.OverwriteAppAIConfig(ctx, &runtimev1.OverwriteAppAIConfigRequest{Config: input})
@@ -98,19 +93,20 @@ func TestDesktopAccountProductManagesExactAdmittedAppAIConfig(t *testing.T) {
 	if err != nil || len(read.GetConfig().GetCapabilities()) != 1 {
 		t.Fatalf("managed read = (%+v, %v)", read, err)
 	}
-	_, err = svc.GetAppAIConfig(desktopAccountProductAIConfigContext("account-b"), &runtimev1.GetAppAIConfigRequest{Owner: appAIConfigOwner("nimi.tester")})
+	_, err = svc.GetAppAIConfig(desktopManagedAppAIConfigContext("account-b", "nimi.tester"), &runtimev1.GetAppAIConfigRequest{Owner: appAIConfigOwner("nimi.tester")})
 	assertAppAIConfigError(t, err, codes.NotFound, runtimev1.ReasonCode_AI_CONFIG_NOT_FOUND)
 }
 
 func TestAppAIConfigRejectsUnadmittedOrNonDesktopCrossAppOwner(t *testing.T) {
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
-	kernel := testAppAIConfigOwnerRegistry(t, "nimi.tester")
-	svc.SetAppOwnerRegistry(kernel.Registrations())
 	desktop := desktopAccountProductAIConfigContext("account-a")
 	_, err := svc.OverwriteAppAIConfig(desktop, &runtimev1.OverwriteAppAIConfigRequest{Config: appAIConfig("nimi.unknown")})
 	assertAppAIConfigError(t, err, codes.PermissionDenied, runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED)
 
-	ordinary := protectedAppAIConfigPrincipalContext("account-a", "app.manager")
+	ordinary := protectedprincipal.ContextWithAuthorizedAppOwnerDecision(
+		protectedAppAIConfigPrincipalContext("account-a", "app.manager"),
+		"nimi.tester",
+	)
 	_, err = svc.OverwriteAppAIConfig(ordinary, &runtimev1.OverwriteAppAIConfigRequest{Config: appAIConfig("nimi.tester")})
 	assertAppAIConfigError(t, err, codes.PermissionDenied, runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED)
 
@@ -206,29 +202,11 @@ func desktopAccountProductAIConfigContext(accountID string) context.Context {
 	return protectedprincipal.With(context.Background(), principal)
 }
 
-func testAppAIConfigOwnerRegistry(t *testing.T, appID string) *localappkernel.Kernel {
-	t.Helper()
-	identity, err := localappkernel.ValidateVerifiedWindowsInteractiveUserSID("S-1-5-21-100-200-300-1001")
-	if err != nil {
-		t.Fatal(err)
-	}
-	kernel, err := localappkernel.OpenSQLite(context.Background(), filepath.Join(t.TempDir(), "registered-app.db"), identity, localappkernel.Options{
-		Random: bytes.NewReader(bytes.Repeat([]byte{0x41}, 128)),
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(func() { _ = kernel.Close() })
-	_, err = kernel.Registrations().RegisterDevelopment(context.Background(), localappkernel.RegisterDevelopmentInput{
-		AppID: appID, DisplayName: "Tester", SourceRef: "project-file:tester",
-		ProjectRoot: "/projects/tester", ManifestPath: "/projects/tester/nimi.app.yaml", ShellKind: 1,
-		RawDeclaration: []string{"runtime.consume"}, SourceDigest: "source:one",
-		HostExecutableDigest: "host:one", PayloadRootDigest: "payload:one",
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	return kernel
+func desktopManagedAppAIConfigContext(accountID string, appID string) context.Context {
+	return protectedprincipal.ContextWithAuthorizedAppOwnerDecision(
+		desktopAccountProductAIConfigContext(accountID),
+		appID,
+	)
 }
 
 func localAppAIConfigContext(

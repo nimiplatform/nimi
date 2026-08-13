@@ -24,7 +24,7 @@ const (
 )
 
 // CloudEmbedTarget is one exact provider/model target interpreted by an
-// embedding Driver. It contains no route, grant, credential, endpoint, or Host
+// embedding Driver. It contains no route, credential, endpoint, or Host
 // facts.
 type CloudEmbedTarget struct {
 	provider             string
@@ -73,7 +73,7 @@ type CloudEmbedResult struct {
 
 // CloudEmbedDriver owns the four cloud embedding layers: target/config
 // validation, request mapping, response normalization, and reason-code
-// normalization. Route, grant, Host lifecycle, and fallback are absent.
+// normalization. Route, Host lifecycle, and fallback are absent.
 type CloudEmbedDriver interface {
 	ValidateTarget(Identity, *structpb.Struct) (CloudEmbedTarget, error)
 	MapRequest(CloudEmbedTarget, *runtimev1.TextEmbedScenarioSpec, *structpb.Struct) (*CloudEmbedMappedRequest, error)

@@ -23,7 +23,7 @@ const (
 // GenerateLocalAppTextCandidate preserves the third-party Local App unary
 // contract while delegating route composition, spend disclosure, scheduling,
 // Driver mapping, metering, and execution to the post-I5 Scenario owner. The
-// App supplies no route, implementation, target, grant, model, tool, or stream.
+// App supplies no route, implementation, target, model, tool, or stream.
 func (s *Service) GenerateLocalAppTextCandidate(ctx context.Context, req *runtimev1.GenerateLocalAppTextCandidateRequest) (*runtimev1.GenerateLocalAppTextCandidateResponse, error) {
 	decision, ok := accountservice.AuthorizedLocalAppDecisionFromContext(ctx)
 	if !ok || decision.Operation != accountservice.LocalAppOperationTextCandidateGenerate ||

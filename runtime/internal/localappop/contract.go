@@ -227,7 +227,7 @@ func IsSupportedDomain(value string) bool {
 
 func validateContractRows(rows []contractRow) error {
 	if len(rows) != len(canonicalAppOperationContract) {
-		return fmt.Errorf("%w: expected thirty-six rows", ErrContractInvalid)
+		return fmt.Errorf("%w: expected thirty-five rows", ErrContractInvalid)
 	}
 	seenIngress := make(map[Ingress]struct{}, len(rows))
 	seenOperation := make(map[Operation]struct{}, len(rows))

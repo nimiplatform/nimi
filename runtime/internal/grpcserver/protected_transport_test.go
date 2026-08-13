@@ -103,6 +103,7 @@ func TestProtectedDesktopRPCTransportBindsVerifiedConnectionAndGatesAdmittedServ
 		&runtimev1.UnimplementedRuntimeArtifactServiceServer{},
 		manager,
 		accountService,
+		nil,
 	)
 	for _, serviceName := range []string{
 		"nimi.runtime.v1.RuntimeAuditService",
@@ -368,7 +369,7 @@ func TestDesktopAccountProfileInvalidationCancelsUnaryBeforeLaterMutation(t *tes
 	ctx := protectedAccountProfileTestContext(connection)
 	started := make(chan struct{})
 	result := make(chan error, 1)
-	interceptor := newUnaryProtectedDesktopTransportInterceptor(manager, provider)
+	interceptor := newUnaryProtectedDesktopTransportInterceptor(manager, provider, nil)
 	go func() {
 		_, err := interceptor(ctx, &runtimev1.ListAgentsRequest{}, &grpc.UnaryServerInfo{
 			FullMethod: "/nimi.runtime.v1.RuntimeAgentService/ListAgents",
@@ -392,6 +393,48 @@ func TestDesktopAccountProfileInvalidationCancelsUnaryBeforeLaterMutation(t *tes
 		}
 	case <-time.After(2 * time.Second):
 		t.Fatal("account invalidation did not cancel in-flight unary")
+	}
+}
+
+func TestDesktopAccountProductAIConfigBindsExactAdmittedAppOwner(t *testing.T) {
+	manager, connection := newProtectedRPCFixture(t)
+	if _, err := manager.Open(protectedlocal.ContextWithDesktopConnection(context.Background(), connection)); err != nil {
+		t.Fatalf("open Desktop session: %v", err)
+	}
+	provider := &protectedAccountPrincipalTestProvider{invalidated: make(chan struct{})}
+	ctx := protectedAccountProfileTestContext(connection)
+	admissionCalls := 0
+	interceptor := newUnaryProtectedDesktopTransportInterceptor(manager, provider, func(_ context.Context, appID string) bool {
+		admissionCalls++
+		return appID == "nimi.tester"
+	})
+	request := &runtimev1.GetAppAIConfigRequest{Owner: &runtimev1.AIConfigOwner{
+		Owner: &runtimev1.AIConfigOwner_App{App: &runtimev1.AIConfigAppOwner{AppId: "nimi.tester"}},
+	}}
+	reached := false
+	_, err := interceptor(ctx, request, &grpc.UnaryServerInfo{
+		FullMethod: "/nimi.runtime.v1.RuntimeAiService/GetAppAIConfig",
+	}, func(callContext context.Context, _ any) (any, error) {
+		reached = true
+		if appID, ok := protectedprincipal.AuthorizedAppOwnerDecisionFromContext(callContext); !ok || appID != "nimi.tester" {
+			t.Fatalf("authorized App owner decision = %q, %v", appID, ok)
+		}
+		return &runtimev1.GetAppAIConfigResponse{}, nil
+	})
+	if err != nil || !reached || admissionCalls != 1 {
+		t.Fatalf("admitted App owner = reached=%v calls=%d err=%v", reached, admissionCalls, err)
+	}
+
+	request.Owner.GetApp().AppId = "nimi.unknown"
+	reached = false
+	_, err = interceptor(ctx, request, &grpc.UnaryServerInfo{
+		FullMethod: "/nimi.runtime.v1.RuntimeAiService/GetAppAIConfig",
+	}, func(context.Context, any) (any, error) {
+		reached = true
+		return &runtimev1.GetAppAIConfigResponse{}, nil
+	})
+	if status.Code(err) != codes.PermissionDenied || reached {
+		t.Fatalf("unadmitted App owner reached handler: reached=%v err=%v", reached, err)
 	}
 }
 

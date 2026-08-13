@@ -61,7 +61,7 @@ App 不发送 model、route、connector、target、fallback policy 或实现 bin
 
 ## 能力意图
 
-AIConfig 记录 App 对某项能力采用 Local 还是 Cloud 执行平面的意图，也记录 owner 是否授权。负责该配置的服务会在调用前保存意图。生成请求不会将 AIConfig 解析成机器 target，也不会通过请求 metadata 携带 AIConfig。
+AIConfig 记录 App owner 对某项能力采用 Local 还是 Cloud 执行平面的意图。负责该配置的服务会在调用前保存意图；App Access 仍是独立的 Runtime admission 事实。生成请求不会将 AIConfig 解析成机器 target，也不会通过请求 metadata 携带 AIConfig。
 
 Local 与 Cloud 意图使用同一种调用形状。Runtime 在执行时评估当前配置和可用条件；无法满足请求时，调用直接以错误结束。
 
@@ -80,7 +80,7 @@ Local 与 Cloud 意图使用同一种调用形状。Runtime 在执行时评估�
 | --- | --- | --- |
 | `SDK_CLIENT_APP_ID_REQUIRED` 或 `provide_runtime_ai_app_id` | client 或 operation 缺少 App 身份。 | 给 `createNimiClient` 或 `createRuntimeModel` 传入 `appId`。 |
 | `AI_CONFIG_NOT_FOUND` | Runtime 找不到准确 App owner 的 AIConfig。 | 为这个 App 身份保存能力意图。 |
-| 能力意图或授权错误 | App 没有获准使用 `text.generate`。 | 通过负责 AIConfig 的配置界面设置这项能力。 |
+| 能力意图或 App Access 错误 | App 没有 owner 选择的 `text.generate` 意图，或缺少所需 App Access。 | 通过负责 AIConfig 的配置界面设置这项能力，或修正 App Access 声明。 |
 | Runtime connection error | daemon 无法通过指定 endpoint 访问。 | 启动 Runtime，并检查 SDK 收到的 endpoint。 |
 | dispatch 后出现执行错误 | Runtime 无法选择或运行获准的实现。 | 检查 typed Runtime error 和响应诊断，不要在客户端伪造 fallback。 |
 

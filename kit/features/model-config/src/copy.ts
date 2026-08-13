@@ -55,7 +55,7 @@ export const DEFAULT_MODEL_CONFIG_COPY: Required<ModelConfigCopy> = Object.freez
   cloudTargetConfirmation: 'I confirm this cloud service and model.',
   cloudAuthorizationLabel: 'Cloud execution route',
   cloudAuthorizationNone: 'Current Nimi account',
-  cloudConnectorLabel: 'Create authorization from connector',
+  cloudConnectorLabel: 'Configured Connector',
   cloudConnectorPlaceholder: 'Choose a connector',
   cloudAuthorizationSeparation: 'Nimi resolves the current account Connector and credential at execution time.',
   cloudAccountLabel: (account) => `Execution owner: ${account}`,

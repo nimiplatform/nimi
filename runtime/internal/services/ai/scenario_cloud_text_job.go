@@ -35,7 +35,7 @@ func (s *Service) submitCloudTextScenarioJob(
 		}
 	}
 
-	// Exact Cloud implementation, Driver target, grant, defaults, and request
+	// Exact Cloud implementation, Driver target, defaults, and request
 	// are fixed before the job is visible. No credential is opened here.
 	effective, err := s.captureCloudTextEffectiveInputs(ctx, req.GetHead(), req, runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB)
 	if err != nil {

@@ -1,7 +1,7 @@
 // Package capabilitydriver interprets exact capability implementation
 // dialects. Local Drivers project and validate verified asset bindings; Cloud
 // Drivers separate target/config validation, request mapping, response/stream
-// normalization, and reason normalization. Drivers have no route, grant,
+// normalization, and reason normalization. Drivers have no route,
 // execution-host, fallback, or live-registration ownership.
 package capabilitydriver
 

@@ -800,7 +800,7 @@
         "offloadParamsToCPU": "将参数卸载到 CPU"
       },
       "cloudRecommendationTitle": "云端实现推荐",
-      "cloudRecommendationBody": "只打包实现与提供商模型目标。此表单不存在账户、连接器、凭据或授权输入。",
+      "cloudRecommendationBody": "只打包实现与提供商模型目标。Runtime 在执行时解析当前账户的 Connector 与凭据。",
       "providerModelTarget": "提供商模型目标 JSON",
       "providerModelTargetHint": "填写 Nimi-owned AIConfig 表面选中的精确 provider、providerModelId 与 remoteModelCatalogId；执行时 Runtime 只解析由该目录身份绑定的当前账户 Connector。",
       "requirementsTitle": "Driver 需求确认",

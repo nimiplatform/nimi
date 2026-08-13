@@ -261,9 +261,8 @@ func ResolveRemoteModelCatalogBinding(modelCatalog *aicatalog.Resolver, subjectU
 		if identity.remoteModelCatalogID != remoteModelCatalogID {
 			continue
 		}
-		catalogModelID := strings.TrimSpace(model.Model.ModelID)
 		executableProviderModelID := catalogProviderModelID(model.Model)
-		if catalogModelID != providerModelID && executableProviderModelID != providerModelID {
+		if executableProviderModelID != providerModelID {
 			return RemoteModelCatalogBinding{}, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_REMOTE_MODEL_CATALOG_STALE)
 		}
 		return RemoteModelCatalogBinding{
@@ -321,8 +320,6 @@ func remoteModelCatalogIdentityForConnector(rec ConnectorRecord, providerRecord 
 		fmt.Sprintf("%d", providerRecord.Version),
 		strings.TrimSpace(providerRecord.CatalogVersion),
 		fmt.Sprintf("%s", providerRecord.Source),
-		fmt.Sprintf("%s", model.Source),
-		fmt.Sprintf("%t", model.UserScoped),
 		strings.TrimSpace(providerRecord.OverlayUpdatedAt),
 	)
 	return remoteModelCatalogIdentity{

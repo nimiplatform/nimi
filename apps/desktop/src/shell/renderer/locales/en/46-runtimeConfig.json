@@ -800,7 +800,7 @@
         "offloadParamsToCPU": "Offload parameters to CPU"
       },
       "cloudRecommendationTitle": "Cloud implementation recommendation",
-      "cloudRecommendationBody": "Package implementation and provider-model target only. Account, connector, credential, and grant inputs do not exist in this form.",
+      "cloudRecommendationBody": "Package implementation and provider-model target only. Runtime resolves the current account Connector and credential at execution time.",
       "providerModelTarget": "Provider-model target JSON",
       "providerModelTargetHint": "Use the exact provider, providerModelId, and remoteModelCatalogId selected on the Nimi-owned AIConfig surface. Runtime resolves only the current-account Connector bound by that catalog identity.",
       "requirementsTitle": "Driver requirements confirmation",

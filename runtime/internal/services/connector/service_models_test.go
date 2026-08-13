@@ -12,6 +12,8 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	aicatalog "github.com/nimiplatform/nimi/runtime/internal/aicatalog"
+	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -209,6 +211,41 @@ func TestListConnectorModelsDashScopeVoiceAliasHasOneExecutableTarget(t *testing
 	}
 	if canonical.remoteModelCatalogID != alias.remoteModelCatalogID {
 		t.Fatalf("same executable provider model produced different remote identities: canonical=%q alias=%q", canonical.remoteModelCatalogID, alias.remoteModelCatalogID)
+	}
+	_, err = ResolveRemoteModelCatalogBinding(modelCatalog, "user-1", record, RemoteModelCatalogRef{
+		ConnectorID:          record.ConnectorID,
+		RemoteModelCatalogID: canonical.remoteModelCatalogID,
+		ProviderModelID:      "qwen3-tts-vc",
+		Provider:             "dashscope",
+	})
+	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_REMOTE_MODEL_CATALOG_STALE {
+		t.Fatalf("catalog label alias resolved as executable provider identity: reason=%v present=%v err=%v", reason, ok, err)
+	}
+}
+
+func TestRemoteModelCatalogIdentityIgnoresDuplicateRowProvenance(t *testing.T) {
+	record := ConnectorRecord{
+		ConnectorID: "connector-1",
+		Provider:    "dashscope",
+		Endpoint:    "https://dashscope.aliyuncs.com",
+		AuthKind:    runtimev1.ConnectorAuthKind_CONNECTOR_AUTH_KIND_API_KEY,
+	}
+	providerRecord := aicatalog.CatalogProviderRecord{
+		Provider:       "dashscope",
+		Version:        1,
+		CatalogVersion: "2026-01",
+	}
+	canonical := remoteModelCatalogIdentityForConnector(record, providerRecord, aicatalog.CatalogModelRecord{
+		Model:  aicatalog.ModelEntry{ModelID: "qwen3-tts-vc", ApiModelID: "qwen3-tts-vc-2026-01-22"},
+		Source: aicatalog.ModelSourceBuiltin,
+	})
+	overlayAlias := remoteModelCatalogIdentityForConnector(record, providerRecord, aicatalog.CatalogModelRecord{
+		Model:      aicatalog.ModelEntry{ModelID: "qwen3-tts-vc-2026-01-22", ApiModelID: "qwen3-tts-vc-2026-01-22"},
+		Source:     aicatalog.ModelSourceCustom,
+		UserScoped: true,
+	})
+	if canonical != overlayAlias {
+		t.Fatalf("duplicate executable rows produced different target identities: canonical=%+v alias=%+v", canonical, overlayAlias)
 	}
 }
 

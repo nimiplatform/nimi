@@ -26,6 +26,7 @@ type Principal struct {
 }
 
 type contextKey struct{}
+type authorizedAppOwnerDecisionContextKey struct{}
 
 func With(ctx context.Context, principal Principal) context.Context {
 	return context.WithValue(ctx, contextKey{}, principal)
@@ -45,6 +46,21 @@ func AttachedToContext(ctx context.Context) (Principal, bool) {
 	}
 	principal, ok := ctx.Value(contextKey{}).(Principal)
 	return principal, ok
+}
+
+// ContextWithAuthorizedAppOwnerDecision attaches the exact registered App
+// owner admitted by the protected Desktop ingress for one request. AI services
+// consume this decision without reaching into the App registration kernel.
+func ContextWithAuthorizedAppOwnerDecision(ctx context.Context, appID string) context.Context {
+	return context.WithValue(ctx, authorizedAppOwnerDecisionContextKey{}, strings.TrimSpace(appID))
+}
+
+func AuthorizedAppOwnerDecisionFromContext(ctx context.Context) (string, bool) {
+	if ctx == nil {
+		return "", false
+	}
+	appID, ok := ctx.Value(authorizedAppOwnerDecisionContextKey{}).(string)
+	return appID, ok && appID != "" && strings.TrimSpace(appID) == appID
 }
 
 func (principal Principal) Valid() bool {

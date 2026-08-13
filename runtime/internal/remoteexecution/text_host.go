@@ -1,6 +1,6 @@
 // Package remoteexecution owns Remote ExecutionHost lifecycle and transport.
 // It consumes an already-authorized immutable composition and never selects a
-// route, grant, implementation, provider, model, or fallback.
+// route, implementation, provider, model, or fallback.
 package remoteexecution
 
 import (

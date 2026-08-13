@@ -8,7 +8,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 )
 
-func TestResolveCurrentAccountConnectorBindingWithoutGrant(t *testing.T) {
+func TestResolveCurrentAccountConnectorBindingUsesExactCurrentAccountTarget(t *testing.T) {
 	resolver, err := aicatalog.NewResolver(aicatalog.ResolverConfig{})
 	if err != nil {
 		t.Fatal(err)

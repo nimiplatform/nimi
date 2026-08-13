@@ -41,7 +41,7 @@ func (s *Service) submitScenarioAsyncJob(
 		}
 	}
 
-	// Exact Cloud implementation, Driver target, grant, defaults, request, and
+	// Exact Cloud implementation, Driver target, defaults, request, and
 	// stream behavior are fixed before the Runtime job becomes visible.
 	effective, err := s.captureCloudMediaEffectiveInputs(ctx, req.GetHead(), req, mode)
 	if err != nil {

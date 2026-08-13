@@ -127,11 +127,11 @@ func (s *Service) appAIConfigOwnerForCaller(
 	if requestedAppID == caller.appID {
 		return asserted, nil
 	}
-	if !caller.managesAppOwners || s == nil || s.appOwnerRegistry == nil {
+	if !caller.managesAppOwners {
 		return nil, unauthorizedAppAIConfigCallerError()
 	}
-	registration, err := s.appOwnerRegistry.GetActiveByAppID(ctx, requestedAppID)
-	if err != nil || registration.AppID != requestedAppID {
+	authorizedAppID, ok := protectedprincipal.AuthorizedAppOwnerDecisionFromContext(ctx)
+	if !ok || authorizedAppID != requestedAppID {
 		return nil, unauthorizedAppAIConfigCallerError()
 	}
 	return asserted, nil

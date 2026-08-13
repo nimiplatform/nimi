@@ -1,6 +1,7 @@
 import {
   ReasonCode as RuntimeGeneratedReasonCode,
   ScenarioJobStatus,
+  ScenarioJobEventType,
   ScenarioType,
   type CancelScenarioJobRequest,
   type GetScenarioArtifactsRequest,
@@ -14,6 +15,8 @@ import {
   type SubmitScenarioJobRequest,
   type SubmitScenarioJobResponse,
   type RuntimeTypedCallOptions,
+  VoiceAssetStatus,
+  VoiceReferenceKind,
   type VoiceAsset,
   type VoiceReference,
 } from '../core-generated/runtime-typed-client';
@@ -111,6 +114,7 @@ export async function runNimiRuntimeScenarioJob(
   }
 
   let terminalJob = submitted;
+  let observedTerminalEvent = false;
   if (submitted) {
     input.onJobUpdate?.(submitted);
   }
@@ -127,11 +131,16 @@ export async function runNimiRuntimeScenarioJob(
       }
       const job = next.value.job;
       if (!job) {
-        continue;
+        throw runtimeScenarioJobResponseError('Runtime Scenario job event omitted its Job projection');
+      }
+      if (normalizeText(job.jobId) !== jobId || job.scenarioType !== input.request.scenarioType
+        || !scenarioJobEventMatchesStatus(next.value.eventType, job.status)) {
+        throw runtimeScenarioJobResponseError('Runtime Scenario job event does not match the submitted Job');
       }
       terminalJob = job;
       input.onJobUpdate?.(job);
       if (isNimiRuntimeScenarioJobTerminalStatus(job.status)) {
+        observedTerminalEvent = true;
         break;
       }
     }
@@ -143,18 +152,22 @@ export async function runNimiRuntimeScenarioJob(
   }
 
   throwIfAborted(input.signal);
-
-  if (terminalJob && isNimiRuntimeScenarioJobTerminalStatus(terminalJob.status)) {
-    ensureCompletedNimiRuntimeScenarioJob(terminalJob);
+  if (!observedTerminalEvent || !terminalJob || !isNimiRuntimeScenarioJobTerminalStatus(terminalJob.status)) {
+    throw runtimeScenarioJobResponseError('Runtime Scenario job event stream ended without a terminal event');
   }
+  ensureCompletedNimiRuntimeScenarioJob(terminalJob);
   const eventStatus = terminalJob?.status;
   const terminalResponse = await input.ai.getScenarioJob({ jobId }, input.callOptions);
   terminalJob = terminalResponse.job;
+  if (normalizeText(terminalJob?.jobId) !== jobId || terminalJob?.scenarioType !== input.request.scenarioType) {
+    throw runtimeScenarioJobResponseError('Runtime Scenario job terminal result does not match the submitted Job');
+  }
   if (terminalJob && terminalJob.status !== eventStatus) {
     input.onJobUpdate?.(terminalJob);
   }
 
   ensureCompletedNimiRuntimeScenarioJob(terminalJob);
+  validateScenarioJobTerminalResult(terminalJob, terminalResponse.asset, terminalResponse.voiceReference);
 
   const artifacts = terminalJob.scenarioType === ScenarioType.VOICE_CREATE
     ? { artifacts: terminalJob.artifacts, traceId: terminalJob.traceId, output: undefined }
@@ -167,6 +180,51 @@ export async function runNimiRuntimeScenarioJob(
     ...(terminalResponse.asset ? { asset: terminalResponse.asset } : {}),
     ...(terminalResponse.voiceReference ? { voiceReference: terminalResponse.voiceReference } : {}),
   };
+}
+
+function scenarioJobEventMatchesStatus(eventType: ScenarioJobEventType, status: ScenarioJobStatus): boolean {
+  switch (eventType) {
+    case ScenarioJobEventType.SCENARIO_JOB_EVENT_SUBMITTED: return status === ScenarioJobStatus.SUBMITTED;
+    case ScenarioJobEventType.SCENARIO_JOB_EVENT_QUEUED: return status === ScenarioJobStatus.QUEUED;
+    case ScenarioJobEventType.SCENARIO_JOB_EVENT_RUNNING: return status === ScenarioJobStatus.RUNNING;
+    case ScenarioJobEventType.SCENARIO_JOB_EVENT_COMPLETED: return status === ScenarioJobStatus.COMPLETED;
+    case ScenarioJobEventType.SCENARIO_JOB_EVENT_FAILED: return status === ScenarioJobStatus.FAILED;
+    case ScenarioJobEventType.SCENARIO_JOB_EVENT_CANCELED: return status === ScenarioJobStatus.CANCELED;
+    case ScenarioJobEventType.SCENARIO_JOB_EVENT_TIMEOUT: return status === ScenarioJobStatus.TIMEOUT;
+    default: return false;
+  }
+}
+
+function validateScenarioJobTerminalResult(
+  job: NimiRuntimeScenarioJob,
+  asset: VoiceAsset | undefined,
+  voiceReference: VoiceReference | undefined,
+): void {
+  const pairPresent = asset !== undefined && voiceReference !== undefined;
+  if ((asset === undefined) !== (voiceReference === undefined)) {
+    throw runtimeScenarioJobResponseError('Runtime Scenario job returned an incomplete VoiceAsset result');
+  }
+  const expectsVoiceResult = job.scenarioType === ScenarioType.VOICE_CREATE;
+  if (pairPresent !== expectsVoiceResult) {
+    throw runtimeScenarioJobResponseError('Runtime Scenario job returned an unexpected VoiceAsset result');
+  }
+  if (!pairPresent) return;
+  if (!normalizeText(asset.voiceAssetId)
+    || asset.status !== VoiceAssetStatus.ACTIVE
+    || voiceReference.kind !== VoiceReferenceKind.VOICE_ASSET
+    || voiceReference.reference?.oneofKind !== 'voiceAssetId'
+    || voiceReference.reference.voiceAssetId !== asset.voiceAssetId) {
+    throw runtimeScenarioJobResponseError('Runtime Scenario job returned an invalid VoiceAsset result');
+  }
+}
+
+function runtimeScenarioJobResponseError(message: string): Error {
+  return createNimiError({
+    message,
+    reasonCode: ReasonCode.SDK_RUNTIME_RESPONSE_DECODE_FAILED,
+    actionHint: 'regenerate_runtime_proto_and_sdk',
+    source: 'sdk',
+  });
 }
 
 async function cancelNimiRuntimeScenarioJob(

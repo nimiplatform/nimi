@@ -19,7 +19,7 @@ import (
 )
 
 // CloudInvocationFailureKind identifies the Driver layer that rejected an
-// input. Route, grant, Host lifecycle, and fallback are deliberately absent.
+// input. Route, Host lifecycle, and fallback are deliberately absent.
 type CloudInvocationFailureKind string
 
 const (

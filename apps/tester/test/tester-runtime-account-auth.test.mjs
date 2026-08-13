@@ -864,11 +864,16 @@ test('Tester voice.create submits a text description through the same canonical 
   const source = 'text-description';
   const asset = localVoiceAsset(source);
   const completed = localVoiceJob('completed', source);
+  const submitted = localVoiceJob('submitted', source);
   const calls = [];
   const client = fakeLocalAppClient({
     async submitScenarioJob(spec) {
       calls.push(['submit', spec]);
-      return { job: completed };
+      return { job: submitted };
+    },
+    async subscribeScenarioJob(jobId) {
+      calls.push(['subscribe', jobId]);
+      return localScenarioJobSubscription([{ eventType: 'completed', sequence: '1', traceId: completed.traceId, timestamp: null, job: completed }]);
     },
     async getScenarioJob(jobId) {
       calls.push(['get', jobId]);
@@ -903,12 +908,39 @@ test('Tester voice.create submits a text description through the same canonical 
       language: 'zh',
       preferredName: 'Nimi designed voice',
     }],
+	['subscribe', completed.jobId],
     ['get', completed.jobId],
     ['list', { pageSize: 100 }],
   ]);
   assert.equal(result.output.kind, 'voice-asset');
   assert.equal(result.output.voiceAssetId, asset.voiceAssetId);
   assert.equal(result.output.creationSource, source);
+});
+
+test('Tester voice.create fails closed when the Job stream ends before a terminal event', async () => {
+  const { runTesterCapability } = await importTesterRuntime();
+  const source = 'text-description';
+  const submitted = localVoiceJob('submitted', source);
+  const running = localVoiceJob('running', source);
+  let gets = 0;
+  const client = fakeLocalAppClient({
+    async submitScenarioJob() { return { job: submitted }; },
+    async subscribeScenarioJob() {
+      return localScenarioJobSubscription([{ eventType: 'running', sequence: '1', traceId: running.traceId, timestamp: null, job: running }]);
+    },
+    async getScenarioJob() {
+      gets += 1;
+      throw new Error('terminal Get must not run without a terminal event');
+    },
+  });
+  const result = await runTesterCapability({
+    capabilityId: 'voice.create',
+    prompt: 'Warm, clear Mandarin voice.',
+    parameters: { creationSource: source, previewText: '你好', language: 'zh', preferredName: 'Nimi voice' },
+  }, readyRuntimeDependencies(client));
+  assert.equal(result.ok, false);
+  assert.equal(gets, 0);
+  assert.match(result.message, /without a terminal event/i);
 });
 
 test('Tester speech.bundle runs the Kit voice catalog over the Local App list client', async () => {

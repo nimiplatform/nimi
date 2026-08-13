@@ -29,7 +29,7 @@ const (
 // SubmitLocalAppScenarioJob preserves the third-party Local App async Job
 // contract while delegating route composition, scheduling, Driver mapping,
 // metering, and execution to the Scenario Job owner. The App supplies a
-// closed-set Job spec only: no route, implementation, target, grant, model,
+// closed-set Job spec only: no route, implementation, target, model,
 // tool, stream, idempotency, or label field. Voice creation target model
 // identity is derived from the committed AIConfig intent, never from the App.
 func (s *Service) SubmitLocalAppScenarioJob(ctx context.Context, req *runtimev1.SubmitLocalAppScenarioJobRequest) (*runtimev1.SubmitLocalAppScenarioJobResponse, error) {

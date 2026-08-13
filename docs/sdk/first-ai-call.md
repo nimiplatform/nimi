@@ -61,7 +61,7 @@ The App does not send a model, route, connector, target, fallback policy, or imp
 
 ## Capability Intent
 
-AIConfig records whether an App intends to use the Local or Cloud execution plane for a capability and whether the owner granted that use. The owning service saves that intent before the call. The generation request does not resolve AIConfig into a machine target and does not carry AIConfig as request metadata.
+AIConfig records whether an App owner intends to use the Local or Cloud execution plane for a capability. The owning service saves that intent before the call. App Access remains a separate Runtime admission fact. The generation request does not resolve AIConfig into a machine target and does not carry AIConfig as request metadata.
 
 The same call shape works for either intent. Runtime evaluates current configuration and availability at execution time, then fails closed if it cannot honor the request.
 
@@ -80,7 +80,7 @@ The same call shape works for either intent. Runtime evaluates current configura
 | --- | --- | --- |
 | `SDK_CLIENT_APP_ID_REQUIRED` or `provide_runtime_ai_app_id` | The client or operation has no App identity. | Pass `appId` to `createNimiClient` or `createRuntimeModel`. |
 | `AI_CONFIG_NOT_FOUND` | Runtime has no AIConfig for the exact App owner. | Save capability intent for that App identity. |
-| Capability-intent or authorization error | The App has no admitted `text.generate` intent or grant. | Configure the capability through the owning AIConfig surface. |
+| Capability-intent or App Access error | The App has no owner-selected `text.generate` intent or lacks the required App Access. | Configure the capability through the owning AIConfig surface, or correct the App Access declaration. |
 | Runtime connection error | The daemon is not reachable at the configured endpoint. | Start Runtime and verify the endpoint supplied to the SDK. |
 | Execution error after dispatch | Runtime could not select or run an admitted implementation. | Inspect the typed Runtime error and returned diagnostics; do not synthesize a client-side fallback. |
 

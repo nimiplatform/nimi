@@ -34,6 +34,19 @@ function imageArtifact(overrides: Partial<NimiRuntimeScenarioArtifact> = {}): Ni
   };
 }
 
+function imageEventType(status: ScenarioJobStatus): ScenarioJobEventType {
+  switch (status) {
+    case ScenarioJobStatus.SUBMITTED: return ScenarioJobEventType.SCENARIO_JOB_EVENT_SUBMITTED;
+    case ScenarioJobStatus.QUEUED: return ScenarioJobEventType.SCENARIO_JOB_EVENT_QUEUED;
+    case ScenarioJobStatus.RUNNING: return ScenarioJobEventType.SCENARIO_JOB_EVENT_RUNNING;
+    case ScenarioJobStatus.COMPLETED: return ScenarioJobEventType.SCENARIO_JOB_EVENT_COMPLETED;
+    case ScenarioJobStatus.FAILED: return ScenarioJobEventType.SCENARIO_JOB_EVENT_FAILED;
+    case ScenarioJobStatus.CANCELED: return ScenarioJobEventType.SCENARIO_JOB_EVENT_CANCELED;
+    case ScenarioJobStatus.TIMEOUT: return ScenarioJobEventType.SCENARIO_JOB_EVENT_TIMEOUT;
+    default: return ScenarioJobEventType.SCENARIO_JOB_EVENT_TYPE_UNSPECIFIED;
+  }
+}
+
 function fakeClient(config: {
   events?: readonly ScenarioJob[];
   artifacts?: readonly NimiRuntimeScenarioArtifact[];
@@ -56,7 +69,7 @@ function fakeClient(config: {
           if (config.neverEndingEvents) return new Promise<never>(() => {});
           const job = config.events?.[index++];
           return job
-            ? { done: false as const, value: { eventType: ScenarioJobEventType.SCENARIO_JOB_EVENT_RUNNING, sequence: String(index), traceId: '', job } }
+            ? { done: false as const, value: { eventType: imageEventType(job.status), sequence: String(index), traceId: '', job } }
             : { done: true as const, value: undefined };
         },
       };

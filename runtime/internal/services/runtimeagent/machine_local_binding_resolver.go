@@ -161,15 +161,7 @@ func (r *selectedLocalMachineExecutionBindingResolver) resolveCloudMachineExecut
 		return publicChatExecutionBinding{}, machineExecutionProjectionError(runtimev1.ReasonCode_AI_CONFIG_INVALID, "Cloud AIConfig execution intent is invalid", nil)
 	}
 	provider, providerOK := machineCloudTargetText(intent.ProviderModelTarget, "provider")
-	providerModelID, providerModelPresent := machineCloudTargetText(intent.ProviderModelTarget, "providerModelId")
-	legacyModelID, legacyModelPresent := machineCloudTargetText(intent.ProviderModelTarget, "model")
-	if providerModelPresent && legacyModelPresent && providerModelID != legacyModelID {
-		return publicChatExecutionBinding{}, machineExecutionProjectionError(runtimev1.ReasonCode_AI_CONFIG_INVALID, "Cloud AIConfig provider model identities conflict", nil)
-	}
-	modelOK := providerModelPresent || legacyModelPresent
-	if !providerModelPresent {
-		providerModelID = legacyModelID
-	}
+	providerModelID, modelOK := machineCloudTargetText(intent.ProviderModelTarget, "providerModelId")
 	remoteCatalogID, catalogOK := machineCloudTargetText(intent.ProviderModelTarget, "remoteModelCatalogId")
 	if !providerOK || !modelOK || !catalogOK {
 		return publicChatExecutionBinding{}, machineExecutionProjectionError(runtimev1.ReasonCode_AI_CONFIG_INVALID, "Cloud AIConfig target is incomplete", nil)

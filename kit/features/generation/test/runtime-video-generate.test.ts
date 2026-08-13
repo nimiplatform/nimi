@@ -57,6 +57,19 @@ function videoArtifactForTest(overrides: Partial<NimiRuntimeScenarioArtifact> = 
   };
 }
 
+function videoEventType(status: ScenarioJobStatus): ScenarioJobEventType {
+  switch (status) {
+    case ScenarioJobStatus.SUBMITTED: return ScenarioJobEventType.SCENARIO_JOB_EVENT_SUBMITTED;
+    case ScenarioJobStatus.QUEUED: return ScenarioJobEventType.SCENARIO_JOB_EVENT_QUEUED;
+    case ScenarioJobStatus.RUNNING: return ScenarioJobEventType.SCENARIO_JOB_EVENT_RUNNING;
+    case ScenarioJobStatus.COMPLETED: return ScenarioJobEventType.SCENARIO_JOB_EVENT_COMPLETED;
+    case ScenarioJobStatus.FAILED: return ScenarioJobEventType.SCENARIO_JOB_EVENT_FAILED;
+    case ScenarioJobStatus.CANCELED: return ScenarioJobEventType.SCENARIO_JOB_EVENT_CANCELED;
+    case ScenarioJobStatus.TIMEOUT: return ScenarioJobEventType.SCENARIO_JOB_EVENT_TIMEOUT;
+    default: return ScenarioJobEventType.SCENARIO_JOB_EVENT_TYPE_UNSPECIFIED;
+  }
+}
+
 type FakeClientConfig = {
   readonly submitJob?: ScenarioJob;
   readonly events?: readonly ScenarioJob[];
@@ -89,7 +102,7 @@ function fakeScenarioJobClient(config: FakeClientConfig) {
           }
           return {
             done: false,
-            value: { eventType: ScenarioJobEventType.SCENARIO_JOB_EVENT_RUNNING, sequence: String(index), traceId: '', job },
+            value: { eventType: videoEventType(job.status), sequence: String(index), traceId: '', job },
           };
         },
       };

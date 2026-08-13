@@ -81,7 +81,7 @@ const (
 )
 
 // CloudMediaTarget is one exact provider/model target interpreted by a media
-// Driver. It contains no route, grant, credential, endpoint, or Host facts.
+// Driver. It contains no route, credential, endpoint, or Host facts.
 type CloudMediaTarget struct {
 	provider             string
 	providerModelID      string
@@ -421,7 +421,7 @@ type CloudVoiceWorkflowResult struct {
 
 // CloudMediaDriver owns the four r051 layers for one provider dialect:
 // target/config validation, request mapping, stream/response normalization,
-// and reason-code normalization. Route, grant, Host lifecycle, and fallback
+// and reason-code normalization. Route, Host lifecycle, and fallback
 // are deliberately absent.
 type CloudMediaDriver interface {
 	ValidateTarget(Identity, *structpb.Struct, string) (CloudMediaTarget, error)

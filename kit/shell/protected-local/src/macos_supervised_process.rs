@@ -251,11 +251,12 @@ fn sanitized_environment_with_source_paths(
             return Err(untrusted());
         }
         let runtime_metadata = canonical_runtime.metadata().map_err(|_| untrusted())?;
-        if !runtime_metadata.is_file()
-            || runtime_metadata.uid() != unsafe { libc::geteuid() }
-            || runtime_metadata.permissions().mode() & 0o022 != 0
-            || runtime_metadata.permissions().mode() & 0o111 == 0
-        {
+        if !source_runtime_metadata_admitted(
+            runtime_metadata.is_file(),
+            runtime_metadata.uid(),
+            runtime_metadata.permissions().mode(),
+            unsafe { libc::geteuid() },
+        ) {
             return Err(untrusted());
         }
         values.push(format!(
@@ -274,6 +275,16 @@ fn sanitized_environment_with_source_paths(
         .collect()
 }
 
+#[cfg(feature = "macos-source-local-development")]
+fn source_runtime_metadata_admitted(
+    is_file: bool,
+    owner_uid: u32,
+    mode: u32,
+    expected_uid: u32,
+) -> bool {
+    is_file && owner_uid == expected_uid && mode & 0o022 == 0 && mode & 0o111 != 0
+}
+
 fn path_text(path: &Path) -> Result<&str, NimiHostError> {
     path.to_str().ok_or_else(untrusted)
 }
@@ -285,6 +296,8 @@ fn untrusted() -> NimiHostError {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[cfg(feature = "macos-source-local-development")]
+    use std::os::unix::fs::PermissionsExt;
 
     #[cfg(not(feature = "macos-source-local-development"))]
     #[test]
@@ -333,5 +346,87 @@ mod tests {
         assert!(keys
             .iter()
             .all(|value| !value.to_ascii_lowercase().contains("token")));
+    }
+
+    #[cfg(feature = "macos-source-local-development")]
+    #[test]
+    fn source_runtime_executable_rejects_missing_relative_symlink_non_file_unsafe_modes_and_foreign_owner(
+    ) {
+        let source_native_entry = Path::new(env!("CARGO_MANIFEST_DIR"))
+            .parent()
+            .expect("protected-local parent")
+            .join("protected-local-node")
+            .join("npm")
+            .join("darwin-arm64")
+            .join("index.cjs");
+        let root = std::env::temp_dir().join(format!(
+            "nimi-macos-runtime-path-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .expect("system clock")
+                .as_nanos()
+        ));
+        std::fs::create_dir_all(&root).expect("temp path");
+        let cleanup = || {
+            let _ = std::fs::remove_dir_all(&root);
+        };
+
+        let executable = root.join("runtime");
+        std::fs::write(&executable, b"runtime").expect("runtime fixture");
+        std::fs::set_permissions(&executable, std::fs::Permissions::from_mode(0o700))
+            .expect("executable fixture mode");
+        assert!(sanitized_environment_with_source_paths(
+            Some(&source_native_entry),
+            Some(Path::new("relative-runtime")),
+        )
+        .is_err());
+        assert!(sanitized_environment_with_source_paths(
+            Some(&source_native_entry),
+            Some(&root.join("missing-runtime")),
+        )
+        .is_err());
+        assert!(
+            sanitized_environment_with_source_paths(Some(&source_native_entry), Some(&root),)
+                .is_err()
+        );
+
+        let symlink = root.join("runtime-link");
+        std::os::unix::fs::symlink(&executable, &symlink).expect("runtime symlink");
+        assert!(sanitized_environment_with_source_paths(
+            Some(&source_native_entry),
+            Some(&symlink),
+        )
+        .is_err());
+
+        std::fs::set_permissions(&executable, std::fs::Permissions::from_mode(0o722))
+            .expect("writable fixture mode");
+        assert!(sanitized_environment_with_source_paths(
+            Some(&source_native_entry),
+            Some(&executable),
+        )
+        .is_err());
+
+        std::fs::set_permissions(&executable, std::fs::Permissions::from_mode(0o600))
+            .expect("non-executable fixture mode");
+        assert!(sanitized_environment_with_source_paths(
+            Some(&source_native_entry),
+            Some(&executable),
+        )
+        .is_err());
+
+        let current_uid = unsafe { libc::geteuid() };
+        let foreign_uid = if current_uid == u32::MAX {
+            current_uid - 1
+        } else {
+            current_uid + 1
+        };
+        assert!(!source_runtime_metadata_admitted(
+            true,
+            foreign_uid,
+            0o700,
+            current_uid,
+        ));
+        cleanup();
     }
 }

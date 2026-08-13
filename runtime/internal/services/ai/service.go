@@ -19,7 +19,6 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
 	"github.com/nimiplatform/nimi/runtime/internal/config"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
-	"github.com/nimiplatform/nimi/runtime/internal/localappkernel"
 	"github.com/nimiplatform/nimi/runtime/internal/localexecution"
 	"github.com/nimiplatform/nimi/runtime/internal/modelregistry"
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
@@ -90,7 +89,6 @@ type Service struct {
 	runtimeAccountProjection               runtimeAccountProjectionProvider
 	speechCatalog                          *catalog.Resolver
 	allowLoopback                          bool
-	appOwnerRegistry                       *localappkernel.RegistrationStore
 	streamFirstPacketTimeout               time.Duration
 	streamIdleTimeout                      time.Duration
 	voiceAssetDeleteReconciliationInterval time.Duration
@@ -290,7 +288,7 @@ func (s *Service) SetLocalVideoMediaPipeline(pipeline videomedia.Pipeline) {
 }
 
 // SetRemoteTextExecutionHost replaces the Remote Host transport seam. The Host
-// never participates in route, grant, implementation, or target selection.
+// never participates in route, implementation, or target selection.
 func (s *Service) SetRemoteTextExecutionHost(host remoteexecution.TextHost) {
 	if s != nil && host != nil {
 		s.remoteTextHost = host
@@ -298,7 +296,7 @@ func (s *Service) SetRemoteTextExecutionHost(host remoteexecution.TextHost) {
 }
 
 // SetRemoteEmbedExecutionHost replaces the Remote Host transport seam. The
-// Host never participates in route, grant, implementation, or target selection.
+// Host never participates in route, implementation, or target selection.
 func (s *Service) SetRemoteEmbedExecutionHost(host remoteexecution.EmbedHost) {
 	if s != nil && host != nil {
 		s.remoteEmbedHost = host
@@ -306,7 +304,7 @@ func (s *Service) SetRemoteEmbedExecutionHost(host remoteexecution.EmbedHost) {
 }
 
 // SetRemoteMediaExecutionHost replaces the Remote Host transport seam. The
-// Host never participates in route, grant, implementation, target, or dialect
+// Host never participates in route, implementation, target, or dialect
 // selection.
 func (s *Service) SetRemoteMediaExecutionHost(host remoteexecution.MediaHost) {
 	if s != nil && host != nil {
@@ -328,14 +326,6 @@ func (s *Service) SetAIConfigStore(store aiconfig.Store) {
 		return
 	}
 	s.aiConfigStore = store
-}
-
-// SetAppOwnerRegistry binds the admitted App owner truth used only by the
-// authenticated Desktop account-product AIConfig management surface.
-func (s *Service) SetAppOwnerRegistry(store *localappkernel.RegistrationStore) {
-	if s != nil {
-		s.appOwnerRegistry = store
-	}
 }
 
 // SetRuntimeAccountProjectionProvider binds protected bundled consumers to

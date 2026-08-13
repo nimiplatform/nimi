@@ -20,6 +20,7 @@ import {
   ExecutionMode,
   ReasonCode as RuntimeGeneratedReasonCode,
   ScenarioJobStatus,
+  ScenarioJobEventType,
   ScenarioType,
   UsageWindow,
   VoiceAssetPersistence,
@@ -180,7 +181,7 @@ test('Runtime voice job runner uses one terminal Get as the result and artifact 
     },
     async cancelScenarioJob() { return {}; },
     async *subscribeScenarioJobEvents() {
-      yield { eventType: 0, sequence: '1', traceId: terminalJob.traceId, job: terminalJob };
+      yield { eventType: ScenarioJobEventType.SCENARIO_JOB_EVENT_COMPLETED, sequence: '1', traceId: terminalJob.traceId, job: terminalJob };
     },
     async getScenarioArtifacts() {
       artifactLookups += 1;
@@ -223,6 +224,211 @@ test('Runtime scenario job runner fails closed on non-completed terminal job', a
       assert.equal(shaped.source, 'runtime');
       return true;
     },
+  );
+});
+
+test('Runtime scenario job runner rejects normal stream close without a terminal event before Get', async () => {
+  let gets = 0;
+  const client = createScenarioJobClient([
+    { job: createScenarioJob('job-1', ScenarioJobStatus.RUNNING) },
+  ]);
+  const guarded: NimiRuntimeScenarioJobClient = {
+    ...client,
+    async getScenarioJob(request, options) {
+      gets += 1;
+      return client.getScenarioJob(request, options);
+    },
+  };
+
+  await assert.rejects(
+    runNimiRuntimeScenarioJob({ ai: guarded, request: createScenarioJobRequest() }),
+    (error: unknown) => {
+      assert.equal((error as { code?: string }).code, 'SDK_RUNTIME_RESPONSE_DECODE_FAILED');
+      return true;
+    },
+  );
+  assert.equal(gets, 0);
+});
+
+test('Runtime scenario job runner rejects mismatched terminal event type before Get', async () => {
+  let gets = 0;
+  const completed = createScenarioJob('job-1', ScenarioJobStatus.COMPLETED);
+  const base = createScenarioJobClient([]);
+  const client: NimiRuntimeScenarioJobClient = {
+    ...base,
+    async *subscribeScenarioJobEvents() {
+      yield {
+        eventType: ScenarioJobEventType.SCENARIO_JOB_EVENT_RUNNING,
+        sequence: '1',
+        traceId: completed.traceId,
+        job: completed,
+      };
+    },
+    async getScenarioJob(request, options) {
+      gets += 1;
+      return base.getScenarioJob(request, options);
+    },
+  };
+
+  await assert.rejects(
+    runNimiRuntimeScenarioJob({ ai: client, request: createScenarioJobRequest() }),
+    (error: unknown) => (error as { code?: string }).code === 'SDK_RUNTIME_RESPONSE_DECODE_FAILED',
+  );
+  assert.equal(gets, 0);
+});
+
+test('Runtime scenario job runner rejects a terminal event for another Job before Get', async () => {
+  let gets = 0;
+  const completed = createScenarioJob('job-other', ScenarioJobStatus.COMPLETED);
+  const base = createScenarioJobClient([]);
+  const client: NimiRuntimeScenarioJobClient = {
+    ...base,
+    async *subscribeScenarioJobEvents() {
+      yield {
+        eventType: ScenarioJobEventType.SCENARIO_JOB_EVENT_COMPLETED,
+        sequence: '1',
+        traceId: completed.traceId,
+        job: completed,
+      };
+    },
+    async getScenarioJob(request, options) {
+      gets += 1;
+      return base.getScenarioJob(request, options);
+    },
+  };
+
+  await assert.rejects(
+    runNimiRuntimeScenarioJob({ ai: client, request: createScenarioJobRequest() }),
+    (error: unknown) => (error as { code?: string }).code === 'SDK_RUNTIME_RESPONSE_DECODE_FAILED',
+  );
+  assert.equal(gets, 0);
+});
+
+test('Runtime voice job runner rejects malformed terminal result pairs', async () => {
+  const terminalJob = {
+    ...createScenarioJob('job-1', ScenarioJobStatus.COMPLETED),
+    scenarioType: ScenarioType.VOICE_CREATE,
+  };
+  const base = createScenarioJobClient([{ job: terminalJob }]);
+  const asset = {
+    voiceAssetId: 'voice-asset-1', appId: '', subjectUserId: '', provider: '', modelId: '', targetModelId: '',
+    providerVoiceRef: '', persistence: VoiceAssetPersistence.UNSPECIFIED, status: VoiceAssetStatus.ACTIVE,
+    metadata: undefined, creationSource: VoiceCreationSource.TEXT_DESCRIPTION,
+  };
+  const incomplete: NimiRuntimeScenarioJobClient = {
+    ...base,
+    async getScenarioJob() { return { job: terminalJob, asset }; },
+  };
+  await assert.rejects(
+    runNimiRuntimeScenarioJob({ ai: incomplete, request: { ...createScenarioJobRequest(), scenarioType: ScenarioType.VOICE_CREATE } }),
+    (error: unknown) => (error as { code?: string }).code === 'SDK_RUNTIME_RESPONSE_DECODE_FAILED',
+  );
+
+  const onlyReference: NimiRuntimeScenarioJobClient = {
+    ...base,
+    async getScenarioJob() {
+      return {
+        job: terminalJob,
+        voiceReference: {
+          kind: VoiceReferenceKind.VOICE_ASSET,
+          reference: { oneofKind: 'voiceAssetId' as const, voiceAssetId: asset.voiceAssetId },
+        },
+      };
+    },
+  };
+  await assert.rejects(
+    runNimiRuntimeScenarioJob({ ai: onlyReference, request: { ...createScenarioJobRequest(), scenarioType: ScenarioType.VOICE_CREATE } }),
+    (error: unknown) => (error as { code?: string }).code === 'SDK_RUNTIME_RESPONSE_DECODE_FAILED',
+  );
+
+  const missingPair: NimiRuntimeScenarioJobClient = {
+    ...base,
+    async getScenarioJob() { return { job: terminalJob }; },
+  };
+  await assert.rejects(
+    runNimiRuntimeScenarioJob({ ai: missingPair, request: { ...createScenarioJobRequest(), scenarioType: ScenarioType.VOICE_CREATE } }),
+    (error: unknown) => (error as { code?: string }).code === 'SDK_RUNTIME_RESPONSE_DECODE_FAILED',
+  );
+
+  const mismatched: NimiRuntimeScenarioJobClient = {
+    ...base,
+    async getScenarioJob() {
+      return {
+        job: terminalJob,
+        asset,
+        voiceReference: {
+          kind: VoiceReferenceKind.VOICE_ASSET,
+          reference: { oneofKind: 'voiceAssetId' as const, voiceAssetId: 'voice-asset-other' },
+        },
+      };
+    },
+  };
+  await assert.rejects(
+    runNimiRuntimeScenarioJob({ ai: mismatched, request: { ...createScenarioJobRequest(), scenarioType: ScenarioType.VOICE_CREATE } }),
+    (error: unknown) => (error as { code?: string }).code === 'SDK_RUNTIME_RESPONSE_DECODE_FAILED',
+  );
+
+  const inactive: NimiRuntimeScenarioJobClient = {
+    ...base,
+    async getScenarioJob() {
+      return {
+        job: terminalJob,
+        asset: { ...asset, status: VoiceAssetStatus.DELETED },
+        voiceReference: {
+          kind: VoiceReferenceKind.VOICE_ASSET,
+          reference: { oneofKind: 'voiceAssetId' as const, voiceAssetId: asset.voiceAssetId },
+        },
+      };
+    },
+  };
+  await assert.rejects(
+    runNimiRuntimeScenarioJob({ ai: inactive, request: { ...createScenarioJobRequest(), scenarioType: ScenarioType.VOICE_CREATE } }),
+    (error: unknown) => (error as { code?: string }).code === 'SDK_RUNTIME_RESPONSE_DECODE_FAILED',
+  );
+
+  const emptyIdentity: NimiRuntimeScenarioJobClient = {
+    ...base,
+    async getScenarioJob() {
+      return {
+        job: terminalJob,
+        asset: { ...asset, voiceAssetId: '' },
+        voiceReference: {
+          kind: VoiceReferenceKind.VOICE_ASSET,
+          reference: { oneofKind: 'voiceAssetId' as const, voiceAssetId: '' },
+        },
+      };
+    },
+  };
+  await assert.rejects(
+    runNimiRuntimeScenarioJob({ ai: emptyIdentity, request: { ...createScenarioJobRequest(), scenarioType: ScenarioType.VOICE_CREATE } }),
+    (error: unknown) => (error as { code?: string }).code === 'SDK_RUNTIME_RESPONSE_DECODE_FAILED',
+  );
+
+  const nonVoiceJob = { ...terminalJob, scenarioType: ScenarioType.TEXT_GENERATE };
+  const nonVoiceWithPair: NimiRuntimeScenarioJobClient = {
+    ...base,
+    async *subscribeScenarioJobEvents() {
+      yield {
+        eventType: ScenarioJobEventType.SCENARIO_JOB_EVENT_COMPLETED,
+        sequence: '1',
+        traceId: nonVoiceJob.traceId,
+        job: nonVoiceJob,
+      };
+    },
+    async getScenarioJob() {
+      return {
+        job: nonVoiceJob,
+        asset,
+        voiceReference: {
+          kind: VoiceReferenceKind.VOICE_ASSET,
+          reference: { oneofKind: 'voiceAssetId' as const, voiceAssetId: asset.voiceAssetId },
+        },
+      };
+    },
+  };
+  await assert.rejects(
+    runNimiRuntimeScenarioJob({ ai: nonVoiceWithPair, request: createScenarioJobRequest() }),
+    (error: unknown) => (error as { code?: string }).code === 'SDK_RUNTIME_RESPONSE_DECODE_FAILED',
   );
 });
 
@@ -278,7 +484,7 @@ function createScenarioJobClient(
     async *subscribeScenarioJobEvents() {
       for (const event of events) {
         yield {
-          eventType: 0,
+          eventType: scenarioJobEventTypeForStatus(event.job.status),
           sequence: '1',
           traceId: 'trace-1',
           job: event.job,
@@ -293,4 +499,17 @@ function createScenarioJobClient(
       };
     },
   };
+}
+
+function scenarioJobEventTypeForStatus(status: ScenarioJobStatus): ScenarioJobEventType {
+  switch (status) {
+    case ScenarioJobStatus.SUBMITTED: return ScenarioJobEventType.SCENARIO_JOB_EVENT_SUBMITTED;
+    case ScenarioJobStatus.QUEUED: return ScenarioJobEventType.SCENARIO_JOB_EVENT_QUEUED;
+    case ScenarioJobStatus.RUNNING: return ScenarioJobEventType.SCENARIO_JOB_EVENT_RUNNING;
+    case ScenarioJobStatus.COMPLETED: return ScenarioJobEventType.SCENARIO_JOB_EVENT_COMPLETED;
+    case ScenarioJobStatus.FAILED: return ScenarioJobEventType.SCENARIO_JOB_EVENT_FAILED;
+    case ScenarioJobStatus.CANCELED: return ScenarioJobEventType.SCENARIO_JOB_EVENT_CANCELED;
+    case ScenarioJobStatus.TIMEOUT: return ScenarioJobEventType.SCENARIO_JOB_EVENT_TIMEOUT;
+    default: return ScenarioJobEventType.SCENARIO_JOB_EVENT_TYPE_UNSPECIFIED;
+  }
 }

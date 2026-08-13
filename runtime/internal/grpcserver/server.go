@@ -646,9 +646,6 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 		return nil, fmt.Errorf("init AIConfig store: %w", err)
 	}
 	aiSvc.SetAIConfigStore(aiConfigStore)
-	if localAppKernel != nil {
-		aiSvc.SetAppOwnerRegistry(localAppKernel.Registrations())
-	}
 	memorySvc.SetRuntimeEmbeddingProfileResolver(func(ctx context.Context, snapshot *memoryservice.MemoryEmbeddingTextEmbedIntentSnapshot) memoryservice.MemoryEmbeddingResolvedProfile {
 		return resolveRuntimeMemoryEmbeddingProfile(ctx, snapshot, localSvc, connStore, aiSvc.SpeechCatalogResolver())
 	})
@@ -840,7 +837,15 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 		runtimeartifactservice.WithProtectedGeneratedVoiceAuthorizer(agentSvc),
 	)
 	if protected != nil {
-		protectedGRPCServer = newProtectedDesktopRPCServer(runtimeControlSvc, authSvc, accountSvc, auditSvc, localSvc, aiSvc, agentSvc, connSvc, externalAgentSvc, appSvc, appSvc, artifactSvc, protected.DesktopSessions, accountSvc)
+		var appOwnerAdmission protectedAppOwnerAdmission
+		if localAppKernel != nil {
+			registrations := localAppKernel.Registrations()
+			appOwnerAdmission = func(ctx context.Context, appID string) bool {
+				registration, err := registrations.GetActiveByAppID(ctx, appID)
+				return err == nil && registration.AppID == appID
+			}
+		}
+		protectedGRPCServer = newProtectedDesktopRPCServer(runtimeControlSvc, authSvc, accountSvc, auditSvc, localSvc, aiSvc, agentSvc, connSvc, externalAgentSvc, appSvc, appSvc, artifactSvc, protected.DesktopSessions, accountSvc, appOwnerAdmission)
 		localAppGRPCServer = newProtectedLocalAppRPCServer(runtimeControlSvc, authSvc, accountSvc, localSvc, aiSvc, agentSvc, appSvc)
 	}
 	appSvc.RegisterInternalConsumer("runtime.agent.internal.chat_track_sidecar", agentSvc.ConsumeChatTrackSidecarAppMessage)

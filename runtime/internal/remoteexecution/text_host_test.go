@@ -119,7 +119,11 @@ func TestProviderTextHostOpensCredentialOnlyForDispatchAndAuditsSafely(t *testin
 
 func remoteHostDriverInput(t *testing.T) (capabilitydriver.CloudTextDriver, capabilitydriver.CloudTextTarget, *capabilitydriver.CloudTextMappedRequest) {
 	t.Helper()
-	rawTarget, _ := structpb.NewStruct(map[string]any{"provider": "openai", "model": "gpt-4o-mini"})
+	rawTarget, _ := structpb.NewStruct(map[string]any{
+		"provider":             "openai",
+		"providerModelId":      "gpt-4o-mini",
+		"remoteModelCatalogId": "remote-model-catalog_test",
+	})
 	driver, target, err := capabilitydriver.NewProductionCloudTextRegistry().Resolve(capabilitydriver.Identity{
 		ImplementationID: "cloud.text.openai", DriverID: "driver.openai", DriverDialect: "openai/chat-completions/v1",
 	}, rawTarget)

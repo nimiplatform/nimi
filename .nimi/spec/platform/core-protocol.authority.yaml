@@ -1109,7 +1109,7 @@ units:
     kind: rule
     title: P-AIPS-001 no parallel capability configuration truth
     modality: must_not
-    statement: A catalog, inventory, selected-source record, process registry, Agent Center, App-local settings object, profile binding, readiness record, route resolver, or renamed helper persists AIConfig route intent, Local Capability Configuration, machine selection, Cloud grant binding, or job effective inputs outside its canonical owner.
+    statement: A catalog, inventory, selected-source record, process registry, Agent Center, App-local settings object, profile binding, readiness record, route resolver, or renamed helper persists AIConfig route intent, Local Capability Configuration, machine selection, Cloud implementation-target selection, or job effective inputs outside its canonical owner.
     condition: Whenever capability configuration or execution state is defined or persisted.
     failure: Reject the parallel truth and retain the fact only with its canonical owner.
     relations:

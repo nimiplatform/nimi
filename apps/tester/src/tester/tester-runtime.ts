@@ -399,19 +399,30 @@ export async function runTesterCapability(
           throw new Error('Runtime voice.create submission must return a Scenario Job.');
         }
         let terminalJob = submitted.job;
-        if (!isLocalAppJobTerminal(terminalJob.status)) {
-          const subscription = await client.ai.scenarioJobs.subscribe(terminalJob.jobId);
-          try {
-            for await (const event of subscription) {
-              terminalJob = event.job;
-              if (isLocalAppJobTerminal(terminalJob.status)) break;
+        let observedTerminalEvent = false;
+        const subscription = await client.ai.scenarioJobs.subscribe(terminalJob.jobId);
+        try {
+          for await (const event of subscription) {
+            if (event.job.jobId !== submitted.job.jobId || event.eventType !== event.job.status) {
+              throw new Error('Runtime voice.create Job event did not match the submitted Job.');
             }
-          } finally {
-            await subscription.cancel().catch(() => undefined);
+            terminalJob = event.job;
+            if (isLocalAppJobTerminal(terminalJob.status)) {
+              observedTerminalEvent = true;
+              break;
+            }
           }
+        } finally {
+          await subscription.cancel().catch(() => undefined);
+        }
+        if (!observedTerminalEvent) {
+          throw new Error('Runtime voice.create Job event stream ended without a terminal event.');
         }
         const terminalResult = await client.ai.scenarioJobs.get(terminalJob.jobId);
         terminalJob = terminalResult.job;
+        if (terminalJob.jobId !== submitted.job.jobId) {
+          throw new Error('Runtime voice.create terminal result did not match the submitted Job.');
+        }
         if (terminalJob.status !== 'completed') {
           throw Object.assign(new Error(terminalJob.reasonDetail || `voice.create ended in ${terminalJob.status}.`), {
             reasonCode: terminalJob.reasonCode,
