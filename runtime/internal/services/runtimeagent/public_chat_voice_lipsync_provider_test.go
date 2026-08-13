@@ -6,7 +6,9 @@ import (
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
 	"github.com/nimiplatform/nimi/runtime/internal/executionintent"
+	"github.com/nimiplatform/nimi/runtime/internal/localexecution"
 	runtimeartifact "github.com/nimiplatform/nimi/runtime/internal/services/runtimeartifact"
 )
 
@@ -96,7 +98,23 @@ func TestPublicChatCommittedTurnSkipsVoiceLipsyncProjectionWithoutAvatarAutoplay
 func TestPublicChatCommittedTurnEmitsAvatarAutoplayProviderVoiceProjection(t *testing.T) {
 	t.Parallel()
 	svc := newRuntimeAgentServiceForPublicChatTest(t)
-	upsertPublicChatTestAgentAIConfig(t, svc, publicChatTestAudioSynthesizeBinding())
+	installMachineAIConfigForTest(t, svc, "user-1", capabilitydriver.LlamaCapabilityContract, capabilitydriver.AudioSynthesizeContract)
+	selectedText := machineLocalExecutionProjectionForTest("lcc-text", capabilitydriver.LlamaCapabilityContract, "local/default", nil)
+	selectedSpeech := machineLocalExecutionProjectionForTest("lcc-audio-synthesize", capabilitydriver.AudioSynthesizeContract, "speech/qwen3tts", nil)
+	selectedSpeech.DriverIdentity = &runtimev1.CapabilityImplementationIdentity{
+		ImplementationId: capabilitydriver.Qwen3TTSImplementationID,
+		DriverId:         capabilitydriver.Qwen3TTSDriverID,
+		DriverDialect:    capabilitydriver.Qwen3TTSDriverDialect,
+	}
+	selectedSpeech.Requirements[0].RequirementId = capabilitydriver.Qwen3TTSModelRequirementID
+	selectedSpeech.ExactBindings[0].RequirementID = capabilitydriver.Qwen3TTSModelRequirementID
+	svc.SetMachineLocalExecutionResolver(machineLocalExecutionResolverStub{
+		contracts: []string{capabilitydriver.LlamaCapabilityContract, capabilitydriver.AudioSynthesizeContract},
+		projections: map[string]*localexecution.SelectedLocalExecution{
+			capabilitydriver.LlamaCapabilityContract: selectedText,
+			capabilitydriver.AudioSynthesizeContract: selectedSpeech,
+		},
+	})
 	setPublicChatTestPresentationProfile(t, svc, "agent-alpha", "desktop.app", "user-1", true)
 	anchorID := openPublicChatTestAnchor(t, svc, "agent-alpha", "desktop.app", "user-1")
 	capture := newPublicChatEmitCapture()
@@ -270,9 +288,16 @@ func TestPublicChatCommittedTurnEmitsAvatarAutoplayProviderVoiceProjection(t *te
 	if voiceAI.submitReq == nil {
 		t.Fatalf("expected provider voice synthesis submit")
 	}
+	if got := voiceAI.submitReq.GetSpec().GetSpeechSynthesize().GetTimingMode(); got != runtimev1.SpeechTimingMode_SPEECH_TIMING_MODE_UNSPECIFIED {
+		t.Fatalf("autoplay injected unsupported timing mode %v", got)
+	}
 	intent, ok := executionintent.FromContext(voiceAI.submitCtx)
 	if !ok || !intent.IsLocal() || intent.CapabilityContract != "audio.synthesize" {
 		t.Fatalf("expected private Local speech intent, got %+v, ok=%v", intent, ok)
+	}
+	captured, ok := localexecution.SelectedLocalExecutionFromContext(voiceAI.submitCtx, capabilitydriver.AudioSynthesizeContract)
+	if !ok || captured.ConfigurationID != selectedSpeech.ConfigurationID {
+		t.Fatalf("expected selected Local speech execution %q, got %+v, ok=%v", selectedSpeech.ConfigurationID, captured, ok)
 	}
 
 	lipsyncPayload := publicChatPayloadMap(t, lipsyncBatch)
@@ -295,5 +320,130 @@ func TestPublicChatCommittedTurnEmitsAvatarAutoplayProviderVoiceProjection(t *te
 	}
 	if mouth, _ := first["mouth_open_y"].(float64); mouth < 0 || mouth > 1 {
 		t.Fatalf("first frame mouth_open_y out of [0,1]: %v", first["mouth_open_y"])
+	}
+}
+
+func TestPublicChatCommittedTurnEmitsTypedVoiceFailureWithoutRollingBackText(t *testing.T) {
+	t.Parallel()
+	svc := newRuntimeAgentServiceForPublicChatTest(t)
+	installMachineAIConfigForTest(t, svc, "user-1", capabilitydriver.LlamaCapabilityContract, capabilitydriver.AudioSynthesizeContract)
+	selectedText := machineLocalExecutionProjectionForTest("lcc-text", capabilitydriver.LlamaCapabilityContract, "local/default", nil)
+	selectedSpeech := machineLocalExecutionProjectionForTest("lcc-audio-synthesize", capabilitydriver.AudioSynthesizeContract, "speech/qwen3tts", nil)
+	selectedSpeech.DriverIdentity = &runtimev1.CapabilityImplementationIdentity{
+		ImplementationId: capabilitydriver.Qwen3TTSImplementationID,
+		DriverId:         capabilitydriver.Qwen3TTSDriverID,
+		DriverDialect:    capabilitydriver.Qwen3TTSDriverDialect,
+	}
+	selectedSpeech.Requirements[0].RequirementId = capabilitydriver.Qwen3TTSModelRequirementID
+	selectedSpeech.ExactBindings[0].RequirementID = capabilitydriver.Qwen3TTSModelRequirementID
+	svc.SetMachineLocalExecutionResolver(machineLocalExecutionResolverStub{
+		contracts: []string{capabilitydriver.LlamaCapabilityContract, capabilitydriver.AudioSynthesizeContract},
+		projections: map[string]*localexecution.SelectedLocalExecution{
+			capabilitydriver.LlamaCapabilityContract: selectedText,
+			capabilitydriver.AudioSynthesizeContract: selectedSpeech,
+		},
+	})
+	setPublicChatTestPresentationProfile(t, svc, "agent-alpha", "desktop.app", "user-1", true)
+	anchorID := openPublicChatTestAnchor(t, svc, "agent-alpha", "desktop.app", "user-1")
+	capture := newPublicChatEmitCapture()
+	svc.SetPublicChatAppEmitter(capture.emit)
+	svc.SetChatTrackSidecarExecutor(stubChatTrackSidecarExecutor{})
+	svc.SetVoiceLipsyncScenarioExecutor(&fakeVoiceLipsyncScenarioExecutor{
+		jobID:         "job-provider-voice-load-failed",
+		jobStatus:     runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_FAILED,
+		jobReasonCode: runtimev1.ReasonCode_AI_LOCAL_EXECUTION_LOAD_FAILED,
+		jobReason:     "local execution model load failed",
+	}, "", runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED)
+	svc.SetPublicChatTurnExecutor(stubPublicChatTurnExecutor{
+		stream: func(_ context.Context, _ *PublicChatTurnExecutionRequest, emit func(*runtimev1.StreamScenarioEvent) error) error {
+			if err := emit(&runtimev1.StreamScenarioEvent{
+				EventType: runtimev1.StreamEventType_STREAM_EVENT_STARTED,
+				Payload: &runtimev1.StreamScenarioEvent_Started{Started: &runtimev1.ScenarioStreamStarted{
+					ModelResolved: "qwen3-chat", RouteDecision: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+				}},
+			}); err != nil {
+				return err
+			}
+			if err := emit(&runtimev1.StreamScenarioEvent{
+				EventType: runtimev1.StreamEventType_STREAM_EVENT_DELTA,
+				Payload: &runtimev1.StreamScenarioEvent_Delta{Delta: &runtimev1.ScenarioStreamDelta{
+					Delta: &runtimev1.ScenarioStreamDelta_Text{Text: &runtimev1.TextStreamDelta{
+						Text: publicChatStructuredEnvelopeAPML("message-provider-voice-failed", "Text remains committed after voice failure."),
+					}},
+				}},
+			}); err != nil {
+				return err
+			}
+			return emit(&runtimev1.StreamScenarioEvent{
+				EventType: runtimev1.StreamEventType_STREAM_EVENT_COMPLETED,
+				Payload: &runtimev1.StreamScenarioEvent_Completed{Completed: &runtimev1.ScenarioStreamCompleted{
+					FinishReason: runtimev1.FinishReason_FINISH_REASON_STOP,
+				}},
+			})
+		},
+	})
+
+	if err := svc.ConsumePublicChatAppMessage(context.Background(), &runtimev1.AppMessageEvent{
+		ToAppId:       publicChatRuntimeAppID,
+		FromAppId:     "desktop.app",
+		SubjectUserId: "user-1",
+		MessageType:   publicChatTurnRequestType,
+		Payload: publicChatStructPayload(t, map[string]any{
+			"local_agent_ref":        testRuntimeAgentLocalRef("agent-alpha"),
+			"owner_user_id":          "user-1",
+			"runtime_source_ref":     testRuntimeAgentSourceRef("agent-alpha"),
+			"conversation_anchor_id": anchorID,
+			"request_id":             "voice-failure-request",
+			"messages":               []any{map[string]any{"role": "user", "content": "hello"}},
+		}),
+	}); err != nil {
+		t.Fatalf("ConsumePublicChatAppMessage(request): %v", err)
+	}
+
+	committed := capture.waitForMessageType(t, publicChatTurnMessageCommittedType)
+	terminal := capture.waitForMessageType(t, publicChatPresentationVoicePlaybackTerminalType)
+	_ = capture.waitForMessageType(t, publicChatTurnCompletedType)
+	committedDetail := publicChatPayloadMap(t, committed)["detail"].(map[string]any)
+	if got := strings.TrimSpace(committedDetail["text"].(string)); got != "Text remains committed after voice failure." {
+		t.Fatalf("committed text = %q", got)
+	}
+	terminalDetail := publicChatPayloadMap(t, terminal)["detail"].(map[string]any)
+	if got := strings.TrimSpace(terminalDetail["voice_playback_state"].(string)); got != "failed" {
+		t.Fatalf("voice playback terminal state = %q, want failed", got)
+	}
+	if got := strings.TrimSpace(terminalDetail["terminal_reason"].(string)); got != "AI_LOCAL_EXECUTION_LOAD_FAILED" {
+		t.Fatalf("voice terminal reason = %q, want AI_LOCAL_EXECUTION_LOAD_FAILED", got)
+	}
+	for _, messageType := range capture.messageTypes() {
+		if messageType == publicChatPresentationVoicePlaybackRequestedType {
+			t.Fatalf("failed synthesis must not emit playback requested: %v", capture.messageTypes())
+		}
+	}
+}
+
+func TestAgentVoicePolicyReportsMissingProductionLocalSelection(t *testing.T) {
+	t.Parallel()
+	svc := newRuntimeAgentServiceForPublicChatTest(t)
+	installMachineAIConfigForTest(t, svc, "user-1", capabilitydriver.LlamaCapabilityContract, capabilitydriver.AudioSynthesizeContract)
+	svc.SetMachineLocalExecutionResolver(machineLocalExecutionResolverStub{
+		contracts: []string{capabilitydriver.LlamaCapabilityContract},
+		projections: map[string]*localexecution.SelectedLocalExecution{
+			capabilitydriver.LlamaCapabilityContract: machineLocalExecutionProjectionForTest(
+				"lcc-text", capabilitydriver.LlamaCapabilityContract, "local/default", nil,
+			),
+		},
+	})
+	setPublicChatTestPresentationProfile(t, svc, "agent-alpha", "desktop.app", "user-1", true)
+	anchorID := openPublicChatTestAnchor(t, svc, "agent-alpha", "desktop.app", "user-1")
+	svc.chatSurfaceMu.Lock()
+	session := svc.chatAnchors[anchorID]
+	svc.chatSurfaceMu.Unlock()
+
+	policy, ok, reason := svc.publicChatRuntime().agentVoiceOutputPolicyForSession(context.Background(), *session)
+	if ok || !policy.AvatarAutoplay {
+		t.Fatalf("voice policy availability = %v, autoplay=%v", ok, policy.AvatarAutoplay)
+	}
+	if reason != "AI_LOCAL_CONFIGURATION_NOT_CONFIGURED" {
+		t.Fatalf("voice policy terminal reason = %q, want AI_LOCAL_CONFIGURATION_NOT_CONFIGURED", reason)
 	}
 }

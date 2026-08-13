@@ -359,10 +359,40 @@ func (s *Service) committedOptionalExecutionBinding(agentInstanceID string, capa
 	if !ok {
 		return publicChatExecutionBinding{}, false, nil
 	}
-	if validateRuntimePrivateExecutorBinding(trimmedCapability, binding) != nil || binding.TargetRef == nil || binding.TargetRef.GetTarget() == nil {
+	if validateCommittedOptionalExecutionBinding(trimmedCapability, binding) != nil {
 		return publicChatExecutionBinding{}, true, unresolvedSharedAIConfigExecutionBindingError()
 	}
 	return binding, true, nil
+}
+
+// validateCommittedOptionalExecutionBinding keeps Local and Cloud route
+// identity disjoint. A Local binding is the selected Runtime-private execution
+// snapshot and never gains a durable TargetRef. Cloud remains bound to its
+// exact connector/model target.
+func validateCommittedOptionalExecutionBinding(capability string, binding publicChatExecutionBinding) error {
+	capability = strings.TrimSpace(capability)
+	if capability == "" || validateRuntimePrivateExecutorBinding(capability, binding) != nil {
+		return unresolvedSharedAIConfigExecutionBindingError()
+	}
+	intent := executionintent.Clone(binding.ExecutionIntent)
+	switch binding.RoutePolicy {
+	case runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL:
+		if binding.TargetRef != nil || !binding.LocalAIConfigIntent || binding.LocalExecution == nil ||
+			!intent.IsLocal() || intent.CapabilityContract != capability ||
+			!validSelectedLocalExecutionProjection(binding.LocalExecution, capability) {
+			return unresolvedSharedAIConfigExecutionBindingError()
+		}
+	case runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD:
+		cloud := binding.TargetRef.GetCloud()
+		if cloud == nil || !binding.TargetRef.Valid() || strings.TrimSpace(binding.ConnectorID) != strings.TrimSpace(cloud.GetConnectorId()) ||
+			!intent.IsAIConfigCloud() || intent.CapabilityContract != capability ||
+			intent.ModelID() != strings.TrimSpace(cloud.GetProviderModelId()) {
+			return unresolvedSharedAIConfigExecutionBindingError()
+		}
+	default:
+		return unresolvedSharedAIConfigExecutionBindingError()
+	}
+	return nil
 }
 
 func (s *Service) deriveImageActionAvailability(agentInstanceID string, configRevision uint64, hasImageBinding bool) publicChatImageActionAvailability {

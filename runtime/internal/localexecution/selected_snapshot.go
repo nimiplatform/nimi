@@ -30,6 +30,7 @@ func CloneSelectedLocalExecution(input *SelectedLocalExecution) *SelectedLocalEx
 	if input.PortableConfig != nil {
 		out.PortableConfig, _ = proto.Clone(input.PortableConfig).(*structpb.Struct)
 	}
+	out.ExecutionTarget = input.ExecutionTarget.Clone()
 	out.Requirements = make([]*runtimev1.LocalCapabilityRequirement, 0, len(input.Requirements))
 	for _, requirement := range input.Requirements {
 		if requirement == nil {

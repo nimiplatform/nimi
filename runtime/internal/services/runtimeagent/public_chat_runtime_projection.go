@@ -7,6 +7,7 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/executionintent"
+	"github.com/nimiplatform/nimi/runtime/internal/localexecution"
 	"github.com/nimiplatform/nimi/runtime/internal/runtimeidentity"
 )
 
@@ -85,17 +86,11 @@ func (r publicChatRuntime) projectCommittedStatusCue(session publicChatAnchorSta
 // Avatar autoplay target and a playable provider audio artifact. Text commit is
 // otherwise complete without voice.
 //
-// Empty text, disabled policy, unavailable TTS route, non-audio artifact, or
-// synthesizer error all skip voice projection without blocking turn completion.
+// Empty text and disabled autoplay skip projection. Once autoplay is requested,
+// policy, route, synthesis, and artifact failures emit a typed terminal voice
+// event without rolling back the committed text turn.
 func (r publicChatRuntime) projectCommittedVoiceLipsync(ctx context.Context, session publicChatAnchorState, turn publicChatTurnState, structured *publicChatStructuredEnvelope) {
 	if r.svc == nil || r.svc.isClosed() || structured == nil {
-		return
-	}
-	if r.svc.voiceLipsync == nil {
-		return
-	}
-	policy, ok := r.agentVoiceOutputPolicyForSession(ctx, session)
-	if !ok || !policy.AvatarAutoplay {
 		return
 	}
 	text := strings.TrimSpace(structured.Message.Text)
@@ -104,20 +99,35 @@ func (r publicChatRuntime) projectCommittedVoiceLipsync(ctx context.Context, ses
 	if text == "" || messageID == "" || turnID == "" {
 		return
 	}
+	policy, ok, policyReason := r.agentVoiceOutputPolicyForSession(ctx, session)
+	if !policy.AvatarAutoplay {
+		return
+	}
+	if !ok {
+		r.emitVoiceProjectionFailedTerminal(session, turn, messageID, "batch_final_artifact", "avatar_autoplay", policyReason)
+		return
+	}
+	if r.svc.voiceLipsync == nil {
+		r.emitVoiceProjectionFailedTerminal(session, turn, messageID, "batch_final_artifact", "avatar_autoplay", "VOICE_SYNTHESIS_UNAVAILABLE")
+		return
+	}
 	synthesisInput := voiceLipsyncSynthesisInput{
-		Context:               ctx,
-		TurnID:                turnID,
-		MessageID:             messageID,
-		Text:                  text,
-		DefaultVoiceReference: policy.DefaultVoiceReference,
-		SpeechModelID:         policy.SpeechModelID,
-		SpeechRoutePolicy:     policy.SpeechRoutePolicy,
-		SpeechConnectorID:     policy.SpeechConnectorID,
-		SpeechTargetRef:       clonePublicChatTargetRef(policy.SpeechTargetRef),
-		SpeechExecutionIntent: executionintent.Clone(policy.SpeechExecutionIntent),
-		SpeechAppID:           policy.SpeechAppID,
-		OwnerUserID:           policy.OwnerUserID,
-		AgentID:               session.AgentID,
+		Context:                ctx,
+		TurnID:                 turnID,
+		MessageID:              messageID,
+		Text:                   text,
+		DefaultVoiceReference:  policy.DefaultVoiceReference,
+		SpeechModelID:          policy.SpeechModelID,
+		SpeechRoutePolicy:      policy.SpeechRoutePolicy,
+		SpeechConnectorID:      policy.SpeechConnectorID,
+		SpeechTargetRef:        clonePublicChatTargetRef(policy.SpeechTargetRef),
+		SpeechExecutionIntent:  executionintent.Clone(policy.SpeechExecutionIntent),
+		SpeechLocalExecution:   localexecution.CloneSelectedLocalExecution(policy.SpeechLocalExecution),
+		SpeechLocalIntent:      policy.SpeechLocalIntent,
+		SpeechRequiredFeatures: append([]string(nil), policy.SpeechRequiredFeatures...),
+		SpeechAppID:            policy.SpeechAppID,
+		OwnerUserID:            policy.OwnerUserID,
+		AgentID:                session.AgentID,
 	}
 	if streamed, err := r.projectCommittedNativeVoiceStream(session, turn, synthesisInput); streamed {
 		if err != nil && r.svc.logger != nil {
@@ -140,9 +150,11 @@ func (r publicChatRuntime) projectCommittedVoiceLipsync(ctx context.Context, ses
 				"error", err,
 			)
 		}
+		r.emitVoiceProjectionFailedTerminal(session, turn, messageID, "batch_final_artifact", "avatar_autoplay", voiceProjectionTerminalReason(err, "VOICE_SYNTHESIS_FAILED"))
 		return
 	}
 	if len(out.Frames) == 0 || strings.TrimSpace(out.AudioArtifactID) == "" {
+		r.emitVoiceProjectionFailedTerminal(session, turn, messageID, "batch_final_artifact", "avatar_autoplay", "VOICE_OUTPUT_INVALID")
 		return
 	}
 	if err := r.svc.verifyVoiceAudioArtifact(out); err != nil {
@@ -154,6 +166,7 @@ func (r publicChatRuntime) projectCommittedVoiceLipsync(ctx context.Context, ses
 				"error", err,
 			)
 		}
+		r.emitVoiceProjectionFailedTerminal(session, turn, messageID, "batch_final_artifact", "avatar_autoplay", "VOICE_ARTIFACT_UNAVAILABLE")
 		return
 	}
 	if err := r.svc.retainGeneratedVoiceArtifact(synthesisInput, out, session); err != nil {
@@ -165,6 +178,7 @@ func (r publicChatRuntime) projectCommittedVoiceLipsync(ctx context.Context, ses
 				"error", err,
 			)
 		}
+		r.emitVoiceProjectionFailedTerminal(session, turn, messageID, "batch_final_artifact", "avatar_autoplay", "VOICE_ARTIFACT_RETENTION_FAILED")
 		return
 	}
 	if err := r.emitVoiceStreamChunkTimelineEvent(session, turn, publicChatVoiceStreamChunkProjection{
@@ -217,6 +231,40 @@ func (r publicChatRuntime) projectCommittedVoiceLipsync(ctx context.Context, ses
 			"turn_id", turnID,
 			"audio_artifact_id", out.AudioArtifactID,
 			"frame_count", len(out.Frames),
+			"error", err,
+		)
+	}
+}
+
+func (r publicChatRuntime) emitVoiceProjectionFailedTerminal(
+	session publicChatAnchorState,
+	turn publicChatTurnState,
+	messageID string,
+	voiceOutputMode string,
+	playbackTarget string,
+	terminalReason string,
+) {
+	if r.svc == nil {
+		return
+	}
+	reason := strings.TrimSpace(terminalReason)
+	if reason == "" {
+		reason = "VOICE_SYNTHESIS_FAILED"
+	}
+	voiceStreamID := runtimeAgentVoiceStreamID(turn.TurnID, messageID)
+	if err := r.emitVoicePlaybackTerminalTimelineEvent(session, turn, publicChatVoicePlaybackTerminalProjection{
+		VoiceStreamID:      voiceStreamID,
+		MessageID:          strings.TrimSpace(messageID),
+		VoiceOutputMode:    voiceOutputMode,
+		VoicePlaybackState: "failed",
+		PlaybackTarget:     playbackTarget,
+		TerminalReason:     reason,
+	}); err != nil && r.svc.logger != nil {
+		r.svc.logger.Warn("emit voice failure terminal failed",
+			"agent_id", session.AgentID,
+			"turn_id", turn.TurnID,
+			"message_id", messageID,
+			"terminal_reason", reason,
 			"error", err,
 		)
 	}
@@ -281,10 +329,8 @@ func (r publicChatRuntime) projectCommittedNativeVoiceStream(session publicChatA
 		if r.svc.agentVoiceStreamTerminalState(voiceStreamID) == runtimev1.VoicePlaybackState_VOICE_PLAYBACK_STATE_INTERRUPTED {
 			return true, nil
 		}
-		if emittedChunks > 0 {
-			if terminalErr := r.emitNativeVoiceStreamFailedTerminal(session, turn, input, voiceStreamID); terminalErr != nil {
-				return true, terminalErr
-			}
+		if terminalErr := r.emitNativeVoiceStreamFailedTerminal(session, turn, input, voiceStreamID, voiceProjectionTerminalReason(err, "VOICE_SYNTHESIS_FAILED")); terminalErr != nil {
+			return true, terminalErr
 		}
 		return true, err
 	}
@@ -363,8 +409,12 @@ func (r publicChatRuntime) emitNativeVoiceStreamFailedTerminal(
 	turn publicChatTurnState,
 	input voiceLipsyncSynthesisInput,
 	voiceStreamID string,
+	terminalReason string,
 ) error {
-	const terminalReason = "native_stream_failed"
+	terminalReason = strings.TrimSpace(terminalReason)
+	if terminalReason == "" {
+		terminalReason = "VOICE_SYNTHESIS_FAILED"
+	}
 	messageID := strings.TrimSpace(input.MessageID)
 	if err := r.emitVoicePlaybackTerminalTimelineEvent(session, turn, publicChatVoicePlaybackTerminalProjection{
 		VoiceStreamID:      voiceStreamID,
@@ -392,43 +442,42 @@ func (r publicChatRuntime) emitNativeVoiceStreamFailedTerminal(
 }
 
 type agentVoiceOutputPolicy struct {
-	AvatarAutoplay        bool
-	DefaultVoiceReference string
-	SpeechModelID         string
-	SpeechRoutePolicy     runtimev1.RoutePolicy
-	SpeechConnectorID     string
-	SpeechTargetRef       *runtimeidentity.Target
-	SpeechExecutionIntent executionintent.Intent
-	SpeechAppID           string
-	OwnerUserID           string
+	AvatarAutoplay         bool
+	DefaultVoiceReference  string
+	SpeechModelID          string
+	SpeechRoutePolicy      runtimev1.RoutePolicy
+	SpeechConnectorID      string
+	SpeechTargetRef        *runtimeidentity.Target
+	SpeechExecutionIntent  executionintent.Intent
+	SpeechLocalExecution   *localexecution.SelectedLocalExecution
+	SpeechLocalIntent      bool
+	SpeechRequiredFeatures []string
+	SpeechAppID            string
+	OwnerUserID            string
 }
 
-func (r publicChatRuntime) agentVoiceOutputPolicyForSession(ctx context.Context, session publicChatAnchorState) (agentVoiceOutputPolicy, bool) {
+func (r publicChatRuntime) agentVoiceOutputPolicyForSession(ctx context.Context, session publicChatAnchorState) (agentVoiceOutputPolicy, bool, string) {
 	profile := r.agentPresentationProfileForSession(session)
 	if profile == nil {
-		return agentVoiceOutputPolicy{}, false
+		return agentVoiceOutputPolicy{}, false, ""
 	}
+	policy := agentVoiceOutputPolicy{AvatarAutoplay: profile.GetAvatarAutoplay()}
 	voiceRef, err := normalizeDefaultVoiceReference(profile.GetDefaultVoiceReference())
 	if err != nil || voiceRef == "" {
-		return agentVoiceOutputPolicy{}, false
+		return policy, false, "VOICE_POLICY_INVALID"
 	}
 	audioBinding, ok, err := r.svc.committedOptionalExecutionBinding(session.LocalAgentRef, runtimeAgentAIConfigCapabilityAudioSynthesize)
 	if err != nil || !ok {
-		return agentVoiceOutputPolicy{}, false
+		return policy, false, voiceProjectionTerminalReason(err, "VOICE_BINDING_UNAVAILABLE")
 	}
 	modelID := strings.TrimSpace(audioBinding.ModelID)
 	routePolicy := audioBinding.RoutePolicy
-	if modelID == "" || routePolicy == runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED ||
-		audioBinding.TargetRef == nil || audioBinding.TargetRef.GetTarget() == nil {
-		return agentVoiceOutputPolicy{}, false
+	if modelID == "" || routePolicy == runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED {
+		return policy, false, "VOICE_BINDING_INVALID"
 	}
-	if cloud := audioBinding.TargetRef.GetCloud(); cloud != nil {
-		if strings.TrimSpace(audioBinding.ConnectorID) != strings.TrimSpace(cloud.GetConnectorId()) ||
-			!audioBinding.ExecutionIntent.IsAIConfigCloud() ||
-			audioBinding.ExecutionIntent.CapabilityContract != runtimeAgentAIConfigCapabilityAudioSynthesize ||
-			audioBinding.ExecutionIntent.ModelID() != strings.TrimSpace(cloud.GetProviderModelId()) {
-			return agentVoiceOutputPolicy{}, false
-		}
+	voiceAssetTargetRef := audioBinding.TargetRef
+	if routePolicy == runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL && audioBinding.LocalExecution != nil {
+		voiceAssetTargetRef = audioBinding.LocalExecution.ExecutionTarget
 	}
 	ownerUserID := strings.TrimSpace(session.OwnerUserID)
 	speechAppID, err := resolveRuntimeAgentVoiceAssetExecutionApp(
@@ -436,23 +485,26 @@ func (r publicChatRuntime) agentVoiceOutputPolicyForSession(ctx context.Context,
 		r.svc.currentVoiceAssetResolver(),
 		ownerUserID,
 		voiceRef,
-		audioBinding.TargetRef,
+		voiceAssetTargetRef,
 	)
 	if err != nil || speechAppID == "" || ownerUserID == "" {
-		return agentVoiceOutputPolicy{}, false
+		return policy, false, voiceProjectionTerminalReason(err, "VOICE_REFERENCE_UNAVAILABLE")
 	}
 	speechIntent := executionintent.Clone(audioBinding.ExecutionIntent)
 	return agentVoiceOutputPolicy{
-		AvatarAutoplay:        profile.GetAvatarAutoplay(),
-		DefaultVoiceReference: voiceRef,
-		SpeechModelID:         modelID,
-		SpeechRoutePolicy:     routePolicy,
-		SpeechConnectorID:     audioBinding.ConnectorID,
-		SpeechTargetRef:       clonePublicChatTargetRef(audioBinding.TargetRef),
-		SpeechExecutionIntent: executionintent.Clone(speechIntent),
-		SpeechAppID:           speechAppID,
-		OwnerUserID:           ownerUserID,
-	}, true
+		AvatarAutoplay:         profile.GetAvatarAutoplay(),
+		DefaultVoiceReference:  voiceRef,
+		SpeechModelID:          modelID,
+		SpeechRoutePolicy:      routePolicy,
+		SpeechConnectorID:      audioBinding.ConnectorID,
+		SpeechTargetRef:        clonePublicChatTargetRef(audioBinding.TargetRef),
+		SpeechExecutionIntent:  executionintent.Clone(speechIntent),
+		SpeechLocalExecution:   localexecution.CloneSelectedLocalExecution(audioBinding.LocalExecution),
+		SpeechLocalIntent:      audioBinding.LocalAIConfigIntent,
+		SpeechRequiredFeatures: append([]string(nil), audioBinding.RequiredFeatures...),
+		SpeechAppID:            speechAppID,
+		OwnerUserID:            ownerUserID,
+	}, true, ""
 }
 
 func (r publicChatRuntime) agentPresentationProfileForSession(session publicChatAnchorState) *runtimev1.AgentPresentationProfile {

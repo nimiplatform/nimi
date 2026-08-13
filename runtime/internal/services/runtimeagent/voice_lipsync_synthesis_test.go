@@ -347,6 +347,9 @@ type fakeVoiceLipsyncScenarioExecutor struct {
 	submitCtx     context.Context
 	streamCtx     context.Context
 	jobID         string
+	jobStatus     runtimev1.ScenarioJobStatus
+	jobReasonCode runtimev1.ReasonCode
+	jobReason     string
 	modelResolved string
 	artifact      *runtimev1.ScenarioArtifact
 }
@@ -364,13 +367,37 @@ func (f *fakeVoiceLipsyncScenarioExecutor) SubmitScenarioJob(ctx context.Context
 }
 
 func (f *fakeVoiceLipsyncScenarioExecutor) GetScenarioJob(context.Context, *runtimev1.GetScenarioJobRequest) (*runtimev1.GetScenarioJobResponse, error) {
+	status := f.jobStatus
+	if status == runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_UNSPECIFIED {
+		status = runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED
+	}
 	return &runtimev1.GetScenarioJobResponse{
 		Job: &runtimev1.ScenarioJob{
 			JobId:         f.jobID,
-			Status:        runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED,
+			Status:        status,
+			ReasonCode:    f.jobReasonCode,
+			ReasonDetail:  f.jobReason,
 			ModelResolved: f.modelResolved,
 		},
 	}, nil
+}
+
+func TestVoiceSynthesisJobFailurePreservesTypedTerminalReason(t *testing.T) {
+	t.Parallel()
+	ai := &fakeVoiceLipsyncScenarioExecutor{
+		jobID:         "job-voice-load-failed",
+		jobStatus:     runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_FAILED,
+		jobReasonCode: runtimev1.ReasonCode_AI_LOCAL_EXECUTION_LOAD_FAILED,
+		jobReason:     "local execution model load failed",
+	}
+	synth := &aiBackedVoiceLipsyncSynthesizer{ai: ai, pollInterval: time.Millisecond}
+	_, err := synth.waitVoiceSynthesisJob(context.Background(), ai.jobID)
+	if err == nil {
+		t.Fatal("expected failed voice synthesis Job")
+	}
+	if got := voiceProjectionTerminalReason(err, "VOICE_SYNTHESIS_FAILED"); got != "AI_LOCAL_EXECUTION_LOAD_FAILED" {
+		t.Fatalf("voice terminal reason = %q, want AI_LOCAL_EXECUTION_LOAD_FAILED", got)
+	}
 }
 
 func (f *fakeVoiceLipsyncScenarioExecutor) GetScenarioArtifacts(context.Context, *runtimev1.GetScenarioArtifactsRequest) (*runtimev1.GetScenarioArtifactsResponse, error) {

@@ -389,8 +389,8 @@ func TestPublicChatCommittedTurnEmitsNativeVoiceFailedTerminalAfterProviderFailu
 	if got := strings.TrimSpace(terminalDetail["voice_playback_state"].(string)); got != "failed" {
 		t.Fatalf("native failed terminal voice_playback_state = %q, detail=%#v", got, terminalDetail)
 	}
-	if got := strings.TrimSpace(terminalDetail["terminal_reason"].(string)); got != "native_stream_failed" {
-		t.Fatalf("native failed terminal reason = %q, detail=%#v", got, terminalDetail)
+	if got := strings.TrimSpace(terminalDetail["terminal_reason"].(string)); got != "AI_STREAM_BROKEN" {
+		t.Fatalf("native failed terminal reason = %q, want AI_STREAM_BROKEN; detail=%#v", got, terminalDetail)
 	}
 	if _, ok := terminalDetail["final_artifact_id"]; ok {
 		t.Fatalf("native failed terminal must not claim final replay artifact: %#v", terminalDetail)
@@ -420,7 +420,7 @@ func TestPublicChatCommittedTurnEmitsNativeVoiceFailedTerminalAfterProviderFailu
 		presentationTerminal.GetFinalArtifactId() != "" ||
 		presentationTerminal.GetVoiceOutputMode() != runtimev1.VoiceOutputMode_VOICE_OUTPUT_MODE_NATIVE_STREAM ||
 		presentationTerminal.GetVoicePlaybackState() != runtimev1.VoicePlaybackState_VOICE_PLAYBACK_STATE_FAILED ||
-		presentationTerminal.GetTerminalReason() != "native_stream_failed" {
+		presentationTerminal.GetTerminalReason() != "AI_STREAM_BROKEN" {
 		t.Fatalf("native failed presentation terminal mismatch: %#v", presentationTerminal)
 	}
 
@@ -444,7 +444,7 @@ func TestPublicChatCommittedTurnEmitsNativeVoiceFailedTerminalAfterProviderFailu
 	if !voiceStream.events[1].GetTerminal() ||
 		voiceStream.events[1].GetVoicePlaybackState() != runtimev1.VoicePlaybackState_VOICE_PLAYBACK_STATE_FAILED ||
 		voiceStream.events[1].GetVoiceOutputMode() != runtimev1.VoiceOutputMode_VOICE_OUTPUT_MODE_NATIVE_STREAM ||
-		voiceStream.events[1].GetTerminalReason() != "native_stream_failed" {
+		voiceStream.events[1].GetTerminalReason() != "AI_STREAM_BROKEN" {
 		t.Fatalf("typed stream failed terminal mismatch: %#v", voiceStream.events[1])
 	}
 	if voiceAI.submitReq != nil {

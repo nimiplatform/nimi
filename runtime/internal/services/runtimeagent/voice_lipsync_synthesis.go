@@ -2,6 +2,7 @@ package runtimeagent
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"math"
 	"strings"
@@ -12,6 +13,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/authn"
 	"github.com/nimiplatform/nimi/runtime/internal/executionintent"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"github.com/nimiplatform/nimi/runtime/internal/localexecution"
 	"github.com/nimiplatform/nimi/runtime/internal/runtimeidentity"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
@@ -56,20 +58,23 @@ const (
 )
 
 type voiceLipsyncSynthesisInput struct {
-	Context               context.Context
-	TurnID                string
-	MessageID             string
-	Text                  string
-	DefaultVoiceReference string
-	SpeechModelID         string
-	SpeechRoutePolicy     runtimev1.RoutePolicy
-	SpeechConnectorID     string
-	SpeechTargetRef       *runtimeidentity.Target
-	SpeechExecutionIntent executionintent.Intent
-	SpeechAppID           string
-	OwnerUserID           string
-	AgentID               string
-	IdempotencyKey        string
+	Context                context.Context
+	TurnID                 string
+	MessageID              string
+	Text                   string
+	DefaultVoiceReference  string
+	SpeechModelID          string
+	SpeechRoutePolicy      runtimev1.RoutePolicy
+	SpeechConnectorID      string
+	SpeechTargetRef        *runtimeidentity.Target
+	SpeechExecutionIntent  executionintent.Intent
+	SpeechLocalExecution   *localexecution.SelectedLocalExecution
+	SpeechLocalIntent      bool
+	SpeechRequiredFeatures []string
+	SpeechAppID            string
+	OwnerUserID            string
+	AgentID                string
+	IdempotencyKey         string
 }
 
 type voiceLipsyncSynthesisOutput struct {
@@ -80,6 +85,53 @@ type voiceLipsyncSynthesisOutput struct {
 	DefaultVoiceReference string
 	VoiceRouteBinding     *voiceRouteBindingProjection
 	Frames                []publicChatLipsyncFrameProjection
+}
+
+type voiceSynthesisJobTerminalError struct {
+	jobID        string
+	status       runtimev1.ScenarioJobStatus
+	reasonCode   runtimev1.ReasonCode
+	reasonDetail string
+}
+
+func (err *voiceSynthesisJobTerminalError) Error() string {
+	if err == nil {
+		return "voice synthesis job failed"
+	}
+	return fmt.Sprintf(
+		"voice synthesis job %s ended with %s: %s",
+		strings.TrimSpace(err.jobID),
+		err.status.String(),
+		strings.TrimSpace(err.reasonDetail),
+	)
+}
+
+func voiceProjectionTerminalReason(err error, fallback string) string {
+	var terminalErr *voiceSynthesisJobTerminalError
+	if errors.As(err, &terminalErr) {
+		if terminalErr.reasonCode != runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED {
+			return terminalErr.reasonCode.String()
+		}
+		switch terminalErr.status {
+		case runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_CANCELED:
+			return "VOICE_SYNTHESIS_CANCELED"
+		case runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_TIMEOUT:
+			return "VOICE_SYNTHESIS_TIMEOUT"
+		}
+	}
+	if reason, ok := grpcerr.ExtractReasonCode(err); ok && reason != runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED {
+		return reason.String()
+	}
+	if errors.Is(err, context.Canceled) {
+		return "VOICE_SYNTHESIS_CANCELED"
+	}
+	if errors.Is(err, context.DeadlineExceeded) {
+		return "VOICE_SYNTHESIS_TIMEOUT"
+	}
+	if reason := strings.TrimSpace(fallback); reason != "" {
+		return reason
+	}
+	return "VOICE_SYNTHESIS_FAILED"
 }
 
 type voiceRouteBindingProjection struct {
@@ -224,16 +276,25 @@ func (s *aiBackedVoiceLipsyncSynthesizer) synthesize(input voiceLipsyncSynthesis
 	speechAppID := runtimeAgentVoiceSynthesisAppIDForInput(input)
 	ownerUserID := runtimeAgentVoiceSynthesisOwnerForInput(input)
 	ctx = runtimeAgentVoiceSynthesisContext(ctx, speechAppID, ownerUserID)
-	intent := executionintent.Intent{CapabilityContract: "audio.synthesize", Route: routePolicy}
 	if routePolicy == runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD {
-		intent = executionintent.Clone(input.SpeechExecutionIntent)
+		intent := executionintent.Clone(input.SpeechExecutionIntent)
 		cloudTarget := input.SpeechTargetRef.GetCloud()
 		if !intent.IsAIConfigCloud() || intent.CapabilityContract != "audio.synthesize" || cloudTarget == nil ||
 			intent.ModelID() != strings.TrimSpace(cloudTarget.GetProviderModelId()) {
 			return voiceLipsyncSynthesisOutput{}, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONFIG_INVALID)
 		}
 	}
-	ctx = executionintent.WithIntent(ctx, intent)
+	ctx = withPublicChatExecutionIntent(ctx, publicChatExecutionBinding{
+		ModelID:             modelID,
+		RoutePolicy:         routePolicy,
+		ConnectorID:         strings.TrimSpace(input.SpeechConnectorID),
+		TargetRef:           cloneVoiceSynthesisTargetRef(input.SpeechTargetRef),
+		ExecutionIntent:     executionintent.Clone(input.SpeechExecutionIntent),
+		LocalExecution:      localexecution.CloneSelectedLocalExecution(input.SpeechLocalExecution),
+		CapabilityContract:  runtimeAgentAIConfigCapabilityAudioSynthesize,
+		RequiredFeatures:    append([]string(nil), input.SpeechRequiredFeatures...),
+		LocalAIConfigIntent: input.SpeechLocalIntent,
+	}, runtimeAgentAIConfigCapabilityAudioSynthesize)
 	submitResp, err := s.ai.SubmitScenarioJob(ctx, &runtimev1.SubmitScenarioJobRequest{
 		Head: &runtimev1.ScenarioRequestHead{
 			AppId:         speechAppID,
@@ -246,9 +307,8 @@ func (s *aiBackedVoiceLipsyncSynthesizer) synthesize(input voiceLipsyncSynthesis
 		Spec: &runtimev1.ScenarioSpec{
 			Spec: &runtimev1.ScenarioSpec_SpeechSynthesize{
 				SpeechSynthesize: &runtimev1.SpeechSynthesizeScenarioSpec{
-					Text:       text,
-					VoiceRef:   voiceRef,
-					TimingMode: runtimev1.SpeechTimingMode_SPEECH_TIMING_MODE_WORD,
+					Text:     text,
+					VoiceRef: voiceRef,
 				},
 			},
 		},
@@ -344,7 +404,12 @@ func (s *aiBackedVoiceLipsyncSynthesizer) waitVoiceSynthesisJob(ctx context.Cont
 			case runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_FAILED,
 				runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_CANCELED,
 				runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_TIMEOUT:
-				return nil, fmt.Errorf("voice synthesis job %s ended with %s: %s", jobID, job.GetStatus().String(), strings.TrimSpace(job.GetReasonDetail()))
+				return nil, &voiceSynthesisJobTerminalError{
+					jobID:        jobID,
+					status:       job.GetStatus(),
+					reasonCode:   job.GetReasonCode(),
+					reasonDetail: strings.TrimSpace(job.GetReasonDetail()),
+				}
 			default:
 				timer.Reset(pollInterval)
 			}

@@ -7,6 +7,7 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/executionintent"
+	"github.com/nimiplatform/nimi/runtime/internal/localexecution"
 	"github.com/oklog/ulid/v2"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -20,25 +21,29 @@ func (r publicChatRuntime) handleTurnVoiceRender(ctx context.Context, event *run
 	if r.svc == nil || r.svc.voiceLipsync == nil {
 		return nil
 	}
-	policy, ok := r.agentVoiceOutputPolicyForSession(ctx, session)
+	policy, ok, policyReason := r.agentVoiceOutputPolicyForSession(ctx, session)
 	if !ok {
+		r.emitVoiceProjectionFailedTerminal(session, turn, req.MessageID, "batch_final_artifact", playbackTargetForVoiceRender(req.PlaybackTarget), policyReason)
 		return nil
 	}
 	synthesisInput := voiceLipsyncSynthesisInput{
-		Context:               ctx,
-		TurnID:                turn.TurnID,
-		MessageID:             strings.TrimSpace(req.MessageID),
-		Text:                  text,
-		DefaultVoiceReference: policy.DefaultVoiceReference,
-		SpeechModelID:         policy.SpeechModelID,
-		SpeechRoutePolicy:     policy.SpeechRoutePolicy,
-		SpeechConnectorID:     policy.SpeechConnectorID,
-		SpeechTargetRef:       clonePublicChatTargetRef(policy.SpeechTargetRef),
-		SpeechExecutionIntent: executionintent.Clone(policy.SpeechExecutionIntent),
-		SpeechAppID:           policy.SpeechAppID,
-		OwnerUserID:           policy.OwnerUserID,
-		AgentID:               session.AgentID,
-		IdempotencyKey:        runtimeAgentManualVoiceLipsyncIdempotencyKey(turn.TurnID, req.MessageID, event.GetMessageId()),
+		Context:                ctx,
+		TurnID:                 turn.TurnID,
+		MessageID:              strings.TrimSpace(req.MessageID),
+		Text:                   text,
+		DefaultVoiceReference:  policy.DefaultVoiceReference,
+		SpeechModelID:          policy.SpeechModelID,
+		SpeechRoutePolicy:      policy.SpeechRoutePolicy,
+		SpeechConnectorID:      policy.SpeechConnectorID,
+		SpeechTargetRef:        clonePublicChatTargetRef(policy.SpeechTargetRef),
+		SpeechExecutionIntent:  executionintent.Clone(policy.SpeechExecutionIntent),
+		SpeechLocalExecution:   localexecution.CloneSelectedLocalExecution(policy.SpeechLocalExecution),
+		SpeechLocalIntent:      policy.SpeechLocalIntent,
+		SpeechRequiredFeatures: append([]string(nil), policy.SpeechRequiredFeatures...),
+		SpeechAppID:            policy.SpeechAppID,
+		OwnerUserID:            policy.OwnerUserID,
+		AgentID:                session.AgentID,
+		IdempotencyKey:         runtimeAgentManualVoiceLipsyncIdempotencyKey(turn.TurnID, req.MessageID, event.GetMessageId()),
 	}
 	out, err := r.svc.voiceLipsync.synthesize(synthesisInput)
 	if err != nil {
@@ -50,9 +55,11 @@ func (r publicChatRuntime) handleTurnVoiceRender(ctx context.Context, event *run
 				"error", err,
 			)
 		}
+		r.emitVoiceProjectionFailedTerminal(session, turn, req.MessageID, "batch_final_artifact", playbackTargetForVoiceRender(req.PlaybackTarget), voiceProjectionTerminalReason(err, "VOICE_SYNTHESIS_FAILED"))
 		return nil
 	}
 	if strings.TrimSpace(out.AudioArtifactID) == "" {
+		r.emitVoiceProjectionFailedTerminal(session, turn, req.MessageID, "batch_final_artifact", playbackTargetForVoiceRender(req.PlaybackTarget), "VOICE_OUTPUT_INVALID")
 		return nil
 	}
 	if err := r.svc.verifyVoiceAudioArtifact(out); err != nil {
@@ -80,9 +87,7 @@ func (r publicChatRuntime) handleTurnVoiceRender(ctx context.Context, event *run
 		return nil
 	}
 	playbackTarget := strings.TrimSpace(req.PlaybackTarget)
-	if playbackTarget == "" {
-		playbackTarget = "desktop_manual"
-	}
+	playbackTarget = playbackTargetForVoiceRender(playbackTarget)
 	if err := r.emitVoiceStreamChunkTimelineEventForSnapshot(session, turn, publicChatVoiceStreamChunkProjection{
 		AudioArtifactID:    out.AudioArtifactID,
 		AudioMimeType:      out.AudioMimeType,
@@ -111,6 +116,13 @@ func (r publicChatRuntime) handleTurnVoiceRender(ctx context.Context, event *run
 		FinalArtifact:         true,
 		Reason:                "manual_render_requested",
 	})
+}
+
+func playbackTargetForVoiceRender(value string) string {
+	if target := strings.TrimSpace(value); target != "" {
+		return target
+	}
+	return "desktop_manual"
 }
 
 func (r publicChatRuntime) resolveCompletedTurnVoiceRender(callerAppID string, subjectUserID string, req publicChatTurnVoiceRenderPayload) (publicChatAnchorState, publicChatTurnState, string, error) {

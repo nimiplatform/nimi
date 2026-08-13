@@ -10,6 +10,7 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
 	"github.com/nimiplatform/nimi/runtime/internal/config"
 	"github.com/nimiplatform/nimi/runtime/internal/executionintent"
 	"github.com/nimiplatform/nimi/runtime/internal/localexecution"
@@ -128,9 +129,25 @@ func publicChatTestLocalRuntimeTargetRef(ref string) *runtimeidentity.Target {
 }
 
 func publicChatTestAudioSynthesizeBinding() publicChatExecutionBinding {
+	selected := machineLocalExecutionProjectionForTest("lcc-audio-synthesize", capabilitydriver.AudioSynthesizeContract, "speech/qwen3tts", nil)
+	selected.DriverIdentity = &runtimev1.CapabilityImplementationIdentity{
+		ImplementationId: capabilitydriver.Qwen3TTSImplementationID,
+		DriverId:         capabilitydriver.Qwen3TTSDriverID,
+		DriverDialect:    capabilitydriver.Qwen3TTSDriverDialect,
+	}
+	selected.Requirements[0].RequirementId = capabilitydriver.Qwen3TTSModelRequirementID
+	selected.ExactBindings[0].RequirementID = capabilitydriver.Qwen3TTSModelRequirementID
 	return publicChatExecutionBinding{
-		ModelID: "speech/qwen3tts", RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
-		TargetRef: publicChatTestLocalRuntimeTargetRef("test_runtime_readiness:v2:speech-qwen3tts"),
+		BindingAlias:       selected.ConfigurationID,
+		ModelID:            "speech/qwen3tts",
+		RoutePolicy:        runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+		CapabilityContract: capabilitydriver.AudioSynthesizeContract,
+		ExecutionIntent: executionintent.Intent{
+			CapabilityContract: capabilitydriver.AudioSynthesizeContract,
+			Route:              runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+		},
+		LocalAIConfigIntent: true,
+		LocalExecution:      selected,
 	}
 }
 

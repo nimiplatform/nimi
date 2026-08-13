@@ -12,8 +12,10 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/aiconfig"
 	"github.com/nimiplatform/nimi/runtime/internal/authn"
 	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
+	"github.com/nimiplatform/nimi/runtime/internal/executionintent"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/localexecution"
+	"github.com/nimiplatform/nimi/runtime/internal/runtimeidentity"
 	"github.com/nimiplatform/nimi/runtime/internal/services/connector"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/protobuf/types/known/structpb"
@@ -102,6 +104,76 @@ func TestMachineLocalBindingResolverProjectsEveryConfiguredSelection(t *testing.
 	}
 	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED {
 		t.Fatalf("account mismatch reason=%v ok=%v err=%v", reason, ok, err)
+	}
+}
+
+func TestCommittedOptionalAudioBindingAcceptsSelectedLocalExecutionWithoutTargetRef(t *testing.T) {
+	service := newRuntimeAgentServiceForPublicChatTest(t)
+	installMachineAIConfigForTest(t, service, "user-1", capabilitydriver.AudioSynthesizeContract)
+	selected := machineLocalExecutionProjectionForTest("lcc-audio-synthesize", capabilitydriver.AudioSynthesizeContract, "speech/qwen3tts", nil)
+	selected.DriverIdentity = &runtimev1.CapabilityImplementationIdentity{
+		ImplementationId: capabilitydriver.Qwen3TTSImplementationID,
+		DriverId:         capabilitydriver.Qwen3TTSDriverID,
+		DriverDialect:    capabilitydriver.Qwen3TTSDriverDialect,
+	}
+	selected.Requirements[0].RequirementId = capabilitydriver.Qwen3TTSModelRequirementID
+	selected.ExactBindings[0].RequirementID = capabilitydriver.Qwen3TTSModelRequirementID
+	service.SetMachineLocalExecutionResolver(machineLocalExecutionResolverStub{
+		contracts: []string{capabilitydriver.AudioSynthesizeContract},
+		projections: map[string]*localexecution.SelectedLocalExecution{
+			capabilitydriver.AudioSynthesizeContract: selected,
+		},
+	})
+
+	binding, ok, err := service.committedOptionalExecutionBinding(testRuntimeAgentLocalRef("agent-alpha"), capabilitydriver.AudioSynthesizeContract)
+	if err != nil || !ok {
+		t.Fatalf("committedOptionalExecutionBinding: binding=%+v ok=%v err=%v", binding, ok, err)
+	}
+	if binding.TargetRef != nil || !binding.LocalAIConfigIntent || binding.LocalExecution == nil ||
+		binding.LocalExecution.ConfigurationID != selected.ConfigurationID {
+		t.Fatalf("production-shape Local audio binding=%+v", binding)
+	}
+}
+
+func TestCommittedOptionalAudioBindingKeepsCloudTargetFailClosed(t *testing.T) {
+	cloudIntent := executionintent.Intent{
+		CapabilityContract: capabilitydriver.AudioSynthesizeContract,
+		Route:              runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
+		CloudImplementation: &runtimev1.CapabilityImplementationIdentity{
+			ImplementationId: "cloud.audio.test",
+			DriverId:         "driver.audio.test",
+			DriverDialect:    "test/audio/v1",
+		},
+	}
+	providerTarget, err := structpb.NewStruct(map[string]any{
+		"provider":             "test",
+		"providerModelId":      "cloud-tts",
+		"remoteModelCatalogId": "test/cloud-tts",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	cloudIntent.ProviderModelTarget = providerTarget
+
+	missingTarget := publicChatExecutionBinding{
+		ModelID:            "cloud-tts",
+		RoutePolicy:        runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
+		ConnectorID:        "connector-test",
+		CapabilityContract: capabilitydriver.AudioSynthesizeContract,
+		ExecutionIntent:    cloudIntent,
+	}
+	if err := validateCommittedOptionalExecutionBinding(capabilitydriver.AudioSynthesizeContract, missingTarget); err == nil {
+		t.Fatal("Cloud audio binding without TargetRef must fail closed")
+	}
+	valid := missingTarget
+	valid.TargetRef = &runtimeidentity.Target{Cloud: &runtimeidentity.CloudTarget{
+		ConnectorID:          "connector-test",
+		Provider:             "test",
+		ProviderModelID:      "cloud-tts",
+		RemoteModelCatalogID: "test/cloud-tts",
+	}}
+	if err := validateCommittedOptionalExecutionBinding(capabilitydriver.AudioSynthesizeContract, valid); err != nil {
+		t.Fatalf("valid Cloud audio binding rejected: %v", err)
 	}
 }
 

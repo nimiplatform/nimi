@@ -10,6 +10,7 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/executionintent"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"github.com/nimiplatform/nimi/runtime/internal/localexecution"
 	"github.com/oklog/ulid/v2"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -76,11 +77,15 @@ func (s *aiBackedVoiceLipsyncSynthesizer) synthesizeNativeStream(input voiceLips
 	ownerUserID := runtimeAgentVoiceSynthesisOwnerForInput(input)
 	ctx = runtimeAgentVoiceSynthesisContext(ctx, speechAppID, ownerUserID)
 	ctx = withPublicChatExecutionIntent(ctx, publicChatExecutionBinding{
-		ModelID:         modelID,
-		RoutePolicy:     routePolicy,
-		ConnectorID:     strings.TrimSpace(input.SpeechConnectorID),
-		TargetRef:       cloneVoiceSynthesisTargetRef(input.SpeechTargetRef),
-		ExecutionIntent: executionintent.Clone(input.SpeechExecutionIntent),
+		ModelID:             modelID,
+		RoutePolicy:         routePolicy,
+		ConnectorID:         strings.TrimSpace(input.SpeechConnectorID),
+		TargetRef:           cloneVoiceSynthesisTargetRef(input.SpeechTargetRef),
+		ExecutionIntent:     executionintent.Clone(input.SpeechExecutionIntent),
+		LocalExecution:      localexecution.CloneSelectedLocalExecution(input.SpeechLocalExecution),
+		CapabilityContract:  runtimeAgentAIConfigCapabilityAudioSynthesize,
+		RequiredFeatures:    append([]string(nil), input.SpeechRequiredFeatures...),
+		LocalAIConfigIntent: input.SpeechLocalIntent,
 	}, "audio.synthesize")
 
 	req := &runtimev1.StreamScenarioRequest{
@@ -94,9 +99,8 @@ func (s *aiBackedVoiceLipsyncSynthesizer) synthesizeNativeStream(input voiceLips
 		Spec: &runtimev1.ScenarioSpec{
 			Spec: &runtimev1.ScenarioSpec_SpeechSynthesize{
 				SpeechSynthesize: &runtimev1.SpeechSynthesizeScenarioSpec{
-					Text:       text,
-					VoiceRef:   voiceRef,
-					TimingMode: runtimev1.SpeechTimingMode_SPEECH_TIMING_MODE_WORD,
+					Text:     text,
+					VoiceRef: voiceRef,
 				},
 			},
 		},
@@ -166,7 +170,14 @@ func (s *aiBackedVoiceLipsyncSynthesizer) synthesizeNativeStream(input voiceLips
 					return errVoiceNativeStreamUnavailable
 				}
 				failed := payload.Failed
-				return status.Errorf(codes.FailedPrecondition, "native voice stream failed: %s %s", failed.GetReasonCode().String(), strings.TrimSpace(failed.GetActionHint()))
+				reason := failed.GetReasonCode()
+				if reason == runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED {
+					reason = runtimev1.ReasonCode_AI_STREAM_BROKEN
+				}
+				return grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, reason, grpcerr.ReasonOptions{
+					ActionHint: strings.TrimSpace(failed.GetActionHint()),
+					Message:    "native voice stream failed",
+				})
 			default:
 				return nil
 			}
