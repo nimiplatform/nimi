@@ -23,7 +23,7 @@ import { createNimiError, ReasonCode } from '../../types';
 import {
   runNimiRuntimeScenarioJob,
   withNimiRuntimeIdempotencyMetadata,
-  type NimiRuntimeScenarioJobClient,
+  type NimiScenarioJobClient,
 } from '../../runtime/scenario-jobs';
 import {
   createNimiSpeechSynthesisScenario,
@@ -190,7 +190,7 @@ export interface NimiRuntimeGenerationSurface {
   events(jobId: string): AsyncIterable<NimiRuntimeGenerationJobEvent>;
 }
 
-type NimiRuntimeScenarioRuntime = NimiRuntimeScenarioJobClient | { readonly ai: NimiRuntimeScenarioJobClient };
+type NimiRuntimeScenarioRuntime = NimiScenarioJobClient | { readonly ai: NimiScenarioJobClient };
 type NimiRuntimeSpeechScenarioRuntime = NimiRuntimeScenarioRuntime;
 type NimiRuntimeVideoScenarioRuntime = NimiRuntimeScenarioRuntime;
 type NimiRuntimeSpeechSynthesisScenarioInput = Extract<
@@ -695,7 +695,7 @@ function getRuntimeGenerationClients(options: NimiRuntimeGenerationClientOptions
   };
 }
 
-function getRuntimeScenarioClient(runtime: NimiRuntimeScenarioRuntime): NimiRuntimeScenarioJobClient {
+function getRuntimeScenarioClient(runtime: NimiRuntimeScenarioRuntime): NimiScenarioJobClient {
   if ('ai' in runtime) {
     return runtime.ai;
   }

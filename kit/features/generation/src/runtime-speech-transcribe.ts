@@ -7,7 +7,7 @@ import {
   createNimiError,
   runNimiRuntimeSpeechTranscription,
   type NimiError,
-  type NimiRuntimeScenarioJobClient,
+  type NimiScenarioJobClient,
   type NimiRuntimeSpeechTranscriptionAudioSource,
   type RuntimeTypedCallOptions,
   type ScenarioJob,
@@ -58,7 +58,7 @@ export type RuntimeSpeechTranscribeResult =
   | RuntimeSpeechTranscribeUnavailable;
 
 export type RuntimeSpeechTranscribeRuntime = {
-  readonly ai: NimiRuntimeScenarioJobClient;
+  readonly ai: NimiScenarioJobClient;
 };
 
 export type RuntimeSpeechTranscribeInput = {

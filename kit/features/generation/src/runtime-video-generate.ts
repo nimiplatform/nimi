@@ -7,7 +7,7 @@ import {
   runNimiRuntimeVideoGeneration,
   type NimiError,
   type NimiRuntimeScenarioArtifact,
-  type NimiRuntimeScenarioJobClient,
+  type NimiScenarioJobClient,
   type NimiRuntimeVideoContentPart,
   type NimiRuntimeVideoGenerationOptions,
   type RuntimeTypedCallOptions,
@@ -64,7 +64,7 @@ export type RuntimeVideoGenerateUnavailable = {
 export type RuntimeVideoGenerateResult = RuntimeVideoGenerateSuccess | RuntimeVideoGenerateUnavailable;
 
 export type RuntimeVideoGenerateRuntime = {
-  readonly ai: NimiRuntimeScenarioJobClient;
+  readonly ai: NimiScenarioJobClient;
 };
 
 export type RuntimeVideoGenerateInput = {

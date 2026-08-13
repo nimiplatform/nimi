@@ -8,7 +8,7 @@ import {
   toNimiRuntimeVoiceReference,
   type NimiError,
   type NimiRuntimeScenarioArtifact,
-  type NimiRuntimeScenarioJobClient,
+  type NimiScenarioJobClient,
   type NimiRuntimeSpeechVoiceReference,
   type RuntimeTypedCallOptions,
   type ScenarioJob,
@@ -66,7 +66,7 @@ export type RuntimeSpeechSynthesizeResult =
   | RuntimeSpeechSynthesizeUnavailable;
 
 export type RuntimeSpeechSynthesizeRuntime = {
-  readonly ai: NimiRuntimeScenarioJobClient;
+  readonly ai: NimiScenarioJobClient;
 };
 
 export type RuntimeSpeechSynthesizeInput = {

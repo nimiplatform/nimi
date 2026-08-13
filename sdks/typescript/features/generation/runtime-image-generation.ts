@@ -5,12 +5,12 @@ import {
   type ScenarioJob,
   type ScenarioOutput,
 } from '../../core-generated/runtime-typed-client';
-import { runNimiRuntimeScenarioJob, type NimiRuntimeScenarioJobClient } from '../../runtime/scenario-jobs';
+import { runNimiRuntimeScenarioJob, type NimiScenarioJobClient } from '../../runtime/scenario-jobs';
 import { createNimiError, ReasonCode } from '../../types';
 import { buildNimiRuntimeGenerationSubmitRequest, type NimiRuntimeGenerationHeadInput } from './runtime-generation-build';
 import { createNimiImageGenerationScenario } from './runtime-scenarios';
 
-type NimiRuntimeImageScenarioRuntime = NimiRuntimeScenarioJobClient | { readonly ai: NimiRuntimeScenarioJobClient };
+type NimiRuntimeImageScenarioRuntime = NimiScenarioJobClient | { readonly ai: NimiScenarioJobClient };
 
 export interface NimiRuntimeImageGenerationInput {
   readonly runtime: NimiRuntimeImageScenarioRuntime;
@@ -114,7 +114,7 @@ export function extractNimiRuntimeImageGenerationOutput(
   };
 }
 
-function getRuntimeImageScenarioClient(runtime: NimiRuntimeImageScenarioRuntime): NimiRuntimeScenarioJobClient {
+function getRuntimeImageScenarioClient(runtime: NimiRuntimeImageScenarioRuntime): NimiScenarioJobClient {
   if ('ai' in runtime) {
     return runtime.ai;
   }

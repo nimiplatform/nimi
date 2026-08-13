@@ -134,6 +134,7 @@ export type {
   NimiRuntimeAgentResolvedStatusCueMood,
   NimiRuntimeAgentStateSnapshot,
   NimiRuntimeScenarioArtifact,
+  NimiScenarioJobClient,
   NimiRuntimeScenarioJob,
   NimiRuntimeScenarioJobClient,
   NimiRuntimeScenarioJobResult,

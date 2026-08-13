@@ -7,7 +7,7 @@ import {
   runNimiRuntimeImageGeneration,
   type NimiError,
   type NimiRuntimeScenarioArtifact,
-  type NimiRuntimeScenarioJobClient,
+  type NimiScenarioJobClient,
   type RuntimeTypedCallOptions,
   type ScenarioJob,
 } from '@nimiplatform/kit/core/sdk-contract';
@@ -69,7 +69,7 @@ export type RuntimeImageGenerateUnavailable = {
 export type RuntimeImageGenerateResult = RuntimeImageGenerateSuccess | RuntimeImageGenerateUnavailable;
 
 export type RuntimeImageGenerateRuntime = {
-  readonly ai: NimiRuntimeScenarioJobClient;
+  readonly ai: NimiScenarioJobClient;
 };
 
 export type RuntimeImageGenerateInput = {

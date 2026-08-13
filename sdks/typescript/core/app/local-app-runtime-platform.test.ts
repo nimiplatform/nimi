@@ -10,7 +10,6 @@ import {
   ExecutionMode,
   ScenarioJobStatus,
   ScenarioType,
-  VoiceAssetPersistence,
   VoiceAssetStatus,
   VoiceCreationSource,
   VoiceReferenceKind,
@@ -972,18 +971,10 @@ test('local-app voice runner preserves the trimmed terminal result and consumes 
   assert.equal(result.job.status, ScenarioJobStatus.COMPLETED);
   assert.deepEqual(result.asset, {
     voiceAssetId: asset.voiceAssetId,
-    appId: '',
-    subjectUserId: '',
-    provider: '',
-    modelId: '',
-    targetModelId: '',
-    providerVoiceRef: '',
-    persistence: VoiceAssetPersistence.UNSPECIFIED,
     status: VoiceAssetStatus.ACTIVE,
     createdAt: asset.createdAt,
     updatedAt: asset.updatedAt,
     expiresAt: undefined,
-    metadata: undefined,
     creationSource: VoiceCreationSource.TEXT_DESCRIPTION,
   });
   assert.deepEqual(result.voiceReference, {

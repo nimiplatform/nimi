@@ -161,11 +161,12 @@ test('Runtime voice job runner uses one terminal Get as the result and artifact 
   let artifactLookups = 0;
   const terminalJob = {
     ...createScenarioJob('job-voice-1', ScenarioJobStatus.COMPLETED),
+    head: { appId: 'app-voice', subjectUserId: 'user-voice', timeoutMs: 0 },
     scenarioType: ScenarioType.VOICE_CREATE,
   };
   const asset = {
-    voiceAssetId: 'voice-asset-1', appId: '', subjectUserId: '', provider: '', modelId: '', targetModelId: '',
-    providerVoiceRef: '', persistence: VoiceAssetPersistence.UNSPECIFIED, status: VoiceAssetStatus.ACTIVE,
+    voiceAssetId: 'voice-asset-1', appId: 'app-voice', subjectUserId: 'user-voice', provider: 'dashscope', modelId: '', targetModelId: '',
+    providerVoiceRef: 'provider-voice-1', persistence: VoiceAssetPersistence.PROVIDER_PERSISTENT, status: VoiceAssetStatus.ACTIVE,
     metadata: undefined, creationSource: VoiceCreationSource.TEXT_DESCRIPTION,
   };
   const voiceReference = {
@@ -430,6 +431,40 @@ test('Runtime voice job runner rejects malformed terminal result pairs', async (
     runNimiRuntimeScenarioJob({ ai: nonVoiceWithPair, request: createScenarioJobRequest() }),
     (error: unknown) => (error as { code?: string }).code === 'SDK_RUNTIME_RESPONSE_DECODE_FAILED',
   );
+});
+
+test('Runtime voice job runner rejects incomplete or cross-owner full VoiceAssets', async () => {
+  const terminalJob = {
+    ...createScenarioJob('job-1', ScenarioJobStatus.COMPLETED),
+    head: { appId: 'app-owner', subjectUserId: 'user-owner', timeoutMs: 0 },
+    scenarioType: ScenarioType.VOICE_CREATE,
+  };
+  const base = createScenarioJobClient([{ job: terminalJob }]);
+  const validAsset = {
+    voiceAssetId: 'voice-asset-owner', appId: 'app-owner', subjectUserId: 'user-owner', provider: 'dashscope', modelId: '', targetModelId: '',
+    providerVoiceRef: 'provider-voice-owner', persistence: VoiceAssetPersistence.PROVIDER_PERSISTENT, status: VoiceAssetStatus.ACTIVE,
+    metadata: undefined, creationSource: VoiceCreationSource.TEXT_DESCRIPTION,
+  };
+  const voiceReference = {
+    kind: VoiceReferenceKind.VOICE_ASSET,
+    reference: { oneofKind: 'voiceAssetId' as const, voiceAssetId: validAsset.voiceAssetId },
+  };
+  for (const asset of [
+    { ...validAsset, providerVoiceRef: '' },
+    { ...validAsset, appId: 'foreign-app' },
+  ]) {
+    const client: NimiRuntimeScenarioJobClient = {
+      ...base,
+      async getScenarioJob() { return { job: terminalJob, asset, voiceReference }; },
+    };
+    await assert.rejects(
+      runNimiRuntimeScenarioJob({
+        ai: client,
+        request: { ...createScenarioJobRequest(), scenarioType: ScenarioType.VOICE_CREATE },
+      }),
+      (error: unknown) => (error as { code?: string }).code === 'SDK_RUNTIME_RESPONSE_DECODE_FAILED',
+    );
+  }
 });
 
 function createScenarioJobRequest(): NimiRuntimeScenarioJobSubmitRequest {

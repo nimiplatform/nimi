@@ -9,7 +9,6 @@ import {
   VideoContentRole,
   VideoContentType,
   VideoMode,
-  VoiceAssetPersistence,
   VoiceAssetStatus,
   VoiceCreationSource,
   VoiceReferenceKind,
@@ -20,10 +19,12 @@ import {
   type ScenarioOutput,
   type ScenarioSpec,
   type SubmitScenarioJobRequest,
-  type VoiceAsset,
 } from '../../core-generated/runtime-typed-client.js';
 import type { Timestamp } from '../../core-generated/runtime-protobuf/google/protobuf/timestamp.js';
-import type { NimiRuntimeScenarioJobClient } from '../../runtime/scenario-jobs.js';
+import type {
+  NimiProtectedLocalScenarioJobClient,
+  NimiProtectedLocalVoiceAsset,
+} from '../../runtime/scenario-jobs.js';
 import {
   asRecord,
   assertExactKeys,
@@ -360,8 +361,9 @@ export function createNimiLocalAppAIConsumptionClient(
 
 export function createNimiLocalAppRuntimeScenarioJobClient(
   ai: Pick<NimiLocalAppAIConsumptionClient, 'scenarioJobs' | 'artifacts'>,
-): NimiRuntimeScenarioJobClient {
-  const client: NimiRuntimeScenarioJobClient = {
+): NimiProtectedLocalScenarioJobClient {
+  const client: NimiProtectedLocalScenarioJobClient = {
+    terminalVoiceAssetProjection: 'protected-local',
     async submitScenarioJob(request) {
       const spec = localJobSpecFromRuntimeRequest(request);
       const result = await ai.scenarioJobs.submit(spec);
@@ -987,21 +989,13 @@ function runtimeJobFromLocal(job: NimiLocalAppScenarioJob): ScenarioJob {
   };
 }
 
-function runtimeVoiceAssetFromLocal(asset: NimiLocalAppVoiceAsset): VoiceAsset {
+function runtimeVoiceAssetFromLocal(asset: NimiLocalAppVoiceAsset): NimiProtectedLocalVoiceAsset {
   return {
     voiceAssetId: asset.voiceAssetId,
-    appId: '',
-    subjectUserId: '',
-    provider: '',
-    modelId: '',
-    targetModelId: '',
-    providerVoiceRef: '',
-    persistence: VoiceAssetPersistence.UNSPECIFIED,
     status: runtimeVoiceAssetStatus(asset.status),
     createdAt: runtimeTimestamp(asset.createdAt),
     updatedAt: runtimeTimestamp(asset.updatedAt),
     expiresAt: runtimeTimestamp(asset.expiresAt),
-    metadata: undefined,
     creationSource: runtimeVoiceCreationSource(asset.creationSource),
   };
 }

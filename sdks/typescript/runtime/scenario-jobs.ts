@@ -15,7 +15,9 @@ import {
   type SubmitScenarioJobRequest,
   type SubmitScenarioJobResponse,
   type RuntimeTypedCallOptions,
+  VoiceAssetPersistence,
   VoiceAssetStatus,
+  VoiceCreationSource,
   VoiceReferenceKind,
   type VoiceAsset,
   type VoiceReference,
@@ -27,7 +29,17 @@ export type NimiRuntimeScenarioArtifact = ScenarioArtifact;
 export type NimiRuntimeScenarioOutput = ScenarioOutput;
 export type NimiRuntimeScenarioJobSubmitRequest = SubmitScenarioJobRequest;
 
+export type NimiProtectedLocalVoiceAsset = Pick<
+  VoiceAsset,
+  'voiceAssetId' | 'status' | 'creationSource' | 'createdAt' | 'updatedAt' | 'expiresAt'
+>;
+
+type NimiProtectedLocalGetScenarioJobResponse = Omit<GetScenarioJobResponse, 'asset'> & {
+  readonly asset?: NimiProtectedLocalVoiceAsset;
+};
+
 export interface NimiRuntimeScenarioJobClient {
+  readonly terminalVoiceAssetProjection?: 'runtime-full';
   submitScenarioJob(
     request: SubmitScenarioJobRequest,
     options?: RuntimeTypedCallOptions,
@@ -50,17 +62,30 @@ export interface NimiRuntimeScenarioJobClient {
   ): Promise<GetScenarioArtifactsResponse>;
 }
 
+export interface NimiProtectedLocalScenarioJobClient extends Omit<
+  NimiRuntimeScenarioJobClient,
+  'terminalVoiceAssetProjection' | 'getScenarioJob'
+> {
+  readonly terminalVoiceAssetProjection: 'protected-local';
+  getScenarioJob(
+    request: GetScenarioJobRequest,
+    options?: RuntimeTypedCallOptions,
+  ): Promise<NimiProtectedLocalGetScenarioJobResponse>;
+}
+
+export type NimiScenarioJobClient = NimiRuntimeScenarioJobClient | NimiProtectedLocalScenarioJobClient;
+
 export interface NimiRuntimeScenarioJobResult {
   readonly job: NimiRuntimeScenarioJob;
   readonly artifacts: readonly NimiRuntimeScenarioArtifact[];
   readonly traceId?: string;
   readonly output?: NimiRuntimeScenarioOutput;
-  readonly asset?: VoiceAsset;
+  readonly asset?: VoiceAsset | NimiProtectedLocalVoiceAsset;
   readonly voiceReference?: VoiceReference;
 }
 
 export interface NimiRuntimeScenarioJobRunnerInput {
-  readonly ai: NimiRuntimeScenarioJobClient;
+  readonly ai: NimiScenarioJobClient;
   readonly request: NimiRuntimeScenarioJobSubmitRequest;
   readonly callOptions?: RuntimeTypedCallOptions;
   readonly signal?: AbortSignal;
@@ -167,7 +192,12 @@ export async function runNimiRuntimeScenarioJob(
   }
 
   ensureCompletedNimiRuntimeScenarioJob(terminalJob);
-  validateScenarioJobTerminalResult(terminalJob, terminalResponse.asset, terminalResponse.voiceReference);
+  validateScenarioJobTerminalResult(
+    terminalJob,
+    terminalResponse.asset,
+    terminalResponse.voiceReference,
+    input.ai.terminalVoiceAssetProjection ?? 'runtime-full',
+  );
 
   const artifacts = terminalJob.scenarioType === ScenarioType.VOICE_CREATE
     ? { artifacts: terminalJob.artifacts, traceId: terminalJob.traceId, output: undefined }
@@ -197,8 +227,9 @@ function scenarioJobEventMatchesStatus(eventType: ScenarioJobEventType, status: 
 
 function validateScenarioJobTerminalResult(
   job: NimiRuntimeScenarioJob,
-  asset: VoiceAsset | undefined,
+  asset: VoiceAsset | NimiProtectedLocalVoiceAsset | undefined,
   voiceReference: VoiceReference | undefined,
+  projection: 'runtime-full' | 'protected-local',
 ): void {
   const pairPresent = asset !== undefined && voiceReference !== undefined;
   if ((asset === undefined) !== (voiceReference === undefined)) {
@@ -211,10 +242,24 @@ function validateScenarioJobTerminalResult(
   if (!pairPresent) return;
   if (!normalizeText(asset.voiceAssetId)
     || asset.status !== VoiceAssetStatus.ACTIVE
+    || (asset.creationSource !== VoiceCreationSource.TEXT_DESCRIPTION
+      && asset.creationSource !== VoiceCreationSource.REFERENCE_AUDIO)
     || voiceReference.kind !== VoiceReferenceKind.VOICE_ASSET
     || voiceReference.reference?.oneofKind !== 'voiceAssetId'
     || voiceReference.reference.voiceAssetId !== asset.voiceAssetId) {
     throw runtimeScenarioJobResponseError('Runtime Scenario job returned an invalid VoiceAsset result');
+  }
+  if (projection === 'protected-local') return;
+  const fullAsset = asset as VoiceAsset;
+  if (!normalizeText(fullAsset.providerVoiceRef)
+    || !normalizeText(fullAsset.provider)
+    || !normalizeText(fullAsset.appId)
+    || !normalizeText(fullAsset.subjectUserId)
+    || (fullAsset.persistence !== VoiceAssetPersistence.PROVIDER_PERSISTENT
+      && fullAsset.persistence !== VoiceAssetPersistence.SESSION_EPHEMERAL)
+    || normalizeText(job.head?.appId) !== normalizeText(fullAsset.appId)
+    || normalizeText(job.head?.subjectUserId) !== normalizeText(fullAsset.subjectUserId)) {
+    throw runtimeScenarioJobResponseError('Runtime Scenario job returned an incomplete or cross-owner VoiceAsset result');
   }
 }
 
