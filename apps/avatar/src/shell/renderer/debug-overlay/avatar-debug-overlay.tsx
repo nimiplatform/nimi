@@ -32,6 +32,7 @@ type AvatarDebugReplayRef = AvatarDebugSnapshot['replayRefs'][number];
 const OVERLAY_WIDTH_PX = 420;
 const OVERLAY_ESTIMATED_HEIGHT_PX = 360;
 const VIEWPORT_PADDING_PX = 8;
+const AVATAR_DEBUG_RPC_TIMEOUT_MS = 10_000;
 
 const AVATAR_BACKEND_PROBES = [
   AvatarDebugProbeKind.BACKEND_LOAD,
@@ -61,6 +62,10 @@ function readViewportSize(): { width: number; height: number } {
 
 function toErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error || 'unknown avatar debug failure');
+}
+
+function isTimeoutError(error: unknown): boolean {
+  return /deadline|timed out|timeout/i.test(toErrorMessage(error));
 }
 
 function probeKey(probeKind: AvatarDebugProbeKind): string {
@@ -132,6 +137,7 @@ export function AvatarDebugOverlay(props: AvatarDebugOverlayProps) {
   } = props;
   const { t } = useTranslation();
   const rootRef = useRef<HTMLDivElement | null>(null);
+  const operationAbortRef = useRef<AbortController | null>(null);
   const [snapshot, setSnapshot] = useState<AvatarDebugSnapshot | null>(null);
   const [loading, setLoading] = useState(true);
   const [requesting, setRequesting] = useState(false);
@@ -146,18 +152,32 @@ export function AvatarDebugOverlay(props: AvatarDebugOverlayProps) {
   }, [x, y]);
 
   const loadSnapshot = useCallback(async () => {
+    operationAbortRef.current?.abort();
+    const controller = new AbortController();
+    operationAbortRef.current = controller;
     setLoading(true);
     setError(null);
     try {
-      setSnapshot(await avatarDebug.snapshot({ agentId, conversationAnchorId }));
+      setSnapshot(await avatarDebug.snapshot(
+        { agentId, conversationAnchorId },
+        { signal: controller.signal, timeoutMs: AVATAR_DEBUG_RPC_TIMEOUT_MS },
+      ));
     } catch (loadError) {
-      setError(toErrorMessage(loadError));
+      setError(controller.signal.aborted
+        ? t('Avatar.debug.request_canceled')
+        : isTimeoutError(loadError)
+          ? t('Avatar.debug.request_timeout')
+          : toErrorMessage(loadError));
     } finally {
+      if (operationAbortRef.current === controller) operationAbortRef.current = null;
       setLoading(false);
     }
-  }, [agentId, avatarDebug, conversationAnchorId]);
+  }, [agentId, avatarDebug, conversationAnchorId, t]);
 
   const requestProbes = useCallback(async () => {
+    operationAbortRef.current?.abort();
+    const controller = new AbortController();
+    operationAbortRef.current = controller;
     setRequesting(true);
     setError(null);
     try {
@@ -168,22 +188,46 @@ export function AvatarDebugOverlay(props: AvatarDebugOverlayProps) {
             conversationAnchorId,
             probeKind,
             avatarInstanceId,
-          });
+          }, { signal: controller.signal, timeoutMs: AVATAR_DEBUG_RPC_TIMEOUT_MS });
         } catch (requestError) {
+          if (controller.signal.aborted) {
+            setError(t('Avatar.debug.request_canceled'));
+            break;
+          }
           const message = toErrorMessage(requestError);
           onRequestFailed({
             probeKind,
-            reasonCode: 'runtime_avatar_debug_request_rejected',
+            reasonCode: isTimeoutError(requestError)
+              ? 'runtime_avatar_debug_request_timeout'
+              : 'runtime_avatar_debug_request_rejected',
             error: message,
           });
-          setError(message);
+          setError(isTimeoutError(requestError) ? t('Avatar.debug.request_timeout') : message);
+          if (isTimeoutError(requestError)) break;
         }
       }
-      await loadSnapshot();
+      if (!controller.signal.aborted) {
+        setSnapshot(await avatarDebug.snapshot(
+          { agentId, conversationAnchorId },
+          { signal: controller.signal, timeoutMs: AVATAR_DEBUG_RPC_TIMEOUT_MS },
+        ));
+      }
+    } catch (requestError) {
+      setError(controller.signal.aborted
+        ? t('Avatar.debug.request_canceled')
+        : isTimeoutError(requestError)
+          ? t('Avatar.debug.request_timeout')
+          : toErrorMessage(requestError));
     } finally {
+      if (operationAbortRef.current === controller) operationAbortRef.current = null;
       setRequesting(false);
     }
-  }, [agentId, avatarDebug, avatarInstanceId, conversationAnchorId, loadSnapshot, onRequestFailed]);
+  }, [agentId, avatarDebug, avatarInstanceId, conversationAnchorId, onRequestFailed, t]);
+
+  const cancelRequest = useCallback(() => {
+    operationAbortRef.current?.abort(new DOMException('Avatar diagnostics canceled by user', 'AbortError'));
+    setError(t('Avatar.debug.request_canceled'));
+  }, [t]);
 
   useEffect(() => {
     rootRef.current?.focus();
@@ -191,6 +235,10 @@ export function AvatarDebugOverlay(props: AvatarDebugOverlayProps) {
 
   useEffect(() => {
     void loadSnapshot();
+    return () => {
+      operationAbortRef.current?.abort();
+      operationAbortRef.current = null;
+    };
   }, [loadSnapshot]);
 
   useEffect(() => {
@@ -265,13 +313,16 @@ export function AvatarDebugOverlay(props: AvatarDebugOverlayProps) {
         type="button"
         className="avatar-debug-overlay__request"
         data-testid="avatar-debug-overlay-request-probes"
-        disabled={requesting}
         onClick={() => {
-          void requestProbes();
+          if (requesting) {
+            cancelRequest();
+          } else {
+            void requestProbes();
+          }
         }}
       >
-        <SearchCheck size={15} aria-hidden="true" />
-        <span>{t('Avatar.debug.request_all')}</span>
+        {requesting ? <X size={15} aria-hidden="true" /> : <SearchCheck size={15} aria-hidden="true" />}
+        <span>{t(requesting ? 'Avatar.debug.cancel_request' : 'Avatar.debug.request_all')}</span>
       </button>
 
       {loading ? (

@@ -153,6 +153,63 @@ describe('Agent Center appearance auto-save adapter', () => {
     expect(patchPresentationProfile).toHaveBeenCalledTimes(1);
   });
 
+  it('loads the Runtime voice catalog, commits only catalog references, and publishes the new Runtime revision', async () => {
+    const profile = { ...emptyProfile, backendKind: 'vrm' as const, avatarAssetRef: 'vrm_current' };
+    const committedResults: AgentCenterRuntimePresentationProfileMutationResult[] = [];
+    const patchPresentationProfile = vi.fn(async (
+      _identity: RuntimeLocalAgentIdentityInput,
+      patch: AgentCenterRuntimePresentationProfilePatch,
+      expectedRevision: string,
+    ): Promise<AgentCenterRuntimePresentationProfileMutationResult> => ({
+      profile: { ...profile, defaultVoiceReference: String(patch.defaultVoiceReference) },
+      previousProfile: profile,
+      committedRevision: String(Number(expectedRevision) + 1),
+    }));
+    const adapter = createAgentCenterShellAppearanceAdapter({
+      identity,
+      accountId: 'account',
+      snapshot: { inspect: { presentationProfile: profile, presentationProfileRevision: '7' } as never },
+      runtimePresentation: {
+        async setPresentationProfile() { throw new Error('must not replace presentation'); },
+        patchPresentationProfile,
+      },
+      async loadVoiceCatalog() {
+        return {
+          state: 'ready' as const,
+          sourceLabel: 'selected-local-qwen3-tts',
+          options: [{
+            reference: 'preset_voice_id:serena' as const,
+            kind: 'preset_voice_id' as const,
+            name: 'Serena',
+            supportedLangs: ['chinese', 'english'],
+          }],
+          message: null,
+        };
+      },
+      onPresentationCommitted(result) { committedResults.push(result); },
+    });
+    await expect(adapter.load()).resolves.toMatchObject({
+      status: 'ready',
+      renderState: 'unavailable',
+      renderUnavailableReasonCode: 'preview-not-running',
+      voiceCatalog: { state: 'ready', sourceLabel: 'selected-local-qwen3-tts' },
+    });
+    await expect(adapter.setDefaultVoice?.('preset_voice_id:serena')).resolves.toMatchObject({
+      defaultVoiceReference: 'preset_voice_id:serena',
+      presentationRevision: '8',
+    });
+    expect(patchPresentationProfile).toHaveBeenCalledWith(
+      identity,
+      { defaultVoiceReference: 'preset_voice_id:serena' },
+      '7',
+    );
+    expect(committedResults).toHaveLength(1);
+    await expect(adapter.setDefaultVoice?.('preset_voice_id:not-in-catalog')).rejects.toThrow(
+      /current Runtime voice catalog/,
+    );
+    expect(patchPresentationProfile).toHaveBeenCalledTimes(1);
+  });
+
   it('projects post-save render failure separately and restores previous as a new commit', async () => {
     const previous = {
       ...emptyProfile,

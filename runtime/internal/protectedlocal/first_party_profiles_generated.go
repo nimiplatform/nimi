@@ -176,6 +176,10 @@ func FirstPartyProfileMethod(profileID, methodID string) (FirstPartyMethodKind, 
 			return FirstPartyMethodServerStream, true
 		case "/nimi.runtime.v1.RuntimeAiService/GetScenarioArtifacts":
 			return FirstPartyMethodUnary, true
+		case "/nimi.runtime.v1.RuntimeAiService/ListPresetVoices":
+			return FirstPartyMethodUnary, true
+		case "/nimi.runtime.v1.RuntimeAiService/ListVoiceAssets":
+			return FirstPartyMethodUnary, true
 		case "/nimi.runtime.v1.RuntimeAgentService/MaterializeRealmSource":
 			return FirstPartyMethodUnary, true
 		case "/nimi.runtime.v1.RuntimeAgentService/ListAgents":
@@ -424,6 +428,8 @@ func FirstPartyProfileMethods(profileID string) []FirstPartyProfileMethodEntry {
 			{MethodID: "/nimi.runtime.v1.RuntimeAiService/CancelScenarioJob", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeAiService/SubscribeScenarioJobEvents", Kind: FirstPartyMethodServerStream},
 			{MethodID: "/nimi.runtime.v1.RuntimeAiService/GetScenarioArtifacts", Kind: FirstPartyMethodUnary},
+			{MethodID: "/nimi.runtime.v1.RuntimeAiService/ListPresetVoices", Kind: FirstPartyMethodUnary},
+			{MethodID: "/nimi.runtime.v1.RuntimeAiService/ListVoiceAssets", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeAgentService/MaterializeRealmSource", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeAgentService/ListAgents", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeAgentService/GetAgent", Kind: FirstPartyMethodUnary},

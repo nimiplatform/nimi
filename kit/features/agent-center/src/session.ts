@@ -177,6 +177,7 @@ class ManagerSession {
       ...(appearance?.clearBackground ? { clearBackground: () => commitAppearance(() => appearance.clearBackground!()) } : {}),
       ...(appearance?.removeAgentResources ? { removeAgentResources: () => commitAppearance(() => appearance.removeAgentResources!()) } : {}),
       ...(appearance?.cleanupGeneratedVoiceArtifacts ? { cleanupGeneratedVoiceArtifacts: () => commitAppearance(() => appearance.cleanupGeneratedVoiceArtifacts!()) } : {}),
+      ...(appearance?.setDefaultVoice ? { setDefaultVoice: (reference: string) => commitAppearance(() => appearance.setDefaultVoice!(reference)) } : {}),
       ...(appearance?.setAvatarAutoplay ? { setAvatarAutoplay: (enabled: boolean) => commitAppearance(() => appearance.setAvatarAutoplay!(enabled)) } : {}),
     });
   }
@@ -344,6 +345,7 @@ function firstPartyActionAvailability(
     || input.appearance?.clearBackground
     || input.appearance?.removeAgentResources
     || input.appearance?.cleanupGeneratedVoiceArtifacts
+    || input.appearance?.setDefaultVoice
     || input.appearance?.setAvatarAutoplay,
   );
   const availability: AgentCenterActionAvailabilityProjection = {

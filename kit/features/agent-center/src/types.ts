@@ -446,9 +446,11 @@ export interface AgentCenterAppearanceProjection {
   readonly renderImageRef?: string | null;
   readonly renderVisiblePixels?: number | null;
   readonly renderFailureReason?: string | null;
+  readonly renderUnavailableReasonCode?: 'preview-not-running' | 'renderer-unavailable' | null;
   readonly renderWarnings?: readonly string[];
   readonly previousSelection?: AgentCenterPermissionedPresentationIntent | null;
   readonly defaultVoiceReference?: string | null;
+  readonly voiceCatalog?: AgentCenterVoiceCatalogProjection;
   readonly avatarAutoplay?: boolean;
   readonly avatarImportDisabled?: boolean;
   readonly backgroundImportDisabled?: boolean;
@@ -467,6 +469,27 @@ export interface AgentCenterAppearanceProjection {
   readonly disabledReason?: string | null;
 }
 
+export interface AgentCenterVoiceCatalogOption {
+  readonly reference: `preset_voice_id:${string}` | `voice_asset_id:${string}`;
+  readonly kind: 'preset_voice_id' | 'voice_asset_id';
+  readonly name: string;
+  readonly supportedLangs: readonly string[];
+}
+
+export type AgentCenterVoiceCatalogProjection =
+  | {
+      readonly state: 'ready';
+      readonly sourceLabel: string;
+      readonly options: readonly AgentCenterVoiceCatalogOption[];
+      readonly message: null;
+    }
+  | {
+      readonly state: 'unavailable';
+      readonly sourceLabel: null;
+      readonly options: readonly [];
+      readonly message: string;
+    };
+
 export interface AgentCenterAppearanceAdapter {
   readonly load: () => Promise<AgentCenterAppearanceProjection>;
   readonly replaceAppearance?: (
@@ -479,6 +502,7 @@ export interface AgentCenterAppearanceAdapter {
   readonly clearBackground?: () => Promise<AgentCenterAppearanceProjection>;
   readonly removeAgentResources?: () => Promise<AgentCenterAppearanceProjection>;
   readonly cleanupGeneratedVoiceArtifacts?: () => Promise<AgentCenterAppearanceProjection>;
+  readonly setDefaultVoice?: (reference: string) => Promise<AgentCenterAppearanceProjection>;
   readonly setAvatarAutoplay?: (enabled: boolean) => Promise<AgentCenterAppearanceProjection>;
   readonly restorePreviousAppearance?: () => Promise<AgentCenterAppearanceProjection>;
 }
@@ -808,6 +832,7 @@ export interface AgentCenterSession {
     clearBackground?: () => Promise<void>;
     removeAgentResources?: () => Promise<void>;
     cleanupGeneratedVoiceArtifacts?: () => Promise<void>;
+    setDefaultVoice?: (reference: string) => Promise<void>;
     setAvatarAutoplay?: (enabled: boolean) => Promise<void>;
   }>;
 }

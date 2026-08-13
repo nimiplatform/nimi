@@ -3,7 +3,10 @@ import { useMemo, useState } from 'react';
 import { LoadingSkeleton } from '@nimiplatform/kit/ui';
 import { CANONICAL_CAPABILITY_CATALOG } from '@nimiplatform/kit/core/runtime-capabilities';
 import { AGENT_CENTER_SECTION_LABELS } from '../sections.js';
-import { isAgentCenterCommittedAppearanceReady } from '../appearance-render-readiness.js';
+import {
+  isAgentCenterAppearanceConfigured,
+  isAgentCenterCommittedAppearanceReady,
+} from '../appearance-render-readiness.js';
 import { translateAgentCenter } from '../i18n.js';
 import { agentCenterEnCatalog, getAgentCenterCatalogRecord } from '../locales/index.js';
 import { useAgentCenterStore } from '../store.js';
@@ -62,7 +65,7 @@ function agentCenterSetupProgress(state: AgentCenterState) {
         capability.configurationState === 'configured' && capability.intent !== null
       ));
   const checklistDone = [
-    isAgentCenterCommittedAppearanceReady(state.appearance),
+    isAgentCenterAppearanceConfigured(state.appearance),
     requiredCapabilitiesConfigured,
     state.autonomy.enabled === true,
     state.cognition.memoryState !== 'unavailable',
@@ -155,7 +158,7 @@ function AgentCenterOverview({
   readonly onSectionSelect: (section: AgentCenterSectionId) => void;
 }) {
   const setup = agentCenterSetupProgress(state);
-  const appearanceReady = isAgentCenterCommittedAppearanceReady(state.appearance);
+  const appearanceReady = isAgentCenterAppearanceConfigured(state.appearance);
   const behaviorReady = state.autonomy.enabled === true;
   const cognitionReady = state.cognition.memoryState !== 'unavailable';
   const sourceContext = sourceContextOverviewStatus(state, copy);

@@ -444,8 +444,14 @@ func (s *Service) ListPresetVoices(ctx context.Context, req *runtimev1.ListPrese
 	subjectUserID := strings.TrimSpace(req.GetSubjectUserId())
 	modelID := strings.TrimSpace(req.GetModelId())
 	targetModelID := strings.TrimSpace(req.GetTargetModelId())
-	if appID == "" || subjectUserID == "" || (modelID == "" && targetModelID == "") {
+	if appID == "" || subjectUserID == "" {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+	}
+	if modelID == "" && targetModelID == "" {
+		if strings.TrimSpace(req.GetConnectorId()) != "" {
+			return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+		}
+		return s.listSelectedLocalPresetVoices(ctx, appID, subjectUserID)
 	}
 	effectiveModelID := modelID
 	if targetModelID != "" {
@@ -499,6 +505,74 @@ func (s *Service) ListPresetVoices(ctx context.Context, req *runtimev1.ListPrese
 
 	return &runtimev1.ListPresetVoicesResponse{
 		Voices:        voices,
+		ModelResolved: modelResolved,
+		TraceId:       ulid.Make().String(),
+	}, nil
+}
+
+func (s *Service) listSelectedLocalPresetVoices(
+	ctx context.Context,
+	appID string,
+	subjectUserID string,
+) (*runtimev1.ListPresetVoicesResponse, error) {
+	if s.localExecution == nil {
+		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_SELECTION_NOT_FOUND)
+	}
+	selected, err := s.localExecution.ResolveSelectedLocalExecution(capabilitydriver.AudioSynthesizeContract)
+	if err != nil {
+		return nil, err
+	}
+	if !validSelectedSpeechExecution(selected, capabilitydriver.AudioSynthesizeContract) || len(selected.ExactBindings) != 1 {
+		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_CONFIGURATION_NOT_CONFIGURED)
+	}
+	driver, reason := s.capabilityDrivers.Resolve(
+		capabilitydriver.AudioSynthesizeContract,
+		capabilitydriver.IdentityFromProto(selected.DriverIdentity),
+	)
+	if reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED || driver == nil {
+		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_DRIVER_UNAVAILABLE)
+	}
+	speechDriver, ok := driver.(capabilitydriver.SpeechSynthesizeInvocationDriver)
+	if !ok {
+		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_DRIVER_UNAVAILABLE)
+	}
+	bindings := make([]capabilitydriver.InvocationExactBinding, 0, len(selected.ExactBindings))
+	for _, binding := range selected.ExactBindings {
+		bindings = append(bindings, capabilitydriver.InvocationExactBinding{
+			RequirementID:     binding.RequirementID,
+			AssetID:           binding.AssetID,
+			LocalAssetID:      binding.LocalAssetID,
+			AbsolutePath:      binding.AbsolutePath,
+			VerifiedContentID: binding.VerifiedContentID,
+			EntrySHA256:       binding.EntrySHA256,
+		})
+	}
+	voices, err := speechDriver.ListPresetVoices(bindings)
+	if err != nil {
+		return nil, localSpeechInvocationError(err)
+	}
+	projected := make([]*runtimev1.VoicePresetDescriptor, 0, len(voices))
+	for _, voice := range voices {
+		projected = append(projected, &runtimev1.VoicePresetDescriptor{
+			VoiceId:        voice.VoiceID,
+			Name:           voice.Name,
+			SupportedLangs: append([]string(nil), voice.SupportedLangs...),
+			Labels: map[string]string{
+				"route":            "local",
+				"configuration_id": selected.ConfigurationID,
+			},
+			Category: "local-preset",
+		})
+	}
+	modelResolved := selected.ExactBindings[0].AssetID
+	_ = grpc.SetHeader(ctx, metadata.Pairs(
+		"x-nimi-voice-catalog-source", "selected_local_configuration",
+		"x-nimi-voice-count", strconv.Itoa(len(projected)),
+		"x-nimi-app-id", appID,
+		"x-nimi-subject-user-id", subjectUserID,
+	))
+	return &runtimev1.ListPresetVoicesResponse{
+		Voices:        projected,
 		ModelResolved: modelResolved,
 		TraceId:       ulid.Make().String(),
 	}, nil

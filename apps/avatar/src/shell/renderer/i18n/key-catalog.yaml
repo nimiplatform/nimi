@@ -308,6 +308,12 @@ namespaces: &avatar_i18n_key_entries
         usage: "src/shell/renderer/debug-overlay/avatar-debug-overlay.tsx"
       - key: Avatar.debug.request_all
         usage: "src/shell/renderer/debug-overlay/avatar-debug-overlay.tsx"
+      - key: Avatar.debug.cancel_request
+        usage: "src/shell/renderer/debug-overlay/avatar-debug-overlay.tsx"
+      - key: Avatar.debug.request_canceled
+        usage: "src/shell/renderer/debug-overlay/avatar-debug-overlay.tsx"
+      - key: Avatar.debug.request_timeout
+        usage: "src/shell/renderer/debug-overlay/avatar-debug-overlay.tsx"
       - key: Avatar.debug.loading
         usage: "src/shell/renderer/debug-overlay/avatar-debug-overlay.tsx"
       - key: Avatar.debug.empty
@@ -446,6 +452,18 @@ namespaces: &avatar_i18n_key_entries
         usage: "src/shell/renderer/companion-surface/companion-surface.tsx"
       - key: Avatar.shell.document_title
         usage: "src/shell/renderer/i18n/index.ts"
+      - key: Avatar.runtime_status.loading
+        usage: "src/shell/renderer/avatar-runtime-status.tsx"
+      - key: Avatar.runtime_status.ready
+        usage: "src/shell/renderer/avatar-runtime-status.tsx"
+      - key: Avatar.runtime_status.speaking
+        usage: "src/shell/renderer/avatar-runtime-status.tsx"
+      - key: Avatar.runtime_status.voice_failed
+        usage: "src/shell/renderer/avatar-runtime-status.tsx"
+      - key: Avatar.runtime_status.lipsync_silent
+        usage: "src/shell/renderer/avatar-runtime-status.tsx"
+      - key: Avatar.runtime_status.unavailable
+        usage: "src/shell/renderer/avatar-runtime-status.tsx"
 
 constraints:
   - description: "Both `locales/en/avatar.json` and `locales/zh/avatar.json` MUST contain every key listed in this catalog; missing key in either file is a build break."

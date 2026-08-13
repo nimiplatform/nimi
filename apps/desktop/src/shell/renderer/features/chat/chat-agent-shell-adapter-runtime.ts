@@ -53,6 +53,7 @@ import { createDesktopAgentCenterAutonomyAdapter } from './chat-agent-center-aut
 import { createDesktopAgentCenterAvatarPreviewAdapter } from './chat-agent-center-avatar-preview-adapter.js';
 import { createDesktopCloudAIConfigModule } from './chat-cloud-ai-config-module.js';
 import { createRuntimeAgentPresentationProfileAdapter } from '../../infra/runtime-agent-presentation-profile';
+import { loadAgentRuntimeVoiceCatalog } from './chat-agent-runtime-voice-catalog.js';
 type RuntimeHostErrorDetailsBuilder = (
   error: unknown,
   action?: string,
@@ -102,6 +103,8 @@ type RuntimeIdentityInput = {
   readonly ownerUserId: string;
   readonly runtimeSourceRef: string;
 };
+
+const AGENT_PRESENTATION_MUTATION_TIMEOUT_MS = 60_000;
 
 function normalizeText(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
@@ -224,7 +227,16 @@ export function useAgentConversationRuntimeController(
     const runtimePresentation = createRuntimeAgentPresentationProfileAdapter({
       getRuntime: bindings.sdk.hostRuntimeAgent,
       getSubjectUserId: () => subjectUserId,
-      withScopes: bindings.sdk.withRuntimeProtectedScopes,
+      withScopes: (scopes, operation) => bindings.sdk.withRuntimeProtectedScopes(
+        scopes,
+        (options) => operation({
+          ...options,
+          timeoutMs: Math.min(
+            options.timeoutMs ?? AGENT_PRESENTATION_MUTATION_TIMEOUT_MS,
+            AGENT_PRESENTATION_MUTATION_TIMEOUT_MS,
+          ),
+        }),
+      ),
     });
     const appearance = createAgentCenterShellAppearanceAdapter({
       identity,
@@ -236,6 +248,19 @@ export function useAgentConversationRuntimeController(
       }),
       snapshot: { inspect: runtimeInspect as never },
       loadPresentation: () => runtimeAgentInspect.getPresentationProfile(identity),
+      loadVoiceCatalog: () => loadAgentRuntimeVoiceCatalog({
+        ai: bindings.sdk.aiExecution().ai,
+        appId: bindings.sdk.appId(),
+        subjectUserId,
+      }),
+      onPresentationCommitted(result) {
+        setRuntimePresentationProfile(result.profile);
+        setRuntimeInspect((current) => current ? {
+          ...current,
+          presentationProfile: result.profile,
+          presentationProfileRevision: result.committedRevision,
+        } : current);
+      },
     });
     return createFirstPartyAgentCenterSession({
       identity,

@@ -50,6 +50,8 @@ function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error || 'unknown avatar sdk driver error');
 }
 
+const STREAM_RECONNECT_DELAYS_MS = [250, 500, 1_000, 2_000, 5_000] as const;
+
 export type SdkDriverOptions = {
   runtimeAgent: NimiRuntimeAgentConsumeClient;
   runtimeVoice?: Pick<NimiRuntimeAgentVoiceModule, 'subscribeStream'>;
@@ -124,40 +126,10 @@ export class SdkDriver implements AgentDataDriver {
     this.streamAbort = new AbortController();
     this.publishBundle();
     try {
-      const snapshot = await this.withRuntimeAgentRead(
-        (options) => this.runtimeAgent.turns.getSessionSnapshot(
-          {
-            ownerUserId: this.ownerUserId,
-            runtimeSourceRef: this.runtimeSourceRef,
-            localAgentRef: this.localAgentRef,
-            conversationAnchorId: this.conversationAnchorId,
-            ...(this.activeWorldId ? { worldId: this.activeWorldId } : {}),
-          },
-          { ...options, signal: this.streamAbort?.signal },
-        ),
-      );
-      this.applySessionSnapshot(snapshot);
-      const stream = await this.withRuntimeAgentTurnSubscribe(
-        (options) => this.runtimeAgent.turns.subscribe(
-          {
-            ownerUserId: this.ownerUserId,
-            runtimeSourceRef: this.runtimeSourceRef,
-            localAgentRef: this.localAgentRef,
-            conversationAnchorId: this.conversationAnchorId,
-          },
-          { ...options, signal: this.streamAbort?.signal },
-        ),
-      );
+      const stream = await this.connectRuntimeStream(this.streamAbort);
       this.setStatus('running');
       const abortController = this.streamAbort;
-      void this.consumeStream(stream, abortController).catch((error) => {
-        if (abortController.signal.aborted) {
-          return;
-        }
-        const message = errorMessage(error);
-        console.error(`[avatar:sdk] consume stream failed: ${message}`);
-        this.setStatus('error', message);
-      });
+      void this.consumeStreamWithResync(stream, abortController);
     } catch (error) {
       this.streamAbort = null;
       this.setStatus('error', errorMessage(error));
@@ -226,6 +198,72 @@ export class SdkDriver implements AgentDataDriver {
       return operation({});
     }
     return this.withScopes(['runtime.agent.read', 'runtime.agent.turn.read'], operation);
+  }
+
+  private async connectRuntimeStream(
+    abortController: AbortController,
+  ): Promise<AsyncIterable<RuntimeAgentConsumeEvent>> {
+    const snapshot = await this.withRuntimeAgentRead(
+      (options) => this.runtimeAgent.turns.getSessionSnapshot(
+        {
+          ownerUserId: this.ownerUserId,
+          runtimeSourceRef: this.runtimeSourceRef,
+          localAgentRef: this.localAgentRef,
+          conversationAnchorId: this.conversationAnchorId,
+          ...(this.activeWorldId ? { worldId: this.activeWorldId } : {}),
+        },
+        { ...options, signal: abortController.signal },
+      ),
+    );
+    this.applySessionSnapshot(snapshot);
+    return this.withRuntimeAgentTurnSubscribe(
+      (options) => this.runtimeAgent.turns.subscribe(
+        {
+          ownerUserId: this.ownerUserId,
+          runtimeSourceRef: this.runtimeSourceRef,
+          localAgentRef: this.localAgentRef,
+          conversationAnchorId: this.conversationAnchorId,
+        },
+        { ...options, signal: abortController.signal },
+      ),
+    );
+  }
+
+  private async consumeStreamWithResync(
+    initialStream: AsyncIterable<RuntimeAgentConsumeEvent>,
+    abortController: AbortController,
+  ): Promise<void> {
+    let stream = initialStream;
+    let retryAttempt = 0;
+    while (!abortController.signal.aborted) {
+      try {
+        await this.consumeStream(stream, abortController);
+      } catch (error) {
+        if (abortController.signal.aborted) return;
+        const message = errorMessage(error);
+        console.error(`[avatar:sdk] consume stream failed: ${message}`);
+        this.setStatus('error', message);
+      }
+      while (!abortController.signal.aborted) {
+        await abortableDelay(
+          STREAM_RECONNECT_DELAYS_MS[Math.min(retryAttempt, STREAM_RECONNECT_DELAYS_MS.length - 1)]!,
+          abortController.signal,
+        );
+        if (abortController.signal.aborted) return;
+        retryAttempt += 1;
+        try {
+          stream = await this.connectRuntimeStream(abortController);
+          retryAttempt = 0;
+          this.setStatus('running');
+          break;
+        } catch (error) {
+          if (abortController.signal.aborted) return;
+          const message = errorMessage(error);
+          console.error(`[avatar:sdk] stream resync failed: ${message}`);
+          this.setStatus('error', message);
+        }
+      }
+    }
   }
 
   private createInitialBundle(): AgentDataBundle {
@@ -737,4 +775,17 @@ export class SdkDriver implements AgentDataDriver {
   private emitAgentEvent(event: AgentEvent): void {
     this.bus.emit('agent-event', event);
   }
+}
+
+function abortableDelay(ms: number, signal: AbortSignal): Promise<void> {
+  if (signal.aborted) return Promise.resolve();
+  return new Promise((resolve) => {
+    const timer = globalThis.setTimeout(finish, ms);
+    function finish() {
+      globalThis.clearTimeout(timer);
+      signal.removeEventListener('abort', finish);
+      resolve();
+    }
+    signal.addEventListener('abort', finish, { once: true });
+  });
 }

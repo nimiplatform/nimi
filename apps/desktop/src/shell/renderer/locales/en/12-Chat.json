@@ -569,6 +569,7 @@
   "parityOlderUserMessage": "Hello from yesterday.",
   "parityHistoryIntro": "Your earlier conversation is still here. The next reply will continue from this point.",
   "parityGeneratingImage": "Generating image...",
+  "retryImageGeneration": "Retry image generation",
   "parityGeneratingVideo": "Generating video...",
   "parityImagePrompt": "Tea room at dusk",
   "parityVideoPrompt": "Wind over the courtyard",

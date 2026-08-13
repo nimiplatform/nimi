@@ -51,6 +51,51 @@ button {
   background: transparent;
 }
 
+.avatar-runtime-status {
+  position: absolute;
+  left: var(--nimi-space-3);
+  bottom: var(--nimi-space-3);
+  z-index: 8;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--nimi-space-1);
+  max-width: calc(100% - (var(--nimi-space-3) * 2));
+  padding: var(--nimi-space-1) var(--nimi-space-2);
+  border: 1px solid color-mix(in srgb, var(--nimi-border-subtle) 72%, transparent);
+  border-radius: var(--nimi-radius-full);
+  background: color-mix(in srgb, var(--nimi-surface-overlay) 76%, transparent);
+  color: var(--nimi-text-secondary);
+  font-size: var(--nimi-type-caption-size);
+  line-height: var(--nimi-type-caption-line-height);
+  pointer-events: none;
+  backdrop-filter: blur(var(--nimi-backdrop-blur-thin));
+}
+
+.avatar-runtime-status__indicator {
+  width: 0.5rem;
+  height: 0.5rem;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: var(--nimi-text-tertiary);
+}
+
+.avatar-runtime-status--ready .avatar-runtime-status__indicator {
+  background: var(--nimi-status-success);
+}
+
+.avatar-runtime-status--speaking .avatar-runtime-status__indicator {
+  background: var(--nimi-action-primary-bg);
+}
+
+.avatar-runtime-status--voice_failed .avatar-runtime-status__indicator,
+.avatar-runtime-status--unavailable .avatar-runtime-status__indicator {
+  background: var(--nimi-status-danger);
+}
+
+.avatar-runtime-status--lipsync_silent .avatar-runtime-status__indicator {
+  background: var(--nimi-status-warning);
+}
+
 /* ── Embodiment Stage (K-NAV-SHELL-COMPOSITION-001 ready) ───────────────── */
 
 .avatar-embodiment-stage {

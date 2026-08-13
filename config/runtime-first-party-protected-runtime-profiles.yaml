@@ -85,6 +85,8 @@ profiles:
       - method_id: /nimi.runtime.v1.RuntimeAiService/CancelScenarioJob
       - method_id: /nimi.runtime.v1.RuntimeAiService/SubscribeScenarioJobEvents
       - method_id: /nimi.runtime.v1.RuntimeAiService/GetScenarioArtifacts
+      - method_id: /nimi.runtime.v1.RuntimeAiService/ListPresetVoices
+      - method_id: /nimi.runtime.v1.RuntimeAiService/ListVoiceAssets
       - method_id: /nimi.runtime.v1.RuntimeAgentService/MaterializeRealmSource
       - method_id: /nimi.runtime.v1.RuntimeAgentService/ListAgents
       - method_id: /nimi.runtime.v1.RuntimeAgentService/GetAgent

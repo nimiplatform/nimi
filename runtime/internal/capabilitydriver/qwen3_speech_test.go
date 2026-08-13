@@ -1,6 +1,7 @@
 package capabilitydriver
 
 import (
+	"os"
 	"path/filepath"
 	"reflect"
 	"strings"
@@ -8,6 +9,36 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 )
+
+func TestQwen3TTSListsPresetVoicesFromExactSelectedModel(t *testing.T) {
+	root := t.TempDir()
+	entry := filepath.Join(root, "model.safetensors")
+	if err := os.WriteFile(entry, []byte("model"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(root, "config.json"), []byte(`{
+  "talker_config": {
+    "spk_id": {"serena": 3066, "uncle_fu": 3010},
+    "codec_language_id": {"chinese": 2055, "beijing_dialect": 2074}
+  }
+}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	digest := strings.Repeat("a", 64)
+	voices, err := (Qwen3TTSDriver{}).ListPresetVoices([]InvocationExactBinding{{
+		RequirementID: Qwen3TTSModelRequirementID, AssetID: "local.tts.qwen3", LocalAssetID: "asset-1",
+		AbsolutePath: entry, VerifiedContentID: "sha256:" + digest, EntrySHA256: digest,
+	}})
+	if err != nil {
+		t.Fatalf("ListPresetVoices: %v", err)
+	}
+	if len(voices) != 2 || voices[0].VoiceID != "serena" || voices[0].Name != "Serena" || voices[1].Name != "Uncle Fu" {
+		t.Fatalf("voices=%+v", voices)
+	}
+	if got := strings.Join(voices[0].SupportedLangs, ","); got != "beijing-dialect,chinese" {
+		t.Fatalf("supported languages=%q", got)
+	}
+}
 
 func TestQwen3SpeechProductionRegistryProjectsExactAssetKinds(t *testing.T) {
 	tests := []struct {

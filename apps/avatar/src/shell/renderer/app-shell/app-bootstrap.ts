@@ -47,14 +47,9 @@ import {
   runFirstPartyStageWithTimeout,
   setRuntimeBindingUnavailable,
 } from './app-bootstrap-first-party-diagnostics.js';
+import { consumeAvatarAccountSessionWithResync } from './account-session-resync.js';
 
 const AVATAR_FIRST_PARTY_DRIVER_START_TIMEOUT_MS = 12_000;
-
-function optionalRecord(value: unknown): Record<string, unknown> | undefined {
-  return value && typeof value === 'object' && !Array.isArray(value)
-    ? value as Record<string, unknown>
-    : undefined;
-}
 
 function accountStateUnavailableReason(snapshot: AccountSessionSnapshot): {
   readonly status: 'unavailable' | 'expired' | 'stale';
@@ -259,47 +254,38 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
         }
 
         accountStreamAbort = new AbortController();
-        const accountStream = runtime.session.subscribe(accountSnapshot.sequence, {
+        accountStreamTask = consumeAvatarAccountSessionWithResync({
+          runtime,
+          initialSnapshot: accountSnapshot,
+          expectedAccountId: accountId,
           signal: accountStreamAbort.signal,
+          classifySnapshot(snapshot) {
+            return {
+              accountId: readNormalizedString(snapshot.accountProjection?.accountId),
+              failure: accountStateUnavailableReason(snapshot),
+            };
+          },
+          onUnavailable(failure) {
+            useAvatarStore.getState().setRuntimeBindingStatus({
+              status: failure.reason === 'runtime_account_switched' ? 'revoked' : failure.status,
+              reason: failure.reason,
+              reasonCode: failure.reasonCode ?? null,
+              actionHint: failure.actionHint,
+              stage: failure.stage,
+              source: 'runtime',
+              retryable: failure.retryable,
+            });
+          },
+          onRecovered(snapshot) {
+            useAvatarStore.getState().setRuntimeBindingStatus({
+              status: 'active',
+              reasonCode: diagnosticEnumString(snapshot.reasonCode),
+              accountReasonCode: diagnosticEnumString(snapshot.accountReasonCode),
+              stage: 'account_session_resync',
+              source: 'runtime',
+            });
+          },
         });
-        accountStreamTask = (async () => {
-          try {
-            for await (const event of accountStream) {
-              if (accountStreamAbort?.signal.aborted) break;
-              if (!event.snapshot) continue;
-              const eventFailure = accountStateUnavailableReason(event.snapshot);
-              const eventAccountId = readNormalizedString(event.snapshot.accountProjection?.accountId);
-              if (eventFailure || eventAccountId !== accountId) {
-                useAvatarStore.getState().setRuntimeBindingStatus({
-                  status: eventAccountId && eventAccountId !== accountId ? 'revoked' : eventFailure?.status || 'unavailable',
-                  reason: eventAccountId && eventAccountId !== accountId
-                    ? 'runtime_account_switched'
-                    : eventFailure?.reason || 'runtime_account_projection_unavailable',
-                  reasonCode: diagnosticEnumString(event.snapshot.reasonCode),
-                  accountReasonCode: diagnosticEnumString(event.snapshot.accountReasonCode),
-                  actionHint: eventAccountId && eventAccountId !== accountId
-                    ? 'relaunch_avatar_from_desktop'
-                    : eventFailure?.actionHint || 'repair_runtime_account_session',
-                  stage: 'account_session_stream',
-                  source: 'runtime',
-                  retryable: eventFailure?.retryable ?? true,
-                });
-              }
-            }
-          } catch (error) {
-            if (!accountStreamAbort?.signal.aborted) {
-              useAvatarStore.getState().setRuntimeBindingStatus({
-                status: 'unavailable',
-                reason: 'runtime_account_stream_unavailable',
-                reasonCode: readNormalizedString(optionalRecord(error)?.['reasonCode']),
-                actionHint: 'reconnect_desktop_supervised_avatar_session',
-                stage: 'account_session_stream',
-                source: 'runtime',
-                retryable: true,
-              });
-            }
-          }
-        })();
 
         await runFirstPartyStage(
           'realm_connectivity',
@@ -495,16 +481,16 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
           });
         };
         avatarDebug = {
-          snapshot: (input) => runtime!.withAgentScopes(
+          snapshot: (input, callOptions) => runtime!.withAgentScopes(
             ['runtime.agent.avatar_debug.read'],
             (options) => runtimeAgent.avatarDebug.snapshot({
               ownerUserId,
               runtimeSourceRef,
               localAgentRef: input.agentId,
               conversationAnchorId: input.conversationAnchorId,
-            }, options),
+            }, { ...options, ...callOptions }),
           ),
-          requestProbe: (input) => runtime!.withAgentScopes(
+          requestProbe: (input, callOptions) => runtime!.withAgentScopes(
             ['runtime.agent.avatar_debug.write'],
             (options) => runtimeAgent.avatarDebug.requestProbe({
               ownerUserId,
@@ -515,9 +501,9 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
               requestedBy: AvatarDebugRequestedBy.DESKTOP_DEBUG_WORKBENCH,
               replayRequested: true,
               ...(input.avatarInstanceId ? { avatarInstanceId: input.avatarInstanceId } : {}),
-            }, options),
+            }, { ...options, ...callOptions }),
           ),
-          listProbeResults: (input) => runtime!.withAgentScopes(
+          listProbeResults: (input, callOptions) => runtime!.withAgentScopes(
             ['runtime.agent.avatar_debug.read'],
             (options) => runtimeAgent.avatarDebug.listProbeResults({
               ownerUserId,
@@ -525,7 +511,7 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
               localAgentRef: input.agentId,
               conversationAnchorId: input.conversationAnchorId,
               ...(input.probeKind ? { probeKind: input.probeKind } : {}),
-            }, options),
+            }, { ...options, ...callOptions }),
           ),
         };
         const activeDriver = driver;

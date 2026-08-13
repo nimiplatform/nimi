@@ -186,6 +186,38 @@ describe('AudioPipelineController — runtime.artifacts.readArtifactBytes path',
     expect(sink.detachAudioSource).toHaveBeenCalled();
   });
 
+  it('keeps audio playing but exposes lipsync-silent when sink attachment fails', async () => {
+    const fake = createFakeContext();
+    const runtime = createRuntimeMock(async () => ({
+      bytes: bytesOf(1024),
+      mimeType: 'audio/wav',
+      sizeBytes: '1024',
+      mimeInferred: false,
+    }));
+    const sink = createSinkMock();
+    sink.attachAudioSource.mockRejectedValueOnce(new Error('worklet unavailable'));
+    const controller = new AudioPipelineController({
+      audioContextFactory: () => fake.context,
+      logger: { warn: vi.fn(), error: vi.fn() },
+    });
+    controller.setRuntime(runtime as never);
+    controller.registerLipsyncSink(sink);
+    const { snapshots } = recordSnapshots(controller);
+
+    await controller.play({ audioArtifactId: 'artifact-1', audioMimeType: 'audio/wav' });
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(fake.source.stop).not.toHaveBeenCalled();
+    expect(sink.silent).toHaveBeenCalledTimes(1);
+    expect(controller.getSnapshot()).toMatchObject({
+      state: 'started',
+      reason: 'lipsync_sink_failed',
+    });
+    fake.source.onended?.();
+    expect(snapshots.at(-1)).toMatchObject({ state: 'completed', reason: null });
+  });
+
   it('fails closed with `no_runtime` when setRuntime was never called', async () => {
     const sink = createSinkMock();
     const controller = new AudioPipelineController({
@@ -353,6 +385,31 @@ describe('AudioPipelineController — sink registration', () => {
     // Subsequent unregister is a no-op (sink slot already cleared).
     unregister();
     expect(sink.detachAudioSource).toHaveBeenCalledTimes(1);
+  });
+
+  it('exposes lipsync-silent if a late-registered sink cannot attach to active audio', async () => {
+    const fake = createFakeContext();
+    const controller = new AudioPipelineController({
+      audioContextFactory: () => fake.context,
+      logger: { warn: vi.fn(), error: vi.fn() },
+    });
+    await controller.playBytes({
+      audioSourceId: 'runtime-agent-voice-stream://stream/chunks/1',
+      audioMimeType: 'audio/wav',
+      bytes: bytesOf(32),
+    });
+    const sink = createSinkMock();
+    sink.attachAudioSource.mockRejectedValueOnce(new Error('backend unavailable'));
+
+    controller.registerLipsyncSink(sink);
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(sink.silent).toHaveBeenCalledTimes(1);
+    expect(controller.getSnapshot()).toMatchObject({
+      state: 'started',
+      reason: 'lipsync_sink_failed',
+    });
   });
 });
 

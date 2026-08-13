@@ -1,8 +1,11 @@
 package capabilitydriver
 
 import (
+	"encoding/json"
 	"fmt"
+	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
@@ -204,8 +207,18 @@ func (p *SpeechTranscribeInvocationPlan) MIMEType() string {
 
 type SpeechSynthesizeInvocationDriver interface {
 	Driver
+	ListPresetVoices([]InvocationExactBinding) ([]SpeechPresetVoice, error)
 	PlanSpeechSynthesizeInvocation(SpeechSynthesizeInvocationInput) (*SpeechSynthesizeInvocationPlan, error)
 	SpeechStreamMode() SpeechStreamMode
+}
+
+// SpeechPresetVoice is a Runtime-owned projection of one voice admitted by
+// the exact selected local speech model. It contains no provider route or
+// execution target facts.
+type SpeechPresetVoice struct {
+	VoiceID        string
+	Name           string
+	SupportedLangs []string
 }
 
 type SpeechTranscribeInvocationDriver interface {
@@ -232,6 +245,67 @@ type Qwen3TTSDriver struct{}
 func (Qwen3TTSDriver) EffectiveRequestDefaults(*structpb.Struct) map[string]string { return nil }
 
 func (Qwen3TTSDriver) SpeechStreamMode() SpeechStreamMode { return SpeechStreamSimulated }
+
+func (Qwen3TTSDriver) ListPresetVoices(bindings []InvocationExactBinding) ([]SpeechPresetVoice, error) {
+	binding, err := exactQwen3SpeechBinding(bindings, Qwen3TTSModelRequirementID)
+	if err != nil {
+		return nil, invocationError(InvocationFailureInvalidConfig, err)
+	}
+	configPath := filepath.Join(filepath.Dir(binding.AbsolutePath), "config.json")
+	content, err := os.ReadFile(configPath)
+	if err != nil {
+		return nil, invocationError(InvocationFailureInvalidConfig, fmt.Errorf("read qwen3-tts voice catalog: %w", err))
+	}
+	var config struct {
+		TalkerConfig struct {
+			SpeakerIDs  map[string]int `json:"spk_id"`
+			LanguageIDs map[string]int `json:"codec_language_id"`
+		} `json:"talker_config"`
+	}
+	if err := json.Unmarshal(content, &config); err != nil {
+		return nil, invocationError(InvocationFailureInvalidConfig, fmt.Errorf("decode qwen3-tts voice catalog: %w", err))
+	}
+	if len(config.TalkerConfig.SpeakerIDs) == 0 {
+		return nil, invocationError(InvocationFailureInvalidConfig, fmt.Errorf("qwen3-tts voice catalog is empty"))
+	}
+	languages := make([]string, 0, len(config.TalkerConfig.LanguageIDs))
+	for language := range config.TalkerConfig.LanguageIDs {
+		normalized := strings.ReplaceAll(strings.TrimSpace(language), "_", "-")
+		if normalized != "" {
+			languages = append(languages, normalized)
+		}
+	}
+	sort.Strings(languages)
+	voiceIDs := make([]string, 0, len(config.TalkerConfig.SpeakerIDs))
+	for voiceID := range config.TalkerConfig.SpeakerIDs {
+		normalized := strings.TrimSpace(voiceID)
+		if normalized == "" || normalized != voiceID {
+			return nil, invocationError(InvocationFailureInvalidConfig, fmt.Errorf("qwen3-tts voice catalog contains an invalid speaker id"))
+		}
+		voiceIDs = append(voiceIDs, normalized)
+	}
+	sort.Strings(voiceIDs)
+	voices := make([]SpeechPresetVoice, 0, len(voiceIDs))
+	for _, voiceID := range voiceIDs {
+		voices = append(voices, SpeechPresetVoice{
+			VoiceID:        voiceID,
+			Name:           qwen3SpeakerDisplayName(voiceID),
+			SupportedLangs: append([]string(nil), languages...),
+		})
+	}
+	return voices, nil
+}
+
+func qwen3SpeakerDisplayName(voiceID string) string {
+	parts := strings.Split(voiceID, "_")
+	for index, part := range parts {
+		if part == "" {
+			continue
+		}
+		parts[index] = strings.ToUpper(part[:1]) + part[1:]
+	}
+	return strings.Join(parts, " ")
+}
 
 func (Qwen3TTSDriver) Interpret(input InterpretInput) ([]*runtimev1.LocalCapabilityRequirement, runtimev1.LocalCapabilityReason) {
 	return interpretQwen3Speech(input, Qwen3TTSModelRequirementID, "tts", "tts_model", "TTS model")

@@ -199,6 +199,9 @@
       "close_aria": "关闭调试",
       "refresh": "刷新",
       "request_all": "运行全部检查",
+      "cancel_request": "取消检查",
+      "request_canceled": "诊断已取消；伙伴形象和聊天仍可继续使用。",
+      "request_timeout": "诊断调用已超时，请在 Runtime 恢复响应后重试。",
       "loading": "正在加载诊断信息",
       "empty": "暂无检查结果",
       "error_prefix": "调试请求失败",
@@ -245,6 +248,14 @@
     "shell": {
       "companion_aria": "伙伴形象",
       "document_title": "Nimi Avatar"
+    },
+    "runtime_status": {
+      "loading": "伙伴形象正在加载",
+      "ready": "伙伴形象已就绪",
+      "speaking": "伙伴形象正在说话",
+      "voice_failed": "声音播放失败",
+      "lipsync_silent": "声音正在播放，口型已静默",
+      "unavailable": "伙伴形象当前不可用"
     }
   }
 }

@@ -6,6 +6,8 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -13,6 +15,8 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/auditlog"
+	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
+	"github.com/nimiplatform/nimi/runtime/internal/localexecution"
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
 	"github.com/nimiplatform/nimi/runtime/internal/remoteexecution"
 	"github.com/nimiplatform/nimi/runtime/internal/runtimeidentity"
@@ -22,6 +26,51 @@ import (
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
 )
+
+func TestListPresetVoicesUsesSelectedLocalSpeechConfigurationWithoutTargetRef(t *testing.T) {
+	root := t.TempDir()
+	entry := filepath.Join(root, "model.safetensors")
+	if err := os.WriteFile(entry, []byte("model"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(root, "config.json"), []byte(`{
+  "talker_config": {
+    "spk_id": {"serena": 3066, "vivian": 3065},
+    "codec_language_id": {"chinese": 2055, "english": 2050}
+  }
+}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	digest := strings.Repeat("a", 64)
+	service := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
+	service.localExecution = &mutableLocalExecutionResolver{
+		capabilityContract: capabilitydriver.AudioSynthesizeContract,
+		projection: &localexecution.SelectedLocalExecution{
+			ConfigurationID:    "selected-local-tts",
+			CapabilityContract: capabilitydriver.AudioSynthesizeContract,
+			DriverIdentity: &runtimev1.CapabilityImplementationIdentity{
+				ImplementationId: capabilitydriver.Qwen3TTSImplementationID,
+				DriverId:         capabilitydriver.Qwen3TTSDriverID,
+				DriverDialect:    capabilitydriver.Qwen3TTSDriverDialect,
+			},
+			Requirements: []*runtimev1.LocalCapabilityRequirement{{RequirementId: capabilitydriver.Qwen3TTSModelRequirementID}},
+			ExactBindings: []localexecution.ExactBinding{{
+				RequirementID: capabilitydriver.Qwen3TTSModelRequirementID, AssetID: "local.tts.qwen3", LocalAssetID: "asset-1",
+				AbsolutePath: entry, VerifiedContentID: "sha256:" + digest, EntrySHA256: digest,
+			}},
+			Configured: true,
+		},
+	}
+	response, err := service.ListPresetVoices(context.Background(), &runtimev1.ListPresetVoicesRequest{
+		AppId: "nimi.desktop", SubjectUserId: "user-1",
+	})
+	if err != nil {
+		t.Fatalf("ListPresetVoices: %v", err)
+	}
+	if response.GetModelResolved() != "local.tts.qwen3" || len(response.GetVoices()) != 2 || response.GetVoices()[0].GetVoiceId() != "serena" {
+		t.Fatalf("response=%+v", response)
+	}
+}
 
 type staticProvider struct {
 	route runtimev1.RoutePolicy

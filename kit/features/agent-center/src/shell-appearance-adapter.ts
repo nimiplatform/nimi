@@ -12,6 +12,7 @@ import type {
   AgentCenterRuntimePresentationProfilePatch,
   AgentCenterRuntimePresentationProfileSurface,
   AgentCenterRuntimeSnapshot,
+  AgentCenterVoiceCatalogProjection,
 } from './types.js';
 
 export interface AgentCenterShellAppearanceBridgeScope {
@@ -47,6 +48,10 @@ export interface CreateAgentCenterShellAppearanceAdapterInput {
     readonly previousProfile: NimiRuntimeAgentPresentationProfileProjection | null;
     readonly committedRevision: string | null;
   }>;
+  readonly loadVoiceCatalog?: () => Promise<AgentCenterVoiceCatalogProjection>;
+  readonly onPresentationCommitted?: (
+    result: AgentCenterRuntimePresentationProfileMutationResult,
+  ) => void;
 }
 
 const EMPTY_PROFILE: NimiRuntimeAgentPresentationProfileProjection = {
@@ -68,6 +73,9 @@ export function createAgentCenterShellAppearanceAdapter(
   let committedRevision = input.snapshot?.inspect?.presentationProfileRevision ?? null;
   let currentMaterialRef: string | null = null;
   let previousMaterialRef: string | null = null;
+  let voiceCatalog: AgentCenterVoiceCatalogProjection = {
+    state: 'unavailable', sourceLabel: null, options: [], message: 'Runtime voice catalog has not been loaded.',
+  };
   let transactionTail: Promise<void> = Promise.resolve();
 
   const enqueue = <T>(operation: () => Promise<T>): Promise<T> => {
@@ -90,6 +98,7 @@ export function createAgentCenterShellAppearanceAdapter(
     committedProfile = result.profile || EMPTY_PROFILE;
     committedRevision = result.committedRevision;
     currentMaterialRef = materialRef;
+    input.onPresentationCommitted?.(result);
   };
 
   const project = () => projectCommittedAppearance({
@@ -101,6 +110,7 @@ export function createAgentCenterShellAppearanceAdapter(
     identity: input.identity,
     accountId: scope().accountId,
     shellAvailable: Boolean(input.shell),
+    voiceCatalog,
   });
 
   const refresh = async (): Promise<AgentCenterAppearanceProjection> => {
@@ -111,6 +121,18 @@ export function createAgentCenterShellAppearanceAdapter(
       committedRevision = projection.committedRevision;
       if (committedProfile.avatarAssetRef && previousProfile?.avatarAssetRef === committedProfile.avatarAssetRef) {
         currentMaterialRef = previousMaterialRef;
+      }
+    }
+    if (input.loadVoiceCatalog) {
+      try {
+        voiceCatalog = await input.loadVoiceCatalog();
+      } catch (error) {
+        voiceCatalog = {
+          state: 'unavailable',
+          sourceLabel: null,
+          options: [],
+          message: error instanceof Error ? error.message : String(error),
+        };
       }
     }
     return project();
@@ -178,6 +200,25 @@ export function createAgentCenterShellAppearanceAdapter(
         return project();
       });
     },
+    setDefaultVoice(reference: string) {
+      return enqueue(async () => {
+        if (committedRevision === null) {
+          throw new Error('Agent Center Runtime presentation revision is unavailable.');
+        }
+        const normalized = reference.trim();
+        if (normalized !== reference || voiceCatalog.state !== 'ready'
+          || !voiceCatalog.options.some((option) => option.reference === normalized)) {
+          throw new Error('The selected voice is not present in the current Runtime voice catalog.');
+        }
+        const result = await input.runtimePresentation.patchPresentationProfile(
+          input.identity,
+          { defaultVoiceReference: normalized },
+          committedRevision,
+        );
+        adopt(result, currentMaterialRef);
+        return project();
+      });
+    },
   };
 }
 
@@ -205,6 +246,7 @@ async function projectCommittedAppearance(input: {
   readonly identity: RuntimeLocalAgentIdentityInput;
   readonly accountId: string;
   readonly shellAvailable: boolean;
+  readonly voiceCatalog: AgentCenterVoiceCatalogProjection;
 }): Promise<AgentCenterAppearanceProjection> {
   const avatarAssetRef = input.profile.avatarAssetRef || null;
   const backendKind = input.profile.backendKind;
@@ -217,6 +259,7 @@ async function projectCommittedAppearance(input: {
     validationStatus: avatarAssetRef ? 'committed' : null,
     backgroundRef: input.profile.backgroundAssetRef,
     defaultVoiceReference: input.profile.defaultVoiceReference,
+    voiceCatalog: input.voiceCatalog,
     avatarAutoplay: input.profile.avatarAutoplay,
     avatarImportDisabled: !input.shellAvailable,
     disabledReasonCode: avatarAssetRef ? null : 'avatar-not-configured',
@@ -229,14 +272,22 @@ async function projectCommittedAppearance(input: {
     renderWarnings: [],
   };
   if (!avatarAssetRef) return base;
-  if ((backendKind !== 'live2d' && backendKind !== 'vrm') || !input.avatarPreview || !input.materialRef) {
+  if (!input.materialRef) {
+    return {
+      ...base,
+      status: 'ready',
+      renderState: 'unavailable',
+      renderUnavailableReasonCode: 'preview-not-running',
+      renderFailureReason: null,
+    };
+  }
+  if ((backendKind !== 'live2d' && backendKind !== 'vrm') || !input.avatarPreview) {
     return {
       ...base,
       status: 'invalid',
       renderState: 'unavailable',
-      renderFailureReason: !input.materialRef
-        ? 'Committed appearance material is not available to the Avatar renderer.'
-        : 'Avatar committed-effect renderer is unavailable.',
+      renderUnavailableReasonCode: 'renderer-unavailable',
+      renderFailureReason: 'Avatar committed-effect renderer is unavailable.',
     };
   }
   try {

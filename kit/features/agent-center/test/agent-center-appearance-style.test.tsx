@@ -29,7 +29,8 @@ describe('AgentCenter committed appearance surface', () => {
     });
     const markup = renderToStaticMarkup(<AgentCenter activeSection="appearance" session={session} />);
     expect(markup).toContain('data-agent-center-appearance-live-view="unavailable"');
-    expect(markup).toContain('unsupported committed backend');
+    expect(markup).toContain('The embedded Avatar preview is currently unavailable.');
+    expect(markup).not.toContain('unsupported committed backend');
     expect(markup).toMatch(/disabled=""/u);
   });
 

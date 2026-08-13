@@ -41,6 +41,7 @@ import {
 import {
   getSharedAudioPipelineController,
   getSharedVoiceLipsyncStateBus,
+  type AudioPlaybackSnapshot,
 } from '@nimiplatform/kit/features/avatar/headless';
 import {
   readAvatarShellSettings,
@@ -52,6 +53,10 @@ import { useAvatarShellScale } from './use-avatar-shell-scale.js';
 import { useAvatarShellOverlays } from './use-avatar-shell-overlays.js';
 import { hasAvatarHostRuntime } from './app-shell/avatar-host-bridge.js';
 import { installAvatarAgentCenterPreviewHandoff } from './agent-center-preview/agent-center-preview-handoff.js';
+import {
+  AvatarRuntimeStatusRegion,
+  deriveAvatarRuntimeStatus,
+} from './avatar-runtime-status.js';
 
 export function App() {
   const [bootstrapError, setBootstrapError] = useState<string | null>(null);
@@ -59,6 +64,9 @@ export function App() {
   const [bootstrapHandle, setBootstrapHandle] = useState<BootstrapHandle | null>(null);
   const [companion, setCompanion] = useState(initialCompanionState);
   const [voice, setVoice] = useState(initialVoiceCompanionState);
+  const [audioPlayback, setAudioPlayback] = useState<AudioPlaybackSnapshot>(() =>
+    getSharedAudioPipelineController().getSnapshot(),
+  );
   const [shellSettings, setShellSettings] = useState<AvatarShellSettings>(() =>
     readAvatarShellSettings(),
   );
@@ -148,6 +156,7 @@ export function App() {
       });
     });
     const unsubscribeAudio = audio.subscribe((snapshot) => {
+      setAudioPlayback(snapshot);
       setVoice((current) => setAudioPlaybackState(current, snapshot.state));
     });
     return () => {
@@ -480,17 +489,33 @@ export function App() {
     `avatar-root--${composition.variant}`,
     `avatar-root--${ambient}`,
   );
+  const runtimeStatus = deriveAvatarRuntimeStatus({
+    compositionReady: composition.ready,
+    compositionState: composition.state,
+    audio: audioPlayback,
+  });
 
   if (!composition.ready) {
     return (
-      <div className={shellClass} data-testid="avatar-root" data-composition={composition.state}>
+      <div
+        className={shellClass}
+        data-testid="avatar-root"
+        data-composition={composition.state}
+        data-avatar-status={runtimeStatus}
+      >
         <DegradedSurface composition={composition} />
+        <AvatarRuntimeStatusRegion status={runtimeStatus} />
       </div>
     );
   }
 
   return (
-    <div className={shellClass} data-testid="avatar-root" data-composition={composition.state}>
+    <div
+      className={shellClass}
+      data-testid="avatar-root"
+      data-composition={composition.state}
+      data-avatar-status={runtimeStatus}
+    >
       <EmbodimentStage
         backend={bootstrapHandle?.carrier?.backend ?? null}
         windowSize={shell.windowSize ?? { width: 400, height: 600 }}
@@ -502,6 +527,7 @@ export function App() {
         interactionModality={interactionModality}
         onFocusVisibleChange={setFocusVisibleWithinStage}
       />
+      <AvatarRuntimeStatusRegion status={runtimeStatus} />
       {overlayNodes}
     </div>
   );

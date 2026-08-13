@@ -119,10 +119,24 @@ export class AudioPipelineController {
     }
     this.sink = consumer;
     if (this.currentSource && this.context) {
-      void consumer.attachAudioSource(this.currentSource, this.context).catch((err) => {
+      const source = this.currentSource;
+      const context = this.context;
+      void consumer.attachAudioSource(source, context).catch((err) => {
         this.logger.warn('audio_sink_attach_failed_on_register', {
           error: errorMessage(err),
         });
+        consumer.silent();
+        if (
+          this.sink === consumer
+          && this.currentSource === source
+          && this.context === context
+          && this.snapshot.state === 'started'
+        ) {
+          this.publish({
+            ...this.snapshot,
+            reason: 'lipsync_sink_failed',
+          });
+        }
       });
     }
     return () => {
@@ -416,12 +430,23 @@ export class AudioPipelineController {
       // attachAudioSource is async (lazy createWLipSyncNode on first call).
       // Failure inside the sink is bounded: lipsync goes silent, audio
       // playback continues unimpeded.
-      void this.sink.attachAudioSource(source, context).catch((err) => {
+      const sink = this.sink;
+      void sink.attachAudioSource(source, context).catch((err) => {
         this.logger.warn('audio_sink_attach_failed', {
           ...input.logFields,
           error: errorMessage(err),
         });
-        this.sink?.silent();
+        sink.silent();
+        if (
+          this.playId === playId
+          && this.currentSource === source
+          && this.snapshot.state === 'started'
+        ) {
+          this.publish({
+            ...this.snapshot,
+            reason: 'lipsync_sink_failed',
+          });
+        }
       });
     }
   }

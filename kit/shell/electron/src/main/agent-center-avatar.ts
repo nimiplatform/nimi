@@ -13,6 +13,7 @@ import {
   invalidPayload,
   kindFromAvatarRef,
   notFound,
+  operationTimedOut,
   parseAvatarAssetRef,
   parseBackendKind,
   parseLocalAgentScope,
@@ -45,6 +46,7 @@ type SourceFile = {
 };
 
 const MAX_LIVE2D_ADAPTER_MANIFEST_BYTES = 262_144;
+const AVATAR_MATERIAL_READ_TIMEOUT_MS = 30_000;
 
 export async function importAvatarAsset(
   host: NimiElectronStandardShellHost | undefined,
@@ -61,7 +63,24 @@ export async function importAvatarAsset(
       ? 'VRM material must be a selected .vrm file.'
       : 'Live2D material must be a selected .zip package.');
   }
-  const content = await readFile(source);
+  const controller = new AbortController();
+  const timeout = setTimeout(() => {
+    controller.abort(new DOMException('Avatar material read timed out', 'TimeoutError'));
+  }, AVATAR_MATERIAL_READ_TIMEOUT_MS);
+  let content: Buffer;
+  try {
+    content = await readFile(source, { signal: controller.signal });
+  } catch (error) {
+    if (controller.signal.aborted) {
+      throw operationTimedOut(
+        command,
+        `Avatar material read exceeded ${AVATAR_MATERIAL_READ_TIMEOUT_MS}ms and was canceled.`,
+      );
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeout);
+  }
   if (content.byteLength === 0 || content.byteLength > 64 * 1024 * 1024) {
     throw invalidPayload(command, 'Avatar material is outside the bounded Runtime intake size.');
   }

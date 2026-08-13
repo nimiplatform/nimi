@@ -46,7 +46,8 @@ const EN = {
   restore: 'Restore previous appearance',
   restoring: 'Restoring previous appearance…',
   restored: 'Previous appearance restored as a new commit.',
-  noRenderer: 'The committed appearance has no current render output.',
+  noRenderer: 'No embedded preview is running. Launch Avatar to view the committed appearance.',
+  rendererUnavailable: 'The embedded Avatar preview is currently unavailable. The committed profile is unchanged.',
 } as const;
 
 function message(error: unknown): { message: string; reasonCode: string } {
@@ -78,7 +79,7 @@ export function AgentCenterAppearanceSection({ session, snapshot, i18n }: AgentC
     defaultVoiceDescription: translateAgentCenter(
       i18n,
       'AgentCenter.appearance.defaultVoiceDescription',
-      'Read-only Runtime presentation reference.',
+      'Choose the Runtime-owned default voice for this Agent.',
     ),
     defaultVoiceUnset: translateAgentCenter(i18n, 'AgentCenter.appearance.defaultVoiceUnset', 'Not configured'),
     avatarAutoplayLabel: translateAgentCenter(i18n, 'AgentCenter.appearance.avatarAutoplayLabel', 'Avatar autoplay'),
@@ -89,12 +90,26 @@ export function AgentCenterAppearanceSection({ session, snapshot, i18n }: AgentC
     ),
     enableLabel: translateAgentCenter(i18n, 'AgentCenter.appearance.enableLabel', 'Enable'),
     disableLabel: translateAgentCenter(i18n, 'AgentCenter.appearance.disableLabel', 'Disable'),
+    catalogLabel: translateAgentCenter(i18n, 'AgentCenter.appearance.voiceCatalogLabel', 'Runtime voice catalog'),
+    catalogDescription: translateAgentCenter(
+      i18n,
+      'AgentCenter.appearance.voiceCatalogDescription',
+      'Machine TTS configuration selects the engine. This setting selects this Agent’s default voice.',
+    ),
+    catalogUnavailable: translateAgentCenter(i18n, 'AgentCenter.appearance.voiceCatalogUnavailable', 'Runtime voice catalog is unavailable.'),
+    catalogEmpty: translateAgentCenter(i18n, 'AgentCenter.appearance.voiceCatalogEmpty', 'No voice is available for the selected machine TTS configuration.'),
+    retryLabel: translateAgentCenter(i18n, 'AgentCenter.appearance.retryLabel', 'Retry'),
   }), [i18n]);
   const actionAvailable = availability.state === 'available';
   const canReplace = actionAvailable && Boolean(session.appearance.replaceAvatar);
   const canRestore = snapshot.availability.restorePreviousAppearance.state === 'available'
     && Boolean(appearance.previousSelection);
   const hasDefaultVoice = Boolean(appearance.defaultVoiceReference?.trim());
+  const voiceCatalog = appearance.voiceCatalog;
+  const voiceOptions = voiceCatalog?.state === 'ready' ? voiceCatalog.options : [];
+  const canSetDefaultVoice = actionAvailable
+    && Boolean(session.appearance.setDefaultVoice)
+    && voiceOptions.length > 0;
   const canToggleAutoplay = actionAvailable
     && Boolean(session.appearance.setAvatarAutoplay)
     && (appearance.avatarAutoplay || hasDefaultVoice);
@@ -108,7 +123,9 @@ export function AgentCenterAppearanceSection({ session, snapshot, i18n }: AgentC
     try {
       await session.appearance.replaceAvatar(kind);
       const committed = session.getSnapshot().state.appearance;
-      setOperation(committed.renderState === 'failed' || committed.renderState === 'unavailable'
+      setOperation(committed.renderState === 'failed'
+        || (committed.renderState === 'unavailable'
+          && committed.renderUnavailableReasonCode !== 'preview-not-running')
         ? { state: 'render-failed', message: copy.savedRenderFailed }
         : { state: 'saved', message: copy.saved });
     } catch (error) {
@@ -141,6 +158,21 @@ export function AgentCenterAppearanceSection({ session, snapshot, i18n }: AgentC
       setOperation({ state: 'validation-failed', reasonCode: failure.reasonCode, message: failure.message });
     }
   };
+  const setDefaultVoice = async (reference: string) => {
+    if (!session.appearance.setDefaultVoice) return;
+    setOperation({ state: 'saving', message: copy.saving });
+    try {
+      await session.appearance.setDefaultVoice(reference);
+      setOperation({ state: 'saved', message: copy.saved });
+    } catch (error) {
+      const failure = message(error);
+      setOperation({ state: 'validation-failed', reasonCode: failure.reasonCode, message: failure.message });
+    }
+  };
+  const previewNotRunning = appearance.renderState === 'unavailable'
+    && appearance.renderUnavailableReasonCode === 'preview-not-running';
+  const renderFailed = appearance.renderState === 'failed'
+    || (appearance.renderState === 'unavailable' && !previewNotRunning);
 
   return (
     <SectionShell labelledBy="agent-center-appearance-title">
@@ -166,7 +198,9 @@ export function AgentCenterAppearanceSection({ session, snapshot, i18n }: AgentC
               ) : (
                 <div className="grid max-w-[180px] gap-2 text-center text-[11px] leading-4 text-slate-500">
                   <ImageIcon aria-hidden="true" className="mx-auto h-10 w-10 text-emerald-300" />
-                  <span>{appearance.avatarAssetRef ? (appearance.renderFailureReason || copy.noRenderer) : copy.empty}</span>
+                  <span>{appearance.avatarAssetRef
+                    ? (previewNotRunning ? copy.noRenderer : renderFailed ? copy.rendererUnavailable : copy.noRenderer)
+                    : copy.empty}</span>
                 </div>
               )}
               <span className="absolute bottom-3 rounded-full bg-white/85 px-2 py-1 text-[10px] font-semibold text-emerald-700">
@@ -189,9 +223,7 @@ export function AgentCenterAppearanceSection({ session, snapshot, i18n }: AgentC
               <AgentButton disabled={!canReplace || operation.state === 'saving'} onClick={() => choose('vrm')}>
                 <Box className="h-4 w-4" /> {copy.replaceVrm}
               </AgentButton>
-              {(operation.state === 'render-failed'
-                || (appearance.avatarAssetRef
-                  && (appearance.renderState === 'failed' || appearance.renderState === 'unavailable')))
+              {(operation.state === 'render-failed' || (appearance.avatarAssetRef && renderFailed))
                 && canRestore ? (
                 <AgentButton onClick={() => void restore()}>
                   <RotateCcw className="h-4 w-4" /> {copy.restore}
@@ -210,13 +242,34 @@ export function AgentCenterAppearanceSection({ session, snapshot, i18n }: AgentC
           >
             <h3 className="m-0 text-[15px] font-semibold text-slate-950">{voiceCopy.defaultVoiceTitle}</h3>
             <p className="m-0 text-[11px] leading-5 text-slate-500">{voiceCopy.defaultVoiceDescription}</p>
-            <span
-              className="truncate font-mono text-[11px] text-slate-600"
-              data-agent-center-default-voice-reference={appearance.defaultVoiceReference || ''}
-              title={appearance.defaultVoiceReference || voiceCopy.defaultVoiceUnset}
-            >
-              {appearance.defaultVoiceReference || voiceCopy.defaultVoiceUnset}
-            </span>
+            <label className="mt-2 grid gap-1 text-[12px] font-semibold text-slate-700">
+              <span>{voiceCopy.catalogLabel}</span>
+              <select
+                aria-label={voiceCopy.catalogLabel}
+                className="min-h-10 rounded-lg border border-slate-200 bg-white px-3 text-[13px] text-slate-800 outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+                data-agent-center-default-voice-reference={appearance.defaultVoiceReference || ''}
+                disabled={!canSetDefaultVoice || operation.state === 'saving'}
+                onChange={(event) => void setDefaultVoice(event.currentTarget.value)}
+                value={appearance.defaultVoiceReference || ''}
+              >
+                {!hasDefaultVoice ? <option value="">{voiceCopy.defaultVoiceUnset}</option> : null}
+                {voiceOptions.map((voice) => (
+                  <option key={voice.reference} value={voice.reference}>
+                    {voice.name} · {voice.kind === 'preset_voice_id' ? 'Preset' : 'Voice asset'}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <p className="m-0 text-[11px] leading-5 text-slate-500">{voiceCopy.catalogDescription}</p>
+            {voiceCatalog?.state === 'ready' && voiceOptions.length === 0 ? (
+              <Notice tone="warn">{voiceCopy.catalogEmpty}</Notice>
+            ) : null}
+            {voiceCatalog?.state === 'unavailable' ? (
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span className="text-[11px] text-amber-700">{voiceCopy.catalogUnavailable}</span>
+                <AgentButton onClick={() => void session.refresh()}>{voiceCopy.retryLabel}</AgentButton>
+              </div>
+            ) : null}
           </div>
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="grid gap-1">
@@ -235,8 +288,8 @@ export function AgentCenterAppearanceSection({ session, snapshot, i18n }: AgentC
           </div>
         </Card>
 
-        {appearance.avatarAssetRef && (appearance.renderState === 'failed' || appearance.renderState === 'unavailable') ? (
-          <Notice tone="warn"><strong>{copy.savedRenderFailed}</strong> {appearance.renderFailureReason}</Notice>
+        {appearance.avatarAssetRef && renderFailed ? (
+          <Notice tone="warn"><strong>{copy.savedRenderFailed}</strong> {copy.rendererUnavailable}</Notice>
         ) : null}
         {operation.message ? (
           <Notice ariaLive="polite" tone={operation.state === 'validation-failed' || operation.state === 'render-failed' ? 'warn' : 'info'}>

@@ -906,10 +906,16 @@ describe('App context menu overlay', () => {
     expect(await screen.findByTestId('avatar-debug-overlay')).toBeTruthy();
     expect(screen.queryByTestId('avatar-context-menu')).toBeNull();
     await waitFor(() => {
-      expect(avatarDebug.snapshot).toHaveBeenCalledWith({
-        agentId: 'local-agent:owner-product:agent-product-01',
-        conversationAnchorId: 'anchor-01',
-      });
+      expect(avatarDebug.snapshot).toHaveBeenCalledWith(
+        {
+          agentId: 'local-agent:owner-product:agent-product-01',
+          conversationAnchorId: 'anchor-01',
+        },
+        expect.objectContaining({
+          signal: expect.any(AbortSignal),
+          timeoutMs: 10_000,
+        }),
+      );
     });
     expect(screen.getByText('Backend load')).toBeTruthy();
     expect(screen.getByText('Blocked')).toBeTruthy();
@@ -959,6 +965,50 @@ describe('App context menu overlay', () => {
     expect(probeKinds).not.toContain(AvatarDebugProbeKind.LAUNCH_READINESS);
     expect(handle.requestCompanionParticipation).not.toHaveBeenCalled();
     expect(handle.startVoiceCapture).not.toHaveBeenCalled();
+  });
+
+  it('cancels only the active diagnostic RPC and keeps the Avatar surface ready', async () => {
+    const avatarDebug = createAvatarDebugFacade();
+    const requestSignal: { current: AbortSignal | null } = { current: null };
+    (avatarDebug.requestProbe as ReturnType<typeof vi.fn>).mockImplementation(
+      (_input: unknown, options?: { signal?: AbortSignal }) => new Promise((_resolve, reject) => {
+        requestSignal.current = options?.signal ?? null;
+        requestSignal.current?.addEventListener('abort', () => {
+          reject(new DOMException('diagnostic canceled', 'AbortError'));
+        }, { once: true });
+      }),
+    );
+    bootstrapAvatarMock.mockResolvedValue(createBootstrapHandle({ avatarDebug }));
+
+    render(<App />);
+    act(() => {
+      seedReadyState();
+    });
+    const stage = await screen.findByTestId('avatar-embodiment-stage');
+    fireEvent.pointerDown(stage, {
+      button: 2,
+      buttons: 2,
+      pointerId: 331,
+      clientX: 140,
+      clientY: 180,
+    });
+    fireEvent.click(await screen.findByTestId('avatar-context-menu-item-debug'));
+    await screen.findByTestId('avatar-debug-overlay');
+    fireEvent.click(screen.getByTestId('avatar-debug-overlay-request-probes'));
+
+    await waitFor(() => {
+      expect(avatarDebug.requestProbe).toHaveBeenCalledTimes(1);
+      expect(screen.getByText('Cancel checks')).toBeTruthy();
+    });
+    fireEvent.click(screen.getByTestId('avatar-debug-overlay-request-probes'));
+
+    await waitFor(() => {
+      expect(screen.getByRole('alert').textContent).toContain('Diagnostics were canceled');
+    });
+    expect(requestSignal.current?.aborted).toBe(true);
+    expect(screen.getByTestId('avatar-root').getAttribute('data-composition')).toBe('ready');
+    expect(screen.getByTestId('avatar-embodiment-stage')).toBeTruthy();
+    expect(avatarDebug.requestProbe).toHaveBeenCalledTimes(1);
   });
 
   it('dismisses debug overlay by Escape and outside click', async () => {

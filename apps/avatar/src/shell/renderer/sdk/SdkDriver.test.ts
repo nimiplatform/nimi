@@ -244,22 +244,28 @@ describe('SdkDriver', () => {
     }
   });
 
-  it('fails closed when the runtime event stream ends unexpectedly', async () => {
+  it('resyncs from a fresh Runtime snapshot when the event stream ends unexpectedly', async () => {
     async function* closedStream() {
       return;
     }
+    async function* recoveredStream() {
+      await new Promise(() => {});
+    }
 
+    let snapshotCall = 0;
+    let subscribeCall = 0;
     const runtimeAgent = {
       turns: {
         getSessionSnapshot: async () => ({
           sessionStatus: 'active',
-          transcriptMessageCount: 0,
+          transcriptMessageCount: snapshotCall++ === 0 ? 0 : 7,
         }),
-        subscribe: async () => closedStream(),
+        subscribe: async () => subscribeCall++ === 0 ? closedStream() : recoveredStream(),
       },
     } as const;
 
     const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    vi.useFakeTimers();
     const driver = new SdkDriver({
       runtimeAgent: runtimeAgent as never,
       ...LOCAL_IDENTITY,
@@ -270,10 +276,17 @@ describe('SdkDriver', () => {
     });
 
     await driver.start();
-    await waitForTasks();
+    await vi.advanceTimersByTimeAsync(250);
 
-    expect(driver.status).toBe('error');
-    expect(driver.getLastError()).toBe('avatar runtime event stream closed unexpectedly');
+    expect(driver.status).toBe('running');
+    expect(driver.getLastError()).toBeNull();
+    expect(driver.getBundle().custom).toEqual(expect.objectContaining({
+      transcript_message_count: 7,
+    }));
+    expect(snapshotCall).toBe(2);
+    expect(subscribeCall).toBe(2);
+    await driver.stop();
+    vi.useRealTimers();
     errorSpy.mockRestore();
   });
 

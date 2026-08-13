@@ -199,6 +199,9 @@
       "close_aria": "Close debug",
       "refresh": "Refresh",
       "request_all": "Run all checks",
+      "cancel_request": "Cancel checks",
+      "request_canceled": "Diagnostics were canceled. Avatar and chat remain available.",
+      "request_timeout": "Diagnostics timed out. Retry when the Runtime is responsive.",
       "loading": "Loading diagnostics",
       "empty": "No check results yet",
       "error_prefix": "Debug request failed",
@@ -245,6 +248,14 @@
     "shell": {
       "companion_aria": "Agent avatar",
       "document_title": "Nimi Avatar"
+    },
+    "runtime_status": {
+      "loading": "Avatar loading",
+      "ready": "Avatar ready",
+      "speaking": "Avatar speaking",
+      "voice_failed": "Voice playback failed",
+      "lipsync_silent": "Audio playing without lip sync",
+      "unavailable": "Avatar unavailable"
     }
   }
 }

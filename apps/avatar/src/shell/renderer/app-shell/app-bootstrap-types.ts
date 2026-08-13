@@ -56,18 +56,23 @@ export type BootstrapHandle = {
     snapshot(input: {
       agentId: string;
       conversationAnchorId: string;
-    }): Promise<GetAvatarDebugSnapshotResponse>;
+    }, options?: AvatarDebugCallOptions): Promise<GetAvatarDebugSnapshotResponse>;
     requestProbe(input: {
       agentId: string;
       conversationAnchorId: string;
       probeKind: AvatarDebugProbeKind;
       avatarInstanceId?: string | null;
-    }): Promise<RequestAvatarDebugProbeResponse>;
+    }, options?: AvatarDebugCallOptions): Promise<RequestAvatarDebugProbeResponse>;
     listProbeResults(input: {
       agentId: string;
       conversationAnchorId: string;
       probeKind?: AvatarDebugProbeKind;
-    }): Promise<ListAvatarDebugProbeResultsResponse>;
+    }, options?: AvatarDebugCallOptions): Promise<ListAvatarDebugProbeResultsResponse>;
   } | null;
   shutdown(): Promise<void>;
+};
+
+export type AvatarDebugCallOptions = {
+  readonly signal?: AbortSignal;
+  readonly timeoutMs?: number;
 };

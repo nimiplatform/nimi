@@ -87,6 +87,8 @@ export const NIMI_ELECTRON_FIRST_PARTY_PROTECTED_RUNTIME_PROFILES = {
       "/nimi.runtime.v1.RuntimeAiService/CancelScenarioJob": { kind: "unary" },
       "/nimi.runtime.v1.RuntimeAiService/SubscribeScenarioJobEvents": { kind: "server_stream" },
       "/nimi.runtime.v1.RuntimeAiService/GetScenarioArtifacts": { kind: "unary" },
+      "/nimi.runtime.v1.RuntimeAiService/ListPresetVoices": { kind: "unary" },
+      "/nimi.runtime.v1.RuntimeAiService/ListVoiceAssets": { kind: "unary" },
       "/nimi.runtime.v1.RuntimeAgentService/MaterializeRealmSource": { kind: "unary" },
       "/nimi.runtime.v1.RuntimeAgentService/ListAgents": { kind: "unary" },
       "/nimi.runtime.v1.RuntimeAgentService/GetAgent": { kind: "unary" },

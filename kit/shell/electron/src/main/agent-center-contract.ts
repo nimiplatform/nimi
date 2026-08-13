@@ -230,6 +230,16 @@ export function invalidAsset(command: string, message: string): NimiElectronShel
   });
 }
 
+export function operationTimedOut(command: string, message: string): NimiElectronShellHostError {
+  return new NimiElectronShellHostError({
+    code: 'resource-exhausted',
+    message,
+    reasonCode: 'electron-agent-center-operation-timeout',
+    actionHint: 'retry_agent_center_operation',
+    details: { command },
+  });
+}
+
 export function notFound(command: string, message: string): NimiElectronShellHostError {
   return new NimiElectronShellHostError({
     code: 'not-found',

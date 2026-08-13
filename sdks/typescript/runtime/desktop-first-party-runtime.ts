@@ -141,7 +141,11 @@ export type NimiDesktopAccountProductRuntimeClient = {
 
 /** Exact Desktop Scenario execution methods exercised by active product consumers. */
 export type NimiDesktopRuntimeAiExecutionClient = NimiRuntimeScenarioJobClient
-  & Pick<DesktopAccountProductRuntimeMethods, 'executeScenario' | 'streamScenario'>;
+  & Pick<DesktopAccountProductRuntimeMethods,
+    | 'executeScenario'
+    | 'streamScenario'
+    | 'listPresetVoices'
+    | 'listVoiceAssets'>;
 
 /** Exact Agent methods exercised by active Desktop product consumers. */
 export type NimiDesktopRuntimeAgentPurposeClient =
@@ -364,6 +368,8 @@ export function createNimiDesktopFirstPartyRuntimeClients(
       cancelScenarioJob: runtime.ai.cancelScenarioJob,
       subscribeScenarioJobEvents: runtime.ai.subscribeScenarioJobEvents,
       getScenarioArtifacts: runtime.ai.getScenarioArtifacts,
+      listPresetVoices: runtime.ai.listPresetVoices,
+      listVoiceAssets: runtime.ai.listVoiceAssets,
     }),
     agentPurpose,
   });
