@@ -28,7 +28,6 @@ export function resolveElectronAiProfile(
     dependencyFamilyRefs: [...row.dependencyFamilyRefs],
     materializationConfirmationRequired: row.materializationConfirmationRequired,
     applicableScopes: [...row.applicableScopes],
-    firstRunInstallLevels: [...row.firstRunInstallLevels],
     sourceRule: row.sourceRule,
   };
 }

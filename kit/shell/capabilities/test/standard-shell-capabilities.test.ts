@@ -14,7 +14,6 @@ import {
   getNimiStandardShellCommand,
   isNimiStandardShellErrorEnvelope,
   resolveNimiFactoryAiProfileAlias,
-  verifyNimiFirstRunFactoryAiProfile,
 } from '../src/index.js';
 
 function findRepoRoot(start = process.cwd()): string {
@@ -300,9 +299,41 @@ describe('standard shell capabilities', () => {
 
   it('exports the Platform factory AI Profile catalog projection for shell hosts', () => {
     const catalog = readFileSync(aiProfileCatalogPath, 'utf8');
-    expect(NIMI_PLATFORM_AI_PROFILE_FACTORY_ROWS.map((row) => row.alias)).toEqual(readAiProfileAliases(catalog));
+    const aliases = NIMI_PLATFORM_AI_PROFILE_FACTORY_ROWS.map((row) => row.alias);
+    expect(aliases).toEqual([
+      'cloud-first',
+      'local-standard',
+      'local-speech',
+      'local-gpu',
+      'hybrid-recommended',
+    ]);
+    expect(aliases).toEqual(readAiProfileAliases(catalog));
     expect(Object.fromEntries(NIMI_PLATFORM_AI_PROFILE_FACTORY_ROWS.map((row) => [row.alias, [...row.capabilitySet]])))
       .toEqual(readAiProfileCapabilitySets(catalog));
+
+    const speech = resolveNimiFactoryAiProfileAlias('local-speech');
+    expect(speech?.capabilitySet).toEqual([
+      'text.generate',
+      'audio.transcribe',
+      'audio.synthesize',
+    ]);
+    expect(speech?.applicableScopes).toEqual(['first-party-app', 'scope-bound-apply']);
+    expect(Object.keys(speech ?? {})).toEqual([
+      'alias',
+      'privacyPosture',
+      'computePosture',
+      'capabilitySet',
+      'routingPolicy',
+      'hostCapabilityProfileRefs',
+      'localComputePackRefs',
+      'dependencyFamilyRefs',
+      'materializationConfirmationRequired',
+      'applicableScopes',
+      'sourceRule',
+    ]);
+    expect(JSON.stringify(speech).toLowerCase()).not.toMatch(/ready|install|binding|selection|probe/u);
+    expect(catalog).not.toContain(['first', 'run'].join('-'));
+    expect(catalog).not.toContain(['first', 'run', 'install', 'levels'].join('_'));
 
     const gpu = resolveNimiFactoryAiProfileAlias(' local-gpu ');
     expect(gpu).toMatchObject({
@@ -313,10 +344,7 @@ describe('standard shell capabilities', () => {
     });
     expect(gpu?.capabilitySet).toContain('image.generate');
     expect(resolveNimiFactoryAiProfileAlias('missing')).toBeUndefined();
-
-    expect(verifyNimiFirstRunFactoryAiProfile('local-speech-ready', 'minimal')?.alias).toBe('local-speech-ready');
-    expect(() => verifyNimiFirstRunFactoryAiProfile('cloud-first', 'minimal')).toThrow(/first-run|local first-run/u);
-    expect(() => verifyNimiFirstRunFactoryAiProfile('local-gpu', 'minimal')).toThrow(/install level/u);
+    expect(resolveNimiFactoryAiProfileAlias(['local', 'speech', 'ready'].join('-'))).toBeUndefined();
   });
 
   it('builds the standard factory profile index from the admitted factory catalog', () => {
@@ -333,9 +361,16 @@ describe('standard shell capabilities', () => {
     expect(record.profiles).toHaveLength(NIMI_PLATFORM_AI_PROFILE_FACTORY_ROWS.length);
     expect(record.profiles.find((profile) => profile.alias === 'local-gpu')).toMatchObject({
       profileRef: 'factory-ai-profile:v1:local-gpu',
-      mode: 'recommended',
       deviceClass: 'gpu-recommended',
     });
+    expect(Object.keys(record.profiles[0] ?? {})).toEqual([
+      'profileRef',
+      'alias',
+      'os',
+      'deviceClass',
+      'capabilities',
+      'applicableScopes',
+    ]);
   });
 
   it('builds standard platform projections by projection id', () => {

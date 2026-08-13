@@ -1,10 +1,10 @@
-# CURATED PRESETS (K-MCAT-033). Binds factory AIProfile install levels to
-# concrete model slots. wave-1 populates the core text/speech tier; the
-# recommended image slot is wave-2 scope. `text.embed` is intentionally not a
-# preset slot in either level (post-initialization / cloud-default capability).
+# CURATED PRESETS (K-MCAT-033). Associates portable factory AIProfile
+# recommendations with concrete model slots for an explicit Local AI action.
+# These rows do not install, bind, select, probe, or establish readiness.
+# `text.embed` is intentionally not a preset slot in either tier.
 presets:
   minimal:
-    factory_aiprofile_alias: local-speech-ready
+    factory_aiprofile_alias: local-speech
     slots:
       - { slot: chat, capability: text.generate, model_ref: gemma-4-e2b-it-local, required: true }
       - { slot: stt, capability: audio.transcribe, model_ref: qwen3-asr-local, required: true }

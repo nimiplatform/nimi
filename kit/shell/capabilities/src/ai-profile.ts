@@ -9,7 +9,6 @@ export type NimiPlatformAIProfileFactoryRow = {
   readonly dependencyFamilyRefs: readonly string[];
   readonly materializationConfirmationRequired: boolean;
   readonly applicableScopes: readonly string[];
-  readonly firstRunInstallLevels: readonly string[];
   readonly sourceRule: string;
 };
 
@@ -17,6 +16,8 @@ export const NIMI_PLATFORM_AI_PROFILE_FACTORY_CATALOG_ID = 'platform_ai_profile_
 export const NIMI_PLATFORM_AI_PROFILE_FACTORY_CATALOG_VERSION = 1;
 export const NIMI_PLATFORM_AI_PROFILE_SELECTION_POLICY_REF = 'P-AIPS-004';
 
+// @nimi-authority: definition.nimi.platform.core-protocol.factory-profile-local-speech
+// @nimi-authority: rule.nimi.platform.core-protocol.p-aips-002c
 export const NIMI_PLATFORM_AI_PROFILE_FACTORY_ROWS = [
   {
     alias: 'cloud-first',
@@ -39,7 +40,6 @@ export const NIMI_PLATFORM_AI_PROFILE_FACTORY_ROWS = [
     dependencyFamilyRefs: [],
     materializationConfirmationRequired: false,
     applicableScopes: ['first-party-app', 'scope-bound-apply'],
-    firstRunInstallLevels: [],
     sourceRule: 'P-AIPS-002',
   },
   {
@@ -57,11 +57,10 @@ export const NIMI_PLATFORM_AI_PROFILE_FACTORY_ROWS = [
     dependencyFamilyRefs: ['native-engine-package.llama', 'model.asset'],
     materializationConfirmationRequired: true,
     applicableScopes: ['first-party-app', 'scope-bound-apply'],
-    firstRunInstallLevels: [],
     sourceRule: 'P-AIPS-002',
   },
   {
-    alias: 'local-speech-ready',
+    alias: 'local-speech',
     privacyPosture: 'local-preferred',
     computePosture: 'cpu-only',
     capabilitySet: ['text.generate', 'audio.transcribe', 'audio.synthesize'],
@@ -81,8 +80,7 @@ export const NIMI_PLATFORM_AI_PROFILE_FACTORY_ROWS = [
       'model.asset',
     ],
     materializationConfirmationRequired: true,
-    applicableScopes: ['first-run', 'first-party-app', 'scope-bound-apply'],
-    firstRunInstallLevels: ['minimal', 'recommended'],
+    applicableScopes: ['first-party-app', 'scope-bound-apply'],
     sourceRule: 'P-AIPS-002',
   },
   {
@@ -116,8 +114,7 @@ export const NIMI_PLATFORM_AI_PROFILE_FACTORY_ROWS = [
       'model.companion-asset',
     ],
     materializationConfirmationRequired: true,
-    applicableScopes: ['first-run', 'first-party-app', 'scope-bound-apply'],
-    firstRunInstallLevels: ['recommended'],
+    applicableScopes: ['first-party-app', 'scope-bound-apply'],
     sourceRule: 'P-AIPS-002',
   },
   {
@@ -151,7 +148,6 @@ export const NIMI_PLATFORM_AI_PROFILE_FACTORY_ROWS = [
     ],
     materializationConfirmationRequired: true,
     applicableScopes: ['first-party-app', 'scope-bound-apply'],
-    firstRunInstallLevels: [],
     sourceRule: 'P-AIPS-002',
   },
 ] as const satisfies readonly NimiPlatformAIProfileFactoryRow[];
@@ -164,39 +160,13 @@ export function resolveNimiFactoryAiProfileAlias(alias: unknown): NimiPlatformAI
   return NIMI_PLATFORM_AI_PROFILE_FACTORY_ROWS.find((row) => row.alias === normalized);
 }
 
-export function verifyNimiFirstRunFactoryAiProfile(alias: unknown, installLevel: unknown): NimiPlatformAIProfileFactoryRow {
-  const normalizedAlias = normalizeNimiCapabilityText(alias);
-  const normalizedLevel = normalizeNimiCapabilityText(installLevel);
-  const row = resolveNimiFactoryAiProfileAlias(normalizedAlias);
-  if (!row) {
-    throw new Error(`selected aiProfileAlias is not admitted in Platform factory catalog: ${normalizedAlias}`);
-  }
-  if (!row.applicableScopes.includes('first-run')) {
-    throw new Error(`aiProfileAlias is not admitted for first-run: ${row.alias}`);
-  }
-  if (!row.firstRunInstallLevels.includes(normalizedLevel)) {
-    throw new Error(`aiProfileAlias ${row.alias} is not admitted for first-run install level ${normalizedLevel}`);
-  }
-  if (
-    row.computePosture === 'cloud-only'
-    || row.routingPolicy === 'cloud-first'
-    || row.routingPolicy === 'hybrid-explicit'
-    || row.capabilitySet.includes('video.generate')
-  ) {
-    throw new Error(`aiProfileAlias ${row.alias} is not an admitted local first-run baseline`);
-  }
-  return row;
-}
-
 export type NimiFactoryProfileIndexRow = {
   readonly profileRef: string;
   readonly alias: string;
-  readonly mode: string;
   readonly os: readonly string[];
   readonly deviceClass: string;
   readonly capabilities: readonly string[];
   readonly applicableScopes: readonly string[];
-  readonly firstRunInstallLevels: readonly string[];
 };
 
 export type NimiFactoryProfileIndexRecord = {
@@ -214,12 +184,10 @@ export function buildNimiFactoryProfileIndexRecord(updatedAt = new Date().toISOS
   const profiles = NIMI_PLATFORM_AI_PROFILE_FACTORY_ROWS.map((row) => ({
     profileRef: `factory-ai-profile:v${NIMI_PLATFORM_AI_PROFILE_FACTORY_CATALOG_VERSION}:${row.alias}`,
     alias: row.alias,
-    mode: modeFromNimiFactoryInstallLevels(row.firstRunInstallLevels),
     os: osAxisFromNimiHostCapabilityRefs(row.hostCapabilityProfileRefs),
     deviceClass: deviceClassFromNimiComputePosture(row.computePosture),
     capabilities: [...row.capabilitySet],
     applicableScopes: [...row.applicableScopes],
-    firstRunInstallLevels: [...row.firstRunInstallLevels],
   }));
   if (profiles.length === 0) {
     throw new Error('Platform factory catalog projected zero profile rows');
@@ -270,14 +238,4 @@ function deviceClassFromNimiComputePosture(computePosture: string): string {
     return 'cloud-only';
   }
   throw new Error(`factory catalog row has an unknown compute_posture: ${computePosture}`);
-}
-
-function modeFromNimiFactoryInstallLevels(firstRunInstallLevels: readonly string[]): string {
-  if (firstRunInstallLevels.includes('recommended')) {
-    return 'recommended';
-  }
-  if (firstRunInstallLevels.includes('minimal')) {
-    return 'baseline';
-  }
-  return 'scope-bound';
 }

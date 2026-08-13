@@ -16,19 +16,15 @@ entries:
   - host_capability_profile_refs, local_compute_pack_refs, and dependency_family_refs must resolve to admitted Runtime table rows
   - capability_set values must resolve to admitted CanonicalCapabilityId rows in canonical-capability-catalog.yaml
   - cloud-only profiles must not request local environment activation
-  - applicable_scopes is a closed enum of first-run, first-party-app, scope-bound-apply
-  - first-run candidates must map to Minimal or Recommended local install levels only
-  - cloud-first, cloud-only, hybrid, video-bearing, and connector-dependent profiles are post-initialization only
+  - applicable_scopes is a closed enum of first-party-app, scope-bound-apply
+  - profiles carry portable intent and non-binding recommendations only; they do not prove installation, binding, selection, probe, or readiness
 
 # Canonical factory AIProfile catalog — Platform-owned authority for the
-# factory `AIProfile` rows admitted under the AIProfile selection policy
-# (see ai-profile-selection-policy-contract.md, P-AIPS-001..P-AIPS-013).
+# factory `AIProfile` rows admitted under the closed Platform catalog rule.
 # Rows are dimensioned over privacy_posture x compute_posture x capability_set x routing_policy.
-# AIProfile portable payload is owned by Desktop kernel (D-AIPC-002, D-AIPC-007);
-# this table records the admitted readable aliases plus the selection-policy
-# inputs consumed by the Platform-owned AIProfile selection policy. The
-# selection-policy input fields are NOT part of the live AIConfig and are NOT
-# written by aiProfile.apply.
+# This table records readable aliases plus portable intent and recommendation
+# inputs. Catalog consumption does not install, bind, select, probe, or establish
+# readiness, and these fields are not live AIConfig state.
 
 profile_schema:
   owner: platform_ai_profile_factory_catalog
@@ -43,7 +39,6 @@ profile_schema:
     - dependency_family_refs
     - materialization_confirmation_required
     - applicable_scopes
-    - first_run_install_levels
     - source_rule
   enums:
     privacy_posture:
@@ -60,12 +55,8 @@ profile_schema:
       - local-first
       - hybrid-explicit
     applicable_scopes:
-      - first-run
       - first-party-app
       - scope-bound-apply
-    first_run_install_levels:
-      - minimal
-      - recommended
 
 profiles:
   - alias: cloud-first
@@ -88,7 +79,6 @@ profiles:
     applicable_scopes:
       - first-party-app
       - scope-bound-apply
-    first_run_install_levels: []
     source_rule: P-AIPS-002
 
   - alias: local-standard
@@ -111,10 +101,9 @@ profiles:
     applicable_scopes:
       - first-party-app
       - scope-bound-apply
-    first_run_install_levels: []
     source_rule: P-AIPS-002
 
-  - alias: local-speech-ready
+  - alias: local-speech
     privacy_posture: local-preferred
     compute_posture: cpu-only
     capability_set:
@@ -138,12 +127,8 @@ profiles:
       - model.asset
     materialization_confirmation_required: true
     applicable_scopes:
-      - first-run
       - first-party-app
       - scope-bound-apply
-    first_run_install_levels:
-      - minimal
-      - recommended
     source_rule: P-AIPS-002
 
   - alias: local-gpu
@@ -176,11 +161,8 @@ profiles:
       - model.companion-asset
     materialization_confirmation_required: true
     applicable_scopes:
-      - first-run
       - first-party-app
       - scope-bound-apply
-    first_run_install_levels:
-      - recommended
     source_rule: P-AIPS-002
 
   - alias: hybrid-recommended
@@ -215,5 +197,4 @@ profiles:
     applicable_scopes:
       - first-party-app
       - scope-bound-apply
-    first_run_install_levels: []
     source_rule: P-AIPS-002

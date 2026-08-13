@@ -9,46 +9,48 @@ pub mod ai_profile_factory;
 #[cfg(test)]
 mod tests {
     use super::ai_profile_factory::{
-        resolve_factory_ai_profile_alias, verify_first_run_factory_ai_profile,
-        PLATFORM_AI_PROFILE_FACTORY_ROWS,
+        resolve_factory_ai_profile_alias, PLATFORM_AI_PROFILE_FACTORY_ROWS,
     };
 
     #[test]
     fn ai_profile_factory_projection_resolves_admitted_aliases() {
         assert_eq!(
-            resolve_factory_ai_profile_alias("local-speech-ready")
+            resolve_factory_ai_profile_alias("local-speech")
                 .expect("local speech row")
                 .source_rule,
             "P-AIPS-002"
         );
-        assert!(resolve_factory_ai_profile_alias(" local-speech-ready ").is_some());
+        assert!(resolve_factory_ai_profile_alias(" local-speech ").is_some());
         assert!(resolve_factory_ai_profile_alias("").is_none());
         assert!(resolve_factory_ai_profile_alias("missing").is_none());
+        let removed_alias = ["local", "speech", "ready"].join("-");
+        assert!(resolve_factory_ai_profile_alias(&removed_alias).is_none());
     }
 
     #[test]
-    fn first_run_verification_admits_only_local_install_level_baselines() {
+    fn ai_profile_factory_projection_is_the_closed_portable_catalog() {
         assert_eq!(
-            verify_first_run_factory_ai_profile("local-speech-ready", "minimal")
-                .expect("minimal baseline")
-                .alias,
-            "local-speech-ready"
+            PLATFORM_AI_PROFILE_FACTORY_ROWS
+                .iter()
+                .map(|row| row.alias)
+                .collect::<Vec<_>>(),
+            vec![
+                "cloud-first",
+                "local-standard",
+                "local-speech",
+                "local-gpu",
+                "hybrid-recommended",
+            ]
+        );
+        let speech = resolve_factory_ai_profile_alias("local-speech").expect("local speech row");
+        assert_eq!(
+            speech.capability_set,
+            &["text.generate", "audio.transcribe", "audio.synthesize"]
         );
         assert_eq!(
-            verify_first_run_factory_ai_profile("local-gpu", "recommended")
-                .expect("recommended baseline")
-                .alias,
-            "local-gpu"
+            speech.applicable_scopes,
+            &["first-party-app", "scope-bound-apply"]
         );
-
-        for alias in ["cloud-first", "hybrid-recommended", "local-standard"] {
-            assert!(
-                verify_first_run_factory_ai_profile(alias, "minimal").is_err(),
-                "{alias} must not be an admitted local first-run baseline"
-            );
-        }
-        assert!(verify_first_run_factory_ai_profile("local-gpu", "minimal").is_err());
-        assert!(verify_first_run_factory_ai_profile("missing", "minimal").is_err());
     }
 
     #[test]

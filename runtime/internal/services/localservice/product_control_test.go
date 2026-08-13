@@ -387,7 +387,7 @@ func TestRuntimeProductControlRejectsRetiredAIFirstRunTruth(t *testing.T) {
 		}
 		clone["firstRun"] = map[string]any{
 			"installLevel":   "minimal",
-			"aiProfileAlias": "local-speech-ready",
+			"aiProfileAlias": "local-speech",
 			"completed":      false,
 			"completedAt":    nil,
 		}

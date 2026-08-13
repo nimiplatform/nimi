@@ -18,7 +18,6 @@ pub struct PlatformAIProfileFactoryRow {
     pub dependency_family_refs: &'static [&'static str],
     pub materialization_confirmation_required: bool,
     pub applicable_scopes: &'static [&'static str],
-    pub first_run_install_levels: &'static [&'static str],
     pub source_rule: &'static str,
 }
 
@@ -48,7 +47,6 @@ pub const PLATFORM_AI_PROFILE_FACTORY_ROWS: &[PlatformAIProfileFactoryRow] = &[
         dependency_family_refs: &[],
         materialization_confirmation_required: false,
         applicable_scopes: &["first-party-app", "scope-bound-apply"],
-        first_run_install_levels: &[],
         source_rule: "P-AIPS-002",
     },
     PlatformAIProfileFactoryRow {
@@ -66,11 +64,10 @@ pub const PLATFORM_AI_PROFILE_FACTORY_ROWS: &[PlatformAIProfileFactoryRow] = &[
         dependency_family_refs: &["native-engine-package.llama", "model.asset"],
         materialization_confirmation_required: true,
         applicable_scopes: &["first-party-app", "scope-bound-apply"],
-        first_run_install_levels: &[],
         source_rule: "P-AIPS-002",
     },
     PlatformAIProfileFactoryRow {
-        alias: "local-speech-ready",
+        alias: "local-speech",
         privacy_posture: "local-preferred",
         compute_posture: "cpu-only",
         capability_set: &["text.generate", "audio.transcribe", "audio.synthesize"],
@@ -90,8 +87,7 @@ pub const PLATFORM_AI_PROFILE_FACTORY_ROWS: &[PlatformAIProfileFactoryRow] = &[
             "model.asset",
         ],
         materialization_confirmation_required: true,
-        applicable_scopes: &["first-run", "first-party-app", "scope-bound-apply"],
-        first_run_install_levels: &["minimal", "recommended"],
+        applicable_scopes: &["first-party-app", "scope-bound-apply"],
         source_rule: "P-AIPS-002",
     },
     PlatformAIProfileFactoryRow {
@@ -125,8 +121,7 @@ pub const PLATFORM_AI_PROFILE_FACTORY_ROWS: &[PlatformAIProfileFactoryRow] = &[
             "model.companion-asset",
         ],
         materialization_confirmation_required: true,
-        applicable_scopes: &["first-run", "first-party-app", "scope-bound-apply"],
-        first_run_install_levels: &["recommended"],
+        applicable_scopes: &["first-party-app", "scope-bound-apply"],
         source_rule: "P-AIPS-002",
     },
     PlatformAIProfileFactoryRow {
@@ -160,7 +155,6 @@ pub const PLATFORM_AI_PROFILE_FACTORY_ROWS: &[PlatformAIProfileFactoryRow] = &[
         ],
         materialization_confirmation_required: true,
         applicable_scopes: &["first-party-app", "scope-bound-apply"],
-        first_run_install_levels: &[],
         source_rule: "P-AIPS-002",
     },
 ];
@@ -175,40 +169,4 @@ pub fn resolve_factory_ai_profile_alias(
     PLATFORM_AI_PROFILE_FACTORY_ROWS
         .iter()
         .find(|row| row.alias == normalized)
-}
-
-pub fn verify_first_run_factory_ai_profile(
-    alias: &str,
-    install_level: &str,
-) -> Result<&'static PlatformAIProfileFactoryRow, String> {
-    let normalized_level = install_level.trim();
-    let Some(row) = resolve_factory_ai_profile_alias(alias) else {
-        return Err(format!(
-            "selected aiProfileAlias is not admitted in Platform factory catalog: {}",
-            alias.trim()
-        ));
-    };
-    if !row.applicable_scopes.contains(&"first-run") {
-        return Err(format!(
-            "aiProfileAlias is not admitted for first-run: {}",
-            row.alias
-        ));
-    }
-    if !row.first_run_install_levels.contains(&normalized_level) {
-        return Err(format!(
-            "aiProfileAlias {} is not admitted for first-run install level {}",
-            row.alias, normalized_level
-        ));
-    }
-    if row.compute_posture == "cloud-only"
-        || row.routing_policy == "cloud-first"
-        || row.routing_policy == "hybrid-explicit"
-        || row.capability_set.contains(&"video.generate")
-    {
-        return Err(format!(
-            "aiProfileAlias {} is not an admitted local first-run baseline",
-            row.alias
-        ));
-    }
-    Ok(row)
 }

@@ -31,12 +31,10 @@ pub const FACTORY_PROFILE_INDEX_CONFIG_FILE: GovernedConfigFile = GovernedConfig
 pub struct FactoryProfileIndexRow {
     pub profile_ref: String,
     pub alias: String,
-    pub mode: String,
     pub os: Vec<String>,
     pub device_class: String,
     pub capabilities: Vec<String>,
     pub applicable_scopes: Vec<String>,
-    pub first_run_install_levels: Vec<String>,
 }
 
 /// Official selection policy refs projected alongside the catalog rows.
@@ -98,21 +96,10 @@ fn device_class_from_compute_posture(compute_posture: &str) -> Result<String, St
     Ok(class.to_string())
 }
 
-fn mode_from_install_levels(first_run_install_levels: &[&'static str]) -> String {
-    if first_run_install_levels.contains(&"recommended") {
-        "recommended".to_string()
-    } else if first_run_install_levels.contains(&"minimal") {
-        "baseline".to_string()
-    } else {
-        "scope-bound".to_string()
-    }
-}
-
 fn project_row(row: &PlatformAIProfileFactoryRow) -> Result<FactoryProfileIndexRow, String> {
     Ok(FactoryProfileIndexRow {
         profile_ref: profile_ref_for_alias(row.alias),
         alias: row.alias.to_string(),
-        mode: mode_from_install_levels(row.first_run_install_levels),
         os: os_axis_from_host_refs(row.host_capability_profile_refs),
         device_class: device_class_from_compute_posture(row.compute_posture)?,
         capabilities: row
@@ -122,11 +109,6 @@ fn project_row(row: &PlatformAIProfileFactoryRow) -> Result<FactoryProfileIndexR
             .collect(),
         applicable_scopes: row
             .applicable_scopes
-            .iter()
-            .map(|value| value.to_string())
-            .collect(),
-        first_run_install_levels: row
-            .first_run_install_levels
             .iter()
             .map(|value| value.to_string())
             .collect(),
@@ -187,11 +169,6 @@ pub fn validate_factory_profile_index_record(
         if profile.profile_ref.trim().is_empty() {
             return Err(
                 "~/.nimi/profiles/factory-index.json profile row requires profileRef".to_string(),
-            );
-        }
-        if profile.mode.trim().is_empty() {
-            return Err(
-                "~/.nimi/profiles/factory-index.json profile row requires mode".to_string(),
             );
         }
         if profile.device_class.trim().is_empty() {
@@ -300,27 +277,25 @@ mod tests {
     }
 
     #[test]
-    fn baseline_and_recommended_modes_are_derived_from_install_levels() {
+    fn device_class_is_projected_from_compute_posture() {
         let record = build_factory_profile_index_record().expect("record");
         let speech = record
             .profiles
             .iter()
-            .find(|row| row.alias == "local-speech-ready")
+            .find(|row| row.alias == "local-speech")
             .expect("speech row");
-        assert_eq!(speech.mode, "recommended");
+        assert_eq!(speech.device_class, "cpu-standard");
         let gpu = record
             .profiles
             .iter()
             .find(|row| row.alias == "local-gpu")
             .expect("gpu row");
-        assert_eq!(gpu.mode, "recommended");
         assert_eq!(gpu.device_class, "gpu-recommended");
         let cloud = record
             .profiles
             .iter()
             .find(|row| row.alias == "cloud-first")
             .expect("cloud row");
-        assert_eq!(cloud.mode, "scope-bound");
         assert_eq!(cloud.device_class, "cloud-only");
     }
 
@@ -330,7 +305,7 @@ mod tests {
         let speech = record
             .profiles
             .iter()
-            .find(|row| row.alias == "local-speech-ready")
+            .find(|row| row.alias == "local-speech")
             .expect("speech row");
         assert!(speech.os.contains(&"macos".to_string()));
         assert!(speech.os.contains(&"windows".to_string()));
@@ -341,6 +316,21 @@ mod tests {
         let record = build_factory_profile_index_record().expect("record");
         validate_factory_profile_index_record(&record).expect("valid");
         let raw = serde_json::to_string_pretty(&record).expect("serialize");
+        let document: serde_json::Value = serde_json::from_str(&raw).expect("json value");
+        let profile = document["profiles"][0]
+            .as_object()
+            .expect("projected profile object");
+        assert_eq!(profile.len(), 6);
+        for field in [
+            "profileRef",
+            "alias",
+            "os",
+            "deviceClass",
+            "capabilities",
+            "applicableScopes",
+        ] {
+            assert!(profile.contains_key(field), "missing projected field {field}");
+        }
         let parsed: FactoryProfileIndexRecord = serde_json::from_str(&raw).expect("deserialize");
         assert_eq!(record, parsed);
     }

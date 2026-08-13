@@ -520,10 +520,9 @@ pub mod desktop_product_local_agent {
 
 pub mod ai_profile {
     pub use crate::platform_catalog::ai_profile_factory::{
-        resolve_factory_ai_profile_alias, verify_first_run_factory_ai_profile,
-        PlatformAIProfileFactoryRow, PLATFORM_AI_PROFILE_FACTORY_CATALOG_ID,
-        PLATFORM_AI_PROFILE_FACTORY_CATALOG_VERSION, PLATFORM_AI_PROFILE_FACTORY_ROWS,
-        PLATFORM_AI_PROFILE_SELECTION_POLICY_REF,
+        resolve_factory_ai_profile_alias, PlatformAIProfileFactoryRow,
+        PLATFORM_AI_PROFILE_FACTORY_CATALOG_ID, PLATFORM_AI_PROFILE_FACTORY_CATALOG_VERSION,
+        PLATFORM_AI_PROFILE_FACTORY_ROWS, PLATFORM_AI_PROFILE_SELECTION_POLICY_REF,
     };
 }
 

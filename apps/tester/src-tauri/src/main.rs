@@ -31,20 +31,19 @@ mod tests {
 
     #[test]
     fn tester_consumes_shared_platform_catalog_from_kit() {
-        let first_run_profile =
-            nimi_shell_tauri::capabilities::ai_profile::verify_first_run_factory_ai_profile(
-                "local-speech-ready",
-                "minimal",
+        let speech_profile =
+            nimi_shell_tauri::capabilities::ai_profile::resolve_factory_ai_profile_alias(
+                "local-speech",
             )
-            .expect("first-run profile");
-        assert_eq!(first_run_profile.alias, "local-speech-ready");
+            .expect("local speech profile");
+        assert_eq!(speech_profile.alias, "local-speech");
 
         let profile_index = nimi_shell_tauri::capabilities::platform_projection::factory_profile_index::build_factory_profile_index_record()
             .expect("factory profile index projection");
         assert!(profile_index
             .profiles
             .iter()
-            .any(|row| row.alias == "local-speech-ready"));
+            .any(|row| row.alias == "local-speech"));
     }
 
     #[test]
