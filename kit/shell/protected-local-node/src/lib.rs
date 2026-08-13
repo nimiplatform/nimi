@@ -6,6 +6,11 @@ use napi_derive::napi;
     feature = "windows-source-local-development"
 )))]
 use nimi_shell_protected_local::FixedRuntimeServiceControl;
+#[cfg(any(
+    feature = "macos-source-local-development",
+    feature = "windows-source-local-development"
+))]
+use nimi_shell_protected_local::NimiHostErrorReasonCode;
 use nimi_shell_protected_local::{
     BundledAvatarRuntimeRequest, DesktopAccountActionRequest, DesktopAccountBeginLoginRequest,
     DesktopAccountBeginLoginResponse, DesktopAccountCompleteLoginRequest,
@@ -52,6 +57,11 @@ use tokio::sync::{Mutex, Notify};
 static LOCAL_APP_SESSION: Mutex<Option<Arc<dyn NimiLocalAppSession>>> = Mutex::const_new(None);
 static DESKTOP_CONTROL: Mutex<Option<Arc<dyn NimiDesktopControl>>> = Mutex::const_new(None);
 const FIRST_PARTY_UNARY_MAX_DURATION: Duration = Duration::from_secs(300);
+#[cfg(any(
+    feature = "macos-source-local-development",
+    feature = "windows-source-local-development"
+))]
+const DESKTOP_CONTROL_OPEN_TIMEOUT: Duration = Duration::from_secs(5);
 
 static FIRST_PARTY_UNARY_CANCELLATIONS: LazyLock<Mutex<FirstPartyUnaryCancellationRegistry>> =
     LazyLock::new(|| Mutex::new(FirstPartyUnaryCancellationRegistry::default()));
@@ -946,33 +956,54 @@ where
     }
 }
 
+#[cfg(any(
+    feature = "macos-source-local-development",
+    feature = "windows-source-local-development"
+))]
 async fn current_or_open_desktop_control() -> Result<Arc<dyn NimiDesktopControl>, NimiHostError> {
-    #[cfg(any(
-        feature = "macos-source-local-development",
-        feature = "windows-source-local-development"
-    ))]
-    let cached = {
-        let current = DESKTOP_CONTROL.lock().await;
-        current.as_ref().cloned()
-    };
-    #[cfg(any(
-        feature = "macos-source-local-development",
-        feature = "windows-source-local-development"
-    ))]
-    if let Some(control) = cached {
-        match control.get_developer_mode_status().await {
-            Ok(_) => return Ok(control),
-            Err(error) => {
-                clear_desktop_control_on_host_failure(&control, &error).await;
-                return Err(error);
+    let mut reconnect_available = true;
+    loop {
+        let cached = {
+            let current = DESKTOP_CONTROL.lock().await;
+            current.as_ref().cloned()
+        };
+        if let Some(control) = cached {
+            match control.get_developer_mode_status().await {
+                Ok(_) => return Ok(control),
+                Err(error) => {
+                    let reconnect = reconnect_available
+                        && invalidates_desktop_transport(error.reason_code().as_str());
+                    clear_desktop_control_on_host_failure(&control, &error).await;
+                    if !reconnect {
+                        return Err(error);
+                    }
+                    reconnect_available = false;
+                    drop(control);
+                    continue;
+                }
             }
         }
+        return get_or_open_cached_desktop_control(
+            &DESKTOP_CONTROL,
+            DESKTOP_CONTROL_OPEN_TIMEOUT,
+            || async {
+                let opened = PlatformDesktopCarrier::default()
+                    .open_desktop_control()
+                    .await
+                    .map_err(NimiHostError::from)?;
+                Ok(Arc::<dyn NimiDesktopControl>::from(opened))
+            },
+        )
+        .await;
     }
+}
+
+#[cfg(not(any(
+    feature = "macos-source-local-development",
+    feature = "windows-source-local-development"
+)))]
+async fn current_or_open_desktop_control() -> Result<Arc<dyn NimiDesktopControl>, NimiHostError> {
     let mut current = DESKTOP_CONTROL.lock().await;
-    #[cfg(not(any(
-        feature = "macos-source-local-development",
-        feature = "windows-source-local-development"
-    )))]
     if let Some(control) = current.as_ref() {
         return Ok(control.clone());
     }
@@ -981,6 +1012,36 @@ async fn current_or_open_desktop_control() -> Result<Arc<dyn NimiDesktopControl>
         .await
         .map_err(NimiHostError::from)?;
     let control = Arc::<dyn NimiDesktopControl>::from(opened);
+    *current = Some(control.clone());
+    Ok(control)
+}
+
+#[cfg(any(
+    feature = "macos-source-local-development",
+    feature = "windows-source-local-development"
+))]
+async fn get_or_open_cached_desktop_control<T, F, Fut>(
+    slot: &Mutex<Option<T>>,
+    open_timeout: Duration,
+    open: F,
+) -> Result<T, NimiHostError>
+where
+    T: Clone + Send,
+    F: FnOnce() -> Fut + Send,
+    Fut: Future<Output = Result<T, NimiHostError>> + Send,
+{
+    // Source Runtime admits one active Desktop connection. Serialize the
+    // cache-miss open and re-check under the same lock so concurrent callers
+    // cannot create a second connection; bound the open while holding it.
+    let mut current = slot.lock().await;
+    if let Some(control) = current.as_ref() {
+        return Ok(control.clone());
+    }
+    let control = tokio::time::timeout(open_timeout, open())
+        .await
+        .map_err(|_| {
+            NimiHostError::new(NimiHostErrorReasonCode::RuntimeServiceUnavailable, true)
+        })??;
     *current = Some(control.clone());
     Ok(control)
 }
@@ -1081,5 +1142,90 @@ mod desktop_transport_invalidation_tests {
         ] {
             assert!(!invalidates_desktop_transport(reason), "{reason}");
         }
+    }
+}
+
+#[cfg(all(
+    test,
+    any(
+        feature = "macos-source-local-development",
+        feature = "windows-source-local-development"
+    )
+))]
+mod desktop_control_cache_tests {
+    use super::*;
+    use std::sync::atomic::{AtomicUsize, Ordering};
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn concurrent_cache_misses_open_once_and_share_control() {
+        let slot = Arc::new(Mutex::new(None::<Arc<()>>));
+        let opens = Arc::new(AtomicUsize::new(0));
+        let started = Arc::new(Notify::new());
+        let release = Arc::new(Notify::new());
+
+        let first = tokio::spawn({
+            let slot = slot.clone();
+            let opens = opens.clone();
+            let started = started.clone();
+            let release = release.clone();
+            async move {
+                get_or_open_cached_desktop_control(&slot, Duration::from_secs(1), || async {
+                    opens.fetch_add(1, Ordering::SeqCst);
+                    started.notify_one();
+                    release.notified().await;
+                    Ok(Arc::new(()))
+                })
+                .await
+            }
+        });
+        started.notified().await;
+        let second = tokio::spawn({
+            let slot = slot.clone();
+            let opens = opens.clone();
+            async move {
+                get_or_open_cached_desktop_control(&slot, Duration::from_secs(1), || async {
+                    opens.fetch_add(1, Ordering::SeqCst);
+                    Ok(Arc::new(()))
+                })
+                .await
+            }
+        });
+        release.notify_one();
+
+        let first = first.await.expect("first task").expect("first control");
+        let second = second.await.expect("second task").expect("second control");
+        assert_eq!(opens.load(Ordering::SeqCst), 1);
+        assert!(Arc::ptr_eq(&first, &second));
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn pending_open_times_out_without_poisoning_cache() {
+        let slot = Mutex::new(None::<Arc<()>>);
+        let error = tokio::time::timeout(
+            Duration::from_secs(1),
+            get_or_open_cached_desktop_control(&slot, Duration::ZERO, || {
+                std::future::pending::<Result<Arc<()>, NimiHostError>>()
+            }),
+        )
+        .await
+        .expect("open timeout must settle")
+        .expect_err("pending open must fail");
+        assert_eq!(
+            error.reason_code(),
+            NimiHostErrorReasonCode::RuntimeServiceUnavailable
+        );
+        assert!(error.retryable());
+        assert!(slot.lock().await.is_none());
+
+        let recovered =
+            get_or_open_cached_desktop_control(&slot, Duration::from_secs(1), || async {
+                Ok(Arc::new(()))
+            })
+            .await
+            .expect("cache must recover after a timed-out open");
+        let cached = slot.lock().await;
+        assert!(cached
+            .as_ref()
+            .is_some_and(|control| Arc::ptr_eq(control, &recovered)));
     }
 }

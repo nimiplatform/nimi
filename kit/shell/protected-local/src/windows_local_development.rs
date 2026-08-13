@@ -1,6 +1,7 @@
 use std::collections::HashSet;
+use std::future::Future;
 use std::path::{Path, PathBuf};
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use prost_types::Timestamp;
 use tonic::transport::Channel;
@@ -34,16 +35,37 @@ use crate::{
 };
 
 const ACTION_EXECUTED: i32 = 1;
+const DEVELOPER_MODE_STATUS_TIMEOUT: Duration = Duration::from_secs(5);
 
 pub(crate) async fn get_developer_mode_status(
     channel: Channel,
 ) -> Result<DeveloperModeStatus, NimiHostError> {
-    let response = RuntimeDevelopmentServiceClient::new(channel)
-        .get_developer_mode_status(GetDeveloperModeStatusRequest {})
-        .await
-        .map_err(host_error_from_status)?
-        .into_inner();
+    // grpc-timeout lets Runtime cancel accepted work; the local timeout also
+    // bounds a half-open channel before the request can reach Runtime.
+    let mut client = RuntimeDevelopmentServiceClient::new(channel);
+    let response = await_developer_mode_status(
+        DEVELOPER_MODE_STATUS_TIMEOUT,
+        client.get_developer_mode_status(developer_mode_status_request()),
+    )
+    .await?
+    .into_inner();
     developer_mode_projection(response.state, response.revision, response.reason_code)
+}
+
+fn developer_mode_status_request() -> tonic::Request<GetDeveloperModeStatusRequest> {
+    let mut request = tonic::Request::new(GetDeveloperModeStatusRequest {});
+    request.set_timeout(DEVELOPER_MODE_STATUS_TIMEOUT);
+    request
+}
+
+async fn await_developer_mode_status<T, F>(timeout: Duration, future: F) -> Result<T, NimiHostError>
+where
+    F: Future<Output = Result<T, tonic::Status>>,
+{
+    tokio::time::timeout(timeout, future)
+        .await
+        .map_err(|_| NimiHostError::new(NimiHostErrorReasonCode::RuntimeServiceUnavailable, true))?
+        .map_err(host_error_from_status)
 }
 
 pub(crate) async fn set_developer_mode(
@@ -447,6 +469,32 @@ fn untrusted() -> NimiHostError {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn developer_mode_status_request_carries_a_runtime_deadline() {
+        assert_eq!(
+            developer_mode_status_request()
+                .metadata()
+                .get("grpc-timeout")
+                .expect("developer-mode status deadline"),
+            "5000000u"
+        );
+    }
+
+    #[tokio::test]
+    async fn pending_developer_mode_status_is_bounded_locally() {
+        let error = await_developer_mode_status(
+            Duration::ZERO,
+            std::future::pending::<Result<(), tonic::Status>>(),
+        )
+        .await
+        .expect_err("pending status call must time out");
+        assert_eq!(
+            error.reason_code(),
+            NimiHostErrorReasonCode::RuntimeServiceUnavailable
+        );
+        assert!(error.retryable());
+    }
 
     #[test]
     fn developer_mode_is_account_independent() {
