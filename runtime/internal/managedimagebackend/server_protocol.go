@@ -17,14 +17,7 @@ func defaultStableDiffusionCPPGenerateRequester(ctx context.Context, client *htt
 	if client == nil {
 		client = &http.Client{}
 	}
-	if len(req.RefImages) > 0 {
-		return nil, fmt.Errorf("stable-diffusion.cpp resident server does not support ref_images")
-	}
-	maskPath, err := managedImageMaskPath(req.EnableParams)
-	if err != nil {
-		return nil, err
-	}
-	path, payload, err := buildStableDiffusionCPPGenerateRequest(loaded, req, maskPath)
+	path, payload, err := buildStableDiffusionCPPGenerateRequest(loaded, req)
 	if err != nil {
 		return nil, err
 	}
@@ -62,21 +55,30 @@ type stableDiffusionCPPGenerateResponse struct {
 }
 
 func (r stableDiffusionCPPGenerateResponse) payload(ctx context.Context, client *http.Client, endpoint string) ([]byte, error) {
-	if len(r.Images) > 0 {
+	if len(r.Images) > 0 && len(r.Data) > 0 {
+		return nil, fmt.Errorf("stable-diffusion.cpp generate response contains ambiguous artifact carriers")
+	}
+	if len(r.Images) == 1 {
 		return decodeManagedImageBase64(r.Images[0])
 	}
-	if len(r.Data) > 0 {
-		if strings.TrimSpace(r.Data[0].B64JSON) != "" {
+	if len(r.Images) > 1 || len(r.Data) > 1 {
+		return nil, fmt.Errorf("stable-diffusion.cpp generate response contains an unexpected artifact count")
+	}
+	if len(r.Data) == 1 {
+		hasBase64 := strings.TrimSpace(r.Data[0].B64JSON) != ""
+		hasURL := strings.TrimSpace(r.Data[0].URL) != ""
+		if hasBase64 == hasURL {
+			return nil, fmt.Errorf("stable-diffusion.cpp generate response contains an invalid artifact carrier")
+		}
+		if hasBase64 {
 			return decodeManagedImageBase64(r.Data[0].B64JSON)
 		}
-		if strings.TrimSpace(r.Data[0].URL) != "" {
-			return fetchManagedImageURL(ctx, client, endpoint, r.Data[0].URL)
-		}
+		return fetchManagedImageURL(ctx, client, endpoint, r.Data[0].URL)
 	}
 	return nil, fmt.Errorf("stable-diffusion.cpp generate response did not include an image artifact")
 }
 
-func buildStableDiffusionCPPGenerateRequest(loaded loadModelState, req imageGenerateState, maskPath string) (string, map[string]any, error) {
+func buildStableDiffusionCPPGenerateRequest(_ loadModelState, req imageGenerateState) (string, map[string]any, error) {
 	payload := map[string]any{
 		"prompt": req.PositivePrompt,
 	}
@@ -92,46 +94,41 @@ func buildStableDiffusionCPPGenerateRequest(loaded loadModelState, req imageGene
 	if req.Step > 0 {
 		payload["steps"] = req.Step
 	}
-	payload["cfg_scale"] = loaded.CFGScale
-	if sampler := strings.TrimSpace(loaded.Options.Sampler); sampler != "" {
+	payload["cfg_scale"] = req.CFGScale
+	if sampler := strings.TrimSpace(req.Sampler); sampler != "" {
 		payload["sampler_name"] = sampler
 	}
-	if scheduler := strings.TrimSpace(loaded.Options.Scheduler); scheduler != "" {
+	if scheduler := strings.TrimSpace(req.Scheduler); scheduler != "" {
 		payload["scheduler"] = scheduler
 	}
 	payload["seed"] = req.Seed
 
-	if strings.TrimSpace(req.Src) == "" && maskPath == "" {
+	switch req.Mode {
+	case ImageRequestModeTextToImage:
+		if strings.TrimSpace(req.Src) != "" || strings.TrimSpace(req.Mask) != "" {
+			return "", nil, fmt.Errorf("stable-diffusion.cpp text-to-image request contains image inputs")
+		}
 		return "/sdapi/v1/txt2img", payload, nil
-	}
-	if strings.TrimSpace(req.Src) == "" {
-		return "", nil, fmt.Errorf("stable-diffusion.cpp resident server requires src when a mask is provided")
-	}
-	sourceImage, err := loadManagedImageRequestImage(strings.TrimSpace(req.Src))
-	if err != nil {
-		return "", nil, err
-	}
-	payload["init_images"] = []string{sourceImage}
-	if maskPath != "" {
-		maskImage, err := loadManagedImageRequestImage(maskPath)
+	case ImageRequestModeImageToImage:
+		if strings.TrimSpace(req.Src) == "" {
+			return "", nil, fmt.Errorf("stable-diffusion.cpp image-to-image request requires src")
+		}
+		sourceImage, err := loadManagedImageRequestImage(strings.TrimSpace(req.Src))
 		if err != nil {
 			return "", nil, err
 		}
-		payload["mask"] = maskImage
+		payload["init_images"] = []string{sourceImage}
+		if maskPath := strings.TrimSpace(req.Mask); maskPath != "" {
+			maskImage, err := loadManagedImageRequestImage(maskPath)
+			if err != nil {
+				return "", nil, err
+			}
+			payload["mask"] = maskImage
+		}
+		return "/sdapi/v1/img2img", payload, nil
+	default:
+		return "", nil, fmt.Errorf("stable-diffusion.cpp request mode is unknown")
 	}
-	return "/sdapi/v1/img2img", payload, nil
-}
-
-func managedImageMaskPath(enableParams string) (string, error) {
-	trimmed := strings.TrimSpace(enableParams)
-	if trimmed == "" {
-		return "", nil
-	}
-	key, value, hasValue := strings.Cut(trimmed, ":")
-	if !hasValue || strings.ToLower(strings.TrimSpace(key)) != "mask" || strings.TrimSpace(value) == "" {
-		return "", fmt.Errorf("stable-diffusion.cpp resident server does not support enable parameters %q", trimmed)
-	}
-	return strings.TrimSpace(value), nil
 }
 
 func loadManagedImageRequestImage(path string) (string, error) {

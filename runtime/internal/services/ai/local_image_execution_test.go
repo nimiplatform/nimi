@@ -111,7 +111,7 @@ func (h *serialBlockingLocalImageHostStub) ExecuteImage(
 	}
 	result := localexecution.ImageResult{Artifacts: make([]localexecution.ImageArtifact, 0, plan.ImageCount())}
 	for index := int32(1); index <= int32(plan.ImageCount()); index++ {
-		artifact := localexecution.ImageArtifact{Index: index, Bytes: serviceTestPNGBytes()}
+		artifact := localexecution.ImageArtifact{Index: index, Bytes: serviceTestPNGBytes(), MediaType: "image/png"}
 		result.Artifacts = append(result.Artifacts, artifact)
 		if onArtifact != nil {
 			if err := onArtifact(artifact); err != nil {
@@ -166,7 +166,7 @@ func (h *localImageHostStub) ExecuteImage(ctx context.Context, plan *capabilityd
 			return result, &localexecution.ExecutionError{Kind: localexecution.FailureCanceled, Err: ctx.Err()}
 		default:
 		}
-		artifact := localexecution.ImageArtifact{Index: index, Bytes: serviceTestPNGBytes(), ComputeMS: 11}
+		artifact := localexecution.ImageArtifact{Index: index, Bytes: serviceTestPNGBytes(), MediaType: "image/png", ComputeMS: 11}
 		result.Artifacts = append(result.Artifacts, artifact)
 		if onArtifact != nil {
 			if err := onArtifact(artifact); err != nil {
@@ -538,10 +538,13 @@ func TestLocalImageJobStaysQueuedThenCommitsArtifactsIncrementallyFromImmutableC
 	host.mu.Lock()
 	captured := host.plans[0]
 	host.mu.Unlock()
-	width, height := captured.Size()
-	if captured.MainModelPath() != first.ExactBindings[0].AbsolutePath || captured.MainModelPath() == second.ExactBindings[0].AbsolutePath ||
-		captured.ImageCount() != 2 || width != 64 || height != 64 || captured.Seed() != 19 {
-		t.Fatalf("background execution did not use immutable capture: path=%q count=%d size=%dx%d seed=%d", captured.MainModelPath(), captured.ImageCount(), width, height, captured.Seed())
+	loadPlan, loadOK := captured.LoadPlan().(capabilitydriver.StableDiffusionCPPLoadPlan)
+	requestPlan := captured.RequestPlan()
+	resultConstraints, constraintsOK := captured.ResultConstraints().(capabilitydriver.StableDiffusionCPPResultConstraints)
+	if !loadOK || requestPlan == nil || !constraintsOK ||
+		loadPlan.Main().AbsolutePath() != first.ExactBindings[0].AbsolutePath || loadPlan.Main().AbsolutePath() == second.ExactBindings[0].AbsolutePath ||
+		requestPlan.ImageCount() != 2 || resultConstraints.Width() != 64 || resultConstraints.Height() != 64 || requestPlan.Seed() != 19 {
+		t.Fatalf("background execution did not use immutable capture: load=%+v request=%+v constraints=%+v", captured.LoadPlan(), requestPlan, captured.ResultConstraints())
 	}
 }
 
@@ -637,11 +640,13 @@ func TestLocalImageJobsPreserveAcceptedOrderAcrossSchedulerReadiness(t *testing.
 	host.mu.Lock()
 	queuedPlans := append([]*capabilitydriver.ImageInvocationPlan(nil), host.plans...)
 	host.mu.Unlock()
-	if len(queuedPlans) != 1 || queuedPlans[0].Prompt() != "accepted-first-image" {
+	if len(queuedPlans) != 1 || queuedPlans[0].RequestPlan() == nil || queuedPlans[0].RequestPlan().Prompt() != "accepted-first-image" {
 		t.Fatalf("image Host admission before first scheduler lease = %v", func() []string {
 			out := make([]string, 0, len(queuedPlans))
 			for _, plan := range queuedPlans {
-				out = append(out, plan.Prompt())
+				if requestPlan := plan.RequestPlan(); requestPlan != nil {
+					out = append(out, requestPlan.Prompt())
+				}
 			}
 			return out
 		}())
@@ -657,11 +662,14 @@ func TestLocalImageJobsPreserveAcceptedOrderAcrossSchedulerReadiness(t *testing.
 	host.mu.Lock()
 	plans := append([]*capabilitydriver.ImageInvocationPlan(nil), host.plans...)
 	host.mu.Unlock()
-	if len(plans) != 2 || plans[0].Prompt() != "accepted-first-image" || plans[1].Prompt() != "accepted-second-image" {
+	if len(plans) != 2 || plans[0].RequestPlan() == nil || plans[1].RequestPlan() == nil ||
+		plans[0].RequestPlan().Prompt() != "accepted-first-image" || plans[1].RequestPlan().Prompt() != "accepted-second-image" {
 		t.Fatalf("image Host order = %v", func() []string {
 			out := make([]string, 0, len(plans))
 			for _, plan := range plans {
-				out = append(out, plan.Prompt())
+				if requestPlan := plan.RequestPlan(); requestPlan != nil {
+					out = append(out, requestPlan.Prompt())
+				}
 			}
 			return out
 		}())

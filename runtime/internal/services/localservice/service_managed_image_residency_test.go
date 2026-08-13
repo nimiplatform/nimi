@@ -345,50 +345,6 @@ func TestEnsureManagedMediaImageLoadedStartsColdManagedImageBackend(t *testing.T
 	}
 }
 
-func TestManagedImageEffectiveOptionsDoesNotInjectSamplerSchedulerDefaults(t *testing.T) {
-	options := managedImageEffectiveOptions(map[string]any{
-		"options": []any{
-			"diffusion_model",
-			"llm_path:/tmp/qwen.gguf",
-		},
-	}, map[string]any{
-		"steps": 25,
-	})
-	if containsString(options, "sampler:euler") || containsString(options, "scheduler:discrete") {
-		t.Fatalf("default sampler/scheduler must not be injected, got %v", options)
-	}
-	if !containsString(options, "diffusion_model") || !containsString(options, "llm_path:/tmp/qwen.gguf") {
-		t.Fatalf("non sampler/scheduler options were not retained: %v", options)
-	}
-
-	profileOptions := managedImageEffectiveOptions(map[string]any{
-		"options": []any{
-			"diffusion_model",
-			"sampler:heun",
-			"scheduler:karras",
-		},
-	}, nil)
-	if !containsString(profileOptions, "sampler:heun") || !containsString(profileOptions, "scheduler:karras") {
-		t.Fatalf("explicit profile sampler/scheduler options were not retained: %v", profileOptions)
-	}
-
-	overrideOptions := managedImageEffectiveOptions(map[string]any{
-		"options": []any{
-			"diffusion_model",
-			"sampler:heun",
-			"scheduler:karras",
-		},
-	}, map[string]any{
-		"mode": "euler",
-	})
-	if !containsString(overrideOptions, "sampler:euler") || containsString(overrideOptions, "sampler:heun") {
-		t.Fatalf("scenario sampler override did not replace profile sampler: %v", overrideOptions)
-	}
-	if !containsString(overrideOptions, "scheduler:karras") {
-		t.Fatalf("profile scheduler should remain when request does not override it: %v", overrideOptions)
-	}
-}
-
 func TestManagedImageRecoverySweepSkipsBackgroundLoad(t *testing.T) {
 	svc := newTestService(t)
 	setLocalRuntimePlatformForTest(t, "darwin", "arm64")
@@ -472,7 +428,7 @@ func TestManagedImageLoadCacheReusesExplicitLoadUntilBackendEpochChanges(t *test
 	}
 }
 
-func TestManagedImageLoadCacheReloadsWhenRequestOverridesChange(t *testing.T) {
+func TestManagedImageLoadCacheIgnoresRequestOnlyOverrides(t *testing.T) {
 	svc := newTestService(t)
 	setLocalRuntimePlatformForTest(t, "darwin", "arm64")
 	setManagedImageHostForTest(t, "Apple M4 Max")
@@ -515,44 +471,21 @@ func TestManagedImageLoadCacheReloadsWhenRequestOverridesChange(t *testing.T) {
 	if len(loadRequests) != 1 {
 		t.Fatalf("expected identical override to hit cache, got %d loads", len(loadRequests))
 	}
-	if !strings.Contains(strings.Join(loadRequests[0].Options, ","), "sampler:euler") {
-		t.Fatalf("first load options = %v, want sampler:euler", loadRequests[0].Options)
-	}
-	if containsString(loadRequests[0].Options, "scheduler:discrete") {
-		t.Fatalf("first load options = %v, default scheduler must not be injected", loadRequests[0].Options)
-	}
-	if !containsString(loadRequests[0].Options, "diffusion_model") {
-		t.Fatalf("first load options = %v, want diffusion_model retained", loadRequests[0].Options)
-	}
-	if !almostEqualFloat32(loadRequests[0].CFGScale, 7.5) {
-		t.Fatalf("first load CFGScale = %f, want 7.5", loadRequests[0].CFGScale)
+	if loadRequests[0].Protocol != managedimagebackend.ProtocolManagedWrapper {
+		t.Fatalf("load protocol = %q", loadRequests[0].Protocol)
 	}
 
 	if _, err := svc.EnsureManagedMediaImageLoaded(context.Background(), asset.GetLocalAssetId(), "", profile, overrideB, "generate_request"); err != nil {
 		t.Fatalf("third EnsureManagedMediaImageLoaded with different override: %v", err)
 	}
-	if len(loadRequests) != 2 {
-		t.Fatalf("expected different override to trigger reload, got %d loads", len(loadRequests))
-	}
-	if !containsString(loadRequests[1].Options, "sampler:dpmpp2m") {
-		t.Fatalf("second load options = %v, want sampler:dpmpp2m", loadRequests[1].Options)
-	}
-	if !containsString(loadRequests[1].Options, "scheduler:karras") {
-		t.Fatalf("second load options = %v, want scheduler:karras", loadRequests[1].Options)
-	}
-	for _, option := range loadRequests[1].Options {
-		if option == "sampler:heun" || option == "scheduler:discrete" {
-			t.Fatalf("second load options = %v, stale sampler/scheduler must be replaced", loadRequests[1].Options)
-		}
-	}
-	if !almostEqualFloat32(loadRequests[1].CFGScale, 9) {
-		t.Fatalf("second load CFGScale = %f, want 9", loadRequests[1].CFGScale)
+	if len(loadRequests) != 1 {
+		t.Fatalf("request-only override changed load identity: %d loads", len(loadRequests))
 	}
 
 	if _, err := svc.EnsureManagedMediaImageLoaded(context.Background(), asset.GetLocalAssetId(), "", profile, overrideB, "generate_request"); err != nil {
 		t.Fatalf("fourth EnsureManagedMediaImageLoaded with same override: %v", err)
 	}
-	if len(loadRequests) != 2 {
+	if len(loadRequests) != 1 {
 		t.Fatalf("expected second identical override to hit cache, got %d loads", len(loadRequests))
 	}
 }

@@ -70,7 +70,7 @@ func TestLiveStableDiffusionLocalJourney(t *testing.T) {
 	}
 	t.Cleanup(localSvc.Close)
 
-	main := registerLiveSDAsset(t, localSvc, modelsRoot, "main", mainPath, "image", "z-image-turbo", "media", []string{"image.generate"})
+	main := registerLiveSDAsset(t, localSvc, modelsRoot, "main", mainPath, "image", "z-image", "media", []string{"image.generate"})
 	textEncoder := registerLiveSDAsset(t, localSvc, modelsRoot, "text-encoder", textPath, "chat", "", "llama", []string{"chat"})
 	vae := registerLiveSDAsset(t, localSvc, modelsRoot, "vae", vaePath, "vae", "flux1-vae", "media", nil)
 	configuration := addBindAndSelectLiveSDConfiguration(t, localSvc, main, textEncoder, vae)
@@ -233,6 +233,9 @@ func addBindAndSelectLiveSDConfiguration(t *testing.T, localSvc *localservice.Se
 		t.Fatalf("AddLocalCapabilityConfiguration(SD): %v", err)
 	}
 	configuration := added.GetConfiguration()
+	if len(configuration.GetExactBindings()) != 0 {
+		t.Fatalf("image Add committed bindings before explicit Bind: %+v", configuration.GetExactBindings())
+	}
 	assets := map[string]liveSDRegisteredAsset{
 		capabilitydriver.StableDiffusionMainRequirementID:        main,
 		capabilitydriver.StableDiffusionTextEncoderRequirementID: textEncoder,

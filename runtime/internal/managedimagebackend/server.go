@@ -39,6 +39,7 @@ type loadModelState struct {
 }
 
 type imageGenerateState struct {
+	Mode           ImageRequestMode
 	Width          int32
 	Height         int32
 	Step           int32
@@ -47,8 +48,10 @@ type imageGenerateState struct {
 	NegativePrompt string
 	Dst            string
 	Src            string
-	EnableParams   string
-	RefImages      []string
+	Mask           string
+	CFGScale       float32
+	Sampler        string
+	Scheduler      string
 }
 
 type imageGenerateProgress struct {
@@ -58,8 +61,6 @@ type imageGenerateProgress struct {
 }
 
 type managedImageOptions struct {
-	Sampler            string
-	Scheduler          string
 	Components         []managedImageComponent
 	DiffusionFA        *bool
 	OffloadParamsToCPU *bool
@@ -73,8 +74,6 @@ type managedImageComponent struct {
 	EngineSlot    string `json:"engine_slot"`
 	Path          string `json:"path"`
 	Required      bool   `json:"required,omitempty"`
-	Weight        string `json:"weight,omitempty"`
-	OptionsJSON   string `json:"options_json,omitempty"`
 }
 
 func (options managedImageOptions) ComponentsBySlot() map[string]string {
@@ -216,17 +215,12 @@ func (s *Server) handleLoadModel(stream grpc.ServerStream) error {
 	if err != nil {
 		return stream.SendMsg(resultMessage(false, err.Error(), nil))
 	}
-	log.Printf("managed image backend load request model_path=%s options=%s threads=%d cfg_scale=%g",
+	log.Printf("managed image backend load request model_path=%s components=%d threads=%d diffusion_fa=%t offload_to_cpu=%t",
 		strings.TrimSpace(state.ModelPath),
-		fmt.Sprintf("sampler=%s scheduler=%s components=%d diffusion_fa=%t offload_to_cpu=%t",
-			strings.TrimSpace(state.Options.Sampler),
-			strings.TrimSpace(state.Options.Scheduler),
-			len(state.Options.ComponentsBySlot()),
-			state.Options.DiffusionFA != nil && *state.Options.DiffusionFA,
-			state.Options.OffloadParamsToCPU != nil && *state.Options.OffloadParamsToCPU,
-		),
+		len(state.Options.ComponentsBySlot()),
 		state.Threads,
-		state.CFGScale,
+		state.Options.DiffusionFA != nil && *state.Options.DiffusionFA,
+		state.Options.OffloadParamsToCPU != nil && *state.Options.OffloadParamsToCPU,
 	)
 	diag, err := s.driver.LoadModel(state)
 	if err != nil {

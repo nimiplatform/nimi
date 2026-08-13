@@ -274,6 +274,27 @@ func validateInvocationModelContent(files []capabilitydriver.InvocationExactBind
 }
 
 func validateInvocationModelContentContext(ctx context.Context, files []capabilitydriver.InvocationExactBinding) error {
+	content := make([]invocationContentFile, 0, len(files))
+	for _, file := range files {
+		content = append(content, invocationContentFile{absolutePath: file.AbsolutePath, entrySHA256: file.EntrySHA256})
+	}
+	return validateInvocationContentFilesContext(ctx, content)
+}
+
+func validateImageInvocationModelContentContext(ctx context.Context, files []capabilitydriver.ImageModelFile) error {
+	content := make([]invocationContentFile, 0, len(files))
+	for _, file := range files {
+		content = append(content, invocationContentFile{absolutePath: file.AbsolutePath(), entrySHA256: file.EntrySHA256()})
+	}
+	return validateInvocationContentFilesContext(ctx, content)
+}
+
+type invocationContentFile struct {
+	absolutePath string
+	entrySHA256  string
+}
+
+func validateInvocationContentFilesContext(ctx context.Context, files []invocationContentFile) error {
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -284,7 +305,7 @@ func validateInvocationModelContentContext(ctx context.Context, files []capabili
 		if err := ctx.Err(); err != nil {
 			return err
 		}
-		opened, err := os.Open(file.AbsolutePath)
+		opened, err := os.Open(file.absolutePath)
 		if err != nil {
 			return executionFailure(localexecution.FailureContentMismatch, fmt.Errorf("open captured model content: %w", err))
 		}
@@ -311,7 +332,7 @@ func validateInvocationModelContentContext(ctx context.Context, files []capabili
 			return executionFailure(localexecution.FailureContentMismatch, fmt.Errorf("close captured model content: %w", closeErr))
 		}
 		actual := hex.EncodeToString(hash.Sum(nil))
-		if !strings.EqualFold(actual, strings.TrimSpace(file.EntrySHA256)) {
+		if !strings.EqualFold(actual, strings.TrimSpace(file.entrySHA256)) {
 			return executionFailure(localexecution.FailureContentMismatch, fmt.Errorf("captured model content does not match entry SHA-256"))
 		}
 	}

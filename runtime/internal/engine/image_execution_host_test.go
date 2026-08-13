@@ -17,6 +17,7 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
 	"github.com/nimiplatform/nimi/runtime/internal/localexecution"
+	"github.com/nimiplatform/nimi/runtime/internal/managedimagebackend"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
 )
@@ -51,7 +52,7 @@ func (f *fakeImageInvocationSubstrate) Ensure(ctx context.Context, plan *capabil
 
 func (f *fakeImageInvocationSubstrate) GenerateImage(ctx context.Context, plan *capabilitydriver.ImageInvocationPlan, index int32, _ localexecution.ImageProgressFunc) (localexecution.ImageArtifact, error) {
 	f.mu.Lock()
-	f.generateOrder = append(f.generateOrder, fmt.Sprintf("%s:%d", plan.Prompt(), index))
+	f.generateOrder = append(f.generateOrder, fmt.Sprintf("%s:%d", plan.RequestPlan().Prompt(), index))
 	f.active++
 	if f.active > f.maxActive {
 		f.maxActive = f.active
@@ -65,7 +66,7 @@ func (f *fakeImageInvocationSubstrate) GenerateImage(ctx context.Context, plan *
 	if f.generateFn != nil {
 		return f.generateFn(ctx, plan, index)
 	}
-	return localexecution.ImageArtifact{Index: index, Bytes: testPNGBytes()}, nil
+	return localexecution.ImageArtifact{Index: index, Bytes: testPNGBytes(), MediaType: "image/png"}, nil
 }
 
 func (f *fakeImageInvocationSubstrate) Healthy() bool {
@@ -88,7 +89,7 @@ func TestImageExecutionHostStrictFIFOAndQueuedCancellation(t *testing.T) {
 	var firstOnce sync.Once
 	substrate := &fakeImageInvocationSubstrate{healthy: true}
 	substrate.generateFn = func(ctx context.Context, plan *capabilitydriver.ImageInvocationPlan, index int32) (localexecution.ImageArtifact, error) {
-		if plan.Prompt() == "first" {
+		if plan.RequestPlan().Prompt() == "first" {
 			firstOnce.Do(func() { close(firstStarted) })
 			select {
 			case <-releaseFirst:
@@ -96,7 +97,7 @@ func TestImageExecutionHostStrictFIFOAndQueuedCancellation(t *testing.T) {
 				return localexecution.ImageArtifact{}, ctx.Err()
 			}
 		}
-		return localexecution.ImageArtifact{Index: index, Bytes: testPNGBytes()}, nil
+		return localexecution.ImageArtifact{Index: index, Bytes: testPNGBytes(), MediaType: "image/png"}, nil
 	}
 	host := newImageExecutionHostWithSubstrate(substrate, nil)
 	defer func() { _ = host.Stop() }()
@@ -260,7 +261,7 @@ func TestImageExecutionHostRunningCancellationStopsSubstrate(t *testing.T) {
 func TestImageExecutionHostRehashesEveryModelFileBeforeLoad(t *testing.T) {
 	plan := imagePlanForHostTest(t, "mismatch", 1)
 	files := plan.ModelFiles()
-	if err := os.WriteFile(files[1].AbsolutePath, []byte("drifted"), 0o600); err != nil {
+	if err := os.WriteFile(files[1].AbsolutePath(), []byte("drifted"), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	substrate := &fakeImageInvocationSubstrate{healthy: true}
@@ -294,14 +295,14 @@ func TestImageExecutionHostAttributesProcessCrashAndRecoversOnNextRequest(t *tes
 		return false, nil
 	}
 	substrate.generateFn = func(_ context.Context, plan *capabilitydriver.ImageInvocationPlan, index int32) (localexecution.ImageArtifact, error) {
-		if plan.Prompt() == "crash" && !crashed {
+		if plan.RequestPlan().Prompt() == "crash" && !crashed {
 			crashed = true
 			substrate.mu.Lock()
 			substrate.healthy = false
 			substrate.mu.Unlock()
 			return localexecution.ImageArtifact{}, errors.New("process exited")
 		}
-		return localexecution.ImageArtifact{Index: index, Bytes: testPNGBytes()}, nil
+		return localexecution.ImageArtifact{Index: index, Bytes: testPNGBytes(), MediaType: "image/png"}, nil
 	}
 	host := newImageExecutionHostWithSubstrate(substrate, nil)
 	defer func() { _ = host.Stop() }()
@@ -320,7 +321,7 @@ func TestImageExecutionHostPreservesProducedArtifactsOnInferenceFailure(t *testi
 		if index == 2 {
 			return localexecution.ImageArtifact{}, errors.New("sampler failed")
 		}
-		return localexecution.ImageArtifact{Index: index, Bytes: testPNGBytes()}, nil
+		return localexecution.ImageArtifact{Index: index, Bytes: testPNGBytes(), MediaType: "image/png"}, nil
 	}
 	host := newImageExecutionHostWithSubstrate(substrate, nil)
 	defer func() { _ = host.Stop() }()
@@ -339,25 +340,38 @@ func TestImageExecutionHostPreservesProducedArtifactsOnInferenceFailure(t *testi
 
 func TestImageInvocationTransportUsesCanonicalDriverComponentsAndPrompt(t *testing.T) {
 	plan := imagePlanWithUncondForHostTest(t)
-	request, err := imageLoadRequest("127.0.0.1:43210", plan)
+	request, err := imageLoadRequest("127.0.0.1:43210", plan, managedimagebackend.ProtocolManagedWrapper)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(request.Components) != 3 || request.Components[0].OccurrenceID != capabilitydriver.StableDiffusionTextEncoderRequirementID ||
-		request.Components[1].OccurrenceID != capabilitydriver.StableDiffusionVAERequirementID ||
-		request.Components[2].OccurrenceID != capabilitydriver.StableDiffusionUncondDiffusionRequirementID ||
+	if len(request.Components) != 3 || request.Components[0].OccurrenceID != "text-encoder" ||
+		request.Components[1].OccurrenceID != "vae" ||
+		request.Components[2].OccurrenceID != "uncond-diffusion" ||
 		request.Components[2].EngineSlot != "uncond_diffusion_model" {
 		t.Fatalf("canonical component transport = %+v", request.Components)
 	}
-	if got := imageInvocationPrompt(plan); got != plan.Prompt() {
-		t.Fatalf("image prompt = %q, want %q", got, plan.Prompt())
+	generate, err := imageGenerateRequest("127.0.0.1:43210", managedimagebackend.ProtocolManagedWrapper, plan)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := generate.PositivePrompt; got != plan.RequestPlan().Prompt() {
+		t.Fatalf("image prompt = %q, want %q", got, plan.RequestPlan().Prompt())
 	}
 }
 
 func TestImageInvocationLoadOptionsUsesCanonicalUncondComponentToken(t *testing.T) {
 	plan := imagePlanWithUncondForHostTest(t)
-	joinedOptions := strings.Join(imageInvocationLoadOptions(plan), "\n")
-	wanted := "uncond_diffusion_model:" + plan.UncondDiffusionPath()
+	request, err := imageLoadRequest("127.0.0.1:43210", plan, managedimagebackend.ProtocolDirectGOSD)
+	if err != nil {
+		t.Fatal(err)
+	}
+	joinedOptions := strings.Join(request.DirectOptions, "\n")
+	load := plan.LoadPlan().(capabilitydriver.StableDiffusionCPPLoadPlan)
+	uncond, ok := load.UncondDiffusion()
+	if !ok {
+		t.Fatal("unconditional diffusion component missing")
+	}
+	wanted := "uncond_diffusion_model:" + uncond.AbsolutePath()
 	if !strings.Contains(joinedOptions, wanted) || strings.Contains(joinedOptions, "high_noise_diffusion_model_path:") {
 		t.Fatalf("unconditional diffusion options = %q, want canonical %q only", joinedOptions, wanted)
 	}

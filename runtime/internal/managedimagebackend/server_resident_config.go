@@ -31,9 +31,6 @@ func validateManagedImageLoadState(state loadModelState) error {
 	if err != nil {
 		return err
 	}
-	if err := validateStableDiffusionCPPComponentMetadataList(components); err != nil {
-		return err
-	}
 	for _, component := range components {
 		if _, err := os.Stat(strings.TrimSpace(component.Path)); err != nil {
 			return fmt.Errorf("managed image option path unavailable: %w", err)
@@ -45,9 +42,6 @@ func validateManagedImageLoadState(state loadModelState) error {
 func stableDiffusionCPPResidentConfigFromLoad(state loadModelState) (stableDiffusionCPPResidentConfig, error) {
 	components, err := normalizeStableDiffusionCPPComponents(state.Options.Components)
 	if err != nil {
-		return stableDiffusionCPPResidentConfig{}, err
-	}
-	if err := validateStableDiffusionCPPComponentMetadataList(components); err != nil {
 		return stableDiffusionCPPResidentConfig{}, err
 	}
 	return stableDiffusionCPPResidentConfig{
@@ -62,9 +56,6 @@ func stableDiffusionCPPResidentConfigFromLoad(state loadModelState) (stableDiffu
 func stableDiffusionCPPResidentFingerprint(config stableDiffusionCPPResidentConfig) (string, error) {
 	components, err := normalizeStableDiffusionCPPComponents(config.Components)
 	if err != nil {
-		return "", err
-	}
-	if err := validateStableDiffusionCPPComponentMetadataList(components); err != nil {
 		return "", err
 	}
 	normalized := config
@@ -85,9 +76,6 @@ func stableDiffusionCPPResidentStartupArgs(config stableDiffusionCPPResidentConf
 	}
 	components, err := normalizeStableDiffusionCPPComponents(config.Components)
 	if err != nil {
-		return nil, err
-	}
-	if err := validateStableDiffusionCPPComponentMetadataList(components); err != nil {
 		return nil, err
 	}
 	args := []string{
@@ -141,8 +129,6 @@ func normalizeStableDiffusionCPPComponents(components []managedImageComponent) (
 	seenSlots := map[string]struct{}{}
 	seenOccurrences := map[string]struct{}{}
 	seenRoleOrders := map[string]struct{}{}
-	hasOccurrenceIdentity := false
-	hasLegacyIdentity := false
 	for _, component := range components {
 		slot := strings.ToLower(strings.TrimSpace(component.EngineSlot))
 		path := strings.TrimSpace(component.Path)
@@ -153,31 +139,24 @@ func normalizeStableDiffusionCPPComponents(components []managedImageComponent) (
 			return nil, fmt.Errorf("unsupported managed image component slot %q", slot)
 		}
 		occurrenceID := strings.TrimSpace(component.OccurrenceID)
-		if occurrenceID != "" {
-			if hasLegacyIdentity {
-				return nil, fmt.Errorf("managed image component occurrence identity is incomplete")
-			}
-			hasOccurrenceIdentity = true
-			if _, exists := seenOccurrences[occurrenceID]; exists {
-				return nil, fmt.Errorf("duplicate managed image component occurrence %q", occurrenceID)
-			}
-			if component.Order < 0 {
-				return nil, fmt.Errorf("managed image component occurrence %q has invalid order", occurrenceID)
-			}
-			roleOrder := strings.TrimSpace(component.Role) + "\x00" + strconv.Itoa(int(component.Order))
-			if _, exists := seenRoleOrders[roleOrder]; exists {
-				return nil, fmt.Errorf("duplicate managed image component order %d for role %q", component.Order, strings.TrimSpace(component.Role))
-			}
-			seenOccurrences[occurrenceID] = struct{}{}
-			seenRoleOrders[roleOrder] = struct{}{}
-		} else if hasOccurrenceIdentity {
-			return nil, fmt.Errorf("managed image component occurrence identity is incomplete")
-		} else {
-			hasLegacyIdentity = true
-			if _, exists := seenSlots[slot]; exists {
-				return nil, fmt.Errorf("duplicate managed image component slot %q", slot)
-			}
+		if occurrenceID == "" {
+			return nil, fmt.Errorf("managed image component occurrence identity is required")
 		}
+		if _, exists := seenOccurrences[occurrenceID]; exists {
+			return nil, fmt.Errorf("duplicate managed image component occurrence %q", occurrenceID)
+		}
+		if component.Order < 0 {
+			return nil, fmt.Errorf("managed image component occurrence %q has invalid order", occurrenceID)
+		}
+		roleOrder := strings.TrimSpace(component.Role) + "\x00" + strconv.Itoa(int(component.Order))
+		if _, exists := seenRoleOrders[roleOrder]; exists {
+			return nil, fmt.Errorf("duplicate managed image component order %d for role %q", component.Order, strings.TrimSpace(component.Role))
+		}
+		if _, exists := seenSlots[slot]; exists {
+			return nil, fmt.Errorf("duplicate managed image component slot %q", slot)
+		}
+		seenOccurrences[occurrenceID] = struct{}{}
+		seenRoleOrders[roleOrder] = struct{}{}
 		if path == "" {
 			return nil, fmt.Errorf("managed image component path is required for slot %q", slot)
 		}
@@ -190,65 +169,20 @@ func normalizeStableDiffusionCPPComponents(components []managedImageComponent) (
 			EngineSlot:    slot,
 			Path:          path,
 			Required:      component.Required,
-			Weight:        strings.TrimSpace(component.Weight),
-			OptionsJSON:   strings.TrimSpace(component.OptionsJSON),
 		})
 	}
-	if hasOccurrenceIdentity {
-		sort.SliceStable(normalized, func(left, right int) bool {
-			leftRole := strings.TrimSpace(normalized[left].Role)
-			rightRole := strings.TrimSpace(normalized[right].Role)
-			if leftRole != rightRole {
-				return leftRole < rightRole
-			}
-			if normalized[left].Order != normalized[right].Order {
-				return normalized[left].Order < normalized[right].Order
-			}
-			return normalized[left].OccurrenceID < normalized[right].OccurrenceID
-		})
-	} else {
-		sort.Slice(normalized, func(left, right int) bool {
-			if normalized[left].EngineSlot == normalized[right].EngineSlot {
-				return normalized[left].Path < normalized[right].Path
-			}
-			return normalized[left].EngineSlot < normalized[right].EngineSlot
-		})
-	}
-	return normalized, nil
-}
-
-func validateStableDiffusionCPPComponentMetadataList(components []managedImageComponent) error {
-	for _, component := range components {
-		if err := validateStableDiffusionCPPComponentMetadata(component); err != nil {
-			return fmt.Errorf("managed image component %q: %w", strings.TrimSpace(component.EngineSlot), err)
+	sort.SliceStable(normalized, func(left, right int) bool {
+		leftRole := strings.TrimSpace(normalized[left].Role)
+		rightRole := strings.TrimSpace(normalized[right].Role)
+		if leftRole != rightRole {
+			return leftRole < rightRole
 		}
-	}
-	return nil
-}
-
-// stable-diffusion.cpp's resident CLI admits component paths only. Preserve
-// occurrence metadata in the Runtime/backend carrier, but fail closed before
-// launch when a caller supplies weight or backend options that this CLI cannot
-// consume. An empty JSON object is the canonical representation of no options.
-func validateStableDiffusionCPPComponentMetadata(component managedImageComponent) error {
-	if strings.TrimSpace(component.Weight) != "" {
-		return fmt.Errorf("weight is not admitted by the stable-diffusion.cpp component schema")
-	}
-	raw := strings.TrimSpace(component.OptionsJSON)
-	if raw == "" || raw == "{}" {
-		return nil
-	}
-	var options map[string]json.RawMessage
-	if err := json.Unmarshal([]byte(raw), &options); err != nil {
-		return fmt.Errorf("options_json must be a JSON object: %w", err)
-	}
-	if options == nil {
-		return fmt.Errorf("options_json must be a JSON object")
-	}
-	if len(options) != 0 {
-		return fmt.Errorf("options are not admitted by the stable-diffusion.cpp component schema")
-	}
-	return nil
+		if normalized[left].Order != normalized[right].Order {
+			return normalized[left].Order < normalized[right].Order
+		}
+		return normalized[left].OccurrenceID < normalized[right].OccurrenceID
+	})
+	return normalized, nil
 }
 
 func resolveStableDiffusionCPPServerExecutable(executablePath string) (string, error) {

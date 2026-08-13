@@ -38,10 +38,11 @@ func main() {
 	if *dst == "" {
 		_, err := managedimagebackend.LoadModel(ctx, managedimagebackend.LoadModelRequest{
 			BackendAddress: *backendAddress,
+			Protocol:       managedimagebackend.ProtocolDirectGOSD,
 			ModelsRoot:     *modelsRoot,
 			ModelPath:      *modelPath,
-			Options:        options,
-			CFGScale:       float32(*cfgScale),
+			DirectOptions:  options,
+			DirectCFGScale: float32(*cfgScale),
 			Threads:        int32(*threads),
 		})
 		if err != nil {
@@ -53,13 +54,27 @@ func main() {
 		return
 	}
 
-	_, err := managedimagebackend.LoadModelAndGenerateImage(ctx, managedimagebackend.ImageRequest{
+	_, err := managedimagebackend.LoadModel(ctx, managedimagebackend.LoadModelRequest{
 		BackendAddress: *backendAddress,
+		Protocol:       managedimagebackend.ProtocolDirectGOSD,
 		ModelsRoot:     *modelsRoot,
 		ModelPath:      *modelPath,
-		Options:        options,
-		CFGScale:       float32(*cfgScale),
+		DirectOptions:  options,
+		DirectCFGScale: float32(*cfgScale),
 		Threads:        int32(*threads),
+	})
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "LOAD_ERROR: %v\n", err)
+		os.Exit(1)
+	}
+
+	_, err = managedimagebackend.GenerateImage(ctx, managedimagebackend.ImageRequest{
+		BackendAddress: *backendAddress,
+		Protocol:       managedimagebackend.ProtocolDirectGOSD,
+		Mode:           managedimagebackend.ImageRequestModeTextToImage,
+		ModelsRoot:     *modelsRoot,
+		ModelPath:      *modelPath,
+		CFGScale:       float32(*cfgScale),
 		Width:          int32(*width),
 		Height:         int32(*height),
 		Step:           int32(*steps),

@@ -382,32 +382,188 @@ type EmbedInvocationDriver interface {
 	PlanEmbedInvocation(input EmbedInvocationInput) (*EmbedInvocationPlan, error)
 }
 
-// ImageInvocationPlan is private to the image Driver/Host seam. Its fields are
-// immutable after construction and accessors return copies where needed.
-type ImageInvocationPlan struct {
-	processKey              string
-	modelFiles              []InvocationExactBinding
-	mainModelPath           string
-	textEncoderPath         string
-	vaePath                 string
-	uncondDiffusionPath     string
-	modelFamily             string
-	prompt                  string
-	negativePrompt          string
-	inputImage              string
-	mask                    string
-	responseFormat          string
-	width                   int
-	height                  int
-	steps                   int
+// ImageModelFile is the content-custody reference carried across the
+// Driver/Host seam. Requirement identity has already been consumed by the
+// exact Driver and deliberately does not cross this boundary.
+type ImageModelFile struct {
+	localAssetID      string
+	absolutePath      string
+	verifiedContentID string
+	entrySHA256       string
+}
+
+func (f ImageModelFile) LocalAssetID() string      { return f.localAssetID }
+func (f ImageModelFile) AbsolutePath() string      { return f.absolutePath }
+func (f ImageModelFile) VerifiedContentID() string { return f.verifiedContentID }
+func (f ImageModelFile) EntrySHA256() string       { return f.entrySHA256 }
+
+// ImageLoadPlan is a closed implementation-dialect load variant. The private
+// marker prevents Host or another package from inventing variants.
+type ImageLoadPlan interface {
+	imageLoadPlanVariant()
+}
+
+// StableDiffusionCPPLoadPlan contains only named stable-diffusion.cpp load
+// decisions. Backend slots and raw options are physical-adapter vocabulary.
+type StableDiffusionCPPLoadPlan struct {
+	main                    ImageModelFile
+	textEncoder             ImageModelFile
+	vae                     ImageModelFile
+	uncondDiffusion         *ImageModelFile
+	threads                 int
 	cfgScale                float64
-	seed                    int64
-	imageCount              int
 	sampler                 string
 	scheduler               string
-	threads                 int
 	diffusionFlashAttention bool
 	offloadParamsToCPU      bool
+}
+
+func (StableDiffusionCPPLoadPlan) imageLoadPlanVariant()         {}
+func (p StableDiffusionCPPLoadPlan) Main() ImageModelFile        { return p.main }
+func (p StableDiffusionCPPLoadPlan) TextEncoder() ImageModelFile { return p.textEncoder }
+func (p StableDiffusionCPPLoadPlan) VAE() ImageModelFile         { return p.vae }
+func (p StableDiffusionCPPLoadPlan) UncondDiffusion() (ImageModelFile, bool) {
+	if p.uncondDiffusion == nil {
+		return ImageModelFile{}, false
+	}
+	return *p.uncondDiffusion, true
+}
+func (p StableDiffusionCPPLoadPlan) Threads() int      { return p.threads }
+func (p StableDiffusionCPPLoadPlan) CFGScale() float64 { return p.cfgScale }
+func (p StableDiffusionCPPLoadPlan) Sampler() string   { return p.sampler }
+func (p StableDiffusionCPPLoadPlan) Scheduler() string { return p.scheduler }
+func (p StableDiffusionCPPLoadPlan) DiffusionFlashAttention() bool {
+	return p.diffusionFlashAttention
+}
+func (p StableDiffusionCPPLoadPlan) OffloadParamsToCPU() bool { return p.offloadParamsToCPU }
+
+// ImageRequestPlan is a closed request-route variant. Input and mask are
+// typed fields rather than string-encoded enable parameters.
+type ImageRequestPlan interface {
+	imageRequestPlanVariant()
+	Prompt() string
+	NegativePrompt() string
+	Width() int
+	Height() int
+	Steps() int
+	CFGScale() float64
+	Seed() int64
+	ImageCount() int
+	Sampler() string
+	Scheduler() string
+}
+
+type stableDiffusionCPPRequestFields struct {
+	prompt         string
+	negativePrompt string
+	width          int
+	height         int
+	steps          int
+	cfgScale       float64
+	seed           int64
+	imageCount     int
+	sampler        string
+	scheduler      string
+}
+
+func (p stableDiffusionCPPRequestFields) Prompt() string         { return p.prompt }
+func (p stableDiffusionCPPRequestFields) NegativePrompt() string { return p.negativePrompt }
+func (p stableDiffusionCPPRequestFields) Width() int             { return p.width }
+func (p stableDiffusionCPPRequestFields) Height() int            { return p.height }
+func (p stableDiffusionCPPRequestFields) Steps() int             { return p.steps }
+func (p stableDiffusionCPPRequestFields) CFGScale() float64      { return p.cfgScale }
+func (p stableDiffusionCPPRequestFields) Seed() int64            { return p.seed }
+func (p stableDiffusionCPPRequestFields) ImageCount() int        { return p.imageCount }
+func (p stableDiffusionCPPRequestFields) Sampler() string        { return p.sampler }
+func (p stableDiffusionCPPRequestFields) Scheduler() string      { return p.scheduler }
+
+type StableDiffusionCPPTextToImageRequestPlan struct {
+	stableDiffusionCPPRequestFields
+}
+
+func (StableDiffusionCPPTextToImageRequestPlan) imageRequestPlanVariant() {}
+
+type StableDiffusionCPPImageToImageRequestPlan struct {
+	stableDiffusionCPPRequestFields
+	inputImage string
+	mask       string
+}
+
+func (StableDiffusionCPPImageToImageRequestPlan) imageRequestPlanVariant() {}
+func (p StableDiffusionCPPImageToImageRequestPlan) InputImage() string     { return p.inputImage }
+func (p StableDiffusionCPPImageToImageRequestPlan) Mask() string           { return p.mask }
+
+// ImageResultConstraints is a closed Driver-owned result contract.
+type ImageResultConstraints interface {
+	imageResultConstraintsVariant()
+	ArtifactCount() int
+}
+
+type StableDiffusionCPPResultConstraints struct {
+	artifactCount int
+	mediaType     string
+	format        string
+	width         int
+	height        int
+}
+
+func (StableDiffusionCPPResultConstraints) imageResultConstraintsVariant() {}
+func (p StableDiffusionCPPResultConstraints) ArtifactCount() int           { return p.artifactCount }
+func (p StableDiffusionCPPResultConstraints) MediaType() string            { return p.mediaType }
+func (p StableDiffusionCPPResultConstraints) Format() string               { return p.format }
+func (p StableDiffusionCPPResultConstraints) Width() int                   { return p.width }
+func (p StableDiffusionCPPResultConstraints) Height() int                  { return p.height }
+
+type ImageBackendProgressObservation struct {
+	CurrentStep     int32
+	TotalSteps      int32
+	ProgressPercent int32
+}
+
+type ImageProgress struct {
+	CurrentStep     int32
+	TotalSteps      int32
+	ProgressPercent int32
+}
+
+type ImageBackendArtifactObservation struct {
+	Index   int32
+	Payload []byte
+	Format  string
+	Width   int
+	Height  int
+}
+
+type ImageArtifact struct {
+	Index     int32
+	Payload   []byte
+	MediaType string
+}
+
+type ImageBackendFailureStage string
+
+const (
+	ImageBackendFailureLoad     ImageBackendFailureStage = "load"
+	ImageBackendFailureProgress ImageBackendFailureStage = "progress"
+	ImageBackendFailureGenerate ImageBackendFailureStage = "generate"
+	ImageBackendFailureResult   ImageBackendFailureStage = "result"
+)
+
+type imageDialectTranslator interface {
+	validateImagePlan(*ImageInvocationPlan) error
+	translateImageProgress(*ImageInvocationPlan, ImageBackendProgressObservation) (ImageProgress, error)
+	translateImageArtifact(*ImageInvocationPlan, ImageBackendArtifactObservation) (ImageArtifact, error)
+	translateImageFailure(ImageBackendFailureStage, error) error
+}
+
+// ImageInvocationPlan is the immutable closed Driver/Host seam.
+type ImageInvocationPlan struct {
+	processKey        string
+	modelFiles        []ImageModelFile
+	loadPlan          ImageLoadPlan
+	requestPlan       ImageRequestPlan
+	resultConstraints ImageResultConstraints
+	translator        imageDialectTranslator
 }
 
 func (p *ImageInvocationPlan) ProcessKey() string {
@@ -417,149 +573,73 @@ func (p *ImageInvocationPlan) ProcessKey() string {
 	return p.processKey
 }
 
-func (p *ImageInvocationPlan) ModelFiles() []InvocationExactBinding {
+func (p *ImageInvocationPlan) ModelFiles() []ImageModelFile {
 	if p == nil {
 		return nil
 	}
-	return append([]InvocationExactBinding(nil), p.modelFiles...)
+	return append([]ImageModelFile(nil), p.modelFiles...)
 }
 
-func (p *ImageInvocationPlan) MainModelPath() string {
+func (p *ImageInvocationPlan) LoadPlan() ImageLoadPlan {
 	if p == nil {
-		return ""
+		return nil
 	}
-	return p.mainModelPath
+	return p.loadPlan
 }
 
-func (p *ImageInvocationPlan) TextEncoderPath() string {
+func (p *ImageInvocationPlan) RequestPlan() ImageRequestPlan {
 	if p == nil {
-		return ""
+		return nil
 	}
-	return p.textEncoderPath
+	return p.requestPlan
 }
 
-func (p *ImageInvocationPlan) VAEPath() string {
+func (p *ImageInvocationPlan) ResultConstraints() ImageResultConstraints {
 	if p == nil {
-		return ""
+		return nil
 	}
-	return p.vaePath
-}
-
-func (p *ImageInvocationPlan) UncondDiffusionPath() string {
-	if p == nil {
-		return ""
-	}
-	return p.uncondDiffusionPath
-}
-
-func (p *ImageInvocationPlan) ModelFamily() string {
-	if p == nil {
-		return ""
-	}
-	return p.modelFamily
-}
-
-func (p *ImageInvocationPlan) Prompt() string {
-	if p == nil {
-		return ""
-	}
-	return p.prompt
-}
-
-func (p *ImageInvocationPlan) NegativePrompt() string {
-	if p == nil {
-		return ""
-	}
-	return p.negativePrompt
-}
-
-func (p *ImageInvocationPlan) InputImage() string {
-	if p == nil {
-		return ""
-	}
-	return p.inputImage
-}
-
-func (p *ImageInvocationPlan) Mask() string {
-	if p == nil {
-		return ""
-	}
-	return p.mask
-}
-
-func (p *ImageInvocationPlan) ResponseFormat() string {
-	if p == nil {
-		return ""
-	}
-	return p.responseFormat
-}
-
-func (p *ImageInvocationPlan) Size() (int, int) {
-	if p == nil {
-		return 0, 0
-	}
-	return p.width, p.height
-}
-
-func (p *ImageInvocationPlan) Steps() int {
-	if p == nil {
-		return 0
-	}
-	return p.steps
-}
-
-func (p *ImageInvocationPlan) CFGScale() float64 {
-	if p == nil {
-		return 0
-	}
-	return p.cfgScale
-}
-
-func (p *ImageInvocationPlan) Seed() int64 {
-	if p == nil {
-		return 0
-	}
-	return p.seed
+	return p.resultConstraints
 }
 
 func (p *ImageInvocationPlan) ImageCount() int {
-	if p == nil {
+	if p == nil || p.requestPlan == nil {
 		return 0
 	}
-	return p.imageCount
+	return p.requestPlan.ImageCount()
 }
 
-func (p *ImageInvocationPlan) Sampler() string {
-	if p == nil {
-		return ""
+func (p *ImageInvocationPlan) Validate() error {
+	if p == nil || p.translator == nil {
+		return fmt.Errorf("image invocation plan is incomplete")
 	}
-	return p.sampler
+	return p.translator.validateImagePlan(p)
 }
 
-func (p *ImageInvocationPlan) Scheduler() string {
-	if p == nil {
-		return ""
+func (p *ImageInvocationPlan) TranslateProgress(observation ImageBackendProgressObservation) (ImageProgress, error) {
+	if p == nil || p.translator == nil {
+		return ImageProgress{}, fmt.Errorf("image invocation translator is unavailable")
 	}
-	return p.scheduler
+	return p.translator.translateImageProgress(p, observation)
 }
 
-func (p *ImageInvocationPlan) Threads() int {
-	if p == nil {
-		return 0
+func (p *ImageInvocationPlan) TranslateArtifact(observation ImageBackendArtifactObservation) (ImageArtifact, error) {
+	if p == nil || p.translator == nil {
+		return ImageArtifact{}, fmt.Errorf("image invocation translator is unavailable")
 	}
-	return p.threads
+	observation.Payload = append([]byte(nil), observation.Payload...)
+	return p.translator.translateImageArtifact(p, observation)
 }
 
-func (p *ImageInvocationPlan) DiffusionFlashAttention() bool {
-	return p != nil && p.diffusionFlashAttention
-}
-
-func (p *ImageInvocationPlan) OffloadParamsToCPU() bool {
-	return p != nil && p.offloadParamsToCPU
+func (p *ImageInvocationPlan) TranslateFailure(stage ImageBackendFailureStage, err error) error {
+	if p == nil || p.translator == nil {
+		return fmt.Errorf("image invocation translator is unavailable: %w", err)
+	}
+	return p.translator.translateImageFailure(stage, err)
 }
 
 // ImageInvocationDriver is the invocation seam implemented by an image
-// Driver. This slice forms plans only; no ExecutionHost consumes them yet.
+// Driver. The resulting plan contains the exact dialect translator used by the
+// Host after physical execution.
 type ImageInvocationDriver interface {
 	Driver
 	PlanImageInvocation(input ImageInvocationInput) (*ImageInvocationPlan, error)

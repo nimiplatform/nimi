@@ -338,7 +338,7 @@ func localImageArtifact(effective *localImageEffectiveInputs, produced localexec
 		"negative_prompt": strings.TrimSpace(effective.request.GetNegativePrompt()),
 		"size":            strings.TrimSpace(effective.request.GetSize()),
 	}
-	artifact := nimillm.BinaryArtifact(nimillm.ResolveImageArtifactMIME(effective.request, produced.Bytes), produced.Bytes, metadata)
+	artifact := nimillm.BinaryArtifact(produced.MediaType, produced.Bytes, metadata)
 	nimillm.ApplyImageSpecMetadata(artifact, effective.request)
 	return artifact
 }

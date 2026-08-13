@@ -38,6 +38,9 @@ func TestStableDiffusionInterpretTxt2ImgProjectsRequiredFamilyComposition(t *tes
 		if requirement.GetResourceKind() == inputImageFeature {
 			t.Fatalf("txt2img projected an input.image resource: %#v", requirements)
 		}
+		if requirement.GetPolicy() != runtimev1.LocalCapabilityRequirementPolicy_LOCAL_CAPABILITY_REQUIREMENT_POLICY_SUBSTITUTABLE || requirement.GetPreferredVerifiedContentId() != "" {
+			t.Fatalf("image requirement projected asset-selection intent: %#v", requirement)
+		}
 	}
 	if requirements[0].GetRole() != runtimev1.LocalCapabilityRequirementRole_LOCAL_CAPABILITY_REQUIREMENT_ROLE_MAIN ||
 		requirements[1].GetRole() != runtimev1.LocalCapabilityRequirementRole_LOCAL_CAPABILITY_REQUIREMENT_ROLE_COMPANION ||
@@ -49,7 +52,7 @@ func TestStableDiffusionInterpretTxt2ImgProjectsRequiredFamilyComposition(t *tes
 func TestStableDiffusionInterpretInputImageSupportMustMatchPortableDeclaration(t *testing.T) {
 	driver := StableDiffusionImageDriver{}
 	portable := stableDiffusionPortableForTest(t, map[string]any{
-		"modelFamily":      "z-image-turbo",
+		"modelFamily":      "z-image",
 		"enableInputImage": true,
 	})
 	requirements, reason := driver.Interpret(InterpretInput{PortableConfig: portable, SupportedFeatures: []string{
@@ -118,7 +121,10 @@ func TestStableDiffusionInterpretRejectsUnknownAndProtectedPortableFields(t *tes
 	driver := StableDiffusionImageDriver{}
 	for _, fields := range []map[string]any{
 		{"modelFamily": "unknown"},
+		{"modelFamily": "z-image-turbo"},
 		{"modelFamily": "z-image", "modelPath": "/models/main.gguf"},
+		{"modelFamily": "z-image", "mainRequirementPolicy": "strict"},
+		{"modelFamily": "z-image", "mainVerifiedContentId": "sha256:" + strings.Repeat("a", 64)},
 		{"modelFamily": "z-image", "uncondDiffusionVerifiedContentId": "sha256:" + strings.Repeat("a", 64)},
 		{"modelFamily": "z-image", "loras": []any{map[string]any{"occurrenceOrdinal": 2}}},
 		{"modelFamily": "z-image", "executionOptions": map[string]any{"steps": 0}},
@@ -211,19 +217,83 @@ func TestStableDiffusionPlanNormalizesRequestAndProtectsCapturedState(t *testing
 	if err != nil {
 		t.Fatalf("PlanImageInvocation: %v", err)
 	}
-	if plan.MainModelPath() != filepath.Join(root, "main.gguf") || plan.TextEncoderPath() != filepath.Join(root, "text.gguf") || plan.VAEPath() != filepath.Join(root, "vae.safetensors") {
+	load, ok := plan.LoadPlan().(StableDiffusionCPPLoadPlan)
+	if !ok {
+		t.Fatalf("load plan type = %T", plan.LoadPlan())
+	}
+	request, ok := plan.RequestPlan().(StableDiffusionCPPTextToImageRequestPlan)
+	if !ok {
+		t.Fatalf("request plan type = %T", plan.RequestPlan())
+	}
+	result, ok := plan.ResultConstraints().(StableDiffusionCPPResultConstraints)
+	if !ok {
+		t.Fatalf("result constraints type = %T", plan.ResultConstraints())
+	}
+	if load.Main().AbsolutePath() != filepath.Join(root, "main.gguf") || load.TextEncoder().AbsolutePath() != filepath.Join(root, "text.gguf") || load.VAE().AbsolutePath() != filepath.Join(root, "vae.safetensors") {
 		t.Fatalf("plan component paths are incomplete: %#v", plan.ModelFiles())
 	}
-	width, height := plan.Size()
-	if width != 768 || height != 512 || plan.Steps() != 30 || plan.CFGScale() != 4.5 || plan.Seed() != 99 || plan.ImageCount() != 2 ||
-		plan.Prompt() != "a lighthouse" || plan.NegativePrompt() != "fog" || plan.Sampler() != "euler_a" || plan.Scheduler() != "karras" ||
-		plan.Threads() != 8 || !plan.DiffusionFlashAttention() || !plan.OffloadParamsToCPU() {
+	if request.Width() != 768 || request.Height() != 512 || request.Steps() != 30 || request.CFGScale() != 4.5 || request.Seed() != 99 || result.ArtifactCount() != 2 ||
+		request.Prompt() != "a lighthouse" || request.NegativePrompt() != "fog" || request.Sampler() != "euler_a" || request.Scheduler() != "karras" ||
+		load.Threads() != 8 || !load.DiffusionFlashAttention() || !load.OffloadParamsToCPU() || result.MediaType() != "image/png" {
 		t.Fatalf("normalized plan sampling fields are incorrect")
 	}
 	files := plan.ModelFiles()
-	files[0].AbsolutePath = "mutated"
-	if plan.ModelFiles()[0].AbsolutePath == "mutated" {
+	files[0] = ImageModelFile{}
+	if plan.ModelFiles()[0].AbsolutePath() == "" {
 		t.Fatal("image plan exposed mutable captured state")
+	}
+}
+
+func TestStableDiffusionDriverTranslatesOnlyValidBackendObservations(t *testing.T) {
+	portable := stableDiffusionPortableForTest(t, map[string]any{
+		"modelFamily":      "z-image",
+		"executionOptions": map[string]any{"steps": 20, "width": 64, "height": 64},
+	})
+	root := t.TempDir()
+	bindings := []InvocationExactBinding{
+		stableDiffusionInvocationBindingForTest(StableDiffusionMainRequirementID, "main", filepath.Join(root, "main.gguf"), 'a'),
+		stableDiffusionInvocationBindingForTest(StableDiffusionTextEncoderRequirementID, "text", filepath.Join(root, "text.gguf"), 'b'),
+		stableDiffusionInvocationBindingForTest(StableDiffusionVAERequirementID, "vae", filepath.Join(root, "vae.safetensors"), 'c'),
+	}
+	plan, err := (StableDiffusionImageDriver{}).PlanImageInvocation(ImageInvocationInput{
+		PortableConfig: portable,
+		ExactBindings:  bindings,
+		Request:        &runtimev1.ImageGenerateScenarioSpec{Prompt: "image", Size: "64x64"},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	progress, err := plan.TranslateProgress(ImageBackendProgressObservation{CurrentStep: 10, TotalSteps: 20, ProgressPercent: 50})
+	if err != nil || progress.CurrentStep != 10 {
+		t.Fatalf("valid progress = %+v err=%v", progress, err)
+	}
+	for _, observation := range []ImageBackendProgressObservation{
+		{CurrentStep: 0, TotalSteps: 20, ProgressPercent: 0},
+		{CurrentStep: 10, TotalSteps: 19, ProgressPercent: 52},
+		{CurrentStep: 10, TotalSteps: 20, ProgressPercent: 49},
+	} {
+		if _, err := plan.TranslateProgress(observation); err == nil {
+			t.Fatalf("invalid progress was accepted: %+v", observation)
+		}
+	}
+	artifact, err := plan.TranslateArtifact(ImageBackendArtifactObservation{
+		Index: 1, Payload: []byte("png"), Format: "png", Width: 64, Height: 64,
+	})
+	if err != nil || artifact.MediaType != "image/png" {
+		t.Fatalf("valid artifact = %+v err=%v", artifact, err)
+	}
+	for _, observation := range []ImageBackendArtifactObservation{
+		{Index: 0, Payload: []byte("png"), Format: "png", Width: 64, Height: 64},
+		{Index: 1, Payload: nil, Format: "png", Width: 64, Height: 64},
+		{Index: 1, Payload: []byte("png"), Format: "jpeg", Width: 64, Height: 64},
+		{Index: 1, Payload: []byte("png"), Format: "png", Width: 128, Height: 64},
+	} {
+		if _, err := plan.TranslateArtifact(observation); err == nil {
+			t.Fatalf("invalid artifact was accepted: %+v", observation)
+		}
+	}
+	if err := plan.TranslateFailure(ImageBackendFailureStage("unknown"), errors.New("backend")); err == nil || !strings.Contains(err.Error(), "stage is unknown") {
+		t.Fatalf("unknown failure stage = %v", err)
 	}
 }
 
@@ -324,7 +394,7 @@ func TestStableDiffusionSeedAdmissionMatchesManagedInt32Carrier(t *testing.T) {
 			ExactBindings:  bindings,
 			Request:        &runtimev1.ImageGenerateScenarioSpec{Prompt: "image", Seed: testInt64(seed)},
 		})
-		if err != nil || plan.Seed() != seed {
+		if err != nil || plan.RequestPlan().Seed() != seed {
 			t.Fatalf("request seed %d plan=%v err=%v", seed, plan, err)
 		}
 	}
@@ -398,7 +468,8 @@ func TestStableDiffusionPlanInputImageRequiresDeclaredFeature(t *testing.T) {
 	plan, err := (StableDiffusionImageDriver{}).PlanImageInvocation(ImageInvocationInput{
 		PortableConfig: withFeature, SupportedFeatures: []string{aicapabilities.FeatureInputImage}, ExactBindings: bindings, Request: request,
 	})
-	if err != nil || plan.InputImage() != "input.png" {
+	imageToImage, ok := plan.RequestPlan().(StableDiffusionCPPImageToImageRequestPlan)
+	if err != nil || !ok || imageToImage.InputImage() != "input.png" || imageToImage.Mask() != "" {
 		t.Fatalf("declared input.image plan = %#v err=%v", plan, err)
 	}
 }
@@ -426,7 +497,8 @@ func TestStableDiffusionPlanMaskRequiresIndependentDeclaredFeatureAndInputImage(
 	plan, err := driver.PlanImageInvocation(ImageInvocationInput{
 		PortableConfig: portable, SupportedFeatures: features, ExactBindings: bindings, Request: request,
 	})
-	if err != nil || plan.InputImage() != "input.png" || plan.Mask() != "mask.png" {
+	imageToImage, ok := plan.RequestPlan().(StableDiffusionCPPImageToImageRequestPlan)
+	if err != nil || !ok || imageToImage.InputImage() != "input.png" || imageToImage.Mask() != "mask.png" {
 		t.Fatalf("declared mask plan = %#v err=%v", plan, err)
 	}
 

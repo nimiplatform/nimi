@@ -30,6 +30,7 @@ type managerImageInvocationSubstrate struct {
 	mu         sync.RWMutex
 	currentKey string
 	address    string
+	protocol   managedimagebackend.Protocol
 }
 
 func newManagerImageInvocationSubstrate(manager *Manager, logger *slog.Logger, config ImageExecutionHostConfig) *managerImageInvocationSubstrate {
@@ -112,18 +113,11 @@ func (s *managerImageInvocationSubstrate) Ensure(
 		return false, fmt.Errorf("image substrate did not become healthy")
 	}
 
-	loadRequest, err := imageLoadRequest(address, plan)
+	protocol := imageExecutionProtocol(engineConfig.BinaryPath)
+	loadRequest, err := imageLoadRequest(address, plan, protocol)
 	if err != nil {
 		_ = s.stopProcess()
 		return false, err
-	}
-	// The native gosd protocol predates the Runtime wrapper's ordered
-	// ComponentBinding extension. Its exact components are carried by the
-	// Driver-formed main path plus ordered option/prompt instructions; sending
-	// the wrapper-only field to that legacy descriptor can collide with an
-	// incompatible private field number.
-	if isDirectGOSDExecutable(engineConfig.BinaryPath) {
-		loadRequest.Components = nil
 	}
 	if _, err := managedimagebackend.LoadModel(ctx, loadRequest); err != nil {
 		processHealthy := s.Healthy()
@@ -131,11 +125,12 @@ func (s *managerImageInvocationSubstrate) Ensure(
 		if !processHealthy && ctx.Err() == nil {
 			return false, executionFailure(localexecution.FailureProcessCrash, fmt.Errorf("image substrate exited while loading model: %w", err))
 		}
-		return false, fmt.Errorf("load image model: %w", err)
+		return false, plan.TranslateFailure(capabilitydriver.ImageBackendFailureLoad, err)
 	}
 	s.mu.Lock()
 	s.currentKey = key
 	s.address = address
+	s.protocol = protocol
 	s.mu.Unlock()
 	if progress != nil {
 		progress(localexecution.ImageExecutionProgress{
@@ -161,17 +156,13 @@ func (s *managerImageInvocationSubstrate) GenerateImage(
 	s.mu.RLock()
 	address := s.address
 	currentKey := s.currentKey
+	protocol := s.protocol
 	s.mu.RUnlock()
 	if strings.TrimSpace(address) == "" || currentKey != plan.ProcessKey() {
 		return localexecution.ImageArtifact{}, fmt.Errorf("image substrate does not hold the captured plan")
 	}
-	if plan.Seed() < math.MinInt32 || plan.Seed() > math.MaxInt32 {
-		return localexecution.ImageArtifact{}, fmt.Errorf("image seed is outside the substrate range")
-	}
-	if err := validateImageSubstrateInputPath(plan.InputImage()); err != nil {
-		return localexecution.ImageArtifact{}, err
-	}
-	if err := validateImageSubstrateInputPath(plan.Mask()); err != nil {
+	request, err := imageGenerateRequest(address, protocol, plan)
+	if err != nil {
 		return localexecution.ImageArtifact{}, err
 	}
 
@@ -191,56 +182,65 @@ func (s *managerImageInvocationSubstrate) GenerateImage(
 	}
 	defer func() { _ = os.RemoveAll(workDir) }()
 	destination := filepath.Join(workDir, fmt.Sprintf("artifact-%d.png", index))
-	width, height := plan.Size()
+	constraints, ok := plan.ResultConstraints().(capabilitydriver.StableDiffusionCPPResultConstraints)
+	if !ok {
+		return localexecution.ImageArtifact{}, fmt.Errorf("image result constraints are unavailable")
+	}
+	width, height := constraints.Width(), constraints.Height()
 	startedAt := time.Now()
-	_, err = managedimagebackend.GenerateImage(ctx, managedimagebackend.ImageRequest{
-		BackendAddress: address,
-		ModelsRoot:     imageInvocationModelsRoot(plan.MainModelPath()),
-		ModelPath:      plan.MainModelPath(),
-		Width:          int32(width),
-		Height:         int32(height),
-		Step:           int32(plan.Steps()),
-		Seed:           int32(plan.Seed()),
-		PositivePrompt: imageInvocationPrompt(plan),
-		NegativePrompt: plan.NegativePrompt(),
-		Dst:            destination,
-		Src:            plan.InputImage(),
-		EnableParams:   imageInvocationEnableParameters(plan),
-		OnProgress: func(backendProgress managedimagebackend.ImageGenerateProgress) {
-			if progress != nil {
-				progress(localexecution.ImageExecutionProgress{
-					Stage:         localexecution.ImageExecutionStageGenerating,
-					ArtifactIndex: index,
-					ArtifactCount: int32(plan.ImageCount()),
-				})
-			}
-		},
-	})
+	request.Dst = destination
+	var translatedProgressErr error
+	request.OnProgress = func(backendProgress managedimagebackend.ImageGenerateProgress) error {
+		translated, translateErr := plan.TranslateProgress(capabilitydriver.ImageBackendProgressObservation{
+			CurrentStep: backendProgress.CurrentStep, TotalSteps: backendProgress.TotalSteps, ProgressPercent: backendProgress.ProgressPercent,
+		})
+		if translateErr != nil {
+			translatedProgressErr = plan.TranslateFailure(capabilitydriver.ImageBackendFailureProgress, translateErr)
+			return translatedProgressErr
+		}
+		if progress != nil {
+			progress(localexecution.ImageExecutionProgress{
+				Stage: localexecution.ImageExecutionStageGenerating, ArtifactIndex: index, ArtifactCount: int32(plan.ImageCount()),
+				CurrentStep: translated.CurrentStep, TotalSteps: translated.TotalSteps, ProgressPercent: translated.ProgressPercent,
+			})
+		}
+		return nil
+	}
+	_, err = managedimagebackend.GenerateImage(ctx, request)
 	computeMS := time.Since(startedAt).Milliseconds()
 	if err != nil {
-		return localexecution.ImageArtifact{}, err
+		if translatedProgressErr != nil {
+			return localexecution.ImageArtifact{}, translatedProgressErr
+		}
+		return localexecution.ImageArtifact{}, plan.TranslateFailure(capabilitydriver.ImageBackendFailureGenerate, err)
 	}
 	payload, err := os.ReadFile(destination)
 	if err != nil {
-		return localexecution.ImageArtifact{}, fmt.Errorf("read generated image artifact: %w", err)
+		return localexecution.ImageArtifact{}, plan.TranslateFailure(capabilitydriver.ImageBackendFailureResult, fmt.Errorf("read generated image artifact: %w", err))
 	}
 	if len(payload) == 0 {
-		return localexecution.ImageArtifact{}, fmt.Errorf("generated image artifact is empty")
+		return localexecution.ImageArtifact{}, plan.TranslateFailure(capabilitydriver.ImageBackendFailureResult, fmt.Errorf("generated image artifact is empty"))
 	}
 	decoded, format, decodeErr := image.DecodeConfig(bytes.NewReader(payload))
 	if decodeErr != nil {
-		return localexecution.ImageArtifact{}, fmt.Errorf("decode generated PNG artifact: %w", decodeErr)
+		return localexecution.ImageArtifact{}, plan.TranslateFailure(capabilitydriver.ImageBackendFailureResult, fmt.Errorf("decode generated PNG artifact: %w", decodeErr))
 	}
 	if format != "png" {
-		return localexecution.ImageArtifact{}, fmt.Errorf("generated image artifact format %q is not PNG", format)
+		return localexecution.ImageArtifact{}, plan.TranslateFailure(capabilitydriver.ImageBackendFailureResult, fmt.Errorf("generated image artifact format %q is not PNG", format))
 	}
 	if decoded.Width != width || decoded.Height != height {
-		return localexecution.ImageArtifact{}, fmt.Errorf(
+		return localexecution.ImageArtifact{}, plan.TranslateFailure(capabilitydriver.ImageBackendFailureResult, fmt.Errorf(
 			"generated image dimensions %dx%d do not match captured plan %dx%d",
 			decoded.Width, decoded.Height, width, height,
-		)
+		))
 	}
-	return localexecution.ImageArtifact{Index: index, Bytes: payload, ComputeMS: computeMS}, nil
+	translated, err := plan.TranslateArtifact(capabilitydriver.ImageBackendArtifactObservation{
+		Index: index, Payload: payload, Format: format, Width: decoded.Width, Height: decoded.Height,
+	})
+	if err != nil {
+		return localexecution.ImageArtifact{}, plan.TranslateFailure(capabilitydriver.ImageBackendFailureResult, err)
+	}
+	return localexecution.ImageArtifact{Index: translated.Index, Bytes: translated.Payload, MediaType: translated.MediaType, ComputeMS: computeMS}, nil
 }
 
 func (s *managerImageInvocationSubstrate) Healthy() bool {
@@ -529,81 +529,126 @@ func reserveImageExecutionAddress() (string, error) {
 	return address, nil
 }
 
-func imageLoadRequest(address string, plan *capabilitydriver.ImageInvocationPlan) (managedimagebackend.LoadModelRequest, error) {
+func imageExecutionProtocol(binaryPath string) managedimagebackend.Protocol {
+	if isDirectGOSDExecutable(binaryPath) {
+		return managedimagebackend.ProtocolDirectGOSD
+	}
+	return managedimagebackend.ProtocolManagedWrapper
+}
+
+func imageLoadRequest(address string, plan *capabilitydriver.ImageInvocationPlan, protocol managedimagebackend.Protocol) (managedimagebackend.LoadModelRequest, error) {
 	if plan == nil {
 		return managedimagebackend.LoadModelRequest{}, fmt.Errorf("image invocation plan is required")
 	}
-	components := []managedimagebackend.ComponentBinding{
+	load, ok := plan.LoadPlan().(capabilitydriver.StableDiffusionCPPLoadPlan)
+	if !ok {
+		return managedimagebackend.LoadModelRequest{}, fmt.Errorf("image load plan variant is unsupported")
+	}
+	main := load.Main()
+	request := managedimagebackend.LoadModelRequest{
+		BackendAddress: address,
+		Protocol:       protocol,
+		ModelsRoot:     imageInvocationModelsRoot(main.AbsolutePath()),
+		ModelPath:      main.AbsolutePath(),
+		Threads:        int32(load.Threads()),
+	}
+	if protocol == managedimagebackend.ProtocolDirectGOSD {
+		request.DirectOptions = directGOSDImageLoadOptions(load)
+		request.DirectCFGScale = float32(load.CFGScale())
+		return request, nil
+	}
+	if protocol != managedimagebackend.ProtocolManagedWrapper {
+		return managedimagebackend.LoadModelRequest{}, fmt.Errorf("image execution protocol is unsupported")
+	}
+	request.DiffusionFA = load.DiffusionFlashAttention()
+	request.OffloadToCPU = load.OffloadParamsToCPU()
+	request.Components = []managedimagebackend.ComponentBinding{
 		{
-			OccurrenceID:  capabilitydriver.StableDiffusionTextEncoderRequirementID,
+			OccurrenceID:  "text-encoder",
+			Order:         0,
 			Role:          "text_encoder",
 			ComponentKind: "chat",
 			EngineSlot:    "llm_path",
-			Path:          plan.TextEncoderPath(),
+			Path:          load.TextEncoder().AbsolutePath(),
 			Required:      true,
 		},
 		{
-			OccurrenceID:  capabilitydriver.StableDiffusionVAERequirementID,
+			OccurrenceID:  "vae",
+			Order:         0,
 			Role:          "vae",
 			ComponentKind: "vae",
 			EngineSlot:    "vae_path",
-			Path:          plan.VAEPath(),
+			Path:          load.VAE().AbsolutePath(),
 			Required:      true,
 		},
 	}
-	if path := strings.TrimSpace(plan.UncondDiffusionPath()); path != "" {
-		components = append(components, managedimagebackend.ComponentBinding{
-			OccurrenceID:  capabilitydriver.StableDiffusionUncondDiffusionRequirementID,
+	if uncond, exists := load.UncondDiffusion(); exists {
+		request.Components = append(request.Components, managedimagebackend.ComponentBinding{
+			OccurrenceID:  "uncond-diffusion",
+			Order:         0,
 			Role:          "uncond_diffusion_model",
 			ComponentKind: "image",
 			EngineSlot:    "uncond_diffusion_model",
-			Path:          path,
+			Path:          uncond.AbsolutePath(),
 			Required:      true,
 		})
 	}
-	return managedimagebackend.LoadModelRequest{
-		BackendAddress: address,
-		ModelsRoot:     imageInvocationModelsRoot(plan.MainModelPath()),
-		ModelPath:      plan.MainModelPath(),
-		Options:        imageInvocationLoadOptions(plan),
-		Components:     components,
-		CFGScale:       float32(plan.CFGScale()),
-		Threads:        int32(plan.Threads()),
-	}, nil
+	return request, nil
 }
 
-func imageInvocationLoadOptions(plan *capabilitydriver.ImageInvocationPlan) []string {
+func directGOSDImageLoadOptions(load capabilitydriver.StableDiffusionCPPLoadPlan) []string {
 	options := []string{
 		"diffusion_model",
-		"llm_path:" + plan.TextEncoderPath(),
-		"vae_path:" + plan.VAEPath(),
-		"diffusion_fa:" + strconv.FormatBool(plan.DiffusionFlashAttention()),
-		"offload_params_to_cpu:" + strconv.FormatBool(plan.OffloadParamsToCPU()),
+		"llm_path:" + load.TextEncoder().AbsolutePath(),
+		"vae_path:" + load.VAE().AbsolutePath(),
+		"diffusion_fa:" + strconv.FormatBool(load.DiffusionFlashAttention()),
+		"offload_params_to_cpu:" + strconv.FormatBool(load.OffloadParamsToCPU()),
 	}
-	if path := strings.TrimSpace(plan.UncondDiffusionPath()); path != "" {
-		options = append(options, "uncond_diffusion_model:"+path)
+	if uncond, exists := load.UncondDiffusion(); exists {
+		options = append(options, "uncond_diffusion_model:"+uncond.AbsolutePath())
 	}
-	if sampler := strings.TrimSpace(plan.Sampler()); sampler != "" {
+	if sampler := strings.TrimSpace(load.Sampler()); sampler != "" {
 		options = append(options, "sampler:"+sampler)
 	}
-	if scheduler := strings.TrimSpace(plan.Scheduler()); scheduler != "" {
+	if scheduler := strings.TrimSpace(load.Scheduler()); scheduler != "" {
 		options = append(options, "scheduler:"+scheduler)
 	}
 	return options
 }
 
-func imageInvocationPrompt(plan *capabilitydriver.ImageInvocationPlan) string {
-	if plan == nil {
-		return ""
+func imageGenerateRequest(address string, protocol managedimagebackend.Protocol, plan *capabilitydriver.ImageInvocationPlan) (managedimagebackend.ImageRequest, error) {
+	requestPlan := plan.RequestPlan()
+	if requestPlan == nil || requestPlan.Seed() < math.MinInt32 || requestPlan.Seed() > math.MaxInt32 {
+		return managedimagebackend.ImageRequest{}, fmt.Errorf("image request plan is invalid")
 	}
-	return plan.Prompt()
-}
-
-func imageInvocationEnableParameters(plan *capabilitydriver.ImageInvocationPlan) string {
-	if plan == nil || strings.TrimSpace(plan.Mask()) == "" {
-		return ""
+	load, ok := plan.LoadPlan().(capabilitydriver.StableDiffusionCPPLoadPlan)
+	if !ok {
+		return managedimagebackend.ImageRequest{}, fmt.Errorf("image load plan variant is unsupported")
 	}
-	return "mask:" + plan.Mask()
+	request := managedimagebackend.ImageRequest{
+		BackendAddress: address, Protocol: protocol,
+		ModelsRoot: imageInvocationModelsRoot(load.Main().AbsolutePath()), ModelPath: load.Main().AbsolutePath(),
+		CFGScale: float32(requestPlan.CFGScale()), Sampler: requestPlan.Sampler(), Scheduler: requestPlan.Scheduler(),
+		Width: int32(requestPlan.Width()), Height: int32(requestPlan.Height()), Step: int32(requestPlan.Steps()), Seed: int32(requestPlan.Seed()),
+		PositivePrompt: requestPlan.Prompt(), NegativePrompt: requestPlan.NegativePrompt(),
+	}
+	switch typed := requestPlan.(type) {
+	case capabilitydriver.StableDiffusionCPPTextToImageRequestPlan:
+		request.Mode = managedimagebackend.ImageRequestModeTextToImage
+	case capabilitydriver.StableDiffusionCPPImageToImageRequestPlan:
+		if err := validateImageSubstrateInputPath(typed.InputImage()); err != nil {
+			return managedimagebackend.ImageRequest{}, err
+		}
+		if err := validateImageSubstrateInputPath(typed.Mask()); err != nil {
+			return managedimagebackend.ImageRequest{}, err
+		}
+		request.Mode = managedimagebackend.ImageRequestModeImageToImage
+		request.Src = typed.InputImage()
+		request.Mask = typed.Mask()
+	default:
+		return managedimagebackend.ImageRequest{}, fmt.Errorf("image request plan variant is unsupported")
+	}
+	return request, nil
 }
 
 func imageInvocationModelsRoot(mainModelPath string) string {

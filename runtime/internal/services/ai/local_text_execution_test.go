@@ -239,9 +239,12 @@ func TestSubmitLocalImageCapturesSelectionBeforeRunningJob(t *testing.T) {
 	host.mu.Lock()
 	plan := host.plans[0]
 	host.mu.Unlock()
-	width, height := plan.Size()
-	if plan.MainModelPath() != first.ExactBindings[0].AbsolutePath || plan.MainModelPath() == second.ExactBindings[0].AbsolutePath || width != 64 || height != 64 {
-		t.Fatalf("running image job did not retain captured selection/defaults: path=%q size=%dx%d", plan.MainModelPath(), width, height)
+	loadPlan, loadOK := plan.LoadPlan().(capabilitydriver.StableDiffusionCPPLoadPlan)
+	constraints, constraintsOK := plan.ResultConstraints().(capabilitydriver.StableDiffusionCPPResultConstraints)
+	if !loadOK || !constraintsOK ||
+		loadPlan.Main().AbsolutePath() != first.ExactBindings[0].AbsolutePath || loadPlan.Main().AbsolutePath() == second.ExactBindings[0].AbsolutePath ||
+		constraints.Width() != 64 || constraints.Height() != 64 {
+		t.Fatalf("running image job did not retain captured selection/defaults: load=%+v constraints=%+v", plan.LoadPlan(), plan.ResultConstraints())
 	}
 	if job.GetModelResolved() != "config-first" {
 		t.Fatalf("model_resolved = %q", job.GetModelResolved())
@@ -345,9 +348,10 @@ func TestSubmitAppLocalImageCapturesAIConfigBeforeRunningJob(t *testing.T) {
 	host.mu.Lock()
 	plan := host.plans[0]
 	host.mu.Unlock()
-	width, height := plan.Size()
-	if plan.ImageCount() != 2 || width != 64 || height != 64 {
-		t.Fatalf("App image job did not retain captured AIConfig: count=%d size=%dx%d", plan.ImageCount(), width, height)
+	requestPlan := plan.RequestPlan()
+	constraints, constraintsOK := plan.ResultConstraints().(capabilitydriver.StableDiffusionCPPResultConstraints)
+	if requestPlan == nil || !constraintsOK || requestPlan.ImageCount() != 2 || constraints.Width() != 64 || constraints.Height() != 64 {
+		t.Fatalf("App image job did not retain captured AIConfig: request=%+v constraints=%+v", requestPlan, plan.ResultConstraints())
 	}
 }
 

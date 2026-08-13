@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -283,7 +282,7 @@ func beginImageExecution(ctx context.Context, onStart localexecution.ImageExecut
 func (h *ImageExecutionHost) execute(request *imageExecutionRequest) (localexecution.ImageResult, error) {
 	startedAt := time.Now()
 	_, err := h.substrate.Ensure(request.ctx, request.plan, func() error {
-		return validateInvocationModelContentContext(request.ctx, request.plan.ModelFiles())
+		return validateImageInvocationModelContentContext(request.ctx, request.plan.ModelFiles())
 	}, request.progress)
 	if err != nil {
 		if request.ctx.Err() != nil {
@@ -326,7 +325,7 @@ func (h *ImageExecutionHost) execute(request *imageExecutionRequest) (localexecu
 		if artifact.Index == 0 {
 			artifact.Index = index
 		}
-		if artifact.Index != index || len(artifact.Bytes) == 0 {
+		if artifact.Index != index || len(artifact.Bytes) == 0 || strings.TrimSpace(artifact.MediaType) == "" {
 			result.ComputeMS = time.Since(startedAt).Milliseconds()
 			return result, executionFailure(localexecution.FailureInference, fmt.Errorf("image substrate returned an invalid artifact %d", index))
 		}
@@ -366,22 +365,10 @@ func (h *ImageExecutionHost) deliver(request *imageExecutionRequest, outcome ima
 }
 
 func validateImageInvocationPlan(plan *capabilitydriver.ImageInvocationPlan) error {
-	if plan == nil || strings.TrimSpace(plan.ProcessKey()) == "" || plan.ImageCount() < 1 || plan.ImageCount() > 4 {
-		return fmt.Errorf("image invocation plan is incomplete")
+	if plan == nil {
+		return fmt.Errorf("image invocation plan is required")
 	}
-	width, height := plan.Size()
-	if width <= 0 || height <= 0 || plan.Steps() <= 0 || strings.TrimSpace(plan.Prompt()) == "" {
-		return fmt.Errorf("image invocation plan has invalid generation instructions")
-	}
-	for _, path := range []string{plan.MainModelPath(), plan.TextEncoderPath(), plan.VAEPath()} {
-		if !filepath.IsAbs(path) || filepath.Clean(path) != path {
-			return fmt.Errorf("image invocation plan has a non-absolute required model path")
-		}
-	}
-	if files := plan.ModelFiles(); len(files) < 3 {
-		return fmt.Errorf("image invocation plan has incomplete exact model content")
-	}
-	return nil
+	return plan.Validate()
 }
 
 func cloneImageArtifact(input localexecution.ImageArtifact) localexecution.ImageArtifact {

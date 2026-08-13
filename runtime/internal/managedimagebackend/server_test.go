@@ -2,6 +2,7 @@ package managedimagebackend
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
 	"io"
 	"net"
@@ -14,6 +15,8 @@ import (
 	"time"
 
 	"google.golang.org/grpc"
+	"google.golang.org/protobuf/reflect/protoreflect"
+	"google.golang.org/protobuf/types/dynamicpb"
 )
 
 type fakeBackendDriver struct {
@@ -118,23 +121,20 @@ func TestServerLoadGenerateAndFree(t *testing.T) {
 	defer cancel()
 	if _, err := LoadModel(ctx, LoadModelRequest{
 		BackendAddress: listener.Addr().String(),
+		Protocol:       ProtocolManagedWrapper,
 		ModelsRoot:     tempDir,
 		ModelPath:      modelPath,
-		Options: []string{
-			"diffusion_model",
-			"sampler:euler",
-			"vae_path:resolved/ae.safetensors",
-		},
 		Components: []ComponentBinding{
-			{OccurrenceID: "vae-first", Order: 0, Role: "vae", ComponentKind: "vae", EngineSlot: "vae_path", Path: "resolved/ae.safetensors", Required: true, Weight: "0.4", OptionsJSON: `{"adapter":"first"}`},
-			{OccurrenceID: "vae-second", Order: 1, Role: "vae", ComponentKind: "vae", EngineSlot: "vae_path", Path: "resolved/ae.safetensors", Weight: "0.7", OptionsJSON: `{"adapter":"second"}`},
+			{OccurrenceID: "vae", Order: 0, Role: "vae", ComponentKind: "vae", EngineSlot: "vae_path", Path: "resolved/ae.safetensors", Required: true},
 		},
-		CFGScale: 1,
+		DiffusionFA: true,
 	}); err != nil {
 		t.Fatalf("LoadModel: %v", err)
 	}
 	if _, err := GenerateImage(ctx, ImageRequest{
 		BackendAddress: listener.Addr().String(),
+		Protocol:       ProtocolManagedWrapper,
+		Mode:           ImageRequestModeTextToImage,
 		Dst:            destinationPath,
 		PositivePrompt: "orange cat",
 		Width:          512,
@@ -145,10 +145,12 @@ func TestServerLoadGenerateAndFree(t *testing.T) {
 	}
 	if err := FreeModel(ctx, LoadModelRequest{
 		BackendAddress: listener.Addr().String(),
+		Protocol:       ProtocolManagedWrapper,
 		ModelsRoot:     tempDir,
 		ModelPath:      modelPath,
-		Options:        []string{"diffusion_model"},
-		CFGScale:       1,
+		Components: []ComponentBinding{
+			{OccurrenceID: "vae", Role: "vae", ComponentKind: "vae", EngineSlot: "vae_path", Path: "resolved/ae.safetensors", Required: true},
+		},
 	}); err != nil {
 		t.Fatalf("FreeModel: %v", err)
 	}
@@ -159,13 +161,8 @@ func TestServerLoadGenerateAndFree(t *testing.T) {
 	if got := driver.loads[0].Options.ComponentsBySlot()["vae_path"]; got != vaePath {
 		t.Fatalf("unexpected resolved VAE path: %q", got)
 	}
-	if len(driver.loads[0].Options.Components) != 2 ||
-		driver.loads[0].Options.Components[0].OccurrenceID != "vae-first" ||
-		driver.loads[0].Options.Components[1].OccurrenceID != "vae-second" ||
-		driver.loads[0].Options.Components[0].Weight != "0.4" ||
-		driver.loads[0].Options.Components[1].Weight != "0.7" ||
-		!strings.Contains(driver.loads[0].Options.Components[0].OptionsJSON, "first") ||
-		!strings.Contains(driver.loads[0].Options.Components[1].OptionsJSON, "second") {
+	if len(driver.loads[0].Options.Components) != 1 || driver.loads[0].Options.Components[0].OccurrenceID != "vae" ||
+		driver.loads[0].Options.DiffusionFA == nil || !*driver.loads[0].Options.DiffusionFA {
 		t.Fatalf("backend lost ordered component metadata: %+v", driver.loads[0].Options.Components)
 	}
 	if len(driver.generates) != 1 {
@@ -180,11 +177,16 @@ func TestServerLoadGenerateAndFree(t *testing.T) {
 }
 
 func TestParseManagedImageOptionsRejectsUnsupportedKeys(t *testing.T) {
-	_, err := parseManagedImageOptions("D:\\models", []string{"unknown_option:value"})
+	message := dynamicpb.NewMessage(modelOptionsMessageDescriptor)
+	setStringField(message, "ModelPath", t.TempDir())
+	setStringField(message, "ModelFile", "model.gguf")
+	optionsField := modelOptionsMessageDescriptor.Fields().ByName(protoreflect.Name("Options"))
+	message.Mutable(optionsField).List().Append(protoreflect.ValueOfString("unknown_option:value"))
+	_, err := decodeLoadModelState(message)
 	if err == nil {
-		t.Fatal("expected unsupported managed image option to fail-close")
+		t.Fatal("expected raw managed wrapper option to fail-close")
 	}
-	if !strings.Contains(err.Error(), "unsupported managed image option") {
+	if !strings.Contains(err.Error(), "does not accept direct gosd options") {
 		t.Fatalf("unexpected parse error: %v", err)
 	}
 }
@@ -297,27 +299,20 @@ func TestStableDiffusionCPPEnvironmentRejectsIncompleteManagedCUDAPathOnWindows(
 }
 
 func TestParseManagedImageOptionsSupportsBooleanAccelerationFlags(t *testing.T) {
-	options, err := parseManagedImageOptions("/tmp/models", []string{
-		"diffusion_model",
-		"offload_params_to_cpu:true",
-		"diffusion_fa:true",
-		"sampler:euler",
-		"scheduler:discrete",
-	})
+	message := dynamicpb.NewMessage(modelOptionsMessageDescriptor)
+	setStringField(message, "ModelPath", "/tmp/models")
+	setStringField(message, "ModelFile", "model.gguf")
+	setBoolField(message, "diffusion_fa", true)
+	setBoolField(message, "offload_to_cpu", true)
+	state, err := decodeLoadModelState(message)
 	if err != nil {
-		t.Fatalf("parseManagedImageOptions: %v", err)
+		t.Fatalf("decodeLoadModelState: %v", err)
 	}
-	if options.OffloadParamsToCPU == nil || !*options.OffloadParamsToCPU {
-		t.Fatalf("expected offload_params_to_cpu=true, got %#v", options.OffloadParamsToCPU)
+	if state.Options.OffloadParamsToCPU == nil || !*state.Options.OffloadParamsToCPU {
+		t.Fatalf("expected offload_to_cpu=true, got %#v", state.Options.OffloadParamsToCPU)
 	}
-	if options.DiffusionFA == nil || !*options.DiffusionFA {
-		t.Fatalf("expected diffusion_fa=true, got %#v", options.DiffusionFA)
-	}
-	if got := strings.TrimSpace(options.Sampler); got != "euler" {
-		t.Fatalf("expected sampler=euler, got %q", got)
-	}
-	if got := strings.TrimSpace(options.Scheduler); got != "discrete" {
-		t.Fatalf("expected scheduler=discrete, got %q", got)
+	if state.Options.DiffusionFA == nil || !*state.Options.DiffusionFA {
+		t.Fatalf("expected diffusion_fa=true, got %#v", state.Options.DiffusionFA)
 	}
 }
 
@@ -332,19 +327,16 @@ func TestParseManagedImageOptionsSupportsIdeogram4Components(t *testing.T) {
 		}
 	}
 
-	options, err := parseManagedImageOptions(modelsRoot, []string{
-		"diffusion_model",
-		"uncond_diffusion_model:ideogram4-uncond.gguf",
-		"vae_path:ae.safetensors",
-		"llm_path:Qwen3-VL-8B-Instruct-Q8_0.gguf",
-		"sampler:euler",
-		"scheduler:discrete",
+	options, err := normalizeStableDiffusionCPPComponents([]managedImageComponent{
+		{OccurrenceID: "uncond", Role: "uncond", ComponentKind: "uncond_diffusion", EngineSlot: "uncond_diffusion_model", Path: mainUncond},
+		{OccurrenceID: "vae", Role: "vae", ComponentKind: "vae", EngineSlot: "vae_path", Path: vae},
+		{OccurrenceID: "text", Role: "text_encoder", ComponentKind: "text_encoder", EngineSlot: "llm_path", Path: llm},
 	})
 	if err != nil {
-		t.Fatalf("parseManagedImageOptions: %v", err)
+		t.Fatalf("normalizeStableDiffusionCPPComponents: %v", err)
 	}
 
-	components := options.ComponentsBySlot()
+	components := (managedImageOptions{Components: options}).ComponentsBySlot()
 	if got := components["uncond_diffusion_model"]; got != mainUncond {
 		t.Fatalf("unexpected uncond_diffusion_model path: %q", got)
 	}
@@ -357,11 +349,11 @@ func TestParseManagedImageOptionsSupportsIdeogram4Components(t *testing.T) {
 }
 
 func TestParseManagedImageOptionsRejectsUnsupportedStableDiffusionSlot(t *testing.T) {
-	_, err := parseManagedImageOptions(t.TempDir(), []string{"unsupported_tensor_path:model.gguf"})
+	_, err := normalizeStableDiffusionCPPComponents([]managedImageComponent{{OccurrenceID: "unknown", EngineSlot: "unsupported_tensor_path", Path: filepath.Join(t.TempDir(), "model.gguf")}})
 	if err == nil {
 		t.Fatal("expected unsupported stable-diffusion slot to fail-close")
 	}
-	if !strings.Contains(err.Error(), `unsupported managed image option "unsupported_tensor_path"`) {
+	if !strings.Contains(err.Error(), `unsupported managed image component slot "unsupported_tensor_path"`) {
 		t.Fatalf("unexpected parse error: %v", err)
 	}
 }
@@ -373,9 +365,9 @@ func TestParseManagedImageOptionsRejectsDuplicateComponentSlot(t *testing.T) {
 		t.Fatalf("write vae fixture: %v", err)
 	}
 
-	_, err := parseManagedImageOptions(modelsRoot, []string{
-		"vae_path:ae.safetensors",
-		"vae_path:ae.safetensors",
+	_, err := normalizeStableDiffusionCPPComponents([]managedImageComponent{
+		{OccurrenceID: "vae-one", Order: 0, Role: "vae", EngineSlot: "vae_path", Path: vaePath},
+		{OccurrenceID: "vae-two", Order: 1, Role: "vae", EngineSlot: "vae_path", Path: vaePath},
 	})
 	if err == nil {
 		t.Fatal("expected duplicate component slot to fail-close")
@@ -395,7 +387,7 @@ func TestStableDiffusionCPPResidentStartupArgsIncludeUncondDiffusionModel(t *tes
 	args, err := stableDiffusionCPPResidentStartupArgs(stableDiffusionCPPResidentConfig{
 		ModelPath: modelPath,
 		Components: []managedImageComponent{
-			{EngineSlot: "uncond_diffusion_model", Path: uncondPath},
+			{OccurrenceID: "uncond", Role: "uncond", EngineSlot: "uncond_diffusion_model", Path: uncondPath},
 		},
 	}, 8188)
 	if err != nil {
@@ -426,18 +418,8 @@ func TestStableDiffusionCPPResidentStartupArgsRejectsInvalidComponents(t *testin
 		},
 		{
 			name:      "empty path",
-			component: managedImageComponent{EngineSlot: "vae_path"},
+			component: managedImageComponent{OccurrenceID: "vae", EngineSlot: "vae_path"},
 			want:      `managed image component path is required for slot "vae_path"`,
-		},
-		{
-			name:      "weight not admitted",
-			component: managedImageComponent{EngineSlot: "vae_path", Path: "vae.safetensors", Weight: "0.5"},
-			want:      "weight is not admitted",
-		},
-		{
-			name:      "options not admitted",
-			component: managedImageComponent{EngineSlot: "vae_path", Path: "vae.safetensors", OptionsJSON: `{"precision":"fp16"}`},
-			want:      "options are not admitted",
 		},
 	}
 	for _, tc := range cases {
@@ -466,8 +448,8 @@ func TestStableDiffusionCPPResidentStartupArgsIgnoresComponentOptionOrder(t *tes
 	first, err := stableDiffusionCPPResidentStartupArgs(stableDiffusionCPPResidentConfig{
 		ModelPath: modelPath,
 		Components: []managedImageComponent{
-			{EngineSlot: "llm_path", Path: llmPath},
-			{EngineSlot: "vae_path", Path: vaePath},
+			{OccurrenceID: "text", Role: "text", EngineSlot: "llm_path", Path: llmPath},
+			{OccurrenceID: "vae", Role: "vae", EngineSlot: "vae_path", Path: vaePath},
 		},
 	}, 8188)
 	if err != nil {
@@ -476,8 +458,8 @@ func TestStableDiffusionCPPResidentStartupArgsIgnoresComponentOptionOrder(t *tes
 	second, err := stableDiffusionCPPResidentStartupArgs(stableDiffusionCPPResidentConfig{
 		ModelPath: modelPath,
 		Components: []managedImageComponent{
-			{EngineSlot: "vae_path", Path: vaePath},
-			{EngineSlot: "llm_path", Path: llmPath},
+			{OccurrenceID: "vae", Role: "vae", EngineSlot: "vae_path", Path: vaePath},
+			{OccurrenceID: "text", Role: "text", EngineSlot: "llm_path", Path: llmPath},
 		},
 	}, 8188)
 	if err != nil {
@@ -499,8 +481,8 @@ func TestStableDiffusionCPPResidentFingerprintIgnoresComponentOptionOrder(t *tes
 		ModelPath: modelPath,
 		Options: managedImageOptions{
 			Components: []managedImageComponent{
-				{EngineSlot: "llm_path", Path: llmPath},
-				{EngineSlot: "vae_path", Path: vaePath},
+				{OccurrenceID: "text", Role: "text", EngineSlot: "llm_path", Path: llmPath},
+				{OccurrenceID: "vae", Role: "vae", EngineSlot: "vae_path", Path: vaePath},
 			},
 		},
 	})
@@ -511,8 +493,8 @@ func TestStableDiffusionCPPResidentFingerprintIgnoresComponentOptionOrder(t *tes
 		ModelPath: modelPath,
 		Options: managedImageOptions{
 			Components: []managedImageComponent{
-				{EngineSlot: "vae_path", Path: vaePath},
-				{EngineSlot: "llm_path", Path: llmPath},
+				{OccurrenceID: "vae", Role: "vae", EngineSlot: "vae_path", Path: vaePath},
+				{OccurrenceID: "text", Role: "text", EngineSlot: "llm_path", Path: llmPath},
 			},
 		},
 	})
@@ -544,8 +526,8 @@ func TestStableDiffusionCPPResidentRejectsDuplicateComponentSlot(t *testing.T) {
 		ModelPath: modelPath,
 		Options: managedImageOptions{
 			Components: []managedImageComponent{
-				{EngineSlot: "vae_path", Path: vaePath},
-				{EngineSlot: "vae_path", Path: vaePath2},
+				{OccurrenceID: "vae-one", Order: 0, Role: "vae", EngineSlot: "vae_path", Path: vaePath},
+				{OccurrenceID: "vae-two", Order: 1, Role: "vae", EngineSlot: "vae_path", Path: vaePath2},
 			},
 		},
 	})
@@ -630,12 +612,12 @@ func TestValidateManagedImageLoadStateRejectsInvalidComponentStates(t *testing.T
 		},
 		{
 			name:       "empty path",
-			components: []managedImageComponent{{EngineSlot: "vae_path"}},
+			components: []managedImageComponent{{OccurrenceID: "vae", EngineSlot: "vae_path"}},
 			want:       `managed image component path is required for slot "vae_path"`,
 		},
 		{
 			name:       "missing file",
-			components: []managedImageComponent{{EngineSlot: "vae_path", Path: missingPath}},
+			components: []managedImageComponent{{OccurrenceID: "vae", EngineSlot: "vae_path", Path: missingPath}},
 			want:       "managed image option path unavailable",
 		},
 	}
@@ -668,14 +650,14 @@ func TestStableDiffusionCPPDriverUsesResidentServerAndWritesArtifact(t *testing.
 	commandState := &fakeManagedImageCommandFactoryState{}
 	driver.commandFactory = commandState.factory
 	driver.readinessProbe = func(context.Context, *http.Client, string) error { return nil }
-	driver.generateRequester = func(_ context.Context, _ *http.Client, endpoint string, loaded loadModelState, req imageGenerateState) ([]byte, error) {
+	driver.generateRequester = func(_ context.Context, _ *http.Client, endpoint string, _ loadModelState, req imageGenerateState) ([]byte, error) {
 		if endpoint == "" {
 			t.Fatal("expected resident endpoint")
 		}
-		if got := strings.TrimSpace(loaded.Options.Sampler); got != "euler" {
+		if got := strings.TrimSpace(req.Sampler); got != "euler" {
 			t.Fatalf("unexpected sampler passed to resident request: %q", got)
 		}
-		if got := strings.TrimSpace(loaded.Options.Scheduler); got != "discrete" {
+		if got := strings.TrimSpace(req.Scheduler); got != "discrete" {
 			t.Fatalf("unexpected scheduler passed to resident request: %q", got)
 		}
 		if got := strings.TrimSpace(req.PositivePrompt); got != "orange cat" {
@@ -687,13 +669,10 @@ func TestStableDiffusionCPPDriverUsesResidentServerAndWritesArtifact(t *testing.
 	state := loadModelState{
 		ModelPath: modelPath,
 		Threads:   4,
-		CFGScale:  1,
 		Options: managedImageOptions{
 			Components: []managedImageComponent{
-				{EngineSlot: "vae_path", Path: vaePath},
+				{OccurrenceID: "vae", EngineSlot: "vae_path", Path: vaePath},
 			},
-			Sampler:     "euler",
-			Scheduler:   "discrete",
 			DiffusionFA: testBoolPtr(true),
 		},
 	}
@@ -702,8 +681,11 @@ func TestStableDiffusionCPPDriverUsesResidentServerAndWritesArtifact(t *testing.
 	}
 	dst := filepath.Join(t.TempDir(), "artifact.png")
 	if _, err := driver.GenerateImage(context.Background(), state, imageGenerateState{
+		Mode:           ImageRequestModeTextToImage,
 		Dst:            dst,
 		PositivePrompt: "orange cat",
+		Sampler:        "euler",
+		Scheduler:      "discrete",
 		Width:          512,
 		Height:         512,
 		Step:           15,
@@ -771,7 +753,7 @@ func TestStableDiffusionCPPDriverPassesManagedCUDAPathToResidentCommand(t *testi
 	}
 }
 
-func TestStableDiffusionCPPDriverCacheHitSkipsRestartForCFGAndSamplerChanges(t *testing.T) {
+func TestStableDiffusionCPPDriverRequestSamplingDoesNotRestartResident(t *testing.T) {
 	cliPath, _ := writeManagedImageExecutableFixtures(t)
 	modelPath, _ := writeManagedImageModelFixtures(t)
 
@@ -785,28 +767,14 @@ func TestStableDiffusionCPPDriverCacheHitSkipsRestartForCFGAndSamplerChanges(t *
 	driver.commandFactory = commandState.factory
 	driver.readinessProbe = func(context.Context, *http.Client, string) error { return nil }
 
-	var captured loadModelState
-	driver.generateRequester = func(_ context.Context, _ *http.Client, _ string, loaded loadModelState, _ imageGenerateState) ([]byte, error) {
-		captured = loaded
+	var captured imageGenerateState
+	driver.generateRequester = func(_ context.Context, _ *http.Client, _ string, _ loadModelState, request imageGenerateState) ([]byte, error) {
+		captured = request
 		return []byte("png"), nil
 	}
 
-	initial := loadModelState{
-		ModelPath: modelPath,
-		CFGScale:  1,
-		Options: managedImageOptions{
-			Sampler:   "euler",
-			Scheduler: "discrete",
-		},
-	}
-	updated := loadModelState{
-		ModelPath: modelPath,
-		CFGScale:  7.5,
-		Options: managedImageOptions{
-			Sampler:   "heun",
-			Scheduler: "karras",
-		},
-	}
+	initial := loadModelState{ModelPath: modelPath}
+	updated := loadModelState{ModelPath: modelPath}
 	if _, err := driver.LoadModel(initial); err != nil {
 		t.Fatalf("LoadModel(initial): %v", err)
 	}
@@ -817,14 +785,15 @@ func TestStableDiffusionCPPDriverCacheHitSkipsRestartForCFGAndSamplerChanges(t *
 		t.Fatalf("expected cfg/sampler-only changes to avoid restart, got starts=%d", commandState.startCount)
 	}
 	if _, err := driver.GenerateImage(context.Background(), updated, imageGenerateState{
-		Dst: filepath.Join(t.TempDir(), "artifact.png"),
+		Mode: ImageRequestModeTextToImage, Dst: filepath.Join(t.TempDir(), "artifact.png"),
+		CFGScale: 7.5, Sampler: "heun", Scheduler: "karras",
 	}, nil); err != nil {
 		t.Fatalf("GenerateImage(updated): %v", err)
 	}
-	if got := strings.TrimSpace(captured.Options.Sampler); got != "heun" {
+	if got := strings.TrimSpace(captured.Sampler); got != "heun" {
 		t.Fatalf("expected request-time sampler from updated load state, got %q", got)
 	}
-	if got := strings.TrimSpace(captured.Options.Scheduler); got != "karras" {
+	if got := strings.TrimSpace(captured.Scheduler); got != "karras" {
 		t.Fatalf("expected request-time scheduler from updated load state, got %q", got)
 	}
 	if captured.CFGScale != 7.5 {
@@ -833,18 +802,16 @@ func TestStableDiffusionCPPDriverCacheHitSkipsRestartForCFGAndSamplerChanges(t *
 }
 
 func TestBuildStableDiffusionCPPGenerateRequestIncludesScheduler(t *testing.T) {
-	path, payload, err := buildStableDiffusionCPPGenerateRequest(loadModelState{
-		CFGScale: 7.5,
-		Options: managedImageOptions{
-			Sampler:   "heun",
-			Scheduler: "karras",
-		},
-	}, imageGenerateState{
+	path, payload, err := buildStableDiffusionCPPGenerateRequest(loadModelState{}, imageGenerateState{
+		Mode:           ImageRequestModeTextToImage,
 		PositivePrompt: "orange cat",
+		CFGScale:       7.5,
+		Sampler:        "heun",
+		Scheduler:      "karras",
 		Width:          512,
 		Height:         512,
 		Step:           15,
-	}, "")
+	})
 	if err != nil {
 		t.Fatalf("buildStableDiffusionCPPGenerateRequest: %v", err)
 	}
@@ -860,12 +827,12 @@ func TestBuildStableDiffusionCPPGenerateRequestIncludesScheduler(t *testing.T) {
 }
 
 func TestBuildStableDiffusionCPPGenerateRequestPreservesExplicitZeroOptions(t *testing.T) {
-	_, payload, err := buildStableDiffusionCPPGenerateRequest(loadModelState{
-		CFGScale: 0,
-	}, imageGenerateState{
+	_, payload, err := buildStableDiffusionCPPGenerateRequest(loadModelState{}, imageGenerateState{
+		Mode:           ImageRequestModeTextToImage,
 		PositivePrompt: "orange cat",
+		CFGScale:       0,
 		Seed:           0,
-	}, "")
+	})
 	if err != nil {
 		t.Fatalf("buildStableDiffusionCPPGenerateRequest: %v", err)
 	}
@@ -874,6 +841,25 @@ func TestBuildStableDiffusionCPPGenerateRequestPreservesExplicitZeroOptions(t *t
 	}
 	if got, ok := payload["seed"]; !ok || got != int32(0) {
 		t.Fatalf("expected explicit seed=0, got value=%v present=%t", got, ok)
+	}
+}
+
+func TestStableDiffusionCPPGenerateResponseRejectsAmbiguousArtifactCarriers(t *testing.T) {
+	encoded := base64.StdEncoding.EncodeToString([]byte("png"))
+	for _, response := range []stableDiffusionCPPGenerateResponse{
+		{Images: []string{encoded}, Data: []struct {
+			B64JSON string `json:"b64_json"`
+			URL     string `json:"url"`
+		}{{B64JSON: encoded}}},
+		{Images: []string{encoded, encoded}},
+		{Data: []struct {
+			B64JSON string `json:"b64_json"`
+			URL     string `json:"url"`
+		}{{B64JSON: encoded, URL: "/artifact.png"}}},
+	} {
+		if _, err := response.payload(context.Background(), nil, "http://127.0.0.1:1"); err == nil {
+			t.Fatalf("ambiguous backend response was accepted: %+v", response)
+		}
 	}
 }
 
@@ -899,7 +885,7 @@ func TestStableDiffusionCPPDriverConfigChangeRestartsResident(t *testing.T) {
 		ModelPath: modelPath,
 		Options: managedImageOptions{
 			Components: []managedImageComponent{
-				{EngineSlot: "vae_path", Path: vaePath},
+				{OccurrenceID: "vae", EngineSlot: "vae_path", Path: vaePath},
 			},
 		},
 	}); err != nil {
@@ -910,7 +896,7 @@ func TestStableDiffusionCPPDriverConfigChangeRestartsResident(t *testing.T) {
 		ModelPath: modelPath,
 		Options: managedImageOptions{
 			Components: []managedImageComponent{
-				{EngineSlot: "vae_path", Path: vaePath2},
+				{OccurrenceID: "vae", EngineSlot: "vae_path", Path: vaePath2},
 			},
 		},
 	}); err != nil {

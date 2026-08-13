@@ -26,12 +26,13 @@ const (
 
 type ImageRequest struct {
 	BackendAddress string
+	Protocol       Protocol
+	Mode           ImageRequestMode
 	ModelsRoot     string
 	ModelPath      string
-	Options        []string
-	Components     []ComponentBinding
 	CFGScale       float32
-	Threads        int32
+	Sampler        string
+	Scheduler      string
 	Width          int32
 	Height         int32
 	Step           int32
@@ -40,26 +41,41 @@ type ImageRequest struct {
 	NegativePrompt string
 	Dst            string
 	Src            string
-	EnableParams   string
-	RefImages      []string
-	OnProgress     func(ImageGenerateProgress)
+	Mask           string
+	OnProgress     func(ImageGenerateProgress) error
 }
 
 type LoadModelRequest struct {
 	BackendAddress string
+	Protocol       Protocol
 	ModelsRoot     string
 	ModelPath      string
-	Options        []string
+	DirectOptions  []string
+	DirectCFGScale float32
 	Components     []ComponentBinding
-	CFGScale       float32
 	Threads        int32
+	DiffusionFA    bool
+	OffloadToCPU   bool
 }
+
+type Protocol string
+
+const (
+	ProtocolDirectGOSD     Protocol = "direct-gosd"
+	ProtocolManagedWrapper Protocol = "managed-wrapper"
+)
+
+type ImageRequestMode string
+
+const (
+	ImageRequestModeTextToImage  ImageRequestMode = "text-to-image"
+	ImageRequestModeImageToImage ImageRequestMode = "image-to-image"
+)
 
 // ComponentBinding is the ordered, Runtime-resolved component description
 // carried to the managed image backend. EngineSlot remains a backend-private
-// injection hint; occurrence identity, order, policy, weight, and options are
-// retained so a backend cannot collapse two exact workflow occurrences into a
-// slot-only map.
+// injection hint; occurrence identity and order prevent a backend from
+// inventing a slot-only identity fallback.
 type ComponentBinding struct {
 	OccurrenceID  string
 	Order         int32
@@ -68,8 +84,6 @@ type ComponentBinding struct {
 	EngineSlot    string
 	Path          string
 	Required      bool
-	Weight        string
-	OptionsJSON   string
 }
 
 type LoadModelDiagnostics struct {
@@ -109,27 +123,25 @@ func cloneComponentBindings(input []ComponentBinding) []ComponentBinding {
 	return append([]ComponentBinding(nil), input...)
 }
 
-func LoadModelAndGenerateImage(ctx context.Context, req ImageRequest) (*ImageGenerateDiagnostics, error) {
-	if strings.TrimSpace(req.Dst) == "" {
-		return nil, fmt.Errorf("managed media destination is required")
-	}
-	if _, err := LoadModel(ctx, LoadModelRequest{
-		BackendAddress: req.BackendAddress,
-		ModelsRoot:     req.ModelsRoot,
-		ModelPath:      req.ModelPath,
-		Options:        req.Options,
-		Components:     cloneComponentBindings(req.Components),
-		CFGScale:       req.CFGScale,
-		Threads:        req.Threads,
-	}); err != nil {
-		return nil, err
-	}
-	return GenerateImage(ctx, req)
-}
-
 func GenerateImage(ctx context.Context, req ImageRequest) (*ImageGenerateDiagnostics, error) {
 	if strings.TrimSpace(req.Dst) == "" {
 		return nil, fmt.Errorf("managed media destination is required")
+	}
+	if req.Protocol != ProtocolDirectGOSD && req.Protocol != ProtocolManagedWrapper {
+		return nil, fmt.Errorf("managed image protocol is required")
+	}
+	if req.Mode != ImageRequestModeTextToImage && req.Mode != ImageRequestModeImageToImage {
+		return nil, fmt.Errorf("managed image request mode is required")
+	}
+	switch req.Mode {
+	case ImageRequestModeTextToImage:
+		if strings.TrimSpace(req.Src) != "" || strings.TrimSpace(req.Mask) != "" {
+			return nil, fmt.Errorf("text-to-image request cannot carry image inputs")
+		}
+	case ImageRequestModeImageToImage:
+		if strings.TrimSpace(req.Src) == "" {
+			return nil, fmt.Errorf("image-to-image request requires a source image")
+		}
 	}
 	if err := ensureDescriptors(); err != nil {
 		return nil, err
@@ -165,8 +177,17 @@ func GenerateImage(ctx context.Context, req ImageRequest) (*ImageGenerateDiagnos
 	setStringField(generateReq, "negative_prompt", req.NegativePrompt)
 	setStringField(generateReq, "dst", req.Dst)
 	setStringField(generateReq, "src", req.Src)
-	setStringField(generateReq, "EnableParameters", req.EnableParams)
-	setRepeatedStringField(generateReq, "ref_images", req.RefImages)
+	if req.Protocol == ProtocolDirectGOSD {
+		if strings.TrimSpace(req.Mask) != "" {
+			setStringField(generateReq, "EnableParameters", "mask:"+req.Mask)
+		}
+	} else {
+		setStringField(generateReq, "mode", string(req.Mode))
+		setStringField(generateReq, "mask", req.Mask)
+		setFloatField(generateReq, "cfg_scale", req.CFGScale)
+		setStringField(generateReq, "sampler", req.Sampler)
+		setStringField(generateReq, "scheduler", req.Scheduler)
+	}
 
 	invokeStartedAt := time.Now()
 	slog.Info("managed image backend invoke start",
@@ -187,7 +208,7 @@ func GenerateImage(ctx context.Context, req ImageRequest) (*ImageGenerateDiagnos
 	if err := stream.CloseSend(); err != nil {
 		return nil, fmt.Errorf("close managed media generate request stream: %w", err)
 	}
-	sawResultTerminalCandidate := false
+	sawDirectResultTerminal := false
 	for {
 		event := dynamicpb.NewMessage(generateImageEventDescriptor)
 		if err := stream.RecvMsg(event); err != nil {
@@ -204,14 +225,27 @@ func GenerateImage(ctx context.Context, req ImageRequest) (*ImageGenerateDiagnos
 			return nil, fmt.Errorf("generate managed media image: %w", err)
 		}
 		progress, hasProgress, done, success, message, diag := readGenerateImageEvent(event)
-		if isGenerateResultTerminalCandidate(progress, done, success, message, diag) {
-			sawResultTerminalCandidate = true
+		if req.Protocol == ProtocolDirectGOSD && isDirectGOSDResultTerminal(progress, done, success, message, diag) {
+			if sawDirectResultTerminal {
+				return nil, fmt.Errorf("generate managed media image: duplicate direct gosd terminal")
+			}
+			sawDirectResultTerminal = true
 			continue
 		}
-		if hasProgress && req.OnProgress != nil {
-			req.OnProgress(progress)
+		if hasProgress {
+			if done {
+				return nil, fmt.Errorf("generate managed media image: terminal event also carried progress")
+			}
+			if req.OnProgress != nil {
+				if err := req.OnProgress(progress); err != nil {
+					return nil, fmt.Errorf("generate managed media image progress: %w", err)
+				}
+			}
 		}
 		if !done {
+			if !hasProgress {
+				return nil, fmt.Errorf("generate managed media image: unknown backend event")
+			}
 			continue
 		}
 		slog.Info("managed image backend invoke completed",
@@ -228,7 +262,7 @@ func GenerateImage(ctx context.Context, req ImageRequest) (*ImageGenerateDiagnos
 		}
 		return diag, nil
 	}
-	if sawResultTerminalCandidate {
+	if sawDirectResultTerminal {
 		if err := requireGeneratedImageArtifact(req.Dst); err != nil {
 			slog.Warn("managed image backend result terminal rejected",
 				"operation", "generate",
@@ -237,7 +271,7 @@ func GenerateImage(ctx context.Context, req ImageRequest) (*ImageGenerateDiagnos
 				"duration_ms", time.Since(invokeStartedAt).Milliseconds(),
 				"error", err,
 			)
-			return nil, fmt.Errorf("generate managed media image: backend result terminal did not produce artifact: %w", err)
+			return nil, fmt.Errorf("generate managed media image: direct gosd terminal did not produce artifact: %w", err)
 		}
 		diag := &ImageGenerateDiagnostics{
 			GenerateDurationMs: time.Since(invokeStartedAt).Milliseconds(),
@@ -247,7 +281,7 @@ func GenerateImage(ctx context.Context, req ImageRequest) (*ImageGenerateDiagnos
 			"backend_address", strings.TrimSpace(req.BackendAddress),
 			"model_path", strings.TrimSpace(req.ModelPath),
 			"duration_ms", diag.GenerateDurationMs,
-			"terminal_shape", "result",
+			"terminal_shape", "direct-gosd-result",
 		)
 		return diag, nil
 	}
@@ -271,6 +305,9 @@ func LoadModel(ctx context.Context, req LoadModelRequest) (*LoadModelDiagnostics
 	}
 	if strings.TrimSpace(req.ModelPath) == "" {
 		return nil, fmt.Errorf("managed media model path is required")
+	}
+	if err := validateLoadModelRequestCarrier(req); err != nil {
+		return nil, err
 	}
 	if err := ensureDescriptors(); err != nil {
 		return nil, err
@@ -301,9 +338,11 @@ func LoadModel(ctx context.Context, req LoadModelRequest) (*LoadModelDiagnostics
 	setStringField(loadReq, "ModelPath", req.ModelsRoot)
 	setStringField(loadReq, "ModelFile", req.ModelPath)
 	setInt32Field(loadReq, "Threads", req.Threads)
-	setFloatField(loadReq, "CFGScale", req.CFGScale)
-	setRepeatedStringField(loadReq, "Options", req.Options)
+	setFloatField(loadReq, "CFGScale", req.DirectCFGScale)
+	setRepeatedStringField(loadReq, "Options", req.DirectOptions)
 	setRepeatedComponentBindingField(loadReq, req.Components)
+	setBoolField(loadReq, "diffusion_fa", req.DiffusionFA)
+	setBoolField(loadReq, "offload_to_cpu", req.OffloadToCPU)
 
 	loadResp := dynamicpb.NewMessage(resultMessageDescriptor)
 	invokeStartedAt := time.Now()
@@ -311,8 +350,7 @@ func LoadModel(ctx context.Context, req LoadModelRequest) (*LoadModelDiagnostics
 		"operation", "load",
 		"backend_address", strings.TrimSpace(req.BackendAddress),
 		"model_path", strings.TrimSpace(req.ModelPath),
-		"options_count", len(req.Options),
-		"cfg_scale", req.CFGScale,
+		"options_count", len(req.DirectOptions),
 		"threads", req.Threads,
 	)
 	if err := conn.Invoke(ctx, backendLoadModelMethod, loadReq, loadResp); err != nil {
@@ -342,6 +380,9 @@ func FreeModel(ctx context.Context, req LoadModelRequest) error {
 	if strings.TrimSpace(req.BackendAddress) == "" {
 		return fmt.Errorf("local backend address is required")
 	}
+	if err := validateLoadModelRequestCarrier(req); err != nil {
+		return err
+	}
 	if err := ensureDescriptors(); err != nil {
 		return err
 	}
@@ -361,9 +402,11 @@ func FreeModel(ctx context.Context, req LoadModelRequest) error {
 	setStringField(freeReq, "ModelPath", req.ModelsRoot)
 	setStringField(freeReq, "ModelFile", req.ModelPath)
 	setInt32Field(freeReq, "Threads", req.Threads)
-	setFloatField(freeReq, "CFGScale", req.CFGScale)
-	setRepeatedStringField(freeReq, "Options", req.Options)
+	setFloatField(freeReq, "CFGScale", req.DirectCFGScale)
+	setRepeatedStringField(freeReq, "Options", req.DirectOptions)
 	setRepeatedComponentBindingField(freeReq, req.Components)
+	setBoolField(freeReq, "diffusion_fa", req.DiffusionFA)
+	setBoolField(freeReq, "offload_to_cpu", req.OffloadToCPU)
 
 	freeResp := dynamicpb.NewMessage(resultMessageDescriptor)
 	if err := conn.Invoke(ctx, backendFreeModelMethod, freeReq, freeResp); err != nil {
@@ -371,6 +414,22 @@ func FreeModel(ctx context.Context, req LoadModelRequest) error {
 	}
 	if success, message, _ := readResult(freeResp); !success {
 		return fmt.Errorf("free managed media model failed: %s", defaultMessage(message, "backend returned unsuccessful free result"))
+	}
+	return nil
+}
+
+func validateLoadModelRequestCarrier(req LoadModelRequest) error {
+	if req.Protocol != ProtocolDirectGOSD && req.Protocol != ProtocolManagedWrapper {
+		return fmt.Errorf("managed image protocol is required")
+	}
+	if req.Protocol == ProtocolDirectGOSD {
+		if len(req.Components) != 0 || req.DiffusionFA || req.OffloadToCPU {
+			return fmt.Errorf("direct gosd load cannot carry managed wrapper fields")
+		}
+		return nil
+	}
+	if len(req.DirectOptions) != 0 || req.DirectCFGScale != 0 {
+		return fmt.Errorf("managed wrapper load cannot carry direct gosd fields")
 	}
 	return nil
 }
@@ -427,8 +486,6 @@ func ensureDescriptors() error {
 						{Name: stringPtr("engine_slot"), Number: int32Ptr(5), Label: descriptorpb.FieldDescriptorProto_LABEL_OPTIONAL.Enum(), Type: descriptorpb.FieldDescriptorProto_TYPE_STRING.Enum()},
 						{Name: stringPtr("path"), Number: int32Ptr(6), Label: descriptorpb.FieldDescriptorProto_LABEL_OPTIONAL.Enum(), Type: descriptorpb.FieldDescriptorProto_TYPE_STRING.Enum()},
 						{Name: stringPtr("required"), Number: int32Ptr(7), Label: descriptorpb.FieldDescriptorProto_LABEL_OPTIONAL.Enum(), Type: descriptorpb.FieldDescriptorProto_TYPE_BOOL.Enum()},
-						{Name: stringPtr("weight"), Number: int32Ptr(8), Label: descriptorpb.FieldDescriptorProto_LABEL_OPTIONAL.Enum(), Type: descriptorpb.FieldDescriptorProto_TYPE_STRING.Enum()},
-						{Name: stringPtr("options_json"), Number: int32Ptr(9), Label: descriptorpb.FieldDescriptorProto_LABEL_OPTIONAL.Enum(), Type: descriptorpb.FieldDescriptorProto_TYPE_STRING.Enum()},
 					},
 				},
 				{
@@ -477,6 +534,8 @@ func ensureDescriptors() error {
 							Type:     descriptorpb.FieldDescriptorProto_TYPE_MESSAGE.Enum(),
 							TypeName: stringPtr(".backend.ComponentBinding"),
 						},
+						{Name: stringPtr("diffusion_fa"), Number: int32Ptr(64), Label: descriptorpb.FieldDescriptorProto_LABEL_OPTIONAL.Enum(), Type: descriptorpb.FieldDescriptorProto_TYPE_BOOL.Enum()},
+						{Name: stringPtr("offload_to_cpu"), Number: int32Ptr(65), Label: descriptorpb.FieldDescriptorProto_LABEL_OPTIONAL.Enum(), Type: descriptorpb.FieldDescriptorProto_TYPE_BOOL.Enum()},
 					},
 				},
 				{
@@ -536,12 +595,11 @@ func ensureDescriptors() error {
 							Label:  descriptorpb.FieldDescriptorProto_LABEL_OPTIONAL.Enum(),
 							Type:   descriptorpb.FieldDescriptorProto_TYPE_STRING.Enum(),
 						},
-						{
-							Name:   stringPtr("ref_images"),
-							Number: int32Ptr(12),
-							Label:  descriptorpb.FieldDescriptorProto_LABEL_REPEATED.Enum(),
-							Type:   descriptorpb.FieldDescriptorProto_TYPE_STRING.Enum(),
-						},
+						{Name: stringPtr("mode"), Number: int32Ptr(12), Label: descriptorpb.FieldDescriptorProto_LABEL_OPTIONAL.Enum(), Type: descriptorpb.FieldDescriptorProto_TYPE_STRING.Enum()},
+						{Name: stringPtr("cfg_scale"), Number: int32Ptr(13), Label: descriptorpb.FieldDescriptorProto_LABEL_OPTIONAL.Enum(), Type: descriptorpb.FieldDescriptorProto_TYPE_FLOAT.Enum()},
+						{Name: stringPtr("sampler"), Number: int32Ptr(14), Label: descriptorpb.FieldDescriptorProto_LABEL_OPTIONAL.Enum(), Type: descriptorpb.FieldDescriptorProto_TYPE_STRING.Enum()},
+						{Name: stringPtr("scheduler"), Number: int32Ptr(15), Label: descriptorpb.FieldDescriptorProto_LABEL_OPTIONAL.Enum(), Type: descriptorpb.FieldDescriptorProto_TYPE_STRING.Enum()},
+						{Name: stringPtr("mask"), Number: int32Ptr(16), Label: descriptorpb.FieldDescriptorProto_LABEL_OPTIONAL.Enum(), Type: descriptorpb.FieldDescriptorProto_TYPE_STRING.Enum()},
 					},
 				},
 				{
@@ -716,8 +774,6 @@ func setRepeatedComponentBindingField(message *dynamicpb.Message, values []Compo
 		setStringField(component, "engine_slot", value.EngineSlot)
 		setStringField(component, "path", value.Path)
 		setBoolField(component, "required", value.Required)
-		setStringField(component, "weight", value.Weight)
-		setStringField(component, "options_json", value.OptionsJSON)
 		list.Append(protoreflect.ValueOfMessage(component))
 	}
 }
@@ -761,7 +817,7 @@ func readGenerateImageEvent(message *dynamicpb.Message) (ImageGenerateProgress, 
 	}
 }
 
-func isGenerateResultTerminalCandidate(progress ImageGenerateProgress, done bool, success bool, message string, diag *ImageGenerateDiagnostics) bool {
+func isDirectGOSDResultTerminal(progress ImageGenerateProgress, done bool, success bool, message string, diag *ImageGenerateDiagnostics) bool {
 	if done || success || strings.TrimSpace(message) != "" || diag == nil {
 		return false
 	}

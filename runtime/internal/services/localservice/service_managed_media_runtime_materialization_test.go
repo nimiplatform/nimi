@@ -17,7 +17,7 @@ func TestResolveManagedMediaImageProfileAssociatesPortableSDKDescriptorAcrossRes
 	testResolveManagedMediaImageProfileDescriptorAcrossRestart(t)
 }
 
-func TestResolveManagedMediaImageProfilePreservesRepeatedOccurrenceBindingsToBackend(t *testing.T) {
+func TestManagedMediaImageProfileRejectsGenericComponentIntentAtBackendBoundary(t *testing.T) {
 	svc := newTestService(t)
 	main := &runtimev1.LocalAssetRecord{
 		LocalAssetId:   "local-main-repeated",
@@ -79,17 +79,8 @@ func TestResolveManagedMediaImageProfilePreservesRepeatedOccurrenceBindingsToBac
 		t.Fatalf("resolve repeated exact materialization: %v", err)
 	}
 	req, err := managedImageLoadRequest(svc.resolvedLocalModelsPath(), "127.0.0.1:1", profile, nil)
-	if err != nil {
-		t.Fatalf("build repeated exact backend request: %v", err)
-	}
-	if len(req.Components) != 2 {
-		t.Fatalf("backend component count = %d, want 2: %+v", len(req.Components), req.Components)
-	}
-	if req.Components[0].OccurrenceID != "vae-first-occurrence" || req.Components[1].OccurrenceID != "vae-second-occurrence" ||
-		req.Components[0].Order != 0 || req.Components[1].Order != 1 || req.Components[0].EngineSlot != "vae_path" || req.Components[1].EngineSlot != "vae_path" ||
-		req.Components[0].Weight != "0.4" || req.Components[1].Weight != "0.7" ||
-		!strings.Contains(req.Components[0].OptionsJSON, "first") || !strings.Contains(req.Components[1].OptionsJSON, "second") {
-		t.Fatalf("backend lost occurrence contract: %+v", req.Components)
+	if err == nil || !strings.Contains(err.Error(), "weight is not admitted") || len(req.Components) != 0 {
+		t.Fatalf("generic component intent crossed stable-diffusion.cpp boundary: request=%+v err=%v", req, err)
 	}
 }
 

@@ -119,9 +119,12 @@ const (
 )
 
 type ImageExecutionProgress struct {
-	Stage         ImageExecutionStage
-	ArtifactIndex int32
-	ArtifactCount int32
+	Stage           ImageExecutionStage
+	ArtifactIndex   int32
+	ArtifactCount   int32
+	CurrentStep     int32
+	TotalSteps      int32
+	ProgressPercent int32
 }
 
 type ImageProgressFunc func(ImageExecutionProgress)
@@ -131,6 +134,7 @@ type ImageProgressFunc func(ImageExecutionProgress)
 type ImageArtifact struct {
 	Index     int32
 	Bytes     []byte
+	MediaType string
 	ComputeMS int64
 }
 

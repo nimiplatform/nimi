@@ -55,31 +55,27 @@ type stableDiffusionFamilySpec struct {
 	compatibleVAEs []string
 }
 
-func stableDiffusionFamily(value string) (stableDiffusionFamilySpec, bool) {
-	normalized := strings.ToLower(strings.TrimSpace(value))
-	normalized = strings.ReplaceAll(normalized, "_", "-")
-	switch normalized {
-	case "z-image-base", "z-image-turbo":
-		// Z-Image base and turbo GGUFs share the lumina2 architecture; GGUF
-		// metadata cannot distinguish the variants, so both collapse to the
-		// canonical z-image family.
-		normalized = "z-image"
-	}
-	switch normalized {
-	case "z-image":
-		// Z-Image consumes the FLUX.1 VAE (ae.safetensors): its decoder conv_in
-		// weight projects the 16-channel latent shape as flux1-vae.
-		return stableDiffusionFamilySpec{name: normalized, compatibleVAEs: []string{"flux1-vae"}}, true
-	case "ideogram4":
-		return stableDiffusionFamilySpec{name: normalized, requiresUncond: true, compatibleVAEs: []string{"flux2-vae"}}, true
-	default:
-		return stableDiffusionFamilySpec{}, false
-	}
-}
-
+// stableDiffusionRequirementIntent remains the video Driver's portable
+// requirement intent. Image authoring does not admit these fields.
 type stableDiffusionRequirementIntent struct {
 	policy            runtimev1.LocalCapabilityRequirementPolicy
 	verifiedContentID string
+}
+
+func stableDiffusionFamily(value string) (stableDiffusionFamilySpec, bool) {
+	if value == "" || value != strings.TrimSpace(value) {
+		return stableDiffusionFamilySpec{}, false
+	}
+	switch value {
+	case "z-image":
+		// Z-Image consumes the FLUX.1 VAE (ae.safetensors): its decoder conv_in
+		// weight projects the 16-channel latent shape as flux1-vae.
+		return stableDiffusionFamilySpec{name: value, compatibleVAEs: []string{"flux1-vae"}}, true
+	case "ideogram4":
+		return stableDiffusionFamilySpec{name: value, requiresUncond: true, compatibleVAEs: []string{"flux2-vae"}}, true
+	default:
+		return stableDiffusionFamilySpec{}, false
+	}
 }
 
 type stableDiffusionExecutionOptions struct {
@@ -98,10 +94,6 @@ type stableDiffusionExecutionOptions struct {
 type stableDiffusionPortableConfig struct {
 	family           stableDiffusionFamilySpec
 	enableInputImage bool
-	main             stableDiffusionRequirementIntent
-	textEncoder      stableDiffusionRequirementIntent
-	vae              stableDiffusionRequirementIntent
-	uncond           stableDiffusionRequirementIntent
 	execution        stableDiffusionExecutionOptions
 }
 
@@ -123,7 +115,6 @@ func (StableDiffusionImageDriver) Interpret(input InterpretInput) ([]*runtimev1.
 			StableDiffusionMainRequirementID,
 			runtimev1.LocalCapabilityRequirementRole_LOCAL_CAPABILITY_REQUIREMENT_ROLE_MAIN,
 			"image",
-			portable.main,
 			0,
 			stableDiffusionMainLabel,
 			map[string]any{"asset_kind": "image", "model_family": portable.family.name},
@@ -132,7 +123,6 @@ func (StableDiffusionImageDriver) Interpret(input InterpretInput) ([]*runtimev1.
 			StableDiffusionTextEncoderRequirementID,
 			runtimev1.LocalCapabilityRequirementRole_LOCAL_CAPABILITY_REQUIREMENT_ROLE_COMPANION,
 			"chat",
-			portable.textEncoder,
 			0,
 			stableDiffusionTextEncoderLabel,
 			map[string]any{"asset_kind": "chat"},
@@ -141,7 +131,6 @@ func (StableDiffusionImageDriver) Interpret(input InterpretInput) ([]*runtimev1.
 			StableDiffusionVAERequirementID,
 			runtimev1.LocalCapabilityRequirementRole_LOCAL_CAPABILITY_REQUIREMENT_ROLE_COMPANION,
 			"vae",
-			portable.vae,
 			0,
 			stableDiffusionVAELabel,
 			map[string]any{"asset_kind": "vae", "compatible_families": stableDiffusionAnyStrings(portable.family.compatibleVAEs)},
@@ -152,7 +141,6 @@ func (StableDiffusionImageDriver) Interpret(input InterpretInput) ([]*runtimev1.
 			StableDiffusionUncondDiffusionRequirementID,
 			runtimev1.LocalCapabilityRequirementRole_LOCAL_CAPABILITY_REQUIREMENT_ROLE_COMPANION,
 			"image",
-			portable.uncond,
 			0,
 			stableDiffusionUncondDiffusionLabel,
 			map[string]any{"asset_kind": "image", "model_family": portable.family.name, "artifact_role": "uncond_diffusion_model"},
@@ -173,21 +161,19 @@ func stableDiffusionRequirement(
 	id string,
 	role runtimev1.LocalCapabilityRequirementRole,
 	resourceKind string,
-	intent stableDiffusionRequirementIntent,
 	ordinal uint32,
 	displayLabel string,
 	constraints map[string]any,
 ) *runtimev1.LocalCapabilityRequirement {
 	compatibility, _ := structpb.NewStruct(constraints)
 	return &runtimev1.LocalCapabilityRequirement{
-		RequirementId:              id,
-		Role:                       role,
-		ResourceKind:               resourceKind,
-		Policy:                     intent.policy,
-		PreferredVerifiedContentId: intent.verifiedContentID,
-		CompatibilityConstraints:   compatibility,
-		OccurrenceOrdinal:          ordinal,
-		DisplayLabel:               displayLabel,
+		RequirementId:            id,
+		Role:                     role,
+		ResourceKind:             resourceKind,
+		Policy:                   runtimev1.LocalCapabilityRequirementPolicy_LOCAL_CAPABILITY_REQUIREMENT_POLICY_SUBSTITUTABLE,
+		CompatibilityConstraints: compatibility,
+		OccurrenceOrdinal:        ordinal,
+		DisplayLabel:             displayLabel,
 	}
 }
 
@@ -332,15 +318,14 @@ func stableDiffusionAssetCompatible(requirement *runtimev1.LocalCapabilityRequir
 		return false
 	}
 	if family, exists := stableDiffusionRequirementConstraintString(requirement, "model_family"); exists {
-		if normalizeStableDiffusionAssetFamily(asset.Family) != family {
+		if asset.Family != family {
 			return false
 		}
 	}
 	if families, exists := stableDiffusionRequirementConstraintStrings(requirement, "compatible_families"); exists {
-		assetFamily := normalizeStableDiffusionAssetFamily(asset.Family)
 		matched := false
 		for _, family := range families {
-			if assetFamily == family {
+			if asset.Family == family {
 				matched = true
 				break
 			}
@@ -405,19 +390,6 @@ func stableDiffusionAssetKind(value string) runtimev1.LocalAssetKind {
 	}
 }
 
-func normalizeStableDiffusionAssetFamily(value string) string {
-	normalized := strings.ToLower(strings.TrimSpace(value))
-	normalized = strings.ReplaceAll(normalized, "_", "-")
-	switch normalized {
-	case "z-image-base", "z-image-turbo":
-		return "z-image"
-	case "flux", "flux2", "flux-2", "flux-2-vae", "ideogram4-vae", "ideogram-4-vae":
-		return "flux2-vae"
-	default:
-		return normalized
-	}
-}
-
 func stableDiffusionRequirementConstraintString(requirement *runtimev1.LocalCapabilityRequirement, key string) (string, bool) {
 	if requirement == nil || requirement.GetCompatibilityConstraints() == nil {
 		return "", false
@@ -471,9 +443,9 @@ func (StableDiffusionImageDriver) PlanImageInvocation(input ImageInvocationInput
 		return nil, err
 	}
 
-	modelFiles := make([]InvocationExactBinding, 0, len(orderedIDs))
+	modelFiles := make([]ImageModelFile, 0, len(orderedIDs))
 	for _, requirementID := range orderedIDs {
-		modelFiles = append(modelFiles, bindings[requirementID])
+		modelFiles = append(modelFiles, stableDiffusionImageModelFile(bindings[requirementID]))
 	}
 	hasher := sha256.New()
 	for _, value := range []string{
@@ -488,37 +460,173 @@ func (StableDiffusionImageDriver) PlanImageInvocation(input ImageInvocationInput
 		_, _ = hasher.Write([]byte(value))
 		_, _ = hasher.Write([]byte{0})
 	}
-	for _, binding := range modelFiles {
+	for _, requirementID := range orderedIDs {
+		binding := bindings[requirementID]
 		for _, value := range []string{binding.RequirementID, binding.LocalAssetID, binding.AbsolutePath, binding.VerifiedContentID, binding.EntrySHA256} {
 			_, _ = hasher.Write([]byte(value))
 			_, _ = hasher.Write([]byte{0})
 		}
 	}
-	return &ImageInvocationPlan{
-		processKey:              hex.EncodeToString(hasher.Sum(nil)),
-		modelFiles:              modelFiles,
-		mainModelPath:           bindings[StableDiffusionMainRequirementID].AbsolutePath,
-		textEncoderPath:         bindings[StableDiffusionTextEncoderRequirementID].AbsolutePath,
-		vaePath:                 bindings[StableDiffusionVAERequirementID].AbsolutePath,
-		uncondDiffusionPath:     bindings[StableDiffusionUncondDiffusionRequirementID].AbsolutePath,
-		modelFamily:             portable.family.name,
-		prompt:                  request.prompt,
-		negativePrompt:          request.negativePrompt,
-		inputImage:              request.inputImage,
-		mask:                    request.mask,
-		responseFormat:          request.responseFormat,
-		width:                   request.width,
-		height:                  request.height,
-		steps:                   portable.execution.steps,
+	load := StableDiffusionCPPLoadPlan{
+		main:                    stableDiffusionImageModelFile(bindings[StableDiffusionMainRequirementID]),
+		textEncoder:             stableDiffusionImageModelFile(bindings[StableDiffusionTextEncoderRequirementID]),
+		vae:                     stableDiffusionImageModelFile(bindings[StableDiffusionVAERequirementID]),
+		threads:                 portable.execution.threads,
 		cfgScale:                portable.execution.cfgScale,
-		seed:                    request.seed,
-		imageCount:              request.imageCount,
 		sampler:                 portable.execution.sampler,
 		scheduler:               portable.execution.scheduler,
-		threads:                 portable.execution.threads,
 		diffusionFlashAttention: portable.execution.diffusionFlashAttention,
 		offloadParamsToCPU:      portable.execution.offloadParamsToCPU,
+	}
+	if binding, ok := bindings[StableDiffusionUncondDiffusionRequirementID]; ok {
+		value := stableDiffusionImageModelFile(binding)
+		load.uncondDiffusion = &value
+	}
+	requestFields := stableDiffusionCPPRequestFields{
+		prompt: request.prompt, negativePrompt: request.negativePrompt,
+		width: request.width, height: request.height, steps: portable.execution.steps,
+		cfgScale: portable.execution.cfgScale, seed: request.seed, imageCount: request.imageCount,
+		sampler: portable.execution.sampler, scheduler: portable.execution.scheduler,
+	}
+	var requestPlan ImageRequestPlan = StableDiffusionCPPTextToImageRequestPlan{stableDiffusionCPPRequestFields: requestFields}
+	if request.inputImage != "" {
+		requestPlan = StableDiffusionCPPImageToImageRequestPlan{
+			stableDiffusionCPPRequestFields: requestFields,
+			inputImage:                      request.inputImage,
+			mask:                            request.mask,
+		}
+	}
+	return &ImageInvocationPlan{
+		processKey:  hex.EncodeToString(hasher.Sum(nil)),
+		modelFiles:  modelFiles,
+		loadPlan:    load,
+		requestPlan: requestPlan,
+		resultConstraints: StableDiffusionCPPResultConstraints{
+			artifactCount: request.imageCount,
+			mediaType:     "image/png",
+			format:        "png",
+			width:         request.width,
+			height:        request.height,
+		},
+		translator: stableDiffusionImageTranslator{},
 	}, nil
+}
+
+func stableDiffusionImageModelFile(binding InvocationExactBinding) ImageModelFile {
+	return ImageModelFile{
+		localAssetID:      binding.LocalAssetID,
+		absolutePath:      binding.AbsolutePath,
+		verifiedContentID: binding.VerifiedContentID,
+		entrySHA256:       binding.EntrySHA256,
+	}
+}
+
+type stableDiffusionImageTranslator struct{}
+
+func (stableDiffusionImageTranslator) validateImagePlan(plan *ImageInvocationPlan) error {
+	if plan == nil || strings.TrimSpace(plan.processKey) == "" || len(plan.modelFiles) < 3 || len(plan.modelFiles) > 4 {
+		return fmt.Errorf("stable-diffusion image plan is incomplete")
+	}
+	load, ok := plan.loadPlan.(StableDiffusionCPPLoadPlan)
+	if !ok {
+		return fmt.Errorf("stable-diffusion image load variant is unknown")
+	}
+	request, err := stableDiffusionCPPRequestFieldsFromPlan(plan.requestPlan)
+	if err != nil {
+		return err
+	}
+	constraints, ok := plan.resultConstraints.(StableDiffusionCPPResultConstraints)
+	if !ok || constraints.artifactCount != request.imageCount || constraints.mediaType != "image/png" || constraints.format != "png" ||
+		constraints.width != request.width || constraints.height != request.height {
+		return fmt.Errorf("stable-diffusion image result constraints are inconsistent")
+	}
+	if request.prompt == "" || request.prompt != strings.TrimSpace(request.prompt) ||
+		!stableDiffusionDimension(request.width) || !stableDiffusionDimension(request.height) ||
+		request.steps < 1 || request.steps > 150 || math.IsNaN(request.cfgScale) || math.IsInf(request.cfgScale, 0) ||
+		request.cfgScale < 0 || request.cfgScale > 30 || request.seed < math.MinInt32 || request.seed > math.MaxInt32 ||
+		request.imageCount < 1 || request.imageCount > 4 ||
+		(request.sampler != "" && !stableDiffusionOptionToken(request.sampler)) ||
+		(request.scheduler != "" && !stableDiffusionOptionToken(request.scheduler)) {
+		return fmt.Errorf("stable-diffusion image request variant is incomplete")
+	}
+	if load.threads < 0 || load.threads > 1024 || load.cfgScale != request.cfgScale ||
+		load.sampler != request.sampler || load.scheduler != request.scheduler {
+		return fmt.Errorf("stable-diffusion image load and request variants are inconsistent")
+	}
+	files := []ImageModelFile{load.main, load.textEncoder, load.vae}
+	if uncond, exists := load.UncondDiffusion(); exists {
+		files = append(files, uncond)
+	}
+	if len(files) != len(plan.modelFiles) {
+		return fmt.Errorf("stable-diffusion image load content is inconsistent")
+	}
+	for index, file := range files {
+		if file.localAssetID == "" || file.verifiedContentID == "" || file.entrySHA256 == "" ||
+			!filepath.IsAbs(file.absolutePath) || filepath.Clean(file.absolutePath) != file.absolutePath ||
+			!canonicalInvocationSHA256(file.verifiedContentID, file.entrySHA256) {
+			return fmt.Errorf("stable-diffusion image load content is not exact")
+		}
+		if file != plan.modelFiles[index] {
+			return fmt.Errorf("stable-diffusion image load content does not match custody inputs")
+		}
+	}
+	if imageToImage, isImageToImage := plan.requestPlan.(StableDiffusionCPPImageToImageRequestPlan); isImageToImage {
+		if strings.TrimSpace(imageToImage.inputImage) == "" || (imageToImage.mask != "" && strings.TrimSpace(imageToImage.mask) == "") {
+			return fmt.Errorf("stable-diffusion image-to-image request is incomplete")
+		}
+	}
+	return nil
+}
+
+func stableDiffusionCPPRequestFieldsFromPlan(plan ImageRequestPlan) (stableDiffusionCPPRequestFields, error) {
+	switch typed := plan.(type) {
+	case StableDiffusionCPPTextToImageRequestPlan:
+		return typed.stableDiffusionCPPRequestFields, nil
+	case StableDiffusionCPPImageToImageRequestPlan:
+		return typed.stableDiffusionCPPRequestFields, nil
+	default:
+		return stableDiffusionCPPRequestFields{}, fmt.Errorf("stable-diffusion image request variant is unknown")
+	}
+}
+
+func (stableDiffusionImageTranslator) translateImageProgress(plan *ImageInvocationPlan, observation ImageBackendProgressObservation) (ImageProgress, error) {
+	request, err := stableDiffusionCPPRequestFieldsFromPlan(plan.RequestPlan())
+	if err != nil {
+		return ImageProgress{}, err
+	}
+	if observation.CurrentStep <= 0 || observation.TotalSteps != int32(request.steps) || observation.CurrentStep > observation.TotalSteps ||
+		observation.ProgressPercent < 0 || observation.ProgressPercent > 100 {
+		return ImageProgress{}, fmt.Errorf("stable-diffusion backend progress is invalid")
+	}
+	expectedPercent := int32((int64(observation.CurrentStep) * 100) / int64(observation.TotalSteps))
+	if observation.ProgressPercent != expectedPercent {
+		return ImageProgress{}, fmt.Errorf("stable-diffusion backend progress percent is inconsistent")
+	}
+	return ImageProgress(observation), nil
+}
+
+func (stableDiffusionImageTranslator) translateImageArtifact(plan *ImageInvocationPlan, observation ImageBackendArtifactObservation) (ImageArtifact, error) {
+	constraints, ok := plan.ResultConstraints().(StableDiffusionCPPResultConstraints)
+	if !ok {
+		return ImageArtifact{}, fmt.Errorf("stable-diffusion result constraints are unavailable")
+	}
+	if observation.Index < 1 || int(observation.Index) > constraints.artifactCount || len(observation.Payload) == 0 ||
+		observation.Format != constraints.format || observation.Width != constraints.width || observation.Height != constraints.height {
+		return ImageArtifact{}, fmt.Errorf("stable-diffusion backend artifact violates result constraints")
+	}
+	return ImageArtifact{Index: observation.Index, Payload: append([]byte(nil), observation.Payload...), MediaType: constraints.mediaType}, nil
+}
+
+func (stableDiffusionImageTranslator) translateImageFailure(stage ImageBackendFailureStage, err error) error {
+	if err == nil {
+		return fmt.Errorf("stable-diffusion backend %s failed without an error", stage)
+	}
+	switch stage {
+	case ImageBackendFailureLoad, ImageBackendFailureProgress, ImageBackendFailureGenerate, ImageBackendFailureResult:
+		return fmt.Errorf("stable-diffusion backend %s: %w", stage, err)
+	default:
+		return fmt.Errorf("stable-diffusion backend failure stage is unknown: %w", err)
+	}
 }
 
 func exactStableDiffusionInvocationBindings(
@@ -687,12 +795,7 @@ func parseStableDiffusionPortableConfig(value *structpb.Struct) (stableDiffusion
 	fields := value.GetFields()
 	for key := range fields {
 		switch key {
-		case "modelFamily", "enableInputImage",
-			"mainRequirementPolicy", "mainVerifiedContentId",
-			"textEncoderRequirementPolicy", "textEncoderVerifiedContentId",
-			"vaeRequirementPolicy", "vaeVerifiedContentId",
-			"uncondDiffusionRequirementPolicy", "uncondDiffusionVerifiedContentId",
-			"executionOptions":
+		case "modelFamily", "enableInputImage", "executionOptions":
 		default:
 			return stableDiffusionPortableConfig{}, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_PORTABLE_CONFIG_INVALID
 		}
@@ -720,21 +823,6 @@ func parseStableDiffusionPortableConfig(value *structpb.Struct) (stableDiffusion
 			return stableDiffusionPortableConfig{}, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_PORTABLE_CONFIG_INVALID
 		}
 		result.enableInputImage = feature.GetBoolValue()
-	}
-	if result.main, reason = stableDiffusionRequirementIntentFromFields(fields, "mainRequirementPolicy", "mainVerifiedContentId"); reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED {
-		return stableDiffusionPortableConfig{}, reason
-	}
-	if result.textEncoder, reason = stableDiffusionRequirementIntentFromFields(fields, "textEncoderRequirementPolicy", "textEncoderVerifiedContentId"); reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED {
-		return stableDiffusionPortableConfig{}, reason
-	}
-	if result.vae, reason = stableDiffusionRequirementIntentFromFields(fields, "vaeRequirementPolicy", "vaeVerifiedContentId"); reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED {
-		return stableDiffusionPortableConfig{}, reason
-	}
-	if result.uncond, reason = stableDiffusionRequirementIntentFromFields(fields, "uncondDiffusionRequirementPolicy", "uncondDiffusionVerifiedContentId"); reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED {
-		return stableDiffusionPortableConfig{}, reason
-	}
-	if !family.requiresUncond && (fields["uncondDiffusionRequirementPolicy"] != nil || fields["uncondDiffusionVerifiedContentId"] != nil) {
-		return stableDiffusionPortableConfig{}, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_PORTABLE_CONFIG_INVALID
 	}
 	if result.execution, reason = stableDiffusionExecutionOptionsFromValue(fields["executionOptions"], result.execution); reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED {
 		return stableDiffusionPortableConfig{}, reason

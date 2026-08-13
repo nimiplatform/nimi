@@ -322,8 +322,10 @@ func (s *Service) ensureManagedSupervisedImageLoaded(
 		"backend_epoch":   backendEpoch,
 		"models_root":     strings.TrimSpace(loadReq.ModelsRoot),
 		"model_path":      strings.TrimSpace(loadReq.ModelPath),
-		"options":         append([]string(nil), loadReq.Options...),
-		"cfg_scale":       loadReq.CFGScale,
+		"protocol":        loadReq.Protocol,
+		"components":      append([]managedimagebackend.ComponentBinding(nil), loadReq.Components...),
+		"diffusion_fa":    loadReq.DiffusionFA,
+		"offload_to_cpu":  loadReq.OffloadToCPU,
 		"threads":         loadReq.Threads,
 	})
 	if s.retainManagedImageLoadCacheEntry(localAssetID, requestHash, strings.TrimSpace(loadReq.BackendAddress), backendEpoch) {
@@ -451,7 +453,7 @@ func (s *Service) runManagedImageLoadSingleflight(
 			"backend_epoch", backendEpoch,
 			"backend_address", strings.TrimSpace(loadReq.BackendAddress),
 			"model_path", strings.TrimSpace(loadReq.ModelPath),
-			"options_count", len(loadReq.Options),
+			"components_count", len(loadReq.Components),
 			"timeout_ms", managedImageLoadTimeout.Milliseconds(),
 		)
 
@@ -722,8 +724,10 @@ func (s *Service) releaseManagedSupervisedImage(
 		"backend_epoch":   backendEpoch,
 		"models_root":     strings.TrimSpace(loadReq.ModelsRoot),
 		"model_path":      strings.TrimSpace(loadReq.ModelPath),
-		"options":         append([]string(nil), loadReq.Options...),
-		"cfg_scale":       loadReq.CFGScale,
+		"protocol":        loadReq.Protocol,
+		"components":      append([]managedimagebackend.ComponentBinding(nil), loadReq.Components...),
+		"diffusion_fa":    loadReq.DiffusionFA,
+		"offload_to_cpu":  loadReq.OffloadToCPU,
 		"threads":         loadReq.Threads,
 	})
 

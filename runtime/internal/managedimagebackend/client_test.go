@@ -33,7 +33,8 @@ func TestLoadModelAndGenerateImage(t *testing.T) {
 		loadOptions   []string
 		generateDst   string
 		generateSrc   string
-		enableParams  string
+		mask          string
+		mode          string
 		progresses    []ImageGenerateProgress
 	)
 
@@ -62,7 +63,8 @@ func TestLoadModelAndGenerateImage(t *testing.T) {
 			}
 			generateDst = readStringField(in, "dst")
 			generateSrc = readStringField(in, "src")
-			enableParams = readStringField(in, "EnableParameters")
+			mask = readStringField(in, "mask")
+			mode = readStringField(in, "mode")
 			if err := os.WriteFile(generateDst, []byte("png"), 0o600); err != nil {
 				return err
 			}
@@ -80,21 +82,35 @@ func TestLoadModelAndGenerateImage(t *testing.T) {
 		_ = server.Serve(listener)
 	}()
 
-	_, err = LoadModelAndGenerateImage(context.Background(), ImageRequest{
+	_, err = LoadModel(context.Background(), LoadModelRequest{
 		BackendAddress: listener.Addr().String(),
+		Protocol:       ProtocolManagedWrapper,
 		ModelsRoot:     modelsRoot,
 		ModelPath:      "resolved/example/model.gguf",
-		Options:        []string{"diffusion_model", "vae_path:resolved/example/vae.safetensors"},
+		Components: []ComponentBinding{
+			{OccurrenceID: "vae", Role: "vae", ComponentKind: "vae", EngineSlot: "vae_path", Path: "resolved/example/vae.safetensors", Required: true},
+		},
+	})
+	if err != nil {
+		t.Fatalf("LoadModel: %v", err)
+	}
+	_, err = GenerateImage(context.Background(), ImageRequest{
+		BackendAddress: listener.Addr().String(),
+		Protocol:       ProtocolManagedWrapper,
+		Mode:           ImageRequestModeImageToImage,
+		ModelsRoot:     modelsRoot,
+		ModelPath:      "resolved/example/model.gguf",
 		Width:          1024,
 		Height:         1024,
 		Step:           25,
 		PositivePrompt: "orange cat",
 		NegativePrompt: "blurry",
-		EnableParams:   "mask:/tmp/mask.png",
+		Mask:           "/tmp/mask.png",
 		Dst:            outputPath,
 		Src:            "/tmp/source.png",
-		OnProgress: func(progress ImageGenerateProgress) {
+		OnProgress: func(progress ImageGenerateProgress) error {
 			progresses = append(progresses, progress)
+			return nil
 		},
 	})
 	if err != nil {
@@ -106,7 +122,7 @@ func TestLoadModelAndGenerateImage(t *testing.T) {
 	if loadModelFile != "resolved/example/model.gguf" {
 		t.Fatalf("load model file mismatch: %q", loadModelFile)
 	}
-	if len(loadOptions) != 2 || loadOptions[1] != "vae_path:resolved/example/vae.safetensors" {
+	if len(loadOptions) != 0 {
 		t.Fatalf("load options mismatch: %+v", loadOptions)
 	}
 	if generateDst != outputPath {
@@ -115,8 +131,8 @@ func TestLoadModelAndGenerateImage(t *testing.T) {
 	if generateSrc != "/tmp/source.png" {
 		t.Fatalf("generate src mismatch: %q", generateSrc)
 	}
-	if enableParams != "mask:/tmp/mask.png" {
-		t.Fatalf("enable params mismatch: %q", enableParams)
+	if mask != "/tmp/mask.png" || mode != string(ImageRequestModeImageToImage) {
+		t.Fatalf("typed request fields mismatch: mask=%q mode=%q", mask, mode)
 	}
 	if len(progresses) != 1 {
 		t.Fatalf("expected one progress callback, got %d", len(progresses))
@@ -169,6 +185,8 @@ func TestGenerateImageAcceptsResultTerminalShapeWhenArtifactExists(t *testing.T)
 
 	_, err = GenerateImage(context.Background(), ImageRequest{
 		BackendAddress: listener.Addr().String(),
+		Protocol:       ProtocolDirectGOSD,
+		Mode:           ImageRequestModeTextToImage,
 		ModelPath:      "resolved/example/model.gguf",
 		Dst:            outputPath,
 	})
@@ -181,6 +199,58 @@ func TestGenerateImageAcceptsResultTerminalShapeWhenArtifactExists(t *testing.T)
 	}
 	if string(payload) != "png" {
 		t.Fatalf("generated payload mismatch: %q", string(payload))
+	}
+}
+
+func TestGenerateImageDirectProtocolMechanicallyLowersTypedMask(t *testing.T) {
+	if err := ensureDescriptors(); err != nil {
+		t.Fatal(err)
+	}
+	outputPath := filepath.Join(t.TempDir(), "artifact.png")
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = listener.Close() }()
+	var enableParameters, wrapperMask, wrapperMode, wrapperSampler, wrapperScheduler string
+	var wrapperCFGScale float32
+	server := grpc.NewServer(grpc.UnknownServiceHandler(func(_ any, stream grpc.ServerStream) error {
+		in := dynamicpb.NewMessage(generateImageMessageDescriptor)
+		if err := stream.RecvMsg(in); err != nil {
+			return err
+		}
+		enableParameters = readStringField(in, "EnableParameters")
+		wrapperMask = readStringField(in, "mask")
+		wrapperMode = readStringField(in, "mode")
+		wrapperCFGScale = readFloatField(in, "cfg_scale")
+		wrapperSampler = readStringField(in, "sampler")
+		wrapperScheduler = readStringField(in, "scheduler")
+		if err := os.WriteFile(outputPath, []byte("png"), 0o600); err != nil {
+			return err
+		}
+		return stream.SendMsg(successResult("generated"))
+	}))
+	defer server.Stop()
+	go func() { _ = server.Serve(listener) }()
+
+	maskPath := filepath.Join(t.TempDir(), "mask.png")
+	_, err = GenerateImage(context.Background(), ImageRequest{
+		BackendAddress: listener.Addr().String(),
+		Protocol:       ProtocolDirectGOSD,
+		Mode:           ImageRequestModeImageToImage,
+		Src:            filepath.Join(t.TempDir(), "source.png"),
+		Mask:           maskPath,
+		Dst:            outputPath,
+		CFGScale:       7,
+		Sampler:        "euler",
+		Scheduler:      "discrete",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if enableParameters != "mask:"+maskPath || wrapperMask != "" || wrapperMode != "" ||
+		wrapperCFGScale != 0 || wrapperSampler != "" || wrapperScheduler != "" {
+		t.Fatalf("direct typed lowering leaked wrapper fields: enable=%q mask=%q mode=%q cfg=%g sampler=%q scheduler=%q", enableParameters, wrapperMask, wrapperMode, wrapperCFGScale, wrapperSampler, wrapperScheduler)
 	}
 }
 
@@ -216,6 +286,8 @@ func TestGenerateImageRejectsResultTerminalWithoutArtifact(t *testing.T) {
 
 	_, err = GenerateImage(context.Background(), ImageRequest{
 		BackendAddress: listener.Addr().String(),
+		Protocol:       ProtocolDirectGOSD,
+		Mode:           ImageRequestModeTextToImage,
 		ModelPath:      "resolved/example/model.gguf",
 		Dst:            outputPath,
 	})
@@ -254,15 +326,17 @@ func TestGenerateImageRejectsResultTerminalFailureShape(t *testing.T) {
 
 	_, err = GenerateImage(context.Background(), ImageRequest{
 		BackendAddress: listener.Addr().String(),
+		Protocol:       ProtocolDirectGOSD,
+		Mode:           ImageRequestModeTextToImage,
 		ModelPath:      "resolved/example/model.gguf",
 		Dst:            filepath.Join(t.TempDir(), "artifact.png"),
 	})
-	if err == nil || !strings.Contains(err.Error(), "missing terminal backend event") {
+	if err == nil || !strings.Contains(err.Error(), "unknown backend event") {
 		t.Fatalf("expected Result-shaped generate response to fail closed, got %v", err)
 	}
 }
 
-func TestLoadModelAndGenerateImageReturnsBackendFailure(t *testing.T) {
+func TestLoadModelReturnsBackendFailure(t *testing.T) {
 	if err := ensureDescriptors(); err != nil {
 		t.Fatalf("ensureDescriptors: %v", err)
 	}
@@ -290,14 +364,38 @@ func TestLoadModelAndGenerateImageReturnsBackendFailure(t *testing.T) {
 		_ = server.Serve(listener)
 	}()
 
-	_, err = LoadModelAndGenerateImage(context.Background(), ImageRequest{
+	_, err = LoadModel(context.Background(), LoadModelRequest{
 		BackendAddress: listener.Addr().String(),
+		Protocol:       ProtocolManagedWrapper,
 		ModelsRoot:     t.TempDir(),
 		ModelPath:      "resolved/example/model.gguf",
-		Dst:            filepath.Join(t.TempDir(), "artifact.png"),
 	})
 	if err == nil || !strings.Contains(err.Error(), "load failed") {
 		t.Fatalf("expected backend load failure, got %v", err)
+	}
+}
+
+func TestLoadAndFreeRejectMixedPhysicalCarriers(t *testing.T) {
+	directWithWrapper := LoadModelRequest{
+		BackendAddress: "127.0.0.1:1", Protocol: ProtocolDirectGOSD,
+		ModelsRoot: t.TempDir(), ModelPath: "model.gguf",
+		Components: []ComponentBinding{{OccurrenceID: "vae", EngineSlot: "vae_path", Path: "vae.safetensors"}},
+	}
+	if _, err := LoadModel(context.Background(), directWithWrapper); err == nil || !strings.Contains(err.Error(), "managed wrapper fields") {
+		t.Fatalf("mixed direct load carrier error = %v", err)
+	}
+	if err := FreeModel(context.Background(), directWithWrapper); err == nil || !strings.Contains(err.Error(), "managed wrapper fields") {
+		t.Fatalf("mixed direct free carrier error = %v", err)
+	}
+	wrapperWithDirect := LoadModelRequest{
+		BackendAddress: "127.0.0.1:1", Protocol: ProtocolManagedWrapper,
+		ModelsRoot: t.TempDir(), ModelPath: "model.gguf", DirectOptions: []string{"diffusion_model"},
+	}
+	if _, err := LoadModel(context.Background(), wrapperWithDirect); err == nil || !strings.Contains(err.Error(), "direct gosd fields") {
+		t.Fatalf("mixed wrapper load carrier error = %v", err)
+	}
+	if err := FreeModel(context.Background(), wrapperWithDirect); err == nil || !strings.Contains(err.Error(), "direct gosd fields") {
+		t.Fatalf("mixed wrapper free carrier error = %v", err)
 	}
 }
 
@@ -338,6 +436,7 @@ func TestFreeModelInvokesBackendFree(t *testing.T) {
 
 	err = FreeModel(context.Background(), LoadModelRequest{
 		BackendAddress: listener.Addr().String(),
+		Protocol:       ProtocolManagedWrapper,
 		ModelsRoot:     "/tmp/models",
 		ModelPath:      "resolved/example/model.gguf",
 	})
@@ -390,6 +489,14 @@ func readStringField(message *dynamicpb.Message, fieldName string) string {
 		return ""
 	}
 	return message.Get(field).String()
+}
+
+func readFloatField(message *dynamicpb.Message, fieldName string) float32 {
+	field := message.Descriptor().Fields().ByName(protoreflect.Name(fieldName))
+	if field == nil || !message.Has(field) {
+		return 0
+	}
+	return float32(message.Get(field).Float())
 }
 
 func readRepeatedStringField(message *dynamicpb.Message, fieldName string) []string {

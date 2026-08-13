@@ -19,25 +19,20 @@ func decodeLoadModelState(message *dynamicpb.Message) (loadModelState, error) {
 		return loadModelState{}, fmt.Errorf("managed image model path is required")
 	}
 	rawOptions := dynamicMessageStringListField(message, "Options")
+	if len(rawOptions) != 0 {
+		return loadModelState{}, fmt.Errorf("managed wrapper load does not accept direct gosd options")
+	}
 	components, err := dynamicMessageComponentBindingsField(message, modelsRoot)
 	if err != nil {
 		return loadModelState{}, err
 	}
-	if len(components) > 0 {
-		rawOptions = filterManagedImageComponentOptions(rawOptions)
-	}
-	options, err := parseManagedImageOptions(modelsRoot, rawOptions)
-	if err != nil {
-		return loadModelState{}, err
-	}
-	if len(components) > 0 {
-		options.Components = components
-	}
+	diffusionFA := dynamicMessageBoolField(message, "diffusion_fa")
+	offloadToCPU := dynamicMessageBoolField(message, "offload_to_cpu")
+	options := managedImageOptions{Components: components, DiffusionFA: &diffusionFA, OffloadParamsToCPU: &offloadToCPU}
 	return loadModelState{
 		ModelsRoot: modelsRoot,
 		ModelPath:  modelPath,
 		Options:    options,
-		CFGScale:   dynamicMessageFloat32Field(message, "CFGScale"),
 		Threads:    dynamicMessageInt32Field(message, "Threads"),
 	}, nil
 }
@@ -62,8 +57,6 @@ func dynamicMessageComponentBindingsField(message *dynamicpb.Message, modelsRoot
 			EngineSlot:    strings.TrimSpace(dynamicProtoMessageStringField(value, "engine_slot")),
 			Path:          resolveManagedImagePath(modelsRoot, dynamicProtoMessageStringField(value, "path")),
 			Required:      dynamicProtoMessageBoolField(value, "required"),
-			Weight:        strings.TrimSpace(dynamicProtoMessageStringField(value, "weight")),
-			OptionsJSON:   strings.TrimSpace(dynamicProtoMessageStringField(value, "options_json")),
 		}
 		components = append(components, component)
 	}
@@ -100,20 +93,6 @@ func dynamicProtoMessageBoolField(message protoreflect.Message, fieldName string
 	return field != nil && message.Has(field) && message.Get(field).Bool()
 }
 
-func filterManagedImageComponentOptions(options []string) []string {
-	filtered := make([]string, 0, len(options))
-	for _, option := range options {
-		key, _, hasValue := strings.Cut(strings.TrimSpace(option), ":")
-		if hasValue {
-			if _, isComponent := stableDiffusionCPPSlotBindings[strings.ToLower(strings.TrimSpace(key))]; isComponent {
-				continue
-			}
-		}
-		filtered = append(filtered, option)
-	}
-	return filtered
-}
-
 func decodeGenerateImageState(message *dynamicpb.Message) (imageGenerateState, error) {
 	if message == nil {
 		return imageGenerateState{}, fmt.Errorf("managed image request payload is required")
@@ -123,6 +102,7 @@ func decodeGenerateImageState(message *dynamicpb.Message) (imageGenerateState, e
 		return imageGenerateState{}, fmt.Errorf("managed image destination is required")
 	}
 	return imageGenerateState{
+		Mode:           ImageRequestMode(strings.TrimSpace(dynamicMessageStringField(message, "mode"))),
 		Width:          dynamicMessageInt32Field(message, "width"),
 		Height:         dynamicMessageInt32Field(message, "height"),
 		Step:           dynamicMessageInt32Field(message, "step"),
@@ -131,82 +111,11 @@ func decodeGenerateImageState(message *dynamicpb.Message) (imageGenerateState, e
 		NegativePrompt: strings.TrimSpace(dynamicMessageStringField(message, "negative_prompt")),
 		Dst:            destination,
 		Src:            strings.TrimSpace(dynamicMessageStringField(message, "src")),
-		EnableParams:   strings.TrimSpace(dynamicMessageStringField(message, "EnableParameters")),
-		RefImages:      dynamicMessageStringListField(message, "ref_images"),
+		Mask:           strings.TrimSpace(dynamicMessageStringField(message, "mask")),
+		CFGScale:       dynamicMessageFloat32Field(message, "cfg_scale"),
+		Sampler:        strings.TrimSpace(dynamicMessageStringField(message, "sampler")),
+		Scheduler:      strings.TrimSpace(dynamicMessageStringField(message, "scheduler")),
 	}, nil
-}
-
-func parseManagedImageOptions(modelsRoot string, options []string) (managedImageOptions, error) {
-	var parsed managedImageOptions
-	seenComponentSlots := map[string]struct{}{}
-	for _, option := range options {
-		trimmed := strings.TrimSpace(option)
-		if trimmed == "" {
-			continue
-		}
-		key, value, hasValue := strings.Cut(trimmed, ":")
-		normalizedKey := strings.ToLower(strings.TrimSpace(key))
-		switch normalizedKey {
-		case "diffusion_model":
-			continue
-		case "offload_params_to_cpu":
-			if !hasValue {
-				return managedImageOptions{}, fmt.Errorf("managed image option offload_params_to_cpu requires a boolean value")
-			}
-			switch strings.ToLower(strings.TrimSpace(value)) {
-			case "true":
-				flag := true
-				parsed.OffloadParamsToCPU = &flag
-			case "false":
-				flag := false
-				parsed.OffloadParamsToCPU = &flag
-			default:
-				return managedImageOptions{}, fmt.Errorf("managed image option offload_params_to_cpu requires true or false")
-			}
-		case "diffusion_fa":
-			if !hasValue {
-				return managedImageOptions{}, fmt.Errorf("managed image option diffusion_fa requires a boolean value")
-			}
-			switch strings.ToLower(strings.TrimSpace(value)) {
-			case "true":
-				flag := true
-				parsed.DiffusionFA = &flag
-			case "false":
-				flag := false
-				parsed.DiffusionFA = &flag
-			default:
-				return managedImageOptions{}, fmt.Errorf("managed image option diffusion_fa requires true or false")
-			}
-		case "sampler":
-			if !hasValue || strings.TrimSpace(value) == "" {
-				return managedImageOptions{}, fmt.Errorf("managed image option sampler requires a value")
-			}
-			parsed.Sampler = strings.TrimSpace(value)
-		case "scheduler":
-			if !hasValue || strings.TrimSpace(value) == "" {
-				return managedImageOptions{}, fmt.Errorf("managed image option scheduler requires a value")
-			}
-			parsed.Scheduler = strings.TrimSpace(value)
-		default:
-			binding, ok := stableDiffusionCPPSlotBindings[normalizedKey]
-			if !ok {
-				return managedImageOptions{}, fmt.Errorf("unsupported managed image option %q", normalizedKey)
-			}
-			if _, exists := seenComponentSlots[binding.EngineSlot]; exists {
-				return managedImageOptions{}, fmt.Errorf("duplicate managed image component slot %q", binding.EngineSlot)
-			}
-			path, err := resolveManagedImageOptionPath(modelsRoot, value)
-			if err != nil {
-				return managedImageOptions{}, err
-			}
-			seenComponentSlots[binding.EngineSlot] = struct{}{}
-			parsed.Components = append(parsed.Components, managedImageComponent{
-				EngineSlot: binding.EngineSlot,
-				Path:       path,
-			})
-		}
-	}
-	return parsed, nil
 }
 
 func resolveManagedImagePath(modelsRoot string, value string) string {
@@ -218,14 +127,6 @@ func resolveManagedImagePath(modelsRoot string, value string) string {
 		return trimmed
 	}
 	return filepath.Join(strings.TrimSpace(modelsRoot), filepath.FromSlash(trimmed))
-}
-
-func resolveManagedImageOptionPath(modelsRoot string, value string) (string, error) {
-	path := resolveManagedImagePath(modelsRoot, value)
-	if strings.TrimSpace(path) == "" {
-		return "", fmt.Errorf("managed image option path is required")
-	}
-	return path, nil
 }
 
 func dynamicMessageStringField(message *dynamicpb.Message, fieldName string) string {
@@ -250,6 +151,14 @@ func dynamicMessageFloat32Field(message *dynamicpb.Message, fieldName string) fl
 		return 0
 	}
 	return float32(message.Get(field).Float())
+}
+
+func dynamicMessageBoolField(message *dynamicpb.Message, fieldName string) bool {
+	if message == nil {
+		return false
+	}
+	field := message.Descriptor().Fields().ByName(protoreflect.Name(fieldName))
+	return field != nil && message.Has(field) && message.Get(field).Bool()
 }
 
 func dynamicMessageStringListField(message *dynamicpb.Message, fieldName string) []string {

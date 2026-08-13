@@ -94,8 +94,9 @@ func TestSubmitLocalAppImageJobReachesSelectedDriverWithNegativeSeed(t *testing.
 	if len(host.plans) != 1 {
 		t.Fatalf("captured plans=%d, want 1", len(host.plans))
 	}
-	if host.plans[0].Seed() != math.MinInt32 {
-		t.Fatalf("captured seed=%d, want %d", host.plans[0].Seed(), math.MinInt32)
+	requestPlan := host.plans[0].RequestPlan()
+	if requestPlan == nil || requestPlan.Seed() != math.MinInt32 {
+		t.Fatalf("captured request plan=%+v, want seed %d", requestPlan, math.MinInt32)
 	}
 }
 

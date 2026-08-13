@@ -145,9 +145,9 @@ func (d *stableDiffusionCPPDriver) GenerateImage(ctx context.Context, loaded loa
 		req.Width,
 		req.Height,
 		req.Step,
-		loaded.CFGScale,
-		strings.TrimSpace(loaded.Options.Sampler),
-		strings.TrimSpace(loaded.Options.Scheduler),
+		req.CFGScale,
+		strings.TrimSpace(req.Sampler),
+		strings.TrimSpace(req.Scheduler),
 		true,
 	)
 	if queueWaitMs > 0 {
