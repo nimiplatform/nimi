@@ -190,10 +190,6 @@ export function createAvatarStageSnapshot(
   };
 }
 
-export function isConcreteAvatarAssetRef(value: string | null | undefined): boolean {
-  return Boolean(value) && !String(value).startsWith('fallback://');
-}
-
 export function resolveAvatarBackendLabel(backendKind: AvatarBackendKind): string {
   switch (backendKind) {
     case 'vrm':
@@ -210,44 +206,8 @@ export function resolveAvatarBackendLabel(backendKind: AvatarBackendKind): strin
   }
 }
 
-function createFallbackPresentationProfile(
-  backendKind: AvatarBackendKind,
-  avatarAssetRef: string,
-): AvatarPresentationProfile {
-  return {
-    backendKind,
-    avatarAssetRef,
-    expressionProfileRef: null,
-    idlePreset: null,
-    interactionPolicyRef: null,
-    defaultVoiceReference: null,
-  };
-}
-
-export function resolveAvatarPresentationProfile(input: {
-  presentation?: AvatarPresentationProfile | null;
-  fallbackAssetRef?: string | null;
-  fallbackBackendKind?: AvatarBackendKind;
-  fallbackProfileRef?: string;
-}): AvatarPresentationProfile {
-  if (input.presentation) {
-    return input.presentation;
-  }
-  if (input.fallbackAssetRef) {
-    return createFallbackPresentationProfile(input.fallbackBackendKind || 'live2d', input.fallbackAssetRef);
-  }
-  return createFallbackPresentationProfile('live2d', input.fallbackProfileRef || 'fallback://avatar-stage');
-}
-
-export function resolveAvatarStagePosterUrl(
-  _presentation: AvatarPresentationProfile | null | undefined,
-  fallbackImageUrl?: string | null,
-): string | null {
-  return fallbackImageUrl || null;
-}
-
 function resolveAvatarAssetMediaUrl(avatarAssetRef: string | null | undefined): string | null {
-  if (!isConcreteAvatarAssetRef(avatarAssetRef)) {
+  if (!avatarAssetRef) {
     return null;
   }
   const normalized = String(avatarAssetRef);

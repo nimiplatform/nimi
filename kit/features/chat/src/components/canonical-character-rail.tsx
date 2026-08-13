@@ -1,10 +1,8 @@
 import type { RefObject } from 'react';
-import { cn } from '@nimiplatform/kit/ui';
+import { Avatar, cn } from '@nimiplatform/kit/ui';
 import {
   AvatarStage,
   createAvatarStageSnapshot,
-  resolveAvatarPresentationProfile,
-  resolveAvatarStagePosterUrl,
 } from '@nimiplatform/kit/features/avatar';
 import type { ConversationCharacterData, ConversationTargetSummary } from '../types.js';
 export const CANONICAL_NO_BIO_FALLBACK = 'This Agent has no public bio.';
@@ -95,18 +93,11 @@ export function CanonicalCharacterRail(props: CanonicalCharacterRailProps) {
   const presenceBackground = 'rgba(255,255,255,0.86)';
   const presenceDot = theme?.accentStrong || '#34d399';
   const relationshipState = props.characterData?.relationshipState || 'new';
-  const avatarPresentationProfile = resolveAvatarPresentationProfile({
-    presentation: props.characterData?.avatarPresentationProfile,
-    fallbackAssetRef: props.characterData?.avatarUrl || null,
-    fallbackProfileRef: 'fallback://character',
-  });
-  const avatarImageUrl = resolveAvatarStagePosterUrl(
-    avatarPresentationProfile,
-    props.characterData?.avatarUrl || null,
-  );
-  const avatarSnapshot = createAvatarStageSnapshot(
-    avatarPresentationProfile,
-    {
+  const avatarPresentationProfile = props.characterData?.avatarPresentationProfile || null;
+  const avatarImageUrl = props.characterData?.avatarUrl || null;
+  const avatarFallbackLabel = props.characterData?.avatarFallback || props.selectedTarget.avatarFallback || props.selectedTarget.title;
+  const avatarSnapshot = avatarPresentationProfile
+    ? createAvatarStageSnapshot(avatarPresentationProfile, {
       phase: props.characterData?.interactionState?.phase === 'loading'
         ? 'transitioning'
         : props.characterData?.interactionState?.phase === 'thinking'
@@ -124,8 +115,8 @@ export function CanonicalCharacterRail(props: CanonicalCharacterRailProps) {
           ? 0.42
           : 0.08,
       visemeId: props.characterData?.interactionState?.visemeId || undefined,
-    },
-  );
+    })
+    : null;
 
   return (
     <aside
@@ -175,15 +166,39 @@ export function CanonicalCharacterRail(props: CanonicalCharacterRailProps) {
                 className="absolute inset-[-12px] rounded-full border border-white/75"
                 style={{ boxShadow: `0 22px 56px ${theme?.accentSoft || 'rgba(16,185,129,0.18)'}` }}
               />
-              <AvatarStage
-                snapshot={avatarSnapshot}
-                label={props.characterData?.name || props.selectedTarget.title}
-                imageUrl={avatarImageUrl}
-                fallbackLabel={props.characterData?.avatarFallback || props.selectedTarget.avatarFallback || props.selectedTarget.title}
-                statusLabel={presenceState.label}
-                size="lg"
-                className="relative"
-              />
+              {avatarSnapshot ? (
+                <AvatarStage
+                  snapshot={avatarSnapshot}
+                  label={props.characterData?.name || props.selectedTarget.title}
+                  imageUrl={avatarImageUrl}
+                  fallbackLabel={avatarFallbackLabel}
+                  statusLabel={presenceState.label}
+                  size="lg"
+                  className="relative"
+                />
+              ) : (
+                <span
+                  className="relative inline-flex items-center justify-center"
+                  data-avatar-presentation-state="unavailable"
+                  data-avatar-static-portrait={avatarImageUrl || undefined}
+                >
+                  <Avatar
+                    src={avatarImageUrl}
+                    alt={props.characterData?.name || props.selectedTarget.title}
+                    size="lg"
+                    fallback={avatarFallbackLabel.trim().charAt(0).toUpperCase() || '?'}
+                    className="h-44 w-44 border border-white/85 bg-white/86 text-2xl shadow-[0_18px_48px_rgba(15,23,42,0.12)]"
+                    fallbackClassName="text-2xl font-semibold text-slate-500"
+                  />
+                  <span
+                    className="absolute bottom-[-10px] left-1/2 inline-flex -translate-x-1/2 items-center gap-1.5 whitespace-nowrap rounded-full border border-slate-200/80 bg-white/90 px-3.5 py-2 text-xs font-semibold text-slate-700 shadow-[0_10px_24px_rgba(15,23,42,0.08)]"
+                    data-avatar-presentation-status="unavailable"
+                  >
+                    <span className="inline-block h-2 w-2 shrink-0 rounded-full bg-current opacity-70" />
+                    <span>Avatar unavailable</span>
+                  </span>
+                </span>
+              )}
             </button>
           </div>
           <div className="shrink-0 space-y-4 pb-4 text-center">

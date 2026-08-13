@@ -189,9 +189,7 @@ export function resolveAvatarVrmViewportState(
     amplitude,
     attentionLift,
   });
-  const assetLabel = input.assetRef.trim().startsWith('fallback://')
-    ? input.assetRef.trim().replace('fallback://', '')
-    : input.assetRef.trim().split('/').pop() || 'avatar.vrm';
+  const assetLabel = input.assetRef.trim().split('/').pop() || 'avatar.vrm';
 
   return {
     phase,

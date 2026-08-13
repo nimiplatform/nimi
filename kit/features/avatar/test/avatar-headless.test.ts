@@ -1,9 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  createAvatarStageSnapshot,
   resolveAvatarBackendLabel,
-  resolveAvatarPresentationProfile,
-  resolveAvatarStagePosterUrl,
   resolveAvatarStageRendererModel,
 } from '../src/headless.js';
 
@@ -46,25 +45,20 @@ describe('avatar headless renderer resolution', () => {
     });
   });
 
-  it('keeps fallback profiles inside the admitted backend union', () => {
-    const presentation = resolveAvatarPresentationProfile({
-      fallbackAssetRef: 'https://cdn.nimi.test/avatar.png',
-    });
-    const posterUrl = resolveAvatarStagePosterUrl(
-      presentation,
-      'https://cdn.nimi.test/avatar.png',
-    );
-    const renderer = resolveAvatarStageRendererModel({
-      presentation,
-      imageUrl: posterUrl,
+  it('creates a stage snapshot from an explicit presentation profile', () => {
+    const presentation = {
+      backendKind: 'sprite2d' as const,
+      avatarAssetRef: 'profile_media_url:https://cdn.nimi.test/avatar.png',
+    };
+    const snapshot = createAvatarStageSnapshot(presentation, {
+      phase: 'thinking',
     });
 
-    expect(renderer).toMatchObject({
-      kind: 'live2d',
-      mediaUrl: 'https://cdn.nimi.test/avatar.png',
-      posterUrl: 'https://cdn.nimi.test/avatar.png',
-      backendLabel: 'Live2D',
-      prefersMotion: true,
+    expect(snapshot.presentation).toBe(presentation);
+    expect(snapshot.interaction).toMatchObject({
+      phase: 'thinking',
+      emotion: 'neutral',
+      attentionTarget: 'camera',
     });
   });
 

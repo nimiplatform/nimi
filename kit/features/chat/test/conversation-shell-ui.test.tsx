@@ -272,6 +272,7 @@ describe('conversation shell ui', () => {
             avatarFallback: 'Z',
           }}
           characterData={{
+            avatarUrl: 'https://cdn.nimi.test/portraits/zhao.png',
             name: 'Zhao',
             handle: '@zhao',
             bio: '',
@@ -299,8 +300,47 @@ describe('conversation shell ui', () => {
     expect(container.querySelector('[data-canonical-presence-badge="true"]')).not.toBeNull();
     expect(container.querySelector('[data-canonical-relationship-badge="true"]')).not.toBeNull();
     expect(container.querySelector('[data-canonical-rail-avatar-anchor="true"]')).not.toBeNull();
+    const unavailableAvatar = container.querySelector('[data-avatar-presentation-state="unavailable"]');
+    expect(unavailableAvatar).not.toBeNull();
+    expect(unavailableAvatar?.getAttribute('data-avatar-static-portrait')).toBe('https://cdn.nimi.test/portraits/zhao.png');
+    expect(unavailableAvatar?.textContent).toContain('Avatar unavailable');
+    expect(container.querySelector('[data-avatar-backend-kind]')).toBeNull();
+    expect(container.querySelector('[data-avatar-renderer]')).toBeNull();
     expect(container.querySelector('button[aria-label="Back to character space"]')).not.toBeNull();
     expect(container.querySelector('button[aria-label="Open profile"]')).not.toBeNull();
+  });
+
+  it('renders AvatarStage only for an explicit presentation profile', async () => {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    root = createRoot(container);
+
+    await act(async () => {
+      root?.render(
+        <CanonicalCharacterRail
+          selectedTarget={{
+            id: 'agent-1',
+            source: 'agent',
+            canonicalSessionId: 'session-1',
+            title: 'Zhao',
+          }}
+          characterData={{
+            name: 'Zhao',
+            avatarUrl: 'https://cdn.nimi.test/portraits/zhao.png',
+            avatarPresentationProfile: {
+              backendKind: 'sprite2d',
+              avatarAssetRef: 'profile_media_url:https://cdn.nimi.test/avatars/zhao.png',
+            },
+          }}
+          onBackToTargets={() => undefined}
+        />,
+      );
+      await flush();
+    });
+
+    expect(container.querySelector('[data-avatar-backend-kind="sprite2d"]')).not.toBeNull();
+    expect(container.querySelector('[data-avatar-renderer="sprite2d"]')).not.toBeNull();
+    expect(container.querySelector('[data-avatar-presentation-state="unavailable"]')).toBeNull();
   });
 
   it('keeps canonical conversation pane landmarks stable', async () => {

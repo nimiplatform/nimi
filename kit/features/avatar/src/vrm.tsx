@@ -88,9 +88,6 @@ export function formatAvatarVrmAssetLabel(value: string): string {
   if (!normalized) {
     return '';
   }
-  if (normalized.startsWith('fallback://')) {
-    return normalized.replace('fallback://', '');
-  }
   const segments = normalized.split('/');
   return segments[segments.length - 1] || normalized;
 }

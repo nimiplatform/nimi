@@ -71,6 +71,6 @@ describe('avatar vrm renderer surface', () => {
 
   it('normalizes stable vrm asset labels for badges and fallbacks', () => {
     expect(formatAvatarVrmAssetLabel('https://cdn.nimi.test/avatars/airi.vrm')).toBe('airi.vrm');
-    expect(formatAvatarVrmAssetLabel('fallback://airi-vrm-shell')).toBe('airi-vrm-shell');
+    expect(formatAvatarVrmAssetLabel('desktop-avatar://resource-1/airi.vrm')).toBe('airi.vrm');
   });
 });
