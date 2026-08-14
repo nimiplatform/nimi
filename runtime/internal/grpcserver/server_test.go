@@ -21,6 +21,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/protectedlocal"
 	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
 	localservice "github.com/nimiplatform/nimi/runtime/internal/services/localservice"
+	healthpb "google.golang.org/grpc/health/grpc_health_v1"
 )
 
 func TestNewConfiguresRuntimeAgentDefaultExecutors(t *testing.T) {
@@ -37,9 +38,25 @@ func TestNewConfiguresRuntimeAgentDefaultExecutors(t *testing.T) {
 	}
 	productControlRoot := filepath.Join(t.TempDir(), ".nimi")
 	cfg.LocalStatePath = filepath.Join(productControlRoot, "runtime", "local-state.json")
-	server, err := newServer(cfg, health.NewState(), slog.New(slog.NewTextHandler(io.Discard, nil)), "test", nil, productControlRoot, localservice.ProductControlDataRootSecurityBinding{})
+	runtimeState := health.NewState()
+	server, err := newServer(cfg, runtimeState, slog.New(slog.NewTextHandler(io.Discard, nil)), "test", nil, productControlRoot, localservice.ProductControlDataRootSecurityBinding{})
 	if err != nil {
 		t.Fatalf("grpcserver.New: %v", err)
+	}
+	if server.CognitionService() == nil {
+		t.Fatal("expected real cognition service")
+	}
+	if _, registered := server.grpcServer.GetServiceInfo()[runtimev1.RuntimeCognitionService_ServiceDesc.ServiceName]; !registered {
+		t.Fatal("expected Runtime Cognition service registration")
+	}
+	runtimeState.SetStatus(health.StatusReady, "runtime core ready")
+	server.SyncServingState()
+	healthResp, err := server.healthServer.Check(context.Background(), &healthpb.HealthCheckRequest{Service: runtimev1.RuntimeCognitionService_ServiceDesc.ServiceName})
+	if err != nil {
+		t.Fatalf("Cognition health check: %v", err)
+	}
+	if got := healthResp.GetStatus(); got != healthpb.HealthCheckResponse_SERVING {
+		t.Fatalf("Cognition health = %v, want SERVING", got)
 	}
 	t.Cleanup(func() {
 		_ = server.Stop(context.Background())
@@ -105,6 +122,114 @@ func TestNewConfiguresRuntimeAgentDefaultExecutors(t *testing.T) {
 	}
 	if !appSvc.HasInternalConsumer("runtime.agent") {
 		t.Fatal("expected runtime.agent app consumer to be configured")
+	}
+}
+
+func TestNewKeepsRuntimeCoreAvailableWhenCognitionInitializationFails(t *testing.T) {
+	productControlRoot := filepath.Join(t.TempDir(), ".nimi")
+	runtimeStateRoot := filepath.Join(productControlRoot, "runtime")
+	if err := os.MkdirAll(runtimeStateRoot, 0o700); err != nil {
+		t.Fatalf("create runtime state root: %v", err)
+	}
+	cognitionRoot := filepath.Join(runtimeStateRoot, "runtime-cognition")
+	if err := os.WriteFile(cognitionRoot, []byte("blocks cognition directory creation"), 0o600); err != nil {
+		t.Fatalf("create cognition-specific initialization blocker: %v", err)
+	}
+
+	cfg := config.Config{
+		GRPCAddr:             "127.0.0.1:0",
+		HTTPAddr:             "127.0.0.1:0",
+		ShutdownTimeout:      2 * time.Second,
+		LocalStatePath:       filepath.Join(runtimeStateRoot, "local-state.json"),
+		AuditRingBufferSize:  64,
+		UsageStatsBufferSize: 64,
+		IdempotencyCapacity:  32,
+	}
+	state := health.NewState()
+	state.SetStatus(health.StatusReady, "runtime core ready")
+	var logs bytes.Buffer
+	server, err := newServer(
+		cfg,
+		state,
+		slog.New(slog.NewTextHandler(&logs, nil)),
+		"test",
+		nil,
+		productControlRoot,
+		localservice.ProductControlDataRootSecurityBinding{},
+	)
+	if err != nil {
+		t.Fatalf("grpcserver.New with unavailable Cognition: %v", err)
+	}
+	t.Cleanup(func() {
+		_ = server.Stop(context.Background())
+		if svc := server.LocalService(); svc != nil {
+			svc.Close()
+		}
+		if svc := server.MemoryService(); svc != nil {
+			_ = svc.Close()
+		}
+		if svc := server.CognitionService(); svc != nil {
+			_ = svc.Close()
+		}
+		if svc := server.AgentService(); svc != nil {
+			svc.Close()
+		}
+	})
+
+	if server.CognitionService() != nil {
+		t.Fatal("Cognition implementation must remain nil after initialization failure")
+	}
+	services := server.grpcServer.GetServiceInfo()
+	if _, registered := services[runtimev1.RuntimeCognitionService_ServiceDesc.ServiceName]; !registered {
+		t.Fatal("expected fail-closed Runtime Cognition boundary registration")
+	}
+	if _, registered := services[runtimev1.RuntimeLocalService_ServiceDesc.ServiceName]; !registered {
+		t.Fatal("expected Runtime Local core service registration")
+	}
+	if got := state.Snapshot().Status; got != health.StatusReady {
+		t.Fatalf("runtime core status = %v, want READY", got)
+	}
+
+	assertServingStatus := func(service string, want healthpb.HealthCheckResponse_ServingStatus) {
+		t.Helper()
+		resp, checkErr := server.healthServer.Check(context.Background(), &healthpb.HealthCheckRequest{Service: service})
+		if checkErr != nil {
+			t.Fatalf("health check %q: %v", service, checkErr)
+		}
+		if got := resp.GetStatus(); got != want {
+			t.Fatalf("health check %q = %v, want %v", service, got, want)
+		}
+	}
+	assertServingStatus("", healthpb.HealthCheckResponse_SERVING)
+	assertServingStatus(runtimev1.RuntimeLocalService_ServiceDesc.ServiceName, healthpb.HealthCheckResponse_SERVING)
+	assertServingStatus(runtimev1.RuntimeCognitionService_ServiceDesc.ServiceName, healthpb.HealthCheckResponse_NOT_SERVING)
+
+	if output := logs.String(); !strings.Contains(output, "runtime cognition capability unavailable after initialization failure") ||
+		!strings.Contains(output, runtimev1.ReasonCode_AI_LOCAL_SERVICE_UNAVAILABLE.String()) {
+		t.Fatalf("missing structured Cognition initialization failure log: %s", output)
+	}
+	info, err := os.Stat(cognitionRoot)
+	if err != nil {
+		t.Fatalf("inspect cognition initialization blocker: %v", err)
+	}
+	if !info.Mode().IsRegular() {
+		t.Fatalf("cognition initialization blocker mode = %v, want unchanged regular file", info.Mode())
+	}
+}
+
+func TestNewStillFailsForCorePrerequisiteError(t *testing.T) {
+	productControlRoot := filepath.Join(t.TempDir(), ".nimi")
+	_, err := newServer(
+		config.Config{IdempotencyCapacity: 0},
+		health.NewState(),
+		slog.New(slog.NewTextHandler(io.Discard, nil)),
+		"test",
+		nil,
+		productControlRoot,
+		localservice.ProductControlDataRootSecurityBinding{},
+	)
+	if err == nil || !strings.Contains(err.Error(), "configure idempotency store") {
+		t.Fatalf("core prerequisite error = %v, want configure idempotency store failure", err)
 	}
 }
 

@@ -427,6 +427,24 @@ func sameProductControlPath(left string, right string) bool {
 	return left == right
 }
 
+// @nimi-authority: rule.nimi.cognition.runtime-bridge.r010
+// composeCognitionService keeps Cognition construction inside its optional
+// capability failure domain while preserving a registered fail-closed RPC
+// boundary when its implementation is unavailable.
+func composeCognitionService(logger *slog.Logger, cfg config.Config, memorySvc *memoryservice.Service, authorizer cognitionservice.KnowledgeAuthorizer) (runtimev1.RuntimeCognitionServiceServer, *cognitionservice.Service) {
+	cognitionSvc, err := cognitionservice.New(logger, cfg, memorySvc, authorizer)
+	if err == nil {
+		return cognitionSvc, cognitionSvc
+	}
+	logger.Error(
+		"runtime cognition capability unavailable after initialization failure",
+		"capability", runtimev1.RuntimeCognitionService_ServiceDesc.ServiceName,
+		"reason_code", runtimev1.ReasonCode_AI_LOCAL_SERVICE_UNAVAILABLE.String(),
+		"error", err,
+	)
+	return cognitionservice.NewUnavailableService(), nil
+}
+
 func newServer(cfg config.Config, state *health.State, logger *slog.Logger, version string, protected *ProtectedServiceBindings, productControlRoot string, productControlSecurity localservice.ProductControlDataRootSecurityBinding) (*Server, error) {
 	addr := cfg.GRPCAddr
 	auditStore := auditlog.New(cfg.AuditRingBufferSize, cfg.UsageStatsBufferSize)
@@ -787,19 +805,14 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 	logger.Info("runtime in-process mode enabled")
 
 	knowledgeAuthorizer := cognitionservice.NewAccountKnowledgeAuthorizer(logger, accountSvc)
-	cognitionSvc, err := cognitionservice.New(logger, cfg, memorySvc, knowledgeAuthorizer)
-	if err != nil {
-		_ = memorySvc.Close()
-		localSvc.Close()
-		return nil, fmt.Errorf("init cognition service: %w", err)
-	}
+	cognitionRPCSvc, cognitionSvc := composeCognitionService(logger, cfg, memorySvc, knowledgeAuthorizer)
 
 	externalAgentSvc := externalagentservice.New(logger)
 	runtimev1.RegisterRuntimeExternalAgentServiceServer(g, externalAgentSvc)
 	runtimev1.RegisterRuntimeAuthServiceServer(g, authSvc)
 	runtimev1.RegisterRuntimeServiceControlServiceServer(g, runtimeControlSvc)
 	runtimev1.RegisterRuntimeAccountServiceServer(g, accountSvc)
-	runtimev1.RegisterRuntimeCognitionServiceServer(g, cognitionSvc)
+	runtimev1.RegisterRuntimeCognitionServiceServer(g, cognitionRPCSvc)
 	appOptions := []appservice.Option{
 		appservice.WithSessionValidator(authSvc),
 		appservice.WithAppStorageDataRoot(cfg.DataRootRef),
