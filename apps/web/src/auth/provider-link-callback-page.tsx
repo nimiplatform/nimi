@@ -1,7 +1,11 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
+import { ReasonCode, createNimiError } from '@nimiplatform/sdk/types';
 import { createWebBrowserRealm } from './browser-realm.js';
-import { completeTikTokAccountOAuth } from './web-provider-link.js';
+import {
+  completeTikTokAccountOAuth,
+  confirmCurrentWebBrowserSession,
+} from './web-provider-link.js';
 import { readValidatedOauthNext } from './oauth-continuation.js';
 
 type PendingTwoFactor = { tempToken: string; oauthNext?: string };
@@ -53,8 +57,15 @@ export function ProviderLinkCallbackPage() {
       body: { tempToken: twoFactor.tempToken, code },
     }).then((response) => {
       if (response && typeof response === 'object' && ('accessToken' in response || 'refreshToken' in response)) {
-        throw new Error('Realm 向 Web browser session 返回了禁止的 bearer。');
+        throw createNimiError({
+          message: 'Realm 向 Web browser session 返回了禁止的 bearer。',
+          reasonCode: ReasonCode.SDK_REALM_AUTH_RESPONSE_INVALID,
+          actionHint: 'check_realm_auth_response',
+          source: 'sdk',
+        });
       }
+      return confirmCurrentWebBrowserSession();
+    }).then(() => {
       finishLogin(twoFactor.oauthNext);
     }).catch((reason) => setError(reason instanceof Error ? reason.message : String(reason || '两步验证失败')));
   };

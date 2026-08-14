@@ -2,8 +2,10 @@ import {
   NIMI_REALM_OAUTH_PROVIDER,
   linkNimiRealmOAuth,
   loginNimiRealmOAuth,
+  toNimiRealmAuthUserRecord,
   type NimiRealmOAuthLoginResult,
 } from '@nimiplatform/sdk/realm';
+import { ReasonCode, createNimiError } from '@nimiplatform/sdk/types';
 import { createWebBrowserRealm } from './browser-realm.js';
 import { readValidatedOauthNext } from './oauth-continuation.js';
 
@@ -109,6 +111,22 @@ export type CompletedTikTokAccountOAuth = {
   loginResult?: NimiRealmOAuthLoginResult;
 };
 
+function browserSessionContractError(message: string): Error {
+  return createNimiError({
+    message,
+    reasonCode: ReasonCode.SDK_REALM_AUTH_RESPONSE_INVALID,
+    actionHint: 'check_realm_auth_response',
+    source: 'sdk',
+  });
+}
+
+export async function confirmCurrentWebBrowserSession(): Promise<void> {
+  const currentUser = toNimiRealmAuthUserRecord(await createWebBrowserRealm('').me());
+  if (!currentUser) {
+    throw browserSessionContractError('Realm did not confirm the current browser session.');
+  }
+}
+
 export async function completeTikTokAccountOAuth(search: string): Promise<CompletedTikTokAccountOAuth> {
   const pending = consumePendingProviderLink();
   const query = new URLSearchParams(search);
@@ -128,6 +146,11 @@ export async function completeTikTokAccountOAuth(search: string): Promise<Comple
     return { mode: pending.mode };
   }
   const loginResult = await loginNimiRealmOAuth(createWebBrowserRealm(''), input);
-  if (loginResult.tokens != null) throw new Error('Realm 向 Web browser session 返回了禁止的 bearer。');
+  if (loginResult.tokens != null) {
+    throw browserSessionContractError('Realm 向 Web browser session 返回了禁止的 bearer。');
+  }
+  if (loginResult.loginState === 'ok' || loginResult.loginState === 'needs_onboarding') {
+    await confirmCurrentWebBrowserSession();
+  }
   return { mode: pending.mode, oauthNext: pending.oauthNext, loginResult };
 }

@@ -1,6 +1,8 @@
 import type { FormEvent } from 'react';
 import {
   NIMI_REALM_OAUTH_LOGIN_STATE,
+  ReasonCode,
+  createNimiError,
   toNimiRealmAuthUserRecord,
   type NimiRealmOAuthLoginResult,
 } from '@nimiplatform/kit/core/sdk-contract';
@@ -17,6 +19,15 @@ import { saveRememberedLogin, clearRememberedLogin } from './remember-login.js';
 import { getGoogleClientId, requestGoogleIdToken } from './google-helpers.js';
 
 type OAuthLoginResultDto = NimiRealmOAuthLoginResult;
+
+function browserSessionContractError(message: string): Error {
+  return createNimiError({
+    message,
+    reasonCode: ReasonCode.SDK_REALM_AUTH_RESPONSE_INVALID,
+    actionHint: 'check_realm_auth_response',
+    source: 'sdk',
+  });
+}
 
 // ---------------------------------------------------------------------------
 // State setter interface — passed by the AuthMenu component
@@ -46,7 +57,7 @@ export async function completeBrowserSession(
   adapter: WebAccountAuthAdapter,
 ): Promise<void> {
   const user = toNimiRealmAuthUserRecord(await adapter.completeBrowserSessionLogin());
-  if (!user) throw new Error(AUTH_COPY.loginMissingTokenPayload);
+  if (!user) throw browserSessionContractError(AUTH_COPY.browserSessionMissingCurrentUser);
   setters.setAuthSession(user);
 
   if (adapter.syncAfterLogin) {
@@ -72,6 +83,12 @@ export async function handleLoginResult(
   adapter: WebAccountAuthAdapter,
   twoFactorReturnView: AuthView = 'main',
 ): Promise<void> {
+  if (result.tokens != null) {
+    throw browserSessionContractError(
+      'Realm browser-session authentication returned forbidden bearer material.',
+    );
+  }
+
   if (result.loginState === NIMI_REALM_OAUTH_LOGIN_STATE.BLOCKED) {
     setters.setLoginError(String(result.blockedReason || '账号不可用，请联系支持团队。'));
     return;
@@ -85,8 +102,13 @@ export async function handleLoginResult(
     return;
   }
 
-  if (result.tokens != null) {
-    throw new Error('Realm browser-session authentication returned forbidden bearer material.');
+  if (
+    result.loginState !== NIMI_REALM_OAUTH_LOGIN_STATE.OK
+    && result.loginState !== NIMI_REALM_OAUTH_LOGIN_STATE.NEEDS_ONBOARDING
+  ) {
+    throw browserSessionContractError(
+      'Realm authentication response did not establish a browser session.',
+    );
   }
   await completeBrowserSession(successMessage, setters, adapter);
 

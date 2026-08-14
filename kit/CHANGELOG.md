@@ -36,6 +36,13 @@ Discipline.
 
 ### Changed
 
+- **Breaking (0.x):** `handleSocialOAuthLogin` now completes only a
+  Realm-owned browser session. `OAuthLoginInput.onSuccess` is a payload-free
+  completion signal, callers must provide the canonical
+  `completeBrowserSessionLogin` current-user refresh, and token-mode or
+  unconfirmed responses fail closed. The former bearer callback has no
+  compatibility overload or alias.
+
 - **Breaking (0.x):** The mixed `ShellAuthPage` / `DesktopShellAuthPage` and
   `AuthPlatformAdapter` exports are replaced by separate `WebAccountAuthPage`
   with `WebAccountAuthAdapter` from `@nimiplatform/kit/auth`, and

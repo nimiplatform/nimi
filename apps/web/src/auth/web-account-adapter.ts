@@ -10,6 +10,7 @@ import {
   verifyNimiRealmEmailOtp,
   type NimiRealmOAuthLoginResult,
 } from '@nimiplatform/sdk/realm';
+import { ReasonCode, createNimiError } from '@nimiplatform/sdk/types';
 import type { WebAccountAuthAdapter } from '@nimiplatform/kit/auth';
 import { continueOauthNext } from './oauth-continuation.js';
 import { beginTikTokAccountLogin } from './web-provider-link.js';
@@ -17,7 +18,12 @@ import { createWebBrowserRealm } from './browser-realm.js';
 
 function rejectBearerResponse(result: NimiRealmOAuthLoginResult): NimiRealmOAuthLoginResult {
   if (result.tokens != null) {
-    throw new Error('Realm returned bearer material to the browser-session surface.');
+    throw createNimiError({
+      message: 'Realm returned bearer material to the browser-session surface.',
+      reasonCode: ReasonCode.SDK_REALM_AUTH_RESPONSE_INVALID,
+      actionHint: 'check_realm_auth_response',
+      source: 'sdk',
+    });
   }
   return result;
 }

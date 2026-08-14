@@ -1,8 +1,7 @@
 import { toErrorMessage } from './oauth-helpers.js';
 
 export const AUTH_COPY = {
-  loginMissingAccessToken: '登录返回缺少访问令牌',
-  loginMissingTokenPayload: '登录返回缺少令牌数据',
+  browserSessionMissingCurrentUser: '无法确认当前浏览器会话',
   onboardingPending: '已登录，请完成资料设置。',
   googleClientIdMissing: '缺少 Google 客户端 ID（VITE_NIMI_GOOGLE_CLIENT_ID）',
   googleInitFailed: 'Google 初始化失败，请重试。',

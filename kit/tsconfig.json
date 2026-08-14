@@ -55,6 +55,7 @@
     "auth/src/**/*.ts",
     "auth/src/**/*.tsx",
     "auth/src/**/*.d.ts",
+    "auth/test/**/*.typecheck.ts",
     "core/src/**/*.ts",
     "features/**/*.ts",
     "features/**/*.tsx",
