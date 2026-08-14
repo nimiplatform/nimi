@@ -110,6 +110,7 @@ export function classifyOutlineCompatibility(renderer: string | null): boolean {
   return true;
 }
 
+// @nimi-authority: rule.nimi.avatar.embodiment.r061
 /**
  * Construct an MToon material loader plugin instance for use as the
  * `mtoonMaterialPlugin` option of `VRMLoaderPlugin`. Outline rendering is

@@ -579,6 +579,7 @@ func runtimeSourceRefForRealmSourceV3(ref sourceMaterializationCharacterSourceRe
 	return localAgentRealmRuntimeSourceRefPrefixV3 + digest, nil
 }
 
+// @nimi-authority: definition.nimi.runtime.agent-service.local-agent-materialization-plane
 func (s *Service) prepareRealmSourceMaterializationProductV3(
 	ctx context.Context,
 	accountID string,

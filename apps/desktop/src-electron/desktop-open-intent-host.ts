@@ -39,6 +39,7 @@ export type DesktopElectronOpenIntentHost = {
   readonly shutdown: () => Promise<void>;
 };
 
+// @nimi-authority: rule.nimi.platform.core-protocol.p-dopen-006
 export async function createDesktopElectronOpenIntentHost(input: {
   readonly homeDirectory: string;
   readonly focusMainWindow: () => Promise<void>;

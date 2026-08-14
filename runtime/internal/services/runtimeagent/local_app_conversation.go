@@ -56,6 +56,9 @@ func (s *Service) SetLocalAppIngressRevalidator(revalidator localAppIngressReval
 	}
 }
 
+// @nimi-authority: definition.nimi.runtime.agent-participation.app-consume-plane
+// @nimi-authority: rule.nimi.runtime.agent-participation.r093
+// @nimi-authority: rule.nimi.platform.app-ecosystem.p-agid-003a
 func (s *Service) OpenLocalAppConversation(
 	ctx context.Context,
 	req *runtimev1.OpenLocalAppConversationRequest,

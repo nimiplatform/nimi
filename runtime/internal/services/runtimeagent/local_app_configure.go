@@ -26,6 +26,9 @@ func authorizedLocalAppSharedAIConfig(ctx context.Context, operation accountserv
 	return decision, nil
 }
 
+// @nimi-authority: definition.nimi.platform.app-ecosystem.agent-configuration-operation-family
+// @nimi-authority: rule.nimi.platform.app-ecosystem.p-agid-010a
+// @nimi-authority: rule.nimi.platform.app-ecosystem.p-agid-010b
 func (s *Service) GetLocalAppSharedLocalAgentAIConfig(ctx context.Context, req *runtimev1.GetLocalAppSharedLocalAgentAIConfigRequest) (*runtimev1.GetLocalAppSharedLocalAgentAIConfigResponse, error) {
 	if req == nil {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)

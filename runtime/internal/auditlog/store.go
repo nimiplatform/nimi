@@ -38,6 +38,7 @@ type UsageInput struct {
 	QueueWaitMs   int64
 }
 
+// @nimi-authority: definition.nimi.runtime.rpc-foundations.audit-plane
 // Store is an in-memory audit and usage sink.
 type Store struct {
 	mu        sync.RWMutex

@@ -8,6 +8,7 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 )
 
+// @nimi-authority: definition.nimi.runtime.agent-participation.hook-intent-plane
 func (s *Service) armPublicChatFollowUp(followUp *publicChatFollowUpState) {
 	if followUp == nil || s == nil || s.isClosed() || !s.canRunPublicChatFollowUps() {
 		return

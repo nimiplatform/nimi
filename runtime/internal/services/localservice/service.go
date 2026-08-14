@@ -52,6 +52,7 @@ type RuntimeAccountProjectionProvider interface {
 	AuthenticatedRuntimeProjection(context.Context) (*runtimev1.AccountProjection, bool)
 }
 
+// @nimi-authority: definition.nimi.runtime.service-operations.local-service-plane
 // Service implements RuntimeLocalService with persisted local state.
 type Service struct {
 	runtimev1.UnimplementedRuntimeLocalServiceServer

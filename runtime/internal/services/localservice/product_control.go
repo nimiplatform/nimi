@@ -47,6 +47,10 @@ func (s *Service) EnsureProductControlRecordCreated(context.Context, *runtimev1.
 	return productControlJSON(s.readProductControlProjection(context.Background()))
 }
 
+// @nimi-authority: definition.nimi.platform.product-lifecycle.first-run-lifecycle
+// @nimi-authority: definition.nimi.platform.product-lifecycle.nimi-data-root
+// @nimi-authority: rule.nimi.platform.product-lifecycle.p-cold-010a
+// @nimi-authority: rule.nimi.platform.product-lifecycle.p-cold-010b
 func (s *Service) SelectProductControlDataRoot(_ context.Context, req *runtimev1.SelectProductControlDataRootRequest) (*runtimev1.ProductControlProjectionJson, error) {
 	trimmed := strings.TrimSpace(req.GetDataRoot())
 	if trimmed == "" {

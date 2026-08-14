@@ -29,6 +29,7 @@ export type ZhiyuRuntimeAgentScopeRunner = <T>(
 export const withZhiyuRuntimeAgentAccessRequired: ZhiyuRuntimeAgentScopeRunner =
   createZhiyuRuntimeAgentAccessScopeRunner(resolveZhiyuRuntimeAgentAccessDecisionFromHost);
 
+// @nimi-authority: rule.nimi.zhiyu.local-partner-surface.r006
 export function resolveZhiyuRuntimeAgentAccessDecision(input: {
   readonly localAppCarrier?: ZhiyuProtectedLocalAppCarrierInput | null;
 } = {}): ZhiyuRuntimeAgentAccessDecision {

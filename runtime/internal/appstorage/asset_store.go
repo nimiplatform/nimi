@@ -117,6 +117,7 @@ type assetOwnerState struct {
 	streams chan struct{}
 }
 
+// @nimi-authority: definition.nimi.runtime.app-surface.app-projection-plane
 type AssetStore struct {
 	dataRoot  string
 	baseRoot  string

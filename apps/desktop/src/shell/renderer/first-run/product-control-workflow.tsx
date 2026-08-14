@@ -17,6 +17,7 @@ type ProductControlWorkflowProps = {
   readonly onProjectionChange: (projection: NimiProductControlRecordProjection) => void;
 };
 
+// @nimi-authority: rule.nimi.platform.product-lifecycle.p-cold-014b
 export function ProductControlWorkflow(props: ProductControlWorkflowProps): ReactElement {
   const { t } = useTranslation();
   const firstRun = props.firstRun;

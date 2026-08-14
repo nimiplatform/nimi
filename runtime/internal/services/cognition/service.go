@@ -98,6 +98,8 @@ type storedKnowledgeBody struct {
 	Runtime json.RawMessage `json:"_runtime_page,omitempty"`
 }
 
+// @nimi-authority: definition.nimi.cognition.runtime-bridge.domain
+// @nimi-authority: rule.nimi.cognition.runtime-bridge.r002
 // New constructs the Runtime-owned cognition service around the internal
 // cognition adapter.
 func New(logger *slog.Logger, cfg config.Config, memorySvc *memoryservice.Service, authorizer KnowledgeAuthorizer) (*Service, error) {

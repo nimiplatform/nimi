@@ -21,6 +21,7 @@ import (
 const defaultHTTPTimeout = 5 * time.Minute
 const maxInlineOpenAIMediaBytes = 32 << 20
 
+// @nimi-authority: definition.nimi.runtime.ai-provider.nimillm-plane
 // Backend is an OpenAI-compatible HTTP backend for AI inference.
 type Backend struct {
 	Name    string

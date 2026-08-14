@@ -56,6 +56,7 @@ export function scaleByIntensity(intensity: number | null | undefined): number {
   return intensity;
 }
 
+// @nimi-authority: rule.nimi.avatar.embodiment.r006
 export function createVrmProjectionAdapter(
   input: CreateVrmProjectionAdapterInputs,
 ): BackendProjection {

@@ -123,6 +123,7 @@ export type DesktopElectronLocalDevelopmentHost = {
   readonly shutdown: () => Promise<void>;
 };
 
+// @nimi-authority: rule.nimi.platform.app-ecosystem.p-napp-035f
 export async function createDesktopElectronLocalDevelopmentHost(input: {
   readonly homeDirectory: string;
   readonly control?: NimiElectronLocalDevelopmentControl;

@@ -22,6 +22,10 @@ const (
 	productDataRootStatusRepairRequired productDataRootStatus = "repair_required"
 )
 
+// @nimi-authority: definition.nimi.platform.product-lifecycle.product-control-record
+// @nimi-authority: rule.nimi.platform.product-lifecycle.p-cold-009b
+// @nimi-authority: rule.nimi.platform.product-lifecycle.p-cold-015-wire-shape
+// @nimi-authority: rule.nimi.platform.product-lifecycle.p-cold-015-data-root-wire-shape
 type productControlRecord struct {
 	SchemaVersion  int                    `json:"schemaVersion"`
 	InstallID      string                 `json:"installId"`

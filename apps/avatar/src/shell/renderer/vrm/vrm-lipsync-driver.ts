@@ -146,6 +146,7 @@ function decayAll(
   }
 }
 
+// @nimi-authority: rule.nimi.avatar.embodiment.r062
 export function createVrmLipsyncDriver(
   input?: CreateVrmLipsyncDriverInputs,
 ): VrmLipsyncDriver {

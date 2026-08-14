@@ -3,6 +3,7 @@ import type { ZhiyuConversationHomeStatus } from '../agent/conversation-home';
 
 export type ZhiyuRuntimeTurnStatus = ZhiyuEvidence['turn'];
 
+// @nimi-authority: rule.nimi.zhiyu.local-partner-surface.r013
 // The admitted local-app conversation surface is the execution boundary.
 // Readiness depends on the App Access inventory projection and the opaque
 // Agent/conversation handles materialized by the protected surface.

@@ -70,6 +70,7 @@ func Decode(token string) (cursor string, filterDigest string, err error) {
 	return payload.Cursor, payload.FilterDigest, nil
 }
 
+// @nimi-authority: definition.nimi.runtime.rpc-foundations.pagination-plane
 // ValidatePageToken decodes the token and verifies the filter digest matches.
 // If the digest doesn't match, the token is invalid (filters changed between pages).
 func ValidatePageToken(token string, currentFilterDigest string) (cursor string, err error) {

@@ -27,6 +27,7 @@ const (
 	localSidecarEndpointEnv      = "NIMI_RUNTIME_LOCAL_SIDECAR_BASE_URL"
 )
 
+// @nimi-authority: definition.nimi.runtime.ai-provider.model-service-plane
 // Service implements RuntimeModelService with an in-memory registry.
 type Service struct {
 	runtimev1.UnimplementedRuntimeModelServiceServer

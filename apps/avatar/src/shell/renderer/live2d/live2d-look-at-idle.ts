@@ -91,6 +91,7 @@ function resolveSupport(model: Live2DVisualModelShape): Omit<Live2DLookAtIdleFra
   };
 }
 
+// @nimi-authority: rule.nimi.avatar.embodiment.r039
 export function createLive2DLookAtIdleController(
   model: Live2DVisualModelShape,
 ): Live2DLookAtIdleController {

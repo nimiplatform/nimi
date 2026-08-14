@@ -18,6 +18,7 @@ export type DesktopAppsPanelProjection =
   | { readonly status: 'loaded'; readonly entries: readonly DesktopAppsEntry[] }
   | { readonly status: 'error'; readonly detail: string };
 
+// @nimi-authority: rule.nimi.platform.product-lifecycle.p-home-009a
 export async function projectAppsPanel(
   source: DesktopAppsProjectionSource,
 ): Promise<DesktopAppsPanelProjection> {

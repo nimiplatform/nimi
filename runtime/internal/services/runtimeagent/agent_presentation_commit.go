@@ -22,6 +22,7 @@ type agentPresentationMutation struct {
 	importedAssets []*runtimev1.AgentPresentationAssetMaterial
 }
 
+// @nimi-authority: definition.nimi.runtime.agent-participation.presentation-profile-plane
 // commitAgentPresentation is the single presentation replacement algorithm
 // used by both first-party and local-app carriers. Validation produces no
 // durable state. Official asset rows, profile replacement, previous-selection

@@ -74,6 +74,7 @@ export function createNimi2DAlphaHitProbe(input: {
   viewport?: Nimi2DAlphaHitViewport | (() => Nimi2DAlphaHitViewport | null);
 }): Promise<Nimi2DAlphaHitProbe>;
 
+// @nimi-authority: rule.nimi.nimi2d.asset-package.r005
 export function probeNimi2DVisualFrame(input: {
   renderPlan: Nimi2DRenderPlan;
   decodeImage?: Nimi2DImageDecoder;

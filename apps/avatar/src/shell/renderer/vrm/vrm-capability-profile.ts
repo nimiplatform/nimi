@@ -59,6 +59,7 @@ export type VrmCapabilityProfile = {
   };
 };
 
+// @nimi-authority: rule.nimi.avatar.embodiment.r068
 export function createVrmCapabilityProfile(vrm: VRM): VrmCapabilityProfile {
   const humanoidBones = {} as Record<VrmBoneName, boolean>;
   for (const bone of VRM_CAPABILITY_REQUIRED_BONES) {

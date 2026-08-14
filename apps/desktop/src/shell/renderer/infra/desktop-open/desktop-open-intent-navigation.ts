@@ -15,6 +15,7 @@ export type DesktopOpenIntentStore = Pick<AppStoreState,
   | 'setAppsDetailAppId'
 >;
 
+// @nimi-authority: rule.nimi.platform.core-protocol.p-dopen-003
 export function applyDesktopOpenIntentToAppStore(
   intent: NimiDesktopOpenIntent,
   input: {

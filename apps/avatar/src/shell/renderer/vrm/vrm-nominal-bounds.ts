@@ -90,6 +90,7 @@ function clamp(value: number, min: number, max: number): number {
   return value;
 }
 
+// @nimi-authority: rule.nimi.avatar.embodiment.r059
 /**
  * Derive `BackendNominalBounds` from a VRM scene + framing intent.
  *

@@ -81,6 +81,7 @@ const ROUTE_TEMPLATES: Readonly<Record<VrmGeneratedRouteId, RouteTemplate>> =
     },
   });
 
+// @nimi-authority: rule.nimi.avatar.embodiment.r058
 export function createDeterministicVrmGeneratedMotionProvider(
   options: DeterministicVrmGeneratedMotionProviderOptions = {},
 ): VrmGeneratedMotionProvider<VRM> {

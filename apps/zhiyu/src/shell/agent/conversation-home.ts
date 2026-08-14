@@ -9,6 +9,7 @@ type LocalAgentIdentity = {
   readonly agentHandle: NimiLocalAppAgentHandle;
 };
 
+// @nimi-authority: rule.nimi.zhiyu.local-partner-surface.r003
 export async function probeZhiyuRuntimeConversationHome(
   localAgent: ZhiyuLocalAgentStatus,
 ): Promise<ZhiyuConversationHomeStatus> {

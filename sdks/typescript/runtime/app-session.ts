@@ -56,6 +56,7 @@ type CachedRuntimeAppSession = {
 const NIMI_RUNTIME_APP_SESSION_DEFAULT_TTL_SECONDS = 3600;
 const NIMI_RUNTIME_APP_SESSION_DEFAULT_REFRESH_SKEW_MS = 60_000;
 
+// @nimi-deprecated: rule.nimi.platform.core-protocol.p-proto-060
 export function createNimiRuntimeFullAppRegistration(
   resolveRuntime: RuntimeResolver,
   input: NimiRuntimeAppRegistrationInput,

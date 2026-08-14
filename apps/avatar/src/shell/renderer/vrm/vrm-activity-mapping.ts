@@ -37,6 +37,7 @@ export type VrmActivityMappingResolver = {
   isPassthrough(activityId: string): boolean;
 };
 
+// @nimi-authority: rule.nimi.avatar.embodiment.r071
 export function createVrmActivityMappingResolver(): VrmActivityMappingResolver {
   return {
     resolveVrmRoute(activityId) {

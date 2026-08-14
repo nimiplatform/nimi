@@ -141,6 +141,9 @@ type contractRow struct {
 	domain    Domain
 }
 
+// @nimi-authority: definition.nimi.platform.core-protocol.app-operation-contract
+// @nimi-authority: rule.nimi.platform.core-protocol.p-proto-021
+// @nimi-authority: rule.nimi.runtime.security-core.r087
 // canonicalAppOperationContract is the sole Runtime operation-ID and
 // classification map. AppOperationIds intentionally occur nowhere else.
 var canonicalAppOperationContract = [...]contractRow{

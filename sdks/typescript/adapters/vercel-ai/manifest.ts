@@ -2,6 +2,7 @@ import type { NimiCapabilityManifest } from '@nimiplatform/sdk/contracts';
 
 export const NIMI_VERCEL_AI_ADAPTER_ID = 'vercel-ai' as const;
 
+// @nimi-authority: rule.nimi.sdks.feature-clients.r006
 export const NIMI_VERCEL_AI_ADAPTER_MANIFEST = {
   adapterId: NIMI_VERCEL_AI_ADAPTER_ID,
   targetLibrary: 'Vercel AI SDK',

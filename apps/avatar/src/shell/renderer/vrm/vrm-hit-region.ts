@@ -42,6 +42,7 @@ const FULL_VIEWPORT_RECT: BackendHitRegion['body'] = Object.freeze({
   bottom: 1,
 });
 
+// @nimi-authority: rule.nimi.avatar.embodiment.r062
 export function createVrmHitRegion(input: CreateVrmHitRegionInputs): BackendHitRegion {
   const tier = input.deviceTier ?? 'C';
 

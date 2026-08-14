@@ -93,6 +93,7 @@ export interface Live2DLipsyncDriver {
   silent(setParameter: (id: string, value: number) => void): void;
 }
 
+// @nimi-authority: rule.nimi.avatar.embodiment.r040
 export function createLive2DLipsyncDriver(): Live2DLipsyncDriver {
   const smoothState: Record<LipKey, number> = { A: 0, E: 0, I: 0, O: 0, U: 0 };
   let lastActiveAtMs = 0;

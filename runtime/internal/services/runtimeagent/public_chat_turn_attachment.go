@@ -9,6 +9,7 @@ import (
 	"google.golang.org/grpc/status"
 )
 
+// @nimi-authority: definition.nimi.runtime.agent-participation.user-attachment-plane
 // resolvePublicChatTurnAttachments revalidates every caller-referenced
 // attachment against the Runtime artifact store at turn admission
 // (rule.nimi.runtime.agent-participation.r171/r172): the artifact must exist,

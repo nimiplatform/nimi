@@ -70,6 +70,7 @@ export type VrmRuntime = {
   subscribe(listener: (state: VrmRenderState) => void): () => void;
 };
 
+// @nimi-authority: rule.nimi.avatar.embodiment.r057
 export function createVrmRuntime(opts: VrmRuntimeOptions): VrmRuntime {
   const loader = opts.loaderOverride ?? loadVrmFromManifest;
   const setTimeoutImpl: (handler: () => void, ms: number) => unknown =

@@ -19,6 +19,9 @@ import (
 
 const localAppAgentHandlePrefix = "agent_ref_"
 
+// @nimi-authority: definition.nimi.runtime.agent-participation.app-consume-plane
+// @nimi-authority: rule.nimi.platform.app-ecosystem.p-agid-009a
+// @nimi-authority: rule.nimi.platform.app-ecosystem.p-agid-009b
 // ListLocalAppAgentReferences projects every active LocalAgent owned by the
 // current account. Raw Runtime identity remains inside this owner adapter; the
 // returned handle is derived from the private technical session and is useful

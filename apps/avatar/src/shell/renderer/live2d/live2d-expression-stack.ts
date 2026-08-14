@@ -117,6 +117,7 @@ function decodeUtf8(bytes: ArrayBuffer): string {
   return new TextDecoder().decode(bytes);
 }
 
+// @nimi-authority: rule.nimi.avatar.embodiment.r037
 export function parseLive2DExpressionInventoryEntry(input: {
   expressionId: string;
   sourcePath: string;
@@ -284,6 +285,7 @@ function applyParameter(model: ParameterAccessModel, parameter: Live2DExpression
   }
 }
 
+// @nimi-authority: rule.nimi.avatar.embodiment.r038
 export function createLive2DExpressionOverlay(
   inventory: Live2DExpressionInventory,
 ) {

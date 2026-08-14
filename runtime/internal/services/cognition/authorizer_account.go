@@ -33,6 +33,7 @@ func NewAccountKnowledgeAuthorizer(logger *slog.Logger, resolver ...accountservi
 	return &accountKnowledgeAuthorizer{logger: logger, resolver: resolved}
 }
 
+// @nimi-authority: rule.nimi.cognition.runtime-bridge.r005
 // Authorize implements KnowledgeAuthorizer.
 func (a *accountKnowledgeAuthorizer) Authorize(ctx context.Context, req KnowledgeAuthRequest) (KnowledgeAuthResult, error) {
 	callerApp := trimCallerAppID(req.Caller)

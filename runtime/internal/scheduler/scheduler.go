@@ -115,6 +115,7 @@ type ResourceAssessor func() *ResourceSnapshot
 // Returns (feasible, detail). Injected by caller (daemon bootstrap).
 type DependencyFeasibilityChecker func(targetID string, profileID string, capability string) (feasible bool, detail string)
 
+// @nimi-authority: definition.nimi.runtime.memory-world.scheduling-plane
 // Scheduler enforces global and per-app concurrency limits.
 // Phase 2: adds resource-aware risk assessment via ResourceAssessor.
 type Scheduler struct {

@@ -61,6 +61,7 @@ type ConnectorMutations struct {
 	ProviderAuthProfile *string
 }
 
+// @nimi-authority: definition.nimi.runtime.ai-provider.connector-plane
 // ConnectorStore manages connector records and credentials on disk.
 type ConnectorStore struct {
 	mu           sync.Mutex

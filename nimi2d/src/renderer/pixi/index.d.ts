@@ -24,4 +24,5 @@ export type Nimi2DPixiRendererInput = {
   onReady?: (ready: Nimi2DPixiRendererReady) => void;
 };
 
+// @nimi-authority: rule.nimi.nimi2d.asset-package.r005
 export function createNimi2DPixiRenderer(input: Nimi2DPixiRendererInput): Promise<Nimi2DPixiRendererHandle>;

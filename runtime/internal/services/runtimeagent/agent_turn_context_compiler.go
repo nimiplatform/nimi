@@ -7,6 +7,7 @@ import (
 	"strings"
 )
 
+// @nimi-authority: definition.nimi.runtime.agent-service.context-composition-plane
 func compileAgentTurnContext(input agentTurnContextCompileInput) (*agentTurnContextCompilation, error) {
 	if err := validateAgentTurnContextCompileInput(input); err != nil {
 		return nil, err

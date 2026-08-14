@@ -76,6 +76,7 @@ func WrapWithReasonCode(
 	}
 }
 
+// @nimi-authority: definition.nimi.runtime.rpc-foundations.error-plane
 // WithReasonCodeOptions builds a gRPC status error with ErrorInfo details.
 // Extra transport-safe fields (action_hint/retryable/trace_id) are encoded in
 // ErrorInfo.Metadata and available to bridge/SDK layers.

@@ -16,6 +16,7 @@ type RelayOptions[T any] struct {
 	IsTerminal          func(T) bool
 }
 
+// @nimi-authority: definition.nimi.runtime.rpc-foundations.streaming-plane
 // Relay provides a bounded queue with deterministic slow-consumer closure.
 type Relay[T any] struct {
 	mu                  sync.Mutex

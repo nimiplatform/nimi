@@ -105,6 +105,9 @@ export interface NimiSharedLocalAgentAISurfaceOptions {
   readonly withScopes?: NimiRuntimeAgentScopeRunner;
 }
 
+// @nimi-authority: definition.nimi.sdks.feature-clients.ai-config-plane
+// @nimi-authority: rule.nimi.sdks.feature-clients.r012
+// @nimi-authority: rule.nimi.sdks.feature-clients.r014
 export function createNimiSharedLocalAgentAISurface(
   options: NimiSharedLocalAgentAISurfaceOptions,
 ): NimiSharedLocalAgentAISurface {

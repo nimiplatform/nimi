@@ -77,6 +77,7 @@ function applyParameterMap(input: {
   return applied;
 }
 
+// @nimi-authority: rule.nimi.avatar.embodiment.r036
 export function createLive2DParameterLaneScheduler(input: {
   now?: () => number;
   warn?: (message: string) => void;

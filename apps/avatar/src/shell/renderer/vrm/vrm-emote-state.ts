@@ -108,6 +108,7 @@ function validateBundle(name: string, bundle: VrmEmoteBundle): void {
   }
 }
 
+// @nimi-authority: rule.nimi.avatar.embodiment.r060
 export function createVrmEmoteState(input: CreateVrmEmoteStateInputs): VrmEmoteState {
   const { emoteTable } = input;
   if (!emoteTable || typeof emoteTable.emotes !== 'object' || emoteTable.emotes === null) {

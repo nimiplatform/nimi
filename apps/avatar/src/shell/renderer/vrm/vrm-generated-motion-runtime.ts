@@ -51,6 +51,7 @@ export function createMissingVrmGeneratedMotionProvider(): VrmGeneratedMotionPro
   };
 }
 
+// @nimi-authority: rule.nimi.avatar.embodiment.r058
 export function createVrmGeneratedMotionRuntime(
   provider: VrmGeneratedMotionProvider<VRM>,
 ): VrmGeneratedMotionRuntime<VRM> {

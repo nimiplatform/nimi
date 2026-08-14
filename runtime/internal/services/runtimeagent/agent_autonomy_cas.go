@@ -28,6 +28,7 @@ func validateAgentAutonomyMutationConfig(input *runtimev1.AgentAutonomyConfig) (
 	return normalizeAutonomyConfig(input), nil
 }
 
+// @nimi-authority: definition.nimi.runtime.agent-participation.autonomy-configuration-plane
 // updateAgentAutonomyCAS is the single atomic autonomy mutation implementation
 // shared by the first-party owner surface and the local-app update-autonomy
 // carrier. Authorization and identity resolution remain carrier-specific.
